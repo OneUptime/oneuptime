@@ -1,7 +1,10 @@
 import CommonAPI from "../../../Server/API/CommonAPI";
 import UserAPI from "../../../Server/API/UserAPI";
 import MasterAdminAuthorization from "../../../Server/Middleware/MasterAdminAuthorization";
+import ProjectMiddleware from "../../../Server/Middleware/ProjectAuthorization";
+import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
+import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -15,7 +18,9 @@ import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { DEFAULT_LIMIT } from "../../../Types/Database/LimitMax";
 import Dictionary from "../../../Types/Dictionary";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
+import JSONWebTokenData from "../../../Types/JsonWebTokenData";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import UserType from "../../../Types/UserType";
@@ -47,10 +52,25 @@ import {
  * (so the Owners-team guard runs before anything is deleted) with the caller's
  * own props rather than root.
  *
- * Both are guarded by the master-admin middleware, which is the only thing
+ * Both are guarded by a master-admin middleware, which is the only thing
  * standing between "list one user's projects" and "read across every tenant on
  * the instance". That the routes carry it is asserted directly, because
  * nothing else in these tests would notice its absence.
+ *
+ * The two carry DIFFERENT master-admin middlewares, and which one each carries
+ * is the security boundary of this file:
+ *
+ *   - /projects reads, so it takes
+ *     isAuthorizedMasterAdminOrMasterApiKeyMiddleware — a master-admin session
+ *     OR the instance-wide master API key, so scripts can call it.
+ *   - /remove-from-project writes, so it stays on
+ *     isAuthorizedMasterAdminMiddleware — session only. A leaked static key must
+ *     not be able to strip somebody's project access headlessly.
+ *
+ * A find/replace that "helpfully" widened the second one would leave every
+ * assertion about grouping, paging and deleting green, so the middlewares are
+ * asserted by identity, and the whole UserAPI route surface is swept to prove
+ * the read is the ONLY route the key can reach.
  */
 
 jest.mock("../../../Server/Utils/Express", () => {
@@ -78,9 +98,16 @@ jest.mock("../../../Server/Utils/Response", () => {
 const PROJECTS_ROUTE: string = "/user/:userId/projects";
 const REMOVE_ROUTE: string = "/user/:userId/remove-from-project";
 
+const AUTH_STATUS_ROUTE: string = "/user/:userId/authentication-status";
+const SET_PASSWORD_ROUTE: string = "/user/:userId/set-password";
+const RESET_LINK_ROUTE: string = "/user/:userId/send-password-reset-link";
+
 const USER_ID: string = "00000000-0000-4000-8000-000000000001";
 const PROJECT_ONE_ID: string = "00000000-0000-4000-8000-0000000000a1";
 const PROJECT_TWO_ID: string = "00000000-0000-4000-8000-0000000000a2";
+
+const MASTER_API_KEY: string = "8e1a3a52-6d64-4f1f-9a2e-5f0f9c1d2b34";
+const OTHER_API_KEY: string = "1c9d7f40-2b83-4a55-8e70-6d4b9a0c3e12";
 
 type MembershipSpec = {
   id: string;
@@ -206,9 +233,9 @@ describe("POST /user/:userId/projects", () => {
     }).not.toThrow();
   });
 
-  test("only a master admin can reach it", () => {
+  test("only a master admin — by session or by master API key — can reach it", () => {
     expect(mockRouter.match("POST", PROJECTS_ROUTE).middleware).toBe(
-      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
     );
   });
 
@@ -706,9 +733,18 @@ describe("POST /user/:userId/remove-from-project", () => {
     }).not.toThrow();
   });
 
-  test("only a master admin can reach it", () => {
+  /*
+   * Session only — deliberately NOT the middleware its read-only sibling
+   * carries. This route deletes, and the master API key is a static credential
+   * that lives in a config table and in whatever script holds it.
+   */
+  test("only a master admin SESSION can reach it, never the master API key", () => {
     expect(mockRouter.match("POST", REMOVE_ROUTE).middleware).toBe(
       MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+    );
+
+    expect(mockRouter.match("POST", REMOVE_ROUTE).middleware).not.toBe(
+      MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
     );
   });
 
@@ -849,4 +885,442 @@ describe("POST /user/:userId/remove-from-project", () => {
     expect(result.thrownToNext).toBe(guardError);
     expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
   });
+});
+
+/*
+ * The gate and the handler together, driven the way a real request arrives:
+ * through the route's middleware first, and only into the handler if the
+ * middleware lets it past.
+ *
+ * The describes above call handlerFunction directly, which is the right way to
+ * test grouping and paging but says nothing about who may call it — and this is
+ * a route that reads across EVERY tenant on the instance. Two failure modes
+ * live in the gap and neither is visible from either side alone:
+ *
+ *   - a caller who should be refused reaching the read anyway. Asserted as
+ *     "TeamMemberService.findBy was never called", not merely as "an error was
+ *     returned": returning 401 after already reading every membership on the
+ *     instance would satisfy the weaker assertion.
+ *   - the master-key path authorizing but the handler then failing, because the
+ *     key branch calls next() WITHOUT setting userAuthorization, userType or
+ *     tenantId on the request. A handler that read any of them would work under
+ *     a session and break under a key, and no unit test that hand-builds a
+ *     request would notice.
+ */
+describe("POST /user/:userId/projects — the master API key path", () => {
+  let findBySpy: jest.SpyInstance;
+
+  type MiddlewareCallResult = {
+    // Whether the gate let the request through to the read.
+    reachedHandler: boolean;
+    errorSentToClient: NotAuthorizedException | undefined;
+    // The request object as the handler saw it, to inspect what the gate set.
+    request: ExpressRequest;
+  };
+
+  async function callThroughMiddleware(data: {
+    headers: Dictionary<string | Array<string> | undefined>;
+    params?: Dictionary<string> | undefined;
+    query?: Dictionary<string> | undefined;
+  }): Promise<MiddlewareCallResult> {
+    const req: ExpressRequest = {
+      params: data.params || { userId: USER_ID },
+      query: data.query || {},
+      body: {},
+      headers: data.headers,
+    } as unknown as ExpressRequest;
+
+    const res: ExpressResponse = {
+      send: jest.fn(),
+      json: jest.fn(),
+      status: jest.fn().mockReturnThis(),
+    } as unknown as ExpressResponse;
+
+    const route: {
+      middleware: (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => void | Promise<void>;
+      handlerFunction: (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => void | Promise<void>;
+    } = mockRouter.match("POST", PROJECTS_ROUTE);
+
+    const middlewareNext: jest.Mock = jest.fn();
+
+    await route.middleware(req, res, middlewareNext as unknown as NextFunction);
+
+    const reachedHandler: boolean = middlewareNext.mock.calls.length > 0;
+
+    if (reachedHandler) {
+      await route.handlerFunction(
+        req,
+        res,
+        jest.fn() as unknown as NextFunction,
+      );
+    }
+
+    const errorCall: Array<unknown> | undefined = (
+      Response.sendErrorResponse as unknown as {
+        mock: { calls: Array<Array<unknown>> };
+      }
+    ).mock.calls[0];
+
+    return {
+      reachedHandler: reachedHandler,
+      errorSentToClient: errorCall?.[2] as NotAuthorizedException | undefined,
+      request: req,
+    };
+  }
+
+  beforeAll(() => {
+    mockRouter.routes.length = 0;
+    new UserAPI();
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    findBySpy = jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([
+      buildMembership({
+        id: "m1",
+        projectId: PROJECT_ONE_ID,
+        projectName: "Acme Production",
+        teamId: "team-owners",
+        teamName: "Owners",
+      }),
+      buildMembership({
+        id: "m2",
+        projectId: PROJECT_ONE_ID,
+        projectName: "Acme Production",
+        teamId: "team-eng",
+        teamName: "Engineering",
+      }),
+      buildMembership({
+        id: "m3",
+        projectId: PROJECT_TWO_ID,
+        projectName: "Beta Staging",
+        teamId: "team-ops",
+        teamName: "Ops",
+      }),
+    ]);
+
+    /*
+     * Stand in for the GlobalConfig lookup — only this one key is live. Spying
+     * here rather than on getApiKey keeps the real header parsing and the real
+     * UUID guard in the test.
+     */
+    jest.spyOn(ProjectMiddleware, "isMasterApiKey").mockImplementation(((
+      apiKey: ObjectID,
+    ): Promise<boolean> => {
+      return Promise.resolve(apiKey.toString() === MASTER_API_KEY);
+    }) as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  describe("when the master API key is presented", () => {
+    test("a request carrying nothing but the key gets the grouped list", async () => {
+      const result: MiddlewareCallResult = await callThroughMiddleware({
+        headers: { apikey: MASTER_API_KEY },
+      });
+
+      expect(result.reachedHandler).toBe(true);
+      expect(Response.sendErrorResponse).not.toHaveBeenCalled();
+      // Two projects out of three memberships — the grouping still happens.
+      expect(projectNamesSent()).toEqual(["Acme Production", "Beta Staging"]);
+      expect(sentCount()).toBe(2);
+    });
+
+    /*
+     * The handler must not depend on anything the key branch leaves unset. If
+     * this ever fails, the route works for the Admin Dashboard and 500s for
+     * every script — the exact split a route-registration test cannot see.
+     */
+    test("works even though the key branch sets no session state on the request", async () => {
+      const result: MiddlewareCallResult = await callThroughMiddleware({
+        headers: { apikey: MASTER_API_KEY },
+      });
+
+      const request: Dictionary<unknown> =
+        result.request as unknown as Dictionary<unknown>;
+
+      expect(request["userAuthorization"]).toBeUndefined();
+      expect(request["userType"]).toBeUndefined();
+      expect(request["tenantId"]).toBeUndefined();
+
+      // ...and the read happened anyway.
+      expect(findBySpy).toHaveBeenCalledTimes(1);
+      expect(Response.sendJsonArrayResponse).toHaveBeenCalledTimes(1);
+    });
+
+    test("still reads as root, so it can see projects the key's user is not in", async () => {
+      await callThroughMiddleware({ headers: { apikey: MASTER_API_KEY } });
+
+      const props: DatabaseCommonInteractionProps = (
+        findBySpy.mock.calls[0]![0] as { props: DatabaseCommonInteractionProps }
+      ).props;
+
+      expect(props.isRoot).toBe(true);
+    });
+
+    test("pages over projects on the key path too", async () => {
+      await callThroughMiddleware({
+        headers: { apikey: MASTER_API_KEY },
+        query: { skip: "1", limit: "1" },
+      });
+
+      expect(projectNamesSent()).toEqual(["Beta Staging"]);
+      // count stays the size of the whole grouped list, not of the page.
+      expect(sentCount()).toBe(2);
+    });
+
+    /*
+     * A key caller has no tenant, and this endpoint must not acquire one from a
+     * stray header: the handler passes literal `{ isRoot: true }` props, so
+     * there is no props.tenantId for the root tenant-scoping to apply. Worth
+     * pinning because "send projectid with the key" is a natural thing for a
+     * caller to try, and silently getting one project's worth of an answer
+     * would be worse than an error.
+     */
+    test("a projectid header does not narrow the read", async () => {
+      await callThroughMiddleware({
+        headers: { apikey: MASTER_API_KEY, projectid: PROJECT_ONE_ID },
+      });
+
+      const findBy: { query: Dictionary<unknown> } = findBySpy.mock
+        .calls[0]![0] as { query: Dictionary<unknown> };
+
+      expect(Object.keys(findBy.query)).toEqual(["userId"]);
+      expect(projectNamesSent()).toEqual(["Acme Production", "Beta Staging"]);
+    });
+
+    test("validates the user id before reading, key or no key", async () => {
+      const result: MiddlewareCallResult = await callThroughMiddleware({
+        headers: { apikey: MASTER_API_KEY },
+        params: { userId: "not-a-uuid" },
+      });
+
+      expect(result.reachedHandler).toBe(true);
+      expect(findBySpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("when the credential cannot authorize the request", () => {
+    /*
+     * Every one of these must stop AT the gate. The assertion that matters is
+     * findBy — a refusal issued after the cross-tenant read has already run is
+     * not a refusal.
+     */
+    const unusableCredentials: Array<[string, string | Array<string>]> = [
+      ["a well-formed key that is not the master key", OTHER_API_KEY],
+      ["an empty apikey header", ""],
+      ["a whitespace-only apikey header", "   "],
+      ["a non-UUID apikey header", "not-a-uuid"],
+      ["a truncated UUID", "8e1a3a52-6d64-4f1f-9a2e"],
+      [
+        "a UUID with non-hex characters",
+        "8e1a3a52-6d64-4f1f-9a2e-5f0f9c1d2bZZ",
+      ],
+      ["a SQL injection attempt", "' OR 1=1 --"],
+      ["duplicate apikey headers", [MASTER_API_KEY, OTHER_API_KEY]],
+    ];
+
+    test.each(unusableCredentials)(
+      "refuses %s without reading anything",
+      async (_label: string, apiKeyHeader: string | Array<string>) => {
+        const result: MiddlewareCallResult = await callThroughMiddleware({
+          headers: { apikey: apiKeyHeader },
+        });
+
+        expect(result.reachedHandler).toBe(false);
+        expect(findBySpy).not.toHaveBeenCalled();
+        expect(Response.sendJsonArrayResponse).not.toHaveBeenCalled();
+
+        expect(result.errorSentToClient).toBeInstanceOf(NotAuthorizedException);
+        expect(result.errorSentToClient?.message).toBe(
+          "Unauthorized: Access token is required.",
+        );
+      },
+    );
+
+    test("refuses a request with no credential at all", async () => {
+      const result: MiddlewareCallResult = await callThroughMiddleware({
+        headers: {},
+      });
+
+      expect(result.reachedHandler).toBe(false);
+      expect(findBySpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * Fail closed. A GlobalConfig lookup that throws must not be read as "the
+     * key checked out"; the middleware swallows it and falls through to the
+     * session check, which has nothing to work with here.
+     */
+    test("refuses when the key lookup itself throws", async () => {
+      jest
+        .spyOn(ProjectMiddleware, "isMasterApiKey")
+        .mockRejectedValue(new Error("database is down") as never);
+
+      const result: MiddlewareCallResult = await callThroughMiddleware({
+        headers: { apikey: MASTER_API_KEY },
+      });
+
+      expect(result.reachedHandler).toBe(false);
+      expect(findBySpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * The UUID guard has to run BEFORE the lookup: masterApiKey is a Postgres
+     * uuid column, and a non-UUID raises 22P02 as a raw QueryFailedError, which
+     * is not a OneUptime Exception and so escapes the error translator as a 500.
+     */
+    test("never reaches the key lookup with a malformed value", async () => {
+      await callThroughMiddleware({ headers: { apikey: "garbage" } });
+
+      expect(ProjectMiddleware.isMasterApiKey).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("session access is unchanged by the widening", () => {
+    /*
+     * The Admin Dashboard reaches this route with a cookie session and no key.
+     * Accepting the key must not have cost it that.
+     */
+    test("a master admin session still gets the grouped list", async () => {
+      jest
+        .spyOn(UserMiddleware, "getAccessTokenFromExpressRequest")
+        .mockReturnValue("a.master.admin.token" as never);
+
+      jest.spyOn(JSONWebToken, "decode").mockReturnValue({
+        isMasterAdmin: true,
+      } as unknown as JSONWebTokenData as never);
+
+      const result: MiddlewareCallResult = await callThroughMiddleware({
+        headers: {},
+      });
+
+      expect(result.reachedHandler).toBe(true);
+      expect(projectNamesSent()).toEqual(["Acme Production", "Beta Staging"]);
+    });
+
+    test("an ordinary user session is still refused", async () => {
+      jest
+        .spyOn(UserMiddleware, "getAccessTokenFromExpressRequest")
+        .mockReturnValue("an.ordinary.user.token" as never);
+
+      jest.spyOn(JSONWebToken, "decode").mockReturnValue({
+        isMasterAdmin: false,
+      } as unknown as JSONWebTokenData as never);
+
+      const result: MiddlewareCallResult = await callThroughMiddleware({
+        headers: {},
+      });
+
+      expect(result.reachedHandler).toBe(false);
+      expect(findBySpy).not.toHaveBeenCalled();
+      expect(result.errorSentToClient?.message).toBe(
+        "Unauthorized: Only master admins can perform this action.",
+      );
+    });
+
+    /*
+     * An unusable key must not cost a caller their valid session. This
+     * middleware falls through rather than failing fast, unlike the
+     * presence-based routing in UserAuthorization.
+     */
+    test("an unusable key alongside a master admin session still passes", async () => {
+      jest
+        .spyOn(UserMiddleware, "getAccessTokenFromExpressRequest")
+        .mockReturnValue("a.master.admin.token" as never);
+
+      jest.spyOn(JSONWebToken, "decode").mockReturnValue({
+        isMasterAdmin: true,
+      } as unknown as JSONWebTokenData as never);
+
+      const result: MiddlewareCallResult = await callThroughMiddleware({
+        headers: { apikey: "" },
+      });
+
+      expect(result.reachedHandler).toBe(true);
+    });
+  });
+});
+
+/*
+ * The rule the widening has to keep: on UserAPI, the master API key reaches
+ * reads and nothing else.
+ *
+ * Asserted as a sweep over the whole registered surface rather than route by
+ * route, so a NEW master-admin route added later has to make a deliberate
+ * choice — adding one that accepts the key fails this test until somebody
+ * writes it into the expected list and, one hopes, thinks about why.
+ */
+describe("UserAPI master-admin route surface", () => {
+  type RouteSummary = { method: string; uri: string; middleware: unknown };
+
+  function routesGuardedBy(middleware: unknown): Array<string> {
+    return (mockRouter.routes as unknown as Array<RouteSummary>)
+      .filter((route: RouteSummary) => {
+        return route.middleware === middleware;
+      })
+      .map((route: RouteSummary) => {
+        return `${route.method} ${route.uri}`;
+      })
+      .sort();
+  }
+
+  beforeAll(() => {
+    mockRouter.routes.length = 0;
+    new UserAPI();
+  });
+
+  test("the projects read is the ONLY route a static key can reach", () => {
+    expect(
+      routesGuardedBy(
+        MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
+      ),
+    ).toEqual([`POST ${PROJECTS_ROUTE}`]);
+  });
+
+  test("every master-admin route that writes stays session-only", () => {
+    expect(
+      routesGuardedBy(
+        MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      ),
+    ).toEqual(
+      [
+        `GET ${AUTH_STATUS_ROUTE}`,
+        `POST ${REMOVE_ROUTE}`,
+        `POST ${RESET_LINK_ROUTE}`,
+        `POST ${SET_PASSWORD_ROUTE}`,
+      ].sort(),
+    );
+  });
+
+  /*
+   * Spelled out one by one as well as swept, because these are the routes where
+   * a leaked static key would stop being a disclosure and start being an
+   * account takeover: removing somebody's access, setting their password, or
+   * mailing a reset link to their inbox.
+   */
+  test.each([
+    ["POST", REMOVE_ROUTE],
+    ["POST", SET_PASSWORD_ROUTE],
+    ["POST", RESET_LINK_ROUTE],
+    ["GET", AUTH_STATUS_ROUTE],
+  ])(
+    "%s %s does not accept the master API key",
+    (method: string, uri: string) => {
+      expect(mockRouter.match(method, uri).middleware).toBe(
+        MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      );
+    },
+  );
 });
