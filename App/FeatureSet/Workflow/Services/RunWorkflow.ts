@@ -21,6 +21,15 @@ import {
   TemplateExpressionKind,
   parseTemplateExpressions,
 } from "Common/Types/Workflow/TemplateSyntax";
+import {
+  WorkflowStepStatus,
+  WorkflowStepTrace,
+  WorkflowStepTraceEntry,
+  appendTraceStep,
+  emptyTrace,
+  parseTrace,
+  truncateTraceValues,
+} from "Common/Types/Workflow/StepTrace";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
 import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
 import WorkflowService from "Common/Server/Services/WorkflowService";
@@ -115,6 +124,7 @@ export default class RunWorkflow {
   private workflowLogId: ObjectID | null = null;
   private callChain: Array<string> = [];
   private workflowDeadlineAtInMs: number = 0;
+  private stepTrace: WorkflowStepTrace = emptyTrace();
 
   private getRemainingExecutionTimeInMs(): number {
     return getRemainingWorkflowTimeInMs(this.workflowDeadlineAtInMs);
@@ -187,6 +197,7 @@ export default class RunWorkflow {
             select: {
               resumeData: true,
               logs: true,
+              stepTrace: true,
             },
             props: {
               isRoot: true,
@@ -203,6 +214,14 @@ export default class RunWorkflow {
         if (existingLog.logs) {
           this.logs = [existingLog.logs as string];
         }
+
+        /*
+         * And the trace, so a run that slept reads as one continuous list of
+         * steps rather than restarting at whatever ran after it woke up.
+         */
+        this.stepTrace = parseTrace(
+          (existingLog.stepTrace as JSONValue) || null,
+        );
 
         const persisted: JSONObject = existingLog.resumeData as JSONObject;
 
@@ -396,11 +415,50 @@ export default class RunWorkflow {
         );
         this.log("Component Logs: " + executeComponentId);
 
-        const result: RunReturnType = await this.runComponent(
-          args,
-          stackItem.node,
-          setDidErrorOut,
-        );
+        const stepStartedAt: Date = OneUptimeDate.getCurrentDate();
+        let result: RunReturnType;
+
+        try {
+          result = await this.runComponent(
+            args,
+            stackItem.node,
+            setDidErrorOut,
+          );
+        } catch (stepError: unknown) {
+          /*
+           * Record the step that broke before letting the failure travel on.
+           * Without this the trace stops at the last step that worked, which
+           * is precisely the one nobody needs to look at.
+           */
+          this.recordStep({
+            node: stackItem.node,
+            args: args,
+            returnValues: {},
+            executedPort: null,
+            startedAt: stepStartedAt,
+            errorMessage:
+              stepError instanceof Exception
+                ? stepError.getMessage()
+                : String(stepError),
+          });
+
+          throw stepError;
+        }
+
+        /*
+         * A component can report failure by calling options.onError rather than
+         * throwing, which is how the API components signal their error port.
+         */
+        this.recordStep({
+          node: stackItem.node,
+          args: args,
+          returnValues: result.returnValues,
+          executedPort: result.executePort?.id || null,
+          startedAt: stepStartedAt,
+          errorMessage: didWorkflowErrorOut
+            ? "The component reported an error."
+            : undefined,
+        });
 
         /*
          * Check immediately after awaiting the component as well as before the
@@ -485,6 +543,7 @@ export default class RunWorkflow {
         data: {
           workflowStatus: WorkflowStatus.Success,
           logs: this.logs.join("\n"),
+          stepTrace: this.stepTrace as any,
           completedAt: OneUptimeDate.getCurrentDate(),
           // Run finished — drop any leftover suspend state.
           resumeData: null!,
@@ -510,6 +569,7 @@ export default class RunWorkflow {
           data: {
             workflowStatus: WorkflowStatus.Timeout,
             logs: this.logs.join("\n"),
+            stepTrace: this.stepTrace as any,
             completedAt: OneUptimeDate.getCurrentDate(),
             resumeData: null!,
             resumeAt: null!,
@@ -522,6 +582,7 @@ export default class RunWorkflow {
           data: {
             workflowStatus: WorkflowStatus.Error,
             logs: this.logs.join("\n"),
+            stepTrace: this.stepTrace as any,
             completedAt: OneUptimeDate.getCurrentDate(),
             resumeData: null!,
             resumeAt: null!,
@@ -579,6 +640,12 @@ export default class RunWorkflow {
       data: {
         workflowStatus: WorkflowStatus.Waiting,
         logs: this.logs.join("\n"),
+        /*
+         * Written on suspend as well as on completion: a parked run should be
+         * readable while it waits, and the steps it already took are exactly
+         * what someone checking on it wants to see.
+         */
+        stepTrace: this.stepTrace as any,
         resumeAt: resumeAt,
         /*
          * Cast keeps TS from deeply re-instantiating the recursive JSONObject
@@ -635,6 +702,52 @@ export default class RunWorkflow {
    * Compares against the input rather than just scanning the output, so a
    * resolved value that happens to contain braces of its own is not reported.
    */
+  /**
+   * Add one step to the run's trace.
+   *
+   * Redaction goes through exactly the same helper the text log uses, so a
+   * value hidden in `logs` cannot reappear here — the trace is readable by
+   * anyone who can read the log, and these are the same secrets.
+   */
+  private recordStep(params: {
+    node: NodeDataProp;
+    args: JSONObject;
+    returnValues: JSONObject;
+    executedPort: string | null;
+    startedAt: Date;
+    errorMessage?: string | undefined;
+  }): void {
+    const completedAt: Date = OneUptimeDate.getCurrentDate();
+
+    const entry: WorkflowStepTraceEntry = {
+      componentId: params.node.id,
+      metadataId: params.node.metadataId,
+      title: params.node.metadata?.title || params.node.metadataId,
+      status: params.errorMessage
+        ? WorkflowStepStatus.Error
+        : WorkflowStepStatus.Success,
+      startedAt: params.startedAt.toISOString(),
+      completedAt: completedAt.toISOString(),
+      durationInMs: completedAt.getTime() - params.startedAt.getTime(),
+      argumentValues: truncateTraceValues(
+        redactSensitiveComponentValuesForLogs(
+          params.args,
+          params.node.metadata?.arguments || [],
+        ),
+      ),
+      returnValues: truncateTraceValues(
+        redactSensitiveComponentValuesForLogs(
+          params.returnValues,
+          params.node.metadata?.returnValues || [],
+        ),
+      ),
+      executedPort: params.executedPort,
+      errorMessage: params.errorMessage,
+    };
+
+    this.stepTrace = appendTraceStep(this.stepTrace, entry);
+  }
+
   private logUnresolvedReferences(params: {
     argument: Argument;
     before: JSONValue;

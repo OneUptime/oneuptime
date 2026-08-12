@@ -7,6 +7,13 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewer";
+import StepTraceViewer from "Common/UI/Components/Workflow/StepTraceViewer";
+import {
+  WorkflowStepTrace,
+  emptyTrace,
+  parseTrace,
+} from "Common/Types/Workflow/StepTrace";
+import { JSONValue } from "Common/Types/JSON";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import WorkflowStatusElement from "Common/UI/Components/Workflow/WorkflowStatus";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -25,6 +32,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
   const [logs, setLogs] = useState<string>("");
+  const [stepTrace, setStepTrace] = useState<WorkflowStepTrace>(emptyTrace());
 
   return (
     <Fragment>
@@ -46,6 +54,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           }}
           selectMoreFields={{
             logs: true,
+            stepTrace: true,
           }}
           actionButtons={[
             {
@@ -57,6 +66,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 onCompleteAction: VoidFunction,
               ) => {
                 setLogs(item["logs"] as string);
+                setStepTrace(parseTrace((item["stepTrace"] as JSONValue) || null));
                 setShowViewLogsModal(true);
 
                 onCompleteAction();
@@ -175,9 +185,23 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             submitButtonText={"Close"}
             submitButtonStyleType={ButtonStyleType.NORMAL}
           >
-            <SimpleLogViewer title="Workflow Execution Log" height="500px">
-              {logs}
-            </SimpleLogViewer>
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                  Steps
+                </h3>
+                <StepTraceViewer trace={stepTrace} />
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                  Full log
+                </h3>
+                <SimpleLogViewer title="Workflow Execution Log" height="300px">
+                  {logs}
+                </SimpleLogViewer>
+              </div>
+            </div>
           </Modal>
         )}
       </>
