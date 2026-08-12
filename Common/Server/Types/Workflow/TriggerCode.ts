@@ -20,6 +20,18 @@ export interface ExecuteWorkflowType {
    * should leave this undefined.
    */
   callChain?: Array<string>;
+  /**
+   * When set, the run executes only this one component instead of starting at
+   * the trigger and following the graph. Backs the builder's "run just this
+   * step" button.
+   *
+   * Deliberately routed through the queue like any other run, so it inherits
+   * every gate a run has: the workflow must be enabled, the subscription must
+   * be paid, the plan's run limit applies, a WorkflowLog is written for the
+   * audit trail, and the component executes on a worker rather than inside the
+   * API process.
+   */
+  runOnlyComponentId?: string | undefined;
 }
 
 export interface InitProps {

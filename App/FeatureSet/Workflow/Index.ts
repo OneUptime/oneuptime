@@ -1,5 +1,6 @@
 import ComponentCodeAPI from "./API/ComponentCode";
 import ManualAPI from "./API/Manual";
+import RunStepAPI from "./API/RunStep";
 import ModelSchemaAPI from "./API/ModelSchema";
 import WorkflowAPI from "./API/Workflow";
 import RunWorkflow from "./Services/RunWorkflow";
@@ -28,6 +29,7 @@ const WorkflowFeatureSet: FeatureSet = {
       const app: ExpressApplication = Express.getExpressApp();
 
       app.use(`/${APP_NAME}/manual`, new ManualAPI().router);
+      app.use(`/${APP_NAME}`, new RunStepAPI().router);
 
       app.use(`/${APP_NAME}`, new ModelSchemaAPI().router);
 
@@ -87,6 +89,9 @@ const WorkflowFeatureSet: FeatureSet = {
               callChain:
                 (job.data["callChain"] as Array<string> | undefined) || [],
               isResume: job.data["isResume"] === true,
+              runOnlyComponentId:
+                (job.data["runOnlyComponentId"] as string | undefined) ||
+                undefined,
             });
           },
           { concurrency: 100 },

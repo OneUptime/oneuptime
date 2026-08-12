@@ -118,6 +118,8 @@ export interface ComponentProps {
   workflowId: ObjectID;
   onRunModalUpdate: (isModalShown: boolean) => void;
   onRun: (trigger: NodeDataProp) => void;
+  /** Run one component on its own. */
+  onRunStep?: ((component: NodeDataProp) => void) | undefined;
   webhookSecretKey?: string | undefined;
   /**
    * Called whenever the static checks over the graph are recomputed, so the
@@ -626,6 +628,16 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           onDelete={(component: NodeDataProp) => {
             deleteNode(component.id);
           }}
+          /*
+           * Triggers have nothing to run on their own — they are the thing
+           * that starts a run, so "run just this step" is meaningless for one.
+           */
+          onRunStep={
+            props.onRunStep &&
+            selectedNodeData.componentType !== ComponentType.Trigger
+              ? props.onRunStep
+              : undefined
+          }
           description={
             selectedNodeData && selectedNodeData.metadata.description
               ? selectedNodeData.metadata.description
