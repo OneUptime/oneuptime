@@ -80,13 +80,20 @@ const UPDATE_PERMS: Array<Permission> = [
   update: UPDATE_PERMS,
 })
 @CrudApiEndpoint(new Route("/telemetry-entity"))
+/*
+ * The product this backs is called Inventory, so the display names say so —
+ * they are what the delete confirmation, the detail card and the generated
+ * API docs read out. The table name stays `TelemetryEntity`: it is the
+ * storage identity, and renaming it would be a migration with no user-visible
+ * benefit.
+ */
 @TableMetadata({
   tableName: "TelemetryEntity",
-  singularName: "Telemetry Entity",
-  pluralName: "Telemetry Entities",
+  singularName: "Inventory Item",
+  pluralName: "Inventory Items",
   icon: IconProp.Cube,
   tableDescription:
-    "Catalog of OpenTelemetry entities (service, host, k8s.pod, container, ...) discovered from telemetry resource attributes.",
+    "Catalog of everything OneUptime knows about your estate (service, host, k8s.pod, container, network device, ...), discovered from telemetry resource attributes, mirrored from inventory tables, or registered by hand.",
 })
 @Entity({ name: "TelemetryEntity" })
 // Natural key + upsert conflict target for the throttled ingest reconciler.
@@ -178,7 +185,7 @@ export default class TelemetryEntity extends DatabaseBaseModel {
     type: TableColumnType.ShortText,
     required: false,
     title: "Display Name",
-    description: "Human-readable name derived for the entity explorer UI.",
+    description: "Human-readable name shown in the Inventory list.",
     example: "checkout-7d9f",
   })
   @Column({

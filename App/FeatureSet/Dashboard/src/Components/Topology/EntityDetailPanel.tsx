@@ -376,12 +376,12 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
               <li>
                 <Link
                   to={RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.ENTITIES_VIEW] as Route,
+                    RouteMap[PageMap.INVENTORY_VIEW] as Route,
                     { modelId: new ObjectID(entity._id.toString()) },
                   )}
                   className="font-medium text-indigo-600 hover:text-indigo-800"
                 >
-                  {translateString("Entity details") || ""}
+                  {translateString("Inventory details") || ""}
                 </Link>
               </li>
             )}
