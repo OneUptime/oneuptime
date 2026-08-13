@@ -20,6 +20,8 @@ A public dashboard:
 
 Treat enabling a public dashboard like publishing a webpage. Every widget on it becomes world-readable. Look at what's on the canvas before you flip the switch.
 
+Each widget publishes only what it draws, and only for the resources it was pointed at. An SLO widget, for instance, publishes that SLO's headline numbers but never its definition — see [SLO](/docs/dashboards/widgets#slo). External **Data Source** widgets are the exception: they are dropped from a public dashboard entirely rather than rendered, because their configuration is the query itself.
+
 ## Master password
 
 To put a password on a public dashboard:

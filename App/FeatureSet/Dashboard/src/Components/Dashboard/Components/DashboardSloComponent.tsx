@@ -13,8 +13,8 @@ import DashboardSloComponent, {
 } from "Common/Types/Dashboard/DashboardComponents/DashboardSloComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceList from "../Utils/DashboardResourceList";
+import SloWidgetData from "../Utils/SloWidgetData";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
-import SloHistory from "Common/Models/AnalyticsModels/SloHistory";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
@@ -42,8 +42,6 @@ import {
   SLO_NOT_EVALUATED_TEXT,
   SloWidgetTileDisplay,
 } from "Common/Utils/Slo/SloWidgetFormat";
-import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -127,6 +125,15 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
   const isChart: boolean = displayType === SloWidgetDisplayType.Chart;
 
   /*
+   * The public endpoints resolve the widget — and therefore the SLO they are
+   * allowed to read — from this id, so the fetch depends on it. Depend on the
+   * STRING: a re-render can hand us a fresh ObjectID for the same widget, and
+   * an identity-based dep would refetch on every one of those (arePropsEqual
+   * below compares the same way).
+   */
+  const componentIdKey: string = props.componentId.toString();
+
+  /*
    * refreshTick is a dep so each auto-refresh re-resolves a relative range
    * ("Past 1 hour") into a fresh concrete window; without it the window is
    * frozen at mount and every refresh re-queries the same stale span. Same
@@ -164,21 +171,14 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
       }
 
       /*
-       * SLOs are not exposed through the public-dashboard resource proxy, so
-       * on a shared dashboard say so instead of firing a request that would
-       * come back 401 and surface as a raw error.
+       * A public dashboard has no session and no "current project" — its
+       * reads go through the dashboard-scoped public endpoints instead, which
+       * derive the SLO and the project from the stored widget server-side.
        */
-      if (DashboardResourceList.isPublic()) {
-        setSlo(null);
-        setChartPoints([]);
-        setError("SLO widgets are not available on public dashboards.");
-        setIsLoading(false);
-        return;
-      }
-
+      const isPublicDashboard: boolean = DashboardResourceList.isPublic();
       const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-      if (!projectId) {
+      if (!isPublicDashboard && !projectId) {
         setError("No project selected.");
         setIsLoading(false);
         return;
@@ -188,18 +188,9 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
 
       try {
         const fetchedSlo: ServiceLevelObjective | null =
-          await ModelAPI.getItem<ServiceLevelObjective>({
-            modelType: ServiceLevelObjective,
-            id: sloId,
-            select: {
-              name: true,
-              targetPercentage: true,
-              currentSliPercentage: true,
-              errorBudgetRemainingPercentage: true,
-              errorBudgetRemainingSeconds: true,
-              currentBurnRate: true,
-              sloStatus: true,
-            },
+          await SloWidgetData.fetchSlo({
+            serviceLevelObjectiveId: sloId,
+            componentId: props.componentId,
           });
 
         if (isStale()) {
@@ -235,11 +226,16 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
          * page's charts.)
          */
         const result: AggregatedResult =
-          await AnalyticsModelAPI.aggregate<SloHistory>({
-            modelType: SloHistory,
+          await SloWidgetData.aggregateSloHistory({
+            componentId: props.componentId,
             aggregateBy: {
               query: {
-                projectId: projectId,
+                /*
+                 * On a public dashboard there is no current project and the
+                 * server pins the scope itself; the ObjectID cast keeps the
+                 * authenticated query shape unchanged.
+                 */
+                projectId: projectId as ObjectID,
                 sloId: sloId,
                 metricName: getSloHistoryMetricName(sloMetric),
                 bucketStart: new InBetween(startDate, endDate),
@@ -298,7 +294,13 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
       if (!isStale()) {
         setIsLoading(false);
       }
-    }, [serviceLevelObjectiveId, sloMetric, isChart, startAndEndDate]);
+    }, [
+      serviceLevelObjectiveId,
+      sloMetric,
+      isChart,
+      startAndEndDate,
+      componentIdKey,
+    ]);
 
   useEffect(() => {
     fetchData();

@@ -76,4 +76,38 @@ describe("DashboardResourceList request context", () => {
       ],
     });
   });
+
+  /*
+   * The SLO widget is the one resource that carries no variables — it names a
+   * single SLO outright — so it exercises the widget-identity-only shape of a
+   * public request.
+   */
+  test("routes an SLO read to the dashboard-scoped public endpoint", () => {
+    setPublicDashboardContext({
+      dashboardId: new ObjectID("dashboard-id"),
+      apiUrl: URL.fromString("https://example.com/public-dashboard-api"),
+      postJSON: jest.fn<PublicDashboardPostJSON>(),
+    });
+
+    const options: ReturnType<typeof DashboardResourceList.getRequestOptions> =
+      DashboardResourceList.getRequestOptions("slo", {
+        componentId: new ObjectID("component-id"),
+      });
+
+    expect(options?.overrideRequestUrl.toString()).toBe(
+      "https://example.com/public-dashboard-api/resource-list/dashboard-id/slo",
+    );
+    expect(options?.additionalRequestBody).toEqual({
+      componentId: "component-id",
+      variables: [],
+    });
+  });
+
+  test("leaves an authenticated SLO read on the private CRUD route", () => {
+    expect(
+      DashboardResourceList.getRequestOptions("slo", {
+        componentId: new ObjectID("component-id"),
+      }),
+    ).toBeUndefined();
+  });
 });
