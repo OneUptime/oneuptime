@@ -161,6 +161,21 @@ A live list of monitors and their current status.
 
 Use it when: you want a fleet view — "are all the sites up?"
 
+## Service Level Objectives
+
+### SLO
+
+One Service Level Objective, drawn either as a single number or as a line over time.
+
+**Settings**: which SLO, which of its three numbers (SLI, Error Budget Remaining, or Burn Rate), Tile or Chart display, and an optional title.
+
+- **Tile** prints the current number, plus a second line where there is one — the target under the SLI, minutes remaining under the error budget. A status pill colors the whole thing.
+- **Chart** draws the same number over the dashboard's time range, with the target marked as a dashed line on the SLI series. History is written every few minutes by the evaluation worker, so a brand-new SLO charts as empty until it has been evaluated for the first time.
+
+Use it when: the dashboard is answering "are we meeting what we promised?" rather than "what is happening right now".
+
+The SLO widget works on [public dashboards](/docs/dashboards/sharing). What gets published is the SLO's headline numbers — its name, target, current SLI, error budget remaining, burn rate, and status — regardless of which one of them the widget happens to draw. Its definition stays private: the monitors it watches, its labels, its description, its query, and its evaluation schedule are never sent to a public viewer. A Tile widget publishes only those current numbers; a Chart widget also publishes the history of the one series it charts, and nothing else.
+
 ## Kubernetes resource lists
 
 For projects with a [Kubernetes Agent](/docs/monitor/kubernetes-agent) installed. Each one takes optional filters for cluster, namespace, and labels.
@@ -202,7 +217,7 @@ Your network sites drawn on the world map, each pinned at its own latitude and l
 
 The map frames itself to the sites it drew — an estate inside one country fills the frame with that country, one spread across continents opens on the world. There are no zoom or pan controls: a dashboard tile is a picture, and the Network Map page under Network is where you walk the hierarchy.
 
-Above the map it prints how many sites are down, because a two-pixel red dot among two hundred green ones is not something anyone reads at dashboard distance. Below it, a coverage line says what the map is *not* showing — sites with no coordinates, and whether the row cap was hit.
+Above the map it prints how many sites are down, because a two-pixel red dot among two hundred green ones is not something anyone reads at dashboard distance. Below it, a coverage line says what the map is _not_ showing — sites with no coordinates, and whether the row cap was hit.
 
 **Settings**: title, map or list view, maximum sites drawn, whether to print site names, and filters by site type and by status. Site names come off automatically when the map gets too busy for them to be readable; the tooltip still names every marker.
 
@@ -218,6 +233,7 @@ A few quick rules:
 - **Breakdown across many things?** Table.
 - **What's happening in the system right now?** Log Stream, Trace List, Incident List.
 - **The state of a specific group of resources?** The matching list widget.
+- **Are we meeting the reliability we promised?** SLO.
 - **Where in the world your network is, and what's red?** Network Map.
 - **A heading, a paragraph, or a link?** Text.
 - **Something none of the above covers?** HTML — but only after checking that a built-in widget really can't do it.

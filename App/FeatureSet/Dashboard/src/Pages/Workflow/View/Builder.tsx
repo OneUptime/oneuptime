@@ -25,12 +25,13 @@ import ComponentMetadata, {
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import {
-  WorkflowLintIssue,
-  WorkflowLintResult,
-  WorkflowLintSeverity,
-} from "Common/UI/Components/Workflow/GraphLint";
+import Dictionary from "Common/Types/Dictionary";
+import { WorkflowLintResult } from "Common/UI/Components/Workflow/GraphLint";
+import { buildStepTitlesByNodeId } from "Common/UI/Components/Workflow/GraphLintSummary";
+import WorkflowIssuesModal from "Common/UI/Components/Workflow/WorkflowIssuesModal";
+import WorkflowStatusBar, {
+  WorkflowSaveState,
+} from "Common/UI/Components/Workflow/WorkflowStatusBar";
 import { loadComponentsAndCategories } from "Common/UI/Components/Workflow/Utils";
 import Workflow, {
   getEdgeDefaultProps,
@@ -52,33 +53,11 @@ import { useAsyncEffect } from "use-async-effect";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 
-type GetIssueSummaryTextFunction = (result: WorkflowLintResult) => string;
-
-const getIssueSummaryText: GetIssueSummaryTextFunction = (
-  result: WorkflowLintResult,
-): string => {
-  const parts: Array<string> = [];
-
-  if (result.errorCount > 0) {
-    parts.push(
-      `${result.errorCount} ${result.errorCount === 1 ? "problem" : "problems"}`,
-    );
-  }
-
-  if (result.warningCount > 0) {
-    parts.push(
-      `${result.warningCount} ${
-        result.warningCount === 1 ? "warning" : "warnings"
-      }`,
-    );
-  }
-
-  return parts.join(", ");
-};
-
 const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [saveStatus, setSaveStatus] = useState<string>("");
+  const [saveState, setSaveState] = useState<WorkflowSaveState>(
+    WorkflowSaveState.Idle,
+  );
   const [saveTimeout, setSaveTimeout] = useState<ReturnType<
     typeof setTimeout
   > | null>(null);
@@ -97,6 +76,13 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showIssuesModal, setShowIssuesModal] = useState<boolean>(false);
 
   const [showRunLogModal, setShowRunLogModal] = useState<boolean>(false);
+
+  /*
+   * The step the builder picked out of the issues list. The canvas owns the
+   * settings modal, so opening one from outside is a request it clears once it
+   * has acted on it.
+   */
+  const [stepToOpenNodeId, setStepToOpenNodeId] = useState<string | null>(null);
 
   /*
    * The run the builder started, followed until it settles. See
@@ -290,7 +276,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
     nodes: Array<Node>,
     edges: Array<Edge>,
   ): Promise<void> => {
-    setSaveStatus("Saving...");
+    setSaveState(WorkflowSaveState.Saving);
 
     if (saveTimeout) {
       clearTimeout(saveTimeout);
@@ -353,11 +339,11 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
           });
 
-          setSaveStatus("Saved");
+          setSaveState(WorkflowSaveState.Saved);
         } catch (err) {
           setError(API.getFriendlyMessage(err));
 
-          setSaveStatus("Error saving");
+          setSaveState(WorkflowSaveState.Error);
         }
 
         if (saveTimeout) {
@@ -372,17 +358,11 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
     await loadGraph();
   }, []);
 
-  type GetSaveStatusColorFunction = () => string;
-
-  const getSaveStatusColor: GetSaveStatusColorFunction = (): string => {
-    if (saveStatus === "Saved") {
-      return "#10b981";
-    }
-    if (saveStatus === "Error saving") {
-      return "#ef4444";
-    }
-    return "#94a3b8";
-  };
+  /*
+   * The canvas names its own nodes, and the issues panel should call a step
+   * what the canvas calls it rather than only quoting the id it was given.
+   */
+  const stepTitlesByNodeId: Dictionary<string> = buildStepTitlesByNodeId(nodes);
 
   return (
     <Fragment>
@@ -401,81 +381,24 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.03)",
           }}
         >
-          <div
-            style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.375rem",
-              }}
-            >
-              <div
-                style={{
-                  width: "7px",
-                  height: "7px",
-                  borderRadius: "50%",
-                  backgroundColor: getSaveStatusColor(),
-                  transition: "background-color 0.3s ease",
-                }}
-              />
-              <span
-                style={{
-                  fontSize: "0.75rem",
-                  color: getSaveStatusColor(),
-                  fontWeight: 500,
-                  transition: "color 0.3s ease",
-                }}
-              >
-                {saveStatus || "Ready"}
-              </span>
-            </div>
-
-            {/*
-              The run the builder started. Clicking reopens its log, so
-              closing the modal does not lose the run behind it.
-            */}
-            {runWatch.message && (
-              <button
-                type="button"
-                onClick={() => {
-                  setShowRunLogModal(true);
-                }}
-                style={{
-                  fontSize: "0.75rem",
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  textDecoration: "underline",
-                  color: runWatch.hasFailed ? "#ef4444" : "#475569",
-                }}
-              >
-                {runWatch.message}
-              </button>
-            )}
-
-            {/*
-              Static checks over the graph. Clicking opens the full list —
-              each node also carries its own badge on the canvas.
-            */}
-            {lintResult && lintResult.issues.length > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  setShowIssuesModal(true);
-                }}
-                style={{
-                  fontSize: "0.75rem",
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  textDecoration: "underline",
-                  color: lintResult.errorCount > 0 ? "#ef4444" : "#f59e0b",
-                }}
-              >
-                {getIssueSummaryText(lintResult)}
-              </button>
-            )}
-          </div>
+          {/*
+            Save state, the run this builder started, and what the static
+            checks make of the graph. Both the run and the checks open
+            something: the run its log, the checks the list where a step's
+            problems can be fixed.
+          */}
+          <WorkflowStatusBar
+            saveState={saveState}
+            lintResult={lintResult}
+            runStatusMessage={runWatch.message}
+            runStatusFailed={runWatch.hasFailed}
+            onShowRunLog={() => {
+              setShowRunLogModal(true);
+            }}
+            onShowIssues={() => {
+              setShowIssuesModal(true);
+            }}
+          />
 
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <Button
@@ -529,6 +452,10 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               setShowRunModal(value);
             }}
             showRunModal={showRunModal}
+            openStepForNodeId={stepToOpenNodeId}
+            onStepOpened={() => {
+              setStepToOpenNodeId(null);
+            }}
             initialEdges={edges}
             onWorkflowUpdated={async (
               nodes: Array<Node>,
@@ -623,47 +550,21 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         )}
 
         {showIssuesModal && lintResult && (
-          <Modal
-            title="Problems with this workflow"
-            description="These are found by reading the workflow. Fixing them here saves a failed run later."
-            modalWidth={ModalWidth.Large}
-            submitButtonText="Close"
-            submitButtonStyleType={ButtonStyleType.NORMAL}
-            onSubmit={() => {
+          <WorkflowIssuesModal
+            lintResult={lintResult}
+            stepTitlesByNodeId={stepTitlesByNodeId}
+            onClose={() => {
               setShowIssuesModal(false);
             }}
-          >
-            <div className="space-y-2">
-              {lintResult.issues.map(
-                (issue: WorkflowLintIssue, i: number): ReactElement => {
-                  const isError: boolean =
-                    issue.severity === WorkflowLintSeverity.Error;
-
-                  return (
-                    <div
-                      key={i}
-                      className={`rounded-md border p-3 ${
-                        isError
-                          ? "border-red-200 bg-red-50"
-                          : "border-amber-200 bg-amber-50"
-                      }`}
-                    >
-                      <p
-                        className={`text-xs font-semibold uppercase tracking-wider ${
-                          isError ? "text-red-700" : "text-amber-700"
-                        }`}
-                      >
-                        {issue.componentId || "This workflow"}
-                      </p>
-                      <p className="text-sm text-gray-700 mt-1">
-                        {issue.message}
-                      </p>
-                    </div>
-                  );
-                },
-              )}
-            </div>
-          </Modal>
+            onGoToStep={(nodeId: string) => {
+              /*
+               * The settings modal the canvas is about to open would otherwise
+               * come up behind this one.
+               */
+              setShowIssuesModal(false);
+              setStepToOpenNodeId(nodeId);
+            }}
+          />
         )}
       </>
     </Fragment>
