@@ -4,6 +4,7 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
+import { resolveClientIp } from "Common/Server/Utils/ClientIp";
 import Response from "Common/Server/Utils/Response";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
@@ -49,10 +50,14 @@ router.post(
   "/send",
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
-      const clientIp: string =
-        (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
-        req.socket.remoteAddress ||
-        "unknown";
+      /*
+       * Key the limiter on the resolved client address, not the leftmost
+       * X-Forwarded-For entry. That entry is written by the caller, so a
+       * caller who varied it got a fresh 60/minute bucket every request and
+       * the limit did not exist. Callers we cannot place share the "unknown"
+       * bucket, which is the conservative direction for a limiter.
+       */
+      const clientIp: string = resolveClientIp(req) || "unknown";
 
       if (isRateLimited(clientIp)) {
         res.status(429).json({
