@@ -26,10 +26,14 @@ const OnCallDutyScheduleView: FunctionComponent<
 
   let alertTitle: ReactElement | null = null;
 
-  if (
-    onCallSchedule &&
-    (onCallSchedule.currentUserOnRoster || onCallSchedule.nextUserOnRoster)
-  ) {
+  /*
+   * Rendered as soon as the schedule has loaded, NOT only when somebody is on
+   * the roster. The old condition required a current OR next user, which made
+   * the "does not have any users on the roster" branch below unreachable in the
+   * one state it was written for — a schedule with nobody on call now and
+   * nobody scheduled next showed no banner at all.
+   */
+  if (onCallSchedule) {
     alertTitle = (
       <div className="space-y-2">
         {onCallSchedule.currentUserOnRoster && (
@@ -68,10 +72,13 @@ const OnCallDutyScheduleView: FunctionComponent<
         )}
         {!onCallSchedule.currentUserOnRoster && (
           <div>
-            <strong>
-              This schedule does not have any users on the roster.
-            </strong>{" "}
-            <span>This schedule is not currently active. &nbsp;</span>
+            <strong>No one is currently on call in this schedule.</strong>{" "}
+            <span>
+              {onCallSchedule.nextUserOnRoster
+                ? "This is a coverage gap: any alert that escalates to this schedule right now will not page anyone. Coverage resumes at the hand-off below."
+                : "Nobody is on call now and nobody is scheduled next, so every alert that escalates to this schedule will go unanswered. Check the layers below - a layer with no users assigned, or restricted active hours with no 24/7 fallback layer, will leave the schedule uncovered."}
+              &nbsp;
+            </span>
           </div>
         )}
         {onCallSchedule.nextUserOnRoster && (

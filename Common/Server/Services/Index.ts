@@ -49,6 +49,9 @@ import NetworkSiteTypeService from "./NetworkSiteTypeService";
 import NetworkEndpointService from "./NetworkEndpointService";
 import NetworkSiteStatusTimelineService from "./NetworkSiteStatusTimelineService";
 import NetworkSiteLinkService from "./NetworkSiteLinkService";
+import NetworkDeviceLinkService from "./NetworkDeviceLinkService";
+import NetworkDeviceLinkRuleService from "./NetworkDeviceLinkRuleService";
+import NetworkTopologySuppressionService from "./NetworkTopologySuppressionService";
 import NetworkSiteAssignmentRuleService from "./NetworkSiteAssignmentRuleService";
 import PodmanHostService from "./PodmanHostService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
@@ -213,8 +216,9 @@ import WorkflowService from "./WorkflowService";
 import WorkflowVariablesService from "./WorkflowVariableService";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import TelemetryExceptionService from "./TelemetryExceptionService";
-import TelemetryEntityService from "./TelemetryEntityService";
-import TelemetryEntityRelationshipService from "./TelemetryEntityRelationshipService";
+import InventoryItemService from "./InventoryItemService";
+import InventoryItemCustomFieldService from "./InventoryItemCustomFieldService";
+import InventoryItemRelationshipService from "./InventoryItemRelationshipService";
 import ExceptionInstanceService from "./ExceptionInstanceService";
 import KubernetesCostAllocationService from "./KubernetesCostAllocationService";
 import ScheduledMaintenanceTemplateService from "./ScheduledMaintenanceTemplateService";
@@ -351,6 +355,9 @@ const services: Array<BaseService> = [
   NetworkEndpointService,
   NetworkSiteStatusTimelineService,
   NetworkSiteLinkService,
+  NetworkDeviceLinkService,
+  NetworkDeviceLinkRuleService,
+  NetworkTopologySuppressionService,
   NetworkSiteAssignmentRuleService,
   PodmanHostService,
   ProxmoxClusterService,
@@ -498,8 +505,9 @@ const services: Array<BaseService> = [
   ServiceOwnerUserService,
 
   TelemetryExceptionService,
-  TelemetryEntityService,
-  TelemetryEntityRelationshipService,
+  InventoryItemService,
+  InventoryItemCustomFieldService,
+  InventoryItemRelationshipService,
 
   // scheduled maintenance templates
   ScheduledMaintenanceTemplateService,

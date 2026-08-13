@@ -424,6 +424,14 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             onCallDutyPolicySchedule: {
               _id: true,
               name: true,
+              /*
+               * Whether the schedule has anybody on call right now. Already
+               * persisted and refreshed every minute by the RefreshHandoffTime
+               * worker, so reading it here is free — and without it the chip
+               * below claims a schedule is a responder even when it would
+               * currently page no one.
+               */
+              currentUserIdOnRoster: true,
             },
           },
           sort: {},
@@ -657,20 +665,45 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
   const getScheduleChip: (
     schedule: OnCallDutyPolicySchedule,
   ) => ReactElement = (schedule: OnCallDutyPolicySchedule): ReactElement => {
+    /*
+     * A schedule with nobody on call right now is listed as a responder but
+     * would page no one. Rendering it identically to a healthy schedule makes
+     * a broken escalation level look correctly configured.
+     */
+    const isUncovered: boolean = !schedule.currentUserIdOnRoster;
+
     return (
       <span
         key={`schedule-${schedule.id?.toString()}`}
-        className="inline-flex items-center gap-2 rounded-full bg-white ring-1 ring-inset ring-gray-200 py-1 pl-1 pr-3 shadow-sm"
+        title={
+          isUncovered
+            ? "No one is currently on call in this schedule - this level would not notify anyone right now."
+            : undefined
+        }
+        className={`inline-flex items-center gap-2 rounded-full bg-white py-1 pl-1 pr-3 shadow-sm ring-1 ring-inset ${
+          isUncovered ? "ring-amber-300" : "ring-gray-200"
+        }`}
       >
-        <span className="h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center">
+        <span
+          className={`flex h-6 w-6 items-center justify-center rounded-full ${
+            isUncovered ? "bg-amber-100" : "bg-indigo-100"
+          }`}
+        >
           <Icon
-            icon={IconProp.Calendar}
-            className="h-3.5 w-3.5 text-indigo-600"
+            icon={isUncovered ? IconProp.Alert : IconProp.Calendar}
+            className={`h-3.5 w-3.5 ${
+              isUncovered ? "text-amber-600" : "text-indigo-600"
+            }`}
           />
         </span>
         <span className="text-sm font-medium text-gray-700">
           {schedule.name?.toString()}
         </span>
+        {isUncovered && (
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+            No one on call
+          </span>
+        )}
       </span>
     );
   };
@@ -1052,6 +1085,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             label:
               join.onCallDutyPolicySchedule.name?.toString() ||
               "On-call schedule",
+            isUncovered: !join.onCallDutyPolicySchedule.currentUserIdOnRoster,
           });
         }
       }

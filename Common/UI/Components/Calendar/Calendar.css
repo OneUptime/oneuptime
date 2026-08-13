@@ -259,3 +259,46 @@
   color: #9ca3af;
   font-size: 0.875rem;
 }
+
+/* ---------- Background events (uncovered regions) ----------
+   Painted behind the grid to make ABSENCE visible. An on-call schedule with
+   nobody on call used to render as plain whitespace, which reads exactly like a
+   grid that failed to load; the hatch says "we computed this, and it is empty".
+   Kept deliberately low-contrast so real event blocks stay dominant. */
+.oneuptime-calendar .rbc-day-slot .rbc-background-event,
+.oneuptime-calendar .rbc-background-event {
+  background-color: rgba(251, 191, 36, 0.09); /* amber-400 @ 9% */
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(217, 119, 6, 0.16) 0,
+    rgba(217, 119, 6, 0.16) 1px,
+    transparent 1px,
+    transparent 7px
+  );
+  border: none;
+  border-left: 2px solid rgba(217, 119, 6, 0.35); /* amber-600 */
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  pointer-events: none;
+  opacity: 1;
+}
+
+.oneuptime-calendar .rbc-day-slot .rbc-background-event:hover {
+  filter: none;
+  box-shadow: none;
+}
+
+/* Legend swatch that names the hatched bands. Kept in this file so the swatch
+   and the band it describes can never drift apart. */
+.oneuptime-calendar-gap-swatch {
+  background-color: rgba(251, 191, 36, 0.25);
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(217, 119, 6, 0.55) 0,
+    rgba(217, 119, 6, 0.55) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  border: 1px solid rgba(217, 119, 6, 0.4);
+}

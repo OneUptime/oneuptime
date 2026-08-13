@@ -1,4 +1,4 @@
-import TelemetryEntity, {
+import InventoryItem, {
   EntityAttributes,
   ExtractedEntity,
   ResourceEntityRef,
@@ -21,11 +21,11 @@ function keysFor(
   attrs: EntityAttributes,
   projectId: string = PROJECT,
 ): Array<string> {
-  return TelemetryEntity.extractEntityKeys({ projectId, attributes: attrs });
+  return InventoryItem.extractEntityKeys({ projectId, attributes: attrs });
 }
 
 function typesFor(attrs: EntityAttributes): Array<EntityType> {
-  return TelemetryEntity.extractEntities({
+  return InventoryItem.extractEntities({
     projectId: PROJECT,
     attributes: attrs,
   }).map((e: ExtractedEntity) => {
@@ -37,7 +37,7 @@ function entityOfType(
   attrs: EntityAttributes,
   type: EntityType,
 ): ExtractedEntity | undefined {
-  return TelemetryEntity.extractEntities({
+  return InventoryItem.extractEntities({
     projectId: PROJECT,
     attributes: attrs,
   }).find((e: ExtractedEntity) => {
@@ -68,9 +68,9 @@ function expectedKey(
     .slice(0, 16);
 }
 
-describe("TelemetryEntity.computeEntityKey", () => {
+describe("InventoryItem.computeEntityKey", () => {
   test("matches the documented preimage format", () => {
-    const key: string = TelemetryEntity.computeEntityKey({
+    const key: string = InventoryItem.computeEntityKey({
       projectId: PROJECT,
       entityType: EntityType.Service,
       identifyingAttributes: { "service.name": "checkout" },
@@ -82,7 +82,7 @@ describe("TelemetryEntity.computeEntityKey", () => {
   });
 
   test("is deterministic and order-independent", () => {
-    const a: string = TelemetryEntity.computeEntityKey({
+    const a: string = InventoryItem.computeEntityKey({
       projectId: PROJECT,
       entityType: EntityType.Service,
       identifyingAttributes: {
@@ -90,7 +90,7 @@ describe("TelemetryEntity.computeEntityKey", () => {
         "service.namespace": "shop",
       },
     });
-    const b: string = TelemetryEntity.computeEntityKey({
+    const b: string = InventoryItem.computeEntityKey({
       projectId: PROJECT,
       entityType: EntityType.Service,
       identifyingAttributes: {
@@ -102,12 +102,12 @@ describe("TelemetryEntity.computeEntityKey", () => {
   });
 
   test("canonicalizes casing and whitespace (no identity fork)", () => {
-    const a: string = TelemetryEntity.computeEntityKey({
+    const a: string = InventoryItem.computeEntityKey({
       projectId: PROJECT,
       entityType: EntityType.Host,
       identifyingAttributes: { "host.name": "Web-1" },
     });
-    const b: string = TelemetryEntity.computeEntityKey({
+    const b: string = InventoryItem.computeEntityKey({
       projectId: PROJECT,
       entityType: EntityType.Host,
       identifyingAttributes: { "host.name": "  web-1 " },
@@ -116,12 +116,12 @@ describe("TelemetryEntity.computeEntityKey", () => {
   });
 
   test("is tenant-scoped (projectId folds into the key)", () => {
-    const a: string = TelemetryEntity.computeEntityKey({
+    const a: string = InventoryItem.computeEntityKey({
       projectId: "projA",
       entityType: EntityType.Service,
       identifyingAttributes: { "service.name": "checkout" },
     });
-    const b: string = TelemetryEntity.computeEntityKey({
+    const b: string = InventoryItem.computeEntityKey({
       projectId: "projB",
       entityType: EntityType.Service,
       identifyingAttributes: { "service.name": "checkout" },
@@ -130,12 +130,12 @@ describe("TelemetryEntity.computeEntityKey", () => {
   });
 
   test("type discriminates the key (same value, different type)", () => {
-    const asService: string = TelemetryEntity.computeEntityKey({
+    const asService: string = InventoryItem.computeEntityKey({
       projectId: PROJECT,
       entityType: EntityType.Service,
       identifyingAttributes: { name: "x" },
     });
-    const asHost: string = TelemetryEntity.computeEntityKey({
+    const asHost: string = InventoryItem.computeEntityKey({
       projectId: PROJECT,
       entityType: EntityType.Host,
       identifyingAttributes: { name: "x" },
@@ -144,7 +144,7 @@ describe("TelemetryEntity.computeEntityKey", () => {
   });
 });
 
-describe("TelemetryEntity.extractEntities — per type", () => {
+describe("InventoryItem.extractEntities — per type", () => {
   test("service: from service.name, folds in namespace", () => {
     const e: ExtractedEntity | undefined = entityOfType(
       { "service.name": "checkout", "service.namespace": "shop" },
@@ -352,7 +352,7 @@ describe("TelemetryEntity.extractEntities — per type", () => {
   });
 });
 
-describe("TelemetryEntity.extractEntities — composition & safety", () => {
+describe("InventoryItem.extractEntities — composition & safety", () => {
   test("no phantom entities when identity is absent", () => {
     expect(keysFor({})).toEqual([]);
     // host.* missing, only an unrelated attr present
@@ -418,7 +418,7 @@ describe("TelemetryEntity.extractEntities — composition & safety", () => {
     // deduped
     expect(new Set(keys).size).toBe(keys.length);
     // includes the service (primary) key
-    const serviceKey: string = TelemetryEntity.computeEntityKey({
+    const serviceKey: string = InventoryItem.computeEntityKey({
       projectId: PROJECT,
       entityType: EntityType.Service,
       identifyingAttributes: { "service.name": "checkout" },
@@ -427,7 +427,7 @@ describe("TelemetryEntity.extractEntities — composition & safety", () => {
   });
 
   test("same namespace name in two clusters does not collide", () => {
-    const clusterA: string = TelemetryEntity.computeEntityKey({
+    const clusterA: string = InventoryItem.computeEntityKey({
       projectId: PROJECT,
       entityType: EntityType.KubernetesNamespace,
       identifyingAttributes: {
@@ -435,7 +435,7 @@ describe("TelemetryEntity.extractEntities — composition & safety", () => {
         "k8s.namespace.name": "default",
       },
     });
-    const clusterB: string = TelemetryEntity.computeEntityKey({
+    const clusterB: string = InventoryItem.computeEntityKey({
       projectId: PROJECT,
       entityType: EntityType.KubernetesNamespace,
       identifyingAttributes: {
@@ -447,7 +447,7 @@ describe("TelemetryEntity.extractEntities — composition & safety", () => {
   });
 
   test("same vmid in two proxmox clusters does not collide", () => {
-    const clusterA: string = TelemetryEntity.computeEntityKey({
+    const clusterA: string = InventoryItem.computeEntityKey({
       projectId: PROJECT,
       entityType: EntityType.ProxmoxGuest,
       identifyingAttributes: {
@@ -455,7 +455,7 @@ describe("TelemetryEntity.extractEntities — composition & safety", () => {
         "proxmox.guest.vmid": "100",
       },
     });
-    const clusterB: string = TelemetryEntity.computeEntityKey({
+    const clusterB: string = InventoryItem.computeEntityKey({
       projectId: PROJECT,
       entityType: EntityType.ProxmoxGuest,
       identifyingAttributes: {
@@ -720,7 +720,7 @@ describe("descriptive attributes & labels (never identity-bearing)", () => {
   });
 
   test("oneuptime.label.* suffixes become labels on every extracted entity", () => {
-    const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+    const entities: Array<ExtractedEntity> = InventoryItem.extractEntities({
       projectId: PROJECT,
       attributes: {
         "service.name": "checkout",
@@ -755,7 +755,7 @@ describe("extractEntities — OTLP entity_refs (authoritative path)", () => {
   };
 
   test("builds entities from refs instead of the heuristics", () => {
-    const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+    const entities: Array<ExtractedEntity> = InventoryItem.extractEntities({
       projectId: PROJECT,
       attributes: attrs,
       entityRefs: [
@@ -799,7 +799,7 @@ describe("extractEntities — OTLP entity_refs (authoritative path)", () => {
       .spyOn(logger, "debug")
       .mockImplementation(() => {});
     try {
-      const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+      const entities: Array<ExtractedEntity> = InventoryItem.extractEntities({
         projectId: PROJECT,
         attributes: attrs,
         entityRefs: [
@@ -819,7 +819,7 @@ describe("extractEntities — OTLP entity_refs (authoritative path)", () => {
   });
 
   test("a ref whose identifying value is missing from the resource is skipped", () => {
-    const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+    const entities: Array<ExtractedEntity> = InventoryItem.extractEntities({
       projectId: PROJECT,
       attributes: attrs,
       entityRefs: [
@@ -836,13 +836,13 @@ describe("extractEntities — OTLP entity_refs (authoritative path)", () => {
   });
 
   test("absent or empty refs fall back to the heuristic resolvers", () => {
-    const heuristic: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+    const heuristic: Array<ExtractedEntity> = InventoryItem.extractEntities({
       projectId: PROJECT,
       attributes: attrs,
     });
     expect(heuristic.length).toBeGreaterThan(0);
     expect(
-      TelemetryEntity.extractEntities({
+      InventoryItem.extractEntities({
         projectId: PROJECT,
         attributes: attrs,
         entityRefs: [],
@@ -855,13 +855,13 @@ describe("extractEntities — OTLP entity_refs (authoritative path)", () => {
       .spyOn(logger, "debug")
       .mockImplementation(() => {});
     try {
-      const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+      const entities: Array<ExtractedEntity> = InventoryItem.extractEntities({
         projectId: PROJECT,
         attributes: attrs,
         entityRefs: [{ type: "acme.custom.widget", idKeys: ["whatever"] }],
       });
       expect(entities).toEqual(
-        TelemetryEntity.extractEntities({
+        InventoryItem.extractEntities({
           projectId: PROJECT,
           attributes: attrs,
         }),
@@ -876,7 +876,7 @@ describe("extractEntities — OTLP entity_refs (authoritative path)", () => {
       .spyOn(logger, "warn")
       .mockImplementation(() => {});
     try {
-      const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+      const entities: Array<ExtractedEntity> = InventoryItem.extractEntities({
         projectId: PROJECT,
         attributes: {
           "container.id": "c-1",
@@ -902,7 +902,7 @@ describe("extractEntities — OTLP entity_refs (authoritative path)", () => {
   });
 
   test("labels attach on the refs path too", () => {
-    const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+    const entities: Array<ExtractedEntity> = InventoryItem.extractEntities({
       projectId: PROJECT,
       attributes: { ...attrs, "oneuptime.label.team": "payments" },
       entityRefs: [{ type: "service", idKeys: ["service.name"] }],
@@ -912,9 +912,9 @@ describe("extractEntities — OTLP entity_refs (authoritative path)", () => {
   });
 });
 
-describe("TelemetryEntity.parseEntityRefs", () => {
+describe("InventoryItem.parseEntityRefs", () => {
   test("normalizes camelCase and snake_case shapes; drops malformed entries", () => {
-    const refs: Array<ResourceEntityRef> = TelemetryEntity.parseEntityRefs([
+    const refs: Array<ResourceEntityRef> = InventoryItem.parseEntityRefs([
       {
         type: "service",
         idKeys: ["service.name"],
@@ -949,9 +949,9 @@ describe("TelemetryEntity.parseEntityRefs", () => {
   });
 
   test("non-array input yields no refs", () => {
-    expect(TelemetryEntity.parseEntityRefs(undefined)).toEqual([]);
-    expect(TelemetryEntity.parseEntityRefs(null)).toEqual([]);
-    expect(TelemetryEntity.parseEntityRefs({})).toEqual([]);
-    expect(TelemetryEntity.parseEntityRefs("nope")).toEqual([]);
+    expect(InventoryItem.parseEntityRefs(undefined)).toEqual([]);
+    expect(InventoryItem.parseEntityRefs(null)).toEqual([]);
+    expect(InventoryItem.parseEntityRefs({})).toEqual([]);
+    expect(InventoryItem.parseEntityRefs("nope")).toEqual([]);
   });
 });

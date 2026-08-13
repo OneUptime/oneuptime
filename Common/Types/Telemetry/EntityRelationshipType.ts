@@ -23,7 +23,7 @@ enum EntityRelationshipType {
    * this is NOT inferred from one resource's entity set — caller and
    * callee never share a resource. It is derived from parent/child span
    * pairs that cross a service boundary (see the
-   * TelemetryEntity:ComputeServiceDependencies worker cron).
+   * InventoryItem:ComputeServiceDependencies worker cron).
    */
   DependsOn = "depends-on",
 }

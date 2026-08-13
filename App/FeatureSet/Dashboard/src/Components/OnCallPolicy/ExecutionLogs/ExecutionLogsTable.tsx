@@ -213,6 +213,21 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
       getElement: (item: OnCallDutyPolicyExecutionLog): ReactElement => {
         if (item["status"] === OnCallDutyPolicyStatus.Completed) {
           return <Pill color={Green} text={OnCallDutyPolicyStatus.Completed} />;
+        } else if (
+          item["status"] === OnCallDutyPolicyStatus.CompletedWithNoNotifications
+        ) {
+          /*
+           * A completed execution that paged nobody is not a success. Rendering
+           * it in the same green as a successful page is how a policy that
+           * silently notified no one goes unnoticed for weeks.
+           */
+          return (
+            <Pill
+              color={Yellow}
+              text={OnCallDutyPolicyStatus.CompletedWithNoNotifications}
+              tooltip="This execution ran to completion without notifying anyone. Usually every escalation rule targeted an on-call schedule that had nobody on call."
+            />
+          );
         } else if (item["status"] === OnCallDutyPolicyStatus.Started) {
           return <Pill color={Yellow} text={OnCallDutyPolicyStatus.Started} />;
         } else if (item["status"] === OnCallDutyPolicyStatus.Scheduled) {

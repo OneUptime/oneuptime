@@ -91,6 +91,26 @@ const getLintPillClassName: GetLintPillClassNameFunction = (
   return "border-emerald-200 bg-emerald-50 text-emerald-700";
 };
 
+type GetRunPillClassNameFunction = (
+  hasFailed: boolean,
+  isClickable: boolean,
+) => string;
+
+const getRunPillClassName: GetRunPillClassNameFunction = (
+  hasFailed: boolean,
+  isClickable: boolean,
+): string => {
+  if (hasFailed) {
+    return `border-red-200 bg-red-50 text-red-700${
+      isClickable ? " hover:bg-red-100 hover:border-red-300" : ""
+    }`;
+  }
+
+  return `border-gray-200 bg-gray-50 text-gray-600${
+    isClickable ? " hover:bg-gray-100 hover:border-gray-300" : ""
+  }`;
+};
+
 export interface ComponentProps {
   saveState: WorkflowSaveState;
   /** null until the canvas has run its checks for the first time. */
@@ -100,6 +120,12 @@ export interface ComponentProps {
   /** What the run this builder started is doing, while it is doing it. */
   runStatusMessage?: string | null | undefined;
   runStatusFailed?: boolean | undefined;
+  /**
+   * Opens that run's log. Given one, the run pill becomes a control — the
+   * modal opens by itself when a run starts, and this is how it is got back
+   * after being closed.
+   */
+  onShowRunLog?: (() => void) | undefined;
 }
 
 const WorkflowStatusBar: FunctionComponent<ComponentProps> = (
@@ -133,23 +159,42 @@ const WorkflowStatusBar: FunctionComponent<ComponentProps> = (
         {savePresentation.label}
       </span>
 
-      {props.runStatusMessage && (
-        <span
-          className={`${PILL_CLASS_NAME} ${
-            props.runStatusFailed
-              ? "border-red-200 bg-red-50 text-red-700"
-              : "border-gray-200 bg-gray-50 text-gray-600"
-          }`}
-          data-testid="workflow-run-status"
-        >
-          <Icon
-            icon={props.runStatusFailed ? IconProp.Alert : IconProp.Play}
-            size={SizeProp.ExtraSmall}
-            className="h-3 w-3 shrink-0"
-          />
-          {props.runStatusMessage}
-        </span>
-      )}
+      {props.runStatusMessage &&
+        (props.onShowRunLog ? (
+          <button
+            type="button"
+            onClick={props.onShowRunLog}
+            title="See this run's log"
+            aria-label={`${props.runStatusMessage} Open the run log.`}
+            data-testid="workflow-run-status-button"
+            className={`${PILL_CLASS_NAME} cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 ${getRunPillClassName(
+              Boolean(props.runStatusFailed),
+              true,
+            )}`}
+          >
+            <Icon
+              icon={props.runStatusFailed ? IconProp.Alert : IconProp.Play}
+              size={SizeProp.ExtraSmall}
+              className="h-3 w-3 shrink-0"
+            />
+            {props.runStatusMessage}
+          </button>
+        ) : (
+          <span
+            className={`${PILL_CLASS_NAME} ${getRunPillClassName(
+              Boolean(props.runStatusFailed),
+              false,
+            )}`}
+            data-testid="workflow-run-status"
+          >
+            <Icon
+              icon={props.runStatusFailed ? IconProp.Alert : IconProp.Play}
+              size={SizeProp.ExtraSmall}
+              className="h-3 w-3 shrink-0"
+            />
+            {props.runStatusMessage}
+          </span>
+        ))}
 
       {lintResult &&
         (hasIssues ? (

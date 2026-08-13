@@ -91,6 +91,13 @@ export class Service extends DatabaseService<Model> {
           triggeredByIncidentId: true,
           triggeredByAlertId: true,
           triggeredByAlertEpisodeId: true,
+          /*
+           * Was missing from this select while the guard below (and the feed
+           * branch further down) read it — so it was always undefined and every
+           * incident-episode-triggered execution returned early, producing no
+           * on-call feed entries at all for that trigger type.
+           */
+          triggeredByIncidentEpisodeId: true,
           projectId: true,
           status: true,
           statusMessage: true,
@@ -221,21 +228,63 @@ export class Service extends DatabaseService<Model> {
           incidentOrAlertLink = `[Incident Episode ${incidentEpisodeNumberResult.numberWithPrefix || "#" + incidentEpisodeNumberResult.number}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentEpisodeId)).toString()})`;
         }
 
-        let feedInfoInMarkdown: string = `**${this.getEmojiBasedOnStatus(status)} ${incidentOrAlertLink} On-Call Alert ${status} to ${await UserService.getUserMarkdownString(
-          {
-            userId: onCallDutyPolicyExecutionLogTimeline.alertSentToUserId!,
-            projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
-          },
-        )}**
+        const policyLink: string = `**[${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.id!)).toString()})**`;
 
-The on-call policy **[${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.id!)).toString()})** has been triggered. The escalation rule **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule?.name}** ${onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name ? String(" and schedule **" + onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name + "**") : ""} were applied. ${await UserService.getUserMarkdownString(
-          {
-            userId: onCallDutyPolicyExecutionLogTimeline.alertSentToUserId!,
-            projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
-          },
-        )} was alerted. The status of this alert is **${status}** with the message: \`${onCallDutyPolicyExecutionLogTimeline.statusMessage}\`. ${onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name ? "The alert was sent because the user belogs to the team **" + onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name + "** " : ""} ${onCallDutyPolicyExecutionLogTimeline.isAcknowledged ? "The alert was acknowledged at **" + onCallDutyPolicyExecutionLogTimeline.acknowledgedAt + "** " : ""}`;
+        const scheduleClause: string = onCallDutyPolicyExecutionLogTimeline
+          .onCallDutySchedule?.name
+          ? String(
+              " and schedule **" +
+                onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name +
+                "**",
+            )
+          : "";
 
-        if (onCallDutyPolicyExecutionLogTimeline.overridedByUser) {
+        /*
+         * Some timeline rows have NO recipient by construction: a schedule that
+         * currently has nobody on call (a coverage gap), or an escalation rule
+         * with no responders at all. Those rows are exactly the ones an operator
+         * most needs to understand, so they get their own wording.
+         *
+         * Building the "was alerted" sentence for them used to interpolate
+         * `alertSentToUserId!` — a non-null assertion on a field that is never
+         * set here — which rendered a feed entry claiming somebody was paged
+         * when in fact nobody was.
+         */
+        const hasRecipient: boolean = Boolean(
+          onCallDutyPolicyExecutionLogTimeline.alertSentToUserId,
+        );
+
+        let feedInfoInMarkdown: string = "";
+
+        if (!hasRecipient) {
+          const noRecipientReason: string = onCallDutyPolicyExecutionLogTimeline
+            .onCallDutySchedule?.name
+            ? `no one was on call in schedule **${onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule.name}**`
+            : "this escalation rule had no responders";
+
+          feedInfoInMarkdown = `**${this.getEmojiBasedOnStatus(status)} ${incidentOrAlertLink} On-Call Alert ${status} — nobody was notified**
+
+The on-call policy ${policyLink} has been triggered. The escalation rule **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule?.name}**${scheduleClause} were applied, but ${noRecipientReason}, so **no one was notified at this step**. The status of this step is **${status}** with the message: \`${onCallDutyPolicyExecutionLogTimeline.statusMessage}\`.`;
+        } else {
+          feedInfoInMarkdown = `**${this.getEmojiBasedOnStatus(status)} ${incidentOrAlertLink} On-Call Alert ${status} to ${await UserService.getUserMarkdownString(
+            {
+              userId: onCallDutyPolicyExecutionLogTimeline.alertSentToUserId!,
+              projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
+            },
+          )}**
+
+The on-call policy ${policyLink} has been triggered. The escalation rule **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule?.name}** ${scheduleClause} were applied. ${await UserService.getUserMarkdownString(
+            {
+              userId: onCallDutyPolicyExecutionLogTimeline.alertSentToUserId!,
+              projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
+            },
+          )} was alerted. The status of this alert is **${status}** with the message: \`${onCallDutyPolicyExecutionLogTimeline.statusMessage}\`. ${onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name ? "The alert was sent because the user belogs to the team **" + onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name + "** " : ""} ${onCallDutyPolicyExecutionLogTimeline.isAcknowledged ? "The alert was acknowledged at **" + onCallDutyPolicyExecutionLogTimeline.acknowledgedAt + "** " : ""}`;
+        }
+
+        if (
+          hasRecipient &&
+          onCallDutyPolicyExecutionLogTimeline.overridedByUser
+        ) {
           feedInfoInMarkdown += `The alert was supposed to be sent to **${await UserService.getUserMarkdownString(
             {
               userId: onCallDutyPolicyExecutionLogTimeline.overridedByUser.id!,

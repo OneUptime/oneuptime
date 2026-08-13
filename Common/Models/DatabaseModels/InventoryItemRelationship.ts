@@ -1,0 +1,374 @@
+import Project from "./Project";
+import User from "./User";
+import Route from "../../Types/API/Route";
+import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import ColumnLength from "../../Types/Database/ColumnLength";
+import ColumnType from "../../Types/Database/ColumnType";
+import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import EnableDocumentation from "../../Types/Database/EnableDocumentation";
+import TableColumn from "../../Types/Database/TableColumn";
+import TableColumnType from "../../Types/Database/TableColumnType";
+import TableMetadata from "../../Types/Database/TableMetadata";
+import TenantColumn from "../../Types/Database/TenantColumn";
+import IconProp from "../../Types/Icon/IconProp";
+import ObjectID from "../../Types/ObjectID";
+import Permission from "../../Types/Permission";
+import EntityRelationshipType from "../../Types/Telemetry/EntityRelationshipType";
+import EntitySource from "../../Types/Telemetry/EntitySource";
+import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import DatabaseBaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
+
+const READ_PERMS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.ProjectMember,
+  Permission.Viewer,
+  Permission.TelemetryAdmin,
+  Permission.TelemetryMember,
+  Permission.TelemetryViewer,
+  Permission.ReadTelemetryService,
+];
+const CREATE_PERMS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.TelemetryAdmin,
+  Permission.CreateTelemetryService,
+];
+const UPDATE_PERMS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.TelemetryAdmin,
+  Permission.EditTelemetryService,
+];
+
+/**
+ * A directed relationship between two OpenTelemetry entities, inferred from
+ * resource co-occurrence at ingest (phase 5 — see
+ * Internal/Docs/OpenTelemetryEntities.md §4). One row per
+ * `(projectId, fromEntityKey, toEntityKey, relationshipType)`. This is the
+ * infrastructure topology graph ("pod runs-on node", "service hosted-on
+ * host", ...) and the seed for the service map. Populated forward-only and
+ * throttled (no backfill), exactly like `InventoryItem`.
+ */
+@EnableDocumentation()
+@TenantColumn("projectId")
+@TableAccessControl({
+  create: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.CreateTelemetryService,
+  ],
+  read: READ_PERMS,
+  delete: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.DeleteTelemetryService,
+  ],
+  update: UPDATE_PERMS,
+})
+@CrudApiEndpoint(new Route("/inventory-item-relationship"))
+@TableMetadata({
+  tableName: "InventoryItemRelationship",
+  singularName: "Inventory Item Relationship",
+  pluralName: "Inventory Item Relationships",
+  icon: IconProp.FlowDiagram,
+  tableDescription:
+    "Directed relationships between telemetry entities (runs-on, member-of, hosted-on, part-of, instance-of), inferred from resource co-occurrence.",
+})
+@Entity({ name: "InventoryItemRelationship" })
+// Natural key + upsert conflict target for the throttled ingest reconciler.
+@Index(["projectId", "fromEntityKey", "toEntityKey", "relationshipType"], {
+  unique: true,
+})
+// "what is X related to" / "what relates to X".
+@Index(["projectId", "fromEntityKey"])
+@Index(["projectId", "toEntityKey"])
+export default class InventoryItemRelationship extends DatabaseBaseModel {
+  @ColumnAccessControl({ create: CREATE_PERMS, read: READ_PERMS, update: [] })
+  @TableColumn({
+    manyToOneRelationColumn: "projectId",
+    type: TableColumnType.Entity,
+    modelType: Project,
+    title: "Project",
+    description: "Relation to Project Resource in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
+  })
+  @ManyToOne(
+    () => {
+      return Project;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "projectId" })
+  public project?: Project = undefined;
+
+  @ColumnAccessControl({ create: CREATE_PERMS, read: READ_PERMS, update: [] })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: true,
+    canReadOnRelationQuery: true,
+    title: "Project ID",
+    description: "ID of your OneUptime Project in which this object belongs",
+    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: false,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public projectId?: ObjectID = undefined;
+
+  @ColumnAccessControl({ create: CREATE_PERMS, read: READ_PERMS, update: [] })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: true,
+    canReadOnRelationQuery: true,
+    title: "From Entity Key",
+    description: "Stable identity key of the source entity of this edge.",
+    example: "de68fe62220ce1d5",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+  })
+  public fromEntityKey?: string = undefined;
+
+  @ColumnAccessControl({ create: CREATE_PERMS, read: READ_PERMS, update: [] })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: true,
+    canReadOnRelationQuery: true,
+    title: "To Entity Key",
+    description: "Stable identity key of the target entity of this edge.",
+    example: "8a238f41aaf2c179",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+  })
+  public toEntityKey?: string = undefined;
+
+  @ColumnAccessControl({ create: CREATE_PERMS, read: READ_PERMS, update: [] })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: true,
+    canReadOnRelationQuery: true,
+    title: "Relationship Type",
+    description:
+      "The inferred relationship (runs-on, member-of, hosted-on, part-of, instance-of).",
+    example: "runs-on",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+  })
+  public relationshipType?: EntityRelationshipType = undefined;
+
+  /*
+   * Immutable after create, for the same reason as InventoryItem.source:
+   * it is the predicate the edge prune keys on. An edge drawn by hand — the
+   * only way to connect a manual CI to anything — has nothing re-bumping its
+   * `lastSeenAt`, so without this it would be reaped by the 30-day sweep
+   * while the entities at both ends survived.
+   */
+  @ColumnAccessControl({ create: CREATE_PERMS, read: READ_PERMS, update: [] })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: true,
+    title: "Source",
+    description:
+      "Whether this edge was derived from telemetry or drawn manually by a user. Determines whether stale-edge pruning applies.",
+    example: "discovered",
+  })
+  @Index()
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    default: EntitySource.Discovered,
+  })
+  public source?: EntitySource = undefined;
+
+  @ColumnAccessControl({
+    create: CREATE_PERMS,
+    read: READ_PERMS,
+    update: UPDATE_PERMS,
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    title: "First Seen At",
+    description: "When this relationship was first observed in telemetry.",
+    example: "2025-12-10T08:15:00.000Z",
+  })
+  @Column({ type: ColumnType.Date, nullable: true })
+  public firstSeenAt?: Date = undefined;
+
+  @Index()
+  @ColumnAccessControl({
+    create: CREATE_PERMS,
+    read: READ_PERMS,
+    update: UPDATE_PERMS,
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    title: "Last Seen At",
+    description:
+      "Most recent time this relationship was observed (bumped, throttled). Drives staleness pruning.",
+    example: "2025-12-12T16:20:00.000Z",
+  })
+  @Column({ type: ColumnType.Date, nullable: true })
+  public lastSeenAt?: Date = undefined;
+
+  /*
+   * Traffic metrics for `depends-on` edges, refreshed each run of the
+   * ComputeServiceDependencies cron from the most recent span window
+   * (~15 min). Null on co-occurrence-inferred edges, which carry no
+   * call semantics.
+   */
+  @ColumnAccessControl({
+    create: CREATE_PERMS,
+    read: READ_PERMS,
+    update: UPDATE_PERMS,
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Call Count",
+    description:
+      "Calls observed over this edge in the most recent computation window (depends-on edges only).",
+    example: "1240",
+  })
+  @Column({ type: ColumnType.Number, nullable: true })
+  public callCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: CREATE_PERMS,
+    read: READ_PERMS,
+    update: UPDATE_PERMS,
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Error Count",
+    description:
+      "Errored calls observed over this edge in the most recent computation window (depends-on edges only).",
+    example: "12",
+  })
+  @Column({ type: ColumnType.Number, nullable: true })
+  public errorCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: CREATE_PERMS,
+    read: READ_PERMS,
+    update: UPDATE_PERMS,
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Average Duration (ms)",
+    description:
+      "Average call duration in milliseconds over this edge in the most recent computation window (depends-on edges only).",
+    example: "38",
+  })
+  @Column({ type: ColumnType.Number, nullable: true })
+  public avgDurationMs?: number = undefined;
+
+  @ColumnAccessControl({ create: CREATE_PERMS, read: READ_PERMS, update: [] })
+  @TableColumn({
+    manyToOneRelationColumn: "createdByUserId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "Created by User",
+    description:
+      "Relation to User who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "createdByUserId" })
+  public createdByUser?: User = undefined;
+
+  @ColumnAccessControl({ create: CREATE_PERMS, read: READ_PERMS, update: [] })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Created by User ID",
+    description:
+      "User ID who created this object (if this object was created by a User)",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public createdByUserId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: CREATE_PERMS,
+    read: READ_PERMS,
+    update: UPDATE_PERMS,
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "deletedByUserId",
+    type: TableColumnType.Entity,
+    title: "Deleted by User",
+    modelType: User,
+    description:
+      "Relation to User who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      cascade: false,
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "deletedByUserId" })
+  public deletedByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: CREATE_PERMS,
+    read: READ_PERMS,
+    update: UPDATE_PERMS,
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Deleted by User ID",
+    description:
+      "User ID who deleted this object (if this object was deleted by a User)",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public deletedByUserId?: ObjectID = undefined;
+}

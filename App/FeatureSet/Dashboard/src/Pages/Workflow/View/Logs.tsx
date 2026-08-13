@@ -4,10 +4,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewer";
-import StepTraceViewer from "Common/UI/Components/Workflow/StepTraceViewer";
+import WorkflowLogModal from "Common/UI/Components/Workflow/WorkflowLogModal";
 import {
   WorkflowStepTrace,
   emptyTrace,
@@ -176,35 +174,15 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         />
 
         {showViewLogsModal && (
-          <Modal
-            title={"Workflow Logs"}
-            description="Here are the logs for this workflow"
-            isLoading={false}
-            modalWidth={ModalWidth.Large}
-            onSubmit={() => {
+          <WorkflowLogModal
+            title="Workflow Run"
+            description="Here is what happened when this workflow ran."
+            logs={logs}
+            stepTrace={stepTrace}
+            onClose={() => {
               setShowViewLogsModal(false);
             }}
-            submitButtonText={"Close"}
-            submitButtonStyleType={ButtonStyleType.NORMAL}
-          >
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-2">
-                  Steps
-                </h3>
-                <StepTraceViewer trace={stepTrace} />
-              </div>
-
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-2">
-                  Full log
-                </h3>
-                <SimpleLogViewer title="Workflow Execution Log" height="300px">
-                  {logs}
-                </SimpleLogViewer>
-              </div>
-            </div>
-          </Modal>
+          />
         )}
       </>
     </Fragment>

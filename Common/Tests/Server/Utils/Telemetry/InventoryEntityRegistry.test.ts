@@ -1,4 +1,4 @@
-import TelemetryEntity from "../../../../Models/DatabaseModels/TelemetryEntity";
+import InventoryItem from "../../../../Models/DatabaseModels/InventoryItem";
 import {
   buildInventoryEntityModel,
   compactAttributes,
@@ -86,7 +86,7 @@ describe("compactAttributes", () => {
 
 describe("buildInventoryEntityModel", () => {
   test("marks the row as inventory-sourced", () => {
-    const model: TelemetryEntity = buildInventoryEntityModel({
+    const model: InventoryItem = buildInventoryEntityModel({
       source: NETWORK_SOURCE,
       row: projection(),
       now: NOW,
@@ -101,7 +101,7 @@ describe("buildInventoryEntityModel", () => {
   });
 
   test("derives the key from the owning row id, matching keyForInventoryEntity", () => {
-    const model: TelemetryEntity = buildInventoryEntityModel({
+    const model: InventoryItem = buildInventoryEntityModel({
       source: NETWORK_SOURCE,
       row: projection(),
       now: NOW,
@@ -117,12 +117,12 @@ describe("buildInventoryEntityModel", () => {
   });
 
   test("a rename does not change identity", () => {
-    const before: TelemetryEntity = buildInventoryEntityModel({
+    const before: InventoryItem = buildInventoryEntityModel({
       source: NETWORK_SOURCE,
       row: projection({ displayName: "core-switch-1" }),
       now: NOW,
     });
-    const after: TelemetryEntity = buildInventoryEntityModel({
+    const after: InventoryItem = buildInventoryEntityModel({
       source: NETWORK_SOURCE,
       row: projection({ displayName: "core-switch-1-renamed" }),
       now: NOW,
@@ -133,7 +133,7 @@ describe("buildInventoryEntityModel", () => {
   });
 
   test("populates the polymorphic pointer back to the owning row", () => {
-    const model: TelemetryEntity = buildInventoryEntityModel({
+    const model: InventoryItem = buildInventoryEntityModel({
       source: NETWORK_SOURCE,
       row: projection(),
       now: NOW,
@@ -144,7 +144,7 @@ describe("buildInventoryEntityModel", () => {
   });
 
   test("carries project, type, attributes and timestamps through", () => {
-    const model: TelemetryEntity = buildInventoryEntityModel({
+    const model: InventoryItem = buildInventoryEntityModel({
       source: NETWORK_SOURCE,
       row: projection(),
       now: NOW,
@@ -160,7 +160,7 @@ describe("buildInventoryEntityModel", () => {
   });
 
   test("records the owning row id as the identifying attribute", () => {
-    const model: TelemetryEntity = buildInventoryEntityModel({
+    const model: InventoryItem = buildInventoryEntityModel({
       source: NETWORK_SOURCE,
       row: projection(),
       now: NOW,
@@ -176,7 +176,7 @@ describe("buildInventoryEntityModel", () => {
      * displayName is a bounded varchar; an over-long name would otherwise
      * fail the INSERT with a 22001 and lose the row entirely.
      */
-    const model: TelemetryEntity = buildInventoryEntityModel({
+    const model: InventoryItem = buildInventoryEntityModel({
       source: NETWORK_SOURCE,
       row: projection({ displayName: "n".repeat(ColumnLength.ShortText + 50) }),
       now: NOW,
@@ -186,12 +186,12 @@ describe("buildInventoryEntityModel", () => {
   });
 
   test("distinct rows of one type produce distinct keys", () => {
-    const first: TelemetryEntity = buildInventoryEntityModel({
+    const first: InventoryItem = buildInventoryEntityModel({
       source: NETWORK_SOURCE,
       row: projection(),
       now: NOW,
     });
-    const second: TelemetryEntity = buildInventoryEntityModel({
+    const second: InventoryItem = buildInventoryEntityModel({
       source: NETWORK_SOURCE,
       row: projection({
         id: new ObjectID("11111111-2222-3333-4444-555555555555"),
@@ -203,12 +203,12 @@ describe("buildInventoryEntityModel", () => {
   });
 
   test("the same row id under two types produces distinct keys", () => {
-    const asDevice: TelemetryEntity = buildInventoryEntityModel({
+    const asDevice: InventoryItem = buildInventoryEntityModel({
       source: NETWORK_SOURCE,
       row: projection(),
       now: NOW,
     });
-    const asIoT: TelemetryEntity = buildInventoryEntityModel({
+    const asIoT: InventoryItem = buildInventoryEntityModel({
       source: { entityType: EntityType.IoTDevice, resourceType: "IoTDevice" },
       row: projection(),
       now: NOW,
@@ -220,8 +220,8 @@ describe("buildInventoryEntityModel", () => {
 
 describe("inventoryEntityNeedsUpdate", () => {
   function pair(existingOverrides: Partial<InventoryRowProjection>): {
-    existing: TelemetryEntity;
-    desired: TelemetryEntity;
+    existing: InventoryItem;
+    desired: InventoryItem;
   } {
     return {
       existing: buildInventoryEntityModel({

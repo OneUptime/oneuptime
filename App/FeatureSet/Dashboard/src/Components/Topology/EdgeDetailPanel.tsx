@@ -22,8 +22,8 @@ import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import { YAxisPrecision } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
-import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
-import TelemetryEntityRelationship from "Common/Models/DatabaseModels/TelemetryEntityRelationship";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
+import InventoryItemRelationship from "Common/Models/DatabaseModels/InventoryItemRelationship";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -59,9 +59,9 @@ import {
  */
 
 export interface ComponentProps {
-  fromEntity: TelemetryEntity;
-  toEntity: TelemetryEntity;
-  relationship: TelemetryEntityRelationship;
+  fromEntity: InventoryItem;
+  toEntity: InventoryItem;
+  relationship: InventoryItemRelationship;
   timeRange: RangeStartAndEndDateTime;
   /** Seconds the latest-window metrics were aggregated over (cron window). */
   metricsWindowSeconds: number;
@@ -389,7 +389,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
     ];
   };
 
-  const rel: TelemetryEntityRelationship = props.relationship;
+  const rel: InventoryItemRelationship = props.relationship;
   const hasLatestMetrics: boolean = Boolean(rel.callCount && rel.callCount > 0);
   const healthColor: string =
     HEALTH_COLORS[healthForErrorRate(rel.callCount, rel.errorCount)];

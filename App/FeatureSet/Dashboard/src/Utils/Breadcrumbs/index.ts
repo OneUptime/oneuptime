@@ -24,5 +24,6 @@ export * from "./AIAgentTasksBreadcrumbs";
 export * from "./AIInsightsBreadcrumbs";
 export * from "./ExceptionsBreadcrumbs";
 export * from "./ProfilesBreadcrumbs";
+export * from "./InventoryBreadcrumbs";
 export * from "./UsersBreadcrumbs";
 export * from "./TeamsBreadcrumbs";
