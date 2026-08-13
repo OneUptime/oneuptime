@@ -186,6 +186,10 @@ import InventoryItemServiceInstance, {
   InventoryItemService as InventoryItemServiceType,
 } from "Common/Server/Services/InventoryItemService";
 import InventoryItemRelationship from "Common/Models/DatabaseModels/InventoryItemRelationship";
+import InventoryItemCustomField from "Common/Models/DatabaseModels/InventoryItemCustomField";
+import InventoryItemCustomFieldServiceInstance, {
+  Service as InventoryItemCustomFieldServiceType,
+} from "Common/Server/Services/InventoryItemCustomFieldService";
 import InventoryItemRelationshipServiceInstance, {
   InventoryItemRelationshipService as InventoryItemRelationshipServiceType,
 } from "Common/Server/Services/InventoryItemRelationshipService";
@@ -1641,7 +1645,7 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    // Telemetry entity registry + topology graph (read/list for the entity explorer).
+    // Inventory: the estate catalog, its relationship graph and its custom fields.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<InventoryItem, InventoryItemServiceType>(
@@ -1658,6 +1662,17 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         InventoryItemRelationship,
         InventoryItemRelationshipServiceInstance,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        InventoryItemCustomField,
+        InventoryItemCustomFieldServiceType
+      >(
+        InventoryItemCustomField,
+        InventoryItemCustomFieldServiceInstance,
       ).getRouter(),
     );
 

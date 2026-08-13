@@ -90,7 +90,6 @@ const useInventoryItem: UseInventoryItemFunction = (
     return () => {
       isCancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modelIdString]);
 
   return { item, isLoading, error };

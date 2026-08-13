@@ -153,7 +153,9 @@ export const buildTemplateGraph: BuildTemplateGraphFunction = (
            * shallow copy would let that editing reach back into the shipped
            * template definition for the rest of the process.
            */
-          arguments: node.args ? (JSON.parse(JSON.stringify(node.args)) as JSONObject) : {},
+          arguments: node.args
+            ? (JSON.parse(JSON.stringify(node.args)) as JSONObject)
+            : {},
           returnValues: {},
         },
       };
@@ -1446,7 +1448,8 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
       {
         name: "apiUrl",
         title: "URL to check",
-        description: "The endpoint this workflow should call every five minutes.",
+        description:
+          "The endpoint this workflow should call every five minutes.",
         placeholder: "https://api.example.com/health",
         required: true,
         isSecret: false,
@@ -1815,6 +1818,7 @@ type ToPublicTemplateFunction = (
 const toPublicTemplate: ToPublicTemplateFunction = (
   definition: TemplateDefinition,
 ): WorkflowTemplate => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { graph: _graph, ...template } = definition;
   return template;
 };

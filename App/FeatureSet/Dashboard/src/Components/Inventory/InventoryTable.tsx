@@ -1,4 +1,6 @@
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
+import InventoryItemCustomField from "Common/Models/DatabaseModels/InventoryItemCustomField";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -115,6 +117,13 @@ export interface ComponentProps {
   cardDescription?: string | undefined;
   /** Only meaningful with `query`: used to remount when the scope changes. */
   refreshToggle?: string | undefined;
+  /**
+   * Show the archived items instead of the live ones. The two are the same
+   * table over disjoint halves of the same column, so they share everything
+   * except which half they select and what you can do to a row once you are
+   * looking at it.
+   */
+  archivedOnly?: boolean | undefined;
 }
 
 const InventoryTable: FunctionComponent<ComponentProps> = (
@@ -122,7 +131,16 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const { translateString } = useTranslateValue();
 
-  const tableKey: string = props.tableKey || "inventory-items-table";
+  const isArchivedView: boolean = Boolean(props.archivedOnly);
+
+  const tableKey: string =
+    props.tableKey ||
+    (isArchivedView ? "inventory-archived-table" : "inventory-items-table");
+
+  const { archiveBulkActions, unarchiveBulkActions } =
+    useBulkArchiveActions<InventoryItem>({
+      modelType: InventoryItem,
+    });
 
   /*
    * One clock for the whole render pass. Reading `new Date()` per cell would
@@ -137,10 +155,21 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
         modelType={InventoryItem}
         id={tableKey}
         userPreferencesKey={tableKey}
-        isDeleteable={true}
-        isEditable={true}
-        isCreateable={true}
+        /*
+         * An archived row is read-only until it is restored: editing or
+         * deleting something you have already put out of sight is a way to
+         * act on the wrong row.
+         */
+        isDeleteable={!isArchivedView}
+        isEditable={!isArchivedView}
+        isCreateable={!isArchivedView}
         isViewable={true}
+        bulkActions={{
+          buttons: isArchivedView
+            ? [...unarchiveBulkActions]
+            : [...archiveBulkActions],
+        }}
+        customFieldsModelType={InventoryItemCustomField}
         viewPageRoute={RouteUtil.populateRouteParams(
           RouteMap[PageMap.INVENTORY_VIEW_ROOT]!,
         )}
@@ -161,6 +190,7 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
         }}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
+          isArchived: isArchivedView,
           ...(props.query || {}),
         }}
         showRefreshButton={true}

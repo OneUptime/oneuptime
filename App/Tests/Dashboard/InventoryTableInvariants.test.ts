@@ -100,8 +100,13 @@ describe("the inventory table file exists where the test expects it", () => {
 });
 
 describe("manual creation is offered", () => {
-  test("the table is creatable", () => {
-    expect(readCode()).toContain("isCreateable={true}");
+  test("the live table is creatable", () => {
+    /*
+     * Conditional rather than unconditional: the archived view reuses this
+     * table and is deliberately read-only, so a row already put out of sight
+     * cannot be edited or deleted by mistake.
+     */
+    expect(readCode()).toContain("isCreateable={!isArchivedView}");
   });
 
   test("the create form is wired", () => {
@@ -210,9 +215,7 @@ describe("no cell renders a raw wire value", () => {
 
   test("the CSV export does not fall back to raw values for badge columns", () => {
     // A badge column with no getExportValue exports a UUID or nothing.
-    expect(code).toContain(
-      "getExportValue: (item: InventoryItem): string =>",
-    );
+    expect(code).toContain("getExportValue: (item: InventoryItem): string =>");
     expect(code).toContain("getInventoryTypeLabel(item.entityType");
     expect(code).toContain("getInventorySourceLabel(item.source)");
   });

@@ -583,9 +583,8 @@ describe("buildWorkflowVariables", () => {
     const byName: Record<string, boolean> = {};
 
     for (const row of rows) {
-      byName[row.name as string] = (
-        row as unknown as { isSecret?: boolean }
-      ).isSecret as boolean;
+      byName[row.name as string] = (row as unknown as { isSecret?: boolean })
+        .isSecret as boolean;
     }
 
     expect(byName["smtpPassword"]).toBe(true);

@@ -16,6 +16,13 @@ import InventoryItemRelationships from "../Pages/Inventory/View/Relationships";
 import InventoryItemTelemetry from "../Pages/Inventory/View/Telemetry";
 import InventoryItemSettings from "../Pages/Inventory/View/Settings";
 import InventoryItemDelete from "../Pages/Inventory/View/Delete";
+import InventoryItemIncidents from "../Pages/Inventory/View/Incidents";
+import InventoryItemAlerts from "../Pages/Inventory/View/Alerts";
+import InventoryItemScheduledMaintenance from "../Pages/Inventory/View/ScheduledMaintenance";
+import InventoryItemCustomFields from "../Pages/Inventory/View/CustomFields";
+import InventoryItemAuditLogs from "../Pages/Inventory/View/AuditLogs";
+import InventoryArchived from "../Pages/Inventory/Archived";
+import InventoryCustomFields from "../Pages/Inventory/Settings/CustomFields";
 
 const InventoryRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -60,6 +67,28 @@ const InventoryRoutes: FunctionComponent<ComponentProps> = (
             <InventoryDocumentation
               {...props}
               pageRoute={RouteMap[PageMap.INVENTORY_DOCUMENTATION] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={InventoryRoutePath[PageMap.INVENTORY_ARCHIVED] || ""}
+          element={
+            <InventoryArchived
+              {...props}
+              pageRoute={RouteMap[PageMap.INVENTORY_ARCHIVED] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            InventoryRoutePath[PageMap.INVENTORY_SETTINGS_CUSTOM_FIELDS] || ""
+          }
+          element={
+            <InventoryCustomFields
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INVENTORY_SETTINGS_CUSTOM_FIELDS] as Route
+              }
             />
           }
         />
@@ -115,6 +144,59 @@ const InventoryRoutes: FunctionComponent<ComponentProps> = (
             <InventoryItemDelete
               {...props}
               pageRoute={RouteMap[PageMap.INVENTORY_VIEW_DELETE] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.INVENTORY_VIEW_INCIDENTS)}
+          element={
+            <InventoryItemIncidents
+              {...props}
+              pageRoute={RouteMap[PageMap.INVENTORY_VIEW_INCIDENTS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.INVENTORY_VIEW_ALERTS)}
+          element={
+            <InventoryItemAlerts
+              {...props}
+              pageRoute={RouteMap[PageMap.INVENTORY_VIEW_ALERTS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.INVENTORY_VIEW_SCHEDULED_MAINTENANCE,
+          )}
+          element={
+            <InventoryItemScheduledMaintenance
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INVENTORY_VIEW_SCHEDULED_MAINTENANCE] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.INVENTORY_VIEW_CUSTOM_FIELDS,
+          )}
+          element={
+            <InventoryItemCustomFields
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INVENTORY_VIEW_CUSTOM_FIELDS] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.INVENTORY_VIEW_AUDIT_LOGS)}
+          element={
+            <InventoryItemAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.INVENTORY_VIEW_AUDIT_LOGS] as Route}
             />
           }
         />

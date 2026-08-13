@@ -74,7 +74,14 @@ const InventoryOverview: FunctionComponent<
       const result: ListResult<InventoryItem> =
         await ModelAPI.getList<InventoryItem>({
           modelType: InventoryItem,
-          query: { projectId },
+          /*
+           * Archived rows are excluded, matching the list every tile drills
+           * into. Counting them here would put a number on a tile that the
+           * list it opens does not contain — "Total Items: 100" landing on 95
+           * rows — which is the exact failure the tile/scope pairing exists to
+           * prevent.
+           */
+          query: { projectId, isArchived: false },
           select: {
             _id: true,
             entityType: true,

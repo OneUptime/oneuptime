@@ -305,10 +305,7 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
     useRef<ReactFlowInstance | null>(null);
 
   const entityByKey: Map<string, InventoryItem> = useMemo(() => {
-    const map: Map<string, InventoryItem> = new Map<
-      string,
-      InventoryItem
-    >();
+    const map: Map<string, InventoryItem> = new Map<string, InventoryItem>();
     for (const entity of props.entities) {
       if (entity.entityKey) {
         map.set(entity.entityKey, entity);
