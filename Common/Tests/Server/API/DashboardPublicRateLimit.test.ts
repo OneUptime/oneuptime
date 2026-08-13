@@ -28,7 +28,11 @@ jest.mock("../../../Server/Utils/Express", () => {
   return {
     ...actual,
     __esModule: true,
-    default: { getRouter: () => mockRouter },
+    default: {
+      getRouter: () => {
+        return mockRouter;
+      },
+    },
     getRouter: () => {
       return mockRouter;
     },
@@ -261,18 +265,23 @@ describe("DashboardAPI public rate limiting", () => {
     nowSpy.mockRestore();
   });
 
-  const buildRequest: (route: PublicRoute, clientIp?: string) => ExpressRequest =
-    (route: PublicRoute, clientIp: string = "203.0.113.7") => {
-      return {
-        params: route.params,
-        body: route.body || {},
-        query: {},
-        cookies: {},
-        headers: { "x-forwarded-for": clientIp },
-        socket: {},
-        ips: [],
-      } as unknown as ExpressRequest;
-    };
+  const buildRequest: (
+    route: PublicRoute,
+    clientIp?: string,
+  ) => ExpressRequest = (
+    route: PublicRoute,
+    clientIp: string = "203.0.113.7",
+  ) => {
+    return {
+      params: route.params,
+      body: route.body || {},
+      query: {},
+      cookies: {},
+      headers: { "x-forwarded-for": clientIp },
+      socket: {},
+      ips: [],
+    } as unknown as ExpressRequest;
+  };
 
   const buildResponse: () => ExpressResponse = () => {
     return {
@@ -312,15 +321,18 @@ describe("DashboardAPI public rate limiting", () => {
           return [`${route.method} ${route.uri}`, route] as const;
         },
       ),
-    )("puts a limiter in front of %s", async (_label, route) => {
-      const registered: { middlewares: Array<unknown> } = mockRouter.match(
-        route.method,
-        route.uri,
-      );
+    )(
+      "puts a limiter in front of %s",
+      async (_label: string, route: PublicRoute) => {
+        const registered: { middlewares: Array<unknown> } = mockRouter.match(
+          route.method,
+          route.uri,
+        );
 
-      expect(registered.middlewares).toHaveLength(2);
-      expect(typeof registered.middlewares[0]).toBe("function");
-    });
+        expect(registered.middlewares).toHaveLength(2);
+        expect(typeof registered.middlewares[0]).toBe("function");
+      },
+    );
 
     /*
      * Order matters: ahead of UserMiddleware a flood is refused before it
@@ -333,17 +345,22 @@ describe("DashboardAPI public rate limiting", () => {
           return [`${route.method} ${route.uri}`, route] as const;
         },
       ),
-    )("runs the limiter before authorization on %s", async (_label, route) => {
-      const registered: { middlewares: Array<unknown> } = mockRouter.match(
-        route.method,
-        route.uri,
-      );
+    )(
+      "runs the limiter before authorization on %s",
+      async (_label: string, route: PublicRoute) => {
+        const registered: { middlewares: Array<unknown> } = mockRouter.match(
+          route.method,
+          route.uri,
+        );
 
-      expect(registered.middlewares[1]).toBe(UserMiddleware.getUserMiddleware);
-      expect(registered.middlewares[0]).not.toBe(
-        UserMiddleware.getUserMiddleware,
-      );
-    });
+        expect(registered.middlewares[1]).toBe(
+          UserMiddleware.getUserMiddleware,
+        );
+        expect(registered.middlewares[0]).not.toBe(
+          UserMiddleware.getUserMiddleware,
+        );
+      },
+    );
 
     /*
      * The guard against a route being added to this surface later without a
@@ -565,7 +582,11 @@ describe("DashboardAPI public rate limiting", () => {
     it("does not spend the read budget", async () => {
       const route: PublicRoute = masterPasswordRoute();
 
-      for (let i: number = 0; i < MASTER_PASSWORD_PER_DASHBOARD_LIMIT + 5; i++) {
+      for (
+        let i: number = 0;
+        i < MASTER_PASSWORD_PER_DASHBOARD_LIMIT + 5;
+        i++
+      ) {
         await runLimiter(route);
       }
 

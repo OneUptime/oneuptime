@@ -174,13 +174,17 @@ class FakePipeline {
   }
 }
 
-const buildRequest: (overrides?: {
+interface BuildRequestOverrides {
   params?: Record<string, string>;
   body?: Record<string, unknown>;
   headers?: Record<string, string | Array<string>>;
   socketAddress?: string | undefined;
   ip?: string | undefined;
-}) => ExpressRequest = (overrides = {}) => {
+}
+
+const buildRequest: (overrides?: BuildRequestOverrides) => ExpressRequest = (
+  overrides: BuildRequestOverrides = {},
+) => {
   return {
     params: overrides.params || {},
     body: overrides.body,
@@ -237,7 +241,10 @@ describe("PublicDashboardRateLimit", () => {
   const consumeRead: (data: {
     dashboardKey?: string;
     clientIp?: string;
-  }) => Promise<PublicDashboardRateLimitDecision> = (data) => {
+  }) => Promise<PublicDashboardRateLimitDecision> = (data: {
+    dashboardKey?: string;
+    clientIp?: string;
+  }) => {
     return PublicDashboardRateLimit.consume({
       dashboardKey: data.dashboardKey || "id:dashboard-a",
       clientIp: data.clientIp || "203.0.113.7",
@@ -264,9 +271,12 @@ describe("PublicDashboardRateLimit", () => {
     });
 
     it("is unaffected by however many entries the caller forges", () => {
-      const forged: string = Array.from({ length: 50 }, (_unused, index) => {
-        return `10.0.0.${index}`;
-      }).join(", ");
+      const forged: string = Array.from(
+        { length: 50 },
+        (_unused: unknown, index: number) => {
+          return `10.0.0.${index}`;
+        },
+      ).join(", ");
 
       const request: ExpressRequest = buildRequest({
         headers: { "x-forwarded-for": `${forged}, 203.0.113.7` },
@@ -313,14 +323,45 @@ describe("PublicDashboardRateLimit", () => {
       );
     });
 
-    it("ignores empty entries in the header", () => {
+    /*
+     * Padding around a real entry is fine — proxies emit it.
+     */
+    it("tolerates whitespace around the trusted entry", () => {
       const request: ExpressRequest = buildRequest({
-        headers: { "x-forwarded-for": "9.9.9.9, , 203.0.113.7 , " },
+        headers: { "x-forwarded-for": "9.9.9.9,   203.0.113.7  " },
       });
 
       expect(PublicDashboardRateLimit.resolveClientIp(request)).toBe(
         "203.0.113.7",
       );
+    });
+
+    /*
+     * But an EMPTY entry in the trusted position is refused rather than
+     * skipped, and that distinction is load-bearing.
+     *
+     * Skipping empties would renumber the list, and every position to the left
+     * of the trusted one is caller-supplied. A caller who appends a trailing
+     * comma to their own spoofed value — "1.2.3.4,," — would see the skip walk
+     * back onto their own entry and be billed as whatever address they asked
+     * for. Failing closed puts them in the shared "unknown" bucket instead,
+     * which is more restrictive for them, never less.
+     */
+    it("refuses an empty trusted position rather than walking left onto caller data", () => {
+      const request: ExpressRequest = buildRequest({
+        headers: { "x-forwarded-for": "9.9.9.9, , 203.0.113.7 , " },
+      });
+
+      expect(PublicDashboardRateLimit.resolveClientIp(request)).toBe("unknown");
+    });
+
+    it("does not let a trailing comma promote the caller's own entry", () => {
+      const spoofed: string = PublicDashboardRateLimit.resolveClientIp(
+        buildRequest({ headers: { "x-forwarded-for": "1.2.3.4,," } }),
+      );
+
+      /* Never the value the caller asked to be billed as. */
+      expect(spoofed).not.toBe("1.2.3.4");
     });
 
     it("falls back to the socket address with no forwarding header", () => {
@@ -498,9 +539,9 @@ describe("PublicDashboardRateLimit", () => {
     });
 
     it("uses a stable key when no dashboard is named at all", () => {
-      expect(
-        PublicDashboardRateLimit.resolveDashboardKey(buildRequest()),
-      ).toBe("none");
+      expect(PublicDashboardRateLimit.resolveDashboardKey(buildRequest())).toBe(
+        "none",
+      );
     });
 
     it("ignores a blank parameter", () => {
@@ -758,8 +799,10 @@ describe("PublicDashboardRateLimit", () => {
 
       const decision: PublicDashboardRateLimitDecision = await consumeRead({});
 
-      /* Window rolled, so this one is allowed — but the maths must not
-       * produce a zero for any caller that is refused. */
+      /*
+       * Window rolled, so this one is allowed — but the maths must not
+       * produce a zero for any caller that is refused.
+       */
       expect(decision.retryAfterSeconds ?? 1).toBeGreaterThan(0);
     });
   });
@@ -854,7 +897,11 @@ describe("PublicDashboardRateLimit", () => {
      * through the far larger read budget.
      */
     it("does not share a counter with the read bucket", async () => {
-      for (let i: number = 0; i < MASTER_PASSWORD_PER_DASHBOARD_LIMIT + 5; i++) {
+      for (
+        let i: number = 0;
+        i < MASTER_PASSWORD_PER_DASHBOARD_LIMIT + 5;
+        i++
+      ) {
         await PublicDashboardRateLimit.consume({
           dashboardKey: "id:dashboard-a",
           clientIp: "203.0.113.7",
@@ -959,7 +1006,10 @@ describe("PublicDashboardRateLimit", () => {
     }) => Promise<{
       nextCalled: boolean;
       headers: Record<string, string>;
-    }> = async (data) => {
+    }> = async (data: {
+      bucket: PublicDashboardRateLimitBucket;
+      request?: ExpressRequest;
+    }) => {
       const { response, headers } = buildResponse();
       let nextCalled: boolean = false;
 
@@ -1505,37 +1555,29 @@ describe("PublicDashboardRateLimit configuration", () => {
    * Behind an extra load balancer the rightmost hop is the balancer, not the
    * viewer, and every client collapses into one bucket. Operators widen the
    * hop count to compensate.
+   *
+   * The knob is the INSTANCE-WIDE TRUSTED_PROXY_HOPS, shared with the
+   * dashboard and status page IP allowlists. This limiter deliberately has no
+   * private hop setting: an operator who set the shared one and left a private
+   * one at its default would fix their allowlists while silently leaving this
+   * limiter reading the balancer's address, refusing every viewer behind it.
    */
-  it("counts back the configured number of trusted hops", async () => {
-    process.env["PUBLIC_DASHBOARD_RATE_LIMIT_TRUSTED_PROXY_HOPS"] = "2";
+  it("counts back the instance-wide trusted hop count", async () => {
+    process.env["TRUSTED_PROXY_HOPS"] = "2";
 
     const { limiter } = await reload();
 
     expect(
       limiter.resolveClientIp(
         buildRequest({
-          headers: { "x-forwarded-for": "203.0.113.7, 10.0.0.5" },
+          headers: { "x-forwarded-for": "203.0.113.7, 10.0.0.5, 10.0.0.6" },
         }),
       ),
-    ).toBe("203.0.113.7");
-  });
-
-  it("clamps to the leftmost hop when configured deeper than the header", async () => {
-    process.env["PUBLIC_DASHBOARD_RATE_LIMIT_TRUSTED_PROXY_HOPS"] = "5";
-
-    const { limiter } = await reload();
-
-    expect(
-      limiter.resolveClientIp(
-        buildRequest({
-          headers: { "x-forwarded-for": "203.0.113.7, 10.0.0.5" },
-        }),
-      ),
-    ).toBe("203.0.113.7");
+    ).toBe("10.0.0.5");
   });
 
   it("defaults to a single trusted hop", async () => {
-    delete process.env["PUBLIC_DASHBOARD_RATE_LIMIT_TRUSTED_PROXY_HOPS"];
+    delete process.env["TRUSTED_PROXY_HOPS"];
 
     const { limiter } = await reload();
 
@@ -1546,5 +1588,58 @@ describe("PublicDashboardRateLimit configuration", () => {
         }),
       ),
     ).toBe("203.0.113.7");
+  });
+
+  /*
+   * The trap this reconciliation exists to close: one setting must move both
+   * controls together. If these ever diverge, a double-proxy deployment gets
+   * working allowlists and a limiter that refuses everyone.
+   */
+  it("honours the same setting the IP allowlists read", async () => {
+    process.env["TRUSTED_PROXY_HOPS"] = "2";
+
+    const { limiter } = await reload();
+
+    const environmentConfig: { TrustedProxyHops: number } = (await import(
+      "../../../Server/EnvironmentConfig"
+    )) as unknown as {
+      TrustedProxyHops: number;
+    };
+
+    expect(environmentConfig.TrustedProxyHops).toBe(2);
+
+    expect(
+      limiter.resolveClientIp(
+        buildRequest({
+          headers: { "x-forwarded-for": "9.9.9.9, 203.0.113.7, 10.0.0.5" },
+        }),
+      ),
+    ).toBe("203.0.113.7");
+  });
+
+  /*
+   * The helper normalizes address forms, so one viewer cannot be split across
+   * two buckets by arriving as an IPv4-mapped IPv6 literal on one request and
+   * a bare IPv4 on the next.
+   */
+  it("bills one viewer to one bucket regardless of address form", async () => {
+    delete process.env["TRUSTED_PROXY_HOPS"];
+
+    const { limiter } = await reload();
+
+    const mapped: string = limiter.resolveClientIp(
+      buildRequest({ headers: { "x-forwarded-for": "::ffff:203.0.113.7" } }),
+    );
+
+    const bare: string = limiter.resolveClientIp(
+      buildRequest({ headers: { "x-forwarded-for": "203.0.113.7" } }),
+    );
+
+    const withPort: string = limiter.resolveClientIp(
+      buildRequest({ headers: { "x-forwarded-for": "203.0.113.7:51234" } }),
+    );
+
+    expect(mapped).toBe(bare);
+    expect(withPort).toBe(bare);
   });
 });

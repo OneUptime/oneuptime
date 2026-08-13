@@ -6,6 +6,7 @@ import {
   OneUptimeRequest,
 } from "../Utils/Express";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
+import resolveTrustedClientIp, { ClientIpRequestLike } from "../Utils/ClientIp";
 import Response from "../Utils/Response";
 import ObjectID from "../../Types/ObjectID";
 import ServiceUnavailableException from "../../Types/Exception/ServiceUnavailableException";
@@ -166,25 +167,6 @@ const MASTER_PASSWORD_BUCKET: BucketConfig = {
   ),
 };
 
-/*
- * How many proxy hops in front of this process are ours and therefore
- * trusted. Nginx sets X-Forwarded-For with $proxy_add_x_forwarded_for, which
- * APPENDS the peer address to whatever the client sent — so the leftmost
- * entry is attacker-controlled and the rightmost is the one our own proxy
- * wrote. We count in from the right by this many hops.
- *
- * Default 1 = the standard single-Nginx deployment, where the rightmost entry
- * is the real client. Behind an additional load balancer (LB -> Nginx -> app)
- * the rightmost entry is the LB and every client collapses into one bucket;
- * set this to 2 there. Over-counting hops is the unsafe direction (it walks
- * back into client-controlled entries), so the default stays at 1 and
- * widening it is an explicit operator decision.
- */
-const TRUSTED_PROXY_HOPS: number = parsePositiveIntFromEnv(
-  "PUBLIC_DASHBOARD_RATE_LIMIT_TRUSTED_PROXY_HOPS",
-  1,
-);
-
 const KEY_PREFIX: string = "pdash:rl:";
 
 /*
@@ -208,49 +190,32 @@ export default class PublicDashboardRateLimit {
   /*
    * The client address to bill this request to.
    *
-   * Deliberately NOT Express.getClientIp: that helper takes the LEFTMOST
-   * X-Forwarded-For entry, which any client can set by sending its own
-   * X-Forwarded-For header. For a rate limiter that is fatal — a fresh
-   * spoofed value per request means a fresh bucket per request and no limit
-   * at all. See TRUSTED_PROXY_HOPS above.
+   * Delegates to the shared ClientIp helper, which reads X-Forwarded-For from
+   * the trusted (right-hand) end under the instance-wide TRUSTED_PROXY_HOPS
+   * setting. Deliberately NOT Express.getClientIp: that one takes the LEFTMOST
+   * entry, which any caller can set by sending its own X-Forwarded-For header,
+   * and for a rate limiter that is fatal — a fresh spoofed value per request
+   * means a fresh bucket per request and no limit at all.
+   *
+   * Sharing the helper matters beyond deduplication. This limiter and the
+   * dashboard/status page IP allowlists must agree on who the caller is: a
+   * deployment behind an extra load balancer sets TRUSTED_PROXY_HOPS once, and
+   * if this middleware kept its own knob an operator who set the shared one
+   * would silently leave the limiter reading the balancer's address instead of
+   * the viewer's — collapsing every viewer behind that balancer into a single
+   * bucket and refusing them all.
+   *
+   * The helper also normalizes ports, brackets and IPv4-mapped IPv6, so the
+   * same viewer cannot land in two different buckets depending on the form
+   * their address arrives in.
    */
   public static resolveClientIp(req: ExpressRequest): string {
-    const forwardedHeader: string | Array<string> | undefined = req.headers?.[
-      "x-forwarded-for"
-    ] as string | Array<string> | undefined;
+    const clientIp: string | undefined = resolveTrustedClientIp(
+      req as unknown as ClientIpRequestLike,
+    );
 
-    const forwardedValue: string = Array.isArray(forwardedHeader)
-      ? forwardedHeader.join(",")
-      : forwardedHeader || "";
-
-    const hops: Array<string> = forwardedValue
-      .split(",")
-      .map((entry: string) => {
-        return entry.trim();
-      })
-      .filter((entry: string) => {
-        return entry.length > 0;
-      });
-
-    if (hops.length > 0) {
-      /*
-       * Count in from the right. Clamped at 0 so a header with fewer entries
-       * than configured hops falls back to the leftmost one it does have
-       * rather than reading off the front of the array.
-       */
-      const index: number = Math.max(0, hops.length - TRUSTED_PROXY_HOPS);
-      const hop: string | undefined = hops[index];
-
-      if (hop) {
-        return PublicDashboardRateLimit.sanitizeKeySegment(hop);
-      }
-    }
-
-    const socketAddress: string | undefined =
-      req.socket?.remoteAddress || req.ip;
-
-    if (socketAddress) {
-      return PublicDashboardRateLimit.sanitizeKeySegment(socketAddress);
+    if (clientIp) {
+      return PublicDashboardRateLimit.sanitizeKeySegment(clientIp);
     }
 
     /*
@@ -315,8 +280,10 @@ export default class PublicDashboardRateLimit {
     return (
       value
         .slice(0, MAX_KEY_SEGMENT_LENGTH)
-        /* Redis keys are binary safe, but a predictable charset keeps
-         * operational tooling (KEYS/SCAN patterns, dashboards) sane. */
+        /*
+         * Redis keys are binary safe, but a predictable charset keeps
+         * operational tooling (KEYS/SCAN patterns, dashboards) sane.
+         */
         .replace(/[^a-zA-Z0-9._:%\-[\]]/g, "_")
     );
   }
@@ -616,9 +583,11 @@ export default class PublicDashboardRateLimit {
     ];
 
     if (typeof setHeader === "function") {
-      (
-        setHeader as (name: string, value: string) => void
-      ).call(res, "Retry-After", String(retryAfterSeconds));
+      (setHeader as (name: string, value: string) => void).call(
+        res,
+        "Retry-After",
+        String(retryAfterSeconds),
+      );
     }
   }
 }

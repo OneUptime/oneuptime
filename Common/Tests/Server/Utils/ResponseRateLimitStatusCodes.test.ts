@@ -64,7 +64,9 @@ describe("rate limit responses on the wire", () => {
       ResponseUtil.sendErrorResponse(
         request,
         response,
-        new TooManyRequestsException("Too many requests. Please try again later."),
+        new TooManyRequestsException(
+          "Too many requests. Please try again later.",
+        ),
       );
 
       expect(captured.statusCode).toBe(429);
