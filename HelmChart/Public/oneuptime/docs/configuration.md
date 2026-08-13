@@ -227,6 +227,36 @@ logged, and nothing is shown.
 | `updateCheck.disabled` | Set to `true` to make no outbound call at all.                                                                          | `false` |
 | `updateCheck.url`      | Point the check at an internal mirror. Must answer with GitHub's release shape (`tag_name`, `html_url`, `published_at`). | `""` (GitHub) |
 
+## Trusted proxies
+
+`X-Forwarded-For` is a list, and each proxy appends the address it accepted the
+connection from — so a caller can put whatever they like at the *front* of it.
+Only the entries written by a proxy you run mean anything, and those are at the
+*end*. `trustedProxyHops` says how far in from that end the real client sits,
+and it is what decides which address status page and public dashboard IP
+allowlists — and IP rate limits — actually check.
+
+The default of `1` is correct for a stock install: the chart's own nginx
+gateway is the only thing that touches the header, and the `LoadBalancer`
+Service in front of it is L4 and does not.
+
+**Raise it if you put your own HTTP proxy in front.** A CDN or WAF that appends
+to `X-Forwarded-For` — Cloudflare, an AWS ALB, an ingress-nginx of your own —
+makes this `2`, and each further appending proxy adds one.
+
+Getting it wrong is visible in both directions. Set it too low and every
+visitor is attributed to your own proxy, so allowlists match nobody. Set it too
+high and you read an entry the caller writes, so a visitor can name any address
+they like and the allowlist stops meaning anything.
+
+Note that the allowlists assume the app is reachable only *through* those
+proxies. Keep the app Service internal; a caller who can open a connection to
+it directly is the peer, and no header setting compensates for that.
+
+| Parameter          | Description                                                                                          | Default |
+|--------------------|------------------------------------------------------------------------------------------------------|---------|
+| `trustedProxyHops` | Number of appending reverse proxies you run in front of OneUptime. `0` ignores `X-Forwarded-For` entirely and uses the connecting address. | `1` |
+
 ## Other
 
 | Parameter                          | Description                              | Default |

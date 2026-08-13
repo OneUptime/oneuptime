@@ -2,6 +2,10 @@ import { mockRouter } from "Common/Tests/Server/API/Helpers";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import NetworkInterfaceService from "Common/Server/Services/NetworkInterfaceService";
 import NetworkEndpointService from "Common/Server/Services/NetworkEndpointService";
+import NetworkDeviceLinkService from "Common/Server/Services/NetworkDeviceLinkService";
+import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
+import NetworkDeviceLinkRuleService from "Common/Server/Services/NetworkDeviceLinkRuleService";
+import NetworkTopologySuppressionService from "Common/Server/Services/NetworkTopologySuppressionService";
 import CommonAPI from "Common/Server/API/CommonAPI";
 import Response from "Common/Server/Utils/Response";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
@@ -66,6 +70,25 @@ jest.mock("Common/Server/Services/NetworkEndpointService", () => {
   return { __esModule: true, default: { findBy: jest.fn() } };
 });
 
+jest.mock("Common/Server/Services/NetworkDeviceLinkService", () => {
+  return { __esModule: true, default: { findBy: jest.fn() } };
+});
+
+jest.mock("Common/Server/Services/MonitorStatusService", () => {
+  return { __esModule: true, default: { findBy: jest.fn() } };
+});
+
+jest.mock("Common/Server/Services/NetworkDeviceLinkRuleService", () => {
+  return { __esModule: true, default: { findBy: jest.fn() } };
+});
+
+jest.mock("Common/Server/Services/NetworkTopologySuppressionService", () => {
+  return {
+    __esModule: true,
+    default: { getSuppressedNodeKeys: jest.fn() },
+  };
+});
+
 /*
  * Importing the API module registers its route on the mocked router so the
  * handler can be invoked directly, with every service call observable.
@@ -84,6 +107,16 @@ const interfaceService: { findBy: jest.Mock } =
   NetworkInterfaceService as unknown as { findBy: jest.Mock };
 const endpointService: { findBy: jest.Mock } =
   NetworkEndpointService as unknown as { findBy: jest.Mock };
+const deviceLinkService: { findBy: jest.Mock } =
+  NetworkDeviceLinkService as unknown as { findBy: jest.Mock };
+const monitorStatusService: { findBy: jest.Mock } =
+  MonitorStatusService as unknown as { findBy: jest.Mock };
+const linkRuleService: { findBy: jest.Mock } =
+  NetworkDeviceLinkRuleService as unknown as { findBy: jest.Mock };
+const suppressionService: { getSuppressedNodeKeys: jest.Mock } =
+  NetworkTopologySuppressionService as unknown as {
+    getSuppressedNodeKeys: jest.Mock;
+  };
 const responseUtil: { sendJsonObjectResponse: jest.Mock } =
   Response as unknown as { sendJsonObjectResponse: jest.Mock };
 
@@ -147,6 +180,12 @@ describe("POST /network-device/topology", () => {
     deviceService.findBy.mockResolvedValue([] as never);
     interfaceService.findBy.mockResolvedValue([] as never);
     endpointService.findBy.mockResolvedValue([] as never);
+    deviceLinkService.findBy.mockResolvedValue([] as never);
+    monitorStatusService.findBy.mockResolvedValue([] as never);
+    linkRuleService.findBy.mockResolvedValue([] as never);
+    suppressionService.getSuppressedNodeKeys.mockResolvedValue(
+      new Set<string>() as never,
+    );
   });
 
   /*

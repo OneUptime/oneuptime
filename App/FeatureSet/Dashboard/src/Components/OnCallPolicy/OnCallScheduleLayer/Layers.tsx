@@ -13,6 +13,11 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import RestrictionTimes from "Common/Types/OnCallDutyPolicy/RestrictionTimes";
+import LayerUtil, { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
+import ScheduleShiftUtil, {
+  ScheduleCoverageState,
+  ScheduleCoverageStatus,
+} from "Common/Types/OnCallDutyPolicy/ScheduleShiftUtil";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
@@ -27,6 +32,13 @@ import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDu
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
+
+/*
+ * Window the coverage banner reasons over. Matches the preview's summary window
+ * so the banner at the top of the page and the gap list at the bottom always
+ * describe the same span of time.
+ */
+const COVERAGE_WINDOW_DAYS: number = 42;
 
 export interface ComponentProps {
   onCallDutyPolicyScheduleId: ObjectID;
@@ -495,6 +507,119 @@ const Layers: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * A compact statement of the schedule's coverage, rendered above the layer
+   * cards. Computed with exactly the same LayerUtil + ScheduleShiftUtil pipeline
+   * the preview at the bottom of the page uses, so the two can never disagree.
+   *
+   * Deliberately NOT a blocking form validation: a partially-covered schedule is
+   * a legitimate configuration (an escalation policy may intend a business-hours
+   * layer to fall through to a team). The point is that the consequence is
+   * stated at the moment of editing rather than discovered during an incident.
+   */
+  const coverageBanner: GetReactElementFunction = (): ReactElement => {
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const windowEnd: Date = OneUptimeDate.addRemoveDays(
+      now,
+      COVERAGE_WINDOW_DAYS,
+    );
+
+    const layerProps: Array<LayerProps> = layers.map(
+      (layer: OnCallDutyPolicyScheduleLayer): LayerProps => {
+        const layerId: string = layer.id?.toString() || "";
+        return {
+          users: (layerUsers[layerId] || [])
+            .map((layerUser: OnCallDutyPolicyScheduleLayerUser) => {
+              return layerUser.user!;
+            })
+            .filter(Boolean),
+          startDateTimeOfLayer: layer.startsAt!,
+          handOffTime: layer.handOffTime!,
+          rotation: layer.rotation!,
+          restrictionTimes: layer.restrictionTimes!,
+          timezone: scheduleTimezone,
+        };
+      },
+    );
+
+    const assignedUserCount: number = layerProps.reduce(
+      (total: number, layerProp: LayerProps) => {
+        return total + layerProp.users.length;
+      },
+      0,
+    );
+
+    const coverage: ScheduleCoverageState = ScheduleShiftUtil.getCoverageState({
+      layerCount: layers.length,
+      assignedUserCount,
+      shifts: ScheduleShiftUtil.groupEventsIntoShifts(
+        new LayerUtil().getMultiLayerEvents({
+          calendarStartDate: now,
+          calendarEndDate: windowEnd,
+          layers: layerProps,
+        }),
+      ),
+      now,
+      windowEnd,
+    });
+
+    if (
+      coverage.status === ScheduleCoverageStatus.Covered &&
+      coverage.gaps.length === 0
+    ) {
+      return (
+        <div className="mb-5 flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5 text-xs text-green-800">
+          <Icon
+            icon={IconProp.CheckCircle}
+            className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-green-500"
+          />
+          <span>
+            <span className="font-semibold">Fully covered.</span> Someone is on
+            call at every moment of the next {COVERAGE_WINDOW_DAYS} days.
+          </span>
+        </div>
+      );
+    }
+
+    const percent: number = Math.round(coverage.coverageRatio * 100);
+
+    let message: ReactElement = (
+      <span>
+        <span className="font-semibold">
+          {coverage.gaps.length === 1
+            ? "1 coverage gap"
+            : `${coverage.gaps.length} coverage gaps`}{" "}
+          in the next {COVERAGE_WINDOW_DAYS} days.
+        </span>{" "}
+        Someone is on call for {percent >= 100 ? 99 : percent}% of that window.
+        During the rest, alerts routed to this schedule will notify no one. See
+        the final schedule below for exactly when.
+      </span>
+    );
+
+    if (coverage.status === ScheduleCoverageStatus.NoUsers) {
+      message = (
+        <span>
+          <span className="font-semibold">
+            No users are assigned to any layer.
+          </span>{" "}
+          Nobody is ever on call in this schedule, so every alert routed here
+          will go unanswered. Expand a layer below and add at least one user.
+        </span>
+      );
+    }
+
+    return (
+      <div className="mb-5 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+        <Icon
+          icon={IconProp.Alert}
+          className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-500"
+        />
+        {message}
+      </div>
+    );
+  };
+
   type SaveScheduleTimezoneFunction = (
     timezone: string | undefined,
   ) => Promise<void>;
@@ -619,6 +744,14 @@ const Layers: FunctionComponent<ComponentProps> = (
         </div>
         <div className="flex-shrink-0">{addLayerButton()}</div>
       </div>
+
+      {/*
+       * Coverage state, stated at the point of EDITING rather than only in the
+       * preview at the bottom of the page. Someone configuring a Mon-Fri layer
+       * gets told immediately that nights and weekends are uncovered, instead of
+       * having to scroll past every layer card to find out.
+       */}
+      {coverageBanner()}
 
       {/* Layer list */}
       <div className="space-y-4">

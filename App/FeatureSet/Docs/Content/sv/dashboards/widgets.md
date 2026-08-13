@@ -101,6 +101,24 @@ Alla som kan redigera instrumentpanelen bestämmer vad den här widgeten kör, o
 
 ## Loggar och traces
 
+### Log Chart
+
+Ett tidsseriediagram över loggvolymen under instrumentpanelens tidsintervall. Varje serie står för en allvarlighetsgrad, så feltoppar sticker ut från normal trafik.
+
+**Inställningar**:
+
+- Visualisering som stapel-, linje- eller ytdiagram. Stapel- och ytdiagram staplar allvarlighetsserierna.
+- Valfria filter på allvarlighetsgrad.
+- Valfri textsökning i loggtexten.
+- Exakta OpenTelemetry-attributfilter via sökbara nyckel/värde-rader. Attributnamn och kända värden föreslås medan du skriver, och egna värden stöds fortfarande.
+- En valfri titel.
+
+Instrumentpanelens kontroller för tidsintervall och uppdatering kör om frågan för diagrammet automatiskt. Instrumentpanelens telemetriattribut-variabler gäller också för det, inklusive variabler med flerval.
+
+Log Chart kräver för närvarande en inloggad instrumentpanel. Offentliga instrumentpaneler visar widgeten som otillgänglig i stället för att anonymt exponera projektets loggaggregat.
+
+Använd den när: du vill upptäcka förändringar i loggvolymen eller jämföra fel, varningar och informationsloggar utan att lämna instrumentpanelen.
+
 ### Log Stream
 
 Ett liveflöde av loggrader som matchar ett filter.
@@ -143,6 +161,21 @@ En liveslista över monitorer och deras aktuella status.
 
 Använd den när: du vill ha en flottöversikt — "är alla sidor uppe?"
 
+## Servicenivåmål
+
+### SLO
+
+Ett servicenivåmål, ritat antingen som en enda siffra eller som en linje över tid.
+
+**Inställningar**: vilket SLO, vilken av dess tre siffror (SLI, Error Budget Remaining eller Burn Rate), visning som Tile eller Chart, och en valfri titel.
+
+- **Tile** visar den aktuella siffran, plus en andra rad där det finns en — målet under SLI:n, återstående minuter under felbudgeten. En statusetikett färgar hela widgeten.
+- **Chart** ritar samma siffra över instrumentpanelens tidsintervall, med målet markerat som en streckad linje på SLI-serien. Historiken skrivs med några minuters mellanrum av utvärderingsjobbet, så ett helt nytt SLO ritas som tomt tills det har utvärderats första gången.
+
+Använd den när: instrumentpanelen svarar på "håller vi det vi lovat?" snarare än "vad händer just nu?"
+
+SLO-widgeten fungerar på [offentliga instrumentpaneler](/docs/dashboards/sharing). Det som publiceras är SLO:ns nyckelsiffror — namn, mål, aktuell SLI, återstående felbudget, burn rate och status — oavsett vilken av dem widgeten råkar rita. Definitionen förblir privat: monitorerna den bevakar, dess etiketter, dess beskrivning, dess fråga och dess utvärderingsschema skickas aldrig till en offentlig besökare. En Tile-widget publicerar bara de aktuella siffrorna; en Chart-widget publicerar dessutom historiken för den enda serie den ritar, och inget mer.
+
 ## Listor över Kubernetes-resurser
 
 För projekt med en [Kubernetes-agent](/docs/monitor/kubernetes-agent) installerad. Var och en tar valfria filter för kluster, namespace och etiketter.
@@ -176,15 +209,32 @@ Värdar som övervakas av OneUptimes servermonitor, med status, CPU, minne och d
 
 **Inställningar**: filter efter etiketter eller aktuellt tillstånd.
 
+## Nätverk
+
+### Network Map
+
+Dina nätverksplatser ritade på världskartan, var och en nålad på sin egen latitud och longitud och färgad efter den monitorstatus som summerats upp på den. Platser som ligger nära varandra delar en markör med antalet skrivet inuti; en markör som står för exakt en plats öppnar den platsen när du klickar på den.
+
+Kartan ramar in sig själv efter de platser den ritade — ett bestånd inom ett land fyller ramen med det landet, ett spritt över kontinenter öppnas på världen. Det finns inga kontroller för zoom eller panorering: en instrumentpanelsruta är en bild, och sidan Network Map under Network är där du vandrar genom hierarkin.
+
+Ovanför kartan skrivs hur många platser som är nere, eftersom en två pixlar stor röd punkt bland tvåhundra gröna inte är något någon läser på instrumentpanelsavstånd. Under den säger en täckningsrad vad kartan _inte_ visar — platser utan koordinater, och om radgränsen nåddes.
+
+**Inställningar**: titel, kart- eller listvy, högsta antal ritade platser, om platsnamn ska skrivas ut, och filter efter platstyp och status. Platsnamn försvinner automatiskt när kartan blir för tätt packad för att de ska gå att läsa; verktygstipset namnger fortfarande varje markör.
+
+En plats visas bara om den har koordinater. Lägg till latitud och longitud på platsen (eller importera dem från CSV) för att nåla fast den.
+
 ## Vilken widget ska jag använda?
 
 Några snabba regler:
 
 - **Trend över tid?** Chart.
+- **Loggvolym eller feltoppar över tid?** Log Chart.
 - **En siffra som spelar roll just nu?** Value (eller Gauge om den har ett tydligt min/max).
 - **Uppdelning över många saker?** Table.
 - **Vad händer i systemet just nu?** Log Stream, Trace List, Incident List.
 - **Tillståndet för en specifik grupp av resurser?** Den matchande listwidgeten.
+- **Håller vi den tillförlitlighet vi lovat?** SLO.
+- **Var i världen ditt nätverk finns, och vad som är rött?** Network Map.
 - **En rubrik, ett stycke eller en länk?** Text.
 - **Något som inget av ovanstående täcker?** HTML — men bara efter att du kontrollerat att en inbyggd widget verkligen inte klarar det.
 

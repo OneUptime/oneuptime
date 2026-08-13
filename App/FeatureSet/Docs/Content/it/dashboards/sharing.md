@@ -20,6 +20,8 @@ Una dashboard pubblica:
 
 Tratta l'attivazione di una dashboard pubblica come la pubblicazione di una pagina web. Ogni widget al suo interno diventa leggibile da chiunque. Controlla cosa c'e sul canvas prima di attivare l'interruttore.
 
+Ogni widget pubblica solo ciò che disegna, e solo per le risorse su cui è puntato. Un widget SLO, per esempio, pubblica i numeri principali di quello SLO ma mai la sua definizione — vedi [SLO](/docs/dashboards/widgets#slo). I widget **Data Source** esterni sono l'eccezione: su una dashboard pubblica vengono esclusi del tutto anziché essere resi, perché la loro configurazione è la query stessa.
+
 ## Password master
 
 Per mettere una password su una dashboard pubblica:

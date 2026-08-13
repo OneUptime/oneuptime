@@ -156,6 +156,99 @@ describe("WorkflowStatusBar — the run it started", () => {
   });
 });
 
+/*
+ * The run's log opens by itself when a run starts. The pill is how it is got
+ * back after being closed, so where there is a log to open the pill has to
+ * look and behave like the control it is — the same treatment the checks pill
+ * already gets.
+ */
+describe("WorkflowStatusBar — reopening the run's log", () => {
+  test("is plain text when there is no log to open", () => {
+    const { getByTestId, queryByTestId }: RenderResult = render(
+      <WorkflowStatusBar
+        saveState={WorkflowSaveState.Saved}
+        runStatusMessage="Run in progress…"
+      />,
+    );
+
+    expect(getByTestId("workflow-run-status")).toBeInTheDocument();
+    expect(queryByTestId("workflow-run-status-button")).not.toBeInTheDocument();
+  });
+
+  test("becomes a button when there is", () => {
+    const { getByTestId, queryByTestId }: RenderResult = render(
+      <WorkflowStatusBar
+        saveState={WorkflowSaveState.Saved}
+        runStatusMessage="Run in progress…"
+        onShowRunLog={() => {}}
+      />,
+    );
+
+    expect(getByTestId("workflow-run-status-button")).toHaveTextContent(
+      "Run in progress…",
+    );
+    expect(queryByTestId("workflow-run-status")).not.toBeInTheDocument();
+  });
+
+  test("opens the log when clicked", () => {
+    const onShowRunLog: MockFunction = getJestMockFunction();
+
+    const { getByTestId }: RenderResult = render(
+      <WorkflowStatusBar
+        saveState={WorkflowSaveState.Saved}
+        runStatusMessage="Run finished successfully."
+        onShowRunLog={onShowRunLog}
+      />,
+    );
+
+    fireEvent.click(getByTestId("workflow-run-status-button"));
+
+    expect(onShowRunLog).toHaveBeenCalledTimes(1);
+  });
+
+  test("says out loud what it opens", () => {
+    const { getByTestId }: RenderResult = render(
+      <WorkflowStatusBar
+        saveState={WorkflowSaveState.Saved}
+        runStatusMessage="Run error. Open the run log to see why."
+        runStatusFailed={true}
+        onShowRunLog={() => {}}
+      />,
+    );
+
+    expect(getByTestId("workflow-run-status-button")).toHaveAttribute(
+      "aria-label",
+      "Run error. Open the run log to see why. Open the run log.",
+    );
+  });
+
+  test("keeps a failed run red as a button", () => {
+    const { getByTestId }: RenderResult = render(
+      <WorkflowStatusBar
+        saveState={WorkflowSaveState.Saved}
+        runStatusMessage="Run failed."
+        runStatusFailed={true}
+        onShowRunLog={() => {}}
+      />,
+    );
+
+    expect(getByTestId("workflow-run-status-button").className).toContain(
+      "text-red-700",
+    );
+  });
+
+  test("says nothing at all before a run is watched", () => {
+    const { queryByTestId }: RenderResult = render(
+      <WorkflowStatusBar
+        saveState={WorkflowSaveState.Saved}
+        onShowRunLog={() => {}}
+      />,
+    );
+
+    expect(queryByTestId("workflow-run-status-button")).not.toBeInTheDocument();
+  });
+});
+
 describe("WorkflowStatusBar — what the checks found", () => {
   test("shows nothing about the checks before they have run", () => {
     const { queryByTestId }: RenderResult = render(

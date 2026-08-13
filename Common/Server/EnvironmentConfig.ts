@@ -597,6 +597,58 @@ export const HttpProtocol: Protocol =
 
 export const Host: string = process.env["HOST"] || "";
 
+/*
+ * How many reverse proxies that WE control sit in front of this process and
+ * append to X-Forwarded-For.
+ *
+ * X-Forwarded-For is caller-supplied on its left-hand end: every proxy appends
+ * the address it accepted the connection from, and our Nginx uses
+ * `$proxy_add_x_forwarded_for` (Nginx/default.conf.template), which keeps
+ * whatever the caller sent and adds to it. Only entries that one of our own
+ * proxies wrote mean anything, and those are at the RIGHT-hand end. This
+ * number says how far in from the right the real client sits, so IP
+ * allowlists and IP-keyed rate limits read an entry a caller cannot choose.
+ *
+ * 1 is correct for every topology this repo ships -- Docker Compose and the
+ * Helm chart both put exactly one Nginx (the `ingress` gateway) in front of
+ * the app, and the Kubernetes Service in front of that is L4 and does not
+ * touch the header.
+ *
+ * RAISE IT if you have added HTTP proxies of your own: a CDN or WAF that
+ * appends to X-Forwarded-For (Cloudflare, an AWS ALB, an external
+ * ingress-nginx) makes this 2, and each further appending hop adds one. Set it
+ * too low and you attribute requests to your own proxy; set it too high and
+ * you read an entry the caller controls.
+ *
+ * 0 ignores X-Forwarded-For entirely and uses only the TCP peer address --
+ * correct when the app is exposed directly with no proxy in front.
+ */
+export const TrustedProxyHops: number = ((): number => {
+  const rawValue: string | undefined = process.env["TRUSTED_PROXY_HOPS"];
+
+  if (rawValue === undefined || rawValue.trim() === "") {
+    return 1;
+  }
+
+  const parsedValue: number = Number(rawValue.trim());
+
+  /*
+   * Anything that is not a whole, non-negative, finite count is a
+   * misconfiguration. Fall back to the shipped topology rather than to 0:
+   * 0 would silently attribute every request to the gateway's own address,
+   * which does not fail closed so much as make allowlists useless.
+   */
+  if (
+    !Number.isFinite(parsedValue) ||
+    !Number.isInteger(parsedValue) ||
+    parsedValue < 0
+  ) {
+    return 1;
+  }
+
+  return parsedValue;
+})();
+
 export const ProvisionSsl: boolean = process.env["PROVISION_SSL"] === "true";
 
 export const CaptchaEnabled: boolean =

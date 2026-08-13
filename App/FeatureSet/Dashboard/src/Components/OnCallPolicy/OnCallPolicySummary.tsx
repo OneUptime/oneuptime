@@ -29,6 +29,11 @@ interface PolicyOverview {
   teamNames: Array<string>;
   userNames: Array<string>;
   levelsWithNoResponders: number;
+  /*
+   * Levels whose only responders are schedules with nobody on call right now.
+   * These pass the "has responders" check but would still notify no one.
+   */
+  levelsUncoveredBySchedule: number;
 }
 
 // Compact human duration, e.g. "immediately", "5 min", "1 hr 30 min".
@@ -115,7 +120,12 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
           select: {
             _id: true,
             onCallDutyPolicyEscalationRuleId: true,
-            onCallDutyPolicySchedule: { _id: true, name: true },
+            onCallDutyPolicySchedule: {
+              _id: true,
+              name: true,
+              // See levelsUncoveredBySchedule below.
+              currentUserIdOnRoster: true,
+            },
           },
           sort: {},
         }),
@@ -153,6 +163,18 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
       const userNamesById: Record<string, string> = {};
       const rulesWithResponders: Set<string> = new Set<string>();
 
+      /*
+       * Rules whose ONLY responders are schedules that currently have nobody on
+       * call. Such a rule passes the "has responders" check above — a join row
+       * exists — but would notify no one if reached right now, which is exactly
+       * the failure this summary is supposed to warn about. Tracked separately
+       * from levelsWithNoResponders because the remedy differs: one needs a
+       * responder added to the rule, the other needs the schedule's coverage
+       * fixed.
+       */
+      const rulesWithCoveredResponders: Set<string> = new Set<string>();
+      const rulesTargetingSchedules: Set<string> = new Set<string>();
+
       for (const join of scheduleJoins.data) {
         const id: string = join.onCallDutyPolicySchedule?.id?.toString() || "";
         if (id) {
@@ -164,6 +186,10 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
           join.onCallDutyPolicyEscalationRuleId?.toString() || "";
         if (ruleId) {
           rulesWithResponders.add(ruleId);
+          rulesTargetingSchedules.add(ruleId);
+          if (join.onCallDutyPolicySchedule?.currentUserIdOnRoster) {
+            rulesWithCoveredResponders.add(ruleId);
+          }
         }
       }
       for (const join of teamJoins.data) {
@@ -175,6 +201,8 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
           join.onCallDutyPolicyEscalationRuleId?.toString() || "";
         if (ruleId) {
           rulesWithResponders.add(ruleId);
+          // A team responder is reachable regardless of any schedule's coverage.
+          rulesWithCoveredResponders.add(ruleId);
         }
       }
       for (const join of userJoins.data) {
@@ -189,12 +217,28 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
           join.onCallDutyPolicyEscalationRuleId?.toString() || "";
         if (ruleId) {
           rulesWithResponders.add(ruleId);
+          // A directly-assigned user is reachable regardless of schedule coverage.
+          rulesWithCoveredResponders.add(ruleId);
         }
       }
 
       const levelsWithNoResponders: number = orderedRules.filter(
         (rule: OnCallDutyPolicyEscalationRule) => {
           return !rulesWithResponders.has(rule.id?.toString() || "");
+        },
+      ).length;
+
+      /*
+       * Levels that DO have responders assigned but would still page nobody
+       * right now, because every responder they have is an uncovered schedule.
+       */
+      const levelsUncoveredBySchedule: number = orderedRules.filter(
+        (rule: OnCallDutyPolicyEscalationRule) => {
+          const ruleId: string = rule.id?.toString() || "";
+          return (
+            rulesTargetingSchedules.has(ruleId) &&
+            !rulesWithCoveredResponders.has(ruleId)
+          );
         },
       ).length;
 
@@ -207,6 +251,7 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
         teamNames: Object.values(teamNamesById),
         userNames: Object.values(userNamesById),
         levelsWithNoResponders,
+        levelsUncoveredBySchedule,
       });
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -477,6 +522,29 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
                   along the way{" "}
                   {overview.levelsWithNoResponders === 1 ? "has" : "have"} no
                   responders and will notify no one when reached.
+                </span>
+              </div>
+            ) : (
+              <></>
+            )}
+            {overview.levelsUncoveredBySchedule > 0 ? (
+              <div className="mt-4 flex items-start gap-2 border-t border-amber-200/70 pt-3 text-xs leading-relaxed text-amber-700">
+                <Icon
+                  icon={IconProp.Alert}
+                  className="mt-px h-3.5 w-3.5 flex-shrink-0 text-amber-500"
+                />
+                <span>
+                  <span className="font-semibold">
+                    {overview.levelsUncoveredBySchedule}{" "}
+                    {overview.levelsUncoveredBySchedule === 1
+                      ? "level"
+                      : "levels"}
+                  </span>{" "}
+                  {overview.levelsUncoveredBySchedule === 1 ? "has" : "have"}{" "}
+                  responders assigned, but every one of them is an on-call
+                  schedule with no one on call right now — so{" "}
+                  {overview.levelsUncoveredBySchedule === 1 ? "it" : "they"}{" "}
+                  would still notify no one if reached now.
                 </span>
               </div>
             ) : (

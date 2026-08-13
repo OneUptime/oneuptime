@@ -20,6 +20,8 @@ Een publiek dashboard:
 
 Behandel het inschakelen van een publiek dashboard als het publiceren van een webpagina. Elke widget die erop staat wordt wereldwijd leesbaar. Bekijk wat er op het canvas staat voordat je de schakelaar omzet.
 
+Elke widget publiceert alleen wat hij tekent, en alleen voor de resources waarop hij is gericht. Een SLO-widget publiceert bijvoorbeeld de kerngetallen van dat SLO, maar nooit de definitie — zie [SLO](/docs/dashboards/widgets#slo). Externe **Data Source**-widgets zijn de uitzondering: die worden op een publiek dashboard helemaal weggelaten in plaats van gerenderd, omdat hun configuratie de query zelf is.
+
 ## Master-wachtwoord
 
 Om een wachtwoord op een publiek dashboard te zetten:

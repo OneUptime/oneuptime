@@ -740,3 +740,193 @@ describe("Create Many", () => {
     expect(service.create).toHaveBeenCalledTimes(1);
   });
 });
+
+/*
+ * Create used to discard a key it did not recognise without a word.
+ * DatabaseBaseModel._fromJSON assigns only when getTableColumnMetadata returns
+ * something and has no else branch, so a misspelled column never reached the
+ * record. A required column still failed loudly through checkRequiredFields,
+ * but an optional one produced a green run and a record quietly missing a
+ * field — which is the worst possible outcome for a typo.
+ */
+describe("Create reports the columns it ignored", () => {
+  test("names an unknown key and lists the columns that exist", async () => {
+    const service: DatabaseService<Monitor> = makeMonitorService();
+    const created: Monitor = new Monitor();
+    created._id = MONITOR_ID;
+    jest.spyOn(service, "create").mockResolvedValue(created as never);
+
+    const fixture: OptionsFixture = makeOptions();
+    const component: CreateOneBaseModel<Monitor> =
+      new CreateOneBaseModel<Monitor>(service);
+
+    const result: RunReturnType = await component.run(
+      { json: { name: "new monitor", descriptoin: "typo" } },
+      fixture.options,
+    );
+
+    const logged: string = loggedLines(fixture.log);
+
+    // Still a success — reporting must not start failing workflows that run today.
+    expect(result.executePort?.id).toBe("success");
+    expect(logged).toContain("descriptoin");
+    // The real column list is the fastest way to spot what was meant.
+    expect(logged).toContain("description");
+  });
+
+  test("says nothing when every key is a real column", async () => {
+    const service: DatabaseService<Monitor> = makeMonitorService();
+    jest.spyOn(service, "create").mockResolvedValue(new Monitor() as never);
+
+    const fixture: OptionsFixture = makeOptions();
+    const component: CreateOneBaseModel<Monitor> =
+      new CreateOneBaseModel<Monitor>(service);
+
+    await component.run(
+      { json: { name: "new monitor", description: "fine" } },
+      fixture.options,
+    );
+
+    expect(loggedLines(fixture.log)).not.toContain("Ignored");
+  });
+
+  /*
+   * "id" is a legitimate key even though there is no "id" column — _fromJSON
+   * rewrites it to "_id" itself. Reporting it would send the builder chasing a
+   * mistake they did not make, and "id" is the spelling the rest of the product
+   * uses.
+   */
+  test('does not report "id", which the create path accepts as an alias', async () => {
+    const service: DatabaseService<Monitor> = makeMonitorService();
+    jest.spyOn(service, "create").mockResolvedValue(new Monitor() as never);
+
+    const fixture: OptionsFixture = makeOptions();
+    const component: CreateOneBaseModel<Monitor> =
+      new CreateOneBaseModel<Monitor>(service);
+
+    await component.run(
+      { json: { id: MONITOR_ID, name: "new monitor" } },
+      fixture.options,
+    );
+
+    expect(loggedLines(fixture.log)).not.toContain("Ignored");
+  });
+
+  test("reports several unknown keys at once", async () => {
+    const service: DatabaseService<Monitor> = makeMonitorService();
+    jest.spyOn(service, "create").mockResolvedValue(new Monitor() as never);
+
+    const fixture: OptionsFixture = makeOptions();
+    const component: CreateOneBaseModel<Monitor> =
+      new CreateOneBaseModel<Monitor>(service);
+
+    await component.run(
+      { json: { name: "n", nmae: "x", desc: "y" } },
+      fixture.options,
+    );
+
+    const logged: string = loggedLines(fixture.log);
+
+    expect(logged).toContain("nmae");
+    expect(logged).toContain("desc");
+  });
+
+  /*
+   * The tenant column is stamped by the component, not typed by the builder, so
+   * checking before the stamp keeps the report about what they actually wrote.
+   */
+  test("never reports the project column the component stamps itself", async () => {
+    const service: DatabaseService<Monitor> = makeMonitorService();
+    jest.spyOn(service, "create").mockResolvedValue(new Monitor() as never);
+
+    const fixture: OptionsFixture = makeOptions();
+    const component: CreateOneBaseModel<Monitor> =
+      new CreateOneBaseModel<Monitor>(service);
+
+    await component.run({ json: { name: "n" } }, fixture.options);
+
+    expect(loggedLines(fixture.log)).not.toContain("Ignored");
+  });
+
+  test("Create Many says which element the unknown key was in", async () => {
+    const service: DatabaseService<Monitor> = makeMonitorService();
+    jest.spyOn(service, "create").mockResolvedValue(new Monitor() as never);
+
+    const fixture: OptionsFixture = makeOptions();
+    const component: CreateManyBaseModel<Monitor> =
+      new CreateManyBaseModel<Monitor>(service);
+
+    const result: RunReturnType = await component.run(
+      {
+        "json-array": [{ name: "first" }, { name: "second", nmae: "typo" }],
+      },
+      fixture.options,
+    );
+
+    const logged: string = loggedLines(fixture.log);
+
+    expect(result.executePort?.id).toBe("success");
+    expect(logged).toContain("nmae");
+    // One bad key in a long array is otherwise impossible to locate.
+    expect(logged).toContain("Item 2");
+  });
+});
+
+/*
+ * Both create components used to catch and format their own errors, and only
+ * one of them wrote to the server log. The other six database components share
+ * logComponentError, which also appends the model's real column list when the
+ * failure names a column.
+ */
+describe("Create uses the shared error logging", () => {
+  test("Create One takes the Error port and explains an unknown column", async () => {
+    const service: DatabaseService<Monitor> = makeMonitorService();
+    jest
+      .spyOn(service, "create")
+      .mockRejectedValue(
+        new Error(
+          'Property "nmae" was not found in "Monitor". Make sure your query is correct.' as never,
+        ) as never,
+      );
+
+    const fixture: OptionsFixture = makeOptions();
+    const component: CreateOneBaseModel<Monitor> =
+      new CreateOneBaseModel<Monitor>(service);
+
+    const result: RunReturnType = await component.run(
+      { json: { name: "n" } },
+      fixture.options,
+    );
+
+    const logged: string = loggedLines(fixture.log);
+
+    expect(result.executePort?.id).toBe("error");
+    expect(logged).toContain("nmae");
+    expect(logged).toContain("Columns you can use");
+    /*
+     * The Error branch of the graph has to run — onError would abort the whole
+     * run instead, which is not what an unconnected Error port should mean.
+     */
+    expect(fixture.onError).not.toHaveBeenCalled();
+  });
+
+  test("Create Many takes the Error port the same way", async () => {
+    const service: DatabaseService<Monitor> = makeMonitorService();
+    jest
+      .spyOn(service, "create")
+      .mockRejectedValue(new Error("database exploded") as never);
+
+    const fixture: OptionsFixture = makeOptions();
+    const component: CreateManyBaseModel<Monitor> =
+      new CreateManyBaseModel<Monitor>(service);
+
+    const result: RunReturnType = await component.run(
+      { "json-array": [{ name: "first" }] },
+      fixture.options,
+    );
+
+    expect(result.executePort?.id).toBe("error");
+    expect(loggedLines(fixture.log)).toContain("database exploded");
+    expect(fixture.onError).not.toHaveBeenCalled();
+  });
+});

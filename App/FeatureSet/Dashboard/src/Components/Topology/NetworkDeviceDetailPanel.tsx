@@ -15,6 +15,7 @@ import {
   NetworkLinkState,
   describeEndpoint,
   edgeKeyForEdge,
+  isolationReasonForNode,
   linkStateForEdge,
 } from "./NetworkTopologyMeta";
 import {
@@ -37,6 +38,11 @@ export interface ComponentProps {
   nodeById: Map<string, NetworkTopologyNode>;
   onClose: () => void;
   onSelectEdge: (edge: NetworkTopologyEdge) => void;
+  /*
+   * Take this node off the map for the whole project. Optional so the panel
+   * still renders for a viewer who cannot create suppressions.
+   */
+  onHideNode?: ((node: NetworkTopologyNode) => void) | undefined;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -56,6 +62,10 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
       return edge.fromNodeId === node.id || edge.toNodeId === node.id;
     });
   }, [props.edges, node.id]);
+
+  const isolationReason: string | undefined = useMemo(() => {
+    return isolationReasonForNode(node, attachedEdges.length > 0);
+  }, [node, attachedEdges.length]);
 
   const isEndpoint: boolean = node.kind === "endpoint";
 
@@ -158,6 +168,25 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
+          {/*
+           * Taking a node off the map. Deliberately here at the top rather
+           * than buried: the operator arrives at this drawer having clicked
+           * a node they did not want to see, and this is the answer to that.
+           */}
+          {props.onHideNode ? (
+            <button
+              type="button"
+              className="ml-auto text-xs font-medium text-gray-500 underline hover:text-gray-700"
+              data-testid="network-topology-hide-node"
+              onClick={() => {
+                props.onHideNode?.(node);
+              }}
+            >
+              {translateString("Hide from map") || "Hide from map"}
+            </button>
+          ) : (
+            <></>
+          )}
         </div>
 
         {detailRows.length > 0 ? (
@@ -190,10 +219,28 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
             {translateString("Links") || "Links"} ({attachedEdges.length})
           </h3>
           {attachedEdges.length === 0 ? (
-            <p className="mt-2 text-sm text-gray-500">
-              {translateString("No discovered links on this device.") ||
-                "No discovered links on this device."}
-            </p>
+            <div className="mt-2">
+              <p className="text-sm text-gray-500">
+                {translateString("No discovered links on this device.") ||
+                  "No discovered links on this device."}
+              </p>
+              {/*
+               * The follow-up question every isolated node provokes. Without
+               * it the map states a fact and leaves the operator to guess at
+               * a cause — which is exactly the complaint that "the router is
+               * not linked to any of the devices" was.
+               */}
+              {isolationReason ? (
+                <p
+                  className="mt-2 rounded-md bg-gray-50 p-2 text-sm text-gray-600"
+                  data-testid="network-topology-isolation-reason"
+                >
+                  {isolationReason}
+                </p>
+              ) : (
+                <></>
+              )}
+            </div>
           ) : (
             <ul className="mt-1 divide-y divide-gray-100">
               {attachedEdges.map((edge: NetworkTopologyEdge): ReactElement => {

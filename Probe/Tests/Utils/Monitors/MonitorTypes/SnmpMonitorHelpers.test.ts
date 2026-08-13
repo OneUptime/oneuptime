@@ -1273,6 +1273,139 @@ describe("SnmpMonitor.walkFdb", () => {
   });
 });
 
+describe("SnmpMonitor.walkInterfaces — discovery protocol walks", () => {
+  const CDP_CACHE_TABLE_OID: string = "1.3.6.1.4.1.9.9.23.1.2.1";
+  const LLDP_REM_TABLE_OID: string = "1.0.8802.1.1.2.1.4.1";
+
+  const config: MonitorStepSnmpMonitor = {
+    snmpVersion: SnmpVersion.V2c,
+    hostname: "10.0.0.1",
+    port: 161,
+    communityString: "public",
+    oids: [],
+    timeout: 1000,
+    retries: 0,
+    monitorInterfaces: true,
+  };
+
+  // One lldpRemTable row: index "timeMark.localPortNum.remIndex".
+  const LLDP_TABLE: SnmpTableRows = {
+    "0.24.1": {
+      "5": Buffer.from("chassis-1"),
+      "7": Buffer.from("Gi0/1"),
+      "9": Buffer.from("core-1"),
+    },
+  };
+
+  // One cdpCacheTable row: index "cdpCacheIfIndex.cdpCacheDeviceIndex".
+  const CDP_TABLE: SnmpTableRows = {
+    "3.1": {
+      "6": Buffer.from("ap-lobby"),
+      "7": Buffer.from("GigabitEthernet0"),
+      "8": Buffer.from("cisco AIR-CAP3702I-A-K9"),
+    },
+  };
+
+  /*
+   * A session whose tableColumns answers per table OID and records which
+   * tables were asked for, so a test can assert that a walk happened at all.
+   */
+  function installTableSession(tables: Record<string, SnmpTableRows>): {
+    walkedTableOids: Array<string>;
+  } {
+    const walkedTableOids: Array<string> = [];
+
+    const session: Record<string, unknown> = {
+      tableColumns: (
+        tableOid: string,
+        _columns: Array<number>,
+        callback: (err: Error | null, tbl?: unknown) => void,
+      ): void => {
+        walkedTableOids.push(tableOid);
+        callback(null, tables[tableOid] || {});
+      },
+      get: (
+        _oids: Array<string>,
+        callback: (error: Error | null) => void,
+      ): void => {
+        callback(new Error("system group unavailable"));
+      },
+      close: jest.fn(),
+      on: jest.fn(),
+    };
+
+    (
+      snmp.createSession as unknown as {
+        mockReturnValue: (value: unknown) => void;
+      }
+    ).mockReturnValue(session);
+
+    return { walkedTableOids };
+  }
+
+  afterEach(() => {
+    (
+      snmp.createSession as unknown as {
+        mockImplementation: (impl: () => unknown) => void;
+      }
+    ).mockImplementation(() => {
+      return { close: jest.fn(), on: jest.fn() };
+    });
+  });
+
+  test("CDP is walked even when LLDP already returned neighbors on non-Cisco gear", async () => {
+    /*
+     * The two protocols cover different PORTS, not different devices. A
+     * switch that speaks LLDP to its uplink and CDP to the phones and APs
+     * below it used to report the uplink and have every other edge thrown
+     * away — one of the ways a device ends up drawn floating on the map.
+     *
+     * The system group read fails here, so nothing identifies this device
+     * as Cisco: that is exactly the case the old guard skipped.
+     */
+    const { walkedTableOids } = installTableSession({
+      [LLDP_REM_TABLE_OID]: LLDP_TABLE,
+      [CDP_CACHE_TABLE_OID]: CDP_TABLE,
+    });
+
+    const result: SnmpWalkResult = await SnmpMonitor.walkInterfaces(config, {});
+
+    expect(walkedTableOids).toContain(CDP_CACHE_TABLE_OID);
+    expect(result.lldpNeighbors).toEqual([
+      {
+        localInterfaceIndex: 24,
+        remoteChassisId: "chassis-1",
+        remotePortId: "Gi0/1",
+        remoteSysName: "core-1",
+      },
+    ]);
+    expect(result.cdpNeighbors).toEqual([
+      {
+        localInterfaceIndex: 3,
+        remoteDeviceId: "ap-lobby",
+        remotePortId: "GigabitEthernet0",
+        remotePlatform: "cisco AIR-CAP3702I-A-K9",
+      },
+    ]);
+  });
+
+  test("a device implementing neither protocol reports empty lists, not a failure", async () => {
+    const { walkedTableOids } = installTableSession({});
+
+    const result: SnmpWalkResult = await SnmpMonitor.walkInterfaces(config, {});
+
+    expect(walkedTableOids).toContain(LLDP_REM_TABLE_OID);
+    expect(walkedTableOids).toContain(CDP_CACHE_TABLE_OID);
+    /*
+     * Empty, not undefined: a successful walk that found nothing has to
+     * clear the stored snapshot, or a neighbor that has genuinely gone away
+     * stays on the map forever.
+     */
+    expect(result.lldpNeighbors).toEqual([]);
+    expect(result.cdpNeighbors).toEqual([]);
+  });
+});
+
 describe("SnmpMonitor.walkInterfaces — endpoint collection gating", () => {
   const config: MonitorStepSnmpMonitor = {
     snmpVersion: SnmpVersion.V2c,

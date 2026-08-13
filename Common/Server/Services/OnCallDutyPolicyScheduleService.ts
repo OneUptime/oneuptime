@@ -39,7 +39,7 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
 import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
-import { Green500 } from "../../Types/BrandColors";
+import { Green500, Red500 } from "../../Types/BrandColors";
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import OnCallDutyPolicyScheduleLabelRuleEngineService from "./OnCallDutyPolicyScheduleLabelRuleEngineService";
 import OnCallDutyPolicyScheduleOwnerRuleEngineService from "./OnCallDutyPolicyScheduleOwnerRuleEngineService";
@@ -542,6 +542,66 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
               },
             )}**.`,
             userId: sendEmailToUserId || undefined,
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+              notifyUserId: undefined,
+            },
+          });
+        }
+
+        /*
+         * Somebody was on call and now nobody is. This branch is the mirror of
+         * the two above and used to be missing entirely: the "now on-call"
+         * branch requires a NEW user to exist, and the "no longer on-call"
+         * branch notifies only the departing person — who is precisely the one
+         * individual that can no longer do anything about it. So a schedule
+         * running off the end of its rotation, or into restricted hours with no
+         * fallback layer, opened a coverage gap in complete silence.
+         *
+         * Deliberately NOT tied to a user notification bundle (email/SMS/call):
+         * there is no on-call person to send it to. It goes to the policy feed
+         * and out to the workspace channel, where whoever owns the policy sees it.
+         */
+        if (
+          previousInformation.currentUserIdOnRoster?.toString() &&
+          !newInformation.currentUserIdOnRoster?.toString()
+        ) {
+          const onCallDutyPolicyId: ObjectID =
+            escalationRule.onCallDutyPolicy!.id!;
+
+          const policyLink: string = (
+            await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+              projectId!,
+              onCallDutyPolicyId!,
+            )
+          ).toString();
+
+          /*
+           * When a next user is known, say when coverage resumes — that turns
+           * "nobody is on call" from an alarm into an actionable window.
+           */
+          const resumesClause: string = newInformation.nextUserIdOnRoster
+            ? ` Coverage resumes at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
+                {
+                  date:
+                    newInformation.nextRosterStartAt ||
+                    newInformation.nextHandOffTimeAt ||
+                    OneUptimeDate.getCurrentDate(),
+                  timezones: [Timezone.GMT],
+                },
+              )}** with **${await UserService.getUserMarkdownString({
+                userId: newInformation.nextUserIdOnRoster,
+                projectId: projectId!,
+              })}**.`
+            : " No further shifts are scheduled, so this schedule will keep paging no one until it is fixed.";
+
+          await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
+            onCallDutyPolicyId: onCallDutyPolicyId,
+            projectId: projectId!,
+            onCallDutyPolicyFeedEventType:
+              OnCallDutyPolicyFeedEventType.CoverageGapStarted,
+            displayColor: Red500,
+            feedInfoInMarkdown: `⚠️ **Coverage gap: no one is on call in schedule ${onCallSchedule.name}.** [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${policyLink}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}** targets this schedule, so any alert that escalates to it right now will notify nobody.${resumesClause}`,
             workspaceNotification: {
               sendWorkspaceNotification: true,
               notifyUserId: undefined,
