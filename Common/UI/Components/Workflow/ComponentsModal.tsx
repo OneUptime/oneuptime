@@ -2,6 +2,7 @@
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Icon from "../Icon/Icon";
 import SideOver from "../SideOver/SideOver";
+import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
 import ComponentMetadata, {
   ComponentCategory,
@@ -11,6 +12,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -27,7 +29,56 @@ const escapeRegExp: (value: string) => string = (value: string): string => {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };
 
-const getSearchScore: (
+/**
+ * The words of a search, in lower case. Empty when nothing was typed.
+ */
+export type SearchTokensFunction = (search: string) => Array<string>;
+
+export const getSearchTokens: SearchTokensFunction = (
+  search: string,
+): Array<string> => {
+  return search
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((token: string) => {
+      return token.length > 0;
+    });
+};
+
+/**
+ * Does this component match every word typed?
+ *
+ * Every word, anywhere across title, description and category — not the whole
+ * search string as one substring. The database components are generated as
+ * "Create One Monitor" / "Database query to create one Monitor" / "Monitor",
+ * so a plain substring search answered "create one monitor secret" with one
+ * result and "create monitor" with none at all — and the empty state then told
+ * the builder the integration did not exist. In a palette holding a component
+ * per operation per model, browsing is not a fallback.
+ */
+export type MatchesSearchFunction = (
+  componentMetadata: ComponentMetadata,
+  tokens: Array<string>,
+) => boolean;
+
+export const matchesSearch: MatchesSearchFunction = (
+  componentMetadata: ComponentMetadata,
+  tokens: Array<string>,
+): boolean => {
+  if (tokens.length === 0) {
+    return true;
+  }
+
+  const haystack: string =
+    `${componentMetadata.title} ${componentMetadata.description} ${componentMetadata.category}`.toLowerCase();
+
+  return tokens.every((token: string) => {
+    return haystack.includes(token);
+  });
+};
+
+const getSearchScoreForToken: (
   componentMetadata: ComponentMetadata,
   searchTerm: string,
 ) => number = (
@@ -67,6 +118,27 @@ const getSearchScore: (
   return score;
 };
 
+/**
+ * Ranking, summed over the words typed.
+ *
+ * Every branch of the per-word score tests one whole token, so scoring the
+ * search as a single string gave every multi-word search a score of zero and
+ * left the order to the tie-breaker alone.
+ */
+export type GetSearchScoreFunction = (
+  componentMetadata: ComponentMetadata,
+  tokens: Array<string>,
+) => number;
+
+export const getSearchScore: GetSearchScoreFunction = (
+  componentMetadata: ComponentMetadata,
+  tokens: Array<string>,
+): number => {
+  return tokens.reduce((total: number, token: string) => {
+    return total + getSearchScoreForToken(componentMetadata, token);
+  }, 0);
+};
+
 const ComponentsModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -89,33 +161,23 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
   }, [props.categories, props.components]);
 
   useEffect(() => {
-    const normalizedSearch: string = search.trim().toLowerCase();
+    const tokens: Array<string> = getSearchTokens(search);
 
     const filteredComponents: Array<ComponentMetadata> = components
       .filter((componentMetadata: ComponentMetadata) => {
         return componentMetadata.componentType === props.componentsType;
       })
       .filter((componentMetadata: ComponentMetadata) => {
-        if (!normalizedSearch) {
-          return true;
-        }
-
-        return (
-          componentMetadata.title.toLowerCase().includes(normalizedSearch) ||
-          componentMetadata.description
-            .toLowerCase()
-            .includes(normalizedSearch) ||
-          componentMetadata.category.toLowerCase().includes(normalizedSearch)
-        );
+        return matchesSearch(componentMetadata, tokens);
       })
       .sort((componentA: ComponentMetadata, componentB: ComponentMetadata) => {
-        if (!normalizedSearch) {
+        if (tokens.length === 0) {
           return componentA.title.localeCompare(componentB.title);
         }
 
         const scoreDifference: number =
-          getSearchScore(componentB, normalizedSearch) -
-          getSearchScore(componentA, normalizedSearch);
+          getSearchScore(componentB, tokens) -
+          getSearchScore(componentA, tokens);
 
         if (scoreDifference !== 0) {
           return scoreDifference;
@@ -126,6 +188,30 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
 
     setComponentsToShow(filteredComponents);
   }, [components, props.componentsType, search]);
+
+  /*
+   * Grouped once per search rather than re-filtered inside the render loop.
+   * That loop ran once per category — around four hundred of them, each
+   * scanning every component still on screen — on every keystroke, with no
+   * debounce and no windowing.
+   */
+  const componentsByCategory: Dictionary<Array<ComponentMetadata>> =
+    useMemo(() => {
+      const grouped: Dictionary<Array<ComponentMetadata>> = {};
+
+      for (const componentMetadata of componentsToShow) {
+        const bucket: Array<ComponentMetadata> | undefined =
+          grouped[componentMetadata.category];
+
+        if (bucket) {
+          bucket.push(componentMetadata);
+        } else {
+          grouped[componentMetadata.category] = [componentMetadata];
+        }
+      }
+
+      return grouped;
+    }, [componentsToShow]);
 
   useEffect(() => {
     searchInputRef.current?.focus();
@@ -363,7 +449,19 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
               (componentsToShow.length === 0 && (
                 <div className="mt-20 flex w-full flex-col items-center justify-center gap-4 px-4">
                   <div className="max-w-2xl">
-                    <ErrorMessage message="No components that match your search. If you are looking for an integration that does not exist currently - you can use Custom Code or API component to build anything you like." />
+                    {/*
+                     * Says what actually happened. A search only fails now when
+                     * no component contains every word typed, and the fix is
+                     * usually to type fewer words — not to conclude that the
+                     * component does not exist and go and build it by hand.
+                     */}
+                    <ErrorMessage
+                      message={
+                        hasSearchTerm
+                          ? "No components match every word you typed. Try fewer words. If what you need really does not exist, the Custom Code and API components can build anything you like."
+                          : "No components to show."
+                      }
+                    />
                   </div>
                   {hasSearchTerm && (
                     <button
@@ -385,11 +483,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
               categories.length > 0 &&
               categories.map((category: ComponentCategory, i: number) => {
                 const categoryComponents: Array<ComponentMetadata> =
-                  componentsToShow.filter(
-                    (componentMetadata: ComponentMetadata) => {
-                      return componentMetadata.category === category.name;
-                    },
-                  );
+                  componentsByCategory[category.name] || [];
 
                 if (categoryComponents.length === 0) {
                   return <div key={i}></div>;

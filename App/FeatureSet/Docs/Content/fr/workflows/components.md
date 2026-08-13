@@ -120,16 +120,18 @@ Une limite de sécurité empêche les workflows de s'appeler entre eux indéfini
 
 ## Composants de données OneUptime
 
-Pour chaque type d'enregistrement dans OneUptime (monitors, incidents, alertes, status pages, politiques d'astreinte et bien d'autres), la palette propose ces composants — recherchez par le nom du type :
+Pour chaque type d'enregistrement dans OneUptime (monitors, incidents, alertes, status pages, politiques d'astreinte et bien d'autres), la palette propose ces composants — recherchez par le nom du type. Les titres sont générés à partir du type ; pour Monitor, cela donne :
 
-- **Find One** — récupérer un enregistrement par ID ou par filtre.
-- **Find** — récupérer une liste d'enregistrements.
-- **Create** — ajouter un nouvel enregistrement.
-- **Update** — modifier un enregistrement.
-- **Delete** — supprimer un enregistrement.
-- **Count** — compter les enregistrements correspondant à un filtre.
+- **Find One Monitor** — récupérer un enregistrement correspondant au filtre.
+- **Find Many Monitors** — récupérer une liste d'enregistrements correspondant au filtre.
+- **Create One Monitor** — ajouter un enregistrement à partir d'un objet JSON.
+- **Create Many Monitors** — ajouter plusieurs enregistrements à partir d'un tableau JSON.
+- **Update One Monitor** — modifier un enregistrement correspondant au filtre.
+- **Update Many Monitors** — modifier les enregistrements correspondant au filtre, dans la limite de Limit.
+- **Delete One Monitor** — supprimer un enregistrement correspondant au filtre.
+- **Delete Many Monitors** — supprimer les enregistrements correspondant au filtre, dans la limite de Limit.
 
-C'est ainsi qu'un workflow peut lire et modifier les données OneUptime. Par exemple : un webhook depuis votre outil CI peut utiliser **Create Incident** pour ouvrir un incident avec les détails de l'échec.
+C'est ainsi qu'un workflow peut lire et modifier les données OneUptime. Par exemple : un webhook depuis votre outil CI peut utiliser **Create One Incident** pour ouvrir un incident avec les détails de l'échec.
 
 ## Quel composant choisir ?
 
