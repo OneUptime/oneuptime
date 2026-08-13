@@ -1313,6 +1313,11 @@ const SUPPORT_CONFIG_ALLOW_LIST: Array<string> = [
   "APP_VERSION",
   "GIT_SHA",
   "RUN_DATABASE_MIGRATIONS_ON_BOOT",
+  /*
+   * The first thing to check when an IP allowlist matches nobody, or matches
+   * everybody: a wrong hop count is the usual cause of both.
+   */
+  "TRUSTED_PROXY_HOPS",
   "DISABLE_TELEMETRY",
   "DISABLE_TELEMETRY_INGESTION",
   "DISABLE_UPDATE_CHECK",

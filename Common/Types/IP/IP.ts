@@ -13,65 +13,90 @@ export default class IP extends DatabaseProperty {
     return this._ip;
   }
 
+  /*
+   * Does ONE address match the allowlist?
+   *
+   * This deliberately takes a single `ip` rather than a list. It used to take
+   * an array and return true if ANY member matched, which made it trivially
+   * bypassable when callers fed it a whole X-Forwarded-For chain: the caller
+   * chooses the left-hand entries of that header, so "any entry matches" means
+   * "the caller can name any address they like". Resolve the one address you
+   * mean to check first -- see resolveClientIp in Server/Utils/ClientIp -- and
+   * check that.
+   *
+   * Throws BadDataException if `ip` is not a valid address, so callers must
+   * establish that before asking. Callers making an access decision should
+   * treat a throw as a denial.
+   */
   public static isInWhitelist(data: {
-    ips: Array<string>;
+    ip: string;
     whitelist: string[];
   }): boolean {
-    for (const ip of data.ips) {
-      // If whitelist is empty, return false
-      if (!data.whitelist || data.whitelist.length === 0) {
-        return false;
+    const ip: string = data.ip;
+
+    // If whitelist is empty, return false
+    if (!data.whitelist || data.whitelist.length === 0) {
+      return false;
+    }
+
+    // Check if IP is valid
+    if (!IP.isIP(ip)) {
+      throw new BadDataException("Invalid IP address");
+    }
+
+    // Check each whitelist entry
+    for (const entry of data.whitelist) {
+      // Skip empty entries
+      const trimmedEntry: string = entry ? entry.trim() : "";
+
+      if (trimmedEntry === "") {
+        continue;
       }
 
-      // Check if IP is valid
-      if (!IP.isIP(ip)) {
-        throw new BadDataException("Invalid IP address");
+      // Direct IP match
+      if (trimmedEntry === ip) {
+        return true;
       }
 
-      // Check each whitelist entry
-      for (const entry of data.whitelist) {
-        // Skip empty entries
-        if (!entry || entry.trim() === "") {
-          continue;
-        }
+      // CIDR notation check (IPv4 only for now)
+      if (trimmedEntry.includes("/") && IP.isIPv4(ip)) {
+        try {
+          const [network, prefixStr] = trimmedEntry.split("/");
 
-        // Direct IP match
-        if (entry === ip) {
-          return true;
-        }
-
-        // CIDR notation check (IPv4 only for now)
-        if (entry.includes("/") && IP.isIPv4(ip)) {
-          try {
-            const [network, prefixStr] = entry.split("/");
-
-            if (!network || !prefixStr) {
-              continue;
-            }
-
-            if (!IP.isIPv4(network)) {
-              continue;
-            }
-
-            const prefix: number = parseInt(prefixStr, 10);
-            if (isNaN(prefix) || prefix < 0 || prefix > 32) {
-              continue;
-            }
-
-            // Convert IPs to integers for comparison
-            const ipInt: number = this._ipv4ToInt(ip);
-            const networkInt: number = this._ipv4ToInt(network);
-
-            // Create mask from prefix
-            const mask: number = ~((1 << (32 - prefix)) - 1) >>> 0;
-
-            // Check if IP is in network
-            if ((ipInt & mask) === (networkInt & mask)) {
-              return true;
-            }
-          } catch {
+          if (!network || !prefixStr) {
             continue;
           }
+
+          if (!IP.isIPv4(network)) {
+            continue;
+          }
+
+          const prefix: number = parseInt(prefixStr, 10);
+          if (isNaN(prefix) || prefix < 0 || prefix > 32) {
+            continue;
+          }
+
+          // Convert IPs to integers for comparison
+          const ipInt: number = this._ipv4ToInt(ip);
+          const networkInt: number = this._ipv4ToInt(network);
+
+          /*
+           * Create mask from prefix.
+           *
+           * Note: a /0 entry does NOT match everything here -- JS evaluates
+           * `1 << 32` as `1 << 0`, so the mask comes out 0xFFFFFFFF and /0
+           * degenerates into an exact match on the network address. Left
+           * as-is deliberately: correcting it would WIDEN existing
+           * allowlists, which does not belong in a hardening change.
+           */
+          const mask: number = ~((1 << (32 - prefix)) - 1) >>> 0;
+
+          // Check if IP is in network
+          if ((ipInt & mask) === (networkInt & mask)) {
+            return true;
+          }
+        } catch {
+          continue;
         }
       }
     }
