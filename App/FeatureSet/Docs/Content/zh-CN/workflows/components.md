@@ -120,16 +120,18 @@ API 组件的简化版,适合"发完即走"的场景。向某个 URL 发送一�
 
 ## OneUptime 数据组件
 
-对 OneUptime 中的每种记录类型(监控、事件、告警、状态页、值班策略,以及更多),面板里都有这些组件——按类型名称搜索:
+对 OneUptime 中的每种记录类型(监控、事件、告警、状态页、值班策略,以及更多),面板里都有这些组件——按类型名称搜索。标题由类型名称生成,因此 Monitor 这一组是:
 
-- **Find One**——按 ID 或筛选条件获取一条记录。
-- **Find**——获取记录列表。
-- **创建**——添加一条新记录。
-- **更新**——更新一条记录。
-- **删除**——删除一条记录。
-- **计数**——统计符合筛选条件的记录数。
+- **Find One Monitor**——获取一条符合筛选条件的记录。
+- **Find Many Monitors**——获取符合筛选条件的记录列表。
+- **Create One Monitor**——用 JSON 对象添加一条记录。
+- **Create Many Monitors**——用 JSON 数组添加多条记录。
+- **Update One Monitor**——更新一条符合筛选条件的记录。
+- **Update Many Monitors**——更新符合筛选条件的记录,最多 Limit 条。
+- **Delete One Monitor**——删除一条符合筛选条件的记录。
+- **Delete Many Monitors**——删除符合筛选条件的记录,最多 Limit 条。
 
-这就是工作流读取和修改 OneUptime 数据的方式。例如:来自 CI 工具的 webhook 可以用 **创建事件** 创建一个带有失败详情的事件。
+这就是工作流读取和修改 OneUptime 数据的方式。例如:来自 CI 工具的 webhook 可以用 **Create One Incident** 创建一个带有失败详情的事件。
 
 ## 我该用哪个组件?
 

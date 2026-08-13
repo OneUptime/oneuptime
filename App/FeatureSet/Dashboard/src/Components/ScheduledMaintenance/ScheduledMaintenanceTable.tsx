@@ -16,6 +16,7 @@ import Query from "Common/Types/BaseDatabase/Query";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
+import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
 import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
 import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
@@ -67,6 +68,16 @@ import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/Sche
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import { REFRESH_SIDEBAR_COUNT_EVENT } from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
 import LiveDuration from "../EventView/LiveDuration";
+import useNoteTemplates from "../EventView/useNoteTemplates";
+import BulkChangeStateModal, {
+  BulkChangeStateSubmitData,
+} from "../EventView/BulkChangeStateModal";
+import {
+  BulkStateChangeNoteType,
+  BulkStateChangeSkipDecision,
+  buildBulkStateChangeMiscDataProps,
+  getBulkStateChangeSkipDecision,
+} from "../../Utils/BulkStateChange";
 
 export interface ComponentProps {
   query?: Query<ScheduledMaintenance> | undefined;
@@ -96,6 +107,10 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     useState<boolean>(false);
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<ScheduledMaintenance> | null>(null);
+
+  const { noteTemplates } = useNoteTemplates<ScheduledMaintenanceNoteTemplate>({
+    modelType: ScheduledMaintenanceNoteTemplate,
+  });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<ScheduledMaintenance>({
@@ -257,11 +272,15 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
   }, []);
 
   const handleBulkStateChange: (
-    targetStateId: ObjectID,
-  ) => Promise<void> = async (targetStateId: ObjectID): Promise<void> => {
+    data: BulkChangeStateSubmitData,
+  ) => Promise<void> = async (
+    data: BulkChangeStateSubmitData,
+  ): Promise<void> => {
     if (!bulkActionProps) {
       return;
     }
+
+    const targetStateId: ObjectID = data.stateId;
 
     const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
       bulkActionProps;
@@ -276,6 +295,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     }
 
     const targetOrder: number = targetState.order || 0;
+
+    const miscDataProps: JSONObject = buildBulkStateChangeMiscDataProps({
+      noteType: BulkStateChangeNoteType.Public,
+      note: data.note,
+    });
 
     onBulkActionStart();
 
@@ -310,13 +334,20 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             ?.order || 0;
 
         // Skip if already at or past the target state
-        if (currentOrder >= targetOrder) {
-          const currentStateName: string =
-            fetchedScheduledMaintenance?.currentScheduledMaintenanceState
-              ?.name || "Unknown";
+        const skipDecision: BulkStateChangeSkipDecision =
+          getBulkStateChangeSkipDecision({
+            currentOrder: currentOrder,
+            targetOrder: targetOrder,
+            currentStateName:
+              fetchedScheduledMaintenance?.currentScheduledMaintenanceState
+                ?.name,
+            targetStateName: targetState.name,
+          });
+
+        if (skipDecision.shouldSkip) {
           failedItems.push({
             item: scheduledMaintenance,
-            failedMessage: `Skipped: Already at "${currentStateName}" (at or past "${targetState.name}")`,
+            failedMessage: skipDecision.skippedMessage!,
           });
         } else {
           // Create state timeline to change state
@@ -325,10 +356,13 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           stateTimeline.scheduledMaintenanceId = scheduledMaintenance.id;
           stateTimeline.scheduledMaintenanceStateId = targetStateId;
           stateTimeline.projectId = ProjectUtil.getCurrentProjectId()!;
+          stateTimeline.shouldStatusPageSubscribersBeNotified =
+            data.shouldStatusPageSubscribersBeNotified ?? true;
 
           await ModelAPI.create<ScheduledMaintenanceStateTimeline>({
             model: stateTimeline,
             modelType: ScheduledMaintenanceStateTimeline,
+            miscDataProps: miscDataProps,
           });
 
           successItems.push(scheduledMaintenance);
@@ -894,39 +928,28 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
       {ownerBulkActionModals}
 
       {showBulkStateChangeModal && (
-        <BasicFormModal
+        <BulkChangeStateModal
           title="Change Scheduled Maintenance State"
           description="Select the state to change scheduled maintenance events to. Events already at or past the selected state will be skipped."
+          stateFieldKey="scheduledMaintenanceStateId"
+          stateOptions={scheduledMaintenanceStates.map(
+            (state: ScheduledMaintenanceState) => {
+              return {
+                label: state.name || "",
+                value: state.id?.toString() || "",
+              };
+            },
+          )}
+          noteType={BulkStateChangeNoteType.Public}
+          noteTitle="Public Note"
+          noteDescription="Post a public note about this state change to the status page. The same note is added to every event you selected."
+          noteTemplates={noteTemplates}
+          showNotifyStatusPageSubscribers={true}
           onClose={() => {
             setShowBulkStateChangeModal(false);
             setBulkActionProps(null);
           }}
-          submitButtonText="Change State"
-          onSubmit={async (formData: {
-            scheduledMaintenanceStateId: ObjectID;
-          }) => {
-            await handleBulkStateChange(formData.scheduledMaintenanceStateId);
-          }}
-          formProps={{
-            fields: [
-              {
-                field: {
-                  scheduledMaintenanceStateId: true,
-                },
-                title: "Select State",
-                fieldType: FormFieldSchemaType.Dropdown,
-                required: true,
-                dropdownOptions: scheduledMaintenanceStates.map(
-                  (state: ScheduledMaintenanceState) => {
-                    return {
-                      label: state.name || "",
-                      value: state.id?.toString() || "",
-                    };
-                  },
-                ),
-              },
-            ],
-          }}
+          onSubmit={handleBulkStateChange}
         />
       )}
     </div>

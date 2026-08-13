@@ -102,7 +102,7 @@ export const decideRunWatch: DecideRunWatchFunction = (params: {
     return {
       shouldContinue: false,
       message: isFailedRunStatus(params.run.status)
-        ? `Run ${params.run.status.toLowerCase()}. Open the Logs tab to see why.`
+        ? `Run ${params.run.status.toLowerCase()}. Open the run log to see why.`
         : "Run finished successfully.",
     };
   }

@@ -133,6 +133,17 @@ export class Service extends DatabaseService<Model> {
     userId: ObjectID;
     projectId: ObjectID;
   }): Promise<string> {
+    /*
+     * Callers reach this through non-null assertions on nullable columns (an
+     * on-call timeline row for a coverage gap has no recipient, for example).
+     * Querying with an undefined id is not a harmless no-op — the id key is
+     * dropped from the WHERE clause, so the query degrades into "any user" and
+     * would name an arbitrary person. Fail closed instead.
+     */
+    if (!data.userId) {
+      return "";
+    }
+
     const user: Model | null = await this.findOneBy({
       query: {
         _id: data.userId,

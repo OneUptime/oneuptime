@@ -22,14 +22,22 @@ import {
   NodeDataProp,
   isJSON5ToleratedInputType,
 } from "../../../Types/Workflow/Component";
+import {
+  componentReturnValueReference,
+  globalVariableReference,
+  variableReference,
+} from "../../../Types/Workflow/TemplateSyntax";
 import { DropdownOption } from "../Dropdown/Dropdown";
+import EqualToOrNull from "../../../Types/BaseDatabase/EqualToOrNull";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
+import WorkflowVariable from "../../../Models/DatabaseModels/WorkflowVariable";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -230,6 +238,121 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     // Only re-fetch when the component in the settings panel changes identity.
   }, [component.id, hasWorkflowSelectArg]);
 
+  /*
+   * Every reference the builder could type into a row, offered as autocomplete
+   * on any row whose column has no suggestions of its own.
+   *
+   * The row editor replaces the "pick this value from other component or from
+   * variable" footer on the arguments it takes over, and a create payload is
+   * almost always assembled out of a trigger's return values - so without this
+   * the row editor would be a step backwards for exactly the case it exists to
+   * serve. The old footer cannot simply be kept: it appends the reference to
+   * the whole field, turning {"title":"x"} into {"title":"x"}{{...}}, which is
+   * not JSON and which the linter rejects immediately.
+   */
+  const hasColumnEditorArgument: boolean = Boolean(
+    component.metadata.tableName &&
+      component.metadata.arguments?.some((arg: Argument) => {
+        return (
+          arg.type === ComponentInputType.Query ||
+          arg.type === ComponentInputType.JSON ||
+          arg.type === ComponentInputType.BaseModel
+        );
+      }),
+  );
+
+  const componentReferenceSuggestions: Array<string> = useMemo(() => {
+    const suggestions: Array<string> = [];
+
+    for (const graphComponent of props.graphComponents || []) {
+      // A component cannot reference its own output.
+      if (graphComponent.id === component.id) {
+        continue;
+      }
+
+      /*
+       * Placeholder nodes carry a partial metadata object with no return
+       * values at all, so this cannot assume the array is there.
+       */
+      for (const returnValue of graphComponent.metadata?.returnValues || []) {
+        suggestions.push(
+          componentReturnValueReference(graphComponent.id, returnValue.id),
+        );
+      }
+    }
+
+    return suggestions;
+  }, [props.graphComponents, component.id]);
+
+  const [variableSuggestions, setVariableSuggestions] = useState<Array<string>>(
+    [],
+  );
+
+  useEffect(() => {
+    if (!hasColumnEditorArgument) {
+      return;
+    }
+
+    let cancelled: boolean = false;
+
+    const loadVariables: () => Promise<void> = async (): Promise<void> => {
+      try {
+        const result: ListResult<WorkflowVariable> =
+          await ModelAPI.getList<WorkflowVariable>({
+            modelType: WorkflowVariable,
+            // Null workflowId is a project-wide variable, usable from any workflow.
+            query: {
+              workflowId: new EqualToOrNull(props.workflowId.toString()),
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: {
+              _id: true,
+              name: true,
+              workflowId: true,
+            },
+            sort: {
+              name: "Ascending" as any,
+            },
+          });
+
+        if (cancelled) {
+          return;
+        }
+
+        setVariableSuggestions(
+          result.data
+            .filter((variable: WorkflowVariable) => {
+              return Boolean(variable.name);
+            })
+            .map((variable: WorkflowVariable) => {
+              return variable.workflowId
+                ? variableReference(variable.name as string)
+                : globalVariableReference(variable.name as string);
+            }),
+        );
+      } catch {
+        /*
+         * Swallow: suggestions are an accelerator, not the only way in. The
+         * builder can still type a reference by hand.
+         */
+        if (!cancelled) {
+          setVariableSuggestions([]);
+        }
+      }
+    };
+
+    void loadVariables();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hasColumnEditorArgument, props.workflowId.toString()]);
+
+  const referenceSuggestions: Array<string> = useMemo(() => {
+    return [...componentReferenceSuggestions, ...variableSuggestions];
+  }, [componentReferenceSuggestions, variableSuggestions]);
+
   useEffect(() => {
     props.onHasFormValidationErrors(hasFormValidationErrors);
   }, [hasFormValidationErrors]);
@@ -310,21 +433,38 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                     arg.type === ComponentInputType.CronTab;
 
                   /*
-                   * Query arguments (which records does this act on) and
-                   * BaseModel arguments (which values does it write) are both
-                   * keyed on the model's columns, so both get the row editor
-                   * backed by the model schema. Same tableName requirement as
-                   * the field picker.
+                   * Query arguments (which records does this act on) and the
+                   * write payload (which values does it set) are both keyed on
+                   * the model's columns, so both get the row editor backed by
+                   * the model schema. Same tableName requirement as the field
+                   * picker.
                    *
-                   * BaseModelArray is deliberately not included: it holds a
-                   * list of records, which rows cannot represent.
+                   * The write payload is typed JSON, not BaseModel: Create One's
+                   * "json" and Update's "data" are declared
+                   * ComponentInputType.JSON in Types/Workflow/Components/BaseModel,
+                   * and BaseModel appears there only as a *return* value. Keying
+                   * this branch on BaseModel alone therefore never matched a real
+                   * component, and every create and update opened on a bare code
+                   * editor. Retyping those arguments would be the smaller-looking
+                   * fix and is the wrong one - it moves them into
+                   * JSON5_TOLERANT_INPUT_TYPES and changes how RunWorkflow parses
+                   * them. Widening the predicate leaves every runtime path alone.
+                   *
+                   * tableName is set only by the database component generator, and
+                   * the only JSON-typed arguments on those components are the two
+                   * above, so this cannot reach a JSON argument on any other
+                   * component.
+                   *
+                   * JSONArray (Create Many) is deliberately not included: it holds
+                   * a list of records, which rows cannot represent.
                    */
                   const columnEditorMode: ModelColumnEditorMode | undefined =
                     !component.metadata.tableName
                       ? undefined
                       : arg.type === ComponentInputType.Query
                         ? ModelColumnEditorMode.Query
-                        : arg.type === ComponentInputType.BaseModel
+                        : arg.type === ComponentInputType.JSON ||
+                            arg.type === ComponentInputType.BaseModel
                           ? ModelColumnEditorMode.Record
                           : undefined;
 
@@ -355,6 +495,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                             placeholder={customProps.placeholder}
                             error={customProps.error}
                             tabIndex={customProps.tabIndex}
+                            valueSuggestions={referenceSuggestions}
                           />
                         );
                       },
@@ -537,7 +678,12 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
 
       {showComponentPickerModal && (
         <ComponentValuePickerModal
-          components={props.graphComponents}
+          /* A component cannot read its own output. */
+          components={(props.graphComponents || []).filter(
+            (graphComponent: NodeDataProp) => {
+              return graphComponent.id !== component.id;
+            },
+          )}
           onClose={() => {
             setShowComponentPickerModal(false);
           }}

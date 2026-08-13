@@ -181,14 +181,14 @@ import AlertStateService, {
 import AlertStateTimelineService, {
   Service as AlertStateTimelineServiceType,
 } from "Common/Server/Services/AlertStateTimelineService";
-import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
-import TelemetryEntityServiceInstance, {
-  TelemetryEntityService as TelemetryEntityServiceType,
-} from "Common/Server/Services/TelemetryEntityService";
-import TelemetryEntityRelationship from "Common/Models/DatabaseModels/TelemetryEntityRelationship";
-import TelemetryEntityRelationshipServiceInstance, {
-  TelemetryEntityRelationshipService as TelemetryEntityRelationshipServiceType,
-} from "Common/Server/Services/TelemetryEntityRelationshipService";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
+import InventoryItemServiceInstance, {
+  InventoryItemService as InventoryItemServiceType,
+} from "Common/Server/Services/InventoryItemService";
+import InventoryItemRelationship from "Common/Models/DatabaseModels/InventoryItemRelationship";
+import InventoryItemRelationshipServiceInstance, {
+  InventoryItemRelationshipService as InventoryItemRelationshipServiceType,
+} from "Common/Server/Services/InventoryItemRelationshipService";
 
 // AlertEpisode Services
 import AlertEpisodeService, {
@@ -1644,20 +1644,20 @@ const BaseAPIFeatureSet: FeatureSet = {
     // Telemetry entity registry + topology graph (read/list for the entity explorer).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<TelemetryEntity, TelemetryEntityServiceType>(
-        TelemetryEntity,
-        TelemetryEntityServiceInstance,
+      new BaseAPI<InventoryItem, InventoryItemServiceType>(
+        InventoryItem,
+        InventoryItemServiceInstance,
       ).getRouter(),
     );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<
-        TelemetryEntityRelationship,
-        TelemetryEntityRelationshipServiceType
+        InventoryItemRelationship,
+        InventoryItemRelationshipServiceType
       >(
-        TelemetryEntityRelationship,
-        TelemetryEntityRelationshipServiceInstance,
+        InventoryItemRelationship,
+        InventoryItemRelationshipServiceInstance,
       ).getRouter(),
     );
 

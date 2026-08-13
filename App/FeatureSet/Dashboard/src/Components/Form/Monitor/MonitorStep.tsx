@@ -45,7 +45,7 @@ import React, {
 import LogMonitorStepForm from "./LogMonitor/LogMonitorStepFrom";
 import TraceMonitorStepForm from "./TraceMonitor/TraceMonitorStepForm";
 import Service from "Common/Models/DatabaseModels/Service";
-import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -183,7 +183,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
   const [telemetryServices, setServices] = useState<Array<Service>>([]);
   const [telemetryEntities, setTelemetryEntities] = useState<
-    Array<TelemetryEntity>
+    Array<InventoryItem>
   >([]);
   const [attributeKeys, setAttributeKeys] = useState<Array<string>>([]);
   const [error, setError] = useState<string>("");
@@ -259,7 +259,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * The telemetry-entity registry (host / pod / container / ...) backing
+   * The inventory-item registry (host / pod / container / ...) backing
    * the optional "scope to infrastructure entities" picker on the
    * log/trace/metric/exception monitor step forms. The picker stores
    * entityKey values which the criteria compile turns into
@@ -267,9 +267,9 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
    */
   const fetchTelemetryEntities: PromiseVoidFunction =
     async (): Promise<void> => {
-      const telemetryEntitiesResult: ListResult<TelemetryEntity> =
-        await ModelAPI.getList<TelemetryEntity>({
-          modelType: TelemetryEntity,
+      const telemetryEntitiesResult: ListResult<InventoryItem> =
+        await ModelAPI.getList<InventoryItem>({
+          modelType: InventoryItem,
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
           },

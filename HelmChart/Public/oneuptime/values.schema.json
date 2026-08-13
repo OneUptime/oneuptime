@@ -1609,6 +1609,10 @@
             },
             "additionalProperties": false
         },
+        "trustedProxyHops": {
+            "type": "integer",
+            "minimum": 0
+        },
         "queueDashboard": {
             "type": "object",
             "properties": {

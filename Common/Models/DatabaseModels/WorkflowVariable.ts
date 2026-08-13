@@ -33,10 +33,22 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 })
 @TenantColumn("projectId")
 @TableAccessControl({
+  /*
+   * Mirrors Workflow's own create list. Anyone who can create a workflow can
+   * create the variables that workflow needs — the create-from-template wizard
+   * writes both in one go, and a member who could do the first but not the
+   * second was left with a saved workflow whose {{local.variables.…}}
+   * references resolved to nothing. Unresolved references are not an error at
+   * run time (VMAPI leaves the literal text in place), so that workflow looked
+   * healthy and posted braces to Slack.
+   */
   create: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.CreateWorkflowVariable,
+    Permission.ProjectMember,
+    Permission.WorkflowAdmin,
+    Permission.WorkflowMember,
   ],
   read: [
     Permission.ProjectOwner,

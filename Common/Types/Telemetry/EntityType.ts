@@ -7,7 +7,7 @@
  * entity data model (https://opentelemetry.io/docs/specs/otel/entities/).
  *
  * This is the broader *membership* vocabulary used by the `entityKeys`
- * column on signals and by the `TelemetryEntity` registry. It is distinct
+ * column on signals and by the `InventoryItem` registry. It is distinct
  * from `ServiceType`, which is the narrower discriminator for a signal's
  * single *primary* entity (`primaryEntityType`) and additionally covers
  * OneUptime-specific primary owners (Monitor, RealUserMonitor, Unknown,

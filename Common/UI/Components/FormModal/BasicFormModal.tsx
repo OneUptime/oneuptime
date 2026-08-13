@@ -5,7 +5,7 @@ import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BasicForm, {
   BaseComponentProps as BasicFormComponentProps,
 } from "../Forms/BasicForm";
-import Modal from "../Modal/Modal";
+import Modal, { ModalWidth } from "../Modal/Modal";
 import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 
@@ -19,6 +19,7 @@ export interface ComponentProps<T extends GenericObject> {
   submitButtonStyleType?: undefined | ButtonStyleType;
   formProps: BasicFormComponentProps<T>;
   description?: string | undefined;
+  modalWidth?: ModalWidth | undefined;
 }
 
 const BasicFormModal: <T extends GenericObject>(

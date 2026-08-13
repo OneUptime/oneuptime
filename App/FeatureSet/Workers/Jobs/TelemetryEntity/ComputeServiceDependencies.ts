@@ -2,7 +2,7 @@ import RunCron from "../../Utils/Cron";
 import logger from "Common/Server/Utils/Logger";
 import SpanService from "Common/Server/Services/SpanService";
 import ServiceService from "Common/Server/Services/ServiceService";
-import TelemetryEntityRelationshipService from "Common/Server/Services/TelemetryEntityRelationshipService";
+import InventoryItemRelationshipService from "Common/Server/Services/InventoryItemRelationshipService";
 import Service from "Common/Models/DatabaseModels/Service";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
@@ -17,7 +17,7 @@ import {
 import { keyForService } from "Common/Utils/Telemetry/EntityKey";
 
 /*
- * TelemetryEntity:ComputeServiceDependencies
+ * InventoryItem:ComputeServiceDependencies
  *
  * Service → service `depends-on` edges for the topology graph (the
  * resurrected ServiceDependency capability — doc §4: "service→service
@@ -291,7 +291,7 @@ async function computeDependenciesForProject(args: {
     return 0;
   }
 
-  await TelemetryEntityRelationshipService.reconcileRelationships({
+  await InventoryItemRelationshipService.reconcileRelationships({
     projectId: new ObjectID(args.projectId),
     edges,
   });

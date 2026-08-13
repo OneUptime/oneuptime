@@ -117,6 +117,13 @@ x-common-runtime-variables: &common-runtime-variables
   DISABLE_UPDATE_CHECK: ${DISABLE_UPDATE_CHECK:-false}
   LATEST_RELEASE_CHECK_URL: ${LATEST_RELEASE_CHECK_URL:-}
 
+  # How many appending proxies of your own sit in front of the app. Decides
+  # which X-Forwarded-For entry counts as the client for IP allowlists and rate
+  # limits. Defaulted because an existing config.env upgraded in place will not
+  # have the key, and an empty value here would read as "no proxy" and make
+  # every visitor look like the ingress container.
+  TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
+
   # Open Source Deployment Webhook
   OPEN_SOURCE_DEPLOYMENT_WEBHOOK_URL: ${OPEN_SOURCE_DEPLOYMENT_WEBHOOK_URL}
 

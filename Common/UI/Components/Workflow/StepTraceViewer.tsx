@@ -163,7 +163,7 @@ const StepTraceViewer: FunctionComponent<ComponentProps> = (
     return (
       <p className="text-sm text-gray-500">
         This run has no recorded steps. Runs from before step recording was
-        added show only the log below.
+        added show only their full log.
       </p>
     );
   }

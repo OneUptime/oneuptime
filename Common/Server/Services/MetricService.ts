@@ -30,8 +30,8 @@ import {
 import { keyForContainer } from "../Utils/Telemetry/TelemetryEntity";
 import { getEntityBudget } from "../Utils/Telemetry/EntityRegistry";
 import { EntityScopeQueryValue } from "../Utils/AnalyticsDatabase/StatementGenerator";
-import TelemetryEntityService from "./TelemetryEntityService";
-import TelemetryEntity from "../../Models/DatabaseModels/TelemetryEntity";
+import InventoryItemService from "./InventoryItemService";
+import InventoryItem from "../../Models/DatabaseModels/InventoryItem";
 import EntityType from "../../Types/Telemetry/EntityType";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -298,7 +298,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
 
   /**
    * All serviceEntityKeys the ingest pipeline can have stamped for rows
-   * reporting this `service.name`, from the Postgres TelemetryEntity
+   * reporting this `service.name`, from the Postgres InventoryItem
    * registry. Service identity folds `service.namespace` into the key
    * when the resource carries one (see the service resolver in
    * Common/Server/Utils/Telemetry/TelemetryEntity), so one name maps to
@@ -324,7 +324,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     try {
       const canonicalName: string = canonicalizeEntityValue(serviceName);
 
-      const rows: Array<TelemetryEntity> = await TelemetryEntityService.findBy({
+      const rows: Array<InventoryItem> = await InventoryItemService.findBy({
         query: {
           projectId: new ObjectID(projectId),
           entityType: EntityType.Service,
@@ -358,7 +358,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       /*
        * Budget-capped projects must not route. At/over the per-type
        * entity budget, ingest stops minting NEW Service registry rows
-       * forever (TelemetryEntityService.beforeCreate) while namespaced
+       * forever (InventoryItemService.beforeCreate) while namespaced
        * serviceEntityKeys keep flowing on signal rows — so a non-empty
        * registry key set may be PERMANENTLY missing identity variants,
        * and a routed `serviceEntityKey IN (...)` would silently return
@@ -368,7 +368,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
        * countBy amortizes to one per (project, service name) per minute.
        */
       const serviceEntityCount: PositiveNumber =
-        await TelemetryEntityService.countBy({
+        await InventoryItemService.countBy({
           query: {
             projectId: new ObjectID(projectId),
             entityType: EntityType.Service,
@@ -2220,7 +2220,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
    *   attributes == {resource.service.name: v}
    *     -> MetricItemAggMV1mByService, serviceEntityKey IN (<registry key set>)
    *        The key set is resolved asynchronously in aggregateBy() from
-   *        the Postgres TelemetryEntity registry — service identity folds
+   *        the Postgres InventoryItem registry — service identity folds
    *        service.namespace into the key at ingest, so one name can map
    *        to several keys. No registry rows -> NO routing (raw path).
    *   entityScope only, attributeKey in {host/k8s-cluster/container} and

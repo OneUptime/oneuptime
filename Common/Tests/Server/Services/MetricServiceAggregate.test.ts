@@ -19,8 +19,8 @@ import {
   keyForService,
 } from "../../../Utils/Telemetry/EntityKey";
 import { keyForContainer } from "../../../Server/Utils/Telemetry/TelemetryEntity";
-import TelemetryEntityService from "../../../Server/Services/TelemetryEntityService";
-import TelemetryEntity from "../../../Models/DatabaseModels/TelemetryEntity";
+import InventoryItemService from "../../../Server/Services/InventoryItemService";
+import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
 
 describe("MetricService aggregate statement generation", () => {
   const projectId: ObjectID = ObjectID.generate();
@@ -1681,7 +1681,7 @@ describe("MetricService aggregate statement generation", () => {
 
     /*
      * The async half of the service route: aggregateBy() resolves the
-     * key set from the TelemetryEntity registry (short-TTL cached) and
+     * key set from the InventoryItem registry (short-TTL cached) and
      * hands it to the synchronous builder via the WeakMap hint.
      */
     describe("service registry lookup plumbing (aggregateBy)", () => {
@@ -1724,10 +1724,10 @@ describe("MetricService aggregate statement generation", () => {
           });
         };
 
-      const originalFindBy: typeof TelemetryEntityService.findBy =
-        TelemetryEntityService.findBy;
-      const originalCountBy: typeof TelemetryEntityService.countBy =
-        TelemetryEntityService.countBy;
+      const originalFindBy: typeof InventoryItemService.findBy =
+        InventoryItemService.findBy;
+      const originalCountBy: typeof InventoryItemService.countBy =
+        InventoryItemService.countBy;
 
       /*
        * The registry lookup refuses to route when the project's Service
@@ -1735,11 +1735,11 @@ describe("MetricService aggregate statement generation", () => {
        * that expects routing needs a comfortably-under-budget count.
        */
       const mockCountBy: (count: number) => void = (count: number): void => {
-        TelemetryEntityService.countBy = jest.fn(
+        InventoryItemService.countBy = jest.fn(
           async (): Promise<PositiveNumber> => {
             return new PositiveNumber(count);
           },
-        ) as typeof TelemetryEntityService.countBy;
+        ) as typeof InventoryItemService.countBy;
       };
 
       beforeEach(() => {
@@ -1747,8 +1747,8 @@ describe("MetricService aggregate statement generation", () => {
       });
 
       afterEach(() => {
-        TelemetryEntityService.findBy = originalFindBy;
-        TelemetryEntityService.countBy = originalCountBy;
+        InventoryItemService.findBy = originalFindBy;
+        InventoryItemService.countBy = originalCountBy;
       });
 
       it("routes with the registry keys unioned with the bare-name key", async () => {
@@ -1757,8 +1757,8 @@ describe("MetricService aggregate statement generation", () => {
           "checkout",
           "prod",
         );
-        TelemetryEntityService.findBy = jest.fn(
-          async (): Promise<Array<TelemetryEntity>> => {
+        InventoryItemService.findBy = jest.fn(
+          async (): Promise<Array<InventoryItem>> => {
             return [
               {
                 entityKey: namespacedKey,
@@ -1766,10 +1766,10 @@ describe("MetricService aggregate statement generation", () => {
                   "service.name": "checkout",
                   "service.namespace": "prod",
                 },
-              } as unknown as TelemetryEntity,
+              } as unknown as InventoryItem,
             ];
           },
-        ) as typeof TelemetryEntityService.findBy;
+        ) as typeof InventoryItemService.findBy;
 
         const captured: CapturedStatements = captureExecuteQuery();
         await service.aggregateBy(buildServiceAggregate());
@@ -1790,11 +1790,11 @@ describe("MetricService aggregate statement generation", () => {
       });
 
       it("falls back to raw on a registry miss", async () => {
-        TelemetryEntityService.findBy = jest.fn(
-          async (): Promise<Array<TelemetryEntity>> => {
+        InventoryItemService.findBy = jest.fn(
+          async (): Promise<Array<InventoryItem>> => {
             return [];
           },
-        ) as typeof TelemetryEntityService.findBy;
+        ) as typeof InventoryItemService.findBy;
 
         const captured: CapturedStatements = captureExecuteQuery();
         await service.aggregateBy(buildServiceAggregate());
@@ -1807,16 +1807,16 @@ describe("MetricService aggregate statement generation", () => {
       });
 
       it("ignores registry rows whose identity is not this service.name (displayName collision guard)", async () => {
-        TelemetryEntityService.findBy = jest.fn(
-          async (): Promise<Array<TelemetryEntity>> => {
+        InventoryItemService.findBy = jest.fn(
+          async (): Promise<Array<InventoryItem>> => {
             return [
               {
                 entityKey: "1234123412341234",
                 identifyingAttributes: { "foo.name": "checkout" },
-              } as unknown as TelemetryEntity,
+              } as unknown as InventoryItem,
             ];
           },
-        ) as typeof TelemetryEntityService.findBy;
+        ) as typeof InventoryItemService.findBy;
 
         const captured: CapturedStatements = captureExecuteQuery();
         await service.aggregateBy(buildServiceAggregate());
@@ -1830,17 +1830,17 @@ describe("MetricService aggregate statement generation", () => {
 
       it("caches the key set per (project, canonical name)", async () => {
         const findBySpy: jest.Mock = jest.fn(
-          async (): Promise<Array<TelemetryEntity>> => {
+          async (): Promise<Array<InventoryItem>> => {
             return [
               {
                 entityKey: keyForService(projectId.toString(), "checkout"),
                 identifyingAttributes: { "service.name": "checkout" },
-              } as unknown as TelemetryEntity,
+              } as unknown as InventoryItem,
             ];
           },
         );
-        TelemetryEntityService.findBy =
-          findBySpy as unknown as typeof TelemetryEntityService.findBy;
+        InventoryItemService.findBy =
+          findBySpy as unknown as typeof InventoryItemService.findBy;
 
         captureExecuteQuery();
         await service.aggregateBy(buildServiceAggregate());
@@ -1858,8 +1858,8 @@ describe("MetricService aggregate statement generation", () => {
          * partial set would silently under-report; the raw attributes
          * predicate is the only complete one.
          */
-        TelemetryEntityService.findBy = jest.fn(
-          async (): Promise<Array<TelemetryEntity>> => {
+        InventoryItemService.findBy = jest.fn(
+          async (): Promise<Array<InventoryItem>> => {
             // A partial-but-non-empty key set (the dangerous state).
             return [
               {
@@ -1872,10 +1872,10 @@ describe("MetricService aggregate statement generation", () => {
                   "service.name": "checkout",
                   "service.namespace": "prod",
                 },
-              } as unknown as TelemetryEntity,
+              } as unknown as InventoryItem,
             ];
           },
-        ) as typeof TelemetryEntityService.findBy;
+        ) as typeof InventoryItemService.findBy;
         mockCountBy(10000); // getEntityBudget(EntityType.Service)
 
         const captured: CapturedStatements = captureExecuteQuery();

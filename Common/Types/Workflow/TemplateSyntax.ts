@@ -366,6 +366,50 @@ export const looksLikeReferencePath: LooksLikeReferencePathFunction = (
   return !NON_REFERENCE_CHARACTERS.test(withoutAccessors);
 };
 
+/*
+ * The reference syntax, written once.
+ *
+ * Four places built these strings by hand - the value picker, the variable
+ * picker, the templates file and the docs - which is how the builder ended up
+ * with no single place to read the shape off, and why a reference typed by hand
+ * is so easy to get subtly wrong. Everything that offers a reference to a
+ * builder now goes through these.
+ */
+
+export type ComponentReturnValueReferenceFunction = (
+  componentId: string,
+  returnValueId: string,
+  /** Optional drill-in past the return value, e.g. ["model", "_id"]. */
+  path?: Array<string> | undefined,
+) => string;
+
+export const componentReturnValueReference: ComponentReturnValueReferenceFunction =
+  (
+    componentId: string,
+    returnValueId: string,
+    path?: Array<string> | undefined,
+  ): string => {
+    const deeper: string = path && path.length > 0 ? `.${path.join(".")}` : "";
+
+    return `{{local.components.${componentId}.returnValues.${returnValueId}${deeper}}}`;
+  };
+
+export type VariableReferenceFunction = (variableName: string) => string;
+
+/** A variable belonging to this workflow. */
+export const variableReference: VariableReferenceFunction = (
+  variableName: string,
+): string => {
+  return `{{local.variables.${variableName}}}`;
+};
+
+/** A variable belonging to the project, available to every workflow in it. */
+export const globalVariableReference: VariableReferenceFunction = (
+  variableName: string,
+): string => {
+  return `{{global.variables.${variableName}}}`;
+};
+
 export type ParseReferencePathFunction = (path: string) => ParsedReferencePath;
 
 /**

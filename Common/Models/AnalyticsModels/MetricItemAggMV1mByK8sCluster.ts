@@ -9,7 +9,7 @@ import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
  * samples — sibling of `MetricItemAggMV1mByHostV2`, keyed by the stable
  * 16-hex `k8sClusterEntityKey` the ingest pipeline stamps on every row
  * whose resource carries a Kubernetes cluster identity. Cluster identity
- * is `k8s.cluster.name` ONLY (see `TelemetryEntity.k8sClusterIdentity`),
+ * is `k8s.cluster.name` ONLY (see `InventoryItem.k8sClusterIdentity`),
  * so the read side can derive the key directly from the incoming
  * `resource.k8s.cluster.name` filter via
  * `EntityKey.keyForKubernetesCluster` — no registry lookup needed.
