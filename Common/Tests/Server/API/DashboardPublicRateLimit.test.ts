@@ -207,6 +207,11 @@ const buildPublicRoutes: (dashboardId: string) => Array<PublicRoute> = (
     },
     {
       method: "POST",
+      uri: "/dashboard/slo-history-aggregate/:dashboardId",
+      params: { dashboardId },
+    },
+    {
+      method: "POST",
       uri: "/dashboard/master-password/:dashboardId",
       params: { dashboardId },
     },

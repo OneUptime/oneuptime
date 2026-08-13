@@ -1336,6 +1336,7 @@ export default class DashboardAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/slo-history-aggregate/:dashboardId`,
+      publicDashboardRateLimit,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
