@@ -1173,10 +1173,20 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * Called by MonitorService.changeMonitorStatus after a status persists.
-   * Resolves which NetworkDevices the monitors reference in their steps,
-   * stamps those devices' currentMonitorStatusId, then recomputes the
-   * rollup for every affected site chain. Never throws - a rollup failure
-   * must never break a monitor status change.
+   * Resolves which NetworkDevices these monitors report on, stamps those
+   * devices' currentMonitorStatusId, then recomputes the rollup for every
+   * affected site chain. Never throws - a rollup failure must never break a
+   * monitor status change.
+   *
+   * A device is reached two ways, and both are checked:
+   *
+   *   - a Network Device monitor names it inside its step data. This is the
+   *     SNMP path: the device is polled by its probe and the monitor exists
+   *     to alert on what the walk reports.
+   *   - the device points AT a monitor through monitorId. This is the
+   *     monitor-backed path (monitoringMethod "Monitor") for gear that does
+   *     not speak SNMP, so ANY monitor type qualifies — a Ping monitor on an
+   *     access point is the whole point of it.
    */
   @CaptureSpan()
   public async onMonitorStatusChanged(data: {
@@ -1207,32 +1217,74 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-      if (monitors.length === 0) {
-        return;
+      const referencedDeviceIds: Array<string> =
+        monitors.length > 0
+          ? NetworkDeviceHydrationUtil.getReferencedNetworkDeviceIds(monitors)
+          : [];
+
+      /*
+       * Deduplicated by id, because a device can legitimately be reached
+       * both ways — an SNMP-polled device may also carry a monitorId — and
+       * stamping it twice would double every rollup it triggers.
+       */
+      const devicesById: Map<string, NetworkDevice> = new Map<
+        string,
+        NetworkDevice
+      >();
+
+      const collect: (rows: Array<NetworkDevice>) => void = (
+        rows: Array<NetworkDevice>,
+      ): void => {
+        for (const row of rows) {
+          if (row.id) {
+            devicesById.set(row.id.toString(), row);
+          }
+        }
+      };
+
+      if (referencedDeviceIds.length > 0) {
+        collect(
+          await NetworkDeviceService.findBy({
+            query: {
+              _id: QueryHelper.any(referencedDeviceIds),
+              projectId: data.projectId,
+            },
+            select: {
+              _id: true,
+              siteId: true,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          }),
+        );
       }
 
-      const deviceIds: Array<string> =
-        NetworkDeviceHydrationUtil.getReferencedNetworkDeviceIds(monitors);
+      collect(
+        await NetworkDeviceService.findBy({
+          query: {
+            monitorId: QueryHelper.any(data.monitorIds),
+            projectId: data.projectId,
+          },
+          select: {
+            _id: true,
+            siteId: true,
+          },
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        }),
+      );
 
-      if (deviceIds.length === 0) {
+      const devices: Array<NetworkDevice> = Array.from(devicesById.values());
+
+      if (devices.length === 0) {
         return;
       }
-
-      const devices: Array<NetworkDevice> = await NetworkDeviceService.findBy({
-        query: {
-          _id: QueryHelper.any(deviceIds),
-          projectId: data.projectId,
-        },
-        select: {
-          _id: true,
-          siteId: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
 
       for (const device of devices) {
         if (!device.id) {

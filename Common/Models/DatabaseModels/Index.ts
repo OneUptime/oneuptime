@@ -18,6 +18,9 @@ import NetworkSiteType from "./NetworkSiteType";
 import NetworkEndpoint from "./NetworkEndpoint";
 import NetworkSiteStatusTimeline from "./NetworkSiteStatusTimeline";
 import NetworkSiteLink from "./NetworkSiteLink";
+import NetworkDeviceLink from "./NetworkDeviceLink";
+import NetworkDeviceLinkRule from "./NetworkDeviceLinkRule";
+import NetworkTopologySuppression from "./NetworkTopologySuppression";
 import NetworkSiteAssignmentRule from "./NetworkSiteAssignmentRule";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
@@ -820,6 +823,9 @@ const AllModelTypes: Array<{
   NetworkEndpoint,
   NetworkSiteStatusTimeline,
   NetworkSiteLink,
+  NetworkDeviceLink,
+  NetworkDeviceLinkRule,
+  NetworkTopologySuppression,
   NetworkSiteAssignmentRule,
   DockerHostOwnerTeam,
   DockerHostOwnerUser,

@@ -1,6 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 import { DiscoveredNetworkDevice } from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
-import { isImportableDiscoveredHost } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImportEligibility";
+import NetworkDeviceMonitoringMethod from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import {
+  isImportableDiscoveredHost,
+  monitoringMethodForDiscoveredHost,
+} from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImportEligibility";
 
 describe("isImportableDiscoveredHost", () => {
   test("host that answered SNMP is importable", () => {
@@ -12,12 +16,17 @@ describe("isImportableDiscoveredHost", () => {
     expect(isImportableDiscoveredHost(host)).toBe(true);
   });
 
-  test("ping-only host (snmpReachable === false) is NOT importable", () => {
+  test("ping-only host is importable too, as a monitor-backed device", () => {
+    /*
+     * This used to be refused. A ping-only host is a real box on the
+     * network — issue #3023 is what excluding it looks like from the
+     * outside: "devices I monitor manually don't appear in the topology".
+     */
     const host: DiscoveredNetworkDevice = {
       ipAddress: "10.0.0.42",
       snmpReachable: false,
     };
-    expect(isImportableDiscoveredHost(host)).toBe(false);
+    expect(isImportableDiscoveredHost(host)).toBe(true);
   });
 
   test("legacy host without the field (undefined) stays importable", () => {
@@ -33,23 +42,55 @@ describe("isImportableDiscoveredHost", () => {
       }),
     ).toBe(true);
   });
+});
 
-  test("eligibility ignores every other field — only snmpReachable matters", () => {
-    // Already-registered is handled separately by the Discovery page.
+describe("monitoringMethodForDiscoveredHost", () => {
+  test("an SNMP responder imports as an SNMP-polled device", () => {
     expect(
-      isImportableDiscoveredHost({
-        ipAddress: "10.0.0.11",
-        isAlreadyRegistered: true,
+      monitoringMethodForDiscoveredHost({
+        ipAddress: "10.0.0.5",
         snmpReachable: true,
       }),
-    ).toBe(true);
+    ).toBe(NetworkDeviceMonitoringMethod.Snmp);
+  });
+
+  test("a ping-only host imports as monitor-backed", () => {
     expect(
-      isImportableDiscoveredHost({
+      monitoringMethodForDiscoveredHost({
+        ipAddress: "10.0.0.42",
+        snmpReachable: false,
+      }),
+    ).toBe(NetworkDeviceMonitoringMethod.Monitor);
+  });
+
+  test("a legacy row with no field imports as SNMP, not monitor-backed", () => {
+    /*
+     * Every host on a scan stored before the field existed answered SNMP —
+     * ping-only sweeps did not exist yet. Reading undefined as ping-only
+     * would retroactively strip those devices of their polling.
+     */
+    expect(
+      monitoringMethodForDiscoveredHost({
+        ipAddress: "10.0.0.9",
+        sysName: "legacy-router",
+      }),
+    ).toBe(NetworkDeviceMonitoringMethod.Snmp);
+    expect(
+      monitoringMethodForDiscoveredHost({
+        ipAddress: "10.0.0.10",
+        snmpReachable: undefined,
+      }),
+    ).toBe(NetworkDeviceMonitoringMethod.Snmp);
+  });
+
+  test("only snmpReachable decides — every other field is ignored", () => {
+    expect(
+      monitoringMethodForDiscoveredHost({
         ipAddress: "10.0.0.12",
-        isAlreadyRegistered: false,
+        isAlreadyRegistered: true,
         sysDescr: "Some host",
         snmpReachable: false,
       }),
-    ).toBe(false);
+    ).toBe(NetworkDeviceMonitoringMethod.Monitor);
   });
 });

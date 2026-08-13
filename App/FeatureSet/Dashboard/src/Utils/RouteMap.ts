@@ -138,10 +138,12 @@ export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_DEVICE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.NETWORK_DEVICE_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.NETWORK_DEVICE_SETTINGS_LINK_RULES]: `settings/link-rules`,
   [PageMap.NETWORK_DEVICE_DISCOVERY]: `discovery`,
   [PageMap.NETWORK_DEVICE_TOPOLOGY]: `topology`,
   [PageMap.NETWORK_DEVICE_LATENCY_MATRIX]: `latency-matrix`,
   [PageMap.NETWORK_DEVICE_ENDPOINTS]: `endpoints`,
+  [PageMap.NETWORK_DEVICE_LINKS]: `device-links`,
 };
 
 export const SloRoutePath: Dictionary<string> = {
@@ -2614,6 +2616,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.NETWORK_DEVICE_SETTINGS_LINK_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_SETTINGS_LINK_RULES]
+    }`,
+  ),
+
   [PageMap.NETWORK_DEVICE_DISCOVERY]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_DISCOVERY]
@@ -2635,6 +2643,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_DEVICE_ENDPOINTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_ENDPOINTS]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_LINKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_LINKS]
     }`,
   ),
 

@@ -517,6 +517,10 @@ import { AddMonitorDependency1786449497966 } from "./1786449497966-AddMonitorDep
 import { AddDeletedProjectTable1786461136170 } from "./1786461136170-AddDeletedProjectTable";
 import { MigrationName1786551733814 } from "./1786551733814-MigrationName";
 import { AddWorkflowLogStepTrace1786559879134 } from "./1786559879134-AddWorkflowLogStepTrace";
+import { AddMonitoringMethodToNetworkDevice1786625176831 } from "./1786625176831-AddMonitoringMethodToNetworkDevice";
+import { AddNetworkDeviceLink1786634985763 } from "./1786634985763-AddNetworkDeviceLink";
+import { AddNetworkDeviceLinkRule1786639512056 } from "./1786639512056-AddNetworkDeviceLinkRule";
+import { AddNetworkTopologySuppression1786639972982 } from "./1786639972982-AddNetworkTopologySuppression";
 
 export default [
   InitialMigration,
@@ -1038,4 +1042,8 @@ export default [
   AddDeletedProjectTable1786461136170,
   MigrationName1786551733814,
   AddWorkflowLogStepTrace1786559879134,
+  AddMonitoringMethodToNetworkDevice1786625176831,
+  AddNetworkDeviceLink1786634985763,
+  AddNetworkDeviceLinkRule1786639512056,
+  AddNetworkTopologySuppression1786639972982,
 ];
