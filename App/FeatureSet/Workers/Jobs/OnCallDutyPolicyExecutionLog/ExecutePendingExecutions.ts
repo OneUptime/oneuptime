@@ -11,6 +11,9 @@ import IncidentService from "Common/Server/Services/IncidentService";
 import AlertService from "Common/Server/Services/AlertService";
 import AlertEpisodeService from "Common/Server/Services/AlertEpisodeService";
 import IncidentEpisodeService from "Common/Server/Services/IncidentEpisodeService";
+import OnCallDutyPolicyExecutionLogTimelineService from "Common/Server/Services/OnCallDutyPolicyExecutionLogTimelineService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import PositiveNumber from "Common/Types/PositiveNumber";
 
 RunCron(
   "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions",
@@ -366,12 +369,42 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
         `No rules to execute and no repeats left. Marking execution as complete.`,
       );
 
+      /*
+       * "Completed" on its own is ambiguous: a policy that walked every
+       * escalation rule and paged nobody — because each rule targeted a
+       * schedule with a coverage gap — reached this line with the same green
+       * "Execution Completed" as one that successfully paged the on-call
+       * engineer, so a policy could notify no one indefinitely without anything
+       * on screen looking wrong.
+       *
+       * Derived from the timeline rows rather than tracked in a counter column:
+       * a row has a recipient exactly when somebody was actually notified, so
+       * this cannot drift out of sync with what really happened, and it needs
+       * no schema change.
+       */
+      const notifiedCount: PositiveNumber =
+        await OnCallDutyPolicyExecutionLogTimelineService.countBy({
+          query: {
+            onCallDutyPolicyExecutionLogId: executionLog.id!,
+            alertSentToUserId: QueryHelper.notNull(),
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      const notifiedSomeone: boolean = notifiedCount.toNumber() > 0;
+
       // mark this as complete as we have no rules to execute.
       await OnCallDutyPolicyExecutionLogService.updateOneById({
         id: executionLog.id!,
         data: {
-          status: OnCallDutyPolicyStatus.Completed,
-          statusMessage: "Execution completed.",
+          status: notifiedSomeone
+            ? OnCallDutyPolicyStatus.Completed
+            : OnCallDutyPolicyStatus.CompletedWithNoNotifications,
+          statusMessage: notifiedSomeone
+            ? "Execution completed."
+            : "Execution completed, but no one was notified. Every escalation rule in this policy reached no one - usually because the on-call schedules it targets had nobody on call.",
         },
         props: {
           isRoot: true,
