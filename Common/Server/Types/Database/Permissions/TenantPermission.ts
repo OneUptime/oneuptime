@@ -252,8 +252,15 @@ export default class TenantPermission {
    * True if the only permission letting this user through the table-level
    * check for this op is Permission.CurrentUser. In that case the query must
    * be restricted to rows the user owns (via the model's user column).
+   *
+   * Public because CreatePermission needs exactly this predicate. Create never
+   * reaches addTenantScopeToQuery (see the `type !== DatabaseRequestType.Create`
+   * carve-out above), so it enforces ownership on the DATA rather than on a
+   * query — but it must decide "is this caller here purely as some logged-in
+   * user, or do they hold a real role permission" identically, or the two paths
+   * would disagree about who may act on whose rows.
    */
-  private static isAccessGrantedOnlyByCurrentUser<TBaseModel extends BaseModel>(
+  public static isAccessGrantedOnlyByCurrentUser<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
