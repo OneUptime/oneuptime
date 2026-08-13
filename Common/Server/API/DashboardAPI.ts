@@ -1,4 +1,7 @@
 import UserMiddleware from "../Middleware/UserAuthorization";
+import PublicDashboardRateLimit, {
+  PublicDashboardRateLimitBucket,
+} from "../Middleware/PublicDashboardRateLimit";
 import DashboardService, {
   Service as DashboardServiceType,
 } from "../Services/DashboardService";
@@ -319,11 +322,45 @@ export default class DashboardAPI extends BaseAPI<
   public constructor() {
     super(Dashboard, DashboardService);
 
+    /*
+     * Rate limiting for the anonymous public dashboard surface. Nginx exposes
+     * every route below under /public-dashboard-api and rewrites it to
+     * /api/dashboard before it reaches us, so this router IS that prefix and
+     * the limiter goes on all of it uniformly rather than on the handful of
+     * routes that happen to be the most expensive today.
+     *
+     * Registered ahead of UserMiddleware so a flood is rejected before it
+     * costs a session lookup. See PublicDashboardRateLimit for the budgets
+     * and for why the two buckets fail in opposite directions when Redis is
+     * unreachable.
+     */
+    const publicDashboardRateLimit: (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ) => Promise<void> = PublicDashboardRateLimit.getMiddleware(
+      PublicDashboardRateLimitBucket.Read,
+    );
+
+    /*
+     * /master-password verifies a bcrypt hash per request, so unthrottled it
+     * is an online password-guessing oracle that also burns a CPU-bound hash
+     * per guess. Its own, much tighter bucket.
+     */
+    const masterPasswordRateLimit: (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ) => Promise<void> = PublicDashboardRateLimit.getMiddleware(
+      PublicDashboardRateLimitBucket.MasterPassword,
+    );
+
     // SEO endpoint - resolve dashboard by ID or domain
     this.router.get(
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/seo/:dashboardIdOrDomain`,
+      publicDashboardRateLimit,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -504,6 +541,7 @@ export default class DashboardAPI extends BaseAPI<
 
     this.router.post(
       overviewApiPath,
+      publicDashboardRateLimit,
       UserMiddleware.getUserMiddleware,
       overviewHandler,
     );
@@ -515,6 +553,7 @@ export default class DashboardAPI extends BaseAPI<
      */
     this.router.get(
       overviewApiPath,
+      publicDashboardRateLimit,
       UserMiddleware.getUserMiddleware,
       overviewHandler,
     );
@@ -522,6 +561,7 @@ export default class DashboardAPI extends BaseAPI<
     // Domain resolution endpoint
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/domain`,
+      publicDashboardRateLimit,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -567,6 +607,7 @@ export default class DashboardAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/metadata/:dashboardId`,
+      publicDashboardRateLimit,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -629,6 +670,7 @@ export default class DashboardAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/view-config/:dashboardId`,
+      publicDashboardRateLimit,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -730,6 +772,7 @@ export default class DashboardAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/attribute-values/:dashboardId`,
+      publicDashboardRateLimit,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -843,6 +886,7 @@ export default class DashboardAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/metric-types/:dashboardId`,
+      publicDashboardRateLimit,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -952,6 +996,7 @@ export default class DashboardAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/metrics-aggregate/:dashboardId`,
+      publicDashboardRateLimit,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -1228,6 +1273,7 @@ export default class DashboardAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/resource-list/:dashboardId/:resourceType`,
+      publicDashboardRateLimit,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -1252,6 +1298,7 @@ export default class DashboardAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/master-password/:dashboardId`,
+      masterPasswordRateLimit,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
