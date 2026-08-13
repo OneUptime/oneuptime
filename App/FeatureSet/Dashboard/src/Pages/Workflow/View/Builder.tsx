@@ -9,19 +9,13 @@ import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
-import {
-  RUN_WATCH_POLL_INTERVAL_MS,
-  RunWatchDecision,
-  WatchedRun,
-  decideRunWatch,
-  isFailedRunStatus,
-} from "Common/UI/Components/Workflow/RunStatusWatcher";
+import useRunWatch, {
+  FetchLatestRunFunction,
+  UseRunWatchResult,
+  WatchedRunDetail,
+} from "Common/UI/Components/Workflow/UseRunWatch";
 import WorkflowLogModal from "Common/UI/Components/Workflow/WorkflowLogModal";
-import {
-  WorkflowStepTrace,
-  emptyTrace,
-  parseTrace,
-} from "Common/Types/Workflow/StepTrace";
+import { parseTrace } from "Common/Types/Workflow/StepTrace";
 import ComponentMetadata, {
   ComponentCategory,
   ComponentType,
@@ -51,8 +45,6 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
-  useEffect,
-  useRef,
   useState,
 } from "react";
 import { Edge, Node } from "reactflow";
@@ -84,12 +76,6 @@ const getIssueSummaryText: GetIssueSummaryTextFunction = (
   return parts.join(", ");
 };
 
-/** A run, with everything the run log modal needs to show it. */
-interface LatestRun extends WatchedRun {
-  logs: string;
-  stepTrace: WorkflowStepTrace;
-}
-
 const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [saveStatus, setSaveStatus] = useState<string>("");
@@ -110,42 +96,18 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [lintResult, setLintResult] = useState<WorkflowLintResult | null>(null);
   const [showIssuesModal, setShowIssuesModal] = useState<boolean>(false);
 
-  /*
-   * The run the builder started, followed until it settles. See
-   * RunStatusWatcher for why this is a poll rather than something the run
-   * endpoint hands back.
-   */
-  const [runWatchMessage, setRunWatchMessage] = useState<string | null>(null);
-  const [runWatchFailed, setRunWatchFailed] = useState<boolean>(false);
-  const [isWatchingRun, setIsWatchingRun] = useState<boolean>(false);
-  const runWatchTimer: React.MutableRefObject<ReturnType<
-    typeof setTimeout
-  > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  /*
-   * What the run being watched has logged so far. Each poll already asks the
-   * API for the run, so it asks for the log and the step trace at the same
-   * time and the modal fills in as the run goes.
-   */
-  const [runLogs, setRunLogs] = useState<string>("");
-  const [runStepTrace, setRunStepTrace] =
-    useState<WorkflowStepTrace>(emptyTrace());
   const [showRunLogModal, setShowRunLogModal] = useState<boolean>(false);
 
   /*
-   * Runs that already existed when the watch started. The manual-run endpoint
-   * does not return a log id (RunWorkflow creates the WorkflowLog when a
-   * worker picks the job up), so the newest run is only *this* run once its id
-   * differs from the newest one that existed beforehand.
+   * The run the builder started, followed until it settles. See
+   * RunStatusWatcher for why this is a poll rather than something the run
+   * endpoint hands back, and UseRunWatch for the watch itself.
+   *
+   * Each poll asks the API for the run's log and steps as well as its status,
+   * so the run log modal fills in while the run goes.
    */
-  const runIdBeforeTrigger: React.MutableRefObject<string | null> = useRef<
-    string | null
-  >(null);
-
-  type FetchLatestRunFunction = () => Promise<LatestRun | null>;
-
   const fetchLatestRun: FetchLatestRunFunction =
-    async (): Promise<LatestRun | null> => {
+    async (): Promise<WatchedRunDetail | null> => {
       const result: ListResult<WorkflowLog> =
         await ModelAPI.getList<WorkflowLog>({
           modelType: WorkflowLog,
@@ -170,86 +132,19 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
       return {
         runId: latest._id.toString(),
         status: latest.workflowStatus as WorkflowStatus,
-        logs: (latest.logs as string) || "",
+        logs: latest.logs || "",
         stepTrace: parseTrace((latest.stepTrace as JSONValue) || null),
       };
     };
 
-  type PollRunFunction = (pollCount: number) => Promise<void>;
-
-  const pollRun: PollRunFunction = async (pollCount: number): Promise<void> => {
-    let run: LatestRun | null = null;
-
-    try {
-      run = await fetchLatestRun();
-    } catch {
-      /*
-       * A failed poll is not a failed run. Keep watching — the next poll may
-       * well succeed, and the Logs tab is the fallback either way.
-       */
-      run = null;
-    }
-
-    // Not our run yet: the worker has not created its log.
-    if (run && run.runId === runIdBeforeTrigger.current) {
-      run = null;
-    }
-
-    if (run) {
-      setRunLogs(run.logs);
-      setRunStepTrace(run.stepTrace);
-    }
-
-    const decision: RunWatchDecision = decideRunWatch({
-      run: run,
-      pollCount: pollCount,
-    });
-
-    setRunWatchMessage(decision.message);
-    setRunWatchFailed(isFailedRunStatus(run?.status));
-
-    if (!decision.shouldContinue) {
-      setIsWatchingRun(false);
-      return;
-    }
-
-    runWatchTimer.current = setTimeout(() => {
-      void pollRun(pollCount + 1);
-    }, RUN_WATCH_POLL_INTERVAL_MS);
-  };
-
-  type CaptureRunBeforeTriggerFunction = () => Promise<void>;
-
-  /*
-   * Note which run was newest *before* the trigger, so the watch can tell this
-   * run from the one before it. This has to happen before the request that
-   * starts the run: a worker can pick the job up and create its log while the
-   * request is still in flight, and asking afterwards could record the new run
-   * as the old one and then wait for a run that already exists.
-   */
-  const captureRunBeforeTrigger: CaptureRunBeforeTriggerFunction =
-    async (): Promise<void> => {
-      try {
-        const existing: LatestRun | null = await fetchLatestRun();
-        runIdBeforeTrigger.current = existing ? existing.runId : null;
-      } catch {
-        runIdBeforeTrigger.current = null;
-      }
-    };
+  const runWatch: UseRunWatchResult = useRunWatch({
+    fetchLatestRun: fetchLatestRun,
+  });
 
   type StartWatchingRunFunction = () => void;
 
   const startWatchingRun: StartWatchingRunFunction = (): void => {
-    if (runWatchTimer.current) {
-      clearTimeout(runWatchTimer.current);
-      runWatchTimer.current = null;
-    }
-
-    setRunWatchFailed(false);
-    setRunWatchMessage("Starting run…");
-    setRunLogs("");
-    setRunStepTrace(emptyTrace());
-    setIsWatchingRun(true);
+    runWatch.startWatchingRun();
 
     /*
      * The run is the thing the user just asked for, so show it rather than
@@ -257,17 +152,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
      * watch — the toolbar keeps reporting, and reopens this.
      */
     setShowRunLogModal(true);
-
-    void pollRun(0);
   };
-
-  useEffect(() => {
-    return () => {
-      if (runWatchTimer.current) {
-        clearTimeout(runWatchTimer.current);
-      }
-    };
-  }, []);
 
   const loadGraph: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -551,7 +436,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               The run the builder started. Clicking reopens its log, so
               closing the modal does not lose the run behind it.
             */}
-            {runWatchMessage && (
+            {runWatch.message && (
               <button
                 type="button"
                 onClick={() => {
@@ -562,10 +447,10 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   fontWeight: 500,
                   cursor: "pointer",
                   textDecoration: "underline",
-                  color: runWatchFailed ? "#ef4444" : "#475569",
+                  color: runWatch.hasFailed ? "#ef4444" : "#475569",
                 }}
               >
-                {runWatchMessage}
+                {runWatch.message}
               </button>
             )}
 
@@ -655,7 +540,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             }}
             onRunStep={async (component: NodeDataProp) => {
               try {
-                await captureRunBeforeTrigger();
+                await runWatch.captureRunBeforeTrigger();
 
                 const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
                   await API.post({
@@ -679,7 +564,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             }}
             onRun={async (component: NodeDataProp) => {
               try {
-                await captureRunBeforeTrigger();
+                await runWatch.captureRunBeforeTrigger();
 
                 const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
                   await API.post({
@@ -714,11 +599,11 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           <WorkflowLogModal
             title="Workflow Run"
             description="This is the run you just started."
-            logs={runLogs}
-            stepTrace={runStepTrace}
-            statusMessage={runWatchMessage}
-            isStatusMessageError={runWatchFailed}
-            isRunning={isWatchingRun}
+            logs={runWatch.logs}
+            stepTrace={runWatch.stepTrace}
+            statusMessage={runWatch.message}
+            isStatusMessageError={runWatch.hasFailed}
+            isRunning={runWatch.isWatching}
             onClose={() => {
               setShowRunLogModal(false);
             }}

@@ -86,10 +86,13 @@ const WorkflowLogModal: FunctionComponent<ComponentProps> = (
       }
       isLoading={false}
       modalWidth={ModalWidth.Large}
+      /*
+       * Nothing here is submitted — the modal only shows a run. One button,
+       * which is the same thing the header's × and the Escape key do.
+       */
       onClose={props.onClose}
-      onSubmit={props.onClose}
-      submitButtonText={"Close"}
-      submitButtonStyleType={ButtonStyleType.NORMAL}
+      closeButtonText={"Close"}
+      closeButtonStyleType={ButtonStyleType.NORMAL}
     >
       <div>
         {props.statusMessage && (
