@@ -15,6 +15,7 @@ import NetworkSiteService from "../../../Server/Services/NetworkSiteService";
 import PodmanHostService from "../../../Server/Services/PodmanHostService";
 import PodmanResourceService from "../../../Server/Services/PodmanResourceService";
 import ProxmoxResourceService from "../../../Server/Services/ProxmoxResourceService";
+import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelObjectiveService";
 import SpanService from "../../../Server/Services/SpanService";
 import PublicDashboardResourceListPolicy, {
   BuildPublicDashboardResourceListPolicyData,
@@ -103,7 +104,15 @@ interface ResourceRouteCase {
   componentType: DashboardComponentType;
   service: ListService;
   kind: string | null;
+  /** Stored widget arguments this component type cannot be built without. */
+  argumentsObject?: JSONObject | undefined;
 }
+
+/*
+ * The SLO widget names one SLO outright, so unlike every other resource it
+ * has no valid empty configuration.
+ */
+const SLO_ID: ObjectID = ObjectID.generate();
 
 const RESOURCE_ROUTE_CASES: Array<ResourceRouteCase> = [
   {
@@ -292,6 +301,13 @@ const RESOURCE_ROUTE_CASES: Array<ResourceRouteCase> = [
     service: LogService,
     kind: null,
   },
+  {
+    resourceType: "slo",
+    componentType: DashboardComponentType.Slo,
+    service: ServiceLevelObjectiveService,
+    kind: null,
+    argumentsObject: { serviceLevelObjectiveId: SLO_ID.toString() },
+  },
 ];
 
 const ALL_SERVICES: Array<ListService> = [
@@ -310,6 +326,7 @@ const ALL_SERVICES: Array<ListService> = [
   DockerSwarmResourceService,
   SpanService,
   LogService,
+  ServiceLevelObjectiveService,
 ];
 
 describe("DashboardAPI public resource-list", () => {
@@ -470,6 +487,7 @@ describe("DashboardAPI public resource-list", () => {
         jest.clearAllMocks();
         const { widget, componentId } = buildWidget({
           componentType: routeCase.componentType,
+          argumentsObject: routeCase.argumentsObject,
         });
         setDashboardWidgets([widget]);
 

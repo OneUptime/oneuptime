@@ -101,6 +101,24 @@ Iedereen die het dashboard kan bewerken bepaalt wat deze widget draait, en ieder
 
 ## Logs en traces
 
+### Log Chart
+
+Een tijdreeksgrafiek van het logvolume over het tijdsbereik van het dashboard. Elke reeks staat voor een severity, waardoor foutpieken opvallen tussen normaal verkeer.
+
+**Instellingen**:
+
+- Visualisatie als staaf-, lijn- of vlakdiagram. Staaf- en vlakdiagrammen stapelen de severity-reeksen.
+- Optionele severity-filters.
+- Optionele tekstzoekopdracht in de logtekst.
+- Exacte OpenTelemetry-attribuutfilters via zoekbare key/value-rijen. Attribuutnamen en bekende waarden worden voorgesteld terwijl je typt, en eigen waarden blijven ondersteund.
+- Een optionele titel.
+
+De tijdsbereik- en verversbediening van het dashboard voert de query voor de grafiek automatisch opnieuw uit. Telemetrie-attribuutvariabelen van het dashboard gelden ook hiervoor, inclusief multi-select-variabelen.
+
+Log Chart vereist voorlopig een dashboard met login. Publieke dashboards tonen de widget als niet beschikbaar in plaats van logaggregaten van het project anoniem prijs te geven.
+
+Gebruik dit wanneer: je veranderingen in het logvolume wilt opmerken of errors, warnings en informatieve logs wilt vergelijken zonder het dashboard te verlaten.
+
 ### Log Stream
 
 Een live tail van logregels die aan een filter voldoen.
@@ -143,6 +161,21 @@ Een live lijst met monitors en hun huidige status.
 
 Gebruik dit wanneer: je een wagenpark-view wilt — "zijn alle sites up?"
 
+## Serviceniveaudoelstellingen
+
+### SLO
+
+Eén serviceniveaudoelstelling, getekend als één getal of als een lijn in de tijd.
+
+**Instellingen**: welk SLO, welk van zijn drie getallen (SLI, Error Budget Remaining of Burn Rate), weergave als Tile of Chart, en een optionele titel.
+
+- **Tile** toont het huidige getal, plus een tweede regel waar die er is — het doel onder de SLI, de resterende minuten onder het foutbudget. Een status-pill kleurt het geheel.
+- **Chart** tekent hetzelfde getal over het tijdsbereik van het dashboard, met het doel als stippellijn op de SLI-reeks. De historie wordt elke paar minuten door de evaluatie-worker geschreven, dus een kakelvers SLO is leeg tot het voor het eerst is geëvalueerd.
+
+Gebruik dit wanneer: het dashboard antwoord geeft op "halen we wat we hebben beloofd?" in plaats van "wat gebeurt er nu?"
+
+De SLO-widget werkt op [publieke dashboards](/docs/dashboards/sharing). Wat er wordt gepubliceerd zijn de kerngetallen van het SLO — naam, doel, huidige SLI, resterend foutbudget, burn rate en status — ongeacht welke daarvan de widget toevallig tekent. De definitie blijft privé: de monitors die het in de gaten houdt, de labels, de beschrijving, de query en het evaluatieschema worden nooit naar een publieke bezoeker gestuurd. Een Tile-widget publiceert alleen die huidige getallen; een Chart-widget publiceert daarnaast de historie van de ene reeks die hij tekent, en niets anders.
+
 ## Kubernetes-resourcelijsten
 
 Voor projecten met een [Kubernetes Agent](/docs/monitor/kubernetes-agent) geïnstalleerd. Elke neemt optionele filters voor cluster, namespace en labels.
@@ -176,15 +209,32 @@ Hosts gemonitord door OneUptime's server-monitor, met status, CPU, geheugen en u
 
 **Instellingen**: filters op labels of huidige state.
 
+## Netwerk
+
+### Network Map
+
+Je netwerksites getekend op de wereldkaart, elk vastgezet op zijn eigen breedte- en lengtegraad en gekleurd naar de monitorstatus die erop is samengevat. Sites die dicht bij elkaar liggen delen één marker met het aantal erin; een marker die voor precies één site staat, opent die site als je erop klikt.
+
+De kaart kadert zichzelf op de sites die hij tekende — een park binnen één land vult het kader met dat land, een park verspreid over continenten opent op de wereld. Er zijn geen zoom- of pan-knoppen: een dashboardtegel is een plaatje, en de pagina Network Map onder Network is waar je de hiërarchie doorloopt.
+
+Boven de kaart staat hoeveel sites down zijn, want een rode stip van twee pixels tussen tweehonderd groene leest niemand op dashboardafstand. Eronder zegt een dekkingsregel wat de kaart _niet_ toont — sites zonder coördinaten, en of de rijlimiet is geraakt.
+
+**Instellingen**: titel, kaart- of lijstweergave, maximaal aantal getekende sites, of sitenamen worden weergegeven, en filters op sitetype en op status. Sitenamen verdwijnen automatisch wanneer de kaart te vol wordt om ze te kunnen lezen; de tooltip noemt nog steeds elke marker.
+
+Een site verschijnt alleen als hij coördinaten heeft. Voeg breedte- en lengtegraad toe op de site (of importeer ze uit CSV) om hem vast te zetten.
+
 ## Welke widget moet ik gebruiken?
 
 Een paar vuistregels:
 
 - **Trend in de tijd?** Chart.
+- **Logvolume of foutpieken in de tijd?** Log Chart.
 - **Eén getal dat er nu toe doet?** Value (of Gauge als het een duidelijk min/max heeft).
 - **Uitsplitsing over veel dingen?** Table.
 - **Wat gebeurt er nu in het systeem?** Log Stream, Trace List, Incident List.
 - **De state van een specifieke groep resources?** De bijbehorende lijst-widget.
+- **Halen we de betrouwbaarheid die we hebben beloofd?** SLO.
+- **Waar in de wereld je netwerk zit, en wat er rood is?** Network Map.
 - **Een kop, alinea of link?** Text.
 - **Iets wat geen van bovenstaande dekt?** HTML — maar pas nadat je hebt gecontroleerd dat een ingebouwde widget het echt niet kan.
 

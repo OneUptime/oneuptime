@@ -101,6 +101,24 @@ Enhver, der kan redigere dashboardet, bestemmer, hvad denne widget kører, og al
 
 ## Logs og traces
 
+### Log Chart
+
+Et tidsseriediagram over logmængden i dashboardets tidsinterval. Hver serie repræsenterer en alvorlighedsgrad, så fejltoppe skiller sig ud fra normal trafik.
+
+**Indstillinger**:
+
+- Visualisering som søjle-, linje- eller arealdiagram. Søjle- og arealdiagrammer stabler alvorlighedsserierne.
+- Valgfrie filtre på alvorlighedsgrad.
+- Valgfri tekstsøgning i logteksten.
+- Præcise OpenTelemetry-attributfiltre via søgbare nøgle/værdi-rækker. Attributnavne og kendte værdier foreslås, mens du skriver, og egne værdier understøttes stadig.
+- En valgfri titel.
+
+Dashboardets tidsinterval- og opdateringskontroller forespørger automatisk diagrammet igen. Dashboardets telemetriattribut-variabler gælder også for det, inklusive multi-select-variabler.
+
+Log Chart kræver i øjeblikket et dashboard med login. Offentlige dashboards viser widgetten som utilgængelig i stedet for at udstille projektets logaggregater anonymt.
+
+Brug den, når: du vil opdage ændringer i logmængden eller sammenligne fejl, advarsler og informationslogs uden at forlade dashboardet.
+
 ### Log Stream
 
 Et live-tail af loglinjer, der matcher et filter.
@@ -143,6 +161,21 @@ En live-liste af monitorer og deres aktuelle status.
 
 Brug den, når: du vil have et flådeoverblik — "er alle siderne oppe?"
 
+## Serviceniveaumål
+
+### SLO
+
+Ét serviceniveaumål, tegnet enten som et enkelt tal eller som en linje over tid.
+
+**Indstillinger**: hvilket SLO, hvilket af dets tre tal (SLI, Error Budget Remaining eller Burn Rate), visning som Tile eller Chart, og en valgfri titel.
+
+- **Tile** viser det aktuelle tal, plus en anden linje hvor der er en — målet under SLI'en, resterende minutter under fejlbudgettet. En statusmarkering farver det hele.
+- **Chart** tegner det samme tal over dashboardets tidsinterval, med målet markeret som en stiplet linje på SLI-serien. Historikken skrives med få minutters mellemrum af evalueringsjobbet, så et helt nyt SLO tegnes som tomt, indtil det er blevet evalueret første gang.
+
+Brug den, når: dashboardet svarer på "lever vi op til det, vi har lovet?" snarere end "hvad sker der lige nu?"
+
+SLO-widgetten virker på [offentlige dashboards](/docs/dashboards/sharing). Det, der publiceres, er SLO'ets vigtigste tal — navn, mål, aktuel SLI, resterende fejlbudget, burn rate og status — uanset hvilket af dem widgetten tilfældigvis tegner. Definitionen forbliver privat: de monitorer, det holder øje med, dets labels, dets beskrivelse, dets forespørgsel og dets evalueringsplan sendes aldrig til en offentlig besøgende. En Tile-widget publicerer kun de aktuelle tal; en Chart-widget publicerer også historikken for den ene serie, den tegner, og intet andet.
+
 ## Kubernetes-ressourcelister
 
 Til projekter med en [Kubernetes Agent](/docs/monitor/kubernetes-agent) installeret. Hver tager valgfrie filtre for cluster, namespace og labels.
@@ -176,15 +209,32 @@ Hosts overvåget af OneUptimes server-monitor, med status, CPU, hukommelse og up
 
 **Indstillinger**: filtre efter labels eller aktuel tilstand.
 
+## Netværk
+
+### Network Map
+
+Dine netværkssites tegnet på verdenskortet, hver placeret på sin egen bredde- og længdegrad og farvet efter den monitorstatus, der er rullet op på den. Sites, der ligger tæt sammen, deler en markør med antallet skrevet inde i den; en markør, der står for præcis ét site, åbner det site, når du klikker på den.
+
+Kortet indrammer sig selv efter de sites, det tegnede — en portefølje inden for ét land fylder rammen med det land, en spredt over kontinenter åbner på verdenskortet. Der er ingen zoom- eller panoreringskontroller: en dashboard-flade er et billede, og Network Map-siden under Network er der, hvor du går gennem hierarkiet.
+
+Over kortet skriver den, hvor mange sites der er nede, for en to pixel stor rød prik blandt to hundrede grønne er ikke noget, nogen læser på dashboard-afstand. Under det fortæller en dækningslinje, hvad kortet _ikke_ viser — sites uden koordinater, og om rækkegrænsen blev nået.
+
+**Indstillinger**: titel, kort- eller listevisning, maksimalt antal tegnede sites, om sitenavne skal skrives, og filtre efter sitetype og status. Sitenavne fjernes automatisk, når kortet bliver for tæt til, at de kan læses; tooltippet navngiver stadig hver markør.
+
+Et site vises kun, hvis det har koordinater. Tilføj bredde- og længdegrad på sitet (eller importér dem fra CSV) for at placere det.
+
 ## Hvilken widget skal jeg bruge?
 
 Et par hurtige regler:
 
 - **Tendens over tid?** Chart.
+- **Logmængde eller fejltoppe over tid?** Log Chart.
 - **Ét tal der betyder noget lige nu?** Value (eller Gauge, hvis det har en klar min/max).
 - **Opdeling på tværs af mange ting?** Table.
 - **Hvad sker der i systemet lige nu?** Log Stream, Trace List, Incident List.
 - **Tilstanden af en specifik gruppe ressourcer?** Den matchende liste-widget.
+- **Lever vi op til den pålidelighed, vi har lovet?** SLO.
+- **Hvor i verden dit netværk er, og hvad der er rødt?** Network Map.
 - **En overskrift, et afsnit eller et link?** Text.
 - **Noget, som ingen af ovenstående dækker?** HTML — men først efter du har tjekket, at en indbygget widget virkelig ikke kan klare det.
 

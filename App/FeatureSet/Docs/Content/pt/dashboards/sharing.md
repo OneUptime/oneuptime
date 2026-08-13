@@ -20,6 +20,8 @@ Um painel público:
 
 Trate ativar um painel público como publicar uma página web. Todo widget nele se torna legível por qualquer pessoa. Veja o que está no canvas antes de ligar o interruptor.
 
+Cada widget publica apenas o que desenha, e somente para os recursos aos quais foi apontado. Um widget de SLO, por exemplo, publica os números principais desse SLO, mas nunca sua definição — veja [SLO](/docs/dashboards/widgets#slo). Widgets de **Fonte de Dados** externa são a exceção: eles são descartados por completo de um painel público em vez de renderizados, porque a configuração deles é a própria consulta.
+
 ## Senha mestra
 
 Para colocar uma senha em um painel público:

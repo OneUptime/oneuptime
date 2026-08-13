@@ -20,6 +20,8 @@ Un tableau de bord public :
 
 Considérez l'activation d'un tableau de bord public comme la publication d'une page web. Chaque widget devient lisible par tous. Examinez ce qui se trouve sur le canevas avant de basculer l'interrupteur.
 
+Chaque widget ne publie que ce qu'il trace, et seulement pour les ressources sur lesquelles il est pointé. Un widget SLO, par exemple, publie les chiffres clés de ce SLO mais jamais sa définition — voir [SLO](/docs/dashboards/widgets#slo). Les widgets **Data Source** externes font exception : ils sont entièrement écartés d'un tableau de bord public au lieu d'être rendus, car leur configuration est la requête elle-même.
+
 ## Mot de passe maître
 
 Pour mettre un mot de passe sur un tableau de bord public :
