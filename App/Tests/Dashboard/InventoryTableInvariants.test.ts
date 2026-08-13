@@ -14,7 +14,7 @@ import path from "path";
  *
  *   - Offering a discovered or inventory-mirrored type in the dropdown
  *     produces a form that always fails, because the service rejects those
- *     (see TelemetryEntityManualCreate.test.ts).
+ *     (see InventoryItemManualCreate.test.ts).
  *   - Offering `entityKey` as a field would let a user set an identity that
  *     does not match what the server derives.
  *   - Losing the Source column makes the three kinds of row visually
@@ -211,7 +211,7 @@ describe("no cell renders a raw wire value", () => {
   test("the CSV export does not fall back to raw values for badge columns", () => {
     // A badge column with no getExportValue exports a UUID or nothing.
     expect(code).toContain(
-      "getExportValue: (item: TelemetryEntity): string =>",
+      "getExportValue: (item: InventoryItem): string =>",
     );
     expect(code).toContain("getInventoryTypeLabel(item.entityType");
     expect(code).toContain("getInventorySourceLabel(item.source)");

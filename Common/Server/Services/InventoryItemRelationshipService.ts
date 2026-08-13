@@ -1,5 +1,5 @@
 import DatabaseService from "./DatabaseService";
-import Model from "../../Models/DatabaseModels/TelemetryEntityRelationship";
+import Model from "../../Models/DatabaseModels/InventoryItemRelationship";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import logger from "../Utils/Logger";
@@ -9,7 +9,7 @@ import EntitySource from "../../Types/Telemetry/EntitySource";
 import { reconcileByNaturalKey } from "../Utils/Telemetry/EntityRegistry";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 
-export class TelemetryEntityRelationshipService extends DatabaseService<Model> {
+export class InventoryItemRelationshipService extends DatabaseService<Model> {
   public constructor() {
     super(Model);
   }
@@ -32,7 +32,7 @@ export class TelemetryEntityRelationshipService extends DatabaseService<Model> {
         await this.upsertRelationship({ projectId: data.projectId, edge });
       } catch (err) {
         logger.error(
-          `TelemetryEntityRelationshipService: failed to upsert edge ${edge.fromEntityKey}-[${edge.relationshipType}]->${edge.toEntityKey}:`,
+          `InventoryItemRelationshipService: failed to upsert edge ${edge.fromEntityKey}-[${edge.relationshipType}]->${edge.toEntityKey}:`,
         );
         logger.error(err as Error);
       }
@@ -95,4 +95,4 @@ export class TelemetryEntityRelationshipService extends DatabaseService<Model> {
   }
 }
 
-export default new TelemetryEntityRelationshipService();
+export default new InventoryItemRelationshipService();

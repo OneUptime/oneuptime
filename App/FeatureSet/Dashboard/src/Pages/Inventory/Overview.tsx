@@ -24,7 +24,7 @@ import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -60,7 +60,7 @@ const InventoryOverview: FunctionComponent<
   const [breakdown, setBreakdown] = useState<Array<InventoryCategoryBreakdown>>(
     [],
   );
-  const [recent, setRecent] = useState<Array<TelemetryEntity>>([]);
+  const [recent, setRecent] = useState<Array<InventoryItem>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
@@ -71,9 +71,9 @@ const InventoryOverview: FunctionComponent<
     try {
       const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
 
-      const result: ListResult<TelemetryEntity> =
-        await ModelAPI.getList<TelemetryEntity>({
-          modelType: TelemetryEntity,
+      const result: ListResult<InventoryItem> =
+        await ModelAPI.getList<InventoryItem>({
+          modelType: InventoryItem,
           query: { projectId },
           select: {
             _id: true,
@@ -187,7 +187,7 @@ const InventoryOverview: FunctionComponent<
           </div>
         ) : (
           <ul className="divide-y divide-gray-100">
-            {recent.map((item: TelemetryEntity): ReactElement => {
+            {recent.map((item: InventoryItem): ReactElement => {
               return (
                 <li
                   key={item._id?.toString()}

@@ -11,7 +11,7 @@ import {
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Query from "Common/Types/BaseDatabase/Query";
 import Route from "Common/Types/API/Route";
-import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import Navigation from "Common/UI/Utils/Navigation";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
@@ -58,8 +58,8 @@ const InventoryItems: FunctionComponent<
    * a fresh object on every render would be a fresh `query` prop on every
    * render, and ModelTable re-fetches when its query changes.
    */
-  const scopeQuery: Query<TelemetryEntity> | undefined = useMemo(():
-    | Query<TelemetryEntity>
+  const scopeQuery: Query<InventoryItem> | undefined = useMemo(():
+    | Query<InventoryItem>
     | undefined => {
     if (isInventoryScopeEmpty(scope)) {
       return undefined;
@@ -70,7 +70,7 @@ const InventoryItems: FunctionComponent<
       new Date(),
     );
 
-    return built as Query<TelemetryEntity>;
+    return built as Query<InventoryItem>;
   }, [scope]);
 
   const scopeDescription: string | null = describeInventoryScope(scope);

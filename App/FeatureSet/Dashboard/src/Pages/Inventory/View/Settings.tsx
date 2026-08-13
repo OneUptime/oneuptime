@@ -1,6 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -27,7 +27,7 @@ const InventoryItemSettings: FunctionComponent<
 
   return (
     <Fragment>
-      <CardModelDetail<TelemetryEntity>
+      <CardModelDetail<InventoryItem>
         name="Inventory Item Settings"
         cardProps={{
           title: "Item Settings",
@@ -60,7 +60,7 @@ const InventoryItemSettings: FunctionComponent<
           },
         ]}
         modelDetailProps={{
-          modelType: TelemetryEntity,
+          modelType: InventoryItem,
           id: "inventory-item-settings",
           fields: [
             {

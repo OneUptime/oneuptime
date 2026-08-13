@@ -1,5 +1,5 @@
 import ObjectID from "Common/Types/ObjectID";
-import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import { useEffect, useState } from "react";
@@ -16,7 +16,7 @@ import { useEffect, useState } from "react";
  */
 
 export interface UseInventoryItemResult {
-  item: TelemetryEntity | null;
+  item: InventoryItem | null;
   isLoading: boolean;
   error: string;
 }
@@ -28,7 +28,7 @@ export type UseInventoryItemFunction = (
 const useInventoryItem: UseInventoryItemFunction = (
   modelId: ObjectID,
 ): UseInventoryItemResult => {
-  const [item, setItem] = useState<TelemetryEntity | null>(null);
+  const [item, setItem] = useState<InventoryItem | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
@@ -42,9 +42,9 @@ const useInventoryItem: UseInventoryItemFunction = (
       setError("");
 
       try {
-        const fetched: TelemetryEntity | null =
-          await ModelAPI.getItem<TelemetryEntity>({
-            modelType: TelemetryEntity,
+        const fetched: InventoryItem | null =
+          await ModelAPI.getItem<InventoryItem>({
+            modelType: InventoryItem,
             id: modelId,
             select: {
               _id: true,

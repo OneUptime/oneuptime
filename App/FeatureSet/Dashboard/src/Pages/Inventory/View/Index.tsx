@@ -24,7 +24,7 @@ import AppLink from "../../../Components/AppLink/AppLink";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
-import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import Navigation from "Common/UI/Utils/Navigation";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import React, {
@@ -89,7 +89,7 @@ const InventoryItemOverview: FunctionComponent<
     return <ErrorMessage message="This inventory item could not be found." />;
   }
 
-  const entity: TelemetryEntity = item;
+  const entity: InventoryItem = item;
   const sourceDescriptor: InventorySourceDescriptor | null =
     getInventorySourceDescriptor(entity.source);
 

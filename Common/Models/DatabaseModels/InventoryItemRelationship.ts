@@ -49,7 +49,7 @@ const UPDATE_PERMS: Array<Permission> = [
  * `(projectId, fromEntityKey, toEntityKey, relationshipType)`. This is the
  * infrastructure topology graph ("pod runs-on node", "service hosted-on
  * host", ...) and the seed for the service map. Populated forward-only and
- * throttled (no backfill), exactly like `TelemetryEntity`.
+ * throttled (no backfill), exactly like `InventoryItem`.
  */
 @EnableDocumentation()
 @TenantColumn("projectId")
@@ -67,16 +67,16 @@ const UPDATE_PERMS: Array<Permission> = [
   ],
   update: UPDATE_PERMS,
 })
-@CrudApiEndpoint(new Route("/telemetry-entity-relationship"))
+@CrudApiEndpoint(new Route("/inventory-item-relationship"))
 @TableMetadata({
-  tableName: "TelemetryEntityRelationship",
-  singularName: "Telemetry Entity Relationship",
-  pluralName: "Telemetry Entity Relationships",
+  tableName: "InventoryItemRelationship",
+  singularName: "Inventory Item Relationship",
+  pluralName: "Inventory Item Relationships",
   icon: IconProp.FlowDiagram,
   tableDescription:
     "Directed relationships between telemetry entities (runs-on, member-of, hosted-on, part-of, instance-of), inferred from resource co-occurrence.",
 })
-@Entity({ name: "TelemetryEntityRelationship" })
+@Entity({ name: "InventoryItemRelationship" })
 // Natural key + upsert conflict target for the throttled ingest reconciler.
 @Index(["projectId", "fromEntityKey", "toEntityKey", "relationshipType"], {
   unique: true,
@@ -84,7 +84,7 @@ const UPDATE_PERMS: Array<Permission> = [
 // "what is X related to" / "what relates to X".
 @Index(["projectId", "fromEntityKey"])
 @Index(["projectId", "toEntityKey"])
-export default class TelemetryEntityRelationship extends DatabaseBaseModel {
+export default class InventoryItemRelationship extends DatabaseBaseModel {
   @ColumnAccessControl({ create: CREATE_PERMS, read: READ_PERMS, update: [] })
   @TableColumn({
     manyToOneRelationColumn: "projectId",
@@ -175,7 +175,7 @@ export default class TelemetryEntityRelationship extends DatabaseBaseModel {
   public relationshipType?: EntityRelationshipType = undefined;
 
   /*
-   * Immutable after create, for the same reason as TelemetryEntity.source:
+   * Immutable after create, for the same reason as InventoryItem.source:
    * it is the predicate the edge prune keys on. An edge drawn by hand — the
    * only way to connect a manual CI to anything — has nothing re-bumping its
    * `lastSeenAt`, so without this it would be reaped by the 30-day sweep

@@ -9,7 +9,7 @@ import { isDeletePermanentForSource } from "../../../Components/Inventory/Invent
 import ObjectID from "Common/Types/ObjectID";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 import Navigation from "Common/UI/Utils/Navigation";
-import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet, useParams } from "react-router-dom";
 
@@ -34,7 +34,7 @@ const InventoryItemViewLayout: FunctionComponent<
   return (
     <ModelPage
       title="Inventory Item"
-      modelType={TelemetryEntity}
+      modelType={InventoryItem}
       modelId={modelId}
       modelNameField="displayName"
       breadcrumbLinks={getInventoryBreadcrumbs(path)}

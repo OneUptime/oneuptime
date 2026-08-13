@@ -16,7 +16,7 @@ import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
  * `service.name` can map to SEVERAL serviceEntityKeys (one per
  * namespace variant). The read side therefore never derives a single
  * key from the name: `MetricService.tryBuildEntityAggregateMVStatement`
- * resolves the full key set from the Postgres TelemetryEntity registry
+ * resolves the full key set from the Postgres InventoryItem registry
  * and compiles `serviceEntityKey IN (<keys>)`, falling back to the raw
  * table when the registry has no rows for the name.
  *

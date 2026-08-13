@@ -11,8 +11,8 @@ import OneUptimeDate from "Common/Types/Date";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
-import TelemetryEntityRelationship from "Common/Models/DatabaseModels/TelemetryEntityRelationship";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
+import InventoryItemRelationship from "Common/Models/DatabaseModels/InventoryItemRelationship";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -59,7 +59,7 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [rows, setRows] = useState<Array<RelationshipRow>>([]);
   const [relatedByKey, setRelatedByKey] = useState<
-    Record<string, TelemetryEntity>
+    Record<string, InventoryItem>
   >({});
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -73,11 +73,11 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
         const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
 
         const [outgoing, incoming]: [
-          ListResult<TelemetryEntityRelationship>,
-          ListResult<TelemetryEntityRelationship>,
+          ListResult<InventoryItemRelationship>,
+          ListResult<InventoryItemRelationship>,
         ] = await Promise.all([
-          ModelAPI.getList<TelemetryEntityRelationship>({
-            modelType: TelemetryEntityRelationship,
+          ModelAPI.getList<InventoryItemRelationship>({
+            modelType: InventoryItemRelationship,
             query: { projectId, fromEntityKey: props.entityKey },
             select: {
               fromEntityKey: true,
@@ -89,8 +89,8 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
             skip: 0,
             limit: LIMIT_PER_PROJECT,
           }),
-          ModelAPI.getList<TelemetryEntityRelationship>({
-            modelType: TelemetryEntityRelationship,
+          ModelAPI.getList<InventoryItemRelationship>({
+            modelType: InventoryItemRelationship,
             query: { projectId, toEntityKey: props.entityKey },
             select: {
               fromEntityKey: true,
@@ -140,12 +140,12 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
           ),
         );
 
-        const resolved: Record<string, TelemetryEntity> = {};
+        const resolved: Record<string, InventoryItem> = {};
 
         if (otherKeys.length > 0) {
-          const entities: ListResult<TelemetryEntity> =
-            await ModelAPI.getList<TelemetryEntity>({
-              modelType: TelemetryEntity,
+          const entities: ListResult<InventoryItem> =
+            await ModelAPI.getList<InventoryItem>({
+              modelType: InventoryItem,
               query: { projectId, entityKey: new Includes(otherKeys) },
               select: {
                 _id: true,
@@ -204,7 +204,7 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
         className="divide-y divide-gray-100"
       >
         {rows.map((row: RelationshipRow, index: number): ReactElement => {
-          const related: TelemetryEntity | undefined =
+          const related: InventoryItem | undefined =
             relatedByKey[row.otherEntityKey];
           const label: string =
             related?.displayName || row.otherEntityKey.substring(0, 16);

@@ -21,7 +21,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import DatabaseBaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 
 /*
- * Reusable access-control sets. A TelemetryEntity is a project-scoped
+ * Reusable access-control sets. A InventoryItem is a project-scoped
  * catalog row (like Service / MetricType), machine-populated at ingest, so
  * it reuses the telemetry-service permissions rather than introducing a
  * new permission family.
@@ -79,29 +79,29 @@ const UPDATE_PERMS: Array<Permission> = [
   ],
   update: UPDATE_PERMS,
 })
-@CrudApiEndpoint(new Route("/telemetry-entity"))
+@CrudApiEndpoint(new Route("/inventory-item"))
 /*
  * The product this backs is called Inventory, so the display names say so —
  * they are what the delete confirmation, the detail card and the generated
- * API docs read out. The table name stays `TelemetryEntity`: it is the
+ * API docs read out. The table name stays `InventoryItem`: it is the
  * storage identity, and renaming it would be a migration with no user-visible
  * benefit.
  */
 @TableMetadata({
-  tableName: "TelemetryEntity",
+  tableName: "InventoryItem",
   singularName: "Inventory Item",
   pluralName: "Inventory Items",
   icon: IconProp.Cube,
   tableDescription:
     "Catalog of everything OneUptime knows about your estate (service, host, k8s.pod, container, network device, ...), discovered from telemetry resource attributes, mirrored from inventory tables, or registered by hand.",
 })
-@Entity({ name: "TelemetryEntity" })
+@Entity({ name: "InventoryItem" })
 // Natural key + upsert conflict target for the throttled ingest reconciler.
 @Index(["projectId", "entityType", "entityKey"], { unique: true })
 // List-by-type (entity explorer) and reverse lookup from a typed resource row.
 @Index(["projectId", "entityType"])
 @Index(["projectId", "resourceType", "resourceId"])
-export default class TelemetryEntity extends DatabaseBaseModel {
+export default class InventoryItem extends DatabaseBaseModel {
   @ColumnAccessControl({ create: CREATE_PERMS, read: READ_PERMS, update: [] })
   @TableColumn({
     manyToOneRelationColumn: "projectId",

@@ -5,7 +5,7 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
-import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import EntitySource from "Common/Types/Telemetry/EntitySource";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import { MANUAL_ENTITY_TYPES } from "Common/Types/Telemetry/EntityTypeGroups";
@@ -48,7 +48,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
  * which a user registers here so a dependency can terminate somewhere real.
  *
  * Create is restricted to the manual entity types. That restriction is
- * enforced server-side in TelemetryEntityService.onBeforeCreate; the dropdown
+ * enforced server-side in InventoryItemService.onBeforeCreate; the dropdown
  * below just avoids offering choices the API would reject.
  *
  * Presentation-wise the rule is that no cell shows a wire value. Types render
@@ -105,7 +105,7 @@ export interface ComponentProps {
    * than as a filter chip, so it is the page's scope and not something the
    * user removes one chip at a time.
    */
-  query?: Query<TelemetryEntity> | undefined;
+  query?: Query<InventoryItem> | undefined;
   /**
    * Distinguishes two mounts of this table (scoped vs unscoped) in saved
    * column preferences and URL state. Defaults to the plain items table.
@@ -133,8 +133,8 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
 
   return (
     <Fragment>
-      <ModelTable<TelemetryEntity>
-        modelType={TelemetryEntity}
+      <ModelTable<InventoryItem>
+        modelType={InventoryItem}
         id={tableKey}
         userPreferencesKey={tableKey}
         isDeleteable={true}
@@ -276,7 +276,7 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
             title: "Name",
             type: FieldType.Text,
             isNotCustomizable: true,
-            getElement: (item: TelemetryEntity): ReactElement => {
+            getElement: (item: InventoryItem): ReactElement => {
               return (
                 <div className="flex flex-col">
                   <span className="font-medium text-gray-900">
@@ -290,7 +290,7 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
                 </div>
               );
             },
-            getExportValue: (item: TelemetryEntity): string => {
+            getExportValue: (item: InventoryItem): string => {
               return item.displayName || item.entityKey || "";
             },
           },
@@ -298,10 +298,10 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
             field: { entityType: true },
             title: "Type",
             type: FieldType.Text,
-            getElement: (item: TelemetryEntity): ReactElement => {
+            getElement: (item: InventoryItem): ReactElement => {
               return <InventoryTypeBadge entityType={item.entityType} />;
             },
-            getExportValue: (item: TelemetryEntity): string => {
+            getExportValue: (item: InventoryItem): string => {
               return getInventoryTypeLabel(item.entityType || "");
             },
           },
@@ -309,10 +309,10 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
             field: { source: true },
             title: "Source",
             type: FieldType.Text,
-            getElement: (item: TelemetryEntity): ReactElement => {
+            getElement: (item: InventoryItem): ReactElement => {
               return <InventorySourceBadge source={item.source} />;
             },
-            getExportValue: (item: TelemetryEntity): string => {
+            getExportValue: (item: InventoryItem): string => {
               return getInventorySourceLabel(item.source);
             },
           },
@@ -327,7 +327,7 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
             title: "Status",
             type: FieldType.Element,
             disableSort: true,
-            getElement: (item: TelemetryEntity): ReactElement => {
+            getElement: (item: InventoryItem): ReactElement => {
               return (
                 <InventoryLivenessBadge
                   source={item.source}
@@ -337,7 +337,7 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
                 />
               );
             },
-            getExportValue: (item: TelemetryEntity): string => {
+            getExportValue: (item: InventoryItem): string => {
               const liveness: InventoryLiveness = getInventoryLiveness({
                 source: item.source,
                 lastSeenAt: item.lastSeenAt,
@@ -352,7 +352,7 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
             title: "Last Seen",
             type: FieldType.Element,
             hideOnMobile: true,
-            getElement: (item: TelemetryEntity): ReactElement => {
+            getElement: (item: InventoryItem): ReactElement => {
               if (!item.lastSeenAt) {
                 return <span className="text-sm text-gray-400">-</span>;
               }
@@ -376,7 +376,7 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
                 </span>
               );
             },
-            getExportValue: (item: TelemetryEntity): string => {
+            getExportValue: (item: InventoryItem): string => {
               return item.lastSeenAt
                 ? OneUptimeDate.getDateAsLocalFormattedString(item.lastSeenAt)
                 : "";

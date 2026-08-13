@@ -951,7 +951,7 @@ enum PageMap {
   /*
    * Inventory — the estate catalog. One row per thing OneUptime knows about,
    * whether it was discovered from telemetry, mirrored from a poller-backed
-   * inventory table, or registered by hand. Backed by the TelemetryEntity
+   * inventory table, or registered by hand. Backed by the InventoryItem
    * model; "Entities" was the old, engineer-facing name for this product.
    */
   INVENTORY_ROOT = "INVENTORY_ROOT",

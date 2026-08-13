@@ -151,7 +151,7 @@ describe("parsing rejects anything it does not recognise", () => {
 
   test("a SQL-ish payload never reaches the query", () => {
     const scope: InventoryScope = parseFromRecord({
-      [INVENTORY_SCOPE_TYPE_PARAM]: "'; DROP TABLE TelemetryEntity;--",
+      [INVENTORY_SCOPE_TYPE_PARAM]: "'; DROP TABLE InventoryItem;--",
     });
 
     expect(scope).toEqual({});

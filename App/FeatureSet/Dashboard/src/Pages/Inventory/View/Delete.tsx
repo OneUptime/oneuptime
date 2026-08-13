@@ -10,7 +10,7 @@ import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import Navigation from "Common/UI/Utils/Navigation";
-import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
@@ -43,7 +43,7 @@ const InventoryItemDelete: FunctionComponent<
       ) : null}
 
       <ModelDelete
-        modelType={TelemetryEntity}
+        modelType={InventoryItem}
         modelId={modelId}
         onDeleteSuccess={() => {
           Navigation.navigate(

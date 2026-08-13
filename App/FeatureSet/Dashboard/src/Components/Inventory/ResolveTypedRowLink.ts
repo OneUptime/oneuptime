@@ -5,7 +5,7 @@ import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
 import Service from "Common/Models/DatabaseModels/Service";
-import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { JSONObject } from "Common/Types/JSON";
@@ -33,11 +33,11 @@ export interface TypedRowLink {
 }
 
 export type ResolveTypedRowLinkFunction = (
-  entity: TelemetryEntity,
+  entity: InventoryItem,
 ) => Promise<TypedRowLink | null>;
 
 export const resolveTypedRowLink: ResolveTypedRowLinkFunction = async (
-  entity: TelemetryEntity,
+  entity: InventoryItem,
 ): Promise<TypedRowLink | null> => {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 

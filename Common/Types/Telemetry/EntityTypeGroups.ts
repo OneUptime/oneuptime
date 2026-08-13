@@ -57,7 +57,7 @@ export const INVENTORY_ENTITY_TYPES: ReadonlySet<EntityType> =
  * authority, not its type); this predicate is what the tests assert the TTL
  * map against, so a newly added type cannot quietly acquire a TTL.
  */
-export function isNonTelemetryEntityType(entityType: EntityType): boolean {
+export function isNonInventoryItemType(entityType: EntityType): boolean {
   return (
     MANUAL_ENTITY_TYPES.has(entityType) ||
     INVENTORY_ENTITY_TYPES.has(entityType)

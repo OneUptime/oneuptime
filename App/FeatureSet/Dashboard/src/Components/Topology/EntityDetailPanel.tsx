@@ -8,8 +8,8 @@ import React, {
 import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Link from "Common/UI/Components/Link/Link";
-import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
-import TelemetryEntityRelationship from "Common/Models/DatabaseModels/TelemetryEntityRelationship";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
+import InventoryItemRelationship from "Common/Models/DatabaseModels/InventoryItemRelationship";
 import Service from "Common/Models/DatabaseModels/Service";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import EntityType from "Common/Types/Telemetry/EntityType";
@@ -45,9 +45,9 @@ import {
  */
 
 export interface ComponentProps {
-  entity: TelemetryEntity;
-  relationships: Array<TelemetryEntityRelationship>;
-  entityByKey: Map<string, TelemetryEntity>;
+  entity: InventoryItem;
+  relationships: Array<InventoryItemRelationship>;
+  entityByKey: Map<string, InventoryItem>;
   /** Active incidents/alerts affecting this service (Service Map overlay). */
   incidentStatus?: ServiceOperationalStatus | null | undefined;
   /** Seconds the depends-on metrics were aggregated over (cron window). */
@@ -58,7 +58,7 @@ export interface ComponentProps {
 
 interface EdgeRow {
   direction: "outbound" | "inbound";
-  relationship: TelemetryEntityRelationship;
+  relationship: InventoryItemRelationship;
   otherLabel: string;
 }
 
@@ -206,7 +206,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
     const rows: Array<EdgeRow> = [];
     for (const relationship of props.relationships) {
       if (relationship.fromEntityKey === entityKey) {
-        const other: TelemetryEntity | undefined = props.entityByKey.get(
+        const other: InventoryItem | undefined = props.entityByKey.get(
           relationship.toEntityKey || "",
         );
         rows.push({
@@ -217,7 +217,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             `${(relationship.toEntityKey || "").substring(0, 8)}…`,
         });
       } else if (relationship.toEntityKey === entityKey) {
-        const other: TelemetryEntity | undefined = props.entityByKey.get(
+        const other: InventoryItem | undefined = props.entityByKey.get(
           relationship.fromEntityKey || "",
         );
         rows.push({
@@ -240,7 +240,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
     row: EdgeRow,
     index: number,
   ): ReactElement => {
-    const rel: TelemetryEntityRelationship = row.relationship;
+    const rel: InventoryItemRelationship = row.relationship;
     const hasMetrics: boolean = Boolean(rel.callCount && rel.callCount > 0);
     const sentence: string =
       row.direction === "outbound"
