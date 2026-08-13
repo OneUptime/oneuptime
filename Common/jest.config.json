@@ -14,6 +14,7 @@
     "Common/(.*)": "<rootDir>/$1",
     "\\.(css|less|scss|sass)$": "<rootDir>/Tests/__mocks__/styleMock.js",
     "^uuid$": "<rootDir>/Tests/__mocks__/uuid.js",
+    "^bullmq$": "<rootDir>/Tests/__mocks__/bullmq.js",
     "^locter$": "<rootDir>/Tests/__mocks__/locter.js",
     "^yaml$": "<rootDir>/Tests/__mocks__/yaml.js",
     "^otpauth$": "<rootDir>/Tests/__mocks__/otpauth.js",

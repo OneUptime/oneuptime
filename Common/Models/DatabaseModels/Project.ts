@@ -1233,6 +1233,84 @@ export default class Project extends TenantModel {
   })
   public enableCallNotifications?: boolean = undefined;
 
+  /*
+   * When an on-call responder has no notification rule matching the rule type and
+   * severity of the page being routed to them, OneUptime falls back to whatever
+   * verified notification method they do have rather than delivering nothing. Turning
+   * this on restores the older behaviour: the execution is marked Error and no
+   * notification is attempted.
+   *
+   * The setting exists for projects that would rather see a loud configuration failure
+   * than an unexpected channel being used, and for projects whose responders express
+   * deliberate silence some other way. It is off by default because the behaviour it
+   * disables is the one that stops pages from being lost. Note that an explicit opt-out
+   * rule (UserNotificationRule.isOptOut) already suppresses the fallback for the exact
+   * rule type and severity the user asked to be left alone for, so this flag is only
+   * needed to opt out project-wide.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Disable On-Call Notification Fallback",
+    description:
+      "When enabled, a page routed to a responder with no matching notification rule fails instead of falling back to their verified notification methods.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public disableOnCallNotificationFallback?: boolean = undefined;
+
+  /*
+   * Throttle flag for the owner notification sent when the fallback above is used or
+   * when a responder turns out to be unreachable. An incident storm must not turn into a
+   * mail storm, so the owners are told once and the flag is cleared on the usual
+   * schedule.
+   *
+   * This is deliberately a new column rather than a reuse of
+   * lowCallAndSMSBalanceNotificationSentToOwners: that flag is shared by the SMS, Call
+   * and WhatsApp low-balance paths, and setting it here would silently suppress the
+   * billing warnings those paths depend on.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.Boolean,
+    title: "On-Call Notification Fallback Used Notification Sent to Owners",
+    description:
+      "On-Call Notification Fallback Used Notification Sent to Owners",
+    defaultValue: false,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public onCallFallbackUsedNotificationSentToOwners?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

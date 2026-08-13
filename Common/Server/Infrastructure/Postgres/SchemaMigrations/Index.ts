@@ -523,6 +523,7 @@ import { AddMonitoringMethodToNetworkDevice1786625176831 } from "./1786625176831
 import { AddNetworkDeviceLink1786634985763 } from "./1786634985763-AddNetworkDeviceLink";
 import { AddNetworkDeviceLinkRule1786639512056 } from "./1786639512056-AddNetworkDeviceLinkRule";
 import { AddNetworkTopologySuppression1786639972982 } from "./1786639972982-AddNetworkTopologySuppression";
+import { AddOnCallNotificationFallbackColumns1787000000000 } from "./1787000000000-AddOnCallNotificationFallbackColumns";
 
 export default [
   InitialMigration,
@@ -1050,4 +1051,5 @@ export default [
   AddNetworkTopologySuppression1786639972982,
   RenameTelemetryEntityToInventoryItem1786800000000,
   AddInventoryItemArchiveAndCustomFields1786900000000,
+  AddOnCallNotificationFallbackColumns1787000000000,
 ];

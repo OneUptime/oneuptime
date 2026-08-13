@@ -705,6 +705,55 @@ class UserNotificationRule extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public alertSeverityId?: ObjectID = undefined;
+
+  /*
+   * An opt-out row is a rule that exists in order to send nothing. It carries a
+   * `ruleType` and a severity exactly like a normal rule, sets `isOptOut` to true, and
+   * holds NO notification-method relation at all — there is no userEmail, userSms,
+   * userCall, userPush, userWhatsApp, userTelegram or userWebhook on it, and that
+   * absence is the point rather than a misconfiguration.
+   *
+   * It exists because "this user has zero rules matching this ruleType and severity" is
+   * otherwise two completely different situations wearing the same clothes. Almost
+   * always it means the user never configured anything for that cell — a severity added
+   * after they joined, an episode rule type they never opened the page for — and a page
+   * routed to them must still land somewhere. Occasionally it means the user genuinely
+   * asked not to be woken for that cell, and paging them anyway would be the bug.
+   *
+   * Before this column the runtime could not tell those apart, so it chose the safe-
+   * looking option and delivered nothing, which is how pages were being lost silently.
+   * Making deliberate silence expressible as a row is the precondition for the fallback:
+   * once "do not page me" has somewhere to live, the remaining zero-row cases can be
+   * treated as misconfiguration and rescued by notifying the user on whatever verified
+   * method they do have.
+   *
+   * Note the `update` permission below. Every column on this model except
+   * `notifyAfterMinutes` is `update: []`, so copying a neighbour's access control would
+   * have left this flag writable only at create time — a user could opt out but never
+   * opt back in without deleting and recreating the row. Muting and unmuting is exactly
+   * the kind of preference that gets toggled, so it is explicitly updatable by its owner.
+   */
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [Permission.CurrentUser],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: false,
+    isDefaultValueColumn: true,
+    title: "Opt Out of Notifications",
+    description:
+      "When true, this rule deliberately suppresses notifications for its rule type and severity instead of delivering any. A rule with this set carries no notification method.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    default: false,
+  })
+  public isOptOut?: boolean = undefined;
 }
 
 export default UserNotificationRule;

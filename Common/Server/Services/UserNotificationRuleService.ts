@@ -14,6 +14,13 @@ import TelegramService from "./TelegramService";
 import WebhookService from "./WebhookService";
 import WhatsAppService from "./WhatsAppService";
 import UserEmailService from "./UserEmailService";
+import UserCallService from "./UserCallService";
+import UserPushService from "./UserPushService";
+import UserSmsService from "./UserSmsService";
+import UserTelegramService from "./UserTelegramService";
+import UserWebhookService from "./UserWebhookService";
+import UserWhatsAppService from "./UserWhatsAppService";
+import ProjectService from "./ProjectService";
 import UserOnCallLogService from "./UserOnCallLogService";
 import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
 import { AppApiRoute } from "../../ServiceRoute";
@@ -49,8 +56,16 @@ import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNo
 import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
+import Monitor from "../../Models/DatabaseModels/Monitor";
+import Project from "../../Models/DatabaseModels/Project";
 import ShortLink from "../../Models/DatabaseModels/ShortLink";
+import UserCall from "../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../Models/DatabaseModels/UserEmail";
+import UserPush from "../../Models/DatabaseModels/UserPush";
+import UserSMS from "../../Models/DatabaseModels/UserSMS";
+import UserTelegram from "../../Models/DatabaseModels/UserTelegram";
+import UserWebhook from "../../Models/DatabaseModels/UserWebhook";
+import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 import Model from "../../Models/DatabaseModels/UserNotificationRule";
 import UserOnCallLog from "../../Models/DatabaseModels/UserOnCallLog";
 import UserOnCallLogTimeline from "../../Models/DatabaseModels/UserOnCallLogTimeline";
@@ -64,6 +79,8 @@ import AlertEpisodeMember from "../../Models/DatabaseModels/AlertEpisodeMember";
 import AlertEpisodeMemberService from "./AlertEpisodeMemberService";
 import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeService from "./IncidentEpisodeService";
+import IncidentEpisodeMember from "../../Models/DatabaseModels/IncidentEpisodeMember";
+import IncidentEpisodeMemberService from "./IncidentEpisodeMemberService";
 import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import PushNotificationService from "./PushNotificationService";
@@ -84,6 +101,100 @@ export interface NotificationMethodDescriptor {
   userWebhookId?: ObjectID;
 }
 
+/*
+ * Everything a single delivery attempt needs to know about the page it is
+ * carrying: which project, which entity fired it, which escalation produced it,
+ * and which UserOnCallLog row it must reconcile against. This used to be an
+ * inline object literal on executeNotificationRuleItem; it is named here because
+ * the fallback path (executeFallbackNotification) hands the very same bundle to
+ * the very same delivery code, and because callers outside this file now need to
+ * be able to type a variable against it.
+ */
+export interface ExecuteNotificationRuleOptions {
+  projectId: ObjectID;
+  triggeredByIncidentId?: ObjectID | undefined;
+  triggeredByAlertId?: ObjectID | undefined;
+  triggeredByAlertEpisodeId?: ObjectID | undefined;
+  triggeredByIncidentEpisodeId?: ObjectID | undefined;
+  userNotificationEventType: UserNotificationEventType;
+  onCallPolicyExecutionLogId?: ObjectID | undefined;
+  onCallPolicyId: ObjectID | undefined;
+  onCallPolicyEscalationRuleId?: ObjectID | undefined;
+  userNotificationLogId: ObjectID;
+  userBelongsToTeamId?: ObjectID | undefined;
+  onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
+  onCallScheduleId?: ObjectID | undefined;
+}
+
+export interface ExecuteFallbackNotificationOptions
+  extends ExecuteNotificationRuleOptions {
+  userId: ObjectID;
+  userOnCallLogId: ObjectID;
+  ruleType: NotificationRuleType;
+  // Only used to explain, in prose, which severity had no rule configured.
+  severityName: string;
+}
+
+/*
+ * Why the fallback returns an outcome and not just a boolean.
+ *
+ * Its caller (UserOnCallLogService.onCreateSuccess) has to pick a
+ * UserNotificationExecutionStatus out of the answer, and
+ * UserNotificationExecutionStatus.Error is TERMINAL — ExecutePendingExecutions
+ * selects Executing and TimeoutStuckExecutions selects Started, so nothing
+ * anywhere re-selects an Error log. That makes the two ways of not notifying
+ * somebody opposites rather than synonyms: "this responder has nothing we can
+ * page them on" is a real, permanent misconfiguration worth burning the log
+ * for, while "the send raised" is a bad minute that a terminal status would
+ * turn into a permanently dropped page. Both are `notified: false`, so the
+ * difference has to survive the return or the caller cannot act on it.
+ */
+export enum FallbackNotificationOutcome {
+  /*
+   * A page was handed to at least one sender. Nothing below observes what the
+   * sender then did with it — every send in deliverNotificationForRule is
+   * fire-and-forget — so this means dispatched, not received.
+   */
+  Delivered = "Delivered",
+
+  /*
+   * There was nothing to try. The responder has no verified method the
+   * fallback may use and no webhook, or the only paid channels they have are
+   * switched off at the project level. Permanent: a retry finds the same
+   * nothing, and only a human adding a notification method changes it.
+   */
+  NoUsableNotificationMethod = "NoUsableNotificationMethod",
+
+  /*
+   * There was something to try and none of it went out: a send raised, or a
+   * chosen channel had no template for this event type, or another run already
+   * holds the fallback claim on this log and owns the outcome. All three are
+   * transient from the caller's point of view — none of them is evidence that
+   * the responder is unreachable, so none of them justifies a terminal status.
+   */
+  DeliveryFailed = "DeliveryFailed",
+}
+
+export interface FallbackNotificationResult {
+  outcome: FallbackNotificationOutcome;
+  /*
+   * Mirror of `outcome === FallbackNotificationOutcome.Delivered`, kept because
+   * most read sites only want the yes/no and re-deriving the comparison at each
+   * one is how a caller ends up asserting the wrong half of the enum.
+   */
+  notified: boolean;
+  channelsUsed: Array<string>;
+}
+
+/*
+ * The fallback is not tied to any UserNotificationRule row — there is no rule,
+ * which is the whole reason it runs — so it claims the on-call log under this
+ * reserved literal instead of a rule id. `executedNotificationRules` is a jsonb
+ * map keyed by arbitrary text, so the literal sits beside real rule uuids and
+ * can never collide with one.
+ */
+export const FALLBACK_NOTIFICATION_CLAIM_KEY: string = "__fallback__";
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -92,21 +203,7 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async executeNotificationRuleItem(
     userNotificationRuleId: ObjectID,
-    options: {
-      projectId: ObjectID;
-      triggeredByIncidentId?: ObjectID | undefined;
-      triggeredByAlertId?: ObjectID | undefined;
-      triggeredByAlertEpisodeId?: ObjectID | undefined;
-      triggeredByIncidentEpisodeId?: ObjectID | undefined;
-      userNotificationEventType: UserNotificationEventType;
-      onCallPolicyExecutionLogId?: ObjectID | undefined;
-      onCallPolicyId: ObjectID | undefined;
-      onCallPolicyEscalationRuleId?: ObjectID | undefined;
-      userNotificationLogId: ObjectID;
-      userBelongsToTeamId?: ObjectID | undefined;
-      onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
-      onCallScheduleId?: ObjectID | undefined;
-    },
+    options: ExecuteNotificationRuleOptions,
   ): Promise<void> {
     /*
      * Atomically claim this rule for this on-call log BEFORE sending, so two
@@ -173,24 +270,37 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Notification rule item not found.");
     }
 
-    /*
-     * If the project has a default Twilio config set, use it for all
-     * team-member SMS and Calls in this rule. Otherwise the global config
-     * is used by the notification service.
-     */
-    const projectTwilioConfig: TwilioConfig | undefined =
-      await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
-        options.projectId,
-      );
+    await this.deliverNotificationForRule(notificationRuleItem, options);
+  }
 
+  /*
+   * Build the timeline row every channel block stamps its status onto.
+   *
+   * Callers keep ONE instance and mutate it, because after the first create()
+   * the instance carries an _id and a second create() with it UPDATEs the row
+   * it already wrote instead of inserting a new one. Anything that needs a row
+   * genuinely independent of the delivery attempts (the fell-through guard
+   * below) must therefore call this again for a fresh instance rather than
+   * reuse the one the channel blocks have been writing to.
+   */
+  private buildLogTimelineItem(
+    notificationRuleItem: Model,
+    options: ExecuteNotificationRuleOptions,
+  ): UserOnCallLogTimeline {
     const logTimelineItem: UserOnCallLogTimeline = new UserOnCallLogTimeline();
     logTimelineItem.projectId = options.projectId;
-    logTimelineItem.userNotificationLogId = options.userNotificationLogId;
-    logTimelineItem.userNotificationRuleId = userNotificationRuleId;
     logTimelineItem.userNotificationLogId = options.userNotificationLogId;
     logTimelineItem.userId = notificationRuleItem.userId!;
     logTimelineItem.userNotificationEventType =
       options.userNotificationEventType;
+
+    /*
+     * The fallback delivers through rules it builds in memory and never saves,
+     * so there is not always a rule id to point the row at.
+     */
+    if (notificationRuleItem.id) {
+      logTimelineItem.userNotificationRuleId = notificationRuleItem.id;
+    }
 
     if (options.userBelongsToTeamId) {
       logTimelineItem.userBelongsToTeamId = options.userBelongsToTeamId;
@@ -232,6 +342,56 @@ export class Service extends DatabaseService<Model> {
       logTimelineItem.onCallDutyPolicyExecutionLogTimelineId =
         options.onCallDutyPolicyExecutionLogTimelineId;
     }
+
+    return logTimelineItem;
+  }
+
+  /*
+   * The delivery half of executeNotificationRuleItem: given a rule that is
+   * already loaded with its method relations, decide what to send on which
+   * channel and hand it to the senders.
+   *
+   * It is split out from the public method so executeFallbackNotification can
+   * reuse it with a rule it assembled in memory and never persisted. The claim
+   * and the rule lookup that the public method does first are meaningless for a
+   * rule that does not exist in the database; everything from here down is
+   * exactly what the fallback needs.
+   *
+   * Returns whether a page was actually handed to a sender, which the fallback
+   * needs and the normal path ignores. Resolving without throwing is NOT the
+   * same as having sent something: a rule whose channel has no block for this
+   * event type falls all the way through to the guard at the bottom, writes an
+   * Error row and sends nothing. A caller that read "did not throw" as "paged"
+   * would name a channel the responder never heard from.
+   */
+  private async deliverNotificationForRule(
+    notificationRuleItem: Model,
+    options: ExecuteNotificationRuleOptions,
+  ): Promise<boolean> {
+    /*
+     * If the project has a default Twilio config set, use it for all
+     * team-member SMS and Calls in this rule. Otherwise the global config
+     * is used by the notification service.
+     */
+    const projectTwilioConfig: TwilioConfig | undefined =
+      await ProjectCallSMSConfigService.getProjectDefaultTwilioConfig(
+        options.projectId,
+      );
+
+    const logTimelineItem: UserOnCallLogTimeline = this.buildLogTimelineItem(
+      notificationRuleItem,
+      options,
+    );
+
+    /*
+     * Which channels this rule could actually deliver on, and whether any block
+     * below matched the event type. If a channel is contactable but no branch
+     * claimed the event, the page vanishes without a trace — the guard at the
+     * end of this method turns that into a visible Error row.
+     */
+    const contactableChannels: Array<string> =
+      this.getContactableChannelNames(notificationRuleItem);
+    let deliveryAttempted: boolean = false;
 
     // add status and status message and save.
 
@@ -382,6 +542,7 @@ export class Service extends DatabaseService<Model> {
         alert
       ) {
         // create an error log.
+        deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
         logTimelineItem.statusMessage = `Sending email to ${notificationRuleItem.userEmail?.email.toString()}`;
         logTimelineItem.userEmailId = notificationRuleItem.userEmail.id!;
@@ -435,6 +596,7 @@ export class Service extends DatabaseService<Model> {
         incident
       ) {
         // create an error log.
+        deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
         logTimelineItem.statusMessage = `Sending email to ${notificationRuleItem.userEmail?.email.toString()}`;
         logTimelineItem.userEmailId = notificationRuleItem.userEmail.id!;
@@ -487,6 +649,7 @@ export class Service extends DatabaseService<Model> {
           UserNotificationEventType.AlertEpisodeCreated &&
         alertEpisode
       ) {
+        deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
         logTimelineItem.statusMessage = `Sending email to ${notificationRuleItem.userEmail?.email.toString()}`;
         logTimelineItem.userEmailId = notificationRuleItem.userEmail.id!;
@@ -510,6 +673,61 @@ export class Service extends DatabaseService<Model> {
           userOnCallLogTimelineId: updatedLog.id!,
           projectId: options.projectId,
           alertEpisodeId: alertEpisode.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
+        }).catch(async (err: Error) => {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: updatedLog.id!,
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: err.message || "Error sending email.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        });
+      }
+
+      // send email for incident episode
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.IncidentEpisodeCreated &&
+        incidentEpisode
+      ) {
+        deliveryAttempted = true;
+        logTimelineItem.status = UserNotificationStatus.Sending;
+        logTimelineItem.statusMessage = `Sending email to ${notificationRuleItem.userEmail?.email.toString()}`;
+        logTimelineItem.userEmailId = notificationRuleItem.userEmail.id!;
+
+        const updatedLog: UserOnCallLogTimeline =
+          await UserOnCallLogTimelineService.create({
+            data: logTimelineItem,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const emailMessage: EmailMessage =
+          await this.generateEmailTemplateForIncidentEpisodeCreated(
+            notificationRuleItem.userEmail?.email,
+            incidentEpisode,
+            updatedLog.id!,
+          );
+
+        /*
+         * No incidentEpisodeId is passed: MailService.sendMail accepts the key
+         * in its options type but never serialises it onto the request body, so
+         * passing it would look like a link that does not exist.
+         */
+        MailService.sendMail(emailMessage, {
+          userOnCallLogTimelineId: updatedLog.id!,
+          projectId: options.projectId,
           userId: notificationRuleItem.userId!,
           onCallPolicyId: options.onCallPolicyId,
           onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
@@ -561,6 +779,7 @@ export class Service extends DatabaseService<Model> {
         alert
       ) {
         // create an error log.
+        deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
         logTimelineItem.statusMessage = `Sending SMS to ${notificationRuleItem.userSms?.phone.toString()}.`;
         logTimelineItem.userSmsId = notificationRuleItem.userSms.id!;
@@ -614,6 +833,7 @@ export class Service extends DatabaseService<Model> {
         incident
       ) {
         // create an error log.
+        deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
         logTimelineItem.statusMessage = `Sending SMS to ${notificationRuleItem.userSms?.phone.toString()}.`;
         logTimelineItem.userSmsId = notificationRuleItem.userSms.id!;
@@ -667,6 +887,7 @@ export class Service extends DatabaseService<Model> {
           UserNotificationEventType.AlertEpisodeCreated &&
         alertEpisode
       ) {
+        deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
         logTimelineItem.statusMessage = `Sending SMS to ${notificationRuleItem.userSms?.phone.toString()}.`;
         logTimelineItem.userSmsId = notificationRuleItem.userSms.id!;
@@ -691,6 +912,61 @@ export class Service extends DatabaseService<Model> {
           customTwilioConfig: projectTwilioConfig,
           userOnCallLogTimelineId: updatedLog.id!,
           alertEpisodeId: alertEpisode.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
+        }).catch(async (err: Error) => {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: updatedLog.id!,
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: err.message || "Error sending SMS.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        });
+      }
+
+      // send sms for incident episode
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.IncidentEpisodeCreated &&
+        incidentEpisode
+      ) {
+        deliveryAttempted = true;
+        logTimelineItem.status = UserNotificationStatus.Sending;
+        logTimelineItem.statusMessage = `Sending SMS to ${notificationRuleItem.userSms?.phone.toString()}.`;
+        logTimelineItem.userSmsId = notificationRuleItem.userSms.id!;
+
+        const updatedLog: UserOnCallLogTimeline =
+          await UserOnCallLogTimelineService.create({
+            data: logTimelineItem,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const smsMessage: SMS =
+          await this.generateSmsTemplateForIncidentEpisodeCreated(
+            notificationRuleItem.userSms.phone,
+            incidentEpisode,
+            updatedLog.id!,
+          );
+
+        /*
+         * SmsService accepts incidentEpisodeId but drops it on the floor when
+         * building the request body, so it is deliberately not passed here.
+         */
+        SmsService.sendSms(smsMessage, {
+          projectId: incidentEpisode.projectId,
+          customTwilioConfig: projectTwilioConfig,
+          userOnCallLogTimelineId: updatedLog.id!,
           userId: notificationRuleItem.userId!,
           onCallPolicyId: options.onCallPolicyId,
           onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
@@ -738,6 +1014,7 @@ export class Service extends DatabaseService<Model> {
           UserNotificationEventType.AlertCreated &&
         alert
       ) {
+        deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
         logTimelineItem.statusMessage = `Sending WhatsApp message to ${notificationRuleItem.userWhatsApp?.phone.toString()}.`;
         logTimelineItem.userWhatsAppId = notificationRuleItem.userWhatsApp.id!;
@@ -787,6 +1064,7 @@ export class Service extends DatabaseService<Model> {
           UserNotificationEventType.IncidentCreated &&
         incident
       ) {
+        deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
         logTimelineItem.statusMessage = `Sending WhatsApp message to ${notificationRuleItem.userWhatsApp?.phone.toString()}.`;
         logTimelineItem.userWhatsAppId = notificationRuleItem.userWhatsApp.id!;
@@ -837,6 +1115,7 @@ export class Service extends DatabaseService<Model> {
           UserNotificationEventType.AlertEpisodeCreated &&
         alertEpisode
       ) {
+        deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
         logTimelineItem.statusMessage = `Sending WhatsApp message to ${notificationRuleItem.userWhatsApp?.phone.toString()}.`;
         logTimelineItem.userWhatsAppId = notificationRuleItem.userWhatsApp.id!;
@@ -859,6 +1138,60 @@ export class Service extends DatabaseService<Model> {
         WhatsAppService.sendWhatsAppMessage(whatsAppMessage, {
           projectId: alertEpisode.projectId,
           alertEpisodeId: alertEpisode.id!,
+          userOnCallLogTimelineId: updatedLog.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
+        }).catch(async (err: Error) => {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: updatedLog.id!,
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: err.message || "Error sending WhatsApp message.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        });
+      }
+
+      // send WhatsApp for incident episode
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.IncidentEpisodeCreated &&
+        incidentEpisode
+      ) {
+        deliveryAttempted = true;
+        logTimelineItem.status = UserNotificationStatus.Sending;
+        logTimelineItem.statusMessage = `Sending WhatsApp message to ${notificationRuleItem.userWhatsApp?.phone.toString()}.`;
+        logTimelineItem.userWhatsAppId = notificationRuleItem.userWhatsApp.id!;
+
+        const updatedLog: UserOnCallLogTimeline =
+          await UserOnCallLogTimelineService.create({
+            data: logTimelineItem,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const whatsAppMessage: WhatsAppMessage =
+          await this.generateWhatsAppTemplateForIncidentEpisodeCreated(
+            notificationRuleItem.userWhatsApp.phone,
+            incidentEpisode,
+            updatedLog.id!,
+          );
+
+        /*
+         * WhatsAppService accepts incidentEpisodeId but never writes it onto
+         * the request body, so it is deliberately not passed here.
+         */
+        WhatsAppService.sendWhatsAppMessage(whatsAppMessage, {
+          projectId: incidentEpisode.projectId,
           userOnCallLogTimelineId: updatedLog.id!,
           userId: notificationRuleItem.userId!,
           onCallPolicyId: options.onCallPolicyId,
@@ -908,6 +1241,7 @@ export class Service extends DatabaseService<Model> {
           UserNotificationEventType.AlertCreated &&
         alert
       ) {
+        deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
         logTimelineItem.statusMessage = `Sending Telegram message.`;
         logTimelineItem.userTelegramId = notificationRuleItem.userTelegram.id!;
@@ -960,6 +1294,7 @@ export class Service extends DatabaseService<Model> {
           UserNotificationEventType.IncidentCreated &&
         incident
       ) {
+        deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
         logTimelineItem.statusMessage = `Sending Telegram message.`;
         logTimelineItem.userTelegramId = notificationRuleItem.userTelegram.id!;
@@ -1012,6 +1347,7 @@ export class Service extends DatabaseService<Model> {
           UserNotificationEventType.AlertEpisodeCreated &&
         alertEpisode
       ) {
+        deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
         logTimelineItem.statusMessage = `Sending Telegram message.`;
         logTimelineItem.userTelegramId = notificationRuleItem.userTelegram.id!;
@@ -1037,6 +1373,62 @@ export class Service extends DatabaseService<Model> {
         TelegramService.sendTelegramMessage(telegramMessage, {
           projectId: alertEpisode.projectId,
           alertEpisodeId: alertEpisode.id!,
+          userOnCallLogTimelineId: updatedLog.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
+        }).catch(async (err: Error) => {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: updatedLog.id!,
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: err.message || "Error sending Telegram message.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        });
+      }
+
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.IncidentEpisodeCreated &&
+        incidentEpisode
+      ) {
+        deliveryAttempted = true;
+        logTimelineItem.status = UserNotificationStatus.Sending;
+        logTimelineItem.statusMessage = `Sending Telegram message.`;
+        logTimelineItem.userTelegramId = notificationRuleItem.userTelegram.id!;
+
+        const updatedLog: UserOnCallLogTimeline =
+          await UserOnCallLogTimelineService.create({
+            data: logTimelineItem,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const telegramMessage: TelegramMessage = {
+          to: notificationRuleItem.userTelegram.telegramChatId,
+          body: await this.generateTelegramBodyForIncidentEpisodeCreated(
+            incidentEpisode,
+            updatedLog.id!,
+          ),
+          parseMode: "HTML",
+          disableWebPagePreview: true,
+        };
+
+        /*
+         * TelegramService accepts incidentEpisodeId but never writes it onto
+         * the request body, so it is deliberately not passed here.
+         */
+        TelegramService.sendTelegramMessage(telegramMessage, {
+          projectId: incidentEpisode.projectId,
           userOnCallLogTimelineId: updatedLog.id!,
           userId: notificationRuleItem.userId!,
           onCallPolicyId: options.onCallPolicyId,
@@ -1094,6 +1486,7 @@ export class Service extends DatabaseService<Model> {
         entityId?: ObjectID;
         entityKind: "alert" | "incident" | "alertEpisode" | "incidentEpisode";
       }): Promise<void> => {
+        deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
         logTimelineItem.statusMessage = `Sending webhook to ${webhookUrl}.`;
         logTimelineItem.userWebhookId = userWebhookId;
@@ -1284,6 +1677,7 @@ export class Service extends DatabaseService<Model> {
         alert
       ) {
         // create an error log.
+        deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
         logTimelineItem.statusMessage = `Making a call to ${notificationRuleItem.userCall?.phone.toString()}.`;
         logTimelineItem.userCallId = notificationRuleItem.userCall.id!;
@@ -1337,6 +1731,7 @@ export class Service extends DatabaseService<Model> {
         incident
       ) {
         // send call for incident
+        deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
         logTimelineItem.statusMessage = `Making a call to ${notificationRuleItem.userCall?.phone.toString()}.`;
         logTimelineItem.userCallId = notificationRuleItem.userCall.id!;
@@ -1390,6 +1785,7 @@ export class Service extends DatabaseService<Model> {
           UserNotificationEventType.AlertEpisodeCreated &&
         alertEpisode
       ) {
+        deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
         logTimelineItem.statusMessage = `Making a call to ${notificationRuleItem.userCall?.phone.toString()}.`;
         logTimelineItem.userCallId = notificationRuleItem.userCall.id!;
@@ -1414,6 +1810,61 @@ export class Service extends DatabaseService<Model> {
           customTwilioConfig: projectTwilioConfig,
           userOnCallLogTimelineId: updatedLog.id!,
           alertEpisodeId: alertEpisode.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
+        }).catch(async (err: Error) => {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: updatedLog.id!,
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: err.message || "Error making call.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        });
+      }
+
+      // send call for incident episode
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.IncidentEpisodeCreated &&
+        incidentEpisode
+      ) {
+        deliveryAttempted = true;
+        logTimelineItem.status = UserNotificationStatus.Sending;
+        logTimelineItem.statusMessage = `Making a call to ${notificationRuleItem.userCall?.phone.toString()}.`;
+        logTimelineItem.userCallId = notificationRuleItem.userCall.id!;
+
+        const updatedLog: UserOnCallLogTimeline =
+          await UserOnCallLogTimelineService.create({
+            data: logTimelineItem,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const callRequest: CallRequest =
+          await this.generateCallTemplateForIncidentEpisodeCreated(
+            notificationRuleItem.userCall?.phone,
+            incidentEpisode,
+            updatedLog.id!,
+          );
+
+        /*
+         * CallService accepts incidentEpisodeId but never writes it onto the
+         * request body, so it is deliberately not passed here.
+         */
+        CallService.makeCall(callRequest, {
+          projectId: incidentEpisode.projectId,
+          customTwilioConfig: projectTwilioConfig,
+          userOnCallLogTimelineId: updatedLog.id!,
           userId: notificationRuleItem.userId!,
           onCallPolicyId: options.onCallPolicyId,
           onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
@@ -1464,6 +1915,7 @@ export class Service extends DatabaseService<Model> {
         alert
       ) {
         // create a log.
+        deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
         logTimelineItem.statusMessage = `Sending push notification to device.`;
         logTimelineItem.userPushId = notificationRuleItem.userPush.id!;
@@ -1544,6 +1996,7 @@ export class Service extends DatabaseService<Model> {
         incident
       ) {
         // create a log.
+        deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
         logTimelineItem.statusMessage = `Sending push notification to device.`;
         logTimelineItem.userPushId = notificationRuleItem.userPush.id!;
@@ -1623,6 +2076,7 @@ export class Service extends DatabaseService<Model> {
           UserNotificationEventType.AlertEpisodeCreated &&
         alertEpisode
       ) {
+        deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
         logTimelineItem.statusMessage = `Sending push notification to device.`;
         logTimelineItem.userPushId = notificationRuleItem.userPush.id!;
@@ -1701,6 +2155,7 @@ export class Service extends DatabaseService<Model> {
           UserNotificationEventType.IncidentEpisodeCreated &&
         incidentEpisode
       ) {
+        deliveryAttempted = true;
         logTimelineItem.status = UserNotificationStatus.Sending;
         logTimelineItem.statusMessage = `Sending push notification to device.`;
         logTimelineItem.userPushId = notificationRuleItem.userPush.id!;
@@ -1788,6 +2243,484 @@ export class Service extends DatabaseService<Model> {
         },
       });
     }
+
+    /*
+     * The fell-through guard.
+     *
+     * Gap F was a whole class of lost pages: a contactable channel, an event
+     * type that no block in that channel branched on, and therefore neither a
+     * send nor an error row — the responder was simply never told, and nothing
+     * anywhere recorded that. Rather than trust that every future event type
+     * gets wired into all seven blocks, make the omission loud.
+     *
+     * The row is built fresh instead of reusing logTimelineItem: that instance
+     * picks up an _id as soon as any block has created a row with it, and a
+     * second create() with it would UPDATE that row rather than insert this one.
+     */
+    if (contactableChannels.length > 0 && !deliveryAttempted) {
+      const statusMessage: string = `No notification template for ${options.userNotificationEventType} on ${contactableChannels.join(", ")}.`;
+
+      const fellThroughRow: UserOnCallLogTimeline = this.buildLogTimelineItem(
+        notificationRuleItem,
+        options,
+      );
+      fellThroughRow.status = UserNotificationStatus.Error;
+      fellThroughRow.statusMessage = statusMessage;
+
+      await UserOnCallLogTimelineService.create({
+        data: fellThroughRow,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      logger.error(
+        `${statusMessage} User on-call log: ${options.userNotificationLogId.toString()}`,
+      );
+    }
+
+    return deliveryAttempted;
+  }
+
+  /*
+   * The channels this rule could actually reach the user on, by display name.
+   *
+   * These are the same gates each channel block opens with, so an empty list
+   * means "this rule can contact nobody" — a rule whose method was
+   * cascade-deleted, say — and a non-empty one means a page was expected to go
+   * out. Webhooks have no verification concept at all (UserWebhook has no
+   * isVerified column), so presence of a URL is the whole gate there.
+   */
+  private getContactableChannelNames(
+    notificationRuleItem: Model,
+  ): Array<string> {
+    const channels: Array<string> = [];
+
+    if (
+      notificationRuleItem.userEmail?.email &&
+      notificationRuleItem.userEmail?.isVerified
+    ) {
+      channels.push("Email");
+    }
+
+    if (
+      notificationRuleItem.userSms?.phone &&
+      notificationRuleItem.userSms?.isVerified
+    ) {
+      channels.push("SMS");
+    }
+
+    if (
+      notificationRuleItem.userWhatsApp?.phone &&
+      notificationRuleItem.userWhatsApp?.isVerified
+    ) {
+      channels.push("WhatsApp");
+    }
+
+    if (
+      notificationRuleItem.userTelegram?.telegramChatId &&
+      notificationRuleItem.userTelegram?.isVerified
+    ) {
+      channels.push("Telegram");
+    }
+
+    if (notificationRuleItem.userWebhook?.webhookUrl) {
+      channels.push("Webhook");
+    }
+
+    if (
+      notificationRuleItem.userCall?.phone &&
+      notificationRuleItem.userCall?.isVerified
+    ) {
+      channels.push("Call");
+    }
+
+    if (
+      notificationRuleItem.userPush?.deviceToken &&
+      notificationRuleItem.userPush?.isVerified
+    ) {
+      channels.push("Push");
+    }
+
+    return channels;
+  }
+
+  /*
+   * Page a responder who has NO notification rule matching what just fired.
+   *
+   * Zero matching rules is indistinguishable from "never configured" unless the
+   * user said otherwise, so the caller (UserOnCallLogService.onCreateSuccess)
+   * checks for an explicit opt-out row first and only reaches here when the
+   * silence looks accidental. Reaching a human on whatever they have verified
+   * beats honouring a configuration they never made.
+   *
+   * Nothing here observes delivery success: every send below is fire-and-forget
+   * (see deliverNotificationForRule), so `notified` means "a page was handed to
+   * the sender", not "a phone rang".
+   *
+   * The three ways this can end are spelled out in FallbackNotificationOutcome,
+   * and the caller must branch on them rather than on `notified` alone: only
+   * NoUsableNotificationMethod describes a responder who cannot be reached, and
+   * only that one is safe to record as a terminal status.
+   */
+  @CaptureSpan()
+  public async executeFallbackNotification(
+    options: ExecuteFallbackNotificationOptions,
+  ): Promise<FallbackNotificationResult> {
+    /*
+     * Claim the log under the reserved fallback key before doing anything, so
+     * two overlapping cron ticks cannot both fall back and double-page the same
+     * responder for one escalation.
+     */
+    const claimed: boolean =
+      await UserOnCallLogService.claimNotificationExecution({
+        userOnCallLogId: options.userOnCallLogId,
+        claimKey: FALLBACK_NOTIFICATION_CLAIM_KEY,
+      });
+
+    if (!claimed) {
+      /*
+       * A concurrent run already fell back for this log; it owns everything
+       * that happens next, including the log's final status. Reported as the
+       * transient outcome rather than as "no usable method", because the
+       * caller's response to the latter is a terminal Error — which would
+       * stamp "this responder is unreachable" over a page that is in flight.
+       */
+      return {
+        outcome: FallbackNotificationOutcome.DeliveryFailed,
+        notified: false,
+        channelsUsed: [],
+      };
+    }
+
+    const fallbackRules: Array<{ channelName: string; rule: Model }> =
+      await this.chooseFallbackChannels(options);
+
+    if (fallbackRules.length === 0) {
+      logger.warn(
+        `On-call fallback found no usable notification method for user ${options.userId.toString()} in project ${options.projectId.toString()} (${options.severityName} ${options.ruleType}). The page cannot be delivered.`,
+      );
+
+      return {
+        outcome: FallbackNotificationOutcome.NoUsableNotificationMethod,
+        notified: false,
+        channelsUsed: [],
+      };
+    }
+
+    const channelsUsed: Array<string> = [];
+    let anAttemptFailed: boolean = false;
+
+    /*
+     * One delivery call per channel, never a loop inside one call: the timeline
+     * row is a single mutable object inside deliverNotificationForRule, and a
+     * second create() with it would UPDATE the row the first channel wrote
+     * instead of inserting a second one — the second page would vanish from the
+     * timeline and, worse, overwrite the first one's status.
+     */
+    for (const fallbackRule of fallbackRules) {
+      try {
+        const dispatched: boolean = await this.deliverNotificationForRule(
+          fallbackRule.rule,
+          options,
+        );
+
+        /*
+         * Only a genuine dispatch earns a place in channelsUsed. The channel
+         * names in here are read back to the operator as "notified via fallback
+         * (Push, Email)", so a name added merely because the call resolved is a
+         * lie in the one place somebody looks to find out whether the responder
+         * was reached — and deliverNotificationForRule resolves perfectly
+         * happily when no block claimed the event type.
+         */
+        if (dispatched) {
+          channelsUsed.push(fallbackRule.channelName);
+        } else {
+          anAttemptFailed = true;
+
+          logger.error(
+            `On-call fallback dispatched nothing on ${fallbackRule.channelName} for user ${options.userId.toString()}: no notification template matched ${options.userNotificationEventType}.`,
+          );
+        }
+      } catch (err) {
+        anAttemptFailed = true;
+
+        logger.error(
+          `On-call fallback failed to deliver on ${fallbackRule.channelName} for user ${options.userId.toString()}.`,
+        );
+        logger.error(err);
+      }
+    }
+
+    if (channelsUsed.length > 0) {
+      return {
+        outcome: FallbackNotificationOutcome.Delivered,
+        notified: true,
+        channelsUsed: channelsUsed,
+      };
+    }
+
+    /*
+     * There were channels to try and not one of them carried a page. That is
+     * emphatically not the "responder has no notification method" case —
+     * chooseFallbackChannels returns only verified, project-enabled methods, so
+     * the responder is reachable and today simply failed to be reached.
+     *
+     * anAttemptFailed is necessarily true on this line, since every path
+     * through the loop that does not push a channel sets it. It is read rather
+     * than assumed so that a future channel that can finish without either
+     * dispatching or failing degrades into the transient outcome instead of
+     * silently telling the operator the responder has nothing configured.
+     */
+    return {
+      outcome: anAttemptFailed
+        ? FallbackNotificationOutcome.DeliveryFailed
+        : FallbackNotificationOutcome.NoUsableNotificationMethod,
+      notified: false,
+      channelsUsed: [],
+    };
+  }
+
+  /*
+   * Pick what to page the user on, and build an unsaved rule for each choice.
+   *
+   * Zero-cost channels win: push and email reach the most people for no money
+   * and no billing surprise, and there is no reason to pick between them, so a
+   * user who has both gets both. Only a user with neither is worth spending on,
+   * and then just once, in escalating-intrusiveness order.
+   *
+   * Paid channels are additionally gated on the project's own enable flags.
+   * SmsService and CallService enforce those at send time, but WhatsApp and
+   * Telegram only check them when a method is created — so a project that
+   * switched WhatsApp off would still be billed by a fallback that did not look.
+   */
+  private async chooseFallbackChannels(
+    options: ExecuteFallbackNotificationOptions,
+  ): Promise<Array<{ channelName: string; rule: Model }>> {
+    const chosen: Array<{ channelName: string; rule: Model }> = [];
+
+    const userPush: UserPush | null = await UserPushService.findOneBy({
+      query: {
+        projectId: options.projectId,
+        userId: options.userId,
+        isVerified: true,
+      },
+      select: {
+        _id: true,
+        deviceToken: true,
+        deviceType: true,
+        isVerified: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (userPush) {
+      const rule: Model = this.buildUnsavedFallbackRule(options);
+      rule.userPush = userPush;
+      rule.userPushId = userPush.id!;
+      chosen.push({ channelName: "Push", rule: rule });
+    }
+
+    const userEmail: UserEmail | null = await UserEmailService.findOneBy({
+      query: {
+        projectId: options.projectId,
+        userId: options.userId,
+        isVerified: true,
+      },
+      select: {
+        _id: true,
+        email: true,
+        isVerified: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (userEmail) {
+      const rule: Model = this.buildUnsavedFallbackRule(options);
+      rule.userEmail = userEmail;
+      rule.userEmailId = userEmail.id!;
+      chosen.push({ channelName: "Email", rule: rule });
+    }
+
+    if (chosen.length > 0) {
+      return chosen;
+    }
+
+    const project: Project | null = await ProjectService.findOneById({
+      id: options.projectId,
+      select: {
+        enableSmsNotifications: true,
+        enableCallNotifications: true,
+        enableWhatsAppNotifications: true,
+        enableTelegramNotifications: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (project?.enableSmsNotifications) {
+      const userSms: UserSMS | null = await UserSmsService.findOneBy({
+        query: {
+          projectId: options.projectId,
+          userId: options.userId,
+          isVerified: true,
+        },
+        select: {
+          _id: true,
+          phone: true,
+          isVerified: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (userSms) {
+        const rule: Model = this.buildUnsavedFallbackRule(options);
+        rule.userSms = userSms;
+        rule.userSmsId = userSms.id!;
+
+        return [{ channelName: "SMS", rule: rule }];
+      }
+    }
+
+    if (project?.enableCallNotifications) {
+      const userCall: UserCall | null = await UserCallService.findOneBy({
+        query: {
+          projectId: options.projectId,
+          userId: options.userId,
+          isVerified: true,
+        },
+        select: {
+          _id: true,
+          phone: true,
+          isVerified: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (userCall) {
+        const rule: Model = this.buildUnsavedFallbackRule(options);
+        rule.userCall = userCall;
+        rule.userCallId = userCall.id!;
+
+        return [{ channelName: "Call", rule: rule }];
+      }
+    }
+
+    if (project?.enableWhatsAppNotifications) {
+      const userWhatsApp: UserWhatsApp | null =
+        await UserWhatsAppService.findOneBy({
+          query: {
+            projectId: options.projectId,
+            userId: options.userId,
+            isVerified: true,
+          },
+          select: {
+            _id: true,
+            phone: true,
+            isVerified: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (userWhatsApp) {
+        const rule: Model = this.buildUnsavedFallbackRule(options);
+        rule.userWhatsApp = userWhatsApp;
+        rule.userWhatsAppId = userWhatsApp.id!;
+
+        return [{ channelName: "WhatsApp", rule: rule }];
+      }
+    }
+
+    if (project?.enableTelegramNotifications) {
+      const userTelegram: UserTelegram | null =
+        await UserTelegramService.findOneBy({
+          query: {
+            projectId: options.projectId,
+            userId: options.userId,
+            isVerified: true,
+          },
+          select: {
+            _id: true,
+            telegramChatId: true,
+            telegramUserHandle: true,
+            isVerified: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (userTelegram) {
+        const rule: Model = this.buildUnsavedFallbackRule(options);
+        rule.userTelegram = userTelegram;
+        rule.userTelegramId = userTelegram.id!;
+
+        return [{ channelName: "Telegram", rule: rule }];
+      }
+    }
+
+    /*
+     * A webhook costs the project nothing and has no verification concept at
+     * all (UserWebhook has no isVerified column), so its presence is the whole
+     * test, and there is no project flag to consult.
+     */
+    const userWebhook: UserWebhook | null = await UserWebhookService.findOneBy({
+      query: {
+        projectId: options.projectId,
+        userId: options.userId,
+      },
+      select: {
+        _id: true,
+        webhookUrl: true,
+        name: true,
+        secret: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (userWebhook) {
+      const rule: Model = this.buildUnsavedFallbackRule(options);
+      rule.userWebhook = userWebhook;
+      rule.userWebhookId = userWebhook.id!;
+
+      return [{ channelName: "Webhook", rule: rule }];
+    }
+
+    return chosen;
+  }
+
+  /*
+   * A UserNotificationRule that exists only for the length of one delivery.
+   *
+   * It is never saved: the user did not ask for this rule, and persisting it
+   * would silently rewrite their configuration behind their back. The method
+   * relation is populated as a loaded entity rather than just its FK because
+   * deliverNotificationForRule reads the relation (userEmail.email,
+   * userEmail.isVerified) and never dereferences the id.
+   */
+  private buildUnsavedFallbackRule(
+    options: ExecuteFallbackNotificationOptions,
+  ): Model {
+    const rule: Model = new Model();
+    rule.projectId = options.projectId;
+    rule.userId = options.userId;
+    rule.ruleType = options.ruleType;
+    rule.notifyAfterMinutes = 0;
+
+    return rule;
   }
 
   @CaptureSpan()
@@ -1960,6 +2893,64 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  public async generateCallTemplateForIncidentEpisodeCreated(
+    to: Phone,
+    incidentEpisode: IncidentEpisode,
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<CallRequest> {
+    const host: Hostname = await DatabaseConfig.getHost();
+
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    const episodeIdentifier: string = incidentEpisode.episodeNumberWithPrefix
+      ? `Incident episode ${incidentEpisode.episodeNumberWithPrefix}, ${incidentEpisode.title || "Incident Episode"}`
+      : incidentEpisode.episodeNumber !== undefined
+        ? `Incident episode number ${incidentEpisode.episodeNumber}, ${incidentEpisode.title || "Incident Episode"}`
+        : incidentEpisode.title || "Incident Episode";
+
+    const callRequest: CallRequest = {
+      to: to,
+      data: [
+        {
+          sayMessage: "This is a call from One Uptime",
+        },
+        {
+          sayMessage: "A new incident episode has been created",
+        },
+        {
+          sayMessage: episodeIdentifier,
+        },
+        {
+          introMessage: "To acknowledge this incident episode press 1",
+          numDigits: 1,
+          timeoutInSeconds: 10,
+          noInputMessage: "You have not entered any input. Good bye",
+          onInputCallRequest: {
+            "1": {
+              sayMessage:
+                "You have acknowledged this incident episode. Good bye",
+            },
+            default: {
+              sayMessage: "Invalid input. Good bye",
+            },
+          },
+          responseUrl: new URL(
+            httpProtocol,
+            host,
+            new Route(AppApiRoute.toString())
+              .addRoute(new UserOnCallLogTimeline().crudApiPath!)
+              .addRoute(
+                "/call/gather-input/" + userOnCallLogTimelineId.toString(),
+              ),
+          ),
+        },
+      ],
+    };
+
+    return callRequest;
+  }
+
+  @CaptureSpan()
   public async generateSmsTemplateForAlertCreated(
     to: Phone,
     alert: Alert,
@@ -2054,6 +3045,30 @@ export class Service extends DatabaseService<Model> {
     const sms: SMS = {
       to,
       message: `This is a message from OneUptime. A new alert episode has been created: ${episodeIdentifier}. To acknowledge this alert episode, please click on the following link ${url.toString()}`,
+    };
+
+    return sms;
+  }
+
+  @CaptureSpan()
+  public async generateSmsTemplateForIncidentEpisodeCreated(
+    to: Phone,
+    incidentEpisode: IncidentEpisode,
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<SMS> {
+    const url: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const episodeIdentifier: string = incidentEpisode.episodeNumberWithPrefix
+      ? `${incidentEpisode.episodeNumberWithPrefix} (${incidentEpisode.title || "Incident Episode"})`
+      : incidentEpisode.episodeNumber !== undefined
+        ? `#${incidentEpisode.episodeNumber} (${incidentEpisode.title || "Incident Episode"})`
+        : incidentEpisode.title || "Incident Episode";
+
+    const sms: SMS = {
+      to,
+      message: `This is a message from OneUptime. A new incident episode has been created: ${episodeIdentifier}. To acknowledge this incident episode, please click on the following link ${url.toString()}`,
     };
 
     return sms;
@@ -2203,6 +3218,49 @@ export class Service extends DatabaseService<Model> {
       lines.push(
         "",
         `🔎 <a href="${this.escapeTelegramHtml(dashboardUrl.toString())}">View alert episode in OneUptime</a>`,
+      );
+    }
+
+    lines.push(
+      "",
+      `✅ <a href="${this.escapeTelegramHtml(ackUrl.toString())}">Tap to acknowledge</a>`,
+    );
+
+    return lines.join("\n");
+  }
+
+  @CaptureSpan()
+  public async generateTelegramBodyForIncidentEpisodeCreated(
+    incidentEpisode: IncidentEpisode,
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<string> {
+    const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const episodeIdentifier: string = incidentEpisode.episodeNumberWithPrefix
+      ? `${incidentEpisode.episodeNumberWithPrefix} — ${incidentEpisode.title || "Incident Episode"}`
+      : incidentEpisode.episodeNumber !== undefined
+        ? `#${incidentEpisode.episodeNumber} — ${incidentEpisode.title || "Incident Episode"}`
+        : incidentEpisode.title || "Incident Episode";
+
+    const lines: Array<string> = [
+      "🔥 <b>New incident episode assigned to you</b>",
+      "",
+      `📋 <b>${this.escapeTelegramHtml(episodeIdentifier)}</b>`,
+      "",
+      "👤 You're getting this because you're on call.",
+    ];
+
+    if (incidentEpisode.projectId && incidentEpisode.id) {
+      const dashboardUrl: URL =
+        await IncidentEpisodeService.getEpisodeLinkInDashboard(
+          incidentEpisode.projectId,
+          incidentEpisode.id,
+        );
+      lines.push(
+        "",
+        `🔎 <a href="${this.escapeTelegramHtml(dashboardUrl.toString())}">View incident episode in OneUptime</a>`,
       );
     }
 
@@ -2373,6 +3431,51 @@ export class Service extends DatabaseService<Model> {
         alertEpisode.episodeNumberWithPrefix ||
         (alertEpisode.episodeNumber !== undefined
           ? alertEpisode.episodeNumber.toString()
+          : ""),
+      episode_link: episodeLinkOnDashboard,
+    };
+
+    const body: string = renderWhatsAppTemplate(templateKey, templateVariables);
+
+    return {
+      to,
+      body,
+      templateKey,
+      templateVariables,
+      templateLanguageCode: WhatsAppTemplateLanguage[templateKey],
+    };
+  }
+
+  @CaptureSpan()
+  public async generateWhatsAppTemplateForIncidentEpisodeCreated(
+    to: Phone,
+    incidentEpisode: IncidentEpisode,
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<WhatsAppMessage> {
+    const acknowledgeUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const episodeLinkOnDashboard: string =
+      incidentEpisode.projectId && incidentEpisode.id
+        ? (
+            await IncidentEpisodeService.getEpisodeLinkInDashboard(
+              incidentEpisode.projectId,
+              incidentEpisode.id,
+            )
+          ).toString()
+        : acknowledgeUrl.toString();
+
+    const templateKey: WhatsAppTemplateId =
+      WhatsAppTemplateIds.IncidentEpisodeCreated;
+    const templateVariables: Record<string, string> = {
+      project_name: incidentEpisode.project?.name || "OneUptime",
+      episode_title: incidentEpisode.title || "",
+      acknowledge_url: acknowledgeUrl.toString(),
+      episode_number:
+        incidentEpisode.episodeNumberWithPrefix ||
+        (incidentEpisode.episodeNumber !== undefined
+          ? incidentEpisode.episodeNumber.toString()
           : ""),
       episode_link: episodeLinkOnDashboard,
     };
@@ -2648,6 +3751,186 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  public async generateEmailTemplateForIncidentEpisodeCreated(
+    to: Email,
+    incidentEpisode: IncidentEpisode,
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<EmailMessage> {
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    // Fetch incidents that are members of this episode
+    const episodeMembers: Array<IncidentEpisodeMember> =
+      await IncidentEpisodeMemberService.findBy({
+        query: {
+          incidentEpisodeId: incidentEpisode.id!,
+        },
+        select: {
+          incidentId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
+
+    // Get the incident IDs
+    const incidentIds: Array<ObjectID> = episodeMembers
+      .map((member: IncidentEpisodeMember) => {
+        return member.incidentId;
+      })
+      .filter((id: ObjectID | undefined): id is ObjectID => {
+        return id !== undefined;
+      });
+
+    // Fetch full incident data with monitors
+    const incidents: Array<Incident> =
+      incidentIds.length > 0
+        ? await IncidentService.findBy({
+            query: {
+              _id: QueryHelper.any(incidentIds),
+            },
+            select: {
+              _id: true,
+              title: true,
+              incidentNumber: true,
+              incidentNumberWithPrefix: true,
+              monitors: {
+                _id: true,
+                name: true,
+              },
+            },
+            props: {
+              isRoot: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+          })
+        : [];
+
+    /*
+     * Unique monitors across every incident in the episode. An incident carries
+     * a list of monitors (unlike an alert, which has exactly one), so this
+     * flattens rather than reading a single relation.
+     */
+    const monitorNames: Set<string> = new Set();
+    for (const incident of incidents) {
+      for (const monitor of incident.monitors || []) {
+        if (monitor.name) {
+          monitorNames.add(monitor.name);
+        }
+      }
+    }
+
+    const resourcesAffected: string =
+      monitorNames.size > 0
+        ? Array.from(monitorNames).join(", ")
+        : "No resources identified";
+
+    // Build incidents list HTML with proper email styling
+    let incidentsListHtml: string = "";
+    if (incidents.length > 0) {
+      const incidentRows: string[] = [];
+      for (const incident of incidents) {
+        const incidentTitle: string = incident.title || "Untitled Incident";
+        const incidentNumber: string =
+          incident.incidentNumberWithPrefix ||
+          (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
+        const incidentLink: string = (
+          await IncidentService.getIncidentLinkInDashboard(
+            incidentEpisode.projectId!,
+            incident.id!,
+          )
+        ).toString();
+        const monitorName: string =
+          (incident.monitors || [])
+            .map((monitor: Monitor): string => {
+              return monitor.name || "";
+            })
+            .filter((name: string): boolean => {
+              return name.length > 0;
+            })
+            .join(", ") || "";
+
+        incidentRows.push(`
+            <tr>
+              <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">
+                <table cellpadding="0" cellspacing="0" width="100%">
+                  <tr>
+                    <td style="vertical-align: middle;">
+                      <span style="display: inline-block; background-color: #fee2e2; color: #991b1b; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">${incidentNumber}</span>
+                      <a href="${incidentLink}" style="color: #2563eb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; font-weight: 500; text-decoration: none;">${incidentTitle}</a>
+                      ${monitorName ? `<span style="display: block; color: #64748b; font-size: 12px; margin-top: 4px;">Monitor: ${monitorName}</span>` : ""}
+                    </td>
+                    <td style="text-align: right; vertical-align: middle;">
+                      <a href="${incidentLink}" style="color: #2563eb; font-size: 12px; text-decoration: none;">View →</a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          `);
+      }
+      if (incidentRows.length > 0) {
+        incidentsListHtml = `
+          <table cellpadding="0" cellspacing="0" width="100%" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 8px; border: 1px solid #e2e8f0; margin: 8px 0 16px 0;">
+            <tbody>
+              ${incidentRows.join("")}
+            </tbody>
+          </table>
+        `;
+      }
+    }
+
+    const episodeNumber: string =
+      incidentEpisode.episodeNumberWithPrefix ||
+      (incidentEpisode.episodeNumber
+        ? `#${incidentEpisode.episodeNumber}`
+        : "");
+
+    const vars: Dictionary<string> = {
+      incidentEpisodeTitle: incidentEpisode.title!,
+      episodeNumber: episodeNumber,
+      projectName: incidentEpisode.project!.name!,
+      currentState: incidentEpisode.currentIncidentState!.name!,
+      incidentEpisodeDescription: await Markdown.convertToHTML(
+        incidentEpisode.description! || "",
+        MarkdownContentType.Email,
+      ),
+      incidentEpisodeSeverity: incidentEpisode.incidentSeverity!.name!,
+      resourcesAffected: resourcesAffected,
+      rootCause:
+        incidentEpisode.rootCause ||
+        "No root cause identified for this incident episode",
+      incidentsList: incidentsListHtml,
+      incidentsCount: incidents.length.toString(),
+      incidentEpisodeViewLink: (
+        await IncidentEpisodeService.getEpisodeLinkInDashboard(
+          incidentEpisode.projectId!,
+          incidentEpisode.id!,
+        )
+      ).toString(),
+      acknowledgeIncidentEpisodeLink: new URL(
+        httpProtocol,
+        host,
+        new Route(AppApiRoute.toString())
+          .addRoute(new UserOnCallLogTimeline().crudApiPath!)
+          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
+      ).toString(),
+    };
+
+    const emailMessage: EmailMessage = {
+      toEmail: to!,
+      templateType: EmailTemplateType.AcknowledgeIncidentEpisode,
+      vars: vars,
+      subject: `ACTION REQUIRED: Incident Episode ${episodeNumber} created - ${incidentEpisode.title!}`,
+    };
+
+    return emailMessage;
+  }
+
+  @CaptureSpan()
   public async startUserNotificationRulesExecution(
     userId: ObjectID,
     options: {
@@ -2814,22 +4097,45 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    if (
-      !createBy.data.userCallId &&
-      !createBy.data.userCall &&
-      !createBy.data.userEmail &&
-      !createBy.data.userSms &&
-      !createBy.data.userSmsId &&
-      !createBy.data.userWhatsApp &&
-      !createBy.data.userWhatsAppId &&
-      !createBy.data.userTelegram &&
-      !createBy.data.userTelegramId &&
-      !createBy.data.userWebhook &&
-      !createBy.data.userWebhookId &&
-      !createBy.data.userEmailId &&
-      !createBy.data.userPushId &&
-      !createBy.data.userPush
-    ) {
+    const hasNotificationMethod: boolean = Boolean(
+      createBy.data.userCallId ||
+        createBy.data.userCall ||
+        createBy.data.userEmail ||
+        createBy.data.userSms ||
+        createBy.data.userSmsId ||
+        createBy.data.userWhatsApp ||
+        createBy.data.userWhatsAppId ||
+        createBy.data.userTelegram ||
+        createBy.data.userTelegramId ||
+        createBy.data.userWebhook ||
+        createBy.data.userWebhookId ||
+        createBy.data.userEmailId ||
+        createBy.data.userPushId ||
+        createBy.data.userPush,
+    );
+
+    /*
+     * An opt-out row is how a user says "deliberately do not page me for this
+     * rule type at this severity". It carries the rule type and the severity and
+     * nothing else — a method on it would be self-contradictory (reach me here;
+     * also never reach me), and its whole purpose is to make silence explicit so
+     * that every OTHER zero-rule case can be treated as misconfiguration and
+     * rescued by the fallback.
+     */
+    if (createBy.data.isOptOut) {
+      if (hasNotificationMethod) {
+        throw new BadDataException(
+          "An opt-out notification rule cannot have a notification method. Remove the notification method, or turn off opt-out.",
+        );
+      }
+
+      return {
+        createBy,
+        carryForward: null,
+      };
+    }
+
+    if (!hasNotificationMethod) {
       throw new BadDataException(
         "Call, SMS, WhatsApp, Telegram, Webhook, Email, or Push notification is required",
       );
@@ -2849,20 +4155,65 @@ export class Service extends DatabaseService<Model> {
   }): Promise<void> {
     const { projectId, userId, notificationMethod } = data;
 
-    await this.createIncidentOnCallRules(projectId, userId, notificationMethod);
-    await this.createAlertOnCallRules(projectId, userId, notificationMethod);
-    await this.createSingleRule(
+    /*
+     * Read each severity list once and reuse it for both rule types it drives.
+     * Incident severities scope both ON_CALL_EXECUTED_INCIDENT and
+     * ON_CALL_EXECUTED_INCIDENT_EPISODE; alert severities do the same for their
+     * two.
+     */
+    const incidentSeverityIds: Array<ObjectID> =
+      await this.getIncidentSeverityIds(projectId);
+    const alertSeverityIds: Array<ObjectID> =
+      await this.getAlertSeverityIds(projectId);
+
+    await this.createSeverityScopedRules({
       projectId,
       userId,
       notificationMethod,
-      NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE,
-    );
-    await this.createSingleRule(
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      severityIds: incidentSeverityIds,
+      severityColumn: "incidentSeverityId",
+    });
+
+    await this.createSeverityScopedRules({
       projectId,
       userId,
       notificationMethod,
-      NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
-    );
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+      severityIds: alertSeverityIds,
+      severityColumn: "alertSeverityId",
+    });
+
+    /*
+     * The two episode rule types are severity-scoped as well, and used not to
+     * be. UserOnCallLogService counts episode rules filtered by a concrete
+     * severity id, and the episode rule pages in User Settings scope their
+     * tables the same way — so a NULL-severity episode rule matched no page and
+     * appeared in no table. Users got "defaults" that were unreachable and
+     * invisible at the same time.
+     */
+    await this.createSeverityScopedRules({
+      projectId,
+      userId,
+      notificationMethod,
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE,
+      severityIds: alertSeverityIds,
+      severityColumn: "alertSeverityId",
+    });
+
+    await this.createSeverityScopedRules({
+      projectId,
+      userId,
+      notificationMethod,
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
+      severityIds: incidentSeverityIds,
+      severityColumn: "incidentSeverityId",
+    });
+
+    /*
+     * These two are about the user's shift, not about anything that fired, so
+     * they legitimately have no severity and stay single rules.
+     */
     await this.createSingleRule(
       projectId,
       userId,
@@ -2932,11 +4283,9 @@ export class Service extends DatabaseService<Model> {
     return query;
   }
 
-  private async createIncidentOnCallRules(
+  private async getIncidentSeverityIds(
     projectId: ObjectID,
-    userId: ObjectID,
-    notificationMethod: NotificationMethodDescriptor,
-  ): Promise<void> {
+  ): Promise<Array<ObjectID>> {
     const incidentSeverities: Array<IncidentSeverity> =
       await IncidentSeverityService.findBy({
         query: {
@@ -2952,46 +4301,14 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-    for (const incidentSeverity of incidentSeverities) {
-      const existingRule: Model | null = await this.findOneBy({
-        query: {
-          projectId,
-          userId,
-          ...this.getNotificationMethodQuery(notificationMethod),
-          incidentSeverityId: incidentSeverity.id!,
-          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
-        } as any,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (existingRule) {
-        continue;
-      }
-
-      const rule: Model = new Model();
-      rule.projectId = projectId;
-      rule.userId = userId;
-      this.applyNotificationMethod(rule, notificationMethod);
-      rule.incidentSeverityId = incidentSeverity.id!;
-      rule.notifyAfterMinutes = 0;
-      rule.ruleType = NotificationRuleType.ON_CALL_EXECUTED_INCIDENT;
-
-      await this.create({
-        data: rule,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
+    return incidentSeverities.map((severity: IncidentSeverity): ObjectID => {
+      return severity.id!;
+    });
   }
 
-  private async createAlertOnCallRules(
+  private async getAlertSeverityIds(
     projectId: ObjectID,
-    userId: ObjectID,
-    notificationMethod: NotificationMethodDescriptor,
-  ): Promise<void> {
+  ): Promise<Array<ObjectID>> {
     const alertSeverities: Array<AlertSeverity> =
       await AlertSeverityService.findBy({
         query: {
@@ -3007,14 +4324,33 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-    for (const alertSeverity of alertSeverities) {
+    return alertSeverities.map((severity: AlertSeverity): ObjectID => {
+      return severity.id!;
+    });
+  }
+
+  /*
+   * Seed one rule per severity for a severity-scoped rule type, skipping any
+   * (method, severity, ruleType) triple the user already has. The duplicate
+   * check is keyed on the same columns the write sets, so re-verifying a method
+   * never doubles a user's rules — and therefore never doubles their pages.
+   */
+  private async createSeverityScopedRules(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+    notificationMethod: NotificationMethodDescriptor;
+    ruleType: NotificationRuleType;
+    severityIds: Array<ObjectID>;
+    severityColumn: "incidentSeverityId" | "alertSeverityId";
+  }): Promise<void> {
+    for (const severityId of data.severityIds) {
       const existingRule: Model | null = await this.findOneBy({
         query: {
-          projectId,
-          userId,
-          ...this.getNotificationMethodQuery(notificationMethod),
-          alertSeverityId: alertSeverity.id!,
-          ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+          projectId: data.projectId,
+          userId: data.userId,
+          ...this.getNotificationMethodQuery(data.notificationMethod),
+          [data.severityColumn]: severityId,
+          ruleType: data.ruleType,
         } as any,
         props: {
           isRoot: true,
@@ -3026,12 +4362,12 @@ export class Service extends DatabaseService<Model> {
       }
 
       const rule: Model = new Model();
-      rule.projectId = projectId;
-      rule.userId = userId;
-      this.applyNotificationMethod(rule, notificationMethod);
-      rule.alertSeverityId = alertSeverity.id!;
+      rule.projectId = data.projectId;
+      rule.userId = data.userId;
+      this.applyNotificationMethod(rule, data.notificationMethod);
+      rule[data.severityColumn] = severityId;
       rule.notifyAfterMinutes = 0;
-      rule.ruleType = NotificationRuleType.ON_CALL_EXECUTED_ALERT;
+      rule.ruleType = data.ruleType;
 
       await this.create({
         data: rule,
