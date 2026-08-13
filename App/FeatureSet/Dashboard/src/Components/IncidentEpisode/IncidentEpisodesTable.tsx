@@ -13,6 +13,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
+import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -37,12 +38,21 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import API from "Common/UI/Utils/API/API";
-import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ObjectID from "Common/Types/ObjectID";
+import { JSONObject } from "Common/Types/JSON";
 import IncidentEpisodeStateTimeline from "Common/Models/DatabaseModels/IncidentEpisodeStateTimeline";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import { REFRESH_SIDEBAR_COUNT_EVENT } from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
+import useNoteTemplates from "../EventView/useNoteTemplates";
+import BulkChangeStateModal, {
+  BulkChangeStateSubmitData,
+} from "../EventView/BulkChangeStateModal";
+import {
+  BulkStateChangeNoteType,
+  BulkStateChangeSkipDecision,
+  buildBulkStateChangeMiscDataProps,
+  getBulkStateChangeSkipDecision,
+} from "../../Utils/BulkStateChange";
 
 export interface ComponentProps {
   query?: Query<IncidentEpisode> | undefined;
@@ -62,6 +72,10 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
     useState<boolean>(false);
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<IncidentEpisode> | null>(null);
+
+  const { noteTemplates } = useNoteTemplates<IncidentNoteTemplate>({
+    modelType: IncidentNoteTemplate,
+  });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<IncidentEpisode>({ modelType: IncidentEpisode });
@@ -102,11 +116,15 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
   }, []);
 
   const handleBulkStateChange: (
-    targetStateId: ObjectID,
-  ) => Promise<void> = async (targetStateId: ObjectID): Promise<void> => {
+    data: BulkChangeStateSubmitData,
+  ) => Promise<void> = async (
+    data: BulkChangeStateSubmitData,
+  ): Promise<void> => {
     if (!bulkActionProps) {
       return;
     }
+
+    const targetStateId: ObjectID = data.stateId;
 
     const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
       bulkActionProps;
@@ -122,6 +140,11 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
     }
 
     const targetOrder: number = targetState.order || 0;
+
+    const miscDataProps: JSONObject = buildBulkStateChangeMiscDataProps({
+      noteType: BulkStateChangeNoteType.Private,
+      note: data.note,
+    });
 
     onBulkActionStart();
 
@@ -155,12 +178,18 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
           fetchedEpisode?.currentIncidentState?.order || 0;
 
         // Skip if already at or past the target state
-        if (currentOrder >= targetOrder) {
-          const currentStateName: string =
-            fetchedEpisode?.currentIncidentState?.name || "Unknown";
+        const skipDecision: BulkStateChangeSkipDecision =
+          getBulkStateChangeSkipDecision({
+            currentOrder: currentOrder,
+            targetOrder: targetOrder,
+            currentStateName: fetchedEpisode?.currentIncidentState?.name,
+            targetStateName: targetState.name,
+          });
+
+        if (skipDecision.shouldSkip) {
           failedItems.push({
             item: episode,
-            failedMessage: `Skipped: Already at "${currentStateName}" (at or past "${targetState.name}")`,
+            failedMessage: skipDecision.skippedMessage!,
           });
         } else {
           // Create state timeline to change state
@@ -173,6 +202,7 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
           await ModelAPI.create<IncidentEpisodeStateTimeline>({
             model: stateTimeline,
             modelType: IncidentEpisodeStateTimeline,
+            miscDataProps: miscDataProps,
           });
 
           successItems.push(episode);
@@ -483,35 +513,25 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
       )}
 
       {showBulkStateChangeModal && (
-        <BasicFormModal
+        <BulkChangeStateModal
           title="Change Episode State"
           description="Select the state to change episodes to. Episodes already at or past the selected state will be skipped. Member incidents will also be updated."
+          stateFieldKey="incidentStateId"
+          stateOptions={incidentStates.map((state: IncidentState) => {
+            return {
+              label: state.name || "",
+              value: state.id?.toString() || "",
+            };
+          })}
+          noteType={BulkStateChangeNoteType.Private}
+          noteTitle="Private Note"
+          noteDescription="Add an optional private note about this state change. Only your team can see it, and the same note is added to every episode you selected."
+          noteTemplates={noteTemplates}
           onClose={() => {
             setShowBulkStateChangeModal(false);
             setBulkActionProps(null);
           }}
-          submitButtonText="Change State"
-          onSubmit={async (formData: { incidentStateId: ObjectID }) => {
-            await handleBulkStateChange(formData.incidentStateId);
-          }}
-          formProps={{
-            fields: [
-              {
-                field: {
-                  incidentStateId: true,
-                },
-                title: "Select State",
-                fieldType: FormFieldSchemaType.Dropdown,
-                required: true,
-                dropdownOptions: incidentStates.map((state: IncidentState) => {
-                  return {
-                    label: state.name || "",
-                    value: state.id?.toString() || "",
-                  };
-                }),
-              },
-            ],
-          }}
+          onSubmit={handleBulkStateChange}
         />
       )}
     </>
