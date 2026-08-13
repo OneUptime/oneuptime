@@ -841,6 +841,7 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_AUDIT_LOGS]: `schedules/${RouteParams.ModelID}/audit-logs`,
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_SETTINGS]: `schedules/${RouteParams.ModelID}/settings`,
   [PageMap.ON_CALL_DUTY_POLICIES]: "policies",
+  [PageMap.ON_CALL_DUTY_READINESS]: "readiness",
   [PageMap.ON_CALL_DUTY_POLICY_VIEW]: `policies/${RouteParams.ModelID}`,
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE]: `policies/${RouteParams.ModelID}/delete`,
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS]: `policies/${RouteParams.ModelID}/execution-logs`,
@@ -4435,6 +4436,12 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.ON_CALL_DUTY_POLICIES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_READINESS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_READINESS]
+    }`,
   ),
 
   [PageMap.ON_CALL_DUTY_EXECUTION_LOGS]: new Route(

@@ -36,6 +36,22 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Call,
         },
+        /*
+         * Readiness sits directly under Policies rather than in "Advanced"
+         * because the whole point of the page is that an unreachable responder
+         * must be impossible to miss. The compliance report it replaces was
+         * buried two products away, under Teams, and off by default — which is
+         * precisely why nobody found out they could not be paged.
+         */
+        {
+          link: {
+            title: "Readiness",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ON_CALL_DUTY_READINESS] as Route,
+            ),
+          },
+          icon: IconProp.ShieldCheck,
+        },
       ],
     },
     {

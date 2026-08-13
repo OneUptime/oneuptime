@@ -1358,6 +1358,7 @@ import MetricTypeService, {
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
+import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import TeamComplianceAPI from "Common/Server/API/TeamComplianceAPI";
 
 import OnCallDutyPolicyFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyFeed";
@@ -4195,6 +4196,16 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       new TeamComplianceAPI().getRouter(),
     );
+
+    /*
+     * On-call responder readiness — "can this person actually be paged?" for a
+     * policy, the whole project, or one user. A bare router, not a
+     * `new ...().getRouter()`, because it inherits from no CRUD model; see the
+     * header of OnCallReadinessAPI.ts for why extending BaseAPI (as
+     * TeamComplianceAPI does) would re-register a whole model's routes as dead
+     * code.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallReadinessAPI);
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

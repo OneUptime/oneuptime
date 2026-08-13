@@ -1,6 +1,12 @@
 import TeamComplianceService, {
   TeamComplianceStatus,
 } from "../../../Server/Services/TeamComplianceService";
+import OnCallReadinessService, {
+  ReadinessCoverageCell,
+  ReadinessStatus,
+  ReadinessSummary,
+  UserReadiness,
+} from "../../../Server/Services/OnCallReadinessService";
 import TeamComplianceSettingService from "../../../Server/Services/TeamComplianceSettingService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import TeamService from "../../../Server/Services/TeamService";
@@ -21,18 +27,57 @@ import Team from "../../../Models/DatabaseModels/Team";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
- * TeamComplianceService is, today, the ONLY surface in the product that answers
- * "is this responder actually reachable?". Teams > View > Compliance renders it,
- * and a project owner who reads a green row there believes the person on that
- * row will be paged. That makes every one of this service's judgements
- * load-bearing: a false green is a page that nobody ever receives, and a false
- * red is an owner chasing a responder who is already configured correctly.
+ * The readiness service is replaced wholesale, rather than spied on in place.
  *
- * This file is a CHARACTERIZATION suite. It pins the behaviour the service has
- * RIGHT NOW - including four defects the readiness plan (Internal/Roadmap/
- * OnCallNotificationReadiness.md, section 2.6) calls out - so that the phase
- * which rebuilds this on the shared readiness service can see, test by test,
- * exactly which judgements it is changing.
+ * Everything except the default export is kept, because the enums and the
+ * contract types are values this file uses to BUILD its fixtures - a mock that
+ * dropped them would leave the tests writing readiness payloads by hand and
+ * drifting from the shape the real service emits.
+ *
+ * Replacing the class itself buys two things. TeamComplianceService is a unit
+ * here, so the seam should be a stub and not the real module's top-level import
+ * graph (TypeORM, every database model, the whole service layer). And a stub
+ * makes the DEPENDENCY explicit: this file asserts, once and loudly, that the
+ * real class actually exposes the entry points it stubs - see "the batched
+ * readiness contract this service depends on" below - rather than letting a
+ * jest.spyOn failure in beforeEach take out fifty unrelated tests.
+ */
+jest.mock("../../../Server/Services/OnCallReadinessService", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../../Server/Services/OnCallReadinessService",
+  );
+
+  return {
+    ...actual,
+    __esModule: true,
+    default: {
+      getReadinessForProject: jest.fn(),
+      getReadinessForUsers: jest.fn(),
+      getReadinessForUser: jest.fn(),
+    },
+  };
+});
+
+/*
+ * TeamComplianceService answers "is this responder actually reachable?" for
+ * Teams > View > Compliance, and a project owner who reads a green row there
+ * believes the person on that row will be paged. That makes every one of this
+ * service's judgements load-bearing: a false green is a page that nobody ever
+ * receives, and a false red is an owner chasing a responder who is already
+ * configured correctly.
+ *
+ * It was the ONLY surface answering that question until Phase 2. It is now one
+ * of several, all reading OnCallReadinessService - which is the point, because
+ * two surfaces disagreeing about whether someone can be paged is worse than
+ * either of them being wrong on its own.
+ *
+ * This file began as a CHARACTERIZATION suite: it pinned the behaviour the
+ * service had before the readiness work, including four defects the plan
+ * (Internal/Roadmap/OnCallNotificationReadiness.md, section 2.6) called out.
+ * PHASE 2 HAS NOW CLOSED ALL FOUR, by rebuilding the two "has on-call rules"
+ * checks on top of OnCallReadinessService, and the four DEFECT blocks below
+ * have been inverted in place - each still sits under its original heading so
+ * the before/after is readable in one diff.
  *
  * What is pinned:
  *
@@ -40,11 +85,17 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *       User*Service for a single row scoped to userId + projectId AND
  *       isVerified: true - an unverified phone number is not a phone number as
  *       far as paging is concerned - and each carries its own reason string
- *       that the table prints verbatim.
+ *       that the table prints verbatim. These four stayed here rather than
+ *       moving to the readiness service: ComplianceRuleType names one specific
+ *       channel per rule, so there is nothing to batch and nothing for the two
+ *       surfaces to disagree about - they are already asking one table the same
+ *       question.
  *
- *   (B) The two "has on-call rules" rules. A user is compliant only when EVERY
- *       severity in the project has a rule; the missing ones are named, not
- *       counted. Zero severities is vacuously compliant.
+ *   (B) The two "has on-call rules" rules, now answered off a UserReadiness
+ *       coverage array instead of a per-severity walk. A user is compliant only
+ *       when EVERY (ruleType, severity) cell is covered or explicitly opted out;
+ *       the missing ones are named, not counted. No cells is vacuously
+ *       compliant.
  *
  *   (C) checkUserCompliance skips disabled settings without asking the
  *       underlying service anything at all, and reports compliance purely by
@@ -54,26 +105,55 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *
  *   (E) A rule type the switch does not know about fails OPEN (compliant).
  *
- * The four pinned defects, each flagged inline where it is asserted:
+ * The four defects, and how Phase 2 closed each:
  *
- *   DEFECT 1 (plan 2.6, TeamComplianceService.ts:416 and :517) - only
- *     userCallId/userSmsId/userEmailId/userPushId count as "a notification
- *     method". A responder whose rule pages them on Telegram, WhatsApp or a
- *     webhook is reported NON-COMPLIANT even though the page would be
- *     delivered. Owners are sent to fix a responder who is already reachable.
+ *   DEFECT 1 (plan 2.6, old TeamComplianceService.ts:416 and :517) - only
+ *     userCallId/userSmsId/userEmailId/userPushId counted as "a notification
+ *     method", so a responder paged on Telegram, WhatsApp or a webhook was
+ *     reported NON-COMPLIANT even though the page would land.
+ *     CLOSED: the service no longer reads channel columns at all. It reads
+ *     `hasRule` off a coverage cell, and which channels make a rule count is
+ *     OnCallReadinessService's judgement - made once, for all seven channels,
+ *     for every surface.
  *
- *   DEFECT 2 (plan 2.6, :395) - the rule lookup does not filter on ruleType, so
- *     a rule that only fires WHEN_USER_GOES_OFF_CALL is counted as incident
- *     on-call coverage. This is the dangerous direction: a false GREEN.
+ *   DEFECT 2 (plan 2.6, old :395) - the rule lookup did not filter on ruleType,
+ *     so a rule that only fires WHEN_USER_GOES_OFF_CALL was counted as incident
+ *     on-call coverage. The dangerous direction: a false GREEN.
+ *     CLOSED: coverage cells are keyed BY ruleType and the incident check reads
+ *     only ON_CALL_EXECUTED_INCIDENT cells, the alert check only
+ *     ON_CALL_EXECUTED_ALERT.
  *
- *   DEFECT 3 (:473) - alert severities are fetched with a hard-coded limit of
- *     100 while incident severities use LIMIT_PER_PROJECT. The two halves of
- *     the same feature disagree about how many severities a project may have.
+ *   DEFECT 3 (old :473) - alert severities were fetched with a hard-coded limit
+ *     of 100 while incident severities used LIMIT_PER_PROJECT, so the two halves
+ *     of one feature disagreed about how many severities a project may have.
+ *     CLOSED: neither half fetches severities any more. Both read the same
+ *     coverage array, so they cannot disagree.
  *
- *   DEFECT 4 (plan 2.6, :95 and :119) - team members and users are both fetched
- *     with limit: 100. The 101st member of a team is not reported
- *     non-compliant; they are not reported at all, which reads as "everyone is
+ *   DEFECT 4 (plan 2.6, old :95 and :119) - team members and users were both
+ *     fetched with limit: 100. The 101st member was not reported
+ *     non-compliant; they were not reported at all, which reads as "everyone is
  *     fine".
+ *     CLOSED: LIMIT_PER_PROJECT at all three sites, including the compliance
+ *     settings read the plan's table did not list.
+ *
+ * And the N+1 the plan flags alongside them - one findBy per severity per user -
+ * is closed by the same delegation, but NOT by the delegation alone, and the
+ * distinction is worth stating because the first attempt at it got this wrong.
+ * Delegating to readiness "once per user" replaced a cheap N+1 with an expensive
+ * one: getReadinessForUser resolves the project's entire responder set on every
+ * call, so a per-user fill cost five or six heavy queries per member instead of
+ * one light query per severity. The whole team is now answered by AT MOST TWO
+ * readiness computations - the project-scope summary, plus one batched
+ * getReadinessForUsers for whoever that summary does not cover - and the rule
+ * checks make no lookup of their own at all.
+ *
+ *   (F) A member the batch cannot resolve is reported as UNCHECKED rather than
+ *       as compliant, and does not fail the page for anybody else.
+ *
+ *   (G) SECURITY, pre-existing and not a Phase 2 regression: the team row is
+ *       read by id AND projectId. It used to be read by id alone with
+ *       isRoot: true, so a team id from another project resolved and its
+ *       members' reachability was described to a caller from outside it.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -106,23 +186,65 @@ interface CapturedFindBy {
   props?: { isRoot?: boolean };
 }
 
-// A severity row as the service selects it (_id + name only).
-interface SeverityRow {
-  _id: string;
-  name?: string | undefined;
+/*
+ * One (ruleType, severity) cell of a UserReadiness coverage array - the unit the
+ * on-call-rule checks now reason about. `hasRule` and `isOptOut` are the
+ * readiness service's verdicts, already reconciled across all seven channels, so
+ * a test here says "readiness reports this cell covered" rather than "a row with
+ * this column set exists".
+ */
+function coverageCell(data: {
+  ruleType: NotificationRuleType;
+  severityId?: string | undefined;
+  severityName?: string | undefined;
+  hasRule?: boolean | undefined;
+  isOptOut?: boolean | undefined;
+}): ReadinessCoverageCell {
+  return {
+    ruleType: data.ruleType,
+    severityId: data.severityId ? new ObjectID(data.severityId) : undefined,
+    severityName: data.severityName,
+    hasRule: data.hasRule === true,
+    isOptOut: data.isOptOut === true,
+  };
 }
 
-// A notification rule row as the service selects it, plus the channels it ignores.
-interface RuleRow {
-  _id?: string;
-  ruleType?: NotificationRuleType;
-  userCallId?: ObjectID;
-  userSmsId?: ObjectID;
-  userEmailId?: ObjectID;
-  userPushId?: ObjectID;
-  userTelegramId?: ObjectID;
-  userWhatsAppId?: ObjectID;
-  userWebhookId?: ObjectID;
+function readinessWith(
+  coverage: Array<ReadinessCoverageCell>,
+  userId: ObjectID = USER_ID,
+): UserReadiness {
+  return {
+    userId: userId,
+    userName: "Ada",
+    userEmail: "ada@example.com",
+    userProfilePictureId: undefined,
+    status: ReadinessStatus.PartiallyReady,
+    methods: [],
+    coverage: coverage,
+    reasons: [],
+    reachedVia: [],
+  };
+}
+
+function summaryWith(users: Array<UserReadiness>): ReadinessSummary {
+  return {
+    projectId: PROJECT_ID,
+    onCallDutyPolicyId: undefined,
+    readyCount: 0,
+    partiallyReadyCount: users.length,
+    notReachableCount: 0,
+    /*
+     * Both are scope-level facts this service does not read - it consults the
+     * per-user coverage cells and nothing else - but they are part of the
+     * contract, so the fixture carries them rather than casting them away. A
+     * summary that ARRIVES truncated is handled without needing the flag: a
+     * member missing from it falls into the batched fill and is resolved
+     * directly, so truncation costs an extra read rather than a wrong verdict.
+     */
+    isFallbackEnabled: true,
+    isTruncated: false,
+    users: users,
+  };
 }
 
 /*
@@ -150,12 +272,23 @@ function callPrivate(
   return statics[name]!.apply(TeamComplianceService, args);
 }
 
+/*
+ * Readiness is now an ARGUMENT to the rule checks rather than something they
+ * fetch. That is the caller-side half of the N+1 fix: the whole-team read
+ * resolves readiness in one batch and hands each user's answer down, so a rule
+ * check that went looking for its own would be a per-user, per-rule fan-out
+ * hiding inside a predicate. `stagedReadiness` is what a test hands in, and
+ * `answerReadinessWith` sets it.
+ */
+let stagedReadiness: UserReadiness | undefined;
+
 function checkRule(ruleType: ComplianceRuleType): Promise<RuleCheckResult> {
   return callPrivate(
     "checkRuleCompliance",
     USER_ID,
     PROJECT_ID,
     ruleType,
+    stagedReadiness,
   ) as Promise<RuleCheckResult>;
 }
 
@@ -167,15 +300,12 @@ function checkUser(
     USER_ID,
     PROJECT_ID,
     settings,
+    stagedReadiness,
   ) as Promise<UserComplianceResult>;
 }
 
 function firstCall(spy: jest.SpyInstance): CapturedFindBy {
   return spy.mock.calls[0]![0] as CapturedFindBy;
-}
-
-function severity(id: string, name?: string): SeverityRow {
-  return { _id: id, name: name };
 }
 
 let userEmailFindBy: jest.SpyInstance;
@@ -185,10 +315,13 @@ let userPushFindBy: jest.SpyInstance;
 let incidentSeverityFindBy: jest.SpyInstance;
 let alertSeverityFindBy: jest.SpyInstance;
 let notificationRuleFindBy: jest.SpyInstance;
-let teamFindOneById: jest.SpyInstance;
+let teamFindOneBy: jest.SpyInstance;
 let complianceSettingFindBy: jest.SpyInstance;
 let teamMemberFindBy: jest.SpyInstance;
 let userFindBy: jest.SpyInstance;
+let readinessForUser: jest.SpyInstance;
+let readinessForUsers: jest.SpyInstance;
+let readinessForProject: jest.SpyInstance;
 
 // Maps a "has method" rule type back to the service it interrogates.
 function methodSpyFor(ruleType: ComplianceRuleType): jest.SpyInstance {
@@ -207,22 +340,28 @@ function methodSpyFor(ruleType: ComplianceRuleType): jest.SpyInstance {
 }
 
 /*
- * Answer the per-severity rule lookup from a map keyed by severity id, so a
- * test can say "Sev1 is covered, Sev2 is not" the way the database would.
+ * Hand the rule checks a coverage array. The default posture is "no cells at
+ * all", which is the readiness-service equivalent of a project with no
+ * severities configured.
  */
-function answerRulesBySeverity(
-  key: "incidentSeverityId" | "alertSeverityId",
-  rulesBySeverityId: Record<string, Array<RuleRow>>,
-): void {
-  notificationRuleFindBy.mockImplementation(
-    (data: CapturedFindBy): Promise<Array<RuleRow>> => {
-      const severityId: string = String(data.query[key]);
-      return Promise.resolve(rulesBySeverityId[severityId] || []);
-    },
-  );
+function answerReadinessWith(coverage: Array<ReadinessCoverageCell>): void {
+  stagedReadiness = readinessWith(coverage);
 }
 
 beforeEach(() => {
+  /*
+   * Call history is cleared explicitly because restoreAllMocks does not do it
+   * for the readiness stubs. jest.spyOn returns the EXISTING mock when the
+   * property it is asked to spy on is already a mock function - which the three
+   * entry points on the mocked module are - so those three spies are the same
+   * objects in every test and would otherwise accumulate calls across the file.
+   * That turns "this render made one batched call" into an assertion about
+   * whatever the previous test happened to do, which is exactly the kind of
+   * false green these tests exist to catch elsewhere.
+   */
+  jest.clearAllMocks();
+
+  stagedReadiness = readinessWith([]);
   // Default posture: nothing configured anywhere. Each test opts into rows.
   userEmailFindBy = jest
     .spyOn(UserEmailService, "findBy")
@@ -245,8 +384,8 @@ beforeEach(() => {
   notificationRuleFindBy = jest
     .spyOn(UserNotificationRuleService, "findBy")
     .mockResolvedValue([] as never);
-  teamFindOneById = jest
-    .spyOn(TeamService, "findOneById")
+  teamFindOneBy = jest
+    .spyOn(TeamService, "findOneBy")
     .mockResolvedValue({ name: "Platform On-Call" } as Team);
   complianceSettingFindBy = jest
     .spyOn(TeamComplianceSettingService, "findBy")
@@ -255,6 +394,23 @@ beforeEach(() => {
     .spyOn(TeamMemberService, "findBy")
     .mockResolvedValue([] as never);
   userFindBy = jest.spyOn(UserService, "findBy").mockResolvedValue([] as never);
+  /*
+   * Readiness is the on-call-rule half's only source now, and the whole-team
+   * read reaches it through exactly two entry points: the project-scope summary,
+   * and one batched fill for whoever that summary does not cover.
+   * getReadinessForUser is stubbed as well precisely so the tests below can
+   * assert it is NEVER reached - a single per-user call surviving anywhere in
+   * this path is the defect, not an implementation detail.
+   */
+  readinessForUser = jest
+    .spyOn(OnCallReadinessService, "getReadinessForUser")
+    .mockResolvedValue(readinessWith([]) as never);
+  readinessForUsers = jest
+    .spyOn(OnCallReadinessService, "getReadinessForUsers")
+    .mockResolvedValue([] as never);
+  readinessForProject = jest
+    .spyOn(OnCallReadinessService, "getReadinessForProject")
+    .mockResolvedValue(summaryWith([]) as never);
 });
 
 afterEach(() => {
@@ -366,43 +522,67 @@ describe("checkRuleCompliance - notification method rules", () => {
 
 /*
  * ------------------------------------------------------------------------- *
- * (B) The two "has on-call rules for every severity" rules.
+ * (B) The two "has on-call rules for every severity" rules, now answered off a
+ * UserReadiness coverage array rather than a per-severity walk of the rule
+ * table. What is pinned here is the MAPPING - which cells count as a gap, in
+ * what order they are named, and in exactly what wording - because that is what
+ * the compliance table prints. Whether a given cell is covered is
+ * OnCallReadinessService's judgement and is tested there.
  * -------------------------------------------------------------------------
  */
 
 describe("checkRuleCompliance - HasIncidentOnCallRules", () => {
-  test.each<[string, RuleRow]>([
-    ["userCallId", { _id: "r", userCallId: ObjectID.generate() }],
-    ["userSmsId", { _id: "r", userSmsId: ObjectID.generate() }],
-    ["userEmailId", { _id: "r", userEmailId: ObjectID.generate() }],
-    ["userPushId", { _id: "r", userPushId: ObjectID.generate() }],
-  ])(
-    "a rule carrying %s covers a severity",
-    async (_label: string, rule: RuleRow) => {
-      incidentSeverityFindBy.mockResolvedValue([
-        severity("sev-1", "Critical"),
-      ] as never);
-      answerRulesBySeverity("incidentSeverityId", { "sev-1": [rule] });
+  test("a covered cell is compliant, whichever channel covered it", async () => {
+    /*
+     * DEFECT 1 INVERTED. There is no longer a channel column in sight here. The
+     * service asks readiness "is this cell covered?", and readiness has already
+     * weighed all seven channels, so a Telegram-only responder and an
+     * email-only responder arrive at this code as the identical input and can
+     * no longer be judged differently. The old test.each over
+     * userCallId/userSmsId/userEmailId/userPushId - and the DEFECT 1 block that
+     * showed Telegram/WhatsApp/Webhook failing the same check - collapse into
+     * this one assertion, because the distinction they turned on no longer
+     * exists on this side of the call.
+     */
+    answerReadinessWith([
+      coverageCell({
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: "sev-1",
+        severityName: "Critical",
+        hasRule: true,
+      }),
+    ]);
 
-      const result: RuleCheckResult = await checkRule(
-        ComplianceRuleType.HasIncidentOnCallRules,
-      );
+    const result: RuleCheckResult = await checkRule(
+      ComplianceRuleType.HasIncidentOnCallRules,
+    );
 
-      expect(result).toEqual({ compliant: true, reason: "" });
-    },
-  );
+    expect(result).toEqual({ compliant: true, reason: "" });
+    // Never again by reading four of the seven channel columns itself.
+    expect(notificationRuleFindBy).not.toHaveBeenCalled();
+  });
 
-  test("every severity covered => compliant, and one lookup per severity", async () => {
-    incidentSeverityFindBy.mockResolvedValue([
-      severity("sev-1", "Critical"),
-      severity("sev-2", "Major"),
-      severity("sev-3", "Minor"),
-    ] as never);
-    answerRulesBySeverity("incidentSeverityId", {
-      "sev-1": [{ _id: "a", userEmailId: ObjectID.generate() }],
-      "sev-2": [{ _id: "b", userSmsId: ObjectID.generate() }],
-      "sev-3": [{ _id: "c", userPushId: ObjectID.generate() }],
-    });
+  test("every severity covered => compliant, with ONE readiness resolution however many severities", async () => {
+    answerReadinessWith([
+      coverageCell({
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: "sev-1",
+        severityName: "Critical",
+        hasRule: true,
+      }),
+      coverageCell({
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: "sev-2",
+        severityName: "Major",
+        hasRule: true,
+      }),
+      coverageCell({
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: "sev-3",
+        severityName: "Minor",
+        hasRule: true,
+      }),
+    ]);
 
     const result: RuleCheckResult = await checkRule(
       ComplianceRuleType.HasIncidentOnCallRules,
@@ -410,21 +590,37 @@ describe("checkRuleCompliance - HasIncidentOnCallRules", () => {
 
     expect(result).toEqual({ compliant: true, reason: "" });
     /*
-     * The N+1 the plan flags at 2.6: one findBy per severity, per user. Pinned
-     * so a batched rewrite is a deliberate, visible change.
+     * THE N+1 INVERTED. This case used to cost three findBy calls - one per
+     * severity, per user. It now costs NONE: the check reads the coverage array
+     * its caller already resolved, so neither the severity count nor the rule
+     * count enters into how many round trips a compliance render makes.
      */
-    expect(notificationRuleFindBy).toHaveBeenCalledTimes(3);
+    expect(readinessForUser).not.toHaveBeenCalled();
+    expect(readinessForUsers).not.toHaveBeenCalled();
+    expect(notificationRuleFindBy).not.toHaveBeenCalled();
   });
 
-  test("missing severities are NAMED, in severity order, in the exact reason format", async () => {
-    incidentSeverityFindBy.mockResolvedValue([
-      severity("sev-1", "Critical"),
-      severity("sev-2", "Major"),
-      severity("sev-3", "Minor"),
-    ] as never);
-    answerRulesBySeverity("incidentSeverityId", {
-      "sev-2": [{ _id: "b", userEmailId: ObjectID.generate() }],
-    });
+  test("missing severities are NAMED, in coverage order, in the exact reason format", async () => {
+    answerReadinessWith([
+      coverageCell({
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: "sev-1",
+        severityName: "Critical",
+        hasRule: false,
+      }),
+      coverageCell({
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: "sev-2",
+        severityName: "Major",
+        hasRule: true,
+      }),
+      coverageCell({
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: "sev-3",
+        severityName: "Minor",
+        hasRule: false,
+      }),
+    ]);
 
     const result: RuleCheckResult = await checkRule(
       ComplianceRuleType.HasIncidentOnCallRules,
@@ -440,12 +636,22 @@ describe("checkRuleCompliance - HasIncidentOnCallRules", () => {
     );
   });
 
-  test("a rule row with NO method at all leaves the severity missing", async () => {
-    incidentSeverityFindBy.mockResolvedValue([
-      severity("sev-1", "Critical"),
-    ] as never);
-    // A rule exists, but points at nothing that can be dialled.
-    answerRulesBySeverity("incidentSeverityId", { "sev-1": [{ _id: "r" }] });
+  test("a cell that is neither covered nor opted out leaves the severity missing", async () => {
+    /*
+     * What used to read "a rule row exists but points at nothing that can be
+     * dialled". That judgement moved rather than disappeared: readiness decides
+     * whether a row amounts to a usable rule and reports the verdict as
+     * hasRule, and on this side it is simply a gap.
+     */
+    answerReadinessWith([
+      coverageCell({
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: "sev-1",
+        severityName: "Critical",
+        hasRule: false,
+        isOptOut: false,
+      }),
+    ]);
 
     const result: RuleCheckResult = await checkRule(
       ComplianceRuleType.HasIncidentOnCallRules,
@@ -457,8 +663,46 @@ describe("checkRuleCompliance - HasIncidentOnCallRules", () => {
     });
   });
 
+  test("an explicitly opted-out cell is coverage, not a gap", async () => {
+    /*
+     * New in Phase 2, and the reason the filter weighs isOptOut as well as
+     * hasRule. An opt-out row is the user saying "never notify me for this" on
+     * purpose; reporting deliberate silence as a compliance failure sends the
+     * owner to fix something that is already exactly as it was asked to be. It
+     * is also the judgement the readiness contract already makes, where Ready
+     * means every cell covered OR explicitly muted.
+     */
+    answerReadinessWith([
+      coverageCell({
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: "sev-1",
+        severityName: "Critical",
+        hasRule: false,
+        isOptOut: true,
+      }),
+      coverageCell({
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: "sev-2",
+        severityName: "Major",
+        hasRule: true,
+      }),
+    ]);
+
+    const result: RuleCheckResult = await checkRule(
+      ComplianceRuleType.HasIncidentOnCallRules,
+    );
+
+    expect(result).toEqual({ compliant: true, reason: "" });
+  });
+
   test("a severity with no name falls back to its id in the reason", async () => {
-    incidentSeverityFindBy.mockResolvedValue([severity("sev-1")] as never);
+    answerReadinessWith([
+      coverageCell({
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: "sev-1",
+        hasRule: false,
+      }),
+    ]);
 
     const result: RuleCheckResult = await checkRule(
       ComplianceRuleType.HasIncidentOnCallRules,
@@ -475,50 +719,87 @@ describe("checkRuleCompliance - HasIncidentOnCallRules", () => {
     );
 
     expect(result).toEqual({ compliant: true, reason: "" });
-    // Nothing to be missing => the rule lookup is never reached.
+    // Nothing to be missing, and the rule table is never touched either way.
     expect(notificationRuleFindBy).not.toHaveBeenCalled();
   });
 
-  test("incident severities are fetched with LIMIT_PER_PROJECT", async () => {
+  test("the check queries nothing at all - it reads the coverage it was handed", async () => {
+    /*
+     * Replaces "the per-severity rule lookup is limited to ONE row". There is no
+     * per-severity lookup left to limit - and with it goes the old surprise that
+     * only the FIRST matching rule for a severity was ever inspected, so a user
+     * whose second rule carried the method was reported non-compliant.
+     *
+     * Nor is there a readiness lookup. The check used to fall back to
+     * getReadinessForUser whenever its caller did not hand readiness in, which
+     * looked like a harmless convenience and was in fact a per-user, per-rule
+     * fan-out: getReadinessForUser resolves the project's ENTIRE responder set
+     * on every call, so a team with both on-call rules enabled paid for two full
+     * project resolutions per member. The convenience is gone; readiness comes
+     * from the batch or it is reported as unknown.
+     */
     await checkRule(ComplianceRuleType.HasIncidentOnCallRules);
 
-    const call: CapturedFindBy = firstCall(incidentSeverityFindBy);
-    expect(call.limit).toBe(LIMIT_PER_PROJECT);
-    expect(call.query["projectId"]).toBe(PROJECT_ID);
-    expect(call.props?.isRoot).toBe(true);
+    expect(readinessForUser).not.toHaveBeenCalled();
+    expect(readinessForUsers).not.toHaveBeenCalled();
+    expect(readinessForProject).not.toHaveBeenCalled();
+    expect(notificationRuleFindBy).not.toHaveBeenCalled();
   });
 
-  test("the per-severity rule lookup is limited to ONE row", async () => {
+  test("no readiness at all is reported as UNCHECKED, never as compliant", async () => {
     /*
-     * Current behaviour, worth knowing about: only the first matching rule is
-     * ever inspected. A user whose first rule for a severity carries no method
-     * but whose second one does is reported non-compliant.
+     * The batch answers only for users it can resolve. A member removed from the
+     * project between the member read and the readiness read is simply absent
+     * from it, and this is what the page then says about them.
+     *
+     * Non-compliant, not compliant: this feature exists because a responder can
+     * be silently unreachable, so "we could not check" must never render as the
+     * same green as "we checked and it is fine". The reason string is prose the
+     * table prints verbatim, so it names the likely cause rather than saying
+     * something the reader cannot act on.
      */
-    incidentSeverityFindBy.mockResolvedValue([
-      severity("sev-1", "Critical"),
-    ] as never);
+    stagedReadiness = undefined;
 
-    await checkRule(ComplianceRuleType.HasIncidentOnCallRules);
+    const incident: RuleCheckResult = await checkRule(
+      ComplianceRuleType.HasIncidentOnCallRules,
+    );
+    const alert: RuleCheckResult = await checkRule(
+      ComplianceRuleType.HasAlertOnCallRules,
+    );
 
-    const call: CapturedFindBy = firstCall(notificationRuleFindBy);
-    expect(call.limit).toBe(1);
-    expect(call.skip).toBe(0);
-    expect(call.query["userId"]).toBe(USER_ID);
-    expect(call.query["projectId"]).toBe(PROJECT_ID);
-    expect(call.query["incidentSeverityId"]).toBe("sev-1");
+    expect(incident).toEqual({
+      compliant: false,
+      reason:
+        "Could not check incident notification rules for this user - they may no longer be a member of this project",
+    });
+    expect(alert).toEqual({
+      compliant: false,
+      reason:
+        "Could not check alert notification rules for this user - they may no longer be a member of this project",
+    });
+
+    // And it still does not go looking, which is what kept the old page slow.
+    expect(readinessForUser).not.toHaveBeenCalled();
+    expect(readinessForUsers).not.toHaveBeenCalled();
   });
 });
 
 describe("checkRuleCompliance - HasAlertOnCallRules", () => {
   test("every alert severity covered => compliant", async () => {
-    alertSeverityFindBy.mockResolvedValue([
-      severity("asev-1", "Page"),
-      severity("asev-2", "Ticket"),
-    ] as never);
-    answerRulesBySeverity("alertSeverityId", {
-      "asev-1": [{ _id: "a", userCallId: ObjectID.generate() }],
-      "asev-2": [{ _id: "b", userEmailId: ObjectID.generate() }],
-    });
+    answerReadinessWith([
+      coverageCell({
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+        severityId: "asev-1",
+        severityName: "Page",
+        hasRule: true,
+      }),
+      coverageCell({
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+        severityId: "asev-2",
+        severityName: "Ticket",
+        hasRule: true,
+      }),
+    ]);
 
     const result: RuleCheckResult = await checkRule(
       ComplianceRuleType.HasAlertOnCallRules,
@@ -528,13 +809,20 @@ describe("checkRuleCompliance - HasAlertOnCallRules", () => {
   });
 
   test("missing alert severities use the alert wording, not the incident wording", async () => {
-    alertSeverityFindBy.mockResolvedValue([
-      severity("asev-1", "Page"),
-      severity("asev-2", "Ticket"),
-    ] as never);
-    answerRulesBySeverity("alertSeverityId", {
-      "asev-1": [{ _id: "a", userCallId: ObjectID.generate() }],
-    });
+    answerReadinessWith([
+      coverageCell({
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+        severityId: "asev-1",
+        severityName: "Page",
+        hasRule: true,
+      }),
+      coverageCell({
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+        severityId: "asev-2",
+        severityName: "Ticket",
+        hasRule: false,
+      }),
+    ]);
 
     const result: RuleCheckResult = await checkRule(
       ComplianceRuleType.HasAlertOnCallRules,
@@ -555,258 +843,279 @@ describe("checkRuleCompliance - HasAlertOnCallRules", () => {
     expect(notificationRuleFindBy).not.toHaveBeenCalled();
   });
 
-  test("the alert rule lookup queries alertSeverityId, not incidentSeverityId", async () => {
-    alertSeverityFindBy.mockResolvedValue([
-      severity("asev-1", "Page"),
-    ] as never);
-
-    await checkRule(ComplianceRuleType.HasAlertOnCallRules);
-
-    const call: CapturedFindBy = firstCall(notificationRuleFindBy);
-    expect(call.query["alertSeverityId"]).toBe("asev-1");
-    expect(call.query).not.toHaveProperty("incidentSeverityId");
-  });
-});
-
-/*
- * ------------------------------------------------------------------------- *
- * DEFECT 1 - only four of the seven channels count as "a notification method".
- * Plan 2.6: "Only counts userCallId/userSmsId/userEmailId/userPushId - a user
- * whose only method is Telegram, WhatsApp, or Webhook is falsely reported
- * non-compliant" (TeamComplianceService.ts:416, :517).
- *
- * A later phase must INVERT every assertion in this block: each of these users
- * would in fact be paged successfully, so the honest answer is compliant.
- * -------------------------------------------------------------------------
- */
-
-describe("DEFECT 1 - Telegram / WhatsApp / Webhook rules are not counted", () => {
-  test.each<[string, RuleRow]>([
-    ["Telegram", { _id: "r", userTelegramId: ObjectID.generate() }],
-    ["WhatsApp", { _id: "r", userWhatsAppId: ObjectID.generate() }],
-    ["Webhook", { _id: "r", userWebhookId: ObjectID.generate() }],
-  ])(
-    "DEFECT 1: an incident rule whose only method is %s reads as no method at all",
-    async (_channel: string, rule: RuleRow) => {
-      incidentSeverityFindBy.mockResolvedValue([
-        severity("sev-1", "Critical"),
-      ] as never);
-      answerRulesBySeverity("incidentSeverityId", { "sev-1": [rule] });
-
-      const result: RuleCheckResult = await checkRule(
-        ComplianceRuleType.HasIncidentOnCallRules,
-      );
-
-      /*
-       * DEFECT 1 - Phase 2 inverts this: the rule DOES page the responder, so
-       * the correct answer is { compliant: true, reason: "" }.
-       */
-      expect(result).toEqual({
-        compliant: false,
-        reason: "Missing notification rules for incident severities: Critical",
-      });
-    },
-  );
-
-  test.each<[string, RuleRow]>([
-    ["Telegram", { _id: "r", userTelegramId: ObjectID.generate() }],
-    ["WhatsApp", { _id: "r", userWhatsAppId: ObjectID.generate() }],
-    ["Webhook", { _id: "r", userWebhookId: ObjectID.generate() }],
-  ])(
-    "DEFECT 1: an alert rule whose only method is %s reads as no method at all",
-    async (_channel: string, rule: RuleRow) => {
-      alertSeverityFindBy.mockResolvedValue([
-        severity("asev-1", "Page"),
-      ] as never);
-      answerRulesBySeverity("alertSeverityId", { "asev-1": [rule] });
-
-      const result: RuleCheckResult = await checkRule(
-        ComplianceRuleType.HasAlertOnCallRules,
-      );
-
-      /* DEFECT 1 - Phase 2 inverts this to compliant. */
-      expect(result).toEqual({
-        compliant: false,
-        reason: "Missing notification rules for alert severities: Page",
-      });
-    },
-  );
-
-  test("DEFECT 1: the three uncounted channels are not even SELECTed", async () => {
-    incidentSeverityFindBy.mockResolvedValue([
-      severity("sev-1", "Critical"),
-    ] as never);
-
-    await checkRule(ComplianceRuleType.HasIncidentOnCallRules);
-
-    const call: CapturedFindBy = firstCall(notificationRuleFindBy);
-    expect(call.select).toEqual({
-      _id: true,
-      userCallId: true,
-      userSmsId: true,
-      userEmailId: true,
-      userPushId: true,
-    });
-    /* DEFECT 1 - Phase 2 must add these three to the select as well. */
-    expect(call.select).not.toHaveProperty("userTelegramId");
-    expect(call.select).not.toHaveProperty("userWhatsAppId");
-    expect(call.select).not.toHaveProperty("userWebhookId");
-  });
-
-  test("DEFECT 1: a counted method alongside an uncounted one still saves the row", async () => {
-    // Proves the defect is about which columns are read, not about the row.
-    incidentSeverityFindBy.mockResolvedValue([
-      severity("sev-1", "Critical"),
-    ] as never);
-    answerRulesBySeverity("incidentSeverityId", {
-      "sev-1": [
-        {
-          _id: "r",
-          userTelegramId: ObjectID.generate(),
-          userEmailId: ObjectID.generate(),
-        },
-      ],
-    });
-
-    const result: RuleCheckResult = await checkRule(
-      ComplianceRuleType.HasIncidentOnCallRules,
-    );
-
-    expect(result).toEqual({ compliant: true, reason: "" });
-  });
-});
-
-/*
- * ------------------------------------------------------------------------- *
- * DEFECT 2 - the rule lookup ignores ruleType.
- * Plan 2.6: "Ignores ruleType - a rule for WHEN_USER_GOES_ON_CALL counts as
- * incident coverage" (TeamComplianceService.ts:395).
- *
- * This is the false-GREEN direction and the more dangerous of the two: the
- * owner is told the responder is covered for Sev1 incidents when the only rule
- * they have fires when they go off call.
- * -------------------------------------------------------------------------
- */
-
-describe("DEFECT 2 - ruleType is not part of the coverage query", () => {
-  test("DEFECT 2: the incident lookup query has NO ruleType key", async () => {
-    incidentSeverityFindBy.mockResolvedValue([
-      severity("sev-1", "Critical"),
-    ] as never);
-
-    await checkRule(ComplianceRuleType.HasIncidentOnCallRules);
-
-    const call: CapturedFindBy = firstCall(notificationRuleFindBy);
+  test("the alert rule reads ON_CALL_EXECUTED_ALERT cells and ignores incident cells", async () => {
     /*
-     * DEFECT 2 - Phase 2 adds
-     *   ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT
-     * here, and this assertion flips to expect that key.
+     * Replaces "the alert lookup queries alertSeverityId, not
+     * incidentSeverityId". Both halves now read the SAME coverage array, so the
+     * separation has to come from the ruleType filter - and one array carrying
+     * an uncovered cell of each kind is the sharpest way to prove it does.
      */
-    expect(call.query).not.toHaveProperty("ruleType");
-    expect(Object.keys(call.query).sort()).toEqual([
-      "incidentSeverityId",
-      "projectId",
-      "userId",
+    answerReadinessWith([
+      coverageCell({
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+        severityId: "asev-1",
+        severityName: "Page",
+        hasRule: false,
+      }),
+      coverageCell({
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: "sev-1",
+        severityName: "Critical",
+        hasRule: false,
+      }),
     ]);
-  });
-
-  test("DEFECT 2: the alert lookup query has NO ruleType key either", async () => {
-    alertSeverityFindBy.mockResolvedValue([
-      severity("asev-1", "Page"),
-    ] as never);
-
-    await checkRule(ComplianceRuleType.HasAlertOnCallRules);
-
-    const call: CapturedFindBy = firstCall(notificationRuleFindBy);
-    /* DEFECT 2 - Phase 2 adds ruleType: ON_CALL_EXECUTED_ALERT here. */
-    expect(call.query).not.toHaveProperty("ruleType");
-    expect(Object.keys(call.query).sort()).toEqual([
-      "alertSeverityId",
-      "projectId",
-      "userId",
-    ]);
-  });
-
-  test("DEFECT 2: a WHEN_USER_GOES_OFF_CALL rule is counted as incident coverage", async () => {
-    incidentSeverityFindBy.mockResolvedValue([
-      severity("sev-1", "Critical"),
-    ] as never);
-    answerRulesBySeverity("incidentSeverityId", {
-      "sev-1": [
-        {
-          _id: "r",
-          ruleType: NotificationRuleType.WHEN_USER_GOES_OFF_CALL,
-          userEmailId: ObjectID.generate(),
-        },
-      ],
-    });
-
-    const result: RuleCheckResult = await checkRule(
-      ComplianceRuleType.HasIncidentOnCallRules,
-    );
-
-    /*
-     * DEFECT 2 - a FALSE GREEN. Phase 2 inverts this: a rule that only fires
-     * when the user goes off call is not incident coverage, so the expected
-     * answer becomes non-compliant naming "Critical".
-     */
-    expect(result).toEqual({ compliant: true, reason: "" });
-  });
-
-  test("DEFECT 2: a WHEN_USER_GOES_ON_CALL rule is counted as alert coverage", async () => {
-    alertSeverityFindBy.mockResolvedValue([
-      severity("asev-1", "Page"),
-    ] as never);
-    answerRulesBySeverity("alertSeverityId", {
-      "asev-1": [
-        {
-          _id: "r",
-          ruleType: NotificationRuleType.WHEN_USER_GOES_ON_CALL,
-          userSmsId: ObjectID.generate(),
-        },
-      ],
-    });
 
     const result: RuleCheckResult = await checkRule(
       ComplianceRuleType.HasAlertOnCallRules,
     );
 
-    /* DEFECT 2 - Phase 2 inverts this to non-compliant naming "Page". */
+    expect(result).toEqual({
+      compliant: false,
+      reason: "Missing notification rules for alert severities: Page",
+    });
+    expect(result.reason).not.toContain("Critical");
+  });
+});
+
+/*
+ * ------------------------------------------------------------------------- *
+ * DEFECT 1 - CLOSED IN PHASE 2.
+ *
+ * Was: only four of the seven channels counted as "a notification method". Plan
+ * 2.6, "Only counts userCallId/userSmsId/userEmailId/userPushId - a user whose
+ * only method is Telegram, WhatsApp, or Webhook is falsely reported
+ * non-compliant" (old TeamComplianceService.ts:416, :517). The old block here
+ * pinned each of those three responders failing a check they should have passed,
+ * and pinned the four-column `select` that caused it.
+ *
+ * Now: the service issues no rule query and reads no channel column at all, so
+ * the defect is not fixed here so much as made unrepresentable here. What it
+ * takes for a rule to count is decided once by OnCallReadinessService, across
+ * all seven channels, for every surface that asks - which is also what stops
+ * this page and the readiness page from drifting apart again.
+ *
+ * The per-channel inversions the old block called for now live one test up, in
+ * "a covered cell is compliant, whichever channel covered it": there is no
+ * longer any input to this code that distinguishes a Telegram responder from an
+ * email one. What remains worth asserting is the structural fact that makes that
+ * true.
+ * -------------------------------------------------------------------------
+ */
+
+describe("DEFECT 1 closed - the channel judgement is no longer made here", () => {
+  test.each<[ComplianceRuleType]>([
+    [ComplianceRuleType.HasIncidentOnCallRules],
+    [ComplianceRuleType.HasAlertOnCallRules],
+  ])(
+    "%s reads no notification-rule row, so it cannot miss a channel",
+    async (ruleType: ComplianceRuleType) => {
+      await checkRule(ruleType);
+
+      /*
+       * The three formerly-invisible channels were invisible because they were
+       * never SELECTed. Nothing is SELECTed now - there is no query - so no
+       * future edit can quietly reintroduce a partial column list.
+       */
+      expect(notificationRuleFindBy).not.toHaveBeenCalled();
+      expect(readinessForUser).not.toHaveBeenCalled();
+    },
+  );
+
+  test("coverage is taken from hasRule alone, not from any channel field", async () => {
+    /*
+     * The cell below carries no channel information whatsoever - readiness has
+     * already resolved it - and it is enough to make the user compliant. That is
+     * the shape of the fix: a responder reachable only on Telegram, WhatsApp or
+     * a webhook produces exactly this cell and is now reported as covered.
+     */
+    answerReadinessWith([
+      coverageCell({
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+        severityId: "asev-1",
+        severityName: "Page",
+        hasRule: true,
+      }),
+    ]);
+
+    const result: RuleCheckResult = await checkRule(
+      ComplianceRuleType.HasAlertOnCallRules,
+    );
+
     expect(result).toEqual({ compliant: true, reason: "" });
   });
 });
 
 /*
  * ------------------------------------------------------------------------- *
- * DEFECT 3 - the two severity fetches disagree about how many severities exist.
+ * DEFECT 2 - CLOSED IN PHASE 2.
+ *
+ * Was: the rule lookup did not filter on ruleType, so a rule that only fires
+ * WHEN_USER_GOES_OFF_CALL was counted as incident coverage (plan 2.6, old
+ * TeamComplianceService.ts:395). The false-GREEN direction, and the more
+ * dangerous of the two: the owner was told a responder was covered for Sev1
+ * incidents when their only rule fired as they went off call.
+ *
+ * Now: coverage arrives as cells keyed BY ruleType, and each check reads only
+ * its own. The two tests below are the old false greens, inverted - same
+ * scenario, opposite verdict.
  * -------------------------------------------------------------------------
  */
 
-describe("DEFECT 3 - alert severities use a hard-coded limit of 100", () => {
-  test("DEFECT 3: AlertSeverityService.findBy is called with the literal 100", async () => {
-    await checkRule(ComplianceRuleType.HasAlertOnCallRules);
-
-    const call: CapturedFindBy = firstCall(alertSeverityFindBy);
+describe("DEFECT 2 closed - coverage is matched on ruleType", () => {
+  test("a WHEN_USER_GOES_OFF_CALL rule is NOT incident coverage", async () => {
     /*
-     * DEFECT 3 - Phase 2 replaces this with LIMIT_PER_PROJECT so the alert half
-     * matches the incident half. Beyond 100 alert severities the extra ones are
-     * never checked, which reads as coverage the user does not have.
+     * The user is fully covered for going off call and not at all for Sev1
+     * incidents. Before Phase 2 this returned compliant; the off-call rule was
+     * indistinguishable from incident coverage because ruleType was never part
+     * of the query.
      */
-    expect(call.limit).toBe(100);
-    expect(call.limit).not.toBe(LIMIT_PER_PROJECT);
-    expect(call.skip).toBe(0);
-    expect(call.query["projectId"]).toBe(PROJECT_ID);
+    answerReadinessWith([
+      coverageCell({
+        ruleType: NotificationRuleType.WHEN_USER_GOES_OFF_CALL,
+        hasRule: true,
+      }),
+      coverageCell({
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: "sev-1",
+        severityName: "Critical",
+        hasRule: false,
+      }),
+    ]);
+
+    const result: RuleCheckResult = await checkRule(
+      ComplianceRuleType.HasIncidentOnCallRules,
+    );
+
+    expect(result).toEqual({
+      compliant: false,
+      reason: "Missing notification rules for incident severities: Critical",
+    });
   });
 
-  test("DEFECT 3: the incident half uses LIMIT_PER_PROJECT - the two disagree", async () => {
-    await checkRule(ComplianceRuleType.HasIncidentOnCallRules);
-    await checkRule(ComplianceRuleType.HasAlertOnCallRules);
+  test("a WHEN_USER_GOES_ON_CALL rule is NOT alert coverage", async () => {
+    answerReadinessWith([
+      coverageCell({
+        ruleType: NotificationRuleType.WHEN_USER_GOES_ON_CALL,
+        hasRule: true,
+      }),
+      coverageCell({
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+        severityId: "asev-1",
+        severityName: "Page",
+        hasRule: false,
+      }),
+    ]);
 
-    expect(firstCall(incidentSeverityFindBy).limit).toBe(LIMIT_PER_PROJECT);
-    expect(firstCall(alertSeverityFindBy).limit).toBe(100);
-    expect(firstCall(incidentSeverityFindBy).limit).not.toBe(
-      firstCall(alertSeverityFindBy).limit,
+    const result: RuleCheckResult = await checkRule(
+      ComplianceRuleType.HasAlertOnCallRules,
     );
+
+    expect(result).toEqual({
+      compliant: false,
+      reason: "Missing notification rules for alert severities: Page",
+    });
+  });
+
+  test("the two go-on-call / go-off-call cell types carry no severity and are never named", async () => {
+    /*
+     * Those two rule types are not per-severity at all, so their cells arrive
+     * with severityId undefined. An implementation that filtered on "no rule"
+     * before filtering on ruleType would name them as missing severities and
+     * print an empty entry into the reason string; this pins that it does not.
+     */
+    answerReadinessWith([
+      coverageCell({
+        ruleType: NotificationRuleType.WHEN_USER_GOES_ON_CALL,
+        hasRule: false,
+      }),
+      coverageCell({
+        ruleType: NotificationRuleType.WHEN_USER_GOES_OFF_CALL,
+        hasRule: false,
+      }),
+      coverageCell({
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: "sev-1",
+        severityName: "Critical",
+        hasRule: true,
+      }),
+    ]);
+
+    const result: RuleCheckResult = await checkRule(
+      ComplianceRuleType.HasIncidentOnCallRules,
+    );
+
+    expect(result).toEqual({ compliant: true, reason: "" });
+  });
+});
+
+/*
+ * ------------------------------------------------------------------------- *
+ * DEFECT 3 - CLOSED IN PHASE 2.
+ *
+ * Was: alert severities were fetched with a hard-coded limit of 100 while
+ * incident severities used LIMIT_PER_PROJECT (old TeamComplianceService.ts:473
+ * against :372), so the two halves of one feature disagreed about how many
+ * severities a project may have. Past 100 alert severities the extras were never
+ * checked, and an unchecked severity reads as coverage the user does not have.
+ *
+ * Now: neither half fetches severities. Both read the same coverage array from
+ * the same readiness resolution, which is where the LIMIT_PER_PROJECT read now
+ * lives - one read, so there is nothing left for the two halves to disagree
+ * about.
+ * -------------------------------------------------------------------------
+ */
+
+describe("DEFECT 3 closed - both halves read one severity list, not two", () => {
+  test.each<[ComplianceRuleType]>([
+    [ComplianceRuleType.HasIncidentOnCallRules],
+    [ComplianceRuleType.HasAlertOnCallRules],
+  ])(
+    "%s fetches no severities of its own",
+    async (ruleType: ComplianceRuleType) => {
+      await checkRule(ruleType);
+
+      expect(incidentSeverityFindBy).not.toHaveBeenCalled();
+      expect(alertSeverityFindBy).not.toHaveBeenCalled();
+      expect(readinessForUser).not.toHaveBeenCalled();
+    },
+  );
+
+  test("the incident and alert halves are answered from the SAME readiness resolution", async () => {
+    /*
+     * One coverage array, both kinds of cell, one truncation point - so a
+     * project can no longer have more alert severities than the alert half
+     * bothers to look at while the incident half looks at all of them.
+     */
+    answerReadinessWith([
+      coverageCell({
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: "sev-1",
+        severityName: "Critical",
+        hasRule: false,
+      }),
+      coverageCell({
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+        severityId: "asev-1",
+        severityName: "Page",
+        hasRule: false,
+      }),
+    ]);
+
+    const incident: RuleCheckResult = await checkRule(
+      ComplianceRuleType.HasIncidentOnCallRules,
+    );
+    const alert: RuleCheckResult = await checkRule(
+      ComplianceRuleType.HasAlertOnCallRules,
+    );
+
+    expect(incident.reason).toBe(
+      "Missing notification rules for incident severities: Critical",
+    );
+    expect(alert.reason).toBe(
+      "Missing notification rules for alert severities: Page",
+    );
+    expect(incidentSeverityFindBy).not.toHaveBeenCalled();
+    expect(alertSeverityFindBy).not.toHaveBeenCalled();
   });
 });
 
@@ -962,7 +1271,7 @@ describe("checkUserCompliance - enabled settings only", () => {
 
 describe("getTeamComplianceStatus", () => {
   test("throws BadDataException when the team does not exist", async () => {
-    teamFindOneById.mockResolvedValue(null as never);
+    teamFindOneBy.mockResolvedValue(null as never);
 
     await expect(
       TeamComplianceService.getTeamComplianceStatus(TEAM_ID, PROJECT_ID),
@@ -973,23 +1282,82 @@ describe("getTeamComplianceStatus", () => {
     expect(teamMemberFindBy).not.toHaveBeenCalled();
   });
 
-  test("DEFECT 4: team members are fetched with the literal limit 100", async () => {
+  test("SECURITY: the team is read by id AND project, in one query", async () => {
+    /*
+     * Pre-existing, and not introduced by the readiness work: the team used to
+     * be fetched by id alone, with isRoot: true and no projectId anywhere in the
+     * query. Every OTHER read here is project-scoped, so the hole was quiet - a
+     * foreign team id resolved, and the page then described that team's members
+     * by name and email to a caller from outside its project.
+     *
+     * Asserting the QUERY rather than the outcome is the point. An
+     * implementation that read by id and then compared projectId would pass an
+     * outcome test and still be one deleted line away from the hole; a query
+     * naming both columns cannot be half-right.
+     */
+    await TeamComplianceService.getTeamComplianceStatus(TEAM_ID, PROJECT_ID);
+
+    const call: CapturedFindBy = firstCall(teamFindOneBy);
+
+    expect(call.query["_id"]).toBe(TEAM_ID.toString());
+    expect(call.query["projectId"]).toBe(PROJECT_ID);
+    expect(call.props?.isRoot).toBe(true);
+  });
+
+  test("SECURITY: a team from another project does not resolve, and is not described", async () => {
+    /*
+     * The scoped query's behaviour, stated as the caller sees it. The stub
+     * answers null for any read that does not name this project - which is what
+     * the database does now that the projectId is in the query - and the service
+     * refuses with the SAME "Team not found" a nonexistent id gets, so the
+     * endpoint cannot be used to learn which team ids exist elsewhere.
+     */
+    const otherProjectId: ObjectID = new ObjectID(
+      "55555555-5555-4555-8555-555555555555",
+    );
+
+    teamFindOneBy.mockImplementation(
+      (data: CapturedFindBy): Promise<Team | null> => {
+        const queriedProjectId: unknown = data.query["projectId"];
+
+        if (
+          queriedProjectId &&
+          queriedProjectId.toString() === PROJECT_ID.toString()
+        ) {
+          return Promise.resolve({ name: "Platform On-Call" } as Team);
+        }
+
+        return Promise.resolve(null);
+      },
+    );
+
+    await expect(
+      TeamComplianceService.getTeamComplianceStatus(TEAM_ID, otherProjectId),
+    ).rejects.toThrow("Team not found");
+
+    // Nothing about the team's members was read on the way to that refusal.
+    expect(teamMemberFindBy).not.toHaveBeenCalled();
+    expect(userFindBy).not.toHaveBeenCalled();
+  });
+
+  test("DEFECT 4 closed: team members are fetched with LIMIT_PER_PROJECT", async () => {
     await TeamComplianceService.getTeamComplianceStatus(TEAM_ID, PROJECT_ID);
 
     const call: CapturedFindBy = firstCall(teamMemberFindBy);
     /*
-     * DEFECT 4 - Phase 2 must page or raise this. The 101st member of a large
-     * team is not listed as non-compliant; they are simply absent, and an
-     * absent row reads as "no problem here".
+     * DEFECT 4, CLOSED IN PHASE 2. This used to be the literal 100. Truncation
+     * is the worst failure mode a compliance page has: the 101st member of a
+     * large team was not listed as non-compliant, they were simply absent, and
+     * an absent row reads as "no problem here".
      */
-    expect(call.limit).toBe(100);
-    expect(call.limit).not.toBe(LIMIT_PER_PROJECT);
+    expect(call.limit).toBe(LIMIT_PER_PROJECT);
+    expect(call.limit).not.toBe(100);
     expect(call.skip).toBe(0);
     expect(call.query["teamId"]).toBe(TEAM_ID);
     expect(call.query["projectId"]).toBe(PROJECT_ID);
   });
 
-  test("DEFECT 4: users are fetched with the literal limit 100 as well", async () => {
+  test("DEFECT 4 closed: users are fetched with LIMIT_PER_PROJECT as well", async () => {
     teamMemberFindBy.mockResolvedValue([
       { _id: "tm-1", userId: USER_ID },
     ] as never);
@@ -997,22 +1365,295 @@ describe("getTeamComplianceStatus", () => {
     await TeamComplianceService.getTeamComplianceStatus(TEAM_ID, PROJECT_ID);
 
     const call: CapturedFindBy = firstCall(userFindBy);
-    /* DEFECT 4 - second truncation point, stacked on top of the first. */
-    expect(call.limit).toBe(100);
-    expect(call.limit).not.toBe(LIMIT_PER_PROJECT);
+    /* The second truncation point, which used to stack on top of the first. */
+    expect(call.limit).toBe(LIMIT_PER_PROJECT);
+    expect(call.limit).not.toBe(100);
     expect(call.skip).toBe(0);
   });
 
-  test("DEFECT 4: the compliance settings themselves are also capped at 100", async () => {
+  test("DEFECT 4 closed: the compliance settings read is uncapped too", async () => {
     await TeamComplianceService.getTeamComplianceStatus(TEAM_ID, PROJECT_ID);
 
     /*
-     * DEFECT 4 (third site, NOT listed in the plan's table at 2.6, which names
-     * only :95 and :119). TeamComplianceSetting is one row per rule type today,
-     * so the cap is harmless now - but it is the same mistake and should be
-     * fixed with the other two.
+     * The third site, NOT listed in the plan's table at 2.6, which named only
+     * :95 and :119. TeamComplianceSetting is one row per rule type today so the
+     * old cap was harmless, but it was the same mistake and Phase 2 fixed it
+     * with the other two rather than leaving a third one to be rediscovered.
      */
-    expect(firstCall(complianceSettingFindBy).limit).toBe(100);
+    expect(firstCall(complianceSettingFindBy).limit).toBe(LIMIT_PER_PROJECT);
+  });
+
+  test("the whole team's on-call coverage costs ONE project-scope readiness pass", async () => {
+    /*
+     * The team-scale shape of the N+1 fix. Two members, an enabled on-call rule,
+     * and any number of severities behind it: before Phase 2 this was
+     * members x severities findBy calls. Now the project-scope readiness summary
+     * answers for everyone it covers in one pass, and only members it does not
+     * cover - people on no policy at all - are filled in individually.
+     */
+    complianceSettingFindBy.mockResolvedValue([
+      { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
+    ] as never);
+    teamMemberFindBy.mockResolvedValue([
+      { _id: "tm-1", userId: USER_ID },
+      { _id: "tm-2", userId: OTHER_USER_ID },
+    ] as never);
+    userFindBy.mockResolvedValue([
+      { id: USER_ID, name: "Ada", email: "ada@example.com" },
+      { id: OTHER_USER_ID, name: "Grace", email: "grace@example.com" },
+    ] as never);
+    readinessForProject.mockResolvedValue(
+      summaryWith([
+        readinessWith(
+          [
+            coverageCell({
+              ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+              severityId: "sev-1",
+              severityName: "Critical",
+              hasRule: true,
+            }),
+          ],
+          USER_ID,
+        ),
+        readinessWith(
+          [
+            coverageCell({
+              ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+              severityId: "sev-1",
+              severityName: "Critical",
+              hasRule: false,
+            }),
+          ],
+          OTHER_USER_ID,
+        ),
+      ]) as never,
+    );
+
+    const status: TeamComplianceStatus =
+      await TeamComplianceService.getTeamComplianceStatus(TEAM_ID, PROJECT_ID);
+
+    expect(readinessForProject).toHaveBeenCalledTimes(1);
+    expect(readinessForProject.mock.calls[0]).toEqual([PROJECT_ID]);
+    // Everyone was covered by the summary, so nobody needed filling in.
+    expect(readinessForUser).not.toHaveBeenCalled();
+    expect(readinessForUsers).not.toHaveBeenCalled();
+    expect(notificationRuleFindBy).not.toHaveBeenCalled();
+
+    expect(status.userComplianceStatuses[0]!.isCompliant).toBe(true);
+    expect(status.userComplianceStatuses[1]!.nonCompliantRules).toEqual([
+      {
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        reason: "Missing notification rules for incident severities: Critical",
+      },
+    ]);
+  });
+
+  test("members the project-scope summary does not cover are filled in by ONE batched call", async () => {
+    /*
+     * People on no policy at all are still subject to the team's compliance
+     * rules, so they cannot simply be skipped - and until this change they were
+     * filled in with `Promise.all(missing.map(getReadinessForUser))`.
+     *
+     * That fan-out was the N+1 the old comment here claimed was closed, and it
+     * was worse than the one it replaced: every getReadinessForUser resolves the
+     * project's ENTIRE responder set (five or six heavy queries) purely to work
+     * out which policies reach the one user it was asked about. A forty-member
+     * team with thirty-eight members on no policy issued thirty-eight of those,
+     * uncapped and all at once, to render one page.
+     *
+     * Two members are staged here, not one, precisely because a per-user
+     * implementation passes a single-member test.
+     */
+    complianceSettingFindBy.mockResolvedValue([
+      { ruleType: ComplianceRuleType.HasAlertOnCallRules, enabled: true },
+    ] as never);
+    teamMemberFindBy.mockResolvedValue([
+      { _id: "tm-1", userId: USER_ID },
+      { _id: "tm-2", userId: OTHER_USER_ID },
+    ] as never);
+    userFindBy.mockResolvedValue([
+      { id: USER_ID, name: "Ada", email: "ada@example.com" },
+      { id: OTHER_USER_ID, name: "Grace", email: "grace@example.com" },
+    ] as never);
+    // Project summary knows nothing about either of them - neither is on a policy.
+    readinessForProject.mockResolvedValue(summaryWith([]) as never);
+    readinessForUsers.mockResolvedValue([
+      readinessWith(
+        [
+          coverageCell({
+            ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+            severityId: "asev-1",
+            severityName: "Page",
+            hasRule: false,
+          }),
+        ],
+        USER_ID,
+      ),
+      readinessWith(
+        [
+          coverageCell({
+            ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+            severityId: "asev-1",
+            severityName: "Page",
+            hasRule: true,
+          }),
+        ],
+        OTHER_USER_ID,
+      ),
+    ] as never);
+
+    const status: TeamComplianceStatus =
+      await TeamComplianceService.getTeamComplianceStatus(TEAM_ID, PROJECT_ID);
+
+    // ONE call, carrying both ids. Not one call per member.
+    expect(readinessForUsers).toHaveBeenCalledTimes(1);
+    expect(readinessForUser).not.toHaveBeenCalled();
+
+    const batchedIds: Array<ObjectID> = readinessForUsers.mock
+      .calls[0]![0] as Array<ObjectID>;
+    expect(
+      batchedIds.map((userId: ObjectID): string => {
+        return userId.toString();
+      }),
+    ).toEqual([USER_ID.toString(), OTHER_USER_ID.toString()]);
+    expect(readinessForUsers.mock.calls[0]![1]).toEqual(PROJECT_ID);
+
+    /*
+     * And the batch's answers land on the right people. The result is keyed back
+     * by the userId each UserReadiness carries rather than zipped against the
+     * request by position, so a batch that answered for one of the two would not
+     * shift the other's verdict onto them.
+     */
+    expect(status.userComplianceStatuses[0]!.userName).toBe("Ada");
+    expect(status.userComplianceStatuses[0]!.nonCompliantRules).toEqual([
+      {
+        ruleType: ComplianceRuleType.HasAlertOnCallRules,
+        reason: "Missing notification rules for alert severities: Page",
+      },
+    ]);
+    expect(status.userComplianceStatuses[1]!.userName).toBe("Grace");
+    expect(status.userComplianceStatuses[1]!.isCompliant).toBe(true);
+  });
+
+  test("only the members the summary MISSED are batched, and no call is made when it missed none", async () => {
+    complianceSettingFindBy.mockResolvedValue([
+      { ruleType: ComplianceRuleType.HasAlertOnCallRules, enabled: true },
+    ] as never);
+    teamMemberFindBy.mockResolvedValue([
+      { _id: "tm-1", userId: USER_ID },
+      { _id: "tm-2", userId: OTHER_USER_ID },
+    ] as never);
+    userFindBy.mockResolvedValue([
+      { id: USER_ID, name: "Ada", email: "ada@example.com" },
+      { id: OTHER_USER_ID, name: "Grace", email: "grace@example.com" },
+    ] as never);
+    // Ada is on a policy and so is already in the summary; Grace is not.
+    readinessForProject.mockResolvedValue(
+      summaryWith([readinessWith([], USER_ID)]) as never,
+    );
+    readinessForUsers.mockResolvedValue([
+      readinessWith([], OTHER_USER_ID),
+    ] as never);
+
+    await TeamComplianceService.getTeamComplianceStatus(TEAM_ID, PROJECT_ID);
+
+    const batchedIds: Array<ObjectID> = readinessForUsers.mock
+      .calls[0]![0] as Array<ObjectID>;
+    expect(
+      batchedIds.map((userId: ObjectID): string => {
+        return userId.toString();
+      }),
+    ).toEqual([OTHER_USER_ID.toString()]);
+  });
+
+  test("a member the batch cannot resolve is reported UNCHECKED, and the rest of the page still renders", async () => {
+    /*
+     * The degradation case, and the reason the fill is not allowed to throw.
+     *
+     * Grace is removed from the project between the member read and the
+     * readiness read, so the batch answers for Ada and simply does not carry
+     * Grace. The old code called getReadinessForUser per member inside a
+     * Promise.all, and that call throws BadDataException for a non-member, so
+     * one person leaving a team blanked the whole page for everybody else.
+     *
+     * Now the page renders: Ada's real verdict, and for Grace an honest "could
+     * not check" rather than either a crash or - far worse - a green row.
+     */
+    complianceSettingFindBy.mockResolvedValue([
+      { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
+    ] as never);
+    teamMemberFindBy.mockResolvedValue([
+      { _id: "tm-1", userId: USER_ID },
+      { _id: "tm-2", userId: OTHER_USER_ID },
+    ] as never);
+    userFindBy.mockResolvedValue([
+      { id: USER_ID, name: "Ada", email: "ada@example.com" },
+      { id: OTHER_USER_ID, name: "Grace", email: "grace@example.com" },
+    ] as never);
+    readinessForProject.mockResolvedValue(summaryWith([]) as never);
+    // The batch answers for Ada only.
+    readinessForUsers.mockResolvedValue([
+      readinessWith(
+        [
+          coverageCell({
+            ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+            severityId: "sev-1",
+            severityName: "Critical",
+            hasRule: true,
+          }),
+        ],
+        USER_ID,
+      ),
+    ] as never);
+
+    const status: TeamComplianceStatus =
+      await TeamComplianceService.getTeamComplianceStatus(TEAM_ID, PROJECT_ID);
+
+    expect(status.userComplianceStatuses).toHaveLength(2);
+    expect(status.userComplianceStatuses[0]!.userName).toBe("Ada");
+    expect(status.userComplianceStatuses[0]!.isCompliant).toBe(true);
+
+    expect(status.userComplianceStatuses[1]!.userName).toBe("Grace");
+    expect(status.userComplianceStatuses[1]!.isCompliant).toBe(false);
+    expect(status.userComplianceStatuses[1]!.nonCompliantRules).toEqual([
+      {
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        reason:
+          "Could not check incident notification rules for this user - they may no longer be a member of this project",
+      },
+    ]);
+
+    // And it did not quietly retry her one at a time.
+    expect(readinessForUser).not.toHaveBeenCalled();
+  });
+
+  test("readiness is not computed at all when no on-call rule is enabled", async () => {
+    /*
+     * The four channel rules do not consult readiness, so a team that only
+     * checks "has a verified email" must not pay for a project-wide readiness
+     * pass on every render of the page.
+     */
+    complianceSettingFindBy.mockResolvedValue([
+      {
+        ruleType: ComplianceRuleType.HasNotificationEmailMethod,
+        enabled: true,
+      },
+      // Enabled would trigger it; disabled must not.
+      { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: false },
+    ] as never);
+    teamMemberFindBy.mockResolvedValue([
+      { _id: "tm-1", userId: USER_ID },
+    ] as never);
+    userFindBy.mockResolvedValue([
+      { id: USER_ID, name: "Ada", email: "ada@example.com" },
+    ] as never);
+
+    await TeamComplianceService.getTeamComplianceStatus(TEAM_ID, PROJECT_ID);
+
+    expect(readinessForProject).not.toHaveBeenCalled();
+    expect(readinessForUser).not.toHaveBeenCalled();
+    expect(readinessForUsers).not.toHaveBeenCalled();
+    expect(userEmailFindBy).toHaveBeenCalledTimes(1);
   });
 
   test("returns the team name, and every setting mapped with enabled defaulted to false", async () => {
@@ -1040,7 +1681,7 @@ describe("getTeamComplianceStatus", () => {
   });
 
   test("a team row with no name renders as Unknown Team rather than blank", async () => {
-    teamFindOneById.mockResolvedValue({} as Team);
+    teamFindOneBy.mockResolvedValue({} as Team);
 
     const status: TeamComplianceStatus =
       await TeamComplianceService.getTeamComplianceStatus(TEAM_ID, PROJECT_ID);
@@ -1166,12 +1807,38 @@ describe("getTeamComplianceStatus", () => {
 
     await TeamComplianceService.getTeamComplianceStatus(TEAM_ID, PROJECT_ID);
 
-    expect(
-      (teamFindOneById.mock.calls[0]![0] as { props: { isRoot?: boolean } })
-        .props.isRoot,
-    ).toBe(true);
+    expect(firstCall(teamFindOneBy).props?.isRoot).toBe(true);
     expect(firstCall(complianceSettingFindBy).props?.isRoot).toBe(true);
     expect(firstCall(teamMemberFindBy).props?.isRoot).toBe(true);
     expect(firstCall(userFindBy).props?.isRoot).toBe(true);
+
+    /*
+     * Root reads make the projectId in the QUERY the only tenant boundary there
+     * is, so every one of them has to carry it. This is the assertion that would
+     * have caught the team read: it was the one root read in the file with no
+     * projectId in its query.
+     */
+    expect(firstCall(teamFindOneBy).query["projectId"]).toBe(PROJECT_ID);
+    expect(firstCall(complianceSettingFindBy).query["projectId"]).toBe(
+      PROJECT_ID,
+    );
+    expect(firstCall(teamMemberFindBy).query["projectId"]).toBe(PROJECT_ID);
+  });
+
+  test("the batched readiness contract this service depends on exists on the real service", () => {
+    /*
+     * The readiness service is stubbed for every other test in this file, which
+     * is right for a unit test and would happily keep passing if the entry
+     * points it stubs were renamed or never landed. This is the one assertion
+     * made against the REAL class: TeamComplianceService calls exactly these two
+     * and nothing else, so if either disappears the page breaks at runtime and
+     * should break here first.
+     */
+    const actual: { default: Record<string, unknown> } = jest.requireActual(
+      "../../../Server/Services/OnCallReadinessService",
+    );
+
+    expect(typeof actual.default["getReadinessForProject"]).toBe("function");
+    expect(typeof actual.default["getReadinessForUsers"]).toBe("function");
   });
 });
