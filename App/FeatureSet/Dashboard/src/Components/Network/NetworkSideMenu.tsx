@@ -101,6 +101,15 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.Link,
         },
+        {
+          link: {
+            title: "Device Links",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_LINKS] as Route,
+            ),
+          },
+          icon: IconProp.Link,
+        },
       ],
     },
     {
@@ -153,6 +162,15 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.Label,
+        },
+        {
+          link: {
+            title: "Link Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_LINK_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Link,
         },
       ],
     },

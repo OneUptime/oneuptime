@@ -5,7 +5,13 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Navigation from "Common/UI/Utils/Navigation";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import {
+  MONITORING_METHOD_OPTIONS,
+  isMonitorBackedDevice,
+  isSnmpDevice,
+} from "../../../Components/NetworkDevice/MonitoringMethodFormFields";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
@@ -87,8 +93,13 @@ const NetworkDeviceSettings: FunctionComponent<
             id: "device-details",
           },
           {
+            /*
+             * Nothing polls a monitor-backed device, so a community string
+             * or a v3 credential has nothing to be used for.
+             */
             title: "SNMP Credentials",
             id: "snmp",
+            showIf: isSnmpDevice,
           },
         ]}
         formFields={[
@@ -101,6 +112,37 @@ const NetworkDeviceSettings: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "core-switch-01",
+          },
+          {
+            field: {
+              monitoringMethod: true,
+            },
+            title: "Monitoring Method",
+            stepId: "device-details",
+            description:
+              "SNMP means an assigned probe polls this device on its own schedule. Monitor means nothing polls it and the bound monitor's status is its status — switching to Monitor turns polling off.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions: MONITORING_METHOD_OPTIONS,
+            required: true,
+            placeholder: "Monitoring method",
+          },
+          {
+            field: {
+              monitor: true,
+            },
+            title: "Monitor",
+            stepId: "device-details",
+            showIf: isMonitorBackedDevice,
+            description:
+              "The monitor whose status IS this device's status. Usually a Ping or IP monitor on the device's address.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: Monitor,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Select Monitor",
           },
           {
             field: {
@@ -149,6 +191,22 @@ const NetworkDeviceSettings: FunctionComponent<
                 hostname: true,
               },
               title: "Hostname",
+              fieldType: FieldType.Text,
+            },
+            {
+              field: {
+                monitoringMethod: true,
+              },
+              title: "Monitoring Method",
+              fieldType: FieldType.Text,
+            },
+            {
+              field: {
+                monitor: {
+                  name: true,
+                },
+              },
+              title: "Monitor",
               fieldType: FieldType.Text,
             },
           ],

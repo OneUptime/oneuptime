@@ -29,7 +29,11 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
 import { getSnmpConfigFormFields } from "./SnmpConfigFormFields";
-import { isImportableDiscoveredHost } from "../../Components/NetworkDevice/DiscoveryImportEligibility";
+import {
+  isImportableDiscoveredHost,
+  monitoringMethodForDiscoveredHost,
+} from "../../Components/NetworkDevice/DiscoveryImportEligibility";
+import NetworkDeviceMonitoringMethod from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import {
   DiscoveryScanOutcome,
   summarizeDiscoveryScan,
@@ -100,9 +104,9 @@ const NetworkDeviceDiscovery: FunctionComponent<
     const entries: Array<DiscoveredDeviceEntry> = getDiscoveredDevices(scan);
 
     /*
-     * Preselect every device that is not already registered and actually
-     * answered SNMP — importing a ping-only host would create an
-     * SNMP-credentialed device that can never be polled.
+     * Preselect every host that is not already registered. Ping-only hosts
+     * are included: they import as monitor-backed devices rather than as
+     * SNMP-credentialed ones that could never be polled.
      */
     const initialSelection: Record<string, boolean> = {};
     for (const entry of entries) {
@@ -165,6 +169,28 @@ const NetworkDeviceDiscovery: FunctionComponent<
 
           if (entry.sysDescr) {
             device.description = entry.sysDescr.substring(0, 500);
+          }
+
+          const monitoringMethod: NetworkDeviceMonitoringMethod =
+            monitoringMethodForDiscoveredHost(entry);
+          device.monitoringMethod = monitoringMethod;
+
+          /*
+           * A ping-only host gets none of the scan's SNMP setup — no probe,
+           * no credentials, no polling. It is recorded so it can belong to a
+           * site and appear on the topology map; binding a monitor to it is
+           * a separate, deliberate step.
+           */
+          if (monitoringMethod === NetworkDeviceMonitoringMethod.Monitor) {
+            device.isPollingEnabled = false;
+
+            await ModelAPI.create<NetworkDevice>({
+              model: device,
+              modelType: NetworkDevice,
+            });
+
+            successCount++;
+            continue;
           }
 
           if (scanToReview.probeId) {
@@ -615,13 +641,16 @@ const NetworkDeviceDiscovery: FunctionComponent<
             {reviewEntries.map(
               (entry: DiscoveredDeviceEntry, index: number): ReactElement => {
                 /*
-                 * Ping-only hosts (snmpReachable === false) stay visible
-                 * but cannot be imported — importing creates an
-                 * SNMP-credentialed device, which is meaningless for an
-                 * SNMP-silent host. Legacy rows (snmpReachable undefined)
-                 * behave as before.
+                 * Ping-only hosts (snmpReachable === false) import too, as
+                 * monitor-backed devices rather than SNMP-credentialed ones
+                 * that could never be polled. They are badged so the
+                 * operator knows what they are agreeing to. Legacy rows
+                 * (snmpReachable undefined) import as SNMP, as before.
                  */
                 const isImportable: boolean = isImportableDiscoveredHost(entry);
+                const isPingOnly: boolean =
+                  monitoringMethodForDiscoveredHost(entry) ===
+                  NetworkDeviceMonitoringMethod.Monitor;
                 return (
                   <div
                     key={`${entry.ipAddress}-${index}`}
@@ -664,10 +693,10 @@ const NetworkDeviceDiscovery: FunctionComponent<
                       </div>
                     </div>
                     <div className="flex flex-shrink-0 items-center gap-2">
-                      {!isImportable && (
+                      {isPingOnly && (
                         <span
                           className="inline-flex flex-shrink-0 items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600"
-                          title="Responds to ping only — will appear as an endpoint via ARP/FDB discovery once its switch is monitored"
+                          title="Responds to ping only. Imports as a monitor-backed device: no polling and no credentials, so bind a Ping or IP monitor to it afterwards to give it a status."
                         >
                           No SNMP
                         </span>

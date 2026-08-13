@@ -1543,6 +1543,24 @@ import NetworkSiteLinkService, {
   Service as NetworkSiteLinkServiceType,
 } from "Common/Server/Services/NetworkSiteLinkService";
 
+// NetworkDeviceLink
+import NetworkDeviceLink from "Common/Models/DatabaseModels/NetworkDeviceLink";
+import NetworkDeviceLinkService, {
+  Service as NetworkDeviceLinkServiceType,
+} from "Common/Server/Services/NetworkDeviceLinkService";
+
+// NetworkDeviceLinkRule
+import NetworkDeviceLinkRule from "Common/Models/DatabaseModels/NetworkDeviceLinkRule";
+import NetworkDeviceLinkRuleService, {
+  Service as NetworkDeviceLinkRuleServiceType,
+} from "Common/Server/Services/NetworkDeviceLinkRuleService";
+
+// NetworkTopologySuppression
+import NetworkTopologySuppression from "Common/Models/DatabaseModels/NetworkTopologySuppression";
+import NetworkTopologySuppressionService, {
+  Service as NetworkTopologySuppressionServiceType,
+} from "Common/Server/Services/NetworkTopologySuppressionService";
+
 // NetworkSiteAssignmentRule
 import NetworkSiteAssignmentRule from "Common/Models/DatabaseModels/NetworkSiteAssignmentRule";
 import NetworkSiteAssignmentRuleService, {
@@ -4755,6 +4773,36 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<NetworkSiteLink, NetworkSiteLinkServiceType>(
         NetworkSiteLink,
         NetworkSiteLinkService,
+      ).getRouter(),
+    );
+
+    // network device link
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkDeviceLink, NetworkDeviceLinkServiceType>(
+        NetworkDeviceLink,
+        NetworkDeviceLinkService,
+      ).getRouter(),
+    );
+
+    // network device link rule
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkDeviceLinkRule, NetworkDeviceLinkRuleServiceType>(
+        NetworkDeviceLinkRule,
+        NetworkDeviceLinkRuleService,
+      ).getRouter(),
+    );
+
+    // network topology suppression
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        NetworkTopologySuppression,
+        NetworkTopologySuppressionServiceType
+      >(
+        NetworkTopologySuppression,
+        NetworkTopologySuppressionService,
       ).getRouter(),
     );
 
