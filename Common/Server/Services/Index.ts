@@ -214,6 +214,7 @@ import WorkflowVariablesService from "./WorkflowVariableService";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import TelemetryExceptionService from "./TelemetryExceptionService";
 import InventoryItemService from "./InventoryItemService";
+import InventoryItemCustomFieldService from "./InventoryItemCustomFieldService";
 import InventoryItemRelationshipService from "./InventoryItemRelationshipService";
 import ExceptionInstanceService from "./ExceptionInstanceService";
 import KubernetesCostAllocationService from "./KubernetesCostAllocationService";
@@ -499,6 +500,7 @@ const services: Array<BaseService> = [
 
   TelemetryExceptionService,
   InventoryItemService,
+  InventoryItemCustomFieldService,
   InventoryItemRelationshipService,
 
   // scheduled maintenance templates

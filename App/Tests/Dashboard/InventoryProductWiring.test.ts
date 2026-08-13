@@ -52,11 +52,18 @@ const INVENTORY_PAGE_KEYS: ReadonlyArray<string> = [
   "INVENTORY_ROOT",
   "INVENTORY",
   "INVENTORY_ITEMS",
+  "INVENTORY_ARCHIVED",
   "INVENTORY_DOCUMENTATION",
+  "INVENTORY_SETTINGS_CUSTOM_FIELDS",
   "INVENTORY_VIEW_ROOT",
   "INVENTORY_VIEW",
   "INVENTORY_VIEW_RELATIONSHIPS",
   "INVENTORY_VIEW_TELEMETRY",
+  "INVENTORY_VIEW_CUSTOM_FIELDS",
+  "INVENTORY_VIEW_INCIDENTS",
+  "INVENTORY_VIEW_ALERTS",
+  "INVENTORY_VIEW_SCHEDULED_MAINTENANCE",
+  "INVENTORY_VIEW_AUDIT_LOGS",
   "INVENTORY_VIEW_SETTINGS",
   "INVENTORY_VIEW_DELETE",
 ];
@@ -190,7 +197,7 @@ describe("every navigable page has breadcrumbs", () => {
 
   test("every trail starts at the project and names the product", () => {
     const trails: Array<string> =
-      breadcrumbs.match(/\[ "Project",[^\]]*\]/g) || [];
+      breadcrumbs.match(/\[\s*"Project",[^\]]*\]/g) || [];
 
     expect(trails.length).toBe(NAVIGABLE_PAGE_KEYS.length);
 

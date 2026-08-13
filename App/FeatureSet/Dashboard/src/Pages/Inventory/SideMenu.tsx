@@ -95,6 +95,15 @@ const InventorySideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.ExclaimationCircle,
         },
+        {
+          link: {
+            title: "Archived",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INVENTORY_ARCHIVED] as Route,
+            ),
+          },
+          icon: IconProp.Archive,
+        },
       ],
     },
     {
@@ -109,6 +118,21 @@ const InventorySideMenu: FunctionComponent = (): ReactElement => {
           icon: getSourceIcon(source),
         };
       }),
+    },
+    {
+      title: "Settings",
+      defaultCollapsed: true,
+      items: [
+        {
+          link: {
+            title: "Custom Fields",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INVENTORY_SETTINGS_CUSTOM_FIELDS] as Route,
+            ),
+          },
+          icon: IconProp.TableCells,
+        },
+      ],
     },
     {
       title: "Help",

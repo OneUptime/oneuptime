@@ -100,8 +100,13 @@ describe("the inventory table file exists where the test expects it", () => {
 });
 
 describe("manual creation is offered", () => {
-  test("the table is creatable", () => {
-    expect(readCode()).toContain("isCreateable={true}");
+  test("the live table is creatable", () => {
+    /*
+     * Conditional rather than unconditional: the archived view reuses this
+     * table and is deliberately read-only, so a row already put out of sight
+     * cannot be edited or deleted by mistake.
+     */
+    expect(readCode()).toContain("isCreateable={!isArchivedView}");
   });
 
   test("the create form is wired", () => {

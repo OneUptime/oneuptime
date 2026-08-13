@@ -512,8 +512,15 @@ export const InventoryRoutePath: Dictionary<string> = {
   [PageMap.INVENTORY_VIEW]: `item/${RouteParams.ModelID}`,
   [PageMap.INVENTORY_VIEW_RELATIONSHIPS]: `item/${RouteParams.ModelID}/relationships`,
   [PageMap.INVENTORY_VIEW_TELEMETRY]: `item/${RouteParams.ModelID}/telemetry`,
+  [PageMap.INVENTORY_VIEW_INCIDENTS]: `item/${RouteParams.ModelID}/incidents`,
+  [PageMap.INVENTORY_VIEW_ALERTS]: `item/${RouteParams.ModelID}/alerts`,
+  [PageMap.INVENTORY_VIEW_SCHEDULED_MAINTENANCE]: `item/${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.INVENTORY_VIEW_CUSTOM_FIELDS]: `item/${RouteParams.ModelID}/custom-fields`,
+  [PageMap.INVENTORY_VIEW_AUDIT_LOGS]: `item/${RouteParams.ModelID}/audit-logs`,
   [PageMap.INVENTORY_VIEW_SETTINGS]: `item/${RouteParams.ModelID}/settings`,
   [PageMap.INVENTORY_VIEW_DELETE]: `item/${RouteParams.ModelID}/delete`,
+  [PageMap.INVENTORY_ARCHIVED]: "archived",
+  [PageMap.INVENTORY_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
 };
 
 export const TopologyRoutePath: Dictionary<string> = {
@@ -5529,6 +5536,48 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INVENTORY_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/inventory/${
       InventoryRoutePath[PageMap.INVENTORY_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_CUSTOM_FIELDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_CUSTOM_FIELDS]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_SETTINGS_CUSTOM_FIELDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_SETTINGS_CUSTOM_FIELDS]
     }`,
   ),
 

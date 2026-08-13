@@ -57,6 +57,68 @@ const InventoryItemSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Activity,
         },
+        {
+          link: {
+            title: "Custom Fields",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INVENTORY_VIEW_CUSTOM_FIELDS] as Route,
+              { modelId: props.modelId },
+            ),
+          },
+          icon: IconProp.TableCells,
+        },
+      ],
+    },
+    /*
+     * These three read through the item's typed row rather than through any
+     * relation of its own — see LinkedResource. The section is shown for every
+     * item, including the ones that can never have their own: hiding it would
+     * leave a user wondering where incidents went, whereas the page itself can
+     * say which resource to look at instead.
+     */
+    {
+      title: "Operations",
+      items: [
+        {
+          link: {
+            title: "Incidents",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INVENTORY_VIEW_INCIDENTS] as Route,
+              { modelId: props.modelId },
+            ),
+          },
+          icon: IconProp.Alert,
+        },
+        {
+          link: {
+            title: "Alerts",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INVENTORY_VIEW_ALERTS] as Route,
+              { modelId: props.modelId },
+            ),
+          },
+          icon: IconProp.ExclaimationCircle,
+        },
+        {
+          link: {
+            title: "Scheduled Maintenance",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INVENTORY_VIEW_SCHEDULED_MAINTENANCE] as Route,
+              { modelId: props.modelId },
+            ),
+          },
+          icon: IconProp.Clock,
+        },
+        {
+          link: {
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INVENTORY_VIEW_AUDIT_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          },
+          icon: IconProp.List,
+        },
       ],
     },
   ];

@@ -69,9 +69,10 @@ const TABLES: Array<TableRename> = [
 ];
 
 /**
- * Every relation column that gets a foreign key on these two models. Both
- * carry exactly the standard trio; a new relation would need a new rename
- * pair, which the count assertion below catches.
+ * The relation columns that carried a foreign key WHEN THE RENAME RAN. Both
+ * tables had exactly the standard trio then. `archivedByUserId` is absent on
+ * purpose: it is added by a later migration, so the rename had nothing to
+ * rename for it.
  */
 const FOREIGN_KEY_COLUMNS: Array<Array<string>> = [
   ["projectId"],
@@ -127,6 +128,50 @@ const getRenamePairs: NamePairsFunction = (
 };
 
 const RENAME_PAIRS: Array<[string, string]> = getRenamePairs(MIGRATION_SOURCE);
+
+const MIGRATION_TIMESTAMP: number = 1786800000000;
+
+/*
+ * Indexes on these tables created by a LATER migration.
+ *
+ * The rename could not have renamed them — they did not exist when it ran —
+ * but the models declare them today, so deriving the expected set purely from
+ * the model would demand a rename pair for an index that had not been created
+ * yet. Read out of the migration directory rather than hand-listed, so a
+ * future migration adding an index does not require editing this test.
+ */
+function getIndexesCreatedAfterTheRename(): Set<string> {
+  const directory: string = path.dirname(MIGRATION_PATH);
+  const created: Set<string> = new Set<string>();
+
+  for (const file of fs.readdirSync(directory)) {
+    const timestamp: number = Number(file.split("-")[0]);
+
+    if (!Number.isFinite(timestamp) || timestamp <= MIGRATION_TIMESTAMP) {
+      continue;
+    }
+
+    const source: string = fs.readFileSync(path.join(directory, file), "utf8");
+
+    for (const table of ["InventoryItem", "InventoryItemRelationship"]) {
+      const pattern: RegExp = new RegExp(
+        `CREATE (?:UNIQUE )?INDEX "(IDX_[a-f0-9]+)" ON "${table}"`,
+        "g",
+      );
+
+      let match: RegExpExecArray | null = pattern.exec(source);
+
+      while (match) {
+        created.add(match[1]!);
+        match = pattern.exec(source);
+      }
+    }
+  }
+
+  return created;
+}
+
+const INDEXES_ADDED_LATER: Set<string> = getIndexesCreatedAfterTheRename();
 
 type PairMapFunction = (prefix: string) => Map<string, string>;
 
@@ -190,8 +235,14 @@ describe("index names match TypeORM's naming strategy", () => {
       const oldName: string = namingStrategy.indexName(table.oldTable, columns);
       const newName: string = namingStrategy.indexName(table.newTable, columns);
 
-      test(`${table.newTable} (${columns.join(", ")}) is renamed`, () => {
+      test(`${table.newTable} (${columns.join(", ")}) is renamed or created later`, () => {
         const indexPairs: Map<string, string> = pairsWithPrefix("IDX_");
+
+        if (INDEXES_ADDED_LATER.has(newName)) {
+          // Created after the rename, so there is nothing for it to rename.
+          expect(indexPairs.has(oldName)).toBe(false);
+          return;
+        }
 
         expect(indexPairs.has(oldName)).toBe(true);
         expect(indexPairs.get(oldName)).toBe(newName);
@@ -208,6 +259,12 @@ describe("index names match TypeORM's naming strategy", () => {
 
     for (const table of TABLES) {
       for (const columns of getDeclaredIndexColumns(table.modelType)) {
+        if (
+          INDEXES_ADDED_LATER.has(namingStrategy.indexName(table.newTable, columns))
+        ) {
+          continue;
+        }
+
         expected.add(namingStrategy.indexName(table.oldTable, columns));
       }
     }

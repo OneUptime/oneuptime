@@ -49,6 +49,45 @@ export function getInventoryBreadcrumbs(path: string): Array<Link> | undefined {
       "View Item",
       "Delete Item",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INVENTORY_VIEW_INCIDENTS, [
+      "Project",
+      "Inventory",
+      "View Item",
+      "Incidents",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INVENTORY_VIEW_ALERTS, [
+      "Project",
+      "Inventory",
+      "View Item",
+      "Alerts",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.INVENTORY_VIEW_SCHEDULED_MAINTENANCE,
+      ["Project", "Inventory", "View Item", "Scheduled Maintenance"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INVENTORY_VIEW_CUSTOM_FIELDS, [
+      "Project",
+      "Inventory",
+      "View Item",
+      "Custom Fields",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INVENTORY_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Inventory",
+      "View Item",
+      "Audit Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INVENTORY_ARCHIVED, [
+      "Project",
+      "Inventory",
+      "Archived",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INVENTORY_SETTINGS_CUSTOM_FIELDS, [
+      "Project",
+      "Inventory",
+      "Settings",
+      "Custom Fields",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

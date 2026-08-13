@@ -6,6 +6,7 @@ import TableAccessControl from "../../Types/Database/AccessControl/TableAccessCo
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -81,12 +82,18 @@ const UPDATE_PERMS: Array<Permission> = [
 })
 @CrudApiEndpoint(new Route("/inventory-item"))
 /*
- * The product this backs is called Inventory, so the display names say so —
- * they are what the delete confirmation, the detail card and the generated
- * API docs read out. The table name stays `InventoryItem`: it is the
- * storage identity, and renaming it would be a migration with no user-visible
- * benefit.
+ * Audit logging is scoped to changes a person made.
+ *
+ * `create` is off because ingest creates one row per discovered entity: on a
+ * churning Kubernetes estate that is a new row per pod, and the resulting
+ * flood of "created" entries says nothing the `firstSeenAt` column does not
+ * already say. `update` and `delete` are on and cost nothing at ingest
+ * volume, because the reconciler bumps `lastSeenAt` through
+ * `updateColumnsByIdIfUnlockedWithoutHooks` and the prune sweep removes rows
+ * through `hardDeleteBy` — neither of which reaches the audit-log hook. What
+ * is left is exactly the user-initiated edits and deletions.
  */
+@EnableAuditLog({ create: false, update: true, delete: true })
 @TableMetadata({
   tableName: "InventoryItem",
   singularName: "Inventory Item",
@@ -101,6 +108,11 @@ const UPDATE_PERMS: Array<Permission> = [
 // List-by-type (entity explorer) and reverse lookup from a typed resource row.
 @Index(["projectId", "entityType"])
 @Index(["projectId", "resourceType", "resourceId"])
+/*
+ * Every list view filters on `isArchived`, so it belongs in the same index as
+ * the tenant column rather than being scanned per row.
+ */
+@Index(["projectId", "isArchived"])
 export default class InventoryItem extends DatabaseBaseModel {
   @ColumnAccessControl({ create: CREATE_PERMS, read: READ_PERMS, update: [] })
   @TableColumn({
@@ -355,6 +367,117 @@ export default class InventoryItem extends DatabaseBaseModel {
   })
   @Column({ type: ColumnType.Date, nullable: true })
   public lastSeenAt?: Date = undefined;
+
+  /*
+   * Archiving is the disposal route that actually works for this table.
+   *
+   * Deleting a discovered or mirrored row does not stick — ingest re-creates
+   * it on the next reconcile, the poller re-mirrors it on the next sweep. So
+   * "I have seen this and I do not want it in my list" had no expression at
+   * all before this column: the only button available was one that undoes
+   * itself. Archiving is a user annotation the reconciler never writes (its
+   * update is the `lastSeenAt` bump plus an attribute merge, and neither
+   * touches this), so it survives re-registration.
+   *
+   * The row keeps its identity and keeps collecting telemetry; it is only
+   * hidden from the default list.
+   */
+  @ColumnAccessControl({
+    create: CREATE_PERMS,
+    read: READ_PERMS,
+    update: UPDATE_PERMS,
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Is Archived",
+    description:
+      "Is this item archived? Archived items are hidden from the default list but keep their identity and keep collecting telemetry.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isArchived?: boolean = undefined;
+
+  /*
+   * Stamped server-side from the `isArchived` write (see
+   * DatabaseService.sanitizeCreateOrUpdate), which is why these two are
+   * read-only to the client.
+   */
+  @ColumnAccessControl({ create: [], read: READ_PERMS, update: [] })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Archived At",
+    description: "When this item was archived.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public archivedAt?: Date = undefined;
+
+  @ColumnAccessControl({ create: [], read: READ_PERMS, update: [] })
+  @TableColumn({
+    manyToOneRelationColumn: "archivedByUserId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "Archived by User",
+    description:
+      "Relation to User who archived this object (if this object was archived by a User)",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "archivedByUserId" })
+  public archivedByUser?: User = undefined;
+
+  @ColumnAccessControl({ create: [], read: READ_PERMS, update: [] })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Archived by User ID",
+    description:
+      "User ID who archived this object (if this object was archived by a User)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public archivedByUserId?: ObjectID = undefined;
+
+  /*
+   * Project-defined fields, whose shape lives in InventoryItemCustomField.
+   * Useful here in a way it is not on most tables: an estate catalog is
+   * exactly where an organisation wants to hang its own vocabulary — owner
+   * team, cost centre, compliance scope — on rows OneUptime discovered
+   * rather than rows a person filled in.
+   */
+  @ColumnAccessControl({
+    create: CREATE_PERMS,
+    read: READ_PERMS,
+    update: UPDATE_PERMS,
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Custom Fields",
+    description: "Custom fields on this item.",
+  })
+  @Column({ type: ColumnType.JSON, nullable: true })
+  public customFields?: JSONObject = undefined;
 
   @ColumnAccessControl({ create: CREATE_PERMS, read: READ_PERMS, update: [] })
   @TableColumn({

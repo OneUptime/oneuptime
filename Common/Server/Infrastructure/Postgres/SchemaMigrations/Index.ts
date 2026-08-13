@@ -516,6 +516,7 @@ import { MigrationName1786446545142 } from "./1786446545142-MigrationName";
 import { AddMonitorDependency1786449497966 } from "./1786449497966-AddMonitorDependency";
 import { AddDeletedProjectTable1786461136170 } from "./1786461136170-AddDeletedProjectTable";
 import { MigrationName1786551733814 } from "./1786551733814-MigrationName";
+import { AddInventoryItemArchiveAndCustomFields1786900000000 } from "./1786900000000-AddInventoryItemArchiveAndCustomFields";
 import { RenameTelemetryEntityToInventoryItem1786800000000 } from "./1786800000000-RenameTelemetryEntityToInventoryItem";
 import { AddWorkflowLogStepTrace1786559879134 } from "./1786559879134-AddWorkflowLogStepTrace";
 
@@ -1040,4 +1041,5 @@ export default [
   MigrationName1786551733814,
   AddWorkflowLogStepTrace1786559879134,
   RenameTelemetryEntityToInventoryItem1786800000000,
+  AddInventoryItemArchiveAndCustomFields1786900000000,
 ];

@@ -308,6 +308,7 @@ import TelemetryIngestionKey from "./TelemetryIngestionKey";
 
 import TelemetryException from "./TelemetryException";
 import InventoryItem from "./InventoryItem";
+import InventoryItemCustomField from "./InventoryItemCustomField";
 import InventoryItemRelationship from "./InventoryItemRelationship";
 import ScheduledMaintenanceTemplate from "./ScheduledMaintenanceTemplate";
 import ScheduledMaintenanceTemplateOwnerTeam from "./ScheduledMaintenanceTemplateOwnerTeam";
@@ -776,6 +777,7 @@ const AllModelTypes: Array<{
 
   TelemetryException,
   InventoryItem,
+  InventoryItemCustomField,
   InventoryItemRelationship,
 
   TableView,
