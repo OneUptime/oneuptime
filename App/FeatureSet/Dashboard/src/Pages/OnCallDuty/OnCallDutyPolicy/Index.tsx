@@ -13,6 +13,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import OnCallDutyPolicyFeedElement from "../../../Components/OnCallPolicy/OnCallDutyPolicyFeed";
 import OnCallPolicySummary from "../../../Components/OnCallPolicy/OnCallPolicySummary";
+import ResponderReadinessCard from "../../../Components/OnCallPolicy/Readiness/ResponderReadinessCard";
 
 const OnCallDutyPolicyView: FunctionComponent<
   PageComponentProps
@@ -135,6 +136,14 @@ const OnCallDutyPolicyView: FunctionComponent<
         onCallDutyPolicyId={modelId}
         projectId={ProjectUtil.getCurrentProjectId()!}
       />
+
+      {/*
+       * Whether the people this policy pages can actually be reached. It sits
+       * directly under the escalation summary because the two answer halves of
+       * the same question: the summary says who gets paged, this says whether
+       * that page lands.
+       */}
+      <ResponderReadinessCard onCallDutyPolicyId={modelId} />
 
       <OnCallDutyPolicyFeedElement onCallDutyPolicyId={modelId} />
     </Fragment>

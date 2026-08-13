@@ -17,6 +17,11 @@ export function getOnCallDutyBreadcrumbs(
       "On-Call Duty",
       "Policies",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_READINESS, [
+      "Project",
+      "On-Call Duty",
+      "Readiness",
+    ]),
     //slack connection
     ...BuildBreadcrumbLinksByTitles(
       PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_SLACK,

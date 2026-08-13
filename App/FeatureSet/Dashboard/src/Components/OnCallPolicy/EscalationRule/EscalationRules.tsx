@@ -1105,6 +1105,16 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
               join.user.name?.toString() ||
               join.user.email?.toString() ||
               "User",
+            /*
+             * The id is what matches this chip to its readiness row. The label
+             * alone would work right up until two responders share a display
+             * name, at which point buildReadinessIndex refuses to guess and the
+             * warning silently disappears from both of them — so it is carried
+             * here even though the label is already present. The join query
+             * selects user._id (see the userJoins ModelAPI.getList above), so
+             * this is populated for every row that has a user at all.
+             */
+            userId: join.user.id ? join.user.id.toString() : undefined,
           });
         }
       }
@@ -1121,10 +1131,18 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
     <Fragment>
       {!isLoading && !error && rules.length > 0 ? (
         <div className="mb-6">
+          {/*
+           * The policy id is what turns the readiness dots on: EscalationSummary
+           * leaves its readiness hook idle without one, which is the state this
+           * call site sat in — a summary that could never load readiness and
+           * therefore could never draw a dot, on the one screen where an admin is
+           * actually editing who gets paged.
+           */}
           <EscalationSummary
             levels={summaryLevels}
             repeatEnabled={repeatEnabled}
             repeatCount={repeatCount}
+            onCallDutyPolicyId={props.onCallDutyPolicyId}
           />
         </div>
       ) : (

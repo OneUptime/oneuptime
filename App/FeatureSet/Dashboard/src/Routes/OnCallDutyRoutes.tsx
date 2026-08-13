@@ -13,6 +13,7 @@ import OnCallDutyPoliciesPage from "../Pages/OnCallDuty/OnCallDutyPolicies";
 import OnCallDutyExecutionLogs from "../Pages/OnCallDuty/OnCallDutyExecutionLogs";
 
 import OnCallDutyUserOverrides from "../Pages/OnCallDuty/UserOverrides";
+import OnCallDutyReadiness from "../Pages/OnCallDuty/Readiness";
 
 import OnCallDutyPolicyViewUserOverrides from "../Pages/OnCallDuty/OnCallDutyPolicy/UserOverrides";
 import OnCallDutyPolicyExecutionLogTimeline from "../Pages/OnCallDuty/OnCallDutyExecutionLogView";
@@ -134,6 +135,15 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
             <OnCallDutyPoliciesPage
               {...props}
               pageRoute={RouteMap[PageMap.ON_CALL_DUTY_POLICIES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_READINESS] || ""}
+          element={
+            <OnCallDutyReadiness
+              {...props}
+              pageRoute={RouteMap[PageMap.ON_CALL_DUTY_READINESS] as Route}
             />
           }
         />

@@ -12,6 +12,8 @@ import { Outlet } from "react-router-dom";
 const PageTitleMap: Dictionary<string> = {
   [RouteUtil.getLastPathForKey(PageMap.ON_CALL_DUTY_POLICIES)]:
     "On-Call Duty Policies",
+  [RouteUtil.getLastPathForKey(PageMap.ON_CALL_DUTY_READINESS)]:
+    "On-Call Readiness",
   [RouteUtil.getLastPathForKey(PageMap.ON_CALL_DUTY_SCHEDULES)]:
     "On-Call Duty Schedules",
   [RouteUtil.getLastPathForKey(PageMap.ON_CALL_DUTY_EXECUTION_LOGS)]:
