@@ -126,10 +126,12 @@ export default class SSRFProtection {
     }
 
     /*
-     * OneUptime's URL parser keeps the port glued to the host (e.g.
-     * "169.254.169.254:80"). Strip it before the checks below, otherwise a
-     * literal-with-port slips past the IPv4 blocklist and, because it contains
-     * a ":", is mistaken for an IP literal and skips DNS resolution entirely.
+     * OneUptime's URL parser hands back the whole authority — userinfo, host
+     * and port glued together ("user:pw@169.254.169.254:80"). Reduce it to the
+     * bare host before the checks below: a literal-with-port otherwise slips
+     * past the IPv4 blocklist and, because it contains a ":", is mistaken for
+     * an IP literal and skips DNS resolution entirely, and userinfo otherwise
+     * gets to nominate the host outright.
      */
     const hostname: string = SSRFProtection.extractHost(rawHost);
 
@@ -137,16 +139,41 @@ export default class SSRFProtection {
       throw new BadDataException("Webhook URL must include a host.");
     }
 
-    if (SSRFProtection.isBlockedHostnameLiteral(hostname)) {
-      throw new BadDataException(
-        "Webhook URL points to a private, loopback, or link-local address and is not allowed.",
-      );
+    /*
+     * Check the host BOTH parsers see, not just ours.
+     *
+     * A guard is only worth something if it reasons about the host the HTTP
+     * client will actually dial, and OneUptime's parser and WHATWG do not
+     * always agree on which substring that is — userinfo was one such
+     * disagreement, and treating it as the only one would be optimistic. So
+     * whenever the two answers differ, both are held to the blocklist and a
+     * verdict of "internal" from either one is enough to refuse. A legitimate
+     * public URL parses to a public host under both, and pays only a string
+     * comparison for the privilege.
+     */
+    const whatwgHostname: string = SSRFProtection.getBareHostname(rawUrl);
+
+    const hostnames: Array<string> =
+      whatwgHostname && whatwgHostname !== hostname
+        ? [hostname, whatwgHostname]
+        : [hostname];
+
+    for (const host of hostnames) {
+      if (SSRFProtection.isBlockedHostnameLiteral(host)) {
+        throw new BadDataException(
+          "Webhook URL points to a private, loopback, or link-local address and is not allowed.",
+        );
+      }
     }
 
-    if (!SSRFProtection.isIpLiteral(hostname)) {
+    for (const host of hostnames) {
+      if (SSRFProtection.isIpLiteral(host)) {
+        continue;
+      }
+
       let resolved: Array<{ address: string }> = [];
       try {
-        resolved = await dns.promises.lookup(hostname, { all: true });
+        resolved = await dns.promises.lookup(host, { all: true });
       } catch {
         throw new BadDataException(
           "Webhook URL hostname could not be resolved via DNS.",
@@ -166,12 +193,34 @@ export default class SSRFProtection {
   }
 
   /*
-   * Extracts the bare host (IPv4, IPv6, or hostname) from a "host[:port]"
-   * string, handling bracketed IPv6 (`[::1]`, `[::1]:8080`) and unbracketed
-   * IPv6 literals (which contain multiple colons and carry no port).
+   * Everything up to and including the LAST "@" is userinfo, never the host.
+   *
+   * This matters because OneUptime's Hostname deliberately KEEPS userinfo in
+   * the string it stores, and a "host:port" split over that string reads the
+   * USERNAME as the host: "example.com:pass@169.254.169.254" holds exactly one
+   * colon, so splitting on it answers "example.com" — which resolves publicly
+   * and sails through the blocklist — while every RFC 3986 client (axios, and
+   * WHATWG before it) dials 169.254.169.254.
+   *
+   * The LAST "@" is the delimiter, which is how WHATWG resolves an authority
+   * carrying more than one and therefore where the HTTP client will split it.
+   * Hostname's own validation happens to reject a second "@" before this runs,
+   * so the choice only shows up on hosts reaching us by another route — but
+   * splitting on the first "@" would be a bypass the day that changes.
+   */
+  private static stripUserInfo(authority: string): string {
+    const atIndex: number = authority.lastIndexOf("@");
+    return atIndex === -1 ? authority : authority.substring(atIndex + 1);
+  }
+
+  /*
+   * Extracts the bare host (IPv4, IPv6, or hostname) from a
+   * "[userinfo@]host[:port]" string, handling bracketed IPv6 (`[::1]`,
+   * `[::1]:8080`) and unbracketed IPv6 literals (which contain multiple colons
+   * and carry no port).
    */
   private static extractHost(hostWithPort: string): string {
-    const host: string = hostWithPort.trim();
+    const host: string = SSRFProtection.stripUserInfo(hostWithPort.trim());
 
     if (host.startsWith("[")) {
       const closingBracketIndex: number = host.indexOf("]");
