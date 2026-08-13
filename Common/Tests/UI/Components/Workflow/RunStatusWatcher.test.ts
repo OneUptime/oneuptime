@@ -99,7 +99,7 @@ describe("decideRunWatch", () => {
     });
 
     expect(decision.shouldContinue).toBe(false);
-    expect(decision.message).toMatch(/Logs tab/);
+    expect(decision.message).toMatch(/run log/i);
   });
 
   test("stops on timeout", () => {
