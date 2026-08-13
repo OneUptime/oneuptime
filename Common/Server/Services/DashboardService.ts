@@ -24,6 +24,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ObjectID from "../../Types/ObjectID";
 import { JSONObject } from "../../Types/JSON";
 import IP from "../../Types/IP/IP";
+import { resolveClientIp } from "../Utils/ClientIp";
 import {
   DASHBOARD_MASTER_PASSWORD_COOKIE_IDENTIFIER,
   DASHBOARD_MASTER_PASSWORD_REQUIRED_MESSAGE,
@@ -169,12 +170,13 @@ export class Service extends DatabaseService<Model> {
       if (dashboard?.ipWhitelist && dashboard.ipWhitelist.length > 0) {
         const ipWhitelist: Array<string> = dashboard.ipWhitelist?.split("\n");
 
-        const ipAccessedFrom: string | undefined =
-          req.headers["x-forwarded-for"]?.toString() ||
-          req.headers["x-real-ip"]?.toString() ||
-          req.socket.remoteAddress ||
-          req.ip ||
-          req.ips[0];
+        /*
+         * One address, resolved from the trusted end of X-Forwarded-For.
+         * Never the raw header: a caller can prepend any address they like to
+         * it, so checking the chain rather than a single resolved address let
+         * anyone who knew an allowlisted address walk straight in.
+         */
+        const ipAccessedFrom: string | undefined = resolveClientIp(req);
 
         if (!ipAccessedFrom) {
           logger.error("IP address not found in request.", {
@@ -189,10 +191,7 @@ export class Service extends DatabaseService<Model> {
         }
 
         const isIPWhitelisted: boolean = IP.isInWhitelist({
-          ips:
-            ipAccessedFrom?.split(",").map((i: string) => {
-              return i.trim();
-            }) || [],
+          ip: ipAccessedFrom,
           whitelist: ipWhitelist,
         });
 

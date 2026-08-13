@@ -4,8 +4,10 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
+import IconProp from "Common/Types/Icon/IconProp";
 import OnCallDutyExecutionLogTimelineStatus from "Common/Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -51,6 +53,17 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
         }}
         selectMoreFields={{
           statusMessage: true,
+          /*
+           * The schedule this step targeted. Populated by the escalation runner
+           * on every schedule step — including the "nobody was on call" skip,
+           * which is the one row where it is the whole story. Without it, a
+           * coverage-gap skip rendered as `Skipped` / `-` / `-`, indistinguishable
+           * from a duplicate-notification skip.
+           */
+          onCallDutySchedule: {
+            _id: true,
+            name: true,
+          },
         }}
         noItemsMessage={"No notifications sent out so far."}
         showRefreshButton={true}
@@ -170,6 +183,44 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                       BaseModel.fromJSON(item["alertSentToUser"], User) as User
                     }
                   />
+                );
+              }
+
+              /*
+               * A step that targeted a schedule but has no recipient means the
+               * schedule had nobody on call. Naming that explicitly is the
+               * difference between "this row is uninteresting" and "this is why
+               * the incident sat unacknowledged".
+               */
+              if (item["onCallDutyScheduleId"]) {
+                return (
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200">
+                    <Icon icon={IconProp.Alert} className="h-3.5 w-3.5" />
+                    No one was on call
+                  </span>
+                );
+              }
+
+              return <p>-</p>;
+            },
+          },
+          {
+            field: {
+              onCallDutySchedule: {
+                name: true,
+              },
+            },
+            title: "Schedule",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (
+              item: OnCallDutyPolicyExecutionLogTimeline,
+            ): ReactElement => {
+              if (item["onCallDutySchedule"]?.name) {
+                return (
+                  <span className="text-sm text-gray-700">
+                    {item["onCallDutySchedule"].name.toString()}
+                  </span>
                 );
               }
 

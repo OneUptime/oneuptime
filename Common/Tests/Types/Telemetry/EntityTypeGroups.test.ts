@@ -2,7 +2,7 @@ import EntityType from "../../../Types/Telemetry/EntityType";
 import EntitySource from "../../../Types/Telemetry/EntitySource";
 import {
   INVENTORY_ENTITY_TYPES,
-  isNonTelemetryEntityType,
+  isNonInventoryItemType,
   MANUAL_ENTITY_TYPES,
 } from "../../../Types/Telemetry/EntityTypeGroups";
 import { describe, expect, test } from "@jest/globals";
@@ -91,13 +91,13 @@ describe("the two groups are disjoint", () => {
   });
 });
 
-describe("isNonTelemetryEntityType", () => {
+describe("isNonInventoryItemType", () => {
   test("is true for every manual and inventory type", () => {
     for (const entityType of MANUAL_ENTITY_TYPES) {
-      expect(isNonTelemetryEntityType(entityType)).toBe(true);
+      expect(isNonInventoryItemType(entityType)).toBe(true);
     }
     for (const entityType of INVENTORY_ENTITY_TYPES) {
-      expect(isNonTelemetryEntityType(entityType)).toBe(true);
+      expect(isNonInventoryItemType(entityType)).toBe(true);
     }
   });
 
@@ -114,13 +114,13 @@ describe("isNonTelemetryEntityType", () => {
     expect(telemetryTypes.length).toBeGreaterThan(0);
 
     for (const entityType of telemetryTypes) {
-      expect(isNonTelemetryEntityType(entityType)).toBe(false);
+      expect(isNonInventoryItemType(entityType)).toBe(false);
     }
   });
 
   test("every EntityType is classified one way or the other", () => {
     for (const entityType of Object.values(EntityType)) {
-      expect(typeof isNonTelemetryEntityType(entityType)).toBe("boolean");
+      expect(typeof isNonInventoryItemType(entityType)).toBe("boolean");
     }
   });
 });

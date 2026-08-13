@@ -120,16 +120,18 @@ Det er en sikkerhetsgrense slik at arbeidsflyter ikke kan fortsette å kalle hve
 
 ## OneUptime datakomponenter
 
-For hver type oppføring i OneUptime (monitorer, hendelser, varsler, statussider, vaktordningspolicyer og mange flere) har paletten disse komponentene — søk etter typens navn:
+For hver type oppføring i OneUptime (monitorer, hendelser, varsler, statussider, vaktordningspolicyer og mange flere) har paletten disse komponentene — søk etter typens navn. Titlene lages fra typens navn, så for Monitor blir de:
 
-- **Finn én** — hent én oppføring etter ID eller filter.
-- **Finn** — hent en liste over oppføringer.
-- **Opprett** — legg til en ny oppføring.
-- **Oppdater** — endre én oppføring.
-- **Slett** — fjern én oppføring.
-- **Tell** — tell oppføringer som matcher et filter.
+- **Find One Monitor** — hent én oppføring som matcher filteret.
+- **Find Many Monitors** — hent en liste over oppføringer som matcher filteret.
+- **Create One Monitor** — legg til én oppføring fra et JSON-objekt.
+- **Create Many Monitors** — legg til flere oppføringer fra et JSON-array.
+- **Update One Monitor** — endre én oppføring som matcher filteret.
+- **Update Many Monitors** — endre oppføringene som matcher filteret, opp til Limit.
+- **Delete One Monitor** — fjern én oppføring som matcher filteret.
+- **Delete Many Monitors** — fjern oppføringene som matcher filteret, opp til Limit.
 
-Slik kan en arbeidsflyt lese og endre OneUptime-data. For eksempel: en webhook fra CI-verktøyet ditt kan bruke **Opprett hendelse** for å åpne en hendelse med feildetaljene.
+Slik kan en arbeidsflyt lese og endre OneUptime-data. For eksempel: en webhook fra CI-verktøyet ditt kan bruke **Create One Incident** for å åpne en hendelse med feildetaljene.
 
 ## Hvilken komponent bør jeg bruke?
 

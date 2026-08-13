@@ -120,16 +120,18 @@ Der er en sikkerhedsgrænse, så workflows ikke kan blive ved med at kalde hinan
 
 ## OneUptime data-komponenter
 
-For hver slags post i OneUptime (monitorer, hændelser, alarmer, statussider, vagtpolitikker og mange flere) har paletten disse komponenter — søg på typens navn:
+For hver slags post i OneUptime (monitorer, hændelser, alarmer, statussider, vagtpolitikker og mange flere) har paletten disse komponenter — søg på typens navn. Titlerne dannes ud fra typens navn, så sættet for Monitor ser sådan ud:
 
-- **Find One** — hent én post efter ID eller filter.
-- **Find** — hent en liste af poster.
-- **Opret** — tilføj en ny post.
-- **Opdater** — ændr én post.
-- **Slet** — fjern én post.
-- **Antal** — tæl poster, der matcher et filter.
+- **Find One Monitor** — hent én post, der matcher filteret.
+- **Find Many Monitors** — hent en liste af poster, der matcher filteret.
+- **Create One Monitor** — tilføj én post ud fra et JSON-objekt.
+- **Create Many Monitors** — tilføj flere poster ud fra et JSON-array.
+- **Update One Monitor** — ændr én post, der matcher filteret.
+- **Update Many Monitors** — ændr de poster, der matcher filteret, op til Limit.
+- **Delete One Monitor** — fjern én post, der matcher filteret.
+- **Delete Many Monitors** — fjern de poster, der matcher filteret, op til Limit.
 
-Sådan kan et workflow læse og ændre OneUptime-data. For eksempel: en webhook fra dit CI-værktøj kan bruge **Opret hændelse** til at åbne en hændelse med fejldetaljerne.
+Sådan kan et workflow læse og ændre OneUptime-data. For eksempel: en webhook fra dit CI-værktøj kan bruge **Create One Incident** til at åbne en hændelse med fejldetaljerne.
 
 ## Hvilken komponent skal jeg bruge?
 

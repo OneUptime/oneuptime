@@ -50,6 +50,12 @@ export default class ModelAPI {
   public static async create<TBaseModel extends BaseModel>(data: {
     model: TBaseModel;
     modelType: { new (): TBaseModel };
+    /*
+     * Extra values that are not columns on the model but that the service
+     * reads off `createBy.miscDataProps` (for example the note a user writes
+     * when they change an incident state).
+     */
+    miscDataProps?: JSONObject | undefined;
     requestOptions?: RequestOptions | undefined;
   }): Promise<
     HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>>
@@ -58,7 +64,7 @@ export default class ModelAPI {
       model: data.model,
       modelType: data.modelType,
       formType: FormType.Create,
-      miscDataProps: {},
+      miscDataProps: data.miscDataProps || {},
       requestOptions: data.requestOptions,
     });
   }

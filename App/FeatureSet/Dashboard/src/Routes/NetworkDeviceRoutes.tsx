@@ -13,6 +13,7 @@ import NetworkDevices from "../Pages/NetworkDevice/Devices";
 import NetworkDeviceArchived from "../Pages/NetworkDevice/Archived";
 import NetworkDeviceDiscovery from "../Pages/NetworkDevice/Discovery";
 import NetworkEndpoints from "../Pages/NetworkDevice/Endpoints";
+import NetworkDeviceLinks from "../Pages/NetworkDevice/Links";
 import NetworkDeviceTopology from "../Pages/NetworkDevice/Topology";
 import NetworkDeviceLatencyMatrix from "../Pages/NetworkDevice/LatencyMatrix";
 import NetworkDeviceOverview from "../Pages/NetworkDevice/View/Index";
@@ -24,6 +25,7 @@ import NetworkDeviceLogs from "../Pages/NetworkDevice/View/Logs";
 import NetworkDeviceOwners from "../Pages/NetworkDevice/View/Owners";
 import NetworkDeviceSettingsOwnerRules from "../Pages/NetworkDevice/Settings/OwnerRules";
 import NetworkDeviceSettingsLabelRules from "../Pages/NetworkDevice/Settings/LabelRules";
+import NetworkDeviceSettingsLinkRules from "../Pages/NetworkDevice/Settings/LinkRules";
 import NetworkDeviceSettings from "../Pages/NetworkDevice/View/Settings";
 import NetworkDeviceDelete from "../Pages/NetworkDevice/View/Delete";
 
@@ -82,6 +84,21 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
+          path={
+            NetworkDeviceRoutePath[
+              PageMap.NETWORK_DEVICE_SETTINGS_LINK_RULES
+            ] || ""
+          }
+          element={
+            <NetworkDeviceSettingsLinkRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_LINK_RULES] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
           path={NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_DISCOVERY] || ""}
           element={
             <NetworkDeviceDiscovery
@@ -96,6 +113,15 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
             <NetworkEndpoints
               {...props}
               pageRoute={RouteMap[PageMap.NETWORK_DEVICE_ENDPOINTS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_LINKS] || ""}
+          element={
+            <NetworkDeviceLinks
+              {...props}
+              pageRoute={RouteMap[PageMap.NETWORK_DEVICE_LINKS] as Route}
             />
           }
         />

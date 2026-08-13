@@ -112,22 +112,59 @@ const JSON_DOCUMENT_INPUT_TYPES: Array<ComponentInputType> = [
   ComponentInputType.StringDictionary,
 ];
 
-type IsEmptyArgumentValueFunction = (value: JSONValue | undefined) => boolean;
+type IsEmptyArgumentValueFunction = (
+  value: JSONValue | undefined,
+  type?: ComponentInputType | undefined,
+) => boolean;
 
 /*
  * `false` and `0` are values a builder deliberately set — only absence and the
  * empty box count as missing. An empty object/array counts as missing too: the
  * Dictionary editor writes `{}` for a field nobody filled in.
+ *
+ * For a JSON-document argument the value arrives as *text*, so the literal
+ * "{}" has to be recognised as the same emptiness. It reads as a filled-in
+ * field otherwise, and on Delete Many an empty query is not a harmless no-op:
+ * it matches every record in the project and the component deletes the first
+ * ten of them. A required argument holding "{}" should be reported, not run.
  */
-const isEmptyArgumentValue: IsEmptyArgumentValueFunction = (
+export const isEmptyArgumentValue: IsEmptyArgumentValueFunction = (
   value: JSONValue | undefined,
+  type?: ComponentInputType | undefined,
 ): boolean => {
   if (value === undefined || value === null) {
     return true;
   }
 
   if (typeof value === "string") {
-    return value.trim() === "";
+    const trimmed: string = value.trim();
+
+    if (trimmed === "") {
+      return true;
+    }
+
+    if (type && JSON_DOCUMENT_INPUT_TYPES.includes(type)) {
+      /*
+       * Only a literal empty document counts. Anything that fails to parse is
+       * left alone — it is reported as invalid JSON a few lines further down,
+       * which is a better message than "this is required".
+       */
+      try {
+        const parsed: unknown = JSON.parse(trimmed);
+
+        if (Array.isArray(parsed)) {
+          return parsed.length === 0;
+        }
+
+        if (parsed && typeof parsed === "object") {
+          return Object.keys(parsed as JSONObject).length === 0;
+        }
+      } catch {
+        return false;
+      }
+    }
+
+    return false;
   }
 
   if (Array.isArray(value)) {
@@ -382,7 +419,7 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
     for (const argument of argumentMetadata) {
       const value: JSONValue | undefined = argumentValues[argument.id];
 
-      if (argument.required && isEmptyArgumentValue(value)) {
+      if (argument.required && isEmptyArgumentValue(value, argument.type)) {
         addNodeIssue({
           rule: WorkflowLintRule.MissingRequiredArgument,
           severity: WorkflowLintSeverity.Error,
@@ -392,7 +429,7 @@ export const lintWorkflowGraph: LintWorkflowGraphFunction = (graph: {
         continue;
       }
 
-      if (isEmptyArgumentValue(value)) {
+      if (isEmptyArgumentValue(value, argument.type)) {
         continue;
       }
 

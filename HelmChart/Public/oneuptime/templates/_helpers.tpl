@@ -822,6 +822,17 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
 - name: LATEST_RELEASE_CHECK_URL
   value: {{ default "" $.Values.updateCheck.url | quote }}
 
+{{/*
+  Not `default 1 ...`: Helm's default treats 0 as empty, and 0 is a meaningful
+  setting here (ignore X-Forwarded-For, use the connecting address).
+*/}}
+- name: TRUSTED_PROXY_HOPS
+{{- if kindIs "invalid" $.Values.trustedProxyHops }}
+  value: '1'
+{{- else }}
+  value: {{ $.Values.trustedProxyHops | squote }}
+{{- end }}
+
 - name: WORKFLOW_SCRIPT_TIMEOUT_IN_MS
   value: {{ $.Values.script.workflowScriptTimeoutInMs | squote }}
 

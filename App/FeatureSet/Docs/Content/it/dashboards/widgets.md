@@ -101,6 +101,24 @@ Chiunque possa modificare la dashboard decide cosa esegue questo widget, e chiun
 
 ## Log e trace
 
+### Log Chart
+
+Un grafico a serie temporali del volume di log sull'intervallo temporale della dashboard. Ogni serie rappresenta una severità, così i picchi di errore risaltano rispetto al traffico normale.
+
+**Impostazioni**:
+
+- Visualizzazione a barre, linee o aree. I grafici a barre e ad aree impilano le serie di severità.
+- Filtri di severità opzionali.
+- Ricerca testuale opzionale nel corpo del log.
+- Filtri esatti sugli attributi OpenTelemetry tramite righe chiave/valore ricercabili. I nomi degli attributi e i valori noti vengono suggeriti mentre digiti, e i valori personalizzati restano supportati.
+- Un titolo opzionale.
+
+I controlli di intervallo temporale e di aggiornamento della dashboard rieseguono automaticamente la query del grafico. Anche le variabili di attributo telemetrico della dashboard si applicano al widget, comprese quelle a selezione multipla.
+
+Log Chart richiede per ora una dashboard autenticata. Le dashboard pubbliche mostrano il widget come non disponibile anziché esporre in modo anonimo gli aggregati di log del progetto.
+
+Usalo quando: vuoi cogliere i cambiamenti nel volume di log oppure confrontare errori, avvisi e messaggi informativi senza uscire dalla dashboard.
+
 ### Log Stream
 
 Una coda live delle righe di log che corrispondono a un filtro.
@@ -143,6 +161,21 @@ Un elenco live di monitor con il loro stato corrente.
 
 Usalo quando: vuoi una vista di flotta — "tutti i siti sono su?"
 
+## Obiettivi di livello di servizio
+
+### SLO
+
+Un singolo obiettivo di livello di servizio, disegnato come numero singolo oppure come linea nel tempo.
+
+**Impostazioni**: quale SLO, quale dei suoi tre numeri (SLI, Error Budget Remaining o Burn Rate), visualizzazione Tile o Chart e un titolo opzionale.
+
+- **Tile** stampa il numero corrente e, dove c'è, una seconda riga: il target sotto lo SLI, i minuti rimasti sotto l'error budget. Una pillola di stato colora il tutto.
+- **Chart** disegna lo stesso numero sull'intervallo temporale della dashboard, con il target segnato come linea tratteggiata sulla serie dello SLI. Lo storico viene scritto ogni pochi minuti dal worker di valutazione, quindi uno SLO appena creato appare vuoto finché non viene valutato per la prima volta.
+
+Usalo quando: la dashboard risponde a "stiamo rispettando quello che abbiamo promesso?" piuttosto che a "cosa sta succedendo in questo momento?"
+
+Il widget SLO funziona sulle [dashboard pubbliche](/docs/dashboards/sharing). Ciò che viene pubblicato sono i numeri principali dello SLO — nome, target, SLI corrente, error budget rimanente, burn rate e stato — indipendentemente da quale di essi il widget disegni. La sua definizione resta privata: i monitor che osserva, le sue etichette, la sua descrizione, la sua query e la sua pianificazione di valutazione non vengono mai inviati a un visitatore pubblico. Un widget Tile pubblica solo quei numeri correnti; un widget Chart pubblica anche lo storico dell'unica serie che disegna, e nulla di più.
+
 ## Elenchi di risorse Kubernetes
 
 Per progetti con un [Kubernetes Agent](/docs/monitor/kubernetes-agent) installato. Ognuno accetta filtri opzionali per cluster, namespace ed etichette.
@@ -176,15 +209,32 @@ Host monitorati dal monitor server di OneUptime, con stato, CPU, memoria e uptim
 
 **Impostazioni**: filtri per etichette o stato corrente.
 
+## Rete
+
+### Network Map
+
+I tuoi siti di rete disegnati sulla mappa del mondo, ciascuno fissato alla propria latitudine e longitudine e colorato in base allo stato dei monitor aggregato su di esso. I siti vicini tra loro condividono un indicatore con il conteggio scritto all'interno; un indicatore che rappresenta esattamente un sito apre quel sito quando lo si clicca.
+
+La mappa si inquadra sui siti che ha disegnato — un parco all'interno di un solo paese riempie l'inquadratura con quel paese, uno distribuito tra continenti si apre sul mondo. Non ci sono controlli di zoom o di spostamento: una tile della dashboard è un'immagine, e la pagina Network Map sotto Network è il posto dove percorrere la gerarchia.
+
+Sopra la mappa viene stampato quanti siti sono giù, perché un punto rosso di due pixel tra duecento verdi non è qualcosa che si legga a distanza di dashboard. Sotto, una riga di copertura dice cosa la mappa _non_ sta mostrando — i siti senza coordinate, e se è stato raggiunto il limite di righe.
+
+**Impostazioni**: titolo, vista mappa o elenco, numero massimo di siti disegnati, se stampare i nomi dei siti, e filtri per tipo di sito e per stato. I nomi dei siti scompaiono automaticamente quando la mappa diventa troppo affollata perché siano leggibili; il tooltip continua a nominare ogni indicatore.
+
+Un sito appare solo se ha le coordinate. Aggiungi latitudine e longitudine sul sito (o importale da CSV) per fissarlo.
+
 ## Quale widget usare?
 
 Alcune regole rapide:
 
 - **Trend nel tempo?** Chart.
+- **Volume di log o picchi di errore nel tempo?** Log Chart.
 - **Un solo numero che conta in questo momento?** Value (o Gauge se ha un chiaro min/max).
 - **Scomposizione su molte cose?** Table.
 - **Cosa sta succedendo nel sistema in questo momento?** Log Stream, Trace List, Incident List.
 - **Lo stato di uno specifico gruppo di risorse?** Il widget di elenco corrispondente.
+- **Stiamo rispettando l'affidabilità promessa?** SLO.
+- **Dove si trova la tua rete nel mondo e cosa è rosso?** Network Map.
 - **Un'intestazione, un paragrafo o un link?** Text.
 - **Qualcosa che nessuno dei precedenti copre?** HTML — ma solo dopo aver verificato che un widget integrato davvero non sia in grado di farlo.
 

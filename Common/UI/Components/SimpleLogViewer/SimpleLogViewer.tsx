@@ -1,10 +1,20 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useRef,
+} from "react";
 
 export interface ComponentProps {
   children: ReactElement | string | Array<ReactElement>;
   showLineNumbers?: boolean | undefined;
   height?: string | undefined;
   title?: string | undefined;
+  /**
+   * Keep the newest lines in view as they arrive. For a log that is still
+   * being written — the tail is the part worth reading.
+   */
+  autoScrollToBottom?: boolean | undefined;
 }
 
 const SimpleLogViewer: FunctionComponent<ComponentProps> = (
@@ -73,6 +83,17 @@ const SimpleLogViewer: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const contentRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!props.autoScrollToBottom || !contentRef.current) {
+      return;
+    }
+
+    contentRef.current.scrollTop = contentRef.current.scrollHeight;
+  }, [props.autoScrollToBottom, props.children]);
+
   const scrollbarStyles: React.CSSProperties = {
     maxHeight: height,
     scrollbarWidth: "thin",
@@ -89,6 +110,7 @@ const SimpleLogViewer: FunctionComponent<ComponentProps> = (
       )}
       {/* Log Content */}
       <div
+        ref={contentRef}
         className="overflow-auto font-mono text-sm leading-6 p-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-slate-800 [&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-slate-500"
         style={scrollbarStyles}
       >

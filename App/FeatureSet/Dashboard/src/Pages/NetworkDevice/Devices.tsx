@@ -3,9 +3,18 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import ProbeUtil from "../../Utils/Probe";
 import Route from "Common/Types/API/Route";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Probe from "Common/Models/DatabaseModels/Probe";
+import NetworkDeviceMonitoringMethod, {
+  NetworkDeviceMonitoringMethodUtil,
+} from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import {
+  MONITORING_METHOD_OPTIONS,
+  isMonitorBackedDevice,
+  isSnmpDevice,
+} from "../../Components/NetworkDevice/MonitoringMethodFormFields";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import React, {
   Fragment,
@@ -460,6 +469,10 @@ const NetworkDevices: FunctionComponent<
         showViewIdButton={true}
         formSteps={[
           {
+            title: "Monitoring",
+            id: "monitoring-method",
+          },
+          {
             title: "Device Details",
             id: "device-details",
           },
@@ -468,11 +481,31 @@ const NetworkDevices: FunctionComponent<
             id: "probe-and-site",
           },
           {
+            /*
+             * Hidden wholesale for a monitor-backed device: it is never
+             * polled, so there is nothing for a community string or a v3
+             * credential to be used for.
+             */
             title: "SNMP Credentials",
             id: "snmp",
+            showIf: isSnmpDevice,
           },
         ]}
         formFields={[
+          {
+            field: {
+              monitoringMethod: true,
+            },
+            title: "How is this device monitored?",
+            stepId: "monitoring-method",
+            description:
+              "SNMP devices are polled by a probe you assign, on their own schedule. Pick Monitor for gear that cannot be walked — a switch with SNMP disabled, a consumer access point, a PDU — and bind it to an existing Ping or IP monitor instead. Either way the device belongs to a site, carries labels, and appears on the network topology map.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions: MONITORING_METHOD_OPTIONS,
+            required: true,
+            defaultValue: NetworkDeviceMonitoringMethod.Snmp,
+            placeholder: "Monitoring method",
+          },
           {
             field: {
               name: true,
@@ -502,7 +535,33 @@ const NetworkDevices: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "10.0.0.1 or switch-01.example.com",
-            description: "IP address or hostname the probe will poll via SNMP.",
+            description:
+              "The device's address. SNMP devices are polled here; for monitor-backed devices it is how the device is identified and matched to SNMP traps.",
+          },
+          {
+            field: {
+              monitor: true,
+            },
+            title: "Monitor",
+            stepId: "probe-and-site",
+            showIf: isMonitorBackedDevice,
+            description:
+              "The monitor whose status IS this device's status. A Ping or IP monitor on the device's address is the usual choice. Its status drives the device's status pill, its site's health rollup, and the colour it is drawn in on the topology map.",
+            sideLink: {
+              text: "Create a monitor",
+              url: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.MONITORS] as Route,
+              ),
+              openLinkInNewTab: true,
+            },
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: Monitor,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: isMonitorBackedDevice,
+            placeholder: "Select Monitor",
           },
           {
             field: {
@@ -510,6 +569,7 @@ const NetworkDevices: FunctionComponent<
             },
             title: "Probe",
             stepId: "probe-and-site",
+            showIf: isSnmpDevice,
             /*
              * Same constraint as the discovery scan: the probe has to be able
              * to reach the device, so the operator needs to know how to get a
@@ -565,6 +625,38 @@ const NetworkDevices: FunctionComponent<
             title: "Status",
             type: FieldType.Element,
             getElement: (item: NetworkDevice): ReactElement => {
+              /*
+               * A monitor-backed device is never polled, so SNMP freshness
+               * says nothing about it — its monitor is the only thing that
+               * knows whether it is up, and without this branch every one of
+               * them would sit on "Pending" forever.
+               */
+              if (
+                NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+                  item.monitoringMethod,
+                )
+              ) {
+                if (!item.currentMonitorStatus?.name) {
+                  return (
+                    <Pill
+                      text="Pending"
+                      color={Gray500}
+                      size={PillSize.Small}
+                      tooltip="No monitor is bound to this device yet, or the one that is has not reported a status."
+                    />
+                  );
+                }
+
+                return (
+                  <Pill
+                    text={item.currentMonitorStatus.name}
+                    color={item.currentMonitorStatus.color || Gray500}
+                    size={PillSize.Small}
+                    tooltip="Reported by the monitor bound to this device."
+                  />
+                );
+              }
+
               const status: NetworkDeviceStatus = DeviceStatusUtil.getStatus(
                 item.lastSeenAt,
               );
@@ -772,6 +864,17 @@ const NetworkDevices: FunctionComponent<
           sysName: true,
           deviceModel: true,
           lastSeenAt: true,
+          /*
+           * The status pill reads a monitor-backed device's health from its
+           * monitor, not from SNMP freshness — nothing polls those, so
+           * lastSeenAt would leave every one of them stuck on "Pending".
+           */
+          monitoringMethod: true,
+          currentMonitorStatus: {
+            name: true,
+            color: true,
+            isOfflineState: true,
+          },
         }}
         onViewPage={(item: NetworkDevice): Promise<Route> => {
           return Promise.resolve(

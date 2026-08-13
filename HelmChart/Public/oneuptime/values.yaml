@@ -1012,6 +1012,27 @@ updateCheck:
   disabled: false
   url:
 
+# How many reverse proxies that YOU run sit in front of OneUptime and append to
+# the X-Forwarded-For header. This decides which address OneUptime treats as the
+# client for IP allowlists (status pages, public dashboards) and IP rate limits.
+#
+# X-Forwarded-For is a list that each proxy appends its peer to, so a caller can
+# put anything they like at the front of it. Only the entries our own proxies
+# wrote mean anything, and those are at the END of the list. This number says how
+# far in from that end the real client sits.
+#
+# 1 is correct for a stock chart install: the chart's own nginx gateway is the
+# only thing that touches the header, and the Service in front of it is L4.
+#
+# Raise it if you put your own HTTP proxy in front. A CDN or WAF that appends to
+# X-Forwarded-For (Cloudflare, an AWS ALB, an ingress-nginx of your own) makes
+# this 2, and each further proxy adds one. Too low and every visitor looks like
+# your proxy; too high and visitors can choose the address OneUptime sees, which
+# defeats the allowlists.
+#
+# 0 ignores X-Forwarded-For entirely and uses the connecting address.
+trustedProxyHops: 1
+
 # If you would like to attach status page to custom domains use this setting.
 # For example, lets say you would like the status page to be hosted on status.yourcompany.com, then
 # 1. Create a A record in your DNS provider with the name "oneuptime.yourcompany.com" and value to Public IP of the server oneuptime is deployed on.

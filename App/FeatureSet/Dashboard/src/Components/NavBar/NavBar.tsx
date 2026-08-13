@@ -237,17 +237,6 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       iconColor: "violet",
       category: aiCategory,
     },
-    /*
-     * {
-     *   title: t("navbar.items.entitiesTitle"),
-     *   description: t("navbar.items.entitiesDescription"),
-     *   route: RouteUtil.populateRouteParams(RouteMap[PageMap.ENTITIES] as Route),
-     *   activeRoute: RouteMap[PageMap.ENTITIES],
-     *   icon: IconProp.Cube,
-     *   iconColor: "blue",
-     *   category: observabilityCategory,
-     * },
-     */
     {
       title: t("navbar.items.topologyTitle"),
       description: t("navbar.items.topologyDescription"),
@@ -256,6 +245,25 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       icon: IconProp.FlowDiagram,
       iconColor: "indigo",
       category: observabilityCategory,
+    },
+    {
+      title: t("navbar.items.inventoryTitle", "Inventory"),
+      description: t(
+        "navbar.items.inventoryDescription",
+        "Everything OneUptime knows about your estate, in one list.",
+      ),
+      // Lands on the Overview; the item list and detail pages keep it lit.
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.INVENTORY] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.INVENTORY],
+      additionalActiveRoutes: [
+        RouteMap[PageMap.INVENTORY_ITEMS] as Route,
+        RouteMap[PageMap.INVENTORY_VIEW] as Route,
+      ],
+      icon: IconProp.Cube,
+      iconColor: "indigo",
+      category: resourcesCategory,
     },
     {
       title: t("navbar.items.servicesTitle"),

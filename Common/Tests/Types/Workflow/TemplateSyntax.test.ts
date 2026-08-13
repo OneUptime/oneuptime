@@ -5,11 +5,14 @@ import {
   TemplateExpression,
   TemplateExpressionKind,
   checkJSONSyntax,
+  componentReturnValueReference,
+  globalVariableReference,
   hasEachBlock,
   looksLikeReferencePath,
   maskTemplateExpressions,
   parseReferencePath,
   parseTemplateExpressions,
+  variableReference,
 } from "../../../Types/Workflow/TemplateSyntax";
 import { describe, expect, test } from "@jest/globals";
 
@@ -375,5 +378,114 @@ describe("parseReferencePath", () => {
     expect(parseReferencePath("local.variables.api-key").variableName).toBe(
       "api-key",
     );
+  });
+});
+
+/*
+ * The reference builders. These exist because four places built these strings
+ * by hand — the value picker, the variable picker, the shipped templates and
+ * the docs — so there was no single definition of the syntax to check against.
+ *
+ * Each one is paired with parseReferencePath below, which is the check that
+ * matters: what the builder hands a user has to be what the linter and the
+ * runner will later accept.
+ */
+describe("reference builders", () => {
+  test("a component return value reads back as the component and value it names", () => {
+    const reference: string = componentReturnValueReference(
+      "monitor-find-one-1",
+      "model",
+    );
+
+    expect(reference).toBe(
+      "{{local.components.monitor-find-one-1.returnValues.model}}",
+    );
+
+    const parsed: ParsedReferencePath = parseReferencePath(
+      reference.slice(2, -2),
+    );
+
+    expect(parsed.rootType).toBe(ReferenceRootType.ComponentReturnValue);
+    expect(parsed.componentId).toBe("monitor-find-one-1");
+    expect(parsed.returnValueId).toBe("model");
+  });
+
+  /*
+   * The drill-in path. For a Find One or On Create step the single return value
+   * IS the whole record, so the reference worth offering is almost always a
+   * column of it rather than the record itself.
+   */
+  test("a drill-in path is appended after the return value", () => {
+    expect(
+      componentReturnValueReference("monitor-find-one-1", "model", ["_id"]),
+    ).toBe("{{local.components.monitor-find-one-1.returnValues.model._id}}");
+
+    expect(
+      componentReturnValueReference("x-1", "model", ["project", "name"]),
+    ).toBe("{{local.components.x-1.returnValues.model.project.name}}");
+  });
+
+  test("an empty or absent drill-in path changes nothing", () => {
+    const bare: string = componentReturnValueReference("x-1", "model");
+
+    expect(componentReturnValueReference("x-1", "model", [])).toBe(bare);
+    expect(componentReturnValueReference("x-1", "model", undefined)).toBe(bare);
+  });
+
+  test("a drilled-in reference still parses as the return value it drills into", () => {
+    const parsed: ParsedReferencePath = parseReferencePath(
+      componentReturnValueReference("x-1", "model", ["_id"]).slice(2, -2),
+    );
+
+    expect(parsed.rootType).toBe(ReferenceRootType.ComponentReturnValue);
+    expect(parsed.componentId).toBe("x-1");
+    expect(parsed.returnValueId).toBe("model");
+  });
+
+  test("a workflow variable and a project variable have different roots", () => {
+    expect(variableReference("apiKey")).toBe("{{local.variables.apiKey}}");
+    expect(globalVariableReference("apiKey")).toBe(
+      "{{global.variables.apiKey}}",
+    );
+  });
+
+  test("both variable kinds read back as variables", () => {
+    const local: ParsedReferencePath = parseReferencePath(
+      variableReference("apiKey").slice(2, -2),
+    );
+    const global: ParsedReferencePath = parseReferencePath(
+      globalVariableReference("apiKey").slice(2, -2),
+    );
+
+    expect(local.rootType).toBe(ReferenceRootType.LocalVariable);
+    expect(local.variableName).toBe("apiKey");
+    expect(global.rootType).toBe(ReferenceRootType.GlobalVariable);
+    expect(global.variableName).toBe("apiKey");
+  });
+
+  /*
+   * Everything built here is offered to a builder as autocomplete inside a JSON
+   * document, so it has to survive the same masking checkJSONSyntax applies.
+   */
+  test("a built reference is masked out of a JSON syntax check", () => {
+    const document: string = `{"monitorId": "${componentReturnValueReference(
+      "monitor-find-one-1",
+      "model",
+      ["_id"],
+    )}"}`;
+
+    const result: JSONSyntaxCheckResult = checkJSONSyntax(document);
+
+    expect(result.isValid).toBe(true);
+  });
+
+  test("a bare reference where a value goes also passes the masked check", () => {
+    const document: string = `{"retries": ${variableReference("retryCount")}}`;
+
+    expect(checkJSONSyntax(document).isValid).toBe(true);
+    // ...and is genuinely not JSON without the masking, which is the whole point.
+    expect(() => {
+      return JSON.parse(document);
+    }).toThrow();
   });
 });

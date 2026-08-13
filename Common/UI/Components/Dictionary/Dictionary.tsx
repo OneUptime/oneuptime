@@ -36,6 +36,20 @@ export interface ComponentProps {
   valueTypes?: Array<ValueType>; // by default it'll be Text
   keys?: Array<string> | undefined;
   valueSuggestions?: Record<string, Array<string>> | undefined;
+  /*
+   * Per-key placeholder for the value input, falling back to valuePlaceholder
+   * for any key not listed. The record editor uses this to show the model's own
+   * example value against the column it belongs to, which is a far better
+   * answer to "what goes in this box" than one generic word repeated down the
+   * column.
+   */
+  valuePlaceholders?: Record<string, string> | undefined;
+  /*
+   * Suggestions offered on a row whose key has no entry in valueSuggestions.
+   * Used for suggestions that are about the form rather than the column - the
+   * workflow's {{...}} references, which are equally valid in any row.
+   */
+  defaultValueSuggestions?: Array<string> | undefined;
   onKeySelected?: ((key: string) => void) | undefined;
   isLoadingKeys?: boolean | undefined;
   loadingValueKeys?: Array<string> | undefined;
@@ -231,6 +245,35 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
     return "";
   };
 
+  type ValuePlaceholderForFunction = (key: string) => string | undefined;
+
+  const valuePlaceholderFor: ValuePlaceholderForFunction = (
+    key: string,
+  ): string | undefined => {
+    return (
+      (key ? props.valuePlaceholders?.[key] : undefined) ||
+      props.valuePlaceholder
+    );
+  };
+
+  type ValueSuggestionsForFunction = (key: string) => Array<string> | undefined;
+
+  const valueSuggestionsFor: ValueSuggestionsForFunction = (
+    key: string,
+  ): Array<string> | undefined => {
+    const forKey: Array<string> | undefined = key
+      ? props.valueSuggestions?.[key]
+      : undefined;
+
+    /*
+     * Column-specific suggestions win outright rather than merging: a column
+     * with a known set of values should not have workflow references mixed into
+     * that set, and a row with no such set is exactly where a reference is the
+     * likely thing to type.
+     */
+    return forKey && forKey.length > 0 ? forKey : props.defaultValueSuggestions;
+  };
+
   const operatorDropdownOptions: Array<DropdownOption> =
     DICTIONARY_FILTER_OPERATOR_OPTIONS.map(
       (option: DictionaryFilterOperatorOption) => {
@@ -409,7 +452,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                   operatorOption.expectsMultiValue && (
                     <Dropdown
                       isMultiSelect={true}
-                      placeholder={props.valuePlaceholder}
+                      placeholder={valuePlaceholderFor(item.key)}
                       value={(Array.isArray(item.value) ? item.value : []).map(
                         (selectedValue: string) => {
                           return { label: selectedValue, value: selectedValue };
@@ -420,9 +463,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                           ...(Array.isArray(item.value)
                             ? (item.value as Array<string>)
                             : []),
-                          ...(item.key && props.valueSuggestions?.[item.key]
-                            ? props.valueSuggestions[item.key]!
-                            : []),
+                          ...(valueSuggestionsFor(item.key) || []),
                         ]),
                       ).map((optionValue: string) => {
                         return { label: optionValue, value: optionValue };
@@ -458,14 +499,12 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                       placeholder={
                         operatorOption.expectsNumericValue
                           ? "Number"
-                          : props.valuePlaceholder
+                          : valuePlaceholderFor(item.key)
                       }
                       suggestions={
                         operatorOption.expectsNumericValue
                           ? undefined
-                          : item.key && props.valueSuggestions?.[item.key]
-                            ? props.valueSuggestions[item.key]
-                            : undefined
+                          : valueSuggestionsFor(item.key)
                       }
                       isLoadingSuggestions={
                         operatorOption.expectsNumericValue
@@ -501,7 +540,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                 {!hideValueInput && item.type === ValueType.Number && (
                   <Input
                     value={item.value.toString()}
-                    placeholder={props.valuePlaceholder}
+                    placeholder={valuePlaceholderFor(item.key)}
                     onChange={(value: string) => {
                       const newData: Array<Item> = [...data];
                       const parsedValue: number = parseInt(value);

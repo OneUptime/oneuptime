@@ -13,10 +13,16 @@
 export type NetworkTopologyNodeStatus = "up" | "down" | "unknown";
 
 /*
- * Which source(s) reported a link — a discovery protocol, or the bridge
- * forwarding database (endpoint attachment).
+ * Which source(s) reported a link — a discovery protocol, the bridge
+ * forwarding database (endpoint attachment), or a person.
+ *
+ * "manual" is a NetworkDeviceLink an operator drew: a cable neither protocol
+ * can see, because one end has discovery disabled, does not speak LLDP or
+ * CDP, or is monitored by ping alone. It is a protocol like the others so a
+ * hand-drawn link and a later-discovered one MERGE into a single edge
+ * carrying both, rather than doubling the line on the map.
  */
-export type NetworkTopologyLinkProtocol = "lldp" | "cdp" | "fdb";
+export type NetworkTopologyLinkProtocol = "lldp" | "cdp" | "fdb" | "manual";
 
 /*
  * What a node represents. Older payloads carry no kind — readers should
@@ -51,6 +57,35 @@ export type NetworkTopologyDeviceRole =
   | "host"
   | "unknown";
 
+/*
+ * Why a device is drawn with no links.
+ *
+ * "The router is not linked to any device" is a report we could previously
+ * only answer with a shrug — the map showed an isolated box and nothing about
+ * which of the several possible causes was the real one. These fields turn
+ * that into a sentence: discovery never ran, or it ran and the device
+ * reported nothing, or it reported neighbours that matched nothing we manage
+ * (and here is what they called themselves).
+ *
+ * Present on managed device nodes only; absent on older payloads.
+ */
+export interface NetworkTopologyNodeDiagnostics {
+  /*
+   * False when the device's interface walk is off. LLDP and CDP ride along
+   * with that walk, so a device with it disabled can never report a
+   * neighbour, however well it speaks either protocol.
+   */
+  isNeighborDiscoveryEnabled?: boolean | undefined;
+  // How many neighbour entries the device's last poll reported.
+  reportedNeighborCount: number;
+  /*
+   * What the unresolved neighbours called themselves. This is the actionable
+   * half: an operator reading "advertised OLD-CORE-SW1" knows immediately
+   * that a device was renamed, which no amount of "no links found" conveys.
+   */
+  unmatchedNeighborIdentifiers: Array<string>;
+}
+
 export interface NetworkTopologyNode {
   // Device id for managed nodes; a synthetic "unmanaged:<key>" id otherwise.
   id: string;
@@ -82,6 +117,8 @@ export interface NetworkTopologyNode {
   ipAddress?: string | undefined;
   classification?: string | undefined;
   vlanId?: number | undefined;
+  // Why this device has no links. Managed device nodes only.
+  diagnostics?: NetworkTopologyNodeDiagnostics | undefined;
 }
 
 /*
@@ -110,6 +147,15 @@ export interface NetworkTopologyEdge {
   // Operational data at each end, when the endpoint interface is known.
   fromInterface?: NetworkTopologyEdgeEndpoint | undefined;
   toInterface?: NetworkTopologyEdgeEndpoint | undefined;
+  /*
+   * Health for a link that has no interface counters of its own — a manual
+   * link with a Monitor bound to it. Readers prefer real interface data and
+   * fall back to this, so a discovered link never loses its measured state
+   * to a monitor's summary of it.
+   */
+  monitorState?: "up" | "down" | undefined;
+  // Operator-supplied label, set only on manual links.
+  name?: string | undefined;
 }
 
 export default interface NetworkTopology {
