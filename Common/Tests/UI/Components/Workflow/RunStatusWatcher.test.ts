@@ -99,7 +99,7 @@ describe("decideRunWatch", () => {
     });
 
     expect(decision.shouldContinue).toBe(false);
-    expect(decision.message).toMatch(/Logs tab/);
+    expect(decision.message).toMatch(/run log/i);
   });
 
   test("stops on timeout", () => {
@@ -148,5 +148,63 @@ describe("decideRunWatch", () => {
         pollCount: MAX_RUN_WATCH_POLLS - 1,
       }).shouldContinue,
     ).toBe(true);
+  });
+
+  test("names the status when a run fails, so the strip is specific", () => {
+    expect(
+      decideRunWatch({
+        run: { runId: "a", status: WorkflowStatus.Timeout },
+        pollCount: 1,
+      }).message,
+    ).toMatch(/timeout/i);
+
+    expect(
+      decideRunWatch({
+        run: { runId: "a", status: WorkflowStatus.WorkflowCountExceeded },
+        pollCount: 1,
+      }).message,
+    ).toMatch(/workflow count exceeded/i);
+  });
+
+  test("names the status while a run is still going", () => {
+    expect(
+      decideRunWatch({
+        run: { runId: "a", status: WorkflowStatus.Scheduled },
+        pollCount: 1,
+      }).message,
+    ).toMatch(/scheduled/i);
+  });
+
+  /*
+   * A status added later must not fall through to "keep polling with nothing
+   * to say" — every one of them has to produce a line the strip can show.
+   */
+  test.each(Object.values(WorkflowStatus))(
+    "has something to say about %s",
+    (status: WorkflowStatus) => {
+      const decision: RunWatchDecision = decideRunWatch({
+        run: { runId: "a", status: status },
+        pollCount: 0,
+      });
+
+      expect(typeof decision.message).toBe("string");
+      expect(decision.message).not.toBe("");
+    },
+  );
+
+  test("stops for every status a run does not leave", () => {
+    const stillMoving: Array<WorkflowStatus> = Object.values(
+      WorkflowStatus,
+    ).filter((status: WorkflowStatus) => {
+      return decideRunWatch({
+        run: { runId: "a", status: status },
+        pollCount: 0,
+      }).shouldContinue;
+    });
+
+    expect(stillMoving).toEqual([
+      WorkflowStatus.Scheduled,
+      WorkflowStatus.Running,
+    ]);
   });
 });
