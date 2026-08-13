@@ -1,4 +1,5 @@
 import logger from "./Logger";
+import { resolveClientIp } from "./ClientIp";
 import GracefulShutdown, { ShutdownPriority } from "./GracefulShutdown";
 import Dictionary from "../../Types/Dictionary";
 import GenericFunction from "../../Types/GenericFunction";
@@ -233,24 +234,18 @@ export const extractDeviceInfo: (req: ExpressRequest) => RequestDeviceInfo = (
   return result;
 };
 
+/*
+ * The client address for a request.
+ *
+ * This used to return the leftmost X-Forwarded-For entry, which is the one
+ * value in the header that the caller writes themselves -- so every session
+ * row and audit record built from it recorded whatever address the caller
+ * chose. It now delegates to resolveClientIp, which reads in from the trusted
+ * (right-hand) end instead. See Utils/ClientIp for the reasoning and the
+ * TRUSTED_PROXY_HOPS knob.
+ */
 export const getClientIp: (req: ExpressRequest) => string | undefined = (
   req: ExpressRequest,
 ): string | undefined => {
-  const forwarded: string | Array<string> | undefined = req.headers[
-    "x-forwarded-for"
-  ] as string | Array<string> | undefined;
-
-  if (Array.isArray(forwarded) && forwarded.length > 0) {
-    return forwarded[0]?.split(",")[0]?.trim();
-  }
-
-  if (typeof forwarded === "string" && forwarded.trim().length > 0) {
-    return forwarded.split(",")[0]?.trim();
-  }
-
-  if (req.socket?.remoteAddress) {
-    return req.socket.remoteAddress;
-  }
-
-  return req.ip;
+  return resolveClientIp(req);
 };

@@ -31,6 +31,7 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
+import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
@@ -68,6 +69,16 @@ import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import { REFRESH_SIDEBAR_COUNT_EVENT } from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
 import LiveDuration from "../EventView/LiveDuration";
 import useEventTimelineEndDates from "../EventView/useEventTimelineEndDates";
+import useNoteTemplates from "../EventView/useNoteTemplates";
+import BulkChangeStateModal, {
+  BulkChangeStateSubmitData,
+} from "../EventView/BulkChangeStateModal";
+import {
+  BulkStateChangeNoteType,
+  BulkStateChangeSkipDecision,
+  buildBulkStateChangeMiscDataProps,
+  getBulkStateChangeSkipDecision,
+} from "../../Utils/BulkStateChange";
 
 export interface ComponentProps {
   query?: Query<Incident> | undefined;
@@ -113,6 +124,10 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
     eventIds: resolvedIncidentIds,
     eventIdField: "incidentId",
     timelineModelType: IncidentStateTimeline,
+  });
+
+  const { noteTemplates } = useNoteTemplates<IncidentNoteTemplate>({
+    modelType: IncidentNoteTemplate,
   });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
@@ -340,11 +355,15 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
   }, []);
 
   const handleBulkStateChange: (
-    targetStateId: ObjectID,
-  ) => Promise<void> = async (targetStateId: ObjectID): Promise<void> => {
+    data: BulkChangeStateSubmitData,
+  ) => Promise<void> = async (
+    data: BulkChangeStateSubmitData,
+  ): Promise<void> => {
     if (!bulkActionProps) {
       return;
     }
+
+    const targetStateId: ObjectID = data.stateId;
 
     const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
       bulkActionProps;
@@ -360,6 +379,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
     }
 
     const targetOrder: number = targetState.order || 0;
+
+    const miscDataProps: JSONObject = buildBulkStateChangeMiscDataProps({
+      noteType: BulkStateChangeNoteType.Public,
+      note: data.note,
+    });
 
     onBulkActionStart();
 
@@ -393,12 +417,18 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           fetchedIncident?.currentIncidentState?.order || 0;
 
         // Skip if already at or past the target state
-        if (currentOrder >= targetOrder) {
-          const currentStateName: string =
-            fetchedIncident?.currentIncidentState?.name || "Unknown";
+        const skipDecision: BulkStateChangeSkipDecision =
+          getBulkStateChangeSkipDecision({
+            currentOrder: currentOrder,
+            targetOrder: targetOrder,
+            currentStateName: fetchedIncident?.currentIncidentState?.name,
+            targetStateName: targetState.name,
+          });
+
+        if (skipDecision.shouldSkip) {
           failedItems.push({
             item: incident,
-            failedMessage: `Skipped: Already at "${currentStateName}" (at or past "${targetState.name}")`,
+            failedMessage: skipDecision.skippedMessage!,
           });
         } else {
           // Create state timeline to change state
@@ -407,10 +437,13 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           stateTimeline.incidentId = incident.id;
           stateTimeline.incidentStateId = targetStateId;
           stateTimeline.projectId = ProjectUtil.getCurrentProjectId()!;
+          stateTimeline.shouldStatusPageSubscribersBeNotified =
+            data.shouldStatusPageSubscribersBeNotified ?? true;
 
           await ModelAPI.create<IncidentStateTimeline>({
             model: stateTimeline,
             modelType: IncidentStateTimeline,
+            miscDataProps: miscDataProps,
           });
 
           successItems.push(incident);
@@ -948,35 +981,26 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
       {ownerBulkActionModals}
 
       {showBulkStateChangeModal && (
-        <BasicFormModal
+        <BulkChangeStateModal
           title="Change Incident State"
           description="Select the state to change incidents to. Incidents already at or past the selected state will be skipped."
+          stateFieldKey="incidentStateId"
+          stateOptions={incidentStates.map((state: IncidentState) => {
+            return {
+              label: state.name || "",
+              value: state.id?.toString() || "",
+            };
+          })}
+          noteType={BulkStateChangeNoteType.Public}
+          noteTitle="Public Note"
+          noteDescription="Post a public note about this state change to the status page. The same note is added to every incident you selected."
+          noteTemplates={noteTemplates}
+          showNotifyStatusPageSubscribers={true}
           onClose={() => {
             setShowBulkStateChangeModal(false);
             setBulkActionProps(null);
           }}
-          submitButtonText="Change State"
-          onSubmit={async (formData: { incidentStateId: ObjectID }) => {
-            await handleBulkStateChange(formData.incidentStateId);
-          }}
-          formProps={{
-            fields: [
-              {
-                field: {
-                  incidentStateId: true,
-                },
-                title: "Select State",
-                fieldType: FormFieldSchemaType.Dropdown,
-                required: true,
-                dropdownOptions: incidentStates.map((state: IncidentState) => {
-                  return {
-                    label: state.name || "",
-                    value: state.id?.toString() || "",
-                  };
-                }),
-              },
-            ],
-          }}
+          onSubmit={handleBulkStateChange}
         />
       )}
     </>

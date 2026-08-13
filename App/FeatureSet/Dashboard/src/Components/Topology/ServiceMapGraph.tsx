@@ -18,8 +18,8 @@ import ReactFlow, {
   ReactFlowInstance,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
-import TelemetryEntityRelationship from "Common/Models/DatabaseModels/TelemetryEntityRelationship";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
+import InventoryItemRelationship from "Common/Models/DatabaseModels/InventoryItemRelationship";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
@@ -64,8 +64,8 @@ const X_GAP: number = 260;
 const Y_GAP: number = 150;
 
 export interface ComponentProps {
-  entities: Array<TelemetryEntity>;
-  relationships: Array<TelemetryEntityRelationship>;
+  entities: Array<InventoryItem>;
+  relationships: Array<InventoryItemRelationship>;
   /** Seconds the depends-on metrics were aggregated over (cron window). */
   metricsWindowSeconds: number;
   /** The page's picked range — drives the edge drill-down history query. */
@@ -212,17 +212,14 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
   const flowInstance: React.MutableRefObject<ReactFlowInstance | null> =
     useRef<ReactFlowInstance | null>(null);
 
-  const serviceEntities: Array<TelemetryEntity> = useMemo(() => {
-    return props.entities.filter((entity: TelemetryEntity) => {
+  const serviceEntities: Array<InventoryItem> = useMemo(() => {
+    return props.entities.filter((entity: InventoryItem) => {
       return entity.entityType === EntityType.Service && entity.entityKey;
     });
   }, [props.entities]);
 
-  const entityByKey: Map<string, TelemetryEntity> = useMemo(() => {
-    const map: Map<string, TelemetryEntity> = new Map<
-      string,
-      TelemetryEntity
-    >();
+  const entityByKey: Map<string, InventoryItem> = useMemo(() => {
+    const map: Map<string, InventoryItem> = new Map<string, InventoryItem>();
     for (const entity of serviceEntities) {
       map.set(entity.entityKey!, entity);
     }
@@ -237,7 +234,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     let cancelled: boolean = false;
     const names: Array<string> = serviceEntities
-      .map((entity: TelemetryEntity) => {
+      .map((entity: InventoryItem) => {
         return entity.displayName || "";
       })
       .filter(Boolean);
@@ -264,9 +261,9 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     };
   }, [serviceEntities]);
 
-  const dependsOnEdges: Array<TelemetryEntityRelationship> = useMemo(() => {
+  const dependsOnEdges: Array<InventoryItemRelationship> = useMemo(() => {
     return props.relationships.filter(
-      (relationship: TelemetryEntityRelationship) => {
+      (relationship: InventoryItemRelationship) => {
         return (
           relationship.relationshipType === EntityRelationshipType.DependsOn &&
           Boolean(relationship.fromEntityKey) &&
@@ -319,18 +316,18 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     nodes: Array<Node<ServiceNodeData>>;
     edges: Array<Edge>;
   } => {
-    const visibleServices: Array<TelemetryEntity> = serviceEntities.filter(
-      (entity: TelemetryEntity) => {
+    const visibleServices: Array<InventoryItem> = serviceEntities.filter(
+      (entity: InventoryItem) => {
         return !focusedKeys || focusedKeys.has(entity.entityKey!);
       },
     );
     const visibleKeys: Set<string> = new Set<string>(
-      visibleServices.map((entity: TelemetryEntity) => {
+      visibleServices.map((entity: InventoryItem) => {
         return entity.entityKey!;
       }),
     );
-    const visibleEdges: Array<TelemetryEntityRelationship> =
-      dependsOnEdges.filter((relationship: TelemetryEntityRelationship) => {
+    const visibleEdges: Array<InventoryItemRelationship> =
+      dependsOnEdges.filter((relationship: InventoryItemRelationship) => {
         return (
           visibleKeys.has(relationship.fromEntityKey!) &&
           visibleKeys.has(relationship.toEntityKey!)
@@ -360,7 +357,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     }
     const layout: Map<string, LayoutPoint> = computeLayeredLayout(
       Array.from(connectedKeys),
-      visibleEdges.map((relationship: TelemetryEntityRelationship) => {
+      visibleEdges.map((relationship: InventoryItemRelationship) => {
         return {
           from: relationship.fromEntityKey!,
           to: relationship.toEntityKey!,
@@ -372,17 +369,17 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     for (const [, point] of layout) {
       maxY = Math.max(maxY, point.y);
     }
-    const isolated: Array<TelemetryEntity> = visibleServices
-      .filter((entity: TelemetryEntity) => {
+    const isolated: Array<InventoryItem> = visibleServices
+      .filter((entity: InventoryItem) => {
         return !connectedKeys.has(entity.entityKey!);
       })
-      .sort((a: TelemetryEntity, b: TelemetryEntity) => {
+      .sort((a: InventoryItem, b: InventoryItem) => {
         return (a.displayName || "").localeCompare(b.displayName || "");
       });
 
     const lowerSearch: string = searchText.trim().toLowerCase();
     const builtNodes: Array<Node<ServiceNodeData>> = visibleServices.map(
-      (entity: TelemetryEntity): Node<ServiceNodeData> => {
+      (entity: InventoryItem): Node<ServiceNodeData> => {
         const key: string = entity.entityKey!;
         const served: { calls: number; errors: number } | undefined =
           inboundCalls.get(key);
@@ -396,7 +393,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
         );
         const point: LayoutPoint = layout.get(key) || {
           x:
-            isolated.findIndex((candidate: TelemetryEntity) => {
+            isolated.findIndex((candidate: InventoryItem) => {
               return candidate.entityKey === key;
             }) * X_GAP,
           y: (layout.size > 0 ? maxY + Y_GAP : 0) + Y_GAP,
@@ -427,7 +424,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     );
 
     const builtEdges: Array<Edge> = visibleEdges.map(
-      (relationship: TelemetryEntityRelationship): Edge => {
+      (relationship: InventoryItemRelationship): Edge => {
         const health: TrafficHealth = healthForErrorRate(
           relationship.callCount,
           relationship.errorCount,
@@ -496,7 +493,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     };
   }, [focusKey, nodes.length]);
 
-  const selectedEntity: TelemetryEntity | null =
+  const selectedEntity: InventoryItem | null =
     (selectedKey && entityByKey.get(selectedKey)) || null;
 
   if (serviceEntities.length === 0) {
@@ -618,17 +615,17 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
         if (!selectedEdgeId) {
           return <></>;
         }
-        const relationship: TelemetryEntityRelationship | undefined =
-          dependsOnEdges.find((candidate: TelemetryEntityRelationship) => {
+        const relationship: InventoryItemRelationship | undefined =
+          dependsOnEdges.find((candidate: InventoryItemRelationship) => {
             return (
               `${candidate.fromEntityKey}->${candidate.toEntityKey}` ===
               selectedEdgeId
             );
           });
-        const fromEntity: TelemetryEntity | undefined = entityByKey.get(
+        const fromEntity: InventoryItem | undefined = entityByKey.get(
           relationship?.fromEntityKey || "",
         );
-        const toEntity: TelemetryEntity | undefined = entityByKey.get(
+        const toEntity: InventoryItem | undefined = entityByKey.get(
           relationship?.toEntityKey || "",
         );
         if (!relationship || !fromEntity || !toEntity) {

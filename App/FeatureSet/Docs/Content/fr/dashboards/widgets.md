@@ -101,6 +101,24 @@ Toute personne pouvant modifier le tableau de bord décide de ce que ce widget e
 
 ## Journaux et traces
 
+### Log Chart
+
+Un graphique de séries temporelles du volume de journaux sur la plage temporelle du tableau de bord. Chaque série correspond à une sévérité, si bien que les pics d'erreurs se détachent du trafic normal.
+
+**Paramètres** :
+
+- Visualisation en barres, en courbes ou en aires. Les graphiques en barres et en aires empilent les séries de sévérité.
+- Filtres de sévérité facultatifs.
+- Recherche textuelle facultative dans le corps du journal.
+- Filtres exacts sur les attributs OpenTelemetry via des lignes clé/valeur cherchables. Les noms d'attributs et les valeurs connues sont suggérés à la saisie, et les valeurs personnalisées restent prises en charge.
+- Un titre facultatif.
+
+Les contrôles de plage temporelle et de rafraîchissement du tableau de bord relancent automatiquement la requête du graphique. Les variables d'attributs de télémétrie du tableau de bord s'y appliquent aussi, y compris les variables à sélection multiple.
+
+Log Chart nécessite pour l'instant un tableau de bord authentifié. Les tableaux de bord publics affichent le widget comme indisponible plutôt que d'exposer anonymement les agrégats de journaux du projet.
+
+À utiliser quand : vous voulez repérer des variations du volume de journaux ou comparer erreurs, avertissements et messages d'information sans quitter le tableau de bord.
+
 ### Log Stream
 
 Un flux en direct des lignes de journaux correspondant à un filtre.
@@ -143,6 +161,21 @@ Une liste en direct des monitors et de leur statut actuel.
 
 À utiliser quand : vous voulez une vue de flotte — « est-ce que tous les sites sont en ligne ? ».
 
+## Objectifs de niveau de service
+
+### SLO
+
+Un objectif de niveau de service, tracé soit comme un nombre unique, soit comme une courbe dans le temps.
+
+**Paramètres** : quel SLO, lequel de ses trois nombres (SLI, Error Budget Remaining ou Burn Rate), affichage Tile ou Chart, et un titre facultatif.
+
+- **Tile** affiche le nombre actuel, avec une seconde ligne lorsqu'il y en a une — la cible sous le SLI, les minutes restantes sous le budget d'erreur. Une pastille de statut colore l'ensemble.
+- **Chart** trace le même nombre sur la plage temporelle du tableau de bord, la cible étant marquée par une ligne pointillée sur la série du SLI. L'historique est écrit toutes les quelques minutes par le worker d'évaluation : un SLO tout neuf s'affiche donc vide jusqu'à sa première évaluation.
+
+À utiliser quand : le tableau de bord répond à « tenons-nous ce que nous avons promis ? » plutôt qu'à « qu'est-ce qui se passe en ce moment ? ».
+
+Le widget SLO fonctionne sur les [tableaux de bord publics](/docs/dashboards/sharing). Ce qui est publié, ce sont les chiffres clés du SLO — son nom, sa cible, son SLI actuel, le budget d'erreur restant, le burn rate et son statut — quel que soit celui que le widget trace réellement. Sa définition reste privée : les moniteurs qu'il surveille, ses étiquettes, sa description, sa requête et sa planification d'évaluation ne sont jamais envoyés à un visiteur public. Un widget Tile ne publie que ces chiffres actuels ; un widget Chart publie en plus l'historique de la seule série qu'il trace, et rien d'autre.
+
 ## Listes de ressources Kubernetes
 
 Pour les projets disposant d'un [agent Kubernetes](/docs/monitor/kubernetes-agent) installé. Chaque widget accepte des filtres optionnels par cluster, namespace et étiquettes.
@@ -176,15 +209,32 @@ Les hôtes surveillés par le moniteur de serveur de OneUptime, avec statut, CPU
 
 **Paramètres** : filtres par étiquettes ou état actuel.
 
+## Réseau
+
+### Network Map
+
+Vos sites réseau tracés sur la carte du monde, chacun épinglé à sa propre latitude et longitude et coloré selon le statut de moniteur agrégé sur lui. Les sites proches les uns des autres partagent un marqueur portant leur nombre ; un marqueur qui représente exactement un site ouvre ce site quand vous cliquez dessus.
+
+La carte se cadre d'elle-même sur les sites qu'elle a tracés — un parc situé dans un seul pays remplit le cadre avec ce pays, un parc réparti sur plusieurs continents s'ouvre sur le monde. Il n'y a ni zoom ni déplacement : une tuile de tableau de bord est une image, et c'est la page Network Map, sous Network, qui permet de parcourir la hiérarchie.
+
+Au-dessus de la carte s'affiche le nombre de sites hors service, car un point rouge de deux pixels parmi deux cents verts n'est pas quelque chose que l'on lit à distance de tableau de bord. En dessous, une ligne de couverture indique ce que la carte ne montre _pas_ — les sites sans coordonnées, et si le plafond de lignes a été atteint.
+
+**Paramètres** : titre, vue carte ou liste, nombre maximal de sites tracés, affichage ou non des noms de sites, et filtres par type de site et par statut. Les noms de sites disparaissent automatiquement lorsque la carte devient trop chargée pour qu'ils restent lisibles ; l'infobulle nomme toujours chaque marqueur.
+
+Un site n'apparaît que s'il a des coordonnées. Ajoutez la latitude et la longitude sur le site (ou importez-les depuis un CSV) pour l'épingler.
+
 ## Quel widget choisir ?
 
 Quelques règles rapides :
 
 - **Tendance dans le temps ?** Chart.
+- **Volume de journaux ou pics d'erreurs dans le temps ?** Log Chart.
 - **Un seul nombre qui compte en ce moment ?** Value (ou Gauge s'il a un min/max clair).
 - **Décomposition entre plusieurs choses ?** Table.
 - **Ce qu'il se passe dans le système en ce moment ?** Log Stream, Trace List, Incident List.
 - **L'état d'un groupe spécifique de ressources ?** Le widget de liste correspondant.
+- **Tenons-nous la fiabilité promise ?** SLO.
+- **Où se trouve votre réseau dans le monde, et qu'est-ce qui est en rouge ?** Network Map.
 - **Un titre, un paragraphe ou un lien ?** Text.
 - **Quelque chose qu'aucun des cas ci-dessus ne couvre ?** HTML — mais seulement après avoir vérifié qu'aucun widget intégré ne peut vraiment le faire.
 

@@ -122,6 +122,39 @@ describe("NetworkTopologyUtil.buildTopology", () => {
       expect(unmanaged!.deviceModel).toBe("cisco WS-C2960");
     });
 
+    it("prefers a stamped monitor status over lastSeenAt freshness", () => {
+      /*
+       * The precedence SiteStatusRollupUtil already applies when it rolls
+       * devices into a site — otherwise a device could read "up" on the map
+       * and "down" on the site card directly above it.
+       *
+       * d3 is the case this exists for: a monitor-backed device is never
+       * polled, so its lastSeenAt is permanently absent and freshness alone
+       * would leave it "unknown" forever.
+       */
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "monitor-says-down", {
+            lastSeenAt: fresh,
+            monitorStatus: "down",
+          }),
+          makeDevice("d2", "monitor-says-up", {
+            lastSeenAt: stale,
+            monitorStatus: "up",
+          }),
+          makeDevice("d3", "never-polled", {
+            lastSeenAt: undefined,
+            monitorStatus: "up",
+          }),
+        ],
+        now,
+      );
+
+      expect(nodeById(result, "d1")!.status).toBe("down");
+      expect(nodeById(result, "d2")!.status).toBe("up");
+      expect(nodeById(result, "d3")!.status).toBe("up");
+    });
+
     it("derives device status from lastSeenAt freshness", () => {
       const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
         [
@@ -158,6 +191,460 @@ describe("NetworkTopologyUtil.buildTopology", () => {
 
       expect(result.edges).toHaveLength(1);
       expect(result.edges[0]!.protocols).toEqual(["lldp", "cdp"]);
+    });
+  });
+
+  /*
+   * The matching half of issue #3023: switches drawn linked to phantom
+   * "unmanaged" neighbours that are in fact devices already in the project.
+   * A chassis id is a serial or a MAC, and both were previously unmatchable
+   * because devices were only ever indexed by their names.
+   */
+  describe("neighbor matching beyond sysName", () => {
+    it("matches a chassis id against the device's serial number", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "UN0661LANSWI02", {
+            sysName: "UN0661LANSWI02",
+            lldpNeighbors: [
+              {
+                localInterfaceIndex: 24,
+                // No sysName advertised — only the chassis id.
+                remoteChassisId: "W600805EC073AAE7",
+                remotePortId: "1",
+              },
+            ],
+          }),
+          makeDevice("d2", "idf-ap-1", {
+            sysName: "idf-ap-1",
+            serialNumber: "W600805EC073AAE7",
+          }),
+        ],
+        now,
+      );
+
+      expect(result.nodes).toHaveLength(2);
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0]!.toNodeId).toBe("d2");
+    });
+
+    it("matches a chassis id against one of the device's interface MACs", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "edge-1", {
+            sysName: "edge-1",
+            lldpNeighbors: [
+              // Cisco dot spelling on the wire, colon spelling on the device.
+              { localInterfaceIndex: 3, remoteChassisId: "0011.2233.4455" },
+            ],
+          }),
+          makeDevice("d2", "core-1", {
+            sysName: "core-1",
+            macAddresses: ["aa:bb:cc:dd:ee:ff", "00:11:22:33:44:55"],
+          }),
+        ],
+        now,
+      );
+
+      expect(result.nodes).toHaveLength(2);
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0]!.toNodeId).toBe("d2");
+    });
+
+    it("matches an FQDN against a bare sysName, and the reverse", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "edge-1", {
+            sysName: "edge-1",
+            lldpNeighbors: [
+              { localInterfaceIndex: 1, remoteSysName: "core-1.corp.local" },
+            ],
+          }),
+          makeDevice("d2", "core-1", { sysName: "core-1" }),
+          makeDevice("d3", "dist-1", {
+            sysName: "dist-1.corp.local",
+            lldpNeighbors: [
+              { localInterfaceIndex: 2, remoteSysName: "edge-1" },
+            ],
+          }),
+        ],
+        now,
+      );
+
+      expect(result.nodes).toHaveLength(3);
+      const edgeTargets: Array<string> = result.edges.map(
+        (edge: NetworkTopologyEdge) => {
+          return [edge.fromNodeId, edge.toNodeId].sort().join("::");
+        },
+      );
+      expect(edgeTargets.sort()).toEqual(["d1::d2", "d1::d3"]);
+    });
+
+    it("refuses to guess when two devices share a short hostname", () => {
+      /*
+       * `sw01` names two different boxes here, so the short form identifies
+       * nothing. Drawing the cable to whichever was indexed last would put
+       * a link on the map that does not exist in the building.
+       */
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "edge-1", {
+            sysName: "edge-1",
+            lldpNeighbors: [{ localInterfaceIndex: 1, remoteSysName: "sw01" }],
+          }),
+          makeDevice("d2", "sw01-a", { sysName: "sw01.site-a.local" }),
+          makeDevice("d3", "sw01-b", { sysName: "sw01.site-b.local" }),
+        ],
+        now,
+      );
+
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0]!.toNodeId).toBe("unmanaged:sw01");
+      expect(nodeById(result, "unmanaged:sw01")!.isManaged).toBe(false);
+    });
+
+    it("still prefers an exact name over a short-host match", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "edge-1", {
+            sysName: "edge-1",
+            lldpNeighbors: [
+              { localInterfaceIndex: 1, remoteSysName: "core-1.corp.local" },
+            ],
+          }),
+          makeDevice("d2", "exact", { sysName: "core-1.corp.local" }),
+          makeDevice("d3", "shortOnly", { sysName: "core-1.other.local" }),
+        ],
+        now,
+      );
+
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0]!.toNodeId).toBe("d2");
+    });
+
+    it("draws one unmanaged node when two switches identify a peer differently", () => {
+      /*
+       * One switch knows the access point by name, the other only by the
+       * chassis MAC it advertises. That is one box, and the map used to
+       * show it as two unrelated strangers.
+       */
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "edge-1", {
+            sysName: "edge-1",
+            lldpNeighbors: [
+              {
+                localInterfaceIndex: 1,
+                remoteSysName: "ap-lobby",
+                remoteChassisId: "00:11:22:33:44:55",
+              },
+            ],
+          }),
+          makeDevice("d2", "edge-2", {
+            sysName: "edge-2",
+            lldpNeighbors: [
+              { localInterfaceIndex: 4, remoteChassisId: "0011.2233.4455" },
+            ],
+          }),
+        ],
+        now,
+      );
+
+      expect(result.nodes).toHaveLength(3);
+      const peer: NetworkTopologyNode | undefined = nodeById(
+        result,
+        "unmanaged:ap-lobby",
+      );
+      expect(peer).toBeDefined();
+      expect(peer!.kind).toBe("unmanaged");
+      // Both switches link to the same peer node.
+      expect(result.edges).toHaveLength(2);
+      for (const edge of result.edges) {
+        expect(edge.toNodeId).toBe("unmanaged:ap-lobby");
+      }
+    });
+
+    it("does not merge two peers that only share a short hostname", () => {
+      /*
+       * The mirror of the ambiguity guard: `sw01.site-a` and `sw01.site-b`
+       * are two boxes, so the short form must never be enough to fuse them.
+       */
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "edge-1", {
+            sysName: "edge-1",
+            lldpNeighbors: [
+              { localInterfaceIndex: 1, remoteSysName: "sw01.site-a.local" },
+              { localInterfaceIndex: 2, remoteSysName: "sw01.site-b.local" },
+            ],
+          }),
+        ],
+        now,
+      );
+
+      expect(nodeById(result, "unmanaged:sw01.site-a.local")).toBeDefined();
+      expect(nodeById(result, "unmanaged:sw01.site-b.local")).toBeDefined();
+      expect(result.edges).toHaveLength(2);
+    });
+
+    it("never shortens an IP-address hostname to its first octet", () => {
+      /*
+       * Devices are routinely named by management IP. Taking the first
+       * label of "10.0.0.1" would give every one of them the key "10".
+       */
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "edge-1", {
+            sysName: "edge-1",
+            lldpNeighbors: [
+              { localInterfaceIndex: 1, remoteSysName: "10.0.0.9" },
+            ],
+          }),
+          makeDevice("d2", "rtr", { sysName: "10.0.0.1" }),
+        ],
+        now,
+      );
+
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0]!.toNodeId).toBe("unmanaged:10.0.0.9");
+    });
+  });
+
+  /*
+   * The other half of issue #3023: "where auto-discovery can't determine the
+   * correct link, provide a manual option to define the link between two
+   * devices".
+   */
+  describe("operator-declared links", () => {
+    it("draws a link between two devices neither protocol reported", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [makeDevice("d1", "core-1"), makeDevice("d2", "ping-only-ap")],
+        now,
+        [],
+        [],
+        [
+          {
+            fromDeviceId: "d1",
+            toDeviceId: "d2",
+            name: "IDF-2 uplink",
+            fromPortName: "Gi1/0/24",
+            toPortName: "eth0",
+          },
+        ],
+      );
+
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0]!.protocols).toEqual(["manual"]);
+      expect(result.edges[0]!.fromPort).toBe("Gi1/0/24");
+      expect(result.edges[0]!.toPort).toBe("eth0");
+      expect(result.edges[0]!.name).toBe("IDF-2 uplink");
+    });
+
+    it("merges with a discovered link between the same pair instead of doubling it", () => {
+      /*
+       * Two lines between one pair of boxes reads as two physical links.
+       * Declaring a cable that discovery later finds has to cost nothing.
+       */
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "edge-1", {
+            sysName: "edge-1",
+            lldpNeighbors: [
+              {
+                localInterfaceIndex: 24,
+                remoteSysName: "core-1",
+                remotePortId: "Gi0/1",
+              },
+            ],
+          }),
+          makeDevice("d2", "core-1", { sysName: "core-1" }),
+        ],
+        now,
+        [],
+        [],
+        [{ fromDeviceId: "d1", toDeviceId: "d2", name: "hand drawn" }],
+      );
+
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0]!.protocols).toEqual(["lldp", "manual"]);
+      // The discovered port survives; the operator's name has no rival.
+      expect(result.edges[0]!.toPort).toBe("Gi0/1");
+      expect(result.edges[0]!.name).toBe("hand drawn");
+    });
+
+    it("keeps the discovered port when the hand-typed one disagrees", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "edge-1", {
+            sysName: "edge-1",
+            lldpNeighbors: [
+              { localInterfaceIndex: 24, remoteSysName: "core-1" },
+            ],
+          }),
+          makeDevice("d2", "core-1", { sysName: "core-1" }),
+        ],
+        now,
+        [
+          {
+            networkDeviceId: "d1",
+            interfaceIndex: 24,
+            name: "GigabitEthernet0/24",
+          },
+        ],
+        [],
+        [
+          {
+            fromDeviceId: "d1",
+            toDeviceId: "d2",
+            fromPortName: "misremembered",
+          },
+        ],
+      );
+
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0]!.fromPort).toBe("GigabitEthernet0/24");
+    });
+
+    it("carries a bound monitor's verdict for a link nothing measures", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [makeDevice("d1", "core-1"), makeDevice("d2", "remote-1")],
+        now,
+        [],
+        [],
+        [{ fromDeviceId: "d1", toDeviceId: "d2", monitorStatus: "down" }],
+      );
+
+      expect(result.edges[0]!.monitorState).toBe("down");
+    });
+
+    it("skips a link whose ends are not both on this map", () => {
+      /*
+       * A site-scoped map, or a link to a device since archived. Drawing an
+       * edge to a node that is not there would leave a line into empty space.
+       */
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [makeDevice("d1", "core-1")],
+        now,
+        [],
+        [],
+        [
+          { fromDeviceId: "d1", toDeviceId: "d-elsewhere" },
+          { fromDeviceId: "d1", toDeviceId: "d1" },
+        ],
+      );
+
+      expect(result.edges).toHaveLength(0);
+    });
+  });
+
+  describe("suppressed nodes", () => {
+    it("removes a hidden node and every link that touched it", () => {
+      /*
+       * A line to a node that is not drawn is a line into empty space, so
+       * the edges go with the node.
+       */
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "edge-1", {
+            sysName: "edge-1",
+            lldpNeighbors: [
+              { localInterfaceIndex: 1, remoteSysName: "core-1" },
+              { localInterfaceIndex: 2, remoteSysName: "landlord-sw" },
+            ],
+          }),
+          makeDevice("d2", "core-1", { sysName: "core-1" }),
+        ],
+        now,
+        [],
+        [],
+        [],
+        new Set<string>(["unmanaged:landlord-sw"]),
+      );
+
+      expect(nodeById(result, "unmanaged:landlord-sw")).toBeUndefined();
+      expect(result.suppressedNodeCount).toBe(1);
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0]!.toNodeId).toBe("d2");
+    });
+
+    it("hides a managed device without re-routing anything around it", () => {
+      /*
+       * Suppression is a display decision applied to the finished graph.
+       * Hiding the middle of a chain must not invent a link between the two
+       * ends — that would be the map asserting a cable nobody has.
+       */
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "edge-1", {
+            sysName: "edge-1",
+            lldpNeighbors: [
+              { localInterfaceIndex: 1, remoteSysName: "core-1" },
+            ],
+          }),
+          makeDevice("d2", "core-1", {
+            sysName: "core-1",
+            lldpNeighbors: [
+              { localInterfaceIndex: 2, remoteSysName: "dist-1" },
+            ],
+          }),
+          makeDevice("d3", "dist-1", { sysName: "dist-1" }),
+        ],
+        now,
+        [],
+        [],
+        [],
+        new Set<string>(["d2"]),
+      );
+
+      expect(result.nodes).toHaveLength(2);
+      expect(result.edges).toHaveLength(0);
+      expect(result.suppressedNodeCount).toBe(1);
+    });
+
+    it("reports zero rather than nothing when the project hides nothing", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [makeDevice("d1", "edge-1")],
+        now,
+      );
+      expect(result.suppressedNodeCount).toBe(0);
+      expect(result.nodes).toHaveLength(1);
+    });
+
+    it("ignores a key that matches nothing on this map", () => {
+      // A device since deleted, or a site-scoped view. Not an error.
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [makeDevice("d1", "edge-1")],
+        now,
+        [],
+        [],
+        [],
+        new Set<string>(["d-gone"]),
+      );
+      expect(result.nodes).toHaveLength(1);
+      expect(result.suppressedNodeCount).toBe(0);
+    });
+
+    it("hides a discovered endpoint by its endpoint key", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [makeDevice("d1", "edge-1")],
+        now,
+        [],
+        [
+          makeEndpoint("e1", "aa:aa:aa:aa:aa:01", {
+            attachedNetworkDeviceId: "d1",
+          }),
+          makeEndpoint("e2", "aa:aa:aa:aa:aa:02", {
+            attachedNetworkDeviceId: "d1",
+          }),
+        ],
+        [],
+        new Set<string>(["endpoint:e1"]),
+      );
+
+      expect(nodeById(result, "endpoint:e1")).toBeUndefined();
+      expect(nodeById(result, "endpoint:e2")).toBeDefined();
+      expect(result.edges).toHaveLength(1);
+      expect(result.suppressedNodeCount).toBe(1);
     });
   });
 

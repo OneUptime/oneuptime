@@ -120,16 +120,18 @@ Er is een veiligheidsgrens zodat workflows elkaar niet in een lus kunnen blijven
 
 ## OneUptime-datacomponenten
 
-Voor elk soort record in OneUptime (monitors, incidenten, alerts, statuspagina's, oncall-policies en nog veel meer) heeft het palet deze componenten — zoek op de naam van het type:
+Voor elk soort record in OneUptime (monitors, incidenten, alerts, statuspagina's, oncall-policies en nog veel meer) heeft het palet deze componenten — zoek op de naam van het type. De titels worden gemaakt op basis van het type, dus voor Monitor zijn dat:
 
-- **Find One** — haal één record op via ID of filter.
-- **Find** — haal een lijst met records op.
-- **Aanmaken** — voeg een nieuw record toe.
-- **Bijwerken** — wijzig één record.
-- **Verwijderen** — verwijder één record.
-- **Aantal** — tel records die aan een filter voldoen.
+- **Find One Monitor** — haal één record op dat aan het filter voldoet.
+- **Find Many Monitors** — haal een lijst met records op die aan het filter voldoen.
+- **Create One Monitor** — voeg één record toe vanuit een JSON-object.
+- **Create Many Monitors** — voeg meerdere records toe vanuit een JSON-array.
+- **Update One Monitor** — wijzig één record dat aan het filter voldoet.
+- **Update Many Monitors** — wijzig de records die aan het filter voldoen, tot aan Limit.
+- **Delete One Monitor** — verwijder één record dat aan het filter voldoet.
+- **Delete Many Monitors** — verwijder de records die aan het filter voldoen, tot aan Limit.
 
-Zo kan een workflow OneUptime-data lezen en wijzigen. Bijvoorbeeld: een webhook vanuit je CI-tool kan **Incident maken** gebruiken om een incident te openen met de faaldetails.
+Zo kan een workflow OneUptime-data lezen en wijzigen. Bijvoorbeeld: een webhook vanuit je CI-tool kan **Create One Incident** gebruiken om een incident te openen met de faaldetails.
 
 ## Welke component moet ik gebruiken?
 

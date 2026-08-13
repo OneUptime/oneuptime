@@ -714,25 +714,27 @@ export default class SnmpMonitor {
       }
 
       /*
-       * Best-effort CDP neighbors. Only attempted on devices that plausibly
-       * speak CDP (Cisco sysObjectID or empty LLDP result) — walking a
-       * Cisco-enterprise table on every vendor's gear wastes a round-trip
-       * per poll.
+       * Best-effort CDP neighbors, attempted unconditionally.
+       *
+       * This used to be skipped on non-Cisco gear that returned ANY LLDP
+       * row, to save "a round-trip per poll" — but the two protocols cover
+       * different ports, not different devices. A switch that speaks LLDP
+       * to its uplink and CDP to the Cisco phones and APs below it reported
+       * exactly one neighbor and then had the rest of its edges thrown
+       * away, which is one of the ways a device ends up drawn floating.
+       *
+       * The saving was also smaller than it looked: a device with no
+       * CISCO-CDP-MIB answers the first GETNEXT outside the subtree and the
+       * walk stops there — one PDU, against the dozens the ifTable walk
+       * this rides alongside already costs.
        */
       let cdpNeighbors: Array<CdpNeighbor> | undefined = undefined;
-      const isLikelyCisco: boolean = Boolean(
-        systemInfo?.sysObjectId
-          ?.replace(/^\./, "")
-          .startsWith("1.3.6.1.4.1.9."),
-      );
-      if (isLikelyCisco || !lldpNeighbors || lldpNeighbors.length === 0) {
-        try {
-          cdpNeighbors = await SnmpMonitor.walkCdpNeighbors(session);
-        } catch (err) {
-          logger.debug(
-            `SNMP CDP walk failed for ${config.hostname} (device may not run CDP): ${err}`,
-          );
-        }
+      try {
+        cdpNeighbors = await SnmpMonitor.walkCdpNeighbors(session);
+      } catch (err) {
+        logger.debug(
+          `SNMP CDP walk failed for ${config.hostname} (device may not run CDP): ${err}`,
+        );
       }
 
       /*

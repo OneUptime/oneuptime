@@ -4,7 +4,7 @@ export { default as MetricsRoutes } from "./MetricsRoutes";
 export { default as TracesRoutes } from "./TracesRoutes";
 export { default as ExceptionsRoutes } from "./ExceptionsRoutes";
 export { default as LlmRoutes } from "./LlmRoutes";
-export { default as EntitiesRoutes } from "./EntitiesRoutes";
+export { default as InventoryRoutes } from "./InventoryRoutes";
 export { default as TopologyRoutes } from "./TopologyRoutes";
 export { default as ProfilesRoutes } from "./ProfilesRoutes";
 

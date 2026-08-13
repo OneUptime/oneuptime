@@ -2,6 +2,10 @@ import ModelListModal from "../ModelListModal/ModelListModal";
 import EqualToOrNull from "../../../Types/BaseDatabase/EqualToOrNull";
 import ObjectID from "../../../Types/ObjectID";
 import WorkflowVariable from "../../../Models/DatabaseModels/WorkflowVariable";
+import {
+  globalVariableReference,
+  variableReference,
+} from "../../../Types/Workflow/TemplateSyntax";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -43,9 +47,9 @@ const VariableModal: FunctionComponent<ComponentProps> = (
       onClose={props.onClose}
       onSave={(variables: Array<WorkflowVariable>) => {
         if (variables[0]?.workflowId) {
-          props.onSave(`{{local.variables.${variables[0]?.name}}}`);
+          props.onSave(variableReference(variables[0]?.name || ""));
         } else {
-          props.onSave(`{{global.variables.${variables[0]?.name}}}`);
+          props.onSave(globalVariableReference(variables[0]?.name || ""));
         }
       }}
     />

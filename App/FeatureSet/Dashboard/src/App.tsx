@@ -106,12 +106,12 @@ const LlmRoutes: React.LazyExoticComponent<AllRoutesModule["LlmRoutes"]> = lazy(
   },
 );
 
-const EntitiesRoutes: React.LazyExoticComponent<
-  AllRoutesModule["EntitiesRoutes"]
+const InventoryRoutes: React.LazyExoticComponent<
+  AllRoutesModule["InventoryRoutes"]
 > = lazy(() => {
   return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
     return {
-      default: m.EntitiesRoutes,
+      default: m.InventoryRoutes,
     };
   });
 });
@@ -1089,11 +1089,11 @@ const App: () => JSX.Element = () => {
               element={<LlmRoutes {...commonPageProps} />}
             />
 
-            {/** Entities (entity explorer) */}
+            {/** Inventory (the estate catalog) */}
 
             <PageRoute
-              path={RouteMap[PageMap.ENTITIES_ROOT]?.toString() || ""}
-              element={<EntitiesRoutes {...commonPageProps} />}
+              path={RouteMap[PageMap.INVENTORY_ROOT]?.toString() || ""}
+              element={<InventoryRoutes {...commonPageProps} />}
             />
 
             {/** Topology (service map) */}

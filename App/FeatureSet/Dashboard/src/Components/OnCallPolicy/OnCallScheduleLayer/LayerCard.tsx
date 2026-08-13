@@ -266,44 +266,48 @@ const LayerCard: FunctionComponent<ComponentProps> = (
             <SummaryChip icon={IconProp.Clock} text={restrictionSummary} />
           </div>
 
-          {/* Live "who is on call right now" line, derived from the rotation. */}
-          {userCount > 0 && (
-            <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-gray-500">
-              <span
-                className="inline-block h-2 w-2 flex-shrink-0 rounded-full"
-                style={{
-                  backgroundColor: currentAndNext.current
-                    ? getColorForUserId(currentAndNext.current.userId)
-                    : "#d1d5db",
-                }}
-              />
-              {currentAndNext.current ? (
+          {/*
+           * Live "who is on call right now" line, derived from the rotation.
+           * Rendered even with no users assigned — that is precisely the case
+           * where this layer can never put anybody on call, so suppressing the
+           * line there (as this used to) hid the most important state it has.
+           */}
+          <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-gray-500">
+            <span
+              className="inline-block h-2 w-2 flex-shrink-0 rounded-full"
+              style={{
+                backgroundColor: currentAndNext.current
+                  ? getColorForUserId(currentAndNext.current.userId)
+                  : "#d1d5db",
+              }}
+            />
+            {currentAndNext.current ? (
+              <span>
+                <span className="font-semibold text-gray-700">
+                  {nameById[currentAndNext.current.userId] || "Unknown user"}
+                </span>{" "}
+                on call now
+              </span>
+            ) : (
+              <span className="text-amber-700">
+                {userCount === 0
+                  ? "No users assigned - this layer never puts anyone on call"
+                  : "No one on call in this layer right now"}
+              </span>
+            )}
+            {currentAndNext.next && (
+              <>
+                <span className="text-gray-300">&middot;</span>
                 <span>
-                  <span className="font-semibold text-gray-700">
-                    {nameById[currentAndNext.current.userId] || "Unknown user"}
+                  Up next{" "}
+                  <span className="font-medium text-gray-700">
+                    {nameById[currentAndNext.next.userId] || "Unknown user"}
                   </span>{" "}
-                  on call now
+                  {formatRelativeStart(currentAndNext.next.start, preview.now)}
                 </span>
-              ) : (
-                <span>No one on call in this layer right now</span>
-              )}
-              {currentAndNext.next && (
-                <>
-                  <span className="text-gray-300">&middot;</span>
-                  <span>
-                    Up next{" "}
-                    <span className="font-medium text-gray-700">
-                      {nameById[currentAndNext.next.userId] || "Unknown user"}
-                    </span>{" "}
-                    {formatRelativeStart(
-                      currentAndNext.next.start,
-                      preview.now,
-                    )}
-                  </span>
-                </>
-              )}
-            </div>
-          )}
+              </>
+            )}
+          </div>
         </div>
 
         {/* Actions */}
@@ -364,7 +368,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
       {/* Body */}
       {props.isExpanded && (
         <div className="border-t border-gray-200 px-4 py-5 md:px-5">
-          {userCount > 0 && (
+          {userCount > 0 ? (
             <div className="mb-6">
               <LayerRotationSummary
                 layer={layer}
@@ -372,7 +376,26 @@ const LayerCard: FunctionComponent<ComponentProps> = (
                 timezone={props.timezone}
                 events={preview.events}
                 now={preview.now}
+                /*
+                 * A layer only has a fallback if something sits BELOW it in
+                 * priority order. Without this the summary claimed that
+                 * lower-priority layers cover the off-hours even for the last
+                 * layer, where the off-hours are a genuine coverage hole.
+                 */
+                hasLowerPriorityLayer={props.index < props.total - 1}
               />
+            </div>
+          ) : (
+            <div className="mb-6 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+              <Icon
+                icon={IconProp.Alert}
+                className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-500"
+              />
+              <span>
+                <span className="font-semibold">No users assigned.</span> This
+                layer produces no on-call coverage at all. Add at least one user
+                below, or this layer will never page anyone.
+              </span>
             </div>
           )}
 

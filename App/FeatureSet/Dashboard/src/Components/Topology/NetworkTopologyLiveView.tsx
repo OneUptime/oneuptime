@@ -37,7 +37,9 @@ import Link from "Common/UI/Components/Link/Link";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import NetworkTopologySuppression from "Common/Models/DatabaseModels/NetworkTopologySuppression";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import { APP_API_URL } from "Common/UI/Config";
@@ -82,9 +84,19 @@ export interface ComponentProps {
  * NetworkTopology plus the endpoint-loss indicators the topology endpoint
  * reports alongside the graph.
  */
+interface TopologyLinkRuleWarning {
+  ruleId: string;
+  ruleName?: string | undefined;
+  message: string;
+}
+
 interface TopologyViewData extends NetworkTopology {
   endpointsTruncated?: boolean | undefined;
   droppedEndpointCount?: number | undefined;
+  // Nodes the project has hidden; drives the "N hidden — show them" note.
+  suppressedNodeCount?: number | undefined;
+  // Link rules that resolved to nothing, with the reason each one gave.
+  linkRuleWarnings?: Array<TopologyLinkRuleWarning> | undefined;
 }
 
 const EMPTY_TOPOLOGY: TopologyViewData = { nodes: [], edges: [] };
@@ -130,6 +142,25 @@ const parseTopologyResponse: (
     });
 
   const droppedEndpointCountRaw: unknown = data?.["droppedEndpointCount"];
+  const suppressedNodeCountRaw: unknown = data?.["suppressedNodeCount"];
+
+  const linkRuleWarnings: Array<TopologyLinkRuleWarning> = (
+    Array.isArray(data?.["linkRuleWarnings"])
+      ? (data!["linkRuleWarnings"] as JSONArray)
+      : []
+  )
+    .map((row: unknown): TopologyLinkRuleWarning | null => {
+      const warning: JSONObject = (row || {}) as JSONObject;
+      if (!warning["ruleId"] || !warning["message"]) {
+        return null;
+      }
+      return warning as unknown as TopologyLinkRuleWarning;
+    })
+    .filter(
+      (w: TopologyLinkRuleWarning | null): w is TopologyLinkRuleWarning => {
+        return w !== null;
+      },
+    );
 
   return {
     nodes,
@@ -141,6 +172,12 @@ const parseTopologyResponse: (
       Number.isFinite(droppedEndpointCountRaw)
         ? droppedEndpointCountRaw
         : undefined,
+    suppressedNodeCount:
+      typeof suppressedNodeCountRaw === "number" &&
+      Number.isFinite(suppressedNodeCountRaw)
+        ? suppressedNodeCountRaw
+        : undefined,
+    linkRuleWarnings: linkRuleWarnings,
   };
 };
 
@@ -155,6 +192,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
   const [selectedVlan, setSelectedVlan] = useState<string>(ALL_VLANS);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeKey, setSelectedEdgeKey] = useState<string | null>(null);
+  const [suppressionError, setSuppressionError] = useState<string>("");
   const [layoutMode, setLayoutMode] = useState<TopologyLayoutMode>(
     props.layoutMode || "force",
   );
@@ -253,6 +291,64 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
     return () => {
       clearInterval(interval);
     };
+  }, [fetchTopology]);
+
+  /*
+   * Hiding and restoring nodes. Both refetch rather than mutating local
+   * state: suppression is a project-wide fact resolved server-side, and
+   * guessing at the result here would show this user a map nobody else has.
+   */
+  const hideNode: (node: NetworkTopologyNode) => void = useCallback(
+    (node: NetworkTopologyNode): void => {
+      const suppression: NetworkTopologySuppression =
+        new NetworkTopologySuppression();
+      suppression.projectId = ProjectUtil.getCurrentProjectId()!;
+      suppression.nodeKey = node.id;
+      suppression.nodeName = node.name;
+
+      setSuppressionError("");
+      setSelectedNodeId(null);
+
+      ModelAPI.create<NetworkTopologySuppression>({
+        model: suppression,
+        modelType: NetworkTopologySuppression,
+      })
+        .then(() => {
+          return fetchTopology(true);
+        })
+        .catch((err: Error) => {
+          setSuppressionError(API.getFriendlyMessage(err));
+        });
+    },
+    [fetchTopology],
+  );
+
+  const restoreAllHiddenNodes: () => void = useCallback((): void => {
+    setSuppressionError("");
+
+    ModelAPI.getList<NetworkTopologySuppression>({
+      modelType: NetworkTopologySuppression,
+      query: {},
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      select: { _id: true },
+      sort: {},
+    })
+      .then(async (result: ListResult<NetworkTopologySuppression>) => {
+        for (const row of result.data) {
+          if (!row.id) {
+            continue;
+          }
+          await ModelAPI.deleteItem<NetworkTopologySuppression>({
+            modelType: NetworkTopologySuppression,
+            id: row.id,
+          });
+        }
+        return fetchTopology(true);
+      })
+      .catch((err: Error) => {
+        setSuppressionError(API.getFriendlyMessage(err));
+      });
   }, [fetchTopology]);
 
   /*
@@ -737,6 +833,70 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
+      {/*
+       * Always shown when anything is hidden. A map that quietly drops
+       * things is the same failure as one that quietly invents them, and
+       * without this a node hidden months ago by somebody else is
+       * unfindable.
+       */}
+      {topology.suppressedNodeCount && topology.suppressedNodeCount > 0 ? (
+        <p
+          className="mb-3 text-xs text-gray-500"
+          data-testid="network-topology-suppressed-note"
+        >
+          {`${topology.suppressedNodeCount} ${
+            topology.suppressedNodeCount === 1 ? "node is" : "nodes are"
+          } hidden from this map. `}
+          <button
+            type="button"
+            className="font-medium text-indigo-600 underline hover:text-indigo-800"
+            onClick={restoreAllHiddenNodes}
+          >
+            {translateString("Show them") || "Show them"}
+          </button>
+        </p>
+      ) : (
+        <></>
+      )}
+
+      {suppressionError ? (
+        <div className="mb-3 rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800">
+          {suppressionError}
+        </div>
+      ) : (
+        <></>
+      )}
+
+      {/*
+       * The rules that drew nothing. Surfaced on the map rather than only on
+       * the rule page: an ambiguous parent is invisible from the rule list,
+       * which is exactly where somebody would go looking and find a rule
+       * that appears perfectly configured.
+       */}
+      {topology.linkRuleWarnings && topology.linkRuleWarnings.length > 0 ? (
+        <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+          <ul className="list-disc space-y-1 pl-4">
+            {topology.linkRuleWarnings.map(
+              (
+                warning: { ruleName?: string | undefined; message: string },
+                index: number,
+              ): ReactElement => {
+                return (
+                  <li key={index}>
+                    <span className="font-medium">
+                      {warning.ruleName || "Link rule"}
+                    </span>
+                    {`: ${warning.message}`}
+                  </li>
+                );
+              },
+            )}
+          </ul>
+        </div>
+      ) : (
+        <></>
+      )}
+
       <NetworkDeviceGraph
         topology={visibleTopology}
         searchText={searchText}
@@ -782,6 +942,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
             setSelectedNodeId(null);
             setSelectedEdgeKey(edgeKeyForEdge(edge));
           }}
+          onHideNode={hideNode}
         />
       ) : (
         <></>

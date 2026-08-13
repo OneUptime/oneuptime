@@ -20,6 +20,9 @@ import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
 import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpisodeFeed";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import AlertEpisodeService from "./AlertEpisodeService";
+import AlertEpisodeInternalNote from "../../Models/DatabaseModels/AlertEpisodeInternalNote";
+import AlertEpisodeInternalNoteService from "./AlertEpisodeInternalNoteService";
+import { JSONObject } from "../../Types/JSON";
 
 export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
   public constructor() {
@@ -182,11 +185,21 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
         alertEpisodeId: createBy.data.alertEpisodeId?.toString(),
       } as LogAttributes);
 
+      /*
+       * The note a user writes when they change the state. It is not a column
+       * on this model, so it travels alongside the create and becomes an
+       * internal note on the episode once the timeline row exists.
+       */
+      const privateNote: string | undefined = (
+        createBy.miscDataProps as JSONObject | undefined
+      )?.["privateNote"] as string | undefined;
+
       return {
         createBy,
         carryForward: {
           statusTimelineBeforeThisStatus: stateBeforeThis || null,
           statusTimelineAfterThisStatus: stateAfterThis || null,
+          privateNote: privateNote,
           mutex: mutex,
         },
       };
@@ -432,6 +445,22 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
           createdItem.createdByUserId || onCreate.createBy.props.userId,
       },
     });
+
+    if (onCreate.carryForward.privateNote) {
+      const privateNote: string = onCreate.carryForward.privateNote;
+
+      const episodeInternalNote: AlertEpisodeInternalNote =
+        new AlertEpisodeInternalNote();
+      episodeInternalNote.alertEpisodeId = createdItem.alertEpisodeId;
+      episodeInternalNote.note = privateNote;
+      episodeInternalNote.createdAt = createdItem.startsAt!;
+      episodeInternalNote.projectId = createdItem.projectId!;
+
+      await AlertEpisodeInternalNoteService.create({
+        data: episodeInternalNote,
+        props: onCreate.createBy.props,
+      });
+    }
 
     return createdItem;
   }

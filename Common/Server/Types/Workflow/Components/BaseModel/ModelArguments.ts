@@ -206,3 +206,58 @@ export const describeModelColumns: DescribeModelColumnsFunction = (
 
   return columns.join(", ");
 };
+
+type LogUnknownColumnsFunction = (
+  json: JSONObject,
+  model: BaseModel,
+  log: (message: string) => void,
+) => void;
+
+/*
+ * Create silently drops keys it does not recognise. DatabaseBaseModel._fromJSON
+ * only assigns a key when getTableColumnMetadata returns something, and there is
+ * no else branch, so a misspelled key never reaches the record. A required
+ * column still fails loudly through DatabaseService.checkRequiredFields, but an
+ * optional one - MonitorSecret.description, for instance - creates a record with
+ * the field missing, returns Success, and says nothing at all. So "descriptoin"
+ * looked like a green run to the builder who typed it.
+ *
+ * This only reports. Throwing would start failing workflows that run fine today,
+ * and graphs created through the API never pass through the builder that would
+ * have caught the typo, so the run has to continue.
+ */
+export const logUnknownColumns: LogUnknownColumnsFunction = (
+  json: JSONObject,
+  model: BaseModel,
+  log: (message: string) => void,
+): void => {
+  const unknownKeys: Array<string> = Object.keys(json).filter(
+    (key: string): boolean => {
+      /*
+       * "id" has no column of its own - _fromJSON rewrites it to the "_id"
+       * primary key before looking the column up - so it is a legitimate key
+       * here and must not be reported.
+       */
+      if (key === ID_ARGUMENT_KEY) {
+        return false;
+      }
+
+      return !model.getTableColumnMetadata(key);
+    },
+  );
+
+  if (unknownKeys.length === 0) {
+    return;
+  }
+
+  const modelName: string =
+    model.singularName || model.tableName || "this model";
+
+  log(
+    `Ignored ${unknownKeys.join(
+      ", ",
+    )}: not columns on ${modelName}. Columns you can use: ${describeModelColumns(
+      model,
+    )}.`,
+  );
+};

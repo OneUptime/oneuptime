@@ -18,6 +18,9 @@ import NetworkSiteType from "./NetworkSiteType";
 import NetworkEndpoint from "./NetworkEndpoint";
 import NetworkSiteStatusTimeline from "./NetworkSiteStatusTimeline";
 import NetworkSiteLink from "./NetworkSiteLink";
+import NetworkDeviceLink from "./NetworkDeviceLink";
+import NetworkDeviceLinkRule from "./NetworkDeviceLinkRule";
+import NetworkTopologySuppression from "./NetworkTopologySuppression";
 import NetworkSiteAssignmentRule from "./NetworkSiteAssignmentRule";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
@@ -307,8 +310,9 @@ import UserWebAuthn from "./UserWebAuthn";
 import TelemetryIngestionKey from "./TelemetryIngestionKey";
 
 import TelemetryException from "./TelemetryException";
-import TelemetryEntity from "./TelemetryEntity";
-import TelemetryEntityRelationship from "./TelemetryEntityRelationship";
+import InventoryItem from "./InventoryItem";
+import InventoryItemCustomField from "./InventoryItemCustomField";
+import InventoryItemRelationship from "./InventoryItemRelationship";
 import ScheduledMaintenanceTemplate from "./ScheduledMaintenanceTemplate";
 import ScheduledMaintenanceTemplateOwnerTeam from "./ScheduledMaintenanceTemplateOwnerTeam";
 import ScheduledMaintenanceTemplateOwnerUser from "./ScheduledMaintenanceTemplateOwnerUser";
@@ -775,8 +779,9 @@ const AllModelTypes: Array<{
   TelemetryIngestionKey,
 
   TelemetryException,
-  TelemetryEntity,
-  TelemetryEntityRelationship,
+  InventoryItem,
+  InventoryItemCustomField,
+  InventoryItemRelationship,
 
   TableView,
 
@@ -820,6 +825,9 @@ const AllModelTypes: Array<{
   NetworkEndpoint,
   NetworkSiteStatusTimeline,
   NetworkSiteLink,
+  NetworkDeviceLink,
+  NetworkDeviceLinkRule,
+  NetworkTopologySuppression,
   NetworkSiteAssignmentRule,
   DockerHostOwnerTeam,
   DockerHostOwnerUser,

@@ -101,6 +101,24 @@ Wer das Dashboard bearbeiten darf, bestimmt, was dieses Widget ausführt, und je
 
 ## Logs und Traces
 
+### Log-Diagramm
+
+Ein Zeitreihendiagramm des Log-Volumens über den Zeitraum des Dashboards. Jede Reihe steht für einen Schweregrad, sodass Fehlerspitzen sich vom normalen Verkehr abheben.
+
+**Einstellungen**:
+
+- Darstellung als Balken-, Linien- oder Flächendiagramm. Balken- und Flächendiagramme stapeln die Schweregrad-Reihen.
+- Optionale Filter nach Schweregrad.
+- Optionale Textsuche im Log-Text.
+- Exakte OpenTelemetry-Attributfilter über durchsuchbare Schlüssel/Wert-Zeilen. Attributnamen und bekannte Werte werden bei der Eingabe vorgeschlagen, eigene Werte bleiben weiterhin möglich.
+- Ein optionaler Titel.
+
+Die Zeitraum- und Aktualisierungssteuerung des Dashboards fragt das Diagramm automatisch neu ab. Auch Telemetrie-Attribut-Variablen des Dashboards wirken darauf, einschließlich Mehrfachauswahl-Variablen.
+
+Das Log-Diagramm setzt derzeit ein angemeldetes Dashboard voraus. Öffentliche Dashboards zeigen das Widget als nicht verfügbar an, anstatt Log-Aggregate des Projekts anonym offenzulegen.
+
+Verwenden Sie es, wenn: Sie Änderungen im Log-Volumen erkennen oder Fehler, Warnungen und Informationsmeldungen vergleichen wollen, ohne das Dashboard zu verlassen.
+
 ### Log-Stream
 
 Ein Live-Tail von Logzeilen, die einem Filter entsprechen.
@@ -143,6 +161,21 @@ Eine Live-Liste der Monitore und ihres aktuellen Status.
 
 Verwenden Sie sie, wenn: Sie eine Flottenübersicht wollen – „Sind alle Sites online?"
 
+## Service-Level-Ziele
+
+### SLO
+
+Ein einzelnes Service-Level-Ziel, dargestellt entweder als einzelne Zahl oder als Linie über die Zeit.
+
+**Einstellungen**: welches SLO, welche seiner drei Zahlen (SLI, verbleibendes Fehlerbudget oder Burn Rate), Darstellung als Kachel oder Diagramm und ein optionaler Titel.
+
+- **Kachel** zeigt die aktuelle Zahl und – wo es eine gibt – eine zweite Zeile: das Ziel unter dem SLI, die verbleibenden Minuten unter dem Fehlerbudget. Eine Status-Pille färbt das Ganze.
+- **Diagramm** zeichnet dieselbe Zahl über den Zeitraum des Dashboards, wobei das Ziel als gestrichelte Linie auf der SLI-Reihe markiert wird. Die Historie wird alle paar Minuten vom Auswertungs-Worker geschrieben, daher wird ein brandneues SLO als leer dargestellt, bis es erstmals ausgewertet wurde.
+
+Verwenden Sie sie, wenn: das Dashboard die Frage „Halten wir ein, was wir versprochen haben?" beantwortet und nicht „Was passiert gerade?"
+
+Das SLO-Widget funktioniert auf [öffentlichen Dashboards](/docs/dashboards/sharing). Veröffentlicht werden die Kennzahlen des SLO – Name, Ziel, aktueller SLI, verbleibendes Fehlerbudget, Burn Rate und Status – unabhängig davon, welche davon das Widget tatsächlich zeichnet. Seine Definition bleibt privat: die überwachten Monitore, seine Labels, seine Beschreibung, seine Abfrage und sein Auswertungsintervall werden niemals an öffentliche Betrachter gesendet. Ein Kachel-Widget veröffentlicht nur diese aktuellen Zahlen; ein Diagramm-Widget veröffentlicht zusätzlich die Historie der einen Reihe, die es zeichnet, und nichts weiter.
+
 ## Kubernetes-Ressourcenlisten
 
 Für Projekte mit installiertem [Kubernetes Agent](/docs/monitor/kubernetes-agent). Jede Liste nimmt optionale Filter für Cluster, Namespace und Labels.
@@ -176,15 +209,32 @@ Hosts, die vom OneUptime-Server-Monitor überwacht werden, mit Status, CPU, Spei
 
 **Einstellungen**: Filter nach Labels oder aktuellem Status.
 
+## Netzwerk
+
+### Netzwerkkarte
+
+Ihre Netzwerkstandorte auf der Weltkarte, jeder an seinem eigenen Breiten- und Längengrad verortet und nach dem darauf aggregierten Monitor-Status gefärbt. Standorte, die nah beieinander liegen, teilen sich eine Markierung mit der Anzahl darin; eine Markierung, die für genau einen Standort steht, öffnet diesen Standort beim Anklicken.
+
+Die Karte rahmt sich selbst nach den gezeichneten Standorten — ein Bestand innerhalb eines Landes füllt den Rahmen mit diesem Land, einer über Kontinente verteilt öffnet die Weltkarte. Es gibt keine Zoom- oder Verschiebe-Steuerung: eine Dashboard-Kachel ist ein Bild, und die Seite Netzwerkkarte unter Netzwerk ist der Ort, an dem Sie die Hierarchie durchlaufen.
+
+Über der Karte steht, wie viele Standorte ausgefallen sind, denn ein zwei Pixel großer roter Punkt unter zweihundert grünen ist auf Dashboard-Entfernung nichts, was jemand liest. Darunter nennt eine Abdeckungszeile, was die Karte _nicht_ zeigt — Standorte ohne Koordinaten und ob die Zeilenobergrenze erreicht wurde.
+
+**Einstellungen**: Titel, Karten- oder Listenansicht, maximale Anzahl gezeichneter Standorte, ob Standortnamen gedruckt werden, und Filter nach Standorttyp und Status. Standortnamen verschwinden automatisch, wenn die Karte zu voll wird, um sie noch lesen zu können; der Tooltip benennt weiterhin jede Markierung.
+
+Ein Standort erscheint nur, wenn er Koordinaten hat. Fügen Sie Breiten- und Längengrad am Standort hinzu (oder importieren Sie sie aus CSV), um ihn zu verorten.
+
 ## Welches Widget soll ich verwenden?
 
 Ein paar Faustregeln:
 
 - **Trend über die Zeit?** Diagramm.
+- **Log-Volumen oder Fehlerspitzen über die Zeit?** Log-Diagramm.
 - **Eine Zahl, die gerade zählt?** Wert (oder Anzeige, falls es ein klares Min/Max gibt).
 - **Aufschlüsselung über viele Dinge?** Tabelle.
 - **Was passiert gerade im System?** Log-Stream, Trace-Liste, Vorfall-Liste.
 - **Status einer bestimmten Ressourcengruppe?** Das passende Listen-Widget.
+- **Halten wir die versprochene Zuverlässigkeit ein?** SLO.
+- **Wo auf der Welt Ihr Netzwerk liegt und was rot ist?** Netzwerkkarte.
 - **Eine Überschrift, ein Absatz oder ein Link?** Text.
 - **Etwas, das nichts davon abdeckt?** HTML – aber erst, nachdem Sie geprüft haben, ob ein eingebautes Widget es wirklich nicht kann.
 

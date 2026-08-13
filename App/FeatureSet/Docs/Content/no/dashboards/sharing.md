@@ -20,6 +20,8 @@ Et offentlig dashbord:
 
 Behandle det å aktivere et offentlig dashbord som å publisere en nettside. Hver widget på det blir lesbar for alle. Se på hva som er på lerretet før du vrir på bryteren.
 
+Hver widget publiserer bare det den tegner, og bare for ressursene den er pekt mot. En SLO-widget publiserer for eksempel hovedtallene til det aktuelle SLO-et, men aldri definisjonen — se [SLO](/docs/dashboards/widgets#slo). Eksterne **Datakilde**-widgeter er unntaket: de utelates helt fra et offentlig dashbord i stedet for å bli tegnet, fordi konfigurasjonen deres er selve spørringen.
+
 ## Hovedpassord
 
 For å sette et passord på et offentlig dashbord:

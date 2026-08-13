@@ -120,16 +120,18 @@ Det finns en säkerhetsgräns så att arbetsflöden inte kan fortsätta anropa v
 
 ## OneUptime-datakomponenter
 
-För varje sorts post i OneUptime (monitorer, incidenter, larm, statussidor, jourpolicyer och många fler) har paletten dessa komponenter — sök på typens namn:
+För varje sorts post i OneUptime (monitorer, incidenter, larm, statussidor, jourpolicyer och många fler) har paletten dessa komponenter — sök på typens namn. Titlarna skapas från typens namn, så för Monitor blir de:
 
-- **Find One** — hämta en post efter ID eller filter.
-- **Find** — hämta en lista med poster.
-- **Skapa** — lägg till en ny post.
-- **Uppdatera** — ändra en post.
-- **Ta bort** — ta bort en post.
-- **Antal** — räkna poster som matchar ett filter.
+- **Find One Monitor** — hämta en post som matchar filtret.
+- **Find Many Monitors** — hämta en lista med poster som matchar filtret.
+- **Create One Monitor** — lägg till en post från ett JSON-objekt.
+- **Create Many Monitors** — lägg till flera poster från en JSON-array.
+- **Update One Monitor** — ändra en post som matchar filtret.
+- **Update Many Monitors** — ändra posterna som matchar filtret, upp till Limit.
+- **Delete One Monitor** — ta bort en post som matchar filtret.
+- **Delete Many Monitors** — ta bort posterna som matchar filtret, upp till Limit.
 
-Det är så ett arbetsflöde kan läsa och ändra OneUptime-data. Till exempel: en webhook från ditt CI-verktyg kan använda **Skapa incident** för att öppna en incident med felinformationen.
+Det är så ett arbetsflöde kan läsa och ändra OneUptime-data. Till exempel: en webhook från ditt CI-verktyg kan använda **Create One Incident** för att öppna en incident med felinformationen.
 
 ## Vilken komponent ska jag använda?
 

@@ -5,6 +5,7 @@ import {
   WorkflowLintResult,
   WorkflowLintRule,
   WorkflowLintSeverity,
+  isEmptyArgumentValue,
   lintWorkflowGraph,
 } from "../../../../UI/Components/Workflow/GraphLint";
 import IconProp from "../../../../Types/Icon/IconProp";
@@ -817,5 +818,76 @@ describe("lintWorkflowGraph — roll-up", () => {
 
     expect(result.errorsByNodeId["n1"]).toBeUndefined();
     expect(result.errorCount).toBe(1);
+  });
+});
+
+/*
+ * An empty JSON document is not a filled-in field.
+ *
+ * Arguments are stored as text, so "{}" typed into the JSON escape hatch used
+ * to satisfy a required Query. On Delete Many that is not a harmless no-op: an
+ * empty query matches every record in the project and the component deletes the
+ * first ten of them.
+ */
+describe("an empty JSON document reads as empty", () => {
+  const JSON_DOCUMENT_TYPES: Array<ComponentInputType> = [
+    ComponentInputType.JSON,
+    ComponentInputType.JSONArray,
+    ComponentInputType.Query,
+    ComponentInputType.Select,
+    ComponentInputType.BaseModel,
+    ComponentInputType.BaseModelArray,
+    ComponentInputType.StringDictionary,
+  ];
+
+  test('"{}" is empty for every JSON-document argument type', () => {
+    for (const type of JSON_DOCUMENT_TYPES) {
+      expect(isEmptyArgumentValue("{}", type)).toBe(true);
+    }
+  });
+
+  test('"[]" is empty too, and whitespace does not save it', () => {
+    expect(isEmptyArgumentValue("[]", ComponentInputType.JSONArray)).toBe(true);
+    expect(isEmptyArgumentValue("  {  }  ", ComponentInputType.Query)).toBe(
+      true,
+    );
+  });
+
+  test("a document with anything in it is not empty", () => {
+    expect(
+      isEmptyArgumentValue('{"_id": "abc"}', ComponentInputType.Query),
+    ).toBe(false);
+    expect(
+      isEmptyArgumentValue('[{"a":1}]', ComponentInputType.JSONArray),
+    ).toBe(false);
+  });
+
+  /*
+   * Broken text is left alone deliberately: it is reported as invalid JSON a
+   * few lines later, and "not valid JSON" is a more useful message than "this
+   * is required".
+   */
+  test("text that does not parse is not called empty", () => {
+    expect(isEmptyArgumentValue("{not json", ComponentInputType.Query)).toBe(
+      false,
+    );
+  });
+
+  test('"{}" in a plain text argument is still a value', () => {
+    expect(isEmptyArgumentValue("{}", ComponentInputType.Text)).toBe(false);
+    expect(isEmptyArgumentValue("{}")).toBe(false);
+  });
+
+  test("absence and the empty box are still empty, whatever the type", () => {
+    for (const type of JSON_DOCUMENT_TYPES) {
+      expect(isEmptyArgumentValue(undefined, type)).toBe(true);
+      expect(isEmptyArgumentValue("", type)).toBe(true);
+      expect(isEmptyArgumentValue("   ", type)).toBe(true);
+    }
+  });
+
+  test("false and zero remain values a builder chose", () => {
+    expect(isEmptyArgumentValue(false, ComponentInputType.Boolean)).toBe(false);
+    expect(isEmptyArgumentValue(0, ComponentInputType.Number)).toBe(false);
   });
 });

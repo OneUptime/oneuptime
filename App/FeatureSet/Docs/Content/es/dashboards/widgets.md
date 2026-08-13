@@ -101,6 +101,24 @@ Cualquiera que pueda editar el panel decide qué ejecuta este widget, y todo el 
 
 ## Logs y trazas
 
+### Gráfico de Logs
+
+Un gráfico de series temporales del volumen de logs a lo largo del rango temporal del panel. Cada serie representa una severidad, así que los picos de error destacan sobre el tráfico normal.
+
+**Configuración**:
+
+- Visualización como gráfico de barras, líneas o áreas. Los gráficos de barras y áreas apilan las series de severidad.
+- Filtros de severidad opcionales.
+- Búsqueda de texto opcional en el cuerpo del log.
+- Filtros exactos de atributos de OpenTelemetry mediante filas de clave/valor buscables. Los nombres de atributo y los valores conocidos se sugieren mientras escribes, y los valores personalizados siguen admitiéndose.
+- Un título opcional.
+
+Los controles de rango temporal y de refresco del panel vuelven a consultar el gráfico automáticamente. Las variables de atributos de telemetría del panel también se le aplican, incluidas las de selección múltiple.
+
+El Gráfico de Logs requiere por ahora un panel autenticado. Los paneles públicos muestran el widget como no disponible en lugar de exponer de forma anónima los agregados de logs del proyecto.
+
+Úsalo cuando: quieres detectar cambios en el volumen de logs o comparar errores, advertencias e informativos sin salir del panel.
+
 ### Flujo de Logs
 
 Un seguimiento en vivo de líneas de logs que coinciden con un filtro.
@@ -143,6 +161,21 @@ Una lista en vivo de monitores y su estado actual.
 
 Úsalo cuando: quieres una vista de flota: "¿están todos los sitios activos?".
 
+## Objetivos de nivel de servicio
+
+### SLO
+
+Un objetivo de nivel de servicio, dibujado como un único número o como una línea a lo largo del tiempo.
+
+**Configuración**: qué SLO, cuál de sus tres números (SLI, presupuesto de error restante o tasa de consumo), presentación como Tarjeta o Gráfico, y un título opcional.
+
+- **Tarjeta** muestra el número actual y, cuando la hay, una segunda línea: el objetivo debajo del SLI, los minutos restantes debajo del presupuesto de error. Una etiqueta de estado colorea el conjunto.
+- **Gráfico** dibuja el mismo número a lo largo del rango temporal del panel, con el objetivo marcado como una línea discontinua en la serie del SLI. El historial lo escribe el worker de evaluación cada pocos minutos, así que un SLO recién creado se dibuja vacío hasta que se evalúa por primera vez.
+
+Úsalo cuando: el panel responde a "¿estamos cumpliendo lo que prometimos?" en lugar de "¿qué está pasando ahora mismo?".
+
+El widget de SLO funciona en [paneles públicos](/docs/dashboards/sharing). Lo que se publica son las cifras principales del SLO: su nombre, objetivo, SLI actual, presupuesto de error restante, tasa de consumo y estado, sin importar cuál de ellas dibuje el widget. Su definición sigue siendo privada: los monitores que vigila, sus etiquetas, su descripción, su consulta y su programación de evaluación nunca se envían a un visitante público. Un widget de Tarjeta publica solo esas cifras actuales; un widget de Gráfico publica además el historial de la única serie que dibuja, y nada más.
+
 ## Listas de recursos de Kubernetes
 
 Para proyectos con un [Kubernetes Agent](/docs/monitor/kubernetes-agent) instalado. Cada uno toma filtros opcionales para cluster, namespace y etiquetas.
@@ -176,15 +209,32 @@ Hosts monitorizados por el monitor de servidor de OneUptime, con estado, CPU, me
 
 **Configuración**: filtros por etiquetas o estado actual.
 
+## Red
+
+### Mapa de Red
+
+Tus sitios de red dibujados en el mapa del mundo, cada uno fijado en su propia latitud y longitud y coloreado según el estado de monitor agregado sobre él. Los sitios próximos entre sí comparten un marcador con el recuento impreso dentro; un marcador que representa exactamente un sitio abre ese sitio al hacer clic.
+
+El mapa se encuadra según los sitios que dibujó: un parque dentro de un solo país llena el encuadre con ese país, y uno repartido entre continentes se abre sobre el mundo. No hay controles de zoom ni de desplazamiento: una tarjeta de panel es una imagen, y la página Mapa de Red, dentro de Red, es donde recorres la jerarquía.
+
+Sobre el mapa se imprime cuántos sitios están caídos, porque un punto rojo de dos píxeles entre doscientos verdes no es algo que nadie lea a distancia de panel. Debajo, una línea de cobertura dice lo que el mapa _no_ está mostrando: sitios sin coordenadas, y si se alcanzó el límite de filas.
+
+**Configuración**: título, vista de mapa o de lista, máximo de sitios dibujados, si se imprimen los nombres de sitio, y filtros por tipo de sitio y por estado. Los nombres de sitio desaparecen automáticamente cuando el mapa se llena demasiado para poder leerlos; el tooltip sigue nombrando cada marcador.
+
+Un sitio solo aparece si tiene coordenadas. Añade latitud y longitud en el sitio (o impórtalas desde CSV) para fijarlo.
+
 ## ¿Qué widget debo usar?
 
 Algunas reglas rápidas:
 
 - **¿Tendencia a lo largo del tiempo?** Gráfico.
+- **¿Volumen de logs o picos de error a lo largo del tiempo?** Gráfico de Logs.
 - **¿Un número que importa ahora mismo?** Valor (o Indicador si tiene un mínimo/máximo claro).
 - **¿Desglose entre muchas cosas?** Tabla.
 - **¿Qué está pasando en el sistema ahora mismo?** Flujo de Logs, Lista de Trazas, Lista de Incidentes.
 - **¿El estado de un grupo específico de recursos?** El widget de lista correspondiente.
+- **¿Estamos cumpliendo la fiabilidad que prometimos?** SLO.
+- **¿Dónde está tu red en el mundo y qué está en rojo?** Mapa de Red.
 - **¿Un encabezado, un párrafo o un enlace?** Texto.
 - **¿Algo que no cubre nada de lo anterior?** HTML — pero solo después de comprobar que un widget integrado realmente no puede hacerlo.
 

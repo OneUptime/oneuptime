@@ -13,65 +13,90 @@ export default class IP extends DatabaseProperty {
     return this._ip;
   }
 
+  /*
+   * Does ONE address match the allowlist?
+   *
+   * This deliberately takes a single `ip` rather than a list. It used to take
+   * an array and return true if ANY member matched, which made it trivially
+   * bypassable when callers fed it a whole X-Forwarded-For chain: the caller
+   * chooses the left-hand entries of that header, so "any entry matches" means
+   * "the caller can name any address they like". Resolve the one address you
+   * mean to check first -- see resolveClientIp in Server/Utils/ClientIp -- and
+   * check that.
+   *
+   * Throws BadDataException if `ip` is not a valid address, so callers must
+   * establish that before asking. Callers making an access decision should
+   * treat a throw as a denial.
+   */
   public static isInWhitelist(data: {
-    ips: Array<string>;
+    ip: string;
     whitelist: string[];
   }): boolean {
-    for (const ip of data.ips) {
-      // If whitelist is empty, return false
-      if (!data.whitelist || data.whitelist.length === 0) {
-        return false;
+    const ip: string = data.ip;
+
+    // If whitelist is empty, return false
+    if (!data.whitelist || data.whitelist.length === 0) {
+      return false;
+    }
+
+    // Check if IP is valid
+    if (!IP.isIP(ip)) {
+      throw new BadDataException("Invalid IP address");
+    }
+
+    // Check each whitelist entry
+    for (const entry of data.whitelist) {
+      // Skip empty entries
+      const trimmedEntry: string = entry ? entry.trim() : "";
+
+      if (trimmedEntry === "") {
+        continue;
       }
 
-      // Check if IP is valid
-      if (!IP.isIP(ip)) {
-        throw new BadDataException("Invalid IP address");
+      // Direct IP match
+      if (trimmedEntry === ip) {
+        return true;
       }
 
-      // Check each whitelist entry
-      for (const entry of data.whitelist) {
-        // Skip empty entries
-        if (!entry || entry.trim() === "") {
-          continue;
-        }
+      // CIDR notation check (IPv4 only for now)
+      if (trimmedEntry.includes("/") && IP.isIPv4(ip)) {
+        try {
+          const [network, prefixStr] = trimmedEntry.split("/");
 
-        // Direct IP match
-        if (entry === ip) {
-          return true;
-        }
-
-        // CIDR notation check (IPv4 only for now)
-        if (entry.includes("/") && IP.isIPv4(ip)) {
-          try {
-            const [network, prefixStr] = entry.split("/");
-
-            if (!network || !prefixStr) {
-              continue;
-            }
-
-            if (!IP.isIPv4(network)) {
-              continue;
-            }
-
-            const prefix: number = parseInt(prefixStr, 10);
-            if (isNaN(prefix) || prefix < 0 || prefix > 32) {
-              continue;
-            }
-
-            // Convert IPs to integers for comparison
-            const ipInt: number = this._ipv4ToInt(ip);
-            const networkInt: number = this._ipv4ToInt(network);
-
-            // Create mask from prefix
-            const mask: number = ~((1 << (32 - prefix)) - 1) >>> 0;
-
-            // Check if IP is in network
-            if ((ipInt & mask) === (networkInt & mask)) {
-              return true;
-            }
-          } catch {
+          if (!network || !prefixStr) {
             continue;
           }
+
+          if (!IP.isIPv4(network)) {
+            continue;
+          }
+
+          const prefix: number = parseInt(prefixStr, 10);
+          if (isNaN(prefix) || prefix < 0 || prefix > 32) {
+            continue;
+          }
+
+          // Convert IPs to integers for comparison
+          const ipInt: number = this._ipv4ToInt(ip);
+          const networkInt: number = this._ipv4ToInt(network);
+
+          /*
+           * Create mask from prefix.
+           *
+           * Note: a /0 entry does NOT match everything here -- JS evaluates
+           * `1 << 32` as `1 << 0`, so the mask comes out 0xFFFFFFFF and /0
+           * degenerates into an exact match on the network address. Left
+           * as-is deliberately: correcting it would WIDEN existing
+           * allowlists, which does not belong in a hardening change.
+           */
+          const mask: number = ~((1 << (32 - prefix)) - 1) >>> 0;
+
+          // Check if IP is in network
+          if ((ipInt & mask) === (networkInt & mask)) {
+            return true;
+          }
+        } catch {
+          continue;
         }
       }
     }
@@ -133,9 +158,30 @@ export default class IP extends DatabaseProperty {
     return this.ip;
   }
 
+  /*
+   * Both validators below are ANCHORED, and deliberately so.
+   *
+   * An unanchored pattern accepts any string that merely CONTAINS something
+   * address-shaped, which is never what a validator should mean. The IPv6
+   * pattern used to be unanchored, so `evil 2001:db8::1 evil`,
+   * `[2001:db8::1]:443` and `2001:0db8:85a3:::8a2e:0370:7334` all reported as
+   * valid addresses. Every consumer of isIP inherited that: an allowlist check
+   * accepted a value it could then never match, a monitor destination stored a
+   * hostname as an IP literal, and IpCanonicalUtil was handed input it could
+   * not canonicalize.
+   *
+   * Neither pattern carries the `g` flag either. `.test()` on a `g` regex is
+   * stateful -- it advances `lastIndex` between calls -- and only happens to
+   * be safe here because the literal is re-created on every call. A hoisted
+   * constant would have made alternate calls silently return the wrong answer.
+   *
+   * Note that neither validator trims: callers pass the exact string they mean
+   * to validate. Whitespace-padded input is rejected, which is how the IPv4
+   * side has always behaved.
+   */
   private static isIPv4(str: string): boolean {
     const regexExp: RegExp =
-      /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/gi;
+      /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/i;
     const result: boolean = regexExp.test(str);
 
     return result;
@@ -143,7 +189,7 @@ export default class IP extends DatabaseProperty {
 
   private static isIPv6(str: string): boolean {
     const regexExp: RegExp =
-      /(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))/gi;
+      /^(?:([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/i;
     return regexExp.test(str);
   }
 

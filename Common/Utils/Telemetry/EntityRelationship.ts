@@ -40,7 +40,7 @@ export interface EntityRelationshipEdge {
  * `depends-on` is deliberately absent: a caller service and its callee
  * never share one resource, so it cannot be co-occurrence-inferred. Those
  * edges are derived from cross-service parent/child span pairs by the
- * TelemetryEntity:ComputeServiceDependencies worker cron.
+ * InventoryItem:ComputeServiceDependencies worker cron.
  */
 const RULES: Record<string, EntityRelationshipType> = {
   [`${EntityType.ServiceInstance}|${EntityType.Service}`]:

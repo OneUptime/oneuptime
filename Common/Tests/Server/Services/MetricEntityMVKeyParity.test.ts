@@ -1,4 +1,4 @@
-import TelemetryEntity, {
+import InventoryItem, {
   ExtractedEntity,
   keyForContainer,
 } from "../../../Server/Utils/Telemetry/TelemetryEntity";
@@ -15,7 +15,7 @@ import { describe, expect, test } from "@jest/globals";
  * uses (keyForHost / keyForKubernetesCluster / keyForContainer /
  * keyForService) against the ingest side that stamps the scalar
  * entity-key columns the per-entity rollup MVs group by
- * (TelemetryEntity.extractEntities -> serviceEntityKey / hostEntityKey /
+ * (InventoryItem.extractEntities -> serviceEntityKey / hostEntityKey /
  * k8sClusterEntityKey / containerEntityKey on MetricItemV3; the MVs copy
  * the stamped column verbatim — `WHERE <key> != '' GROUP BY ... <key>`).
  *
@@ -62,7 +62,7 @@ describe("entity-MV routing keys — parity with ingest-stamped scalar entity ke
   };
 
   test("each routable read-side key byte-matches the stamped scalar column", () => {
-    const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+    const entities: Array<ExtractedEntity> = InventoryItem.extractEntities({
       projectId,
       attributes,
     });
@@ -82,7 +82,7 @@ describe("entity-MV routing keys — parity with ingest-stamped scalar entity ke
   });
 
   test("read-side keys canonicalize exactly like ingest (spelling drift lands on one rollup stream)", () => {
-    const drifted: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+    const drifted: Array<ExtractedEntity> = InventoryItem.extractEntities({
       projectId,
       attributes: {
         "host.name": "web-server-01",
@@ -107,7 +107,7 @@ describe("entity-MV routing keys — parity with ingest-stamped scalar entity ke
   });
 
   test("host stamping matches the live-ClickHouse-verified vector from EntityKeySqlParity", () => {
-    const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+    const entities: Array<ExtractedEntity> = InventoryItem.extractEntities({
       projectId: "proj-123",
       attributes: { "host.name": "Web-Server-01 " },
     });
@@ -117,7 +117,7 @@ describe("entity-MV routing keys — parity with ingest-stamped scalar entity ke
   });
 
   test("service.namespace forks the stamped key — the bare-name key MUST NOT be assumed (registry required)", () => {
-    const namespaced: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+    const namespaced: Array<ExtractedEntity> = InventoryItem.extractEntities({
       projectId,
       attributes: {
         "service.name": "checkout",
@@ -139,7 +139,7 @@ describe("entity-MV routing keys — parity with ingest-stamped scalar entity ke
 
   test("a blank namespace is not identity-bearing on either side", () => {
     const blankNamespace: Array<ExtractedEntity> =
-      TelemetryEntity.extractEntities({
+      InventoryItem.extractEntities({
         projectId,
         attributes: {
           "service.name": "checkout",
@@ -156,7 +156,7 @@ describe("entity-MV routing keys — parity with ingest-stamped scalar entity ke
   });
 
   test("entityKeys membership (the entityScope raw predicate) contains every routable key", () => {
-    const membershipKeys: Array<string> = TelemetryEntity.extractEntityKeys({
+    const membershipKeys: Array<string> = InventoryItem.extractEntityKeys({
       projectId,
       attributes,
     });

@@ -1,5 +1,5 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import TelemetryEntity from "../../../Models/DatabaseModels/TelemetryEntity";
+import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import IoTDevice from "../../../Models/DatabaseModels/IoTDevice";
@@ -15,7 +15,7 @@ import NetworkDeviceService from "../../Services/NetworkDeviceService";
 import PodmanHostService from "../../Services/PodmanHostService";
 import RumApplicationService from "../../Services/RumApplicationService";
 import ServerlessFunctionService from "../../Services/ServerlessFunctionService";
-import TelemetryEntityService from "../../Services/TelemetryEntityService";
+import InventoryItemService from "../../Services/InventoryItemService";
 import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
@@ -34,7 +34,7 @@ import {
 import logger from "../Logger";
 
 /*
- * Mirrors OneUptime's inventory tables into the TelemetryEntity registry.
+ * Mirrors OneUptime's inventory tables into the InventoryItem registry.
  *
  * The registry began as a projection of OTLP resource attributes, which is
  * why the entity explorer shows a Kubernetes pod but not the switch next to
@@ -87,7 +87,7 @@ export interface InventoryRowProjection {
  */
 export interface ErasedInventorySource {
   entityType: EntityType;
-  /** Model name stored in TelemetryEntity.resourceType. */
+  /** Model name stored in InventoryItem.resourceType. */
   resourceType: string;
   fetchPage(data: {
     skip: number;
@@ -149,10 +149,10 @@ export function buildInventoryEntityModel(data: {
   source: Pick<ErasedInventorySource, "entityType" | "resourceType">;
   row: InventoryRowProjection;
   now: Date;
-}): TelemetryEntity {
+}): InventoryItem {
   const { source, row, now } = data;
 
-  const model: TelemetryEntity = new TelemetryEntity();
+  const model: InventoryItem = new InventoryItem();
   model.projectId = row.projectId;
   model.entityType = source.entityType;
   model.entityKey = keyForInventoryEntity(
@@ -194,8 +194,8 @@ export function buildInventoryEntityModel(data: {
  * steady-state reconcile issues no writes at all.
  */
 export function inventoryEntityNeedsUpdate(data: {
-  existing: TelemetryEntity;
-  desired: TelemetryEntity;
+  existing: InventoryItem;
+  desired: InventoryItem;
 }): boolean {
   const { existing, desired } = data;
 
@@ -221,8 +221,8 @@ export function inventoryEntityNeedsUpdate(data: {
  * The columns a drifted mirror rewrites.
  *
  * Built as a plain shape and cast once, for the same two reasons as
- * TelemetryEntityService.buildDescriptiveUpdate: assigning into
- * `QueryDeepPartialEntity<TelemetryEntity>` directly makes TS instantiate the
+ * InventoryItemService.buildDescriptiveUpdate: assigning into
+ * `QueryDeepPartialEntity<InventoryItem>` directly makes TS instantiate the
  * recursive JSONObject mapping (TS2589), and under this project's
  * `exactOptionalPropertyTypes` an optional model field typed `string |
  * undefined` is not assignable to the update type at all. Keys are therefore
@@ -231,8 +231,8 @@ export function inventoryEntityNeedsUpdate(data: {
  * not "null it out".
  */
 function buildMirrorUpdate(
-  desired: TelemetryEntity,
-): QueryDeepPartialEntity<TelemetryEntity> {
+  desired: InventoryItem,
+): QueryDeepPartialEntity<InventoryItem> {
   const update: {
     displayName?: string;
     descriptiveAttributes?: JSONObject;
@@ -256,7 +256,7 @@ function buildMirrorUpdate(
     update.resourceId = desired.resourceId;
   }
 
-  return update as unknown as QueryDeepPartialEntity<TelemetryEntity>;
+  return update as unknown as QueryDeepPartialEntity<InventoryItem>;
 }
 
 function defineInventorySource<TModel extends BaseModel>(
@@ -494,13 +494,13 @@ async function mirrorRows(
 
     const now: Date = OneUptimeDate.getCurrentDate();
 
-    const desiredByKey: Map<string, TelemetryEntity> = new Map<
+    const desiredByKey: Map<string, InventoryItem> = new Map<
       string,
-      TelemetryEntity
+      InventoryItem
     >();
 
     for (const row of rows) {
-      const model: TelemetryEntity = buildInventoryEntityModel({
+      const model: InventoryItem = buildInventoryEntityModel({
         source,
         row,
         now,
@@ -508,8 +508,8 @@ async function mirrorRows(
       desiredByKey.set(model.entityKey!, model);
     }
 
-    const existingRows: Array<TelemetryEntity> =
-      await TelemetryEntityService.findBy({
+    const existingRows: Array<InventoryItem> =
+      await InventoryItemService.findBy({
         query: {
           entityType: source.entityType,
           entityKey: QueryHelper.any(Array.from(desiredByKey.keys())),
@@ -527,20 +527,20 @@ async function mirrorRows(
         props: { isRoot: true },
       });
 
-    const existingByKey: Map<string, TelemetryEntity> = new Map<
+    const existingByKey: Map<string, InventoryItem> = new Map<
       string,
-      TelemetryEntity
+      InventoryItem
     >();
     for (const existing of existingRows) {
       existingByKey.set(existing.entityKey!, existing);
     }
 
     for (const [key, desired] of desiredByKey.entries()) {
-      const existing: TelemetryEntity | undefined = existingByKey.get(key);
+      const existing: InventoryItem | undefined = existingByKey.get(key);
 
       try {
         if (!existing) {
-          await TelemetryEntityService.create({
+          await InventoryItemService.create({
             data: desired,
             props: { isRoot: true },
           });
@@ -549,7 +549,7 @@ async function mirrorRows(
         }
 
         if (inventoryEntityNeedsUpdate({ existing, desired })) {
-          await TelemetryEntityService.updateOneById({
+          await InventoryItemService.updateOneById({
             id: existing.id!,
             data: buildMirrorUpdate(desired),
             props: { isRoot: true },
@@ -591,7 +591,7 @@ async function removeOrphans(source: ErasedInventorySource): Promise<number> {
    * paging would shift subsequent offsets and skip rows.
    */
   for (;;) {
-    const rows: Array<TelemetryEntity> = await TelemetryEntityService.findBy({
+    const rows: Array<InventoryItem> = await InventoryItemService.findBy({
       query: {
         entityType: source.entityType,
         source: EntitySource.Inventory,
@@ -636,7 +636,7 @@ async function removeOrphans(source: ErasedInventorySource): Promise<number> {
     return 0;
   }
 
-  await TelemetryEntityService.hardDeleteBy({
+  await InventoryItemService.hardDeleteBy({
     query: {
       _id: QueryHelper.any(
         orphanIds.map((id: ObjectID) => {

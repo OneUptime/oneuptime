@@ -120,7 +120,7 @@ Convert between text and JSON.
 
 ## Conditions
 
-Branch based on a comparison.
+Branch based on a comparison. In the palette this component is called **If / Else**.
 
 **Settings**:
 
@@ -148,16 +148,50 @@ There's a safety limit so workflows can't keep calling each other in a loop. See
 
 ## OneUptime data components
 
-For every kind of record in OneUptime (monitors, incidents, alerts, status pages, on-call policies, and many more), the palette has these components — search by the type's name:
+For every kind of record in OneUptime (monitors, incidents, alerts, status pages, on-call policies, and many more), the palette has these components — search by the type's name. Each title is generated from the record type, so the Monitor set reads:
 
-- **Find One** — get one record by ID or filter.
-- **Find** — get a list of records.
-- **Create** — add a new record.
-- **Update** — change one record.
-- **Delete** — remove one record.
-- **Count** — count records matching a filter.
+- **Find One Monitor** — read one record matching the query.
+- **Find Many Monitors** — read a list of records matching the query.
+- **Create One Monitor** — add one record from a JSON object.
+- **Create Many Monitors** — add several records from a JSON array.
+- **Update One Monitor** — apply the write payload to one matching record.
+- **Update Many Monitors** — apply the write payload to matching records, up to Limit.
+- **Delete One Monitor** — delete one matching record.
+- **Delete Many Monitors** — delete matching records, up to Limit.
 
-This is how a workflow can read and change OneUptime data. For example: a webhook from your CI tool can use **Create Incident** to open an incident with the failure details.
+The same set gives you three triggers — **On Create Monitor**, **On Update Monitor**, and **On Delete Monitor**. See [Triggers](/docs/workflows/triggers).
+
+A type only offers the components its model allows. A read-only type has the two Find components and nothing else, so if you can't find **Delete One Monitor** in the palette, that type doesn't permit it.
+
+This is how a workflow can read and change OneUptime data. For example: a webhook from your CI tool can use **Create One Incident** to open an incident with the failure details.
+
+## Working with records
+
+Every field on a data component is keyed on the record's own **column** names — the same names the API uses, not the labels on the dashboard form. The ID column is `_id`. The `id` spelling is accepted as an alias anywhere you can type a column name, but `_id` is what a record gives back, so that's what to read on the way out:
+
+```json
+{ "_id": "00000000-0000-0000-0000-000000000000" }
+```
+
+**Query** decides which records the component acts on. Keys are columns, values are what to match:
+
+```json
+{ "monitorType": "Website", "isEnabled": true }
+```
+
+A query is always scoped to the project the workflow runs in. You can't reach another project's records, and you don't need to add the project to the query yourself.
+
+**JSON Object** on Create One, **JSON Array** on Create Many, and **Data (JSON Object)** on the Update components carry the fields to write, keyed the same way:
+
+```json
+{ "name": "Checkout API", "monitorType": "Website" }
+```
+
+A key that isn't a column is ignored rather than rejected — the run log names the ones it dropped, so check there when a field doesn't land. **Select Fields**, on the Find components and the triggers, uses the same column keys with `true` values: `{"_id": true, "name": true}`.
+
+**Skip** and **Limit** are two number fields on Find Many, Update Many, and Delete Many — `Skip: 0` with `Limit: 100` takes the first hundred matches. Limit defaults to `10`, and on Update Many and Delete Many it caps how many records are actually written, not just how many come back. So `Items Deleted: 10` means ten records were deleted, not that ten matched. Raise Limit when you mean to change more than ten.
+
+**Success** and **Error** report whether the query ran, not what it found. A query matching nothing returns `0` and still leaves through Success — that is not a failure. To branch on whether anything matched, read the returned count in an **If / Else** block.
 
 ## Which component should I use?
 
