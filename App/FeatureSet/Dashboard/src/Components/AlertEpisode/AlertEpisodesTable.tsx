@@ -13,6 +13,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
+import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertGroupingRule from "Common/Models/DatabaseModels/AlertGroupingRule";
@@ -37,12 +38,21 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import API from "Common/UI/Utils/API/API";
-import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ObjectID from "Common/Types/ObjectID";
+import { JSONObject } from "Common/Types/JSON";
 import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisodeStateTimeline";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import { REFRESH_SIDEBAR_COUNT_EVENT } from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
+import useNoteTemplates from "../EventView/useNoteTemplates";
+import BulkChangeStateModal, {
+  BulkChangeStateSubmitData,
+} from "../EventView/BulkChangeStateModal";
+import {
+  BulkStateChangeNoteType,
+  BulkStateChangeSkipDecision,
+  buildBulkStateChangeMiscDataProps,
+  getBulkStateChangeSkipDecision,
+} from "../../Utils/BulkStateChange";
 
 export interface ComponentProps {
   query?: Query<AlertEpisode> | undefined;
@@ -61,6 +71,10 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
     useState<boolean>(false);
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<AlertEpisode> | null>(null);
+
+  const { noteTemplates } = useNoteTemplates<AlertNoteTemplate>({
+    modelType: AlertNoteTemplate,
+  });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<AlertEpisode>({ modelType: AlertEpisode });
@@ -100,11 +114,15 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
   }, []);
 
   const handleBulkStateChange: (
-    targetStateId: ObjectID,
-  ) => Promise<void> = async (targetStateId: ObjectID): Promise<void> => {
+    data: BulkChangeStateSubmitData,
+  ) => Promise<void> = async (
+    data: BulkChangeStateSubmitData,
+  ): Promise<void> => {
     if (!bulkActionProps) {
       return;
     }
+
+    const targetStateId: ObjectID = data.stateId;
 
     const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
       bulkActionProps;
@@ -120,6 +138,11 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
     }
 
     const targetOrder: number = targetState.order || 0;
+
+    const miscDataProps: JSONObject = buildBulkStateChangeMiscDataProps({
+      noteType: BulkStateChangeNoteType.Private,
+      note: data.note,
+    });
 
     onBulkActionStart();
 
@@ -153,12 +176,18 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
           fetchedEpisode?.currentAlertState?.order || 0;
 
         // Skip if already at or past the target state
-        if (currentOrder >= targetOrder) {
-          const currentStateName: string =
-            fetchedEpisode?.currentAlertState?.name || "Unknown";
+        const skipDecision: BulkStateChangeSkipDecision =
+          getBulkStateChangeSkipDecision({
+            currentOrder: currentOrder,
+            targetOrder: targetOrder,
+            currentStateName: fetchedEpisode?.currentAlertState?.name,
+            targetStateName: targetState.name,
+          });
+
+        if (skipDecision.shouldSkip) {
           failedItems.push({
             item: episode,
-            failedMessage: `Skipped: Already at "${currentStateName}" (at or past "${targetState.name}")`,
+            failedMessage: skipDecision.skippedMessage!,
           });
         } else {
           // Create state timeline to change state
@@ -171,6 +200,7 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
           await ModelAPI.create<AlertEpisodeStateTimeline>({
             model: stateTimeline,
             modelType: AlertEpisodeStateTimeline,
+            miscDataProps: miscDataProps,
           });
 
           successItems.push(episode);
@@ -506,35 +536,25 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
       )}
 
       {showBulkStateChangeModal && (
-        <BasicFormModal
+        <BulkChangeStateModal
           title="Change Episode State"
           description="Select the state to change episodes to. Episodes already at or past the selected state will be skipped. Member alerts will also be updated."
+          stateFieldKey="alertStateId"
+          stateOptions={alertStates.map((state: AlertState) => {
+            return {
+              label: state.name || "",
+              value: state.id?.toString() || "",
+            };
+          })}
+          noteType={BulkStateChangeNoteType.Private}
+          noteTitle="Private Note"
+          noteDescription="Add an optional private note about this state change. Only your team can see it, and the same note is added to every episode you selected."
+          noteTemplates={noteTemplates}
           onClose={() => {
             setShowBulkStateChangeModal(false);
             setBulkActionProps(null);
           }}
-          submitButtonText="Change State"
-          onSubmit={async (formData: { alertStateId: ObjectID }) => {
-            await handleBulkStateChange(formData.alertStateId);
-          }}
-          formProps={{
-            fields: [
-              {
-                field: {
-                  alertStateId: true,
-                },
-                title: "Select State",
-                fieldType: FormFieldSchemaType.Dropdown,
-                required: true,
-                dropdownOptions: alertStates.map((state: AlertState) => {
-                  return {
-                    label: state.name || "",
-                    value: state.id?.toString() || "",
-                  };
-                }),
-              },
-            ],
-          }}
+          onSubmit={handleBulkStateChange}
         />
       )}
     </>
