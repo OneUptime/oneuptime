@@ -4,6 +4,7 @@ import { StatusAPIOptions } from "../API/StatusAPI";
 import {
   AppVersion,
   IsBillingEnabled,
+  TrustedProxyHops,
   getFrontendEnvVars,
 } from "../EnvironmentConfig";
 import LocalCache from "../Infrastructure/LocalCache";
@@ -61,10 +62,18 @@ app.disable("x-powered-by");
 app.set("port", process.env["PORT"]);
 app.set("view engine", "ejs");
 /*
- * Enable trust proxy to correctly interpret X-Forwarded-* headers from reverse proxies
- * This is needed for req.protocol, req.ip to be correct when behind nginx/load balancers
+ * Trust exactly the proxies we run, and no more, so req.protocol and req.ip
+ * are correct behind our Nginx gateway.
+ *
+ * This was `true`, meaning "trust every hop". Under that setting Express
+ * resolves req.ip to the LEFTMOST X-Forwarded-For entry -- the end of the
+ * header the caller writes -- so req.ip was whatever the caller said it was.
+ * A number instead means "the nth hop in from the right is the client", which
+ * is the entry one of our own proxies wrote. Express's numeric semantics and
+ * resolveClientIp's hop counting are the same count, so req.ip and
+ * getClientIp() agree.
  */
-app.set("trust proxy", true);
+app.set("trust proxy", TrustedProxyHops);
 app.use(CookieParser());
 
 const jsonBodyParserMiddleware: RequestHandler = ExpressJson({
