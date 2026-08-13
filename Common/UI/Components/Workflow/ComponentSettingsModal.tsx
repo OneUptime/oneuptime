@@ -128,6 +128,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
         documentationLink={component.metadata.documentationLink}
         workflowId={props.workflowId}
         webhookSecretKey={props.webhookSecretKey}
+        tableName={component.metadata.tableName}
       />
     </SectionCard>
   ) : null;
@@ -173,6 +174,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
         name=""
         description="Data this step makes available downstream."
         returnValues={component.metadata.returnValues}
+        componentId={component.id}
       />
     </SectionCard>
   ) : null;
@@ -284,12 +286,19 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
          */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2 space-y-4">{settingsSection}</div>
+          {/*
+           * Documentation goes last. Inputs, outputs and returns are generated
+           * from this component's own metadata and are therefore always exactly
+           * about the step on screen; the documentation is a shared file
+           * covering a whole family. Reading order should follow accuracy, and
+           * the shared file is also much the tallest of the four.
+           */}
           <div className="md:col-span-1 space-y-4">
             {idSection}
-            {documentationSection}
             {inputsSection}
             {outputsSection}
             {returnsSection}
+            {documentationSection}
           </div>
         </div>
       </>

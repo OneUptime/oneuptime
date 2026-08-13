@@ -10,7 +10,8 @@ import ComponentMetadata, {
 } from "../../../../../Types/Workflow/Component";
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
-import { applyTenantColumn } from "./ModelArguments";
+import { applyTenantColumn, logUnknownColumns } from "./ModelArguments";
+import logComponentError from "./LogComponentError";
 
 export default class CreateManyBaseModel<
   TBaseModel extends BaseModel,
@@ -97,9 +98,28 @@ export default class CreateManyBaseModel<
        * was only meant to guard the projectId stamping, so a model without a
        * tenant column created nothing at all and still reported success.
        */
-      for (const item of args["json-array"]) {
+      for (const [index, item] of (
+        args["json-array"] as Array<JSONObject>
+      ).entries()) {
+        const element: JSONObject = (item as JSONObject) || {};
+
+        /*
+         * Checked before applyTenantColumn rather than after: the report should
+         * name the keys the builder actually typed, and the tenant column the
+         * stamp adds is not one of them. The position is prefixed because one
+         * mistyped key in a long array is otherwise impossible to locate - and
+         * unlike Create One, an array can carry several different mistakes.
+         */
+        logUnknownColumns(
+          element,
+          this.modelService.getModel(),
+          (message: string): void => {
+            options.log(`Item ${index + 1}: ${message}`);
+          },
+        );
+
         const json: JSONObject = applyTenantColumn(
-          (item as JSONObject) || {},
+          element,
           this.modelService.getModel(),
           options.projectId,
         );
@@ -125,8 +145,12 @@ export default class CreateManyBaseModel<
         executePort: successPort,
       };
     } catch (err: any) {
-      options.log("Error running component");
-      options.log(err.message ? err.message : JSON.stringify(err, null, 2));
+      logComponentError({
+        error: err,
+        model: this.modelService?.getModel() || null,
+        log: options.log,
+      });
+
       return {
         returnValues: {},
         executePort: errorPort,

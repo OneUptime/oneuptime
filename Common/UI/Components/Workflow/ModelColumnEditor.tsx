@@ -21,20 +21,22 @@ import DictionaryForm, { ValueType } from "../Dictionary/Dictionary";
 import { DictionaryEntryValue } from "../Dictionary/DictionaryFilterOperator";
 import Icon from "../Icon/Icon";
 import {
+  ModelSchemaAccess,
   ModelSchemaColumn,
   ModelSchemaState,
   findColumn,
+  requiredWritableColumns,
   useModelSchema,
 } from "./ModelSchema";
 import CodeType from "../../../Types/Code/CodeType";
 import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject, ObjectType } from "../../../Types/JSON";
+import { maskTemplateExpressions } from "../../../Types/Workflow/TemplateSyntax";
 import React, {
   FunctionComponent,
   ReactElement,
   useMemo,
-  useRef,
   useState,
 } from "react";
 
@@ -53,6 +55,14 @@ export interface ComponentProps {
   error?: string | undefined;
   placeholder?: string | undefined;
   tabIndex?: number | undefined;
+  /*
+   * Offered in any row whose column has no suggestions of its own - the other
+   * steps' return values and the workflow's variables. The row editor replaced
+   * the "pick this value from another component" footer for these arguments, so
+   * without this there is no way to reach a reference from a record payload,
+   * which is how almost every create is built.
+   */
+  valueSuggestions?: Array<string> | undefined;
 }
 
 type ViewMode = "builder" | "json";
@@ -79,42 +89,84 @@ const REPRESENTABLE_OPERATOR_TYPES: Array<string> = [
   ObjectType.IncludesNone,
 ];
 
-interface ParsedQuery {
+export interface ParsedQuery {
   /** The raw text, always kept so the JSON editor can show it verbatim. */
   text: string;
   /** The parsed object, or null when the text is not a JSON object. */
   parsed: JSONObject | null;
+  /**
+   * True when the text is a JSON object apart from carrying a bare `{{ }}`
+   * reference where a value belongs, as in `{"retries": {{local.variables.n}}}`.
+   *
+   * That is not JSON, so it cannot be rows, but it is a perfectly good workflow
+   * value: GraphLint and form validation both mask references before parsing
+   * and accept it. Without this distinction the editor called it "not a JSON
+   * object" and locked itself while the canvas showed no error at all, so the
+   * builder was told two different things about the same value.
+   */
+  hasTemplateExpressions: boolean;
 }
 
-type NormalizeInitialValueFunction = (
+type IsJSONObjectFunction = (value: unknown) => boolean;
+
+const isJSONObject: IsJSONObjectFunction = (value: unknown): boolean => {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+};
+
+export type NormalizeInitialValueFunction = (
   value: string | JSONObject | null | undefined,
 ) => ParsedQuery;
 
-const normalizeInitialValue: NormalizeInitialValueFunction = (
+export const normalizeInitialValue: NormalizeInitialValueFunction = (
   value: string | JSONObject | null | undefined,
 ): ParsedQuery => {
   if (value === null || value === undefined || value === "") {
-    return { text: "", parsed: {} };
+    return { text: "", parsed: {}, hasTemplateExpressions: false };
   }
 
   if (typeof value === "object" && !Array.isArray(value)) {
-    return { text: JSON.stringify(value, null, 2), parsed: value };
+    return {
+      text: JSON.stringify(value, null, 2),
+      parsed: value,
+      hasTemplateExpressions: false,
+    };
   }
 
   if (typeof value !== "string") {
-    return { text: String(value), parsed: null };
+    return { text: String(value), parsed: null, hasTemplateExpressions: false };
   }
 
   try {
     const parsed: unknown = JSON.parse(value);
 
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return { text: value, parsed: parsed as JSONObject };
+    if (isJSONObject(parsed)) {
+      return {
+        text: value,
+        parsed: parsed as JSONObject,
+        hasTemplateExpressions: false,
+      };
     }
 
-    return { text: value, parsed: null };
+    return { text: value, parsed: null, hasTemplateExpressions: false };
   } catch {
-    return { text: value, parsed: null };
+    /*
+     * Same masking TemplateSyntax.checkJSONSyntax does, so this editor and the
+     * linter agree on which values are broken and which merely hold a
+     * reference.
+     */
+    const masked: string = maskTemplateExpressions(value);
+
+    if (masked !== value) {
+      try {
+        if (isJSONObject(JSON.parse(masked))) {
+          return { text: value, parsed: null, hasTemplateExpressions: true };
+        }
+      } catch {
+        // Still not JSON once the references are out of the way — genuinely broken.
+      }
+    }
+
+    return { text: value, parsed: null, hasTemplateExpressions: false };
   }
 };
 
@@ -128,6 +180,7 @@ type ClassifyCompatibilityFunction = (
   parsed: JSONObject | null,
   columns: Array<ModelSchemaColumn>,
   mode: ModelColumnEditorMode,
+  hasTemplateExpressions?: boolean | undefined,
 ) => CompatibilityResult;
 
 /**
@@ -141,11 +194,16 @@ export const classifyColumnValueCompatibility: ClassifyCompatibilityFunction = (
   parsed: JSONObject | null,
   columns: Array<ModelSchemaColumn>,
   mode: ModelColumnEditorMode,
+  hasTemplateExpressions?: boolean | undefined,
 ): CompatibilityResult => {
   if (parsed === null) {
     return {
       compatible: false,
-      reasons: ["The current value isn't a JSON object."],
+      reasons: [
+        hasTemplateExpressions
+          ? "This value uses a {{ }} reference where a value goes, which the rows can't show. It stays as JSON."
+          : "The current value isn't a JSON object.",
+      ],
     };
   }
 
@@ -177,8 +235,15 @@ export const classifyColumnValueCompatibility: ClassifyCompatibilityFunction = (
     }
 
     if (Array.isArray(value)) {
+      /*
+       * The "is any of" advice is Query-only: Record mode renders with
+       * enableOperators={false}, so it was telling half its readers to reach
+       * for a control that is not on their screen.
+       */
       reasons.push(
-        `"${key}" holds a list. Use the "is any of" operator instead, or keep editing as JSON.`,
+        mode === ModelColumnEditorMode.Query
+          ? `"${key}" holds a list. Use the "is any of" operator instead, or keep editing as JSON.`
+          : `"${key}" holds a list, which the rows can't show. Keep editing as JSON.`,
       );
       continue;
     }
@@ -221,6 +286,7 @@ export const classifyColumnValueCompatibility: ClassifyCompatibilityFunction = (
 
 type BuildQueryJsonFunction = (
   value: Dictionary<DictionaryEntryValue>,
+  mode: ModelColumnEditorMode,
 ) => string;
 
 /**
@@ -228,14 +294,26 @@ type BuildQueryJsonFunction = (
  *
  * Empty collapses to "" rather than "{}" so a required argument still reads as
  * empty to form validation and to the graph linter.
+ *
+ * In Record mode a row with no value is dropped. The record editor opens with a
+ * blank row for every column a create must be given, and those rows serialize
+ * to `""` — a non-empty string, which both validateRequired and
+ * isEmptyArgumentValue read as "filled in". Keeping them would make an
+ * untouched Create One look complete and let it save. Query mode keeps them,
+ * because matching a column against "" is a real condition.
  */
 export const buildColumnValueJson: BuildQueryJsonFunction = (
   value: Dictionary<DictionaryEntryValue>,
+  mode: ModelColumnEditorMode,
 ): string => {
   const entries: JSONObject = {};
 
   for (const key of Object.keys(value)) {
     if (key.trim() === "") {
+      continue;
+    }
+
+    if (mode === ModelColumnEditorMode.Record && value[key] === "") {
       continue;
     }
 
@@ -257,8 +335,18 @@ export const buildColumnValueJson: BuildQueryJsonFunction = (
 const ModelColumnEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const schema: ModelSchemaState = useModelSchema(props.tableName);
   const isQuery: boolean = props.mode === ModelColumnEditorMode.Query;
+
+  /*
+   * A query names columns to filter on, so it wants the read gate. A record
+   * names columns to write, and the two lists genuinely differ: a write-only
+   * column (MonitorSecret.secretValue declares `read: []`) is absent from the
+   * read list, and asking for it under the read gate would leave the one column
+   * Create One Monitor Secret exists to write out of its own editor.
+   */
+  const access: ModelSchemaAccess = isQuery ? "read" : "write";
+
+  const schema: ModelSchemaState = useModelSchema(props.tableName, access);
 
   const initial: ParsedQuery = useMemo(() => {
     return normalizeInitialValue(props.initialValue);
@@ -269,18 +357,60 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
 
   /*
    * The row editor is uncontrolled after mount (DictionaryForm seeds itself
-   * once), so the initial value is captured rather than recomputed.
+   * once), so this is computed rather than held in state. It only has to be
+   * right on the render that first mounts DictionaryForm, which is the first
+   * render after the schema resolves — the loader below returns early until
+   * then.
+   *
+   * Record mode opens with a blank row for every column a create must be given
+   * a value for. Seeding is additive and never overwrites what was stored, and
+   * blank rows are dropped on the way back out (buildColumnValueJson), so
+   * opening a saved workflow and saving it again cannot change what it does.
    */
-  const initialRows: React.MutableRefObject<Dictionary<DictionaryEntryValue>> =
-    useRef<Dictionary<DictionaryEntryValue>>(
-      (initial.parsed || {}) as Dictionary<DictionaryEntryValue>,
-    );
+  const initialRows: Dictionary<DictionaryEntryValue> = useMemo(() => {
+    const stored: Dictionary<DictionaryEntryValue> = (initial.parsed ||
+      {}) as Dictionary<DictionaryEntryValue>;
+
+    if (isQuery || !schema.columns) {
+      return stored;
+    }
+
+    const seeded: Dictionary<DictionaryEntryValue> = { ...stored };
+
+    for (const column of requiredWritableColumns(schema.columns)) {
+      if (seeded[column.id] === undefined) {
+        seeded[column.id] = "";
+      }
+    }
+
+    return seeded;
+  }, [schema.columns, isQuery]);
+
+  /*
+   * The model's own example for each column, shown in the row it belongs to.
+   * MonitorSecret.secretValue ships example: "sk_test_1234567890abcdefghijklmnop",
+   * which answers "what goes in this box" better than any prose in the sidebar.
+   */
+  const valuePlaceholders: Dictionary<string> = useMemo(() => {
+    const placeholders: Dictionary<string> = {};
+
+    for (const column of schema.columns || []) {
+      const hint: string | undefined = column.example || column.placeholder;
+
+      if (hint) {
+        placeholders[column.id] = hint;
+      }
+    }
+
+    return placeholders;
+  }, [schema.columns]);
 
   const compatibility: CompatibilityResult = useMemo(() => {
     return classifyColumnValueCompatibility(
       initial.parsed,
       schema.columns || [],
       props.mode,
+      initial.hasTemplateExpressions,
     );
   }, [schema.columns, props.mode]);
 
@@ -309,7 +439,7 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
   const onRowsChange: OnRowsChangeFunction = (
     value: Dictionary<DictionaryEntryValue>,
   ): void => {
-    const asJson: string = buildColumnValueJson(value);
+    const asJson: string = buildColumnValueJson(value, props.mode);
     setJsonText(asJson);
     props.onChange(asJson);
   };
@@ -319,7 +449,7 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
       {schema.error && (
         <p className="text-sm text-amber-600 mb-2">
           Couldn&apos;t load this model&apos;s columns ({schema.error}). You can
-          still write the query as JSON.
+          still write {isQuery ? "the query" : "these fields"} as JSON.
         </p>
       )}
 
@@ -352,7 +482,9 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
           addButtonSuffix={isQuery ? "condition" : "field"}
           keyPlaceholder="Column"
           valuePlaceholder="Value"
-          initialValue={initialRows.current}
+          valuePlaceholders={valuePlaceholders}
+          defaultValueSuggestions={props.valueSuggestions}
+          initialValue={initialRows}
           onChange={onRowsChange}
         />
       ) : (

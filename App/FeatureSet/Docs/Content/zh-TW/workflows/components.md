@@ -120,16 +120,18 @@ API 元件的簡化版本，適用於「發送後不理會」的情境。將 JSO
 
 ## OneUptime 資料元件
 
-對於 OneUptime 中每一種記錄（監視器、事件、警示、狀態頁面、待命政策，以及更多），調色盤都有這些元件——以類型名稱搜尋：
+對於 OneUptime 中每一種記錄（監視器、事件、警示、狀態頁面、待命政策，以及更多），調色盤都有這些元件——以類型名稱搜尋。標題由類型名稱產生，因此 Monitor 這一組為：
 
-- **Find One** — 依 ID 或篩選條件取得一筆記錄。
-- **Find** — 取得記錄清單。
-- **Create** — 新增一筆記錄。
-- **Update** — 變更一筆記錄。
-- **Delete** — 移除一筆記錄。
-- **Count** — 計算符合篩選條件的記錄數量。
+- **Find One Monitor** — 取得一筆符合篩選條件的記錄。
+- **Find Many Monitors** — 取得符合篩選條件的記錄清單。
+- **Create One Monitor** — 以 JSON 物件新增一筆記錄。
+- **Create Many Monitors** — 以 JSON 陣列新增多筆記錄。
+- **Update One Monitor** — 變更一筆符合篩選條件的記錄。
+- **Update Many Monitors** — 變更符合篩選條件的記錄，最多 Limit 筆。
+- **Delete One Monitor** — 移除一筆符合篩選條件的記錄。
+- **Delete Many Monitors** — 移除符合篩選條件的記錄，最多 Limit 筆。
 
-這就是工作流程讀取與變更 OneUptime 資料的方式。例如：來自您 CI 工具的 webhook 可以使用 **Create Incident**，以失敗的詳細資訊開啟一個事件。
+這就是工作流程讀取與變更 OneUptime 資料的方式。例如：來自您 CI 工具的 webhook 可以使用 **Create One Incident**，以失敗的詳細資訊開啟一個事件。
 
 ## 我應該使用哪個元件？
 

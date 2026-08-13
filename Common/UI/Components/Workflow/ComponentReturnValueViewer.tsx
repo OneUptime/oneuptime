@@ -1,10 +1,18 @@
 import { ReturnValue } from "../../../Types/Workflow/Component";
+import { componentReturnValueReference } from "../../../Types/Workflow/TemplateSyntax";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   returnValues: Array<ReturnValue>;
   name: string;
   description: string;
+  /*
+   * This step's identifier. When given, each return value also shows the exact
+   * reference another step would use to read it. That string was previously
+   * obtainable only by opening the value picker on some other component, so the
+   * syntax had no home on the component that owns the value.
+   */
+  componentId?: string | undefined;
 }
 
 const ComponentReturnValueViewer: FunctionComponent<ComponentProps> = (
@@ -77,6 +85,24 @@ const ComponentReturnValueViewer: FunctionComponent<ComponentProps> = (
                     >
                       {returnValue.description}
                     </p>
+                  )}
+                  {props.componentId && (
+                    <code
+                      style={{
+                        display: "block",
+                        marginTop: "0.25rem",
+                        fontSize: "0.6875rem",
+                        color: "var(--ou-text-subtle, #94a3b8)",
+                        fontFamily:
+                          'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
+                        overflowWrap: "anywhere",
+                      }}
+                    >
+                      {componentReturnValueReference(
+                        props.componentId,
+                        returnValue.id,
+                      )}
+                    </code>
                   )}
                 </div>
                 <span
