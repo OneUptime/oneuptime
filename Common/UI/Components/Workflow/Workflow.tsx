@@ -8,6 +8,7 @@ import {
   WorkflowLintResult,
   lintWorkflowGraph,
 } from "./GraphLint";
+import { findStepNodeToOpen } from "./GraphLintSummary";
 import { loadComponentsAndCategories } from "./Utils";
 import { VoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -126,6 +127,17 @@ export interface ComponentProps {
    * page around the canvas can show a count and decide what to do about it.
    */
   onLintResultChange?: ((result: WorkflowLintResult) => void) | undefined;
+  /**
+   * A react-flow node id whose settings should be opened. The issues panel
+   * lives outside the canvas but its whole point is fixing a step, and this is
+   * how it gets the builder there.
+   */
+  openStepForNodeId?: string | null | undefined;
+  /**
+   * Called once the request above has been handled — whether or not the node
+   * was still in the graph — so the page can clear it and ask again later.
+   */
+  onStepOpened?: (() => void) | undefined;
 }
 
 const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
@@ -277,6 +289,30 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   useEffect(() => {
     props.onLintResultChange?.(lintResult);
   }, [lintResult]);
+
+  /*
+   * Opening a step from outside the canvas — the issues panel naming the node
+   * it is complaining about. A node that has since been deleted simply opens
+   * nothing; the request is still acknowledged so the page does not sit
+   * waiting for a step that no longer exists.
+   */
+  useEffect(() => {
+    if (!props.openStepForNodeId) {
+      return;
+    }
+
+    const nodeToOpen: Node | null = findStepNodeToOpen({
+      nodes: nodes,
+      nodeId: props.openStepForNodeId,
+    });
+
+    if (nodeToOpen) {
+      setSelectedNodeData(nodeToOpen.data as NodeDataProp);
+      setShowComponentSettingsModal(true);
+    }
+
+    props.onStepOpened?.();
+  }, [props.openStepForNodeId]);
 
   const nodesToRender: Array<Node> = useMemo(() => {
     return nodes.map((node: Node) => {
