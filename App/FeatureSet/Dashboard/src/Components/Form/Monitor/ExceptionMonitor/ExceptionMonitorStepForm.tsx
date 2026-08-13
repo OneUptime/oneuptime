@@ -2,7 +2,7 @@ import MonitorStepExceptionMonitor, {
   MonitorStepExceptionMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 import Service from "Common/Models/DatabaseModels/Service";
-import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -44,7 +44,7 @@ export interface ComponentProps {
     monitorStepExceptionMonitor: MonitorStepExceptionMonitor,
   ) => void;
   telemetryServices: Array<Service>;
-  telemetryEntities?: Array<TelemetryEntity> | undefined;
+  telemetryEntities?: Array<InventoryItem> | undefined;
 }
 
 type ExceptionMonitorFormValues = {
@@ -442,7 +442,7 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
             },
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownOptions: (props.telemetryEntities || []).map(
-              (telemetryEntity: TelemetryEntity) => {
+              (telemetryEntity: InventoryItem) => {
                 return {
                   label: `${
                     telemetryEntity.displayName ||

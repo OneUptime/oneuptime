@@ -1,5 +1,5 @@
-import TelemetryEntity from "../../../Models/DatabaseModels/TelemetryEntity";
-import TelemetryEntityService from "../../../Server/Services/TelemetryEntityService";
+import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
+import InventoryItemService from "../../../Server/Services/InventoryItemService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import ObjectID from "../../../Types/ObjectID";
 import EntitySource from "../../../Types/Telemetry/EntitySource";
@@ -8,7 +8,7 @@ import { keyForManualEntity } from "../../../Utils/Telemetry/EntityKey";
 import { describe, expect, test } from "@jest/globals";
 
 /*
- * TelemetryEntityService.onBeforeCreate is the whole of the manual-CI
+ * InventoryItemService.onBeforeCreate is the whole of the manual-CI
  * write path: it is what decides a create is manual, validates it, and
  * derives the identity the registry needs from the two fields a human can
  * supply. It also has to leave machine creates — ingest and the inventory
@@ -21,14 +21,14 @@ const PROJECT_ID: ObjectID = new ObjectID(
   "0f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
 );
 
-type CallCreate = (createBy: CreateBy<TelemetryEntity>) => Promise<unknown>;
+type CallCreate = (createBy: CreateBy<InventoryItem>) => Promise<unknown>;
 
 const callOnBeforeCreate: CallCreate = (
-  createBy: CreateBy<TelemetryEntity>,
+  createBy: CreateBy<InventoryItem>,
 ): Promise<unknown> => {
   return (
-    TelemetryEntityService as unknown as {
-      onBeforeCreate: (c: CreateBy<TelemetryEntity>) => Promise<unknown>;
+    InventoryItemService as unknown as {
+      onBeforeCreate: (c: CreateBy<InventoryItem>) => Promise<unknown>;
     }
   ).onBeforeCreate(createBy);
 };
@@ -36,7 +36,7 @@ const callOnBeforeCreate: CallCreate = (
 /*
  * Explicitly admits `undefined` per field. The suite needs to build creates
  * with a field genuinely absent (that is what the validation tests are), and
- * `Partial<TelemetryEntity>` rejects an explicit undefined under this
+ * `Partial<InventoryItem>` rejects an explicit undefined under this
  * project's `exactOptionalPropertyTypes`.
  */
 interface ManualCreateOverrides {
@@ -48,26 +48,26 @@ interface ManualCreateOverrides {
 
 function manualCreate(
   overrides: ManualCreateOverrides = {},
-): CreateBy<TelemetryEntity> {
-  const data: TelemetryEntity = new TelemetryEntity();
+): CreateBy<InventoryItem> {
+  const data: InventoryItem = new InventoryItem();
   data.projectId = PROJECT_ID;
   data.entityType = EntityType.ExternalService;
   data.displayName = "Stripe Payments API";
   Object.assign(data, overrides);
 
-  return { data, props: { isRoot: true } } as CreateBy<TelemetryEntity>;
+  return { data, props: { isRoot: true } } as CreateBy<InventoryItem>;
 }
 
 describe("manual entity creation", () => {
   test("a create with no entity key is treated as manual", async () => {
-    const createBy: CreateBy<TelemetryEntity> = manualCreate();
+    const createBy: CreateBy<InventoryItem> = manualCreate();
     await callOnBeforeCreate(createBy);
 
     expect(createBy.data.source).toBe(EntitySource.Manual);
   });
 
   test("derives the entity key from project, type and name", async () => {
-    const createBy: CreateBy<TelemetryEntity> = manualCreate();
+    const createBy: CreateBy<InventoryItem> = manualCreate();
     await callOnBeforeCreate(createBy);
 
     expect(createBy.data.entityKey).toBe(
@@ -80,7 +80,7 @@ describe("manual entity creation", () => {
   });
 
   test("records the canonicalized name as the identifying attribute", async () => {
-    const createBy: CreateBy<TelemetryEntity> = manualCreate({
+    const createBy: CreateBy<InventoryItem> = manualCreate({
       displayName: "  Stripe Payments API  ",
     });
     await callOnBeforeCreate(createBy);
@@ -91,7 +91,7 @@ describe("manual entity creation", () => {
   });
 
   test("trims the stored display name but keeps its original casing", async () => {
-    const createBy: CreateBy<TelemetryEntity> = manualCreate({
+    const createBy: CreateBy<InventoryItem> = manualCreate({
       displayName: "  Stripe Payments API  ",
     });
     await callOnBeforeCreate(createBy);
@@ -100,10 +100,10 @@ describe("manual entity creation", () => {
   });
 
   test("two names differing only by case resolve to one identity", async () => {
-    const first: CreateBy<TelemetryEntity> = manualCreate({
+    const first: CreateBy<InventoryItem> = manualCreate({
       displayName: "Stripe API",
     });
-    const second: CreateBy<TelemetryEntity> = manualCreate({
+    const second: CreateBy<InventoryItem> = manualCreate({
       displayName: "stripe api",
     });
 
@@ -118,7 +118,7 @@ describe("manual entity creation", () => {
   });
 
   test("stamps first and last seen so the row sorts with the rest", async () => {
-    const createBy: CreateBy<TelemetryEntity> = manualCreate();
+    const createBy: CreateBy<InventoryItem> = manualCreate();
     await callOnBeforeCreate(createBy);
 
     expect(createBy.data.firstSeenAt).toBeInstanceOf(Date);
@@ -131,7 +131,7 @@ describe("manual entity creation", () => {
       EntityType.ExternalDatabase,
       EntityType.Appliance,
     ]) {
-      const createBy: CreateBy<TelemetryEntity> = manualCreate({ entityType });
+      const createBy: CreateBy<InventoryItem> = manualCreate({ entityType });
       await callOnBeforeCreate(createBy);
 
       expect(createBy.data.entityType).toBe(entityType);
@@ -186,7 +186,7 @@ describe("manual entity validation", () => {
 
 describe("machine creates are left alone", () => {
   test("a discovered create keeps its precomputed key and source", async () => {
-    const data: TelemetryEntity = new TelemetryEntity();
+    const data: InventoryItem = new InventoryItem();
     data.projectId = PROJECT_ID;
     data.entityType = EntityType.KubernetesPod;
     data.entityKey = "210dac24142f1baa";
@@ -194,10 +194,10 @@ describe("machine creates are left alone", () => {
     data.displayName = "checkout-7d9f";
     data.identifyingAttributes = { "k8s.pod.name": "checkout-7d9f" };
 
-    const createBy: CreateBy<TelemetryEntity> = {
+    const createBy: CreateBy<InventoryItem> = {
       data,
       props: { isRoot: true },
-    } as CreateBy<TelemetryEntity>;
+    } as CreateBy<InventoryItem>;
 
     await callOnBeforeCreate(createBy);
 
@@ -213,7 +213,7 @@ describe("machine creates are left alone", () => {
      * The manual-type restriction must apply to users, not to ingest — which
      * legitimately creates services, pods and hosts.
      */
-    const data: TelemetryEntity = new TelemetryEntity();
+    const data: InventoryItem = new InventoryItem();
     data.projectId = PROJECT_ID;
     data.entityType = EntityType.Service;
     data.entityKey = "abcdef0123456789";
@@ -223,22 +223,22 @@ describe("machine creates are left alone", () => {
       callOnBeforeCreate({
         data,
         props: { isRoot: true },
-      } as CreateBy<TelemetryEntity>),
+      } as CreateBy<InventoryItem>),
     ).resolves.toBeDefined();
   });
 
   test("an inventory mirror create keeps its precomputed key and source", async () => {
-    const data: TelemetryEntity = new TelemetryEntity();
+    const data: InventoryItem = new InventoryItem();
     data.projectId = PROJECT_ID;
     data.entityType = EntityType.NetworkDevice;
     data.entityKey = "9f8e7d6c5b4a3210";
     data.source = EntitySource.Inventory;
     data.displayName = "core-switch-1";
 
-    const createBy: CreateBy<TelemetryEntity> = {
+    const createBy: CreateBy<InventoryItem> = {
       data,
       props: { isRoot: true },
-    } as CreateBy<TelemetryEntity>;
+    } as CreateBy<InventoryItem>;
 
     await callOnBeforeCreate(createBy);
 

@@ -4,7 +4,7 @@ import zlib from "zlib";
 import { promisify } from "util";
 import { JSONObject } from "Common/Types/JSON";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
-import TelemetryEntity, {
+import InventoryItem, {
   ResourceEntityRef,
 } from "Common/Server/Utils/Telemetry/TelemetryEntity";
 import TelemetryBodyStore from "./TelemetryBodyStore";
@@ -154,7 +154,7 @@ export default class OtelPayloadDecoder {
 
   /**
    * Surface OTLP `Resource.entity_refs` from a decoded resource envelope
-   * as typed refs for `TelemetryEntity.extractEntities`. `decodeFromQueue`
+   * as typed refs for `InventoryItem.extractEntities`. `decodeFromQueue`
    * already emits them — the proto defines `entity_refs` and protobufjs'
    * `.toJSON()` camelCases it to `entityRefs`; OTLP/JSON payloads carry
    * `entityRefs` natively — so this only normalizes the raw JSON shape.
@@ -164,7 +164,7 @@ export default class OtelPayloadDecoder {
   public static getEntityRefsFromResource(
     resource: JSONObject | null | undefined,
   ): Array<ResourceEntityRef> {
-    return TelemetryEntity.parseEntityRefs(
+    return InventoryItem.parseEntityRefs(
       resource ? resource["entityRefs"] : undefined,
     );
   }

@@ -1,5 +1,5 @@
 import DatabaseService from "./DatabaseService";
-import Model from "../../Models/DatabaseModels/TelemetryEntity";
+import Model from "../../Models/DatabaseModels/InventoryItem";
 import Service from "../../Models/DatabaseModels/Service";
 import ServiceService from "./ServiceService";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -31,7 +31,7 @@ import {
   shouldWarnEntityBudgetOnce,
 } from "../Utils/Telemetry/EntityRegistry";
 
-export class TelemetryEntityService extends DatabaseService<Model> {
+export class InventoryItemService extends DatabaseService<Model> {
   public constructor() {
     super(Model);
   }
@@ -161,7 +161,7 @@ export class TelemetryEntityService extends DatabaseService<Model> {
         });
       } catch (err) {
         logger.error(
-          `TelemetryEntityService: failed to upsert entity ${entity.entityType}/${entity.entityKey}:`,
+          `InventoryItemService: failed to upsert entity ${entity.entityType}/${entity.entityKey}:`,
         );
         logger.error(err as Error);
       }
@@ -184,7 +184,7 @@ export class TelemetryEntityService extends DatabaseService<Model> {
     if (data.entity.entityType !== EntityType.Service) {
       return null;
     }
-    const name: string = TelemetryEntityService.deriveDisplayName(data.entity);
+    const name: string = InventoryItemService.deriveDisplayName(data.entity);
     if (!name) {
       return null;
     }
@@ -206,7 +206,7 @@ export class TelemetryEntityService extends DatabaseService<Model> {
       return service?._id ? new ObjectID(service._id.toString()) : null;
     } catch (err) {
       logger.error(
-        `TelemetryEntityService: failed to resolve Service row for entity name "${name}":`,
+        `InventoryItemService: failed to resolve Service row for entity name "${name}":`,
       );
       logger.error(err as Error);
       return null;
@@ -237,7 +237,7 @@ export class TelemetryEntityService extends DatabaseService<Model> {
       select: { descriptiveAttributes: true, labels: true, resourceId: true },
       buildUpdate: (existing: Model): QueryDeepPartialEntity<Model> => {
         const update: QueryDeepPartialEntity<Model> =
-          TelemetryEntityService.buildDescriptiveUpdate(entity, existing);
+          InventoryItemService.buildDescriptiveUpdate(entity, existing);
         /*
          * Stamp / refresh the pointer on the throttled bump too, so
          * pre-existing rows converge and a deleted+recreated Service
@@ -295,7 +295,7 @@ export class TelemetryEntityService extends DatabaseService<Model> {
           })
         ) {
           logger.warn(
-            `TelemetryEntityService: entity budget reached for project ${projectId.toString()} type ${entity.entityType} (${count} >= ${budget}); skipping new registry rows. Membership keys still flow on signals.`,
+            `InventoryItemService: entity budget reached for project ${projectId.toString()} type ${entity.entityType} (${count} >= ${budget}); skipping new registry rows. Membership keys still flow on signals.`,
           );
         }
         return false;
@@ -319,10 +319,10 @@ export class TelemetryEntityService extends DatabaseService<Model> {
           model.descriptiveAttributes = entity.descriptiveAttributes;
         }
         if (entity.labels && entity.labels.length > 0) {
-          model.labels = TelemetryEntityService.normalizeLabels(entity.labels);
+          model.labels = InventoryItemService.normalizeLabels(entity.labels);
         }
         // varchar(ShortText) column; k8s names can run to 253 chars.
-        model.displayName = TelemetryEntityService.deriveDisplayName(
+        model.displayName = InventoryItemService.deriveDisplayName(
           entity,
         ).substring(0, ColumnLength.ShortText);
         if (serviceResourceId) {
@@ -384,7 +384,7 @@ export class TelemetryEntityService extends DatabaseService<Model> {
       });
 
       if (hasNew) {
-        update.labels = TelemetryEntityService.normalizeLabels([
+        update.labels = InventoryItemService.normalizeLabels([
           ...currentLabels,
           ...incomingLabels,
         ]);
@@ -427,4 +427,4 @@ export class TelemetryEntityService extends DatabaseService<Model> {
   }
 }
 
-export default new TelemetryEntityService();
+export default new InventoryItemService();

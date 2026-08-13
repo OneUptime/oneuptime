@@ -913,7 +913,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * `Incident` -> `incidentId`, `Monitor` -> `monitorId`. Matches the keys in
    * TelemetryContextAttributes so dashboards/queries stay consistent.
    */
-  private getTelemetryEntityIdKey(): string {
+  private getInventoryItemIdKey(): string {
     const name: string = this.modelName || "entity";
     return name.charAt(0).toLowerCase() + name.slice(1) + "Id";
   }
@@ -960,7 +960,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
 
       if (item.id) {
-        attributes[this.getTelemetryEntityIdKey()] = item.id.toString();
+        attributes[this.getInventoryItemIdKey()] = item.id.toString();
       }
 
       if (Object.keys(attributes).length > 0) {
