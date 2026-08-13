@@ -14,6 +14,12 @@ export type ResponderType = "schedule" | "team" | "user";
 export interface EscalationResponder {
   label: string;
   type: ResponderType;
+  /*
+   * Schedule responders only: true when the schedule currently has nobody on
+   * call. Such a responder exists on paper but would page no one, so it is
+   * drawn in amber rather than identically to a healthy responder.
+   */
+  isUncovered?: boolean | undefined;
 }
 
 export interface EscalationLevelSummary {
@@ -142,13 +148,35 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
           return (
             <span
               key={`r-${i}`}
-              className="inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
+              title={
+                responder.isUncovered
+                  ? "No one is currently on call in this schedule."
+                  : undefined
+              }
+              className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
+                responder.isUncovered
+                  ? "bg-amber-50 text-amber-700 ring-amber-200"
+                  : "bg-gray-50 text-gray-700 ring-gray-200"
+              }`}
             >
               <Icon
-                icon={responderIcon(responder.type)}
-                className={`h-3 w-3 ${responderIconColor(responder.type)}`}
+                icon={
+                  responder.isUncovered
+                    ? IconProp.Alert
+                    : responderIcon(responder.type)
+                }
+                className={`h-3 w-3 ${
+                  responder.isUncovered
+                    ? "text-amber-500"
+                    : responderIconColor(responder.type)
+                }`}
               />
               {responder.label}
+              {responder.isUncovered && (
+                <span className="text-[10px] font-semibold uppercase tracking-wide">
+                  no one on call
+                </span>
+              )}
             </span>
           );
         })}

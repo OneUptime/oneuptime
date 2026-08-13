@@ -332,6 +332,12 @@ export class Service extends DatabaseService<Model> {
         return Yellow500;
       case OnCallDutyPolicyStatus.Completed:
         return Green500;
+      /*
+       * Amber, not green: the policy finished, but finishing without paging
+       * anyone is a failure of the thing the policy exists to do.
+       */
+      case OnCallDutyPolicyStatus.CompletedWithNoNotifications:
+        return Yellow500;
       case OnCallDutyPolicyStatus.Error:
         return Red500;
       default:
@@ -349,6 +355,8 @@ export class Service extends DatabaseService<Model> {
         return "▶️";
       case OnCallDutyPolicyStatus.Completed:
         return "🏁";
+      case OnCallDutyPolicyStatus.CompletedWithNoNotifications:
+        return "⚠️";
       case OnCallDutyPolicyStatus.Error:
         return "❌";
       default:

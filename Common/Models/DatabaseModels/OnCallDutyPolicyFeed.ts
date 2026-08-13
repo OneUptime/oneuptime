@@ -37,6 +37,15 @@ export enum OnCallDutyPolicyFeedEventType {
   OwnerTeamRemoved = "OwnerTeamRemoved",
   UserOverrideAdded = "UserOverrideAdded",
   UserOverrideRemoved = "UserOverrideRemoved",
+  /*
+   * A schedule attached to this policy stopped having anybody on call. Distinct
+   * from RosterHandoff, which describes one person replacing another: this is
+   * the case where nobody replaces them, so alerts escalating to that schedule
+   * will page no one. It is the only push signal for a coverage gap — without
+   * it a gap opens in silence and is only discoverable by visiting the
+   * schedule's page and looking.
+   */
+  CoverageGapStarted = "CoverageGapStarted",
 }
 
 @EnableDocumentation()
