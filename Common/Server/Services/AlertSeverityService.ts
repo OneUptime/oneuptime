@@ -10,7 +10,18 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import Model from "../../Models/DatabaseModels/AlertSeverity";
+import Queue, { QueueName } from "../Infrastructure/Queue";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+
+/*
+ * Must stay identical to the RunCron job name in
+ * App/FeatureSet/Workers/Jobs/OnCallDutyPolicy/BackfillNotificationRulesForNewSeverities.ts.
+ * Common cannot import from App, so the string is duplicated deliberately; the
+ * job file carries a matching comment naming its two enqueue sites.
+ */
+const BACKFILL_NOTIFICATION_RULES_JOB_NAME: string =
+  "OnCallDutyPolicy:BackfillNotificationRulesForNewSeverities";
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -38,6 +49,58 @@ export class Service extends DatabaseService<Model> {
       createBy: createBy,
       carryForward: null,
     };
+  }
+
+  /**
+   * A severity created today is a severity every existing responder has no
+   * notification rule for. See the twin hook on IncidentSeverityService for the
+   * full reasoning; the short version is that default rules are only ever
+   * written when a responder joins or verifies a method, and both iterate the
+   * severities that exist AT THAT MOMENT, so a severity added later pages
+   * nobody until something backfills it.
+   *
+   * Queued rather than inline because a project can hold thousands of
+   * responders and this hook runs inside the request that created the severity.
+   * Best-effort because the severity must be created either way - the backfill
+   * job also sweeps recently-created severities on its own schedule, so a
+   * dropped enqueue costs latency, not coverage.
+   */
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    try {
+      await Queue.addJob(
+        QueueName.Worker,
+        `${BACKFILL_NOTIFICATION_RULES_JOB_NAME}-${createdItem.id?.toString()}`,
+        BACKFILL_NOTIFICATION_RULES_JOB_NAME,
+        {
+          /*
+           * The Worker queue dispatches purely on job NAME and hands the job
+           * function no payload, so the job re-derives which severities need
+           * backfilling for itself. These ride along for the queue inspector and
+           * the failure log.
+           */
+          projectId: createdItem.projectId?.toString() || "",
+          alertSeverityId: createdItem.id?.toString() || "",
+        },
+        {
+          // One active, one queued, latest payload wins - never N overlapping scans.
+          deduplication: {
+            id: BACKFILL_NOTIFICATION_RULES_JOB_NAME,
+            keepLastIfActive: true,
+          },
+        },
+      );
+    } catch (err) {
+      logger.error(
+        "Could not enqueue the on-call notification rule backfill for a newly created alert severity. The scheduled sweep will still pick it up.",
+      );
+      logger.error(err);
+    }
+
+    return createdItem;
   }
 
   @CaptureSpan()

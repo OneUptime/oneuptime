@@ -238,6 +238,29 @@ export default class UserOnCallLogTimeline extends BaseModel {
   @JoinColumn({ name: "userNotificationRuleId" })
   public userNotificationRule?: UserNotificationRule = undefined;
 
+  /*
+   * Nullable, unlike every other id on this row.
+   *
+   * A timeline row records a delivery attempt, and not every delivery attempt
+   * is driven by a stored notification rule. When a responder is paged but has
+   * no rule matching the event's rule type and severity, the fallback delivers
+   * on whatever verified method they do have, driving the normal per-channel
+   * delivery path with a UserNotificationRule built in memory and never saved.
+   * That rule has no id, so there is nothing to point this column at.
+   *
+   * The alternative — persisting a synthetic rule row purely so the foreign key
+   * has something to reference — would put rules the user never configured into
+   * their notification settings, where they would show up in the UI, be matched
+   * by future executions, and have to be garbage collected. A NULL here states
+   * the truth plainly: this delivery had no rule behind it. Readers must treat
+   * the column as absent-by-design rather than as missing data.
+   *
+   * `required: true` is deliberately absent from the @TableColumn: that flag
+   * feeds getRequiredColumns(), which DatabaseService.checkRequiredFields reads
+   * to throw BadDataException before the insert is attempted. Leaving it on
+   * would reject every fallback row in the application layer even after the
+   * database column itself allows NULL.
+   */
   @ColumnAccessControl({
     create: [],
     read: [Permission.CurrentUser],
@@ -246,7 +269,6 @@ export default class UserOnCallLogTimeline extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
     canReadOnRelationQuery: true,
     title: "User Notification Rule ID",
     description:
@@ -254,7 +276,7 @@ export default class UserOnCallLogTimeline extends BaseModel {
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public userNotificationRuleId?: ObjectID = undefined;

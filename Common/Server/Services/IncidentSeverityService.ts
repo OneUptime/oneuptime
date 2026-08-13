@@ -10,7 +10,18 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import Model from "../../Models/DatabaseModels/IncidentSeverity";
+import Queue, { QueueName } from "../Infrastructure/Queue";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+
+/*
+ * Must stay identical to the RunCron job name in
+ * App/FeatureSet/Workers/Jobs/OnCallDutyPolicy/BackfillNotificationRulesForNewSeverities.ts.
+ * Common cannot import from App, so the string is duplicated deliberately; the
+ * job file carries a matching comment naming its two enqueue sites.
+ */
+const BACKFILL_NOTIFICATION_RULES_JOB_NAME: string =
+  "OnCallDutyPolicy:BackfillNotificationRulesForNewSeverities";
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -38,6 +49,71 @@ export class Service extends DatabaseService<Model> {
       createBy: createBy,
       carryForward: null,
     };
+  }
+
+  /**
+   * A severity created today is a severity every existing responder has no
+   * notification rule for.
+   *
+   * The default rules a responder gets are written when they join the project
+   * and when they verify a notification method, and both of those iterate the
+   * severities that exist AT THAT MOMENT. Nothing revisited the question
+   * afterwards, so adding a "Sev4" a year into a project silently switched off
+   * paging for it: every Sev4 incident counted zero matching rules and dropped
+   * into an execution log nobody reads.
+   *
+   * The repair is queued rather than run inline. A project can hold thousands of
+   * responders, this hook sits inside the request that created the severity, and
+   * a fan-out that slow would either time the request out or fail half-finished
+   * with nothing to roll back. The worker owns the work; this only rings the
+   * bell.
+   *
+   * Ringing the bell is best-effort on purpose. If Redis is unreachable the
+   * severity must still be created - the backfill job also sweeps
+   * recently-created severities on its own schedule, so a dropped enqueue costs
+   * a few minutes of latency, not coverage.
+   */
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    try {
+      await Queue.addJob(
+        QueueName.Worker,
+        `${BACKFILL_NOTIFICATION_RULES_JOB_NAME}-${createdItem.id?.toString()}`,
+        BACKFILL_NOTIFICATION_RULES_JOB_NAME,
+        {
+          /*
+           * The Worker queue dispatches purely on job NAME and hands the job
+           * function no payload, so the job re-derives which severities need
+           * backfilling for itself. These ride along for the queue inspector and
+           * the failure log, where "which severity was this?" is the first
+           * question anyone asks.
+           */
+          projectId: createdItem.projectId?.toString() || "",
+          incidentSeverityId: createdItem.id?.toString() || "",
+        },
+        {
+          /*
+           * Seeding a project with four severities in one go must not start four
+           * overlapping scans that all see the same uncovered responders and all
+           * write the same rules. One active, one queued, latest payload wins.
+           */
+          deduplication: {
+            id: BACKFILL_NOTIFICATION_RULES_JOB_NAME,
+            keepLastIfActive: true,
+          },
+        },
+      );
+    } catch (err) {
+      logger.error(
+        "Could not enqueue the on-call notification rule backfill for a newly created incident severity. The scheduled sweep will still pick it up.",
+      );
+      logger.error(err);
+    }
+
+    return createdItem;
   }
 
   @CaptureSpan()

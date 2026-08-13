@@ -8,8 +8,13 @@ import IncidentSeverityService, {
   Service as IncidentSeverityServiceClass,
 } from "../../../Server/Services/IncidentSeverityService";
 import OnCallDutyPolicyExecutionLogTimelineService from "../../../Server/Services/OnCallDutyPolicyExecutionLogTimelineService";
-import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
+import ProjectService from "../../../Server/Services/ProjectService";
+import UserNotificationRuleService, {
+  FallbackNotificationOutcome,
+} from "../../../Server/Services/UserNotificationRuleService";
 import UserOnCallLogService from "../../../Server/Services/UserOnCallLogService";
+import UserService from "../../../Server/Services/UserService";
+import Queue, { QueueName } from "../../../Server/Infrastructure/Queue";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import Alert from "../../../Models/DatabaseModels/Alert";
@@ -29,42 +34,56 @@ import UserNotificationExecutionStatus from "../../../Types/UserNotification/Use
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
- * GAP A — a severity created after a user joined is a severity that user has no
- * notification rule for, and nothing anywhere backfills one.
+ * GAP A — a severity created after a user joined was a severity that user had
+ * no notification rule for, and nothing anywhere backfilled one.
  *
  * The default rules a responder gets are written by
  * UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod(),
  * whose two severity-shaped halves — createIncidentOnCallRules() and
  * createAlertOnCallRules() — iterate the severities that exist AT THE MOMENT
  * THEY RUN. They run when a member joins a project, when a notification method
- * is verified, and in the MigrateDefaultUserNotificationRule migration. They do
- * NOT run when a severity is created, because neither IncidentSeverityService
- * nor AlertSeverityService defines any create-success hook at all: both stop at
- * onBeforeCreate, whose entire job is order rearrangement.
+ * is verified, and in the MigrateDefaultUserNotificationRule migration. They did
+ * NOT run when a severity was created, because neither IncidentSeverityService
+ * nor AlertSeverityService defined any create-success hook at all: both stopped
+ * at onBeforeCreate, whose entire job is order rearrangement.
  *
- * So "add a Sev4 a year into the project" is a silent paging outage for every
+ * So "add a Sev4 a year into the project" was a silent paging outage for every
  * existing user: UserOnCallLogService.onCreateSuccess counts rules with
- * { userId, projectId, ruleType, incidentSeverityId }, gets zero, writes
+ * { userId, projectId, ruleType, incidentSeverityId }, got zero, wrote
  * "No notification rules found for this user." into an execution log nobody
- * reads, and returns without paging anyone.
+ * reads, and returned without paging anyone.
  *
- * This file pins that behaviour in three layers:
+ * PHASE 1 CLOSED THIS, on two independent fronts, and this file now pins both:
  *
- *   (A) Neither severity service touches UserNotificationRuleService. Proven
- *       structurally (the create-side hooks they override, and the fact that
- *       onCreateSuccess is still DatabaseService's placeholder) and
- *       behaviourally (drive every hook they DO define; assert zero rules).
- *   (B) Rule creation is severity-snapshot-driven. The same user, the same
- *       project, run once against two severities and once against three, and
- *       the third severity only ever gets a rule because the method was called
- *       a SECOND time — which nothing does when a severity is created.
- *   (C) The resulting hole, asserted through the real runtime query. A user with
- *       rules for [A, B] and a project with severities [A, B, C] has zero rules
- *       matching a C-severity incident, so the page is dropped.
+ *   (A) Creating a severity enqueues
+ *       "OnCallDutyPolicy:BackfillNotificationRulesForNewSeverities" onto the
+ *       Worker queue. Proven structurally (onCreateSuccess is now an own
+ *       property on both services, no longer DatabaseService's placeholder) and
+ *       behaviourally (drive the hooks; assert the enqueue, its queue, its name
+ *       and its payload). The fan-out itself stays OUT of the request — a
+ *       project can hold thousands of responders — so "no rules written inline"
+ *       is still asserted, but it no longer means "no backfill".
+ *   (B) Rule creation is still severity-snapshot-driven, and that is fine now
+ *       that something else revisits the snapshot. This section is unchanged: it
+ *       documents why the backfill has to exist.
+ *   (C) The runtime hole. A user with rules for [A, B] and a project with
+ *       severities [A, B, C] still has zero rules matching a C-severity
+ *       incident — but the page is no longer dropped. UserOnCallLogService now
+ *       reaches for the verified-method fallback instead of the dead-end, so the
+ *       responder is notified and the log says so.
  *
- * Sections A and B are the buggy-by-design half. Every assertion carrying the
- * "GAP A" banner is one Phase 1 is expected to INVERT once the backfill lands.
+ * Assertions that used to carry the "GAP A" banner now carry "GAP A CLOSED" and
+ * state the post-Phase-1 behaviour.
  */
+
+/*
+ * Mirrors the private constant in IncidentSeverityService / AlertSeverityService,
+ * which in turn mirrors the RunCron job name in
+ * App/FeatureSet/Workers/Jobs/OnCallDutyPolicy/BackfillNotificationRulesForNewSeverities.ts.
+ * If a rename ever misses one of the three, this is where it surfaces.
+ */
+const BACKFILL_JOB_NAME: string =
+  "OnCallDutyPolicy:BackfillNotificationRulesForNewSeverities";
 
 const PROJECT_ID: ObjectID = new ObjectID("project-1");
 const USER_ID: ObjectID = new ObjectID("user-1");
@@ -104,6 +123,7 @@ interface StoredRule {
   alertSeverityId: string | undefined;
   notifyAfterMinutes: number | undefined;
   userEmailId: string | undefined;
+  isOptOut: boolean | undefined;
 }
 
 let ruleStore: Array<StoredRule> = [];
@@ -157,6 +177,35 @@ function ruleMatchesQuery(
     return false;
   }
 
+  /*
+   * isOptOut appears in queries in TWO different shapes, and conflating them
+   * makes this matcher reject everything.
+   *
+   *   - As a literal `true`: the no-rule path's opt-out lookup, asking whether
+   *     this exact (ruleType x severity) cell was deliberately muted.
+   *   - As a PREDICATE OBJECT: every counting and execution query excludes
+   *     opt-out rows with notOptOutRuleQuery(), which is
+   *     QueryHelper.notInOrNull(["true"]) - a TypeORM operator, not a boolean.
+   *     It is deliberately null-tolerant: isOptOut is nullable and every rule
+   *     written before the column existed has it NULL, so a plain
+   *     `isOptOut: false` would match none of them and quietly exclude every
+   *     pre-existing rule from paging.
+   *
+   * A boolean is compared directly; anything else is the exclusion predicate,
+   * which a row satisfies precisely when it is not an opt-out.
+   */
+  const expectedIsOptOut: unknown = query["isOptOut"];
+
+  if (expectedIsOptOut !== undefined) {
+    if (typeof expectedIsOptOut === "boolean") {
+      if (Boolean(rule.isOptOut) !== expectedIsOptOut) {
+        return false;
+      }
+    } else if (rule.isOptOut === true) {
+      return false;
+    }
+  }
+
   return true;
 }
 
@@ -166,9 +215,16 @@ function matchingRules(query: Record<string, unknown>): Array<StoredRule> {
   });
 }
 
-/* Remove a column the way a request that simply omitted it would. */
-function unsetColumn(model: Record<string, unknown>, column: string): void {
-  Reflect.deleteProperty(model, column);
+/*
+ * Remove a column the way a request that simply omitted it would.
+ *
+ * Takes `unknown` and narrows inside, the way callHook below does. Callers hand
+ * it a model INSTANCE, and a class with declared properties is not assignable to
+ * Record<string, unknown> under this repo's strict config - while `object` is
+ * banned by the lint rules. Widening at the boundary satisfies both.
+ */
+function unsetColumn(model: unknown, column: string): void {
+  Reflect.deleteProperty(model as Record<string, unknown>, column);
 }
 
 // Calls a protected hook without widening the service's public surface.
@@ -188,8 +244,9 @@ function callHook(
   return hooks[name]!.apply(service, args);
 }
 
-function ownHookNames(prototype: Record<string, unknown>): Array<string> {
-  return Object.getOwnPropertyNames(prototype)
+// Same reason as unsetColumn: callers pass a class prototype, not a map.
+function ownHookNames(prototype: unknown): Array<string> {
+  return Object.getOwnPropertyNames(prototype as Record<string, unknown>)
     .filter((name: string): boolean => {
       return name.startsWith("on");
     })
@@ -276,6 +333,7 @@ function stubUserNotificationRuleStore(): void {
       alertSeverityId: toIdString(model.alertSeverityId),
       notifyAfterMinutes: model.notifyAfterMinutes,
       userEmailId: toIdString(model.userEmailId),
+      isOptOut: model.isOptOut,
     });
 
     return Promise.resolve(model);
@@ -339,14 +397,29 @@ afterEach(() => {
 
 /*
  * ========================================================================= *
- * (A) Neither severity service has anything to do with notification rules.
+ * (A) Creating a severity now queues the backfill.
+ *
+ * GAP A CLOSED IN PHASE 1. This section used to prove the opposite: that
+ * neither severity service had any create-success hook at all, and that
+ * committing a severity row was followed by exactly nothing. Both services now
+ * override onCreateSuccess and enqueue
+ * "OnCallDutyPolicy:BackfillNotificationRulesForNewSeverities" onto the Worker
+ * queue.
+ *
+ * Note what did NOT change, and why it is still asserted: no rule is written
+ * inline. That is deliberate rather than residual. A project can hold thousands
+ * of responders and this hook runs inside the request that created the
+ * severity, so the fan-out belongs to the worker. "No inline rule creation" and
+ * "no backfill" used to be the same observation; they are now opposites, and
+ * the enqueue assertion is what tells them apart.
  * =========================================================================
  */
 
-describe("GAP A - IncidentSeverityService defines no rule-backfilling create hook", () => {
+describe("GAP A CLOSED - IncidentSeverityService queues the rule backfill on create", () => {
   let createSpy: jest.SpyInstance;
   let addDefaultsForMethodSpy: jest.SpyInstance;
   let addDefaultsForUserSpy: jest.SpyInstance;
+  let addJobSpy: jest.SpyInstance;
 
   beforeEach(() => {
     /*
@@ -360,6 +433,9 @@ describe("GAP A - IncidentSeverityService defines no rule-backfilling create hoo
     jest
       .spyOn(IncidentSeverityService, "updateOneBy")
       .mockResolvedValue(0 as never);
+
+    // The queue is the hook's only side effect; never reach Redis for it.
+    addJobSpy = jest.spyOn(Queue, "addJob").mockResolvedValue({} as never);
 
     createSpy = jest
       .spyOn(UserNotificationRuleService, "create")
@@ -387,32 +463,41 @@ describe("GAP A - IncidentSeverityService defines no rule-backfilling create hoo
     } as CreateBy<IncidentSeverity>;
   }
 
-  function expectNoRuleCreation(): void {
+  function createdSeverity(): IncidentSeverity {
+    const created: IncidentSeverity = new IncidentSeverity();
+    created._id = SEV_C.toString();
+    created.projectId = PROJECT_ID;
+
+    return created;
+  }
+
+  function expectNoInlineRuleCreation(): void {
     expect(createSpy).not.toHaveBeenCalled();
     expect(addDefaultsForMethodSpy).not.toHaveBeenCalled();
     expect(addDefaultsForUserSpy).not.toHaveBeenCalled();
   }
 
   /*
-   * GAP A - Phase 1 adds the backfill; this assertion inverts. Once
-   * IncidentSeverityService gains an onCreateSuccess that mirrors each existing
-   * user's methods onto the new severity, "onCreateSuccess" joins this list.
+   * GAP A CLOSED - onCreateSuccess is the hook Phase 1 added, so it now appears
+   * in this list. The rest of the list is unchanged: the backfill hangs off the
+   * success hook, not off any of the before-hooks.
    */
-  test("the only create-side hook it overrides is onBeforeCreate", () => {
+  test("it overrides onCreateSuccess alongside its ordering hooks", () => {
     expect(ownHookNames(IncidentSeverityServiceClass.prototype)).toEqual([
       "onBeforeCreate",
       "onBeforeDelete",
       "onBeforeUpdate",
+      "onCreateSuccess",
       "onDeleteSuccess",
     ]);
   });
 
   /*
-   * GAP A - Phase 1 adds the backfill; this assertion inverts. Sharing
-   * DatabaseService's identity is the precise statement of "does nothing":
-   * the inherited placeholder returns the created item and stops.
+   * GAP A CLOSED - the inverse of the original assertion. Sharing
+   * DatabaseService's identity was the precise statement of "does nothing"; a
+   * distinct own property is the precise statement that it now does something.
    */
-  test("onCreateSuccess is still DatabaseService's do-nothing placeholder", () => {
+  test("onCreateSuccess is no longer DatabaseService's do-nothing placeholder", () => {
     const proto: Record<string, unknown> =
       IncidentSeverityServiceClass.prototype as unknown as Record<
         string,
@@ -421,13 +506,13 @@ describe("GAP A - IncidentSeverityService defines no rule-backfilling create hoo
     const base: Record<string, unknown> =
       DatabaseService.prototype as unknown as Record<string, unknown>;
 
-    expect(proto["onCreateSuccess"]).toBe(base["onCreateSuccess"]);
+    expect(proto["onCreateSuccess"]).not.toBe(base["onCreateSuccess"]);
     expect(
       Object.prototype.hasOwnProperty.call(
         IncidentSeverityServiceClass.prototype,
         "onCreateSuccess",
       ),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   test("it does not override onCreateError either, so there is no rule work on the failure path", () => {
@@ -440,16 +525,20 @@ describe("GAP A - IncidentSeverityService defines no rule-backfilling create hoo
   });
 
   /*
-   * GAP A - Phase 1 adds the backfill; this assertion inverts.
+   * GAP A CLOSED - the backfill hangs off onCreateSuccess, so the before-hook
+   * on its own still queues nothing and writes nothing. A severity that fails
+   * validation must not leave a backfill job behind for a row that was never
+   * committed.
    */
-  test("driving onBeforeCreate for a brand new severity creates no notification rules", async () => {
+  test("driving onBeforeCreate alone neither writes rules nor queues the backfill", async () => {
     await callHook(
       IncidentSeverityService,
       "onBeforeCreate",
       createBySeverity(),
     );
 
-    expectNoRuleCreation();
+    expectNoInlineRuleCreation();
+    expect(addJobSpy).not.toHaveBeenCalled();
   });
 
   test("onBeforeCreate only rearranges sibling order - that is its whole job", async () => {
@@ -465,15 +554,15 @@ describe("GAP A - IncidentSeverityService defines no rule-backfilling create hoo
     );
 
     expect(findBySpy).toHaveBeenCalledTimes(1);
-    expectNoRuleCreation();
+    expectNoInlineRuleCreation();
   });
 
   /*
-   * GAP A - Phase 1 adds the backfill; this assertion inverts. Driving the full
-   * create sequence (before-hook then success-hook) is the behavioural proof:
-   * the severity row is committed and not one rule follows it.
+   * GAP A CLOSED - driving the full create sequence is the behavioural proof.
+   * The severity row is committed and a backfill job follows it, on the Worker
+   * queue, named for the cron that owns it.
    */
-  test("the full create sequence (onBeforeCreate then onCreateSuccess) creates no rules", async () => {
+  test("the full create sequence queues the backfill job", async () => {
     const createBy: CreateBy<IncidentSeverity> = createBySeverity();
 
     const onCreate: OnCreate<IncidentSeverity> = (await callHook(
@@ -482,9 +571,7 @@ describe("GAP A - IncidentSeverityService defines no rule-backfilling create hoo
       createBy,
     )) as OnCreate<IncidentSeverity>;
 
-    const created: IncidentSeverity = new IncidentSeverity();
-    created._id = SEV_C.toString();
-    created.projectId = PROJECT_ID;
+    const created: IncidentSeverity = createdSeverity();
 
     const returned: unknown = await callHook(
       IncidentSeverityService,
@@ -493,9 +580,36 @@ describe("GAP A - IncidentSeverityService defines no rule-backfilling create hoo
       created,
     );
 
-    // The placeholder hands the created item straight back, untouched.
+    // The hook still hands the created item straight back.
     expect(returned).toBe(created);
-    expectNoRuleCreation();
+
+    expect(addJobSpy).toHaveBeenCalledTimes(1);
+    const call: Array<unknown> = addJobSpy.mock.calls[0]!;
+    expect(call[0]).toBe(QueueName.Worker);
+    expect(call[2]).toBe(BACKFILL_JOB_NAME);
+
+    // Still nothing inline - the fan-out is the worker's job, not the request's.
+    expectNoInlineRuleCreation();
+  });
+
+  /*
+   * GAP A CLOSED - a queue that is unreachable must not take the severity down
+   * with it. The scheduled sweep inside the backfill job re-scans recently
+   * created severities, so a dropped enqueue costs latency, not coverage.
+   */
+  test("an enqueue failure is swallowed and the created item is still returned", async () => {
+    addJobSpy.mockRejectedValue(new Error("redis is down") as never);
+
+    const created: IncidentSeverity = createdSeverity();
+
+    const returned: unknown = await callHook(
+      IncidentSeverityService,
+      "onCreateSuccess",
+      { createBy: createBySeverity(), carryForward: null },
+      created,
+    );
+
+    expect(returned).toBe(created);
   });
 
   test("a severity with no order is rejected, and still nothing touches rules", async () => {
@@ -506,7 +620,7 @@ describe("GAP A - IncidentSeverityService defines no rule-backfilling create hoo
       callHook(IncidentSeverityService, "onBeforeCreate", createBy),
     ).rejects.toBeInstanceOf(BadDataException);
 
-    expectNoRuleCreation();
+    expectNoInlineRuleCreation();
   });
 
   test("a severity with no projectId is rejected, and still nothing touches rules", async () => {
@@ -517,15 +631,16 @@ describe("GAP A - IncidentSeverityService defines no rule-backfilling create hoo
       callHook(IncidentSeverityService, "onBeforeCreate", createBy),
     ).rejects.toBeInstanceOf(BadDataException);
 
-    expectNoRuleCreation();
+    expectNoInlineRuleCreation();
   });
 
   /*
-   * GAP A - Phase 1 adds the backfill; this assertion inverts. This is the
-   * user-visible consequence stated as a test: however many people are already
-   * in the project, creating a severity considers none of them.
+   * GAP A CLOSED - the user-visible consequence, inverted. However many people
+   * are already in the project, creating a severity used to consider none of
+   * them. It still enumerates none of them HERE, because it hands the whole
+   * question to a job that carries the project and severity that changed.
    */
-  test("three existing project users are all left uncovered by the new severity", async () => {
+  test("the queued job names the project and severity whose responders need covering", async () => {
     const createBy: CreateBy<IncidentSeverity> = createBySeverity();
 
     const onCreate: OnCreate<IncidentSeverity> = (await callHook(
@@ -534,37 +649,39 @@ describe("GAP A - IncidentSeverityService defines no rule-backfilling create hoo
       createBy,
     )) as OnCreate<IncidentSeverity>;
 
-    const created: IncidentSeverity = new IncidentSeverity();
-    created._id = SEV_C.toString();
-    created.projectId = PROJECT_ID;
-
     await callHook(
       IncidentSeverityService,
       "onCreateSuccess",
       onCreate,
-      created,
+      createdSeverity(),
     );
 
-    /*
-     * Nothing enumerated the project's users at all - no TeamMember read, no
-     * per-user method lookup, no rule write. The count of users is irrelevant
-     * precisely because the code never asks.
-     */
+    expect(addJobSpy).toHaveBeenCalledTimes(1);
+    const payload: Record<string, unknown> = addJobSpy.mock
+      .calls[0]![3] as Record<string, unknown>;
+
+    expect(payload["projectId"]).toBe(PROJECT_ID.toString());
+    expect(payload["incidentSeverityId"]).toBe(SEV_C.toString());
+
+    // The request itself still writes no rules and reads no users.
     expect(addDefaultsForMethodSpy).toHaveBeenCalledTimes(0);
     expect(createSpy).toHaveBeenCalledTimes(0);
   });
 });
 
-describe("GAP A - AlertSeverityService defines no rule-backfilling create hook", () => {
+describe("GAP A CLOSED - AlertSeverityService queues the rule backfill on create", () => {
   let createSpy: jest.SpyInstance;
   let addDefaultsForMethodSpy: jest.SpyInstance;
   let addDefaultsForUserSpy: jest.SpyInstance;
+  let addJobSpy: jest.SpyInstance;
 
   beforeEach(() => {
     jest.spyOn(AlertSeverityService, "findBy").mockResolvedValue([] as never);
     jest
       .spyOn(AlertSeverityService, "updateOneBy")
       .mockResolvedValue(0 as never);
+
+    addJobSpy = jest.spyOn(Queue, "addJob").mockResolvedValue({} as never);
 
     createSpy = jest
       .spyOn(UserNotificationRuleService, "create")
@@ -592,46 +709,48 @@ describe("GAP A - AlertSeverityService defines no rule-backfilling create hook",
     } as CreateBy<AlertSeverity>;
   }
 
-  function expectNoRuleCreation(): void {
+  function expectNoInlineRuleCreation(): void {
     expect(createSpy).not.toHaveBeenCalled();
     expect(addDefaultsForMethodSpy).not.toHaveBeenCalled();
     expect(addDefaultsForUserSpy).not.toHaveBeenCalled();
   }
 
   /*
-   * GAP A - Phase 1 adds the backfill; this assertion inverts.
+   * GAP A CLOSED - the alert half moves in lockstep with the incident half.
    */
-  test("the only create-side hook it overrides is onBeforeCreate", () => {
+  test("it overrides onCreateSuccess alongside its ordering hooks", () => {
     expect(ownHookNames(AlertSeverityServiceClass.prototype)).toEqual([
       "onBeforeCreate",
       "onBeforeDelete",
       "onBeforeUpdate",
+      "onCreateSuccess",
       "onDeleteSuccess",
     ]);
   });
 
   /*
-   * GAP A - Phase 1 adds the backfill; this assertion inverts.
+   * GAP A CLOSED - the inverse of the original assertion.
    */
-  test("onCreateSuccess is still DatabaseService's do-nothing placeholder", () => {
+  test("onCreateSuccess is no longer DatabaseService's do-nothing placeholder", () => {
     const proto: Record<string, unknown> =
       AlertSeverityServiceClass.prototype as unknown as Record<string, unknown>;
     const base: Record<string, unknown> =
       DatabaseService.prototype as unknown as Record<string, unknown>;
 
-    expect(proto["onCreateSuccess"]).toBe(base["onCreateSuccess"]);
+    expect(proto["onCreateSuccess"]).not.toBe(base["onCreateSuccess"]);
     expect(
       Object.prototype.hasOwnProperty.call(
         AlertSeverityServiceClass.prototype,
         "onCreateSuccess",
       ),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   /*
-   * GAP A - Phase 1 adds the backfill; this assertion inverts.
+   * GAP A CLOSED - the alert payload carries alertSeverityId, so the job can
+   * tell which of the two severity tables changed without guessing.
    */
-  test("the full create sequence (onBeforeCreate then onCreateSuccess) creates no rules", async () => {
+  test("the full create sequence queues the backfill job for the alert severity", async () => {
     const createBy: CreateBy<AlertSeverity> = createBySeverity();
 
     const onCreate: OnCreate<AlertSeverity> = (await callHook(
@@ -652,7 +771,17 @@ describe("GAP A - AlertSeverityService defines no rule-backfilling create hook",
     );
 
     expect(returned).toBe(created);
-    expectNoRuleCreation();
+
+    expect(addJobSpy).toHaveBeenCalledTimes(1);
+    const call: Array<unknown> = addJobSpy.mock.calls[0]!;
+    expect(call[0]).toBe(QueueName.Worker);
+    expect(call[2]).toBe(BACKFILL_JOB_NAME);
+
+    const payload: Record<string, unknown> = call[3] as Record<string, unknown>;
+    expect(payload["projectId"]).toBe(PROJECT_ID.toString());
+    expect(payload["alertSeverityId"]).toBe(ALERT_SEV_C.toString());
+
+    expectNoInlineRuleCreation();
   });
 
   test("a severity with no order is rejected, and still nothing touches rules", async () => {
@@ -663,7 +792,7 @@ describe("GAP A - AlertSeverityService defines no rule-backfilling create hook",
       callHook(AlertSeverityService, "onBeforeCreate", createBy),
     ).rejects.toBeInstanceOf(BadDataException);
 
-    expectNoRuleCreation();
+    expectNoInlineRuleCreation();
   });
 
   test("a severity with no projectId is rejected, and still nothing touches rules", async () => {
@@ -674,17 +803,21 @@ describe("GAP A - AlertSeverityService defines no rule-backfilling create hook",
       callHook(AlertSeverityService, "onBeforeCreate", createBy),
     ).rejects.toBeInstanceOf(BadDataException);
 
-    expectNoRuleCreation();
+    expectNoInlineRuleCreation();
   });
 });
 
 /*
  * ========================================================================= *
  * (B) Rule creation is a snapshot of the severities that exist at call time.
+ *
+ * Unchanged by Phase 1, and deliberately so: the fix was not to make this
+ * method clairvoyant, it was to arrange for something to call it again. Every
+ * assertion here still describes today's behaviour exactly.
  * =========================================================================
  */
 
-describe("GAP A - default rules are a snapshot of the severities that exist at call time", () => {
+describe("GAP A CLOSED - default rules are still a snapshot of the severities that exist at call time", () => {
   beforeEach(() => {
     stubUserNotificationRuleStore();
   });
@@ -745,17 +878,33 @@ describe("GAP A - default rules are a snapshot of the severities that exist at c
     expect(alertRule.notifyAfterMinutes).toBe(0);
   });
 
-  test("the four non-severity rule types are created regardless of how many severities exist", async () => {
+  test("only the two go-on/off-call rule types survive a project with no severities", async () => {
+    /*
+     * GAP G CLOSED - the two EPISODE rule types are severity-scoped now.
+     *
+     * They used to be created by createSingleRule, which sets ruleType and
+     * notifyAfterMinutes and no severity at all. That produced exactly one row
+     * per rule type carrying a NULL severity - and UserOnCallLogService counts
+     * episode rules filtered by a concrete severity id, so NULL never matched
+     * and every one of those "defaults" was dead. Worse, both episode pages
+     * scope their table by severity id, so the rows were invisible to the user
+     * who owned them: unmatchable AND unfixable.
+     *
+     * So with zero severities in the project there is now nothing to scope an
+     * episode rule TO, and none are written. Only WHEN_USER_GOES_ON_CALL and
+     * WHEN_USER_GOES_OFF_CALL remain genuinely severity-less, because "I went
+     * on call" is not an event that has a severity.
+     */
     stubSeverities([], []);
 
     await runDefaults();
 
     expect(
       rulesOfType(NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
     expect(
       rulesOfType(NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
     expect(
       rulesOfType(NotificationRuleType.WHEN_USER_GOES_ON_CALL),
     ).toHaveLength(1);
@@ -764,22 +913,33 @@ describe("GAP A - default rules are a snapshot of the severities that exist at c
     ).toHaveLength(1);
   });
 
-  test("a project with no severities yields only the four fixed rules - no severity coverage at all", async () => {
+  test("a project with no severities yields only the two go-on/off-call rules", async () => {
     stubSeverities([], []);
 
     await runDefaults();
 
-    expect(ruleStore).toHaveLength(4);
+    expect(ruleStore).toHaveLength(2);
     expect(incidentSeverityIdsCovered()).toEqual([]);
     expect(alertSeverityIdsCovered()).toEqual([]);
   });
 
-  test("two incident and two alert severities yield 2 + 2 + 4 rows", async () => {
+  test("two incident and two alert severities yield 2 + 2 + 2 + 2 + 2 rows", async () => {
+    /*
+     * Per severity: one incident rule, one alert rule, one incident-episode
+     * rule and one alert-episode rule - eight in total across two of each
+     * severity - plus the two severity-less go-on/off-call rules.
+     */
     stubSeverities([SEV_A, SEV_B], [ALERT_SEV_A, ALERT_SEV_B]);
 
     await runDefaults();
 
-    expect(ruleStore).toHaveLength(8);
+    expect(ruleStore).toHaveLength(10);
+    expect(
+      rulesOfType(NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE),
+    ).toHaveLength(2);
+    expect(
+      rulesOfType(NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE),
+    ).toHaveLength(2);
   });
 
   test("the severity lookup is project-scoped, root-privileged and capped at LIMIT_PER_PROJECT", async () => {
@@ -821,12 +981,14 @@ describe("GAP A - default rules are a snapshot of the severities that exist at c
   });
 
   /*
-   * GAP A - Phase 1 adds the backfill; this assertion inverts.
+   * GAP A CLOSED - this behaviour is unchanged, and it is exactly WHY the
+   * backfill has to exist.
    *
-   * The heart of it. Call one: severities [A, B]. A third severity C is then
-   * created in the project. Call two: severities [A, B, C] - and only NOW does
-   * the C rule appear. Nothing in the product makes call two happen when a
-   * severity is created, so in production the store stays frozen at [A, B].
+   * Call one: severities [A, B]. A third severity C is then created in the
+   * project. Call two: severities [A, B, C] - and only NOW does the C rule
+   * appear. This method is still a snapshot of the moment it runs; what Phase 1
+   * added is something that makes call two happen, namely the backfill job that
+   * IncidentSeverityService.onCreateSuccess now enqueues.
    */
   test("a third severity only gets a rule because the method was called a SECOND time", async () => {
     stubSeverities([SEV_A, SEV_B], []);
@@ -839,10 +1001,9 @@ describe("GAP A - default rules are a snapshot of the severities that exist at c
     ]);
 
     /*
-     * "Sev4" is created here. In production this is a plain
-     * IncidentSeverityService.create() and nothing else happens - see the
-     * section (A) tests above. The only reason C appears below is that this
-     * test explicitly re-runs the defaults, which the product never does.
+     * "Sev4" is created here. In production creating it enqueues the backfill
+     * job (see section (A)); this test stands in for that second pass by
+     * re-running the defaults directly.
      */
     stubSeverities([SEV_A, SEV_B, SEV_C], []);
     await runDefaults();
@@ -862,16 +1023,24 @@ describe("GAP A - default rules are a snapshot of the severities that exist at c
     stubSeverities([SEV_A, SEV_B, SEV_C], []);
     await runDefaults();
 
-    expect(ruleStore.length - afterFirstRun).toBe(1);
+    /*
+     * GAP G CLOSED - two rows, not one. A new incident severity now earns the
+     * responder an ON_CALL_EXECUTED_INCIDENT rule AND an
+     * ON_CALL_EXECUTED_INCIDENT_EPISODE rule, because episode rules are
+     * severity-scoped now instead of a single severity-less row that could
+     * never match.
+     */
+    expect(ruleStore.length - afterFirstRun).toBe(2);
     expect(
       rulesOfType(NotificationRuleType.ON_CALL_EXECUTED_INCIDENT),
     ).toHaveLength(3);
   });
 
   /*
-   * GAP A - Phase 1 adds the backfill; this assertion inverts.
+   * GAP A CLOSED - the alert half of the same snapshot property. Unchanged, and
+   * likewise the reason AlertSeverityService now enqueues the backfill too.
    */
-  test("a late alert severity is missed the same way", async () => {
+  test("a late alert severity is missed by this method the same way", async () => {
     stubSeverities([], [ALERT_SEV_A, ALERT_SEV_B]);
     await runDefaults();
 
@@ -880,7 +1049,7 @@ describe("GAP A - default rules are a snapshot of the severities that exist at c
       ALERT_SEV_B.toString(),
     ]);
 
-    // Severity C is created in the project. No rule work is triggered by that.
+    // Severity C is created in the project. This method alone does no rule work.
     stubSeverities([], [ALERT_SEV_A, ALERT_SEV_B]);
 
     expect(alertSeverityIdsCovered()).not.toContain(ALERT_SEV_C.toString());
@@ -918,17 +1087,19 @@ describe("GAP A - default rules are a snapshot of the severities that exist at c
  * (C) The coverage hole, read through the query UserOnCallLogService really
  *     issues: { userId, projectId, ruleType, incidentSeverityId }.
  *
- *     This section is the documented expectation Phase 1 has to satisfy. Today
- *     a C-severity incident finds zero rules and the page is dropped into an
- *     execution log; after the backfill (or the verified-method fallback) the
- *     same scenario must page somebody.
+ *     The hole itself is unchanged - a user with rules for [A, B] still has no
+ *     row for C until the backfill job runs - but the consequence is not. Phase
+ *     1 replaced the dead-end with the verified-method fallback, so the very
+ *     same C-severity incident now reaches the responder and the log records
+ *     which channel carried it.
  * =========================================================================
  */
 
-describe("GAP A - a severity added after the fact pages nobody", () => {
+describe("GAP A CLOSED - a severity added after the fact still pages, via the fallback", () => {
   let logUpdateSpy: jest.SpyInstance;
   let timelineUpdateSpy: jest.SpyInstance;
   let executeRuleSpy: jest.SpyInstance;
+  let fallbackSpy: jest.SpyInstance;
 
   beforeEach(async () => {
     stubUserNotificationRuleStore();
@@ -946,6 +1117,21 @@ describe("GAP A - a severity added after the fact pages nobody", () => {
     executeRuleSpy = jest
       .spyOn(UserNotificationRuleService, "executeNotificationRuleItem")
       .mockResolvedValue(undefined as never);
+
+    /*
+     * The three collaborators the no-rule path reaches for now. The project read
+     * decides whether the fallback is allowed at all (null => allowed, the
+     * default), the fallback itself reports which channels it dispatched on, and
+     * the user read only ever feeds a name into a failure message.
+     */
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(null as never);
+    jest.spyOn(UserService, "findOneById").mockResolvedValue(null as never);
+    fallbackSpy = jest
+      .spyOn(UserNotificationRuleService, "executeFallbackNotification")
+      .mockResolvedValue({
+        notified: true,
+        channelsUsed: ["Email"],
+      } as never);
   });
 
   function stubIncident(incidentSeverityId: ObjectID): void {
@@ -1053,9 +1239,9 @@ describe("GAP A - a severity added after the fact pages nobody", () => {
   });
 
   /*
-   * GAP A - Phase 1 adds the backfill; this assertion inverts. The whole point
-   * of the gap in one line: rules exist for [A, B], the incident is C, the
-   * count is zero.
+   * GAP A CLOSED - the count is still zero, and that is correct: the backfill
+   * job has not run in this fixture. What changed is what a zero count now
+   * causes, which the tests below assert. This one stays as the premise.
    */
   test("a user with rules for [A, B] has ZERO rules matching a C-severity incident", async () => {
     const count: PositiveNumber = await UserNotificationRuleService.countBy({
@@ -1092,22 +1278,35 @@ describe("GAP A - a severity added after the fact pages nobody", () => {
   });
 
   /*
-   * GAP A - Phase 1 adds the backfill; this assertion inverts.
+   * GAP A CLOSED - the C-severity page is no longer dropped. No RULE is
+   * executed, because there is still no rule to execute; the fallback is what
+   * carries it, and it is handed the same severity name and rule type the count
+   * came up empty for.
    */
-  test("the C-severity page is dropped: nobody is notified", async () => {
+  test("the C-severity page reaches the responder through the fallback", async () => {
     stubIncident(SEV_C);
 
     await driveOnCreateSuccess(incidentOnCallLog());
 
     expect(executeRuleSpy).not.toHaveBeenCalled();
+    expect(fallbackSpy).toHaveBeenCalledTimes(1);
+
+    const options: Record<string, unknown> = fallbackSpy.mock
+      .calls[0]![0] as Record<string, unknown>;
+
+    expect(toIdString(options["userId"])).toBe(USER_ID.toString());
+    expect(toIdString(options["projectId"])).toBe(PROJECT_ID.toString());
+    expect(options["ruleType"]).toBe(
+      NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+    );
   });
 
   /*
-   * GAP A - Phase 1 adds the backfill; this assertion inverts. Today the only
-   * trace is an Error row in an execution log; Phase 1 turns this into a
-   * fallback delivery (status Success) or an explicit, surfaced Error.
+   * GAP A CLOSED - the inversion that matters most. The log used to end at
+   * Error with a message nobody reads; it now ends at Executing with a message
+   * that says a human was reached and on what.
    */
-  test("the drop is recorded as an execution-log Error, not as a notification", async () => {
+  test("the outcome is a fallback delivery, not a terminal Error", async () => {
     stubIncident(SEV_C);
 
     await driveOnCreateSuccess(incidentOnCallLog());
@@ -1117,26 +1316,38 @@ describe("GAP A - a severity added after the fact pages nobody", () => {
       statusMessage?: string | undefined;
     }> = statusUpdates();
 
-    // First update marks it Started, second is the dead-end.
+    // First update marks it Started, second records the fallback delivery.
     expect(updates[0]!.status).toBe(UserNotificationExecutionStatus.Started);
-    expect(updates[1]!.status).toBe(UserNotificationExecutionStatus.Error);
-    expect(updates[1]!.statusMessage).toBe(
-      "No notification rules found for this user. User should add the rules in User Settings > On-Call Rules.",
-    );
-    // It never reaches the Executing state, so no worker picks it up.
+    expect(updates[1]!.status).toBe(UserNotificationExecutionStatus.Executing);
+    expect(updates[1]!.statusMessage).toContain("notified via fallback");
+    expect(updates[1]!.statusMessage).toContain("Email");
+
+    // The dead-end's sentence is gone from this path entirely.
+    expect(
+      updates.some(
+        (update: { statusMessage?: string | undefined }): boolean => {
+          return (
+            update.statusMessage ===
+            "No notification rules found for this user. User should add the rules in User Settings > On-Call Rules."
+          );
+        },
+      ),
+    ).toBe(false);
     expect(
       updates.some(
         (update: { status: UserNotificationExecutionStatus }): boolean => {
-          return update.status === UserNotificationExecutionStatus.Executing;
+          return update.status === UserNotificationExecutionStatus.Error;
         },
       ),
     ).toBe(false);
   });
 
   /*
-   * GAP A - Phase 1 adds the backfill; this assertion inverts.
+   * GAP A CLOSED - the timeline now reads as a delivery rather than a failure,
+   * and it names the channel. An operator reading the escalation can tell that
+   * somebody was reached and how.
    */
-  test("the on-call timeline shows Error with the same unread message", async () => {
+  test("the on-call timeline shows a notification sent through the fallback", async () => {
     stubIncident(SEV_C);
 
     await driveOnCreateSuccess(incidentOnCallLog());
@@ -1158,9 +1369,10 @@ describe("GAP A - a severity added after the fact pages nobody", () => {
 
     expect(timelineArg.id.toString()).toBe(TIMELINE_ID.toString());
     expect(timelineArg.data.status).toBe(
-      OnCallDutyExecutionLogTimelineStatus.Error,
+      OnCallDutyExecutionLogTimelineStatus.NotificationSent,
     );
-    expect(timelineArg.data.statusMessage).toContain(
+    expect(timelineArg.data.statusMessage).toContain("notified via fallback");
+    expect(timelineArg.data.statusMessage).not.toContain(
       "No notification rules found for this user",
     );
   });
@@ -1208,20 +1420,56 @@ describe("GAP A - a severity added after the fact pages nobody", () => {
   });
 
   /*
-   * GAP A - Phase 1 adds the backfill; this assertion inverts.
+   * GAP A CLOSED - alerts take the same route as incidents. The rule type
+   * handed to the fallback is the ALERT one, so whatever the fallback decides is
+   * decided against the right cell.
    */
-  test("an ALERT on a severity added after the fact is dropped the same way", async () => {
+  test("an ALERT on a severity added after the fact is rescued the same way", async () => {
     stubAlert(ALERT_SEV_C);
 
     await driveOnCreateSuccess(alertOnCallLog());
 
     expect(executeRuleSpy).not.toHaveBeenCalled();
+    expect(fallbackSpy).toHaveBeenCalledTimes(1);
+    expect(
+      (fallbackSpy.mock.calls[0]![0] as Record<string, unknown>)["ruleType"],
+    ).toBe(NotificationRuleType.ON_CALL_EXECUTED_ALERT);
 
     const updates: Array<{
       status: UserNotificationExecutionStatus;
       statusMessage?: string | undefined;
     }> = statusUpdates();
+    expect(updates[1]!.status).toBe(UserNotificationExecutionStatus.Executing);
+    expect(updates[1]!.statusMessage).toContain("notified via fallback");
+  });
+
+  /*
+   * GAP A CLOSED - and the other side of it. A responder with no verified
+   * method at all cannot be rescued by anything, and that is the one case that
+   * must still end as a loud, terminal Error naming what to do about it.
+   */
+  test("a responder with no verified method still ends as an explicit Error", async () => {
+    stubIncident(SEV_C);
+    fallbackSpy.mockResolvedValue({
+      notified: false,
+      outcome: FallbackNotificationOutcome.NoUsableNotificationMethod,
+      channelsUsed: [],
+    } as never);
+
+    await driveOnCreateSuccess(incidentOnCallLog());
+
+    const updates: Array<{
+      status: UserNotificationExecutionStatus;
+      statusMessage?: string | undefined;
+    }> = statusUpdates();
+
     expect(updates[1]!.status).toBe(UserNotificationExecutionStatus.Error);
+    expect(updates[1]!.statusMessage).toContain(
+      "has no verified notification method",
+    );
+    expect(updates[1]!.statusMessage).toContain(
+      "User Settings > Notification Methods",
+    );
   });
 
   test("an alert on a severity that existed at join time still pages", async () => {
@@ -1233,15 +1481,12 @@ describe("GAP A - a severity added after the fact pages nobody", () => {
   });
 
   /*
-   * The documented expectation for Phase 1, written as an executable target.
-   *
-   * The ONLY thing standing between "dropped" and "paged" is the presence of a
-   * row for (userId, projectId, ON_CALL_EXECUTED_INCIDENT, SEV_C). Backfilling
-   * that row on severity creation - exactly what section (A) proves does not
-   * happen today - is sufficient to close the hole with no change to
-   * UserOnCallLogService at all.
+   * The two Phase 1 halves are independent, and this is the proof: with the row
+   * present the responder is paged through their OWN configured rule and the
+   * fallback is never consulted at all. The backfill is what restores the
+   * responder's intent; the fallback is only the safety net under it.
    */
-  test("backfilling the missing row is sufficient: the very same C-severity incident then pages", async () => {
+  test("backfilling the missing row is sufficient: the very same C-severity incident pages through the real rule", async () => {
     stubIncident(SEV_C);
 
     // Re-running the defaults against a project that now has C is the backfill.
@@ -1251,6 +1496,7 @@ describe("GAP A - a severity added after the fact pages nobody", () => {
     await driveOnCreateSuccess(incidentOnCallLog());
 
     expect(executeRuleSpy).toHaveBeenCalledTimes(1);
+    expect(fallbackSpy).not.toHaveBeenCalled();
 
     const updates: Array<{ status: UserNotificationExecutionStatus }> =
       statusUpdates();
