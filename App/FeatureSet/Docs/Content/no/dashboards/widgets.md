@@ -101,6 +101,24 @@ Alle som kan redigere dashbordet bestemmer hva denne widgeten kjører, og alle s
 
 ## Logger og sporinger
 
+### Loggdiagram
+
+Et tidsseriediagram over loggvolumet i tidsrommet til dashbordet. Hver serie står for en alvorlighetsgrad, slik at feiltopper skiller seg ut fra normal trafikk.
+
+**Innstillinger**:
+
+- Visualisering som stolpe-, linje- eller arealdiagram. Stolpe- og arealdiagrammer stabler alvorlighetsseriene.
+- Valgfrie filtre på alvorlighetsgrad.
+- Valgfritt tekstsøk i loggteksten.
+- Eksakte OpenTelemetry-attributtfiltre via søkbare nøkkel/verdi-rader. Attributtnavn og kjente verdier foreslås mens du skriver, og egne verdier støttes fortsatt.
+- En valgfri tittel.
+
+Tidsrom- og oppdateringskontrollene til dashbordet kjører spørringen for diagrammet på nytt automatisk. Telemetriattributt-variabler på dashbordet gjelder også for det, inkludert flervalgsvariabler.
+
+Loggdiagram krever for øyeblikket et dashbord med innlogging. Offentlige dashbord viser widgeten som utilgjengelig i stedet for å eksponere prosjektets loggaggregater anonymt.
+
+Bruk det når: du vil oppdage endringer i loggvolumet eller sammenligne feil, advarsler og informasjonslogger uten å forlate dashbordet.
+
 ### Loggstrøm
 
 En live tail av loggelinjer som matcher et filter.
@@ -143,6 +161,21 @@ En live liste over monitorer og deres nåværende status.
 
 Bruk det når: du vil ha en flåtevisning — "er alle nettstedene oppe?"
 
+## Tjenestenivåmål
+
+### SLO
+
+Ett tjenestenivåmål, tegnet enten som ett enkelt tall eller som en linje over tid.
+
+**Innstillinger**: hvilket SLO, hvilket av de tre tallene (SLI, gjenstående feilbudsjett eller burn rate), visning som Flis eller Diagram, og en valgfri tittel.
+
+- **Flis** viser det gjeldende tallet, og en andre linje der det finnes en — målet under SLI-en, minuttene som er igjen under feilbudsjettet. En statusmarkør farger hele widgeten.
+- **Diagram** tegner samme tall over tidsrommet til dashbordet, med målet markert som en stiplet linje på SLI-serien. Historikken skrives med noen minutters mellomrom av evalueringsjobben, så et helt nytt SLO tegnes som tomt til det er evaluert for første gang.
+
+Bruk det når: dashbordet svarer på "leverer vi det vi har lovet?" heller enn "hva skjer akkurat nå?"
+
+SLO-widgeten fungerer på [offentlige dashbord](/docs/dashboards/sharing). Det som publiseres, er hovedtallene til SLO-en — navn, mål, gjeldende SLI, gjenstående feilbudsjett, burn rate og status — uansett hvilket av dem widgeten faktisk tegner. Definisjonen holdes privat: monitorene den følger, etikettene, beskrivelsen, spørringen og evalueringsplanen sendes aldri til en offentlig besøkende. En Flis-widget publiserer bare de gjeldende tallene; en Diagram-widget publiserer i tillegg historikken til den ene serien den tegner, og ingenting mer.
+
 ## Kubernetes ressurslister
 
 For prosjekter med en [Kubernetes Agent](/docs/monitor/kubernetes-agent) installert. Hver tar valgfrie filtre for klynge, namespace og etiketter.
@@ -176,15 +209,32 @@ Hoster overvåket av OneUptimes server-monitor, med status, CPU, minne og oppeti
 
 **Innstillinger**: filtre etter etiketter eller nåværende tilstand.
 
+## Nettverk
+
+### Nettverkskart
+
+Nettverksstedene dine tegnet på verdenskartet, hvert festet til sin egen breddegrad og lengdegrad og farget etter monitorstatusen som er rullet opp på det. Steder som ligger tett, deler en markør med antallet skrevet inni; en markør som står for nøyaktig ett sted, åpner det stedet når du klikker på den.
+
+Kartet rammer seg selv inn etter stedene det tegnet — en portefølje innenfor ett land fyller rammen med det landet, en spredt over kontinenter åpner på verden. Det finnes ingen zoom- eller panoreringskontroller: en dashbordflis er et bilde, og Nettverkskart-siden under Nettverk er der du går gjennom hierarkiet.
+
+Over kartet skriver den hvor mange steder som er nede, for en to piksler stor rød prikk blant to hundre grønne er ikke noe noen leser på dashbordavstand. Under det sier en dekningslinje hva kartet _ikke_ viser — steder uten koordinater, og om radgrensen ble nådd.
+
+**Innstillinger**: tittel, kart- eller listevisning, maksimalt antall tegnede steder, om stedsnavn skal skrives, og filtre etter stedstype og status. Stedsnavn forsvinner automatisk når kartet blir for travelt for at de kan leses; verktøytipset navngir fortsatt hver markør.
+
+Et sted vises bare hvis det har koordinater. Legg til breddegrad og lengdegrad på stedet (eller importer dem fra CSV) for å feste det.
+
 ## Hvilken widget bør jeg bruke?
 
 Noen raske regler:
 
 - **Trend over tid?** Diagram.
+- **Loggvolum eller feiltopper over tid?** Loggdiagram.
 - **Ett tall som betyr noe akkurat nå?** Verdi (eller Måler hvis den har en tydelig min/maks).
 - **Nedbrytning på tvers av mange ting?** Tabell.
 - **Hva som skjer i systemet akkurat nå?** Loggstrøm, Sporingsliste, Hendelsesliste.
 - **Tilstanden til en spesifikk gruppe ressurser?** Den tilsvarende listewidgeten.
+- **Leverer vi den påliteligheten vi har lovet?** SLO.
+- **Hvor i verden nettverket ditt er, og hva som er rødt?** Nettverkskart.
 - **En overskrift, et avsnitt eller en lenke?** Tekst.
 - **Noe ingen av widgetene over dekker?** HTML — men bare etter at du har sjekket at en innebygd widget virkelig ikke klarer det.
 

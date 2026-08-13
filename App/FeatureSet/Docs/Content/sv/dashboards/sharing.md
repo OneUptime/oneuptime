@@ -20,6 +20,8 @@ En offentlig instrumentpanel:
 
 Behandla aktivering av en offentlig instrumentpanel som att publicera en webbsida. Varje widget på den blir världsläsbar. Titta på vad som finns på arbetsytan innan du slår på växeln.
 
+Varje widget publicerar bara det den ritar, och bara för de resurser den pekats mot. En SLO-widget publicerar till exempel nyckelsiffrorna för sitt SLO men aldrig dess definition — se [SLO](/docs/dashboards/widgets#slo). Externa **Data Source**-widgetar är undantaget: de utesluts helt från en offentlig instrumentpanel i stället för att ritas, eftersom deras konfiguration är själva frågan.
+
 ## Huvudlösenord
 
 För att sätta ett lösenord på en offentlig instrumentpanel:
