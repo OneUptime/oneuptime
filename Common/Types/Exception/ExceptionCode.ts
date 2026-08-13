@@ -17,6 +17,8 @@ enum ExceptionCode {
   TimeoutException = 408,
   TenantNotFoundException = 405,
   SsoAuthorizationException = 406,
+  TooManyRequestsException = 429,
+  ServiceUnavailableException = 503,
 }
 
 export default ExceptionCode;
