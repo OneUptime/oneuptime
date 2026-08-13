@@ -10,6 +10,9 @@ import DashboardVariable, {
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
+import PublicDashboardSloWidget, {
+  PublicDashboardSloWidgetConfig,
+} from "./PublicDashboardSloWidget";
 import {
   LogFilter,
   queryStringToFilter,
@@ -473,6 +476,24 @@ export default class PublicDashboardResourceListPolicy {
           severityText: true,
           body: true,
         };
+      /*
+       * Exactly the seven display fields the SLO widget renders. Everything
+       * else the model carries — description, slug, the bound monitors and
+       * labels, the metric query config, the evaluation schedule, createdBy —
+       * stays private: an SLO's headline numbers are publishable, its
+       * definition is not.
+       */
+      case DashboardComponentType.Slo:
+        return {
+          _id: true,
+          name: true,
+          targetPercentage: true,
+          currentSliPercentage: true,
+          errorBudgetRemainingPercentage: true,
+          errorBudgetRemainingSeconds: true,
+          currentBurnRate: true,
+          sloStatus: true,
+        };
       default:
         throw new BadDataException(
           "This dashboard widget cannot list public resources.",
@@ -676,6 +697,10 @@ export default class PublicDashboardResourceListPolicy {
           argumentsObject,
           requestedQuery,
         });
+      case DashboardComponentType.Slo:
+        return PublicDashboardResourceListPolicy.buildSloPolicy(
+          argumentsObject,
+        );
       default:
         throw new BadDataException(
           `Unsupported public dashboard resource widget: ${componentType}`,
@@ -1391,6 +1416,28 @@ export default class PublicDashboardResourceListPolicy {
         fallbackLimit: DEFAULT_TELEMETRY_LIMIT,
       }),
       interpolateAttributeMap: true,
+    };
+  }
+
+  /*
+   * The SLO widget renders exactly one SLO — the one its author picked — so
+   * the stored id IS the whole query. Pinning `_id` to it and capping the
+   * read at a single row means the route can return that SLO's headline
+   * numbers and nothing else: it can neither be walked across the project's
+   * other SLOs nor turned into a filter oracle, because it accepts no filter
+   * at all.
+   */
+  private static buildSloPolicy(
+    argumentsObject: Record<string, unknown>,
+  ): PolicyDraft {
+    const config: PublicDashboardSloWidgetConfig =
+      PublicDashboardSloWidget.readConfigFromArguments(argumentsObject);
+
+    return {
+      resourceType: "slo",
+      query: { _id: config.serviceLevelObjectiveId },
+      sort: { name: SortOrder.Ascending },
+      limit: 1,
     };
   }
 

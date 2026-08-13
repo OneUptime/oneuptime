@@ -7,12 +7,19 @@ import Search from "../../../../Types/BaseDatabase/Search";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import DashboardComponentType from "../../../../Types/Dashboard/DashboardComponentType";
+import {
+  SloWidgetDisplayType,
+  SloWidgetMetric,
+} from "../../../../Types/Dashboard/DashboardComponents/DashboardSloComponent";
 import { DashboardVariableType } from "../../../../Types/Dashboard/DashboardVariable";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
+import ObjectID from "../../../../Types/ObjectID";
 
 const RANGE_START: Date = new Date("2026-08-09T10:00:00.000Z");
 const RANGE_END: Date = new Date("2026-08-09T11:00:00.000Z");
+
+const SLO_ID: ObjectID = ObjectID.generate();
 
 function range(): InBetween<Date> {
   return new InBetween<Date>(RANGE_START, RANGE_END);
@@ -504,6 +511,25 @@ const MAPPING_CASES: Array<MappingCase> = [
     expectedSort: { time: SortOrder.Descending },
     expectedLimit: 50,
   },
+  {
+    name: "slo",
+    componentType: DashboardComponentType.Slo,
+    resourceType: "slo",
+    argumentsObject: {
+      serviceLevelObjectiveId: SLO_ID.toString(),
+      sloMetric: SloWidgetMetric.BurnRate,
+      displayType: SloWidgetDisplayType.Chart,
+      widgetTitle: "Checkout availability",
+      /*
+       * A widget can only ever name ONE SLO, so a stray maxRows must not be
+       * able to turn its read into a page of the project's other SLOs.
+       */
+      maxRows: 500,
+    },
+    expectedQuery: { _id: SLO_ID },
+    expectedSort: { name: SortOrder.Ascending },
+    expectedLimit: 1,
+  },
 ];
 
 describe("PublicDashboardResourceListPolicy", () => {
@@ -568,6 +594,151 @@ describe("PublicDashboardResourceListPolicy", () => {
       expect(node["phase"]).toBeUndefined();
       expect(deployment["isReady"]).toBe(true);
       expect(deployment["phase"]).toBeUndefined();
+    });
+  });
+
+  describe("SLO widgets", () => {
+    const sloArguments: JSONObject = {
+      serviceLevelObjectiveId: SLO_ID.toString(),
+    };
+
+    it("publishes only the seven numbers the widget renders", () => {
+      const select: JSONObject = build({
+        componentType: DashboardComponentType.Slo,
+        argumentsObject: sloArguments,
+      }).select;
+
+      expect(select).toEqual({
+        _id: true,
+        name: true,
+        targetPercentage: true,
+        currentSliPercentage: true,
+        errorBudgetRemainingPercentage: true,
+        errorBudgetRemainingSeconds: true,
+        currentBurnRate: true,
+        sloStatus: true,
+      });
+
+      /*
+       * The definition of an SLO is not publishable even though its headline
+       * numbers are: which monitors it watches, how it is evaluated, and who
+       * created it all stay behind the session.
+       */
+      for (const privateColumn of [
+        "description",
+        "slug",
+        "monitors",
+        "monitorLabels",
+        "autoAddedMonitors",
+        "downtimeMonitorStatuses",
+        "labels",
+        "metricQueryConfig",
+        "sliType",
+        "windowType",
+        "windowDays",
+        "timezone",
+        "projectId",
+        "createdByUserId",
+        "createdByUser",
+        "lastEvaluatedAt",
+        "nextEvaluationAt",
+      ]) {
+        expect(select[privateColumn]).toBeUndefined();
+      }
+    });
+
+    it("ignores the caller's query entirely", () => {
+      const result: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.Slo,
+        argumentsObject: sloArguments,
+        requestedQuery: {
+          _id: ObjectID.generate().toString(),
+          projectId: ObjectID.generate().toString(),
+          name: "probe",
+          isEnabled: true,
+        },
+      });
+
+      expect(result.query).toEqual({ _id: SLO_ID });
+      expect(result.limit).toBe(1);
+    });
+
+    it("fails closed when the widget names no SLO", () => {
+      for (const brokenArguments of [
+        {},
+        { serviceLevelObjectiveId: "" },
+        { serviceLevelObjectiveId: "   " },
+        { serviceLevelObjectiveId: null },
+      ] as Array<JSONObject>) {
+        expect(() => {
+          return build({
+            componentType: DashboardComponentType.Slo,
+            argumentsObject: brokenArguments,
+          });
+        }).toThrow(BadDataException);
+      }
+    });
+
+    it("fails closed when the stored SLO id is not a UUID", () => {
+      for (const brokenId of [
+        "not-a-uuid",
+        "1",
+        "' OR 1=1 --",
+        SLO_ID.toString().replace(/-/g, ""),
+      ]) {
+        expect(() => {
+          return build({
+            componentType: DashboardComponentType.Slo,
+            argumentsObject: { serviceLevelObjectiveId: brokenId },
+          });
+        }).toThrow(BadDataException);
+      }
+
+      expect(() => {
+        return build({
+          componentType: DashboardComponentType.Slo,
+          argumentsObject: {
+            serviceLevelObjectiveId: [SLO_ID.toString()],
+          } as unknown as JSONObject,
+        });
+      }).toThrow(BadDataException);
+    });
+
+    it("accepts every stored metric and display type the widget can persist", () => {
+      for (const sloMetric of Object.values(SloWidgetMetric)) {
+        for (const displayType of Object.values(SloWidgetDisplayType)) {
+          const result: PublicDashboardResourceListPolicyResult = build({
+            componentType: DashboardComponentType.Slo,
+            argumentsObject: {
+              ...sloArguments,
+              sloMetric,
+              displayType,
+            },
+          });
+
+          /*
+           * Neither argument changes the row that is read — they only pick
+           * which of its numbers the widget draws.
+           */
+          expect(result.query).toEqual({ _id: SLO_ID });
+        }
+      }
+    });
+
+    it("rejects a stored metric or display type it does not recognise", () => {
+      expect(() => {
+        return build({
+          componentType: DashboardComponentType.Slo,
+          argumentsObject: { ...sloArguments, sloMetric: "Everything" },
+        });
+      }).toThrow(BadDataException);
+
+      expect(() => {
+        return build({
+          componentType: DashboardComponentType.Slo,
+          argumentsObject: { ...sloArguments, displayType: "Raw" },
+        });
+      }).toThrow(BadDataException);
     });
   });
 

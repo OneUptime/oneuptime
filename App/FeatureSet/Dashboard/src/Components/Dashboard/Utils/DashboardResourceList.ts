@@ -33,6 +33,7 @@ export type DashboardResourceType =
   | "ceph-resource"
   | "docker-swarm-resource"
   | "network-site"
+  | "slo"
   | "span"
   | "log";
 
