@@ -118,6 +118,60 @@ export default class CreatePermission {
       );
     }
 
+    /*
+     * The ownership column has TWO spellings and both write the same database
+     * column.
+     *
+     * A user-scoped model declares a scalar (`userId`) and a ManyToOne relation
+     * (`user`) whose @JoinColumn names that same scalar. Both are separately
+     * decorated, both are separately creatable, and TypeORM resolves either into
+     * the one join column. Checking only the scalar would therefore close
+     * nothing: a payload sending `user: { _id: <someone else> }` and no `userId`
+     * reaches this method with the scalar absent, gets the caller's own id
+     * stamped onto it, and then hands the persistence layer two disagreeing
+     * instructions about who owns the row.
+     *
+     * So the relation is validated identically and then CLEARED. Clearing rather
+     * than merely rejecting a mismatch removes the ambiguity entirely — after
+     * this method the scalar is the single source of ownership, and no
+     * TypeORM-version-dependent precedence rule between the two spellings can
+     * change who the row belongs to.
+     *
+     * The relation's property name is the scalar minus its `Id` suffix, which
+     * holds for every user-scoped model in the schema. A model that does not
+     * follow it simply has no relation to clear, and the scalar check below
+     * still applies.
+     */
+    const relationColumn: string = userColumn.endsWith("Id")
+      ? userColumn.slice(0, -2)
+      : "";
+
+    const suppliedOwnerRelation: unknown = relationColumn
+      ? data.getColumnValue(relationColumn)
+      : undefined;
+
+    if (
+      suppliedOwnerRelation !== undefined &&
+      suppliedOwnerRelation !== null &&
+      typeof suppliedOwnerRelation === "object"
+    ) {
+      const relationOwnerId: unknown = (
+        suppliedOwnerRelation as Record<string, unknown>
+      )["_id"];
+
+      if (
+        relationOwnerId !== undefined &&
+        relationOwnerId !== null &&
+        String(relationOwnerId) !== (props.userId as ObjectID).toString()
+      ) {
+        throw new NotAuthorizedException(
+          `You do not have permission to create another user's ${model.singularName}.`,
+        );
+      }
+
+      data.setColumnValue(relationColumn, undefined);
+    }
+
     const suppliedOwner: unknown = data.getColumnValue(userColumn);
 
     if (suppliedOwner === undefined || suppliedOwner === null) {

@@ -250,6 +250,74 @@ describe("create-time ownership scoping — the hole", () => {
     }).toThrow(NotAuthorizedException);
   });
 
+  test("the RELATION spelling of the owner cannot smuggle a row past the scalar check", () => {
+    /*
+     * `user` and `userId` are two decorated columns that write the same join
+     * column. A payload that sets only the relation reaches the gate with the
+     * scalar absent, so a check that looked only at `userId` would stamp the
+     * caller's own id and then leave the persistence layer holding two
+     * disagreeing instructions about who owns the row.
+     */
+    const rule: UserNotificationRule = new UserNotificationRule();
+    rule.setColumnValue("projectId", PROJECT_ID);
+    rule.setColumnValue("user", { _id: OTHER_USER_ID.toString() });
+
+    expect(() => {
+      return CreatePermission.checkCreatePermissions(
+        UserNotificationRule,
+        rule,
+        memberProps(),
+      );
+    }).toThrow(NotAuthorizedException);
+  });
+
+  test("a matching relation is cleared, so only one spelling survives to the database", () => {
+    /*
+     * Even when the relation names the caller themselves it is removed rather
+     * than left alongside the scalar. Two spellings of one column is an
+     * ambiguity resolved by TypeORM precedence rules; one spelling is not.
+     */
+    const rule: UserNotificationRule = new UserNotificationRule();
+    rule.setColumnValue("projectId", PROJECT_ID);
+    rule.setColumnValue("user", { _id: CALLER_ID.toString() });
+
+    CreatePermission.checkCreatePermissions(
+      UserNotificationRule,
+      rule,
+      memberProps(),
+    );
+
+    /*
+     * Cleared reads back as null rather than undefined - setColumnValue
+     * normalises. What matters is that nothing is left carrying an id, so the
+     * assertion is on that rather than on the exact empty representation.
+     */
+    const clearedRelation: unknown = rule.getColumnValue("user");
+
+    expect(clearedRelation).toBeFalsy();
+    expect(
+      (clearedRelation as Record<string, unknown> | null)?.["_id"],
+    ).toBeUndefined();
+    expect(rule.getColumnValue("userId")?.toString()).toBe(
+      CALLER_ID.toString(),
+    );
+  });
+
+  test("both spellings disagreeing is refused rather than silently resolved", () => {
+    const rule: UserNotificationRule = new UserNotificationRule();
+    rule.setColumnValue("projectId", PROJECT_ID);
+    rule.setColumnValue("userId", CALLER_ID);
+    rule.setColumnValue("user", { _id: OTHER_USER_ID.toString() });
+
+    expect(() => {
+      return CreatePermission.checkCreatePermissions(
+        UserNotificationRule,
+        rule,
+        memberProps(),
+      );
+    }).toThrow(NotAuthorizedException);
+  });
+
   test("a string-valued ownership column is compared by value, not by identity", () => {
     /*
      * fromJSON may leave the column as a raw string rather than an ObjectID
