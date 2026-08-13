@@ -112,7 +112,50 @@ The precedent for fixing this is `TeamMember`, which carries *both* `@CurrentUse
 *and* `ProjectOwner`/`ProjectAdmin` in its `@TableAccessControl` — admins see all rows, plain
 members see only their own. That is exactly the shape we want.
 
-### 2.6 Gap E — the one existing surface is too weak to rely on
+### 2.6 Gap F — five of seven channels silently drop incident-episode pages
+
+`executeNotificationRuleItem` dispatches per channel, and each channel block branches on
+`options.userNotificationEventType`. Only **two** blocks have an `IncidentEpisodeCreated`
+branch:
+
+| Channel | AlertCreated | IncidentCreated | AlertEpisodeCreated | IncidentEpisodeCreated |
+|---|---|---|---|---|
+| Email (`:374`) | yes | yes | yes | **missing** |
+| SMS (`:554`) | yes | yes | yes | **missing** |
+| WhatsApp (`:733`) | yes | yes | yes | **missing** |
+| Telegram (`:903`) | yes | yes | yes | **missing** |
+| Call (`:1277`) | yes | yes | yes | **missing** |
+| Webhook (`:1080`) | yes | yes | yes | yes |
+| Push (`:1457`) | yes | yes | yes | yes |
+
+A responder whose rule points at email — the default every user gets — is sent **nothing** for
+an incident episode. Worse, no error row is written either: the `!isVerified` else-branch only
+fires when the method exists but is unverified, so a verified-but-unhandled channel falls
+through in complete silence. `AcknowledgeIncidentEpisode.hbs` exists on disk and is registered
+in `EmailTemplateType.ts` but has no generator and no caller.
+
+### 2.7 Gap G — every auto-created episode rule is dead on arrival
+
+`createSingleRule` (`UserNotificationRuleService.ts:3045`) creates the two episode default rules
+with `ruleType` and `notifyAfterMinutes` only — **no `alertSeverityId` / `incidentSeverityId`**,
+so the column is NULL. But `UserOnCallLogService.onCreateSuccess` counts episode rules
+*filtered by a concrete severity id* (`:286-298` for alert episodes, `:314-327` for incident
+episodes). NULL never equals a uuid, so the count is 0 and the log takes the dead-end at `:329`.
+
+The two consequences compound:
+
+1. A user who has never hand-configured episode rules gets **zero** episode pages, even though
+   the system created "default" rules for them.
+2. Those rules are **invisible in the UI**: `EpisodeOnCallRules.tsx:87` and
+   `IncidentEpisodeOnCallRules.tsx:87` scope their tables by `alertSeverityId` /
+   `incidentSeverityId`, so a NULL-severity row appears in no table. The user cannot see them,
+   cannot delete them, and gets no hint that anything is wrong.
+
+The UI-created episode rules *do* carry a severity (both pages set it in `onBeforeCreate` at
+`:97`), so this only bites users relying on the defaults — which is everyone who never opened
+the page.
+
+### 2.8 Gap E — the one existing surface is too weak to rely on
 
 `TeamComplianceService` + `Pages/Teams/View/Compliance.tsx` + `Components/Team/TeamComplianceStatusTable.tsx`
 already exist. They are not enough:
@@ -224,6 +267,37 @@ Mirroring intent matters: a user who deliberately set "Sev1 → call immediately
 15 min" gets a sensible Sev4 rule, not a surprise phone call.
 
 Run this as a queued job, not inline — a large project can have thousands of users.
+
+### 4.2b Close Gap F — incident-episode delivery for the five missing channels
+
+Add the `IncidentEpisodeCreated` branch to the email, SMS, WhatsApp, Telegram and Call blocks in
+`executeNotificationRuleItem`, mirroring the existing `AlertEpisodeCreated` branch in each. This
+needs matching generators alongside the existing episode ones:
+`generateEmailTemplateForIncidentEpisodeCreated`, `generateSmsTemplateFor…`,
+`generateCallTemplateFor…`, `generateWhatsAppTemplateFor…`, `generateTelegramBodyFor…`.
+`AcknowledgeIncidentEpisode.hbs` already exists and is registered — wire it up.
+
+Also add a **fell-through-silently guard**: after the seven channel blocks, if the rule had a
+verified method but no block matched the event type, write an `Error` timeline row instead of
+returning silently. That converts any future gap of this shape into a visible failure rather
+than a missing page.
+
+### 4.2c Close Gap G — give episode default rules a severity
+
+Two halves, both required:
+
+1. `createSingleRule` must loop severities for the two episode rule types exactly as
+   `createIncidentOnCallRules` / `createAlertOnCallRules` do, so defaults carry a severity id.
+   Keep `createSingleRule` as-is for `WHEN_USER_GOES_ON_CALL` / `WHEN_USER_GOES_OFF_CALL`,
+   which legitimately have no severity.
+2. A data migration to repair existing rows: for every `UserNotificationRule` with an episode
+   `ruleType` and a NULL severity id, fan it out into one row per severity (preserving the
+   method and `notifyAfterMinutes`) and delete the NULL-severity original — it is unreachable
+   and invisible either way.
+
+Belt and braces: the Phase 1 fallback (4.1) independently rescues this case, since a user with
+no *matching* rule now gets paged anyway. Fixing the root cause still matters — the fallback is
+a safety net, not a substitute for the user's configured intent.
 
 ### 4.3 Tell someone
 
@@ -498,6 +572,8 @@ already stranded.
 | Area | File |
 |---|---|
 | Fallback selection, opt-out, project-disabled channels | `Common/Tests/Server/Services/OnCallNotificationFallback.test.ts` (new) |
+| Gap F — every channel × every event type has a branch, and the fell-through guard fires | `Common/Tests/Server/Services/NotificationChannelEventCoverage.test.ts` (new) |
+| Gap G — episode defaults carry a severity, and the repair migration fans out NULL rows | `Common/Tests/Server/Services/EpisodeRuleSeverityRepair.test.ts` (new) |
 | Severity-create backfill mirrors existing intent | `Common/Tests/Server/Services/SeverityRuleBackfill.test.ts` (new) |
 | Readiness status calculation, all seven channels, ruleType matching | `Common/Tests/Server/Services/OnCallReadinessService.test.ts` (new) |
 | Responder resolution across direct / team / schedule / override | same file |
