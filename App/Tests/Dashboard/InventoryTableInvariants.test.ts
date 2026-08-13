@@ -215,9 +215,7 @@ describe("no cell renders a raw wire value", () => {
 
   test("the CSV export does not fall back to raw values for badge columns", () => {
     // A badge column with no getExportValue exports a UUID or nothing.
-    expect(code).toContain(
-      "getExportValue: (item: InventoryItem): string =>",
-    );
+    expect(code).toContain("getExportValue: (item: InventoryItem): string =>");
     expect(code).toContain("getInventoryTypeLabel(item.entityType");
     expect(code).toContain("getInventorySourceLabel(item.source)");
   });

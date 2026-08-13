@@ -92,12 +92,10 @@ beforeEach(() => {
       cache.delete(full);
     });
 
-  jest
-    .spyOn(InventoryItemService, "findOneBy")
-    .mockImplementation(async () => {
-      reads++;
-      return existing;
-    });
+  jest.spyOn(InventoryItemService, "findOneBy").mockImplementation(async () => {
+    reads++;
+    return existing;
+  });
 
   jest
     .spyOn(InventoryItemService, "updateColumnsByIdIfUnlockedWithoutHooks")

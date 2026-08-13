@@ -1667,7 +1667,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<InventoryItemCustomField, InventoryItemCustomFieldServiceType>(
+      new BaseAPI<
+        InventoryItemCustomField,
+        InventoryItemCustomFieldServiceType
+      >(
         InventoryItemCustomField,
         InventoryItemCustomFieldServiceInstance,
       ).getRouter(),

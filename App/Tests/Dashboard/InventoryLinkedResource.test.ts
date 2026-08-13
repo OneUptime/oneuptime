@@ -5,6 +5,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import {
   LinkedResource,
   LinkedResourceKind,
@@ -43,7 +44,7 @@ describe("the relation names exist on the models that carry them", () => {
    * Checking against that, rather than against a literal, is what makes a
    * renamed relation fail here instead of silently matching nothing.
    */
-  const MODELS: Array<{ label: string; instance: object }> = [
+  const MODELS: Array<{ label: string; instance: BaseModel }> = [
     { label: "Incident", instance: new Incident() },
     { label: "Alert", instance: new Alert() },
     { label: "ScheduledMaintenance", instance: new ScheduledMaintenance() },

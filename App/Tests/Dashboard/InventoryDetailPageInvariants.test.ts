@@ -46,12 +46,7 @@ const readCode: ReadCodeFunction = (...segments: Array<string>): string => {
 };
 
 describe("the item overview", () => {
-  const overview: string = readCode(
-    "Pages",
-    "Inventory",
-    "View",
-    "Index.tsx",
-  );
+  const overview: string = readCode("Pages", "Inventory", "View", "Index.tsx");
 
   test("leads with all three identity badges", () => {
     /*
@@ -112,7 +107,9 @@ describe("the attribute inspector", () => {
   test("filters on keys and on values", () => {
     // "which attribute has this value" is as common as "what is this key".
     expect(attributes).toContain("key.toLowerCase().includes(needle)");
-    expect(attributes).toContain("String(value).toLowerCase().includes(needle)");
+    expect(attributes).toContain(
+      "String(value).toLowerCase().includes(needle)",
+    );
   });
 
   test("only offers the filter when there is enough to filter", () => {

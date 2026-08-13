@@ -326,7 +326,9 @@ describe("workflow templates", () => {
 
   test("each category in the picker has at least one template", () => {
     for (const category of WorkflowTemplateCategories) {
-      expect(getWorkflowTemplatesByCategory(category).length).toBeGreaterThan(0);
+      expect(getWorkflowTemplatesByCategory(category).length).toBeGreaterThan(
+        0,
+      );
     }
   });
 
@@ -363,9 +365,7 @@ describe("workflow templates", () => {
 
   test("the public template carries no graph, so the picker cannot depend on one", () => {
     for (const template of templates) {
-      expect(
-        (template as unknown as JSONObject)["graph"],
-      ).toBeUndefined();
+      expect((template as unknown as JSONObject)["graph"]).toBeUndefined();
     }
   });
 
@@ -536,7 +536,11 @@ describe.each(
           },
         );
 
-        expect({ node: node.componentId, argumentId: argumentId, found: Boolean(argument) }).toEqual({
+        expect({
+          node: node.componentId,
+          argumentId: argumentId,
+          found: Boolean(argument),
+        }).toEqual({
           node: node.componentId,
           argumentId: argumentId,
           found: true,
@@ -695,7 +699,9 @@ describe.each(
     );
 
     for (const reference of referencesOf(templateId)) {
-      if (reference.parsed.rootType !== ReferenceRootType.ComponentReturnValue) {
+      if (
+        reference.parsed.rootType !== ReferenceRootType.ComponentReturnValue
+      ) {
         continue;
       }
 
@@ -707,7 +713,9 @@ describe.each(
     const spec: TemplateSpec = specOf(templateId);
 
     for (const reference of referencesOf(templateId)) {
-      if (reference.parsed.rootType !== ReferenceRootType.ComponentReturnValue) {
+      if (
+        reference.parsed.rootType !== ReferenceRootType.ComponentReturnValue
+      ) {
         continue;
       }
 
@@ -745,7 +753,9 @@ describe.each(
     const spec: TemplateSpec = specOf(templateId);
 
     for (const reference of referencesOf(templateId)) {
-      if (reference.parsed.rootType !== ReferenceRootType.ComponentReturnValue) {
+      if (
+        reference.parsed.rootType !== ReferenceRootType.ComponentReturnValue
+      ) {
         continue;
       }
 
@@ -790,9 +800,10 @@ describe.each(
     );
 
     for (const variable of template.variables) {
-      expect({ variable: variable.name, used: used.has(variable.name) }).toEqual(
-        { variable: variable.name, used: true },
-      );
+      expect({
+        variable: variable.name,
+        used: used.has(variable.name),
+      }).toEqual({ variable: variable.name, used: true });
     }
   });
 

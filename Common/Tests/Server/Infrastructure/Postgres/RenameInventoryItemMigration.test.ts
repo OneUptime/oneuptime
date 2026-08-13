@@ -46,13 +46,20 @@ const MIGRATIONS_INDEX_PATH: string = path.join(
 
 const MIGRATION_SOURCE: string = fs.readFileSync(MIGRATION_PATH, "utf8");
 
+/*
+ * What TypeORM's metadata storage keys entities by: the class itself. Only
+ * ever compared by identity against `index.target`, so `unknown` states the
+ * requirement exactly — and avoids `Function`/`object`, both of which this
+ * repo's eslint config bans.
+ */
+type ModelClass = unknown;
+
 const namingStrategy: DefaultNamingStrategy = new DefaultNamingStrategy();
 
 interface TableRename {
   oldTable: string;
   newTable: string;
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  modelType: Function;
+  modelType: ModelClass;
 }
 
 const TABLES: Array<TableRename> = [
@@ -81,8 +88,7 @@ const FOREIGN_KEY_COLUMNS: Array<Array<string>> = [
 ];
 
 type DeclaredIndexColumnsFunction = (
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  modelType: Function,
+  modelType: ModelClass,
 ) => Array<Array<string>>;
 
 /*
@@ -92,8 +98,7 @@ type DeclaredIndexColumnsFunction = (
  * property it decorates instead.
  */
 const getDeclaredIndexColumns: DeclaredIndexColumnsFunction = (
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  modelType: Function,
+  modelType: ModelClass,
 ): Array<Array<string>> => {
   return getMetadataArgsStorage()
     .indices.filter((index: IndexMetadataArgs): boolean => {
@@ -260,7 +265,9 @@ describe("index names match TypeORM's naming strategy", () => {
     for (const table of TABLES) {
       for (const columns of getDeclaredIndexColumns(table.modelType)) {
         if (
-          INDEXES_ADDED_LATER.has(namingStrategy.indexName(table.newTable, columns))
+          INDEXES_ADDED_LATER.has(
+            namingStrategy.indexName(table.newTable, columns),
+          )
         ) {
           continue;
         }

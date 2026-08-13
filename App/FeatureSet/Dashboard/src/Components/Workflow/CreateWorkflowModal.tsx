@@ -352,7 +352,7 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
             modelType: Workflow,
             id: createdWorkflowId,
           });
-        } catch (cleanupError) {
+        } catch {
           // Reported below as part of the original failure.
         }
       }
@@ -628,9 +628,7 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
                 error={variableErrors[variable.name]}
                 dataTestId={`workflow-variable-${variable.name}`}
                 type={
-                  variable.isSecret
-                    ? ("password" as InputType)
-                    : InputType.TEXT
+                  variable.isSecret ? ("password" as InputType) : InputType.TEXT
                 }
                 onChange={(value: string) => {
                   setVariableValues(
@@ -684,7 +682,9 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
       onClose={props.onClose}
       error={error || undefined}
       isLoading={isCreating}
-      submitButtonText={step === WizardStep.PickTemplate ? undefined : submitButtonText()}
+      submitButtonText={
+        step === WizardStep.PickTemplate ? undefined : submitButtonText()
+      }
       onSubmit={step === WizardStep.PickTemplate ? undefined : onSubmit}
       leftFooterElement={
         step === WizardStep.PickTemplate ? (

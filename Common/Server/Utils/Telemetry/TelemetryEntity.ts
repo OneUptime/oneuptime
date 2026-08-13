@@ -462,10 +462,7 @@ export default class InventoryItem {
 
     // k8s.namespace — cluster + k8s.namespace.name.
     (attrs: EntityAttributes) => {
-      const ns: string | null = InventoryItem.str(
-        attrs,
-        "k8s.namespace.name",
-      );
+      const ns: string | null = InventoryItem.str(attrs, "k8s.namespace.name");
       if (!ns) {
         return null;
       }
@@ -479,10 +476,7 @@ export default class InventoryItem {
     // k8s.node — cluster + k8s.node.uid/k8s.node.name.
     (attrs: EntityAttributes) => {
       const nodeUid: string | null = InventoryItem.str(attrs, "k8s.node.uid");
-      const nodeName: string | null = InventoryItem.str(
-        attrs,
-        "k8s.node.name",
-      );
+      const nodeName: string | null = InventoryItem.str(attrs, "k8s.node.name");
       if (!nodeUid && !nodeName) {
         return null;
       }
@@ -585,10 +579,7 @@ export default class InventoryItem {
      * the fsid is only optionally stamped by the agent.
      */
     (attrs: EntityAttributes) => {
-      const name: string | null = InventoryItem.str(
-        attrs,
-        "ceph.cluster.name",
-      );
+      const name: string | null = InventoryItem.str(attrs, "ceph.cluster.name");
       return name
         ? {
             entityType: EntityType.CephCluster,

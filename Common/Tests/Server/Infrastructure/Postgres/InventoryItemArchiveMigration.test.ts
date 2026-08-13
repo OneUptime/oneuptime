@@ -33,16 +33,20 @@ const MIGRATION_PATH: string = path.join(
 
 const SOURCE: string = fs.readFileSync(MIGRATION_PATH, "utf8");
 
+/*
+ * What TypeORM's metadata storage keys entities by: the class itself. Only
+ * ever compared by identity against `index.target`, so `unknown` states the
+ * requirement exactly — and avoids `Function`/`object`, both of which this
+ * repo's eslint config bans.
+ */
+type ModelClass = unknown;
+
 const namingStrategy: DefaultNamingStrategy = new DefaultNamingStrategy();
 
-type DeclaredColumnsFunction = (
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  modelType: Function,
-) => Array<string>;
+type DeclaredColumnsFunction = (modelType: ModelClass) => Array<string>;
 
 const getDeclaredColumns: DeclaredColumnsFunction = (
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  modelType: Function,
+  modelType: ModelClass,
 ): Array<string> => {
   return getMetadataArgsStorage()
     .columns.filter((column: ColumnMetadataArgs): boolean => {

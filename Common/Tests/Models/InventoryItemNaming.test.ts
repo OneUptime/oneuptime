@@ -205,13 +205,15 @@ describe("the old name is gone from the source tree", () => {
           return false;
         }
 
-        return !ALLOWED_REFERENCES.some((allowed: AllowedReference): boolean => {
-          if (!line.includes(allowed.substring)) {
-            return false;
-          }
+        return !ALLOWED_REFERENCES.some(
+          (allowed: AllowedReference): boolean => {
+            if (!line.includes(allowed.substring)) {
+              return false;
+            }
 
-          return !allowed.onlyUnder || file.includes(allowed.onlyUnder);
-        });
+            return !allowed.onlyUnder || file.includes(allowed.onlyUnder);
+          },
+        );
       })
       .map((line: string): string => {
         return line.trim();

@@ -219,10 +219,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
   }, [props.entities]);
 
   const entityByKey: Map<string, InventoryItem> = useMemo(() => {
-    const map: Map<string, InventoryItem> = new Map<
-      string,
-      InventoryItem
-    >();
+    const map: Map<string, InventoryItem> = new Map<string, InventoryItem>();
     for (const entity of serviceEntities) {
       map.set(entity.entityKey!, entity);
     }
