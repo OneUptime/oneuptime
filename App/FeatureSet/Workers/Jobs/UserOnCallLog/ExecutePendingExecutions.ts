@@ -6,7 +6,9 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import { IsDevelopment } from "Common/Server/EnvironmentConfig";
 import IncidentService from "Common/Server/Services/IncidentService";
 import UserNotificationRuleService from "Common/Server/Services/UserNotificationRuleService";
-import UserOnCallLogService from "Common/Server/Services/UserOnCallLogService";
+import UserOnCallLogService, {
+  notOptOutRuleQuery,
+} from "Common/Server/Services/UserOnCallLogService";
 import logger from "Common/Server/Utils/Logger";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
@@ -244,6 +246,20 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
               alert?.alertSeverityId ||
               alertEpisode?.alertSeverityId ||
               undefined,
+            /*
+             * Opt-out rows are not rules. They carry exactly the columns this
+             * query filters on and no notification method at all, so without
+             * this predicate one would be selected here, handed to
+             * executeNotificationRuleItem, and "executed" - sending nothing
+             * while its timeline row reports a notification. It would also
+             * count as an outstanding rule for `isAllExecuted`, so the log
+             * stays Executing for an extra tick and burns its claim on a
+             * delivery that never happens. notOptOutRuleQuery is NULL-safe on
+             * purpose; isOptOut is nullable and is NULL on every rule written
+             * before the column existed, so a plain `false` here would exclude
+             * every real rule and stop all escalation.
+             */
+            isOptOut: notOptOutRuleQuery(),
           },
           select: {
             _id: true,

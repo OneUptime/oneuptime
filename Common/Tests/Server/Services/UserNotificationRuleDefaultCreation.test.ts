@@ -26,20 +26,28 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * zero, or the method id written onto the wrong foreign key — the user is on an
  * on-call policy that pages nobody, and nothing tells them so.
  *
- * This file pins the shape of that seeding as it is TODAY, before the readiness
- * work in Internal/Roadmap/OnCallNotificationReadiness.md changes anything:
+ * This file pins the shape of that seeding:
  *
  *   (A) addDefaultNotificationRulesForVerifiedMethod
  *       - one ON_CALL_EXECUTED_INCIDENT rule per incident severity,
  *       - one ON_CALL_EXECUTED_ALERT rule per alert severity,
- *       - exactly four "single" rules (alert episode, incident episode, goes on
- *         call, goes off call),
+ *       - one ON_CALL_EXECUTED_INCIDENT_EPISODE rule per incident severity and
+ *         one ON_CALL_EXECUTED_ALERT_EPISODE rule per alert severity (Phase 1
+ *         closed GAP G here: these two used to be seeded once each with a NULL
+ *         severity, which matched no severity-filtered page and showed up in no
+ *         severity-scoped UI table - "defaults" that were unreachable and
+ *         invisible at the same time),
+ *       - exactly two "single" rules (goes on call, goes off call), which
+ *         legitimately have no severity because they are about the user's shift
+ *         rather than about anything that fired,
  *       - every rule at notifyAfterMinutes = 0 (page immediately),
  *       - the verified method's id written to exactly one FK column, chosen per
  *         channel, and the same column used in the duplicate lookup,
  *       - idempotence: an existing rule for a (method, severity, ruleType)
  *         triple suppresses only that one create, never its neighbours,
- *       - a project with zero severities still gets the four single rules.
+ *       - a project with zero severities gets the two shift rules and nothing
+ *         else, because a rule for a severity that does not exist could never
+ *         have matched a page anyway.
  *
  *   (B) addDefaultNotificationRuleForUser, which is the joining-a-project entry
  *       point: it materialises a *verified* UserEmail when one does not exist,
@@ -105,9 +113,39 @@ const ALL_CHANNELS: Array<ChannelColumn> = [
   "userPushId",
 ];
 
-/* The four rule types that are seeded once, regardless of severities. */
+/* The rule types that are seeded once, regardless of severities. */
 const SINGLE_RULE_TYPES: Array<NotificationRuleType> = [
+  NotificationRuleType.WHEN_USER_GOES_ON_CALL,
+  NotificationRuleType.WHEN_USER_GOES_OFF_CALL,
+];
+
+/*
+ * The episode rule types. Since Phase 1 closed GAP G these are seeded once per
+ * severity - alert episodes against alert severities, incident episodes against
+ * incident severities - exactly like their non-episode counterparts.
+ */
+const EPISODE_RULE_TYPES: Array<NotificationRuleType> = [
   NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE,
+  NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
+];
+
+/*
+ * With the fixture below (3 incident severities, 2 alert severities):
+ * 3 incident + 2 alert + 2 alert episode + 3 incident episode + 2 single.
+ */
+const TOTAL_SEEDED_RULES: number = 12;
+
+/* The order the rules are seeded in, which is also the duplicate-check order. */
+const SEEDED_RULE_ORDER: Array<NotificationRuleType> = [
+  NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+  NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+  NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+  NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+  NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+  NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE,
+  NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE,
+  NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
+  NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
   NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
   NotificationRuleType.WHEN_USER_GOES_ON_CALL,
   NotificationRuleType.WHEN_USER_GOES_OFF_CALL,
@@ -289,7 +327,7 @@ describe("addDefaultNotificationRulesForVerifiedMethod - what gets seeded", () =
     }
   });
 
-  test("exactly four single rules are seeded, one of each non-severity rule type", async () => {
+  test("exactly two single rules are seeded, one of each non-severity rule type", async () => {
     await runForEmailMethod();
 
     for (const ruleType of SINGLE_RULE_TYPES) {
@@ -297,7 +335,7 @@ describe("addDefaultNotificationRulesForVerifiedMethod - what gets seeded", () =
     }
   });
 
-  test("the four single rules carry no severity at all - they are not severity scoped", async () => {
+  test("the two single rules carry no severity at all - they are not severity scoped", async () => {
     await runForEmailMethod();
 
     const singles: Array<Model> = createdRules().filter(
@@ -306,25 +344,100 @@ describe("addDefaultNotificationRulesForVerifiedMethod - what gets seeded", () =
       },
     );
 
-    expect(singles).toHaveLength(4);
+    expect(singles).toHaveLength(2);
     for (const rule of singles) {
       expect(rule.incidentSeverityId).toBeUndefined();
       expect(rule.alertSeverityId).toBeUndefined();
     }
   });
 
-  test("the total is severities + severities + four, and nothing else", async () => {
+  test("one alert episode rule per ALERT severity, each carrying that severity", async () => {
+    /*
+     * GAP G, closed by Phase 1. These rows used to be created once with a NULL
+     * alertSeverityId, which the severity-filtered count query in
+     * UserOnCallLogService could never match - so every alert episode page for a
+     * user on defaults was dropped.
+     */
     await runForEmailMethod();
 
-    // 3 incident severities + 2 alert severities + 4 single rules.
-    expect(createSpy).toHaveBeenCalledTimes(9);
+    const episodeRules: Array<Model> = createdRulesOfType(
+      NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE,
+    );
+
+    expect(episodeRules).toHaveLength(2);
+    expect(
+      episodeRules.map((rule: Model): string => {
+        return rule.alertSeverityId!.toString();
+      }),
+    ).toEqual([ALERT_SEV_1.toString(), ALERT_SEV_2.toString()]);
+
+    for (const rule of episodeRules) {
+      expect(rule.incidentSeverityId).toBeUndefined();
+    }
+  });
+
+  test("one incident episode rule per INCIDENT severity, each carrying that severity", async () => {
+    // GAP G, closed by Phase 1 - see the alert episode case above.
+    await runForEmailMethod();
+
+    const episodeRules: Array<Model> = createdRulesOfType(
+      NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
+    );
+
+    expect(episodeRules).toHaveLength(3);
+    expect(
+      episodeRules.map((rule: Model): string => {
+        return rule.incidentSeverityId!.toString();
+      }),
+    ).toEqual([
+      INCIDENT_SEV_1.toString(),
+      INCIDENT_SEV_2.toString(),
+      INCIDENT_SEV_3.toString(),
+    ]);
+
+    for (const rule of episodeRules) {
+      expect(rule.alertSeverityId).toBeUndefined();
+    }
+  });
+
+  test("no seeded episode rule is left without a severity", async () => {
+    /*
+     * The precise statement of GAP G: a NULL-severity episode rule matches no
+     * page and appears in no UI table, so it is worse than no rule at all - the
+     * user is told they are covered when they are not.
+     */
+    await runForEmailMethod();
+
+    const episodeRules: Array<Model> = createdRules().filter(
+      (rule: Model): boolean => {
+        return EPISODE_RULE_TYPES.includes(rule.ruleType!);
+      },
+    );
+
+    expect(episodeRules).toHaveLength(5);
+    for (const rule of episodeRules) {
+      expect(
+        rule.alertSeverityId !== undefined ||
+          rule.incidentSeverityId !== undefined,
+      ).toBe(true);
+    }
+  });
+
+  test("the total is incident + alert severities twice over, plus two, and nothing else", async () => {
+    await runForEmailMethod();
+
+    /*
+     * 3 incident + 2 alert on-call rules, then 2 alert episode + 3 incident
+     * episode rules, then the 2 shift rules.
+     */
+    expect(createSpy).toHaveBeenCalledTimes(TOTAL_SEEDED_RULES);
   });
 
   test("every seeded rule pages immediately - notifyAfterMinutes is 0", async () => {
     await runForEmailMethod();
 
     const rules: Array<Model> = createdRules();
-    expect(rules).toHaveLength(9);
+    expect(rules).toHaveLength(TOTAL_SEEDED_RULES);
     for (const rule of rules) {
       expect(rule.notifyAfterMinutes).toBe(0);
     }
@@ -347,7 +460,7 @@ describe("addDefaultNotificationRulesForVerifiedMethod - what gets seeded", () =
     }
   });
 
-  test("rules are seeded incident-first, then alert, then the four singles in a fixed order", async () => {
+  test("rules are seeded on-call-first, then the episodes, then the singles in a fixed order", async () => {
     /*
      * The order is not load-bearing for correctness, but it is the order the
      * duplicate checks run in too, so pinning it makes a reordering visible.
@@ -358,17 +471,7 @@ describe("addDefaultNotificationRulesForVerifiedMethod - what gets seeded", () =
       createdRules().map((rule: Model): NotificationRuleType => {
         return rule.ruleType!;
       }),
-    ).toEqual([
-      NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
-      NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
-      NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
-      NotificationRuleType.ON_CALL_EXECUTED_ALERT,
-      NotificationRuleType.ON_CALL_EXECUTED_ALERT,
-      NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE,
-      NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
-      NotificationRuleType.WHEN_USER_GOES_ON_CALL,
-      NotificationRuleType.WHEN_USER_GOES_OFF_CALL,
-    ]);
+    ).toEqual(SEEDED_RULE_ORDER);
   });
 
   test("severities are read for this project only, root-scoped, and up to the per-project limit", async () => {
@@ -376,6 +479,9 @@ describe("addDefaultNotificationRulesForVerifiedMethod - what gets seeded", () =
      * GAP A (OnCallNotificationReadiness.md 2.2): this read is a point-in-time
      * snapshot. Severities created after this call are never backfilled onto
      * existing users - pinned here so the backfill work has a baseline.
+     *
+     * Each list is read exactly ONCE even though it now drives two rule types
+     * apiece (on-call and episode), which is why the counts below stay at one.
      */
     await runForEmailMethod();
 
@@ -413,7 +519,7 @@ describe("addDefaultNotificationRulesForVerifiedMethod - the method lands on the
       await runForDescriptor(descriptorFor(channel));
 
       const rules: Array<Model> = createdRules();
-      expect(rules).toHaveLength(9);
+      expect(rules).toHaveLength(TOTAL_SEEDED_RULES);
 
       for (const rule of rules) {
         expect(rule[channel]?.toString()).toBe(METHOD_ID.toString());
@@ -439,7 +545,7 @@ describe("addDefaultNotificationRulesForVerifiedMethod - the method lands on the
       await runForDescriptor(descriptorFor(channel));
 
       const queries: Array<Record<string, unknown>> = duplicateCheckQueries();
-      expect(queries).toHaveLength(9);
+      expect(queries).toHaveLength(TOTAL_SEEDED_RULES);
 
       for (const query of queries) {
         expect((query[channel] as ObjectID).toString()).toBe(
@@ -476,7 +582,7 @@ describe("addDefaultNotificationRulesForVerifiedMethod - the method lands on the
     }
   });
 
-  test("an EMPTY descriptor still seeds nine method-less rules", async () => {
+  test("an EMPTY descriptor still seeds a full set of method-less rules", async () => {
     /*
      * KNOWN DEFECT, pinned as-is. With no id on the descriptor the duplicate
      * check degenerates to (projectId, userId, ruleType) and the created rows
@@ -488,7 +594,7 @@ describe("addDefaultNotificationRulesForVerifiedMethod - the method lands on the
     await runForDescriptor({});
 
     const rules: Array<Model> = createdRules();
-    expect(rules).toHaveLength(9);
+    expect(rules).toHaveLength(TOTAL_SEEDED_RULES);
 
     for (const rule of rules) {
       for (const channel of ALL_CHANNELS) {
@@ -506,7 +612,7 @@ describe("addDefaultNotificationRulesForVerifiedMethod - the method lands on the
   test("the duplicate check is root-scoped and keyed on project, user and rule type", async () => {
     await runForEmailMethod();
 
-    expect(findOneBySpy).toHaveBeenCalledTimes(9);
+    expect(findOneBySpy).toHaveBeenCalledTimes(TOTAL_SEEDED_RULES);
 
     for (const call of findOneBySpy.mock.calls) {
       const arg: {
@@ -549,7 +655,25 @@ describe("addDefaultNotificationRulesForVerifiedMethod - the method lands on the
       }),
     ).toEqual([ALERT_SEV_1.toString(), ALERT_SEV_2.toString()]);
 
-    for (const query of queries.slice(5)) {
+    // The episode checks are severity-keyed too, since Phase 1 closed GAP G.
+    expect(
+      queries.slice(5, 7).map((query: Record<string, unknown>): string => {
+        return (query["alertSeverityId"] as ObjectID).toString();
+      }),
+    ).toEqual([ALERT_SEV_1.toString(), ALERT_SEV_2.toString()]);
+
+    expect(
+      queries.slice(7, 10).map((query: Record<string, unknown>): string => {
+        return (query["incidentSeverityId"] as ObjectID).toString();
+      }),
+    ).toEqual([
+      INCIDENT_SEV_1.toString(),
+      INCIDENT_SEV_2.toString(),
+      INCIDENT_SEV_3.toString(),
+    ]);
+
+    // Only the two shift rules are looked up without a severity.
+    for (const query of queries.slice(10)) {
       expect(query["incidentSeverityId"]).toBeUndefined();
       expect(query["alertSeverityId"]).toBeUndefined();
     }
@@ -567,7 +691,7 @@ describe("addDefaultNotificationRulesForVerifiedMethod - idempotence", () => {
 
     await runForEmailMethod();
 
-    expect(findOneBySpy).toHaveBeenCalledTimes(9);
+    expect(findOneBySpy).toHaveBeenCalledTimes(TOTAL_SEEDED_RULES);
     expect(createSpy).not.toHaveBeenCalled();
   });
 
@@ -588,13 +712,26 @@ describe("addDefaultNotificationRulesForVerifiedMethod - idempotence", () => {
 
     await runForEmailMethod();
 
-    expect(createSpy).toHaveBeenCalledTimes(8);
+    /*
+     * Two rows are suppressed, not one: the incident on-call rule for SEV_2 and
+     * the incident EPISODE rule for SEV_2, both of which are now keyed on the
+     * same severity.
+     */
+    expect(createSpy).toHaveBeenCalledTimes(TOTAL_SEEDED_RULES - 2);
 
     const incidentRules: Array<Model> = createdRulesOfType(
       NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
     );
     expect(
       incidentRules.map((rule: Model): string => {
+        return rule.incidentSeverityId!.toString();
+      }),
+    ).toEqual([INCIDENT_SEV_1.toString(), INCIDENT_SEV_3.toString()]);
+
+    expect(
+      createdRulesOfType(
+        NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
+      ).map((rule: Model): string => {
         return rule.incidentSeverityId!.toString();
       }),
     ).toEqual([INCIDENT_SEV_1.toString(), INCIDENT_SEV_3.toString()]);
@@ -617,13 +754,22 @@ describe("addDefaultNotificationRulesForVerifiedMethod - idempotence", () => {
 
     await runForEmailMethod();
 
-    expect(createSpy).toHaveBeenCalledTimes(8);
+    // Again two rows: the alert on-call rule and the alert episode rule.
+    expect(createSpy).toHaveBeenCalledTimes(TOTAL_SEEDED_RULES - 2);
 
     const alertRules: Array<Model> = createdRulesOfType(
       NotificationRuleType.ON_CALL_EXECUTED_ALERT,
     );
     expect(alertRules).toHaveLength(1);
     expect(alertRules[0]!.alertSeverityId!.toString()).toBe(
+      ALERT_SEV_2.toString(),
+    );
+
+    const alertEpisodeRules: Array<Model> = createdRulesOfType(
+      NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE,
+    );
+    expect(alertEpisodeRules).toHaveLength(1);
+    expect(alertEpisodeRules[0]!.alertSeverityId!.toString()).toBe(
       ALERT_SEV_2.toString(),
     );
   });
@@ -639,9 +785,18 @@ describe("addDefaultNotificationRulesForVerifiedMethod - idempotence", () => {
 
     await runForEmailMethod();
 
+    /*
+     * Every incident-severity-keyed row is suppressed - the 3 on-call rules and
+     * the 3 episode rules - leaving 2 alert, 2 alert episode and 2 shift rules.
+     */
     expect(createSpy).toHaveBeenCalledTimes(6);
     expect(
       createdRulesOfType(NotificationRuleType.ON_CALL_EXECUTED_INCIDENT),
+    ).toHaveLength(0);
+    expect(
+      createdRulesOfType(
+        NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
+      ),
     ).toHaveLength(0);
     expect(
       createdRulesOfType(NotificationRuleType.ON_CALL_EXECUTED_ALERT),
@@ -663,7 +818,7 @@ describe("addDefaultNotificationRulesForVerifiedMethod - idempotence", () => {
 
       await runForEmailMethod();
 
-      expect(createSpy).toHaveBeenCalledTimes(8);
+      expect(createSpy).toHaveBeenCalledTimes(TOTAL_SEEDED_RULES - 1);
       expect(createdRulesOfType(existingRuleType)).toHaveLength(0);
 
       for (const otherRuleType of SINGLE_RULE_TYPES) {
@@ -672,6 +827,36 @@ describe("addDefaultNotificationRulesForVerifiedMethod - idempotence", () => {
         }
         expect(createdRulesOfType(otherRuleType)).toHaveLength(1);
       }
+    },
+  );
+
+  test.each<[NotificationRuleType, number]>([
+    [NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE, 2],
+    [NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE, 3],
+  ])(
+    "existing %s rules for every severity suppress exactly %i rows",
+    async (existingRuleType: NotificationRuleType, suppressedCount: number) => {
+      /*
+       * Episode rules are per-severity now, so "already seeded" is a statement
+       * about one severity at a time - stubbing the whole rule type standing in
+       * for a user who has all of them.
+       */
+      findOneBySpy.mockImplementation(
+        (findBy: { query: Record<string, unknown> }): Promise<Model | null> => {
+          return Promise.resolve(
+            findBy.query["ruleType"] === existingRuleType
+              ? existingRule()
+              : null,
+          );
+        },
+      );
+
+      await runForEmailMethod();
+
+      expect(createSpy).toHaveBeenCalledTimes(
+        TOTAL_SEEDED_RULES - suppressedCount,
+      );
+      expect(createdRulesOfType(existingRuleType)).toHaveLength(0);
     },
   );
 
@@ -691,7 +876,7 @@ describe("addDefaultNotificationRulesForVerifiedMethod - idempotence", () => {
 
     await runForDescriptor({ userSmsId: METHOD_ID });
 
-    expect(createSpy).toHaveBeenCalledTimes(9);
+    expect(createSpy).toHaveBeenCalledTimes(TOTAL_SEEDED_RULES);
   });
 
   test("the duplicate check runs once per candidate rule - no extra reads", async () => {
@@ -702,13 +887,18 @@ describe("addDefaultNotificationRulesForVerifiedMethod - idempotence", () => {
 });
 
 describe("addDefaultNotificationRulesForVerifiedMethod - a project with no severities", () => {
-  test("no per-severity rules are seeded, but the four single rules still are", async () => {
+  test("no per-severity rules are seeded, but the two shift rules still are", async () => {
+    /*
+     * The episode rules follow the severities now, so a project with none gets
+     * no episode rules either. That is the correct reading of GAP G: a rule for
+     * a severity that does not exist could never have matched a page anyway.
+     */
     incidentSeveritiesSpy.mockResolvedValue([] as never);
     alertSeveritiesSpy.mockResolvedValue([] as never);
 
     await runForEmailMethod();
 
-    expect(createSpy).toHaveBeenCalledTimes(4);
+    expect(createSpy).toHaveBeenCalledTimes(2);
     expect(
       createdRules().map((rule: Model): NotificationRuleType => {
         return rule.ruleType!;
@@ -716,20 +906,20 @@ describe("addDefaultNotificationRulesForVerifiedMethod - a project with no sever
     ).toEqual(SINGLE_RULE_TYPES);
   });
 
-  test("with no severities the duplicate check runs only for the four single rules", async () => {
+  test("with no severities the duplicate check runs only for the two shift rules", async () => {
     incidentSeveritiesSpy.mockResolvedValue([] as never);
     alertSeveritiesSpy.mockResolvedValue([] as never);
 
     await runForEmailMethod();
 
-    expect(findOneBySpy).toHaveBeenCalledTimes(4);
+    expect(findOneBySpy).toHaveBeenCalledTimes(2);
     for (const query of duplicateCheckQueries()) {
       expect(query["incidentSeverityId"]).toBeUndefined();
       expect(query["alertSeverityId"]).toBeUndefined();
     }
   });
 
-  test("the single rules still get the method and notifyAfterMinutes 0", async () => {
+  test("the shift rules still get the method and notifyAfterMinutes 0", async () => {
     incidentSeveritiesSpy.mockResolvedValue([] as never);
     alertSeveritiesSpy.mockResolvedValue([] as never);
 
@@ -746,11 +936,19 @@ describe("addDefaultNotificationRulesForVerifiedMethod - a project with no sever
 
     await runForEmailMethod();
 
-    // 0 incident + 2 alert + 4 single.
+    // 0 incident + 2 alert + 2 alert episode + 0 incident episode + 2 shift.
     expect(createSpy).toHaveBeenCalledTimes(6);
     expect(
       createdRulesOfType(NotificationRuleType.ON_CALL_EXECUTED_ALERT),
     ).toHaveLength(2);
+    expect(
+      createdRulesOfType(NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE),
+    ).toHaveLength(2);
+    expect(
+      createdRulesOfType(
+        NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
+      ),
+    ).toHaveLength(0);
   });
 
   test("only alert severities missing still seeds the incident rules", async () => {
@@ -758,11 +956,19 @@ describe("addDefaultNotificationRulesForVerifiedMethod - a project with no sever
 
     await runForEmailMethod();
 
-    // 3 incident + 0 alert + 4 single.
-    expect(createSpy).toHaveBeenCalledTimes(7);
+    // 3 incident + 0 alert + 0 alert episode + 3 incident episode + 2 shift.
+    expect(createSpy).toHaveBeenCalledTimes(8);
     expect(
       createdRulesOfType(NotificationRuleType.ON_CALL_EXECUTED_INCIDENT),
     ).toHaveLength(3);
+    expect(
+      createdRulesOfType(
+        NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
+      ),
+    ).toHaveLength(3);
+    expect(
+      createdRulesOfType(NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE),
+    ).toHaveLength(0);
   });
 });
 
@@ -834,7 +1040,7 @@ describe("addDefaultNotificationRuleForUser - materialising the e-mail identity"
     );
 
     const rules: Array<Model> = createdRules();
-    expect(rules).toHaveLength(9);
+    expect(rules).toHaveLength(TOTAL_SEEDED_RULES);
     for (const rule of rules) {
       expect(rule.userEmailId!.toString()).toBe(CREATED_EMAIL_ID.toString());
       expect(rule.userSmsId).toBeUndefined();
@@ -902,7 +1108,7 @@ describe("addDefaultNotificationRuleForUser - reusing an existing e-mail identit
     );
 
     const rules: Array<Model> = createdRules();
-    expect(rules).toHaveLength(9);
+    expect(rules).toHaveLength(TOTAL_SEEDED_RULES);
     for (const rule of rules) {
       expect(rule.userEmailId!.toString()).toBe(EXISTING_EMAIL_ID.toString());
     }
@@ -938,7 +1144,7 @@ describe("addDefaultNotificationRuleForUser - reusing an existing e-mail identit
     );
 
     expect(userEmailCreateSpy).not.toHaveBeenCalled();
-    expect(createSpy).toHaveBeenCalledTimes(9);
+    expect(createSpy).toHaveBeenCalledTimes(TOTAL_SEEDED_RULES);
     expect(createdRules()[0]!.userEmailId!.toString()).toBe(
       EXISTING_EMAIL_ID.toString(),
     );
@@ -955,13 +1161,6 @@ describe("addDefaultNotificationRuleForUser - reusing an existing e-mail identit
       createdRules().map((rule: Model): NotificationRuleType => {
         return rule.ruleType!;
       }),
-    ).toEqual([
-      NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
-      NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
-      NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
-      NotificationRuleType.ON_CALL_EXECUTED_ALERT,
-      NotificationRuleType.ON_CALL_EXECUTED_ALERT,
-      ...SINGLE_RULE_TYPES,
-    ]);
+    ).toEqual(SEEDED_RULE_ORDER);
   });
 });

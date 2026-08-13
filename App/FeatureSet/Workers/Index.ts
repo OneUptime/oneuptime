@@ -87,6 +87,21 @@ import "./Jobs/NetworkSite/RecomputeStaleRollups";
 // On-Call Duty Policy Executions.
 import "./Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions";
 import "./Jobs/OnCallDutyPolicyExecutionLog/TimeoutStuckExecutions";
+
+/*
+ * On-Call Duty Policy notification rules.
+ *
+ * Every import in this file is load-bearing, not documentation: RunCron
+ * registers a job purely as a module side effect (it calls
+ * JobDictionary.setJobFunction and Queue.addJob at import time), so a job file
+ * nothing imports is never scheduled AND cannot be enqueued by name either —
+ * the Worker queue looks the function up in JobDictionary and silently does
+ * nothing when it is absent. The severity backfill is enqueued by name from
+ * IncidentSeverityService / AlertSeverityService, so without this line both
+ * that enqueue and the five-minute sweep are no-ops and severities created
+ * after a user joined stay uncovered.
+ */
+import "./Jobs/OnCallDutyPolicy/BackfillNotificationRulesForNewSeverities";
 // Payments.
 import "./Jobs/PaymentProvider/CheckSubscriptionStatus";
 import "./Jobs/PaymentProvider/PopulatePlanNameInProject";

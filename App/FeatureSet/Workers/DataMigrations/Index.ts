@@ -101,6 +101,7 @@ import MoveNetworkDeviceMonitorCollectionToDevices from "./MoveNetworkDeviceMoni
 import BackfillNetworkSiteTypes from "./BackfillNetworkSiteTypes";
 import AddSessionIdToTelemetryTables from "./AddSessionIdToTelemetryTables";
 import AddScheduledMaintenanceTemplateOwnerPermissions from "./AddScheduledMaintenanceTemplateOwnerPermissions";
+import RepairEpisodeNotificationRuleSeverity from "./RepairEpisodeNotificationRuleSeverity";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -332,6 +333,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * silent access.
    */
   new AddScheduledMaintenanceTemplateOwnerPermissions(),
+  /*
+   * Repairs the episode notification rules that were created with a NULL severity and so
+   * matched nothing the on-call path ever queried — the reason users who relied on the
+   * auto-created defaults received no alert-episode or incident-episode pages at all.
+   * Fans each NULL row out into one row per severity in its project (preserving the
+   * notification method and notifyAfterMinutes) and removes the original, which is both
+   * unreachable by the severity-filtered count query and invisible on the two episode
+   * rule pages. Idempotent and restartable, so a re-run is a clean no-op.
+   */
+  new RepairEpisodeNotificationRuleSeverity(),
 ];
 
 export default DataMigrations;

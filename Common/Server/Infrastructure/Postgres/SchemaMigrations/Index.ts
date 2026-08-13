@@ -517,6 +517,7 @@ import { AddMonitorDependency1786449497966 } from "./1786449497966-AddMonitorDep
 import { AddDeletedProjectTable1786461136170 } from "./1786461136170-AddDeletedProjectTable";
 import { MigrationName1786551733814 } from "./1786551733814-MigrationName";
 import { AddWorkflowLogStepTrace1786559879134 } from "./1786559879134-AddWorkflowLogStepTrace";
+import { AddOnCallNotificationFallbackColumns1786800000000 } from "./1786800000000-AddOnCallNotificationFallbackColumns";
 
 export default [
   InitialMigration,
@@ -1038,4 +1039,5 @@ export default [
   AddDeletedProjectTable1786461136170,
   MigrationName1786551733814,
   AddWorkflowLogStepTrace1786559879134,
+  AddOnCallNotificationFallbackColumns1786800000000,
 ];

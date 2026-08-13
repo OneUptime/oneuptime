@@ -1,10 +1,15 @@
 import UserOnCallLogService from "../../../Server/Services/UserOnCallLogService";
-import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
+import UserNotificationRuleService, {
+  FallbackNotificationOutcome,
+} from "../../../Server/Services/UserNotificationRuleService";
 import OnCallDutyPolicyExecutionLogTimelineService from "../../../Server/Services/OnCallDutyPolicyExecutionLogTimelineService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import AlertService from "../../../Server/Services/AlertService";
 import AlertEpisodeService from "../../../Server/Services/AlertEpisodeService";
 import IncidentEpisodeService from "../../../Server/Services/IncidentEpisodeService";
+import ProjectService from "../../../Server/Services/ProjectService";
+import UserService from "../../../Server/Services/UserService";
+import Project from "../../../Models/DatabaseModels/Project";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
@@ -25,28 +30,31 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * to a human. A UserOnCallLog row is written by the escalation machinery, and
  * this hook decides whether the responder's phone rings.
  *
- * The branch these tests are mostly about is the "no rules" dead-end at
- * UserOnCallLogService.ts:329. When the responder has ZERO UserNotificationRule
- * rows matching (ruleType x severity), the hook writes `Error` plus a status
- * message onto the log and onto the on-call timeline, and RETURNS. Nothing is
- * sent. Nobody is emailed. The escalation timer keeps running as if the person
- * had simply chosen not to acknowledge. This is Gap C in
- * Internal/Roadmap/OnCallNotificationReadiness.md, and Phase 1 replaces the
- * dead-end with a verified-method fallback.
+ * The branch these tests are mostly about USED to be a dead-end. When the
+ * responder had ZERO UserNotificationRule rows matching (ruleType x severity),
+ * the hook wrote `Error` plus a status message onto the log and onto the on-call
+ * timeline, and RETURNED. Nothing was sent. Nobody was emailed. The escalation
+ * timer kept running as if the person had simply chosen not to acknowledge. That
+ * is Gap C in Internal/Roadmap/OnCallNotificationReadiness.md.
  *
- * Everything in section (A) below therefore pins behaviour that is DELIBERATELY
- * WRONG today and is expected to change:
+ * GAP C CLOSED IN PHASE 1. The zero-rule branch now asks three questions in
+ * order, and section (A) below pins all three:
  *
- *   GAP C - Phase 1 replaces this dead-end with a verified-method fallback
- *           (status Success + "notified via fallback (<method>)"), an explicit
- *           opt-out path (status Skipped), and an owner-notification event. The
- *           assertions on `UserNotificationExecutionStatus.Error` and on the
- *           exact "No notification rules found for this user..." string are the
- *           ones a later phase must invert.
+ *   1. Is there an isOptOut row for this exact (ruleType x severity)? Then the
+ *      silence was asked for: status Completed, timeline Skipped, nothing sent.
+ *   2. Has the project set disableOnCallNotificationFallback? Then it wants the
+ *      old behaviour, and it gets it verbatim - the same Error, the same
+ *      sentence. That path is the reason the exact
+ *      "No notification rules found for this user..." string is still pinned
+ *      here, character for character.
+ *   3. Otherwise: the verified-method fallback. Delivered => status Executing
+ *      plus "notified via fallback (<channels>)" and a Notification Sent
+ *      timeline row. Nothing verified to deliver on => a loud, terminal Error
+ *      that names the responder and says where to fix it.
  *
- * The rest of the file pins the surrounding machinery that the fallback has to
- * keep working: which severity id is threaded into the rule count for each of
- * the four trigger kinds, the exact option bag handed to
+ * The rest of the file pins the surrounding machinery the fallback has to keep
+ * working: which severity id is threaded into the rule count for each of the
+ * four trigger kinds, the exact option bag handed to
  * executeNotificationRuleItem, the event-type -> rule-type mapping, the
  * execution-status -> timeline-status translation in onUpdateSuccess, and the
  * unconditional `status = Scheduled` stamp in onBeforeCreate.
@@ -110,12 +118,29 @@ const RULE_B_ID: ObjectID = new ObjectID(
 );
 
 /*
- * The literal the dead-end writes. Copied character-for-character from
- * UserOnCallLogService.ts:335 and :348 - it is written twice, and both copies
- * must agree or the log and the timeline tell the operator different stories.
+ * The literal the pre-fallback dead-end wrote, and still the literal written on
+ * the ONE path that asks for the old behaviour:
+ * project.disableOnCallNotificationFallback. Copied character-for-character from
+ * UserOnCallLogService's NO_NOTIFICATION_RULES_STATUS_MESSAGE - it is written to
+ * both the log and the timeline, and both copies must agree or they tell the
+ * operator different stories.
  */
 const NO_RULES_MESSAGE: string =
   "No notification rules found for this user. User should add the rules in User Settings > On-Call Rules.";
+
+/* The channel the stubbed fallback claims to have delivered on. */
+const FALLBACK_CHANNEL: string = "Email";
+
+/*
+ * A project row shaped the way the no-rule path reads it. `undefined` means the
+ * fallback is enabled, which is the product default.
+ */
+function makeProject(disableOnCallNotificationFallback?: boolean): Project {
+  return {
+    _id: PROJECT_ID.toString(),
+    disableOnCallNotificationFallback: disableOnCallNotificationFallback,
+  } as unknown as Project;
+}
 
 interface StatusUpdateCall {
   id: ObjectID;
@@ -255,7 +280,11 @@ let logUpdateSpy: jest.SpyInstance;
 let timelineUpdateSpy: jest.SpyInstance;
 let countBySpy: jest.SpyInstance;
 let ruleFindBySpy: jest.SpyInstance;
+let ruleFindOneBySpy: jest.SpyInstance;
 let executeRuleSpy: jest.SpyInstance;
+let fallbackSpy: jest.SpyInstance;
+let projectFindOneByIdSpy: jest.SpyInstance;
+let userFindOneByIdSpy: jest.SpyInstance;
 
 function statusUpdates(): Array<StatusUpdateCall> {
   return logUpdateSpy.mock.calls.map(
@@ -291,9 +320,37 @@ beforeEach(() => {
     .spyOn(UserNotificationRuleService, "findBy")
     .mockResolvedValue([] as never);
 
+  /*
+   * The opt-out lookup. "No opt-out row" is the default for this file: the
+   * interesting default is the one where a page SHOULD go out.
+   */
+  ruleFindOneBySpy = jest
+    .spyOn(UserNotificationRuleService, "findOneBy")
+    .mockResolvedValue(null as never);
+
   executeRuleSpy = jest
     .spyOn(UserNotificationRuleService, "executeNotificationRuleItem")
     .mockResolvedValue(undefined as never);
+
+  // Fallback enabled (the product default), and it reaches somebody.
+  projectFindOneByIdSpy = jest
+    .spyOn(ProjectService, "findOneById")
+    .mockResolvedValue(makeProject() as never);
+
+  fallbackSpy = jest
+    .spyOn(UserNotificationRuleService, "executeFallbackNotification")
+    .mockResolvedValue({
+      notified: true,
+      channelsUsed: [FALLBACK_CHANNEL],
+    } as never);
+
+  /*
+   * Only ever read to put a name in a failure message, so a null user is a
+   * perfectly good default - the message degrades to "This responder".
+   */
+  userFindOneByIdSpy = jest
+    .spyOn(UserService, "findOneById")
+    .mockResolvedValue(null as never);
 
   jest.spyOn(IncidentService, "findOneById").mockResolvedValue({
     incidentSeverityId: INCIDENT_SEVERITY_ID,
@@ -315,67 +372,231 @@ afterEach(() => {
 
 /*
  * ------------------------------------------------------------------------- *
- * (A) onCreateSuccess - the "no rules" dead-end.
+ * (A) onCreateSuccess - the "no rules" branch, and the three answers it now
+ *     has for it.
  * -------------------------------------------------------------------------
  */
 
 describe("UserOnCallLogService.onCreateSuccess - zero matching notification rules", () => {
   /*
-   * GAP C - Phase 1 inverts these assertions.
+   * GAP C CLOSED - these assertions are the inverted ones.
    *
-   * Every test in this describe block asserts that a responder with no matching
-   * rule is silently dropped: the log is marked Error, the timeline is marked
-   * Error, and nothing at all is sent. That is today's behaviour and it is the
-   * bug the readiness plan exists to fix.
+   * Every test in this describe block used to assert that a responder with no
+   * matching rule was silently dropped: log Error, timeline Error, nothing sent.
+   * They now assert the opposite - that the fallback carries the page and both
+   * records say so.
    */
 
-  test("the log is marked Error - a terminal status no worker re-selects", async () => {
+  test("the log ends at Executing, not at a terminal Error", async () => {
     await callOnCreateSuccess(makeCreatedLog(INCIDENT_LOG));
 
     const updates: Array<StatusUpdateCall> = statusUpdates();
 
     /*
-     * Two writes, in order: the hook first flips the freshly-created row to
-     * Started, then - finding no rules - straight to Error.
+     * Still exactly two writes, in order: the hook flips the freshly-created row
+     * to Started, then - having reached somebody through the fallback - to
+     * Executing, which is where the normal path leaves it too. The worker's next
+     * tick finds no outstanding rules and closes it out as Completed.
      */
     expect(updates).toHaveLength(2);
     expect(updates[0]!.data.status).toBe(
       UserNotificationExecutionStatus.Started,
     );
-    expect(updates[1]!.data.status).toBe(UserNotificationExecutionStatus.Error);
+    expect(updates[1]!.data.status).toBe(
+      UserNotificationExecutionStatus.Executing,
+    );
     expect(updates[1]!.id.toString()).toBe(LOG_ID.toString());
     expect(updates[1]!.props.isRoot).toBe(true);
   });
 
-  test("the log's statusMessage is the exact setup-your-rules string", async () => {
+  test("the log's statusMessage names the fallback and the channel it used", async () => {
     await callOnCreateSuccess(makeCreatedLog(INCIDENT_LOG));
 
     const updates: Array<StatusUpdateCall> = statusUpdates();
 
-    expect(updates[1]!.data.statusMessage).toBe(NO_RULES_MESSAGE);
-    // The message points at a settings page. Nothing emails the user it.
     expect(updates[1]!.data.statusMessage).toContain(
-      "User Settings > On-Call Rules",
+      "No notification rule configured for",
     );
+    expect(updates[1]!.data.statusMessage).toContain("notified via fallback");
+    expect(updates[1]!.data.statusMessage).toContain(FALLBACK_CHANNEL);
+    // The old dead-end sentence is not written on this path at all.
+    expect(updates[1]!.data.statusMessage).not.toBe(NO_RULES_MESSAGE);
   });
 
-  test("the on-call timeline gets the SAME Error status and the SAME message", async () => {
+  test("the on-call timeline says Notification Sent with the SAME message", async () => {
     await callOnCreateSuccess(makeCreatedLog(INCIDENT_LOG));
 
     const timeline: Array<TimelineUpdateCall> = timelineUpdates();
+    const updates: Array<StatusUpdateCall> = statusUpdates();
 
     expect(timeline).toHaveLength(1);
     expect(timeline[0]!.id.toString()).toBe(TIMELINE_ID.toString());
     expect(timeline[0]!.data.status).toBe(
-      OnCallDutyExecutionLogTimelineStatus.Error,
+      OnCallDutyExecutionLogTimelineStatus.NotificationSent,
     );
-    expect(timeline[0]!.data.statusMessage).toBe(NO_RULES_MESSAGE);
+    /*
+     * The log and the timeline must keep telling the operator the same story -
+     * that was true of the dead-end's two copies and it stays true here.
+     */
+    expect(timeline[0]!.data.statusMessage).toBe(
+      updates[1]!.data.statusMessage,
+    );
     expect(timeline[0]!.props.isRoot).toBe(true);
   });
 
-  test("executeNotificationRuleItem is NEVER called - the responder is not paged", async () => {
+  test("the opt-out lookup asks for exactly the cell the count came up empty for", async () => {
     await callOnCreateSuccess(makeCreatedLog(INCIDENT_LOG));
 
+    expect(ruleFindOneBySpy).toHaveBeenCalledTimes(1);
+    const query: Record<string, unknown> = (
+      ruleFindOneBySpy.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+
+    expect((query["userId"] as ObjectID).toString()).toBe(USER_ID.toString());
+    expect((query["projectId"] as ObjectID).toString()).toBe(
+      PROJECT_ID.toString(),
+    );
+    expect(query["ruleType"]).toBe(
+      NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+    );
+    expect((query["incidentSeverityId"] as ObjectID).toString()).toBe(
+      INCIDENT_SEVERITY_ID.toString(),
+    );
+    expect(query["isOptOut"]).toBe(true);
+  });
+
+  test("an opt-out row means intentional silence: Completed, Skipped, nothing sent", async () => {
+    ruleFindOneBySpy.mockResolvedValue(makeRule(RULE_A_ID) as never);
+
+    await callOnCreateSuccess(makeCreatedLog(INCIDENT_LOG));
+
+    const updates: Array<StatusUpdateCall> = statusUpdates();
+    const timeline: Array<TimelineUpdateCall> = timelineUpdates();
+
+    expect(updates[1]!.data.status).toBe(
+      UserNotificationExecutionStatus.Completed,
+    );
+    expect(updates[1]!.data.statusMessage).toContain("opted out");
+    expect(timeline[0]!.data.status).toBe(
+      OnCallDutyExecutionLogTimelineStatus.Skipped,
+    );
+
+    /*
+     * The point of the opt-out row: it is checked BEFORE the project setting and
+     * before any delivery, so nothing is dispatched and no project read is even
+     * needed.
+     */
+    expect(fallbackSpy).not.toHaveBeenCalled();
+    expect(projectFindOneByIdSpy).not.toHaveBeenCalled();
+    expect(executeRuleSpy).not.toHaveBeenCalled();
+  });
+
+  test("disableOnCallNotificationFallback restores the old dead-end, word for word", async () => {
+    projectFindOneByIdSpy.mockResolvedValue(makeProject(true) as never);
+
+    await callOnCreateSuccess(makeCreatedLog(INCIDENT_LOG));
+
+    const updates: Array<StatusUpdateCall> = statusUpdates();
+    const timeline: Array<TimelineUpdateCall> = timelineUpdates();
+
+    expect(updates).toHaveLength(2);
+    expect(updates[1]!.data.status).toBe(UserNotificationExecutionStatus.Error);
+    expect(updates[1]!.data.statusMessage).toBe(NO_RULES_MESSAGE);
+    expect(updates[1]!.data.statusMessage).toContain(
+      "User Settings > On-Call Rules",
+    );
+
+    expect(timeline).toHaveLength(1);
+    expect(timeline[0]!.data.status).toBe(
+      OnCallDutyExecutionLogTimelineStatus.Error,
+    );
+    expect(timeline[0]!.data.statusMessage).toBe(NO_RULES_MESSAGE);
+
+    // A project that opted out of the fallback is never billed for one either.
+    expect(fallbackSpy).not.toHaveBeenCalled();
+  });
+
+  test("a responder with nothing verified ends as an Error that says what to do", async () => {
+    /*
+     * The outcome is what separates the two Error endings, so it has to be set
+     * here. notified:false alone means only "nothing went out"; it is
+     * NoUsableNotificationMethod that says the responder is unreachable rather
+     * than that a send blew up, and the two get different messages because they
+     * need different actions from whoever reads the log.
+     */
+    fallbackSpy.mockResolvedValue({
+      notified: false,
+      outcome: FallbackNotificationOutcome.NoUsableNotificationMethod,
+      channelsUsed: [],
+    } as never);
+
+    await callOnCreateSuccess(makeCreatedLog(INCIDENT_LOG));
+
+    const updates: Array<StatusUpdateCall> = statusUpdates();
+    const timeline: Array<TimelineUpdateCall> = timelineUpdates();
+
+    expect(updates[1]!.data.status).toBe(UserNotificationExecutionStatus.Error);
+    expect(updates[1]!.data.statusMessage).toContain(
+      "has no verified notification method",
+    );
+    expect(updates[1]!.data.statusMessage).toContain(
+      "User Settings > Notification Methods",
+    );
+    expect(timeline[0]!.data.status).toBe(
+      OnCallDutyExecutionLogTimelineStatus.Error,
+    );
+
+    /*
+     * The responder is read TWICE on this path, and both reads are wanted.
+     * This function reads them for their name, to put a person rather than a
+     * uuid in the status message. OnCallNotificationAlertingService then reads
+     * them again for their email, because it emails the responder directly -
+     * and it has to do its own read regardless, since the
+     * disableOnCallNotificationFallback branch reaches it without ever
+     * computing a label. Threading the row through to save one query would
+     * couple a fire-and-forget notifier to the paging path it must never be
+     * able to slow down or break.
+     */
+    expect(userFindOneByIdSpy).toHaveBeenCalledTimes(2);
+  });
+
+  test("a fallback that throws is contained: the escalation is not taken down with it", async () => {
+    /*
+     * The caller is part-way through paging a whole escalation level. If this
+     * hook threw, every responder queued behind this one would be skipped.
+     */
+    fallbackSpy.mockRejectedValue(new Error("smtp exploded") as never);
+
+    const created: Model = makeCreatedLog(INCIDENT_LOG);
+
+    await expect(callOnCreateSuccess(created)).resolves.toBe(created);
+
+    const updates: Array<StatusUpdateCall> = statusUpdates();
+
+    /*
+     * Error, and deliberately so. The tempting alternative - leave the log
+     * Executing so "the next tick retries" - buys no retry at all: nothing
+     * re-enters this hook. What it would actually buy is
+     * ExecutePendingExecutions picking the log up, finding no due rules (there
+     * were none, which is why the fallback ran), and closing it out as
+     * Completed - which onUpdateSuccess renders on the escalation timeline as
+     * "Alert Sent" for a page nobody received.
+     */
+    expect(updates[1]!.data.status).toBe(UserNotificationExecutionStatus.Error);
+    expect(updates[1]!.data.statusMessage).toContain(
+      "the fallback delivery attempt failed",
+    );
+    expect(updates[1]!.data.statusMessage).toContain("was not delivered");
+  });
+
+  test("executeNotificationRuleItem is NEVER called - there is no rule to execute", async () => {
+    await callOnCreateSuccess(makeCreatedLog(INCIDENT_LOG));
+
+    /*
+     * Unchanged, and it is not a contradiction of the fallback: the fallback
+     * builds its own unsaved rules and delivers them itself, precisely because
+     * there is no persisted rule to hand to executeNotificationRuleItem.
+     */
     expect(executeRuleSpy).not.toHaveBeenCalled();
   });
 
@@ -384,7 +605,8 @@ describe("UserOnCallLogService.onCreateSuccess - zero matching notification rule
 
     /*
      * countBy answered zero, so the hook returns before the notifyAfterMinutes
-     * findBy. Any fallback added later has to live between those two points.
+     * findBy. The fallback lives between those two points, and reaches for the
+     * opt-out row with findOneBy rather than widening this count.
      */
     expect(countBySpy).toHaveBeenCalledTimes(1);
     expect(ruleFindBySpy).not.toHaveBeenCalled();
@@ -398,21 +620,20 @@ describe("UserOnCallLogService.onCreateSuccess - zero matching notification rule
     expect(returned).toBe(created);
   });
 
-  test("the log never reaches Executing and the timeline never says Alert Sent", async () => {
+  test("the timeline never says 'Alert Sent' - the fallback message is more specific", async () => {
     await callOnCreateSuccess(makeCreatedLog(INCIDENT_LOG));
 
-    const sawExecuting: boolean = statusUpdates().some(
-      (update: StatusUpdateCall): boolean => {
-        return update.data.status === UserNotificationExecutionStatus.Executing;
-      },
-    );
     const sawAlertSent: boolean = timelineUpdates().some(
       (update: TimelineUpdateCall): boolean => {
         return update.data.statusMessage === "Alert Sent";
       },
     );
 
-    expect(sawExecuting).toBe(false);
+    /*
+     * The normal path's timeline message is the generic "Alert Sent". The
+     * fallback deliberately writes something an operator can act on instead, so
+     * a fallback delivery is never mistaken for a configured one.
+     */
     expect(sawAlertSent).toBe(false);
   });
 });
@@ -421,8 +642,10 @@ describe("UserOnCallLogService.onCreateSuccess - severity threading per trigger 
   /*
    * Each trigger kind loads its own parent entity and threads THAT entity's
    * severity id into the rule count. Getting the wrong key here would count
-   * rules for a severity the incident does not have, which reads as "no rules"
-   * and lands in the same dead-end.
+   * rules for a severity the incident does not have, which reads as "no rules" -
+   * and now sends the responder down the fallback path for a cell they are in
+   * fact configured for, which is a subtler bug than the old dead-end, not a
+   * milder one.
    */
 
   test.each<
@@ -463,7 +686,7 @@ describe("UserOnCallLogService.onCreateSuccess - severity threading per trigger 
       EPISODE_INCIDENT_SEVERITY_ID,
     ],
   ])(
-    "a %s-triggered log counts rules by its own severity, then dead-ends on zero",
+    "a %s-triggered log counts rules by its own severity, then falls back on zero",
     async (
       _label: string,
       overrides: Record<string, unknown>,
@@ -486,13 +709,20 @@ describe("UserOnCallLogService.onCreateSuccess - severity threading per trigger 
       expect(call.limit).toBe(LIMIT_PER_PROJECT);
       expect(call.props.isRoot).toBe(true);
 
-      // GAP C - Phase 1 inverts this: the zero-rule dead-end for every kind.
+      /*
+       * GAP C CLOSED - all four trigger kinds now reach the fallback, and each
+       * hands it ITS OWN rule type so the fallback reasons about the right cell.
+       */
+      const fallbackOptions: Record<string, unknown> = fallbackSpy.mock
+        .calls[0]![0] as Record<string, unknown>;
+      expect(fallbackOptions["ruleType"]).toBe(expectedRuleType);
+
       const updates: Array<StatusUpdateCall> = statusUpdates();
       expect(updates[updates.length - 1]!.data.status).toBe(
-        UserNotificationExecutionStatus.Error,
+        UserNotificationExecutionStatus.Executing,
       );
-      expect(updates[updates.length - 1]!.data.statusMessage).toBe(
-        NO_RULES_MESSAGE,
+      expect(updates[updates.length - 1]!.data.statusMessage).toContain(
+        "notified via fallback",
       );
       expect(executeRuleSpy).not.toHaveBeenCalled();
     },
@@ -507,21 +737,34 @@ describe("UserOnCallLogService.onCreateSuccess - severity threading per trigger 
      * An alert-triggered log queries alertSeverityId ONLY - incidentSeverityId
      * is not part of the object at all, so the count is not accidentally
      * narrowed by an incident severity.
+     *
+     * isOptOut is the fifth key and is load-bearing: without it an opt-out row
+     * counts as a matching rule, the zero-rule branch is never entered, and the
+     * immediate-rule lookup then executes the opt-out as though it were a real
+     * rule - sending nothing while the escalation timeline records
+     * "Alert Sent". Removing it from this list would let that regression back
+     * in silently.
      */
     expect(Object.keys(call.query).sort()).toEqual([
       "alertSeverityId",
+      "isOptOut",
       "projectId",
       "ruleType",
       "userId",
     ]);
   });
 
-  test("a missing parent entity still dead-ends, with an undefined severity in the query", async () => {
+  test("a missing parent entity still counts with an undefined severity in the query", async () => {
     /*
      * findOneById returning null (deleted incident, or a read that raced the
-     * write) makes `incident?.incidentSeverityId` undefined. Today that is
-     * passed straight through as the query value rather than being treated as
-     * an error, and the responder lands in the same silent dead-end.
+     * write) makes `incident?.incidentSeverityId` undefined. That is still
+     * passed straight through as the query value rather than being treated as an
+     * error - unchanged - so the count comes back zero.
+     *
+     * GAP C CLOSED - what changed is the consequence. The responder used to land
+     * in the silent dead-end; they now go to the fallback, which is the right
+     * answer for a race: somebody is on call for something, and losing the
+     * parent row is no reason to lose the page too.
      */
     jest.spyOn(IncidentService, "findOneById").mockResolvedValue(null as never);
 
@@ -532,24 +775,29 @@ describe("UserOnCallLogService.onCreateSuccess - severity threading per trigger 
 
     const updates: Array<StatusUpdateCall> = statusUpdates();
     expect(updates[updates.length - 1]!.data.status).toBe(
-      UserNotificationExecutionStatus.Error,
+      UserNotificationExecutionStatus.Executing,
     );
+    expect(fallbackSpy).toHaveBeenCalledTimes(1);
   });
 
-  test("a log with no trigger id at all counts nothing and dead-ends", async () => {
+  test("a log with no trigger id at all counts nothing and falls back", async () => {
     /*
      * ruleCount starts at PositiveNumber(0) and none of the four `if` blocks
      * run, so countBy is never called and the hook falls straight into the
      * zero-rule branch.
+     *
+     * GAP C CLOSED - and out the other side into the fallback rather than an
+     * Error.
      */
     await callOnCreateSuccess(makeCreatedLog());
 
     expect(countBySpy).not.toHaveBeenCalled();
     const updates: Array<StatusUpdateCall> = statusUpdates();
     expect(updates[updates.length - 1]!.data.status).toBe(
-      UserNotificationExecutionStatus.Error,
+      UserNotificationExecutionStatus.Executing,
     );
     expect(executeRuleSpy).not.toHaveBeenCalled();
+    expect(fallbackSpy).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -711,6 +959,7 @@ describe("UserOnCallLogService.onCreateSuccess - at least one matching rule", ()
     expect(Object.keys(call.query).sort()).toEqual([
       "alertSeverityId",
       "incidentSeverityId",
+      "isOptOut",
       "notifyAfterMinutes",
       "projectId",
       "ruleType",
