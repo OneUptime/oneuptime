@@ -398,6 +398,17 @@ export default class InventoryItem {
    * cluster/namespace identity so e.g. the "default" namespace in two
    * clusters does not collide.
    */
+  private static readonly kubernetesIdentityAttributeKeys: ReadonlyArray<string> =
+    [
+      "k8s.cluster.name",
+      "k8s.namespace.name",
+      "k8s.node.name",
+      "k8s.node.uid",
+      "k8s.pod.name",
+      "k8s.pod.uid",
+      "k8s.deployment.name",
+    ];
+
   private static readonly resolvers: Array<
     (
       attrs: EntityAttributes,
@@ -441,13 +452,19 @@ export default class InventoryItem {
      * here on host.id would make the host entity key unmatchable on the read
      * side (`InventoryItem.keyForHost(hostIdentifier)`). Moving host
      * identity to host.id is a separate, deferred hardening that would
-     * migrate the MV and this identity together. A k8s node (which carries
-     * k8s.node.name, not host.name, and is rejected by autoDiscoverHost) is
-     * cataloged via the dedicated `k8s.node` entity, not as a host.
+     * migrate the MV and this identity together.
+     *
+     * Application SDKs running inside Kubernetes commonly auto-detect the
+     * pod hostname and publish it as `host.name`. That value does not identify
+     * a machine: the same resource's k8s.* identity identifies the pod, node,
+     * namespace, deployment and cluster that Inventory should catalog. Match
+     * autoDiscoverHost's phantom-host gate by refusing the heuristic Host
+     * whenever a Kubernetes identity is present. Explicit OTLP entity_refs
+     * remain authoritative because they bypass these heuristic resolvers.
      */
     (attrs: EntityAttributes) => {
       const hostName: string | null = InventoryItem.str(attrs, "host.name");
-      if (!hostName) {
+      if (!hostName || InventoryItem.hasKubernetesIdentity(attrs)) {
         return null;
       }
       return { entityType: EntityType.Host, id: { "host.name": hostName } };
@@ -723,7 +740,11 @@ export default class InventoryItem {
       "telemetry.sdk.name",
       "telemetry.sdk.version",
     ],
-    [EntityType.KubernetesNode]: ["node.kubernetes.io/instance-type"],
+    [EntityType.KubernetesNode]: [
+      "k8s.node.name",
+      "node.kubernetes.io/instance-type",
+    ],
+    [EntityType.KubernetesPod]: ["k8s.pod.name"],
     [EntityType.Container]: [
       "container.image.name",
       "container.image.tag",
@@ -793,6 +814,22 @@ export default class InventoryItem {
     }
     return value.filter((item: unknown): item is string => {
       return typeof item === "string" && item.trim().length > 0;
+    });
+  }
+
+  /**
+   * Whether a resource carries identity for a Kubernetes object.
+   *
+   * Include UID-only pod/node resources because their resolvers accept the UID
+   * as identity when the name is absent. Cluster UID is deliberately excluded:
+   * cluster identity is name-keyed throughout OneUptime, so a UID without
+   * `k8s.cluster.name` cannot be attached to a KubernetesCluster inventory
+   * item. The keys here must stay aligned with identities the resolvers below
+   * can actually emit.
+   */
+  private static hasKubernetesIdentity(attrs: EntityAttributes): boolean {
+    return this.kubernetesIdentityAttributeKeys.some((key: string): boolean => {
+      return this.str(attrs, key) !== null;
     });
   }
 
