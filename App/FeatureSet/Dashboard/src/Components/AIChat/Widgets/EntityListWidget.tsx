@@ -1,7 +1,13 @@
-import { AIChatWidget, AIChatWidgetType } from "Common/Types/AI/AIChatTypes";
+import {
+  AIChatCitationTarget,
+  AIChatCitationTargetType,
+  AIChatWidget,
+  AIChatWidgetType,
+} from "Common/Types/AI/AIChatTypes";
 import { JSONObject } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
 import React, { FunctionComponent, ReactElement } from "react";
+import { navigateToCitationTarget } from "../CitationTargetNav";
 
 export interface ComponentProps {
   widget: AIChatWidget;
@@ -112,10 +118,44 @@ const EntityListWidget: FunctionComponent<ComponentProps> = (
           ? toStr(item["alertNumber"])
           : toStr(item["incidentNumber"]);
 
+        /*
+         * Rows the AI just found should be one click from the entity itself —
+         * incidents and alerts carry their id, so deep-link straight to it.
+         */
+        const rowId: string = toStr(item["id"]);
+        const rowTarget: AIChatCitationTarget | undefined = rowId
+          ? isAlert
+            ? {
+                type: AIChatCitationTargetType.AlertView,
+                params: { alertId: rowId },
+              }
+            : {
+                type: AIChatCitationTargetType.IncidentView,
+                params: { incidentId: rowId },
+              }
+          : undefined;
+
         return (
           <div
             key={index}
-            className="rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-2.5"
+            role={rowTarget ? "button" : undefined}
+            tabIndex={rowTarget ? 0 : undefined}
+            onClick={() => {
+              if (rowTarget) {
+                navigateToCitationTarget(rowTarget);
+              }
+            }}
+            onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
+              if (rowTarget && (event.key === "Enter" || event.key === " ")) {
+                event.preventDefault();
+                navigateToCitationTarget(rowTarget);
+              }
+            }}
+            className={`rounded-lg border border-gray-200 bg-gray-50/70 px-3 py-2.5 ${
+              rowTarget
+                ? "cursor-pointer transition-colors hover:border-gray-300 hover:bg-gray-100"
+                : ""
+            }`}
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">

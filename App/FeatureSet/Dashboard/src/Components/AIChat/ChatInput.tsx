@@ -18,6 +18,13 @@ export interface ComponentProps {
   canSend: boolean;
   isWorking: boolean;
   /*
+   * When provided and a run is working, the send button becomes a Stop button
+   * that cancels the in-flight run — operators learn things mid-investigation
+   * and should never be locked out for the full turn budget.
+   */
+  onStop?: (() => void) | undefined;
+  isStopping?: boolean | undefined;
+  /*
    * Optional control rendered on the left of the composer footer (the model
    * switcher). Kept as a slot so the composer stays reusable across surfaces.
    */
@@ -91,25 +98,43 @@ const ChatInput: FunctionComponent<ComponentProps> = (
             }}
             className="max-h-40 flex-1 resize-none border-0 bg-transparent p-0 text-sm leading-6 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
           />
-          <button
-            type="button"
-            title="Send (Enter)"
-            disabled={!isSendable}
-            onClick={() => {
-              trySend();
-            }}
-            className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors ${
-              isSendable
-                ? "bg-gray-900 text-white hover:bg-gray-800"
-                : "bg-gray-100 text-gray-300"
-            }`}
-          >
-            {props.isWorking ? (
-              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-200 border-t-gray-400"></span>
-            ) : (
-              <Icon icon={IconProp.PaperAirplane} className="h-4 w-4" />
-            )}
-          </button>
+          {props.isWorking && props.onStop ? (
+            <button
+              type="button"
+              title="Stop generating"
+              disabled={props.isStopping}
+              onClick={() => {
+                props.onStop?.();
+              }}
+              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gray-900 text-white transition-colors hover:bg-gray-700"
+            >
+              {props.isStopping ? (
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-500 border-t-white"></span>
+              ) : (
+                <span className="h-2.5 w-2.5 rounded-[2px] bg-white"></span>
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              title="Send (Enter)"
+              disabled={!isSendable}
+              onClick={() => {
+                trySend();
+              }}
+              className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors ${
+                isSendable
+                  ? "bg-gray-900 text-white hover:bg-gray-800"
+                  : "bg-gray-100 text-gray-300"
+              }`}
+            >
+              {props.isWorking ? (
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-200 border-t-gray-400"></span>
+              ) : (
+                <Icon icon={IconProp.PaperAirplane} className="h-4 w-4" />
+              )}
+            </button>
+          )}
         </div>
       </div>
       <div className="mt-2.5 space-y-2 px-1">

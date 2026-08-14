@@ -635,6 +635,16 @@ const App: () => JSX.Element = () => {
             />
 
             <PageRoute
+              path={RouteMap[PageMap.AI_COPILOT_CONVERSATION]?.toString() || ""}
+              element={
+                <AICopilot
+                  {...commonPageProps}
+                  pageRoute={RouteMap[PageMap.AI_COPILOT_CONVERSATION] as Route}
+                />
+              }
+            />
+
+            <PageRoute
               path={
                 RouteMap[PageMap.HOME_NOT_OPERATIONAL_MONITORS]?.toString() ||
                 ""

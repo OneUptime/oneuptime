@@ -1,4 +1,6 @@
-import AIConversationMessage from "Common/Models/DatabaseModels/AIConversationMessage";
+import AIConversationMessage, {
+  AIConversationMessageFeedback,
+} from "Common/Models/DatabaseModels/AIConversationMessage";
 import AIRun from "Common/Models/DatabaseModels/AIRun";
 import AIChatMessageRole from "Common/Types/AI/AIChatMessageRole";
 import AIChatMessageStatus from "Common/Types/AI/AIChatMessageStatus";
@@ -11,6 +13,7 @@ import CitationChips from "./CitationChips";
 import SafeChatMarkdown from "./SafeChatMarkdown";
 import ToolApprovalCard, { ToolDecision } from "./ToolApprovalCard";
 import WidgetRenderer from "./Widgets/WidgetRenderer";
+import { ChatMessageFeedback } from "./useAiChat";
 
 export interface ComponentProps {
   messages: Array<AIConversationMessage>;
@@ -21,6 +24,10 @@ export interface ComponentProps {
     assistantMessageId: string,
     decisions: Array<ToolDecision>,
   ) => void;
+  // Thumbs rating on an assistant answer; clicking the active thumb clears it.
+  onFeedback?:
+    | ((messageId: string, feedback: ChatMessageFeedback | null) => void)
+    | undefined;
 }
 
 const ChatMessageList: FunctionComponent<ComponentProps> = (
@@ -162,6 +169,13 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
             </div>
 
             <div className="min-w-0 flex-1">
+              {message.status === AIChatMessageStatus.Cancelled && (
+                <div className="flex items-center gap-2 text-sm text-gray-400">
+                  <Icon icon={IconProp.StopCircle} className="h-4 w-4" />
+                  <span>{message.contentInMarkdown || "Stopped by user."}</span>
+                </div>
+              )}
+
               {message.status === AIChatMessageStatus.Error && (
                 <div className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3">
                   <div className="flex items-start gap-2.5">
@@ -233,6 +247,58 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
                           </>
                         )}
                       </button>
+                      {props.onFeedback && (
+                        <span className="flex items-center gap-0.5">
+                          <button
+                            type="button"
+                            title="Good answer"
+                            onClick={() => {
+                              props.onFeedback?.(
+                                messageId,
+                                message.userFeedback ===
+                                  AIConversationMessageFeedback.Up
+                                  ? null
+                                  : AIConversationMessageFeedback.Up,
+                              );
+                            }}
+                            className={`rounded-md p-1 transition-colors hover:bg-gray-100 ${
+                              message.userFeedback ===
+                              AIConversationMessageFeedback.Up
+                                ? "text-emerald-500"
+                                : "text-gray-400 hover:text-gray-600"
+                            }`}
+                          >
+                            <Icon
+                              icon={IconProp.HandThumbUp}
+                              className="h-3 w-3"
+                            />
+                          </button>
+                          <button
+                            type="button"
+                            title="Poor answer"
+                            onClick={() => {
+                              props.onFeedback?.(
+                                messageId,
+                                message.userFeedback ===
+                                  AIConversationMessageFeedback.Down
+                                  ? null
+                                  : AIConversationMessageFeedback.Down,
+                              );
+                            }}
+                            className={`rounded-md p-1 transition-colors hover:bg-gray-100 ${
+                              message.userFeedback ===
+                              AIConversationMessageFeedback.Down
+                                ? "text-rose-500"
+                                : "text-gray-400 hover:text-gray-600"
+                            }`}
+                          >
+                            <Icon
+                              icon={IconProp.HandThumbDown}
+                              className="h-3 w-3"
+                            />
+                          </button>
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>

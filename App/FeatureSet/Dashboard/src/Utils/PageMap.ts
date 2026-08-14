@@ -985,6 +985,8 @@ enum PageMap {
 
   // AI Copilot (full-page chat over observability data)
   AI_COPILOT = "AI_COPILOT",
+  // Same page, deep-linked to one conversation (shareable/bookmarkable).
+  AI_COPILOT_CONVERSATION = "AI_COPILOT_CONVERSATION",
 
   // Push Logs in resource views
 }

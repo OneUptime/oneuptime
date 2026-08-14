@@ -5487,6 +5487,10 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/ai/chat`,
   ),
 
+  [PageMap.AI_COPILOT_CONVERSATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai/chat/${RouteParams.ModelID}`,
+  ),
+
   [PageMap.LLM]: new Route(
     `/dashboard/${RouteParams.ProjectID}/llm/${LlmRoutePath[PageMap.LLM]}`,
   ),

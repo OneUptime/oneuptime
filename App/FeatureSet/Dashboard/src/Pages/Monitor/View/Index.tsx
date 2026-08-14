@@ -1,6 +1,7 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import DependencySuppressionWarning from "../../../Components/Monitor/DependencySuppressionWarning";
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
+import AskAIButton from "../../../Components/AIChat/AskAIButton";
 import IncomingMonitorLink from "../../../Components/Monitor/IncomingRequestMonitor/IncomingMonitorLink";
 import IncomingEmailMonitorLink from "../../../Components/Monitor/IncomingEmailMonitor/IncomingEmailMonitorLink";
 import ServerMonitorDocumentation from "../../../Components/Monitor/ServerMonitor/Documentation";
@@ -509,6 +510,9 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   return (
     <Fragment>
+      <div className="mb-4 flex justify-end">
+        <AskAIButton label="Ask AI about this monitor" />
+      </div>
       {monitor && monitor.isAllProbesDisconnectedFromThisMonitor && (
         <Alert
           type={AlertType.DANGER}

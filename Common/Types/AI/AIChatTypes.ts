@@ -24,6 +24,18 @@ export enum AIChatCitationTargetType {
   MonitorView = "MonitorView",
   ScheduledMaintenanceEvents = "ScheduledMaintenanceEvents",
   ScheduledMaintenanceView = "ScheduledMaintenanceView",
+  OnCallPolicies = "OnCallPolicies",
+  OnCallPolicyView = "OnCallPolicyView",
+  StatusPages = "StatusPages",
+  StatusPageView = "StatusPageView",
+  Slos = "Slos",
+  SloView = "SloView",
+  Runbooks = "Runbooks",
+  RunbookView = "RunbookView",
+  Workflows = "Workflows",
+  WorkflowView = "WorkflowView",
+  Probes = "Probes",
+  Teams = "Teams",
 }
 
 export interface AIChatCitationTarget {

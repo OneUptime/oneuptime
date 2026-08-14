@@ -100,6 +100,14 @@ export interface ObservabilityAssistantRequest {
    * an extra tool can never shadow a registered one.
    */
   extraTools?: Array<ObservabilityAssistantExtraTool> | undefined;
+  /*
+   * Toolbox tools withheld from the model for this run — and refused if the
+   * model somehow names one anyway. The autonomous investigation lane uses
+   * this to hide get_ai_investigation from itself: the "latest investigation"
+   * for the subject would be the model's own in-flight run, and polling it
+   * burns budget on a status that cannot resolve until this run finishes.
+   */
+  excludeToolNames?: Array<string> | undefined;
 }
 
 /*
@@ -178,6 +186,10 @@ export default class ObservabilityAssistant {
       }
     }
 
+    const excludedToolNames: Set<string> = new Set(
+      request.excludeToolNames || [],
+    );
+
     let systemPromptContent: string = buildObservabilityChatSystemPrompt({
       currentTime: OneUptimeDate.getCurrentDate(),
       /*
@@ -242,7 +254,11 @@ export default class ObservabilityAssistant {
         tools: budgetExhausted
           ? undefined
           : [
-              ...AIToolbox.getLlmToolDefinitions(AIChatPermissionMode.ReadOnly),
+              ...AIToolbox.getLlmToolDefinitions(
+                AIChatPermissionMode.ReadOnly,
+              ).filter((definition: LLMToolDefinition) => {
+                return !excludedToolNames.has(definition.name);
+              }),
               ...Array.from(extraToolsByName.values()).map(
                 (extraTool: ObservabilityAssistantExtraTool) => {
                   return extraTool.definition;
@@ -271,7 +287,13 @@ export default class ObservabilityAssistant {
       if (
         !budgetExhausted &&
         response.toolCalls &&
-        response.toolCalls.length > 0
+        response.toolCalls.length > 0 &&
+        /*
+         * A response truncated by the output cap can carry tool calls with
+         * cut-off arguments — never execute those; fall through to the
+         * final-answer path instead (mirrors ChatAgentRunner).
+         */
+        response.stopReason !== "length"
       ) {
         messages.push({
           role: "assistant",
@@ -317,7 +339,14 @@ export default class ObservabilityAssistant {
             extraToolsByName.get(toolCall.name);
 
           let outcome: ToolCallOutcome;
-          if (extraTool) {
+          if (excludedToolNames.has(toolCall.name)) {
+            // Defense in depth: excluded tools are refused even if named.
+            outcome = {
+              success: false,
+              textForLlm: `Error: ${toolCall.name} is not available in this run. Answer with the data you already have.`,
+              errorMessage: `Tool excluded for this run: ${toolCall.name}`,
+            };
+          } else if (extraTool) {
             try {
               outcome = await extraTool.execute(toolCall.arguments);
             } catch (err) {
