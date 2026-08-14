@@ -2,6 +2,7 @@ import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import Query from "../Query";
 import Select from "../Select";
 import ColumnPermissions from "./ColumnPermission";
+import OwnerOnlyColumnPermission from "./OwnerOnlyColumnPermission";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -24,9 +25,22 @@ import Permission, {
 import Typeof from "../../../../Types/Typeof";
 
 export default class QueryPermission {
+  /**
+   * Validates every column reached through a relation in the select.
+   *
+   * Takes the OUTER query as well as the select because two of the checks below
+   * cannot be answered from the select alone. Which COLUMNS a relation may
+   * expose is a property of the related model (canReadOnRelationQuery, the
+   * column's own read permissions); which ROWS the relation will expose is a
+   * property of the outer query, and nothing else - the related rows are
+   * whichever ones the join drags in. An owner-only column needs both answers,
+   * so the outer query is threaded down here rather than left behind in
+   * BasePermission.
+   */
   @CaptureSpan()
   public static checkRelationQueryPermission<TBaseModel extends BaseModel>(
     modelType: DatabaseBaseModelType,
+    query: Query<TBaseModel>,
     select: Select<TBaseModel>,
     props: DatabaseCommonInteractionProps,
   ): void {
@@ -80,6 +94,29 @@ export default class QueryPermission {
               );
             }
 
+            /*
+             * Owner-only columns are checked BEFORE the canReadOnRelationQuery
+             * short-circuit below, and that ordering is the whole point.
+             * canReadOnRelationQuery is a modelling flag meaning "this column is
+             * safe to surface as a label on a joined row"; it skips every
+             * permission check that follows it. The seven notification-method
+             * models set it on their identifier columns so that a user's own
+             * rule table can render "Email: jane@example.com" - which is
+             * correct, and which is also exactly how an administrator's widened
+             * read of the RULE table reaches into the METHOD table and lifts a
+             * phone number, an email address or a webhook URL belonging to
+             * somebody else. Nothing downstream of the `continue` can stop it,
+             * so the check has to happen here.
+             */
+            OwnerOnlyColumnPermission.checkRelationSelect({
+              modelType: modelType,
+              relationColumnName: key,
+              relatedModelType: tableColumnMetadata.modelType,
+              relatedColumnName: innerKey,
+              query: query as Query<BaseModel>,
+              props: props,
+            });
+
             if (
               !getRelatedTableColumnMetadata.canReadOnRelationQuery &&
               !excludedColumnNames.includes(innerKey)
@@ -131,6 +168,17 @@ export default class QueryPermission {
     props: DatabaseCommonInteractionProps,
   ): void {
     const model: BaseModel = new modelType();
+
+    /*
+     * A WHERE clause reads a value just as surely as a SELECT does, one guess
+     * at a time. The name-intersection below authorises a predicate on any
+     * column the caller may READ, and Permission.CurrentUser being auto-granted
+     * means an owner-only column passes that intersection for everybody - so
+     * `{ webhookUrl: "https://hooks.slack.com/services/T.../B.../x" }` is a
+     * confirm/deny oracle over somebody else's credential that never appears in
+     * any result set. Hold a predicate to the same standard as a select.
+     */
+    OwnerOnlyColumnPermission.checkQueryPermission(modelType, query, props);
 
     const userPermissions: Array<UserPermission> =
       DatabaseCommonInteractionPropsUtil.getUserPermissions(

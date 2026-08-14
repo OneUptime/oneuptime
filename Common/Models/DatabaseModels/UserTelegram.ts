@@ -4,6 +4,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import AllowAccessIfSubscriptionIsUnpaid from "../../Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnerOnlyColumn from "../../Types/Database/AccessControl/OwnerOnlyColumn";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -91,6 +92,12 @@ class UserTelegram extends BaseModel {
     read: [Permission.CurrentUser],
     update: [Permission.CurrentUser],
   })
+  /*
+   * The person's Telegram identity outside this product. It is how they are
+   * found and messaged by anyone at all, not just by OneUptime, so it is a
+   * personal contact detail rather than a label for a row.
+   */
+  @OwnerOnlyColumn()
   @TableColumn({
     title: "Telegram Handle",
     required: false,
@@ -114,6 +121,11 @@ class UserTelegram extends BaseModel {
     update: [],
   })
   @Index()
+  /*
+   * The chat the bot delivers into. Holding it is enough to send messages to
+   * that chat through the same bot, so it is a delivery target and not a label.
+   */
+  @OwnerOnlyColumn()
   @TableColumn({
     title: "Telegram Chat ID",
     required: false,
@@ -289,6 +301,11 @@ class UserTelegram extends BaseModel {
     read: [Permission.CurrentUser],
     update: [],
   })
+  /*
+   * A live verification code. Reading somebody else's is claiming their
+   * notification channel.
+   */
+  @OwnerOnlyColumn()
   @TableColumn({
     title: "Verification Code",
     description:
