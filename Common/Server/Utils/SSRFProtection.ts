@@ -345,9 +345,9 @@ export default class SSRFProtection {
    * True when an IPv6 literal points somewhere the server must never be made
    * to reach. Ranges, not spellings: loopback, unspecified, link-local
    * (fe80::/10), unique-local (fc00::/7) and multicast (ff00::/8), plus the
-   * three ways IPv6 can carry an IPv4 destination - IPv4-mapped
-   * (::ffff:0:0/96), IPv4-compatible (::/96) and the NAT64 well-known prefix
-   * (64:ff9b::/96) - which are handed to the IPv4 blocklist.
+   * ways IPv6 can embed IPv4 routing endpoints - IPv4-mapped (::ffff:0:0/96),
+   * IPv4-compatible (::/96), NAT64 (64:ff9b::/96), 6to4 (2002::/16), and
+   * Teredo (2001:0000::/32) - which are handed to the IPv4 blocklist.
    */
   private static isBlockedIpv6(address: string): boolean {
     const groups: Array<number> | null = SSRFProtection.expandIpv6(address);
@@ -365,9 +365,19 @@ export default class SSRFProtection {
       });
     };
 
-    const embeddedIpv4: () => string = (): string => {
-      const high: number = groups[6] as number;
-      const low: number = groups[7] as number;
+    const embeddedIpv4: (highGroupIndex: number, invert?: boolean) => string = (
+      highGroupIndex: number,
+      invert: boolean = false,
+    ): string => {
+      let high: number = groups[highGroupIndex] as number;
+      let low: number = groups[highGroupIndex + 1] as number;
+
+      // Teredo conceals the client IPv4 address by flipping all 32 bits.
+      if (invert) {
+        high ^= 0xffff;
+        low ^= 0xffff;
+      }
+
       return `${high >> 8}.${high & 0xff}.${low >> 8}.${low & 0xff}`;
     };
 
@@ -383,7 +393,7 @@ export default class SSRFProtection {
 
     // ::ffff:0:0/96 — IPv4-mapped.
     if (isZeroThrough(5) && groups[5] === 0xffff) {
-      return SSRFProtection.isBlockedIpv4(embeddedIpv4());
+      return SSRFProtection.isBlockedIpv4(embeddedIpv4(6));
     }
 
     // 64:ff9b::/96 — NAT64 well-known prefix.
@@ -395,12 +405,28 @@ export default class SSRFProtection {
       groups[4] === 0 &&
       groups[5] === 0
     ) {
-      return SSRFProtection.isBlockedIpv4(embeddedIpv4());
+      return SSRFProtection.isBlockedIpv4(embeddedIpv4(6));
     }
 
     // ::/96 — IPv4-compatible (deprecated, still routable by some stacks).
     if (isZeroThrough(6)) {
-      return SSRFProtection.isBlockedIpv4(embeddedIpv4());
+      return SSRFProtection.isBlockedIpv4(embeddedIpv4(6));
+    }
+
+    // 2002::/16 — 6to4 stores the IPv4 gateway in bits 16-48.
+    if (groups[0] === 0x2002) {
+      return SSRFProtection.isBlockedIpv4(embeddedIpv4(1));
+    }
+
+    /*
+     * 2001:0000::/32 — Teredo stores its server IPv4 in bits 32-64 and
+     * an inverted client IPv4 in the last 32 bits.
+     */
+    if (groups[0] === 0x2001 && groups[1] === 0) {
+      return (
+        SSRFProtection.isBlockedIpv4(embeddedIpv4(2)) ||
+        SSRFProtection.isBlockedIpv4(embeddedIpv4(6, true))
+      );
     }
 
     const first: number = groups[0] as number;

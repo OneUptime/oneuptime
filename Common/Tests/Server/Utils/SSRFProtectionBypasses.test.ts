@@ -64,6 +64,25 @@ describe("SSRFProtection — IPv4-mapped and IPv4-embedding IPv6", () => {
     ["metadata, IPv4-compatible", "http://[::169.254.169.254]/"],
     ["metadata via NAT64 prefix", "http://[64:ff9b::169.254.169.254]/"],
     ["loopback via NAT64 prefix", "http://[64:ff9b::127.0.0.1]/"],
+    ["metadata via 6to4", "http://[2002:a9fe:a9fe::]/"],
+    ["loopback via 6to4", "http://[2002:7f00:0001::]/"],
+    ["RFC-1918 via 6to4", "http://[2002:0a00:0001::]/"],
+    [
+      "metadata via Teredo",
+      "http://[2001:0000:4136:e378:8000:63bf:5601:5601]/",
+    ],
+    [
+      "loopback via Teredo",
+      "http://[2001:0000:4136:e378:8000:63bf:80ff:fffe]/",
+    ],
+    [
+      "RFC-1918 via Teredo",
+      "http://[2001:0000:4136:e378:8000:63bf:f5ff:fffe]/",
+    ],
+    [
+      "loopback Teredo server with public client",
+      "http://[2001:0000:7f00:0001:8000:63bf:f7f7:f7f7]/",
+    ],
   ];
 
   test.each(blocked)("blocks %s", async (_label: string, url: string) => {
@@ -75,6 +94,11 @@ describe("SSRFProtection — IPv4-mapped and IPv4-embedding IPv6", () => {
   const allowed: Array<[string, string]> = [
     ["a public address, IPv4-mapped", "http://[::ffff:8.8.8.8]/"],
     ["a public address via NAT64", "http://[64:ff9b::8.8.8.8]/"],
+    ["a public address via 6to4", "http://[2002:0808:0808::]/"],
+    [
+      "a public address via Teredo",
+      "http://[2001:0000:4136:e378:8000:63bf:f7f7:f7f7]/",
+    ],
   ];
 
   test.each(allowed)("allows %s", async (_label: string, url: string) => {
