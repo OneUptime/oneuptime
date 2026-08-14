@@ -6,11 +6,11 @@ import {
   test,
 } from "@playwright/test";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import Faker from "Common/Utils/Faker";
 import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
 import { createItem, JSONish, toId } from "./Helpers/MonitorAlerting";
+import { serialize } from "./Helpers/Serialize";
 import { publicPost, publicPostStatus } from "./Helpers/StatusPagePublic";
 
 /*
@@ -164,9 +164,9 @@ type SloHistoryAggregateByFunction = (data: {
 
 /*
  * The exact body SloWidgetData.aggregateSloHistory posts — the full
- * aggregateBy the chart builds, run through JSONFunctions.serialize, so the
- * timestamps travel as `{_type: "DateTime", value: ...}` rather than as bare
- * ISO strings.
+ * aggregateBy the chart builds, run through serialize (a faithful stand-in for
+ * JSONFunctions.serialize; see ./Helpers/Serialize), so the timestamps travel
+ * as `{_type: "DateTime", value: ...}` rather than as bare ISO strings.
  *
  * Hand-rolling a simpler shape here would exercise a wire format nothing in
  * the product actually emits, and this spec is the only place the real one
@@ -176,7 +176,7 @@ const sloHistoryAggregateBy: SloHistoryAggregateByFunction = (data: {
   startDate: Date;
   endDate: Date;
 }): JSONish => {
-  return JSONFunctions.serialize({
+  return serialize({
     /*
      * The real client sends its own query alongside the window. The server
      * discards it and rebuilds from the stored widget, so this one names an
