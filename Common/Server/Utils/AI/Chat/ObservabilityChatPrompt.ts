@@ -10,17 +10,23 @@ import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
  * untrusted data.
  */
 
+/*
+ * The action list shared by the two modes that can act. Read-only names the
+ * same tools so the model can explain what switching modes unlocks.
+ */
+const ACTION_LIST: string = `create incidents, acknowledge or resolve incidents and alerts, post internal notes (create_incident_note / create_alert_note — visible only to the team, never notifies status page subscribers; post_incident_status_update is the public counterpart), start an autonomous AI investigation (start_investigation), and change code (open_code_pull_request, commit_code_to_branch)`;
+
 function buildActionGuidance(mode: AIChatPermissionMode): string {
   if (mode === AIChatPermissionMode.ReadOnly) {
-    return `5. This conversation is READ-ONLY. You have only read tools — you cannot modify anything, and you must not claim to have taken any action. If the user asks you to create an incident, acknowledge an alert, change code, or make any other change, explain that read-only mode is on and they can switch modes to let you act.`;
+    return `5. This conversation is READ-ONLY. You have only read tools — you cannot modify anything, and you must not claim to have taken any action. If the user asks you to create an incident, acknowledge an alert, post an internal note (create_incident_note / create_alert_note), start an investigation (start_investigation), change code, or make any other change, explain that read-only mode is on and they can switch modes to let you act.`;
   }
 
   if (mode === AIChatPermissionMode.AutoRun) {
-    return `5. You can take actions: create incidents, acknowledge or resolve incidents and alerts, and change code (open_code_pull_request, commit_code_to_branch). Actions you request run IMMEDIATELY without a separate confirmation. Because of that, only take an action the user clearly asked for; if intent is ambiguous, ask a clarifying question instead of acting. Read the relevant data first (e.g. query_incidents to get an incidentId, or read_code_file before rewriting a file) before acting on it. After an action succeeds, tell the user exactly what you did.`;
+    return `5. You can take actions: ${ACTION_LIST}. Actions you request run IMMEDIATELY without a separate confirmation. Because of that, only take an action the user clearly asked for; if intent is ambiguous, ask a clarifying question instead of acting. Read the relevant data first (e.g. query_incidents to get an incidentId, or read_code_file before rewriting a file) before acting on it. After an action succeeds, tell the user exactly what you did.`;
   }
 
   // AskForApproval (default)
-  return `5. You can take actions: create incidents, acknowledge or resolve incidents and alerts, and change code (open_code_pull_request, commit_code_to_branch). When the user asks you to act, call the appropriate tool — the user is shown an approval card and must APPROVE each action before it runs, so propose the action rather than asking "should I?" in prose. Read the relevant data first (e.g. query_incidents to get an incidentId, or read_code_file before rewriting a file) before acting on it. If an action is denied, acknowledge it was not done and continue helping. Never claim an action happened unless the tool result confirms it.`;
+  return `5. You can take actions: ${ACTION_LIST}. When the user asks you to act, call the appropriate tool — the user is shown an approval card and must APPROVE each action before it runs, so propose the action rather than asking "should I?" in prose. Read the relevant data first (e.g. query_incidents to get an incidentId, or read_code_file before rewriting a file) before acting on it. If an action is denied, acknowledge it was not done and continue helping. Never claim an action happened unless the tool result confirms it.`;
 }
 
 /*
@@ -37,9 +43,9 @@ function buildEntityContextGuidance(context: AIChatPageContext): string {
 
   switch (context.type) {
     case AIChatPageContextType.Incident:
-      return `an incident${titlePart}. Fetch its full details with query_incidents using incidentId="${id}" before answering questions about it. Incident actions (acknowledge_incident, resolve_incident, post_incident_status_update, change_incident_severity, page_on_call_policy, run_runbook) take this same incidentId. Use the incident's start time and affected monitors to scope log, trace and metric queries when investigating it.`;
+      return `an incident${titlePart}. Fetch its full details with query_incidents using incidentId="${id}" before answering questions about it. An autonomous AI investigation may already exist for this incident — call get_ai_investigation first and build on (and cite) its findings rather than re-deriving them from raw telemetry. get_incident_timeline is how to answer "what's the latest": it returns the incident's state changes, notes and notifications in order. Incident actions (acknowledge_incident, resolve_incident, post_incident_status_update, change_incident_severity, page_on_call_policy, run_runbook) take this same incidentId. Use the incident's start time and affected monitors to scope log, trace and metric queries when investigating it.`;
     case AIChatPageContextType.Alert:
-      return `an alert${titlePart}. Fetch its full details with query_alerts using alertId="${id}" before answering questions about it. Alert actions (acknowledge_alert, resolve_alert) take this same alertId. Use the alert's creation time to scope log, trace and metric queries when investigating it.`;
+      return `an alert${titlePart}. Fetch its full details with query_alerts using alertId="${id}" before answering questions about it. An autonomous AI investigation may already exist for this alert — call get_ai_investigation first and build on (and cite) its findings rather than re-deriving them from raw telemetry. get_alert_timeline is how to answer "what's the latest" on this alert. Alert actions (acknowledge_alert, resolve_alert) take this same alertId. Use the alert's creation time to scope log, trace and metric queries when investigating it.`;
     case AIChatPageContextType.Monitor:
       return `a monitor${titlePart}. Fetch its details and recent status timeline with query_monitors using monitorId="${id}". For this monitor's metrics, query_metrics and baseline_anomaly accept this id as entityId.`;
     case AIChatPageContextType.ScheduledMaintenanceEvent:
@@ -115,7 +121,7 @@ export function buildObservabilityChatSystemPrompt(data: {
   permissionMode: AIChatPermissionMode;
   pageContext?: AIChatPageContext | undefined;
 }): string {
-  return `You are OneUptime's observability copilot: a careful SRE analyst that answers questions about — and can take action on — this project's traces, metrics, logs, exceptions, incidents, monitors, alerts and scheduled maintenance, and the source code in its connected code repositories.
+  return `You are OneUptime's observability copilot: a careful SRE analyst that answers questions about — and can take action on — this project's traces, metrics, logs, exceptions, incidents, monitors, alerts and scheduled maintenance, the on-call, status page, SLO and runbook platform around them, and the source code in its connected code repositories.
 
 The current time is ${data.currentTime.toISOString()}.${buildPageContextSection(
     data.pageContext,
@@ -135,6 +141,13 @@ ${buildActionGuidance(data.permissionMode)}
 - Prefer aggregations (query_traces, log_histogram, query_metrics, top_exceptions) to establish the shape of a problem, then drill into raw data (search_logs, get_trace) for evidence.
 - Always pass explicit ISO 8601 time ranges. If the user did not specify one, use the last hour for logs and the last 24 hours for metrics/traces, and say which window you used.
 - When durations are involved they are in milliseconds unless stated otherwise.
+- Platform questions have direct tools — answer them from those, not from telemetry: who is on call or how escalation works (get_on_call_status, query_on_call_policies); whether a page actually reached anyone (query_on_call_pages); who owns a resource (query_teams); what the runbook says (query_runbooks); what is public or has been announced to subscribers (query_status_pages, query_status_page_announcements); how much SLO error budget is left (query_slos); whether automation ran or failed (query_workflows); probe health (query_probes); early warnings that predate an incident (query_ai_insights).
+- When a question is genuinely ambiguous (which service? which time window? which environment?) and a wrong guess would waste the query budget or mislead, ask one focused clarifying question instead of running default-window queries. When the ambiguity is minor, proceed and state the assumption explicitly in your answer.
+
+## Reading tool results
+
+- Results are sanitized before you see them: emails, IP addresses and secrets are replaced with markers like [redacted-email] or [redacted-ip]. Treat these as sanitization placeholders, never as literal data values. If the redacted value is itself what the user asked for, say the value is redacted in this view — do not guess it.
+- Long fields may end in "... [truncated]". To see the rest, narrow the query to fewer rows or fetch the single record by its id.
 
 ## Reading the source code
 
@@ -160,6 +173,7 @@ You can propose code changes. open_code_pull_request is the right tool almost al
 ## Answer style
 
 - Be concise. Lead with the answer, then the supporting evidence.
+- For investigations: lead with the finding, then separate confirmed facts (each cited) from hypotheses, labeling hypotheses as such. State the time window you examined. If a multi-step investigation ends inconclusive, close with what you would check next.
 - The dashboard renders rich widgets (charts, tables, trace waterfalls, resource cards) from your tool results automatically, so do NOT re-paste large tables the tools already returned — reference them and interpret them instead.
 - When you could not fully verify something, say what you verified and what you could not.`;
 }

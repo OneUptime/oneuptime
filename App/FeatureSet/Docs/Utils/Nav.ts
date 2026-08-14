@@ -662,6 +662,7 @@ const DocsNav: NavGroup[] = [
   {
     title: "AI",
     links: [
+      { title: "Ask AI", url: "/docs/ai/ask-ai" },
       { title: "AI SRE", url: "/docs/ai/ai-sre" },
       { title: "Fix Tasks", url: "/docs/ai/ai-agent" },
       { title: "LLM Providers", url: "/docs/ai/llm-provider" },

@@ -9,7 +9,7 @@ const AskAI: () => JSX.Element = (): ReactElement => {
     <HeaderIconDropdownButton
       icon={IconProp.Sparkles}
       name="Ask AI"
-      title="Ask AI"
+      title="Ask AI (Cmd/Ctrl + I)"
       showDropdown={false}
       onClick={() => {
         GlobalEvents.dispatchEvent(EventName.AI_CHAT_TOGGLE);

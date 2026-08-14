@@ -1,10 +1,17 @@
 import Incident from "../../../../Models/DatabaseModels/Incident";
+import IncidentOwnerTeam from "../../../../Models/DatabaseModels/IncidentOwnerTeam";
+import IncidentOwnerUser from "../../../../Models/DatabaseModels/IncidentOwnerUser";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
+import PositiveNumber from "../../../../Types/PositiveNumber";
+import Query from "../../../../Types/BaseDatabase/Query";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import IncidentService from "../../../Services/IncidentService";
+import IncidentOwnerTeamService from "../../../Services/IncidentOwnerTeamService";
+import IncidentOwnerUserService from "../../../Services/IncidentOwnerUserService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import OneUptimeDate from "../../../../Types/Date";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
@@ -15,6 +22,15 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+
+// Allowed values for query_incidents' `state` filter.
+type IncidentStateFilter = "active" | "resolved" | "any";
+
+const INCIDENT_STATE_FILTERS: Array<IncidentStateFilter> = [
+  "active",
+  "resolved",
+  "any",
+];
 
 /*
  * Derived from the model ACL so the tool gate can never drift from RBAC.
@@ -35,7 +51,7 @@ const resolveReadPermissions: () => Array<Permission> =
 export const QueryIncidentsTool: ObservabilityTool = {
   name: "query_incidents",
   description:
-    "Query incidents in this project. Returns the most recent incidents with their current state and severity. Pass incidentId to get full details of one incident — including its affected monitors, labels, root cause, remediation and postmortem notes, and the incident window (telemetryWindowStart) to pivot into logs/traces/metrics for the affected services.",
+    'Query incidents in this project. Returns the most recent incidents with their current state and severity. Pass state="active" to list currently unresolved incidents regardless of when they were created (use this for \'what incidents are active/open right now?\'), or state="resolved" for closed ones. Pass incidentId to get full details of one incident — including its owner teams and owner users, affected monitors, labels, root cause, remediation and postmortem notes, and the incident window (telemetryWindowStart) to pivot into logs/traces/metrics for the affected services. For the incident\'s activity thread — state changes, notes and the latest updates — use get_incident_timeline.',
   inputSchema: {
     type: "object",
     properties: {
@@ -43,14 +59,25 @@ export const QueryIncidentsTool: ObservabilityTool = {
         type: "string",
         description: "Get one incident by its ID (includes description).",
       },
+      state: {
+        type: "string",
+        enum: ["active", "resolved", "any"],
+        description:
+          "Filter by current state: 'active' = not yet resolved (ignores the time window unless createdWithinHours is passed explicitly, so long-running open incidents are included), 'resolved' = resolved only, 'any' = no state filter (default).",
+      },
       createdWithinHours: {
         type: "number",
         description:
-          "Only incidents created within this many hours (default 168 = 7 days, max 720).",
+          "Only incidents created within this many hours (default 168 = 7 days, max 720). Ignored when state is 'active' unless passed explicitly.",
       },
       limit: {
         type: "number",
         description: "Maximum incidents to return (default 10, max 25).",
+      },
+      skip: {
+        type: "number",
+        description:
+          "Number of incidents to skip for pagination (default 0, max 500).",
       },
     },
   },
@@ -96,6 +123,76 @@ export const QueryIncidentsTool: ObservabilityTool = {
       });
 
       /*
+       * Ownership lives in join tables (IncidentOwnerTeam/IncidentOwnerUser),
+       * not as relations on the Incident model itself, so "who owns this
+       * incident?" needs two extra scoped queries. projectId is pinned to the
+       * tenant from ctx because incidentId is an untrusted model argument.
+       */
+      let ownerTeamNames: string = "";
+      let ownerUserNames: string = "";
+
+      if (incident) {
+        const [ownerTeams, ownerUsers]: [
+          Array<IncidentOwnerTeam>,
+          Array<IncidentOwnerUser>,
+        ] = await Promise.all([
+          IncidentOwnerTeamService.findBy({
+            query: {
+              incidentId: incidentId,
+              projectId: ctx.projectId,
+            },
+            select: {
+              _id: true,
+              team: {
+                name: true,
+              },
+            },
+            limit: 25,
+            skip: 0,
+            props: ctx.props,
+          }),
+          IncidentOwnerUserService.findBy({
+            query: {
+              incidentId: incidentId,
+              projectId: ctx.projectId,
+            },
+            select: {
+              _id: true,
+              user: {
+                name: true,
+                email: true,
+              },
+            },
+            limit: 25,
+            skip: 0,
+            props: ctx.props,
+          }),
+        ]);
+
+        ownerTeamNames = ownerTeams
+          .map((ownerTeam: IncidentOwnerTeam) => {
+            return ownerTeam.team?.name || "";
+          })
+          .filter((value: string) => {
+            return value.length > 0;
+          })
+          .join(", ");
+
+        ownerUserNames = ownerUsers
+          .map((ownerUser: IncidentOwnerUser) => {
+            return (
+              ownerUser.user?.name?.toString() ||
+              ownerUser.user?.email?.toString() ||
+              ""
+            );
+          })
+          .filter((value: string) => {
+            return value.length > 0;
+          })
+          .join(", ");
+      }
+
+      /*
        * Surface the incident's blast radius (affected monitors + labels) and
        * its own window so the model can pivot from an incident into the
        * logs/traces/metrics of the affected services over the right time
@@ -129,6 +226,8 @@ export const QueryIncidentsTool: ObservabilityTool = {
               state: incident.currentIncidentState?.name,
               severity: incident.incidentSeverity?.name,
               createdAt: incident.createdAt,
+              ownerTeams: ownerTeamNames || undefined,
+              ownerUsers: ownerUserNames || undefined,
               affectedMonitors: affectedMonitors || undefined,
               labels: incidentLabels || undefined,
               rootCause: incident.rootCause,
@@ -166,6 +265,20 @@ export const QueryIncidentsTool: ObservabilityTool = {
       };
     }
 
+    const stateFilterString: string =
+      ToolArgs.getString(args, "state") || "any";
+
+    if (
+      !INCIDENT_STATE_FILTERS.includes(stateFilterString as IncidentStateFilter)
+    ) {
+      throw new BadDataException(
+        `Invalid state: ${stateFilterString}. Use one of: active, resolved, any.`,
+      );
+    }
+
+    const stateFilter: IncidentStateFilter =
+      stateFilterString as IncidentStateFilter;
+
     const createdWithinHours: number = ToolArgs.getNumber(
       args,
       "createdWithinHours",
@@ -176,6 +289,27 @@ export const QueryIncidentsTool: ObservabilityTool = {
       min: 1,
       max: 25,
     });
+    const skip: number = ToolArgs.getNumber(args, "skip", {
+      defaultValue: 0,
+      min: 0,
+      max: 500,
+    });
+
+    /*
+     * Mirrors ToolArgs.getNumber parsing: the window was "provided" only when
+     * the raw argument is a usable number. Needed because an active incident
+     * opened months ago must still show up for "what's active right now?" —
+     * so state=active drops the createdAt filter unless the model explicitly
+     * asked for a window.
+     */
+    const rawWindow: unknown = args["createdWithinHours"];
+    const windowProvided: boolean =
+      (typeof rawWindow === "number" && Number.isFinite(rawWindow)) ||
+      (typeof rawWindow === "string" &&
+        rawWindow.trim().length > 0 &&
+        Number.isFinite(Number(rawWindow)));
+
+    const applyTimeFilter: boolean = stateFilter !== "active" || windowProvided;
 
     const endTime: Date = OneUptimeDate.getCurrentDate();
     const startTime: Date = OneUptimeDate.addRemoveHours(
@@ -183,10 +317,34 @@ export const QueryIncidentsTool: ObservabilityTool = {
       -1 * createdWithinHours,
     );
 
+    const query: Query<Incident> = {};
+
+    if (applyTimeFilter) {
+      query.createdAt = QueryHelper.inBetween(startTime, endTime);
+    }
+
+    /*
+     * currentIncidentState is resolved through the state's flags rather than
+     * by name, because state names are user-configurable per project while
+     * isResolvedState is the canonical "closed" marker.
+     */
+    if (stateFilter === "active") {
+      query.currentIncidentState = {
+        isResolvedState: false,
+      };
+    } else if (stateFilter === "resolved") {
+      query.currentIncidentState = {
+        isResolvedState: true,
+      };
+    }
+
+    const totalCount: PositiveNumber = await IncidentService.countBy({
+      query: query,
+      props: ctx.props,
+    });
+
     const incidents: Array<Incident> = await IncidentService.findBy({
-      query: {
-        createdAt: QueryHelper.inBetween(startTime, endTime),
-      },
+      query: query,
       select: {
         _id: true,
         title: true,
@@ -203,7 +361,7 @@ export const QueryIncidentsTool: ObservabilityTool = {
         createdAt: SortOrder.Descending,
       },
       limit: limit,
-      skip: 0,
+      skip: skip,
       props: ctx.props,
     });
 
@@ -221,10 +379,31 @@ export const QueryIncidentsTool: ObservabilityTool = {
     const serialized: SerializedResult =
       ToolResultSerializer.serializeRows(rows);
 
+    const total: number = totalCount.toNumber();
+
+    let dataForLlm: string = serialized.text;
+    if (total > rows.length && rows.length > 0) {
+      dataForLlm = `Showing rows ${skip + 1}–${skip + rows.length} of ${total} total. Pass skip to page further.\n${dataForLlm}`;
+    } else if (total > 0 && rows.length === 0 && skip > 0) {
+      // Paged past the end: keep the model oriented instead of a bare empty.
+      dataForLlm = `No rows at skip=${skip}; there are ${total} total. Lower skip to page back.\n${dataForLlm}`;
+    }
+
+    const windowLabel: string = applyTimeFilter
+      ? `, last ${createdWithinHours}h`
+      : "";
+
+    let stateLabel: string = "Incidents";
+    if (stateFilter === "active") {
+      stateLabel = "Active incidents";
+    } else if (stateFilter === "resolved") {
+      stateLabel = "Resolved incidents";
+    }
+
     return {
-      dataForLlm: serialized.text,
+      dataForLlm: dataForLlm,
       rowCount: serialized.rowCount,
-      citationLabel: `Incidents, last ${createdWithinHours}h (${serialized.rowCount} found)`,
+      citationLabel: `${stateLabel}${windowLabel} (${total} total)`,
       citationTarget: {
         type: AIChatCitationTargetType.Incidents,
       },
@@ -233,8 +412,10 @@ export const QueryIncidentsTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.incidentList({
-              title: `Incidents (${rows.length})`,
-              description: `Created in the last ${createdWithinHours}h`,
+              title: `${stateLabel} (${total})`,
+              description: applyTimeFilter
+                ? `Created in the last ${createdWithinHours}h`
+                : "Regardless of when they were created",
               items: rows,
               link: { type: AIChatCitationTargetType.Incidents },
             })
