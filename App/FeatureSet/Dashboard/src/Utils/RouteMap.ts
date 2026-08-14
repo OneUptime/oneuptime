@@ -513,6 +513,11 @@ export const InventoryRoutePath: Dictionary<string> = {
   [PageMap.INVENTORY_DOCUMENTATION]: "documentation",
   [PageMap.INVENTORY_VIEW]: `item/${RouteParams.ModelID}`,
   [PageMap.INVENTORY_VIEW_RELATIONSHIPS]: `item/${RouteParams.ModelID}/relationships`,
+  [PageMap.INVENTORY_VIEW_LOGS]: `item/${RouteParams.ModelID}/logs`,
+  [PageMap.INVENTORY_VIEW_TRACES]: `item/${RouteParams.ModelID}/traces`,
+  [PageMap.INVENTORY_VIEW_METRICS]: `item/${RouteParams.ModelID}/metrics`,
+  [PageMap.INVENTORY_VIEW_PROFILES]: `item/${RouteParams.ModelID}/profiles`,
+  [PageMap.INVENTORY_VIEW_EXCEPTIONS]: `item/${RouteParams.ModelID}/exceptions`,
   [PageMap.INVENTORY_VIEW_TELEMETRY]: `item/${RouteParams.ModelID}/telemetry`,
   [PageMap.INVENTORY_VIEW_INCIDENTS]: `item/${RouteParams.ModelID}/incidents`,
   [PageMap.INVENTORY_VIEW_ALERTS]: `item/${RouteParams.ModelID}/alerts`,
@@ -5546,6 +5551,36 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INVENTORY_VIEW_RELATIONSHIPS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/inventory/${
       InventoryRoutePath[PageMap.INVENTORY_VIEW_RELATIONSHIPS]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_TRACES]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_PROFILES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_PROFILES]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_EXCEPTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_EXCEPTIONS]
     }`,
   ),
 

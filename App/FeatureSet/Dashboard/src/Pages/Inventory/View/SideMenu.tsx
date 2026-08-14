@@ -10,14 +10,6 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   modelId: ObjectID;
-  /**
-   * Manual items are the only ones a user really owns, so Settings and Delete
-   * are hidden for the rest: editing a discovered row's name is overwritten on
-   * its next reconcile, and deleting one only clears it until it reappears.
-   * Offering both anyway is how a product teaches people that its buttons do
-   * not work.
-   */
-  canEdit: boolean;
 }
 
 const InventoryItemSideMenu: FunctionComponent<ComponentProps> = (
@@ -49,16 +41,6 @@ const InventoryItemSideMenu: FunctionComponent<ComponentProps> = (
         },
         {
           link: {
-            title: "Telemetry",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INVENTORY_VIEW_TELEMETRY] as Route,
-              { modelId: props.modelId },
-            ),
-          },
-          icon: IconProp.Activity,
-        },
-        {
-          link: {
             title: "Custom Fields",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.INVENTORY_VIEW_CUSTOM_FIELDS] as Route,
@@ -69,8 +51,63 @@ const InventoryItemSideMenu: FunctionComponent<ComponentProps> = (
         },
       ],
     },
+    {
+      title: "Telemetry",
+      items: [
+        {
+          link: {
+            title: "Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INVENTORY_VIEW_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          },
+          icon: IconProp.Logs,
+        },
+        {
+          link: {
+            title: "Traces",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INVENTORY_VIEW_TRACES] as Route,
+              { modelId: props.modelId },
+            ),
+          },
+          icon: IconProp.Workflow,
+        },
+        {
+          link: {
+            title: "Metrics",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INVENTORY_VIEW_METRICS] as Route,
+              { modelId: props.modelId },
+            ),
+          },
+          icon: IconProp.Graph,
+        },
+        {
+          link: {
+            title: "Performance Profiles",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INVENTORY_VIEW_PROFILES] as Route,
+              { modelId: props.modelId },
+            ),
+          },
+          icon: IconProp.Fire,
+        },
+        {
+          link: {
+            title: "Exceptions",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INVENTORY_VIEW_EXCEPTIONS] as Route,
+              { modelId: props.modelId },
+            ),
+          },
+          icon: IconProp.Error,
+        },
+      ],
+    },
     /*
-     * These three read through the item's typed row rather than through any
+     * These pages read through the item's typed row rather than through any
      * relation of its own — see LinkedResource. The section is shown for every
      * item, including the ones that can never have their own: hiding it would
      * leave a user wondering where incidents went, whereas the page itself can
@@ -121,10 +158,7 @@ const InventoryItemSideMenu: FunctionComponent<ComponentProps> = (
         },
       ],
     },
-  ];
-
-  if (props.canEdit) {
-    sections.push({
+    {
       title: "Advanced",
       items: [
         {
@@ -148,8 +182,8 @@ const InventoryItemSideMenu: FunctionComponent<ComponentProps> = (
           icon: IconProp.Trash,
         },
       ],
-    });
-  }
+    },
+  ];
 
   return <SideMenu sections={sections} />;
 };

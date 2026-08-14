@@ -85,6 +85,27 @@ export interface ExtractedEntity {
 }
 
 /**
+ * An exact legacy registry identity that the current observation proves is no
+ * longer valid. This is deliberately narrower than `ExtractedEntity`: retired
+ * identities are never stamped onto signals and never create registry rows.
+ */
+export interface RetiredEntityIdentity {
+  entityType: EntityType;
+  entityKey: string;
+  identifyingAttributes: Dictionary<string>;
+}
+
+/**
+ * The complete result of one extraction pass. Most callers need only
+ * `entities`; ingest also forwards `retiredEntities` to the asynchronous
+ * registry reconciler so a live observation can repair a legacy row.
+ */
+export interface EntityExtractionResult {
+  entities: Array<ExtractedEntity>;
+  retiredEntities?: Array<RetiredEntityIdentity> | undefined;
+}
+
+/**
  * A normalized OTLP `Resource.entity_refs` entry (proto `EntityRef`,
  * Development status). When producers emit refs they are authoritative:
  * `idKeys`/`descriptionKeys` partition the flat resource attributes
@@ -133,13 +154,40 @@ export default class InventoryItem {
     attributes: EntityAttributes;
     entityRefs?: Array<ResourceEntityRef> | undefined;
   }): Array<ExtractedEntity> {
-    let out: Array<ExtractedEntity> = [];
+    return this.extractEntitiesWithRetirements(data).entities;
+  }
 
-    if (data.entityRefs && data.entityRefs.length > 0) {
+  /**
+   * Extract entities and any exact legacy identities proven obsolete by this
+   * same resource.
+   *
+   * A pre-fix heuristic registered `host.name` from an application SDK inside
+   * Kubernetes as a Host as well as registering the pod/node/cluster. The
+   * current resolver suppresses that Host. When heuristic mode is selected and
+   * the resource contains both a non-empty `host.name` and a supported
+   * Kubernetes identity, return the old Host key as a retirement candidate so
+   * the registry can remove that exact discovered row immediately.
+   *
+   * Non-empty `entity_refs` are an authority boundary even when none of their
+   * entries is usable and extraction falls back to heuristics. We never infer a
+   * retirement across that boundary; in particular, an explicitly referenced
+   * Host must remain authoritative on a Kubernetes resource.
+   */
+  public static extractEntitiesWithRetirements(data: {
+    projectId: string;
+    attributes: EntityAttributes;
+    entityRefs?: Array<ResourceEntityRef> | undefined;
+  }): EntityExtractionResult {
+    let out: Array<ExtractedEntity> = [];
+    const hasAuthoritativeEntityRefs: boolean = Boolean(
+      data.entityRefs && data.entityRefs.length > 0,
+    );
+
+    if (hasAuthoritativeEntityRefs) {
       out = this.entitiesFromRefs({
         projectId: data.projectId,
         attributes: data.attributes,
-        entityRefs: data.entityRefs,
+        entityRefs: data.entityRefs!,
       });
     }
 
@@ -160,7 +208,39 @@ export default class InventoryItem {
       }
     }
 
-    return out;
+    const retiredHost: RetiredEntityIdentity | null =
+      !hasAuthoritativeEntityRefs
+        ? this.retiredLegacyKubernetesHostIdentity(data)
+        : null;
+
+    return {
+      entities: out,
+      ...(retiredHost ? { retiredEntities: [retiredHost] } : {}),
+    };
+  }
+
+  private static retiredLegacyKubernetesHostIdentity(data: {
+    projectId: string;
+    attributes: EntityAttributes;
+  }): RetiredEntityIdentity | null {
+    const hostName: string | null = this.str(data.attributes, "host.name");
+    if (!hostName || !this.hasKubernetesIdentity(data.attributes)) {
+      return null;
+    }
+
+    const identifyingAttributes: Dictionary<string> = this.canonObject({
+      "host.name": hostName,
+    });
+
+    return {
+      entityType: EntityType.Host,
+      entityKey: this.computeEntityKey({
+        projectId: data.projectId,
+        entityType: EntityType.Host,
+        identifyingAttributes,
+      }),
+      identifyingAttributes,
+    };
   }
 
   private static entitiesFromResolvers(data: {
@@ -827,7 +907,7 @@ export default class InventoryItem {
    * item. The keys here must stay aligned with identities the resolvers below
    * can actually emit.
    */
-  private static hasKubernetesIdentity(attrs: EntityAttributes): boolean {
+  public static hasKubernetesIdentity(attrs: EntityAttributes): boolean {
     return this.kubernetesIdentityAttributeKeys.some((key: string): boolean => {
       return this.str(attrs, key) !== null;
     });

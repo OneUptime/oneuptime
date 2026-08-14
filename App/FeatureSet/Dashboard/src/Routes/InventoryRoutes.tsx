@@ -5,7 +5,7 @@ import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, InventoryRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, ReactElement } from "react";
-import { Route as PageRoute, Routes } from "react-router-dom";
+import { Navigate, Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
 import InventoryOverview from "../Pages/Inventory/Overview";
@@ -13,7 +13,12 @@ import InventoryItems from "../Pages/Inventory/Items";
 import InventoryDocumentation from "../Pages/Inventory/Documentation";
 import InventoryItemOverview from "../Pages/Inventory/View/Index";
 import InventoryItemRelationships from "../Pages/Inventory/View/Relationships";
-import InventoryItemTelemetry from "../Pages/Inventory/View/Telemetry";
+import InventoryItemLogs from "../Pages/Inventory/View/Logs";
+import InventoryItemTraces from "../Pages/Inventory/View/Traces";
+import InventoryItemMetrics from "../Pages/Inventory/View/Metrics";
+import InventoryItemProfiles from "../Pages/Inventory/View/Profiles";
+import InventoryItemExceptions from "../Pages/Inventory/View/Exceptions";
+import InventoryItemTelemetryRedirect from "../Pages/Inventory/View/Telemetry";
 import InventoryItemSettings from "../Pages/Inventory/View/Settings";
 import InventoryItemDelete from "../Pages/Inventory/View/Delete";
 import InventoryItemIncidents from "../Pages/Inventory/View/Incidents";
@@ -94,6 +99,23 @@ const InventoryRoutes: FunctionComponent<ComponentProps> = (
         />
       </PageRoute>
 
+      {/*
+       * INVENTORY_VIEW_ROOT is a ModelTable URL prefix, not a page. Keep a
+       * defensive route here so an old breadcrumb or hand-written URL can
+       * never leave the dashboard on a blank layout.
+       */}
+      <PageRoute
+        path="item"
+        element={
+          <Navigate
+            replace={true}
+            to={RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INVENTORY_ITEMS] as Route,
+            ).toString()}
+          />
+        }
+      />
+
       <PageRoute
         path={InventoryRoutePath[PageMap.INVENTORY_VIEW] || ""}
         element={<InventoryItemViewLayout {...props} />}
@@ -121,9 +143,54 @@ const InventoryRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.INVENTORY_VIEW_LOGS)}
+          element={
+            <InventoryItemLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.INVENTORY_VIEW_LOGS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.INVENTORY_VIEW_TRACES)}
+          element={
+            <InventoryItemTraces
+              {...props}
+              pageRoute={RouteMap[PageMap.INVENTORY_VIEW_TRACES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.INVENTORY_VIEW_METRICS)}
+          element={
+            <InventoryItemMetrics
+              {...props}
+              pageRoute={RouteMap[PageMap.INVENTORY_VIEW_METRICS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.INVENTORY_VIEW_PROFILES)}
+          element={
+            <InventoryItemProfiles
+              {...props}
+              pageRoute={RouteMap[PageMap.INVENTORY_VIEW_PROFILES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.INVENTORY_VIEW_EXCEPTIONS)}
+          element={
+            <InventoryItemExceptions
+              {...props}
+              pageRoute={RouteMap[PageMap.INVENTORY_VIEW_EXCEPTIONS] as Route}
+            />
+          }
+        />
+        <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.INVENTORY_VIEW_TELEMETRY)}
           element={
-            <InventoryItemTelemetry
+            <InventoryItemTelemetryRedirect
               {...props}
               pageRoute={RouteMap[PageMap.INVENTORY_VIEW_TELEMETRY] as Route}
             />

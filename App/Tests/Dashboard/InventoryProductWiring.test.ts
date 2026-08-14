@@ -58,6 +58,11 @@ const INVENTORY_PAGE_KEYS: ReadonlyArray<string> = [
   "INVENTORY_VIEW_ROOT",
   "INVENTORY_VIEW",
   "INVENTORY_VIEW_RELATIONSHIPS",
+  "INVENTORY_VIEW_LOGS",
+  "INVENTORY_VIEW_TRACES",
+  "INVENTORY_VIEW_METRICS",
+  "INVENTORY_VIEW_PROFILES",
+  "INVENTORY_VIEW_EXCEPTIONS",
   "INVENTORY_VIEW_TELEMETRY",
   "INVENTORY_VIEW_CUSTOM_FIELDS",
   "INVENTORY_VIEW_INCIDENTS",
@@ -168,6 +173,15 @@ describe("every route is actually mounted", () => {
     expect(routes).toContain("element={<InventoryItemViewLayout");
   });
 
+  test("the bare item prefix redirects to the item list", () => {
+    /*
+     * INVENTORY_VIEW_ROOT is a ModelTable prefix, not a mounted page. An old
+     * breadcrumb or hand-written /inventory/item URL must not render blank.
+     */
+    expect(routes).toContain('<PageRoute path="item" element={ <Navigate');
+    expect(routes).toContain("RouteMap[PageMap.INVENTORY_ITEMS]");
+  });
+
   test("AllRoutes exports the product and no longer exports the old one", () => {
     const allRoutes: string = readSource("Routes", "AllRoutes.tsx");
 
@@ -195,15 +209,15 @@ describe("every navigable page has breadcrumbs", () => {
     expect(breadcrumbs).toContain(`PageMap.${key}`);
   });
 
-  test("every trail starts at the project and names the product", () => {
-    const trails: Array<string> =
-      breadcrumbs.match(/\[\s*"Project",[^\]]*\]/g) || [];
-
-    expect(trails.length).toBe(NAVIGABLE_PAGE_KEYS.length);
-
-    for (const trail of trails) {
-      expect(trail).toContain('"Inventory"');
-    }
+  test("detail trails use the explicit safe-link builder", () => {
+    /*
+     * The generic depth builder cannot know that /inventory/item is only a
+     * ModelTable prefix. Explicit links keep every detail breadcrumb away
+     * from that blank route.
+     */
+    expect(breadcrumbs).toContain("buildInventoryItemBreadcrumbLinks");
+    expect(breadcrumbs).toContain("RouteMap[PageMap.INVENTORY]");
+    expect(breadcrumbs).toContain("Navigation.getBreadcrumbRoute(4)");
   });
 
   test("the breadcrumb module is exported from the barrel", () => {
@@ -222,12 +236,14 @@ describe("the side menu reaches the whole product", () => {
     readSource("Pages", "Inventory", "SideMenu.tsx"),
   );
 
-  test.each(["INVENTORY", "INVENTORY_ITEMS", "INVENTORY_DOCUMENTATION"])(
-    "links to %s",
-    (key: string) => {
-      expect(sideMenu).toContain(`RouteMap[PageMap.${key}]`);
-    },
-  );
+  test.each([
+    "INVENTORY",
+    "INVENTORY_ITEMS",
+    "INVENTORY_DOCUMENTATION",
+    "TOPOLOGY",
+  ])("links to %s", (key: string) => {
+    expect(sideMenu).toContain(`RouteMap[PageMap.${key}]`);
+  });
 
   test("offers the stale drill-down as a first-class destination", () => {
     expect(sideMenu).toContain("staleOnly: true");
@@ -246,38 +262,44 @@ describe("the side menu reaches the whole product", () => {
     for (const key of [
       "INVENTORY_VIEW",
       "INVENTORY_VIEW_RELATIONSHIPS",
-      "INVENTORY_VIEW_TELEMETRY",
+      "INVENTORY_VIEW_LOGS",
+      "INVENTORY_VIEW_TRACES",
+      "INVENTORY_VIEW_METRICS",
+      "INVENTORY_VIEW_PROFILES",
+      "INVENTORY_VIEW_EXCEPTIONS",
       "INVENTORY_VIEW_SETTINGS",
       "INVENTORY_VIEW_DELETE",
     ]) {
       expect(itemSideMenu).toContain(`RouteMap[PageMap.${key}]`);
     }
+
+    expect(itemSideMenu).not.toContain(
+      "RouteMap[PageMap.INVENTORY_VIEW_TELEMETRY]",
+    );
   });
 
-  test("Settings and Delete are gated on the item being editable", () => {
+  test("Settings and Delete live in View for every inventory item", () => {
     /*
-     * Editing a discovered row is overwritten on its next reconcile and
-     * deleting it only clears it until it reappears. Offering both anyway
-     * teaches people that the product's buttons do not work.
+     * Lifecycle actions need the item's full identity and source context — in
+     * particular the source-aware delete caveat — so they belong on the detail
+     * page rather than in a context-free table action menu.
      */
     const itemSideMenu: string = squash(
       readSource("Pages", "Inventory", "View", "SideMenu.tsx"),
     );
 
-    expect(itemSideMenu).toContain("if (props.canEdit) {");
-
-    const gated: string = itemSideMenu.slice(
-      itemSideMenu.indexOf("if (props.canEdit) {"),
-    );
-
-    expect(gated).toContain("INVENTORY_VIEW_SETTINGS");
-    expect(gated).toContain("INVENTORY_VIEW_DELETE");
+    expect(itemSideMenu).toContain("INVENTORY_VIEW_SETTINGS");
+    expect(itemSideMenu).toContain("INVENTORY_VIEW_DELETE");
+    expect(itemSideMenu).not.toContain("props.canEdit");
   });
 
-  test("the layout derives canEdit from the source, not from the type", () => {
-    expect(
-      squash(readSource("Pages", "Inventory", "View", "Layout.tsx")),
-    ).toContain("isDeletePermanentForSource");
+  test("the detail layout does not hide lifecycle navigation", () => {
+    const layout: string = squash(
+      readSource("Pages", "Inventory", "View", "Layout.tsx"),
+    );
+
+    expect(layout).toContain("<SideMenu modelId={modelId}");
+    expect(layout).not.toContain("canEdit");
   });
 });
 

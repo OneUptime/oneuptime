@@ -111,7 +111,11 @@ test.describe.skip("Inventory Product", () => {
      */
     const subpages: Array<{ link: string; expectText: string }> = [
       { link: "Connections", expectText: "Connections" },
-      { link: "Telemetry", expectText: "Telemetry" },
+      { link: "Logs", expectText: "Logs" },
+      { link: "Traces", expectText: "Traces" },
+      { link: "Metrics", expectText: "Metrics" },
+      { link: "Performance Profiles", expectText: "Performance Profiles" },
+      { link: "Exceptions", expectText: "Exceptions" },
       { link: "Custom Fields", expectText: "Custom Fields" },
       { link: "Incidents", expectText: "No incidents for this item" },
       { link: "Audit Logs", expectText: "Item Audit Logs" },
