@@ -310,6 +310,24 @@ services:
   probe-1:
     restart: always
     network_mode: host
+    # The probe remains root so its trusted supervisor can assign a unique UID
+    # to every synthetic execution. Drop everything except the capabilities it
+    # needs to prepare, terminate, and clean up those workers (plus NET_RAW for
+    # ping/traceroute monitors). no-new-privileges is inherited by workers.
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - KILL
+      - NET_RAW
+      - SETGID
+      - SETUID
+    security_opt:
+      - no-new-privileges:true
+      # Vendored unchanged from Playwright's official Docker profile:
+      # https://github.com/microsoft/playwright/blob/main/utils/docker/seccomp_profile.json
+      - seccomp=./Probe/seccomp_profile.json
     environment:
       ONEUPTIME_URL: ${GLOBAL_PROBE_1_ONEUPTIME_URL}
       REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
@@ -318,8 +336,18 @@ services:
       PROBE_MONITORING_WORKERS: ${GLOBAL_PROBE_1_MONITORING_WORKERS}
       PROBE_KEY: ${GLOBAL_PROBE_1_KEY}
       PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_1_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS}
+      PROBE_SYNTHETIC_MONITOR_MAX_CONCURRENCY: ${GLOBAL_PROBE_1_SYNTHETIC_MONITOR_MAX_CONCURRENCY}
+      PROBE_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES: ${GLOBAL_PROBE_1_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES:-1610612736}
+      PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES: ${GLOBAL_PROBE_1_SYNTHETIC_MONITOR_MAX_DISK_BYTES:-268435456}
+      # Compose installs the bundled Playwright seccomp profile above, so the
+      # Chromium user-namespace sandbox can be required instead of silently
+      # falling back to --no-sandbox.
+      PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED: "true"
       PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_1_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}
       PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_1_MONITOR_FETCH_LIMIT}
+      HTTP_PROXY_URL: ${GLOBAL_PROBE_1_HTTP_PROXY_URL:-${GLOBAL_PROBE_1_PROXY_URL:-}}
+      HTTPS_PROXY_URL: ${GLOBAL_PROBE_1_HTTPS_PROXY_URL:-${GLOBAL_PROBE_1_PROXY_URL:-}}
+      NO_PROXY: ${GLOBAL_PROBE_1_NO_PROXY:-}
       PORT: ${GLOBAL_PROBE_1_PORT}
       NODE_ENV: ${ENVIRONMENT}
       LOG_LEVEL: ${LOG_LEVEL}
@@ -335,6 +363,18 @@ services:
   probe-2:
     restart: always
     network_mode: host
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - KILL
+      - NET_RAW
+      - SETGID
+      - SETUID
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./Probe/seccomp_profile.json
     environment:
       ONEUPTIME_URL: ${GLOBAL_PROBE_2_ONEUPTIME_URL}
       REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
@@ -343,8 +383,15 @@ services:
       PROBE_MONITORING_WORKERS: ${GLOBAL_PROBE_2_MONITORING_WORKERS}
       PROBE_KEY: ${GLOBAL_PROBE_2_KEY}
       PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_2_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS}
+      PROBE_SYNTHETIC_MONITOR_MAX_CONCURRENCY: ${GLOBAL_PROBE_2_SYNTHETIC_MONITOR_MAX_CONCURRENCY}
+      PROBE_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES: ${GLOBAL_PROBE_2_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES:-1610612736}
+      PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES: ${GLOBAL_PROBE_2_SYNTHETIC_MONITOR_MAX_DISK_BYTES:-268435456}
+      PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED: "true"
       PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: ${GLOBAL_PROBE_2_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}
       PROBE_MONITOR_FETCH_LIMIT: ${GLOBAL_PROBE_2_MONITOR_FETCH_LIMIT}
+      HTTP_PROXY_URL: ${GLOBAL_PROBE_2_HTTP_PROXY_URL:-${GLOBAL_PROBE_2_PROXY_URL:-}}
+      HTTPS_PROXY_URL: ${GLOBAL_PROBE_2_HTTPS_PROXY_URL:-${GLOBAL_PROBE_2_PROXY_URL:-}}
+      NO_PROXY: ${GLOBAL_PROBE_2_NO_PROXY:-}
       PORT: ${GLOBAL_PROBE_2_PORT}
       NODE_ENV: ${ENVIRONMENT}
       LOG_LEVEL: ${LOG_LEVEL}

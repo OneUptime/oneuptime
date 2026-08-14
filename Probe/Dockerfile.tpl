@@ -124,10 +124,14 @@ RUN node -e "require('mssql/msnodesqlv8')" \
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright-browsers
 # `--with-deps` apt-installs any remaining browser dependencies (fonts, webkit
 # libs, ...), so refresh the apt lists first and drop them again afterwards.
+# Synthetic worker UIDs are deliberately not image users, so every runtime file
+# they execute or import must be world-readable/traversable. Their private
+# HOME/TMPDIR directories are created under the image's standard sticky /tmp.
 RUN apt-get update \
     && npx playwright install --with-deps \
     && rm -rf /var/lib/apt/lists/* \
-    && chmod -R 755 /ms-playwright-browsers
+    && chmod -R a+rX /ms-playwright-browsers \
+    && chmod -R a+rX /usr/src/Common /usr/src/app
 
 # Use tini as init to properly reap zombie processes (like Chrome/Chromium)
 ENTRYPOINT ["/usr/bin/tini", "--"]
@@ -140,6 +144,9 @@ CMD [ "bash", "/usr/src/app/Start.dev.sh" ]
 COPY ./Probe /usr/src/app
 # Bundle app source
 RUN npm run compile
+# Production source is copied after the shared permission setup above. Keep it
+# readable by the arbitrary, per-execution synthetic worker UIDs as well.
+RUN chmod -R a+rX /usr/src/Common /usr/src/app /ms-playwright-browsers
 # IS_ENTERPRISE_EDITION only changes ENV metadata and is read by no build step,
 # so declaring it last lets the community + enterprise passes share the heavy
 # cached layers above. (/tmp/npm is already world-writable from the base setup,

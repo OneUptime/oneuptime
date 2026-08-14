@@ -1,5 +1,17 @@
 import CapturedMetric from "./CapturedMetric";
-import { JSONObject } from "../../JSON";
+
+export interface CustomCodeMonitorResultObject {
+  [key: string]: CustomCodeMonitorResult;
+}
+
+/** JSON-safe data returned from a custom or synthetic monitor script. */
+export type CustomCodeMonitorResult =
+  | string
+  | number
+  | boolean
+  | null
+  | CustomCodeMonitorResultObject
+  | Array<CustomCodeMonitorResult>;
 
 export interface RetryAttempt {
   attemptNumber: number;
@@ -8,7 +20,7 @@ export interface RetryAttempt {
 }
 
 export default interface CustomCodeMonitorResponse {
-  result: string | number | boolean | JSONObject | undefined;
+  result: CustomCodeMonitorResult | undefined;
   scriptError?: string | undefined;
   logMessages: string[];
   capturedMetrics: CapturedMetric[];

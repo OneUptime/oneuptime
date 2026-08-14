@@ -373,15 +373,15 @@ return {
 // Objects available in the context of the script are:
 
 // - axios: Axios module to make HTTP requests
-// - page: Playwright Page object to interact with the browser
+// - page: OneUptime's secure Playwright-compatible Page facade
 // - screenshots: Pre-declared object to collect screenshots (preserved even if the script throws)
-// - browserType: Browser type in the current run context - Chromium, Firefox, Webkit
+// - browserType: Browser type in the current run context - Chromium or Firefox
 // - screenSizeType: Screen size type in the current run context - Mobile, Tablet, Desktop
 // - oneuptime.captureMetric: Capture custom metrics for dashboards
 
 await page.goto('https://playwright.dev/');
 
-// Playwright Documentation here: https://playwright.dev/docs/intro
+// OneUptime Synthetic Monitor docs: ${DOCS_URL.toString()}/monitor/synthetic-monitor
 
 // To take screenshots, assign them to the provided \`screenshots\` object.
 // Screenshots captured this way are preserved even when the script throws,
@@ -1615,7 +1615,7 @@ return {
           description={
             props.monitorType === MonitorType.CustomJavaScriptCode
               ? "Write your JavaScript code here. You can use secrets for sensitive data."
-              : "Write your Playwright code here. Playwright is a Node.js library to automate browsers."
+              : "Write browser automation for Chromium and Firefox using OneUptime's secure Playwright-compatible facade. See the OneUptime docs below."
           }
         >
           <div className="space-y-4">
@@ -1642,6 +1642,19 @@ return {
                   You can use secrets here.
                 </Link>
               </p>
+              {props.monitorType === MonitorType.SyntheticMonitor && (
+                <p className="mt-2 text-sm text-gray-500">
+                  <Link
+                    className="underline"
+                    openInNewTab={true}
+                    to={URL.fromString(
+                      DOCS_URL.toString() + "/monitor/synthetic-monitor",
+                    )}
+                  >
+                    Read the OneUptime Synthetic Monitor documentation.
+                  </Link>
+                </p>
+              )}
             </div>
 
             {props.monitorType === MonitorType.SyntheticMonitor && (

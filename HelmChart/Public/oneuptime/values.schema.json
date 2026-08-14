@@ -1652,6 +1652,12 @@
             },
             "additionalProperties": false
         },
+        "probeContainerSecurityContext": {
+            "type": [
+                "object",
+                "null"
+            ]
+        },
         "probes": {
             "type": "object",
             "patternProperties": {
@@ -1700,8 +1706,32 @@
                         "replicaCount": {
                             "type": "integer"
                         },
+                        "automountServiceAccountToken": {
+                            "type": "boolean"
+                        },
                         "syntheticMonitorScriptTimeoutInMs": {
-                            "type": "integer"
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 2147363647
+                        },
+                        "syntheticMonitorMaxConcurrency": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "syntheticMonitorMaxProcessTreeRssBytes": {
+                            "type": "integer",
+                            "minimum": 67108864
+                        },
+                        "syntheticMonitorMaxDiskBytes": {
+                            "type": "integer",
+                            "minimum": 67108864
+                        },
+                        "syntheticMonitorTempStorageSizeLimit": {
+                            "type": "string",
+                            "pattern": "^[0-9]+(?:Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K)?$"
+                        },
+                        "syntheticMonitorChromiumSandboxEnabled": {
+                            "type": "boolean"
                         },
                         "customCodeMonitorScriptTimeoutInMs": {
                             "type": "integer"
