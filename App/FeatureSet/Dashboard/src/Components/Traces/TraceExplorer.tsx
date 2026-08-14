@@ -3,6 +3,8 @@ import SpanStatusElement from "../Span/SpanStatusElement";
 import SpanViewer from "../Span/SpanViewer";
 import FlameGraph from "./FlameGraph";
 import TraceServiceMap from "./TraceServiceMap";
+import TraceScopedFlamegraph from "./TraceScopedFlamegraph";
+import ExceptionInstanceTable from "../Exceptions/ExceptionInstanceTable";
 import ServiceElement from "..//Service/ServiceElement";
 import Navigation from "Common/UI/Utils/Navigation";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -49,11 +51,28 @@ import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
 import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
+import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
 import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
+import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import Service from "Common/Models/DatabaseModels/Service";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import {
+  CrossSignalQueryParams,
+  TelemetryCrossSignalScope,
+  toMetricsExplorerQueryParams,
+} from "Common/Utils/Telemetry/CrossSignalScope";
+import {
+  ProfilePresenceGate,
+  TraceCorrelatedMetricItem,
+  TraceMetricSeries,
+  buildTraceFlamegraphRequest,
+  describeDroppedScopeFields,
+  getProfilePresenceGate,
+  groupMetricsForTrace,
+} from "../../Utils/TraceCorrelatedSignals";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 enum TraceViewMode {
@@ -65,6 +84,27 @@ enum TraceViewMode {
 const INITIAL_SPAN_FETCH_SIZE: number = 500;
 const SPAN_PAGE_SIZE: number = 500;
 const MAX_SPAN_FETCH_BATCH: number = LIMIT_PER_PROJECT;
+
+type CorrelatedSignalTab = "logs" | "exceptions" | "metrics" | "profile";
+
+// Server-enforced cap on POST /telemetry/metrics/for-trace.
+const METRICS_FOR_TRACE_LIMIT: number = 500;
+// Metric links widen the trace's window so near-instant traces still chart.
+const TRACE_METRIC_WINDOW_PADDING_MINUTES: number = 5;
+const MAX_SAMPLED_METRIC_VALUES: number = 5;
+
+function formatTraceMetricValue(value: number): string {
+  if (!Number.isFinite(value)) {
+    return "-";
+  }
+  if (Math.abs(value) >= 1000) {
+    return Math.round(value).toLocaleString();
+  }
+  if (Number.isInteger(value)) {
+    return value.toLocaleString();
+  }
+  return value.toFixed(2);
+}
 
 export interface ComponentProps {
   traceId: string;
@@ -129,6 +169,39 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     React.useState<boolean>(false);
   const [perfFixRunId, setPerfFixRunId] = React.useState<string | null>(null);
   const [perfFixError, setPerfFixError] = React.useState<string | null>(null);
+
+  // Correlated-signals strip under the waterfall (Logs stays the default).
+  const [activeSignalTab, setActiveSignalTab] =
+    React.useState<CorrelatedSignalTab>("logs");
+
+  /*
+   * Profile-tab gate: sampleCount from POST /telemetry/profiles/
+   * trace-presence, checked once per trace so the tab only exists when the
+   * flame graph would have data. The ref mirror lets the Gantt bar tooltips
+   * (built inside a chart-construction closure) read the current value
+   * without forcing a chart rebuild when it resolves.
+   */
+  const [profileSampleCount, setProfileSampleCount] = React.useState<number>(0);
+  const profileSampleCountRef: React.MutableRefObject<number> =
+    React.useRef<number>(0);
+
+  // Metrics tab: fetched lazily on first open.
+  const [traceMetricSeries, setTraceMetricSeries] = React.useState<
+    Array<TraceMetricSeries>
+  >([]);
+  const [metricsLoading, setMetricsLoading] = React.useState<boolean>(false);
+  const [metricsFetched, setMetricsFetched] = React.useState<boolean>(false);
+  const [metricsError, setMetricsError] = React.useState<string | null>(null);
+
+  /*
+   * Generation counter for the lazy metrics fetch (same pattern as
+   * TraceScopedFlamegraph's loadGenerationRef): the effect's cleanup bumps
+   * the counter only when the tab/trace actually changes or the explorer
+   * unmounts, so a stale response can never write state — and the effect's
+   * own loading-state writes can never cancel the in-flight request.
+   */
+  const metricsLoadGenerationRef: React.MutableRefObject<number> =
+    React.useRef<number>(0);
 
   const [ganttChart, setGanttChart] = React.useState<GanttChartProps | null>(
     null,
@@ -417,10 +490,21 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
               onClick={(e: React.MouseEvent) => {
                 e.stopPropagation();
                 /*
-                 * Deep-link into the raw-profiles list filtered to this
-                 * trace — landing on the unfiltered overview would force
-                 * the user to re-find the trace by hand.
+                 * When this trace has profile samples, the Profile tab in
+                 * the correlated-signals strip below already renders them —
+                 * jump there instead of leaving the page. Without samples
+                 * the tab does not exist, so fall back to the raw-profiles
+                 * list filtered to this trace (landing on the unfiltered
+                 * overview would force the user to re-find the trace by
+                 * hand).
                  */
+                if (profileSampleCountRef.current > 0) {
+                  setActiveSignalTab("profile");
+                  document
+                    .getElementById("trace-correlated-signals")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  return;
+                }
                 const traceId: string =
                   span.traceId?.toString() || props.traceId;
                 const profilesRoute: Route = new Route(
@@ -603,6 +687,13 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     setIsCreatingPerfFixTask(false);
     setPerfFixRunId(null);
     setPerfFixError(null);
+    setActiveSignalTab("logs");
+    setProfileSampleCount(0);
+    profileSampleCountRef.current = 0;
+    setTraceMetricSeries([]);
+    setMetricsLoading(false);
+    setMetricsFetched(false);
+    setMetricsError(null);
   }, [traceIdFromUrl]);
 
   React.useEffect(() => {
@@ -610,6 +701,134 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       setError(API.getFriendlyMessage(err));
     });
   }, [fetchItems]);
+
+  /*
+   * The Profile tab must be gated up front (it only renders when this trace
+   * actually has profile samples), so presence is checked eagerly per trace;
+   * the flame graph itself still loads lazily on first tab open. A failed
+   * check hides the tab rather than crashing the strip.
+   */
+  React.useEffect(() => {
+    let cancelled: boolean = false;
+
+    const checkProfilePresence: () => Promise<void> =
+      async (): Promise<void> => {
+        const requestBody: JSONObject | null = buildTraceFlamegraphRequest({
+          traceId: traceIdFromUrl,
+        });
+
+        if (!requestBody) {
+          return;
+        }
+
+        try {
+          const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+            await API.post<JSONObject>({
+              url: URL.fromString(APP_API_URL.toString()).addRoute(
+                "/telemetry/profiles/trace-presence",
+              ),
+              data: requestBody,
+              headers: ModelAPI.getCommonHeaders(),
+            });
+
+          if (cancelled) {
+            return;
+          }
+
+          if (response instanceof HTTPErrorResponse) {
+            throw response;
+          }
+
+          const gate: ProfilePresenceGate = getProfilePresenceGate(
+            response.data as JSONObject,
+          );
+          setProfileSampleCount(gate.sampleCount);
+          profileSampleCountRef.current = gate.sampleCount;
+        } catch {
+          if (!cancelled) {
+            setProfileSampleCount(0);
+            profileSampleCountRef.current = 0;
+          }
+        }
+      };
+
+    void checkProfilePresence();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [traceIdFromUrl]);
+
+  // If the gate closes while Profile is selected, fall back to the default tab.
+  React.useEffect(() => {
+    if (activeSignalTab === "profile" && profileSampleCount === 0) {
+      setActiveSignalTab("logs");
+    }
+  }, [activeSignalTab, profileSampleCount]);
+
+  // Metrics tab: reverse exemplar lookup, fetched on first open only.
+  React.useEffect(() => {
+    if (activeSignalTab !== "metrics" || metricsFetched) {
+      return;
+    }
+
+    metricsLoadGenerationRef.current += 1;
+    const generation: number = metricsLoadGenerationRef.current;
+
+    const loadTraceMetrics: () => Promise<void> = async (): Promise<void> => {
+      if (!traceIdFromUrl) {
+        setMetricsFetched(true);
+        return;
+      }
+
+      setMetricsLoading(true);
+      setMetricsError(null);
+
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post<JSONObject>({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              "/telemetry/metrics/for-trace",
+            ),
+            data: {
+              traceId: traceIdFromUrl,
+              limit: METRICS_FOR_TRACE_LIMIT,
+            },
+            headers: ModelAPI.getCommonHeaders(),
+          });
+
+        if (generation !== metricsLoadGenerationRef.current) {
+          return;
+        }
+
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+
+        const items: Array<TraceCorrelatedMetricItem> = ((
+          response.data as JSONObject
+        )["items"] || []) as unknown as Array<TraceCorrelatedMetricItem>;
+        setTraceMetricSeries(groupMetricsForTrace(items));
+      } catch (err) {
+        if (generation === metricsLoadGenerationRef.current) {
+          setMetricsError(API.getFriendlyMessage(err));
+          setTraceMetricSeries([]);
+        }
+      } finally {
+        if (generation === metricsLoadGenerationRef.current) {
+          setMetricsLoading(false);
+          setMetricsFetched(true);
+        }
+      }
+    };
+
+    void loadTraceMetrics();
+
+    return () => {
+      // Invalidate in-flight responses when the tab/trace changes or on unmount.
+      metricsLoadGenerationRef.current += 1;
+    };
+  }, [activeSignalTab, metricsFetched, traceIdFromUrl]);
 
   const loadedSpanCount: number = spans.length;
 
@@ -937,6 +1156,112 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     };
   }, [spans, divisibilityFactor]);
 
+  /*
+   * The trace's wall-clock window (padded), used to scope metric-explorer
+   * links from the Metrics tab. Null until spans arrive.
+   */
+  const traceMetricsWindow: { startTime: Date; endTime: Date } | null =
+    React.useMemo(() => {
+      let min: Date | null = null;
+      let max: Date | null = null;
+
+      for (const span of spans) {
+        const start: Date | null = span.startTime
+          ? OneUptimeDate.fromString(span.startTime as unknown as string)
+          : null;
+        const end: Date | null = span.endTime
+          ? OneUptimeDate.fromString(span.endTime as unknown as string)
+          : null;
+
+        if (start && !isNaN(start.getTime()) && (!min || start < min)) {
+          min = start;
+        }
+
+        if (end && !isNaN(end.getTime()) && (!max || end > max)) {
+          max = end;
+        }
+      }
+
+      if (!min || !max) {
+        return null;
+      }
+
+      return {
+        startTime: OneUptimeDate.addRemoveMinutes(
+          min,
+          -TRACE_METRIC_WINDOW_PADDING_MINUTES,
+        ),
+        endTime: OneUptimeDate.addRemoveMinutes(
+          max,
+          TRACE_METRIC_WINDOW_PADDING_MINUTES,
+        ),
+      };
+    }, [spans]);
+
+  /*
+   * The scope every metric link carries: this trace over its (padded)
+   * window. The serializer cannot express a trace filter in the metric
+   * explorer's grammar — its `dropped` report is what the hint above the
+   * table surfaces, so the narrowing is never silent.
+   */
+  const metricLinkDroppedHints: Array<string> = React.useMemo(() => {
+    if (!traceMetricsWindow) {
+      return [];
+    }
+
+    const scope: TelemetryCrossSignalScope = {
+      traceIds: [traceIdFromUrl],
+      startTime: traceMetricsWindow.startTime,
+      endTime: traceMetricsWindow.endTime,
+    };
+
+    const serialized: CrossSignalQueryParams =
+      toMetricsExplorerQueryParams(scope);
+
+    return describeDroppedScopeFields(serialized.dropped);
+  }, [traceMetricsWindow, traceIdFromUrl]);
+
+  type GetMetricExplorerUrlFunction = (metricName: string) => URL | null;
+
+  const getMetricExplorerUrl: GetMetricExplorerUrlFunction = (
+    metricName: string,
+  ): URL | null => {
+    if (!traceMetricsWindow) {
+      return null;
+    }
+
+    const scope: TelemetryCrossSignalScope = {
+      traceIds: [traceIdFromUrl],
+      startTime: traceMetricsWindow.startTime,
+      endTime: traceMetricsWindow.endTime,
+    };
+
+    const serialized: CrossSignalQueryParams = toMetricsExplorerQueryParams(
+      scope,
+      metricName,
+    );
+
+    const route: Route = RouteUtil.populateRouteParams(
+      RouteMap[PageMap.METRIC_VIEW] as Route,
+    );
+    const currentUrl: URL = Navigation.getCurrentURL();
+    const targetUrl: URL = new URL(
+      currentUrl.protocol,
+      currentUrl.hostname,
+      route,
+    );
+
+    for (const paramName of Object.keys(serialized.params)) {
+      targetUrl.addQueryParam(
+        paramName,
+        serialized.params[paramName] as string,
+        true,
+      );
+    }
+
+    return targetUrl;
+  };
+
   React.useEffect(() => {
     // convert spans to gantt chart
 
@@ -1115,6 +1440,34 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   }
 
   const showInlineError: boolean = Boolean(error && spans.length > 0);
+
+  /*
+   * Correlated-signals strip tabs. Profile only exists when the trace has
+   * profile samples (presence-gated); its label carries the sample count so
+   * the user knows what is behind the tab before opening it.
+   */
+  const signalTabs: Array<{
+    id: CorrelatedSignalTab;
+    label: string;
+    count: number | null;
+  }> = [
+    { id: "logs", label: "Logs", count: null },
+    { id: "exceptions", label: "Exceptions", count: null },
+    {
+      id: "metrics",
+      label: "Metrics",
+      count: metricsFetched ? traceMetricSeries.length : null,
+    },
+    ...(profileSampleCount > 0
+      ? [
+          {
+            id: "profile" as CorrelatedSignalTab,
+            label: "Profile",
+            count: profileSampleCount,
+          },
+        ]
+      : []),
+  ];
 
   const serviceLegend: ReactElement = (
     <div className="flex flex-wrap gap-2">
@@ -1732,14 +2085,188 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         </Card>
 
         {traceId ? (
-          <div className="mt-2 md:mt-5">
-            <DashboardLogsViewer
-              id={"traces-logs-viewer"}
-              noLogsMessage="No logs found for this trace."
-              traceIds={[traceId]}
-              limit={LIMIT_PER_PROJECT}
-              enableRealtime={false}
-            />
+          <div className="mt-2 md:mt-5" id="trace-correlated-signals">
+            {/* Correlated signals: every other signal this trace touched. */}
+            <div className="mb-3 flex items-center space-x-1 rounded-lg bg-gray-100 p-0.5 w-fit">
+              {signalTabs.map(
+                (tab: {
+                  id: CorrelatedSignalTab;
+                  label: string;
+                  count: number | null;
+                }): ReactElement => {
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveSignalTab(tab.id);
+                      }}
+                      className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                        activeSignalTab === tab.id
+                          ? "bg-white text-gray-800 shadow-sm"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      <span>{tab.label}</span>
+                      {tab.count !== null ? (
+                        <span className="rounded bg-gray-200/70 px-1 text-[10px] font-semibold text-gray-500">
+                          {tab.count.toLocaleString()}
+                        </span>
+                      ) : (
+                        <></>
+                      )}
+                    </button>
+                  );
+                },
+              )}
+            </div>
+
+            {activeSignalTab === "logs" ? (
+              <DashboardLogsViewer
+                id={"traces-logs-viewer"}
+                noLogsMessage="No logs found for this trace."
+                traceIds={[traceId]}
+                limit={LIMIT_PER_PROJECT}
+                enableRealtime={false}
+              />
+            ) : (
+              <></>
+            )}
+
+            {activeSignalTab === "exceptions" ? (
+              <ExceptionInstanceTable
+                title="Exceptions for this Trace"
+                description="Exception instances captured on this trace's spans."
+                query={{ traceId: traceId } as Query<ExceptionInstance>}
+                disableUrlState={true}
+              />
+            ) : (
+              <></>
+            )}
+
+            {activeSignalTab === "metrics" ? (
+              <Card
+                title="Metrics for this Trace"
+                description="Metric datapoints recorded by this trace's spans (exemplars), grouped by metric name."
+              >
+                {metricsLoading ? (
+                  <div className="flex h-32 items-center justify-center">
+                    <ComponentLoader />
+                  </div>
+                ) : metricsError ? (
+                  <ErrorMessage message={metricsError} />
+                ) : traceMetricSeries.length === 0 ? (
+                  <ErrorMessage message="No metric datapoints reference this trace." />
+                ) : (
+                  <div className="space-y-3">
+                    {metricLinkDroppedHints.length > 0 ? (
+                      <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                        Metric links open the explorer over this trace&apos;s
+                        time window (±{TRACE_METRIC_WINDOW_PADDING_MINUTES}{" "}
+                        min). Not carried over:{" "}
+                        {metricLinkDroppedHints.join(", ")}.
+                      </div>
+                    ) : (
+                      <></>
+                    )}
+                    <div className="overflow-x-auto rounded-lg border border-gray-200">
+                      <table className="min-w-full divide-y divide-gray-200 text-xs">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-3 py-2 text-left font-medium uppercase tracking-wide text-gray-500">
+                              Metric
+                            </th>
+                            <th className="px-3 py-2 text-left font-medium uppercase tracking-wide text-gray-500">
+                              Sampled Values
+                            </th>
+                            <th className="px-3 py-2 text-right font-medium uppercase tracking-wide text-gray-500">
+                              Min
+                            </th>
+                            <th className="px-3 py-2 text-right font-medium uppercase tracking-wide text-gray-500">
+                              Max
+                            </th>
+                            <th className="px-3 py-2 text-right font-medium uppercase tracking-wide text-gray-500">
+                              Spans
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 bg-white">
+                          {traceMetricSeries.map(
+                            (series: TraceMetricSeries): ReactElement => {
+                              const explorerUrl: URL | null =
+                                getMetricExplorerUrl(series.name);
+                              const sampledValues: string = series.points
+                                .slice(-MAX_SAMPLED_METRIC_VALUES)
+                                .map(
+                                  (
+                                    point: TraceCorrelatedMetricItem,
+                                  ): string => {
+                                    return formatTraceMetricValue(point.value);
+                                  },
+                                )
+                                .join(", ");
+                              return (
+                                <tr key={series.name}>
+                                  <td className="max-w-xs truncate px-3 py-2 font-mono text-gray-800">
+                                    {explorerUrl ? (
+                                      <Link
+                                        to={explorerUrl}
+                                        openInNewTab={true}
+                                        className="text-indigo-600 hover:text-indigo-700 hover:underline"
+                                        title={`Open ${series.name} in the metric explorer over this trace's window`}
+                                      >
+                                        {series.name}
+                                      </Link>
+                                    ) : (
+                                      <span title={series.name}>
+                                        {series.name}
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="px-3 py-2 font-mono text-gray-600">
+                                    {sampledValues}
+                                    {series.points.length >
+                                    MAX_SAMPLED_METRIC_VALUES ? (
+                                      <span className="ml-1 text-gray-400">
+                                        (of {series.points.length})
+                                      </span>
+                                    ) : (
+                                      <></>
+                                    )}
+                                  </td>
+                                  <td className="px-3 py-2 text-right font-mono tabular-nums text-gray-600">
+                                    {formatTraceMetricValue(series.minValue)}
+                                  </td>
+                                  <td className="px-3 py-2 text-right font-mono tabular-nums text-gray-600">
+                                    {formatTraceMetricValue(series.maxValue)}
+                                  </td>
+                                  <td className="px-3 py-2 text-right font-mono tabular-nums text-gray-600">
+                                    {series.distinctSpanCount}
+                                  </td>
+                                </tr>
+                              );
+                            },
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </Card>
+            ) : (
+              <></>
+            )}
+
+            {activeSignalTab === "profile" && profileSampleCount > 0 ? (
+              <Card
+                title="Profile for this Trace"
+                description={`Flame graph built from the ${profileSampleCount.toLocaleString()} profile sample${profileSampleCount === 1 ? "" : "s"} recorded during this trace.`}
+              >
+                <TraceScopedFlamegraph traceId={traceId} />
+              </Card>
+            ) : (
+              <></>
+            )}
           </div>
         ) : (
           <></>

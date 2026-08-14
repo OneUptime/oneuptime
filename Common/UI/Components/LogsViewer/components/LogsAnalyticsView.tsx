@@ -53,6 +53,11 @@ interface AnalyticsTableRow {
 export interface LogsAnalyticsViewProps {
   timeRange: RangeStartAndEndDateTime;
   serviceIds?: Array<string> | undefined;
+  /*
+   * Base session scope from the host page (e.g. a session replay detail
+   * view). Forwarded verbatim so the charts cover the same rows as the list.
+   */
+  sessionIds?: Array<string> | undefined;
   appliedFacetFilters: Map<string, Set<string>>;
   logAttributes: Array<string>;
 }
@@ -362,6 +367,11 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
             props.serviceIds;
         }
 
+        if (props.sessionIds) {
+          (requestData as Record<string, unknown>)["sessionIds"] =
+            props.sessionIds;
+        }
+
         // Apply facet filters
         const severityValues: Set<string> | undefined =
           props.appliedFacetFilters.get("severityText");
@@ -435,6 +445,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
       topListLimit,
       props.timeRange,
       props.serviceIds,
+      props.sessionIds,
       props.appliedFacetFilters,
     ]);
 

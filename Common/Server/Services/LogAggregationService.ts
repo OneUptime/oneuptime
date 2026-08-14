@@ -31,6 +31,7 @@ export interface HistogramRequest {
   bodySearchText?: string | undefined;
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
+  sessionIds?: Array<string> | undefined;
   attributes?: LogAttributeFilters | undefined;
 }
 
@@ -52,6 +53,7 @@ export interface FacetRequest {
   bodySearchText?: string | undefined;
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
+  sessionIds?: Array<string> | undefined;
   attributes?: LogAttributeFilters | undefined;
 }
 
@@ -72,6 +74,7 @@ export interface AnalyticsRequest {
   bodySearchText?: string | undefined;
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
+  sessionIds?: Array<string> | undefined;
   limit?: number | undefined;
 }
 
@@ -765,6 +768,7 @@ export class LogAggregationService {
       | "bodySearchText"
       | "traceIds"
       | "spanIds"
+      | "sessionIds"
       | "attributes"
     >,
   ): void {
@@ -813,6 +817,15 @@ export class LogAggregationService {
         SQL` AND spanId IN (${{
           type: TableColumnType.Text,
           value: new Includes(request.spanIds),
+        }})`,
+      );
+    }
+
+    if (request.sessionIds && request.sessionIds.length > 0) {
+      statement.append(
+        SQL` AND sessionId IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(request.sessionIds),
         }})`,
       );
     }
@@ -876,6 +889,7 @@ export class LogAggregationService {
     bodySearchText?: string | undefined;
     traceIds?: Array<string> | undefined;
     spanIds?: Array<string> | undefined;
+    sessionIds?: Array<string> | undefined;
     attributes?: Record<string, string> | undefined;
   }): Promise<Array<JSONObject>> {
     const maxLimit: number = Math.min(request.limit || 10000, 10000);
@@ -942,6 +956,7 @@ export class LogAggregationService {
     time: Date;
     logId: string;
     count: number;
+    sessionIds?: Array<string> | undefined;
   }): Promise<{ before: Array<JSONObject>; after: Array<JSONObject> }> {
     const count: number = Math.min(request.count || 5, 20);
 
@@ -975,11 +990,6 @@ export class LogAggregationService {
           value: request.logId,
         }}
         AND retentionDate >= now()
-      ORDER BY time DESC, timeUnixNano DESC
-      LIMIT ${{
-        type: TableColumnType.Number,
-        value: count,
-      }}
     `;
 
     const afterStatement: Statement = SQL`
@@ -1012,12 +1022,39 @@ export class LogAggregationService {
           value: request.logId,
         }}
         AND retentionDate >= now()
-      ORDER BY time ASC, timeUnixNano ASC
+    `;
+
+    /*
+     * Session scoping keeps "surrounding" logs within the same RUM
+     * session instead of interleaving every session the service handled
+     * at that instant.
+     */
+    if (request.sessionIds && request.sessionIds.length > 0) {
+      for (const contextStatement of [beforeStatement, afterStatement]) {
+        contextStatement.append(
+          SQL` AND sessionId IN (${{
+            type: TableColumnType.Text,
+            value: new Includes(request.sessionIds),
+          }})`,
+        );
+      }
+    }
+
+    beforeStatement.append(
+      SQL` ORDER BY time DESC, timeUnixNano DESC
       LIMIT ${{
         type: TableColumnType.Number,
         value: count,
-      }}
-    `;
+      }}`,
+    );
+
+    afterStatement.append(
+      SQL` ORDER BY time ASC, timeUnixNano ASC
+      LIMIT ${{
+        type: TableColumnType.Number,
+        value: count,
+      }}`,
+    );
 
     const [beforeResult, afterResult] = await Promise.all([
       LogDatabaseService.executeQuery(beforeStatement),

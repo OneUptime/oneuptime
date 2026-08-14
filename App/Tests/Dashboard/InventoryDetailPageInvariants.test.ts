@@ -168,9 +168,12 @@ describe("the telemetry view", () => {
      * A span owned by the checkout service but executed on this pod belongs
      * to both. A primary-owner query returns nothing at all for a pod.
      */
-    expect(telemetry).toContain("entityKeysFilter={[entityKey]}");
+    expect(telemetry).toContain(
+      "const entityKeysFilter: Array<string> = useMemo(() => { return [entityKey]; }, [entityKey]);",
+    );
+    expect(telemetry).toContain("entityKeysFilter={entityKeysFilter}");
     expect(telemetry).toContain("entityKeys: new Includes([entityKey])");
-    expect(telemetry).toContain("entityKeys={[entityKey]}");
+    expect(telemetry).toContain("entityKeys={entityKeysFilter}");
   });
 
   test("covers every signal type", () => {
