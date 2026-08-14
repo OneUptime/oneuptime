@@ -4,6 +4,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import AllowAccessIfSubscriptionIsUnpaid from "../../Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnerOnlyColumn from "../../Types/Database/AccessControl/OwnerOnlyColumn";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -91,6 +92,14 @@ class UserPush extends BaseModel {
     read: [Permission.CurrentUser],
     update: [],
   })
+  /*
+   * The push subscription itself - endpoint plus keys. Anyone holding it can
+   * push notifications straight to that device, so it is a credential. The
+   * device NAME and TYPE next to it are deliberately left unmarked: they are
+   * how an admin surface says "Jane has a verified iPhone" without handing over
+   * the ability to push to it.
+   */
+  @OwnerOnlyColumn()
   @TableColumn({
     title: "Device Token",
     required: true,

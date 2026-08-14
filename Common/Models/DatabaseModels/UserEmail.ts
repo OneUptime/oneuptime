@@ -4,6 +4,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import AllowAccessIfSubscriptionIsUnpaid from "../../Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnerOnlyColumn from "../../Types/Database/AccessControl/OwnerOnlyColumn";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -93,6 +94,13 @@ class UserEmail extends BaseModel {
     read: [Permission.CurrentUser],
     update: [],
   })
+  /*
+   * A personal email address, and a directly addressable delivery target. An
+   * administrator auditing somebody's on-call setup needs to know THAT an email
+   * method exists and whether it is verified; they do not need the address, and
+   * handing it over turns a rules audit into a contact-details export.
+   */
+  @OwnerOnlyColumn()
   @TableColumn({
     title: "Email",
     required: true,
@@ -272,6 +280,12 @@ class UserEmail extends BaseModel {
     read: [],
     update: [],
   })
+  /*
+   * A live verification code. Reading somebody else's is claiming their
+   * notification channel, so this one is not a privacy question but an account
+   * takeover one.
+   */
+  @OwnerOnlyColumn()
   @TableColumn({
     title: "Verification Code",
     description: "Temporary Verification Code",
