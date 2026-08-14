@@ -1,5 +1,37 @@
 # On-Call Notification Readiness — Implementation Plan
 
+> **STATUS: SHIPPED.** All five phases are on master, along with three permission
+> fixes that were not in this plan. Kept as the record of what was found and why
+> the design ended where it did — **not as instructions**. Two things below were
+> wrong and are corrected inline: §6's column-mirroring, which would have
+> reopened the very hijack it was meant to prevent, and §6's premise that admins
+> should read notification-method rows at all.
+>
+> | Shipped | |
+> |---|---|
+> | Phase 0 | 370 characterization tests |
+> | Phase 1 | Gaps A, C, F, G |
+> | Phase 2 | `OnCallReadinessService`, its API, three surfaces |
+> | Phase 3 | admin visibility and editing, on the owner-only column guard |
+> | Phase 4 | setup reminders, delete guards, add-responder warning, weekly digest |
+>
+> **Not in this plan, found while building it.** The create path had no ownership
+> enforcement of any kind: `CreatePermission` never applied the row scope that
+> read, update and delete all apply, so any project member could write a
+> notification rule — or a webhook, which auto-seeds rules — owned by somebody
+> else and pointed at a channel they controlled, redirecting that person's pages.
+> Fixed at the framework layer across the fourteen models whose create list is
+> `CurrentUser`-only, then twice more as the same root cause surfaced elsewhere:
+> the `user` relation writes the same column as the `userId` scalar, and a marked
+> column can be reached through a relation as well as directly.
+>
+> **The one fact behind six defects, including two of my own:**
+> `Permission.CurrentUser` is auto-granted to every authenticated caller, so in a
+> COLUMN list it never means "only my own row" — row scoping comes from the TABLE
+> list alone. Any future work that leans on a column list to restrict which ROWS
+> or which VALUES a caller reaches is wrong before it starts.
+
+
 **Problem:** users are added to an on-call policy, have no notification rules or no notification
 methods, and silently miss every page routed to them. Nobody — not the user, not the policy
 author, not the project owner — finds out until an incident is missed.
@@ -416,12 +448,31 @@ Then on `Common/Models/DatabaseModels/UserNotificationRule.ts`:
 `@CurrentUserCanAccessRecordBy("userId")` **stays**. That is the whole trick: with an admin
 permission present in the list, `isAccessGrantedOnlyByCurrentUser()` returns false for admins so
 the row scope lifts, while plain members still hold only `CurrentUser` and stay scoped to their own
-rows. Mirror the same permission lists onto the per-column `@ColumnAccessControl` blocks —
-note that most columns currently have `update: []`, which is why the rules table is
-`isEditable={false}`; opening `notifyAfterMinutes` and the method FKs to update is part of this
-work.
+rows.
 
-On the seven method models (`UserEmail`, `UserSMS`, `UserCall`, `UserPush`, `UserWhatsApp`,
+> **CORRECTED — do not mirror the lists onto the columns.** Applied literally to
+> `userId`, that lets an admin RE-POINT an existing rule at a different owner:
+> the same paging hijack the create gate closes, through `update` instead of
+> `create`. `userId` and `projectId` stay `update: []` on all eight models, with
+> tests pinning it. Only `notifyAfterMinutes`, `isOptOut` and the seven method
+> FKs open to update — and the FKs are safe only because a service guard asserts
+> the referenced method belongs to the rule's owner, re-read from the database
+> rather than trusted from the request body.
+
+> **CORRECTED — the method models were NOT widened, and must not be.** Widening
+> their table read removes the row scope that was the only thing protecting their
+> credentials, and no column list can restore it. Worse, the exposure survives
+> reverting them, because it arrives through `UserNotificationRule`'s own
+> relations: `QueryPermission.checkRelationQueryPermission` skips its check
+> outright for any column carrying `canReadOnRelationQuery`. What shipped instead
+> is `@OwnerOnlyColumn` — a marked column may be read only when the query
+> reaching its row is pinned to the caller's own id, enforced on all four routes
+> (direct select, nested relation, sort-key injection, query predicate). The
+> admin surface never reads a method row at all; it takes masked identifiers plus
+> a `methodId` from `OnCallReadinessService`, which is what lets a rule be
+> pointed at a method whose row was never read.
+
+The superseded original read: on the seven method models (`UserEmail`, `UserSMS`, `UserCall`, `UserPush`, `UserWhatsApp`,
 `UserTelegram`, `UserWebhook`): **widen `read` only**, to
 `[Permission.CurrentUser, ProjectOwner, ProjectAdmin, ReadProjectUserNotificationRule]`. Leave
 `create`/`update`/`delete` as `CurrentUser`-only.
@@ -595,7 +646,32 @@ Phase 1 is the one that matters. If nothing else ships, missed pages stop.
 
 ---
 
-## 12. Open decisions
+## 12. Deliberately left undone
+
+- **The admin surface's delete uses the stock confirmation**, not the impact
+  modal the four self-serve pages use. The impact loader selects method
+  identifiers through the rule's relations, which the owner-only guard correctly
+  refuses for an admin. Closing it needs an identifier-free coverage select —
+  `describeRuleDeletion` needs only rule type, severity and opt-out, never a
+  method label.
+- **The server-side deletion-impact API has no caller.** The guard that ships is
+  client-side, which is adequate for someone deleting their own configuration but
+  not for an admin acting on another's. Its header says so at length.
+- **`ComplianceRuleType` has no episode variants**, so Teams > Compliance still
+  reports on incident and alert rules only.
+
+## 13. Decisions taken (were open)
+
+- The fallback is **on by default**, including for existing projects. Silence
+  stays expressible through an explicit opt-out row.
+- `Ready` requires **every** severity. Scoping it to severities seen recently was
+  considered and deferred for want of usage data.
+- An unreachable responder **warns** rather than blocks, at the moment of the
+  add.
+- Teams > Compliance was **kept** and rebuilt on the shared service, because team
+  leads and on-call admins are different audiences.
+
+## 14. Original open decisions
 
 1. **Is the fallback on by default for existing projects?** Recommend yes — the current behaviour
    is data loss, and the opt-out row plus the project setting give anyone who wants silence a way
