@@ -77,9 +77,30 @@ import TraceRecordingRuleDefinition, {
   TraceRecordingRuleAttributeFilter,
 } from "Common/Types/Trace/TraceRecordingRuleDefinition";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
+import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
+import Dictionary from "Common/Types/Dictionary";
+import {
+  CrossSignalQueryParams,
+  toLogsExplorerQueryParams,
+  toMetricsExplorerQueryParams,
+} from "Common/Utils/Telemetry/CrossSignalScope";
+import {
+  TracesPivotScopeResult,
+  buildTracesPivotScope,
+  describeDroppedScopeFields,
+} from "../../Utils/TraceCorrelatedSignals";
+import { shouldAdoptTimeRangeOverride } from "../../Utils/SharedTelemetryTimeCursor";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
+
+// One toolbar-button idiom for the signal pivots (mirrors MetricExplorer).
+const TOOLBAR_BUTTON_CLASS_NAME: string =
+  "inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
+const TOOLBAR_BUTTON_IDLE_CLASS_NAME: string =
+  "text-gray-600 hover:bg-gray-100 hover:text-gray-900";
 
 /*
  * Synthetic "Span Type" facet. It is not a real Span column — selecting its
@@ -383,6 +404,28 @@ interface Props {
         attributeValue: string;
       }
     | undefined;
+  /*
+   * Controlled shared window (the entity telemetry hub). When set, the
+   * viewer seeds from it and adopts every value change; the host is expected
+   * to hand back whatever `onTimeRangeChange` lifted, so an echo of the
+   * viewer's own change compares equal and is a no-op.
+   */
+  timeRangeOverride?: RangeStartAndEndDateTime | undefined;
+  /*
+   * Fired only for user-initiated window changes inside this viewer (the
+   * toolbar picker and histogram drag-zoom) — never when adopting
+   * `timeRangeOverride` — so a controlling host can follow without loops.
+   */
+  onTimeRangeChange?:
+    | ((timeRange: RangeStartAndEndDateTime) => void)
+    | undefined;
+  /*
+   * Embedded contexts (the entity telemetry hub) own the page URL: when
+   * true, the viewer neither seeds from nor mirrors state to the query
+   * string — the same reason the logs viewer's syncUrlState defaults off
+   * for incident embeds. Standalone explorer pages leave this unset.
+   */
+  disableUrlSync?: boolean | undefined;
 }
 
 const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
@@ -391,8 +434,27 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    * "filter by" action lands here with `?search=...` so users arrive with
    * the filter applied; refresh and back-from-trace-detail also rely on
    * this so the view restores rather than resetting to defaults.
+   *
+   * A useState initializer (not a memo) because it is a seed: it must never
+   * recompute. Embedded hosts (disableUrlSync) skip the URL entirely — the
+   * host page's query params are not this viewer's state.
    */
-  const initialUrlState: InitialUrlState = useMemo(readInitialUrlState, []);
+  const [initialUrlState] = useState<InitialUrlState>((): InitialUrlState => {
+    if (props.disableUrlSync) {
+      return {
+        search: "",
+        filters: [],
+        timeRange: props.timeRangeOverride || {
+          range: TimeRange.PAST_ONE_HOUR,
+        },
+        page: 1,
+        pageSize: DEFAULT_PAGE_SIZE,
+        viewMode: "spans",
+        rootOnly: false,
+      };
+    }
+    return readInitialUrlState();
+  });
 
   const [spans, setSpans] = useState<Array<Span>>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
@@ -410,8 +472,36 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   >([]);
 
   const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>(
-    initialUrlState.timeRange,
+    props.timeRangeOverride || initialUrlState.timeRange,
   );
+
+  /*
+   * Render-time mirror of `timeRange` for the adopt effect below. The effect
+   * must compare an override against the *current* window without listing
+   * `timeRange` in its deps — otherwise the user's own zoom would re-run it
+   * against a stale override and get yanked straight back.
+   */
+  const timeRangeRef: React.MutableRefObject<RangeStartAndEndDateTime> =
+    useRef<RangeStartAndEndDateTime>(timeRange);
+  timeRangeRef.current = timeRange;
+
+  /*
+   * Adopt a controlled window change from the host. Value-gated: the echo of
+   * a window this viewer just lifted through onTimeRangeChange compares
+   * equal and is skipped, which is what breaks the feedback loop.
+   */
+  useEffect(() => {
+    if (
+      !shouldAdoptTimeRangeOverride(
+        props.timeRangeOverride,
+        timeRangeRef.current,
+      )
+    ) {
+      return;
+    }
+    setTimeRange(props.timeRangeOverride!);
+    setPage(1);
+  }, [props.timeRangeOverride]);
 
   const [searchValue, setSearchValue] = useState<string>(
     initialUrlState.search,
@@ -921,6 +1011,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    * link from before this change.
    */
   useEffect(() => {
+    if (props.disableUrlSync) {
+      return;
+    }
     const params: URLSearchParams = new URLSearchParams();
     if (submittedSearch) {
       params.set("search", submittedSearch);
@@ -955,6 +1048,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
     writeTelemetryViewerUrlState(Object.fromEntries(params.entries()));
   }, [
+    props.disableUrlSync,
     submittedSearch,
     activeFilters,
     timeRange,
@@ -2076,15 +2170,121 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     [aggregationRequest],
   );
 
-  // Histogram drag-to-zoom
+  // Histogram drag-to-zoom — user-initiated, so it also lifts to the host.
   const handleHistogramTimeRangeSelect: (start: Date, end: Date) => void =
-    useCallback((start: Date, end: Date) => {
-      setTimeRange({
-        range: TimeRange.CUSTOM,
-        startAndEndDate: new InBetween<Date>(start, end),
+    useCallback(
+      (start: Date, end: Date) => {
+        const customRange: RangeStartAndEndDateTime = {
+          range: TimeRange.CUSTOM,
+          startAndEndDate: new InBetween<Date>(start, end),
+        };
+        setTimeRange(customRange);
+        setPage(1);
+        props.onTimeRangeChange?.(customRange);
+      },
+      [props.onTimeRangeChange],
+    );
+
+  /*
+   * Cross-signal pivots: distill the current view (facet chips, parsed
+   * search, prop-level scope, window) into a TelemetryCrossSignalScope and
+   * open the target explorer equivalently scoped. Built at click time so a
+   * relative range resolves to the freshest window; the tooltip hints are
+   * memoised because they do not depend on the resolved timestamps.
+   */
+  const buildPivot: () => TracesPivotScopeResult =
+    useCallback((): TracesPivotScopeResult => {
+      const dateRange: InBetween<Date> =
+        RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+      const parsed: ReturnType<typeof parseSearch> =
+        parseSearch(submittedSearch);
+
+      return buildTracesPivotScope({
+        primaryEntityId: props.primaryEntityId?.toString(),
+        scopeAttributeFilters: props.attributeFilters,
+        activeFilters: activeFilters.map(
+          (filter: ActiveFilter): { facetKey: string; value: string } => {
+            return { facetKey: filter.facetKey, value: filter.value };
+          },
+        ),
+        fieldFilters: parsed.fieldFilters,
+        searchAttributes: parsed.attributes,
+        searchAttributeSearches: parsed.attributeSearches,
+        freeText: parsed.freeText,
+        rootOnly,
+        hasEntityScope: Boolean(
+          props.entityScope ||
+            (props.entityKeysFilter && props.entityKeysFilter.length > 0),
+        ),
+        startTime: dateRange.startValue,
+        endTime: dateRange.endValue,
       });
-      setPage(1);
-    }, []);
+    }, [
+      timeRange,
+      parseSearch,
+      submittedSearch,
+      activeFilters,
+      rootOnly,
+      props.primaryEntityId,
+      props.attributeFilters,
+      props.entityScope,
+      props.entityKeysFilter,
+    ]);
+
+  // Scope fields each pivot target cannot express — shown in the tooltip.
+  const pivotHints: { logs: Array<string>; metrics: Array<string> } =
+    useMemo(() => {
+      const pivot: TracesPivotScopeResult = buildPivot();
+      const logsResult: CrossSignalQueryParams = toLogsExplorerQueryParams(
+        pivot.scope,
+      );
+      const metricsResult: CrossSignalQueryParams =
+        toMetricsExplorerQueryParams(pivot.scope);
+
+      return {
+        logs: Array.from(
+          new Set([
+            ...pivot.notCarried,
+            ...describeDroppedScopeFields(logsResult.dropped),
+          ]),
+        ),
+        metrics: Array.from(
+          new Set([
+            ...pivot.notCarried,
+            ...describeDroppedScopeFields(metricsResult.dropped),
+          ]),
+        ),
+      };
+    }, [buildPivot]);
+
+  const navigateToPivot: (target: "logs" | "metrics") => void = useCallback(
+    (target: "logs" | "metrics"): void => {
+      const pivot: TracesPivotScopeResult = buildPivot();
+      const serialized: CrossSignalQueryParams =
+        target === "logs"
+          ? toLogsExplorerQueryParams(pivot.scope)
+          : toMetricsExplorerQueryParams(pivot.scope);
+
+      const route: Route = RouteUtil.populateRouteParams(
+        RouteMap[target === "logs" ? PageMap.LOGS : PageMap.METRIC_VIEW]!,
+      );
+      const currentUrl: URL = Navigation.getCurrentURL();
+      const targetUrl: URL = new URL(
+        currentUrl.protocol,
+        currentUrl.hostname,
+        route,
+      );
+
+      const params: Dictionary<string> = serialized.params;
+
+      for (const paramName of Object.keys(params)) {
+        targetUrl.addQueryParam(paramName, params[paramName] as string, true);
+      }
+
+      Navigation.navigate(targetUrl);
+    },
+    [buildPivot],
+  );
 
   /*
    * Build the route to a trace's detail page so rows can render as real
@@ -2112,14 +2312,20 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     (!props.attributeFilters ||
       Object.keys(props.attributeFilters).length === 0);
 
-  // Whether the URL already carried filter state (deep link) on first mount.
+  /*
+   * Whether the URL already carried filter state (deep link) on first mount.
+   * A controlled window counts too: the host owns the view then, so the
+   * default saved view must not auto-apply over it — the same skip the logs
+   * viewer performs for a pinned incident window.
+   */
   const hasInitialUrlState: boolean = useMemo((): boolean => {
     return (
+      Boolean(props.timeRangeOverride) ||
       initialUrlState.search.length > 0 ||
       initialUrlState.filters.length > 0 ||
       initialUrlState.timeRange.range !== TimeRange.PAST_ONE_HOUR
     );
-  }, [initialUrlState]);
+  }, [initialUrlState, props.timeRangeOverride]);
 
   // Capture the current explorer state for Save / Update of a saved view.
   const captureCurrentState: () => TelemetrySavedViewState =
@@ -2189,6 +2395,55 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       }
       toolbarTrailingActions={
         <>
+          {/*
+           * Signal pivots: jump to the logs / metrics explorer carrying the
+           * current scope (service facets, attribute filters, window). The
+           * tooltip lists any filters the target grammar cannot express so
+           * the narrowing is never silent.
+           */}
+          <div
+            className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-white p-0.5 shadow-sm"
+            aria-label="Related telemetry signals"
+          >
+            <Tooltip
+              text={`Open the logs explorer scoped like this view${
+                pivotHints.logs.length > 0
+                  ? ` — not carried over: ${pivotHints.logs.join(", ")}`
+                  : ""
+              }`}
+            >
+              <button
+                type="button"
+                aria-label="View logs for this scope"
+                className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
+                onClick={() => {
+                  navigateToPivot("logs");
+                }}
+              >
+                <Icon icon={IconProp.Logs} className="h-3.5 w-3.5" />
+                <span>Logs</span>
+              </button>
+            </Tooltip>
+            <Tooltip
+              text={`Open the metric explorer scoped like this view${
+                pivotHints.metrics.length > 0
+                  ? ` — not carried over: ${pivotHints.metrics.join(", ")}`
+                  : ""
+              }`}
+            >
+              <button
+                type="button"
+                aria-label="View metrics for this scope"
+                className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
+                onClick={() => {
+                  navigateToPivot("metrics");
+                }}
+              >
+                <Icon icon={IconProp.ChartBar} className="h-3.5 w-3.5" />
+                <span>Metrics</span>
+              </button>
+            </Tooltip>
+          </div>
           {/* Spans / Analytics view toggle */}
           <div className="inline-flex overflow-hidden rounded-md border border-gray-200 shadow-sm">
             {(["spans", "analytics"] as Array<"spans" | "analytics">).map(
@@ -2331,6 +2586,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       onTimeRangeChange={(value: RangeStartAndEndDateTime) => {
         setTimeRange(value);
         setPage(1);
+        // User-initiated (the toolbar picker) — lift to a controlling host.
+        props.onTimeRangeChange?.(value);
       }}
       // Live
       live={{

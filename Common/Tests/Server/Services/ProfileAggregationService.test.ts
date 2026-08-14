@@ -1,10 +1,14 @@
 import ProfileAggregationService, {
   DiffFlamegraphNode,
+  FlamegraphRequest,
   FlamegraphResult,
   ProfileFlamegraphNode,
+  TracePresenceRequest,
+  TracePresenceResult,
 } from "../../../Server/Services/ProfileAggregationService";
 import ProfileSampleDatabaseService from "../../../Server/Services/ProfileSampleService";
 import { Results } from "../../../Server/Services/AnalyticsDatabaseService";
+import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { describe, expect, test, afterEach, jest } from "@jest/globals";
@@ -276,5 +280,297 @@ describe("ProfileAggregationService.mergeDiffTrees", () => {
     expect(removed.comparisonValue).toBe(0);
     expect(removed.delta).toBe(-40);
     expect(removed.deltaPercent).toBe(-100);
+  });
+});
+
+describe("ProfileAggregationService trace-scoped sample filters", () => {
+  type BuildSampleQuery = (request: FlamegraphRequest) => Statement;
+
+  /*
+   * The builders are private but pure — reaching them through casts keeps
+   * predicate generation testable without a ClickHouse round trip (same
+   * pattern as the mergeDiffTrees block above).
+   */
+  const buildGroupedStackQuery: BuildSampleQuery = (
+    ProfileAggregationService as unknown as {
+      buildGroupedStackQuery: BuildSampleQuery;
+    }
+  ).buildGroupedStackQuery.bind(ProfileAggregationService);
+
+  const buildWindowTotalQuery: BuildSampleQuery = (
+    ProfileAggregationService as unknown as {
+      buildWindowTotalQuery: BuildSampleQuery;
+    }
+  ).buildWindowTotalQuery.bind(ProfileAggregationService);
+
+  const projectId: ObjectID = ObjectID.generate();
+
+  test("emits no trace predicates when traceId and spanIds are absent", () => {
+    const statement: Statement = buildGroupedStackQuery({ projectId });
+
+    expect(statement.query).not.toContain("traceId");
+    expect(statement.query).not.toContain("spanId");
+  });
+
+  test("traceId alone adds a parameter-bound equality predicate", () => {
+    const statement: Statement = buildGroupedStackQuery({
+      projectId,
+      traceId: "trace-abc-123",
+    });
+
+    expect(statement.query).toMatch(/AND traceId = \{p\d+:String\}/);
+    expect(statement.query).not.toContain("spanId");
+    expect(Object.values(statement.query_params)).toContain("trace-abc-123");
+  });
+
+  test("spanIds alone add a parameter-bound IN predicate", () => {
+    const statement: Statement = buildGroupedStackQuery({
+      projectId,
+      spanIds: ["span-a", "span-b"],
+    });
+
+    expect(statement.query).toMatch(
+      /AND spanId IN \(\{p\d+:Array\(String\)\}\)/,
+    );
+    expect(statement.query).not.toContain("traceId");
+    expect(Object.values(statement.query_params)).toContainEqual([
+      "span-a",
+      "span-b",
+    ]);
+  });
+
+  test("traceId and spanIds combine into both predicates", () => {
+    const statement: Statement = buildGroupedStackQuery({
+      projectId,
+      traceId: "trace-abc-123",
+      spanIds: ["span-a"],
+    });
+
+    expect(statement.query).toMatch(/AND traceId = \{p\d+:String\}/);
+    expect(statement.query).toMatch(
+      /AND spanId IN \(\{p\d+:Array\(String\)\}\)/,
+    );
+    expect(Object.values(statement.query_params)).toContain("trace-abc-123");
+    expect(Object.values(statement.query_params)).toContainEqual(["span-a"]);
+  });
+
+  test("an empty spanIds array behaves exactly like an absent filter", () => {
+    const statement: Statement = buildGroupedStackQuery({
+      projectId,
+      spanIds: [],
+    });
+
+    expect(statement.query).not.toContain("spanId");
+  });
+
+  test("injection-shaped values never reach the query text", () => {
+    const evilTraceId: string = "') OR 1=1 --";
+    const evilSpanId: string = "x'); DROP TABLE ProfileSample; --";
+
+    const statement: Statement = buildGroupedStackQuery({
+      projectId,
+      traceId: evilTraceId,
+      spanIds: [evilSpanId],
+    });
+
+    expect(statement.query).not.toContain(evilTraceId);
+    expect(statement.query).not.toContain(evilSpanId);
+    expect(Object.values(statement.query_params)).toContain(evilTraceId);
+    expect(Object.values(statement.query_params)).toContainEqual([evilSpanId]);
+  });
+
+  test("the window-total query carries the same trace predicates", () => {
+    const statement: Statement = buildWindowTotalQuery({
+      projectId,
+      traceId: "trace-abc-123",
+      spanIds: ["span-a"],
+    });
+
+    expect(statement.query).toMatch(/AND traceId = \{p\d+:String\}/);
+    expect(statement.query).toMatch(
+      /AND spanId IN \(\{p\d+:Array\(String\)\}\)/,
+    );
+  });
+});
+
+/*
+ * Stub the ClickHouse boundary while capturing every Statement handed to
+ * executeQuery, so tests can assert on the generated predicates AND feed
+ * canned rows back. Returns the (initially empty) capture array.
+ */
+const stubAndCaptureStatements: (
+  rows: Array<JSONObject>,
+) => Array<Statement> = (rows: Array<JSONObject>): Array<Statement> => {
+  const captured: Array<Statement> = [];
+  const fakeResult: Results = {
+    json: () => {
+      return Promise.resolve({ data: rows });
+    },
+  } as unknown as Results;
+
+  jest
+    .spyOn(ProfileSampleDatabaseService, "executeQuery")
+    .mockImplementation((statement: Statement | string): Promise<Results> => {
+      captured.push(statement as Statement);
+      return Promise.resolve(fakeResult);
+    });
+
+  return captured;
+};
+
+describe("ProfileAggregationService trace filters through the public reads", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const projectId: ObjectID = ObjectID.generate();
+
+  const expectTracePredicates: (statement: Statement) => void = (
+    statement: Statement,
+  ): void => {
+    expect(statement.query).toMatch(/AND traceId = \{p\d+:String\}/);
+    expect(statement.query).toMatch(
+      /AND spanId IN \(\{p\d+:Array\(String\)\}\)/,
+    );
+    expect(Object.values(statement.query_params)).toContain("trace-9");
+    expect(Object.values(statement.query_params)).toContainEqual(["span-9"]);
+  };
+
+  test("getFlamegraph threads traceId + spanIds into the grouped query", async () => {
+    const captured: Array<Statement> = stubAndCaptureStatements([]);
+
+    await ProfileAggregationService.getFlamegraph({
+      projectId,
+      traceId: "trace-9",
+      spanIds: ["span-9"],
+    });
+
+    expect(captured.length).toBe(1);
+    expectTracePredicates(captured[0]!);
+  });
+
+  test("getFunctionList threads traceId + spanIds into both queries", async () => {
+    const captured: Array<Statement> = stubAndCaptureStatements([]);
+
+    await ProfileAggregationService.getFunctionList({
+      projectId,
+      traceId: "trace-9",
+      spanIds: ["span-9"],
+    });
+
+    // Grouped stack query + window-total query.
+    expect(captured.length).toBe(2);
+    for (const statement of captured) {
+      expectTracePredicates(statement);
+    }
+  });
+
+  test("getFunctionFocus threads traceId + spanIds into both queries", async () => {
+    const captured: Array<Statement> = stubAndCaptureStatements([]);
+
+    await ProfileAggregationService.getFunctionFocus({
+      projectId,
+      functionName: "work",
+      fileName: "main.go",
+      traceId: "trace-9",
+      spanIds: ["span-9"],
+    });
+
+    // Function-stack query + window-total query.
+    expect(captured.length).toBe(2);
+    for (const statement of captured) {
+      expectTracePredicates(statement);
+    }
+  });
+});
+
+describe("ProfileAggregationService.getTracePresence", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const projectId: ObjectID = ObjectID.generate();
+
+  test("returns the count from the stubbed boundary and scopes the query", async () => {
+    // ClickHouse renders wide numerics as strings — cover the coercion.
+    const captured: Array<Statement> = stubAndCaptureStatements([
+      { sampleCount: "42" },
+    ]);
+
+    const request: TracePresenceRequest = {
+      projectId,
+      traceId: "trace-1",
+      spanIds: ["span-1", "span-2"],
+    };
+
+    const result: TracePresenceResult =
+      await ProfileAggregationService.getTracePresence(request);
+
+    expect(result.sampleCount).toBe(42);
+    expect(captured.length).toBe(1);
+
+    const statement: Statement = captured[0]!;
+    expect(statement.query).toContain("count() AS sampleCount");
+    expect(statement.query).toMatch(/AND traceId = \{p\d+:String\}/);
+    expect(statement.query).toMatch(
+      /AND spanId IN \(\{p\d+:Array\(String\)\}\)/,
+    );
+    expect(statement.query).toContain("retentionDate >= now()");
+    expect(Object.values(statement.query_params)).toContain(
+      projectId.toString(),
+    );
+    expect(Object.values(statement.query_params)).toContain("trace-1");
+    expect(Object.values(statement.query_params)).toContainEqual([
+      "span-1",
+      "span-2",
+    ]);
+  });
+
+  test("omits the spanId predicate when spanIds is absent or empty", async () => {
+    const captured: Array<Statement> = stubAndCaptureStatements([
+      { sampleCount: 7 },
+    ]);
+
+    const absentResult: TracePresenceResult =
+      await ProfileAggregationService.getTracePresence({
+        projectId,
+        traceId: "trace-1",
+      });
+    expect(absentResult.sampleCount).toBe(7);
+    expect(captured[0]!.query).not.toContain("spanId");
+
+    const emptyResult: TracePresenceResult =
+      await ProfileAggregationService.getTracePresence({
+        projectId,
+        traceId: "trace-1",
+        spanIds: [],
+      });
+    expect(emptyResult.sampleCount).toBe(7);
+    expect(captured[1]!.query).not.toContain("spanId");
+  });
+
+  test("returns 0 when the boundary yields no rows", async () => {
+    stubAndCaptureStatements([]);
+
+    const result: TracePresenceResult =
+      await ProfileAggregationService.getTracePresence({
+        projectId,
+        traceId: "trace-with-no-samples",
+      });
+
+    expect(result.sampleCount).toBe(0);
+  });
+
+  test("injection-shaped trace ids stay out of the query text", async () => {
+    const captured: Array<Statement> = stubAndCaptureStatements([]);
+    const evilTraceId: string = "') UNION SELECT * FROM system.tables --";
+
+    await ProfileAggregationService.getTracePresence({
+      projectId,
+      traceId: evilTraceId,
+    });
+
+    expect(captured[0]!.query).not.toContain(evilTraceId);
+    expect(Object.values(captured[0]!.query_params)).toContain(evilTraceId);
   });
 });

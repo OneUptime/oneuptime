@@ -9,6 +9,7 @@ import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import EventLoop from "Common/Server/Utils/EventLoop";
 import logger from "Common/Server/Utils/Logger";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
+import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
@@ -16,6 +17,11 @@ import ObjectID from "Common/Types/ObjectID";
 import protobuf from "protobufjs";
 import path from "path";
 import zlib from "zlib";
+import {
+  SPAN_ID_KEYS,
+  TRACE_ID_KEYS,
+  findHexCorrelationValue,
+} from "../Utils/ProfileCorrelation";
 import ProfilesQueueService from "./Queue/ProfilesQueueService";
 
 // Load pprof proto schema
@@ -102,6 +108,18 @@ const JFR_UNSUPPORTED_MESSAGE: string =
   "JFR format is not supported. Send profiles in pprof format instead, " +
   "or collect via Grafana Alloy's eBPF profiler (pyroscope.ebpf) which " +
   "pushes pprof to /pyroscope/push.v1.PusherService/Push.";
+
+/*
+ * Label keys that are PROMOTED to the link table rather than stored as
+ * sample attributes: a valid id becomes a first-class traceId/spanId
+ * column downstream, and an invalid one must be dropped entirely —
+ * leaving it in the attribute table would let the worker's raw label
+ * fallback resurrect the unvalidated value.
+ */
+const CORRELATION_LABEL_KEYS: Set<string> = new Set<string>([
+  ...TRACE_ID_KEYS,
+  ...SPAN_ID_KEYS,
+]);
 
 export default class PyroscopeIngestService {
   @CaptureSpan()
@@ -672,6 +690,43 @@ export default class PyroscopeIngestService {
     });
   }
 
+  /*
+   * Resolve a pprof sample's string-valued labels through the string
+   * table. Numeric labels (`num`/`numUnit`) are skipped: nothing that
+   * carries trace correlation is numeric, and the OTLP attribute table
+   * built from these entries stores strings.
+   */
+  private static extractSampleLabels(
+    sample: PprofSample,
+    stringTable: Array<string>,
+  ): Dictionary<string> {
+    const labels: Dictionary<string> = {};
+
+    for (const label of sample.label || []) {
+      const keyIndex: number = Number(label.key) || 0;
+      const strIndex: number = Number(label.str) || 0;
+
+      /* Index 0 is pprof's empty-string sentinel — "no value". */
+      if (keyIndex <= 0 || keyIndex >= stringTable.length) {
+        continue;
+      }
+      if (strIndex <= 0 || strIndex >= stringTable.length) {
+        continue;
+      }
+
+      const key: string = stringTable[keyIndex]!;
+      const value: string = stringTable[strIndex]!;
+
+      if (!key || !value) {
+        continue;
+      }
+
+      labels[key] = value;
+    }
+
+    return labels;
+  }
+
   private static parsePprof(data: Buffer): PprofProfileData {
     const message: protobuf.Message = PprofProfile.decode(
       new Uint8Array(data.buffer, data.byteOffset, data.byteLength),
@@ -737,6 +792,25 @@ export default class PyroscopeIngestService {
     const otlpSamples: Array<JSONObject> = [];
 
     /*
+     * Trace correlation and label passthrough. pprof has no link table,
+     * so Pyroscope SDKs carry trace context as sample labels
+     * (pyroscope-go's pprof.Do / WithLabels). Valid ids become OTLP link
+     * table entries referenced per sample via linkIndex — the exact shape
+     * the worker already resolves into traceId/spanId columns. Index 0 of
+     * both tables is the OTLP sentinel and is never referenced.
+     */
+    const linkTable: Array<JSONObject> = [];
+    const linkIndexByCorrelation: Map<string, number> = new Map<
+      string,
+      number
+    >();
+    const attributeTable: Array<JSONObject> = [];
+    const attributeIndexByLabel: Map<string, number> = new Map<
+      string,
+      number
+    >();
+
+    /*
      * Compute timestamps. A missing/zero capture time would land every
      * sample at the 1970 epoch — outside any dashboard window and
      * instantly past retention — so fall back to ingestion time when
@@ -781,11 +855,76 @@ export default class PyroscopeIngestService {
         },
       );
 
-      otlpSamples.push({
+      const labels: Dictionary<string> = this.extractSampleLabels(
+        sample,
+        stringTable,
+      );
+
+      const traceId: string = findHexCorrelationValue(labels, TRACE_ID_KEYS);
+      const spanId: string = findHexCorrelationValue(labels, SPAN_ID_KEYS);
+
+      let linkIndex: number = 0;
+      if (traceId || spanId) {
+        if (linkTable.length === 0) {
+          linkTable.push({ traceId: "", spanId: "" });
+        }
+
+        const correlationKey: string = `${traceId}:${spanId}`;
+        const existingLinkIndex: number | undefined =
+          linkIndexByCorrelation.get(correlationKey);
+
+        if (existingLinkIndex !== undefined) {
+          linkIndex = existingLinkIndex;
+        } else {
+          linkIndex = linkTable.length;
+          linkTable.push({ traceId: traceId, spanId: spanId });
+          linkIndexByCorrelation.set(correlationKey, linkIndex);
+        }
+      }
+
+      const attributeIndices: Array<number> = [];
+      for (const labelKey of Object.keys(labels)) {
+        if (CORRELATION_LABEL_KEYS.has(labelKey)) {
+          continue;
+        }
+
+        if (attributeTable.length === 0) {
+          attributeTable.push({ key: "", value: {} });
+        }
+
+        const labelValue: string = labels[labelKey]!;
+        /* NUL cannot appear in either half, so the pair key is unambiguous. */
+        const attributeKey: string = `${labelKey}\u0000${labelValue}`;
+        let attributeIndex: number | undefined =
+          attributeIndexByLabel.get(attributeKey);
+
+        if (attributeIndex === undefined) {
+          attributeIndex = attributeTable.length;
+          attributeTable.push({
+            key: labelKey,
+            value: { stringValue: labelValue },
+          });
+          attributeIndexByLabel.set(attributeKey, attributeIndex);
+        }
+
+        attributeIndices.push(attributeIndex);
+      }
+
+      const otlpSample: JSONObject = {
         stackIndex,
         value: values,
         timestampsUnixNano: [startTimeNanos],
-      });
+      };
+
+      if (linkIndex > 0) {
+        otlpSample["linkIndex"] = linkIndex;
+      }
+
+      if (attributeIndices.length > 0) {
+        otlpSample["attributeIndices"] = attributeIndices;
+      }
+
+      otlpSamples.push(otlpSample);
     }
 
     // Build sample types
@@ -843,8 +982,8 @@ export default class PyroscopeIngestService {
                     locationTable,
                     functionTable,
                     stackTable,
-                    linkTable: [],
-                    attributeTable: [],
+                    linkTable,
+                    attributeTable,
                     periodType,
                     period: (pprofData.period || 0).toString(),
                   },

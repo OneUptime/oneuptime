@@ -29,6 +29,12 @@ import ProfileService from "Common/Server/Services/ProfileService";
 import ProfileSampleService from "Common/Server/Services/ProfileSampleService";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import Text from "Common/Types/Text";
+import {
+  SPAN_ID_KEYS,
+  TRACE_ID_KEYS,
+  findCorrelationValue,
+  isEmptyHexId,
+} from "../Utils/ProfileCorrelation";
 import ProfilesQueueService from "./Queue/ProfilesQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
@@ -624,10 +630,10 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                           spanId = this.convertBase64ToHexSafe(
                             link["spanId"] as string | undefined,
                           );
-                          if (this.isEmptyHexId(traceId)) {
+                          if (isEmptyHexId(traceId)) {
                             traceId = "";
                           }
-                          if (this.isEmptyHexId(spanId)) {
+                          if (isEmptyHexId(spanId)) {
                             spanId = "";
                           }
                         }
@@ -724,15 +730,15 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                        * the link table.
                        */
                       if (!traceId) {
-                        traceId = this.findCorrelationValue(
+                        traceId = findCorrelationValue(
                           sampleLabels,
-                          OtelProfilesIngestService.TRACE_ID_KEYS,
+                          TRACE_ID_KEYS,
                         );
                       }
                       if (!spanId) {
-                        spanId = this.findCorrelationValue(
+                        spanId = findCorrelationValue(
                           sampleLabels,
-                          OtelProfilesIngestService.SPAN_ID_KEYS,
+                          SPAN_ID_KEYS,
                         );
                       }
 
@@ -800,13 +806,13 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                           link["spanId"] as string | undefined,
                         );
                       if (
-                        !this.isEmptyHexId(candidateTraceId) ||
-                        !this.isEmptyHexId(candidateSpanId)
+                        !isEmptyHexId(candidateTraceId) ||
+                        !isEmptyHexId(candidateSpanId)
                       ) {
-                        profileTraceId = this.isEmptyHexId(candidateTraceId)
+                        profileTraceId = isEmptyHexId(candidateTraceId)
                           ? ""
                           : candidateTraceId;
-                        profileSpanId = this.isEmptyHexId(candidateSpanId)
+                        profileSpanId = isEmptyHexId(candidateSpanId)
                           ? ""
                           : candidateSpanId;
                         break;
@@ -815,15 +821,15 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                   }
 
                   if (!profileTraceId) {
-                    profileTraceId = this.findCorrelationValue(
+                    profileTraceId = findCorrelationValue(
                       containerAttributes,
-                      OtelProfilesIngestService.TRACE_ID_KEYS,
+                      TRACE_ID_KEYS,
                     );
                   }
                   if (!profileSpanId) {
-                    profileSpanId = this.findCorrelationValue(
+                    profileSpanId = findCorrelationValue(
                       containerAttributes,
-                      OtelProfilesIngestService.SPAN_ID_KEYS,
+                      SPAN_ID_KEYS,
                     );
                   }
 
@@ -1559,65 +1565,6 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
       iso: iso,
       date: date,
     };
-  }
-
-  /*
-   * Common attribute/label keys that agents use to carry OTel trace
-   * correlation alongside a profile. Checked in order; first non-empty wins.
-   */
-  private static readonly TRACE_ID_KEYS: Array<string> = [
-    "trace_id",
-    "traceId",
-    "trace.id",
-    "profile.trace_id",
-    "profile.traceId",
-    "resource.trace_id",
-    "resource.traceId",
-    "resource.trace.id",
-  ];
-
-  private static readonly SPAN_ID_KEYS: Array<string> = [
-    "span_id",
-    "spanId",
-    "span.id",
-    "profile.span_id",
-    "profile.spanId",
-    "resource.span_id",
-    "resource.spanId",
-    "resource.span.id",
-  ];
-
-  /*
-   * A trace or span id of all zeros is the OTel convention for "unset".
-   * Length sanity check rejects obvious junk (trace = 32 hex chars,
-   * span = 16 hex chars, but agents occasionally emit shorter forms — we
-   * only filter the all-zero case).
-   */
-  private static isEmptyHexId(value: string): boolean {
-    if (!value) {
-      return true;
-    }
-    const allZerosRegex: RegExp = /^0+$/;
-    return allZerosRegex.test(value);
-  }
-
-  private static findCorrelationValue(
-    source: Dictionary<unknown>,
-    keys: Array<string>,
-  ): string {
-    for (const key of keys) {
-      const raw: unknown = source[key];
-      let candidate: string = "";
-      if (typeof raw === "string") {
-        candidate = raw;
-      } else if (typeof raw === "number" || typeof raw === "bigint") {
-        candidate = raw.toString();
-      }
-      if (candidate && !this.isEmptyHexId(candidate)) {
-        return candidate;
-      }
-    }
-    return "";
   }
 
   /*
