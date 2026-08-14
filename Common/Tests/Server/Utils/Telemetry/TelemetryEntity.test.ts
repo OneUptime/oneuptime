@@ -191,6 +191,99 @@ describe("InventoryItem.extractEntities — per type", () => {
     expect(typesFor({ "host.id": "h-123" })).not.toContain(EntityType.Host);
   });
 
+  test("host: a standalone host identity still produces a host", () => {
+    expect(
+      typesFor({
+        "host.name": "web-1",
+        "os.type": "linux",
+      }),
+    ).toEqual([EntityType.Host]);
+  });
+
+  test.each([
+    ["pod name", "k8s.pod.name", "checkout-7d9f", EntityType.KubernetesPod],
+    ["pod uid", "k8s.pod.uid", "pod-uid-1", EntityType.KubernetesPod],
+    ["node name", "k8s.node.name", "worker-1", EntityType.KubernetesNode],
+    ["node uid", "k8s.node.uid", "node-uid-1", EntityType.KubernetesNode],
+    ["cluster", "k8s.cluster.name", "prod-us", EntityType.KubernetesCluster],
+    ["namespace", "k8s.namespace.name", "shop", EntityType.KubernetesNamespace],
+    [
+      "deployment",
+      "k8s.deployment.name",
+      "checkout",
+      EntityType.KubernetesDeployment,
+    ],
+  ] as Array<[string, string, string, EntityType]>)(
+    "host.name beside a k8s %s identity does not create a phantom host",
+    (
+      _label: string,
+      identityKey: string,
+      identityValue: string,
+      expectedType: EntityType,
+    ) => {
+      const types: Array<EntityType> = typesFor({
+        "host.name": "checkout-7d9f",
+        "os.type": "linux",
+        [identityKey]: identityValue,
+      });
+
+      expect(types).toContain(expectedType);
+      expect(types).not.toContain(EntityType.Host);
+    },
+  );
+
+  test("a cluster UID alone does not hide a real host", () => {
+    const types: Array<EntityType> = typesFor({
+      "host.name": "web-1",
+      "os.type": "linux",
+      "k8s.cluster.uid": "cluster-uid-1",
+    });
+
+    /*
+     * Cluster rows are intentionally name-keyed, so a UID-only resource
+     * cannot produce a KubernetesCluster entity. Without an attachable
+     * Kubernetes entity, the UID must not suppress an otherwise valid Host.
+     */
+    expect(types).not.toContain(EntityType.KubernetesCluster);
+    expect(types).toEqual([EntityType.Host]);
+  });
+
+  test.each([
+    "k8s.cluster.name",
+    "k8s.cluster.uid",
+    "k8s.namespace.name",
+    "k8s.node.name",
+    "k8s.node.uid",
+    "k8s.pod.name",
+    "k8s.pod.uid",
+    "k8s.deployment.name",
+  ])("a blank %s value does not hide a real host", (identityKey: string) => {
+    expect(
+      typesFor({
+        "host.name": "web-1",
+        "os.type": "linux",
+        [identityKey]: "   ",
+      }),
+    ).toEqual([EntityType.Host]);
+  });
+
+  test.each([
+    ["k8s.pod.phase", "Running"],
+    ["k8s.pod.label.app", "checkout"],
+    ["k8s.wombat", "future-metadata"],
+  ])(
+    "an unrelated Kubernetes attribute %s does not hide a real host",
+    (attributeKey: string, attributeValue: string) => {
+      expect(
+        typesFor({
+          "host.name": "web-1",
+          "os.type": "linux",
+          [attributeKey]: attributeValue,
+        }),
+      ).toEqual([EntityType.Host]);
+    },
+  );
+
   test("k8s.cluster: keyed on name only, ignoring uid (read side is name-based)", () => {
     const e: ExtractedEntity | undefined = entityOfType(
       { "k8s.cluster.uid": "u-1", "k8s.cluster.name": "prod-us" },
@@ -359,7 +452,7 @@ describe("InventoryItem.extractEntities — composition & safety", () => {
     expect(typesFor({ "http.method": "GET" })).toEqual([]);
   });
 
-  test("a full k8s resource yields the whole entity set", () => {
+  test("a full k8s resource yields its proper entity set without a phantom host", () => {
     const types: Array<EntityType> = typesFor({
       "service.name": "checkout",
       "service.instance.id": "i-1",
@@ -377,7 +470,6 @@ describe("InventoryItem.extractEntities — composition & safety", () => {
       new Set([
         EntityType.Service,
         EntityType.ServiceInstance,
-        EntityType.Host,
         EntityType.KubernetesCluster,
         EntityType.KubernetesNamespace,
         EntityType.KubernetesNode,
@@ -792,6 +884,23 @@ describe("extractEntities — OTLP entity_refs (authoritative path)", () => {
       return e.entityType === EntityType.Host;
     })!;
     expect(host.entityKey).toBe(keyForHost(PROJECT, "web-1"));
+  });
+
+  test("an explicit host ref remains authoritative on a Kubernetes resource", () => {
+    const entities: Array<ExtractedEntity> = InventoryItem.extractEntities({
+      projectId: PROJECT,
+      attributes: {
+        "host.name": "checkout-7d9f",
+        "k8s.cluster.name": "prod-us",
+        "k8s.namespace.name": "shop",
+        "k8s.pod.name": "checkout-7d9f",
+      },
+      entityRefs: [{ type: "host", idKeys: ["host.name"] }],
+    });
+
+    expect(entities).toHaveLength(1);
+    expect(entities[0]!.entityType).toBe(EntityType.Host);
+    expect(entities[0]!.entityKey).toBe(keyForHost(PROJECT, "checkout-7d9f"));
   });
 
   test("unknown ref types are skipped (debug log), known refs still built", () => {
