@@ -7,7 +7,10 @@ import CallService from "./CallService";
 import DatabaseService from "./DatabaseService";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import ProjectService from "./ProjectService";
-import UserNotificationRuleService from "./UserNotificationRuleService";
+import UserNotificationRuleService, {
+  NotificationDeletionImpact,
+  NotificationMethodChannel,
+} from "./UserNotificationRuleService";
 import CallRequest from "../../Types/Call/CallRequest";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
@@ -58,6 +61,28 @@ export class Service extends DatabaseService<Model> {
       deleteBy,
       carryForward: null,
     };
+  }
+
+  /**
+   * What this user would lose if this number were deleted. Ask BEFORE calling
+   * delete; nothing here refuses anything.
+   *
+   * The hook directly above deletes every UserNotificationRule that points at
+   * this number, and the foreign key is onDelete: "CASCADE" so the rows would
+   * go even if it did not. Voice is often the last escalation step a responder
+   * has configured — the one that wakes them — so it is the method whose quiet
+   * removal is least likely to be noticed until an incident.
+   */
+  @CaptureSpan()
+  public async getDeletionImpact(data: {
+    itemId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<NotificationDeletionImpact> {
+    return UserNotificationRuleService.getNotificationMethodDeletionImpact({
+      projectId: data.projectId,
+      methodType: NotificationMethodChannel.Call,
+      methodId: data.itemId,
+    });
   }
 
   @CaptureSpan()

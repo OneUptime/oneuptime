@@ -16,6 +16,10 @@ import User from "Common/UI/Utils/User";
 import UserWebhook from "Common/Models/DatabaseModels/UserWebhook";
 import React, { ReactElement, useState } from "react";
 import OneUptimeDate from "Common/Types/Date";
+import {
+  NotificationMethodDeleteGuard,
+  useNotificationMethodDeleteGuard,
+} from "./NotificationMethod";
 
 const Webhook: () => JSX.Element = (): ReactElement => {
   const [showTestModal, setShowTestModal] = useState<boolean>(false);
@@ -65,6 +69,21 @@ const Webhook: () => JSX.Element = (): ReactElement => {
     setIsTesting(false);
   };
 
+  /*
+   * Deleting a webhook cascades to every notification rule that posts to it, so
+   * the confirmation is the impact modal rather than ModelTable's generic one,
+   * and the built-in delete is switched off so there is only one way in.
+   */
+  const deleteGuard: NotificationMethodDeleteGuard<UserWebhook> =
+    useNotificationMethodDeleteGuard<UserWebhook>({
+      modelType: UserWebhook,
+      relationName: "userWebhook",
+      singularName: "Webhook",
+      onDeleted: () => {
+        setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
+      },
+    });
+
   return (
     <>
       <ModelTable<UserWebhook>
@@ -102,10 +121,11 @@ const Webhook: () => JSX.Element = (): ReactElement => {
               }
             },
           },
+          deleteGuard.deleteActionButton,
         ]}
         id="user-webhook"
         name="User Settings > Notification Methods > Webhooks"
-        isDeleteable={true}
+        isDeleteable={false}
         isEditable={true}
         isCreateable={true}
         cardProps={{
@@ -172,6 +192,8 @@ const Webhook: () => JSX.Element = (): ReactElement => {
           },
         ]}
       />
+
+      {deleteGuard.deletionModal}
 
       {showTestModal && currentItem ? (
         <ConfirmModal

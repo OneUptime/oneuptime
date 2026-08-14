@@ -21,6 +21,13 @@ import UserTelegramService from "./UserTelegramService";
 import UserWebhookService from "./UserWebhookService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import ProjectService from "./ProjectService";
+import OnCallReadinessService, {
+  ReadinessMethod,
+  ReadinessMethodType,
+  ReadinessStatus,
+  ResponderSource,
+  UserReadiness,
+} from "./OnCallReadinessService";
 import UserOnCallLogService from "./UserOnCallLogService";
 import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
 import { AppApiRoute } from "../../ServiceRoute";
@@ -29,8 +36,10 @@ import Protocol from "../../Types/API/Protocol";
 import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import CallRequest from "../../Types/Call/CallRequest";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import QueryHelper from "../Types/Database/QueryHelper";
+import Sort from "../Types/Database/Sort";
 import Dictionary from "../../Types/Dictionary";
 import Email from "../../Types/Email";
 import EmailMessage from "../../Types/Email/EmailMessage";
@@ -194,6 +203,356 @@ export interface FallbackNotificationResult {
  * can never collide with one.
  */
 export const FALLBACK_NOTIFICATION_CLAIM_KEY: string = "__fallback__";
+
+/*
+ * ---------------------------------------------------------------------------
+ * DELETION IMPACT — "what would I lose by deleting this?", asked BEFORE the
+ * delete.
+ *
+ * Two writes a responder makes about their own configuration can take away the
+ * only thing standing between a page and nobody hearing it, and neither one
+ * looks like that from the screen it is made on:
+ *
+ *   - Deleting a RULE can remove the LAST rule covering one
+ *     (ruleType x severity) cell. The rule table is a list of rows, not a
+ *     coverage grid, so "this is the only thing left for Sev1 incidents" is
+ *     visible nowhere at the moment somebody clicks delete.
+ *
+ *   - Deleting a METHOD CASCADES. Every method foreign key on
+ *     UserNotificationRule is onDelete: "CASCADE" — and each method service
+ *     deletes the rows in its own onBeforeDelete as well, so the cascade
+ *     happens whether or not the database does it — which means removing one
+ *     phone number destroys every rule that pointed at it. The delete dialog
+ *     for a phone number mentions notification rules nowhere at all. This is
+ *     the more dangerous of the two by a distance, because the loss is not even
+ *     the thing being deleted.
+ *
+ * Everything here is ADVISORY and is deliberately shaped as a QUESTION the
+ * caller asks first, not as a hook that throws. The deletion still goes through
+ * the ordinary CRUD path afterwards and nothing below can stop it, for two
+ * reasons. The first is that this is the user's own configuration and they are
+ * entitled to it — turning "I do not want to be woken by Sev4 alerts" into
+ * something a human needs permission for is a worse product than the accident
+ * it prevents. The second is that a throwing hook would break the LEGITIMATE
+ * deletes too: a user leaving a project, an admin retiring a decommissioned
+ * number, a team cleaning up after a migration. The goal is not that nobody
+ * does this. It is that nobody does it by accident.
+ *
+ * "Is this person on call anywhere" is answered by OnCallReadinessService and
+ * is never re-derived here. A second answer to that question that disagreed
+ * with the readiness page would be worse than no answer: an admin who is told
+ * "you are not on call" by a delete dialog and "NotReachable on 3 policies" by
+ * the readiness table has no way to know which one to believe, and will end up
+ * believing the reassuring one.
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * The channel vocabulary is ReadinessMethodType, re-exported under the name the
+ * deletion API uses. Sharing one enum with readiness (which in turn shares its
+ * literals with the fallback's `channelsUsed`) means an operator reading
+ * "Telegram" in a delete warning, "Telegram" in the readiness table and
+ * "notified via fallback (Telegram)" in an execution log is reading the same
+ * word about the same thing. It is also what lets a notification-method service
+ * name its own channel without importing the readiness module.
+ */
+export { ReadinessMethodType as NotificationMethodChannel };
+
+/**
+ * One (ruleType x severity) cell that has at least one rule now and would have
+ * none after the deletion.
+ *
+ * A cell that merely loses SOME of its rules is not here. That is deliberate
+ * and it matches the coverage model readiness renders: a cell with two rules on
+ * two different methods is covered, a cell with one rule is covered, and only a
+ * cell with zero is a gap. Reporting "you will be paged on one fewer channel"
+ * with the same weight as "you will not be paged at all" is how a warning
+ * surface trains people to click through it.
+ */
+export interface CoverageLossCell {
+  ruleType: NotificationRuleType;
+  /**
+   * Undefined only for the two handoff rule types, which carry no severity.
+   * Those are reported separately (handoffNotificationsLost), so in practice
+   * every cell in `coverageLost` has one.
+   */
+  severityId?: ObjectID | undefined;
+  severityName?: string | undefined;
+  /** How many rules this deletion takes out of this cell. Always >= 1. */
+  rulesRemoved: number;
+}
+
+/**
+ * Whether anything will still be able to page this user once the deletion has
+ * happened.
+ *
+ * Four values rather than a boolean because two of the four are things this
+ * preview knows FOR CERTAIN and two are not, and collapsing them would mean
+ * either inventing a false green or crying wolf at everybody.
+ *
+ * The certainty comes from one structural fact: a method must be verified to be
+ * used at all, and of the seven channels, Push, Email and Webhook have no
+ * project switch that can turn them off (see OnCallReadinessService.
+ * isChannelEnabled — the first two are zero-cost and the third is somebody
+ * else's endpoint). So "no verified method survives" is definitely unreachable,
+ * and "a verified Push/Email/Webhook survives" is definitely reachable. What is
+ * left over — a user whose surviving methods are all on the four paid channels
+ * — depends on project settings this preview does not read, and says so.
+ */
+export enum PostDeletionReachability {
+  /** A verified method on a channel no project setting can disable survives. */
+  Reachable = "Reachable",
+
+  /**
+   * Verified methods survive, but every one of them is on a paid channel
+   * (SMS, Call, WhatsApp, Telegram) that the project can switch off. Whether
+   * this user can still be paged is a project setting, and the readiness page
+   * is the surface that knows.
+   */
+  DependsOnProjectSettings = "DependsOnProjectSettings",
+
+  /**
+   * Nothing verified survives. This deletion is the one that takes away the
+   * last way of reaching this person — no rule, and no fallback either, since
+   * the fallback needs a verified method too.
+   */
+  NotReachable = "NotReachable",
+
+  /**
+   * They could not be paged before this deletion either. Worth its own value
+   * rather than being folded into NotReachable: the sentence an admin needs is
+   * "this was already broken", not "you are about to break it".
+   */
+  AlreadyNotReachable = "AlreadyNotReachable",
+
+  /**
+   * Readiness had no answer — the user is not a member of this project, or has
+   * no User row. Never guessed at, because a guess here is exactly the false
+   * green this whole feature exists to prevent.
+   */
+  Unknown = "Unknown",
+}
+
+export interface NotificationDeletionImpact {
+  projectId: ObjectID;
+  userId: ObjectID;
+
+  /**
+   * Whether this user is reachable by ANY on-call policy in the project, and by
+   * which doors. Straight from OnCallReadinessService, never re-derived.
+   */
+  isOnCallResponder: boolean;
+  reachedVia: Array<ResponderSource>;
+
+  /** How many UserNotificationRule rows this deletion would remove in total. */
+  rulesDeletedCount: number;
+
+  coverageLost: Array<CoverageLossCell>;
+
+  /**
+   * The shift-change notifications ("you are now on call") that would stop.
+   * Kept apart from coverageLost because nobody is waiting on one of these and
+   * mixing them in would put a missed Sev1 page and a missed courtesy note in
+   * the same list at the same weight.
+   */
+  handoffNotificationsLost: Array<NotificationRuleType>;
+
+  reachability: PostDeletionReachability;
+
+  /** Verified methods that would remain. Zero is what makes NotReachable true. */
+  verifiedMethodCountAfterDeletion: number;
+
+  /**
+   * Whether a page with no matching rule still falls back to this user's
+   * verified methods. It decides whether losing a cell means "the page arrives
+   * on the wrong channel" or "the page is dropped", which is the difference
+   * between an annoyance and an outage.
+   */
+  isFallbackEnabled: boolean;
+
+  /**
+   * TRUE means this answer is INCOMPLETE — the read of this user's rules hit
+   * its page ceiling. Reported rather than swallowed because the two directions
+   * it can be wrong in are not symmetric: unread rules that would have SURVIVED
+   * make this over-warn (harmless), unread rules that would have been DELETED
+   * make it under-warn, which is the failure mode that matters.
+   */
+  isTruncated: boolean;
+
+  /**
+   * Sentences to show the human, most consequential first. Each one names a
+   * specific thing that is lost and what happens because of it — the same
+   * contract as OnCallReadinessService's `reasons`, because these two surfaces
+   * are read by the same person about the same configuration and must not
+   * sound like two different products.
+   */
+  warnings: Array<string>;
+}
+
+/** The notification method row a deletion preview is about, once resolved. */
+interface DeletedNotificationMethod {
+  methodType: ReadinessMethodType;
+  userId: ObjectID;
+  /**
+   * Whether the row being deleted was itself usable. An unverified method is
+   * never used by anything, so deleting one cannot change reachability — and
+   * counting it as a loss would put a scary sentence in front of somebody
+   * cleaning up a typo'd phone number they never confirmed.
+   */
+  isVerified: boolean;
+}
+
+/** One (ruleType x severity) cell while the before/after picture is built. */
+interface DeletionCellState {
+  ruleType: NotificationRuleType;
+  severityKind: SeverityKind;
+  severityId: string;
+  rulesBefore: number;
+  rulesRemoved: number;
+  /**
+   * Whether an opt-out row for this cell SURVIVES the deletion. A surviving
+   * opt-out means the silence is deliberate and losing the last rule is not a
+   * gap; an opt-out that is itself being deleted must not suppress the warning,
+   * because after the write there is neither a rule nor a stated intention.
+   */
+  hasOptOut: boolean;
+}
+
+/** The same before/after picture for a rule type that carries no severity. */
+interface DeletionHandoffState {
+  rulesBefore: number;
+  rulesRemoved: number;
+  hasOptOut: boolean;
+}
+
+/** A severity's display name and its position in the project's own ordering. */
+interface DeletionSeverityRef {
+  name: string;
+  rank: number;
+}
+
+enum SeverityKind {
+  Incident = "Incident",
+  Alert = "Alert",
+}
+
+interface PagingRuleTypeScope {
+  ruleType: NotificationRuleType;
+  severityKind: SeverityKind;
+  severityColumn: "incidentSeverityId" | "alertSeverityId";
+  /** Plural noun for the warning sentence: "no rule covers Sev1 incidents". */
+  subjectNoun: string;
+}
+
+/*
+ * Which severity column scopes which rule type. This is the same table
+ * OnCallReadinessService keeps as RULE_TYPE_SCOPES and it has to stay in
+ * agreement with it: an alert rule matched against an incident severity id
+ * matches nothing at runtime, so a preview that paired them would report a cell
+ * as covered by a rule that can never fire — the exact shape of Gap G, where
+ * episode rules were written with a NULL severity and were unreachable and
+ * invisible at the same time. The severity is always taken from the column the
+ * RULE TYPE dictates, never from whichever one happens to be populated.
+ */
+const PAGING_RULE_TYPE_SCOPES: Array<PagingRuleTypeScope> = [
+  {
+    ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+    severityKind: SeverityKind.Incident,
+    severityColumn: "incidentSeverityId",
+    subjectNoun: "incidents",
+  },
+  {
+    ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
+    severityKind: SeverityKind.Incident,
+    severityColumn: "incidentSeverityId",
+    subjectNoun: "incident episodes",
+  },
+  {
+    ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+    severityKind: SeverityKind.Alert,
+    severityColumn: "alertSeverityId",
+    subjectNoun: "alerts",
+  },
+  {
+    ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE,
+    severityKind: SeverityKind.Alert,
+    severityColumn: "alertSeverityId",
+    subjectNoun: "alert episodes",
+  },
+];
+
+/*
+ * The two rule types that are about the user's shift rather than about anything
+ * that fired. They carry no severity, so they are one cell each.
+ */
+const HANDOFF_RULE_TYPES: Array<NotificationRuleType> = [
+  NotificationRuleType.WHEN_USER_GOES_ON_CALL,
+  NotificationRuleType.WHEN_USER_GOES_OFF_CALL,
+];
+
+type ChannelListFunction = () => Array<string>;
+
+/**
+ * The three channels no project setting can switch off. Push and Email are
+ * zero-cost and Webhook is somebody else's endpoint, so nothing gates them —
+ * which is what makes "a verified one of these survives" a CERTAIN answer to
+ * "can this person still be paged" rather than a hopeful one. Kept in step with
+ * OnCallReadinessService.isChannelEnabled, which returns true for exactly these
+ * three unconditionally.
+ *
+ * A FUNCTION rather than a module-level constant, and that is load-bearing
+ * rather than stylistic: this module and OnCallReadinessService import each
+ * other, so whichever one is loaded second sees the other's exports still
+ * empty. Reading ReadinessMethodType while this module is being evaluated
+ * therefore throws on ONE of the two load orders and not the other — a crash
+ * that depends on which file some unrelated caller happened to import first,
+ * which is about the worst possible failure to debug. Read on call, both orders
+ * are long since settled. The same rule applies to every enum below that comes
+ * from OnCallReadinessService.
+ */
+const channelsWithNoProjectSwitch: ChannelListFunction = (): Array<string> => {
+  return [
+    ReadinessMethodType.Push,
+    ReadinessMethodType.Email,
+    ReadinessMethodType.Webhook,
+  ];
+};
+
+type ResponderSourceProseFunction = (source: ResponderSource) => string;
+
+/**
+ * How each responder source reads in a sentence. The enum values are single
+ * words chosen for a chip; a warning has room to say what they mean, and
+ * "Override" on its own tells a user nothing about why they are on call.
+ *
+ * The map is built inside the call for the module-evaluation reason above —
+ * a computed key is read at definition time, so a module-level Record would
+ * carry exactly the same load-order crash. Typed as a full Record so that a new
+ * ResponderSource fails to compile here rather than rendering as a blank.
+ */
+const responderSourceProse: ResponderSourceProseFunction = (
+  source: ResponderSource,
+): string => {
+  const prose: Record<ResponderSource, string> = {
+    [ResponderSource.Direct]: "directly on an escalation rule",
+    [ResponderSource.Team]: "through a team",
+    [ResponderSource.Schedule]: "through a schedule",
+    [ResponderSource.Override]: "through an override",
+  };
+
+  return prose[source];
+};
+
+/*
+ * Rows per page for the rule read, and a ceiling on how many pages one preview
+ * may take. LIMIT_PER_PROJECT is the largest read the database layer will
+ * serve, so it is the biggest page that survives a round trip. One user's rules
+ * are bounded by (rule types x severities x methods) and land far below one
+ * page in any real project; the loop exists so that the one project where that
+ * is not true gets a truthful answer instead of a silently truncated one.
+ */
+const DELETION_IMPACT_PAGE_SIZE: number = LIMIT_PER_PROJECT;
+const MAX_DELETION_IMPACT_PAGES: number = 50;
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -4454,6 +4813,975 @@ export class Service extends DatabaseService<Model> {
         userEmailId: userEmail.id!,
       },
     });
+  }
+
+  /**
+   * What this user would lose by deleting these notification rules.
+   *
+   * Ask this BEFORE deleting. It reads and returns; it writes nothing and
+   * refuses nothing, and the caller is expected to go ahead and delete anyway
+   * if that is what the human wants after reading it.
+   *
+   * The rule ids are INTERSECTED with the rules this user actually has in this
+   * project rather than trusted — the read is scoped by (projectId, userId) in
+   * the query itself, so an id belonging to somebody else, or to another
+   * project, simply matches nothing and contributes nothing to the answer.
+   * That is the only place row scoping can come from: a column access list
+   * cannot restrict WHICH ROWS a caller sees, because Permission.CurrentUser is
+   * auto-granted to every authenticated caller and so never means "only my own
+   * row".
+   *
+   * An empty id list is legal and returns a zero-deletion impact, which is
+   * still worth something: it carries this user's responder status, their
+   * reachability and whether the project's fallback is on.
+   *
+   * ---------------------------------------------------------------------------
+   * NOT WIRED TODAY. READ THIS BEFORE ASSUMING IT GUARDS ANYTHING.
+   *
+   * This method and getNotificationMethodDeletionImpact below have NO production
+   * caller. The delete guard that actually ships is client-side, in
+   * App/FeatureSet/Dashboard/src/Components/NotificationMethods/NotificationMethod.tsx
+   * (useNotificationMethodDeleteGuard + DeletionImpactModal), and it computes the
+   * same answer in the browser from the deleting user's OWN rules.
+   *
+   * That is adequate for the case that ships: a person deleting their own
+   * notification method or their own rule can read all of their own rules, and
+   * one user's rule set is small and bounded. It is NOT adequate for an
+   * administrator computing the impact of deleting somebody ELSE's
+   * configuration, which is what this exists for - and that is Phase 3, which is
+   * not merged.
+   *
+   * So this is deliberately-retained, currently-unreachable code, kept because
+   * the admin path needs exactly it and because it holds one thing the browser
+   * copy cannot: it reads EVERY rule for the user rather than a page, and it
+   * derives a rule's severity from the column its RULE TYPE dictates rather than
+   * whichever column happens to be populated.
+   *
+   * Retaining unreachable code is a real cost and this comment is the price of
+   * it: nothing here enforces anything server-side today. A deletion is not
+   * validated, refused or even observed by this service. If you are reading this
+   * because you assumed the server checked, it does not.
+   * ---------------------------------------------------------------------------
+   */
+  @CaptureSpan()
+  public async getRuleDeletionImpact(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+    notificationRuleIds: Array<ObjectID>;
+  }): Promise<NotificationDeletionImpact> {
+    const targetRuleIds: Set<string> = new Set<string>(
+      data.notificationRuleIds.map((ruleId: ObjectID): string => {
+        return ruleId.toString();
+      }),
+    );
+
+    return this.computeDeletionImpact({
+      projectId: data.projectId,
+      userId: data.userId,
+      isBeingDeleted: (rule: Model): boolean => {
+        return targetRuleIds.has(rule.id?.toString() || "");
+      },
+      deletedMethod: undefined,
+    });
+  }
+
+  /**
+   * What this user would lose by deleting one notification method.
+   *
+   * This is the dangerous one. Deleting a method is not a small write: every
+   * method foreign key on UserNotificationRule is onDelete: "CASCADE", and each
+   * method service deletes the same rows itself in onBeforeDelete, so removing
+   * one phone number takes every rule that pointed at it with it. Somebody
+   * tidying up an old number has no reason to expect that, and nothing on the
+   * screen tells them.
+   *
+   * The method row is looked up scoped by projectId, and the userId comes from
+   * the ROW rather than from the caller. Both matter: the projectId scope is
+   * what stops a caller probing method ids from other projects, and taking the
+   * userId from the row is what stops a caller asking for one user's method
+   * under another user's name and getting an answer that belongs to neither.
+   */
+  @CaptureSpan()
+  public async getNotificationMethodDeletionImpact(data: {
+    projectId: ObjectID;
+    methodType: ReadinessMethodType;
+    methodId: ObjectID;
+  }): Promise<NotificationDeletionImpact> {
+    const method: DeletedNotificationMethod =
+      await this.resolveNotificationMethod(data);
+
+    return this.computeDeletionImpact({
+      projectId: data.projectId,
+      userId: method.userId,
+      isBeingDeleted: (rule: Model): boolean => {
+        return (
+          this.getRuleMethodId(rule, data.methodType)?.toString() ===
+          data.methodId.toString()
+        );
+      },
+      deletedMethod: method,
+    });
+  }
+
+  /**
+   * Read the method row being deleted, scoped to the project, and reduce it to
+   * the three things the preview needs: whose it is, which channel it is on,
+   * and whether it was ever verified.
+   *
+   * Webhooks report isVerified: true with no column behind it. UserWebhook has
+   * no verification concept at all — its presence IS the whole test, which is
+   * how the fallback treats it and how readiness reports it — so calling it
+   * unverified here would tell somebody that deleting the one channel
+   * guaranteed to work costs them nothing.
+   */
+  private async resolveNotificationMethod(data: {
+    projectId: ObjectID;
+    methodType: ReadinessMethodType;
+    methodId: ObjectID;
+  }): Promise<DeletedNotificationMethod> {
+    const query: {
+      _id: ObjectID;
+      projectId: ObjectID;
+    } = {
+      _id: data.methodId,
+      projectId: data.projectId,
+    };
+
+    const props: { isRoot: boolean } = {
+      isRoot: true,
+    };
+
+    type ResolvedRow = {
+      userId?: ObjectID | undefined;
+      isVerified?: boolean | undefined;
+    } | null;
+
+    let row: ResolvedRow = null;
+    let isVerified: boolean = false;
+
+    if (data.methodType === ReadinessMethodType.Email) {
+      row = await UserEmailService.findOneBy({
+        query: query,
+        select: { _id: true, userId: true, isVerified: true },
+        props: props,
+      });
+      isVerified = Boolean(row?.isVerified);
+    } else if (data.methodType === ReadinessMethodType.SMS) {
+      row = await UserSmsService.findOneBy({
+        query: query,
+        select: { _id: true, userId: true, isVerified: true },
+        props: props,
+      });
+      isVerified = Boolean(row?.isVerified);
+    } else if (data.methodType === ReadinessMethodType.Call) {
+      row = await UserCallService.findOneBy({
+        query: query,
+        select: { _id: true, userId: true, isVerified: true },
+        props: props,
+      });
+      isVerified = Boolean(row?.isVerified);
+    } else if (data.methodType === ReadinessMethodType.Push) {
+      row = await UserPushService.findOneBy({
+        query: query,
+        select: { _id: true, userId: true, isVerified: true },
+        props: props,
+      });
+      isVerified = Boolean(row?.isVerified);
+    } else if (data.methodType === ReadinessMethodType.WhatsApp) {
+      row = await UserWhatsAppService.findOneBy({
+        query: query,
+        select: { _id: true, userId: true, isVerified: true },
+        props: props,
+      });
+      isVerified = Boolean(row?.isVerified);
+    } else if (data.methodType === ReadinessMethodType.Telegram) {
+      row = await UserTelegramService.findOneBy({
+        query: query,
+        select: { _id: true, userId: true, isVerified: true },
+        props: props,
+      });
+      isVerified = Boolean(row?.isVerified);
+    } else if (data.methodType === ReadinessMethodType.Webhook) {
+      row = await UserWebhookService.findOneBy({
+        query: query,
+        select: { _id: true, userId: true },
+        props: props,
+      });
+      isVerified = Boolean(row);
+    } else {
+      throw new BadDataException(
+        `${data.methodType} is not a notification method`,
+      );
+    }
+
+    if (!row || !row.userId) {
+      throw new BadDataException("Notification method not found");
+    }
+
+    return {
+      methodType: data.methodType,
+      userId: row.userId,
+      isVerified: isVerified,
+    };
+  }
+
+  /**
+   * The foreign key a rule uses to point at a method of this channel. One
+   * lookup table rather than seven inline comparisons, so a rule can never be
+   * tested against the wrong column — which would report a WhatsApp rule as
+   * surviving the deletion of the SMS number it does not use, or worse, the
+   * reverse.
+   */
+  private getRuleMethodId(
+    rule: Model,
+    methodType: ReadinessMethodType,
+  ): ObjectID | undefined {
+    if (methodType === ReadinessMethodType.Email) {
+      return rule.userEmailId;
+    }
+
+    if (methodType === ReadinessMethodType.SMS) {
+      return rule.userSmsId;
+    }
+
+    if (methodType === ReadinessMethodType.Call) {
+      return rule.userCallId;
+    }
+
+    if (methodType === ReadinessMethodType.Push) {
+      return rule.userPushId;
+    }
+
+    if (methodType === ReadinessMethodType.WhatsApp) {
+      return rule.userWhatsAppId;
+    }
+
+    if (methodType === ReadinessMethodType.Telegram) {
+      return rule.userTelegramId;
+    }
+
+    if (methodType === ReadinessMethodType.Webhook) {
+      return rule.userWebhookId;
+    }
+
+    return undefined;
+  }
+
+  /**
+   * The before/after picture both entry points share.
+   *
+   * Deliberately shaped as "read every rule this user has, then ask a predicate
+   * which of them go" rather than "count the rules that go". Coverage is a
+   * property of what is LEFT, so the rules that survive are as load-bearing as
+   * the ones that do not: a cell with two rules on two methods loses nothing
+   * when one of them goes, and the only way to know that is to have read both.
+   */
+  private async computeDeletionImpact(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+    isBeingDeleted: (rule: Model) => boolean;
+    deletedMethod: DeletedNotificationMethod | undefined;
+  }): Promise<NotificationDeletionImpact> {
+    const cellStates: Map<string, DeletionCellState> = new Map<
+      string,
+      DeletionCellState
+    >();
+    const handoffStates: Map<NotificationRuleType, DeletionHandoffState> =
+      new Map<NotificationRuleType, DeletionHandoffState>();
+
+    let rulesDeletedCount: number = 0;
+
+    type FoldRuleFunction = (rule: Model) => void;
+
+    /*
+     * Folded as each page arrives rather than accumulated and folded after.
+     * Every rule collapses into one of a few dozen cells, so holding the rows
+     * would mean carrying the whole table in memory to produce a map orders of
+     * magnitude smaller — and the one project where that matters is exactly the
+     * project where this read takes more than one page.
+     */
+    const foldRule: FoldRuleFunction = (rule: Model): void => {
+      const isDeleted: boolean = data.isBeingDeleted(rule);
+
+      if (isDeleted) {
+        rulesDeletedCount++;
+      }
+
+      /*
+       * `isOptOut === true`, never `=== false`. The column is nullable and was
+       * added long after these rows started existing, so it is NULL on every
+       * rule in every existing install; testing for false would classify all of
+       * them as neither rules nor opt-outs and report a fully configured user
+       * as having nothing to lose. This is the exact dual of the predicate
+       * readiness folds with, and it has to stay that way.
+       */
+      const isOptOut: boolean = rule.isOptOut === true;
+
+      const scope: PagingRuleTypeScope | undefined =
+        PAGING_RULE_TYPE_SCOPES.find(
+          (candidate: PagingRuleTypeScope): boolean => {
+            return candidate.ruleType === rule.ruleType;
+          },
+        );
+
+      if (scope) {
+        const severityId: ObjectID | undefined = rule[scope.severityColumn];
+
+        /*
+         * A severity-scoped rule with a NULL severity matches no page at
+         * runtime, so it covers no cell and losing it costs nothing. Counting
+         * it would promise coverage that never existed.
+         */
+        if (!severityId) {
+          return;
+        }
+
+        const key: string = `${scope.ruleType}|${severityId.toString()}`;
+
+        const state: DeletionCellState = cellStates.get(key) || {
+          ruleType: scope.ruleType,
+          severityKind: scope.severityKind,
+          severityId: severityId.toString(),
+          rulesBefore: 0,
+          rulesRemoved: 0,
+          hasOptOut: false,
+        };
+
+        if (isOptOut) {
+          /*
+           * Only a SURVIVING opt-out makes the silence deliberate. Deleting the
+           * opt-out along with the last rule leaves neither, and that cell is a
+           * real gap however it was created.
+           */
+          if (!isDeleted) {
+            state.hasOptOut = true;
+          }
+        } else {
+          state.rulesBefore++;
+
+          if (isDeleted) {
+            state.rulesRemoved++;
+          }
+        }
+
+        cellStates.set(key, state);
+
+        return;
+      }
+
+      const handoffType: NotificationRuleType | undefined =
+        HANDOFF_RULE_TYPES.find((candidate: NotificationRuleType): boolean => {
+          return candidate === rule.ruleType;
+        });
+
+      if (!handoffType) {
+        // Not a rule type anything pages on. It covers nothing, so it loses nothing.
+        return;
+      }
+
+      const handoffState: DeletionHandoffState = handoffStates.get(
+        handoffType,
+      ) || {
+        rulesBefore: 0,
+        rulesRemoved: 0,
+        hasOptOut: false,
+      };
+
+      if (isOptOut) {
+        if (!isDeleted) {
+          handoffState.hasOptOut = true;
+        }
+      } else {
+        handoffState.rulesBefore++;
+
+        if (isDeleted) {
+          handoffState.rulesRemoved++;
+        }
+      }
+
+      handoffStates.set(handoffType, handoffState);
+    };
+
+    const isTruncated: boolean = await this.readEveryNotificationRuleForUser({
+      projectId: data.projectId,
+      userId: data.userId,
+      consume: (rows: Array<Model>): void => {
+        for (const rule of rows) {
+          foldRule(rule);
+        }
+      },
+    });
+
+    const lostCells: Array<DeletionCellState> = Array.from(
+      cellStates.values(),
+    ).filter((state: DeletionCellState): boolean => {
+      return (
+        state.rulesBefore > 0 &&
+        state.rulesRemoved === state.rulesBefore &&
+        !state.hasOptOut
+      );
+    });
+
+    const handoffNotificationsLost: Array<NotificationRuleType> =
+      HANDOFF_RULE_TYPES.filter((ruleType: NotificationRuleType): boolean => {
+        const state: DeletionHandoffState | undefined =
+          handoffStates.get(ruleType);
+
+        return Boolean(
+          state &&
+            state.rulesBefore > 0 &&
+            state.rulesRemoved === state.rulesBefore &&
+            !state.hasOptOut,
+        );
+      });
+
+    /*
+     * Severity names are read only when something was actually lost. The common
+     * case for this call is "nothing you care about goes", and that case should
+     * not cost two extra round trips to name cells nobody will be shown.
+     */
+    const severityNames: Map<string, DeletionSeverityRef> =
+      await this.loadSeverityNamesForCells(data.projectId, lostCells);
+
+    const coverageLost: Array<CoverageLossCell> = this.buildCoverageLossCells(
+      lostCells,
+      severityNames,
+    );
+
+    /*
+     * "Is this person on call anywhere" comes from OnCallReadinessService and
+     * from nowhere else. getReadinessForUsers rather than getReadinessForUser
+     * because the plural form OMITS a user who is not a member of the project
+     * instead of throwing for them: somebody being removed from a project is
+     * one of the perfectly legitimate reasons their methods are being deleted,
+     * and that must produce an honest "unknown" rather than an exception in
+     * front of an admin doing housekeeping.
+     */
+    const readinessList: Array<UserReadiness> =
+      await OnCallReadinessService.getReadinessForUsers(
+        [data.userId],
+        data.projectId,
+      );
+
+    const readiness: UserReadiness | undefined = readinessList[0];
+
+    const verifiedMethods: Array<ReadinessMethod> = (
+      readiness?.methods || []
+    ).filter((method: ReadinessMethod): boolean => {
+      return method.isVerified;
+    });
+
+    const remainingVerifiedMethods: Array<ReadinessMethod> = [
+      ...verifiedMethods,
+    ];
+
+    if (data.deletedMethod && data.deletedMethod.isVerified) {
+      /*
+       * Readiness returns one entry per method ROW but no row ids — the
+       * identifiers on them are masked by construction and the ids are
+       * deliberately not on the wire — so the row being deleted is identified
+       * by its channel. Removing exactly ONE entry of that channel is what
+       * makes the count right for a user with two verified SMS numbers who is
+       * deleting one of them: the other survives, and so does the entry.
+       */
+      const index: number = remainingVerifiedMethods.findIndex(
+        (method: ReadinessMethod): boolean => {
+          return method.methodType === data.deletedMethod?.methodType;
+        },
+      );
+
+      if (index >= 0) {
+        remainingVerifiedMethods.splice(index, 1);
+      }
+    }
+
+    const reachability: PostDeletionReachability = this.resolveReachability(
+      readiness,
+      remainingVerifiedMethods,
+    );
+
+    const project: Project | null = await ProjectService.findOneById({
+      id: data.projectId,
+      select: {
+        _id: true,
+        disableOnCallNotificationFallback: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    /*
+     * Read exactly as readiness reads it, including what a missing project row
+     * means. Agreeing with the readiness page matters more here than picking
+     * the louder default independently would: two surfaces that disagree about
+     * whether pages are dropped teach people to trust neither.
+     */
+    const isFallbackEnabled: boolean =
+      !project?.disableOnCallNotificationFallback;
+
+    return {
+      projectId: data.projectId,
+      userId: data.userId,
+      isOnCallResponder: Boolean(readiness && readiness.reachedVia.length > 0),
+      reachedVia: readiness?.reachedVia || [],
+      rulesDeletedCount: rulesDeletedCount,
+      coverageLost: coverageLost,
+      handoffNotificationsLost: handoffNotificationsLost,
+      reachability: reachability,
+      verifiedMethodCountAfterDeletion: remainingVerifiedMethods.length,
+      isFallbackEnabled: isFallbackEnabled,
+      isTruncated: isTruncated,
+      warnings: this.buildDeletionWarnings({
+        deletedMethod: data.deletedMethod,
+        rulesDeletedCount: rulesDeletedCount,
+        readiness: readiness,
+        reachability: reachability,
+        remainingVerifiedMethods: remainingVerifiedMethods,
+        coverageLost: coverageLost,
+        handoffNotificationsLost: handoffNotificationsLost,
+        isFallbackEnabled: isFallbackEnabled,
+        isTruncated: isTruncated,
+      }),
+    };
+  }
+
+  /**
+   * Every notification rule this user has in this project, one page at a time.
+   *
+   * Returns whether the read was TRUNCATED rather than throwing or silently
+   * stopping. A truncated read here is not symmetric in its consequences:
+   * unread rules that would have survived make this over-warn, which costs a
+   * moment of an admin's attention, while unread rules that would have been
+   * DELETED make it under-warn, which is the whole failure this feature exists
+   * to prevent. Either way the caller is told.
+   *
+   * The sort is `_id` ascending because OFFSET paging over a query with no
+   * total order can return one row twice and skip another — and the default
+   * sort would be `createdAt DESC`, which is emphatically not unique for a
+   * user whose default rules were all written in one transaction.
+   */
+  private async readEveryNotificationRuleForUser(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+    consume: (rules: Array<Model>) => void;
+  }): Promise<boolean> {
+    let skip: number = 0;
+
+    for (let page: number = 0; page < MAX_DELETION_IMPACT_PAGES; page++) {
+      const rows: Array<Model> = await this.findBy({
+        query: {
+          projectId: data.projectId,
+          userId: data.userId,
+        },
+        select: {
+          _id: true,
+          ruleType: true,
+          incidentSeverityId: true,
+          alertSeverityId: true,
+          isOptOut: true,
+          userEmailId: true,
+          userSmsId: true,
+          userCallId: true,
+          userPushId: true,
+          userWhatsAppId: true,
+          userTelegramId: true,
+          userWebhookId: true,
+        },
+        sort: {
+          _id: SortOrder.Ascending,
+        } as Sort<Model>,
+        limit: DELETION_IMPACT_PAGE_SIZE,
+        skip: skip,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      data.consume(rows);
+
+      if (rows.length < DELETION_IMPACT_PAGE_SIZE) {
+        return false;
+      }
+
+      skip += rows.length;
+    }
+
+    logger.error(
+      `UserNotificationRuleService stopped reading notification rules for user ${data.userId.toString()} in project ${data.projectId.toString()} after ${MAX_DELETION_IMPACT_PAGES} pages of ${DELETION_IMPACT_PAGE_SIZE} rows. The deletion impact for this user is INCOMPLETE and may understate what the deletion removes.`,
+    );
+
+    return true;
+  }
+
+  /**
+   * Display names for the severities of the cells that are actually lost, in
+   * the project's own severity order.
+   *
+   * Not paged, unlike the rule read: severity lists are a handful of rows per
+   * project by construction (they are a UI-managed enumeration, not user data),
+   * and LIMIT_PER_PROJECT is three orders of magnitude past any of them.
+   */
+  private async loadSeverityNamesForCells(
+    projectId: ObjectID,
+    lostCells: Array<DeletionCellState>,
+  ): Promise<Map<string, DeletionSeverityRef>> {
+    const severityNames: Map<string, DeletionSeverityRef> = new Map<
+      string,
+      DeletionSeverityRef
+    >();
+
+    const needsIncident: boolean = lostCells.some(
+      (cell: DeletionCellState): boolean => {
+        return cell.severityKind === SeverityKind.Incident;
+      },
+    );
+
+    const needsAlert: boolean = lostCells.some(
+      (cell: DeletionCellState): boolean => {
+        return cell.severityKind === SeverityKind.Alert;
+      },
+    );
+
+    if (needsIncident) {
+      const incidentSeverities: Array<IncidentSeverity> =
+        await IncidentSeverityService.findBy({
+          query: {
+            projectId: projectId,
+          },
+          select: {
+            _id: true,
+            name: true,
+          },
+          sort: {
+            order: SortOrder.Ascending,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      incidentSeverities.forEach(
+        (severity: IncidentSeverity, index: number): void => {
+          if (!severity.id) {
+            return;
+          }
+
+          severityNames.set(
+            this.severityNameKey(SeverityKind.Incident, severity.id.toString()),
+            {
+              name: severity.name || "Unnamed Severity",
+              rank: index,
+            },
+          );
+        },
+      );
+    }
+
+    if (needsAlert) {
+      const alertSeverities: Array<AlertSeverity> =
+        await AlertSeverityService.findBy({
+          query: {
+            projectId: projectId,
+          },
+          select: {
+            _id: true,
+            name: true,
+          },
+          sort: {
+            order: SortOrder.Ascending,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      alertSeverities.forEach(
+        (severity: AlertSeverity, index: number): void => {
+          if (!severity.id) {
+            return;
+          }
+
+          severityNames.set(
+            this.severityNameKey(SeverityKind.Alert, severity.id.toString()),
+            {
+              name: severity.name || "Unnamed Severity",
+              rank: index,
+            },
+          );
+        },
+      );
+    }
+
+    return severityNames;
+  }
+
+  private severityNameKey(kind: SeverityKind, severityId: string): string {
+    /*
+     * Keyed by KIND as well as by id. Incident and alert severities are
+     * different tables with independently generated ids, and a map keyed on the
+     * id alone would let one name a cell of the other kind if the two ever
+     * collided — a one-in-a-uuid event that would be indistinguishable from a
+     * mislabelled warning if it happened.
+     */
+    return `${kind}|${severityId}`;
+  }
+
+  private buildCoverageLossCells(
+    lostCells: Array<DeletionCellState>,
+    severityNames: Map<string, DeletionSeverityRef>,
+  ): Array<CoverageLossCell> {
+    const ordered: Array<DeletionCellState> = [...lostCells].sort(
+      (a: DeletionCellState, b: DeletionCellState): number => {
+        const ruleTypeDifference: number =
+          this.pagingRuleTypeRank(a.ruleType) -
+          this.pagingRuleTypeRank(b.ruleType);
+
+        if (ruleTypeDifference !== 0) {
+          return ruleTypeDifference;
+        }
+
+        /*
+         * Severity order, not alphabetical. "Sev1, Sev2, Sev3" happens to sort
+         * both ways; "Critical, High, Low" does not, and a warning that lists
+         * severities in an order the user has never seen them in reads as a
+         * different set of severities.
+         */
+        return (
+          this.severityRank(a, severityNames) -
+          this.severityRank(b, severityNames)
+        );
+      },
+    );
+
+    return ordered.map((cell: DeletionCellState): CoverageLossCell => {
+      const ref: DeletionSeverityRef | undefined = severityNames.get(
+        this.severityNameKey(cell.severityKind, cell.severityId),
+      );
+
+      return {
+        ruleType: cell.ruleType,
+        severityId: new ObjectID(cell.severityId),
+        severityName: ref?.name,
+        rulesRemoved: cell.rulesRemoved,
+      };
+    });
+  }
+
+  private pagingRuleTypeRank(ruleType: NotificationRuleType): number {
+    const index: number = PAGING_RULE_TYPE_SCOPES.findIndex(
+      (scope: PagingRuleTypeScope): boolean => {
+        return scope.ruleType === ruleType;
+      },
+    );
+
+    return index < 0 ? PAGING_RULE_TYPE_SCOPES.length : index;
+  }
+
+  private severityRank(
+    cell: DeletionCellState,
+    severityNames: Map<string, DeletionSeverityRef>,
+  ): number {
+    const ref: DeletionSeverityRef | undefined = severityNames.get(
+      this.severityNameKey(cell.severityKind, cell.severityId),
+    );
+
+    /*
+     * A severity we could not name sorts last rather than first. It is the one
+     * entry whose sentence will read "this severity", and burying it under the
+     * ones that read properly costs nothing; leading with it looks like a bug.
+     */
+    return ref ? ref.rank : Number.MAX_SAFE_INTEGER;
+  }
+
+  private resolveReachability(
+    readiness: UserReadiness | undefined,
+    remainingVerifiedMethods: Array<ReadinessMethod>,
+  ): PostDeletionReachability {
+    if (!readiness) {
+      return PostDeletionReachability.Unknown;
+    }
+
+    /*
+     * Checked first, and it is not merely a nicety of wording. Readiness says
+     * NotReachable when the user has no USABLE method — which includes the case
+     * where every verified method they own is on a channel the project has
+     * switched off — so this branch is also what keeps the branches below from
+     * promising "still reachable" on the strength of a verified method that
+     * nothing can send on.
+     */
+    if (readiness.status === ReadinessStatus.NotReachable) {
+      return PostDeletionReachability.AlreadyNotReachable;
+    }
+
+    if (remainingVerifiedMethods.length === 0) {
+      return PostDeletionReachability.NotReachable;
+    }
+
+    const unswitchableChannels: Array<string> = channelsWithNoProjectSwitch();
+
+    const hasUnswitchableChannel: boolean = remainingVerifiedMethods.some(
+      (method: ReadinessMethod): boolean => {
+        return unswitchableChannels.includes(method.methodType);
+      },
+    );
+
+    if (hasUnswitchableChannel) {
+      return PostDeletionReachability.Reachable;
+    }
+
+    return PostDeletionReachability.DependsOnProjectSettings;
+  }
+
+  /**
+   * The sentences a human reads in the confirmation dialog, most consequential
+   * first.
+   *
+   * Every line names a specific thing that is lost AND what happens because of
+   * it, which is the same contract OnCallReadinessService.buildReasons keeps
+   * and for the same reason: "no rule for Sev4" is a shrug, "no rule for Sev4,
+   * and those pages are dropped" is a decision. Nothing here says "are you
+   * sure?" — the caller owns the question, and this owns the facts it is asked
+   * about.
+   */
+  private buildDeletionWarnings(data: {
+    deletedMethod: DeletedNotificationMethod | undefined;
+    rulesDeletedCount: number;
+    readiness: UserReadiness | undefined;
+    reachability: PostDeletionReachability;
+    remainingVerifiedMethods: Array<ReadinessMethod>;
+    coverageLost: Array<CoverageLossCell>;
+    handoffNotificationsLost: Array<NotificationRuleType>;
+    isFallbackEnabled: boolean;
+    isTruncated: boolean;
+  }): Array<string> {
+    const warnings: Array<string> = [];
+
+    /*
+     * The cascade goes first because it is the part nobody clicked. Everything
+     * below is a consequence of it, and a list that started with the
+     * consequences would read as though the notification rules were being
+     * deleted for no reason at all.
+     */
+    if (data.deletedMethod && data.rulesDeletedCount > 0) {
+      warnings.push(
+        `Deleting this ${data.deletedMethod.methodType} notification method also deletes ${data.rulesDeletedCount} notification ${data.rulesDeletedCount === 1 ? "rule" : "rules"} that use it - a notification rule cannot outlive the method it sends on.`,
+      );
+    }
+
+    if (data.reachability === PostDeletionReachability.NotReachable) {
+      warnings.push(
+        "This is the last verified notification method on this account - after it there is nothing left to page this user on, and the on-call fallback has nothing to fall back to either.",
+      );
+    }
+
+    if (!data.readiness) {
+      warnings.push(
+        "Whether this user is on call could not be determined - they may no longer be a member of this project.",
+      );
+    } else if (data.readiness.reachedVia.length > 0) {
+      const sources: Array<string> = data.readiness.reachedVia.map(
+        (source: ResponderSource): string => {
+          return responderSourceProse(source);
+        },
+      );
+
+      warnings.push(
+        `This user is on call in this project (${sources.join(", ")}), so anything lost here is a page that does not arrive.`,
+      );
+    } else {
+      /*
+       * Said out loud rather than left as silence. "Not on call" is the one
+       * answer that makes this whole dialog safe to click through, and an admin
+       * who has to infer it from the absence of a warning will infer it wrongly
+       * at least once.
+       */
+      warnings.push(
+        "This user is not on any on-call policy right now, so nothing here can cost a page today - it will if they are ever added to one.",
+      );
+    }
+
+    for (const scope of PAGING_RULE_TYPE_SCOPES) {
+      const severityNames: Array<string> = data.coverageLost
+        .filter((cell: CoverageLossCell): boolean => {
+          return cell.ruleType === scope.ruleType;
+        })
+        .map((cell: CoverageLossCell): string => {
+          return cell.severityName || "this severity";
+        });
+
+      if (severityNames.length === 0) {
+        continue;
+      }
+
+      /*
+       * One sentence per rule type listing its severities, not one per cell. A
+       * user deleting a method that carried all their default rules would
+       * otherwise be handed one line per (rule type x severity) — sixteen
+       * near-identical sentences that nobody reads to the end of.
+       */
+      const subject: string = `After this, no rule covers ${severityNames.join(", ")} ${scope.subjectNoun}`;
+
+      if (data.isFallbackEnabled) {
+        warnings.push(
+          `${subject} - those pages fall back to whatever this user has verified, which is not what they configured`,
+        );
+      } else {
+        warnings.push(
+          `${subject} - those pages are dropped, because on-call fallback is disabled for this project`,
+        );
+      }
+    }
+
+    if (
+      data.handoffNotificationsLost.includes(
+        NotificationRuleType.WHEN_USER_GOES_ON_CALL,
+      )
+    ) {
+      warnings.push("This user will no longer be told when they go on call.");
+    }
+
+    if (
+      data.handoffNotificationsLost.includes(
+        NotificationRuleType.WHEN_USER_GOES_OFF_CALL,
+      )
+    ) {
+      warnings.push("This user will no longer be told when they go off call.");
+    }
+
+    if (data.reachability === PostDeletionReachability.AlreadyNotReachable) {
+      warnings.push(
+        "This user already has no usable notification method, so nothing can page them today either - this deletion is not what breaks it.",
+      );
+    }
+
+    if (
+      data.reachability === PostDeletionReachability.DependsOnProjectSettings
+    ) {
+      const channels: Array<string> = [];
+
+      for (const method of data.remainingVerifiedMethods) {
+        if (!channels.includes(method.methodType)) {
+          channels.push(method.methodType);
+        }
+      }
+
+      warnings.push(
+        `Every verified method left on this account is on a channel the project can switch off (${channels.join(", ")}) - check On-Call > Readiness to confirm this user can still be paged.`,
+      );
+    }
+
+    if (data.isTruncated) {
+      warnings.push(
+        "This preview is incomplete - there are more notification rules on this account than it could read, so the real loss may be larger than what is listed here.",
+      );
+    }
+
+    return warnings;
   }
 }
 export default new Service();

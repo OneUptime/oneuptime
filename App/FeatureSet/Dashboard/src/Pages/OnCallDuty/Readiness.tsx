@@ -33,6 +33,7 @@ import FilterButtons, {
   FilterButtonOption,
 } from "Common/UI/Components/FilterButtons/FilterButtons";
 import Icon from "Common/UI/Components/Icon/Icon";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -84,20 +85,238 @@ const READINESS_PAGE_SIZE: number = 500;
 const MAX_READINESS_PAGES: number = 100;
 
 /*
- * PHASE 4 - there is no /on-call-readiness/send-setup-reminder endpoint yet.
+ * Setup reminders.
  *
- * The first cut of this page shipped an enabled button wired to a function that
- * unconditionally threw. An admin ticked responders, confirmed a modal that
- * named them by name, and got an error for their trouble - the control looked
- * like the fix and was a trap. A silent no-op would have been worse still: they
- * would have gone away believing a reminder had reached someone who still
- * cannot be paged, which is the exact failure this whole feature exists to
- * prevent. So the control is honestly off: disabled, saying why, with no
- * selection UI leading to it. When the endpoint lands, bring back the checkbox
- * column and POST the selected user ids to it.
+ * The one control on this page that leaves the product and lands in somebody's
+ * inbox, and the reason it exists at all is that the gaps this page reports are
+ * not gaps the reader can close: a notification method lives on the responder's
+ * own account and only they can verify it. Asking them IS the fix.
+ *
+ * This control has a history worth keeping in view. Its first cut was an enabled
+ * button wired to a function that unconditionally threw - an admin ticked
+ * responders, confirmed a modal that named them, and got an error. Its second
+ * was honestly disabled, saying why, because a silent no-op would have been
+ * worse still: they would have left believing a reminder had reached somebody
+ * who still cannot be paged. Now that the endpoint is real, the same standard
+ * applies to its ANSWER. The server returns one outcome per user - sent,
+ * skipped, or failed - and this page renders those outcomes rather than a tick,
+ * because "5 sent, 2 already reminded today, 1 failed" is the only summary that
+ * does not quietly overstate what happened.
  */
-const SETUP_REMINDER_UNAVAILABLE_MESSAGE: string =
-  "Setup reminders are not available yet - they arrive in a later release. Until then, ask these responders directly to finish their notification setup in User Settings.";
+const SETUP_REMINDER_API_PATH: string =
+  "/on-call-readiness/send-setup-reminder";
+
+/*
+ * WHAT A FAILED REQUEST IS ALLOWED TO CLAIM.
+ *
+ * This banner used to say "No reminders were sent." on every failure, and that
+ * sentence is not knowable from a failure. The endpoint performs up to
+ * SETUP_REMINDER_MAX_RECIPIENTS (250) SEQUENTIAL sends inside one HTTP request:
+ * a gateway that gives up at 60s, or a pod that is rolled mid-fan-out, produces
+ * a client-side failure on a request during which mail HAS already left. Telling
+ * an admin nothing was sent, and watching them press the button again, is how
+ * 250 people get reminded twice - and it is the same class of mistake this
+ * control was disabled for two phases to avoid.
+ *
+ * So the failure is split in two, on ONE question: did the API application
+ * itself answer?
+ *
+ * Every path that refuses this route - the body validation on the route, the
+ * permission gate, and the service's own pre-flight checks (empty list, over the
+ * ceiling, project not found) - runs BEFORE the fan-out begins.
+ * OnCallSetupReminderService.remindOneUser never throws; each recipient's
+ * failure is an outcome inside a 200. So a status code that this application
+ * produces is proof the fan-out never started, and only those codes earn the
+ * definite sentence.
+ *
+ * The list is deliberately short and deliberately does not include:
+ *
+ *   - 500, 502, 503, 504: any of these can come from a proxy, a load balancer or
+ *     a restart, at any point - including after 200 of the 250 sends.
+ *   - 408 and a transport failure (statusCode -1, e.g. the browser dropping the
+ *     connection): the request may well have completed at the server.
+ *   - 429: an edge rate limiter and the application are indistinguishable from
+ *     here, and being wrong in this direction is the expensive one.
+ */
+const DEFINITELY_NOT_SENT_STATUS_CODES: Array<number> = [
+  400, // BadDataException - the body, or the service's pre-flight checks.
+  401, // NotAuthenticatedException - no session.
+  403, // ForbiddenException.
+  422, // NotAuthorizedException - not a member, or not allowed to send.
+];
+
+interface SetupReminderFailure {
+  /** The friendly message, rendered verbatim. */
+  message: string;
+  /**
+   * TRUE only when the server answered in a way that proves the fan-out never
+   * started. FALSE means the outcome is genuinely unknown, and the banner must
+   * not claim otherwise in either direction.
+   */
+  isNothingSentCertain: boolean;
+}
+
+/*
+ * Reads a caught failure into "we know nothing went" or "we do not know".
+ *
+ * API.post RESOLVES with an HTTPErrorResponse for a non-2xx rather than
+ * throwing, and the caller re-throws it, so both shapes arrive here. Anything
+ * that is not an HTTPErrorResponse at all - a thrown TypeError, a dropped
+ * connection - carries no status code and is therefore unknown by definition.
+ */
+const readSetupReminderFailure: (err: unknown) => SetupReminderFailure = (
+  err: unknown,
+): SetupReminderFailure => {
+  const message: string = API.getFriendlyMessage(err);
+
+  /*
+   * HTTPErrorResponse extends HTTPResponse, and the caller re-throws a plain
+   * HTTPResponse whose isFailure() is true as well, so the base class is what is
+   * tested for. A response object of either shape carries the status code; a
+   * thrown Error does not.
+   */
+  if (err instanceof HTTPResponse) {
+    return {
+      message: message,
+      isNothingSentCertain: DEFINITELY_NOT_SENT_STATUS_CODES.includes(
+        err.statusCode,
+      ),
+    };
+  }
+
+  return {
+    message: message,
+    isNothingSentCertain: false,
+  };
+};
+
+/*
+ * The five outcomes the endpoint reports, mirroring SetupReminderOutcome on the
+ * server. Kept as a union of literals rather than an enum for the same reason
+ * ReadinessTypes keeps its status vocabulary that way: this is a wire value and
+ * a value the server sends that this build has never heard of has to survive
+ * being displayed, not crash a render.
+ */
+type SetupReminderOutcomeValue =
+  | "Sent"
+  | "SkippedThrottled"
+  | "SkippedNotAMember"
+  | "SkippedNothingMissing"
+  | "Failed";
+
+interface SetupReminderUserOutcome {
+  userId: string;
+  outcome: SetupReminderOutcomeValue;
+  /** The server's own sentence about this user. Rendered verbatim as text. */
+  message: string;
+}
+
+/*
+ * The counts here are DERIVED from `results` rather than read from the payload's
+ * own sentCount / skippedCount / failedCount, even though the server sends both
+ * and they agree.
+ *
+ * The reason is that this banner shows a headline and a detail list at the same
+ * time, and those two must never be able to disagree on screen - a headline
+ * reading "3 sent" above a list naming four failures is worse than either half
+ * on its own, because the reader cannot tell which to believe. Deriving both
+ * from one array makes the contradiction unrepresentable.
+ */
+interface SetupReminderReport {
+  sentCount: number;
+  skippedCount: number;
+  failedCount: number;
+  results: Array<SetupReminderUserOutcome>;
+}
+
+/*
+ * Parse defensively, and count what actually arrived.
+ *
+ * An entry without a user id is dropped rather than rendered against nobody,
+ * and an entry with an outcome this build does not recognise is kept and counted
+ * as SKIPPED rather than as sent. That asymmetry is deliberate: a future outcome
+ * value miscounted as "sent" would be this page telling somebody a reminder went
+ * out when it may not have, which is the one mistake this control is not allowed
+ * to make twice. Miscounting it as skipped merely understates the good news, and
+ * the server's own sentence is shown next to it either way.
+ */
+const parseSetupReminderReport: (data: JSONObject) => SetupReminderReport = (
+  data: JSONObject,
+): SetupReminderReport => {
+  const rawResults: Array<JSONObject> = Array.isArray(data["results"])
+    ? (data["results"] as Array<JSONObject>)
+    : [];
+
+  const results: Array<SetupReminderUserOutcome> = [];
+
+  for (const raw of rawResults) {
+    const userId: string = (raw["userId"] as string) || "";
+
+    if (!userId) {
+      continue;
+    }
+
+    results.push({
+      userId: userId,
+      outcome: (raw["outcome"] as SetupReminderOutcomeValue) || "Failed",
+      message: (raw["message"] as string) || "",
+    });
+  }
+
+  let sentCount: number = 0;
+  let failedCount: number = 0;
+  let skippedCount: number = 0;
+
+  for (const result of results) {
+    if (result.outcome === "Sent") {
+      sentCount++;
+    } else if (result.outcome === "Failed") {
+      failedCount++;
+    } else {
+      skippedCount++;
+    }
+  }
+
+  return {
+    sentCount: sentCount,
+    skippedCount: skippedCount,
+    failedCount: failedCount,
+    results: results,
+  };
+};
+
+/*
+ * The headline. Only non-zero terms appear, so a clean run reads "3 sent." and
+ * not "3 sent, 0 skipped, 0 failed" - a sentence with zeroes in it invites the
+ * reader to skim past the number that is not zero.
+ */
+const describeSetupReminderReport: (report: SetupReminderReport) => string = (
+  report: SetupReminderReport,
+): string => {
+  const parts: Array<string> = [];
+
+  if (report.sentCount > 0) {
+    parts.push(`${report.sentCount} sent`);
+  }
+
+  if (report.skippedCount > 0) {
+    parts.push(`${report.skippedCount} skipped`);
+  }
+
+  if (report.failedCount > 0) {
+    parts.push(`${report.failedCount} failed`);
+  }
+
+  if (parts.length === 0) {
+    /*
+     * A 200 with nothing in it. Unreachable today, but stating it plainly beats
+     * an empty banner that reads as success.
+     */
+    return "No reminders were sent.";
+  }
+
+  return `${parts.join(", ")}.`;
+};
 
 /*
  * All seven channels, in a fixed order, so the meter is positional: the third
@@ -840,6 +1059,88 @@ const CoverageMatrix: FunctionComponent<CoverageMatrixProps> = (
   );
 };
 
+interface SetupReminderReportBannerProps {
+  report: SetupReminderReport;
+  /** Every responder on the page, so an outcome can be shown against a name. */
+  rows: Array<ResponderRow>;
+  onDismiss: () => void;
+}
+
+/*
+ * What actually happened, per user.
+ *
+ * The headline is the count sentence; underneath it, every user who was NOT
+ * sent a reminder is named with the server's own explanation. Successes are
+ * deliberately not enumerated - a list of eight names under "8 sent" is noise,
+ * and burying the one line that needs attention in it is exactly how a report
+ * stops being read.
+ *
+ * Tone follows the worst thing in the report rather than the best: any failure
+ * makes the whole banner red, because a green banner with a red line inside it
+ * is read as green. That is the same rule the tiles above follow, and it is the
+ * rule that keeps the colours on this page meaning something.
+ */
+const SetupReminderReportBanner: FunctionComponent<
+  SetupReminderReportBannerProps
+> = (props: SetupReminderReportBannerProps): ReactElement => {
+  const namesByUserId: Dictionary<string> = {};
+
+  for (const row of props.rows) {
+    namesByUserId[row.readiness.userId] =
+      row.readiness.userName || row.readiness.userEmail;
+  }
+
+  const notSent: Array<SetupReminderUserOutcome> = props.report.results.filter(
+    (result: SetupReminderUserOutcome): boolean => {
+      return result.outcome !== "Sent";
+    },
+  );
+
+  let toneClassName: string =
+    "border-emerald-200 bg-emerald-50 text-emerald-800";
+
+  if (props.report.failedCount > 0) {
+    toneClassName = "border-red-200 bg-red-50 text-red-800";
+  } else if (props.report.sentCount === 0 || props.report.skippedCount > 0) {
+    toneClassName = "border-amber-200 bg-amber-50 text-amber-900";
+  }
+
+  return (
+    <div
+      className={`mb-4 rounded-md border px-4 py-3 text-sm ${toneClassName}`}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <span className="font-medium">Setup reminders:&nbsp;</span>
+          {describeSetupReminderReport(props.report)}
+        </div>
+        <button
+          type="button"
+          className="whitespace-nowrap text-xs underline opacity-80 hover:opacity-100"
+          onClick={props.onDismiss}
+        >
+          Dismiss
+        </button>
+      </div>
+
+      {notSent.length > 0 && (
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          {notSent.map((result: SetupReminderUserOutcome): ReactElement => {
+            return (
+              <li key={`reminder-outcome-${result.userId}`}>
+                <span className="font-medium">
+                  {namesByUserId[result.userId] || "This responder"}
+                </span>
+                {result.message ? ` - ${result.message}` : ""}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+};
+
 interface ResponderRow {
   readiness: UserReadinessWire;
   model: CoverageModel;
@@ -859,6 +1160,23 @@ const OnCallReadinessPage: FunctionComponent<
   const [visibleCount, setVisibleCount] = useState<number>(
     INITIAL_VISIBLE_RESPONDERS,
   );
+
+  /*
+   * Selection is kept as ids rather than as rows, so it survives a refresh that
+   * reorders the table (which every refresh does - the sort is by status, and
+   * status is exactly what a refresh is expected to change). Ids that no longer
+   * appear in the data are pruned when the selection is used, not when it is
+   * stored, so a responder who briefly vanishes from a filtered read does not
+   * silently drop off the list an admin is building.
+   */
+  const [selectedUserIds, setSelectedUserIds] = useState<Array<string>>([]);
+  const [isReminderModalVisible, setIsReminderModalVisible] =
+    useState<boolean>(false);
+  const [isSendingReminders, setIsSendingReminders] = useState<boolean>(false);
+  const [reminderFailure, setReminderFailure] =
+    useState<SetupReminderFailure | null>(null);
+  const [reminderReport, setReminderReport] =
+    useState<SetupReminderReport | null>(null);
 
   /*
    * Read EVERY page, not the first one.
@@ -999,6 +1317,150 @@ const OnCallReadinessPage: FunctionComponent<
   );
 
   const visibleRows: Array<ResponderRow> = filteredRows.slice(0, visibleCount);
+
+  /*
+   * A Ready responder cannot be selected, because there is nothing to remind
+   * them of. The server agrees - it answers SkippedNothingMissing for them
+   * rather than mailing a claim they could disprove in ten seconds - so
+   * disabling the checkbox here is not a second rule, it is the same rule made
+   * visible before the click instead of explained after it.
+   */
+  const isRemindable: (row: ResponderRow) => boolean = (
+    row: ResponderRow,
+  ): boolean => {
+    return row.readiness.status !== READINESS_STATUS_READY;
+  };
+
+  const selectedUserIdSet: Set<string> = new Set<string>(selectedUserIds);
+
+  /*
+   * The selection, pruned to responders who are still in the data and still
+   * remindable. Pruning at the point of USE rather than in the setter is what
+   * keeps a refresh from silently shrinking a list the admin is halfway through
+   * building: the ids stay in state, and only what is actually actionable right
+   * now is acted on or counted.
+   */
+  const selectedRows: Array<ResponderRow> = allRows.filter(
+    (row: ResponderRow): boolean => {
+      return selectedUserIdSet.has(row.readiness.userId) && isRemindable(row);
+    },
+  );
+
+  const selectableVisibleRows: Array<ResponderRow> =
+    visibleRows.filter(isRemindable);
+
+  const selectedVisibleCount: number = selectableVisibleRows.filter(
+    (row: ResponderRow): boolean => {
+      return selectedUserIdSet.has(row.readiness.userId);
+    },
+  ).length;
+
+  const toggleUserSelection: (userId: string, isSelected: boolean) => void = (
+    userId: string,
+    isSelected: boolean,
+  ): void => {
+    setSelectedUserIds((current: Array<string>): Array<string> => {
+      const withoutUser: Array<string> = current.filter(
+        (candidate: string): boolean => {
+          return candidate !== userId;
+        },
+      );
+
+      return isSelected ? [...withoutUser, userId] : withoutUser;
+    });
+  };
+
+  /*
+   * The header checkbox covers the rows ON SCREEN, not every row behind "Show
+   * more". A control that silently selects people the reader has not seen is
+   * how a reminder ends up in the inbox of somebody nobody meant to contact -
+   * and this page deliberately renders 25 rows at a time precisely because
+   * nobody reads a list of five thousand.
+   */
+  const toggleVisibleSelection: (isSelected: boolean) => void = (
+    isSelected: boolean,
+  ): void => {
+    const visibleIds: Set<string> = new Set<string>(
+      selectableVisibleRows.map((row: ResponderRow): string => {
+        return row.readiness.userId;
+      }),
+    );
+
+    setSelectedUserIds((current: Array<string>): Array<string> => {
+      const withoutVisible: Array<string> = current.filter(
+        (candidate: string): boolean => {
+          return !visibleIds.has(candidate);
+        },
+      );
+
+      return isSelected
+        ? [...withoutVisible, ...Array.from(visibleIds)]
+        : withoutVisible;
+    });
+  };
+
+  /*
+   * Send, then tell the truth about what happened.
+   *
+   * Three outcomes have to be distinguishable on screen and they are handled in
+   * three different places here:
+   *
+   *   - the REQUEST failed. Split again by whether the outcome is KNOWABLE: a
+   *     400 or a 403 is the application refusing before the fan-out, so nothing
+   *     went; a timeout or a 502 is a request that may have mailed 200 people
+   *     before the connection died. See readSetupReminderFailure - the banner
+   *     claims one or the other, never both.
+   *   - the request succeeded and every user was sent. A plain confirmation.
+   *   - the request succeeded and some users were not. This is the common case
+   *     the moment a throttle exists, and it is the reason the report is a
+   *     per-user list rather than a boolean: "5 sent, 2 skipped" with the two
+   *     named underneath is actionable, and a green tick over the same run is a
+   *     lie by omission.
+   *
+   * The selection is cleared only on a request that actually reached the server,
+   * so a failed attempt leaves the admin's list intact to retry with.
+   */
+  const sendSetupReminders: () => Promise<void> = async (): Promise<void> => {
+    const userIds: Array<string> = selectedRows.map(
+      (row: ResponderRow): string => {
+        return row.readiness.userId;
+      },
+    );
+
+    if (userIds.length === 0) {
+      return;
+    }
+
+    try {
+      setIsSendingReminders(true);
+      setReminderFailure(null);
+      setReminderReport(null);
+
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post<JSONObject>({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            SETUP_REMINDER_API_PATH,
+          ),
+          data: {
+            userIds: userIds,
+          },
+          headers: ModelAPI.getCommonHeaders(),
+        });
+
+      if (response instanceof HTTPErrorResponse || response.isFailure()) {
+        throw response;
+      }
+
+      setReminderReport(parseSetupReminderReport(response.data));
+      setSelectedUserIds([]);
+      setIsReminderModalVisible(false);
+    } catch (err) {
+      setReminderFailure(readSetupReminderFailure(err));
+      setIsReminderModalVisible(false);
+    } finally {
+      setIsSendingReminders(false);
+    }
+  };
 
   const refreshButton: CardButtonSchema = getRefreshButton();
   refreshButton.title = "Refresh";
@@ -1198,31 +1660,94 @@ const OnCallReadinessPage: FunctionComponent<
             }}
           />
           {/*
-           * The tooltip lives on the wrapper, not on the button: a disabled
-           * button swallows pointer events in every browser, so a tooltip
-           * attached to it would never open - which is how a control ends up
-           * silently dead with an explanation nobody can reach. The wrapper also
-           * carries the plain title attribute, and the words next to it say the
-           * same thing without any hovering at all.
+           * The button's own label carries the count, so the number of people
+           * about to be emailed is legible without reading anything else on the
+           * page. With nothing selected it is disabled and says what to do - a
+           * bare disabled "Send setup reminder" leaves the reader hunting for
+           * the control they have not found yet, which is the checkbox column.
            */}
-          <Tooltip text={SETUP_REMINDER_UNAVAILABLE_MESSAGE}>
-            <span
-              title={SETUP_REMINDER_UNAVAILABLE_MESSAGE}
-              className="inline-flex cursor-not-allowed items-center gap-2 self-start"
-            >
-              <Button
-                title="Send setup reminder"
-                icon={IconProp.SendMessage}
-                buttonStyle={ButtonStyleType.OUTLINE}
-                className="opacity-50"
-                disabled={true}
-              />
-              <span className="whitespace-nowrap text-xs text-gray-500">
-                Coming soon
-              </span>
-            </span>
-          </Tooltip>
+          <div className="flex items-center gap-3 self-start">
+            {selectedRows.length > 0 && (
+              <button
+                type="button"
+                className="whitespace-nowrap text-xs text-gray-500 underline hover:text-gray-700"
+                onClick={() => {
+                  setSelectedUserIds([]);
+                }}
+              >
+                Clear selection
+              </button>
+            )}
+            <Button
+              title={
+                selectedRows.length > 0
+                  ? `Send setup reminder (${selectedRows.length})`
+                  : "Send setup reminder"
+              }
+              icon={IconProp.SendMessage}
+              buttonStyle={ButtonStyleType.OUTLINE}
+              disabled={selectedRows.length === 0 || isSendingReminders}
+              onClick={() => {
+                setReminderFailure(null);
+                setReminderReport(null);
+                setIsReminderModalVisible(true);
+              }}
+            />
+          </div>
         </div>
+
+        {selectedRows.length === 0 && (
+          <div className="mb-4 text-xs text-gray-500">
+            Tick the responders you want to remind. Responders who are already
+            ready cannot be selected - there is nothing to remind them about.
+          </div>
+        )}
+
+        {/*
+         * A failed REQUEST and a partially successful one are two different
+         * banners on purpose. The second means some mail went and some did not,
+         * and collapsing them into one "something went wrong" would leave an
+         * admin unsure whether to try again - and trying again is exactly what
+         * they should not do when five of eight reminders already left.
+         *
+         * The failed-request banner then splits again, on whether the outcome is
+         * knowable at all. The definite sentence is kept for the failures that
+         * prove it - the application refusing before it started sending - and the
+         * uncertain one says what it does not know and what to do about it.
+         * Retrying is not forbidden here (the 24h throttle makes a duplicate run
+         * mostly harmless), but the reader is told the state they are actually in
+         * rather than a comforting version of it.
+         */}
+        {reminderFailure &&
+          (reminderFailure.isNothingSentCertain ? (
+            <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <span className="font-medium">No reminders were sent.&nbsp;</span>
+              {reminderFailure.message}
+            </div>
+          ) : (
+            <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <span className="font-medium">
+                We could not confirm which reminders were sent.&nbsp;
+              </span>
+              {reminderFailure.message}
+              <p className="mt-1.5">
+                Some of them may already have gone out. Check with the
+                responders before sending again - a reminder sent in the last 24
+                hours is skipped rather than repeated, so a retry will not mail
+                anybody twice.
+              </p>
+            </div>
+          ))}
+
+        {reminderReport && (
+          <SetupReminderReportBanner
+            report={reminderReport}
+            rows={allRows}
+            onDismiss={() => {
+              setReminderReport(null);
+            }}
+          />
+        )}
 
         {filteredRows.length === 0 ? (
           <div className="py-10 text-center text-sm text-gray-500">
@@ -1233,6 +1758,39 @@ const OnCallReadinessPage: FunctionComponent<
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  <th scope="col" className="w-10 px-3 py-3">
+                    {/*
+                     * Selects the rows ON SCREEN - see toggleVisibleSelection.
+                     * The indeterminate state is what makes that honest: a
+                     * half-filled box after "Show more" tells the reader that
+                     * some of what they are now looking at is not selected,
+                     * where an empty box would suggest they had lost the
+                     * selection they made a moment ago.
+                     */}
+                    <input
+                      type="checkbox"
+                      aria-label="Select the responders shown"
+                      title="Select the responders shown"
+                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-600 disabled:cursor-not-allowed disabled:opacity-40"
+                      disabled={selectableVisibleRows.length === 0}
+                      checked={
+                        selectableVisibleRows.length > 0 &&
+                        selectedVisibleCount === selectableVisibleRows.length
+                      }
+                      ref={(element: HTMLInputElement | null): void => {
+                        if (element) {
+                          element.indeterminate =
+                            selectedVisibleCount > 0 &&
+                            selectedVisibleCount < selectableVisibleRows.length;
+                        }
+                      }}
+                      onChange={(
+                        event: React.ChangeEvent<HTMLInputElement>,
+                      ) => {
+                        toggleVisibleSelection(event.target.checked);
+                      }}
+                    />
+                  </th>
                   <th
                     scope="col"
                     className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
@@ -1283,6 +1841,43 @@ const OnCallReadinessPage: FunctionComponent<
                           );
                         }}
                       >
+                        {/*
+                         * stopPropagation on the CELL, not only on the input.
+                         * The whole row toggles the coverage panel, and a click
+                         * that lands on the padding around a checkbox is a click
+                         * on the cell - so without this, ticking a box near its
+                         * edge expands the row instead, which reads as the
+                         * checkbox being broken.
+                         */}
+                        <td
+                          className="px-3 py-3"
+                          onClick={(event: React.MouseEvent) => {
+                            event.stopPropagation();
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${row.readiness.userName}`}
+                            title={
+                              isRemindable(row)
+                                ? `Select ${row.readiness.userName}`
+                                : "Already ready - there is nothing to remind them about"
+                            }
+                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-600 disabled:cursor-not-allowed disabled:opacity-40"
+                            disabled={!isRemindable(row)}
+                            checked={selectedUserIdSet.has(
+                              row.readiness.userId,
+                            )}
+                            onChange={(
+                              event: React.ChangeEvent<HTMLInputElement>,
+                            ) => {
+                              toggleUserSelection(
+                                row.readiness.userId,
+                                event.target.checked,
+                              );
+                            }}
+                          />
+                        </td>
                         <td className="px-3 py-3">
                           <UserElement
                             user={{
@@ -1344,7 +1939,7 @@ const OnCallReadinessPage: FunctionComponent<
                       </tr>
                       {isExpanded && (
                         <tr>
-                          <td colSpan={6} className="p-0">
+                          <td colSpan={7} className="p-0">
                             {getExpandedPanel(row)}
                           </td>
                         </tr>
@@ -1421,6 +2016,53 @@ const OnCallReadinessPage: FunctionComponent<
           {content}
         </div>
       </Card>
+
+      {/*
+       * The confirmation names every recipient, and it is not decoration.
+       * Selection survives a filter change, so the rows an admin ticked are not
+       * necessarily the rows on screen when they press the button - and this is
+       * the last moment before real email reaches real people. A modal that
+       * said "Send 6 reminders?" would be asking them to confirm a number.
+       */}
+      {isReminderModalVisible && (
+        <ConfirmModal
+          title={`Send a setup reminder to ${selectedRows.length} ${
+            selectedRows.length === 1 ? "responder" : "responders"
+          }?`}
+          description={
+            <div>
+              <p>
+                Each of them gets one email naming exactly what is missing from
+                their own notification setup, and a link to the settings page
+                that fixes it. Nobody is emailed more than once in 24 hours, so
+                any of these who were already reminded today will be skipped.
+              </p>
+              <ul className="mt-3 list-disc space-y-1 pl-5">
+                {selectedRows.map((row: ResponderRow): ReactElement => {
+                  return (
+                    <li key={`confirm-${row.readiness.userId}`}>
+                      {row.readiness.userName}
+                      {row.readiness.userEmail
+                        ? ` (${row.readiness.userEmail})`
+                        : ""}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          }
+          submitButtonText="Send reminders"
+          isLoading={isSendingReminders}
+          onSubmit={() => {
+            sendSetupReminders().catch(() => {
+              // sendSetupReminders routes every failure into the error state.
+            });
+          }}
+          onClose={() => {
+            setIsReminderModalVisible(false);
+          }}
+        />
+      )}
     </div>
   );
 };

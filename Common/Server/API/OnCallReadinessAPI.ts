@@ -6,6 +6,10 @@ import OnCallReadinessService, {
   UserReadiness,
 } from "../Services/OnCallReadinessService";
 import OnCallDutyPolicyService from "../Services/OnCallDutyPolicyService";
+import OnCallSetupReminderService, {
+  SetupReminderResult,
+  SetupReminderUserResult,
+} from "../Services/OnCallSetupReminderService";
 import TeamMemberService from "../Services/TeamMemberService";
 import Express, {
   ExpressRequest,
@@ -16,10 +20,14 @@ import Express, {
 import Response from "../Utils/Response";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseCommonInteractionPropsUtil, {
+  PermissionType,
+} from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import Permission, { UserPermission } from "../../Types/Permission";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 
@@ -86,6 +94,18 @@ import TeamMember from "../../Models/DatabaseModels/TeamMember";
  *
  * The two summary routes are PAGED - see READINESS_PAGE_SIZE_DEFAULT below for
  * why, and for the rule that keeps a paged answer from lying about the whole.
+ *
+ * THE ONE ROUTE THAT IS NOT A READ:
+ *
+ * /on-call-readiness/send-setup-reminder is a POST that sends branded email to
+ * real people, and it therefore carries a HIGHER bar than its read siblings -
+ * see SETUP_REMINDER_PERMISSIONS below. Membership was the original bar and it
+ * was the wrong one: `assertAuthenticatedProjectMember` proves only that the
+ * caller has SOME access entry for the project, which every read-only Viewer
+ * has, so anyone who could look at the readiness table could also make the
+ * product mail their colleagues in the project's name. Disclosure and action are
+ * different questions, and this route is the only one here that answers the
+ * second.
  */
 const router: ExpressRouter = Express.getRouter();
 
@@ -296,6 +316,80 @@ async function assertUserBelongsToProject(
 }
 
 /*
+ * Who may make the product send mail in this project's name.
+ *
+ * The action is "manage on-call", so the granular permission that means exactly
+ * that - EditProjectOnCallDutyPolicy, the one that lets somebody change who gets
+ * paged - is the permission this asks for. The two project roles and the on-call
+ * role are listed ALONGSIDE it rather than being expanded into it because
+ * OneUptime's teams hold ROLES, not granular permissions: a project created
+ * before this feature existed has an owner whose team carries ProjectOwner and
+ * nothing more granular, and a gate that named only the granular permission
+ * would lock every existing project's owner out of their own button.
+ *
+ * Deliberately NOT here:
+ *
+ *   - ProjectMember and Viewer, which is the whole point of the change. Both can
+ *     read the readiness table, and reading who is unreachable is a different
+ *     act from mailing them about it under the project's branding.
+ *   - OnCallMember and OnCallViewer. The on-call tiers below Admin are for
+ *     people who are ON call, not people who administer it.
+ *
+ * The read routes keep the membership bar: they disclose configuration to
+ * somebody who is already inside the project, which is what the feature is for.
+ */
+const SETUP_REMINDER_PERMISSIONS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.OnCallAdmin,
+  Permission.EditProjectOnCallDutyPolicy,
+];
+
+/*
+ * The permission check, read the way the rest of the API reads permissions.
+ *
+ * getUserPermissions(Allow) rather than `userTenantAccessPermission[...]`
+ * directly, and that is not a stylistic preference. That dictionary's entries
+ * hold GRANTS AND DENIALS in one array, discriminated only by
+ * `isBlockPermission`; mapping it raw would count a team's explicit BLOCK of
+ * ProjectAdmin as a grant of ProjectAdmin, so the admin action that restricts a
+ * team would be the thing that handed it this endpoint. The helper filters by
+ * type and scopes to props.tenantId, which is the same project
+ * assertAuthenticatedProjectMember just authorised the caller for.
+ *
+ * The refusal reuses the router's single refusal sentence verbatim, so an
+ * under-privileged member cannot tell "you may not do this" apart from "you are
+ * not in this project" and use the difference to probe.
+ */
+function assertCanSendSetupReminders(
+  databaseProps: DatabaseCommonInteractionProps,
+): void {
+  if (databaseProps.isMasterAdmin) {
+    return;
+  }
+
+  const permissions: Array<Permission> =
+    DatabaseCommonInteractionPropsUtil.getUserPermissions(
+      databaseProps,
+      PermissionType.Allow,
+    ).map((userPermission: UserPermission): Permission => {
+      return userPermission.permission;
+    });
+
+  const isAllowed: boolean = permissions.some(
+    (permission: Permission): boolean => {
+      return SETUP_REMINDER_PERMISSIONS.includes(permission);
+    },
+  );
+
+  if (!isAllowed) {
+    throw new NotAuthorizedException(
+      "You are not authorized to access this project's data.",
+    );
+  }
+}
+
+/*
  * ObjectID's constructor accepts any string, so an unparseable path segment
  * would otherwise travel all the way to a query that matches nothing and read
  * as "this policy has no responders" rather than "you sent nonsense".
@@ -304,6 +398,45 @@ function readObjectIdParam(req: ExpressRequest, name: string): ObjectID {
   const raw: string = (req.params[name] as string) || "";
   ObjectID.validateUUID(raw);
   return new ObjectID(raw);
+}
+
+/*
+ * The `userIds` array from a POST body, validated before it is believed.
+ *
+ * A request body is a bag of JSON from an untrusted caller, so every layer of
+ * this is checked rather than asserted: that the field is there, that it is an
+ * array, that each element is a string, and that each string is a UUID.
+ * ObjectID's constructor accepts ANY string, so skipping the last check would
+ * push arbitrary caller text into a database query - and, in this case, into the
+ * "not a member of this project" branch of a mail-sending service, where it
+ * would look exactly like an ordinary stale id rather than like nonsense.
+ *
+ * The ceiling is enforced in the service rather than here, because the service
+ * is what the ceiling protects and it must hold for every caller. This route
+ * only has to hand it a well-formed list.
+ */
+function readUserIdsFromBody(req: ExpressRequest): Array<ObjectID> {
+  const body: JSONObject = (req.body || {}) as JSONObject;
+
+  const raw: unknown = body["userIds"];
+
+  if (!Array.isArray(raw)) {
+    throw new BadDataException(
+      "userIds is required and must be an array of user ids.",
+    );
+  }
+
+  return raw.map((value: unknown): ObjectID => {
+    if (typeof value !== "string") {
+      throw new BadDataException(
+        "Every entry in userIds must be a user id string.",
+      );
+    }
+
+    ObjectID.validateUUID(value);
+
+    return new ObjectID(value);
+  });
 }
 
 /*
@@ -394,6 +527,64 @@ function serializeSummaryPage(
      */
     hasMore: page.skip + pagedUsers.length < totalCount,
     users: pagedUsers.map(serializeUserReadiness),
+  };
+
+  return wire as unknown as JSONObject;
+}
+
+/**
+ * The wire shape of a setup-reminder run. Exported so the dashboard derives its
+ * type from the contract rather than hand-copying field names, the same way
+ * ReadinessSummaryPageWire is used.
+ */
+export interface SetupReminderResultWire {
+  projectId: string;
+  /** Distinct users considered. May be fewer than the ids posted, if they repeated. */
+  requestedCount: number;
+  sentCount: number;
+  /** Every skipped outcome of whatever kind; `results` says which kind, per user. */
+  skippedCount: number;
+  failedCount: number;
+  results: Array<JSONObject>;
+}
+
+/*
+ * Per user, always - even when everything worked.
+ *
+ * The counts alone would be enough to render "5 sent, 2 skipped, 1 failed", and
+ * that sentence is already far better than a tick. The array is here for the
+ * next question the reader has, which is "which one failed?" - and answering
+ * that from the client requires the outcome to be attached to an id it can match
+ * against the row the admin ticked.
+ *
+ * `outcome` is the enum's own string, not a boolean or a status code, because
+ * the four ways of not being sent are four different things to do next and a UI
+ * that cannot tell them apart ends up saying "3 skipped" with no explanation of
+ * why - which reads as a malfunction rather than as a throttle working.
+ *
+ * No user name or address is echoed back. The client already holds both from the
+ * readiness payload it was rendering when the admin made the selection, so
+ * repeating them here would widen what this endpoint discloses in exchange for
+ * nothing.
+ */
+function serializeSetupReminderUserResult(
+  result: SetupReminderUserResult,
+): JSONObject {
+  return {
+    userId: result.userId.toString(),
+    outcome: result.outcome,
+    message: result.message,
+  };
+}
+
+function serializeSetupReminderResult(result: SetupReminderResult): JSONObject {
+  const wire: SetupReminderResultWire = {
+    projectId: result.projectId.toString(),
+    requestedCount: result.requestedCount,
+    sentCount: result.sentCount,
+    skippedCount: result.skippedCount,
+    failedCount: result.failedCount,
+    results: result.results.map(serializeSetupReminderUserResult),
   };
 
   return wire as unknown as JSONObject;
@@ -549,6 +740,67 @@ router.get(
         req,
         res,
         serializeUserReadiness(readiness),
+      );
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+/*
+ * Ask a set of responders to finish their own notification setup.
+ *
+ * The only WRITE on this router, and the only thing in the readiness feature
+ * that reaches outside the product. It exists because the gaps this feature
+ * reports are not gaps an admin can close: a notification method lives on the
+ * responder's own account and has to be verified by them, so "tell them" is
+ * genuinely the whole of the available fix.
+ *
+ * Everything about who is mailed, what the mail says and whether it is sent at
+ * all belongs to OnCallSetupReminderService - including the re-check that each
+ * id is a member of this project, which is duplicated there on purpose so the
+ * service is safe for any caller and not only for this route.
+ *
+ * Two gates, in this order: membership (which project is this, and is the caller
+ * in it) and then permission (may they act in it). Both run before the body is
+ * read, because a route that validates a payload for a caller it is about to
+ * refuse has told that caller something about the payload format.
+ *
+ * The response is a PER-USER array, never a bare success. A caller that ticked
+ * eight responders and got a 200 back has no idea that two were reminded this
+ * morning and one has no address on file, and a UI that renders a green tick
+ * over that has told its user something false about whether a page will reach
+ * somebody. See serializeSetupReminderResult.
+ */
+router.post(
+  "/on-call-readiness/send-setup-reminder",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      const projectId: ObjectID =
+        CommonAPI.assertAuthenticatedProjectMember(databaseProps);
+
+      assertCanSendSetupReminders(databaseProps);
+
+      const userIds: Array<ObjectID> = readUserIdsFromBody(req);
+
+      const result: SetupReminderResult =
+        await OnCallSetupReminderService.sendSetupReminders({
+          projectId: projectId,
+          userIds: userIds,
+        });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        serializeSetupReminderResult(result),
       );
     } catch (err) {
       next(err);

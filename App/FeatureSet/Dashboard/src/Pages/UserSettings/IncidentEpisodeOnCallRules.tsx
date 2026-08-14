@@ -1,22 +1,33 @@
-import NotificationMethodView from "../../Components/NotificationMethods/NotificationMethod";
+import NotificationMethodView, {
+  DeletionImpactModal,
+} from "../../Components/NotificationMethods/NotificationMethod";
 import NotifyAfterDropdownOptions from "../../Components/NotificationRule/NotifyAfterMinutesDropdownOptions";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import OneUptimeDate from "Common/Types/Date";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import {
+  ErrorFunction,
+  PromiseVoidFunction,
+  VoidFunction,
+} from "Common/Types/FunctionTypes";
+import IconProp from "Common/Types/Icon/IconProp";
 import SelectEntityField from "Common/UI/Types/SelectEntityField";
 import { JSONObject } from "Common/Types/JSON";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
+import PermissionUtil from "Common/UI/Utils/Permission";
 import User from "Common/UI/Utils/User";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import UserCall from "Common/Models/DatabaseModels/UserCall";
@@ -52,6 +63,83 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
     notificationMethodsDropdownOptions,
     setNotificationMethodsDropdownOptions,
   ] = useState<Array<DropdownOption>>([]);
+
+  /*
+   * ==========================================================================
+   * DELETE GUARD
+   * ==========================================================================
+   *
+   * Deleting a notification rule is the delete that quietly removes coverage. A
+   * row here reads "Email: jane@example.com / after 5 minutes" and says nothing
+   * about whether it is the LAST rule standing for this severity - and the
+   * stock ModelTable confirmation cannot say either, because its description is
+   * a fixed string ("Are you sure you want to delete this...?") with nowhere to
+   * put a number.
+   *
+   * So the table's built-in delete is turned off (`isDeleteable={false}`) and
+   * the Delete action is supplied here instead, opening DeletionImpactModal -
+   * the same confirmation the notification method tables use, so somebody
+   * tidying their settings meets one account of what a delete costs rather than
+   * two that disagree. The modal counts across ALL of this user's rules in the
+   * project rather than the table the row happens to sit in, which is why each
+   * of the four rule-type pages can hand it nothing but a rule id.
+   *
+   * IT DOES NOT BLOCK. Deleting your own notification rule is your call. The
+   * only thing being changed is that you make it knowing whether anything is
+   * still going to page you for that severity, and whether anyone is relying on
+   * you answering.
+   */
+  const [ruleToDelete, setRuleToDelete] = useState<UserNotificationRule | null>(
+    null,
+  );
+  const [isDeletingRule, setIsDeletingRule] = useState<boolean>(false);
+  const [deleteError, setDeleteError] = useState<string>("");
+  const [refreshToggle, setRefreshToggle] = useState<string>(
+    OneUptimeDate.getCurrentDate().toString(),
+  );
+
+  /*
+   * The same gate BaseModelTable puts on its own delete action. Replacing that
+   * action with one of ours would otherwise hand a Delete button to a read-only
+   * member, who would then meet the refusal only after confirming it.
+   */
+  const canDeleteRules: boolean = Boolean(
+    new UserNotificationRule().hasDeletePermissions(
+      PermissionUtil.getAllPermissions(),
+    ) || User.isMasterAdmin(),
+  );
+
+  type DeleteRuleFunction = (rule: UserNotificationRule) => Promise<void>;
+
+  const deleteRule: DeleteRuleFunction = async (
+    rule: UserNotificationRule,
+  ): Promise<void> => {
+    if (!rule.id) {
+      return;
+    }
+
+    setIsDeletingRule(true);
+
+    try {
+      await ModelAPI.deleteItem<UserNotificationRule>({
+        modelType: UserNotificationRule,
+        id: rule.id,
+      });
+
+      /*
+       * Every table on the page is refetched rather than only the one the row
+       * sat in. A rule belongs to exactly one of them, but one shared toggle is
+       * cheaper than threading a per-severity one and cannot leave a deleted
+       * row on screen.
+       */
+      setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
+    } catch (err) {
+      setDeleteError(API.getFriendlyMessage(err));
+    }
+
+    setRuleToDelete(null);
+    setIsDeletingRule(false);
+  };
 
   type GetTableFunctionProps = {
     incidentSeverity?: IncidentSeverity;
@@ -120,7 +208,38 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         name={`User Settings > Notification Rules > ${
           options.incidentSeverity?.name || options.ruleType
         }`}
-        isDeleteable={true}
+        refreshToggle={refreshToggle}
+        /*
+         * Off, and replaced by the action button below. See the DELETE GUARD
+         * note above: the shared confirmation takes a fixed description and so
+         * cannot say what this particular delete costs.
+         */
+        isDeleteable={false}
+        actionButtons={
+          canDeleteRules
+            ? [
+                {
+                  title: "Delete",
+                  icon: IconProp.Trash,
+                  buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
+                  onClick: (
+                    item: UserNotificationRule,
+                    onCompleteAction: VoidFunction,
+                    onError: ErrorFunction,
+                  ) => {
+                    try {
+                      setDeleteError("");
+                      setRuleToDelete(item);
+                      onCompleteAction();
+                    } catch (err) {
+                      onCompleteAction();
+                      onError(err as Error);
+                    }
+                  },
+                },
+              ]
+            : []
+        }
         isEditable={false}
         isCreateable={true}
         cardProps={{
@@ -402,6 +521,56 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         )}
       </div>
+
+      {/*
+       * Mounted conditionally so each open is a fresh mount: the modal reads
+       * the user's rules when it mounts, and a cached list would let the second
+       * delete of a session be explained by the state before the first one.
+       */}
+      {ruleToDelete ? (
+        <DeletionImpactModal
+          target={{
+            type: "rule",
+            ruleId: ruleToDelete.id?.toString() || "",
+          }}
+          userId={User.getUserId()}
+          projectId={ProjectUtil.getCurrentProjectId()}
+          title="Delete Notification Rule"
+          submitButtonText="Delete"
+          isDeleting={isDeletingRule}
+          onClose={() => {
+            setRuleToDelete(null);
+          }}
+          onConfirm={() => {
+            deleteRule(ruleToDelete).catch((err: Error) => {
+              setDeleteError(API.getFriendlyMessage(err));
+              setRuleToDelete(null);
+              setIsDeletingRule(false);
+            });
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {/*
+       * The delete's own failure, which the impact modal has no room for: it is
+       * showing what the delete WOULD cost, and by the time this is set the
+       * delete has already been attempted and refused.
+       */}
+      {deleteError ? (
+        <ConfirmModal
+          title="Error"
+          description={deleteError}
+          submitButtonText="Close"
+          submitButtonType={ButtonStyleType.NORMAL}
+          onSubmit={() => {
+            setDeleteError("");
+          }}
+        />
+      ) : (
+        <></>
+      )}
     </Fragment>
   );
 };

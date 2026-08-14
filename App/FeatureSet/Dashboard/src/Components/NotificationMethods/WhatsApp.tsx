@@ -17,6 +17,10 @@ import User from "Common/UI/Utils/User";
 import UserWhatsApp from "Common/Models/DatabaseModels/UserWhatsApp";
 import React, { ReactElement, useEffect, useState } from "react";
 import OneUptimeDate from "Common/Types/Date";
+import {
+  NotificationMethodDeleteGuard,
+  useNotificationMethodDeleteGuard,
+} from "./NotificationMethod";
 
 const WhatsApp: () => JSX.Element = (): ReactElement => {
   const [showVerificationCodeModal, setShowVerificationCodeModal] =
@@ -45,6 +49,22 @@ const WhatsApp: () => JSX.Element = (): ReactElement => {
       setResendError("");
     }
   }, [showResendCodeModal]);
+
+  /*
+   * Deleting a WhatsApp number cascades to every notification rule that uses
+   * it, so the confirmation is the impact modal rather than ModelTable's
+   * generic one, and the built-in delete is switched off so there is only one
+   * way in.
+   */
+  const deleteGuard: NotificationMethodDeleteGuard<UserWhatsApp> =
+    useNotificationMethodDeleteGuard<UserWhatsApp>({
+      modelType: UserWhatsApp,
+      relationName: "userWhatsApp",
+      singularName: "WhatsApp Number",
+      onDeleted: () => {
+        setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
+      },
+    });
 
   return (
     <>
@@ -118,10 +138,11 @@ const WhatsApp: () => JSX.Element = (): ReactElement => {
               }
             },
           },
+          deleteGuard.deleteActionButton,
         ]}
         id="user-whatsapp"
         name="User Settings > Notification Methods > WhatsApp"
-        isDeleteable={true}
+        isDeleteable={false}
         isEditable={false}
         isCreateable={true}
         cardProps={{
@@ -166,6 +187,8 @@ const WhatsApp: () => JSX.Element = (): ReactElement => {
           },
         ]}
       />
+
+      {deleteGuard.deletionModal}
 
       {showVerificationCodeModal && currentItem ? (
         <BasicFormModal

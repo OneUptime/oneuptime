@@ -102,6 +102,15 @@ import "./Jobs/OnCallDutyPolicyExecutionLog/TimeoutStuckExecutions";
  * after a user joined stay uncovered.
  */
 import "./Jobs/OnCallDutyPolicy/BackfillNotificationRulesForNewSeverities";
+
+/*
+ * On-Call Duty Policy weekly readiness digest — the same load-bearing import as
+ * the line above, for the same reason: RunCron registers by module side effect,
+ * so a digest nobody imports is a digest that never sends. This one is the only
+ * thing in the system that tells a project owner about an unreachable responder
+ * WITHOUT being asked, so its silence is indistinguishable from good news.
+ */
+import "./Jobs/OnCallDutyPolicy/WeeklyReadinessDigest";
 // Payments.
 import "./Jobs/PaymentProvider/CheckSubscriptionStatus";
 import "./Jobs/PaymentProvider/PopulatePlanNameInProject";

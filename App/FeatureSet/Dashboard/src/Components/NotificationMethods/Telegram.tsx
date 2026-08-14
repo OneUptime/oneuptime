@@ -18,6 +18,10 @@ import User from "Common/UI/Utils/User";
 import UserTelegram from "Common/Models/DatabaseModels/UserTelegram";
 import React, { ReactElement, useEffect, useState } from "react";
 import OneUptimeDate from "Common/Types/Date";
+import {
+  NotificationMethodDeleteGuard,
+  useNotificationMethodDeleteGuard,
+} from "./NotificationMethod";
 
 interface VerificationInfo {
   verificationCode: string;
@@ -134,6 +138,22 @@ const Telegram: () => JSX.Element = (): ReactElement => {
     setIsPolling(false);
   };
 
+  /*
+   * Unlinking a Telegram account cascades to every notification rule that
+   * messages it, so the confirmation is the impact modal rather than
+   * ModelTable's generic one, and the built-in delete is switched off so there
+   * is only one way in.
+   */
+  const deleteGuard: NotificationMethodDeleteGuard<UserTelegram> =
+    useNotificationMethodDeleteGuard<UserTelegram>({
+      modelType: UserTelegram,
+      relationName: "userTelegram",
+      singularName: "Telegram Account",
+      onDeleted: () => {
+        setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
+      },
+    });
+
   return (
     <>
       <ModelTable<UserTelegram>
@@ -197,10 +217,11 @@ const Telegram: () => JSX.Element = (): ReactElement => {
               }
             },
           },
+          deleteGuard.deleteActionButton,
         ]}
         id="user-telegram"
         name="User Settings > Notification Methods > Telegram"
-        isDeleteable={true}
+        isDeleteable={false}
         isEditable={false}
         isCreateable={true}
         cardProps={{
@@ -244,6 +265,8 @@ const Telegram: () => JSX.Element = (): ReactElement => {
           },
         ]}
       />
+
+      {deleteGuard.deletionModal}
 
       {showVerificationModal && currentItem ? (
         <Modal
