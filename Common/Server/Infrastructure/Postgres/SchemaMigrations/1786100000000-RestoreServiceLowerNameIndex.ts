@@ -70,10 +70,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *
  * NOT CONCURRENT, DELIBERATELY
  *
- * DataSourceOptions sets no `migrationsTransactionMode`, so TypeORM defaults to
- * "all" and runs every migration inside ONE transaction. `CREATE INDEX
- * CONCURRENTLY` cannot run inside a transaction block and would abort the whole
- * run. A plain CREATE INDEX takes a SHARE lock that blocks writes to Service
+ * DataSourceOptions sets `migrationsTransactionMode: "each"`, so every migration
+ * runs inside its own transaction. `CREATE INDEX CONCURRENTLY` cannot run inside
+ * a transaction block and would abort the run. A plain CREATE INDEX takes a
+ * SHARE lock that blocks writes to Service
  * for the duration, which is milliseconds at this table's size (thousands of
  * live rows).
  *

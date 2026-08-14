@@ -21,10 +21,12 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import AppLink from "../../../Components/AppLink/AppLink";
+import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
+import InventoryItemCustomField from "Common/Models/DatabaseModels/InventoryItemCustomField";
 import Navigation from "Common/UI/Utils/Navigation";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import React, {
@@ -200,6 +202,13 @@ const InventoryItemOverview: FunctionComponent<
       <InventoryAttributes
         identifyingAttributes={entity.identifyingAttributes}
         descriptiveAttributes={entity.descriptiveAttributes}
+      />
+
+      <OverviewCustomFields
+        modelId={modelId}
+        modelType={InventoryItem}
+        customFieldType={InventoryItemCustomField}
+        resourceName="Inventory Item"
       />
     </Fragment>
   );

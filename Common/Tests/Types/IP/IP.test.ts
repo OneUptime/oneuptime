@@ -254,44 +254,42 @@ describe("IP deserialization rejects invalid addresses", () => {
 describe("IP.isInWhitelist()", () => {
   test("matches an exact IPv4 entry", () => {
     expect(
-      IP.isInWhitelist({ ips: ["203.0.113.7"], whitelist: ["203.0.113.7"] }),
+      IP.isInWhitelist({ ip: "203.0.113.7", whitelist: ["203.0.113.7"] }),
     ).toBe(true);
   });
 
   test("matches an exact IPv6 entry", () => {
     expect(
-      IP.isInWhitelist({ ips: ["2001:db8::1"], whitelist: ["2001:db8::1"] }),
+      IP.isInWhitelist({ ip: "2001:db8::1", whitelist: ["2001:db8::1"] }),
     ).toBe(true);
   });
 
   test("does not match a different address", () => {
     expect(
-      IP.isInWhitelist({ ips: ["198.51.100.5"], whitelist: ["203.0.113.7"] }),
+      IP.isInWhitelist({ ip: "198.51.100.5", whitelist: ["203.0.113.7"] }),
     ).toBe(false);
   });
 
   test("matches an IPv4 CIDR range", () => {
     expect(
-      IP.isInWhitelist({ ips: ["10.1.2.3"], whitelist: ["10.0.0.0/8"] }),
+      IP.isInWhitelist({ ip: "10.1.2.3", whitelist: ["10.0.0.0/8"] }),
     ).toBe(true);
   });
 
   test("does not match an address outside the CIDR range", () => {
     expect(
-      IP.isInWhitelist({ ips: ["11.1.2.3"], whitelist: ["10.0.0.0/8"] }),
+      IP.isInWhitelist({ ip: "11.1.2.3", whitelist: ["10.0.0.0/8"] }),
     ).toBe(false);
   });
 
   test("returns false for an empty whitelist", () => {
-    expect(IP.isInWhitelist({ ips: ["203.0.113.7"], whitelist: [] })).toBe(
-      false,
-    );
+    expect(IP.isInWhitelist({ ip: "203.0.113.7", whitelist: [] })).toBe(false);
   });
 
   test("skips blank whitelist entries", () => {
     expect(
       IP.isInWhitelist({
-        ips: ["203.0.113.7"],
+        ip: "203.0.113.7",
         whitelist: ["", "   ", "203.0.113.7"],
       }),
     ).toBe(true);
@@ -306,7 +304,7 @@ describe("IP.isInWhitelist()", () => {
   test("throws for an address-shaped substring", () => {
     expect(() => {
       return IP.isInWhitelist({
-        ips: ["evil 2001:db8::1 evil"],
+        ip: "evil 2001:db8::1 evil",
         whitelist: ["2001:db8::1"],
       });
     }).toThrow("Invalid IP address");
@@ -315,7 +313,7 @@ describe("IP.isInWhitelist()", () => {
   test("throws for a bracketed host:port", () => {
     expect(() => {
       return IP.isInWhitelist({
-        ips: ["[2001:db8::1]:443"],
+        ip: "[2001:db8::1]:443",
         whitelist: ["2001:db8::1"],
       });
     }).toThrow("Invalid IP address");
@@ -324,7 +322,7 @@ describe("IP.isInWhitelist()", () => {
   test("throws for a whole forwarded-for chain passed as one value", () => {
     expect(() => {
       return IP.isInWhitelist({
-        ips: ["203.0.113.7, 198.51.100.5"],
+        ip: "203.0.113.7, 198.51.100.5",
         whitelist: ["203.0.113.7"],
       });
     }).toThrow("Invalid IP address");
@@ -338,7 +336,7 @@ describe("IP.isInWhitelist()", () => {
   test("does not grant access to a padded spelling of a listed address", () => {
     expect(() => {
       return IP.isInWhitelist({
-        ips: [" 203.0.113.7 "],
+        ip: " 203.0.113.7 ",
         whitelist: ["203.0.113.7"],
       });
     }).toThrow("Invalid IP address");

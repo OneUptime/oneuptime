@@ -17,8 +17,8 @@ export interface CardButtonSchema {
 }
 
 export interface ComponentProps {
-  title?: string | ReactElement;
-  description?: string | ReactElement;
+  title?: string | ReactElement | undefined;
+  description?: string | ReactElement | undefined;
   buttons?: undefined | Array<CardButtonSchema | ReactElement>;
   children?: undefined | Array<ReactElement> | ReactElement;
   className?: string | undefined;
