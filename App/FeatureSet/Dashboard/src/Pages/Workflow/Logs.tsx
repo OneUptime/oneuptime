@@ -4,9 +4,14 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewer";
+import WorkflowLogModal from "Common/UI/Components/Workflow/WorkflowLogModal";
+import {
+  WorkflowStepTrace,
+  emptyTrace,
+  parseTrace,
+} from "Common/Types/Workflow/StepTrace";
+import { JSONValue } from "Common/Types/JSON";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import WorkflowStatusElement from "Common/UI/Components/Workflow/WorkflowStatus";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -22,6 +27,7 @@ import React, {
 const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
   const [logs, setLogs] = useState<string>("");
+  const [stepTrace, setStepTrace] = useState<WorkflowStepTrace>(emptyTrace());
 
   return (
     <Fragment>
@@ -44,6 +50,9 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 onCompleteAction: VoidFunction,
               ) => {
                 setLogs(item["logs"] as string);
+                setStepTrace(
+                  parseTrace((item["stepTrace"] as JSONValue) || null),
+                );
                 setShowViewLogsModal(true);
 
                 onCompleteAction();
@@ -56,6 +65,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isViewable={false}
           selectMoreFields={{
             logs: true,
+            stepTrace: true,
           }}
           cardProps={{
             title: "Workflow Logs",
@@ -169,21 +179,15 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
         />
 
         {showViewLogsModal && (
-          <Modal
-            title={"Workflow Logs"}
-            description="Here are the logs for this workflow"
-            isLoading={false}
-            modalWidth={ModalWidth.Large}
-            onSubmit={() => {
+          <WorkflowLogModal
+            title="Workflow Run"
+            description="Here is what happened when this workflow ran."
+            logs={logs}
+            stepTrace={stepTrace}
+            onClose={() => {
               setShowViewLogsModal(false);
             }}
-            submitButtonText={"Close"}
-            submitButtonStyleType={ButtonStyleType.NORMAL}
-          >
-            <SimpleLogViewer title="Workflow Execution Log" height="500px">
-              {logs}
-            </SimpleLogViewer>
-          </Modal>
+          />
         )}
       </>
     </Fragment>

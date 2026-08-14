@@ -4,6 +4,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import AllowAccessIfSubscriptionIsUnpaid from "../../Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnerOnlyColumn from "../../Types/Database/AccessControl/OwnerOnlyColumn";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -122,6 +123,11 @@ class UserWhatsApp extends BaseModel {
     read: [Permission.CurrentUser],
     update: [],
   })
+  /*
+   * A personal phone number, and a directly addressable delivery target. Same
+   * reasoning as UserSMS.phone - and usually the very same number.
+   */
+  @OwnerOnlyColumn()
   @TableColumn({
     title: "WhatsApp Number",
     required: true,
@@ -296,6 +302,11 @@ class UserWhatsApp extends BaseModel {
     read: [],
     update: [],
   })
+  /*
+   * A live verification code. Reading somebody else's is claiming their
+   * notification channel.
+   */
+  @OwnerOnlyColumn()
   @TableColumn({
     title: "Verification Code",
     description: "Temporary Verification Code",

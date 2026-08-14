@@ -134,6 +134,7 @@ jest.mock("../../../Server/Utils/Response", () => {
 const POLICY_ROUTE: string = "/on-call-readiness/policy/:policyId";
 const PROJECT_ROUTE: string = "/on-call-readiness/project";
 const USER_ROUTE: string = "/on-call-readiness/user/:userId";
+const SETUP_REMINDER_ROUTE: string = "/on-call-readiness/send-setup-reminder";
 const COMPLIANCE_ROUTE: string = "/team/compliance-status/:teamId";
 
 /*
@@ -497,8 +498,13 @@ afterEach(() => {
 
 /*
  * --------------------------------------------------------------------------- *
- * Registration. The contract names three routes; a fourth, or a missing one, is
- * a contract change and should read as one.
+ * Registration. The contract names three reads and one write; a fifth route, or
+ * a missing one, is a contract change and should read as one.
+ *
+ * The write - POST /send-setup-reminder, added in Phase 4 - is enumerated here
+ * with its method so that a read accidentally registered as a write, or the
+ * reverse, fails this test rather than being discovered in production. Its own
+ * behaviour lives in OnCallSetupReminderAPI.test.ts.
  * ---------------------------------------------------------------------------
  */
 
@@ -514,7 +520,7 @@ describe("OnCallReadinessAPI - route registration", () => {
     expect(exported).toBe(mockRouter);
   });
 
-  test("registers exactly the three contract routes, all GET", () => {
+  test("registers exactly the contract routes: three reads and one write", () => {
     const readinessUris: Array<string> = routes()
       .filter((route: RegisteredRoute): boolean => {
         return route.uri.startsWith("/on-call-readiness");
@@ -528,6 +534,7 @@ describe("OnCallReadinessAPI - route registration", () => {
       `GET ${POLICY_ROUTE}`,
       `GET ${PROJECT_ROUTE}`,
       `GET ${USER_ROUTE}`,
+      `POST ${SETUP_REMINDER_ROUTE}`,
     ]);
   });
 

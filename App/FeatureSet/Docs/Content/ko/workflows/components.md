@@ -120,16 +120,18 @@ OneUptime을 통해 이메일을 전송합니다.
 
 ## OneUptime 데이터 컴포넌트
 
-OneUptime의 모든 종류의 레코드(모니터, 인시던트, 알림, 상태 페이지, 온콜 정책 등)에 대해 팔레트에서 다음 컴포넌트를 제공합니다. 유형 이름으로 검색하세요.
+OneUptime의 모든 종류의 레코드(모니터, 인시던트, 알림, 상태 페이지, 온콜 정책 등)에 대해 팔레트에서 다음 컴포넌트를 제공합니다. 유형 이름으로 검색하세요. 제목은 유형 이름으로 생성되므로 Monitor의 경우 다음과 같습니다.
 
-- **Find One** — ID 또는 필터로 레코드 하나를 가져옵니다.
-- **Find** — 레코드 목록을 가져옵니다.
-- **Create** — 새 레코드를 추가합니다.
-- **Update** — 레코드 하나를 변경합니다.
-- **Delete** — 레코드 하나를 제거합니다.
-- **Count** — 필터와 일치하는 레코드 수를 셉니다.
+- **Find One Monitor** — 필터와 일치하는 레코드 하나를 가져옵니다.
+- **Find Many Monitors** — 필터와 일치하는 레코드 목록을 가져옵니다.
+- **Create One Monitor** — JSON 객체로 레코드 하나를 추가합니다.
+- **Create Many Monitors** — JSON 배열로 여러 레코드를 추가합니다.
+- **Update One Monitor** — 필터와 일치하는 레코드 하나를 변경합니다.
+- **Update Many Monitors** — 필터와 일치하는 레코드를 Limit까지 변경합니다.
+- **Delete One Monitor** — 필터와 일치하는 레코드 하나를 제거합니다.
+- **Delete Many Monitors** — 필터와 일치하는 레코드를 Limit까지 제거합니다.
 
-이 컴포넌트들을 통해 워크플로에서 OneUptime 데이터를 읽고 변경할 수 있습니다. 예를 들어, CI 도구의 webhook에서 **Create Incident**를 사용해 실패 세부 정보가 포함된 인시던트를 열 수 있습니다.
+이 컴포넌트들을 통해 워크플로에서 OneUptime 데이터를 읽고 변경할 수 있습니다. 예를 들어, CI 도구의 webhook에서 **Create One Incident**를 사용해 실패 세부 정보가 포함된 인시던트를 열 수 있습니다.
 
 ## 어떤 컴포넌트를 사용해야 할까요?
 

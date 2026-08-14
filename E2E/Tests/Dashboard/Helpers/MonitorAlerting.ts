@@ -133,6 +133,47 @@ export const createItem: CreateItemFunction = async (data: {
   return (response["data"] as JSONish) || response;
 };
 
+type DeleteItemFunction = (data: {
+  page: Page;
+  projectId: string;
+  path: string;
+  id: string;
+}) => Promise<void>;
+
+// Deletes a record through the CRUD API (DELETE {path}/{id}).
+export const deleteItem: DeleteItemFunction = async (data: {
+  page: Page;
+  projectId: string;
+  path: string;
+  id: string;
+}): Promise<void> => {
+  const url: string = buildUrl(`${data.path}/${data.id}`);
+
+  type SendFunction = () => Promise<APIResponse>;
+
+  const send: SendFunction = async (): Promise<APIResponse> => {
+    return data.page.request.delete(url, {
+      headers: {
+        "content-type": "application/json",
+        tenantid: data.projectId,
+        projectid: data.projectId,
+      },
+    });
+  };
+
+  let response: APIResponse = await send();
+
+  if (response.status() === 401) {
+    await refreshSession({ page: data.page });
+    response = await send();
+  }
+
+  expect(
+    response.ok(),
+    `DELETE ${data.path}/${data.id} failed: ${response.status()} ${await response.text()}`,
+  ).toBe(true);
+};
+
 type ListItemsFunction = (data: {
   page: Page;
   projectId: string;

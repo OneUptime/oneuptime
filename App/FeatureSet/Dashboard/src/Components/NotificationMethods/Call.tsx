@@ -17,6 +17,10 @@ import User from "Common/UI/Utils/User";
 import UserCall from "Common/Models/DatabaseModels/UserCall";
 import React, { ReactElement, useEffect, useState } from "react";
 import OneUptimeDate from "Common/Types/Date";
+import {
+  NotificationMethodDeleteGuard,
+  useNotificationMethodDeleteGuard,
+} from "./NotificationMethod";
 
 const Call: () => JSX.Element = (): ReactElement => {
   const [showVerificationCodeModal, setShowVerificationCodeModal] =
@@ -38,6 +42,21 @@ const Call: () => JSX.Element = (): ReactElement => {
   useEffect(() => {
     setError("");
   }, [showVerificationCodeModal]);
+
+  /*
+   * Deleting a phone number cascades to every notification rule that calls it,
+   * so the confirmation is the impact modal rather than ModelTable's generic
+   * one, and the built-in delete is switched off so there is only one way in.
+   */
+  const deleteGuard: NotificationMethodDeleteGuard<UserCall> =
+    useNotificationMethodDeleteGuard<UserCall>({
+      modelType: UserCall,
+      relationName: "userCall",
+      singularName: "Phone Number",
+      onDeleted: () => {
+        setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
+      },
+    });
 
   return (
     <>
@@ -110,10 +129,11 @@ const Call: () => JSX.Element = (): ReactElement => {
               }
             },
           },
+          deleteGuard.deleteActionButton,
         ]}
         id="user-call"
         name="User Settings > Notification Methods > Call"
-        isDeleteable={true}
+        isDeleteable={false}
         isEditable={false}
         isCreateable={true}
         cardProps={{
@@ -157,6 +177,8 @@ const Call: () => JSX.Element = (): ReactElement => {
           },
         ]}
       />
+
+      {deleteGuard.deletionModal}
 
       {showVerificationCodeModal && currentItem ? (
         <BasicFormModal

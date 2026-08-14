@@ -68,6 +68,7 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import UptimeUtil, { UptimeWindow } from "../../Utils/Uptime/UptimeUtil";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import IP from "../../Types/IP/IP";
+import { resolveClientIp } from "../Utils/ClientIp";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import MasterPasswordRequiredException from "../../Types/Exception/MasterPasswordRequiredException";
@@ -599,12 +600,13 @@ export class Service extends DatabaseService<StatusPage> {
       if (statusPage?.ipWhitelist && statusPage.ipWhitelist.length > 0) {
         const ipWhitelist: Array<string> = statusPage.ipWhitelist?.split("\n");
 
-        const ipAccessedFrom: string | undefined =
-          req.headers["x-forwarded-for"]?.toString() ||
-          req.headers["x-real-ip"]?.toString() ||
-          req.socket.remoteAddress ||
-          req.ip ||
-          req.ips[0];
+        /*
+         * One address, resolved from the trusted end of X-Forwarded-For.
+         * Never the raw header: a caller can prepend any address they like to
+         * it, so checking the chain rather than a single resolved address let
+         * anyone who knew an allowlisted address walk straight in.
+         */
+        const ipAccessedFrom: string | undefined = resolveClientIp(req);
 
         if (!ipAccessedFrom) {
           logger.error("IP address not found in request.", {
@@ -619,10 +621,7 @@ export class Service extends DatabaseService<StatusPage> {
         }
 
         const isIPWhitelisted: boolean = IP.isInWhitelist({
-          ips:
-            ipAccessedFrom?.split(",").map((i: string) => {
-              return i.trim();
-            }) || [],
+          ip: ipAccessedFrom,
           whitelist: ipWhitelist,
         });
 

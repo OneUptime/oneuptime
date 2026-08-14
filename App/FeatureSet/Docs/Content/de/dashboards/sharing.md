@@ -20,6 +20,8 @@ Ein öffentliches Dashboard:
 
 Behandeln Sie das Aktivieren eines öffentlichen Dashboards wie das Veröffentlichen einer Webseite. Jedes Widget darauf wird weltweit lesbar. Schauen Sie sich an, was auf der Arbeitsfläche steht, bevor Sie den Schalter umlegen.
 
+Jedes Widget veröffentlicht nur, was es zeichnet, und nur für die Ressourcen, auf die es gerichtet ist. Ein SLO-Widget etwa veröffentlicht die Kennzahlen dieses SLO, aber niemals seine Definition – siehe [SLO](/docs/dashboards/widgets#slo). Externe **Datenquellen**-Widgets sind die Ausnahme: Sie werden auf einem öffentlichen Dashboard gar nicht gerendert, sondern vollständig weggelassen, weil ihre Konfiguration die Abfrage selbst ist.
+
 ## Master-Passwort
 
 Um ein öffentliches Dashboard mit einem Passwort zu versehen:

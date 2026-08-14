@@ -3,9 +3,13 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
-import UserNotificationRuleService from "./UserNotificationRuleService";
+import UserNotificationRuleService, {
+  NotificationDeletionImpact,
+  NotificationMethodChannel,
+} from "./UserNotificationRuleService";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
 import Model from "../../Models/DatabaseModels/UserWebhook";
 import URL from "../../Types/API/URL";
 import logger from "../Utils/Logger";
@@ -127,6 +131,29 @@ export class Service extends DatabaseService<Model> {
       deleteBy,
       carryForward: null,
     };
+  }
+
+  /**
+   * What this user would lose if this webhook were deleted. Ask BEFORE calling
+   * delete; nothing here refuses anything.
+   *
+   * The hook directly above deletes every UserNotificationRule that points at
+   * this webhook, and the foreign key is onDelete: "CASCADE" so the rows would
+   * go even if it did not. A webhook has no verification concept at all, which
+   * makes it the one method that counts the moment it exists — and therefore
+   * the one whose deletion can take a responder from reachable to unreachable
+   * with nothing in between.
+   */
+  @CaptureSpan()
+  public async getDeletionImpact(data: {
+    itemId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<NotificationDeletionImpact> {
+    return UserNotificationRuleService.getNotificationMethodDeletionImpact({
+      projectId: data.projectId,
+      methodType: NotificationMethodChannel.Webhook,
+      methodId: data.itemId,
+    });
   }
 }
 

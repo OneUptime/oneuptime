@@ -1,5 +1,5 @@
 /*
- * How a `TelemetryEntity` registry row came to exist. The registry started
+ * How a `InventoryItem` registry row came to exist. The registry started
  * as a forward-only catalog populated purely from OTLP resource attributes;
  * two later sources join it, and the three differ in exactly one way that
  * matters — who owns the row's lifecycle.

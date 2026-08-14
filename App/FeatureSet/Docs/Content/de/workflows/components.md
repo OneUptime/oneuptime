@@ -120,16 +120,18 @@ Es gibt ein Sicherheitslimit, damit Workflows einander nicht in einer Endlosschl
 
 ## OneUptime-Datenkomponenten
 
-Für jede Art von Datensatz in OneUptime (Monitore, Vorfälle, Benachrichtigungen, Statusseiten, Rufbereitschafts-Richtlinien und viele weitere) bietet die Palette diese Komponenten – einfach nach dem Typnamen suchen:
+Für jede Art von Datensatz in OneUptime (Monitore, Vorfälle, Benachrichtigungen, Statusseiten, Rufbereitschafts-Richtlinien und viele weitere) bietet die Palette diese Komponenten – einfach nach dem Typnamen suchen. Die Titel werden aus dem Typnamen gebildet, für Monitor also:
 
-- **Einen finden** – einen Datensatz per ID oder Filter holen.
-- **Finden** – eine Liste von Datensätzen holen.
-- **Erstellen** – einen neuen Datensatz anlegen.
-- **Aktualisieren** – einen Datensatz ändern.
-- **Löschen** – einen Datensatz entfernen.
-- **Anzahl** – Datensätze zählen, die einem Filter entsprechen.
+- **Find One Monitor** – einen Datensatz holen, der dem Filter entspricht.
+- **Find Many Monitors** – eine Liste von Datensätzen holen, die dem Filter entsprechen.
+- **Create One Monitor** – einen Datensatz aus einem JSON-Objekt anlegen.
+- **Create Many Monitors** – mehrere Datensätze aus einem JSON-Array anlegen.
+- **Update One Monitor** – einen Datensatz ändern, der dem Filter entspricht.
+- **Update Many Monitors** – die Datensätze ändern, die dem Filter entsprechen, bis zum Limit.
+- **Delete One Monitor** – einen Datensatz entfernen, der dem Filter entspricht.
+- **Delete Many Monitors** – die Datensätze entfernen, die dem Filter entsprechen, bis zum Limit.
 
-So kann ein Workflow OneUptime-Daten lesen und ändern. Beispiel: Ein Webhook aus Ihrem CI-Tool kann **Vorfall erstellen** nutzen, um einen Vorfall mit den Fehlerdetails zu öffnen.
+So kann ein Workflow OneUptime-Daten lesen und ändern. Beispiel: Ein Webhook aus Ihrem CI-Tool kann **Create One Incident** nutzen, um einen Vorfall mit den Fehlerdetails zu öffnen.
 
 ## Welche Komponente soll ich verwenden?
 

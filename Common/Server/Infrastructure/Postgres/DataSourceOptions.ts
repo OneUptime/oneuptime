@@ -40,6 +40,28 @@ const dataSourceOptions: DataSourceOptions = {
    * dedicated migrate Job owns migrations). See RunDatabaseMigrationsOnBoot.
    */
   migrationsRun: RunDatabaseMigrationsOnBoot,
+  /*
+   * Run each migration in its own transaction rather than wrapping the whole
+   * set in one (TypeORM's "all" default).
+   *
+   * An empty database — every new install, and the Postgres Schema Drift job —
+   * applies all 500+ migrations at once. Under "all", every table, index and
+   * foreign key those migrations create holds a lock for the entire run, and
+   * the total outgrew Postgres's default lock table
+   * (max_locks_per_transaction * max_connections), so the run aborted with
+   * "out of shared memory ... increase max_locks_per_transaction". "each"
+   * commits after every migration, so peak lock usage is one migration's worth
+   * instead of the whole history's, and it no longer scales with the number of
+   * migrations.
+   *
+   * Safe for every existing migration: none use CREATE INDEX CONCURRENTLY (it
+   * cannot run inside a transaction block, which is just as true per-migration
+   * as it was for the single wrapping transaction), and each migration is still
+   * atomic on its own. It is also more correct for the migrations that
+   * `SET LOCAL lock_timeout`, which is transaction-scoped and under "all" would
+   * have leaked into every migration that ran after them.
+   */
+  migrationsTransactionMode: "each",
   entities: Entities,
   applicationName: "oneuptime",
   ssl: ShouldDatabaseSslEnable

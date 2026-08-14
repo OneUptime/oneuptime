@@ -1,0 +1,76 @@
+# TRUSTED_PROXY_HOPS decides which X-Forwarded-For entry the app treats as the
+# client, and therefore whether status page and public dashboard IP allowlists
+# can be bypassed by a caller who writes that header themselves. Two things
+# have to hold and neither is obvious from reading the template:
+#
+#   - 0 has to survive. `default 1 .Values.trustedProxyHops` would eat it,
+#     because Helm's `default` treats 0 as empty -- so an operator who exposes
+#     the app directly and sets 0 would silently get 1 and attribute every
+#     request to whatever wrote the last header entry.
+#   - the value has to reach EVERY workload that serves HTTP, not just app.
+suite: trusted proxy hops
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: defaults to the one nginx gateway the chart puts in front
+    templates:
+      - templates/app.yaml
+    # app.yaml renders both a Service and a Deployment under the same name,
+    # so select the Deployment by kind.
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TRUSTED_PROXY_HOPS
+            value: "1"
+
+  - it: passes through a raised hop count for a CDN or WAF in front
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      trustedProxyHops: 2
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TRUSTED_PROXY_HOPS
+            value: "2"
+
+  - it: keeps an explicit 0 rather than falling back to the default
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      trustedProxyHops: 0
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TRUSTED_PROXY_HOPS
+            value: "0"
+
+  - it: reaches the worker too
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      # Off by default; the worker Deployment renders nothing without this.
+      worker.enabled: true
+      trustedProxyHops: 3
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TRUSTED_PROXY_HOPS
+            value: "3"

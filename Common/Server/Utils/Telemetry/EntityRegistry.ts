@@ -8,8 +8,8 @@ import EntityType from "../../../Types/Telemetry/EntityType";
 import GlobalCache from "../../Infrastructure/GlobalCache";
 import logger from "../Logger";
 import { ExtractedEntity } from "./TelemetryEntity";
-import TelemetryEntityService from "../../Services/TelemetryEntityService";
-import TelemetryEntityRelationshipService from "../../Services/TelemetryEntityRelationshipService";
+import InventoryItemService from "../../Services/InventoryItemService";
+import InventoryItemRelationshipService from "../../Services/InventoryItemRelationshipService";
 import {
   deriveRelationships,
   EntityRelationshipEdge,
@@ -128,7 +128,7 @@ function hashFenceId(fenceId: string): string {
  *
  * The set-level fence keys on (project + the whole promoted entity set), which
  * in practice is unique per POD — a pod's own key is in the set. But the writes
- * it gates are per ROW: the single TelemetryEntity row for a Kubernetes cluster
+ * it gates are per ROW: the single InventoryItem row for a Kubernetes cluster
  * takes one UPDATE per pod in that cluster per window, the namespace row one
  * per pod in the namespace, and so on. Throttle granularity finer than write
  * granularity means the throttle does not bound the writes at all, and the
@@ -186,8 +186,8 @@ export async function shouldWarnEntityBudgetOnce(data: {
 }
 
 /*
- * Upsert discovered entities into the `TelemetryEntity` registry and their
- * co-occurrence edges into `TelemetryEntityRelationship`. Gated by a single
+ * Upsert discovered entities into the `InventoryItem` registry and their
+ * co-occurrence edges into `InventoryItemRelationship`. Gated by a single
  * per-batch Redis fence keyed on the PROMOTED entity subset, so a stable
  * resource reconciles at most once per window while a changed set (e.g. a
  * pod reschedule) reconciles immediately — and the high-churn
@@ -226,7 +226,7 @@ export async function reconcileEntityRegistryThrottled(data: {
       return;
     }
 
-    await TelemetryEntityService.reconcileEntities({
+    await InventoryItemService.reconcileEntities({
       projectId: data.projectId,
       entities: promoted,
     });
@@ -246,7 +246,7 @@ export async function reconcileEntityRegistryThrottled(data: {
       }),
     );
     if (edges.length > 0) {
-      await TelemetryEntityRelationshipService.reconcileRelationships({
+      await InventoryItemRelationshipService.reconcileRelationships({
         projectId: data.projectId,
         edges,
       });
@@ -259,8 +259,8 @@ export async function reconcileEntityRegistryThrottled(data: {
 
 /*
  * Find-or-create by natural key, bumping `lastSeenAt` — the one upsert
- * scaffold shared by TelemetryEntityService and
- * TelemetryEntityRelationshipService. Both tables have a unique index on
+ * scaffold shared by InventoryItemService and
+ * InventoryItemRelationshipService. Both tables have a unique index on
  * their natural key, so a concurrent first-contact create loses the race
  * with a unique-violation: in that case the winning row is re-fetched and
  * its `lastSeenAt` bumped immediately (instead of waiting a full throttle
@@ -331,7 +331,7 @@ export async function reconcileByNaturalKey<
     /*
      * Throttled bump of lastSeenAt (+ any caller-supplied merge fields).
      * Heartbeat write: single-statement UPDATE, no hooks and no `version`
-     * bump (TelemetryEntity/Relationship enable no update workflow/realtime/
+     * bump (InventoryItem/Relationship enable no update workflow/realtime/
      * audit). buildBump returns only plain values — lastSeenAt plus, at most,
      * the descriptiveAttributes / labels JSON columns — which the primitive
      * persists via the driver transformer path. See ServiceService.updateLastSeen.

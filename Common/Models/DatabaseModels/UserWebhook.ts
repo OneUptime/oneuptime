@@ -4,6 +4,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import AllowAccessIfSubscriptionIsUnpaid from "../../Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnerOnlyColumn from "../../Types/Database/AccessControl/OwnerOnlyColumn";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -153,6 +154,14 @@ class UserWebhook extends BaseModel {
     read: [Permission.CurrentUser],
     update: [Permission.CurrentUser],
   })
+  /*
+   * A webhook URL is a bearer credential in its own right. Slack, Discord and
+   * Teams hooks all carry their secret in the path, so anyone who can read this
+   * string can post into the channel it belongs to. It stays readable through a
+   * relation query - that is how a rule table renders which webhook a rule
+   * points at - but only for a query pinned to the webhook's owner.
+   */
+  @OwnerOnlyColumn()
   @TableColumn({
     title: "Webhook URL",
     required: true,
@@ -175,6 +184,8 @@ class UserWebhook extends BaseModel {
     read: [Permission.CurrentUser],
     update: [Permission.CurrentUser],
   })
+  // The HMAC signing key. Reading it is forging requests.
+  @OwnerOnlyColumn()
   @TableColumn({
     title: "Signing Secret",
     required: false,

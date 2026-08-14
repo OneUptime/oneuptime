@@ -6,11 +6,16 @@ import {
   test,
 } from "@playwright/test";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import Faker from "Common/Utils/Faker";
 import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
-import { createItem, JSONish, toId } from "./Helpers/MonitorAlerting";
+import {
+  createItem,
+  deleteItem,
+  JSONish,
+  toId,
+} from "./Helpers/MonitorAlerting";
+import { serialize } from "./Helpers/Serialize";
 import { publicPost, publicPostStatus } from "./Helpers/StatusPagePublic";
 
 /*
@@ -164,9 +169,9 @@ type SloHistoryAggregateByFunction = (data: {
 
 /*
  * The exact body SloWidgetData.aggregateSloHistory posts — the full
- * aggregateBy the chart builds, run through JSONFunctions.serialize, so the
- * timestamps travel as `{_type: "DateTime", value: ...}` rather than as bare
- * ISO strings.
+ * aggregateBy the chart builds, run through serialize (a faithful stand-in for
+ * JSONFunctions.serialize; see ./Helpers/Serialize), so the timestamps travel
+ * as `{_type: "DateTime", value: ...}` rather than as bare ISO strings.
  *
  * Hand-rolling a simpler shape here would exercise a wire format nothing in
  * the product actually emits, and this spec is the only place the real one
@@ -176,7 +181,7 @@ const sloHistoryAggregateBy: SloHistoryAggregateByFunction = (data: {
   startDate: Date;
   endDate: Date;
 }): JSONish => {
-  return JSONFunctions.serialize({
+  return serialize({
     /*
      * The real client sends its own query alongside the window. The server
      * discards it and rebuilds from the stored widget, so this one names an
@@ -574,16 +579,31 @@ test.describe("SLO widgets on a public dashboard", () => {
     });
 
     /*
+     * The private dashboard has served its purpose: its anonymous reads are
+     * already captured above. Delete it before building the control, because
+     * on a billing-enabled (SaaS) run the project is on the Free plan, which
+     * caps a project at one dashboard — and that count excludes soft-deleted
+     * rows, so removing this one frees the slot for the control below.
+     */
+    await deleteItem({
+      page,
+      projectId,
+      path: "/api/dashboard",
+      id: dashboardId,
+    });
+
+    /*
      * A refusal only means something if the same request would have
      * SUCCEEDED against a public dashboard — otherwise a typo'd route or an
      * empty dashboard id 404s and these assertions pass while proving
      * nothing. So build the identical dashboard with isPublicDashboard set
      * and issue both requests against it.
      *
-     * A second dashboard rather than flipping this one: `isPublicDashboard`
-     * is `create: PlanType.Free` but `update: PlanType.Growth`, so the update
-     * would be refused on a billing-enabled run for reasons that have nothing
-     * to do with what this test is about.
+     * A second dashboard (built after deleting the first) rather than flipping
+     * this one: `isPublicDashboard` is `create: PlanType.Free` but
+     * `update: PlanType.Growth`, so the update would be refused on a
+     * billing-enabled run for reasons that have nothing to do with what this
+     * test is about.
      */
     const controlWidget: SloWidget = buildSloWidget({
       sloId,

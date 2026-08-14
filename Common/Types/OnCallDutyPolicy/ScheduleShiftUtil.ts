@@ -49,13 +49,55 @@ export interface CurrentAndNextShift {
 }
 
 /*
- * Two coverage segments are considered part of the same continuous shift when
- * the gap between them is below this threshold. LayerUtil starts each following
- * segment exactly one second after the previous one ends, so anything within a
- * couple of minutes is "touching"; anything larger is a genuine off-hours gap
- * (a restriction window closing, a rotation with no fallback layer, etc.).
+ * Why a schedule currently has (or does not have) somebody on call. The four
+ * states are mutually exclusive and ordered by how early the misconfiguration
+ * happens, so a caller can render the most specific remedy it knows about:
+ *
+ * - NoLayers      the schedule has no layers at all -> "add a layer"
+ * - NoUsers       layers exist but nobody is assigned to any of them, so the
+ *                 engine emits zero events and NOBODY is ever on call. This is
+ *                 a permanent 100% gap, not an off-hours one, and it needs its
+ *                 own remedy ("assign users") — telling someone to widen their
+ *                 active hours here would be wrong.
+ * - UncoveredNow  users are assigned and shifts exist, but none covers `now`
+ * - Covered       somebody is on call at this instant
  */
-const CONTIGUITY_TOLERANCE_SECONDS: number = 90;
+export enum ScheduleCoverageStatus {
+  NoLayers = "NoLayers",
+  NoUsers = "NoUsers",
+  UncoveredNow = "UncoveredNow",
+  Covered = "Covered",
+}
+
+export interface ScheduleCoverageState {
+  status: ScheduleCoverageStatus;
+  current: OnCallShift | null;
+  next: OnCallShift | null;
+  gaps: Array<CoverageGap>;
+  // Total uncovered seconds inside [now, windowEnd].
+  uncoveredSeconds: number;
+  /*
+   * Fraction of [now, windowEnd] that somebody is on call for, 0..1. 0 for both
+   * NoLayers and NoUsers; 1 for a schedule with no gaps at all.
+   */
+  coverageRatio: number;
+}
+
+/*
+ * Two coverage segments belong to the same continuous shift when the hole
+ * between them is at or below this threshold. LayerUtil starts each following
+ * segment exactly one second after the previous one ends (Layer.ts advances
+ * with addRemoveSeconds(end, 1)) and the multi-layer priority merge leaves
+ * seams of the same ±1s magnitude, so a few seconds of slack is all that is
+ * needed to absorb the engine's own artifacts.
+ *
+ * This used to be 90 seconds, which silently swallowed genuine sub-minute
+ * coverage holes — a schedule whose layers were misaligned by a minute
+ * reported full coverage. Anything above the engine artifact is a real hole and
+ * is now reported; callers that consider very short holes to be display noise
+ * filter them at the render layer (see getCoverageGaps' minimumGapSeconds).
+ */
+const CONTIGUITY_TOLERANCE_SECONDS: number = 5;
 
 export default class ScheduleShiftUtil {
   /*
@@ -191,6 +233,7 @@ export default class ScheduleShiftUtil {
     shifts: Array<OnCallShift>,
     windowStart: Date,
     windowEnd: Date,
+    options?: { minimumGapSeconds?: number | undefined } | undefined,
   ): Array<CoverageGap> {
     const gaps: Array<CoverageGap> = [];
 
@@ -199,18 +242,24 @@ export default class ScheduleShiftUtil {
     }
 
     /*
-     * A gap only "counts" when it is longer than the contiguity tolerance, so
+     * A hole only "counts" as a gap when it is longer than the threshold, so
      * the one-second boundaries LayerUtil leaves between segments never show up
-     * as spurious coverage holes.
+     * as spurious coverage holes. Callers that treat short holes as display
+     * noise (rather than as a misconfiguration worth reporting) raise
+     * minimumGapSeconds instead of relying on the detector to hide them.
      */
+    const minimumGapSeconds: number =
+      options?.minimumGapSeconds === undefined
+        ? CONTIGUITY_TOLERANCE_SECONDS
+        : options.minimumGapSeconds;
+
     const isRealGap: (start: Date, end: Date) => boolean = (
       start: Date,
       end: Date,
     ): boolean => {
       return (
         OneUptimeDate.isAfter(end, start) &&
-        OneUptimeDate.getDifferenceInSeconds(end, start) >
-          CONTIGUITY_TOLERANCE_SECONDS
+        OneUptimeDate.getDifferenceInSeconds(end, start) > minimumGapSeconds
       );
     };
 
@@ -253,5 +302,101 @@ export default class ScheduleShiftUtil {
     }
 
     return gaps;
+  }
+
+  /*
+   * The single source of truth for "does this schedule have anybody on call,
+   * and if not, why not". Every surface that renders coverage derives its state
+   * from here rather than inventing its own condition.
+   *
+   * This exists because the UI used to gate its gap warnings on
+   * `assignedUserCount > 0` — a condition that is exactly INVERTED, since zero
+   * assigned users IS the total-gap state. The one screen that would have said
+   * "nobody is on call" was therefore the one screen that never rendered.
+   * Returning an explicit status makes that class of mistake impossible: a
+   * caller must handle NoUsers, it cannot accidentally fall into "covered".
+   */
+  public static getCoverageState(data: {
+    layerCount: number;
+    assignedUserCount: number;
+    shifts: Array<OnCallShift>;
+    now: Date;
+    windowEnd: Date;
+    minimumGapSeconds?: number | undefined;
+  }): ScheduleCoverageState {
+    const { current, next }: CurrentAndNextShift = this.getCurrentAndNextShift(
+      data.shifts,
+      data.now,
+    );
+
+    const gaps: Array<CoverageGap> = this.getCoverageGaps(
+      data.shifts,
+      data.now,
+      data.windowEnd,
+      { minimumGapSeconds: data.minimumGapSeconds },
+    );
+
+    const uncoveredSeconds: number = gaps.reduce(
+      (total: number, gap: CoverageGap) => {
+        return total + OneUptimeDate.getDifferenceInSeconds(gap.end, gap.start);
+      },
+      0,
+    );
+
+    let status: ScheduleCoverageStatus = ScheduleCoverageStatus.Covered;
+
+    if (data.layerCount <= 0) {
+      status = ScheduleCoverageStatus.NoLayers;
+    } else if (data.assignedUserCount <= 0) {
+      status = ScheduleCoverageStatus.NoUsers;
+    } else if (!current) {
+      status = ScheduleCoverageStatus.UncoveredNow;
+    }
+
+    /*
+     * Test the window's ORDER explicitly rather than inferring it from the sign
+     * of the difference: OneUptimeDate.getDifferenceInSeconds returns an
+     * ABSOLUTE value, so an inverted window (windowEnd before now) yields a
+     * positive windowSeconds. Combined with getCoverageGaps bailing out on such
+     * a window and returning no gaps, the ratio then computed to a confident
+     * 1 — the function whose entire job is to surface missing coverage would
+     * report 100% covered. Fail to 0, never to "everything is fine".
+     */
+    const hasUsableWindow: boolean = OneUptimeDate.isBefore(
+      data.now,
+      data.windowEnd,
+    );
+
+    const windowSeconds: number = hasUsableWindow
+      ? OneUptimeDate.getDifferenceInSeconds(data.windowEnd, data.now)
+      : 0;
+
+    /*
+     * A schedule with no layers, or with layers but nobody assigned to them,
+     * can never put anyone on call — its coverage is 0 by definition, whatever
+     * shifts a caller happened to pass in. Deriving the ratio purely from those
+     * shifts would let a stale set report "100% covered" next to "no layers
+     * configured".
+     */
+    const canEverCover: boolean =
+      status !== ScheduleCoverageStatus.NoLayers &&
+      status !== ScheduleCoverageStatus.NoUsers;
+
+    const coverageRatio: number =
+      !hasUsableWindow || !canEverCover
+        ? 0
+        : Math.min(
+            1,
+            Math.max(0, (windowSeconds - uncoveredSeconds) / windowSeconds),
+          );
+
+    return {
+      status,
+      current,
+      next,
+      gaps,
+      uncoveredSeconds,
+      coverageRatio,
+    };
   }
 }

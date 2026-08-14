@@ -1421,7 +1421,19 @@ describe("the self-serve settings pages are unchanged by the extraction", () => 
              * update access control accepts.
              */
             expect(table.isCreateable).toBe(true);
-            expect(table.isDeleteable).toBe(true);
+            /*
+             * DELIBERATELY false. The built-in delete is switched off on these
+             * tables because deleting a notification rule now goes through the
+             * impact confirmation, which names how many rules disappear and
+             * which severity cells lose their last delivering rule. ModelTable's
+             * own dialog cannot carry that, so the guard supplies its own action
+             * button instead and this flag stays off.
+             *
+             * If this ever reads true again, the stock "are you sure" is back and
+             * a responder can delete their last rule for a severity without being
+             * told - which is the failure the guard exists to prevent.
+             */
+            expect(table.isDeleteable).toBe(false);
             expect(table.isEditable).toBe(true);
             expect(table.createVerb).toBe("Add");
             expect(table.sortBy).toBe("notifyAfterMinutes");

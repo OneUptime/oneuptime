@@ -181,14 +181,18 @@ import AlertStateService, {
 import AlertStateTimelineService, {
   Service as AlertStateTimelineServiceType,
 } from "Common/Server/Services/AlertStateTimelineService";
-import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
-import TelemetryEntityServiceInstance, {
-  TelemetryEntityService as TelemetryEntityServiceType,
-} from "Common/Server/Services/TelemetryEntityService";
-import TelemetryEntityRelationship from "Common/Models/DatabaseModels/TelemetryEntityRelationship";
-import TelemetryEntityRelationshipServiceInstance, {
-  TelemetryEntityRelationshipService as TelemetryEntityRelationshipServiceType,
-} from "Common/Server/Services/TelemetryEntityRelationshipService";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
+import InventoryItemServiceInstance, {
+  InventoryItemService as InventoryItemServiceType,
+} from "Common/Server/Services/InventoryItemService";
+import InventoryItemRelationship from "Common/Models/DatabaseModels/InventoryItemRelationship";
+import InventoryItemCustomField from "Common/Models/DatabaseModels/InventoryItemCustomField";
+import InventoryItemCustomFieldServiceInstance, {
+  Service as InventoryItemCustomFieldServiceType,
+} from "Common/Server/Services/InventoryItemCustomFieldService";
+import InventoryItemRelationshipServiceInstance, {
+  InventoryItemRelationshipService as InventoryItemRelationshipServiceType,
+} from "Common/Server/Services/InventoryItemRelationshipService";
 
 // AlertEpisode Services
 import AlertEpisodeService, {
@@ -1544,6 +1548,24 @@ import NetworkSiteLinkService, {
   Service as NetworkSiteLinkServiceType,
 } from "Common/Server/Services/NetworkSiteLinkService";
 
+// NetworkDeviceLink
+import NetworkDeviceLink from "Common/Models/DatabaseModels/NetworkDeviceLink";
+import NetworkDeviceLinkService, {
+  Service as NetworkDeviceLinkServiceType,
+} from "Common/Server/Services/NetworkDeviceLinkService";
+
+// NetworkDeviceLinkRule
+import NetworkDeviceLinkRule from "Common/Models/DatabaseModels/NetworkDeviceLinkRule";
+import NetworkDeviceLinkRuleService, {
+  Service as NetworkDeviceLinkRuleServiceType,
+} from "Common/Server/Services/NetworkDeviceLinkRuleService";
+
+// NetworkTopologySuppression
+import NetworkTopologySuppression from "Common/Models/DatabaseModels/NetworkTopologySuppression";
+import NetworkTopologySuppressionService, {
+  Service as NetworkTopologySuppressionServiceType,
+} from "Common/Server/Services/NetworkTopologySuppressionService";
+
 // NetworkSiteAssignmentRule
 import NetworkSiteAssignmentRule from "Common/Models/DatabaseModels/NetworkSiteAssignmentRule";
 import NetworkSiteAssignmentRuleService, {
@@ -1624,23 +1646,34 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    // Telemetry entity registry + topology graph (read/list for the entity explorer).
+    // Inventory: the estate catalog, its relationship graph and its custom fields.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<TelemetryEntity, TelemetryEntityServiceType>(
-        TelemetryEntity,
-        TelemetryEntityServiceInstance,
+      new BaseAPI<InventoryItem, InventoryItemServiceType>(
+        InventoryItem,
+        InventoryItemServiceInstance,
       ).getRouter(),
     );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<
-        TelemetryEntityRelationship,
-        TelemetryEntityRelationshipServiceType
+        InventoryItemRelationship,
+        InventoryItemRelationshipServiceType
       >(
-        TelemetryEntityRelationship,
-        TelemetryEntityRelationshipServiceInstance,
+        InventoryItemRelationship,
+        InventoryItemRelationshipServiceInstance,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        InventoryItemCustomField,
+        InventoryItemCustomFieldServiceType
+      >(
+        InventoryItemCustomField,
+        InventoryItemCustomFieldServiceInstance,
       ).getRouter(),
     );
 
@@ -4766,6 +4799,36 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<NetworkSiteLink, NetworkSiteLinkServiceType>(
         NetworkSiteLink,
         NetworkSiteLinkService,
+      ).getRouter(),
+    );
+
+    // network device link
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkDeviceLink, NetworkDeviceLinkServiceType>(
+        NetworkDeviceLink,
+        NetworkDeviceLinkService,
+      ).getRouter(),
+    );
+
+    // network device link rule
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkDeviceLinkRule, NetworkDeviceLinkRuleServiceType>(
+        NetworkDeviceLinkRule,
+        NetworkDeviceLinkRuleService,
+      ).getRouter(),
+    );
+
+    // network topology suppression
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        NetworkTopologySuppression,
+        NetworkTopologySuppressionServiceType
+      >(
+        NetworkTopologySuppression,
+        NetworkTopologySuppressionService,
       ).getRouter(),
     );
 

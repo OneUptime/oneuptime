@@ -38,6 +38,12 @@ export interface EscalationResponder {
    * ReadinessTypes.buildReadinessIndex).
    */
   userId?: string | undefined;
+  /*
+   * Schedule responders only: true when the schedule currently has nobody on
+   * call. Such a responder exists on paper but would page no one, so it is
+   * drawn in amber rather than identically to a healthy responder.
+   */
+  isUncovered?: boolean | undefined;
 }
 
 export interface EscalationLevelSummary {
@@ -179,6 +185,20 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
         {level.responders.map(
           (responder: EscalationResponder, i: number): ReactElement => {
             /*
+             * Two independent reasons a chip can be amber, and they are not the
+             * same claim.
+             *
+             * `isUncovered` is about the SCHEDULE: it exists on the policy but
+             * currently rotates nobody, so it would page no one whatever the
+             * people in it have configured.
+             *
+             * A readiness dot is about a PERSON: they are named on the policy
+             * but cannot be reached, or can only be reached by falling back.
+             *
+             * They compose - an uncovered schedule sits next to user chips that
+             * each carry their own dot - so both are rendered, and neither is
+             * allowed to mask the other.
+             *
              * Teams and schedules are containers, not people: the readiness
              * payload is per-user and does not say which team or which layer a
              * given user was reached through, so a dot on a team chip could only
@@ -195,13 +215,37 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
             return (
               <span
                 key={`r-${i}`}
-                className="inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
+                title={
+                  responder.isUncovered
+                    ? "No one is currently on call in this schedule."
+                    : undefined
+                }
+                className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
+                  responder.isUncovered
+                    ? "bg-amber-50 text-amber-700 ring-amber-200"
+                    : "bg-gray-50 text-gray-700 ring-gray-200"
+                }`}
               >
                 <Icon
-                  icon={responderIcon(responder.type)}
-                  className={`h-3 w-3 ${responderIconColor(responder.type)}`}
+                  icon={
+                    responder.isUncovered
+                      ? IconProp.Alert
+                      : responderIcon(responder.type)
+                  }
+                  className={`h-3 w-3 ${
+                    responder.isUncovered
+                      ? "text-amber-500"
+                      : responderIconColor(responder.type)
+                  }`}
                 />
                 {responder.label}
+                {responder.isUncovered ? (
+                  <span className="text-[10px] font-semibold uppercase tracking-wide">
+                    no one on call
+                  </span>
+                ) : (
+                  <></>
+                )}
                 {responderReadiness ? (
                   <ReadinessDot
                     user={responderReadiness}

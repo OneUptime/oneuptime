@@ -1278,6 +1278,21 @@ enum Permission {
   EditNetworkSiteLink = "EditNetworkSiteLink",
   ReadNetworkSiteLink = "ReadNetworkSiteLink",
 
+  CreateNetworkDeviceLink = "CreateNetworkDeviceLink",
+  DeleteNetworkDeviceLink = "DeleteNetworkDeviceLink",
+  EditNetworkDeviceLink = "EditNetworkDeviceLink",
+  ReadNetworkDeviceLink = "ReadNetworkDeviceLink",
+
+  CreateNetworkDeviceLinkRule = "CreateNetworkDeviceLinkRule",
+  DeleteNetworkDeviceLinkRule = "DeleteNetworkDeviceLinkRule",
+  EditNetworkDeviceLinkRule = "EditNetworkDeviceLinkRule",
+  ReadNetworkDeviceLinkRule = "ReadNetworkDeviceLinkRule",
+
+  CreateNetworkTopologySuppression = "CreateNetworkTopologySuppression",
+  DeleteNetworkTopologySuppression = "DeleteNetworkTopologySuppression",
+  EditNetworkTopologySuppression = "EditNetworkTopologySuppression",
+  ReadNetworkTopologySuppression = "ReadNetworkTopologySuppression",
+
   CreateNetworkSiteAssignmentRule = "CreateNetworkSiteAssignmentRule",
   DeleteNetworkSiteAssignmentRule = "DeleteNetworkSiteAssignmentRule",
   EditNetworkSiteAssignmentRule = "EditNetworkSiteAssignmentRule",
@@ -7972,6 +7987,126 @@ export class PermissionHelper {
         title: "Read Network Site Link",
         description:
           "This permission can read Network Site Link of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkDeviceLink,
+        title: "Create Network Device Link",
+        description:
+          "This permission can create Network Device Link in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkDeviceLink,
+        title: "Delete Network Device Link",
+        description:
+          "This permission can delete Network Device Link of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkDeviceLink,
+        title: "Edit Network Device Link",
+        description:
+          "This permission can edit Network Device Link of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkDeviceLink,
+        title: "Read Network Device Link",
+        description:
+          "This permission can read Network Device Link of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkDeviceLinkRule,
+        title: "Create Network Device Link Rule",
+        description:
+          "This permission can create Network Device Link Rule in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkDeviceLinkRule,
+        title: "Delete Network Device Link Rule",
+        description:
+          "This permission can delete Network Device Link Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkDeviceLinkRule,
+        title: "Edit Network Device Link Rule",
+        description:
+          "This permission can edit Network Device Link Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkDeviceLinkRule,
+        title: "Read Network Device Link Rule",
+        description:
+          "This permission can read Network Device Link Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkTopologySuppression,
+        title: "Create Network Topology Suppression",
+        description:
+          "This permission can hide nodes from the Network Topology map in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkTopologySuppression,
+        title: "Delete Network Topology Suppression",
+        description:
+          "This permission can restore hidden nodes to the Network Topology map of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkTopologySuppression,
+        title: "Edit Network Topology Suppression",
+        description:
+          "This permission can edit Network Topology Suppression of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkTopologySuppression,
+        title: "Read Network Topology Suppression",
+        description:
+          "This permission can read Network Topology Suppression of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,

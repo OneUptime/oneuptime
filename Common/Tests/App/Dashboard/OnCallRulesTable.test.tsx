@@ -108,6 +108,17 @@ jest.mock("../../../UI/Utils/User", () => {
       getUserId: () => {
         return currentUserId;
       },
+      /*
+       * The delete guard asks whether the viewer is a master admin before it
+       * offers a Delete control at all. A stub missing this method does not
+       * make the guard fail an assertion - it throws
+       * "isMasterAdmin is not a function" at render, taking every test in the
+       * file with it, which reads as 33 unrelated failures rather than one
+       * missing stub.
+       */
+      isMasterAdmin: () => {
+        return false;
+      },
     },
   };
 });
@@ -1071,7 +1082,14 @@ describe("OnCallRulesTable", () => {
 
     capturedTables.forEach((table: CapturedTableProps) => {
       expect(table.isCreateable).toBe(true);
-      expect(table.isDeleteable).toBe(true);
+      /*
+       * Off by design, and NOT the same thing as "cannot delete". Deleting a
+       * rule goes through the impact confirmation instead - the guard supplies
+       * its own action button, because ModelTable's built-in dialog cannot say
+       * how many rules disappear or which severity loses its last delivering
+       * rule. "Remove" in this test's name is that button, not this flag.
+       */
+      expect(table.isDeleteable).toBe(false);
       expect(table.isEditable).toBe(true);
     });
   });

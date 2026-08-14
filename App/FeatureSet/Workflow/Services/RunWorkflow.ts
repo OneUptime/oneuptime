@@ -737,13 +737,26 @@ export default class RunWorkflow {
   }): void {
     const completedAt: Date = OneUptimeDate.getCurrentDate();
 
+    /*
+     * Leaving by the error port is a failure, whether or not anything was
+     * thrown.
+     *
+     * A component that hits a real error and wants the graph's Error branch to
+     * run catches it, logs it and returns { executePort: errorPort } without
+     * calling options.onError — every database component does this
+     * (FindOneBaseModel and friends), as does API/Get. So errorMessage was
+     * undefined for exactly the failures a builder most needs to find, and the
+     * trace recorded them green, collapsed under a check mark.
+     */
+    const failed: boolean = Boolean(
+      params.errorMessage || params.executedPort === "error",
+    );
+
     const entry: WorkflowStepTraceEntry = {
       componentId: params.node.id,
       metadataId: params.node.metadataId,
       title: params.node.metadata?.title || params.node.metadataId,
-      status: params.errorMessage
-        ? WorkflowStepStatus.Error
-        : WorkflowStepStatus.Success,
+      status: failed ? WorkflowStepStatus.Error : WorkflowStepStatus.Success,
       startedAt: params.startedAt.toISOString(),
       completedAt: completedAt.toISOString(),
       durationInMs: completedAt.getTime() - params.startedAt.getTime(),

@@ -650,9 +650,19 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
       {showComponentSettingsModal && selectedNodeData && (
         <ComponentSettingsModal
-          graphComponents={nodes.map((node: Node) => {
-            return node.data as NodeDataProp;
-          })}
+          /*
+           * Placeholder nodes are excluded here rather than defended against
+           * downstream. The "click here to add trigger" node carries a partial
+           * metadata object — no returnValues, no arguments, an empty id — and
+           * passing it on made every consumer responsible for knowing that.
+           */
+          graphComponents={nodes
+            .map((node: Node) => {
+              return node.data as NodeDataProp;
+            })
+            .filter((data: NodeDataProp) => {
+              return data.nodeType !== NodeType.PlaceholderNode;
+            })}
           workflowId={props.workflowId}
           webhookSecretKey={props.webhookSecretKey}
           component={selectedNodeData}

@@ -4,6 +4,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import AllowAccessIfSubscriptionIsUnpaid from "../../Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnerOnlyColumn from "../../Types/Database/AccessControl/OwnerOnlyColumn";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -123,6 +124,13 @@ class UserSMS extends BaseModel {
     read: [Permission.CurrentUser],
     update: [],
   })
+  /*
+   * A personal mobile number, and a directly addressable delivery target. It is
+   * also the same number the person very likely uses for their own second
+   * factor elsewhere, which is why it does not belong in an admin's view of
+   * somebody else's on-call configuration.
+   */
+  @OwnerOnlyColumn()
   @TableColumn({
     title: "Phone",
     required: true,
@@ -302,6 +310,11 @@ class UserSMS extends BaseModel {
     read: [],
     update: [],
   })
+  /*
+   * A live verification code. Reading somebody else's is claiming their
+   * notification channel.
+   */
+  @OwnerOnlyColumn()
   @TableColumn({
     title: "Verification Code",
     description: "Temporary Verification Code",

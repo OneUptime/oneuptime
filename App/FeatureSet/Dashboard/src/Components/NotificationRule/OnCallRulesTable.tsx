@@ -1,4 +1,6 @@
-import NotificationMethodView from "../NotificationMethods/NotificationMethod";
+import NotificationMethodView, {
+  DeletionImpactModal,
+} from "../NotificationMethods/NotificationMethod";
 import NotifyAfterDropdownOptions from "./NotifyAfterMinutesDropdownOptions";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -14,20 +16,30 @@ import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import OneUptimeDate from "Common/Types/Date";
+import {
+  ErrorFunction,
+  PromiseVoidFunction,
+  VoidFunction,
+} from "Common/Types/FunctionTypes";
+import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
 import ObjectID from "Common/Types/ObjectID";
+import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import SelectEntityField from "Common/UI/Types/SelectEntityField";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
+import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import User from "Common/UI/Utils/User";
 import React, {
@@ -602,6 +614,146 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
     : "How do you want to be notified?";
 
   /*
+   * ==========================================================================
+   * DELETE GUARD
+   * ==========================================================================
+   *
+   * Deleting a notification rule is the delete that quietly removes coverage. A
+   * row here reads "Email: jane@example.com / after 5 minutes" and says nothing
+   * about whether it is the LAST rule standing for this severity - and the
+   * stock ModelTable confirmation cannot say either, because its description is
+   * a fixed string ("Are you sure you want to delete this...?") with nowhere to
+   * put a number.
+   *
+   * So the table's built-in delete is turned off (`isDeleteable={false}`) and
+   * the Delete action is supplied here instead, opening DeletionImpactModal -
+   * the same confirmation the notification method tables use, so somebody
+   * tidying their settings meets one account of what a delete costs rather than
+   * two that disagree. The modal counts across ALL of this user's rules in the
+   * project rather than the table the row happens to sit in, which is why one
+   * copy of it here serves every severity band on the page.
+   *
+   * IT DOES NOT BLOCK. Deleting your own notification rule is your call. The
+   * only thing being changed is that you make it knowing whether anything is
+   * still going to page you for that severity, and whether anyone is relying on
+   * you answering.
+   *
+   * THIS LIVES HERE, IN THE SHARED COMPONENT, and not on the four settings
+   * pages it shipped on. Those pages are now four calls into this file, so a
+   * guard left behind in them would be a guard nothing runs - four Delete
+   * buttons back on the generic "are you sure", with the counts silently gone.
+   */
+  const [ruleToDelete, setRuleToDelete] = useState<UserNotificationRule | null>(
+    null,
+  );
+  const [isDeletingRule, setIsDeletingRule] = useState<boolean>(false);
+  const [deleteError, setDeleteError] = useState<string>("");
+  const [refreshToggle, setRefreshToggle] = useState<string>(
+    OneUptimeDate.getCurrentDate().toString(),
+  );
+
+  /*
+   * Whether a delete on this table goes through the impact modal at all, and
+   * the one place the answer is "only for the person whose rules these are".
+   *
+   * The modal is not a rendering of numbers this component already holds: it
+   * loads them, and the load is `useNotificationRuleImpactData` ->
+   * `getSelectForRuleImpact()`, which is the shared method select with `_id`
+   * added to every relation - `{ userEmail: { email: true, _id: true } }` and
+   * the six others. That is precisely the nested relation select the essay on
+   * `getSuppliedMethodSelect` above is about: it is NOT refused for an
+   * administrator, and mounting it here for somebody else's rules would hand
+   * that administrator the raw email addresses and phone numbers this component
+   * goes to some trouble never to fetch - through the delete confirmation,
+   * which does not look like a read at all.
+   *
+   * So for a table about somebody else the built-in delete stays, with its
+   * generic confirmation. That is a weaker warning, and it is the same warning
+   * that surface has always had; it is not a Phase 4 regression, because the
+   * impact modal never covered an admin editing a colleague's rules. Giving it
+   * the counts too means teaching the loader to fetch coverage WITHOUT the
+   * method identifiers - the rule-deletion copy needs only rule type, severity
+   * and isOptOut, never a method label - which is a change to
+   * NotificationMethod.tsx rather than a prop that can be passed from here.
+   */
+  const isDeleteGuarded: boolean = isViewerTheOwner;
+
+  /*
+   * The same gate BaseModelTable puts on its own delete action, and `isEditable`
+   * on top of it. Replacing that action with one of ours would otherwise hand a
+   * Delete button to a read-only member, who would then meet the refusal only
+   * after confirming it.
+   */
+  const canDeleteRules: boolean =
+    isEditable &&
+    Boolean(
+      new UserNotificationRule().hasDeletePermissions(
+        PermissionUtil.getAllPermissions(),
+      ) || User.isMasterAdmin(),
+    );
+
+  type DeleteRuleFunction = (rule: UserNotificationRule) => Promise<void>;
+
+  const deleteRule: DeleteRuleFunction = async (
+    rule: UserNotificationRule,
+  ): Promise<void> => {
+    if (!rule.id) {
+      return;
+    }
+
+    setIsDeletingRule(true);
+
+    try {
+      await ModelAPI.deleteItem<UserNotificationRule>({
+        modelType: UserNotificationRule,
+        id: rule.id,
+      });
+
+      /*
+       * Every table on the page is refetched rather than only the one the row
+       * sat in. A rule belongs to exactly one of them, but one shared toggle is
+       * cheaper than threading a per-severity one and cannot leave a deleted
+       * row on screen.
+       */
+      setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
+    } catch (err) {
+      setDeleteError(API.getFriendlyMessage(err));
+    }
+
+    setRuleToDelete(null);
+    setIsDeletingRule(false);
+  };
+
+  /*
+   * The Delete action that stands in for the built-in one, and nothing at all
+   * when this table is not the guarded path or the viewer may not delete.
+   */
+  const deleteActionButtons: Array<ActionButtonSchema<UserNotificationRule>> =
+    isDeleteGuarded && canDeleteRules
+      ? [
+          {
+            title: "Delete",
+            icon: IconProp.Trash,
+            buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
+            onClick: (
+              item: UserNotificationRule,
+              onCompleteAction: VoidFunction,
+              onError: ErrorFunction,
+            ): void => {
+              try {
+                setDeleteError("");
+                setRuleToDelete(item);
+                onCompleteAction();
+              } catch (err) {
+                onCompleteAction();
+                onError(err as Error);
+              }
+            },
+          },
+        ]
+      : [];
+
+  /*
    * What the table asks the server for in order to render the method cell, and
    * the second place `isViewerTheOwner` decides between reading the methods and
    * being handed them.
@@ -717,7 +869,16 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
           severityName || props.ruleType
         }`}
         singularName={ruleSingularName}
-        isDeleteable={isEditable}
+        refreshToggle={refreshToggle}
+        /*
+         * Off wherever the impact modal is the delete, and replaced by the
+         * action button below. See the DELETE GUARD note above: the built-in
+         * confirmation takes a fixed description and so cannot say what this
+         * particular delete costs, and `isDeleteable={true}` next to an impact
+         * modal nobody opens is exactly the failure this replaces.
+         */
+        isDeleteable={isDeleteGuarded ? false : isEditable}
+        actionButtons={deleteActionButtons}
         /*
          * The row editor, on at last.
          *
@@ -1093,6 +1254,61 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
           return <div key={i}>{getModelTable(severity)}</div>;
         })}
       </div>
+
+      {/*
+       * Mounted conditionally so each open is a fresh mount: the modal reads
+       * the user's rules when it mounts, and a cached list would let the second
+       * delete of a session be explained by the state before the first one.
+       *
+       * `targetUserId` and not `User.getUserId()`, so the counts are about the
+       * rules on screen. It is only ever reached when the two are the same
+       * person - see `isDeleteGuarded` - and spelling it as the target is what
+       * keeps that true if the guard is ever widened.
+       */}
+      {ruleToDelete ? (
+        <DeletionImpactModal
+          target={{
+            type: "rule",
+            ruleId: ruleToDelete.id?.toString() || "",
+          }}
+          userId={targetUserId}
+          projectId={ProjectUtil.getCurrentProjectId()}
+          title="Delete Notification Rule"
+          submitButtonText="Delete"
+          isDeleting={isDeletingRule}
+          onClose={() => {
+            setRuleToDelete(null);
+          }}
+          onConfirm={() => {
+            deleteRule(ruleToDelete).catch((err: Error) => {
+              setDeleteError(API.getFriendlyMessage(err));
+              setRuleToDelete(null);
+              setIsDeletingRule(false);
+            });
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {/*
+       * The delete's own failure, which the impact modal has no room for: it is
+       * showing what the delete WOULD cost, and by the time this is set the
+       * delete has already been attempted and refused.
+       */}
+      {deleteError ? (
+        <ConfirmModal
+          title="Error"
+          description={deleteError}
+          submitButtonText="Close"
+          submitButtonType={ButtonStyleType.NORMAL}
+          onSubmit={() => {
+            setDeleteError("");
+          }}
+        />
+      ) : (
+        <></>
+      )}
     </Fragment>
   );
 };

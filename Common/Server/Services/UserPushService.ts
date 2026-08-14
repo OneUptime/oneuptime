@@ -2,7 +2,12 @@ import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
+import UserNotificationRuleService, {
+  NotificationDeletionImpact,
+  NotificationMethodChannel,
+} from "./UserNotificationRuleService";
 import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
 import UserPush from "../../Models/DatabaseModels/UserPush";
@@ -60,6 +65,30 @@ export class Service extends DatabaseService<UserPush> {
   ): Promise<OnDelete<UserPush>> {
     // Add any cleanup logic here if needed
     return { carryForward: null, deleteBy };
+  }
+
+  /**
+   * What this user would lose if this device were deleted. Ask BEFORE calling
+   * delete; nothing here refuses anything.
+   *
+   * Note what the hook directly above does NOT do. The other six method
+   * services delete their notification rules themselves; this one leaves it
+   * entirely to UserNotificationRule.userPushId, which is onDelete: "CASCADE".
+   * The rules go either way — the database sees to it — so the loss is exactly
+   * as large here as everywhere else, and it is even less visible from the
+   * code. Push is also the channel a responder is most likely to have several
+   * of and to prune casually, one retired handset at a time.
+   */
+  @CaptureSpan()
+  public async getDeletionImpact(data: {
+    itemId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<NotificationDeletionImpact> {
+    return UserNotificationRuleService.getNotificationMethodDeletionImpact({
+      projectId: data.projectId,
+      methodType: NotificationMethodChannel.Push,
+      methodId: data.itemId,
+    });
   }
 
   @CaptureSpan()

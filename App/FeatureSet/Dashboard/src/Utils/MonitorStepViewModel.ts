@@ -943,7 +943,7 @@ export default class MonitorStepViewModel {
       }),
       optional({
         key: "logEntityKeys",
-        title: "Telemetry Entities",
+        title: "Inventory Items",
         description: "Hosts, pods or containers this monitor is scoped to.",
         valueType: MonitorStepViewValueType.ArrayOfText,
         value: logMonitor?.entityKeys || [],
@@ -1006,7 +1006,7 @@ export default class MonitorStepViewModel {
       }),
       optional({
         key: "traceEntityKeys",
-        title: "Telemetry Entities",
+        title: "Inventory Items",
         description: "Hosts, pods or containers this monitor is scoped to.",
         valueType: MonitorStepViewValueType.ArrayOfText,
         value: traceMonitor?.entityKeys || [],
@@ -1078,7 +1078,7 @@ export default class MonitorStepViewModel {
       },
       optional({
         key: "exceptionEntityKeys",
-        title: "Telemetry Entities",
+        title: "Inventory Items",
         description: "Hosts, pods or containers this monitor is scoped to.",
         valueType: MonitorStepViewValueType.ArrayOfText,
         value: exceptionMonitor?.entityKeys || [],

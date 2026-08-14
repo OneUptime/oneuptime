@@ -41,7 +41,10 @@ type RoundTripFunction = (rows: Dictionary<DictionaryEntryValue>) => JSONObject;
 const roundTrip: RoundTripFunction = (
   rows: Dictionary<DictionaryEntryValue>,
 ): JSONObject => {
-  const stored: string = buildColumnValueJson(rows);
+  const stored: string = buildColumnValueJson(
+    rows,
+    ModelColumnEditorMode.Query,
+  );
   const parsedByRunner: JSONObject = JSON.parse(stored);
 
   return JSONFunctions.deserialize(parsedByRunner) as JSONObject;
@@ -156,11 +159,14 @@ describe("row editor output survives the server's deserialization", () => {
   });
 
   test("a record of values to write deserializes to plain values", () => {
-    const stored: string = buildColumnValueJson({
-      name: "acme",
-      isEnabled: true,
-      count: 4,
-    } as Dictionary<DictionaryEntryValue>);
+    const stored: string = buildColumnValueJson(
+      {
+        name: "acme",
+        isEnabled: true,
+        count: 4,
+      } as Dictionary<DictionaryEntryValue>,
+      ModelColumnEditorMode.Record,
+    );
 
     expect(JSONFunctions.deserialize(JSON.parse(stored))).toEqual({
       name: "acme",
@@ -175,7 +181,9 @@ describe("row editor output survives the server's deserialization", () => {
       count: new GreaterThan<number>(3),
     } as unknown as Dictionary<DictionaryEntryValue>;
 
-    const stored: JSONObject = JSON.parse(buildColumnValueJson(rows));
+    const stored: JSONObject = JSON.parse(
+      buildColumnValueJson(rows, ModelColumnEditorMode.Query),
+    );
 
     expect(
       classifyColumnValueCompatibility(stored, [], ModelColumnEditorMode.Query)

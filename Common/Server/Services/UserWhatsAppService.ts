@@ -5,7 +5,10 @@ import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import ProjectService from "./ProjectService";
-import UserNotificationRuleService from "./UserNotificationRuleService";
+import UserNotificationRuleService, {
+  NotificationDeletionImpact,
+  NotificationMethodChannel,
+} from "./UserNotificationRuleService";
 import WhatsAppService from "./WhatsAppService";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -64,6 +67,26 @@ export class Service extends DatabaseService<Model> {
       deleteBy,
       carryForward: null,
     };
+  }
+
+  /**
+   * What this user would lose if this WhatsApp number were deleted. Ask BEFORE
+   * calling delete; nothing here refuses anything.
+   *
+   * The hook directly above deletes every UserNotificationRule that points at
+   * this number, and the foreign key is onDelete: "CASCADE" so the rows would
+   * go even if it did not.
+   */
+  @CaptureSpan()
+  public async getDeletionImpact(data: {
+    itemId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<NotificationDeletionImpact> {
+    return UserNotificationRuleService.getNotificationMethodDeletionImpact({
+      projectId: data.projectId,
+      methodType: NotificationMethodChannel.WhatsApp,
+      methodId: data.itemId,
+    });
   }
 
   @CaptureSpan()

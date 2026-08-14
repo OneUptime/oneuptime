@@ -16,8 +16,8 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
-import TelemetryEntityRelationship from "Common/Models/DatabaseModels/TelemetryEntityRelationship";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
+import InventoryItemRelationship from "Common/Models/DatabaseModels/InventoryItemRelationship";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import API from "Common/UI/Utils/API/API";
@@ -55,9 +55,9 @@ const TopologyPage: FunctionComponent<
     range: TimeRange.PAST_ONE_DAY,
   });
 
-  const [entities, setEntities] = useState<Array<TelemetryEntity>>([]);
+  const [entities, setEntities] = useState<Array<InventoryItem>>([]);
   const [relationships, setRelationships] = useState<
-    Array<TelemetryEntityRelationship>
+    Array<InventoryItemRelationship>
   >([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -72,11 +72,11 @@ const TopologyPage: FunctionComponent<
           RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
 
         const [entityResult, relationshipResult]: [
-          ListResult<TelemetryEntity>,
-          ListResult<TelemetryEntityRelationship>,
+          ListResult<InventoryItem>,
+          ListResult<InventoryItemRelationship>,
         ] = await Promise.all([
-          ModelAPI.getList<TelemetryEntity>({
-            modelType: TelemetryEntity,
+          ModelAPI.getList<InventoryItem>({
+            modelType: InventoryItem,
             query: {
               projectId: ProjectUtil.getCurrentProjectId()!,
               lastSeenAt: new GreaterThanOrEqual<Date>(window.startValue),
@@ -95,8 +95,8 @@ const TopologyPage: FunctionComponent<
             skip: 0,
             limit: LIMIT_PER_PROJECT,
           }),
-          ModelAPI.getList<TelemetryEntityRelationship>({
-            modelType: TelemetryEntityRelationship,
+          ModelAPI.getList<InventoryItemRelationship>({
+            modelType: InventoryItemRelationship,
             query: {
               projectId: ProjectUtil.getCurrentProjectId()!,
               lastSeenAt: new GreaterThanOrEqual<Date>(window.startValue),

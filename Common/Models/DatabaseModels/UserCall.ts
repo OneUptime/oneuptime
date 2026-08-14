@@ -4,6 +4,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import AllowAccessIfSubscriptionIsUnpaid from "../../Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnerOnlyColumn from "../../Types/Database/AccessControl/OwnerOnlyColumn";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -123,6 +124,12 @@ class UserCall extends BaseModel {
     read: [Permission.CurrentUser],
     update: [],
   })
+  /*
+   * A personal phone number, and a directly addressable delivery target -
+   * anyone holding it can ring the person at three in the morning without going
+   * anywhere near OneUptime.
+   */
+  @OwnerOnlyColumn()
   @TableColumn({
     title: "Phone",
     required: true,
@@ -301,6 +308,11 @@ class UserCall extends BaseModel {
     read: [],
     update: [],
   })
+  /*
+   * A live verification code. Reading somebody else's is claiming their
+   * notification channel.
+   */
+  @OwnerOnlyColumn()
   @TableColumn({
     title: "Verification Code",
     description: "Temporary Verification Code",

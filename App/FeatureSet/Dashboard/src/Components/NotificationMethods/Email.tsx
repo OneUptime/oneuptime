@@ -17,6 +17,10 @@ import User from "Common/UI/Utils/User";
 import UserEmail from "Common/Models/DatabaseModels/UserEmail";
 import React, { ReactElement, useEffect, useState } from "react";
 import OneUptimeDate from "Common/Types/Date";
+import {
+  NotificationMethodDeleteGuard,
+  useNotificationMethodDeleteGuard,
+} from "./NotificationMethod";
 
 const Email: () => JSX.Element = (): ReactElement => {
   const [showVerificationCodeModal, setShowVerificationCodeModal] =
@@ -38,6 +42,23 @@ const Email: () => JSX.Element = (): ReactElement => {
   useEffect(() => {
     setError("");
   }, [showVerificationCodeModal]);
+
+  /*
+   * Deleting an email address cascades to every notification rule that uses it,
+   * so the confirmation is the impact modal rather than ModelTable's generic
+   * one. `isDeleteable` below is false for the same reason: two delete controls
+   * on one row, one of which explains nothing, is how the explanation gets
+   * skipped.
+   */
+  const deleteGuard: NotificationMethodDeleteGuard<UserEmail> =
+    useNotificationMethodDeleteGuard<UserEmail>({
+      modelType: UserEmail,
+      relationName: "userEmail",
+      singularName: "Email",
+      onDeleted: () => {
+        setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
+      },
+    });
 
   return (
     <>
@@ -109,10 +130,11 @@ const Email: () => JSX.Element = (): ReactElement => {
               }
             },
           },
+          deleteGuard.deleteActionButton,
         ]}
         id="user-emails"
         name="User Settings > Notification Methods > Emails"
-        isDeleteable={true}
+        isDeleteable={false}
         isEditable={false}
         isCreateable={true}
         cardProps={{
@@ -157,6 +179,8 @@ const Email: () => JSX.Element = (): ReactElement => {
           },
         ]}
       />
+
+      {deleteGuard.deletionModal}
 
       {showVerificationCodeModal && currentItem ? (
         <BasicFormModal

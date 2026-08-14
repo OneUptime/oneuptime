@@ -44,6 +44,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  */
 
 const getMock: MockFunction = getJestMockFunction();
+const postMock: MockFunction = getJestMockFunction();
 const getCommonHeadersMock: MockFunction = getJestMockFunction();
 
 /*
@@ -59,11 +60,20 @@ jest.mock("../../../UI/Utils/API/API", () => {
         return getMock(...args);
       },
       /*
+       * The setup-reminder endpoint. It is the only WRITE either surface makes,
+       * and it is stubbed rather than exercised because what these tests are
+       * about is whether the page tells the truth about the ANSWER - which
+       * outcomes it renders, and which it must never render as a success.
+       */
+      post: (...args: Array<any>) => {
+        return postMock(...args);
+      },
+      /*
        * The real helper unwraps an HTTPErrorResponse into its server message and
        * falls back to a generic line for anything else. Both branches matter
-       * here: the readiness fetch fails with an HTTPErrorResponse, while the
-       * not-yet-implemented reminder stub rejects with a plain Error whose text
-       * is the entire point of the assertion.
+       * here: the readiness fetch fails with an HTTPErrorResponse, while a
+       * rejected reminder send carries a plain Error whose text is the entire
+       * point of the assertion.
        */
       getFriendlyMessage: (error: unknown) => {
         return error instanceof Error
@@ -672,8 +682,56 @@ const expandResponder: ExpandResponderFunction = (userName: string): void => {
   fireEvent.click(tableRowFor(userName));
 };
 
+/*
+ * The setup-reminder endpoint's answer. Deliberately takes the per-user results
+ * and DERIVES nothing: the payload a test writes is the payload the page gets,
+ * so a test can hand back a self-contradictory body (counts that disagree with
+ * the list) and watch the page refuse to be confused by it.
+ */
+interface ReminderOutcomeFixture {
+  userId: string;
+  outcome: string;
+  message: string;
+}
+
+type ReminderJsonFunction = (
+  results: Array<ReminderOutcomeFixture>,
+) => JSONObject;
+
+const reminderJson: ReminderJsonFunction = (
+  results: Array<ReminderOutcomeFixture>,
+): JSONObject => {
+  return {
+    projectId: "44444444-4444-4444-8444-444444444444",
+    /*
+     * Wrong on purpose, exactly like summaryJson's counts. The banner recomputes
+     * from `results` so its headline can never contradict the list underneath
+     * it.
+     */
+    requestedCount: 0,
+    sentCount: 0,
+    skippedCount: 0,
+    failedCount: 0,
+    results: results as unknown as JSONArray,
+  };
+};
+
+type RespondToReminderFunction = (payload: JSONObject) => void;
+
+const respondToReminderWith: RespondToReminderFunction = (
+  payload: JSONObject,
+): void => {
+  postMock.mockResolvedValue(
+    new HTTPResponse<JSONObject>(200, payload, {}) as never,
+  );
+};
+
 beforeEach((): void => {
   getMock.mockReset();
+  postMock.mockReset();
+  postMock.mockResolvedValue(
+    new HTTPResponse<JSONObject>(200, reminderJson([]), {}) as never,
+  );
   getCommonHeadersMock.mockReset();
   getCommonHeadersMock.mockReturnValue({} as never);
   localStorage.clear();
@@ -2015,17 +2073,64 @@ describe("On-call readiness page", () => {
   });
 
   /*
-   * The setup-reminder control.
+   * The setup-reminder control, now that it is real.
    *
-   * The first cut wired an enabled button to a function that unconditionally
-   * threw: an admin ticked responders, confirmed a modal naming them, and got an
-   * error. A silent no-op would have been worse - they would have believed a
-   * reminder reached somebody who still cannot be paged. Until the endpoint
-   * exists the honest shape is a control that is visibly off, with nothing
-   * upstream inviting a selection that leads nowhere.
+   * Its history is the reason these assertions are shaped the way they are. The
+   * first cut wired an enabled button to a function that unconditionally threw:
+   * an admin ticked responders, confirmed a modal naming them, and got an error.
+   * The second was honestly disabled, because a silent no-op would have been
+   * worse still - they would have left believing a reminder reached somebody who
+   * still cannot be paged.
+   *
+   * So the standard the enabled version has to meet is not "does it POST". It is
+   * that the page never says a reminder went out unless the server said that
+   * reminder went out, per user:
+   *
+   *   - a throttled skip must not render as a send (a throttle is not a send);
+   *   - a failure must not be swallowed by the successes around it;
+   *   - a failed REQUEST must say plainly that nothing was sent, and must not be
+   *     confusable with a partial success, because "try again" is right for one
+   *     and wrong for the other;
+   *   - and the headline count must be derived from the same list it is printed
+   *     above, so the two can never disagree on screen.
    */
-  describe("the setup-reminder control is honestly unavailable", () => {
-    test("the button is disabled rather than booby-trapped", async () => {
+  describe("the setup-reminder control - selecting responders", () => {
+    test("every responder row carries a checkbox", async () => {
+      respondWith(summaryJson(ALL_THREE_USERS));
+
+      await renderProjectPage();
+
+      await screen.findByText("Zed Unreachable");
+
+      expect(
+        screen.getByLabelText("Select Zed Unreachable"),
+      ).toBeInTheDocument();
+      expect(screen.getByLabelText("Select Jane Partial")).toBeInTheDocument();
+    });
+
+    /*
+     * A Ready responder has nothing to be reminded of, and the server agrees -
+     * it answers SkippedNothingMissing rather than mailing them a claim they
+     * could disprove in ten seconds. Disabling the box says the same thing
+     * before the click instead of explaining it after.
+     */
+    test("a ready responder cannot be selected, and the box says why", async () => {
+      respondWith(summaryJson(ALL_THREE_USERS));
+
+      await renderProjectPage();
+
+      await screen.findByText("Ada Ready");
+
+      const box: HTMLElement = screen.getByLabelText("Select Ada Ready");
+
+      expect(box).toBeDisabled();
+      expect(box).toHaveAttribute(
+        "title",
+        "Already ready - there is nothing to remind them about",
+      );
+    });
+
+    test("the button is disabled until something is selected, then counts it", async () => {
       respondWith(summaryJson(ALL_THREE_USERS));
 
       await renderProjectPage();
@@ -2035,50 +2140,387 @@ describe("On-call readiness page", () => {
       expect(
         screen.getByRole("button", { name: "Send setup reminder" }),
       ).toBeDisabled();
+
+      fireEvent.click(screen.getByLabelText("Select Zed Unreachable"));
+
+      expect(
+        screen.getByRole("button", { name: "Send setup reminder (1)" }),
+      ).toBeEnabled();
     });
 
     /*
-     * A disabled button swallows pointer events, so a tooltip hung on the button
-     * itself would never open. The explanation lives on the wrapper, and it is
-     * also said in plain sight so nobody has to hover to find out.
+     * The whole row toggles the coverage panel. A click on the checkbox - or on
+     * the padding around it - must not do both, or ticking a box near its edge
+     * looks like the box is broken.
      */
-    test("it says why, on the wrapper and in the open", async () => {
+    test("ticking a box does not expand the row", async () => {
       respondWith(summaryJson(ALL_THREE_USERS));
 
       await renderProjectPage();
 
-      await screen.findByText("Zed Unreachable");
+      await screen.findByText("Jane Partial");
 
-      expect(screen.getByTitle(/not available yet/)).toBeInTheDocument();
-      expect(screen.getByText("Coming soon")).toBeInTheDocument();
+      fireEvent.click(screen.getByLabelText("Select Jane Partial"));
+
+      expect(screen.queryByText("Incident severities")).toBeNull();
     });
 
-    test("no selection UI leads to it", async () => {
+    test("the header checkbox takes the remindable rows and leaves the ready one", async () => {
       respondWith(summaryJson(ALL_THREE_USERS));
 
       await renderProjectPage();
 
-      await screen.findByText("Zed Unreachable");
+      await screen.findByText("Ada Ready");
 
-      expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
-      expect(screen.queryByLabelText(/^Select /)).toBeNull();
-    });
-
-    test("nothing can be clicked into a confirmation", async () => {
-      respondWith(summaryJson(ALL_THREE_USERS));
-
-      await renderProjectPage();
-
-      await screen.findByText("Zed Unreachable");
-
-      fireEvent.click(
-        screen.getByRole("button", { name: "Send setup reminder" }),
-      );
+      fireEvent.click(screen.getByLabelText("Select the responders shown"));
 
       expect(
-        screen.queryByRole("button", { name: "Send reminder" }),
-      ).toBeNull();
-      expect(screen.queryByText(/have not shipped yet/)).toBeNull();
+        screen.getByRole("button", { name: "Send setup reminder (2)" }),
+      ).toBeEnabled();
+      expect(screen.getByLabelText("Select Ada Ready")).not.toBeChecked();
+    });
+
+    test("the selection can be cleared without sending anything", async () => {
+      respondWith(summaryJson(ALL_THREE_USERS));
+
+      await renderProjectPage();
+
+      await screen.findByText("Zed Unreachable");
+
+      fireEvent.click(screen.getByLabelText("Select Zed Unreachable"));
+      fireEvent.click(screen.getByText("Clear selection"));
+
+      expect(
+        screen.getByRole("button", { name: "Send setup reminder" }),
+      ).toBeDisabled();
+      expect(postMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("the setup-reminder control - confirming and sending", () => {
+    type SelectAndOpenFunction = () => Promise<void>;
+
+    const selectZedAndOpenModal: SelectAndOpenFunction =
+      async (): Promise<void> => {
+        respondWith(summaryJson(ALL_THREE_USERS));
+
+        await renderProjectPage();
+
+        await screen.findByText("Zed Unreachable");
+
+        fireEvent.click(screen.getByLabelText("Select Zed Unreachable"));
+        fireEvent.click(
+          screen.getByRole("button", { name: "Send setup reminder (1)" }),
+        );
+      };
+
+    /*
+     * The modal names them. Selection survives a filter change, so the rows an
+     * admin ticked are not necessarily the rows on screen when they press the
+     * button - and this is the last moment before real email reaches real
+     * people. "Send 6 reminders?" would be asking them to confirm a number.
+     */
+    test("the confirmation names every recipient", async () => {
+      await selectZedAndOpenModal();
+
+      const modal: HTMLElement = screen.getByTestId("modal");
+
+      expect(within(modal).getByText(/Zed Unreachable/)).toBeInTheDocument();
+      expect(within(modal).queryByText(/Ada Ready/)).toBeNull();
+    });
+
+    test("the confirmation says the 24h throttle exists before anything is sent", async () => {
+      await selectZedAndOpenModal();
+
+      expect(
+        within(screen.getByTestId("modal")).getByText(/24 hours/),
+      ).toBeInTheDocument();
+    });
+
+    test("opening the confirmation sends nothing on its own", async () => {
+      await selectZedAndOpenModal();
+
+      expect(postMock).not.toHaveBeenCalled();
+    });
+
+    test("confirming posts the selected ids to the reminder endpoint", async () => {
+      respondToReminderWith(
+        reminderJson([
+          {
+            userId: UNREACHABLE_USER_ID,
+            outcome: "Sent",
+            message: "Reminder sent to their account email address.",
+          },
+        ]),
+      );
+
+      await selectZedAndOpenModal();
+
+      fireEvent.click(screen.getByRole("button", { name: "Send reminders" }));
+
+      await waitFor((): void => {
+        expect(postMock).toHaveBeenCalled();
+      });
+
+      const call: Array<any> = postMock.mock.calls[0] as Array<any>;
+      const options: {
+        url: { toString: () => string };
+        data: { userIds: Array<string> };
+      } = call[0];
+
+      expect(options.url.toString()).toContain(
+        "/on-call-readiness/send-setup-reminder",
+      );
+      expect(options.data.userIds).toEqual([UNREACHABLE_USER_ID]);
+    });
+  });
+
+  describe("the setup-reminder control - reporting what happened", () => {
+    type RunReminderFunction = (
+      results: Array<ReminderOutcomeFixture>,
+    ) => Promise<void>;
+
+    /*
+     * Select both responders who have something wrong, send, and let the caller
+     * decide what the server said about them.
+     */
+    const runReminderForBoth: RunReminderFunction = async (
+      results: Array<ReminderOutcomeFixture>,
+    ): Promise<void> => {
+      respondWith(summaryJson(ALL_THREE_USERS));
+      respondToReminderWith(reminderJson(results));
+
+      await renderProjectPage();
+
+      await screen.findByText("Zed Unreachable");
+
+      fireEvent.click(screen.getByLabelText("Select the responders shown"));
+      fireEvent.click(
+        screen.getByRole("button", { name: "Send setup reminder (2)" }),
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Send reminders" }));
+
+      await waitFor((): void => {
+        expect(screen.getByText(/Setup reminders:/)).toBeInTheDocument();
+      });
+    };
+
+    test("an all-sent run says so, and does not list the successes", async () => {
+      await runReminderForBoth([
+        { userId: UNREACHABLE_USER_ID, outcome: "Sent", message: "Sent." },
+        { userId: PARTIAL_USER_ID, outcome: "Sent", message: "Sent." },
+      ]);
+
+      expect(screen.getByText("2 sent.")).toBeInTheDocument();
+      /*
+       * The names appear in the table either way; what must NOT appear is a
+       * per-user line under the banner for somebody nothing went wrong with.
+       */
+      expect(screen.queryByText(/Sent\./)).toBeNull();
+    });
+
+    /*
+     * The highest-value assertion in this block. A throttle is not a send, and
+     * the run that produced this is the ordinary one the moment a throttle
+     * exists.
+     */
+    test("a throttled skip is counted as skipped and named, never as sent", async () => {
+      await runReminderForBoth([
+        {
+          userId: UNREACHABLE_USER_ID,
+          outcome: "Sent",
+          message: "Reminder sent to their account email address.",
+        },
+        {
+          userId: PARTIAL_USER_ID,
+          outcome: "SkippedThrottled",
+          message: "Already reminded in the last 24 hours.",
+        },
+      ]);
+
+      expect(screen.getByText("1 sent, 1 skipped.")).toBeInTheDocument();
+      expect(
+        screen.getByText(/Already reminded in the last 24 hours\./),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("2 sent.")).toBeNull();
+    });
+
+    test("a failure is named with the server's own words", async () => {
+      await runReminderForBoth([
+        { userId: UNREACHABLE_USER_ID, outcome: "Sent", message: "Sent." },
+        {
+          userId: PARTIAL_USER_ID,
+          outcome: "Failed",
+          message: "This responder has no usable account email address.",
+        },
+      ]);
+
+      expect(screen.getByText("1 sent, 1 failed.")).toBeInTheDocument();
+      expect(
+        screen.getByText(/no usable account email address/),
+      ).toBeInTheDocument();
+    });
+
+    /*
+     * Tone follows the WORST thing in the report. A green banner with a red line
+     * inside it is read as green, which is how a partial failure gets closed as
+     * a success.
+     */
+    test("any failure colours the whole banner as a failure", async () => {
+      await runReminderForBoth([
+        { userId: UNREACHABLE_USER_ID, outcome: "Sent", message: "Sent." },
+        { userId: PARTIAL_USER_ID, outcome: "Failed", message: "Nope." },
+      ]);
+
+      const banner: HTMLElement | null = screen
+        .getByText(/Setup reminders:/)
+        .closest("div.rounded-md") as HTMLElement | null;
+
+      expect(banner?.className).toContain("red");
+      expect(banner?.className).not.toContain("emerald");
+    });
+
+    test("a user the page no longer knows still gets an outcome line", async () => {
+      await runReminderForBoth([
+        { userId: UNREACHABLE_USER_ID, outcome: "Sent", message: "Sent." },
+        {
+          userId: "77777777-7777-4777-8777-777777777777",
+          outcome: "SkippedNotAMember",
+          message: "Not a member of this project.",
+        },
+      ]);
+
+      expect(screen.getByText("1 sent, 1 skipped.")).toBeInTheDocument();
+      expect(
+        screen.getByText(/Not a member of this project\./),
+      ).toBeInTheDocument();
+    });
+
+    test("an outcome this build has never heard of is counted as skipped, not sent", async () => {
+      /*
+       * Erring towards "skipped" is the safe direction: understating the good
+       * news costs nothing, while counting an unknown outcome as a send is the
+       * page claiming a reminder went out that may not have.
+       */
+      await runReminderForBoth([
+        { userId: UNREACHABLE_USER_ID, outcome: "Sent", message: "Sent." },
+        {
+          userId: PARTIAL_USER_ID,
+          outcome: "SomethingNewFromTheFuture",
+          message: "Unknown outcome.",
+        },
+      ]);
+
+      expect(screen.getByText("1 sent, 1 skipped.")).toBeInTheDocument();
+    });
+
+    test("the selection is cleared once the run completes", async () => {
+      await runReminderForBoth([
+        { userId: UNREACHABLE_USER_ID, outcome: "Sent", message: "Sent." },
+        { userId: PARTIAL_USER_ID, outcome: "Sent", message: "Sent." },
+      ]);
+
+      expect(
+        screen.getByRole("button", { name: "Send setup reminder" }),
+      ).toBeDisabled();
+    });
+
+    test("the report can be dismissed", async () => {
+      await runReminderForBoth([
+        { userId: UNREACHABLE_USER_ID, outcome: "Sent", message: "Sent." },
+        { userId: PARTIAL_USER_ID, outcome: "Sent", message: "Sent." },
+      ]);
+
+      fireEvent.click(screen.getByText("Dismiss"));
+
+      expect(screen.queryByText(/Setup reminders:/)).toBeNull();
+    });
+  });
+
+  describe("the setup-reminder control - when the request itself fails", () => {
+    type FailedRunFunction = () => Promise<void>;
+
+    const runFailingReminder: FailedRunFunction = async (): Promise<void> => {
+      respondWith(summaryJson(ALL_THREE_USERS));
+      postMock.mockRejectedValue(new Error("Network is unreachable") as never);
+
+      await renderProjectPage();
+
+      await screen.findByText("Zed Unreachable");
+
+      fireEvent.click(screen.getByLabelText("Select Zed Unreachable"));
+      fireEvent.click(
+        screen.getByRole("button", { name: "Send setup reminder (1)" }),
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Send reminders" }));
+
+      await waitFor((): void => {
+        expect(
+          screen.getByText(/We could not confirm which reminders were sent\./),
+        ).toBeInTheDocument();
+      });
+    };
+
+    test("it does not claim nothing was sent, because it cannot know", async () => {
+      /*
+       * The endpoint fans out up to 250 sequential sends inside ONE request, so a
+       * rejected request does not mean nothing left the building - a gateway
+       * timeout mid-fan-out looks identical here and some mail HAS gone. The old
+       * copy said "No reminders were sent." and was a guess dressed as a fact.
+       */
+      await runFailingReminder();
+
+      expect(screen.queryByText(/No reminders were sent\./)).toBeNull();
+    });
+
+    test("it says plainly what happened, in the server's words", async () => {
+      await runFailingReminder();
+
+      expect(screen.getByText(/Network is unreachable/)).toBeInTheDocument();
+    });
+
+    test("it never renders a per-user report alongside the failure", async () => {
+      await runFailingReminder();
+
+      expect(screen.queryByText(/Setup reminders:/)).toBeNull();
+    });
+
+    test("the selection survives, so the run can be retried", async () => {
+      await runFailingReminder();
+
+      expect(
+        screen.getByRole("button", { name: "Send setup reminder (1)" }),
+      ).toBeEnabled();
+    });
+
+    test("a non-200 answer is a failure, not a silent success", async () => {
+      /*
+       * API.post RESOLVES with an error response rather than throwing for a
+       * non-2xx, so a page that only caught rejections would render a clean
+       * banner over a request the server refused.
+       */
+      respondWith(summaryJson(ALL_THREE_USERS));
+      postMock.mockResolvedValue(
+        new HTTPErrorResponse(500, { message: "boom" }, {}) as never,
+      );
+
+      await renderProjectPage();
+
+      await screen.findByText("Zed Unreachable");
+
+      fireEvent.click(screen.getByLabelText("Select Zed Unreachable"));
+      fireEvent.click(
+        screen.getByRole("button", { name: "Send setup reminder (1)" }),
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Send reminders" }));
+
+      await waitFor((): void => {
+        expect(
+          screen.getByText(/We could not confirm which reminders were sent\./),
+        ).toBeInTheDocument();
+      });
+
+      expect(screen.queryByText(/Setup reminders:/)).toBeNull();
     });
   });
 

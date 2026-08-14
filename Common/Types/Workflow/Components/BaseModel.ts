@@ -21,11 +21,11 @@ export default class BaseModelComponent {
      * is called everywhere else in the product - when the column is "_id".
      * Both spellings work.
      *
-     * Query and record arguments now get a row editor backed by the model's
-     * real column list (ModelColumnEditor), so the names are offered rather
-     * than remembered. The hint stays because that editor keeps a JSON escape
-     * hatch for the queries rows cannot express, and because it is still the
-     * only thing explaining the two spellings.
+     * Query, Select and the write payload all get an editor backed by the
+     * model's real column list, so the names are offered rather than
+     * remembered. The hint stays because those editors keep a JSON escape
+     * hatch for values rows cannot express, and because it is still the only
+     * thing explaining the two spellings.
      */
     const columnHint: string = `Keys are column names on ${model.singularName}. The ID column is "_id" (the "id" spelling is accepted too).`;
 
@@ -38,8 +38,45 @@ export default class BaseModelComponent {
 
     const dataDescription: string = `${model.singularName} fields to write, as a JSON object. ${columnHint}`;
 
-    const documentationLink: Route = Route.fromString(
-      "/workflow/docs/DatabaseComponents.md",
+    /*
+     * Skip and Limit are the same on every component that has them, and they
+     * are not what decides what a step does - so they sit behind the "advanced"
+     * disclosure rather than competing with Query for attention.
+     *
+     * Limit is worded as a cap rather than as pagination. Read as pagination it
+     * is why "Items Deleted: 10" gets taken to mean ten records matched: the
+     * runtime defaults it to 10 and stops there (DeleteManyBaseModel,
+     * UpdateManyBaseModel), so a query matching five hundred records still only
+     * touches ten.
+     */
+    const skipDescription: string = `Skip the first X ${model.pluralName} the query matched. Defaults to 0.`;
+
+    const limitDescription: string = `The most ${model.pluralName} this step will touch. Defaults to 10, so a query that matches 500 records still only affects 10. Raise this if you mean all of them.`;
+
+    /*
+     * One file per operation, rather than one shared file for all eleven
+     * components. Shared, it had to describe Query, Select, the write payload,
+     * Items Updated and Items Deleted at once - so on Create One, which has
+     * none of those but the payload, most of it was about something else, and
+     * its one concrete instruction ("use the Select Fields picker") named an
+     * argument that component does not have.
+     *
+     * The route serves any filename in the docs directory, so these need no
+     * registration anywhere.
+     */
+    const findDocs: Route = Route.fromString("/workflow/docs/DatabaseFind.md");
+    const createDocs: Route = Route.fromString(
+      "/workflow/docs/DatabaseCreate.md",
+    );
+    const updateDocs: Route = Route.fromString(
+      "/workflow/docs/DatabaseUpdate.md",
+    );
+    const deleteDocs: Route = Route.fromString(
+      "/workflow/docs/DatabaseDelete.md",
+    );
+    // The triggers had no documentation link at all, so their card never rendered.
+    const triggerDocs: Route = Route.fromString(
+      "/workflow/docs/DatabaseTriggers.md",
     );
 
     if (model.enableWorkflowOn.read) {
@@ -51,7 +88,7 @@ export default class BaseModelComponent {
         iconProp: IconProp.ArrowCircleDown,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: documentationLink,
+        documentationLink: findDocs,
         arguments: [
           {
             type: ComponentInputType.Query,
@@ -111,7 +148,7 @@ export default class BaseModelComponent {
         iconProp: IconProp.ArrowCircleDown,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: documentationLink,
+        documentationLink: findDocs,
         arguments: [
           {
             type: ComponentInputType.Query,
@@ -132,16 +169,18 @@ export default class BaseModelComponent {
           {
             type: ComponentInputType.Number,
             name: "Skip",
-            description: `Skip the first X number of items. This can be helpful to implement pagination. Defaults to 0.`,
+            description: skipDescription,
             required: false,
             id: "skip",
+            isAdvanced: true,
           },
           {
             type: ComponentInputType.Number,
             name: "Limit",
-            description: `Limit to first X items. This can be helpful to implement pagination. Defaults to 10.`,
+            description: limitDescription,
             required: false,
             id: "limit",
+            isAdvanced: true,
           },
         ],
         returnValues: [
@@ -187,6 +226,7 @@ export default class BaseModelComponent {
         iconProp: IconProp.Bolt,
         tableName: model.tableName!,
         componentType: ComponentType.Trigger,
+        documentationLink: triggerDocs,
         runWorkflowManuallyArguments: [
           {
             type: ComponentInputType.Text,
@@ -226,11 +266,11 @@ export default class BaseModelComponent {
         iconProp: IconProp.Trash,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: documentationLink,
+        documentationLink: deleteDocs,
         arguments: [
           {
             type: ComponentInputType.Query,
-            name: "Delete by",
+            name: "Query",
             description: queryDescription,
             required: true,
             id: "query",
@@ -274,15 +314,15 @@ export default class BaseModelComponent {
         id: `${Text.pascalCaseToDashes(model.tableName!)}-delete-many`,
         title: `Delete Many ${model.pluralName}`,
         category: `${model.singularName}`,
-        description: `Database query to find many ${model.pluralName}`,
+        description: `Delete many ${model.pluralName} that match a query.`,
         iconProp: IconProp.Trash,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: documentationLink,
+        documentationLink: deleteDocs,
         arguments: [
           {
             type: ComponentInputType.Query,
-            name: "Delete by",
+            name: "Query",
             description: queryDescription,
             required: true,
             id: "query",
@@ -291,16 +331,18 @@ export default class BaseModelComponent {
           {
             type: ComponentInputType.Number,
             name: "Skip",
-            description: `Skip the first X number of items. This can be helpful to implement pagination. Defaults to 0.`,
+            description: skipDescription,
             required: false,
             id: "skip",
+            isAdvanced: true,
           },
           {
             type: ComponentInputType.Number,
             name: "Limit",
-            description: `Limit to first X items. This can be helpful to implement pagination. Defaults to 10.`,
+            description: limitDescription,
             required: false,
             id: "limit",
+            isAdvanced: true,
           },
         ],
         returnValues: [
@@ -346,6 +388,7 @@ export default class BaseModelComponent {
         iconProp: IconProp.Bolt,
         tableName: model.tableName!,
         componentType: ComponentType.Trigger,
+        documentationLink: triggerDocs,
         runWorkflowManuallyArguments: [
           {
             type: ComponentInputType.Text,
@@ -394,7 +437,7 @@ export default class BaseModelComponent {
         iconProp: IconProp.Database,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: documentationLink,
+        documentationLink: createDocs,
         arguments: [
           {
             id: "json",
@@ -409,8 +452,8 @@ export default class BaseModelComponent {
           {
             id: "model",
             name: `${model.singularName}`,
-            description: `${model.singularName} created in the database`,
-            type: ComponentInputType.JSON,
+            description: `${model.singularName} created in the database, including its new "_id"`,
+            type: ComponentInputType.BaseModel,
             required: false,
           },
         ],
@@ -446,7 +489,7 @@ export default class BaseModelComponent {
         iconProp: IconProp.Database,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: documentationLink,
+        documentationLink: createDocs,
         arguments: [
           {
             id: "json-array",
@@ -461,8 +504,8 @@ export default class BaseModelComponent {
           {
             id: "models",
             name: `${model.pluralName}`,
-            description: "Models created in the database",
-            type: ComponentInputType.BaseModel,
+            description: `${model.pluralName} created in the database`,
+            type: ComponentInputType.BaseModelArray,
             required: false,
           },
         ],
@@ -500,6 +543,7 @@ export default class BaseModelComponent {
         iconProp: IconProp.Bolt,
         tableName: model.tableName!,
         componentType: ComponentType.Trigger,
+        documentationLink: triggerDocs,
         runWorkflowManuallyArguments: [
           {
             type: ComponentInputType.Text,
@@ -514,7 +558,7 @@ export default class BaseModelComponent {
           {
             type: ComponentInputType.Select,
             name: "Listen on",
-            description: `Workflow only executes when an upate happens to these fields on ${model.singularName}. If you leave this blank then the workflow will fire on any field that's updated on ${model.singularName}.`,
+            description: `Narrows this trigger to updates that touch these fields on ${model.singularName}. Leave it blank to fire on any change. When an update arrives without a record of which fields moved, this filter is skipped and the workflow runs anyway.`,
             required: false,
             id: "listen-on",
             placeholder: 'Example: {"columnName": true, ...}',
@@ -555,7 +599,7 @@ export default class BaseModelComponent {
         iconProp: IconProp.ArrowCircleUp,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: documentationLink,
+        documentationLink: updateDocs,
         arguments: [
           {
             type: ComponentInputType.Query,
@@ -615,7 +659,7 @@ export default class BaseModelComponent {
         iconProp: IconProp.ArrowCircleUp,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        documentationLink: documentationLink,
+        documentationLink: updateDocs,
         arguments: [
           {
             type: ComponentInputType.Query,
@@ -636,16 +680,18 @@ export default class BaseModelComponent {
           {
             type: ComponentInputType.Number,
             name: "Skip",
-            description: `Skip the first X number of items. This can be helpful to implement pagination. Defaults to 0.`,
+            description: skipDescription,
             required: false,
             id: "skip",
+            isAdvanced: true,
           },
           {
             type: ComponentInputType.Number,
             name: "Limit",
-            description: `Limit to first X items. This can be helpful to implement pagination. Defaults to 10.`,
+            description: limitDescription,
             required: false,
             id: "limit",
+            isAdvanced: true,
           },
         ],
         returnValues: [

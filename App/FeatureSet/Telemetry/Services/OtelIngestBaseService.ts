@@ -43,7 +43,7 @@ import EntityType from "Common/Types/Telemetry/EntityType";
 import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
-import TelemetryEntity, {
+import InventoryItem, {
   ExtractedEntity,
   ResourceEntityRef,
 } from "Common/Server/Utils/Telemetry/TelemetryEntity";
@@ -549,7 +549,7 @@ export default abstract class OtelIngestBaseService {
         prefixKeysWithString: "",
       });
 
-    const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
+    const entities: Array<ExtractedEntity> = InventoryItem.extractEntities({
       projectId: data.projectId.toString(),
       attributes: flatAttributes,
       entityRefs: data.entityRefs,
