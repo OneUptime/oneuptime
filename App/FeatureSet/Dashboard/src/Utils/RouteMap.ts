@@ -810,6 +810,7 @@ export const UsersRoutePath: Dictionary<string> = {
 
   [PageMap.USER_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.USER_VIEW_TEAMS]: `${RouteParams.ModelID}/teams`,
+  [PageMap.USER_VIEW_NOTIFICATION_RULES]: `${RouteParams.ModelID}/notification-rules`,
   [PageMap.USER_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
   [PageMap.USER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
 };
@@ -4913,6 +4914,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.USER_VIEW_TEAMS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/users/${
       UsersRoutePath[PageMap.USER_VIEW_TEAMS]
+    }`,
+  ),
+
+  [PageMap.USER_VIEW_NOTIFICATION_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/users/${
+      UsersRoutePath[PageMap.USER_VIEW_NOTIFICATION_RULES]
     }`,
   ),
 

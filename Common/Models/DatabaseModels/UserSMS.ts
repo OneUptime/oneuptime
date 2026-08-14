@@ -20,6 +20,36 @@ import Phone from "../../Types/Phone";
 import Text from "../../Types/Text";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
+/*
+ * `read` names Permission.CurrentUser and nothing else. That single entry is
+ * what makes every column below owner-only, and it has to stay that way.
+ *
+ * CurrentUser is auto-granted to every authenticated caller, so on a COLUMN
+ * list it does not mean "on my own row" - column permissions are intersected
+ * by NAME and never see the query at all. The row scope lives HERE:
+ * TenantPermission.isAccessGrantedOnlyByCurrentUser is true exactly while this
+ * table list holds nothing but CurrentUser, and that is what stamps
+ * `userId = me` onto every read and refuses one that names somebody else. Add
+ * a single administrator permission to this list and the stamp stops being
+ * applied for whoever holds it - and the raw phone number and the verification
+ * code become readable on every member's row in the project.
+ *
+ * That is not hypothetical. It shipped once, and the column-level guard
+ * written to contain it was walked past by nested relation selects, by `query`
+ * filters it never inspected, and by the sort columns that are appended to the
+ * select after it had already run. Each fix produced the next defect, because
+ * this model was never designed to be read across users.
+ *
+ * An administrator who needs to know whether a colleague can be paged does not
+ * read this table. OnCallReadinessService answers that question as root and
+ * returns ReadinessMethod { methodId, methodType, maskedIdentifier,
+ * isVerified } - masked server-side by the one code path that holds the raw
+ * value - and the admin readiness surface already consumes it. The id is a
+ * foreign key rather than a secret: it lets an administrator POINT A RULE AT a
+ * method without reading the method's row, which is the thing the widening was
+ * actually reaching for. Point the next admin surface there. Widening this
+ * list is not a cheaper version of that; it is the version that leaks.
+ */
 @TenantColumn("projectId")
 @AllowAccessIfSubscriptionIsUnpaid()
 @TableAccessControl({

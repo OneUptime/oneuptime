@@ -1062,6 +1062,29 @@ enum Permission {
   DeleteProjectOnCallDutyPolicy = "DeleteProjectOnCallDutyPolicy",
   ReadProjectOnCallDutyPolicy = "ReadProjectOnCallDutyPolicy",
 
+  /*
+   * A project user's own on-call notification configuration - the rules that
+   * decide which of their verified methods a page reaches, and after how long.
+   *
+   * Every other permission in this family gates a resource the project owns.
+   * These two gate rows that belong to an individual member, which is why they
+   * exist separately rather than being folded into
+   * Read/EditProjectOnCallDutyPolicy: a policy says "page the on-call engineer",
+   * but whether that page actually arrives is decided by rows only that engineer
+   * could see or write. An unreachable teammate was therefore diagnosable by
+   * nobody but themselves, and the person carrying the incident had no way to
+   * find out before the page went unanswered.
+   *
+   * Read grants VISIBILITY of another member's rules and of the methods those
+   * rules point at - never the delivery token behind a method (see the column
+   * access control on UserWebhook and UserPush). Edit grants repair of the
+   * rules themselves. Neither grants the ability to add a notification method to
+   * somebody else's account; that asymmetry is deliberate and is explained on
+   * UserNotificationRule.
+   */
+  ReadProjectUserNotificationRule = "ReadProjectUserNotificationRule",
+  EditProjectUserNotificationRule = "EditProjectUserNotificationRule",
+
   // Resource Permissions (Team Permission)
   CreateProjectOnCallDutyPolicySchedule = "CreateProjectOnCallDutyPolicySchedule",
   EditProjectOnCallDutyPolicySchedule = "EditProjectOnCallDutyPolicySchedule",
@@ -5992,6 +6015,41 @@ export class PermissionHelper {
         description: "This permission can read on-call duty of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+
+      /*
+       * isRolePermission is false on both of these deliberately, and it is not a
+       * stylistic choice. A true value would file them under
+       * getRolePermissionProps(), which is the list every default project role
+       * is built from - so the ability to read and rewrite a colleague's paging
+       * configuration would arrive silently with an existing role rather than
+       * being handed out on purpose. They are granular permissions an
+       * administrator opts into, held by nobody until somebody grants them.
+       *
+       * isAccessControlPermission is false because the rows these gate carry no
+       * label column; there is nothing for a label-scoped grant to narrow, and
+       * claiming otherwise would offer an administrator a scoping control that
+       * silently does nothing.
+       */
+      {
+        permission: Permission.ReadProjectUserNotificationRule,
+        title: "Read User Notification Rules",
+        description:
+          "This permission can read the on-call notification rules of any user in this project, and see which of their notification methods those rules point at. Delivery addresses are shown in a masked form and delivery credentials are never readable.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      {
+        permission: Permission.EditProjectUserNotificationRule,
+        title: "Edit User Notification Rules",
+        description:
+          "This permission can create, edit and delete the on-call notification rules of any user in this project, in order to repair a member who would otherwise never be paged. It does not permit adding or changing a user's notification methods.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.OnCallDutyPolicy,
       },

@@ -39,9 +39,17 @@ import {
   NextFunction,
 } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
+import UserCall from "../../../Models/DatabaseModels/UserCall";
+import UserEmail from "../../../Models/DatabaseModels/UserEmail";
+import UserPush from "../../../Models/DatabaseModels/UserPush";
+import UserSMS from "../../../Models/DatabaseModels/UserSMS";
+import UserTelegram from "../../../Models/DatabaseModels/UserTelegram";
+import UserWebhook from "../../../Models/DatabaseModels/UserWebhook";
+import UserWhatsApp from "../../../Models/DatabaseModels/UserWhatsApp";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import Dictionary from "../../../Types/Dictionary";
+import Email from "../../../Types/Email";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
@@ -50,6 +58,7 @@ import Permission, {
   UserPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
+import Phone from "../../../Types/Phone";
 import ComplianceRuleType from "../../../Types/Team/ComplianceRuleType";
 import {
   afterEach,
@@ -376,6 +385,7 @@ beforeEach(() => {
   policyId = ObjectID.generate();
   subjectUserId = ObjectID.generate();
   teamId = ObjectID.generate();
+  stubEmailMethodId = ObjectID.generate();
 
   propsSpy = jest
     .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
@@ -543,6 +553,16 @@ describe("OnCallReadinessAPI - route registration", () => {
  * ---------------------------------------------------------------------------
  */
 
+/*
+ * The id of the UserEmail ROW the stub summary's one method describes. Held on
+ * the module rather than generated inside stubSummary() so an assertion can name
+ * the value it expects on the wire, and deliberately NOT equal to subjectUserId:
+ * the two are both ObjectIDs hanging off the same row, so confusing them
+ * compiles and renders perfectly and is only discovered when a saved rule turns
+ * out to reference a User where a UserEmail belongs.
+ */
+let stubEmailMethodId: ObjectID;
+
 function stubSummary(): ReadinessSummary {
   const severityId: ObjectID = ObjectID.generate();
   const pictureId: ObjectID = ObjectID.generate();
@@ -555,6 +575,7 @@ function stubSummary(): ReadinessSummary {
     status: ReadinessStatus.PartiallyReady,
     methods: [
       {
+        methodId: stubEmailMethodId,
         methodType: ReadinessMethodType.Email,
         maskedIdentifier: `a${IDENTIFIER_MASK}@example.com`,
         isVerified: true,
@@ -711,13 +732,37 @@ describe("GET /on-call-readiness/policy/:policyId", () => {
       "No rules for Sev4 incidents - pages fall back to Push, Email",
     ]);
 
+    /*
+     * Four fields and no fifth. `methods` is the part of this payload that
+     * describes rows an administrator is NOT permitted to read - the seven
+     * method models are owner-scoped precisely because their columns are the raw
+     * phone number, the webhook bearer url, the push token, the telegram chat id
+     * and the verification code - so the wire shape is asserted exhaustively
+     * rather than field by field. A field added to ReadinessMethod is a field
+     * that ships to every administrator of the project, and it should have to
+     * pass through here on the way.
+     */
     expect(user["methods"]).toEqual([
       {
+        methodId: stubEmailMethodId.toString(),
         methodType: ReadinessMethodType.Email,
         maskedIdentifier: `a${IDENTIFIER_MASK}@example.com`,
         isVerified: true,
       },
     ]);
+
+    /*
+     * And flattened to a plain string like every other id in this payload,
+     * rather than handed over as ObjectID.toJSON()'s
+     * `{ _type: "ObjectID", value: "..." }`. The rule form puts this value
+     * straight into userEmailId; a caller that received the wrapper shape and
+     * submitted it would be writing an object where a foreign key goes.
+     */
+    const method: Record<string, unknown> = (
+      user["methods"] as Array<Record<string, unknown>>
+    )[0]!;
+    expect(typeof method["methodId"]).toBe("string");
+    expect(method["methodId"]).not.toBe(subjectUserId.toString());
   });
 
   test("a coverage cell carries its severity id as a string, and undefined when it has none", async () => {
@@ -1324,6 +1369,67 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
   const RAW_WEBHOOK_URL: string =
     "https://hooks.slack.com/services/T000/B000/XXXXsecretXXXX";
 
+  /*
+   * One fixed id per channel, and fixed rather than generated so that a failure
+   * prints a value a reader can match against the fixture that produced it.
+   *
+   * These are the ids UserNotificationRule's seven foreign keys reference -
+   * userEmailId points at a UserEmail row, userSmsId at a UserSMS row - and they
+   * are the reason `methodId` exists at all. An administrator building a rule
+   * for somebody else may not READ any of these rows; what they get instead is
+   * this id beside a mask, which is enough to point a rule at a method and not
+   * enough to page anyone. So the id has to be on the wire, and it has to be the
+   * id of the METHOD row: a rule carrying a user id or a rule id in userSmsId
+   * references nothing, and a rule that references nothing pages nobody.
+   */
+  const PUSH_METHOD_ID: ObjectID = new ObjectID(
+    "1a000000-0000-4000-8000-000000000001",
+  );
+  const EMAIL_METHOD_ID: ObjectID = new ObjectID(
+    "1a000000-0000-4000-8000-000000000002",
+  );
+  const SMS_METHOD_ID: ObjectID = new ObjectID(
+    "1a000000-0000-4000-8000-000000000003",
+  );
+  const CALL_METHOD_ID: ObjectID = new ObjectID(
+    "1a000000-0000-4000-8000-000000000004",
+  );
+  const WHATSAPP_METHOD_ID: ObjectID = new ObjectID(
+    "1a000000-0000-4000-8000-000000000005",
+  );
+  const TELEGRAM_METHOD_ID: ObjectID = new ObjectID(
+    "1a000000-0000-4000-8000-000000000006",
+  );
+  const WEBHOOK_METHOD_ID: ObjectID = new ObjectID(
+    "1a000000-0000-4000-8000-000000000007",
+  );
+
+  /*
+   * The expected id per channel, in one place, so the sweep below is a sweep
+   * over all seven rather than seven assertions that can each be forgotten
+   * individually. Keyed by the wire's `methodType` string.
+   */
+  const METHOD_ID_BY_TYPE: Dictionary<string> = {
+    [ReadinessMethodType.Push]: PUSH_METHOD_ID.toString(),
+    [ReadinessMethodType.Email]: EMAIL_METHOD_ID.toString(),
+    [ReadinessMethodType.SMS]: SMS_METHOD_ID.toString(),
+    [ReadinessMethodType.Call]: CALL_METHOD_ID.toString(),
+    [ReadinessMethodType.WhatsApp]: WHATSAPP_METHOD_ID.toString(),
+    [ReadinessMethodType.Telegram]: TELEGRAM_METHOD_ID.toString(),
+    [ReadinessMethodType.Webhook]: WEBHOOK_METHOD_ID.toString(),
+  };
+
+  /*
+   * REAL model instances, not object literals shaped like rows.
+   *
+   * `_id` is a string column and `id` is a getter over it that hands back an
+   * ObjectID; a plain object has the first and not the second, and the service
+   * reads the second. Stubbing findBy with literals therefore produces rows the
+   * service quietly DROPS for having no id of their own - which would empty the
+   * `methods` array and turn every leak assertion in this block green for the
+   * one reason that proves nothing. Constructing the models is what keeps these
+   * tests honest about the path they claim to exercise.
+   */
   beforeEach(() => {
     userFindBy.mockResolvedValue([
       {
@@ -1333,54 +1439,57 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
       },
     ] as never);
 
-    userEmailFindBy.mockResolvedValue([
-      {
-        _id: "ue-1",
-        userId: subjectUserId,
-        email: RAW_EMAIL,
-        isVerified: true,
-      },
-    ] as never);
-    userSmsFindBy.mockResolvedValue([
-      { _id: "us-1", userId: subjectUserId, phone: RAW_SMS, isVerified: true },
-    ] as never);
-    userCallFindBy.mockResolvedValue([
-      { _id: "uc-1", userId: subjectUserId, phone: RAW_CALL, isVerified: true },
-    ] as never);
-    userWhatsAppFindBy.mockResolvedValue([
-      {
-        _id: "uw-1",
-        userId: subjectUserId,
-        phone: RAW_WHATSAPP,
-        isVerified: true,
-      },
-    ] as never);
-    userTelegramFindBy.mockResolvedValue([
-      {
-        _id: "ut-1",
-        userId: subjectUserId,
-        telegramUserHandle: RAW_HANDLE,
-        telegramChatId: "998877",
-        isVerified: true,
-      },
-    ] as never);
-    userPushFindBy.mockResolvedValue([
-      {
-        _id: "up-1",
-        userId: subjectUserId,
-        deviceName: RAW_DEVICE,
-        isVerified: true,
-      },
-    ] as never);
-    userWebhookFindBy.mockResolvedValue([
-      {
-        _id: "uh-1",
-        userId: subjectUserId,
-        name: RAW_WEBHOOK_NAME,
-        // Present on the row, and must never be selected or emitted.
-        webhookUrl: RAW_WEBHOOK_URL,
-      },
-    ] as never);
+    const email: UserEmail = new UserEmail();
+    email.id = EMAIL_METHOD_ID;
+    email.userId = subjectUserId;
+    email.email = new Email(RAW_EMAIL);
+    email.isVerified = true;
+    userEmailFindBy.mockResolvedValue([email] as never);
+
+    const sms: UserSMS = new UserSMS();
+    sms.id = SMS_METHOD_ID;
+    sms.userId = subjectUserId;
+    sms.phone = new Phone(RAW_SMS);
+    sms.isVerified = true;
+    userSmsFindBy.mockResolvedValue([sms] as never);
+
+    const call: UserCall = new UserCall();
+    call.id = CALL_METHOD_ID;
+    call.userId = subjectUserId;
+    call.phone = new Phone(RAW_CALL);
+    call.isVerified = true;
+    userCallFindBy.mockResolvedValue([call] as never);
+
+    const whatsApp: UserWhatsApp = new UserWhatsApp();
+    whatsApp.id = WHATSAPP_METHOD_ID;
+    whatsApp.userId = subjectUserId;
+    whatsApp.phone = new Phone(RAW_WHATSAPP);
+    whatsApp.isVerified = true;
+    userWhatsAppFindBy.mockResolvedValue([whatsApp] as never);
+
+    const telegram: UserTelegram = new UserTelegram();
+    telegram.id = TELEGRAM_METHOD_ID;
+    telegram.userId = subjectUserId;
+    telegram.telegramUserHandle = RAW_HANDLE;
+    // On the row, and never selected: the chat id is the addressable target.
+    telegram.telegramChatId = "998877";
+    telegram.isVerified = true;
+    userTelegramFindBy.mockResolvedValue([telegram] as never);
+
+    const push: UserPush = new UserPush();
+    push.id = PUSH_METHOD_ID;
+    push.userId = subjectUserId;
+    push.deviceName = RAW_DEVICE;
+    push.isVerified = true;
+    userPushFindBy.mockResolvedValue([push] as never);
+
+    const webhook: UserWebhook = new UserWebhook();
+    webhook.id = WEBHOOK_METHOD_ID;
+    webhook.userId = subjectUserId;
+    webhook.name = RAW_WEBHOOK_NAME;
+    // Present on the row, and must never be selected or emitted.
+    webhook.webhookUrl = RAW_WEBHOOK_URL;
+    userWebhookFindBy.mockResolvedValue([webhook] as never);
   });
 
   async function readUser(): Promise<Record<string, unknown>> {
@@ -1394,36 +1503,48 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
     return jsonPayload();
   }
 
+  function methodsOf(
+    payload: Record<string, unknown>,
+  ): Array<Record<string, unknown>> {
+    return payload["methods"] as Array<Record<string, unknown>>;
+  }
+
   test("every method identifier arrives masked, one per channel, in fallback order", async () => {
     const payload: Record<string, unknown> = await readUser();
 
     expect(payload["methods"]).toEqual([
       {
+        methodId: PUSH_METHOD_ID.toString(),
         methodType: ReadinessMethodType.Push,
         maskedIdentifier: `Ja${IDENTIFIER_MASK}`,
         isVerified: true,
       },
       {
+        methodId: EMAIL_METHOD_ID.toString(),
         methodType: ReadinessMethodType.Email,
         maskedIdentifier: `j${IDENTIFIER_MASK}@personal.example.com`,
         isVerified: true,
       },
       {
+        methodId: SMS_METHOD_ID.toString(),
         methodType: ReadinessMethodType.SMS,
         maskedIdentifier: `+1 ${IDENTIFIER_MASK} ${IDENTIFIER_MASK} 4821`,
         isVerified: true,
       },
       {
+        methodId: CALL_METHOD_ID.toString(),
         methodType: ReadinessMethodType.Call,
         maskedIdentifier: `+44 ${IDENTIFIER_MASK} ${IDENTIFIER_MASK} 4567`,
         isVerified: true,
       },
       {
+        methodId: WHATSAPP_METHOD_ID.toString(),
         methodType: ReadinessMethodType.WhatsApp,
         maskedIdentifier: `+1 ${IDENTIFIER_MASK} ${IDENTIFIER_MASK} 9999`,
         isVerified: true,
       },
       {
+        methodId: TELEGRAM_METHOD_ID.toString(),
         methodType: ReadinessMethodType.Telegram,
         maskedIdentifier: `@ja${IDENTIFIER_MASK}`,
         isVerified: true,
@@ -1433,6 +1554,7 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
          * UserWebhook has no verification concept at all - its presence is the
          * whole test, which is how the runtime fallback treats it too.
          */
+        methodId: WEBHOOK_METHOD_ID.toString(),
         methodType: ReadinessMethodType.Webhook,
         maskedIdentifier: `Pa${IDENTIFIER_MASK}`,
         isVerified: true,
@@ -1440,9 +1562,106 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
     ]);
   });
 
+  test("all seven channels reach the wire carrying the id of their OWN row", async () => {
+    /*
+     * The dropdown's entire premise, swept across every channel rather than
+     * spot-checked on one, because the seven are seven separate code paths that
+     * each build their own row and each have their own opportunity to hand over
+     * somebody else's id - or none at all.
+     *
+     * Asserted through the ROUTE rather than against the service, because the
+     * service is not where this can be lost any more: the serialiser copies the
+     * fields it names, so a `methodId` the service computes and the API does not
+     * copy is invisible everywhere except here, and it fails as an admin looking
+     * at a rule form with no options in it.
+     */
+    const payload: Record<string, unknown> = await readUser();
+    const methods: Array<Record<string, unknown>> = methodsOf(payload);
+
+    expect(methods).toHaveLength(7);
+
+    for (const method of methods) {
+      const methodType: string = method["methodType"] as string;
+      const expected: string | undefined = METHOD_ID_BY_TYPE[methodType];
+
+      /*
+       * Guards the sweep: an unrecognised channel would otherwise compare
+       * undefined against undefined and pass. An eighth channel is a contract
+       * change and must be added to the table above deliberately.
+       */
+      expect(expected).toBeDefined();
+      expect(`${methodType}: ${String(method["methodId"])}`).toBe(
+        `${methodType}: ${String(expected)}`,
+      );
+      expect(typeof method["methodId"]).toBe("string");
+    }
+  });
+
+  test("no methodId is the responder's user id, which references no method at all", async () => {
+    /*
+     * `row.userId` and `row.id` are both ObjectIDs on the same row, and the
+     * mistake of emitting the first where the second belongs type-checks,
+     * renders identically and is only discovered when a rule saved against it
+     * turns out to reference a User where a UserSMS was expected. That rule
+     * dereferences to nothing at page time, which is the failure this whole
+     * feature exists to make visible - so it must not be the failure the feature
+     * introduces.
+     */
+    const payload: Record<string, unknown> = await readUser();
+    const methods: Array<Record<string, unknown>> = methodsOf(payload);
+
+    expect(methods).toHaveLength(7);
+
+    for (const method of methods) {
+      expect(method["methodId"]).not.toBe(subjectUserId.toString());
+      // Nor the policy or the project the responder was reached through.
+      expect(method["methodId"]).not.toBe(policyId.toString());
+      expect(method["methodId"]).not.toBe(projectId.toString());
+    }
+
+    // And all seven are distinct - one id copied across channels is the same bug.
+    const ids: Array<unknown> = methods.map(
+      (method: Record<string, unknown>): unknown => {
+        return method["methodId"];
+      },
+    );
+    expect(new Set(ids).size).toBe(7);
+  });
+
+  test("a method carries its id, its type, its mask and its verification - and nothing else", async () => {
+    /*
+     * The containment assertion. Every field on this object ships to every
+     * administrator of the project, about a row that administrator is not
+     * allowed to read, so the key set is pinned exhaustively on all seven rather
+     * than left to whatever the serialiser happens to copy. A `phone`, a
+     * `webhookUrl` or a `telegramChatId` appearing here is not a formatting
+     * change; it is the exposure this design was built to avoid.
+     */
+    const payload: Record<string, unknown> = await readUser();
+
+    for (const method of methodsOf(payload)) {
+      expect(Object.keys(method).sort()).toEqual([
+        "isVerified",
+        "maskedIdentifier",
+        "methodId",
+        "methodType",
+      ]);
+    }
+  });
+
   test("not one raw identifier appears anywhere in the response body", async () => {
     const payload: Record<string, unknown> = await readUser();
     const body: string = JSON.stringify(payload);
+
+    /*
+     * Guards the guard, and it is not a formality here: the service drops any
+     * method row it cannot find an id on, so a fixture regression that emptied
+     * `methods` would satisfy every "not present" assertion below for the one
+     * reason that proves nothing at all. The seven masks have to be in the body
+     * before their absence of raw values means anything.
+     */
+    expect(methodsOf(payload)).toHaveLength(7);
+    expect(body).toContain(IDENTIFIER_MASK);
 
     /*
      * Serialised and searched wholesale rather than field by field, because the
@@ -1463,9 +1682,65 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
       "hooks.slack.com",
       // The telegram chat id - the addressable target, never the label.
       "998877",
+      /*
+       * The unmasked tails of the four phone-shaped identifiers. maskIdentifier
+       * keeps the last four digits on purpose, so the numbers themselves are
+       * spelled out here without their separators as well: a serialiser that
+       * emitted E.164 alongside the mask would still be caught even though the
+       * mask is present and correct beside it.
+       */
+      "4155554821",
+      "442071234567",
+      "4155559999",
     ]) {
       expect(body).not.toContain(raw);
     }
+  });
+
+  test("the id on the wire is the METHOD row's, told apart from the RULE that points at it", async () => {
+    /*
+     * The two ids a rule form juggles are the rule's own id and the method id it
+     * writes into userSmsId, and they are indistinguishable by shape. This
+     * stages a rule row whose id is a value nothing else in the fixture uses,
+     * then asserts it does not turn up in `methods` - because a dropdown offering
+     * rule ids would write userSmsId values that dereference to a
+     * UserNotificationRule, which pages nobody and reads, on the readiness table
+     * that would then describe it, as a method that exists.
+     */
+    const ruleId: ObjectID = new ObjectID(
+      "1b000000-0000-4000-8000-0000000000ff",
+    );
+
+    notificationRuleFindBy.mockResolvedValue([
+      {
+        _id: ruleId.toString(),
+        userId: subjectUserId,
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        userSmsId: SMS_METHOD_ID,
+      },
+    ] as never);
+
+    const payload: Record<string, unknown> = await readUser();
+    const methods: Array<Record<string, unknown>> = methodsOf(payload);
+
+    expect(methods).toHaveLength(7);
+
+    for (const method of methods) {
+      expect(method["methodId"]).not.toBe(ruleId.toString());
+    }
+
+    /*
+     * And the SMS entry still carries the id that rule references, which is the
+     * positive half: the value an admin picks and the value already stored on an
+     * existing rule have to be the same value, or the form cannot show the
+     * current selection.
+     */
+    const smsMethod: Record<string, unknown> | undefined = methods.find(
+      (method: Record<string, unknown>): boolean => {
+        return method["methodType"] === ReadinessMethodType.SMS;
+      },
+    );
+    expect(smsMethod?.["methodId"]).toBe(SMS_METHOD_ID.toString());
   });
 
   test("the login email is NOT masked, but the notification email still is", async () => {

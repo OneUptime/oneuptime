@@ -152,6 +152,38 @@ const ALERT_SEVERITY_2_ID: ObjectID = new ObjectID(
 );
 
 /*
+ * One id per channel for the METHOD ROWS themselves - UserSMS._id, UserEmail._id and so
+ * on - which are what UserNotificationRule.userSmsId / userEmailId / ... reference and
+ * what the admin rule form has to submit.
+ *
+ * They are all distinct from each other AND from every user id above, deliberately: the
+ * mistake this pins against is wiring `row.userId` into the payload instead of `row.id`,
+ * which type-checks perfectly, renders perfectly, and produces a rule pointed at a row
+ * that is not a notification method at all.
+ */
+const PUSH_METHOD_ID: ObjectID = new ObjectID(
+  "c0000000-0000-4000-8000-000000000001",
+);
+const EMAIL_METHOD_ID: ObjectID = new ObjectID(
+  "c0000000-0000-4000-8000-000000000002",
+);
+const SMS_METHOD_ID: ObjectID = new ObjectID(
+  "c0000000-0000-4000-8000-000000000003",
+);
+const CALL_METHOD_ID: ObjectID = new ObjectID(
+  "c0000000-0000-4000-8000-000000000004",
+);
+const WHATSAPP_METHOD_ID: ObjectID = new ObjectID(
+  "c0000000-0000-4000-8000-000000000005",
+);
+const TELEGRAM_METHOD_ID: ObjectID = new ObjectID(
+  "c0000000-0000-4000-8000-000000000006",
+);
+const WEBHOOK_METHOD_ID: ObjectID = new ObjectID(
+  "c0000000-0000-4000-8000-000000000007",
+);
+
+/*
  * Raw identifiers that must never reach a caller. Each is deliberately
  * distinctive so a substring search over the serialized summary cannot pass by
  * accident, and each has a "revealing middle" that survives no legitimate mask.
@@ -363,12 +395,22 @@ function alertSeverity(id: ObjectID, name: string): AlertSeverity {
   return severity;
 }
 
+/*
+ * Every method fixture below carries an id, defaulting to a fresh one, because every
+ * method ROW carries one: `_id` is the primary key and every select in the service asks
+ * for it. A fixture without an id is not a row that could exist, and the service drops
+ * such a row rather than emitting a method the rule form could not point at - so a
+ * default here keeps that deliberate drop from quietly deleting the methods out of every
+ * unrelated test. The tests that care about a specific id pass one of the constants above.
+ */
 function pushMethod(data: {
   userId: ObjectID;
   deviceName?: string | undefined;
   isVerified: boolean;
+  id?: ObjectID | undefined;
 }): UserPush {
   const model: UserPush = new UserPush();
+  model.id = data.id || ObjectID.generate();
   model.userId = data.userId;
   model.isVerified = data.isVerified;
 
@@ -383,8 +425,10 @@ function emailMethod(data: {
   userId: ObjectID;
   email: string;
   isVerified: boolean;
+  id?: ObjectID | undefined;
 }): UserEmail {
   const model: UserEmail = new UserEmail();
+  model.id = data.id || ObjectID.generate();
   model.userId = data.userId;
   model.email = new Email(data.email);
   model.isVerified = data.isVerified;
@@ -396,8 +440,10 @@ function smsMethod(data: {
   userId: ObjectID;
   phone: string;
   isVerified: boolean;
+  id?: ObjectID | undefined;
 }): UserSMS {
   const model: UserSMS = new UserSMS();
+  model.id = data.id || ObjectID.generate();
   model.userId = data.userId;
   model.phone = new Phone(data.phone);
   model.isVerified = data.isVerified;
@@ -409,8 +455,10 @@ function callMethod(data: {
   userId: ObjectID;
   phone: string;
   isVerified: boolean;
+  id?: ObjectID | undefined;
 }): UserCall {
   const model: UserCall = new UserCall();
+  model.id = data.id || ObjectID.generate();
   model.userId = data.userId;
   model.phone = new Phone(data.phone);
   model.isVerified = data.isVerified;
@@ -422,8 +470,10 @@ function whatsAppMethod(data: {
   userId: ObjectID;
   phone: string;
   isVerified: boolean;
+  id?: ObjectID | undefined;
 }): UserWhatsApp {
   const model: UserWhatsApp = new UserWhatsApp();
+  model.id = data.id || ObjectID.generate();
   model.userId = data.userId;
   model.phone = new Phone(data.phone);
   model.isVerified = data.isVerified;
@@ -435,8 +485,10 @@ function telegramMethod(data: {
   userId: ObjectID;
   handle: string;
   isVerified: boolean;
+  id?: ObjectID | undefined;
 }): UserTelegram {
   const model: UserTelegram = new UserTelegram();
+  model.id = data.id || ObjectID.generate();
   model.userId = data.userId;
   model.telegramUserHandle = data.handle;
   model.isVerified = data.isVerified;
@@ -453,8 +505,10 @@ function webhookMethod(data: {
   userId: ObjectID;
   name: string;
   webhookUrl?: string | undefined;
+  id?: ObjectID | undefined;
 }): UserWebhook {
   const model: UserWebhook = new UserWebhook();
+  model.id = data.id || ObjectID.generate();
   model.userId = data.userId;
   model.name = data.name;
 
@@ -613,6 +667,23 @@ function methodTypes(readiness: UserReadiness): Array<string> {
   return readiness.methods.map((method: ReadinessMethod): string => {
     return method.methodType;
   });
+}
+
+function methodOfType(
+  readiness: UserReadiness,
+  methodType: ReadinessMethodType,
+): ReadinessMethod {
+  const method: ReadinessMethod | undefined = readiness.methods.find(
+    (candidate: ReadinessMethod): boolean => {
+      return candidate.methodType === methodType;
+    },
+  );
+
+  if (!method) {
+    throw new Error(`No ${methodType} method on this responder`);
+  }
+
+  return method;
 }
 
 beforeEach(() => {
@@ -2413,6 +2484,234 @@ describe("notification channels", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * (G2) Method identity - referencing a method without reading it.
+ *
+ * The admin rule form has to POINT A RULE AT one of these methods, and it is not
+ * allowed to read the row it points at: the seven method models are scoped to
+ * their owner precisely because their columns are the raw phone number, the
+ * webhook bearer url, the push device token, the telegram chat id and the
+ * verification code. Widening that scope so a dropdown could be populated was
+ * tried, and the exposure it opened could not be contained.
+ *
+ * `methodId` is what replaces it. The foreign key is not a secret - it is
+ * already stored in plain sight on every rule its owner created, and it
+ * addresses nothing on its own - so shipping it beside the mask is what lets an
+ * admin select "SMS ending 4821" with the number itself never leaving the
+ * server.
+ *
+ * Which makes these tests load-bearing in two directions at once: the id must be
+ * PRESENT (or the form has nothing to submit) and it must be the id of the
+ * METHOD row (or the form submits a userSmsId that is not a UserSMS).
+ * ---------------------------------------------------------------------------
+ */
+describe("method identity", () => {
+  beforeEach(() => {
+    attachDirectly(USER_A_ID);
+  });
+
+  function attachEverySevenChannels(): void {
+    pushFindBy.mockResolvedValue([
+      pushMethod({
+        userId: USER_A_ID,
+        deviceName: RAW_PUSH_DEVICE,
+        isVerified: true,
+        id: PUSH_METHOD_ID,
+      }),
+    ] as never);
+    emailFindBy.mockResolvedValue([
+      emailMethod({
+        userId: USER_A_ID,
+        email: RAW_NOTIFICATION_EMAIL,
+        isVerified: true,
+        id: EMAIL_METHOD_ID,
+      }),
+    ] as never);
+    smsFindBy.mockResolvedValue([
+      smsMethod({
+        userId: USER_A_ID,
+        phone: RAW_SMS_PHONE,
+        isVerified: true,
+        id: SMS_METHOD_ID,
+      }),
+    ] as never);
+    callFindBy.mockResolvedValue([
+      callMethod({
+        userId: USER_A_ID,
+        phone: RAW_CALL_PHONE,
+        isVerified: true,
+        id: CALL_METHOD_ID,
+      }),
+    ] as never);
+    whatsAppFindBy.mockResolvedValue([
+      whatsAppMethod({
+        userId: USER_A_ID,
+        phone: RAW_WHATSAPP_PHONE,
+        isVerified: true,
+        id: WHATSAPP_METHOD_ID,
+      }),
+    ] as never);
+    telegramFindBy.mockResolvedValue([
+      telegramMethod({
+        userId: USER_A_ID,
+        handle: RAW_TELEGRAM_HANDLE,
+        isVerified: true,
+        id: TELEGRAM_METHOD_ID,
+      }),
+    ] as never);
+    webhookFindBy.mockResolvedValue([
+      webhookMethod({
+        userId: USER_A_ID,
+        name: RAW_WEBHOOK_NAME,
+        webhookUrl: RAW_WEBHOOK_URL,
+        id: WEBHOOK_METHOD_ID,
+      }),
+    ] as never);
+  }
+
+  test("all seven channels carry the id of their OWN row, which is what a rule references", async () => {
+    attachEverySevenChannels();
+
+    const readiness: UserReadiness = await onlyUser();
+
+    /*
+     * One expectation per channel rather than a loop, so a failure names the
+     * channel that lost its id rather than an index into an array.
+     */
+    expect(
+      methodOfType(readiness, ReadinessMethodType.Push).methodId.toString(),
+    ).toBe(PUSH_METHOD_ID.toString());
+    expect(
+      methodOfType(readiness, ReadinessMethodType.Email).methodId.toString(),
+    ).toBe(EMAIL_METHOD_ID.toString());
+    expect(
+      methodOfType(readiness, ReadinessMethodType.SMS).methodId.toString(),
+    ).toBe(SMS_METHOD_ID.toString());
+    expect(
+      methodOfType(readiness, ReadinessMethodType.Call).methodId.toString(),
+    ).toBe(CALL_METHOD_ID.toString());
+    expect(
+      methodOfType(readiness, ReadinessMethodType.WhatsApp).methodId.toString(),
+    ).toBe(WHATSAPP_METHOD_ID.toString());
+    expect(
+      methodOfType(readiness, ReadinessMethodType.Telegram).methodId.toString(),
+    ).toBe(TELEGRAM_METHOD_ID.toString());
+    expect(
+      methodOfType(readiness, ReadinessMethodType.Webhook).methodId.toString(),
+    ).toBe(WEBHOOK_METHOD_ID.toString());
+  });
+
+  test("no methodId is the USER's id - a rule pointed at a user id points at no method at all", async () => {
+    attachEverySevenChannels();
+
+    const readiness: UserReadiness = await onlyUser();
+
+    expect(readiness.methods).toHaveLength(7);
+
+    for (const method of readiness.methods) {
+      /*
+       * `row.userId` and `row.id` are both ObjectIDs on the same row, so
+       * confusing them compiles, renders and reads correctly right up until the
+       * saved rule turns out to reference a User rather than a UserSMS. This is
+       * the assertion that separates them.
+       */
+      expect(method.methodId.toString()).not.toBe(USER_A_ID.toString());
+    }
+  });
+
+  test("two methods on the SAME channel are told apart by their ids, which is the whole point of a dropdown", async () => {
+    /*
+     * The case the admin form exists for: a responder with a work phone and a
+     * personal phone. Both mask to something ending in four digits, and the
+     * masks are all the admin can see, so the id is the only thing that makes
+     * "the second one" selectable.
+     */
+    const secondSmsId: ObjectID = new ObjectID(
+      "c0000000-0000-4000-8000-00000000000a",
+    );
+
+    smsFindBy.mockResolvedValue([
+      smsMethod({
+        userId: USER_A_ID,
+        phone: RAW_SMS_PHONE,
+        isVerified: true,
+        id: SMS_METHOD_ID,
+      }),
+      smsMethod({
+        userId: USER_A_ID,
+        phone: "+14155550000",
+        isVerified: true,
+        id: secondSmsId,
+      }),
+    ] as never);
+
+    const readiness: UserReadiness = await onlyUser();
+    const smsMethods: Array<ReadinessMethod> = readiness.methods.filter(
+      (method: ReadinessMethod): boolean => {
+        return method.methodType === ReadinessMethodType.SMS;
+      },
+    );
+
+    expect(smsMethods).toHaveLength(2);
+    expect(
+      smsMethods.map((method: ReadinessMethod): string => {
+        return method.methodId.toString();
+      }),
+    ).toEqual([SMS_METHOD_ID.toString(), secondSmsId.toString()]);
+  });
+
+  test("one responder's method id is never attached to another responder's mask", async () => {
+    attachDirectly(USER_A_ID, USER_B_ID);
+    smsFindBy.mockResolvedValue([
+      smsMethod({
+        userId: USER_B_ID,
+        phone: RAW_SMS_PHONE,
+        isVerified: true,
+        id: SMS_METHOD_ID,
+      }),
+    ] as never);
+
+    const summary: ReadinessSummary = await policySummary();
+    const ada: UserReadiness = summary.users.find(
+      (user: UserReadiness): boolean => {
+        return user.userId.toString() === USER_A_ID.toString();
+      },
+    )!;
+    const grace: UserReadiness = summary.users.find(
+      (user: UserReadiness): boolean => {
+        return user.userId.toString() === USER_B_ID.toString();
+      },
+    )!;
+
+    expect(ada.methods).toEqual([]);
+    expect(
+      methodOfType(grace, ReadinessMethodType.SMS).methodId.toString(),
+    ).toBe(SMS_METHOD_ID.toString());
+  });
+
+  test("a row that arrives with no id at all is dropped, not emitted with a hole where its id should be", async () => {
+    /*
+     * Unreachable while every select asks for `_id`, and pinned anyway: the
+     * alternative to dropping is an option in the rule form that cannot be
+     * submitted, or a `methodId` typed optional so that every consumer has to
+     * handle a case that cannot happen. Dropping errs towards reporting the
+     * responder as LESS reachable than they are, which is the direction this
+     * service always errs in.
+     */
+    const idless: UserPush = new UserPush();
+    idless.userId = USER_A_ID;
+    idless.isVerified = true;
+
+    pushFindBy.mockResolvedValue([idless] as never);
+
+    const readiness: UserReadiness = await onlyUser();
+
+    expect(readiness.methods).toEqual([]);
+    expect(readiness.status).toBe(ReadinessStatus.NotReachable);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * (H) Masking, end to end.
  *
  * The assertions here run over the SERIALIZED summary rather than the fields a
@@ -2504,9 +2803,44 @@ describe("identifier exposure", () => {
     );
   });
 
+  test("a method carries FOUR fields and no fifth - the id is the ONLY thing beside the mask", async () => {
+    const readiness: UserReadiness = await onlyUser();
+
+    expect(readiness.methods).toHaveLength(7);
+
+    /*
+     * An exact key set, not a "does not contain the url" check, and this is the
+     * strongest assertion in the file. Every field on a ReadinessMethod ships to
+     * every administrator of the project, so the question is never "is this
+     * particular new field safe" but "did anyone add a field at all" - the raw
+     * phone number, the webhook bearer url, the push device token, the telegram
+     * chat id and the verification code all live one property away on the row
+     * these are built from. `methodId` was added deliberately, because a foreign
+     * key addresses nothing on its own; a fifth field has to argue its way
+     * through this test.
+     */
+    for (const method of readiness.methods) {
+      expect(Object.keys(method).sort()).toEqual([
+        "isVerified",
+        "maskedIdentifier",
+        "methodId",
+        "methodType",
+      ]);
+    }
+  });
+
   test("NO raw identifier survives anywhere in the serialized summary", async () => {
     const summary: ReadinessSummary = await policySummary();
     const serialized: string = JSON.stringify(summary);
+
+    /*
+     * The ids ARE on the wire now - that is what makes an admin dropdown
+     * possible without a cross-user read - so this assertion is the one that
+     * says the id is all that was added. It runs over the serialized summary
+     * rather than over the fields listed above precisely because a leak that
+     * arrives through a field nobody listed is the leak that ships.
+     */
+    expect(serialized).toContain("methodId");
 
     /*
      * Whole values first, then the "revealing middle" of each - the part that

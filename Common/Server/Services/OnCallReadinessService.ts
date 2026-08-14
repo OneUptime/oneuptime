@@ -131,6 +131,28 @@ export enum ReadinessMethodType {
 }
 
 export interface ReadinessMethod {
+  /**
+   * The id of the METHOD ROW itself — UserSMS._id, UserEmail._id and so on — which is
+   * exactly what UserNotificationRule.userSmsId / userEmailId / ... reference.
+   *
+   * It is here so that an administrator can POINT A RULE AT a method without READING that
+   * method's row, which is the whole difficulty. The seven method models are scoped to
+   * their owner: nobody but the owner may read a UserSMS, and that is deliberate, because
+   * the columns behind it are the raw phone number, the webhook bearer url, the push
+   * device token, the telegram chat id and the verification code. Widening that scope so
+   * an admin could populate a dropdown was tried, and the exposure it opened could not be
+   * contained; this field is what replaces it.
+   *
+   * A foreign key is not a secret. It is already stored in plain sight on every rule its
+   * owner has created, and it addresses nothing on its own — you cannot page a uuid.
+   * Carrying it alongside the mask is therefore the entire trick: the rule form renders
+   * "SMS ending 4821" and submits userSmsId, and the number itself never leaves the
+   * server for a caller who is not its owner.
+   *
+   * Which is also why NOTHING ELSE about the row belongs on this interface. Every field
+   * added here is a field that ships to every administrator of the project.
+   */
+  methodId: ObjectID;
   methodType: string;
   /**
    * ALWAYS masked, by construction — see maskIdentifier. Never the raw value.
@@ -504,6 +526,20 @@ interface UserReadinessBatch {
  */
 interface PagedReadService<TModel extends DatabaseBaseModel> {
   findBy(findBy: FindBy<TModel>): Promise<Array<TModel>>;
+}
+
+/**
+ * The two ids every notification-method row has to hand over: its OWN, which is what a
+ * rule points at, and its OWNER's, which is whose readiness it counts towards.
+ *
+ * Structural rather than a union of the seven models so that loadMethods can take both
+ * out of any of them without seven overloads — and so that an eighth channel cannot be
+ * added without supplying both, which is the pair that makes a method both listable and
+ * selectable.
+ */
+interface MethodRowRef {
+  id: ObjectID | null;
+  userId?: ObjectID | undefined;
 }
 
 type CoverageKeyFunction = (
@@ -1786,30 +1822,56 @@ export default class OnCallReadinessService {
       Array<ReadinessMethod>
     >();
 
+    /*
+     * The row goes in whole rather than as a userId, so that the id a rule will point at
+     * and the identifier that gets masked provably come off the SAME row. Handing the two
+     * in separately is how a caller ends up attaching one person's method id to another
+     * person's mask, and a rule pointed at the wrong row pages the wrong human.
+     */
     type AddMethodFunction = (
-      userId: ObjectID | undefined,
-      method: ReadinessMethod,
+      row: MethodRowRef,
+      method: Omit<ReadinessMethod, "methodId">,
     ) => void;
 
     const addMethod: AddMethodFunction = (
-      userId: ObjectID | undefined,
-      method: ReadinessMethod,
+      row: MethodRowRef,
+      method: Omit<ReadinessMethod, "methodId">,
     ): void => {
-      if (!userId) {
+      const methodId: ObjectID | null = row.id;
+
+      /*
+       * A row with no owner, or no id of its own, is dropped. Neither is reachable while
+       * every select below asks for `_id` and every method row is owned — a primary key
+       * is not optional in the database — so this is a guard against a future select
+       * being trimmed rather than a case that happens.
+       *
+       * It is a drop rather than a partial emit because the alternatives are both worse.
+       * Emitting the method without an id would mean typing methodId as optional, which
+       * pushes this impossible case out to every caller and gives the rule form an option
+       * it cannot submit. Dropping errs towards reporting the responder as LESS reachable
+       * than they are, which is the direction this service always errs in: a false amber
+       * gets investigated, and a false green does not.
+       */
+      if (!row.userId || !methodId) {
         return;
       }
 
-      const key: string = userId.toString();
+      const readinessMethod: ReadinessMethod = {
+        methodId: methodId,
+        ...method,
+      };
+
+      const key: string = row.userId.toString();
       const existing: Array<ReadinessMethod> | undefined =
         methodsByUserId.get(key);
 
       if (existing) {
-        existing.push(method);
+        existing.push(readinessMethod);
 
         return;
       }
 
-      methodsByUserId.set(key, [method]);
+      methodsByUserId.set(key, [readinessMethod]);
     };
 
     await this.readEveryPage<UserPush>({
@@ -1829,7 +1891,7 @@ export default class OnCallReadinessService {
       },
       consumePage: (rows: Array<UserPush>): void => {
         for (const row of rows) {
-          addMethod(row.userId, {
+          addMethod(row, {
             methodType: ReadinessMethodType.Push,
             maskedIdentifier: maskIdentifier(
               row.deviceName,
@@ -1858,7 +1920,7 @@ export default class OnCallReadinessService {
       },
       consumePage: (rows: Array<UserEmail>): void => {
         for (const row of rows) {
-          addMethod(row.userId, {
+          addMethod(row, {
             methodType: ReadinessMethodType.Email,
             maskedIdentifier: maskIdentifier(
               row.email?.toString(),
@@ -1887,7 +1949,7 @@ export default class OnCallReadinessService {
       },
       consumePage: (rows: Array<UserSMS>): void => {
         for (const row of rows) {
-          addMethod(row.userId, {
+          addMethod(row, {
             methodType: ReadinessMethodType.SMS,
             maskedIdentifier: maskIdentifier(
               row.phone?.toString(),
@@ -1916,7 +1978,7 @@ export default class OnCallReadinessService {
       },
       consumePage: (rows: Array<UserCall>): void => {
         for (const row of rows) {
-          addMethod(row.userId, {
+          addMethod(row, {
             methodType: ReadinessMethodType.Call,
             maskedIdentifier: maskIdentifier(
               row.phone?.toString(),
@@ -1945,7 +2007,7 @@ export default class OnCallReadinessService {
       },
       consumePage: (rows: Array<UserWhatsApp>): void => {
         for (const row of rows) {
-          addMethod(row.userId, {
+          addMethod(row, {
             methodType: ReadinessMethodType.WhatsApp,
             maskedIdentifier: maskIdentifier(
               row.phone?.toString(),
@@ -1979,7 +2041,7 @@ export default class OnCallReadinessService {
       },
       consumePage: (rows: Array<UserTelegram>): void => {
         for (const row of rows) {
-          addMethod(row.userId, {
+          addMethod(row, {
             methodType: ReadinessMethodType.Telegram,
             maskedIdentifier: maskIdentifier(
               row.telegramUserHandle,
@@ -2022,7 +2084,7 @@ export default class OnCallReadinessService {
            * paint the one channel that is guaranteed to work as the one channel that
            * will not.
            */
-          addMethod(row.userId, {
+          addMethod(row, {
             methodType: ReadinessMethodType.Webhook,
             maskedIdentifier: maskIdentifier(
               row.name,

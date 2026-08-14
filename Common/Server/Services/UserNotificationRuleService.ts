@@ -1,6 +1,11 @@
 import DatabaseConfig from "../DatabaseConfig";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate } from "../Types/Database/Hooks";
+import DeleteBy from "../Types/Database/DeleteBy";
+import Query from "../Types/Database/Query";
+import UpdateBy from "../Types/Database/UpdateBy";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import TenantPermission from "../Types/Database/Permissions/TenantPermission";
 import Markdown, { MarkdownContentType } from "../Types/Markdown";
 import CallService from "./CallService";
 import DatabaseService from "./DatabaseService";
@@ -21,6 +26,10 @@ import UserTelegramService from "./UserTelegramService";
 import UserWebhookService from "./UserWebhookService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import ProjectService from "./ProjectService";
+import UserNotificationRuleAdminService, {
+  RuleColumnCarrier,
+  NotificationMethodReference,
+} from "./UserNotificationRuleAdminService";
 import UserOnCallLogService from "./UserOnCallLogService";
 import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
 import { AppApiRoute } from "../../ServiceRoute";
@@ -28,8 +37,10 @@ import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
 import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
+import AuditLogAction from "../../Types/AuditLog/AuditLogAction";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CallRequest from "../../Types/Call/CallRequest";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Dictionary from "../../Types/Dictionary";
 import Email from "../../Types/Email";
@@ -229,36 +240,51 @@ export class Service extends DatabaseService<Model> {
       select: {
         _id: true,
         userId: true,
+        /*
+         * Every method relation also selects its OWN userId, which none of the
+         * channel blocks below read. It is here for the ownership check that
+         * runs before delivery: the address a page is sent to comes from these
+         * relations, while whose page it is comes from the rule's userId, and
+         * nothing in the ORM ever compares the two. See
+         * getNotificationMethodsNotOwnedByRuleOwner.
+         */
         userCall: {
           phone: true,
           isVerified: true,
+          userId: true,
         },
         userSms: {
           phone: true,
           isVerified: true,
+          userId: true,
         },
         userWhatsApp: {
           phone: true,
           isVerified: true,
+          userId: true,
         },
         userTelegram: {
           telegramChatId: true,
           telegramUserHandle: true,
           isVerified: true,
+          userId: true,
         },
         userWebhook: {
           webhookUrl: true,
           name: true,
           secret: true,
+          userId: true,
         },
         userEmail: {
           email: true,
           isVerified: true,
+          userId: true,
         },
         userPush: {
           deviceToken: true,
           deviceType: true,
           isVerified: true,
+          userId: true,
         },
       },
       props: {
@@ -270,7 +296,133 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Notification rule item not found.");
     }
 
+    /*
+     * The last line of defence, and the only one that survives every write path
+     * — including ones that do not exist yet.
+     *
+     * The write-side guards in UserNotificationRuleAdminService stop a rule
+     * whose ownership column and method relation name different people from
+     * being SAVED. This stops one that somehow exists from being ACTED ON: a
+     * row written before those guards landed, one written by internal code
+     * running as root, or one written through a path a future change forgets to
+     * route through them. Without it, a single bad row silently redirects a
+     * responder's pages for as long as nobody thinks to compare two columns
+     * that no screen shows side by side.
+     */
+    const mismatchedChannels: Array<string> =
+      this.getNotificationMethodsNotOwnedByRuleOwner(notificationRuleItem);
+
+    if (mismatchedChannels.length > 0) {
+      await this.recordMismatchedNotificationMethod(
+        notificationRuleItem,
+        options,
+        mismatchedChannels,
+      );
+
+      return;
+    }
+
     await this.deliverNotificationForRule(notificationRuleItem, options);
+  }
+
+  /*
+   * Which of a rule's method relations are owned by somebody other than the
+   * rule itself.
+   *
+   * Only a method whose userId was actually LOADED and actually DISAGREES is
+   * reported. An unselected column arrives as `undefined`, and reading absence
+   * as disagreement would turn this guard into a page-dropping machine on every
+   * caller that does not select userId — precisely the failure this whole epic
+   * exists to eliminate. Silence here means "no evidence of a mismatch", which
+   * is the only safe default for a check that can suppress a page.
+   */
+  private getNotificationMethodsNotOwnedByRuleOwner(
+    notificationRuleItem: Model,
+  ): Array<string> {
+    const ruleOwnerUserId: ObjectID | undefined = notificationRuleItem.userId;
+
+    if (!ruleOwnerUserId) {
+      /*
+       * An unowned rule cannot be paged for anybody in the first place — the
+       * caller found it by id, not by owner — so there is no owner to compare
+       * against and nothing to report.
+       */
+      return [];
+    }
+
+    const methodOwners: Array<{
+      label: string;
+      ownerUserId: ObjectID | undefined;
+    }> = [
+      { label: "Email", ownerUserId: notificationRuleItem.userEmail?.userId },
+      { label: "SMS", ownerUserId: notificationRuleItem.userSms?.userId },
+      { label: "Call", ownerUserId: notificationRuleItem.userCall?.userId },
+      {
+        label: "WhatsApp",
+        ownerUserId: notificationRuleItem.userWhatsApp?.userId,
+      },
+      {
+        label: "Telegram",
+        ownerUserId: notificationRuleItem.userTelegram?.userId,
+      },
+      { label: "Push", ownerUserId: notificationRuleItem.userPush?.userId },
+      {
+        label: "Webhook",
+        ownerUserId: notificationRuleItem.userWebhook?.userId,
+      },
+    ];
+
+    const mismatched: Array<string> = [];
+
+    for (const methodOwner of methodOwners) {
+      if (
+        methodOwner.ownerUserId &&
+        methodOwner.ownerUserId.toString() !== ruleOwnerUserId.toString()
+      ) {
+        mismatched.push(methodOwner.label);
+      }
+    }
+
+    return mismatched;
+  }
+
+  /*
+   * Refuse the whole rule, not merely the offending channel.
+   *
+   * A rule with a foreign method on it is not a rule with one bad field; it is
+   * a row somebody wrote to redirect a page, and delivering its other channels
+   * would let the row keep working well enough to escape notice. The timeline
+   * row is the point: it is the surface a responder and an operator both read,
+   * and it names the channel so the mismatch can be found and repaired rather
+   * than merely felt as a page that never arrived.
+   */
+  private async recordMismatchedNotificationMethod(
+    notificationRuleItem: Model,
+    options: ExecuteNotificationRuleOptions,
+    mismatchedChannels: Array<string>,
+  ): Promise<void> {
+    logger.error(
+      `Notification rule ${notificationRuleItem.id?.toString()} was not executed: its ${mismatchedChannels.join(
+        ", ",
+      )} notification method does not belong to the user the rule belongs to (${notificationRuleItem.userId?.toString()}).`,
+    );
+
+    const logTimelineItem: UserOnCallLogTimeline = this.buildLogTimelineItem(
+      notificationRuleItem,
+      options,
+    );
+
+    logTimelineItem.status = UserNotificationStatus.Error;
+    logTimelineItem.statusMessage = `Notification not sent because the ${mismatchedChannels.join(
+      ", ",
+    )} notification method on this rule belongs to a different user. Please review this notification rule.`;
+
+    await UserOnCallLogTimelineService.create({
+      data: logTimelineItem,
+      props: {
+        isRoot: true,
+      },
+    });
   }
 
   /*
@@ -4097,54 +4249,709 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    const hasNotificationMethod: boolean = Boolean(
-      createBy.data.userCallId ||
-        createBy.data.userCall ||
-        createBy.data.userEmail ||
-        createBy.data.userSms ||
-        createBy.data.userSmsId ||
-        createBy.data.userWhatsApp ||
-        createBy.data.userWhatsAppId ||
-        createBy.data.userTelegram ||
-        createBy.data.userTelegramId ||
-        createBy.data.userWebhook ||
-        createBy.data.userWebhookId ||
-        createBy.data.userEmailId ||
-        createBy.data.userPushId ||
-        createBy.data.userPush,
-    );
+    const carrier: RuleColumnCarrier =
+      createBy.data as unknown as RuleColumnCarrier;
 
     /*
-     * An opt-out row is how a user says "deliberately do not page me for this
-     * rule type at this severity". It carries the rule type and the severity and
-     * nothing else — a method on it would be self-contradictory (reach me here;
-     * also never reach me), and its whole purpose is to make silence explicit so
-     * that every OTHER zero-rule case can be treated as misconfiguration and
-     * rescued by the fallback.
+     * THE OWNERSHIP COLUMN IS REDUCED TO ONE SPELLING BEFORE ANYTHING READS IT,
+     * and it has to happen here, first, rather than inside the guard below.
+     *
+     * `userId` and `user` are two decorated members over one join column. Every
+     * check from this line down — the roster check, the method-ownership check,
+     * the create invariants, CreatePermission's own ownership gate, and the
+     * audit line after the write — asks "who does this row belong to", and each
+     * of them would otherwise have to answer it from two disagreeing sources.
+     * A payload carrying `user: { _id: <somebody else> }` and no `userId` is
+     * the concrete failure: the guard reads the scalar, finds nothing, falls
+     * back to the actor and validates a self-write, while TypeORM writes the
+     * relation's id and the row belongs to somebody else entirely.
+     *
+     * So: refuse a payload whose two spellings disagree, then fold the survivor
+     * into the scalar. After these two lines `createBy.data.userId` is the
+     * single, authoritative owner, and it is the value that will be persisted.
+     *
+     * Deliberately NOT behind the root short-circuit that guards the checks
+     * below. This is a reduction of the payload rather than a permission
+     * decision, and an internal caller writing an ambiguous row would be just
+     * as ambiguous a row.
      */
-    if (createBy.data.isOptOut) {
-      if (hasNotificationMethod) {
-        throw new BadDataException(
-          "An opt-out notification rule cannot have a notification method. Remove the notification method, or turn off opt-out.",
-        );
-      }
+    UserNotificationRuleAdminService.assertOneRuleOwner(carrier);
+    UserNotificationRuleAdminService.collapseRuleOwnerRelationOnCreate(carrier);
 
-      return {
-        createBy,
-        carryForward: null,
-      };
-    }
+    await this.assertWriteIsPermittedForRuleOwner(createBy);
 
-    if (!hasNotificationMethod) {
-      throw new BadDataException(
-        "Call, SMS, WhatsApp, Telegram, Webhook, Email, or Push notification is required",
-      );
-    }
+    /*
+     * Ambiguity is refused, then removed — in that order, and only after the
+     * ownership guard above has had its say. A payload that names two different
+     * methods for one channel is a payload nobody legitimately sends, and one
+     * that names the same method twice is folded down to a single spelling so
+     * that the invariants below, and the ORM after them, are reading the one
+     * value that will actually be written.
+     */
+    UserNotificationRuleAdminService.assertOneMethodPerNotificationChannel(
+      carrier,
+    );
+    UserNotificationRuleAdminService.collapseNotificationMethodRelationsOnCreate(
+      carrier,
+    );
+
+    const hasNotificationMethod: boolean =
+      UserNotificationRuleAdminService.carriesAnyNotificationMethod(carrier);
+
+    this.assertRuleIsCoherent({
+      isOptOut: Boolean(createBy.data.isOptOut),
+      hasNotificationMethod: hasNotificationMethod,
+    });
 
     return {
       createBy,
       carryForward: null,
     };
+  }
+
+  /**
+   * The two invariants that decide whether a rule row means anything, enforced
+   * from one place because create and update can each break both of them.
+   *
+   * An opt-out row is how a user says "deliberately do not page me for this rule
+   * type at this severity". It carries the rule type and the severity and
+   * nothing else — a method on it would be self-contradictory (reach me here;
+   * also never reach me), and its whole purpose is to make silence explicit so
+   * that every OTHER zero-rule case can be treated as misconfiguration and
+   * rescued by the fallback. A rule that is NOT opt-out and names no method is
+   * the mirror failure: it looks like coverage on every screen and delivers
+   * nothing.
+   *
+   * The wording of both messages is load-bearing — the dashboard and the API
+   * docs quote them — so they are written once here rather than once per path.
+   */
+  private assertRuleIsCoherent(data: {
+    isOptOut: boolean;
+    hasNotificationMethod: boolean;
+  }): void {
+    if (data.isOptOut && data.hasNotificationMethod) {
+      throw new BadDataException(
+        "An opt-out notification rule cannot have a notification method. Remove the notification method, or turn off opt-out.",
+      );
+    }
+
+    if (!data.isOptOut && !data.hasNotificationMethod) {
+      throw new BadDataException(
+        "Call, SMS, WhatsApp, Telegram, Webhook, Email, or Push notification is required",
+      );
+    }
+  }
+
+  /**
+   * The create-path half of the on-behalf-of guards (audit R1 and R3).
+   *
+   * CreatePermission.checkCreateOwnership decides WHETHER a caller may name
+   * somebody else in the ownership column: CurrentUser-only callers may not, a
+   * caller holding a real role permission in the model's create list may. That
+   * check is deliberately permission-shaped and value-blind past that point —
+   * it has no notion of a project roster and no notion of what the rest of the
+   * row says. Both of those are checked here, because both of them are how the
+   * widened permission turns into somebody else's pages.
+   *
+   * Root and master-admin writes are exempt, matching the short-circuit at the
+   * top of CreatePermission. Every internal seeder (default rules on method
+   * verification, invitation acceptance, migrations) builds the ownership
+   * column and the method reference from one and the same userId, so the guard
+   * could only ever cost them a query per row; and the delivery-time check in
+   * executeNotificationRuleItem is the backstop that keeps even an internally
+   * written bad row from being acted on.
+   */
+  private async assertWriteIsPermittedForRuleOwner(
+    createBy: CreateBy<Model>,
+  ): Promise<void> {
+    if (createBy.props.isRoot || createBy.props.isMasterAdmin) {
+      return;
+    }
+
+    /*
+     * `createBy.data.userId` alone is enough HERE, and only because
+     * onBeforeCreate has already folded the `user` relation into it. Read on
+     * its own — before that reduction existed — this line was a bypass: a
+     * payload spelling the owner as `user: { _id: <somebody else> }` left the
+     * scalar empty, fell through to props.userId, and every check below was
+     * answered about the actor while the row was written for the victim. If
+     * that fold is ever moved or removed, this line becomes wrong again.
+     *
+     * The fallback to props.userId is a different thing and stays: an omitted
+     * ownership column means "for myself". CreatePermission stamps props.userId
+     * onto it, but it does so AFTER this hook has run, so the value is not on
+     * the model yet and reading data.userId alone would treat every ordinary
+     * self-service create as an unowned row.
+     */
+    const ruleOwnerUserId: ObjectID | undefined =
+      createBy.data.userId || createBy.props.userId;
+
+    if (!ruleOwnerUserId) {
+      throw new BadDataException(
+        "A notification rule must belong to a user. Sign in as the user this rule is for, or name the user the rule belongs to.",
+      );
+    }
+
+    const actorUserId: ObjectID | undefined = createBy.props.userId;
+
+    const isWritingForSomebodyElse: boolean =
+      !actorUserId || actorUserId.toString() !== ruleOwnerUserId.toString();
+
+    if (isWritingForSomebodyElse) {
+      /*
+       * R1. Holding an administrative permission is a claim about a PROJECT, so
+       * it can only ever authorise writing for users of that project. Without
+       * this, one throwaway project where the caller is an admin would license
+       * writing notification rules for any user id in the installation.
+       */
+      await UserNotificationRuleAdminService.assertTargetUserIsProjectMember({
+        targetUserId: ruleOwnerUserId,
+        props: createBy.props,
+      });
+    }
+
+    /*
+     * R3, and note that it runs for a self-write too. "userId is me, but the
+     * email row I am pointing at is yours" is the mirror image of the hijack —
+     * it does not steal my pages, it copies them to your inbox — and it was
+     * writable long before this phase widened anything.
+     */
+    const references: Array<NotificationMethodReference> =
+      UserNotificationRuleAdminService.collectNotificationMethodReferences(
+        createBy.data as unknown as RuleColumnCarrier,
+      );
+
+    await UserNotificationRuleAdminService.assertNotificationMethodsBelongToUser(
+      {
+        ownerUserId: ruleOwnerUserId,
+        references: references,
+      },
+    );
+  }
+
+  /*
+   * R6 for the create path.
+   *
+   * Keyed on the actor the SERVER resolved (props.userId) against the userId
+   * the row was actually PERSISTED with — read off createdItem, after
+   * CreatePermission has had its say and after the insert. Nothing in the
+   * request body reaches this comparison, because the body is the thing being
+   * audited.
+   */
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    const actorUserId: ObjectID | undefined = onCreate.createBy.props.userId;
+    const ruleOwnerUserId: ObjectID | undefined = createdItem.userId;
+
+    if (
+      actorUserId &&
+      ruleOwnerUserId &&
+      actorUserId.toString() !== ruleOwnerUserId.toString()
+    ) {
+      await UserNotificationRuleAdminService.recordAdminRuleChange({
+        action: AuditLogAction.Create,
+        actorUserId: actorUserId,
+        ownerUserId: ruleOwnerUserId,
+        projectId: createdItem.projectId || onCreate.createBy.props.tenantId,
+        ruleId: createdItem.id,
+        after: createdItem,
+        notifyOwner: true,
+        props: onCreate.createBy.props,
+      });
+    }
+
+    return createdItem;
+  }
+
+  /**
+   * Narrow a caller-supplied query to the rows that caller is actually entitled
+   * to write, for use by the write hooks.
+   *
+   * WHY THIS EXISTS AT ALL. DatabaseService runs the hooks BEFORE the permission
+   * layer: _updateBy calls onBeforeUpdate and only then
+   * ModelPermission.checkUpdateQueryPermissions; _deleteBy calls onBeforeDelete
+   * and only then checkDeleteQueryPermission. So a hook that reads
+   * `updateBy.query` is reading the RAW request — no tenant predicate, no
+   * ownership predicate — and the hooks below read it with `isRoot` props on
+   * top, because the question they ask is a question about the database's state
+   * rather than about the caller's visibility. Left there, a caller could point
+   * the guard at rows in another project entirely: the guard would validate
+   * against them, the audit trail would name their owners, and the write itself
+   * would touch a completely different set.
+   *
+   * WHY NOT JUST CALL ModelPermission. That is the obvious fix and it is the
+   * wrong one. checkUpdateQueryPermissions does two jobs — it narrows the query
+   * AND it authorises the request — and running it here would run the second
+   * job twice, moving every table- and column-level rejection into the hook and
+   * duplicating the team lookups behind the tenant scope on every write. The
+   * hook does not need to authorise anything; _updateBy authorises it a few
+   * lines later and is the authority. What the hook needs is only that the row
+   * set it reasons about is no wider than the row set the write can reach.
+   *
+   * WHAT IS REPRODUCED, AND WHY THAT IS THE WHOLE OF IT. For this model the
+   * narrowing is exactly two predicates: the tenant column
+   * (TenantPermission.addTenantScopeToQuery for a member,
+   * PermissionUtil.addTenantScopeToQueryAsRoot on the delete path for root) and,
+   * when Permission.CurrentUser is the ONLY thing letting the caller through,
+   * the ownership column. Nothing else applies: UserNotificationRule declares no
+   * access-control column, is not an operational resource and has no
+   * @OwnedThrough, so addAccessControlIdsToQuery and addOwnedScopeToQuery are
+   * both no-ops on it. IF ANY OF THAT CHANGES ON THE MODEL, THIS MUST CHANGE
+   * WITH IT — a narrowing the permission layer applies and this does not is a
+   * guard validating rows the write never touches.
+   *
+   * Root and master-admin queries are returned untouched. They are entitled to
+   * every row, and narrowing them would make the guard read FEWER rows than the
+   * write reaches, which is the one direction it must never be wrong in.
+   */
+  private narrowQueryToCallerEntitlement(
+    query: Query<Model>,
+    props: DatabaseCommonInteractionProps,
+    requestType: DatabaseRequestType,
+  ): Query<Model> {
+    if (props.isRoot || props.isMasterAdmin) {
+      return query;
+    }
+
+    const scopedQuery: Query<Model> = { ...query };
+
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+
+    if (tenantColumn && props.tenantId && !props.isMultiTenantRequest) {
+      (scopedQuery as Dictionary<unknown>)[tenantColumn] = props.tenantId;
+    }
+
+    const userColumn: string | null = this.getModel().getUserColumn();
+
+    if (
+      userColumn &&
+      props.userId &&
+      TenantPermission.isAccessGrantedOnlyByCurrentUser(
+        this.modelType,
+        props,
+        requestType,
+      )
+    ) {
+      /*
+       * Set rather than merged. A CurrentUser-only caller whose query names
+       * somebody else is rejected outright by addCurrentUserScopeToQuery a
+       * moment from now, so the only thing that matters here is that the guard
+       * never reads rows that rejection would have protected.
+       */
+      (scopedQuery as Dictionary<unknown>)[userColumn] = props.userId;
+    }
+
+    return scopedQuery;
+  }
+
+  /**
+   * The update-path half of R3, plus the read that R6 needs.
+   *
+   * The rule's owner is re-read FROM THE DATABASE here and never taken from
+   * updateBy.data. That is the whole point of the hook: on update the caller
+   * controls the body, so a userId in it is a claim ("this row is mine") made
+   * by exactly the party the guard exists to doubt. The persisted value is the
+   * only one that decides whose pages the row selects, so it is the only one
+   * worth comparing a method's owner against.
+   *
+   * The lookup runs with isRoot rather than the caller's own props on purpose.
+   * Scoping it to what the CALLER can READ would let a caller who cannot see a
+   * row edit it unchecked — the query would simply return nothing and the loop
+   * below would have nothing to reject. Read permission and write permission are
+   * different lists, and it is the write one that decides what this hook has to
+   * answer for.
+   *
+   * The QUERY, on the other hand, is narrowed first. Root props remove the
+   * caller's visibility from the answer; they must not also remove the caller's
+   * ENTITLEMENT from it, and this hook runs before ModelPermission has applied
+   * either. See narrowQueryToCallerEntitlement for why the narrowing is
+   * reproduced here rather than delegated.
+   *
+   * The rows are carried forward so onUpdateSuccess can audit against the
+   * owner as it stood BEFORE the write, without a second read and without
+   * trusting anything the request said.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    const patch: RuleColumnCarrier =
+      updateBy.data as unknown as RuleColumnCarrier;
+
+    const references: Array<NotificationMethodReference> =
+      UserNotificationRuleAdminService.collectNotificationMethodReferences(
+        patch,
+      );
+
+    const isInternalWrite: boolean = Boolean(
+      updateBy.props.isRoot || updateBy.props.isMasterAdmin,
+    );
+
+    /*
+     * Three reasons to read the affected rows, and only one of them is R3. An
+     * actor id means this write might be somebody editing somebody else's
+     * configuration, which R6 has to be able to report on even when no method FK
+     * is being touched; and a patch that touches `isOptOut` or any method column
+     * can break a row-level invariant that is only visible once the patch is
+     * laid over the row it is being applied to.
+     */
+    const touchesRuleCoherence: boolean =
+      patch["isOptOut"] !== undefined ||
+      UserNotificationRuleAdminService.mentionsAnyNotificationMethodColumn(
+        patch,
+      );
+
+    const needsAffectedRules: boolean =
+      (references.length > 0 && !isInternalWrite) ||
+      touchesRuleCoherence ||
+      Boolean(updateBy.props.userId);
+
+    if (!needsAffectedRules) {
+      return {
+        updateBy,
+        carryForward: null,
+      };
+    }
+
+    const affectedRules: Array<Model> = await this.findBy({
+      query: this.narrowQueryToCallerEntitlement(
+        updateBy.query,
+        updateBy.props,
+        DatabaseRequestType.Update,
+      ),
+      select: {
+        _id: true,
+        userId: true,
+        projectId: true,
+        ruleType: true,
+        notifyAfterMinutes: true,
+        isOptOut: true,
+        incidentSeverityId: true,
+        alertSeverityId: true,
+        userEmailId: true,
+        userSmsId: true,
+        userCallId: true,
+        userWhatsAppId: true,
+        userTelegramId: true,
+        userPushId: true,
+        userWebhookId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    if (references.length > 0 && !isInternalWrite) {
+      /*
+       * One validation per DISTINCT owner rather than per row. A bulk update
+       * across twenty of one user's rules asks the same question twenty times,
+       * and each question costs a lookup per referenced method.
+       */
+      const validatedOwnerIds: Set<string> = new Set<string>();
+
+      for (const affectedRule of affectedRules) {
+        const ownerKey: string = affectedRule.userId?.toString() || "";
+
+        if (validatedOwnerIds.has(ownerKey)) {
+          continue;
+        }
+
+        validatedOwnerIds.add(ownerKey);
+
+        await UserNotificationRuleAdminService.assertNotificationMethodsBelongToUser(
+          {
+            ownerUserId: affectedRule.userId,
+            references: references,
+          },
+        );
+      }
+    }
+
+    /*
+     * Ambiguity is refused here as it is on create, but NOT folded away. The
+     * relation members are `update: []` on this model while the `*Id` members
+     * are open to an administrator, so rewriting one spelling into the other
+     * would smuggle a column write past the very ColumnPermission check that
+     * runs immediately after this hook. Refusal leaves nothing for the ORM to
+     * choose between without moving a value across a permission boundary.
+     */
+    UserNotificationRuleAdminService.assertOneMethodPerNotificationChannel(
+      patch,
+    );
+
+    if (touchesRuleCoherence) {
+      /*
+       * The create-time invariants, re-checked per affected row.
+       *
+       * They were enforced only on create, which left update as a way to reach
+       * the states create refuses: flip `isOptOut` on a rule that carries an
+       * email and you have a row that says both "reach me here" and "never
+       * reach me"; null the last method on a rule that is not opt-out and you
+       * have a row that looks like coverage on every screen and delivers
+       * nothing — indistinguishable, to the fallback, from a deliberate choice
+       * to stay silent. Neither is visible from the patch alone, which is why
+       * this waits until the affected rows have been read.
+       */
+      for (const affectedRule of affectedRules) {
+        const methodIdsAfterPatch: Array<ObjectID> =
+          UserNotificationRuleAdminService.getNotificationMethodIdsAfterPatch({
+            patch: patch,
+            currentRow: affectedRule as unknown as RuleColumnCarrier,
+          });
+
+        const isOptOutAfterPatch: boolean =
+          patch["isOptOut"] !== undefined
+            ? Boolean(patch["isOptOut"])
+            : Boolean(affectedRule.isOptOut);
+
+        this.assertRuleIsCoherent({
+          isOptOut: isOptOutAfterPatch,
+          hasNotificationMethod: methodIdsAfterPatch.length > 0,
+        });
+      }
+    }
+
+    return {
+      updateBy,
+      carryForward: {
+        affectedRules: affectedRules,
+      },
+    };
+  }
+
+  /*
+   * R6 for the update path.
+   *
+   * Every row whose PERSISTED owner is somebody other than the actor gets an
+   * audit entry; the owner gets at most one mail no matter how many of their
+   * rules one request touched, because twenty copies of "an admin changed your
+   * rules" is a message people learn to delete rather than read.
+   *
+   * `updatedItemIds` is the set of rows the write ACTUALLY touched, and the
+   * carried-forward rows are filtered down to it. The two can differ: the hook
+   * read every row the (narrowed) query matched, while _updateBy applies the
+   * caller's own skip/limit and drops rows that were hard-deleted between the
+   * two. Reporting an unchanged row would put a change in the audit trail that
+   * never happened and mail somebody about it.
+   */
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    const actorUserId: ObjectID | undefined = onUpdate.updateBy.props.userId;
+
+    if (!actorUserId) {
+      return onUpdate;
+    }
+
+    const affectedRules: Array<Model> =
+      (onUpdate.carryForward?.affectedRules as Array<Model> | undefined) || [];
+
+    const updatedIds: Set<string> = new Set<string>(
+      updatedItemIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    );
+
+    await this.reportAdministrativeChange({
+      action: AuditLogAction.Update,
+      actorUserId: actorUserId,
+      rules: affectedRules.filter((rule: Model): boolean => {
+        return Boolean(rule.id && updatedIds.has(rule.id.toString()));
+      }),
+      updatedFields: onUpdate.updateBy.data as unknown as JSONObject,
+      props: onUpdate.updateBy.props,
+    });
+
+    return onUpdate;
+  }
+
+  /**
+   * R6, factored out because create, update and delete all owe the same debt.
+   *
+   * One audit entry per ROW, because that is what an investigator reconstructs
+   * a timeline from, and at most one mail per PERSON, because one request that
+   * touches twenty of somebody's rules is still one thing that happened to
+   * them.
+   *
+   * Rules the actor owns are skipped: configuring your own paging is not an
+   * administrative act and does not need announcing to yourself.
+   */
+  private async reportAdministrativeChange(data: {
+    action: AuditLogAction;
+    actorUserId: ObjectID;
+    rules: Array<Model>;
+    updatedFields?: JSONObject | undefined;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const notifiedOwnerIds: Set<string> = new Set<string>();
+
+    for (const rule of data.rules) {
+      const ruleOwnerUserId: ObjectID | undefined = rule.userId;
+
+      if (
+        !ruleOwnerUserId ||
+        ruleOwnerUserId.toString() === data.actorUserId.toString()
+      ) {
+        continue;
+      }
+
+      const ownerKey: string = ruleOwnerUserId.toString();
+      const isFirstRuleForThisOwner: boolean = !notifiedOwnerIds.has(ownerKey);
+      notifiedOwnerIds.add(ownerKey);
+
+      await UserNotificationRuleAdminService.recordAdminRuleChange({
+        action: data.action,
+        actorUserId: data.actorUserId,
+        ownerUserId: ruleOwnerUserId,
+        projectId: rule.projectId || data.props.tenantId,
+        ruleId: rule.id,
+        before: rule,
+        updatedFields: data.updatedFields,
+        notifyOwner: isFirstRuleForThisOwner,
+        props: data.props,
+      });
+    }
+  }
+
+  /**
+   * The delete-path guard, and the reason it is a guard at all.
+   *
+   * Deleting somebody's notification rules is the most destructive of the three
+   * write verbs and, until this hook existed, the only unguarded one: the model
+   * opened `delete` to the administrative permissions, and nothing here noticed.
+   * An admin — or anyone who had got hold of an admin session — could remove a
+   * responder's entire paging configuration and leave no record and no warning.
+   * The person it happened to would find out during an incident.
+   *
+   * What a delete guard can and cannot be. There is no R3 analogue: a deleted
+   * row routes nothing anywhere, so there is no method-versus-owner pair left to
+   * disagree. Nor is there an R1 analogue: refusing to delete the rules of
+   * somebody who is no longer on the roster would block exactly the cleanup an
+   * admin performs after a member leaves. What is left, and what actually
+   * matters, is EVIDENTIARY — establish from the database who owned these rows
+   * before they cease to exist, because after the write nothing can answer that
+   * question and the request body was never allowed to.
+   *
+   * The rows must be read here rather than in onDeleteSuccess for the same
+   * reason: _deleteBy hands the success hook only the ids it deleted, and by
+   * then the rows are gone.
+   *
+   * The query is narrowed first. onBeforeDelete runs BEFORE
+   * ModelPermission.checkDeleteQueryPermission, exactly as onBeforeUpdate runs
+   * before its update counterpart, so the raw query carries neither the tenant
+   * predicate nor the ownership predicate — see narrowQueryToCallerEntitlement.
+   * Without it, a member could point this read at another project's rules and
+   * have their owners written into the audit trail and mailed a warning about a
+   * deletion that never touched them.
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    if (!deleteBy.props.userId) {
+      /*
+       * No actor, nothing to attribute. Workers and migrations delete rules
+       * (project teardown, method removal cascades) and an "an administrator
+       * deleted your rules" mail for every one of those is how the message
+       * that matters gets filtered away.
+       */
+      return {
+        deleteBy,
+        carryForward: null,
+      };
+    }
+
+    const deletedRules: Array<Model> = await this.findBy({
+      query: this.narrowQueryToCallerEntitlement(
+        deleteBy.query,
+        deleteBy.props,
+        DatabaseRequestType.Delete,
+      ),
+      select: {
+        _id: true,
+        userId: true,
+        projectId: true,
+        ruleType: true,
+        notifyAfterMinutes: true,
+        isOptOut: true,
+        incidentSeverityId: true,
+        alertSeverityId: true,
+        userEmailId: true,
+        userSmsId: true,
+        userCallId: true,
+        userWhatsAppId: true,
+        userTelegramId: true,
+        userPushId: true,
+        userWebhookId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    return {
+      deleteBy,
+      carryForward: {
+        deletedRules: deletedRules,
+      },
+    };
+  }
+
+  /*
+   * R6 for the delete path.
+   *
+   * Keyed the same way as the other two: the actor the SERVER resolved against
+   * the owner the DATABASE recorded, read before the rows were removed. The
+   * snapshot carried forward is now the only description of what those rules
+   * were, so it is what the audit entry is built from.
+   */
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    deletedItemIds: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    const actorUserId: ObjectID | undefined = onDelete.deleteBy.props.userId;
+
+    if (!actorUserId) {
+      return onDelete;
+    }
+
+    const deletedRules: Array<Model> =
+      (onDelete.carryForward?.deletedRules as Array<Model> | undefined) || [];
+
+    const deletedIds: Set<string> = new Set<string>(
+      deletedItemIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    );
+
+    await this.reportAdministrativeChange({
+      action: AuditLogAction.Delete,
+      actorUserId: actorUserId,
+      /*
+       * Only rows the delete actually removed. The hook read every row the
+       * narrowed query matched; _deleteBy then applied the caller's own
+       * skip/limit on top, so the two sets are not always the same and a
+       * warning about a rule that still exists is a false alarm.
+       */
+      rules: deletedRules.filter((rule: Model): boolean => {
+        return Boolean(rule.id && deletedIds.has(rule.id.toString()));
+      }),
+      props: onDelete.deleteBy.props,
+    });
+
+    return onDelete;
   }
 
   @CaptureSpan()

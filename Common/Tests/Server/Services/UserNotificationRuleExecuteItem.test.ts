@@ -554,39 +554,71 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
     test("is EXACTLY this shape (a dropped field silently changes who gets paged)", async () => {
       const arg: FindOneByIdArg = await captureFindArg();
 
+      /*
+       * WHY EACH RELATION ALSO ASKS FOR ITS OWN userId, WHICH NO SENDER READS.
+       *
+       * A rule is a pair of columns that nothing in the ORM ever compares: its
+       * `userId` decides WHOSE page this is, and the method relation decides
+       * WHERE that page is delivered. A row where those two name different
+       * people routes one person's pages to another person's address, and it is
+       * invisible from both ends - the rules page still lists a rule and the
+       * on-call log still records a delivered notification.
+       *
+       * The write-side guards refuse to SAVE such a row. This select is what
+       * lets executeNotificationRuleItem refuse to ACT ON one that exists
+       * anyway: written before those guards landed, written by internal code
+       * running as root, or written down a path a future change forgets to
+       * route through them. getNotificationMethodsNotOwnedByRuleOwner compares
+       * the loaded relation's userId against the rule's, and it can only report
+       * a mismatch it can SEE - an unselected column arrives as `undefined` and
+       * is deliberately read as "no evidence", so dropping any one of these
+       * seven silently disables the backstop for that channel.
+       *
+       * Kept as an exact-shape assertion on purpose. This test caught the
+       * column being added, which is the whole argument for not relaxing it
+       * into a partial match: the select is a contract about who gets paged,
+       * and every future edit to it should have to come through here.
+       */
       expect(arg.select).toEqual({
         _id: true,
         userId: true,
         userCall: {
           phone: true,
           isVerified: true,
+          userId: true,
         },
         userSms: {
           phone: true,
           isVerified: true,
+          userId: true,
         },
         userWhatsApp: {
           phone: true,
           isVerified: true,
+          userId: true,
         },
         userTelegram: {
           telegramChatId: true,
           telegramUserHandle: true,
           isVerified: true,
+          userId: true,
         },
         userWebhook: {
           webhookUrl: true,
           name: true,
           secret: true,
+          userId: true,
         },
         userEmail: {
           email: true,
           isVerified: true,
+          userId: true,
         },
         userPush: {
           deviceToken: true,
           deviceType: true,
           isVerified: true,
+          userId: true,
         },
       });
     });
@@ -626,14 +658,22 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
       },
     );
 
-    test("userWebhook requests webhookUrl, name and secret", async () => {
+    test("userWebhook requests webhookUrl, name, secret - and its owner", async () => {
       const arg: FindOneByIdArg = await captureFindArg();
       const webhookSelect: JSONObject = arg.select["userWebhook"] as JSONObject;
 
+      /*
+       * `userId` is read by no part of the webhook send. It is the
+       * defence-in-depth column described on the exact-shape assertion above -
+       * the one the pre-delivery ownership check compares against the rule's
+       * own userId - and webhooks are the channel where a hijacked method
+       * matters most, because the attacker chooses the endpoint outright.
+       */
       expect(webhookSelect).toEqual({
         webhookUrl: true,
         name: true,
         secret: true,
+        userId: true,
       });
     });
 

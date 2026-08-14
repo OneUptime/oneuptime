@@ -32,7 +32,26 @@ import type {
 export type ReadinessStatusValue = `${ReadinessStatus}`;
 export type ResponderSourceValue = `${ResponderSource}`;
 
-export type ReadinessMethodWire = ReadinessMethod;
+/*
+ * `methodId` is re-declared as an optional STRING for two independent reasons.
+ *
+ * The first is the same one ReadinessCoverageCellWire has for severityId:
+ * ObjectID is a class and does not survive JSON, so an id reaches us either as
+ * "uuid" or as ObjectID.toJSON()'s `{ _type: "ObjectID", value: "uuid" }`, and
+ * readIdString below flattens both.
+ *
+ * The second is that it can legitimately be ABSENT. It is the newest field on
+ * this contract, and during a rollout a browser holding this bundle can be
+ * talking to a server that predates it. A required `string` would then be the
+ * empty string, which is an id-shaped value that addresses nothing — it would
+ * populate a dropdown with options that submit a foreign key of "" and are
+ * refused on create. Optional makes the absence visible to every caller, and the
+ * one caller that builds a picker out of these drops the entries it cannot
+ * point a rule at rather than offering them.
+ */
+export type ReadinessMethodWire = Omit<ReadinessMethod, "methodId"> & {
+  methodId?: string | undefined;
+};
 
 /*
  * ObjectID is a class, and it does not survive JSON. Depending on whether the
@@ -49,13 +68,26 @@ export type ReadinessCoverageCellWire = Omit<
   severityId?: string | undefined;
 };
 
+/*
+ * `methods` is in the Omit list for the same reason `coverage` is: both are
+ * arrays of a type this file re-declares, and inheriting the server's element
+ * type would leave a field typed ObjectID on a value that is a string by the
+ * time it gets here. Every nested type restated below has to be restated on the
+ * container too, or the container quietly keeps the server's version.
+ */
 export type UserReadinessWire = Omit<
   UserReadiness,
-  "userId" | "userProfilePictureId" | "status" | "coverage" | "reachedVia"
+  | "userId"
+  | "userProfilePictureId"
+  | "status"
+  | "methods"
+  | "coverage"
+  | "reachedVia"
 > & {
   userId: string;
   userProfilePictureId?: string | undefined;
   status: ReadinessStatusValue;
+  methods: Array<ReadinessMethodWire>;
   coverage: Array<ReadinessCoverageCellWire>;
   reachedVia: Array<ResponderSourceValue>;
 };
@@ -260,7 +292,18 @@ const parseCoverageCell: (json: JSONObject) => ReadinessCoverageCellWire = (
 const parseMethod: (json: JSONObject) => ReadinessMethodWire = (
   json: JSONObject,
 ): ReadinessMethodWire => {
+  const methodId: string = readIdString(json["methodId"]);
+
   return {
+    /*
+     * The id of the method ROW, and the only field here that is not for
+     * display. It is what lets an administrator POINT A RULE AT one of somebody
+     * else's notification methods without reading that method's row — the
+     * dropdown renders the mask and submits this. Empty collapses to undefined
+     * so "the server did not send one" and "the server sent nothing useful" are
+     * the same answer to the surfaces downstream.
+     */
+    methodId: methodId || undefined,
     methodType: readString(json["methodType"]),
     maskedIdentifier: readString(json["maskedIdentifier"]),
     isVerified: Boolean(json["isVerified"]),
