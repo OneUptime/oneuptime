@@ -72,8 +72,9 @@ export interface WorkflowTemplateVariable {
   placeholder: string;
   required: boolean;
   /**
-   * Masks the input and marks the stored row secret, which redacts it from run
-   * logs. It does NOT encrypt it at rest — nothing on WorkflowVariable is.
+   * Marks the stored row secret, which redacts it from run logs. This is a
+   * persistence concern and does not change how the create wizard displays the
+   * field. It does NOT encrypt it at rest — nothing on WorkflowVariable is.
    */
   isSecret: boolean;
 }
