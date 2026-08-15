@@ -896,6 +896,59 @@ describe("SiteGeoMap", () => {
   });
 
   /*
+   * The collision pass reserves a box at an exact offset and hands it back
+   * on the placement. A renderer that computed its own offset instead would
+   * be free to draw the name somewhere that pass never checked — which is
+   * worse than having no collision pass at all, because the overlap would
+   * then look deliberate. So the map must draw at marker + offset / zoom and
+   * nowhere else, and there must be no second copy of the gap constant here
+   * to drift away from the one the pass measured with.
+   */
+  test("names are drawn at the offset the collision pass reserved", () => {
+    expect(source).toContain(
+      squash("x={marker.x + labelPlacement.offsetX / zoom}"),
+    );
+    expect(source).toContain(
+      squash("y={marker.y + labelPlacement.offsetY / zoom}"),
+    );
+    expect(source).toContain(squash("textAnchor={labelPlacement.textAnchor}"));
+    // No re-derived geometry: the gap constant is not even imported.
+    expect(
+      readCode("Components", "NetworkSite", "SiteGeoMap.tsx"),
+    ).not.toContain("LABEL_GAP");
+  });
+
+  /*
+   * A name moved off its marker without saying so is the same lie a
+   * displaced marker would be. The thread is the whole licence for pushing
+   * it — and a name still sitting against its marker must not get one,
+   * because a thread nobody can see is ink for nothing.
+   */
+  test("a pushed name keeps a thread back to its marker", () => {
+    expect(source).toContain(squash("{labelPlacement.leaderLine ? ("));
+    expect(source).toContain(
+      squash("x1={ marker.x + labelPlacement.leaderLine.x1 / zoom }"),
+    );
+    expect(source).toContain(
+      squash("y2={ marker.y + labelPlacement.leaderLine.y2 / zoom }"),
+    );
+  });
+
+  /*
+   * The key used to say every line on this map was a nudged marker, because
+   * every line was. There are two kinds now, so a frame drawing the second
+   * one has to say what it is — and a frame drawing none must not.
+   */
+  test("the label threads get their own key, and only when there are some", () => {
+    expect(source).toContain(
+      squash("const hasThreadedLabels: boolean = Array.from("),
+    );
+    expect(source).toContain(squash("return placement.leaderLine !== null;"));
+    expect(source).toContain(squash("{hasThreadedLabels ? ("));
+    expect(source).toContain('data-testid="site-geo-map-label-thread-key"');
+  });
+
+  /*
    * A marker moved off its coordinates without saying so is a map that
    * lies. The line back to the anchor is the whole reason the displacement
    * is allowed at all.
