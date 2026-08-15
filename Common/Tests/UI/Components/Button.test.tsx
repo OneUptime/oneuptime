@@ -1,6 +1,7 @@
 import Button, {
   ButtonSize,
   ButtonStyleType,
+  ComponentProps,
 } from "../../../UI/Components/Button/Button";
 import ButtonType from "../../../UI/Components/Button/ButtonTypes";
 import ShortcutKey from "../../../UI/Components/ShortcutKey/ShortcutKey";
@@ -198,5 +199,283 @@ describe("Button", () => {
     const testId: HTMLElement = screen.getByTestId("test-id");
     fireEvent.click(testId);
     expect(handleClick).toBeCalled();
+  });
+});
+
+type RenderButtonFunction = (props: Partial<ComponentProps>) => HTMLElement;
+
+const renderButton: RenderButtonFunction = (
+  props: Partial<ComponentProps>,
+): HTMLElement => {
+  const { unmount } = render(<Button dataTestId="test-id" {...props} />);
+  const button: HTMLElement = screen.getByTestId("test-id");
+  // Clone so assertions survive the unmount and each case starts from a clean DOM.
+  const clone: HTMLElement = button.cloneNode(true) as HTMLElement;
+  unmount();
+  return clone;
+};
+
+type ClassesOfFunction = (element: HTMLElement) => Array<string>;
+
+const classesOf: ClassesOfFunction = (element: HTMLElement): Array<string> => {
+  return element.className.split(/\s+/).filter((cssClass: string) => {
+    return cssClass.length > 0;
+  });
+};
+
+/*
+ * Every ButtonStyleType, so new styles are covered by the invariants below
+ * without anyone having to remember to add them here.
+ */
+const ALL_BUTTON_STYLES: Array<[string, ButtonStyleType]> = Object.keys(
+  ButtonStyleType,
+)
+  .filter((key: string) => {
+    return isNaN(Number(key));
+  })
+  .map((key: string) => {
+    return [key, ButtonStyleType[key as keyof typeof ButtonStyleType]] as [
+      string,
+      ButtonStyleType,
+    ];
+  });
+
+describe("Button disabled styling", () => {
+  /*
+   * The regression this suite exists for: the disabled background used to be
+   * appended alongside the enabled one, and Tailwind emits .bg-indigo-300
+   * before .bg-indigo-600, so the enabled colour won the cascade and every
+   * disabled primary button rendered at full saturation.
+   */
+  test("disabled PRIMARY does not carry the enabled background class", () => {
+    const button: HTMLElement = renderButton({
+      buttonStyle: ButtonStyleType.PRIMARY,
+      disabled: true,
+    });
+
+    expect(button).not.toHaveClass("bg-indigo-600");
+    expect(button).toHaveClass("bg-indigo-300");
+  });
+
+  test("disabled SECONDARY does not carry the enabled background class", () => {
+    const button: HTMLElement = renderButton({
+      buttonStyle: ButtonStyleType.SECONDARY,
+      disabled: true,
+    });
+
+    expect(button).not.toHaveClass("bg-indigo-100");
+    expect(button).toHaveClass("bg-indigo-300");
+  });
+
+  test("enabled PRIMARY keeps the enabled background and no disabled background", () => {
+    const button: HTMLElement = renderButton({
+      buttonStyle: ButtonStyleType.PRIMARY,
+      disabled: false,
+    });
+
+    expect(button).toHaveClass("bg-indigo-600");
+    expect(button).not.toHaveClass("bg-indigo-300");
+  });
+
+  test("enabled SECONDARY keeps the enabled background and no disabled background", () => {
+    const button: HTMLElement = renderButton({
+      buttonStyle: ButtonStyleType.SECONDARY,
+      disabled: false,
+    });
+
+    expect(button).toHaveClass("bg-indigo-100");
+    expect(button).not.toHaveClass("bg-indigo-300");
+  });
+
+  test("an omitted disabled prop styles PRIMARY as enabled", () => {
+    const button: HTMLElement = renderButton({
+      buttonStyle: ButtonStyleType.PRIMARY,
+    });
+
+    expect(button).toHaveClass("bg-indigo-600");
+    expect(button).not.toHaveClass("bg-indigo-300");
+  });
+
+  test("an omitted disabled prop styles SECONDARY as enabled", () => {
+    const button: HTMLElement = renderButton({
+      buttonStyle: ButtonStyleType.SECONDARY,
+    });
+
+    expect(button).toHaveClass("bg-indigo-100");
+    expect(button).not.toHaveClass("bg-indigo-300");
+  });
+
+  test.each(ALL_BUTTON_STYLES)(
+    "%s emits at most one background utility when disabled",
+    (_name: string, buttonStyle: ButtonStyleType) => {
+      const button: HTMLElement = renderButton({ buttonStyle, disabled: true });
+
+      const backgrounds: Array<string> = classesOf(button).filter(
+        (cssClass: string) => {
+          return cssClass.startsWith("bg-");
+        },
+      );
+
+      expect(backgrounds.length).toBeLessThanOrEqual(1);
+    },
+  );
+
+  test.each(ALL_BUTTON_STYLES)(
+    "%s emits at most one background utility when enabled",
+    (_name: string, buttonStyle: ButtonStyleType) => {
+      const button: HTMLElement = renderButton({
+        buttonStyle,
+        disabled: false,
+      });
+
+      const backgrounds: Array<string> = classesOf(button).filter(
+        (cssClass: string) => {
+          return cssClass.startsWith("bg-");
+        },
+      );
+
+      expect(backgrounds.length).toBeLessThanOrEqual(1);
+    },
+  );
+
+  const DIMMING_STYLES: Array<[string, ButtonStyleType]> = [
+    ["PRIMARY", ButtonStyleType.PRIMARY],
+    ["SECONDARY", ButtonStyleType.SECONDARY],
+  ];
+
+  test.each(DIMMING_STYLES)(
+    "%s resolves to a different background when disabled",
+    (_name: string, buttonStyle: ButtonStyleType) => {
+      type BackgroundOfFunction = (disabled: boolean) => string | undefined;
+
+      const backgroundOf: BackgroundOfFunction = (
+        disabled: boolean,
+      ): string | undefined => {
+        return classesOf(renderButton({ buttonStyle, disabled })).find(
+          (cssClass: string) => {
+            return cssClass.startsWith("bg-");
+          },
+        );
+      };
+
+      const enabled: string | undefined = backgroundOf(false);
+      const disabled: string | undefined = backgroundOf(true);
+
+      expect(enabled).toBeDefined();
+      expect(disabled).toBeDefined();
+      expect(disabled).not.toBe(enabled);
+    },
+  );
+});
+
+describe("Button hover styling", () => {
+  /*
+   * Hover affordances are gated on `disabled`; the ternary used to be inverted,
+   * so hover styles applied to exactly the buttons that could not be clicked.
+   */
+  const HOVER_GATED_STYLES: Array<[string, ButtonStyleType, string]> = [
+    ["PRIMARY", ButtonStyleType.PRIMARY, "hover:bg-indigo-700"],
+    ["SECONDARY", ButtonStyleType.SECONDARY, "hover:bg-indigo-200"],
+    ["DANGER", ButtonStyleType.DANGER, "hover:bg-red-700"],
+    ["DANGER_OUTLINE", ButtonStyleType.DANGER_OUTLINE, "hover:bg-red-50"],
+    ["SUCCESS", ButtonStyleType.SUCCESS, "hover:bg-green-700"],
+    ["SUCCESS_OUTLINE", ButtonStyleType.SUCCESS_OUTLINE, "hover:bg-green-50"],
+    ["WARNING", ButtonStyleType.WARNING, "hover:bg-yellow-700"],
+    ["WARNING_OUTLINE", ButtonStyleType.WARNING_OUTLINE, "hover:bg-yellow-50"],
+    ["ICON", ButtonStyleType.ICON, "hover:text-gray-900"],
+    ["ICON_LIGHT", ButtonStyleType.ICON_LIGHT, "hover:text-gray-500"],
+  ];
+
+  test.each(HOVER_GATED_STYLES)(
+    "%s applies its hover class only when enabled",
+    (_name: string, buttonStyle: ButtonStyleType, hoverClass: string) => {
+      expect(renderButton({ buttonStyle, disabled: false })).toHaveClass(
+        hoverClass,
+      );
+      expect(renderButton({ buttonStyle, disabled: true })).not.toHaveClass(
+        hoverClass,
+      );
+    },
+  );
+});
+
+describe("Button class list composition", () => {
+  test("the size class is appended for every style", () => {
+    ALL_BUTTON_STYLES.forEach(([, buttonStyle]: [string, ButtonStyleType]) => {
+      expect(
+        renderButton({ buttonStyle, buttonSize: ButtonSize.Small }),
+      ).toHaveClass("px-2", "py-1");
+    });
+  });
+
+  test("a caller-supplied className is appended alongside the style classes", () => {
+    const button: HTMLElement = renderButton({
+      buttonStyle: ButtonStyleType.PRIMARY,
+      className: "my-custom-class",
+      disabled: true,
+    });
+
+    expect(button).toHaveClass("my-custom-class");
+    expect(button).toHaveClass("bg-indigo-300");
+  });
+
+  test("every style resolves to a non-empty class list in both states", () => {
+    ALL_BUTTON_STYLES.forEach(([, buttonStyle]: [string, ButtonStyleType]) => {
+      [true, false].forEach((disabled: boolean) => {
+        expect(
+          classesOf(renderButton({ buttonStyle, disabled })).length,
+        ).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  test("no style emits a class twice", () => {
+    ALL_BUTTON_STYLES.forEach(([, buttonStyle]: [string, ButtonStyleType]) => {
+      [true, false].forEach((disabled: boolean) => {
+        const classes: Array<string> = classesOf(
+          renderButton({ buttonStyle, disabled }),
+        );
+
+        expect(classes).toHaveLength(new Set(classes).size);
+      });
+    });
+  });
+});
+
+describe("Button disabled behaviour", () => {
+  test("a disabled button is marked disabled to assistive technology", () => {
+    const button: HTMLElement = renderButton({
+      buttonStyle: ButtonStyleType.PRIMARY,
+      disabled: true,
+    });
+
+    expect(button).toHaveAttribute("disabled");
+    expect(button).toHaveAttribute("aria-disabled", "true");
+  });
+
+  test("a loading button is disabled", () => {
+    const button: HTMLElement = renderButton({
+      buttonStyle: ButtonStyleType.PRIMARY,
+      isLoading: true,
+    });
+
+    expect(button).toHaveAttribute("disabled");
+    expect(button).toHaveAttribute("aria-disabled", "true");
+  });
+
+  test("a disabled button does not fire onClick", () => {
+    const handleClick: () => void = jest.fn();
+    render(
+      <Button
+        dataTestId="test-id"
+        buttonStyle={ButtonStyleType.PRIMARY}
+        disabled={true}
+        onClick={handleClick}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("test-id"));
+
+    expect(handleClick).not.toBeCalled();
   });
 });
