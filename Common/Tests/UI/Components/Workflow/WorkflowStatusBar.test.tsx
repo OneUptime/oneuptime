@@ -261,17 +261,15 @@ describe("WorkflowStatusBar — what the checks found", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("says so when there is nothing wrong", () => {
-    const { getByTestId, queryByTestId }: RenderResult = render(
+  test("says nothing at all when there is nothing wrong", () => {
+    const { queryByTestId }: RenderResult = render(
       <WorkflowStatusBar
         saveState={WorkflowSaveState.Saved}
         lintResult={CLEAN_RESULT}
       />,
     );
 
-    expect(getByTestId("workflow-lint-status")).toHaveTextContent(
-      "No problems",
-    );
+    expect(queryByTestId("workflow-lint-status")).not.toBeInTheDocument();
     expect(
       queryByTestId("workflow-lint-status-button"),
     ).not.toBeInTheDocument();
