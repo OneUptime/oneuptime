@@ -1,0 +1,215 @@
+suite: postgres planner and memory tuning
+release:
+  name: ou
+  namespace: oneuptime
+tests:
+  # postgresql.primary.configuration IS the whole server config -- it is written
+  # verbatim as postgresql.conf, so anything absent here falls back to the initdb
+  # default rather than to some other layer of the chart.
+  - it: should ship the planner and memory settings in the primary postgresql.conf
+    templates:
+      - templates/postgresql-primary-configmap.yaml
+    asserts:
+      - isKind:
+          of: ConfigMap
+      # The planner was costing a random page at the rotational-disk default of
+      # 4.0, which pushes it to sequential-scan straight past this schema's
+      # indexes. 1.1 is the cloud-SSD value.
+      - matchRegex:
+          path: data["postgresql.conf"]
+          pattern: '(?m)^\s*random_page_cost = 1\.1\s*$'
+      - matchRegex:
+          path: data["postgresql.conf"]
+          pattern: '(?m)^\s*effective_io_concurrency = 200\s*$'
+      - matchRegex:
+          path: data["postgresql.conf"]
+          pattern: '(?m)^\s*work_mem = 16MB\s*$'
+      - matchRegex:
+          path: data["postgresql.conf"]
+          pattern: '(?m)^\s*maintenance_work_mem = 256MB\s*$'
+      - matchRegex:
+          path: data["postgresql.conf"]
+          pattern: '(?m)^\s*max_wal_size = 4GB\s*$'
+      - matchRegex:
+          path: data["postgresql.conf"]
+          pattern: '(?m)^\s*effective_cache_size = 3GB\s*$'
+
+  # shared_buffers is deliberately 256MB, NOT the 1GB the sizing math would want:
+  # postgresql.primary.resources is {} by default, so a large shared_buffers is
+  # taken from a pod with no memory limit and becomes node-level memory pressure.
+  # It moves to ~25% of the pod limit once resources are set.
+  - it: should raise shared_buffers to 256MB and no further while resources are unset
+    templates:
+      - templates/postgresql-primary-configmap.yaml
+    asserts:
+      - matchRegex:
+          path: data["postgresql.conf"]
+          pattern: '(?m)^\s*shared_buffers = 256MB\s*$'
+      - notMatchRegex:
+          path: data["postgresql.conf"]
+          pattern: 'shared_buffers = 128MB'
+      - notMatchRegex:
+          path: data["postgresql.conf"]
+          pattern: 'shared_buffers = 1GB'
+      # The comment has to survive into the rendered file -- it is the only place
+      # an operator reading postgresql.conf learns the value is provisional and
+      # what it should become. Matched on the actual sentences: the bare word
+      # `resources` would survive almost any rewrite of this comment, including
+      # one that drops the "raise it later" instruction entirely.
+      - matchRegex:
+          path: data["postgresql.conf"]
+          pattern: 'raise this to ~25% of\s+#\s+`postgresql\.primary\.resources\.limits\.memory` once that is set'
+      - matchRegex:
+          path: data["postgresql.conf"]
+          pattern: 'deliberately NOT higher while `resources` is empty'
+
+  # Regression: the settings that were already there must not have been dropped
+  # while appending. lock_timeout in particular is the only bound on the row-lock
+  # convoy once pgbouncer swallows the app's startup parameter.
+  - it: should keep the pre-existing connection and lock settings intact
+    templates:
+      - templates/postgresql-primary-configmap.yaml
+    asserts:
+      - matchRegex:
+          path: data["postgresql.conf"]
+          pattern: "(?m)^\\s*listen_addresses = '\\*'\\s*$"
+      - matchRegex:
+          path: data["postgresql.conf"]
+          pattern: '(?m)^\s*port = 5432\s*$'
+      - matchRegex:
+          path: data["postgresql.conf"]
+          pattern: '(?m)^\s*max_connections = 500\s*$'
+      - matchRegex:
+          path: data["postgresql.conf"]
+          pattern: "(?m)^\\s*lock_timeout = '3s'\\s*$"
+      # Explicitly NOT added: statement_timeout would also apply to migrations,
+      # which legitimately run long.
+      - notMatchRegex:
+          path: data["postgresql.conf"]
+          pattern: '(?m)^\s*statement_timeout'
+
+  # The block is a plain string value, so an operator replacing it must get their
+  # config verbatim -- the chart must not merge our defaults back in underneath.
+  - it: should let an operator override the whole configuration block
+    templates:
+      - templates/postgresql-primary-configmap.yaml
+    set:
+      postgresql.primary.configuration: |-
+        listen_addresses = '*'
+        port = 5432
+        shared_buffers = 64MB
+        random_page_cost = 4.0
+    asserts:
+      - matchRegex:
+          path: data["postgresql.conf"]
+          pattern: '(?m)^\s*shared_buffers = 64MB\s*$'
+      - matchRegex:
+          path: data["postgresql.conf"]
+          pattern: '(?m)^\s*random_page_cost = 4\.0\s*$'
+      - notMatchRegex:
+          path: data["postgresql.conf"]
+          pattern: 'shared_buffers = 256MB'
+      - notMatchRegex:
+          path: data["postgresql.conf"]
+          pattern: 'effective_cache_size'
+
+  # The operator-managed path is a completely separate object that reads none of
+  # postgresql.*, so the same tuning has to be mirrored into it by hand or the
+  # two paths silently drift apart.
+  - it: should mirror the tuning into the CloudNativePG cluster parameters
+    templates:
+      - templates/postgresql-cnpg-cluster.yaml
+    set:
+      postgresOperator.cnpg.enabled: true
+    asserts:
+      - isKind:
+          of: Cluster
+      - equal:
+          path: spec.postgresql.parameters.random_page_cost
+          value: "1.1"
+      - equal:
+          path: spec.postgresql.parameters.effective_io_concurrency
+          value: "200"
+      - equal:
+          path: spec.postgresql.parameters.work_mem
+          value: "16MB"
+      - equal:
+          path: spec.postgresql.parameters.maintenance_work_mem
+          value: "256MB"
+      - equal:
+          path: spec.postgresql.parameters.max_wal_size
+          value: "4GB"
+      - equal:
+          path: spec.postgresql.parameters.effective_cache_size
+          value: "3GB"
+
+  - it: should mirror the same conservative shared_buffers into CloudNativePG
+    templates:
+      - templates/postgresql-cnpg-cluster.yaml
+    set:
+      postgresOperator.cnpg.enabled: true
+    asserts:
+      - equal:
+          path: spec.postgresql.parameters.shared_buffers
+          value: "256MB"
+      - notEqual:
+          path: spec.postgresql.parameters.shared_buffers
+          value: "128MB"
+      - notEqual:
+          path: spec.postgresql.parameters.shared_buffers
+          value: "1GB"
+      # Regression: the settings that were already mirrored must survive.
+      - equal:
+          path: spec.postgresql.parameters.max_connections
+          value: "500"
+      - equal:
+          path: spec.postgresql.parameters.lock_timeout
+          value: "3s"
+
+  # CloudNativePG rejects non-string parameter values, and random_page_cost is
+  # the one value here that YAML would otherwise decode as a float. matchRegex
+  # reads the *parsed* document exactly like the `equal` assertions above -- it
+  # does not see the raw rendered text -- but it additionally requires the value
+  # at the path to BE a string. So an unquoted 1.1 fails here as "expect
+  # 'spec.postgresql.parameters.random_page_cost' to be a string, got: 1.1",
+  # naming the actual cause, where `equal` reports it only as a value diff.
+  - it: should render the fractional parameter as a quoted string
+    templates:
+      - templates/postgresql-cnpg-cluster.yaml
+    set:
+      postgresOperator.cnpg.enabled: true
+    asserts:
+      - matchRegex:
+          path: spec.postgresql.parameters.random_page_cost
+          pattern: '^1\.1$'
+
+  - it: should let an operator override a mirrored CloudNativePG parameter
+    templates:
+      - templates/postgresql-cnpg-cluster.yaml
+    set:
+      postgresOperator.cnpg.enabled: true
+      postgresOperator.cnpg.parameters.shared_buffers: "1GB"
+      postgresOperator.cnpg.parameters.work_mem: "64MB"
+    asserts:
+      - equal:
+          path: spec.postgresql.parameters.shared_buffers
+          value: "1GB"
+      - equal:
+          path: spec.postgresql.parameters.work_mem
+          value: "64MB"
+      # Untouched keys keep the chart defaults.
+      - equal:
+          path: spec.postgresql.parameters.random_page_cost
+          value: "1.1"
+
+  # Boundary: the StatefulSet config and the operator config are mutually
+  # exclusive, so the tuning must not leak a second postgresql.conf when the
+  # operator path is chosen.
+  - it: should not render the StatefulSet configmap when CloudNativePG is enabled
+    templates:
+      - templates/postgresql-primary-configmap.yaml
+    set:
+      postgresOperator.cnpg.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
