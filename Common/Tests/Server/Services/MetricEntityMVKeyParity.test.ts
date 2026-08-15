@@ -134,9 +134,9 @@ describe("entity-MV routing keys — parity with ingest-stamped scalar entity ke
       });
 
     expect(firstOfType(driftedKubernetes, EntityType.Host)).toBe("");
-    expect(
-      firstOfType(driftedKubernetes, EntityType.KubernetesCluster),
-    ).toBe(keyForKubernetesCluster(projectId, "Prod-EU-1"));
+    expect(firstOfType(driftedKubernetes, EntityType.KubernetesCluster)).toBe(
+      keyForKubernetesCluster(projectId, "Prod-EU-1"),
+    );
     expect(firstOfType(driftedKubernetes, EntityType.Container)).toBe(
       keyForContainer(projectId, "ABC123def456"),
     );
