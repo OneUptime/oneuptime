@@ -636,6 +636,7 @@ const realRoutePatterns: Array<string> = [
   "/dashboard/:projectId/user-settings/on-call-logs",
   "/dashboard/:projectId/user-settings/on-call-logs/:id",
   "/dashboard/:projectId/user-settings/incoming-call-phone-numbers",
+  "/dashboard/:projectId/user-settings/setup",
   "/dashboard/:projectId/users/*",
   "/dashboard/:projectId/users",
   "/dashboard/:projectId/users/custom-fields",

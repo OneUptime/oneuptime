@@ -6005,5 +6005,7 @@
   "MCP Server": "MCP-server",
   "Enable MCP Server": "MCP-server inschakelen",
   "Control whether AI agents can read this status page over the OneUptime MCP server": "Bepaal of AI-agents deze statuspagina via de OneUptime MCP-server kunnen lezen",
-  "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.": "Wanneer dit is ingeschakeld, kunnen AI-agents deze statuspagina lezen via de openbare OneUptime MCP-server. Uitschakelen verbergt de statuspagina, de RSS-feed of de openbare JSON-API niet."
+  "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.": "Wanneer dit is ingeschakeld, kunnen AI-agents deze statuspagina lezen via de openbare OneUptime MCP-server. Uitschakelen verbergt de statuspagina, de RSS-feed of de openbare JSON-API niet.",
+  "Get Started": "Aan de slag",
+  "Setup Checklist": "Instellingschecklist"
 }

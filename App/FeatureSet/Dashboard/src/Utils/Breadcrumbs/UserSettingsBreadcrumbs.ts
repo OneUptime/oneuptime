@@ -7,6 +7,11 @@ export function getUserSettingsBreadcrumbs(
   path: string,
 ): Array<Link> | undefined {
   const breadcrumpLinksMap: Dictionary<Link[]> = {
+    ...BuildBreadcrumbLinksByTitles(PageMap.USER_SETTINGS_SETUP, [
+      "Project",
+      "User Settings",
+      "Setup Checklist",
+    ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.USER_SETTINGS_NOTIFICATION_METHODS,
       ["Project", "User Settings", "Notification Methods"],

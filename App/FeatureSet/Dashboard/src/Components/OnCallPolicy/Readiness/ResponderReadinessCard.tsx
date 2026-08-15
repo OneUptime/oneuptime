@@ -1,7 +1,6 @@
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
-import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
 import ObjectID from "Common/Types/ObjectID";
 import Button, {
   ButtonSize,
@@ -29,6 +28,7 @@ import {
   UserReadinessWire,
   getCoverageCellLabel,
   getCoverageGaps,
+  getPageForRuleType,
   getResponderSourceLabel,
   getSelfAddressedConsequence,
   getStatusConsequence,
@@ -72,26 +72,6 @@ interface ReadinessFix {
   page: PageMap;
   actionTitle: string;
 }
-
-const getPageForRuleType: (ruleType: NotificationRuleType) => PageMap = (
-  ruleType: NotificationRuleType,
-): PageMap => {
-  switch (ruleType) {
-    case NotificationRuleType.ON_CALL_EXECUTED_ALERT:
-      return PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES;
-    case NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE:
-      return PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES;
-    case NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE:
-      return PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES;
-    /*
-     * The two go-on-call / go-off-call rule types are edited on the incident
-     * on-call rules page (IncidentOnCallRules.tsx:406), not on a page of their
-     * own, so they route there along with the incident rules.
-     */
-    default:
-      return PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES;
-  }
-};
 
 const getFix: (
   user: UserReadinessWire,

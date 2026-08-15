@@ -6005,5 +6005,7 @@
   "MCP Server": "Server MCP",
   "Enable MCP Server": "Abilita server MCP",
   "Control whether AI agents can read this status page over the OneUptime MCP server": "Controlla se gli agenti IA possono leggere questa pagina di stato tramite il server MCP di OneUptime",
-  "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.": "Se abilitato, gli agenti IA possono leggere questa pagina di stato tramite il server MCP pubblico di OneUptime. Disattivarlo non nasconde il sito della pagina di stato, il suo feed RSS o la sua API JSON pubblica."
+  "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.": "Se abilitato, gli agenti IA possono leggere questa pagina di stato tramite il server MCP pubblico di OneUptime. Disattivarlo non nasconde il sito della pagina di stato, il suo feed RSS o la sua API JSON pubblica.",
+  "Get Started": "Per iniziare",
+  "Setup Checklist": "Elenco di configurazione"
 }

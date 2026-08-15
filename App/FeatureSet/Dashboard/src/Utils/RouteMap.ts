@@ -925,6 +925,7 @@ export const UserSettingsRoutePath: Dictionary<string> = {
   [PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE]: `on-call-logs/${RouteParams.ModelID}`,
   [PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS]:
     "incoming-call-phone-numbers",
+  [PageMap.USER_SETTINGS_SETUP]: "setup",
 };
 
 const RouteMap: Dictionary<Route> = {
@@ -4921,6 +4922,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/user-settings/${
       UserSettingsRoutePath[PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS]
+    }`,
+  ),
+
+  /*
+   * Declared LAST in this block on purpose. The breadcrumb resolver treats the
+   * first non-splat route under a prefix as that section's landing page, and
+   * the "User Settings" crumb on every page here must keep pointing at
+   * notification-methods.
+   */
+  [PageMap.USER_SETTINGS_SETUP]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/user-settings/${
+      UserSettingsRoutePath[PageMap.USER_SETTINGS_SETUP]
     }`,
   ),
 
