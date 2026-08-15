@@ -1,18 +1,19 @@
-import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
-import BasicFormModal from "../FormModal/BasicFormModal";
-import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
+import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
+import Modal from "../Modal/Modal";
+import PaginationUtil, {
+  DefaultItemsOnPageOptions,
+  ItemRange,
+  PageWindowItem,
+} from "./PaginationUtil";
 import React, {
   FunctionComponent,
+  KeyboardEvent,
   ReactElement,
   useEffect,
+  useId,
   useState,
 } from "react";
-
-export interface PaginationNavigationItem {
-  pageNumber: number;
-  itemsOnPage: number;
-}
 
 export interface ComponentProps {
   currentPageNumber: number;
@@ -28,7 +29,7 @@ export interface ComponentProps {
    * Optional. Set by analytics list endpoints that skip COUNT(*) for
    * performance — `totalItemsCount` is then only a lower bound, so
    * the page-count math and "X of Y" label don't apply. When set,
-   * we render prev/next-only with no jump-to-page modal.
+   * we render prev/next-only with no numbered pages.
    */
   hasMore?: boolean | undefined;
   /*
@@ -38,386 +39,430 @@ export interface ComponentProps {
    * so the printed range is clamped to rows the page can really show.
    */
   itemsOnCurrentPage?: number | undefined;
+  // Optional. Page sizes offered in the "rows per page" dropdown.
+  itemsOnPageOptions?: Array<number> | undefined;
+  /*
+   * Optional. Denser type and padding, for footers that sit under a
+   * compact data view (logs, traces) rather than under a full table.
+   */
+  isCompact?: boolean | undefined;
+  // Optional. Appended to the container, for the caller's background/border.
+  className?: string | undefined;
+  /*
+   * Optional. Freezes every control without claiming the view is loading or
+   * broken — for callers that gate paging on something of their own.
+   */
+  isDisabled?: boolean | undefined;
 }
 
 const Pagination: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  /*
+   * Has-more mode: the count is a lower bound, so there is no last page to
+   * link to and no "of N" to print. Prev/next and the page size are all the
+   * control can honestly offer.
+   */
   const isHasMoreMode: boolean = props.hasMore !== undefined;
 
-  const [minPageNumber, setMinPageNumber] = useState<number>(1);
-  const [maxPageNumber, setMaxPageNumber] = useState<number>(1);
+  const uniqueId: string = useId();
+  const itemsOnPageSelectId: string = `pagination-items-on-page-${uniqueId}`;
+  const goToPageInputId: string = `pagination-go-to-page-${uniqueId}`;
 
-  const setMinAndMaxPageNumber: () => void = (): void => {
-    setMinPageNumber(1);
-    let maxPageNo: number =
-      props.totalItemsCount % props.itemsOnPage === 0
-        ? props.totalItemsCount / props.itemsOnPage + 1
-        : props.totalItemsCount / props.itemsOnPage;
+  const totalPageCount: number = PaginationUtil.getTotalPageCount(
+    props.totalItemsCount,
+    props.itemsOnPage,
+  );
 
-    if (maxPageNo < 1) {
-      maxPageNo = 1;
-    }
+  const currentPageNumber: number = Math.max(
+    Math.floor(props.currentPageNumber) || 1,
+    1,
+  );
 
-    setMaxPageNumber(Math.ceil(maxPageNo));
-  };
+  const isDisabled: boolean =
+    props.isLoading || props.isError || Boolean(props.isDisabled);
 
-  useEffect(() => {
-    setMinAndMaxPageNumber();
-  }, []);
-
-  useEffect(() => {
-    setMinAndMaxPageNumber();
-  }, [props.totalItemsCount, props.itemsOnPage]);
-
-  const isPreviousDisabled: boolean =
-    props.currentPageNumber === 1 || props.isLoading || props.isError;
+  const isPreviousDisabled: boolean = currentPageNumber <= 1 || isDisabled;
+  /*
+   * An empty list is one page long, so the last-page check already covers
+   * it - there is nowhere forward to go from page 1 of 1.
+   */
   const isNextDisabled: boolean = isHasMoreMode
-    ? !props.hasMore || props.isLoading || props.isError
-    : props.currentPageNumber * props.itemsOnPage >= props.totalItemsCount ||
-      props.isLoading ||
-      props.isError;
-  const isCurrentPageButtonDisabled: boolean = isHasMoreMode
-    ? props.isLoading || props.isError
-    : props.totalItemsCount === 0 || props.isLoading || props.isError;
+    ? !props.hasMore || isDisabled
+    : currentPageNumber >= totalPageCount || isDisabled;
 
-  const [showPaginationModel, setShowPaginationModel] =
-    useState<boolean>(false);
+  const pageWindow: Array<PageWindowItem> = isHasMoreMode
+    ? []
+    : PaginationUtil.getPageWindow(currentPageNumber, totalPageCount);
 
   /*
-   * The range has-more mode prints. `totalItemsCount` is only a lower bound
-   * there, so the range is clamped to what this page can prove.
+   * The collapsed gaps are the jump affordance: a gap is drawn exactly where
+   * pages the reader might want are not on the bar, so that is where asking
+   * for one belongs. Nothing is spent on the toolbar until they ask.
    */
-  const alreadySeenCount: number =
-    props.itemsOnPage * (props.currentPageNumber - 1);
-  const firstOnPage: number = alreadySeenCount + 1;
-  const provenOnPage: number = Math.max(
-    props.totalItemsCount - alreadySeenCount,
-    0,
-  );
-  const lastOnPage: number =
-    alreadySeenCount +
-    (props.itemsOnCurrentPage === undefined
-      ? provenOnPage
-      : Math.min(provenOnPage, props.itemsOnCurrentPage));
+  const [isGoToPageModalVisible, setIsGoToPageModalVisible] =
+    useState<boolean>(false);
+  const [goToPageValue, setGoToPageValue] = useState<string>("");
+
+  // A page change from anywhere (prev/next, a number, the URL) closes the box.
+  useEffect(() => {
+    setIsGoToPageModalVisible(false);
+    setGoToPageValue("");
+  }, [currentPageNumber]);
+
+  const itemRange: ItemRange = PaginationUtil.getItemRange({
+    currentPageNumber: currentPageNumber,
+    itemsOnPage: props.itemsOnPage,
+    totalItemsCount: props.totalItemsCount,
+    itemsOnCurrentPage: props.itemsOnCurrentPage,
+  });
+
+  const itemsOnPageOptions: Array<number> =
+    PaginationUtil.getItemsOnPageOptions(
+      props.itemsOnPage,
+      props.itemsOnPageOptions || DefaultItemsOnPageOptions,
+    );
+
+  const textSizeClassName: string = props.isCompact ? "text-xs" : "text-sm";
+
+  type NavigateToPageFunction = (pageNumber: number) => void;
+
+  const navigateToPage: NavigateToPageFunction = (pageNumber: number): void => {
+    if (isDisabled) {
+      return;
+    }
+
+    props.onNavigateToPage(pageNumber, props.itemsOnPage);
+  };
+
+  type SubmitGoToPageFunction = () => void;
+
+  const submitGoToPage: SubmitGoToPageFunction = (): void => {
+    const requestedPageNumber: number = Number(goToPageValue);
+
+    if (!requestedPageNumber) {
+      return;
+    }
+
+    setIsGoToPageModalVisible(false);
+    navigateToPage(
+      PaginationUtil.clampPageNumber(requestedPageNumber, totalPageCount),
+    );
+  };
+
+  type GetSummaryFunction = () => string;
+
+  const getSummary: GetSummaryFunction = (): string => {
+    const pluralLabel: string = props.pluralLabel.toLowerCase();
+    const singularLabel: string = props.singularLabel.toLowerCase();
+
+    if (itemRange.isEmpty) {
+      return `No ${pluralLabel}`;
+    }
+
+    const rangeText: string =
+      itemRange.firstItemNumber === itemRange.lastItemNumber
+        ? itemRange.firstItemNumber.toLocaleString()
+        : `${itemRange.firstItemNumber.toLocaleString()}-${itemRange.lastItemNumber.toLocaleString()}`;
+
+    if (isHasMoreMode) {
+      /*
+       * The count cannot be printed here — it is a lower bound that also
+       * includes the probe row the payload dropped. The trailing "+" is all
+       * that can be said about what comes after this page.
+       */
+      return `Showing ${rangeText}${props.hasMore ? "+" : ""} ${pluralLabel}`;
+    }
+
+    return `Showing ${rangeText} of ${props.totalItemsCount.toLocaleString()} ${
+      props.totalItemsCount === 1 ? singularLabel : pluralLabel
+    }`;
+  };
+
+  /*
+   * A minimum width rather than padding alone, so a row of single-digit
+   * pages does not read as a row of narrower buttons than the two- and
+   * three-digit ones beside it.
+   */
+  const pageButtonBaseClassName: string = `relative inline-flex items-center justify-center border border-gray-300 font-medium transition-colors focus:z-20 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
+    props.isCompact
+      ? "min-w-8 px-2 py-1.5 text-xs"
+      : "min-w-9 px-2 py-2 text-sm"
+  }`;
+
+  type GetArrowButtonClassNameFunction = (isButtonDisabled: boolean) => string;
+
+  const getArrowButtonClassName: GetArrowButtonClassNameFunction = (
+    isButtonDisabled: boolean,
+  ): string => {
+    return `${pageButtonBaseClassName} ${
+      isButtonDisabled
+        ? "cursor-not-allowed bg-gray-50 text-gray-300"
+        : "cursor-pointer bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+    }`;
+  };
+
+  type GetPageNumberButtonFunction = (pageNumber: number) => ReactElement;
+
+  const getPageNumberButton: GetPageNumberButtonFunction = (
+    pageNumber: number,
+  ): ReactElement => {
+    const isCurrentPage: boolean = pageNumber === currentPageNumber;
+
+    return (
+      <li className="hidden sm:flex" key={`page-${pageNumber}`}>
+        <button
+          type="button"
+          data-testid={`pagination-page-${pageNumber}`}
+          aria-label={
+            isCurrentPage ? `Page ${pageNumber}` : `Go to page ${pageNumber}`
+          }
+          aria-current={isCurrentPage ? "page" : undefined}
+          disabled={isDisabled}
+          onClick={() => {
+            if (!isCurrentPage) {
+              navigateToPage(pageNumber);
+            }
+          }}
+          className={`${pageButtonBaseClassName} ${
+            isCurrentPage
+              ? "z-10 border-indigo-500 bg-indigo-50 text-indigo-600"
+              : "bg-white text-gray-600 hover:bg-gray-50"
+          } ${
+            isDisabled && !isCurrentPage
+              ? "cursor-not-allowed text-gray-300"
+              : "cursor-pointer"
+          }`}
+        >
+          {pageNumber.toLocaleString()}
+        </button>
+      </li>
+    );
+  };
+
+  type GetEllipsisFunction = (key: string) => ReactElement;
+
+  const getEllipsis: GetEllipsisFunction = (key: string): ReactElement => {
+    return (
+      <li className="hidden sm:flex" key={key}>
+        <button
+          type="button"
+          data-testid={`pagination-${key}`}
+          aria-label="Go to a page in between"
+          title="Go to page"
+          disabled={isDisabled}
+          onClick={() => {
+            if (!isDisabled) {
+              setIsGoToPageModalVisible(true);
+            }
+          }}
+          className={`${pageButtonBaseClassName} bg-white text-gray-400 ${
+            isDisabled
+              ? "cursor-not-allowed"
+              : "cursor-pointer hover:bg-gray-50 hover:text-gray-600"
+          }`}
+        >
+          &hellip;
+        </button>
+      </li>
+    );
+  };
 
   return (
-    <nav
-      className="flex items-center justify-between border-t border-gray-200 bg-white px-4"
-      data-testid={props.dataTestId}
-      aria-label={`Pagination for ${props.pluralLabel}`}
-    >
-      {/* Desktop layout: Description on left, all controls on right */}
-      <div className="hidden md:block">
-        <p className="text-sm text-gray-500">
-          {!props.isLoading && isHasMoreMode && (
-            <span>
-              {/*
-               * An empty page has no range to print - "Showing 1 to 0" is
-               * how that used to read.
-               */}
-              {lastOnPage < firstOnPage
-                ? `No ${props.pluralLabel.toLowerCase()}.`
-                : `Showing ${firstOnPage} to ${lastOnPage}${
-                    props.hasMore ? "+" : ""
-                  } ${props.pluralLabel.toLowerCase()}.`}
-            </span>
-          )}
-          {!props.isLoading && !isHasMoreMode && (
-            <span>
-              {props.totalItemsCount.toLocaleString()}{" "}
-              {props.totalItemsCount > 1
-                ? props.pluralLabel
-                : props.singularLabel}{" "}
-              {`in total. Showing ${
-                props.itemsOnPage * (props.currentPageNumber - 1) + 1
-              } to ${
-                props.itemsOnPage * props.currentPageNumber
-              } on this page.`}
-            </span>
-          )}
+    <>
+      <nav
+        className={`flex flex-col gap-3 border-t border-gray-200 bg-white px-4 py-3 text-left sm:flex-row sm:items-center sm:justify-between ${
+          props.className || ""
+        }`}
+        data-testid={props.dataTestId}
+        aria-label={`Pagination for ${props.pluralLabel}`}
+      >
+        <p
+          className={`${textSizeClassName} shrink-0 whitespace-nowrap text-gray-500`}
+          data-testid="pagination-summary"
+          aria-live="polite"
+        >
+          {props.isLoading ? "Loading…" : getSummary()}
         </p>
-      </div>
 
-      {/* Desktop layout: All controls together on right */}
-      <div className="hidden md:flex">
-        <div className="inline-flex -space-x-px rounded-md shadow-sm">
-          <div className="my-2">
-            <Button
-              dataTestId="show-pagination-modal-button"
-              className="mx-2 my-2"
-              buttonSize={ButtonSize.ExtraSmall}
-              icon={IconProp.AdjustmentHorizontal}
-              buttonStyle={ButtonStyleType.ICON_LIGHT}
-              ariaLabel="Open pagination settings"
-              onClick={() => {
-                setShowPaginationModel(true);
-              }}
-            />
+        <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-3 sm:justify-end">
+          <div className="flex items-center gap-2">
+            <label
+              htmlFor={itemsOnPageSelectId}
+              className={`${textSizeClassName} whitespace-nowrap text-gray-500`}
+            >
+              Rows per page
+            </label>
+            <div className="relative">
+              <select
+                id={itemsOnPageSelectId}
+                data-testid="pagination-items-on-page-select"
+                value={props.itemsOnPage}
+                disabled={isDisabled}
+                onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
+                  const newItemsOnPage: number = Number(event.target.value);
+
+                  if (!newItemsOnPage || newItemsOnPage === props.itemsOnPage) {
+                    return;
+                  }
+
+                  /*
+                   * Row 400 of the old page size is not row 400 of the new one,
+                   * so resizing the page returns to the top of the list rather
+                   * than to an offset that may no longer exist.
+                   */
+                  props.onNavigateToPage(1, newItemsOnPage);
+                }}
+                className={`cursor-pointer appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-2.5 pr-8 font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 ${textSizeClassName}`}
+              >
+                {itemsOnPageOptions.map((option: number) => {
+                  return (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  );
+                })}
+              </select>
+              <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                <Icon
+                  icon={IconProp.ChevronDown}
+                  className="h-4 w-4 text-gray-400"
+                />
+              </span>
+            </div>
           </div>
 
-          <ul className="flex py-3" role="list">
+          <ul
+            className="isolate inline-flex -space-x-px rounded-md shadow-sm"
+            role="list"
+          >
             <li className="flex">
               <button
                 type="button"
+                data-testid="pagination-previous-button"
                 disabled={isPreviousDisabled}
                 aria-label="Go to previous page"
                 onClick={() => {
-                  let currentPageNumber: number = props.currentPageNumber;
-
-                  if (typeof currentPageNumber === "string") {
-                    currentPageNumber = parseInt(currentPageNumber);
-                  }
-
-                  if (props.onNavigateToPage && !isPreviousDisabled) {
-                    props.onNavigateToPage(
-                      currentPageNumber - 1,
-                      props.itemsOnPage,
-                    );
+                  if (!isPreviousDisabled) {
+                    navigateToPage(currentPageNumber - 1);
                   }
                 }}
-                className={` inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500   ${
-                  isPreviousDisabled
-                    ? "bg-gray-100 cursor-not-allowed"
-                    : "hover:bg-gray-50 cursor-pointer"
-                }`}
+                className={`${getArrowButtonClassName(
+                  isPreviousDisabled,
+                )} rounded-l-md`}
               >
-                <span className="page-link">Previous</span>
+                <Icon icon={IconProp.ChevronLeft} className="h-4 w-4" />
               </button>
             </li>
+
+            {/*
+             * The numbered list is desktop-only; narrow screens get this
+             * single indicator instead so the control never wraps into a
+             * second row of buttons.
+             */}
+            <li className="flex sm:hidden">
+              <span
+                data-testid="pagination-current-page-indicator"
+                className={`${pageButtonBaseClassName} bg-white text-gray-600`}
+              >
+                {isHasMoreMode
+                  ? `Page ${currentPageNumber.toLocaleString()}`
+                  : `Page ${currentPageNumber.toLocaleString()} of ${totalPageCount.toLocaleString()}`}
+              </span>
+            </li>
+
+            {isHasMoreMode && (
+              <li className="hidden sm:flex">
+                <span
+                  data-testid="pagination-current-page-indicator-desktop"
+                  aria-current="page"
+                  className={`${pageButtonBaseClassName} z-10 border-indigo-500 bg-indigo-50 text-indigo-600`}
+                >
+                  {`Page ${currentPageNumber.toLocaleString()}`}
+                </span>
+              </li>
+            )}
+
+            {pageWindow.map((item: PageWindowItem) => {
+              if (typeof item === "number") {
+                return getPageNumberButton(item);
+              }
+
+              return getEllipsis(item);
+            })}
+
             <li className="flex">
               <button
                 type="button"
-                disabled={isCurrentPageButtonDisabled}
-                aria-current="page"
-                aria-label={`Page ${props.currentPageNumber}, current page. Select to jump to another page.`}
-                data-testid="current-page-link"
-                className={` z-10 inline-flex items-center border border-x-0 border-gray-300 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-text-600 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
-                  isCurrentPageButtonDisabled ? "bg-gray-100" : ""
-                }`}
-                onClick={() => {
-                  if (!isHasMoreMode) {
-                    setShowPaginationModel(true);
-                  }
-                }}
-              >
-                <span>{props.currentPageNumber}</span>
-              </button>
-            </li>
-            <li className="flex">
-              <button
-                type="button"
+                data-testid="pagination-next-button"
                 disabled={isNextDisabled}
                 aria-label="Go to next page"
                 onClick={() => {
-                  let currentPageNumber: number = props.currentPageNumber;
-
-                  if (typeof currentPageNumber === "string") {
-                    currentPageNumber = parseInt(currentPageNumber);
-                  }
-
-                  if (props.onNavigateToPage && !isNextDisabled) {
-                    props.onNavigateToPage(
-                      currentPageNumber + 1,
-                      props.itemsOnPage,
-                    );
+                  if (!isNextDisabled) {
+                    navigateToPage(currentPageNumber + 1);
                   }
                 }}
-                className={` inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500  ${
-                  isNextDisabled
-                    ? "bg-gray-100 cursor-not-allowed"
-                    : " hover:bg-gray-50 cursor-pointer"
-                }`}
+                className={`${getArrowButtonClassName(
+                  isNextDisabled,
+                )} rounded-r-md`}
               >
-                <span>Next</span>
+                <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
               </button>
             </li>
           </ul>
         </div>
-      </div>
+      </nav>
 
-      {/* Mobile layout: Navigate button on left, pagination controls on right */}
-      <div className="md:hidden my-2">
-        <Button
-          dataTestId="show-pagination-modal-button-mobile"
-          className="my-2"
-          buttonSize={ButtonSize.ExtraSmall}
-          icon={IconProp.AdjustmentHorizontal}
-          buttonStyle={ButtonStyleType.ICON_LIGHT}
-          ariaLabel="Open pagination settings"
-          onClick={() => {
-            setShowPaginationModel(true);
-          }}
-        />
-      </div>
-
-      <div className="md:hidden">
-        <div className="inline-flex -space-x-px rounded-md shadow-sm">
-          <ul className="flex" role="list">
-            <li className="flex">
-              <button
-                type="button"
-                disabled={isPreviousDisabled}
-                aria-label="Go to previous page"
-                onClick={() => {
-                  let currentPageNumber: number = props.currentPageNumber;
-
-                  if (typeof currentPageNumber === "string") {
-                    currentPageNumber = parseInt(currentPageNumber);
-                  }
-
-                  if (props.onNavigateToPage && !isPreviousDisabled) {
-                    props.onNavigateToPage(
-                      currentPageNumber - 1,
-                      props.itemsOnPage,
-                    );
-                  }
-                }}
-                className={` inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500   ${
-                  isPreviousDisabled
-                    ? "bg-gray-100 cursor-not-allowed"
-                    : "hover:bg-gray-50 cursor-pointer"
-                }`}
-              >
-                <span className="page-link">Previous</span>
-              </button>
-            </li>
-            <li className="flex">
-              <button
-                type="button"
-                disabled={isCurrentPageButtonDisabled}
-                aria-current="page"
-                aria-label={`Page ${props.currentPageNumber}, current page. Select to jump to another page.`}
-                data-testid="current-page-link-mobile"
-                className={` z-10 inline-flex items-center border border-x-0 border-gray-300 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-text-600 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
-                  isCurrentPageButtonDisabled ? "bg-gray-100" : ""
-                }`}
-                onClick={() => {
-                  if (!isHasMoreMode) {
-                    setShowPaginationModel(true);
-                  }
-                }}
-              >
-                <span>{props.currentPageNumber}</span>
-              </button>
-            </li>
-            <li className="flex">
-              <button
-                type="button"
-                disabled={isNextDisabled}
-                aria-label="Go to next page"
-                onClick={() => {
-                  let currentPageNumber: number = props.currentPageNumber;
-
-                  if (typeof currentPageNumber === "string") {
-                    currentPageNumber = parseInt(currentPageNumber);
-                  }
-
-                  if (props.onNavigateToPage && !isNextDisabled) {
-                    props.onNavigateToPage(
-                      currentPageNumber + 1,
-                      props.itemsOnPage,
-                    );
-                  }
-                }}
-                className={` inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500  ${
-                  isNextDisabled
-                    ? "bg-gray-100 cursor-not-allowed"
-                    : " hover:bg-gray-50 cursor-pointer"
-                }`}
-              >
-                <span>Next</span>
-              </button>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      {showPaginationModel && (
-        <BasicFormModal<PaginationNavigationItem>
-          data-testid="pagination-modal"
-          title={isHasMoreMode ? "Items on Page" : "Navigate to Page"}
+      {isGoToPageModalVisible && (
+        <Modal
+          title="Go to page"
+          description={`This list has ${totalPageCount.toLocaleString()} pages. Enter the one you want to see.`}
+          submitButtonText="Go"
+          closeButtonText="Cancel"
+          disableSubmitButton={goToPageValue === ""}
+          onSubmit={submitGoToPage}
           onClose={() => {
-            setShowPaginationModel(false);
+            setIsGoToPageModalVisible(false);
+            setGoToPageValue("");
           }}
-          submitButtonText={isHasMoreMode ? "Apply" : "Go to Page"}
-          onSubmit={(item: PaginationNavigationItem) => {
-            if (props.onNavigateToPage) {
+        >
+          <div>
+            <label
+              htmlFor={goToPageInputId}
+              className="block text-sm font-medium text-gray-700"
+            >
+              Page number
+            </label>
+            <input
+              id={goToPageInputId}
+              data-testid="pagination-go-to-page-input"
+              type="number"
+              inputMode="numeric"
+              autoFocus={true}
+              min={1}
+              max={totalPageCount}
+              value={goToPageValue}
+              placeholder={`1-${totalPageCount}`}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                setGoToPageValue(event.target.value);
+              }}
               /*
-               * hasMore mode doesn't know the max page, so the
-               * pageNumber field is hidden — navigating "in place"
-               * keeps the current page and only changes the page
-               * size.
+               * The modal's footer button is not a form submit, so Enter is
+               * wired up by hand - typing a number and pressing Enter is how
+               * anyone who reached for this box expects it to end.
                */
-              const pageNumber: number = isHasMoreMode
-                ? props.currentPageNumber
-                : item.pageNumber;
-              props.onNavigateToPage(pageNumber, item.itemsOnPage);
-            }
-            setShowPaginationModel(false);
-          }}
-          formProps={{
-            initialValues: {
-              pageNumber: props.currentPageNumber,
-              itemsOnPage: props.itemsOnPage,
-            },
-            fields: [
-              ...(isHasMoreMode
-                ? []
-                : [
-                    {
-                      title: "Page Number",
-                      description: `You can enter page numbers from ${
-                        minPageNumber !== maxPageNumber
-                          ? minPageNumber + " to " + maxPageNumber
-                          : minPageNumber
-                      }. Please enter it here:`,
-                      field: {
-                        pageNumber: true,
-                      },
-                      disabled: minPageNumber === maxPageNumber,
-                      placeholder: "1",
-                      required: true,
-                      validation: {
-                        minValue: minPageNumber,
-                        maxValue: maxPageNumber,
-                      },
-                      fieldType: FormFieldSchemaType.PositiveNumber,
-                    },
-                  ]),
-              {
-                title: `${props.pluralLabel} on Page `,
-                description: `Enter the number of ${props.pluralLabel.toLowerCase()} you would like to see on the page:`,
-                field: {
-                  itemsOnPage: true,
-                },
-                placeholder: "10",
-                required: true,
-                fieldType: FormFieldSchemaType.Dropdown,
-                dropdownOptions: [
-                  {
-                    value: 10,
-                    label: "10",
-                  },
-                  {
-                    value: 20,
-                    label: "20",
-                  },
-                  {
-                    value: 25,
-                    label: "25",
-                  },
-                  {
-                    value: 50,
-                    label: "50",
-                  },
-                ],
-              },
-            ],
-          }}
-        />
+              onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  submitGoToPage();
+                }
+              }}
+              className="mt-2 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
+        </Modal>
       )}
-    </nav>
+    </>
   );
 };
 
