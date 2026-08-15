@@ -1,5 +1,4 @@
 import { EVERY_DAY } from "Common/Utils/CronTime";
-import { FindOperator } from "typeorm";
 import fs from "fs";
 import path from "path";
 import { beforeEach, describe, expect, test } from "@jest/globals";
@@ -178,9 +177,18 @@ function firstQuery(service: FakeService): Record<string, unknown> {
 /*
  * QueryHelper.lessThan() builds a TypeORM Raw operator: the comparison lives
  * in the generated SQL and the boundary in the bound parameters.
+ *
+ * The shape is described structurally rather than imported from typeorm --
+ * typeorm is a Common dependency, not an App one, so importing it here
+ * compiles locally through the hoisted tree but breaks `cd App && tsc` in CI.
  */
+type RawFindOperator = {
+  objectLiteralParameters?: Record<string, Date>;
+  getSql?: (alias: string) => string;
+};
+
 function boundDate(operator: unknown): Date {
-  const findOperator: FindOperator<Date> = operator as FindOperator<Date>;
+  const findOperator: RawFindOperator = operator as RawFindOperator;
 
   return Object.values(
     findOperator.objectLiteralParameters as Record<string, Date>,
@@ -188,7 +196,7 @@ function boundDate(operator: unknown): Date {
 }
 
 function sqlOf(operator: unknown): string {
-  const findOperator: FindOperator<Date> = operator as FindOperator<Date>;
+  const findOperator: RawFindOperator = operator as RawFindOperator;
 
   return findOperator.getSql!("col");
 }

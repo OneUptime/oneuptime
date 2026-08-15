@@ -39,9 +39,53 @@ function isOnPath(binary) {
 }
 
 const hasEnvsubst = isOnPath("envsubst");
-const hasNginx = (() => {
+
+/*
+ * The shipped image's nginx (Nginx/Dockerfile.tpl). `nginx -t` is only a
+ * meaningful check against a binary at least this new: the config uses
+ * `http2 on;`, a directive added in 1.25.1 that older builds reject outright.
+ * Ubuntu runners carry 1.24, so validating there would fail on a config that
+ * is correct for the version OneUptime actually runs.
+ */
+const MINIMUM_NGINX_VERSION = [1, 25, 1];
+
+/** [major, minor, patch] of the nginx on PATH, or null if there is none. */
+function localNginxVersion() {
   const probe = spawnSync("nginx", ["-v"], { encoding: "utf8" });
-  return !probe.error;
+
+  if (probe.error) {
+    return null;
+  }
+
+  // nginx writes "nginx version: nginx/1.24.0" to stderr.
+  const match = /nginx\/(\d+)\.(\d+)\.(\d+)/.exec(
+    `${probe.stderr || ""}${probe.stdout || ""}`,
+  );
+
+  return match ? match.slice(1, 4).map(Number) : null;
+}
+
+const nginxVersion = localNginxVersion();
+
+/** Reason to skip the `nginx -t` check, or false to run it. */
+const nginxCheckSkipReason = (() => {
+  if (!nginxVersion) {
+    return "nginx binary not on PATH";
+  }
+
+  // Compare lexicographically: the FIRST component that differs decides, so a
+  // later component can never overturn it (2.0.0 is newer than 1.25.1).
+  const decidingIndex = MINIMUM_NGINX_VERSION.findIndex((floor, index) => {
+    return nginxVersion[index] !== floor;
+  });
+
+  const tooOld =
+    decidingIndex !== -1 &&
+    nginxVersion[decidingIndex] < MINIMUM_NGINX_VERSION[decidingIndex];
+
+  return tooOld
+    ? `nginx ${nginxVersion.join(".")} predates ${MINIMUM_NGINX_VERSION.join(".")}, which the shipped config requires`
+    : false;
 })();
 
 /** Every ${NAME} placeholder the template contains. */
@@ -327,7 +371,7 @@ test(
 
 test(
   "the rendered config passes nginx -t",
-  { skip: hasNginx ? false : "nginx binary not on PATH" },
+  { skip: nginxCheckSkipReason },
   () => {
     const prefix = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-nginx-"));
 
