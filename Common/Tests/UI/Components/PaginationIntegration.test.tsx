@@ -268,10 +268,22 @@ describe("LogsPagination", () => {
   it("jumps to a page", () => {
     const { onPageChange, onPageSizeChange } = renderLogsPagination();
 
-    fireEvent.click(screen.getByTestId("pagination-page-4"));
+    fireEvent.click(screen.getByTestId("pagination-page-3"));
 
-    expect(onPageChange).toHaveBeenCalledWith(4);
+    expect(onPageChange).toHaveBeenCalledWith(3);
     expect(onPageSizeChange).not.toHaveBeenCalled();
+  });
+
+  it("jumps to a page in between from the collapsed gap", () => {
+    const { onPageChange } = renderLogsPagination();
+
+    fireEvent.click(screen.getByTestId("pagination-ellipsis-end"));
+    fireEvent.change(screen.getByTestId("pagination-go-to-page-input"), {
+      target: { value: "7" },
+    });
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+    expect(onPageChange).toHaveBeenCalledWith(7);
   });
 
   /*

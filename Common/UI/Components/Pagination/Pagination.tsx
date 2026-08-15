@@ -1,13 +1,14 @@
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
+import Modal from "../Modal/Modal";
 import PaginationUtil, {
   DefaultItemsOnPageOptions,
   ItemRange,
   PageWindowItem,
 } from "./PaginationUtil";
 import React, {
-  FormEvent,
   FunctionComponent,
+  KeyboardEvent,
   ReactElement,
   useEffect,
   useId,
@@ -95,19 +96,17 @@ const Pagination: FunctionComponent<ComponentProps> = (
     : PaginationUtil.getPageWindow(currentPageNumber, totalPageCount);
 
   /*
-   * The numbered list collapses gaps once it runs out of slots. That is
-   * exactly when a direct jump becomes worth its space on the toolbar.
+   * The collapsed gaps are the jump affordance: a gap is drawn exactly where
+   * pages the reader might want are not on the bar, so that is where asking
+   * for one belongs. Nothing is spent on the toolbar until they ask.
    */
-  const showGoToPage: boolean =
-    !isHasMoreMode &&
-    pageWindow.some((item: PageWindowItem) => {
-      return typeof item !== "number";
-    });
-
+  const [isGoToPageModalVisible, setIsGoToPageModalVisible] =
+    useState<boolean>(false);
   const [goToPageValue, setGoToPageValue] = useState<string>("");
 
-  // A page change from anywhere (prev/next, a number, the URL) clears the box.
+  // A page change from anywhere (prev/next, a number, the URL) closes the box.
   useEffect(() => {
+    setIsGoToPageModalVisible(false);
     setGoToPageValue("");
   }, [currentPageNumber]);
 
@@ -134,6 +133,21 @@ const Pagination: FunctionComponent<ComponentProps> = (
     }
 
     props.onNavigateToPage(pageNumber, props.itemsOnPage);
+  };
+
+  type SubmitGoToPageFunction = () => void;
+
+  const submitGoToPage: SubmitGoToPageFunction = (): void => {
+    const requestedPageNumber: number = Number(goToPageValue);
+
+    if (!requestedPageNumber) {
+      return;
+    }
+
+    setIsGoToPageModalVisible(false);
+    navigateToPage(
+      PaginationUtil.clampPageNumber(requestedPageNumber, totalPageCount),
+    );
   };
 
   type GetSummaryFunction = () => string;
@@ -231,223 +245,224 @@ const Pagination: FunctionComponent<ComponentProps> = (
   const getEllipsis: GetEllipsisFunction = (key: string): ReactElement => {
     return (
       <li className="hidden sm:flex" key={key}>
-        <span
-          aria-hidden="true"
+        <button
+          type="button"
           data-testid={`pagination-${key}`}
-          className={`${pageButtonBaseClassName} bg-white text-gray-400`}
+          aria-label="Go to a page in between"
+          title="Go to page"
+          disabled={isDisabled}
+          onClick={() => {
+            if (!isDisabled) {
+              setIsGoToPageModalVisible(true);
+            }
+          }}
+          className={`${pageButtonBaseClassName} bg-white text-gray-400 ${
+            isDisabled
+              ? "cursor-not-allowed"
+              : "cursor-pointer hover:bg-gray-50 hover:text-gray-600"
+          }`}
         >
           &hellip;
-        </span>
+        </button>
       </li>
     );
   };
 
   return (
-    <nav
-      className={`flex flex-col gap-3 border-t border-gray-200 bg-white px-4 py-3 text-left sm:flex-row sm:items-center sm:justify-between ${
-        props.className || ""
-      }`}
-      data-testid={props.dataTestId}
-      aria-label={`Pagination for ${props.pluralLabel}`}
-    >
-      <p
-        className={`${textSizeClassName} shrink-0 whitespace-nowrap text-gray-500`}
-        data-testid="pagination-summary"
-        aria-live="polite"
+    <>
+      <nav
+        className={`flex flex-col gap-3 border-t border-gray-200 bg-white px-4 py-3 text-left sm:flex-row sm:items-center sm:justify-between ${
+          props.className || ""
+        }`}
+        data-testid={props.dataTestId}
+        aria-label={`Pagination for ${props.pluralLabel}`}
       >
-        {props.isLoading ? "Loading…" : getSummary()}
-      </p>
+        <p
+          className={`${textSizeClassName} shrink-0 whitespace-nowrap text-gray-500`}
+          data-testid="pagination-summary"
+          aria-live="polite"
+        >
+          {props.isLoading ? "Loading…" : getSummary()}
+        </p>
 
-      <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-3 sm:justify-end">
-        <div className="flex items-center gap-2">
-          <label
-            htmlFor={itemsOnPageSelectId}
-            className={`${textSizeClassName} whitespace-nowrap text-gray-500`}
-          >
-            Rows per page
-          </label>
-          <div className="relative">
-            <select
-              id={itemsOnPageSelectId}
-              data-testid="pagination-items-on-page-select"
-              value={props.itemsOnPage}
-              disabled={isDisabled}
-              onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-                const newItemsOnPage: number = Number(event.target.value);
-
-                if (!newItemsOnPage || newItemsOnPage === props.itemsOnPage) {
-                  return;
-                }
-
-                /*
-                 * Row 400 of the old page size is not row 400 of the new one,
-                 * so resizing the page returns to the top of the list rather
-                 * than to an offset that may no longer exist.
-                 */
-                props.onNavigateToPage(1, newItemsOnPage);
-              }}
-              className={`cursor-pointer appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-2.5 pr-8 font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 ${textSizeClassName}`}
-            >
-              {itemsOnPageOptions.map((option: number) => {
-                return (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                );
-              })}
-            </select>
-            <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
-              <Icon
-                icon={IconProp.ChevronDown}
-                className="h-4 w-4 text-gray-400"
-              />
-            </span>
-          </div>
-        </div>
-
-        {showGoToPage && (
-          <form
-            className="flex items-center gap-2"
-            aria-label="Jump to a page"
-            data-testid="pagination-go-to-page-form"
-            onSubmit={(event: FormEvent<HTMLFormElement>) => {
-              event.preventDefault();
-
-              const requestedPageNumber: number = Number(goToPageValue);
-
-              if (!requestedPageNumber || isDisabled) {
-                return;
-              }
-
-              navigateToPage(
-                PaginationUtil.clampPageNumber(
-                  requestedPageNumber,
-                  totalPageCount,
-                ),
-              );
-            }}
-          >
-            {/*
-             * "Go to" rather than "Go to page": the row already carries two
-             * labels and a numbered list, and the placeholder says what
-             * range of page numbers the box takes. Assistive technology is
-             * given the whole phrase through the input's own label.
-             */}
+        <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-3 sm:justify-end">
+          <div className="flex items-center gap-2">
             <label
-              htmlFor={goToPageInputId}
+              htmlFor={itemsOnPageSelectId}
               className={`${textSizeClassName} whitespace-nowrap text-gray-500`}
             >
-              Go to
+              Rows per page
             </label>
-            <span className="flex -space-x-px rounded-md shadow-sm">
-              <input
-                id={goToPageInputId}
-                data-testid="pagination-go-to-page-input"
-                type="number"
-                inputMode="numeric"
-                aria-label="Go to page"
-                min={1}
-                max={totalPageCount}
-                value={goToPageValue}
+            <div className="relative">
+              <select
+                id={itemsOnPageSelectId}
+                data-testid="pagination-items-on-page-select"
+                value={props.itemsOnPage}
                 disabled={isDisabled}
-                placeholder={`1-${totalPageCount}`}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                  setGoToPageValue(event.target.value);
+                onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
+                  const newItemsOnPage: number = Number(event.target.value);
+
+                  if (!newItemsOnPage || newItemsOnPage === props.itemsOnPage) {
+                    return;
+                  }
+
+                  /*
+                   * Row 400 of the old page size is not row 400 of the new one,
+                   * so resizing the page returns to the top of the list rather
+                   * than to an offset that may no longer exist.
+                   */
+                  props.onNavigateToPage(1, newItemsOnPage);
                 }}
-                className={`w-16 rounded-l-md border border-gray-300 bg-white px-2 py-1.5 text-gray-700 placeholder:text-gray-300 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:bg-gray-50 ${textSizeClassName}`}
-              />
+                className={`cursor-pointer appearance-none rounded-md border border-gray-300 bg-white py-1.5 pl-2.5 pr-8 font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 ${textSizeClassName}`}
+              >
+                {itemsOnPageOptions.map((option: number) => {
+                  return (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  );
+                })}
+              </select>
+              <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                <Icon
+                  icon={IconProp.ChevronDown}
+                  className="h-4 w-4 text-gray-400"
+                />
+              </span>
+            </div>
+          </div>
+
+          <ul
+            className="isolate inline-flex -space-x-px rounded-md shadow-sm"
+            role="list"
+          >
+            <li className="flex">
               <button
-                type="submit"
-                data-testid="pagination-go-to-page-button"
-                disabled={isDisabled || goToPageValue === ""}
-                className={`rounded-r-md border border-gray-300 bg-white px-2.5 py-1.5 font-medium text-gray-600 transition-colors hover:bg-gray-50 focus:z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-300 ${textSizeClassName}`}
+                type="button"
+                data-testid="pagination-previous-button"
+                disabled={isPreviousDisabled}
+                aria-label="Go to previous page"
+                onClick={() => {
+                  if (!isPreviousDisabled) {
+                    navigateToPage(currentPageNumber - 1);
+                  }
+                }}
+                className={`${getArrowButtonClassName(
+                  isPreviousDisabled,
+                )} rounded-l-md`}
               >
-                Go
+                <Icon icon={IconProp.ChevronLeft} className="h-4 w-4" />
               </button>
-            </span>
-          </form>
-        )}
+            </li>
 
-        <ul
-          className="isolate inline-flex -space-x-px rounded-md shadow-sm"
-          role="list"
-        >
-          <li className="flex">
-            <button
-              type="button"
-              data-testid="pagination-previous-button"
-              disabled={isPreviousDisabled}
-              aria-label="Go to previous page"
-              onClick={() => {
-                if (!isPreviousDisabled) {
-                  navigateToPage(currentPageNumber - 1);
-                }
-              }}
-              className={`${getArrowButtonClassName(
-                isPreviousDisabled,
-              )} rounded-l-md`}
-            >
-              <Icon icon={IconProp.ChevronLeft} className="h-4 w-4" />
-            </button>
-          </li>
-
-          {/*
-           * The numbered list is desktop-only; narrow screens get this
-           * single indicator instead so the control never wraps into a
-           * second row of buttons.
-           */}
-          <li className="flex sm:hidden">
-            <span
-              data-testid="pagination-current-page-indicator"
-              className={`${pageButtonBaseClassName} bg-white text-gray-600`}
-            >
-              {isHasMoreMode
-                ? `Page ${currentPageNumber.toLocaleString()}`
-                : `Page ${currentPageNumber.toLocaleString()} of ${totalPageCount.toLocaleString()}`}
-            </span>
-          </li>
-
-          {isHasMoreMode && (
-            <li className="hidden sm:flex">
+            {/*
+             * The numbered list is desktop-only; narrow screens get this
+             * single indicator instead so the control never wraps into a
+             * second row of buttons.
+             */}
+            <li className="flex sm:hidden">
               <span
-                data-testid="pagination-current-page-indicator-desktop"
-                aria-current="page"
-                className={`${pageButtonBaseClassName} z-10 border-indigo-500 bg-indigo-50 text-indigo-600`}
+                data-testid="pagination-current-page-indicator"
+                className={`${pageButtonBaseClassName} bg-white text-gray-600`}
               >
-                {`Page ${currentPageNumber.toLocaleString()}`}
+                {isHasMoreMode
+                  ? `Page ${currentPageNumber.toLocaleString()}`
+                  : `Page ${currentPageNumber.toLocaleString()} of ${totalPageCount.toLocaleString()}`}
               </span>
             </li>
-          )}
 
-          {pageWindow.map((item: PageWindowItem) => {
-            if (typeof item === "number") {
-              return getPageNumberButton(item);
-            }
+            {isHasMoreMode && (
+              <li className="hidden sm:flex">
+                <span
+                  data-testid="pagination-current-page-indicator-desktop"
+                  aria-current="page"
+                  className={`${pageButtonBaseClassName} z-10 border-indigo-500 bg-indigo-50 text-indigo-600`}
+                >
+                  {`Page ${currentPageNumber.toLocaleString()}`}
+                </span>
+              </li>
+            )}
 
-            return getEllipsis(item);
-          })}
+            {pageWindow.map((item: PageWindowItem) => {
+              if (typeof item === "number") {
+                return getPageNumberButton(item);
+              }
 
-          <li className="flex">
-            <button
-              type="button"
-              data-testid="pagination-next-button"
-              disabled={isNextDisabled}
-              aria-label="Go to next page"
-              onClick={() => {
-                if (!isNextDisabled) {
-                  navigateToPage(currentPageNumber + 1);
+              return getEllipsis(item);
+            })}
+
+            <li className="flex">
+              <button
+                type="button"
+                data-testid="pagination-next-button"
+                disabled={isNextDisabled}
+                aria-label="Go to next page"
+                onClick={() => {
+                  if (!isNextDisabled) {
+                    navigateToPage(currentPageNumber + 1);
+                  }
+                }}
+                className={`${getArrowButtonClassName(
+                  isNextDisabled,
+                )} rounded-r-md`}
+              >
+                <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
+              </button>
+            </li>
+          </ul>
+        </div>
+      </nav>
+
+      {isGoToPageModalVisible && (
+        <Modal
+          title="Go to page"
+          description={`This list has ${totalPageCount.toLocaleString()} pages. Enter the one you want to see.`}
+          submitButtonText="Go"
+          closeButtonText="Cancel"
+          disableSubmitButton={goToPageValue === ""}
+          onSubmit={submitGoToPage}
+          onClose={() => {
+            setIsGoToPageModalVisible(false);
+            setGoToPageValue("");
+          }}
+        >
+          <div>
+            <label
+              htmlFor={goToPageInputId}
+              className="block text-sm font-medium text-gray-700"
+            >
+              Page number
+            </label>
+            <input
+              id={goToPageInputId}
+              data-testid="pagination-go-to-page-input"
+              type="number"
+              inputMode="numeric"
+              autoFocus={true}
+              min={1}
+              max={totalPageCount}
+              value={goToPageValue}
+              placeholder={`1-${totalPageCount}`}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                setGoToPageValue(event.target.value);
+              }}
+              /*
+               * The modal's footer button is not a form submit, so Enter is
+               * wired up by hand - typing a number and pressing Enter is how
+               * anyone who reached for this box expects it to end.
+               */
+              onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  submitGoToPage();
                 }
               }}
-              className={`${getArrowButtonClassName(
-                isNextDisabled,
-              )} rounded-r-md`}
-            >
-              <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
-            </button>
-          </li>
-        </ul>
-      </div>
-    </nav>
+              className="mt-2 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
+        </Modal>
+      )}
+    </>
   );
 };
 

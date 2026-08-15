@@ -21,17 +21,19 @@ export const DefaultItemsOnPageOptions: Array<number> = [10, 20, 25, 50, 100];
 
 /**
  * How many slots the numbered page list may occupy, ellipses included.
- * Seven keeps the control a constant width from page 1 through page 10,000:
- * first, gap, three around the current page, gap, last.
+ * Five is the whole story a page list has to tell - where you are, where
+ * both ends are, and that there is more in between - and it keeps the
+ * control a constant width from page 1 through page 10,000. Stepping to a
+ * neighbour is what the arrows are for; landing somewhere arbitrary is what
+ * the gaps are for.
  */
-export const DefaultMaxVisiblePages: number = 7;
+export const DefaultMaxVisiblePages: number = 5;
 
 /**
- * The narrowest window the collapsing rules can actually honour: first, gap,
- * the current page with a neighbour on each side, gap, last. Anything
- * smaller is raised to this rather than dropping the neighbours.
+ * The narrowest window the collapsing rules can honour: first, gap, current,
+ * gap, last. Anything smaller is raised to this.
  */
-const MinMaxVisiblePages: number = 7;
+const MinMaxVisiblePages: number = 5;
 
 export interface ItemRange {
   firstItemNumber: number;
@@ -132,13 +134,14 @@ export default class PaginationUtil {
     }
 
     /*
-     * Pages kept on each side of the current one. The other five slots are
+     * Pages kept on each side of the current one. Five slots are already
      * spent on the first page, the last page, the current page and the two
-     * ellipses, so the rendered width stays at `safeMaxVisiblePages`.
+     * ellipses, so whatever a wider window is given goes here - and the
+     * rendered width stays at `safeMaxVisiblePages`.
      */
     const siblingCount: number = Math.max(
       Math.floor((safeMaxVisiblePages - 5) / 2),
-      1,
+      0,
     );
 
     /*

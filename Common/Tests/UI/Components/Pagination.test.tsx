@@ -139,7 +139,7 @@ describe("Pagination", () => {
 
     it("keeps the page size when jumping to a page", () => {
       const onNavigateToPage: MockFunction = renderPagination({
-        totalItemsCount: 300,
+        totalItemsCount: 250,
         itemsOnPage: 50,
       });
 
@@ -171,18 +171,34 @@ describe("Pagination", () => {
       expect(onNavigateToPage).not.toHaveBeenCalled();
     });
 
+    /*
+     * Five slots, not a row of a dozen buttons: where you are, both ends,
+     * and a gap on either side for everything else.
+     */
     it("collapses the middle of a long list but keeps both ends", () => {
       renderPagination({ currentPageNumber: 12, totalItemsCount: 240 });
 
       expect(screen.getByTestId("pagination-page-1")).toBeInTheDocument();
+      expect(screen.getByTestId("pagination-page-12")).toBeInTheDocument();
       expect(screen.getByTestId("pagination-page-24")).toBeInTheDocument();
-      expect(screen.getByTestId("pagination-page-11")).toBeInTheDocument();
-      expect(screen.getByTestId("pagination-page-13")).toBeInTheDocument();
-      expect(screen.queryByTestId("pagination-page-5")).toBeNull();
+      expect(screen.queryByTestId("pagination-page-11")).toBeNull();
+      expect(screen.queryByTestId("pagination-page-13")).toBeNull();
       expect(
         screen.getByTestId("pagination-ellipsis-start"),
       ).toBeInTheDocument();
       expect(screen.getByTestId("pagination-ellipsis-end")).toBeInTheDocument();
+    });
+
+    it("never draws more than five page slots", () => {
+      renderPagination({ currentPageNumber: 12, totalItemsCount: 10000 });
+
+      expect(
+        screen
+          .getByRole("navigation")
+          .querySelectorAll(
+            '[data-testid^="pagination-page-"], [data-testid^="pagination-ellipsis-"]',
+          ),
+      ).toHaveLength(5);
     });
 
     it("jumps to the last page in one click", () => {
@@ -395,97 +411,180 @@ describe("Pagination", () => {
     });
   });
 
+  /*
+   * The jump box costs nothing on the bar until it is asked for: the
+   * collapsed gap is the button that opens it, which is also where the
+   * pages it can reach were hidden.
+   */
   describe("go to page", () => {
-    it("is offered once the list is too long to show every page", () => {
-      renderPagination({ totalItemsCount: 240 });
+    type OpenGoToPageModalFunction = (
+      overrides?: Partial<ComponentProps>,
+    ) => MockFunction;
+
+    const openGoToPageModal: OpenGoToPageModalFunction = (
+      overrides?: Partial<ComponentProps>,
+    ): MockFunction => {
+      const onNavigateToPage: MockFunction = renderPagination(overrides);
+      fireEvent.click(screen.getByTestId("pagination-ellipsis-end"));
+      return onNavigateToPage;
+    };
+
+    it("takes up no room on the bar until it is asked for", () => {
+      renderPagination();
+
+      expect(screen.queryByTestId("pagination-go-to-page-input")).toBeNull();
+      expect(screen.queryByTestId("modal")).toBeNull();
+    });
+
+    it("opens from a collapsed gap", () => {
+      openGoToPageModal();
+
+      expect(
+        screen.getByTestId("pagination-go-to-page-input"),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId("modal-title")).toHaveTextContent("Go to page");
+    });
+
+    it("says how many pages there are to choose from", () => {
+      openGoToPageModal();
+
+      expect(screen.getByTestId("modal-description")).toHaveTextContent(
+        "This list has 24 pages",
+      );
+    });
+
+    it("has no gap to open it from when every page is one click away", () => {
+      renderPagination({ totalItemsCount: 30 });
+
+      expect(screen.queryByTestId("pagination-ellipsis-end")).toBeNull();
+      expect(screen.queryByTestId("pagination-ellipsis-start")).toBeNull();
+    });
+
+    it("opens from the gap before the current page too", () => {
+      renderPagination({ currentPageNumber: 12 });
+
+      fireEvent.click(screen.getByTestId("pagination-ellipsis-start"));
 
       expect(
         screen.getByTestId("pagination-go-to-page-input"),
       ).toBeInTheDocument();
     });
 
-    it("is left out when every page is already one click away", () => {
-      renderPagination({ totalItemsCount: 30 });
-
-      expect(screen.queryByTestId("pagination-go-to-page-input")).toBeNull();
-    });
-
     it("jumps to the page that was typed", () => {
-      const onNavigateToPage: MockFunction = renderPagination();
+      const onNavigateToPage: MockFunction = openGoToPageModal();
 
       fireEvent.change(screen.getByTestId("pagination-go-to-page-input"), {
         target: { value: "17" },
       });
-      fireEvent.submit(screen.getByTestId("pagination-go-to-page-form"));
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
 
       expect(onNavigateToPage).toHaveBeenCalledWith(17, 10);
     });
 
-    it("jumps on the Go button as well as on Enter", () => {
-      const onNavigateToPage: MockFunction = renderPagination();
+    it("jumps on Enter as well as on the button", () => {
+      const onNavigateToPage: MockFunction = openGoToPageModal();
 
       fireEvent.change(screen.getByTestId("pagination-go-to-page-input"), {
         target: { value: "9" },
       });
-      fireEvent.click(screen.getByTestId("pagination-go-to-page-button"));
+      fireEvent.keyDown(screen.getByTestId("pagination-go-to-page-input"), {
+        key: "Enter",
+      });
 
       expect(onNavigateToPage).toHaveBeenCalledWith(9, 10);
     });
 
+    it("closes itself once it has navigated", () => {
+      openGoToPageModal();
+
+      fireEvent.change(screen.getByTestId("pagination-go-to-page-input"), {
+        target: { value: "17" },
+      });
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+      expect(screen.queryByTestId("pagination-go-to-page-input")).toBeNull();
+    });
+
     it("pulls a page past the end back to the last page", () => {
-      const onNavigateToPage: MockFunction = renderPagination();
+      const onNavigateToPage: MockFunction = openGoToPageModal();
 
       fireEvent.change(screen.getByTestId("pagination-go-to-page-input"), {
         target: { value: "9999" },
       });
-      fireEvent.submit(screen.getByTestId("pagination-go-to-page-form"));
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
 
       expect(onNavigateToPage).toHaveBeenCalledWith(24, 10);
     });
 
     it("pulls a page before the start back to the first page", () => {
-      const onNavigateToPage: MockFunction = renderPagination({
+      const onNavigateToPage: MockFunction = openGoToPageModal({
         currentPageNumber: 5,
       });
 
       fireEvent.change(screen.getByTestId("pagination-go-to-page-input"), {
         target: { value: "-3" },
       });
-      fireEvent.submit(screen.getByTestId("pagination-go-to-page-form"));
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
 
       expect(onNavigateToPage).toHaveBeenCalledWith(1, 10);
     });
 
-    it("ignores an empty box", () => {
-      const onNavigateToPage: MockFunction = renderPagination();
+    it("cannot be submitted empty", () => {
+      const onNavigateToPage: MockFunction = openGoToPageModal();
 
-      fireEvent.submit(screen.getByTestId("pagination-go-to-page-form"));
-
+      expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
       expect(onNavigateToPage).not.toHaveBeenCalled();
-      expect(screen.getByTestId("pagination-go-to-page-button")).toBeDisabled();
     });
 
     it("ignores text that is not a page number", () => {
-      const onNavigateToPage: MockFunction = renderPagination();
+      const onNavigateToPage: MockFunction = openGoToPageModal();
 
       fireEvent.change(screen.getByTestId("pagination-go-to-page-input"), {
         target: { value: "abc" },
       });
-      fireEvent.submit(screen.getByTestId("pagination-go-to-page-form"));
+      fireEvent.keyDown(screen.getByTestId("pagination-go-to-page-input"), {
+        key: "Enter",
+      });
 
       expect(onNavigateToPage).not.toHaveBeenCalled();
     });
 
-    it("clears itself once the page has changed", () => {
-      const { rerender } = render(
-        <Pagination {...baseProps} onNavigateToPage={jest.fn()} />,
-      );
+    it("can be dismissed without navigating", () => {
+      const onNavigateToPage: MockFunction = openGoToPageModal();
 
       fireEvent.change(screen.getByTestId("pagination-go-to-page-input"), {
         target: { value: "17" },
       });
+      fireEvent.click(screen.getByTestId("modal-footer-close-button"));
 
-      expect(screen.getByTestId("pagination-go-to-page-input")).toHaveValue(17);
+      expect(onNavigateToPage).not.toHaveBeenCalled();
+      expect(screen.queryByTestId("pagination-go-to-page-input")).toBeNull();
+    });
+
+    it("does not remember the last page typed", () => {
+      openGoToPageModal();
+
+      fireEvent.change(screen.getByTestId("pagination-go-to-page-input"), {
+        target: { value: "17" },
+      });
+      fireEvent.click(screen.getByTestId("modal-footer-close-button"));
+      fireEvent.click(screen.getByTestId("pagination-ellipsis-end"));
+
+      expect(screen.getByTestId("pagination-go-to-page-input")).toHaveValue(
+        null,
+      );
+    });
+
+    it("closes when the page changes underneath it", () => {
+      const { rerender } = render(
+        <Pagination {...baseProps} onNavigateToPage={jest.fn()} />,
+      );
+
+      fireEvent.click(screen.getByTestId("pagination-ellipsis-end"));
+
+      expect(
+        screen.getByTestId("pagination-go-to-page-input"),
+      ).toBeInTheDocument();
 
       rerender(
         <Pagination
@@ -495,15 +594,15 @@ describe("Pagination", () => {
         />,
       );
 
-      expect(screen.getByTestId("pagination-go-to-page-input")).toHaveValue(
-        null,
-      );
+      expect(screen.queryByTestId("pagination-go-to-page-input")).toBeNull();
     });
 
-    it("is frozen while loading", () => {
+    it("does not open while loading", () => {
       renderPagination({ isLoading: true });
 
-      expect(screen.getByTestId("pagination-go-to-page-input")).toBeDisabled();
+      fireEvent.click(screen.getByTestId("pagination-ellipsis-end"));
+
+      expect(screen.queryByTestId("pagination-go-to-page-input")).toBeNull();
     });
   });
 
@@ -557,13 +656,12 @@ describe("Pagination", () => {
       ).toBeInTheDocument();
     });
 
-    it("keeps the collapsed gaps out of the accessibility tree", () => {
+    it("says what a collapsed gap does rather than reading as three dots", () => {
       renderPagination({ currentPageNumber: 12 });
 
-      expect(screen.getByTestId("pagination-ellipsis-start")).toHaveAttribute(
-        "aria-hidden",
-        "true",
-      );
+      expect(
+        screen.getAllByRole("button", { name: "Go to a page in between" }),
+      ).toHaveLength(2);
     });
 
     it("passes the caller's test id through to the region", () => {
@@ -670,9 +768,11 @@ describe("Pagination", () => {
       expect(screen.queryByTestId("pagination-page-2")).toBeNull();
     });
 
-    it("offers no jump box, because the page count is unknown", () => {
+    it("offers no gap to jump from, because the page count is unknown", () => {
       renderPagination(hasMoreProps);
 
+      expect(screen.queryByTestId("pagination-ellipsis-start")).toBeNull();
+      expect(screen.queryByTestId("pagination-ellipsis-end")).toBeNull();
       expect(screen.queryByTestId("pagination-go-to-page-input")).toBeNull();
     });
 

@@ -75,7 +75,8 @@ describe("PaginationUtil", () => {
   describe("getPageWindow", () => {
     it("lists every page when they all fit", () => {
       expect(PaginationUtil.getPageWindow(1, 5)).toEqual([1, 2, 3, 4, 5]);
-      expect(PaginationUtil.getPageWindow(4, 7)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+      expect(PaginationUtil.getPageWindow(4, 5)).toEqual([1, 2, 3, 4, 5]);
+      expect(PaginationUtil.getPageWindow(2, 3)).toEqual([1, 2, 3]);
     });
 
     it("lists a single page", () => {
@@ -87,8 +88,6 @@ describe("PaginationUtil", () => {
         1,
         2,
         3,
-        4,
-        5,
         "ellipsis-end",
         20,
       ]);
@@ -96,8 +95,6 @@ describe("PaginationUtil", () => {
         1,
         2,
         3,
-        4,
-        5,
         "ellipsis-end",
         20,
       ]);
@@ -107,8 +104,6 @@ describe("PaginationUtil", () => {
       expect(PaginationUtil.getPageWindow(20, 20)).toEqual([
         1,
         "ellipsis-start",
-        16,
-        17,
         18,
         19,
         20,
@@ -116,8 +111,6 @@ describe("PaginationUtil", () => {
       expect(PaginationUtil.getPageWindow(18, 20)).toEqual([
         1,
         "ellipsis-start",
-        16,
-        17,
         18,
         19,
         20,
@@ -128,11 +121,23 @@ describe("PaginationUtil", () => {
       expect(PaginationUtil.getPageWindow(10, 20)).toEqual([
         1,
         "ellipsis-start",
-        9,
         10,
-        11,
         "ellipsis-end",
         20,
+      ]);
+    });
+
+    /*
+     * Five slots is the whole list: where you are, both ends, and a gap on
+     * either side standing in for everything else.
+     */
+    it("spends its slots on the ends and the current page", () => {
+      expect(PaginationUtil.getPageWindow(500, 1000)).toEqual([
+        1,
+        "ellipsis-start",
+        500,
+        "ellipsis-end",
+        1000,
       ]);
     });
 
@@ -233,9 +238,7 @@ describe("PaginationUtil", () => {
       expect(PaginationUtil.getPageWindow(10, 20, 2)).toEqual([
         1,
         "ellipsis-start",
-        9,
         10,
-        11,
         "ellipsis-end",
         20,
       ]);
