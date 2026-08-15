@@ -27,12 +27,23 @@ import UserSettingsSlackIntegration from "../Pages/UserSettings/SlackIntegration
 
 import UserSettingsIncomingCallPhoneNumbers from "../Pages/UserSettings/IncomingCallPhoneNumbers";
 
+import UserSettingsSetup from "../Pages/UserSettings/Setup";
+
 const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
     <Routes>
       <PageRoute element={<UserSettingsLayout {...props} />}>
+        <PageRoute
+          path={UserSettingsRoutePath[PageMap.USER_SETTINGS_SETUP] || ""}
+          element={
+            <UserSettingsSetup
+              {...props}
+              pageRoute={RouteMap[PageMap.USER_SETTINGS_SETUP] as Route}
+            />
+          }
+        />
         <PageRoute
           path={UserSettingsRoutePath[PageMap.USER_SETTINGS] || ""}
           element={

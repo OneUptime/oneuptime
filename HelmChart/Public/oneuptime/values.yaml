@@ -108,6 +108,14 @@ nginx:
   #   targetMemoryUtilizationPercentage: 80
   listenAddress: ""
   listenOptions: ""
+  # Per-request access logging for the high-volume ingest locations (/otlp,
+  # /telemetry, /session-replay, /kubernetes-cost, /pyroscope). "on" keeps every
+  # ingest line, which is the default because per-request status and client IP
+  # at the ingress are how a tenant's 413s and 429s get diagnosed. Set to
+  # "off" (or "false" / "0" / "no") to drop them; any other value keeps logging.
+  # Quoted deliberately: unquoted `on` and `off` are YAML booleans, and this is
+  # passed straight through to nginx as a string.
+  ingestAccessLog: "on"
   serverNamesHash:
     bucketSize: ""
     maxSize: ""
@@ -206,7 +214,41 @@ postgresql:
       # supports a small/medium fleet directly, or a pgbouncer defaultPoolSize of
       # 400 in front. Raise it (and pod memory) for larger deployments.
       max_connections = 500
-      shared_buffers = 128MB
+      # A safe bump over the 128MB initdb default. Postgres wants roughly 25% of
+      # the memory it is allowed to use; raise this to ~25% of
+      # `postgresql.primary.resources.limits.memory` once that is set. It is
+      # deliberately NOT higher while `resources` is empty ({} by default), because
+      # a large shared_buffers against a pod with no memory limit is node-level
+      # memory pressure rather than a speedup.
+      shared_buffers = 256MB
+      # Planner cost of a random page fetch relative to a sequential one. The
+      # 4.0 default models a rotational disk and pushes the planner toward
+      # sequential scans instead of the ~2,246 indexes in this schema. 1.1 is the
+      # standard value for the SSD/NVMe-backed volumes every cloud provider gives
+      # you, and lets those indexes actually get used.
+      random_page_cost = 1.1
+      # How many concurrent I/O requests the storage can service. SSD-backed
+      # network volumes handle far more in flight than the default of 1.
+      effective_io_concurrency = 200
+      # Working memory per sort/hash NODE (not per query, and not per connection):
+      # a single query with several sorts or hash joins can use a multiple of this,
+      # so keep it modest while max_connections is 500. Below this, sorts and hash
+      # joins spill to temporary files on disk.
+      work_mem = 16MB
+      # Used by VACUUM, CREATE INDEX and ALTER TABLE ... ADD FOREIGN KEY. Only a
+      # few of these run at once, so it can be much larger than work_mem; it is
+      # what keeps autovacuum and boot migrations from crawling.
+      maintenance_work_mem = 256MB
+      # Let checkpoints spread out under write bursts instead of firing constantly.
+      # Costs disk on the WAL volume and lengthens crash recovery, but removes the
+      # checkpoint-storm write stalls.
+      max_wal_size = 4GB
+      # A planner HINT only — it allocates nothing. It tells the planner how much
+      # memory the OS page cache plus shared_buffers together are likely to hold,
+      # which is the other half (with random_page_cost) of getting index scans
+      # chosen over sequential scans. Set it to ~50-75% of the pod memory limit
+      # once `postgresql.primary.resources` is set.
+      effective_cache_size = 3GB
       # Cap how long a statement WAITS for a lock. The app also sends this as a
       # startup parameter, but pgbouncer accepts-and-discards startup
       # parameters (see the pgbouncer block below), so behind the pooler this
@@ -266,9 +308,24 @@ postgresOperator:
     # Extra postgresql.conf parameters. CloudNativePG manages everything else.
     # max_connections sized like the StatefulSet path above: 500 supports a
     # small/medium fleet (default per-pod pool 50) directly or behind pgbouncer.
+    # These mirror postgresql.primary.configuration above — see the comments
+    # there for the reasoning behind each one.
     parameters:
       max_connections: "500"
-      shared_buffers: "128MB"
+      # Safe bump over the 128MB initdb default. Raise to ~25% of
+      # postgresOperator.cnpg.resources.limits.memory once that is set; kept low
+      # while `resources` is empty so a memory-limitless pod cannot starve its node.
+      shared_buffers: "256MB"
+      # Cloud-SSD value. The 4.0 default models a rotational disk and pushes the
+      # planner to sequential-scan past this schema's ~2,246 indexes.
+      random_page_cost: "1.1"
+      effective_io_concurrency: "200"
+      work_mem: "16MB"
+      maintenance_work_mem: "256MB"
+      max_wal_size: "4GB"
+      # Planner hint only — allocates nothing. Set to ~50-75% of the pod memory
+      # limit once postgresOperator.cnpg.resources is set.
+      effective_cache_size: "3GB"
       # See the lock_timeout note in postgresql.primary.configuration above:
       # behind pgbouncer this backend-side value is the only one that applies.
       lock_timeout: "3s"
@@ -381,42 +438,42 @@ clickhouse:
             <database>system</database>
             <table>query_log</table>
             <partition_by>toYYYYMM(event_date)</partition_by>
-            <ttl>event_date + INTERVAL 6 HOUR DELETE</ttl>
+            <ttl>event_time + INTERVAL 6 HOUR DELETE</ttl>
             <flush_interval_milliseconds>7500</flush_interval_milliseconds>
         </query_log>
         <trace_log>
             <database>system</database>
             <table>trace_log</table>
             <partition_by>toYYYYMM(event_date)</partition_by>
-            <ttl>event_date + INTERVAL 6 HOUR DELETE</ttl>
+            <ttl>event_time + INTERVAL 6 HOUR DELETE</ttl>
             <flush_interval_milliseconds>7500</flush_interval_milliseconds>
         </trace_log>
         <text_log>
             <database>system</database>
             <table>text_log</table>
             <partition_by>toYYYYMM(event_date)</partition_by>
-            <ttl>event_date + INTERVAL 6 HOUR DELETE</ttl>
+            <ttl>event_time + INTERVAL 6 HOUR DELETE</ttl>
             <flush_interval_milliseconds>7500</flush_interval_milliseconds>
         </text_log>
         <part_log>
             <database>system</database>
             <table>part_log</table>
             <partition_by>toYYYYMM(event_date)</partition_by>
-            <ttl>event_date + INTERVAL 6 HOUR DELETE</ttl>
+            <ttl>event_time + INTERVAL 6 HOUR DELETE</ttl>
             <flush_interval_milliseconds>7500</flush_interval_milliseconds>
         </part_log>
         <metric_log>
             <database>system</database>
             <table>metric_log</table>
             <partition_by>toYYYYMM(event_date)</partition_by>
-            <ttl>event_date + INTERVAL 6 HOUR DELETE</ttl>
+            <ttl>event_time + INTERVAL 6 HOUR DELETE</ttl>
             <flush_interval_milliseconds>7500</flush_interval_milliseconds>
         </metric_log>
         <asynchronous_metric_log>
             <database>system</database>
             <table>asynchronous_metric_log</table>
             <partition_by>toYYYYMM(event_date)</partition_by>
-            <ttl>event_date + INTERVAL 6 HOUR DELETE</ttl>
+            <ttl>event_time + INTERVAL 6 HOUR DELETE</ttl>
             <flush_interval_milliseconds>7500</flush_interval_milliseconds>
         </asynchronous_metric_log>
         <!-- Disable processors_profile_log entirely — it was 536 GiB and is not needed -->
@@ -2002,8 +2059,23 @@ queueDashboard:
   enabled: false
   secret:
 
+# KEDA (Kubernetes Event-driven Autoscaling). This single flag gates BOTH the
+# bundled KEDA operator subchart (see the `condition: keda.enabled` dependency
+# in Chart.yaml) AND every ScaledObject the chart renders
+# (templates/keda-scaledobjects.yaml).
+#
+# Ships false: every per-service `keda.enabled` also ships false, so on default
+# values the operator was installed (3 Deployments — manager, metrics server,
+# webhooks — plus their CRDs) purely to sit idle. Turn this on together with at
+# least one per-service `<service>.keda.enabled` to autoscale on queue depth.
+#
+# Setting a per-service `keda.enabled` while this stays false is a hard error —
+# it would render no ScaledObject at all (and, on upgrade from a release that
+# had this on, uninstall the operator out from under live ScaledObjects), so
+# templates/keda-scaledobjects.yaml fails the render instead of silently
+# dropping your autoscaling.
 keda:
-  enabled: true
+  enabled: false
 
 # CloudNativePG operator — bundled dependency. Installed ONLY when
 # postgresOperator.cnpg.enabled is true (see the condition in Chart.yaml).

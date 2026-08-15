@@ -1,0 +1,102 @@
+<?xml version="1.0"?>
+<!--
+  System-log retention drop-in for the bundled single-node ClickHouse.
+
+  ClickHouse writes its own observability tables (system.query_log,
+  system.trace_log, …) forever by default: the stock config.xml ships every
+  <ttl> commented out, so on a compose install these tables grow without bound
+  and quietly eat the clickhouse volume — the exact failure that took
+  system.processors_profile_log to 536 GiB on the hosted deployment.
+
+  This caps the six chatty system logs at a 6 hour TTL and removes
+  processors_profile_log outright, mirroring the Helm path
+  (HelmChart/Public/oneuptime/values.yaml -> clickhouse.configuration, and
+  clickhouseOperator.altinity.files/config.d/disable-profile-log.xml for the
+  operator path). Compose and Helm MUST stay in lockstep here — divergence
+  between the two deployment paths is what let the ClickHouse 25.7 vs 26.7
+  aggregate-schema bug through (see the image-pin comment in
+  docker-compose.base.yml). Tests/Ops/ClickhouseSystemLogTtl.test.js parses
+  both files and fails the build if they drift apart, so change them together.
+
+  THE TTL COLUMN IS event_time, NOT event_date — do not "simplify" it back.
+  Every one of these tables has both: event_date is a Date (day precision) and
+  event_time is a DateTime (second precision). `event_date + INTERVAL 6 HOUR`
+  therefore does NOT mean "six hours after the row was written": the Date is
+  coerced to midnight of that day, so the expiry lands at 06:00 on the row's
+  OWN date. A row written at 23:00 gets an expiry timestamp seventeen hours in
+  the past and is already eligible for deletion the moment it is flushed. In
+  steady state that throws away nearly everything written after 06:00, which is
+  not a 6 hour cap — it is "keep almost nothing, unpredictably". `event_time +
+  INTERVAL 6 HOUR` is the expression that actually retains six hours.
+
+  (Helm carried the event_date form for a long time, so correcting it here and
+  in values.yaml slightly INCREASES retained system-log volume versus the old
+  accidental behaviour. That is the intended 6 hours finally being honoured.)
+
+  Note that TTL is applied by background merges, not on a timer, so rows can
+  outlive the expiry until the part they live in is merged. The stock monthly
+  partitioning (toYYYYMM(event_date), inherited from the packaged config.xml
+  and kept here) means an expired part is not simply dropped whole; the rows go
+  during merges instead. Six hours is the floor on what is kept, not a promise
+  that everything older is already gone.
+
+  config.d is merged into the server config regardless of the main config.xml,
+  so these blocks are overlaid on top of the packaged (or, in
+  docker-compose.dev.yml, the repo's Clickhouse/config.xml) definitions: only
+  the child elements named here are replaced, everything else — max_size_rows,
+  buffer thresholds, engine selection — is inherited untouched.
+
+  NOTE: <partition_by> + <ttl> is the correct shape ONLY while these tables have
+  no explicit <engine>. ClickHouse 25.7+ rejects a system table that declares
+  both ("If 'engine' is specified … partition_by doesn't make sense",
+  BAD_ARGUMENTS) and crash-loops on boot. If you ever add an <engine> here, put
+  the retention inside the engine expression instead.
+-->
+<clickhouse>
+    <!-- System log retention: 6 hours from event_time (the DateTime column), to
+         prevent unbounded disk growth. NOT event_date — see the header. -->
+    <query_log>
+        <database>system</database>
+        <table>query_log</table>
+        <partition_by>toYYYYMM(event_date)</partition_by>
+        <ttl>event_time + INTERVAL 6 HOUR DELETE</ttl>
+        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+    </query_log>
+    <trace_log>
+        <database>system</database>
+        <table>trace_log</table>
+        <partition_by>toYYYYMM(event_date)</partition_by>
+        <ttl>event_time + INTERVAL 6 HOUR DELETE</ttl>
+        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+    </trace_log>
+    <text_log>
+        <database>system</database>
+        <table>text_log</table>
+        <partition_by>toYYYYMM(event_date)</partition_by>
+        <ttl>event_time + INTERVAL 6 HOUR DELETE</ttl>
+        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+    </text_log>
+    <part_log>
+        <database>system</database>
+        <table>part_log</table>
+        <partition_by>toYYYYMM(event_date)</partition_by>
+        <ttl>event_time + INTERVAL 6 HOUR DELETE</ttl>
+        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+    </part_log>
+    <metric_log>
+        <database>system</database>
+        <table>metric_log</table>
+        <partition_by>toYYYYMM(event_date)</partition_by>
+        <ttl>event_time + INTERVAL 6 HOUR DELETE</ttl>
+        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+    </metric_log>
+    <asynchronous_metric_log>
+        <database>system</database>
+        <table>asynchronous_metric_log</table>
+        <partition_by>toYYYYMM(event_date)</partition_by>
+        <ttl>event_time + INTERVAL 6 HOUR DELETE</ttl>
+        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+    </asynchronous_metric_log>
+    <!-- Disable processors_profile_log entirely — it was 536 GiB and is not needed -->
+    <processors_profile_log remove="1" />
+</clickhouse>

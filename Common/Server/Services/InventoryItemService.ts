@@ -234,7 +234,12 @@ export class InventoryItemService extends DatabaseService<Model> {
       lastSeenAt: now,
       describe: `entity ${entity.entityType}/${entity.entityKey}`,
       rowFenceId: `${projectId.toString()}:${entity.entityType}:${entity.entityKey}`,
-      select: { descriptiveAttributes: true, labels: true, resourceId: true },
+      select: {
+        displayName: true,
+        descriptiveAttributes: true,
+        labels: true,
+        resourceId: true,
+      },
       buildUpdate: (existing: Model): QueryDeepPartialEntity<Model> => {
         const update: QueryDeepPartialEntity<Model> =
           InventoryItemService.buildDescriptiveUpdate(entity, existing);
@@ -337,11 +342,11 @@ export class InventoryItemService extends DatabaseService<Model> {
   }
 
   /**
-   * Extra fields for the `lastSeenAt` bump on an existing row:
-   * descriptive attributes merge last-writer-wins per key, labels merge
-   * as a set union. Both are written ONLY when the merge actually changes
-   * the stored value, so a stable resource keeps its bump a one-column
-   * update (no jsonb churn).
+   * Extra fields for the `lastSeenAt` bump on an existing row: a legacy
+   * generated Kubernetes fallback display name can converge to the resource
+   * name, descriptive attributes merge last-writer-wins per key, and labels
+   * merge as a set union. Each is written ONLY when it actually changes, so a
+   * stable resource keeps its bump a one-column update (no text/jsonb churn).
    */
   private static buildDescriptiveUpdate(
     entity: ExtractedEntity,
@@ -353,9 +358,44 @@ export class InventoryItemService extends DatabaseService<Model> {
      * recursive JSONObject mapping (TS2589).
      */
     const update: {
+      displayName?: string;
       descriptiveAttributes?: JSONObject;
       labels?: Array<string>;
     } = {};
+
+    const preferredNameKey: string | undefined =
+      InventoryItemService.preferredDisplayNameAttributeByType[
+        entity.entityType
+      ];
+    /*
+     * Existing inventory display names may be user-edited. Only migrate a
+     * pod/node row when its current value is exactly the value the old generic
+     * algorithm generated. A sparse observation cannot erase a learned name,
+     * and an unrelated entity type never has its display name reconciled here.
+     */
+    const preferredName: string | undefined = preferredNameKey
+      ? entity.descriptiveAttributes?.[preferredNameKey] ||
+        entity.identifyingAttributes?.[preferredNameKey]
+      : undefined;
+    if (preferredName) {
+      const desiredDisplayName: string = preferredName.substring(
+        0,
+        ColumnLength.ShortText,
+      );
+      const legacyDisplayName: string =
+        InventoryItemService.deriveFallbackDisplayName(entity).substring(
+          0,
+          ColumnLength.ShortText,
+        );
+      const existingDisplayName: string = existing.displayName || "";
+
+      if (
+        existingDisplayName !== desiredDisplayName &&
+        (!existingDisplayName || existingDisplayName === legacyDisplayName)
+      ) {
+        update.displayName = desiredDisplayName;
+      }
+    }
 
     const incoming: Record<string, string> = entity.descriptiveAttributes || {};
     if (Object.keys(incoming).length > 0) {
@@ -399,13 +439,42 @@ export class InventoryItemService extends DatabaseService<Model> {
     return Array.from(new Set<string>(labels)).sort();
   }
 
+  private static readonly preferredDisplayNameAttributeByType: Partial<
+    Record<EntityType, string>
+  > = {
+    [EntityType.KubernetesNode]: "k8s.node.name",
+    [EntityType.KubernetesPod]: "k8s.pod.name",
+  };
+
   /**
-   * Best-effort human-readable name for the entity explorer: prefer the
-   * most specific `*.name` identifying attribute (e.g. k8s.pod.name over
-   * k8s.cluster.name), else the last identifying value, else the key.
+   * Best-effort human-readable name for Inventory. Prefer the name belonging
+   * to this exact entity type, including a descriptive name paired with a
+   * stable UID identity (the normal Kubernetes pod/node shape). Falling back
+   * to the longest identifying `*.name` preserves the behaviour for types
+   * without a dedicated display-name rule.
    */
   public static deriveDisplayName(entity: ExtractedEntity): string {
     const id: Record<string, string> = entity.identifyingAttributes || {};
+    const descriptive: Record<string, string> =
+      entity.descriptiveAttributes || {};
+    const preferredKey: string | undefined =
+      this.preferredDisplayNameAttributeByType[entity.entityType];
+
+    if (preferredKey) {
+      const preferredValue: string | undefined =
+        descriptive[preferredKey] || id[preferredKey];
+      if (preferredValue) {
+        return preferredValue;
+      }
+    }
+
+    return this.deriveFallbackDisplayName(entity);
+  }
+
+  /** The generic display-name algorithm used before type-aware K8s names. */
+  private static deriveFallbackDisplayName(entity: ExtractedEntity): string {
+    const id: Record<string, string> = entity.identifyingAttributes || {};
+
     const nameKeys: Array<string> = Object.keys(id)
       .filter((k: string) => {
         return k.endsWith(".name");

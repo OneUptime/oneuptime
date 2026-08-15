@@ -170,6 +170,13 @@ spec:
               value: {{ $.Values.nginx.listenAddress | quote }}
             - name: NGINX_LISTEN_OPTIONS
               value: {{ $.Values.nginx.listenOptions | quote }}
+            # Ingest access logging. `default "on"` is deliberately fail-safe:
+            # an empty override -- or a YAML-boolean `off` written unquoted,
+            # which Helm sees as empty -- keeps the ingest logs rather than
+            # silently dropping them. Only the literal string "off"/"false"/
+            # "0"/"no" reaches nginx's map and turns them off.
+            - name: NGINX_INGEST_ACCESS_LOG
+              value: {{ default "on" $.Values.nginx.ingestAccessLog | quote }}
             - name: NGINX_UPSTREAM_KEEPALIVE
               value: {{ (and $.Values.nginx.upstreamKeepalive $.Values.nginx.upstreamKeepalive.enabled) | default false | quote }}
             - name: NGINX_UPSTREAM_KEEPALIVE_CONNECTIONS

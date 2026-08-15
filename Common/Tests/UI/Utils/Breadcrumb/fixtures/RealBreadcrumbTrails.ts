@@ -2869,6 +2869,11 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getUserSettingsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/user-settings/setup",
+    titles: ["Project", "User Settings", "Setup Checklist"],
+  },
+  {
+    getter: "getUserSettingsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/user-settings/slack-integration",
     titles: ["Project", "User Settings", "Slack Integration"],
   },

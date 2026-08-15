@@ -6005,5 +6005,7 @@
   "MCP Server": "MCP-сервер",
   "Enable MCP Server": "Включить MCP-сервер",
   "Control whether AI agents can read this status page over the OneUptime MCP server": "Управляйте тем, могут ли ИИ-агенты читать эту страницу статуса через MCP-сервер OneUptime",
-  "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.": "Когда параметр включён, ИИ-агенты могут читать эту страницу статуса через публичный MCP-сервер OneUptime. Его отключение не скрывает сайт страницы статуса, её RSS-ленту или её публичный JSON API."
+  "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.": "Когда параметр включён, ИИ-агенты могут читать эту страницу статуса через публичный MCP-сервер OneUptime. Его отключение не скрывает сайт страницы статуса, её RSS-ленту или её публичный JSON API.",
+  "Get Started": "Начало работы",
+  "Setup Checklist": "Контрольный список настройки"
 }

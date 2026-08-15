@@ -7,12 +7,10 @@ import { useEffect, useState } from "react";
 /*
  * One inventory item, fetched with the full column set every detail tab needs.
  *
- * Each tab loads the item for itself rather than having the layout thread it
- * down. That costs one extra read of a single narrow row (the layout loads it
- * too, to decide whether this item is editable), and buys independent
- * addressability: a bookmarked Telemetry tab has to work without the Overview
- * tab ever having rendered. The rest of the product's detail pages make the
- * same trade.
+ * Each routed page loads the item for itself rather than relying on another
+ * detail page to have rendered first. That buys independent addressability: a
+ * bookmarked Logs or Metrics page works without the Overview page ever having
+ * rendered. The rest of the product's detail pages make the same trade.
  */
 
 export interface UseInventoryItemResult {

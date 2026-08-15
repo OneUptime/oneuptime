@@ -1,4 +1,5 @@
 import Icon from "../Icon/Icon";
+import KeyboardKey, { KeyboardKeyUtil } from "../KeyboardShortcut/KeyboardKey";
 import IconProp from "../../../Types/Icon/IconProp";
 import TinyFormDocumentation from "../TinyFormDocumentation/TinyFormDocumentation";
 import { FILE_URL } from "../../Config";
@@ -921,12 +922,18 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
           <div className="flex items-center gap-1">
             <ToolbarButton
               icon={IconProp.Bold}
-              title="Bold (Ctrl+B)"
+              title={`Bold (${KeyboardKeyUtil.getDisplayLabel([
+                KeyboardKey.Mod,
+                "B",
+              ])})`}
               onClick={formatActions.bold}
             />
             <ToolbarButton
               icon={IconProp.Italic}
-              title="Italic (Ctrl+I)"
+              title={`Italic (${KeyboardKeyUtil.getDisplayLabel([
+                KeyboardKey.Mod,
+                "I",
+              ])})`}
               onClick={formatActions.italic}
             />
             <ToolbarButton

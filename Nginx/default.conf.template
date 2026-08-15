@@ -26,6 +26,35 @@ upstream backend_app_grpc {
 }
 # END upstream-keepalive
 
+## Ingest access logging switch.
+##
+## The high-volume ingest locations (/otlp, /telemetry, /session-replay,
+## /kubernetes-cost, /pyroscope) write an access-log line per request just like
+## every other location, and that stays the DEFAULT: per-request status and
+## client IP at the ingress are how a tenant's 413s and 429s get diagnosed, so
+## these logs are never dropped silently. Operators whose ingest volume makes
+## those lines genuinely expensive can opt out with
+##
+##     NGINX_INGEST_ACCESS_LOG=off
+##
+## in the ingress container's environment (also accepts "false", "0", "no").
+## Anything else -- "on", "true", an empty value, a typo, or the variable being
+## absent entirely -- keeps ingest logging enabled. A misconfiguration must not
+## be able to turn observability off by accident.
+##
+## When NGINX_INGEST_ACCESS_LOG is absent from the environment, envsubst leaves
+## the literal "${NGINX_INGEST_ACCESS_LOG}" below untouched (its shell-format
+## list is built from `env`, see envsubst-on-templates.sh), and nginx then
+## resolves it as a variable. nginx.conf declares that variable with the value
+## "on" so the unset case renders to a valid, still-logging config.
+map "${NGINX_INGEST_ACCESS_LOG}" $ingest_access_log {
+    default   1;
+    "off"     0;
+    "false"   0;
+    "0"       0;
+    "no"      0;
+}
+
 # Status Pages
 
 server {
@@ -34,8 +63,23 @@ server {
     
 
     gzip on;
+    # nginx's gzip_comp_level default is 1, which leaves a lot of egress on the
+    # table. Measured on a real frontend bundle: level 1 -> 1,082,129 bytes,
+    # level 5 -> 881,649 bytes (-18.5%) at roughly 2x the CPU, level 6 ->
+    # 856,624 bytes at roughly 3x. Level 5 is the knee of that curve; bytes off
+    # the wire are the expensive side of this trade, not ingress CPU.
+    gzip_comp_level 5;
     gzip_types      text/plain application/xml application/javascript text/javascript text/css application/json;
-    gzip_proxied    no-cache no-store private expired auth;
+    # "any" rather than the previous "no-cache no-store private expired auth".
+    # That set compressed a proxied response only when the upstream had already
+    # marked it uncacheable, which excluded exactly the static asset traffic
+    # that is worth compressing. Everything here is proxied, so the old value
+    # meant most responses went out uncompressed.
+    gzip_proxied    any;
+    # Vary: Accept-Encoding on compressed responses. This matters independently
+    # of the level: without it a shared cache that stored a gzipped body can
+    # hand that body to a client which never sent Accept-Encoding: gzip.
+    gzip_vary on;
     gzip_min_length 1000;
    
     listen ${NGINX_LISTEN_ADDRESS}7849 default_server ${NGINX_LISTEN_OPTIONS};
@@ -218,8 +262,13 @@ server {
     
 
     gzip on;
+    # Kept identical to the first server block above, which carries the
+    # rationale: the measured level 1/5/6 tradeoff behind gzip_comp_level, why
+    # gzip_proxied is "any", and why gzip_vary has to be on.
+    gzip_comp_level 5;
     gzip_types      text/plain application/xml application/javascript text/javascript text/css application/json;
-    gzip_proxied    no-cache no-store private expired auth;
+    gzip_proxied    any;
+    gzip_vary on;
     gzip_min_length 1000;
 
     listen ${NGINX_LISTEN_ADDRESS}7850 ssl default_server ${NGINX_LISTEN_OPTIONS}; # Port HTTPS
@@ -380,10 +429,15 @@ server {
     
 
     gzip on;
+    # Kept identical to the first server block above, which carries the
+    # rationale: the measured level 1/5/6 tradeoff behind gzip_comp_level, why
+    # gzip_proxied is "any", and why gzip_vary has to be on.
+    gzip_comp_level 5;
     gzip_types      text/plain application/xml application/javascript text/javascript text/css application/json;
-    gzip_proxied    no-cache no-store private expired auth;
+    gzip_proxied    any;
+    gzip_vary on;
     gzip_min_length 1000;
-    
+
     listen ${NGINX_LISTEN_ADDRESS}7849 ${NGINX_LISTEN_OPTIONS};
 ${PROVISION_SSL_LISTEN_DIRECTIVE}
 ${PROVISION_SSL_CERTIFICATE_DIRECTIVE}
@@ -609,6 +663,14 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_http_version 1.1;
         proxy_set_header Connection $connection_upgrade;
 
+        # Same file, same log format and the same buffer/flush parameters as
+        # the http-level access_log in nginx.conf -- nginx refuses to start if
+        # two access_log directives name one file with conflicting parameters.
+        # The only addition is if=$ingest_access_log, which lets an operator
+        # opt out of per-request ingest logging with NGINX_INGEST_ACCESS_LOG.
+        # Logging is ENABLED by default; see the map at the top of this file.
+        access_log /var/log/nginx/access.log main buffer=64k flush=10s if=$ingest_access_log;
+
         # The session replay router is mounted on BOTH "/" and "/telemetry",
         # so /telemetry/session-replay/v1/chunk is equally live. Without this
         # line nginx's 1M default applies on that path and a 1-2M chunk gets a
@@ -648,6 +710,10 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
 
+        # Operator-controllable ingest logging, enabled by default. Parameters
+        # must match nginx.conf's access_log exactly; see /telemetry above.
+        access_log /var/log/nginx/access.log main buffer=64k flush=10s if=$ingest_access_log;
+
         proxy_pass ${BACKEND_APP_TARGET};
     }
 
@@ -668,6 +734,10 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_http_version 1.1;
         proxy_set_header Connection $connection_upgrade;
 
+        # Operator-controllable ingest logging, enabled by default. Parameters
+        # must match nginx.conf's access_log exactly; see /telemetry above.
+        access_log /var/log/nginx/access.log main buffer=64k flush=10s if=$ingest_access_log;
+
         proxy_pass ${BACKEND_APP_TARGET};
     }
 
@@ -687,6 +757,10 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # Reuse pooled upstream connections for this high-volume ingest path.
         proxy_http_version 1.1;
         proxy_set_header Connection $connection_upgrade;
+
+        # Operator-controllable ingest logging, enabled by default. Parameters
+        # must match nginx.conf's access_log exactly; see /telemetry above.
+        access_log /var/log/nginx/access.log main buffer=64k flush=10s if=$ingest_access_log;
 
         proxy_pass ${BACKEND_APP_TARGET};
 
@@ -711,6 +785,10 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # Reuse pooled upstream connections for this high-volume ingest path.
         proxy_http_version 1.1;
         proxy_set_header Connection $connection_upgrade;
+
+        # Operator-controllable ingest logging, enabled by default. Parameters
+        # must match nginx.conf's access_log exactly; see /telemetry above.
+        access_log /var/log/nginx/access.log main buffer=64k flush=10s if=$ingest_access_log;
 
         proxy_pass ${BACKEND_APP_TARGET};
     }
@@ -826,6 +904,105 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_pass ${BACKEND_APP_TARGET};
 
         client_max_body_size 50M;
+    }
+
+    # Content-hashed frontend bundle chunks.
+    #
+    # The five frontends (Accounts, AdminDashboard, Dashboard, PublicDashboard,
+    # StatusPage) are built by Common/UI/esbuild-config.js with splitting
+    # enabled, so every shared chunk is emitted as "<name>-<HASH>.js" and the
+    # outdir is wiped (fs.rmSync) before each build. A given URL therefore names
+    # exactly one immutable byte sequence for all time, and a year-long cache
+    # entry can never go stale: a rebuild changes the content, which changes the
+    # hash, which changes the URL.
+    #
+    # Without this block these requests fall through to the prefix locations
+    # below (/dashboard, /admin, /status-page, /public-dashboard, /accounts),
+    # every one of which sends "no-cache, no-store, must-revalidate". That is
+    # right for the HTML entrypoint and wrong for the chunks: it means every
+    # page load re-downloads the whole bundle. A regex location wins over all
+    # of those prefix locations, so a chunk request is served HERE and those
+    # blocks simply never run. Their no-store was never inheritable in the
+    # first place: add_header is inherited only DOWN a level -- http into
+    # server, server into a location that declares no add_header of its own --
+    # and never sideways from one location to a sibling. What declaring
+    # add_header here does affect is the level above: it would drop any
+    # server-level add_header. This server block declares none, so nothing is
+    # being suppressed.
+    #
+    # proxy_hide_header Cache-Control is what makes the immutable header take
+    # effect at all. add_header APPENDS; it can never replace a header the
+    # upstream already sent. The upstream is the ExpressStatic handler in
+    # App/FeatureSet/Frontend/Index.ts, registered with no maxAge, so `send`
+    # emits its own "Cache-Control: public, max-age=0". Left alone, the client
+    # receives BOTH and honours the first max-age it sees -- zero -- and the
+    # year-long cache never happens. The repo solves the same problem at the
+    # Express layer for vendored assets (Common/Server/Utils/VendorAssets.ts
+    # passes maxAge to ExpressStatic); the two are compatible, and if the
+    # frontend mount ever grows a maxAge the header here still agrees with it.
+    #
+    # One consequence of hiding the upstream header: if a chunk is MISSING,
+    # express-static falls through to the frontend catch-all, which answers the
+    # request with the index page and HTTP 200, and that 200 picks up the
+    # immutable header. The URL is dead either way -- a rebuild changes the
+    # content, hence the hash, hence the URL -- so nothing a later build serves
+    # can be poisoned by it.
+    #
+    # The regex deliberately requires a "-<uppercase hash>" segment before the
+    # extension rather than matching /dist/ wholesale. The esbuild ENTRY file is
+    # /<app>/dist/Index.js, which is NOT content-hashed and must keep
+    # revalidating, or a client would pin itself to one build forever; the
+    # uppercase class is esbuild's base32 hash alphabet, so a lowercase
+    # hand-written filename can never match by accident. index.html and the
+    # .ejs-rendered pages cannot match at all -- they are not under /dist/ and
+    # do not end in .js/.css.
+    #
+    # No "always" on the Cache-Control: it must not be attached to a 4xx/5xx,
+    # or a transient upstream error would be cached by the client for a year.
+    #
+    # The regex is quoted because it contains a {8,} repetition quantifier, and
+    # nginx's config tokeniser ends a word at an unquoted "{". Left bare, the
+    # brace of {8,} would be read as the start of the location block and nginx
+    # would refuse to start.
+    location ~ "^/(accounts|admin|dashboard|public-dashboard|status-page)/dist/.+-[A-Z0-9]{8,}\.(js|css)$" {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Keep the upstream connection pooled. nginx talks HTTP/1.0 to the
+        # upstream by default and sends "Connection: close" with it, which
+        # bypasses the keepalive pool declared at the top of this file and
+        # costs a fresh TCP connection per chunk -- the opposite of the point
+        # of this block. A bundle chunk is never a WebSocket handshake, so the
+        # Connection header is cleared outright here instead of being routed
+        # through $connection_upgrade the way the Upgrade-carrying locations
+        # do (that map yields the same empty value for a non-upgrade request).
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+
+        # Hide before add: add_header appends, so without this the upstream's
+        # own "public, max-age=0" arrives alongside ours and wins. See the
+        # comment above this location.
+        proxy_hide_header Cache-Control;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+
+        # The full security-header set from the prefix locations must be
+        # repeated here. A regex location wins outright over the /dashboard
+        # style prefix blocks, and add_header only inherits DOWN a level --
+        # never sideways from a sibling -- so anything not restated here is
+        # simply not sent. That matters beyond static assets: a request for a
+        # hashed chunk that does not exist falls through ExpressStatic into
+        # the SPA catch-all, which renders the authenticated Dashboard
+        # document as text/html with a 200. Without these, that response
+        # would ship with no framing protection.
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "DENY" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /dashboard {

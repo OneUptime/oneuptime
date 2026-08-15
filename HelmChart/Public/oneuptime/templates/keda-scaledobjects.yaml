@@ -2,6 +2,47 @@
 KEDA ScaledObjects for various services
 */}}
 
+{{/* Guard: the global keda.enabled flag gates BOTH the bundled KEDA operator
+     subchart (`condition: keda.enabled` in Chart.yaml) and every ScaledObject
+     below, and it ships false. A per-service keda.enabled that is true while
+     the global flag is false is therefore a silent no-op on a fresh install —
+     no ScaledObject is rendered at all — and worse on an upgrade from a release
+     that had the global flag on: the operator is uninstalled while the
+     ScaledObjects it was reconciling are left orphaned, which stops autoscaling
+     on a live tier without any error. Fail the render instead.
+
+     A tier with `disableAutoscaler: true` is NOT an offender: its ScaledObject
+     is skipped by the render conditions below even with the global flag on, so
+     there is nothing to orphan and nothing the global flag would change.
+     Reporting it would send the operator to a "fix" that installs the three
+     KEDA operator Deployments and still renders no ScaledObject and no HPA for
+     that tier.
+
+     The exclusion must keep mirroring the render conditions below. It does
+     today for all five tiers: telemetryWriter is the one whose ScaledObject
+     ignores disableAutoscaler, and it has no such key to ignore —
+     values.schema.json pins telemetryWriter to `additionalProperties: false`
+     without one, so setting it is a schema error, not a silent excuse. If that
+     key is ever added to the schema, its render condition below must start
+     honouring it too or this loop must stop excusing it. */}}
+{{- if and (not .Values.keda.enabled) (not .Values.deployment.disableDeployments) }}
+{{- $orphaned := list }}
+{{- range $key, $val := .Values.probes }}
+{{- if and $val.keda $val.keda.enabled (not $val.disableAutoscaler) }}
+{{- $orphaned = append $orphaned (printf "probes.%s.keda.enabled" $key) }}
+{{- end }}
+{{- end }}
+{{- range $service := list "app" "worker" "telemetryWriter" "runner" }}
+{{- $serviceValues := get $.Values $service }}
+{{- if and $serviceValues $serviceValues.keda $serviceValues.keda.enabled (not $serviceValues.disableAutoscaler) }}
+{{- $orphaned = append $orphaned (printf "%s.keda.enabled" $service) }}
+{{- end }}
+{{- end }}
+{{- if $orphaned }}
+{{- fail (printf "the global keda.enabled is false but these per-service KEDA flags are true: %s. The global flag gates both the bundled KEDA operator (see the dependency condition in Chart.yaml) and every ScaledObject in this chart, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to fall back to the plain HorizontalPodAutoscaler." (join ", " $orphaned)) }}
+{{- end }}
+{{- end }}
+
 {{/* Probe KEDA ScaledObjects - one for each probe configuration */}}
 {{- range $key, $val := $.Values.probes }}
 {{- $probeEnabled := or (not (hasKey $val "enabled")) $val.enabled }}

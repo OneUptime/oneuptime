@@ -1,0 +1,46 @@
+suite: keda operator subchart
+release:
+  name: ou
+  namespace: oneuptime
+tests:
+  # The global flag is also the `condition:` on the KEDA dependency in Chart.yaml,
+  # so it decides whether the operator's three Deployments (manager, metrics
+  # server, webhooks) are installed at all. This pins the ON side: the subchart
+  # templates are reachable and DO render when the flag is true.
+  #
+  # The OFF side cannot be expressed here: when the condition excludes the
+  # subchart, helm-unittest reports its templates as "not exists" (a suite error)
+  # rather than as zero documents. `helm template` on default values renders zero
+  # keda-operator/keda-metrics-server/keda-webhook objects -- verified out of band.
+  - it: should install the KEDA operator manager when the global flag is on
+    templates:
+      - charts/keda/templates/manager/deployment.yaml
+    set:
+      keda.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Deployment
+
+  - it: should install the KEDA metrics server when the global flag is on
+    templates:
+      - charts/keda/templates/metrics-server/deployment.yaml
+    set:
+      keda.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Deployment
+
+  - it: should install the KEDA admission webhooks when the global flag is on
+    templates:
+      - charts/keda/templates/webhooks/deployment.yaml
+    set:
+      keda.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Deployment

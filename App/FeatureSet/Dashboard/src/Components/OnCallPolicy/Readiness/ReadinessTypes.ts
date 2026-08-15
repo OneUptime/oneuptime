@@ -1,3 +1,4 @@
+import PageMap from "../../../Utils/PageMap";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import type {
@@ -639,6 +640,35 @@ export const getRuleTypeLabel: (ruleType: NotificationRuleType) => string = (
       return "Goes off call";
     default:
       return String(ruleType);
+  }
+};
+
+/*
+ * Which User Settings page repairs a gap of this rule type.
+ *
+ * It lives here rather than in the surface that first needed it because two
+ * surfaces now need it - the admin's responder card and the responder's own
+ * setup checklist - and a second copy would be a second opinion about where a
+ * hole is fixed. Sending somebody to the page that does not carry the rule they
+ * are missing is the failure mode that makes a "fix this" link read as noise.
+ *
+ * The two go-on-call / go-off-call rule types are edited on the incident
+ * on-call rules page (IncidentOnCallRules.tsx:406), not on a page of their own,
+ * so they route there along with the incident rules - which is also why the
+ * incident page is the default rather than a case of its own.
+ */
+export const getPageForRuleType: (ruleType: NotificationRuleType) => PageMap = (
+  ruleType: NotificationRuleType,
+): PageMap => {
+  switch (ruleType) {
+    case NotificationRuleType.ON_CALL_EXECUTED_ALERT:
+      return PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES;
+    case NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE:
+      return PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES;
+    case NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE:
+      return PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES;
+    default:
+      return PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES;
   }
 };
 

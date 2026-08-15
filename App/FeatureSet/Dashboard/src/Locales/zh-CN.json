@@ -6005,5 +6005,7 @@
   "MCP Server": "MCP 服务器",
   "Enable MCP Server": "启用 MCP 服务器",
   "Control whether AI agents can read this status page over the OneUptime MCP server": "控制 AI 代理是否可以通过 OneUptime MCP 服务器读取此状态页",
-  "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.": "启用后，AI 代理可以通过公共 OneUptime MCP 服务器读取此状态页。关闭此选项不会隐藏状态页网站、其 RSS 源或其公共 JSON API。"
+  "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.": "启用后，AI 代理可以通过公共 OneUptime MCP 服务器读取此状态页。关闭此选项不会隐藏状态页网站、其 RSS 源或其公共 JSON API。",
+  "Get Started": "开始使用",
+  "Setup Checklist": "设置清单"
 }

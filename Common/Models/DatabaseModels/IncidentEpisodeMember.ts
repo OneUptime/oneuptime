@@ -87,6 +87,34 @@ export enum IncidentEpisodeMemberAddedBy {
   name: "IncidentEpisodeMember",
 })
 @Index(["incidentEpisodeId", "incidentId", "projectId"])
+/*
+ * IncidentEpisodeOwner:SendIncidentAddedEmail sweeps this table every minute
+ * for rows whose owner has not been notified yet.
+ *
+ * Ordinary inserts do not write the flag at all — the column is NOT NULL
+ * DEFAULT false, so a new member starts out un-notified and the sweep picks
+ * it up. The one exception is the episode's FOUNDING member, which
+ * IncidentEpisodeMemberService.onBeforeCreate sets to true up front (the
+ * "episode created" notification already covers that incident, so the sweep
+ * must skip it). Every other row is flipped true by the sweep itself. In
+ * steady state, then, almost every row is true and the sweep finds nothing —
+ * a full sequential scan of the whole table, 1,440 times a day, to return
+ * zero rows.
+ *
+ * The index is PARTIAL for that same reason: indexing the column outright
+ * would build a structure the size of the table to serve a predicate that
+ * matches a handful of rows. Restricted to the un-notified rows it stays
+ * roughly as small as the sweep's own working set, and Postgres can prove
+ * the sweep's predicate implies it.
+ *
+ * "deletedAt" IS NULL is in the predicate because the sweep always carries
+ * it (TypeORM adds it for the soft-delete column) and, more importantly,
+ * because nothing ever flips the flag on a soft-deleted row — those would
+ * otherwise accumulate in the index forever.
+ */
+@Index(["isOwnerNotifiedOfIncidentAdded"], {
+  where: '"isOwnerNotifiedOfIncidentAdded" = false AND "deletedAt" IS NULL',
+})
 export default class IncidentEpisodeMember extends BaseModel {
   @ColumnAccessControl({
     create: [

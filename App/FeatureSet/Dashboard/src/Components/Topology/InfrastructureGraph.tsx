@@ -41,6 +41,7 @@ import computeInfraParenting, { infraEdgeId } from "./InfrastructureNesting";
 import EntityDetailPanel from "./EntityDetailPanel";
 import ServiceNodeCard from "./ServiceNodeCard";
 import { labelForRelationship, metaForEntityType } from "./TopologyMeta";
+import { getInfrastructureGraphNodeKeys } from "./TopologyInventoryData";
 
 /*
  * Infrastructure topology: the co-occurrence containment graph (runs-on /
@@ -263,8 +264,8 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
 
   /*
    * Search and focus live in the URL (replaceState — no history flood) so
-   * a filtered/focused view is shareable. A focus key that does not exist
-   * in this graph (e.g. carried over from the other tab) is ignored.
+   * a filtered/focused view is shareable. A focus key that does not identify
+   * a loaded inventory item (e.g. carried over from the other tab) is ignored.
    */
   const [searchText, setSearchTextState] = useState<string>(
     Navigation.getQueryStringByName("infraSearch") || "",
@@ -326,34 +327,27 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
     );
   }, [props.relationships]);
 
+  // Every current Inventory item, plus any unresolved relationship endpoints.
+  const graphNodeKeys: Set<string> = useMemo(() => {
+    return getInfrastructureGraphNodeKeys({
+      entities: props.entities,
+      infrastructureRelationships: infraEdges,
+    });
+  }, [infraEdges, props.entities]);
+
   // Types present among graphable nodes — drives the filter checkboxes.
   const presentTypes: Array<string> = useMemo(() => {
     const types: Set<string> = new Set<string>();
-    for (const relationship of infraEdges) {
-      for (const key of [
-        relationship.fromEntityKey,
-        relationship.toEntityKey,
-      ]) {
-        const entity: InventoryItem | undefined = entityByKey.get(key || "");
-        types.add(entity?.entityType || "unknown");
-      }
+    for (const key of graphNodeKeys) {
+      const entity: InventoryItem | undefined = entityByKey.get(key);
+      types.add(entity?.entityType || "unknown");
     }
     return Array.from(types).sort();
-  }, [infraEdges, entityByKey]);
+  }, [graphNodeKeys, entityByKey]);
 
-  // Keys that actually render in this graph (entities with 1+ edge).
-  const graphNodeKeys: Set<string> = useMemo(() => {
-    const keys: Set<string> = new Set<string>();
-    for (const relationship of infraEdges) {
-      keys.add(relationship.fromEntityKey!);
-      keys.add(relationship.toEntityKey!);
-    }
-    return keys;
-  }, [infraEdges]);
-
-  // Only honor a focus key that exists in THIS graph.
+  // Only honor a focus key that identifies a loaded Inventory item.
   const effectiveFocusKey: string | null =
-    focusKey && graphNodeKeys.has(focusKey) ? focusKey : null;
+    focusKey && entityByKey.has(focusKey) ? focusKey : null;
 
   // Focus mode: everything connected to the focused node, both directions.
   const focusedKeys: Set<string> | null = useMemo(() => {
@@ -724,7 +718,7 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
   const selectedEntity: InventoryItem | null =
     (selectedKey && entityByKey.get(selectedKey)) || null;
 
-  if (infraEdges.length === 0) {
+  if (graphNodeKeys.size === 0) {
     return (
       <EmptyState
         id="topology-empty"

@@ -292,6 +292,9 @@
                 "listenOptions": {
                     "type": "string"
                 },
+                "ingestAccessLog": {
+                    "type": "string"
+                },
                 "serverNamesHash": {
                     "type": "object",
                     "properties": {

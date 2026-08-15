@@ -2,6 +2,10 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
 import Icon from "Common/UI/Components/Icon/Icon";
+import KeyboardShortcut, {
+  KeyboardShortcutSize,
+} from "Common/UI/Components/KeyboardShortcut/KeyboardShortcut";
+import KeyboardKey from "Common/UI/Components/KeyboardShortcut/KeyboardKey";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, {
@@ -225,10 +229,20 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
               <Icon icon={IconProp.Sparkles} className="h-4 w-4 text-white" />
             </div>
             <div className="min-w-0">
-              <div className="truncate text-sm font-semibold text-gray-900">
-                {chat.isConversationView
-                  ? chat.activeConversationTitle
-                  : "Ask AI"}
+              <div className="flex items-center gap-2">
+                <div className="truncate text-sm font-semibold text-gray-900">
+                  {chat.isConversationView
+                    ? chat.activeConversationTitle
+                    : "Ask AI"}
+                </div>
+                {/* Teach the toggle where it is used, in the platform's own keys. */}
+                {!chat.isConversationView && (
+                  <KeyboardShortcut
+                    keys={[KeyboardKey.Mod, "I"]}
+                    size={KeyboardShortcutSize.ExtraSmall}
+                    className="hidden sm:inline-flex"
+                  />
+                )}
               </div>
               <div className="truncate text-xs text-gray-400">
                 {chat.isWorking
