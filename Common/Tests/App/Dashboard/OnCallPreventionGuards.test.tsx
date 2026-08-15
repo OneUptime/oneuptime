@@ -105,7 +105,6 @@ import {
   DeletionImpactModal,
   NotificationRuleFacts,
   OnCallExposure,
-  OnCallExposurePanel,
   UNKNOWN_ON_CALL_EXPOSURE,
   buildCoverageCells,
   computeMethodDeletionImpact,
@@ -1270,76 +1269,6 @@ describe("Delete guards: the confirmation an admin actually reads", () => {
         "Other rules still cover this severity and rule type",
       );
     });
-  });
-});
-
-describe("Delete guards: the standing panel above the method tables", () => {
-  test("it lists only the methods something depends on", async () => {
-    mockRules([
-      EMAIL_ON_SEV1_INCIDENT,
-      SMS_ON_SEV1_INCIDENT,
-      EMAIL_ON_SEV2_ALERT,
-    ]);
-    getMock.mockResolvedValue(
-      okResponse(readinessJson({ reachedVia: ["Direct"] })) as never,
-    );
-
-    render(
-      <OnCallExposurePanel
-        userId={new ObjectID(USER_ALEX)}
-        projectId={PROJECT_ID}
-      />,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByTestId("on-call-exposure-panel")).toBeInTheDocument();
-    });
-
-    expect(screen.getByText("Email: jane@example.com")).toBeInTheDocument();
-    expect(screen.getByText("SMS: +15550100")).toBeInTheDocument();
-    expect(screen.getByText("2 rules")).toBeInTheDocument();
-    expect(screen.getByText("1 rule")).toBeInTheDocument();
-    expect(
-      screen.getByText("Only cover for Alert · Sev2."),
-    ).toBeInTheDocument();
-  });
-
-  test("it stays out of the way when nothing depends on any method", async () => {
-    mockRules([]);
-    getMock.mockResolvedValue(okResponse(readinessJson({})) as never);
-
-    const { container } = render(
-      <OnCallExposurePanel
-        userId={new ObjectID(USER_ALEX)}
-        projectId={PROJECT_ID}
-      />,
-    );
-
-    await waitFor(() => {
-      expect(getListMock).toHaveBeenCalled();
-    });
-
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  test("it never renders a raw route or an unresolved id as a label", async () => {
-    mockRules([EMAIL_ON_SEV1_INCIDENT]);
-    getMock.mockResolvedValue(okResponse(readinessJson({})) as never);
-
-    render(
-      <OnCallExposurePanel
-        userId={new ObjectID(USER_ALEX)}
-        projectId={PROJECT_ID}
-      />,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByTestId("on-call-exposure-panel")).toBeInTheDocument();
-    });
-
-    expect(
-      screen.getByTestId("on-call-exposure-panel").textContent,
-    ).not.toContain(EMAIL_METHOD_ID);
   });
 });
 

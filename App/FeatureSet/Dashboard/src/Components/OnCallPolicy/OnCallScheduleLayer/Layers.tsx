@@ -1,4 +1,6 @@
+import { getCoverageWindowEnd } from "./CoverageWindow";
 import LayerCard from "./LayerCard";
+import { formatWindowSpan } from "./LayerSummary";
 import LayersPreview from "./LayersPreview";
 import TimezoneSelectButton from "./TimezoneSelectButton";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -31,14 +33,12 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
-
-/*
- * Window the coverage banner reasons over. Matches the preview's summary window
- * so the banner at the top of the page and the gap list at the bottom always
- * describe the same span of time.
- */
-const COVERAGE_WINDOW_DAYS: number = 42;
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useMemo,
+} from "react";
 
 export interface ComponentProps {
   onCallDutyPolicyScheduleId: ObjectID;
@@ -508,21 +508,27 @@ const Layers: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * A compact statement of the schedule's coverage, rendered above the layer
-   * cards. Computed with exactly the same LayerUtil + ScheduleShiftUtil pipeline
-   * the preview at the bottom of the page uses, so the two can never disagree.
+   * The schedule's coverage over the shared window, computed with exactly the
+   * same LayerUtil + ScheduleShiftUtil pipeline the preview at the bottom of the
+   * page uses, so the two can never disagree.
    *
-   * Deliberately NOT a blocking form validation: a partially-covered schedule is
-   * a legitimate configuration (an escalation policy may intend a business-hours
-   * layer to fall through to a team). The point is that the consequence is
-   * stated at the moment of editing rather than discovered during an incident.
+   * Expanding every layer's rotation across the window and merging the layers by
+   * priority is the most expensive thing this component does — hundreds of
+   * milliseconds for a daily rotation, and it scales super-linearly with the
+   * window. Memoized so it runs when the schedule actually changes rather than
+   * on every render (expanding a layer card, opening a modal, a timezone save
+   * rolling back), which would otherwise block the main thread each time.
+   *
+   * `now` is deliberately captured inside the memo: the window only needs to be
+   * accurate to the current edit, and re-anchoring it on a clock tick would
+   * throw away the cached result every second.
    */
-  const coverageBanner: GetReactElementFunction = (): ReactElement => {
+  const coverageSummary: {
+    coverage: ScheduleCoverageState;
+    windowLabel: string;
+  } = useMemo(() => {
     const now: Date = OneUptimeDate.getCurrentDate();
-    const windowEnd: Date = OneUptimeDate.addRemoveDays(
-      now,
-      COVERAGE_WINDOW_DAYS,
-    );
+    const windowEnd: Date = getCoverageWindowEnd(now);
 
     const layerProps: Array<LayerProps> = layers.map(
       (layer: OnCallDutyPolicyScheduleLayer): LayerProps => {
@@ -549,36 +555,48 @@ const Layers: FunctionComponent<ComponentProps> = (
       0,
     );
 
-    const coverage: ScheduleCoverageState = ScheduleShiftUtil.getCoverageState({
-      layerCount: layers.length,
-      assignedUserCount,
-      shifts: ScheduleShiftUtil.groupEventsIntoShifts(
-        new LayerUtil().getMultiLayerEvents({
-          calendarStartDate: now,
-          calendarEndDate: windowEnd,
-          layers: layerProps,
-        }),
-      ),
-      now,
-      windowEnd,
-    });
+    return {
+      coverage: ScheduleShiftUtil.getCoverageState({
+        layerCount: layers.length,
+        assignedUserCount,
+        shifts: ScheduleShiftUtil.groupEventsIntoShifts(
+          new LayerUtil().getMultiLayerEvents({
+            calendarStartDate: now,
+            calendarEndDate: windowEnd,
+            layers: layerProps,
+          }),
+        ),
+        now,
+        windowEnd,
+      }),
+      windowLabel: formatWindowSpan(now, windowEnd),
+    };
+  }, [layers, layerUsers, scheduleTimezone]);
 
+  /*
+   * A compact statement of the schedule's coverage, rendered above the layer
+   * cards. Only rendered when there is something to act on — a fully-covered
+   * schedule shows nothing, so the banner reads as an exception rather than as
+   * noise present on every visit.
+   *
+   * Deliberately NOT a blocking form validation: a partially-covered schedule is
+   * a legitimate configuration (an escalation policy may intend a business-hours
+   * layer to fall through to a team). The point is that the consequence is
+   * stated at the moment of editing rather than discovered during an incident.
+   */
+  const coverageBanner: () => ReactElement | null = (): ReactElement | null => {
+    const coverage: ScheduleCoverageState = coverageSummary.coverage;
+    const windowLabel: string = coverageSummary.windowLabel;
+
+    /*
+     * Nothing to say when every moment of the window has someone on call — the
+     * banner exists to surface gaps, so silence here is the "all good" state.
+     */
     if (
       coverage.status === ScheduleCoverageStatus.Covered &&
       coverage.gaps.length === 0
     ) {
-      return (
-        <div className="mb-5 flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5 text-xs text-green-800">
-          <Icon
-            icon={IconProp.CheckCircle}
-            className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-green-500"
-          />
-          <span>
-            <span className="font-semibold">Fully covered.</span> Someone is on
-            call at every moment of the next {COVERAGE_WINDOW_DAYS} days.
-          </span>
-        </div>
-      );
+      return null;
     }
 
     const percent: number = Math.round(coverage.coverageRatio * 100);
@@ -589,7 +607,7 @@ const Layers: FunctionComponent<ComponentProps> = (
           {coverage.gaps.length === 1
             ? "1 coverage gap"
             : `${coverage.gaps.length} coverage gaps`}{" "}
-          in the next {COVERAGE_WINDOW_DAYS} days.
+          in the next {windowLabel}.
         </span>{" "}
         Someone is on call for {percent >= 100 ? 99 : percent}% of that window.
         During the rest, alerts routed to this schedule will notify no one. See
@@ -746,10 +764,11 @@ const Layers: FunctionComponent<ComponentProps> = (
       </div>
 
       {/*
-       * Coverage state, stated at the point of EDITING rather than only in the
+       * Coverage gaps, stated at the point of EDITING rather than only in the
        * preview at the bottom of the page. Someone configuring a Mon-Fri layer
        * gets told immediately that nights and weekends are uncovered, instead of
-       * having to scroll past every layer card to find out.
+       * having to scroll past every layer card to find out. Renders nothing when
+       * the schedule is fully covered.
        */}
       {coverageBanner()}
 

@@ -50,6 +50,8 @@ interface RelationshipRow {
 
 export interface ComponentProps {
   entityKey: string;
+  /** Full-project topology, pre-focused on this item. */
+  fullMapRoute?: Route | undefined;
   /** Rendered inside a Card unless the page supplies its own. */
   showCard?: boolean | undefined;
 }
@@ -261,7 +263,22 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title="Connections"
-      description="What this item runs on, belongs to and depends on — worked out from your telemetry. Both directions are shown."
+      description="What this item runs on, belongs to and depends on. This list shows its immediate neighbors in both directions; the full map shows the wider connected system."
+      rightElement={
+        props.fullMapRoute ? (
+          <AppLink
+            to={props.fullMapRoute}
+            className="inline-flex items-center gap-x-1 text-sm font-medium text-indigo-600 hover:text-indigo-800"
+          >
+            <span>Open full map</span>
+            <Icon
+              icon={IconProp.ArrowRight}
+              size={SizeProp.Smaller}
+              className="h-4 w-4"
+            />
+          </AppLink>
+        ) : undefined
+      }
     >
       {renderBody()}
     </Card>

@@ -85,6 +85,15 @@ const InventorySideMenu: FunctionComponent = (): ReactElement => {
         },
         {
           link: {
+            title: "Topology Map",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.TOPOLOGY] as Route,
+            ),
+          },
+          icon: IconProp.FlowDiagram,
+        },
+        {
+          link: {
             title: "Gone Quiet",
             to: getScopedItemsRoute(
               buildInventoryScopeQueryString({

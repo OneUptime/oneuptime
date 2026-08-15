@@ -94,17 +94,19 @@ export default NotificationMethodView;
  * by UserNotificationRule's `@CurrentUserCanAccessRecordBy("userId")`. There is
  * no round trip that can fail and leave the warning vague.
  *
- * WHERE THIS IS MOUNTED. Two places, deliberately, because a person deleting a
- * method meets the consequence twice and at different distances from the
- * decision. OnCallExposurePanel sits above the method tables on
- * Pages/UserSettings/NotificationMethods and says which methods are load
- * bearing while somebody is still just looking at the list. DeletionImpactModal
- * is the confirmation itself, and it replaces the generic "are you sure" on all
- * seven method tables - Email, SMS, Call, Push, WhatsApp, Telegram and Webhook -
- * each of which sets `isDeleteable={false}` and takes its Delete action from
- * useNotificationMethodDeleteGuard below. The shared ModelTable confirmation
- * takes a fixed description and so cannot carry any of the numbers below, which
- * is why the built-in delete is turned off rather than decorated.
+ * WHERE THIS IS MOUNTED. At the moment of the delete and nowhere else.
+ * DeletionImpactModal is the confirmation itself, and it replaces the generic
+ * "are you sure" on all seven method tables - Email, SMS, Call, Push, WhatsApp,
+ * Telegram and Webhook - each of which sets `isDeleteable={false}` and takes its
+ * Delete action from useNotificationMethodDeleteGuard below. The shared
+ * ModelTable confirmation takes a fixed description and so cannot carry any of
+ * the numbers below, which is why the built-in delete is turned off rather than
+ * decorated.
+ *
+ * A standing panel above the method tables used to say the same thing while
+ * somebody was still just looking at the list. It was removed: it restated, on
+ * every visit, what the confirmation already says at the one moment the person
+ * can act on it, and a warning shown twice is a warning read once.
  *
  * WHAT DOES COME FROM THE SERVER, and what happens when it does not. "You are a
  * responder on N on-call policies" cannot be computed here: a user is an
@@ -1239,106 +1241,3 @@ export function useNotificationMethodDeleteGuard<TBaseModel extends BaseModel>(
     deletionModal: deletionModal,
   };
 }
-
-export interface OnCallExposurePanelProps {
-  userId: ObjectID | null;
-  projectId: ObjectID | null;
-}
-
-/*
- * The standing version of the same facts, for the top of the notification
- * methods page.
- *
- * A confirmation dialog only ever arrives once the person has already decided.
- * This says the same thing while they are still looking at the list: which of
- * these methods are load bearing, and what each one is the only cover for. A
- * method that nothing points at is not listed - it is free to delete, and
- * padding the panel with it would teach people to skim past the ones that are
- * not.
- */
-export const OnCallExposurePanel: FunctionComponent<
-  OnCallExposurePanelProps
-> = (props: OnCallExposurePanelProps): ReactElement => {
-  const state: NotificationRuleLoadState = useNotificationRuleImpactData({
-    userId: props.userId,
-    projectId: props.projectId,
-  });
-
-  if (state.isLoading || state.error) {
-    return <></>;
-  }
-
-  /*
-   * One entry per method that at least one rule points at, in the order the
-   * rules were created, with the cells it is the sole cover for.
-   */
-  const methodIds: Array<string> = [];
-  const labelsByMethodId: Record<string, string> = {};
-
-  for (const facts of state.rules) {
-    if (!facts.methodId || labelsByMethodId[facts.methodId]) {
-      continue;
-    }
-
-    labelsByMethodId[facts.methodId] = facts.methodLabel || "This method";
-    methodIds.push(facts.methodId);
-  }
-
-  if (methodIds.length === 0) {
-    return <></>;
-  }
-
-  const exposureSentence: string = describeOnCallExposure(state.exposure);
-
-  return (
-    <div
-      data-testid="on-call-exposure-panel"
-      className="rounded-xl border border-gray-200 bg-white shadow-sm"
-    >
-      <div className="border-b border-gray-100 px-6 py-5">
-        <h2 className="text-lg font-semibold text-gray-900">
-          What these methods carry
-        </h2>
-        <p className="mt-1.5 text-sm leading-relaxed text-gray-500">
-          {exposureSentence ? `${exposureSentence} ` : ""}
-          Deleting a method below also deletes every notification rule that uses
-          it.
-        </p>
-      </div>
-      <div className="divide-y divide-gray-100">
-        {methodIds.map((methodId: string): ReactElement => {
-          const impact: DeletionImpact = computeMethodDeletionImpact({
-            rules: state.rules,
-            methodId: methodId,
-          });
-
-          return (
-            <div key={methodId} className="px-6 py-3.5">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="text-sm font-medium text-gray-900">
-                  {labelsByMethodId[methodId]}
-                </span>
-                <span className="inline-flex items-center rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
-                  {impact.ruleCount} {impact.ruleCount === 1 ? "rule" : "rules"}
-                </span>
-              </div>
-              {impact.orphanedCells.length > 0 ? (
-                <p className="mt-1 text-sm text-amber-700">
-                  Only cover for{" "}
-                  {joinWithAnd(
-                    impact.orphanedCells.map((cell: CoverageCell): string => {
-                      return getCellLabel(cell);
-                    }),
-                  )}
-                  .
-                </p>
-              ) : (
-                <></>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
