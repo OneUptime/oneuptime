@@ -1,6 +1,7 @@
 import PageComponentProps from "../PageComponentProps";
 import ServiceMapGraph from "../../Components/Topology/ServiceMapGraph";
 import InfrastructureGraph from "../../Components/Topology/InfrastructureGraph";
+import { buildTopologyInventoryItemQuery } from "../../Components/Topology/TopologyInventoryData";
 import NetworkTopologyView from "../../Components/NetworkDevice/NetworkTopologyView";
 import Page from "Common/UI/Components/Page/Page";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
@@ -16,8 +17,8 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
-import TelemetryEntityRelationship from "Common/Models/DatabaseModels/TelemetryEntityRelationship";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
+import InventoryItemRelationship from "Common/Models/DatabaseModels/InventoryItemRelationship";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import API from "Common/UI/Utils/API/API";
@@ -36,8 +37,8 @@ import React, {
  * one mixed graph. "Service Map" is the layer-7 call graph (services +
  * depends-on edges with traffic metrics); "Infrastructure" is the
  * containment graph (pods on nodes, containers on hosts, ...). Entities
- * and relationships load once here for the selected time range and both
- * tabs share them.
+ * Inventory items load from the complete, non-archived catalog. Relationships
+ * load for the selected time range and both tabs share the results.
  */
 
 /*
@@ -55,9 +56,9 @@ const TopologyPage: FunctionComponent<
     range: TimeRange.PAST_ONE_DAY,
   });
 
-  const [entities, setEntities] = useState<Array<TelemetryEntity>>([]);
+  const [entities, setEntities] = useState<Array<InventoryItem>>([]);
   const [relationships, setRelationships] = useState<
-    Array<TelemetryEntityRelationship>
+    Array<InventoryItemRelationship>
   >([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -72,15 +73,14 @@ const TopologyPage: FunctionComponent<
           RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
 
         const [entityResult, relationshipResult]: [
-          ListResult<TelemetryEntity>,
-          ListResult<TelemetryEntityRelationship>,
+          ListResult<InventoryItem>,
+          ListResult<InventoryItemRelationship>,
         ] = await Promise.all([
-          ModelAPI.getList<TelemetryEntity>({
-            modelType: TelemetryEntity,
-            query: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-              lastSeenAt: new GreaterThanOrEqual<Date>(window.startValue),
-            },
+          ModelAPI.getList<InventoryItem>({
+            modelType: InventoryItem,
+            query: buildTopologyInventoryItemQuery(
+              ProjectUtil.getCurrentProjectId()!,
+            ),
             select: {
               _id: true,
               entityKey: true,
@@ -95,8 +95,8 @@ const TopologyPage: FunctionComponent<
             skip: 0,
             limit: LIMIT_PER_PROJECT,
           }),
-          ModelAPI.getList<TelemetryEntityRelationship>({
-            modelType: TelemetryEntityRelationship,
+          ModelAPI.getList<InventoryItemRelationship>({
+            modelType: InventoryItemRelationship,
             query: {
               projectId: ProjectUtil.getCurrentProjectId()!,
               lastSeenAt: new GreaterThanOrEqual<Date>(window.startValue),
@@ -199,7 +199,7 @@ const TopologyPage: FunctionComponent<
                 "The network map is live — it shows the physical layer as devices report it right now.",
               ) || ""
             : translateString(
-                "Maps are discovered automatically from your OpenTelemetry data for the selected time range.",
+                "The map includes every current inventory item. Connections reflect OpenTelemetry data from the selected time range.",
               ) || ""}
         </p>
         {isNetworkTab ? (

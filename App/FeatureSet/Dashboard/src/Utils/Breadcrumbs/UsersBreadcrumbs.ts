@@ -22,6 +22,12 @@ export function getUsersBreadcrumbs(path: string): Array<Link> | undefined {
       "View User",
       "Teams",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.USER_VIEW_NOTIFICATION_RULES, [
+      "Project",
+      "Users",
+      "View User",
+      "Notification Rules",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.USER_VIEW_CUSTOM_FIELDS, [
       "Project",
       "Users",

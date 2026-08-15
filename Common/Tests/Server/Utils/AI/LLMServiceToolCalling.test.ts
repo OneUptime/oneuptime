@@ -56,7 +56,16 @@ describe("LLMService tool calling — OpenAI-compatible", () => {
     });
 
     const response: LLMCompletionResponse = await LLMService.getCompletion({
-      llmProviderConfig: { llmType: LlmType.OpenAI, apiKey: "test-key" },
+      llmProviderConfig: {
+        llmType: LlmType.OpenAI,
+        apiKey: "test-key",
+        /*
+         * Pinned to a legacy (non-reasoning) model: the blank-model default is
+         * now a reasoning model that sends max_completion_tokens, and this
+         * test asserts the legacy max_tokens request shape.
+         */
+        modelName: "gpt-4o",
+      },
       messages: [{ role: "user", content: "find logs" }],
       tools: [
         {
@@ -405,7 +414,16 @@ describe("LLMService — additionalParams (per-provider overrides)", () => {
     });
 
     await LLMService.getCompletion({
-      llmProviderConfig: { llmType: LlmType.OpenAI, apiKey: "test-key" },
+      llmProviderConfig: {
+        llmType: LlmType.OpenAI,
+        apiKey: "test-key",
+        /*
+         * Pinned to a legacy (non-reasoning) model: the blank-model default is
+         * now a reasoning model that sends max_completion_tokens, and this
+         * test asserts the legacy max_tokens path specifically.
+         */
+        modelName: "gpt-4o",
+      },
       messages: [{ role: "user", content: "hi" }],
       maxTokens: 1024,
       additionalParams: { temperature: 0.2, top_p: 0.9 },
@@ -427,7 +445,12 @@ describe("LLMService — additionalParams (per-provider overrides)", () => {
     });
 
     await LLMService.getCompletion({
-      llmProviderConfig: { llmType: LlmType.OpenAI, apiKey: "test-key" },
+      llmProviderConfig: {
+        llmType: LlmType.OpenAI,
+        apiKey: "test-key",
+        // Legacy model, so max_tokens would be sent unless the override wins.
+        modelName: "gpt-4o",
+      },
       messages: [{ role: "user", content: "hi" }],
       maxTokens: 1024,
       // gpt-5 / o1 / o3 reject max_tokens and require max_completion_tokens.

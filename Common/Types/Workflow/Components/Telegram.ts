@@ -21,6 +21,7 @@ const components: Array<ComponentMetadata> = [
           "Need help creating a bot? Check docs here: https://core.telegram.org/bots#how-do-i-create-a-bot",
         type: ComponentInputType.Text,
         required: true,
+        isSensitive: true,
         placeholder: "1234567890:ABCdefGHIjklMNOpqrsTUVwxyZ",
       },
       {

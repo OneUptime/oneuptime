@@ -8,15 +8,29 @@ import ChatMessageList from "../../Components/AIChat/ChatMessageList";
 import PageContextChip from "../../Components/AIChat/PageContextChip";
 import ProviderPicker from "../../Components/AIChat/ProviderPicker";
 import PermissionModePicker from "../../Components/AIChat/PermissionModePicker";
-import { useAiChat, UseAiChat } from "../../Components/AIChat/useAiChat";
+import {
+  ChatMessageFeedback,
+  useAiChat,
+  UseAiChat,
+} from "../../Components/AIChat/useAiChat";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
+import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
+import ObjectID from "Common/Types/ObjectID";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Page from "Common/UI/Components/Page/Page";
 import UiAnalytics from "Common/UI/Utils/Analytics";
+import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useRef,
+} from "react";
 
 /*
  * Meaningful, non-redundant page header copy. The title is the feature name;
@@ -45,6 +59,60 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
       projectId: ProjectUtil.getCurrentProjectId()?.toString() || "",
     });
   }, []);
+
+  /*
+   * Deep link: /ai/chat/:conversationId opens that thread — so a refresh keeps
+   * your place and a conversation can be linked in an incident channel. The
+   * param is read once on mount; rail clicks afterwards sync the URL below.
+   */
+  const didOpenFromUrlRef: React.MutableRefObject<boolean> = useRef(false);
+
+  useEffect(() => {
+    if (didOpenFromUrlRef.current) {
+      return;
+    }
+    didOpenFromUrlRef.current = true;
+
+    const lastParam: string = Navigation.getLastParamAsString();
+    // The bare /ai/chat route ends in "chat" — only a UUID is a conversation.
+    if (lastParam && ObjectID.isValidUUID(lastParam.replace("/", ""))) {
+      chat.openConversation(lastParam.replace("/", ""));
+    }
+  }, []);
+
+  /*
+   * Keep the URL in step with the open thread without remounting the page:
+   * replaceState only rewrites the address bar, so polling and scroll state
+   * survive while refresh/share still land on the right conversation.
+   */
+  const syncUrlToConversation: (conversationId: string | undefined) => void = (
+    conversationId: string | undefined,
+  ): void => {
+    const route: Route = conversationId
+      ? RouteUtil.populateRouteParams(
+          RouteMap[PageMap.AI_COPILOT_CONVERSATION] as Route,
+          { modelId: conversationId },
+        )
+      : RouteUtil.populateRouteParams(RouteMap[PageMap.AI_COPILOT] as Route);
+    window.history.replaceState({}, "", route.toString());
+  };
+
+  /*
+   * Sync on every active-thread change (rail click, first send creating the
+   * conversation, "new chat"). Until a conversation has ever been active,
+   * leave the URL alone so the mount-time deep link isn't clobbered.
+   */
+  const hasHadConversationRef: React.MutableRefObject<boolean> = useRef(false);
+
+  useEffect(() => {
+    if (chat.activeConversationId) {
+      hasHadConversationRef.current = true;
+    }
+    if (!hasHadConversationRef.current) {
+      return;
+    }
+    syncUrlToConversation(chat.activeConversationId);
+  }, [chat.activeConversationId]);
 
   const composerLeading: ReactElement = (
     <div className="flex flex-wrap items-center gap-1.5">
@@ -277,6 +345,14 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         // handled in the hook
                       });
                   }}
+                  onFeedback={(
+                    messageId: string,
+                    feedback: ChatMessageFeedback | null,
+                  ) => {
+                    chat.sendFeedback(messageId, feedback).catch(() => {
+                      // handled in the hook
+                    });
+                  }}
                 />
 
                 {chat.isWorking && (
@@ -297,6 +373,16 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 !chat.isSending && !chat.isWorking && !chat.isAwaitingApproval
               }
               isWorking={chat.isWorking}
+              isStopping={chat.isCancelling}
+              onStop={
+                chat.isWorking && !chat.isAwaitingApproval
+                  ? () => {
+                      chat.cancelRun().catch(() => {
+                        // handled in the hook
+                      });
+                    }
+                  : undefined
+              }
               leading={composerLeading}
               contextChip={contextChip}
               onSend={() => {

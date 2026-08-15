@@ -332,6 +332,13 @@ export default class AIInvestigationEngine {
           maxOutputTokens: request.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
           onStep,
           extraTools: request.extraTools,
+          /*
+           * The chat-facing AI-meta tools are hidden from the investigator:
+           * "the latest investigation" for this subject IS this in-flight
+           * run, so the model would poll its own unfinished status ("check
+           * again in a minute") and burn budget instead of investigating.
+           */
+          excludeToolNames: ["get_ai_investigation", "start_investigation"],
         });
 
       /*

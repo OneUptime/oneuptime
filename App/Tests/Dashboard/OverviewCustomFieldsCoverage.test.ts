@@ -160,6 +160,7 @@ describe("custom fields are shown on every resource overview", () => {
     ).toEqual([
       "Alerts/View",
       "Incidents/View",
+      "Inventory/View",
       "Monitor/View",
       "OnCallDuty/OnCallDutyPolicy",
       "ScheduledMaintenanceEvents/View",

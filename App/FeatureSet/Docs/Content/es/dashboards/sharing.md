@@ -20,6 +20,8 @@ Un panel público:
 
 Trata activar un panel público como publicar una página web. Cada widget en él se vuelve legible para el mundo. Mira lo que hay en el lienzo antes de pulsar el interruptor.
 
+Cada widget publica solo lo que dibuja, y solo para los recursos a los que apunta. Un widget de SLO, por ejemplo, publica las cifras principales de ese SLO pero nunca su definición: consulta [SLO](/docs/dashboards/widgets#slo). Los widgets de **Fuente de Datos** externa son la excepción: se omiten por completo de un panel público en lugar de renderizarse, porque su configuración es la propia consulta.
+
 ## Contraseña maestra
 
 Para poner una contraseña en un panel público:

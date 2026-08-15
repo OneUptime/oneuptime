@@ -15,10 +15,23 @@ import InsightFactsList, {
 } from "../../../Components/AIInsights/InsightFactsList";
 import InsightPanel from "../../../Components/AIInsights/InsightPanel";
 import ChatActivityFeed from "../../../Components/AIChat/ChatActivityFeed";
+import ServiceElement from "../../../Components/Service/ServiceElement";
+import {
+  AIInsightExplorerLink,
+  buildInsightInvestigationLink,
+  buildMetricExplorerRoute,
+} from "../../../Utils/AIInsightExplorerLinks";
+import { buildTraceViewRoute } from "../../../Utils/LogsCrossSignalPivot";
+import {
+  formatDroppedScopeHint,
+  resolveServiceIdsByNames,
+} from "../../../Utils/MetricsCrossSignalPivot";
 import AIRun from "Common/Models/DatabaseModels/AIRun";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import AIInsight from "Common/Models/DatabaseModels/AIInsight";
+import Service from "Common/Models/DatabaseModels/Service";
 import AIRunStatus, { AIRunStatusHelper } from "Common/Types/AI/AIRunStatus";
+import AIInsightType from "Common/Types/AI/AIInsightType";
 import AIInsightHumanVerdict from "Common/Types/AI/AIInsightHumanVerdict";
 import AIInsightStatus, {
   AIInsightStatusHelper,
@@ -28,6 +41,7 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
+import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -43,6 +57,7 @@ import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
 import Link from "Common/UI/Components/Link/Link";
 import React, {
   FunctionComponent,
@@ -142,7 +157,11 @@ const AIInsightViewPage: FunctionComponent<
             status: true,
             humanVerdict: true,
             serviceName: true,
+            telemetryServiceId: true,
+            telemetryExceptionId: true,
+            traceId: true,
             metricName: true,
+            evidence: true,
             firstSeenAt: true,
             lastSeenAt: true,
             occurrenceCount: true,
@@ -360,6 +379,77 @@ const AIInsightViewPage: FunctionComponent<
     [status, humanVerdict, modelId, reopenStatus, fetchInsight],
   );
 
+  /*
+   * Service-name -> ObjectID resolution for the investigate link, needed
+   * only when a detector stored the name without the id (e.g. an
+   * ErrorLogSpike attributed to a non-Service entity). One cached list
+   * call (MetricsCrossSignalPivot.resolveServiceIdsByNames), fired lazily
+   * in exactly that degraded case so the ordinary page load costs nothing
+   * extra; on failure the link falls back to attribute passthrough — never
+   * a broken link.
+   */
+  const [resolvedServiceId, setResolvedServiceId] = useState<string | null>(
+    null,
+  );
+
+  const insightType: string | undefined = insight?.insightType;
+  const serviceName: string = insight?.serviceName || "";
+  const telemetryServiceId: string =
+    insight?.telemetryServiceId?.toString() || "";
+  const telemetryExceptionId: string =
+    insight?.telemetryExceptionId?.toString() || "";
+
+  useEffect(() => {
+    const needsServiceResolution: boolean = Boolean(
+      serviceName &&
+        !telemetryServiceId &&
+        (insightType === AIInsightType.ErrorLogSpike ||
+          insightType === AIInsightType.TraceLatencyRegression ||
+          ((insightType === AIInsightType.NewException ||
+            insightType === AIInsightType.ExceptionSpike) &&
+            !telemetryExceptionId)),
+    );
+
+    if (!needsServiceResolution) {
+      return;
+    }
+
+    let isCancelled: boolean = false;
+
+    resolveServiceIdsByNames([serviceName])
+      .then((mapping: Dictionary<string>) => {
+        if (!isCancelled && mapping[serviceName]) {
+          setResolvedServiceId(mapping[serviceName] as string);
+        }
+      })
+      .catch(() => {
+        // Best-effort — the link degrades to attribute passthrough.
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [insightType, serviceName, telemetryServiceId, telemetryExceptionId]);
+
+  const serviceIdString: string = telemetryServiceId || resolvedServiceId || "";
+
+  // The per-detector "prove or disprove me in the explorer" deep link.
+  const investigationLink: AIInsightExplorerLink | null = useMemo(() => {
+    if (!insight) {
+      return null;
+    }
+
+    return buildInsightInvestigationLink({
+      insightType: insight.insightType,
+      serviceName: insight.serviceName,
+      serviceId: serviceIdString || undefined,
+      telemetryExceptionId: telemetryExceptionId || undefined,
+      metricName: insight.metricName,
+      lastSeenAt: insight.lastSeenAt,
+      spikeWindowMinutes: insight.evidence?.logSpike?.windowMinutes,
+    });
+  }, [insight, serviceIdString, telemetryExceptionId]);
+
   if (!hasLoadedOnce) {
     return <PageLoader isVisible={true} />;
   }
@@ -435,18 +525,74 @@ const AIInsightViewPage: FunctionComponent<
   const facts: Array<InsightFact> = [];
 
   if (insight.serviceName) {
+    /*
+     * Linkified through ServiceElement when the service's ObjectID is known
+     * (stored by the detector, or resolved from the name above) — the
+     * component itself suppresses navigation for the synthetic "Unknown
+     * Service". Plain text otherwise.
+     */
+    let serviceValue: string | ReactElement = insight.serviceName;
+
+    if (serviceIdString) {
+      const service: Service = new Service();
+      service.id = new ObjectID(serviceIdString);
+      service.name = insight.serviceName;
+
+      serviceValue = (
+        <span className="flex justify-end">
+          <ServiceElement service={service} />
+        </span>
+      );
+    }
+
     facts.push({
       label: "Service",
       icon: IconProp.Cube,
-      value: insight.serviceName,
+      value: serviceValue,
+      title: insight.serviceName,
     });
   }
 
   if (insight.metricName) {
+    const metricRoute: Route | null = buildMetricExplorerRoute({
+      metricName: insight.metricName,
+      serviceName: insight.serviceName,
+      lastSeenAt: insight.lastSeenAt,
+    });
+
     facts.push({
       label: "Metric",
       icon: IconProp.ChartBar,
-      value: insight.metricName,
+      value: metricRoute ? (
+        <Link
+          to={metricRoute}
+          className="hover:underline"
+          title={insight.metricName}
+        >
+          {insight.metricName}
+        </Link>
+      ) : (
+        insight.metricName
+      ),
+      title: insight.metricName,
+    });
+  }
+
+  if (insight.traceId) {
+    // The representative slow trace a latency regression was drilled from.
+    facts.push({
+      label: "Sample trace",
+      icon: IconProp.RectangleStack,
+      value: (
+        <Link
+          to={buildTraceViewRoute(insight.traceId)}
+          className="hover:underline"
+          title={insight.traceId}
+        >
+          {insight.traceId}
+        </Link>
+      ),
+      title: insight.traceId,
     });
   }
 
@@ -517,6 +663,34 @@ const AIInsightViewPage: FunctionComponent<
              * while the verdict stays changeable in both directions.
              */}
             <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
+              {investigationLink ? (
+                /*
+                 * The per-detector deep link into the explorer that can
+                 * prove or disprove this finding — scoped to the service,
+                 * severity/metric and detection window the detector looked
+                 * at. Scope the target grammar cannot carry is named in the
+                 * tooltip rather than silently narrowed.
+                 */
+                <Button
+                  title={investigationLink.label}
+                  icon={investigationLink.icon}
+                  buttonStyle={ButtonStyleType.PRIMARY}
+                  buttonSize={ButtonSize.Small}
+                  tooltip={[
+                    "Opens the telemetry slice this insight was detected on.",
+                    formatDroppedScopeHint(investigationLink.dropped),
+                  ]
+                    .filter((sentence: string) => {
+                      return sentence.length > 0;
+                    })
+                    .join(" ")}
+                  onClick={() => {
+                    Navigation.navigate(investigationLink.route);
+                  }}
+                />
+              ) : (
+                <></>
+              )}
               <Button
                 title="Confirm"
                 icon={IconProp.Check}

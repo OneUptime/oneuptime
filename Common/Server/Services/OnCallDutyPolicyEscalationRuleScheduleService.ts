@@ -85,6 +85,43 @@ export class Service extends DatabaseService<Model> {
         },
       );
 
+    /*
+     * Record the attachment in the policy feed BEFORE the early return below.
+     *
+     * This used to sit at the bottom of the method, after `if (!userOnSchedule)
+     * return`, so attaching a schedule that happened to have nobody on call at
+     * that instant produced no feed item and no workspace message at all — the
+     * audit trail silently depended on the roster state at the moment of the
+     * click. Note the asymmetry it created: the delete path emits its feed item
+     * from onBeforeDelete, which runs unconditionally, so removals were always
+     * recorded while additions could vanish.
+     *
+     * When nobody is on call, the entry says so — attaching a schedule that
+     * currently pages no one is exactly the thing an operator wants to see.
+     */
+    const feedOnCallDutyPolicyId: ObjectID | undefined | null =
+      createdModel.onCallDutyPolicy?.id;
+
+    if (feedOnCallDutyPolicyId) {
+      const noCoverageSuffix: string = userOnSchedule
+        ? ""
+        : " ⚠️ **No one is currently on call in this schedule**, so alerts escalating to this rule will not notify anyone until coverage resumes.";
+
+      await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
+        onCallDutyPolicyId: feedOnCallDutyPolicyId,
+        projectId: createdModel.projectId!,
+        onCallDutyPolicyFeedEventType:
+          OnCallDutyPolicyFeedEventType.OnCallDutyScheduleAdded,
+        displayColor: userOnSchedule ? Gray500 : Red500,
+        feedInfoInMarkdown: `📅 Added on-call schedule **${createdModel.onCallDutyPolicySchedule?.name || ""}** from the [On-Call Policy ${createdModel.onCallDutyPolicy?.name || ""}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(createdModel.projectId!, feedOnCallDutyPolicyId)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.${noCoverageSuffix}`,
+        userId: createdModel.createdByUserId || undefined,
+        workspaceNotification: {
+          sendWorkspaceNotification: true,
+          notifyUserId: createdModel.createdByUserId || undefined,
+        },
+      });
+    }
+
     if (!userOnSchedule) {
       return createdItem;
     }
@@ -202,35 +239,10 @@ export class Service extends DatabaseService<Model> {
       eventType,
     });
 
-    // add workspace message.
-
-    const onCallDutyPolicyId: ObjectID | undefined | null =
-      createdModel.onCallDutyPolicy!.id;
-    const projectId: ObjectID | undefined = createdModel.projectId;
-
-    const createdByUserId: ObjectID | undefined | null =
-      createdModel.createdByUserId;
-
-    const onCallSchedule: OnCallDutyPolicySchedule | undefined =
-      createdModel.onCallDutyPolicySchedule;
-    const onCallDutyPolicyName: string | null =
-      createdModel.onCallDutyPolicy?.name || "";
-
-    if (onCallDutyPolicyId) {
-      await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
-        onCallDutyPolicyId: onCallDutyPolicyId,
-        projectId: projectId!,
-        onCallDutyPolicyFeedEventType:
-          OnCallDutyPolicyFeedEventType.OnCallDutyScheduleAdded,
-        displayColor: Gray500,
-        feedInfoInMarkdown: `📅 Added on-call schedule **${onCallSchedule?.name || ""}** from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.`,
-        userId: createdByUserId || undefined,
-        workspaceNotification: {
-          sendWorkspaceNotification: true,
-          notifyUserId: createdByUserId || undefined,
-        },
-      });
-    }
+    /*
+     * The "schedule added" feed item is emitted above, before the
+     * no-one-on-call early return, so it is recorded unconditionally.
+     */
 
     return createdItem;
   }

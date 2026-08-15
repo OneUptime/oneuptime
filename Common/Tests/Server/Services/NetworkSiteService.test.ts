@@ -1037,9 +1037,22 @@ describe("NetworkSiteService.onMonitorStatusChanged", () => {
 
   it("does nothing when the monitors are not NetworkDevice monitors", async () => {
     jest.spyOn(MonitorService, "findBy").mockResolvedValue([]);
-    const deviceFindBySpy: jest.SpyInstance = jest.spyOn(
+    /*
+     * A device can be bound to a monitor either through a NetworkDevice
+     * monitor's steps or directly by its own monitorId column, so the service
+     * still asks NetworkDeviceService for devices carrying these monitorIds.
+     * When that also comes back empty there is genuinely nothing to act on.
+     */
+    jest
+      .spyOn(NetworkDeviceService, "findBy")
+      .mockResolvedValue([] as unknown as Array<NetworkDevice>);
+    const stampSpy: jest.SpyInstance = jest.spyOn(
       NetworkDeviceService,
-      "findBy",
+      "updateColumnsByIdWithoutHooks",
+    );
+    const rollupSpy: jest.SpyInstance = jest.spyOn(
+      NetworkSiteService,
+      "recomputeRollupForSiteAndAncestors",
     );
 
     await NetworkSiteService.onMonitorStatusChanged({
@@ -1048,7 +1061,9 @@ describe("NetworkSiteService.onMonitorStatusChanged", () => {
       monitorStatusId: OFFLINE_STATUS_ID,
     });
 
-    expect(deviceFindBySpy).not.toHaveBeenCalled();
+    // No device resolved, so nothing is stamped and no rollup is recomputed.
+    expect(stampSpy).not.toHaveBeenCalled();
+    expect(rollupSpy).not.toHaveBeenCalled();
   });
 
   it("NEVER throws - a failing lookup is logged, not propagated", async () => {

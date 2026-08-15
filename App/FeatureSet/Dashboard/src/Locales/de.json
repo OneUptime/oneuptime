@@ -69,8 +69,8 @@
       "exceptionsDescription": "Bugs über Ihre Dienste hinweg verfolgen und beheben.",
       "llmObservabilityTitle": "AI / LLM",
       "llmObservabilityDescription": "Beobachten Sie LLM- und KI-Agent-Aufrufe – Tokens, Kosten, Latenz, Prompts und Completions.",
-      "entitiesTitle": "Entitäten",
-      "entitiesDescription": "Erkunden Sie Entitäten, die aus Ihrer Telemetrie entdeckt wurden.",
+      "inventoryTitle": "Inventar",
+      "inventoryDescription": "Alles, was OneUptime über Ihre Infrastruktur weiß, in einer Liste.",
       "topologyTitle": "Topologie",
       "topologyDescription": "Sehen Sie, wie Ihre Dienste und Ihre Infrastruktur verbunden sind.",
       "servicesTitle": "Dienste",
@@ -6005,5 +6005,7 @@
   "MCP Server": "MCP-Server",
   "Enable MCP Server": "MCP-Server aktivieren",
   "Control whether AI agents can read this status page over the OneUptime MCP server": "Steuern Sie, ob KI-Agenten diese Statusseite über den OneUptime-MCP-Server lesen können",
-  "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.": "Wenn aktiviert, können KI-Agenten diese Statusseite über den öffentlichen OneUptime-MCP-Server lesen. Durch Deaktivieren werden die Statusseite, ihr RSS-Feed und ihre öffentliche JSON-API nicht ausgeblendet."
+  "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.": "Wenn aktiviert, können KI-Agenten diese Statusseite über den öffentlichen OneUptime-MCP-Server lesen. Durch Deaktivieren werden die Statusseite, ihr RSS-Feed und ihre öffentliche JSON-API nicht ausgeblendet.",
+  "Get Started": "Erste Schritte",
+  "Setup Checklist": "Einrichtungs-Checkliste"
 }

@@ -4,7 +4,10 @@ import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import MailService from "./MailService";
-import UserNotificationRuleService from "./UserNotificationRuleService";
+import UserNotificationRuleService, {
+  NotificationDeletionImpact,
+  NotificationMethodChannel,
+} from "./UserNotificationRuleService";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -53,6 +56,28 @@ export class Service extends DatabaseService<Model> {
       deleteBy,
       carryForward: null,
     };
+  }
+
+  /**
+   * What this user would lose if this email address were deleted. Ask BEFORE
+   * calling delete; nothing here refuses anything.
+   *
+   * The hook directly above deletes every UserNotificationRule that points at
+   * this address, and the foreign key is onDelete: "CASCADE" so the rows would
+   * go even if it did not. That makes removing one address a much larger write
+   * than it looks from the screen it is made on — for many users this address
+   * is the method behind their entire on-call configuration.
+   */
+  @CaptureSpan()
+  public async getDeletionImpact(data: {
+    itemId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<NotificationDeletionImpact> {
+    return UserNotificationRuleService.getNotificationMethodDeletionImpact({
+      projectId: data.projectId,
+      methodType: NotificationMethodChannel.Email,
+      methodId: data.itemId,
+    });
   }
 
   @CaptureSpan()

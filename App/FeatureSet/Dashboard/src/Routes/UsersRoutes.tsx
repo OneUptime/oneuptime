@@ -6,6 +6,7 @@ import UserCustomFields from "../Pages/Users/CustomFields";
 import UsersViewLayout from "../Pages/Users/View/Layout";
 import UsersViewIndex from "../Pages/Users/View/Index";
 import UsersViewTeams from "../Pages/Users/View/Teams";
+import UsersViewNotificationRules from "../Pages/Users/View/NotificationRules";
 import UsersViewCustomFields from "../Pages/Users/View/CustomFields";
 import UsersViewDelete from "../Pages/Users/View/Delete";
 
@@ -40,6 +41,25 @@ const UsersRoutes: FunctionComponent<ComponentProps> = (
             <UsersViewTeams
               {...props}
               pageRoute={RouteMap[PageMap.USER_VIEW_TEAMS] as Route}
+            />
+          }
+        />
+        {/*
+         * The path is the LAST segment only, never RouteMap's full value: the
+         * parent route above has already consumed `:id`, so handing this the
+         * dictionary value would ask react-router to match `:id/:id/…` and the
+         * page would render for nobody.
+         */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.USER_VIEW_NOTIFICATION_RULES,
+          )}
+          element={
+            <UsersViewNotificationRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.USER_VIEW_NOTIFICATION_RULES] as Route
+              }
             />
           }
         />

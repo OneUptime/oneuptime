@@ -1,0 +1,33 @@
+name: Ops Config Test
+
+# Supersede in-flight runs for the same branch/PR: only the newest commit needs CI.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - 'hotfix-*'   # excludes hotfix branches
+      - 'release'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      # Static/structural tests over the ClickHouse config.d drop-ins, the
+      # docker-compose mounts and the backup/restore scripts. No services are
+      # started, so this needs nothing beyond the package's own deps.
+      #
+      # The suite also cross-checks the compose ClickHouse drop-in against the
+      # Helm values so the two deployment paths cannot silently diverge, which
+      # is the check that only has value if it actually runs on every PR.
+      - run: cd Tests/Ops && npm install
+      - run: cd Tests/Ops && npm run test

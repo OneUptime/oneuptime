@@ -1,5 +1,7 @@
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
-import AIConversationMessage from "Common/Models/DatabaseModels/AIConversationMessage";
+import AIConversationMessage, {
+  AIConversationMessageFeedback,
+} from "Common/Models/DatabaseModels/AIConversationMessage";
 import AIRun from "Common/Models/DatabaseModels/AIRun";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -22,7 +24,11 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Realtime from "Common/UI/Utils/Realtime";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import PageContextUtil, { DashboardPageContext } from "./PageContext";
+
+// The thumbs rating a user can put on an assistant answer.
+export type ChatMessageFeedback = AIConversationMessageFeedback;
 
 const POLL_INTERVAL_MS: number = 1200;
 
@@ -82,6 +88,18 @@ export interface UseAiChat {
     decisions: Array<{ toolCallId: string; approved: boolean }>,
   ) => Promise<void>;
   sendMessage: (contentOverride?: string) => Promise<void>;
+  /*
+   * Stops the in-flight run for the active conversation: the server marks the
+   * run Cancelled and finalizes the assistant message as "Stopped by user."
+   * so the conversation unlocks immediately.
+   */
+  cancelRun: () => Promise<void>;
+  isCancelling: boolean;
+  // Thumbs up/down on an assistant answer; null clears the rating.
+  sendFeedback: (
+    messageId: string,
+    feedback: ChatMessageFeedback | null,
+  ) => Promise<void>;
   openConversation: (conversationId: string) => void;
   newConversation: () => void;
   deleteConversation: (conversationId: string) => void;
@@ -101,6 +119,13 @@ export interface UseAiChat {
  */
 export function useAiChat(options: { enabled: boolean }): UseAiChat {
   const { enabled } = options;
+
+  /*
+   * The current route — page context re-detects on navigation so a panel left
+   * open while the user browses from incident A to incident B never keeps
+   * sending stale "this incident = A" context.
+   */
+  const locationPathname: string = useLocation().pathname;
 
   const [conversations, setConversations] = useState<Array<AIConversation>>([]);
   const [activeConversationId, setActiveConversationId] = useState<
@@ -308,6 +333,7 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
               errorMessage: true,
               aiRunId: true,
               createdAt: true,
+              userFeedback: true,
             },
             sort: {
               createdAt: SortOrder.Descending,
@@ -332,7 +358,9 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
               .map((action: AIChatToolAction) => {
                 return action.status;
               })
-              .join(",")}:${(message.contentInMarkdown || "").length}`;
+              .join(",")}:${(message.contentInMarkdown || "").length}:${
+              message.userFeedback || ""
+            }`;
           })
           .join("|");
 
@@ -449,10 +477,14 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
   }, [enabled, fetchConversations, fetchProviders]);
 
   /*
-   * Detect page context each time the surface opens: what page was the user
-   * on when they reached for Ask AI? Attached by default (the composer chip
-   * lets them detach), with the entity's display title resolved async.
+   * Detect page context each time the surface opens AND each time the route
+   * changes while it is open: what page is the user on right now? Attached by
+   * default (the composer chip lets them detach), with the entity's display
+   * title resolved async.
    */
+  const lastContextSignatureRef: React.MutableRefObject<string> =
+    useRef<string>("");
+
   useEffect(() => {
     if (!enabled) {
       return;
@@ -461,8 +493,23 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     const detected: DashboardPageContext | null =
       PageContextUtil.detectPageContext();
 
+    /*
+     * Re-attach only when the context actually changed (a genuinely new
+     * page). If the user explicitly detached the chip and the route change
+     * resolved to the same context, their choice must hold — silently
+     * re-attaching would send context they just removed.
+     */
+    const signature: string = detected
+      ? `${detected.type}:${detected.entityId || ""}`
+      : "";
+    const contextChanged: boolean =
+      signature !== lastContextSignatureRef.current;
+    lastContextSignatureRef.current = signature;
+
     setPageContext(detected);
-    setIsPageContextAttached(Boolean(detected));
+    if (contextChanged) {
+      setIsPageContextAttached(Boolean(detected));
+    }
 
     if (detected?.isEntity) {
       PageContextUtil.resolveEntityTitle(detected)
@@ -482,7 +529,7 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
           // The generic chip label is fine without a title.
         });
     }
-  }, [enabled]);
+  }, [enabled, locationPathname]);
 
   // ---- working state + polling ---------------------------------------------
 
@@ -811,6 +858,106 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     [isSubmittingApproval, fetchMessages],
   );
 
+  const [isCancelling, setIsCancelling] = useState<boolean>(false);
+
+  const cancelRun: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      if (!activeConversationIdRef.current || isCancelling) {
+        return;
+      }
+
+      setIsCancelling(true);
+
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post<JSONObject>({
+            url: URL.fromString(APP_API_URL.toString() + "/ai-chat/cancel-run"),
+            data: {
+              conversationId: activeConversationIdRef.current,
+            },
+            headers: ModelAPI.getCommonHeaders(),
+          });
+
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+
+        if (activeConversationIdRef.current) {
+          await fetchMessages(activeConversationIdRef.current);
+        }
+      } catch (err) {
+        /*
+         * Losing the race is success: if the answer finished in the moment
+         * between clicking Stop and the request landing, the server rejects
+         * the cancel because nothing is running — don't paint an error
+         * banner over a fully rendered answer; just refresh.
+         */
+        const isLostRace: boolean =
+          err instanceof HTTPErrorResponse && err.statusCode === 400;
+        if (!isLostRace) {
+          setError(API.getFriendlyMessage(err));
+        }
+        if (activeConversationIdRef.current) {
+          fetchMessages(activeConversationIdRef.current).catch(() => {
+            // handled in fetchMessages
+          });
+        }
+      }
+
+      setIsCancelling(false);
+      setIsAwaitingResponse(false);
+    }, [isCancelling, fetchMessages]);
+
+  const sendFeedback: (
+    messageId: string,
+    feedback: ChatMessageFeedback | null,
+  ) => Promise<void> = useCallback(
+    async (
+      messageId: string,
+      feedback: ChatMessageFeedback | null,
+    ): Promise<void> => {
+      // Optimistic: flip the thumbs immediately; the poll reconciles later.
+      setMessages((current: Array<AIConversationMessage>) => {
+        return current.map((message: AIConversationMessage) => {
+          if (message.id?.toString() === messageId) {
+            if (feedback) {
+              message.userFeedback = feedback;
+            } else {
+              delete message.userFeedback;
+            }
+          }
+          return message;
+        });
+      });
+
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post<JSONObject>({
+            url: URL.fromString(
+              APP_API_URL.toString() + "/ai-chat/message-feedback",
+            ),
+            data: {
+              messageId: messageId,
+              feedback: feedback,
+            },
+            headers: ModelAPI.getCommonHeaders(),
+          });
+
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
+        if (activeConversationIdRef.current) {
+          fetchMessages(activeConversationIdRef.current).catch(() => {
+            // handled in fetchMessages
+          });
+        }
+      }
+    },
+    [fetchMessages],
+  );
+
   return {
     conversations,
     activeConversationId,
@@ -839,6 +986,9 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     isSubmittingApproval,
     respondToApproval,
     sendMessage,
+    cancelRun,
+    isCancelling,
+    sendFeedback,
     openConversation,
     newConversation,
     deleteConversation,

@@ -16,6 +16,7 @@ import {
   edgeStrokeWidthForEdge,
   formatMbps,
   formatUtilization,
+  isolationReasonForNode,
   linkStateForEdge,
   maxUtilizationForEdge,
   nodeMatchesSearch,
@@ -76,6 +77,170 @@ describe("maxUtilizationForEdge", () => {
         edgeWith({ isOperationallyUp: true }, { isOperationallyUp: true }),
       ),
     ).toBeUndefined();
+  });
+});
+
+describe("isolationReasonForNode", () => {
+  const isolatedDevice: (
+    diagnostics: NetworkTopologyNode["diagnostics"],
+  ) => NetworkTopologyNode = (
+    diagnostics: NetworkTopologyNode["diagnostics"],
+  ): NetworkTopologyNode => {
+    return {
+      id: "d1",
+      name: "core-rtr-1",
+      isManaged: true,
+      kind: "device",
+      status: "up",
+      diagnostics: diagnostics,
+    };
+  };
+
+  test("a device with links needs no explanation", () => {
+    expect(
+      isolationReasonForNode(
+        isolatedDevice({
+          reportedNeighborCount: 0,
+          unmatchedNeighborIdentifiers: [],
+        }),
+        true,
+      ),
+    ).toBeUndefined();
+  });
+
+  test("discovery being off explains everything downstream of it", () => {
+    /*
+     * Checked first on purpose: a device whose interface walk is off also
+     * reports zero neighbours, and "it reported nothing" would send the
+     * operator looking at the wrong setting.
+     */
+    const reason: string | undefined = isolationReasonForNode(
+      isolatedDevice({
+        isNeighborDiscoveryEnabled: false,
+        reportedNeighborCount: 0,
+        unmatchedNeighborIdentifiers: [],
+      }),
+      false,
+    );
+    expect(reason).toContain("Neighbour discovery never ran");
+    expect(reason).toContain("interface monitoring");
+  });
+
+  test("a device that reported nothing says so, and offers the manual route", () => {
+    const reason: string | undefined = isolationReasonForNode(
+      isolatedDevice({
+        isNeighborDiscoveryEnabled: true,
+        reportedNeighborCount: 0,
+        unmatchedNeighborIdentifiers: [],
+      }),
+      false,
+    );
+    expect(reason).toContain("reported no LLDP or CDP neighbours");
+    expect(reason).toContain("Device Links");
+  });
+
+  test("names the neighbours that matched nothing — the actionable case", () => {
+    const reason: string | undefined = isolationReasonForNode(
+      isolatedDevice({
+        isNeighborDiscoveryEnabled: true,
+        reportedNeighborCount: 2,
+        unmatchedNeighborIdentifiers: ["OLD-CORE-SW1", "ap-lobby"],
+      }),
+      false,
+    );
+    expect(reason).toContain("OLD-CORE-SW1");
+    expect(reason).toContain("ap-lobby");
+    expect(reason).toContain("renamed");
+  });
+
+  test("caps the list rather than pasting fifty identifiers into a panel", () => {
+    const reason: string | undefined = isolationReasonForNode(
+      isolatedDevice({
+        isNeighborDiscoveryEnabled: true,
+        reportedNeighborCount: 8,
+        unmatchedNeighborIdentifiers: [
+          "n1",
+          "n2",
+          "n3",
+          "n4",
+          "n5",
+          "n6",
+          "n7",
+          "n8",
+        ],
+      }),
+      false,
+    );
+    expect(reason).toContain("n5");
+    expect(reason).not.toContain("n6");
+    expect(reason).toContain("and 3 more");
+  });
+
+  test("says nothing about an unmanaged peer or an old payload", () => {
+    expect(
+      isolationReasonForNode(
+        {
+          id: "unmanaged:x",
+          name: "x",
+          isManaged: false,
+          kind: "unmanaged",
+          status: "unknown",
+        },
+        false,
+      ),
+    ).toBeUndefined();
+    // No diagnostics at all — a payload from before this shipped.
+    expect(
+      isolationReasonForNode(isolatedDevice(undefined), false),
+    ).toBeUndefined();
+  });
+});
+
+describe("linkStateForEdge — a manual link's bound monitor", () => {
+  /*
+   * A hand-drawn link has no interface counters of its own, so a Monitor is
+   * the only thing that knows anything about it. It is read LAST, though:
+   * measured state beats a monitor's summary of it, and a monitor watching
+   * the pair end-to-end can report "up" while one specific port between them
+   * is down.
+   */
+  test("colors a link that nothing else measures", () => {
+    expect(
+      linkStateForEdge({
+        fromNodeId: "d1",
+        toNodeId: "d2",
+        protocols: ["manual"],
+        monitorState: "down",
+      }),
+    ).toBe("down");
+    expect(
+      linkStateForEdge({
+        fromNodeId: "d1",
+        toNodeId: "d2",
+        protocols: ["manual"],
+        monitorState: "up",
+      }),
+    ).toBe("healthy");
+  });
+
+  test("never overrides a measured interface state", () => {
+    const edge: NetworkTopologyEdge = edgeWith({ isOperationallyUp: false });
+    edge.monitorState = "up";
+    expect(linkStateForEdge(edge)).toBe("down");
+
+    const busy: NetworkTopologyEdge = edgeWith({ utilizationPercent: 95 });
+    busy.monitorState = "up";
+    expect(linkStateForEdge(busy)).toBe("saturated");
+  });
+
+  test("a link with neither counters nor a monitor stays unknown", () => {
+    expect(
+      linkStateForEdge({
+        fromNodeId: "d1",
+        toNodeId: "d2",
+        protocols: ["manual"],
+      }),
+    ).toBe("unknown");
   });
 });
 

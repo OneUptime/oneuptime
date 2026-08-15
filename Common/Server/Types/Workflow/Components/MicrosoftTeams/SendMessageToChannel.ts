@@ -91,7 +91,7 @@ export default class SendMessageToChannel extends ComponentCode {
                 body: [
                   {
                     type: "TextBlock",
-                    wrap: "true",
+                    wrap: true,
                     text: `${args["text"]}`,
                   },
                 ],

@@ -20,6 +20,8 @@ Et offentligt dashboard:
 
 Behandl det at aktivere et offentligt dashboard som at publicere en webside. Hver widget på det bliver verdenslæsbar. Kig på, hvad der er på lærredet, før du slår kontakten til.
 
+Hver widget publicerer kun det, den tegner, og kun for de ressourcer, den er peget på. En SLO-widget publicerer for eksempel det pågældende SLO's vigtigste tal, men aldrig dets definition — se [SLO](/docs/dashboards/widgets#slo). Eksterne **Data Source**-widgets er undtagelsen: de udelades helt fra et offentligt dashboard i stedet for at blive vist, fordi deres konfiguration er selve forespørgslen.
+
 ## Master-adgangskode
 
 For at sætte en adgangskode på et offentligt dashboard:

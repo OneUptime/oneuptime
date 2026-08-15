@@ -3,19 +3,19 @@ import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
-import {
-  RUN_WATCH_POLL_INTERVAL_MS,
-  RunWatchDecision,
-  WatchedRun,
-  decideRunWatch,
-  isFailedRunStatus,
-} from "Common/UI/Components/Workflow/RunStatusWatcher";
+import useRunWatch, {
+  FetchLatestRunFunction,
+  UseRunWatchResult,
+  WatchedRunDetail,
+} from "Common/UI/Components/Workflow/UseRunWatch";
+import WorkflowLogModal from "Common/UI/Components/Workflow/WorkflowLogModal";
+import { parseTrace } from "Common/Types/Workflow/StepTrace";
 import ComponentMetadata, {
   ComponentCategory,
   ComponentType,
@@ -25,12 +25,13 @@ import ComponentMetadata, {
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import {
-  WorkflowLintIssue,
-  WorkflowLintResult,
-  WorkflowLintSeverity,
-} from "Common/UI/Components/Workflow/GraphLint";
+import Dictionary from "Common/Types/Dictionary";
+import { WorkflowLintResult } from "Common/UI/Components/Workflow/GraphLint";
+import { buildStepTitlesByNodeId } from "Common/UI/Components/Workflow/GraphLintSummary";
+import WorkflowIssuesModal from "Common/UI/Components/Workflow/WorkflowIssuesModal";
+import WorkflowStatusBar, {
+  WorkflowSaveState,
+} from "Common/UI/Components/Workflow/WorkflowStatusBar";
 import { loadComponentsAndCategories } from "Common/UI/Components/Workflow/Utils";
 import Workflow, {
   getEdgeDefaultProps,
@@ -45,8 +46,6 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
-  useEffect,
-  useRef,
   useState,
 } from "react";
 import { Edge, Node } from "reactflow";
@@ -54,33 +53,11 @@ import { useAsyncEffect } from "use-async-effect";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 
-type GetIssueSummaryTextFunction = (result: WorkflowLintResult) => string;
-
-const getIssueSummaryText: GetIssueSummaryTextFunction = (
-  result: WorkflowLintResult,
-): string => {
-  const parts: Array<string> = [];
-
-  if (result.errorCount > 0) {
-    parts.push(
-      `${result.errorCount} ${result.errorCount === 1 ? "problem" : "problems"}`,
-    );
-  }
-
-  if (result.warningCount > 0) {
-    parts.push(
-      `${result.warningCount} ${
-        result.warningCount === 1 ? "warning" : "warnings"
-      }`,
-    );
-  }
-
-  return parts.join(", ");
-};
-
 const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [saveStatus, setSaveStatus] = useState<string>("");
+  const [saveState, setSaveState] = useState<WorkflowSaveState>(
+    WorkflowSaveState.Idle,
+  );
   const [saveTimeout, setSaveTimeout] = useState<ReturnType<
     typeof setTimeout
   > | null>(null);
@@ -98,38 +75,37 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [lintResult, setLintResult] = useState<WorkflowLintResult | null>(null);
   const [showIssuesModal, setShowIssuesModal] = useState<boolean>(false);
 
+  const [showRunLogModal, setShowRunLogModal] = useState<boolean>(false);
+
+  /*
+   * The step the builder picked out of the issues list. The canvas owns the
+   * settings modal, so opening one from outside is a request it clears once it
+   * has acted on it.
+   */
+  const [stepToOpenNodeId, setStepToOpenNodeId] = useState<string | null>(null);
+
   /*
    * The run the builder started, followed until it settles. See
    * RunStatusWatcher for why this is a poll rather than something the run
-   * endpoint hands back.
+   * endpoint hands back, and UseRunWatch for the watch itself.
+   *
+   * Each poll asks the API for the run's log and steps as well as its status,
+   * so the run log modal fills in while the run goes.
    */
-  const [runWatchMessage, setRunWatchMessage] = useState<string | null>(null);
-  const [runWatchFailed, setRunWatchFailed] = useState<boolean>(false);
-  const runWatchTimer: React.MutableRefObject<ReturnType<
-    typeof setTimeout
-  > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  /*
-   * Runs that already existed when the watch started. The manual-run endpoint
-   * does not return a log id (RunWorkflow creates the WorkflowLog when a
-   * worker picks the job up), so the newest run is only *this* run once its id
-   * differs from the newest one that existed beforehand.
-   */
-  const runIdBeforeTrigger: React.MutableRefObject<string | null> = useRef<
-    string | null
-  >(null);
-
-  type FetchLatestRunFunction = () => Promise<WatchedRun | null>;
-
   const fetchLatestRun: FetchLatestRunFunction =
-    async (): Promise<WatchedRun | null> => {
+    async (): Promise<WatchedRunDetail | null> => {
       const result: ListResult<WorkflowLog> =
         await ModelAPI.getList<WorkflowLog>({
           modelType: WorkflowLog,
           query: { workflowId: modelId },
           limit: 1,
           skip: 0,
-          select: { _id: true, workflowStatus: true },
+          select: {
+            _id: true,
+            workflowStatus: true,
+            logs: true,
+            stepTrace: true,
+          },
           sort: { createdAt: SortOrder.Descending },
         });
 
@@ -142,76 +118,27 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
       return {
         runId: latest._id.toString(),
         status: latest.workflowStatus as WorkflowStatus,
+        logs: latest.logs || "",
+        stepTrace: parseTrace((latest.stepTrace as JSONValue) || null),
       };
     };
 
-  type PollRunFunction = (pollCount: number) => Promise<void>;
-
-  const pollRun: PollRunFunction = async (pollCount: number): Promise<void> => {
-    let run: WatchedRun | null = null;
-
-    try {
-      run = await fetchLatestRun();
-    } catch {
-      /*
-       * A failed poll is not a failed run. Keep watching — the next poll may
-       * well succeed, and the Logs tab is the fallback either way.
-       */
-      run = null;
-    }
-
-    // Not our run yet: the worker has not created its log.
-    if (run && run.runId === runIdBeforeTrigger.current) {
-      run = null;
-    }
-
-    const decision: RunWatchDecision = decideRunWatch({
-      run: run,
-      pollCount: pollCount,
-    });
-
-    setRunWatchMessage(decision.message);
-    setRunWatchFailed(isFailedRunStatus(run?.status));
-
-    if (!decision.shouldContinue) {
-      return;
-    }
-
-    runWatchTimer.current = setTimeout(() => {
-      void pollRun(pollCount + 1);
-    }, RUN_WATCH_POLL_INTERVAL_MS);
-  };
+  const runWatch: UseRunWatchResult = useRunWatch({
+    fetchLatestRun: fetchLatestRun,
+  });
 
   type StartWatchingRunFunction = () => void;
 
   const startWatchingRun: StartWatchingRunFunction = (): void => {
-    if (runWatchTimer.current) {
-      clearTimeout(runWatchTimer.current);
-      runWatchTimer.current = null;
-    }
+    runWatch.startWatchingRun();
 
-    setRunWatchFailed(false);
-    setRunWatchMessage("Starting run…");
-
-    void (async (): Promise<void> => {
-      try {
-        const existing: WatchedRun | null = await fetchLatestRun();
-        runIdBeforeTrigger.current = existing ? existing.runId : null;
-      } catch {
-        runIdBeforeTrigger.current = null;
-      }
-
-      void pollRun(0);
-    })();
+    /*
+     * The run is the thing the user just asked for, so show it rather than
+     * leaving them to go and find it. Closing the modal does not stop the
+     * watch — the toolbar keeps reporting, and reopens this.
+     */
+    setShowRunLogModal(true);
   };
-
-  useEffect(() => {
-    return () => {
-      if (runWatchTimer.current) {
-        clearTimeout(runWatchTimer.current);
-      }
-    };
-  }, []);
 
   const loadGraph: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -349,7 +276,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
     nodes: Array<Node>,
     edges: Array<Edge>,
   ): Promise<void> => {
-    setSaveStatus("Saving...");
+    setSaveState(WorkflowSaveState.Saving);
 
     if (saveTimeout) {
       clearTimeout(saveTimeout);
@@ -412,11 +339,11 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
           });
 
-          setSaveStatus("Saved");
+          setSaveState(WorkflowSaveState.Saved);
         } catch (err) {
           setError(API.getFriendlyMessage(err));
 
-          setSaveStatus("Error saving");
+          setSaveState(WorkflowSaveState.Error);
         }
 
         if (saveTimeout) {
@@ -431,17 +358,11 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
     await loadGraph();
   }, []);
 
-  type GetSaveStatusColorFunction = () => string;
-
-  const getSaveStatusColor: GetSaveStatusColorFunction = (): string => {
-    if (saveStatus === "Saved") {
-      return "#10b981";
-    }
-    if (saveStatus === "Error saving") {
-      return "#ef4444";
-    }
-    return "#94a3b8";
-  };
+  /*
+   * The canvas names its own nodes, and the issues panel should call a step
+   * what the canvas calls it rather than only quoting the id it was given.
+   */
+  const stepTitlesByNodeId: Dictionary<string> = buildStepTitlesByNodeId(nodes);
 
   return (
     <Fragment>
@@ -460,71 +381,24 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.03)",
           }}
         >
-          <div
-            style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.375rem",
-              }}
-            >
-              <div
-                style={{
-                  width: "7px",
-                  height: "7px",
-                  borderRadius: "50%",
-                  backgroundColor: getSaveStatusColor(),
-                  transition: "background-color 0.3s ease",
-                }}
-              />
-              <span
-                style={{
-                  fontSize: "0.75rem",
-                  color: getSaveStatusColor(),
-                  fontWeight: 500,
-                  transition: "color 0.3s ease",
-                }}
-              >
-                {saveStatus || "Ready"}
-              </span>
-            </div>
-
-            {/*
-              Static checks over the graph. Clicking opens the full list —
-              each node also carries its own badge on the canvas.
-            */}
-            {runWatchMessage && (
-              <span
-                style={{
-                  fontSize: "0.75rem",
-                  fontWeight: 500,
-                  color: runWatchFailed ? "#ef4444" : "#475569",
-                }}
-              >
-                {runWatchMessage}
-              </span>
-            )}
-
-            {lintResult && lintResult.issues.length > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  setShowIssuesModal(true);
-                }}
-                style={{
-                  fontSize: "0.75rem",
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  textDecoration: "underline",
-                  color: lintResult.errorCount > 0 ? "#ef4444" : "#f59e0b",
-                }}
-              >
-                {getIssueSummaryText(lintResult)}
-              </button>
-            )}
-          </div>
+          {/*
+            Save state, the run this builder started, and what the static
+            checks make of the graph. Both the run and the checks open
+            something: the run its log, the checks the list where a step's
+            problems can be fixed.
+          */}
+          <WorkflowStatusBar
+            saveState={saveState}
+            lintResult={lintResult}
+            runStatusMessage={runWatch.message}
+            runStatusFailed={runWatch.hasFailed}
+            onShowRunLog={() => {
+              setShowRunLogModal(true);
+            }}
+            onShowIssues={() => {
+              setShowIssuesModal(true);
+            }}
+          />
 
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <Button
@@ -578,6 +452,10 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               setShowRunModal(value);
             }}
             showRunModal={showRunModal}
+            openStepForNodeId={stepToOpenNodeId}
+            onStepOpened={() => {
+              setStepToOpenNodeId(null);
+            }}
             initialEdges={edges}
             onWorkflowUpdated={async (
               nodes: Array<Node>,
@@ -589,6 +467,8 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             }}
             onRunStep={async (component: NodeDataProp) => {
               try {
+                await runWatch.captureRunBeforeTrigger();
+
                 const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
                   await API.post({
                     url: URL.fromString(WORKFLOW_URL.toString()).addRoute(
@@ -611,6 +491,8 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             }}
             onRun={async (component: NodeDataProp) => {
               try {
+                await runWatch.captureRunBeforeTrigger();
+
                 const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
                   await API.post({
                     url: URL.fromString(WORKFLOW_URL.toString()).addRoute(
@@ -640,6 +522,21 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           />
         )}
 
+        {showRunLogModal && (
+          <WorkflowLogModal
+            title="Workflow Run"
+            description="This is the run you just started."
+            logs={runWatch.logs}
+            stepTrace={runWatch.stepTrace}
+            statusMessage={runWatch.message}
+            isStatusMessageError={runWatch.hasFailed}
+            isRunning={runWatch.isWatching}
+            onClose={() => {
+              setShowRunLogModal(false);
+            }}
+          />
+        )}
+
         {error && (
           <ConfirmModal
             title={`Error`}
@@ -653,47 +550,21 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         )}
 
         {showIssuesModal && lintResult && (
-          <Modal
-            title="Problems with this workflow"
-            description="These are found by reading the workflow. Fixing them here saves a failed run later."
-            modalWidth={ModalWidth.Large}
-            submitButtonText="Close"
-            submitButtonStyleType={ButtonStyleType.NORMAL}
-            onSubmit={() => {
+          <WorkflowIssuesModal
+            lintResult={lintResult}
+            stepTitlesByNodeId={stepTitlesByNodeId}
+            onClose={() => {
               setShowIssuesModal(false);
             }}
-          >
-            <div className="space-y-2">
-              {lintResult.issues.map(
-                (issue: WorkflowLintIssue, i: number): ReactElement => {
-                  const isError: boolean =
-                    issue.severity === WorkflowLintSeverity.Error;
-
-                  return (
-                    <div
-                      key={i}
-                      className={`rounded-md border p-3 ${
-                        isError
-                          ? "border-red-200 bg-red-50"
-                          : "border-amber-200 bg-amber-50"
-                      }`}
-                    >
-                      <p
-                        className={`text-xs font-semibold uppercase tracking-wider ${
-                          isError ? "text-red-700" : "text-amber-700"
-                        }`}
-                      >
-                        {issue.componentId || "This workflow"}
-                      </p>
-                      <p className="text-sm text-gray-700 mt-1">
-                        {issue.message}
-                      </p>
-                    </div>
-                  );
-                },
-              )}
-            </div>
-          </Modal>
+            onGoToStep={(nodeId: string) => {
+              /*
+               * The settings modal the canvas is about to open would otherwise
+               * come up behind this one.
+               */
+              setShowIssuesModal(false);
+              setStepToOpenNodeId(nodeId);
+            }}
+          />
         )}
       </>
     </Fragment>

@@ -138,10 +138,12 @@ export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_DEVICE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.NETWORK_DEVICE_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.NETWORK_DEVICE_SETTINGS_LINK_RULES]: `settings/link-rules`,
   [PageMap.NETWORK_DEVICE_DISCOVERY]: `discovery`,
   [PageMap.NETWORK_DEVICE_TOPOLOGY]: `topology`,
   [PageMap.NETWORK_DEVICE_LATENCY_MATRIX]: `latency-matrix`,
   [PageMap.NETWORK_DEVICE_ENDPOINTS]: `endpoints`,
+  [PageMap.NETWORK_DEVICE_LINKS]: `device-links`,
 };
 
 export const SloRoutePath: Dictionary<string> = {
@@ -500,9 +502,32 @@ export const ProfilesRoutePath: Dictionary<string> = {
   [PageMap.PROFILES_DOCUMENTATION]: "documentation",
 };
 
-export const EntitiesRoutePath: Dictionary<string> = {
-  [PageMap.ENTITIES]: "overview",
-  [PageMap.ENTITIES_VIEW]: ":modelId",
+/*
+ * Inventory product routes. Detail pages live under `item/` rather than
+ * directly beneath the product root so a list page ("overview", "items") can
+ * never be shadowed by an id segment.
+ */
+export const InventoryRoutePath: Dictionary<string> = {
+  [PageMap.INVENTORY]: "overview",
+  [PageMap.INVENTORY_ITEMS]: "items",
+  [PageMap.INVENTORY_DOCUMENTATION]: "documentation",
+  [PageMap.INVENTORY_VIEW]: `item/${RouteParams.ModelID}`,
+  [PageMap.INVENTORY_VIEW_RELATIONSHIPS]: `item/${RouteParams.ModelID}/relationships`,
+  [PageMap.INVENTORY_VIEW_LOGS]: `item/${RouteParams.ModelID}/logs`,
+  [PageMap.INVENTORY_VIEW_TRACES]: `item/${RouteParams.ModelID}/traces`,
+  [PageMap.INVENTORY_VIEW_METRICS]: `item/${RouteParams.ModelID}/metrics`,
+  [PageMap.INVENTORY_VIEW_PROFILES]: `item/${RouteParams.ModelID}/profiles`,
+  [PageMap.INVENTORY_VIEW_EXCEPTIONS]: `item/${RouteParams.ModelID}/exceptions`,
+  [PageMap.INVENTORY_VIEW_TELEMETRY]: `item/${RouteParams.ModelID}/telemetry`,
+  [PageMap.INVENTORY_VIEW_INCIDENTS]: `item/${RouteParams.ModelID}/incidents`,
+  [PageMap.INVENTORY_VIEW_ALERTS]: `item/${RouteParams.ModelID}/alerts`,
+  [PageMap.INVENTORY_VIEW_SCHEDULED_MAINTENANCE]: `item/${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.INVENTORY_VIEW_CUSTOM_FIELDS]: `item/${RouteParams.ModelID}/custom-fields`,
+  [PageMap.INVENTORY_VIEW_AUDIT_LOGS]: `item/${RouteParams.ModelID}/audit-logs`,
+  [PageMap.INVENTORY_VIEW_SETTINGS]: `item/${RouteParams.ModelID}/settings`,
+  [PageMap.INVENTORY_VIEW_DELETE]: `item/${RouteParams.ModelID}/delete`,
+  [PageMap.INVENTORY_ARCHIVED]: "archived",
+  [PageMap.INVENTORY_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
 };
 
 export const TopologyRoutePath: Dictionary<string> = {
@@ -810,6 +835,7 @@ export const UsersRoutePath: Dictionary<string> = {
 
   [PageMap.USER_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.USER_VIEW_TEAMS]: `${RouteParams.ModelID}/teams`,
+  [PageMap.USER_VIEW_NOTIFICATION_RULES]: `${RouteParams.ModelID}/notification-rules`,
   [PageMap.USER_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
   [PageMap.USER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
 };
@@ -841,6 +867,7 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_AUDIT_LOGS]: `schedules/${RouteParams.ModelID}/audit-logs`,
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_SETTINGS]: `schedules/${RouteParams.ModelID}/settings`,
   [PageMap.ON_CALL_DUTY_POLICIES]: "policies",
+  [PageMap.ON_CALL_DUTY_READINESS]: "readiness",
   [PageMap.ON_CALL_DUTY_POLICY_VIEW]: `policies/${RouteParams.ModelID}`,
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE]: `policies/${RouteParams.ModelID}/delete`,
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS]: `policies/${RouteParams.ModelID}/execution-logs`,
@@ -903,6 +930,7 @@ export const UserSettingsRoutePath: Dictionary<string> = {
   [PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE]: `on-call-logs/${RouteParams.ModelID}`,
   [PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS]:
     "incoming-call-phone-numbers",
+  [PageMap.USER_SETTINGS_SETUP]: "setup",
 };
 
 const RouteMap: Dictionary<Route> = {
@@ -2614,6 +2642,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.NETWORK_DEVICE_SETTINGS_LINK_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_SETTINGS_LINK_RULES]
+    }`,
+  ),
+
   [PageMap.NETWORK_DEVICE_DISCOVERY]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_DISCOVERY]
@@ -2635,6 +2669,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_DEVICE_ENDPOINTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_ENDPOINTS]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_LINKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_LINKS]
     }`,
   ),
 
@@ -4437,6 +4477,12 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/policies`,
   ),
 
+  [PageMap.ON_CALL_DUTY_READINESS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_READINESS]
+    }`,
+  ),
+
   [PageMap.ON_CALL_DUTY_EXECUTION_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
       OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_EXECUTION_LOGS]
@@ -4884,6 +4930,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  /*
+   * Declared LAST in this block on purpose. The breadcrumb resolver treats the
+   * first non-splat route under a prefix as that section's landing page, and
+   * the "User Settings" crumb on every page here must keep pointing at
+   * notification-methods.
+   */
+  [PageMap.USER_SETTINGS_SETUP]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/user-settings/${
+      UserSettingsRoutePath[PageMap.USER_SETTINGS_SETUP]
+    }`,
+  ),
+
   // Users Routes (top-level)
   [PageMap.USERS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/users/*`,
@@ -4906,6 +4964,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.USER_VIEW_TEAMS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/users/${
       UsersRoutePath[PageMap.USER_VIEW_TEAMS]
+    }`,
+  ),
+
+  [PageMap.USER_VIEW_NOTIFICATION_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/users/${
+      UsersRoutePath[PageMap.USER_VIEW_NOTIFICATION_RULES]
     }`,
   ),
 
@@ -5441,6 +5505,10 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/ai/chat`,
   ),
 
+  [PageMap.AI_COPILOT_CONVERSATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai/chat/${RouteParams.ModelID}`,
+  ),
+
   [PageMap.LLM]: new Route(
     `/dashboard/${RouteParams.ProjectID}/llm/${LlmRoutePath[PageMap.LLM]}`,
   ),
@@ -5461,23 +5529,135 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.ENTITIES_ROOT]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/entities/*`,
+  [PageMap.INVENTORY_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/*`,
   ),
 
-  [PageMap.ENTITIES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/entities/${
-      EntitiesRoutePath[PageMap.ENTITIES]
+  [PageMap.INVENTORY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY]
     }`,
   ),
 
-  [PageMap.ENTITIES_VIEW_ROOT]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/entities`,
+  [PageMap.INVENTORY_ITEMS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_ITEMS]
+    }`,
   ),
 
-  [PageMap.ENTITIES_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/entities/${
-      EntitiesRoutePath[PageMap.ENTITIES_VIEW]
+  [PageMap.INVENTORY_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_DOCUMENTATION]
+    }`,
+  ),
+
+  /*
+   * The prefix ModelTable appends a row's id to. It must be the view route
+   * with the `:modelId` segment removed, or "View" lands on a 404.
+   */
+  [PageMap.INVENTORY_VIEW_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/item`,
+  ),
+
+  [PageMap.INVENTORY_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_RELATIONSHIPS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_RELATIONSHIPS]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_TRACES]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_PROFILES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_PROFILES]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_EXCEPTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_EXCEPTIONS]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_TELEMETRY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_TELEMETRY]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_CUSTOM_FIELDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_CUSTOM_FIELDS]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_SETTINGS_CUSTOM_FIELDS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_SETTINGS_CUSTOM_FIELDS]
     }`,
   ),
 

@@ -69,8 +69,8 @@
       "exceptionsDescription": "跨服務追蹤並解決錯誤。",
       "llmObservabilityTitle": "AI / LLM",
       "llmObservabilityDescription": "觀測 LLM 和 AI 代理呼叫 — 權杖、成本、延遲、提示詞和補全。",
-      "entitiesTitle": "實體",
-      "entitiesDescription": "探索從您的遙測資料中發現的實體。",
+      "inventoryTitle": "資產清單",
+      "inventoryDescription": "OneUptime 掌握的所有資源，集中在一份清單中。",
       "topologyTitle": "拓撲",
       "topologyDescription": "查看您的服務與基礎設施如何連接。",
       "servicesTitle": "服務",
@@ -6005,5 +6005,7 @@
   "MCP Server": "MCP 伺服器",
   "Enable MCP Server": "啟用 MCP 伺服器",
   "Control whether AI agents can read this status page over the OneUptime MCP server": "控制 AI 代理是否可以透過 OneUptime MCP 伺服器讀取此狀態頁面",
-  "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.": "啟用後，AI 代理可以透過公用 OneUptime MCP 伺服器讀取此狀態頁面。關閉此選項不會隱藏狀態頁面網站、其 RSS 摘要或其公用 JSON API。"
+  "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.": "啟用後，AI 代理可以透過公用 OneUptime MCP 伺服器讀取此狀態頁面。關閉此選項不會隱藏狀態頁面網站、其 RSS 摘要或其公用 JSON API。",
+  "Get Started": "開始使用",
+  "Setup Checklist": "設定檢查清單"
 }

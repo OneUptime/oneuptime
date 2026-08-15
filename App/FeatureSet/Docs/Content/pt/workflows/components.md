@@ -120,16 +120,18 @@ Existe um limite de segurança para que workflows não fiquem se chamando em loo
 
 ## Componentes de dados do OneUptime
 
-Para cada tipo de registro no OneUptime (monitores, incidentes, alertas, páginas de status, políticas de plantão e muitos outros), a paleta tem estes componentes — busque pelo nome do tipo:
+Para cada tipo de registro no OneUptime (monitores, incidentes, alertas, páginas de status, políticas de plantão e muitos outros), a paleta tem estes componentes — busque pelo nome do tipo. Os títulos são gerados a partir do nome do tipo, então para Monitor eles são:
 
-- **Buscar Um** — obtém um registro por ID ou filtro.
-- **Buscar** — obtém uma lista de registros.
-- **Criar** — adiciona um novo registro.
-- **Atualizar** — altera um registro.
-- **Excluir** — remove um registro.
-- **Contagem** — conta registros que correspondem a um filtro.
+- **Find One Monitor** — obtém um registro que corresponde ao filtro.
+- **Find Many Monitors** — obtém uma lista de registros que correspondem ao filtro.
+- **Create One Monitor** — adiciona um registro a partir de um objeto JSON.
+- **Create Many Monitors** — adiciona vários registros a partir de um array JSON.
+- **Update One Monitor** — altera um registro que corresponde ao filtro.
+- **Update Many Monitors** — altera os registros que correspondem ao filtro, até o Limit.
+- **Delete One Monitor** — remove um registro que corresponde ao filtro.
+- **Delete Many Monitors** — remove os registros que correspondem ao filtro, até o Limit.
 
-É assim que um workflow pode ler e alterar dados do OneUptime. Por exemplo: um webhook da sua ferramenta de CI pode usar **Criar incidente** para abrir um incidente com os detalhes da falha.
+É assim que um workflow pode ler e alterar dados do OneUptime. Por exemplo: um webhook da sua ferramenta de CI pode usar **Create One Incident** para abrir um incidente com os detalhes da falha.
 
 ## Qual componente devo usar?
 

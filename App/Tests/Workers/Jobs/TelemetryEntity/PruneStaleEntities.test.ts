@@ -2,12 +2,12 @@ import EntitySource from "Common/Types/Telemetry/EntitySource";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import {
   INVENTORY_ENTITY_TYPES,
-  isNonTelemetryEntityType,
+  isNonInventoryItemType,
   MANUAL_ENTITY_TYPES,
 } from "Common/Types/Telemetry/EntityTypeGroups";
 
 /*
- * TelemetryEntity:PruneStaleEntities hard-deletes registry rows whose
+ * InventoryItem:PruneStaleEntities hard-deletes registry rows whose
  * `lastSeenAt` has aged past their type's TTL. That is a sound staleness
  * test for exactly one kind of row — the ones ingest re-bumps every reconcile
  * window. Manually created CIs and inventory-mirrored rows have no such
@@ -51,7 +51,7 @@ jest.mock("Common/Server/Utils/Logger", () => {
   };
 });
 
-jest.mock("Common/Server/Services/TelemetryEntityService", () => {
+jest.mock("Common/Server/Services/InventoryItemService", () => {
   return {
     __esModule: true,
     default: {
@@ -60,7 +60,7 @@ jest.mock("Common/Server/Services/TelemetryEntityService", () => {
   };
 });
 
-jest.mock("Common/Server/Services/TelemetryEntityRelationshipService", () => {
+jest.mock("Common/Server/Services/InventoryItemRelationshipService", () => {
   return {
     __esModule: true,
     default: {
@@ -69,8 +69,8 @@ jest.mock("Common/Server/Services/TelemetryEntityRelationshipService", () => {
   };
 });
 
-import TelemetryEntityService from "Common/Server/Services/TelemetryEntityService";
-import TelemetryEntityRelationshipService from "Common/Server/Services/TelemetryEntityRelationshipService";
+import InventoryItemService from "Common/Server/Services/InventoryItemService";
+import InventoryItemRelationshipService from "Common/Server/Services/InventoryItemRelationshipService";
 
 // Imported for its side effect: RunCron (mocked above) records the handler.
 import "../../../../FeatureSet/Workers/Jobs/TelemetryEntity/PruneStaleEntities";
@@ -86,9 +86,9 @@ interface DeleteCall {
 }
 
 const entityMock: { hardDeleteBy: jest.Mock } =
-  TelemetryEntityService as unknown as { hardDeleteBy: jest.Mock };
+  InventoryItemService as unknown as { hardDeleteBy: jest.Mock };
 const relationshipMock: { hardDeleteBy: jest.Mock } =
-  TelemetryEntityRelationshipService as unknown as { hardDeleteBy: jest.Mock };
+  InventoryItemRelationshipService as unknown as { hardDeleteBy: jest.Mock };
 
 function entityDeleteCalls(): Array<DeleteCall> {
   return entityMock.hardDeleteBy.mock.calls.map((call: Array<unknown>) => {
@@ -192,7 +192,7 @@ describe("entity pruning is scoped to discovered rows", () => {
     await runTick();
 
     for (const call of entityDeleteCalls()) {
-      expect(isNonTelemetryEntityType(call.query.entityType!)).toBe(false);
+      expect(isNonInventoryItemType(call.query.entityType!)).toBe(false);
     }
   });
 

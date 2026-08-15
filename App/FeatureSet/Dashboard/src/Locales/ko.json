@@ -69,8 +69,8 @@
       "exceptionsDescription": "서비스 전반의 버그를 추적하고 해결하세요.",
       "llmObservabilityTitle": "AI / LLM",
       "llmObservabilityDescription": "LLM 및 AI 에이전트 호출을 관측 — 토큰, 비용, 지연 시간, 프롬프트 및 완성.",
-      "entitiesTitle": "엔티티",
-      "entitiesDescription": "텔레메트리에서 발견된 엔티티를 탐색하세요.",
+      "inventoryTitle": "인벤토리",
+      "inventoryDescription": "OneUptime이 파악한 모든 자산을 하나의 목록으로 보여줍니다.",
       "topologyTitle": "토폴로지",
       "topologyDescription": "서비스와 인프라가 어떻게 연결되어 있는지 확인하세요.",
       "servicesTitle": "서비스",
@@ -6005,5 +6005,7 @@
   "MCP Server": "MCP 서버",
   "Enable MCP Server": "MCP 서버 활성화",
   "Control whether AI agents can read this status page over the OneUptime MCP server": "AI 에이전트가 OneUptime MCP 서버를 통해 이 상태 페이지를 읽을 수 있는지 제어합니다",
-  "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.": "활성화하면 AI 에이전트가 공개 OneUptime MCP 서버를 통해 이 상태 페이지를 읽을 수 있습니다. 이 기능을 꺼도 상태 페이지 웹사이트, RSS 피드 또는 공개 JSON API는 숨겨지지 않습니다."
+  "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.": "활성화하면 AI 에이전트가 공개 OneUptime MCP 서버를 통해 이 상태 페이지를 읽을 수 있습니다. 이 기능을 꺼도 상태 페이지 웹사이트, RSS 피드 또는 공개 JSON API는 숨겨지지 않습니다.",
+  "Get Started": "시작하기",
+  "Setup Checklist": "설정 체크리스트"
 }

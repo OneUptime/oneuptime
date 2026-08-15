@@ -36,7 +36,7 @@ On a self-hosted instance, the fastest way to enable AI features for **every pro
 ```bash
 GLOBAL_LLM_PROVIDER_TYPE=Ollama
 GLOBAL_LLM_PROVIDER_BASE_URL=http://your-ollama-host:11434
-GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3
+GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 # No API key needed — Ollama is keyless.
 ```
 
@@ -45,7 +45,7 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3
 ```bash
 GLOBAL_LLM_PROVIDER_TYPE=OpenAI
 GLOBAL_LLM_PROVIDER_API_KEY=sk-xxxxxxxxxxxxxxxxxxxx
-GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-4o
+GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-5.1
 ```
 
 The sync is declarative: changing the variables updates the provider on the next restart, and unsetting `GLOBAL_LLM_PROVIDER_TYPE` removes it. Global providers created manually in the Admin Dashboard are never touched. Projects can still add their own provider under **Project Settings** > **AI** > **LLM Providers** — a project-owned provider always takes precedence over the global one.
@@ -54,15 +54,15 @@ The sync is declarative: changing the variables updates the provider on the next
 
 OneUptime currently supports the following LLM providers:
 
-| Provider              | Description                                                             | API Key Required | Base URL Required |
-| --------------------- | ----------------------------------------------------------------------- | ---------------- | ----------------- |
-| **OpenAI**            | GPT-4, GPT-4o, GPT-3.5 Turbo, and other OpenAI models                   | Yes              | No (uses default) |
-| **Azure OpenAI**      | OpenAI models hosted on your Azure deployment                           | Yes              | Yes               |
-| **Anthropic**         | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku, and other Claude models | Yes              | No (uses default) |
-| **Groq**              | Fast inference for Llama, Mixtral, and other open models                | Yes              | No (uses default) |
-| **Mistral**           | Mistral's hosted models                                                 | Yes              | No (uses default) |
-| **Ollama**            | Self-hosted open-source models like Llama 2, Mistral, CodeLlama, etc.   | No               | Yes               |
-| **OpenAI Compatible** | Any OpenAI-compatible server (vLLM, LocalAI, LM Studio, etc.)           | No (optional)    | Yes               |
+| Provider              | Description                                                                  | API Key Required | Base URL Required |
+| --------------------- | ---------------------------------------------------------------------------- | ---------------- | ----------------- |
+| **OpenAI**            | GPT-5.1 and other OpenAI models                                              | Yes              | No (uses default) |
+| **Azure OpenAI**      | OpenAI models hosted on your Azure deployment                                | Yes              | Yes               |
+| **Anthropic**         | Claude Sonnet 5, Claude Opus 5, Claude Haiku 4.5, and other Claude models    | Yes              | No (uses default) |
+| **Groq**              | Fast inference for Llama, Mixtral, and other open models                     | Yes              | No (uses default) |
+| **Mistral**           | Mistral's hosted models                                                      | Yes              | No (uses default) |
+| **Ollama**            | Self-hosted open-source models like Llama 3.1, Mistral, Qwen, etc.           | No               | Yes               |
+| **OpenAI Compatible** | Any OpenAI-compatible server (vLLM, LocalAI, LM Studio, etc.)                | No (optional)    | Yes               |
 
 ## Setting Up an LLM Provider
 
@@ -80,7 +80,7 @@ Fill in the following fields:
 - **Description** (optional): A description to help identify the purpose of this provider
 - **LLM Provider**: Select the provider type (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama, or OpenAI Compatible)
 - **API Key**: Your API key (required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral; optional for Ollama and OpenAI-compatible servers)
-- **Model Name**: The specific model to use (e.g., `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
+- **Model Name**: The specific model to use (e.g., `gpt-5.1`, `claude-sonnet-5`, `llama3.1`)
 - **Base URL** (optional): Custom API endpoint URL (required for Azure OpenAI, Ollama, and OpenAI Compatible; optional for others)
 
 ## Provider-Specific Configuration
@@ -91,10 +91,8 @@ Fill in the following fields:
 2. Select **OpenAI** as the LLM Provider
 3. Enter your API key
 4. Choose a model name:
-   - `gpt-4o` - Most capable model, best for complex tasks
-   - `gpt-4o-mini` - Faster and more cost-effective
-   - `gpt-4-turbo` - Good balance of capability and speed
-   - `gpt-3.5-turbo` - Fast and economical
+   - `gpt-5.1` - Recommended default, strong at tool-calling and complex investigations
+   - `gpt-5.1-mini` - Faster and more cost-effective
 
 **Example Configuration:**
 
@@ -102,7 +100,7 @@ Fill in the following fields:
 Name: Production OpenAI
 LLM Provider: OpenAI
 API Key: sk-xxxxxxxxxxxxxxxxxxxx
-Model Name: gpt-4o
+Model Name: gpt-5.1
 ```
 
 ### Anthropic
@@ -111,10 +109,9 @@ Model Name: gpt-4o
 2. Select **Anthropic** as the LLM Provider
 3. Enter your API key
 4. Choose a model name:
-   - `claude-3-opus-20240229` - Most capable model
-   - `claude-3-sonnet-20240229` - Good balance of intelligence and speed
-   - `claude-3-haiku-20240307` - Fastest and most compact
-   - `claude-3-5-sonnet-20241022` - Latest Sonnet model
+   - `claude-sonnet-5` - Recommended default, best balance of intelligence, speed, and cost
+   - `claude-opus-5` - Most capable model, for the hardest investigations
+   - `claude-haiku-4-5` - Fastest and most cost-effective
 
 **Example Configuration:**
 
@@ -122,7 +119,7 @@ Model Name: gpt-4o
 Name: Production Anthropic
 LLM Provider: Anthropic
 API Key: sk-ant-xxxxxxxxxxxxxxxxxxxx
-Model Name: claude-3-5-sonnet-20241022
+Model Name: claude-sonnet-5
 ```
 
 ### Ollama (Self-Hosted)
@@ -130,7 +127,7 @@ Model Name: claude-3-5-sonnet-20241022
 Ollama allows you to run open-source LLMs locally or on your own infrastructure.
 
 1. Install Ollama from [ollama.ai](https://ollama.ai)
-2. Pull your desired model: `ollama pull llama2`
+2. Pull your desired model: `ollama pull llama3.1`
 3. Ensure Ollama is running and accessible
 4. Select **Ollama** as the LLM Provider
 5. Enter the Base URL (e.g., `http://localhost:11434`)
@@ -142,16 +139,17 @@ Ollama allows you to run open-source LLMs locally or on your own infrastructure.
 Name: Local Ollama
 LLM Provider: Ollama
 Base URL: http://localhost:11434
-Model Name: llama2
+Model Name: llama3.1
 ```
 
 **Popular Ollama Models:**
 
-- `llama2` - Meta's Llama 2 model
-- `llama3` - Meta's Llama 3 model
-- `mistral` - Mistral AI's model
-- `codellama` - Code-specialized Llama model
-- `mixtral` - Mistral's mixture of experts model
+- `llama3.1` - Meta's Llama 3.1 model, the oldest Llama with tool-calling support
+- `llama3.3` - Meta's Llama 3.3 model
+- `qwen2.5` - Alibaba's Qwen 2.5 model
+- `mistral-nemo` - Mistral AI's Nemo model
+
+> Note: OneUptime's AI features are agentic — they rely heavily on tool calling. Use `llama3.1` or newer (or another tool-calling-capable model). Small models or models without tool-calling support (e.g. `llama2`, the original `llama3`) produce poor results: they cannot query your monitors, incidents, or telemetry, so investigations come back empty or hallucinated.
 
 ### OpenAI Compatible (vLLM, LocalAI, LM Studio, etc.)
 
@@ -219,7 +217,7 @@ For enterprise deployments or when using proxy services, you can specify a custo
 
 ## Best Practices
 
-1. **Use descriptive names**: Name your providers clearly (e.g., "Production GPT-4", "Development Ollama")
+1. **Use descriptive names**: Name your providers clearly (e.g., "Production OpenAI", "Development Ollama")
 2. **Secure your API keys**: API keys are encrypted at rest, but avoid sharing them
 3. **Test your configuration**: After setting up, verify the provider works with AI features
 4. **Monitor usage**: Keep track of API usage to manage costs

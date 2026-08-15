@@ -17,6 +17,10 @@ import User from "Common/UI/Utils/User";
 import UserPush from "Common/Models/DatabaseModels/UserPush";
 import React, { ReactElement, useEffect, useState } from "react";
 import OneUptimeDate from "Common/Types/Date";
+import {
+  NotificationMethodDeleteGuard,
+  useNotificationMethodDeleteGuard,
+} from "./NotificationMethod";
 
 const Push: () => JSX.Element = (): ReactElement => {
   const [showRegisterDeviceModal, setShowRegisterDeviceModal] =
@@ -158,6 +162,22 @@ const Push: () => JSX.Element = (): ReactElement => {
   const browserName: string = getBrowserName();
   const platformName: string = navigator.platform;
 
+  /*
+   * Unregistering a device cascades to every notification rule that pushes to
+   * it, so the confirmation is the impact modal rather than ModelTable's
+   * generic one, and the built-in delete is switched off so there is only one
+   * way in.
+   */
+  const deleteGuard: NotificationMethodDeleteGuard<UserPush> =
+    useNotificationMethodDeleteGuard<UserPush>({
+      modelType: UserPush,
+      relationName: "userPush",
+      singularName: "Device",
+      onDeleted: () => {
+        setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
+      },
+    });
+
   return (
     <>
       <ModelTable<UserPush>
@@ -204,10 +224,11 @@ const Push: () => JSX.Element = (): ReactElement => {
               }
             },
           },
+          deleteGuard.deleteActionButton,
         ]}
         id="user-push-devices"
         name="User Settings > Notification Methods > Push Notifications"
-        isDeleteable={true}
+        isDeleteable={false}
         isEditable={false}
         isCreateable={false} // We use custom registration flow
         cardProps={{
@@ -248,6 +269,8 @@ const Push: () => JSX.Element = (): ReactElement => {
           },
         ]}
       />
+
+      {deleteGuard.deletionModal}
 
       {showRegisterDeviceModal ? (
         <BasicFormModal

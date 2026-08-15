@@ -33,14 +33,19 @@ import {
   AIChatToolActionStatus,
 } from "../../Types/AI/AIChatTypes";
 import { JSONArray, JSONObject } from "../../Types/JSON";
+import AIRunEventType from "../../Types/AI/AIRunEventType";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
 import AIRunType from "../../Types/AI/AIRunType";
 import AIConversation from "../../Models/DatabaseModels/AIConversation";
-import AIConversationMessage from "../../Models/DatabaseModels/AIConversationMessage";
+import AIConversationMessage, {
+  AIConversationMessageFeedback,
+} from "../../Models/DatabaseModels/AIConversationMessage";
 import AIRun from "../../Models/DatabaseModels/AIRun";
+import AIRunEvent from "../../Models/DatabaseModels/AIRunEvent";
 import Project from "../../Models/DatabaseModels/Project";
 import AIConversationService from "../Services/AIConversationService";
 import AIConversationMessageService from "../Services/AIConversationMessageService";
+import AIRunEventService from "../Services/AIRunEventService";
 import AIRunService from "../Services/AIRunService";
 import ProjectService from "../Services/ProjectService";
 import LlmProviderService from "../Services/LlmProviderService";
@@ -53,6 +58,16 @@ import logger from "../Utils/Logger";
 
 const MAX_USER_MESSAGE_LENGTH: number = 8000;
 const MAX_CONCURRENT_RUNS_PER_PROJECT: number = 3;
+
+// Final message content and run error for a turn the user stopped.
+const STOPPED_BY_USER_TEXT: string = "Stopped by user.";
+
+/*
+ * Cancel's terminal event must sort after every progress event the runner
+ * emitted — same convention as the runner's own failure finalizer, which
+ * starts its event sequence at 100000.
+ */
+const CANCEL_EVENT_SEQUENCE: number = 100000;
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -697,6 +712,305 @@ router.post(
         conversationId: conversationId.toString(),
         assistantMessageId: assistantMessageId.toString(),
         aiRunId: message.aiRunId.toString(),
+      });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * Stops the conversation's in-flight turn. Flips the active run to Cancelled,
+ * finalizes the in-flight assistant message as "Stopped by user." and emits a
+ * terminal run event so the polling UI sees closure. Every write is guarded on
+ * the row's current status, so racing the runner is safe: whichever side
+ * finalizes first wins and the loser's write matches zero rows (the runner
+ * also checks for cancellation cooperatively between its steps). Cancelling
+ * the run is also what releases the conversation for the next send —
+ * send-message's governor only blocks on Running/WaitingForApproval runs.
+ */
+router.post(
+  "/ai-chat/cancel-run",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!props.userId) {
+        throw new NotAuthorizedException(
+          "AI chat requires a logged-in user session.",
+        );
+      }
+
+      if (!props.tenantId) {
+        throw new BadDataException("Project ID is required (tenantid header).");
+      }
+
+      const projectId: ObjectID = props.tenantId;
+      const userId: ObjectID = props.userId;
+
+      const conversationIdString: string = req.body["conversationId"] as string;
+
+      if (!conversationIdString) {
+        throw new BadDataException("conversationId is required.");
+      }
+
+      const conversationId: ObjectID = new ObjectID(conversationIdString);
+
+      // The privacy pin makes this return null for other users' rows.
+      const conversation: AIConversation | null =
+        await AIConversationService.findOneById({
+          id: conversationId,
+          select: { _id: true },
+          props: props,
+        });
+
+      if (!conversation) {
+        throw new BadDataException("Conversation not found.");
+      }
+
+      /*
+       * The conversation's live run: actively generating (Running) or paused
+       * for the user's approval (WaitingForApproval). The per-conversation
+       * governor allows at most one, so no sort is needed.
+       */
+      const activeRun: AIRun | null = await AIRunService.findOneBy({
+        query: {
+          conversationId: conversationId,
+          projectId: projectId,
+          status: QueryHelper.any([
+            AIRunStatus.Running,
+            AIRunStatus.WaitingForApproval,
+          ]),
+        },
+        select: { _id: true },
+        props: { isRoot: true },
+      });
+
+      if (!activeRun) {
+        throw new BadDataException(
+          "No response is being generated in this conversation.",
+        );
+      }
+
+      /*
+       * Status-guarded finalization, the same shape as the runner's own
+       * finalizer: only a still-in-flight run is flipped, so a run the runner
+       * completed (or errored) inside the race window is never overwritten.
+       * updateOneBy returns the matched-row count — zero from both guards
+       * means the other side won and already wrote the final state.
+       */
+      let cancelledRunCount: number = 0;
+
+      for (const inFlightRunStatus of [
+        AIRunStatus.Running,
+        AIRunStatus.WaitingForApproval,
+      ]) {
+        cancelledRunCount += await AIRunService.updateOneBy({
+          query: {
+            _id: activeRun.id!.toString(),
+            status: inFlightRunStatus,
+          },
+          data: {
+            status: AIRunStatus.Cancelled,
+            completedAt: OneUptimeDate.getCurrentDate(),
+            errorMessage: STOPPED_BY_USER_TEXT,
+            // A cancelled turn must never be resumable.
+            pausedState: null,
+          } as never,
+          props: { isRoot: true },
+        });
+      }
+
+      /*
+       * Finalize the run's in-flight assistant message the same guarded way:
+       * a message another path already finalized — completed with its full
+       * answer, or errored — keeps what it has.
+       */
+      for (const inFlightMessageStatus of [
+        AIChatMessageStatus.InProgress,
+        AIChatMessageStatus.WaitingForApproval,
+      ]) {
+        await AIConversationMessageService.updateOneBy({
+          query: {
+            aiRunId: activeRun.id!,
+            status: inFlightMessageStatus,
+          },
+          data: {
+            status: AIChatMessageStatus.Cancelled,
+            contentInMarkdown: STOPPED_BY_USER_TEXT,
+          } as never,
+          props: { isRoot: true },
+        });
+      }
+
+      /*
+       * Terminal event, only when this request actually took the run —
+       * emitting closure over a turn the runner finished would tell the UI a
+       * completed answer failed. RunFailed is the event enum's terminal
+       * "did not finish" member; the summary carries the human reason.
+       */
+      if (cancelledRunCount > 0) {
+        try {
+          const cancelEvent: AIRunEvent = new AIRunEvent();
+          cancelEvent.projectId = projectId;
+          cancelEvent.aiRunId = activeRun.id!;
+          cancelEvent.userId = userId;
+          cancelEvent.sequence = CANCEL_EVENT_SEQUENCE;
+          cancelEvent.eventType = AIRunEventType.RunFailed;
+          cancelEvent.resultSummary = { errorMessage: STOPPED_BY_USER_TEXT };
+
+          await AIRunEventService.create({
+            data: cancelEvent,
+            props: { isRoot: true },
+          });
+        } catch (error) {
+          // Events are progress telemetry — never fail the cancel over them.
+          logger.error(
+            `Failed to emit AI chat cancel event: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+      }
+
+      Response.sendJsonObjectResponse(req, res, {
+        conversationId: conversationId.toString(),
+        aiRunId: activeRun.id!.toString(),
+        cancelled: cancelledRunCount > 0,
+      });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * Stores thumbs feedback on an assistant message (or clears it with null).
+ * Ownership is enforced the same way as the other routes: the message AND its
+ * conversation must resolve under the requesting user's props (the privacy
+ * pin returns null for other users' rows), and only assistant-role messages
+ * accept feedback. Persistence only — no analytics pipeline yet.
+ */
+router.post(
+  "/ai-chat/message-feedback",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!props.userId) {
+        throw new NotAuthorizedException(
+          "AI chat requires a logged-in user session.",
+        );
+      }
+
+      if (!props.tenantId) {
+        throw new BadDataException("Project ID is required (tenantid header).");
+      }
+
+      const messageIdString: string = req.body["messageId"] as string;
+
+      if (!messageIdString) {
+        throw new BadDataException("messageId is required.");
+      }
+
+      const messageId: ObjectID = new ObjectID(messageIdString);
+
+      /*
+       * Validate before any read: feedback is exactly "Up", "Down" or null
+       * (null clears). Anything else — including a missing key — is a bad
+       * request, never silently coerced.
+       */
+      if (!("feedback" in (req.body as JSONObject))) {
+        throw new BadDataException(
+          'feedback is required: "Up", "Down" or null (null clears feedback).',
+        );
+      }
+
+      const rawFeedback: string | null | undefined = req.body["feedback"] as
+        | string
+        | null
+        | undefined;
+
+      let feedback: AIConversationMessageFeedback | null = null;
+
+      if (rawFeedback !== null && rawFeedback !== undefined) {
+        if (
+          rawFeedback !== AIConversationMessageFeedback.Up &&
+          rawFeedback !== AIConversationMessageFeedback.Down
+        ) {
+          throw new BadDataException(
+            'feedback must be "Up", "Down" or null (null clears feedback).',
+          );
+        }
+
+        feedback = rawFeedback as AIConversationMessageFeedback;
+      }
+
+      // The privacy pin makes this return null for other users' rows.
+      const message: AIConversationMessage | null =
+        await AIConversationMessageService.findOneById({
+          id: messageId,
+          select: {
+            _id: true,
+            conversationId: true,
+            role: true,
+          },
+          props: props,
+        });
+
+      if (!message || !message.conversationId) {
+        throw new BadDataException("Message not found.");
+      }
+
+      /*
+       * Belt and braces, matching respond-to-approval: the message's
+       * conversation must also resolve under this user's props.
+       */
+      const conversation: AIConversation | null =
+        await AIConversationService.findOneById({
+          id: message.conversationId,
+          select: { _id: true },
+          props: props,
+        });
+
+      if (!conversation) {
+        throw new BadDataException("Message not found.");
+      }
+
+      if (message.role !== AIChatMessageRole.Assistant) {
+        throw new BadDataException(
+          "Feedback can only be left on assistant messages.",
+        );
+      }
+
+      // Root write: message columns are deliberately not user-writable.
+      await AIConversationMessageService.updateOneById({
+        id: messageId,
+        data: {
+          userFeedback: feedback,
+        } as never,
+        props: { isRoot: true },
+      });
+
+      Response.sendJsonObjectResponse(req, res, {
+        messageId: messageId.toString(),
+        feedback: feedback,
       });
       return;
     } catch (err) {

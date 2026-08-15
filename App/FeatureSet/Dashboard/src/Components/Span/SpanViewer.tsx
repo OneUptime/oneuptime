@@ -22,8 +22,13 @@ import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Select from "Common/Types/BaseDatabase/Select";
 import ProjectUtil from "Common/UI/Utils/Project";
+import URL from "Common/Types/API/URL";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import { APP_API_URL } from "Common/UI/Config";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Span, {
   SpanEvent,
@@ -45,7 +50,13 @@ import CriticalPathUtil, {
   SpanSelfTime,
 } from "Common/Utils/Traces/CriticalPath";
 import LlmSpanPanel from "../Traces/LlmSpanPanel";
+import TraceScopedFlamegraph from "../Traces/TraceScopedFlamegraph";
 import LlmSpanDisplayUtil from "../../Utils/LlmSpanDisplay";
+import {
+  ProfilePresenceGate,
+  buildTraceFlamegraphRequest,
+  getProfilePresenceGate,
+} from "../../Utils/TraceCorrelatedSignals";
 
 export interface ComponentProps {
   id: string;
@@ -68,7 +79,17 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
     [],
   );
 
+  /*
+   * Profile-tab gate: samples for THIS span (trace-presence scoped by
+   * spanIds). The tab is hidden until a positive count arrives; a failed
+   * check keeps it hidden rather than erroring the viewer.
+   */
+  const [profilePresence, setProfilePresence] =
+    React.useState<ProfilePresenceGate>({ isVisible: false, sampleCount: 0 });
+
   const { telemetryService, onClose } = props;
+
+  const spanTraceId: string = span?.traceId?.toString() || "";
 
   const selectLog: Select<Log> = {
     body: true,
@@ -113,6 +134,61 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
       setError(API.getFriendlyMessage(err));
     });
   }, []);
+
+  /*
+   * The traceId only becomes known once the span row loads, so the
+   * presence check runs after the main fetch resolves; the flame graph
+   * itself still loads lazily when the Profile tab is first opened.
+   */
+  useEffect(() => {
+    let cancelled: boolean = false;
+
+    const checkProfilePresence: () => Promise<void> =
+      async (): Promise<void> => {
+        const requestBody: JSONObject | null = buildTraceFlamegraphRequest({
+          traceId: spanTraceId,
+          spanIds: [props.openTelemetrySpanId],
+        });
+
+        if (!requestBody) {
+          setProfilePresence({ isVisible: false, sampleCount: 0 });
+          return;
+        }
+
+        try {
+          const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+            await API.post<JSONObject>({
+              url: URL.fromString(APP_API_URL.toString()).addRoute(
+                "/telemetry/profiles/trace-presence",
+              ),
+              data: requestBody,
+              headers: ModelAPI.getCommonHeaders(),
+            });
+
+          if (cancelled) {
+            return;
+          }
+
+          if (response instanceof HTTPErrorResponse) {
+            throw response;
+          }
+
+          setProfilePresence(
+            getProfilePresenceGate(response.data as JSONObject),
+          );
+        } catch {
+          if (!cancelled) {
+            setProfilePresence({ isVisible: false, sampleCount: 0 });
+          }
+        }
+      };
+
+    void checkProfilePresence();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [spanTraceId, props.openTelemetrySpanId]);
 
   const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
     setError("");
@@ -679,6 +755,22 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const getProfileContentElement: GetReactElementFunction =
+    (): ReactElement => {
+      if (!spanTraceId) {
+        return (
+          <ErrorMessage message="No profile samples found for this span." />
+        );
+      }
+
+      return (
+        <TraceScopedFlamegraph
+          traceId={spanTraceId}
+          spanIds={[props.openTelemetrySpanId]}
+        />
+      );
+    };
+
   const getLlmContentElement: GetReactElementFunction = (): ReactElement => {
     if (!span) {
       return <ErrorMessage message="Span not found" />;
@@ -908,6 +1000,21 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
               return event.name === SpanEventType.Exception.toLowerCase();
             }).length,
           },
+          /*
+           * Presence-gated: the tab only exists when this span has profile
+           * samples, and its badge carries the sample count so the label is
+           * informative before the (lazy) flame graph fetch runs.
+           */
+          ...(profilePresence.isVisible
+            ? [
+                {
+                  name: "Profile",
+                  children: getProfileContentElement(),
+                  countBadge: profilePresence.sampleCount,
+                  tabType: TabType.Info,
+                },
+              ]
+            : []),
           {
             name: "Links",
             children: getLinksContentElement(),

@@ -3,6 +3,7 @@ import {
   formatDurationFromSeconds,
   formatRelativeStart,
   formatShiftInstant,
+  summarizeOffHoursFallback,
   summarizeRestriction,
   summarizeRotation,
 } from "./LayerSummary";
@@ -29,6 +30,12 @@ export interface ComponentProps {
   now: Date;
   // How many upcoming turns to list. Defaults to 5.
   numberOfShifts?: number | undefined;
+  /*
+   * Whether any layer sits BELOW this one in priority order. Decides whether
+   * this layer's off-hours are covered by a fallback or are a genuine hole in
+   * the schedule — the summary must not promise a fallback that does not exist.
+   */
+  hasLowerPriorityLayer: boolean;
 }
 
 interface UserDisplay {
@@ -97,6 +104,15 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
     restrictionTimes,
     props.timezone,
   );
+
+  const offHoursFallback: string | null = summarizeOffHoursFallback({
+    hasRestriction,
+    hasLowerPriorityLayer: props.hasLowerPriorityLayer,
+  });
+
+  // Amber styling when the off-hours are a real hole rather than a hand-over.
+  const isOffHoursUncovered: boolean =
+    hasRestriction && !props.hasLowerPriorityLayer;
 
   /*
    * No renderable users (parent shows its own "add users" prompt, or every row
@@ -264,14 +280,21 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
             next hand-off, then it passes to the next person in order.
           </>
         )}
-        {hasRestriction && (
+        {hasRestriction && offHoursFallback && (
           <>
             {" "}
             Coverage is limited to{" "}
             <span className="font-semibold text-gray-900">
               {restrictionSummary.toLowerCase()}
             </span>
-            ; outside those hours, lower-priority layers take over.
+            ;{" "}
+            <span
+              className={
+                isOffHoursUncovered ? "font-medium text-amber-700" : undefined
+              }
+            >
+              {offHoursFallback}
+            </span>
           </>
         )}
       </p>
@@ -296,11 +319,19 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
               })}
             </ol>
             {hasRestriction && (
-              <p className="mt-2 text-[11px] leading-relaxed text-gray-400">
+              <p
+                className={`mt-2 text-[11px] leading-relaxed ${
+                  isOffHoursUncovered ? "text-amber-700" : "text-gray-400"
+                }`}
+              >
                 Each row shows a person&apos;s full rotation turn; the duration
                 counts only active on-call hours (
-                {restrictionSummary.toLowerCase()}). Outside those hours,
-                lower-priority layers take over.
+                {restrictionSummary.toLowerCase()}).{" "}
+                {summarizeOffHoursFallback({
+                  hasRestriction,
+                  hasLowerPriorityLayer: props.hasLowerPriorityLayer,
+                  capitalize: true,
+                })}
               </p>
             )}
           </>

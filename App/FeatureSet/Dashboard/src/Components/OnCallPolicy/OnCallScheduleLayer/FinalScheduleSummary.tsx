@@ -1,15 +1,19 @@
 import { getColorForUserId, getUserInitials } from "./LayerUserColors";
 import {
+  formatDurationFromSeconds,
   formatRelativeStart,
   formatShiftDuration,
   formatShiftInstant,
+  formatWindowSpan,
 } from "./LayerSummary";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
-import ScheduleShiftUtil, {
+import OneUptimeDate from "Common/Types/Date";
+import {
   CoverageGap,
-  CurrentAndNextShift,
   OnCallShift,
+  ScheduleCoverageState,
+  ScheduleCoverageStatus,
 } from "Common/Types/OnCallDutyPolicy/ScheduleShiftUtil";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -18,6 +22,17 @@ export interface UserInfo {
   name: string;
   email: string;
 }
+
+/*
+ * Holes shorter than this are real (the detector reports anything above the
+ * engine's own ±1s seams) but too small to be worth a warning row each, so they
+ * are collapsed into a single count. This is a DISPLAY threshold — it never
+ * hides a gap from the coverage percentage or the gap count.
+ */
+const SHORT_GAP_SECONDS: number = 60;
+
+// How many full-size gap warnings to list before collapsing the rest into a count.
+const MAX_SHOWN_GAPS: number = 3;
 
 export interface ComponentProps {
   /*
@@ -33,6 +48,14 @@ export interface ComponentProps {
    * override substitutes).
    */
   userById: Dictionary<UserInfo>;
+  /*
+   * Pre-computed coverage state from ScheduleShiftUtil.getCoverageState. Passed
+   * in rather than derived here so this component and the calendar grid beside
+   * it can never disagree about whether the schedule is covered.
+   */
+  coverage: ScheduleCoverageState;
+  // Link to the layers tab, offered as the remedy when no users are assigned.
+  layersPageLink?: ReactElement | undefined;
 }
 
 const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
@@ -48,14 +71,22 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
     return getUserInitials(info?.name || "", info?.email || "");
   };
 
-  const { current, next }: CurrentAndNextShift =
-    ScheduleShiftUtil.getCurrentAndNextShift(props.shifts, props.now);
+  const current: OnCallShift | null = props.coverage.current;
+  const next: OnCallShift | null = props.coverage.next;
+  const gaps: Array<CoverageGap> = props.coverage.gaps;
 
-  const gaps: Array<CoverageGap> = ScheduleShiftUtil.getCoverageGaps(
-    props.shifts,
-    props.now,
-    props.windowEnd,
-  );
+  /*
+   * Split the gaps into ones worth their own warning row and sub-minute slivers
+   * (typically layers whose restriction windows are misaligned by seconds).
+   * Both are counted in the coverage strip; only the first kind gets a row.
+   */
+  const notableGaps: Array<CoverageGap> = gaps.filter((gap: CoverageGap) => {
+    return (
+      OneUptimeDate.getDifferenceInSeconds(gap.end, gap.start) >=
+      SHORT_GAP_SECONDS
+    );
+  });
+  const shortGapCount: number = gaps.length - notableGaps.length;
 
   const upcoming: Array<OnCallShift> = props.shifts
     .filter((shift: OnCallShift) => {
@@ -83,6 +114,33 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * The remedy shown under "nobody is on call" depends on WHY nobody is on
+   * call. Telling someone to "widen a layer's active hours" when the real
+   * problem is that no user is assigned to any layer sends them to the wrong
+   * screen entirely.
+   */
+  const getNoCoverageRemedy: () => ReactElement = (): ReactElement => {
+    if (props.coverage.status === ScheduleCoverageStatus.NoUsers) {
+      return (
+        <p className="mt-1 text-xs text-amber-700">
+          No users are assigned to any layer in this schedule, so nobody will
+          ever be paged and every alert routed here will go unanswered.
+          {props.layersPageLink ? (
+            <> Add users on the {props.layersPageLink}.</>
+          ) : null}
+        </p>
+      );
+    }
+
+    return (
+      <p className="mt-1 text-xs text-amber-700">
+        Add a 24/7 fallback layer, or widen a layer&apos;s active hours, to
+        close this gap.
+      </p>
+    );
+  };
+
   const getNowCard: () => ReactElement = (): ReactElement => {
     if (!current) {
       return (
@@ -94,10 +152,7 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
           <div className="mt-2 text-sm font-medium text-amber-800">
             No one is currently on call in this schedule.
           </div>
-          <p className="mt-1 text-xs text-amber-700">
-            Add a 24/7 fallback layer, or widen a layer&apos;s active hours, to
-            close this gap.
-          </p>
+          {getNoCoverageRemedy()}
         </div>
       );
     }
@@ -166,13 +221,62 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * A single always-present line stating how much of the window is covered.
+   * Unlike the gap rows below it, this renders even at 100% coverage — so
+   * "fully covered" is an explicit statement rather than the absence of a
+   * warning, which is indistinguishable from a screen that failed to load.
+   */
+  const getCoverageStrip: () => ReactElement = (): ReactElement => {
+    const percent: number = Math.round(props.coverage.coverageRatio * 100);
+    const isFullyCovered: boolean = props.coverage.gaps.length === 0;
+    const windowLabel: string = formatWindowSpan(props.now, props.windowEnd);
+
+    /*
+     * Round-to-100 would claim full coverage for a schedule with a tiny hole,
+     * which is the exact misreport this whole screen exists to prevent.
+     */
+    const displayPercent: number =
+      !isFullyCovered && percent >= 100 ? 99 : percent;
+
+    return (
+      <div
+        className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg border px-3 py-2 text-xs ${
+          isFullyCovered
+            ? "border-green-200 bg-green-50 text-green-800"
+            : "border-amber-200 bg-amber-50 text-amber-800"
+        }`}
+      >
+        <span className="inline-flex items-center gap-1.5 font-semibold">
+          <Icon
+            icon={isFullyCovered ? IconProp.CheckCircle : IconProp.Alert}
+            className="h-3.5 w-3.5"
+          />
+          {isFullyCovered
+            ? `Fully covered for the next ${windowLabel}`
+            : `${displayPercent}% covered over the next ${windowLabel}`}
+        </span>
+        {!isFullyCovered && (
+          <span>
+            {formatDurationFromSeconds(props.coverage.uncoveredSeconds)}{" "}
+            uncovered across{" "}
+            {props.coverage.gaps.length === 1
+              ? "1 gap"
+              : `${props.coverage.gaps.length} gaps`}
+          </span>
+        )}
+      </div>
+    );
+  };
+
   const getGapWarnings: () => ReactElement = (): ReactElement => {
     /*
-     * Show only the nearest couple of gaps so a heavily-restricted schedule
-     * does not produce a wall of warnings.
+     * Show only the nearest few gaps so a heavily-restricted schedule does not
+     * produce a wall of warnings; the coverage strip above already carries the
+     * full total, so collapsing the tail here loses nothing.
      */
-    const shownGaps: Array<CoverageGap> = gaps.slice(0, 2);
-    const remaining: number = gaps.length - shownGaps.length;
+    const shownGaps: Array<CoverageGap> = notableGaps.slice(0, MAX_SHOWN_GAPS);
+    const remaining: number = notableGaps.length - shownGaps.length;
 
     return (
       <div className="space-y-2">
@@ -189,15 +293,26 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
               <span>
                 <span className="font-semibold">Coverage gap:</span> no one is
                 on call from {formatShiftInstant(gap.start, props.timezone)} to{" "}
-                {formatShiftInstant(gap.end, props.timezone)}.
+                {formatShiftInstant(gap.end, props.timezone)}
+                <span className="ml-1 text-amber-600">
+                  ({formatShiftDuration(gap.start, gap.end)})
+                </span>
+                .
               </span>
             </div>
           );
         })}
         {remaining > 0 && (
           <div className="text-xs text-amber-700">
-            + {remaining} more coverage {remaining === 1 ? "gap" : "gaps"} in
-            the coming weeks.
+            + {remaining} more coverage {remaining === 1 ? "gap" : "gaps"} later
+            in this window.
+          </div>
+        )}
+        {shortGapCount > 0 && (
+          <div className="text-xs text-amber-700">
+            + {shortGapCount} coverage {shortGapCount === 1 ? "gap" : "gaps"}{" "}
+            shorter than a minute, usually caused by layers whose active hours
+            are misaligned by a few seconds.
           </div>
         )}
       </div>
@@ -252,6 +367,8 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
         {getNowCard()}
         {getNextCard()}
       </div>
+
+      {getCoverageStrip()}
 
       {gaps.length > 0 && getGapWarnings()}
 

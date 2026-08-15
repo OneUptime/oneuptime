@@ -4,6 +4,7 @@ import QueryUtil from "../QueryUtil";
 import Select from "../Select";
 import AccessControlPermission from "./AccessControlPermission";
 import OwnedScopePermission from "./OwnedScopePermission";
+import OwnerOnlyColumnPermission from "./OwnerOnlyColumnPermission";
 import PermissionUtil from "./PermissionsUtil";
 import PublicPermission from "./PublicPermission";
 import QueryPermission from "./QueryPermission";
@@ -175,8 +176,26 @@ export default class BasePermission {
         if (select) {
           // check query permission.
           SelectPermission.checkSelectPermission(modelType, select, props);
+
+          /*
+           * Both of the calls below are handed the query as it stands AFTER
+           * tenant and user scoping, which is the only moment it means
+           * anything. Before that scoping a plain member's query is still bare
+           * `{}` and would look unscoped; after serializeQuery (further down)
+           * the ownership predicate has been rewritten into a Raw operator and
+           * can no longer be compared to the caller's id. Here, and only here,
+           * the query says plainly which rows this request may touch.
+           */
+          OwnerOnlyColumnPermission.checkSelectPermission(
+            modelType,
+            query,
+            select,
+            props,
+          );
+
           QueryPermission.checkRelationQueryPermission(
             modelType,
+            query,
             select,
             props,
           );

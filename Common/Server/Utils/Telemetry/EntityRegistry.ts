@@ -1,19 +1,25 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Host from "../../../Models/DatabaseModels/Host";
 import DatabaseService from "../../Services/DatabaseService";
 import Query from "../../Types/Database/Query";
 import Select from "../../Types/Database/Select";
 import QueryDeepPartialEntity from "../../../Types/Database/PartialEntity";
 import ObjectID from "../../../Types/ObjectID";
 import EntityType from "../../../Types/Telemetry/EntityType";
+import EntitySource from "../../../Types/Telemetry/EntitySource";
+import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import GlobalCache from "../../Infrastructure/GlobalCache";
+import HostService from "../../Services/HostService";
 import logger from "../Logger";
-import { ExtractedEntity } from "./TelemetryEntity";
-import TelemetryEntityService from "../../Services/TelemetryEntityService";
-import TelemetryEntityRelationshipService from "../../Services/TelemetryEntityRelationshipService";
+import { ExtractedEntity, RetiredEntityIdentity } from "./TelemetryEntity";
+import InventoryItemService from "../../Services/InventoryItemService";
+import InventoryItemRelationshipService from "../../Services/InventoryItemRelationshipService";
+import QueryHelper from "../../Types/Database/QueryHelper";
 import {
   deriveRelationships,
   EntityRelationshipEdge,
 } from "../../../Utils/Telemetry/EntityRelationship";
+import { canonicalizeEntityValue } from "../../../Utils/Telemetry/EntityKey";
 import crypto from "crypto";
 
 /*
@@ -90,6 +96,9 @@ const FENCE_NAMESPACE: string = "otel-maintenance-fence";
 const FENCE_SCOPE: string = "entity-reconcile";
 const ROW_FENCE_SCOPE: string = "entity-reconcile-row";
 const FENCE_TTL_SECONDS: number = 5 * 60; // 5 minutes
+const LEGACY_HOST_RETIREMENT_CACHE_NAMESPACE: string =
+  "legacy-kubernetes-host-retirement-completed";
+const LEGACY_HOST_RETIREMENT_CACHE_TTL_SECONDS: number = 24 * 60 * 60;
 
 /*
  * Atomic claim. A read-then-write here admits every worker that reads the
@@ -128,7 +137,7 @@ function hashFenceId(fenceId: string): string {
  *
  * The set-level fence keys on (project + the whole promoted entity set), which
  * in practice is unique per POD — a pod's own key is in the set. But the writes
- * it gates are per ROW: the single TelemetryEntity row for a Kubernetes cluster
+ * it gates are per ROW: the single InventoryItem row for a Kubernetes cluster
  * takes one UPDATE per pod in that cluster per window, the namespace row one
  * per pod in the namespace, and so on. Throttle granularity finer than write
  * granularity means the throttle does not bound the writes at all, and the
@@ -186,8 +195,8 @@ export async function shouldWarnEntityBudgetOnce(data: {
 }
 
 /*
- * Upsert discovered entities into the `TelemetryEntity` registry and their
- * co-occurrence edges into `TelemetryEntityRelationship`. Gated by a single
+ * Upsert discovered entities into the `InventoryItem` registry and their
+ * co-occurrence edges into `InventoryItemRelationship`. Gated by a single
  * per-batch Redis fence keyed on the PROMOTED entity subset, so a stable
  * resource reconciles at most once per window while a changed set (e.g. a
  * pod reschedule) reconciles immediately — and the high-churn
@@ -203,6 +212,7 @@ export async function shouldWarnEntityBudgetOnce(data: {
 export async function reconcileEntityRegistryThrottled(data: {
   projectId: ObjectID;
   entities: Array<ExtractedEntity>;
+  retiredEntities?: Array<RetiredEntityIdentity> | undefined;
 }): Promise<void> {
   try {
     const promoted: Array<ExtractedEntity> = data.entities.filter(
@@ -210,26 +220,46 @@ export async function reconcileEntityRegistryThrottled(data: {
         return REGISTRY_PROMOTED_TYPES.has(entity.entityType);
       },
     );
+    const retiredHosts: Array<RetiredEntityIdentity> = (
+      data.retiredEntities || []
+    ).filter((entity: RetiredEntityIdentity) => {
+      /*
+       * This repair path is intentionally closed over the one historical bug
+       * it can prove. A future caller cannot turn the generic-looking payload
+       * into a broad deletion primitive for another entity type.
+       */
+      return entity.entityType === EntityType.Host;
+    });
 
-    if (promoted.length === 0) {
+    if (promoted.length === 0 && retiredHosts.length === 0) {
       return;
     }
 
-    const fenceId: string = `${data.projectId.toString()}:${promoted
-      .map((entity: ExtractedEntity) => {
+    const fenceMembers: Array<string> = [
+      ...promoted.map((entity: ExtractedEntity) => {
         return entity.entityKey;
-      })
-      .sort()
-      .join(",")}`;
+      }),
+      ...retiredHosts.map((entity: RetiredEntityIdentity) => {
+        return `retire:${entity.entityType}:${entity.entityKey}`;
+      }),
+    ].sort();
+    const fenceId: string = `${data.projectId.toString()}:${fenceMembers.join(",")}`;
 
     if (!(await shouldReconcile(fenceId))) {
       return;
     }
 
-    await TelemetryEntityService.reconcileEntities({
+    await retireEntityRegistryIdentitiesBestEffort({
       projectId: data.projectId,
-      entities: promoted,
+      retiredEntities: retiredHosts,
     });
+
+    if (promoted.length > 0) {
+      await InventoryItemService.reconcileEntities({
+        projectId: data.projectId,
+        entities: promoted,
+      });
+    }
 
     /*
      * Topology (phase 5): the co-occurrence edges derive from the same
@@ -246,7 +276,7 @@ export async function reconcileEntityRegistryThrottled(data: {
       }),
     );
     if (edges.length > 0) {
-      await TelemetryEntityRelationshipService.reconcileRelationships({
+      await InventoryItemRelationshipService.reconcileRelationships({
         projectId: data.projectId,
         edges,
       });
@@ -257,10 +287,167 @@ export async function reconcileEntityRegistryThrottled(data: {
   }
 }
 
+/**
+ * Remove exact legacy discovered Host rows proven obsolete by the current
+ * resource observation, plus discovered topology edges that reference them.
+ *
+ * Every predicate is repeated at the delete boundary: tenant, type, key and
+ * source for InventoryItem; tenant, endpoint key and source for relationships.
+ * Manual and inventory-authored data is therefore unreachable even if a bad
+ * caller supplies its key. Failures are logged and swallowed so this optional
+ * repair can never delay or reject signal ingest.
+ */
+export async function retireEntityRegistryIdentitiesBestEffort(data: {
+  projectId: ObjectID;
+  retiredEntities: Array<RetiredEntityIdentity>;
+}): Promise<void> {
+  const seen: Set<string> = new Set<string>();
+
+  for (const retired of data.retiredEntities) {
+    if (retired.entityType !== EntityType.Host || seen.has(retired.entityKey)) {
+      continue;
+    }
+    seen.add(retired.entityKey);
+
+    const retirementCacheKey: string = `${data.projectId.toString()}:${retired.entityKey}`;
+    try {
+      if (
+        await GlobalCache.getString(
+          LEGACY_HOST_RETIREMENT_CACHE_NAMESPACE,
+          retirementCacheKey,
+        )
+      ) {
+        continue;
+      }
+    } catch (err) {
+      /* Cache maintenance must never become a signal-ingest dependency. */
+      logger.error(
+        `Entity registry: failed to read legacy Host retirement cache for ${retired.entityKey}; proceeding with repair: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
+    const rawHostName: string | undefined =
+      retired.identifyingAttributes["host.name"];
+    const hostName: string = canonicalizeEntityValue(rawHostName || "");
+    if (!hostName) {
+      /*
+       * The key alone cannot establish which typed Host owns this identity.
+       * Fail closed instead of turning a malformed retirement into deletion.
+       */
+      logger.error(
+        `Entity registry: preserving legacy Host ${retired.entityKey} because its canonical host.name proof is missing`,
+      );
+      continue;
+    }
+
+    try {
+      const typedHost: Host | null = await HostService.findOneBy({
+        query: {
+          projectId: data.projectId,
+          hostIdentifier: QueryHelper.findWithSameText(hostName),
+        },
+        select: { _id: true },
+        props: { isRoot: true },
+      });
+
+      if (typedHost) {
+        /*
+         * A real Host with this canonical identifier makes the discovered
+         * registry Host legitimate, even when this particular observation is
+         * Kubernetes telemetry. Preserve it and cache that safe resolution.
+         */
+        await markLegacyHostRetirementCompletedBestEffort({
+          retirementCacheKey,
+          entityKey: retired.entityKey,
+        });
+        continue;
+      }
+    } catch (err) {
+      /* A lookup outage is uncertainty; uncertainty must preserve data. */
+      logger.error(
+        `Entity registry: preserving legacy Host ${retired.entityKey} because typed Host lookup failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      continue;
+    }
+
+    try {
+      await InventoryItemService.hardDeleteBy({
+        query: {
+          projectId: data.projectId,
+          entityType: EntityType.Host,
+          entityKey: retired.entityKey,
+          source: EntitySource.Discovered,
+        },
+        limit: 1,
+        skip: 0,
+        props: { isRoot: true },
+      });
+    } catch (err) {
+      /*
+       * Keep its edges if the endpoint delete did not complete. That is less
+       * surprising than erasing topology for a row that remains visible.
+       */
+      logger.error(
+        `Entity registry: failed to retire legacy Kubernetes Host ${retired.entityKey}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      continue;
+    }
+
+    let retirementCompleted: boolean = true;
+    for (const direction of ["fromEntityKey", "toEntityKey"] as const) {
+      try {
+        let deleted: number = 0;
+        do {
+          deleted = await InventoryItemRelationshipService.hardDeleteBy({
+            query: {
+              projectId: data.projectId,
+              [direction]: retired.entityKey,
+              source: EntitySource.Discovered,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            props: { isRoot: true },
+          });
+        } while (deleted > 0);
+      } catch (err) {
+        retirementCompleted = false;
+        logger.error(
+          `Entity registry: failed to remove ${direction === "fromEntityKey" ? "outgoing" : "incoming"} relationships for retired Host ${retired.entityKey}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
+    if (retirementCompleted) {
+      await markLegacyHostRetirementCompletedBestEffort({
+        retirementCacheKey,
+        entityKey: retired.entityKey,
+      });
+    }
+  }
+}
+
+async function markLegacyHostRetirementCompletedBestEffort(data: {
+  retirementCacheKey: string;
+  entityKey: string;
+}): Promise<void> {
+  try {
+    await GlobalCache.setString(
+      LEGACY_HOST_RETIREMENT_CACHE_NAMESPACE,
+      data.retirementCacheKey,
+      "1",
+      { expiresInSeconds: LEGACY_HOST_RETIREMENT_CACHE_TTL_SECONDS },
+    );
+  } catch (err) {
+    logger.error(
+      `Entity registry: failed to cache completed legacy Host retirement for ${data.entityKey}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
 /*
  * Find-or-create by natural key, bumping `lastSeenAt` — the one upsert
- * scaffold shared by TelemetryEntityService and
- * TelemetryEntityRelationshipService. Both tables have a unique index on
+ * scaffold shared by InventoryItemService and
+ * InventoryItemRelationshipService. Both tables have a unique index on
  * their natural key, so a concurrent first-contact create loses the race
  * with a unique-violation: in that case the winning row is re-fetched and
  * its `lastSeenAt` bumped immediately (instead of waiting a full throttle
@@ -331,7 +518,7 @@ export async function reconcileByNaturalKey<
     /*
      * Throttled bump of lastSeenAt (+ any caller-supplied merge fields).
      * Heartbeat write: single-statement UPDATE, no hooks and no `version`
-     * bump (TelemetryEntity/Relationship enable no update workflow/realtime/
+     * bump (InventoryItem/Relationship enable no update workflow/realtime/
      * audit). buildBump returns only plain values — lastSeenAt plus, at most,
      * the descriptiveAttributes / labels JSON columns — which the primitive
      * persists via the driver transformer path. See ServiceService.updateLastSeen.

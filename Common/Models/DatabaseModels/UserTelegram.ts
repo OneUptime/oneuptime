@@ -4,6 +4,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import AllowAccessIfSubscriptionIsUnpaid from "../../Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnerOnlyColumn from "../../Types/Database/AccessControl/OwnerOnlyColumn";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -19,6 +20,48 @@ import Permission from "../../Types/Permission";
 import Text from "../../Types/Text";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
+/*
+ * `read` names Permission.CurrentUser and nothing else. That single entry is
+ * what makes every column below owner-only, and it has to stay that way.
+ *
+ * CurrentUser is auto-granted to every authenticated caller, so on a COLUMN
+ * list it does not mean "on my own row" - column permissions are intersected
+ * by NAME and never see the query at all. The row scope lives HERE:
+ * TenantPermission.isAccessGrantedOnlyByCurrentUser is true exactly while this
+ * table list holds nothing but CurrentUser, and that is what stamps
+ * `userId = me` onto every read and refuses one that names somebody else. Add
+ * a single administrator permission to this list and the stamp stops being
+ * applied for whoever holds it - and the raw handle, the chat id a bot message
+ * can be addressed to, and the verification code that turns possession of that
+ * chat id into a verified method all become readable on every member's row in
+ * the project.
+ *
+ * That is not hypothetical. It shipped once, and the column-level guard
+ * written to contain it was walked past by nested relation selects, by `query`
+ * filters it never inspected, and by the sort columns that are appended to the
+ * select after it had already run. Each fix produced the next defect, because
+ * this model was never designed to be read across users.
+ *
+ * An administrator who needs to know whether a colleague can be paged does not
+ * read this table. OnCallReadinessService answers that question as root and
+ * returns ReadinessMethod { methodId, methodType, maskedIdentifier,
+ * isVerified } - masked server-side by the one code path that holds the raw
+ * value - and the admin readiness surface already consumes it. The id is a
+ * foreign key rather than a secret: it lets an administrator POINT A RULE AT a
+ * method without reading the method's row, which is the thing the widening was
+ * actually reaching for. Point the next admin surface there. Widening this
+ * list is not a cheaper version of that; it is the version that leaks.
+ *
+ * One path does not pass through this list at all, and it is the reason
+ * `canReadOnRelationQuery: true` below is worth reading twice: a nested
+ * relation select made FROM a model whose own read is admin-wide - today
+ * UserNotificationRule - is checked by
+ * QueryPermission.checkRelationQueryPermission, which skips the column check
+ * outright when that flag is true and never consults this table list. The
+ * columns carrying the flag are reachable that way. Narrowing them is a change
+ * to the rule tables that select them through the relation, not a change that
+ * can be made here alone.
+ */
 @TenantColumn("projectId")
 @AllowAccessIfSubscriptionIsUnpaid()
 @TableAccessControl({
@@ -91,6 +134,12 @@ class UserTelegram extends BaseModel {
     read: [Permission.CurrentUser],
     update: [Permission.CurrentUser],
   })
+  /*
+   * The person's Telegram identity outside this product. It is how they are
+   * found and messaged by anyone at all, not just by OneUptime, so it is a
+   * personal contact detail rather than a label for a row.
+   */
+  @OwnerOnlyColumn()
   @TableColumn({
     title: "Telegram Handle",
     required: false,
@@ -114,6 +163,11 @@ class UserTelegram extends BaseModel {
     update: [],
   })
   @Index()
+  /*
+   * The chat the bot delivers into. Holding it is enough to send messages to
+   * that chat through the same bot, so it is a delivery target and not a label.
+   */
+  @OwnerOnlyColumn()
   @TableColumn({
     title: "Telegram Chat ID",
     required: false,
@@ -289,6 +343,11 @@ class UserTelegram extends BaseModel {
     read: [Permission.CurrentUser],
     update: [],
   })
+  /*
+   * A live verification code. Reading somebody else's is claiming their
+   * notification channel.
+   */
+  @OwnerOnlyColumn()
   @TableColumn({
     title: "Verification Code",
     description:

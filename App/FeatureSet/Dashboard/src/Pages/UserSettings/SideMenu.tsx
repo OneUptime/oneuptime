@@ -24,6 +24,26 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
   }
 
   const sections: SideMenuSectionProps[] = [
+    /*
+     * First, because it is the page that explains the other eleven. Somebody
+     * who lands here without knowing the difference between a notification
+     * method, a notification rule and a notification setting reaches this
+     * before any of the pages that assume they already know.
+     */
+    {
+      title: "Get Started",
+      items: [
+        {
+          link: {
+            title: "Setup Checklist",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.USER_SETTINGS_SETUP] as Route,
+            ),
+          },
+          icon: IconProp.ClipboardDocumentCheck,
+        },
+      ],
+    },
     {
       title: "Alerts & Notifications",
       items: [

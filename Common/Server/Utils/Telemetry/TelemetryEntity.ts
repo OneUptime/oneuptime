@@ -85,6 +85,27 @@ export interface ExtractedEntity {
 }
 
 /**
+ * An exact legacy registry identity that the current observation proves is no
+ * longer valid. This is deliberately narrower than `ExtractedEntity`: retired
+ * identities are never stamped onto signals and never create registry rows.
+ */
+export interface RetiredEntityIdentity {
+  entityType: EntityType;
+  entityKey: string;
+  identifyingAttributes: Dictionary<string>;
+}
+
+/**
+ * The complete result of one extraction pass. Most callers need only
+ * `entities`; ingest also forwards `retiredEntities` to the asynchronous
+ * registry reconciler so a live observation can repair a legacy row.
+ */
+export interface EntityExtractionResult {
+  entities: Array<ExtractedEntity>;
+  retiredEntities?: Array<RetiredEntityIdentity> | undefined;
+}
+
+/**
  * A normalized OTLP `Resource.entity_refs` entry (proto `EntityRef`,
  * Development status). When producers emit refs they are authoritative:
  * `idKeys`/`descriptionKeys` partition the flat resource attributes
@@ -97,7 +118,7 @@ export interface ResourceEntityRef {
   descriptionKeys?: Array<string> | undefined;
 }
 
-export default class TelemetryEntity {
+export default class InventoryItem {
   /**
    * Compute the stable identity key for an entity. Pure: same inputs →
    * same 16-char hex key. Keys are sorted so attribute order is
@@ -133,13 +154,40 @@ export default class TelemetryEntity {
     attributes: EntityAttributes;
     entityRefs?: Array<ResourceEntityRef> | undefined;
   }): Array<ExtractedEntity> {
-    let out: Array<ExtractedEntity> = [];
+    return this.extractEntitiesWithRetirements(data).entities;
+  }
 
-    if (data.entityRefs && data.entityRefs.length > 0) {
+  /**
+   * Extract entities and any exact legacy identities proven obsolete by this
+   * same resource.
+   *
+   * A pre-fix heuristic registered `host.name` from an application SDK inside
+   * Kubernetes as a Host as well as registering the pod/node/cluster. The
+   * current resolver suppresses that Host. When heuristic mode is selected and
+   * the resource contains both a non-empty `host.name` and a supported
+   * Kubernetes identity, return the old Host key as a retirement candidate so
+   * the registry can remove that exact discovered row immediately.
+   *
+   * Non-empty `entity_refs` are an authority boundary even when none of their
+   * entries is usable and extraction falls back to heuristics. We never infer a
+   * retirement across that boundary; in particular, an explicitly referenced
+   * Host must remain authoritative on a Kubernetes resource.
+   */
+  public static extractEntitiesWithRetirements(data: {
+    projectId: string;
+    attributes: EntityAttributes;
+    entityRefs?: Array<ResourceEntityRef> | undefined;
+  }): EntityExtractionResult {
+    let out: Array<ExtractedEntity> = [];
+    const hasAuthoritativeEntityRefs: boolean = Boolean(
+      data.entityRefs && data.entityRefs.length > 0,
+    );
+
+    if (hasAuthoritativeEntityRefs) {
       out = this.entitiesFromRefs({
         projectId: data.projectId,
         attributes: data.attributes,
-        entityRefs: data.entityRefs,
+        entityRefs: data.entityRefs!,
       });
     }
 
@@ -160,7 +208,39 @@ export default class TelemetryEntity {
       }
     }
 
-    return out;
+    const retiredHost: RetiredEntityIdentity | null =
+      !hasAuthoritativeEntityRefs
+        ? this.retiredLegacyKubernetesHostIdentity(data)
+        : null;
+
+    return {
+      entities: out,
+      ...(retiredHost ? { retiredEntities: [retiredHost] } : {}),
+    };
+  }
+
+  private static retiredLegacyKubernetesHostIdentity(data: {
+    projectId: string;
+    attributes: EntityAttributes;
+  }): RetiredEntityIdentity | null {
+    const hostName: string | null = this.str(data.attributes, "host.name");
+    if (!hostName || !this.hasKubernetesIdentity(data.attributes)) {
+      return null;
+    }
+
+    const identifyingAttributes: Dictionary<string> = this.canonObject({
+      "host.name": hostName,
+    });
+
+    return {
+      entityType: EntityType.Host,
+      entityKey: this.computeEntityKey({
+        projectId: data.projectId,
+        entityType: EntityType.Host,
+        identifyingAttributes,
+      }),
+      identifyingAttributes,
+    };
   }
 
   private static entitiesFromResolvers(data: {
@@ -398,6 +478,17 @@ export default class TelemetryEntity {
    * cluster/namespace identity so e.g. the "default" namespace in two
    * clusters does not collide.
    */
+  private static readonly kubernetesIdentityAttributeKeys: ReadonlyArray<string> =
+    [
+      "k8s.cluster.name",
+      "k8s.namespace.name",
+      "k8s.node.name",
+      "k8s.node.uid",
+      "k8s.pod.name",
+      "k8s.pod.uid",
+      "k8s.deployment.name",
+    ];
+
   private static readonly resolvers: Array<
     (
       attrs: EntityAttributes,
@@ -405,19 +496,19 @@ export default class TelemetryEntity {
   > = [
     // service — service.name (+ service.namespace if present).
     (attrs: EntityAttributes) => {
-      const name: string | null = TelemetryEntity.str(attrs, "service.name");
+      const name: string | null = InventoryItem.str(attrs, "service.name");
       if (!name) {
         return null;
       }
       const id: Dictionary<string> = { "service.name": name };
-      TelemetryEntity.addIfPresent(id, attrs, "service.namespace");
+      InventoryItem.addIfPresent(id, attrs, "service.namespace");
       return { entityType: EntityType.Service, id };
     },
 
     // service.instance — service.name + service.instance.id (+ namespace).
     (attrs: EntityAttributes) => {
-      const name: string | null = TelemetryEntity.str(attrs, "service.name");
-      const instanceId: string | null = TelemetryEntity.str(
+      const name: string | null = InventoryItem.str(attrs, "service.name");
+      const instanceId: string | null = InventoryItem.str(
         attrs,
         "service.instance.id",
       );
@@ -428,7 +519,7 @@ export default class TelemetryEntity {
         "service.name": name,
         "service.instance.id": instanceId,
       };
-      TelemetryEntity.addIfPresent(id, attrs, "service.namespace");
+      InventoryItem.addIfPresent(id, attrs, "service.namespace");
       return { entityType: EntityType.ServiceInstance, id };
     },
 
@@ -439,15 +530,21 @@ export default class TelemetryEntity {
      * is deliberately NOT part of host identity: existing Host rows and the
      * host rollup MV (MetricItemAggMV1mByHost) key on host.name, so keying
      * here on host.id would make the host entity key unmatchable on the read
-     * side (`TelemetryEntity.keyForHost(hostIdentifier)`). Moving host
+     * side (`InventoryItem.keyForHost(hostIdentifier)`). Moving host
      * identity to host.id is a separate, deferred hardening that would
-     * migrate the MV and this identity together. A k8s node (which carries
-     * k8s.node.name, not host.name, and is rejected by autoDiscoverHost) is
-     * cataloged via the dedicated `k8s.node` entity, not as a host.
+     * migrate the MV and this identity together.
+     *
+     * Application SDKs running inside Kubernetes commonly auto-detect the
+     * pod hostname and publish it as `host.name`. That value does not identify
+     * a machine: the same resource's k8s.* identity identifies the pod, node,
+     * namespace, deployment and cluster that Inventory should catalog. Match
+     * autoDiscoverHost's phantom-host gate by refusing the heuristic Host
+     * whenever a Kubernetes identity is present. Explicit OTLP entity_refs
+     * remain authoritative because they bypass these heuristic resolvers.
      */
     (attrs: EntityAttributes) => {
-      const hostName: string | null = TelemetryEntity.str(attrs, "host.name");
-      if (!hostName) {
+      const hostName: string | null = InventoryItem.str(attrs, "host.name");
+      if (!hostName || InventoryItem.hasKubernetesIdentity(attrs)) {
         return null;
       }
       return { entityType: EntityType.Host, id: { "host.name": hostName } };
@@ -456,21 +553,18 @@ export default class TelemetryEntity {
     // k8s.cluster — k8s.cluster.name only (see k8sClusterIdentity).
     (attrs: EntityAttributes) => {
       const id: Dictionary<string> | null =
-        TelemetryEntity.k8sClusterIdentity(attrs);
+        InventoryItem.k8sClusterIdentity(attrs);
       return id ? { entityType: EntityType.KubernetesCluster, id } : null;
     },
 
     // k8s.namespace — cluster + k8s.namespace.name.
     (attrs: EntityAttributes) => {
-      const ns: string | null = TelemetryEntity.str(
-        attrs,
-        "k8s.namespace.name",
-      );
+      const ns: string | null = InventoryItem.str(attrs, "k8s.namespace.name");
       if (!ns) {
         return null;
       }
       const id: Dictionary<string> = {
-        ...(TelemetryEntity.k8sClusterIdentity(attrs) || {}),
+        ...(InventoryItem.k8sClusterIdentity(attrs) || {}),
         "k8s.namespace.name": ns,
       };
       return { entityType: EntityType.KubernetesNamespace, id };
@@ -478,16 +572,13 @@ export default class TelemetryEntity {
 
     // k8s.node — cluster + k8s.node.uid/k8s.node.name.
     (attrs: EntityAttributes) => {
-      const nodeUid: string | null = TelemetryEntity.str(attrs, "k8s.node.uid");
-      const nodeName: string | null = TelemetryEntity.str(
-        attrs,
-        "k8s.node.name",
-      );
+      const nodeUid: string | null = InventoryItem.str(attrs, "k8s.node.uid");
+      const nodeName: string | null = InventoryItem.str(attrs, "k8s.node.name");
       if (!nodeUid && !nodeName) {
         return null;
       }
       const id: Dictionary<string> = {
-        ...(TelemetryEntity.k8sClusterIdentity(attrs) || {}),
+        ...(InventoryItem.k8sClusterIdentity(attrs) || {}),
       };
       if (nodeUid) {
         id["k8s.node.uid"] = nodeUid;
@@ -499,15 +590,15 @@ export default class TelemetryEntity {
 
     // k8s.pod — cluster + namespace + k8s.pod.uid/k8s.pod.name.
     (attrs: EntityAttributes) => {
-      const podUid: string | null = TelemetryEntity.str(attrs, "k8s.pod.uid");
-      const podName: string | null = TelemetryEntity.str(attrs, "k8s.pod.name");
+      const podUid: string | null = InventoryItem.str(attrs, "k8s.pod.uid");
+      const podName: string | null = InventoryItem.str(attrs, "k8s.pod.name");
       if (!podUid && !podName) {
         return null;
       }
       const id: Dictionary<string> = {
-        ...(TelemetryEntity.k8sClusterIdentity(attrs) || {}),
+        ...(InventoryItem.k8sClusterIdentity(attrs) || {}),
       };
-      TelemetryEntity.addIfPresent(id, attrs, "k8s.namespace.name");
+      InventoryItem.addIfPresent(id, attrs, "k8s.namespace.name");
       if (podUid) {
         id["k8s.pod.uid"] = podUid;
       } else if (podName) {
@@ -518,7 +609,7 @@ export default class TelemetryEntity {
 
     // k8s.deployment — cluster + namespace + k8s.deployment.name.
     (attrs: EntityAttributes) => {
-      const dep: string | null = TelemetryEntity.str(
+      const dep: string | null = InventoryItem.str(
         attrs,
         "k8s.deployment.name",
       );
@@ -526,9 +617,9 @@ export default class TelemetryEntity {
         return null;
       }
       const id: Dictionary<string> = {
-        ...(TelemetryEntity.k8sClusterIdentity(attrs) || {}),
+        ...(InventoryItem.k8sClusterIdentity(attrs) || {}),
       };
-      TelemetryEntity.addIfPresent(id, attrs, "k8s.namespace.name");
+      InventoryItem.addIfPresent(id, attrs, "k8s.namespace.name");
       id["k8s.deployment.name"] = dep;
       return { entityType: EntityType.KubernetesDeployment, id };
     },
@@ -536,13 +627,13 @@ export default class TelemetryEntity {
     // proxmox.cluster — proxmox.cluster.name only (see proxmoxClusterIdentity).
     (attrs: EntityAttributes) => {
       const id: Dictionary<string> | null =
-        TelemetryEntity.proxmoxClusterIdentity(attrs);
+        InventoryItem.proxmoxClusterIdentity(attrs);
       return id ? { entityType: EntityType.ProxmoxCluster, id } : null;
     },
 
     // proxmox.node — cluster + proxmox.node.name.
     (attrs: EntityAttributes) => {
-      const nodeName: string | null = TelemetryEntity.str(
+      const nodeName: string | null = InventoryItem.str(
         attrs,
         "proxmox.node.name",
       );
@@ -550,7 +641,7 @@ export default class TelemetryEntity {
         return null;
       }
       const id: Dictionary<string> = {
-        ...(TelemetryEntity.proxmoxClusterIdentity(attrs) || {}),
+        ...(InventoryItem.proxmoxClusterIdentity(attrs) || {}),
         "proxmox.node.name": nodeName,
       };
       return { entityType: EntityType.ProxmoxNode, id };
@@ -564,7 +655,7 @@ export default class TelemetryEntity {
      * migration. Guest name/type are descriptive (a guest can be renamed).
      */
     (attrs: EntityAttributes) => {
-      const vmid: string | null = TelemetryEntity.str(
+      const vmid: string | null = InventoryItem.str(
         attrs,
         "proxmox.guest.vmid",
       );
@@ -572,7 +663,7 @@ export default class TelemetryEntity {
         return null;
       }
       const id: Dictionary<string> = {
-        ...(TelemetryEntity.proxmoxClusterIdentity(attrs) || {}),
+        ...(InventoryItem.proxmoxClusterIdentity(attrs) || {}),
         "proxmox.guest.vmid": vmid,
       };
       return { entityType: EntityType.ProxmoxGuest, id };
@@ -585,10 +676,7 @@ export default class TelemetryEntity {
      * the fsid is only optionally stamped by the agent.
      */
     (attrs: EntityAttributes) => {
-      const name: string | null = TelemetryEntity.str(
-        attrs,
-        "ceph.cluster.name",
-      );
+      const name: string | null = InventoryItem.str(attrs, "ceph.cluster.name");
       return name
         ? {
             entityType: EntityType.CephCluster,
@@ -607,7 +695,7 @@ export default class TelemetryEntity {
      * separate JSON-line log records), so only the cluster entity flows here.
      */
     (attrs: EntityAttributes) => {
-      const name: string | null = TelemetryEntity.str(
+      const name: string | null = InventoryItem.str(
         attrs,
         "docker.swarm.cluster.name",
       );
@@ -625,7 +713,7 @@ export default class TelemetryEntity {
      * unless a project opts in — see OpenTelemetryEntities.md Edge Cases).
      */
     (attrs: EntityAttributes) => {
-      const containerId: string | null = TelemetryEntity.str(
+      const containerId: string | null = InventoryItem.str(
         attrs,
         "container.id",
       );
@@ -643,19 +731,19 @@ export default class TelemetryEntity {
      * by default, same as container.
      */
     (attrs: EntityAttributes) => {
-      const pid: string | null = TelemetryEntity.str(attrs, "process.pid");
+      const pid: string | null = InventoryItem.str(attrs, "process.pid");
       if (!pid) {
         return null;
       }
       const id: Dictionary<string> = { "process.pid": pid };
-      const hostId: string | null = TelemetryEntity.str(attrs, "host.id");
-      const hostName: string | null = TelemetryEntity.str(attrs, "host.name");
+      const hostId: string | null = InventoryItem.str(attrs, "host.id");
+      const hostName: string | null = InventoryItem.str(attrs, "host.name");
       if (hostId) {
         id["host.id"] = hostId;
       } else if (hostName) {
         id["host.name"] = hostName;
       }
-      TelemetryEntity.addIfPresent(id, attrs, "process.start_time");
+      InventoryItem.addIfPresent(id, attrs, "process.start_time");
       return { entityType: EntityType.Process, id };
     },
 
@@ -664,7 +752,7 @@ export default class TelemetryEntity {
      * first-class entity; membership-only. Very low cardinality.
      */
     (attrs: EntityAttributes) => {
-      const sdkName: string | null = TelemetryEntity.str(
+      const sdkName: string | null = InventoryItem.str(
         attrs,
         "telemetry.sdk.name",
       );
@@ -672,7 +760,7 @@ export default class TelemetryEntity {
         return null;
       }
       const id: Dictionary<string> = { "telemetry.sdk.name": sdkName };
-      TelemetryEntity.addIfPresent(id, attrs, "telemetry.sdk.language");
+      InventoryItem.addIfPresent(id, attrs, "telemetry.sdk.language");
       return { entityType: EntityType.TelemetrySdk, id };
     },
   ];
@@ -732,7 +820,11 @@ export default class TelemetryEntity {
       "telemetry.sdk.name",
       "telemetry.sdk.version",
     ],
-    [EntityType.KubernetesNode]: ["node.kubernetes.io/instance-type"],
+    [EntityType.KubernetesNode]: [
+      "k8s.node.name",
+      "node.kubernetes.io/instance-type",
+    ],
+    [EntityType.KubernetesPod]: ["k8s.pod.name"],
     [EntityType.Container]: [
       "container.image.name",
       "container.image.tag",
@@ -802,6 +894,22 @@ export default class TelemetryEntity {
     }
     return value.filter((item: unknown): item is string => {
       return typeof item === "string" && item.trim().length > 0;
+    });
+  }
+
+  /**
+   * Whether a resource carries identity for a Kubernetes object.
+   *
+   * Include UID-only pod/node resources because their resolvers accept the UID
+   * as identity when the name is absent. Cluster UID is deliberately excluded:
+   * cluster identity is name-keyed throughout OneUptime, so a UID without
+   * `k8s.cluster.name` cannot be attached to a KubernetesCluster inventory
+   * item. The keys here must stay aligned with identities the resolvers below
+   * can actually emit.
+   */
+  public static hasKubernetesIdentity(attrs: EntityAttributes): boolean {
+    return this.kubernetesIdentityAttributeKeys.some((key: string): boolean => {
+      return this.str(attrs, key) !== null;
     });
   }
 

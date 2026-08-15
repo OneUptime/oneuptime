@@ -1,0 +1,243 @@
+suite: keda ships off by default
+templates:
+  - templates/keda-scaledobjects.yaml
+release:
+  name: ou
+  namespace: oneuptime
+tests:
+  # The point of flipping the global flag: on stock values nobody autoscales with
+  # KEDA, so no ScaledObject should be rendered and (via the `condition:
+  # keda.enabled` dependency in Chart.yaml) no KEDA operator should be installed.
+  - it: should render no ScaledObjects at all on default values
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # --- the guard -------------------------------------------------------------
+  # The global flag gates the KEDA operator subchart AND every ScaledObject.
+  # Leaving a per-service flag on while the global one is off renders nothing at
+  # all, and on an upgrade from a release that had the global flag on it
+  # uninstalls the operator out from under ScaledObjects that are already live.
+  # Every tier must say so, loudly.
+  #
+  # NOTE: none of these tests set `keda.enabled` -- they inherit it. That is
+  # deliberate: it means each one also pins the new shipped default to false. If
+  # the global default is ever flipped back to true these all stop failing.
+
+  - it: should fail when app opts in but the global flag is inherited off
+    set:
+      app.keda.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: app.keda.enabled. The global flag gates both the bundled KEDA operator (see the dependency condition in Chart.yaml) and every ScaledObject in this chart, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to fall back to the plain HorizontalPodAutoscaler.'
+
+  - it: should fail when worker opts in but the global flag is inherited off
+    set:
+      worker.enabled: true
+      worker.keda.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: worker.keda.enabled. The global flag gates both the bundled KEDA operator (see the dependency condition in Chart.yaml) and every ScaledObject in this chart, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to fall back to the plain HorizontalPodAutoscaler.'
+
+  - it: should fail when telemetryWriter opts in but the global flag is inherited off
+    set:
+      telemetryWriter.enabled: true
+      telemetryWriter.keda.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: telemetryWriter.keda.enabled. The global flag gates both the bundled KEDA operator (see the dependency condition in Chart.yaml) and every ScaledObject in this chart, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to fall back to the plain HorizontalPodAutoscaler.'
+
+  - it: should fail when runner opts in but the global flag is inherited off
+    set:
+      runner.keda.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: runner.keda.enabled. The global flag gates both the bundled KEDA operator (see the dependency condition in Chart.yaml) and every ScaledObject in this chart, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to fall back to the plain HorizontalPodAutoscaler.'
+
+  - it: should fail when a probe opts in but the global flag is inherited off
+    set:
+      probes.one.keda.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: probes.one.keda.enabled. The global flag gates both the bundled KEDA operator (see the dependency condition in Chart.yaml) and every ScaledObject in this chart, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to fall back to the plain HorizontalPodAutoscaler.'
+
+  # worker.enabled ships false, so this ScaledObject would not render even with
+  # the global flag on. The flag is still a lie about what the release does, and
+  # enabling the tier later would silently come up without autoscaling.
+  - it: should fire even for a tier whose deployment is disabled
+    set:
+      worker.enabled: false
+      worker.keda.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: worker.keda.enabled. The global flag gates both the bundled KEDA operator (see the dependency condition in Chart.yaml) and every ScaledObject in this chart, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to fall back to the plain HorizontalPodAutoscaler.'
+
+  # One render pass has to report ALL of them, otherwise an operator with several
+  # tiers on fixes them one failed upgrade at a time. Order is probes (map order),
+  # then app, worker, telemetryWriter, runner.
+  - it: should name every offending flag in one message
+    set:
+      probes.one.keda.enabled: true
+      app.keda.enabled: true
+      worker.keda.enabled: true
+      telemetryWriter.keda.enabled: true
+      runner.keda.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: probes.one.keda.enabled, app.keda.enabled, worker.keda.enabled, telemetryWriter.keda.enabled, runner.keda.enabled. The global flag gates both the bundled KEDA operator (see the dependency condition in Chart.yaml) and every ScaledObject in this chart, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to fall back to the plain HorizontalPodAutoscaler.'
+
+  # probes.two is created here with no `keda` key. The guard ranges over every probe,
+  # so a missing keda block must neither error the range nor be reported as an
+  # offender -- the exact message below names app only.
+  - it: should tolerate a probe that has no keda block at all
+    set:
+      probes.two.enabled: true
+      probes.two.ports.http: 3874
+      app.keda.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: app.keda.enabled. The global flag gates both the bundled KEDA operator (see the dependency condition in Chart.yaml) and every ScaledObject in this chart, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to fall back to the plain HorizontalPodAutoscaler.'
+
+  # --- the guard must not over-fire -----------------------------------------
+  - it: should not fire when the global flag is off and nothing opts in
+    set:
+      worker.enabled: true
+      telemetryWriter.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # disableAutoscaler is the chart-wide "this tier does not autoscale" switch and
+  # it wins over keda.enabled in the render conditions, so such a tier gets no
+  # ScaledObject even with the global flag ON. Nothing to orphan, nothing the
+  # global flag would change -- and the guard's advice (turn the global flag on)
+  # would install the three KEDA operator Deployments for a tier that still ends
+  # up with neither a ScaledObject nor an HPA. The next case pins that premise.
+  - it: should not fire for a service whose autoscaler is disabled outright
+    set:
+      app.keda.enabled: true
+      app.disableAutoscaler: true
+      worker.enabled: true
+      worker.keda.enabled: true
+      worker.disableAutoscaler: true
+      runner.keda.enabled: true
+      runner.disableAutoscaler: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # The premise above, asserted rather than assumed: with the global flag ON the
+  # same values still render nothing, which is why they are not orphans.
+  - it: should render nothing for those services even with the global flag on
+    set:
+      keda.enabled: true
+      app.keda.enabled: true
+      app.disableAutoscaler: true
+      worker.enabled: true
+      worker.keda.enabled: true
+      worker.disableAutoscaler: true
+      runner.keda.enabled: true
+      runner.disableAutoscaler: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should not fire for a probe whose autoscaler is disabled outright
+    set:
+      probes.one.keda.enabled: true
+      probes.one.disableAutoscaler: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # The exclusion must not swallow real offenders standing next to an excused
+  # one. probes.one and worker are excused; probes.two, app and runner are not,
+  # and the message must name exactly those three in render order.
+  - it: should name only the real offenders when excused services are mixed in
+    set:
+      probes.one.keda.enabled: true
+      probes.one.disableAutoscaler: true
+      probes.two.enabled: true
+      probes.two.ports.http: 3874
+      probes.two.keda.enabled: true
+      app.keda.enabled: true
+      worker.enabled: true
+      worker.keda.enabled: true
+      worker.disableAutoscaler: true
+      runner.keda.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: probes.two.keda.enabled, app.keda.enabled, runner.keda.enabled. The global flag gates both the bundled KEDA operator (see the dependency condition in Chart.yaml) and every ScaledObject in this chart, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to fall back to the plain HorizontalPodAutoscaler.'
+
+  # NOTE on telemetryWriter, which has no case here: it is the one tier whose
+  # ScaledObject condition does NOT read disableAutoscaler (neither does its
+  # plain HPA in telemetry-writer.yaml -- that tier is explicit opt-in only), so
+  # excusing it on that key would be a hole in the guard: its ScaledObject
+  # renders regardless, so there really would be something to orphan. The hole
+  # is unreachable because values.schema.json pins telemetryWriter to
+  # additionalProperties:false with no disableAutoscaler key, so setting it is a
+  # schema error. That cannot be asserted here -- schema validation happens
+  # before rendering, so helm-unittest reports it as a suite error rather than
+  # something `failedTemplate` can match. If the key is ever added to the schema,
+  # the render condition in templates/keda-scaledobjects.yaml must start honouring
+  # it (and a case belongs here) -- see the comment on the guard.
+
+  # disableDeployments renders no workloads at all, so there is no live tier to
+  # orphan and nothing to warn about -- blocking the render here would just stop
+  # operators from rendering a deployment-less release.
+  - it: should not fire when no deployments are rendered at all
+    set:
+      app.keda.enabled: true
+      worker.enabled: true
+      worker.keda.enabled: true
+      deployment.disableDeployments: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # --- the opt-in path still works ------------------------------------------
+  # This is the regression the flip could cause: breaking operators who DO want
+  # KEDA. Turning the global flag back on must restore the previous behaviour
+  # exactly.
+  - it: should still render the app ScaledObject when both flags are turned on
+    set:
+      keda.enabled: true
+      app.keda.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 2
+      - containsDocument:
+          apiVersion: keda.sh/v1alpha1
+          kind: ScaledObject
+          name: ou-app-scaledobject
+          namespace: oneuptime
+          any: true
+      - containsDocument:
+          apiVersion: keda.sh/v1alpha1
+          kind: TriggerAuthentication
+          name: ou-app-trigger-auth
+          namespace: oneuptime
+          any: true
+
+  - it: should still render the probe ScaledObject when both flags are turned on
+    set:
+      keda.enabled: true
+      probes.one.keda.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 2
+      - containsDocument:
+          apiVersion: keda.sh/v1alpha1
+          kind: ScaledObject
+          name: ou-probe-one-scaledobject
+          namespace: oneuptime
+          any: true
+
+  # Turning the global flag on installs the operator but must not conjure
+  # ScaledObjects for tiers nobody opted in for.
+  - it: should render no ScaledObjects when only the global flag is on
+    set:
+      keda.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0

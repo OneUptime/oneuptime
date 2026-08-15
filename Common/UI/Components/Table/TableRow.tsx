@@ -29,6 +29,24 @@ export interface ComponentProps<T extends GenericObject> {
   onItemSelected?: undefined | ((item: T) => void);
   onItemDeselected?: undefined | ((item: T) => void);
   isItemSelected?: boolean | undefined;
+  /*
+   * FALSE locks this row's checkbox. Defaulted true by the caller, so a table
+   * that says nothing about selectability keeps behaving exactly as before.
+   *
+   * A locked box is better than an unlocked one that fails afterwards whenever
+   * the reason is knowable up front: the action a bulk selection leads to is
+   * usually irreversible from the user's side (mail sent, rows deleted), and
+   * "you cannot pick this, here is why" costs one hover where "you picked it and
+   * nothing happened" costs a support conversation.
+   */
+  isItemSelectable?: boolean | undefined;
+  /*
+   * The accessible name for this row's checkbox - "Select Ada Lovelace" rather
+   * than an unnamed box repeated once per row.
+   */
+  itemSelectLabel?: string | undefined;
+  /** Hover text for a row whose box is locked. Says why, in the caller's words. */
+  itemNotSelectableReason?: string | undefined;
 
   // responsive
   isMobile?: boolean;
@@ -84,6 +102,44 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
     },
   );
 
+  /*
+   * Absent means selectable, so every existing caller is unaffected. Only an
+   * explicit false locks the box.
+   */
+  const isItemSelectable: boolean = props.isItemSelectable !== false;
+
+  /*
+   * The bulk-select box, identical on the mobile card and the desktop row. It is
+   * one function rather than two copies because the two used to drift: the
+   * mobile copy still has no `disabled` handling of its own, and a locked row
+   * that is only locked at one breakpoint is not locked.
+   */
+  const getBulkSelectCheckbox: () => ReactElement = (): ReactElement => {
+    return (
+      <CheckboxElement
+        value={Boolean(props.isItemSelected)}
+        disabled={!isItemSelectable}
+        ariaLabel={props.itemSelectLabel}
+        hoverText={
+          isItemSelectable
+            ? props.itemSelectLabel
+            : props.itemNotSelectableReason || props.itemSelectLabel
+        }
+        onChange={(value: boolean) => {
+          if (!isItemSelectable) {
+            return;
+          }
+
+          if (value) {
+            props.onItemSelected?.(props.item);
+          } else {
+            props.onItemDeselected?.(props.item);
+          }
+        }}
+      />
+    );
+  };
+
   type GetRowFunction = (provided?: DraggableProvided) => ReactElement;
 
   const getRow: GetRowFunction = (
@@ -113,18 +169,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
             )}
 
             {props.isBulkActionsEnabled ? (
-              <div className="mb-3">
-                <CheckboxElement
-                  value={Boolean(props.isItemSelected)}
-                  onChange={(value: boolean) => {
-                    if (value) {
-                      props.onItemSelected?.(props.item);
-                    } else {
-                      props.onItemDeselected?.(props.item);
-                    }
-                  }}
-                />
-              </div>
+              <div className="mb-3">{getBulkSelectCheckbox()}</div>
             ) : (
               <></>
             )}
@@ -329,20 +374,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
               className="w-10 py-3.5  align-top"
               {...provided?.dragHandleProps}
             >
-              <div className="ml-5">
-                <CheckboxElement
-                  value={props.isItemSelected}
-                  onChange={(value: boolean) => {
-                    if (value) {
-                      if (props.onItemSelected) {
-                        props.onItemSelected(props.item);
-                      }
-                    } else if (props.onItemDeselected) {
-                      props.onItemDeselected(props.item);
-                    }
-                  }}
-                />
-              </div>
+              <div className="ml-5">{getBulkSelectCheckbox()}</div>
             </td>
           )}
           {props.columns &&

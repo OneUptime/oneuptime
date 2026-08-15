@@ -18,6 +18,7 @@ import {
   OnUpdate,
 } from "../Types/Database/Hooks";
 import ModelPermission from "../Types/Database/Permissions/Index";
+import OwnerOnlyColumnPermission from "../Types/Database/Permissions/OwnerOnlyColumnPermission";
 import { CheckReadPermissionType } from "../Types/Database/Permissions/ReadPermission";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -913,7 +914,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * `Incident` -> `incidentId`, `Monitor` -> `monitorId`. Matches the keys in
    * TelemetryContextAttributes so dashboards/queries stay consistent.
    */
-  private getTelemetryEntityIdKey(): string {
+  private getInventoryItemIdKey(): string {
     const name: string = this.modelName || "entity";
     return name.charAt(0).toLowerCase() + name.slice(1) + "Id";
   }
@@ -960,7 +961,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
 
       if (item.id) {
-        attributes[this.getTelemetryEntityIdKey()] = item.id.toString();
+        attributes[this.getInventoryItemIdKey()] = item.id.toString();
       }
 
       if (Object.keys(attributes).length > 0) {
@@ -1905,6 +1906,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * permission-checked, so a column being sorted on is already reaching the
    * database - adding it to the select must not be able to turn a query that
    * worked into a permission error. The values never reach the caller.
+   *
+   * That last sentence is exactly why owner-only columns are excluded below.
+   * Running after the gate means anything added here was never gated, so
+   * `sort: { webhookUrl: "ASC" }` is a way of writing a column into the select
+   * that ModelPermission has already finished looking at. The column is
+   * stripped off the returned rows again, but "the caller only learns the
+   * ORDER of everyone's webhook URLs" is not a defence - order is a comparison
+   * oracle, and a handful of paged requests reconstructs the value. A caller
+   * who may genuinely read the column has already put it in the select
+   * themselves, in which case the first filter clause below has already
+   * returned false and nothing here applies to them.
    */
   private addSortColumnsToSelect(findBy: FindBy<TBaseModel>): Array<string> {
     /*
@@ -1915,10 +1927,28 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       return [];
     }
 
+    /*
+     * Root and master admin keep the existing behaviour untouched: they are
+     * past every permission check by definition, and notification delivery
+     * reads and orders these columns as root in order to actually page people.
+     */
+    const isPrivilegedInternalRead: boolean =
+      Boolean(findBy.props.isRoot) || Boolean(findBy.props.isMasterAdmin);
+
     const sortColumnsToAdd: Array<string> = Object.keys(
       findBy.sort || {},
     ).filter((sortColumn: string) => {
       if ((findBy.select as any)[sortColumn] !== undefined) {
+        return false;
+      }
+
+      if (
+        !isPrivilegedInternalRead &&
+        OwnerOnlyColumnPermission.isOwnerOnlyColumnOnModel(
+          this.modelType,
+          sortColumn,
+        )
+      ) {
         return false;
       }
 

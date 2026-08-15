@@ -1,5 +1,8 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ProjectUtil from "Common/UI/Utils/Project";
+import UserElement from "../../Components/User/User";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
 import PageComponentProps from "../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import TimezoneUtil from "Common/UI/Utils/Timezone";
@@ -131,6 +134,21 @@ const OnCallDutyPage: FunctionComponent<
             },
           },
         ]}
+        /*
+         * currentUserOnRoster / nextUserOnRoster back the "On call now" column
+         * below. Both are already persisted on the schedule and refreshed every
+         * minute by the RefreshHandoffTime worker, so this costs no extra work
+         * on the server — the list simply never asked for them before, which is
+         * why an uncovered schedule and a healthy one rendered as identical rows.
+         */
+        selectMoreFields={{
+          rosterNextStartAt: true,
+          nextUserOnRoster: {
+            _id: true,
+            name: true,
+            email: true,
+          },
+        }}
         columns={[
           {
             field: {
@@ -138,6 +156,49 @@ const OnCallDutyPage: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Text,
+          },
+          {
+            field: {
+              currentUserOnRoster: {
+                _id: true,
+                name: true,
+                email: true,
+                profilePictureId: true,
+              },
+            },
+            title: "On Call Now",
+            type: FieldType.Element,
+            /*
+             * Deliberately NOT `noValueMessage: "-"`. A dash is exactly the
+             * silent blank this column exists to replace: "nobody is on call"
+             * is a state worth naming, not missing data.
+             */
+            getElement: (item: OnCallDutySchedule): ReactElement => {
+              if (item.currentUserOnRoster) {
+                return <UserElement user={item.currentUserOnRoster} />;
+              }
+
+              return (
+                <div className="flex flex-col gap-0.5">
+                  <span className="inline-flex w-fit items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200">
+                    <Icon icon={IconProp.Alert} className="h-3.5 w-3.5" />
+                    No one on call
+                  </span>
+                  {item.rosterNextStartAt && item.nextUserOnRoster ? (
+                    <span className="text-xs text-gray-400">
+                      Resumes{" "}
+                      {OneUptimeDate.getDateAsLocalFormattedString(
+                        item.rosterNextStartAt,
+                      )}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-400">
+                      No upcoming shifts
+                    </span>
+                  )}
+                </div>
+              );
+            },
           },
           {
             field: {

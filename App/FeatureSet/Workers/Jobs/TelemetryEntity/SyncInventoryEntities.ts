@@ -7,11 +7,11 @@ import {
 } from "Common/Server/Utils/Telemetry/InventoryEntityRegistry";
 
 /*
- * TelemetryEntity:SyncInventoryEntities
+ * InventoryItem:SyncInventoryEntities
  *
  * Projects OneUptime's poller-collected inventory tables (network devices,
  * cloud resources, serverless functions, RUM applications, IoT devices,
- * Docker and Podman hosts) into the TelemetryEntity registry, so the entity
+ * Docker and Podman hosts) into the InventoryItem registry, so the entity
  * explorer covers the whole estate rather than only the parts that speak
  * OTLP. See InventoryEntityRegistry for why this is a periodic reconcile
  * instead of create/delete hooks on each of the seven tables.

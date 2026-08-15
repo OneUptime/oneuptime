@@ -7,6 +7,7 @@
  */
 
 import Workflow from "Common/Models/DatabaseModels/Workflow";
+import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
 import WorkflowService from "Common/Server/Services/WorkflowService";
 import { JSONObject } from "Common/Types/JSON";
@@ -100,6 +101,18 @@ const SUCCESS_PORT: Port = {
   description: "Success",
 };
 
+/*
+ * The port a database component takes when it catches its own error. Its id is
+ * the contract: BaseModelComponents build every find/create/update component
+ * with an out port literally called "error", and the runner recognises a
+ * failure by that id.
+ */
+const ERROR_PORT: Port = {
+  id: "error",
+  title: "Error",
+  description: "Error",
+};
+
 type MetadataFunction = (params: {
   args?: Array<Argument> | undefined;
   returnValues?: Array<ReturnValue> | undefined;
@@ -119,7 +132,8 @@ const metadata: MetadataFunction = (params: {
     arguments: params.args || [],
     returnValues: params.returnValues || [],
     inPorts: [],
-    outPorts: [SUCCESS_PORT],
+    // Both ports, like every database component declares.
+    outPorts: [SUCCESS_PORT, ERROR_PORT],
   };
 };
 
@@ -337,6 +351,175 @@ describe("RunWorkflow step trace", () => {
     expect(serialized).not.toContain("super-secret-value");
   });
 
+  test("redacts every occurrence of overlapping secret variables in logs and nested trace values", async () => {
+    const componentNode: NodeDataProp = node(
+      metadata({ args: [argument("message")] }),
+    );
+    componentNode.arguments = {
+      message: "token-with-suffix | token | token-with-suffix",
+    };
+
+    const shortSecret: WorkflowVariable = new WorkflowVariable();
+    shortSecret.content = "token";
+    shortSecret.isSecret = "true";
+
+    const longSecret: WorkflowVariable = new WorkflowVariable();
+    longSecret.content = "token-with-suffix";
+    longSecret.isSecret = "true";
+
+    const runner: RunWorkflow = new RunWorkflow();
+    const updateLogSpy: RecordedSpy = prepareSingleComponentRun(
+      runner,
+      componentNode,
+    );
+
+    jest.spyOn(runner, "getVariables").mockResolvedValue({
+      storageMap: EMPTY_STORAGE_MAP,
+      // Deliberately shorter-first: production redaction must reorder these.
+      variables: [shortSecret, longSecret],
+    } as never);
+
+    jest.spyOn(runner, "runComponent").mockResolvedValue({
+      returnValues: {
+        nested: {
+          values: [
+            "token-with-suffix and token-with-suffix",
+            {
+              "header-token-with-suffix": "before token after",
+            },
+          ],
+        },
+      },
+      executePort: SUCCESS_PORT,
+    } as never);
+
+    await runner.runWorkflow({
+      arguments: {},
+      workflowId: WORKFLOW_ID,
+      workflowLogId: WORKFLOW_LOG_ID,
+      timeout: 5000,
+    });
+
+    const lastCall: unknown =
+      updateLogSpy.mock.calls[updateLogSpy.mock.calls.length - 1]?.[0];
+    const data: JSONObject = (lastCall as { data: JSONObject }).data;
+    const serializedPersistedData: string = JSON.stringify(data);
+    const step: WorkflowStepTraceEntry = parseTrace(data["stepTrace"] as never)
+      .steps[0] as WorkflowStepTraceEntry;
+
+    expect(serializedPersistedData).not.toContain("token");
+    expect(serializedPersistedData).not.toContain("with-suffix");
+    expect(data["logs"]).toContain(
+      `${WORKFLOW_LOG_REDACTED_VALUE} | ${WORKFLOW_LOG_REDACTED_VALUE} | ${WORKFLOW_LOG_REDACTED_VALUE}`,
+    );
+    expect(step.argumentValues).toEqual({
+      message: `${WORKFLOW_LOG_REDACTED_VALUE} | ${WORKFLOW_LOG_REDACTED_VALUE} | ${WORKFLOW_LOG_REDACTED_VALUE}`,
+    });
+    expect(step.returnValues).toEqual({
+      nested: {
+        values: [
+          `${WORKFLOW_LOG_REDACTED_VALUE} and ${WORKFLOW_LOG_REDACTED_VALUE}`,
+          {
+            [`header-${WORKFLOW_LOG_REDACTED_VALUE}`]: `before ${WORKFLOW_LOG_REDACTED_VALUE} after`,
+          },
+        ],
+      },
+    });
+  });
+
+  test("secret values cannot rewrite trace schema or bookkeeping", async () => {
+    const componentNode: NodeDataProp = node(
+      metadata({ args: [argument("message")] }),
+    );
+    componentNode.arguments = { message: "steps Success error" };
+
+    const schemaSecrets: Array<string> = ["steps", "Success", "error"];
+    const variables: Array<WorkflowVariable> = schemaSecrets.map(
+      (content: string): WorkflowVariable => {
+        const variable: WorkflowVariable = new WorkflowVariable();
+        variable.content = content;
+        variable.isSecret = "true";
+        return variable;
+      },
+    );
+
+    const runner: RunWorkflow = new RunWorkflow();
+    const updateLogSpy: RecordedSpy = prepareSingleComponentRun(
+      runner,
+      componentNode,
+    );
+
+    jest.spyOn(runner, "getVariables").mockResolvedValue({
+      storageMap: EMPTY_STORAGE_MAP,
+      variables: variables,
+    } as never);
+    jest.spyOn(runner, "runComponent").mockResolvedValue({
+      returnValues: {
+        result: "steps Success error",
+        "header-steps": "error",
+      },
+      executePort: SUCCESS_PORT,
+    } as never);
+
+    await runner.runWorkflow({
+      arguments: {},
+      workflowId: WORKFLOW_ID,
+      workflowLogId: WORKFLOW_LOG_ID,
+      timeout: 5000,
+    });
+
+    const trace: WorkflowStepTrace = lastPersistedTrace(updateLogSpy);
+    const step: WorkflowStepTraceEntry = trace
+      .steps[0] as WorkflowStepTraceEntry;
+
+    expect(trace.steps).toHaveLength(1);
+    expect(step.status).toBe(WorkflowStepStatus.Success);
+    expect(step.argumentValues).toEqual({
+      message: `${WORKFLOW_LOG_REDACTED_VALUE} ${WORKFLOW_LOG_REDACTED_VALUE} ${WORKFLOW_LOG_REDACTED_VALUE}`,
+    });
+    expect(step.returnValues).toEqual({
+      result: `${WORKFLOW_LOG_REDACTED_VALUE} ${WORKFLOW_LOG_REDACTED_VALUE} ${WORKFLOW_LOG_REDACTED_VALUE}`,
+      [`header-${WORKFLOW_LOG_REDACTED_VALUE}`]: WORKFLOW_LOG_REDACTED_VALUE,
+    });
+  });
+
+  test("redacts secret variables from a failed step's error message", async () => {
+    const componentNode: NodeDataProp = node(metadata({}));
+    const secret: WorkflowVariable = new WorkflowVariable();
+    secret.content = "smtp-secret";
+    secret.isSecret = "true";
+
+    const runner: RunWorkflow = new RunWorkflow();
+    const updateLogSpy: RecordedSpy = prepareSingleComponentRun(
+      runner,
+      componentNode,
+    );
+
+    jest.spyOn(runner, "getVariables").mockResolvedValue({
+      storageMap: EMPTY_STORAGE_MAP,
+      variables: [secret],
+    } as never);
+    jest
+      .spyOn(runner, "runComponent")
+      .mockRejectedValue(
+        new Error("smtp-secret was rejected; smtp-secret is invalid") as never,
+      );
+
+    await runner.runWorkflow({
+      arguments: {},
+      workflowId: WORKFLOW_ID,
+      workflowLogId: WORKFLOW_LOG_ID,
+      timeout: 5000,
+    });
+
+    const step: WorkflowStepTraceEntry = lastPersistedTrace(updateLogSpy)
+      .steps[0] as WorkflowStepTraceEntry;
+
+    expect(step.errorMessage).toBe(
+      `Error: ${WORKFLOW_LOG_REDACTED_VALUE} was rejected; ${WORKFLOW_LOG_REDACTED_VALUE} is invalid`,
+    );
+  });
+
   /*
    * The step that broke the run is the one worth reading, so it has to be in
    * the trace even though the failure aborts the loop.
@@ -368,6 +551,175 @@ describe("RunWorkflow step trace", () => {
     expect(trace.steps).toHaveLength(1);
     expect(step.status).toBe(WorkflowStepStatus.Error);
     expect(step.errorMessage).toContain("component exploded");
+  });
+
+  /*
+   * The failure a builder is most likely to be staring at never threw and never
+   * called options.onError. Every database component catches its own error,
+   * logs it, and returns { executePort: errorPort } — FindOneBaseModel does it
+   * in the catch at the end of run(), and its siblings copy it. So the runner
+   * saw no errorMessage, and the step that failed was recorded green: the trace
+   * showed a check mark over the exact row that had gone wrong.
+   */
+  test("records a step that left by the error port as a failure, with nothing thrown", async () => {
+    const componentNode: NodeDataProp = node(metadata({}));
+
+    const runner: RunWorkflow = new RunWorkflow();
+    const updateLogSpy: RecordedSpy = prepareSingleComponentRun(
+      runner,
+      componentNode,
+    );
+
+    jest.spyOn(runner, "runComponent").mockResolvedValue({
+      returnValues: {},
+      executePort: ERROR_PORT,
+    } as never);
+
+    await runner.runWorkflow({
+      arguments: {},
+      workflowId: WORKFLOW_ID,
+      workflowLogId: WORKFLOW_LOG_ID,
+      timeout: 5000,
+    });
+
+    const step: WorkflowStepTraceEntry = lastPersistedTrace(updateLogSpy)
+      .steps[0] as WorkflowStepTraceEntry;
+
+    expect(step.status).toBe(WorkflowStepStatus.Error);
+    /*
+     * No message, on purpose: the status has to come from the port alone, since
+     * a component that returns its error port supplies nothing else.
+     */
+    expect(step.errorMessage).toBeUndefined();
+  });
+
+  test("still records which port the failed step left by", async () => {
+    const componentNode: NodeDataProp = node(metadata({}));
+
+    const runner: RunWorkflow = new RunWorkflow();
+    const updateLogSpy: RecordedSpy = prepareSingleComponentRun(
+      runner,
+      componentNode,
+    );
+
+    jest.spyOn(runner, "runComponent").mockResolvedValue({
+      returnValues: { model: null },
+      executePort: ERROR_PORT,
+    } as never);
+
+    await runner.runWorkflow({
+      arguments: {},
+      workflowId: WORKFLOW_ID,
+      workflowLogId: WORKFLOW_LOG_ID,
+      timeout: 5000,
+    });
+
+    const step: WorkflowStepTraceEntry = lastPersistedTrace(updateLogSpy)
+      .steps[0] as WorkflowStepTraceEntry;
+
+    expect(step.executedPort).toBe("error");
+    expect(step.returnValues).toEqual({ model: null });
+  });
+
+  test("a step that left by the success port is still a success", async () => {
+    const componentNode: NodeDataProp = node(metadata({}));
+
+    const runner: RunWorkflow = new RunWorkflow();
+    const updateLogSpy: RecordedSpy = prepareSingleComponentRun(
+      runner,
+      componentNode,
+    );
+
+    jest.spyOn(runner, "runComponent").mockResolvedValue({
+      returnValues: {},
+      executePort: SUCCESS_PORT,
+    } as never);
+
+    await runner.runWorkflow({
+      arguments: {},
+      workflowId: WORKFLOW_ID,
+      workflowLogId: WORKFLOW_LOG_ID,
+      timeout: 5000,
+    });
+
+    const step: WorkflowStepTraceEntry = lastPersistedTrace(updateLogSpy)
+      .steps[0] as WorkflowStepTraceEntry;
+
+    expect(step.status).toBe(WorkflowStepStatus.Success);
+    expect(step.executedPort).toBe("success");
+    expect(step.errorMessage).toBeUndefined();
+  });
+
+  /*
+   * The other half of the pair: a component that reports through
+   * options.onError and then leaves by a port that is not "error". The message
+   * still decides, so the port check can only ever add failures, never hide
+   * one.
+   */
+  test("records a step with an error message as a failure whatever port it left by", async () => {
+    const componentNode: NodeDataProp = node(metadata({}));
+
+    const runner: RunWorkflow = new RunWorkflow();
+    const updateLogSpy: RecordedSpy = prepareSingleComponentRun(
+      runner,
+      componentNode,
+    );
+
+    jest.spyOn(runner, "runComponent").mockImplementation((async (
+      _args: JSONObject,
+      _componentToRun: NodeDataProp,
+      onError: VoidFunction,
+    ): Promise<unknown> => {
+      onError();
+
+      return { returnValues: {}, executePort: SUCCESS_PORT };
+    }) as never);
+
+    await runner.runWorkflow({
+      arguments: {},
+      workflowId: WORKFLOW_ID,
+      workflowLogId: WORKFLOW_LOG_ID,
+      timeout: 5000,
+    });
+
+    const step: WorkflowStepTraceEntry = lastPersistedTrace(updateLogSpy)
+      .steps[0] as WorkflowStepTraceEntry;
+
+    expect(step.status).toBe(WorkflowStepStatus.Error);
+    expect(step.executedPort).toBe("success");
+    expect(step.errorMessage).toBe("The component reported an error.");
+  });
+
+  /*
+   * A throw never reaches a port at all, so the trace has to say so rather than
+   * leaving the last port it happened to know about.
+   */
+  test("records no port for a step that threw", async () => {
+    const componentNode: NodeDataProp = node(metadata({}));
+
+    const runner: RunWorkflow = new RunWorkflow();
+    const updateLogSpy: RecordedSpy = prepareSingleComponentRun(
+      runner,
+      componentNode,
+    );
+
+    jest
+      .spyOn(runner, "runComponent")
+      .mockRejectedValue(new Error("component exploded") as never);
+
+    await runner.runWorkflow({
+      arguments: {},
+      workflowId: WORKFLOW_ID,
+      workflowLogId: WORKFLOW_LOG_ID,
+      timeout: 5000,
+    });
+
+    const step: WorkflowStepTraceEntry = lastPersistedTrace(updateLogSpy)
+      .steps[0] as WorkflowStepTraceEntry;
+
+    expect(step.status).toBe(WorkflowStepStatus.Error);
+    expect(step.errorMessage).toContain("component exploded");
+    expect(step.executedPort).toBeNull();
   });
 
   test("persists the trace alongside the run's final status", async () => {

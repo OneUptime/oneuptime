@@ -432,13 +432,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         continue;
       }
 
-      const k8sPodName: string | null =
-        OtelIngestBaseService.getStringAttribute(ras, "k8s.pod.name");
-      const k8sNodeName: string | null =
-        OtelIngestBaseService.getStringAttribute(ras, "k8s.node.name");
-      const k8sClusterName: string | null =
-        OtelIngestBaseService.getStringAttribute(ras, "k8s.cluster.name");
-      if (k8sPodName || k8sNodeName || k8sClusterName) {
+      if (this.hasKubernetesIdentity(ras)) {
         continue;
       }
 

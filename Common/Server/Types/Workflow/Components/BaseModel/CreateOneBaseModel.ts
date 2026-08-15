@@ -1,9 +1,7 @@
 import DatabaseService from "../../../../Services/DatabaseService";
-import logger from "../../../../Utils/Logger";
 import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
-import Exception from "../../../../../Types/Exception/Exception";
 import { JSONObject } from "../../../../../Types/JSON";
 import JSONFunctions from "../../../../../Types/JSONFunctions";
 import Text from "../../../../../Types/Text";
@@ -12,7 +10,8 @@ import ComponentMetadata, {
 } from "../../../../../Types/Workflow/Component";
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
-import { applyTenantColumn } from "./ModelArguments";
+import { applyTenantColumn, logUnknownColumns } from "./ModelArguments";
+import logComponentError from "./LogComponentError";
 
 export default class CreateOneBaseModel<
   TBaseModel extends BaseModel,
@@ -91,6 +90,17 @@ export default class CreateOneBaseModel<
         );
       }
 
+      /*
+       * Checked before applyTenantColumn rather than after: the report should
+       * name the keys the builder actually typed, and the tenant column the
+       * stamp adds is not one of them.
+       */
+      logUnknownColumns(
+        args["json"] as JSONObject,
+        this.modelService.getModel(),
+        options.log,
+      );
+
       args["json"] = applyTenantColumn(
         args["json"] as JSONObject,
         this.modelService.getModel(),
@@ -115,13 +125,11 @@ export default class CreateOneBaseModel<
         executePort: successPort,
       };
     } catch (err: any) {
-      logger.error(err);
-
-      if (err instanceof Exception) {
-        options.log(err.getMessage());
-      } else {
-        options.log(err.message ? err.message : JSON.stringify(err, null, 2));
-      }
+      logComponentError({
+        error: err,
+        model: this.modelService?.getModel() || null,
+        log: options.log,
+      });
 
       return {
         returnValues: {},

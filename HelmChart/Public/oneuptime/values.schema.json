@@ -292,6 +292,9 @@
                 "listenOptions": {
                     "type": "string"
                 },
+                "ingestAccessLog": {
+                    "type": "string"
+                },
                 "serverNamesHash": {
                     "type": "object",
                     "properties": {
@@ -1608,6 +1611,10 @@
                 }
             },
             "additionalProperties": false
+        },
+        "trustedProxyHops": {
+            "type": "integer",
+            "minimum": 0
         },
         "queueDashboard": {
             "type": "object",

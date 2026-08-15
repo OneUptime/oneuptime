@@ -1,6 +1,23 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import ObjectID from "Common/Types/ObjectID";
 import Icon from "Common/UI/Components/Icon/Icon";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useMemo,
+} from "react";
+import ReadinessDot, { ReadinessUnknownDot } from "../Readiness/ReadinessDot";
+import StatTile from "../Readiness/StatTile";
+import {
+  ReadinessIndex,
+  UserReadinessWire,
+  buildReadinessIndex,
+  findReadinessForResponder,
+} from "../Readiness/ReadinessTypes";
+import useOnCallReadiness, {
+  OnCallReadinessState,
+} from "../Readiness/useOnCallReadiness";
 
 /*
  * A concise, plain-english overview of how an on-call policy escalates — the
@@ -14,6 +31,19 @@ export type ResponderType = "schedule" | "team" | "user";
 export interface EscalationResponder {
   label: string;
   type: ResponderType;
+  /*
+   * Only meaningful for `type: "user"`. When present it is what matches this
+   * chip to its readiness row; without it the match falls back to the label,
+   * which is correct but gives up on duplicate names (see
+   * ReadinessTypes.buildReadinessIndex).
+   */
+  userId?: string | undefined;
+  /*
+   * Schedule responders only: true when the schedule currently has nobody on
+   * call. Such a responder exists on paper but would page no one, so it is
+   * drawn in amber rather than identically to a healthy responder.
+   */
+  isUncovered?: boolean | undefined;
 }
 
 export interface EscalationLevelSummary {
@@ -26,6 +56,25 @@ export interface ComponentProps {
   levels: Array<EscalationLevelSummary>;
   repeatEnabled: boolean;
   repeatCount: number;
+  /*
+   * Optional, and the summary is complete without it: supplying the policy id
+   * turns on the readiness dots by letting this component load the policy's
+   * responder readiness. Omitting it leaves the hook idle — no request, no dots,
+   * no behaviour change for any caller that has not opted in.
+   */
+  onCallDutyPolicyId?: ObjectID | undefined;
+  /*
+   * A readiness answer the caller has already loaded, used verbatim instead of
+   * loading a second copy of it.
+   *
+   * The escalation page needs this exact payload twice over — once for these
+   * dots and once for the warning label on each rule card — and two components
+   * each calling the hook is two sets of paged requests for one answer, which
+   * can also disagree with each other for a second while they settle. When it is
+   * supplied the hook below stays idle; when it is not, nothing changes for any
+   * other caller.
+   */
+  readiness?: OnCallReadinessState | undefined;
 }
 
 // Compact human duration, e.g. "immediately", "5 min", "1 hr 30 min".
@@ -100,29 +149,39 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
     return seen.size;
   })();
 
-  const getStatTile: (params: {
-    icon: IconProp;
-    label: string;
-    value: string;
-  }) => ReactElement = (params: {
-    icon: IconProp;
-    label: string;
-    value: string;
-  }): ReactElement => {
-    return (
-      <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3">
-        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50">
-          <Icon icon={params.icon} className="h-4 w-4 text-indigo-600" />
-        </div>
-        <div className="min-w-0">
-          <div className="truncate text-lg font-semibold leading-tight text-gray-900">
-            {params.value}
-          </div>
-          <div className="truncate text-xs text-gray-500">{params.label}</div>
-        </div>
-      </div>
-    );
-  };
+  /*
+   * Readiness for the responders on this policy. The hook stays idle unless the
+   * caller passed a policy id AND did not hand over an answer of its own, so
+   * this costs nothing until the dots are wanted and never costs twice.
+   */
+  const ownReadiness: OnCallReadinessState = useOnCallReadiness({
+    onCallDutyPolicyId: props.readiness ? undefined : props.onCallDutyPolicyId,
+  });
+
+  const readiness: OnCallReadinessState = props.readiness || ownReadiness;
+
+  const readinessIndex: ReadinessIndex = useMemo((): ReadinessIndex => {
+    return buildReadinessIndex(readiness.summary);
+  }, [readiness.summary]);
+
+  /*
+   * With no summary loaded there are no readiness rows and therefore no dots, so
+   * this value is unused in that state; it defaults to the product's own default
+   * (fallback on) rather than to false so that a dot can never appear claiming
+   * pages are dropped on the strength of a missing payload.
+   */
+  const isFallbackEnabled: boolean = readiness.summary
+    ? readiness.summary.isFallbackEnabled
+    : true;
+
+  /*
+   * Only meaningful once something has loaded. An idle or still-loading hook is
+   * not a truncated answer, and marking every chip "not checked" while the
+   * request is in flight would be a page full of grey dots that resolve to
+   * nothing a second later.
+   */
+  const isTruncated: boolean =
+    Boolean(readiness.summary) && readiness.isTruncated;
 
   const getResponderChips: (level: EscalationLevelSummary) => ReactElement = (
     level: EscalationLevelSummary,
@@ -138,20 +197,96 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
 
     return (
       <span className="flex flex-wrap items-center gap-1.5">
-        {level.responders.map((responder: EscalationResponder, i: number) => {
-          return (
-            <span
-              key={`r-${i}`}
-              className="inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
-            >
-              <Icon
-                icon={responderIcon(responder.type)}
-                className={`h-3 w-3 ${responderIconColor(responder.type)}`}
-              />
-              {responder.label}
-            </span>
-          );
-        })}
+        {level.responders.map(
+          (responder: EscalationResponder, i: number): ReactElement => {
+            /*
+             * Two independent reasons a chip can be amber, and they are not the
+             * same claim.
+             *
+             * `isUncovered` is about the SCHEDULE: it exists on the policy but
+             * currently rotates nobody, so it would page no one whatever the
+             * people in it have configured.
+             *
+             * A readiness dot is about a PERSON: they are named on the policy
+             * but cannot be reached, or can only be reached by falling back.
+             *
+             * They compose - an uncovered schedule sits next to user chips that
+             * each carry their own dot - so both are rendered, and neither is
+             * allowed to mask the other.
+             *
+             * Teams and schedules are containers, not people: the readiness
+             * payload is per-user and does not say which team or which layer a
+             * given user was reached through, so a dot on a team chip could only
+             * be a guess. Only user chips carry one.
+             */
+            const responderReadiness: UserReadinessWire | null =
+              responder.type === "user"
+                ? findReadinessForResponder(readinessIndex, {
+                    userId: responder.userId,
+                    label: responder.label,
+                  })
+                : null;
+
+            return (
+              <span
+                key={`r-${i}`}
+                title={
+                  responder.isUncovered
+                    ? "No one is currently on call in this schedule."
+                    : undefined
+                }
+                className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
+                  responder.isUncovered
+                    ? "bg-amber-50 text-amber-700 ring-amber-200"
+                    : "bg-gray-50 text-gray-700 ring-gray-200"
+                }`}
+              >
+                <Icon
+                  icon={
+                    responder.isUncovered
+                      ? IconProp.Alert
+                      : responderIcon(responder.type)
+                  }
+                  className={`h-3 w-3 ${
+                    responder.isUncovered
+                      ? "text-amber-500"
+                      : responderIconColor(responder.type)
+                  }`}
+                />
+                {responder.label}
+                {responder.isUncovered ? (
+                  <span className="text-[10px] font-semibold uppercase tracking-wide">
+                    no one on call
+                  </span>
+                ) : (
+                  <></>
+                )}
+                {responderReadiness ? (
+                  <ReadinessDot
+                    user={responderReadiness}
+                    label={responder.label}
+                    isFallbackEnabled={isFallbackEnabled}
+                  />
+                ) : (
+                  <></>
+                )}
+                {/*
+                 * No row, and the answer is known to be incomplete: this person
+                 * was not checked. Everywhere else a bare chip means "ready", so
+                 * without this the truncated case would quietly promote somebody
+                 * nobody looked at into somebody who is fine.
+                 */}
+                {!responderReadiness &&
+                responder.type === "user" &&
+                isTruncated ? (
+                  <ReadinessUnknownDot label={responder.label} />
+                ) : (
+                  <></>
+                )}
+              </span>
+            );
+          },
+        )}
       </span>
     );
   };
@@ -172,33 +307,36 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
       <div className="p-6">
         {/* Stat tiles */}
         <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {getStatTile({
-            icon: IconProp.List,
-            label:
-              levels.length === 1 ? "Escalation level" : "Escalation levels",
-            value: `${levels.length}`,
-          })}
-          {getStatTile({
-            icon: IconProp.User,
-            label: distinctResponders === 1 ? "Responder" : "Responders",
-            value: `${distinctResponders}`,
-          })}
-          {getStatTile({
-            icon: IconProp.Clock,
-            label: "To final level",
-            value:
+          <StatTile
+            icon={IconProp.List}
+            label={
+              levels.length === 1 ? "Escalation level" : "Escalation levels"
+            }
+            value={`${levels.length}`}
+          />
+          <StatTile
+            icon={IconProp.User}
+            label={distinctResponders === 1 ? "Responder" : "Responders"}
+            value={`${distinctResponders}`}
+          />
+          <StatTile
+            icon={IconProp.Clock}
+            label="To final level"
+            value={
               timeToFinalLevel > 0
                 ? formatDuration(timeToFinalLevel)
-                : "Instant",
-          })}
-          {getStatTile({
-            icon: IconProp.Reload,
-            label: "Repeats if unacked",
-            value:
+                : "Instant"
+            }
+          />
+          <StatTile
+            icon={IconProp.Reload}
+            label="Repeats if unacked"
+            value={
               props.repeatEnabled && props.repeatCount > 0
                 ? `${props.repeatCount}×`
-                : "None",
-          })}
+                : "None"
+            }
+          />
         </div>
 
         {/* Condensed escalation timeline */}

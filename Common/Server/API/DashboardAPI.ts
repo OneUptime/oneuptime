@@ -1,4 +1,7 @@
 import UserMiddleware from "../Middleware/UserAuthorization";
+import PublicDashboardRateLimit, {
+  PublicDashboardRateLimitBucket,
+} from "../Middleware/PublicDashboardRateLimit";
 import DashboardService, {
   Service as DashboardServiceType,
 } from "../Services/DashboardService";
@@ -51,8 +54,10 @@ import ProxmoxResource from "../../Models/DatabaseModels/ProxmoxResource";
 import CephResource from "../../Models/DatabaseModels/CephResource";
 import DockerSwarmResource from "../../Models/DatabaseModels/DockerSwarmResource";
 import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
+import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
 import Span from "../../Models/AnalyticsModels/Span";
 import Log from "../../Models/AnalyticsModels/Log";
+import SloHistory from "../../Models/AnalyticsModels/SloHistory";
 import IncidentService from "../Services/IncidentService";
 import AlertService from "../Services/AlertService";
 import MonitorService from "../Services/MonitorService";
@@ -66,13 +71,20 @@ import ProxmoxResourceService from "../Services/ProxmoxResourceService";
 import CephResourceService from "../Services/CephResourceService";
 import DockerSwarmResourceService from "../Services/DockerSwarmResourceService";
 import NetworkSiteService from "../Services/NetworkSiteService";
+import ServiceLevelObjectiveService from "../Services/ServiceLevelObjectiveService";
 import SpanService from "../Services/SpanService";
 import LogService from "../Services/LogService";
+import SloHistoryService from "../Services/SloHistoryService";
 import DashboardComponentType from "../../Types/Dashboard/DashboardComponentType";
 import { DashboardVariableType } from "../../Types/Dashboard/DashboardVariable";
 import PublicDashboardResourceListPolicy, {
   PublicDashboardResourceListPolicyResult,
 } from "../Utils/Dashboard/PublicDashboardResourceListPolicy";
+import PublicDashboardSloHistoryPolicy, {
+  PublicDashboardSloHistoryPolicyResult,
+} from "../Utils/Dashboard/PublicDashboardSloHistoryPolicy";
+import AggregationType from "../../Types/BaseDatabase/AggregationType";
+import InBetween from "../../Types/BaseDatabase/InBetween";
 import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import { applyAlertSelfPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
 
@@ -96,6 +108,19 @@ interface PublicDashboardResourceConfig {
   };
   widgets: Partial<Record<DashboardComponentType, string | null>>;
 }
+
+/*
+ * Named rather than inlined below: the SLO history route selects its widget
+ * through the same registry entry as the resource-list route, so both must
+ * agree on which stored widgets count as "an SLO widget on this dashboard".
+ */
+const PUBLIC_DASHBOARD_SLO_RESOURCE: PublicDashboardResourceConfig = {
+  modelType: ServiceLevelObjective,
+  service: ServiceLevelObjectiveService,
+  widgets: {
+    [DashboardComponentType.Slo]: null,
+  },
+};
 
 const PUBLIC_DASHBOARD_RESOURCES: Record<
   string,
@@ -258,6 +283,7 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
       [DashboardComponentType.LogStream]: null,
     },
   },
+  slo: PUBLIC_DASHBOARD_SLO_RESOURCE,
 };
 
 type ResolveDashboardIdOrThrowFunction = (
@@ -319,11 +345,45 @@ export default class DashboardAPI extends BaseAPI<
   public constructor() {
     super(Dashboard, DashboardService);
 
+    /*
+     * Rate limiting for the anonymous public dashboard surface. Nginx exposes
+     * every route below under /public-dashboard-api and rewrites it to
+     * /api/dashboard before it reaches us, so this router IS that prefix and
+     * the limiter goes on all of it uniformly rather than on the handful of
+     * routes that happen to be the most expensive today.
+     *
+     * Registered ahead of UserMiddleware so a flood is rejected before it
+     * costs a session lookup. See PublicDashboardRateLimit for the budgets
+     * and for why the two buckets fail in opposite directions when Redis is
+     * unreachable.
+     */
+    const publicDashboardRateLimit: (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ) => Promise<void> = PublicDashboardRateLimit.getMiddleware(
+      PublicDashboardRateLimitBucket.Read,
+    );
+
+    /*
+     * /master-password verifies a bcrypt hash per request, so unthrottled it
+     * is an online password-guessing oracle that also burns a CPU-bound hash
+     * per guess. Its own, much tighter bucket.
+     */
+    const masterPasswordRateLimit: (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ) => Promise<void> = PublicDashboardRateLimit.getMiddleware(
+      PublicDashboardRateLimitBucket.MasterPassword,
+    );
+
     // SEO endpoint - resolve dashboard by ID or domain
     this.router.get(
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/seo/:dashboardIdOrDomain`,
+      publicDashboardRateLimit,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -504,6 +564,7 @@ export default class DashboardAPI extends BaseAPI<
 
     this.router.post(
       overviewApiPath,
+      publicDashboardRateLimit,
       UserMiddleware.getUserMiddleware,
       overviewHandler,
     );
@@ -515,6 +576,7 @@ export default class DashboardAPI extends BaseAPI<
      */
     this.router.get(
       overviewApiPath,
+      publicDashboardRateLimit,
       UserMiddleware.getUserMiddleware,
       overviewHandler,
     );
@@ -522,6 +584,7 @@ export default class DashboardAPI extends BaseAPI<
     // Domain resolution endpoint
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/domain`,
+      publicDashboardRateLimit,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -567,6 +630,7 @@ export default class DashboardAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/metadata/:dashboardId`,
+      publicDashboardRateLimit,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -629,6 +693,7 @@ export default class DashboardAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/view-config/:dashboardId`,
+      publicDashboardRateLimit,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -730,6 +795,7 @@ export default class DashboardAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/attribute-values/:dashboardId`,
+      publicDashboardRateLimit,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -843,6 +909,7 @@ export default class DashboardAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/metric-types/:dashboardId`,
+      publicDashboardRateLimit,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -952,6 +1019,7 @@ export default class DashboardAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/metrics-aggregate/:dashboardId`,
+      publicDashboardRateLimit,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -1228,6 +1296,7 @@ export default class DashboardAPI extends BaseAPI<
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/resource-list/:dashboardId/:resourceType`,
+      publicDashboardRateLimit,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -1248,10 +1317,143 @@ export default class DashboardAPI extends BaseAPI<
       },
     );
 
+    /*
+     * Public SLO history aggregation for the SLO widget's Chart display.
+     *
+     * The SLO's CURRENT numbers come back through /resource-list/.../slo
+     * like every other widget's data; this route serves the time SERIES
+     * behind them, which lives in ClickHouse and so needs an aggregation
+     * rather than a list.
+     *
+     * Nothing the caller sends selects data. The SLO and the series are
+     * read out of the stored widget (identified by componentId), the
+     * aggregation columns are fixed, the bucket size is recomputed from the
+     * window, and the project is pinned to the dashboard's — so the only
+     * caller-supplied input that survives is the time window itself.
+     * Authorization reuses DashboardService.hasReadAccess.
+     */
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/slo-history-aggregate/:dashboardId`,
+      publicDashboardRateLimit,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const dashboardId: ObjectID = new ObjectID(
+            req.params["dashboardId"] as string,
+          );
+
+          const accessResult: {
+            hasReadAccess: boolean;
+            error?: NotAuthenticatedException | ForbiddenException;
+          } = await DashboardService.hasReadAccess({
+            dashboardId,
+            req,
+          });
+
+          if (!accessResult.hasReadAccess) {
+            throw (
+              accessResult.error ||
+              new BadDataException("Access denied to this dashboard.")
+            );
+          }
+
+          if (!req.body || !req.body["aggregateBy"]) {
+            throw new BadDataException("aggregateBy is required.");
+          }
+
+          const dashboard: Dashboard | null =
+            await DashboardService.findOneById({
+              id: dashboardId,
+              select: {
+                _id: true,
+                projectId: true,
+                dashboardViewConfig: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!dashboard || !dashboard.projectId) {
+            throw new NotFoundException("Dashboard not found");
+          }
+
+          const widget: JSONObject = DashboardAPI.selectPublicResourceWidget({
+            dashboardViewConfig: dashboard.dashboardViewConfig,
+            config: PUBLIC_DASHBOARD_SLO_RESOURCE,
+            requestedComponentId: req.body["componentId"],
+          });
+
+          const policy: PublicDashboardSloHistoryPolicyResult =
+            PublicDashboardSloHistoryPolicy.build({
+              widget,
+              requestedAggregateBy: JSONFunctions.deserialize(
+                req.body["aggregateBy"] as JSONObject,
+              ),
+            });
+
+          const aggregateResult: AggregatedResult =
+            await SloHistoryService.aggregateBy({
+              /*
+               * Narrow the assertion to `query` alone. Everything else in
+               * this literal is typed against SloHistory — the column names
+               * below are `keyof SloHistory` — so asserting the whole object
+               * would turn off exactly the check that catches a typo or a
+               * renamed column at compile time instead of at runtime.
+               */
+              query: {
+                projectId: dashboard.projectId,
+                sloId: policy.serviceLevelObjectiveId,
+                metricName: policy.metricName,
+                bucketStart: new InBetween<Date>(
+                  policy.startDate,
+                  policy.endDate,
+                ),
+              } as unknown as AggregateBy<SloHistory>["query"],
+              /*
+               * All three SLO series are instantaneous gauges, so averaging
+               * the raw buckets that fall inside one chart point is the only
+               * roll-up that means anything — same as the authenticated
+               * widget and the SLO detail page.
+               */
+              aggregationType: AggregationType.Avg,
+              aggregateColumnName: "value",
+              aggregationTimestampColumnName: "bucketStart",
+              aggregationInterval: policy.aggregationInterval,
+              startTimestamp: policy.startDate,
+              endTimestamp: policy.endDate,
+              // Oldest -> newest so the line renders left to right.
+              sort: {
+                bucketStart: SortOrder.Ascending,
+              },
+              limit: policy.limit,
+              skip: 0,
+              /*
+               * Run as root: authorization is already enforced by
+               * hasReadAccess above and the project scope is pinned in the
+               * query.
+               */
+              props: {
+                isRoot: true,
+              },
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            ...(aggregateResult as unknown as JSONObject),
+          });
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
     this.router.post(
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/master-password/:dashboardId`,
+      masterPasswordRateLimit,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -1379,7 +1581,21 @@ export default class DashboardAPI extends BaseAPI<
           typeof componentObject["componentType"] === "string"
             ? componentObject["componentType"]
             : "",
-        title: getStringArgument("chartTitle") || getStringArgument("title"),
+        /*
+         * Widgets do not agree on where the author's heading lives — each
+         * one's settings form names its own argument (`chartTitle`,
+         * `gaugeTitle`, `tableTitle`, the SLO widget's `widgetTitle`, plain
+         * `title` elsewhere). Read every key that is actually a heading
+         * today, so a summary is not blank for a widget that plainly has a
+         * title on the page. A widget type added later with yet another key
+         * needs adding here too.
+         */
+        title:
+          getStringArgument("chartTitle") ||
+          getStringArgument("gaugeTitle") ||
+          getStringArgument("tableTitle") ||
+          getStringArgument("widgetTitle") ||
+          getStringArgument("title"),
         description: getStringArgument("chartDescription"),
         text: getStringArgument("text"),
         metricNames: Array.from(

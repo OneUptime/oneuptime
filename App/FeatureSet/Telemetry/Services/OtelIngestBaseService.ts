@@ -43,7 +43,8 @@ import EntityType from "Common/Types/Telemetry/EntityType";
 import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
-import TelemetryEntity, {
+import InventoryItem, {
+  EntityExtractionResult,
   ExtractedEntity,
   ResourceEntityRef,
 } from "Common/Server/Utils/Telemetry/TelemetryEntity";
@@ -442,9 +443,8 @@ export default abstract class OtelIngestBaseService {
      * Phantom-host gating still lives in `autoDiscoverHost` — if the
      * batch only carries application-SDK-detected host.name (no
      * os.type / container.runtime), no Host row is created. K8s
-     * batches (k8s.pod.name / k8s.node.name / k8s.cluster.name) are
-     * also rejected by `autoDiscoverHost` so they route via the
-     * KubernetesCluster id instead.
+     * batches carrying any supported Kubernetes identity are also rejected by
+     * `autoDiscoverHost` so they route via their Kubernetes entity instead.
      */
     const hostName: string | null = this.getHostNameFromAttributes(attributes);
     if (hostName && this.hasHostResourceSignal(attributes)) {
@@ -549,11 +549,13 @@ export default abstract class OtelIngestBaseService {
         prefixKeysWithString: "",
       });
 
-    const entities: Array<ExtractedEntity> = TelemetryEntity.extractEntities({
-      projectId: data.projectId.toString(),
-      attributes: flatAttributes,
-      entityRefs: data.entityRefs,
-    });
+    const extraction: EntityExtractionResult =
+      InventoryItem.extractEntitiesWithRetirements({
+        projectId: data.projectId.toString(),
+        attributes: flatAttributes,
+        entityRefs: data.entityRefs,
+      });
+    const entities: Array<ExtractedEntity> = extraction.entities;
 
     /*
      * One extraction feeds both columns (extractEntityKeys would re-run
@@ -575,6 +577,7 @@ export default abstract class OtelIngestBaseService {
     void reconcileEntityRegistryThrottled({
       projectId: data.projectId,
       entities,
+      retiredEntities: extraction.retiredEntities,
     });
 
     return metadata;
@@ -2428,6 +2431,21 @@ export default abstract class OtelIngestBaseService {
   }
 
   /**
+   * Whether this OTLP resource identifies a supported Kubernetes entity.
+   * Keep Host-producing ingest paths on the same predicate as InventoryItem
+   * extraction so adding a semconv identity cannot reopen phantom Hosts in a
+   * second pipeline.
+   */
+  protected static hasKubernetesIdentity(attributes: JSONArray): boolean {
+    return InventoryItem.hasKubernetesIdentity(
+      TelemetryUtil.getAttributes({
+        items: attributes,
+        prefixKeysWithString: "",
+      }),
+    );
+  }
+
+  /**
    * Read an OTel attribute that may be either a single string or an
    * array of strings, returning the values as a list. Used for
    * attributes like host.ip whose schema is "array of IP addresses".
@@ -2801,11 +2819,11 @@ export default abstract class OtelIngestBaseService {
    *      synthesis is NOT accepted here — kubeletstats labels pod and
    *      node metrics with k8s.node.name only, which would otherwise
    *      flood the Hosts list with k8s node names.
-   *   2. No `k8s.pod.name` / `k8s.node.name` / `k8s.cluster.name`
-   *      resource attribute. If any of these is set the batch is
-   *      Kubernetes telemetry and belongs in the KubernetesCluster
-   *      record; routing happens in `resolveTelemetryResource` via the
-   *      kubernetesClusterId path.
+   *   2. No supported Kubernetes identity resource attribute. This uses the
+   *      same predicate as InventoryItem extraction, including pod/node UIDs,
+   *      namespace and deployment identities as well as pod/node/cluster
+   *      names. Keeping one shared gate prevents one path from suppressing a
+   *      phantom registry Host while this path recreates its typed Host row.
    *   3. The same batch did not already resolve to a DockerHost or
    *      KubernetesCluster row. Docker hosts and K8s clusters/nodes have
    *      their own dedicated tables; we don't want a duplicate Host row
@@ -2861,19 +2879,7 @@ export default abstract class OtelIngestBaseService {
         return null;
       }
 
-      const k8sPodName: string | null = this.getStringAttribute(
-        data.attributes,
-        "k8s.pod.name",
-      );
-      const k8sNodeName: string | null = this.getStringAttribute(
-        data.attributes,
-        "k8s.node.name",
-      );
-      const k8sClusterName: string | null = this.getClusterNameFromAttributes(
-        data.attributes,
-      );
-
-      if (k8sPodName || k8sNodeName || k8sClusterName) {
+      if (this.hasKubernetesIdentity(data.attributes)) {
         return null;
       }
 

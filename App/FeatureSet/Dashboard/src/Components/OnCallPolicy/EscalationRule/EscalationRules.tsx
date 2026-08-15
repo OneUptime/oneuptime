@@ -3,6 +3,19 @@ import EscalationSummary, {
   EscalationLevelSummary,
   EscalationResponder,
 } from "./EscalationSummary";
+import {
+  EMPTY_RULE_READINESS_REPORT,
+  ResponderGroupRef,
+  ResponderGroupResolutions,
+  ResponderRef,
+  RuleReadinessDetails,
+  RuleReadinessLabel,
+  RuleReadinessReport,
+  SetupReminderController,
+  buildRuleReadinessReport,
+  useResponderGroups,
+  useSetupReminders,
+} from "./EscalationRuleReadiness";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -40,10 +53,24 @@ import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnC
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
+import ReadinessDot, { ReadinessUnknownDot } from "../Readiness/ReadinessDot";
+import {
+  READINESS_STATUS_NOT_REACHABLE,
+  ReadinessDeliveryContext,
+  ReadinessIndex,
+  UserReadinessWire,
+  buildReadinessIndex,
+  findReadinessForResponder,
+} from "../Readiness/ReadinessTypes";
+import useOnCallReadiness, {
+  OnCallReadinessState,
+} from "../Readiness/useOnCallReadiness";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -59,13 +86,13 @@ export interface ComponentProps {
  * just the entity) so we have both the entity to render AND the join-row id,
  * which is what we delete when a responder is removed during an edit.
  */
-interface RuleMembers {
+export interface RuleMembers {
   userJoins: Array<OnCallDutyPolicyEscalationRuleUser>;
   teamJoins: Array<OnCallDutyPolicyEscalationRuleTeam>;
   scheduleJoins: Array<OnCallDutyPolicyEscalationRuleSchedule>;
 }
 
-type MembersByRuleId = Record<string, RuleMembers>;
+export type MembersByRuleId = Record<string, RuleMembers>;
 
 /*
  * The selected responder ids captured live from the edit form, keyed by the
@@ -84,23 +111,36 @@ interface MemberDefaults {
   onCallSchedules: Array<DropdownOption>;
 }
 
-const emptyRuleMembers: () => RuleMembers = (): RuleMembers => {
+export const emptyRuleMembers: () => RuleMembers = (): RuleMembers => {
   return { userJoins: [], teamJoins: [], scheduleJoins: [] };
 };
 
 /*
- * Normalizes a form multi-select value (which may be an array of ids, or an
- * array of { value, label } option envelopes when seeded as a default) into a
- * plain array of id strings.
+ * One entry of a form multi-select value, flattened.
+ *
+ * `label` is only ever populated when the form handed us option envelopes
+ * rather than bare ids, so it is optional on purpose: it is a nicety for the
+ * warning copy (naming the person the admin just picked before their readiness
+ * row has arrived), never the identity of anything.
  */
-const toIdArray: (value: unknown) => Array<string> = (
+export interface SelectedOption {
+  id: string;
+  label: string;
+}
+
+/*
+ * Normalizes a form multi-select value (which may be an array of ids, or an
+ * array of { value, label } option envelopes when seeded as a default) into
+ * id/label pairs.
+ */
+export const toSelectedOptions: (value: unknown) => Array<SelectedOption> = (
   value: unknown,
-): Array<string> => {
+): Array<SelectedOption> => {
   if (!Array.isArray(value)) {
     return [];
   }
 
-  const ids: Array<string> = [];
+  const options: Array<SelectedOption> = [];
   for (const item of value) {
     if (item === null || item === undefined) {
       continue;
@@ -109,15 +149,35 @@ const toIdArray: (value: unknown) => Array<string> = (
       typeof item === "object" &&
       "value" in (item as Record<string, unknown>)
     ) {
-      const inner: unknown = (item as Record<string, unknown>)["value"];
+      const envelope: Record<string, unknown> = item as Record<string, unknown>;
+      const inner: unknown = envelope["value"];
       if (inner !== null && inner !== undefined) {
-        ids.push(String(inner));
+        const label: unknown = envelope["label"];
+        options.push({
+          id: String(inner),
+          label:
+            label === null || label === undefined ? "" : String(label).trim(),
+        });
       }
     } else {
-      ids.push(String(item));
+      options.push({ id: String(item), label: "" });
     }
   }
-  return ids;
+  return options;
+};
+
+/*
+ * The ids alone, for the join-row reconciliation that does not care about copy.
+ * The form's onChange keeps the id/label pairs as well now - the warning needs
+ * the label to name a team - so this reduces a selection that has already been
+ * flattened rather than re-reading the raw form value.
+ */
+const toIds: (options: Array<SelectedOption>) => Array<string> = (
+  options: Array<SelectedOption>,
+): Array<string> => {
+  return options.map((option: SelectedOption): string => {
+    return option.id;
+  });
 };
 
 // Turns a raw minutes value into a compact human-readable string, e.g. "1 hr 30 min".
@@ -147,6 +207,162 @@ const RULE_FORM_STEPS: Array<{ title: string; id: string }> = [
   { title: "Notify", id: "notification" },
   { title: "Escalation", id: "escalation" },
 ];
+
+/*
+ * ESCALATION-RULE DELETION IMPACT.
+ *
+ * What actually goes away when a level is deleted, counted rather than
+ * gestured at. "Its notification targets will be removed" is true of every
+ * delete and therefore tells an admin nothing about THIS one.
+ */
+export interface EscalationRuleDeletionImpact {
+  userCount: number;
+  teamCount: number;
+  scheduleCount: number;
+  /*
+   * Users named on this level and on no other level of this policy. Deliberately
+   * only DIRECTLY named users: team membership and schedule rosters are resolved
+   * server-side and are not in this component's hands, so a name is listed here
+   * only when the claim can be checked from what is on screen.
+   */
+  usersNamedNowhereElse: Array<string>;
+  // True when this is the last level, i.e. the policy is about to notify no one.
+  isLastRule: boolean;
+}
+
+export const getEscalationRuleDeletionImpact: (params: {
+  ruleIdToDelete: string;
+  ruleIds: Array<string>;
+  membersByRuleId: MembersByRuleId;
+}) => EscalationRuleDeletionImpact = (params: {
+  ruleIdToDelete: string;
+  ruleIds: Array<string>;
+  membersByRuleId: MembersByRuleId;
+}): EscalationRuleDeletionImpact => {
+  const members: RuleMembers =
+    params.membersByRuleId[params.ruleIdToDelete] || emptyRuleMembers();
+
+  const namedElsewhere: Set<string> = new Set<string>();
+
+  for (const ruleId of params.ruleIds) {
+    if (ruleId === params.ruleIdToDelete) {
+      continue;
+    }
+
+    const otherMembers: RuleMembers =
+      params.membersByRuleId[ruleId] || emptyRuleMembers();
+
+    for (const join of otherMembers.userJoins) {
+      const userId: string | undefined = join.user?.id?.toString();
+
+      if (userId) {
+        namedElsewhere.add(userId);
+      }
+    }
+  }
+
+  const usersNamedNowhereElse: Array<string> = [];
+
+  for (const join of members.userJoins) {
+    const userId: string | undefined = join.user?.id?.toString();
+
+    if (!userId || namedElsewhere.has(userId)) {
+      continue;
+    }
+
+    usersNamedNowhereElse.push(
+      join.user?.name?.toString() || join.user?.email?.toString() || "A user",
+    );
+  }
+
+  return {
+    userCount: members.userJoins.length,
+    teamCount: members.teamJoins.length,
+    scheduleCount: members.scheduleJoins.length,
+    usersNamedNowhereElse: usersNamedNowhereElse,
+    isLastRule: params.ruleIds.length <= 1,
+  };
+};
+
+// "2 users, 1 team and 1 on-call schedule", or "" when the level notifies nobody.
+const describeResponderCounts: (
+  impact: EscalationRuleDeletionImpact,
+) => string = (impact: EscalationRuleDeletionImpact): string => {
+  const parts: Array<string> = [];
+
+  if (impact.userCount > 0) {
+    parts.push(
+      `${impact.userCount} ${impact.userCount === 1 ? "user" : "users"}`,
+    );
+  }
+
+  if (impact.teamCount > 0) {
+    parts.push(
+      `${impact.teamCount} ${impact.teamCount === 1 ? "team" : "teams"}`,
+    );
+  }
+
+  if (impact.scheduleCount > 0) {
+    parts.push(
+      `${impact.scheduleCount} on-call ${
+        impact.scheduleCount === 1 ? "schedule" : "schedules"
+      }`,
+    );
+  }
+
+  if (parts.length === 0) {
+    return "";
+  }
+
+  if (parts.length === 1) {
+    return parts[0]!;
+  }
+
+  return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+};
+
+/*
+ * The confirmation sentence for deleting one level. Every clause is a fact
+ * derived from the rows already on screen, so there is no version of this
+ * message that says "this may affect your coverage" and means nothing.
+ */
+export const describeEscalationRuleDeletion: (
+  ruleName: string,
+  impact: EscalationRuleDeletionImpact,
+) => string = (
+  ruleName: string,
+  impact: EscalationRuleDeletionImpact,
+): string => {
+  const sentences: Array<string> = [];
+  const responderSummary: string = describeResponderCounts(impact);
+
+  if (responderSummary) {
+    sentences.push(`"${ruleName}" notifies ${responderSummary}.`);
+  } else {
+    sentences.push(`"${ruleName}" currently notifies no one.`);
+  }
+
+  if (impact.isLastRule) {
+    sentences.push(
+      "This is the only escalation level on this policy. Deleting it leaves the policy with nobody to notify, so an incident routed here would page no one.",
+    );
+  }
+
+  if (impact.usersNamedNowhereElse.length > 0) {
+    const names: string = impact.usersNamedNowhereElse.join(", ");
+    const isSingle: boolean = impact.usersNamedNowhereElse.length === 1;
+
+    sentences.push(
+      `${names} ${
+        isSingle ? "is" : "are"
+      } not named on any other level of this policy.`,
+    );
+  }
+
+  sentences.push("This action cannot be undone.");
+
+  return sentences.join(" ");
+};
 
 /*
  * getDefaultValue is typed to return a scalar, but a multi-select form value is
@@ -334,6 +550,23 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
   const editedMembersRef: React.MutableRefObject<SelectedMembers> =
     useRef<SelectedMembers>({ users: [], teams: [], onCallSchedules: [] });
 
+  /*
+   * The level whose readiness detail is open, by rule id. The label on the card
+   * is the entry point and this is the room behind it.
+   */
+  const [ruleIdToInspect, setRuleIdToInspect] = useState<string>("");
+
+  /*
+   * Bumped on every reload so the team and schedule expansions below are read
+   * again rather than served from the cache they filled when the page opened.
+   * Membership changes while somebody is looking at this screen, and a stale
+   * roster either hides a person who was just added to a team or accuses a level
+   * of reaching somebody who has since left it.
+   */
+  const [dataVersion, setDataVersion] = useState<number>(0);
+
+  const reminders: SetupReminderController = useSetupReminders();
+
   const loadData: () => Promise<void> = async (): Promise<void> => {
     try {
       setIsLoading(true);
@@ -424,6 +657,14 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             onCallDutyPolicySchedule: {
               _id: true,
               name: true,
+              /*
+               * Whether the schedule has anybody on call right now. Already
+               * persisted and refreshed every minute by the RefreshHandoffTime
+               * worker, so reading it here is free — and without it the chip
+               * below claims a schedule is a responder even when it would
+               * currently page no one.
+               */
+              currentUserIdOnRoster: true,
             },
           },
           sort: {},
@@ -473,6 +714,16 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
 
       setRules(rulesResult.data);
       setMembersByRuleId(members);
+      /*
+       * Everything derived from a team's or a schedule's membership is now
+       * describing rows that were just re-read, so the expansions behind it are
+       * dropped rather than reused. A rule that has just had a team added to it
+       * has to expand that team; a rule that has just had one removed must stop
+       * counting the people inside it.
+       */
+      setDataVersion((current: number) => {
+        return current + 1;
+      });
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -483,6 +734,197 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
   useAsyncEffect(async () => {
     await loadData();
   }, []);
+
+  /*
+   * READINESS FOR THIS POLICY, LOADED ONCE FOR THE WHOLE PAGE.
+   *
+   * Three surfaces on this screen need the same answer: the dots on the
+   * escalation summary's chips, the label on every rule card, and the detail
+   * modal behind that label. It is loaded here, at the one place all three
+   * share, and handed down - EscalationSummary falls back to loading it itself
+   * when it is not given one, so every other embedding of it keeps working.
+   */
+  const readiness: OnCallReadinessState = useOnCallReadiness({
+    onCallDutyPolicyId: props.onCallDutyPolicyId,
+  });
+
+  const readinessIndex: ReadinessIndex = useMemo((): ReadinessIndex => {
+    return buildReadinessIndex(readiness.summary);
+  }, [readiness.summary]);
+
+  /*
+   * A change to the rules is a change to WHO this policy reaches, so the
+   * readiness answer on screen is about a different set of people the moment a
+   * save lands. loadData re-reads the rules; this is the other half of it.
+   *
+   * dataVersion counts how many times the rules have been read, and the FIRST
+   * read is the page opening - the readiness hook has just fetched for that, and
+   * asking again there would be two requests for one page load. Every read after
+   * it follows something somebody did: a rule saved, deleted, reordered, or
+   * Refresh pressed.
+   */
+  const readinessVersionRef: React.MutableRefObject<number> = useRef<number>(1);
+
+  useEffect(() => {
+    if (dataVersion <= readinessVersionRef.current) {
+      return;
+    }
+
+    readinessVersionRef.current = dataVersion;
+
+    readiness.reload().catch(() => {
+      // The hook routes every failure into its own error state.
+    });
+  }, [dataVersion]);
+
+  /*
+   * Whether a rule gap is a late page or a lost one, which is the project's
+   * decision and not this component's. It defaults to the product's own default
+   * - fallback on - rather than to false, so that nothing here can ever claim
+   * pages are being dropped on the strength of a payload that has not arrived.
+   */
+  const delivery: ReadinessDeliveryContext = {
+    isFallbackEnabled: readiness.summary
+      ? readiness.summary.isFallbackEnabled
+      : true,
+  };
+
+  /*
+   * Only meaningful once something has loaded. An idle or still-loading hook is
+   * not a truncated answer, and marking responders "not checked" while the
+   * request is in flight would put a grey badge on every level for a second.
+   */
+  const isReadinessTruncated: boolean =
+    Boolean(readiness.summary) && readiness.isTruncated;
+
+  /*
+   * Every team and schedule ANY level of this policy notifies, deduped across
+   * levels. Two levels that both notify the Payments team read its membership
+   * once between them.
+   */
+  const responderGroups: Array<ResponderGroupRef> =
+    useMemo((): Array<ResponderGroupRef> => {
+      const groups: Array<ResponderGroupRef> = [];
+      const seen: Set<string> = new Set<string>();
+
+      const add: (group: ResponderGroupRef) => void = (
+        group: ResponderGroupRef,
+      ): void => {
+        const key: string = `${group.kind}:${group.id}`;
+
+        if (!group.id || seen.has(key)) {
+          return;
+        }
+
+        seen.add(key);
+        groups.push(group);
+      };
+
+      for (const ruleId of Object.keys(membersByRuleId)) {
+        const members: RuleMembers =
+          membersByRuleId[ruleId] || emptyRuleMembers();
+
+        for (const join of members.teamJoins) {
+          add({
+            kind: "team",
+            id: join.team?.id?.toString() || "",
+            label: join.team?.name?.toString() || "",
+          });
+        }
+
+        for (const join of members.scheduleJoins) {
+          add({
+            kind: "schedule",
+            id: join.onCallDutyPolicySchedule?.id?.toString() || "",
+            label: join.onCallDutyPolicySchedule?.name?.toString() || "",
+          });
+        }
+      }
+
+      return groups;
+    }, [membersByRuleId]);
+
+  const groupResolutions: ResponderGroupResolutions = useResponderGroups({
+    groups: responderGroups,
+    projectId: props.projectId,
+    reloadToken: dataVersion,
+  });
+
+  /*
+   * What is wrong on each level, keyed by rule id. Recomputed when the rules,
+   * the group expansions or the readiness answer change - all three are inputs
+   * to the same sentence, and a card that is a render behind any of them is a
+   * card claiming something that is no longer true.
+   */
+  const reportsByRuleId: Record<string, RuleReadinessReport> =
+    useMemo((): Record<string, RuleReadinessReport> => {
+      const reports: Record<string, RuleReadinessReport> = {};
+
+      for (const ruleId of Object.keys(membersByRuleId)) {
+        const members: RuleMembers =
+          membersByRuleId[ruleId] || emptyRuleMembers();
+
+        const directUsers: Array<ResponderRef> = members.userJoins
+          .map((join: OnCallDutyPolicyEscalationRuleUser): ResponderRef => {
+            return {
+              userId: join.user?.id?.toString() || "",
+              label:
+                join.user?.name?.toString() ||
+                join.user?.email?.toString() ||
+                "",
+            };
+          })
+          .filter((responder: ResponderRef): boolean => {
+            return Boolean(responder.userId);
+          });
+
+        const groups: Array<ResponderGroupRef> = [
+          ...members.teamJoins.map(
+            (join: OnCallDutyPolicyEscalationRuleTeam): ResponderGroupRef => {
+              return {
+                kind: "team",
+                id: join.team?.id?.toString() || "",
+                label: join.team?.name?.toString() || "",
+              };
+            },
+          ),
+          ...members.scheduleJoins.map(
+            (
+              join: OnCallDutyPolicyEscalationRuleSchedule,
+            ): ResponderGroupRef => {
+              return {
+                kind: "schedule",
+                id: join.onCallDutyPolicySchedule?.id?.toString() || "",
+                label: join.onCallDutyPolicySchedule?.name?.toString() || "",
+              };
+            },
+          ),
+        ].filter((group: ResponderGroupRef): boolean => {
+          return Boolean(group.id);
+        });
+
+        reports[ruleId] = buildRuleReadinessReport({
+          directUsers: directUsers,
+          groups: groups,
+          resolutions: groupResolutions,
+          index: readinessIndex,
+          isTruncated: isReadinessTruncated,
+        });
+      }
+
+      return reports;
+    }, [
+      membersByRuleId,
+      groupResolutions,
+      readinessIndex,
+      isReadinessTruncated,
+    ]);
+
+  const getRuleReport: (ruleId: string) => RuleReadinessReport = (
+    ruleId: string,
+  ): RuleReadinessReport => {
+    return reportsByRuleId[ruleId] || EMPTY_RULE_READINESS_REPORT;
+  };
 
   const moveRule: (
     rule: OnCallDutyEscalationRule,
@@ -621,10 +1063,28 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
     const name: string =
       user.name?.toString() || user.email?.toString() || "User";
 
+    /*
+     * The same dot the escalation summary's chips carry, on the chips an admin
+     * is actually editing. A person named on a level they cannot be paged from
+     * used to render here exactly like a person who can, and the level's label
+     * says how MANY - the dot is what says WHICH.
+     */
+    const responderReadiness: UserReadinessWire | null =
+      findReadinessForResponder(readinessIndex, {
+        userId: userId ? userId.toString() : undefined,
+        label: name,
+      });
+
+    const isUnreachable: boolean =
+      responderReadiness !== null &&
+      responderReadiness.status === READINESS_STATUS_NOT_REACHABLE;
+
     return (
       <span
         key={`user-${userId?.toString()}`}
-        className="inline-flex items-center gap-2 rounded-full bg-white ring-1 ring-inset ring-gray-200 py-0.5 pl-0.5 pr-3 shadow-sm"
+        className={`inline-flex items-center gap-2 rounded-full bg-white py-0.5 pl-0.5 pr-3 shadow-sm ring-1 ring-inset ${
+          isUnreachable ? "ring-red-300" : "ring-gray-200"
+        }`}
       >
         <Image
           className="h-6 w-6 rounded-full bg-gray-100 object-cover"
@@ -632,6 +1092,26 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
           alt={name}
         />
         <span className="text-sm font-medium text-gray-700">{name}</span>
+        {responderReadiness ? (
+          <ReadinessDot
+            user={responderReadiness}
+            label={name}
+            isFallbackEnabled={delivery.isFallbackEnabled}
+          />
+        ) : (
+          <></>
+        )}
+        {/*
+         * No row, and the answer is known to be incomplete: this person was not
+         * checked. Everywhere else a bare chip means "ready", so without this
+         * the truncated case would quietly promote somebody nobody looked at
+         * into somebody who is fine.
+         */}
+        {!responderReadiness && isReadinessTruncated ? (
+          <ReadinessUnknownDot label={name} />
+        ) : (
+          <></>
+        )}
       </span>
     );
   };
@@ -657,20 +1137,45 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
   const getScheduleChip: (
     schedule: OnCallDutyPolicySchedule,
   ) => ReactElement = (schedule: OnCallDutyPolicySchedule): ReactElement => {
+    /*
+     * A schedule with nobody on call right now is listed as a responder but
+     * would page no one. Rendering it identically to a healthy schedule makes
+     * a broken escalation level look correctly configured.
+     */
+    const isUncovered: boolean = !schedule.currentUserIdOnRoster;
+
     return (
       <span
         key={`schedule-${schedule.id?.toString()}`}
-        className="inline-flex items-center gap-2 rounded-full bg-white ring-1 ring-inset ring-gray-200 py-1 pl-1 pr-3 shadow-sm"
+        title={
+          isUncovered
+            ? "No one is currently on call in this schedule - this level would not notify anyone right now."
+            : undefined
+        }
+        className={`inline-flex items-center gap-2 rounded-full bg-white py-1 pl-1 pr-3 shadow-sm ring-1 ring-inset ${
+          isUncovered ? "ring-amber-300" : "ring-gray-200"
+        }`}
       >
-        <span className="h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center">
+        <span
+          className={`flex h-6 w-6 items-center justify-center rounded-full ${
+            isUncovered ? "bg-amber-100" : "bg-indigo-100"
+          }`}
+        >
           <Icon
-            icon={IconProp.Calendar}
-            className="h-3.5 w-3.5 text-indigo-600"
+            icon={isUncovered ? IconProp.Alert : IconProp.Calendar}
+            className={`h-3.5 w-3.5 ${
+              isUncovered ? "text-amber-600" : "text-indigo-600"
+            }`}
           />
         </span>
         <span className="text-sm font-medium text-gray-700">
           {schedule.name?.toString()}
         </span>
+        {isUncovered && (
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+            No one on call
+          </span>
+        )}
       </span>
     );
   };
@@ -766,10 +1271,16 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const openCreateModal: () => void = (): void => {
+    editedMembersRef.current = { users: [], teams: [], onCallSchedules: [] };
+    setShowCreateModal(true);
+  };
+
   /*
    * Opens the edit modal, seeding the live responder ref with the rule's
    * current responders so an untouched save is a no-op.
    */
+
   const openEditModal: (rule: OnCallDutyEscalationRule) => void = (
     rule: OnCallDutyEscalationRule,
   ): void => {
@@ -902,8 +1413,27 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
 
               {/* Notifies */}
               <div className="mt-4">
-                <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                  Notifies
+                <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                    Notifies
+                  </div>
+                  {/*
+                   * The warning, where the thing it is about lives. It used to
+                   * be a red slab in the footer of the add/edit modal, which
+                   * meant it was on screen for the few seconds somebody was
+                   * building a level and absent for the months that level spent
+                   * quietly failing to page anybody.
+                   */}
+                  <RuleReadinessLabel
+                    report={getRuleReport(ruleId)}
+                    delivery={delivery}
+                    ruleName={
+                      rule.name?.toString() || `Escalation Level ${index + 1}`
+                    }
+                    onClick={() => {
+                      setRuleIdToInspect(ruleId);
+                    }}
+                  />
                 </div>
                 {getNotifiesSection(members)}
               </div>
@@ -964,7 +1494,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
                 icon={IconProp.Add}
                 buttonStyle={ButtonStyleType.PRIMARY}
                 onClick={() => {
-                  return setShowCreateModal(true);
+                  return openCreateModal();
                 }}
               />
             }
@@ -987,51 +1517,131 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
     );
   };
 
-  // Prefill options for the edit modal's member multi-selects.
-  const editMemberDefaults: MemberDefaults | undefined = ruleToEdit
-    ? ((): MemberDefaults => {
-        const members: RuleMembers =
-          membersByRuleId[ruleToEdit.id?.toString() || ""] ||
-          emptyRuleMembers();
-        return {
-          onCallSchedules: members.scheduleJoins
-            .filter((join: OnCallDutyPolicyEscalationRuleSchedule) => {
-              return Boolean(join.onCallDutyPolicySchedule);
-            })
-            .map((join: OnCallDutyPolicyEscalationRuleSchedule) => {
-              return {
-                value: join.onCallDutyPolicySchedule!.id!.toString(),
-                label:
-                  join.onCallDutyPolicySchedule!.name?.toString() ||
-                  "On-call schedule",
-              };
-            }),
-          teams: members.teamJoins
-            .filter((join: OnCallDutyPolicyEscalationRuleTeam) => {
-              return Boolean(join.team);
-            })
-            .map((join: OnCallDutyPolicyEscalationRuleTeam) => {
-              return {
-                value: join.team!.id!.toString(),
-                label: join.team!.name?.toString() || "Team",
-              };
-            }),
-          users: members.userJoins
-            .filter((join: OnCallDutyPolicyEscalationRuleUser) => {
-              return Boolean(join.user);
-            })
-            .map((join: OnCallDutyPolicyEscalationRuleUser) => {
-              return {
-                value: join.user!.id!.toString(),
-                label:
-                  join.user!.name?.toString() ||
-                  join.user!.email?.toString() ||
-                  "User",
-              };
-            }),
-        };
-      })()
-    : undefined;
+  /*
+   * Prefill options for the edit modal's member multi-selects.
+   *
+   * MEMOISED, and that is load bearing rather than tidiness. ModelForm rebuilds
+   * its whole field set - including re-running fetchDropdownOptions, which is a
+   * network call for the project's user list - whenever the `fields` array it is
+   * handed changes identity. This component now re-renders while the modal is
+   * open (a responder is picked, a readiness lookup returns, a reminder is
+   * sent), so a freshly-built array on every render would refetch the user
+   * dropdown several times per selection and flicker the field the admin is
+   * using. Both this and the two field arrays below are therefore keyed on the
+   * things that genuinely change them.
+   */
+  const editRuleId: string = ruleToEdit?.id?.toString() || "";
+
+  const editMemberDefaults: MemberDefaults | undefined = useMemo(():
+    | MemberDefaults
+    | undefined => {
+    if (!editRuleId) {
+      return undefined;
+    }
+
+    const members: RuleMembers =
+      membersByRuleId[editRuleId] || emptyRuleMembers();
+
+    return {
+      onCallSchedules: members.scheduleJoins
+        .filter((join: OnCallDutyPolicyEscalationRuleSchedule) => {
+          return Boolean(join.onCallDutyPolicySchedule);
+        })
+        .map((join: OnCallDutyPolicyEscalationRuleSchedule) => {
+          return {
+            value: join.onCallDutyPolicySchedule!.id!.toString(),
+            label:
+              join.onCallDutyPolicySchedule!.name?.toString() ||
+              "On-call schedule",
+          };
+        }),
+      teams: members.teamJoins
+        .filter((join: OnCallDutyPolicyEscalationRuleTeam) => {
+          return Boolean(join.team);
+        })
+        .map((join: OnCallDutyPolicyEscalationRuleTeam) => {
+          return {
+            value: join.team!.id!.toString(),
+            label: join.team!.name?.toString() || "Team",
+          };
+        }),
+      users: members.userJoins
+        .filter((join: OnCallDutyPolicyEscalationRuleUser) => {
+          return Boolean(join.user);
+        })
+        .map((join: OnCallDutyPolicyEscalationRuleUser) => {
+          return {
+            value: join.user!.id!.toString(),
+            label:
+              join.user!.name?.toString() ||
+              join.user!.email?.toString() ||
+              "User",
+          };
+        }),
+    };
+  }, [editRuleId, membersByRuleId]);
+
+  const createFormFields: Array<ModelField<OnCallDutyEscalationRule>> =
+    useMemo((): Array<ModelField<OnCallDutyEscalationRule>> => {
+      return buildRuleFormFields();
+    }, []);
+
+  const editFormFields: Array<ModelField<OnCallDutyEscalationRule>> =
+    useMemo((): Array<ModelField<OnCallDutyEscalationRule>> => {
+      return buildRuleFormFields(editMemberDefaults);
+    }, [editMemberDefaults]);
+
+  /*
+   * The one onChange both modals share: it keeps editedMembersRef in step with
+   * the form so an untouched save stays a no-op, and so the save path can read
+   * the selection synchronously inside onSuccess.
+   *
+   * It publishes nothing into state on purpose. It used to, so that a readiness
+   * warning could re-render inside the modal on every pick - and since onChange
+   * fires for every keystroke in every field, that re-rendered the whole form
+   * (and re-fetched its dropdowns) while somebody was typing a rule name. The
+   * warning lives on the page now, where it is derived from saved rows.
+   */
+  const onRuleFormChange: (
+    values: FormValues<OnCallDutyEscalationRule>,
+  ) => void = (values: FormValues<OnCallDutyEscalationRule>): void => {
+    const currentValues: Record<string, unknown> = values as unknown as Record<
+      string,
+      unknown
+    >;
+
+    if (currentValues["onCallSchedules"] !== undefined) {
+      editedMembersRef.current.onCallSchedules = toIds(
+        toSelectedOptions(currentValues["onCallSchedules"]),
+      );
+    }
+
+    if (currentValues["teams"] !== undefined) {
+      editedMembersRef.current.teams = toIds(
+        toSelectedOptions(currentValues["teams"]),
+      );
+    }
+
+    if (currentValues["users"] !== undefined) {
+      editedMembersRef.current.users = toIds(
+        toSelectedOptions(currentValues["users"]),
+      );
+    }
+  };
+
+  /*
+   * The level whose detail is open, resolved from the loaded rules rather than
+   * held as its own copy: a level that is deleted or reordered underneath an
+   * open detail modal simply stops being found, and the modal closes with it
+   * rather than describing a rule that no longer exists.
+   */
+  const ruleToInspect: OnCallDutyEscalationRule | undefined = rules.find(
+    (rule: OnCallDutyEscalationRule): boolean => {
+      return (
+        Boolean(ruleIdToInspect) && rule.id?.toString() === ruleIdToInspect
+      );
+    },
+  );
 
   /*
    * Flatten the loaded rules + join rows into the lightweight shape the
@@ -1052,6 +1662,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             label:
               join.onCallDutyPolicySchedule.name?.toString() ||
               "On-call schedule",
+            isUncovered: !join.onCallDutyPolicySchedule.currentUserIdOnRoster,
           });
         }
       }
@@ -1071,6 +1682,16 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
               join.user.name?.toString() ||
               join.user.email?.toString() ||
               "User",
+            /*
+             * The id is what matches this chip to its readiness row. The label
+             * alone would work right up until two responders share a display
+             * name, at which point buildReadinessIndex refuses to guess and the
+             * warning silently disappears from both of them — so it is carried
+             * here even though the label is already present. The join query
+             * selects user._id (see the userJoins ModelAPI.getList above), so
+             * this is populated for every row that has a user at all.
+             */
+            userId: join.user.id ? join.user.id.toString() : undefined,
           });
         }
       }
@@ -1087,10 +1708,18 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
     <Fragment>
       {!isLoading && !error && rules.length > 0 ? (
         <div className="mb-6">
+          {/*
+           * The readiness the summary draws its dots from is this page's own,
+           * handed down rather than loaded again. Passing only the policy id
+           * would have the summary issue a second set of requests for the exact
+           * payload the rule labels below are already reading.
+           */}
           <EscalationSummary
             levels={summaryLevels}
             repeatEnabled={repeatEnabled}
             repeatCount={repeatCount}
+            onCallDutyPolicyId={props.onCallDutyPolicyId}
+            readiness={readiness}
           />
         </div>
       ) : (
@@ -1125,7 +1754,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
               buttonStyle={ButtonStyleType.PRIMARY}
               buttonSize={ButtonSize.Small}
               onClick={() => {
-                return setShowCreateModal(true);
+                return openCreateModal();
               }}
             />
           </div>
@@ -1164,7 +1793,8 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             id: "create-escalation-rule-form",
             formType: FormType.Create,
             steps: RULE_FORM_STEPS,
-            fields: buildRuleFormFields(),
+            fields: createFormFields,
+            onChange: onRuleFormChange,
           }}
         />
       ) : (
@@ -1207,26 +1837,8 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             id: "edit-escalation-rule-form",
             formType: FormType.Update,
             steps: RULE_FORM_STEPS,
-            fields: buildRuleFormFields(editMemberDefaults),
-            onChange: (values: FormValues<OnCallDutyEscalationRule>) => {
-              const currentValues: Record<string, unknown> =
-                values as unknown as Record<string, unknown>;
-              if (currentValues["onCallSchedules"] !== undefined) {
-                editedMembersRef.current.onCallSchedules = toIdArray(
-                  currentValues["onCallSchedules"],
-                );
-              }
-              if (currentValues["teams"] !== undefined) {
-                editedMembersRef.current.teams = toIdArray(
-                  currentValues["teams"],
-                );
-              }
-              if (currentValues["users"] !== undefined) {
-                editedMembersRef.current.users = toIdArray(
-                  currentValues["users"],
-                );
-              }
-            },
+            fields: editFormFields,
+            onChange: onRuleFormChange,
           }}
         />
       ) : (
@@ -1237,9 +1849,25 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
       {ruleToDelete ? (
         <ConfirmModal
           title="Delete Escalation Rule"
-          description={`Are you sure you want to delete "${
-            ruleToDelete.name?.toString() || "this escalation rule"
-          }"? Its notification targets will be removed. This action cannot be undone.`}
+          /*
+           * Counted, not gestured at. "Its notification targets will be removed"
+           * is true of every escalation rule ever deleted and therefore says
+           * nothing about this one; an admin cannot tell from it whether they
+           * are about to remove a spare level or the only level that pages
+           * anybody. Every clause of the replacement comes from rows already
+           * loaded on this screen, so it costs no request and can always be
+           * specific.
+           */
+          description={describeEscalationRuleDeletion(
+            ruleToDelete.name?.toString() || "this escalation rule",
+            getEscalationRuleDeletionImpact({
+              ruleIdToDelete: ruleToDelete.id?.toString() || "",
+              ruleIds: rules.map((rule: OnCallDutyEscalationRule): string => {
+                return rule.id?.toString() || "";
+              }),
+              membersByRuleId: membersByRuleId,
+            }),
+          )}
           submitButtonText="Delete Rule"
           submitButtonType={ButtonStyleType.DANGER}
           closeButtonText="Cancel"
@@ -1249,6 +1877,30 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
           }}
           onClose={() => {
             return setRuleToDelete(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {/*
+       * The room behind the label. Everything a reader needs once they have
+       * asked "who?" - every affected person named, what happens to their pages,
+       * which door they came in by, and the one fix that can be applied from
+       * here.
+       */}
+      {ruleToInspect ? (
+        <RuleReadinessDetails
+          ruleName={ruleToInspect.name?.toString() || "This escalation level"}
+          report={getRuleReport(ruleIdToInspect)}
+          delivery={delivery}
+          reminders={reminders.statuses}
+          isSendingReminders={reminders.isSending}
+          onSendReminder={(userIds: Array<string>) => {
+            reminders.send(userIds);
+          }}
+          onClose={() => {
+            return setRuleIdToInspect("");
           }}
         />
       ) : (

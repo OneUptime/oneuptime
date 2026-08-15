@@ -20,6 +20,13 @@ const localizer: DateLocalizer = momentLocalizer(moment);
 export interface ComponentProps {
   id?: string | undefined;
   events: Array<CalendarEvent>;
+  /*
+   * Events painted BEHIND the grid rather than as blocks in it. Used to shade
+   * regions that are meaningful by their absence — an on-call schedule's
+   * uncovered hours, for example, which would otherwise be indistinguishable
+   * from a grid that simply failed to load.
+   */
+  backgroundEvents?: Array<CalendarEvent> | undefined;
   defaultCalendarView?: DefaultCalendarView;
   /*
    * Which date the calendar initially opens on. Defaults to "now". Callers that
@@ -81,6 +88,7 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
       <Calendar
         defaultDate={defaultDate}
         events={props.events}
+        backgroundEvents={props.backgroundEvents || []}
         localizer={localizer}
         showMultiDayTimes
         views={CALENDAR_VIEWS}

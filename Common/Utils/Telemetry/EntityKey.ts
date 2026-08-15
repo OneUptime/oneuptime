@@ -9,7 +9,7 @@ import EntityType from "../../Types/Telemetry/EntityType";
  * Hashing goes through an injectable SHA-256 provider: the default is
  * `Common/Utils/Crypto` (crypto-js, pure JS) so this module works in the
  * browser, and the server swaps in node:crypto for the ingest hot path
- * (see TelemetryEntity.ts). Any provider MUST produce the same
+ * (see InventoryItem.ts). Any provider MUST produce the same
  * lowercase-hex SHA-256 — a hard requirement: a read-side key that
  * doesn't byte-match the ingest-side stamp finds nothing.
  *
@@ -88,7 +88,7 @@ export function computeEntityKey(data: {
  *
  * Given a OneUptime resource's identifying value, compute the entity key
  * to query `has(entityKeys, :key)`. Each MUST mirror the corresponding
- * ingest-side resolver in `TelemetryEntity.extractEntities` exactly.
+ * ingest-side resolver in `InventoryItem.extractEntities` exactly.
  */
 
 /**
@@ -136,7 +136,7 @@ export function keyForService(
 /**
  * `k8s.cluster.name` is the cluster identity (matches the KubernetesCluster
  * row's `clusterIdentifier`; the ingest resolver is name-only — see
- * `TelemetryEntity.k8sClusterIdentity`). Pass
+ * `InventoryItem.k8sClusterIdentity`). Pass
  * `KubernetesCluster.clusterIdentifier`.
  */
 export function keyForKubernetesCluster(
@@ -154,7 +154,7 @@ export function keyForKubernetesCluster(
  * `proxmox.cluster.name` is the cluster identity (matches the ProxmoxCluster
  * row's `name`, the project-unique join key written by
  * `findOrCreateByName`; the ingest resolver is name-only — see
- * `TelemetryEntity.proxmoxClusterIdentity`). Pass `ProxmoxCluster.name`.
+ * `InventoryItem.proxmoxClusterIdentity`). Pass `ProxmoxCluster.name`.
  */
 export function keyForProxmoxCluster(
   projectId: string,
@@ -189,7 +189,7 @@ export function keyForCephCluster(
  * `docker.swarm.cluster.name` is the cluster identity (matches the
  * DockerSwarmCluster row's `name`, the project-unique join key written by
  * `findOrCreateByName`; the ingest resolver is name-only — see
- * `TelemetryEntity` docker.swarm.cluster resolver). Pass
+ * `InventoryItem` docker.swarm.cluster resolver). Pass
  * `DockerSwarmCluster.name`.
  */
 export function keyForDockerSwarmCluster(

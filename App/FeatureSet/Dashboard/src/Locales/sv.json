@@ -69,8 +69,8 @@
       "exceptionsDescription": "Spåra och lös buggar över dina tjänster.",
       "llmObservabilityTitle": "AI / LLM",
       "llmObservabilityDescription": "Observera LLM- och AI-agent-anrop — tokens, kostnad, latens, prompts och completions.",
-      "entitiesTitle": "Entiteter",
-      "entitiesDescription": "Utforska entiteter som upptäckts från din telemetri.",
+      "inventoryTitle": "Inventarie",
+      "inventoryDescription": "Allt OneUptime vet om din miljö, i en enda lista.",
       "topologyTitle": "Topologi",
       "topologyDescription": "Se hur dina tjänster och din infrastruktur hänger ihop.",
       "servicesTitle": "Tjänster",
@@ -6005,5 +6005,7 @@
   "MCP Server": "MCP-server",
   "Enable MCP Server": "Aktivera MCP-server",
   "Control whether AI agents can read this status page over the OneUptime MCP server": "Styr om AI-agenter kan läsa den här statussidan via OneUptime MCP-servern",
-  "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.": "När detta är aktiverat kan AI-agenter läsa den här statussidan via den publika OneUptime MCP-servern. Att stänga av det döljer inte statussidans webbplats, dess RSS-flöde eller dess publika JSON-API."
+  "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.": "När detta är aktiverat kan AI-agenter läsa den här statussidan via den publika OneUptime MCP-servern. Att stänga av det döljer inte statussidans webbplats, dess RSS-flöde eller dess publika JSON-API.",
+  "Get Started": "Kom igång",
+  "Setup Checklist": "Checklista för konfiguration"
 }

@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/dashboard",
-  "version": "12.0.8",
+  "version": "12.0.9",
   "private": false,
   "repository": {
     "type": "git",
@@ -50,7 +50,6 @@
     "reactflow": "^11.11.2",
     "recharts": "^3.0.0",
     "rrweb": "2.1.1",
-    "stripe": "^11.0.0",
     "use-async-effect": "^2.2.6"
   },
   "devDependencies": {

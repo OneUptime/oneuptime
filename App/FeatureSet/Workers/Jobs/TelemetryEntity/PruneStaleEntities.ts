@@ -1,8 +1,8 @@
 import { EVERY_THREE_HOURS } from "Common/Utils/CronTime";
 import RunCron from "../../Utils/Cron";
 import logger from "Common/Server/Utils/Logger";
-import TelemetryEntityService from "Common/Server/Services/TelemetryEntityService";
-import TelemetryEntityRelationshipService from "Common/Server/Services/TelemetryEntityRelationshipService";
+import InventoryItemService from "Common/Server/Services/InventoryItemService";
+import InventoryItemRelationshipService from "Common/Server/Services/InventoryItemRelationshipService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
@@ -10,7 +10,7 @@ import EntitySource from "Common/Types/Telemetry/EntitySource";
 import EntityType from "Common/Types/Telemetry/EntityType";
 
 /*
- * TelemetryEntity:PruneStaleEntities
+ * InventoryItem:PruneStaleEntities
  *
  * The entity registry is populated forward-only at ingest and `lastSeenAt`
  * is bumped (throttled to the reconcile fence window, ~5 min) for as long
@@ -72,7 +72,7 @@ async function deleteStaleEntities(data: {
   let total: number = 0;
   let deleted: number = 0;
   do {
-    deleted = await TelemetryEntityService.hardDeleteBy({
+    deleted = await InventoryItemService.hardDeleteBy({
       query: {
         entityType: data.entityType,
         lastSeenAt: QueryHelper.lessThan(data.cutoff),
@@ -123,7 +123,7 @@ RunCron(
         );
         let deleted: number = 0;
         do {
-          deleted = await TelemetryEntityRelationshipService.hardDeleteBy({
+          deleted = await InventoryItemRelationshipService.hardDeleteBy({
             query: {
               lastSeenAt: QueryHelper.lessThan(cutoff),
               // Discovered edges only — see the source note in the header.
@@ -143,7 +143,7 @@ RunCron(
 
       if (totalEntities > 0 || totalEdges > 0) {
         logger.debug(
-          `PruneStaleEntities: pruned ${totalEntities} stale TelemetryEntity row(s) and ${totalEdges} TelemetryEntityRelationship row(s).`,
+          `PruneStaleEntities: pruned ${totalEntities} stale InventoryItem row(s) and ${totalEdges} InventoryItemRelationship row(s).`,
         );
       }
     } catch (err) {

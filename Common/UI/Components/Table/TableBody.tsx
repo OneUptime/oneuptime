@@ -21,6 +21,15 @@ export interface ComponentProps<T extends GenericObject> {
   onItemDeselected?: undefined | ((item: T) => void);
   selectedItems: Array<T>;
   matchBulkSelectedItemByField: keyof T | undefined; // which field to use to match selected items. For exmaple this could be '_id'
+  /*
+   * Which rows may be ticked at all. Absent means every row, so a table that
+   * does not care is unaffected. See TableRow.isItemSelectable.
+   */
+  isItemSelectable?: ((item: T) => boolean) | undefined;
+  /** The accessible name for a row's checkbox: "Select {this}". */
+  bulkItemToString?: ((item: T) => string) | undefined;
+  /** Why a locked row is locked, in the caller's own words. */
+  itemNotSelectableReason?: ((item: T) => string) | undefined;
 
   // responsive
   isMobile?: boolean;
@@ -34,6 +43,48 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   type GetBodyFunction = (provided?: DroppableProvided) => ReactElement;
+
+  /*
+   * Everything about ONE row's checkbox, computed once and spread into both the
+   * desktop and the mobile TableRow. The selected-ness test used to be written
+   * out twice, identically, a hundred lines apart; adding three more selection
+   * props to both copies is how that kind of duplication turns into a row that
+   * is locked at one breakpoint and not the other.
+   */
+  type SelectionPropsFunction = (item: T) => {
+    isItemSelected: boolean;
+    isItemSelectable: boolean;
+    itemSelectLabel: string | undefined;
+    itemNotSelectableReason: string | undefined;
+  };
+
+  const getSelectionProps: SelectionPropsFunction = (item: T) => {
+    const matchBy: keyof T | undefined = props.matchBulkSelectedItemByField;
+
+    const isItemSelected: boolean = Boolean(
+      matchBy !== undefined &&
+        props.selectedItems?.some((selectedItem: T) => {
+          return (
+            selectedItem[matchBy]?.toString() === item[matchBy]?.toString()
+          );
+        }),
+    );
+
+    const label: string | undefined = props.bulkItemToString
+      ? `Select ${props.bulkItemToString(item)}`
+      : undefined;
+
+    return {
+      isItemSelected: isItemSelected,
+      isItemSelectable: props.isItemSelectable
+        ? props.isItemSelectable(item)
+        : true,
+      itemSelectLabel: label,
+      itemNotSelectableReason: props.itemNotSelectableReason
+        ? props.itemNotSelectableReason(item)
+        : undefined,
+    };
+  };
 
   const getBody: GetBodyFunction = (
     provided?: DroppableProvided,
@@ -54,20 +105,7 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
                   isBulkActionsEnabled={props.isBulkActionsEnabled}
                   onItemSelected={props.onItemSelected}
                   onItemDeselected={props.onItemDeselected}
-                  isItemSelected={
-                    props.selectedItems?.filter((selectedItem: T) => {
-                      if (props.matchBulkSelectedItemByField === undefined) {
-                        return false;
-                      }
-
-                      return (
-                        selectedItem[
-                          props.matchBulkSelectedItemByField
-                        ]?.toString() ===
-                        item[props.matchBulkSelectedItemByField]?.toString()
-                      );
-                    }).length > 0 || false
-                  }
+                  {...getSelectionProps(item)}
                   dragAndDropScope={props.dragAndDropScope}
                   enableDragAndDrop={props.enableDragAndDrop}
                   key={i}
@@ -100,20 +138,7 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
                 isBulkActionsEnabled={props.isBulkActionsEnabled}
                 onItemSelected={props.onItemSelected}
                 onItemDeselected={props.onItemDeselected}
-                isItemSelected={
-                  props.selectedItems?.filter((selectedItem: T) => {
-                    if (props.matchBulkSelectedItemByField === undefined) {
-                      return false;
-                    }
-
-                    return (
-                      selectedItem[
-                        props.matchBulkSelectedItemByField
-                      ]?.toString() ===
-                      item[props.matchBulkSelectedItemByField]?.toString()
-                    );
-                  }).length > 0 || false
-                }
+                {...getSelectionProps(item)}
                 dragAndDropScope={props.dragAndDropScope}
                 enableDragAndDrop={props.enableDragAndDrop}
                 key={i}

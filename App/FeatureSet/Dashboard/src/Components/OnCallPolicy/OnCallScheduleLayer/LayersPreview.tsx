@@ -1,3 +1,4 @@
+import { getCoverageWindowEnd } from "./CoverageWindow";
 import FinalScheduleSummary from "./FinalScheduleSummary";
 import { getColorForUserId } from "./LayerUserColors";
 import TimezoneSelectButton from "./TimezoneSelectButton";
@@ -7,13 +8,16 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Dictionary from "Common/Types/Dictionary";
 import LayerUtil, { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
 import ScheduleShiftUtil, {
+  CoverageGap,
   OnCallShift,
+  ScheduleCoverageState,
 } from "Common/Types/OnCallDutyPolicy/ScheduleShiftUtil";
 import UserOverrideUtil, {
   OverrideEventMeta,
   UserOverrideRecord,
 } from "Common/Types/OnCallDutyPolicy/UserOverrideUtil";
 import StartAndEndTime from "Common/Types/Time/StartAndEndTime";
+import { VoidFunction } from "Common/Types/FunctionTypes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
@@ -36,12 +40,13 @@ import React, {
 } from "react";
 
 /*
- * Forward window (from "now") the textual schedule summary looks ahead over.
- * The user-override fetch is widened to at least this window too, so the summary
- * reflects the same substitutions the server would page — not just overrides
- * that happen to fall in the calendar's currently-visible range.
+ * How often the preview re-reads the wall clock. Everything on this screen is
+ * anchored to "now" — who is on call, which gap contains this instant, how much
+ * of a shift is left — so a value captured once at mount slowly turns into a
+ * lie. A dashboard left open through a hand-off (or through the start of a
+ * coverage gap) would otherwise keep showing the person who WAS on call.
  */
-const SUMMARY_WINDOW_DAYS: number = 42;
+const NOW_REFRESH_INTERVAL_MS: number = 30 * 1000;
 
 export interface ComponentProps {
   layers: Array<OnCallDutyPolicyScheduleLayer>;
@@ -110,6 +115,42 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
   const [calendarEvents, setCalendarEvents] = useState<Array<CalendarEvent>>(
     [],
   );
+
+  // Uncovered stretches inside the calendar's currently-visible range.
+  const [calendarGaps, setCalendarGaps] = useState<Array<CoverageGap>>([]);
+
+  /*
+   * "now" is held in state, not read during render, so the coverage state
+   * actually advances while the page is open. setInterval alone is not enough:
+   * browsers throttle (and on mobile, suspend) timers in background tabs, so a
+   * tab restored after hours would show a stale "on call right now" until the
+   * next tick. Re-reading on visibilitychange makes the refresh immediate.
+   */
+  const [now, setNow] = useState<Date>(OneUptimeDate.getCurrentDate());
+
+  useEffect(() => {
+    const tick: VoidFunction = (): void => {
+      setNow(OneUptimeDate.getCurrentDate());
+    };
+
+    const intervalId: ReturnType<typeof setInterval> = setInterval(
+      tick,
+      NOW_REFRESH_INTERVAL_MS,
+    );
+
+    const onVisibilityChange: VoidFunction = (): void => {
+      if (document.visibilityState === "visible") {
+        tick();
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, []);
 
   /*
    * The timezone the preview is DISPLAYED in. Distinct from props.timezone,
@@ -185,17 +226,14 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
 
     /*
      * Fetch overrides overlapping BOTH the visible calendar range AND the
-     * summary's forward window [now, now + SUMMARY_WINDOW_DAYS]. Widening it to
-     * the summary window means a substitution that lands weeks ahead is applied
-     * to the "upcoming hand-offs" summary too, instead of only appearing once
-     * the user navigates the calendar to that week (which previously made the
-     * summary contradict the calendar and the actual paging).
+     * summary's forward coverage window. Widening it to the summary window means
+     * a substitution that lands weeks ahead is applied to the "upcoming
+     * hand-offs" summary too, instead of only appearing once the user navigates
+     * the calendar to that week (which previously made the summary contradict
+     * the calendar and the actual paging).
      */
     const summaryNow: Date = OneUptimeDate.getCurrentDate();
-    const summaryEnd: Date = OneUptimeDate.addRemoveDays(
-      summaryNow,
-      SUMMARY_WINDOW_DAYS,
-    );
+    const summaryEnd: Date = getCoverageWindowEnd(summaryNow);
     const fetchStart: Date = OneUptimeDate.isBefore(startTime, summaryNow)
       ? startTime
       : summaryNow;
@@ -369,12 +407,13 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     shifts: Array<OnCallShift>;
     now: Date;
     windowEnd: Date;
+    coverage: ScheduleCoverageState;
   } = useMemo(() => {
-    const now: Date = OneUptimeDate.getCurrentDate();
-    const windowEnd: Date = OneUptimeDate.addRemoveDays(
-      now,
-      SUMMARY_WINDOW_DAYS,
-    );
+    /*
+     * The shared coverage window, so this summary and the banner on the layers
+     * tab always describe the same span of time. See ./CoverageWindow.
+     */
+    const windowEnd: Date = getCoverageWindowEnd(now);
 
     let events: Array<CalendarEvent> = new LayerUtil().getMultiLayerEvents({
       calendarStartDate: now,
@@ -389,12 +428,37 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       });
     }
 
+    const shifts: Array<OnCallShift> =
+      ScheduleShiftUtil.groupEventsIntoShifts(events);
+
+    /*
+     * assignedUserCount counts ASSIGNMENT ROWS, not distinct people, and is
+     * taken from the layers rather than from the computed events — a schedule
+     * whose layers have no users produces no events at all, and we need to be
+     * able to tell that apart from "users exist but none is on call right now".
+     */
+    const assignedUserCount: number = props.layers.reduce(
+      (total: number, layer: OnCallDutyPolicyScheduleLayer) => {
+        return (
+          total + (props.allLayerUsers[layer.id?.toString() || ""] || []).length
+        );
+      },
+      0,
+    );
+
     return {
-      shifts: ScheduleShiftUtil.groupEventsIntoShifts(events),
+      shifts,
       now,
       windowEnd,
+      coverage: ScheduleShiftUtil.getCoverageState({
+        layerCount: props.layers.length,
+        assignedUserCount,
+        shifts,
+        now,
+        windowEnd,
+      }),
     };
-  }, [props.layers, props.allLayerUsers, props.timezone, overrideRecords]);
+  }, [props.layers, props.allLayerUsers, props.timezone, overrideRecords, now]);
 
   useEffect(() => {
     const layerUtil: LayerUtil = new LayerUtil();
@@ -412,6 +476,26 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
         overrides: overrideRecords,
       });
     }
+
+    /*
+     * Gaps for the VISIBLE range, computed before the events below are
+     * relabelled from user ids to display names. They are drawn as hatched
+     * background bands so an uncovered stretch reads as "we computed this and
+     * nobody is on call" instead of as an empty grid.
+     *
+     * Computed over the calendar's own range rather than reusing the summary's
+     * 42-day window, so navigating to a past or far-future week still shades
+     * that week correctly.
+     */
+    setCalendarGaps(
+      ScheduleShiftUtil.getCoverageGaps(
+        ScheduleShiftUtil.groupEventsIntoShifts(events),
+        startTime,
+        endTime,
+        // Sub-minute slivers would render as invisible hairlines on the grid.
+        { minimumGapSeconds: 60 },
+      ),
+    );
 
     const userById: Dictionary<UserInfo> = {
       ...scheduleUsersById,
@@ -476,6 +560,29 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     });
   }, [calendarEvents, viewAsTimezone]);
 
+  /*
+   * The same display shift for the uncovered bands. They carry no title —
+   * react-big-calendar draws background events without text — so the "Uncovered"
+   * legend swatch below is what names them.
+   */
+  const displayGapEvents: Array<CalendarEvent> = useMemo(() => {
+    return calendarGaps.map((gap: CoverageGap, index: number) => {
+      return {
+        id: -1 * (index + 1),
+        title: "",
+        allDay: false,
+        start: OneUptimeDate.getLocalDateFromWallClockInTimezone(
+          gap.start,
+          viewAsTimezone,
+        ),
+        end: OneUptimeDate.getLocalDateFromWallClockInTimezone(
+          gap.end,
+          viewAsTimezone,
+        ),
+      };
+    });
+  }, [calendarGaps, viewAsTimezone]);
+
   // "now" shifted into the view zone so the grid opens on that zone's today.
   const displayDefaultDate: Date = useMemo(() => {
     return OneUptimeDate.getLocalDateFromWallClockInTimezone(
@@ -517,20 +624,33 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
        * Textual "who is on call now / next / upcoming" summary of the combined
        * schedule, above the calendar grid it is derived from.
        */}
-      {uniqueUsers.length > 0 && (
+      {/*
+       * Rendered whenever the schedule has layers — NOT only when it has users.
+       * Gating this on "has users" was exactly inverted: a schedule with no
+       * assigned users is permanently uncovered, and it was the one case where
+       * the component that says so never mounted, leaving an empty calendar and
+       * no explanation. FinalScheduleSummary handles zero shifts on its own.
+       */}
+      {props.layers.length > 0 && (
         <FinalScheduleSummary
           shifts={summaryData.shifts}
           now={summaryData.now}
           windowEnd={summaryData.windowEnd}
+          coverage={summaryData.coverage}
           timezone={viewAsTimezone}
           userById={{ ...scheduleUsersById, ...overrideUserInfo }}
         />
       )}
 
-      {uniqueUsers.length > 0 && (
+      {/*
+       * The legend for the grid below. Renders when there is either a colour to
+       * explain or a hatched band to name — a schedule with no users still needs
+       * the "Uncovered" key, since in that case the whole grid is hatched.
+       */}
+      {(uniqueUsers.length > 0 || calendarGaps.length > 0) && (
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
           <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-            On-Call Users
+            {uniqueUsers.length > 0 ? "On-Call Users" : "Legend"}
           </span>
           {uniqueUsers.map((u: UserColorAssignment) => {
             return (
@@ -552,6 +672,20 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
               </div>
             );
           })}
+          {/*
+           * Names the hatched bands drawn on the grid below. Only shown when
+           * the visible range actually contains one, so a fully-covered week
+           * does not carry a legend entry for something that is not there.
+           */}
+          {calendarGaps.length > 0 && (
+            <div
+              className="inline-flex items-center gap-1.5 rounded-md bg-white px-2 py-1 text-xs text-gray-700 ring-1 ring-inset ring-amber-200"
+              title="Nobody is on call during these hours"
+            >
+              <span className="oneuptime-calendar-gap-swatch inline-block h-2.5 w-2.5 rounded-sm" />
+              <span className="font-medium text-amber-800">Uncovered</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -597,6 +731,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
 
       <Calendar
         events={displayEvents}
+        backgroundEvents={displayGapEvents}
         defaultDate={displayDefaultDate}
         onRangeChange={(startEndTime: StartAndEndTime) => {
           /*

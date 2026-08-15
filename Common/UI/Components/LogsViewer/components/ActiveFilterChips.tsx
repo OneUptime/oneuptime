@@ -2,12 +2,35 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { ActiveFilter } from "../types";
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
+import Link from "../../Link/Link";
 
 export interface ActiveFilterChipsProps {
   filters: Array<ActiveFilter>;
   onRemove: (facetKey: string, value: string) => void;
   onClearAll: () => void;
 }
+
+const renderOpenAffordance: (
+  filter: ActiveFilter,
+  colorClassName: string,
+) => ReactElement | null = (
+  filter: ActiveFilter,
+  colorClassName: string,
+): ReactElement | null => {
+  if (!filter.openRoute) {
+    return null;
+  }
+
+  return (
+    <Link
+      to={filter.openRoute}
+      className={`ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded transition-colors ${colorClassName}`}
+      title={`Open ${filter.displayKey.toLowerCase()} view`}
+    >
+      <Icon icon={IconProp.ExternalLink} className="h-2.5 w-2.5" />
+    </Link>
+  );
+};
 
 const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
   props: ActiveFilterChipsProps,
@@ -42,6 +65,10 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
               {filter.displayKey}:
             </span>
             <span>{filter.displayValue}</span>
+            {renderOpenAffordance(
+              filter,
+              "text-gray-400 hover:bg-gray-200 hover:text-indigo-600",
+            )}
           </span>
         );
       })}
@@ -56,6 +83,10 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
               {filter.displayKey}:
             </span>
             <span>{filter.displayValue}</span>
+            {renderOpenAffordance(
+              filter,
+              "text-indigo-400 hover:bg-indigo-100 hover:text-indigo-600",
+            )}
             <button
               type="button"
               className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded text-indigo-400 transition-colors hover:bg-indigo-100 hover:text-indigo-600"

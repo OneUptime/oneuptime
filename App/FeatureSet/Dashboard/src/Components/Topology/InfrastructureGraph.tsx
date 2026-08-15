@@ -20,8 +20,8 @@ import ReactFlow, {
   ReactFlowInstance,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import TelemetryEntity from "Common/Models/DatabaseModels/TelemetryEntity";
-import TelemetryEntityRelationship from "Common/Models/DatabaseModels/TelemetryEntityRelationship";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
+import InventoryItemRelationship from "Common/Models/DatabaseModels/InventoryItemRelationship";
 import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
@@ -41,6 +41,7 @@ import computeInfraParenting, { infraEdgeId } from "./InfrastructureNesting";
 import EntityDetailPanel from "./EntityDetailPanel";
 import ServiceNodeCard from "./ServiceNodeCard";
 import { labelForRelationship, metaForEntityType } from "./TopologyMeta";
+import { getInfrastructureGraphNodeKeys } from "./TopologyInventoryData";
 
 /*
  * Infrastructure topology: the co-occurrence containment graph (runs-on /
@@ -250,8 +251,8 @@ const WORKLOAD_GROUPING_RELATIONSHIPS: Set<EntityRelationshipType> =
   ]);
 
 export interface ComponentProps {
-  entities: Array<TelemetryEntity>;
-  relationships: Array<TelemetryEntityRelationship>;
+  entities: Array<InventoryItem>;
+  relationships: Array<InventoryItemRelationship>;
   /** Seconds the depends-on metrics were aggregated over (cron window). */
   metricsWindowSeconds: number;
 }
@@ -263,8 +264,8 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
 
   /*
    * Search and focus live in the URL (replaceState — no history flood) so
-   * a filtered/focused view is shareable. A focus key that does not exist
-   * in this graph (e.g. carried over from the other tab) is ignored.
+   * a filtered/focused view is shareable. A focus key that does not identify
+   * a loaded inventory item (e.g. carried over from the other tab) is ignored.
    */
   const [searchText, setSearchTextState] = useState<string>(
     Navigation.getQueryStringByName("infraSearch") || "",
@@ -304,11 +305,8 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
   const flowInstance: React.MutableRefObject<ReactFlowInstance | null> =
     useRef<ReactFlowInstance | null>(null);
 
-  const entityByKey: Map<string, TelemetryEntity> = useMemo(() => {
-    const map: Map<string, TelemetryEntity> = new Map<
-      string,
-      TelemetryEntity
-    >();
+  const entityByKey: Map<string, InventoryItem> = useMemo(() => {
+    const map: Map<string, InventoryItem> = new Map<string, InventoryItem>();
     for (const entity of props.entities) {
       if (entity.entityKey) {
         map.set(entity.entityKey, entity);
@@ -317,9 +315,9 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
     return map;
   }, [props.entities]);
 
-  const infraEdges: Array<TelemetryEntityRelationship> = useMemo(() => {
+  const infraEdges: Array<InventoryItemRelationship> = useMemo(() => {
     return props.relationships.filter(
-      (relationship: TelemetryEntityRelationship) => {
+      (relationship: InventoryItemRelationship) => {
         return (
           relationship.relationshipType !== EntityRelationshipType.DependsOn &&
           Boolean(relationship.fromEntityKey) &&
@@ -329,34 +327,27 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
     );
   }, [props.relationships]);
 
+  // Every current Inventory item, plus any unresolved relationship endpoints.
+  const graphNodeKeys: Set<string> = useMemo(() => {
+    return getInfrastructureGraphNodeKeys({
+      entities: props.entities,
+      infrastructureRelationships: infraEdges,
+    });
+  }, [infraEdges, props.entities]);
+
   // Types present among graphable nodes — drives the filter checkboxes.
   const presentTypes: Array<string> = useMemo(() => {
     const types: Set<string> = new Set<string>();
-    for (const relationship of infraEdges) {
-      for (const key of [
-        relationship.fromEntityKey,
-        relationship.toEntityKey,
-      ]) {
-        const entity: TelemetryEntity | undefined = entityByKey.get(key || "");
-        types.add(entity?.entityType || "unknown");
-      }
+    for (const key of graphNodeKeys) {
+      const entity: InventoryItem | undefined = entityByKey.get(key);
+      types.add(entity?.entityType || "unknown");
     }
     return Array.from(types).sort();
-  }, [infraEdges, entityByKey]);
+  }, [graphNodeKeys, entityByKey]);
 
-  // Keys that actually render in this graph (entities with 1+ edge).
-  const graphNodeKeys: Set<string> = useMemo(() => {
-    const keys: Set<string> = new Set<string>();
-    for (const relationship of infraEdges) {
-      keys.add(relationship.fromEntityKey!);
-      keys.add(relationship.toEntityKey!);
-    }
-    return keys;
-  }, [infraEdges]);
-
-  // Only honor a focus key that exists in THIS graph.
+  // Only honor a focus key that identifies a loaded Inventory item.
   const effectiveFocusKey: string | null =
-    focusKey && graphNodeKeys.has(focusKey) ? focusKey : null;
+    focusKey && entityByKey.has(focusKey) ? focusKey : null;
 
   // Focus mode: everything connected to the focused node, both directions.
   const focusedKeys: Set<string> | null = useMemo(() => {
@@ -404,7 +395,7 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
   } => {
     const visibleKeys: Set<string> = new Set<string>();
     for (const key of graphNodeKeys) {
-      const entity: TelemetryEntity | undefined = entityByKey.get(key);
+      const entity: InventoryItem | undefined = entityByKey.get(key);
       const typeLabel: string = entity?.entityType || "unknown";
       if (excludedTypes.has(typeLabel)) {
         continue;
@@ -415,8 +406,8 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
       visibleKeys.add(key);
     }
 
-    const visibleEdges: Array<TelemetryEntityRelationship> = infraEdges.filter(
-      (relationship: TelemetryEntityRelationship) => {
+    const visibleEdges: Array<InventoryItemRelationship> = infraEdges.filter(
+      (relationship: InventoryItemRelationship) => {
         return (
           visibleKeys.has(relationship.fromEntityKey!) &&
           visibleKeys.has(relationship.toEntityKey!)
@@ -431,7 +422,7 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
     }
 
     const { parentOf, nestingEdgeByChild } = computeInfraParenting(
-      visibleEdges.map((relationship: TelemetryEntityRelationship) => {
+      visibleEdges.map((relationship: InventoryItemRelationship) => {
         return {
           fromEntityKey: relationship.fromEntityKey!,
           toEntityKey: relationship.toEntityKey!,
@@ -531,7 +522,7 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
     };
 
     const builtNodes: Array<Node> = orderedKeys.map((key: string): Node => {
-      const entity: TelemetryEntity | undefined = entityByKey.get(key);
+      const entity: InventoryItem | undefined = entityByKey.get(key);
       const label: string = entity?.displayName || "Unnamed entity";
       const typeMeta: { label: string; color: string } = metaForEntityType(
         entity?.entityType,
@@ -583,7 +574,7 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
     });
 
     const builtEdges: Array<Edge> = visibleEdges
-      .filter((relationship: TelemetryEntityRelationship) => {
+      .filter((relationship: InventoryItemRelationship) => {
         const id: string = infraEdgeId(
           relationship.fromEntityKey!,
           relationship.relationshipType!,
@@ -617,7 +608,7 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
         }
         return true;
       })
-      .map((relationship: TelemetryEntityRelationship): Edge => {
+      .map((relationship: InventoryItemRelationship): Edge => {
         const id: string = infraEdgeId(
           relationship.fromEntityKey!,
           relationship.relationshipType!,
@@ -724,10 +715,10 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
     };
   }, [focusKey, baseNodes.length]);
 
-  const selectedEntity: TelemetryEntity | null =
+  const selectedEntity: InventoryItem | null =
     (selectedKey && entityByKey.get(selectedKey)) || null;
 
-  if (infraEdges.length === 0) {
+  if (graphNodeKeys.size === 0) {
     return (
       <EmptyState
         id="topology-empty"

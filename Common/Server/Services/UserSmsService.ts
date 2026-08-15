@@ -7,7 +7,10 @@ import DatabaseService from "./DatabaseService";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import ProjectService from "./ProjectService";
 import SmsService from "./SmsService";
-import UserNotificationRuleService from "./UserNotificationRuleService";
+import UserNotificationRuleService, {
+  NotificationDeletionImpact,
+  NotificationMethodChannel,
+} from "./UserNotificationRuleService";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -57,6 +60,28 @@ export class Service extends DatabaseService<Model> {
       deleteBy,
       carryForward: null,
     };
+  }
+
+  /**
+   * What this user would lose if this number were deleted. Ask BEFORE calling
+   * delete; nothing here refuses anything.
+   *
+   * The hook directly above deletes every UserNotificationRule that points at
+   * this number, and the foreign key is onDelete: "CASCADE" so the rows would
+   * go even if it did not. A phone number is the method people most often
+   * retire — a new handset, a new country — and it is also the one whose delete
+   * dialog gives no hint that an on-call configuration hangs off it.
+   */
+  @CaptureSpan()
+  public async getDeletionImpact(data: {
+    itemId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<NotificationDeletionImpact> {
+    return UserNotificationRuleService.getNotificationMethodDeletionImpact({
+      projectId: data.projectId,
+      methodType: NotificationMethodChannel.SMS,
+      methodId: data.itemId,
+    });
   }
 
   @CaptureSpan()

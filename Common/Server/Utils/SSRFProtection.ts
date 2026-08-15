@@ -126,10 +126,12 @@ export default class SSRFProtection {
     }
 
     /*
-     * OneUptime's URL parser keeps the port glued to the host (e.g.
-     * "169.254.169.254:80"). Strip it before the checks below, otherwise a
-     * literal-with-port slips past the IPv4 blocklist and, because it contains
-     * a ":", is mistaken for an IP literal and skips DNS resolution entirely.
+     * OneUptime's URL parser hands back the whole authority — userinfo, host
+     * and port glued together ("user:pw@169.254.169.254:80"). Reduce it to the
+     * bare host before the checks below: a literal-with-port otherwise slips
+     * past the IPv4 blocklist and, because it contains a ":", is mistaken for
+     * an IP literal and skips DNS resolution entirely, and userinfo otherwise
+     * gets to nominate the host outright.
      */
     const hostname: string = SSRFProtection.extractHost(rawHost);
 
@@ -137,16 +139,41 @@ export default class SSRFProtection {
       throw new BadDataException("Webhook URL must include a host.");
     }
 
-    if (SSRFProtection.isBlockedHostnameLiteral(hostname)) {
-      throw new BadDataException(
-        "Webhook URL points to a private, loopback, or link-local address and is not allowed.",
-      );
+    /*
+     * Check the host BOTH parsers see, not just ours.
+     *
+     * A guard is only worth something if it reasons about the host the HTTP
+     * client will actually dial, and OneUptime's parser and WHATWG do not
+     * always agree on which substring that is — userinfo was one such
+     * disagreement, and treating it as the only one would be optimistic. So
+     * whenever the two answers differ, both are held to the blocklist and a
+     * verdict of "internal" from either one is enough to refuse. A legitimate
+     * public URL parses to a public host under both, and pays only a string
+     * comparison for the privilege.
+     */
+    const whatwgHostname: string = SSRFProtection.getBareHostname(rawUrl);
+
+    const hostnames: Array<string> =
+      whatwgHostname && whatwgHostname !== hostname
+        ? [hostname, whatwgHostname]
+        : [hostname];
+
+    for (const host of hostnames) {
+      if (SSRFProtection.isBlockedHostnameLiteral(host)) {
+        throw new BadDataException(
+          "Webhook URL points to a private, loopback, or link-local address and is not allowed.",
+        );
+      }
     }
 
-    if (!SSRFProtection.isIpLiteral(hostname)) {
+    for (const host of hostnames) {
+      if (SSRFProtection.isIpLiteral(host)) {
+        continue;
+      }
+
       let resolved: Array<{ address: string }> = [];
       try {
-        resolved = await dns.promises.lookup(hostname, { all: true });
+        resolved = await dns.promises.lookup(host, { all: true });
       } catch {
         throw new BadDataException(
           "Webhook URL hostname could not be resolved via DNS.",
@@ -166,12 +193,34 @@ export default class SSRFProtection {
   }
 
   /*
-   * Extracts the bare host (IPv4, IPv6, or hostname) from a "host[:port]"
-   * string, handling bracketed IPv6 (`[::1]`, `[::1]:8080`) and unbracketed
-   * IPv6 literals (which contain multiple colons and carry no port).
+   * Everything up to and including the LAST "@" is userinfo, never the host.
+   *
+   * This matters because OneUptime's Hostname deliberately KEEPS userinfo in
+   * the string it stores, and a "host:port" split over that string reads the
+   * USERNAME as the host: "example.com:pass@169.254.169.254" holds exactly one
+   * colon, so splitting on it answers "example.com" — which resolves publicly
+   * and sails through the blocklist — while every RFC 3986 client (axios, and
+   * WHATWG before it) dials 169.254.169.254.
+   *
+   * The LAST "@" is the delimiter, which is how WHATWG resolves an authority
+   * carrying more than one and therefore where the HTTP client will split it.
+   * Hostname's own validation happens to reject a second "@" before this runs,
+   * so the choice only shows up on hosts reaching us by another route — but
+   * splitting on the first "@" would be a bypass the day that changes.
+   */
+  private static stripUserInfo(authority: string): string {
+    const atIndex: number = authority.lastIndexOf("@");
+    return atIndex === -1 ? authority : authority.substring(atIndex + 1);
+  }
+
+  /*
+   * Extracts the bare host (IPv4, IPv6, or hostname) from a
+   * "[userinfo@]host[:port]" string, handling bracketed IPv6 (`[::1]`,
+   * `[::1]:8080`) and unbracketed IPv6 literals (which contain multiple colons
+   * and carry no port).
    */
   private static extractHost(hostWithPort: string): string {
-    const host: string = hostWithPort.trim();
+    const host: string = SSRFProtection.stripUserInfo(hostWithPort.trim());
 
     if (host.startsWith("[")) {
       const closingBracketIndex: number = host.indexOf("]");
@@ -296,9 +345,9 @@ export default class SSRFProtection {
    * True when an IPv6 literal points somewhere the server must never be made
    * to reach. Ranges, not spellings: loopback, unspecified, link-local
    * (fe80::/10), unique-local (fc00::/7) and multicast (ff00::/8), plus the
-   * three ways IPv6 can carry an IPv4 destination - IPv4-mapped
-   * (::ffff:0:0/96), IPv4-compatible (::/96) and the NAT64 well-known prefix
-   * (64:ff9b::/96) - which are handed to the IPv4 blocklist.
+   * ways IPv6 can embed IPv4 routing endpoints - IPv4-mapped (::ffff:0:0/96),
+   * IPv4-compatible (::/96), NAT64 (64:ff9b::/96), 6to4 (2002::/16), and
+   * Teredo (2001:0000::/32) - which are handed to the IPv4 blocklist.
    */
   private static isBlockedIpv6(address: string): boolean {
     const groups: Array<number> | null = SSRFProtection.expandIpv6(address);
@@ -316,9 +365,19 @@ export default class SSRFProtection {
       });
     };
 
-    const embeddedIpv4: () => string = (): string => {
-      const high: number = groups[6] as number;
-      const low: number = groups[7] as number;
+    const embeddedIpv4: (highGroupIndex: number, invert?: boolean) => string = (
+      highGroupIndex: number,
+      invert: boolean = false,
+    ): string => {
+      let high: number = groups[highGroupIndex] as number;
+      let low: number = groups[highGroupIndex + 1] as number;
+
+      // Teredo conceals the client IPv4 address by flipping all 32 bits.
+      if (invert) {
+        high ^= 0xffff;
+        low ^= 0xffff;
+      }
+
       return `${high >> 8}.${high & 0xff}.${low >> 8}.${low & 0xff}`;
     };
 
@@ -334,7 +393,7 @@ export default class SSRFProtection {
 
     // ::ffff:0:0/96 — IPv4-mapped.
     if (isZeroThrough(5) && groups[5] === 0xffff) {
-      return SSRFProtection.isBlockedIpv4(embeddedIpv4());
+      return SSRFProtection.isBlockedIpv4(embeddedIpv4(6));
     }
 
     // 64:ff9b::/96 — NAT64 well-known prefix.
@@ -346,12 +405,28 @@ export default class SSRFProtection {
       groups[4] === 0 &&
       groups[5] === 0
     ) {
-      return SSRFProtection.isBlockedIpv4(embeddedIpv4());
+      return SSRFProtection.isBlockedIpv4(embeddedIpv4(6));
     }
 
     // ::/96 — IPv4-compatible (deprecated, still routable by some stacks).
     if (isZeroThrough(6)) {
-      return SSRFProtection.isBlockedIpv4(embeddedIpv4());
+      return SSRFProtection.isBlockedIpv4(embeddedIpv4(6));
+    }
+
+    // 2002::/16 — 6to4 stores the IPv4 gateway in bits 16-48.
+    if (groups[0] === 0x2002) {
+      return SSRFProtection.isBlockedIpv4(embeddedIpv4(1));
+    }
+
+    /*
+     * 2001:0000::/32 — Teredo stores its server IPv4 in bits 32-64 and
+     * an inverted client IPv4 in the last 32 bits.
+     */
+    if (groups[0] === 0x2001 && groups[1] === 0) {
+      return (
+        SSRFProtection.isBlockedIpv4(embeddedIpv4(2)) ||
+        SSRFProtection.isBlockedIpv4(embeddedIpv4(6, true))
+      );
     }
 
     const first: number = groups[0] as number;

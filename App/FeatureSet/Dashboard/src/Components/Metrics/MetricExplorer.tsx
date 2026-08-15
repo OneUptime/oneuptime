@@ -59,6 +59,17 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import {
+  CrossSignalPivotTarget,
+  CrossSignalQueryParams,
+  MetricScopeFilterExtraction,
+  buildMetricExplorerPivotParams,
+  extractScopeFiltersFromQueryConfigs,
+  formatDroppedScopeHint,
+  resolveServiceIdsByNames,
+} from "../../Utils/MetricsCrossSignalPivot";
+import { ShowToastNotification } from "Common/UI/Components/Toast/ToastInit";
+import { ToastType } from "Common/UI/Components/Toast/Toast";
 
 const AUTO_REFRESH_STORAGE_KEY: string =
   "metric-explorer-auto-refresh-interval";
@@ -600,12 +611,16 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
 
   /*
    * Cross-signal pivot: open the logs/traces explorer scoped to the
-   * CURRENT resolved window via their range=Custom&start&end URL params
-   * (window-only — no filter mapping).
+   * CURRENT view — the resolved window plus the attribute equality
+   * filters shared by the queries (service-name filters resolve to
+   * Service ids so the target's primaryEntityId facet matches). Filters
+   * the target grammar cannot carry are surfaced in a toast; any failure
+   * along the way degrades to the plain window-only pivot rather than
+   * blocking navigation.
    */
-  const navigateToSignalWithCurrentWindow: (pageMap: PageMap) => void = (
+  const navigateToSignalWithCurrentWindow: (
     pageMap: PageMap,
-  ): void => {
+  ) => Promise<void> = async (pageMap: PageMap): Promise<void> => {
     const route: Route = RouteUtil.populateRouteParams(RouteMap[pageMap]!);
     const currentUrl: URL = Navigation.getCurrentURL();
     const targetUrl: URL = new URL(
@@ -614,18 +629,57 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
       route,
     );
 
-    const startValue: Date | undefined =
-      metricViewData.startAndEndDate?.startValue;
-    const endValue: Date | undefined = metricViewData.startAndEndDate?.endValue;
+    try {
+      const target: CrossSignalPivotTarget =
+        pageMap === PageMap.TRACES ? "traces" : "logs";
 
-    if (startValue && endValue) {
-      targetUrl.addQueryParam("range", TimeRange.CUSTOM, true);
-      targetUrl.addQueryParam(
-        "start",
-        OneUptimeDate.toString(startValue),
-        true,
-      );
-      targetUrl.addQueryParam("end", OneUptimeDate.toString(endValue), true);
+      const extraction: MetricScopeFilterExtraction =
+        extractScopeFiltersFromQueryConfigs(metricViewData.queryConfigs);
+
+      // Best-effort (cached, empty on failure) — see MetricsCrossSignalPivot.
+      const serviceIdsByName: Dictionary<string> | undefined =
+        extraction.serviceNames.length > 0
+          ? await resolveServiceIdsByNames(extraction.serviceNames)
+          : undefined;
+
+      const pivot: CrossSignalQueryParams = buildMetricExplorerPivotParams({
+        target,
+        metricViewData,
+        serviceIdsByName,
+      });
+
+      for (const paramName of Object.keys(pivot.params)) {
+        targetUrl.addQueryParam(
+          paramName,
+          pivot.params[paramName] as string,
+          true,
+        );
+      }
+
+      const droppedHint: string = formatDroppedScopeHint(pivot.dropped);
+
+      if (droppedHint) {
+        ShowToastNotification({
+          title: "Some filters were not carried over",
+          description: droppedHint,
+          type: ToastType.INFO,
+        });
+      }
+    } catch {
+      const startValue: Date | undefined =
+        metricViewData.startAndEndDate?.startValue;
+      const endValue: Date | undefined =
+        metricViewData.startAndEndDate?.endValue;
+
+      if (startValue && endValue) {
+        targetUrl.addQueryParam("range", TimeRange.CUSTOM, true);
+        targetUrl.addQueryParam(
+          "start",
+          OneUptimeDate.toString(startValue),
+          true,
+        );
+        targetUrl.addQueryParam("end", OneUptimeDate.toString(endValue), true);
+      }
     }
 
     Navigation.navigate(targetUrl);
@@ -689,26 +743,26 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
               className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-white p-0.5 shadow-sm"
               aria-label="Related telemetry signals"
             >
-              <Tooltip text="Open the logs explorer scoped to this time window">
+              <Tooltip text="Open the logs explorer scoped to this time window and filters">
                 <button
                   type="button"
-                  aria-label="View logs for this time window"
+                  aria-label="View logs for this time window and filters"
                   className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
                   onClick={() => {
-                    navigateToSignalWithCurrentWindow(PageMap.LOGS);
+                    void navigateToSignalWithCurrentWindow(PageMap.LOGS);
                   }}
                 >
                   <Icon icon={IconProp.Logs} className="h-3.5 w-3.5" />
                   <span>Logs</span>
                 </button>
               </Tooltip>
-              <Tooltip text="Open the traces explorer scoped to this time window">
+              <Tooltip text="Open the traces explorer scoped to this time window and filters">
                 <button
                   type="button"
-                  aria-label="View traces for this time window"
+                  aria-label="View traces for this time window and filters"
                   className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
                   onClick={() => {
-                    navigateToSignalWithCurrentWindow(PageMap.TRACES);
+                    void navigateToSignalWithCurrentWindow(PageMap.TRACES);
                   }}
                 >
                   <Icon icon={IconProp.Layers} className="h-3.5 w-3.5" />

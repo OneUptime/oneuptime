@@ -1,7 +1,7 @@
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
-import TelemetryEntityService from "../../../Server/Services/TelemetryEntityService";
+import InventoryItemService from "../../../Server/Services/InventoryItemService";
 import { reconcileByNaturalKey } from "../../../Server/Utils/Telemetry/EntityRegistry";
-import TelemetryEntity from "../../../Models/DatabaseModels/TelemetryEntity";
+import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
 import ObjectID from "../../../Types/ObjectID";
 import {
   afterEach,
@@ -18,7 +18,7 @@ import {
  *
  * Its fence keys on (project + the whole set of promoted entity keys), which
  * in practice is unique per POD — a pod's own key is in the set. But the
- * writes it gates are per ROW: the single TelemetryEntity row for a Kubernetes
+ * writes it gates are per ROW: the single InventoryItem row for a Kubernetes
  * cluster receives one UPDATE per pod in that cluster per window, the
  * namespace row one per pod in the namespace. When throttle granularity is
  * finer than write granularity, the throttle does not bound the writes at all,
@@ -42,24 +42,24 @@ let cache: Map<string, string>;
 let deletedKeys: Array<string>;
 let bumps: Array<BumpCall>;
 let reads: number;
-let existing: TelemetryEntity | null;
+let existing: InventoryItem | null;
 let bumpLands: boolean;
 
-function existingRow(): TelemetryEntity {
-  const row: TelemetryEntity = new TelemetryEntity();
+function existingRow(): InventoryItem {
+  const row: InventoryItem = new InventoryItem();
   row.id = ROW_ID;
   row._id = ROW_ID.toString();
   return row;
 }
 
 function reconcile(rowFenceId: string): Promise<void> {
-  return reconcileByNaturalKey<TelemetryEntity>({
-    service: TelemetryEntityService,
+  return reconcileByNaturalKey<InventoryItem>({
+    service: InventoryItemService,
     query: { projectId: PROJECT_ID, entityKey: "k8s-cluster/prod" },
     lastSeenAt: new Date(),
     describe: "entity k8s-cluster/prod",
     rowFenceId: rowFenceId,
-    buildModel: (): TelemetryEntity => {
+    buildModel: (): InventoryItem => {
       return existingRow();
     },
   });
@@ -92,15 +92,13 @@ beforeEach(() => {
       cache.delete(full);
     });
 
-  jest
-    .spyOn(TelemetryEntityService, "findOneBy")
-    .mockImplementation(async () => {
-      reads++;
-      return existing;
-    });
+  jest.spyOn(InventoryItemService, "findOneBy").mockImplementation(async () => {
+    reads++;
+    return existing;
+  });
 
   jest
-    .spyOn(TelemetryEntityService, "updateColumnsByIdIfUnlockedWithoutHooks")
+    .spyOn(InventoryItemService, "updateColumnsByIdIfUnlockedWithoutHooks")
     .mockImplementation(async (input: { id: ObjectID; data: unknown }) => {
       bumps.push({
         id: input.id,
@@ -110,8 +108,8 @@ beforeEach(() => {
     });
 
   jest
-    .spyOn(TelemetryEntityService, "create")
-    .mockImplementation(async (input: { data: TelemetryEntity }) => {
+    .spyOn(InventoryItemService, "create")
+    .mockImplementation(async (input: { data: InventoryItem }) => {
       return input.data;
     });
 });
@@ -206,7 +204,7 @@ describe("reconcileByNaturalKey — contention and failure re-open the window", 
     await reconcile("project:k8s-cluster:prod");
 
     expect(
-      TelemetryEntityService.updateColumnsByIdIfUnlockedWithoutHooks,
+      InventoryItemService.updateColumnsByIdIfUnlockedWithoutHooks,
     ).toHaveBeenCalled();
   });
 
@@ -241,13 +239,13 @@ describe("reconcileByNaturalKey — contention and failure re-open the window", 
   test("an over-budget create releases the row fence", async () => {
     existing = null;
 
-    await reconcileByNaturalKey<TelemetryEntity>({
-      service: TelemetryEntityService,
+    await reconcileByNaturalKey<InventoryItem>({
+      service: InventoryItemService,
       query: { projectId: PROJECT_ID, entityKey: "k8s-cluster/prod" },
       lastSeenAt: new Date(),
       describe: "entity k8s-cluster/prod",
       rowFenceId: "project:k8s-cluster:prod",
-      buildModel: (): TelemetryEntity => {
+      buildModel: (): InventoryItem => {
         return existingRow();
       },
       beforeCreate: async (): Promise<boolean> => {
@@ -262,7 +260,7 @@ describe("reconcileByNaturalKey — contention and failure re-open the window", 
     existing = null;
 
     jest
-      .spyOn(TelemetryEntityService, "create")
+      .spyOn(InventoryItemService, "create")
       .mockRejectedValue(new Error("null value in column violates not-null"));
 
     await reconcile("project:k8s-cluster:prod");
@@ -274,11 +272,11 @@ describe("reconcileByNaturalKey — contention and failure re-open the window", 
     existing = null;
 
     jest
-      .spyOn(TelemetryEntityService, "create")
+      .spyOn(InventoryItemService, "create")
       .mockRejectedValue(new Error("duplicate key value violates unique"));
 
     jest
-      .spyOn(TelemetryEntityService, "findOneBy")
+      .spyOn(InventoryItemService, "findOneBy")
       .mockImplementationOnce(async () => {
         reads++;
         return null;

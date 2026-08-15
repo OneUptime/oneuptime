@@ -3,6 +3,7 @@ import {
   NetworkTopologyEdge,
   NetworkTopologyEdgeEndpoint,
   NetworkTopologyNode,
+  NetworkTopologyNodeDiagnostics,
   NetworkTopologyNodeStatus,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import {
@@ -87,7 +88,20 @@ export function linkStateForEdge(edge: NetworkTopologyEdge): NetworkLinkState {
       );
     },
   );
-  return hasOperationalData ? "healthy" : "unknown";
+  if (hasOperationalData) {
+    return "healthy";
+  }
+  /*
+   * Last resort: a manual link has no counters of its own, so a Monitor
+   * bound to it is the only thing that knows anything. Deliberately after
+   * the interface checks — measured state beats a monitor's summary of it,
+   * and a monitor that watches the pair end-to-end can read "up" while one
+   * specific port between them is down.
+   */
+  if (edge.monitorState) {
+    return edge.monitorState === "down" ? "down" : "healthy";
+  }
+  return "unknown";
 }
 
 /*
@@ -146,6 +160,58 @@ export function nodeMatchesSearch(
       return Boolean(value && value.toLowerCase().includes(lower));
     },
   );
+}
+
+/**
+ * Why this device is drawn with no links, in words an operator can act on.
+ *
+ * Returns undefined when there is nothing to explain — the node has links, or
+ * the payload predates diagnostics. The order is causal, not alphabetical:
+ * discovery being off explains everything downstream of it, so it is checked
+ * before "reported nothing", which in turn explains more than "matched
+ * nothing".
+ */
+export function isolationReasonForNode(
+  node: NetworkTopologyNode,
+  hasEdges: boolean,
+): string | undefined {
+  if (hasEdges || node.kind !== "device" || !node.diagnostics) {
+    return undefined;
+  }
+
+  const diagnostics: NetworkTopologyNodeDiagnostics = node.diagnostics;
+
+  if (diagnostics.isNeighborDiscoveryEnabled === false) {
+    return "Neighbour discovery never ran on this device. LLDP and CDP are walked as part of interface monitoring, which is switched off here — turn it on in the device's polling settings and its links will appear after the next poll.";
+  }
+
+  if (diagnostics.reportedNeighborCount === 0) {
+    return "This device reported no LLDP or CDP neighbours on its last poll. Either it does not run a discovery protocol, or it runs one only on ports that are down. Draw the link by hand under Device Links if you know what it connects to.";
+  }
+
+  if (diagnostics.unmatchedNeighborIdentifiers.length > 0) {
+    /*
+     * The actionable case, and the reason this function exists. Naming the
+     * identifiers turns "no links found" into "you renamed this switch" or
+     * "this neighbour was never added as a device".
+     */
+    const shown: Array<string> = diagnostics.unmatchedNeighborIdentifiers.slice(
+      0,
+      5,
+    );
+    const remainder: number =
+      diagnostics.unmatchedNeighborIdentifiers.length - shown.length;
+    const list: string = shown.join(", ");
+    return `This device reported ${
+      diagnostics.reportedNeighborCount
+    } neighbour${
+      diagnostics.reportedNeighborCount === 1 ? "" : "s"
+    }, but none of them matched a device in this project: ${list}${
+      remainder > 0 ? ` and ${remainder} more` : ""
+    }. Add those as devices, or check whether one was renamed since it was last polled.`;
+  }
+
+  return undefined;
 }
 
 export function formatMbps(value: number | undefined): string {
