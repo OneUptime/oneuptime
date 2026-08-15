@@ -68,15 +68,71 @@ interface NginxServer {
 }
 
 /*
+ * Returns a string of IDENTICAL length to `source` with the contents of
+ * quoted strings and comments replaced by "x".
+ *
+ * A location spec may be quoted, and a quoted regex may contain braces -- the
+ * content-hashed asset location uses `[A-Z0-9]{8,}`. Comments in this config
+ * discuss braces too. Neither is a block delimiter, but a plain brace counter
+ * sees them as one and desynchronises for the rest of the file. Masking keeps
+ * every index valid, so callers scan the mask and still slice the original.
+ */
+function maskLiterals(source: string): string {
+  const out: Array<string> = source.split("");
+
+  let quote: string = "";
+  let inComment: boolean = false;
+
+  for (let i: number = 0; i < source.length; i++) {
+    const character: string = source[i]!;
+
+    if (inComment) {
+      if (character === "\n") {
+        inComment = false;
+      } else {
+        out[i] = "x";
+      }
+      continue;
+    }
+
+    if (quote !== "") {
+      out[i] = "x";
+
+      if (character === "\\") {
+        /* Skip the escaped character so an escaped quote does not close. */
+        if (i + 1 < source.length) {
+          out[i + 1] = "x";
+          i++;
+        }
+      } else if (character === quote) {
+        quote = "";
+      }
+      continue;
+    }
+
+    if (character === '"' || character === "'") {
+      quote = character;
+    } else if (character === "#") {
+      inComment = true;
+      out[i] = "x";
+    }
+  }
+
+  return out.join("");
+}
+
+/*
  * Returns the body of the brace-delimited block that starts at or after
  * `fromIndex`, counting nested braces (the config nests `if` blocks inside
- * locations, so indexOf("}") is not enough).
+ * locations, so indexOf("}") is not enough). Braces inside quoted strings and
+ * comments are ignored.
  */
 function readBlock(
   source: string,
   fromIndex: number,
 ): { body: string; endIndex: number } {
-  const open: number = source.indexOf("{", fromIndex);
+  const masked: string = maskLiterals(source);
+  const open: number = masked.indexOf("{", fromIndex);
 
   if (open === -1) {
     throw new Error(`No opening brace after index ${fromIndex}`);
@@ -85,9 +141,9 @@ function readBlock(
   let depth: number = 0;
 
   for (let i: number = open; i < source.length; i++) {
-    if (source[i] === "{") {
+    if (masked[i] === "{") {
       depth++;
-    } else if (source[i] === "}") {
+    } else if (masked[i] === "}") {
       depth--;
 
       if (depth === 0) {
@@ -103,10 +159,22 @@ function parseLocations(serverBody: string): Array<NginxLocation> {
   const locations: Array<NginxLocation> = [];
   const pattern: RegExp = /(^|\n)\s*location\s+([^{]+?)\s*\{/g;
 
-  let match: RegExpExecArray | null = pattern.exec(serverBody);
+  /*
+   * Matched against the mask so a quoted spec containing braces is not cut
+   * short at its own `{`; the declaration is then sliced from the original at
+   * the same offsets, which the mask preserves exactly.
+   */
+  const maskedBody: string = maskLiterals(serverBody);
+
+  let match: RegExpExecArray | null = pattern.exec(maskedBody);
 
   while (match !== null) {
-    const declaration: string = match[2]!.trim();
+    const declaration: string = serverBody
+      .substring(match.index, match.index + match[0].length)
+      .replace(/^\s*/, "")
+      .replace(/^location\s+/, "")
+      .replace(/\{\s*$/, "")
+      .trim();
 
     let modifier: string = "";
     let locationPattern: string = declaration;
@@ -129,7 +197,7 @@ function parseLocations(serverBody: string): Array<NginxLocation> {
 
     /* Resume past this block so nested braces are never re-scanned. */
     pattern.lastIndex = block.endIndex;
-    match = pattern.exec(serverBody);
+    match = pattern.exec(maskedBody);
   }
 
   return locations;
@@ -139,7 +207,10 @@ function parseServers(source: string): Array<NginxServer> {
   const servers: Array<NginxServer> = [];
   const pattern: RegExp = /(^|\n)server\s*\{/g;
 
-  let match: RegExpExecArray | null = pattern.exec(source);
+  /* Matched against the mask so a commented-out block is never read as real. */
+  const maskedSource: string = maskLiterals(source);
+
+  let match: RegExpExecArray | null = pattern.exec(maskedSource);
 
   while (match !== null) {
     const block: { body: string; endIndex: number } = readBlock(
@@ -157,7 +228,7 @@ function parseServers(source: string): Array<NginxServer> {
     });
 
     pattern.lastIndex = block.endIndex;
-    match = pattern.exec(source);
+    match = pattern.exec(maskedSource);
   }
 
   return servers;
