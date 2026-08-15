@@ -21,6 +21,7 @@ const components: Array<ComponentMetadata> = [
           "Need help creating a webhook? Check docs here: https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks",
         type: ComponentInputType.URL,
         required: true,
+        isSensitive: true,
         placeholder:
           "https://discord.com/api/webhooks/1234567890/XXXXXXXXXXXXXXXXXXXXXXXX",
       },

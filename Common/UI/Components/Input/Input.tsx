@@ -14,6 +14,7 @@ import React, {
 
 export enum InputType {
   TEXT = "text",
+  PASSWORD = "password",
   NUMBER = "number",
   DATE = "date",
   DATETIME_LOCAL = "datetime-local",

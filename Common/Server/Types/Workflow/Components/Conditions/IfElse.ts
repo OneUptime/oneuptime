@@ -125,31 +125,17 @@ export default class IfElse extends ComponentCode {
             return "undefined";
           case ConditionValueType.Text:
           default:
-            return `"${strValue}"`;
+            return JSON.stringify(strValue);
         }
       };
 
       args["input-1"] = formatValue(args["input-1"], input1Type);
       args["input-2"] = formatValue(args["input-2"], input2Type);
 
-      type SerializeFunction = (arg: string) => string;
-
-      const serialize: SerializeFunction = (arg: string): string => {
-        if (typeof arg === "string") {
-          return arg.replace(/\n/g, "--newline--");
-        }
-
-        return arg;
-      };
-
       let code: string = `
-                    const input1 = ${
-                      serialize(args["input-1"] as string) || ""
-                    };
+                    const input1 = ${(args["input-1"] as string) || ""};
 
-                    const input2 = ${
-                      serialize(args["input-2"] as string) || ""
-                    };
+                    const input2 = ${(args["input-2"] as string) || ""};
                     
                     `;
 

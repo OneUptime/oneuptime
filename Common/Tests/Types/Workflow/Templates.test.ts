@@ -66,6 +66,8 @@ import {
   parseTemplateExpressions,
 } from "../../../Types/Workflow/TemplateSyntax";
 import { describe, expect, test } from "@jest/globals";
+import ComponentID from "../../../Types/Workflow/ComponentID";
+import CronTab from "../../../Utils/CronTab";
 
 const templates: Array<WorkflowTemplate> = getWorkflowTemplates();
 
@@ -255,6 +257,15 @@ const selectCovers: SelectCoversFunction = (
   path: Array<string>,
 ): boolean => {
   if (path.length === 0) {
+    return true;
+  }
+
+  /*
+   * ObjectID, Email, Phone and Date values are serialized for workflow storage
+   * as { _type, value }. Selecting the database column selects that wrapper;
+   * `.value` is a serialization detail rather than another database column.
+   */
+  if (path.length === 1 && path[0] === "value" && Boolean(select)) {
     return true;
   }
 
@@ -494,6 +505,99 @@ describe("workflow template variables", () => {
   });
 });
 
+describe("workflow template runtime contracts", () => {
+  test("JavaScript transform receives the webhook body as an object-shaped whole argument", () => {
+    const javascriptNode: TemplateNodeSpec = specOf(
+      "javascript-transform",
+    ).nodes.find((node: TemplateNodeSpec) => {
+      return node.componentId === "javascript-1";
+    }) as TemplateNodeSpec;
+
+    expect(javascriptNode.args?.["arguments"]).toBe(
+      "{{local.components.webhook-1.returnValues.request-body}}",
+    );
+    expect(javascriptNode.args?.["code"] as string).toContain(
+      "const body = args || {};",
+    );
+  });
+
+  test("AI incident data stays in the protected context instead of the prompt", () => {
+    const aiNode: TemplateNodeSpec = specOf(
+      "incident-created-ai-summary",
+    ).nodes.find((node: TemplateNodeSpec) => {
+      return node.componentId === "ai-1";
+    }) as TemplateNodeSpec;
+
+    expect(aiNode.args?.["prompt"] as string).not.toContain("{{");
+    expect(aiNode.args?.["context"]).toBe(
+      "{{local.components.incident-on-create-1.returnValues.model}}",
+    );
+  });
+
+  test.each(["subscriber-added-slack", "subscriber-added-forward"])(
+    "%s waits for confirmation updates and normalizes the contact method",
+    (templateId: string) => {
+      const spec: TemplateSpec = specOf(templateId);
+      const trigger: TemplateNodeSpec = spec.nodes.find(
+        (node: TemplateNodeSpec) => {
+          return node.componentType === ComponentType.Trigger;
+        },
+      ) as TemplateNodeSpec;
+
+      expect(trigger.metadataId).toBe("status-page-subscriber-on-update");
+      expect(trigger.args?.["listen-on"]).toEqual({
+        isSubscriptionConfirmed: true,
+      });
+      expect(
+        spec.nodes.some((node: TemplateNodeSpec) => {
+          return node.componentId === "subscriber-normalize-1";
+        }),
+      ).toBe(true);
+    },
+  );
+
+  test("on-call notification follows real execution updates, not the scheduled create event", () => {
+    const trigger: TemplateNodeSpec = specOf(
+      "oncall-executed-slack",
+    ).nodes.find((node: TemplateNodeSpec) => {
+      return node.componentType === ComponentType.Trigger;
+    }) as TemplateNodeSpec;
+
+    expect(trigger.metadataId).toBe(
+      "on-call-duty-policy-execution-log-on-update",
+    );
+    expect(trigger.args?.["listen-on"]).toEqual({ status: true });
+  });
+
+  test("credential-bearing destination URLs are treated as secrets", () => {
+    for (const template of templates) {
+      for (const variable of template.variables) {
+        const normalizedVariableName: string = variable.name.toLowerCase();
+
+        if (
+          !["webhookurl", "forwardurl", "targeturl", "heartbeaturl"].some(
+            (secretUrlName: string): boolean => {
+              return normalizedVariableName.includes(secretUrlName);
+            },
+          )
+        ) {
+          continue;
+        }
+
+        expect({
+          template: template.id,
+          variable: variable.name,
+          isSecret: variable.isSecret,
+        }).toEqual({
+          template: template.id,
+          variable: variable.name,
+          isSecret: true,
+        });
+      }
+    }
+  });
+});
+
 describe.each(
   templates.map((template: WorkflowTemplate) => {
     return [template.id, template] as [string, WorkflowTemplate];
@@ -599,6 +703,56 @@ describe.each(
         port: edge.fromPort,
         found: true,
       });
+    }
+  });
+
+  test("every fallible component handles its Error port", () => {
+    const spec: TemplateSpec = specOf(templateId);
+
+    for (const node of spec.nodes) {
+      const metadata: ComponentMetadata = findMetadata(
+        node.metadataId,
+      ) as ComponentMetadata;
+      const hasErrorPort: boolean = metadata.outPorts.some((port: Port) => {
+        return port.id === "error";
+      });
+
+      if (!hasErrorPort) {
+        continue;
+      }
+
+      expect({
+        componentId: node.componentId,
+        handlesError: spec.edges.some((edge: TemplateEdgeSpec) => {
+          return (
+            edge.fromComponentId === node.componentId &&
+            edge.fromPort === "error"
+          );
+        }),
+      }).toEqual({ componentId: node.componentId, handlesError: true });
+    }
+  });
+
+  test("Slack messages start with an emoji and a scannable heading", () => {
+    for (const node of specOf(templateId).nodes) {
+      if (node.metadataId !== ComponentID.SlackSendMessageToChannel) {
+        continue;
+      }
+
+      expect(node.args?.["text"]).toEqual(expect.any(String));
+      expect(node.args?.["text"] as string).toMatch(
+        /^:[a-z0-9_+-]+: \*[^\n]+\*/,
+      );
+    }
+  });
+
+  test("schedule expressions are valid cron", () => {
+    for (const node of specOf(templateId).nodes) {
+      if (node.metadataId !== ComponentID.Schedule) {
+        continue;
+      }
+
+      expect(CronTab.isValid(node.args?.["schedule"] as string)).toBe(true);
     }
   });
 

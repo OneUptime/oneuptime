@@ -269,9 +269,10 @@ describe.each(apiComponents)(
       );
 
       expect(result.executePort?.id).toBe("error");
-      expect(result.returnValues["errorMessage"]).toBe(
+      expect(result.returnValues["error"]).toBe(
         "connect ECONNREFUSED 127.0.0.1:443",
       );
+      expect(result.returnValues["errorMessage"]).toBeUndefined();
       expect(fixture.onError).not.toHaveBeenCalled();
     });
 
