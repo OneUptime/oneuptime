@@ -49,6 +49,12 @@ export interface LLMCompletionRequest {
   requestTimeoutInMs?: number | undefined;
   /** Number of retries after the initial request. */
   requestRetries?: number | undefined;
+  /**
+   * Wall-clock budget for the whole retry ladder. Defaults to
+   * getRetryDeadlineInMs — raise it for a caller that can afford to wait
+   * longer than an interactive chat turn.
+   */
+  requestRetryDeadlineInMs?: number | undefined;
   /** Re-apply caller-owned request fields after provider-level overrides. */
   protectRequestParameters?: boolean | undefined;
   /**
@@ -121,6 +127,44 @@ interface OpenAIRequestAdaptation {
 }
 
 export default class LLMService {
+  /*
+   * How many times a provider call is attempted before it is reported as a
+   * failure. The provider hop is the flakiest one in the product — hosted
+   * endpoints rate limit, self-hosted ones fall behind their own queue, and a
+   * cold model can miss the per-attempt timeout while the next attempt sails
+   * through — and every one of those used to surface as a dead chat turn
+   * after three tries.
+   *
+   * This is a count of ATTEMPTS; API takes a count of retries, which is one
+   * fewer.
+   */
+  public static readonly DEFAULT_REQUEST_ATTEMPTS: number = 10;
+
+  /*
+   * Ten doublings would put the last wait seventeen minutes out. Capped at
+   * eight seconds the whole ladder (2, 4, 8, 8, ...) costs about a minute of
+   * sleep before jitter, which is the point: ride out a provider blip without
+   * turning one chat turn into a coffee break.
+   */
+  public static readonly MAX_BACKOFF_IN_MS: number = 8 * 1000;
+
+  /*
+   * Ten attempts is the right answer for failures that fail FAST — a 429, a
+   * refused connection, a 502 from a load balancer. Ten TIMEOUTS are a
+   * different story: at the 120s default that is twenty minutes, against a
+   * ChatAgentRunner budget of five for an entire turn, so the ladder gets a
+   * wall clock of its own.
+   */
+  private static readonly DEFAULT_RETRY_DEADLINE_IN_MS: number = 5 * 60 * 1000;
+
+  /*
+   * The floor keeps the deadline from ever costing a provider attempts it had
+   * before this budget existed: three full-timeout attempts is what the old
+   * two-retry policy allowed, and a slow provider (Ollama at 300s) still gets
+   * exactly that.
+   */
+  private static readonly MIN_FULL_TIMEOUT_ATTEMPTS_WITHIN_DEADLINE: number = 3;
+
   /*
    * Provider-level parameters allowed on protected, unattended completions.
    * This is deliberately a generation-only allowlist: capability fields such
@@ -196,10 +240,10 @@ export default class LLMService {
 
   /*
    * Remembers what a given endpoint actually accepted, so only the first
-   * completion per provider pays for the discovery. API.post retries 4xx, so
-   * a rejected request costs several full prompt uploads plus backoff —
-   * re-learning that on every call would be expensive on hot paths like the
-   * AI agent loop.
+   * completion per provider pays for the discovery. A rejected request still
+   * costs a full prompt upload and round trip per adaptation — re-learning
+   * that on every call would be expensive on hot paths like the AI agent
+   * loop.
    *
    * Keyed by provider + base URL + model, so editing any of them re-probes.
    * Entries also expire: what a deployment accepts is not fixed forever — the
@@ -651,6 +695,45 @@ export default class LLMService {
   }
 
   /**
+   * The retry policy every provider call runs under.
+   *
+   * Ten attempts, backed off and jittered, and deliberately spent only on
+   * failures a repeat could fix: a provider that rejects the request itself —
+   * bad key, unknown model, malformed body — answers the same way every time,
+   * and burning the ladder on it only hides the error the operator has to see.
+   */
+  private static buildRequestPolicy(data: {
+    request: LLMCompletionRequest;
+    defaultTimeoutInMs: number;
+  }): RequestOptions {
+    const timeoutInMs: number =
+      data.request.requestTimeoutInMs ?? data.defaultTimeoutInMs;
+
+    return {
+      retries: data.request.requestRetries ?? this.DEFAULT_REQUEST_ATTEMPTS - 1,
+      exponentialBackoff: true,
+      maxBackoffInMs: this.MAX_BACKOFF_IN_MS,
+      retryOnlyOnRetryableErrors: true,
+      totalTimeoutInMs: this.getRetryDeadlineInMs(data.request, timeoutInMs),
+      timeout: timeoutInMs,
+    };
+  }
+
+  private static getRetryDeadlineInMs(
+    request: LLMCompletionRequest,
+    timeoutInMs: number,
+  ): number {
+    if (request.requestRetryDeadlineInMs !== undefined) {
+      return request.requestRetryDeadlineInMs;
+    }
+
+    return Math.max(
+      this.DEFAULT_RETRY_DEADLINE_IN_MS,
+      timeoutInMs * this.MIN_FULL_TIMEOUT_ATTEMPTS_WITHIN_DEADLINE,
+    );
+  }
+
+  /**
    * POST an OpenAI-style chat completion, reshaping and retrying when the
    * endpoint rejects a generation parameter it does not support.
    *
@@ -720,11 +803,13 @@ export default class LLMService {
      * DNS round trips (and a rebind window between them).
      */
     const requestOptions: RequestOptions =
-      await this.buildGuardedRequestOptions(data.requestUrl, {
-        retries: data.request.requestRetries ?? 2,
-        exponentialBackoff: true,
-        timeout: data.request.requestTimeoutInMs ?? 120000,
-      });
+      await this.buildGuardedRequestOptions(
+        data.requestUrl,
+        this.buildRequestPolicy({
+          request: data.request,
+          defaultTimeoutInMs: 120000,
+        }),
+      );
 
     const post: () => Promise<
       HTTPResponse<JSONObject> | HTTPErrorResponse
@@ -1310,11 +1395,13 @@ export default class LLMService {
           "anthropic-version": "2023-06-01",
           "Content-Type": "application/json",
         },
-        options: await this.buildGuardedRequestOptions(anthropicRequestUrl, {
-          retries: request.requestRetries ?? 2,
-          exponentialBackoff: true,
-          timeout: request.requestTimeoutInMs ?? 120000,
-        }),
+        options: await this.buildGuardedRequestOptions(
+          anthropicRequestUrl,
+          this.buildRequestPolicy({
+            request: request,
+            defaultTimeoutInMs: 120000,
+          }),
+        ),
       });
 
     const anthropicLogAttributes: LogAttributes = {
@@ -1467,11 +1554,13 @@ export default class LLMService {
         headers: {
           "Content-Type": "application/json",
         },
-        options: await this.buildGuardedRequestOptions(ollamaRequestUrl, {
-          retries: request.requestRetries ?? 2,
-          exponentialBackoff: true,
-          timeout: request.requestTimeoutInMs ?? 300000, // Ollama may be slower
-        }),
+        options: await this.buildGuardedRequestOptions(
+          ollamaRequestUrl,
+          this.buildRequestPolicy({
+            request: request,
+            defaultTimeoutInMs: 300000, // Ollama may be slower
+          }),
+        ),
       });
 
     const ollamaLogAttributes: LogAttributes = {
