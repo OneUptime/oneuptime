@@ -1,23 +1,25 @@
 /*
- * A row-based editor for the two workflow arguments that are keyed on a
+ * A schema-driven editor for the two workflow arguments that are keyed on a
  * model's columns: the Query that picks which records a component acts on,
  * and the record of values a create/update writes.
  *
  * Both were bare JSON editors, with the column names — and, for a query, the
- * operator syntax — left entirely to memory. The description on those
- * arguments had to carry a hint about "_id" versus "id" precisely because
- * nothing else told the builder what the columns were called.
+ * operator syntax — left entirely to memory. The first attempt at fixing that
+ * borrowed the generic key/value row editor, which asked for a column name as
+ * free text and then asked, in a dropdown next to it, whether the value was
+ * Text, Number or Boolean. Both questions were already answered:
+ * /model-schema/:tableName says that `color` is a Color and `name` is a Name,
+ * so the builder could only agree with the schema or be wrong.
  *
- * Everything needed to do better already existed: /model-schema/:tableName
- * knows the columns, and DictionaryForm's operator mode emits exactly the
- * {_type, value} shape that JSONFunctions.deserialize hydrates on the server
- * (FindManyBaseModel and friends). This wires the two together, and keeps a
- * JSON escape hatch for the values rows cannot express.
+ * So the rows are generated from the schema instead. A record is a form of the
+ * model's own fields, with their real titles and descriptions; a query is a
+ * list of conditions whose comparisons are filtered by the column's type. The
+ * JSON escape hatch stays for the values rows cannot express, and now it
+ * re-reads what was typed in it rather than discarding it.
  */
 
 import CodeEditor from "../CodeEditor/CodeEditor";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
-import DictionaryForm, { ValueType } from "../Dictionary/Dictionary";
 import { DictionaryEntryValue } from "../Dictionary/DictionaryFilterOperator";
 import Icon from "../Icon/Icon";
 import {
@@ -28,6 +30,14 @@ import {
   requiredWritableColumns,
   useModelSchema,
 } from "./ModelSchema";
+import { ModelColumnRow } from "./ColumnEditor/ColumnRow";
+import {
+  rowsFromParsedValue,
+  seedRequiredRows,
+  serializeColumnRows,
+} from "./ColumnEditor/ColumnRowSerialization";
+import ModelQueryBuilder from "./ColumnEditor/ModelQueryBuilder";
+import ModelRecordForm from "./ColumnEditor/ModelRecordForm";
 import CodeType from "../../../Types/Code/CodeType";
 import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -36,6 +46,7 @@ import { maskTemplateExpressions } from "../../../Types/Workflow/TemplateSyntax"
 import React, {
   FunctionComponent,
   ReactElement,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -47,6 +58,18 @@ export enum ModelColumnEditorMode {
   Record = "Record",
 }
 
+/**
+ * Whether the record being edited creates a row or updates one.
+ *
+ * It decides one thing: whether the editor opens with a blank row for every
+ * column a create must supply. An update legitimately writes a single column,
+ * so seeding those rows there presents six fields where the builder wanted one.
+ */
+export enum RecordIntent {
+  Create = "Create",
+  Update = "Update",
+}
+
 export interface ComponentProps {
   tableName: string;
   mode: ModelColumnEditorMode;
@@ -55,6 +78,8 @@ export interface ComponentProps {
   error?: string | undefined;
   placeholder?: string | undefined;
   tabIndex?: number | undefined;
+  /** Record mode only; ignored for a query. Defaults to Create. */
+  recordIntent?: RecordIntent | undefined;
   /*
    * Offered in any row whose column has no suggestions of its own - the other
    * steps' return values and the workflow's variables. The row editor replaced
@@ -356,54 +381,24 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
   const [viewMode, setViewMode] = useState<ViewMode>("builder");
 
   /*
-   * The row editor is uncontrolled after mount (DictionaryForm seeds itself
-   * once), so this is computed rather than held in state. It only has to be
-   * right on the render that first mounts DictionaryForm, which is the first
-   * render after the schema resolves — the loader below returns early until
-   * then.
+   * The rows are the editor's own state, and both bodies are fully controlled
+   * from here. Null until the schema resolves, because a row cannot be built
+   * before it is known what kind of column it is for.
    *
-   * Record mode opens with a blank row for every column a create must be given
-   * a value for. Seeding is additive and never overwrites what was stored, and
-   * blank rows are dropped on the way back out (buildColumnValueJson), so
-   * opening a saved workflow and saving it again cannot change what it does.
+   * Nothing in the seeding path calls props.onChange. That matters more than it
+   * looks: this component is mounted every time someone opens a step's
+   * settings, and a change fired during mount would rewrite the stored bytes of
+   * every workflow just for being looked at.
    */
-  const initialRows: Dictionary<DictionaryEntryValue> = useMemo(() => {
-    const stored: Dictionary<DictionaryEntryValue> = (initial.parsed ||
-      {}) as Dictionary<DictionaryEntryValue>;
-
-    if (isQuery || !schema.columns) {
-      return stored;
-    }
-
-    const seeded: Dictionary<DictionaryEntryValue> = { ...stored };
-
-    for (const column of requiredWritableColumns(schema.columns)) {
-      if (seeded[column.id] === undefined) {
-        seeded[column.id] = "";
-      }
-    }
-
-    return seeded;
-  }, [schema.columns, isQuery]);
+  const [rows, setRows] = useState<Array<ModelColumnRow> | null>(null);
 
   /*
-   * The model's own example for each column, shown in the row it belongs to.
-   * MonitorSecret.secretValue ships example: "sk_test_1234567890abcdefghijklmnop",
-   * which answers "what goes in this box" better than any prose in the sidebar.
+   * Why the switch back from JSON is refused, when it is. Empty means it is
+   * allowed.
    */
-  const valuePlaceholders: Dictionary<string> = useMemo(() => {
-    const placeholders: Dictionary<string> = {};
-
-    for (const column of schema.columns || []) {
-      const hint: string | undefined = column.example || column.placeholder;
-
-      if (hint) {
-        placeholders[column.id] = hint;
-      }
-    }
-
-    return placeholders;
-  }, [schema.columns]);
+  const [returnToRowsBlockedBy, setReturnToRowsBlockedBy] = useState<
+    Array<string>
+  >([]);
 
   const compatibility: CompatibilityResult = useMemo(() => {
     return classifyColumnValueCompatibility(
@@ -414,13 +409,33 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
     );
   }, [schema.columns, props.mode]);
 
-  const columnKeys: Array<string> = useMemo(() => {
-    return (schema.columns || []).map((column: ModelSchemaColumn) => {
-      return column.id;
-    });
-  }, [schema.columns]);
+  const columns: Array<ModelSchemaColumn> = schema.columns || [];
 
-  if (schema.isLoading) {
+  useEffect(() => {
+    if (schema.isLoading || rows !== null) {
+      return;
+    }
+
+    const storedRows: Array<ModelColumnRow> = rowsFromParsedValue(
+      initial.parsed,
+      columns,
+      props.mode,
+    );
+
+    /*
+     * A create opens with a blank row for every column it must be given, so the
+     * shape of the record is visible before anything is typed. Seeded rows hold
+     * "" and are dropped on the way out, so an untouched Create One still reads
+     * as empty to form validation and to the graph linter.
+     */
+    const shouldSeed: boolean =
+      !isQuery &&
+      (props.recordIntent || RecordIntent.Create) === RecordIntent.Create;
+
+    setRows(shouldSeed ? seedRequiredRows(storedRows, columns) : storedRows);
+  }, [schema.isLoading, schema.columns]);
+
+  if (schema.isLoading || rows === null) {
     return <ComponentLoader />;
   }
 
@@ -431,30 +446,98 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
 
   const onJsonChange: OnJsonChangeFunction = (value: string): void => {
     setJsonText(value);
+    /*
+     * Any block on returning to rows was about the previous text, so it is
+     * re-decided when the switch is next attempted rather than left standing.
+     */
+    setReturnToRowsBlockedBy([]);
     props.onChange(value);
   };
 
-  type OnRowsChangeFunction = (value: Dictionary<DictionaryEntryValue>) => void;
+  type OnRowsChangeFunction = (value: Array<ModelColumnRow>) => void;
 
   const onRowsChange: OnRowsChangeFunction = (
-    value: Dictionary<DictionaryEntryValue>,
+    value: Array<ModelColumnRow>,
   ): void => {
-    const asJson: string = buildColumnValueJson(value, props.mode);
+    setRows(value);
+
+    const asJson: string = serializeColumnRows(value, columns, props.mode);
     setJsonText(asJson);
     props.onChange(asJson);
   };
 
+  type ShowJsonFunction = () => void;
+
+  const showJson: ShowJsonFunction = (): void => {
+    /*
+     * What is shown is what is stored. Handing the code editor the text the
+     * argument held before the rows were edited would be the same data loss as
+     * the other direction, one step later.
+     */
+    setJsonText(serializeColumnRows(rows, columns, props.mode));
+    setViewMode("json");
+  };
+
+  type ShowRowsFunction = () => void;
+
+  const showRows: ShowRowsFunction = (): void => {
+    /*
+     * The JSON is re-read here, which is the fix for a real bug: the rows used
+     * to be seeded once and never again, so editing as JSON, adding a key and
+     * switching back silently dropped the key, and the next keystroke in any
+     * row overwrote the argument with the pre-edit content.
+     */
+    const edited: ParsedQuery = normalizeInitialValue(jsonText);
+    const editedCompatibility: CompatibilityResult =
+      classifyColumnValueCompatibility(
+        edited.parsed,
+        columns,
+        props.mode,
+        edited.hasTemplateExpressions,
+      );
+
+    if (!editedCompatibility.compatible) {
+      // Refused rather than silently losing the edit.
+      setReturnToRowsBlockedBy(editedCompatibility.reasons);
+      return;
+    }
+
+    setReturnToRowsBlockedBy([]);
+    setRows(rowsFromParsedValue(edited.parsed, columns, props.mode));
+    setViewMode("builder");
+  };
+
+  const filledRowCount: number = rows.filter((row: ModelColumnRow) => {
+    return row.columnId !== "" && (row.text !== "" || row.values.length > 0);
+  }).length;
+
+  const emptyRequiredCount: number = isQuery
+    ? 0
+    : requiredWritableColumns(columns).filter((column: ModelSchemaColumn) => {
+        return rows.some((row: ModelColumnRow) => {
+          return row.columnId === column.id && row.text === "";
+        });
+      }).length;
+
+  const noun: string = isQuery ? "condition" : "field";
+
   return (
     <div>
       {schema.error && (
-        <p className="text-sm text-amber-600 mb-2">
-          Couldn&apos;t load this model&apos;s columns ({schema.error}). You can
-          still write {isQuery ? "the query" : "these fields"} as JSON.
-        </p>
+        <div className="mb-2 flex items-start gap-2 rounded-md border border-red-200 bg-red-50/60 px-3 py-2.5">
+          <Icon
+            icon={IconProp.Alert}
+            className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-500"
+          />
+          <p className="text-sm text-red-700">
+            Couldn&apos;t load this model&apos;s columns ({schema.error}). You
+            can still write {isQuery ? "the query" : "these fields"} as JSON.
+          </p>
+        </div>
       )}
 
       {isLockedToJson && compatibility.reasons.length > 0 && (
-        <div className="mb-2 rounded-md border border-amber-200 bg-amber-50 p-3">
+        <div className="mb-2 rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2.5">
           <p className="text-sm text-amber-800">Editing as JSON, because:</p>
           <ul className="mt-1 list-disc pl-5 text-sm text-amber-700">
             {compatibility.reasons.map((reason: string, i: number) => {
@@ -465,7 +548,7 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
       )}
 
       {!isLockedToJson && compatibility.reasons.length > 0 && (
-        <div className="mb-2 rounded-md border border-amber-200 bg-amber-50 p-3">
+        <div className="mb-2 rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2.5">
           <ul className="list-disc pl-5 text-sm text-amber-700">
             {compatibility.reasons.map((reason: string, i: number) => {
               return <li key={i}>{reason}</li>;
@@ -474,19 +557,86 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
+      {returnToRowsBlockedBy.length > 0 && (
+        <div className="mb-2 rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2.5">
+          <p className="text-sm text-amber-800">
+            This can&apos;t go back to {isQuery ? "conditions" : "fields"},
+            because:
+          </p>
+          <ul className="mt-1 list-disc pl-5 text-sm text-amber-700">
+            {returnToRowsBlockedBy.map((reason: string, i: number) => {
+              return <li key={i}>{reason}</li>;
+            })}
+          </ul>
+        </div>
+      )}
+
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-xs text-gray-500">
+          {effectiveMode === "builder" ? (
+            <>
+              {filledRowCount} {noun}
+              {filledRowCount === 1 ? "" : "s"} set
+              {emptyRequiredCount > 0 && (
+                <span className="text-amber-600">
+                  {" "}
+                  · {emptyRequiredCount} required field
+                  {emptyRequiredCount === 1 ? "" : "s"} still empty
+                </span>
+              )}
+            </>
+          ) : (
+            <>Editing the raw JSON this step will send.</>
+          )}
+        </p>
+
+        {!isLockedToJson && (
+          <button
+            type="button"
+            data-testid="model-column-json-toggle"
+            className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            onClick={() => {
+              if (effectiveMode === "builder") {
+                showJson();
+                return;
+              }
+
+              showRows();
+            }}
+          >
+            <Icon
+              icon={
+                effectiveMode === "builder"
+                  ? IconProp.Code
+                  : IconProp.ListBullet
+              }
+              className="h-3.5 w-3.5 text-gray-500"
+            />
+            {effectiveMode === "builder"
+              ? "Edit as JSON"
+              : isQuery
+                ? "Back to conditions"
+                : "Back to fields"}
+          </button>
+        )}
+      </div>
+
       {effectiveMode === "builder" ? (
-        <DictionaryForm
-          keys={columnKeys}
-          enableOperators={isQuery}
-          valueTypes={[ValueType.Text, ValueType.Number, ValueType.Boolean]}
-          addButtonSuffix={isQuery ? "condition" : "field"}
-          keyPlaceholder="Column"
-          valuePlaceholder="Value"
-          valuePlaceholders={valuePlaceholders}
-          defaultValueSuggestions={props.valueSuggestions}
-          initialValue={initialRows}
-          onChange={onRowsChange}
-        />
+        isQuery ? (
+          <ModelQueryBuilder
+            rows={rows}
+            columns={columns}
+            suggestions={props.valueSuggestions}
+            onChange={onRowsChange}
+          />
+        ) : (
+          <ModelRecordForm
+            rows={rows}
+            columns={columns}
+            suggestions={props.valueSuggestions}
+            onChange={onRowsChange}
+          />
+        )
       ) : (
         <CodeEditor
           type={CodeType.JSON}
@@ -497,25 +647,6 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
           placeholder={props.placeholder}
           onChange={onJsonChange}
         />
-      )}
-
-      {!isLockedToJson && (
-        <div className="mt-2">
-          <button
-            type="button"
-            className="text-sm underline text-blue-500 hover:text-blue-600 cursor-pointer inline-flex items-center gap-1"
-            onClick={() => {
-              setViewMode(effectiveMode === "builder" ? "json" : "builder");
-            }}
-          >
-            <Icon icon={IconProp.Code} className="h-3.5 w-3.5" />
-            {effectiveMode === "builder"
-              ? "Edit as JSON"
-              : isQuery
-                ? "Back to conditions"
-                : "Back to fields"}
-          </button>
-        </div>
       )}
 
       {props.error && effectiveMode === "builder" && (
