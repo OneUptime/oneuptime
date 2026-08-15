@@ -143,6 +143,8 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
           statusMessage: true,
           user: {
             name: true,
+            email: true,
+            profilePictureId: true,
           },
         }}
         cardProps={{

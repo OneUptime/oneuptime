@@ -9,6 +9,8 @@ export interface ComponentProps {
   suffixClassName?: string | undefined;
   usernameClassName?: string | undefined;
   prefixClassName?: string | undefined;
+  emailClassName?: string | undefined;
+  hideEmail?: boolean | undefined;
 }
 
 const UsersElement: FunctionComponent<ComponentProps> = (
@@ -30,6 +32,8 @@ const UsersElement: FunctionComponent<ComponentProps> = (
             suffixClassName={props.suffixClassName}
             usernameClassName={props.usernameClassName}
             prefixClassName={props.prefixClassName}
+            emailClassName={props.emailClassName}
+            hideEmail={props.hideEmail}
           />
         );
       })}
