@@ -205,6 +205,17 @@ services:
       # and dashboards lag). users.d is merged into the users config, where profiles
       # are read. Mirrors the Altinity operator defaults.
       - ./Clickhouse/users.d/distributed-insert-tuning.xml:/etc/clickhouse-server/users.d/distributed-insert-tuning.xml
+      # System-log retention drop-in: ClickHouse's own query_log/trace_log/… ship
+      # with their TTL commented out, so without this they grow forever and eat the
+      # clickhouse volume (processors_profile_log alone reached 536 GiB on the
+      # hosted deployment). Caps six system logs at 6h from event_time and removes
+      # processors_profile_log, mirroring the Helm path (values.yaml ->
+      # clickhouse.configuration); Tests/Ops fails the build if the two drift.
+      # The TTL keys off event_time (DateTime), NOT event_date (Date): adding
+      # hours to a Date pins the expiry to 06:00 on the row's own day, which
+      # discards nearly everything written after 06:00 instead of keeping 6h.
+      # See the header of Clickhouse/config.d/system-log-ttl.xml.
+      - ./Clickhouse/config.d/system-log-ttl.xml:/etc/clickhouse-server/config.d/system-log-ttl.xml
     healthcheck:
       test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1'"]
       interval: 10s
