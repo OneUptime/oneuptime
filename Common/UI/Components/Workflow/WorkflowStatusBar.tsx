@@ -7,6 +7,10 @@
  * one thing on the strip that is clickable looked the least like a control.
  * They are pills here so the strip reads as one row of statuses, and so the
  * clickable one can carry a border, a hover state and a focus ring.
+ *
+ * The checks pill only appears when the checks found something. A green "no
+ * problems" pill is the normal state of a workflow, so it says nothing while
+ * taking up the same room as the pill that does.
  */
 
 import Icon, { SizeProp } from "../Icon/Icon";
@@ -15,7 +19,6 @@ import { WorkflowLintResult } from "./GraphLint";
 import {
   WorkflowLintTone,
   getWorkflowLintCountText,
-  getWorkflowLintStatusText,
   getWorkflowLintTone,
 } from "./GraphLintSummary";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -77,6 +80,7 @@ const PILL_CLASS_NAME: string =
 
 type GetLintPillClassNameFunction = (tone: WorkflowLintTone) => string;
 
+/** Only ever asked about a tone the pill is shown for — warnings, or worse. */
 const getLintPillClassName: GetLintPillClassNameFunction = (
   tone: WorkflowLintTone,
 ): string => {
@@ -84,11 +88,7 @@ const getLintPillClassName: GetLintPillClassNameFunction = (
     return "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-300";
   }
 
-  if (tone === WorkflowLintTone.Warning) {
-    return "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 hover:border-amber-300";
-  }
-
-  return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  return "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 hover:border-amber-300";
 };
 
 type GetRunPillClassNameFunction = (
@@ -196,42 +196,27 @@ const WorkflowStatusBar: FunctionComponent<ComponentProps> = (
           </span>
         ))}
 
-      {lintResult &&
-        (hasIssues ? (
-          <button
-            type="button"
-            onClick={props.onShowIssues}
-            title="See everything the checks found"
-            aria-label={`${getWorkflowLintCountText(
-              lintResult,
-            )} found in this workflow. Open the list.`}
-            data-testid="workflow-lint-status-button"
-            className={`${PILL_CLASS_NAME} cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 ${getLintPillClassName(
-              tone,
-            )}`}
-          >
-            <Icon
-              icon={IconProp.Alert}
-              size={SizeProp.ExtraSmall}
-              className="h-3 w-3 shrink-0"
-            />
-            {getWorkflowLintCountText(lintResult)}
-          </button>
-        ) : (
-          <span
-            className={`${PILL_CLASS_NAME} ${getLintPillClassName(
-              WorkflowLintTone.Clean,
-            )}`}
-            data-testid="workflow-lint-status"
-          >
-            <Icon
-              icon={IconProp.CheckCircle}
-              size={SizeProp.ExtraSmall}
-              className="h-3 w-3 shrink-0"
-            />
-            {getWorkflowLintStatusText(lintResult)}
-          </span>
-        ))}
+      {lintResult && hasIssues && (
+        <button
+          type="button"
+          onClick={props.onShowIssues}
+          title="See everything the checks found"
+          aria-label={`${getWorkflowLintCountText(
+            lintResult,
+          )} found in this workflow. Open the list.`}
+          data-testid="workflow-lint-status-button"
+          className={`${PILL_CLASS_NAME} cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 ${getLintPillClassName(
+            tone,
+          )}`}
+        >
+          <Icon
+            icon={IconProp.Alert}
+            size={SizeProp.ExtraSmall}
+            className="h-3 w-3 shrink-0"
+          />
+          {getWorkflowLintCountText(lintResult)}
+        </button>
+      )}
     </div>
   );
 };

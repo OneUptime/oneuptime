@@ -97,17 +97,6 @@ export const getWorkflowLintCountText: GetWorkflowLintCountTextFunction = (
   return parts.join(", ");
 };
 
-export type GetWorkflowLintStatusTextFunction = (
-  counts: WorkflowLintCounts,
-) => string;
-
-/** The same counts, with something to say when there are none. */
-export const getWorkflowLintStatusText: GetWorkflowLintStatusTextFunction = (
-  counts: WorkflowLintCounts,
-): string => {
-  return getWorkflowLintCountText(counts) || "No problems";
-};
-
 export type GetWorkflowLintToneFunction = (
   counts: WorkflowLintCounts,
 ) => WorkflowLintTone;

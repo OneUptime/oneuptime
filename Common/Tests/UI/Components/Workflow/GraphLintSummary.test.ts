@@ -17,7 +17,6 @@ import {
   findStepNodeToOpen,
   getWorkflowLintCountText,
   getWorkflowLintSeverityLabel,
-  getWorkflowLintStatusText,
   getWorkflowLintTone,
   groupWorkflowLintIssues,
 } from "../../../../UI/Components/Workflow/GraphLintSummary";
@@ -103,20 +102,6 @@ describe("getWorkflowLintCountText", () => {
   test("puts errors before warnings when there are both", () => {
     expect(getWorkflowLintCountText({ errorCount: 2, warningCount: 1 })).toBe(
       "2 errors, 1 warning",
-    );
-  });
-});
-
-describe("getWorkflowLintStatusText", () => {
-  test("has something to say when there is nothing wrong", () => {
-    expect(getWorkflowLintStatusText({ errorCount: 0, warningCount: 0 })).toBe(
-      "No problems",
-    );
-  });
-
-  test("falls through to the counts when there is something wrong", () => {
-    expect(getWorkflowLintStatusText({ errorCount: 1, warningCount: 2 })).toBe(
-      "1 error, 2 warnings",
     );
   });
 });
@@ -765,6 +750,6 @@ describe("groupWorkflowLintIssues — over a real linted graph", () => {
 
     expect(groupWorkflowLintIssues({ issues: result.issues })).toEqual([]);
     expect(getWorkflowLintTone(result)).toBe(WorkflowLintTone.Clean);
-    expect(getWorkflowLintStatusText(result)).toBe("No problems");
+    expect(getWorkflowLintCountText(result)).toBe("");
   });
 });
