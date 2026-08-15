@@ -919,6 +919,24 @@ describe("SiteGeoMap", () => {
   });
 
   /*
+   * The other half of the reservation. The collision pass sizes each box
+   * from LABEL_FONT_SIZE and a per-character width measured at weight 600;
+   * painting the name lighter or smaller than that is safe, but heavier or
+   * larger draws outside the box the pass approved — an overlap that then
+   * looks deliberate. The widget suite pins the same two values.
+   */
+  test("names are painted at the size and weight their box was measured for", () => {
+    const labelText: string = source
+      .split("textAnchor={labelPlacement.textAnchor}")[1]!
+      .split("{marker.label}")[0]!;
+
+    expect(labelText).toContain("fontSize={LABEL_FONT_SIZE / zoom}");
+    expect(labelText).toContain("fontWeight={600}");
+    // The shared constant or nothing — a second literal is how they drift.
+    expect(labelText).not.toContain("fontSize={10");
+  });
+
+  /*
    * A name moved off its marker without saying so is the same lie a
    * displaced marker would be. The thread is the whole licence for pushing
    * it — and a name still sitting against its marker must not get one,
