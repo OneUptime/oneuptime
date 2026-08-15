@@ -64,6 +64,7 @@ const components: Array<ComponentMetadata> = [
         description: "SMTP Password to send emails from",
         required: false,
         id: "smtp-password",
+        isSensitive: true,
       },
       {
         type: ComponentInputType.Number,
@@ -74,14 +75,22 @@ const components: Array<ComponentMetadata> = [
       },
       {
         type: ComponentInputType.Boolean,
-        name: "Use TLS/SSL",
+        name: "Use Implicit TLS",
         description:
-          "Check this box if you would like to use TLS/SSL to send emails",
+          "Enable for implicit TLS, usually on port 465. Leave disabled for STARTTLS, usually on port 587.",
         required: false,
         id: "secure",
       },
     ],
-    returnValues: [],
+    returnValues: [
+      {
+        id: "error",
+        name: "Error",
+        description: "Error, if there is any.",
+        type: ComponentInputType.Text,
+        required: false,
+      },
+    ],
     inPorts: [
       {
         title: "In",

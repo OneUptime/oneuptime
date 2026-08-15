@@ -106,12 +106,24 @@ export default class Email extends ComponentCode {
       );
     }
 
-    try {
-      const username: string | undefined =
-        args["smtp-username"]?.toString() || undefined;
-      const password: string | undefined =
-        args["smtp-password"]?.toString() || undefined;
+    const username: string | undefined =
+      args["smtp-username"]?.toString() || undefined;
+    const password: string | undefined =
+      args["smtp-password"]?.toString() || undefined;
 
+    if (Boolean(username) !== Boolean(password)) {
+      const errorMessage: string =
+        "SMTP username and password must be provided together.";
+
+      options.log(errorMessage);
+
+      return {
+        returnValues: { error: errorMessage },
+        executePort: errorPort,
+      };
+    }
+
+    try {
       const smtpTransport: SMTPTransport.Options = {
         host: args["smtp-host"]?.toString(),
         port: args["smtp-port"] as number,
@@ -150,9 +162,15 @@ export default class Email extends ComponentCode {
         executePort: successPort,
       });
     } catch (err: unknown) {
-      options.log(err as Error);
+      const errorMessage: string =
+        err instanceof Error && err.message
+          ? err.message
+          : "Email could not be sent.";
+
+      options.log(errorMessage);
+
       return Promise.resolve({
-        returnValues: {},
+        returnValues: { error: errorMessage },
         executePort: errorPort,
       });
     }

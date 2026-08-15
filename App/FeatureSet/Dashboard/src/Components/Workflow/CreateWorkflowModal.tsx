@@ -26,7 +26,7 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
-import Input from "Common/UI/Components/Input/Input";
+import Input, { InputType } from "Common/UI/Components/Input/Input";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
 import Steps from "Common/UI/Components/Forms/Steps/Steps";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
@@ -585,6 +585,9 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
               />
               <Input
                 id={inputId}
+                type={variable.isSecret ? InputType.PASSWORD : InputType.TEXT}
+                autoComplete={variable.isSecret ? "new-password" : undefined}
+                disableSpellCheck={variable.isSecret}
                 value={variableValues[variable.name] || ""}
                 placeholder={variable.placeholder}
                 error={variableErrors[variable.name]}

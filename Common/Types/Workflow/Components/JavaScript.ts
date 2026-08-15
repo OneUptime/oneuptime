@@ -40,6 +40,13 @@ const components: Array<ComponentMetadata> = [
         required: false,
         id: "returnValue",
       },
+      {
+        type: ComponentInputType.Text,
+        name: "Error",
+        description: "Error message when the script follows the Error port",
+        required: false,
+        id: "error",
+      },
     ],
     inPorts: [
       {

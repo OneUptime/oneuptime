@@ -127,6 +127,31 @@ describe("getComponentArguments — substitution", () => {
     expect(args["request-body"]).toEqual({ a: 1 });
   });
 
+  test("preserves an object used as the whole JSON argument", () => {
+    const runner: RunWorkflow = new RunWorkflow();
+    logsOf(runner);
+    const requestBody: JSONObject = {
+      service: "api",
+      nested: { healthy: true },
+    };
+
+    const args: JSONObject = runner.getComponentArguments(
+      makeStorage({
+        components: {
+          "webhook-1": {
+            returnValues: { "request-body": requestBody },
+          },
+        },
+      }),
+      makeNode([makeArgument("arguments", ComponentInputType.JSON)], {
+        arguments: "{{local.components.webhook-1.returnValues.request-body}}",
+      }),
+    );
+
+    expect(args["arguments"]).toEqual(requestBody);
+    expect(typeof args["arguments"]).toBe("object");
+  });
+
   test("throws with the argument named when a JSON argument is malformed", () => {
     const runner: RunWorkflow = new RunWorkflow();
     logsOf(runner);

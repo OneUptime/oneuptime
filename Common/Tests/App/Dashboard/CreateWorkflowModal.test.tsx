@@ -70,7 +70,6 @@ const WORKFLOW_ID: ObjectID = new ObjectID(
 
 const SLACK_TEMPLATE_ID: string = "incident-created-slack";
 const EMAIL_TEMPLATE_ID: string = "scheduled-email-digest";
-const FORWARD_TEMPLATE_ID: string = "incident-created-forward";
 const ZERO_CONFIG_TEMPLATE_ID: string = "manual-log";
 
 interface ModelCreateArguments {
@@ -223,44 +222,55 @@ afterEach(() => {
 });
 
 describe("CreateWorkflowModal variable input types", () => {
-  test("a secret-only Slack template still presents an ordinary text input", () => {
+  test("a secret-only Slack template masks its webhook URL", () => {
     renderModal();
     const template: WorkflowTemplate = goToConfigure(SLACK_TEMPLATE_ID);
 
     expect(template.variables).toHaveLength(1);
     expect(template.variables[0]?.isSecret).toBe(true);
-    expect(getVariableInput("slackWebhookUrl")).toHaveAttribute("type", "text");
+    expect(getVariableInput("slackWebhookUrl")).toHaveAttribute(
+      "type",
+      "password",
+    );
+    expect(getVariableInput("slackWebhookUrl")).toHaveAttribute(
+      "autocomplete",
+      "new-password",
+    );
+    expect(getVariableInput("slackWebhookUrl")).toHaveAttribute(
+      "spellcheck",
+      "false",
+    );
   });
 
-  test("the mixed SMTP template renders every public and secret value as text", () => {
+  test("the mixed SMTP template masks only its secret values", () => {
     renderModal();
     const template: WorkflowTemplate = goToConfigure(EMAIL_TEMPLATE_ID);
 
-    expect(
-      template.variables.map((variable: WorkflowTemplateVariable) => {
-        return {
-          name: variable.name,
-          isSecret: variable.isSecret,
-          inputType: getVariableInput(variable.name).type,
-        };
-      }),
-    ).toEqual([
-      { name: "smtpHost", isSecret: false, inputType: "text" },
-      { name: "smtpPort", isSecret: false, inputType: "text" },
-      { name: "smtpUsername", isSecret: false, inputType: "text" },
-      { name: "smtpPassword", isSecret: true, inputType: "text" },
-      { name: "emailFrom", isSecret: false, inputType: "text" },
-      { name: "emailTo", isSecret: false, inputType: "text" },
-    ]);
+    for (const variable of template.variables) {
+      expect(getVariableInput(variable.name)).toHaveAttribute(
+        "type",
+        variable.isSecret ? "password" : "text",
+      );
+    }
+
+    expect(getVariableInput("smtpPassword")).toHaveAttribute(
+      "autocomplete",
+      "new-password",
+    );
+    expect(getVariableInput("smtpHost")).not.toHaveAttribute("autocomplete");
   });
 
-  test("a non-secret destination URL uses a text input", () => {
+  test("a non-secret SMTP host remains a text input", () => {
     renderModal();
-    const template: WorkflowTemplate = goToConfigure(FORWARD_TEMPLATE_ID);
+    const template: WorkflowTemplate = goToConfigure(EMAIL_TEMPLATE_ID);
+    const smtpHost: WorkflowTemplateVariable | undefined =
+      template.variables.find((variable: WorkflowTemplateVariable) => {
+        return variable.name === "smtpHost";
+      });
 
-    expect(template.variables).toHaveLength(1);
-    expect(template.variables[0]?.isSecret).toBe(false);
-    expect(getVariableInput("forwardUrl")).toHaveAttribute("type", "text");
+    expect(smtpHost?.isSecret).toBe(false);
+    expect(getVariableInput("smtpHost")).toHaveAttribute("type", "text");
+    expect(getVariableInput("smtpHost")).not.toHaveAttribute("autocomplete");
   });
 });
 
@@ -340,7 +350,10 @@ describe("CreateWorkflowModal wizard state and validation", () => {
         "not-masked-in-this-form",
       );
     });
-    expect(getVariableInput("smtpPassword")).toHaveAttribute("type", "text");
+    expect(getVariableInput("smtpPassword")).toHaveAttribute(
+      "type",
+      "password",
+    );
   });
 
   test("reports every missing required SMTP field but not optional fields", () => {
@@ -385,6 +398,7 @@ describe("CreateWorkflowModal creation orchestration", () => {
     const values: Record<string, string> = {
       smtpHost: "smtp.example.com",
       smtpPort: "587",
+      smtpSecure: "false",
       smtpUsername: "mailer",
       smtpPassword: "smtp-secret",
       emailFrom: "notifications@example.com",
@@ -406,7 +420,7 @@ describe("CreateWorkflowModal creation orchestration", () => {
         return call[0] as ModelCreateArguments;
       });
 
-    expect(createArguments).toHaveLength(7);
+    expect(createArguments).toHaveLength(8);
     expect(createArguments[0]?.modelType).toBe(Workflow);
     expect(createArguments[0]?.model).toBeInstanceOf(Workflow);
 
@@ -425,6 +439,7 @@ describe("CreateWorkflowModal creation orchestration", () => {
     ).toEqual([
       "smtpHost",
       "smtpPort",
+      "smtpSecure",
       "smtpUsername",
       "smtpPassword",
       "emailFrom",
@@ -452,6 +467,13 @@ describe("CreateWorkflowModal creation orchestration", () => {
       {
         name: "smtpPort",
         content: "587",
+        isSecret: false,
+        workflowId: WORKFLOW_ID.toString(),
+        projectId: PROJECT_ID.toString(),
+      },
+      {
+        name: "smtpSecure",
+        content: "false",
         isSecret: false,
         workflowId: WORKFLOW_ID.toString(),
         projectId: PROJECT_ID.toString(),
@@ -508,7 +530,10 @@ describe("CreateWorkflowModal creation orchestration", () => {
     goToConfigure(SLACK_TEMPLATE_ID);
     fillVariable("slackWebhookUrl", "https://hooks.slack.com/services/T/B/X");
 
-    expect(getVariableInput("slackWebhookUrl")).toHaveAttribute("type", "text");
+    expect(getVariableInput("slackWebhookUrl")).toHaveAttribute(
+      "type",
+      "password",
+    );
 
     submit();
 

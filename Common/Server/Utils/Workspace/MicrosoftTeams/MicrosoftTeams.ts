@@ -139,13 +139,17 @@ const MICROSOFT_TEAMS_ROSTER_ERROR_FRAGMENTS: Array<string> = [
 const MICROSOFT_TEAMS_MAX_PAGES: number = 500;
 
 /*
- * Hosts that may receive a Teams incoming webhook. Connector webhooks are
- * issued on outlook.office.com / outlook.office365.com, and per-tenant ones on
- * <tenant>.webhook.office.com — all covered by these two registrable domains.
+ * Hosts that may receive a Teams incoming webhook. Legacy Connector webhooks
+ * use Office domains. Teams Workflows use regional logic.azure.com hosts, and
+ * current Power Automate trigger URLs use environment.api.powerplatform.com.
+ * Keep the Power Platform suffix narrow because this allowlist is also an SSRF
+ * boundary for user-supplied workflow and subscriber URLs.
  */
 export const MICROSOFT_TEAMS_WEBHOOK_DOMAINS: Array<string> = [
   "office.com",
   "office365.com",
+  "logic.azure.com",
+  "environment.api.powerplatform.com",
 ];
 
 export default class MicrosoftTeamsUtil extends WorkspaceBase {
