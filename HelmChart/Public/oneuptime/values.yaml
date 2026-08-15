@@ -2002,8 +2002,23 @@ queueDashboard:
   enabled: false
   secret:
 
+# KEDA (Kubernetes Event-driven Autoscaling). This single flag gates BOTH the
+# bundled KEDA operator subchart (see the `condition: keda.enabled` dependency
+# in Chart.yaml) AND every ScaledObject the chart renders
+# (templates/keda-scaledobjects.yaml).
+#
+# Ships false: every per-service `keda.enabled` also ships false, so on default
+# values the operator was installed (3 Deployments — manager, metrics server,
+# webhooks — plus their CRDs) purely to sit idle. Turn this on together with at
+# least one per-service `<service>.keda.enabled` to autoscale on queue depth.
+#
+# Setting a per-service `keda.enabled` while this stays false is a hard error —
+# it would render no ScaledObject at all (and, on upgrade from a release that
+# had this on, uninstall the operator out from under live ScaledObjects), so
+# templates/keda-scaledobjects.yaml fails the render instead of silently
+# dropping your autoscaling.
 keda:
-  enabled: true
+  enabled: false
 
 # CloudNativePG operator — bundled dependency. Installed ONLY when
 # postgresOperator.cnpg.enabled is true (see the condition in Chart.yaml).
