@@ -60,6 +60,36 @@ const InventoryDocumentation: FunctionComponent<
       </Card>
 
       <Card
+        title="Finding and understanding items"
+        description="Inventory uses the same navigation and filtering patterns as the rest of OneUptime."
+      >
+        <ul className="space-y-3 text-sm text-gray-600">
+          <li>
+            Use search for a name or identity key, then narrow the list with the
+            Type, Source, Last Seen and custom-field facets. Facets stay in the
+            URL, so a filtered view can be bookmarked or shared.
+          </li>
+          <li>
+            Open an item to see its connections and each telemetry signal on its
+            own page. Editing, archiving and deletion also live inside the item
+            instead of in the table row menu.
+          </li>
+          <li>
+            <AppLink
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.TOPOLOGY] as Route,
+              )}
+              className="font-medium text-indigo-600 hover:text-indigo-800"
+            >
+              Explore the full topology
+            </AppLink>{" "}
+            to see service dependencies, infrastructure containment and network
+            links together.
+          </li>
+        </ul>
+      </Card>
+
+      <Card
         title="Where items come from"
         description="Three sources, and the difference between them decides what you can do with a row."
       >

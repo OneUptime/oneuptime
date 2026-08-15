@@ -5,8 +5,8 @@ import path from "path";
 /*
  * The inventory detail pages replaced a single 657-line page that rendered
  * every attribute as an undifferentiated definition list, aged every row the
- * same way regardless of source, and offered edit and delete on rows the
- * server would rewrite or re-create.
+ * same way regardless of source, and offered lifecycle actions without the
+ * item and source context needed to explain what those actions would do.
  *
  * These are the invariants that keep the replacement honest. Each one is
  * something that is wrong in a way nothing crashes over:
@@ -153,39 +153,77 @@ describe("the relationships view", () => {
     // The connection is real even when we can no longer name what it points at.
     expect(relationships).toContain("row.otherEntityKey.substring(0, 16)");
   });
+
+  test("offers the existing full topology map from the item", () => {
+    expect(relationships).toContain("props.fullMapRoute");
+    expect(relationships).toContain("Open full map");
+
+    const page: string = readCode(
+      "Pages",
+      "Inventory",
+      "View",
+      "Relationships.tsx",
+    );
+    expect(page).toContain("buildInventoryTopologyRoute");
+    expect(page).toContain("RouteMap[PageMap.TOPOLOGY]");
+  });
 });
 
-describe("the telemetry view", () => {
-  const telemetry: string = readCode(
-    "Pages",
-    "Inventory",
-    "View",
-    "Telemetry.tsx",
+describe("addressable telemetry pages", () => {
+  const SIGNAL_PAGES: ReadonlyArray<[string, string]> = [
+    ["Logs.tsx", "LogsViewer"],
+    ["Traces.tsx", "TracesViewer"],
+    ["Metrics.tsx", "MetricsViewer"],
+    ["Exceptions.tsx", "ExceptionsTable"],
+    ["Profiles.tsx", "ProfileTable"],
+  ];
+
+  test.each(SIGNAL_PAGES)(
+    "%s owns exactly its %s viewer",
+    (file: string, viewer: string) => {
+      const page: string = readCode("Pages", "Inventory", "View", file);
+
+      expect(page).toContain(viewer);
+      expect(page).toContain("<InventorySignalPage");
+      expect(page).toContain("signal.entityKey");
+      expect(page).not.toContain("<Tabs");
+    },
   );
 
-  test("reads telemetry by entityKeys membership, not by primary owner", () => {
-    /*
-     * A span owned by the checkout service but executed on this pod belongs
-     * to both. A primary-owner query returns nothing at all for a pod.
-     */
-    expect(telemetry).toContain(
-      "const entityKeysFilter: Array<string> = useMemo(() => { return [entityKey]; }, [entityKey]);",
+  test("the shared shell handles every item lookup state", () => {
+    const shell: string = readCode(
+      "Pages",
+      "Inventory",
+      "View",
+      "InventorySignalPage.tsx",
     );
-    expect(telemetry).toContain("entityKeysFilter={entityKeysFilter}");
-    expect(telemetry).toContain("entityKeys: new Includes([entityKey])");
-    expect(telemetry).toContain("entityKeys={entityKeysFilter}");
+
+    expect(shell).toContain("useInventoryItem(modelId)");
+    expect(shell).toContain("<ComponentLoader");
+    expect(shell).toContain("<ErrorMessage");
+    expect(shell).toContain("item?.entityKey");
   });
 
-  test("covers every signal type", () => {
-    for (const viewer of [
-      "TracesViewer",
-      "LogsViewer",
-      "MetricsViewer",
-      "ExceptionsTable",
-      "ProfileTable",
-    ]) {
-      expect(telemetry).toContain(viewer);
-    }
+  test("logs use membership scope, filters, realtime and item-local state", () => {
+    const logs: string = readCode("Pages", "Inventory", "View", "Logs.tsx");
+
+    expect(logs).toContain("new Includes([signal.entityKey])");
+    expect(logs).toContain("showFilters={true}");
+    expect(logs).toContain("enableRealtime={true}");
+    expect(logs).toContain("inventory-item-logs-${signal.modelId.toString()}");
+  });
+
+  test("the old combined URL redirects rather than preserving a hidden tab UI", () => {
+    const legacy: string = readCode(
+      "Pages",
+      "Inventory",
+      "View",
+      "Telemetry.tsx",
+    );
+
+    expect(legacy).toContain("INVENTORY_VIEW_LOGS");
+    expect(legacy).toContain("<Navigate replace={true}");
+    expect(legacy).not.toContain("Tabs");
   });
 });
 
@@ -197,7 +235,36 @@ describe("the settings page", () => {
     "Settings.tsx",
   );
 
-  test("edits only the fields a human owns", () => {
+  test("does not render settings controls before the item source is loaded", () => {
+    const firstControlIndex: number = Math.min(
+      settings.indexOf("<CardModelDetail"),
+      settings.indexOf("<ArchiveResourceCard"),
+    );
+
+    expect(settings).toContain("useInventoryItem(modelId)");
+    expect(firstControlIndex).toBeGreaterThan(-1);
+
+    for (const guard of ["if (isLoading)", "if (error)", "if (!item)"]) {
+      const guardIndex: number = settings.indexOf(guard);
+
+      expect(guardIndex).toBeGreaterThan(-1);
+      expect(guardIndex).toBeLessThan(firstControlIndex);
+    }
+
+    expect(settings).toContain("<ComponentLoader");
+    expect(settings).toContain("<ErrorMessage message={error}");
+    expect(settings).toContain("This inventory item could not be found.");
+  });
+
+  test("uses the loaded source policy for editability and explanation", () => {
+    expect(settings).toContain("getInventorySettingsPolicy(");
+    expect(settings).toContain("item.source");
+    expect(settings).toContain("isEditable={policy.isEditable}");
+    expect(settings).toContain("policy.readOnlyExplanation");
+    expect(settings).toContain('dataTestId="inventory-settings-source-owned"');
+  });
+
+  test("manual editing exposes only the fields a human owns", () => {
     expect(settings).toContain("displayName: true");
     expect(settings).toContain("description: true");
   });
@@ -225,10 +292,41 @@ describe("the settings page", () => {
     expect(detailSection).toContain("entityType: true");
     expect(detailSection).toContain("entityKey: true");
   });
+
+  test("archive and restore live beside the other item settings", () => {
+    expect(settings).toContain("<ArchiveResourceCard<InventoryItem>");
+    expect(settings).toContain("RouteMap[PageMap.INVENTORY_ITEMS]");
+  });
 });
 
 describe("the delete page", () => {
   const remove: string = readCode("Pages", "Inventory", "View", "Delete.tsx");
+
+  test("does not expose deletion until the item's source is known", () => {
+    const deleteControlIndex: number = remove.indexOf("<ModelDelete");
+
+    expect(deleteControlIndex).toBeGreaterThan(-1);
+
+    for (const guard of ["if (isLoading)", "if (error)", "if (!item)"]) {
+      const guardIndex: number = remove.indexOf(guard);
+
+      expect(guardIndex).toBeGreaterThan(-1);
+      expect(guardIndex).toBeLessThan(deleteControlIndex);
+    }
+
+    const caveatIndex: number = remove.indexOf(
+      "getInventoryDeleteCaveat(item.source)",
+    );
+
+    expect(caveatIndex).toBeGreaterThan(-1);
+    expect(caveatIndex).toBeLessThan(deleteControlIndex);
+  });
+
+  test("renders explicit loading, failure and not-found states", () => {
+    expect(remove).toContain("<ComponentLoader");
+    expect(remove).toContain("<ErrorMessage message={error}");
+    expect(remove).toContain("This inventory item could not be found.");
+  });
 
   test("warns when deleting will not stick", () => {
     /*

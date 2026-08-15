@@ -62,15 +62,30 @@ describe("archiving", () => {
      * A shared userPreferencesKey means shared URL state and page size — the
      * archived list would repaginate the live one.
      */
-    expect(table).toContain('"inventory-archived-table"');
-    expect(table).toContain('"inventory-items-table"');
+    const facets: string = readCode(
+      DASHBOARD_SRC,
+      "Components",
+      "Inventory",
+      "InventoryFacets.ts",
+    );
+
+    expect(facets).toContain(
+      'INVENTORY_ARCHIVED_TABLE_ID: string = "inventory-archived-table"',
+    );
+    expect(facets).toContain(
+      'INVENTORY_ITEMS_TABLE_ID: string = "inventory-items-table"',
+    );
+    expect(table).toContain(
+      "isArchivedView ? INVENTORY_ARCHIVED_TABLE_ID : INVENTORY_ITEMS_TABLE_ID",
+    );
     expect(table).toContain("userPreferencesKey={tableKey}");
   });
 
-  test("archived rows are read-only until restored", () => {
-    expect(table).toContain("isDeleteable={!isArchivedView}");
-    expect(table).toContain("isEditable={!isArchivedView}");
+  test("row actions are view-only, with creation disabled only in the archive", () => {
+    expect(table).toContain("isDeleteable={false}");
+    expect(table).toContain("isEditable={false}");
     expect(table).toContain("isCreateable={!isArchivedView}");
+    expect(table).toContain("isViewable={true}");
   });
 
   test("each view offers the action that applies to it", () => {
