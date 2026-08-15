@@ -51,6 +51,14 @@ export interface OnCallReadinessState {
   isTruncated: boolean;
   // Responders in the whole scope, as the server counts them. Never the page's.
   totalCount: number;
+  /*
+   * Re-reads, and asks the server to RECOMPUTE rather than answer from its 60s
+   * cache. Every caller of this is a user who has just changed something - a
+   * Recheck button, a saved escalation rule - and a cached answer redrawn after
+   * a change reads as "the fix did not work". The first load deliberately does
+   * not do this: several surfaces ask the same question when a page opens, and
+   * the cache is exactly right for that.
+   */
   reload: () => Promise<void>;
 }
 
@@ -98,8 +106,8 @@ const useOnCallReadiness: (
   const [isTruncated, setIsTruncated] = useState<boolean>(false);
   const [totalCount, setTotalCount] = useState<number>(0);
 
-  const loadReadiness: () => Promise<void> =
-    useCallback(async (): Promise<void> => {
+  const loadReadiness: (isRecompute: boolean) => Promise<void> = useCallback(
+    async (isRecompute: boolean): Promise<void> => {
       if (!policyId) {
         return;
       }
@@ -125,6 +133,18 @@ const useOnCallReadiness: (
             .addRoute(`/on-call-readiness/policy/${policyId}`)
             .addQueryParam("limit", String(READINESS_PAGE_SIZE))
             .addQueryParam("skip", String(skip));
+
+          /*
+           * Only the FIRST page asks for a recompute, and that is not a saving:
+           * `?refresh=true` drops the replica's cache and recomputes the whole
+           * project, so asking for it on page four as well would recompute the
+           * project again half way through reading it - paying the cost N times
+           * and, worse, splicing pages that came from two different computations
+           * into one summary.
+           */
+          if (isRecompute && request === 0) {
+            url.addQueryParam("refresh", "true");
+          }
 
           const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
             await API.get<JSONObject>({
@@ -183,7 +203,17 @@ const useOnCallReadiness: (
       }
 
       setIsLoading(false);
-    }, [policyId]);
+    },
+    [policyId],
+  );
+
+  /*
+   * The user-initiated read. Separate from the mount read purely so that it can
+   * ask for a recompute: everything that calls this has just changed the answer.
+   */
+  const reload: () => Promise<void> = useCallback((): Promise<void> => {
+    return loadReadiness(true);
+  }, [loadReadiness]);
 
   useEffect(() => {
     if (!policyId) {
@@ -195,7 +225,7 @@ const useOnCallReadiness: (
       return;
     }
 
-    loadReadiness().catch((err: unknown) => {
+    loadReadiness(false).catch((err: unknown) => {
       setError(API.getFriendlyMessage(err));
       setIsLoading(false);
     });
@@ -207,7 +237,7 @@ const useOnCallReadiness: (
     summary: summary,
     isTruncated: isTruncated,
     totalCount: totalCount,
-    reload: loadReadiness,
+    reload: reload,
   };
 };
 
