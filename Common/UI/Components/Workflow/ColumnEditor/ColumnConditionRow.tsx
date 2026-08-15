@@ -26,6 +26,7 @@ import {
   ColumnValueMode,
   ModelColumnControl,
   ModelColumnRow,
+  changeColumnRow,
 } from "./ColumnRow";
 import { rowIssue } from "./ColumnRowSerialization";
 import ColumnValueInput from "./ColumnValueInput";
@@ -37,6 +38,8 @@ export interface ComponentProps {
   /** Every column the model describes, for this row's own picker. */
   columns: Array<ModelSchemaColumn>;
   suggestions?: Array<string> | undefined;
+  /** Focused on mount, so a condition added from the picker is ready to type into. */
+  autoFocus?: boolean | undefined;
   onChange: (row: ModelColumnRow) => void;
   onRemove: () => void;
 }
@@ -70,20 +73,25 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
   );
 
   /*
-   * A stored condition can name a column this endpoint does not describe - the
-   * runner accepts more names than the schema surfaces. Keep it in the list so
-   * the row shows what it is filtering on rather than an empty picker.
+   * Whatever this condition already filters on is always in the list, even when
+   * the picker would not offer it: a name the endpoint does not describe at all,
+   * and equally a column it describes but does not offer - a relation, the
+   * project column, a JSON blob. Keyed on "is it in the options" rather than on
+   * "is it unknown", because the second misses the whole middle case and leaves
+   * the row showing an empty picker over a condition that is really there.
    */
   if (
-    isUnknownColumn &&
+    props.row.columnId !== "" &&
     !columnOptions.some((option: DropdownOption) => {
       return option.value === props.row.columnId;
     })
   ) {
     columnOptions.unshift({
       value: props.row.columnId,
-      label: props.row.columnId,
-      description: "Not a column on this model",
+      label: props.column?.title || props.row.columnId,
+      description: isUnknownColumn
+        ? "Not a column on this model"
+        : `${props.row.columnId} · can't be picked from the list`,
     });
   }
 
@@ -117,7 +125,7 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
             outerDivClassName="relative w-full"
             disableSpellCheck={true}
             onChange={(value: string) => {
-              props.onChange({ ...props.row, columnId: value });
+              props.onChange(changeColumnRow(props.row, { columnId: value }));
             }}
           />
         ) : (
@@ -137,11 +145,12 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
                * stays - a condition being retargeted is not a condition being
                * deleted - and an empty column is dropped on serialization.
                */
-              props.onChange({
-                ...props.row,
-                columnId:
-                  value === null || Array.isArray(value) ? "" : String(value),
-              });
+              props.onChange(
+                changeColumnRow(props.row, {
+                  columnId:
+                    value === null || Array.isArray(value) ? "" : String(value),
+                }),
+              );
             }}
           />
         )}
@@ -182,12 +191,13 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
            * scalar is never shipped where a list is expected, or the other way
            * round.
            */
-          props.onChange({
-            ...props.row,
-            operator: nextOperator,
-            text: nextOption.hidesValueInput ? "" : props.row.text,
-            values: nextOption.expectsMultiValue ? props.row.values : [],
-          });
+          props.onChange(
+            changeColumnRow(props.row, {
+              operator: nextOperator,
+              text: nextOption.hidesValueInput ? "" : props.row.text,
+              values: nextOption.expectsMultiValue ? props.row.values : [],
+            }),
+          );
         }}
       />
 
@@ -200,15 +210,10 @@ const ColumnConditionRow: FunctionComponent<ComponentProps> = (
           operatorOption={operatorOption}
           placeholder={props.column?.example || props.column?.placeholder}
           suggestions={props.suggestions}
+          autoFocus={props.autoFocus}
           dataTestId={`model-column-value-${props.row.columnId}`}
-          onTextChange={(text: string) => {
-            props.onChange({ ...props.row, text: text });
-          }}
-          onValuesChange={(values: Array<string>) => {
-            props.onChange({ ...props.row, values: values });
-          }}
-          onValueModeChange={(valueMode: ColumnValueMode) => {
-            props.onChange({ ...props.row, valueMode: valueMode });
+          onChange={(change: Partial<ModelColumnRow>) => {
+            props.onChange(changeColumnRow(props.row, change));
           }}
         />
 

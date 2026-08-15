@@ -89,8 +89,14 @@ const literalTextFor: LiteralTextForFunction = (
     return "";
   }
 
-  if (control === ModelColumnControl.Boolean) {
-    return value === true ? "true" : "false";
+  /*
+   * Only a real boolean is spelled out. Mapping everything else to "false" put
+   * a stored "true" - or "yes", or 1 - on screen as the word "false", which is
+   * the opposite of what the workflow does, and this function also names the
+   * text of a raw row, where the value is by definition not a boolean.
+   */
+  if (control === ModelColumnControl.Boolean && typeof value === "boolean") {
+    return value ? "true" : "false";
   }
 
   return String(value);

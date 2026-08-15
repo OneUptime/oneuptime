@@ -154,6 +154,33 @@ describe("classifyRowValue — how a stored value is edited", () => {
     });
   });
 
+  test('a value a boolean column cannot hold keeps its own text, not "false"', () => {
+    /*
+     * Spelling every non-true value "false" put a stored "true" on screen as
+     * the word false - the opposite of what the workflow does - and the same
+     * function names the text of a raw row, where the value is by definition
+     * not a boolean.
+     */
+    expect(classifyRowValue(ModelColumnControl.Boolean, "true")).toEqual({
+      valueMode: ColumnValueMode.Raw,
+      text: "true",
+      rawValue: "true",
+    });
+    expect(classifyRowValue(ModelColumnControl.Boolean, "yes").text).toBe(
+      "yes",
+    );
+    expect(classifyRowValue(ModelColumnControl.Boolean, 1).text).toBe("1");
+  });
+
+  test("a real boolean still reads as true or false", () => {
+    expect(classifyRowValue(ModelColumnControl.Boolean, true).text).toBe(
+      "true",
+    );
+    expect(classifyRowValue(ModelColumnControl.Boolean, false).text).toBe(
+      "false",
+    );
+  });
+
   test("null is kept raw, because an empty box would mean something else", () => {
     expect(classifyRowValue(ModelColumnControl.Text, null)).toEqual({
       valueMode: ColumnValueMode.Raw,

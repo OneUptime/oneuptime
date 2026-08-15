@@ -30,11 +30,25 @@ export interface ComponentProps {
   placeholder?: string | undefined;
   /** The other steps' return values and the workflow's variables. */
   suggestions?: Array<string> | undefined;
-  onTextChange: (value: string) => void;
-  onValuesChange: (values: Array<string>) => void;
-  onValueModeChange: (valueMode: ColumnValueMode) => void;
+  /**
+   * Every edit reports as one change.
+   *
+   * Deliberately not three callbacks: two of them fired from a single event
+   * both close over the same render's row, so the second silently discards the
+   * first - which is what made a raw cell impossible to type into and the
+   * "typing {{ turns this into a reference" behaviour dead.
+   */
+  onChange: (
+    change: Partial<{
+      text: string;
+      values: Array<string>;
+      valueMode: ColumnValueMode;
+    }>,
+  ) => void;
   tabIndex?: number | undefined;
   ariaLabelledby?: string | undefined;
+  /** Focused on mount, so picking a field lands the caret in its value box. */
+  autoFocus?: boolean | undefined;
   dataTestId?: string | undefined;
 }
 
@@ -58,10 +72,11 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
    */
   const setTextAndDetectReference: SetTextFunction = (value: string): void => {
     if (!isReference && value.includes("{{")) {
-      props.onValueModeChange(ColumnValueMode.Reference);
+      props.onChange({ text: value, valueMode: ColumnValueMode.Reference });
+      return;
     }
 
-    props.onTextChange(value);
+    props.onChange({ text: value });
   };
 
   /*
@@ -91,9 +106,11 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
           : "border-transparent text-gray-400 hover:border-gray-200 hover:bg-gray-50 hover:text-gray-600"
       }`}
       onClick={() => {
-        props.onValueModeChange(
-          isReference ? ColumnValueMode.Literal : ColumnValueMode.Reference,
-        );
+        props.onChange({
+          valueMode: isReference
+            ? ColumnValueMode.Literal
+            : ColumnValueMode.Reference,
+        });
       }}
     >
       {isReference ? "abc" : "{ }"}
@@ -116,7 +133,9 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
         placeholder={props.placeholder}
         ariaLabelledby={props.ariaLabelledby}
         dataTestId={props.dataTestId}
-        onChange={props.onValuesChange}
+        onChange={(values: Array<string>) => {
+          props.onChange({ values: values });
+        }}
       />
     );
   }
@@ -135,8 +154,12 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
             className={MONO_INPUT_CLASS}
             outerDivClassName={INPUT_WRAPPER_CLASS}
             disableSpellCheck={true}
+            autoFocus={props.autoFocus}
+            ariaLabelledby={props.ariaLabelledby}
             dataTestId={props.dataTestId}
-            onChange={props.onTextChange}
+            onChange={(value: string) => {
+              props.onChange({ text: value });
+            }}
           />
         </div>
         {referenceButton}
@@ -161,13 +184,21 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
           ariaLabelledby={props.ariaLabelledby}
           dataTestId={props.dataTestId}
           tabIndex={props.tabIndex}
+          autoFocus={props.autoFocus}
           onChange={(value: string) => {
             /*
              * The first keystroke ends raw mode: what is in the box is now what
-             * the builder means, so it is written in the column's own type.
+             * the builder means, so it is written in the column's own type. The
+             * mode and the text move together in one change - reported
+             * separately, the second report would overwrite the first and the
+             * cell could never be typed into at all.
              */
-            props.onValueModeChange(ColumnValueMode.Literal);
-            setTextAndDetectReference(value);
+            props.onChange({
+              text: value,
+              valueMode: value.includes("{{")
+                ? ColumnValueMode.Reference
+                : ColumnValueMode.Literal,
+            });
           }}
         />
       );
@@ -178,8 +209,12 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
         return (
           <BooleanSegments
             value={props.text}
+            ariaLabelledby={props.ariaLabelledby}
+            autoFocus={props.autoFocus}
             dataTestId={props.dataTestId}
-            onChange={props.onTextChange}
+            onChange={(value: string) => {
+              props.onChange({ text: value });
+            }}
           />
         );
 
@@ -193,7 +228,10 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
             ariaLabelledby={props.ariaLabelledby}
             dataTestId={props.dataTestId}
             tabIndex={props.tabIndex}
-            onChange={props.onTextChange}
+            autoFocus={props.autoFocus}
+            onChange={(value: string) => {
+              props.onChange({ text: value });
+            }}
           />
         );
 
@@ -206,7 +244,10 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
             ariaLabelledby={props.ariaLabelledby}
             dataTestId={props.dataTestId}
             tabIndex={props.tabIndex}
-            onChange={props.onTextChange}
+            autoFocus={props.autoFocus}
+            onChange={(value: string) => {
+              props.onChange({ text: value });
+            }}
           />
         );
 
@@ -219,7 +260,7 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
             dataTestId={props.dataTestId}
             tabIndex={props.tabIndex}
             onChange={(value: Color | null) => {
-              props.onTextChange(value ? value.toString() : "");
+              props.onChange({ text: value ? value.toString() : "" });
             }}
           />
         );
@@ -230,8 +271,10 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
             value={props.text}
             placeholder={props.placeholder}
             className="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-y min-h-16"
+            ariaLabelledby={props.ariaLabelledby}
             dataTestId={props.dataTestId}
             tabIndex={props.tabIndex}
+            autoFocus={props.autoFocus}
             onChange={setTextAndDetectReference}
           />
         );
@@ -248,6 +291,8 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
                 ? "block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 font-mono text-xs text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 : undefined
             }
+            ariaLabelledby={props.ariaLabelledby}
+            autoFocus={props.autoFocus}
             dataTestId={props.dataTestId}
             onChange={setTextAndDetectReference}
           />
@@ -265,6 +310,8 @@ const ColumnValueInput: FunctionComponent<ComponentProps> = (
 
 interface BooleanSegmentsProps {
   value: string;
+  ariaLabelledby?: string | undefined;
+  autoFocus?: boolean | undefined;
   dataTestId?: string | undefined;
   onChange: (value: string) => void;
 }
@@ -287,6 +334,7 @@ const BooleanSegments: FunctionComponent<BooleanSegmentsProps> = (
     <div
       className="inline-flex rounded-md border border-gray-300 bg-white p-0.5"
       role="group"
+      aria-labelledby={props.ariaLabelledby}
       data-testid={props.dataTestId}
     >
       {segments.map((segment: { label: string; value: string }) => {
@@ -296,6 +344,7 @@ const BooleanSegments: FunctionComponent<BooleanSegmentsProps> = (
           <button
             key={segment.label}
             type="button"
+            autoFocus={props.autoFocus && segment.value === "true"}
             aria-pressed={isSelected}
             className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
               isSelected

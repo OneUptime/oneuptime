@@ -602,3 +602,165 @@ describe("when the schema cannot be loaded", () => {
     expect(await findByDisplayValue("name")).toBeInTheDocument();
   });
 });
+
+describe("an edit reaches the workflow, whatever the cell was holding", () => {
+  test("typing over a value kept raw stores what was typed", async () => {
+    /*
+     * The row for a stored value the column's own control cannot hold re-emits
+     * that value verbatim until it is edited. Reporting the mode change and the
+     * text change separately made the edit permanently impossible: both reports
+     * were built from the same render's row, so the second undid the first and
+     * the stored value won on every keystroke, while the box showed the new one.
+     */
+    const onChange: MockFunction = getJestMockFunction();
+
+    const { findByTestId }: RenderResult = renderEditor({
+      initialValue: '{"order":"3"}',
+      recordIntent: RecordIntent.Update,
+      onChange: onChange,
+    });
+
+    fireEvent.change(await findByTestId("model-column-value-order"), {
+      target: { value: "7" },
+    });
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenLastCalledWith('{"order":7}');
+  });
+
+  test("typing into a field stored as null stores what was typed", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    const { findByTestId }: RenderResult = renderEditor({
+      initialValue: '{"name":null}',
+      recordIntent: RecordIntent.Update,
+      onChange: onChange,
+    });
+
+    fireEvent.change(await findByTestId("model-column-value-name"), {
+      target: { value: "Acknowledged" },
+    });
+
+    expect(onChange).toHaveBeenLastCalledWith('{"name":"Acknowledged"}');
+  });
+
+  test("typing {{ turns the cell into a reference there and then", async () => {
+    const { findByTestId, getByTestId }: RenderResult = renderEditor({
+      initialValue: '{"name":"Acknowledged"}',
+      recordIntent: RecordIntent.Update,
+    });
+
+    fireEvent.change(await findByTestId("model-column-value-name"), {
+      target: { value: "{{local.variables.stateName}}" },
+    });
+
+    expect(
+      getByTestId("model-column-value-name-reference-toggle"),
+    ).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("and the reference is what gets stored", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    const { findByTestId }: RenderResult = renderEditor({
+      initialValue: '{"name":"Acknowledged"}',
+      recordIntent: RecordIntent.Update,
+      onChange: onChange,
+    });
+
+    fireEvent.change(await findByTestId("model-column-value-name"), {
+      target: { value: "{{local.variables.stateName}}" },
+    });
+
+    expect(onChange).toHaveBeenLastCalledWith(
+      '{"name":"{{local.variables.stateName}}"}',
+    );
+  });
+});
+
+describe("typing a column name does not throw the row away", () => {
+  test("the key box keeps focus while it is being typed in", async () => {
+    /*
+     * The row used to be keyed on the column name it edits, so every keystroke
+     * gave it a new identity, unmounted it, and detached the focused input.
+     */
+    const { findByDisplayValue }: RenderResult = renderEditor({
+      initialValue: '{"id":"abc"}',
+      recordIntent: RecordIntent.Update,
+    });
+
+    const keyInput: HTMLElement = await findByDisplayValue("id");
+    keyInput.focus();
+
+    expect(document.activeElement).toBe(keyInput);
+
+    fireEvent.change(keyInput, { target: { value: "_i" } });
+
+    expect(document.body.contains(keyInput)).toBe(true);
+    expect(document.activeElement).toBe(keyInput);
+  });
+
+  test("correcting the column name clears the warning about it", async () => {
+    const { findByText, findByDisplayValue, queryByText }: RenderResult =
+      renderEditor({
+        initialValue: '{"id":"abc"}',
+        recordIntent: RecordIntent.Update,
+      });
+
+    expect(
+      await findByText(/"id" isn't a known column on this model/),
+    ).toBeInTheDocument();
+
+    fireEvent.change(await findByDisplayValue("id"), {
+      target: { value: "_id" },
+    });
+
+    expect(queryByText(/isn't a known column/)).toBeNull();
+  });
+});
+
+describe("the JSON view does not lose what the editor opened with", () => {
+  test("a create's required rows survive the trip through JSON", async () => {
+    /*
+     * The rows were seeded only on the way in, so the first look at the JSON
+     * left a create with no fields on screen and nothing saying which ones it
+     * needs.
+     */
+    const { findByTestId, getByTestId, getByText }: RenderResult = renderEditor(
+      {
+        recordIntent: RecordIntent.Create,
+      },
+    );
+
+    fireEvent.click(await findByTestId("model-column-json-toggle"));
+    fireEvent.click(getByTestId("model-column-json-toggle"));
+
+    expect(getByText("Name")).toBeInTheDocument();
+    expect(getByText("Color")).toBeInTheDocument();
+  });
+});
+
+describe("query mode keeps showing what a condition is really about", () => {
+  test("a condition on a column the picker cannot offer still names it", async () => {
+    /*
+     * projectId is a real column that the picker deliberately withholds - the
+     * workflow stamps it itself. A condition stored against it was rendering as
+     * an empty "Column" placeholder over a filter that was really there.
+     */
+    const { findByText }: RenderResult = renderEditor({
+      mode: ModelColumnEditorMode.Query,
+      initialValue: '{"projectId":"abc"}',
+    });
+
+    expect(await findByText("Project ID")).toBeInTheDocument();
+  });
+
+  test("conditions that take no value are still counted as set", async () => {
+    const { findByText }: RenderResult = renderEditor({
+      mode: ModelColumnEditorMode.Query,
+      initialValue: '{"createdAt":{"_type":"IsNull","value":null}}',
+    });
+
+    expect(await findByText(/1 condition set/)).toBeInTheDocument();
+  });
+});

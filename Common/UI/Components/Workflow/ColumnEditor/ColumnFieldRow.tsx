@@ -16,6 +16,7 @@ import {
   ColumnValueMode,
   ModelColumnControl,
   ModelColumnRow,
+  changeColumnRow,
 } from "./ColumnRow";
 import { rowIssue } from "./ColumnRowSerialization";
 import ColumnValueInput from "./ColumnValueInput";
@@ -29,6 +30,8 @@ export interface ComponentProps {
   knownColumnIds: Array<string>;
   isRequired: boolean;
   suggestions?: Array<string> | undefined;
+  /** Focused on mount, so a field added from the picker is ready to type into. */
+  autoFocus?: boolean | undefined;
   onChange: (row: ModelColumnRow) => void;
   onRemove: () => void;
 }
@@ -74,7 +77,7 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
               className="block w-full rounded-md border border-amber-300 bg-white py-1.5 pl-2 pr-2 font-mono text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               disableSpellCheck={true}
               onChange={(value: string) => {
-                props.onChange({ ...props.row, columnId: value });
+                props.onChange(changeColumnRow(props.row, { columnId: value }));
               }}
             />
             <span className="mt-1 inline-block rounded bg-amber-50 px-1.5 py-0.5 text-[11px] text-amber-700">
@@ -135,19 +138,10 @@ const ColumnFieldRow: FunctionComponent<ComponentProps> = (
           placeholder={props.column?.example || props.column?.placeholder}
           suggestions={props.suggestions}
           ariaLabelledby={isUnknownColumn ? undefined : labelId}
+          autoFocus={props.autoFocus}
           dataTestId={`model-column-value-${props.row.columnId}`}
-          onTextChange={(text: string) => {
-            props.onChange({ ...props.row, text: text, isSeeded: false });
-          }}
-          onValuesChange={(values: Array<string>) => {
-            props.onChange({ ...props.row, values: values, isSeeded: false });
-          }}
-          onValueModeChange={(valueMode: ColumnValueMode) => {
-            props.onChange({
-              ...props.row,
-              valueMode: valueMode,
-              isSeeded: false,
-            });
+          onChange={(change: Partial<ModelColumnRow>) => {
+            props.onChange(changeColumnRow(props.row, change));
           }}
         />
 

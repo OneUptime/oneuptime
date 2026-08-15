@@ -20,7 +20,10 @@
 
 import CodeEditor from "../CodeEditor/CodeEditor";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
-import { DictionaryEntryValue } from "../Dictionary/DictionaryFilterOperator";
+import {
+  DictionaryEntryValue,
+  getOperatorOption,
+} from "../Dictionary/DictionaryFilterOperator";
 import Icon from "../Icon/Icon";
 import {
   ModelSchemaAccess,
@@ -400,6 +403,11 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
     Array<string>
   >([]);
 
+  /*
+   * Whether the value can be shown as rows at all. Read from the value as it
+   * was loaded, deliberately: the decision has to be stable, or the editor
+   * would change shape under the builder's hands as they type.
+   */
   const compatibility: CompatibilityResult = useMemo(() => {
     return classifyColumnValueCompatibility(
       initial.parsed,
@@ -411,28 +419,41 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
 
   const columns: Array<ModelSchemaColumn> = schema.columns || [];
 
+  type BuildRowsFunction = (parsed: JSONObject | null) => Array<ModelColumnRow>;
+
+  /*
+   * A create opens with a blank row for every column it must be given, so the
+   * shape of the record is visible before anything is typed. Seeded rows hold
+   * "" and are dropped on the way out, so an untouched Create One still reads
+   * as empty to form validation and to the graph linter.
+   *
+   * Used by the JSON view's return trip as well as by the first load - built
+   * only on the way in, those rows disappeared the first time anyone looked at
+   * the JSON, and a create that had been read once no longer showed what it
+   * needed.
+   */
+  const buildRows: BuildRowsFunction = (
+    parsed: JSONObject | null,
+  ): Array<ModelColumnRow> => {
+    const storedRows: Array<ModelColumnRow> = rowsFromParsedValue(
+      parsed,
+      columns,
+      props.mode,
+    );
+
+    const shouldSeed: boolean =
+      !isQuery &&
+      (props.recordIntent || RecordIntent.Create) === RecordIntent.Create;
+
+    return shouldSeed ? seedRequiredRows(storedRows, columns) : storedRows;
+  };
+
   useEffect(() => {
     if (schema.isLoading || rows !== null) {
       return;
     }
 
-    const storedRows: Array<ModelColumnRow> = rowsFromParsedValue(
-      initial.parsed,
-      columns,
-      props.mode,
-    );
-
-    /*
-     * A create opens with a blank row for every column it must be given, so the
-     * shape of the record is visible before anything is typed. Seeded rows hold
-     * "" and are dropped on the way out, so an untouched Create One still reads
-     * as empty to form validation and to the graph linter.
-     */
-    const shouldSeed: boolean =
-      !isQuery &&
-      (props.recordIntent || RecordIntent.Create) === RecordIntent.Create;
-
-    setRows(shouldSeed ? seedRequiredRows(storedRows, columns) : storedRows);
+    setRows(buildRows(initial.parsed));
   }, [schema.isLoading, schema.columns]);
 
   if (schema.isLoading || rows === null) {
@@ -503,13 +524,45 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
     }
 
     setReturnToRowsBlockedBy([]);
-    setRows(rowsFromParsedValue(edited.parsed, columns, props.mode));
+    setRows(buildRows(edited.parsed));
     setViewMode("builder");
   };
 
   const filledRowCount: number = rows.filter((row: ModelColumnRow) => {
-    return row.columnId !== "" && (row.text !== "" || row.values.length > 0);
+    if (row.columnId === "") {
+      return false;
+    }
+
+    /*
+     * "is set" and "is not set" carry no value by design, so counting only rows
+     * that hold one reported a query with three real conditions as having none.
+     */
+    if (isQuery && getOperatorOption(row.operator).hidesValueInput) {
+      return true;
+    }
+
+    return row.text !== "" || row.values.length > 0;
   }).length;
+
+  /*
+   * Recomputed from the rows on screen rather than from the value as it was
+   * loaded, so fixing the column name that caused the warning also clears it.
+   * Read from the frozen initial value, the "id isn't a known column" note
+   * stayed up after the builder had corrected it to "_id", which reads as the
+   * editor not having noticed.
+   *
+   * Only the non-blocking half is live. Whether the value can be rows at all is
+   * decided once, above.
+   */
+  const unknownColumnWarnings: Array<string> = columns.length
+    ? rows
+        .filter((row: ModelColumnRow) => {
+          return row.columnId !== "" && !findColumn(columns, row.columnId);
+        })
+        .map((row: ModelColumnRow) => {
+          return `"${row.columnId}" isn't a known column on this model.`;
+        })
+    : [];
 
   const emptyRequiredCount: number = isQuery
     ? 0
@@ -547,10 +600,10 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {!isLockedToJson && compatibility.reasons.length > 0 && (
+      {!isLockedToJson && unknownColumnWarnings.length > 0 && (
         <div className="mb-2 rounded-md border border-amber-200 bg-amber-50/60 px-3 py-2.5">
           <ul className="list-disc pl-5 text-sm text-amber-700">
-            {compatibility.reasons.map((reason: string, i: number) => {
+            {unknownColumnWarnings.map((reason: string, i: number) => {
               return <li key={i}>{reason}</li>;
             })}
           </ul>

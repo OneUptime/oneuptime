@@ -13,7 +13,7 @@ import AddColumnDropdown from "./AddColumnDropdown";
 import { isOfferableColumn } from "./ColumnControl";
 import ColumnConditionRow from "./ColumnConditionRow";
 import { ModelColumnRow, makeColumnRow } from "./ColumnRow";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {
   rows: Array<ModelColumnRow>;
@@ -25,6 +25,14 @@ export interface ComponentProps {
 const ModelQueryBuilder: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  /*
+   * The row just added from the picker, so its value control can take focus.
+   * Without it the picker remounts to clear its own selection and focus falls
+   * to the document body, which for a keyboard user means starting again from
+   * the top of the panel.
+   */
+  const [justAddedKey, setJustAddedKey] = useState<string>("");
+
   const offerableColumns: Array<ModelSchemaColumn> = props.columns.filter(
     (column: ModelSchemaColumn) => {
       return isOfferableColumn(column);
@@ -71,11 +79,12 @@ const ModelQueryBuilder: FunctionComponent<ComponentProps> = (
               {props.rows.map((row: ModelColumnRow, index: number) => {
                 return (
                   <ColumnConditionRow
-                    key={`${row.columnId}-${index}`}
+                    key={row.key}
                     row={row}
                     column={findColumn(props.columns, row.columnId)}
                     columns={offerableColumns}
                     suggestions={props.suggestions}
+                    autoFocus={row.key === justAddedKey}
                     onChange={(nextRow: ModelColumnRow) => {
                       replaceRow(index, nextRow);
                     }}
@@ -105,10 +114,12 @@ const ModelQueryBuilder: FunctionComponent<ComponentProps> = (
             allowCustomColumn={true}
             dataTestId="model-column-add"
             onAdd={(columnId: string) => {
-              props.onChange([
-                ...props.rows,
-                makeColumnRow({ columnId: columnId }),
-              ]);
+              const added: ModelColumnRow = makeColumnRow({
+                columnId: columnId,
+              });
+
+              setJustAddedKey(added.key);
+              props.onChange([...props.rows, added]);
             }}
           />
         </div>
