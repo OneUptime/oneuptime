@@ -512,12 +512,16 @@ const Layers: FunctionComponent<ComponentProps> = (
    * cards. Computed with exactly the same LayerUtil + ScheduleShiftUtil pipeline
    * the preview at the bottom of the page uses, so the two can never disagree.
    *
+   * Only rendered when there is something to act on — a fully-covered schedule
+   * shows nothing, so the banner reads as an exception rather than as noise
+   * present on every visit.
+   *
    * Deliberately NOT a blocking form validation: a partially-covered schedule is
    * a legitimate configuration (an escalation policy may intend a business-hours
    * layer to fall through to a team). The point is that the consequence is
    * stated at the moment of editing rather than discovered during an incident.
    */
-  const coverageBanner: GetReactElementFunction = (): ReactElement => {
+  const coverageBanner: () => ReactElement | null = (): ReactElement | null => {
     const now: Date = OneUptimeDate.getCurrentDate();
     const windowEnd: Date = OneUptimeDate.addRemoveDays(
       now,
@@ -563,22 +567,15 @@ const Layers: FunctionComponent<ComponentProps> = (
       windowEnd,
     });
 
+    /*
+     * Nothing to say when every moment of the window has someone on call — the
+     * banner exists to surface gaps, so silence here is the "all good" state.
+     */
     if (
       coverage.status === ScheduleCoverageStatus.Covered &&
       coverage.gaps.length === 0
     ) {
-      return (
-        <div className="mb-5 flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5 text-xs text-green-800">
-          <Icon
-            icon={IconProp.CheckCircle}
-            className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-green-500"
-          />
-          <span>
-            <span className="font-semibold">Fully covered.</span> Someone is on
-            call at every moment of the next {COVERAGE_WINDOW_DAYS} days.
-          </span>
-        </div>
-      );
+      return null;
     }
 
     const percent: number = Math.round(coverage.coverageRatio * 100);
@@ -746,10 +743,11 @@ const Layers: FunctionComponent<ComponentProps> = (
       </div>
 
       {/*
-       * Coverage state, stated at the point of EDITING rather than only in the
+       * Coverage gaps, stated at the point of EDITING rather than only in the
        * preview at the bottom of the page. Someone configuring a Mon-Fri layer
        * gets told immediately that nights and weekends are uncovered, instead of
-       * having to scroll past every layer card to find out.
+       * having to scroll past every layer card to find out. Renders nothing when
+       * the schedule is fully covered.
        */}
       {coverageBanner()}
 
