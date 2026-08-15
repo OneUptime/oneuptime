@@ -21,6 +21,8 @@ export interface ComponentProps<T extends GenericObject> {
   onAllItemsDeselected: undefined | (() => void);
   hasTableItems: undefined | boolean;
   isAllItemsOnThePageSelected: undefined | boolean;
+  /** Some but not all of this page is selected - drives the indeterminate box. */
+  isSomeItemsOnThePageSelected?: undefined | boolean;
   sortBy: keyof T | null;
   sortOrder: SortOrder;
 }
@@ -72,6 +74,17 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
               <CheckboxElement
                 disabled={!props.hasTableItems}
                 value={selectBulkSelectCheckbox}
+                ariaLabel={translateString("Select all items")}
+                /*
+                 * Half-filled when only part of the page is selected. Without
+                 * it, a page where some rows cannot be selected at all can
+                 * never reach "all selected", so the box sits permanently
+                 * empty and reads as "your selection was lost".
+                 */
+                isIndeterminate={Boolean(
+                  props.isSomeItemsOnThePageSelected &&
+                    !selectBulkSelectCheckbox,
+                )}
                 onChange={(value: boolean) => {
                   if (value) {
                     if (props.onAllItemsOnThePageSelected) {

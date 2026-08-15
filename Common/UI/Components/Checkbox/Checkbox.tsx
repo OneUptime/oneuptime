@@ -19,6 +19,20 @@ export interface CategoryProps {
   autoFocus?: boolean | undefined;
   className?: string | undefined;
   isIndeterminate?: boolean | undefined;
+  /*
+   * The accessible name, for a checkbox that has no visible `title` next to it.
+   * A bare box in a table cell is announced as "checkbox" and nothing else, so a
+   * screen reader user hears the same word once per row with no way to tell which
+   * row they are on - and a test cannot address one row's box either.
+   */
+  ariaLabel?: string | undefined;
+  /*
+   * The hover text on the input itself - NOT `title` above, which is the visible
+   * label rendered beside the box. Its most useful job is on a DISABLED box,
+   * where it is the only place the reason can live: a box that cannot be ticked
+   * and does not say why reads as broken rather than as deliberate.
+   */
+  hoverText?: string | undefined;
 }
 
 const CheckboxElement: FunctionComponent<CategoryProps> = (
@@ -67,6 +81,8 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
             onFocus={props.onFocus}
             onBlur={props.onBlur}
             data-testid={props.dataTestId}
+            aria-label={props.ariaLabel}
+            title={props.hoverText}
             aria-describedby={
               props.description ? "checkbox-description" : undefined
             }

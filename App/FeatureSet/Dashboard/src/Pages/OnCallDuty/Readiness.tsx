@@ -6,6 +6,7 @@ import {
   ReadinessMethodWire,
   ReadinessStatusValue,
   ReadinessSummaryWire,
+  ReadinessTeamWire,
   READINESS_STATUS_NOT_REACHABLE,
   READINESS_STATUS_PARTIALLY_READY,
   READINESS_STATUS_READY,
@@ -23,19 +24,32 @@ import PageComponentProps from "../PageComponentProps";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
+import EndsWith from "Common/Types/BaseDatabase/EndsWith";
+import EqualTo from "Common/Types/BaseDatabase/EqualTo";
+import IsNull from "Common/Types/BaseDatabase/IsNull";
+import NotContains from "Common/Types/BaseDatabase/NotContains";
+import NotEqual from "Common/Types/BaseDatabase/NotEqual";
+import NotNull from "Common/Types/BaseDatabase/NotNull";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import StartsWith from "Common/Types/BaseDatabase/StartsWith";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { BulkActionOnClickProps } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import FilterButtons, {
-  FilterButtonOption,
-} from "Common/UI/Components/FilterButtons/FilterButtons";
+import Filter from "Common/UI/Components/Filters/Types/Filter";
+import FilterData from "Common/UI/Components/Filters/Types/FilterData";
 import Icon from "Common/UI/Components/Icon/Icon";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import Table, { BulkActionProps } from "Common/UI/Components/Table/Table";
+import Column from "Common/UI/Components/Table/Types/Column";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
+import FieldType from "Common/UI/Components/Types/FieldType";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -43,6 +57,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
@@ -69,6 +84,29 @@ import React, {
  * cannot disagree about what a payload means or about what a hole in it looks
  * like. Only the project-wide fetch and the presentation around the grid are
  * local.
+ *
+ * THE TABLE IS THE PRODUCT'S TABLE.
+ *
+ * The rows used to be a hand-rolled `<table>` with a hand-rolled checkbox
+ * column, a hand-rolled "Show more" button and a bespoke pill strip for status
+ * filtering. It worked, and it looked like nothing else in OneUptime: no filter
+ * modal, no filter chips, no bulk-action bar, no pagination, no CSV export, no
+ * sorting, and a selection UI that behaved subtly differently from the one on
+ * every other list in the product. All of that is now Common/UI's Table, which
+ * means this page inherits those behaviours instead of reimplementing a worse
+ * version of each - and the two things that ARE particular to readiness survive
+ * as first-class table features rather than as local markup:
+ *
+ *   - a Ready responder's checkbox is LOCKED, because there is nothing to remind
+ *     them of (Table.isItemSelectable);
+ *   - the coverage grid opens from a row action rather than expanding the row,
+ *     because the shared table has no expandable rows and a modal shows the
+ *     whole grid without pushing the rest of the list off screen.
+ *
+ * Filtering, sorting and paging all run over the rows already in hand. The
+ * endpoint is read to exhaustion (see fetchReadiness), so "filtered" here means
+ * filtered against the WHOLE project rather than against a page of it - which is
+ * the only way the counts on the tiles and the rows under them can agree.
  */
 
 /*
@@ -368,11 +406,14 @@ const RESPONDER_SOURCE_ICONS: Record<ResponderSourceValue, IconProp> = {
   Override: IconProp.Bolt,
 };
 
-const ALL_STATUSES_FILTER_VALUE: string = "All";
+const RESPONDER_SOURCE_ORDER: Array<ResponderSourceValue> = [
+  "Direct",
+  "Team",
+  "Schedule",
+  "Override",
+];
 
-const INITIAL_VISIBLE_RESPONDERS: number = 25;
-
-const VISIBLE_RESPONDERS_INCREMENT: number = 25;
+const DEFAULT_ITEMS_ON_PAGE: number = 25;
 
 export interface StatusChipProps {
   status: ReadinessStatusValue;
@@ -530,6 +571,14 @@ interface SetupReminderReportBannerProps {
  * and burying the one line that needs attention in it is exactly how a report
  * stops being read.
  *
+ * This banner is kept rather than folded into the shared bulk-action progress
+ * modal, and the reason is the vocabulary. That modal has two buckets, succeeded
+ * and FAILED, and three of this endpoint's five outcomes are neither: a
+ * responder skipped because they were already reminded in the last 24 hours has
+ * not failed at anything, and filing them under "failed" would send an admin
+ * chasing a problem that does not exist. Three buckets is the smallest number
+ * that can describe this answer honestly.
+ *
  * Tone follows the worst thing in the report rather than the best: any failure
  * makes the whole banner red, because a green banner with a red line inside it
  * is read as green. That is the same rule the tiles above follow, and it is the
@@ -596,11 +645,219 @@ const SetupReminderReportBanner: FunctionComponent<
   );
 };
 
+/*
+ * One table row.
+ *
+ * Everything the table sorts, filters or exports on is a FLAT field on this
+ * object, even though `readiness` already carries the same fact one level down.
+ * That is not redundancy for its own sake: Table sorts and the filter modal
+ * both address a column by `keyof T`, so a fact that only exists nested is a
+ * fact this page would have to reimplement a private sort and a private filter
+ * for - which is precisely the bespoke machinery this rewrite deletes.
+ *
+ * `_id` is the user id, and it is what matchBulkSelectedItemByField uses. It has
+ * to be stable across a refresh, because a refresh reorders the table (the sort
+ * is by status, and status is exactly what a refresh is expected to change) and
+ * an admin's half-built selection must survive that.
+ */
 interface ResponderRow {
+  _id: string;
   readiness: UserReadinessWire;
   model: CoverageModel;
   gapCount: number;
+
+  /** The display name, and what the free-text filter matches against. */
+  responder: string;
+  status: ReadinessStatusValue;
+  statusLabel: string;
+  /** Team ids, for the team filter. */
+  teamIds: Array<string>;
+  /** Team names, joined - what sorting and the CSV export read. */
+  teamNames: string;
+  reachedVia: Array<ResponderSourceValue>;
+  coveredCount: number;
+  coverageCellCount: number;
+  verifiedChannelCount: number;
 }
+
+const buildResponderRow: (readiness: UserReadinessWire) => ResponderRow = (
+  readiness: UserReadinessWire,
+): ResponderRow => {
+  const gapCount: number = getCoverageGaps(readiness).length;
+
+  const verifiedChannelCount: number = CHANNEL_ORDER.filter(
+    (channel: string): boolean => {
+      return readiness.methods.some((method: ReadinessMethodWire): boolean => {
+        return method.methodType === channel && method.isVerified;
+      });
+    },
+  ).length;
+
+  return {
+    _id: readiness.userId,
+    readiness: readiness,
+    model: buildCoverageModel(readiness.coverage),
+    gapCount: gapCount,
+    responder: readiness.userName || readiness.userEmail,
+    status: readiness.status,
+    statusLabel: getStatusShortLabel(readiness),
+    teamIds: readiness.teams.map((team: ReadinessTeamWire): string => {
+      return team._id;
+    }),
+    teamNames: readiness.teams
+      .map((team: ReadinessTeamWire): string => {
+        return team.name;
+      })
+      .join(", "),
+    reachedVia: readiness.reachedVia,
+    coveredCount: readiness.coverage.length - gapCount,
+    coverageCellCount: readiness.coverage.length,
+    verifiedChannelCount: verifiedChannelCount,
+  };
+};
+
+/*
+ * A Ready responder cannot be selected, because there is nothing to remind them
+ * of. The server agrees - it answers SkippedNothingMissing for them rather than
+ * mailing a claim they could disprove in ten seconds - so locking the checkbox
+ * here is not a second rule, it is the same rule made visible before the click
+ * instead of explained after it.
+ */
+const isRemindable: (row: ResponderRow) => boolean = (
+  row: ResponderRow,
+): boolean => {
+  return row.status !== READINESS_STATUS_READY;
+};
+
+const NOT_REMINDABLE_REASON: string =
+  "Already ready - there is nothing to remind them about";
+
+/*
+ * Reads one filter value out of the FilterData the modal produced, as a list of
+ * plain strings.
+ *
+ * The filter controls write four different shapes for what a reader thinks of as
+ * one idea - a single dropdown writes a bare value, a multi-select writes an
+ * array, and the text control writes a Search wrapper - and the rows here are
+ * plain objects rather than database models, so there is no query builder to
+ * hand any of it to. Normalising to `Array<string>` at the boundary keeps that
+ * variety in one function instead of spreading it across every filtered field.
+ */
+const readFilterValues: (value: unknown) => Array<string> = (
+  value: unknown,
+): Array<string> => {
+  if (value === null || value === undefined || value === "") {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((entry: unknown): string => {
+      return String(entry);
+    });
+  }
+
+  return [String(value)];
+};
+
+/*
+ * Turns the free-text filter into a predicate that honours the operator the
+ * reader actually chose.
+ *
+ * The text control is not a search box: it offers contains / does not contain /
+ * starts with / ends with / is / is not / is empty / is not empty, and writes a
+ * different QueryOperator wrapper for each. Every one of those wrappers
+ * stringifies to the same typed text, so a page that read `String(value)` and
+ * called it a substring match would answer "does not contain ada" with exactly
+ * the rows that DO contain ada - the filter would look like it worked and would
+ * be inverted. There is no query builder to hand these to here (the rows are
+ * plain objects, already in memory), so the operator is honoured in this
+ * function or nowhere.
+ *
+ * A shape this build does not recognise falls through to a substring match,
+ * which is the same thing a bare string means and the least surprising reading
+ * of an operator we cannot interpret.
+ */
+type TextPredicate = (candidates: Array<string>) => boolean;
+
+const buildTextPredicate: (value: unknown) => TextPredicate | null = (
+  value: unknown,
+): TextPredicate | null => {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const anyOf: (test: (candidate: string) => boolean) => TextPredicate = (
+    test: (candidate: string) => boolean,
+  ): TextPredicate => {
+    return (candidates: Array<string>): boolean => {
+      return candidates.some(test);
+    };
+  };
+
+  if (value instanceof IsNull) {
+    return (candidates: Array<string>): boolean => {
+      return candidates.every((candidate: string): boolean => {
+        return candidate.trim() === "";
+      });
+    };
+  }
+
+  if (value instanceof NotNull) {
+    return anyOf((candidate: string): boolean => {
+      return candidate.trim() !== "";
+    });
+  }
+
+  const text: string = String(value).toLowerCase().trim();
+
+  if (!text) {
+    return null;
+  }
+
+  if (value instanceof NotContains) {
+    /*
+     * Negation is over the WHOLE row, not per candidate: a responder whose name
+     * does not contain the text but whose email does has not been excluded, and
+     * "every candidate lacks it" is the only reading of that which does not
+     * contradict the positive form.
+     */
+    return (candidates: Array<string>): boolean => {
+      return candidates.every((candidate: string): boolean => {
+        return !candidate.toLowerCase().includes(text);
+      });
+    };
+  }
+
+  if (value instanceof NotEqual) {
+    return (candidates: Array<string>): boolean => {
+      return candidates.every((candidate: string): boolean => {
+        return candidate.toLowerCase() !== text;
+      });
+    };
+  }
+
+  if (value instanceof EqualTo) {
+    return anyOf((candidate: string): boolean => {
+      return candidate.toLowerCase() === text;
+    });
+  }
+
+  if (value instanceof StartsWith) {
+    return anyOf((candidate: string): boolean => {
+      return candidate.toLowerCase().startsWith(text);
+    });
+  }
+
+  if (value instanceof EndsWith) {
+    return anyOf((candidate: string): boolean => {
+      return candidate.toLowerCase().endsWith(text);
+    });
+  }
+
+  return anyOf((candidate: string): boolean => {
+    return candidate.toLowerCase().includes(text);
+  });
+};
 
 const OnCallReadinessPage: FunctionComponent<
   PageComponentProps
@@ -608,13 +865,28 @@ const OnCallReadinessPage: FunctionComponent<
   const [summary, setSummary] = useState<ReadinessSummaryWire | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>(
-    ALL_STATUSES_FILTER_VALUE,
-  );
-  const [expandedUserId, setExpandedUserId] = useState<string>("");
-  const [visibleCount, setVisibleCount] = useState<number>(
-    INITIAL_VISIBLE_RESPONDERS,
-  );
+
+  const [filterData, setFilterData] = useState<FilterData<ResponderRow>>({});
+  const [isFilterModalVisible, setIsFilterModalVisible] =
+    useState<boolean>(false);
+
+  /*
+   * No column sort until the reader asks for one - the default order is the
+   * page's editorial position (see allRows), and a column header would override
+   * it silently.
+   *
+   * The order starts DESCENDING even though nothing is sorted yet, because
+   * TableHeader flips whatever it is handed on every click: starting ascending
+   * makes the very first click on "Responder" sort Z to A, which reads as the
+   * control being backwards. Starting descending makes the first click A to Z.
+   */
+  const [sortBy, setSortBy] = useState<keyof ResponderRow | null>(null);
+  const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Descending);
+
+  const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
+  const [itemsOnPage, setItemsOnPage] = useState<number>(DEFAULT_ITEMS_ON_PAGE);
+
+  const [coverageRow, setCoverageRow] = useState<ResponderRow | null>(null);
 
   /*
    * Selection is kept as ids rather than as rows, so it survives a refresh that
@@ -625,9 +897,6 @@ const OnCallReadinessPage: FunctionComponent<
    * silently drop off the list an admin is building.
    */
   const [selectedUserIds, setSelectedUserIds] = useState<Array<string>>([]);
-  const [isReminderModalVisible, setIsReminderModalVisible] =
-    useState<boolean>(false);
-  const [isSendingReminders, setIsSendingReminders] = useState<boolean>(false);
   const [reminderFailure, setReminderFailure] =
     useState<SetupReminderFailure | null>(null);
   const [reminderReport, setReminderReport] =
@@ -647,7 +916,9 @@ const OnCallReadinessPage: FunctionComponent<
    *
    * Reading to exhaustion keeps the tiles honest AND keeps them consistent with
    * the list beneath them, which is why the counts are still derived from the
-   * rows rather than trusted from a payload.
+   * rows rather than trusted from a payload. It is also what makes the table's
+   * filtering and paging meaningful: both run over the whole project rather than
+   * over whichever slice the server happened to send.
    *
    * MAX_READINESS_PAGES bounds a pathological project rather than expressing a
    * product limit; hitting it is surfaced instead of swallowed, because a
@@ -728,65 +999,208 @@ const OnCallReadinessPage: FunctionComponent<
    * Ordering is the whole editorial position of this page: unreachable first,
    * then the most incomplete, then alphabetical so the list is stable between
    * refreshes. An admin who opens this and sees green at the top learns nothing.
+   *
+   * This is the DEFAULT order, not a fixed one - clicking a column header sorts
+   * by that column instead (see sortedRows). It stays the default because the
+   * first thing an admin sees should be the thing that needs them.
    */
-  const allRows: Array<ResponderRow> = (summary?.users || [])
-    .map((readiness: UserReadinessWire): ResponderRow => {
-      return {
-        readiness: readiness,
-        model: buildCoverageModel(readiness.coverage),
-        gapCount: getCoverageGaps(readiness).length,
-      };
-    })
-    .sort((a: ResponderRow, b: ResponderRow): number => {
-      const rankDifference: number =
-        STATUS_SORT_RANK[a.readiness.status] -
-        STATUS_SORT_RANK[b.readiness.status];
+  const allRows: Array<ResponderRow> = useMemo((): Array<ResponderRow> => {
+    return (summary?.users || [])
+      .map(buildResponderRow)
+      .sort((a: ResponderRow, b: ResponderRow): number => {
+        const rankDifference: number =
+          STATUS_SORT_RANK[a.status] - STATUS_SORT_RANK[b.status];
 
-      if (rankDifference !== 0) {
-        return rankDifference;
+        if (rankDifference !== 0) {
+          return rankDifference;
+        }
+
+        if (a.gapCount !== b.gapCount) {
+          return b.gapCount - a.gapCount;
+        }
+
+        return a.responder.localeCompare(b.responder);
+      });
+  }, [summary]);
+
+  /*
+   * The team filter's options come from the rows themselves rather than from the
+   * project's team list, and the difference matters. This page only ever lists
+   * responders, so a team with no escalation rule attached to it pages nobody
+   * and would be an option that always returns an empty table. Offering only the
+   * teams that actually appear here means every option has at least one row
+   * behind it.
+   */
+  const teamOptions: Array<DropdownOption> =
+    useMemo((): Array<DropdownOption> => {
+      const namesById: Map<string, string> = new Map<string, string>();
+
+      for (const row of allRows) {
+        for (const team of row.readiness.teams) {
+          namesById.set(team._id, team.name);
+        }
       }
 
-      if (a.gapCount !== b.gapCount) {
-        return b.gapCount - a.gapCount;
+      return Array.from(namesById.entries())
+        .map(([id, name]: [string, string]): DropdownOption => {
+          return { value: id, label: name };
+        })
+        .sort((a: DropdownOption, b: DropdownOption): number => {
+          return a.label.localeCompare(b.label);
+        });
+    }, [allRows]);
+
+  const filters: Array<Filter<ResponderRow>> = useMemo((): Array<
+    Filter<ResponderRow>
+  > => {
+    return [
+      {
+        title: "Responder",
+        key: "responder",
+        type: FieldType.Text,
+      },
+      {
+        title: "Status",
+        key: "status",
+        type: FieldType.MultiSelectDropdown,
+        filterDropdownOptions: (
+          [
+            READINESS_STATUS_NOT_REACHABLE,
+            READINESS_STATUS_PARTIALLY_READY,
+            READINESS_STATUS_READY,
+          ] as Array<ReadinessStatusValue>
+        ).map((status: ReadinessStatusValue): DropdownOption => {
+          return { value: status, label: STATUS_FILTER_LABELS[status] };
+        }),
+      },
+      {
+        title: "Team",
+        key: "teamIds",
+        type: FieldType.MultiSelectDropdown,
+        filterDropdownOptions: teamOptions,
+      },
+      {
+        title: "Reached via",
+        key: "reachedVia",
+        type: FieldType.MultiSelectDropdown,
+        filterDropdownOptions: RESPONDER_SOURCE_ORDER.map(
+          (source: ResponderSourceValue): DropdownOption => {
+            return { value: source, label: source };
+          },
+        ),
+      },
+    ];
+  }, [teamOptions]);
+
+  /*
+   * Applying the filter, over the rows already in hand.
+   *
+   * Table hands the filter up rather than applying it (see FilterViewer), which
+   * is the right split for a model-backed table where the filter becomes a
+   * query. Here there is no query to become: the whole project is already
+   * loaded, so this is where a FilterData turns back into a predicate.
+   *
+   * Every field is compared as a SET INTERSECTION, including the ones that hold
+   * a single value, so one code path covers "status is Unreachable", "team is
+   * any of Platform, Payments" and "reached via Team" alike. The two array
+   * fields - teams and reachedVia - are the reason: a responder on two teams
+   * must match a filter that names either of them, and an "equals" comparison
+   * cannot express that at all.
+   */
+  const filteredRows: Array<ResponderRow> = useMemo((): Array<ResponderRow> => {
+    let rows: Array<ResponderRow> = allRows;
+
+    const responderPredicate: TextPredicate | null = buildTextPredicate(
+      (filterData as Record<string, unknown>)["responder"],
+    );
+
+    if (responderPredicate) {
+      rows = rows.filter((row: ResponderRow): boolean => {
+        /*
+         * The email is matched as well as the name, because a name is the one
+         * field on this page an admin might not know - two people called
+         * "J. Smith" are told apart by their login address and by nothing else.
+         */
+        return responderPredicate([row.responder, row.readiness.userEmail]);
+      });
+    }
+
+    type MatchByFieldFunction = (
+      key: keyof ResponderRow,
+      getRowValues: (row: ResponderRow) => Array<string>,
+    ) => void;
+
+    const matchByField: MatchByFieldFunction = (
+      key: keyof ResponderRow,
+      getRowValues: (row: ResponderRow) => Array<string>,
+    ): void => {
+      const wanted: Array<string> = readFilterValues(
+        (filterData as Record<string, unknown>)[key as string],
+      );
+
+      if (wanted.length === 0) {
+        return;
       }
 
-      return a.readiness.userName.localeCompare(b.readiness.userName);
+      rows = rows.filter((row: ResponderRow): boolean => {
+        return getRowValues(row).some((value: string): boolean => {
+          return wanted.includes(value);
+        });
+      });
+    };
+
+    matchByField("status", (row: ResponderRow): Array<string> => {
+      return [row.status];
     });
+
+    matchByField("teamIds", (row: ResponderRow): Array<string> => {
+      return row.teamIds;
+    });
+
+    matchByField("reachedVia", (row: ResponderRow): Array<string> => {
+      return row.reachedVia;
+    });
+
+    return rows;
+  }, [allRows, filterData]);
+
+  const sortedRows: Array<ResponderRow> = useMemo((): Array<ResponderRow> => {
+    if (!sortBy) {
+      // allRows is already in the default order; filtering preserves it.
+      return filteredRows;
+    }
+
+    const direction: number = sortOrder === SortOrder.Descending ? -1 : 1;
+
+    return [...filteredRows].sort(
+      (a: ResponderRow, b: ResponderRow): number => {
+        const left: unknown = a[sortBy];
+        const right: unknown = b[sortBy];
+
+        if (typeof left === "number" && typeof right === "number") {
+          return (left - right) * direction;
+        }
+
+        return (
+          String(left ?? "").localeCompare(String(right ?? "")) * direction
+        );
+      },
+    );
+  }, [filteredRows, sortBy, sortOrder]);
+
+  const rowsOnPage: Array<ResponderRow> = useMemo((): Array<ResponderRow> => {
+    const start: number = (currentPageNumber - 1) * itemsOnPage;
+
+    return sortedRows.slice(start, start + itemsOnPage);
+  }, [sortedRows, currentPageNumber, itemsOnPage]);
 
   const countRowsWithStatus: (status: ReadinessStatusValue) => number = (
     status: ReadinessStatusValue,
   ): number => {
     return allRows.filter((row: ResponderRow): boolean => {
-      return row.readiness.status === status;
+      return row.status === status;
     }).length;
   };
-
-  const filteredRows: Array<ResponderRow> = allRows.filter(
-    (row: ResponderRow): boolean => {
-      if (statusFilter === ALL_STATUSES_FILTER_VALUE) {
-        return true;
-      }
-
-      return row.readiness.status === statusFilter;
-    },
-  );
-
-  const visibleRows: Array<ResponderRow> = filteredRows.slice(0, visibleCount);
-
-  /*
-   * A Ready responder cannot be selected, because there is nothing to remind
-   * them of. The server agrees - it answers SkippedNothingMissing for them
-   * rather than mailing a claim they could disprove in ten seconds - so
-   * disabling the checkbox here is not a second rule, it is the same rule made
-   * visible before the click instead of explained after it.
-   */
-  const isRemindable: (row: ResponderRow) => boolean = (
-    row: ResponderRow,
-  ): boolean => {
-    return row.readiness.status !== READINESS_STATUS_READY;
-  };
-
-  const selectedUserIdSet: Set<string> = new Set<string>(selectedUserIds);
 
   /*
    * The selection, pruned to responders who are still in the data and still
@@ -794,65 +1208,18 @@ const OnCallReadinessPage: FunctionComponent<
    * keeps a refresh from silently shrinking a list the admin is halfway through
    * building: the ids stay in state, and only what is actually actionable right
    * now is acted on or counted.
+   *
+   * Memoised because Table copies this array into its own state whenever the
+   * reference changes; a fresh array on every render would put that effect into
+   * a loop with itself.
    */
-  const selectedRows: Array<ResponderRow> = allRows.filter(
-    (row: ResponderRow): boolean => {
-      return selectedUserIdSet.has(row.readiness.userId) && isRemindable(row);
-    },
-  );
+  const selectedRows: Array<ResponderRow> = useMemo((): Array<ResponderRow> => {
+    const selectedIds: Set<string> = new Set<string>(selectedUserIds);
 
-  const selectableVisibleRows: Array<ResponderRow> =
-    visibleRows.filter(isRemindable);
-
-  const selectedVisibleCount: number = selectableVisibleRows.filter(
-    (row: ResponderRow): boolean => {
-      return selectedUserIdSet.has(row.readiness.userId);
-    },
-  ).length;
-
-  const toggleUserSelection: (userId: string, isSelected: boolean) => void = (
-    userId: string,
-    isSelected: boolean,
-  ): void => {
-    setSelectedUserIds((current: Array<string>): Array<string> => {
-      const withoutUser: Array<string> = current.filter(
-        (candidate: string): boolean => {
-          return candidate !== userId;
-        },
-      );
-
-      return isSelected ? [...withoutUser, userId] : withoutUser;
+    return allRows.filter((row: ResponderRow): boolean => {
+      return selectedIds.has(row._id) && isRemindable(row);
     });
-  };
-
-  /*
-   * The header checkbox covers the rows ON SCREEN, not every row behind "Show
-   * more". A control that silently selects people the reader has not seen is
-   * how a reminder ends up in the inbox of somebody nobody meant to contact -
-   * and this page deliberately renders 25 rows at a time precisely because
-   * nobody reads a list of five thousand.
-   */
-  const toggleVisibleSelection: (isSelected: boolean) => void = (
-    isSelected: boolean,
-  ): void => {
-    const visibleIds: Set<string> = new Set<string>(
-      selectableVisibleRows.map((row: ResponderRow): string => {
-        return row.readiness.userId;
-      }),
-    );
-
-    setSelectedUserIds((current: Array<string>): Array<string> => {
-      const withoutVisible: Array<string> = current.filter(
-        (candidate: string): boolean => {
-          return !visibleIds.has(candidate);
-        },
-      );
-
-      return isSelected
-        ? [...withoutVisible, ...Array.from(visibleIds)]
-        : withoutVisible;
-    });
-  };
+  }, [allRows, selectedUserIds]);
 
   /*
    * Send, then tell the truth about what happened.
@@ -875,19 +1242,18 @@ const OnCallReadinessPage: FunctionComponent<
    * The selection is cleared only on a request that actually reached the server,
    * so a failed attempt leaves the admin's list intact to retry with.
    */
-  const sendSetupReminders: () => Promise<void> = async (): Promise<void> => {
-    const userIds: Array<string> = selectedRows.map(
-      (row: ResponderRow): string => {
-        return row.readiness.userId;
-      },
-    );
+  const sendSetupReminders: (
+    rows: Array<ResponderRow>,
+  ) => Promise<void> = async (rows: Array<ResponderRow>): Promise<void> => {
+    const userIds: Array<string> = rows.map((row: ResponderRow): string => {
+      return row._id;
+    });
 
     if (userIds.length === 0) {
       return;
     }
 
     try {
-      setIsSendingReminders(true);
       setReminderFailure(null);
       setReminderReport(null);
 
@@ -908,13 +1274,48 @@ const OnCallReadinessPage: FunctionComponent<
 
       setReminderReport(parseSetupReminderReport(response.data));
       setSelectedUserIds([]);
-      setIsReminderModalVisible(false);
     } catch (err) {
       setReminderFailure(readSetupReminderFailure(err));
-      setIsReminderModalVisible(false);
-    } finally {
-      setIsSendingReminders(false);
     }
+  };
+
+  const bulkActions: BulkActionProps<ResponderRow> = {
+    buttons: [
+      {
+        title: "Send setup reminder",
+        icon: IconProp.SendMessage,
+        buttonStyleType: ButtonStyleType.NORMAL,
+        /*
+         * The confirmation names every recipient, and it is not decoration.
+         * Selection survives a filter change and a page change, so the rows an
+         * admin ticked are not necessarily the rows on screen when they press
+         * the button - and this is the last moment before real email reaches
+         * real people. "Send 6 reminders?" would be asking them to confirm a
+         * number.
+         */
+        confirmTitle: (rows: Array<ResponderRow>): string => {
+          return `Send a setup reminder to ${rows.length} ${
+            rows.length === 1 ? "responder" : "responders"
+          }?`;
+        },
+        confirmMessage: (rows: Array<ResponderRow>): string => {
+          const names: string = rows
+            .map((row: ResponderRow): string => {
+              return row.readiness.userEmail
+                ? `${row.responder} (${row.readiness.userEmail})`
+                : row.responder;
+            })
+            .join(", ");
+
+          return `Each of them gets one email naming exactly what is missing from their own notification setup, and a link to the settings page that fixes it. Nobody is emailed more than once in 24 hours, so any of these who were already reminded today will be skipped. Reminding: ${names}.`;
+        },
+        onClick: async (
+          onClickProps: BulkActionOnClickProps<ResponderRow>,
+        ): Promise<void> => {
+          await sendSetupReminders(onClickProps.items);
+        },
+      },
+    ],
   };
 
   const refreshButton: CardButtonSchema = getRefreshButton();
@@ -931,108 +1332,219 @@ const OnCallReadinessPage: FunctionComponent<
     });
   };
 
-  const filterOptions: Array<FilterButtonOption> = [
+  /*
+   * The funnel. Table renders the filter MODAL and the chip banner but no button
+   * to open either with (FilterViewer draws nothing at all until a filter is
+   * applied), so every page that offers filtering puts the trigger in its own
+   * card header - which is also why it is the same funnel in the same corner
+   * everywhere in the product.
+   *
+   * `title` on an ICON button is not drawn; it becomes the accessible name. An
+   * icon with no name is a control a screen reader announces as "button".
+   */
+  const filterButton: CardButtonSchema = {
+    title: "Filter",
+    buttonStyle: ButtonStyleType.ICON,
+    className: "py-0 pr-0 pl-1 mt-1",
+    icon: IconProp.Filter,
+    onClick: () => {
+      setIsFilterModalVisible(true);
+    },
+  };
+
+  /*
+   * Filtering by status from a tile.
+   *
+   * The tiles already carry the three counts an admin triages by, so making them
+   * the control that filters to those states puts the number and the action on
+   * the same object. It also goes through the ordinary filter, which means the
+   * result announces itself in the standard chip banner above the table
+   * ("Status is any of: Unreachable") and clears with the standard Clear
+   * Filters - rather than through a private pill strip that no other table in
+   * the product has.
+   */
+  const activeStatusFilters: Array<string> = readFilterValues(
+    (filterData as Record<string, unknown>)["status"],
+  );
+
+  const toggleStatusFilter: (status: ReadinessStatusValue) => void = (
+    status: ReadinessStatusValue,
+  ): void => {
+    setCurrentPageNumber(1);
+
+    setFilterData(
+      (current: FilterData<ResponderRow>): FilterData<ResponderRow> => {
+        const next: Record<string, unknown> = {
+          ...(current as Record<string, unknown>),
+        };
+
+        const isAlreadyOnlyThisStatus: boolean =
+          activeStatusFilters.length === 1 && activeStatusFilters[0] === status;
+
+        if (isAlreadyOnlyThisStatus) {
+          delete next["status"];
+        } else {
+          next["status"] = [status];
+        }
+
+        return next as FilterData<ResponderRow>;
+      },
+    );
+  };
+
+  const columns: Array<Column<ResponderRow>> = [
     {
-      label: "All",
-      value: ALL_STATUSES_FILTER_VALUE,
-      badge: allRows.length,
+      title: "Responder",
+      key: "responder",
+      type: FieldType.Element,
+      getElement: (row: ResponderRow): ReactElement => {
+        return (
+          <UserElement
+            user={{
+              _id: row.readiness.userId,
+              name: row.readiness.userName,
+              email: row.readiness.userEmail,
+              profilePictureId: row.readiness.userProfilePictureId || "",
+            }}
+          />
+        );
+      },
+      getExportValue: (row: ResponderRow): string => {
+        return row.readiness.userEmail
+          ? `${row.responder} <${row.readiness.userEmail}>`
+          : row.responder;
+      },
     },
     {
-      label: STATUS_FILTER_LABELS[READINESS_STATUS_NOT_REACHABLE],
-      value: READINESS_STATUS_NOT_REACHABLE,
-      badge: countRowsWithStatus(READINESS_STATUS_NOT_REACHABLE),
+      title: "Status",
+      key: "status",
+      type: FieldType.Element,
+      getElement: (row: ResponderRow): ReactElement => {
+        return <StatusChip status={row.status} label={row.statusLabel} />;
+      },
+      getExportValue: (row: ResponderRow): string => {
+        return row.statusLabel;
+      },
     },
     {
-      label: STATUS_FILTER_LABELS[READINESS_STATUS_PARTIALLY_READY],
-      value: READINESS_STATUS_PARTIALLY_READY,
-      badge: countRowsWithStatus(READINESS_STATUS_PARTIALLY_READY),
+      title: "Teams",
+      key: "teamNames",
+      type: FieldType.Element,
+      getElement: (row: ResponderRow): ReactElement => {
+        if (row.readiness.teams.length === 0) {
+          /*
+           * An em dash rather than a blank cell, and rather than "None". This
+           * responder is reached without a team being involved at all - the
+           * "Reached via" column next to it says how - so "no teams" is not a
+           * gap to be fixed and should not read like one.
+           */
+          return <span className="text-sm text-gray-400">&mdash;</span>;
+        }
+
+        return (
+          <span className="flex flex-wrap items-center gap-1">
+            {row.readiness.teams.map(
+              (team: ReadinessTeamWire): ReactElement => {
+                return (
+                  <span
+                    key={`team-${row._id}-${team._id}`}
+                    className="inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
+                  >
+                    <Icon
+                      icon={IconProp.Team}
+                      className="h-3 w-3 text-gray-400"
+                    />
+                    {team.name}
+                  </span>
+                );
+              },
+            )}
+          </span>
+        );
+      },
     },
     {
-      label: STATUS_FILTER_LABELS[READINESS_STATUS_READY],
-      value: READINESS_STATUS_READY,
-      badge: countRowsWithStatus(READINESS_STATUS_READY),
+      title: "Channels",
+      key: "verifiedChannelCount",
+      type: FieldType.Element,
+      hideOnMobile: true,
+      getElement: (row: ResponderRow): ReactElement => {
+        return <ChannelMeter methods={row.readiness.methods} />;
+      },
+      getExportValue: (row: ResponderRow): string => {
+        return `${row.verifiedChannelCount} of ${CHANNEL_ORDER.length} verified`;
+      },
+    },
+    {
+      title: "Coverage",
+      key: "coveredCount",
+      type: FieldType.Element,
+      hideOnMobile: true,
+      getElement: (row: ResponderRow): ReactElement => {
+        return (
+          <span className="whitespace-nowrap text-sm text-gray-600">
+            {row.coverageCellCount > 0
+              ? `${row.coveredCount} of ${row.coverageCellCount}`
+              : "Not reported"}
+          </span>
+        );
+      },
+      getExportValue: (row: ResponderRow): string => {
+        return row.coverageCellCount > 0
+          ? `${row.coveredCount} of ${row.coverageCellCount}`
+          : "Not reported";
+      },
+    },
+    {
+      title: "Reached via",
+      key: "reachedVia",
+      type: FieldType.Element,
+      hideOnMobile: true,
+      disableSort: true,
+      getElement: (row: ResponderRow): ReactElement => {
+        return (
+          <span className="flex flex-wrap items-center gap-1">
+            {row.reachedVia.map(
+              (source: ResponderSourceValue): ReactElement => {
+                return (
+                  <span
+                    key={`via-${row._id}-${source}`}
+                    className="inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
+                  >
+                    <Icon
+                      icon={RESPONDER_SOURCE_ICONS[source]}
+                      className="h-3 w-3 text-gray-400"
+                    />
+                    {source}
+                  </span>
+                );
+              },
+            )}
+          </span>
+        );
+      },
+      getExportValue: (row: ResponderRow): string => {
+        return row.reachedVia.join(", ");
+      },
+    },
+    {
+      title: "Actions",
+      type: FieldType.Actions,
+      disableCsvExport: true,
     },
   ];
 
-  const getExpandedPanel: (row: ResponderRow) => ReactElement = (
-    row: ResponderRow,
-  ): ReactElement => {
-    return (
-      <div className="bg-gray-50 px-4 py-5 sm:px-6">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-1">
-            <div className="text-xs font-medium uppercase tracking-wide text-gray-400">
-              Notification methods
-            </div>
-            {row.readiness.methods.length === 0 ? (
-              <p className="mt-2 text-sm text-gray-500">
-                No notification methods at all. Only{" "}
-                {row.readiness.userName || row.readiness.userEmail} can add
-                these, so the fix here is a reminder, not an edit.
-              </p>
-            ) : (
-              <ul className="mt-2 space-y-1.5">
-                {row.readiness.methods.map(
-                  (
-                    method: ReadinessMethodWire,
-                    methodIndex: number,
-                  ): ReactElement => {
-                    return (
-                      <li
-                        key={`method-${methodIndex}`}
-                        className="flex items-center gap-2 text-sm"
-                      >
-                        <Icon
-                          icon={
-                            CHANNEL_ICONS[method.methodType] || IconProp.Bell
-                          }
-                          className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
-                        />
-                        <span className="text-gray-900">
-                          {method.maskedIdentifier}
-                        </span>
-                        {method.isVerified ? (
-                          <span className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
-                            Verified
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
-                            Unverified
-                          </span>
-                        )}
-                      </li>
-                    );
-                  },
-                )}
-              </ul>
-            )}
-
-            {row.readiness.reasons.length > 0 && (
-              <div className="mt-5">
-                <div className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                  Why this status
-                </div>
-                <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-gray-600">
-                  {row.readiness.reasons.map(
-                    (reason: string, reasonIndex: number): ReactElement => {
-                      return <li key={`reason-${reasonIndex}`}>{reason}</li>;
-                    },
-                  )}
-                </ul>
-              </div>
-            )}
-          </div>
-
-          <div className="lg:col-span-2">
-            <div className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
-              Coverage
-            </div>
-            <CoverageMatrix model={row.model} />
-          </div>
-        </div>
-      </div>
-    );
-  };
+  const actionButtons: Array<ActionButtonSchema<ResponderRow>> = [
+    {
+      title: "Coverage",
+      icon: IconProp.Grid,
+      buttonStyleType: ButtonStyleType.NORMAL,
+      onClick: (row: ResponderRow, onCompleteAction: () => void): void => {
+        setCoverageRow(row);
+        onCompleteAction();
+      },
+    },
+  ];
 
   /*
    * Skeletons rather than a spinner, and rather than a blanked body.
@@ -1040,10 +1552,10 @@ const OnCallReadinessPage: FunctionComponent<
    * A slow request has to keep the page's shape: a card that swaps its whole
    * body for a centred spinner reads as "this feature is broken" rather than
    * "this is still loading", which is exactly the impression a readiness surface
-   * cannot afford to give. The shapes below mirror the real layout - four tiles,
-   * a filter strip, a run of responder rows - so nothing jumps when the answer
-   * arrives. This matches ResponderReadinessCard, which does the same thing on
-   * the policy page.
+   * cannot afford to give. The shapes below mirror the real layout - four tiles
+   * and a run of responder rows - so nothing jumps when the answer arrives. This
+   * matches ResponderReadinessCard, which does the same thing on the policy
+   * page.
    */
   const getSkeleton: () => ReactElement = (): ReactElement => {
     return (
@@ -1057,10 +1569,6 @@ const OnCallReadinessPage: FunctionComponent<
               />
             );
           })}
-        </div>
-        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="h-8 w-72 animate-pulse rounded-md bg-gray-100" />
-          <div className="h-8 w-44 animate-pulse rounded-md bg-gray-100" />
         </div>
         <div className="overflow-hidden rounded-lg border border-gray-200">
           {[0, 1, 2, 3, 4].map((index: number): ReactElement => {
@@ -1079,6 +1587,8 @@ const OnCallReadinessPage: FunctionComponent<
       </div>
     );
   };
+
+  const hasActiveFilters: boolean = Object.keys(filterData).length > 0;
 
   let content: ReactElement;
 
@@ -1104,53 +1614,6 @@ const OnCallReadinessPage: FunctionComponent<
   } else {
     content = (
       <div>
-        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <FilterButtons
-            options={filterOptions}
-            selectedValue={statusFilter}
-            onSelect={(value: string) => {
-              setStatusFilter(value);
-              setVisibleCount(INITIAL_VISIBLE_RESPONDERS);
-              setExpandedUserId("");
-            }}
-          />
-          {/*
-           * The button's own label carries the count, so the number of people
-           * about to be emailed is legible without reading anything else on the
-           * page. With nothing selected it is disabled and says what to do - a
-           * bare disabled "Send setup reminder" leaves the reader hunting for
-           * the control they have not found yet, which is the checkbox column.
-           */}
-          <div className="flex items-center gap-3 self-start">
-            {selectedRows.length > 0 && (
-              <button
-                type="button"
-                className="whitespace-nowrap text-xs text-gray-500 underline hover:text-gray-700"
-                onClick={() => {
-                  setSelectedUserIds([]);
-                }}
-              >
-                Clear selection
-              </button>
-            )}
-            <Button
-              title={
-                selectedRows.length > 0
-                  ? `Send setup reminder (${selectedRows.length})`
-                  : "Send setup reminder"
-              }
-              icon={IconProp.SendMessage}
-              buttonStyle={ButtonStyleType.OUTLINE}
-              disabled={selectedRows.length === 0 || isSendingReminders}
-              onClick={() => {
-                setReminderFailure(null);
-                setReminderReport(null);
-                setIsReminderModalVisible(true);
-              }}
-            />
-          </div>
-        </div>
-
         {selectedRows.length === 0 && (
           <div className="mb-4 text-xs text-gray-500">
             Tick the responders you want to remind. Responders who are already
@@ -1204,224 +1667,119 @@ const OnCallReadinessPage: FunctionComponent<
           />
         )}
 
-        {filteredRows.length === 0 ? (
-          <div className="py-10 text-center text-sm text-gray-500">
-            No responders match this filter.
-          </div>
-        ) : (
-          <div className="overflow-x-auto rounded-lg border border-gray-200">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="w-10 px-3 py-3">
-                    {/*
-                     * Selects the rows ON SCREEN - see toggleVisibleSelection.
-                     * The indeterminate state is what makes that honest: a
-                     * half-filled box after "Show more" tells the reader that
-                     * some of what they are now looking at is not selected,
-                     * where an empty box would suggest they had lost the
-                     * selection they made a moment ago.
-                     */}
-                    <input
-                      type="checkbox"
-                      aria-label="Select the responders shown"
-                      title="Select the responders shown"
-                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-600 disabled:cursor-not-allowed disabled:opacity-40"
-                      disabled={selectableVisibleRows.length === 0}
-                      checked={
-                        selectableVisibleRows.length > 0 &&
-                        selectedVisibleCount === selectableVisibleRows.length
-                      }
-                      ref={(element: HTMLInputElement | null): void => {
-                        if (element) {
-                          element.indeterminate =
-                            selectedVisibleCount > 0 &&
-                            selectedVisibleCount < selectableVisibleRows.length;
-                        }
-                      }}
-                      onChange={(
-                        event: React.ChangeEvent<HTMLInputElement>,
-                      ) => {
-                        toggleVisibleSelection(event.target.checked);
-                      }}
-                    />
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
-                  >
-                    Responder
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"
-                  >
-                    Status
-                  </th>
-                  <th
-                    scope="col"
-                    className="hidden px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 md:table-cell"
-                  >
-                    Channels
-                  </th>
-                  <th
-                    scope="col"
-                    className="hidden px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 lg:table-cell"
-                  >
-                    Coverage
-                  </th>
-                  <th
-                    scope="col"
-                    className="hidden px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 xl:table-cell"
-                  >
-                    Reached via
-                  </th>
-                  <th scope="col" className="w-10 px-3 py-3" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 bg-white">
-                {visibleRows.map((row: ResponderRow): ReactElement => {
-                  const isExpanded: boolean =
-                    expandedUserId === row.readiness.userId;
-                  const coveredCount: number =
-                    row.readiness.coverage.length - row.gapCount;
+        <Table<ResponderRow>
+          id="on-call-readiness-table"
+          columns={columns}
+          actionButtons={actionButtons}
+          data={rowsOnPage}
+          singularLabel="Responder"
+          pluralLabel="Responders"
+          isLoading={false}
+          error=""
+          onRefreshClick={() => {
+            fetchReadiness(true).catch(() => {
+              // fetchReadiness already routes every failure into the error state.
+            });
+          }}
+          noItemsMessage={
+            hasActiveFilters
+              ? "No responders match these filters."
+              : "No responders are attached to any on-call policy in this project yet."
+          }
+          currentPageNumber={currentPageNumber}
+          totalItemsCount={sortedRows.length}
+          itemsOnPage={itemsOnPage}
+          onNavigateToPage={(pageNumber: number, onPage: number) => {
+            setCurrentPageNumber(pageNumber);
+            setItemsOnPage(onPage);
+          }}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSortChanged={(
+            newSortBy: keyof ResponderRow | null,
+            newSortOrder: SortOrder,
+          ) => {
+            setSortBy(newSortBy);
+            setSortOrder(newSortOrder);
+            setCurrentPageNumber(1);
+          }}
+          filters={filters}
+          filterData={filterData}
+          showFilterModal={isFilterModalVisible}
+          onFilterChanged={(newFilterData: FilterData<ResponderRow>) => {
+            setFilterData(newFilterData);
+            setCurrentPageNumber(1);
+          }}
+          onFilterModalOpen={() => {
+            setIsFilterModalVisible(true);
+          }}
+          onFilterModalClose={() => {
+            setIsFilterModalVisible(false);
+          }}
+          bulkActions={bulkActions}
+          bulkSelectedItems={selectedRows}
+          matchBulkSelectedItemByField="_id"
+          bulkItemToString={(row: ResponderRow): string => {
+            return row.responder;
+          }}
+          isItemSelectable={isRemindable}
+          itemNotSelectableReason={(): string => {
+            return NOT_REMINDABLE_REASON;
+          }}
+          onBulkSelectedItemAdded={(row: ResponderRow) => {
+            setSelectedUserIds((current: Array<string>): Array<string> => {
+              return current.includes(row._id)
+                ? current
+                : [...current, row._id];
+            });
+          }}
+          onBulkSelectedItemRemoved={(row: ResponderRow) => {
+            setSelectedUserIds((current: Array<string>): Array<string> => {
+              return current.filter((userId: string): boolean => {
+                return userId !== row._id;
+              });
+            });
+          }}
+          /*
+           * The page's rows, not every matching row. A control that silently
+           * selects people the reader has not seen is how a reminder ends up in
+           * the inbox of somebody nobody meant to contact - "Select All
+           * Responders" in the bulk bar is the deliberate, separately-labelled
+           * way to ask for the rest.
+           */
+          onBulkSelectItemsOnCurrentPage={() => {
+            const idsOnPage: Array<string> = rowsOnPage
+              .filter(isRemindable)
+              .map((row: ResponderRow): string => {
+                return row._id;
+              });
 
-                  return (
-                    <React.Fragment key={`responder-${row.readiness.userId}`}>
-                      <tr
-                        className="cursor-pointer hover:bg-gray-50"
-                        onClick={() => {
-                          setExpandedUserId(
-                            isExpanded ? "" : row.readiness.userId,
-                          );
-                        }}
-                      >
-                        {/*
-                         * stopPropagation on the CELL, not only on the input.
-                         * The whole row toggles the coverage panel, and a click
-                         * that lands on the padding around a checkbox is a click
-                         * on the cell - so without this, ticking a box near its
-                         * edge expands the row instead, which reads as the
-                         * checkbox being broken.
-                         */}
-                        <td
-                          className="px-3 py-3"
-                          onClick={(event: React.MouseEvent) => {
-                            event.stopPropagation();
-                          }}
-                        >
-                          <input
-                            type="checkbox"
-                            aria-label={`Select ${row.readiness.userName}`}
-                            title={
-                              isRemindable(row)
-                                ? `Select ${row.readiness.userName}`
-                                : "Already ready - there is nothing to remind them about"
-                            }
-                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-600 disabled:cursor-not-allowed disabled:opacity-40"
-                            disabled={!isRemindable(row)}
-                            checked={selectedUserIdSet.has(
-                              row.readiness.userId,
-                            )}
-                            onChange={(
-                              event: React.ChangeEvent<HTMLInputElement>,
-                            ) => {
-                              toggleUserSelection(
-                                row.readiness.userId,
-                                event.target.checked,
-                              );
-                            }}
-                          />
-                        </td>
-                        <td className="px-3 py-3">
-                          <UserElement
-                            user={{
-                              _id: row.readiness.userId,
-                              name: row.readiness.userName,
-                              email: row.readiness.userEmail,
-                              profilePictureId:
-                                row.readiness.userProfilePictureId || "",
-                            }}
-                          />
-                        </td>
-                        <td className="px-3 py-3">
-                          <StatusChip
-                            status={row.readiness.status}
-                            label={getStatusShortLabel(row.readiness)}
-                          />
-                        </td>
-                        <td className="hidden px-3 py-3 md:table-cell">
-                          <ChannelMeter methods={row.readiness.methods} />
-                        </td>
-                        <td className="hidden whitespace-nowrap px-3 py-3 text-sm text-gray-600 lg:table-cell">
-                          {row.readiness.coverage.length > 0
-                            ? `${coveredCount} of ${row.readiness.coverage.length}`
-                            : "Not reported"}
-                        </td>
-                        <td className="hidden px-3 py-3 xl:table-cell">
-                          <span className="flex flex-wrap items-center gap-1">
-                            {row.readiness.reachedVia.map(
-                              (source: ResponderSourceValue): ReactElement => {
-                                return (
-                                  <span
-                                    key={`via-${row.readiness.userId}-${source}`}
-                                    className="inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
-                                  >
-                                    <Icon
-                                      icon={RESPONDER_SOURCE_ICONS[source]}
-                                      className="h-3 w-3 text-gray-400"
-                                    />
-                                    {source}
-                                  </span>
-                                );
-                              },
-                            )}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3 text-right">
-                          <Icon
-                            icon={
-                              isExpanded
-                                ? IconProp.ChevronUp
-                                : IconProp.ChevronDown
-                            }
-                            className="h-4 w-4 text-gray-400"
-                            ariaLabel={
-                              isExpanded ? "Hide coverage" : "Show coverage"
-                            }
-                          />
-                        </td>
-                      </tr>
-                      {isExpanded && (
-                        <tr>
-                          <td colSpan={7} className="p-0">
-                            {getExpandedPanel(row)}
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+            setSelectedUserIds((current: Array<string>): Array<string> => {
+              return Array.from(new Set<string>([...current, ...idsOnPage]));
+            });
+          }}
+          onBulkSelectAllItems={(): Promise<boolean> => {
+            /*
+             * Everything the CURRENT FILTER matches, which is what the bulk bar
+             * says on the tin. It resolves true because the rows are already in
+             * memory - there is no paged fetch here to fail partway, which is
+             * the case this callback's boolean exists for.
+             */
+            setSelectedUserIds(
+              sortedRows
+                .filter(isRemindable)
+                .map((row: ResponderRow): string => {
+                  return row._id;
+                }),
+            );
 
-        {filteredRows.length > visibleRows.length && (
-          <div className="mt-4 flex justify-center">
-            <Button
-              title={`Show more (${
-                filteredRows.length - visibleRows.length
-              } remaining)`}
-              buttonStyle={ButtonStyleType.OUTLINE}
-              onClick={() => {
-                setVisibleCount((current: number): number => {
-                  return current + VISIBLE_RESPONDERS_INCREMENT;
-                });
-              }}
-            />
-          </div>
-        )}
+            return Promise.resolve(true);
+          }}
+          onBulkClearAllItems={() => {
+            setSelectedUserIds([]);
+          }}
+          bulkSelectionTotalCount={sortedRows.filter(isRemindable).length}
+        />
       </div>
     );
   }
@@ -1431,7 +1789,7 @@ const OnCallReadinessPage: FunctionComponent<
       <Card
         title="On-call readiness"
         description="Every responder any on-call policy in this project can reach - directly, through a team, a schedule or an override - and whether a page would actually arrive."
-        buttons={[refreshButton]}
+        buttons={[refreshButton, filterButton]}
       >
         <div>
           {/*
@@ -1451,20 +1809,53 @@ const OnCallReadinessPage: FunctionComponent<
               <StatTile
                 icon={IconProp.CheckCircle}
                 label="Ready"
-                value={`${summary.readyCount}`}
-                tone={summary.readyCount > 0 ? "positive" : "neutral"}
+                value={`${countRowsWithStatus(READINESS_STATUS_READY)}`}
+                tone={
+                  countRowsWithStatus(READINESS_STATUS_READY) > 0
+                    ? "positive"
+                    : "neutral"
+                }
+                ariaLabel="Filter to responders who are ready"
+                isActive={activeStatusFilters.includes(READINESS_STATUS_READY)}
+                onClick={() => {
+                  toggleStatusFilter(READINESS_STATUS_READY);
+                }}
               />
               <StatTile
                 icon={IconProp.Alert}
                 label="Needs setup"
-                value={`${summary.partiallyReadyCount}`}
-                tone={summary.partiallyReadyCount > 0 ? "warning" : "neutral"}
+                value={`${countRowsWithStatus(
+                  READINESS_STATUS_PARTIALLY_READY,
+                )}`}
+                tone={
+                  countRowsWithStatus(READINESS_STATUS_PARTIALLY_READY) > 0
+                    ? "warning"
+                    : "neutral"
+                }
+                ariaLabel="Filter to responders who need setup"
+                isActive={activeStatusFilters.includes(
+                  READINESS_STATUS_PARTIALLY_READY,
+                )}
+                onClick={() => {
+                  toggleStatusFilter(READINESS_STATUS_PARTIALLY_READY);
+                }}
               />
               <StatTile
                 icon={IconProp.Error}
                 label="Unreachable"
-                value={`${summary.notReachableCount}`}
-                tone={summary.notReachableCount > 0 ? "critical" : "neutral"}
+                value={`${countRowsWithStatus(READINESS_STATUS_NOT_REACHABLE)}`}
+                tone={
+                  countRowsWithStatus(READINESS_STATUS_NOT_REACHABLE) > 0
+                    ? "critical"
+                    : "neutral"
+                }
+                ariaLabel="Filter to responders who are unreachable"
+                isActive={activeStatusFilters.includes(
+                  READINESS_STATUS_NOT_REACHABLE,
+                )}
+                onClick={() => {
+                  toggleStatusFilter(READINESS_STATUS_NOT_REACHABLE);
+                }}
               />
             </div>
           )}
@@ -1473,50 +1864,97 @@ const OnCallReadinessPage: FunctionComponent<
       </Card>
 
       {/*
-       * The confirmation names every recipient, and it is not decoration.
-       * Selection survives a filter change, so the rows an admin ticked are not
-       * necessarily the rows on screen when they press the button - and this is
-       * the last moment before real email reaches real people. A modal that
-       * said "Send 6 reminders?" would be asking them to confirm a number.
+       * The coverage grid, in a modal rather than an expanded row.
+       *
+       * The shared table has no expandable rows, and rebuilding them locally is
+       * what this rewrite is undoing. A modal is the better fit anyway: the grid
+       * is severities down by rule types across and is wider than a table cell,
+       * and opening one in place used to push every row below it off the screen.
        */}
-      {isReminderModalVisible && (
-        <ConfirmModal
-          title={`Send a setup reminder to ${selectedRows.length} ${
-            selectedRows.length === 1 ? "responder" : "responders"
-          }?`}
-          description={
-            <div>
-              <p>
-                Each of them gets one email naming exactly what is missing from
-                their own notification setup, and a link to the settings page
-                that fixes it. Nobody is emailed more than once in 24 hours, so
-                any of these who were already reminded today will be skipped.
-              </p>
-              <ul className="mt-3 list-disc space-y-1 pl-5">
-                {selectedRows.map((row: ResponderRow): ReactElement => {
-                  return (
-                    <li key={`confirm-${row.readiness.userId}`}>
-                      {row.readiness.userName}
-                      {row.readiness.userEmail
-                        ? ` (${row.readiness.userEmail})`
-                        : ""}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          }
-          submitButtonText="Send reminders"
-          isLoading={isSendingReminders}
+      {coverageRow && (
+        <Modal
+          title={`Coverage for ${coverageRow.responder}`}
+          description="Which severities this responder has a notification rule for, and how a page would reach them."
+          modalWidth={ModalWidth.Large}
+          submitButtonText="Close"
           onSubmit={() => {
-            sendSetupReminders().catch(() => {
-              // sendSetupReminders routes every failure into the error state.
-            });
+            setCoverageRow(null);
           }}
           onClose={() => {
-            setIsReminderModalVisible(false);
+            setCoverageRow(null);
           }}
-        />
+        >
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-1">
+              <div className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                Notification methods
+              </div>
+              {coverageRow.readiness.methods.length === 0 ? (
+                <p className="mt-2 text-sm text-gray-500">
+                  No notification methods at all. Only {coverageRow.responder}{" "}
+                  can add these, so the fix here is a reminder, not an edit.
+                </p>
+              ) : (
+                <ul className="mt-2 space-y-1.5">
+                  {coverageRow.readiness.methods.map(
+                    (
+                      method: ReadinessMethodWire,
+                      methodIndex: number,
+                    ): ReactElement => {
+                      return (
+                        <li
+                          key={`method-${methodIndex}`}
+                          className="flex items-center gap-2 text-sm"
+                        >
+                          <Icon
+                            icon={
+                              CHANNEL_ICONS[method.methodType] || IconProp.Bell
+                            }
+                            className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+                          />
+                          <span className="text-gray-900">
+                            {method.maskedIdentifier}
+                          </span>
+                          {method.isVerified ? (
+                            <span className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
+                              Verified
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
+                              Unverified
+                            </span>
+                          )}
+                        </li>
+                      );
+                    },
+                  )}
+                </ul>
+              )}
+
+              {coverageRow.readiness.reasons.length > 0 && (
+                <div className="mt-5">
+                  <div className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                    Why this status
+                  </div>
+                  <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-gray-600">
+                    {coverageRow.readiness.reasons.map(
+                      (reason: string, reasonIndex: number): ReactElement => {
+                        return <li key={`reason-${reasonIndex}`}>{reason}</li>;
+                      },
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            <div className="lg:col-span-2">
+              <div className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
+                Coverage
+              </div>
+              <CoverageMatrix model={coverageRow.model} />
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );

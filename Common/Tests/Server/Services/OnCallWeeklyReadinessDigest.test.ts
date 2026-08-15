@@ -172,6 +172,7 @@ const makeUserReadiness: MakeUserReadinessFunction = (
     coverage: [],
     reasons: ["No verified notification method - cannot be paged"],
     reachedVia: [ResponderSource.Direct],
+    teams: [],
     ...overrides,
   };
 };

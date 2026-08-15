@@ -92,6 +92,18 @@ export interface ComponentProps<T extends GenericObject> {
   isBulkSelectionTruncated?: boolean | undefined;
   bulkSelectionTotalCount?: number | undefined;
   matchBulkSelectedItemByField?: keyof T | undefined; // which field to use to match selected items. For exmaple this could be '_id'
+  /*
+   * Which rows may be ticked. Absent means all of them, so every existing table
+   * is unaffected.
+   *
+   * Supplying it locks the rest of the selection machinery to the same rule -
+   * the header's select-all covers only the selectable rows, and "all selected"
+   * is judged against those - because a header box that can never fill, or one
+   * that fills while leaving rows unticked, is worse than no header box at all.
+   */
+  isItemSelectable?: ((item: T) => boolean) | undefined;
+  /** Hover text for a locked row's checkbox. Says why, in the caller's words. */
+  itemNotSelectableReason?: ((item: T) => string) | undefined;
   onBulkActionEnd?: (() => void) | undefined;
   onBulkActionStart?: (() => void) | undefined;
   bulkItemToString?: ((item: T) => string) | undefined;
@@ -292,29 +304,49 @@ const Table: TableFunction = <T extends GenericObject>(
         }}
         selectedItems={bulkSelectedItems}
         matchBulkSelectedItemByField={props.matchBulkSelectedItemByField}
+        isItemSelectable={props.isItemSelectable}
+        itemNotSelectableReason={props.itemNotSelectableReason}
+        bulkItemToString={props.bulkItemToString}
         isMobile={isMobile}
       />
     );
   };
 
-  // check if all items on the page are selected.
-  let isAllItemsOnThePageSelected: boolean = true;
+  /*
+   * The rows on this page the header checkbox is actually talking about. With no
+   * isItemSelectable this is every row, which is what it has always been.
+   */
+  const selectableRowsOnThePage: Array<T> = props.isItemSelectable
+    ? props.data.filter(props.isItemSelectable)
+    : props.data;
 
-  props.data.forEach((item: T) => {
-    const index: number = bulkSelectedItems.findIndex((x: T) => {
-      if (props.matchBulkSelectedItemByField === undefined) {
-        return false;
-      }
-      return (
-        x[props.matchBulkSelectedItemByField]?.toString() ===
-        item[props.matchBulkSelectedItemByField]?.toString()
-      );
-    });
+  const isRowSelected: (item: T) => boolean = (item: T): boolean => {
+    const matchBy: keyof T | undefined = props.matchBulkSelectedItemByField;
 
-    if (index === -1) {
-      isAllItemsOnThePageSelected = false;
+    if (matchBy === undefined) {
+      return false;
     }
-  });
+
+    return bulkSelectedItems.some((selected: T) => {
+      return selected[matchBy]?.toString() === item[matchBy]?.toString();
+    });
+  };
+
+  const selectedRowsOnThePageCount: number =
+    selectableRowsOnThePage.filter(isRowSelected).length;
+
+  /*
+   * "All selected" means all of the SELECTABLE rows, and a page with none of
+   * those does not count as fully selected - otherwise a page of entirely locked
+   * rows would render a ticked header box above nothing that is ticked.
+   */
+  const isAllItemsOnThePageSelected: boolean =
+    selectableRowsOnThePage.length > 0 &&
+    selectedRowsOnThePageCount === selectableRowsOnThePage.length;
+
+  const isSomeItemsOnThePageSelected: boolean =
+    selectedRowsOnThePageCount > 0 &&
+    selectedRowsOnThePageCount < selectableRowsOnThePage.length;
 
   return (
     <div className={props.className}>
@@ -412,7 +444,8 @@ const Table: TableFunction = <T extends GenericObject>(
                       }
                     }}
                     isAllItemsOnThePageSelected={isAllItemsOnThePageSelected}
-                    hasTableItems={props.data.length > 0}
+                    isSomeItemsOnThePageSelected={isSomeItemsOnThePageSelected}
+                    hasTableItems={selectableRowsOnThePage.length > 0}
                   />
                   {getTablebody()}
                 </table>

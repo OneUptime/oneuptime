@@ -3,6 +3,7 @@ import OnCallReadinessService, {
   ReadinessCoverageCell,
   ReadinessMethod,
   ReadinessSummary,
+  ReadinessTeam,
   UserReadiness,
 } from "../Services/OnCallReadinessService";
 import OnCallDutyPolicyService from "../Services/OnCallDutyPolicyService";
@@ -501,6 +502,18 @@ function serializeUserReadiness(readiness: UserReadiness): JSONObject {
     coverage: readiness.coverage.map(serializeCoverageCell),
     reasons: readiness.reasons,
     reachedVia: readiness.reachedVia,
+    /*
+     * The teams that page this responder, ids flattened to strings like every other id
+     * here. A team name is already readable by any project member through the team list,
+     * so nothing is disclosed by naming it — and naming it is what lets the readiness
+     * table offer a team filter whose options a reader can actually recognise.
+     */
+    teams: readiness.teams.map((team: ReadinessTeam): JSONObject => {
+      return {
+        _id: team._id.toString(),
+        name: team.name,
+      };
+    }),
   };
 }
 

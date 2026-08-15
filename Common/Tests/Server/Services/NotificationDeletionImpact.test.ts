@@ -332,6 +332,7 @@ function readiness(data: {
     coverage: [],
     reasons: [],
     reachedVia: data.reachedVia || [ResponderSource.Direct],
+    teams: [],
   };
 }
 

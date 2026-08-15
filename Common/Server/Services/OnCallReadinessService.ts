@@ -8,6 +8,7 @@ import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
 import ProjectService from "./ProjectService";
 import TeamMemberService from "./TeamMemberService";
+import TeamService from "./TeamService";
 import UserCallService from "./UserCallService";
 import UserEmailService from "./UserEmailService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
@@ -41,6 +42,7 @@ import OnCallDutyPolicyEscalationRuleUser from "../../Models/DatabaseModels/OnCa
 import OnCallDutyPolicyScheduleLayerUser from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import OnCallDutyPolicyUserOverride from "../../Models/DatabaseModels/OnCallDutyPolicyUserOverride";
 import Project from "../../Models/DatabaseModels/Project";
+import Team from "../../Models/DatabaseModels/Team";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import User from "../../Models/DatabaseModels/User";
 import UserCall from "../../Models/DatabaseModels/UserCall";
@@ -176,6 +178,22 @@ export interface ReadinessCoverageCell {
   isOptOut: boolean;
 }
 
+/**
+ * One team that routes pages to a responder.
+ *
+ * "Routes pages to" is narrower than "is a member of", and the difference is the whole
+ * point. A project team with no escalation rule attached to it does not page anybody, so
+ * naming it here would let an admin filter the readiness table down to a team and read a
+ * clean answer about people that team cannot actually reach. Every team named on a
+ * responder is a team that (a) they belong to and (b) is attached to an escalation rule in
+ * the scope being computed — which is exactly the set that makes `reachedVia` contain
+ * `Team`.
+ */
+export interface ReadinessTeam {
+  _id: ObjectID;
+  name: string;
+}
+
 export interface UserReadiness {
   userId: ObjectID;
   userName: string;
@@ -193,6 +211,13 @@ export interface UserReadiness {
   coverage: Array<ReadinessCoverageCell>;
   reasons: Array<string>;
   reachedVia: Array<ResponderSource>;
+  /**
+   * The teams that page this responder, in name order. Empty whenever `reachedVia` does
+   * not contain `Team` — a responder attached directly or through a schedule is reached
+   * without a team being involved, and saying otherwise would put them under a team
+   * filter they are not answerable to.
+   */
+  teams: Array<ReadinessTeam>;
 }
 
 export interface ReadinessSummary {
@@ -483,6 +508,28 @@ interface SeverityRef {
  */
 interface ReadCompleteness {
   isTruncated: boolean;
+}
+
+/*
+ * Everything the resolution pass learns about ONE responder, and the only channel between
+ * "who is on this policy" and buildUserReadiness.
+ *
+ * It used to be a bare `Set<ResponderSource>`, which was enough while the answer to "how
+ * is this person reached?" was a four-value enum. It stopped being enough the moment the
+ * readiness table needed to be filtered by team: the resolution pass reads the exact
+ * TeamMember rows that would answer that, then threw the team id away and kept only the
+ * fact that SOME team was involved. Carrying the ids costs one extra selected column on a
+ * read that already happens, and keeps the "reached via Team" chip and the team filter
+ * derived from the same pass rather than from two that can disagree.
+ *
+ * Ids, not names. Names are resolved once per scope in loadTeamNames, because a team on an
+ * escalation rule is shared by every one of its members and reading its name per member is
+ * the N+1 this service was written to eliminate.
+ */
+interface ResponderAttachment {
+  sources: Set<ResponderSource>;
+  /** Team ids as strings, so a user on the same team twice dedupes for free. */
+  teamIds: Set<string>;
 }
 
 /*
@@ -783,14 +830,8 @@ export default class OnCallReadinessService {
     const projectSettings: ProjectNotificationSettings =
       await this.loadProjectSettings(projectId);
 
-    const responders: Map<
-      string,
-      Set<ResponderSource>
-    > = await this.resolveResponders(
-      projectId,
-      onCallDutyPolicyId,
-      completeness,
-    );
+    const responders: Map<string, ResponderAttachment> =
+      await this.resolveResponders(projectId, onCallDutyPolicyId, completeness);
 
     const users: Array<UserReadiness> = await this.buildReadiness({
       projectId: projectId,
@@ -902,15 +943,13 @@ export default class OnCallReadinessService {
     const projectSettings: ProjectNotificationSettings =
       await this.loadProjectSettings(projectId);
 
-    const responders: Map<
-      string,
-      Set<ResponderSource>
-    > = await this.resolveRespondersForUsers({
-      projectId: projectId,
-      userIds: memberIds,
-      teamIdsByUserId: teamIdsByUserId,
-      completeness: completeness,
-    });
+    const responders: Map<string, ResponderAttachment> =
+      await this.resolveRespondersForUsers({
+        projectId: projectId,
+        userIds: memberIds,
+        teamIdsByUserId: teamIdsByUserId,
+        completeness: completeness,
+      });
 
     const computed: Array<UserReadiness> = await this.buildReadiness({
       projectId: projectId,
@@ -1067,35 +1106,43 @@ export default class OnCallReadinessService {
     projectId: ObjectID,
     onCallDutyPolicyId: ObjectID | undefined,
     completeness: ReadCompleteness,
-  ): Promise<Map<string, Set<ResponderSource>>> {
-    const responders: Map<string, Set<ResponderSource>> = new Map<
+  ): Promise<Map<string, ResponderAttachment>> {
+    const responders: Map<string, ResponderAttachment> = new Map<
       string,
-      Set<ResponderSource>
+      ResponderAttachment
     >();
 
     type AddResponderFunction = (
       userId: ObjectID | undefined,
       source: ResponderSource,
+      teamId?: ObjectID | undefined,
     ) => void;
 
     const addResponder: AddResponderFunction = (
       userId: ObjectID | undefined,
       source: ResponderSource,
+      teamId?: ObjectID | undefined,
     ): void => {
       if (!userId) {
         return;
       }
 
       const key: string = userId.toString();
-      const existing: Set<ResponderSource> | undefined = responders.get(key);
+      let existing: ResponderAttachment | undefined = responders.get(key);
 
-      if (existing) {
-        existing.add(source);
-
-        return;
+      if (!existing) {
+        existing = {
+          sources: new Set<ResponderSource>(),
+          teamIds: new Set<string>(),
+        };
+        responders.set(key, existing);
       }
 
-      responders.set(key, new Set<ResponderSource>([source]));
+      existing.sources.add(source);
+
+      if (teamId) {
+        existing.teamIds.add(teamId.toString());
+      }
     };
 
     // 1. Users attached directly to an escalation rule.
@@ -1180,10 +1227,17 @@ export default class OnCallReadinessService {
         select: {
           _id: true,
           userId: true,
+          /*
+           * WHICH team, not merely that a team was involved. One extra column on a read
+           * that already runs, and it is what lets the readiness table be filtered down
+           * to a team without a second pass that could disagree with this one about who
+           * is on it.
+           */
+          teamId: true,
         },
         consumePage: (rows: Array<TeamMember>): void => {
           for (const row of rows) {
-            addResponder(row.userId, ResponderSource.Team);
+            addResponder(row.userId, ResponderSource.Team, row.teamId);
           }
         },
       });
@@ -1319,24 +1373,29 @@ export default class OnCallReadinessService {
     userIds: Array<ObjectID>;
     teamIdsByUserId: Map<string, Array<ObjectID>>;
     completeness: ReadCompleteness;
-  }): Promise<Map<string, Set<ResponderSource>>> {
-    const responders: Map<string, Set<ResponderSource>> = new Map<
+  }): Promise<Map<string, ResponderAttachment>> {
+    const responders: Map<string, ResponderAttachment> = new Map<
       string,
-      Set<ResponderSource>
+      ResponderAttachment
     >();
 
     for (const userId of data.userIds) {
-      responders.set(userId.toString(), new Set<ResponderSource>());
+      responders.set(userId.toString(), {
+        sources: new Set<ResponderSource>(),
+        teamIds: new Set<string>(),
+      });
     }
 
     type AddSourceFunction = (
       userId: ObjectID | undefined,
       source: ResponderSource,
+      teamId?: ObjectID | undefined,
     ) => void;
 
     const addSource: AddSourceFunction = (
       userId: ObjectID | undefined,
       source: ResponderSource,
+      teamId?: ObjectID | undefined,
     ): void => {
       if (!userId) {
         return;
@@ -1347,15 +1406,19 @@ export default class OnCallReadinessService {
        * reads are all filtered on the user set already; this is the guard that keeps a
        * future unfiltered read from silently widening the answer.
        */
-      const sources: Set<ResponderSource> | undefined = responders.get(
+      const attachment: ResponderAttachment | undefined = responders.get(
         userId.toString(),
       );
 
-      if (!sources) {
+      if (!attachment) {
         return;
       }
 
-      sources.add(source);
+      attachment.sources.add(source);
+
+      if (teamId) {
+        attachment.teamIds.add(teamId.toString());
+      }
     };
 
     // 1. Attached directly to an escalation rule.
@@ -1419,14 +1482,17 @@ export default class OnCallReadinessService {
         const teamIds: Array<ObjectID> =
           data.teamIdsByUserId.get(userId.toString()) || [];
 
-        const isOnAnAttachedTeam: boolean = teamIds.some(
-          (teamId: ObjectID): boolean => {
-            return attachedTeamIds.has(teamId.toString());
-          },
-        );
-
-        if (isOnAnAttachedTeam) {
-          addSource(userId, ResponderSource.Team);
+        /*
+         * Every matching team, not the first one and not a boolean. A user on two
+         * attached teams is paged by both, so both belong on the row and both have to
+         * match a team filter — the boolean this replaced could only ever have said
+         * "some team", which is precisely the answer that made the team filter
+         * impossible to build.
+         */
+        for (const teamId of teamIds) {
+          if (attachedTeamIds.has(teamId.toString())) {
+            addSource(userId, ResponderSource.Team, teamId);
+          }
         }
       }
     }
@@ -1615,7 +1681,7 @@ export default class OnCallReadinessService {
    */
   private static async buildReadiness(data: {
     projectId: ObjectID;
-    responders: Map<string, Set<ResponderSource>>;
+    responders: Map<string, ResponderAttachment>;
     projectSettings: ProjectNotificationSettings;
     completeness: ReadCompleteness;
   }): Promise<Array<UserReadiness>> {
@@ -1636,19 +1702,94 @@ export default class OnCallReadinessService {
       completeness: data.completeness,
     });
 
+    /*
+     * ONE read for every team named anywhere in the responder set, rather than one per
+     * responder. A team on an escalation rule is shared by every one of its members, so
+     * the per-member read would be the same N+1 that made the report this service
+     * replaced unusable — see readEveryPage.
+     */
+    const teamNamesById: Map<string, string> = await this.loadTeamNames({
+      projectId: data.projectId,
+      teamIds: this.distinctIds(
+        Array.from(data.responders.values())
+          .flatMap((attachment: ResponderAttachment): Array<string> => {
+            return Array.from(attachment.teamIds);
+          })
+          .map((teamId: string): ObjectID => {
+            return new ObjectID(teamId);
+          }),
+      ),
+      completeness: data.completeness,
+    });
+
     const readiness: Array<UserReadiness> = [];
 
     for (const user of inputs.users) {
       const userIdString: string = user.id?.toString() || "";
-      const sources: Set<ResponderSource> =
-        data.responders.get(userIdString) || new Set<ResponderSource>();
+      const attachment: ResponderAttachment = data.responders.get(
+        userIdString,
+      ) || {
+        sources: new Set<ResponderSource>(),
+        teamIds: new Set<string>(),
+      };
 
       readiness.push(
-        this.buildUserReadiness(user, sources, userIdString, inputs),
+        this.buildUserReadiness(
+          user,
+          attachment,
+          userIdString,
+          inputs,
+          teamNamesById,
+        ),
       );
     }
 
     return this.sortReadiness(readiness);
+  }
+
+  /**
+   * Team id -> team name, for every team that pages somebody in the responder set.
+   *
+   * A team whose row did not come back is simply absent from the map, and
+   * buildUserReadiness then drops it from the responder's `teams` rather than rendering an
+   * id or an empty chip. That is the right direction to fail in for a filter: an option
+   * that cannot be labelled is an option nobody can choose deliberately, whereas a chip
+   * reading a bare uuid is one an admin might act on.
+   */
+  private static async loadTeamNames(data: {
+    projectId: ObjectID;
+    teamIds: Array<ObjectID>;
+    completeness: ReadCompleteness;
+  }): Promise<Map<string, string>> {
+    const teamNamesById: Map<string, string> = new Map<string, string>();
+
+    if (data.teamIds.length === 0) {
+      return teamNamesById;
+    }
+
+    await this.readEveryPage<Team>({
+      description: "teams that page a responder",
+      projectId: data.projectId,
+      completeness: data.completeness,
+      service: TeamService,
+      query: {
+        projectId: data.projectId,
+        _id: new Includes(data.teamIds),
+      },
+      select: {
+        _id: true,
+        name: true,
+      },
+      consumePage: (rows: Array<Team>): void => {
+        for (const row of rows) {
+          if (row.id && row.name) {
+            teamNamesById.set(row.id.toString(), row.name);
+          }
+        }
+      },
+    });
+
+    return teamNamesById;
   }
 
   private static sortReadiness(
@@ -2230,10 +2371,12 @@ export default class OnCallReadinessService {
 
   private static buildUserReadiness(
     user: User,
-    sources: Set<ResponderSource>,
+    attachment: ResponderAttachment,
     userIdString: string,
     inputs: ReadinessInputs,
+    teamNamesById: Map<string, string>,
   ): UserReadiness {
+    const sources: Set<ResponderSource> = attachment.sources;
     const methods: Array<ReadinessMethod> =
       inputs.methodsByUserId.get(userIdString) || [];
 
@@ -2342,6 +2485,28 @@ export default class OnCallReadinessService {
           return sources.has(source);
         },
       ),
+      /*
+       * A fresh array per user, never a shared one. InMemoryTTLCache stores by reference
+       * and hands the same object graph to every caller inside its TTL, so a list shared
+       * between two responders would let a mutation anywhere downstream rewrite the
+       * cached answer for both.
+       *
+       * Sorted by name so the column and the filter chip read the same way for every
+       * responder, and so the order does not depend on which membership row the database
+       * happened to return first.
+       */
+      teams: Array.from(attachment.teamIds)
+        .map((teamId: string): ReadinessTeam | null => {
+          const name: string | undefined = teamNamesById.get(teamId);
+
+          return name ? { _id: new ObjectID(teamId), name: name } : null;
+        })
+        .filter((team: ReadinessTeam | null): team is ReadinessTeam => {
+          return team !== null;
+        })
+        .sort((a: ReadinessTeam, b: ReadinessTeam): number => {
+          return a.name.localeCompare(b.name);
+        }),
     };
   }
 
