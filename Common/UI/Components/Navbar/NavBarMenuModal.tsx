@@ -1,4 +1,8 @@
 import Icon from "../Icon/Icon";
+import KeyboardShortcut, {
+  KeyboardShortcutSize,
+} from "../KeyboardShortcut/KeyboardShortcut";
+import KeyboardKey from "../KeyboardShortcut/KeyboardKey";
 import Link from "../Link/Link";
 import Navigation from "../../Utils/Navigation";
 import useTranslateValue from "../../Utils/Translation";
@@ -176,24 +180,6 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   };
 
   const recentLabel: string = tx(props.recentLabel || "Recent");
-
-  // Show the OS-appropriate shortcut hint (⌘K on macOS, Ctrl K elsewhere).
-  const shortcutLabel: string = useMemo(() => {
-    if (typeof navigator === "undefined") {
-      return "⌘K";
-    }
-    const platform: string = (
-      navigator.platform ||
-      navigator.userAgent ||
-      ""
-    ).toLowerCase();
-    const isApplePlatform: boolean =
-      platform.includes("mac") ||
-      platform.includes("iphone") ||
-      platform.includes("ipad") ||
-      platform.includes("ipod");
-    return isApplePlatform ? "⌘K" : "Ctrl K";
-  }, []);
 
   // Filter items by the search query (title only).
   const filteredItems: MoreMenuItem[] = useMemo(() => {
@@ -443,9 +429,6 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const keycapClass: string =
-    "inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded border border-gray-200 bg-white px-1 text-[11px] font-medium text-gray-500 shadow-sm";
-
   return (
     <div
       className="relative z-50"
@@ -520,9 +503,12 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                   <Icon icon={IconProp.Close} className="h-4 w-4" />
                 </button>
               ) : (
-                <kbd className="hidden items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-xs font-medium text-gray-400 sm:inline-flex">
-                  {shortcutLabel}
-                </kbd>
+                /* OS-appropriate hint: ⌘ K on a Mac, Ctrl K elsewhere. */
+                <KeyboardShortcut
+                  keys={[KeyboardKey.Mod, "K"]}
+                  size={KeyboardShortcutSize.Small}
+                  className="hidden sm:inline-flex"
+                />
               )}
             </div>
 
@@ -668,12 +654,11 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                     aria-label={tx(props.keyboardHint)}
                     className="hidden flex-shrink-0 items-center gap-2 text-xs text-gray-400 md:flex"
                   >
-                    <span className="flex items-center gap-1">
-                      <kbd className={keycapClass}>↑</kbd>
-                      <kbd className={keycapClass}>↓</kbd>
-                    </span>
-                    <kbd className={keycapClass}>↵</kbd>
-                    <kbd className={keycapClass}>esc</kbd>
+                    <KeyboardShortcut
+                      keys={[KeyboardKey.ArrowUp, KeyboardKey.ArrowDown]}
+                    />
+                    <KeyboardShortcut keys={[KeyboardKey.Enter]} />
+                    <KeyboardShortcut keys={[KeyboardKey.Escape]} />
                   </div>
                 )}
               </div>
