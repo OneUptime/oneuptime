@@ -349,8 +349,10 @@ describe("removeOverlappingEvents agrees with the original implementation", () =
         const actual: Array<CalendarEvent> =
           new LayerUtil().removeOverlappingEvents(clone(generated));
 
-        // The current implementation must hold the invariants on EVERY input,
-        // including the ones the original cannot finish.
+        /*
+         * The current implementation must hold the invariants on EVERY input,
+         * including the ones the original cannot finish.
+         */
         assertMergeInvariants(actual);
 
         let expected: Array<CalendarEvent>;
