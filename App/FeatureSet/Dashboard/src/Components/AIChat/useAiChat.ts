@@ -920,7 +920,11 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
       setMessages((current: Array<AIConversationMessage>) => {
         return current.map((message: AIConversationMessage) => {
           if (message.id?.toString() === messageId) {
-            message.userFeedback = feedback || undefined;
+            if (feedback) {
+              message.userFeedback = feedback;
+            } else {
+              delete message.userFeedback;
+            }
           }
           return message;
         });

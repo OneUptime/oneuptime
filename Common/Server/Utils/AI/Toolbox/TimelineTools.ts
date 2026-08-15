@@ -512,8 +512,10 @@ export const GetAlertTimelineTool: ObservabilityTool = {
         query: {
           alertId: alertId,
           projectId: ctx.projectId,
-          // Same dedup as the incident feed: these are mirrored by the
-          // dedicated state-timeline and note sources fetched above.
+          /*
+           * Same dedup as the incident feed: these are mirrored by the
+           * dedicated state-timeline and note sources fetched above.
+           */
           alertFeedEventType: QueryHelper.notIn([
             AlertFeedEventType.AlertStateChanged,
             AlertFeedEventType.PrivateNote,

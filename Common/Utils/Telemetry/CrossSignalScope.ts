@@ -7,6 +7,15 @@ import MetricExplorerUrl, {
 } from "../Metrics/MetricExplorerUrl";
 
 /*
+ * Matches any whitespace, double-quote, or colon — the characters that break a
+ * bare traces search token. Kept as named consts so the linter doesn't fight
+ * over wrapping an inline regex literal used with .test() (wrap-regex vs
+ * prettier).
+ */
+const TRACE_TOKEN_UNSAFE_CHARS: RegExp = /[\s":]/;
+const WHITESPACE: RegExp = /\s/;
+
+/*
  * Cross-signal scope translation: turn one description of "what slice of
  * telemetry am I looking at" into the query params each explorer parses,
  * so a breach (or any other cross-signal jump) can land the user on an
@@ -287,7 +296,7 @@ function isTraceTokenSafeKey(key: string): boolean {
     return false;
   }
 
-  if (/[\s":]/.test(key)) {
+  if (TRACE_TOKEN_UNSAFE_CHARS.test(key)) {
     return false;
   }
 
@@ -329,7 +338,7 @@ function buildTraceSearchTokenValue(value: string): string | null {
     return null;
   }
 
-  if (/\s/.test(value)) {
+  if (WHITESPACE.test(value)) {
     return `"${value}"`;
   }
 
