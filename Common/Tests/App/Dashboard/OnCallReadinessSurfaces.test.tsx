@@ -3130,11 +3130,18 @@ describe("On-call readiness page", () => {
     test("the options are the teams that actually page somebody", async () => {
       await openTeamFilter();
 
-      const options: Array<string> = (await screen.findAllByRole("option")).map(
-        (option: HTMLElement): string => {
+      /*
+       * Scoped to the open menu rather than the document: the table's
+       * pagination bar carries a page-size select, whose native options are
+       * `option`s too and are there whether a menu is open or not.
+       */
+      const menu: HTMLElement = await screen.findByRole("listbox");
+
+      const options: Array<string> = within(menu)
+        .getAllByRole("option")
+        .map((option: HTMLElement): string => {
           return option.textContent || "";
-        },
-      );
+        });
 
       expect(options).toEqual(["Payments", "Platform"]);
     });
@@ -3527,9 +3534,30 @@ describe("no unmasked identifier reaches the DOM", () => {
     /*
      * The scan above catches the planted values by name; these two catch the
      * shape, so an identifier this file never thought of is caught too.
+     *
+     * The pagination bar is cut out first. `textContent` joins siblings with
+     * no separator, so its page-size options ("10", "20", "25", "50", "100")
+     * fuse into "10202550100" - a digit run long enough to read as a phone
+     * number. The bar renders no identifiers, so it comes out of the shape
+     * scan rather than the shape being loosened everywhere. The raw-value
+     * scan above still covers the whole container, bar included.
      */
-    expect(container.textContent || "").not.toMatch(UNMASKED_EMAIL_PATTERN);
-    expect(container.textContent || "").not.toMatch(UNMASKED_PHONE_PATTERN);
+    const withoutPagination: HTMLElement = container.cloneNode(
+      true,
+    ) as HTMLElement;
+
+    withoutPagination
+      .querySelectorAll('nav[aria-label^="Pagination"]')
+      .forEach((paginationBar: Element): void => {
+        paginationBar.remove();
+      });
+
+    expect(withoutPagination.textContent || "").not.toMatch(
+      UNMASKED_EMAIL_PATTERN,
+    );
+    expect(withoutPagination.textContent || "").not.toMatch(
+      UNMASKED_PHONE_PATTERN,
+    );
   };
 
   test("the policy card renders masked identifiers only", async () => {
