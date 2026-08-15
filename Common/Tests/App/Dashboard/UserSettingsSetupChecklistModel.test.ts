@@ -174,6 +174,12 @@ const makeReadiness: MakeReadinessFunction = (params?: {
     coverage: params?.coverage ?? fullCoverage(),
     reasons: [],
     reachedVia: params?.reachedVia ?? ["Team"],
+    /*
+     * The teams that page this responder. Empty here because nothing in this
+     * checklist reads them - it asks whether the signed-in user's own setup is
+     * complete, not which door pages reach them through.
+     */
+    teams: [],
   };
 };
 
