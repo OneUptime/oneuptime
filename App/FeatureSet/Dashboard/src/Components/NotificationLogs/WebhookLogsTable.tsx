@@ -139,6 +139,8 @@ const WebhookLogsTable: FunctionComponent<WebhookLogsTableProps> = (
           statusMessage: true,
           user: {
             name: true,
+            email: true,
+            profilePictureId: true,
           },
         }}
         cardProps={{

@@ -520,6 +520,24 @@ type SummaryJsonFunction = (
 ) => JSONObject;
 
 /*
+ * The login addresses the fixture responders sign in with, read off the
+ * fixtures rather than retyped so a renamed responder cannot quietly drop out
+ * of the masking guard's exemption list and start passing for the wrong
+ * reason. These are NOT notification-method identifiers: those all live in
+ * ALL_RAW_IDENTIFIERS and must never render.
+ */
+const ALL_LOGIN_EMAILS: Array<string> = [
+  READY_USER,
+  PARTIAL_USER,
+  UNREACHABLE_USER,
+  TWO_TEAM_USER,
+  CHANNELS_OFF_USER,
+  DISTINCT_KIND_USER,
+].map((user: JSONObject) => {
+  return user["userEmail"] as string;
+});
+
+/*
  * `isFallbackEnabled` defaults to true because that is the product default
  * (disableOnCallNotificationFallback is false unless an admin sets it), and every
  * test that does not name it is asserting behaviour in the ordinary project. The
@@ -3527,10 +3545,41 @@ describe("no unmasked identifier reaches the DOM", () => {
     /*
      * The scan above catches the planted values by name; these two catch the
      * shape, so an identifier this file never thought of is caught too.
+     *
+     * Login addresses are removed first. A responder row shows the person's
+     * login email under their name, and that address is legitimate here for
+     * the same reason the mail draft below may carry it: an admin already
+     * reads it on Settings > Users and on the team page. What must never
+     * appear is a notification-method identifier, which is what the
+     * by-name scan above and the shape scan below still catch - substituting
+     * a method identifier for one of these addresses fails both.
      */
-    expect(container.textContent || "").not.toMatch(UNMASKED_EMAIL_PATTERN);
-    expect(container.textContent || "").not.toMatch(UNMASKED_PHONE_PATTERN);
+    let text: string = container.textContent || "";
+
+    for (const loginEmail of ALL_LOGIN_EMAILS) {
+      text = text.split(loginEmail).join("");
+    }
+
+    expect(text).not.toMatch(UNMASKED_EMAIL_PATTERN);
+    expect(text).not.toMatch(UNMASKED_PHONE_PATTERN);
   };
+
+  /*
+   * The other half of the exemption above: the login email is not merely
+   * tolerated on these surfaces, it is meant to be there, so that two
+   * responders who share a name are still tellable apart. If this stops
+   * holding, the exemption is protecting nothing and should go.
+   */
+  test("the responder row names the person by their login email", async () => {
+    respondWith(summaryJson(ALL_THREE_USERS));
+
+    const container: HTMLElement = await renderPolicyCard();
+
+    await screen.findByText("Zed Unreachable");
+
+    expect(container.textContent).toContain("zed.unreachable@example.com");
+    expect(container.textContent).toContain("jane.partial@example.com");
+  });
 
   test("the policy card renders masked identifiers only", async () => {
     respondWith(summaryJson(ALL_THREE_USERS));
