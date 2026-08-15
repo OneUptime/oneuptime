@@ -386,6 +386,47 @@ describe("Network Map widget rendering", () => {
   });
 
   /*
+   * The collision pass reserves a box for each name at an exact offset and
+   * hands it back on the placement. A renderer that re-derived that offset
+   * would be free to paint the name somewhere the pass never checked, and
+   * the overlap it produced would look deliberate. So the widget draws at
+   * marker + offset / zoom, and it no longer carries a gap constant of its
+   * own to drift from the one the pass measured with.
+   */
+  test("names are drawn at the offset the collision pass reserved", () => {
+    const widget: string = readApp(...WIDGET);
+
+    expect(widget).toContain(
+      squash("x={marker.x + marker.labelPlacement.offsetX / zoom}"),
+    );
+    expect(widget).toContain(
+      squash("y={marker.y + marker.labelPlacement.offsetY / zoom}"),
+    );
+    expect(widget).toContain(
+      squash("textAnchor={marker.labelPlacement.textAnchor}"),
+    );
+    expect(readAppCode(...WIDGET)).not.toContain("LABEL_GAP");
+  });
+
+  /*
+   * Sites on near-identical coordinates used to lose every name but the
+   * first: there was nowhere to put the others that was clear of the
+   * neighbours. They are now pushed off their marker instead, which is only
+   * honest while each one keeps a thread back to the marker it names.
+   */
+  test("a name pushed off its marker keeps a thread back to it", () => {
+    const widget: string = readApp(...WIDGET);
+
+    expect(widget).toContain(squash("{marker.labelPlacement.leaderLine ? ("));
+    expect(widget).toContain(
+      squash("x1={ marker.x + marker.labelPlacement.leaderLine.x1 / zoom }"),
+    );
+    expect(widget).toContain(
+      squash("y2={ marker.y + marker.labelPlacement.leaderLine.y2 / zoom }"),
+    );
+  });
+
+  /*
    * The outlines are the backdrop; the markers are the subject. A failed
    * geometry fetch must cost the reader a coastline, not the whole widget.
    */

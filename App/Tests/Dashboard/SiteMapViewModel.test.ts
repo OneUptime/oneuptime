@@ -22,8 +22,14 @@ import {
   MAX_MARKER_LABEL_CHARS,
   MIN_CLUSTER_RADIUS,
   FingerprintableSite,
+  LABEL_DIRECTIONS,
+  LABEL_PUSH_STEP,
+  LabelBounds,
+  LabelDirection,
   LabelPlacement,
+  MAX_LABEL_PUSH,
   MapMarker,
+  labelBounds,
   PinnableSite,
   PlacedMapMarker,
   buildMapMarkers,
@@ -1301,14 +1307,65 @@ describe("truncateMarkerLabel", () => {
   test("handles an empty name", () => {
     expect(truncateMarkerLabel("")).toBe("");
   });
+
+  /*
+   * A name of nothing but spaces is not a name — but it is TRUTHY, so an
+   * untrimmed one sails past every "does this marker have a label" guard,
+   * takes a reserved box away from a marker with a real name, and draws
+   * nothing in it.
+   */
+  test("a name of nothing but whitespace is no name at all", () => {
+    expect(truncateMarkerLabel("   ")).toBe("");
+    expect(truncateMarkerLabel("\t\n ")).toBe("");
+  });
+
+  test("surrounding whitespace does not count towards the length", () => {
+    expect(truncateMarkerLabel("  Camden Store  ")).toBe("Camden Store");
+  });
+});
+
+/*
+ * A blank-named site used to steal the slot under its neighbour's marker.
+ */
+describe("a site with a blank name takes no label slot", () => {
+  test("its neighbour keeps the position it wanted", () => {
+    const markers: Array<MapMarker> = buildMapMarkers({
+      sites: [
+        mapSite({ id: "blank", name: "   ", latitude: 51.5, longitude: -0.12 }),
+        mapSite({
+          id: "named",
+          name: "Camden Store",
+          latitude: 51.5,
+          longitude: -0.12,
+        }),
+      ],
+      mode: "grouped",
+      cellSize: 0,
+    });
+
+    const placements: Map<string, LabelPlacement> = resolveMarkerLabels(
+      markers,
+      1,
+    );
+
+    expect(placements.has("blank")).toBe(false);
+    expect(placements.get("named")?.direction).toBe("below");
+    expect(placements.get("named")?.push).toBe(0);
+  });
 });
 
 /*
  * Names on the map are the whole point of the grouped view — "Region 1000"
- * belongs where the customer put it, not only in a tooltip. But three
- * regions whose centroids land in one corner of a state would print their
- * names on top of each other, which hides two of them AND makes the third
- * unreadable.
+ * belongs where the customer put it, not only in a tooltip. But three regions
+ * whose centroids land in one corner of a state would print their names on
+ * top of each other, which hides two of them AND makes the third unreadable.
+ *
+ * The hard case is a level of UNITS: a dozen of them in one retail park
+ * arrive at near-identical coordinates, the marker layout fans the markers
+ * apart but the names are boxes seventy screen units wide, and zooming in
+ * never separates them because there is no distance between them to magnify.
+ * Two positions per marker left ten of those twelve nameless; the spiral
+ * below is what fixed it, and most of this suite is about keeping it fixed.
  */
 describe("resolveMarkerLabels", () => {
   function markerAt(
@@ -1333,13 +1390,67 @@ describe("resolveMarkerLabels", () => {
     };
   }
 
+  // The boxes that were actually reserved, in the order they were placed.
+  function boxesOf(
+    markers: Array<MapMarker>,
+    placements: Map<string, LabelPlacement>,
+    zoom: number,
+  ): Array<LabelBounds> {
+    const boxes: Array<LabelBounds> = [];
+    for (const marker of markers) {
+      const placement: LabelPlacement | undefined = placements.get(marker.key);
+      if (placement) {
+        boxes.push(labelBounds(marker, zoom, placement));
+      }
+    }
+    return boxes;
+  }
+
+  function overlaps(a: LabelBounds, b: LabelBounds): boolean {
+    return !(
+      a.right <= b.left ||
+      a.left >= b.right ||
+      a.bottom <= b.top ||
+      a.top >= b.bottom
+    );
+  }
+
+  function bodyOf(marker: MapMarker, zoom: number): LabelBounds {
+    const half: number = marker.isContainer
+      ? (marker.screenRadius * CONTAINER_SIDE_FACTOR) / 2
+      : marker.screenRadius;
+    return {
+      left: marker.x * zoom - half,
+      right: marker.x * zoom + half,
+      top: marker.y * zoom - half,
+      bottom: marker.y * zoom + half,
+    };
+  }
+
   test("well-separated markers all keep their names, below them", () => {
     const placements: Map<string, LabelPlacement> = resolveMarkerLabels(
       [markerAt("A", 100, 100), markerAt("B", 300, 300)],
       1,
     );
-    expect(placements.get("A")).toBe("below");
-    expect(placements.get("B")).toBe("below");
+    expect(placements.get("A")?.direction).toBe("below");
+    expect(placements.get("B")?.direction).toBe("below");
+  });
+
+  /*
+   * A name with room around it must not be nudged even slightly: the map
+   * would redraw every label a hair off where the marker is on a map with
+   * nothing colliding on it.
+   */
+  test("a name with room around it is not pushed at all", () => {
+    const placement: LabelPlacement = resolveMarkerLabels(
+      [markerAt("A", 100, 100)],
+      1,
+    ).get("A") as LabelPlacement;
+
+    expect(placement.push).toBe(0);
+    expect(placement.offsetX).toBe(0);
+    expect(placement.textAnchor).toBe("middle");
+    expect(placement.leaderLine).toBeNull();
   });
 
   test("a marker with no label is never placed", () => {
@@ -1351,8 +1462,9 @@ describe("resolveMarkerLabels", () => {
   });
 
   /*
-   * Below is tried first because the eye reads marker-then-name; above is
-   * the escape hatch, so a name is only lost when neither position is free.
+   * Below is tried first because the eye reads marker-then-name; above is the
+   * first escape hatch, so a name only leaves the vertical axis when both
+   * ends of it are taken.
    */
   test("a label blocked from below flips above rather than disappearing", () => {
     const blocker: MapMarker = markerAt("blocker", 100, 118, { label: "" });
@@ -1360,52 +1472,89 @@ describe("resolveMarkerLabels", () => {
       [markerAt("A", 100, 100), blocker],
       1,
     );
-    expect(placements.get("A")).toBe("above");
+    expect(placements.get("A")?.direction).toBe("above");
   });
 
-  test("a label with nowhere to go is dropped, not stacked", () => {
-    const placements: Map<string, LabelPlacement> = resolveMarkerLabels(
+  /*
+   * The old behaviour: boxed in above and below, the name was DROPPED. That
+   * is the defect from the Units view in miniature — there was plenty of room
+   * either side and nothing looked there.
+   */
+  test("a label boxed in above and below goes sideways instead of vanishing", () => {
+    const placement: LabelPlacement = resolveMarkerLabels(
       [
         markerAt("A", 100, 100),
         markerAt("above", 100, 82, { label: "" }),
         markerAt("below", 100, 118, { label: "" }),
       ],
       1,
-    );
-    expect(placements.has("A")).toBe(false);
+    ).get("A") as LabelPlacement;
+
+    expect(placement.direction).toBe("right");
+    // Beside its marker, so it reads outwards from it.
+    expect(placement.textAnchor).toBe("start");
+    expect(placement.offsetX).toBeGreaterThan(0);
+    expect(placement.offsetY).toBe(0);
+    // Still against the marker, so nothing has to be explained.
+    expect(placement.push).toBe(0);
+    expect(placement.leaderLine).toBeNull();
+  });
+
+  test("a label boxed in on three sides takes the fourth", () => {
+    const placement: LabelPlacement = resolveMarkerLabels(
+      [
+        markerAt("A", 100, 100),
+        markerAt("above", 100, 82, { label: "" }),
+        markerAt("below", 100, 118, { label: "" }),
+        markerAt("right", 116, 100, { label: "" }),
+      ],
+      1,
+    ).get("A") as LabelPlacement;
+
+    expect(placement.direction).toBe("left");
+    expect(placement.textAnchor).toBe("end");
+    expect(placement.offsetX).toBeLessThan(0);
   });
 
   /*
-   * Paint order is biggest-first, so the region a reader is most likely to
-   * be looking for is the one that keeps its name.
+   * Paint order is biggest-first, so the region a reader is most likely to be
+   * looking for is the one that keeps the position closest to its marker.
    */
   test("when two names collide the first in paint order keeps the better spot", () => {
-    /*
-     * Far enough apart that neither marker BODY blocks a label — the
-     * collision under test is name-against-name. The bigger marker comes
-     * first in paint order and keeps the preferred position below it; its
-     * neighbour is pushed above rather than dropped.
-     */
     const placements: Map<string, LabelPlacement> = resolveMarkerLabels(
       [markerAt("Big", 100, 100), markerAt("Small", 118, 100)],
       1,
     );
-    expect(placements.get("Big")).toBe("below");
-    expect(placements.get("Small")).toBe("above");
+    expect(placements.get("Big")?.direction).toBe("below");
+    expect(placements.get("Small")?.direction).toBe("above");
+  });
+
+  test("an empty marker list resolves to no labels", () => {
+    expect(resolveMarkerLabels([], 1).size).toBe(0);
   });
 
   /*
-   * Zooming in genuinely separates markers, so names dropped at a wide
-   * frame come back — that is what makes dropping them acceptable.
+   * A marker with corrupt coordinates is drawn nowhere, so it has no body to
+   * keep clear of and no place to hang a name. Treating it as a rectangle of
+   * NaNs would be catastrophic rather than merely wrong: every comparison
+   * against a NaN is false, so it would read as overlapping EVERY candidate
+   * and cost every other marker on the level its name.
    */
-  test("zooming in brings dropped names back", () => {
-    const markers: Array<MapMarker> = [
-      markerAt("A", 100, 100),
-      markerAt("above", 100, 84, { label: "" }),
-      markerAt("below", 100, 116, { label: "" }),
-    ];
-    expect(resolveMarkerLabels(markers, 1).size).toBe(0);
-    expect(resolveMarkerLabels(markers, 12).size).toBe(1);
+  test("a marker with corrupt coordinates costs nobody else their name", () => {
+    const placements: Map<string, LabelPlacement> = resolveMarkerLabels(
+      [
+        markerAt("broken", Number.NaN, 100),
+        markerAt("alsoBroken", 100, Number.POSITIVE_INFINITY),
+        markerAt("A", 100, 100),
+        markerAt("B", 400, 400),
+      ],
+      1,
+    );
+
+    expect(placements.has("broken")).toBe(false);
+    expect(placements.has("alsoBroken")).toBe(false);
+    expect(placements.get("A")?.direction).toBe("below");
+    expect(placements.get("B")?.direction).toBe("below");
   });
 
   test("a non-finite or zero zoom does not throw or lose every name", () => {
@@ -1416,10 +1565,6 @@ describe("resolveMarkerLabels", () => {
     expect(resolveMarkerLabels(markers, Number.NaN).size).toBe(2);
     expect(resolveMarkerLabels(markers, 0).size).toBe(2);
     expect(resolveMarkerLabels(markers, -3).size).toBe(2);
-  });
-
-  test("an empty marker list resolves to no labels", () => {
-    expect(resolveMarkerLabels([], 1).size).toBe(0);
   });
 
   test("is deterministic for the same markers and zoom", () => {
@@ -1453,10 +1598,670 @@ describe("resolveMarkerLabels", () => {
       1,
     );
     // Two short names both sit below their markers; two long ones cannot.
-    expect(short.get("A")).toBe("below");
-    expect(short.get("B")).toBe("below");
-    expect(long.get("A")).toBe("below");
-    expect(long.get("B")).toBe("above");
+    expect(short.get("A")?.direction).toBe("below");
+    expect(short.get("B")?.direction).toBe("below");
+    expect(long.get("A")?.direction).toBe("below");
+    expect(long.get("B")?.direction).toBe("above");
+  });
+
+  /*
+   * ── The defect in the issue ────────────────────────────────────────────
+   *
+   * A dozen units in one retail park, at coordinates a customer entered to
+   * four decimal places — which is to say, at the same point. Ten of the
+   * twelve used to go nameless at every zoom the map has.
+   */
+  describe("a pile of units on one point", () => {
+    function pile(count: number, zoom: number): Array<PlacedMapMarker> {
+      const units: Array<MapMarker> = Array.from(
+        { length: count },
+        (_unused: unknown, index: number): MapMarker => {
+          const name: string = `WB Unit ${(316 + index)
+            .toString()
+            .padStart(4, "0")}`;
+          return markerAt(name, 480, 250, {
+            label: name,
+            count: 1,
+            isContainer: false,
+            screenRadius: MIN_CLUSTER_RADIUS,
+          });
+        },
+      );
+      return layoutMapMarkers(units, zoom);
+    }
+
+    test("every one of a dozen coincident units keeps its name", () => {
+      const markers: Array<PlacedMapMarker> = pile(12, MAX_ZOOM);
+      const placements: Map<string, LabelPlacement> = resolveMarkerLabels(
+        markers,
+        MAX_ZOOM,
+      );
+      expect(placements.size).toBe(12);
+    });
+
+    /*
+     * Not only at the deepest zoom: the reporter's screenshot was taken
+     * zoomed in, but the names have to survive the frame the map opens on
+     * too. Nothing here depends on the zoom, which is the point — the
+     * markers are laid out in screen units either way.
+     */
+    test.each([1, 4, 20, MAX_ZOOM])(
+      "a dozen coincident units keep their names at zoom %s",
+      (zoom: number) => {
+        const markers: Array<PlacedMapMarker> = pile(12, zoom);
+        expect(resolveMarkerLabels(markers, zoom).size).toBe(12);
+      },
+    );
+
+    test("the names it draws never overlap each other", () => {
+      const markers: Array<PlacedMapMarker> = pile(12, MAX_ZOOM);
+      const placements: Map<string, LabelPlacement> = resolveMarkerLabels(
+        markers,
+        MAX_ZOOM,
+      );
+      const boxes: Array<LabelBounds> = boxesOf(markers, placements, MAX_ZOOM);
+
+      expect(boxes).toHaveLength(12);
+      for (let a: number = 0; a < boxes.length; a++) {
+        for (let b: number = a + 1; b < boxes.length; b++) {
+          expect(overlaps(boxes[a]!, boxes[b]!)).toBe(false);
+        }
+      }
+    });
+
+    test("a name never lands on another unit's marker", () => {
+      const markers: Array<PlacedMapMarker> = pile(12, MAX_ZOOM);
+      const placements: Map<string, LabelPlacement> = resolveMarkerLabels(
+        markers,
+        MAX_ZOOM,
+      );
+
+      for (const owner of markers) {
+        const placement: LabelPlacement | undefined = placements.get(owner.key);
+        if (!placement) {
+          continue;
+        }
+        const box: LabelBounds = labelBounds(owner, MAX_ZOOM, placement);
+        for (const other of markers) {
+          if (other.key === owner.key) {
+            continue;
+          }
+          expect(overlaps(box, bodyOf(other, MAX_ZOOM))).toBe(false);
+        }
+      }
+    });
+
+    /*
+     * A name that had to leave its marker keeps a thread back to it — that
+     * is the whole licence for moving it. A name still sitting against its
+     * marker must NOT have one: a thread nobody can see is ink and a legend
+     * entry for nothing.
+     */
+    test("exactly the pushed names carry a thread", () => {
+      const markers: Array<PlacedMapMarker> = pile(12, MAX_ZOOM);
+      const placements: Map<string, LabelPlacement> = resolveMarkerLabels(
+        markers,
+        MAX_ZOOM,
+      );
+
+      let pushed: number = 0;
+      for (const placement of placements.values()) {
+        expect(placement.leaderLine === null).toBe(placement.push === 0);
+        if (placement.push > 0) {
+          pushed++;
+        }
+      }
+      // A pile this tight cannot possibly seat twelve names unpushed.
+      expect(pushed).toBeGreaterThan(0);
+    });
+
+    test("no name is pushed further than the map allows", () => {
+      const markers: Array<PlacedMapMarker> = pile(24, MAX_ZOOM);
+      const placements: Map<string, LabelPlacement> = resolveMarkerLabels(
+        markers,
+        MAX_ZOOM,
+      );
+
+      for (const placement of placements.values()) {
+        expect(placement.push).toBeLessThanOrEqual(MAX_LABEL_PUSH);
+        expect(placement.push % LABEL_PUSH_STEP).toBe(0);
+      }
+    });
+
+    /*
+     * Two dozen is past anything the reporter had and still well inside the
+     * label budget, so it has to work too.
+     */
+    test("two dozen coincident units all keep their names", () => {
+      const markers: Array<PlacedMapMarker> = pile(24, MAX_ZOOM);
+      expect(resolveMarkerLabels(markers, MAX_ZOOM).size).toBe(24);
+    });
+
+    test("the pile lays out the same way twice", () => {
+      const markers: Array<PlacedMapMarker> = pile(12, MAX_ZOOM);
+      expect(
+        Array.from(resolveMarkerLabels(markers, MAX_ZOOM).entries()),
+      ).toEqual(Array.from(resolveMarkerLabels(markers, MAX_ZOOM).entries()));
+    });
+  });
+
+  /*
+   * ── The thread ─────────────────────────────────────────────────────────
+   */
+  describe("the thread back to the marker", () => {
+    function pushedPlacement(): {
+      marker: MapMarker;
+      placement: LabelPlacement;
+    } {
+      /*
+       * Boxed in on all eight sides, so the only room left is further out.
+       */
+      const owner: MapMarker = markerAt("A", 500, 500, { label: "Name" });
+      const blockers: Array<MapMarker> = [];
+      for (let dx: number = -1; dx <= 1; dx++) {
+        for (let dy: number = -1; dy <= 1; dy++) {
+          if (dx === 0 && dy === 0) {
+            continue;
+          }
+          blockers.push(
+            markerAt(`b${dx}${dy}`, 500 + dx * 22, 500 + dy * 22, {
+              label: "",
+            }),
+          );
+        }
+      }
+      const placement: LabelPlacement = resolveMarkerLabels(
+        [owner, ...blockers],
+        1,
+      ).get("A") as LabelPlacement;
+      return { marker: owner, placement: placement };
+    }
+
+    test("a boxed-in name is pushed out and threaded rather than dropped", () => {
+      const { placement }: { placement: LabelPlacement } = pushedPlacement();
+      expect(placement).toBeDefined();
+      expect(placement.push).toBeGreaterThan(0);
+      expect(placement.leaderLine).not.toBeNull();
+    });
+
+    test("the thread starts on the marker's edge, not at its centre", () => {
+      const {
+        marker,
+        placement,
+      }: { marker: MapMarker; placement: LabelPlacement } = pushedPlacement();
+      const half: number = (marker.screenRadius * CONTAINER_SIDE_FACTOR) / 2;
+      const start: number = Math.hypot(
+        placement.leaderLine?.x1 as number,
+        placement.leaderLine?.y1 as number,
+      );
+      /*
+       * Exactly the marker's half-extent along the direction of the name: a
+       * thread from the centre would print over the marker it belongs to.
+       */
+      expect(start).toBeCloseTo(half, 6);
+    });
+
+    test("the thread ends on the label's box, not inside the glyphs", () => {
+      const {
+        marker,
+        placement,
+      }: { marker: MapMarker; placement: LabelPlacement } = pushedPlacement();
+      const box: LabelBounds = labelBounds(marker, 1, placement);
+      const endX: number = marker.x + (placement.leaderLine?.x2 as number);
+      const endY: number = marker.y + (placement.leaderLine?.y2 as number);
+
+      // On the boundary of the box, to floating-point tolerance.
+      const onEdge: boolean =
+        Math.abs(endX - box.left) < 1e-6 ||
+        Math.abs(endX - box.right) < 1e-6 ||
+        Math.abs(endY - box.top) < 1e-6 ||
+        Math.abs(endY - box.bottom) < 1e-6;
+      expect(onEdge).toBe(true);
+      expect(endX).toBeGreaterThanOrEqual(box.left - 1e-6);
+      expect(endX).toBeLessThanOrEqual(box.right + 1e-6);
+      expect(endY).toBeGreaterThanOrEqual(box.top - 1e-6);
+      expect(endY).toBeLessThanOrEqual(box.bottom + 1e-6);
+    });
+
+    test("the thread is shorter than the marker could be pushed", () => {
+      const { placement }: { placement: LabelPlacement } = pushedPlacement();
+      const length: number = Math.hypot(
+        (placement.leaderLine?.x2 as number) -
+          (placement.leaderLine?.x1 as number),
+        (placement.leaderLine?.y2 as number) -
+          (placement.leaderLine?.y1 as number),
+      );
+      expect(length).toBeGreaterThan(0);
+      expect(length).toBeLessThanOrEqual(MAX_LABEL_PUSH);
+    });
+
+    /*
+     * A thread that runs through a name points at the wrong thing. It is a
+     * preference rather than a rule — a crossed thread still beats a missing
+     * name — but on an ordinary pile-up nothing should have to cross.
+     */
+    test("threads in a pile do not run through the names already placed", () => {
+      const units: Array<MapMarker> = Array.from(
+        { length: 10 },
+        (_unused: unknown, index: number): MapMarker => {
+          const name: string = `Unit ${index}`;
+          return markerAt(name, 480, 250, {
+            label: name,
+            count: 1,
+            isContainer: false,
+          });
+        },
+      );
+      const markers: Array<PlacedMapMarker> = layoutMapMarkers(units, 8);
+      const placements: Map<string, LabelPlacement> = resolveMarkerLabels(
+        markers,
+        8,
+      );
+
+      const boxes: Map<string, LabelBounds> = new Map<string, LabelBounds>();
+      for (const marker of markers) {
+        const placement: LabelPlacement | undefined = placements.get(
+          marker.key,
+        );
+        if (placement) {
+          boxes.set(marker.key, labelBounds(marker, 8, placement));
+        }
+      }
+
+      for (const marker of markers) {
+        const placement: LabelPlacement | undefined = placements.get(
+          marker.key,
+        );
+        if (!placement?.leaderLine) {
+          continue;
+        }
+        const fromX: number = marker.x * 8 + placement.leaderLine.x1;
+        const fromY: number = marker.y * 8 + placement.leaderLine.y1;
+        const toX: number = marker.x * 8 + placement.leaderLine.x2;
+        const toY: number = marker.y * 8 + placement.leaderLine.y2;
+
+        for (const [key, box] of boxes) {
+          if (key === marker.key) {
+            continue;
+          }
+          // Sampled along the thread — a crossing shows up at some point on it.
+          for (let step: number = 1; step < 20; step++) {
+            const at: number = step / 20;
+            const x: number = fromX + (toX - fromX) * at;
+            const y: number = fromY + (toY - fromY) * at;
+            const inside: boolean =
+              x > box.left && x < box.right && y > box.top && y < box.bottom;
+            expect(inside).toBe(false);
+          }
+        }
+      }
+    });
+  });
+
+  /*
+   * ── The eight positions ────────────────────────────────────────────────
+   */
+  describe("the positions a name can take", () => {
+    test("there are eight of them, and no duplicates", () => {
+      expect(LABEL_DIRECTIONS).toHaveLength(8);
+      expect(new Set(LABEL_DIRECTIONS).size).toBe(8);
+    });
+
+    // Below reads best, so it is what an uncrowded map uses everywhere.
+    test("below is tried first", () => {
+      expect(LABEL_DIRECTIONS[0]).toBe("below");
+    });
+
+    /*
+     * The anchor has to match the side the name is on, or a twenty-character
+     * name set to the left of its marker would run back over it.
+     */
+    test.each<[LabelDirection, string, number]>([
+      ["below", "middle", 0],
+      ["above", "middle", 0],
+      ["right", "start", 1],
+      ["left", "end", -1],
+      ["below-right", "start", 1],
+      ["below-left", "end", -1],
+      ["above-right", "start", 1],
+      ["above-left", "end", -1],
+    ])(
+      "%s anchors %s and sits on the expected side",
+      (direction: LabelDirection, anchor: string, horizontalSign: number) => {
+        /*
+         * Blank blockers on every side but the one under test, so the search
+         * is forced into it. They are placed far enough out that they only
+         * rule out the ring of positions against the marker.
+         */
+        const wanted: { x: number; y: number } = {
+          x: direction.includes("right")
+            ? 1
+            : direction.includes("left")
+              ? -1
+              : 0,
+          y: direction.startsWith("below")
+            ? 1
+            : direction.startsWith("above")
+              ? -1
+              : 0,
+        };
+        const owner: MapMarker = markerAt("A", 500, 500, { label: "Name" });
+        const blockers: Array<MapMarker> = [];
+        for (let dx: number = -1; dx <= 1; dx++) {
+          for (let dy: number = -1; dy <= 1; dy++) {
+            if (
+              (dx === 0 && dy === 0) ||
+              (dx === wanted.x && dy === wanted.y)
+            ) {
+              continue;
+            }
+            blockers.push(
+              markerAt(`b${dx}${dy}`, 500 + dx * 26, 500 + dy * 20, {
+                label: "",
+              }),
+            );
+          }
+        }
+
+        const placement: LabelPlacement = resolveMarkerLabels(
+          [owner, ...blockers],
+          1,
+        ).get("A") as LabelPlacement;
+
+        expect(placement.textAnchor).toBe(anchor);
+        expect(Math.sign(placement.offsetX)).toBe(horizontalSign);
+      },
+    );
+
+    /*
+     * One step out is one step out whichever way it goes. Adding the push to
+     * both axes of a corner would make a diagonal step forty percent longer
+     * than a straight one, and the spiral would stop being a spiral.
+     */
+    test("a step out is the same distance in every direction", () => {
+      const marker: MapMarker = markerAt("A", 0, 0, { label: "Name" });
+      const distances: Array<number> = LABEL_DIRECTIONS.map(
+        (direction: LabelDirection): number => {
+          const attached: LabelBounds = labelBounds(marker, 1, {
+            direction: direction,
+            push: 0,
+            offsetX: 0,
+            offsetY: 0,
+            textAnchor: "middle",
+            leaderLine: null,
+          });
+          const pushed: LabelBounds = labelBounds(marker, 1, {
+            direction: direction,
+            push: 40,
+            offsetX: 0,
+            offsetY: 0,
+            textAnchor: "middle",
+            leaderLine: null,
+          });
+          return Math.hypot(
+            (pushed.left + pushed.right) / 2 -
+              (attached.left + attached.right) / 2,
+            (pushed.top + pushed.bottom) / 2 -
+              (attached.top + attached.bottom) / 2,
+          );
+        },
+      );
+      for (const distance of distances) {
+        expect(distance).toBeCloseTo(40, 6);
+      }
+    });
+  });
+
+  /*
+   * ── What the renderers are handed ──────────────────────────────────────
+   *
+   * Both maps draw a name at marker + offset / zoom. If the offset did not
+   * scale with the zoom, every name would drift off its marker the moment
+   * anybody zoomed.
+   */
+  describe("the offsets handed to a renderer", () => {
+    test("a name below its marker sits a marker-radius plus a gap under it", () => {
+      const marker: MapMarker = markerAt("A", 100, 100, {
+        isContainer: false,
+        label: "Name",
+      });
+      const placement: LabelPlacement = resolveMarkerLabels([marker], 1).get(
+        "A",
+      ) as LabelPlacement;
+
+      expect(placement.offsetY).toBeGreaterThan(marker.screenRadius);
+      expect(placement.offsetY).toBeLessThan(marker.screenRadius + 20);
+    });
+
+    /*
+     * The offsets are SCREEN units, and a marker's radius is too, so the same
+     * name is the same distance from its marker in pixels at every zoom.
+     */
+    test("the offset is a screen distance, unchanged by the zoom", () => {
+      const marker: MapMarker = markerAt("A", 100, 100, { label: "Name" });
+      const at: (zoom: number) => LabelPlacement = (
+        zoom: number,
+      ): LabelPlacement => {
+        return resolveMarkerLabels(
+          [{ ...marker, x: 100 / zoom, y: 100 / zoom }],
+          zoom,
+        ).get("A") as LabelPlacement;
+      };
+      expect(at(1).offsetY).toBeCloseTo(at(32).offsetY, 6);
+      expect(at(1).offsetX).toBeCloseTo(at(32).offsetX, 6);
+    });
+
+    /*
+     * A container is a SQUARE of side CONTAINER_SIDE_FACTOR * r, so its name
+     * clears the side rather than the circle around it — the same shape the
+     * map draws and the same one the collision layout keeps clear.
+     */
+    test("a container's name clears the square, a site's name the disc", () => {
+      const disc: LabelPlacement = resolveMarkerLabels(
+        [markerAt("A", 100, 100, { isContainer: false, label: "Name" })],
+        1,
+      ).get("A") as LabelPlacement;
+      const square: LabelPlacement = resolveMarkerLabels(
+        [markerAt("A", 100, 100, { isContainer: true, label: "Name" })],
+        1,
+      ).get("A") as LabelPlacement;
+
+      expect(square.offsetY).toBeCloseTo(
+        (MIN_CLUSTER_RADIUS * CONTAINER_SIDE_FACTOR) / 2 +
+          (disc.offsetY - MIN_CLUSTER_RADIUS),
+        6,
+      );
+    });
+
+    test("labelBounds gives back the box the placement was measured in", () => {
+      const marker: MapMarker = markerAt("A", 100, 100, { label: "Name" });
+      const placement: LabelPlacement = resolveMarkerLabels([marker], 1).get(
+        "A",
+      ) as LabelPlacement;
+      const box: LabelBounds = labelBounds(marker, 1, placement);
+
+      // The text's anchor point is inside the box that was reserved for it.
+      expect(marker.x + placement.offsetX).toBeGreaterThanOrEqual(box.left);
+      expect(marker.x + placement.offsetX).toBeLessThanOrEqual(box.right);
+      expect(marker.y + placement.offsetY).toBeGreaterThan(box.top);
+      expect(marker.y + placement.offsetY).toBeLessThan(box.bottom);
+    });
+
+    test("labelBounds survives a zoom that has not been measured yet", () => {
+      const marker: MapMarker = markerAt("A", 100, 100, { label: "Name" });
+      const placement: LabelPlacement = resolveMarkerLabels(
+        [marker],
+        Number.NaN,
+      ).get("A") as LabelPlacement;
+
+      expect(labelBounds(marker, Number.NaN, placement)).toEqual(
+        labelBounds(marker, 1, placement),
+      );
+    });
+  });
+
+  /*
+   * ── Names still come back as the frame tightens ────────────────────────
+   */
+  describe("zoom", () => {
+    /*
+     * Markers that ARE apart in the world separate as the frame tightens, so
+     * their names walk back in against them and the threads go away. This is
+     * the property that keeps the spiral from being a permanent scattering.
+     */
+    test("zooming in pulls names back against their markers", () => {
+      const markers: Array<MapMarker> = Array.from(
+        { length: 6 },
+        (_unused: unknown, index: number): MapMarker => {
+          const name: string = `Store ${index}`;
+          return markerAt(name, 480 + index * 0.6, 250 + index * 0.4, {
+            label: name,
+            count: 1,
+            isContainer: false,
+          });
+        },
+      );
+
+      const pushedAt: (zoom: number) => number = (zoom: number): number => {
+        let pushed: number = 0;
+        for (const placement of resolveMarkerLabels(markers, zoom).values()) {
+          if (placement.push > 0) {
+            pushed++;
+          }
+        }
+        return pushed;
+      };
+
+      expect(pushedAt(1)).toBeGreaterThan(0);
+      expect(pushedAt(MAX_ZOOM)).toBe(0);
+    });
+
+    test("zooming in never costs a name", () => {
+      const markers: Array<MapMarker> = Array.from(
+        { length: 8 },
+        (_unused: unknown, index: number): MapMarker => {
+          const name: string = `A Fairly Long Name ${index}`;
+          return markerAt(name, 480 + index * 0.5, 250 + index * 0.5, {
+            label: name,
+            count: 1,
+            isContainer: false,
+          });
+        },
+      );
+
+      const counts: Array<number> = [1, 2, 4, 8, 16, 32, MAX_ZOOM].map(
+        (zoom: number): number => {
+          return resolveMarkerLabels(markers, zoom).size;
+        },
+      );
+      for (let index: number = 1; index < counts.length; index++) {
+        expect(counts[index]!).toBeGreaterThanOrEqual(counts[index - 1]!);
+      }
+      expect(counts[counts.length - 1]).toBe(markers.length);
+    });
+  });
+
+  /*
+   * ── The last resort ────────────────────────────────────────────────────
+   */
+  describe("when there is genuinely nowhere to put a name", () => {
+    /*
+     * Dropping is still the answer once the spiral runs out: two names on top
+     * of each other are worse than one name and a tooltip. It just takes a
+     * far more crowded map to get there than it used to.
+     */
+    /*
+     * A solid field of nameless markers around one that wants a name, wider
+     * in every direction than the spiral can reach. The blank markers are
+     * closer together than they are wide, so there is not one gap in it.
+     */
+    function walledIn(): Array<MapMarker> {
+      const wall: Array<MapMarker> = [];
+      for (let column: number = -19; column <= 19; column++) {
+        for (let row: number = -19; row <= 19; row++) {
+          if (column === 0 && row === 0) {
+            continue;
+          }
+          wall.push(
+            markerAt(`b${column}:${row}`, 500 + column * 12, 500 + row * 12, {
+              label: "",
+            }),
+          );
+        }
+      }
+      return wall;
+    }
+
+    test("a name with nowhere left to go is dropped, not stacked", () => {
+      const owner: MapMarker = markerAt("A", 500, 500);
+
+      expect(resolveMarkerLabels([owner, ...walledIn()], 1).has("A")).toBe(
+        false,
+      );
+    });
+
+    test("dropping one name does not cost the others theirs", () => {
+      const placements: Map<string, LabelPlacement> = resolveMarkerLabels(
+        [
+          markerAt("far", 100, 100, { label: "Far Away" }),
+          markerAt("A", 500, 500),
+          ...walledIn(),
+        ],
+        1,
+      );
+
+      expect(placements.has("far")).toBe(true);
+      expect(placements.has("A")).toBe(false);
+    });
+  });
+
+  /*
+   * A level of a thousand sites is laid out again on every wheel tick of a
+   * zoom. The spiral must not turn that into a stutter.
+   */
+  test("a crowded level resolves without running away", () => {
+    const units: Array<MapMarker> = Array.from(
+      { length: MAX_LABELLED_MARKERS },
+      (_unused: unknown, index: number): MapMarker => {
+        const name: string = `Long Franchise Name ${index}`;
+        return markerAt(name, 480, 250, {
+          label: name,
+          count: 1,
+          isContainer: false,
+        });
+      },
+    );
+    const markers: Array<PlacedMapMarker> = layoutMapMarkers(units, MAX_ZOOM);
+
+    const started: number = Date.now();
+    const placements: Map<string, LabelPlacement> = resolveMarkerLabels(
+      markers,
+      MAX_ZOOM,
+    );
+    /*
+     * Generous by two orders of magnitude — this is a runaway detector, not a
+     * benchmark, and a CI runner under load must not fail it.
+     */
+    expect(Date.now() - started).toBeLessThan(2000);
+    expect(placements.size).toBeGreaterThan(0);
+  });
+
+  /*
+   * The map hands this its markers including the ones with no name — the "all
+   * sites" view is thousands of them — so the unnameable majority must not
+   * cost anything.
+   */
+  test("markers with no name are skipped rather than searched for", () => {
+    const markers: Array<MapMarker> = Array.from(
+      { length: 2000 },
+      (_unused: unknown, index: number): MapMarker => {
+        return markerAt(`m${index}`, 480, 250, { label: "" });
+      },
+    );
+
+    const started: number = Date.now();
+    expect(resolveMarkerLabels(markers, 4).size).toBe(0);
+    expect(Date.now() - started).toBeLessThan(2000);
   });
 });
 
@@ -1806,32 +2611,37 @@ describe("layoutMapMarkers", () => {
    * touches — the name under the marker, the tooltip anchor, the site picker
    * — follows the marker they can SEE, not the coordinate underneath it.
    */
-  test("names come back once the markers they belong to are pulled apart", () => {
-    /*
-     * Short names, so what is being measured is the marker positions rather
-     * than how wide "Region 1000" is: a label reserves a box roughly its own
-     * length, and six long names cannot fit around one point however well
-     * the markers are spread.
-     */
+  test("names sit against their markers once those are pulled apart", () => {
     const markers: Array<MapMarker> = ["A", "B", "C", "D", "E", "F"].map(
       (name: string): MapMarker => {
-        return marker(name, 480, 250);
+        return marker(name, 480, 250, { label: `Region ${name}00` });
       },
     );
 
-    const stacked: number = resolveMarkerLabels(markers, 1).size;
-    const spread: number = resolveMarkerLabels(
-      layoutMapMarkers(markers, 1),
-      1,
-    ).size;
+    // How far, in total, the names had to be pushed off their markers.
+    const totalPush: (of: Array<MapMarker>) => number = (
+      of: Array<MapMarker>,
+    ): number => {
+      let total: number = 0;
+      for (const placement of resolveMarkerLabels(of, 1).values()) {
+        total += placement.push;
+      }
+      return total;
+    };
 
     /*
-     * Stacked, every name but the two that fit above and below has to be
-     * dropped rather than printed on top of another one. Spread out, the
-     * map can say what each marker is again.
+     * Every name survives either way — the placement spiral sees to that.
+     * The difference the layout makes is that the names no longer have to be
+     * flung as far to find room: six markers stacked on one point leave
+     * nowhere near their own coordinates for six names to sit.
      */
-    expect(stacked).toBeLessThan(markers.length);
-    expect(spread).toBeGreaterThan(stacked);
+    expect(resolveMarkerLabels(markers, 1).size).toBe(markers.length);
+    expect(resolveMarkerLabels(layoutMapMarkers(markers, 1), 1).size).toBe(
+      markers.length,
+    );
+    expect(totalPush(layoutMapMarkers(markers, 1))).toBeLessThan(
+      totalPush(markers),
+    );
   });
 
   /*
