@@ -526,6 +526,7 @@ import { AddNetworkTopologySuppression1786639972982 } from "./1786639972982-AddN
 import { AddOnCallNotificationFallbackColumns1787000000000 } from "./1787000000000-AddOnCallNotificationFallbackColumns";
 import { AddAIConversationPageContext1787100000000 } from "./1787100000000-AddAIConversationPageContext";
 import { AddAIChatMessageFeedback1787200000000 } from "./1787200000000-AddAIChatMessageFeedback";
+import { AddEpisodeMemberNotifyIndexes1787300000000 } from "./1787300000000-AddEpisodeMemberNotifyIndexes";
 
 export default [
   InitialMigration,
@@ -1056,4 +1057,5 @@ export default [
   AddOnCallNotificationFallbackColumns1787000000000,
   AddAIConversationPageContext1787100000000,
   AddAIChatMessageFeedback1787200000000,
+  AddEpisodeMemberNotifyIndexes1787300000000,
 ];
