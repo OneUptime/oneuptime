@@ -409,8 +409,10 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     windowEnd: Date;
     coverage: ScheduleCoverageState;
   } = useMemo(() => {
-    // The shared coverage window, so this summary and the banner on the layers
-    // tab always describe the same span of time. See ./CoverageWindow.
+    /*
+     * The shared coverage window, so this summary and the banner on the layers
+     * tab always describe the same span of time. See ./CoverageWindow.
+     */
     const windowEnd: Date = getCoverageWindowEnd(now);
 
     let events: Array<CalendarEvent> = new LayerUtil().getMultiLayerEvents({
