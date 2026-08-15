@@ -573,9 +573,11 @@ describe("the frontend build config's production output settings", () => {
 
       expect([production.ok, development.ok]).toEqual([true, true]);
 
-      // Guard the strip: if esbuild ever stopped emitting the inline map, the
-      // regex would silently become a no-op and the comparison would change
-      // meaning without anything saying so.
+      /*
+       * Guard the strip: if esbuild ever stopped emitting the inline map, the
+       * regex would silently become a no-op and the comparison would change
+       * meaning without anything saying so.
+       */
       expect(development.output).toContain("sourceMappingURL");
 
       const developmentCode: string = withoutInlineSourcemap(

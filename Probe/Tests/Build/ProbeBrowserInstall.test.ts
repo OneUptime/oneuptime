@@ -82,8 +82,11 @@ const readInstructions: (source: string) => Array<string> = (
 
 const instructions: Array<string> = readInstructions(dockerfile);
 
+const RUN_INSTRUCTION: RegExp = /^RUN\s/;
+const PLAYWRIGHT_INSTALL: RegExp = /npx\s+playwright\s+install/;
+
 const browserInstallInstruction: string = instructions.find((line: string) => {
-  return /^RUN\s/.test(line) && /npx\s+playwright\s+install/.test(line);
+  return RUN_INSTRUCTION.test(line) && PLAYWRIGHT_INSTALL.test(line);
 })!;
 
 /*
