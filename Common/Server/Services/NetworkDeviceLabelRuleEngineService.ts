@@ -3,10 +3,37 @@ import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceLabelRule from "../../Models/DatabaseModels/NetworkDeviceLabelRule";
 import NetworkDeviceLabelRuleService from "./NetworkDeviceLabelRuleService";
 import NetworkDeviceService from "./NetworkDeviceService";
+import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import { LabelRuleRunResult } from "../../Types/NetworkAutomation/RuleRunResult";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+
+/*
+ * Bounds on one manual "Run now" of a label rule. The automatic path only
+ * ever sees a single freshly created device; a retroactive run walks the
+ * whole estate, so it reads devices in pages and stops at a cap, reporting
+ * isTruncated instead of holding an HTTP request open over a full fleet.
+ */
+export const MAX_DEVICES_PER_LABEL_RULE_RUN: number = 10000;
+const LABEL_RULE_RUN_PAGE_SIZE: number = 1000;
+
+/*
+ * How many (device, label) pairs one INSERT attaches. TypeORM expands
+ * `.of(ids).add(labelId)` into a parameter per id, and Postgres refuses a
+ * statement with more than 65535 of them.
+ */
+const LABEL_ATTACH_CHUNK_SIZE: number = 500;
+
+function chunk<T>(items: Array<T>, size: number): Array<Array<T>> {
+  const chunks: Array<Array<T>> = [];
+  for (let index: number = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+}
 
 class NetworkDeviceLabelRuleEngineServiceClass {
   /**
@@ -131,6 +158,219 @@ class NetworkDeviceLabelRuleEngineServiceClass {
         networkDeviceId: networkDevice.id?.toString(),
       } as LogAttributes);
     }
+  }
+
+  /*
+   * Runs ONE label rule against the network devices that already exist.
+   *
+   * The automatic engine above only fires on device creation, so a rule
+   * written after an estate was imported or discovered would never reach a
+   * single one of those devices (OneUptime/oneuptime#3191). This is the
+   * manual counterpart: same matcher, same "already-attached labels are not
+   * duplicated" guarantee, applied across the project instead of to one row.
+   *
+   * Safe to run repeatedly — attaching labels is additive and idempotent, so
+   * a second run reports devicesMatched with devicesLabeled at zero.
+   */
+  @CaptureSpan()
+  public async applyRuleToExistingNetworkDevices(data: {
+    ruleId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<LabelRuleRunResult> {
+    const rule: NetworkDeviceLabelRule | null =
+      await NetworkDeviceLabelRuleService.findOneBy({
+        query: {
+          _id: data.ruleId,
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+          name: true,
+          isEnabled: true,
+          networkDeviceLabels: { _id: true },
+          networkDeviceNamePattern: true,
+          networkDeviceDescriptionPattern: true,
+          labelsToAdd: { _id: true },
+        },
+        props: { isRoot: true },
+      });
+
+    if (!rule) {
+      throw new BadDataException("Label rule not found.");
+    }
+
+    /*
+     * A disabled rule is one the user has switched off; running it by hand
+     * would contradict the toggle they can see right next to the button.
+     */
+    if (!rule.isEnabled) {
+      throw new BadDataException(
+        "This label rule is disabled. Enable it before running it.",
+      );
+    }
+
+    const labelIdsToAdd: Array<string> = (rule.labelsToAdd || [])
+      .map((label: Label) => {
+        return label.id?.toString() || "";
+      })
+      .filter((id: string) => {
+        return id !== "";
+      });
+
+    if (labelIdsToAdd.length === 0) {
+      throw new BadDataException(
+        "This label rule has no labels to add, so running it would do nothing.",
+      );
+    }
+
+    const result: LabelRuleRunResult = {
+      devicesEvaluated: 0,
+      devicesMatched: 0,
+      devicesLabeled: 0,
+      labelsAttached: 0,
+      labelsFailed: 0,
+      isTruncated: false,
+    };
+
+    // Counted across pages so a device is never counted twice.
+    const labeledDeviceIds: Set<string> = new Set();
+
+    let skip: number = 0;
+
+    for (;;) {
+      const devices: Array<NetworkDevice> = await NetworkDeviceService.findBy({
+        query: {
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+          name: true,
+          description: true,
+          labels: { _id: true },
+        },
+        /*
+         * Sorted by id so paging stays stable across the writes this run
+         * makes: attaching a label never changes a device's id, so no row
+         * can shift between pages and be skipped or seen twice.
+         */
+        sort: {
+          _id: SortOrder.Ascending,
+        },
+        limit: LABEL_RULE_RUN_PAGE_SIZE,
+        skip: skip,
+        props: { isRoot: true },
+      });
+
+      if (devices.length === 0) {
+        break;
+      }
+
+      /*
+       * One INSERT per label rather than per device: every matched device
+       * needs the same label set, so the work collapses into a handful of
+       * statements no matter how large the estate is.
+       */
+      const deviceIdsByLabelId: Map<string, Array<string>> = new Map();
+
+      for (const device of devices) {
+        result.devicesEvaluated++;
+
+        if (!this.doesNetworkDeviceMatchRule(device, rule)) {
+          continue;
+        }
+
+        result.devicesMatched++;
+
+        const deviceId: string | undefined = device.id?.toString();
+
+        if (!deviceId) {
+          continue;
+        }
+
+        const existingLabelIds: Set<string> = new Set(
+          (device.labels || []).map((label: Label) => {
+            return label.id?.toString() || "";
+          }),
+        );
+
+        for (const labelId of labelIdsToAdd) {
+          if (existingLabelIds.has(labelId)) {
+            continue;
+          }
+
+          const deviceIds: Array<string> =
+            deviceIdsByLabelId.get(labelId) || [];
+          deviceIds.push(deviceId);
+          deviceIdsByLabelId.set(labelId, deviceIds);
+        }
+      }
+
+      for (const [labelId, deviceIds] of deviceIdsByLabelId) {
+        for (const deviceIdChunk of chunk(deviceIds, LABEL_ATTACH_CHUNK_SIZE)) {
+          try {
+            await NetworkDeviceService.getRepository()
+              .createQueryBuilder()
+              .relation(NetworkDevice, "labels")
+              .of(deviceIdChunk)
+              .add(labelId);
+
+            result.labelsAttached += deviceIdChunk.length;
+
+            for (const deviceId of deviceIdChunk) {
+              labeledDeviceIds.add(deviceId);
+            }
+          } catch (error) {
+            /*
+             * A failed batch must not abandon the rest of the estate — the
+             * run reports it and carries on.
+             */
+            result.labelsFailed += deviceIdChunk.length;
+            logger.error(
+              `Error attaching label ${labelId} from network device label rule ${data.ruleId.toString()}: ${error}`,
+              {
+                projectId: data.projectId.toString(),
+              } as LogAttributes,
+            );
+          }
+        }
+      }
+
+      skip += devices.length;
+
+      if (devices.length < LABEL_RULE_RUN_PAGE_SIZE) {
+        break;
+      }
+
+      if (skip >= MAX_DEVICES_PER_LABEL_RULE_RUN) {
+        /*
+         * A full last page is not proof that more devices exist — an estate
+         * of exactly the cap would report a truncation that never happened.
+         * One row settles it.
+         */
+        const nextDevice: Array<NetworkDevice> =
+          await NetworkDeviceService.findBy({
+            query: {
+              projectId: data.projectId,
+            },
+            select: {
+              _id: true,
+            },
+            sort: {
+              _id: SortOrder.Ascending,
+            },
+            limit: 1,
+            skip: skip,
+            props: { isRoot: true },
+          });
+
+        result.isTruncated = nextDevice.length > 0;
+        break;
+      }
+    }
+
+    result.devicesLabeled = labeledDeviceIds.size;
+
+    return result;
   }
 
   private doesNetworkDeviceMatchRule(
