@@ -1226,7 +1226,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                 pageSizeOptions={PAGE_SIZE_OPTIONS}
                 onPageChange={handlePageChange}
                 onPageSizeChange={handlePageSizeChange}
-                isDisabled={props.isLoading || totalItems === 0}
+                isDisabled={props.isLoading}
               />
             </div>
           </div>
