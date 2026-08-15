@@ -1,21 +1,31 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import KeyboardShortcut, {
+  KeyboardShortcutSize,
+} from "../../KeyboardShortcut/KeyboardShortcut";
+import KeyboardKey, {
+  KeyboardShortcutKey,
+} from "../../KeyboardShortcut/KeyboardKey";
 
 export interface KeyboardShortcutsHelpProps {
   onClose: () => void;
 }
 
 interface ShortcutRow {
-  keys: Array<string>;
+  keys: Array<KeyboardShortcutKey>;
   description: string;
 }
 
 const SHORTCUT_ROWS: Array<ShortcutRow> = [
   { keys: ["j"], description: "Move to next log row" },
   { keys: ["k"], description: "Move to previous log row" },
-  { keys: ["Enter"], description: "Expand / collapse selected log" },
-  { keys: ["Esc"], description: "Close detail panel" },
+  { keys: [KeyboardKey.Enter], description: "Expand / collapse selected log" },
+  { keys: [KeyboardKey.Escape], description: "Close detail panel" },
   { keys: ["/"], description: "Focus search bar" },
-  { keys: ["Ctrl", "Enter"], description: "Apply search filters" },
+  {
+    // The handler accepts meta or ctrl, so this follows the platform.
+    keys: [KeyboardKey.Mod, KeyboardKey.Enter],
+    description: "Apply search filters",
+  },
   { keys: ["?"], description: "Toggle this help" },
 ];
 
@@ -57,20 +67,10 @@ const KeyboardShortcutsHelp: FunctionComponent<KeyboardShortcutsHelpProps> = (
               className="flex items-center justify-between px-3 py-1.5"
             >
               <span className="text-xs text-gray-600">{row.description}</span>
-              <div className="flex items-center gap-1">
-                {row.keys.map((key: string, index: number) => {
-                  return (
-                    <React.Fragment key={key}>
-                      {index > 0 && (
-                        <span className="text-[10px] text-gray-400">+</span>
-                      )}
-                      <kbd className="inline-flex min-w-[1.5rem] items-center justify-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] font-medium text-gray-600">
-                        {key}
-                      </kbd>
-                    </React.Fragment>
-                  );
-                })}
-              </div>
+              <KeyboardShortcut
+                keys={row.keys}
+                size={KeyboardShortcutSize.Small}
+              />
             </div>
           );
         })}

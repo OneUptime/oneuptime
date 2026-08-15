@@ -383,3 +383,46 @@ describe("runBatchHostEnrichment with an oversized host.ip array", () => {
     expect(storedIpAddresses()).toBeUndefined();
   });
 });
+
+describe("runBatchHostEnrichment Kubernetes Host suppression", () => {
+  beforeEach(() => {
+    updateLastSeenCalls = [];
+    mockHostWrites();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test.each([
+    ["pod name", "k8s.pod.name", "checkout-7d9f"],
+    ["pod UID", "k8s.pod.uid", "pod-uid-1"],
+    ["node name", "k8s.node.name", "worker-1"],
+    ["node UID", "k8s.node.uid", "node-uid-1"],
+    ["cluster name", "k8s.cluster.name", "prod-us"],
+    ["namespace name", "k8s.namespace.name", "shop"],
+    ["deployment name", "k8s.deployment.name", "checkout"],
+  ])(
+    "does not create or enrich a Host for a Kubernetes %s identity",
+    async (_label: string, identityKey: string, identityValue: string) => {
+      await metricsService["runBatchHostEnrichment"]({
+        projectId: PROJECT_ID,
+        resourceMetrics: [
+          {
+            resource: {
+              attributes: [
+                stringAttribute("host.name", "checkout-7d9f"),
+                stringAttribute("os.type", "linux"),
+                stringAttribute(identityKey, identityValue),
+              ],
+            },
+            scopeMetrics: [],
+          },
+        ] as JSONArray,
+      });
+
+      expect(HostService.findOrCreateByHostIdentifier).not.toHaveBeenCalled();
+      expect(updateLastSeenCalls).toHaveLength(0);
+    },
+  );
+});

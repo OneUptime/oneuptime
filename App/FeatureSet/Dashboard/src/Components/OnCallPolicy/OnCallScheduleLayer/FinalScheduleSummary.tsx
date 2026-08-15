@@ -4,6 +4,7 @@ import {
   formatRelativeStart,
   formatShiftDuration,
   formatShiftInstant,
+  formatWindowSpan,
 } from "./LayerSummary";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -229,13 +230,7 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
   const getCoverageStrip: () => ReactElement = (): ReactElement => {
     const percent: number = Math.round(props.coverage.coverageRatio * 100);
     const isFullyCovered: boolean = props.coverage.gaps.length === 0;
-    const windowDays: number = Math.max(
-      1,
-      Math.round(
-        OneUptimeDate.getDifferenceInSeconds(props.windowEnd, props.now) /
-          86400,
-      ),
-    );
+    const windowLabel: string = formatWindowSpan(props.now, props.windowEnd);
 
     /*
      * Round-to-100 would claim full coverage for a schedule with a tiny hole,
@@ -258,8 +253,8 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
             className="h-3.5 w-3.5"
           />
           {isFullyCovered
-            ? `Fully covered for the next ${windowDays} days`
-            : `${displayPercent}% covered over the next ${windowDays} days`}
+            ? `Fully covered for the next ${windowLabel}`
+            : `${displayPercent}% covered over the next ${windowLabel}`}
         </span>
         {!isFullyCovered && (
           <span>
@@ -309,8 +304,8 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
         })}
         {remaining > 0 && (
           <div className="text-xs text-amber-700">
-            + {remaining} more coverage {remaining === 1 ? "gap" : "gaps"} in
-            the coming weeks.
+            + {remaining} more coverage {remaining === 1 ? "gap" : "gaps"} later
+            in this window.
           </div>
         )}
         {shortGapCount > 0 && (

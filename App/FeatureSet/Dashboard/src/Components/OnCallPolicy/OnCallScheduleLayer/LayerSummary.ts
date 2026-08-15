@@ -247,6 +247,33 @@ export function formatShiftDuration(start: Date, end: Date): string {
 }
 
 /*
+ * Human-readable LENGTH of a forward window, for copy like "in the next
+ * 3 months". Prefers the coarsest unit the span sits on cleanly, so a 91-day
+ * window reads as "3 months" rather than as an arbitrary day count.
+ *
+ * The 60-day floor for months keeps the rounding honest: below it, "1 month"
+ * would be a worse description of the real span than the week or day count.
+ */
+export function formatWindowSpan(start: Date, end: Date): string {
+  const days: number = Math.max(
+    1,
+    Math.round(OneUptimeDate.getDifferenceInSeconds(end, start) / 86400),
+  );
+
+  if (days >= 60) {
+    // 30.44 = mean calendar month, so 89-92 day spans all land on "3 months".
+    const months: number = Math.round(days / 30.44);
+    return `${months} ${months === 1 ? "month" : "months"}`;
+  }
+
+  if (days >= 14 && days % 7 === 0) {
+    return `${days / 7} weeks`;
+  }
+
+  return `${days} ${days === 1 ? "day" : "days"}`;
+}
+
+/*
  * A short "when does this start relative to now" label for an upcoming shift:
  * "Now" for a shift already in progress, otherwise "in 45 min" / "in 3 hours" /
  * "in 2 days" / "in 3 weeks".
