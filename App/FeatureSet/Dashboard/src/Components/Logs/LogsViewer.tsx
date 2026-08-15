@@ -25,6 +25,10 @@ import {
   resolveLogSavedViewTimeRange,
   withResolvedTime,
 } from "./LogSavedViewTimeRange";
+import {
+  buildClearedLogsViewState,
+  ClearedLogsViewState,
+} from "./LogsViewerDefaults";
 import { serializeSavedViewTimeRange } from "Common/Utils/Telemetry/SavedViewTimeRange";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
@@ -1079,6 +1083,31 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     },
     [disableLiveMode, props],
   );
+
+  /*
+   * Deselect the active saved view and put the explorer back where it starts.
+   * Every field applying a view writes is written back to its default — see
+   * buildClearedLogsViewState, which owns that answer so it can be tested
+   * without a renderer.
+   */
+  const clearSavedView: () => void = useCallback((): void => {
+    const cleared: ClearedLogsViewState = buildClearedLogsViewState({
+      baseQuery: buildBaseQuery(props),
+      defaultPageSize: effectiveDefaultPageSize,
+      hostTimeRange: pinnedTimeRange || props.timeRangeOverride,
+    });
+
+    setTimeRange(cleared.timeRange);
+    setAppliedFacetFilters(cleared.facetFilters);
+    setFilterOptions(cleared.filterOptions);
+    setPage(cleared.page);
+    setPageSize(cleared.pageSize);
+    setSortField(cleared.sortField);
+    setSortOrder(cleared.sortOrder);
+    setSelectedColumns(cleared.columns);
+    setSelectedSavedViewId(null);
+    disableLiveMode();
+  }, [props, pinnedTimeRange, effectiveDefaultPageSize, disableLiveMode]);
 
   // --- Effects ---
 
@@ -2153,6 +2182,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
               applySavedView(savedView);
             }
           }}
+          onClearSavedView={clearSavedView}
           onCreateSavedView={() => {
             setShowCreateSavedViewModal(true);
           }}

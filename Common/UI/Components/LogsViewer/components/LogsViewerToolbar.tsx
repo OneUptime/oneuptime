@@ -28,6 +28,7 @@ export interface LogsViewerToolbarProps {
   savedViews?: Array<LogsSavedViewOption> | undefined;
   selectedSavedViewId?: string | null | undefined;
   onSavedViewSelect?: ((viewId: string) => void) | undefined;
+  onClearSavedView?: (() => void) | undefined;
   onEditSavedView?: ((viewId: string) => void) | undefined;
   onDeleteSavedView?: ((viewId: string) => void) | undefined;
   onUpdateCurrentSavedView?: (() => void) | undefined;
@@ -153,6 +154,7 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
             savedViews={props.savedViews}
             selectedSavedViewId={props.selectedSavedViewId}
             onSelect={props.onSavedViewSelect}
+            onClear={props.onClearSavedView}
             onCreate={props.onCreateSavedView}
             onEdit={props.onEditSavedView}
             onDelete={props.onDeleteSavedView}

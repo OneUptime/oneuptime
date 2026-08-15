@@ -6,6 +6,13 @@ export interface SavedViewsDropdownProps {
   savedViews: Array<LogsSavedViewOption>;
   selectedSavedViewId?: string | null | undefined;
   onSelect: (viewId: string) => void;
+  /*
+   * Deselect the active view and return the explorer to its unfiltered
+   * default. Without this the checkmark is a one-way door: a view can be
+   * applied but never taken off. Hosts that cannot express "no view" simply
+   * omit it, and both clear affordances below disappear with it.
+   */
+  onClear?: (() => void) | undefined;
   onCreate?: (() => void) | undefined;
   onEdit?: ((viewId: string) => void) | undefined;
   onDelete?: ((viewId: string) => void) | undefined;
@@ -26,6 +33,17 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
       return view.id === props.selectedSavedViewId;
     },
   );
+
+  /*
+   * Clearing is only offered once a view is actually applied — an inert
+   * "Clear view" row sitting above an unfiltered explorer says nothing.
+   */
+  const canClear: boolean = Boolean(props.onClear && selectedView);
+
+  const clearSelection: () => void = (): void => {
+    props.onClear?.();
+    setIsComponentVisible(false);
+  };
 
   return (
     <div className="relative" ref={ref}>
@@ -48,6 +66,31 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
 
       {isComponentVisible && (
         <div className="absolute left-0 z-20 mt-2 w-72 rounded-lg border border-gray-200 bg-white shadow-xl">
+          {/*
+           * Explicit way back to the unfiltered explorer. Clicking the
+           * applied view also clears it, but that is only discoverable once
+           * you try it — this row says so out loud.
+           */}
+          {canClear && (
+            <div className="border-b border-gray-100 py-1">
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left transition-colors hover:bg-gray-50"
+                onClick={clearSelection}
+              >
+                <span
+                  className="w-4 shrink-0 text-center text-xs text-gray-400"
+                  aria-hidden="true"
+                >
+                  ✕
+                </span>
+                <span className="truncate text-sm text-gray-600">
+                  Clear view
+                </span>
+              </button>
+            </div>
+          )}
+
           {/* View list */}
           <div className="max-h-72 overflow-y-auto py-1">
             {props.savedViews.length === 0 && (
@@ -69,13 +112,35 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                   <button
                     type="button"
                     className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                    /*
+                     * Spelled out so the row announces as its own name: the
+                     * ✓ is aria-hidden, and the "default" tag reads as a word
+                     * rather than a bare token appended to the view name.
+                     */
+                    aria-label={
+                      view.isDefault ? `${view.name} (default)` : view.name
+                    }
+                    /*
+                     * The checkmark reads as a checkbox, so the row behaves
+                     * like one: clicking the applied view takes it off again
+                     * instead of silently re-applying what is already on.
+                     */
+                    aria-pressed={isSelected}
                     onClick={() => {
+                      if (isSelected && props.onClear) {
+                        clearSelection();
+                        return;
+                      }
+
                       props.onSelect(view.id);
                       setIsComponentVisible(false);
                     }}
                   >
                     {/* Checkmark for selected */}
-                    <span className="w-4 shrink-0 text-center text-xs">
+                    <span
+                      className="w-4 shrink-0 text-center text-xs"
+                      aria-hidden="true"
+                    >
                       {isSelected ? (
                         <span className="text-indigo-600">✓</span>
                       ) : (
