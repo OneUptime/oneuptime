@@ -625,6 +625,19 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
                           textAnchor={marker.labelPlacement.textAnchor}
                           fill="var(--ou-text-secondary, #4b5563)"
                           fontSize={NETWORK_MAP_LABEL_FONT_SIZE / zoom}
+                          /*
+                           * The weight LABEL_CHAR_WIDTH was measured at, and
+                           * the weight the full-page map paints — see the
+                           * note beside that constant for why a renderer may
+                           * go lighter but never heavier.
+                           *
+                           * It earns its place here on legibility alone: this
+                           * map squeezes the whole world into a dashboard
+                           * tile, so its names land well UNDER
+                           * NETWORK_MAP_LABEL_FONT_SIZE on screen, and a 400
+                           * at that size greys out against a coastline.
+                           */
+                          fontWeight={600}
                           stroke="var(--ou-surface-primary, #ffffff)"
                           strokeWidth={2.5 / zoom}
                           paintOrder="stroke"
