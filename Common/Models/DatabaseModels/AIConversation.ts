@@ -18,6 +18,7 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
+import { AIChatPageContext } from "../../Types/AI/AIChatPageContext";
 
 /*
  * A conversation between a user and the OneUptime AI about the project's
@@ -234,6 +235,37 @@ export default class AIConversation extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public permissionMode?: string = undefined;
+
+  /*
+   * The conversation's subject: the dashboard page (usually one specific
+   * entity, e.g. an incident) the user was looking at when the conversation
+   * started. ChatAgentRunner persists it from the first turn that carries a
+   * sanitized page context and falls back to it on later turns that arrive
+   * without one, so "this incident" keeps resolving after the user navigates
+   * away. Written only by the server (never member-writable through CRUD),
+   * so it cannot be forged to point at another project's entity.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Page Context",
+    description:
+      "The dashboard page (entity) this conversation is about. Set from the first message that carried a page context.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public pageContext?: AIChatPageContext = undefined;
 
   @ColumnAccessControl({
     create: [],

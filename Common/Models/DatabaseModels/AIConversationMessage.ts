@@ -28,6 +28,18 @@ import {
 } from "../../Types/AI/AIChatTypes";
 
 /*
+ * Thumbs feedback the user can leave on an assistant message via
+ * POST /ai-chat/message-feedback. Stored as the enum's string value in a
+ * ShortText column, the same shape as `role` and `status`. Declared here
+ * (not in Types/AI) because it is a property of this row, not a shared
+ * chat-protocol concept.
+ */
+export enum AIConversationMessageFeedback {
+  Up = "Up",
+  Down = "Down",
+}
+
+/*
  * A single message in an AI conversation. Create/update table permissions are
  * deliberately EMPTY: only the server (isRoot) writes message rows. This
  * prevents project members from forging assistant messages with fabricated
@@ -415,6 +427,35 @@ export default class AIConversationMessage extends BaseModel {
     length: ColumnLength.LongText,
   })
   public errorMessage?: string = undefined;
+
+  /*
+   * Update ACL is empty like every other column: feedback is written only by
+   * the server through POST /ai-chat/message-feedback, which verifies the
+   * requesting user owns the conversation and the message is assistant-role.
+   * Null means no feedback has been left (or it was cleared).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "User Feedback",
+    description:
+      "Thumbs feedback the user left on this assistant message: Up or Down.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public userFeedback?: AIConversationMessageFeedback = undefined;
 
   @ColumnAccessControl({
     create: [],

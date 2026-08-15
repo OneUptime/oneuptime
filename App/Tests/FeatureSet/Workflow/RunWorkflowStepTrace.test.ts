@@ -7,6 +7,7 @@
  */
 
 import Workflow from "Common/Models/DatabaseModels/Workflow";
+import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
 import WorkflowService from "Common/Server/Services/WorkflowService";
 import { JSONObject } from "Common/Types/JSON";
@@ -348,6 +349,175 @@ describe("RunWorkflow step trace", () => {
     const serialized: string = JSON.stringify(lastPersistedTrace(updateLogSpy));
 
     expect(serialized).not.toContain("super-secret-value");
+  });
+
+  test("redacts every occurrence of overlapping secret variables in logs and nested trace values", async () => {
+    const componentNode: NodeDataProp = node(
+      metadata({ args: [argument("message")] }),
+    );
+    componentNode.arguments = {
+      message: "token-with-suffix | token | token-with-suffix",
+    };
+
+    const shortSecret: WorkflowVariable = new WorkflowVariable();
+    shortSecret.content = "token";
+    shortSecret.isSecret = "true";
+
+    const longSecret: WorkflowVariable = new WorkflowVariable();
+    longSecret.content = "token-with-suffix";
+    longSecret.isSecret = "true";
+
+    const runner: RunWorkflow = new RunWorkflow();
+    const updateLogSpy: RecordedSpy = prepareSingleComponentRun(
+      runner,
+      componentNode,
+    );
+
+    jest.spyOn(runner, "getVariables").mockResolvedValue({
+      storageMap: EMPTY_STORAGE_MAP,
+      // Deliberately shorter-first: production redaction must reorder these.
+      variables: [shortSecret, longSecret],
+    } as never);
+
+    jest.spyOn(runner, "runComponent").mockResolvedValue({
+      returnValues: {
+        nested: {
+          values: [
+            "token-with-suffix and token-with-suffix",
+            {
+              "header-token-with-suffix": "before token after",
+            },
+          ],
+        },
+      },
+      executePort: SUCCESS_PORT,
+    } as never);
+
+    await runner.runWorkflow({
+      arguments: {},
+      workflowId: WORKFLOW_ID,
+      workflowLogId: WORKFLOW_LOG_ID,
+      timeout: 5000,
+    });
+
+    const lastCall: unknown =
+      updateLogSpy.mock.calls[updateLogSpy.mock.calls.length - 1]?.[0];
+    const data: JSONObject = (lastCall as { data: JSONObject }).data;
+    const serializedPersistedData: string = JSON.stringify(data);
+    const step: WorkflowStepTraceEntry = parseTrace(data["stepTrace"] as never)
+      .steps[0] as WorkflowStepTraceEntry;
+
+    expect(serializedPersistedData).not.toContain("token");
+    expect(serializedPersistedData).not.toContain("with-suffix");
+    expect(data["logs"]).toContain(
+      `${WORKFLOW_LOG_REDACTED_VALUE} | ${WORKFLOW_LOG_REDACTED_VALUE} | ${WORKFLOW_LOG_REDACTED_VALUE}`,
+    );
+    expect(step.argumentValues).toEqual({
+      message: `${WORKFLOW_LOG_REDACTED_VALUE} | ${WORKFLOW_LOG_REDACTED_VALUE} | ${WORKFLOW_LOG_REDACTED_VALUE}`,
+    });
+    expect(step.returnValues).toEqual({
+      nested: {
+        values: [
+          `${WORKFLOW_LOG_REDACTED_VALUE} and ${WORKFLOW_LOG_REDACTED_VALUE}`,
+          {
+            [`header-${WORKFLOW_LOG_REDACTED_VALUE}`]: `before ${WORKFLOW_LOG_REDACTED_VALUE} after`,
+          },
+        ],
+      },
+    });
+  });
+
+  test("secret values cannot rewrite trace schema or bookkeeping", async () => {
+    const componentNode: NodeDataProp = node(
+      metadata({ args: [argument("message")] }),
+    );
+    componentNode.arguments = { message: "steps Success error" };
+
+    const schemaSecrets: Array<string> = ["steps", "Success", "error"];
+    const variables: Array<WorkflowVariable> = schemaSecrets.map(
+      (content: string): WorkflowVariable => {
+        const variable: WorkflowVariable = new WorkflowVariable();
+        variable.content = content;
+        variable.isSecret = "true";
+        return variable;
+      },
+    );
+
+    const runner: RunWorkflow = new RunWorkflow();
+    const updateLogSpy: RecordedSpy = prepareSingleComponentRun(
+      runner,
+      componentNode,
+    );
+
+    jest.spyOn(runner, "getVariables").mockResolvedValue({
+      storageMap: EMPTY_STORAGE_MAP,
+      variables: variables,
+    } as never);
+    jest.spyOn(runner, "runComponent").mockResolvedValue({
+      returnValues: {
+        result: "steps Success error",
+        "header-steps": "error",
+      },
+      executePort: SUCCESS_PORT,
+    } as never);
+
+    await runner.runWorkflow({
+      arguments: {},
+      workflowId: WORKFLOW_ID,
+      workflowLogId: WORKFLOW_LOG_ID,
+      timeout: 5000,
+    });
+
+    const trace: WorkflowStepTrace = lastPersistedTrace(updateLogSpy);
+    const step: WorkflowStepTraceEntry = trace
+      .steps[0] as WorkflowStepTraceEntry;
+
+    expect(trace.steps).toHaveLength(1);
+    expect(step.status).toBe(WorkflowStepStatus.Success);
+    expect(step.argumentValues).toEqual({
+      message: `${WORKFLOW_LOG_REDACTED_VALUE} ${WORKFLOW_LOG_REDACTED_VALUE} ${WORKFLOW_LOG_REDACTED_VALUE}`,
+    });
+    expect(step.returnValues).toEqual({
+      result: `${WORKFLOW_LOG_REDACTED_VALUE} ${WORKFLOW_LOG_REDACTED_VALUE} ${WORKFLOW_LOG_REDACTED_VALUE}`,
+      [`header-${WORKFLOW_LOG_REDACTED_VALUE}`]: WORKFLOW_LOG_REDACTED_VALUE,
+    });
+  });
+
+  test("redacts secret variables from a failed step's error message", async () => {
+    const componentNode: NodeDataProp = node(metadata({}));
+    const secret: WorkflowVariable = new WorkflowVariable();
+    secret.content = "smtp-secret";
+    secret.isSecret = "true";
+
+    const runner: RunWorkflow = new RunWorkflow();
+    const updateLogSpy: RecordedSpy = prepareSingleComponentRun(
+      runner,
+      componentNode,
+    );
+
+    jest.spyOn(runner, "getVariables").mockResolvedValue({
+      storageMap: EMPTY_STORAGE_MAP,
+      variables: [secret],
+    } as never);
+    jest
+      .spyOn(runner, "runComponent")
+      .mockRejectedValue(
+        new Error("smtp-secret was rejected; smtp-secret is invalid") as never,
+      );
+
+    await runner.runWorkflow({
+      arguments: {},
+      workflowId: WORKFLOW_ID,
+      workflowLogId: WORKFLOW_LOG_ID,
+      timeout: 5000,
+    });
+
+    const step: WorkflowStepTraceEntry = lastPersistedTrace(updateLogSpy)
+      .steps[0] as WorkflowStepTraceEntry;
+
+    expect(step.errorMessage).toBe(
+      `Error: ${WORKFLOW_LOG_REDACTED_VALUE} was rejected; ${WORKFLOW_LOG_REDACTED_VALUE} is invalid`,
+    );
   });
 
   /*

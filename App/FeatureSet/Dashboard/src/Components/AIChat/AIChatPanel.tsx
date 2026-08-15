@@ -1,4 +1,5 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
 import Icon from "Common/UI/Components/Icon/Icon";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
@@ -20,7 +21,7 @@ import ChatMessageList from "./ChatMessageList";
 import PageContextChip from "./PageContextChip";
 import ProviderPicker from "./ProviderPicker";
 import PermissionModePicker from "./PermissionModePicker";
-import { useAiChat, UseAiChat } from "./useAiChat";
+import { ChatMessageFeedback, useAiChat, UseAiChat } from "./useAiChat";
 
 /*
  * The "Ask AI" quick launcher: a compact slide-over for fast questions from
@@ -38,9 +39,17 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
   // ---- open/close ----------------------------------------------------------
 
   useEffect(() => {
-    const toggle: () => void = (): void => {
+    /*
+     * AI_CHAT_TOGGLE toggles by default; dispatchers can pass
+     * { forceOpen: true } ("Ask AI about this" buttons on entity pages) so a
+     * click never accidentally closes an already-open panel.
+     */
+    const toggle: (event: CustomEvent) => void = (event: CustomEvent): void => {
+      const forceOpen: boolean = Boolean(
+        (event?.detail as { forceOpen?: boolean } | undefined)?.forceOpen,
+      );
       setIsOpen((open: boolean) => {
-        return !open;
+        return forceOpen ? true : !open;
       });
     };
 
@@ -48,6 +57,47 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
 
     return () => {
       GlobalEvents.removeEventListener(EventName.AI_CHAT_TOGGLE, toggle);
+    };
+  }, []);
+
+  // Cmd/Ctrl + I opens Ask AI from anywhere — keyboard operators included.
+  useEffect(() => {
+    const onKeyDown: (event: KeyboardEvent) => void = (
+      event: KeyboardEvent,
+    ): void => {
+      if (
+        !(event.metaKey || event.ctrlKey) ||
+        event.shiftKey ||
+        event.altKey ||
+        event.key.toLowerCase() !== "i" ||
+        event.defaultPrevented
+      ) {
+        return;
+      }
+
+      /*
+       * Cmd/Ctrl+I is also the universal italics shortcut: while the user is
+       * typing in any input, textarea, or rich-text editor, leave the event
+       * alone so note/postmortem editors keep their formatting shortcut.
+       */
+      const target: HTMLElement | null = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      setIsOpen((open: boolean) => {
+        return !open;
+      });
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
     };
   }, []);
 
@@ -81,8 +131,21 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
     };
   }, [isOpen]);
 
+  /*
+   * Expanding keeps the active thread: the full page reads the conversation id
+   * from its route, so the user lands exactly where they were.
+   */
   const openFullCopilot: () => void = (): void => {
     setIsOpen(false);
+    if (chat.activeConversationId) {
+      Navigation.navigate(
+        RouteUtil.populateRouteParams(
+          RouteMap[PageMap.AI_COPILOT_CONVERSATION] as Route,
+          { modelId: new ObjectID(chat.activeConversationId) },
+        ),
+      );
+      return;
+    }
     Navigation.navigate(
       RouteUtil.populateRouteParams(RouteMap[PageMap.AI_COPILOT] as Route),
     );
@@ -292,6 +355,14 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
                       // handled in the hook
                     });
                 }}
+                onFeedback={(
+                  messageId: string,
+                  feedback: ChatMessageFeedback | null,
+                ) => {
+                  chat.sendFeedback(messageId, feedback).catch(() => {
+                    // handled in the hook
+                  });
+                }}
               />
 
               {chat.isWorking && (
@@ -311,6 +382,16 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
             !chat.isSending && !chat.isWorking && !chat.isAwaitingApproval
           }
           isWorking={chat.isWorking}
+          isStopping={chat.isCancelling}
+          onStop={
+            chat.isWorking && !chat.isAwaitingApproval
+              ? () => {
+                  chat.cancelRun().catch(() => {
+                    // handled in the hook
+                  });
+                }
+              : undefined
+          }
           leading={composerLeading}
           contextChip={contextChip}
           placeholder={composerPlaceholder}

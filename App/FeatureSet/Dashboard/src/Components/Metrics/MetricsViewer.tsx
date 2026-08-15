@@ -69,6 +69,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
 import { APP_API_URL } from "Common/UI/Config";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
+import { shouldAdoptTimeRangeOverride } from "../../Utils/SharedTelemetryTimeCursor";
 
 async function postApi(
   path: string,
@@ -305,6 +306,28 @@ interface Props {
    */
   entityKeysFilter?: Array<string> | undefined;
   entityScope?: EntityScopeFilter | undefined;
+  /*
+   * Controlled shared window (the entity telemetry hub). When set, the
+   * viewer seeds from it and adopts every value change; the host is expected
+   * to hand back whatever `onTimeRangeChange` lifted, so an echo of the
+   * viewer's own change compares equal and is a no-op.
+   */
+  timeRangeOverride?: RangeStartAndEndDateTime | undefined;
+  /*
+   * Fired only for user-initiated window changes inside this viewer (the
+   * toolbar picker) — never when adopting `timeRangeOverride` — so a
+   * controlling host can follow without loops.
+   */
+  onTimeRangeChange?:
+    | ((timeRange: RangeStartAndEndDateTime) => void)
+    | undefined;
+  /*
+   * Embedded contexts (the entity telemetry hub) own the page URL: when
+   * true, the viewer neither seeds from nor mirrors state to the query
+   * string — the same reason the logs viewer's syncUrlState defaults off
+   * for incident embeds. Standalone explorer pages leave this unset.
+   */
+  disableUrlSync?: boolean | undefined;
 }
 
 const MetricsViewer: FunctionComponent<Props> = (
@@ -313,8 +336,25 @@ const MetricsViewer: FunctionComponent<Props> = (
   /*
    * Parse all filter state from the URL once on first mount so refresh +
    * back-from-metric-detail restore the view.
+   *
+   * A useState initializer (not a memo) because it is a seed: it must never
+   * recompute. Embedded hosts (disableUrlSync) skip the URL entirely — the
+   * host page's query params are not this viewer's state.
    */
-  const initialUrlState: InitialUrlState = useMemo(readInitialUrlState, []);
+  const [initialUrlState] = useState<InitialUrlState>((): InitialUrlState => {
+    if (props.disableUrlSync) {
+      return {
+        search: "",
+        filters: [],
+        timeRange: props.timeRangeOverride || {
+          range: TimeRange.PAST_ONE_HOUR,
+        },
+        page: 1,
+        pageSize: DEFAULT_PAGE_SIZE,
+      };
+    }
+    return readInitialUrlState();
+  });
 
   const [metrics, setMetrics] = useState<Array<MetricType>>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
@@ -347,8 +387,35 @@ const MetricsViewer: FunctionComponent<Props> = (
   >({});
 
   const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>(
-    initialUrlState.timeRange,
+    props.timeRangeOverride || initialUrlState.timeRange,
   );
+
+  /*
+   * Render-time mirror of `timeRange` for the adopt effect below. The effect
+   * must compare an override against the *current* window without listing
+   * `timeRange` in its deps — otherwise the user's own picker change would
+   * re-run it against a stale override and get yanked straight back.
+   */
+  const timeRangeRef: React.MutableRefObject<RangeStartAndEndDateTime> =
+    useRef<RangeStartAndEndDateTime>(timeRange);
+  timeRangeRef.current = timeRange;
+
+  /*
+   * Adopt a controlled window change from the host. Value-gated: the echo of
+   * a window this viewer just lifted through onTimeRangeChange compares
+   * equal and is skipped, which is what breaks the feedback loop.
+   */
+  useEffect(() => {
+    if (
+      !shouldAdoptTimeRangeOverride(
+        props.timeRangeOverride,
+        timeRangeRef.current,
+      )
+    ) {
+      return;
+    }
+    setTimeRange(props.timeRangeOverride!);
+  }, [props.timeRangeOverride]);
 
   const [searchValue, setSearchValue] = useState<string>(
     initialUrlState.search,
@@ -424,6 +491,9 @@ const MetricsViewer: FunctionComponent<Props> = (
    * push history entries.
    */
   useEffect(() => {
+    if (props.disableUrlSync) {
+      return;
+    }
     const params: URLSearchParams = new URLSearchParams();
     if (submittedSearch) {
       params.set("search", submittedSearch);
@@ -451,7 +521,14 @@ const MetricsViewer: FunctionComponent<Props> = (
     }
 
     writeTelemetryViewerUrlState(Object.fromEntries(params.entries()));
-  }, [submittedSearch, activeFilters, timeRange, page, pageSize]);
+  }, [
+    props.disableUrlSync,
+    submittedSearch,
+    activeFilters,
+    timeRange,
+    page,
+    pageSize,
+  ]);
 
   // Load services and telemetry attributes once
   useEffect(() => {
@@ -1297,14 +1374,20 @@ const MetricsViewer: FunctionComponent<Props> = (
     [effectiveAttributes, timeRange],
   );
 
-  // Whether the URL already carried filter state (deep link) on first mount.
+  /*
+   * Whether the URL already carried filter state (deep link) on first mount.
+   * A controlled window counts too: the host owns the view then, so the
+   * default saved view must not auto-apply over it — the same skip the logs
+   * viewer performs for a pinned incident window.
+   */
   const hasInitialUrlState: boolean = useMemo((): boolean => {
     return (
+      Boolean(props.timeRangeOverride) ||
       initialUrlState.search.length > 0 ||
       initialUrlState.filters.length > 0 ||
       initialUrlState.timeRange.range !== TimeRange.PAST_ONE_HOUR
     );
-  }, [initialUrlState]);
+  }, [initialUrlState, props.timeRangeOverride]);
 
   // Capture the current explorer state for Save / Update of a saved view.
   const captureCurrentState: () => TelemetrySavedViewState =
@@ -1457,6 +1540,8 @@ const MetricsViewer: FunctionComponent<Props> = (
       timeRange={timeRange}
       onTimeRangeChange={(value: RangeStartAndEndDateTime) => {
         setTimeRange(value);
+        // User-initiated (the toolbar picker) — lift to a controlling host.
+        props.onTimeRangeChange?.(value);
       }}
       // Facets
       showFacetSidebar={!isScoped}

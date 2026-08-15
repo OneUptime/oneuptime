@@ -1,6 +1,8 @@
+import AIConversation from "../../../../Models/DatabaseModels/AIConversation";
 import AIConversationMessage from "../../../../Models/DatabaseModels/AIConversationMessage";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import PositiveNumber from "../../../../Types/PositiveNumber";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
@@ -47,8 +49,12 @@ export interface ChatTurnRequest {
   /*
    * What the user was looking at in the dashboard when they sent this message
    * (already sanitized by the API). Folded into the system prompt so "this
-   * incident" resolves to the entity on screen. Per-turn: not persisted, and
-   * not needed on resume (the paused state already contains the built prompt).
+   * incident" resolves to the entity on screen. The first turn that carries
+   * one persists it to AIConversation.pageContext as the conversation's
+   * subject; later turns that arrive without a page context (the user
+   * navigated away mid-conversation) fall back to that persisted subject so
+   * "this incident" keeps resolving. Not needed on resume (the paused state
+   * already contains the built prompt).
    */
   pageContext?: AIChatPageContext | undefined;
   // The requesting user's real permission props, captured at request time.
@@ -69,7 +75,27 @@ const MAX_HISTORY_MESSAGES: number = 20;
 const MAX_OUTPUT_TOKENS: number = 4096;
 const TEMPERATURE: number = 0.2;
 
+/*
+ * Replayed history is bounded twice: by row count (MAX_HISTORY_MESSAGES,
+ * above) and by an approximate token budget so a few enormous answers cannot
+ * crowd the entire context window. chars/4 is the usual rough heuristic for
+ * English prose + JSON.
+ */
+const MAX_HISTORY_TOKENS: number = 24000;
+const APPROX_CHARS_PER_TOKEN: number = 4;
+
+// Caps for the per-message evidence digest appended to replayed answers.
+const MAX_EVIDENCE_DIGEST_CHARS: number = 1500;
+const MAX_DIGEST_ARGUMENTS_CHARS: number = 200;
+const MAX_SHOWN_SUMMARY_CHARS: number = 300;
+
+// Conversation title generation (first exchange only).
+const MAX_TITLE_CHARS: number = 90;
+const MAX_TITLE_SOURCE_CHARS: number = 500;
+const TITLE_MAX_OUTPUT_TOKENS: number = 100;
+
 export const OBSERVABILITY_CHAT_FEATURE: string = "Observability Chat";
+export const CHAT_TITLE_FEATURE: string = "Chat Title";
 
 /*
  * Remove citation markers the model fabricated: only markers matching
@@ -99,6 +125,275 @@ export function stripFabricatedCitationMarkers(
  */
 export function escapeToolResultContent(text: string): string {
   return text.replace(/<\/(tool_result)/gi, "<\\/$1");
+}
+
+/*
+ * A compact, replayable record of the evidence behind a prior assistant
+ * answer, e.g.:
+ *
+ *   [Evidence from this turn: C1 query_incidents({"incidentId":"..."}) ->
+ *   5 rows (Incidents, last 168h); C2 ...]
+ *
+ * History replay strips the [C#] markers from prior prose (this turn's
+ * citations are different objects), which used to discard all prior evidence.
+ * The digest keeps that evidence referable — the model can see what was
+ * already queried, with which arguments, and what came back — without
+ * replaying the raw tool payloads.
+ */
+export function buildEvidenceDigest(citations: Array<AIChatCitation>): string {
+  if (citations.length === 0) {
+    return "";
+  }
+
+  const prefix: string = "[Evidence from this turn: ";
+  const entries: Array<string> = [];
+  let usedChars: number = prefix.length + 1; // +1 for the closing bracket
+  let includedCount: number = 0;
+
+  for (const citation of citations) {
+    let queryArguments: string;
+    try {
+      queryArguments = JSON.stringify(citation.queryArguments || {});
+    } catch {
+      queryArguments = "{…}";
+    }
+
+    if (queryArguments.length > MAX_DIGEST_ARGUMENTS_CHARS) {
+      queryArguments = `${queryArguments.substring(
+        0,
+        MAX_DIGEST_ARGUMENTS_CHARS,
+      )}…`;
+    }
+
+    const entry: string = `${citation.id} ${citation.toolName}(${queryArguments}) -> ${citation.rowCount} rows (${citation.label})`;
+    const separatorChars: number = entries.length > 0 ? 2 : 0; // "; "
+
+    if (
+      entries.length > 0 &&
+      usedChars + separatorChars + entry.length > MAX_EVIDENCE_DIGEST_CHARS
+    ) {
+      break;
+    }
+
+    entries.push(entry);
+    usedChars += separatorChars + entry.length;
+    includedCount++;
+  }
+
+  const omittedCount: number = citations.length - includedCount;
+
+  let digest: string = prefix + entries.join("; ");
+  if (omittedCount > 0) {
+    digest += `; ... and ${omittedCount} more ${
+      omittedCount === 1 ? "query" : "queries"
+    }`;
+  }
+
+  return `${digest}]`;
+}
+
+/*
+ * A one-line summary of the non-text content of a prior assistant message —
+ * widget titles first (the user actually saw those), tool-action titles as a
+ * fallback. Used so widget-only answers no longer vanish from replayed
+ * history. Returns "" when there is nothing to summarize.
+ */
+export function summarizeShownContent(
+  widgets: Array<AIChatWidget>,
+  toolActions: Array<AIChatToolAction>,
+): string {
+  const widgetTitles: Array<string> = widgets
+    .map((widget: AIChatWidget) => {
+      return widget.title;
+    })
+    .filter((title: string) => {
+      return Boolean(title);
+    });
+
+  const actionTitles: Array<string> = toolActions
+    .map((action: AIChatToolAction) => {
+      return action.title;
+    })
+    .filter((title: string) => {
+      return Boolean(title);
+    });
+
+  const summary: string = (
+    widgetTitles.length > 0 ? widgetTitles : actionTitles
+  ).join(", ");
+
+  return summary.length > MAX_SHOWN_SUMMARY_CHARS
+    ? `${summary.substring(0, MAX_SHOWN_SUMMARY_CHARS)}…`
+    : summary;
+}
+
+// One prior conversation message, already rendered for replay to the LLM.
+export interface ReplayedHistoryMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface HistoryBudgetResult {
+  kept: Array<ReplayedHistoryMessage>;
+  // How many of the oldest entries were dropped to fit the budget.
+  droppedCount: number;
+}
+
+/*
+ * Enforce an approximate token budget over replayed history, dropping oldest
+ * entries first. The newest entry (the user message that started this turn)
+ * is always kept, even if it alone exceeds the budget — the model needs
+ * something to answer.
+ */
+export function applyHistoryTokenBudget(
+  entries: Array<ReplayedHistoryMessage>,
+  maxTokens: number,
+): HistoryBudgetResult {
+  const kept: Array<ReplayedHistoryMessage> = [];
+  let usedTokens: number = 0;
+
+  for (let i: number = entries.length - 1; i >= 0; i--) {
+    const entry: ReplayedHistoryMessage | undefined = entries[i];
+    if (!entry) {
+      continue;
+    }
+
+    const entryTokens: number = Math.ceil(
+      entry.content.length / APPROX_CHARS_PER_TOKEN,
+    );
+
+    if (kept.length > 0 && usedTokens + entryTokens > maxTokens) {
+      return { kept, droppedCount: i + 1 };
+    }
+
+    kept.unshift(entry);
+    usedTokens += entryTokens;
+  }
+
+  return { kept, droppedCount: 0 };
+}
+
+/*
+ * Render one persisted conversation message for history replay, or undefined
+ * when the row should be skipped (unfinished/errored assistant turns, empty
+ * rows). Assistant answers get their stale [C#] markers stripped and a
+ * compact evidence digest appended; widget-only answers are replayed as a
+ * "[Showed the user: …]" summary instead of vanishing.
+ */
+export function buildReplayedHistoryMessage(
+  message: AIConversationMessage,
+): ReplayedHistoryMessage | undefined {
+  if (message.role === AIChatMessageRole.User) {
+    if (!message.contentInMarkdown) {
+      return undefined;
+    }
+    return { role: "user", content: message.contentInMarkdown };
+  }
+
+  /*
+   * Assistant rows: replay only terminal-with-output turns. Cancelled is
+   * terminal too — a cancelled turn's partial answer is part of what the
+   * user saw. In-flight and errored rows are skipped as before.
+   */
+  if (
+    message.status !== AIChatMessageStatus.Completed &&
+    message.status !== AIChatMessageStatus.Cancelled
+  ) {
+    return undefined;
+  }
+
+  const digest: string = buildEvidenceDigest(message.citations || []);
+
+  /*
+   * A cancelled turn's contentInMarkdown is the server's finalizer text
+   * ("Stopped by user."), not assistant prose — replaying it verbatim
+   * teaches the model to imitate or apologize for it. Replay a neutral
+   * marker instead, keeping the evidence digest so queries that DID run
+   * before the stop stay referable.
+   */
+  if (message.status === AIChatMessageStatus.Cancelled) {
+    const cancelledParts: Array<string> = [
+      "[The user stopped this answer before it finished.]",
+    ];
+    if (digest) {
+      cancelledParts.push(digest);
+    }
+    return { role: "assistant", content: cancelledParts.join("\n\n") };
+  }
+
+  /*
+   * A prior assistant answer carries [C#] citation markers that pointed at
+   * that turn's tool results — citations that no longer exist in this turn.
+   * Left in the replayed history the model echoes and renumbers them, and
+   * this turn's stripFabricatedCitationMarkers then deletes the unmatched
+   * ones, leaving claims that look uncited. Strip the markers from replayed
+   * answers so only freshly minted citations ever appear; the digest above
+   * keeps the underlying evidence referable.
+   */
+  const prose: string = (message.contentInMarkdown || "").replace(
+    /\s?\[C\d+\]/g,
+    "",
+  );
+
+  if (prose.trim()) {
+    return {
+      role: "assistant",
+      content: digest ? `${prose}\n\n${digest}` : prose,
+    };
+  }
+
+  const shown: string = summarizeShownContent(
+    message.widgets || [],
+    message.toolActions || [],
+  );
+
+  const parts: Array<string> = [];
+  if (shown) {
+    parts.push(`[Showed the user: ${shown}]`);
+  }
+  if (digest) {
+    parts.push(digest);
+  }
+
+  if (parts.length === 0) {
+    return undefined;
+  }
+
+  return { role: "assistant", content: parts.join("\n\n") };
+}
+
+/*
+ * Clean up an LLM-generated conversation title: first non-empty line only,
+ * wrapping quotes and markdown headings stripped, trailing punctuation
+ * removed, whitespace collapsed, clamped to MAX_TITLE_CHARS. Returns "" when
+ * nothing usable remains (callers keep the old title in that case).
+ */
+export function sanitizeGeneratedTitle(raw: string): string {
+  const firstLine: string | undefined = raw
+    .split("\n")
+    .map((line: string) => {
+      return line.trim();
+    })
+    .find((line: string) => {
+      return line.length > 0;
+    });
+
+  let title: string = firstLine || "";
+
+  title = title
+    .replace(/^#+\s*/, "")
+    .replace(/^Title:\s*/i, "")
+    .replace(/^["'`“”‘’\s]+/, "")
+    .replace(/["'`“”‘’\s]+$/, "")
+    .replace(/[.,;:!?…\s]+$/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (title.length > MAX_TITLE_CHARS) {
+    title = title.substring(0, MAX_TITLE_CHARS).trim();
+  }
+
+  return title;
 }
 
 interface TurnState {
@@ -139,8 +434,17 @@ export default class ChatAgentRunner {
         eventType: AIRunEventType.RunStarted,
       });
 
-      const messages: Array<LLMMessage> =
-        await this.buildInitialMessages(request);
+      /*
+       * The conversation's subject: a fresh page context is persisted on
+       * first use, and turns without one fall back to the persisted subject.
+       */
+      const pageContext: AIChatPageContext | undefined =
+        await this.resolvePageContext(request);
+
+      const messages: Array<LLMMessage> = await this.buildInitialMessages(
+        request,
+        pageContext,
+      );
 
       await this.runAgentLoop(request, state, messages, toolContext);
     } catch (error) {
@@ -284,6 +588,15 @@ export default class ChatAgentRunner {
 
     // Apply the decisions: run approved actions, refuse denied ones.
     for (const toolCall of pendingToolCalls) {
+      /*
+       * Cooperative cancellation: if POST /ai-chat/cancel-run took the run while
+       * this batch was executing, it already finalized the assistant message
+       * and the run. Abandon immediately — write nothing, emit nothing.
+       */
+      if (await this.isRunCancelled(request)) {
+        return;
+      }
+
       const decision: ResumeToolDecision | undefined = decisions.find(
         (item: ResumeToolDecision) => {
           return item.toolCallId === toolCall.id;
@@ -361,9 +674,19 @@ export default class ChatAgentRunner {
     toolContext: ToolContext,
   ): Promise<LoopOutcome> {
     let finalContent: string = "";
+    let finalStopReason: string | undefined = undefined;
     let manifest: AIRunEgressManifest | undefined = undefined;
 
     while (true) {
+      /*
+       * Cooperative cancellation: POST /ai-chat/cancel-run flips the run to
+       * Cancelled and finalizes the assistant message itself. Abandon
+       * immediately — overwrite nothing, emit nothing further.
+       */
+      if (await this.isRunCancelled(request)) {
+        return { paused: false };
+      }
+
       const budgetExhausted: boolean =
         state.llmCallCount >= MAX_LLM_CALLS - 1 ||
         state.toolCallCount >= MAX_TOOL_CALLS ||
@@ -425,7 +748,15 @@ export default class ChatAgentRunner {
       if (
         !budgetExhausted &&
         response.toolCalls &&
-        response.toolCalls.length > 0
+        response.toolCalls.length > 0 &&
+        /*
+         * Never execute tool calls from a truncated response: when the
+         * output hit the token cap mid-generation, the parsed calls may have
+         * cut-off arguments — running one (especially a mutation) would act
+         * on mangled input. Fall through to the final-answer path, which
+         * appends the truncation notice instead.
+         */
+        response.stopReason !== "length"
       ) {
         messages.push({
           role: "assistant",
@@ -436,6 +767,11 @@ export default class ChatAgentRunner {
         const pendingApproval: Array<LLMToolCall> = [];
 
         for (const toolCall of response.toolCalls) {
+          // Re-check between tools: a batch can run long and cancel must cut in.
+          if (await this.isRunCancelled(request)) {
+            return { paused: false };
+          }
+
           /*
            * The batch size is model-controlled — budgets must hold inside
            * the batch too, not just between LLM rounds.
@@ -545,6 +881,8 @@ export default class ChatAgentRunner {
       }
 
       finalContent = response.content;
+      finalStopReason = response.stopReason;
+
       break;
     }
 
@@ -552,6 +890,11 @@ export default class ChatAgentRunner {
       finalContent,
       state.citations,
     );
+
+    // Make output truncation visible instead of silently ending mid-sentence.
+    if (finalStopReason === "length") {
+      finalContent = `${finalContent}\n\n_[Answer truncated by the output token limit.]_`;
+    }
 
     if (manifest) {
       manifest.llmCallCount = state.llmCallCount;
@@ -561,7 +904,8 @@ export default class ChatAgentRunner {
 
     /*
      * Scope the finalizing writes by current status so a run the stale-run
-     * sweeper already failed (or a crashed retry) is never flipped back to
+     * sweeper already failed, a crashed retry — or a message the cancel
+     * endpoint already finalized as Cancelled — is never flipped back to
      * Completed underneath the user.
      */
     await AIConversationMessageService.updateOneBy({
@@ -579,7 +923,7 @@ export default class ChatAgentRunner {
       props: { isRoot: true },
     });
 
-    await AIRunService.updateOneBy({
+    const finalizedRunCount: number = await AIRunService.updateOneBy({
       query: {
         _id: request.aiRunId.toString(),
         status: AIRunStatus.Running,
@@ -598,11 +942,30 @@ export default class ChatAgentRunner {
       props: { isRoot: true },
     });
 
+    /*
+     * Zero rows means the run is no longer ours — the cancel endpoint (or the
+     * stale-run sweeper) finalized it while the last LLM round was in flight.
+     * Its owner wrote the final state; emit nothing further.
+     */
+    if (finalizedRunCount === 0) {
+      return { paused: false };
+    }
+
     await this.emitEvent(request, state, {
       eventType: AIRunEventType.RunCompleted,
     });
 
     await this.updateConversationAfterTurn(request);
+
+    /*
+     * Naming the conversation is cosmetic: fire-and-forget, off the critical
+     * path, and a failure never affects the finished turn.
+     */
+    this.generateConversationTitleIfFirstExchange(request).catch(
+      (error: Error) => {
+        logger.error(`AI chat title generation failed: ${error.message}`);
+      },
+    );
 
     return { paused: false };
   }
@@ -663,16 +1026,30 @@ export default class ChatAgentRunner {
     state: TurnState,
     status: AIChatMessageStatus,
   ): Promise<void> {
-    await AIConversationMessageService.updateOneById({
-      id: request.assistantMessageId,
-      data: {
-        citations: state.citations,
-        widgets: state.widgets,
-        toolActions: state.toolActions,
-        status: status,
-      } as never,
-      props: { isRoot: true },
-    });
+    /*
+     * Scope progress writes to rows still in flight so they can never
+     * resurrect a message another path already finalized — completed,
+     * errored, or cancelled by POST /ai-chat/cancel-run while a tool batch was
+     * running. Same protection the finalizing writes use.
+     */
+    for (const inFlightStatus of [
+      AIChatMessageStatus.InProgress,
+      AIChatMessageStatus.WaitingForApproval,
+    ]) {
+      await AIConversationMessageService.updateOneBy({
+        query: {
+          _id: request.assistantMessageId.toString(),
+          status: inFlightStatus,
+        },
+        data: {
+          citations: state.citations,
+          widgets: state.widgets,
+          toolActions: state.toolActions,
+          status: status,
+        } as never,
+        props: { isRoot: true },
+      });
+    }
   }
 
   // Upsert a tool action (mutation) into state, keyed by the tool call id.
@@ -870,13 +1247,18 @@ export default class ChatAgentRunner {
 
   private static async buildInitialMessages(
     request: ChatTurnRequest,
+    pageContext: AIChatPageContext | undefined,
   ): Promise<Array<LLMMessage>> {
     /*
      * History is read with the requesting user's props: the privacy pin
-     * guarantees these are the user's own messages.
+     * guarantees these are the user's own messages. The count (pinned the
+     * same way) tells us how many earlier messages the row cap left behind.
      */
-    const history: Array<AIConversationMessage> =
-      await AIConversationMessageService.findBy({
+    const [history, totalMessageCount]: [
+      Array<AIConversationMessage>,
+      PositiveNumber,
+    ] = await Promise.all([
+      AIConversationMessageService.findBy({
         query: {
           conversationId: request.conversationId,
         },
@@ -884,6 +1266,9 @@ export default class ChatAgentRunner {
           role: true,
           contentInMarkdown: true,
           status: true,
+          citations: true,
+          widgets: true,
+          toolActions: true,
         },
         sort: {
           createdAt: SortOrder.Descending,
@@ -891,7 +1276,40 @@ export default class ChatAgentRunner {
         limit: MAX_HISTORY_MESSAGES,
         skip: 0,
         props: request.props,
-      });
+      }),
+      AIConversationMessageService.countBy({
+        query: {
+          conversationId: request.conversationId,
+        },
+        props: request.props,
+      }),
+    ]);
+
+    const fetchedCount: number = history.length;
+
+    // Oldest first, skipping unfinished/errored assistant rows.
+    const replayable: Array<ReplayedHistoryMessage> = [];
+    for (const message of history.reverse()) {
+      const replayed: ReplayedHistoryMessage | undefined =
+        buildReplayedHistoryMessage(message);
+      if (replayed) {
+        replayable.push(replayed);
+      }
+    }
+
+    const budgeted: HistoryBudgetResult = applyHistoryTokenBudget(
+      replayable,
+      MAX_HISTORY_TOKENS,
+    );
+
+    /*
+     * Everything the model will not see: rows beyond the fetch cap plus rows
+     * the token budget dropped. Skipped in-flight/errored rows are not
+     * counted — they were never replayable in the first place.
+     */
+    const droppedCount: number =
+      Math.max(0, totalMessageCount.toNumber() - fetchedCount) +
+      budgeted.droppedCount;
 
     const messages: Array<LLMMessage> = [
       {
@@ -899,43 +1317,204 @@ export default class ChatAgentRunner {
         content: buildObservabilityChatSystemPrompt({
           currentTime: OneUptimeDate.getCurrentDate(),
           permissionMode: request.permissionMode,
-          pageContext: request.pageContext,
+          pageContext: pageContext,
         }),
       },
     ];
 
-    // Oldest first, skipping unfinished/errored assistant rows.
-    for (const message of history.reverse()) {
-      if (!message.contentInMarkdown) {
-        continue;
-      }
-
-      if (
-        message.role === AIChatMessageRole.Assistant &&
-        message.status !== AIChatMessageStatus.Completed
-      ) {
-        continue;
-      }
-
-      const isUserMessage: boolean = message.role === AIChatMessageRole.User;
-
+    if (droppedCount > 0) {
+      // Tell the model history is partial so it never asserts "you never said X".
       messages.push({
-        role: isUserMessage ? "user" : "assistant",
-        /*
-         * A prior assistant answer carries [C#] citation markers that pointed
-         * at that turn's tool results — citations that no longer exist in this
-         * turn. Left in the replayed history the model echoes and renumbers
-         * them, and this turn's stripFabricatedCitationMarkers then deletes the
-         * unmatched ones, leaving claims that look uncited. Strip the markers
-         * from replayed answers so only freshly minted citations ever appear.
-         */
-        content: isUserMessage
-          ? message.contentInMarkdown
-          : message.contentInMarkdown.replace(/\s?\[C\d+\]/g, ""),
+        role: "user",
+        content: `[Note: ${droppedCount} earlier messages in this conversation were omitted for length.]`,
+      });
+    }
+
+    for (const entry of budgeted.kept) {
+      messages.push({
+        role: entry.role,
+        content: entry.content,
       });
     }
 
     return messages;
+  }
+
+  /*
+   * Cheap cooperative-cancellation probe: a status-only read of the run.
+   * Checked at the top of every agent-loop iteration and before every tool
+   * execution. A probe failure never kills the turn — cancellation is
+   * best-effort, and the status-scoped finalizing writes are the backstop.
+   */
+  private static async isRunCancelled(
+    request: ChatTurnRequest,
+  ): Promise<boolean> {
+    try {
+      const run: AIRun | null = await AIRunService.findOneById({
+        id: request.aiRunId,
+        select: {
+          status: true,
+        },
+        props: { isRoot: true },
+      });
+
+      return run?.status === AIRunStatus.Cancelled;
+    } catch {
+      return false;
+    }
+  }
+
+  /*
+   * Resolve the page context for this turn and keep the conversation's
+   * subject persistent: the first turn that carries a page context pins it to
+   * AIConversation.pageContext (root props — same as the runner's other
+   * conversation updates), and later turns without one fall back to the
+   * pinned subject so "this incident" keeps resolving. Page context is a
+   * hint, so a failure here degrades to whatever the request carried rather
+   * than failing the turn.
+   */
+  private static async resolvePageContext(
+    request: ChatTurnRequest,
+  ): Promise<AIChatPageContext | undefined> {
+    try {
+      const conversation: AIConversation | null =
+        await AIConversationService.findOneById({
+          id: request.conversationId,
+          select: {
+            pageContext: true,
+          },
+          props: { isRoot: true },
+        });
+
+      const persisted: AIChatPageContext | undefined =
+        conversation?.pageContext || undefined;
+
+      if (!request.pageContext) {
+        return persisted;
+      }
+
+      /*
+       * Persist the LATEST explicit context, not just the first: when the
+       * user carries a conversation from incident A to incident B, "this
+       * incident" on later contextless turns must mean B — replaying a
+       * stale first subject would silently flip the conversation back.
+       */
+      const persistedSignature: string = persisted
+        ? `${persisted.type}:${persisted.entityId || ""}`
+        : "";
+      const incomingSignature: string = `${request.pageContext.type}:${
+        request.pageContext.entityId || ""
+      }`;
+
+      if (persistedSignature !== incomingSignature) {
+        await AIConversationService.updateOneById({
+          id: request.conversationId,
+          data: {
+            pageContext: request.pageContext,
+          } as never,
+          props: { isRoot: true },
+        });
+      }
+
+      return request.pageContext;
+    } catch (error) {
+      logger.error(
+        `Failed to resolve AI chat page context: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return request.pageContext;
+    }
+  }
+
+  /*
+   * After the first successful exchange, name the conversation with a small
+   * LLM call. Callers invoke this fire-and-forget: it runs off the turn's
+   * critical path and any failure is logged, never surfaced.
+   */
+  private static async generateConversationTitleIfFirstExchange(
+    request: ChatTurnRequest,
+  ): Promise<void> {
+    const messageCount: PositiveNumber =
+      await AIConversationMessageService.countBy({
+        query: {
+          conversationId: request.conversationId,
+          /*
+           * Count only completed rows: a first turn that errored or was
+           * stopped still leaves rows behind, and counting those would
+           * permanently skip titling once the first SUCCESSFUL exchange
+           * finally lands.
+           */
+          status: AIChatMessageStatus.Completed,
+        },
+        props: { isRoot: true },
+      });
+
+    // Only the first user/assistant exchange earns a generated title.
+    if (messageCount.toNumber() > 2) {
+      return;
+    }
+
+    const firstUserMessage: AIConversationMessage | null =
+      await AIConversationMessageService.findOneBy({
+        query: {
+          conversationId: request.conversationId,
+          role: AIChatMessageRole.User,
+        },
+        select: {
+          contentInMarkdown: true,
+        },
+        sort: {
+          createdAt: SortOrder.Ascending,
+        },
+        props: { isRoot: true },
+      });
+
+    const firstMessageText: string = (firstUserMessage?.contentInMarkdown || "")
+      .substring(0, MAX_TITLE_SOURCE_CHARS)
+      .trim();
+
+    if (!firstMessageText) {
+      return;
+    }
+
+    const response: AILogResponse = await AIService.executeWithLogging({
+      projectId: request.projectId,
+      userId: request.userId,
+      aiRunId: request.aiRunId,
+      llmProviderId: request.llmProviderId,
+      feature: CHAT_TITLE_FEATURE,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You title conversations. Reply with ONLY a concise 3-8 word title for the conversation — no quotes, no trailing punctuation, no explanation.",
+        },
+        {
+          role: "user",
+          content: `Title a conversation that starts with this user message:\n\n${firstMessageText}`,
+        },
+      ],
+      maxTokens: TITLE_MAX_OUTPUT_TOKENS,
+      temperature: TEMPERATURE,
+      // Same privacy rule as the chat itself: LlmLog is project-readable.
+      storeContentPreviews: false,
+    });
+
+    const title: string = sanitizeGeneratedTitle(response.content);
+
+    // An unusable title keeps whatever the conversation already had.
+    if (!title) {
+      return;
+    }
+
+    await AIConversationService.updateOneById({
+      id: request.conversationId,
+      data: {
+        title: title,
+      } as never,
+      props: { isRoot: true },
+    });
   }
 
   private static async heartbeat(
@@ -1022,7 +1601,9 @@ export default class ChatAgentRunner {
      * finalization (e.g. a transient error updating the conversation) must
      * not flip an already-Completed answer to Error. Both non-terminal
      * statuses are covered — InProgress (a live turn) and WaitingForApproval
-     * (a turn that errored while resuming).
+     * (a turn that errored while resuming). Terminal statuses (Completed,
+     * Error, Cancelled) are deliberately excluded: a message the cancel
+     * endpoint finalized is never flipped to Error underneath the user.
      */
     for (const inFlightStatus of [
       AIChatMessageStatus.InProgress,
@@ -1043,11 +1624,13 @@ export default class ChatAgentRunner {
       });
     }
 
+    let failedRunCount: number = 0;
+
     for (const inFlightStatus of [
       AIRunStatus.Running,
       AIRunStatus.WaitingForApproval,
     ]) {
-      await AIRunService.updateOneBy({
+      failedRunCount += await AIRunService.updateOneBy({
         query: {
           _id: request.aiRunId.toString(),
           status: inFlightStatus,
@@ -1061,7 +1644,19 @@ export default class ChatAgentRunner {
         props: { isRoot: true },
       }).catch(() => {
         // best-effort
+        return 0;
       });
+    }
+
+    /*
+     * Emit the terminal event only when this call actually flipped the run.
+     * Zero rows means another writer already finalized it — most commonly
+     * the cancel endpoint, which emitted its own terminal event at the same
+     * sequence; emitting a second one here would make a deliberately stopped
+     * turn render as a provider failure.
+     */
+    if (failedRunCount === 0) {
+      return;
     }
 
     const state: TurnState = this.freshState();

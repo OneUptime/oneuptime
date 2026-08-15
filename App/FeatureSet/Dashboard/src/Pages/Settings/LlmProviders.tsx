@@ -353,9 +353,9 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               stepId: "provider-settings",
               fieldType: FormFieldSchemaType.Text,
               required: false,
-              placeholder: "gpt-4o, claude-3-opus, llama-3.3-70b-versatile",
+              placeholder: "gpt-5.1, claude-sonnet-5, llama-3.3-70b-versatile",
               description:
-                "The specific model or deployment name to use (e.g., gpt-4o for OpenAI, your deployment name for Azure OpenAI, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.",
+                "The specific model or deployment name to use (e.g., gpt-5.1 for OpenAI, claude-sonnet-5 for Anthropic, your deployment name for Azure OpenAI, llama-3.3-70b-versatile for Groq, mistral-large-latest for Mistral). Required for OpenAI-compatible providers — it must match a model your server exposes.",
             },
             {
               field: {

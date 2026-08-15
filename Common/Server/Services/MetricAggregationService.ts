@@ -31,6 +31,25 @@ export interface FacetRequest extends MetricFilters {
   limit?: number | undefined;
 }
 
+export interface MetricsForTraceRequest {
+  projectId: ObjectID;
+  /** Exemplar traceId stamped on Metric rows (bloom-indexed). */
+  traceId: string;
+  /** Optional span-level narrowing within the trace (bloom-indexed). */
+  spanIds?: Array<string> | undefined;
+  limit?: number | undefined;
+}
+
+export interface MetricForTraceItem {
+  name: string;
+  time: string;
+  value: number;
+  spanId: string;
+  /** primaryEntityId of the row, stringified for the wire. */
+  serviceId: string;
+  attributes: JSONObject;
+}
+
 /*
  * Facet aggregation for the Metrics page sidebar. Same shape as
  * TraceAggregationService / LogAggregationService — per-facet GROUP BY on
@@ -61,6 +80,108 @@ export class MetricAggregationService {
     ]);
   private static readonly ATTRIBUTE_KEY_PATTERN: RegExp = /^[a-zA-Z0-9._:/-]+$/;
   private static readonly MAX_FACET_KEY_LENGTH: number = 256;
+  /**
+   * Cap on rows returned by the reverse exemplar lookup. A single trace
+   * rarely stamps more than a handful of exemplars, so hitting this cap
+   * means a pathological instrumentation loop — truncating is safe.
+   */
+  private static readonly MAX_METRICS_FOR_TRACE_LIMIT: number = 500;
+
+  /**
+   * Reverse exemplar lookup: every Metric row whose exemplar traceId
+   * matches the given trace (optionally narrowed to specific spans).
+   * Drives the "Metrics" tab on the trace detail view. traceId and
+   * spanId both carry bloom-filter skip indexes, so the read touches
+   * only the granules the index cannot rule out.
+   */
+  @CaptureSpan()
+  public static async getMetricsForTrace(
+    request: MetricsForTraceRequest,
+  ): Promise<Array<MetricForTraceItem>> {
+    const statement: Statement =
+      MetricAggregationService.buildMetricsForTraceStatement(request);
+
+    const dbResult: Results = await MetricService.executeQuery(statement);
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const rows: Array<JSONObject> = response.data || [];
+
+    return rows.map((row: JSONObject): MetricForTraceItem => {
+      return {
+        name: String(row["name"] || ""),
+        time: String(row["time"] || ""),
+        value: Number(row["value"] || 0),
+        spanId: String(row["spanId"] || ""),
+        serviceId: String(row["serviceId"] || ""),
+        attributes: (row["attributes"] as JSONObject) || {},
+      };
+    });
+  }
+
+  private static buildMetricsForTraceStatement(
+    request: MetricsForTraceRequest,
+  ): Statement {
+    const limit: number = Math.min(
+      request.limit || MetricAggregationService.MAX_METRICS_FOR_TRACE_LIMIT,
+      MetricAggregationService.MAX_METRICS_FOR_TRACE_LIMIT,
+    );
+
+    const statement: Statement = SQL`
+      SELECT
+        name,
+        time,
+        toFloat64(value) AS value,
+        spanId,
+        toString(primaryEntityId) AS serviceId,
+        attributes
+      FROM ${MetricAggregationService.TABLE_NAME}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }}
+        AND traceId = ${{
+          type: TableColumnType.Text,
+          value: request.traceId,
+        }}
+    `;
+
+    if (request.spanIds && request.spanIds.length > 0) {
+      statement.append(
+        SQL` AND spanId IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(request.spanIds),
+        }})`,
+      );
+    }
+
+    /*
+     * Read-side retention filter: rows past their per-service retention
+     * stay in their part until the whole part drops (ttl_only_drop_parts).
+     */
+    statement.append(" AND retentionDate >= now()");
+
+    statement.append(
+      SQL` ORDER BY time ASC LIMIT ${{
+        type: TableColumnType.Number,
+        value: limit,
+      }}`,
+    );
+
+    /*
+     * Cap runtime below the client's 58s request_timeout; 'break' yields
+     * partial rows rather than holding a pool connection.
+     */
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
+    );
+
+    return statement;
+  }
 
   @CaptureSpan()
   public static async getFacetValues(

@@ -31,6 +31,18 @@ export const targetTypeToPageMap: {
     PageMap.SCHEDULED_MAINTENANCE_EVENTS,
   [AIChatCitationTargetType.ScheduledMaintenanceView]:
     PageMap.SCHEDULED_MAINTENANCE_VIEW,
+  [AIChatCitationTargetType.OnCallPolicies]: PageMap.ON_CALL_DUTY_POLICIES,
+  [AIChatCitationTargetType.OnCallPolicyView]: PageMap.ON_CALL_DUTY_POLICY_VIEW,
+  [AIChatCitationTargetType.StatusPages]: PageMap.STATUS_PAGES,
+  [AIChatCitationTargetType.StatusPageView]: PageMap.STATUS_PAGE_VIEW,
+  [AIChatCitationTargetType.Slos]: PageMap.SLOS,
+  [AIChatCitationTargetType.SloView]: PageMap.SLO_VIEW,
+  [AIChatCitationTargetType.Runbooks]: PageMap.RUNBOOKS,
+  [AIChatCitationTargetType.RunbookView]: PageMap.RUNBOOK_VIEW,
+  [AIChatCitationTargetType.Workflows]: PageMap.WORKFLOWS,
+  [AIChatCitationTargetType.WorkflowView]: PageMap.WORKFLOW_VIEW,
+  [AIChatCitationTargetType.Probes]: PageMap.MONITORS_SETTINGS_PROBES,
+  [AIChatCitationTargetType.Teams]: PageMap.TEAMS,
 };
 
 export const targetTypeToIcon: {
@@ -49,6 +61,18 @@ export const targetTypeToIcon: {
   [AIChatCitationTargetType.MonitorView]: IconProp.Cube,
   [AIChatCitationTargetType.ScheduledMaintenanceEvents]: IconProp.Clock,
   [AIChatCitationTargetType.ScheduledMaintenanceView]: IconProp.Clock,
+  [AIChatCitationTargetType.OnCallPolicies]: IconProp.Call,
+  [AIChatCitationTargetType.OnCallPolicyView]: IconProp.Call,
+  [AIChatCitationTargetType.StatusPages]: IconProp.CheckCircle,
+  [AIChatCitationTargetType.StatusPageView]: IconProp.CheckCircle,
+  [AIChatCitationTargetType.Slos]: IconProp.ArrowTrendingUp,
+  [AIChatCitationTargetType.SloView]: IconProp.ArrowTrendingUp,
+  [AIChatCitationTargetType.Runbooks]: IconProp.Book,
+  [AIChatCitationTargetType.RunbookView]: IconProp.Book,
+  [AIChatCitationTargetType.Workflows]: IconProp.Workflow,
+  [AIChatCitationTargetType.WorkflowView]: IconProp.Workflow,
+  [AIChatCitationTargetType.Probes]: IconProp.Signal,
+  [AIChatCitationTargetType.Teams]: IconProp.Team,
 };
 
 export function getRouteForCitationTarget(

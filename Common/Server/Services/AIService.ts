@@ -323,6 +323,12 @@ export interface AILogRequest {
 export interface AILogResponse {
   content: string;
   toolCalls?: Array<LLMToolCall> | undefined;
+  /*
+   * Why generation stopped, straight from the provider: "length" means the
+   * output hit the token cap, so callers can surface truncation instead of
+   * presenting a cut-off answer as complete.
+   */
+  stopReason?: LLMCompletionResponse["stopReason"];
   llmLog: LlmLog;
 }
 
@@ -705,6 +711,7 @@ export class Service extends BaseService {
       return {
         content: response.content,
         toolCalls: response.toolCalls,
+        stopReason: response.stopReason,
         llmLog: savedLog,
       };
     } catch (error) {

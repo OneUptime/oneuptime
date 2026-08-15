@@ -86,6 +86,193 @@ export function redactSensitiveComponentValuesForLogs(
   return loggableValues;
 }
 
+type GetSecretWorkflowVariableValuesFunction = (
+  variables: Array<WorkflowVariable>,
+) => Array<string>;
+
+/**
+ * Build the replacement list once, with overlapping secrets ordered safely.
+ *
+ * A secret of `token` must not run before `token-with-suffix`, or the first
+ * replacement leaves `-with-suffix` behind in the log. Empty values are
+ * excluded because every string contains the empty string.
+ */
+const getSecretWorkflowVariableValues: GetSecretWorkflowVariableValuesFunction =
+  (variables: Array<WorkflowVariable>): Array<string> => {
+    const values: Array<string> = variables
+      .filter((variable: WorkflowVariable) => {
+        const isSecret: unknown = variable.isSecret;
+
+        return (
+          (isSecret === true || isSecret === "true") &&
+          typeof variable.content === "string" &&
+          variable.content.length > 0
+        );
+      })
+      .map((variable: WorkflowVariable) => {
+        return variable.content as string;
+      });
+
+    return Array.from(new Set(values)).sort((first: string, second: string) => {
+      return second.length - first.length;
+    });
+  };
+
+type RedactSecretsFromStringFunction = (
+  value: string,
+  secrets: Array<string>,
+) => string;
+
+const redactSecretsFromString: RedactSecretsFromStringFunction = (
+  value: string,
+  secrets: Array<string>,
+): string => {
+  if (!value || secrets.length === 0) {
+    return value;
+  }
+
+  const escapedSecrets: Array<string> = secrets.map((secret: string) => {
+    return secret.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  });
+
+  /*
+   * One global expression replaces every occurrence without processing the
+   * replacement marker again. The alternatives are longest-first from
+   * getSecretWorkflowVariableValues, which prevents a shorter overlapping
+   * secret from exposing the tail of a longer one.
+   */
+  const secretPattern: RegExp = new RegExp(escapedSecrets.join("|"), "g");
+
+  return value.replace(secretPattern, () => {
+    return WORKFLOW_LOG_REDACTED_VALUE;
+  });
+};
+
+type RedactSecretValuesFunction = (
+  value: JSONValue,
+  secrets: Array<string>,
+  seenObjects?: WeakSet<Record<string, unknown>>,
+) => JSONValue;
+
+/**
+ * Recursively scrub secret-variable contents from structured trace data.
+ * Both keys and values are scrubbed: workflow variables can be substituted
+ * into JSON property names (for example, an HTTP header name), so leaving keys
+ * untouched would still allow the persisted trace to disclose a secret.
+ */
+const redactSecretValues: RedactSecretValuesFunction = (
+  value: JSONValue,
+  secrets: Array<string>,
+  seenObjects: WeakSet<Record<string, unknown>> = new WeakSet<
+    Record<string, unknown>
+  >(),
+): JSONValue => {
+  if (typeof value === "string") {
+    return redactSecretsFromString(value, secrets);
+  }
+
+  if (value === null || value === undefined || typeof value !== "object") {
+    return value;
+  }
+
+  const objectValue: Record<string, unknown> = value as unknown as Record<
+    string,
+    unknown
+  >;
+
+  if (seenObjects.has(objectValue)) {
+    return "[value could not be recorded]";
+  }
+
+  seenObjects.add(objectValue);
+
+  try {
+    if (Array.isArray(value)) {
+      return value.map((item: JSONValue) => {
+        return redactSecretValues(item, secrets, seenObjects);
+      });
+    }
+
+    /*
+     * Database-property values such as URL and ObjectID expose the JSON shape
+     * that will actually be persisted. Redact that shape rather than walking
+     * private implementation fields, and handle Date the same way.
+     */
+    const serializableValue: { toJSON?: (() => unknown) | undefined } =
+      value as unknown as { toJSON?: (() => unknown) | undefined };
+
+    if (typeof serializableValue.toJSON === "function") {
+      try {
+        const serializedValue: unknown = serializableValue.toJSON();
+
+        if (serializedValue !== value) {
+          return redactSecretValues(
+            serializedValue as JSONValue,
+            secrets,
+            seenObjects,
+          );
+        }
+      } catch {
+        // Fall through to enumerable fields.
+      }
+    }
+
+    const redactedObject: JSONObject = {};
+
+    for (const key of Object.keys(value)) {
+      const redactedKey: string = redactSecretsFromString(key, secrets);
+
+      redactedObject[redactedKey] = redactSecretValues(
+        (value as JSONObject)[key] as JSONValue,
+        secrets,
+        seenObjects,
+      );
+    }
+
+    return redactedObject;
+  } finally {
+    seenObjects.delete(objectValue);
+  }
+};
+
+type RedactWorkflowStepTraceFunction = (
+  trace: WorkflowStepTrace,
+  secrets: Array<string>,
+) => WorkflowStepTrace;
+
+/**
+ * Scrub the user-controlled payload fields without rewriting trace structure.
+ *
+ * A secret can be any string, including schema words such as `steps`,
+ * `status`, or `Success`. Recursively redacting the whole trace would rename
+ * those keys or alter bookkeeping values, making a valid persisted trace look
+ * empty or corrupt when it is read back.
+ */
+const redactWorkflowStepTrace: RedactWorkflowStepTraceFunction = (
+  trace: WorkflowStepTrace,
+  secrets: Array<string>,
+): WorkflowStepTrace => {
+  return {
+    ...trace,
+    steps: trace.steps.map((entry: WorkflowStepTraceEntry) => {
+      return {
+        ...entry,
+        argumentValues: redactSecretValues(
+          entry.argumentValues,
+          secrets,
+        ) as JSONObject,
+        returnValues: redactSecretValues(
+          entry.returnValues,
+          secrets,
+        ) as JSONObject,
+        errorMessage: entry.errorMessage
+          ? redactSecretsFromString(entry.errorMessage, secrets)
+          : undefined,
+      };
+    }),
+  };
+};
+
 export function getRemainingWorkflowTimeInMs(
   deadlineAtInMs: number,
   nowInMs: number = Date.now(),
@@ -454,6 +641,7 @@ export default class RunWorkflow {
             returnValues: {},
             executedPort: null,
             startedAt: stepStartedAt,
+            variables: variables,
             errorMessage:
               stepError instanceof Exception
                 ? stepError.getMessage()
@@ -473,6 +661,7 @@ export default class RunWorkflow {
           returnValues: result.returnValues,
           executedPort: result.executePort?.id || null,
           startedAt: stepStartedAt,
+          variables: variables,
           errorMessage: didWorkflowErrorOut
             ? "The component reported an error."
             : undefined,
@@ -688,22 +877,18 @@ export default class RunWorkflow {
   }
 
   public cleanLogs(variables: Array<WorkflowVariable>): void {
-    for (let i: number = 0; i < this.logs.length; i++) {
-      if (!this.logs[i]) {
-        continue;
-      }
+    const secrets: Array<string> = getSecretWorkflowVariableValues(variables);
 
-      for (const variable of variables) {
-        if (variable.isSecret) {
-          if (this.logs[i]!.includes(variable.content!)) {
-            this.logs[i] = this.logs[i]!.replace(
-              variable.content!,
-              "xxxxxxxxxxxxxxx",
-            );
-          }
-        }
-      }
-    }
+    this.logs = this.logs.map((log: string) => {
+      return redactSecretsFromString(log, secrets);
+    });
+
+    /*
+     * This second pass protects traces restored from a suspended run and any
+     * future recording path that bypasses recordStep. It runs immediately
+     * before every normal trace persistence point.
+     */
+    this.stepTrace = redactWorkflowStepTrace(this.stepTrace, secrets);
   }
 
   /**
@@ -733,9 +918,13 @@ export default class RunWorkflow {
     returnValues: JSONObject;
     executedPort: string | null;
     startedAt: Date;
+    variables: Array<WorkflowVariable>;
     errorMessage?: string | undefined;
   }): void {
     const completedAt: Date = OneUptimeDate.getCurrentDate();
+    const secrets: Array<string> = getSecretWorkflowVariableValues(
+      params.variables,
+    );
 
     /*
      * Leaving by the error port is a failure, whether or not anything was
@@ -761,19 +950,27 @@ export default class RunWorkflow {
       completedAt: completedAt.toISOString(),
       durationInMs: completedAt.getTime() - params.startedAt.getTime(),
       argumentValues: truncateTraceValues(
-        redactSensitiveComponentValuesForLogs(
-          params.args,
-          params.node.metadata?.arguments || [],
-        ),
+        redactSecretValues(
+          redactSensitiveComponentValuesForLogs(
+            params.args,
+            params.node.metadata?.arguments || [],
+          ),
+          secrets,
+        ) as JSONObject,
       ),
       returnValues: truncateTraceValues(
-        redactSensitiveComponentValuesForLogs(
-          params.returnValues,
-          params.node.metadata?.returnValues || [],
-        ),
+        redactSecretValues(
+          redactSensitiveComponentValuesForLogs(
+            params.returnValues,
+            params.node.metadata?.returnValues || [],
+          ),
+          secrets,
+        ) as JSONObject,
       ),
       executedPort: params.executedPort,
-      errorMessage: params.errorMessage,
+      errorMessage: params.errorMessage
+        ? redactSecretsFromString(params.errorMessage, secrets)
+        : undefined,
     };
 
     this.stepTrace = appendTraceStep(this.stepTrace, entry);

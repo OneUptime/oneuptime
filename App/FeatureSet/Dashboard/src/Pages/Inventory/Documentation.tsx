@@ -65,14 +65,14 @@ const InventoryDocumentation: FunctionComponent<
       >
         <ul className="space-y-3 text-sm text-gray-600">
           <li>
-            Use search for a name or identity key, then narrow the list with
-            the Type, Source, Last Seen and custom-field facets. Facets stay in
-            the URL, so a filtered view can be bookmarked or shared.
+            Use search for a name or identity key, then narrow the list with the
+            Type, Source, Last Seen and custom-field facets. Facets stay in the
+            URL, so a filtered view can be bookmarked or shared.
           </li>
           <li>
-            Open an item to see its connections and each telemetry signal on
-            its own page. Editing, archiving and deletion also live inside the
-            item instead of in the table row menu.
+            Open an item to see its connections and each telemetry signal on its
+            own page. Editing, archiving and deletion also live inside the item
+            instead of in the table row menu.
           </li>
           <li>
             <AppLink
@@ -83,8 +83,8 @@ const InventoryDocumentation: FunctionComponent<
             >
               Explore the full topology
             </AppLink>{" "}
-            to see service dependencies, infrastructure containment and
-            network links together.
+            to see service dependencies, infrastructure containment and network
+            links together.
           </li>
         </ul>
       </Card>

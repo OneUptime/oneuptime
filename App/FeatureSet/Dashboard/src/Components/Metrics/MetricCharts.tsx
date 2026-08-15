@@ -3,6 +3,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import OneUptimeDate from "Common/Types/Date";
@@ -55,10 +56,18 @@ import Navigation from "Common/UI/Utils/Navigation";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
+import URL from "Common/Types/API/URL";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import HintChip from "./HintChip";
+import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
+import useComponentOutsideClick from "Common/UI/Types/UseComponentOutsideClick";
+import {
+  CrossSignalQueryParams,
+  buildExemplarLogsPivotParams,
+  getExemplarTraceQueryParams,
+} from "../../Utils/MetricsCrossSignalPivot";
 import {
   DictionaryEntryValue,
   DictionaryFilterOperator,
@@ -400,6 +409,21 @@ function dedupeChartId(candidate: string, usedIds: Set<string>): string {
   }
   usedIds.add(unique);
   return unique;
+}
+
+/*
+ * Approximate rendered size of the exemplar pivot menu, used to clamp its
+ * fixed position so a dot near the viewport edge doesn't open a menu that
+ * hangs off-screen.
+ */
+const EXEMPLAR_MENU_WIDTH_PX: number = 192;
+const EXEMPLAR_MENU_HEIGHT_PX: number = 92;
+const EXEMPLAR_MENU_VIEWPORT_MARGIN_PX: number = 8;
+
+// One open exemplar pivot menu: the clicked dot and its anchor position.
+interface ExemplarMenuState {
+  exemplar: ExemplarPoint;
+  position: { x: number; y: number };
 }
 
 // Composite key for exemplar fetch/state: metric name + sanitized filters.
@@ -1335,25 +1359,179 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     }
   }, [startMs, endMs, exemplarTargetsKey]);
 
+  /*
+   * Exemplar pivot menu. Clicking an exemplar dot no longer jumps straight
+   * to the trace view — it opens a small menu offering the trace view (the
+   * previous behavior, same route) or the logs explorer scoped to the
+   * exemplar's trace + the chart window. The chart layer's exemplar
+   * callback carries no mouse event, so the anchor position comes from a
+   * capture-phase document listener that runs before the dot's own click
+   * handler. Surfaces without exemplar dots (public dashboards suppress
+   * the fetch entirely) never render it.
+   */
+  const lastPointerPositionRef: React.MutableRefObject<{
+    x: number;
+    y: number;
+  }> = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const capturePointerPosition: (event: MouseEvent) => void = (
+      event: MouseEvent,
+    ): void => {
+      lastPointerPositionRef.current = { x: event.clientX, y: event.clientY };
+    };
+    document.addEventListener("mousedown", capturePointerPosition, true);
+    return () => {
+      document.removeEventListener("mousedown", capturePointerPosition, true);
+    };
+  }, []);
+
+  const [exemplarMenu, setExemplarMenu] = useState<ExemplarMenuState | null>(
+    null,
+  );
+
+  const {
+    ref: exemplarMenuRef,
+    isComponentVisible: isExemplarMenuVisible,
+    setIsComponentVisible: setIsExemplarMenuVisible,
+  } = useComponentOutsideClick(false);
+
+  const closeExemplarMenu: VoidFunction = useCallback((): void => {
+    setIsExemplarMenuVisible(false);
+    setExemplarMenu(null);
+  }, [setIsExemplarMenuVisible]);
+
   const handleExemplarClick: (exemplar: ExemplarPoint) => void = useCallback(
     (exemplar: ExemplarPoint): void => {
-      const route: Route = RouteUtil.populateRouteParams(
-        RouteMap[PageMap.TRACE_VIEW]!,
-        {
-          modelId: exemplar.traceId,
-        },
-      );
+      const pointer: { x: number; y: number } = lastPointerPositionRef.current;
+      const maxX: number =
+        window.innerWidth -
+        EXEMPLAR_MENU_WIDTH_PX -
+        EXEMPLAR_MENU_VIEWPORT_MARGIN_PX;
+      const maxY: number =
+        window.innerHeight -
+        EXEMPLAR_MENU_HEIGHT_PX -
+        EXEMPLAR_MENU_VIEWPORT_MARGIN_PX;
 
-      if (exemplar.spanId) {
-        const routeWithQuery: Route = new Route(route.toString());
-        routeWithQuery.addQueryParams({ spanId: exemplar.spanId });
-        Navigation.navigate(routeWithQuery);
-      } else {
-        Navigation.navigate(route);
-      }
+      setExemplarMenu({
+        exemplar,
+        position: {
+          x: Math.max(
+            EXEMPLAR_MENU_VIEWPORT_MARGIN_PX,
+            Math.min(pointer.x, maxX),
+          ),
+          y: Math.max(
+            EXEMPLAR_MENU_VIEWPORT_MARGIN_PX,
+            Math.min(pointer.y, maxY),
+          ),
+        },
+      });
+      setIsExemplarMenuVisible(true);
     },
-    [],
+    [setIsExemplarMenuVisible],
   );
+
+  // Focus the first action when the menu opens (menu keyboard pattern).
+  useEffect(() => {
+    if (!exemplarMenu || !isExemplarMenuVisible) {
+      return;
+    }
+    requestAnimationFrame(() => {
+      const menuElement: HTMLElement | null =
+        exemplarMenuRef.current as HTMLElement | null;
+      menuElement?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    });
+  }, [exemplarMenu, isExemplarMenuVisible, exemplarMenuRef]);
+
+  const handleExemplarMenuKeyDown: (
+    event: React.KeyboardEvent<HTMLDivElement>,
+  ) => void = (event: React.KeyboardEvent<HTMLDivElement>): void => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeExemplarMenu();
+      return;
+    }
+
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+      return;
+    }
+
+    event.preventDefault();
+
+    const menuElement: HTMLElement | null =
+      exemplarMenuRef.current as HTMLElement | null;
+
+    if (!menuElement) {
+      return;
+    }
+
+    const items: Array<HTMLElement> = Array.from(
+      menuElement.querySelectorAll<HTMLElement>('[role="menuitem"]'),
+    );
+
+    if (items.length === 0) {
+      return;
+    }
+
+    const activeIndex: number = items.findIndex((item: HTMLElement) => {
+      return item === document.activeElement;
+    });
+    const delta: number = event.key === "ArrowDown" ? 1 : -1;
+    const nextIndex: number =
+      (activeIndex + delta + items.length) % items.length;
+
+    items[nextIndex]?.focus();
+  };
+
+  const navigateToExemplarTrace: (exemplar: ExemplarPoint) => void = (
+    exemplar: ExemplarPoint,
+  ): void => {
+    const route: Route = RouteUtil.populateRouteParams(
+      RouteMap[PageMap.TRACE_VIEW]!,
+      {
+        modelId: exemplar.traceId,
+      },
+    );
+
+    const queryParams: Dictionary<string> =
+      getExemplarTraceQueryParams(exemplar);
+
+    if (Object.keys(queryParams).length > 0) {
+      const routeWithQuery: Route = new Route(route.toString());
+      routeWithQuery.addQueryParams(queryParams);
+      Navigation.navigate(routeWithQuery);
+    } else {
+      Navigation.navigate(route);
+    }
+  };
+
+  const navigateToExemplarLogs: (exemplar: ExemplarPoint) => void = (
+    exemplar: ExemplarPoint,
+  ): void => {
+    const pivot: CrossSignalQueryParams = buildExemplarLogsPivotParams({
+      traceId: exemplar.traceId,
+      exemplarTime: exemplar.x,
+      chartWindow: exemplarWindow,
+    });
+
+    const route: Route = RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS]!);
+    const currentUrl: URL = Navigation.getCurrentURL();
+    const targetUrl: URL = new URL(
+      currentUrl.protocol,
+      currentUrl.hostname,
+      route,
+    );
+
+    for (const paramName of Object.keys(pivot.params)) {
+      targetUrl.addQueryParam(
+        paramName,
+        pivot.params[paramName] as string,
+        true,
+      );
+    }
+
+    Navigation.navigate(targetUrl);
+  };
 
   type GetChartXAxisTypeFunction = () => XAxisType;
 
@@ -2337,11 +2515,46 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <ChartGroup
-      charts={getCharts()}
-      hideCard={props.hideCard}
-      chartCssClass={props.chartCssClass}
-    />
+    <>
+      <ChartGroup
+        charts={getCharts()}
+        hideCard={props.hideCard}
+        chartCssClass={props.chartCssClass}
+      />
+      {exemplarMenu && isExemplarMenuVisible ? (
+        <div
+          ref={exemplarMenuRef}
+          role="menu"
+          aria-orientation="vertical"
+          aria-label="Exemplar actions"
+          className="fixed z-50 w-48 rounded-lg bg-white py-1 shadow-xl ring-1 ring-gray-200 focus:outline-none"
+          style={{
+            left: `${exemplarMenu.position.x}px`,
+            top: `${exemplarMenu.position.y}px`,
+          }}
+          onKeyDown={handleExemplarMenuKeyDown}
+        >
+          <MoreMenuItem
+            key="exemplar-view-trace"
+            icon={IconProp.Layers}
+            text="View trace"
+            onClick={() => {
+              closeExemplarMenu();
+              navigateToExemplarTrace(exemplarMenu.exemplar);
+            }}
+          />
+          <MoreMenuItem
+            key="exemplar-view-logs"
+            icon={IconProp.Logs}
+            text="View logs"
+            onClick={() => {
+              closeExemplarMenu();
+              navigateToExemplarLogs(exemplarMenu.exemplar);
+            }}
+          />
+        </div>
+      ) : null}
+    </>
   );
 };
 

@@ -121,7 +121,7 @@ describe("OtelIngestBaseService inventory retirement wiring", () => {
   ])(
     "typed Host auto-discovery rejects a Kubernetes %s identity",
     async (_label: string, identityKey: string, identityValue: string) => {
-      const createHostSpy = jest
+      const createHostSpy: ReturnType<typeof jest.spyOn> = jest
         .spyOn(HostService, "findOrCreateByHostIdentifier")
         .mockRejectedValue(new Error("typed Host creation must not run"));
 

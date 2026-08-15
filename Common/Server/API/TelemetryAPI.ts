@@ -47,6 +47,7 @@ import ExceptionAggregationService, {
 import MetricAggregationService, {
   FacetValue as MetricFacetValue,
   FacetRequest as MetricFacetRequest,
+  MetricForTraceItem,
 } from "../Services/MetricAggregationService";
 import ProfileAggregationService, {
   FlamegraphRequest,
@@ -61,6 +62,7 @@ import ProfileAggregationService, {
   DiffFlamegraphNode,
   ServiceActivityRequest,
   ServiceActivityItem,
+  TracePresenceResult,
 } from "../Services/ProfileAggregationService";
 import PprofEncoder, {
   PprofProfile,
@@ -445,6 +447,10 @@ router.post(
         ? (body["spanIds"] as Array<string>)
         : undefined;
 
+      const sessionIds: Array<string> | undefined = body["sessionIds"]
+        ? (body["sessionIds"] as Array<string>)
+        : undefined;
+
       const attributes: Record<string, string | Array<string>> | undefined =
         body["attributes"]
           ? (body["attributes"] as Record<string, string | Array<string>>)
@@ -461,6 +467,7 @@ router.post(
         bodySearchText,
         traceIds,
         spanIds,
+        sessionIds,
         attributes,
       };
 
@@ -540,6 +547,10 @@ router.post(
         ? (body["spanIds"] as Array<string>)
         : undefined;
 
+      const sessionIds: Array<string> | undefined = body["sessionIds"]
+        ? (body["sessionIds"] as Array<string>)
+        : undefined;
+
       const attributes: Record<string, string> | undefined = body["attributes"]
         ? (body["attributes"] as Record<string, string>)
         : undefined;
@@ -585,6 +596,7 @@ router.post(
                   bodySearchText,
                   traceIds,
                   spanIds,
+                  sessionIds,
                   attributes,
                 };
                 const values: Array<FacetValue> =
@@ -1625,6 +1637,73 @@ router.post(
   },
 );
 
+// --- Metrics For Trace (reverse exemplar lookup) Endpoint ---
+
+router.post(
+  "/telemetry/metrics/for-trace",
+  ...requireMetricReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const traceId: string | undefined =
+        body["traceId"] && typeof body["traceId"] === "string"
+          ? (body["traceId"] as string)
+          : undefined;
+
+      if (!traceId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("traceId is required"),
+        );
+      }
+
+      const spanIds: Array<string> | undefined = Array.isArray(body["spanIds"])
+        ? (body["spanIds"] as Array<string>).filter(
+            (s: unknown): s is string => {
+              return typeof s === "string" && s.length > 0;
+            },
+          )
+        : undefined;
+
+      const limit: number | undefined =
+        typeof body["limit"] === "number"
+          ? (body["limit"] as number)
+          : undefined;
+
+      const items: Array<MetricForTraceItem> =
+        await MetricAggregationService.getMetricsForTrace({
+          projectId: databaseProps.tenantId,
+          traceId,
+          ...(spanIds !== undefined && spanIds.length > 0 && { spanIds }),
+          ...(limit !== undefined && { limit }),
+        });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        items: items as unknown as JSONObject,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
 // --- Log Analytics Endpoint ---
 
 router.post(
@@ -1705,6 +1784,10 @@ router.post(
         ? (body["spanIds"] as Array<string>)
         : undefined;
 
+      const sessionIds: Array<string> | undefined = body["sessionIds"]
+        ? (body["sessionIds"] as Array<string>)
+        : undefined;
+
       const groupBy: Array<string> | undefined = body["groupBy"]
         ? (body["groupBy"] as Array<string>)
         : undefined;
@@ -1731,6 +1814,7 @@ router.post(
         bodySearchText,
         traceIds,
         spanIds,
+        sessionIds,
         limit,
       };
 
@@ -1823,6 +1907,10 @@ router.post(
         ? (body["spanIds"] as Array<string>)
         : undefined;
 
+      const sessionIds: Array<string> | undefined = body["sessionIds"]
+        ? (body["sessionIds"] as Array<string>)
+        : undefined;
+
       const rows: Array<JSONObject> = await LogAggregationService.getExportLogs(
         {
           projectId: databaseProps.tenantId,
@@ -1834,6 +1922,7 @@ router.post(
           bodySearchText,
           traceIds,
           spanIds,
+          sessionIds,
         },
       );
 
@@ -1927,6 +2016,10 @@ router.post(
 
       const count: number = (body["count"] as number) || 5;
 
+      const sessionIds: Array<string> | undefined = body["sessionIds"]
+        ? (body["sessionIds"] as Array<string>)
+        : undefined;
+
       const result: {
         before: Array<JSONObject>;
         after: Array<JSONObject>;
@@ -1936,6 +2029,7 @@ router.post(
         time: OneUptimeDate.fromString(time),
         logId,
         count,
+        sessionIds,
       });
 
       return Response.sendJsonObjectResponse(req, res, {
@@ -2121,12 +2215,29 @@ router.post(
           )
         : undefined;
 
-      if (!profileId && !startTime) {
+      const traceId: string | undefined =
+        body["traceId"] && typeof body["traceId"] === "string"
+          ? (body["traceId"] as string)
+          : undefined;
+
+      const spanIds: Array<string> | undefined = Array.isArray(body["spanIds"])
+        ? (body["spanIds"] as Array<string>).filter(
+            (s: unknown): s is string => {
+              return typeof s === "string" && s.length > 0;
+            },
+          )
+        : undefined;
+
+      /*
+       * A traceId bounds the read as tightly as a profileId (bloom-indexed
+       * point lookup), so it also satisfies the scoping requirement.
+       */
+      if (!profileId && !startTime && !traceId) {
         return Response.sendErrorResponse(
           req,
           res,
           new BadDataException(
-            "Either profileId or startTime must be provided",
+            "Either profileId, startTime, or traceId must be provided",
           ),
         );
       }
@@ -2140,6 +2251,8 @@ router.post(
         ...(profileType !== undefined && { profileType }),
         ...(profileTypes !== undefined &&
           profileTypes.length > 0 && { profileTypes }),
+        ...(traceId !== undefined && { traceId }),
+        ...(spanIds !== undefined && spanIds.length > 0 && { spanIds }),
       };
 
       const result: FlamegraphResult =
@@ -2183,30 +2296,43 @@ router.post(
         ? (body["profileId"] as string)
         : undefined;
 
+      const traceId: string | undefined =
+        body["traceId"] && typeof body["traceId"] === "string"
+          ? (body["traceId"] as string)
+          : undefined;
+
+      const spanIds: Array<string> | undefined = Array.isArray(body["spanIds"])
+        ? (body["spanIds"] as Array<string>).filter(
+            (s: unknown): s is string => {
+              return typeof s === "string" && s.length > 0;
+            },
+          )
+        : undefined;
+
       /*
-       * Only default the window when no profileId is given: a profile's
-       * samples are bounded by the profile itself, and a defaulted
-       * last-hour window would silently exclude any profile captured
-       * before the window started.
+       * Only default the window when neither profileId nor traceId is
+       * given: a profile's samples are bounded by the profile itself (and
+       * a trace's by the trace), so a defaulted last-hour window would
+       * silently exclude anything captured before the window started.
        */
       const startTime: Date | undefined = body["startTime"]
         ? OneUptimeDate.fromString(body["startTime"] as string)
-        : profileId
+        : profileId || traceId
           ? undefined
           : OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -1);
 
       const endTime: Date | undefined = body["endTime"]
         ? OneUptimeDate.fromString(body["endTime"] as string)
-        : profileId
+        : profileId || traceId
           ? undefined
           : OneUptimeDate.getCurrentDate();
 
-      if (!profileId && !startTime) {
+      if (!profileId && !startTime && !traceId) {
         return Response.sendErrorResponse(
           req,
           res,
           new BadDataException(
-            "Either profileId or startTime must be provided",
+            "Either profileId, startTime, or traceId must be provided",
           ),
         );
       }
@@ -2249,6 +2375,8 @@ router.post(
         ...(profileType !== undefined && { profileType }),
         ...(profileTypes !== undefined &&
           profileTypes.length > 0 && { profileTypes }),
+        ...(traceId !== undefined && { traceId }),
+        ...(spanIds !== undefined && spanIds.length > 0 && { spanIds }),
         ...(limit !== undefined && { limit }),
         ...(sortBy !== undefined && { sortBy }),
       };
@@ -2647,12 +2775,29 @@ router.post(
           )
         : undefined;
 
-      if (!profileId && !startTime) {
+      const traceId: string | undefined =
+        body["traceId"] && typeof body["traceId"] === "string"
+          ? (body["traceId"] as string)
+          : undefined;
+
+      const spanIds: Array<string> | undefined = Array.isArray(body["spanIds"])
+        ? (body["spanIds"] as Array<string>).filter(
+            (s: unknown): s is string => {
+              return typeof s === "string" && s.length > 0;
+            },
+          )
+        : undefined;
+
+      /*
+       * A traceId bounds the read as tightly as a profileId (bloom-indexed
+       * point lookup), so it also satisfies the scoping requirement.
+       */
+      if (!profileId && !startTime && !traceId) {
         return Response.sendErrorResponse(
           req,
           res,
           new BadDataException(
-            "Either profileId or startTime must be provided",
+            "Either profileId, startTime, or traceId must be provided",
           ),
         );
       }
@@ -2668,6 +2813,8 @@ router.post(
         ...(profileType !== undefined && { profileType }),
         ...(profileTypes !== undefined &&
           profileTypes.length > 0 && { profileTypes }),
+        ...(traceId !== undefined && { traceId }),
+        ...(spanIds !== undefined && spanIds.length > 0 && { spanIds }),
       };
 
       const result: FunctionFocusResult =
@@ -2784,6 +2931,67 @@ router.post(
       return Response.sendJsonObjectResponse(req, res, {
         items: result.items as unknown as JSONObject,
         totalSampleCount: result.totalSampleCount,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Profile Trace Presence Endpoint ---
+
+router.post(
+  "/telemetry/profiles/trace-presence",
+  ...requireProfileReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const traceId: string | undefined =
+        body["traceId"] && typeof body["traceId"] === "string"
+          ? (body["traceId"] as string)
+          : undefined;
+
+      if (!traceId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("traceId is required"),
+        );
+      }
+
+      const spanIds: Array<string> | undefined = Array.isArray(body["spanIds"])
+        ? (body["spanIds"] as Array<string>).filter(
+            (s: unknown): s is string => {
+              return typeof s === "string" && s.length > 0;
+            },
+          )
+        : undefined;
+
+      const result: TracePresenceResult =
+        await ProfileAggregationService.getTracePresence({
+          projectId: databaseProps.tenantId,
+          traceId,
+          ...(spanIds !== undefined && spanIds.length > 0 && { spanIds }),
+        });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        sampleCount: result.sampleCount,
       });
     } catch (err: unknown) {
       next(err);

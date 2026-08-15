@@ -243,7 +243,7 @@ describe("the logs viewer seeds its time range from the query's window", () => {
 
   test("the pinned range wins over the rolling default in the seed", () => {
     expect(LOGS_VIEWER).toContain(
-      "pinnedTimeRange || initialUrlState?.timeRange || { range: TimeRange.PAST_ONE_HOUR }",
+      "pinnedTimeRange || props.timeRangeOverride || initialUrlState?.timeRange || { range: TimeRange.PAST_ONE_HOUR }",
     );
   });
 
@@ -315,7 +315,9 @@ describe("the logs viewer seeds its time range from the query's window", () => {
      * A saved view carries its own time range and would move an embedded
      * preview off the moment it is about.
      */
-    expect(LOGS_VIEWER).toContain("if (pinnedTimeRange) { return; }");
+    expect(LOGS_VIEWER).toContain(
+      "if (pinnedTimeRange || props.timeRangeOverride) { return; }",
+    );
   });
 });
 

@@ -42,7 +42,9 @@ describe("Inventory topology discovery", () => {
   test("the documentation explains facets, detail actions and the full map", () => {
     const documentation: string = readPage("Documentation.tsx");
 
-    expect(documentation).toContain("Type, Source, Last Seen and custom-field facets");
+    expect(documentation).toContain(
+      "Type, Source, Last Seen and custom-field facets",
+    );
     expect(documentation).toContain("Editing, archiving and deletion");
     expect(documentation).toContain("Explore the full topology");
     expect(documentation).toContain("RouteMap[PageMap.TOPOLOGY]");

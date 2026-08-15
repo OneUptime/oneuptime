@@ -76,7 +76,14 @@ export interface LLMUsage {
 export interface LLMCompletionResponse {
   content: string;
   toolCalls?: Array<LLMToolCall> | undefined;
-  stopReason?: "stop" | "tool_use" | undefined;
+  /*
+   * "length" means the provider cut generation off at the output-token cap —
+   * the content is incomplete and must not be presented as a finished answer.
+   * Every wire branch maps its provider-specific truncation signal here
+   * (OpenAI-style finish_reason "length", Anthropic stop_reason "max_tokens",
+   * Ollama done_reason "length").
+   */
+  stopReason?: "stop" | "tool_use" | "length" | undefined;
   usage: LLMUsage | undefined;
 }
 
@@ -793,6 +800,24 @@ export default class LLMService {
       this.parseOpenAIToolCalls(message);
 
     /*
+     * finish_reason "length" means the model hit the output-token cap, so the
+     * content (or a trailing tool call) is truncated. It takes precedence over
+     * the tool-call heuristic: executing a cut-off tool call or presenting a
+     * cut-off answer as complete would be wrong either way. Otherwise the
+     * presence of tool calls decides — some OpenAI-compatible servers report
+     * finish_reason "stop" even when they emitted tool calls.
+     */
+    const finishReason: string = (choices[0]!["finish_reason"] as string) || "";
+
+    let stopReason: "stop" | "tool_use" | "length" = "stop";
+
+    if (finishReason === "length") {
+      stopReason = "length";
+    } else if (toolCalls && toolCalls.length > 0) {
+      stopReason = "tool_use";
+    }
+
+    /*
      * OpenAI (and Azure OpenAI) automatically cache a stable prompt prefix
      * once it is long enough and report the cache hit under
      * prompt_tokens_details.cached_tokens — surface it for cost visibility.
@@ -806,7 +831,7 @@ export default class LLMService {
     return {
       content: (message["content"] as string) || "",
       toolCalls: toolCalls,
-      stopReason: toolCalls && toolCalls.length > 0 ? "tool_use" : "stop",
+      stopReason: stopReason,
       usage: usage
         ? {
             promptTokens: usage["prompt_tokens"] as number,
@@ -960,8 +985,14 @@ export default class LLMService {
       [LlmType.Mistral]: "https://api.mistral.ai/v1",
     };
 
+    /*
+     * gpt-5.1 is a reasoning model: REASONING_MODEL_NAME_REGEX matches it, so
+     * the first request already goes out with max_completion_tokens instead
+     * of the legacy max_tokens, and any sampling params it rejects are
+     * dropped by the error-driven retry.
+     */
     const defaultModels: Record<string, string> = {
-      [LlmType.OpenAI]: "gpt-4o",
+      [LlmType.OpenAI]: "gpt-5.1",
       [LlmType.Groq]: "llama-3.3-70b-versatile",
       [LlmType.Mistral]: "mistral-large-latest",
     };
@@ -971,7 +1002,7 @@ export default class LLMService {
       defaultBaseUrls[config.llmType] ||
       "https://api.openai.com/v1";
     const modelName: string =
-      config.modelName || defaultModels[config.llmType] || "gpt-4o";
+      config.modelName || defaultModels[config.llmType] || "gpt-5.1";
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await this.postOpenAIChatCompletion({
         requestUrl: this.buildOpenAICompatibleChatCompletionsUrl(baseUrl),
@@ -1049,6 +1080,15 @@ export default class LLMService {
       );
     }
 
+    /*
+     * On Azure the model field is the DEPLOYMENT NAME the operator chose —
+     * not a model id. Keep the long-standing "gpt-4o" guess for tenants who
+     * left it blank: existing deployments named after the old default keep
+     * working, and Azure deployment names cannot contain dots, so a
+     * "gpt-5.1"-style id would never match a real deployment. The
+     * error-driven parameter adaptation corrects token-param mismatches
+     * either way.
+     */
     const modelName: string = config.modelName || "gpt-4o";
     const requestUrl: string = LLMService.buildAzureOpenAIChatCompletionsUrl(
       config.baseUrl,
@@ -1198,7 +1238,11 @@ export default class LLMService {
     }
 
     const baseUrl: string = config.baseUrl || "https://api.anthropic.com/v1";
-    const modelName: string = config.modelName || "claude-sonnet-4-20250514";
+    /*
+     * Current Sonnet alias. The dated claude-sonnet-4-20250514 ID this used to
+     * default to is deprecated and retires in June 2026.
+     */
+    const modelName: string = config.modelName || "claude-sonnet-5";
 
     let systemMessage: string = "";
 
@@ -1321,10 +1365,25 @@ export default class LLMService {
 
     const usage: JSONObject = jsonData["usage"] as JSONObject;
 
+    /*
+     * Anthropic reports truncation as stop_reason "max_tokens" — surface it as
+     * "length" so callers never present a cut-off answer as complete.
+     */
+    const anthropicStopReason: string =
+      (jsonData["stop_reason"] as string) || "";
+
+    let stopReason: "stop" | "tool_use" | "length" = "stop";
+
+    if (anthropicStopReason === "tool_use") {
+      stopReason = "tool_use";
+    } else if (anthropicStopReason === "max_tokens") {
+      stopReason = "length";
+    }
+
     return {
       content: textContent,
       toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-      stopReason: jsonData["stop_reason"] === "tool_use" ? "tool_use" : "stop",
+      stopReason: stopReason,
       usage: usage
         ? {
             promptTokens: (usage["input_tokens"] as number) || 0,
@@ -1362,7 +1421,8 @@ export default class LLMService {
       throw new BadDataException("Ollama base URL is required");
     }
 
-    const modelName: string = config.modelName || "llama2";
+    // llama2 predates tool calling entirely; llama3.1 is the oldest sane default.
+    const modelName: string = config.modelName || "llama3.1";
 
     const requestData: JSONObject = {
       model: modelName,
@@ -1479,10 +1539,27 @@ export default class LLMService {
     const ollamaCompletionTokens: number =
       (jsonData["eval_count"] as number) || 0;
 
+    /*
+     * Ollama reports why generation ended in done_reason on the final
+     * /api/chat response: "length" when num_predict cut the output off
+     * ("limit" is accepted too for wire-compat variants). Truncation takes
+     * precedence over the tool-call heuristic — a cut-off tool call must not
+     * be executed.
+     */
+    const doneReason: string = (jsonData["done_reason"] as string) || "";
+
+    let stopReason: "stop" | "tool_use" | "length" = "stop";
+
+    if (doneReason === "length" || doneReason === "limit") {
+      stopReason = "length";
+    } else if (toolCalls && toolCalls.length > 0) {
+      stopReason = "tool_use";
+    }
+
     return {
       content: (message["content"] as string) || "",
       toolCalls: toolCalls,
-      stopReason: toolCalls && toolCalls.length > 0 ? "tool_use" : "stop",
+      stopReason: stopReason,
       usage:
         ollamaPromptTokens || ollamaCompletionTokens
           ? {

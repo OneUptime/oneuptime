@@ -22,6 +22,8 @@ describe("MicrosoftTeamsUtil.isValidMicrosoftTeamsIncomingWebhookUrl", () => {
       "https://outlook.office.com/webhook/abc123/IncomingWebhook/def456",
       "https://outlook.office365.com/webhook/abc123/IncomingWebhook/def456",
       "https://contoso.webhook.office.com/webhookb2/abc-123/IncomingWebhook/def",
+      "https://prod-42.westeurope.logic.azure.com:443/workflows/abc/triggers/manual/paths/invoke?api-version=2016-10-01&sig=secret",
+      "https://default-1234.0a.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/abc/triggers/manual/paths/invoke?api-version=1&sig=secret",
     ];
 
     test.each(validUrls)("accepts %s", (url: string) => {
@@ -59,6 +61,10 @@ describe("MicrosoftTeamsUtil.isValidMicrosoftTeamsIncomingWebhookUrl", () => {
       "https://evil-office.com/webhook",
       "https://attacker.tld/webhook?host=office.com",
       "https://outlook.office.com.evil.tld/webhook",
+      "https://prod-42.westeurope.logic.azure.com.attacker.tld/workflows/abc",
+      "https://evil-logic.azure.com.attacker.tld/workflows/abc",
+      "https://default-1234.0a.environment.api.powerplatform.com.attacker.tld/powerautomate/automations/direct/workflows/abc",
+      "https://evil-environment.api.powerplatform.com/powerautomate/automations/direct/workflows/abc",
     ];
 
     test.each(lookAlikeUrls)("rejects %s", (url: string) => {

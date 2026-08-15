@@ -17,6 +17,26 @@ import { QueryIncidentsTool, SearchIncidentsTool } from "./IncidentTools";
 import { QueryAlertsTool } from "./AlertTools";
 import { QueryMonitorsTool } from "./MonitorTools";
 import { QueryScheduledMaintenanceTool } from "./ScheduledMaintenanceTools";
+import {
+  GetOnCallStatusTool,
+  QueryOnCallPagesTool,
+  QueryOnCallPoliciesTool,
+} from "./OnCallTools";
+import {
+  QueryStatusPageAnnouncementsTool,
+  QueryStatusPagesTool,
+} from "./StatusPageTools";
+import { QuerySlosTool } from "./SloTools";
+import { QueryRunbooksTool } from "./RunbookTools";
+import { GetAlertTimelineTool, GetIncidentTimelineTool } from "./TimelineTools";
+import {
+  GetAIInvestigationTool,
+  QueryAIInsightsTool,
+  StartInvestigationTool,
+} from "./AIMetaTools";
+import { QueryProbesTool, QueryWorkflowsTool } from "./WorkflowProbeTools";
+import { QueryTeamsTool } from "./TeamTools";
+import { CreateAlertNoteTool, CreateIncidentNoteTool } from "./NoteWriteTools";
 import { TopExceptionsTool } from "./ExceptionTools";
 import { LogHistogramTool, SearchLogsTool } from "./LogTools";
 import { RecentChangesTool } from "./RecentChangesTools";
@@ -72,9 +92,33 @@ export default class AIToolbox {
     LookupContextTool,
     QueryIncidentsTool,
     SearchIncidentsTool,
+    GetIncidentTimelineTool,
+    GetAlertTimelineTool,
     QueryAlertsTool,
     QueryMonitorsTool,
     QueryScheduledMaintenanceTool,
+    /*
+     * Platform reads: the operational surface an on-call product exists to
+     * answer questions about — who is on call, what does the runbook say,
+     * what do customers see, is the error budget burning.
+     */
+    QueryOnCallPoliciesTool,
+    GetOnCallStatusTool,
+    QueryOnCallPagesTool,
+    QueryStatusPagesTool,
+    QueryStatusPageAnnouncementsTool,
+    QuerySlosTool,
+    QueryRunbooksTool,
+    QueryWorkflowsTool,
+    QueryProbesTool,
+    QueryTeamsTool,
+    /*
+     * The AI's own prior work: autonomous investigation results and insight
+     * findings. Chat reads these first instead of re-deriving a root cause
+     * the platform already posted.
+     */
+    GetAIInvestigationTool,
+    QueryAIInsightsTool,
     TopExceptionsTool,
     SearchLogsTool,
     LogHistogramTool,
@@ -102,6 +146,10 @@ export default class AIToolbox {
     RunRunbookTool,
     PostIncidentStatusUpdateTool,
     ChangeIncidentSeverityTool,
+    // Private notes (never notify status-page subscribers) + investigations.
+    CreateIncidentNoteTool,
+    CreateAlertNoteTool,
+    StartInvestigationTool,
     /*
      * Code writes (mutations). These never touch the default or a protected
      * branch — every chat-authored commit lands somewhere a human must still

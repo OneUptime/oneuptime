@@ -78,7 +78,7 @@ const resolveRunbookUpdatePermissions: () => Array<Permission> =
 export const PageOnCallPolicyTool: ObservabilityTool = {
   name: "page_on_call_policy",
   description:
-    "Page (trigger) an on-call duty policy so its responders are notified about an incident. Provide the on-call policy id and the incident id it relates to. Use query tools to find the on-call policy id and incident id first. This notifies real people — only do it when clearly asked.",
+    "Page (trigger) an on-call duty policy so its responders are notified about an incident. Provide the on-call policy id and the incident id it relates to. Find the policy id with query_on_call_policies and the incident id with query_incidents first. This notifies real people — only do it when clearly asked.",
   inputSchema: {
     type: "object",
     properties: {
@@ -200,7 +200,7 @@ export const PageOnCallPolicyTool: ObservabilityTool = {
 export const RunRunbookTool: ObservabilityTool = {
   name: "run_runbook",
   description:
-    "Start (execute) a runbook by its id, optionally linked to an incident. Use this to run a predefined remediation or diagnostic automation. Find the runbook id with query tools first.",
+    "Start (execute) a runbook by its id, optionally linked to an incident. Use this to run a predefined remediation or diagnostic automation. Find the runbook id (and read its steps) with query_runbooks first.",
   inputSchema: {
     type: "object",
     properties: {

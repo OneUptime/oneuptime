@@ -96,7 +96,10 @@ describe("retireEntityRegistryIdentitiesBestEffort", () => {
   });
 
   test("preserves the discovered Host when the same canonical typed Host exists", async () => {
-    const findWithSameTextSpy = jest.spyOn(QueryHelper, "findWithSameText");
+    const findWithSameTextSpy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      QueryHelper,
+      "findWithSameText",
+    );
     (HostService.findOneBy as jest.Mock).mockResolvedValueOnce({
       _id: ObjectID.generate().toString(),
     });
@@ -357,7 +360,9 @@ describe("retireEntityRegistryIdentitiesBestEffort", () => {
       return (call[0] as { query: Record<string, unknown> }).query;
     });
     expect(
-      queries.map((query: Record<string, unknown>) => query["projectId"]),
+      queries.map((query: Record<string, unknown>) => {
+        return query["projectId"];
+      }),
     ).toEqual([PROJECT_A, PROJECT_B]);
   });
 

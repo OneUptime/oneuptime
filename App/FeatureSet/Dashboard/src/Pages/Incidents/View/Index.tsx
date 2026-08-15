@@ -46,6 +46,7 @@ import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
 import TelemetrySnapshotWindowAlert from "../../../Components/Telemetry/TelemetrySnapshotWindowAlert";
+import TelemetryCompanionSignalTabs from "../../../Components/Telemetry/TelemetryCompanionSignalTabs";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import IconProp from "Common/Types/Icon/IconProp";
 import IncidentFeedElement from "../../../Components/Incident/IncidentFeed";
@@ -55,6 +56,7 @@ import RemediationSuggestionCard from "../../../Components/AutoRemediation/Remed
 import IncidentAffectedResources from "./AffectedResources";
 import MonitorSummarySnapshotCard from "../../../Components/Monitor/MonitorSummarySnapshotCard";
 import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentMemberRoleAssignment";
+import AskAIButton from "../../../Components/AIChat/AskAIButton";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
@@ -475,6 +477,9 @@ const IncidentView: FunctionComponent<
             await fetchData();
           }}
         />
+        <div className="mt-3 flex justify-end">
+          <AskAIButton label="Ask AI about this incident" />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
@@ -506,78 +511,90 @@ const IncidentView: FunctionComponent<
             />
           </div>
 
-          {telemetryQuery &&
-            telemetryQuery.telemetryType === TelemetryType.Log &&
-            telemetryQuery.telemetryQuery && (
-              <div>
-                <Card
-                  title={"Logs"}
-                  description={"Logs for this incident."}
-                  rightElement={snapshotWindowAlert}
-                >
-                  <DashboardLogsViewer
-                    id="logs-preview"
-                    logQuery={telemetryQuery.telemetryQuery as Query<Log>}
-                    limit={10}
-                    noLogsMessage="No logs found"
-                  />
-                </Card>
-              </div>
-            )}
+          {telemetryQuery && (
+            <TelemetryCompanionSignalTabs
+              telemetryQuery={telemetryQuery}
+              snapshotWindow={telemetrySnapshotWindow}
+              snapshotWindowAlert={snapshotWindowAlert}
+              eventNoun="incident"
+              primarySignalElement={
+                <Fragment>
+                  {telemetryQuery.telemetryType === TelemetryType.Log &&
+                    telemetryQuery.telemetryQuery && (
+                      <div>
+                        <Card
+                          title={"Logs"}
+                          description={"Logs for this incident."}
+                          rightElement={snapshotWindowAlert}
+                        >
+                          <DashboardLogsViewer
+                            id="logs-preview"
+                            logQuery={
+                              telemetryQuery.telemetryQuery as Query<Log>
+                            }
+                            limit={10}
+                            noLogsMessage="No logs found"
+                          />
+                        </Card>
+                      </div>
+                    )}
 
-          {telemetryQuery &&
-            telemetryQuery.telemetryType === TelemetryType.Trace &&
-            telemetryQuery.telemetryQuery && (
-              <div>
-                <TraceTable
-                  spanQuery={telemetryQuery.telemetryQuery as Query<Span>}
-                  rightElement={snapshotWindowAlert}
-                  // Pinned to the snapshot; a URL-restored filter must not replace it.
-                  disableUrlState={true}
-                />
-              </div>
-            )}
+                  {telemetryQuery.telemetryType === TelemetryType.Trace &&
+                    telemetryQuery.telemetryQuery && (
+                      <div>
+                        <TraceTable
+                          spanQuery={
+                            telemetryQuery.telemetryQuery as Query<Span>
+                          }
+                          rightElement={snapshotWindowAlert}
+                          // Pinned to the snapshot; a URL-restored filter must not replace it.
+                          disableUrlState={true}
+                        />
+                      </div>
+                    )}
 
-          {telemetryQuery &&
-            telemetryQuery.telemetryType === TelemetryType.Metric &&
-            telemetryQuery.metricViewData && (
-              <Card
-                title={"Metrics"}
-                description={
-                  seriesSummary
-                    ? `Metrics related to this incident, scoped to the affected series (${seriesSummary}).`
-                    : "Metrics related to this incident."
-                }
-                rightElement={snapshotWindowAlert}
-              >
-                <MetricView
-                  data={telemetryQuery.metricViewData}
-                  hideQueryElements={true}
-                  chartCssClass="rounded-lg border border-gray-200 shadow-sm"
-                  hideStartAndEndDate={true}
-                  // Read-only host: onChange is a no-op, so zoom can't apply.
-                  disableChartZoom={true}
-                  onChange={(_data: MetricViewData) => {
-                    // do nothing!
-                  }}
-                />
-              </Card>
-            )}
+                  {telemetryQuery.telemetryType === TelemetryType.Metric &&
+                    telemetryQuery.metricViewData && (
+                      <Card
+                        title={"Metrics"}
+                        description={
+                          seriesSummary
+                            ? `Metrics related to this incident, scoped to the affected series (${seriesSummary}).`
+                            : "Metrics related to this incident."
+                        }
+                        rightElement={snapshotWindowAlert}
+                      >
+                        <MetricView
+                          data={telemetryQuery.metricViewData}
+                          hideQueryElements={true}
+                          chartCssClass="rounded-lg border border-gray-200 shadow-sm"
+                          hideStartAndEndDate={true}
+                          // Read-only host: onChange is a no-op, so zoom can't apply.
+                          disableChartZoom={true}
+                          onChange={(_data: MetricViewData) => {
+                            // do nothing!
+                          }}
+                        />
+                      </Card>
+                    )}
 
-          {telemetryQuery &&
-            telemetryQuery.telemetryType === TelemetryType.Exception &&
-            telemetryQuery.telemetryQuery && (
-              <ExceptionInstanceTable
-                title="Exceptions"
-                description="Exceptions related to this incident."
-                query={
-                  telemetryQuery.telemetryQuery as Query<ExceptionInstance>
-                }
-                rightElement={snapshotWindowAlert}
-                // Pinned to the snapshot; a URL-restored filter must not replace it.
-                disableUrlState={true}
-              />
-            )}
+                  {telemetryQuery.telemetryType === TelemetryType.Exception &&
+                    telemetryQuery.telemetryQuery && (
+                      <ExceptionInstanceTable
+                        title="Exceptions"
+                        description="Exceptions related to this incident."
+                        query={
+                          telemetryQuery.telemetryQuery as Query<ExceptionInstance>
+                        }
+                        rightElement={snapshotWindowAlert}
+                        // Pinned to the snapshot; a URL-restored filter must not replace it.
+                        disableUrlState={true}
+                      />
+                    )}
+                </Fragment>
+              }
+            />
+          )}
 
           <MonitorSummarySnapshotCard incidentId={modelId} />
 

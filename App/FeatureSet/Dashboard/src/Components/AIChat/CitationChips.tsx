@@ -1,56 +1,20 @@
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import Route from "Common/Types/API/Route";
-import {
-  AIChatCitation,
-  AIChatCitationTargetType,
-} from "Common/Types/AI/AIChatTypes";
+import { AIChatCitation } from "Common/Types/AI/AIChatTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
-import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
+import {
+  navigateToCitationTarget,
+  targetTypeToIcon,
+} from "./CitationTargetNav";
 
 export interface ComponentProps {
   citations: Array<AIChatCitation>;
 }
 
-const targetTypeToPageMap: { [key in AIChatCitationTargetType]: PageMap } = {
-  [AIChatCitationTargetType.Logs]: PageMap.LOGS,
-  [AIChatCitationTargetType.Traces]: PageMap.TRACES,
-  [AIChatCitationTargetType.TraceView]: PageMap.TRACE_VIEW,
-  [AIChatCitationTargetType.Metrics]: PageMap.METRICS,
-  [AIChatCitationTargetType.Exceptions]: PageMap.EXCEPTIONS,
-  [AIChatCitationTargetType.Incidents]: PageMap.INCIDENTS,
-  [AIChatCitationTargetType.IncidentView]: PageMap.INCIDENT_VIEW,
-  [AIChatCitationTargetType.Alerts]: PageMap.ALERTS,
-  [AIChatCitationTargetType.AlertView]: PageMap.ALERT_VIEW,
-  [AIChatCitationTargetType.Monitors]: PageMap.MONITORS,
-  [AIChatCitationTargetType.MonitorView]: PageMap.MONITOR_VIEW,
-  [AIChatCitationTargetType.ScheduledMaintenanceEvents]:
-    PageMap.SCHEDULED_MAINTENANCE_EVENTS,
-  [AIChatCitationTargetType.ScheduledMaintenanceView]:
-    PageMap.SCHEDULED_MAINTENANCE_VIEW,
-};
-
-const targetTypeToIcon: { [key in AIChatCitationTargetType]: IconProp } = {
-  [AIChatCitationTargetType.Logs]: IconProp.Logs,
-  [AIChatCitationTargetType.Traces]: IconProp.Activity,
-  [AIChatCitationTargetType.TraceView]: IconProp.Activity,
-  [AIChatCitationTargetType.Metrics]: IconProp.ChartBar,
-  [AIChatCitationTargetType.Exceptions]: IconProp.Error,
-  [AIChatCitationTargetType.Incidents]: IconProp.Alert,
-  [AIChatCitationTargetType.IncidentView]: IconProp.Alert,
-  [AIChatCitationTargetType.Alerts]: IconProp.Bell,
-  [AIChatCitationTargetType.AlertView]: IconProp.Bell,
-  [AIChatCitationTargetType.Monitors]: IconProp.Cube,
-  [AIChatCitationTargetType.MonitorView]: IconProp.Cube,
-  [AIChatCitationTargetType.ScheduledMaintenanceEvents]: IconProp.Clock,
-  [AIChatCitationTargetType.ScheduledMaintenanceView]: IconProp.Clock,
-};
-
 /*
  * Server-minted citation chips. A chip with rowCount 0 is proof of absence —
- * the query ran and found nothing — and renders muted.
+ * the query ran and found nothing — and renders muted. Target-to-route and
+ * target-to-icon mapping is shared with the widgets via CitationTargetNav.
  */
 const CitationChips: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -62,30 +26,7 @@ const CitationChips: FunctionComponent<ComponentProps> = (
   const navigateToCitation: (citation: AIChatCitation) => void = (
     citation: AIChatCitation,
   ): void => {
-    if (!citation.target) {
-      return;
-    }
-
-    const pageMapKey: PageMap | undefined =
-      targetTypeToPageMap[citation.target.type];
-
-    const route: Route | undefined = pageMapKey
-      ? (RouteMap[pageMapKey] as Route)
-      : undefined;
-
-    if (!route) {
-      return;
-    }
-
-    const params: { [key: string]: string } = citation.target.params || {};
-    const firstParamValue: string | undefined = Object.values(params)[0];
-
-    Navigation.navigate(
-      RouteUtil.populateRouteParams(
-        route,
-        firstParamValue ? { modelId: firstParamValue } : undefined,
-      ),
-    );
+    navigateToCitationTarget(citation.target);
   };
 
   return (

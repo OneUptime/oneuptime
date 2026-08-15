@@ -3,8 +3,12 @@ import Log from "../../../../Models/AnalyticsModels/Log";
 import Service from "../../../../Models/DatabaseModels/Service";
 import Dictionary from "../../../../Types/Dictionary";
 import OneUptimeDate from "../../../../Types/Date";
+import Route from "../../../../Types/API/Route";
+import URL from "../../../../Types/API/URL";
 import CopyTextButton from "../../CopyTextButton/CopyTextButton";
 import ComponentLoader from "../../ComponentLoader/ComponentLoader";
+import Link from "../../Link/Link";
+import Navigation from "../../../Utils/Navigation";
 import SeverityBadge from "./SeverityBadge";
 import { getSeverityTheme, SeverityTheme } from "./severityTheme";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
@@ -29,6 +33,20 @@ export interface LogsTableProps {
   onSortChange?: (field: LogsTableSortField) => void;
   selectedColumns?: Array<string> | undefined;
   focusedRowIndex?: number | undefined;
+  getTraceRoute?:
+    | ((traceId: string, log: Log) => Route | URL | undefined)
+    | undefined;
+  getSpanRoute?:
+    | ((spanId: string, log: Log) => Route | URL | undefined)
+    | undefined;
+  /*
+   * Async fallback for spanId-only rows: the sync builder needs the trace id
+   * the row doesn't carry, so the destination is resolved on click (one Span
+   * lookup) rather than per-row.
+   */
+  resolveSpanRoute?:
+    | ((spanId: string, log: Log) => Promise<Route | URL | undefined>)
+    | undefined;
 }
 
 export const resolveLogIdentifier: (log: Log, index: number) => string = (
@@ -115,6 +133,132 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
     }
 
     return `${base} text-gray-300`;
+  };
+
+  const openSpanLazily: (spanId: string, log: Log) => void = (
+    spanId: string,
+    log: Log,
+  ): void => {
+    const resolver:
+      | ((spanId: string, log: Log) => Promise<Route | URL | undefined>)
+      | undefined = props.resolveSpanRoute;
+
+    if (!resolver) {
+      return;
+    }
+
+    const navigateToSpan: () => Promise<void> = async (): Promise<void> => {
+      try {
+        const route: Route | URL | undefined = await resolver(spanId, log);
+
+        if (route) {
+          Navigation.navigate(route);
+        }
+      } catch {
+        // Resolution failed — leave the user where they are.
+      }
+    };
+
+    void navigateToSpan();
+  };
+
+  const linkClassName: string =
+    "font-mono text-indigo-600 hover:text-indigo-500 hover:underline";
+
+  /*
+   * Every rendered trace id is a link when the host supplied a route builder;
+   * plain text otherwise. Wrapped so a click follows the link without also
+   * toggling the row's expansion.
+   */
+  const renderTraceIdValue: (traceId: string, log: Log) => ReactElement = (
+    traceId: string,
+    log: Log,
+  ): ReactElement => {
+    const traceRoute: Route | URL | undefined = props.getTraceRoute
+      ? props.getTraceRoute(traceId, log)
+      : undefined;
+
+    if (!traceRoute) {
+      return (
+        <span className="font-mono" title={traceId}>
+          {traceId}
+        </span>
+      );
+    }
+
+    return (
+      <span
+        onClick={(event: React.MouseEvent<HTMLSpanElement>) => {
+          event.stopPropagation();
+        }}
+      >
+        <Link
+          to={traceRoute}
+          className={linkClassName}
+          title={`View trace ${traceId}`}
+        >
+          {traceId}
+        </Link>
+      </span>
+    );
+  };
+
+  /*
+   * Span ids link through the sync builder when it can produce a route (the
+   * row carries a trace id), fall back to click-time resolution for
+   * spanId-only rows, and degrade to plain text when neither is available.
+   */
+  const renderSpanIdValue: (spanId: string, log: Log) => ReactElement = (
+    spanId: string,
+    log: Log,
+  ): ReactElement => {
+    const spanRoute: Route | URL | undefined = props.getSpanRoute
+      ? props.getSpanRoute(spanId, log)
+      : undefined;
+
+    if (spanRoute) {
+      return (
+        <span
+          onClick={(event: React.MouseEvent<HTMLSpanElement>) => {
+            event.stopPropagation();
+          }}
+        >
+          <Link
+            to={spanRoute}
+            className={linkClassName}
+            title={`View span ${spanId}`}
+          >
+            {spanId}
+          </Link>
+        </span>
+      );
+    }
+
+    if (props.resolveSpanRoute) {
+      return (
+        <span
+          onClick={(event: React.MouseEvent<HTMLSpanElement>) => {
+            event.stopPropagation();
+          }}
+        >
+          <Link
+            onClick={() => {
+              openSpanLazily(spanId, log);
+            }}
+            className={linkClassName}
+            title={`View span ${spanId}`}
+          >
+            {spanId}
+          </Link>
+        </span>
+      );
+    }
+
+    return (
+      <span className="font-mono" title={spanId}>
+        {spanId}
+      </span>
+    );
   };
 
   const getHeaderCell: (columnId: string) => ReactElement = (
@@ -326,10 +470,15 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                                   (spanId && !showSpanColumn)) && (
                                   <div className="flex flex-wrap gap-3 text-[11px] tracking-wide text-gray-400">
                                     {traceId && !showTraceColumn && (
-                                      <span>Trace: {traceId}</span>
+                                      <span>
+                                        Trace:{" "}
+                                        {renderTraceIdValue(traceId, log)}
+                                      </span>
                                     )}
                                     {spanId && !showSpanColumn && (
-                                      <span>Span: {spanId}</span>
+                                      <span>
+                                        Span: {renderSpanIdValue(spanId, log)}
+                                      </span>
                                     )}
                                   </div>
                                 )}
@@ -353,11 +502,8 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                             className="max-w-xs px-4 py-2 text-sm text-gray-600"
                             key={columnId}
                           >
-                            <span
-                              className="block truncate font-mono"
-                              title={traceId}
-                            >
-                              {traceId || "-"}
+                            <span className="block truncate font-mono">
+                              {traceId ? renderTraceIdValue(traceId, log) : "-"}
                             </span>
                           </td>
                         );
@@ -369,11 +515,8 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                             className="max-w-xs px-4 py-2 text-sm text-gray-600"
                             key={columnId}
                           >
-                            <span
-                              className="block truncate font-mono"
-                              title={spanId}
-                            >
-                              {spanId || "-"}
+                            <span className="block truncate font-mono">
+                              {spanId ? renderSpanIdValue(spanId, log) : "-"}
                             </span>
                           </td>
                         );

@@ -1,11 +1,16 @@
 import LogAggregationService, {
+  AnalyticsRequest,
   FacetRequest,
+  HistogramRequest,
 } from "../../../Server/Services/LogAggregationService";
+import LogDatabaseService from "../../../Server/Services/LogService";
+import { Results } from "../../../Server/Services/AnalyticsDatabaseService";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableName";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
-import { describe, expect, test } from "@jest/globals";
+import { describe, expect, test, afterEach, jest } from "@jest/globals";
 
 describe("LogAggregationService", () => {
   const defaultRequest: FacetRequest = {
@@ -131,5 +136,234 @@ describe("LogAggregationService", () => {
       "eu-west-1",
       "us-east-1",
     ]);
+  });
+});
+
+describe("LogAggregationService sessionIds filter", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const projectId: ObjectID = ObjectID.generate();
+  const startTime: Date = new Date("2026-03-01T00:00:00.000Z");
+  const endTime: Date = new Date("2026-03-12T00:00:00.000Z");
+
+  const SESSION_IN_PREDICATE: RegExp =
+    /AND sessionId IN \(\{p\d+:Array\(String\)\}\)/;
+
+  const buildHistogramStatement: (
+    overrides?: Partial<HistogramRequest>,
+  ) => Statement = (overrides: Partial<HistogramRequest> = {}): Statement => {
+    return (LogAggregationService as any).buildHistogramStatement({
+      projectId,
+      startTime,
+      endTime,
+      bucketSizeInMinutes: 60,
+      ...overrides,
+    });
+  };
+
+  const analyticsRequest: (
+    overrides: Partial<AnalyticsRequest>,
+  ) => AnalyticsRequest = (
+    overrides: Partial<AnalyticsRequest>,
+  ): AnalyticsRequest => {
+    return {
+      projectId,
+      startTime,
+      endTime,
+      bucketSizeInMinutes: 60,
+      chartType: "timeseries",
+      aggregation: "count",
+      ...overrides,
+    };
+  };
+
+  /*
+   * Stub the ClickHouse boundary while capturing every Statement handed
+   * to executeQuery, so the async read paths (export, context) can be
+   * exercised without a database.
+   */
+  const stubAndCaptureStatements: (
+    rows: Array<JSONObject>,
+  ) => Array<Statement> = (rows: Array<JSONObject>): Array<Statement> => {
+    const captured: Array<Statement> = [];
+    const fakeResult: Results = {
+      json: () => {
+        return Promise.resolve({ data: rows });
+      },
+    } as unknown as Results;
+
+    jest
+      .spyOn(LogDatabaseService, "executeQuery")
+      .mockImplementation((statement: Statement | string): Promise<Results> => {
+        captured.push(statement as Statement);
+        return Promise.resolve(fakeResult);
+      });
+
+    return captured;
+  };
+
+  test("histogram statement threads sessionIds as a parameterized IN predicate", () => {
+    const statement: Statement = buildHistogramStatement({
+      sessionIds: ["sess-1", "sess-2"],
+    });
+
+    expect(statement.query).toMatch(SESSION_IN_PREDICATE);
+    expect(Object.values(statement.query_params)).toContainEqual([
+      "sess-1",
+      "sess-2",
+    ]);
+  });
+
+  test("histogram statement omits the predicate when sessionIds is absent or empty", () => {
+    expect(buildHistogramStatement().query).not.toContain("sessionId");
+    expect(buildHistogramStatement({ sessionIds: [] }).query).not.toContain(
+      "sessionId",
+    );
+  });
+
+  test("sessionIds combine with traceIds and spanIds", () => {
+    const statement: Statement = buildHistogramStatement({
+      traceIds: ["trace-1"],
+      spanIds: ["span-1"],
+      sessionIds: ["sess-1"],
+    });
+
+    expect(statement.query).toMatch(
+      /AND traceId IN \(\{p\d+:Array\(String\)\}\)/,
+    );
+    expect(statement.query).toMatch(
+      /AND spanId IN \(\{p\d+:Array\(String\)\}\)/,
+    );
+    expect(statement.query).toMatch(SESSION_IN_PREDICATE);
+  });
+
+  test("injection-shaped session ids stay out of the query text", () => {
+    const evilSessionId: string = "') OR 1=1; DROP TABLE Log; --";
+    const statement: Statement = buildHistogramStatement({
+      sessionIds: [evilSessionId],
+    });
+
+    expect(statement.query).not.toContain(evilSessionId);
+    expect(Object.values(statement.query_params)).toContainEqual([
+      evilSessionId,
+    ]);
+  });
+
+  test("facet statement threads sessionIds", () => {
+    const statement: Statement = (
+      LogAggregationService as any
+    ).buildFacetStatement({
+      projectId,
+      startTime,
+      endTime,
+      facetKey: "severityText",
+      limit: 10,
+      sessionIds: ["sess-1"],
+    } as FacetRequest);
+
+    expect(statement.query).toMatch(SESSION_IN_PREDICATE);
+    expect(Object.values(statement.query_params)).toContainEqual(["sess-1"]);
+  });
+
+  test("analytics timeseries statement threads sessionIds", () => {
+    const statement: Statement = (
+      LogAggregationService as any
+    ).buildAnalyticsTimeseriesStatement(
+      analyticsRequest({ sessionIds: ["sess-1"] }),
+    );
+
+    expect(statement.query).toMatch(SESSION_IN_PREDICATE);
+    expect(Object.values(statement.query_params)).toContainEqual(["sess-1"]);
+  });
+
+  test("analytics toplist statement threads sessionIds", () => {
+    const statement: Statement = (
+      LogAggregationService as any
+    ).buildAnalyticsTopListStatement(
+      analyticsRequest({
+        chartType: "toplist",
+        groupBy: ["severityText"],
+        sessionIds: ["sess-1"],
+      }),
+    );
+
+    expect(statement.query).toMatch(SESSION_IN_PREDICATE);
+    expect(Object.values(statement.query_params)).toContainEqual(["sess-1"]);
+  });
+
+  test("analytics table statement threads sessionIds", () => {
+    const statement: Statement = (
+      LogAggregationService as any
+    ).buildAnalyticsTableStatement(
+      analyticsRequest({
+        chartType: "table",
+        groupBy: ["severityText"],
+        sessionIds: ["sess-1"],
+      }),
+    );
+
+    expect(statement.query).toMatch(SESSION_IN_PREDICATE);
+    expect(Object.values(statement.query_params)).toContainEqual(["sess-1"]);
+  });
+
+  test("getExportLogs threads sessionIds into the export read", async () => {
+    const captured: Array<Statement> = stubAndCaptureStatements([]);
+
+    await LogAggregationService.getExportLogs({
+      projectId,
+      startTime,
+      endTime,
+      limit: 100,
+      sessionIds: ["sess-1"],
+    });
+
+    expect(captured.length).toBe(1);
+    expect(captured[0]!.query).toMatch(SESSION_IN_PREDICATE);
+    expect(Object.values(captured[0]!.query_params)).toContainEqual(["sess-1"]);
+  });
+
+  test("getLogContext scopes both context reads to the session", async () => {
+    const captured: Array<Statement> = stubAndCaptureStatements([]);
+
+    await LogAggregationService.getLogContext({
+      projectId,
+      primaryEntityId: ObjectID.generate(),
+      time: startTime,
+      logId: "log-1",
+      count: 5,
+      sessionIds: ["sess-1"],
+    });
+
+    expect(captured.length).toBe(2);
+    for (const statement of captured) {
+      // The predicate must land in the WHERE clause, before the ORDER BY.
+      expect(statement.query).toMatch(
+        /AND sessionId IN \(\{p\d+:Array\(String\)\}\)[\s\S]*ORDER BY time/,
+      );
+      expect(Object.values(statement.query_params)).toContainEqual(["sess-1"]);
+    }
+  });
+
+  test("getLogContext without sessionIds emits no sessionId predicate", async () => {
+    const captured: Array<Statement> = stubAndCaptureStatements([]);
+
+    await LogAggregationService.getLogContext({
+      projectId,
+      primaryEntityId: ObjectID.generate(),
+      time: startTime,
+      logId: "log-1",
+      count: 5,
+    });
+
+    expect(captured.length).toBe(2);
+    for (const statement of captured) {
+      expect(statement.query).not.toContain("sessionId");
+      // The LIMIT restructure must keep the ordering clauses intact.
+      expect(statement.query).toMatch(
+        /ORDER BY time (DESC|ASC), timeUnixNano (DESC|ASC)[\s\S]*LIMIT \{p\d+:Int32\}/,
+      );
+    }
   });
 });

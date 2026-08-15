@@ -46,6 +46,18 @@ import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import Query from "Common/Types/BaseDatabase/Query";
+import Log from "Common/Models/AnalyticsModels/Log";
+import DashboardLogsViewer from "../Logs/LogsViewer";
+import {
+  ExceptionLogsScopePlan,
+  OccurrenceContextLogRow,
+  buildOccurrenceLogsContextRequest,
+  getExceptionLogsScopePlan,
+  parseLogsContextResponse,
+} from "../../Utils/ExceptionCorrelation";
 
 /*
  * The exception's latest AI attempt per task type. AI tasks are CodeFix
@@ -227,6 +239,201 @@ export interface ComponentProps {
   telemetryExceptionId: ObjectID;
 }
 
+interface ExceptionOccurrenceLogsProps {
+  instance: ExceptionInstance;
+}
+
+/*
+ * Lazy-mounted "Logs" section for the exception detail page. Collapsed by
+ * default so opening an exception costs no extra queries; expanding embeds
+ * the trace-scoped logs viewer pinned to a ±5 minute window around the
+ * latest occurrence (the incident-embed pattern: an explicit `time` window
+ * on logQuery pins the picker, and URL sync stays off so the host page's
+ * params are untouched). When the occurrence carries no trace, a compact
+ * read-only context list from POST /telemetry/logs/context — the service's
+ * logs immediately before and after the occurrence — stands in.
+ */
+const ExceptionOccurrenceLogs: FunctionComponent<
+  ExceptionOccurrenceLogsProps
+> = (props: ExceptionOccurrenceLogsProps): ReactElement => {
+  const [isOpen, setIsOpen] = React.useState<boolean>(false);
+  const [contextRows, setContextRows] = React.useState<
+    Array<OccurrenceContextLogRow>
+  >([]);
+  const [hasLoadedContext, setHasLoadedContext] =
+    React.useState<boolean>(false);
+  const [isContextLoading, setIsContextLoading] =
+    React.useState<boolean>(false);
+  const [contextError, setContextError] = React.useState<string | undefined>(
+    undefined,
+  );
+
+  const plan: ExceptionLogsScopePlan = React.useMemo(() => {
+    return getExceptionLogsScopePlan({
+      traceId: props.instance.traceId?.toString(),
+      primaryEntityId: props.instance.primaryEntityId?.toString(),
+      time: props.instance.time,
+    });
+  }, [props.instance]);
+
+  useEffect(() => {
+    // The fallback fetch only runs once the section is actually expanded.
+    if (!isOpen || plan.mode !== "service-window" || hasLoadedContext) {
+      return;
+    }
+
+    const loadContextLogs: PromiseVoidFunction = async (): Promise<void> => {
+      const request: JSONObject | null = buildOccurrenceLogsContextRequest({
+        primaryEntityId: plan.primaryEntityId,
+        time: plan.anchorTime,
+        sessionId: props.instance.sessionId,
+      });
+
+      if (!request) {
+        setHasLoadedContext(true);
+        return;
+      }
+
+      try {
+        setIsContextLoading(true);
+        setContextError(undefined);
+
+        const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+          await API.post({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              "/telemetry/logs/context",
+            ),
+            data: request,
+            headers: ModelAPI.getCommonHeaders(),
+          });
+
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+
+        setContextRows(parseLogsContextResponse(response.data));
+        setHasLoadedContext(true);
+      } catch (err) {
+        // Inline — a failed aside must not blank the exception page.
+        setContextError(API.getFriendlyMessage(err));
+      }
+
+      setIsContextLoading(false);
+    };
+
+    void loadContextLogs();
+  }, [isOpen, plan, hasLoadedContext, props.instance]);
+
+  if (plan.mode === "none") {
+    return <></>;
+  }
+
+  // The section always states which scope it is showing.
+  const scopeDescription: string =
+    plan.mode === "trace"
+      ? plan.window
+        ? "Showing logs from the latest occurrence's trace, pinned to a ±5 minute window around the occurrence."
+        : "Showing logs from the latest occurrence's trace. The occurrence time could not be read, so the default time range applies."
+      : "The latest occurrence has no trace, so this shows the service's logs immediately before and after the occurrence.";
+
+  type RenderContextRowsFunction = () => ReactElement;
+
+  const renderContextRows: RenderContextRowsFunction = (): ReactElement => {
+    if (isContextLoading) {
+      return <ComponentLoader />;
+    }
+
+    if (contextError) {
+      return <ErrorMessage message={contextError} />;
+    }
+
+    if (contextRows.length === 0) {
+      return (
+        <p className="text-sm text-gray-500">
+          No logs were found around this occurrence.
+        </p>
+      );
+    }
+
+    const beforeCount: number = contextRows.filter(
+      (row: OccurrenceContextLogRow): boolean => {
+        return row.section === "before";
+      },
+    ).length;
+
+    return (
+      <div className="space-y-1">
+        {contextRows.map(
+          (row: OccurrenceContextLogRow, index: number): ReactElement => {
+            return (
+              <React.Fragment key={index}>
+                {index === beforeCount && (
+                  <div className="py-1 text-xs font-medium text-amber-700">
+                    — exception occurred here —
+                  </div>
+                )}
+                <div className="flex items-start space-x-2 font-mono text-xs">
+                  <span className="whitespace-nowrap text-gray-500">
+                    {row.time
+                      ? OneUptimeDate.getDateAsLocalFormattedString(row.time)
+                      : "-"}
+                  </span>
+                  <span className="w-20 shrink-0 text-gray-500">
+                    {row.severityText || "-"}
+                  </span>
+                  <span className="break-all text-gray-900">{row.body}</span>
+                </div>
+              </React.Fragment>
+            );
+          },
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <Card
+      title="Logs"
+      description={scopeDescription}
+      rightElement={
+        <Button
+          title={isOpen ? "Hide Logs" : "Show Logs"}
+          icon={isOpen ? IconProp.ChevronUp : IconProp.ChevronDown}
+          buttonStyle={ButtonStyleType.NORMAL}
+          onClick={() => {
+            setIsOpen(!isOpen);
+          }}
+        />
+      }
+    >
+      {isOpen ? (
+        plan.mode === "trace" ? (
+          <DashboardLogsViewer
+            id="exception-occurrence-logs"
+            traceIds={[plan.traceId as string]}
+            {...(plan.window
+              ? {
+                  logQuery: {
+                    time: new InBetween<Date>(
+                      plan.window.startTime,
+                      plan.window.endTime,
+                    ),
+                  } as Query<Log>,
+                }
+              : {})}
+            limit={10}
+            noLogsMessage="No logs found for this trace in the pinned window."
+          />
+        ) : (
+          renderContextRows()
+        )
+      ) : (
+        <></>
+      )}
+    </Card>
+  );
+};
+
 const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -372,6 +579,8 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
               environment: true,
               traceId: true,
               spanId: true,
+              sessionId: true,
+              primaryEntityId: true,
               time: true,
             },
             sort: {
@@ -1168,6 +1377,10 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
               : {})}
         />
       )}
+
+      {/** Logs around the latest occurrence (lazy — mounts nothing until expanded) */}
+
+      {latestInstance && <ExceptionOccurrenceLogs instance={latestInstance} />}
 
       {/** Assign / Unassign Button */}
 
