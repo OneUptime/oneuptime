@@ -108,6 +108,14 @@ nginx:
   #   targetMemoryUtilizationPercentage: 80
   listenAddress: ""
   listenOptions: ""
+  # Per-request access logging for the high-volume ingest locations (/otlp,
+  # /telemetry, /session-replay, /kubernetes-cost, /pyroscope). "on" keeps every
+  # ingest line, which is the default because per-request status and client IP
+  # at the ingress are how a tenant's 413s and 429s get diagnosed. Set to
+  # "off" (or "false" / "0" / "no") to drop them; any other value keeps logging.
+  # Quoted deliberately: unquoted `on` and `off` are YAML booleans, and this is
+  # passed straight through to nginx as a string.
+  ingestAccessLog: "on"
   serverNamesHash:
     bucketSize: ""
     maxSize: ""

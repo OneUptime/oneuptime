@@ -427,6 +427,12 @@ services:
       ONEUPTIME_HTTP_PORT: ${ONEUPTIME_HTTP_PORT}
       NGINX_LISTEN_ADDRESS: ${NGINX_LISTEN_ADDRESS}
       NGINX_LISTEN_OPTIONS: ${NGINX_LISTEN_OPTIONS}
+      # Per-request access logging for the high-volume ingest locations
+      # (/otlp, /telemetry, /session-replay, /kubernetes-cost, /pyroscope).
+      # Defaults to "on" here rather than to config.env, so an operator who has
+      # never heard of this knob keeps every ingest log line. Set it to off /
+      # false / 0 / no in config.env to opt out; anything else keeps logging.
+      NGINX_INGEST_ACCESS_LOG: ${NGINX_INGEST_ACCESS_LOG:-on}
       DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_INGRESS}
     ports:
       - "${ONEUPTIME_HTTP_PORT}:7849"
