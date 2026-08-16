@@ -1,4 +1,8 @@
+import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
+import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
+import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
@@ -7,7 +11,11 @@ import Service from "Common/Models/DatabaseModels/Service";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import CephClusterElement from "../Ceph/CephClusterElement";
 import DockerHostElement from "../DockerHost/DockerHost";
+import DockerSwarmClusterElement from "../DockerSwarm/DockerSwarmClusterElement";
+import IoTFleetElement from "../IoT/IoTFleetElement";
+import ProxmoxClusterElement from "../Proxmox/ProxmoxClusterElement";
 import PodmanHostElement from "../PodmanHost/PodmanHost";
 import HostElement from "../Host/Host";
 import KubernetesClusterElement from "../KubernetesCluster/KubernetesCluster";
@@ -20,6 +28,10 @@ export interface ComponentProps {
   kubernetesClusters?: Array<KubernetesCluster> | undefined;
   dockerHosts?: Array<DockerHost> | undefined;
   podmanHosts?: Array<PodmanHost> | undefined;
+  proxmoxClusters?: Array<ProxmoxCluster> | undefined;
+  cephClusters?: Array<CephCluster> | undefined;
+  dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
+  iotFleets?: Array<IoTFleet> | undefined;
   services?: Array<Service> | undefined;
   /*
    * Caller can hide categories that don't apply (e.g. Alert lists its monitor
@@ -30,6 +42,10 @@ export interface ComponentProps {
   hideKubernetesClusters?: boolean | undefined;
   hideDockerHosts?: boolean | undefined;
   hidePodmanHosts?: boolean | undefined;
+  hideProxmoxClusters?: boolean | undefined;
+  hideCephClusters?: boolean | undefined;
+  hideDockerSwarmClusters?: boolean | undefined;
+  hideIoTFleets?: boolean | undefined;
   hideServices?: boolean | undefined;
   emptyMessage?: string | undefined;
 }
@@ -175,6 +191,11 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     props.kubernetesClusters || [];
   const dockerHosts: Array<DockerHost> = props.dockerHosts || [];
   const podmanHosts: Array<PodmanHost> = props.podmanHosts || [];
+  const proxmoxClusters: Array<ProxmoxCluster> = props.proxmoxClusters || [];
+  const cephClusters: Array<CephCluster> = props.cephClusters || [];
+  const dockerSwarmClusters: Array<DockerSwarmCluster> =
+    props.dockerSwarmClusters || [];
+  const iotFleets: Array<IoTFleet> = props.iotFleets || [];
   const services: Array<Service> = props.services || [];
 
   const showMonitors: boolean = !props.hideMonitors && monitors.length > 0;
@@ -183,6 +204,12 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     !props.hideKubernetesClusters && kubernetesClusters.length > 0;
   const showDocker: boolean = !props.hideDockerHosts && dockerHosts.length > 0;
   const showPodman: boolean = !props.hidePodmanHosts && podmanHosts.length > 0;
+  const showProxmox: boolean =
+    !props.hideProxmoxClusters && proxmoxClusters.length > 0;
+  const showCeph: boolean = !props.hideCephClusters && cephClusters.length > 0;
+  const showSwarm: boolean =
+    !props.hideDockerSwarmClusters && dockerSwarmClusters.length > 0;
+  const showIoTFleets: boolean = !props.hideIoTFleets && iotFleets.length > 0;
   const showServices: boolean = !props.hideServices && services.length > 0;
 
   if (
@@ -191,6 +218,10 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     !showClusters &&
     !showDocker &&
     !showPodman &&
+    !showProxmox &&
+    !showCeph &&
+    !showSwarm &&
+    !showIoTFleets &&
     !showServices
   ) {
     return (
@@ -215,6 +246,10 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     (showClusters ? kubernetesClusters.length : 0) +
     (showDocker ? dockerHosts.length : 0) +
     (showPodman ? podmanHosts.length : 0) +
+    (showProxmox ? proxmoxClusters.length : 0) +
+    (showCeph ? cephClusters.length : 0) +
+    (showSwarm ? dockerSwarmClusters.length : 0) +
+    (showIoTFleets ? iotFleets.length : 0) +
     (showServices ? services.length : 0);
   const categoryCount: number =
     (showMonitors ? 1 : 0) +
@@ -222,6 +257,10 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     (showClusters ? 1 : 0) +
     (showDocker ? 1 : 0) +
     (showPodman ? 1 : 0) +
+    (showProxmox ? 1 : 0) +
+    (showCeph ? 1 : 0) +
+    (showSwarm ? 1 : 0) +
+    (showIoTFleets ? 1 : 0) +
     (showServices ? 1 : 0);
   const resourceWord: string = totalCount === 1 ? "resource" : "resources";
   const categoryWord: string = categoryCount === 1 ? "category" : "categories";
@@ -311,6 +350,66 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
             items={podmanHosts}
             renderItem={(podmanHost: PodmanHost) => {
               return <PodmanHostElement podmanHost={podmanHost} />;
+            }}
+          />
+        )}
+        {showProxmox && (
+          <CategoryCard<ProxmoxCluster>
+            icon={IconProp.Proxmox}
+            label="Proxmox Clusters"
+            iconBgClass="bg-orange-50"
+            iconColorClass="text-orange-600"
+            accentBarClass="bg-orange-500"
+            countBgClass="bg-orange-50"
+            countTextClass="text-orange-700"
+            items={proxmoxClusters}
+            renderItem={(cluster: ProxmoxCluster) => {
+              return <ProxmoxClusterElement proxmoxCluster={cluster} />;
+            }}
+          />
+        )}
+        {showCeph && (
+          <CategoryCard<CephCluster>
+            icon={IconProp.Ceph}
+            label="Ceph Clusters"
+            iconBgClass="bg-rose-50"
+            iconColorClass="text-rose-600"
+            accentBarClass="bg-rose-500"
+            countBgClass="bg-rose-50"
+            countTextClass="text-rose-700"
+            items={cephClusters}
+            renderItem={(cluster: CephCluster) => {
+              return <CephClusterElement cephCluster={cluster} />;
+            }}
+          />
+        )}
+        {showSwarm && (
+          <CategoryCard<DockerSwarmCluster>
+            icon={IconProp.DockerSwarm}
+            label="Docker Swarm Clusters"
+            iconBgClass="bg-cyan-50"
+            iconColorClass="text-cyan-600"
+            accentBarClass="bg-cyan-500"
+            countBgClass="bg-cyan-50"
+            countTextClass="text-cyan-700"
+            items={dockerSwarmClusters}
+            renderItem={(cluster: DockerSwarmCluster) => {
+              return <DockerSwarmClusterElement dockerSwarmCluster={cluster} />;
+            }}
+          />
+        )}
+        {showIoTFleets && (
+          <CategoryCard<IoTFleet>
+            icon={IconProp.IoT}
+            label="IoT Fleets"
+            iconBgClass="bg-teal-50"
+            iconColorClass="text-teal-600"
+            accentBarClass="bg-teal-500"
+            countBgClass="bg-teal-50"
+            countTextClass="text-teal-700"
+            items={iotFleets}
+            renderItem={(fleet: IoTFleet) => {
+              return <IoTFleetElement iotFleet={fleet} />;
             }}
           />
         )}

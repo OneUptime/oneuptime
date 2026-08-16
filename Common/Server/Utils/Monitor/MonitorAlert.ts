@@ -1,15 +1,9 @@
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import AlertStateTimeline from "../../../Models/DatabaseModels/AlertStateTimeline";
-import CephCluster from "../../../Models/DatabaseModels/CephCluster";
-import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
-import Host from "../../../Models/DatabaseModels/Host";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
-import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
-import IoTFleet from "../../../Models/DatabaseModels/IoTFleet";
-import Service from "../../../Models/DatabaseModels/Service";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import Dictionary from "../../../Types/Dictionary";
@@ -24,11 +18,9 @@ import AlertService from "../../Services/AlertService";
 import AlertSeverityService from "../../Services/AlertSeverityService";
 import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
 import AlertStateTimelineService from "../../Services/AlertStateTimelineService";
-import HostService from "../../Services/HostService";
 import NetworkDeviceOwnerUserService, {
   NetworkDeviceOwners,
 } from "../../Services/NetworkDeviceOwnerUserService";
-import ServiceService from "../../Services/ServiceService";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
@@ -36,6 +28,7 @@ import MonitorClusterContextUtil, {
   MonitorClusterContext,
 } from "./MonitorClusterContext";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
+import SeriesResourceLinker from "./SeriesResourceLinker";
 import MonitorDependencySuppression, {
   DependencySuppressionResult,
 } from "./MonitorDependencySuppression";
@@ -553,118 +546,32 @@ export default class MonitorAlert {
           alert.seriesLabels = seriesLabels;
 
           /*
-           * Link the alert to the Host that emitted this series, if
-           * the metric carried a `host.name` resource attribute. The
-           * Host record was auto-discovered during OTel ingestion.
-           * Metric attributes are stored with the `resource.` prefix in
-           * ClickHouse, so the group-by dropdown surfaces
-           * `resource.host.name` — but accept the bare `host.name` too
-           * for any non-OTel ingest paths.
+           * Attach every resource this series identifies — host, docker
+           * host, podman host, k8s cluster, service, and the Proxmox /
+           * Ceph / Swarm / IoT clusters — resolved from the shared label
+           * key map. Same call the incident path makes, so the two can't
+           * drift apart again.
            */
-          const hostName: string | undefined =
-            typeof seriesLabels["resource.host.name"] === "string"
-              ? (seriesLabels["resource.host.name"] as string)
-              : typeof seriesLabels["host.name"] === "string"
-                ? (seriesLabels["host.name"] as string)
-                : undefined;
-
-          if (hostName) {
-            const host: Host | null = await HostService.findOneBy({
-              query: {
-                projectId: input.monitor.projectId!,
-                hostIdentifier: hostName,
-              },
-              select: {
-                _id: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-            if (host) {
-              alert.hosts = [host];
-            }
-          }
-
-          /*
-           * Same idea for Service — OTel ingest stamps `service.name` and
-           * auto-creates a Service row keyed by that name (see
-           * OpenTelemetryIngestService.telemetryServiceFromName). When the
-           * breaching series carries that attribute, link the alert to the
-           * emitting service so the on-call/labels pipeline can fan out.
-           */
-          const serviceName: string | undefined =
-            typeof seriesLabels["resource.service.name"] === "string"
-              ? (seriesLabels["resource.service.name"] as string)
-              : typeof seriesLabels["service.name"] === "string"
-                ? (seriesLabels["service.name"] as string)
-                : undefined;
-
-          if (serviceName) {
-            const service: Service | null = await ServiceService.findOneBy({
-              query: {
-                projectId: input.monitor.projectId!,
-                name: serviceName,
-              },
-              select: {
-                _id: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-            if (service) {
-              alert.services = [service];
-            }
-          }
+          await SeriesResourceLinker.linkSeriesResourcesToModel({
+            model: alert,
+            seriesLabels,
+            projectId: input.monitor.projectId!,
+          });
         }
 
         /*
-         * Deterministic Proxmox/Ceph cluster link from the monitor's
-         * step config (resolved once above). Series labels never carry
-         * cluster identity for these monitor types, so this — not the
-         * label path above — is what makes the per-cluster Activity
-         * tabs and badge counts see monitor-created alerts. Runs for
-         * both grouped and ungrouped alerts.
+         * Deterministic Proxmox/Ceph/Swarm/IoT cluster link from the
+         * monitor's step config (resolved once above). The shipped
+         * templates for those monitor types group by datapoint labels
+         * that carry no cluster identity, so this — not the label path
+         * above — is what makes the per-cluster Activity tabs and badge
+         * counts see monitor-created alerts. Runs for both grouped and
+         * ungrouped alerts, and merges with whatever the labels resolved.
          */
-        if (clusterContext.proxmoxClusterIds.length > 0) {
-          alert.proxmoxClusters = clusterContext.proxmoxClusterIds.map(
-            (id: string): ProxmoxCluster => {
-              const cluster: ProxmoxCluster = new ProxmoxCluster();
-              cluster._id = id;
-              return cluster;
-            },
-          );
-        }
-        if (clusterContext.cephClusterIds.length > 0) {
-          alert.cephClusters = clusterContext.cephClusterIds.map(
-            (id: string): CephCluster => {
-              const cluster: CephCluster = new CephCluster();
-              cluster._id = id;
-              return cluster;
-            },
-          );
-        }
-        if (clusterContext.dockerSwarmClusterIds.length > 0) {
-          alert.dockerSwarmClusters = clusterContext.dockerSwarmClusterIds.map(
-            (id: string): DockerSwarmCluster => {
-              const cluster: DockerSwarmCluster = new DockerSwarmCluster();
-              cluster._id = id;
-              return cluster;
-            },
-          );
-        }
-        if (clusterContext.iotFleetIds.length > 0) {
-          alert.iotFleets = clusterContext.iotFleetIds.map(
-            (id: string): IoTFleet => {
-              const fleet: IoTFleet = new IoTFleet();
-              fleet._id = id;
-              return fleet;
-            },
-          );
-        }
+        SeriesResourceLinker.attachClusterContext({
+          model: alert,
+          clusterContext,
+        });
 
         alert.onCallDutyPolicies =
           criteriaAlert.onCallPolicyIds?.map((id: ObjectID) => {

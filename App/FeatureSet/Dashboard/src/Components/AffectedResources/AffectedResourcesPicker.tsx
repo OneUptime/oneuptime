@@ -1,4 +1,8 @@
+import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
+import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
+import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
@@ -35,6 +39,10 @@ export type AffectedResourceType =
   | "KubernetesCluster"
   | "DockerHost"
   | "PodmanHost"
+  | "ProxmoxCluster"
+  | "CephCluster"
+  | "DockerSwarmCluster"
+  | "IoTFleet"
   | "Service";
 
 export interface AffectedResourceItem {
@@ -55,6 +63,10 @@ export interface AffectedResourcesPayload {
   kubernetesClusters: Array<string>;
   dockerHosts: Array<string>;
   podmanHosts: Array<string>;
+  proxmoxClusters: Array<string>;
+  cephClusters: Array<string>;
+  dockerSwarmClusters: Array<string>;
+  iotFleets: Array<string>;
   services: Array<string>;
 }
 
@@ -64,6 +76,10 @@ export interface ComponentProps {
   kubernetesClusters?: Array<KubernetesCluster> | undefined;
   dockerHosts?: Array<DockerHost> | undefined;
   podmanHosts?: Array<PodmanHost> | undefined;
+  proxmoxClusters?: Array<ProxmoxCluster> | undefined;
+  cephClusters?: Array<CephCluster> | undefined;
+  dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
+  iotFleets?: Array<IoTFleet> | undefined;
   services?: Array<Service> | undefined;
   resourceTypes?: Array<AffectedResourceType> | undefined;
   onChange: (payload: AffectedResourcesPayload) => void;
@@ -103,6 +119,26 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
     icon: IconProp.Podman,
     modelType: PodmanHost,
   },
+  ProxmoxCluster: {
+    label: "Proxmox Cluster",
+    icon: IconProp.Proxmox,
+    modelType: ProxmoxCluster,
+  },
+  CephCluster: {
+    label: "Ceph Cluster",
+    icon: IconProp.Ceph,
+    modelType: CephCluster,
+  },
+  DockerSwarmCluster: {
+    label: "Docker Swarm Cluster",
+    icon: IconProp.DockerSwarm,
+    modelType: DockerSwarmCluster,
+  },
+  IoTFleet: {
+    label: "IoT Fleet",
+    icon: IconProp.IoT,
+    modelType: IoTFleet,
+  },
   Service: {
     label: "Service",
     icon: IconProp.SquareStack,
@@ -110,6 +146,12 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
   },
 };
 
+/*
+ * The default set. Proxmox / Ceph / Docker Swarm / IoT are deliberately
+ * NOT here: a page only gets them by naming them in `resourceTypes`,
+ * because offering a type the page's onChange handler does not write
+ * back would silently drop the user's selection on save.
+ */
 const ALL_TYPES: Array<AffectedResourceType> = [
   "Monitor",
   "Host",
@@ -297,6 +339,20 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     if (resourceTypes.includes("PodmanHost")) {
       items.push(...toItems(props.podmanHosts, "PodmanHost", cache));
     }
+    if (resourceTypes.includes("ProxmoxCluster")) {
+      items.push(...toItems(props.proxmoxClusters, "ProxmoxCluster", cache));
+    }
+    if (resourceTypes.includes("CephCluster")) {
+      items.push(...toItems(props.cephClusters, "CephCluster", cache));
+    }
+    if (resourceTypes.includes("DockerSwarmCluster")) {
+      items.push(
+        ...toItems(props.dockerSwarmClusters, "DockerSwarmCluster", cache),
+      );
+    }
+    if (resourceTypes.includes("IoTFleet")) {
+      items.push(...toItems(props.iotFleets, "IoTFleet", cache));
+    }
     if (resourceTypes.includes("Service")) {
       items.push(...toItems(props.services, "Service", cache));
     }
@@ -307,6 +363,10 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     props.kubernetesClusters,
     props.dockerHosts,
     props.podmanHosts,
+    props.proxmoxClusters,
+    props.cephClusters,
+    props.dockerSwarmClusters,
+    props.iotFleets,
     props.services,
     resourceTypes,
   ]);
@@ -629,6 +689,34 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
       podmanHosts: next
         .filter((i: AffectedResourceItem): boolean => {
           return i.type === "PodmanHost";
+        })
+        .map((i: AffectedResourceItem): string => {
+          return i._id;
+        }),
+      proxmoxClusters: next
+        .filter((i: AffectedResourceItem): boolean => {
+          return i.type === "ProxmoxCluster";
+        })
+        .map((i: AffectedResourceItem): string => {
+          return i._id;
+        }),
+      cephClusters: next
+        .filter((i: AffectedResourceItem): boolean => {
+          return i.type === "CephCluster";
+        })
+        .map((i: AffectedResourceItem): string => {
+          return i._id;
+        }),
+      dockerSwarmClusters: next
+        .filter((i: AffectedResourceItem): boolean => {
+          return i.type === "DockerSwarmCluster";
+        })
+        .map((i: AffectedResourceItem): string => {
+          return i._id;
+        }),
+      iotFleets: next
+        .filter((i: AffectedResourceItem): boolean => {
+          return i.type === "IoTFleet";
         })
         .map((i: AffectedResourceItem): string => {
           return i._id;

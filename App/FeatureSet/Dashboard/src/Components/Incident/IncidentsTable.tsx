@@ -647,6 +647,26 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             _id: true,
             projectId: true,
           },
+          proxmoxClusters: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
+          cephClusters: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
+          dockerSwarmClusters: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
+          iotFleets: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
           services: {
             name: true,
             _id: true,
@@ -794,6 +814,26 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 _id: true,
                 projectId: true,
               },
+              proxmoxClusters: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              cephClusters: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              dockerSwarmClusters: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              iotFleets: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
               services: {
                 name: true,
                 _id: true,
@@ -812,6 +852,10 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                   kubernetesClusters={item.kubernetesClusters || []}
                   dockerHosts={item.dockerHosts || []}
                   podmanHosts={item.podmanHosts || []}
+                  proxmoxClusters={item.proxmoxClusters || []}
+                  cephClusters={item.cephClusters || []}
+                  dockerSwarmClusters={item.dockerSwarmClusters || []}
+                  iotFleets={item.iotFleets || []}
                   services={item.services || []}
                 />
               );

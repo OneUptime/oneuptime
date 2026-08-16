@@ -44,7 +44,11 @@ import AffectedResourcesDisplay from "../../../Components/AffectedResources/Affe
 import AffectedResourcesPicker, {
   isAffectedResourcesPayload,
 } from "../../../Components/AffectedResources/AffectedResourcesPicker";
+import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import Host from "Common/Models/DatabaseModels/Host";
+import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
+import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
@@ -829,7 +833,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             cardProps={{
               title: "Affected Resources",
               description:
-                "Hosts, Kubernetes clusters, Docker hosts, and services affected by this alert.",
+                "Hosts, clusters, container hosts, and services affected by this alert.",
             }}
             isEditable={true}
             formFields={[
@@ -841,7 +845,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 field: { hosts: true },
                 title: "",
                 description:
-                  "Search and attach hosts, Kubernetes clusters, Docker hosts, or services affected by this alert.",
+                  "Search and attach hosts, clusters, container hosts, or services affected by this alert.",
                 fieldType: FormFieldSchemaType.CustomComponent,
                 required: false,
                 getCustomElement: (
@@ -856,12 +860,24 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       }
                       dockerHosts={values.dockerHosts as Array<DockerHost>}
                       podmanHosts={values.podmanHosts as Array<PodmanHost>}
+                      proxmoxClusters={
+                        values.proxmoxClusters as Array<ProxmoxCluster>
+                      }
+                      cephClusters={values.cephClusters as Array<CephCluster>}
+                      dockerSwarmClusters={
+                        values.dockerSwarmClusters as Array<DockerSwarmCluster>
+                      }
+                      iotFleets={values.iotFleets as Array<IoTFleet>}
                       services={values.services as Array<Service>}
                       resourceTypes={[
                         "Host",
                         "KubernetesCluster",
                         "DockerHost",
                         "PodmanHost",
+                        "ProxmoxCluster",
+                        "CephCluster",
+                        "DockerSwarmCluster",
+                        "IoTFleet",
                         "Service",
                       ]}
                       onChange={(payload: unknown) => {
@@ -884,6 +900,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         kubernetesClusters: payload.kubernetesClusters,
                         dockerHosts: payload.dockerHosts,
                         podmanHosts: payload.podmanHosts,
+                        proxmoxClusters: payload.proxmoxClusters,
+                        cephClusters: payload.cephClusters,
+                        dockerSwarmClusters: payload.dockerSwarmClusters,
+                        iotFleets: payload.iotFleets,
                         services: payload.services,
                       } as FormValues<Alert>);
                     });
@@ -914,6 +934,42 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               {
                 field: { podmanHosts: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { proxmoxClusters: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { cephClusters: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { dockerSwarmClusters: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { iotFleets: true },
                 title: "",
                 fieldType: FormFieldSchemaType.Text,
                 required: false,
@@ -954,6 +1010,22 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       name: true,
                       _id: true,
                     },
+                    proxmoxClusters: {
+                      name: true,
+                      _id: true,
+                    },
+                    cephClusters: {
+                      name: true,
+                      _id: true,
+                    },
+                    dockerSwarmClusters: {
+                      name: true,
+                      _id: true,
+                    },
+                    iotFleets: {
+                      name: true,
+                      _id: true,
+                    },
                     services: {
                       name: true,
                       _id: true,
@@ -969,6 +1041,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         kubernetesClusters={item.kubernetesClusters || []}
                         dockerHosts={item.dockerHosts || []}
                         podmanHosts={item.podmanHosts || []}
+                        proxmoxClusters={item.proxmoxClusters || []}
+                        cephClusters={item.cephClusters || []}
+                        dockerSwarmClusters={item.dockerSwarmClusters || []}
+                        iotFleets={item.iotFleets || []}
                         services={item.services || []}
                         hideMonitors={true}
                       />
