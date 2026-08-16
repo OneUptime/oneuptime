@@ -449,6 +449,21 @@ export default class RunnerJob extends BaseModel {
   })
   public status?: RunnerJobStatus = undefined;
 
+  /*
+   * NOT a required column, even though the database keeps it NOT NULL.
+   *
+   * `required` feeds getRequiredColumns(), which
+   * DatabaseService.checkRequiredFields rejects on any falsy value — and an
+   * empty string is falsy. SSH and Kubernetes jobs carry their instruction in
+   * `payload` and an empty script by design, so marking this required made
+   * every one of them fail at create() with "script is required" before a
+   * Runner ever saw the job. The NOT NULL constraint still holds:
+   * RunnerJobService always writes a string, empty or not.
+   *
+   * Which step types must carry a script and which must carry a payload is a
+   * per-type rule that column metadata cannot express, so it is enforced in
+   * RunnerJobService.enqueue instead.
+   */
   @ColumnAccessControl({
     create: [],
     read: [
@@ -464,7 +479,7 @@ export default class RunnerJob extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.VeryLongText,
-    required: true,
+    required: false,
     title: "Script",
     description:
       "The script the Runner must execute. Empty for step types that carry structured instructions in the payload instead.",

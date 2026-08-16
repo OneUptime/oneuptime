@@ -1,5 +1,7 @@
 import RunbookStepType, {
+  PAYLOAD_CARRYING_STEP_TYPES,
   RUNNER_EXECUTED_STEP_TYPES,
+  isPayloadCarryingStepType,
   isRunnerExecutedStepType,
 } from "../../../Types/Runbook/RunbookStepType";
 import { describe, expect, test } from "@jest/globals";
@@ -238,5 +240,127 @@ describe("isRunnerExecutedStepType", () => {
     expect(isRunnerExecutedStepType(null as unknown as RunbookStepType)).toBe(
       false,
     );
+  });
+});
+
+/*
+ * The second partition, inside the Runner lane: how a job carries its
+ * instruction.
+ *
+ * A Bash or JavaScript job carries a script. An SSH or Kubernetes job carries
+ * structured instructions plus a credential resolved at claim time, and an
+ * EMPTY script — which is the whole reason this split has to be named
+ * somewhere. Issue #3209 was RunnerJob.script being declared a required
+ * column: an empty string is falsy, so the required-column check rejected
+ * every SSH and Kubernetes job at create() with "script is required". The rule
+ * is per-type and cannot be written as column metadata, so it lives in
+ * RunnerJobService.enqueue and reads this list.
+ */
+describe("PAYLOAD_CARRYING_STEP_TYPES", () => {
+  test("contains exactly SSH and Kubernetes", () => {
+    expect(PAYLOAD_CARRYING_STEP_TYPES).toEqual([
+      RunbookStepType.SSH,
+      RunbookStepType.Kubernetes,
+    ]);
+    expect(new Set(PAYLOAD_CARRYING_STEP_TYPES).size).toBe(
+      PAYLOAD_CARRYING_STEP_TYPES.length,
+    );
+  });
+
+  test("every entry is also a Runner-executed type", () => {
+    /*
+     * A payload-carrying type that the Worker executes would be a
+     * contradiction: the payload exists to be handed to a Runner.
+     */
+    for (const type of PAYLOAD_CARRYING_STEP_TYPES) {
+      expect(RUNNER_EXECUTED_STEP_TYPES).toContain(type);
+    }
+  });
+});
+
+describe("isPayloadCarryingStepType", () => {
+  test.each([RunbookStepType.SSH, RunbookStepType.Kubernetes])(
+    "%s carries a payload rather than a script",
+    (type: RunbookStepType) => {
+      expect(isPayloadCarryingStepType(type)).toBe(true);
+    },
+  );
+
+  test.each([RunbookStepType.Bash, RunbookStepType.JavaScript])(
+    "%s carries a script rather than a payload",
+    (type: RunbookStepType) => {
+      /*
+       * Answering true for a script type would let a Bash job with no script
+       * through enqueue, and the Runner would spawn an empty shell and report
+       * success — indistinguishable from a step that actually ran.
+       */
+      expect(isPayloadCarryingStepType(type)).toBe(false);
+    },
+  );
+
+  test("the Runner lane splits cleanly into script-carrying and payload-carrying", () => {
+    /*
+     * Total and disjoint within the Runner lane. enqueue treats the two as
+     * complementary — anything not payload-carrying is required to bring a
+     * script — so a new Runner type that belongs in neither set does not
+     * exist, and a new one added to the enum must be placed here deliberately.
+     */
+    const payload: Array<RunbookStepType> = RUNNER_EXECUTED_STEP_TYPES.filter(
+      (type: RunbookStepType) => {
+        return isPayloadCarryingStepType(type);
+      },
+    );
+    const script: Array<RunbookStepType> = RUNNER_EXECUTED_STEP_TYPES.filter(
+      (type: RunbookStepType) => {
+        return !isPayloadCarryingStepType(type);
+      },
+    );
+
+    expect(payload.slice().sort()).toEqual(
+      PAYLOAD_CARRYING_STEP_TYPES.slice().sort(),
+    );
+    expect(script.slice().sort()).toEqual(
+      [RunbookStepType.JavaScript, RunbookStepType.Bash].slice().sort(),
+    );
+    expect(payload.length + script.length).toBe(
+      RUNNER_EXECUTED_STEP_TYPES.length,
+    );
+  });
+
+  test("agrees with the exported list for every member of the enum", () => {
+    for (const type of Object.values(RunbookStepType)) {
+      const answer: boolean = isPayloadCarryingStepType(type);
+
+      expect(typeof answer).toBe("boolean");
+      expect(answer).toBe(PAYLOAD_CARRYING_STEP_TYPES.includes(type));
+    }
+  });
+
+  test("no Worker-executed type carries a payload", () => {
+    for (const type of WORKER_EXECUTED_STEP_TYPES) {
+      expect(isPayloadCarryingStepType(type)).toBe(false);
+    }
+  });
+
+  test("near misses, null and undefined do not carry a payload", () => {
+    /*
+     * Falling back to false is the safe direction: an unrecognised type is
+     * then required to bring a script, and enqueue rejects it rather than
+     * creating a job with nothing in it.
+     */
+    const notPayloadTypes: Array<unknown> = [
+      "",
+      " ",
+      "ssh",
+      "SSH ",
+      "kubernetes",
+      "Docker",
+      null,
+      undefined,
+    ];
+
+    for (const value of notPayloadTypes) {
+      expect(isPayloadCarryingStepType(value as RunbookStepType)).toBe(false);
+    }
   });
 });
