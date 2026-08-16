@@ -33,3 +33,26 @@ export const RUNNER_EXECUTED_STEP_TYPES: Array<RunbookStepType> = [
 export function isRunnerExecutedStepType(type: RunbookStepType): boolean {
   return RUNNER_EXECUTED_STEP_TYPES.includes(type);
 }
+
+/*
+ * Runner-executed step types that act on a system OTHER than the Runner's own
+ * host. They are dispatched as structured instructions (RunnerJob.payload)
+ * plus a credential the server resolves at claim time — never as a script, so
+ * their job rows carry an empty script by design.
+ *
+ * That is why RunnerJob.script is not a required column: an empty string is
+ * falsy, so a required-column check would reject exactly these jobs. The real
+ * rule — script types need a script, these need a payload — is per-type and
+ * therefore lives in RunnerJobService.enqueue rather than in column metadata.
+ *
+ * Every runner-executed type not listed here carries a script instead; the
+ * two sets are complementary and a test asserts they stay that way.
+ */
+export const PAYLOAD_CARRYING_STEP_TYPES: Array<RunbookStepType> = [
+  RunbookStepType.SSH,
+  RunbookStepType.Kubernetes,
+];
+
+export function isPayloadCarryingStepType(type: RunbookStepType): boolean {
+  return PAYLOAD_CARRYING_STEP_TYPES.includes(type);
+}
