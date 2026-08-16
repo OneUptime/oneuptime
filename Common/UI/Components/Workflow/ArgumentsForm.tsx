@@ -6,7 +6,10 @@ import { CustomElementProps } from "../Forms/Types/Field";
 import FormValues from "../Forms/Types/FormValues";
 import ComponentValuePickerModal from "./ComponentValuePickerModal";
 import CronScheduleField from "./CronScheduleField";
-import ModelColumnEditor, { ModelColumnEditorMode } from "./ModelColumnEditor";
+import ModelColumnEditor, {
+  ModelColumnEditorMode,
+  RecordIntent,
+} from "./ModelColumnEditor";
 import ModelFieldPicker from "./ModelFieldPicker";
 import {
   componentInputTypeToFormFieldType,
@@ -488,6 +491,20 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                           <ModelColumnEditor
                             tableName={component.metadata.tableName as string}
                             mode={columnEditorMode}
+                            /*
+                             * A create writes a whole record, so it opens with a
+                             * row for every column it must be given. An update
+                             * legitimately writes one column, and seeding it
+                             * with six would present five fields nobody asked
+                             * for. The create payload is the argument called
+                             * "json" (BaseModel components); an update's is
+                             * "data".
+                             */
+                            recordIntent={
+                              arg.id === "json"
+                                ? RecordIntent.Create
+                                : RecordIntent.Update
+                            }
                             initialValue={customProps.initialValue}
                             onChange={(value: string) => {
                               void customProps.onChange?.(value);

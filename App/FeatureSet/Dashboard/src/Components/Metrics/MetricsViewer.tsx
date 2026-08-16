@@ -1421,9 +1421,14 @@ const MetricsViewer: FunctionComponent<Props> = (
         ),
       );
       setTimeRange(deserializeSavedViewTimeRange(state.timeRange));
-      if (state.pageSize) {
-        setPageSize(state.pageSize);
-      }
+      /*
+       * Unconditional, like every other field here: a view saved before page
+       * size was captured falls back to the default, and so does the empty
+       * state the saved-views control applies when a view is cleared. Guarding
+       * this one left the cleared explorer on the view's page size — and, via
+       * the URL mirror, still advertising it in the query string.
+       */
+      setPageSize(state.pageSize || DEFAULT_PAGE_SIZE);
       setPage(1);
     }, []);
 

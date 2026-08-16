@@ -109,6 +109,7 @@ import UserAPI from "Common/Server/API/UserAPI";
 import NetworkDeviceFlowAPI from "./API/NetworkDeviceFlow";
 import NetworkDeviceTopologyAPI from "./API/NetworkDeviceTopology";
 import NetworkLatencyMatrixAPI from "./API/NetworkLatencyMatrix";
+import NetworkRuleRunAPI from "./API/NetworkRuleRun";
 import NetworkSiteHierarchyAPI from "./API/NetworkSiteHierarchy";
 import ServiceDependencyTimeseriesAPI from "./API/ServiceDependencyTimeseries";
 import ServiceOperationalStatusAPI from "./API/ServiceOperationalStatus";
@@ -4859,6 +4860,15 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new NetworkLatencyMatrixAPI().getRouter(),
+    );
+    /*
+     * "Run now" for the network automation rules. Mounted after both rule
+     * models' CRUD routers; BaseAPI claims no `/:id/run` path, so the two
+     * sub-routes here are reached rather than swallowed.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new NetworkRuleRunAPI().getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

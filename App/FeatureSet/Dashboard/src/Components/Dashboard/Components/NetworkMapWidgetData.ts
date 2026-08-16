@@ -7,7 +7,6 @@ import {
   resolveMarkerLabels,
   LabelPlacement,
   MapMarker,
-  LABEL_GAP,
   LABEL_FONT_SIZE,
   MAX_LABELLED_MARKERS,
 } from "../../NetworkSite/SiteMapViewModel";
@@ -251,13 +250,16 @@ export const resolveNetworkMapMaxSites: (
 };
 
 /*
- * Label geometry, re-exported from the full map so the renderer draws names
- * at exactly the size and offset resolveMarkerLabels measured them at. Two
- * different constants would mean the collision pass approving a layout the
- * map then draws differently — which is worse than no collision pass, since
- * it would look deliberate.
+ * Label size, re-exported from the full map so the renderer draws names at
+ * exactly the size resolveMarkerLabels measured them at. Two different
+ * constants would mean the collision pass approving a layout the map then
+ * draws differently — which is worse than no collision pass, since it would
+ * look deliberate.
+ *
+ * There is no gap constant here any more, and there must not be one: every
+ * offset a name is drawn at now comes back on its LabelPlacement, so the
+ * renderer has nothing left to re-derive.
  */
-export const NETWORK_MAP_LABEL_GAP: number = LABEL_GAP;
 export const NETWORK_MAP_LABEL_FONT_SIZE: number = LABEL_FONT_SIZE;
 
 /**
@@ -296,9 +298,9 @@ export interface NetworkMapMarker {
   /** Name drawn under the marker, or "" when this marker gets no label. */
   label: string;
   /*
-   * Where that name sits relative to the marker. Below reads best — the eye
-   * goes marker-then-name — so it is tried first; above is the escape hatch
-   * for a marker with a neighbour directly beneath it. Null when the marker
+   * Where that name sits relative to the marker, and how to draw it: the
+   * offset from the marker, the text anchor, and the thread back to the
+   * marker for a name that had to be pushed off it. Null when the marker
    * carries no name at all.
    */
   labelPlacement: LabelPlacement | null;
@@ -365,11 +367,12 @@ export interface BuildNetworkMapMarkersInput {
  * holds its neighbours.
  *
  * Names are then placed greedily in that same order — biggest marker first,
- * since that is the one a reader is most likely to be looking for — trying
- * below the marker and then above it. A name that fits in neither position
- * is DROPPED rather than stacked on something: an overlapped label is
- * unreadable and it hides its neighbour, so two names on top of each other
- * are worse than one name and a tooltip.
+ * since that is the one a reader is most likely to be looking for — spiralling
+ * outwards from the marker until a position is clear of every name already
+ * placed and of every other marker. A name pushed off its marker keeps a
+ * thread back to it; a name with nowhere to go at all is DROPPED rather than
+ * stacked on something, because an overlapped label is unreadable and it
+ * hides its neighbour. See resolveMarkerLabels.
  */
 export const buildNetworkMapMarkers: (
   input: BuildNetworkMapMarkersInput,

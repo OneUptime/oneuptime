@@ -42,7 +42,6 @@ import {
 } from "../../NetworkSite/Geo/GeoViewport";
 import {
   NETWORK_MAP_LABEL_FONT_SIZE,
-  NETWORK_MAP_LABEL_GAP,
   NETWORK_MAP_LEGEND,
   NetworkMapLegendEntry,
   NetworkMapMarker,
@@ -576,31 +575,77 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
                     ) : (
                       <></>
                     )}
-                    {marker.label ? (
-                      <text
-                        x={marker.x}
-                        /*
-                         * Below the marker unless the collision pass had to
-                         * put it above — the same geometry resolveMarkerLabels
-                         * measured against, or the placement it chose would
-                         * not be the placement drawn.
-                         */
-                        y={
-                          marker.labelPlacement === "above"
-                            ? marker.y - (radius + NETWORK_MAP_LABEL_GAP / zoom)
-                            : marker.y + radius + NETWORK_MAP_LABEL_GAP / zoom
-                        }
-                        dominantBaseline="central"
-                        textAnchor="middle"
-                        fill="var(--ou-text-secondary, #4b5563)"
-                        fontSize={NETWORK_MAP_LABEL_FONT_SIZE / zoom}
-                        stroke="var(--ou-surface-primary, #ffffff)"
-                        strokeWidth={2.5 / zoom}
-                        paintOrder="stroke"
-                        style={{ pointerEvents: "none" }}
-                      >
-                        {marker.label}
-                      </text>
+                    {marker.label && marker.labelPlacement ? (
+                      <>
+                        {/*
+                         * A name that could not fit against its marker is
+                         * pushed off it and keeps a thread back, so it is
+                         * still obvious whose name it is. Without this, sites
+                         * sitting on near-identical coordinates lost every
+                         * name but the first.
+                         */}
+                        {marker.labelPlacement.leaderLine ? (
+                          <line
+                            x1={
+                              marker.x +
+                              marker.labelPlacement.leaderLine.x1 / zoom
+                            }
+                            y1={
+                              marker.y +
+                              marker.labelPlacement.leaderLine.y1 / zoom
+                            }
+                            x2={
+                              marker.x +
+                              marker.labelPlacement.leaderLine.x2 / zoom
+                            }
+                            y2={
+                              marker.y +
+                              marker.labelPlacement.leaderLine.y2 / zoom
+                            }
+                            stroke="var(--ou-text-secondary, #4b5563)"
+                            strokeWidth={0.9 / zoom}
+                            strokeOpacity={0.7}
+                            strokeLinecap="round"
+                            style={{ pointerEvents: "none" }}
+                          />
+                        ) : (
+                          <></>
+                        )}
+                        <text
+                          /*
+                           * Position and anchor come straight off the
+                           * placement, in the screen units the collision pass
+                           * measured them in — the map must draw the name in
+                           * the box that pass reserved, or the placement it
+                           * chose is not the placement drawn.
+                           */
+                          x={marker.x + marker.labelPlacement.offsetX / zoom}
+                          y={marker.y + marker.labelPlacement.offsetY / zoom}
+                          dominantBaseline="central"
+                          textAnchor={marker.labelPlacement.textAnchor}
+                          fill="var(--ou-text-secondary, #4b5563)"
+                          fontSize={NETWORK_MAP_LABEL_FONT_SIZE / zoom}
+                          /*
+                           * The weight LABEL_CHAR_WIDTH was measured at, and
+                           * the weight the full-page map paints — see the
+                           * note beside that constant for why a renderer may
+                           * go lighter but never heavier.
+                           *
+                           * It earns its place here on legibility alone: this
+                           * map squeezes the whole world into a dashboard
+                           * tile, so its names land well UNDER
+                           * NETWORK_MAP_LABEL_FONT_SIZE on screen, and a 400
+                           * at that size greys out against a coastline.
+                           */
+                          fontWeight={600}
+                          stroke="var(--ou-surface-primary, #ffffff)"
+                          strokeWidth={2.5 / zoom}
+                          paintOrder="stroke"
+                          style={{ pointerEvents: "none" }}
+                        >
+                          {marker.label}
+                        </text>
+                      </>
                     ) : (
                       <></>
                     )}

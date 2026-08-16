@@ -118,14 +118,48 @@ const ProjectScopedTeamsPicker: FunctionComponent<ComponentProps> = (
         if (cancelled) {
           return;
         }
-        setOptions(
-          result.data.map((team: Team): DropdownOption => {
+
+        const fetchedOptions: Array<DropdownOption> = result.data.map(
+          (team: Team): DropdownOption => {
             return {
               label: team.name?.toString() || "",
               value: team.id?.toString() || "",
             };
+          },
+        );
+
+        setOptions(fetchedOptions);
+
+        /*
+         * Drop any selection that is not a team of this project.
+         *
+         * Switching projects leaves the old project's team ids in the form
+         * value. The dropdown stops *showing* them - `selectedOptions` below
+         * filters against these options - so the box looks empty while the
+         * stale id is still set, and required-field validation reads the value
+         * rather than the dropdown, so the form submits. Nothing downstream
+         * catches it either: TeamMemberService checks that the team exists and
+         * that the user is not already on it, never that the team belongs to
+         * the project being written. The result is a membership whose team is
+         * in a different project than its projectId.
+         *
+         * Clearing on the fetch's success path only, so a failed or in-flight
+         * request never discards a selection that may well still be valid.
+         */
+        const availableTeamIds: Set<string> = new Set<string>(
+          fetchedOptions.map((option: DropdownOption) => {
+            return option.value.toString();
           }),
         );
+
+        const stillSelectableTeamIds: Array<string> =
+          props.selectedTeamIds.filter((teamId: string) => {
+            return availableTeamIds.has(teamId);
+          });
+
+        if (stillSelectableTeamIds.length !== props.selectedTeamIds.length) {
+          props.onChange(stillSelectableTeamIds);
+        }
       })
       .catch((err: unknown) => {
         if (!cancelled) {

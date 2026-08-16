@@ -34,7 +34,6 @@ import {
   DrawableMapLink,
   MapMarker,
   LABEL_FONT_SIZE,
-  LABEL_GAP,
   LabelPlacement,
   PlacedMapMarker,
   buildMapLinks,
@@ -505,6 +504,16 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
   const hasNudgedMarkers: boolean = placedMarkers.some(
     (marker: PlacedMapMarker): boolean => {
       return marker.needsLeaderLine;
+    },
+  );
+
+  /*
+   * And whether it has to explain the OTHER kind of line: the thread from a
+   * marker to a name that could not fit against it.
+   */
+  const hasThreadedLabels: boolean = Array.from(labelPlacements.values()).some(
+    (placement: LabelPlacement): boolean => {
+      return placement.leaderLine !== null;
     },
   );
 
@@ -1198,6 +1207,15 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                 );
                 const hasCount: boolean = marker.count > 1;
                 const key: string = marker.key;
+                /*
+                 * Where this marker's name goes — position, anchor and the
+                 * thread back to the marker when the name could not fit
+                 * against it. All of it comes from resolveMarkerLabels:
+                 * re-deriving any of it here would let the map draw a name
+                 * somewhere the collision pass never checked.
+                 */
+                const labelPlacement: LabelPlacement | undefined =
+                  labelPlacements.get(key);
                 const activate: () => void = (): void => {
                   if (marker.ids.length === 1) {
                     setOpenCluster(null);
@@ -1350,43 +1368,97 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                     )}
 
                     {/*
-                     * The name, under the marker. This is the difference
+                     * The name, by the marker. This is the difference
                      * between a map of your network and a scatter of dots:
                      * "Region 1000" is on the map, where the customer put
                      * it, instead of only in a tooltip.
+                     *
+                     * Position and anchor come straight off the placement —
+                     * offsets are screen units, like everything else that
+                     * must not grow with the map, so they are divided by the
+                     * zoom and added to where the marker is drawn.
                      *
                      * paint-order draws the stroke first, so the halo sits
                      * BEHIND the glyphs and the label stays readable over a
                      * coastline, a landmass or another marker.
                      */}
-                    {marker.label && labelPlacements.has(key) ? (
-                      <text
-                        x={marker.x}
-                        /*
-                         * The label's CENTRE, matching the box
-                         * resolveMarkerLabels reserved for it — dy centres
-                         * the glyphs on it the same way the count inside the
-                         * marker is centred.
-                         */
-                        y={
-                          marker.y +
-                          (labelPlacements.get(key) === "above" ? -1 : 1) *
-                            ((marker.isContainer ? side / 2 : radius) +
-                              LABEL_GAP / zoom)
-                        }
-                        dy="0.36em"
-                        textAnchor="middle"
-                        fontSize={LABEL_FONT_SIZE / zoom}
-                        fontWeight={600}
-                        fill="var(--ou-text-secondary, #374151)"
-                        stroke="var(--ou-surface-primary, #ffffff)"
-                        strokeWidth={3 / zoom}
-                        strokeLinejoin="round"
-                        paintOrder="stroke"
-                        style={{ pointerEvents: "none" }}
-                      >
-                        {marker.label}
-                      </text>
+                    {marker.label && labelPlacement ? (
+                      <>
+                        {/*
+                         * A name that could not fit against its marker keeps
+                         * a thread back to it — the same bargain the marker
+                         * leader lines make with position, and what lets a
+                         * dozen units in one retail park all keep their
+                         * names. Neutral rather than the marker's colour: a
+                         * name is typography, not status, and a second
+                         * coloured thread beside the anchor line would read
+                         * as a second claim about the site.
+                         */}
+                        {labelPlacement.leaderLine ? (
+                          <g aria-hidden="true">
+                            <line
+                              x1={
+                                marker.x + labelPlacement.leaderLine.x1 / zoom
+                              }
+                              y1={
+                                marker.y + labelPlacement.leaderLine.y1 / zoom
+                              }
+                              x2={
+                                marker.x + labelPlacement.leaderLine.x2 / zoom
+                              }
+                              y2={
+                                marker.y + labelPlacement.leaderLine.y2 / zoom
+                              }
+                              stroke="var(--ou-surface-primary, #ffffff)"
+                              strokeWidth={3 / zoom}
+                              strokeOpacity={0.9}
+                              strokeLinecap="round"
+                            />
+                            <line
+                              x1={
+                                marker.x + labelPlacement.leaderLine.x1 / zoom
+                              }
+                              y1={
+                                marker.y + labelPlacement.leaderLine.y1 / zoom
+                              }
+                              x2={
+                                marker.x + labelPlacement.leaderLine.x2 / zoom
+                              }
+                              y2={
+                                marker.y + labelPlacement.leaderLine.y2 / zoom
+                              }
+                              stroke="var(--ou-chart-tick, #6b7280)"
+                              strokeWidth={0.9 / zoom}
+                              strokeOpacity={0.75}
+                              strokeLinecap="round"
+                            />
+                          </g>
+                        ) : (
+                          <></>
+                        )}
+                        <text
+                          x={marker.x + labelPlacement.offsetX / zoom}
+                          /*
+                           * The label's CENTRE, matching the box
+                           * resolveMarkerLabels reserved for it — dy centres
+                           * the glyphs on it the same way the count inside
+                           * the marker is centred.
+                           */
+                          y={marker.y + labelPlacement.offsetY / zoom}
+                          dy="0.36em"
+                          textAnchor={labelPlacement.textAnchor}
+                          fontSize={LABEL_FONT_SIZE / zoom}
+                          fontWeight={600}
+                          fill="var(--ou-text-secondary, #374151)"
+                          stroke="var(--ou-surface-primary, #ffffff)"
+                          strokeWidth={3 / zoom}
+                          strokeLinejoin="round"
+                          paintOrder="stroke"
+                          style={{ pointerEvents: "none" }}
+                        >
+                          {marker.label}
+                        </text>
+                      </>
                     ) : (
                       <></>
                     )}
@@ -1674,6 +1746,48 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
               <circle cx="18" cy="4" r="4" fill={CLUSTER_COLORS["none"]} />
             </svg>
             Nudged apart — the line ends at the real spot
+          </span>
+        ) : (
+          <></>
+        )}
+
+        {/*
+         * A line on this map used to mean exactly one thing, and the key
+         * above said so. A name that could not fit against its marker is
+         * now joined to it by a second, thinner kind of line — so once any
+         * are drawn, the key has to stop claiming every line is a nudge.
+         */}
+        {hasThreadedLabels ? (
+          <span
+            data-testid="site-geo-map-label-thread-key"
+            className="flex items-center gap-1.5 text-xs text-gray-600"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 12"
+              className="h-3 w-6 flex-shrink-0"
+            >
+              <circle cx="4" cy="6" r="3" fill={CLUSTER_COLORS["none"]} />
+              <line
+                x1="7"
+                y1="6"
+                x2="14"
+                y2="6"
+                stroke="var(--ou-chart-tick, #6b7280)"
+                strokeWidth="1"
+                strokeLinecap="round"
+              />
+              <rect
+                x="14"
+                y="3"
+                width="8"
+                height="6"
+                rx="1"
+                fill="var(--ou-chart-tick, #6b7280)"
+                fillOpacity="0.35"
+              />
+            </svg>
+            Name set clear — the line joins it to its marker
           </span>
         ) : (
           <></>

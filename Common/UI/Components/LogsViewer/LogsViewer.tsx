@@ -134,6 +134,8 @@ export interface ComponentProps {
   savedViews?: Array<LogsSavedViewOption> | undefined;
   selectedSavedViewId?: string | null;
   onSavedViewSelect?: ((viewId: string) => void) | undefined;
+  // Deselect the active saved view and reset the explorer to its default.
+  onClearSavedView?: (() => void) | undefined;
   onCreateSavedView?: (() => void) | undefined;
   onEditSavedView?: ((viewId: string) => void) | undefined;
   onDeleteSavedView?: ((viewId: string) => void) | undefined;
@@ -1044,6 +1046,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     savedViews: props.savedViews,
     selectedSavedViewId: props.selectedSavedViewId,
     onSavedViewSelect: props.onSavedViewSelect,
+    onClearSavedView: props.onClearSavedView,
     onCreateSavedView: props.onCreateSavedView,
     onEditSavedView: props.onEditSavedView,
     onDeleteSavedView: props.onDeleteSavedView,
@@ -1157,6 +1160,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               savedViews={props.savedViews}
               selectedSavedViewId={props.selectedSavedViewId}
               onSavedViewSelect={props.onSavedViewSelect}
+              onClearSavedView={props.onClearSavedView}
               onFacetSearchChange={props.onFacetSearchChange}
             />
           )}
