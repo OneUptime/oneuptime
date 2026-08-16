@@ -82,10 +82,11 @@ export default class SSRFProtection {
     rawUrl: string | URL,
   ): Promise<void> {
     /*
-     * URL.fromString only knows http/https/ws/wss/mongodb/mailto and silently
-     * DEFAULTS anything else to https - "file:///etc/passwd" comes back as
-     * host "file", not as a file: URL - so the protocol check below never sees
-     * the scheme the caller actually wrote. Read it off the raw string first.
+     * URL.fromString only knows http/https/ws/wss/mongodb/mailto/tel/sms and
+     * silently DEFAULTS anything else to https - "file:///etc/passwd" comes
+     * back as host "file", not as a file: URL - so the protocol check below
+     * never sees the scheme the caller actually wrote. Read it off the raw
+     * string first.
      *
      * The ":" must be followed by "/" or this would treat the host in a
      * scheme-less "example.com:8080/hook" as a scheme and reject it.
