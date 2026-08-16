@@ -3148,11 +3148,18 @@ describe("On-call readiness page", () => {
     test("the options are the teams that actually page somebody", async () => {
       await openTeamFilter();
 
-      const options: Array<string> = (await screen.findAllByRole("option")).map(
-        (option: HTMLElement): string => {
+      /*
+       * Scoped to the open menu rather than the document: the table's
+       * pagination bar carries a page-size select, whose native options are
+       * `option`s too and are there whether a menu is open or not.
+       */
+      const menu: HTMLElement = await screen.findByRole("listbox");
+
+      const options: Array<string> = within(menu)
+        .getAllByRole("option")
+        .map((option: HTMLElement): string => {
           return option.textContent || "";
-        },
-      );
+        });
 
       expect(options).toEqual(["Payments", "Platform"]);
     });
@@ -3546,15 +3553,34 @@ describe("no unmasked identifier reaches the DOM", () => {
      * The scan above catches the planted values by name; these two catch the
      * shape, so an identifier this file never thought of is caught too.
      *
-     * Login addresses are removed first. A responder row shows the person's
-     * login email under their name, and that address is legitimate here for
-     * the same reason the mail draft below may carry it: an admin already
-     * reads it on Settings > Users and on the team page. What must never
-     * appear is a notification-method identifier, which is what the
-     * by-name scan above and the shape scan below still catch - substituting
-     * a method identifier for one of these addresses fails both.
+     * Two things come out of the text before the shape is scanned.
+     *
+     * The pagination bar, because `textContent` joins siblings with no
+     * separator: its page-size options ("10", "20", "25", "50", "100") fuse
+     * into "10202550100", a digit run long enough to read as a phone number.
+     *
+     * Login addresses, because a responder row shows the person's login
+     * email under their name, and that address is legitimate here for the
+     * same reason the mail draft below may carry it: an admin already reads
+     * it on Settings > Users and on the team page.
+     *
+     * What must never appear is a notification-method identifier, and
+     * neither exclusion hides one: substituting a method identifier for one
+     * of these login addresses still fails the shape scan, and one rendered
+     * inside the pagination bar still fails the by-name scan above, which
+     * reads the whole container.
      */
-    let text: string = container.textContent || "";
+    const withoutPagination: HTMLElement = container.cloneNode(
+      true,
+    ) as HTMLElement;
+
+    withoutPagination
+      .querySelectorAll('nav[aria-label^="Pagination"]')
+      .forEach((paginationBar: Element): void => {
+        paginationBar.remove();
+      });
+
+    let text: string = withoutPagination.textContent || "";
 
     for (const loginEmail of ALL_LOGIN_EMAILS) {
       text = text.split(loginEmail).join("");
