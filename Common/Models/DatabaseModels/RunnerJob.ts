@@ -32,7 +32,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   pluralName: "Runner Jobs",
   icon: IconProp.Logs,
   tableDescription:
-    "One row per Bash or JavaScript step dispatched to a specific Runner. Tracks claim, execution, and result. Managed by the Worker and the agents; not user-writable.",
+    "One row per step dispatched to a specific Runner — Bash and JavaScript, which carry a script, and SSH and Kubernetes, which carry structured instructions instead. Tracks claim, execution, and result. Managed by the Worker and the agents; not user-writable.",
 })
 @TableAccessControl({
   create: [],
