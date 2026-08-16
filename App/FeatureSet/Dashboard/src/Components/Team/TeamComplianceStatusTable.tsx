@@ -122,6 +122,11 @@ const TeamComplianceStatusTable: React.ForwardRefExoticComponent<
           return (
             <UserElement
               user={{
+                /*
+                 * Without _id the avatar route cannot be built and the row
+                 * falls back to the blank profile picture.
+                 */
+                _id: item.userId,
                 name: item.userName,
                 email: item.userEmail,
                 profilePictureId: item.userProfilePictureId,

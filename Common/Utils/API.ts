@@ -51,6 +51,28 @@ export interface RequestOutcome {
 export interface RequestOptions {
   retries?: number | undefined;
   exponentialBackoff?: boolean | undefined;
+  /*
+   * Ceiling on any single backoff sleep. Doubling is unbounded by
+   * definition, so without a cap a double-digit retry budget spends nearly
+   * all of its wall clock asleep — the tenth wait alone is over seventeen
+   * minutes. Defaults to DEFAULT_MAX_BACKOFF_IN_MS, which is far above what
+   * a handful of retries can reach, so short retry budgets are unaffected.
+   */
+  maxBackoffInMs?: number | undefined;
+  /*
+   * Spend retries only on failures that repeating could plausibly fix —
+   * see isRetryableError. Off by default: callers that have always retried
+   * every error keep doing so until they opt in.
+   */
+  retryOnlyOnRetryableErrors?: boolean | undefined;
+  /*
+   * Wall-clock budget for the whole call, every attempt and backoff
+   * included. No attempt is started that the budget cannot pay for, so N
+   * retries of a request that times out can no longer take N x timeout and
+   * outlive whatever is waiting on the answer. It does not abort an attempt
+   * already in flight — the per-attempt `timeout` is what bounds that.
+   */
+  totalTimeoutInMs?: number | undefined;
   timeout?: number | undefined;
   doNotFollowRedirects?: boolean | undefined;
   // Per-request proxy agent support (Probe supplies these instead of mutating global axios defaults)
@@ -97,6 +119,25 @@ export interface AuthRetryContext {
 }
 
 export default class API {
+  /*
+   * Backstop ceiling for a single backoff sleep when the caller names none.
+   * Set well above what a small retry budget can reach (three retries top out
+   * at eight seconds), so it only ever bites on the long budgets that need it.
+   */
+  public static readonly DEFAULT_MAX_BACKOFF_IN_MS: number = 60 * 1000;
+
+  /*
+   * 4xx responses are the server saying the request itself is wrong, and
+   * resending it byte-for-byte gets the same answer — except for these three,
+   * which say "not now" rather than "not ever".
+   */
+  private static readonly RETRYABLE_CLIENT_ERROR_STATUS_CODES: Set<number> =
+    new Set([
+      408, // Request Timeout
+      425, // Too Early
+      429, // Too Many Requests
+    ]);
+
   private _protocol: Protocol = Protocol.HTTPS;
   public get protocol(): Protocol {
     return this._protocol;
@@ -417,56 +458,87 @@ export default class API {
         finalBody = new URLSearchParams(data as Dictionary<string>);
       }
 
-      let currentRetry: number = 0;
-      const maxRetries: number = options?.retries || 0;
+      /*
+       * Negative budgets are clamped rather than trusted: `while (0 <= -1)`
+       * used to skip the request entirely and report the misleading "No
+       * response received from server" for a request never sent.
+       */
+      const maxRetries: number = Math.max(0, options?.retries || 0);
       const exponentialBackoff: boolean = options?.exponentialBackoff || false;
+
+      // Identical on every attempt, so build it once.
+      const axiosOptions: AxiosRequestConfig = {
+        method: method,
+        url: url.toString(),
+        headers: finalHeaders,
+        data: finalBody,
+      };
+
+      if (options?.timeout) {
+        axiosOptions.timeout = options.timeout;
+      }
+
+      if (options?.doNotFollowRedirects) {
+        axiosOptions.maxRedirects = 0;
+      }
+
+      // Attach proxy agents per request if provided (avoids global side-effects)
+      if (options?.httpAgent) {
+        axiosOptions.httpAgent = options.httpAgent;
+      }
+      if (options?.httpsAgent) {
+        axiosOptions.httpsAgent = options.httpsAgent;
+      }
+
+      if (options?.onUploadProgress) {
+        axiosOptions.onUploadProgress = options.onUploadProgress;
+      }
 
       let result: AxiosResponse | null = null;
 
-      while (currentRetry <= maxRetries) {
-        currentRetry++;
+      for (let attempt: number = 0; attempt <= maxRetries; attempt++) {
         attempts++;
+
         try {
-          const axiosOptions: AxiosRequestConfig = {
-            method: method,
-            url: url.toString(),
-            headers: finalHeaders,
-            data: finalBody,
-          };
-
-          if (options?.timeout) {
-            axiosOptions.timeout = options.timeout;
-          }
-
-          if (options?.doNotFollowRedirects) {
-            axiosOptions.maxRedirects = 0;
-          }
-
-          // Attach proxy agents per request if provided (avoids global side-effects)
-          if (options?.httpAgent) {
-            (axiosOptions as AxiosRequestConfig).httpAgent = options.httpAgent;
-          }
-          if (options?.httpsAgent) {
-            (axiosOptions as AxiosRequestConfig).httpsAgent =
-              options.httpsAgent;
-          }
-
-          if (options?.onUploadProgress) {
-            axiosOptions.onUploadProgress = options.onUploadProgress;
-          }
-
           result = await axios(axiosOptions);
 
           break;
         } catch (e) {
-          if (currentRetry <= maxRetries) {
-            if (exponentialBackoff) {
-              await Sleep.sleep(2 ** currentRetry * 1000);
-            }
-
-            continue;
-          } else {
+          if (attempt >= maxRetries) {
             throw e;
+          }
+
+          /*
+           * A rejected request stays rejected. Failing now surfaces the
+           * provider's own explanation immediately instead of after a full
+           * ladder of backoffs that cannot change the answer.
+           */
+          if (options?.retryOnlyOnRetryableErrors && !API.isRetryableError(e)) {
+            throw e;
+          }
+
+          const delayInMs: number = API.getRetryDelayInMs({
+            attempt: attempt,
+            error: e,
+            exponentialBackoff: exponentialBackoff,
+            maxBackoffInMs: options?.maxBackoffInMs,
+          });
+
+          /*
+           * Check the budget against the point the next attempt would START,
+           * not the point we are at now: sleeping out the remainder and then
+           * giving up would waste the wait for nothing.
+           */
+          if (
+            options?.totalTimeoutInMs !== undefined &&
+            Date.now() - requestStartedAtInMs + delayInMs >=
+              options.totalTimeoutInMs
+          ) {
+            throw e;
+          }
+
+          if (delayInMs > 0) {
+            await Sleep.sleep(delayInMs);
           }
         }
       }
@@ -618,6 +690,141 @@ export default class API {
     } catch {
       // Diagnostics must never change the fate of the request they describe.
     }
+  }
+
+  /**
+   * Is repeating this request worth an attempt?
+   *
+   * Retries exist for failures the network or the server may not repeat: a
+   * dropped connection, a timeout, an overloaded backend, a rate limit that
+   * lapses. Everything else — a malformed body, a bad key, an unknown route —
+   * fails identically every time, and retrying it only delays the error the
+   * operator needs to read.
+   */
+  public static isRetryableError(error: unknown): boolean {
+    if (!axios.isAxiosError(error)) {
+      /*
+       * Not a transport failure at all: the request could not even be built,
+       * or an interceptor threw. Nothing about resending changes that.
+       */
+      return false;
+    }
+
+    const axiosError: AxiosError = error;
+
+    // The caller pulled the plug on purpose.
+    if (axiosError.code === "ERR_CANCELED") {
+      return false;
+    }
+
+    const statusCode: number | undefined = axiosError.response?.status;
+
+    /*
+     * No response at all — timeout, DNS failure, refused or reset connection.
+     * These are exactly what a retry is for.
+     */
+    if (statusCode === undefined) {
+      return true;
+    }
+
+    // The server broke, not the request.
+    if (statusCode >= 500) {
+      return true;
+    }
+
+    return API.RETRYABLE_CLIENT_ERROR_STATUS_CODES.has(statusCode);
+  }
+
+  /**
+   * How long to wait before the attempt that follows `attempt` (0-based).
+   */
+  private static getRetryDelayInMs(data: {
+    attempt: number;
+    error: unknown;
+    exponentialBackoff: boolean;
+    maxBackoffInMs?: number | undefined;
+  }): number {
+    const ceilingInMs: number =
+      data.maxBackoffInMs ?? API.DEFAULT_MAX_BACKOFF_IN_MS;
+
+    /*
+     * A server that says when to come back knows better than any formula we
+     * could pick — coming back early just spends another attempt on the same
+     * 429. Still capped: the caller's budget is what bounds the total wait,
+     * and an unbounded Retry-After would hand that control to the server.
+     */
+    const retryAfterInMs: number | undefined = API.getRetryAfterInMs(
+      data.error,
+    );
+
+    if (retryAfterInMs !== undefined) {
+      return Math.min(retryAfterInMs, ceilingInMs);
+    }
+
+    if (!data.exponentialBackoff) {
+      return 0;
+    }
+
+    const backoffInMs: number = Math.min(
+      2 ** (data.attempt + 1) * 1000,
+      ceilingInMs,
+    );
+
+    /*
+     * Equal jitter. Everything that failed together — every chat turn behind
+     * one provider outage, every probe behind one flapping host — otherwise
+     * comes back at the very same millisecond and knocks the recovering
+     * server straight back over. Half the delay stays fixed so a retry is
+     * never effectively immediate, and half is spread at random.
+     */
+    return Math.round(backoffInMs / 2 + Math.random() * (backoffInMs / 2));
+  }
+
+  /**
+   * Read a Retry-After header off a failed response. Returns undefined unless
+   * the header is present and names a sane, non-negative wait.
+   */
+  private static getRetryAfterInMs(error: unknown): number | undefined {
+    if (!axios.isAxiosError(error)) {
+      return undefined;
+    }
+
+    const headers: unknown = error.response?.headers;
+
+    if (!headers || typeof headers !== "object") {
+      return undefined;
+    }
+
+    const rawHeader: unknown =
+      (headers as Dictionary<unknown>)["retry-after"] ??
+      (headers as Dictionary<unknown>)["Retry-After"];
+
+    if (rawHeader === undefined || rawHeader === null) {
+      return undefined;
+    }
+
+    const headerValue: string = String(rawHeader).trim();
+
+    if (!headerValue) {
+      return undefined;
+    }
+
+    // Form 1: delta-seconds.
+    const deltaSecondsRegex: RegExp = /^\d+$/;
+
+    if (deltaSecondsRegex.test(headerValue)) {
+      return Number(headerValue) * 1000;
+    }
+
+    // Form 2: an HTTP-date to wait until.
+    const retryAtInMs: number = Date.parse(headerValue);
+
+    if (Number.isNaN(retryAtInMs)) {
+      return undefined;
+    }
+
+    // A date already in the past means "retry now", not "retry in the past".
+    return Math.max(0, retryAtInMs - Date.now());
   }
 
   private static getErrorResponse(error: AxiosError): HTTPErrorResponse {

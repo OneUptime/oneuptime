@@ -14,12 +14,14 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import Query from "../Types/Database/Query";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import CidrMatchUtil from "../../Utils/NetworkSite/CidrMatchUtil";
+import { SiteAssignmentRuleRunResult } from "../../Types/NetworkAutomation/RuleRunResult";
 import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { EntityManager } from "typeorm";
@@ -76,6 +78,39 @@ const MONITOR_KEYS: Array<string> = ["monitorId", "monitor"];
 
 function readMonitorIdFromData(data: Record<string, unknown>): ObjectID | null {
   return RelationIdUtil.read(data, MONITOR_KEYS);
+}
+
+/*
+ * How many devices a single manual "Run now" of an assignment rule walks.
+ * The automatic path only ever sees one device at a time, so this cap is the
+ * only thing standing between a rule run and a full-fleet table scan inside
+ * one HTTP request. Runs that hit it report isTruncated so the caller can say
+ * "run it again" rather than quietly leave half the estate unassigned.
+ */
+export const MAX_DEVICES_PER_RULE_RUN: number = LIMIT_PER_PROJECT;
+
+// Devices are read in pages so a large estate never lands in memory at once.
+const RULE_RUN_PAGE_SIZE: number = 1000;
+
+/*
+ * The identity a rule is matched against. The hostname column holds an IP
+ * address or a DNS name depending on how the device got here, so it is passed
+ * as both — ipInCidr rejects non-IP strings safely. Mirrors the single-device
+ * path in applySiteAssignmentRulesToDevice; both must stay in step or a
+ * manual run would disagree with what discovery does.
+ */
+function toRuleMatchTarget(device: Model): {
+  ip: string | undefined;
+  hostname: string | undefined;
+  sysName: string | undefined;
+  name: string | undefined;
+} {
+  return {
+    ip: device.hostname,
+    hostname: device.hostname,
+    sysName: device.sysName,
+    name: device.name,
+  };
 }
 
 export class Service extends DatabaseService<Model> {
@@ -616,20 +651,14 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * The device's hostname column stores an IP address or a DNS name; pass
-     * it as both — ipInCidr safely rejects non-IP strings. `name` is passed
-     * too because a discovery import puts the responding IP in `hostname`
-     * and the device's real identity in `name`, so a hostname pattern that
-     * only ever saw `hostname` could not match anything a user recognises.
+     * `name` is matched on as well as `hostname` because a discovery import
+     * puts the responding IP in `hostname` and the device's real identity in
+     * `name`, so a hostname pattern that only ever saw `hostname` could not
+     * match anything a user recognises. See toRuleMatchTarget.
      */
     const winner: NetworkSiteAssignmentRule | null = CidrMatchUtil.pickRule(
       rules,
-      {
-        ip: device.hostname,
-        hostname: device.hostname,
-        sysName: device.sysName,
-        name: device.name,
-      },
+      toRuleMatchTarget(device),
     );
 
     if (!winner || !winner.siteId) {
@@ -652,6 +681,230 @@ export class Service extends DatabaseService<Model> {
         isRoot: true,
       },
     });
+  }
+
+  /*
+   * Runs ONE assignment rule against the devices that already exist, which is
+   * the half the automatic path cannot do: rules only ever fire on create, on
+   * an identity change, or on the next poll of a device that has no site, so
+   * a rule written after the estate was imported would never reach it
+   * (OneUptime/oneuptime#3191).
+   *
+   * Two rules of the automatic path are kept deliberately:
+   *
+   *   - priority still decides. A device this rule matches but a
+   *     higher-priority rule also matches is REPORTED, not moved: running one
+   *     rule must never quietly do another rule's work, or the button would
+   *     produce a placement no rule alone explains.
+   *   - a device already in a site is left alone unless the caller explicitly
+   *     asks otherwise. Nothing records whether a site was chosen by a human
+   *     or by a rule, so overwriting is the caller's decision to make, with
+   *     the warning that goes with it — and it is not needed for the case the
+   *     button exists for, since a device imported before the rule existed
+   *     has no site at all.
+   */
+  @CaptureSpan()
+  public async applySiteAssignmentRuleToExistingDevices(data: {
+    ruleId: ObjectID;
+    projectId: ObjectID;
+    reassignDevicesAlreadyInASite: boolean;
+  }): Promise<SiteAssignmentRuleRunResult> {
+    /*
+     * Every rule in the project, not just the one being run — pickRule needs
+     * the whole set to answer "does something outrank this rule here?".
+     * Loading them by project is also what scopes the run to the tenant: a
+     * rule id from another project simply is not in this list.
+     */
+    const rules: Array<NetworkSiteAssignmentRule> =
+      await NetworkSiteAssignmentRuleService.findBy({
+        query: {
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+          siteId: true,
+          subnetCidr: true,
+          hostnamePattern: true,
+          priority: true,
+          createdAt: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const rule: NetworkSiteAssignmentRule | undefined = rules.find(
+      (candidate: NetworkSiteAssignmentRule) => {
+        return candidate._id?.toString() === data.ruleId.toString();
+      },
+    );
+
+    if (!rule) {
+      throw new BadDataException("Assignment rule not found.");
+    }
+
+    if (!rule.siteId) {
+      throw new BadDataException(
+        "This assignment rule has no site to assign devices to.",
+      );
+    }
+
+    const ruleSiteId: ObjectID = rule.siteId;
+
+    const result: SiteAssignmentRuleRunResult = {
+      devicesEvaluated: 0,
+      devicesMatched: 0,
+      devicesAssigned: 0,
+      devicesAlreadyInRuleSite: 0,
+      devicesSkippedAlreadyInAnotherSite: 0,
+      devicesClaimedByHigherPriorityRule: 0,
+      devicesFailed: 0,
+      isTruncated: false,
+    };
+
+    let skip: number = 0;
+
+    for (;;) {
+      const devices: Array<Model> = await this.findBy({
+        query: {
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+          siteId: true,
+          hostname: true,
+          sysName: true,
+          name: true,
+        },
+        /*
+         * Sorted by id so paging stays stable while the run writes to the
+         * very rows it is paging over. Assigning a site never changes an id,
+         * so no device can be skipped or seen twice.
+         */
+        sort: {
+          _id: SortOrder.Ascending,
+        },
+        limit: RULE_RUN_PAGE_SIZE,
+        skip: skip,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (devices.length === 0) {
+        break;
+      }
+
+      for (const device of devices) {
+        result.devicesEvaluated++;
+
+        const target: ReturnType<typeof toRuleMatchTarget> =
+          toRuleMatchTarget(device);
+
+        if (!CidrMatchUtil.ruleMatches(rule, target)) {
+          continue;
+        }
+
+        result.devicesMatched++;
+
+        if (device.siteId?.toString() === ruleSiteId.toString()) {
+          result.devicesAlreadyInRuleSite++;
+          continue;
+        }
+
+        if (device.siteId && !data.reassignDevicesAlreadyInASite) {
+          result.devicesSkippedAlreadyInAnotherSite++;
+          continue;
+        }
+
+        const winner: NetworkSiteAssignmentRule | null = CidrMatchUtil.pickRule(
+          rules,
+          target,
+        );
+
+        if (winner?._id?.toString() !== rule._id?.toString()) {
+          result.devicesClaimedByHigherPriorityRule++;
+          continue;
+        }
+
+        /*
+         * Counted as a failure rather than skipped silently: every matched
+         * device has to land in exactly one bucket, or the summary the
+         * operator reads would not add up.
+         */
+        if (!device.id) {
+          result.devicesFailed++;
+          continue;
+        }
+
+        /*
+         * Through updateOneById, not a bulk UPDATE: onUpdateSuccess is what
+         * refreshes the rollups of the site the device left and the site it
+         * joined, and a raw write would leave both stale.
+         */
+        try {
+          await this.updateOneById({
+            id: device.id,
+            data: {
+              siteId: ruleSiteId,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          result.devicesAssigned++;
+        } catch (error) {
+          // One unhappy device must not abandon the rest of the estate.
+          result.devicesFailed++;
+          logger.error(
+            `Error assigning site from assignment rule ${data.ruleId.toString()} to device ${device.id.toString()}: ${error}`,
+            {
+              projectId: data.projectId.toString(),
+              networkDeviceId: device.id.toString(),
+            } as LogAttributes,
+          );
+        }
+      }
+
+      skip += devices.length;
+
+      if (devices.length < RULE_RUN_PAGE_SIZE) {
+        break;
+      }
+
+      if (skip >= MAX_DEVICES_PER_RULE_RUN) {
+        /*
+         * A full last page does not prove there is an eleventh thousand of
+         * devices — an estate of exactly the cap would report a truncation
+         * that never happened, and the UI would tell the user to run it
+         * again forever. One row is enough to settle it.
+         */
+        const nextDevice: Array<Model> = await this.findBy({
+          query: {
+            projectId: data.projectId,
+          },
+          select: {
+            _id: true,
+          },
+          sort: {
+            _id: SortOrder.Ascending,
+          },
+          limit: 1,
+          skip: skip,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        result.isTruncated = nextDevice.length > 0;
+        break;
+      }
+    }
+
+    return result;
   }
 
   /*

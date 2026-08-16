@@ -156,6 +156,8 @@ const TelegramLogsTable: FunctionComponent<TelegramLogsTableProps> = (
           telegramMessageId: true,
           user: {
             name: true,
+            email: true,
+            profilePictureId: true,
           },
         }}
         cardProps={{

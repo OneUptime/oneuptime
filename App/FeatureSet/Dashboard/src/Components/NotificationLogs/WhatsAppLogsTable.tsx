@@ -156,6 +156,8 @@ const WhatsAppLogsTable: FunctionComponent<WhatsAppLogsTableProps> = (
           whatsAppMessageId: true,
           user: {
             name: true,
+            email: true,
+            profilePictureId: true,
           },
         }}
         cardProps={{

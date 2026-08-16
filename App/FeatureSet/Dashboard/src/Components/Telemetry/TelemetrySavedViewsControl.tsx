@@ -190,6 +190,21 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
   );
 
   /*
+   * Deselect the active view and put the explorer back where it starts. An
+   * empty state is exactly what every host means by "no saved view": each
+   * applyState implementation substitutes its own defaults for the fields it
+   * finds missing, which is the same path a brand-new explorer takes.
+   *
+   * The initial-default guard is deliberately left set — re-applying the
+   * project default view the moment the user cleared it is what they were
+   * trying to get away from.
+   */
+  const clearSavedView: () => void = useCallback((): void => {
+    setSelectedSavedViewId(null);
+    applyState({});
+  }, [applyState]);
+
+  /*
    * Apply the default view once, after the first fetch resolves (so savedViews
    * is populated). Skipped when the URL already carried filter state.
    */
@@ -424,6 +439,7 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
             applySavedView(view);
           }
         }}
+        onClear={clearSavedView}
         onCreate={() => {
           setShowCreateModal(true);
         }}

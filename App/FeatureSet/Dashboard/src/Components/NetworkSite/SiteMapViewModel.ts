@@ -605,27 +605,64 @@ export const MAX_MARKER_LABEL_CHARS: number = 22;
 export const truncateMarkerLabel: (value: string) => string = (
   value: string,
 ): string => {
-  if (value.length <= MAX_MARKER_LABEL_CHARS) {
-    return value;
+  /*
+   * Trimmed first. A site named entirely of spaces is not a name, and an
+   * untrimmed one is TRUTHY: it would be handed to the placement pass, take
+   * a reserved box away from a marker with a real name, and then draw
+   * nothing in it — a hole in the layout that nothing on screen accounts for.
+   */
+  const name: string = value.trim();
+  if (name.length <= MAX_MARKER_LABEL_CHARS) {
+    return name;
   }
-  return `${value.slice(0, MAX_MARKER_LABEL_CHARS - 1).trimEnd()}…`;
+  return `${name.slice(0, MAX_MARKER_LABEL_CHARS - 1).trimEnd()}…`;
 };
 
 /*
  * Label geometry, in screen units — the same units screenRadius is in.
- * The character width is an approximation of a 600-weight sans glyph at
- * LABEL_FONT_SIZE; it only has to be close enough to decide overlap, and
- * erring slightly wide means the map drops a label rather than printing two
- * on top of each other.
+ *
+ * The character width approximates a 600-weight Inter glyph at
+ * LABEL_FONT_SIZE. Measured over a spread of real site names, Inter averages
+ * 5.31 units per character at weight 600 and 5.20 at 400, so 5.6 carries
+ * roughly five percent of slack over the weight the maps actually paint. It
+ * only has to be close enough to decide overlap.
+ *
+ * That slack is the contract, and it runs ONE WAY. A renderer may paint a
+ * name lighter or smaller than this was measured for and the reservation
+ * still holds — it simply reserved more than it needed. Painting it heavier
+ * or larger draws outside the box the collision pass approved, and an
+ * overlap the pass approved looks deliberate rather than crowded. Both maps
+ * therefore paint LABEL_FONT_SIZE at weight 600, and the two invariant
+ * suites pin them there.
  */
 export const LABEL_FONT_SIZE: number = 10;
 const LABEL_CHAR_WIDTH: number = 5.6;
 const LABEL_HEIGHT: number = 12;
+
+/*
+ * Above and below, the gap is measured from the marker's edge to the label's
+ * CENTRE: a label is one line of text, positioned by its centre, and half a
+ * line's height is comfortably less than this either way.
+ */
 export const LABEL_GAP: number = 10;
+
+/*
+ * Sideways it is measured to the label's near EDGE instead. A name set
+ * beside its marker starts right there — measuring to the centre would push
+ * a twenty-character box half its own width away from the thing it names.
+ */
+export const LABEL_SIDE_GAP: number = 5;
+
 // Labels this close to each other read as collided even when they do not touch.
 const LABEL_PADDING: number = 2;
 
-interface LabelRect {
+/*
+ * The box a name occupies on screen, padding included. This is the unit the
+ * whole collision pass works in: a name is reserved as one of these, and
+ * everything it has to keep clear of — the other names, the marker bodies —
+ * is compared as one of these too.
+ */
+export interface LabelBounds {
   left: number;
   right: number;
   top: number;
@@ -633,54 +670,262 @@ interface LabelRect {
 }
 
 /*
- * Where a marker's name sits relative to it. Below reads best — the eye
- * goes marker-then-name — so it is always tried first; above is the escape
- * hatch for a marker with a neighbour directly beneath it.
+ * Where a marker's name sits relative to it. Below reads best — the eye goes
+ * marker-then-name — so it is tried first, then above, then the two sides,
+ * then the corners.
+ *
+ * This is a preference order, not a ranking of quality: every one of these
+ * is a perfectly readable place for a name, and having eight to choose from
+ * instead of two is most of what keeps a level's names on the map at all.
  */
-export type LabelPlacement = "below" | "above";
+export type LabelDirection =
+  | "below"
+  | "above"
+  | "right"
+  | "left"
+  | "below-right"
+  | "below-left"
+  | "above-right"
+  | "above-left";
 
-export const LABEL_PLACEMENTS: Array<LabelPlacement> = ["below", "above"];
+export const LABEL_DIRECTIONS: Array<LabelDirection> = [
+  "below",
+  "above",
+  "right",
+  "left",
+  "below-right",
+  "below-left",
+  "above-right",
+  "above-left",
+];
+
+// The compass as a step per axis. Diagonals are normalised where they are used.
+const DIRECTION_STEPS: Record<LabelDirection, { x: number; y: number }> = {
+  below: { x: 0, y: 1 },
+  above: { x: 0, y: -1 },
+  right: { x: 1, y: 0 },
+  left: { x: -1, y: 0 },
+  "below-right": { x: 1, y: 1 },
+  "below-left": { x: -1, y: 1 },
+  "above-right": { x: 1, y: -1 },
+  "above-left": { x: -1, y: -1 },
+};
 
 /*
- * A container is drawn as a square of side CONTAINER_SIDE_FACTOR * r, so its
- * label clears the SIDE rather than the circumscribed circle.
+ * ── Names that cannot fit against their marker ─────────────────────────
+ *
+ * Eight positions around a marker are plenty for a map whose markers are
+ * spread over a country. They are nowhere near enough for a dozen units in
+ * one retail park.
+ *
+ * Those units arrive at near-identical coordinates. The collision layout
+ * fans their MARKERS apart into a disc a few dozen screen units across (see
+ * Geo/MarkerLayout.ts) so none of them is hidden — but a name is a box
+ * roughly seventy screen units wide, and a dozen of those do not fit in the
+ * ring around a disc that small. Every name but the first two used to be
+ * dropped, and zooming in never brought them back: zoom multiplies the
+ * distance between two markers in the WORLD, and between two units on the
+ * same street that distance is zero.
+ *
+ * So a name with nowhere to sit is PUSHED off its marker, a step at a time,
+ * until it finds room — and once it is off, a thin thread is drawn from the
+ * marker to the name so it is still obvious whose name it is. That is the
+ * same bargain the marker layout already makes with position, and it is
+ * what lets a dozen names spread over the space around a pile-up instead of
+ * two of them fitting and ten vanishing.
  */
-const markerLabelRect: (
+export const LABEL_PUSH_STEP: number = 8;
+
+/*
+ * How far a name may be pushed from its marker, in screen units. Past it the
+ * reader is tracing a line across the map rather than reading a label, and
+ * dropping the name is more honest than pretending the thread explains it.
+ *
+ * It is dimensioned against the worst case the map can actually present:
+ * MAX_LABELLED_MARKERS markers, all on one point, all named at the
+ * MAX_MARKER_LABEL_CHARS cap. That seats every name with the furthest of
+ * them sitting just about on this number — a dozen units in one retail park,
+ * which is what this is really for, never gets past a third of it.
+ *
+ * Note this is longer than MAX_MARKER_DISPLACEMENT, which bounds how far a
+ * MARKER may be moved. That is deliberate: a marker carries a position, and
+ * moving one a long way makes the map wrong. A name carries nothing but
+ * itself.
+ */
+export const MAX_LABEL_PUSH: number = 176;
+
+/*
+ * Ceiling on the candidate positions examined per call. Fitting on the first
+ * try is the normal case — a map with room on it never gets past the first
+ * candidate for any marker — and this only bites on a level so crowded that
+ * most of its names are being pushed. Names are resolved again on every zoom
+ * step, and a map that stutters under a wheel is a worse map than one with a
+ * couple of names missing from a crowd.
+ */
+const MAX_LABEL_CANDIDATE_VISITS: number = 120_000;
+
+// Where a label's text is anchored horizontally, as SVG spells it.
+export type LabelTextAnchor = "middle" | "start" | "end";
+
+/*
+ * The thread from a marker to a name that no longer sits against it, in
+ * SCREEN units RELATIVE to the marker's drawn position — so a renderer
+ * divides by the zoom and adds the marker's coordinates, exactly as it does
+ * for every other screen-sized piece of the map.
+ *
+ * It starts on the marker's edge rather than at its centre, so the line does
+ * not print over the marker it belongs to, and ends on the nearest edge of
+ * the label's box rather than at the text, so it does not print over the
+ * name either.
+ */
+export interface LabelLeaderLine {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
+/**
+ * Everything a renderer needs to draw one name: nothing here has to be
+ * re-derived, and nothing may be.
+ *
+ * The collision pass reserved a box at an exact size and offset. A renderer
+ * that computed its own offset would be free to draw the name somewhere the
+ * pass never checked — which is worse than having no collision pass at all,
+ * because the overlap would then look deliberate.
+ */
+export interface LabelPlacement {
+  direction: LabelDirection;
+  /*
+   * How far past its attached position the name had to be pushed, in screen
+   * units. Zero for a name sitting against its marker, which is the case
+   * for nearly every name on nearly every map.
+   */
+  push: number;
+  /*
+   * Where the text is anchored, relative to the marker's DRAWN position, in
+   * screen units. Add the marker's coordinates and divide by the zoom.
+   */
+  offsetX: number;
+  offsetY: number;
+  textAnchor: LabelTextAnchor;
+  // Null when the name is against its marker and needs no explaining.
+  leaderLine: LabelLeaderLine | null;
+}
+
+/*
+ * A container is drawn as a square of side CONTAINER_SIDE_FACTOR * r, so
+ * everything that has to keep clear of it — its label, its thread, its
+ * neighbours' labels — clears the SIDE rather than the circumscribed circle.
+ */
+const markerHalfExtent: (marker: MapMarker) => number = (
   marker: MapMarker,
-  zoom: number,
-  placement: LabelPlacement,
-) => LabelRect = (
+): number => {
+  return marker.isContainer
+    ? (marker.screenRadius * CONTAINER_SIDE_FACTOR) / 2
+    : marker.screenRadius;
+};
+
+// The box a name occupies, padding included, in screen units.
+const labelBoxSize: (marker: MapMarker) => { width: number; height: number } = (
   marker: MapMarker,
-  zoom: number,
-  placement: LabelPlacement,
-): LabelRect => {
-  const width: number = Math.max(
-    marker.label.length * LABEL_CHAR_WIDTH,
-    LABEL_CHAR_WIDTH,
-  );
-  const centerX: number = marker.x * zoom;
-  const offset: number =
-    (marker.isContainer
-      ? (marker.screenRadius * CONTAINER_SIDE_FACTOR) / 2
-      : marker.screenRadius) + LABEL_GAP;
-  const centerY: number =
-    marker.y * zoom + (placement === "above" ? -offset : offset);
+): { width: number; height: number } => {
   return {
-    left: centerX - width / 2 - LABEL_PADDING,
-    right: centerX + width / 2 + LABEL_PADDING,
-    top: centerY - LABEL_HEIGHT / 2 - LABEL_PADDING,
-    bottom: centerY + LABEL_HEIGHT / 2 + LABEL_PADDING,
+    width:
+      Math.max(marker.label.length * LABEL_CHAR_WIDTH, LABEL_CHAR_WIDTH) +
+      LABEL_PADDING * 2,
+    height: LABEL_HEIGHT + LABEL_PADDING * 2,
+  };
+};
+
+/*
+ * A zoom that can be divided by and multiplied with. A map that has not been
+ * measured yet reports a zero or a NaN for a frame or two, and a name is
+ * better placed at the wrong magnification than not placed at all.
+ */
+const safeMapZoom: (zoom: number) => number = (zoom: number): number => {
+  return Number.isFinite(zoom) && zoom > 0 ? zoom : 1;
+};
+
+// One position a name could take: the box it would occupy, and how to draw it.
+interface LabelCandidate {
+  direction: LabelDirection;
+  push: number;
+  rect: LabelBounds;
+  offsetX: number;
+  offsetY: number;
+  textAnchor: LabelTextAnchor;
+}
+
+/**
+ * The box a name would occupy in one direction, pushed `push` screen units
+ * further out than its attached position.
+ *
+ * The push is applied along the UNIT vector of the direction, so one step is
+ * the same distance whichever of the eight ways it goes — a corner is not
+ * quietly forty percent further out than a side.
+ */
+const labelCandidateAt: (
+  marker: MapMarker,
+  zoom: number,
+  direction: LabelDirection,
+  push: number,
+) => LabelCandidate = (
+  marker: MapMarker,
+  zoom: number,
+  direction: LabelDirection,
+  push: number,
+): LabelCandidate => {
+  const step: { x: number; y: number } = DIRECTION_STEPS[direction];
+  const length: number = Math.sqrt(step.x * step.x + step.y * step.y);
+  const unitX: number = step.x / length;
+  const unitY: number = step.y / length;
+
+  const half: number = markerHalfExtent(marker);
+  const size: { width: number; height: number } = labelBoxSize(marker);
+  const markerX: number = marker.x * zoom;
+  const markerY: number = marker.y * zoom;
+
+  const centerX: number =
+    markerX + step.x * (half + LABEL_SIDE_GAP + size.width / 2) + unitX * push;
+  const centerY: number = markerY + step.y * (half + LABEL_GAP) + unitY * push;
+
+  /*
+   * The text itself is narrower than its box by the padding either side.
+   * A name beside its marker is anchored on the edge nearest the marker, so
+   * it reads outwards from the thing it names.
+   */
+  const textWidth: number = size.width - LABEL_PADDING * 2;
+  const textAnchor: LabelTextAnchor =
+    step.x === 0 ? "middle" : step.x > 0 ? "start" : "end";
+  const textX: number =
+    step.x === 0
+      ? centerX
+      : step.x > 0
+        ? centerX - textWidth / 2
+        : centerX + textWidth / 2;
+
+  return {
+    direction: direction,
+    push: push,
+    rect: {
+      left: centerX - size.width / 2,
+      right: centerX + size.width / 2,
+      top: centerY - size.height / 2,
+      bottom: centerY + size.height / 2,
+    },
+    offsetX: textX - markerX,
+    offsetY: centerY - markerY,
+    textAnchor: textAnchor,
   };
 };
 
 // The marker's own body, in the same screen units as its label rect.
-const markerBodyRect: (marker: MapMarker, zoom: number) => LabelRect = (
+const markerBodyRect: (marker: MapMarker, zoom: number) => LabelBounds = (
   marker: MapMarker,
   zoom: number,
-): LabelRect => {
-  const half: number = marker.isContainer
-    ? (marker.screenRadius * CONTAINER_SIDE_FACTOR) / 2
-    : marker.screenRadius;
+): LabelBounds => {
+  const half: number = markerHalfExtent(marker);
   const centerX: number = marker.x * zoom;
   const centerY: number = marker.y * zoom;
   return {
@@ -691,9 +936,9 @@ const markerBodyRect: (marker: MapMarker, zoom: number) => LabelRect = (
   };
 };
 
-const rectsOverlap: (a: LabelRect, b: LabelRect) => boolean = (
-  a: LabelRect,
-  b: LabelRect,
+const rectsOverlap: (a: LabelBounds, b: LabelBounds) => boolean = (
+  a: LabelBounds,
+  b: LabelBounds,
 ): boolean => {
   return !(
     a.right <= b.left ||
@@ -704,25 +949,148 @@ const rectsOverlap: (a: LabelRect, b: LabelRect) => boolean = (
 };
 
 /**
- * Where each marker draws its name at this zoom — and which markers do not
- * get to draw one at all.
+ * The thread from a marker to a pushed name, or null when the name is still
+ * sitting against its marker and nothing needs explaining.
+ *
+ * Relative to the marker's drawn position, in screen units.
+ */
+const leaderLineFor: (
+  marker: MapMarker,
+  zoom: number,
+  candidate: LabelCandidate,
+) => LabelLeaderLine | null = (
+  marker: MapMarker,
+  zoom: number,
+  candidate: LabelCandidate,
+): LabelLeaderLine | null => {
+  if (candidate.push <= 0) {
+    return null;
+  }
+
+  const markerX: number = marker.x * zoom;
+  const markerY: number = marker.y * zoom;
+  /*
+   * The point on the label's box closest to the marker — which for a name
+   * directly below is the middle of its top edge, and for a name off to one
+   * side is the middle of its near edge. Aiming at the box rather than at
+   * the text keeps the thread from ending inside the glyphs.
+   */
+  const nearX: number = Math.min(
+    Math.max(markerX, candidate.rect.left),
+    candidate.rect.right,
+  );
+  const nearY: number = Math.min(
+    Math.max(markerY, candidate.rect.top),
+    candidate.rect.bottom,
+  );
+
+  const deltaX: number = nearX - markerX;
+  const deltaY: number = nearY - markerY;
+  const distance: number = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+  const half: number = markerHalfExtent(marker);
+  // Nothing to draw if the box reaches the marker's edge on its own.
+  if (distance <= half) {
+    return null;
+  }
+
+  return {
+    x1: (deltaX / distance) * half,
+    y1: (deltaY / distance) * half,
+    x2: deltaX,
+    y2: deltaY,
+  };
+};
+
+/**
+ * Whether a line segment passes through a box.
+ *
+ * Liang–Barsky, which answers this without allocating and without a special
+ * case for a vertical or horizontal segment — and both are the common case
+ * here, since a name pushed straight down has a perfectly vertical thread.
+ * Touching an edge does not count as crossing it: a thread that ends exactly
+ * on a neighbouring box's edge is not passing through it.
+ */
+const segmentCrossesRect: (
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  rect: LabelBounds,
+) => boolean = (
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  rect: LabelBounds,
+): boolean => {
+  const deltaX: number = x2 - x1;
+  const deltaY: number = y2 - y1;
+  const edges: Array<number> = [-deltaX, deltaX, -deltaY, deltaY];
+  const distances: Array<number> = [
+    x1 - rect.left,
+    rect.right - x1,
+    y1 - rect.top,
+    rect.bottom - y1,
+  ];
+
+  let enter: number = 0;
+  let exit: number = 1;
+
+  for (let index: number = 0; index < 4; index++) {
+    const edge: number = edges[index]!;
+    const distance: number = distances[index]!;
+    if (edge === 0) {
+      // Parallel to this edge: outside it means the segment misses entirely.
+      if (distance < 0) {
+        return false;
+      }
+      continue;
+    }
+    const crossing: number = distance / edge;
+    if (edge < 0) {
+      if (crossing > exit) {
+        return false;
+      }
+      if (crossing > enter) {
+        enter = crossing;
+      }
+    } else {
+      if (crossing < enter) {
+        return false;
+      }
+      if (crossing < exit) {
+        exit = crossing;
+      }
+    }
+  }
+
+  return enter < exit;
+};
+
+/**
+ * Where each marker draws its name at this zoom — and which markers, if any,
+ * do not get to draw one at all.
  *
  * Three regions whose centroids fall in the same corner of a state print
  * their names on top of each other, which is worse than printing none of
  * them: an overlapped label is unreadable AND it hides its neighbour. So
  * names are placed greedily in paint order — biggest marker first, since
- * that is the one a reader is most likely to be looking for — trying below
- * the marker and then above it, and a name that fits in neither position is
- * dropped rather than stacked on something.
+ * that is the one a reader is most likely to be looking for — and each one
+ * takes the first position that is clear of every name already placed and
+ * of every other marker's body. A name half-covered by the neighbouring
+ * region's disc reads as a rendering bug, not as a dense map.
  *
- * A label must clear the other MARKERS too, not just the other labels: a
- * name half-covered by the neighbouring region's disc reads as a rendering
- * bug, not as a dense map.
+ * "The first position" is a spiral outwards: the eight places around the
+ * marker itself, then the same eight a step further out, and so on up to
+ * MAX_LABEL_PUSH — see the note above LABEL_PUSH_STEP for why a name has to
+ * be allowed to leave its marker at all. A name that has been pushed keeps a
+ * thread back, and the search prefers a position whose thread crosses
+ * nothing to one that fits but has to cross a name already on the map.
  *
  * Zoom is the only thing this depends on, not the pan: markers keep their
- * relative distances as the frame moves, so a drag never re-decides which
- * names are on the map. Zooming in genuinely separates them and the dropped
- * names come back.
+ * relative distances as the frame moves, so a drag never re-decides where a
+ * name goes. Zooming in genuinely separates markers that are apart in the
+ * world, and their names walk back in towards them.
  */
 export const resolveMarkerLabels: (
   markers: Array<MapMarker>,
@@ -731,21 +1099,35 @@ export const resolveMarkerLabels: (
   markers: Array<MapMarker>,
   zoom: number,
 ): Map<string, LabelPlacement> => {
-  const safeZoom: number = Number.isFinite(zoom) && zoom > 0 ? zoom : 1;
+  const safeZoom: number = safeMapZoom(zoom);
   const resolved: Map<string, LabelPlacement> = new Map<
     string,
     LabelPlacement
   >();
-  const placed: Array<LabelRect> = [];
+  const placed: Array<LabelBounds> = [];
 
-  const bodies: Array<LabelRect> = markers.map(
-    (marker: MapMarker): LabelRect => {
-      return markerBodyRect(marker, safeZoom);
+  /*
+   * A marker with coordinates that are not finite is drawn nowhere, so it has
+   * no body to keep clear of and no place to hang a name. Its entry is null
+   * rather than a rectangle of NaNs, because every comparison against a NaN
+   * is false and rectsOverlap would therefore report it as overlapping EVERY
+   * candidate — costing every other marker on the level its name.
+   *
+   * Geo/MarkerLayout.ts passes the same markers straight through for the
+   * same reason: this is not the place that decides whether they are drawn.
+   */
+  const bodies: Array<LabelBounds | null> = markers.map(
+    (marker: MapMarker): LabelBounds | null => {
+      return Number.isFinite(marker.x) && Number.isFinite(marker.y)
+        ? markerBodyRect(marker, safeZoom)
+        : null;
     },
   );
 
-  const fits: (rect: LabelRect, index: number) => boolean = (
-    rect: LabelRect,
+  let visits: number = 0;
+
+  const fits: (rect: LabelBounds, index: number) => boolean = (
+    rect: LabelBounds,
     index: number,
   ): boolean => {
     for (const other of placed) {
@@ -754,33 +1136,165 @@ export const resolveMarkerLabels: (
       }
     }
     for (let other: number = 0; other < bodies.length; other++) {
+      const body: LabelBounds | null = bodies[other]!;
       /*
        * Its own body never counts: the label is deliberately placed hard
        * against it, and a generous glyph-width estimate can graze it.
        */
-      if (other !== index && rectsOverlap(rect, bodies[other]!)) {
+      if (other !== index && body && rectsOverlap(rect, body)) {
         return false;
       }
     }
     return true;
   };
 
-  for (let index: number = 0; index < markers.length; index++) {
-    const marker: MapMarker = markers[index]!;
-    if (!marker.label) {
-      continue;
-    }
-    for (const placement of LABEL_PLACEMENTS) {
-      const rect: LabelRect = markerLabelRect(marker, safeZoom, placement);
-      if (fits(rect, index)) {
-        placed.push(rect);
-        resolved.set(marker.key, placement);
-        break;
+  /*
+   * A thread that runs through a name, or through another marker, is worse
+   * than no thread: it points at the wrong thing. Nothing is dropped over
+   * it — a crossed thread still beats a missing name — but a position that
+   * avoids it wins over one that does not.
+   */
+  const threadIsClear: (
+    marker: MapMarker,
+    leader: LabelLeaderLine,
+    index: number,
+  ) => boolean = (
+    marker: MapMarker,
+    leader: LabelLeaderLine,
+    index: number,
+  ): boolean => {
+    const fromX: number = marker.x * safeZoom + leader.x1;
+    const fromY: number = marker.y * safeZoom + leader.y1;
+    const toX: number = marker.x * safeZoom + leader.x2;
+    const toY: number = marker.y * safeZoom + leader.y2;
+    for (const other of placed) {
+      if (segmentCrossesRect(fromX, fromY, toX, toY, other)) {
+        return false;
       }
     }
+    for (let other: number = 0; other < bodies.length; other++) {
+      const body: LabelBounds | null = bodies[other]!;
+      if (
+        other !== index &&
+        body &&
+        segmentCrossesRect(fromX, fromY, toX, toY, body)
+      ) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  /*
+   * The spiral, walked outwards. The first position that fits AND whose
+   * thread crosses nothing wins outright; the first that merely fits is
+   * kept as the fallback, so a name is only ever dropped when the whole
+   * spiral had nowhere to put it.
+   */
+  const chooseCandidate: (
+    marker: MapMarker,
+    index: number,
+  ) => LabelCandidate | null = (
+    marker: MapMarker,
+    index: number,
+  ): LabelCandidate | null => {
+    let fallback: LabelCandidate | null = null;
+
+    for (
+      let push: number = 0;
+      push <= MAX_LABEL_PUSH;
+      push += LABEL_PUSH_STEP
+    ) {
+      /*
+       * Out of budget: the eight positions AGAINST the marker are still
+       * tried — they are eight comparisons, and they are the ones that fit
+       * on an ordinary map — but the spiral stops here. Degrading to "a name
+       * with room around it keeps it" beats a cliff where every remaining
+       * marker on the level goes nameless at once.
+       */
+      if (push > 0 && visits >= MAX_LABEL_CANDIDATE_VISITS) {
+        return fallback;
+      }
+
+      for (const direction of LABEL_DIRECTIONS) {
+        visits++;
+
+        const candidate: LabelCandidate = labelCandidateAt(
+          marker,
+          safeZoom,
+          direction,
+          push,
+        );
+        if (!fits(candidate.rect, index)) {
+          continue;
+        }
+
+        const leader: LabelLeaderLine | null = leaderLineFor(
+          marker,
+          safeZoom,
+          candidate,
+        );
+        if (!leader || threadIsClear(marker, leader, index)) {
+          return candidate;
+        }
+        if (!fallback) {
+          fallback = candidate;
+        }
+      }
+    }
+
+    return fallback;
+  };
+
+  for (let index: number = 0; index < markers.length; index++) {
+    const marker: MapMarker = markers[index]!;
+    // No name to draw, or nowhere on the map to draw it (see `bodies`).
+    if (!marker.label || !bodies[index]) {
+      continue;
+    }
+
+    const candidate: LabelCandidate | null = chooseCandidate(marker, index);
+    if (!candidate) {
+      continue;
+    }
+
+    placed.push(candidate.rect);
+    resolved.set(marker.key, {
+      direction: candidate.direction,
+      push: candidate.push,
+      offsetX: candidate.offsetX,
+      offsetY: candidate.offsetY,
+      textAnchor: candidate.textAnchor,
+      leaderLine: leaderLineFor(marker, safeZoom, candidate),
+    });
   }
 
   return resolved;
+};
+
+/**
+ * The box resolveMarkerLabels reserved for this name, in screen units.
+ *
+ * The pass guarantees these do not overlap each other or any marker's body;
+ * that guarantee is only worth anything while everything that cares about a
+ * name's footprint asks the same function for it, rather than rebuilding the
+ * geometry from the offsets and a guess at the glyph width.
+ */
+export const labelBounds: (
+  marker: MapMarker,
+  zoom: number,
+  placement: LabelPlacement,
+) => LabelBounds = (
+  marker: MapMarker,
+  zoom: number,
+  placement: LabelPlacement,
+): LabelBounds => {
+  return labelCandidateAt(
+    marker,
+    safeMapZoom(zoom),
+    placement.direction,
+    placement.push,
+  ).rect;
 };
 
 // One drawable marker. Positions are viewBox units; radius is screen units.

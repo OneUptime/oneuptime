@@ -203,6 +203,23 @@ describe("the write payload is keyed on columns", () => {
     );
   });
 
+  /*
+   * ArgumentsForm reads the argument id to decide whether the record editor
+   * opens with a blank row for every column a create must supply: "json" is a
+   * create, anything else is an update. An update that opened on six seeded
+   * fields when the builder meant to set one would be a regression nothing else
+   * here would catch, so the two spellings are pinned as a pair.
+   */
+  test('a create\'s payload is "json" and an update\'s is "data", never the reverse', () => {
+    expect(argumentOf(find("-create-one"), "json")).toBeDefined();
+    expect(argumentOf(find("-create-one"), "data")).toBeUndefined();
+
+    for (const idSuffix of ["-update-one", "-update-many"]) {
+      expect(argumentOf(find(idSuffix), "data")).toBeDefined();
+      expect(argumentOf(find(idSuffix), "json")).toBeUndefined();
+    }
+  });
+
   test("no component declares a BaseModel argument", () => {
     /*
      * The bug this whole change came from: the row editor was selected only for

@@ -124,6 +124,8 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
           deviceName: true,
           user: {
             name: true,
+            email: true,
+            profilePictureId: true,
           },
         }}
         cardProps={{

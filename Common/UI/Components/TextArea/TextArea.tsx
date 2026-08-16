@@ -22,6 +22,8 @@ export interface ComponentProps {
   autoFocus?: boolean | undefined;
   dataTestId?: string | undefined;
   disableSpellCheck?: boolean | undefined;
+  /** The id of the element that names this control, when it is labelled elsewhere. */
+  ariaLabelledby?: string | undefined;
 }
 
 const TextArea: FunctionComponent<ComponentProps> = (
@@ -71,6 +73,7 @@ const TextArea: FunctionComponent<ComponentProps> = (
           value={text}
           rows={6}
           spellCheck={!props.disableSpellCheck}
+          aria-labelledby={props.ariaLabelledby}
           aria-invalid={props.error ? "true" : undefined}
           aria-describedby={props.error ? "textarea-error-message" : undefined}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {

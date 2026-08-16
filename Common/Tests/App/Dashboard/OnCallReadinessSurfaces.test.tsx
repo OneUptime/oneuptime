@@ -520,6 +520,24 @@ type SummaryJsonFunction = (
 ) => JSONObject;
 
 /*
+ * The login addresses the fixture responders sign in with, read off the
+ * fixtures rather than retyped so a renamed responder cannot quietly drop out
+ * of the masking guard's exemption list and start passing for the wrong
+ * reason. These are NOT notification-method identifiers: those all live in
+ * ALL_RAW_IDENTIFIERS and must never render.
+ */
+const ALL_LOGIN_EMAILS: Array<string> = [
+  READY_USER,
+  PARTIAL_USER,
+  UNREACHABLE_USER,
+  TWO_TEAM_USER,
+  CHANNELS_OFF_USER,
+  DISTINCT_KIND_USER,
+].map((user: JSONObject) => {
+  return user["userEmail"] as string;
+});
+
+/*
  * `isFallbackEnabled` defaults to true because that is the product default
  * (disableOnCallNotificationFallback is false unless an admin sets it), and every
  * test that does not name it is asserting behaviour in the ordinary project. The
@@ -3130,11 +3148,18 @@ describe("On-call readiness page", () => {
     test("the options are the teams that actually page somebody", async () => {
       await openTeamFilter();
 
-      const options: Array<string> = (await screen.findAllByRole("option")).map(
-        (option: HTMLElement): string => {
+      /*
+       * Scoped to the open menu rather than the document: the table's
+       * pagination bar carries a page-size select, whose native options are
+       * `option`s too and are there whether a menu is open or not.
+       */
+      const menu: HTMLElement = await screen.findByRole("listbox");
+
+      const options: Array<string> = within(menu)
+        .getAllByRole("option")
+        .map((option: HTMLElement): string => {
           return option.textContent || "";
-        },
-      );
+        });
 
       expect(options).toEqual(["Payments", "Platform"]);
     });
@@ -3527,10 +3552,60 @@ describe("no unmasked identifier reaches the DOM", () => {
     /*
      * The scan above catches the planted values by name; these two catch the
      * shape, so an identifier this file never thought of is caught too.
+     *
+     * Two things come out of the text before the shape is scanned.
+     *
+     * The pagination bar, because `textContent` joins siblings with no
+     * separator: its page-size options ("10", "20", "25", "50", "100") fuse
+     * into "10202550100", a digit run long enough to read as a phone number.
+     *
+     * Login addresses, because a responder row shows the person's login
+     * email under their name, and that address is legitimate here for the
+     * same reason the mail draft below may carry it: an admin already reads
+     * it on Settings > Users and on the team page.
+     *
+     * What must never appear is a notification-method identifier, and
+     * neither exclusion hides one: substituting a method identifier for one
+     * of these login addresses still fails the shape scan, and one rendered
+     * inside the pagination bar still fails the by-name scan above, which
+     * reads the whole container.
      */
-    expect(container.textContent || "").not.toMatch(UNMASKED_EMAIL_PATTERN);
-    expect(container.textContent || "").not.toMatch(UNMASKED_PHONE_PATTERN);
+    const withoutPagination: HTMLElement = container.cloneNode(
+      true,
+    ) as HTMLElement;
+
+    withoutPagination
+      .querySelectorAll('nav[aria-label^="Pagination"]')
+      .forEach((paginationBar: Element): void => {
+        paginationBar.remove();
+      });
+
+    let text: string = withoutPagination.textContent || "";
+
+    for (const loginEmail of ALL_LOGIN_EMAILS) {
+      text = text.split(loginEmail).join("");
+    }
+
+    expect(text).not.toMatch(UNMASKED_EMAIL_PATTERN);
+    expect(text).not.toMatch(UNMASKED_PHONE_PATTERN);
   };
+
+  /*
+   * The other half of the exemption above: the login email is not merely
+   * tolerated on these surfaces, it is meant to be there, so that two
+   * responders who share a name are still tellable apart. If this stops
+   * holding, the exemption is protecting nothing and should go.
+   */
+  test("the responder row names the person by their login email", async () => {
+    respondWith(summaryJson(ALL_THREE_USERS));
+
+    const container: HTMLElement = await renderPolicyCard();
+
+    await screen.findByText("Zed Unreachable");
+
+    expect(container.textContent).toContain("zed.unreachable@example.com");
+    expect(container.textContent).toContain("jane.partial@example.com");
+  });
 
   test("the policy card renders masked identifiers only", async () => {
     respondWith(summaryJson(ALL_THREE_USERS));
