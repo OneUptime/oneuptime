@@ -62,7 +62,8 @@
     "Telemetry": "遥测",
     "AI": "AI",
     "API Reference": "API 参考",
-    "Self Hosted": "自托管"
+    "Self Hosted": "自托管",
+    "Inventory": "资产清单"
   },
   "navLinks": {
     "Getting Started": "快速开始",
@@ -185,6 +186,8 @@
     "GitHub Integration": "GitHub 集成",
     "Push Notifications": "推送通知",
     "SendGrid Inbound Email": "SendGrid 入站邮件",
-    "Architecture": "架构"
+    "Architecture": "架构",
+    "Custom Fields": "自定义字段",
+    "Exporting to a CMDB": "导出到 CMDB"
   }
 }

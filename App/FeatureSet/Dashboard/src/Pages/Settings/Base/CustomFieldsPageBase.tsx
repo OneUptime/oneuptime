@@ -17,12 +17,19 @@ import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustom
 import React, { Fragment, ReactElement } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
 
+/*
+ * Typed as a total Record so adding a member to CustomFieldType fails the
+ * compile here rather than shipping a picker entry labelled with its own raw
+ * enum key.
+ */
 const FIELD_TYPE_LABELS: Record<CustomFieldType, string> = {
   [CustomFieldType.Text]: "Text",
   [CustomFieldType.Number]: "Number",
   [CustomFieldType.Boolean]: "Boolean",
   [CustomFieldType.Dropdown]: "Dropdown (single select)",
   [CustomFieldType.MultiSelectDropdown]: "Dropdown (multi-select)",
+  [CustomFieldType.Date]: "Date",
+  [CustomFieldType.DateTime]: "Date and time",
 };
 
 const isDropdownType: (value: unknown) => boolean = (

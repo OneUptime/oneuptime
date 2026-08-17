@@ -13,11 +13,20 @@ import FieldType from "../../../../UI/Components/Types/FieldType";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorCustomField from "../../../../Models/DatabaseModels/MonitorCustomField";
 import CustomFieldType from "../../../../Types/CustomField/CustomFieldType";
+import OneUptimeDate from "../../../../Types/Date";
+import Timezone from "../../../../Types/Timezone";
 import { JSONObject } from "../../../../Types/JSON";
 import "@testing-library/jest-dom";
 import { cleanup, render } from "@testing-library/react";
 import React from "react";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  test,
+} from "@jest/globals";
 
 /*
  * Custom field *definitions* live in a per-resource table; the *values* live in
@@ -1209,5 +1218,344 @@ describe("CustomFieldColumns generated getElement", () => {
     expect(renderColumn(columnAt(columns, 1), monitor).textContent).toEqual(
       "SRE",
     );
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Date and DateTime custom fields
+ * ---------------------------------------------------------------------------
+ *
+ * A date custom field is kept in the jsonb bag as an ISO-8601 string, because
+ * that is the one representation that is both comparable in a query (ISO-8601
+ * sorts identically as text and as an instant) and unambiguous about which
+ * instant it names. It is also unreadable in a table cell, so the renderer
+ * hands it to the same local formatter the Detail view uses - a row and the
+ * item page it opens then agree about what day something happened.
+ *
+ * Two things here break silently. The `isDateOnly` flag: drop it and a
+ * warranty-expiry column grows a meaningless "00:00" that nobody entered, and
+ * nothing else about the cell changes to give it away. And the export value:
+ * humanise it and every CSV that feeds an external CMDB stops round-tripping,
+ * which is only discovered on the import side, in someone else's system.
+ *
+ * The formatter resolves wall clocks in the viewer's timezone and picks 12- or
+ * 24-hour from the browser locale, so both are pinned below. Without that these
+ * assertions would pass or fail depending on the machine running the suite,
+ * which is the same thing as not asserting anything.
+ */
+
+const dateDefinition: CustomFieldDefinition = {
+  name: "Warranty Expiry",
+  customFieldType: CustomFieldType.Date,
+};
+
+const dateTimeDefinition: CustomFieldDefinition = {
+  name: "Last Audited At",
+  customFieldType: CustomFieldType.DateTime,
+};
+
+/*
+ * 14:30 UTC on purpose: a stored midnight would render as the same calendar day
+ * in half the world's zones by luck, so it could not tell a timezone-aware
+ * rendering apart from a naive string slice.
+ */
+const storedIsoValue: string = "2026-08-17T14:30:00.000Z";
+
+describe("CustomFieldColumns date custom fields", () => {
+  beforeAll(() => {
+    OneUptimeDate.setUserTimezone(Timezone.UTC);
+
+    /*
+     * getUserPrefers12HourFormat sniffs the browser locale, so on one developer
+     * machine the cell reads "14:30" and on the next "02:30 PM". Pin it rather
+     * than write an assertion loose enough to accept both - a loose assertion
+     * would also accept the time going missing entirely.
+     */
+    jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(false);
+  });
+
+  afterEach(() => {
+    // A test that re-pins the zone must not hand it to the next one.
+    OneUptimeDate.setUserTimezone(Timezone.UTC);
+  });
+
+  afterAll(() => {
+    // Never leak either pin into the rest of the suite.
+    OneUptimeDate.setUserTimezone(null);
+    jest.restoreAllMocks();
+  });
+
+  describe("renderCustomFieldValue", () => {
+    test("renders a Date value as a calendar date with no time of day", () => {
+      /*
+       * A Date field is a day, not an instant - a warranty expires on a date.
+       * Rendering the stored midnight-relative time next to it would invent a
+       * precision the person filling the field never entered.
+       */
+      expect(
+        renderValue({ value: storedIsoValue, definition: dateDefinition })
+          .textContent,
+      ).toEqual("Aug 17, 2026");
+    });
+
+    test("renders a Date value without any clock time in it at all", () => {
+      // Belt and braces on the above: no "14:30", and no stray zone suffix.
+      const text: string =
+        renderValue({ value: storedIsoValue, definition: dateDefinition })
+          .textContent || "";
+
+      expect(text).not.toContain(":");
+      expect(text).not.toContain("UTC");
+    });
+
+    test("renders a DateTime value with the time of day and the zone", () => {
+      /*
+       * The other half of the field pair: "last audited at" is an instant, and
+       * without the zone abbreviation a wall clock names a different instant to
+       * every reader.
+       */
+      expect(
+        renderValue({ value: storedIsoValue, definition: dateTimeDefinition })
+          .textContent,
+      ).toEqual("Aug 17 2026, 14:30 UTC");
+    });
+
+    test("renders the very same stored string differently for Date and DateTime", () => {
+      /*
+       * This is the whole isDateOnly flag. Passing the wrong one - or dropping
+       * the argument so both types take the default - still produces a
+       * plausible-looking cell, so nothing but a direct comparison of the two
+       * catches it.
+       */
+      const asDate: string =
+        renderValue({ value: storedIsoValue, definition: dateDefinition })
+          .textContent || "";
+      const asDateTime: string =
+        renderValue({ value: storedIsoValue, definition: dateTimeDefinition })
+          .textContent || "";
+
+      expect(asDate).not.toEqual(asDateTime);
+      expect(asDateTime).toContain("14:30");
+      expect(asDate).not.toContain("14:30");
+    });
+
+    test("resolves the instant in the viewer's timezone, not in UTC as stored", () => {
+      /*
+       * The stored string is UTC; the cell is read by a person. A New York
+       * viewer must see their own 10:30 - and, at the edges of the day, their
+       * own calendar date - or the table disagrees with every other date in
+       * the product.
+       */
+      OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+
+      expect(
+        renderValue({ value: storedIsoValue, definition: dateTimeDefinition })
+          .textContent,
+      ).toEqual("Aug 17 2026, 10:30 EDT");
+    });
+
+    test("reads an offset-form ISO string as the same instant as the Z form", () => {
+      /*
+       * Both spellings are legal ISO-8601 and both are in the wild - the form
+       * writes "Z", an API client may well post "+00:00" - and they name the
+       * same moment, so they have to render the same.
+       */
+      expect(
+        renderValue({
+          value: "2026-08-17T14:30:00+00:00",
+          definition: dateTimeDefinition,
+        }).textContent,
+      ).toEqual("Aug 17 2026, 14:30 UTC");
+    });
+
+    test("renders a date as plain text rather than as a dropdown badge", () => {
+      /*
+       * The date branch has to sit above the dropdown and fall-through text
+       * branches. A date wearing a badge would read as a tag, which is a
+       * different kind of value.
+       */
+      const container: HTMLElement = renderValue({
+        value: storedIsoValue,
+        definition: dateDefinition,
+      });
+
+      expect(getBadgeLabels(container)).toEqual([]);
+      expect(
+        container.querySelector('[data-dropdown-value-badge="true"]'),
+      ).toBeNull();
+      expect(getPlaceholder(container)).toBeNull();
+    });
+
+    test("renders the placeholder for a date nobody has filled in", () => {
+      /*
+       * Not "Invalid date": an unset date is the ordinary state of a field that
+       * was added to the project last week, and a whole column of red herrings
+       * would train people to ignore the one row that really is broken.
+       */
+      for (const definition of [dateDefinition, dateTimeDefinition]) {
+        for (const value of [undefined, null, ""]) {
+          const container: HTMLElement = renderValue({
+            value: value,
+            definition: definition,
+          });
+
+          expect(container.textContent).toEqual("-");
+          expect(getPlaceholder(container)).not.toBeNull();
+        }
+      }
+    });
+
+    test("uses the column's noValueMessage for a missing date", () => {
+      // The empty branch is shared, so a date field inherits the same override.
+      expect(
+        renderValue({
+          value: null,
+          definition: dateTimeDefinition,
+          noValueMessage: "Never audited",
+        }).textContent,
+      ).toEqual("Never audited");
+    });
+
+    test("falls back to the raw stored string when the value will not parse", () => {
+      /*
+       * A value written over the API - or pasted into a CSV import - before the
+       * field was turned into a date is still sitting in the jsonb bag, and the
+       * cell is the only place anyone will ever see it. Showing what is
+       * actually stored is what lets someone work out WHY the row is wrong;
+       * "Invalid date" says only that something is, and looks identical for
+       * every kind of garbage, so the fix (re-import "Q3 2026" as a real date)
+       * is invisible from the table.
+       */
+      expect(
+        renderValue({ value: "not-a-date", definition: dateDefinition })
+          .textContent,
+      ).toEqual("not-a-date");
+      expect(
+        renderValue({ value: "Q3 2026", definition: dateTimeDefinition })
+          .textContent,
+      ).toEqual("Q3 2026");
+    });
+  });
+
+  describe("getCustomFieldColumns", () => {
+    test("still disables sorting on a date column", () => {
+      /*
+       * Being a date makes a jsonb key look more orderable than it is - it is
+       * still reachable only through an explicit ->> expression, which the sort
+       * path has no concept of, so a clickable header would push an unknown
+       * property into the query builder exactly as it would for text.
+       */
+      const columns: Columns<Monitor> = getCustomFieldColumns<Monitor>({
+        definitions: [dateDefinition, dateTimeDefinition],
+      });
+
+      for (const column of columns) {
+        expect(column.disableSort).toBe(true);
+      }
+    });
+
+    test("still hides a date column by default", () => {
+      // Date fields are no more special than the rest in the column picker.
+      const columns: Columns<Monitor> = getCustomFieldColumns<Monitor>({
+        definitions: [dateDefinition, dateTimeDefinition],
+      });
+
+      for (const column of columns) {
+        expect(column.isHiddenByDefault).toBe(true);
+      }
+    });
+
+    test("exports the raw ISO string for a Date field, not the humanised one", () => {
+      /*
+       * Deliberate: the CSV is fed back into an external CMDB, which wants a
+       * machine-readable timestamp. "Aug 17, 2026" would have to be re-parsed
+       * on the far side by a locale nobody agreed on, and a date-only rendering
+       * has already thrown the time away.
+       */
+      const column: Column<Monitor> = columnAt(
+        getCustomFieldColumns<Monitor>({ definitions: [dateDefinition] }),
+        0,
+      );
+
+      expect(
+        exportValueOf(
+          column,
+          monitorWithFields({ "Warranty Expiry": storedIsoValue }),
+        ),
+      ).toEqual(storedIsoValue);
+    });
+
+    test("exports the raw ISO string for a DateTime field too", () => {
+      const column: Column<Monitor> = columnAt(
+        getCustomFieldColumns<Monitor>({ definitions: [dateTimeDefinition] }),
+        0,
+      );
+
+      expect(
+        exportValueOf(
+          column,
+          monitorWithFields({ "Last Audited At": storedIsoValue }),
+        ),
+      ).toEqual(storedIsoValue);
+    });
+
+    test("exports an empty cell for a date nobody has filled in", () => {
+      // Not the literal "undefined", and not today's date either.
+      const column: Column<Monitor> = columnAt(
+        getCustomFieldColumns<Monitor>({ definitions: [dateDefinition] }),
+        0,
+      );
+
+      expect(exportValueOf(column, new Monitor())).toEqual("");
+      expect(
+        exportValueOf(column, monitorWithFields({ "Warranty Expiry": null })),
+      ).toEqual("");
+    });
+
+    test("renders the humanised date off the row while exporting the ISO one", () => {
+      /*
+       * The end-to-end version of the split: the same column, the same row,
+       * two different strings on purpose. Collapsing them - either way round -
+       * breaks one of the two audiences.
+       */
+      const column: Column<Monitor> = columnAt(
+        getCustomFieldColumns<Monitor>({ definitions: [dateDefinition] }),
+        0,
+      );
+      const monitor: Monitor = monitorWithFields({
+        "Warranty Expiry": storedIsoValue,
+      });
+
+      expect(renderColumn(column, monitor).textContent).toEqual("Aug 17, 2026");
+      expect(exportValueOf(column, monitor)).toEqual(storedIsoValue);
+    });
+
+    test("renders a DateTime straight off the row", () => {
+      const column: Column<Monitor> = columnAt(
+        getCustomFieldColumns<Monitor>({ definitions: [dateTimeDefinition] }),
+        0,
+      );
+
+      expect(
+        renderColumn(
+          column,
+          monitorWithFields({ "Last Audited At": storedIsoValue }),
+        ).textContent,
+      ).toEqual("Aug 17 2026, 14:30 UTC");
+    });
+
+    test("renders the placeholder for a row with no date stored", () => {
+      const column: Column<Monitor> = columnAt(
+        getCustomFieldColumns<Monitor>({ definitions: [dateDefinition] }),
+        0,
+      );
+
+      expect(
+        getPlaceholder(renderColumn(column, new Monitor())),
+      ).not.toBeNull();
+    });
   });
 });

@@ -10,6 +10,7 @@ import EqualTo from "../../../../Types/BaseDatabase/EqualTo";
 import EqualToOrNull from "../../../../Types/BaseDatabase/EqualToOrNull";
 import GreaterThan from "../../../../Types/BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "../../../../Types/BaseDatabase/GreaterThanOrEqual";
+import GreaterThanOrNull from "../../../../Types/BaseDatabase/GreaterThanOrNull";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../../Types/BaseDatabase/IncludesAll";
@@ -589,5 +590,512 @@ describe("buildJSONColumnQuery — parameter hygiene", () => {
     for (const placeholder of placeholders) {
       expect(query.parameters).toHaveProperty(placeholder);
     }
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Ordering comparisons over a Date custom field
+ * ---------------------------------------------------------------------------
+ *
+ * A Date / DateTime custom field stores its value as an ISO-8601 UTC string,
+ * because jsonb has no date type and the column is shared by every field the
+ * project defines. "Renewal is after 2026-08-17" therefore reaches this module
+ * as `GreaterThan("2026-08-17T00:00:00.000Z")` — a string operand on an
+ * operator that, until compareOrdered existed, cast unconditionally to NUMERIC.
+ *
+ * The failure that produced was the quiet kind. `Number("2026-08-17T...")` is
+ * NaN, so the bound parameter rendered as `CAST(NaN AS NUMERIC)`, and
+ * numericExpression independently returns NULL for text that does not match the
+ * numeric regex. Every row was evaluated as `NULL > NaN` — never an error,
+ * never true — so the product showed a lit filter chip above an empty table and
+ * nothing anywhere said why. These tests exist so that shape cannot return.
+ */
+
+type OrderedOperatorCase = {
+  name: string;
+  sqlOperator: string;
+  operatorFor: (value: string) => JSONObject[string];
+};
+
+const ORDERED_OPERATORS: Array<OrderedOperatorCase> = [
+  {
+    name: "GreaterThan",
+    sqlOperator: ">",
+    operatorFor: (value: string): JSONObject[string] => {
+      return new GreaterThan(value);
+    },
+  },
+  {
+    name: "GreaterThanOrEqual",
+    sqlOperator: ">=",
+    operatorFor: (value: string): JSONObject[string] => {
+      return new GreaterThanOrEqual(value);
+    },
+  },
+  {
+    name: "LessThan",
+    sqlOperator: "<",
+    operatorFor: (value: string): JSONObject[string] => {
+      return new LessThan(value);
+    },
+  },
+  {
+    name: "LessThanOrEqual",
+    sqlOperator: "<=",
+    operatorFor: (value: string): JSONObject[string] => {
+      return new LessThanOrEqual(value);
+    },
+  },
+];
+
+const ISO_INSTANT: string = "2026-08-17T00:00:00.000Z";
+
+describe("buildJSONColumnQuery — ordered comparison against an ISO-8601 date", () => {
+  test("GreaterThan reads the key as text and compares against TEXT", () => {
+    const query: JSONColumnQuery = build({
+      Renewal: new GreaterThan(ISO_INSTANT),
+    });
+
+    expect(query.toSql(COLUMN)).toContain(
+      `${COLUMN} ->> CAST(:p1 AS TEXT) > CAST(:p2 AS TEXT)`,
+    );
+    expect(query.parameters["p2"]).toBe(ISO_INSTANT);
+  });
+
+  test("GreaterThanOrEqual reads the key as text and compares against TEXT", () => {
+    const query: JSONColumnQuery = build({
+      Renewal: new GreaterThanOrEqual(ISO_INSTANT),
+    });
+
+    expect(query.toSql(COLUMN)).toContain(
+      `${COLUMN} ->> CAST(:p1 AS TEXT) >= CAST(:p2 AS TEXT)`,
+    );
+    expect(query.parameters["p2"]).toBe(ISO_INSTANT);
+  });
+
+  test("LessThan reads the key as text and compares against TEXT", () => {
+    const query: JSONColumnQuery = build({
+      Renewal: new LessThan(ISO_INSTANT),
+    });
+
+    expect(query.toSql(COLUMN)).toContain(
+      `${COLUMN} ->> CAST(:p1 AS TEXT) < CAST(:p2 AS TEXT)`,
+    );
+    expect(query.parameters["p2"]).toBe(ISO_INSTANT);
+  });
+
+  test("LessThanOrEqual reads the key as text and compares against TEXT", () => {
+    const query: JSONColumnQuery = build({
+      Renewal: new LessThanOrEqual(ISO_INSTANT),
+    });
+
+    expect(query.toSql(COLUMN)).toContain(
+      `${COLUMN} ->> CAST(:p1 AS TEXT) <= CAST(:p2 AS TEXT)`,
+    );
+    expect(query.parameters["p2"]).toBe(ISO_INSTANT);
+  });
+
+  test("a date-only value compares as text too", () => {
+    /*
+     * A Date (rather than DateTime) custom field stores "2026-08-17" with no
+     * time part. It is still not a number, so it still has to take the text
+     * arm — the Date and DateTime variants of the same field must not disagree
+     * about whether their filter works.
+     */
+    const query: JSONColumnQuery = build({
+      Renewal: new GreaterThan("2026-08-17"),
+    });
+
+    expect(query.toSql(COLUMN)).toContain("> CAST(:p2 AS TEXT)");
+    expect(query.parameters["p2"]).toBe("2026-08-17");
+  });
+});
+
+describe("buildJSONColumnQuery — the date-as-NaN regression", () => {
+  test.each(ORDERED_OPERATORS)(
+    "$name binds the ISO string itself, never NaN",
+    (operatorCase: OrderedOperatorCase) => {
+      /*
+       * The single most important assertion for this change. The old code path
+       * bound `Number(value)`, which for any ISO-8601 string is NaN, so the
+       * emitted predicate was `NULL > NaN`. Postgres is perfectly happy to
+       * evaluate that — it is NULL, not an error — so the filter returned zero
+       * rows on every table and no log line anywhere recorded a problem.
+       */
+      const query: JSONColumnQuery = build({
+        Renewal: operatorCase.operatorFor(ISO_INSTANT),
+      });
+
+      expect(query.parameters["p2"]).toBe(ISO_INSTANT);
+      expect(Number.isNaN(query.parameters["p2"] as unknown as number)).toBe(
+        false,
+      );
+    },
+  );
+
+  test.each(ORDERED_OPERATORS)(
+    "$name does not emit the numeric CASE expression for a date",
+    (operatorCase: OrderedOperatorCase) => {
+      /*
+       * numericExpression is the other half of the old bug: it returns NULL for
+       * any text that fails the numeric regex, which every ISO-8601 string
+       * does. Seeing `CASE WHEN ... AS NUMERIC` in a date predicate means the
+       * left-hand side has gone back to being unconditionally NULL.
+       */
+      const sql: string = sqlOf({
+        Renewal: operatorCase.operatorFor(ISO_INSTANT),
+      });
+
+      expect(sql).not.toContain("CASE WHEN");
+      expect(sql).not.toContain("AS NUMERIC");
+      expect(sql).toContain(`${operatorCase.sqlOperator} CAST(:p2 AS TEXT)`);
+    },
+  );
+
+  test("no parameter anywhere in a date query is NaN", () => {
+    /*
+     * Swept across the whole bag rather than one name, so a future refactor
+     * that renumbers or reorders the binds cannot let a NaN back in unnoticed.
+     */
+    const query: JSONColumnQuery = build({
+      Opened: new GreaterThan(ISO_INSTANT),
+      Closed: new LessThan("2026-12-31T23:59:59.999Z"),
+    });
+
+    for (const parameterValue of Object.values(query.parameters)) {
+      expect(Number.isNaN(parameterValue as unknown as number)).toBe(false);
+    }
+  });
+});
+
+describe("buildJSONColumnQuery — ordered comparison against a number stays numeric", () => {
+  test.each(ORDERED_OPERATORS)(
+    "$name over a numeric string still casts to NUMERIC",
+    (operatorCase: OrderedOperatorCase) => {
+      /*
+       * The guard in the other direction. A Number custom field arrives as text
+       * from the form, so "42" is the normal shape of a numeric operand — if it
+       * fell through to the text arm, "9" would sort above "10" and every
+       * numeric threshold filter in the product would be quietly wrong.
+       */
+      const query: JSONColumnQuery = build({
+        Count: operatorCase.operatorFor("42"),
+      });
+
+      expect(query.toSql(COLUMN)).toContain("AS NUMERIC");
+      expect(query.parameters["p2"]).toBe(42);
+    },
+  );
+
+  test("a real number operand still casts to NUMERIC and binds as a number", () => {
+    const query: JSONColumnQuery = build({
+      Count: new GreaterThan(5),
+    });
+
+    expect(query.toSql(COLUMN)).toContain("CASE WHEN");
+    expect(query.toSql(COLUMN)).toContain(") > CAST(:p2 AS NUMERIC)");
+    expect(query.parameters["p2"]).toBe(5);
+  });
+
+  test('the "9 versus 10" case is the reason numbers must not go through text', () => {
+    /*
+     * Written as an assertion about JavaScript rather than about SQL because
+     * Postgres' text collation orders these the same way: as text "9" > "10",
+     * as numbers 9 < 10. Anyone tempted to simplify compareOrdered down to a
+     * single text comparison should have to delete this test first.
+     */
+    expect("9" > "10").toBe(true);
+    expect(Number("9") > Number("10")).toBe(false);
+
+    expect(sqlOf({ Count: new GreaterThan("9") })).toContain("AS NUMERIC");
+  });
+
+  test("a negative or fractional numeric string is still numeric", () => {
+    expect(build({ Count: new LessThan("-3.5") }).parameters["p2"]).toBe(-3.5);
+    expect(build({ Count: new GreaterThan("0.25") }).parameters["p2"]).toBe(
+      0.25,
+    );
+    expect(sqlOf({ Count: new LessThan("-3.5") })).toContain("AS NUMERIC");
+  });
+
+  test("whitespace around a numeric string does not push it to the text arm", () => {
+    /*
+     * isNumericValue trims before Number(), and NUMERIC_TEXT_REGEX allows
+     * surrounding whitespace on the stored side, so both halves of the
+     * comparison agree that " 7 " is seven. If only one of them trimmed, the
+     * operand and the column would be compared under different rules.
+     */
+    const query: JSONColumnQuery = build({ Count: new GreaterThan(" 7 ") });
+
+    expect(query.toSql(COLUMN)).toContain("AS NUMERIC");
+    expect(query.parameters["p2"]).toBe(7);
+  });
+});
+
+describe("buildJSONColumnQuery — InBetween keeps its existing branch", () => {
+  test("two ISO dates compare as text on both bounds", () => {
+    /*
+     * InBetween has always chosen text for non-numeric bounds; this pins it so
+     * that the four operators which just joined it cannot drift apart from it
+     * again. A date range facet and a date threshold facet over the same field
+     * must agree about what "after" means.
+     */
+    const query: JSONColumnQuery = build({
+      Window: new InBetween(ISO_INSTANT, "2026-09-01T00:00:00.000Z"),
+    });
+    const sql: string = query.toSql(COLUMN);
+
+    expect(sql).toContain(">= CAST(:p2 AS TEXT)");
+    expect(sql).toContain("<= CAST(:p3 AS TEXT)");
+    expect(sql).not.toContain("AS NUMERIC");
+    expect(query.parameters["p2"]).toBe(ISO_INSTANT);
+    expect(query.parameters["p3"]).toBe("2026-09-01T00:00:00.000Z");
+  });
+
+  test("a numeric start with a date end falls to text", () => {
+    /*
+     * The branch is `isNumericValue(start) && isNumericValue(end)`, so one
+     * non-numeric bound demotes the whole range. That is the safe direction:
+     * casting a date bound to NUMERIC reproduces the NaN bug, whereas comparing
+     * a number as text merely mis-sorts a range nothing in the product builds.
+     */
+    const query: JSONColumnQuery = build({
+      Window: new InBetween(1 as unknown as string, "2026-01-01"),
+    });
+
+    expect(query.toSql(COLUMN)).not.toContain("AS NUMERIC");
+    expect(query.parameters["p2"]).toBe("1");
+    expect(query.parameters["p3"]).toBe("2026-01-01");
+  });
+
+  test("a date start with a numeric end falls to text as well", () => {
+    const query: JSONColumnQuery = build({
+      Window: new InBetween("2026-01-01", 10 as unknown as string),
+    });
+
+    expect(query.toSql(COLUMN)).not.toContain("AS NUMERIC");
+    expect(query.parameters["p2"]).toBe("2026-01-01");
+    expect(query.parameters["p3"]).toBe("10");
+  });
+
+  test("two numeric bounds stay numeric", () => {
+    const query: JSONColumnQuery = build({ Count: new InBetween(1, 10) });
+
+    expect(query.toSql(COLUMN)).toContain("AS NUMERIC");
+    expect(query.parameters["p2"]).toBe(1);
+    expect(query.parameters["p3"]).toBe(10);
+  });
+});
+
+describe("buildJSONColumnQuery — a Date instance reduces to its ISO string", () => {
+  test("GreaterThan(Date) binds the exact ISO-8601 instant", () => {
+    /*
+     * toScalar used to fall through to String(value) for a Date, which yields
+     * "Sun Aug 17 2026 00:00:00 GMT+0000 (Coordinated Universal Time)". Text
+     * comparison over that sorts by weekday name — "Fri" before "Mon" before
+     * "Sat" — which is not wrong in an obvious way, it is wrong in a way that
+     * looks like a plausible result set.
+     */
+    const query: JSONColumnQuery = build({
+      Renewal: new GreaterThan(new Date(ISO_INSTANT)),
+    });
+
+    expect(query.parameters["p2"]).toBe("2026-08-17T00:00:00.000Z");
+  });
+
+  test("LessThan(Date) binds the exact ISO-8601 instant", () => {
+    const query: JSONColumnQuery = build({
+      Renewal: new LessThan(new Date("2026-12-31T23:59:59.999Z")),
+    });
+
+    expect(query.parameters["p2"]).toBe("2026-12-31T23:59:59.999Z");
+  });
+
+  test("no locale-formatted date text reaches the parameter bag", () => {
+    const query: JSONColumnQuery = build({
+      Renewal: new GreaterThanOrEqual(new Date(ISO_INSTANT)),
+    });
+    const bound: string = String(query.parameters["p2"]);
+
+    expect(bound).not.toContain("GMT");
+    expect(bound).not.toMatch(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/);
+    expect(bound).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  test("a Date and its own ISO string compile identically", () => {
+    /*
+     * The same filter reaches the server two ways: built server-side it still
+     * holds a Date, and round-tripped through the browser it has already been
+     * JSON-stringified to an ISO string. Both must produce the same predicate,
+     * or a saved view would mean something different from the one the user is
+     * looking at.
+     */
+    const fromDate: JSONColumnQuery = build({
+      Renewal: new GreaterThan(new Date(ISO_INSTANT)),
+    });
+    const fromString: JSONColumnQuery = build({
+      Renewal: new GreaterThan(ISO_INSTANT),
+    });
+
+    expect(fromDate.toSql(COLUMN)).toBe(fromString.toSql(COLUMN));
+    expect(fromDate.parameters).toEqual(fromString.parameters);
+  });
+
+  test("InBetween over two Dates binds both bounds as ISO strings", () => {
+    const query: JSONColumnQuery = build({
+      Window: new InBetween(
+        new Date("2026-01-01T00:00:00.000Z"),
+        new Date("2026-02-01T00:00:00.000Z"),
+      ),
+    });
+
+    expect(query.parameters["p2"]).toBe("2026-01-01T00:00:00.000Z");
+    expect(query.parameters["p3"]).toBe("2026-02-01T00:00:00.000Z");
+    expect(query.toSql(COLUMN)).not.toContain("AS NUMERIC");
+  });
+});
+
+describe("buildJSONColumnQuery — why comparing dates as text is sound", () => {
+  test("lexicographic order over ISO-8601 is chronological order", () => {
+    /*
+     * This is the justification for the whole change, so it is asserted rather
+     * than left in a comment. ISO-8601 is fixed-width, zero-padded and
+     * big-endian, which is exactly the property that makes a byte-wise string
+     * comparison agree with an instant comparison. Nothing else about the
+     * stored format may change without this test failing first.
+     */
+    const shuffled: Array<string> = [
+      "2026-08-17T12:00:00.000Z",
+      "2025-12-31T23:59:59.999Z",
+      "2026-08-17T00:00:00.000Z",
+      "2026-01-01T00:00:00.000Z",
+      "2026-09-01T00:00:00.000Z",
+    ];
+
+    const byText: Array<string> = [...shuffled].sort();
+    const byInstant: Array<string> = [...shuffled].sort(
+      (left: string, right: string): number => {
+        return new Date(left).getTime() - new Date(right).getTime();
+      },
+    );
+
+    expect(byText).toEqual(byInstant);
+  });
+
+  test("the zero padding is what makes it hold", () => {
+    /*
+     * September is "09", not "9". Were it not padded, "2026-9-01" would sort
+     * below "2026-10-01" as text and above it as a date, and the text
+     * comparison this module now relies on would be wrong for a quarter of the
+     * year.
+     */
+    expect("2026-09-01" < "2026-10-01").toBe(true);
+    expect("2026-9-01" < "2026-10-01").toBe(false);
+  });
+
+  test("date-only and full-timestamp values still order against each other", () => {
+    /*
+     * A field switched from Date to DateTime leaves both shapes in the column.
+     * The date-only string is a prefix of the timestamp for the same day, and a
+     * prefix sorts first, so "2026-08-17" reads as the start of that day —
+     * which is the reading the UI already gives it.
+     */
+    expect("2026-08-17" < "2026-08-17T00:00:00.000Z").toBe(true);
+    expect("2026-08-17" < "2026-08-18").toBe(true);
+  });
+});
+
+describe("buildJSONColumnQuery — other operands to the ordered operators", () => {
+  test("a boolean operand compares as text rather than crashing", () => {
+    /*
+     * Nothing in the product builds "Regulated is greater than true", but the
+     * column is untyped and a hand-built query can send anything. compareOrdered
+     * must have a defined answer for every scalar, not just the two it was
+     * designed for.
+     */
+    const query: JSONColumnQuery = build({
+      Regulated: new GreaterThan(true as unknown as string),
+    });
+
+    expect(query.toSql(COLUMN)).toContain("> CAST(:p2 AS TEXT)");
+    expect(query.parameters["p2"]).toBe("true");
+  });
+
+  test("an ordinary word compares as text", () => {
+    const query: JSONColumnQuery = build({
+      Severity: new GreaterThanOrEqual("medium"),
+    });
+
+    expect(query.toSql(COLUMN)).toContain(">= CAST(:p2 AS TEXT)");
+    expect(query.parameters["p2"]).toBe("medium");
+  });
+
+  test("an empty operand compares as text and binds the empty string", () => {
+    /*
+     * Number("") is 0, so an empty operand used to compile to "greater than
+     * zero" — a filter the user never asked for. isNumericValue rejects the
+     * empty string explicitly to stop that.
+     */
+    const query: JSONColumnQuery = build({ Renewal: new GreaterThan("") });
+
+    expect(query.toSql(COLUMN)).toContain("> CAST(:p2 AS TEXT)");
+    expect(query.parameters["p2"]).toBe("");
+  });
+
+  test("a non-finite operand never reaches the numeric cast", () => {
+    /*
+     * Number.isFinite, not isNaN: Infinity is a number and would bind as one,
+     * and `CAST(Infinity AS NUMERIC)` is an error rather than a NULL — an
+     * aborted request instead of an empty table.
+     */
+    expect(sqlOf({ Count: new GreaterThan(Infinity) })).not.toContain(
+      "AS NUMERIC",
+    );
+    expect(sqlOf({ Count: new GreaterThan(NaN) })).not.toContain("AS NUMERIC");
+  });
+
+  test("GreaterThanOrNull is still numeric-only", () => {
+    /*
+     * Deliberately pinned at the edge of the change. The or-null variants were
+     * left on compareNumeric, and nothing in the custom field facet vocabulary
+     * emits them, so no date reaches them today. If a date-capable "or null"
+     * filter is ever added, this test fails first and points at the gap rather
+     * than letting the NaN predicate reappear somewhere new.
+     */
+    expect(sqlOf({ Renewal: new GreaterThanOrNull(ISO_INSTANT) })).toContain(
+      "AS NUMERIC",
+    );
+  });
+
+  test("two date keys AND together and each keeps its own parameters", () => {
+    const query: JSONColumnQuery = build({
+      Opened: new GreaterThanOrEqual("2026-01-01T00:00:00.000Z"),
+      Closed: new LessThan("2026-02-01T00:00:00.000Z"),
+    });
+    const sql: string = query.toSql(COLUMN);
+
+    expect(sql).toContain(" AND ");
+    expect(query.parameters["p1"]).toBe("Opened");
+    expect(query.parameters["p2"]).toBe("2026-01-01T00:00:00.000Z");
+    expect(query.parameters["p3"]).toBe("Closed");
+    expect(query.parameters["p4"]).toBe("2026-02-01T00:00:00.000Z");
+  });
+
+  test("a date filter still routes the key through a parameter", () => {
+    /*
+     * The date branch is new SQL, and new SQL is where an interpolated key
+     * creeps back in. The name of a Date custom field is user text like any
+     * other.
+     */
+    const key: string = "Renew' OR 1=1 --";
+    const query: JSONColumnQuery = build({
+      [key]: new GreaterThan(ISO_INSTANT),
+    });
+    const sql: string = query.toSql(COLUMN);
+
+    expect(sql).not.toContain("OR 1=1");
+    expect(sql).not.toContain(key);
+    expect(query.parameters["p1"]).toBe(key);
   });
 });

@@ -62,7 +62,8 @@
     "Telemetry": "テレメトリ",
     "AI": "AI",
     "API Reference": "API リファレンス",
-    "Self Hosted": "セルフホスト"
+    "Self Hosted": "セルフホスト",
+    "Inventory": "インベントリ"
   },
   "navLinks": {
     "Getting Started": "はじめに",
@@ -185,6 +186,8 @@
     "GitHub Integration": "GitHub 統合",
     "Push Notifications": "プッシュ通知",
     "SendGrid Inbound Email": "SendGrid 受信メール",
-    "Architecture": "アーキテクチャ"
+    "Architecture": "アーキテクチャ",
+    "Custom Fields": "カスタムフィールド",
+    "Exporting to a CMDB": "CMDB へのエクスポート"
   }
 }
