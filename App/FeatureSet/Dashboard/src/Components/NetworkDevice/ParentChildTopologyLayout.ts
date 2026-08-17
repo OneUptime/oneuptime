@@ -184,6 +184,128 @@ const buildTierById: (
 };
 
 /**
+ * The hierarchy an operator declared outright, as child → parent.
+ *
+ * Discovery reports cables, not hierarchies: LLDP tells us two boxes are
+ * connected and has no opinion about which one is upstream. Everything
+ * below this point is therefore inference — good inference on an SNMP
+ * estate, no inference at all on the ping-only devices of issue #3192,
+ * whose role nothing can classify and whose neighbours nothing reports.
+ * `NetworkDeviceLink.parentDeviceId` and the parent/child labels of a link
+ * rule are the operator answering directly, and an answer outranks a
+ * guess.
+ *
+ * Two ways an operator can state something unusable, both resolved here so
+ * the traversal downstream can assume a well-formed forest:
+ *
+ *   - CONTRADICTION. Two links both claiming to be the parent of one
+ *     device. Picking between them would be inventing an answer, so both
+ *     are dropped and that device falls back to inference — the same
+ *     "a wrong cable is worse than a missing one" rule the topology
+ *     builder already applies to a match key two devices claim.
+ *   - CYCLE. A is B's parent, B is C's, C is A's. There is no tree in
+ *     that, and a traversal trusting it would never terminate. The
+ *     declarations are applied in canonical child order and any one that
+ *     would close a loop is skipped, so the surviving set is always
+ *     acyclic and always the same set for the same graph.
+ */
+export const buildDeclaredParentMap: (
+  nodes: Array<NetworkTopologyNode>,
+  edges: Array<NetworkTopologyEdge>,
+) => Map<string, string> = (
+  nodes: Array<NetworkTopologyNode>,
+  edges: Array<NetworkTopologyEdge>,
+): Map<string, string> => {
+  /*
+   * The SAME test canonicalNodeOrder applies, empty-string check included.
+   * This map is the only thing in the file that can introduce an id the
+   * rest of the pipeline never saw, and a looser filter here would put a
+   * node in the forest that is absent from the ordered node list — which
+   * then carries a position nothing re-centres and quietly mis-sizes the
+   * component hull.
+   */
+  const knownNodeIds: Set<string> = new Set<string>();
+  for (const node of nodes || []) {
+    if (node && typeof node.id === "string" && node.id.length > 0) {
+      knownNodeIds.add(node.id);
+    }
+  }
+
+  // child -> every distinct parent claimed for it.
+  const claimedParentsByChild: Map<string, Set<string>> = new Map<
+    string,
+    Set<string>
+  >();
+
+  for (const edge of edges || []) {
+    if (!edge || !edge.parentNodeId) {
+      continue;
+    }
+    const parentId: string = edge.parentNodeId;
+    if (parentId !== edge.fromNodeId && parentId !== edge.toNodeId) {
+      continue;
+    }
+    const childId: string =
+      parentId === edge.fromNodeId ? edge.toNodeId : edge.fromNodeId;
+    if (
+      childId === parentId ||
+      !knownNodeIds.has(childId) ||
+      !knownNodeIds.has(parentId)
+    ) {
+      continue;
+    }
+    const claimed: Set<string> =
+      claimedParentsByChild.get(childId) || new Set<string>();
+    claimed.add(parentId);
+    claimedParentsByChild.set(childId, claimed);
+  }
+
+  /*
+   * Canonical child order, so which declaration loses a cycle is a
+   * function of the graph and never of the order the response arrived in.
+   */
+  const childIds: Array<string> = [...claimedParentsByChild.keys()].sort(
+    compareNodeIds,
+  );
+
+  const declaredParentOf: Map<string, string> = new Map<string, string>();
+
+  for (const childId of childIds) {
+    const claimed: Set<string> = claimedParentsByChild.get(childId)!;
+    if (claimed.size !== 1) {
+      // Contradiction: two links both claim to parent this device.
+      continue;
+    }
+    const parentId: string = [...claimed][0]!;
+
+    /*
+     * Walk up from the proposed parent through what has already been
+     * accepted. Reaching the child means this declaration closes a loop.
+     * The walk is bounded by the number of accepted declarations, so it
+     * terminates even if one ever slipped through.
+     */
+    let cursor: string | undefined = parentId;
+    let createsCycle: boolean = false;
+    for (let step: number = 0; step <= declaredParentOf.size; step++) {
+      if (cursor === undefined) {
+        break;
+      }
+      if (cursor === childId) {
+        createsCycle = true;
+        break;
+      }
+      cursor = declaredParentOf.get(cursor);
+    }
+
+    if (!createsCycle) {
+      declaredParentOf.set(childId, parentId);
+    }
+  }
+
+  return declaredParentOf;
+};
+
+/**
  * Pick the node a component's tree hangs from.
  *
  * Role first, degree second. This deliberately overrides the component's
@@ -192,32 +314,92 @@ const buildTierById: (
  * the router as a child of the switch — precisely upside down from the
  * hierarchy the reader came here for. Ties fall through to the id so the
  * choice is a function of the graph and never of the response ordering.
+ *
+ * A device declared to be somebody's child is not a candidate at all: it
+ * has a parent by construction, and a root has none. Only if every member
+ * is spoken for — which the acyclic guarantee above makes impossible, so
+ * this is a belt-and-braces fallback — does the whole component compete.
+ *
+ * Last of all, BELOW role and below degree, being the top of a declared
+ * chain beats losing on the alphabet. Take a switch an operator declared
+ * to uplink to a router, on a site cabled to a second router of identical
+ * rank and identical degree: rooting at the second router makes the
+ * declared parent reachable only THROUGH its own declared child, and the
+ * traversal then has to hoist it somewhere it has no cable to. Rooting at
+ * the declared parent instead makes the chain fall out naturally, every
+ * tree line a real cable.
+ *
+ * It has to be the LAST word rather than the first. Declaring "this access
+ * point hangs off that switch" says nothing whatever about the switch
+ * being the top of the site, so a rule that let it outrank role or degree
+ * would re-root the map — and re-draw every device on it — off one setting
+ * about two of them. Here it only ever displaces the id tiebreak, which is
+ * arbitrary by construction and the one thing a declaration is strictly
+ * better evidence than.
  */
 const chooseTreeRoot: (
   memberIds: Array<string>,
   adjacency: TopologyAdjacency,
   tierById: Map<string, number>,
+  declaredParentOf: Map<string, string>,
 ) => string = (
   memberIds: Array<string>,
   adjacency: TopologyAdjacency,
   tierById: Map<string, number>,
+  declaredParentOf: Map<string, string>,
 ): string => {
-  let bestId: string = memberIds[0]!;
-  let bestTier: number = tierById.get(bestId) ?? 1;
-  let bestDegree: number = adjacency.degreeById.get(bestId) || 0;
+  const candidates: Array<string> = memberIds.filter((id: string) => {
+    return !declaredParentOf.has(id);
+  });
+  const pool: Array<string> = candidates.length > 0 ? candidates : memberIds;
 
-  for (const id of memberIds) {
-    const tier: number = tierById.get(id) ?? 1;
-    const degree: number = adjacency.degreeById.get(id) || 0;
-    const isBetter: boolean =
-      tier < bestTier ||
-      (tier === bestTier &&
-        (degree > bestDegree ||
-          (degree === bestDegree && compareNodeIds(id, bestId) < 0)));
-    if (isBetter) {
+  // Ids named as somebody's parent. A pool member in here tops a chain.
+  const declaredParentIds: Set<string> = new Set<string>(
+    declaredParentOf.values(),
+  );
+
+  const rankOf: (id: string) => [number, number, number] = (
+    id: string,
+  ): [number, number, number] => {
+    return [
+      tierById.get(id) ?? 1,
+      -(adjacency.degreeById.get(id) || 0),
+      declaredParentIds.has(id) ? 0 : 1,
+    ];
+  };
+
+  /*
+   * Negative when `a` should win. Every field is "lower is better", and
+   * the id has the last word so the choice is a function of the graph and
+   * never of the order the response arrived in.
+   */
+  const compareCandidates: (
+    a: string,
+    aRank: [number, number, number],
+    b: string,
+    bRank: [number, number, number],
+  ) => number = (
+    a: string,
+    aRank: [number, number, number],
+    b: string,
+    bRank: [number, number, number],
+  ): number => {
+    for (let index: number = 0; index < aRank.length; index++) {
+      if (aRank[index]! !== bRank[index]!) {
+        return aRank[index]! - bRank[index]!;
+      }
+    }
+    return compareNodeIds(a, b);
+  };
+
+  let bestId: string = pool[0]!;
+  let bestRank: [number, number, number] = rankOf(bestId);
+
+  for (const id of pool) {
+    const rank: [number, number, number] = rankOf(id);
+    if (compareCandidates(id, rank, bestId, bestRank) < 0) {
       bestId = id;
-      bestTier = tier;
-      bestDegree = degree;
+      bestRank = rank;
     }
   }
   return bestId;
@@ -262,6 +444,285 @@ const traverseFromRoot: (
   return { order: order, depthById: depthById };
 };
 
+/** A component's tree, as parent links rather than coordinates. */
+interface RootedTree {
+  parentById: Map<string, string>;
+  childrenById: Map<string, Array<string>>;
+  depthById: Map<string, number>;
+}
+
+/**
+ * The spanning tree of one component when at least one parent in it was
+ * declared.
+ *
+ * Two passes, and the split is the whole design.
+ *
+ * PASS ONE fixes every node's DEPTH. It is a BFS in which a device with a
+ * declared parent is only ever reached through that parent: met across
+ * some other cable it is passed by, and placed later, when its declared
+ * parent comes up.
+ *
+ * That deferral does not always resolve on its own, and assuming it did
+ * was this function's original bug. A declared parent can be reachable
+ * only THROUGH its own declared child — an operator names a router as a
+ * switch's uplink, and that router hangs off nothing else. Then the BFS
+ * refuses to cross into the switch, never reaches the router, and both
+ * strand. {@link chooseTreeRoot} now prefers the top of a declared chain,
+ * which resolves the common shape properly with every tree line still a
+ * real cable; `attachStrandedChain` below is what handles the rest.
+ *
+ * PASS TWO fixes every node's PARENT, and deliberately does NOT reuse
+ * pass one's discovery order. A declared child takes its declared parent;
+ * every other node takes its canonically-first neighbour exactly one
+ * level up — the identical rule `bfsChildrenOf` applies on the inference
+ * path, and the rule this file's own contract promises so that the
+ * radial and seeding layouts agree about what hangs off what. Parenting
+ * by first-discoverer instead (which is what pass one hands you) diverges
+ * from that rule below depth two, so declaring a parent on one branch
+ * would silently re-parent devices on an unrelated branch of the same
+ * site. A setting should change what it describes and nothing else.
+ */
+const buildRootedTreeWithDeclaredParents: (
+  rootId: string,
+  memberIds: Array<string>,
+  adjacency: TopologyAdjacency,
+  declaredParentOf: Map<string, string>,
+) => RootedTree = (
+  rootId: string,
+  memberIds: Array<string>,
+  adjacency: TopologyAdjacency,
+  declaredParentOf: Map<string, string>,
+): RootedTree => {
+  const parentById: Map<string, string> = new Map<string, string>();
+  const depthById: Map<string, number> = new Map<string, number>();
+
+  // parent -> its declared children, canonical order, for the cascade.
+  const declaredChildrenOf: Map<string, Array<string>> = new Map<
+    string,
+    Array<string>
+  >();
+  for (const [childId, parentId] of declaredParentOf) {
+    const children: Array<string> = declaredChildrenOf.get(parentId) || [];
+    children.push(childId);
+    declaredChildrenOf.set(parentId, children);
+  }
+  for (const [, children] of declaredChildrenOf) {
+    children.sort(compareNodeIds);
+  }
+
+  const place: (id: string, parentId: string | null) => void = (
+    id: string,
+    parentId: string | null,
+  ): void => {
+    if (parentId === null) {
+      depthById.set(id, 0);
+      return;
+    }
+    parentById.set(id, parentId);
+    depthById.set(id, (depthById.get(parentId) ?? 0) + 1);
+  };
+
+  const queue: Array<string> = [];
+  let head: number = 0;
+
+  /** Drain the queue, placing declared children first, then neighbours. */
+  const drain: () => void = (): void => {
+    while (head < queue.length) {
+      const current: string = queue[head]!;
+      head++;
+
+      /*
+       * Declared children first, and placed whether or not the cable
+       * between them is in `neighborsById` — a declared link always
+       * produces an edge, so it always is, but depending on that would
+       * make the hierarchy silently conditional on the edge surviving
+       * filtering.
+       */
+      for (const childId of declaredChildrenOf.get(current) || []) {
+        if (!depthById.has(childId)) {
+          place(childId, current);
+          queue.push(childId);
+        }
+      }
+
+      for (const neighbor of adjacency.neighborsById.get(current) || []) {
+        if (depthById.has(neighbor)) {
+          continue;
+        }
+        const declaredParent: string | undefined =
+          declaredParentOf.get(neighbor);
+        if (declaredParent !== undefined && declaredParent !== current) {
+          // Reached the long way round; it belongs under its declared parent.
+          continue;
+        }
+        place(neighbor, current);
+        queue.push(neighbor);
+      }
+    }
+  };
+
+  place(rootId, null);
+  queue.push(rootId);
+  drain();
+
+  /*
+   * Whatever is left is a declared chain the traversal could not enter
+   * from above, because the chain's top is cabled only to its own
+   * declared descendants. The operator has asked for a hierarchy that
+   * runs against the only path into it.
+   *
+   * The declaration still wins. The chain is hoisted as a whole: its TOP
+   * is attached to the canonically-first already-placed neighbour of
+   * anything in the chain, and the cascade then runs down from there.
+   * That one tree line may not correspond to a cable — the alternative is
+   * drawing a declared parent underneath its own child, which is the
+   * error the operator set the field to correct.
+   *
+   * Each round places at least the chain it processes, so this terminates;
+   * and because it seeds the same drain(), the work is bounded by the
+   * nodes still unplaced rather than by a re-scan per node. The previous
+   * sweep re-walked every member on every pass, which on a long stranded
+   * path was quadratic — seconds of blocked main thread on a large site,
+   * triggered by a single link setting.
+   */
+  const topOfChain: (id: string) => string = (id: string): string => {
+    let cursor: string = id;
+    for (let step: number = 0; step <= declaredParentOf.size; step++) {
+      const parentId: string | undefined = declaredParentOf.get(cursor);
+      if (parentId === undefined || depthById.has(parentId)) {
+        return cursor;
+      }
+      cursor = parentId;
+    }
+    return cursor;
+  };
+
+  /** Every unplaced node at or below `topId` in the declared hierarchy. */
+  const declaredChainMembers: (topId: string) => Array<string> = (
+    topId: string,
+  ): Array<string> => {
+    const members: Array<string> = [];
+    const stack: Array<string> = [topId];
+    const seen: Set<string> = new Set<string>([topId]);
+    while (stack.length > 0) {
+      const current: string = stack.pop()!;
+      members.push(current);
+      for (const childId of declaredChildrenOf.get(current) || []) {
+        if (!seen.has(childId) && !depthById.has(childId)) {
+          seen.add(childId);
+          stack.push(childId);
+        }
+      }
+    }
+    return members;
+  };
+
+  for (const id of memberIds) {
+    if (depthById.has(id)) {
+      continue;
+    }
+    const topId: string = topOfChain(id);
+    if (depthById.has(topId)) {
+      continue;
+    }
+
+    /*
+     * topOfChain stops either at a node with no declared parent or at one
+     * whose declared parent is already placed. In the second case the
+     * declaration answers the question outright — no anchor needed, and
+     * using one would put the node somewhere other than under the parent
+     * an operator named.
+     */
+    const placedDeclaredParent: string | undefined =
+      declaredParentOf.get(topId);
+    if (
+      placedDeclaredParent !== undefined &&
+      depthById.has(placedDeclaredParent)
+    ) {
+      place(topId, placedDeclaredParent);
+      queue.push(topId);
+      drain();
+      continue;
+    }
+
+    let anchorId: string | null = null;
+    for (const memberId of declaredChainMembers(topId)) {
+      for (const neighbor of adjacency.neighborsById.get(memberId) || []) {
+        if (!depthById.has(neighbor)) {
+          continue;
+        }
+        if (anchorId === null || compareNodeIds(neighbor, anchorId) < 0) {
+          anchorId = neighbor;
+        }
+      }
+    }
+
+    // No placed neighbour anywhere in the chain: hang it off the root.
+    place(topId, anchorId === null ? rootId : anchorId);
+    queue.push(topId);
+    drain();
+  }
+
+  // Belt and braces: nothing may leave this function without a depth.
+  for (const id of memberIds) {
+    if (!depthById.has(id) && id !== rootId) {
+      place(id, rootId);
+    }
+  }
+
+  /*
+   * PASS TWO. Depths are final; re-derive every parent from them so the
+   * answer matches bfsChildrenOf exactly wherever nothing was declared.
+   * A node with no neighbour one level up keeps the parent pass one gave
+   * it — that is the hoisted chain top, whose tree line is not a cable
+   * and so cannot be found this way.
+   */
+  for (const id of memberIds) {
+    if (id === rootId || declaredParentOf.has(id)) {
+      continue;
+    }
+    const depth: number | undefined = depthById.get(id);
+    if (depth === undefined || depth === 0) {
+      continue;
+    }
+    let bestParent: string | null = null;
+    for (const neighbor of adjacency.neighborsById.get(id) || []) {
+      if (depthById.get(neighbor) !== depth - 1) {
+        continue;
+      }
+      if (bestParent === null || compareNodeIds(neighbor, bestParent) < 0) {
+        bestParent = neighbor;
+      }
+    }
+    if (bestParent !== null) {
+      parentById.set(id, bestParent);
+    }
+  }
+
+  const childrenById: Map<string, Array<string>> = new Map<
+    string,
+    Array<string>
+  >();
+  for (const id of memberIds) {
+    childrenById.set(id, []);
+  }
+  for (const [childId, parentId] of parentById) {
+    const children: Array<string> | undefined = childrenById.get(parentId);
+    if (children) {
+      children.push(childId);
+    }
+  }
+  for (const [, children] of childrenById) {
+    children.sort(compareNodeIds);
+  }
+
+  return {
+    parentById: parentById,
+    childrenById: childrenById,
+    depthById: depthById,
+  };
+};
+
 /**
  * Build the parent-child spanning forest of a topology.
  *
@@ -271,6 +732,11 @@ const traverseFromRoot: (
  * layouts already use, so all three agree about what hangs off what. A
  * device with no links at all is a one-node tree rather than a dropped
  * node.
+ *
+ * Where an operator has DECLARED a parent (see
+ * {@link buildDeclaredParentMap}) that declaration is honoured instead of
+ * inferred, and the declared child is never rooted. Components containing
+ * no declaration take the inference path unchanged.
  *
  * Total: every non-root has exactly one parent, every node has a children
  * entry and a depth, and no node is its own ancestor — parents are always
@@ -294,6 +760,10 @@ export const buildParentChildForest: (
     edges,
     orderedNodeIds,
   );
+  const declaredParentOf: Map<string, string> = buildDeclaredParentMap(
+    nodes,
+    edges,
+  );
 
   const rootIds: Array<string> = [];
   const parentById: Map<string, string> = new Map<string, string>();
@@ -311,7 +781,41 @@ export const buildParentChildForest: (
       component.nodeIds,
       adjacency,
       tierById,
+      declaredParentOf,
     );
+
+    /*
+     * The declared path is taken only for components that actually contain
+     * a declaration. Not an optimisation — it is what guarantees that a
+     * project with no declared parents (every project, until somebody sets
+     * one) gets byte-identical geometry to before, because it runs exactly
+     * the code it ran before.
+     */
+    const hasDeclaredParent: boolean = component.nodeIds.some((id: string) => {
+      return declaredParentOf.has(id);
+    });
+
+    if (hasDeclaredParent) {
+      const tree: RootedTree = buildRootedTreeWithDeclaredParents(
+        rootId,
+        component.nodeIds,
+        adjacency,
+        declaredParentOf,
+      );
+
+      rootIds.push(rootId);
+      for (const [id, depth] of tree.depthById) {
+        depthById.set(id, depth);
+      }
+      for (const [id, children] of tree.childrenById) {
+        childrenById.set(id, children);
+      }
+      for (const [id, parent] of tree.parentById) {
+        parentById.set(id, parent);
+      }
+      continue;
+    }
+
     const traversal: RootedTraversal = traverseFromRoot(rootId, adjacency);
 
     /*

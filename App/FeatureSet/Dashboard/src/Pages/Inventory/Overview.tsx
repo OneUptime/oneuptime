@@ -168,6 +168,18 @@ const InventoryOverview: FunctionComponent<
         description="The newest things OneUptime has found or you have registered."
         buttons={[
           {
+            title: "Explore topology",
+            icon: IconProp.FlowDiagram,
+            buttonStyle: ButtonStyleType.OUTLINE,
+            onClick: () => {
+              Navigation.navigate(
+                RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.TOPOLOGY] as Route,
+                ),
+              );
+            },
+          },
+          {
             title: "View all items",
             icon: IconProp.List,
             buttonStyle: ButtonStyleType.OUTLINE,

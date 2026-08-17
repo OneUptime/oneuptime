@@ -524,6 +524,10 @@ import { AddNetworkDeviceLink1786634985763 } from "./1786634985763-AddNetworkDev
 import { AddNetworkDeviceLinkRule1786639512056 } from "./1786639512056-AddNetworkDeviceLinkRule";
 import { AddNetworkTopologySuppression1786639972982 } from "./1786639972982-AddNetworkTopologySuppression";
 import { AddOnCallNotificationFallbackColumns1787000000000 } from "./1787000000000-AddOnCallNotificationFallbackColumns";
+import { AddAIConversationPageContext1787100000000 } from "./1787100000000-AddAIConversationPageContext";
+import { AddAIChatMessageFeedback1787200000000 } from "./1787200000000-AddAIChatMessageFeedback";
+import { AddEpisodeMemberNotifyIndexes1787300000000 } from "./1787300000000-AddEpisodeMemberNotifyIndexes";
+import { AddDeviceRoleAndDeclaredLinkParent1787400000000 } from "./1787400000000-AddDeviceRoleAndDeclaredLinkParent";
 
 export default [
   InitialMigration,
@@ -1052,4 +1056,8 @@ export default [
   RenameTelemetryEntityToInventoryItem1786800000000,
   AddInventoryItemArchiveAndCustomFields1786900000000,
   AddOnCallNotificationFallbackColumns1787000000000,
+  AddAIConversationPageContext1787100000000,
+  AddAIChatMessageFeedback1787200000000,
+  AddEpisodeMemberNotifyIndexes1787300000000,
+  AddDeviceRoleAndDeclaredLinkParent1787400000000,
 ];

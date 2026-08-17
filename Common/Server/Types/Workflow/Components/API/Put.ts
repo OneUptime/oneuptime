@@ -83,7 +83,7 @@ export default class ApiPut extends ComponentCode {
 
       return Promise.resolve({
         returnValues: {
-          errorMessage: (err as Error).message || "Unknown error",
+          error: (err as Error).message || "Unknown error",
         },
         executePort: result.errorPort,
       });

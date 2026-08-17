@@ -1,4 +1,3 @@
-import EntitySource from "Common/Types/Telemetry/EntitySource";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import {
   INVENTORY_ENTITY_TYPES,
@@ -62,11 +61,6 @@ function readCode(): string {
   return squash(stripComments(readSource()));
 }
 
-/** All whitespace removed, for assertions Prettier would otherwise reflow. */
-function readCodeDense(): string {
-  return stripComments(readSource()).replace(/\s+/g, "");
-}
-
 /** Everything between `formFields={[` and the filters that follow it. */
 function formSection(): string {
   const code: string = readCode();
@@ -77,7 +71,10 @@ function formSection(): string {
 function filterSection(): string {
   const code: string = readCode();
 
-  return code.slice(code.indexOf("filters={["), code.indexOf("columns={["));
+  return code.slice(
+    code.indexOf("filters={["),
+    code.indexOf("selectMoreFields={{"),
+  );
 }
 
 function columnSection(): string {
@@ -154,18 +151,62 @@ describe("the three row sources stay distinguishable", () => {
     expect(columnSection()).toContain("source: true");
   });
 
-  test("Source is filterable", () => {
-    expect(filterSection()).toContain("source: true");
+  test("the table loads the shared facet vocabulary", () => {
+    expect(readCode()).toContain("buildInventoryFacets");
+  });
+});
+
+describe("the list uses OneUptime facet chips", () => {
+  const code: string = readCode();
+  const filters: string = filterSection();
+
+  test("renders the facet bar inside the table card", () => {
+    expect(code).toContain("useResourceOwners<InventoryItem>");
+    expect(code).toContain("topContent={filterBar}");
   });
 
-  test("the source filter offers every EntitySource", () => {
-    expect(filterSection()).toContain("sourceFilterOptions");
-    expect(readCodeDense()).toContain("Object.values(EntitySource,)");
+  test("does not invent owner or Label relations Inventory does not have", () => {
+    expect(code).toContain("showOwnerFacet: false");
+    expect(code).toContain("showLabelsFacet: false");
   });
 
-  test("the type filter offers every EntityType", () => {
-    expect(filterSection()).toContain("allEntityTypeFilterOptions");
-    expect(readCodeDense()).toContain("Object.values(EntityType,)");
+  test("project custom fields become facets and wait for definitions", () => {
+    expect(code).toContain("useCustomFieldFacets");
+    expect(code).toContain("customFieldsModelType: InventoryItemCustomField");
+    expect(code).toContain("...customFieldFacetsResult.facets");
+    expect(code).toContain(
+      "areFacetsLoading: customFieldFacetsResult.isLoading",
+    );
+  });
+
+  test("facet state is saved, restored and mirrored into the URL", () => {
+    expect(code).toContain("persistKey: tableKey");
+    expect(code).toContain("currentFacetState={facetSaveState}");
+    expect(code).toContain("onFacetStateRestored={restoreFacetState}");
+    expect(code).toContain("tableId: tableKey");
+  });
+
+  test("facets are merged around the existing project and Overview scope", () => {
+    expect(code).toContain("query={mergeFiltersIntoQuery({");
+    expect(code).toContain("...(props.query || {})");
+    expect(code).toContain("buildInventoryFacets(");
+  });
+
+  test("popup filters do not compete with fields owned by facets", () => {
+    expect(filters).not.toContain("entityType: true");
+    expect(filters).not.toContain("source: true");
+    expect(filters).not.toContain("lastSeenAt: true");
+  });
+
+  test("popup filters retain the useful free-form fields", () => {
+    expect(filters).toContain("displayName: true");
+    expect(filters).toContain("entityKey: true");
+    expect(filters).toContain("firstSeenAt: true");
+  });
+
+  test("an empty facet result is not presented as an empty project", () => {
+    expect(code).toContain("hasActiveFilters ?");
+    expect(code).toContain("No inventory item matches the facets above.");
   });
 });
 
@@ -227,6 +268,16 @@ describe("the list is usable at estate scale", () => {
   test("there is an inline search box", () => {
     expect(code).toContain("searchableFields={[");
     expect(code).toContain('"displayName"');
+    expect(code).toContain('"description"');
+    expect(code).toContain('"entityKey"');
+  });
+
+  test("the row action is View only", () => {
+    expect(code).toContain("isViewable={true}");
+    expect(code).toContain("isEditable={false}");
+    expect(code).toContain("isDeleteable={false}");
+    expect(code).not.toContain("isEditable={!isArchivedView}");
+    expect(code).not.toContain("isDeleteable={!isArchivedView}");
   });
 
   test("the name column cannot be customized away", () => {
@@ -288,10 +339,6 @@ describe("the vocabularies the table relies on", () => {
       expect(INVENTORY_ENTITY_TYPES.has(entityType)).toBe(false);
       expect(entityType).not.toBe(EntityType.Service);
     }
-  });
-
-  test("EntitySource has values for the filter to offer", () => {
-    expect(Object.values(EntitySource).length).toBeGreaterThan(1);
   });
 });
 

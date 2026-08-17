@@ -374,6 +374,20 @@ const READY_USER_ID: string = "11111111-1111-4111-8111-111111111111";
 const PARTIAL_USER_ID: string = "22222222-2222-4222-8222-222222222222";
 const UNREACHABLE_USER_ID: string = "33333333-3333-4333-8333-333333333333";
 const CHANNELS_OFF_USER_ID: string = "55555555-5555-4555-8555-555555555555";
+const TWO_TEAM_USER_ID: string = "77777777-7777-4777-8777-777777777777";
+
+/*
+ * Teams, as the readiness contract carries them: the on-call teams that page a
+ * responder, not every team they happen to belong to. Only a responder whose
+ * `reachedVia` includes Team may carry any, which is what makes the "Teams"
+ * column and the "Reached via" column two views of one fact rather than two
+ * facts that can disagree.
+ */
+const PLATFORM_TEAM_ID: string = "a1a1a1a1-1111-4111-8111-aaaaaaaaaaaa";
+const PAYMENTS_TEAM_ID: string = "b2b2b2b2-2222-4222-8222-bbbbbbbbbbbb";
+
+const PLATFORM_TEAM: JSONObject = { _id: PLATFORM_TEAM_ID, name: "Platform" };
+const PAYMENTS_TEAM: JSONObject = { _id: PAYMENTS_TEAM_ID, name: "Payments" };
 
 const READY_USER: JSONObject = {
   userId: READY_USER_ID,
@@ -384,6 +398,7 @@ const READY_USER: JSONObject = {
   coverage: fullCoverage(true),
   reasons: [],
   reachedVia: ["Team"],
+  teams: [PLATFORM_TEAM],
 };
 
 const PARTIAL_USER: JSONObject = {
@@ -399,6 +414,7 @@ const PARTIAL_USER: JSONObject = {
   coverage: PARTIAL_COVERAGE,
   reasons: ["No notification rule for alerts at Sev1."],
   reachedVia: ["Schedule", "Override"],
+  teams: [],
 };
 
 const UNREACHABLE_USER: JSONObject = {
@@ -410,6 +426,25 @@ const UNREACHABLE_USER: JSONObject = {
   coverage: fullCoverage(false),
   reasons: ["No verified notification method on this account."],
   reachedVia: ["Direct"],
+  teams: [],
+};
+
+/*
+ * A responder two attached teams page. The interesting case for the team filter:
+ * they have to appear under EITHER team, because removing them from one does not
+ * stop the other paging them - which is the same reasoning `reachedVia` carries
+ * every source rather than the first one found.
+ */
+const TWO_TEAM_USER: JSONObject = {
+  userId: TWO_TEAM_USER_ID,
+  userName: "Ravi Twoteams",
+  userEmail: "ravi.twoteams@example.com",
+  status: "PartiallyReady",
+  methods: [VERIFIED_EMAIL_METHOD],
+  coverage: PARTIAL_COVERAGE,
+  reasons: ["No notification rule for alerts at Sev1."],
+  reachedVia: ["Team"],
+  teams: [PLATFORM_TEAM, PAYMENTS_TEAM],
 };
 
 /*
@@ -429,6 +464,7 @@ const CHANNELS_OFF_USER: JSONObject = {
     "Their only notification methods are on channels this project has switched off",
   ],
   reachedVia: ["Direct"],
+  teams: [],
 };
 
 /*
@@ -475,12 +511,31 @@ const DISTINCT_KIND_USER: JSONObject = {
   coverage: DISTINCT_KIND_COVERAGE,
   reasons: [],
   reachedVia: ["Direct"],
+  teams: [],
 };
 
 type SummaryJsonFunction = (
   users: JSONArray,
   isFallbackEnabled?: boolean | undefined,
 ) => JSONObject;
+
+/*
+ * The login addresses the fixture responders sign in with, read off the
+ * fixtures rather than retyped so a renamed responder cannot quietly drop out
+ * of the masking guard's exemption list and start passing for the wrong
+ * reason. These are NOT notification-method identifiers: those all live in
+ * ALL_RAW_IDENTIFIERS and must never render.
+ */
+const ALL_LOGIN_EMAILS: Array<string> = [
+  READY_USER,
+  PARTIAL_USER,
+  UNREACHABLE_USER,
+  TWO_TEAM_USER,
+  CHANNELS_OFF_USER,
+  DISTINCT_KIND_USER,
+].map((user: JSONObject) => {
+  return user["userEmail"] as string;
+});
 
 /*
  * `isFallbackEnabled` defaults to true because that is the product default
@@ -672,14 +727,49 @@ const tableRowFor: TableRowForFunction = (userName: string): HTMLElement => {
 };
 
 /*
- * The responder rows are click-to-expand and the coverage matrix only exists
- * once a row is open. The click lands on the row rather than the checkbox cell,
- * which stops propagation on purpose.
+ * The coverage grid lives in a modal, opened from the row's own action button.
+ *
+ * It used to expand the row in place, which the shared Table has no notion of -
+ * and a grid that is severities-down by rule-types-across pushed every row under
+ * it off the screen anyway.
  */
-type ExpandResponderFunction = (userName: string) => void;
+type OpenCoverageFunction = (userName: string) => void;
 
-const expandResponder: ExpandResponderFunction = (userName: string): void => {
-  fireEvent.click(tableRowFor(userName));
+const openCoverage: OpenCoverageFunction = (userName: string): void => {
+  fireEvent.click(
+    within(tableRowFor(userName)).getByRole("button", { name: "Coverage" }),
+  );
+};
+
+/*
+ * Ticking one responder. The checkbox's accessible name is what the table builds
+ * from bulkItemToString, so this is also the assertion that every row's box is
+ * addressable at all - a column of unnamed boxes is one a screen reader user
+ * cannot tell apart.
+ */
+type SelectResponderFunction = (userName: string) => void;
+
+const selectResponder: SelectResponderFunction = (userName: string): void => {
+  fireEvent.click(screen.getByLabelText(`Select ${userName}`));
+};
+
+/*
+ * Opening the bulk-actions menu and pressing one of its items. Two clicks
+ * because that is what the shared bulk bar is: a selection count, a menu, and
+ * the actions inside it.
+ */
+type RunBulkActionFunction = (title: string) => void;
+
+const runBulkAction: RunBulkActionFunction = (title: string): void => {
+  fireEvent.click(screen.getByText("Bulk Actions"));
+  fireEvent.click(screen.getByRole("menuitem", { name: title }));
+};
+
+/** The filter modal, opened from the funnel button in the card header. */
+type OpenFilterModalFunction = () => void;
+
+const openFilterModal: OpenFilterModalFunction = (): void => {
+  fireEvent.click(screen.getByRole("button", { name: "Filter" }));
 };
 
 /*
@@ -1810,7 +1900,7 @@ describe("On-call readiness page", () => {
 
       await screen.findByText("Jane Partial");
 
-      expandResponder("Jane Partial");
+      openCoverage("Jane Partial");
 
       expect(
         screen.getAllByRole("img", {
@@ -1863,7 +1953,7 @@ describe("On-call readiness page", () => {
 
       await screen.findByText("Jane Partial");
 
-      expandResponder("Jane Partial");
+      openCoverage("Jane Partial");
 
       expect(container.querySelector('[title="Not reported"]')).not.toBeNull();
     });
@@ -1875,7 +1965,7 @@ describe("On-call readiness page", () => {
 
       await screen.findByText("Jane Partial");
 
-      expandResponder("Jane Partial");
+      openCoverage("Jane Partial");
 
       const headers: Array<string> = screen
         .getAllByRole("columnheader")
@@ -1903,7 +1993,7 @@ describe("On-call readiness page", () => {
 
       await screen.findByText("Jane Partial");
 
-      expandResponder("Jane Partial");
+      openCoverage("Jane Partial");
 
       expect(screen.getByText("Shift changes")).toBeInTheDocument();
       expect(screen.getByText("Goes on call")).toBeInTheDocument();
@@ -1917,7 +2007,7 @@ describe("On-call readiness page", () => {
 
       await screen.findByText("Jane Partial");
 
-      expandResponder("Jane Partial");
+      openCoverage("Jane Partial");
 
       expect(screen.getAllByText("Sev1").length).toBeGreaterThan(0);
       expect(screen.getAllByText("Sev2").length).toBeGreaterThan(0);
@@ -1977,7 +2067,7 @@ describe("On-call readiness page", () => {
 
       await screen.findByText("Kai Distinct");
 
-      expandResponder("Kai Distinct");
+      openCoverage("Kai Distinct");
     };
 
     test("each kind gets its own matrix", async () => {
@@ -2061,7 +2151,7 @@ describe("On-call readiness page", () => {
 
       await screen.findByText("Jane Partial");
 
-      expandResponder("Jane Partial");
+      openCoverage("Jane Partial");
 
       expect(
         within(matrixFor("Incident severities")).getAllByText("Sev1"),
@@ -2095,13 +2185,19 @@ describe("On-call readiness page", () => {
    *     above, so the two can never disagree on screen.
    */
   describe("the setup-reminder control - selecting responders", () => {
-    test("every responder row carries a checkbox", async () => {
+    test("every responder row carries a named checkbox", async () => {
       respondWith(summaryJson(ALL_THREE_USERS));
 
       await renderProjectPage();
 
       await screen.findByText("Zed Unreachable");
 
+      /*
+       * Named, not merely present. The shared table draws an unlabelled box in
+       * every row unless it is told what a row IS, and a column of boxes that
+       * all announce themselves as "checkbox" is one a screen reader user
+       * cannot tell apart - and one this file could not address either.
+       */
       expect(
         screen.getByLabelText("Select Zed Unreachable"),
       ).toBeInTheDocument();
@@ -2111,8 +2207,8 @@ describe("On-call readiness page", () => {
     /*
      * A Ready responder has nothing to be reminded of, and the server agrees -
      * it answers SkippedNothingMissing rather than mailing them a claim they
-     * could disprove in ten seconds. Disabling the box says the same thing
-     * before the click instead of explaining it after.
+     * could disprove in ten seconds. Locking the box says the same thing before
+     * the click instead of explaining it after.
      */
     test("a ready responder cannot be selected, and the box says why", async () => {
       respondWith(summaryJson(ALL_THREE_USERS));
@@ -2130,37 +2226,35 @@ describe("On-call readiness page", () => {
       );
     });
 
-    test("the button is disabled until something is selected, then counts it", async () => {
+    test("the bulk bar appears only once something is selected, and counts it", async () => {
       respondWith(summaryJson(ALL_THREE_USERS));
 
       await renderProjectPage();
 
       await screen.findByText("Zed Unreachable");
 
-      expect(
-        screen.getByRole("button", { name: "Send setup reminder" }),
-      ).toBeDisabled();
+      expect(screen.queryByText("Bulk Actions")).toBeNull();
 
-      fireEvent.click(screen.getByLabelText("Select Zed Unreachable"));
+      selectResponder("Zed Unreachable");
 
-      expect(
-        screen.getByRole("button", { name: "Send setup reminder (1)" }),
-      ).toBeEnabled();
+      expect(screen.getByText("1 Responders Selected")).toBeInTheDocument();
+      expect(screen.getByText("Bulk Actions")).toBeInTheDocument();
     });
 
     /*
-     * The whole row toggles the coverage panel. A click on the checkbox - or on
-     * the padding around it - must not do both, or ticking a box near its edge
-     * looks like the box is broken.
+     * Ticking a box must not do anything else. The row used to expand on click
+     * and the checkbox cell had to stop propagation by hand; the coverage grid
+     * now opens from its own button, so the two cannot collide at all - and this
+     * is the assertion that says so.
      */
-    test("ticking a box does not expand the row", async () => {
+    test("ticking a box does not open the coverage grid", async () => {
       respondWith(summaryJson(ALL_THREE_USERS));
 
       await renderProjectPage();
 
       await screen.findByText("Jane Partial");
 
-      fireEvent.click(screen.getByLabelText("Select Jane Partial"));
+      selectResponder("Jane Partial");
 
       expect(screen.queryByText("Incident severities")).toBeNull();
     });
@@ -2172,11 +2266,28 @@ describe("On-call readiness page", () => {
 
       await screen.findByText("Ada Ready");
 
-      fireEvent.click(screen.getByLabelText("Select the responders shown"));
+      fireEvent.click(screen.getByLabelText("Select all items"));
 
-      expect(
-        screen.getByRole("button", { name: "Send setup reminder (2)" }),
-      ).toBeEnabled();
+      expect(screen.getByText("2 Responders Selected")).toBeInTheDocument();
+      expect(screen.getByLabelText("Select Ada Ready")).not.toBeChecked();
+    });
+
+    /*
+     * "All selected" is judged against the rows that CAN be selected. Counting
+     * the locked Ready row against it would leave the header box permanently
+     * empty on any page holding one, which reads as "your selection was lost"
+     * rather than as "one row here is not yours to pick".
+     */
+    test("the header checkbox fills even though a locked row stays unticked", async () => {
+      respondWith(summaryJson(ALL_THREE_USERS));
+
+      await renderProjectPage();
+
+      await screen.findByText("Ada Ready");
+
+      fireEvent.click(screen.getByLabelText("Select all items"));
+
+      expect(screen.getByLabelText("Select all items")).toBeChecked();
       expect(screen.getByLabelText("Select Ada Ready")).not.toBeChecked();
     });
 
@@ -2187,13 +2298,31 @@ describe("On-call readiness page", () => {
 
       await screen.findByText("Zed Unreachable");
 
-      fireEvent.click(screen.getByLabelText("Select Zed Unreachable"));
-      fireEvent.click(screen.getByText("Clear selection"));
+      selectResponder("Zed Unreachable");
+      fireEvent.click(screen.getByText("Clear Selection"));
 
-      expect(
-        screen.getByRole("button", { name: "Send setup reminder" }),
-      ).toBeDisabled();
+      expect(screen.queryByText("Bulk Actions")).toBeNull();
       expect(postMock).not.toHaveBeenCalled();
+    });
+
+    /*
+     * "Select All Responders" means every row the CURRENT FILTER matches, not
+     * every row in the project - and still never a Ready one. An admin who
+     * filtered to one team and pressed it must not mail the other four teams.
+     */
+    test("select-all covers the filtered rows and still skips the ready ones", async () => {
+      respondWith(summaryJson([...ALL_THREE_USERS, TWO_TEAM_USER]));
+
+      await renderProjectPage();
+
+      await screen.findByText("Ravi Twoteams");
+
+      selectResponder("Zed Unreachable");
+      fireEvent.click(screen.getByText("Select All Responders"));
+
+      await waitFor((): void => {
+        expect(screen.getByText("3 Responders Selected")).toBeInTheDocument();
+      });
     });
   });
 
@@ -2208,17 +2337,16 @@ describe("On-call readiness page", () => {
 
         await screen.findByText("Zed Unreachable");
 
-        fireEvent.click(screen.getByLabelText("Select Zed Unreachable"));
-        fireEvent.click(
-          screen.getByRole("button", { name: "Send setup reminder (1)" }),
-        );
+        selectResponder("Zed Unreachable");
+        runBulkAction("Send setup reminder");
       };
 
     /*
-     * The modal names them. Selection survives a filter change, so the rows an
-     * admin ticked are not necessarily the rows on screen when they press the
-     * button - and this is the last moment before real email reaches real
-     * people. "Send 6 reminders?" would be asking them to confirm a number.
+     * The modal names them. Selection survives a filter change AND a page
+     * change, so the rows an admin ticked are not necessarily the rows on
+     * screen when they press the button - and this is the last moment before
+     * real email reaches real people. "Send 6 reminders?" would be asking them
+     * to confirm a number.
      */
     test("the confirmation names every recipient", async () => {
       await selectZedAndOpenModal();
@@ -2227,6 +2355,16 @@ describe("On-call readiness page", () => {
 
       expect(within(modal).getByText(/Zed Unreachable/)).toBeInTheDocument();
       expect(within(modal).queryByText(/Ada Ready/)).toBeNull();
+    });
+
+    test("the confirmation counts the recipients in its title", async () => {
+      await selectZedAndOpenModal();
+
+      expect(
+        within(screen.getByTestId("modal")).getByText(
+          /Send a setup reminder to 1 responder\?/,
+        ),
+      ).toBeInTheDocument();
     });
 
     test("the confirmation says the 24h throttle exists before anything is sent", async () => {
@@ -2256,7 +2394,9 @@ describe("On-call readiness page", () => {
 
       await selectZedAndOpenModal();
 
-      fireEvent.click(screen.getByRole("button", { name: "Send reminders" }));
+      fireEvent.click(
+        screen.getByRole("button", { name: "Send setup reminder" }),
+      );
 
       await waitFor((): void => {
         expect(postMock).toHaveBeenCalled();
@@ -2294,11 +2434,11 @@ describe("On-call readiness page", () => {
 
       await screen.findByText("Zed Unreachable");
 
-      fireEvent.click(screen.getByLabelText("Select the responders shown"));
+      fireEvent.click(screen.getByLabelText("Select all items"));
+      runBulkAction("Send setup reminder");
       fireEvent.click(
-        screen.getByRole("button", { name: "Send setup reminder (2)" }),
+        screen.getByRole("button", { name: "Send setup reminder" }),
       );
-      fireEvent.click(screen.getByRole("button", { name: "Send reminders" }));
 
       await waitFor((): void => {
         expect(screen.getByText(/Setup reminders:/)).toBeInTheDocument();
@@ -2323,6 +2463,11 @@ describe("On-call readiness page", () => {
      * The highest-value assertion in this block. A throttle is not a send, and
      * the run that produced this is the ordinary one the moment a throttle
      * exists.
+     *
+     * It is also why this page keeps its own banner rather than reporting
+     * through the shared bulk-action progress modal: that modal has two buckets,
+     * succeeded and FAILED, and a responder skipped because they were reminded
+     * an hour ago has not failed at anything.
      */
     test("a throttled skip is counted as skipped and named, never as sent", async () => {
       await runReminderForBoth([
@@ -2384,7 +2529,7 @@ describe("On-call readiness page", () => {
       await runReminderForBoth([
         { userId: UNREACHABLE_USER_ID, outcome: "Sent", message: "Sent." },
         {
-          userId: "77777777-7777-4777-8777-777777777777",
+          userId: "99999999-8888-4888-8888-999999999999",
           outcome: "SkippedNotAMember",
           message: "Not a member of this project.",
         },
@@ -2420,9 +2565,15 @@ describe("On-call readiness page", () => {
         { userId: PARTIAL_USER_ID, outcome: "Sent", message: "Sent." },
       ]);
 
-      expect(
-        screen.getByRole("button", { name: "Send setup reminder" }),
-      ).toBeDisabled();
+      /*
+       * Through the table's own selection sync rather than immediately: the page
+       * drops the ids, the table copies the empty list into its bar on the next
+       * pass. The bar going away is the fact worth asserting; the pass it takes
+       * to get there is not.
+       */
+      await waitFor((): void => {
+        expect(screen.queryByText("Bulk Actions")).toBeNull();
+      });
     });
 
     test("the report can be dismissed", async () => {
@@ -2448,11 +2599,11 @@ describe("On-call readiness page", () => {
 
       await screen.findByText("Zed Unreachable");
 
-      fireEvent.click(screen.getByLabelText("Select Zed Unreachable"));
+      selectResponder("Zed Unreachable");
+      runBulkAction("Send setup reminder");
       fireEvent.click(
-        screen.getByRole("button", { name: "Send setup reminder (1)" }),
+        screen.getByRole("button", { name: "Send setup reminder" }),
       );
-      fireEvent.click(screen.getByRole("button", { name: "Send reminders" }));
 
       await waitFor((): void => {
         expect(
@@ -2488,9 +2639,7 @@ describe("On-call readiness page", () => {
     test("the selection survives, so the run can be retried", async () => {
       await runFailingReminder();
 
-      expect(
-        screen.getByRole("button", { name: "Send setup reminder (1)" }),
-      ).toBeEnabled();
+      expect(screen.getByText("1 Responders Selected")).toBeInTheDocument();
     });
 
     test("a non-200 answer is a failure, not a silent success", async () => {
@@ -2508,11 +2657,11 @@ describe("On-call readiness page", () => {
 
       await screen.findByText("Zed Unreachable");
 
-      fireEvent.click(screen.getByLabelText("Select Zed Unreachable"));
+      selectResponder("Zed Unreachable");
+      runBulkAction("Send setup reminder");
       fireEvent.click(
-        screen.getByRole("button", { name: "Send setup reminder (1)" }),
+        screen.getByRole("button", { name: "Send setup reminder" }),
       );
-      fireEvent.click(screen.getByRole("button", { name: "Send reminders" }));
 
       await waitFor((): void => {
         expect(
@@ -2597,7 +2746,28 @@ describe("On-call readiness page", () => {
     });
   });
 
-  describe("filters", () => {
+  /*
+   * Filtering from the tiles.
+   *
+   * The tiles already carry the three counts an admin triages by, so they are
+   * the control that filters to those states - one object holding the number and
+   * the action on it. They replaced a private pill strip that no other table in
+   * the product had, and, crucially, they go through the ORDINARY filter: the
+   * result announces itself in the standard chip banner and clears with the
+   * standard Clear Filters, so a filter applied from a tile and one applied from
+   * the modal are the same thing in the same place.
+   */
+  describe("filtering from the summary tiles", () => {
+    type FilterToUnreachableFunction = () => void;
+
+    const filterToUnreachable: FilterToUnreachableFunction = (): void => {
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "Filter to responders who are unreachable",
+        }),
+      );
+    };
+
     test("filtering to unreachable hides the other two", async () => {
       respondWith(summaryJson(ALL_THREE_USERS));
 
@@ -2605,7 +2775,7 @@ describe("On-call readiness page", () => {
 
       await screen.findByText("Zed Unreachable");
 
-      fireEvent.click(screen.getByRole("radio", { name: /Unreachable/ }));
+      filterToUnreachable();
 
       expect(screen.getByText("Zed Unreachable")).toBeInTheDocument();
       expect(screen.queryByText("Ada Ready")).toBeNull();
@@ -2619,12 +2789,740 @@ describe("On-call readiness page", () => {
 
       await screen.findByText("Ada Ready");
 
-      fireEvent.click(screen.getByRole("radio", { name: /Unreachable/ }));
+      filterToUnreachable();
 
       expect(
-        screen.getByText("No responders match this filter."),
+        screen.getByText("No responders match these filters."),
       ).toBeInTheDocument();
     });
+
+    /*
+     * A tile-driven filter is a real filter, which means the reader can see it
+     * and undo it from the same place as any other. A private pill strip could
+     * not say this: it announced nothing, so a reader who scrolled past it read
+     * a filtered table as the whole project.
+     */
+    test("the filter announces itself in the standard chip banner", async () => {
+      respondWith(summaryJson(ALL_THREE_USERS));
+
+      await renderProjectPage();
+
+      await screen.findByText("Zed Unreachable");
+
+      filterToUnreachable();
+
+      expect(
+        screen.getByText("Showing Responders that match"),
+      ).toBeInTheDocument();
+      expect(screen.getByText("Clear Filters")).toBeInTheDocument();
+    });
+
+    test("pressing the same tile again clears it", async () => {
+      respondWith(summaryJson(ALL_THREE_USERS));
+
+      await renderProjectPage();
+
+      await screen.findByText("Zed Unreachable");
+
+      filterToUnreachable();
+
+      expect(screen.queryByText("Ada Ready")).toBeNull();
+
+      filterToUnreachable();
+
+      expect(screen.getByText("Ada Ready")).toBeInTheDocument();
+    });
+
+    test("the pressed tile says it is pressed", async () => {
+      respondWith(summaryJson(ALL_THREE_USERS));
+
+      await renderProjectPage();
+
+      await screen.findByText("Zed Unreachable");
+
+      const tile: HTMLElement = screen.getByRole("button", {
+        name: "Filter to responders who are unreachable",
+      });
+
+      expect(tile).toHaveAttribute("aria-pressed", "false");
+
+      filterToUnreachable();
+
+      expect(tile).toHaveAttribute("aria-pressed", "true");
+    });
+
+    /*
+     * The tiles count the WHOLE project, always. Recomputing them from the
+     * filtered rows would make "Unreachable: 1" mean "1 of the rows you can
+     * currently see", so pressing the tile would appear to have found every
+     * unreachable responder in the project when it had only found the ones the
+     * previous filter left behind.
+     */
+    test("the counts do not shrink to match the filter", async () => {
+      respondWith(summaryJson(ALL_THREE_USERS));
+
+      const container: HTMLElement = await renderProjectPage();
+
+      await screen.findByText("Zed Unreachable");
+
+      filterToUnreachable();
+
+      const tiles: HTMLElement | null = container.querySelector(
+        "div.mb-6.grid",
+      ) as HTMLElement | null;
+
+      if (!tiles) {
+        throw new Error("no summary tile grid");
+      }
+
+      // Three responders, one of each state, even though one row is showing.
+      expect(within(tiles).getByText("3")).toBeInTheDocument();
+      expect(within(tiles).getAllByText("1")).toHaveLength(3);
+    });
+  });
+
+  /*
+   * The filter modal - the same one every other table in the product opens from
+   * the same funnel in the same corner.
+   */
+  describe("the filter modal", () => {
+    /*
+     * The row for one filter, found by its label. The modal holds several
+     * comboboxes and they are indistinguishable by role alone, so every
+     * interaction here is scoped to the row it belongs to - a document-wide
+     * query would drive whichever control happened to render first and pass for
+     * the wrong reason.
+     */
+    type FilterRowFunction = (title: string) => HTMLElement;
+
+    const filterRow: FilterRowFunction = (title: string): HTMLElement => {
+      const row: HTMLElement | null = screen
+        .getByText(title, { selector: "label" })
+        .closest("div.grid") as HTMLElement | null;
+
+      if (!row) {
+        throw new Error(`no filter row for ${title}`);
+      }
+
+      return row;
+    };
+
+    type PickOptionFunction = (
+      filterTitle: string,
+      optionLabel: string,
+    ) => Promise<void>;
+
+    /*
+     * Opening the menu is ArrowDown on the combobox - react-select mounts its
+     * option list lazily and no other interaction brings it into the DOM.
+     *
+     * The options themselves are then found document-wide rather than inside the
+     * row, because react-select PORTALS its menu out of the row it belongs to.
+     * Scoping to the row finds nothing; scoping to the option role is what keeps
+     * this honest, since only one menu is ever open at a time and "Needs setup"
+     * is also a tile label.
+     */
+    const pickOption: PickOptionFunction = async (
+      filterTitle: string,
+      optionLabel: string,
+    ): Promise<void> => {
+      fireEvent.keyDown(within(filterRow(filterTitle)).getByRole("combobox"), {
+        key: "ArrowDown",
+        code: "ArrowDown",
+      });
+
+      const options: Array<HTMLElement> = await screen.findAllByRole("option");
+
+      const option: HTMLElement | undefined = options.find(
+        (candidate: HTMLElement): boolean => {
+          return candidate.textContent === optionLabel;
+        },
+      );
+
+      if (!option) {
+        throw new Error(`no "${optionLabel}" option under ${filterTitle}`);
+      }
+
+      fireEvent.click(option);
+    };
+
+    type ApplyFiltersFunction = () => void;
+
+    const applyFilters: ApplyFiltersFunction = (): void => {
+      fireEvent.click(screen.getByRole("button", { name: "Apply Filters" }));
+    };
+
+    test("the funnel opens it", async () => {
+      respondWith(summaryJson(ALL_THREE_USERS));
+
+      await renderProjectPage();
+
+      await screen.findByText("Zed Unreachable");
+
+      expect(screen.queryByText("Filter Responders")).toBeNull();
+
+      openFilterModal();
+
+      expect(screen.getByText("Filter Responders")).toBeInTheDocument();
+    });
+
+    test("it offers responder, status, team and reached-via", async () => {
+      respondWith(summaryJson(ALL_THREE_USERS));
+
+      await renderProjectPage();
+
+      await screen.findByText("Zed Unreachable");
+
+      openFilterModal();
+
+      expect(filterRow("Responder")).toBeInTheDocument();
+      expect(filterRow("Status")).toBeInTheDocument();
+      expect(filterRow("Team")).toBeInTheDocument();
+      expect(filterRow("Reached via")).toBeInTheDocument();
+    });
+
+    /*
+     * Filtering by a free-text name is the one an admin reaches for when they
+     * are chasing a particular person rather than triaging a state.
+     */
+    test("the responder filter matches on name", async () => {
+      respondWith(summaryJson(ALL_THREE_USERS));
+
+      await renderProjectPage();
+
+      await screen.findByText("Zed Unreachable");
+
+      openFilterModal();
+
+      fireEvent.change(within(filterRow("Responder")).getByRole("textbox"), {
+        target: { value: "jane" },
+      });
+
+      applyFilters();
+
+      expect(screen.getByText("Jane Partial")).toBeInTheDocument();
+      expect(screen.queryByText("Zed Unreachable")).toBeNull();
+      expect(screen.queryByText("Ada Ready")).toBeNull();
+    });
+
+    /*
+     * The login address, not only the display name. Two people called "J. Smith"
+     * are told apart by their email and by nothing else, and it is the field an
+     * admin is most likely to have in hand when somebody hands them a ticket.
+     */
+    test("the responder filter matches on the login email too", async () => {
+      respondWith(summaryJson(ALL_THREE_USERS));
+
+      await renderProjectPage();
+
+      await screen.findByText("Zed Unreachable");
+
+      openFilterModal();
+
+      fireEvent.change(within(filterRow("Responder")).getByRole("textbox"), {
+        target: { value: "zed.unreachable@example.com" },
+      });
+
+      applyFilters();
+
+      expect(screen.getByText("Zed Unreachable")).toBeInTheDocument();
+      expect(screen.queryByText("Jane Partial")).toBeNull();
+    });
+
+    test("filtering by status narrows the table", async () => {
+      respondWith(summaryJson(ALL_THREE_USERS));
+
+      await renderProjectPage();
+
+      await screen.findByText("Zed Unreachable");
+
+      openFilterModal();
+
+      await pickOption("Status", "Needs setup");
+
+      applyFilters();
+
+      expect(screen.getByText("Jane Partial")).toBeInTheDocument();
+      expect(screen.queryByText("Zed Unreachable")).toBeNull();
+      expect(screen.queryByText("Ada Ready")).toBeNull();
+    });
+
+    test("filtering by how a responder is reached narrows the table", async () => {
+      respondWith(summaryJson(ALL_THREE_USERS));
+
+      await renderProjectPage();
+
+      await screen.findByText("Zed Unreachable");
+
+      openFilterModal();
+
+      await pickOption("Reached via", "Schedule");
+
+      applyFilters();
+
+      expect(screen.getByText("Jane Partial")).toBeInTheDocument();
+      expect(screen.queryByText("Zed Unreachable")).toBeNull();
+    });
+  });
+
+  /*
+   * Filtering by team.
+   *
+   * "Team" here means the on-call teams that PAGE a responder, not every team
+   * they belong to, and the difference is what makes the filter worth having: a
+   * team with no escalation rule attached to it pages nobody, so offering it
+   * would be an option that always answers with an empty table.
+   */
+  describe("filtering by team", () => {
+    type OpenTeamFilterFunction = () => Promise<void>;
+
+    const teamRow: () => HTMLElement = (): HTMLElement => {
+      const row: HTMLElement | null = screen
+        .getByText("Team", { selector: "label" })
+        .closest("div.grid") as HTMLElement | null;
+
+      if (!row) {
+        throw new Error("no team filter row");
+      }
+
+      return row;
+    };
+
+    const openTeamFilter: OpenTeamFilterFunction = async (): Promise<void> => {
+      respondWith(
+        summaryJson([
+          READY_USER,
+          PARTIAL_USER,
+          UNREACHABLE_USER,
+          TWO_TEAM_USER,
+        ]),
+      );
+
+      await renderProjectPage();
+
+      await screen.findByText("Ravi Twoteams");
+
+      openFilterModal();
+
+      fireEvent.keyDown(within(teamRow()).getByRole("combobox"), {
+        key: "ArrowDown",
+        code: "ArrowDown",
+      });
+    };
+
+    type PickTeamFunction = (name: string) => Promise<void>;
+
+    /*
+     * The menu is portalled out of the row, so the option is found by role
+     * document-wide. Only one menu is open at a time, and a team name is also a
+     * chip in the table - the role is what tells the two apart.
+     */
+    const pickTeam: PickTeamFunction = async (name: string): Promise<void> => {
+      fireEvent.keyDown(within(teamRow()).getByRole("combobox"), {
+        key: "ArrowDown",
+        code: "ArrowDown",
+      });
+
+      const option: HTMLElement | undefined = (
+        await screen.findAllByRole("option")
+      ).find((candidate: HTMLElement): boolean => {
+        return candidate.textContent === name;
+      });
+
+      if (!option) {
+        throw new Error(`no "${name}" option in the team filter`);
+      }
+
+      fireEvent.click(option);
+    };
+
+    const applyFilters: () => void = (): void => {
+      fireEvent.click(screen.getByRole("button", { name: "Apply Filters" }));
+    };
+
+    /*
+     * The options come from the rows themselves rather than from the project's
+     * team list. Every option therefore has at least one responder behind it,
+     * where a project-wide list would offer teams that page nobody.
+     */
+    test("the options are the teams that actually page somebody", async () => {
+      await openTeamFilter();
+
+      /*
+       * Scoped to the open menu rather than the document: the table's
+       * pagination bar carries a page-size select, whose native options are
+       * `option`s too and are there whether a menu is open or not.
+       */
+      const menu: HTMLElement = await screen.findByRole("listbox");
+
+      const options: Array<string> = within(menu)
+        .getAllByRole("option")
+        .map((option: HTMLElement): string => {
+          return option.textContent || "";
+        });
+
+      expect(options).toEqual(["Payments", "Platform"]);
+    });
+
+    test("picking a team hides the responders it does not page", async () => {
+      await openTeamFilter();
+
+      await pickTeam("Payments");
+
+      applyFilters();
+
+      expect(screen.getByText("Ravi Twoteams")).toBeInTheDocument();
+      expect(screen.queryByText("Ada Ready")).toBeNull();
+      expect(screen.queryByText("Jane Partial")).toBeNull();
+      expect(screen.queryByText("Zed Unreachable")).toBeNull();
+    });
+
+    /*
+     * A responder on two attached teams is paged by both, so they belong under
+     * either filter. An "equals" comparison could not express that at all, which
+     * is why every filter on this page is a set intersection.
+     */
+    test("a responder on two teams appears under either of them", async () => {
+      await openTeamFilter();
+
+      await pickTeam("Platform");
+
+      applyFilters();
+
+      expect(screen.getByText("Ravi Twoteams")).toBeInTheDocument();
+      expect(screen.getByText("Ada Ready")).toBeInTheDocument();
+      expect(screen.queryByText("Jane Partial")).toBeNull();
+    });
+
+    test("two teams at once is a union, not an intersection", async () => {
+      await openTeamFilter();
+
+      await pickTeam("Platform");
+      await pickTeam("Payments");
+
+      applyFilters();
+
+      expect(screen.getByText("Ravi Twoteams")).toBeInTheDocument();
+      expect(screen.getByText("Ada Ready")).toBeInTheDocument();
+      expect(screen.queryByText("Zed Unreachable")).toBeNull();
+    });
+
+    /*
+     * Filters compose. Team AND status is the question an admin actually has -
+     * "who on Platform cannot be paged" - and answering it must not silently
+     * drop one half of it.
+     */
+    test("team and status narrow together", async () => {
+      await openTeamFilter();
+
+      await pickTeam("Platform");
+
+      const statusRow: HTMLElement | null = screen
+        .getByText("Status", { selector: "label" })
+        .closest("div.grid") as HTMLElement | null;
+
+      if (!statusRow) {
+        throw new Error("no status filter row");
+      }
+
+      fireEvent.keyDown(within(statusRow).getByRole("combobox"), {
+        key: "ArrowDown",
+        code: "ArrowDown",
+      });
+
+      const statusOption: HTMLElement | undefined = (
+        await screen.findAllByRole("option")
+      ).find((candidate: HTMLElement): boolean => {
+        return candidate.textContent === "Needs setup";
+      });
+
+      if (!statusOption) {
+        throw new Error("no needs-setup option in the status filter");
+      }
+
+      fireEvent.click(statusOption);
+
+      applyFilters();
+
+      expect(screen.getByText("Ravi Twoteams")).toBeInTheDocument();
+      expect(screen.queryByText("Ada Ready")).toBeNull();
+    });
+  });
+
+  /*
+   * The teams column - the same fact the filter reads, rendered.
+   */
+  describe("the teams column", () => {
+    test("a responder's teams are named in their row", async () => {
+      respondWith(summaryJson([TWO_TEAM_USER]));
+
+      await renderProjectPage();
+
+      await screen.findByText("Ravi Twoteams");
+
+      const row: HTMLElement = tableRowFor("Ravi Twoteams");
+
+      expect(within(row).getByText("Platform")).toBeInTheDocument();
+      expect(within(row).getByText("Payments")).toBeInTheDocument();
+    });
+
+    /*
+     * A responder reached directly or through a schedule has no team involved at
+     * all, so an empty cell is not a gap to be fixed. It renders as a dash rather
+     * than as "None", which would read like something is missing.
+     */
+    test("a responder no team pages renders a dash, not an accusation", async () => {
+      respondWith(summaryJson([UNREACHABLE_USER]));
+
+      await renderProjectPage();
+
+      await screen.findByText("Zed Unreachable");
+
+      const row: HTMLElement = tableRowFor("Zed Unreachable");
+
+      expect(within(row).getByText("—")).toBeInTheDocument();
+    });
+  });
+
+  /*
+   * Sorting and paging - two things the hand-rolled table never had. The old one
+   * showed 25 rows behind a "Show more" button and could not be reordered at all,
+   * so an admin looking for one name in a project of two hundred had to scroll.
+   */
+  describe("sorting and paging", () => {
+    type ManyUsersFunction = (count: number) => JSONArray;
+
+    const manyUsers: ManyUsersFunction = (count: number): JSONArray => {
+      const users: JSONArray = [];
+
+      for (let index: number = 0; index < count; index++) {
+        users.push({
+          ...UNREACHABLE_USER,
+          userId: `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+          userName: `Responder ${String(index).padStart(3, "0")}`,
+          userEmail: `responder${index}@example.com`,
+        });
+      }
+
+      return users;
+    };
+
+    test("the first page holds one page of rows, not all of them", async () => {
+      respondWith(summaryJson(manyUsers(30)));
+
+      const container: HTMLElement = await renderProjectPage();
+
+      await screen.findByText("Responder 000");
+
+      expect(container.querySelectorAll("tbody tr")).toHaveLength(25);
+      expect(screen.queryByText("Responder 029")).toBeNull();
+    });
+
+    test("the rest are one page away", async () => {
+      respondWith(summaryJson(manyUsers(30)));
+
+      await renderProjectPage();
+
+      await screen.findByText("Responder 000");
+
+      /*
+       * Named by aria-label, and rendered twice - desktop and mobile layouts,
+       * separated by CSS alone - so the first one is the one on screen at this
+       * viewport.
+       */
+      fireEvent.click(
+        screen.getAllByRole("button", { name: "Go to next page" })[0]!,
+      );
+
+      expect(await screen.findByText("Responder 029")).toBeInTheDocument();
+      expect(screen.queryByText("Responder 000")).toBeNull();
+    });
+
+    /*
+     * The default order is the page's editorial position - unreachable first,
+     * then the most incomplete - and clicking a header replaces it. Both have to
+     * work: an admin triaging wants the default, and an admin hunting for a name
+     * wants the alphabet.
+     */
+    test("clicking a column header reorders the table", async () => {
+      respondWith(summaryJson(ALL_THREE_USERS));
+
+      const container: HTMLElement = await renderProjectPage();
+
+      await screen.findByText("Zed Unreachable");
+
+      fireEvent.click(screen.getByText("Responder"));
+
+      await waitFor((): void => {
+        const rows: Array<string> = Array.from(
+          container.querySelectorAll("tbody tr"),
+        ).map((row: Element): string => {
+          return row.textContent || "";
+        });
+
+        expect(rows[0]).toContain("Ada Ready");
+      });
+    });
+  });
+
+  /*
+   * The coverage grid, in a modal rather than an expanded row.
+   */
+  describe("the coverage modal", () => {
+    test("it is closed until the row's own button opens it", async () => {
+      respondWith(summaryJson([PARTIAL_USER]));
+
+      await renderProjectPage();
+
+      await screen.findByText("Jane Partial");
+
+      expect(screen.queryByText("Incident severities")).toBeNull();
+
+      openCoverage("Jane Partial");
+
+      expect(screen.getByText("Incident severities")).toBeInTheDocument();
+    });
+
+    test("it names the responder it is about", async () => {
+      respondWith(summaryJson([PARTIAL_USER]));
+
+      await renderProjectPage();
+
+      await screen.findByText("Jane Partial");
+
+      openCoverage("Jane Partial");
+
+      expect(screen.getByText("Coverage for Jane Partial")).toBeInTheDocument();
+    });
+
+    test("it carries the reasons behind the status", async () => {
+      respondWith(summaryJson([PARTIAL_USER]));
+
+      await renderProjectPage();
+
+      await screen.findByText("Jane Partial");
+
+      openCoverage("Jane Partial");
+
+      expect(
+        screen.getByText("No notification rule for alerts at Sev1."),
+      ).toBeInTheDocument();
+    });
+
+    test("it closes again", async () => {
+      respondWith(summaryJson([PARTIAL_USER]));
+
+      await renderProjectPage();
+
+      await screen.findByText("Jane Partial");
+
+      openCoverage("Jane Partial");
+
+      /*
+       * The footer button. The header carries a close icon labelled "Close" too,
+       * and either one shuts the modal - this is the one a reader reaches for.
+       */
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+      expect(screen.queryByText("Incident severities")).toBeNull();
+    });
+
+    /*
+     * A responder with nothing set up at all cannot be fixed by an admin - only
+     * they can add a notification method - so the panel says that rather than
+     * offering an edit that does not exist.
+     */
+    test("a responder with no methods is told who can fix it", async () => {
+      respondWith(summaryJson([UNREACHABLE_USER]));
+
+      await renderProjectPage();
+
+      await screen.findByText("Zed Unreachable");
+
+      openCoverage("Zed Unreachable");
+
+      expect(
+        screen.getByText(/No notification methods at all/),
+      ).toBeInTheDocument();
+    });
+  });
+});
+
+/*
+ * Parsing the teams a responder is paged through.
+ *
+ * This list is what builds the readiness table's team filter - its options AND
+ * the values those options submit - so an entry that survives parsing without
+ * both halves is an option nobody can choose deliberately. The parse therefore
+ * drops rather than repairs, in both directions, and the browser half of that
+ * rule is asserted here independently of the server half.
+ */
+describe("parsing a responder's teams", () => {
+  type TeamNamesFunction = (teams: unknown) => Array<string>;
+
+  const teamNamesFrom: TeamNamesFunction = (teams: unknown): Array<string> => {
+    return toUserReadiness({
+      ...READY_USER,
+      teams: teams as JSONArray,
+    }).teams.map((team: { name: string }): string => {
+      return team.name;
+    });
+  };
+
+  test("a well-formed team survives with both halves", () => {
+    const parsed: UserReadinessWire = toUserReadiness({
+      ...READY_USER,
+      teams: [PLATFORM_TEAM],
+    });
+
+    expect(parsed.teams).toEqual([{ _id: PLATFORM_TEAM_ID, name: "Platform" }]);
+  });
+
+  /*
+   * An id wrapped by ObjectID.toJSON() is flattened rather than stringified into
+   * "[object Object]". A filter carrying that value matches nothing, and matching
+   * nothing looks exactly like a team with no responders.
+   */
+  test("an ObjectID-wrapped id is flattened to the plain string", () => {
+    const parsed: UserReadinessWire = toUserReadiness({
+      ...READY_USER,
+      teams: [
+        {
+          _id: { _type: "ObjectID", value: PLATFORM_TEAM_ID },
+          name: "Platform",
+        },
+      ] as JSONArray,
+    });
+
+    expect(parsed.teams[0]!._id).toBe(PLATFORM_TEAM_ID);
+  });
+
+  test("a team with no name is dropped rather than rendered blank", () => {
+    expect(teamNamesFrom([{ _id: PLATFORM_TEAM_ID }, PAYMENTS_TEAM])).toEqual([
+      "Payments",
+    ]);
+  });
+
+  test("a team with no id is dropped rather than rendered unfilterable", () => {
+    expect(teamNamesFrom([{ name: "Ghost" }, PAYMENTS_TEAM])).toEqual([
+      "Payments",
+    ]);
+  });
+
+  /*
+   * A browser holding this bundle can be talking to a server that predates the
+   * field. An empty list is the only reading of "not sent" that does not crash a
+   * render or invent a team.
+   */
+  test("a payload with no teams field at all parses to an empty list", () => {
+    const withoutTeams: JSONObject = { ...READY_USER };
+    delete withoutTeams["teams"];
+
+    expect(toUserReadiness(withoutTeams).teams).toEqual([]);
+  });
+
+  test("a teams field that is not an array parses to an empty list", () => {
+    expect(teamNamesFrom("Platform")).toEqual([]);
   });
 });
 
@@ -2654,10 +3552,60 @@ describe("no unmasked identifier reaches the DOM", () => {
     /*
      * The scan above catches the planted values by name; these two catch the
      * shape, so an identifier this file never thought of is caught too.
+     *
+     * Two things come out of the text before the shape is scanned.
+     *
+     * The pagination bar, because `textContent` joins siblings with no
+     * separator: its page-size options ("10", "20", "25", "50", "100") fuse
+     * into "10202550100", a digit run long enough to read as a phone number.
+     *
+     * Login addresses, because a responder row shows the person's login
+     * email under their name, and that address is legitimate here for the
+     * same reason the mail draft below may carry it: an admin already reads
+     * it on Settings > Users and on the team page.
+     *
+     * What must never appear is a notification-method identifier, and
+     * neither exclusion hides one: substituting a method identifier for one
+     * of these login addresses still fails the shape scan, and one rendered
+     * inside the pagination bar still fails the by-name scan above, which
+     * reads the whole container.
      */
-    expect(container.textContent || "").not.toMatch(UNMASKED_EMAIL_PATTERN);
-    expect(container.textContent || "").not.toMatch(UNMASKED_PHONE_PATTERN);
+    const withoutPagination: HTMLElement = container.cloneNode(
+      true,
+    ) as HTMLElement;
+
+    withoutPagination
+      .querySelectorAll('nav[aria-label^="Pagination"]')
+      .forEach((paginationBar: Element): void => {
+        paginationBar.remove();
+      });
+
+    let text: string = withoutPagination.textContent || "";
+
+    for (const loginEmail of ALL_LOGIN_EMAILS) {
+      text = text.split(loginEmail).join("");
+    }
+
+    expect(text).not.toMatch(UNMASKED_EMAIL_PATTERN);
+    expect(text).not.toMatch(UNMASKED_PHONE_PATTERN);
   };
+
+  /*
+   * The other half of the exemption above: the login email is not merely
+   * tolerated on these surfaces, it is meant to be there, so that two
+   * responders who share a name are still tellable apart. If this stops
+   * holding, the exemption is protecting nothing and should go.
+   */
+  test("the responder row names the person by their login email", async () => {
+    respondWith(summaryJson(ALL_THREE_USERS));
+
+    const container: HTMLElement = await renderPolicyCard();
+
+    await screen.findByText("Zed Unreachable");
+
+    expect(container.textContent).toContain("zed.unreachable@example.com");
+    expect(container.textContent).toContain("jane.partial@example.com");
+  });
 
   test("the policy card renders masked identifiers only", async () => {
     respondWith(summaryJson(ALL_THREE_USERS));
@@ -2680,7 +3628,7 @@ describe("no unmasked identifier reaches the DOM", () => {
 
     await screen.findByText("Zed Unreachable");
 
-    expandResponder("Jane Partial");
+    openCoverage("Jane Partial");
 
     expect(container.textContent).toContain(MASKED_EMAIL);
     expect(container.textContent).toContain(MASKED_PHONE);
@@ -2700,7 +3648,7 @@ describe("no unmasked identifier reaches the DOM", () => {
 
     await screen.findByText("Jane Partial");
 
-    expandResponder("Jane Partial");
+    openCoverage("Jane Partial");
 
     expect(screen.getByText("Unverified")).toBeInTheDocument();
     assertNoRawIdentifiers(container);

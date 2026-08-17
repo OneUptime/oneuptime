@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import Log from "../../../../Models/AnalyticsModels/Log";
@@ -20,12 +21,20 @@ import SeverityBadge from "./SeverityBadge";
 import { JSONObject } from "../../../../Types/JSON";
 import API from "../../../Utils/API/API";
 import ModelAPI from "../../../Utils/ModelAPI/ModelAPI";
+import AnalyticsModelAPI, {
+  ListResult,
+} from "../../../Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import Query from "../../../../Types/BaseDatabase/Query";
+import Sort from "../../../../Types/BaseDatabase/Sort";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { APP_API_URL } from "../../../Config";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import ObjectID from "../../../../Types/ObjectID";
 
 type LogDetailTab = "details" | "context";
+
+export type LogContextScope = "nearby" | "trace";
 
 export interface LogDetailsPanelProps {
   log: Log;
@@ -36,6 +45,25 @@ export interface LogDetailsPanelProps {
     | undefined;
   getSpanRoute?:
     | ((spanId: string, log: Log) => Route | URL | undefined)
+    | undefined;
+  /*
+   * Async fallback for spanId-only logs: the sync builder needs a trace id
+   * the row doesn't carry, so the destination is resolved once when the
+   * panel expands (one Span lookup by span id) instead of per-row.
+   */
+  resolveSpanRoute?:
+    | ((spanId: string, log: Log) => Promise<Route | URL | undefined>)
+    | undefined;
+  /*
+   * Threaded like getTraceRoute. May return a promise because building the
+   * session replay route can require a RumSession lookup (the log row only
+   * carries the sessionId, not the rumApplicationId the route needs).
+   */
+  getSessionRoute?:
+    | ((
+        sessionId: string,
+        log: Log,
+      ) => Route | URL | undefined | Promise<Route | URL | undefined>)
     | undefined;
   variant?: "floating" | "embedded";
   projectId?: ObjectID | undefined;
@@ -60,7 +88,7 @@ interface PreparedBody {
   raw: string;
 }
 
-interface ContextLog {
+export interface ContextLog {
   id: string;
   time: string;
   severity: string;
@@ -110,6 +138,72 @@ function parseContextRow(row: JSONObject): ContextLog {
   };
 }
 
+// Whole-trace context is one bounded fetch, not a paginated view.
+const TRACE_CONTEXT_LIMIT: number = 100;
+
+function toContextLog(log: Log): ContextLog {
+  return {
+    id: log.getColumnValue("_id")?.toString() || "",
+    time: log.time ? OneUptimeDate.toString(log.time) : "",
+    severity: log.severityText?.toString() || "Unspecified",
+    body: log.body?.toString() || "",
+    primaryEntityId: log.primaryEntityId?.toString() || "",
+  };
+}
+
+/**
+ * Split a trace's logs (sorted by time ascending) into the rows before and
+ * after the currently-expanded log. The current row is matched by `_id` when
+ * both sides carry one; rows that ARE the current log are excluded so the
+ * panel doesn't render it twice. Without an id match, rows at exactly the
+ * current timestamp land in `after` so they stay adjacent to the current row.
+ */
+export function splitTraceContextLogs(
+  logs: Array<Log>,
+  currentLogId: string,
+  currentTime: Date | undefined,
+): { before: Array<ContextLog>; after: Array<ContextLog> } {
+  const before: Array<ContextLog> = [];
+  const after: Array<ContextLog> = [];
+
+  const currentTimeMs: number | null = currentTime
+    ? OneUptimeDate.fromString(currentTime).getTime()
+    : null;
+
+  let currentSeen: boolean = false;
+
+  for (const log of logs) {
+    const contextLog: ContextLog = toContextLog(log);
+
+    if (currentLogId && contextLog.id && contextLog.id === currentLogId) {
+      currentSeen = true;
+      continue;
+    }
+
+    if (currentSeen) {
+      after.push(contextLog);
+      continue;
+    }
+
+    if (currentTimeMs === null) {
+      before.push(contextLog);
+      continue;
+    }
+
+    const rowTimeMs: number = contextLog.time
+      ? OneUptimeDate.fromString(contextLog.time).getTime()
+      : NaN;
+
+    if (!isNaN(rowTimeMs) && rowTimeMs < currentTimeMs) {
+      before.push(contextLog);
+    } else {
+      after.push(contextLog);
+    }
+  }
+
+  return { before, after };
+}
+
 const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
   props: LogDetailsPanelProps,
 ): ReactElement => {
@@ -119,6 +213,21 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
   const [contextLoading, setContextLoading] = useState<boolean>(false);
   const [contextError, setContextError] = useState<string>("");
   const [contextLoaded, setContextLoaded] = useState<boolean>(false);
+  const [contextScope, setContextScope] = useState<LogContextScope>("nearby");
+  const [resolvedSpanRoute, setResolvedSpanRoute] = useState<
+    Route | URL | undefined
+  >(undefined);
+  const [sessionRoute, setSessionRoute] = useState<Route | URL | undefined>(
+    undefined,
+  );
+
+  /*
+   * Bumped whenever the context view is retargeted (scope toggle, new log).
+   * An in-flight fetch from the previous target must not mark the new one as
+   * loaded — only the loading flag is always cleared, so the effect can kick
+   * off the fetch for the new target.
+   */
+  const contextEpochRef: React.MutableRefObject<number> = useRef<number>(0);
 
   const variant: "floating" | "embedded" = props.variant || "floating";
   const primaryEntityId: string = props.log.primaryEntityId?.toString() || "";
@@ -213,12 +322,85 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
     return undefined;
   }, [spanId, props, traceId]);
 
+  const sessionId: string = props.log.sessionId?.toString() || "";
+
+  /*
+   * Lazy resolutions run when the panel expands (it only mounts for the
+   * selected row), never per table row. The stale flag guards against a
+   * response landing after the user has moved on to a different log.
+   */
+  useEffect(() => {
+    setResolvedSpanRoute(undefined);
+
+    if (!spanId || spanRoute || !props.resolveSpanRoute) {
+      return;
+    }
+
+    let isStale: boolean = false;
+
+    const resolve: () => Promise<void> = async (): Promise<void> => {
+      try {
+        const route: Route | URL | undefined = await props.resolveSpanRoute!(
+          spanId,
+          props.log,
+        );
+
+        if (!isStale) {
+          setResolvedSpanRoute(route);
+        }
+      } catch {
+        // Leave the span id as plain text.
+      }
+    };
+
+    void resolve();
+
+    return () => {
+      isStale = true;
+    };
+  }, [spanId, spanRoute, props.resolveSpanRoute, props.log]);
+
+  useEffect(() => {
+    setSessionRoute(undefined);
+
+    if (!sessionId || !props.getSessionRoute) {
+      return;
+    }
+
+    let isStale: boolean = false;
+
+    const resolve: () => Promise<void> = async (): Promise<void> => {
+      try {
+        const route: Route | URL | undefined = await Promise.resolve(
+          props.getSessionRoute!(sessionId, props.log),
+        );
+
+        if (!isStale) {
+          setSessionRoute(route);
+        }
+      } catch {
+        // Leave the session id as plain text.
+      }
+    };
+
+    void resolve();
+
+    return () => {
+      isStale = true;
+    };
+  }, [sessionId, props.getSessionRoute, props.log]);
+
+  const effectiveSpanRoute: Route | URL | undefined =
+    spanRoute || resolvedSpanRoute;
+
   const loadContext: () => Promise<void> =
     useCallback(async (): Promise<void> => {
       if (!props.projectId || !primaryEntityId || !props.log.time) {
         setContextError("Missing project or service information for context.");
         return;
       }
+
+      const epoch: number = contextEpochRef.current;
 
       try {
         setContextLoading(true);
@@ -251,32 +433,126 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
         const after: Array<JSONObject> =
           (response.data["after"] as Array<JSONObject>) || [];
 
-        setContextBefore(before.map(parseContextRow));
-        setContextAfter(after.map(parseContextRow));
-        setContextLoaded(true);
+        if (contextEpochRef.current === epoch) {
+          setContextBefore(before.map(parseContextRow));
+          setContextAfter(after.map(parseContextRow));
+          setContextLoaded(true);
+        }
       } catch (err) {
-        setContextError(
-          `Failed to load log context. ${API.getFriendlyErrorMessage(err as Error)}`,
-        );
+        if (contextEpochRef.current === epoch) {
+          setContextError(
+            `Failed to load log context. ${API.getFriendlyErrorMessage(err as Error)}`,
+          );
+        }
       } finally {
         setContextLoading(false);
       }
     }, [props.projectId, primaryEntityId, props.log]);
 
+  /*
+   * "This trace" context goes through the standard analytics list query (the
+   * same plumbing the logs table itself uses) rather than the
+   * /telemetry/logs/context endpoint, which is scoped to one service around a
+   * timestamp and has no trace dimension.
+   */
+  const loadTraceContext: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      if (!traceId) {
+        setContextError("This log has no trace id.");
+        return;
+      }
+
+      const epoch: number = contextEpochRef.current;
+
+      try {
+        setContextLoading(true);
+        setContextError("");
+
+        const listResult: ListResult<Log> =
+          await AnalyticsModelAPI.getList<Log>({
+            modelType: Log,
+            query: { traceId: traceId } as Query<Log>,
+            limit: TRACE_CONTEXT_LIMIT,
+            skip: 0,
+            select: {
+              _id: true,
+              time: true,
+              body: true,
+              severityText: true,
+              primaryEntityId: true,
+            },
+            sort: { time: SortOrder.Ascending } as Sort<Log>,
+          });
+
+        const currentLogId: string =
+          props.log.getColumnValue("_id")?.toString() || "";
+
+        const { before, after } = splitTraceContextLogs(
+          listResult.data,
+          currentLogId,
+          props.log.time,
+        );
+
+        if (contextEpochRef.current === epoch) {
+          setContextBefore(before);
+          setContextAfter(after);
+          setContextLoaded(true);
+        }
+      } catch (err) {
+        if (contextEpochRef.current === epoch) {
+          setContextError(
+            `Failed to load trace logs. ${API.getFriendlyErrorMessage(err as Error)}`,
+          );
+        }
+      } finally {
+        setContextLoading(false);
+      }
+    }, [traceId, props.log]);
+
   useEffect(() => {
     if (activeTab === "context" && !contextLoaded && !contextLoading) {
-      void loadContext();
+      if (contextScope === "trace") {
+        void loadTraceContext();
+      } else {
+        void loadContext();
+      }
     }
-  }, [activeTab, contextLoaded, contextLoading, loadContext]);
+  }, [
+    activeTab,
+    contextLoaded,
+    contextLoading,
+    contextScope,
+    loadContext,
+    loadTraceContext,
+  ]);
 
   // Reset context when log changes
   useEffect(() => {
+    contextEpochRef.current += 1;
     setContextLoaded(false);
     setContextBefore([]);
     setContextAfter([]);
     setContextError("");
+    setContextScope("nearby");
     setActiveTab("details");
   }, [props.log]);
+
+  const handleContextScopeChange: (nextScope: LogContextScope) => void =
+    useCallback(
+      (nextScope: LogContextScope): void => {
+        if (nextScope === contextScope) {
+          return;
+        }
+
+        contextEpochRef.current += 1;
+        setContextScope(nextScope);
+        setContextLoaded(false);
+        setContextBefore([]);
+        setContextAfter([]);
+        setContextError("");
+      },
+      [contextScope],
+    );
 
   const containerClassName: string =
     variant === "embedded"
@@ -438,7 +714,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
             </div>
           </section>
 
-          {(traceId || spanId) && (
+          {(traceId || spanId || sessionId) && (
             <section className="grid gap-4 md:grid-cols-2">
               {traceId && (
                 <div className={`rounded-lg border ${surfaceCardClass} p-4`}>
@@ -492,9 +768,9 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                     />
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    {spanRoute ? (
+                    {effectiveSpanRoute ? (
                       <Link
-                        to={spanRoute}
+                        to={effectiveSpanRoute}
                         className="max-w-full truncate font-mono text-xs text-indigo-600 hover:text-indigo-500"
                         title={`View span ${spanId}`}
                       >
@@ -508,7 +784,46 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                         {spanId}
                       </span>
                     )}
-                    {spanRoute && (
+                    {effectiveSpanRoute && (
+                      <Icon
+                        icon={IconProp.ExternalLink}
+                        className="h-4 w-4 flex-none text-indigo-400"
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {sessionId && (
+                <div className={`rounded-lg border ${surfaceCardClass} p-4`}>
+                  <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-gray-400">
+                    <span>Session</span>
+                    <CopyTextButton
+                      textToBeCopied={sessionId}
+                      size="xs"
+                      variant="ghost"
+                      iconOnly={true}
+                      title="Copy session id"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    {sessionRoute ? (
+                      <Link
+                        to={sessionRoute}
+                        className="max-w-full truncate font-mono text-xs text-indigo-600 hover:text-indigo-500"
+                        title={`View session replay ${sessionId}`}
+                      >
+                        {sessionId}
+                      </Link>
+                    ) : (
+                      <span
+                        className="max-w-full truncate font-mono text-xs text-gray-700"
+                        title={sessionId}
+                      >
+                        {sessionId}
+                      </span>
+                    )}
+                    {sessionRoute && (
                       <Icon
                         icon={IconProp.ExternalLink}
                         className="h-4 w-4 flex-none text-indigo-400"
@@ -597,6 +912,38 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
 
       {activeTab === "context" && (
         <div className="mt-4 text-sm text-gray-700">
+          {traceId && (
+            <div className="mb-3 inline-flex rounded-md shadow-sm" role="group">
+              <button
+                type="button"
+                className={`inline-flex items-center gap-1.5 rounded-l-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+                  contextScope === "nearby"
+                    ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                    : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                }`}
+                aria-pressed={contextScope === "nearby"}
+                onClick={() => {
+                  handleContextScopeChange("nearby");
+                }}
+              >
+                Nearby (service + time)
+              </button>
+              <button
+                type="button"
+                className={`inline-flex items-center gap-1.5 rounded-r-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+                  contextScope === "trace"
+                    ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                    : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                }`}
+                aria-pressed={contextScope === "trace"}
+                onClick={() => {
+                  handleContextScopeChange("trace");
+                }}
+              >
+                This trace
+              </button>
+            </div>
+          )}
           {contextLoading && (
             <div className="flex items-center justify-center py-8 text-xs text-gray-400">
               Loading surrounding logs...
@@ -611,7 +958,9 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
             <div className="divide-y divide-gray-100 rounded-lg border border-gray-200">
               {contextBefore.length === 0 && contextAfter.length === 0 && (
                 <div className="px-3 py-6 text-center text-xs text-gray-400">
-                  No surrounding logs found for this service.
+                  {contextScope === "trace"
+                    ? "No other logs found for this trace."
+                    : "No surrounding logs found for this service."}
                 </div>
               )}
               {contextBefore.map((ctxLog: ContextLog) => {

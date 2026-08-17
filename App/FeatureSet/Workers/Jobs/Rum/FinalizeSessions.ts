@@ -145,11 +145,24 @@ export const MAX_SESSIONS_PER_RUN: number = 10000;
 
 /*
  * Unbounded arrays on a repeatedly-rewritten ReplacingMergeTree row are a
- * merge-amplification trap, so correlation arrays are capped. 50 is
- * enough for "which traces did this session touch"; the exact set is
- * always reachable from the telemetry side by sessionId.
+ * merge-amplification trap, so correlation arrays are capped. The caps
+ * are generous rather than exact — the full sets are always reachable
+ * from the telemetry side by sessionId; these arrays only have to be
+ * good enough for "which traces / exception groups did this session
+ * touch".
  */
-export const MAX_CORRELATION_ARRAY_LENGTH: number = 50;
+export const MAX_TRACE_IDS_PER_SESSION: number = 200;
+export const MAX_EXCEPTION_FINGERPRINTS_PER_SESSION: number = 100;
+
+/*
+ * Padding on both ends of the correlation queries' time window. The
+ * window is derived from SERVER receive times (activity-set scores /
+ * header startTime) while Span.startTime and ExceptionInstance.time are
+ * EVENT times from the SDK, so the pad absorbs clock skew and ingest
+ * delay. It only widens partition pruning — sessionId IN (...) is what
+ * actually scopes the read.
+ */
+export const SESSION_CORRELATION_WINDOW_PADDING_MS: number = 30 * 60 * 1000;
 
 /*
  * Wall-clock budget for one run, under the 5-minute cron interval and the
@@ -507,6 +520,106 @@ export function buildProvisionalHeaderStatement(data: {
     LIMIT 1`;
 }
 
+/*
+ * ------------------------------------------------------------------
+ * Correlation producers.
+ *
+ * The provisional header only ever carries what the FIRST chunk's
+ * envelope declared: the trace ids observed before chunk 0 flushed, and
+ * no exception fingerprints at all (fingerprints are computed on the
+ * exception INGEST path, never by the recorder). The full sets exist
+ * only in the telemetry tables, keyed by the sessionId both ingest paths
+ * stamp — Span.sessionId (bloom-indexed) and ExceptionInstance.sessionId.
+ *
+ * They are read here, at finalize time, as ONE grouped query per table
+ * per finalize batch: groupUniqArray by sessionId over the batch's
+ * sessionIds, bounded to the batch's padded time window so partition
+ * pruning holds. Per-session queries would turn a 2000-session batch
+ * into 4000 round trips.
+ * ------------------------------------------------------------------
+ */
+
+/* What the grouped correlation queries yield for one session. */
+export interface SessionCorrelation {
+  traceIds: Array<string>;
+  exceptionFingerprints: Array<string>;
+}
+
+export function buildSessionExceptionFingerprintStatement(data: {
+  databaseName: string;
+  projectId: ObjectID;
+  sessionIds: Array<string>;
+  windowStartUnixMs: number;
+  windowEndUnixMs: number;
+}): Statement {
+  /*
+   * groupUniqArray's inline max-size parameter caps the transfer inside
+   * ClickHouse; it must be appended as trusted SQL because aggregate
+   * function PARAMETERS (unlike arguments) cannot be query parameters.
+   * mergeCappedArray re-caps after the header merge, so the two bounds
+   * cannot drift apart in effect, only in wasted bytes.
+   */
+  const statement: Statement = SQL`
+    SELECT
+      sessionId AS sessionId,
+      groupUniqArray(`;
+
+  statement.append(String(MAX_EXCEPTION_FINGERPRINTS_PER_SESSION));
+
+  statement.append(SQL`)(fingerprint) AS exceptionFingerprints
+    FROM ${data.databaseName}.${AnalyticsTableName.ExceptionInstance}
+    WHERE projectId = ${{
+      type: TableColumnType.ObjectID,
+      value: data.projectId,
+    }} AND time >= ${{
+      type: TableColumnType.DateTime64,
+      value: new Date(data.windowStartUnixMs),
+    }} AND time <= ${{
+      type: TableColumnType.DateTime64,
+      value: new Date(data.windowEndUnixMs),
+    }} AND sessionId IN ${{
+      type: TableColumnType.ArrayText,
+      value: data.sessionIds,
+    }} AND fingerprint != ''
+    GROUP BY sessionId`);
+
+  return statement;
+}
+
+export function buildSessionTraceIdStatement(data: {
+  databaseName: string;
+  projectId: ObjectID;
+  sessionIds: Array<string>;
+  windowStartUnixMs: number;
+  windowEndUnixMs: number;
+}): Statement {
+  const statement: Statement = SQL`
+    SELECT
+      sessionId AS sessionId,
+      groupUniqArray(`;
+
+  statement.append(String(MAX_TRACE_IDS_PER_SESSION));
+
+  statement.append(SQL`)(traceId) AS traceIds
+    FROM ${data.databaseName}.${AnalyticsTableName.Span}
+    WHERE projectId = ${{
+      type: TableColumnType.ObjectID,
+      value: data.projectId,
+    }} AND startTime >= ${{
+      type: TableColumnType.DateTime64,
+      value: new Date(data.windowStartUnixMs),
+    }} AND startTime <= ${{
+      type: TableColumnType.DateTime64,
+      value: new Date(data.windowEndUnixMs),
+    }} AND sessionId IN ${{
+      type: TableColumnType.ArrayText,
+      value: data.sessionIds,
+    }} AND traceId != ''
+    GROUP BY sessionId`);
+
+  return statement;
+}
+
 export function parseTabAggregateRow(row: JSONObject): TabChunkAggregate {
   return {
     tabId: toTextValue(row["tabId"]),
@@ -750,20 +863,27 @@ export function resolveSealedReason(data: {
   return SessionReplaySealedReason.IdleTimeout;
 }
 
+/*
+ * Header-declared values keep their slots ahead of batch-derived ones:
+ * the first chunk's envelope ids are the ones the UI already showed while
+ * the session was live, and dropping THOSE under cap pressure would make
+ * a session's correlation appear to go backwards at finalization.
+ */
 function mergeCappedArray(
   existing: Array<string>,
   additional: Array<string>,
+  cap: number,
 ): Array<string> {
   const merged: Set<string> = new Set<string>(existing);
 
   for (const value of additional) {
-    if (merged.size >= MAX_CORRELATION_ARRAY_LENGTH) {
+    if (merged.size >= cap) {
       break;
     }
     merged.add(value);
   }
 
-  return Array.from(merged).slice(0, MAX_CORRELATION_ARRAY_LENGTH);
+  return Array.from(merged).slice(0, cap);
 }
 
 /*
@@ -779,6 +899,7 @@ export function buildFinalizedSessionRow(data: {
   aggregate: SessionChunkAggregate;
   header: ProvisionalSessionHeader | null;
   traceIds: Array<string>;
+  exceptionFingerprints: Array<string>;
   writtenAt: Date;
   /*
    * Used only by the never-finalized sweep, whose chunkless sessions have
@@ -897,15 +1018,16 @@ export function buildFinalizedSessionRow(data: {
     identifiedUserKey: header ? header.identifiedUserKey : "",
     identifiedUserLabel: header ? header.identifiedUserLabel : "",
 
-    traceIds: mergeCappedArray(header ? header.traceIds : [], data.traceIds),
-    /*
-     * Exception fingerprints are computed on the exception INGEST path,
-     * not by the recorder, and the join key is ExceptionInstance.sessionId
-     * — so they are carried forward here rather than recomputed. Once that
-     * column ships, a batched groupUniqArray over the exception table for
-     * the finalized batch is the right place to fill this in.
-     */
-    exceptionFingerprints: header ? header.exceptionFingerprints : [],
+    traceIds: mergeCappedArray(
+      header ? header.traceIds : [],
+      data.traceIds,
+      MAX_TRACE_IDS_PER_SESSION,
+    ),
+    exceptionFingerprints: mergeCappedArray(
+      header ? header.exceptionFingerprints : [],
+      data.exceptionFingerprints,
+      MAX_EXCEPTION_FINGERPRINTS_PER_SESSION,
+    ),
     fidelityNotices: header ? header.fidelityNotices : [],
     fullSnapshotChunkIndexes: aggregate.fullSnapshotChunkIndexes,
 
@@ -966,6 +1088,111 @@ async function readRows(statement: Statement): Promise<Array<JSONObject>> {
 }
 
 /*
+ * Run both grouped correlation queries for one finalize batch and fold
+ * the rows into a per-session map. Sessions with no spans / no
+ * exceptions simply have no row and no map entry — the caller treats a
+ * missing entry as empty.
+ *
+ * Failure here is DEGRADED ENRICHMENT, not a finalization failure: the
+ * header (and with it metering) must still be written even when the
+ * telemetry tables cannot be read, so each query catches its own errors
+ * and contributes nothing rather than throwing. The two signals fail
+ * independently for the same reason.
+ */
+export async function fetchSessionCorrelation(data: {
+  databaseName: string;
+  projectId: ObjectID;
+  sessionIds: Array<string>;
+  windowStartUnixMs: number;
+  windowEndUnixMs: number;
+}): Promise<Map<string, SessionCorrelation>> {
+  const correlationBySessionId: Map<string, SessionCorrelation> = new Map<
+    string,
+    SessionCorrelation
+  >();
+
+  if (data.sessionIds.length === 0) {
+    return correlationBySessionId;
+  }
+
+  const getOrCreate: (sessionId: string) => SessionCorrelation = (
+    sessionId: string,
+  ): SessionCorrelation => {
+    const existing: SessionCorrelation | undefined =
+      correlationBySessionId.get(sessionId);
+
+    if (existing) {
+      return existing;
+    }
+
+    const created: SessionCorrelation = {
+      traceIds: [],
+      exceptionFingerprints: [],
+    };
+    correlationBySessionId.set(sessionId, created);
+    return created;
+  };
+
+  try {
+    const fingerprintRows: Array<JSONObject> = await readRows(
+      buildSessionExceptionFingerprintStatement({
+        databaseName: data.databaseName,
+        projectId: data.projectId,
+        sessionIds: data.sessionIds,
+        windowStartUnixMs: data.windowStartUnixMs,
+        windowEndUnixMs: data.windowEndUnixMs,
+      }),
+    );
+
+    for (const row of fingerprintRows) {
+      const rowSessionId: string = toTextValue(row["sessionId"]);
+
+      if (!rowSessionId) {
+        continue;
+      }
+
+      getOrCreate(rowSessionId).exceptionFingerprints = toTextArrayValue(
+        row["exceptionFingerprints"],
+      ).slice(0, MAX_EXCEPTION_FINGERPRINTS_PER_SESSION);
+    }
+  } catch (error) {
+    logger.error(
+      `${JOB_NAME}: could not read exception fingerprints for ${data.sessionIds.length} session(s) in project ${data.projectId.toString()}; finalizing without them: ${getErrorMessage(error)}`,
+    );
+  }
+
+  try {
+    const traceRows: Array<JSONObject> = await readRows(
+      buildSessionTraceIdStatement({
+        databaseName: data.databaseName,
+        projectId: data.projectId,
+        sessionIds: data.sessionIds,
+        windowStartUnixMs: data.windowStartUnixMs,
+        windowEndUnixMs: data.windowEndUnixMs,
+      }),
+    );
+
+    for (const row of traceRows) {
+      const rowSessionId: string = toTextValue(row["sessionId"]);
+
+      if (!rowSessionId) {
+        continue;
+      }
+
+      getOrCreate(rowSessionId).traceIds = toTextArrayValue(
+        row["traceIds"],
+      ).slice(0, MAX_TRACE_IDS_PER_SESSION);
+    }
+  } catch (error) {
+    logger.error(
+      `${JOB_NAME}: could not read span trace ids for ${data.sessionIds.length} session(s) in project ${data.projectId.toString()}; finalizing without them: ${getErrorMessage(error)}`,
+    );
+  }
+
+  return correlationBySessionId;
+}
+
+/*
  * Outcome of one finalization attempt.
  *
  * "erased" is not a failure and not "nothing to do": the caller still
@@ -985,6 +1212,12 @@ export async function finalizeSession(data: {
   projectId: ObjectID;
   sessionId: string;
   databaseName: string;
+  /*
+   * Batch-derived correlation from fetchSessionCorrelation. Optional
+   * because the caller fetches it once per BATCH — a per-session fetch
+   * here would defeat the grouped query. Absent means "none found".
+   */
+  correlation?: SessionCorrelation | undefined;
 }): Promise<FinalizeSessionOutcome> {
   /*
    * The erasure tombstone is checked FIRST, before a single chunk row is
@@ -1071,16 +1304,16 @@ export async function finalizeSession(data: {
     aggregate: aggregate,
     header: header,
     /*
-     * No additional trace ids to merge in. The reverse-correlation set the
-     * design describes (traces observed in chunks 1..N) has no producer:
-     * the chunk table carries no traceIds column and nothing writes a
-     * per-session Redis set, so the only trace ids that exist are the ones
-     * the FIRST chunk's envelope put on the provisional header. This
-     * parameter is the seam for that producer when it lands; reading a
-     * Redis key nobody writes was a guaranteed-empty round trip per
-     * finalized session and has been removed.
+     * The batch's grouped queries over Span and ExceptionInstance (see
+     * fetchSessionCorrelation) are the reverse-correlation producer: the
+     * provisional header only ever carries what the FIRST chunk's
+     * envelope declared, so everything observed in chunks 1..N arrives
+     * here and is merged (deduped, capped) on top of the header's ids.
      */
-    traceIds: [],
+    traceIds: data.correlation ? data.correlation.traceIds : [],
+    exceptionFingerprints: data.correlation
+      ? data.correlation.exceptionFingerprints
+      : [],
     writtenAt: OneUptimeDate.getCurrentDate(),
   });
 
@@ -1250,22 +1483,44 @@ export async function finalizeExpiredSessions(): Promise<void> {
 
     const activeKey: string = getActiveSessionsKey(projectId);
 
-    let expiredMembers: Array<string> = [];
+    const expiredMembers: Array<string> = [];
+    const lastActivityUnixMsByMember: Map<string, number> = new Map<
+      string,
+      number
+    >();
 
     try {
       /*
        * The whole point of the sorted set: this reads only the range that
        * has actually gone idle, so the cost of a run scales with the number
        * of sessions ENDING, not with the number recorded.
+       *
+       * WITHSCORES because the score IS the last-chunk receive time —
+       * exactly the batch's activity envelope, from which the correlation
+       * queries below derive their time window without another read.
        */
-      expiredMembers = await client.zrangebyscore(
+      const membersWithScores: Array<string> = await client.zrangebyscore(
         activeKey,
         "-inf",
         cutoffUnixMs,
+        "WITHSCORES",
         "LIMIT",
         0,
         MAX_SESSIONS_PER_PROJECT_PER_RUN,
       );
+
+      for (
+        let index: number = 0;
+        index + 1 < membersWithScores.length;
+        index += 2
+      ) {
+        const member: string = membersWithScores[index]!;
+        expiredMembers.push(member);
+        lastActivityUnixMsByMember.set(
+          member,
+          toNumberValue(membersWithScores[index + 1]),
+        );
+      }
     } catch (error) {
       logger.error(
         `${JOB_NAME}: could not read the activity set for project ${projectId}: ${getErrorMessage(error)}`,
@@ -1307,6 +1562,9 @@ export async function finalizeExpiredSessions(): Promise<void> {
       Array<string>
     >();
 
+    let batchOldestActivityUnixMs: number = Number.MAX_SAFE_INTEGER;
+    let batchNewestActivityUnixMs: number = 0;
+
     for (const member of expiredMembers) {
       const parsed: { sessionId: string; tabId: string } | null =
         parseActiveSessionMember(member);
@@ -1319,6 +1577,18 @@ export async function finalizeExpiredSessions(): Promise<void> {
         continue;
       }
 
+      const lastActivityUnixMs: number =
+        lastActivityUnixMsByMember.get(member) || cutoffUnixMs;
+
+      batchOldestActivityUnixMs = Math.min(
+        batchOldestActivityUnixMs,
+        lastActivityUnixMs,
+      );
+      batchNewestActivityUnixMs = Math.max(
+        batchNewestActivityUnixMs,
+        lastActivityUnixMs,
+      );
+
       const existing: Array<string> | undefined = membersBySessionId.get(
         parsed.sessionId,
       );
@@ -1328,6 +1598,32 @@ export async function finalizeExpiredSessions(): Promise<void> {
       } else {
         membersBySessionId.set(parsed.sessionId, [member]);
       }
+    }
+
+    /*
+     * One grouped read per telemetry table for the WHOLE batch. The
+     * window opens a full session length before the batch's oldest
+     * activity because the score marks a session's LAST chunk — its
+     * spans and exceptions started up to SESSION_REPLAY_MAX_SESSION_MS
+     * earlier.
+     */
+    let correlationBySessionId: Map<string, SessionCorrelation> = new Map<
+      string,
+      SessionCorrelation
+    >();
+
+    if (membersBySessionId.size > 0) {
+      correlationBySessionId = await fetchSessionCorrelation({
+        databaseName: databaseName,
+        projectId: new ObjectID(projectId),
+        sessionIds: Array.from(membersBySessionId.keys()),
+        windowStartUnixMs:
+          batchOldestActivityUnixMs -
+          SESSION_REPLAY_MAX_SESSION_MS -
+          SESSION_CORRELATION_WINDOW_PADDING_MS,
+        windowEndUnixMs:
+          batchNewestActivityUnixMs + SESSION_CORRELATION_WINDOW_PADDING_MS,
+      });
     }
 
     for (const [sessionId, members] of membersBySessionId.entries()) {
@@ -1340,6 +1636,7 @@ export async function finalizeExpiredSessions(): Promise<void> {
           projectId: new ObjectID(projectId),
           sessionId: sessionId,
           databaseName: databaseName,
+          correlation: correlationBySessionId.get(sessionId),
         });
 
         if (outcome === "written") {
@@ -1430,6 +1727,12 @@ export interface NeverFinalizedSessionRef {
   projectId: string;
   rumApplicationId: string;
   sessionId: string;
+  /*
+   * Milliseconds, from the header's startTime. Carried so the sweep can
+   * derive a correlation window for its batch without re-reading headers;
+   * 0 when the rendering could not be parsed.
+   */
+  startTimeUnixMs: number;
 }
 
 /*
@@ -1453,7 +1756,8 @@ export function buildNeverFinalizedStatement(data: {
     SELECT
       toString(projectId) AS projectId,
       toString(rumApplicationId) AS rumApplicationId,
-      sessionId AS sessionId
+      sessionId AS sessionId,
+      toUnixTimestamp64Milli(max(startTime)) AS startTimeUnixMs
     FROM ${data.databaseName}.${AnalyticsTableName.RumSession}
     WHERE startTime >= ${{
       type: TableColumnType.DateTime64,
@@ -1538,6 +1842,7 @@ async function sealLostSession(data: {
     aggregate: emptyAggregate,
     header: header,
     traceIds: [],
+    exceptionFingerprints: [],
     writtenAt: OneUptimeDate.getCurrentDate(),
     sealedReasonOverride: SessionReplaySealedReason.RecordingLost,
   });
@@ -1572,59 +1877,129 @@ export async function sweepNeverFinalizedSessions(): Promise<{
   let sealedLost: number = 0;
   let failed: number = 0;
 
-  for (const row of rows) {
-    if (Date.now() - runStartedAt > SWEEP_RUN_BUDGET_MS) {
-      logger.warn(
-        `${SWEEP_JOB_NAME}: run budget exhausted after ${finalized + sealedLost} session(s); the rest are picked up next hour.`,
-      );
-      break;
-    }
+  /*
+   * Grouped by project so the correlation queries stay one-per-table
+   * per project rather than one per session — the same batching contract
+   * the 5-minute finalizer keeps. Row order within a project (newest
+   * first) is preserved.
+   */
+  const refsByProjectId: Map<string, Array<NeverFinalizedSessionRef>> = new Map<
+    string,
+    Array<NeverFinalizedSessionRef>
+  >();
 
+  for (const row of rows) {
     const ref: NeverFinalizedSessionRef = {
       projectId: toTextValue(row["projectId"]),
       rumApplicationId: toTextValue(row["rumApplicationId"]),
       sessionId: toTextValue(row["sessionId"]),
+      startTimeUnixMs: toNumberValue(row["startTimeUnixMs"]),
     };
 
     if (!ref.projectId || !ref.sessionId) {
       continue;
     }
 
-    try {
-      /*
-       * The same idempotent, tombstone-checked path the 5-minute job
-       * uses. If the session was finalized by that job between our scan
-       * and now, this simply recomputes the same numbers and writes a
-       * newer identical header — safe by construction.
-       */
-      const outcome: FinalizeSessionOutcome = await finalizeSession({
-        projectId: new ObjectID(ref.projectId),
-        sessionId: ref.sessionId,
-        databaseName: databaseName,
-      });
+    const existing: Array<NeverFinalizedSessionRef> | undefined =
+      refsByProjectId.get(ref.projectId);
 
-      if (outcome === "written") {
-        finalized++;
-      } else if (outcome === "no-chunks") {
-        const sealed: boolean = await sealLostSession({
-          databaseName: databaseName,
+    if (existing) {
+      existing.push(ref);
+    } else {
+      refsByProjectId.set(ref.projectId, [ref]);
+    }
+  }
+
+  let budgetExhausted: boolean = false;
+
+  for (const [projectIdText, projectRefs] of refsByProjectId.entries()) {
+    if (budgetExhausted) {
+      break;
+    }
+
+    /*
+     * The sweep knows session START times (from the headers), not last
+     * activity, so the window closes a full session length after the
+     * newest start. Sessions whose startTime failed to parse contribute
+     * nothing to the window and simply find no correlation.
+     */
+    let oldestStartUnixMs: number = Number.MAX_SAFE_INTEGER;
+    let newestStartUnixMs: number = 0;
+
+    for (const ref of projectRefs) {
+      if (ref.startTimeUnixMs > 0) {
+        oldestStartUnixMs = Math.min(oldestStartUnixMs, ref.startTimeUnixMs);
+        newestStartUnixMs = Math.max(newestStartUnixMs, ref.startTimeUnixMs);
+      }
+    }
+
+    let correlationBySessionId: Map<string, SessionCorrelation> = new Map<
+      string,
+      SessionCorrelation
+    >();
+
+    if (newestStartUnixMs > 0) {
+      correlationBySessionId = await fetchSessionCorrelation({
+        databaseName: databaseName,
+        projectId: new ObjectID(projectIdText),
+        sessionIds: projectRefs.map((ref: NeverFinalizedSessionRef): string => {
+          return ref.sessionId;
+        }),
+        windowStartUnixMs:
+          oldestStartUnixMs - SESSION_CORRELATION_WINDOW_PADDING_MS,
+        windowEndUnixMs:
+          newestStartUnixMs +
+          SESSION_REPLAY_MAX_SESSION_MS +
+          SESSION_CORRELATION_WINDOW_PADDING_MS,
+      });
+    }
+
+    for (const ref of projectRefs) {
+      if (Date.now() - runStartedAt > SWEEP_RUN_BUDGET_MS) {
+        logger.warn(
+          `${SWEEP_JOB_NAME}: run budget exhausted after ${finalized + sealedLost} session(s); the rest are picked up next hour.`,
+        );
+        budgetExhausted = true;
+        break;
+      }
+
+      try {
+        /*
+         * The same idempotent, tombstone-checked path the 5-minute job
+         * uses. If the session was finalized by that job between our scan
+         * and now, this simply recomputes the same numbers and writes a
+         * newer identical header — safe by construction.
+         */
+        const outcome: FinalizeSessionOutcome = await finalizeSession({
           projectId: new ObjectID(ref.projectId),
-          rumApplicationId: ref.rumApplicationId,
           sessionId: ref.sessionId,
+          databaseName: databaseName,
+          correlation: correlationBySessionId.get(ref.sessionId),
         });
 
-        if (sealed) {
-          sealedLost++;
-          logger.warn(
-            `${SWEEP_JOB_NAME}: session ${ref.sessionId} in project ${ref.projectId} had a provisional header but no stored chunks; sealed as recording-lost.`,
-          );
+        if (outcome === "written") {
+          finalized++;
+        } else if (outcome === "no-chunks") {
+          const sealed: boolean = await sealLostSession({
+            databaseName: databaseName,
+            projectId: new ObjectID(ref.projectId),
+            rumApplicationId: ref.rumApplicationId,
+            sessionId: ref.sessionId,
+          });
+
+          if (sealed) {
+            sealedLost++;
+            logger.warn(
+              `${SWEEP_JOB_NAME}: session ${ref.sessionId} in project ${ref.projectId} had a provisional header but no stored chunks; sealed as recording-lost.`,
+            );
+          }
         }
+      } catch (error) {
+        failed++;
+        logger.error(
+          `${SWEEP_JOB_NAME}: failed to recover session ${ref.sessionId} in project ${ref.projectId}: ${getErrorMessage(error)}`,
+        );
       }
-    } catch (error) {
-      failed++;
-      logger.error(
-        `${SWEEP_JOB_NAME}: failed to recover session ${ref.sessionId} in project ${ref.projectId}: ${getErrorMessage(error)}`,
-      );
     }
   }
 

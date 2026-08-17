@@ -46,6 +46,7 @@ import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
 import TelemetrySnapshotWindowAlert from "../../../Components/Telemetry/TelemetrySnapshotWindowAlert";
+import TelemetryCompanionSignalTabs from "../../../Components/Telemetry/TelemetryCompanionSignalTabs";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import IconProp from "Common/Types/Icon/IconProp";
 import IncidentFeedElement from "../../../Components/Incident/IncidentFeed";
@@ -55,11 +56,16 @@ import RemediationSuggestionCard from "../../../Components/AutoRemediation/Remed
 import IncidentAffectedResources from "./AffectedResources";
 import MonitorSummarySnapshotCard from "../../../Components/Monitor/MonitorSummarySnapshotCard";
 import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentMemberRoleAssignment";
+import AskAIButton from "../../../Components/AIChat/AskAIButton";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
+import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import Host from "Common/Models/DatabaseModels/Host";
+import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
+import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Service from "Common/Models/DatabaseModels/Service";
 import AffectedResourcesPicker, {
@@ -475,6 +481,9 @@ const IncidentView: FunctionComponent<
             await fetchData();
           }}
         />
+        <div className="mt-3 flex justify-end">
+          <AskAIButton label="Ask AI about this incident" />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
@@ -506,78 +515,90 @@ const IncidentView: FunctionComponent<
             />
           </div>
 
-          {telemetryQuery &&
-            telemetryQuery.telemetryType === TelemetryType.Log &&
-            telemetryQuery.telemetryQuery && (
-              <div>
-                <Card
-                  title={"Logs"}
-                  description={"Logs for this incident."}
-                  rightElement={snapshotWindowAlert}
-                >
-                  <DashboardLogsViewer
-                    id="logs-preview"
-                    logQuery={telemetryQuery.telemetryQuery as Query<Log>}
-                    limit={10}
-                    noLogsMessage="No logs found"
-                  />
-                </Card>
-              </div>
-            )}
+          {telemetryQuery && (
+            <TelemetryCompanionSignalTabs
+              telemetryQuery={telemetryQuery}
+              snapshotWindow={telemetrySnapshotWindow}
+              snapshotWindowAlert={snapshotWindowAlert}
+              eventNoun="incident"
+              primarySignalElement={
+                <Fragment>
+                  {telemetryQuery.telemetryType === TelemetryType.Log &&
+                    telemetryQuery.telemetryQuery && (
+                      <div>
+                        <Card
+                          title={"Logs"}
+                          description={"Logs for this incident."}
+                          rightElement={snapshotWindowAlert}
+                        >
+                          <DashboardLogsViewer
+                            id="logs-preview"
+                            logQuery={
+                              telemetryQuery.telemetryQuery as Query<Log>
+                            }
+                            limit={10}
+                            noLogsMessage="No logs found"
+                          />
+                        </Card>
+                      </div>
+                    )}
 
-          {telemetryQuery &&
-            telemetryQuery.telemetryType === TelemetryType.Trace &&
-            telemetryQuery.telemetryQuery && (
-              <div>
-                <TraceTable
-                  spanQuery={telemetryQuery.telemetryQuery as Query<Span>}
-                  rightElement={snapshotWindowAlert}
-                  // Pinned to the snapshot; a URL-restored filter must not replace it.
-                  disableUrlState={true}
-                />
-              </div>
-            )}
+                  {telemetryQuery.telemetryType === TelemetryType.Trace &&
+                    telemetryQuery.telemetryQuery && (
+                      <div>
+                        <TraceTable
+                          spanQuery={
+                            telemetryQuery.telemetryQuery as Query<Span>
+                          }
+                          rightElement={snapshotWindowAlert}
+                          // Pinned to the snapshot; a URL-restored filter must not replace it.
+                          disableUrlState={true}
+                        />
+                      </div>
+                    )}
 
-          {telemetryQuery &&
-            telemetryQuery.telemetryType === TelemetryType.Metric &&
-            telemetryQuery.metricViewData && (
-              <Card
-                title={"Metrics"}
-                description={
-                  seriesSummary
-                    ? `Metrics related to this incident, scoped to the affected series (${seriesSummary}).`
-                    : "Metrics related to this incident."
-                }
-                rightElement={snapshotWindowAlert}
-              >
-                <MetricView
-                  data={telemetryQuery.metricViewData}
-                  hideQueryElements={true}
-                  chartCssClass="rounded-lg border border-gray-200 shadow-sm"
-                  hideStartAndEndDate={true}
-                  // Read-only host: onChange is a no-op, so zoom can't apply.
-                  disableChartZoom={true}
-                  onChange={(_data: MetricViewData) => {
-                    // do nothing!
-                  }}
-                />
-              </Card>
-            )}
+                  {telemetryQuery.telemetryType === TelemetryType.Metric &&
+                    telemetryQuery.metricViewData && (
+                      <Card
+                        title={"Metrics"}
+                        description={
+                          seriesSummary
+                            ? `Metrics related to this incident, scoped to the affected series (${seriesSummary}).`
+                            : "Metrics related to this incident."
+                        }
+                        rightElement={snapshotWindowAlert}
+                      >
+                        <MetricView
+                          data={telemetryQuery.metricViewData}
+                          hideQueryElements={true}
+                          chartCssClass="rounded-lg border border-gray-200 shadow-sm"
+                          hideStartAndEndDate={true}
+                          // Read-only host: onChange is a no-op, so zoom can't apply.
+                          disableChartZoom={true}
+                          onChange={(_data: MetricViewData) => {
+                            // do nothing!
+                          }}
+                        />
+                      </Card>
+                    )}
 
-          {telemetryQuery &&
-            telemetryQuery.telemetryType === TelemetryType.Exception &&
-            telemetryQuery.telemetryQuery && (
-              <ExceptionInstanceTable
-                title="Exceptions"
-                description="Exceptions related to this incident."
-                query={
-                  telemetryQuery.telemetryQuery as Query<ExceptionInstance>
-                }
-                rightElement={snapshotWindowAlert}
-                // Pinned to the snapshot; a URL-restored filter must not replace it.
-                disableUrlState={true}
-              />
-            )}
+                  {telemetryQuery.telemetryType === TelemetryType.Exception &&
+                    telemetryQuery.telemetryQuery && (
+                      <ExceptionInstanceTable
+                        title="Exceptions"
+                        description="Exceptions related to this incident."
+                        query={
+                          telemetryQuery.telemetryQuery as Query<ExceptionInstance>
+                        }
+                        rightElement={snapshotWindowAlert}
+                        // Pinned to the snapshot; a URL-restored filter must not replace it.
+                        disableUrlState={true}
+                      />
+                    )}
+                </Fragment>
+              }
+            />
+          )}
 
           <MonitorSummarySnapshotCard incidentId={modelId} />
 
@@ -843,7 +864,7 @@ const IncidentView: FunctionComponent<
             cardProps={{
               title: "Affected Resources",
               description:
-                "Monitors, hosts, Kubernetes clusters, Docker hosts, and services affected by this incident.",
+                "Monitors, hosts, clusters, container hosts, and services affected by this incident.",
             }}
             isEditable={true}
             formFields={[
@@ -853,7 +874,7 @@ const IncidentView: FunctionComponent<
                 },
                 title: "",
                 description:
-                  "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services affected by this incident.",
+                  "Search and attach monitors, hosts, clusters, container hosts, or services affected by this incident.",
                 fieldType: FormFieldSchemaType.CustomComponent,
                 required: false,
                 getCustomElement: (
@@ -869,7 +890,27 @@ const IncidentView: FunctionComponent<
                       }
                       dockerHosts={values.dockerHosts as Array<DockerHost>}
                       podmanHosts={values.podmanHosts as Array<PodmanHost>}
+                      proxmoxClusters={
+                        values.proxmoxClusters as Array<ProxmoxCluster>
+                      }
+                      cephClusters={values.cephClusters as Array<CephCluster>}
+                      dockerSwarmClusters={
+                        values.dockerSwarmClusters as Array<DockerSwarmCluster>
+                      }
+                      iotFleets={values.iotFleets as Array<IoTFleet>}
                       services={values.services as Array<Service>}
+                      resourceTypes={[
+                        "Monitor",
+                        "Host",
+                        "KubernetesCluster",
+                        "DockerHost",
+                        "PodmanHost",
+                        "ProxmoxCluster",
+                        "CephCluster",
+                        "DockerSwarmCluster",
+                        "IoTFleet",
+                        "Service",
+                      ]}
                       onChange={(payload: unknown) => {
                         elementProps.onChange?.(payload);
                       }}
@@ -891,6 +932,10 @@ const IncidentView: FunctionComponent<
                         kubernetesClusters: payload.kubernetesClusters,
                         dockerHosts: payload.dockerHosts,
                         podmanHosts: payload.podmanHosts,
+                        proxmoxClusters: payload.proxmoxClusters,
+                        cephClusters: payload.cephClusters,
+                        dockerSwarmClusters: payload.dockerSwarmClusters,
+                        iotFleets: payload.iotFleets,
                         services: payload.services,
                       } as FormValues<Incident>);
                     });
@@ -930,6 +975,42 @@ const IncidentView: FunctionComponent<
               },
               {
                 field: { podmanHosts: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { proxmoxClusters: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { cephClusters: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { dockerSwarmClusters: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { iotFleets: true },
                 title: "",
                 fieldType: FormFieldSchemaType.Text,
                 required: false,
@@ -990,6 +1071,22 @@ const IncidentView: FunctionComponent<
                       name: true,
                       _id: true,
                     },
+                    proxmoxClusters: {
+                      name: true,
+                      _id: true,
+                    },
+                    cephClusters: {
+                      name: true,
+                      _id: true,
+                    },
+                    dockerSwarmClusters: {
+                      name: true,
+                      _id: true,
+                    },
+                    iotFleets: {
+                      name: true,
+                      _id: true,
+                    },
                     services: {
                       name: true,
                       _id: true,
@@ -1006,6 +1103,10 @@ const IncidentView: FunctionComponent<
                         kubernetesClusters={item.kubernetesClusters || []}
                         dockerHosts={item.dockerHosts || []}
                         podmanHosts={item.podmanHosts || []}
+                        proxmoxClusters={item.proxmoxClusters || []}
+                        cephClusters={item.cephClusters || []}
+                        dockerSwarmClusters={item.dockerSwarmClusters || []}
+                        iotFleets={item.iotFleets || []}
                         services={item.services || []}
                       />
                     );

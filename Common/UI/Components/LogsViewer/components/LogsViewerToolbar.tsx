@@ -4,9 +4,12 @@ import LogTimeRangePicker from "./LogTimeRangePicker";
 import ColumnSelector from "./ColumnSelector";
 import SavedViewsDropdown from "./SavedViewsDropdown";
 import KeyboardShortcutsHelp from "./KeyboardShortcutsHelp";
+import Icon from "../../Icon/Icon";
+import Tooltip from "../../Tooltip/Tooltip";
 import {
   LiveLogsOptions,
   LogsSavedViewOption,
+  LogsSignalPivotAction,
   LogsTableColumnOption,
   LogsViewMode,
 } from "../types";
@@ -25,6 +28,7 @@ export interface LogsViewerToolbarProps {
   savedViews?: Array<LogsSavedViewOption> | undefined;
   selectedSavedViewId?: string | null | undefined;
   onSavedViewSelect?: ((viewId: string) => void) | undefined;
+  onClearSavedView?: (() => void) | undefined;
   onEditSavedView?: ((viewId: string) => void) | undefined;
   onDeleteSavedView?: ((viewId: string) => void) | undefined;
   onUpdateCurrentSavedView?: (() => void) | undefined;
@@ -38,6 +42,7 @@ export interface LogsViewerToolbarProps {
   showKeyboardShortcuts?: boolean | undefined;
   onToggleKeyboardShortcuts?: (() => void) | undefined;
   onShowDocumentation?: (() => void) | undefined;
+  signalPivotActions?: Array<LogsSignalPivotAction> | undefined;
 }
 
 const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
@@ -119,11 +124,37 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
           </div>
         )}
 
+        {props.signalPivotActions && props.signalPivotActions.length > 0 && (
+          <div
+            className="inline-flex items-center gap-0.5 rounded-md border border-gray-200 bg-white p-0.5 shadow-sm"
+            aria-label="Related telemetry signals"
+          >
+            {props.signalPivotActions.map((action: LogsSignalPivotAction) => {
+              return (
+                <Tooltip key={action.id} text={action.tooltip}>
+                  <button
+                    type="button"
+                    aria-label={action.tooltip}
+                    className="inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                    onClick={action.onClick}
+                  >
+                    {action.icon && (
+                      <Icon icon={action.icon} className="h-3.5 w-3.5" />
+                    )}
+                    <span>{action.label}</span>
+                  </button>
+                </Tooltip>
+              );
+            })}
+          </div>
+        )}
+
         {props.savedViews && props.onSavedViewSelect && (
           <SavedViewsDropdown
             savedViews={props.savedViews}
             selectedSavedViewId={props.selectedSavedViewId}
             onSelect={props.onSavedViewSelect}
+            onClear={props.onClearSavedView}
             onCreate={props.onCreateSavedView}
             onEdit={props.onEditSavedView}
             onDelete={props.onDeleteSavedView}

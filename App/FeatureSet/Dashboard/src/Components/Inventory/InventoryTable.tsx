@@ -8,8 +8,6 @@ import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
-import EntitySource from "Common/Types/Telemetry/EntitySource";
-import EntityType from "Common/Types/Telemetry/EntityType";
 import { MANUAL_ENTITY_TYPES } from "Common/Types/Telemetry/EntityTypeGroups";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -28,15 +26,33 @@ import {
   getInventoryTypeLabel,
 } from "./InventoryTypeCatalog";
 import {
+  INVENTORY_ARCHIVED_TABLE_ID,
+  INVENTORY_ITEMS_TABLE_ID,
+  InventoryFacetLockedQuery,
+  buildInventoryFacets,
+} from "./InventoryFacets";
+import {
   getInventoryLiveness,
   formatMinutesAgo,
   InventoryLiveness,
 } from "./InventoryLiveness";
 import { getInventorySourceLabel } from "./InventorySource";
+import useCustomFieldFacets, {
+  CustomFieldFacetsResult,
+} from "../CustomFields/useCustomFieldFacets";
+import useResourceOwners, {
+  ResourceFacet,
+  UseResourceOwnersResult,
+} from "../ResourceOwners/useResourceOwners";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import useTranslateValue from "Common/UI/Utils/Translation";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useMemo,
+} from "react";
 
 /*
  * The inventory list — the one place the whole estate is listed, whatever
@@ -77,29 +93,6 @@ const manualEntityTypeOptions: Array<DropdownOption> =
     };
   });
 
-/*
- * The filter offers the whole vocabulary, not just the manual subset: you
- * filter by anything that can appear, but you can only create the things
- * OneUptime cannot discover for itself.
- */
-const allEntityTypeFilterOptions: Array<DropdownOption> = Object.values(
-  EntityType,
-).map((entityType: EntityType): DropdownOption => {
-  return {
-    label: getInventoryTypeLabel(entityType),
-    value: entityType,
-  };
-});
-
-const sourceFilterOptions: Array<DropdownOption> = Object.values(
-  EntitySource,
-).map((source: EntitySource): DropdownOption => {
-  return {
-    label: getInventorySourceLabel(source),
-    value: source,
-  };
-});
-
 export interface ComponentProps {
   /**
    * Extra narrowing merged into the base query — how the Overview's
@@ -135,7 +128,44 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
 
   const tableKey: string =
     props.tableKey ||
-    (isArchivedView ? "inventory-archived-table" : "inventory-items-table");
+    (isArchivedView ? INVENTORY_ARCHIVED_TABLE_ID : INVENTORY_ITEMS_TABLE_ID);
+
+  /*
+   * Project custom fields are first-class Inventory facets, just as they are
+   * on Monitors, Incidents and Alerts. The base facet list is reduced only
+   * when an Overview drill-down already owns that query field; otherwise an
+   * active chip could replace the fixed scope while the banner still claimed
+   * it was in force.
+   */
+  const customFieldFacetsResult: CustomFieldFacetsResult = useCustomFieldFacets(
+    {
+      customFieldsModelType: InventoryItemCustomField,
+    },
+  );
+
+  const builtInFacets: Array<ResourceFacet> = useMemo(() => {
+    return buildInventoryFacets(
+      (props.query || {}) as InventoryFacetLockedQuery,
+    );
+  }, [props.query]);
+
+  const inventoryFacets: Array<ResourceFacet> = useMemo(() => {
+    return [...builtInFacets, ...customFieldFacetsResult.facets];
+  }, [builtInFacets, customFieldFacetsResult.facets]);
+
+  const {
+    filterBar,
+    mergeFiltersIntoQuery,
+    hasActiveFilters,
+    facetSaveState,
+    restoreFacetState,
+  }: UseResourceOwnersResult<InventoryItem> = useResourceOwners<InventoryItem>({
+    showOwnerFacet: false,
+    showLabelsFacet: false,
+    extraFacets: inventoryFacets,
+    areFacetsLoading: customFieldFacetsResult.isLoading,
+    persistKey: tableKey,
+  });
 
   const { archiveBulkActions, unarchiveBulkActions } =
     useBulkArchiveActions<InventoryItem>({
@@ -155,13 +185,19 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
         modelType={InventoryItem}
         id={tableKey}
         userPreferencesKey={tableKey}
+        topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        saveFilterProps={{
+          tableId: tableKey,
+        }}
         /*
-         * An archived row is read-only until it is restored: editing or
-         * deleting something you have already put out of sight is a way to
-         * act on the wrong row.
+         * Inventory follows the same list/detail contract as Services and
+         * Hosts: the row action opens the item, while changes and destructive
+         * operations live in the item's own pages with their full context.
          */
-        isDeleteable={!isArchivedView}
-        isEditable={!isArchivedView}
+        isDeleteable={false}
+        isEditable={false}
         isCreateable={!isArchivedView}
         isViewable={true}
         bulkActions={{
@@ -180,45 +216,49 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
         sortOrder={SortOrder.Descending}
         createVerb="Add"
         refreshToggle={props.refreshToggle}
-        searchableFields={["displayName", "description"]}
-        searchPlaceholder="Search inventory by name..."
+        searchableFields={["displayName", "description", "entityKey"]}
+        searchPlaceholder="Search inventory..."
         cardProps={{
           title: props.cardTitle || "Inventory",
           description:
             props.cardDescription ||
             "Everything OneUptime knows about your estate: services, hosts, pods and containers discovered from telemetry, network devices and cloud resources mirrored from elsewhere in OneUptime, plus anything you register by hand.",
         }}
-        query={{
+        query={mergeFiltersIntoQuery({
           projectId: ProjectUtil.getCurrentProjectId()!,
           isArchived: isArchivedView,
           ...(props.query || {}),
-        }}
+        })}
         showRefreshButton={true}
         noItemsMessage={
-          <EmptyState
-            id="inventory-empty-state"
-            icon={IconProp.Cube}
-            title="Nothing here yet"
-            description={
-              translateString(
-                "Items appear here on their own as you send OpenTelemetry data and register infrastructure in OneUptime. You can also add something by hand — a vendor API or an appliance that will never report telemetry on its own.",
-              ) || ""
-            }
-            footer={
-              <Button
-                title="Read the setup guide"
-                icon={IconProp.Book}
-                buttonStyle={ButtonStyleType.OUTLINE}
-                onClick={() => {
-                  Navigation.navigate(
-                    RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.INVENTORY_DOCUMENTATION] as Route,
-                    ),
-                  );
-                }}
-              />
-            }
-          />
+          hasActiveFilters ? (
+            "No inventory item matches the facets above."
+          ) : (
+            <EmptyState
+              id="inventory-empty-state"
+              icon={IconProp.Cube}
+              title="Nothing here yet"
+              description={
+                translateString(
+                  "Items appear here on their own as you send OpenTelemetry data and register infrastructure in OneUptime. You can also add something by hand — a vendor API or an appliance that will never report telemetry on its own.",
+                ) || ""
+              }
+              footer={
+                <Button
+                  title="Read the setup guide"
+                  icon={IconProp.Book}
+                  buttonStyle={ButtonStyleType.OUTLINE}
+                  onClick={() => {
+                    Navigation.navigate(
+                      RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.INVENTORY_DOCUMENTATION] as Route,
+                      ),
+                    );
+                  }}
+                />
+              }
+            />
+          )
         }
         /*
          * Only the fields a human owns. Type and key are absent on purpose:
@@ -263,18 +303,6 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Text,
           },
           {
-            field: { entityType: true },
-            title: "Type",
-            type: FieldType.MultiSelectDropdown,
-            filterDropdownOptions: allEntityTypeFilterOptions,
-          },
-          {
-            field: { source: true },
-            title: "Source",
-            type: FieldType.MultiSelectDropdown,
-            filterDropdownOptions: sourceFilterOptions,
-          },
-          {
             field: { entityKey: true },
             title: "Identity Key",
             type: FieldType.Text,
@@ -282,11 +310,6 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
           {
             field: { firstSeenAt: true },
             title: "First Seen",
-            type: FieldType.DateTime,
-          },
-          {
-            field: { lastSeenAt: true },
-            title: "Last Seen",
             type: FieldType.DateTime,
           },
         ]}

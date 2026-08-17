@@ -116,6 +116,8 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
           statusMessage: true,
           user: {
             name: true,
+            email: true,
+            profilePictureId: true,
           },
         }}
         cardProps={{

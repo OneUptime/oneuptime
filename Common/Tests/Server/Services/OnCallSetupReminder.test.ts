@@ -146,6 +146,7 @@ function buildReadiness(data: {
       data.reachedVia === undefined
         ? [ResponderSource.Direct]
         : data.reachedVia,
+    teams: [],
   };
 }
 

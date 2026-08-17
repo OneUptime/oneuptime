@@ -9,6 +9,12 @@ enum AIChatMessageStatus {
   WaitingForApproval = "WaitingForApproval",
   Completed = "Completed",
   Error = "Error",
+  /*
+   * The user pressed Stop: POST /ai-chat/cancel-run finalized the message
+   * mid-generation (contentInMarkdown says so). Terminal like Error, but
+   * deliberate — never counted or rendered as a failure.
+   */
+  Cancelled = "Cancelled",
 }
 
 export default AIChatMessageStatus;
@@ -17,7 +23,8 @@ export class AIChatMessageStatusHelper {
   public static isTerminalStatus(status: AIChatMessageStatus): boolean {
     return (
       status === AIChatMessageStatus.Completed ||
-      status === AIChatMessageStatus.Error
+      status === AIChatMessageStatus.Error ||
+      status === AIChatMessageStatus.Cancelled
     );
   }
 

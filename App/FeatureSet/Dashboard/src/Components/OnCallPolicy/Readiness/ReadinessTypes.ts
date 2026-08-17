@@ -1,3 +1,4 @@
+import PageMap from "../../../Utils/PageMap";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import type {
@@ -5,6 +6,7 @@ import type {
   ReadinessMethod,
   ReadinessStatus,
   ReadinessSummary,
+  ReadinessTeam,
   ResponderSource,
   UserReadiness,
 } from "Common/Server/Services/OnCallReadinessService";
@@ -69,6 +71,17 @@ export type ReadinessCoverageCellWire = Omit<
 };
 
 /*
+ * A team that pages this responder. Same ObjectID-does-not-survive-JSON story as
+ * the ids above, and the same defensive parse: a team whose name did not arrive
+ * is DROPPED rather than rendered nameless, because this list is what builds the
+ * team filter's options and an option nobody can read is an option nobody can
+ * choose on purpose.
+ */
+export type ReadinessTeamWire = Omit<ReadinessTeam, "_id"> & {
+  _id: string;
+};
+
+/*
  * `methods` is in the Omit list for the same reason `coverage` is: both are
  * arrays of a type this file re-declares, and inheriting the server's element
  * type would leave a field typed ObjectID on a value that is a string by the
@@ -83,6 +96,7 @@ export type UserReadinessWire = Omit<
   | "methods"
   | "coverage"
   | "reachedVia"
+  | "teams"
 > & {
   userId: string;
   userProfilePictureId?: string | undefined;
@@ -90,6 +104,7 @@ export type UserReadinessWire = Omit<
   methods: Array<ReadinessMethodWire>;
   coverage: Array<ReadinessCoverageCellWire>;
   reachedVia: Array<ResponderSourceValue>;
+  teams: Array<ReadinessTeamWire>;
 };
 
 /*
@@ -310,6 +325,36 @@ const parseMethod: (json: JSONObject) => ReadinessMethodWire = (
   };
 };
 
+/*
+ * Teams, with both halves required to survive.
+ *
+ * An entry missing its id cannot be filtered on, and an entry missing its name
+ * cannot be labelled - so either one missing makes the entry useless as a filter
+ * option and it is dropped rather than rendered as a blank chip. The server
+ * already drops teams whose row did not come back; this is the browser-side half
+ * of the same rule, so a build talking to an older server that does not send
+ * `teams` at all reads an empty list rather than throwing.
+ */
+const parseTeams: (value: JSONValue | undefined) => Array<ReadinessTeamWire> = (
+  value: JSONValue | undefined,
+): Array<ReadinessTeamWire> => {
+  const teams: Array<ReadinessTeamWire> = [];
+
+  for (const entry of readArray(value)) {
+    const json: JSONObject = entry as JSONObject;
+    const id: string = readIdString(json["_id"]);
+    const name: string = readString(json["name"]);
+
+    if (!id || !name) {
+      continue;
+    }
+
+    teams.push({ _id: id, name: name });
+  }
+
+  return teams;
+};
+
 const parseUserReadiness: (json: JSONObject) => UserReadinessWire = (
   json: JSONObject,
 ): UserReadinessWire => {
@@ -341,6 +386,7 @@ const parseUserReadiness: (json: JSONObject) => UserReadinessWire = (
         return reason.length > 0;
       }),
     reachedVia: readArray(json["reachedVia"]).filter(isResponderSourceValue),
+    teams: parseTeams(json["teams"]),
   };
 };
 
@@ -594,6 +640,35 @@ export const getRuleTypeLabel: (ruleType: NotificationRuleType) => string = (
       return "Goes off call";
     default:
       return String(ruleType);
+  }
+};
+
+/*
+ * Which User Settings page repairs a gap of this rule type.
+ *
+ * It lives here rather than in the surface that first needed it because two
+ * surfaces now need it - the admin's responder card and the responder's own
+ * setup checklist - and a second copy would be a second opinion about where a
+ * hole is fixed. Sending somebody to the page that does not carry the rule they
+ * are missing is the failure mode that makes a "fix this" link read as noise.
+ *
+ * The two go-on-call / go-off-call rule types are edited on the incident
+ * on-call rules page (IncidentOnCallRules.tsx:406), not on a page of their own,
+ * so they route there along with the incident rules - which is also why the
+ * incident page is the default rather than a case of its own.
+ */
+export const getPageForRuleType: (ruleType: NotificationRuleType) => PageMap = (
+  ruleType: NotificationRuleType,
+): PageMap => {
+  switch (ruleType) {
+    case NotificationRuleType.ON_CALL_EXECUTED_ALERT:
+      return PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES;
+    case NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE:
+      return PageMap.USER_SETTINGS_ALERT_EPISODE_ON_CALL_RULES;
+    case NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE:
+      return PageMap.USER_SETTINGS_INCIDENT_EPISODE_ON_CALL_RULES;
+    default:
+      return PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES;
   }
 };
 

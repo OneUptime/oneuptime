@@ -1,0 +1,14 @@
+{
+  "name": "@oneuptime/ops-tests",
+  "version": "12.0.11",
+  "private": true,
+  "description": "Static/structural tests for the repo's ops config: ClickHouse config.d drop-ins, docker-compose mounts, and the backup/restore scripts. No services required.",
+  "type": "commonjs",
+  "scripts": {
+    "test": "jest --config ./jest.config.json --runInBand"
+  },
+  "devDependencies": {
+    "jest": "^28.1.3",
+    "js-yaml": "^4.1.0"
+  }
+}

@@ -1,15 +1,32 @@
 import PageComponentProps from "../PageComponentProps";
+import RunRuleNowModal, {
+  NetworkRuleKind,
+} from "../../Components/NetworkAutomation/RunRuleNowModal";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import NetworkSiteAssignmentRule from "Common/Models/DatabaseModels/NetworkSiteAssignmentRule";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
+import IconProp from "Common/Types/Icon/IconProp";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 
 const NetworkSiteAssignmentRules: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  /*
+   * The rule a "Run now" is open for. Assignment rules have no name, so the
+   * modal identifies itself by what it is about to do instead.
+   */
+  const [ruleIdBeingRun, setRuleIdBeingRun] = useState<string | null>(null);
+
   return (
     <Fragment>
       <ModelTable<NetworkSiteAssignmentRule>
@@ -27,9 +44,29 @@ const NetworkSiteAssignmentRules: FunctionComponent<
         cardProps={{
           title: "Assignment Rules",
           description:
-            "Automatically assign discovered devices to a site by subnet CIDR or hostname pattern. The higher priority number wins; ties are broken by the older rule. Rules are evaluated when a device is created, when its hostname / name / SNMP system name changes, and on the next poll of any device that has no site yet. A device you assigned to a site by hand is never moved unless its identity changes.",
+            "Automatically assign discovered devices to a site by subnet CIDR or hostname pattern. The higher priority number wins; ties are broken by the older rule. Rules are evaluated when a device is created, when its hostname / name / SNMP system name changes, and on the next poll of any device that has no site yet. A device you assigned to a site by hand is never moved unless its identity changes. Use Run Now on a rule to apply it to devices that already exist.",
         }}
         noItemsMessage="No assignment rules yet. Add one to route newly discovered devices into the right site automatically."
+        actionButtons={[
+          {
+            title: "Run Now",
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.Play,
+            onClick: async (
+              item: NetworkSiteAssignmentRule,
+              onCompleteAction: VoidFunction,
+              onError: ErrorFunction,
+            ) => {
+              try {
+                setRuleIdBeingRun(item._id?.toString() || null);
+                onCompleteAction();
+              } catch (err) {
+                onCompleteAction();
+                onError(err as Error);
+              }
+            },
+          },
+        ]}
         filters={[
           {
             field: {
@@ -165,6 +202,18 @@ const NetworkSiteAssignmentRules: FunctionComponent<
           },
         ]}
       />
+
+      {ruleIdBeingRun ? (
+        <RunRuleNowModal
+          ruleKind={NetworkRuleKind.SiteAssignment}
+          ruleId={ruleIdBeingRun}
+          onClose={() => {
+            setRuleIdBeingRun(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
     </Fragment>
   );
 };

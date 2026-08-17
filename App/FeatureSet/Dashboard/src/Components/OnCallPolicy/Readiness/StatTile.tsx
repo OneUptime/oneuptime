@@ -31,6 +31,22 @@ export interface ComponentProps {
   label: string;
   value: string;
   tone?: StatTileTone | undefined;
+  /*
+   * Makes the tile a button. Supplied by the readiness page, where each tile
+   * counts a status and pressing it filters the table down to that status - so
+   * the number an admin is looking at and the control that acts on it are the
+   * same object, rather than a count in one strip and a matching pill in
+   * another.
+   *
+   * Absent leaves the tile a plain div, which is what the escalation summary
+   * still wants: a tile that looks pressable and is not is worse than one that
+   * never invited the click.
+   */
+  onClick?: (() => void) | undefined;
+  /** Only meaningful with onClick. Draws the pressed state. */
+  isActive?: boolean | undefined;
+  /** Only meaningful with onClick. The accessible name for the button. */
+  ariaLabel?: string | undefined;
 }
 
 interface ToneClassNames {
@@ -67,14 +83,14 @@ const StatTile: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const tone: ToneClassNames = toneClassNames[props.tone || "neutral"];
 
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3">
+  const body: ReactElement = (
+    <>
       <div
         className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${tone.iconWrapperClassName}`}
       >
         <Icon icon={props.icon} className={`h-4 w-4 ${tone.iconClassName}`} />
       </div>
-      <div className="min-w-0">
+      <div className="min-w-0 text-left">
         <div
           className={`truncate text-lg font-semibold leading-tight ${tone.valueClassName}`}
         >
@@ -82,7 +98,30 @@ const StatTile: FunctionComponent<ComponentProps> = (
         </div>
         <div className="truncate text-xs text-gray-500">{props.label}</div>
       </div>
-    </div>
+    </>
+  );
+
+  const baseClassName: string =
+    "flex w-full items-center gap-3 rounded-xl border bg-white px-4 py-3";
+
+  if (!props.onClick) {
+    return <div className={`${baseClassName} border-gray-200`}>{body}</div>;
+  }
+
+  return (
+    <button
+      type="button"
+      aria-label={props.ariaLabel || props.label}
+      aria-pressed={Boolean(props.isActive)}
+      onClick={props.onClick}
+      className={`${baseClassName} text-left transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+        props.isActive
+          ? "border-indigo-500 ring-1 ring-inset ring-indigo-500"
+          : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+      }`}
+    >
+      {body}
+    </button>
   );
 };
 

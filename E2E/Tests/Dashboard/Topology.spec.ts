@@ -53,10 +53,15 @@ test.describe("Topology page", () => {
       timeout: 30000,
     });
 
-    // Telemetry tabs show the time range picker.
+    /*
+     * Telemetry tabs describe what the map covers, alongside the time range
+     * picker. Asserted on the "Connections reflect ..." clause rather than the
+     * whole sentence: the leading half names whatever the product currently
+     * calls the things on the map, and has already been reworded once.
+     */
     await expect(
       page.getByText(
-        "Maps are discovered automatically from your OpenTelemetry data",
+        "Connections reflect OpenTelemetry data from the selected time range",
         { exact: false },
       ),
     ).toBeVisible();

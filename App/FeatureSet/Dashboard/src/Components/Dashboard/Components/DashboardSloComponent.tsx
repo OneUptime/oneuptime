@@ -404,7 +404,7 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
         : undefined;
 
     const xAxis: ChartXAxis = {
-      legend: "",
+      legend: "Time",
       options: {
         type: XAxisType.Time,
         min: startAndEndDate.startValue,

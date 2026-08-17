@@ -98,11 +98,18 @@ export default class JavaScriptCode extends ComponentCode {
         },
         executePort: successPort,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage: string =
+        err instanceof Error && err.message
+          ? err.message
+          : typeof err === "string" && err
+            ? err
+            : "JavaScript execution failed.";
+
       options.log("Error running script");
-      options.log(err.message ? err.message : JSON.stringify(err, null, 2));
+      options.log(errorMessage);
       return {
-        returnValues: {},
+        returnValues: { error: errorMessage },
         executePort: errorPort,
       };
     }

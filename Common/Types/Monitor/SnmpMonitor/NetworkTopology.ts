@@ -156,6 +156,19 @@ export interface NetworkTopologyEdge {
   monitorState?: "up" | "down" | undefined;
   // Operator-supplied label, set only on manual links.
   name?: string | undefined;
+  /*
+   * Which end of this edge is the parent, when somebody has SAID so —
+   * either on the link itself or through a link rule, which is stated in
+   * child/parent labels and so knows the answer by construction.
+   *
+   * Always one of `fromNodeId`/`toNodeId`. Absent on every discovered
+   * edge: LLDP and CDP report a cable, not a hierarchy, and the direction
+   * a neighbour entry happens to be read from says nothing about which
+   * box is upstream. Layouts that draw a tree must therefore treat this as
+   * a constraint where it is present and keep inferring where it is not —
+   * absent is "not stated", never "these are peers".
+   */
+  parentNodeId?: string | undefined;
 }
 
 export default interface NetworkTopology {

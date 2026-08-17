@@ -14,12 +14,14 @@ import OnCallReadinessService, {
   ReadinessMethodType,
   ReadinessStatus,
   ReadinessSummary,
+  ReadinessTeam,
   ResponderSource,
   UserReadiness,
   maskIdentifier,
 } from "../../../Server/Services/OnCallReadinessService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
+import TeamService from "../../../Server/Services/TeamService";
 import UserCallService from "../../../Server/Services/UserCallService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
@@ -39,6 +41,7 @@ import OnCallDutyPolicyEscalationRuleUser from "../../../Models/DatabaseModels/O
 import OnCallDutyPolicyScheduleLayerUser from "../../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import OnCallDutyPolicyUserOverride from "../../../Models/DatabaseModels/OnCallDutyPolicyUserOverride";
 import Project from "../../../Models/DatabaseModels/Project";
+import Team from "../../../Models/DatabaseModels/Team";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
@@ -224,6 +227,10 @@ interface TeamMemberFindByArgument {
   query: { teamId?: Includes | undefined; userId?: Includes | undefined };
 }
 
+interface TeamFindByArgument {
+  query: { _id?: Includes | undefined };
+}
+
 /*
  * The mutable world every spy reads from. Reset wholesale in beforeEach so no
  * test can inherit another's configuration - readiness is a whole-project
@@ -232,6 +239,12 @@ interface TeamMemberFindByArgument {
 let userDirectory: Array<User> = [];
 let membershipRows: Array<TeamMember> = [];
 let teamMemberRows: Array<TeamMember> = [];
+/*
+ * Every team that exists, by id. The service reads names for the teams that page
+ * somebody; a team missing from here is a team whose row did not come back,
+ * which is a state the contract has an opinion about.
+ */
+let teamDirectory: Array<Team> = [];
 
 let policyFindOneById: jest.SpyInstance;
 let escalationUserFindBy: jest.SpyInstance;
@@ -240,6 +253,7 @@ let escalationScheduleFindBy: jest.SpyInstance;
 let scheduleLayerUserFindBy: jest.SpyInstance;
 let overrideFindBy: jest.SpyInstance;
 let teamMemberFindBy: jest.SpyInstance;
+let teamFindBy: jest.SpyInstance;
 let userFindBy: jest.SpyInstance;
 let pushFindBy: jest.SpyInstance;
 let emailFindBy: jest.SpyInstance;
@@ -375,6 +389,14 @@ function teamMemberRow(
   if (teamId) {
     row.teamId = teamId;
   }
+
+  return row;
+}
+
+function teamRow(id: ObjectID, name: string): Team {
+  const row: Team = new Team();
+  row.id = id;
+  row.name = name;
 
   return row;
 }
@@ -572,6 +594,7 @@ function everySpy(): Array<jest.SpyInstance> {
     scheduleLayerUserFindBy,
     overrideFindBy,
     teamMemberFindBy,
+    teamFindBy,
     userFindBy,
     pushFindBy,
     emailFindBy,
@@ -707,6 +730,10 @@ beforeEach(() => {
     teamMemberRow(USER_C_ID, TEAM_ID),
   ];
   teamMemberRows = [];
+  teamDirectory = [
+    teamRow(TEAM_ID, "Platform"),
+    teamRow(OTHER_TEAM_ID, "Payments"),
+  ];
 
   policyFindOneById = jest
     .spyOn(OnCallDutyPolicyService, "findOneById")
@@ -758,6 +785,24 @@ beforeEach(() => {
         return wanted.has(row.userId?.toString() || "");
       });
     }) as never);
+
+  /*
+   * Team names, answered out of a directory filtered by the ids asked for. The
+   * filter is what makes the "one read for the whole responder set" test mean
+   * something: a fake that returned every team regardless would still work while
+   * the service asked once per member.
+   */
+  teamFindBy = jest.spyOn(TeamService, "findBy").mockImplementation((async (
+    data: TeamFindByArgument,
+  ): Promise<Array<Team>> => {
+    const wanted: Set<string> = new Set<string>(
+      includedIds(data.query._id || new Includes([])),
+    );
+
+    return teamDirectory.filter((team: Team): boolean => {
+      return wanted.has(team.id?.toString() || "");
+    });
+  }) as never);
 
   /*
    * The user lookup answers out of a directory filtered by the Includes the
@@ -1292,6 +1337,253 @@ describe("responder resolution", () => {
     const summary: ReadinessSummary = await policySummary();
 
     expect(summary.users).toEqual([]);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * (B2) WHICH teams page a responder.
+ *
+ * `reachedVia` has always said THAT a team was involved. It could not say which
+ * one, because the resolution pass read exactly the membership rows that would
+ * answer it and then dropped the team id on the floor - so the readiness table
+ * could show a "Team" chip and could not be filtered down to a team.
+ *
+ * The semantics pinned here are narrower than "teams this person belongs to",
+ * deliberately: a team with no escalation rule attached to it pages nobody, and
+ * naming it would let an admin filter the table to that team and read a clean
+ * answer about people it cannot reach. Every team named on a responder is a team
+ * that both (a) they belong to and (b) is attached to an escalation rule in the
+ * scope being computed - which is exactly the set that puts Team in reachedVia.
+ * ---------------------------------------------------------------------------
+ */
+describe("the teams that page a responder", () => {
+  test("a responder reached through a team carries that team, named", async () => {
+    escalationTeamFindBy.mockResolvedValue([
+      escalationTeamRow(TEAM_ID),
+    ] as never);
+    teamMemberRows = [teamMemberRow(USER_B_ID, TEAM_ID)];
+
+    const readiness: UserReadiness = await onlyUser();
+
+    expect(readiness.reachedVia).toEqual([ResponderSource.Team]);
+    expect(readiness.teams).toHaveLength(1);
+    expect(readiness.teams[0]!.name).toBe("Platform");
+    expect(readiness.teams[0]!._id.toString()).toBe(TEAM_ID.toString());
+  });
+
+  /*
+   * A responder attached directly is reached without any team being involved, so
+   * an empty list is the honest answer. Filling it with their project teams
+   * would put them under a team filter they are not answerable to.
+   */
+  test("a responder reached directly carries no teams at all", async () => {
+    attachDirectly(USER_A_ID);
+
+    const readiness: UserReadiness = await onlyUser();
+
+    expect(readiness.reachedVia).toEqual([ResponderSource.Direct]);
+    expect(readiness.teams).toEqual([]);
+  });
+
+  test("a responder reached only by a schedule carries no teams", async () => {
+    escalationScheduleFindBy.mockResolvedValue([
+      escalationScheduleRow(SCHEDULE_ID),
+    ] as never);
+    scheduleLayerUserFindBy.mockResolvedValue([
+      layerUserRow(USER_C_ID),
+    ] as never);
+
+    const readiness: UserReadiness = await onlyUser();
+
+    expect(readiness.teams).toEqual([]);
+  });
+
+  /*
+   * Both teams, because both page them. Removing them from one does not stop the
+   * other, which is the same reasoning reachedVia carries every source rather
+   * than the first one found - and it is what lets one responder answer a filter
+   * for either team.
+   */
+  test("a responder on two attached teams carries both", async () => {
+    escalationTeamFindBy.mockResolvedValue([
+      escalationTeamRow(TEAM_ID),
+      escalationTeamRow(OTHER_TEAM_ID),
+    ] as never);
+    teamMemberRows = [
+      teamMemberRow(USER_A_ID, TEAM_ID),
+      teamMemberRow(USER_A_ID, OTHER_TEAM_ID),
+    ];
+
+    const readiness: UserReadiness = await onlyUser();
+
+    expect(
+      readiness.teams.map((team: ReadinessTeam): string => {
+        return team.name;
+      }),
+    ).toEqual(["Payments", "Platform"]);
+  });
+
+  /*
+   * Sorted by NAME rather than by whichever membership row the database returned
+   * first, so the column and the filter chip read the same way for every
+   * responder and do not reshuffle between requests.
+   */
+  test("the teams are in name order, not in row order", async () => {
+    escalationTeamFindBy.mockResolvedValue([
+      escalationTeamRow(OTHER_TEAM_ID),
+      escalationTeamRow(TEAM_ID),
+    ] as never);
+    teamMemberRows = [
+      teamMemberRow(USER_A_ID, OTHER_TEAM_ID),
+      teamMemberRow(USER_A_ID, TEAM_ID),
+    ];
+
+    const readiness: UserReadiness = await onlyUser();
+
+    expect(
+      readiness.teams.map((team: ReadinessTeam): string => {
+        return team.name;
+      }),
+    ).toEqual(["Payments", "Platform"]);
+  });
+
+  test("the same team twice through two rows is carried once", async () => {
+    escalationTeamFindBy.mockResolvedValue([
+      escalationTeamRow(TEAM_ID),
+    ] as never);
+    teamMemberRows = [
+      teamMemberRow(USER_A_ID, TEAM_ID),
+      teamMemberRow(USER_A_ID, TEAM_ID),
+    ];
+
+    const readiness: UserReadiness = await onlyUser();
+
+    expect(readiness.teams).toHaveLength(1);
+  });
+
+  /*
+   * ONE read for every team named anywhere in the responder set. A team on an
+   * escalation rule is shared by every one of its members, so a per-member read
+   * is the N+1 that made the report this service replaced unusable on a project
+   * of any size.
+   */
+  test("team names are read once for the whole responder set, not once per member", async () => {
+    escalationTeamFindBy.mockResolvedValue([
+      escalationTeamRow(TEAM_ID),
+      escalationTeamRow(OTHER_TEAM_ID),
+    ] as never);
+    teamMemberRows = [
+      teamMemberRow(USER_A_ID, TEAM_ID),
+      teamMemberRow(USER_B_ID, TEAM_ID),
+      teamMemberRow(USER_C_ID, OTHER_TEAM_ID),
+    ];
+
+    const summary: ReadinessSummary = await policySummary();
+
+    expect(summary.users).toHaveLength(3);
+    expect(teamFindBy.mock.calls).toHaveLength(1);
+  });
+
+  /*
+   * Nobody is reached through a team, so there is nothing to name. A read issued
+   * anyway would be a query per page load buying nothing.
+   */
+  test("no team read at all when no team pages anybody", async () => {
+    attachDirectly(USER_A_ID);
+
+    await policySummary();
+
+    expect(teamFindBy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A team whose row did not come back is DROPPED rather than rendered as a bare
+   * id. This list is what builds the readiness table's team filter, and an option
+   * nobody can read is an option nobody can choose on purpose - whereas a chip
+   * showing a uuid is one an admin might act on.
+   */
+  test("a team whose row did not come back is dropped rather than shown nameless", async () => {
+    escalationTeamFindBy.mockResolvedValue([
+      escalationTeamRow(TEAM_ID),
+      escalationTeamRow(OTHER_TEAM_ID),
+    ] as never);
+    teamMemberRows = [
+      teamMemberRow(USER_A_ID, TEAM_ID),
+      teamMemberRow(USER_A_ID, OTHER_TEAM_ID),
+    ];
+    teamDirectory = [teamRow(TEAM_ID, "Platform")];
+
+    const readiness: UserReadiness = await onlyUser();
+
+    expect(
+      readiness.teams.map((team: ReadinessTeam): string => {
+        return team.name;
+      }),
+    ).toEqual(["Platform"]);
+  });
+
+  test("the team read is scoped to the project and to the teams that page somebody", async () => {
+    escalationTeamFindBy.mockResolvedValue([
+      escalationTeamRow(TEAM_ID),
+    ] as never);
+    teamMemberRows = [teamMemberRow(USER_A_ID, TEAM_ID)];
+
+    await policySummary();
+
+    const query: Record<string, unknown> = firstCall(teamFindBy).query;
+
+    expect(query["projectId"]?.toString()).toBe(PROJECT_ID.toString());
+    expect(includedIds(query["_id"] as Includes)).toEqual([TEAM_ID.toString()]);
+  });
+
+  /*
+   * The per-USER entry point resolves responders the other way round - from the
+   * user's own memberships inwards - and it has to reach the same answer. Two
+   * paths that disagree would show a responder a different team list depending on
+   * whether an admin opened the readiness table or that responder's own card,
+   * and each answer would sit in its own cache for a minute.
+   */
+  test("the per-user path names the same teams as the project path", async () => {
+    escalationTeamFindBy.mockResolvedValue([
+      escalationTeamRow(TEAM_ID),
+    ] as never);
+    membershipRows = [teamMemberRow(USER_A_ID, TEAM_ID)];
+
+    const readiness: UserReadiness | null =
+      await OnCallReadinessService.getReadinessForUser(USER_A_ID, PROJECT_ID);
+
+    expect(readiness).not.toBeNull();
+    expect(readiness!.reachedVia).toEqual([ResponderSource.Team]);
+    expect(
+      readiness!.teams.map((team: ReadinessTeam): string => {
+        return team.name;
+      }),
+    ).toEqual(["Platform"]);
+  });
+
+  /*
+   * A team the user belongs to but which is attached to no escalation rule pages
+   * nobody, so it must not appear - on either path. This is the assertion that
+   * makes "teams that page you" different from "teams you are in".
+   */
+  test("the per-user path leaves out a team that is attached to nothing", async () => {
+    escalationTeamFindBy.mockResolvedValue([
+      escalationTeamRow(TEAM_ID),
+    ] as never);
+    membershipRows = [
+      teamMemberRow(USER_A_ID, TEAM_ID),
+      teamMemberRow(USER_A_ID, OTHER_TEAM_ID),
+    ];
+
+    const readiness: UserReadiness | null =
+      await OnCallReadinessService.getReadinessForUser(USER_A_ID, PROJECT_ID);
+
+    expect(
+      readiness!.teams.map((team: ReadinessTeam): string => {
+        return team.name;
+      }),
+    ).toEqual(["Platform"]);
   });
 });
 

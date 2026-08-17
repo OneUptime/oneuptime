@@ -51,6 +51,7 @@ import {
   DEFAULT_LOGS_TABLE_COLUMNS,
   getLogsAttributeColumnId,
   LogsSavedViewOption,
+  LogsSignalPivotAction,
   LogsTableColumnOption,
   LogsViewMode,
   normalizeLogsTableColumns,
@@ -75,6 +76,24 @@ export interface ComponentProps {
   noLogsMessage?: string | undefined;
   getTraceRoute?: (traceId: string, log: Log) => Route | URL | undefined;
   getSpanRoute?: (spanId: string, log: Log) => Route | URL | undefined;
+  /*
+   * Async fallback for spanId-only logs — resolves the owning trace on
+   * click/expand so the id can still link out (see LogsTable /
+   * LogDetailsPanel).
+   */
+  resolveSpanRoute?:
+    | ((spanId: string, log: Log) => Promise<Route | URL | undefined>)
+    | undefined;
+  /*
+   * Threaded like getTraceRoute; may return a promise because the session
+   * replay route can require a RumSession lookup.
+   */
+  getSessionRoute?:
+    | ((
+        sessionId: string,
+        log: Log,
+      ) => Route | URL | undefined | Promise<Route | URL | undefined>)
+    | undefined;
   projectId?: ObjectID | undefined;
   totalCount?: number | undefined;
   page?: number | undefined;
@@ -115,6 +134,8 @@ export interface ComponentProps {
   savedViews?: Array<LogsSavedViewOption> | undefined;
   selectedSavedViewId?: string | null;
   onSavedViewSelect?: ((viewId: string) => void) | undefined;
+  // Deselect the active saved view and reset the explorer to its default.
+  onClearSavedView?: (() => void) | undefined;
   onCreateSavedView?: (() => void) | undefined;
   onEditSavedView?: ((viewId: string) => void) | undefined;
   onDeleteSavedView?: ((viewId: string) => void) | undefined;
@@ -123,7 +144,9 @@ export interface ComponentProps {
   viewMode?: LogsViewMode | undefined;
   onViewModeChange?: ((mode: LogsViewMode) => void) | undefined;
   analyticsServiceIds?: Array<string> | undefined;
+  analyticsSessionIds?: Array<string> | undefined;
   analyticsAppliedFacetFilters?: Map<string, Set<string>> | undefined;
+  signalPivotActions?: Array<LogsSignalPivotAction> | undefined;
 }
 
 export type LogsSortField = LogsTableSortField;
@@ -1023,6 +1046,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     savedViews: props.savedViews,
     selectedSavedViewId: props.selectedSavedViewId,
     onSavedViewSelect: props.onSavedViewSelect,
+    onClearSavedView: props.onClearSavedView,
     onCreateSavedView: props.onCreateSavedView,
     onEditSavedView: props.onEditSavedView,
     onDeleteSavedView: props.onDeleteSavedView,
@@ -1063,6 +1087,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       });
     },
     onShowDocumentation: props.onShowDocumentation,
+    signalPivotActions: props.signalPivotActions,
   };
 
   const showSidebar: boolean =
@@ -1114,6 +1139,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         <LogsAnalyticsView
           timeRange={props.timeRange || { range: TimeRange.PAST_ONE_HOUR }}
           serviceIds={props.analyticsServiceIds}
+          sessionIds={props.analyticsSessionIds}
           appliedFacetFilters={props.analyticsAppliedFacetFilters || new Map()}
           logAttributes={logAttributes}
         />
@@ -1134,6 +1160,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               savedViews={props.savedViews}
               selectedSavedViewId={props.selectedSavedViewId}
               onSavedViewSelect={props.onSavedViewSelect}
+              onClearSavedView={props.onClearSavedView}
               onFacetSearchChange={props.onFacetSearchChange}
             />
           )}
@@ -1171,6 +1198,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                 sortOrder={sortOrder}
                 onSortChange={handleSortChange}
                 selectedColumns={selectedColumns}
+                getTraceRoute={props.getTraceRoute}
+                getSpanRoute={props.getSpanRoute}
+                resolveSpanRoute={props.resolveSpanRoute}
                 renderExpandedContent={(log: Log) => {
                   return (
                     <LogDetailsPanel
@@ -1181,6 +1211,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                       }}
                       getTraceRoute={props.getTraceRoute}
                       getSpanRoute={props.getSpanRoute}
+                      resolveSpanRoute={props.resolveSpanRoute}
+                      getSessionRoute={props.getSessionRoute}
                       variant="embedded"
                       projectId={props.projectId}
                       onFilterByAttribute={
@@ -1198,7 +1230,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                 pageSizeOptions={PAGE_SIZE_OPTIONS}
                 onPageChange={handlePageChange}
                 onPageSizeChange={handlePageSizeChange}
-                isDisabled={props.isLoading || totalItems === 0}
+                isDisabled={props.isLoading}
               />
             </div>
           </div>

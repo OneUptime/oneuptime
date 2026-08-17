@@ -30,6 +30,8 @@ export interface LogsFacetSidebarProps {
   savedViews?: Array<LogsSavedViewOption> | undefined;
   selectedSavedViewId?: string | null | undefined;
   onSavedViewSelect?: ((viewId: string) => void) | undefined;
+  // Toggling the applied view off here has to clear it, not re-apply it.
+  onClearSavedView?: (() => void) | undefined;
   /*
    * Called (debounced) when typing in a resource facet's search box. Lets
    * the parent re-issue the facets request with the typed text scoped to
@@ -283,7 +285,13 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
                         ? "bg-indigo-50 text-indigo-700"
                         : "text-gray-600 hover:bg-gray-50 hover:text-gray-800"
                     }`}
+                    aria-pressed={isSelected}
                     onClick={() => {
+                      if (isSelected && props.onClearSavedView) {
+                        props.onClearSavedView();
+                        return;
+                      }
+
                       props.onSavedViewSelect?.(view.id);
                     }}
                   >

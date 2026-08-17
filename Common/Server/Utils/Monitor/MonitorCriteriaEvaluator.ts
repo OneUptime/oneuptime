@@ -51,6 +51,13 @@ import Dictionary from "../../../Types/Dictionary";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricExplorerUrl from "../../../Utils/Metrics/MetricExplorerUrl";
+import {
+  CrossSignalQueryParams,
+  TelemetryCrossSignalScope,
+  toLogsExplorerQueryParams,
+  toTracesExplorerQueryParams,
+} from "../../../Utils/Telemetry/CrossSignalScope";
+import ObjectID from "../../../Types/ObjectID";
 import Typeof from "../../../Types/Typeof";
 import ReturnResult from "../../../Types/IsolatedVM/ReturnResult";
 import URL from "../../../Types/API/URL";
@@ -80,6 +87,16 @@ import MonitorStepPodmanMonitor from "../../../Types/Monitor/MonitorStepPodmanMo
 import MonitorStepProxmoxMonitor from "../../../Types/Monitor/MonitorStepProxmoxMonitor";
 import MonitorStepCephMonitor from "../../../Types/Monitor/MonitorStepCephMonitor";
 import MonitorStepDockerSwarmMonitor from "../../../Types/Monitor/MonitorStepDockerSwarmMonitor";
+
+/**
+ * A cross-signal deep link into a telemetry explorer, plus the scope
+ * fields that could not be carried into that explorer's URL grammar
+ * (so consumers can render a "scope partially carried" hint).
+ */
+export interface TelemetryExplorerDeepLink {
+  url: string;
+  dropped: Array<string>;
+}
 
 export default class MonitorCriteriaEvaluator {
   public static async processMonitorStep(input: {
@@ -936,6 +953,7 @@ ${contextBlock}
       return MonitorCriteriaEvaluator.buildMetricRootCauseContext({
         criteriaInstance: input.criteriaInstance,
         monitor: input.monitor,
+        monitorStep: input.monitorStep,
       });
     }
 
@@ -1050,6 +1068,7 @@ ${contextBlock}
   private static buildMetricRootCauseContext(input: {
     criteriaInstance: MonitorCriteriaInstance;
     monitor: Monitor;
+    monitorStep?: MonitorStep | undefined;
   }): string | null {
     /*
      * Pick the first populated metric context across the instance's filters.
@@ -1157,6 +1176,42 @@ ${contextBlock}
 
     if (deepLink) {
       sections.push(`\n\n[Open metric in dashboard](${deepLink})`);
+    }
+
+    /*
+     * Sibling deep links: the same breach window (and, where derivable,
+     * the monitor's service/attribute scope) carried over to the Logs and
+     * Traces explorers, so the on-call engineer can pivot signals without
+     * rebuilding the filter set by hand.
+     */
+    const logsLink: TelemetryExplorerDeepLink | null =
+      MonitorCriteriaEvaluator.buildLogsExplorerDeepLink({
+        monitor: input.monitor,
+        ctx,
+        monitorStep: input.monitorStep,
+      });
+
+    if (logsLink) {
+      sections.push(
+        `\n\n[Open logs in dashboard](${logsLink.url})${MonitorCriteriaEvaluator.formatScopeDroppedHint(
+          logsLink.dropped,
+        )}`,
+      );
+    }
+
+    const tracesLink: TelemetryExplorerDeepLink | null =
+      MonitorCriteriaEvaluator.buildTracesExplorerDeepLink({
+        monitor: input.monitor,
+        ctx,
+        monitorStep: input.monitorStep,
+      });
+
+    if (tracesLink) {
+      sections.push(
+        `\n\n[Open traces in dashboard](${tracesLink.url})${MonitorCriteriaEvaluator.formatScopeDroppedHint(
+          tracesLink.dropped,
+        )}`,
+      );
     }
 
     return sections.join("\n");
@@ -1365,21 +1420,17 @@ ${contextBlock}
       },
     };
 
-    // Time window: breach moment +- 15 minutes (or fall back to last hour).
-    const now: Date = OneUptimeDate.getCurrentDate();
-    const breachTime: Date | undefined = input.ctx.breachingSample?.timestamp;
-    const startTime: Date = breachTime
-      ? OneUptimeDate.addRemoveMinutes(breachTime, -30)
-      : OneUptimeDate.addRemoveHours(now, -1);
-    const endTime: Date = breachTime
-      ? OneUptimeDate.addRemoveMinutes(breachTime, 15)
-      : now;
+    const breachWindow: { startTime: Date; endTime: Date } =
+      MonitorCriteriaEvaluator.getMetricBreachExplorerWindow(input.ctx);
 
     const urlParams: Dictionary<string> =
       MetricExplorerUrl.buildQueryParamsFromMetricViewData({
         queryConfigs: [queryConfig],
         formulaConfigs: [],
-        startAndEndDate: new InBetween(startTime, endTime),
+        startAndEndDate: new InBetween(
+          breachWindow.startTime,
+          breachWindow.endTime,
+        ),
       });
 
     const params: URLSearchParams = new URLSearchParams();
@@ -1393,6 +1444,149 @@ ${contextBlock}
      * explorer at /metrics/view — the /metrics index is the metric list.
      */
     return `${DashboardClientUrl.toString()}/${projectId}/metrics/view?${params.toString()}`;
+  }
+
+  // Time window: breach moment +- 15 minutes (or fall back to last hour).
+  private static getMetricBreachExplorerWindow(ctx: MetricCriteriaContext): {
+    startTime: Date;
+    endTime: Date;
+  } {
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const breachTime: Date | undefined = ctx.breachingSample?.timestamp;
+    const startTime: Date = breachTime
+      ? OneUptimeDate.addRemoveMinutes(breachTime, -30)
+      : OneUptimeDate.addRemoveHours(now, -1);
+    const endTime: Date = breachTime
+      ? OneUptimeDate.addRemoveMinutes(breachTime, 15)
+      : now;
+
+    return { startTime, endTime };
+  }
+
+  /*
+   * The slice of telemetry a metric breach describes, in cross-signal
+   * terms: the breach window, the criteria's metric attribute filters
+   * (overlaid with the per-series labels when per-series alerting
+   * identified a specific series), and the monitor step's telemetry
+   * service scope when one is configured.
+   */
+  private static buildMetricBreachTelemetryScope(input: {
+    ctx: MetricCriteriaContext;
+    monitorStep?: MonitorStep | undefined;
+  }): TelemetryCrossSignalScope {
+    const breachWindow: { startTime: Date; endTime: Date } =
+      MonitorCriteriaEvaluator.getMetricBreachExplorerWindow(input.ctx);
+
+    const attributes: Dictionary<string> = {};
+
+    const attributeSources: Array<JSONObject> = [
+      input.ctx.filterAttributes || {},
+      input.ctx.seriesLabels || {},
+    ];
+
+    for (const source of attributeSources) {
+      for (const key of Object.keys(source)) {
+        const value: unknown = source[key];
+
+        if (
+          typeof value === "string" ||
+          typeof value === "number" ||
+          typeof value === "boolean"
+        ) {
+          attributes[key] = String(value);
+        }
+      }
+    }
+
+    const serviceIds: Array<string> = (
+      input.monitorStep?.data?.metricMonitor?.telemetryServiceIds || []
+    ).map((serviceId: ObjectID): string => {
+      return serviceId.toString();
+    });
+
+    return {
+      ...(serviceIds.length > 0 ? { serviceIds } : {}),
+      ...(Object.keys(attributes).length > 0 ? { attributes } : {}),
+      startTime: breachWindow.startTime,
+      endTime: breachWindow.endTime,
+    };
+  }
+
+  private static buildLogsExplorerDeepLink(input: {
+    monitor: Monitor;
+    ctx: MetricCriteriaContext;
+    monitorStep?: MonitorStep | undefined;
+  }): TelemetryExplorerDeepLink | null {
+    const projectId: string | undefined = input.monitor.projectId?.toString();
+
+    if (!projectId) {
+      return null;
+    }
+
+    const scope: TelemetryCrossSignalScope =
+      MonitorCriteriaEvaluator.buildMetricBreachTelemetryScope({
+        ctx: input.ctx,
+        monitorStep: input.monitorStep,
+      });
+
+    /*
+     * The URL schema is owned by CrossSignalScope — the same grammar the
+     * logs explorer parses — so this link cannot drift from what the
+     * explorer restores.
+     */
+    const queryParams: CrossSignalQueryParams =
+      toLogsExplorerQueryParams(scope);
+
+    const params: URLSearchParams = new URLSearchParams();
+
+    for (const paramName in queryParams.params) {
+      params.set(paramName, queryParams.params[paramName] as string);
+    }
+
+    return {
+      url: `${DashboardClientUrl.toString()}/${projectId}/logs?${params.toString()}`,
+      dropped: queryParams.dropped,
+    };
+  }
+
+  private static buildTracesExplorerDeepLink(input: {
+    monitor: Monitor;
+    ctx: MetricCriteriaContext;
+    monitorStep?: MonitorStep | undefined;
+  }): TelemetryExplorerDeepLink | null {
+    const projectId: string | undefined = input.monitor.projectId?.toString();
+
+    if (!projectId) {
+      return null;
+    }
+
+    const scope: TelemetryCrossSignalScope =
+      MonitorCriteriaEvaluator.buildMetricBreachTelemetryScope({
+        ctx: input.ctx,
+        monitorStep: input.monitorStep,
+      });
+
+    const queryParams: CrossSignalQueryParams =
+      toTracesExplorerQueryParams(scope);
+
+    const params: URLSearchParams = new URLSearchParams();
+
+    for (const paramName in queryParams.params) {
+      params.set(paramName, queryParams.params[paramName] as string);
+    }
+
+    return {
+      url: `${DashboardClientUrl.toString()}/${projectId}/traces?${params.toString()}`,
+      dropped: queryParams.dropped,
+    };
+  }
+
+  private static formatScopeDroppedHint(dropped: Array<string>): string {
+    if (dropped.length === 0) {
+      return "";
+    }
+
+    return ` _(scope partially carried — not applied: ${dropped.join(", ")})_`;
   }
 
   private static async buildKubernetesRootCauseContext(input: {

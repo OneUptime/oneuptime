@@ -319,6 +319,16 @@ class ConversationPdfBuilder {
       return;
     }
 
+    // A cancelled turn is a stop marker, not assistant prose.
+    if (message.status === AIChatMessageStatus.Cancelled) {
+      this.pdf.paragraph(message.contentInMarkdown || "Stopped by user.", {
+        size: 9,
+        color: PDF_COLORS.muted,
+      });
+      this.pdf.moveDown(8);
+      return;
+    }
+
     if (message.contentInMarkdown) {
       /*
        * Neutralized before parsing, so the blocks that reach the renderer no

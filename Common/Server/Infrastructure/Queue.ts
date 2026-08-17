@@ -561,29 +561,94 @@ export default class Queue {
   }
 
   /*
-   * Backlog = jobs still waiting for a worker (waiting + delayed), for
-   * autoscaling signals. ACTIVE jobs are deliberately excluded: they are
-   * already being served, so to a scaler they are capacity, not demand.
-   * Telemetry jobs in particular sit in the active state for the fan-in
-   * writer's full flush window (up to TELEMETRY_FANIN_MAX_WAIT_MS) while
-   * awaiting their ClickHouse ack, so a fleet scaled on an active-inclusive
-   * count converges on pod count = job rate x ack latency — every new pod
-   * just parks more jobs without shortening the flush window. Scaling on
-   * waiting + delayed only breaks that feedback loop. getQueueSize above
-   * keeps the active-inclusive sum for ingest backpressure checks, where
-   * in-flight work genuinely counts against capacity.
+   * How many job schedulers (BullMQ's repeatable/cron registrations) this
+   * queue holds. This is a ZCARD of the repeat zset, so it is O(1) and safe
+   * to call on every scrape of the scaling metric — unlike getJobSchedulers(),
+   * which pages the whole set.
+   *
+   * Guarded because the count is only ever used to *correct* the backlog
+   * number: a BullMQ build without this method (it is newer than the
+   * repeatable API it replaces) must degrade to the uncorrected
+   * waiting + delayed sum rather than throw and take the whole scaling
+   * metric offline with it.
+   */
+  private static async getJobSchedulerCount(queue: BullQueue): Promise<number> {
+    if (typeof queue.getJobSchedulersCount !== "function") {
+      return 0;
+    }
+
+    return (await queue.getJobSchedulersCount()) || 0;
+  }
+
+  /*
+   * Backlog = jobs still waiting for a worker, for autoscaling signals.
+   *
+   * ACTIVE jobs are deliberately excluded: they are already being served, so
+   * to a scaler they are capacity, not demand. Telemetry jobs in particular
+   * sit in the active state for the fan-in writer's full flush window (up to
+   * TELEMETRY_FANIN_MAX_WAIT_MS) while awaiting their ClickHouse ack, so a
+   * fleet scaled on an active-inclusive count converges on pod count =
+   * job rate x ack latency — every new pod just parks more jobs without
+   * shortening the flush window. Scaling on waiting + delayed only breaks
+   * that feedback loop. getQueueSize above keeps the active-inclusive sum for
+   * ingest backpressure checks, where in-flight work genuinely counts against
+   * capacity.
+   *
+   * The job SCHEDULERS are then subtracted back off — but ONLY from the
+   * delayed side, which is the whole subtlety here. Every RunCron()
+   * registration parks exactly one entry in the DELAYED set: the placeholder
+   * holding its next fire time. That placeholder is not work anybody can
+   * drain, and getDelayedCount() counts it. Left in, the placeholders put a
+   * hard floor under the metric equal to the number of registered crons (127
+   * on the Worker queue today), which sits above every sensible scale-down
+   * target, so the fleet could never scale in no matter how idle it was.
+   *
+   * The subtraction is deliberately NOT `max(0, waiting + delayed - n)`,
+   * because a scheduler entry stops being a parked placeholder the moment it
+   * comes due. BullMQ's promoteDelayedJobs ZREMs the placeholder out of
+   * `delayed` and LPUSHes it onto `wait`, and the SUCCESSOR placeholder is
+   * not created until a worker actually moves that job to active
+   * (Worker.nextJobFromJobData -> upsertJobScheduler). So for the whole
+   * promotion window there are k due cron jobs sitting in `waiting` with
+   * delayed = n - k, while the repeat zset — and therefore the scheduler
+   * count — still reads n.
+   *
+   * Those k jobs are real, drainable demand: they are queued work waiting for
+   * a worker. Subtracting the full scheduler count off the combined sum would
+   * cancel them out exactly, so the metric would read 0. That is not a
+   * rounding error, it is the dangerous direction: at the top of a minute a
+   * large batch of EVERY_MINUTE crons is promoted at once, and an idle-looking
+   * zero would tell KEDA to scale in precisely when the work arrived.
+   * Discounting the placeholders only where they actually live — the delayed
+   * set — leaves `waiting` untouched and reports that burst at face value.
+   *
+   * When delayed >= schedulerCount (the steady state, every placeholder
+   * parked) the two forms agree exactly, so this costs nothing in the common
+   * case.
+   *
+   * The inner Math.max(0, ...) clamp still matters: the three counts are read
+   * concurrently and are not a consistent snapshot, so delayed can be read
+   * mid-promotion and come back below the scheduler count. Without the clamp
+   * that shortfall would be subtracted out of `waiting`, re-introducing the
+   * masking this form exists to avoid, and could drive the gauge negative —
+   * which KEDA reads as a garbage value.
    */
   @CaptureSpan()
   public static async getQueueBacklogSize(
     queueName: QueueName,
   ): Promise<number> {
     const queue: BullQueue = this.getQueue(queueName);
-    const [waitingCount, delayedCount]: [number, number] = await Promise.all([
+    const [waitingCount, delayedCount, schedulerCount]: [
+      number,
+      number,
+      number,
+    ] = await Promise.all([
       queue.getWaitingCount(),
       queue.getDelayedCount(),
+      this.getJobSchedulerCount(queue),
     ]);
 
-    return waitingCount + delayedCount;
+    return waitingCount + Math.max(0, delayedCount - schedulerCount);
   }
 
   @CaptureSpan()

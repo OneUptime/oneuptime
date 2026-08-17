@@ -21,6 +21,7 @@ const components: Array<ComponentMetadata> = [
           "Need help creating a webhook? Check docs here: https://api.slack.com/messaging/webhooks",
         type: ComponentInputType.URL,
         required: true,
+        isSensitive: true,
         placeholder:
           "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX",
       },

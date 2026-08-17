@@ -1,4 +1,6 @@
 import {
+  DATE_FACET_OPERATORS,
+  FacetKind,
   FilterChipDropdownOption,
   FilterOperator,
   NUMBER_FACET_OPERATORS,
@@ -6,6 +8,7 @@ import {
   TEXT_FACET_OPERATORS,
 } from "../ResourceOwners/FilterChipDropdownTypes";
 import { ResourceFacet } from "../ResourceOwners/ResourceFacet";
+import { buildFacetDateRangeQuery } from "../ResourceOwners/FacetDateRange";
 import EndsWith from "Common/Types/BaseDatabase/EndsWith";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
@@ -90,6 +93,27 @@ export const getCustomFieldNameFromFacetKey: GetCustomFieldNameFromFacetKeyFunct
   };
 
 /**
+ * Is this definition one of the two date types?
+ *
+ * Both store an ISO-8601 UTC string — the shared date `Input` normalises every
+ * `date` and `datetime-local` entry through `OneUptimeDate.toString()` before
+ * it reaches the `customFields` bag — and differ only in whether the time of
+ * day is part of the answer.
+ */
+export type IsDateCustomFieldFunction = (
+  definition: CustomFieldDefinition,
+) => boolean;
+
+export const isDateCustomField: IsDateCustomFieldFunction = (
+  definition: CustomFieldDefinition,
+): boolean => {
+  return (
+    definition.customFieldType === CustomFieldType.Date ||
+    definition.customFieldType === CustomFieldType.DateTime
+  );
+};
+
+/**
  * The chip kind a definition gets.
  *
  * A dropdown with no options configured falls back to a text chip rather than
@@ -98,17 +122,21 @@ export const getCustomFieldNameFromFacetKey: GetCustomFieldNameFromFacetKeyFunct
  */
 export type GetCustomFieldFacetKindFunction = (
   definition: CustomFieldDefinition,
-) => "options" | "text" | "number";
+) => FacetKind;
 
 export const getCustomFieldFacetKind: GetCustomFieldFacetKindFunction = (
   definition: CustomFieldDefinition,
-): "options" | "text" | "number" => {
+): FacetKind => {
   if (definition.customFieldType === CustomFieldType.Number) {
     return "number";
   }
 
   if (definition.customFieldType === CustomFieldType.Boolean) {
     return "options";
+  }
+
+  if (isDateCustomField(definition)) {
+    return "dateRange";
   }
 
   if (
@@ -167,11 +195,14 @@ export type GetCustomFieldFacetOperatorsFunction = (
 
 export const getCustomFieldFacetOperators: GetCustomFieldFacetOperatorsFunction =
   (definition: CustomFieldDefinition): Array<FilterOperator> => {
-    const kind: "options" | "text" | "number" =
-      getCustomFieldFacetKind(definition);
+    const kind: FacetKind = getCustomFieldFacetKind(definition);
 
     if (kind === "number") {
       return NUMBER_FACET_OPERATORS;
+    }
+
+    if (kind === "dateRange") {
+      return DATE_FACET_OPERATORS;
     }
 
     if (kind === "text") {
@@ -247,6 +278,33 @@ const buildCustomFieldFacetQuery: BuildCustomFieldFacetQueryFunction = (
   const wrap: WrapFunction = (value: unknown): JSONObject => {
     return { [name]: value } as JSONObject;
   };
+
+  /*
+   * A date field delegates the whole vocabulary — including is_empty and
+   * is_not_empty — to the shared range builder, so a custom field date and a
+   * real date column answer "is before the 5th" identically. Only the wrapping
+   * is ours.
+   *
+   * The comparison lands on text rather than on a timestamp, and is correct
+   * because of what is stored: the shared date `Input` normalises every entry
+   * through `OneUptimeDate.toString()` (i.e. `toISOString()`), and ISO-8601 is
+   * ordered identically as text and as an instant. `JSONColumnQuery` compares
+   * a non-numeric operand as text for exactly this reason.
+   *
+   * `undefined` comes back for a half-entered range and for `is_not`, which a
+   * date chip does not offer; both mean "do not constrain this field".
+   */
+  if (isDateCustomField(definition)) {
+    const dateQuery: unknown = buildFacetDateRangeQuery(
+      input.values,
+      operator,
+      {
+        isDateTime: definition.customFieldType === CustomFieldType.DateTime,
+      },
+    );
+
+    return dateQuery === undefined ? undefined : wrap(dateQuery);
+  }
 
   if (operator === "is_empty") {
     return wrap(new IsNull());
@@ -412,8 +470,7 @@ export const buildCustomFieldFacets: BuildCustomFieldFacetsFunction = (
       return Boolean(definition && definition.name);
     })
     .map((definition: CustomFieldDefinition): ResourceFacet => {
-      const kind: "options" | "text" | "number" =
-        getCustomFieldFacetKind(definition);
+      const kind: FacetKind = getCustomFieldFacetKind(definition);
       const isMulti: boolean = isMultiSelectDefinition(definition);
 
       return {
@@ -423,9 +480,11 @@ export const buildCustomFieldFacets: BuildCustomFieldFacetsFunction = (
         icon:
           kind === "number"
             ? IconProp.Hashtag
-            : kind === "text"
-              ? IconProp.Text
-              : IconProp.List,
+            : kind === "dateRange"
+              ? IconProp.Calendar
+              : kind === "text"
+                ? IconProp.Text
+                : IconProp.List,
         isMultiSelect: isMulti,
         options:
           kind === "options"

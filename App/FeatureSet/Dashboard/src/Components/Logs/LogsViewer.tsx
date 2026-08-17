@@ -13,20 +13,22 @@ import LogsViewer, {
 import {
   DEFAULT_LOGS_TABLE_COLUMNS,
   LogsSavedViewOption,
+  LogsSignalPivotAction,
   normalizeLogsTableColumns,
 } from "Common/UI/Components/LogsViewer/types";
 import useLiveLogsRefresh from "Common/UI/Components/LogsViewer/useLiveLogsRefresh";
 import useLogsHistogram, {
   LogsHistogramState,
 } from "Common/UI/Components/LogsViewer/useLogsHistogram";
-import {
-  buildLogsHistogramRequest,
-  RESOURCE_FACET_KEYS,
-} from "./LogsHistogramRequest";
+import { buildLogsHistogramRequest } from "./LogsHistogramRequest";
 import {
   resolveLogSavedViewTimeRange,
   withResolvedTime,
 } from "./LogSavedViewTimeRange";
+import {
+  buildClearedLogsViewState,
+  ClearedLogsViewState,
+} from "./LogsViewerDefaults";
 import { serializeSavedViewTimeRange } from "Common/Utils/Telemetry/SavedViewTimeRange";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
@@ -47,6 +49,8 @@ import AnalyticsModelAPI, {
 import Query from "Common/Types/BaseDatabase/Query";
 import Realtime from "Common/UI/Utils/Realtime";
 import Log from "Common/Models/AnalyticsModels/Log";
+import RumSession from "Common/Models/AnalyticsModels/RumSession";
+import Span from "Common/Models/AnalyticsModels/Span";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -76,7 +80,30 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
+import { shouldAdoptTimeRangeOverride } from "../../Utils/SharedTelemetryTimeCursor";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
+import Navigation from "Common/UI/Utils/Navigation";
+import Dictionary from "Common/Types/Dictionary";
+import IconProp from "Common/Types/Icon/IconProp";
+import {
+  CrossSignalQueryParams,
+  toMetricsExplorerQueryParams,
+  toTracesExplorerQueryParams,
+} from "Common/Utils/Telemetry/CrossSignalScope";
+import {
+  applyLogsFacetFiltersToQuery,
+  applyLogsSessionScopeToQuery,
+  buildLogsPivotScope,
+  buildSessionReplayRoute,
+  buildSpanChipOpenRoute,
+  buildTraceViewRoute,
+  extractRumApplicationIdFromRumSessions,
+  extractTraceIdFromSpans,
+  formatDroppedScopeHint,
+  LogsPivotScopeInput,
+  LogsPivotScopeResult,
+  mergeDroppedScopeFields,
+} from "../../Utils/LogsCrossSignalPivot";
 
 export interface ComponentProps {
   id: string;
@@ -84,6 +111,12 @@ export interface ComponentProps {
   enableRealtime?: boolean;
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
+  /*
+   * Base RUM session scope: compiles to `sessionId IN (...)` exactly like
+   * traceIds, and is forwarded to the histogram / facets / analytics
+   * endpoints so every panel covers the same rows as the list.
+   */
+  sessionIds?: Array<string> | undefined;
   showFilters?: boolean | undefined;
   noLogsMessage?: string | undefined;
   logQuery?: Query<Log> | undefined;
@@ -111,6 +144,24 @@ export interface ComponentProps {
    * Only the main /logs page should opt in.
    */
   syncUrlState?: boolean | undefined;
+  /*
+   * Controlled shared window (the entity telemetry hub). Unlike a pinned
+   * `logQuery.time` window — which describes one fixed moment and resets the
+   * whole filter state when it changes — adopting an override change keeps
+   * the user's chip filters and can carry a rolling preset. A pinned window
+   * still wins when both are present. The host is expected to hand back
+   * whatever `onTimeRangeChange` lifted, so an echo of the viewer's own
+   * change compares equal and is a no-op.
+   */
+  timeRangeOverride?: RangeStartAndEndDateTime | undefined;
+  /*
+   * Fired only for user-initiated window changes inside this viewer (the
+   * time picker and histogram drag-zoom) — never when adopting
+   * `timeRangeOverride` — so a controlling host can follow without loops.
+   */
+  onTimeRangeChange?:
+    | ((timeRange: RangeStartAndEndDateTime) => void)
+    | undefined;
 }
 
 const DEFAULT_PAGE_SIZE: number = 100;
@@ -295,6 +346,8 @@ function buildBaseQuery(props: ComponentProps): Query<Log> {
     query.spanId = new Includes(props.spanIds);
   }
 
+  applyLogsSessionScopeToQuery(query, props.sessionIds);
+
   if (props.logQuery && Object.keys(props.logQuery).length > 0) {
     for (const key in props.logQuery) {
       (query as any)[key] = (props.logQuery as any)[key] as any;
@@ -385,6 +438,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const [initialTimeRange] = useState<RangeStartAndEndDateTime>(() => {
     return (
       pinnedTimeRange ||
+      props.timeRangeOverride ||
       initialUrlState?.timeRange || { range: TimeRange.PAST_ONE_HOUR }
     );
   });
@@ -400,7 +454,17 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       defaultRange.startValue,
       defaultRange.endValue,
     );
-    return base;
+    /*
+     * URL-hydrated chips must reach the list query too, not just the chip
+     * row and the histogram — otherwise every filter-carrying deep link
+     * (cross-signal pivots, AI-insight investigation links, exception
+     * occurrence links) lands on a page whose chips claim a scope the list
+     * silently ignores.
+     */
+    return applyLogsFacetFiltersToQuery(
+      base,
+      initialUrlState?.facetFilters || new Map(),
+    );
   });
   const [page, setPage] = useState<number>(initialUrlState?.page || 1);
   const [pageSize, setPageSize] = useState<number>(
@@ -457,6 +521,16 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const [timeRange, setTimeRange] =
     useState<RangeStartAndEndDateTime>(initialTimeRange);
 
+  /*
+   * Render-time mirror of `timeRange` for the adopt effect below. The effect
+   * must compare an override against the *current* window without listing
+   * `timeRange` in its deps — otherwise the user's own zoom would re-run it
+   * against a stale override and get yanked straight back.
+   */
+  const timeRangeRef: React.MutableRefObject<RangeStartAndEndDateTime> =
+    useRef<RangeStartAndEndDateTime>(timeRange);
+  timeRangeRef.current = timeRange;
+
   useEffect(() => {
     const base: Query<Log> = buildBaseQuery(props);
 
@@ -487,12 +561,21 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       dateRange.startValue,
       dateRange.endValue,
     );
-    setFilterOptions(base);
+    /*
+     * The applied chips survive a base-scope change (only the base + window
+     * are re-stamped), so they must stay compiled into the list query —
+     * this is also the pass that runs right after mount, where the chips
+     * may have been hydrated from the URL. Read from the render closure
+     * like `timeRange` above: chip CHANGES flow through the interaction
+     * handlers, not through this effect.
+     */
+    setFilterOptions(applyLogsFacetFiltersToQuery(base, appliedFacetFilters));
     setPage(1);
   }, [
     props.serviceIds,
     props.traceIds,
     props.spanIds,
+    props.sessionIds,
     props.logQuery,
     props.entityScope,
   ]);
@@ -549,6 +632,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       primaryEntityId: true,
       spanId: true,
       traceId: true,
+      sessionId: true,
       severityText: true,
       attributes: true,
     };
@@ -593,6 +677,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
     return [...props.spanIds];
   }, [props.spanIds]);
+
+  const sessionIdStrings: Array<string> | undefined = useMemo(() => {
+    if (!props.sessionIds || props.sessionIds.length === 0) {
+      return undefined;
+    }
+
+    return [...props.sessionIds];
+  }, [props.sessionIds]);
 
   // Extract attribute filters from logQuery for histogram/facets API calls
   const logQueryAttributes: Record<string, string> | undefined = useMemo(() => {
@@ -815,6 +907,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         appliedFacetFilters: appliedFacetFilters,
       });
 
+      /*
+       * Base session scope — the chart must cover the same rows as the list
+       * when the viewer is scoped to a RUM session.
+       */
+      if (sessionIdStrings) {
+        requestData["sessionIds"] = sessionIdStrings;
+      }
+
       const response: HTTPResponse<JSONObject> = await postApi(
         "/telemetry/logs/histogram",
         requestData,
@@ -826,6 +926,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       serviceIdStrings,
       traceIdStrings,
       spanIdStrings,
+      sessionIdStrings,
       appliedFacetFilters,
       timeRange,
       logQueryAttributes,
@@ -874,6 +975,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           (requestData as any)["spanIds"] = spanIdStrings;
         }
 
+        if (sessionIdStrings) {
+          (requestData as any)["sessionIds"] = sessionIdStrings;
+        }
+
         if (logQueryAttributes) {
           (requestData as any)["attributes"] = logQueryAttributes;
         }
@@ -916,6 +1021,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       serviceIdStrings,
       traceIdStrings,
       spanIdStrings,
+      sessionIdStrings,
       timeRange,
       logQueryAttributes,
       logQueryEntityKeys,
@@ -978,7 +1084,72 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     [disableLiveMode, props],
   );
 
+  /*
+   * Deselect the active saved view and put the explorer back where it starts.
+   * Every field applying a view writes is written back to its default — see
+   * buildClearedLogsViewState, which owns that answer so it can be tested
+   * without a renderer.
+   */
+  const clearSavedView: () => void = useCallback((): void => {
+    const cleared: ClearedLogsViewState = buildClearedLogsViewState({
+      baseQuery: buildBaseQuery(props),
+      defaultPageSize: effectiveDefaultPageSize,
+      hostTimeRange: pinnedTimeRange || props.timeRangeOverride,
+    });
+
+    setTimeRange(cleared.timeRange);
+    setAppliedFacetFilters(cleared.facetFilters);
+    setFilterOptions(cleared.filterOptions);
+    setPage(cleared.page);
+    setPageSize(cleared.pageSize);
+    setSortField(cleared.sortField);
+    setSortOrder(cleared.sortOrder);
+    setSelectedColumns(cleared.columns);
+    setSelectedSavedViewId(null);
+    disableLiveMode();
+  }, [props, pinnedTimeRange, effectiveDefaultPageSize, disableLiveMode]);
+
   // --- Effects ---
+
+  /*
+   * Adopt a controlled window change from the host. Value-gated: the echo of
+   * a window this viewer just lifted through onTimeRangeChange compares
+   * equal and is skipped, which is what breaks the feedback loop. Unlike the
+   * pinned-logQuery path above, this keeps the applied chip filters — only
+   * the `time` predicate moves.
+   *
+   * Keyed on the override value ALONE (matching MetricsViewer/TracesViewer):
+   * the live-mode teardown is inlined instead of calling disableLiveMode,
+   * whose useCallback identity changes on every live toggle — listing it
+   * here would replay adoption against an UNCHANGED override and yank a
+   * hand-picked saved view's window back to the host cursor.
+   */
+  useEffect(() => {
+    if (
+      !shouldAdoptTimeRangeOverride(
+        props.timeRangeOverride,
+        timeRangeRef.current,
+      )
+    ) {
+      return;
+    }
+    const override: RangeStartAndEndDateTime = props.timeRangeOverride!;
+    setTimeRange(override);
+    const dateRange: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(override);
+    setFilterOptions((previous: Query<Log>): Query<Log> => {
+      const next: Query<Log> = { ...previous };
+      (next as any).time = new InBetween<Date>(
+        dateRange.startValue,
+        dateRange.endValue,
+      );
+      return next;
+    });
+    setPage(1);
+    setIsLiveEnabled(false);
+    liveRequestInFlight.current = false;
+    setIsLiveUpdating(false);
+  }, [props.timeRangeOverride]);
 
   useEffect(() => {
     fetchItems().catch((err: unknown) => {
@@ -1009,9 +1180,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
      * A pinned window came from the host, not from the user browsing logs, and
      * a saved view carries its own time range — auto-applying the project
      * default here would move an incident's preview off the moment it is
-     * about. The user can still pick a saved view by hand.
+     * about. A controlled window (the entity telemetry hub) owns the view the
+     * same way. The user can still pick a saved view by hand.
      */
-    if (pinnedTimeRange) {
+    if (pinnedTimeRange || props.timeRangeOverride) {
       return;
     }
 
@@ -1024,7 +1196,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     if (defaultSavedView) {
       applySavedView(defaultSavedView);
     }
-  }, [applySavedView, isSavedViewLoading, savedViews, pinnedTimeRange]);
+  }, [
+    applySavedView,
+    isSavedViewLoading,
+    savedViews,
+    pinnedTimeRange,
+    props.timeRangeOverride,
+  ]);
 
   useEffect(() => {
     if (!selectedSavedViewId) {
@@ -1184,8 +1362,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       setFilterOptions(updatedFilter);
       setPage(1);
       disableLiveMode();
+      // User-initiated (drag-zoom) — lift to a controlling host.
+      props.onTimeRangeChange?.(customRange);
     },
-    [filterOptions, disableLiveMode],
+    [filterOptions, disableLiveMode, props.onTimeRangeChange],
   );
 
   const handleTimeRangeChange: (
@@ -1205,8 +1385,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       setFilterOptions(updatedFilter);
       setPage(1);
       disableLiveMode();
+      // User-initiated (the time picker) — lift to a controlling host.
+      props.onTimeRangeChange?.(newTimeRange);
     },
-    [filterOptions, disableLiveMode],
+    [filterOptions, disableLiveMode, props.onTimeRangeChange],
   );
 
   const rebuildFilterOptionsFromFacets: (
@@ -1224,66 +1406,11 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       );
 
       /*
-       * primaryEntityId, hostId, dockerHostId and kubernetesClusterId facets
-       * all filter the same underlying `primaryEntityId` column — the
-       * discriminator only matters at facet computation time. Coalesce
-       * any selected values across these facets into a single
-       * `primaryEntityId IN (...)` predicate.
+       * One shared compilation (facet chips -> query predicates) for this
+       * interaction path AND the URL-hydration paths above, so a deep link
+       * and a hand-applied chip always produce the same list query.
        */
-      const resourceIds: Set<string> = new Set<string>();
-      const resourceFacetKeys: Set<string> = new Set<string>(
-        RESOURCE_FACET_KEYS,
-      );
-
-      for (const [key, values] of facets.entries()) {
-        if (values.size === 0) {
-          continue;
-        }
-
-        if (resourceFacetKeys.has(key)) {
-          for (const value of values) {
-            resourceIds.add(value);
-          }
-          continue;
-        }
-
-        /*
-         * Keys prefixed with `attributes.` are telemetry attribute filters,
-         * which live under `query.attributes[<suffix>]` rather than as
-         * top-level columns.
-         */
-        if (key.startsWith("attributes.")) {
-          const attrKey: string = key.substring("attributes.".length);
-          const existing: Record<string, unknown> =
-            ((updatedFilter as any).attributes as Record<string, unknown>) ||
-            {};
-          existing[attrKey] =
-            values.size === 1
-              ? Array.from(values)[0]!
-              : new Includes(Array.from(values));
-          (updatedFilter as any).attributes = existing;
-          continue;
-        }
-
-        if (values.size === 1) {
-          // Single value: use direct equality
-          const singleValue: string = Array.from(values)[0]!;
-          (updatedFilter as any)[key] = singleValue;
-        } else {
-          // Multiple values: use Includes
-          (updatedFilter as any)[key] = new Includes(Array.from(values));
-        }
-      }
-
-      if (resourceIds.size === 1) {
-        (updatedFilter as any).primaryEntityId = Array.from(resourceIds)[0]!;
-      } else if (resourceIds.size > 1) {
-        (updatedFilter as any).primaryEntityId = new Includes(
-          Array.from(resourceIds),
-        );
-      }
-
-      return updatedFilter;
+      return applyLogsFacetFiltersToQuery(updatedFilter, facets);
     },
     [props, timeRange],
   );
@@ -1384,9 +1511,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         return undefined;
       }
 
-      return RouteUtil.populateRouteParams(RouteMap[PageMap.TRACE_VIEW]!, {
-        modelId: traceId,
-      });
+      return buildTraceViewRoute(traceId);
     }, []);
 
   const getSpanRoute: (spanId: string, log: Log) => Route | URL | undefined =
@@ -1397,18 +1522,246 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         return undefined;
       }
 
-      const route: Route = RouteUtil.populateRouteParams(
-        RouteMap[PageMap.TRACE_VIEW]!,
-        {
-          modelId: traceId,
-        },
+      return buildTraceViewRoute(traceId, spanId);
+    }, []);
+
+  /*
+   * spanId-only logs can't build a trace route synchronously, so the owning
+   * trace is looked up once per span id — on click/expand, cached, and cheap
+   * on the server side (idx_span_id).
+   */
+  const spanTraceIdCacheRef: React.MutableRefObject<
+    Map<string, string | null>
+  > = useRef<Map<string, string | null>>(new Map());
+
+  const resolveSpanRoute: (
+    spanId: string,
+    log: Log,
+  ) => Promise<Route | URL | undefined> = useCallback(
+    async (spanId: string, log: Log): Promise<Route | URL | undefined> => {
+      const syncRoute: Route | URL | undefined = getSpanRoute(spanId, log);
+
+      if (syncRoute) {
+        return syncRoute;
+      }
+
+      if (!spanId) {
+        return undefined;
+      }
+
+      let traceId: string | null | undefined =
+        spanTraceIdCacheRef.current.get(spanId);
+
+      if (traceId === undefined) {
+        try {
+          const listResult: ListResult<Span> =
+            await AnalyticsModelAPI.getList<Span>({
+              modelType: Span,
+              query: { spanId: spanId } as Query<Span>,
+              limit: 1,
+              skip: 0,
+              select: {
+                traceId: true,
+              },
+              sort: {},
+            });
+
+          traceId = extractTraceIdFromSpans(listResult.data);
+        } catch {
+          // Left uncached so a transient failure can retry on the next click.
+          return undefined;
+        }
+
+        spanTraceIdCacheRef.current.set(spanId, traceId);
+      }
+
+      if (!traceId) {
+        return undefined;
+      }
+
+      return buildTraceViewRoute(traceId, spanId);
+    },
+    [getSpanRoute],
+  );
+
+  /*
+   * The session replay route needs the rumApplicationId, which a bare log row
+   * doesn't carry — resolved lazily (the details panel calls this on expand)
+   * via one RumSession lookup by session id, and cached.
+   */
+  const sessionRumApplicationIdCacheRef: React.MutableRefObject<
+    Map<string, string | null>
+  > = useRef<Map<string, string | null>>(new Map());
+
+  const getSessionRoute: (
+    sessionId: string,
+    log: Log,
+  ) => Promise<Route | URL | undefined> = useCallback(
+    async (sessionId: string, _log: Log): Promise<Route | URL | undefined> => {
+      if (!sessionId) {
+        return undefined;
+      }
+
+      let rumApplicationId: string | null | undefined =
+        sessionRumApplicationIdCacheRef.current.get(sessionId);
+
+      if (rumApplicationId === undefined) {
+        try {
+          const listResult: ListResult<RumSession> =
+            await AnalyticsModelAPI.getList<RumSession>({
+              modelType: RumSession,
+              query: { sessionId: sessionId } as Query<RumSession>,
+              limit: 1,
+              skip: 0,
+              select: {
+                rumApplicationId: true,
+              },
+              sort: {},
+            });
+
+          rumApplicationId = extractRumApplicationIdFromRumSessions(
+            listResult.data,
+          );
+        } catch {
+          // Left uncached so a transient failure can retry on the next expand.
+          return undefined;
+        }
+
+        sessionRumApplicationIdCacheRef.current.set(
+          sessionId,
+          rumApplicationId,
+        );
+      }
+
+      if (!rumApplicationId) {
+        return undefined;
+      }
+
+      return buildSessionReplayRoute(rumApplicationId, sessionId);
+    },
+    [],
+  );
+
+  /*
+   * Cross-signal pivots: carry the CURRENT view (base scope, applied facet
+   * chips, attribute filters, time window) to the traces / metrics explorer
+   * through the CrossSignalScope serializers. Fields the target grammar
+   * cannot express are surfaced in the button tooltip, never dropped
+   * silently.
+   */
+  const pivotScopeInput: LogsPivotScopeInput = useMemo(() => {
+    return {
+      serviceIds: serviceIdStrings,
+      traceIds: traceIdStrings,
+      spanIds: spanIdStrings,
+      sessionIds: sessionIdStrings,
+      attributes: logQueryAttributes,
+      appliedFacetFilters: appliedFacetFilters,
+      timeRange: timeRange,
+    };
+  }, [
+    serviceIdStrings,
+    traceIdStrings,
+    spanIdStrings,
+    sessionIdStrings,
+    logQueryAttributes,
+    appliedFacetFilters,
+    timeRange,
+  ]);
+
+  const navigateToExplorer: (
+    pageMap: PageMap,
+    params: Dictionary<string>,
+  ) => void = useCallback(
+    (pageMap: PageMap, params: Dictionary<string>): void => {
+      const route: Route = RouteUtil.populateRouteParams(RouteMap[pageMap]!);
+      const currentUrl: URL = Navigation.getCurrentURL();
+      const targetUrl: URL = new URL(
+        currentUrl.protocol,
+        currentUrl.hostname,
+        route,
       );
 
-      const routeWithQuery: Route = new Route(route.toString());
-      routeWithQuery.addQueryParams({ spanId });
+      for (const paramName of Object.keys(params)) {
+        targetUrl.addQueryParam(paramName, params[paramName] as string, true);
+      }
 
-      return routeWithQuery;
-    }, []);
+      Navigation.navigate(targetUrl);
+    },
+    [],
+  );
+
+  const buildTracesPivot: () => CrossSignalQueryParams =
+    useCallback((): CrossSignalQueryParams => {
+      const { scope, dropped }: LogsPivotScopeResult =
+        buildLogsPivotScope(pivotScopeInput);
+      const serialized: CrossSignalQueryParams =
+        toTracesExplorerQueryParams(scope);
+
+      return {
+        params: serialized.params,
+        dropped: mergeDroppedScopeFields(dropped, serialized.dropped),
+      };
+    }, [pivotScopeInput]);
+
+  const buildMetricsPivot: () => CrossSignalQueryParams =
+    useCallback((): CrossSignalQueryParams => {
+      const { scope, dropped }: LogsPivotScopeResult =
+        buildLogsPivotScope(pivotScopeInput);
+      const serialized: CrossSignalQueryParams =
+        toMetricsExplorerQueryParams(scope);
+
+      return {
+        params: serialized.params,
+        dropped: mergeDroppedScopeFields(dropped, serialized.dropped),
+      };
+    }, [pivotScopeInput]);
+
+  const signalPivotActions: Array<LogsSignalPivotAction> = useMemo(() => {
+    const buildTooltip: (baseText: string, dropped: Array<string>) => string = (
+      baseText: string,
+      dropped: Array<string>,
+    ): string => {
+      const hint: string = formatDroppedScopeHint(dropped);
+      return hint ? `${baseText} — ${hint}` : baseText;
+    };
+
+    return [
+      {
+        id: "logs-pivot-traces",
+        label: "Traces",
+        icon: IconProp.Layers,
+        tooltip: buildTooltip(
+          "Open the traces explorer with this scope",
+          buildTracesPivot().dropped,
+        ),
+        onClick: () => {
+          // Rebuilt at click time so a preset window resolves against "now".
+          navigateToExplorer(PageMap.TRACES, buildTracesPivot().params);
+        },
+      },
+      {
+        id: "logs-pivot-metrics",
+        label: "Metrics",
+        icon: IconProp.ChartBar,
+        tooltip: buildTooltip(
+          "Open the metrics explorer with this time window",
+          buildMetricsPivot().dropped,
+        ),
+        onClick: () => {
+          /*
+           * METRIC_VIEW (the metric explorer), not the METRICS list page —
+           * only the explorer parses the metricQueries/startTime/endTime
+           * grammar this pivot emits. A scope with no attribute filters
+           * carries the window alone: the serializer omits metricQueries
+           * entirely (isMeaningfulMetricQuery), and the explorer treats the
+           * absolute window params as a pinned Custom range.
+           */
+          navigateToExplorer(PageMap.METRIC_VIEW, buildMetricsPivot().params);
+        },
+      },
+    ];
+  }, [buildTracesPivot, buildMetricsPivot, navigateToExplorer]);
 
   // Build value suggestions for the search bar autocomplete
   const valueSuggestions: Record<string, Array<string>> = useMemo(() => {
@@ -1494,6 +1847,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           displayKey: "Trace",
           displayValue: traceId,
           readOnly: true,
+          openRoute: buildTraceViewRoute(traceId),
         });
       }
     }
@@ -1505,6 +1859,19 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           value: spanId,
           displayKey: "Span",
           displayValue: spanId,
+          readOnly: true,
+          openRoute: buildSpanChipOpenRoute(spanId, traceIdStrings),
+        });
+      }
+    }
+
+    if (props.sessionIds && props.sessionIds.length > 0) {
+      for (const sessionId of props.sessionIds) {
+        filters.push({
+          facetKey: "sessionId",
+          value: sessionId,
+          displayKey: "Session",
+          displayValue: sessionId,
           readOnly: true,
         });
       }
@@ -1534,6 +1901,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     props.serviceIds,
     props.traceIds,
     props.spanIds,
+    props.sessionIds,
+    traceIdStrings,
     logQueryAttributes,
     scopedServiceNameMap,
   ]);
@@ -1553,6 +1922,15 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       spanId: "Span",
     };
 
+    /*
+     * A span chip only links out when the view pins down exactly one trace —
+     * either the base scope or an applied trace filter.
+     */
+    const candidateTraceIds: Array<string> = [
+      ...(traceIdStrings || []),
+      ...Array.from(appliedFacetFilters.get("traceId") || []),
+    ];
+
     for (const [facetKey, values] of appliedFacetFilters.entries()) {
       // Strip the `attributes.` prefix so the chip reads as `<key>: <value>`.
       const displayKey: string = facetKey.startsWith("attributes.")
@@ -1560,17 +1938,25 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         : facetKeyDisplayNames[facetKey] || facetKey;
 
       for (const value of values) {
+        const openRoute: Route | undefined =
+          facetKey === "traceId"
+            ? buildTraceViewRoute(value)
+            : facetKey === "spanId"
+              ? buildSpanChipOpenRoute(value, candidateTraceIds)
+              : undefined;
+
         filters.push({
           facetKey,
           value,
           displayKey,
           displayValue: value,
+          openRoute,
         });
       }
     }
 
     return filters;
-  }, [appliedFacetFilters]);
+  }, [appliedFacetFilters, traceIdStrings]);
 
   if (error) {
     return <ErrorMessage message={error} />;
@@ -1743,6 +2129,9 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           }}
           getTraceRoute={getTraceRoute}
           getSpanRoute={getSpanRoute}
+          resolveSpanRoute={resolveSpanRoute}
+          getSessionRoute={getSessionRoute}
+          signalPivotActions={signalPivotActions}
           histogramBuckets={histogram.buckets}
           histogramLoading={histogram.isLoading}
           onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
@@ -1793,6 +2182,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
               applySavedView(savedView);
             }
           }}
+          onClearSavedView={clearSavedView}
           onCreateSavedView={() => {
             setShowCreateSavedViewModal(true);
           }}
@@ -1817,6 +2207,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           analyticsServiceIds={serviceIdStrings}
+          analyticsSessionIds={sessionIdStrings}
           projectId={ProjectUtil.getCurrentProjectId() || undefined}
           analyticsAppliedFacetFilters={appliedFacetFilters}
           onUpdateCurrentSavedView={async () => {

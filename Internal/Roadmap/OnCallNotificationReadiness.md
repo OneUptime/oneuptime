@@ -523,9 +523,27 @@ Contents, top to bottom:
 | Last-rule delete warning | the shared `OnCallRulesTable` | "You are a responder on **3 active on-call policies**. Deleting this leaves *Sev4 incidents* with no rule." Confirm to proceed |
 | Last-method delete warning | `Components/NotificationMethods/*` | Same, plus the count of rules that will cascade away (`onDelete: "CASCADE"` on every method FK) |
 | Add-responder gate | `EscalationRules.tsx` | Warn by default when adding a `NotReachable` user; new project setting `blockUnreachableOnCallResponders` upgrades warn → block |
-| Onboarding checklist | existing project onboarding | "Set up how you want to be paged" item, complete when readiness is `Ready` |
+| Onboarding checklist | **shipped elsewhere** — see the note below | not an item in project onboarding |
 | Weekly digest | new worker job | To project owners: responders who are still not ready, with a one-click reminder |
 | Setup reminder | new API + email/push template | Deep-links straight to *that user's* on-call rules page |
+
+**The checklist landed as its own page, not as an onboarding item.** This plan put it
+in project onboarding, complete when readiness is `Ready`. That was the wrong home for
+it, for two reasons found later: project onboarding is dismissed once and never seen
+again, whereas notification setup REGRESSES — a new severity, a deleted method or an
+admin switching a channel off each turn a finished step back into an outstanding one —
+and a single "set up how you want to be paged" tile cannot say WHICH of the eleven User
+Settings pages is the one with the hole in it.
+
+So it shipped as `User Settings > Setup Checklist`
+(`Pages/UserSettings/Setup.tsx`, route `user-settings/setup`, first item in the side
+menu), built on the same `GET /on-call-readiness/user/:userId` payload as the admin
+surfaces, so the two cannot disagree about whether somebody is reachable. The logic is
+a pure module (`Components/UserSettings/SetupChecklist/ChecklistModel.ts`) so that
+which-steps-apply and what-each-one-says are testable without a browser. Four step
+states rather than a boolean — Complete, Incomplete, Blocked (real, but an admin's to
+fix, so it carries no link) and NotApplicable (the project has no alert severities, so
+there is nothing to credit) — and only Complete/Incomplete count towards progress.
 
 ---
 

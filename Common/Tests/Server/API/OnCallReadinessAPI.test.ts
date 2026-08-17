@@ -387,6 +387,7 @@ beforeEach(() => {
   subjectUserId = ObjectID.generate();
   teamId = ObjectID.generate();
   stubEmailMethodId = ObjectID.generate();
+  stubTeamId = ObjectID.generate();
 
   propsSpy = jest
     .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
@@ -570,6 +571,14 @@ describe("OnCallReadinessAPI - route registration", () => {
  */
 let stubEmailMethodId: ObjectID;
 
+/*
+ * The id of the team the stub summary's responder is paged through. Held on the
+ * module for the same reason as stubEmailMethodId - an assertion has to be able
+ * to name the exact value it expects to find flattened on the wire, because this
+ * id is what the readiness table's team filter submits.
+ */
+let stubTeamId: ObjectID;
+
 function stubSummary(): ReadinessSummary {
   const severityId: ObjectID = ObjectID.generate();
   const pictureId: ObjectID = ObjectID.generate();
@@ -612,6 +621,14 @@ function stubSummary(): ReadinessSummary {
     ],
     reasons: ["No rules for Sev4 incidents - pages fall back to Push, Email"],
     reachedVia: [ResponderSource.Team, ResponderSource.Override],
+    /*
+     * A team, because this responder is reached through one. The serialiser has
+     * to flatten the id the same way it flattens every other id here - a team
+     * that reached the browser as ObjectID.toJSON()'s `{_type, value}` wrapper
+     * would populate the readiness table's team filter with options whose value
+     * matches no row.
+     */
+    teams: [{ _id: stubTeamId, name: "Platform" }],
   };
 
   return {
@@ -720,6 +737,7 @@ describe("GET /on-call-readiness/policy/:policyId", () => {
       "reachedVia",
       "reasons",
       "status",
+      "teams",
       "userEmail",
       "userId",
       "userName",
@@ -770,6 +788,52 @@ describe("GET /on-call-readiness/policy/:policyId", () => {
     )[0]!;
     expect(typeof method["methodId"]).toBe("string");
     expect(method["methodId"]).not.toBe(subjectUserId.toString());
+  });
+
+  /*
+   * The teams that page this responder, flattened the same way every other id
+   * here is.
+   *
+   * This one has a specific consumer: the readiness table's team filter builds
+   * its options out of these, and submits the id it was given. A team that
+   * arrived as ObjectID.toJSON()'s `{ _type: "ObjectID", value: "..." }` would
+   * populate a dropdown whose values match no row, and the filter would silently
+   * answer with an empty table for every option.
+   */
+  test("a responder's teams carry a flat string id and a name", async () => {
+    await callGetRoute({
+      uri: POLICY_ROUTE,
+      params: { policyId: policyId.toString() },
+    });
+
+    const users: Array<Record<string, unknown>> = jsonPayload()[
+      "users"
+    ] as Array<Record<string, unknown>>;
+
+    expect(users[0]!["teams"]).toEqual([
+      {
+        _id: stubTeamId.toString(),
+        name: "Platform",
+      },
+    ]);
+  });
+
+  test("the team id on the wire is a string, not an ObjectID wrapper", async () => {
+    await callGetRoute({
+      uri: POLICY_ROUTE,
+      params: { policyId: policyId.toString() },
+    });
+
+    const users: Array<Record<string, unknown>> = jsonPayload()[
+      "users"
+    ] as Array<Record<string, unknown>>;
+
+    const team: Record<string, unknown> = (
+      users[0]!["teams"] as Array<Record<string, unknown>>
+    )[0]!;
+
+    expect(typeof team["_id"]).toBe("string");
+    expect(team["_id"]).not.toBe(subjectUserId.toString());
   });
 
   test("a coverage cell carries its severity id as a string, and undefined when it has none", async () => {
@@ -1229,6 +1293,7 @@ describe("GET /on-call-readiness/user/:userId", () => {
       "reachedVia",
       "reasons",
       "status",
+      "teams",
       "userEmail",
       "userId",
       "userName",

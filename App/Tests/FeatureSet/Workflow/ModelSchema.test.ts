@@ -57,6 +57,7 @@ import ModelSchemaAPI, {
 interface Column {
   id: string;
   title: string;
+  description?: string | undefined;
   type: string;
   isRelation: boolean;
   relatedColumns?: Array<Column> | undefined;
@@ -366,6 +367,20 @@ describe("Workflow /model-schema/:tableName column descriptors", () => {
 
     expect(findColumn(columns, "name")?.required).toBe(true);
     expect(findColumn(columns, "description")?.required).toBe(false);
+  });
+
+  /*
+   * The record editor labels each field with the model's own title and prints
+   * this sentence under it, so a column described here with nothing to say
+   * arrives on screen as a bare name. It was produced but asserted nowhere.
+   */
+  test("carries the model's own title and description for a column", async () => {
+    const columns: Array<Column> = await getColumnsFor("Monitor");
+    const name: Column | undefined = findColumn(columns, "name");
+
+    expect(name?.title).toBe("Name");
+    expect(typeof name?.description).toBe("string");
+    expect((name?.description as string).length).toBeGreaterThan(0);
   });
 
   /*

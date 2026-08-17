@@ -18,10 +18,11 @@ const components: Array<ComponentMetadata> = [
         id: "webhook-url",
         name: "Teams Incoming Webhook URL",
         description:
-          "Need help creating a webhook? Check docs here: https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook",
+          "Create a channel webhook with Teams Workflows. See: https://support.microsoft.com/en-us/teams/apps-service/create-incoming-webhooks-with-workflows-for-microsoft-teams",
         type: ComponentInputType.URL,
         required: true,
-        placeholder: "https://xxxxx.webhook.office.com/xxxxxxxxx",
+        isSensitive: true,
+        placeholder: "https://...environment.api.powerplatform.com/...",
       },
       {
         id: "text",

@@ -62,7 +62,8 @@
     "Telemetry": "टेलीमेट्री",
     "AI": "AI",
     "API Reference": "API संदर्भ",
-    "Self Hosted": "स्व-होस्टेड"
+    "Self Hosted": "स्व-होस्टेड",
+    "Inventory": "इन्वेंटरी"
   },
   "navLinks": {
     "Getting Started": "शुरू करना",
@@ -185,6 +186,8 @@
     "GitHub Integration": "GitHub एकीकरण",
     "Push Notifications": "पुश सूचनाएँ",
     "SendGrid Inbound Email": "SendGrid आने वाला ईमेल",
-    "Architecture": "वास्तुकला"
+    "Architecture": "वास्तुकला",
+    "Custom Fields": "कस्टम फ़ील्ड",
+    "Exporting to a CMDB": "CMDB में निर्यात करना"
   }
 }

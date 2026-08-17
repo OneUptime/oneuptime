@@ -62,7 +62,8 @@
     "Telemetry": "Telemetrie",
     "AI": "AI",
     "API Reference": "API-referentie",
-    "Self Hosted": "Zelf gehost"
+    "Self Hosted": "Zelf gehost",
+    "Inventory": "Inventaris"
   },
   "navLinks": {
     "Getting Started": "Aan de slag",
@@ -185,6 +186,8 @@
     "GitHub Integration": "GitHub-integratie",
     "Push Notifications": "Pushmeldingen",
     "SendGrid Inbound Email": "SendGrid inkomende e-mail",
-    "Architecture": "Architectuur"
+    "Architecture": "Architectuur",
+    "Custom Fields": "Aangepaste velden",
+    "Exporting to a CMDB": "Exporteren naar een CMDB"
   }
 }

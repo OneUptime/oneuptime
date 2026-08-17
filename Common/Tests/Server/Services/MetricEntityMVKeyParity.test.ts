@@ -30,14 +30,19 @@ describe("entity-MV routing keys — parity with ingest-stamped scalar entity ke
   const projectId: string = "proj-123";
 
   /*
-   * A resource carrying all four routable identities at once, with
-   * casing/whitespace drift to exercise canonicalization.
+   * Keep standalone-host and Kubernetes fixtures separate: Kubernetes
+   * resources can carry an SDK-detected host.name (often the pod hostname),
+   * but ingest deliberately does not stamp that as a Host entity.
    */
-  const attributes: Record<string, string> = {
+  const standaloneHostAttributes: Record<string, string> = {
     "host.name": "Web-Server-01 ",
-    "k8s.cluster.name": "Prod-EU-1",
     "container.id": "ABC123def456",
     "service.name": "Checkout",
+  };
+
+  const kubernetesAttributes: Record<string, string> = {
+    ...standaloneHostAttributes,
+    "k8s.cluster.name": "Prod-EU-1",
   };
 
   type FirstOfTypeFunction = (
@@ -61,15 +66,30 @@ describe("entity-MV routing keys — parity with ingest-stamped scalar entity ke
     );
   };
 
-  test("each routable read-side key byte-matches the stamped scalar column", () => {
+  test("standalone-host read-side keys byte-match the stamped scalar columns", () => {
     const entities: Array<ExtractedEntity> = InventoryItem.extractEntities({
       projectId,
-      attributes,
+      attributes: standaloneHostAttributes,
     });
 
     expect(firstOfType(entities, EntityType.Host)).toBe(
       keyForHost(projectId, "Web-Server-01 "),
     );
+    expect(firstOfType(entities, EntityType.Container)).toBe(
+      keyForContainer(projectId, "ABC123def456"),
+    );
+    expect(firstOfType(entities, EntityType.Service)).toBe(
+      keyForService(projectId, "Checkout"),
+    );
+  });
+
+  test("Kubernetes read-side keys byte-match while the phantom Host key stays absent", () => {
+    const entities: Array<ExtractedEntity> = InventoryItem.extractEntities({
+      projectId,
+      attributes: kubernetesAttributes,
+    });
+
+    expect(firstOfType(entities, EntityType.Host)).toBe("");
     expect(firstOfType(entities, EntityType.KubernetesCluster)).toBe(
       keyForKubernetesCluster(projectId, "Prod-EU-1"),
     );
@@ -82,26 +102,45 @@ describe("entity-MV routing keys — parity with ingest-stamped scalar entity ke
   });
 
   test("read-side keys canonicalize exactly like ingest (spelling drift lands on one rollup stream)", () => {
-    const drifted: Array<ExtractedEntity> = InventoryItem.extractEntities({
-      projectId,
-      attributes: {
-        "host.name": "web-server-01",
-        "k8s.cluster.name": " prod-eu-1 ",
-        "container.id": "abc123DEF456",
-        "service.name": "  checkout",
-      },
-    });
+    const driftedStandaloneHost: Array<ExtractedEntity> =
+      InventoryItem.extractEntities({
+        projectId,
+        attributes: {
+          "host.name": "web-server-01",
+          "container.id": "abc123DEF456",
+          "service.name": "  checkout",
+        },
+      });
 
-    expect(firstOfType(drifted, EntityType.Host)).toBe(
+    expect(firstOfType(driftedStandaloneHost, EntityType.Host)).toBe(
       keyForHost(projectId, "Web-Server-01 "),
     );
-    expect(firstOfType(drifted, EntityType.KubernetesCluster)).toBe(
-      keyForKubernetesCluster(projectId, "Prod-EU-1"),
-    );
-    expect(firstOfType(drifted, EntityType.Container)).toBe(
+    expect(firstOfType(driftedStandaloneHost, EntityType.Container)).toBe(
       keyForContainer(projectId, "ABC123def456"),
     );
-    expect(firstOfType(drifted, EntityType.Service)).toBe(
+    expect(firstOfType(driftedStandaloneHost, EntityType.Service)).toBe(
+      keyForService(projectId, "Checkout"),
+    );
+
+    const driftedKubernetes: Array<ExtractedEntity> =
+      InventoryItem.extractEntities({
+        projectId,
+        attributes: {
+          "host.name": "web-server-01",
+          "k8s.cluster.name": " prod-eu-1 ",
+          "container.id": "abc123DEF456",
+          "service.name": "  checkout",
+        },
+      });
+
+    expect(firstOfType(driftedKubernetes, EntityType.Host)).toBe("");
+    expect(firstOfType(driftedKubernetes, EntityType.KubernetesCluster)).toBe(
+      keyForKubernetesCluster(projectId, "Prod-EU-1"),
+    );
+    expect(firstOfType(driftedKubernetes, EntityType.Container)).toBe(
+      keyForContainer(projectId, "ABC123def456"),
+    );
+    expect(firstOfType(driftedKubernetes, EntityType.Service)).toBe(
       keyForService(projectId, "Checkout"),
     );
   });
@@ -155,19 +194,31 @@ describe("entity-MV routing keys — parity with ingest-stamped scalar entity ke
     );
   });
 
-  test("entityKeys membership (the entityScope raw predicate) contains every routable key", () => {
+  test("standalone-host entityKeys membership contains the Host key", () => {
     const membershipKeys: Array<string> = InventoryItem.extractEntityKeys({
       projectId,
-      attributes,
+      attributes: standaloneHostAttributes,
+    });
+
+    expect(membershipKeys).toContain(keyForHost(projectId, "Web-Server-01 "));
+  });
+
+  test("Kubernetes entityKeys membership contains typed keys and excludes the phantom Host key", () => {
+    const membershipKeys: Array<string> = InventoryItem.extractEntityKeys({
+      projectId,
+      attributes: kubernetesAttributes,
     });
 
     for (const key of [
-      keyForHost(projectId, "Web-Server-01 "),
       keyForKubernetesCluster(projectId, "Prod-EU-1"),
       keyForContainer(projectId, "ABC123def456"),
       keyForService(projectId, "Checkout"),
     ]) {
       expect(membershipKeys).toContain(key);
     }
+
+    expect(membershipKeys).not.toContain(
+      keyForHost(projectId, "Web-Server-01 "),
+    );
   });
 });

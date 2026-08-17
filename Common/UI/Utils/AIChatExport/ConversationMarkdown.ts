@@ -87,6 +87,16 @@ function messageToMarkdown(
     return lines;
   }
 
+  /*
+   * A cancelled turn's content is the server's finalizer text ("Stopped by
+   * user."), not assistant prose — export it as the stop marker it is, the
+   * same way the chat UI renders it.
+   */
+  if (message.status === AIChatMessageStatus.Cancelled) {
+    lines.push(`> _${message.contentInMarkdown || "Stopped by user."}_`, "");
+    return lines;
+  }
+
   if (message.contentInMarkdown) {
     lines.push(neutralizeAssistantMarkdown(message.contentInMarkdown), "");
   }

@@ -28,6 +28,9 @@ import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
+import Steps from "Common/UI/Components/Forms/Steps/Steps";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
+import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -59,82 +62,37 @@ export interface ComponentProps {
 }
 
 enum WizardStep {
-  PickTemplate = 1,
-  NameIt = 2,
-  Configure = 3,
+  PickTemplate = "pick-template",
+  NameIt = "name",
+  Configure = "configure",
 }
 
-const STEP_TITLES: Record<WizardStep, string> = {
-  [WizardStep.PickTemplate]: "Start from",
-  [WizardStep.NameIt]: "Name",
-  [WizardStep.Configure]: "Configure",
-};
+export type GetWorkflowWizardFormStepsFunction = (
+  showConfigureStep: boolean,
+) => Array<FormStep<JSONObject>>;
 
-interface StepIndicatorProps {
-  current: WizardStep;
-  showConfigureStep: boolean;
-}
+export const getWorkflowWizardFormSteps: GetWorkflowWizardFormStepsFunction = (
+  showConfigureStep: boolean,
+): Array<FormStep<JSONObject>> => {
+  const steps: Array<FormStep<JSONObject>> = [
+    {
+      id: WizardStep.PickTemplate,
+      title: "Start from",
+    },
+    {
+      id: WizardStep.NameIt,
+      title: "Name",
+    },
+  ];
 
-const StepIndicator: FunctionComponent<StepIndicatorProps> = (
-  props: StepIndicatorProps,
-): ReactElement => {
-  const steps: Array<WizardStep> = [WizardStep.PickTemplate, WizardStep.NameIt];
-
-  if (props.showConfigureStep) {
-    steps.push(WizardStep.Configure);
+  if (showConfigureStep) {
+    steps.push({
+      id: WizardStep.Configure,
+      title: "Configure",
+    });
   }
 
-  return (
-    <ol className="flex items-center gap-3 mb-6" aria-label="Progress">
-      {steps.map((step: WizardStep, index: number): ReactElement => {
-        const isCompleted: boolean = step < props.current;
-        const isActive: boolean = step === props.current;
-
-        return (
-          <li key={step} className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span
-                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
-                  isCompleted
-                    ? "bg-indigo-600 text-white"
-                    : isActive
-                      ? "bg-indigo-100 text-indigo-700 ring-2 ring-indigo-500"
-                      : "bg-gray-100 text-gray-400"
-                }`}
-                aria-current={isActive ? "step" : undefined}
-              >
-                {isCompleted ? (
-                  <Icon icon={IconProp.Check} className="h-3.5 w-3.5" />
-                ) : (
-                  index + 1
-                )}
-              </span>
-              <span
-                className={`text-sm ${
-                  isActive
-                    ? "font-semibold text-gray-900"
-                    : isCompleted
-                      ? "font-medium text-gray-600"
-                      : "text-gray-400"
-                }`}
-              >
-                {STEP_TITLES[step]}
-              </span>
-            </div>
-            {index < steps.length - 1 ? (
-              <span
-                className={`h-px w-8 ${
-                  isCompleted ? "bg-indigo-300" : "bg-gray-200"
-                }`}
-              />
-            ) : (
-              <></>
-            )}
-          </li>
-        );
-      })}
-    </ol>
-  );
+  return steps;
 };
 
 interface TemplateCardProps {
@@ -239,6 +197,8 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
     selectedTemplate?.variables || [];
 
   const showConfigureStep: boolean = variables.length > 0;
+  const wizardFormSteps: Array<FormStep<JSONObject>> =
+    getWorkflowWizardFormSteps(showConfigureStep);
 
   type MatchesSearchFunction = (template: WorkflowTemplate) => boolean;
 
@@ -559,10 +519,14 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
         )}
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
-            Name
-          </label>
+          <FieldLabelElement
+            title="Name"
+            htmlFor="workflow-name"
+            required={true}
+            description="Workflow names are unique within a project."
+          />
           <Input
+            id="workflow-name"
             value={name}
             autoFocus={true}
             placeholder="What should this workflow be called?"
@@ -576,16 +540,15 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
               }
             }}
           />
-          <p className="mt-1 text-xs text-gray-500">
-            Workflow names are unique within a project.
-          </p>
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
-            Description
-          </label>
+          <FieldLabelElement
+            title="Description"
+            htmlFor="workflow-description"
+          />
           <TextArea
+            id="workflow-description"
             value={description}
             placeholder="What is this workflow for?"
             dataTestId="workflow-description-input"
@@ -610,26 +573,25 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
         </p>
 
         {variables.map((variable: WorkflowTemplateVariable): ReactElement => {
+          const inputId: string = `workflow-variable-${variable.name}`;
+
           return (
             <div key={variable.name}>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                {variable.title}
-                {variable.required ? (
-                  <span className="ml-1 text-red-500">*</span>
-                ) : (
-                  <span className="ml-2 text-xs font-normal text-gray-400">
-                    Optional
-                  </span>
-                )}
-              </label>
+              <FieldLabelElement
+                title={variable.title}
+                htmlFor={inputId}
+                required={variable.required}
+                description={variable.description}
+              />
               <Input
+                id={inputId}
+                type={variable.isSecret ? InputType.PASSWORD : InputType.TEXT}
+                autoComplete={variable.isSecret ? "new-password" : undefined}
+                disableSpellCheck={variable.isSecret}
                 value={variableValues[variable.name] || ""}
                 placeholder={variable.placeholder}
                 error={variableErrors[variable.name]}
-                dataTestId={`workflow-variable-${variable.name}`}
-                type={
-                  variable.isSecret ? ("password" as InputType) : InputType.TEXT
-                }
+                dataTestId={inputId}
                 onChange={(value: string) => {
                   setVariableValues(
                     (
@@ -654,9 +616,6 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
                   }
                 }}
               />
-              <p className="mt-1 text-xs text-gray-500">
-                {variable.description}
-              </p>
             </div>
           );
         })}
@@ -701,11 +660,30 @@ const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
         )
       }
     >
-      <div>
-        <StepIndicator current={step} showConfigureStep={showConfigureStep} />
-        {step === WizardStep.PickTemplate ? renderPickStep() : <></>}
-        {step === WizardStep.NameIt ? renderNameStep() : <></>}
-        {step === WizardStep.Configure ? renderConfigureStep() : <></>}
+      <div className="flex">
+        <div
+          style={{ flex: "0 1 auto" }}
+          className="mr-10 hidden lg:block"
+          data-testid="workflow-wizard-steps"
+        >
+          <Steps<JSONObject>
+            currentFormStepId={step}
+            steps={wizardFormSteps}
+            formValues={{}}
+            onClick={(formStep: FormStep<JSONObject>) => {
+              setStep(formStep.id as WizardStep);
+            }}
+          />
+        </div>
+        <div
+          className="w-auto pt-6"
+          style={{ flex: "1 1 auto" }}
+          data-testid="workflow-wizard-step-content"
+        >
+          {step === WizardStep.PickTemplate ? renderPickStep() : <></>}
+          {step === WizardStep.NameIt ? renderNameStep() : <></>}
+          {step === WizardStep.Configure ? renderConfigureStep() : <></>}
+        </div>
       </div>
     </Modal>
   );

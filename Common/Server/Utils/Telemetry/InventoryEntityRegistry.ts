@@ -353,8 +353,8 @@ function defineInventorySource<TModel extends BaseModel>(
 
 /*
  * Archived rows are excluded from every source that has the concept: the
- * explorer is a view of the live estate. IoTDevice and NetworkDevice have no
- * archive flag, so their queries are unrestricted.
+ * explorer is a view of the live estate. IoTDevice is the only source without
+ * an archive flag, so it is the only unrestricted query.
  */
 export const INVENTORY_SOURCES: ReadonlyArray<ErasedInventorySource> = [
   defineInventorySource<NetworkDevice>({
@@ -362,7 +362,7 @@ export const INVENTORY_SOURCES: ReadonlyArray<ErasedInventorySource> = [
     resourceType: "NetworkDevice",
     service: NetworkDeviceService,
     select: { hostname: true },
-    query: {},
+    query: { isArchived: false },
     describe: (row: NetworkDevice): Dictionary<string> => {
       return compactAttributes({ "net.device.hostname": row.hostname });
     },
@@ -469,6 +469,12 @@ export interface InventorySyncResult {
   created: number;
   updated: number;
   deleted: number;
+  /**
+   * Orphans that were archived rather than deleted because they carried custom
+   * field values. Counted apart from `deleted` so the job log distinguishes
+   * "the projection went away" from "we kept someone's data".
+   */
+  archived: number;
 }
 
 /**
@@ -579,15 +585,133 @@ async function mirrorRows(
 }
 
 /**
- * Reverse pass: a mirrored row whose owning inventory row is gone is
- * deleted. This is what catches cascade deletes, which fire no service hook.
+ * Does this row carry anything a person typed?
+ *
+ * The `customFields` bag is the only user-authored content a mirrored row can
+ * hold — every other column on it is rewritten from the owning table on each
+ * pass — so it is the whole test for "deleting this loses work".
+ *
+ * An empty bag counts as nothing: the UI leaves `{}` behind when the last
+ * value is cleared, and a row whose fields were all emptied is not one anyone
+ * is keeping. A key explicitly set to null or "" is likewise not a value.
  */
-async function removeOrphans(source: ErasedInventorySource): Promise<number> {
-  const orphanIds: Array<ObjectID> = [];
+export type HasCustomFieldValuesFunction = (row: InventoryItem) => boolean;
+
+export const hasCustomFieldValues: HasCustomFieldValuesFunction = (
+  row: InventoryItem,
+): boolean => {
+  const bag: JSONObject | undefined = row.customFields;
+
+  if (!bag || typeof bag !== "object") {
+    return false;
+  }
+
+  return Object.keys(bag).some((key: string) => {
+    const value: unknown = (bag as JSONObject)[key];
+
+    if (value === undefined || value === null || value === "") {
+      return false;
+    }
+
+    return !(Array.isArray(value) && value.length === 0);
+  });
+};
+
+export interface OrphanPartition {
+  /** Orphans safe to remove outright — pure projections, nothing typed. */
+  deletableIds: Array<ObjectID>;
+  /** Orphans that must be kept, because they carry user-authored values. */
+  archivableIds: Array<ObjectID>;
+}
+
+export type PartitionOrphanRowsFunction = (data: {
+  rows: Array<InventoryItem>;
+  /** Ids still present in the owning table, from `findLiveIds`. */
+  liveResourceIds: Set<string>;
+}) => OrphanPartition;
+
+/**
+ * The whole decision the reverse pass makes, as a pure function of one page of
+ * registry rows and the set of owning-table ids that still exist.
+ *
+ * Split out from the IO because this is where a mistake destroys data and
+ * where a test can actually reach: getting it wrong either hard-deletes rows
+ * holding the only copy of someone's serial numbers, or lets the registry
+ * accumulate projections of devices that no longer exist.
+ */
+export const partitionOrphanRows: PartitionOrphanRowsFunction = (data: {
+  rows: Array<InventoryItem>;
+  liveResourceIds: Set<string>;
+}): OrphanPartition => {
+  const deletableIds: Array<ObjectID> = [];
+  const archivableIds: Array<ObjectID> = [];
+
+  for (const row of data.rows || []) {
+    if (!row.id) {
+      continue;
+    }
+
+    /*
+     * A mirrored row with no pointer cannot be matched back to anything, so
+     * it is orphaned by definition.
+     */
+    const isOrphan: boolean =
+      !row.resourceId || !data.liveResourceIds.has(row.resourceId.toString());
+
+    if (!isOrphan) {
+      continue;
+    }
+
+    if (!hasCustomFieldValues(row)) {
+      deletableIds.push(row.id);
+      continue;
+    }
+
+    /*
+     * Already archived on an earlier sweep. Re-archiving would rewrite
+     * `archivedAt` on every 15-minute pass, so the timestamp would report the
+     * most recent sweep rather than when the device went away.
+     */
+    if (row.isArchived) {
+      continue;
+    }
+
+    archivableIds.push(row.id);
+  }
+
+  return { deletableIds, archivableIds };
+};
+
+/**
+ * Reverse pass: a mirrored row whose owning inventory row is gone stops being
+ * part of the live estate. This is what catches cascade deletes, which fire no
+ * service hook.
+ *
+ * Orphans split two ways, on whether the row holds anything a person typed:
+ *
+ *  - nothing typed: hard-deleted, as before. The row was a pure projection of
+ *    a table row that no longer exists, so there is nothing to keep.
+ *
+ *  - custom field values present: ARCHIVED, not deleted. Those values are the
+ *    only copy — serial numbers, warranty dates, owning team — and they live
+ *    on the registry row rather than on the device, so deleting the projection
+ *    destroys them with no undo and no audit trail (`hardDeleteBy` bypasses
+ *    the audit hook). Archiving takes the row out of the default list, which
+ *    is the visible behaviour the delete was there to produce, and leaves the
+ *    data recoverable from the Archived tab.
+ *
+ * The cost of being wrong differs by orders of magnitude between the two, which
+ * is why the split is here and not left to an operator's retention policy.
+ */
+async function removeOrphans(
+  source: ErasedInventorySource,
+): Promise<{ deleted: number; archived: number }> {
+  const deletableIds: Array<ObjectID> = [];
+  const archivableIds: Array<ObjectID> = [];
   let skip: number = 0;
 
   /*
-   * Collected across a read-only pass and deleted afterwards. Deleting while
+   * Collected across a read-only pass and written afterwards. Writing while
    * paging would shift subsequent offsets and skip rows.
    */
   for (;;) {
@@ -596,7 +720,12 @@ async function removeOrphans(source: ErasedInventorySource): Promise<number> {
         entityType: source.entityType,
         source: EntitySource.Inventory,
       },
-      select: { _id: true, resourceId: true },
+      select: {
+        _id: true,
+        resourceId: true,
+        customFields: true,
+        isArchived: true,
+      },
       skip,
       limit: INVENTORY_SYNC_PAGE_SIZE,
       props: { isRoot: true },
@@ -614,16 +743,13 @@ async function removeOrphans(source: ErasedInventorySource): Promise<number> {
     }
 
     const liveIds: Set<string> = await source.findLiveIds(resourceIds);
+    const partition: OrphanPartition = partitionOrphanRows({
+      rows: rows,
+      liveResourceIds: liveIds,
+    });
 
-    for (const row of rows) {
-      /*
-       * A mirrored row with no pointer cannot be matched back to anything,
-       * so it is orphaned by definition.
-       */
-      if (!row.resourceId || !liveIds.has(row.resourceId.toString())) {
-        orphanIds.push(row.id!);
-      }
-    }
+    deletableIds.push(...partition.deletableIds);
+    archivableIds.push(...partition.archivableIds);
 
     skip += rows.length;
 
@@ -632,26 +758,42 @@ async function removeOrphans(source: ErasedInventorySource): Promise<number> {
     }
   }
 
-  if (orphanIds.length === 0) {
-    return 0;
+  if (deletableIds.length > 0) {
+    await InventoryItemService.hardDeleteBy({
+      query: {
+        _id: QueryHelper.any(
+          deletableIds.map((id: ObjectID) => {
+            return id.toString();
+          }),
+        ),
+        // Re-asserted so a bug upstream can never widen this into a broad delete.
+        source: EntitySource.Inventory,
+      },
+      limit: deletableIds.length,
+      skip: 0,
+      props: { isRoot: true },
+    });
   }
 
-  await InventoryItemService.hardDeleteBy({
-    query: {
-      _id: QueryHelper.any(
-        orphanIds.map((id: ObjectID) => {
-          return id.toString();
-        }),
-      ),
-      // Re-asserted so a bug upstream can never widen this into a broad delete.
-      source: EntitySource.Inventory,
-    },
-    limit: orphanIds.length,
-    skip: 0,
-    props: { isRoot: true },
-  });
+  if (archivableIds.length > 0) {
+    await InventoryItemService.updateBy({
+      query: {
+        _id: QueryHelper.any(
+          archivableIds.map((id: ObjectID) => {
+            return id.toString();
+          }),
+        ),
+        // Same reason as the delete above: never widen past mirrored rows.
+        source: EntitySource.Inventory,
+      },
+      data: { isArchived: true },
+      limit: archivableIds.length,
+      skip: 0,
+      props: { isRoot: true },
+    });
+  }
 
-  return orphanIds.length;
+  return { deleted: deletableIds.length, archived: archivableIds.length };
 }
 
 /** Reconciles one inventory table into the registry. */
@@ -659,8 +801,8 @@ export async function syncInventorySource(
   source: ErasedInventorySource,
 ): Promise<InventorySyncResult> {
   const { created, updated } = await mirrorRows(source);
-  const deleted: number = await removeOrphans(source);
-  return { created, updated, deleted };
+  const { deleted, archived } = await removeOrphans(source);
+  return { created, updated, deleted, archived };
 }
 
 /**
@@ -669,7 +811,12 @@ export async function syncInventorySource(
  * should not stop network devices being mirrored.
  */
 export async function syncAllInventorySources(): Promise<InventorySyncResult> {
-  const total: InventorySyncResult = { created: 0, updated: 0, deleted: 0 };
+  const total: InventorySyncResult = {
+    created: 0,
+    updated: 0,
+    deleted: 0,
+    archived: 0,
+  };
 
   for (const source of INVENTORY_SOURCES) {
     try {
@@ -677,6 +824,7 @@ export async function syncAllInventorySources(): Promise<InventorySyncResult> {
       total.created += result.created;
       total.updated += result.updated;
       total.deleted += result.deleted;
+      total.archived += result.archived;
     } catch (err) {
       logger.error(
         `InventoryEntityRegistry: sync failed for ${source.resourceType}:`,

@@ -33,7 +33,11 @@ import {
   ROBINSON_VIEW_BOX_WIDTH,
   projectRobinson,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkSite/Geo/GeoProjection";
-import { MAX_LABELLED_MARKERS } from "../../FeatureSet/Dashboard/src/Components/NetworkSite/SiteMapViewModel";
+import {
+  LabelBounds,
+  MAX_LABELLED_MARKERS,
+  labelBounds,
+} from "../../FeatureSet/Dashboard/src/Components/NetworkSite/SiteMapViewModel";
 
 /*
  * The react-free half of the Network Map dashboard widget: narrowing
@@ -452,21 +456,21 @@ describe("buildNetworkMapMarkers", () => {
 
     expect(only.label).toBe("Camden Store");
     // Below reads best — the eye goes marker, then name.
-    expect(only.labelPlacement).toBe("below");
+    expect(only.labelPlacement?.direction).toBe("below");
+    // Nothing to move out of the way of, so nothing is moved.
+    expect(only.labelPlacement?.push).toBe(0);
+    expect(only.labelPlacement?.leaderLine).toBeNull();
   });
 
   /*
-   * Two names printed on top of each other are worse than one name: the
-   * overlapped label is unreadable AND it hides its neighbour. So a name
-   * that fits in neither position is dropped, and the tooltip carries it.
+   * Eight sites crowded into one small city: far enough apart at this cell
+   * size to stay separate markers, and far too close for eight names to sit
+   * side by side under them. Every one of them keeps its name — the ones
+   * that cannot fit against their marker are pushed off it and threaded
+   * back rather than dropped.
    */
-  test("drops a name it cannot place clear of its neighbours", () => {
-    /*
-     * Eight sites in one small city with long names: they are far enough
-     * apart at this cell size to stay separate markers, and far too close
-     * for eight labels to sit side by side.
-     */
-    const crowded: Array<NetworkMapSite> = Array.from(
+  function crowdedCity(): Array<NetworkMapSite> {
+    return Array.from(
       { length: 8 },
       (_unused: unknown, index: number): NetworkMapSite => {
         return site({
@@ -477,65 +481,103 @@ describe("buildNetworkMapMarkers", () => {
         });
       },
     );
+  }
 
-    const result: Array<NetworkMapMarker> = markers(crowded, true, 0.5);
-    const labelled: Array<NetworkMapMarker> = result.filter(
-      (marker: NetworkMapMarker): boolean => {
-        return marker.label !== "";
-      },
-    );
+  test("keeps every name on a crowded map by pushing the ones that do not fit", () => {
+    const result: Array<NetworkMapMarker> = markers(crowdedCity(), true, 0.5);
 
     expect(result.length).toBe(8);
-    expect(labelled.length).toBeLessThan(result.length);
-
-    // Whatever survived carries a placement; whatever did not carries none.
     for (const marker of result) {
-      if (marker.label) {
-        expect(marker.labelPlacement).not.toBeNull();
-      } else {
-        expect(marker.labelPlacement).toBeNull();
-      }
+      expect(marker.label).not.toBe("");
+      expect(marker.labelPlacement).not.toBeNull();
+    }
+
+    // Some of these cannot possibly have fitted where they wanted to.
+    const pushed: Array<NetworkMapMarker> = result.filter(
+      (marker: NetworkMapMarker): boolean => {
+        return (marker.labelPlacement?.push ?? 0) > 0;
+      },
+    );
+    expect(pushed.length).toBeGreaterThan(0);
+    // And exactly those carry the thread that explains where they belong.
+    for (const marker of result) {
+      expect(marker.labelPlacement?.leaderLine === null).toBe(
+        marker.labelPlacement?.push === 0,
+      );
     }
   });
 
   /*
-   * Zoom genuinely separates markers, so a name that could not be placed on
-   * the world view comes back once the frame tightens around the same
-   * sites. This is the property that makes dropping labels acceptable
-   * rather than lossy.
+   * Zoom genuinely separates markers that are apart in the world, so the
+   * names walk back in against them and the threads go away. This is what
+   * keeps a busy frame from being a permanent scattering of labels.
    */
-  test("places more names as the frame zooms in on the same sites", () => {
-    /*
-     * Short names on purpose: the point under test is that ZOOM recovers
-     * labels, and a name wide enough to never fit at any realistic zoom
-     * would hold the count flat and prove nothing.
-     */
-    const crowded: Array<NetworkMapSite> = Array.from(
-      { length: 8 },
-      (_unused: unknown, index: number): NetworkMapSite => {
-        return site({
-          id: `site-${index}`,
-          name: `S${index}`,
-          latitude: 51.5 + index * 0.35,
-          longitude: -0.12 + index * 0.35,
-        });
-      },
-    );
+  test("names settle back against their markers as the frame zooms in", () => {
+    const crowded: Array<NetworkMapSite> = crowdedCity();
 
-    const countLabels: (zoom: number) => number = (zoom: number): number => {
+    const countPushed: (zoom: number) => number = (zoom: number): number => {
       return markers(crowded, true, 0.5, zoom).filter(
         (marker: NetworkMapMarker): boolean => {
-          return marker.label !== "";
+          return (marker.labelPlacement?.push ?? 0) > 0;
         },
       ).length;
     };
 
     /*
      * These eight sit on a diagonal about 15 screen units apart at zoom 12,
-     * which a 15-unit-wide label box still collides with — so the check
-     * uses a frame tight enough to actually separate them. MAX_ZOOM is 64.
+     * which a long label box still collides with — so the check uses a frame
+     * tight enough to actually separate them. MAX_ZOOM is 64.
      */
-    expect(countLabels(40)).toBeGreaterThan(countLabels(1));
+    expect(countPushed(1)).toBeGreaterThan(0);
+    expect(countPushed(40)).toBe(0);
+  });
+
+  /*
+   * A name is never printed on top of another one, however crowded the
+   * frame: an overlapped label is unreadable AND it hides its neighbour.
+   */
+  test("no two names the widget draws overlap", () => {
+    const result: Array<NetworkMapMarker> = markers(crowdedCity(), true, 0.5);
+
+    const boxes: Array<LabelBounds> = [];
+    for (const marker of result) {
+      if (!marker.labelPlacement) {
+        continue;
+      }
+      boxes.push(
+        labelBounds(
+          {
+            key: marker.key,
+            x: marker.x,
+            y: marker.y,
+            ids: marker.ids,
+            count: marker.count,
+            screenRadius: marker.screenRadius,
+            colorKey: marker.colorKey,
+            isContainer: false,
+            isApproximate: false,
+            label: marker.label,
+            tooltip: marker.tooltip,
+          },
+          1,
+          marker.labelPlacement,
+        ),
+      );
+    }
+
+    expect(boxes.length).toBe(8);
+    for (let a: number = 0; a < boxes.length; a++) {
+      for (let b: number = a + 1; b < boxes.length; b++) {
+        const first: LabelBounds = boxes[a]!;
+        const second: LabelBounds = boxes[b]!;
+        expect(
+          first.right <= second.left ||
+            first.left >= second.right ||
+            first.bottom <= second.top ||
+            first.top >= second.bottom,
+        ).toBe(true);
+      }
+    }
   });
 
   test("gives a cluster no label, since it stands for more than one name", () => {

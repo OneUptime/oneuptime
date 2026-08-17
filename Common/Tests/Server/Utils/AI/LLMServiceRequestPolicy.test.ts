@@ -125,7 +125,7 @@ describe("LLMService request timeout and retry policy", () => {
   );
 
   test.each(providerCases)(
-    "$name retains its existing default policy when no override is supplied",
+    "$name retains its default per-attempt timeout when no override is supplied",
     async ({ config, response, defaultTimeoutInMs }: ProviderCase) => {
       const postSpy: PostSpy = mockPost(response);
 
@@ -137,7 +137,7 @@ describe("LLMService request timeout and retry policy", () => {
       expect(postSpy.mock.calls[0]![0]).toEqual(
         expect.objectContaining({
           options: expect.objectContaining({
-            retries: 2,
+            retries: LLMService.DEFAULT_REQUEST_ATTEMPTS - 1,
             exponentialBackoff: true,
             timeout: defaultTimeoutInMs,
             doNotFollowRedirects: true,

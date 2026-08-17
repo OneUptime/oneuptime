@@ -181,6 +181,8 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
           channelId: true,
           user: {
             name: true,
+            email: true,
+            profilePictureId: true,
           },
         }}
         cardProps={{

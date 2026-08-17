@@ -315,7 +315,28 @@ function createConfig(options) {
     platform: "browser",
     target: "es2017",
     sourcemap: isDev ? "inline" : false,
-    minify: false,
+    /*
+     * Production bundles ship minified; development builds do not. The five
+     * frontends were shipping unminified ESM - measured at 4,842,357 bytes for
+     * one service's bundle, 2,636,716 after minification (-46% raw, -30%
+     * gzipped). That is bandwidth on every cold page load, per user, plus the
+     * bytes sitting in the image and in the registry.
+     *
+     * Dev stays unminified deliberately: the inline sourcemap above is only
+     * half the story - readable output is what makes a stack trace in the
+     * browser console point at something, and minifying would cost watch-mode
+     * rebuild time for no benefit nobody is measuring locally.
+     */
+    minify: !isDev,
+    /*
+     * Insurance for the minified build. esbuild renames functions and classes
+     * when minifying, which breaks anything reading `fn.name` or
+     * `instance.constructor.name` at runtime - error classes that switch on
+     * their own name, component displayName inference, decorator metadata.
+     * Keeping names costs a few KB and removes an entire category of
+     * production-only failure that no test would catch.
+     */
+    keepNames: true,
     treeShaking: true,
     splitting: true,
     publicPath,

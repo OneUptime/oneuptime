@@ -63,6 +63,18 @@ export interface ComponentProps {
    * no behaviour change for any caller that has not opted in.
    */
   onCallDutyPolicyId?: ObjectID | undefined;
+  /*
+   * A readiness answer the caller has already loaded, used verbatim instead of
+   * loading a second copy of it.
+   *
+   * The escalation page needs this exact payload twice over — once for these
+   * dots and once for the warning label on each rule card — and two components
+   * each calling the hook is two sets of paged requests for one answer, which
+   * can also disagree with each other for a second while they settle. When it is
+   * supplied the hook below stays idle; when it is not, nothing changes for any
+   * other caller.
+   */
+  readiness?: OnCallReadinessState | undefined;
 }
 
 // Compact human duration, e.g. "immediately", "5 min", "1 hr 30 min".
@@ -139,11 +151,14 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
 
   /*
    * Readiness for the responders on this policy. The hook stays idle unless the
-   * caller passed a policy id, so this costs nothing until the dots are wanted.
+   * caller passed a policy id AND did not hand over an answer of its own, so
+   * this costs nothing until the dots are wanted and never costs twice.
    */
-  const readiness: OnCallReadinessState = useOnCallReadiness({
-    onCallDutyPolicyId: props.onCallDutyPolicyId,
+  const ownReadiness: OnCallReadinessState = useOnCallReadiness({
+    onCallDutyPolicyId: props.readiness ? undefined : props.onCallDutyPolicyId,
   });
+
+  const readiness: OnCallReadinessState = props.readiness || ownReadiness;
 
   const readinessIndex: ReadinessIndex = useMemo((): ReadinessIndex => {
     return buildReadinessIndex(readiness.summary);

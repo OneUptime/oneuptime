@@ -62,7 +62,8 @@
     "Telemetry": "Telemetri",
     "AI": "AI",
     "API Reference": "API-referens",
-    "Self Hosted": "Självhostad"
+    "Self Hosted": "Självhostad",
+    "Inventory": "Inventarium"
   },
   "navLinks": {
     "Getting Started": "Kom igång",
@@ -185,6 +186,8 @@
     "GitHub Integration": "GitHub-integration",
     "Push Notifications": "Push-aviseringar",
     "SendGrid Inbound Email": "SendGrid inkommande e-post",
-    "Architecture": "Arkitektur"
+    "Architecture": "Arkitektur",
+    "Custom Fields": "Anpassade fält",
+    "Exporting to a CMDB": "Exportera till en CMDB"
   }
 }

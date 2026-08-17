@@ -92,10 +92,27 @@ describe("List", () => {
 
   it("handles onNavigateToPage callback", () => {
     render(<List {...defaultProps} />);
-    // There are multiple "Next" elements (mobile and desktop), get the first one
-    const nextButtons: HTMLElement[] = screen.getAllByText("Next");
-    fireEvent.click(nextButtons[0]!);
+
+    fireEvent.click(screen.getByTestId("pagination-next-button"));
 
     expect(defaultProps.onNavigateToPage).toHaveBeenCalledWith(2, 5);
+  });
+
+  it("jumps straight to a page from the list footer", () => {
+    render(<List {...defaultProps} />);
+
+    fireEvent.click(screen.getByTestId("pagination-page-2"));
+
+    expect(defaultProps.onNavigateToPage).toHaveBeenCalledWith(2, 5);
+  });
+
+  it("changes the page size from the list footer", () => {
+    render(<List {...defaultProps} />);
+
+    fireEvent.change(screen.getByTestId("pagination-items-on-page-select"), {
+      target: { value: "25" },
+    });
+
+    expect(defaultProps.onNavigateToPage).toHaveBeenCalledWith(1, 25);
   });
 });

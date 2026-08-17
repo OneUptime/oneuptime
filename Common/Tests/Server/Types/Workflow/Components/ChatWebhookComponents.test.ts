@@ -166,24 +166,54 @@ describe("Microsoft Teams SendMessageToChannel — webhook URL pin", () => {
     },
   );
 
-  test("sends to a genuine Teams webhook, with redirects off", async () => {
-    apiPostMock.mockResolvedValue(new HTTPResponse<JSONObject>(200, {}, {}));
+  const supportedTeamsWebhookUrls: Array<[string, string]> = [
+    [
+      "legacy Connector",
+      "https://outlook.office.com/webhook/abc/IncomingWebhook",
+    ],
+    [
+      "regional Logic Apps workflow",
+      "https://prod-42.westeurope.logic.azure.com:443/workflows/abc/triggers/manual/paths/invoke?api-version=2016-10-01&sig=secret",
+    ],
+    [
+      "current Power Platform workflow",
+      "https://default-1234.0a.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/abc/triggers/manual/paths/invoke?api-version=1&sig=secret",
+    ],
+  ];
 
-    await new MicrosoftTeamsSendMessage().run(
-      {
-        text: "hi",
-        "webhook-url": "https://outlook.office.com/webhook/abc/IncomingWebhook",
-      },
-      makeOptions(),
-    );
+  test.each(supportedTeamsWebhookUrls)(
+    "sends to a genuine %s webhook with redirects off",
+    async (_label: string, webhookUrl: string) => {
+      apiPostMock.mockResolvedValue(new HTTPResponse<JSONObject>(200, {}, {}));
 
-    expect(apiPostMock).toHaveBeenCalledTimes(1);
-    const request: { options?: { doNotFollowRedirects?: boolean } } =
-      apiPostMock.mock.calls[0]![0] as {
+      await new MicrosoftTeamsSendMessage().run(
+        {
+          text: "hi",
+          "webhook-url": webhookUrl,
+        },
+        makeOptions(),
+      );
+
+      expect(apiPostMock).toHaveBeenCalledTimes(1);
+      const request: {
+        data: {
+          attachments: Array<{
+            content: { body: Array<{ wrap: boolean }> };
+          }>;
+        };
+        options?: { doNotFollowRedirects?: boolean };
+      } = apiPostMock.mock.calls[0]![0] as {
+        data: {
+          attachments: Array<{
+            content: { body: Array<{ wrap: boolean }> };
+          }>;
+        };
         options?: { doNotFollowRedirects?: boolean };
       };
-    expect(request.options?.doNotFollowRedirects).toBe(true);
-  });
+      expect(request.options?.doNotFollowRedirects).toBe(true);
+      expect(request.data.attachments[0]?.content.body[0]?.wrap).toBe(true);
+    },
+  );
 });
 
 describe("Slack SendMessageToChannel — webhook URL pin", () => {

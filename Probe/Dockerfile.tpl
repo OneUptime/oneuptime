@@ -122,13 +122,27 @@ RUN node -e "require('mssql/msnodesqlv8')" \
 
 # Install browsers to a fixed path accessible by any runtime user (root or non-root)
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright-browsers
-# `--with-deps` apt-installs any remaining browser dependencies (fonts, webkit
+# `--with-deps` apt-installs any remaining browser dependencies (fonts, GTK
 # libs, ...), so refresh the apt lists first and drop them again afterwards.
 # Synthetic worker UIDs are deliberately not image users, so every runtime file
 # they execute or import must be world-readable/traversable. Their private
 # HOME/TMPDIR directories are created under the image's standard sticky /tmp.
+#
+# The browser list is DELIBERATELY EXPLICIT -- do not "simplify" it back to a
+# bare `npx playwright install --with-deps`. Bare installs every engine Playwright
+# ships, including WebKit, which this probe can never launch: Common/Types/BrowserType.ts
+# enables only Chromium and Firefox (Webkit is commented out), and
+# Probe/Utils/Monitors/MonitorTypes/SyntheticMonitor.ts throws
+# BadDataException("Invalid Browser Type.") for anything else. Naming the
+# browsers still installs each named browser's full dependency set under
+# --with-deps; it only skips WebKit's own ~250MB payload plus its exclusive apt
+# deps (gstreamer, libflite, libwoff, libhyphen, libmanette), which otherwise
+# survive the apt-lists cleanup on the line below.
+#
+# If BrowserType ever re-enables an engine, this list must be updated too --
+# Probe/Tests/Build/ProbeBrowserInstall.test.ts fails loudly when they diverge.
 RUN apt-get update \
-    && npx playwright install --with-deps \
+    && npx playwright install --with-deps chromium firefox \
     && rm -rf /var/lib/apt/lists/* \
     && chmod -R a+rX /ms-playwright-browsers \
     && chmod -R a+rX /usr/src/Common /usr/src/app

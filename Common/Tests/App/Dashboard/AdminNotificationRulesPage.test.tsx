@@ -9,6 +9,7 @@ import {
 } from "@jest/globals";
 import {
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -160,6 +161,34 @@ const getCommonHeadersMock: MockFunction = getJestMockFunction();
 const apiGetMock: MockFunction = getJestMockFunction();
 
 /*
+ * How many mocked reads are still in flight.
+ *
+ * This page issues its fetches from three places that do not know about each
+ * other - the identity read, the readiness read, and one severity read per rule
+ * table - and nothing orders them. Waiting on any single one of them, which is
+ * what this file used to do, leaves the others free to land after the assertions
+ * run: see `waitForSettledPage` for what that cost.
+ *
+ * A counter over the mocks themselves is the one signal that covers all three
+ * without the test having to know which fetch each surface makes.
+ */
+let pendingRequestCount: number = 0;
+
+type TrackRequestFunction = (result: unknown) => unknown;
+
+const trackRequest: TrackRequestFunction = (result: unknown): unknown => {
+  if (!(result instanceof Promise)) {
+    return result;
+  }
+
+  pendingRequestCount++;
+
+  return result.finally((): void => {
+    pendingRequestCount--;
+  });
+};
+
+/*
  * The arrow wrappers are load bearing: jest.mock is hoisted above the compiled
  * requires, so the consts above are still in their temporal dead zone when the
  * factory body runs. Dereferencing them lazily, at call time, is what works.
@@ -169,10 +198,10 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
     __esModule: true,
     default: {
       getList: (...args: Array<any>) => {
-        return getListMock(...args);
+        return trackRequest(getListMock(...args));
       },
       getItem: (...args: Array<any>) => {
-        return getItemMock(...args);
+        return trackRequest(getItemMock(...args));
       },
       getCommonHeaders: (...args: Array<any>) => {
         return getCommonHeadersMock(...args);
@@ -186,7 +215,7 @@ jest.mock("../../../UI/Utils/API/API", () => {
     __esModule: true,
     default: {
       get: (...args: Array<any>) => {
-        return apiGetMock(...args);
+        return trackRequest(apiGetMock(...args));
       },
       /*
        * Both spellings are used by the page and they are handed different
@@ -273,13 +302,63 @@ interface CapturedTableProps {
   cardProps: { title: string; description: string };
 }
 
+/*
+ * One entry per MOUNTED table, holding the props it was last rendered with.
+ *
+ * This was an append-only log of every render, and that is what made this file
+ * flaky. The page draws its tables as soon as it knows who it is about and draws
+ * them again when readiness lands, so the LENGTH of a render log is a transient:
+ * it passes through 8 on the way to 16, and which of the two a test observes
+ * depends on whether the readiness read or the severity reads win a race nothing
+ * in the page orders. `waitFor(() => expect(capturedTables).toHaveLength(8))`
+ * then asserted equality against a counter that is only briefly 8 - so whenever
+ * the second render landed first, 8 never came back, and the wait burned its
+ * full timeout before failing. A different handful of tests lost that race on
+ * every run, each costing a second of wall clock on the way out.
+ *
+ * Keyed by the table's own identity, the count settles at 8 and stays there, and
+ * every test reads the props the table actually ended up with.
+ */
 let capturedTables: Array<CapturedTableProps> = [];
+
+type TableIdentityFunction = (props: CapturedTableProps) => string;
+
+/*
+ * What makes a table THAT table: the rule type and the severity band it is
+ * mounted for. Deliberately not `userPreferencesKey`, even though that is
+ * shorter and unique - that key is itself under test below, where eight tables
+ * on one route must not share one, and keying the capture on the thing being
+ * asserted would quietly turn that assertion into a tautology.
+ */
+const tableIdentity: TableIdentityFunction = (
+  props: CapturedTableProps,
+): string => {
+  const severityId: ObjectID | NotificationRuleType | undefined =
+    props.query["incidentSeverityId"] ?? props.query["alertSeverityId"];
+
+  return `${String(props.query["ruleType"])}::${
+    severityId ? severityId.toString() : "no-severity"
+  }`;
+};
 
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
     __esModule: true,
     default: (props: CapturedTableProps) => {
-      capturedTables.push(props);
+      const identity: string = tableIdentity(props);
+
+      const existingIndex: number = capturedTables.findIndex(
+        (candidate: CapturedTableProps): boolean => {
+          return tableIdentity(candidate) === identity;
+        },
+      );
+
+      if (existingIndex === -1) {
+        capturedTables.push(props);
+      } else {
+        capturedTables[existingIndex] = props;
+      }
+
       return null;
     },
   };
@@ -612,11 +691,67 @@ const pageProps: PageComponentProps = {
   hasPaymentMethod: false,
 };
 
+const ADMIN_TABLE_COUNT: number = 8;
+const SELF_SERVE_TABLE_COUNT: number = 2;
+
+type WaitForSettledPageFunction = (expectedTableCount: number) => Promise<void>;
+
+/*
+ * Wait until the page has stopped moving, rather than until one thing about it
+ * has happened.
+ *
+ * Two conditions, and neither is sufficient alone. `pendingRequestCount` reaches
+ * zero at the start, before anything has been asked for, and it dips to zero
+ * between the identity read finishing and the severity reads it unblocks being
+ * issued. The table count only reaches its total once every rule table has its
+ * severity list. Together they describe exactly one moment: every read this page
+ * makes has landed and every table it draws has been drawn with the result.
+ *
+ * The old wait was `expect(apiGetMock).toHaveBeenCalled()` - satisfied the
+ * instant the readiness request was ISSUED, with its response still in flight -
+ * followed by an exact-length check on a growing render log. Assertions
+ * therefore ran against whatever the page happened to look like mid-load, which
+ * is why several of them had to reach for the most recent render by hand, and
+ * why the ones that did not were the ones that failed on a busy machine.
+ *
+ * Both conditions are stable once true: nothing here issues a fetch after the
+ * tables are up, and the capture is keyed by table identity, so the count stops
+ * at its total instead of climbing past it.
+ */
+const waitForSettledPage: WaitForSettledPageFunction = async (
+  expectedTableCount: number,
+): Promise<void> => {
+  await waitFor(
+    (): void => {
+      expect(pendingRequestCount).toBe(0);
+      expect(capturedTables).toHaveLength(expectedTableCount);
+    },
+    /*
+     * Everything here resolves from a mock, so a healthy page settles in
+     * milliseconds and this budget is never spent. It is above the one-second
+     * default because the runner this has to be green on is a shared CI box
+     * running the whole Common suite in band, and a page that settles slowly
+     * because the machine is busy is not a page that is broken. It stays below
+     * Jest's own five-second test timeout so a page that really is stuck still
+     * fails here, naming the count it reached, rather than as a bare timeout.
+     */
+    { timeout: 4000 },
+  );
+};
+
 type RenderAdminPageFunction = (
   targetUserId?: string | undefined,
 ) => Promise<HTMLElement>;
 
 /*
+ * Render the admin page and return once it has finished loading.
+ *
+ * There is deliberately no shorter variant that returns earlier. This used to be
+ * two helpers - one that waited for the readiness request to be issued and one
+ * that waited for the tables on top of it - and every test that reached for the
+ * first was reading a page still mid-load. There is nothing here worth asserting
+ * before the page has settled, so the wait is not optional.
+ *
  * The user id is read off the URL at offset 1 - this is a sub-page, so the last
  * segment is "notification-rules" and the id is the one before it. Driving that
  * through a real jsdom URL rather than a stub is deliberate: reading the wrong
@@ -634,25 +769,10 @@ const renderAdminPage: RenderAdminPageFunction = async (
 
   const { container } = render(<UserViewNotificationRules {...pageProps} />);
 
-  await waitFor((): void => {
-    expect(apiGetMock).toHaveBeenCalled();
-  });
+  await waitForSettledPage(ADMIN_TABLE_COUNT);
 
   return container;
 };
-
-type RenderAdminPageWithTablesFunction = () => Promise<HTMLElement>;
-
-const renderAdminPageWithTables: RenderAdminPageWithTablesFunction =
-  async (): Promise<HTMLElement> => {
-    const container: HTMLElement = await renderAdminPage();
-
-    await waitFor((): void => {
-      expect(capturedTables).toHaveLength(8);
-    });
-
-    return container;
-  };
 
 type RenderSelfServePageFunction = (
   Page: FunctionComponent<PageComponentProps>,
@@ -663,9 +783,7 @@ const renderSelfServePage: RenderSelfServePageFunction = async (
 ): Promise<void> => {
   render(<Page {...pageProps} />);
 
-  await waitFor((): void => {
-    expect(capturedTables).toHaveLength(2);
-  });
+  await waitForSettledPage(SELF_SERVE_TABLE_COUNT);
 };
 
 type TablesForFunction = (
@@ -698,32 +816,6 @@ const getCapturedTables: GetCapturedTablesFunction =
   (): Array<CapturedTableProps> => {
     return capturedTables;
   };
-
-/*
- * The most recent props each table was rendered with, keyed by the preferences
- * key that already uniquely identifies a table on this page.
- *
- * The page renders its tables as soon as it knows WHO it is about and re-renders
- * them when readiness lands, so `capturedTables` legitimately holds two entries
- * per table. Assertions about copy that depends on the readiness payload - the
- * empty-state sentence, which changes sign with the project's fallback switch -
- * have to read the settled render rather than whichever one happened to be
- * first.
- */
-type LatestTablesFunction = () => Array<CapturedTableProps>;
-
-const latestTables: LatestTablesFunction = (): Array<CapturedTableProps> => {
-  const byKey: Map<string, CapturedTableProps> = new Map<
-    string,
-    CapturedTableProps
-  >();
-
-  for (const table of capturedTables) {
-    byKey.set(table.userPreferencesKey, table);
-  }
-
-  return [...byKey.values()];
-};
 
 type FormFieldForFunction = (
   table: CapturedTableProps,
@@ -975,6 +1067,7 @@ const NO_ITEMS_MESSAGE: string =
 
 beforeEach((): void => {
   capturedTables = [];
+  pendingRequestCount = 0;
 
   getListMock.mockReset();
   getItemMock.mockReset();
@@ -998,15 +1091,234 @@ beforeEach((): void => {
     .mockReturnValue([Permission.ProjectAdmin]);
 });
 
-afterEach((): void => {
+afterEach(async (): Promise<void> => {
   cleanup();
+
+  /*
+   * Unmounting stops the RENDERING, not the fetching. A rule table that belongs
+   * to the viewer loads the seven notification-method models one after another,
+   * so a test that reads its own page leaves a chain of awaits running after its
+   * last assertion - and every one of those calls is recorded on the same
+   * `getListMock` the next test resets and then asserts against.
+   *
+   * That is how "never reads a notification method model" comes to fail on a
+   * page that never asked for one: the request was the previous test's. Letting
+   * the chain finish here, while the mocks are still the ones that started it,
+   * keeps each test's call log its own.
+   */
+  for (
+    let attempt: number = 0;
+    pendingRequestCount > 0 && attempt < 100;
+    attempt++
+  ) {
+    await new Promise<void>((resolve: () => void): void => {
+      setTimeout(resolve, 0);
+    });
+  }
+
   jest.restoreAllMocks();
+});
+
+/*
+ * ------------------------------------------------------------------ *
+ * The harness, pinned
+ * ------------------------------------------------------------------
+ *
+ * Everything below this block reads the page through `capturedTables`, and for
+ * a while what it read depended on the weather.
+ *
+ * This page issues three kinds of read that nothing sequences: the identity, the
+ * readiness summary, and one severity list per rule table. The tables appear
+ * when the severity lists land; their props change again when readiness lands.
+ * The file used to wait for the readiness request to be ISSUED and then for the
+ * render log to be exactly eight entries long - a value that is true on the way
+ * past, not at the end - so on a loaded machine the second redraw got there
+ * first, eight never came back, and the wait spent its full second before
+ * failing. Whichever tests happened to lose that race were the ones that went
+ * red, which is why the failing set moved around between runs.
+ *
+ * These tests force both orderings on purpose rather than waiting to be unlucky
+ * in CI. They are about the harness, not about the product, and they are here so
+ * that the next person to reach for a render count in this file finds out
+ * immediately.
+ */
+describe("the page is read at rest, whichever order its fetches land in", () => {
+  const SLOW_FETCH_MS: number = 25;
+
+  type AfterEverythingElseFunction = (value: unknown) => Promise<unknown>;
+
+  const afterEverythingElse: AfterEverythingElseFunction = (
+    value: unknown,
+  ): Promise<unknown> => {
+    return new Promise((resolve: (settled: unknown) => void): void => {
+      setTimeout((): void => {
+        resolve(value);
+      }, SLOW_FETCH_MS);
+    });
+  };
+
+  type DelayReadinessFunction = () => void;
+
+  /* Readiness lands last: the tables are drawn, then redrawn with the methods. */
+  const readinessLandsAfterTheTables: DelayReadinessFunction = (): void => {
+    const response: HTTPResponse<JSONObject> = new HTTPResponse<JSONObject>(
+      200,
+      readinessJson(),
+      {},
+    );
+
+    apiGetMock.mockImplementation((): Promise<unknown> => {
+      return afterEverythingElse(response);
+    });
+  };
+
+  type DelaySeveritiesFunction = () => void;
+
+  /* And the other way round: readiness is sitting there before a table exists. */
+  const readinessLandsBeforeTheTables: DelaySeveritiesFunction = (): void => {
+    const immediate: (data: any) => any =
+      getListMock.getMockImplementation() as (data: any) => any;
+
+    getListMock.mockImplementation((data: any): unknown => {
+      const result: Promise<unknown> = immediate(data) as Promise<unknown>;
+
+      if (
+        data.modelType === IncidentSeverity ||
+        data.modelType === AlertSeverity
+      ) {
+        return result.then((value: unknown): Promise<unknown> => {
+          return afterEverythingElse(value);
+        });
+      }
+
+      return result;
+    });
+  };
+
+  type AssertSettledFunction = () => void;
+
+  /*
+   * What "settled" has to mean, spelled out: not merely eight tables, but eight
+   * tables holding the props they end up with. The two below are the props that
+   * only exist once readiness and the project setting have both landed, so a
+   * table captured mid-load fails them - which is exactly what several tests in
+   * this file were quietly doing whenever they read `capturedTables[0]`.
+   */
+  const assertEveryTableIsSettled: AssertSettledFunction = (): void => {
+    expect(capturedTables).toHaveLength(ADMIN_TABLE_COUNT);
+
+    capturedTables.forEach((table: CapturedTableProps) => {
+      expect(methodOptionsFor(table)).toEqual([
+        { label: `Email: ${MASKED_EMAIL}`, value: EMAIL_METHOD_ID },
+        { label: `SMS: ${MASKED_PHONE}`, value: SMS_METHOD_ID },
+      ]);
+
+      expect(table.noItemsMessage).toContain(
+        "fall back to whatever verified method they have",
+      );
+      expect(table.noItemsMessage).not.toContain("could not be read");
+    });
+  };
+
+  test("captures one entry per mounted table, not one per redraw", async () => {
+    await renderAdminPage();
+
+    const identities: Set<string> = new Set<string>(
+      capturedTables.map((table: CapturedTableProps): string => {
+        return `${String(table.query["ruleType"])}::${table.userPreferencesKey}`;
+      }),
+    );
+
+    /*
+     * Four rule types, two severity bands each. If this ever reads more than the
+     * number of tables actually on the route, the capture has gone back to being
+     * a render log and every length assertion in this file is a race again.
+     */
+    expect(identities.size).toBe(ADMIN_TABLE_COUNT);
+    expect(capturedTables).toHaveLength(ADMIN_TABLE_COUNT);
+  });
+
+  test("a redraw replaces what a table captured rather than appending to it", async () => {
+    await renderAdminPage();
+
+    const before: CapturedTableProps = capturedTables[0]!;
+
+    /*
+     * Recheck refetches readiness and redraws all eight tables - the same second
+     * pass that used to arrive uninvited and break the count. Driving it
+     * deliberately is the cheapest way to prove the capture survives one.
+     */
+    fireEvent.click(screen.getByRole("button", { name: /Recheck/i }));
+
+    await waitForSettledPage(ADMIN_TABLE_COUNT);
+
+    expect(capturedTables).toHaveLength(ADMIN_TABLE_COUNT);
+    expect(capturedTables[0]).not.toBe(before);
+    expect(capturedTables[0]!.userPreferencesKey).toBe(
+      before.userPreferencesKey,
+    );
+  });
+
+  test("hands the test a page with nothing still in flight", async () => {
+    await renderAdminPage();
+
+    /*
+     * The old wait was satisfied by the readiness request being ISSUED. A test
+     * that then asserted on readiness-derived copy was asserting against a
+     * response that had not arrived.
+     */
+    expect(pendingRequestCount).toBe(0);
+    assertEveryTableIsSettled();
+  });
+
+  test("reads the same page when readiness lands after the rule tables", async () => {
+    readinessLandsAfterTheTables();
+
+    await renderAdminPage();
+
+    expect(pendingRequestCount).toBe(0);
+    assertEveryTableIsSettled();
+  });
+
+  test("reads the same page when readiness lands before the rule tables", async () => {
+    readinessLandsBeforeTheTables();
+
+    await renderAdminPage();
+
+    expect(pendingRequestCount).toBe(0);
+    assertEveryTableIsSettled();
+  });
+
+  test("waits out the seven method reads a self-serve page makes for its owner", async () => {
+    // A self-serve page is always the viewer's own, so this is the owner path.
+    await renderSelfServePage(IncidentOnCallRules);
+
+    /*
+     * A rule table belonging to the viewer loads the seven notification-method
+     * models one after another, and unmounting the page does not stop that
+     * chain - it stops the rendering. Any of those seven still running when the
+     * next test resets `getListMock` is recorded as that test's request, which
+     * is how "never reads a notification method model" comes to fail on a page
+     * that never asked for one.
+     *
+     * Returning only once the chain is done is what keeps each test's call log
+     * its own; the drain in `afterEach` is the same guarantee for a test that
+     * renders without going through these helpers.
+     */
+    expect(pendingRequestCount).toBe(0);
+
+    const requested: Array<unknown> = requestedModelTypes();
+
+    for (const methodModel of NOTIFICATION_METHOD_MODELS) {
+      expect(requested).toContain(methodModel);
+    }
+  });
 });
 
 describe("the shared rules table, as the admin page wires it", () => {
   for (const testCase of RULE_TYPE_CASES) {
     test(`${testCase.label} rules are banded by their own severity model and foreign key column`, async () => {
-      await renderAdminPageWithTables();
+      await renderAdminPage();
 
       const tables: Array<CapturedTableProps> = tablesFor(testCase.ruleType);
 
@@ -1038,7 +1350,7 @@ describe("the shared rules table, as the admin page wires it", () => {
     });
 
     test(`${testCase.label} rules stamp the same column on a newly created rule`, async () => {
-      await renderAdminPageWithTables();
+      await renderAdminPage();
 
       const table: CapturedTableProps = tablesFor(testCase.ruleType)[0]!;
 
@@ -1066,7 +1378,7 @@ describe("the shared rules table, as the admin page wires it", () => {
   }
 
   test("every table is scoped to the user in the URL, never to the signed-in admin", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     capturedTables.forEach((table: CapturedTableProps) => {
       expect(table.query["userId"]?.toString()).toBe(TARGET_USER_ID_STRING);
@@ -1091,7 +1403,7 @@ describe("the shared rules table, as the admin page wires it", () => {
   });
 
   test("never reads a notification method model", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     /*
      * The redesign, in one assertion.
@@ -1121,7 +1433,7 @@ describe("the shared rules table, as the admin page wires it", () => {
   });
 
   test("asks the server for no column of a method model either", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     /*
      * The same rule as the test above, applied to the OTHER way this page could
@@ -1143,7 +1455,7 @@ describe("the shared rules table, as the admin page wires it", () => {
      * So the readiness card masked every identifier and the table one card below
      * printed them in full.
      */
-    for (const table of latestTables()) {
+    for (const table of capturedTables) {
       const projection: Array<string> = Object.keys(table.selectMoreFields);
 
       for (const column of table.columns) {
@@ -1165,10 +1477,10 @@ describe("the shared rules table, as the admin page wires it", () => {
   });
 
   test("labels a listed rule with the masked identifier, not the raw one", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     const methodColumn: CapturedColumn = columnNamed(
-      latestTables()[0]!,
+      capturedTables[0]!,
       "Notification Method",
     );
 
@@ -1189,9 +1501,9 @@ describe("the shared rules table, as the admin page wires it", () => {
   });
 
   test("builds the rule form's method dropdown out of the masked readiness payload", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
-    latestTables().forEach((table: CapturedTableProps) => {
+    capturedTables.forEach((table: CapturedTableProps) => {
       /*
        * Masked label, real foreign key. The admin picks "SMS: +1 ••• ••• 4821"
        * and the form submits `userSmsId`, so the page can point a rule at a
@@ -1205,9 +1517,9 @@ describe("the shared rules table, as the admin page wires it", () => {
   });
 
   test("the dropdown withholds the unverified method", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
-    const values: Array<string> = methodOptionsFor(latestTables()[0]!).map(
+    const values: Array<string> = methodOptionsFor(capturedTables[0]!).map(
       (option: { label: string; value: string }) => {
         return option.value;
       },
@@ -1223,10 +1535,10 @@ describe("the shared rules table, as the admin page wires it", () => {
   });
 
   test("a rule created from that dropdown points at the method's own column", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     const created: UserNotificationRule =
-      await latestTables()[0]!.onBeforeCreate(new UserNotificationRule(), {
+      await capturedTables[0]!.onBeforeCreate(new UserNotificationRule(), {
         notificationMethod: SMS_METHOD_ID,
       });
 
@@ -1246,7 +1558,7 @@ describe("the shared rules table, as the admin page wires it", () => {
       new HTTPErrorResponse(500, { message: "readiness is down" }, {}) as never,
     );
 
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     /*
      * The failure mode this seam had to be designed around. Readiness is the
@@ -1259,14 +1571,14 @@ describe("the shared rules table, as the admin page wires it", () => {
       expect(requestedModelTypes()).not.toContain(methodModel);
     }
 
-    latestTables().forEach((table: CapturedTableProps) => {
+    capturedTables.forEach((table: CapturedTableProps) => {
       expect(methodOptionsFor(table)).toEqual([]);
       expect(table.isCreateable).toBe(true);
     });
   });
 
   test("keeps the severity id in every preferences key and namespaces the admin surface away from user settings", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     const adminKeys: Array<string> = capturedTables.map(
       (table: CapturedTableProps) => {
@@ -1320,7 +1632,7 @@ describe("the shared rules table, as the admin page wires it", () => {
   });
 
   test("never mounts a table over a notification method model", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     /*
      * The structural form of "an admin may not add a method for somebody else".
@@ -1466,7 +1778,7 @@ describe("the self-serve settings pages are unchanged by the extraction", () => 
 
 describe("the on-behalf-of banner", () => {
   test("names the person being edited and says the change is recorded and disclosed", async () => {
-    const container: HTMLElement = await renderAdminPageWithTables();
+    const container: HTMLElement = await renderAdminPage();
 
     expect(container.textContent).toContain(
       `You are editing on behalf of ${TARGET_USER_NAME}`,
@@ -1489,7 +1801,7 @@ describe("the on-behalf-of banner", () => {
       .spyOn(PermissionUtil, "getAllPermissions")
       .mockReturnValue([Permission.ReadProjectUserNotificationRule]);
 
-    const container: HTMLElement = await renderAdminPageWithTables();
+    const container: HTMLElement = await renderAdminPage();
 
     expect(container.textContent).toContain(
       `You are viewing ${TARGET_USER_NAME}`,
@@ -1523,7 +1835,7 @@ describe("the on-behalf-of banner", () => {
       .spyOn(PermissionUtil, "getAllPermissions")
       .mockReturnValue([Permission.ProjectOwner]);
 
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     capturedTables.forEach((table: CapturedTableProps) => {
       expect(table.isCreateable).toBe(true);
@@ -1537,7 +1849,7 @@ describe("the on-behalf-of banner", () => {
       .mockReturnValue(new ObjectID(TARGET_USER_ID_STRING));
     jest.spyOn(PermissionUtil, "getAllPermissions").mockReturnValue([]);
 
-    const container: HTMLElement = await renderAdminPageWithTables();
+    const container: HTMLElement = await renderAdminPage();
 
     expect(container.textContent).toContain(
       "These are your own notification rules.",
@@ -1584,7 +1896,7 @@ describe("the on-behalf-of banner", () => {
       new HTTPErrorResponse(500, { message: "readiness is down" }, {}) as never,
     );
 
-    const container: HTMLElement = await renderAdminPageWithTables();
+    const container: HTMLElement = await renderAdminPage();
 
     expect(container.textContent).toContain("readiness is down");
     expect(container.textContent).toContain(
@@ -1617,7 +1929,7 @@ describe("the on-behalf-of banner", () => {
 
 describe("notification methods are read-only", () => {
   test("lists each method masked, with its verification state", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     const methods: HTMLElement = cardNamed("Notification methods");
 
@@ -1634,7 +1946,7 @@ describe("notification methods are read-only", () => {
   });
 
   test("offers no control for adding a method on the user's behalf", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     const methods: HTMLElement = cardNamed("Notification methods");
 
@@ -1662,7 +1974,7 @@ describe("notification methods are read-only", () => {
   test("the no-methods empty state offers a reminder rather than a form", async () => {
     respondWithReadiness(NO_METHODS_READINESS);
 
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     const methods: HTMLElement = cardNamed("Notification methods");
 
@@ -1694,7 +2006,7 @@ describe("notification methods are read-only", () => {
   test("the rule tables stay editable while the methods stay locked", async () => {
     respondWithReadiness(NO_METHODS_READINESS);
 
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     /*
      * The whole design of this phase in one assertion: rules are the admin's to
@@ -1727,14 +2039,14 @@ describe("notification methods are read-only", () => {
  */
 describe("the coverage grid, now shared with the readiness page", () => {
   test("draws one matrix per severity kind", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     expect(matrixFor("Incident severities")).toBeInTheDocument();
     expect(matrixFor("Alert severities")).toBeInTheDocument();
   });
 
   test("neither kind's severities appear under the other kind's columns", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     const incidentMatrix: HTMLElement = matrixFor("Incident severities");
     const alertMatrix: HTMLElement = matrixFor("Alert severities");
@@ -1755,7 +2067,7 @@ describe("the coverage grid, now shared with the readiness page", () => {
   });
 
   test("marks the severity with no rule as a gap rather than as covered", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     const incidentMatrix: HTMLElement = matrixFor("Incident severities");
 
@@ -1770,7 +2082,7 @@ describe("the coverage grid, now shared with the readiness page", () => {
   });
 
   test("a severity-less rule type is listed apart from the grids", async () => {
-    const container: HTMLElement = await renderAdminPageWithTables();
+    const container: HTMLElement = await renderAdminPage();
 
     /*
      * WHEN_USER_GOES_ON_CALL carries no severity at all. Putting it in a
@@ -1794,7 +2106,7 @@ describe("the coverage grid, now shared with the readiness page", () => {
  */
 describe("the rules are editable, not merely addable and removable", () => {
   test("an admin gets the row editor on every table", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     capturedTables.forEach((table: CapturedTableProps) => {
       expect(table.isEditable).toBe(true);
@@ -1807,7 +2119,7 @@ describe("the rules are editable, not merely addable and removable", () => {
       .mockReturnValue(new ObjectID(TARGET_USER_ID_STRING));
     jest.spyOn(PermissionUtil, "getAllPermissions").mockReturnValue([]);
 
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     capturedTables.forEach((table: CapturedTableProps) => {
       expect(table.isEditable).toBe(true);
@@ -1815,7 +2127,7 @@ describe("the rules are editable, not merely addable and removable", () => {
   });
 
   test("the form offers the delay, which is what the server lets an editor change", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     const table: CapturedTableProps = capturedTables[0]!;
     const delayField: CapturedFormField = formFieldFor(
@@ -1834,7 +2146,7 @@ describe("the rules are editable, not merely addable and removable", () => {
   });
 
   test("the form withholds the method dropdown when editing, because update cannot carry it", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     const methodField: CapturedFormField = formFieldFor(
       capturedTables[0]!,
@@ -1855,7 +2167,7 @@ describe("the rules are editable, not merely addable and removable", () => {
   });
 
   test("the form offers nothing the model refuses to update", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     const keys: Array<string> = formFieldKeys(capturedTables[0]!);
 
@@ -1884,7 +2196,7 @@ describe("the rules are editable, not merely addable and removable", () => {
  */
 describe("the page says the same thing at the moment of the write", () => {
   test("the modal, the create button and the delete prompt all name the person", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     /*
      * ModelTable derives the modal title, the create button and the delete
@@ -1901,7 +2213,7 @@ describe("the page says the same thing at the moment of the write", () => {
   });
 
   test("the form fields stop speaking in the first person", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     const table: CapturedTableProps = capturedTables[0]!;
 
@@ -1927,7 +2239,7 @@ describe("the page says the same thing at the moment of the write", () => {
       .spyOn(UserUtil, "getUserId")
       .mockReturnValue(new ObjectID(TARGET_USER_ID_STRING));
 
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     const table: CapturedTableProps = capturedTables[0]!;
 
@@ -1938,7 +2250,7 @@ describe("the page says the same thing at the moment of the write", () => {
   });
 
   test("an opt-out row is labelled rather than left blank", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     const methodColumn: CapturedColumn = columnNamed(
       capturedTables[0]!,
@@ -1963,7 +2275,7 @@ describe("the page says the same thing at the moment of the write", () => {
   });
 
   test("an ordinary rule is not labelled as muted", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     const methodColumn: CapturedColumn = columnNamed(
       capturedTables[0]!,
@@ -1979,7 +2291,7 @@ describe("the page says the same thing at the moment of the write", () => {
   });
 
   test("the opt-out row is selected for, or the label could never fire", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     /*
      * The cell can only branch on a column the table actually asked the API
@@ -1993,9 +2305,9 @@ describe("the page says the same thing at the moment of the write", () => {
   });
 
   test("the empty state promises a fallback only where the project has one", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
-    latestTables().forEach((table: CapturedTableProps) => {
+    capturedTables.forEach((table: CapturedTableProps) => {
       expect(table.noItemsMessage).toContain(
         "fall back to whatever verified method they have",
       );
@@ -2007,7 +2319,7 @@ describe("the page says the same thing at the moment of the write", () => {
     project.disableOnCallNotificationFallback = true;
     getItemMock.mockResolvedValue(project as never);
 
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     /*
      * The same hole means two different things depending on one project
@@ -2016,11 +2328,9 @@ describe("the page says the same thing at the moment of the write", () => {
      * on one screen. With the switch off a missing rule is not a late page, it
      * is no page.
      */
-    await waitFor((): void => {
-      latestTables().forEach((table: CapturedTableProps) => {
-        expect(table.noItemsMessage).toContain("dropped");
-        expect(table.noItemsMessage).not.toContain("fall back to whatever");
-      });
+    capturedTables.forEach((table: CapturedTableProps) => {
+      expect(table.noItemsMessage).toContain("dropped");
+      expect(table.noItemsMessage).not.toContain("fall back to whatever");
     });
   });
 
@@ -2029,7 +2339,7 @@ describe("the page says the same thing at the moment of the write", () => {
       new HTTPErrorResponse(500, { message: "readiness is down" }, {}) as never,
     );
 
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     /*
      * A failed read is not a project with the fallback off. Saying "your pages
@@ -2037,12 +2347,10 @@ describe("the page says the same thing at the moment of the write", () => {
      * claim, and saying they fall back is the comforting version of the same
      * mistake.
      */
-    await waitFor((): void => {
-      latestTables().forEach((table: CapturedTableProps) => {
-        expect(table.noItemsMessage).toContain("could not be read");
-        expect(table.noItemsMessage).not.toContain("dropped");
-        expect(table.noItemsMessage).not.toContain("fall back to whatever");
-      });
+    capturedTables.forEach((table: CapturedTableProps) => {
+      expect(table.noItemsMessage).toContain("could not be read");
+      expect(table.noItemsMessage).not.toContain("dropped");
+      expect(table.noItemsMessage).not.toContain("fall back to whatever");
     });
   });
 });
@@ -2070,7 +2378,7 @@ describe("no unmasked identifier reaches the DOM", () => {
   };
 
   test("the admin page renders masked identifiers only", async () => {
-    const container: HTMLElement = await renderAdminPageWithTables();
+    const container: HTMLElement = await renderAdminPage();
 
     // The masked forms are present, so this is not passing by rendering nothing.
     expect(container.textContent).toContain(MASKED_EMAIL);
@@ -2082,7 +2390,7 @@ describe("no unmasked identifier reaches the DOM", () => {
   test("an unreachable user's empty state leaks nothing either", async () => {
     respondWithReadiness(NO_METHODS_READINESS);
 
-    const container: HTMLElement = await renderAdminPageWithTables();
+    const container: HTMLElement = await renderAdminPage();
 
     expect(container.textContent).toContain(
       "has no notification methods at all",
@@ -2098,11 +2406,11 @@ describe("no unmasked identifier reaches the DOM", () => {
    * they are checked at the prop.
    */
   test("no dropdown label carries a raw identifier", async () => {
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     const labels: Array<string> = [];
 
-    latestTables().forEach((table: CapturedTableProps) => {
+    capturedTables.forEach((table: CapturedTableProps) => {
       methodOptionsFor(table).forEach(
         (option: { label: string; value: string }) => {
           labels.push(option.label);
@@ -2133,7 +2441,7 @@ describe("no unmasked identifier reaches the DOM", () => {
   test("the mail draft carries the login address and no method identifier", async () => {
     respondWithReadiness(NO_METHODS_READINESS);
 
-    await renderAdminPageWithTables();
+    await renderAdminPage();
 
     const href: string = mailtoHrefIn(cardNamed("Notification methods"));
 

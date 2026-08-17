@@ -85,6 +85,27 @@ export interface ExtractedEntity {
 }
 
 /**
+ * An exact legacy registry identity that the current observation proves is no
+ * longer valid. This is deliberately narrower than `ExtractedEntity`: retired
+ * identities are never stamped onto signals and never create registry rows.
+ */
+export interface RetiredEntityIdentity {
+  entityType: EntityType;
+  entityKey: string;
+  identifyingAttributes: Dictionary<string>;
+}
+
+/**
+ * The complete result of one extraction pass. Most callers need only
+ * `entities`; ingest also forwards `retiredEntities` to the asynchronous
+ * registry reconciler so a live observation can repair a legacy row.
+ */
+export interface EntityExtractionResult {
+  entities: Array<ExtractedEntity>;
+  retiredEntities?: Array<RetiredEntityIdentity> | undefined;
+}
+
+/**
  * A normalized OTLP `Resource.entity_refs` entry (proto `EntityRef`,
  * Development status). When producers emit refs they are authoritative:
  * `idKeys`/`descriptionKeys` partition the flat resource attributes
@@ -133,13 +154,40 @@ export default class InventoryItem {
     attributes: EntityAttributes;
     entityRefs?: Array<ResourceEntityRef> | undefined;
   }): Array<ExtractedEntity> {
-    let out: Array<ExtractedEntity> = [];
+    return this.extractEntitiesWithRetirements(data).entities;
+  }
 
-    if (data.entityRefs && data.entityRefs.length > 0) {
+  /**
+   * Extract entities and any exact legacy identities proven obsolete by this
+   * same resource.
+   *
+   * A pre-fix heuristic registered `host.name` from an application SDK inside
+   * Kubernetes as a Host as well as registering the pod/node/cluster. The
+   * current resolver suppresses that Host. When heuristic mode is selected and
+   * the resource contains both a non-empty `host.name` and a supported
+   * Kubernetes identity, return the old Host key as a retirement candidate so
+   * the registry can remove that exact discovered row immediately.
+   *
+   * Non-empty `entity_refs` are an authority boundary even when none of their
+   * entries is usable and extraction falls back to heuristics. We never infer a
+   * retirement across that boundary; in particular, an explicitly referenced
+   * Host must remain authoritative on a Kubernetes resource.
+   */
+  public static extractEntitiesWithRetirements(data: {
+    projectId: string;
+    attributes: EntityAttributes;
+    entityRefs?: Array<ResourceEntityRef> | undefined;
+  }): EntityExtractionResult {
+    let out: Array<ExtractedEntity> = [];
+    const hasAuthoritativeEntityRefs: boolean = Boolean(
+      data.entityRefs && data.entityRefs.length > 0,
+    );
+
+    if (hasAuthoritativeEntityRefs) {
       out = this.entitiesFromRefs({
         projectId: data.projectId,
         attributes: data.attributes,
-        entityRefs: data.entityRefs,
+        entityRefs: data.entityRefs!,
       });
     }
 
@@ -160,7 +208,39 @@ export default class InventoryItem {
       }
     }
 
-    return out;
+    const retiredHost: RetiredEntityIdentity | null =
+      !hasAuthoritativeEntityRefs
+        ? this.retiredLegacyKubernetesHostIdentity(data)
+        : null;
+
+    return {
+      entities: out,
+      ...(retiredHost ? { retiredEntities: [retiredHost] } : {}),
+    };
+  }
+
+  private static retiredLegacyKubernetesHostIdentity(data: {
+    projectId: string;
+    attributes: EntityAttributes;
+  }): RetiredEntityIdentity | null {
+    const hostName: string | null = this.str(data.attributes, "host.name");
+    if (!hostName || !this.hasKubernetesIdentity(data.attributes)) {
+      return null;
+    }
+
+    const identifyingAttributes: Dictionary<string> = this.canonObject({
+      "host.name": hostName,
+    });
+
+    return {
+      entityType: EntityType.Host,
+      entityKey: this.computeEntityKey({
+        projectId: data.projectId,
+        entityType: EntityType.Host,
+        identifyingAttributes,
+      }),
+      identifyingAttributes,
+    };
   }
 
   private static entitiesFromResolvers(data: {
@@ -398,6 +478,17 @@ export default class InventoryItem {
    * cluster/namespace identity so e.g. the "default" namespace in two
    * clusters does not collide.
    */
+  private static readonly kubernetesIdentityAttributeKeys: ReadonlyArray<string> =
+    [
+      "k8s.cluster.name",
+      "k8s.namespace.name",
+      "k8s.node.name",
+      "k8s.node.uid",
+      "k8s.pod.name",
+      "k8s.pod.uid",
+      "k8s.deployment.name",
+    ];
+
   private static readonly resolvers: Array<
     (
       attrs: EntityAttributes,
@@ -441,13 +532,19 @@ export default class InventoryItem {
      * here on host.id would make the host entity key unmatchable on the read
      * side (`InventoryItem.keyForHost(hostIdentifier)`). Moving host
      * identity to host.id is a separate, deferred hardening that would
-     * migrate the MV and this identity together. A k8s node (which carries
-     * k8s.node.name, not host.name, and is rejected by autoDiscoverHost) is
-     * cataloged via the dedicated `k8s.node` entity, not as a host.
+     * migrate the MV and this identity together.
+     *
+     * Application SDKs running inside Kubernetes commonly auto-detect the
+     * pod hostname and publish it as `host.name`. That value does not identify
+     * a machine: the same resource's k8s.* identity identifies the pod, node,
+     * namespace, deployment and cluster that Inventory should catalog. Match
+     * autoDiscoverHost's phantom-host gate by refusing the heuristic Host
+     * whenever a Kubernetes identity is present. Explicit OTLP entity_refs
+     * remain authoritative because they bypass these heuristic resolvers.
      */
     (attrs: EntityAttributes) => {
       const hostName: string | null = InventoryItem.str(attrs, "host.name");
-      if (!hostName) {
+      if (!hostName || InventoryItem.hasKubernetesIdentity(attrs)) {
         return null;
       }
       return { entityType: EntityType.Host, id: { "host.name": hostName } };
@@ -723,7 +820,11 @@ export default class InventoryItem {
       "telemetry.sdk.name",
       "telemetry.sdk.version",
     ],
-    [EntityType.KubernetesNode]: ["node.kubernetes.io/instance-type"],
+    [EntityType.KubernetesNode]: [
+      "k8s.node.name",
+      "node.kubernetes.io/instance-type",
+    ],
+    [EntityType.KubernetesPod]: ["k8s.pod.name"],
     [EntityType.Container]: [
       "container.image.name",
       "container.image.tag",
@@ -793,6 +894,22 @@ export default class InventoryItem {
     }
     return value.filter((item: unknown): item is string => {
       return typeof item === "string" && item.trim().length > 0;
+    });
+  }
+
+  /**
+   * Whether a resource carries identity for a Kubernetes object.
+   *
+   * Include UID-only pod/node resources because their resolvers accept the UID
+   * as identity when the name is absent. Cluster UID is deliberately excluded:
+   * cluster identity is name-keyed throughout OneUptime, so a UID without
+   * `k8s.cluster.name` cannot be attached to a KubernetesCluster inventory
+   * item. The keys here must stay aligned with identities the resolvers below
+   * can actually emit.
+   */
+  public static hasKubernetesIdentity(attrs: EntityAttributes): boolean {
+    return this.kubernetesIdentityAttributeKeys.some((key: string): boolean => {
+      return this.str(attrs, key) !== null;
     });
   }
 

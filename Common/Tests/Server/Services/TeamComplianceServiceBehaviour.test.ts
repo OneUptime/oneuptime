@@ -223,6 +223,7 @@ function readinessWith(
     coverage: coverage,
     reasons: [],
     reachedVia: [],
+    teams: [],
   };
 }
 

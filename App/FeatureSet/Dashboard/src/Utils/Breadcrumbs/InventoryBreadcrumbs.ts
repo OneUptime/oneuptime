@@ -1,7 +1,32 @@
 import PageMap from "../PageMap";
-import { BuildBreadcrumbLinksByTitles } from "./Helper";
+import RouteMap, { RouteUtil } from "../RouteMap";
+import { BuildBreadcrumbLinks, BuildBreadcrumbLinksByTitles } from "./Helper";
+import { buildInventoryItemBreadcrumbLinks } from "./InventoryBreadcrumbLinks";
+import Route from "Common/Types/API/Route";
 import Dictionary from "Common/Types/Dictionary";
 import Link from "Common/Types/Link";
+import Navigation from "Common/UI/Utils/Navigation";
+
+function buildInventoryDetailBreadcrumbs(
+  pageKey: PageMap,
+  currentTitle?: string,
+): Dictionary<Array<Link>> {
+  const currentRoute: Route = Navigation.getCurrentPath();
+
+  return BuildBreadcrumbLinks(
+    pageKey,
+    buildInventoryItemBreadcrumbLinks({
+      projectRoute: Navigation.getBreadcrumbRoute(1),
+      inventoryRoute: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.INVENTORY] as Route,
+      ),
+      // A child URL is /inventory/item/:id/<page>; keep through the id.
+      itemRoute: currentTitle ? Navigation.getBreadcrumbRoute(4) : currentRoute,
+      currentRoute,
+      currentTitle,
+    }),
+  );
+}
 
 export function getInventoryBreadcrumbs(path: string): Array<Link> | undefined {
   const breadcrumpLinksMap: Dictionary<Link[]> = {
@@ -20,63 +45,54 @@ export function getInventoryBreadcrumbs(path: string): Array<Link> | undefined {
       "Inventory",
       "Documentation",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.INVENTORY_VIEW, [
-      "Project",
-      "Inventory",
-      "View Item",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.INVENTORY_VIEW_RELATIONSHIPS, [
-      "Project",
-      "Inventory",
-      "View Item",
-      "Relationships",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.INVENTORY_VIEW_TELEMETRY, [
-      "Project",
-      "Inventory",
-      "View Item",
-      "Telemetry",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.INVENTORY_VIEW_SETTINGS, [
-      "Project",
-      "Inventory",
-      "View Item",
-      "Settings",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.INVENTORY_VIEW_DELETE, [
-      "Project",
-      "Inventory",
-      "View Item",
-      "Delete Item",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.INVENTORY_VIEW_INCIDENTS, [
-      "Project",
-      "Inventory",
-      "View Item",
-      "Incidents",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.INVENTORY_VIEW_ALERTS, [
-      "Project",
-      "Inventory",
-      "View Item",
-      "Alerts",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.INVENTORY_VIEW_SCHEDULED_MAINTENANCE,
-      ["Project", "Inventory", "View Item", "Scheduled Maintenance"],
+    ...buildInventoryDetailBreadcrumbs(PageMap.INVENTORY_VIEW),
+    ...buildInventoryDetailBreadcrumbs(
+      PageMap.INVENTORY_VIEW_RELATIONSHIPS,
+      "Connections",
     ),
-    ...BuildBreadcrumbLinksByTitles(PageMap.INVENTORY_VIEW_CUSTOM_FIELDS, [
-      "Project",
-      "Inventory",
-      "View Item",
+    ...buildInventoryDetailBreadcrumbs(PageMap.INVENTORY_VIEW_LOGS, "Logs"),
+    ...buildInventoryDetailBreadcrumbs(PageMap.INVENTORY_VIEW_TRACES, "Traces"),
+    ...buildInventoryDetailBreadcrumbs(
+      PageMap.INVENTORY_VIEW_METRICS,
+      "Metrics",
+    ),
+    ...buildInventoryDetailBreadcrumbs(
+      PageMap.INVENTORY_VIEW_PROFILES,
+      "Performance Profiles",
+    ),
+    ...buildInventoryDetailBreadcrumbs(
+      PageMap.INVENTORY_VIEW_EXCEPTIONS,
+      "Exceptions",
+    ),
+    ...buildInventoryDetailBreadcrumbs(
+      PageMap.INVENTORY_VIEW_TELEMETRY,
+      "Logs",
+    ),
+    ...buildInventoryDetailBreadcrumbs(
+      PageMap.INVENTORY_VIEW_SETTINGS,
+      "Settings",
+    ),
+    ...buildInventoryDetailBreadcrumbs(
+      PageMap.INVENTORY_VIEW_DELETE,
+      "Delete Item",
+    ),
+    ...buildInventoryDetailBreadcrumbs(
+      PageMap.INVENTORY_VIEW_INCIDENTS,
+      "Incidents",
+    ),
+    ...buildInventoryDetailBreadcrumbs(PageMap.INVENTORY_VIEW_ALERTS, "Alerts"),
+    ...buildInventoryDetailBreadcrumbs(
+      PageMap.INVENTORY_VIEW_SCHEDULED_MAINTENANCE,
+      "Scheduled Maintenance",
+    ),
+    ...buildInventoryDetailBreadcrumbs(
+      PageMap.INVENTORY_VIEW_CUSTOM_FIELDS,
       "Custom Fields",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.INVENTORY_VIEW_AUDIT_LOGS, [
-      "Project",
-      "Inventory",
-      "View Item",
+    ),
+    ...buildInventoryDetailBreadcrumbs(
+      PageMap.INVENTORY_VIEW_AUDIT_LOGS,
       "Audit Logs",
-    ]),
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.INVENTORY_ARCHIVED, [
       "Project",
       "Inventory",

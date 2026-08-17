@@ -1517,181 +1517,237 @@ export default class LayerUtil {
     events: PriorityCalendarEvents[],
   ): CalendarEvent[] {
     /*
-     * now remove overlapping events by priority and trim them by priority. Lower priority number will be kept and higher priority number will be trimmed.
-     * so if there are two events with the same start and end time, we will keep the one with the lower priority number and remove the one with the higher priority number.
-     * if there are overlapping events, we will trim the one with the higher priority number.
+     * Flatten overlapping events by priority. A LOWER priority number wins: an
+     * event is trimmed back so it does not overlap any higher-priority (lower
+     * numbered) event, and where a lower-priority event straddles a
+     * higher-priority one it is split into a leading and a trailing segment.
+     * Segments are separated by a 1-second seam.
+     *
+     * This runs on the browser's main thread on the on-call schedule screen,
+     * over every event in the coverage window — an hourly rotation over three
+     * months is thousands of events. The previous implementation had three
+     * separate problems here, in increasing order of severity:
+     *
+     *   - CONSTANT FACTOR. Every comparison went through `OneUptimeDate.*`,
+     *     which wraps each operand in a moment object (via `fromString`) —
+     *     roughly 8 allocations per overlap test, and it dominated the profile.
+     *     All comparisons below are numeric `getTime()` instead. Timestamps are
+     *     normalised once, up front, so string-typed inputs are still accepted.
+     *   - COMPLEXITY. The inner scan walked the whole of `finalEvents` for every
+     *     event placed, which is O(n^2): ~1000 hourly events took over a minute,
+     *     and every re-render of the schedule screen paid it again.
+     *     `activeEventIndexes` keeps the scan off events that can no longer
+     *     match. Events are processed in ascending start order and an event's
+     *     start only ever moves forward, so once a placed event ends at or
+     *     before the current start it cannot overlap this event or any later
+     *     one, and is dropped from the scan for good.
+     *   - TERMINATION. On some inputs it never finished at all — see the
+     *     exhausted-event break inside the scan below. That was the real bug;
+     *     the two above only made the schedule screen slow.
      */
 
-    // sort the events by priority
+    /*
+     * Normalise to real Dates once. Everything below reads `.getTime()`
+     * directly, which is only safe if these are Date instances — callers may
+     * hand us JSON-deserialised events whose start/end are strings, which the
+     * old `OneUptimeDate.*` comparisons coerced on every single call.
+     */
+    for (const event of events) {
+      event.start = OneUptimeDate.fromString(event.start);
+      event.end = OneUptimeDate.fromString(event.end);
+    }
 
-    // now remove the overlapping events
-
-    // remove events where start time and end time are the same
-
+    // Drop zero-length and inverted events; the merge below assumes end > start.
     events = events.filter((event: PriorityCalendarEvents) => {
-      return !OneUptimeDate.isSame(event.start, event.end);
+      return event.end.getTime() > event.start.getTime();
     });
 
-    // remove events where start time is after end time
-    events = events.filter((event: PriorityCalendarEvents) => {
-      return !OneUptimeDate.isBefore(event.end, event.start);
+    /*
+     * Ascending start time. Array.prototype.sort is stable, so events that share
+     * a start stay in insertion order — which is layer order, i.e. ascending
+     * priority. The merge below depends on this ordering in both directions:
+     * ascending starts let the active-set pruning work, and the priority tie
+     * order decides which of two same-start events is the one that gets trimmed.
+     */
+    events.sort((a: CalendarEvent, b: CalendarEvent) => {
+      return a.start.getTime() - b.start.getTime();
     });
 
     const finalEvents: PriorityCalendarEvents[] = [];
 
-    // sort events by start time
+    /*
+     * Indexes into finalEvents that may still overlap the event being placed,
+     * in ascending index order — the same order the old full scan visited them
+     * in. Order is load-bearing, not incidental: trimming a lower-priority final
+     * event uses the current event's start, which a higher-priority final event
+     * visited earlier in the same scan may already have pushed forward.
+     */
+    const activeEventIndexes: number[] = [];
 
-    events.sort((a: CalendarEvent, b: CalendarEvent) => {
-      if (OneUptimeDate.isBefore(a.start, b.start)) {
-        return -1;
-      }
-
-      if (OneUptimeDate.isAfter(a.start, b.start)) {
-        return 1;
-      }
-
-      return 0;
-    });
+    // Tombstones. Splicing finalEvents mid-merge would invalidate these indexes.
+    const removedEventIndexes: Set<number> = new Set<number>();
 
     for (const event of events) {
-      // trim the trimmed events by the current event based on priority
+      const eventEndTime: number = event.end.getTime();
 
-      // if this event starts and end at the same time, we need to remove it
-      if (OneUptimeDate.isSame(event.start, event.end)) {
-        continue;
-      }
+      /*
+       * Retire everything that ends at or before this event's start. Events
+       * arrive in ascending start order, so nothing retired here can overlap any
+       * later event either. Each index is examined once more after it stops
+       * matching, making this O(1) amortised per placed event.
+       */
+      const eventStartTime: number = event.start.getTime();
+      let keptCount: number = 0;
 
-      // if the end time of the event is before the start time, we need to remove it
-      if (OneUptimeDate.isBefore(event.end, event.start)) {
-        continue;
-      }
+      for (let i: number = 0; i < activeEventIndexes.length; i++) {
+        const index: number = activeEventIndexes[i]!;
 
-      for (let i: number = 0; i < finalEvents.length; i++) {
-        const finalEvent: PriorityCalendarEvents | undefined = finalEvents[i];
-
-        if (!finalEvent) {
+        if (removedEventIndexes.has(index)) {
           continue;
         }
 
-        // check if this final event overlaps with the current event
-        if (
-          OneUptimeDate.isOverlapping(
-            finalEvent.start,
-            finalEvent.end,
-            event.start,
-            event.end,
-          )
-        ) {
-          // if the current event has a higher priority than the final event, we need to trim the final event
-          if (event.priority < finalEvent.priority) {
-            /*
-             * trim the final event based on the current event
-             * end time of the final event will be the start time of the current event - 1 second
-             */
-            const tempFinalEventEnd: Date = finalEvent.end;
+        if (finalEvents[index]!.end.getTime() <= eventStartTime) {
+          continue;
+        }
 
-            /*
-             * Reconstruct the trailing tail FIRST, before the front-collapse
-             * removal below. If the lower-priority (fallback) event originally
-             * extended past the higher-priority event, the portion AFTER the
-             * higher-priority window must survive as its own segment — even when
-             * the FRONT of the final event collapses to zero/negative length
-             * (which happens when the higher-priority event starts at or before
-             * the final event's start, e.g. two back-to-back higher-priority
-             * rotation windows over a 24/7 fallback layer). Previously this block
-             * ran only AFTER the collapse checks, whose `continue` skipped it,
-             * silently deleting the fallback layer's coverage after the higher-
-             * priority window and leaving on-call gaps where nobody is paged.
-             */
-            if (OneUptimeDate.isAfter(tempFinalEventEnd, event.end)) {
-              // add the trailing segment of the lower-priority event
-              const trimmedEvent: PriorityCalendarEvents = {
-                ...finalEvent,
-                priority: finalEvent.priority,
-                start: OneUptimeDate.addRemoveSeconds(event.end, 1),
-                end: tempFinalEventEnd,
-              };
+        activeEventIndexes[keptCount] = index;
+        keptCount++;
+      }
 
-              // only keep it if it has positive length
-              if (OneUptimeDate.isAfter(trimmedEvent.end, trimmedEvent.start)) {
-                finalEvents.push(trimmedEvent);
-              }
+      activeEventIndexes.length = keptCount;
+
+      /*
+       * Length is re-read each pass: trailing segments appended below join the
+       * scan, exactly as they did when this walked finalEvents directly. They
+       * start after this event ends, so they never match it — but the scan is
+       * kept faithful rather than relying on that.
+       */
+      for (let i: number = 0; i < activeEventIndexes.length; i++) {
+        const currentStart: number = event.start.getTime();
+
+        /*
+         * Nothing left of this event. The else-branch below pushes its start
+         * forward past each higher-priority window it meets, and that can
+         * consume the event entirely — at which point it covers no time, will
+         * not be placed, and must stop trimming other events.
+         *
+         * WITHOUT this stop the merge does not terminate, which is the bug this
+         * whole rewrite exists to fix. `OneUptimeDate.isOverlapping` reports a
+         * zero-length or inverted interval as overlapping anything that shares
+         * an endpoint with it (its moment `isBetween` bounds are exclusive, but
+         * it also has explicit start===start / end===end arms). So an exhausted
+         * event kept matching the very tail segment it had just created, split
+         * it again, matched the new tail, and so on forever. Empirically an
+         * hourly grid with 3 priorities settled at 14 events and never returned
+         * at 16.
+         *
+         * Stopping here is also the correct answer rather than merely a
+         * terminating one: an event with no remaining duration represents nobody
+         * on call, so letting it carve a second out of a lower-priority event
+         * opened a 1-second hole in the fallback coverage for no reason.
+         */
+        if (currentStart >= eventEndTime) {
+          break;
+        }
+
+        const finalEventIndex: number = activeEventIndexes[i]!;
+
+        if (removedEventIndexes.has(finalEventIndex)) {
+          continue;
+        }
+
+        const finalEvent: PriorityCalendarEvents =
+          finalEvents[finalEventIndex]!;
+
+        const finalStart: number = finalEvent.start.getTime();
+        const finalEnd: number = finalEvent.end.getTime();
+
+        /*
+         * Half-open overlap: touching endpoints do not overlap. Both intervals
+         * are guaranteed positive-length here — final events are length-checked
+         * before being placed, and the current event is checked by the break
+         * above — and over positive-length intervals this is exactly equivalent
+         * to the OneUptimeDate.isOverlapping it replaces.
+         */
+        if (currentStart >= finalEnd || finalStart >= eventEndTime) {
+          continue;
+        }
+
+        if (event.priority < finalEvent.priority) {
+          /*
+           * The current event outranks this one. Trim the final event back to
+           * end 1s before the current event starts.
+           */
+          const tempFinalEventEnd: Date = finalEvent.end;
+
+          /*
+           * Reconstruct the trailing tail FIRST, before the front-collapse
+           * removal below. If the lower-priority (fallback) event originally
+           * extended past the higher-priority event, the portion AFTER the
+           * higher-priority window must survive as its own segment — even when
+           * the FRONT of the final event collapses to zero/negative length
+           * (which happens when the higher-priority event starts at or before
+           * the final event's start, e.g. two back-to-back higher-priority
+           * rotation windows over a 24/7 fallback layer). Previously this block
+           * ran only AFTER the collapse checks, whose `continue` skipped it,
+           * silently deleting the fallback layer's coverage after the higher-
+           * priority window and leaving on-call gaps where nobody is paged.
+           */
+          if (tempFinalEventEnd.getTime() > eventEndTime) {
+            // add the trailing segment of the lower-priority event
+            const trimmedEvent: PriorityCalendarEvents = {
+              ...finalEvent,
+              priority: finalEvent.priority,
+              start: new Date(eventEndTime + 1000),
+              end: tempFinalEventEnd,
+            };
+
+            // only keep it if it has positive length
+            if (trimmedEvent.end.getTime() > trimmedEvent.start.getTime()) {
+              activeEventIndexes.push(finalEvents.length);
+              finalEvents.push(trimmedEvent);
             }
+          }
 
-            finalEvent.end = OneUptimeDate.addRemoveSeconds(event.start, -1);
+          finalEvent.end = new Date(currentStart - 1000);
 
-            /*
-             * check if the final event end time is before the start time of the current event
-             * if it is, we need to remove the final event from the final events array
-             * (the trailing tail, if any, was already preserved above)
-             */
-            if (OneUptimeDate.isBefore(finalEvent.end, finalEvent.start)) {
-              finalEvents.splice(i, 1);
-              i--; // Adjust index after removal
-              continue;
-            }
+          /*
+           * If the front collapsed to zero or negative length, drop it. The
+           * trailing tail, if any, was already preserved above.
+           */
+          if (finalEvent.end.getTime() <= finalStart) {
+            removedEventIndexes.add(finalEventIndex);
+          }
+        } else {
+          /*
+           * Trim the current (lower-priority) event: push its start past this
+           * higher-priority window. This is a monotonic max rather than a bare
+           * assignment so the result does NOT depend on the order finalEvents
+           * are visited. That is what made it safe to hoist the per-iteration
+           * finalEvents.sort() out of the loop (audit H2).
+           */
+          const trimmedStart: number = finalEnd + 1000;
 
-            // if end and start time of the final event is same, we need to remove it
-            if (OneUptimeDate.isSame(finalEvent.start, finalEvent.end)) {
-              finalEvents.splice(i, 1);
-              i--; // Adjust index after removal
-              continue;
-            }
-          } else {
-            /*
-             * Trim the current (lower-priority) event: push its start past this
-             * higher-priority window. Use getGreaterDate (a monotonic max)
-             * instead of a bare assignment so the result does NOT depend on the
-             * order finalEvents are visited. That makes it safe to hoist the
-             * per-iteration finalEvents.sort() out of the loop (audit H2): with
-             * the old in-loop ascending sort, successive overlaps already had
-             * monotonically increasing ends, so max equals the old assignment and
-             * the output is unchanged.
-             */
-            event.start = OneUptimeDate.getGreaterDate(
-              event.start,
-              OneUptimeDate.addRemoveSeconds(finalEvent.end, 1),
-            );
+          if (trimmedStart > currentStart) {
+            event.start = new Date(trimmedStart);
           }
         }
       }
 
-      // check if the event end time is before the start time of the current event
-      if (OneUptimeDate.isAfter(event.end, event.start)) {
+      // Whatever is left of the current event, if anything, is placed.
+      if (eventEndTime > event.start.getTime()) {
+        activeEventIndexes.push(finalEvents.length);
         finalEvents.push(event);
       }
 
       /*
-       * The finalEvents.sort() that used to run HERE — inside the per-event
-       * loop — made the merge O(n^2 log n). It is hoisted to a single sort after
-       * the loop (below). Correctness is preserved because overlap detection and
-       * trimming do not depend on finalEvents being sorted (the current-event
-       * trim above now uses a monotonic max), so sorting once at the end yields
-       * the same result. Audit H2.
+       * The sweep that used to run HERE — rescanning all of finalEvents for
+       * zero-length and inverted entries after every placement — was O(n^2) on
+       * its own and could never find anything. Every event reaching finalEvents
+       * is length-checked at the moment it is pushed, and the only field mutated
+       * afterwards is `end` in the trim branch above, which drops the event on
+       * the spot when it collapses.
        */
-
-      // if an event starts and end at the same time, we need to remove it
-
-      for (let index: number = 0; index < finalEvents.length; index++) {
-        const finalEvent: PriorityCalendarEvents | undefined =
-          finalEvents[index];
-
-        if (!finalEvent) {
-          continue;
-        }
-
-        if (OneUptimeDate.isSame(finalEvent.start, finalEvent.end)) {
-          finalEvents.splice(index, 1);
-          index--; // Adjust index after removal
-          continue;
-        }
-
-        // if any event ends before it starts, we need to remove it
-        if (OneUptimeDate.isBefore(finalEvent.end, finalEvent.start)) {
-          finalEvents.splice(index, 1);
-          index--; // Adjust index after removal
-        }
-      }
     }
 
     /*
@@ -1699,16 +1755,14 @@ export default class LayerUtil {
      * audit H2). Downstream consumers (getEvents id assignment, the schedule
      * service's current/next selection) expect events in start order.
      */
-    finalEvents.sort((a: CalendarEvent, b: CalendarEvent) => {
-      if (OneUptimeDate.isBefore(a.start, b.start)) {
-        return -1;
-      }
+    const keptEvents: PriorityCalendarEvents[] = finalEvents.filter(
+      (_event: PriorityCalendarEvents, index: number) => {
+        return !removedEventIndexes.has(index);
+      },
+    );
 
-      if (OneUptimeDate.isAfter(a.start, b.start)) {
-        return 1;
-      }
-
-      return 0;
+    keptEvents.sort((a: CalendarEvent, b: CalendarEvent) => {
+      return a.start.getTime() - b.start.getTime();
     });
 
     // convert PriorityCalendarEvents to CalendarEvents
@@ -1716,7 +1770,7 @@ export default class LayerUtil {
     const calendarEvents: CalendarEvent[] = [];
     let id: number = 1;
 
-    for (const event of finalEvents) {
+    for (const event of keptEvents) {
       const calendarEvent: CalendarEvent = {
         ...event,
         id: id,

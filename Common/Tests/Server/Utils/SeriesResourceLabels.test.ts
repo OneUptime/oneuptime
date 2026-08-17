@@ -114,4 +114,59 @@ describe("SeriesResourceLabels.extractResourceRefs", () => {
     const allValues: Array<string> = Object.values(refs).flat();
     expect(allValues).toEqual([]);
   });
+
+  /*
+   * Ingest stamps `oneuptime.service.name` next to `oneuptime.service.id`
+   * on every row, exactly as it does for hosts. It was missing from the
+   * service key list, so a monitor grouped by that spelling linked no
+   * service at all.
+   */
+  test("reads the oneuptime-stamped service name", () => {
+    const refs: SeriesResourceRefs = SeriesResourceLabels.extractResourceRefs({
+      "oneuptime.service.name": "checkout",
+    });
+
+    expect(refs.serviceNames).toEqual(["checkout"]);
+  });
+
+  test("reads the resource-prefixed oneuptime service name", () => {
+    const refs: SeriesResourceRefs = SeriesResourceLabels.extractResourceRefs({
+      "resource.oneuptime.service.name": "checkout",
+    });
+
+    expect(refs.serviceNames).toEqual(["checkout"]);
+  });
+
+  test("reads the docker swarm cluster name in both spellings", () => {
+    expect(
+      SeriesResourceLabels.extractResourceRefs({
+        "docker.swarm.cluster.name": "swarm-prod",
+      }).dockerSwarmClusterNames,
+    ).toEqual(["swarm-prod"]);
+
+    expect(
+      SeriesResourceLabels.extractResourceRefs({
+        "resource.docker.swarm.cluster.name": "swarm-prod",
+      }).dockerSwarmClusterNames,
+    ).toEqual(["swarm-prod"]);
+  });
+
+  /*
+   * A swarm cluster label is the Swarm cluster's territory only: it must
+   * not be mistaken for a Docker host, and a Docker host label must not
+   * be read as a swarm cluster.
+   */
+  test("swarm cluster and docker host labels stay separate", () => {
+    const swarmRefs: SeriesResourceRefs =
+      SeriesResourceLabels.extractResourceRefs({
+        "docker.swarm.cluster.name": "swarm-prod",
+      });
+    expect(swarmRefs.dockerHostNames).toEqual([]);
+
+    const dockerRefs: SeriesResourceRefs =
+      SeriesResourceLabels.extractResourceRefs({
+        "oneuptime.docker.host.name": "docker-box",
+      });
+    expect(dockerRefs.dockerSwarmClusterNames).toEqual([]);
+  });
 });

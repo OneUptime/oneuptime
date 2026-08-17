@@ -1,3 +1,7 @@
+import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
+import IconProp from "../../../Types/Icon/IconProp";
+
 export interface LiveLogsOptions {
   isLive: boolean;
   onToggle: (next: boolean) => void;
@@ -25,6 +29,25 @@ export interface ActiveFilter {
   displayKey: string;
   displayValue: string;
   readOnly?: boolean | undefined;
+  /*
+   * When set, the chip renders a small icon-link that opens this route (e.g.
+   * a trace/span chip linking out to the trace view). Chips without a
+   * resolvable destination render as plain chips.
+   */
+  openRoute?: Route | URL | undefined;
+}
+
+/*
+ * One cross-signal pivot action rendered in the toolbar's "related signals"
+ * group (e.g. "Traces" / "Metrics" on the logs explorer). The tooltip is
+ * where callers surface scope fields the target explorer cannot carry.
+ */
+export interface LogsSignalPivotAction {
+  id: string;
+  label: string;
+  icon?: IconProp | undefined;
+  tooltip: string;
+  onClick: () => void;
 }
 
 export type LogsViewMode = "list" | "analytics";

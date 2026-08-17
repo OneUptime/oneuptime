@@ -49,6 +49,12 @@ export interface LLMCompletionRequest {
   requestTimeoutInMs?: number | undefined;
   /** Number of retries after the initial request. */
   requestRetries?: number | undefined;
+  /**
+   * Wall-clock budget for the whole retry ladder. Defaults to
+   * getRetryDeadlineInMs — raise it for a caller that can afford to wait
+   * longer than an interactive chat turn.
+   */
+  requestRetryDeadlineInMs?: number | undefined;
   /** Re-apply caller-owned request fields after provider-level overrides. */
   protectRequestParameters?: boolean | undefined;
   /**
@@ -76,7 +82,14 @@ export interface LLMUsage {
 export interface LLMCompletionResponse {
   content: string;
   toolCalls?: Array<LLMToolCall> | undefined;
-  stopReason?: "stop" | "tool_use" | undefined;
+  /*
+   * "length" means the provider cut generation off at the output-token cap —
+   * the content is incomplete and must not be presented as a finished answer.
+   * Every wire branch maps its provider-specific truncation signal here
+   * (OpenAI-style finish_reason "length", Anthropic stop_reason "max_tokens",
+   * Ollama done_reason "length").
+   */
+  stopReason?: "stop" | "tool_use" | "length" | undefined;
   usage: LLMUsage | undefined;
 }
 
@@ -114,6 +127,44 @@ interface OpenAIRequestAdaptation {
 }
 
 export default class LLMService {
+  /*
+   * How many times a provider call is attempted before it is reported as a
+   * failure. The provider hop is the flakiest one in the product — hosted
+   * endpoints rate limit, self-hosted ones fall behind their own queue, and a
+   * cold model can miss the per-attempt timeout while the next attempt sails
+   * through — and every one of those used to surface as a dead chat turn
+   * after three tries.
+   *
+   * This is a count of ATTEMPTS; API takes a count of retries, which is one
+   * fewer.
+   */
+  public static readonly DEFAULT_REQUEST_ATTEMPTS: number = 10;
+
+  /*
+   * Ten doublings would put the last wait seventeen minutes out. Capped at
+   * eight seconds the whole ladder (2, 4, 8, 8, ...) costs about a minute of
+   * sleep before jitter, which is the point: ride out a provider blip without
+   * turning one chat turn into a coffee break.
+   */
+  public static readonly MAX_BACKOFF_IN_MS: number = 8 * 1000;
+
+  /*
+   * Ten attempts is the right answer for failures that fail FAST — a 429, a
+   * refused connection, a 502 from a load balancer. Ten TIMEOUTS are a
+   * different story: at the 120s default that is twenty minutes, against a
+   * ChatAgentRunner budget of five for an entire turn, so the ladder gets a
+   * wall clock of its own.
+   */
+  private static readonly DEFAULT_RETRY_DEADLINE_IN_MS: number = 5 * 60 * 1000;
+
+  /*
+   * The floor keeps the deadline from ever costing a provider attempts it had
+   * before this budget existed: three full-timeout attempts is what the old
+   * two-retry policy allowed, and a slow provider (Ollama at 300s) still gets
+   * exactly that.
+   */
+  private static readonly MIN_FULL_TIMEOUT_ATTEMPTS_WITHIN_DEADLINE: number = 3;
+
   /*
    * Provider-level parameters allowed on protected, unattended completions.
    * This is deliberately a generation-only allowlist: capability fields such
@@ -189,10 +240,10 @@ export default class LLMService {
 
   /*
    * Remembers what a given endpoint actually accepted, so only the first
-   * completion per provider pays for the discovery. API.post retries 4xx, so
-   * a rejected request costs several full prompt uploads plus backoff —
-   * re-learning that on every call would be expensive on hot paths like the
-   * AI agent loop.
+   * completion per provider pays for the discovery. A rejected request still
+   * costs a full prompt upload and round trip per adaptation — re-learning
+   * that on every call would be expensive on hot paths like the AI agent
+   * loop.
    *
    * Keyed by provider + base URL + model, so editing any of them re-probes.
    * Entries also expire: what a deployment accepts is not fixed forever — the
@@ -644,6 +695,45 @@ export default class LLMService {
   }
 
   /**
+   * The retry policy every provider call runs under.
+   *
+   * Ten attempts, backed off and jittered, and deliberately spent only on
+   * failures a repeat could fix: a provider that rejects the request itself —
+   * bad key, unknown model, malformed body — answers the same way every time,
+   * and burning the ladder on it only hides the error the operator has to see.
+   */
+  private static buildRequestPolicy(data: {
+    request: LLMCompletionRequest;
+    defaultTimeoutInMs: number;
+  }): RequestOptions {
+    const timeoutInMs: number =
+      data.request.requestTimeoutInMs ?? data.defaultTimeoutInMs;
+
+    return {
+      retries: data.request.requestRetries ?? this.DEFAULT_REQUEST_ATTEMPTS - 1,
+      exponentialBackoff: true,
+      maxBackoffInMs: this.MAX_BACKOFF_IN_MS,
+      retryOnlyOnRetryableErrors: true,
+      totalTimeoutInMs: this.getRetryDeadlineInMs(data.request, timeoutInMs),
+      timeout: timeoutInMs,
+    };
+  }
+
+  private static getRetryDeadlineInMs(
+    request: LLMCompletionRequest,
+    timeoutInMs: number,
+  ): number {
+    if (request.requestRetryDeadlineInMs !== undefined) {
+      return request.requestRetryDeadlineInMs;
+    }
+
+    return Math.max(
+      this.DEFAULT_RETRY_DEADLINE_IN_MS,
+      timeoutInMs * this.MIN_FULL_TIMEOUT_ATTEMPTS_WITHIN_DEADLINE,
+    );
+  }
+
+  /**
    * POST an OpenAI-style chat completion, reshaping and retrying when the
    * endpoint rejects a generation parameter it does not support.
    *
@@ -713,11 +803,13 @@ export default class LLMService {
      * DNS round trips (and a rebind window between them).
      */
     const requestOptions: RequestOptions =
-      await this.buildGuardedRequestOptions(data.requestUrl, {
-        retries: data.request.requestRetries ?? 2,
-        exponentialBackoff: true,
-        timeout: data.request.requestTimeoutInMs ?? 120000,
-      });
+      await this.buildGuardedRequestOptions(
+        data.requestUrl,
+        this.buildRequestPolicy({
+          request: data.request,
+          defaultTimeoutInMs: 120000,
+        }),
+      );
 
     const post: () => Promise<
       HTTPResponse<JSONObject> | HTTPErrorResponse
@@ -793,6 +885,24 @@ export default class LLMService {
       this.parseOpenAIToolCalls(message);
 
     /*
+     * finish_reason "length" means the model hit the output-token cap, so the
+     * content (or a trailing tool call) is truncated. It takes precedence over
+     * the tool-call heuristic: executing a cut-off tool call or presenting a
+     * cut-off answer as complete would be wrong either way. Otherwise the
+     * presence of tool calls decides — some OpenAI-compatible servers report
+     * finish_reason "stop" even when they emitted tool calls.
+     */
+    const finishReason: string = (choices[0]!["finish_reason"] as string) || "";
+
+    let stopReason: "stop" | "tool_use" | "length" = "stop";
+
+    if (finishReason === "length") {
+      stopReason = "length";
+    } else if (toolCalls && toolCalls.length > 0) {
+      stopReason = "tool_use";
+    }
+
+    /*
      * OpenAI (and Azure OpenAI) automatically cache a stable prompt prefix
      * once it is long enough and report the cache hit under
      * prompt_tokens_details.cached_tokens — surface it for cost visibility.
@@ -806,7 +916,7 @@ export default class LLMService {
     return {
       content: (message["content"] as string) || "",
       toolCalls: toolCalls,
-      stopReason: toolCalls && toolCalls.length > 0 ? "tool_use" : "stop",
+      stopReason: stopReason,
       usage: usage
         ? {
             promptTokens: usage["prompt_tokens"] as number,
@@ -960,8 +1070,14 @@ export default class LLMService {
       [LlmType.Mistral]: "https://api.mistral.ai/v1",
     };
 
+    /*
+     * gpt-5.1 is a reasoning model: REASONING_MODEL_NAME_REGEX matches it, so
+     * the first request already goes out with max_completion_tokens instead
+     * of the legacy max_tokens, and any sampling params it rejects are
+     * dropped by the error-driven retry.
+     */
     const defaultModels: Record<string, string> = {
-      [LlmType.OpenAI]: "gpt-4o",
+      [LlmType.OpenAI]: "gpt-5.1",
       [LlmType.Groq]: "llama-3.3-70b-versatile",
       [LlmType.Mistral]: "mistral-large-latest",
     };
@@ -971,7 +1087,7 @@ export default class LLMService {
       defaultBaseUrls[config.llmType] ||
       "https://api.openai.com/v1";
     const modelName: string =
-      config.modelName || defaultModels[config.llmType] || "gpt-4o";
+      config.modelName || defaultModels[config.llmType] || "gpt-5.1";
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await this.postOpenAIChatCompletion({
         requestUrl: this.buildOpenAICompatibleChatCompletionsUrl(baseUrl),
@@ -1049,6 +1165,15 @@ export default class LLMService {
       );
     }
 
+    /*
+     * On Azure the model field is the DEPLOYMENT NAME the operator chose —
+     * not a model id. Keep the long-standing "gpt-4o" guess for tenants who
+     * left it blank: existing deployments named after the old default keep
+     * working, and Azure deployment names cannot contain dots, so a
+     * "gpt-5.1"-style id would never match a real deployment. The
+     * error-driven parameter adaptation corrects token-param mismatches
+     * either way.
+     */
     const modelName: string = config.modelName || "gpt-4o";
     const requestUrl: string = LLMService.buildAzureOpenAIChatCompletionsUrl(
       config.baseUrl,
@@ -1198,7 +1323,11 @@ export default class LLMService {
     }
 
     const baseUrl: string = config.baseUrl || "https://api.anthropic.com/v1";
-    const modelName: string = config.modelName || "claude-sonnet-4-20250514";
+    /*
+     * Current Sonnet alias. The dated claude-sonnet-4-20250514 ID this used to
+     * default to is deprecated and retires in June 2026.
+     */
+    const modelName: string = config.modelName || "claude-sonnet-5";
 
     let systemMessage: string = "";
 
@@ -1266,11 +1395,13 @@ export default class LLMService {
           "anthropic-version": "2023-06-01",
           "Content-Type": "application/json",
         },
-        options: await this.buildGuardedRequestOptions(anthropicRequestUrl, {
-          retries: request.requestRetries ?? 2,
-          exponentialBackoff: true,
-          timeout: request.requestTimeoutInMs ?? 120000,
-        }),
+        options: await this.buildGuardedRequestOptions(
+          anthropicRequestUrl,
+          this.buildRequestPolicy({
+            request: request,
+            defaultTimeoutInMs: 120000,
+          }),
+        ),
       });
 
     const anthropicLogAttributes: LogAttributes = {
@@ -1321,10 +1452,25 @@ export default class LLMService {
 
     const usage: JSONObject = jsonData["usage"] as JSONObject;
 
+    /*
+     * Anthropic reports truncation as stop_reason "max_tokens" — surface it as
+     * "length" so callers never present a cut-off answer as complete.
+     */
+    const anthropicStopReason: string =
+      (jsonData["stop_reason"] as string) || "";
+
+    let stopReason: "stop" | "tool_use" | "length" = "stop";
+
+    if (anthropicStopReason === "tool_use") {
+      stopReason = "tool_use";
+    } else if (anthropicStopReason === "max_tokens") {
+      stopReason = "length";
+    }
+
     return {
       content: textContent,
       toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-      stopReason: jsonData["stop_reason"] === "tool_use" ? "tool_use" : "stop",
+      stopReason: stopReason,
       usage: usage
         ? {
             promptTokens: (usage["input_tokens"] as number) || 0,
@@ -1362,7 +1508,8 @@ export default class LLMService {
       throw new BadDataException("Ollama base URL is required");
     }
 
-    const modelName: string = config.modelName || "llama2";
+    // llama2 predates tool calling entirely; llama3.1 is the oldest sane default.
+    const modelName: string = config.modelName || "llama3.1";
 
     const requestData: JSONObject = {
       model: modelName,
@@ -1407,11 +1554,13 @@ export default class LLMService {
         headers: {
           "Content-Type": "application/json",
         },
-        options: await this.buildGuardedRequestOptions(ollamaRequestUrl, {
-          retries: request.requestRetries ?? 2,
-          exponentialBackoff: true,
-          timeout: request.requestTimeoutInMs ?? 300000, // Ollama may be slower
-        }),
+        options: await this.buildGuardedRequestOptions(
+          ollamaRequestUrl,
+          this.buildRequestPolicy({
+            request: request,
+            defaultTimeoutInMs: 300000, // Ollama may be slower
+          }),
+        ),
       });
 
     const ollamaLogAttributes: LogAttributes = {
@@ -1479,10 +1628,27 @@ export default class LLMService {
     const ollamaCompletionTokens: number =
       (jsonData["eval_count"] as number) || 0;
 
+    /*
+     * Ollama reports why generation ended in done_reason on the final
+     * /api/chat response: "length" when num_predict cut the output off
+     * ("limit" is accepted too for wire-compat variants). Truncation takes
+     * precedence over the tool-call heuristic — a cut-off tool call must not
+     * be executed.
+     */
+    const doneReason: string = (jsonData["done_reason"] as string) || "";
+
+    let stopReason: "stop" | "tool_use" | "length" = "stop";
+
+    if (doneReason === "length" || doneReason === "limit") {
+      stopReason = "length";
+    } else if (toolCalls && toolCalls.length > 0) {
+      stopReason = "tool_use";
+    }
+
     return {
       content: (message["content"] as string) || "",
       toolCalls: toolCalls,
-      stopReason: toolCalls && toolCalls.length > 0 ? "tool_use" : "stop",
+      stopReason: stopReason,
       usage:
         ollamaPromptTokens || ollamaCompletionTokens
           ? {

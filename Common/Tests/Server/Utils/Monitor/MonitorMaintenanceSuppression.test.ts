@@ -15,6 +15,7 @@ function emptyMaintained(): MaintainedResourceKeys {
     kubernetesClusters: { ids: new Set<string>(), names: new Set<string>() },
     proxmoxClusters: { ids: new Set<string>(), names: new Set<string>() },
     cephClusters: { ids: new Set<string>(), names: new Set<string>() },
+    dockerSwarmClusters: { ids: new Set<string>(), names: new Set<string>() },
     iotFleets: { ids: new Set<string>(), names: new Set<string>() },
     services: { ids: new Set<string>(), names: new Set<string>() },
   };
@@ -205,6 +206,35 @@ describe("MonitorMaintenanceSuppression.getSuppressedFingerprintsForMaintainedRe
       );
 
     expect(Array.from(result)).toEqual(["fpFleet"]);
+  });
+
+  /*
+   * Linking and suppression read the same key map on purpose. Once a
+   * series carrying `docker.swarm.cluster.name` could be LINKED to a
+   * Swarm cluster, a maintenance window on that cluster had to silence
+   * it too — otherwise the alert it raises mid-window shows up on the
+   * very cluster the window covers.
+   */
+  it("suppresses a swarm series whose cluster is under maintenance", () => {
+    const maintained: MaintainedResourceKeys = emptyMaintained();
+    maintained.dockerSwarmClusters.names.add("prod-swarm");
+
+    const result: Set<string> =
+      MonitorMaintenanceSuppression.getSuppressedFingerprintsForMaintainedResources(
+        {
+          matchesPerSeries: [
+            series("fpSwarm", {
+              "resource.docker.swarm.cluster.name": "prod-swarm",
+            }),
+            series("fpClear", {
+              "resource.docker.swarm.cluster.name": "staging-swarm",
+            }),
+          ],
+          maintained,
+        },
+      );
+
+    expect(Array.from(result)).toEqual(["fpSwarm"]);
   });
 
   it("does not cross-match resource types that happen to share a name", () => {

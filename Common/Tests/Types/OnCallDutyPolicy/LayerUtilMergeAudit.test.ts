@@ -224,4 +224,110 @@ describe("LayerUtil audit H2: multi-layer merge invariants preserved", () => {
      */
     expect(elapsedMs).toBeLessThan(15000);
   });
+
+  /*
+   * The Dashboard's on-call schedule screen expands the whole coverage window on
+   * the browser's MAIN THREAD (see CoverageWindow.ts — three calendar months),
+   * so this is the shape that decides whether that screen is usable. An hourly
+   * rotation over three months is ~2200 events per layer; with the quadratic
+   * merge this took minutes and hung the tab.
+   *
+   * Two layers, so the priority-trim path is exercised rather than just the
+   * single-layer pass-through.
+   */
+  test("hourly rotation over a 3-month window stays interactive", () => {
+    const primary: LayerProps = {
+      users: [user("A"), user("B"), user("C")],
+      startDateTimeOfLayer: new Date(Date.UTC(2025, 5, 1, 0, 0, 0)),
+      handOffTime: new Date(Date.UTC(2025, 5, 1, 0, 0, 0)),
+      restrictionTimes: businessHoursRestriction(),
+      rotation: rotation(EventInterval.Hour, 1),
+      timezone: "UTC",
+    };
+
+    const fallback: LayerProps = {
+      users: [user("F")],
+      startDateTimeOfLayer: new Date(Date.UTC(2025, 5, 1, 0, 0, 0)),
+      handOffTime: new Date(Date.UTC(2025, 5, 8, 0, 0, 0)),
+      restrictionTimes: RestrictionTimes.getDefault(),
+      rotation: rotation(EventInterval.Week, 1),
+      timezone: "UTC",
+    };
+
+    const start: number = OneUptimeDate.getCurrentDate().getTime();
+    const events: Array<CalendarEvent> = new LayerUtil().getMultiLayerEvents({
+      layers: [primary, fallback],
+      calendarStartDate: new Date(Date.UTC(2025, 5, 1, 0, 0, 0)),
+      calendarEndDate: new Date(Date.UTC(2025, 8, 1, 0, 0, 0)),
+    });
+    const elapsedMs: number = OneUptimeDate.getCurrentDate().getTime() - start;
+
+    /*
+     * ~8 business hours a day over three months, plus the fallback's segments
+     * around them. The floor is here so the test cannot quietly stop exercising
+     * a large merge; it is not an assertion about the exact expansion.
+     */
+    expect(events.length).toBeGreaterThan(700);
+    assertSortedNonOverlappingPositive(events);
+
+    /*
+     * Deliberately far below what a user would notice, and far above the
+     * measured cost, so this fails on a return to quadratic scaling rather than
+     * on CI noise. The quadratic version did not finish this shape in minutes.
+     */
+    expect(elapsedMs).toBeLessThan(10000);
+  });
+
+  /*
+   * A 24/7 fallback under a busy higher-priority layer is the case where the
+   * merge does the most work: every one of the higher-priority layer's events
+   * splits the fallback, so the trailing-tail path runs thousands of times. It
+   * is also the case where a wrong active-set prune would silently delete
+   * fallback coverage, so the gap assertion matters as much as the clock.
+   */
+  test("24/7 fallback split by an hourly layer stays interactive and gapless", () => {
+    const primary: LayerProps = {
+      users: [user("A"), user("B")],
+      startDateTimeOfLayer: new Date(Date.UTC(2025, 5, 1, 0, 0, 0)),
+      handOffTime: new Date(Date.UTC(2025, 5, 1, 0, 0, 0)),
+      restrictionTimes: businessHoursRestriction(),
+      rotation: rotation(EventInterval.Hour, 1),
+      timezone: "UTC",
+    };
+
+    const alwaysOn: LayerProps = {
+      users: [user("F")],
+      startDateTimeOfLayer: new Date(Date.UTC(2025, 5, 1, 0, 0, 0)),
+      handOffTime: new Date(Date.UTC(2025, 6, 1, 0, 0, 0)),
+      restrictionTimes: RestrictionTimes.getDefault(),
+      rotation: rotation(EventInterval.Month, 1),
+      timezone: "UTC",
+    };
+
+    const windowFrom: Date = new Date(Date.UTC(2025, 5, 1, 0, 0, 0));
+    const windowTo: Date = new Date(Date.UTC(2025, 7, 1, 0, 0, 0));
+
+    const start: number = OneUptimeDate.getCurrentDate().getTime();
+    const events: Array<CalendarEvent> = new LayerUtil().getMultiLayerEvents({
+      layers: [primary, alwaysOn],
+      calendarStartDate: windowFrom,
+      calendarEndDate: windowTo,
+    });
+    const elapsedMs: number = OneUptimeDate.getCurrentDate().getTime() - start;
+
+    assertSortedNonOverlappingPositive(events);
+    expect(elapsedMs).toBeLessThan(10000);
+
+    /*
+     * The fallback must still cover everything the primary does not. Segments
+     * are stitched with a 1-second seam, so anything longer than that is a real
+     * hole where an alert would page nobody.
+     */
+    for (let i: number = 1; i < events.length; i++) {
+      const gapMs: number =
+        new Date(events[i]!.start).getTime() -
+        new Date(events[i - 1]!.end).getTime();
+      expect(gapMs).toBeLessThanOrEqual(1000);
+    }
+  });
 });

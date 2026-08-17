@@ -8,7 +8,7 @@ import {
   SESSION_REPLAY_WIRE_VERSION,
   SessionReplaySealedReason,
 } from "Common/Types/Rum/SessionReplay";
-import { describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
  * RunCron registers a repeatable BullMQ job at import time, so it is
@@ -26,18 +26,26 @@ import {
   buildFinalizedSessionRow,
   buildNeverFinalizedStatement,
   buildProvisionalHeaderStatement,
+  buildSessionExceptionFingerprintStatement,
+  buildSessionTraceIdStatement,
   buildTabAggregateStatement,
   combineTabAggregates,
+  fetchSessionCorrelation,
+  MAX_EXCEPTION_FINGERPRINTS_PER_SESSION,
   MAX_SWEEP_SESSIONS_PER_RUN,
+  MAX_TRACE_IDS_PER_SESSION,
   parseActiveSessionMember,
   parseTabAggregateRow,
   ProvisionalSessionHeader,
   resolveSealedReason,
   SessionChunkAggregate,
+  SessionCorrelation,
   SWEEP_LOOKBACK_MS,
   SWEEP_MIN_SESSION_AGE_MS,
   TabChunkAggregate,
 } from "../../FeatureSet/Workers/Jobs/Rum/FinalizeSessions";
+import RumSessionChunkService from "Common/Server/Services/RumSessionChunkService";
+import { Results } from "Common/Server/Services/AnalyticsDatabaseService";
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 
 const projectId: ObjectID = new ObjectID("6600000000000000000000a1");
@@ -495,6 +503,7 @@ describe("Rum:FinalizeSessions header row", () => {
     rows: Array<RawChunkRow>,
     header: ProvisionalSessionHeader | null,
     traceIds?: Array<string>,
+    exceptionFingerprints?: Array<string>,
   ): JSONObject {
     return buildFinalizedSessionRow({
       projectId: projectId,
@@ -502,6 +511,7 @@ describe("Rum:FinalizeSessions header row", () => {
       aggregate: aggregateOf(rows),
       header: header,
       traceIds: traceIds ?? [],
+      exceptionFingerprints: exceptionFingerprints ?? [],
       writtenAt: writtenAt,
     });
   }
@@ -601,7 +611,7 @@ describe("Rum:FinalizeSessions header row", () => {
 
   test("correlation arrays stay capped", () => {
     const manyTraceIds: Array<string> = Array.from(
-      { length: 80 },
+      { length: MAX_TRACE_IDS_PER_SESSION + 50 },
       (_unused: unknown, index: number): string => {
         return `trace-${index}`;
       },
@@ -613,7 +623,72 @@ describe("Rum:FinalizeSessions header row", () => {
       manyTraceIds,
     );
 
-    expect((row["traceIds"] as Array<string>).length).toBe(50);
+    expect((row["traceIds"] as Array<string>).length).toBe(
+      MAX_TRACE_IDS_PER_SESSION,
+    );
+  });
+
+  test("exception fingerprints merge the header's with the batch's, deduped", () => {
+    /*
+     * The header carries at most what the FIRST chunk's envelope declared;
+     * the batch query over ExceptionInstance is the real producer. An id
+     * present in both must appear once, and the header's ids keep their
+     * slots at the front.
+     */
+    const row: JSONObject = rowFor(
+      [makeChunkRow({ chunkIndex: 0 })],
+      makeProvisionalHeader({ exceptionFingerprints: ["fingerprint-1"] }),
+      [],
+      ["fingerprint-2", "fingerprint-1", "fingerprint-3"],
+    );
+
+    expect(row["exceptionFingerprints"]).toEqual([
+      "fingerprint-1",
+      "fingerprint-2",
+      "fingerprint-3",
+    ]);
+  });
+
+  test("exception fingerprints stay capped", () => {
+    const manyFingerprints: Array<string> = Array.from(
+      { length: MAX_EXCEPTION_FINGERPRINTS_PER_SESSION + 40 },
+      (_unused: unknown, index: number): string => {
+        return `fp-${index}`;
+      },
+    );
+
+    const row: JSONObject = rowFor(
+      [makeChunkRow({ chunkIndex: 0 })],
+      makeProvisionalHeader({ exceptionFingerprints: ["fingerprint-1"] }),
+      [],
+      manyFingerprints,
+    );
+
+    const fingerprints: Array<string> = row[
+      "exceptionFingerprints"
+    ] as Array<string>;
+
+    expect(fingerprints.length).toBe(MAX_EXCEPTION_FINGERPRINTS_PER_SESSION);
+    /* The header-declared id survives cap pressure. */
+    expect(fingerprints[0]).toBe("fingerprint-1");
+  });
+
+  test("a session with no exceptions keeps its header fingerprints untouched", () => {
+    const row: JSONObject = rowFor(
+      [makeChunkRow({ chunkIndex: 0 })],
+      makeProvisionalHeader(),
+      [],
+      [],
+    );
+
+    expect(row["exceptionFingerprints"]).toEqual(["fingerprint-1"]);
+  });
+
+  test("a headerless session with no exceptions gets an empty array, not undefined", () => {
+    const row: JSONObject = rowFor([makeChunkRow({ chunkIndex: 0 })], null);
+
+    expect(row["exceptionFingerprints"]).toEqual([]);
+    expect(row["traceIds"]).toEqual([]);
   });
 });
 
@@ -670,6 +745,256 @@ describe("Rum:FinalizeSessions queries", () => {
     expect(query).toContain("toString(startTime) AS startTimeText");
     /* rumApplicationId narrows the key range to one application. */
     expect(query).toContain("rumApplicationId =");
+  });
+});
+
+/*
+ * The correlation producer: at finalize time, ONE grouped query per
+ * telemetry table per batch fills traceIds (Span.sessionId is stamped and
+ * bloom-indexed) and exceptionFingerprints (ExceptionInstance.sessionId)
+ * for every session in the batch. This is what the
+ * /telemetry/rum/session-replay/for-exception endpoint switches on.
+ */
+describe("Rum:FinalizeSessions correlation producer", () => {
+  const sessionIds: Array<string> = [
+    sessionId,
+    "2a1b3c4d5e6f708192a3b4c5d6e7f809",
+  ];
+  const windowStartUnixMs: number = new Date(
+    "2026-07-29T06:00:00.000Z",
+  ).getTime();
+  const windowEndUnixMs: number = new Date(
+    "2026-07-29T11:00:00.000Z",
+  ).getTime();
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function resultSetOf(rows: Array<JSONObject>): Results {
+    return {
+      json: () => {
+        return Promise.resolve({ data: rows });
+      },
+    } as unknown as Results;
+  }
+
+  test("the exception query is one grouped read scoped to project, window and batch", () => {
+    const statement: Statement = buildSessionExceptionFingerprintStatement({
+      databaseName: databaseName,
+      projectId: projectId,
+      sessionIds: sessionIds,
+      windowStartUnixMs: windowStartUnixMs,
+      windowEndUnixMs: windowEndUnixMs,
+    });
+
+    const query: string = statement.query;
+
+    /* Deduped and capped inside ClickHouse, grouped for the whole batch. */
+    expect(query).toContain(
+      `groupUniqArray(${MAX_EXCEPTION_FINGERPRINTS_PER_SESSION})(fingerprint)`,
+    );
+    expect(query).toContain("GROUP BY sessionId");
+    /* One IN over the batch, never a query per session. */
+    expect(query).toContain("sessionId IN");
+    expect(query).toContain("fingerprint != ''");
+    expect(query).toContain("time >=");
+    expect(query).toContain("time <=");
+
+    const bound: Array<unknown> = Object.values(statement.query_params);
+
+    expect(bound).toContainEqual(projectId.toString());
+    /* The batch's session ids ride as ONE bound array parameter. */
+    expect(bound).toContainEqual(sessionIds);
+    expect(bound).toContainEqual(
+      OneUptimeDate.toClickhouseDateTime64(new Date(windowStartUnixMs)),
+    );
+    expect(bound).toContainEqual(
+      OneUptimeDate.toClickhouseDateTime64(new Date(windowEndUnixMs)),
+    );
+  });
+
+  test("the span query mirrors the exception query over Span.startTime/traceId", () => {
+    const statement: Statement = buildSessionTraceIdStatement({
+      databaseName: databaseName,
+      projectId: projectId,
+      sessionIds: sessionIds,
+      windowStartUnixMs: windowStartUnixMs,
+      windowEndUnixMs: windowEndUnixMs,
+    });
+
+    const query: string = statement.query;
+
+    expect(query).toContain(
+      `groupUniqArray(${MAX_TRACE_IDS_PER_SESSION})(traceId)`,
+    );
+    expect(query).toContain("GROUP BY sessionId");
+    expect(query).toContain("sessionId IN");
+    expect(query).toContain("traceId != ''");
+    expect(query).toContain("startTime >=");
+    expect(query).toContain("startTime <=");
+
+    const bound: Array<unknown> = Object.values(statement.query_params);
+
+    expect(bound).toContainEqual(projectId.toString());
+    expect(bound).toContainEqual(sessionIds);
+  });
+
+  test("both grouped reads fold into one per-session map", async () => {
+    const issuedStatements: Array<Statement> = [];
+
+    jest
+      .spyOn(RumSessionChunkService, "executeQuery")
+      .mockImplementation((statement: Statement | string): Promise<Results> => {
+        issuedStatements.push(statement as Statement);
+
+        if ((statement as Statement).query.includes("fingerprint")) {
+          return Promise.resolve(
+            resultSetOf([
+              {
+                sessionId: sessionIds[0],
+                exceptionFingerprints: ["fp-a", "fp-b"],
+              },
+            ]),
+          );
+        }
+
+        return Promise.resolve(
+          resultSetOf([
+            { sessionId: sessionIds[0], traceIds: ["trace-1"] },
+            { sessionId: sessionIds[1], traceIds: ["trace-2", "trace-3"] },
+          ]),
+        );
+      });
+
+    const correlation: Map<string, SessionCorrelation> =
+      await fetchSessionCorrelation({
+        databaseName: databaseName,
+        projectId: projectId,
+        sessionIds: sessionIds,
+        windowStartUnixMs: windowStartUnixMs,
+        windowEndUnixMs: windowEndUnixMs,
+      });
+
+    /* Exactly one grouped query per table — never one per session. */
+    expect(issuedStatements.length).toBe(2);
+
+    expect(correlation.get(sessionIds[0]!)).toEqual({
+      traceIds: ["trace-1"],
+      exceptionFingerprints: ["fp-a", "fp-b"],
+    });
+    /* A session with spans but no exceptions gets an empty fingerprints set. */
+    expect(correlation.get(sessionIds[1]!)).toEqual({
+      traceIds: ["trace-2", "trace-3"],
+      exceptionFingerprints: [],
+    });
+  });
+
+  test("a session with no telemetry at all has no entry — and finalizes to []", () => {
+    const correlationlessRow: JSONObject = buildFinalizedSessionRow({
+      projectId: projectId,
+      sessionId: sessionId,
+      aggregate: combineTabAggregates([]),
+      header: null,
+      traceIds: [],
+      exceptionFingerprints: [],
+      writtenAt: new Date("2026-07-29T10:20:00.000Z"),
+    });
+
+    expect(correlationlessRow["exceptionFingerprints"]).toEqual([]);
+    expect(correlationlessRow["traceIds"]).toEqual([]);
+  });
+
+  test("an empty batch performs no reads", async () => {
+    let queriesIssued: number = 0;
+
+    jest
+      .spyOn(RumSessionChunkService, "executeQuery")
+      .mockImplementation((): Promise<Results> => {
+        queriesIssued++;
+        return Promise.resolve(resultSetOf([]));
+      });
+
+    const correlation: Map<string, SessionCorrelation> =
+      await fetchSessionCorrelation({
+        databaseName: databaseName,
+        projectId: projectId,
+        sessionIds: [],
+        windowStartUnixMs: windowStartUnixMs,
+        windowEndUnixMs: windowEndUnixMs,
+      });
+
+    expect(correlation.size).toBe(0);
+    expect(queriesIssued).toBe(0);
+  });
+
+  test("a failed read degrades to missing enrichment, never a failed finalization", async () => {
+    /*
+     * The header write is what drives metering; correlation is
+     * enrichment. One table being unreadable must not stop the other
+     * from contributing, and must not throw into the finalize loop.
+     */
+    jest
+      .spyOn(RumSessionChunkService, "executeQuery")
+      .mockImplementation((statement: Statement | string): Promise<Results> => {
+        if ((statement as Statement).query.includes("fingerprint")) {
+          return Promise.reject(new Error("ClickHouse timeout"));
+        }
+
+        return Promise.resolve(
+          resultSetOf([{ sessionId: sessionIds[0], traceIds: ["trace-1"] }]),
+        );
+      });
+
+    const correlation: Map<string, SessionCorrelation> =
+      await fetchSessionCorrelation({
+        databaseName: databaseName,
+        projectId: projectId,
+        sessionIds: sessionIds,
+        windowStartUnixMs: windowStartUnixMs,
+        windowEndUnixMs: windowEndUnixMs,
+      });
+
+    expect(correlation.get(sessionIds[0]!)).toEqual({
+      traceIds: ["trace-1"],
+      exceptionFingerprints: [],
+    });
+  });
+
+  test("malformed grouped rows are skipped without poisoning the batch", async () => {
+    jest
+      .spyOn(RumSessionChunkService, "executeQuery")
+      .mockImplementation((statement: Statement | string): Promise<Results> => {
+        if ((statement as Statement).query.includes("fingerprint")) {
+          return Promise.resolve(
+            resultSetOf([
+              /* No sessionId — cannot be attributed to anyone. */
+              { exceptionFingerprints: ["fp-orphan"] },
+              /* Non-array payload — coerced to []. */
+              { sessionId: sessionIds[0], exceptionFingerprints: "fp-a" },
+            ]),
+          );
+        }
+
+        return Promise.resolve(
+          resultSetOf([
+            /* Null-ish members inside the array are dropped, not stringified. */
+            { sessionId: sessionIds[0], traceIds: ["trace-1", null, ""] },
+          ]),
+        );
+      });
+
+    const correlation: Map<string, SessionCorrelation> =
+      await fetchSessionCorrelation({
+        databaseName: databaseName,
+        projectId: projectId,
+        sessionIds: sessionIds,
+        windowStartUnixMs: windowStartUnixMs,
+        windowEndUnixMs: windowEndUnixMs,
+      });
+
+    expect(correlation.get(sessionIds[0]!)?.exceptionFingerprints).toEqual([]);
+    expect(correlation.get(sessionIds[0]!)?.traceIds).toEqual(["trace-1"]);
   });
 });
 
@@ -786,6 +1111,14 @@ describe("Rum:SweepNeverFinalizedSessions statement", () => {
     expect(bound).toContain(MAX_SWEEP_SESSIONS_PER_RUN);
   });
 
+  test("the sweep carries each session's startTime so correlation gets a window", () => {
+    const statement: Statement = buildStatement();
+
+    expect(statement.query).toContain(
+      "toUnixTimestamp64Milli(max(startTime)) AS startTimeUnixMs",
+    );
+  });
+
   test("the sweep age floor clears the recorder's hard session cap", () => {
     /*
      * Finalizing an ACTIVE session early publishes an under-count. The
@@ -833,6 +1166,7 @@ describe("recording-lost seal", () => {
       aggregate: emptyAggregate,
       header: header,
       traceIds: [],
+      exceptionFingerprints: [],
       writtenAt: new Date("2026-07-30T12:00:00.000Z"),
       sealedReasonOverride: SessionReplaySealedReason.RecordingLost,
     });

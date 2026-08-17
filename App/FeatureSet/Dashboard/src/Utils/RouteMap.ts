@@ -513,6 +513,11 @@ export const InventoryRoutePath: Dictionary<string> = {
   [PageMap.INVENTORY_DOCUMENTATION]: "documentation",
   [PageMap.INVENTORY_VIEW]: `item/${RouteParams.ModelID}`,
   [PageMap.INVENTORY_VIEW_RELATIONSHIPS]: `item/${RouteParams.ModelID}/relationships`,
+  [PageMap.INVENTORY_VIEW_LOGS]: `item/${RouteParams.ModelID}/logs`,
+  [PageMap.INVENTORY_VIEW_TRACES]: `item/${RouteParams.ModelID}/traces`,
+  [PageMap.INVENTORY_VIEW_METRICS]: `item/${RouteParams.ModelID}/metrics`,
+  [PageMap.INVENTORY_VIEW_PROFILES]: `item/${RouteParams.ModelID}/profiles`,
+  [PageMap.INVENTORY_VIEW_EXCEPTIONS]: `item/${RouteParams.ModelID}/exceptions`,
   [PageMap.INVENTORY_VIEW_TELEMETRY]: `item/${RouteParams.ModelID}/telemetry`,
   [PageMap.INVENTORY_VIEW_INCIDENTS]: `item/${RouteParams.ModelID}/incidents`,
   [PageMap.INVENTORY_VIEW_ALERTS]: `item/${RouteParams.ModelID}/alerts`,
@@ -925,6 +930,7 @@ export const UserSettingsRoutePath: Dictionary<string> = {
   [PageMap.USER_SETTINGS_ON_CALL_LOGS_TIMELINE]: `on-call-logs/${RouteParams.ModelID}`,
   [PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS]:
     "incoming-call-phone-numbers",
+  [PageMap.USER_SETTINGS_SETUP]: "setup",
 };
 
 const RouteMap: Dictionary<Route> = {
@@ -4924,6 +4930,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  /*
+   * Declared LAST in this block on purpose. The breadcrumb resolver treats the
+   * first non-splat route under a prefix as that section's landing page, and
+   * the "User Settings" crumb on every page here must keep pointing at
+   * notification-methods.
+   */
+  [PageMap.USER_SETTINGS_SETUP]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/user-settings/${
+      UserSettingsRoutePath[PageMap.USER_SETTINGS_SETUP]
+    }`,
+  ),
+
   // Users Routes (top-level)
   [PageMap.USERS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/users/*`,
@@ -5487,6 +5505,10 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/ai/chat`,
   ),
 
+  [PageMap.AI_COPILOT_CONVERSATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai/chat/${RouteParams.ModelID}`,
+  ),
+
   [PageMap.LLM]: new Route(
     `/dashboard/${RouteParams.ProjectID}/llm/${LlmRoutePath[PageMap.LLM]}`,
   ),
@@ -5546,6 +5568,36 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INVENTORY_VIEW_RELATIONSHIPS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/inventory/${
       InventoryRoutePath[PageMap.INVENTORY_VIEW_RELATIONSHIPS]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_TRACES]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_PROFILES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_PROFILES]
+    }`,
+  ),
+
+  [PageMap.INVENTORY_VIEW_EXCEPTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/inventory/${
+      InventoryRoutePath[PageMap.INVENTORY_VIEW_EXCEPTIONS]
     }`,
   ),
 

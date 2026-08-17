@@ -578,6 +578,14 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "Inventory",
+    links: [
+      { title: "Overview", url: "/docs/inventory/overview" },
+      { title: "Custom Fields", url: "/docs/inventory/custom-fields" },
+      { title: "Exporting to a CMDB", url: "/docs/inventory/cmdb-sync" },
+    ],
+  },
+  {
     title: "Telemetry",
     links: [
       { title: "OpenTelemetry", url: "/docs/telemetry/open-telemetry" },
@@ -662,6 +670,7 @@ const DocsNav: NavGroup[] = [
   {
     title: "AI",
     links: [
+      { title: "Ask AI", url: "/docs/ai/ask-ai" },
       { title: "AI SRE", url: "/docs/ai/ai-sre" },
       { title: "Fix Tasks", url: "/docs/ai/ai-agent" },
       { title: "LLM Providers", url: "/docs/ai/llm-provider" },

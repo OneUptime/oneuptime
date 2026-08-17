@@ -253,6 +253,68 @@ describe("MonitorTypeHelper", () => {
     });
   });
 
+  /*
+   * The dashboard tells Free plan users which monitors cost money before they
+   * create one, and gates the create button on acknowledging it. That warning
+   * is only honest while this predicate agrees with what the server actually
+   * meters - ActiveMonitoringMeteredPlan counts every monitor whose type is
+   * not Manual.
+   */
+  describe("isBilledAsActiveMonitor", () => {
+    test("Manual monitors are free", () => {
+      expect(
+        MonitorTypeHelper.isBilledAsActiveMonitor(MonitorType.Manual),
+      ).toBe(false);
+    });
+
+    test("every other monitor type is billed", () => {
+      const billed: Array<MonitorType> = Object.values(MonitorType).filter(
+        (monitorType: MonitorType) => {
+          return monitorType !== MonitorType.Manual;
+        },
+      );
+
+      expect(billed.length).toBeGreaterThan(0);
+
+      for (const monitorType of billed) {
+        expect(MonitorTypeHelper.isBilledAsActiveMonitor(monitorType)).toBe(
+          true,
+        );
+      }
+    });
+
+    test("telemetry monitors are billed as active monitors too, on top of their ingest", () => {
+      expect(MonitorTypeHelper.isBilledAsActiveMonitor(MonitorType.Logs)).toBe(
+        true,
+      );
+      expect(
+        MonitorTypeHelper.isBilledAsActiveMonitor(MonitorType.Metrics),
+      ).toBe(true);
+      expect(
+        MonitorTypeHelper.isBilledAsActiveMonitor(MonitorType.Traces),
+      ).toBe(true);
+    });
+
+    test("agrees exactly with getActiveMonitorTypes", () => {
+      const active: Array<MonitorType> =
+        MonitorTypeHelper.getActiveMonitorTypes();
+
+      for (const monitorType of Object.values(MonitorType)) {
+        expect(MonitorTypeHelper.isBilledAsActiveMonitor(monitorType)).toBe(
+          active.includes(monitorType),
+        );
+      }
+    });
+
+    test("is the exact inverse of isManualMonitor", () => {
+      for (const monitorType of Object.values(MonitorType)) {
+        expect(MonitorTypeHelper.isBilledAsActiveMonitor(monitorType)).toBe(
+          !MonitorTypeHelper.isManualMonitor(monitorType),
+        );
+      }
+    });
+  });
+
   describe("doesMonitorTypeHaveGraphs", () => {
     test("returns true for graphable types and false otherwise", () => {
       expect(

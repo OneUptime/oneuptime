@@ -39,6 +39,17 @@ export interface FlamegraphRequest {
    * agents actually emit (e.g. ["cpu", "samples"]).
    */
   profileTypes?: Array<string>;
+  /**
+   * Restricts to samples correlated with one trace
+   * (ProfileSample.traceId, bloom-indexed).
+   */
+  traceId?: string;
+  /**
+   * Restricts to samples correlated with specific spans
+   * (ProfileSample.spanId, bloom-indexed). Usually combined with
+   * `traceId`, but span ids are random enough to stand alone.
+   */
+  spanIds?: Array<string>;
 }
 
 export interface FlamegraphResult {
@@ -77,6 +88,10 @@ export interface FunctionListRequest {
   serviceIds?: Array<ObjectID>;
   profileType?: string;
   profileTypes?: Array<string>;
+  /** See FlamegraphRequest.traceId. */
+  traceId?: string;
+  /** See FlamegraphRequest.spanIds. */
+  spanIds?: Array<string>;
   limit?: number;
   sortBy?: "selfValue" | "totalValue" | "sampleCount";
 }
@@ -171,6 +186,10 @@ export interface FunctionFocusRequest {
   serviceIds?: Array<ObjectID>;
   profileType?: string;
   profileTypes?: Array<string>;
+  /** See FlamegraphRequest.traceId. */
+  traceId?: string;
+  /** See FlamegraphRequest.spanIds. */
+  spanIds?: Array<string>;
 }
 
 export interface FunctionFocusResult {
@@ -202,6 +221,21 @@ export interface FunctionFocusResult {
    */
   callees: ProfileFlamegraphNode;
   truncated: boolean;
+}
+
+export interface TracePresenceRequest {
+  projectId: ObjectID;
+  traceId: string;
+  spanIds?: Array<string>;
+}
+
+export interface TracePresenceResult {
+  /**
+   * Number of ProfileSample rows correlated with the trace (optionally
+   * narrowed to `spanIds`). Zero means the trace has no profiling data
+   * and the UI should not offer a Profile tab.
+   */
+  sampleCount: number;
 }
 
 export interface BreakdownRequest {
@@ -409,6 +443,8 @@ export class ProfileAggregationService {
       ...(request.profileTypes !== undefined && {
         profileTypes: request.profileTypes,
       }),
+      ...(request.traceId !== undefined && { traceId: request.traceId }),
+      ...(request.spanIds !== undefined && { spanIds: request.spanIds }),
     };
 
     const statement: Statement =
@@ -566,6 +602,8 @@ export class ProfileAggregationService {
       ...(request.profileTypes !== undefined && {
         profileTypes: request.profileTypes,
       }),
+      ...(request.traceId !== undefined && { traceId: request.traceId }),
+      ...(request.spanIds !== undefined && { spanIds: request.spanIds }),
     };
 
     const statement: Statement =
@@ -1063,6 +1101,31 @@ export class ProfileAggregationService {
     return { items, totalSampleCount };
   }
 
+  /**
+   * Cheap presence probe: COUNT of ProfileSample rows correlated with a
+   * trace (optionally narrowed to specific spans), so the UI can gate a
+   * "Profile" tab before paying for a full flamegraph read. traceId and
+   * spanId both carry bloom-filter skip indexes, so the count touches
+   * only the granules the index cannot rule out.
+   */
+  @CaptureSpan()
+  public static async getTracePresence(
+    request: TracePresenceRequest,
+  ): Promise<TracePresenceResult> {
+    const statement: Statement =
+      ProfileAggregationService.buildTracePresenceQuery(request);
+
+    const dbResult: Results =
+      await ProfileSampleDatabaseService.executeQuery(statement);
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const rows: Array<JSONObject> = response.data || [];
+
+    return { sampleCount: Number(rows[0]?.["sampleCount"] || 0) };
+  }
+
   // --- Query builders ---
 
   /**
@@ -1214,6 +1277,48 @@ export class ProfileAggregationService {
     `;
 
     ProfileAggregationService.appendSampleFilters(statement, request);
+
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
+      }),
+    );
+
+    return statement;
+  }
+
+  private static buildTracePresenceQuery(
+    request: TracePresenceRequest,
+  ): Statement {
+    const statement: Statement = SQL`
+      SELECT
+        count() AS sampleCount
+      FROM ${ProfileAggregationService.TABLE_NAME}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }}
+        AND traceId = ${{
+          type: TableColumnType.Text,
+          value: request.traceId,
+        }}
+    `;
+
+    if (request.spanIds && request.spanIds.length > 0) {
+      statement.append(
+        SQL` AND spanId IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(request.spanIds),
+        }})`,
+      );
+    }
+
+    /*
+     * Read-side retention filter: rows past their per-service retention
+     * stay in their part until the whole part drops (ttl_only_drop_parts).
+     */
+    statement.append(" AND retentionDate >= now()");
 
     statement.append(
       getQuerySettings({
@@ -1416,6 +1521,24 @@ export class ProfileAggregationService {
           type: TableColumnType.Date,
           value: request.endTime,
         }}`,
+      );
+    }
+
+    if (request.traceId) {
+      statement.append(
+        SQL` AND traceId = ${{
+          type: TableColumnType.Text,
+          value: request.traceId,
+        }}`,
+      );
+    }
+
+    if (request.spanIds && request.spanIds.length > 0) {
+      statement.append(
+        SQL` AND spanId IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(request.spanIds),
+        }})`,
       );
     }
 

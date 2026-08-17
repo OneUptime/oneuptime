@@ -6,6 +6,8 @@ import useInventoryItem, {
 } from "../../../Components/Inventory/useInventoryItem";
 import { getInventoryDeleteCaveat } from "../../../Components/Inventory/InventorySource";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
@@ -25,11 +27,22 @@ const InventoryItemDelete: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
-  const { item }: UseInventoryItemResult = useInventoryItem(modelId);
+  const { item, isLoading, error }: UseInventoryItemResult =
+    useInventoryItem(modelId);
 
-  const caveat: string | null = item
-    ? getInventoryDeleteCaveat(item.source)
-    : null;
+  if (isLoading) {
+    return <ComponentLoader />;
+  }
+
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
+
+  if (!item) {
+    return <ErrorMessage message="This inventory item could not be found." />;
+  }
+
+  const caveat: string | null = getInventoryDeleteCaveat(item.source);
 
   return (
     <Fragment>

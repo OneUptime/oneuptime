@@ -191,6 +191,14 @@ export default class LlmProviderAPI extends BaseAPI<
               ],
               temperature: 0,
               maxTokens: 16,
+              /*
+               * A connection test is a person waiting on a verdict, not a
+               * chat turn worth saving. The default ten-attempt ladder would
+               * make "your base URL is unreachable" — the answer this button
+               * exists to give — take the better part of a minute to arrive.
+               * One retry still absorbs a single blip.
+               */
+              requestRetries: 1,
               llmProviderConfig: llmProviderConfig,
               ...(provider.additionalParams
                 ? { additionalParams: provider.additionalParams }

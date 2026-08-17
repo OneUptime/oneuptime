@@ -144,12 +144,22 @@ tests:
           namespace: oneuptime
           any: true
 
+  # NOTE: this case used to also set worker.keda.enabled/runner.keda.enabled true
+  # here and assert silence. That combination is now a hard render error -- the
+  # global flag ships false and gates the KEDA operator subchart as well as these
+  # objects, so a per-service flag left on would silently drop autoscaling (and
+  # orphan live ScaledObjects on upgrade). The per-service-on/global-off cases now
+  # live in keda-global-default_test.yaml as failedTemplate assertions.
+  #
+  # Re-checked after the guard learned to excuse disableAutoscaler: it does not
+  # bring these two lines back. worker.disableAutoscaler and runner.disableAutoscaler
+  # both ship false, so both tiers would really render ScaledObjects with the
+  # global flag on and are genuine offenders with it off. Restoring the old set
+  # block fails with the guard's message, not with a document count.
   - it: should render nothing when keda is disabled globally
     set:
       keda.enabled: false
       worker.enabled: true
-      worker.keda.enabled: true
-      runner.keda.enabled: true
     asserts:
       - hasDocuments:
           count: 0

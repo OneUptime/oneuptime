@@ -5,6 +5,7 @@ import Model from "../../Models/DatabaseModels/RunnerJob";
 import RunnerJobStatus from "../../Types/Runbook/RunnerJobStatus";
 import RunnerJobOrigin from "../../Types/Runbook/RunnerJobOrigin";
 import RunbookStepType, {
+  isPayloadCarryingStepType,
   isRunnerExecutedStepType,
 } from "../../Types/Runbook/RunbookStepType";
 import { AI_COMMAND_STEP_TYPES } from "../../Types/AutoRemediation/AiRemediationCommandPlan";
@@ -106,6 +107,27 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    /*
+     * Each runner-executed type carries its instruction in exactly one place:
+     * a script, or a structured payload. Enforced here rather than as a
+     * required column because it is per-type — the column check would reject
+     * an SSH job's empty script, which is the shape SSH jobs are supposed to
+     * have. A job dispatched with neither would reach a Runner that has
+     * nothing to do and report success, which looks identical to a step that
+     * actually ran.
+     */
+    if (isPayloadCarryingStepType(data.stepType)) {
+      if (!data.payload) {
+        throw new BadDataException(
+          `A ${data.stepType} job needs structured instructions to send to the Runner.`,
+        );
+      }
+    } else if (!data.script) {
+      throw new BadDataException(
+        `A ${data.stepType} job needs a script for the Runner to execute.`,
+      );
+    }
+
     const claimDeadlineAt: Date = OneUptimeDate.addRemoveSeconds(
       OneUptimeDate.getCurrentDate(),
       Math.ceil((data.claimTimeoutInMs ?? DEFAULT_CLAIM_TIMEOUT_MS) / 1000),
@@ -118,7 +140,8 @@ export class Service extends DatabaseService<Model> {
     row.stepId = data.stepId;
     row.stepType = data.stepType;
     row.targetAgentId = data.targetAgentId;
-    row.script = data.script;
+    // The column is NOT NULL, so a payload-carrying job stores "" rather than null.
+    row.script = data.script || "";
     if (data.payload) {
       row.payload = data.payload;
     }

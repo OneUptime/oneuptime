@@ -1,5 +1,9 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
+import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
+import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
+import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
@@ -13,13 +17,19 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { FilterChipDropdownOption } from "../ResourceOwners/FilterChipDropdown";
-import { ResourceFacet } from "../ResourceOwners/useResourceOwners";
+/*
+ * Both types are pulled from the react-free modules that declare them,
+ * rather than from the .tsx components that re-export them, so this
+ * helper stays importable from a plain unit test.
+ */
+import { FilterChipDropdownOption } from "../ResourceOwners/FilterChipDropdownTypes";
+import { ResourceFacet } from "../ResourceOwners/ResourceFacet";
 
 /*
  * Builds a unified "Affected Resources" facet that lets the user search and
  * filter Incidents / Alerts / Scheduled Maintenance by *any* attached
- * resource type — Monitor, Service, Host, Kubernetes Cluster, Docker Host.
+ * resource type — Monitor, Service, Host, Kubernetes Cluster, Docker Host,
+ * Podman Host, Proxmox / Ceph / Docker Swarm cluster and IoT Fleet.
  *
  * The chip's value encoding is `${type}:${id}` so multiple resource types
  * can coexist in the same selection without ID collisions. The hook's
@@ -38,7 +48,11 @@ type AffectedResourceType =
   | "host"
   | "kubernetesCluster"
   | "dockerHost"
-  | "podmanHost";
+  | "podmanHost"
+  | "proxmoxCluster"
+  | "cephCluster"
+  | "dockerSwarmCluster"
+  | "iotFleet";
 
 interface ResourceTypeConfig {
   label: string;
@@ -84,6 +98,30 @@ const RESOURCE_TYPES: Record<AffectedResourceType, ResourceTypeConfig> = {
     icon: IconProp.Podman,
     modelType: PodmanHost,
   },
+  proxmoxCluster: {
+    label: "Proxmox Cluster",
+    pluralLabel: "Proxmox Clusters",
+    icon: IconProp.Proxmox,
+    modelType: ProxmoxCluster,
+  },
+  cephCluster: {
+    label: "Ceph Cluster",
+    pluralLabel: "Ceph Clusters",
+    icon: IconProp.Ceph,
+    modelType: CephCluster,
+  },
+  dockerSwarmCluster: {
+    label: "Docker Swarm Cluster",
+    pluralLabel: "Docker Swarm Clusters",
+    icon: IconProp.DockerSwarm,
+    modelType: DockerSwarmCluster,
+  },
+  iotFleet: {
+    label: "IoT Fleet",
+    pluralLabel: "IoT Fleets",
+    icon: IconProp.IoT,
+    modelType: IoTFleet,
+  },
 };
 
 const RESOURCE_ORDER: Array<AffectedResourceType> = [
@@ -93,7 +131,33 @@ const RESOURCE_ORDER: Array<AffectedResourceType> = [
   "kubernetesCluster",
   "dockerHost",
   "podmanHost",
+  "proxmoxCluster",
+  "cephCluster",
+  "dockerSwarmCluster",
+  "iotFleet",
 ];
+
+/*
+ * The parent relation each type filters on. Alert.monitorId is the only
+ * M2O — every other relation is a true M2M. Held as an exhaustive
+ * Record so adding a type to AffectedResourceType is a compile error
+ * until its field is mapped; the previous if/else chain ended in a bare
+ * `else` that silently filtered new types by `podmanHosts`.
+ */
+const RESOURCE_QUERY_FIELD: Record<
+  Exclude<AffectedResourceType, "monitor">,
+  string
+> = {
+  service: "services",
+  host: "hosts",
+  kubernetesCluster: "kubernetesClusters",
+  dockerHost: "dockerHosts",
+  podmanHost: "podmanHosts",
+  proxmoxCluster: "proxmoxClusters",
+  cephCluster: "cephClusters",
+  dockerSwarmCluster: "dockerSwarmClusters",
+  iotFleet: "iotFleets",
+};
 
 /*
  * Capped per type so a populous tenant (e.g. 5000 monitors) can't drown out
@@ -121,11 +185,7 @@ const parseKey: (
   const id: string = key.slice(idx + 1);
   if (
     type !== "monitor" &&
-    type !== "service" &&
-    type !== "host" &&
-    type !== "kubernetesCluster" &&
-    type !== "dockerHost" &&
-    type !== "podmanHost"
+    !Object.prototype.hasOwnProperty.call(RESOURCE_QUERY_FIELD, type)
   ) {
     return null;
   }
@@ -411,24 +471,8 @@ const buildAffectedResourcesFacet: <T extends BaseModel>(
           continue;
         }
 
-        /*
-         * Map resource type → parent field name. Alert.monitorId is the
-         * only M2O — every other relation is a true M2M.
-         */
-        let field: string;
-        if (type === "monitor") {
-          field = monitorField;
-        } else if (type === "service") {
-          field = "services";
-        } else if (type === "host") {
-          field = "hosts";
-        } else if (type === "kubernetesCluster") {
-          field = "kubernetesClusters";
-        } else if (type === "dockerHost") {
-          field = "dockerHosts";
-        } else {
-          field = "podmanHosts";
-        }
+        const field: string =
+          type === "monitor" ? monitorField : RESOURCE_QUERY_FIELD[type];
 
         const objectIds: Array<ObjectID> = ids.map((id: string) => {
           return new ObjectID(id);

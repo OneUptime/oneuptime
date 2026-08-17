@@ -1,3 +1,4 @@
+import { getCoverageWindowEnd } from "./CoverageWindow";
 import FinalScheduleSummary from "./FinalScheduleSummary";
 import { getColorForUserId } from "./LayerUserColors";
 import TimezoneSelectButton from "./TimezoneSelectButton";
@@ -37,14 +38,6 @@ import React, {
   useMemo,
   useState,
 } from "react";
-
-/*
- * Forward window (from "now") the textual schedule summary looks ahead over.
- * The user-override fetch is widened to at least this window too, so the summary
- * reflects the same substitutions the server would page — not just overrides
- * that happen to fall in the calendar's currently-visible range.
- */
-const SUMMARY_WINDOW_DAYS: number = 42;
 
 /*
  * How often the preview re-reads the wall clock. Everything on this screen is
@@ -233,17 +226,14 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
 
     /*
      * Fetch overrides overlapping BOTH the visible calendar range AND the
-     * summary's forward window [now, now + SUMMARY_WINDOW_DAYS]. Widening it to
-     * the summary window means a substitution that lands weeks ahead is applied
-     * to the "upcoming hand-offs" summary too, instead of only appearing once
-     * the user navigates the calendar to that week (which previously made the
-     * summary contradict the calendar and the actual paging).
+     * summary's forward coverage window. Widening it to the summary window means
+     * a substitution that lands weeks ahead is applied to the "upcoming
+     * hand-offs" summary too, instead of only appearing once the user navigates
+     * the calendar to that week (which previously made the summary contradict
+     * the calendar and the actual paging).
      */
     const summaryNow: Date = OneUptimeDate.getCurrentDate();
-    const summaryEnd: Date = OneUptimeDate.addRemoveDays(
-      summaryNow,
-      SUMMARY_WINDOW_DAYS,
-    );
+    const summaryEnd: Date = getCoverageWindowEnd(summaryNow);
     const fetchStart: Date = OneUptimeDate.isBefore(startTime, summaryNow)
       ? startTime
       : summaryNow;
@@ -419,10 +409,11 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     windowEnd: Date;
     coverage: ScheduleCoverageState;
   } = useMemo(() => {
-    const windowEnd: Date = OneUptimeDate.addRemoveDays(
-      now,
-      SUMMARY_WINDOW_DAYS,
-    );
+    /*
+     * The shared coverage window, so this summary and the banner on the layers
+     * tab always describe the same span of time. See ./CoverageWindow.
+     */
+    const windowEnd: Date = getCoverageWindowEnd(now);
 
     let events: Array<CalendarEvent> = new LayerUtil().getMultiLayerEvents({
       calendarStartDate: now,

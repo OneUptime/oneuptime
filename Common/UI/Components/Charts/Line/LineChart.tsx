@@ -13,7 +13,9 @@ import SeriesPoint from "../Types/SeriesPoints";
 import { XAxis } from "../Types/XAxis/XAxis";
 import YAxis from "../Types/YAxis/YAxis";
 import ChartCurve from "../Types/ChartCurve";
-import ChartDataPoint from "../ChartLibrary/Types/ChartDataPoint";
+import ChartDataPoint, {
+  CHART_DATA_POINT_X_AXIS_KEY,
+} from "../ChartLibrary/Types/ChartDataPoint";
 import FormattedExemplarPoint from "../ChartLibrary/Types/FormattedExemplarPoint";
 import FormattedReferenceRegion from "../ChartLibrary/Types/FormattedReferenceRegion";
 import FormattedTimeReferenceLine from "../ChartLibrary/Types/FormattedTimeReferenceLine";
@@ -165,7 +167,7 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
       <LineChart
         data={records}
         tickGap={30}
-        index={"Time"}
+        index={CHART_DATA_POINT_X_AXIS_KEY}
         categories={categories}
         colors={
           props.colors && props.colors.length > 0

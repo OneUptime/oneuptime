@@ -64,6 +64,25 @@ export const PodmanHostNameLabelKeys: ReadonlyArray<string> = [
   "oneuptime.podman.host.name",
 ];
 
+/*
+ * Docker Swarm cluster identity rides the agent-stamped resource
+ * attribute (`docker.swarm.cluster.name`) and its ClickHouse
+ * `resource.`-prefixed twin. The Swarm agent's collector config stamps
+ * it on every signal as the documented join key, and ingest keys cluster
+ * rows by that name only — there is no `oneuptime.*.id` stamp — so only
+ * name keys exist. The name maps to the cluster model's `name` column.
+ * Like Proxmox/Ceph, the shipped Swarm alert templates group by
+ * datapoint labels (`container.name`), so their series labels do NOT
+ * carry this key; the deterministic cluster link for those monitors
+ * comes from the monitor step config instead (see MonitorClusterContext).
+ * These keys cover user-built monitors that group by the cluster
+ * attribute.
+ */
+export const DockerSwarmClusterNameLabelKeys: ReadonlyArray<string> = [
+  "resource.docker.swarm.cluster.name",
+  "docker.swarm.cluster.name",
+];
+
 export const KubernetesClusterIdLabelKeys: ReadonlyArray<string> = [
   "resource.oneuptime.kubernetes.cluster.id",
   "oneuptime.kubernetes.cluster.id",
@@ -129,6 +148,14 @@ export const ServiceIdLabelKeys: ReadonlyArray<string> = [
 ];
 
 export const ServiceNameLabelKeys: ReadonlyArray<string> = [
+  /*
+   * Ingest stamps `oneuptime.service.name` alongside `oneuptime.service.id`
+   * on every row (Telemetry.getAttributesForServiceIdAndServiceName). It
+   * carries the same Service row's name as the raw `service.name` resource
+   * attribute, so the group-by dropdown can surface either spelling.
+   */
+  "resource.oneuptime.service.name",
+  "oneuptime.service.name",
   "resource.service.name",
   "service.name",
 ];
@@ -149,6 +176,7 @@ export interface SeriesResourceRefs {
   podmanHostNames: Array<string>;
   kubernetesClusterIds: Array<string>;
   kubernetesClusterNames: Array<string>;
+  dockerSwarmClusterNames: Array<string>;
   proxmoxClusterNames: Array<string>;
   cephClusterNames: Array<string>;
   iotFleetNames: Array<string>;
@@ -217,6 +245,10 @@ export default class SeriesResourceLabels {
       kubernetesClusterNames: this.collectLabelValues(
         seriesLabels,
         KubernetesClusterNameLabelKeys,
+      ),
+      dockerSwarmClusterNames: this.collectLabelValues(
+        seriesLabels,
+        DockerSwarmClusterNameLabelKeys,
       ),
       proxmoxClusterNames: this.collectLabelValues(
         seriesLabels,

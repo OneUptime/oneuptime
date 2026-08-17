@@ -376,6 +376,122 @@ export default class NetworkDeviceLink extends BaseModel {
   })
   public toDeviceId?: ObjectID = undefined;
 
+  /*
+   * --- Which end is up ---
+   *
+   * A link says two devices are cabled together. It does not say which one
+   * the other hangs off, and the topology map has to decide: the
+   * parent-child view draws an actual tree, so somebody is the parent.
+   * Left to itself it infers one from device roles and connection counts,
+   * which is a good guess on a network that speaks SNMP and no guess at
+   * all on one that does not — the case issue #3192 is about, where the
+   * child is a ping-only device whose role nothing can classify.
+   *
+   * This column is the operator answering that question outright. It is
+   * NULL by default and on every row written before it existed, and NULL
+   * means exactly what the map did then: a peer link, direction inferred.
+   * So no existing map moves, and a hierarchy only becomes declared when
+   * somebody declares it.
+   *
+   * The value must be one of this link's own two ends — a parent that is
+   * not on the link is not a statement about the link — which the service
+   * enforces on create and on update, including when an update moves an
+   * end out from under a parent that was already set.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDeviceLink,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDeviceLink,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceLink,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "parentDeviceId",
+    type: TableColumnType.Entity,
+    modelType: NetworkDevice,
+    title: "Parent Device",
+    description:
+      "Relation to whichever end of this link is the parent, if the hierarchy is declared rather than inferred",
+  })
+  @ManyToOne(
+    () => {
+      return NetworkDevice;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "parentDeviceId" })
+  public parentDevice?: NetworkDevice = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDeviceLink,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDeviceLink,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceLink,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Parent Device ID",
+    description:
+      "ID of whichever end of this link is the parent. Must be the From Device or the To Device. Empty means the two are peers and the map infers the hierarchy.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public parentDeviceId?: ObjectID = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

@@ -1,6 +1,6 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Route from "Common/Types/API/Route";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import Image from "Common/UI/Components/Image/Image";
 import BlankProfilePic from "Common/UI/Images/users/blank-profile.svg";
@@ -16,7 +16,35 @@ export interface ComponentProps {
   suffixClassName?: string | undefined;
   usernameClassName?: string | undefined;
   prefixClassName?: string | undefined;
+  emailClassName?: string | undefined;
+  hideEmail?: boolean | undefined;
 }
+
+/*
+ * A user can arrive here as a model instance (Name / Email objects), as the
+ * serialized form of one ({_type: "Email", value: "..."}) or as a plain object
+ * a caller hand-built from an API response (a bare string). Calling toString()
+ * on the serialized shape yields "[object Object]", so unwrap it first.
+ */
+type ReadableValueFunction = (value: JSONValue | undefined) => string;
+
+const readableValue: ReadableValueFunction = (
+  value: JSONValue | undefined,
+): string => {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  if (typeof value === "object") {
+    const serialized: JSONValue | undefined = (value as JSONObject)["value"];
+
+    if ((value as JSONObject)["_type"] && serialized !== undefined) {
+      return readableValue(serialized);
+    }
+  }
+
+  return value.toString();
+};
 
 const UserElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -92,16 +120,27 @@ const UserElement: FunctionComponent<ComponentProps> = (
   }
 
   if (user) {
+    const name: string = readableValue(user["name"]);
+    const email: string = readableValue(user["email"]);
+
+    /*
+     * The name line already falls back to the email when there is no name, so
+     * showing the email underneath as well would print it twice.
+     */
+    const showEmail: boolean = Boolean(
+      !props.hideEmail && name && email && name !== email,
+    );
+
     return (
       <div className="flex">
         <div>
           <Image
             className="h-8 w-8 rounded-full"
             imageUrl={profileImageRoute}
-            alt={user["name"]?.toString() || "User"}
+            alt={name || "User"}
           />
         </div>
-        <div className="mt-1 mr-1 ml-3">
+        <div className="mt-1 mr-1 ml-3 min-w-0">
           <div>
             <span
               className={props.prefixClassName ? props.prefixClassName : ""}
@@ -110,12 +149,20 @@ const UserElement: FunctionComponent<ComponentProps> = (
             </span>{" "}
             <span
               className={props.usernameClassName ? props.usernameClassName : ""}
-            >{`${
-              (user["name"]?.toString() as string) ||
-              (user["email"]?.toString() as string) ||
-              ""
-            }`}</span>{" "}
+            >{`${name || email}`}</span>{" "}
           </div>
+          {showEmail && (
+            <div
+              data-testid="user-email"
+              className={
+                props.emailClassName
+                  ? props.emailClassName
+                  : "truncate text-xs text-gray-500"
+              }
+            >
+              {email}
+            </div>
+          )}
         </div>
         {props.suffix && (
           <div>
