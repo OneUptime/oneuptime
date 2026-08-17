@@ -33,9 +33,22 @@ RunCron(
     try {
       const result: InventorySyncResult = await syncAllInventorySources();
 
-      if (result.created > 0 || result.updated > 0 || result.deleted > 0) {
+      if (
+        result.created > 0 ||
+        result.updated > 0 ||
+        result.deleted > 0 ||
+        result.archived > 0
+      ) {
+        /*
+         * Archived is reported apart from removed because the two are
+         * different events: a removal is a projection catching up with a row
+         * that no longer exists, while an archive is the sweep declining to
+         * delete because the row was carrying custom field values someone
+         * entered. A non-zero archive count is the trail for "where did my
+         * decommissioned device's asset data go".
+         */
         logger.debug(
-          `SyncInventoryEntities: mirrored inventory into the entity registry — ${result.created} created, ${result.updated} updated, ${result.deleted} removed.`,
+          `SyncInventoryEntities: mirrored inventory into the entity registry — ${result.created} created, ${result.updated} updated, ${result.deleted} removed, ${result.archived} archived.`,
         );
       }
     } catch (err) {

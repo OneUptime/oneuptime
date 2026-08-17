@@ -5,6 +5,7 @@ import DropdownValueBadge from "../Dropdown/DropdownValueBadge";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
+import OneUptimeDate from "../../../Types/Date";
 import { CustomFieldDefinition } from "../../../Types/CustomField/CustomFieldDefinition";
 import {
   CustomFieldDropdownOption,
@@ -198,6 +199,60 @@ export const renderCustomFieldValue: RenderCustomFieldValueFunction = (data: {
         {isTrue ? "Yes" : "No"}
       </span>
     );
+  }
+
+  if (
+    definition.customFieldType === CustomFieldType.Date ||
+    definition.customFieldType === CustomFieldType.DateTime
+  ) {
+    /*
+     * Stored as ISO-8601 (the shared date Input normalises every entry through
+     * OneUptimeDate.toString()), which is unreadable in a cell, so it is shown
+     * in the viewer's own timezone — the same rendering Detail gives a date
+     * field, so the list and the item page agree.
+     */
+    const isDateOnly: boolean =
+      definition.customFieldType === CustomFieldType.Date;
+    const raw: string = String(value);
+
+    /*
+     * Validity is decided here rather than by inspecting what the formatter
+     * returned, because the formatter never reports failure: OneUptimeDate
+     * .fromString swallows moment's parse error and falls back to `new
+     * Date(str)`, so junk becomes an Invalid Date and moment renders it as the
+     * literal, truthy string "Invalid date" (and "Invalid date UTC" for the
+     * DateTime variant). A `formatted || raw` fallback therefore never fires.
+     *
+     * Showing the raw text instead matters because the value is not
+     * necessarily one this UI wrote — a project can PUT anything into the
+     * `customFields` bag over the API, and may well have been storing dates as
+     * free text before this field became a date. "Invalid date" hides which
+     * value is wrong; the value itself is the thing that lets someone fix it.
+     */
+    let parsed: Date | null = null;
+
+    try {
+      parsed = OneUptimeDate.fromString(raw);
+    } catch {
+      parsed = null;
+    }
+
+    if (!parsed || isNaN(parsed.getTime())) {
+      return <span>{raw}</span>;
+    }
+
+    try {
+      return (
+        <span>
+          {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+            parsed,
+            isDateOnly,
+          )}
+        </span>
+      );
+    } catch {
+      return <span>{raw}</span>;
+    }
   }
 
   if (definition.customFieldType === CustomFieldType.MultiSelectDropdown) {

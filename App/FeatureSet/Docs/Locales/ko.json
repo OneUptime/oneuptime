@@ -62,7 +62,8 @@
     "Telemetry": "텔레메트리",
     "AI": "AI",
     "API Reference": "API 참조",
-    "Self Hosted": "자체 호스팅"
+    "Self Hosted": "자체 호스팅",
+    "Inventory": "인벤토리"
   },
   "navLinks": {
     "Getting Started": "시작하기",
@@ -185,6 +186,8 @@
     "GitHub Integration": "GitHub 통합",
     "Push Notifications": "푸시 알림",
     "SendGrid Inbound Email": "SendGrid 수신 이메일",
-    "Architecture": "아키텍처"
+    "Architecture": "아키텍처",
+    "Custom Fields": "사용자 지정 필드",
+    "Exporting to a CMDB": "CMDB로 내보내기"
   }
 }
