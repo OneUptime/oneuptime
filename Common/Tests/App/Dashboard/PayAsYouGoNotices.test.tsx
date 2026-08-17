@@ -509,8 +509,10 @@ describe("Pay as you go notices", () => {
         screen.getByTestId("monitor-batch-pay-as-you-go-consent"),
       );
 
-      // Checkbox also passes an "indeterminate" second argument; only the
-      // first one is the answer.
+      /*
+       * Checkbox also passes an "indeterminate" second argument; only the
+       * first one is the answer.
+       */
       expect(onChange.mock.calls[0]?.[0]).toBe(true);
     });
 
