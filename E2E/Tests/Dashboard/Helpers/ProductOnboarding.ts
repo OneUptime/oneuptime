@@ -187,6 +187,34 @@ export const submitIngestionKeyModal: SubmitIngestionKeyModalFunction =
       .locator("#create-ingestion-key input[type='text']")
       .first()
       .fill(data.keyName);
+    await acknowledgePayAsYouGoIfPresent({
+      page: data.page,
+      testId: "telemetry-pay-as-you-go-consent",
+    });
     await data.page.getByTestId("modal-footer-submit-button").click();
     await data.page.getByTestId("modal").waitFor({ state: "hidden" });
+  };
+
+/*
+ * On a billing-enabled deployment a Free plan project has to acknowledge
+ * pay-as-you-go pricing before it can create an ingestion key or a non-Manual
+ * monitor; the checkbox is absent on paid plans and when billing is off, which
+ * is why this is a presence check rather than an unconditional click.
+ */
+type AcknowledgePayAsYouGoFunction = (data: {
+  page: Page;
+  testId: string;
+}) => Promise<void>;
+
+export const acknowledgePayAsYouGoIfPresent: AcknowledgePayAsYouGoFunction =
+  async (data: { page: Page; testId: string }): Promise<void> => {
+    if (!IS_BILLING_ENABLED) {
+      return;
+    }
+
+    const consent: Locator = data.page.getByTestId(data.testId);
+
+    if ((await consent.count()) > 0) {
+      await consent.first().check();
+    }
   };

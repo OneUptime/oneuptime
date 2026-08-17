@@ -3,6 +3,7 @@ import { APIResponse, Page, expect, test, Locator } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
 import {
+  acknowledgePayAsYouGoIfPresent,
   gotoProjectPage,
   registerAndCreateProject,
   submitIngestionKeyModal,
@@ -111,6 +112,14 @@ test.describe.skip("Ceph Product Onboarding", () => {
 
     await expect(page.getByTestId("card-select-option-Ceph")).toBeVisible();
     await page.getByTestId("card-select-option-Ceph").click();
+    /*
+     * On a billing-enabled deployment a Free plan project must acknowledge
+     * pay-as-you-go pricing before a non-Manual monitor can be created.
+     */
+    await acknowledgePayAsYouGoIfPresent({
+      page,
+      testId: "monitor-pay-as-you-go-consent",
+    });
 
     /*
      * The submit button keeps the "Create Monitor" test id on every form

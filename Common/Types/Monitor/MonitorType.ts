@@ -170,6 +170,17 @@ export class MonitorTypeHelper {
     return monitorType === MonitorType.Manual;
   }
 
+  /*
+   * Whether a monitor of this type adds to the project's Active Monitoring
+   * bill. Mirrors what the server actually meters -
+   * ActiveMonitoringMeteredPlan counts every monitor whose type is not
+   * Manual - so the dashboard can warn a Free plan user about a charge using
+   * the same rule that produces it. Manual monitors are free and unlimited.
+   */
+  public static isBilledAsActiveMonitor(monitorType: MonitorType): boolean {
+    return !this.isManualMonitor(monitorType);
+  }
+
   public static getAllMonitorTypeProps(): Array<MonitorTypeProps> {
     const monitorTypeProps: Array<MonitorTypeProps> = [
       {

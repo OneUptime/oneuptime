@@ -23,6 +23,11 @@ import {
   MonitorRecommendationSeverity,
   MonitorRecommendationSeverityMap,
 } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import {
+  MonitorBatchPayAsYouGoConsent,
+  isMonitorBatchConsentRequired,
+} from "../Billing/PayAsYouGo";
 
 export interface ComponentProps {
   selectedRecommendations: Array<MonitorRecommendation>;
@@ -39,6 +44,7 @@ export interface ComponentProps {
   onClose: () => void;
   onSubmit: (
     notificationSettings: MonitorRecommendationNotificationSettings,
+    hasAcknowledgedBilling: boolean,
   ) => void;
 }
 
@@ -103,6 +109,23 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
     useState<MonitorRecommendationNotificationMode>(
       MonitorRecommendationNotificationMode.Alert,
     );
+
+  /*
+   * Every recommendation in the catalogue is a non-Manual monitor, so on the
+   * Free plan this batch starts a real monthly charge. Same acknowledgement
+   * the single create-monitor form asks for, gating the same action.
+   */
+  const monitorTypes: Array<MonitorType> = props.selectedRecommendations.map(
+    (recommendation: MonitorRecommendation) => {
+      return recommendation.monitorType;
+    },
+  );
+
+  const needsBillingConsent: boolean =
+    isMonitorBatchConsentRequired(monitorTypes);
+
+  const [hasAcknowledgedBilling, setHasAcknowledgedBilling] =
+    useState<boolean>(false);
 
   const [onCallPolicyIds, setOnCallPolicyIds] = useState<Array<ObjectID>>([]);
   const [ownerTeamIds, setOwnerTeamIds] = useState<Array<ObjectID>>([]);
@@ -240,7 +263,9 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
       size={SideOverSize.Medium}
       submitButtonText={props.isCreating ? "Creating..." : "Create Monitors"}
       submitButtonDisabled={
-        props.isCreating || props.selectedRecommendations.length === 0
+        props.isCreating ||
+        props.selectedRecommendations.length === 0 ||
+        (needsBillingConsent && !hasAcknowledgedBilling)
       }
       onClose={props.onClose}
       onSubmit={() => {
@@ -255,11 +280,19 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
             alertSeverityIdBySeverity: alertSeverityMap,
           };
 
-        props.onSubmit(notificationSettings);
+        props.onSubmit(notificationSettings, hasAcknowledgedBilling);
       }}
     >
       <div className="space-y-6">
         {props.error ? <ErrorMessage message={props.error} /> : <></>}
+
+        <MonitorBatchPayAsYouGoConsent
+          monitorTypes={monitorTypes}
+          value={hasAcknowledgedBilling}
+          onChange={(value: boolean) => {
+            setHasAcknowledgedBilling(value);
+          }}
+        />
 
         {props.progressMessage ? (
           <div className="rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-700">

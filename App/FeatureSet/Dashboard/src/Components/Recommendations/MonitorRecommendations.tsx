@@ -53,6 +53,11 @@ import RecommendationToolbar from "./RecommendationToolbar";
 import RecommendationFilterUtil from "./RecommendationFilterUtil";
 import RecommendationDismissalUtil from "./RecommendationDismissalUtil";
 import MonitorRecommendationCreateSideOver from "./MonitorRecommendationCreateSideOver";
+import {
+  MONITOR_CONSENT_ERROR,
+  MonitorPayAsYouGoCard,
+  isMonitorBatchConsentRequired,
+} from "../Billing/PayAsYouGo";
 import MonitorRecommendationCreateUtil, {
   MonitorRecommendationCreatePlanItem,
 } from "./MonitorRecommendationCreateUtil";
@@ -438,11 +443,13 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
   type CreateFunction = (
     notificationSettings: MonitorRecommendationNotificationSettings,
     creatableRecommendationIds: Array<string>,
+    hasAcknowledgedBilling: boolean,
   ) => Promise<void>;
 
   const createMonitors: CreateFunction = async (
     notificationSettings: MonitorRecommendationNotificationSettings,
     creatableRecommendationIds: Array<string>,
+    hasAcknowledgedBilling: boolean,
   ): Promise<void> => {
     if (!projectDefaults) {
       return;
@@ -461,6 +468,25 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
         defaultMonitorStatusId: projectDefaults.defaultMonitorStatusId,
         notificationSettings: notificationSettings,
       });
+
+    /*
+     * The side over already disables its submit until this is ticked. Repeated
+     * here so the charge cannot be started by a caller that skips the side
+     * over - this loop is the only place in the dashboard that creates
+     * monitors without a ModelForm to validate first.
+     */
+    if (
+      !hasAcknowledgedBilling &&
+      isMonitorBatchConsentRequired(
+        plan.map((item: MonitorRecommendationCreatePlanItem) => {
+          return item.monitor.monitorType as MonitorType;
+        }),
+      )
+    ) {
+      setActionError(MONITOR_CONSENT_ERROR);
+      setIsCreating(false);
+      return;
+    }
 
     let created: number = 0;
 
@@ -666,6 +692,13 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
 
   return (
     <Fragment>
+      {/*
+       * Recommendations only ever propose non-Manual monitors, and this is the
+       * highest-volume way to create them - so a Free plan project sees the
+       * rate here too, and acknowledges it in the side over before the batch
+       * runs.
+       */}
+      <MonitorPayAsYouGoCard />
       <Card
         title="Recommended Monitors"
         description={`Monitors OneUptime recommends for this ${definition.resourceLabel.toLowerCase()}, based on the telemetry the agent already sends. Pick the ones you want, choose who gets paged, and create them in one step.`}
@@ -781,6 +814,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
           }}
           onSubmit={(
             notificationSettings: MonitorRecommendationNotificationSettings,
+            hasAcknowledgedBilling: boolean,
           ) => {
             createMonitors(
               notificationSettings,
@@ -789,6 +823,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
                   return viewModel.recommendation.recommendationId;
                 },
               ),
+              hasAcknowledgedBilling,
             ).catch((err: Error) => {
               setActionError(API.getFriendlyMessage(err));
               setIsCreating(false);

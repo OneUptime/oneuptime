@@ -73,6 +73,10 @@ import {
 } from "Common/Types/Analytics/RevenueEvent";
 import ProbeUtil from "../../Utils/Probe";
 import MonitorProbeSelectionUtil from "Common/Utils/Monitor/MonitorProbeSelectionUtil";
+import {
+  MonitorPayAsYouGoCard,
+  getMonitorPayAsYouGoFormFields,
+} from "../../Components/Billing/PayAsYouGo";
 
 /*
  * Candidate rolling windows for "create monitor from this explorer view" —
@@ -597,6 +601,12 @@ const MonitorCreate: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * Every monitor type except Manual is metered as an active monitor, so
+       * a Free plan project is told the rate before it picks a type - and has
+       * to acknowledge it below the type picker.
+       */}
+      <MonitorPayAsYouGoCard />
       <Card
         title="Create New Monitor"
         description={
@@ -657,6 +667,12 @@ const MonitorCreate: FunctionComponent<
                   cardSelectOptions:
                     MonitorTypeUtil.monitorTypesAsCategorizedCardSelectOptions(),
                 },
+                /*
+                 * Sits directly under the type picker, on the same step, so
+                 * the charge is acknowledged next to the choice that causes
+                 * it. Empty off the Free plan; hidden for Manual monitors.
+                 */
+                ...getMonitorPayAsYouGoFormFields({ stepId: "monitor-info" }),
                 {
                   field: {
                     monitorSteps: true,

@@ -4,6 +4,19 @@ import ServerMeteredPlan from "./ServerMeteredPlan";
 import TelemetryMeteredPlanType from "./TelemetryMeteredPlan";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ProductType from "../../../../Types/MeteredPlan/ProductType";
+import {
+  SESSION_REPLAY_PRICE_IN_USD_PER_GB,
+  TELEMETRY_PRICE_IN_USD_PER_GB,
+  TELEMETRY_PRICE_RETENTION_IN_DAYS,
+} from "../../../../Types/Billing/PayAsYouGoPricing";
+
+/*
+ * Per GB per day, derived from the advertised per-GB-per-15-days rate so the
+ * price the dashboard quotes a Free plan user and the price we actually meter
+ * cannot drift apart.
+ */
+const TELEMETRY_UNIT_COST_IN_USD: number =
+  TELEMETRY_PRICE_IN_USD_PER_GB / TELEMETRY_PRICE_RETENTION_IN_DAYS;
 
 export const ActiveMonitoringMeteredPlan: ActiveMonitoringMeteredPlanType =
   new ActiveMonitoringMeteredPlanType();
@@ -11,25 +24,25 @@ export const ActiveMonitoringMeteredPlan: ActiveMonitoringMeteredPlanType =
 export const LogDataIngestMeteredPlan: TelemetryMeteredPlanType =
   new TelemetryMeteredPlanType({
     productType: ProductType.Logs,
-    unitCostInUSD: 0.1 / 15, // 0.10 per 15 days per GB
+    unitCostInUSD: TELEMETRY_UNIT_COST_IN_USD, // 0.10 per 15 days per GB
   });
 
 export const MetricsDataIngestMeteredPlan: TelemetryMeteredPlanType =
   new TelemetryMeteredPlanType({
     productType: ProductType.Metrics,
-    unitCostInUSD: 0.1 / 15, // 0.10 per 15 days per GB
+    unitCostInUSD: TELEMETRY_UNIT_COST_IN_USD, // 0.10 per 15 days per GB
   });
 
 export const TracesDataIngestMetredPlan: TelemetryMeteredPlanType =
   new TelemetryMeteredPlanType({
     productType: ProductType.Traces,
-    unitCostInUSD: 0.1 / 15, // 0.10 per 15 days per GB
+    unitCostInUSD: TELEMETRY_UNIT_COST_IN_USD, // 0.10 per 15 days per GB
   });
 
 export const ProfilesDataIngestMeteredPlan: TelemetryMeteredPlanType =
   new TelemetryMeteredPlanType({
     productType: ProductType.Profiles,
-    unitCostInUSD: 0.1 / 15, // 0.10 per 15 days per GB
+    unitCostInUSD: TELEMETRY_UNIT_COST_IN_USD, // 0.10 per 15 days per GB
   });
 
 /*
@@ -43,7 +56,8 @@ export const ProfilesDataIngestMeteredPlan: TelemetryMeteredPlanType =
 export const SessionReplayDataIngestMeteredPlan: TelemetryMeteredPlanType =
   new TelemetryMeteredPlanType({
     productType: ProductType.SessionReplay,
-    unitCostInUSD: 2.0 / 15, // 2.00 per 15 days per GB
+    unitCostInUSD:
+      SESSION_REPLAY_PRICE_IN_USD_PER_GB / TELEMETRY_PRICE_RETENTION_IN_DAYS, // 2.00 per 15 days per GB
   });
 
 const AllMeteredPlans: Array<ServerMeteredPlan> = [

@@ -5,11 +5,21 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
+import {
+  TelemetryPayAsYouGoCard,
+  getTelemetryPayAsYouGoFormFields,
+} from "../../Components/Billing/PayAsYouGo";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Fragment>
+      {/*
+       * Telemetry is metered and nothing about it is included in the Free
+       * plan, so a Free plan project is told what an ingestion key costs
+       * before it creates one - and has to acknowledge it in the modal.
+       */}
+      <TelemetryPayAsYouGoCard />
       <ModelTable<TelemetryIngestionKey>
         modelType={TelemetryIngestionKey}
         query={{
@@ -34,6 +44,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         noItemsMessage={"No telemetry ingestion keys found."}
         formFields={[
+          ...getTelemetryPayAsYouGoFormFields(),
           {
             field: {
               name: true,

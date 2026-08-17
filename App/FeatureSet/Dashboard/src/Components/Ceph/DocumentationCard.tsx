@@ -10,6 +10,7 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
+import { getTelemetryPayAsYouGoFormFields } from "../Billing/PayAsYouGo";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import API from "Common/UI/Utils/API/API";
@@ -261,6 +262,12 @@ const CephDocumentationCard: FunctionComponent<ComponentProps> = (
             modelType: TelemetryIngestionKey,
             id: "create-ingestion-key",
             fields: [
+              /*
+               * The same pay-as-you-go notice and acknowledgement the settings
+               * page shows. This is another door onto creating a key, and a
+               * gate with a way around it is not a gate.
+               */
+              ...getTelemetryPayAsYouGoFormFields(),
               {
                 field: {
                   name: true,
