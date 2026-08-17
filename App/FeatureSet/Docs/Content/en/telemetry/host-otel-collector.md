@@ -350,9 +350,6 @@ receivers:
       load:
       paging:
       processes:
-      process:
-        mute_process_name_error: true
-        mute_process_user_error: true
 
   filelog/syslog:
     include:
@@ -421,9 +418,6 @@ receivers:
       load:
       paging:
       processes:
-      process:
-        mute_process_name_error: true
-        mute_process_user_error: true
 
   filelog/system:
     include:
@@ -483,9 +477,6 @@ receivers:
       # Processor Queue Length counter (it starts at 0) — omitted here.
       paging:
       processes:
-      process:
-        mute_process_name_error: true
-        mute_process_user_error: true
 
   windowseventlog/system:
     channel: System
@@ -682,6 +673,7 @@ receivers:
       # If you need it, scope it instead of collecting every process:
       # process:
       #   mute_process_name_error: true
+      #   mute_process_user_error: true
       #   include:
       #     names: [nginx, postgres, node]
       #     match_type: strict
