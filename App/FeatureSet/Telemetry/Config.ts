@@ -1,4 +1,5 @@
 import { DEFAULT_SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY } from "Common/Types/Rum/SessionReplay";
+import CpuCount from "Common/Server/Utils/CpuCount";
 
 let concurrency: string | number = process.env["TELEMETRY_CONCURRENCY"] || 100;
 
@@ -29,6 +30,102 @@ const parseBatchSize: ParseBatchSizeFunction = (
 
   return parsed;
 };
+
+/*
+ * Like parseBatchSize, but 0 is a VALID value rather than "fall back to
+ * the default". Needed for knobs where 0 is a meaningful setting —
+ * TELEMETRY_DECODE_THREADS uses 0 for "pool hard-disabled", so the
+ * strictly-positive parser above would make the feature impossible to
+ * turn off explicitly. Invalid values (negatives, garbage) fall back to
+ * the DEFAULT, which for TELEMETRY_DECODE_THREADS is the adaptive count
+ * below — deliberately NOT 0, because an operator typo in an override
+ * must not silently disable a default-on subsystem.
+ */
+type ParseNonNegativeSizeFunction = (
+  envKey: string,
+  defaultValue: number,
+) => number;
+
+const parseNonNegativeSize: ParseNonNegativeSizeFunction = (
+  envKey: string,
+  defaultValue: number,
+): number => {
+  const value: string | undefined = process.env[envKey];
+
+  if (!value) {
+    return defaultValue;
+  }
+
+  const parsed: number = parseInt(value, 10);
+
+  if (isNaN(parsed) || parsed < 0) {
+    return defaultValue;
+  }
+
+  return parsed;
+};
+
+/*
+ * Size of the worker-thread pool that runs gunzip + protobuf decode +
+ * toJSON for OTel ingest payloads off the main event loop (see
+ * Utils/DecodeThreadPool.ts).
+ *
+ * DEFAULT (env unset): ADAPTIVE — clamp(effectiveCpuCount - 1, 0, 4):
+ *
+ *   effective CPUs   decode threads
+ *   1                0  (pool off — inline decode, the pre-pool behavior;
+ *                        a 1-CPU pod has no spare core to give)
+ *   2                1
+ *   3                2
+ *   4                3
+ *   >= 5             4  (cap)
+ *
+ * One core is always reserved for the main event loop (the pool exists
+ * to PROTECT the loop; letting decode threads compete with it for the
+ * last core would recreate the very throttling it prevents). The cap of
+ * 4 bounds per-pod memory: each thread is a full V8 isolate with its
+ * own ts-node + protobufjs load, so the pool costs real RSS per thread.
+ *
+ * effectiveCpuCount is CGROUP-AWARE (Common/Server/Utils/CpuCount):
+ * Node's os.availableParallelism()/os.cpus() report HOST cores, but a
+ * Kubernetes pod under a CPU limit only gets quota/period of that —
+ * sizing from the host count would oversubscribe a small pod on a big
+ * node.
+ *
+ * Threads spawn LAZILY on the first payload that qualifies for the pool
+ * (>= TELEMETRY_DECODE_MIN_PAYLOAD_BYTES), so idle and non-telemetry
+ * deployments pay nothing for this default being on.
+ *
+ * An explicit env value always wins: 0 hard-disables the pool, a
+ * positive integer pins the exact thread count. Invalid values fall
+ * back to the ADAPTIVE default (see parseNonNegativeSize's comment).
+ */
+const ADAPTIVE_DECODE_THREADS: number = Math.min(
+  4,
+  Math.max(0, CpuCount.getEffectiveCpuCount() - 1),
+);
+
+export const TELEMETRY_DECODE_THREADS: number = parseNonNegativeSize(
+  "TELEMETRY_DECODE_THREADS",
+  ADAPTIVE_DECODE_THREADS,
+);
+
+/*
+ * Payloads smaller than this (in raw bytes, as stored — i.e. still
+ * compressed when the sender gzipped) are decoded inline even when the
+ * pool is enabled: below roughly this size the fixed cost of the
+ * thread handoff (one payload memcpy on the main thread + structured
+ * clone of the decoded JSON on the way back + scheduling latency)
+ * exceeds the decode CPU we would be moving off-loop. 8 KiB is a
+ * judgment default, not a measured constant — it is env-overridable so
+ * deployments can tune the crossover for their traffic shape. 0 means
+ * "no minimum, route everything to the pool" (useful for testing),
+ * which is why this uses the 0-permitting parser.
+ */
+export const TELEMETRY_DECODE_MIN_PAYLOAD_BYTES: number = parseNonNegativeSize(
+  "TELEMETRY_DECODE_MIN_PAYLOAD_BYTES",
+  8192,
+);
 
 export const TELEMETRY_LOG_FLUSH_BATCH_SIZE: number = parseBatchSize(
   "TELEMETRY_LOG_FLUSH_BATCH_SIZE",

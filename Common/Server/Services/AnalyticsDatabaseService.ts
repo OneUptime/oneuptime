@@ -67,7 +67,7 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import Text from "../../Types/Text";
 import Typeof from "../../Types/Typeof";
 import API from "../../Utils/API";
-import { Stream } from "node:stream";
+import { Readable, Stream } from "node:stream";
 import AggregateBy, {
   AggregateUtil,
 } from "../Types/AnalyticsDatabase/AggregateBy";
@@ -211,6 +211,38 @@ export function shouldWaitForAsyncInsert(): boolean {
   return raw === "true" || raw === "1";
 }
 
+/*
+ * Streamed ClickHouse insert bodies (default ON).
+ *
+ * With a plain array, @clickhouse/client's encoder does
+ * `values.map(encodeJSON).join('')` — materializing the ENTIRE insert body
+ * as one in-memory string before the HTTP request starts. For a fan-in
+ * flush of 100k telemetry rows that is a 100MB+ transient allocation (on
+ * top of the rows array itself, plus the gzip output since request
+ * compression is enabled) and one long unbroken synchronous stringify
+ * burst on the event loop. Passing an object-mode Readable instead makes
+ * the client encode each row lazily with socket/gzip backpressure.
+ *
+ * Why default-on is safe: the client's encoder (dist/utils/encoder.js)
+ * pipes every value yielded by an object-mode stream through the SAME
+ * `encodeJSON` used for array elements, so the wire bytes are identical by
+ * construction. The HTTP framing does not change either — the client never
+ * sets Content-Length (the body is always piped through gzip into the
+ * request), so inserts already used chunked transfer encoding with the
+ * array path; only the chunk granularity changes.
+ *
+ * Why the flag exists: a pure rollback hatch. If some proxy / LB /
+ * ClickHouse edge in a deployment misbehaves with the finer-grained
+ * chunked upload (or a client upgrade changes stream semantics), set
+ * CLICKHOUSE_STREAMED_INSERTS=false to restore the array path verbatim
+ * without a code change. Read per call (not at module load) following the
+ * `!== "false"` idiom of the other hot-path switches, so tests and running
+ * processes can flip it.
+ */
+export function shouldStreamClickhouseInserts(): boolean {
+  return process.env["CLICKHOUSE_STREAMED_INSERTS"] !== "false";
+}
+
 export default class AnalyticsDatabaseService<
   TBaseModel extends AnalyticsBaseModel,
 > extends BaseService {
@@ -331,10 +363,33 @@ export default class AnalyticsDatabaseService<
       };
     }
 
+    /*
+     * Insert body: an object-mode Readable over `rows` (see
+     * shouldStreamClickhouseInserts for why, and for the rollback hatch).
+     *
+     * The stream MUST be constructed fresh on every invocation, inside this
+     * method: TelemetryFanInWriter.insertGroupWithRetry retries this method
+     * with the SAME rows array and the SAME dedup token, and a Readable is
+     * single-use — a stream hoisted out of the call would arrive exhausted
+     * (or errored) on the retry and silently insert nothing.
+     *
+     * Readable.from(rows) iterates the existing array lazily — no copy.
+     * That deferred iteration is safe because rows are stable after
+     * submission: TelemetryFanInWriter.submit() takes ownership of the
+     * caller's array (callers must not mutate it afterwards, per its
+     * contract) and insertGroupWithRetry passes a private array it copied
+     * the group's rows into, which nothing mutates across attempts. Direct
+     * (non-fan-in) callers hand over their array and do not touch it while
+     * awaiting this method.
+     */
+    const values: Array<JSONObject> | Readable = shouldStreamClickhouseInserts()
+      ? Readable.from(rows)
+      : rows;
+
     try {
       await client.insert({
         table: tableName,
-        values: rows,
+        values: values,
         format: "JSONEachRow",
         clickhouse_settings: clickhouseSettings,
       });

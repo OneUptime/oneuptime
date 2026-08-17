@@ -29,6 +29,27 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * ProcessTelemetry.ts fails every substantive test in this file.
  */
 
+/*
+ * PasswordHash has a pre-existing TS5.9 ts-jest compile error (crypto
+ * BinaryLike vs Buffer) and is pulled in transitively through the service
+ * layer. Nothing password-related is under test here, so the module is
+ * replaced WITH A FACTORY — an automock would still require (and
+ * type-check) the real file. Same workaround as the other suites in this
+ * directory.
+ */
+jest.mock("Common/Server/Utils/PasswordHash", () => {
+  return {
+    __esModule: true,
+    default: {
+      hash: jest.fn(),
+      verify: jest.fn(),
+      generateSalt: jest.fn(),
+      needsUpgrade: jest.fn(),
+      applyPepper: jest.fn(),
+    },
+  };
+});
+
 let capturedHandler: ((job: unknown) => Promise<void>) | null = null;
 
 jest.mock("Common/Server/Infrastructure/QueueWorker", () => {

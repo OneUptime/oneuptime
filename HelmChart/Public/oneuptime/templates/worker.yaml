@@ -134,6 +134,16 @@ spec:
               value: {{ $.Values.worker.enableProfiling | quote }}
             - name: TELEMETRY_CONCURRENCY
               value: {{ $.Values.worker.telemetryConcurrency | default 100 | squote }}
+            # Worker-thread pool for OTel payload decode. Rendered ONLY when the
+            # operator sets a value: unset defers to the code's adaptive,
+            # cgroup-aware default of clamp(effectiveCpus - 1, 0, 4) — see
+            # App/FeatureSet/Telemetry/Config.ts. Explicit 0 hard-disables
+            # (inline decode). Nil check (not `with`/`default`): 0 is a
+            # meaningful value and must render.
+            {{- if not (kindIs "invalid" $.Values.worker.telemetryDecodeThreads) }}
+            - name: TELEMETRY_DECODE_THREADS
+              value: {{ $.Values.worker.telemetryDecodeThreads | squote }}
+            {{- end }}
             # Fan-in telemetry writer knobs (defaults match the code —
             # Common/Server/Utils/Telemetry/TelemetryFanInWriter.ts). Fleet-wide
             # ClickHouse insert concurrency is replicas x maxConcurrentInserts.
