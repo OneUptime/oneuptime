@@ -15,6 +15,11 @@ import {
   isMonitorBackedDevice,
   isSnmpDevice,
 } from "../../Components/NetworkDevice/MonitoringMethodFormFields";
+import {
+  DEVICE_ROLE_FIELD_DESCRIPTION,
+  DEVICE_ROLE_FIELD_TITLE,
+  DEVICE_ROLE_OPTIONS,
+} from "../../Components/NetworkDevice/DeviceRoleFormFields";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import React, {
   Fragment,
@@ -525,6 +530,18 @@ const NetworkDevices: FunctionComponent<
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Core switch in the US East datacenter",
+          },
+          {
+            field: {
+              deviceRole: true,
+            },
+            title: DEVICE_ROLE_FIELD_TITLE,
+            stepId: "device-details",
+            description: DEVICE_ROLE_FIELD_DESCRIPTION,
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions: DEVICE_ROLE_OPTIONS,
+            required: false,
+            placeholder: "Worked out from the device (SNMP only)",
           },
           {
             field: {

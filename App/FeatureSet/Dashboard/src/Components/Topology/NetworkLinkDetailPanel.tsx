@@ -148,6 +148,21 @@ const NetworkLinkDetailPanel: FunctionComponent<ComponentProps> = (
   const fromName: string = props.fromNode?.name || "Unknown device";
   const toName: string = props.toNode?.name || "Unknown device";
 
+  /*
+   * `parentNodeId` names an END, not a side, so which of the two labels it
+   * refers to has to be resolved rather than assumed — a link stored
+   * switch-to-AP and one stored AP-to-switch can declare the same
+   * hierarchy.
+   */
+  const parentName: string | null =
+    edge.parentNodeId === edge.fromNodeId
+      ? fromName
+      : edge.parentNodeId === edge.toNodeId
+        ? toName
+        : null;
+  const childName: string | null =
+    parentName === null ? null : parentName === fromName ? toName : fromName;
+
   return (
     <SideOver
       title={`${fromName} ↔ ${toName}`}
@@ -179,6 +194,25 @@ const NetworkLinkDetailPanel: FunctionComponent<ComponentProps> = (
             );
           })}
         </div>
+
+        {/*
+         * Shown only when somebody declared a direction. Absent is not
+         * "these are peers", it is "nobody said" — and stating the
+         * inference as though it were a fact is exactly the confusion this
+         * whole field exists to end. So there is no "hierarchy: inferred"
+         * row; there is simply nothing here until there is something to
+         * say.
+         */}
+        {parentName && childName ? (
+          <div className="rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-600">
+            <span className="font-medium text-gray-900">{parentName}</span>
+            {" is the parent of "}
+            <span className="font-medium text-gray-900">{childName}</span>
+            {" — declared, not inferred. The Parent-Child view draws "}
+            {childName}
+            {" beneath it."}
+          </div>
+        ) : null}
 
         <EndpointSection
           deviceName={fromName}

@@ -136,6 +136,22 @@ const NetworkDeviceLinks: FunctionComponent<
           },
           {
             field: {
+              parentDevice: true,
+            },
+            title: "Parent Device",
+            description:
+              "Optional, and it must be one of the two devices above. Set it to say which end is upstream — the router in a router-to-switch link, the switch in a switch-to-access-point one — and the Parent-Child view on the topology map draws the other end beneath it. Left empty, the map works the hierarchy out from device roles and connection counts, which is a good guess on SNMP gear and no guess at all on a device that only answers ping.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: NetworkDevice,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Peers — infer the hierarchy",
+          },
+          {
+            field: {
               monitor: true,
             },
             title: "Monitor",
@@ -187,6 +203,31 @@ const NetworkDeviceLinks: FunctionComponent<
               return (
                 <span className="text-sm text-gray-900">
                   {item.toDevice?.name || "—"}
+                </span>
+              );
+            },
+          },
+          {
+            field: {
+              parentDevice: {
+                name: true,
+              },
+            },
+            title: "Parent",
+            type: FieldType.Entity,
+            hideOnMobile: true,
+            /*
+             * "Inferred" rather than a dash: an empty parent is not missing
+             * data, it is the map being left to work the direction out, and
+             * the difference is the whole point of the column.
+             */
+            getElement: (item: NetworkDeviceLink): ReactElement => {
+              if (!item.parentDevice?.name) {
+                return <span className="text-sm text-gray-400">Inferred</span>;
+              }
+              return (
+                <span className="text-sm text-gray-900">
+                  {item.parentDevice.name}
                 </span>
               );
             },

@@ -150,11 +150,46 @@ export const TIERED_GROUP_BOX_BOTTOM_PAD: number = 36;
 
 type TierIndex = 0 | 1 | 2;
 
+/*
+ * Roles that belong at the top of a network: the boxes everything else
+ * reaches the rest of the world through. Every other role is access-layer
+ * or a leaf, and sits a tier below.
+ *
+ * Note what is NOT here: "switch". A switch is infrastructure, but it is
+ * infrastructure that hangs off a router, and the whole point of the top
+ * tier is the handful of devices that hang off nothing.
+ */
+const CORE_DEVICE_ROLES: ReadonlySet<string> = new Set<string>([
+  "router",
+  "firewall",
+  "loadBalancer",
+]);
+
 /**
  * Assign a node to its tier. Exported for tests; pure.
  *
  * `nodeIdsWithFdbEdges` must contain the ids of every node touched by at
  * least one FDB edge (see computeTieredTopologyLayout).
+ *
+ * WHY ROLE COMES FIRST. The FDB heuristic below reads "this device has
+ * endpoints hanging off it, so it is an access switch" — sound, and it was
+ * the only signal available when the tier was invented. Its failure is the
+ * silence: a device with no FDB edges lands in tier 0, the CORE tier,
+ * whether it is a core router or an access point somebody added by ping.
+ * On an SNMP estate that is mostly harmless, because a device with no
+ * endpoints usually IS upstream. On the ping-only devices of issue #3192
+ * it is backwards every time — nothing walks them, so they report no
+ * endpoints, so every camera and access point is drawn at core level and
+ * competes with the actual router to root the parent-child tree.
+ *
+ * A role, when we have one, is a direct statement of what the box does and
+ * settles it. The heuristic survives untouched for "unknown", which is
+ * still the honest answer for most unmanaged peers.
+ *
+ * Endpoint nodes stay tier 2 whatever their role: tier 2 is what the
+ * tiered layout groups into per-switch boxes, and a managed device does
+ * not belong inside one. So a managed leaf — an AP, a server, a printer —
+ * is tier 1, drawn as its own node, one level under the core.
  */
 export const tierForNode: (
   node: NetworkTopologyNode,
@@ -169,7 +204,10 @@ export const tierForNode: (
   if (!node.isManaged) {
     return 1;
   }
-  // Managed: FDB edges mark it as a switch endpoints hang off.
+  if (node.role && node.role !== "unknown") {
+    return CORE_DEVICE_ROLES.has(node.role) ? 0 : 1;
+  }
+  // Role unknown: FDB edges mark it as a switch endpoints hang off.
   return nodeIdsWithFdbEdges.has(node.id) ? 1 : 0;
 };
 
