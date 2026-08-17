@@ -444,10 +444,31 @@ describe("the migration runs", () => {
     );
   });
 
-  test("it is appended last, matching its timestamp", () => {
-    expect(SchemaMigrations[SchemaMigrations.length - 1]).toBe(
+  /*
+   * Registered in timestamp order relative to whatever follows it.
+   *
+   * This asserted "it is last in the array" until a second migration was
+   * added behind it, which is a thing that happens to every migration
+   * exactly once and is not what the test was ever about. The invariant
+   * worth holding is the one the "matching its timestamp" half named:
+   * nothing registered AFTER this may carry an earlier timestamp, because
+   * the array is how a reader works out what runs when. A newly generated
+   * migration carries a wall-clock timestamp, which can easily fall below
+   * the hand-picked round numbers the recent ones use — appending it
+   * without renumbering is how the two orders drift apart.
+   */
+  test("nothing registered after it carries an earlier timestamp", () => {
+    const position: number = SchemaMigrations.indexOf(
       AddEpisodeMemberNotifyIndexes1787300000000,
     );
+    expect(position).toBeGreaterThan(-1);
+
+    for (const migration of SchemaMigrations.slice(position + 1)) {
+      const timestamp: number = Number(
+        (migration.name.match(/(\d+)$/) || [])[1],
+      );
+      expect(timestamp).toBeGreaterThan(1787300000000);
+    }
   });
 
   /*
@@ -461,34 +482,41 @@ describe("the migration runs", () => {
   });
 
   /*
-   * Migrations execute in timestamp order, and TypeORM will not re-order an
-   * already-applied set: a migration added with a timestamp below one that
-   * has already run is simply skipped on every existing deployment, so the
-   * index never appears in production and only ever shows up on fresh
-   * installs. Both sides of the comparison are therefore read off the
-   * registered classes themselves — rename this migration to a lower
-   * timestamp, or land another one above it, and this fails.
+   * Migrations execute in timestamp order, so one landing BELOW a migration
+   * that has already run applies out of order — and on a fresh install runs
+   * in a different order than it did in production, which is how a schema
+   * that passes drift locally still diverges between deployments.
+   *
+   * This used to read "above every OTHER registered migration", i.e. that
+   * this was the newest. That guard belongs to whichever migration is
+   * currently newest — see
+   * DeviceRoleAndDeclaredLinkParentMigration.test.ts, which now carries it
+   * — and it cannot live here, because it fails by design the moment
+   * anything lands above it. What is permanently true of this migration,
+   * and is the half that protects an existing deployment, is that nothing
+   * registered BEFORE it carries a later timestamp.
    */
-  test("its timestamp sorts after every other registered migration", () => {
+  test("its timestamp sorts after every migration registered before it", () => {
     const ourTimestamp: number | null = timestampOf(
       AddEpisodeMemberNotifyIndexes1787300000000,
     );
 
     expect(ourTimestamp).not.toBeNull();
 
-    const otherTimestamps: Array<number> = [];
+    const position: number = SchemaMigrations.indexOf(
+      AddEpisodeMemberNotifyIndexes1787300000000,
+    );
+    expect(position).toBeGreaterThan(-1);
 
-    for (const migrationClass of SchemaMigrations) {
-      if (migrationClass === AddEpisodeMemberNotifyIndexes1787300000000) {
-        continue;
-      }
+    const earlierTimestamps: Array<number> = [];
 
+    for (const migrationClass of SchemaMigrations.slice(0, position)) {
       const timestamp: number | null = timestampOf(
         migrationClass as MigrationClass,
       );
 
       if (timestamp !== null) {
-        otherTimestamps.push(timestamp);
+        earlierTimestamps.push(timestamp);
       }
     }
 
@@ -497,9 +525,9 @@ describe("the migration runs", () => {
      * Prove the list was actually enumerated before leaning on the maximum,
      * or the assertion below is vacuous again.
      */
-    expect(otherTimestamps.length).toBeGreaterThan(100);
+    expect(earlierTimestamps.length).toBeGreaterThan(100);
 
-    expect(ourTimestamp).toBeGreaterThan(Math.max(...otherTimestamps));
+    expect(ourTimestamp).toBeGreaterThan(Math.max(...earlierTimestamps));
   });
 
   /*

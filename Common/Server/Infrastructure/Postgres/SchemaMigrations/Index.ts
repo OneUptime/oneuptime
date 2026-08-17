@@ -527,7 +527,7 @@ import { AddOnCallNotificationFallbackColumns1787000000000 } from "./17870000000
 import { AddAIConversationPageContext1787100000000 } from "./1787100000000-AddAIConversationPageContext";
 import { AddAIChatMessageFeedback1787200000000 } from "./1787200000000-AddAIChatMessageFeedback";
 import { AddEpisodeMemberNotifyIndexes1787300000000 } from "./1787300000000-AddEpisodeMemberNotifyIndexes";
-import { AddDeviceRoleAndDeclaredLinkParent1786956817229 } from "./1786956817229-AddDeviceRoleAndDeclaredLinkParent";
+import { AddDeviceRoleAndDeclaredLinkParent1787400000000 } from "./1787400000000-AddDeviceRoleAndDeclaredLinkParent";
 
 export default [
   InitialMigration,
@@ -1059,5 +1059,5 @@ export default [
   AddAIConversationPageContext1787100000000,
   AddAIChatMessageFeedback1787200000000,
   AddEpisodeMemberNotifyIndexes1787300000000,
-  AddDeviceRoleAndDeclaredLinkParent1786956817229,
+  AddDeviceRoleAndDeclaredLinkParent1787400000000,
 ];

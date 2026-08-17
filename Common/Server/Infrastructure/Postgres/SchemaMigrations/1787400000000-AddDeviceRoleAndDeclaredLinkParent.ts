@@ -15,10 +15,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * restate every device and every link in every project as something an
  * operator had chosen, which is the one thing neither column may mean.
  */
-export class AddDeviceRoleAndDeclaredLinkParent1786956817229
+export class AddDeviceRoleAndDeclaredLinkParent1787400000000
   implements MigrationInterface
 {
-  public name = "AddDeviceRoleAndDeclaredLinkParent1786956817229";
+  public name = "AddDeviceRoleAndDeclaredLinkParent1787400000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
