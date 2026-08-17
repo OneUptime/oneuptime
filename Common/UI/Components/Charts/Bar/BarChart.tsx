@@ -12,7 +12,9 @@ import React, {
 import SeriesPoint from "../Types/SeriesPoints";
 import { XAxis } from "../Types/XAxis/XAxis";
 import YAxis from "../Types/YAxis/YAxis";
-import ChartDataPoint from "../ChartLibrary/Types/ChartDataPoint";
+import ChartDataPoint, {
+  CHART_DATA_POINT_X_AXIS_KEY,
+} from "../ChartLibrary/Types/ChartDataPoint";
 import FormattedReferenceRegion from "../ChartLibrary/Types/FormattedReferenceRegion";
 import FormattedTimeReferenceLine from "../ChartLibrary/Types/FormattedTimeReferenceLine";
 import DataPointUtil from "../Utils/DataPoint";
@@ -119,7 +121,7 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
       <BarChart
         data={records}
         tickGap={30}
-        index={"Time"}
+        index={CHART_DATA_POINT_X_AXIS_KEY}
         categories={categories}
         colors={
           props.colors && props.colors.length > 0

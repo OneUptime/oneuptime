@@ -10,6 +10,7 @@
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ChartDataPoint, {
   CHART_DATA_POINT_DATE_KEY,
+  CHART_DATA_POINT_X_AXIS_KEY,
 } from "../ChartLibrary/Types/ChartDataPoint";
 import SeriesPoints from "../Types/SeriesPoints";
 import { XAxis, XAxisAggregateType } from "../Types/XAxis/XAxis";
@@ -30,18 +31,14 @@ export default class DataPointUtil {
     xAxis: XAxis;
     yAxis: YAxis;
   }): Array<ChartDataPoint> {
-    const { xAxisLegend, intervals, formatter } = this.initializeXAxisData(
-      data.xAxis,
-    );
+    const { intervals, formatter } = this.initializeXAxisData(data.xAxis);
     const arrayOfData: ChartDataPoint[] = this.initializeArrayOfData(
       intervals,
-      xAxisLegend,
       formatter,
     );
     this.processSeriesData(
       data.seriesPoints,
       arrayOfData,
-      xAxisLegend,
       formatter,
       data.xAxis.options.aggregateType,
     );
@@ -51,13 +48,11 @@ export default class DataPointUtil {
   private static initializeXAxisData(xAxis: XAxis): {
     xAxisMax: XAxisMaxMin;
     xAxisMin: XAxisMaxMin;
-    xAxisLegend: string;
     intervals: Array<Date>;
     formatter: (value: Date) => string;
   } {
     const xAxisMax: XAxisMaxMin = xAxis.options.max;
     const xAxisMin: XAxisMaxMin = xAxis.options.min;
-    const xAxisLegend: string = xAxis.legend;
     const intervals: Array<Date> = XAxisUtil.getPrecisionIntervals({
       xAxisMax,
       xAxisMin,
@@ -66,18 +61,25 @@ export default class DataPointUtil {
       xAxisMax,
       xAxisMin,
     });
-    return { xAxisMax, xAxisMin, xAxisLegend, intervals, formatter };
+    return { xAxisMax, xAxisMin, intervals, formatter };
   }
 
   private static initializeArrayOfData(
     intervals: Array<Date>,
-    xAxisLegend: string,
     formatter: (value: Date) => string,
   ): Array<ChartDataPoint> {
     const arrayOfData: Array<ChartDataPoint> = [];
     for (const interval of intervals) {
       const dataPoint: ChartDataPoint = {};
-      dataPoint[xAxisLegend] = formatter(interval);
+      /*
+       * Always the canonical key, NEVER `xAxis.legend`. The wrappers hand
+       * recharts this exact key as the XAxis dataKey, so keying rows off a
+       * caller-supplied string meant one caller passing anything else
+       * (the SLO dashboard widget passed "") produced rows recharts could
+       * not read — every point landed on an undefined category and the
+       * line silently vanished while the axes still drew.
+       */
+      dataPoint[CHART_DATA_POINT_X_AXIS_KEY] = formatter(interval);
       /*
        * The formatted label is not round-trippable back to a Date, so
        * keep the raw bucket start on the row — charts use it to recover
@@ -92,7 +94,6 @@ export default class DataPointUtil {
   private static processSeriesData(
     seriesPoints: Array<SeriesPoints>,
     arrayOfData: Array<ChartDataPoint>,
-    xAxisLegend: string,
     formatter: (value: Date) => string,
     aggregateType: XAxisAggregateType,
   ): { [key: string]: SeriesData } {
@@ -123,7 +124,9 @@ export default class DataPointUtil {
 
         const target: ChartDataPoint | undefined = arrayOfData.find(
           (chartDataPoint: ChartDataPoint) => {
-            return chartDataPoint[xAxisLegend] === formattedDate;
+            return (
+              chartDataPoint[CHART_DATA_POINT_X_AXIS_KEY] === formattedDate
+            );
           },
         );
         if (!target) {
