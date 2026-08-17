@@ -578,6 +578,14 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "Inventory",
+    links: [
+      { title: "Overview", url: "/docs/inventory/overview" },
+      { title: "Custom Fields", url: "/docs/inventory/custom-fields" },
+      { title: "Exporting to a CMDB", url: "/docs/inventory/cmdb-sync" },
+    ],
+  },
+  {
     title: "Telemetry",
     links: [
       { title: "OpenTelemetry", url: "/docs/telemetry/open-telemetry" },

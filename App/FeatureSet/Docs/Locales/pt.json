@@ -62,7 +62,8 @@
     "Telemetry": "Telemetria",
     "AI": "AI",
     "API Reference": "Referência da API",
-    "Self Hosted": "Auto-hospedado"
+    "Self Hosted": "Auto-hospedado",
+    "Inventory": "Inventário"
   },
   "navLinks": {
     "Getting Started": "Primeiros passos",
@@ -185,6 +186,8 @@
     "GitHub Integration": "Integração com GitHub",
     "Push Notifications": "Notificações push",
     "SendGrid Inbound Email": "E-mail recebido SendGrid",
-    "Architecture": "Arquitetura"
+    "Architecture": "Arquitetura",
+    "Custom Fields": "Campos personalizados",
+    "Exporting to a CMDB": "Exportar para um CMDB"
   }
 }

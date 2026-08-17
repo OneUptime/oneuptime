@@ -62,7 +62,8 @@
     "Telemetry": "Телеметрия",
     "AI": "AI",
     "API Reference": "Справочник API",
-    "Self Hosted": "Самостоятельный хостинг"
+    "Self Hosted": "Самостоятельный хостинг",
+    "Inventory": "Инвентаризация"
   },
   "navLinks": {
     "Getting Started": "Начало работы",
@@ -185,6 +186,8 @@
     "GitHub Integration": "Интеграция с GitHub",
     "Push Notifications": "Push-уведомления",
     "SendGrid Inbound Email": "Входящие письма SendGrid",
-    "Architecture": "Архитектура"
+    "Architecture": "Архитектура",
+    "Custom Fields": "Пользовательские поля",
+    "Exporting to a CMDB": "Экспорт в CMDB"
   }
 }

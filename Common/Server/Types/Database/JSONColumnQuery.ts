@@ -154,6 +154,18 @@ const toScalar: ToScalarFunction = (value: unknown): ScalarValue => {
     return value.toString();
   }
 
+  /*
+   * A Date only reaches here from a query built server-side: one that arrived
+   * over HTTP has already been through JSON, which renders a Date as its ISO
+   * string. Both paths must produce the same text, because the ordering
+   * comparisons below are lexicographic and only ISO-8601 makes that
+   * chronological. The `String(value)` fallback would yield
+   * "Sun Aug 17 2026 00:00:00 GMT+0000", which sorts by weekday name.
+   */
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
   if (value === null || value === undefined) {
     return "";
   }
@@ -314,6 +326,32 @@ class KeyPredicateBuilder {
   }
 
   /**
+   * An ordering comparison against a value whose type we only learn at runtime.
+   *
+   * A jsonb key holds whatever the project put there, so `>` has two readings.
+   * Numbers compare numerically — "10" must be greater than "9", which text
+   * comparison gets backwards. Everything else compares as text, and the case
+   * that matters is a date: custom field dates are stored as ISO-8601 strings,
+   * and ISO-8601 is designed so that lexicographic order IS chronological
+   * order, so `>=` over the raw text is already the right question.
+   *
+   * Routing dates through compareNumeric — which is what these operators used
+   * to do unconditionally — was silently wrong rather than loudly wrong.
+   * `Number("2026-08-17T00:00:00.000Z")` is NaN, so the bound parameter became
+   * `CAST(NaN AS NUMERIC)`, and `numericExpression` independently returns NULL
+   * for text that does not look like a number. The predicate was therefore
+   * `NULL > NaN` on every row: no error, no rows, and a lit filter chip over an
+   * empty table.
+   *
+   * InBetween has always branched this way; these four now agree with it.
+   */
+  private compareOrdered(operator: string, value: unknown): PredicateFragment {
+    return isNumericValue(toScalar(value))
+      ? this.compareNumeric(operator, value)
+      : this.compareText(operator, value);
+  }
+
+  /**
    * "No value here" — the key is absent, explicitly JSON null, an empty
    * string, or an empty array. A multi-select cleared in the UI leaves `[]`
    * behind rather than dropping the key, and a user reading "is empty" on the
@@ -466,19 +504,19 @@ class KeyPredicateBuilder {
     }
 
     if (value instanceof GreaterThanOrEqual) {
-      return this.compareNumeric(">=", value.value);
+      return this.compareOrdered(">=", value.value);
     }
 
     if (value instanceof GreaterThan) {
-      return this.compareNumeric(">", value.value);
+      return this.compareOrdered(">", value.value);
     }
 
     if (value instanceof LessThanOrEqual) {
-      return this.compareNumeric("<=", value.value);
+      return this.compareOrdered("<=", value.value);
     }
 
     if (value instanceof LessThan) {
-      return this.compareNumeric("<", value.value);
+      return this.compareOrdered("<", value.value);
     }
 
     /*
