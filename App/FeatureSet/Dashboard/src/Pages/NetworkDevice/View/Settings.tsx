@@ -12,6 +12,11 @@ import {
   isMonitorBackedDevice,
   isSnmpDevice,
 } from "../../../Components/NetworkDevice/MonitoringMethodFormFields";
+import {
+  DEVICE_ROLE_FIELD_DESCRIPTION,
+  DEVICE_ROLE_FIELD_TITLE,
+  DEVICE_ROLE_OPTIONS,
+} from "../../../Components/NetworkDevice/DeviceRoleFormFields";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
@@ -146,6 +151,18 @@ const NetworkDeviceSettings: FunctionComponent<
           },
           {
             field: {
+              deviceRole: true,
+            },
+            title: DEVICE_ROLE_FIELD_TITLE,
+            stepId: "device-details",
+            description: DEVICE_ROLE_FIELD_DESCRIPTION,
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions: DEVICE_ROLE_OPTIONS,
+            required: false,
+            placeholder: "Worked out from the device (SNMP only)",
+          },
+          {
+            field: {
               description: true,
             },
             title: "Description",
@@ -207,6 +224,13 @@ const NetworkDeviceSettings: FunctionComponent<
                 },
               },
               title: "Monitor",
+              fieldType: FieldType.Text,
+            },
+            {
+              field: {
+                deviceRole: true,
+              },
+              title: DEVICE_ROLE_FIELD_TITLE,
               fieldType: FieldType.Text,
             },
           ],

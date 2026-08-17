@@ -3,9 +3,12 @@ import { NetworkTopologyDeviceRole } from "../../../Types/Monitor/SnmpMonitor/Ne
 import {
   DEVICE_ROLES_IN_LEGEND_ORDER,
   DEVICE_ROLE_LABELS,
+  DeviceRoleSignals,
   classifyDeviceRole,
   classifyEndpointRole,
   labelForDeviceRole,
+  parseDeviceRoleOverride,
+  resolveDeviceRole,
 } from "../../../Utils/Monitor/NetworkDeviceRoleUtil";
 
 /*
@@ -510,5 +513,504 @@ describe("labels", () => {
     expect(DEVICE_ROLES_IN_LEGEND_ORDER.length).toBe(
       Object.keys(DEVICE_ROLE_LABELS).length - 1,
     );
+  });
+});
+
+/*
+ * The operator's override (NetworkDevice.deviceRole), from issue #3192.
+ *
+ * The classifier above only ever sees SNMP, so a device that answers
+ * nothing but ping is unclassifiable forever — it is drawn "unknown" and
+ * no amount of re-polling changes that. The override is the operator
+ * saying what the box IS, which is the only statement about a role in the
+ * system that is not an inference, so it has to beat every tier of
+ * evidence. Everything below is about the two halves of that promise:
+ * parseDeviceRoleOverride deciding whether a stored string is a
+ * declaration at all, and resolveDeviceRole deciding who wins when it is.
+ */
+
+/*
+ * A real switch, described by every tier at once: named product family in
+ * the model, the vendor's boilerplate in sysDescr, Cisco's arc in the OID,
+ * and a hostname that follows the convention. Nothing about this device is
+ * ambiguous, which is exactly why it is the right device to point an
+ * override at — if the override wins here it wins anywhere.
+ */
+const CATALYST_SWITCH_SIGNALS: DeviceRoleSignals = {
+  vendor: "Cisco Systems",
+  deviceModel: "WS-C2960X-48FPD-L",
+  sysDescr: "Cisco IOS Software, C2960X Software, Catalyst 2960X switch",
+  sysObjectId: "1.3.6.1.4.1.9.1.1745",
+  sysName: "idf2-sw-3",
+  name: "idf2-sw-3",
+};
+
+describe("parseDeviceRoleOverride — the values it accepts", () => {
+  test("every role a legend can show round-trips through the column", () => {
+    /*
+     * The column is what the picker writes and what the topology builder
+     * reads back, so the set it accepts has to be exactly the set the UI
+     * offers. Looping the legend rather than listing the roles means a new
+     * role cannot be added to the type without this test covering it.
+     */
+    for (const role of DEVICE_ROLES_IN_LEGEND_ORDER) {
+      const parsed: NetworkTopologyDeviceRole | undefined =
+        parseDeviceRoleOverride(role);
+      expect(parsed).toBe(role);
+    }
+  });
+
+  test("matching ignores the case the value was stored in", () => {
+    /*
+     * Values arrive from a form, an API caller and a seed script, and none
+     * of them agree about casing.
+     */
+    expect(parseDeviceRoleOverride("switch")).toBe("switch");
+    expect(parseDeviceRoleOverride("SWITCH")).toBe("switch");
+    expect(parseDeviceRoleOverride("Switch")).toBe("switch");
+    expect(parseDeviceRoleOverride("sWiTcH")).toBe("switch");
+  });
+
+  test("the camelCase roles survive every casing, which a one-sided compare would break", () => {
+    /*
+     * wirelessAccessPoint and loadBalancer are the only two role keys with
+     * an internal capital, so they are the two a naive
+     * `role === value.toLowerCase()` would silently drop — the stored value
+     * would look valid, parse to undefined, and the classifier would
+     * quietly overrule the operator. Both sides have to be lowercased.
+     */
+    expect(parseDeviceRoleOverride("wirelessAccessPoint")).toBe(
+      "wirelessAccessPoint",
+    );
+    expect(parseDeviceRoleOverride("wirelessaccesspoint")).toBe(
+      "wirelessAccessPoint",
+    );
+    expect(parseDeviceRoleOverride("WIRELESSACCESSPOINT")).toBe(
+      "wirelessAccessPoint",
+    );
+    expect(parseDeviceRoleOverride("WirelessAccessPoint")).toBe(
+      "wirelessAccessPoint",
+    );
+
+    expect(parseDeviceRoleOverride("loadBalancer")).toBe("loadBalancer");
+    expect(parseDeviceRoleOverride("loadbalancer")).toBe("loadBalancer");
+    expect(parseDeviceRoleOverride("LOADBALANCER")).toBe("loadBalancer");
+    expect(parseDeviceRoleOverride("LoadBalancer")).toBe("loadBalancer");
+  });
+
+  test("surrounding whitespace is trimmed off before matching", () => {
+    // Copy-paste into a text field is the normal way a stray space arrives.
+    expect(parseDeviceRoleOverride(" router ")).toBe("router");
+    expect(parseDeviceRoleOverride("\tswitch")).toBe("switch");
+    expect(parseDeviceRoleOverride("firewall\n")).toBe("firewall");
+    expect(parseDeviceRoleOverride("   loadBalancer   ")).toBe("loadBalancer");
+    expect(parseDeviceRoleOverride("\n  wirelessaccesspoint \t ")).toBe(
+      "wirelessAccessPoint",
+    );
+  });
+});
+
+describe("parseDeviceRoleOverride — the values it refuses", () => {
+  test("absent, empty and blank all mean no override rather than a role", () => {
+    /*
+     * Undefined is the answer that lets the classifier run, so every way of
+     * saying "the operator never filled this in" — a null column, an empty
+     * string from a cleared form, a field containing only spaces — has to
+     * land on it.
+     */
+    expect(parseDeviceRoleOverride(undefined)).toBeUndefined();
+    expect(parseDeviceRoleOverride(null)).toBeUndefined();
+    expect(parseDeviceRoleOverride("")).toBeUndefined();
+    expect(parseDeviceRoleOverride("   ")).toBeUndefined();
+    expect(parseDeviceRoleOverride("\t\n  ")).toBeUndefined();
+  });
+
+  test('"unknown" is deliberately refused even though it is a real role', () => {
+    /*
+     * This is the one refusal that is a design decision rather than a
+     * validation failure. Empty already means "classify it", so storing
+     * "unknown" could only mean the different and much less useful thing:
+     * pin this device to the neutral shape and switch the classifier off
+     * for good. An operator who does not know what a box is wants the
+     * classifier to keep trying, not to be silenced — so "unknown" is not
+     * in DEVICE_ROLES_IN_LEGEND_ORDER and parses as no override at all.
+     */
+    expect(parseDeviceRoleOverride("unknown")).toBeUndefined();
+    expect(parseDeviceRoleOverride("Unknown")).toBeUndefined();
+    expect(parseDeviceRoleOverride("UNKNOWN")).toBeUndefined();
+    expect(parseDeviceRoleOverride("  unknown  ")).toBeUndefined();
+  });
+
+  test("unrecognised text is refused rather than partially matched", () => {
+    /*
+     * The match is whole-string equality on purpose: a prefix or substring
+     * rule would let "rout" or "router-ish" mean router, and an override
+     * that quietly means something adjacent to what was typed is worse
+     * than one that does nothing.
+     */
+    expect(parseDeviceRoleOverride("banana")).toBeUndefined();
+    expect(parseDeviceRoleOverride("rout")).toBeUndefined();
+    expect(parseDeviceRoleOverride("router-ish")).toBeUndefined();
+    expect(parseDeviceRoleOverride("routers")).toBeUndefined();
+    expect(parseDeviceRoleOverride("sw")).toBeUndefined();
+    expect(parseDeviceRoleOverride("core-sw-1")).toBeUndefined();
+    expect(parseDeviceRoleOverride("42")).toBeUndefined();
+  });
+
+  test("only the surrounding whitespace is forgiven, never the internal kind", () => {
+    /*
+     * Trimming the ends is a paste artefact; rewriting the middle would be
+     * guessing. "wireless access point" is prose, not the stored value, so
+     * it is refused — while the same letters with only outer padding are
+     * accepted (covered above).
+     */
+    expect(parseDeviceRoleOverride("wireless access point")).toBeUndefined();
+    expect(parseDeviceRoleOverride("wireless  accesspoint")).toBeUndefined();
+    expect(parseDeviceRoleOverride("wireless-access-point")).toBeUndefined();
+    expect(parseDeviceRoleOverride("wireless_access_point")).toBeUndefined();
+    expect(parseDeviceRoleOverride("load balancer")).toBeUndefined();
+    expect(parseDeviceRoleOverride("load-balancer")).toBeUndefined();
+  });
+
+  test("the display labels are not storable values", () => {
+    /*
+     * DEVICE_ROLE_LABELS is what a human reads; the column holds the role
+     * key. The multi-word labels are the ones that would break if a UI ever
+     * wrote the label back, so they must not silently parse.
+     */
+    expect(
+      parseDeviceRoleOverride(DEVICE_ROLE_LABELS.wirelessAccessPoint),
+    ).toBe(undefined);
+    expect(parseDeviceRoleOverride(DEVICE_ROLE_LABELS.loadBalancer)).toBe(
+      undefined,
+    );
+    expect(parseDeviceRoleOverride(DEVICE_ROLE_LABELS.phone)).toBe(undefined);
+    expect(parseDeviceRoleOverride(DEVICE_ROLE_LABELS.unknown)).toBe(undefined);
+  });
+});
+
+describe("parseDeviceRoleOverride — determinism", () => {
+  test("the same value parses the same way however many times it is asked", () => {
+    /*
+     * Cheap insurance against any future implementation that reaches for a
+     * shared regex (whose lastIndex is stateful) or a memo keyed on
+     * something mutable: the same input must not answer differently on the
+     * second call, or a topology would depend on how many devices were
+     * built before it.
+     */
+    const values: Array<string> = [
+      "switch",
+      "SWITCH",
+      "unknown",
+      "banana",
+      "loadBalancer",
+      "switch",
+    ];
+    const firstPass: Array<NetworkTopologyDeviceRole | undefined> = values.map(
+      (value: string) => {
+        return parseDeviceRoleOverride(value);
+      },
+    );
+    const secondPass: Array<NetworkTopologyDeviceRole | undefined> = values.map(
+      (value: string) => {
+        return parseDeviceRoleOverride(value);
+      },
+    );
+
+    expect(secondPass).toEqual(firstPass);
+    expect(firstPass).toEqual([
+      "switch",
+      "switch",
+      undefined,
+      undefined,
+      "loadBalancer",
+      "switch",
+    ]);
+  });
+
+  test("parsing the legend backwards gives the same answers as parsing it forwards", () => {
+    /*
+     * The order the caller happens to iterate in must not leak into the
+     * result — the same guarantee the topology builder relies on when it
+     * resolves devices in whatever order the database returned them.
+     */
+    const forwards: Array<NetworkTopologyDeviceRole | undefined> =
+      DEVICE_ROLES_IN_LEGEND_ORDER.map((role: NetworkTopologyDeviceRole) => {
+        return parseDeviceRoleOverride(role);
+      });
+    const backwards: Array<NetworkTopologyDeviceRole | undefined> = [
+      ...DEVICE_ROLES_IN_LEGEND_ORDER,
+    ]
+      .reverse()
+      .map((role: NetworkTopologyDeviceRole) => {
+        return parseDeviceRoleOverride(role);
+      });
+
+    expect(backwards).toEqual([...forwards].reverse());
+    expect(forwards).toEqual([...DEVICE_ROLES_IN_LEGEND_ORDER]);
+  });
+});
+
+describe("resolveDeviceRole — a stored override outranks the evidence", () => {
+  test("an override beats a sysDescr that names the product family outright", () => {
+    /*
+     * The device is unmistakably a Catalyst switch by every tier the
+     * classifier has. The operator says it is a camera; the operator wins,
+     * because the classifier is inferring and the operator is not. (In
+     * practice this is a re-used chassis, a lab rig, or a device the
+     * operator wants grouped with the cameras on the map.)
+     */
+    expect(resolveDeviceRole("camera", CATALYST_SWITCH_SIGNALS)).toBe("camera");
+  });
+
+  test("an override beats every tier of evidence, one role at a time", () => {
+    /*
+     * Exhaustive rather than illustrative: whichever role an operator
+     * picks, that role is what gets drawn, even on the least ambiguous
+     * device in these tests.
+     */
+    for (const role of DEVICE_ROLES_IN_LEGEND_ORDER) {
+      expect(resolveDeviceRole(role, CATALYST_SWITCH_SIGNALS)).toBe(role);
+    }
+  });
+
+  test("an override beats a matching vendor arc and a matching hostname too", () => {
+    // Fortinet's arc plus a "fw" hostname would both say firewall.
+    expect(
+      resolveDeviceRole("loadBalancer", {
+        sysObjectId: "1.3.6.1.4.1.12356.101.1.1",
+        sysDescr: "FortiGate-60F v7.2.5",
+        name: "edge-fw01",
+      }),
+    ).toBe("loadBalancer");
+  });
+
+  test("the override is honoured in whatever casing it was stored in", () => {
+    expect(resolveDeviceRole("CAMERA", CATALYST_SWITCH_SIGNALS)).toBe("camera");
+    expect(
+      resolveDeviceRole("  wirelessaccesspoint  ", CATALYST_SWITCH_SIGNALS),
+    ).toBe("wirelessAccessPoint");
+  });
+});
+
+describe("resolveDeviceRole — the classifier runs when there is no override", () => {
+  test("absent, null, empty and blank overrides all hand back to the classifier", () => {
+    expect(resolveDeviceRole(undefined, CATALYST_SWITCH_SIGNALS)).toBe(
+      "switch",
+    );
+    expect(resolveDeviceRole(null, CATALYST_SWITCH_SIGNALS)).toBe("switch");
+    expect(resolveDeviceRole("", CATALYST_SWITCH_SIGNALS)).toBe("switch");
+    expect(resolveDeviceRole("   ", CATALYST_SWITCH_SIGNALS)).toBe("switch");
+  });
+
+  test("an unrecognised override is ignored, not treated as a shrug", () => {
+    /*
+     * Garbage in the column must not disable the classifier — a typo or a
+     * value written by an older client should degrade to the behaviour the
+     * device had before the column existed.
+     */
+    expect(resolveDeviceRole("banana", CATALYST_SWITCH_SIGNALS)).toBe("switch");
+    expect(resolveDeviceRole("rout", CATALYST_SWITCH_SIGNALS)).toBe("switch");
+    expect(resolveDeviceRole("router-ish", CATALYST_SWITCH_SIGNALS)).toBe(
+      "switch",
+    );
+  });
+
+  test('a stored "unknown" leaves the classifier in charge — the refusal, seen end to end', () => {
+    /*
+     * The payoff of parseDeviceRoleOverride refusing "unknown": the device
+     * is still classified as a switch rather than being pinned neutral.
+     */
+    expect(resolveDeviceRole("unknown", CATALYST_SWITCH_SIGNALS)).toBe(
+      "switch",
+    );
+    /*
+     * And on a device with nothing to go on, the classifier's own answer is
+     * "unknown" anyway, so the two paths agree where it matters.
+     */
+    expect(resolveDeviceRole("unknown", {})).toBe("unknown");
+  });
+
+  test("the classifier's full precedence chain still applies underneath", () => {
+    // A spot check that resolveDeviceRole is a wrapper, not a second opinion.
+    expect(
+      resolveDeviceRole(undefined, {
+        sysDescr: "Linux gw-1 5.4.0-91-generic x86_64",
+        name: "gw-1",
+      }),
+    ).toBe("router");
+    expect(
+      resolveDeviceRole("", { sysObjectId: "1.3.6.1.4.1.3375.2.1.3" }),
+    ).toBe("loadBalancer");
+  });
+});
+
+describe("resolveDeviceRole — the ping-only device from issue #3192", () => {
+  test("a device with no signals and no override is unknown, as it always was", () => {
+    /*
+     * The starting position the issue describes: discovery imported a box
+     * that answers ICMP and nothing else, so there is no sysDescr, no
+     * sysObjectId, no model — and the map draws a neutral node.
+     */
+    expect(resolveDeviceRole(undefined, {})).toBe("unknown");
+    expect(
+      resolveDeviceRole(undefined, {
+        sysDescr: "",
+        sysObjectId: "",
+        deviceModel: undefined,
+        name: "10.20.30.40",
+      }),
+    ).toBe("unknown");
+  });
+
+  test("a device with no signals but an override is drawn as the operator declared", () => {
+    /*
+     * The whole point of the feature. Nothing SNMP could ever say about
+     * this device will change, so the override is the only way it will ever
+     * be anything other than an anonymous circle — and it works with an
+     * entirely empty evidence bundle, which is the state a ping-only
+     * device is permanently in.
+     */
+    expect(resolveDeviceRole("router", {})).toBe("router");
+    expect(resolveDeviceRole("switch", {})).toBe("switch");
+    expect(resolveDeviceRole("firewall", {})).toBe("firewall");
+    expect(resolveDeviceRole("wirelessAccessPoint", {})).toBe(
+      "wirelessAccessPoint",
+    );
+  });
+
+  test("an override on a ping-only device survives an uninformative hostname", () => {
+    /*
+     * "device-42" and a bare IP are what these imports are usually called;
+     * neither is a hostname convention the classifier can read, and neither
+     * gets to argue with the declaration.
+     */
+    expect(resolveDeviceRole("router", { name: "device-42" })).toBe("router");
+    expect(resolveDeviceRole("printer", { name: "10.20.30.40" })).toBe(
+      "printer",
+    );
+  });
+
+  test("an override still wins once the device later starts answering SNMP", () => {
+    /*
+     * A ping-only device that is given credentials later suddenly has
+     * evidence. The declaration must not be quietly reversed by the first
+     * successful walk — the operator has to be the one to change it.
+     */
+    expect(
+      resolveDeviceRole("router", {
+        sysDescr: "Cisco IOS Software, Catalyst 2960X switch",
+        deviceModel: "WS-C2960X-48FPD-L",
+      }),
+    ).toBe("router");
+  });
+});
+
+describe("resolveDeviceRole — determinism and totality", () => {
+  test("the order the signal fields were assigned in does not change the answer", () => {
+    /*
+     * The builder assembles these objects field by field from several
+     * sources, so the key insertion order differs between call sites. It
+     * must not be observable.
+     */
+    const oneOrder: DeviceRoleSignals = {
+      name: "idf2-sw-3",
+      sysDescr: "Cisco IOS Software, Catalyst 2960X switch",
+      vendor: "Cisco Systems",
+      deviceModel: "WS-C2960X-48FPD-L",
+    };
+    const anotherOrder: DeviceRoleSignals = {
+      deviceModel: "WS-C2960X-48FPD-L",
+      vendor: "Cisco Systems",
+      sysDescr: "Cisco IOS Software, Catalyst 2960X switch",
+      name: "idf2-sw-3",
+    };
+
+    expect(resolveDeviceRole(undefined, oneOrder)).toBe(
+      resolveDeviceRole(undefined, anotherOrder),
+    );
+    expect(resolveDeviceRole("camera", oneOrder)).toBe(
+      resolveDeviceRole("camera", anotherOrder),
+    );
+  });
+
+  test("resolving does not mutate the signals it was handed", () => {
+    /*
+     * The same signals object is read again when the node is rendered, so a
+     * normalisation written back in place would make the second read differ
+     * from the first.
+     */
+    const signals: DeviceRoleSignals = { ...CATALYST_SWITCH_SIGNALS };
+    resolveDeviceRole("camera", signals);
+    resolveDeviceRole(undefined, signals);
+
+    expect(signals).toEqual(CATALYST_SWITCH_SIGNALS);
+  });
+
+  test("resolving the same device repeatedly, interleaved with others, is stable", () => {
+    const overrides: Array<string | undefined | null> = [
+      "camera",
+      undefined,
+      "unknown",
+      null,
+      "camera",
+      "banana",
+    ];
+    const firstPass: Array<NetworkTopologyDeviceRole> = overrides.map(
+      (override: string | undefined | null) => {
+        return resolveDeviceRole(override, CATALYST_SWITCH_SIGNALS);
+      },
+    );
+    const secondPass: Array<NetworkTopologyDeviceRole> = [...overrides]
+      .reverse()
+      .map((override: string | undefined | null) => {
+        return resolveDeviceRole(override, CATALYST_SWITCH_SIGNALS);
+      });
+
+    expect(firstPass).toEqual([
+      "camera",
+      "switch",
+      "switch",
+      "switch",
+      "camera",
+      "switch",
+    ]);
+    expect(secondPass).toEqual([...firstPass].reverse());
+  });
+
+  test("it is total: every override and signal combination yields a known role", () => {
+    /*
+     * resolveDeviceRole feeds NetworkTopologyNode.role, which the map uses
+     * to pick a shape and a legend entry, so it can never hand back
+     * undefined or a string outside the union.
+     */
+    const knownRoles: Array<string> = Object.keys(DEVICE_ROLE_LABELS);
+    const overrides: Array<string | undefined | null> = [
+      undefined,
+      null,
+      "",
+      "   ",
+      "unknown",
+      "banana",
+      "switch",
+      "loadBalancer",
+      "WIRELESSACCESSPOINT",
+    ];
+    const bundles: Array<DeviceRoleSignals> = [
+      {},
+      { name: "device-42" },
+      CATALYST_SWITCH_SIGNALS,
+      { sysDescr: "Linux app-3 5.4.0-91-generic x86_64", name: "app-3" },
+    ];
+
+    for (const override of overrides) {
+      for (const bundle of bundles) {
+        const role: NetworkTopologyDeviceRole = resolveDeviceRole(
+          override,
+          bundle,
+        );
+        expect(knownRoles).toContain(role);
+      }
+    }
   });
 });

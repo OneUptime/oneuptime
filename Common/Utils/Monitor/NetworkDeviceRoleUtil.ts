@@ -531,3 +531,48 @@ export function labelForDeviceRole(
   }
   return DEVICE_ROLE_LABELS[role] || DEVICE_ROLE_LABELS.unknown;
 }
+
+/**
+ * Read an operator's stored role override off a NetworkDevice row.
+ *
+ * The classifier above is evidence-driven, and its evidence is SNMP: a
+ * device nothing walks — a ping-only device imported by discovery, say —
+ * offers it a hostname and nothing else, so it comes back "unknown" and
+ * stays there forever. `NetworkDevice.deviceRole` is the operator saying
+ * what the box actually is, and it is the only statement about a role that
+ * is not an inference, so it outranks everything the classifier can find.
+ *
+ * Undefined means "no override" — NOT "unknown". The two are different
+ * answers and the difference decides whether the classifier gets to run at
+ * all, which is why an unrecognised or empty column reads as undefined
+ * rather than falling back to a role. "unknown" is itself refused as an
+ * override for the same reason: storing it would silently disable the
+ * classifier on a device the operator was only declining to classify.
+ */
+export function parseDeviceRoleOverride(
+  value: string | undefined | null,
+): NetworkTopologyDeviceRole | undefined {
+  const normalized: string = (value || "").trim().toLowerCase();
+  if (!normalized) {
+    return undefined;
+  }
+  return DEVICE_ROLES_IN_LEGEND_ORDER.find(
+    (role: NetworkTopologyDeviceRole) => {
+      return role.toLowerCase() === normalized;
+    },
+  );
+}
+
+/**
+ * The role to draw a managed device with: the operator's override when
+ * there is one, otherwise whatever the evidence supports.
+ *
+ * One function so the topology builder, the forms and the tests cannot
+ * drift about which of the two wins.
+ */
+export function resolveDeviceRole(
+  roleOverride: string | undefined | null,
+  signals: DeviceRoleSignals,
+): NetworkTopologyDeviceRole {
+  return parseDeviceRoleOverride(roleOverride) ?? classifyDeviceRole(signals);
+}

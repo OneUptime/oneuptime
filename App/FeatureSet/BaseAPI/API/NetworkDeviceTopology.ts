@@ -133,6 +133,13 @@ export default class NetworkDeviceTopologyAPI {
                 sysDescr: true,
                 sysObjectId: true,
                 /*
+                 * The operator's own answer, which beats the classifier
+                 * above. Load-bearing for devices nothing walks: with no
+                 * sysDescr and no sysObjectId to read, this is the only
+                 * evidence there is about what the box actually does.
+                 */
+                deviceRole: true,
+                /*
                  * Not rendered either — read only by the neighbor matcher.
                  * An LLDP chassis id is a serial as often as it is a name,
                  * and without this the device it names is drawn as an
@@ -320,6 +327,7 @@ export default class NetworkDeviceTopologyAPI {
                 name: true,
                 fromDeviceId: true,
                 toDeviceId: true,
+                parentDeviceId: true,
                 fromPortName: true,
                 toPortName: true,
                 monitor: {
@@ -414,6 +422,7 @@ export default class NetworkDeviceTopologyAPI {
                 deviceModel: device.deviceModel,
                 sysDescr: device.sysDescr,
                 sysObjectId: device.sysObjectId,
+                deviceRole: device.deviceRole,
                 serialNumber: device.serialNumber,
                 isNeighborDiscoveryEnabled: device.walkInterfaces,
                 macAddresses: macAddressesByDeviceId.get(device.id!.toString()),
@@ -513,6 +522,7 @@ export default class NetworkDeviceTopologyAPI {
               monitorStatus: linkStatusId
                 ? nodeStatusByMonitorStatusId.get(linkStatusId)
                 : undefined,
+              parentDeviceId: link.parentDeviceId?.toString(),
             });
           }
 
@@ -522,6 +532,15 @@ export default class NetworkDeviceTopologyAPI {
                 fromDeviceId: link.fromDeviceId,
                 toDeviceId: link.toDeviceId,
                 name: outcome.ruleName,
+                /*
+                 * A link rule is stated as child labels and parent labels,
+                 * so unlike a hand-drawn link it knows which end is up
+                 * without anybody having to say — and resolveRules puts
+                 * the child in `from` and the parent in `to`. Passing it
+                 * through means "these APs uplink to that switch" draws as
+                 * an actual hierarchy rather than as a bag of peer cables.
+                 */
+                parentDeviceId: link.toDeviceId,
               });
             }
           }

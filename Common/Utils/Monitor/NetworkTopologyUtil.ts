@@ -11,6 +11,7 @@ import { normalizeMac } from "./EndpointAttachmentUtil";
 import {
   classifyDeviceRole,
   classifyEndpointRole,
+  resolveDeviceRole,
 } from "./NetworkDeviceRoleUtil";
 
 export interface TopologyDeviceInput {
@@ -29,6 +30,14 @@ export interface TopologyDeviceInput {
    */
   sysDescr?: string | undefined;
   sysObjectId?: string | undefined;
+  /*
+   * The operator's own answer to what this device is, when they gave one.
+   * Outranks the classifier below, because it is the only statement about
+   * the role that is not an inference — and on a device nothing walks it
+   * is the ONLY statement available at all, the classifier having nothing
+   * but a hostname to go on.
+   */
+  deviceRole?: string | undefined;
   /*
    * ENTITY-MIB chassis serial. Not rendered — it is here because LLDP
    * chassis-id subtype 7 ("locally assigned") is very often exactly this
@@ -109,6 +118,13 @@ export interface TopologyManualLinkInput {
   toPortName?: string | undefined;
   // Health from a bound Monitor, already reduced by the caller.
   monitorStatus?: "up" | "down" | undefined;
+  /*
+   * Whichever end the operator declared the parent, when they declared
+   * one. Must be `fromDeviceId` or `toDeviceId`; anything else is dropped
+   * rather than drawn, because a parent that is not on the link cannot be
+   * rendered as one and a wrong hierarchy is worse than an inferred one.
+   */
+  parentDeviceId?: string | undefined;
 }
 
 /*
@@ -232,7 +248,10 @@ export default class NetworkTopologyUtil {
    * alias are one unmanaged node, however many switches saw it. Edges are
    * undirected and deduplicated — a link reported from both ends, or by
    * both protocols, appears once with the union of what each report knew
-   * (ports, protocols, per-end interface state). When `interfaces` rows are
+   * (ports, protocols, per-end interface state). Undirected in the sense
+   * that neither end is privileged by how the edge was discovered: an edge
+   * carries a direction only where an operator declared one, as
+   * `parentNodeId`. When `interfaces` rows are
    * provided, each edge end whose interface is identifiable carries its
    * operational state (up/down, utilization, rates). When `endpoints` rows
    * are provided, each one that attaches to a device in the graph becomes an
@@ -306,7 +325,7 @@ export default class NetworkTopologyUtil {
         name: device.name,
         isManaged: true,
         kind: "device",
-        role: classifyDeviceRole({
+        role: resolveDeviceRole(device.deviceRole, {
           sysDescr: device.sysDescr,
           sysObjectId: device.sysObjectId,
           vendor: device.vendor,
@@ -520,6 +539,18 @@ export default class NetworkTopologyUtil {
         continue;
       }
 
+      /*
+       * A declared parent is only meaningful if it is one of the two ends.
+       * The service refuses anything else at write time, so this is a
+       * second line rather than the only one — it also covers rule-derived
+       * links, which never pass through that service.
+       */
+      const declaredParentId: string | undefined =
+        link.parentDeviceId === link.fromDeviceId ||
+        link.parentDeviceId === link.toDeviceId
+          ? link.parentDeviceId
+          : undefined;
+
       const edgeKey: string = [link.fromDeviceId, link.toDeviceId]
         .sort()
         .join("::");
@@ -534,6 +565,7 @@ export default class NetworkTopologyUtil {
           protocols: ["manual"],
           monitorState: link.monitorStatus,
           name: link.name,
+          parentNodeId: declaredParentId,
         });
         continue;
       }
@@ -557,6 +589,14 @@ export default class NetworkTopologyUtil {
       }
       existing.name = existing.name || link.name;
       existing.monitorState = existing.monitorState ?? link.monitorStatus;
+      /*
+       * First declaration wins, matching the ordering the caller already
+       * relies on: explicit links are merged before rule-derived ones, so
+       * a hierarchy somebody set on the link itself beats a rule that
+       * happens to cover the same pair. The specific statement beats the
+       * general one — the same precedence the ports and the name use.
+       */
+      existing.parentNodeId = existing.parentNodeId || declaredParentId;
     }
 
     const edges: Array<NetworkTopologyEdge> = Array.from(edgeByKey.values());
