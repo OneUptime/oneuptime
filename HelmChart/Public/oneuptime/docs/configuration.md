@@ -135,7 +135,13 @@ Configured per probe under `probes.<key>`.
 | `probes.<key>.key`                                | Probe key. Set to a long random string to secure your probes.         | `nil`   |
 | `probes.<key>.monitoringWorkers`                  | Number of parallel processes used to monitor resources.               | `3`     |
 | `probes.<key>.monitorFetchLimit`                  | Number of resources monitored in parallel.                            | `10`    |
-| `probes.<key>.syntheticMonitorScriptTimeoutInMs`  | Timeout for synthetic monitor scripts.                                | `60000` |
+| `probes.<key>.automountServiceAccountToken`       | Mount a Kubernetes service-account token into Probe pods. Disabled by default because Probes do not require Kubernetes API credentials. | `false` |
+| `probes.<key>.syntheticMonitorScriptTimeoutInMs`  | Timeout for synthetic monitor scripts in milliseconds (`1`–`2147363647`). The upper bound reserves 120 seconds for browser and worker startup within Node.js's safe timer range. | `60000` |
+| `probes.<key>.syntheticMonitorMaxConcurrency`     | Maximum isolated synthetic browser processes per Probe; extra executions queue FIFO. | `4` |
+| `probes.<key>.syntheticMonitorMaxProcessTreeRssBytes` | Aggregate RSS ceiling for each isolated worker and all browser descendants. | `1610612736` |
+| `probes.<key>.syntheticMonitorMaxDiskBytes` | Writable disk ceiling for each isolated execution, including browser profiles, caches, IndexedDB, and OPFS. | `268435456` |
+| `probes.<key>.syntheticMonitorTempStorageSizeLimit` | Pod-level `emptyDir` ceiling for `/tmp`, providing a backstop across all concurrent synthetic executions. Increase this when raising concurrency or the per-run disk ceiling. | `2Gi` |
+| `probes.<key>.syntheticMonitorChromiumSandboxEnabled` | Require Chromium's OS sandbox. Enable only after installing a Playwright-compatible Localhost seccomp profile on every Probe node; launch fails closed when the sandbox is unavailable. | `false` |
 | `probes.<key>.customCodeMonitorScriptTimeoutInMs` | Timeout for custom code monitor scripts.                              | `60000` |
 | `probes.<key>.proxy.httpProxyUrl`                 | HTTP proxy URL for HTTP requests made by the probe (optional).        | `nil`   |
 | `probes.<key>.proxy.httpsProxyUrl`                | HTTPS proxy URL for HTTPS requests made by the probe (optional).      | `nil`   |
@@ -144,6 +150,28 @@ Configured per probe under `probes.<key>`.
 | `probes.<key>.resources`                          | Pod resources (limits, requests).                                     | `nil`   |
 | `probes.<key>.dnsConfig`                          | Per-probe [`dnsConfig`](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-dns-config) override. Unset by default — the probe inherits the chart-wide `dnsConfig` (see below). A per-probe value fully replaces the chart-wide default (not merged). | `nil` (inherits chart-wide) |
 | `probes.<key>.dnsPolicy`                          | Per-probe `dnsPolicy` override. Unset by default — inherits the chart-wide `dnsPolicy`. | `nil` (inherits chart-wide) |
+
+Synthetic executions always run in short-lived processes and browser workers.
+The image's default root Probe supervisor additionally assigns each execution a
+unique, low-privilege UID. An explicit non-root Probe override remains supported,
+but workers then share the Probe UID and lose that extra UID boundary. The stock
+`RuntimeDefault` seccomp profile keeps the chart portable but commonly blocks
+the user-namespace calls Chromium's additional OS sandbox requires. To enable
+that defense in depth, install a CRI/OCI-compatible profile derived from your
+container runtime's default with `clone`, `setns`, and `unshare` enabled in the
+kubelet seccomp directory on every Probe node, then configure the matching path.
+Do not use `Probe/seccomp_profile.json` verbatim here: it contains
+Moby-specific conditional fields for Docker Compose rather than Kubernetes CRI.
+
+```yaml
+probes:
+  one:
+    syntheticMonitorChromiumSandboxEnabled: true
+    containerSecurityContext:
+      seccompProfile:
+        type: Localhost
+        localhostProfile: profiles/oneuptime-playwright.json
+```
 
 > **Why probes have custom DNS settings.** Probes resolve mostly *external* hostnames. The Kubernetes default (`ndots:5` plus a multi-entry search list) turns every external lookup into ~7 DNS queries funneled through a single upstream resolver, which under load causes intermittent `getaddrinfo EAI_AGAIN` failures and false monitor-down alerts. The chart ships a **chart-wide `dnsConfig` default** (`ndots:1`, which removes the search-domain fan-out, plus public fallback nameservers `8.8.8.8`/`1.1.1.1`); `dnsPolicy` stays `ClusterFirst` so `*.svc.cluster.local` (the OneUptime API the probe calls) still resolves. Each probe inherits this fallback unless it sets its own `probes.<key>.dnsConfig`. On **air-gapped clusters** with no egress to public DNS, drop the chart-wide `nameservers` list (keep the `options` block) or set `dnsConfig: {}`.
 
@@ -170,6 +198,7 @@ Bitnami charts — you will need to set the security context for those as well.
 |----------------------------|----------------------------|---------|
 | `podSecurityContext`       | Pod security context.      | `{}`    |
 | `containerSecurityContext` | Container security context.| `{}`    |
+| `probeContainerSecurityContext` | Probe-only container security defaults, merged beneath chart-wide and per-probe overrides. Keeps the root supervisor able to drop worker UIDs while applying `allowPrivilegeEscalation: false`, reduced capabilities, and `RuntimeDefault` seccomp. | see `values.yaml` |
 | `nodeSelector`             | Node selector.             | `{}`    |
 | `tolerations`              | Tolerations.               | `[]`    |
 | `affinity`                 | Affinity.                  | `{}`    |

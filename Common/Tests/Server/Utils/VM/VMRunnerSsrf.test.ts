@@ -33,6 +33,9 @@ async function runInSandbox(code: string): Promise<ReturnResult> {
 async function errorFromSandbox(code: string): Promise<string> {
   try {
     const result: ReturnResult = await runInSandbox(code);
+    if (result.scriptError) {
+      return result.scriptError.message;
+    }
     return JSON.stringify(result.returnValue ?? result.logMessages ?? "");
   } catch (err) {
     return (err as Error).message || String(err);

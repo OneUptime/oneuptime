@@ -28,6 +28,7 @@ export default tseslint.config(
       "**/service-worker.js", // TODO: Remove this ignore
       "**/Static/", // TODO: Remove this ignore
       "**/*.js", // TODO: Remove this ignore
+      "Probe/Tests/Utils/Monitors/SyntheticRuntime/Fixtures/ProcessRunnerWorker.cjs", // CommonJS fork fixture is intentionally outside the TypeScript project.
       "**/tmp/",
       "**/temp/",
       "**/.tmp/",

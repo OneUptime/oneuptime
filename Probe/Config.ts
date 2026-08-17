@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import logger from "Common/Server/Utils/Logger";
 import Port from "Common/Types/Port";
 import NumberUtil from "Common/Utils/Number";
+import { MAX_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS } from "./Utils/Monitors/SyntheticRuntime/Limits";
 
 if (!process.env["PROBE_INGEST_URL"] && !process.env["ONEUPTIME_URL"]) {
   logger.error("PROBE_INGEST_URL or ONEUPTIME_URL is not set");
@@ -66,7 +67,32 @@ export const PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS: number =
     value: process.env["PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS"],
     defaultValue: 60000,
     min: 1,
+    max: MAX_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS,
   });
+
+export const PROBE_SYNTHETIC_MONITOR_MAX_CONCURRENCY: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_SYNTHETIC_MONITOR_MAX_CONCURRENCY"],
+    defaultValue: 4,
+    min: 1,
+  });
+
+export const PROBE_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES"],
+    defaultValue: 1536 * 1024 * 1024,
+    min: 64 * 1024 * 1024,
+  });
+
+export const PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES"],
+    defaultValue: 256 * 1024 * 1024,
+    min: 64 * 1024 * 1024,
+  });
+
+export const PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED: boolean =
+  process.env["PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED"] === "true";
 
 export const PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: number =
   NumberUtil.parseNumberWithDefault({
@@ -256,7 +282,10 @@ export const PROBE_INGRESS_FORWARD_RETRY_LIMIT: number =
  * Example with auth: http://user:pass@proxy.example.com:8080
  */
 export const HTTP_PROXY_URL: string | null =
-  process.env["HTTP_PROXY_URL"] || process.env["http_proxy"] || null;
+  process.env["HTTP_PROXY_URL"] ||
+  process.env["http_proxy"] ||
+  process.env["HTTP_PROXY"] ||
+  null;
 
 /*
  * HTTPS_PROXY_URL: Proxy for HTTPS requests
@@ -265,7 +294,10 @@ export const HTTP_PROXY_URL: string | null =
  * Example with auth: http://user:pass@proxy.example.com:8080
  */
 export const HTTPS_PROXY_URL: string | null =
-  process.env["HTTPS_PROXY_URL"] || process.env["https_proxy"] || null;
+  process.env["HTTPS_PROXY_URL"] ||
+  process.env["https_proxy"] ||
+  process.env["HTTPS_PROXY"] ||
+  null;
 
 /*
  * NO_PROXY: Comma-separated list of hosts that should bypass the configured proxy.

@@ -197,7 +197,9 @@ describe("Probe Playwright browser install", () => {
     expect(dockerfile).toContain(
       `ENV PLAYWRIGHT_BROWSERS_PATH=${browsersPath}`,
     );
-    expect(browserInstallInstruction).toContain(`chmod -R 755 ${browsersPath}`);
+    expect(browserInstallInstruction).toContain(
+      `chmod -R a+rX ${browsersPath}`,
+    );
   });
 });
 
@@ -210,31 +212,42 @@ describe("BrowserType enum drives the probe image", () => {
     expect(Object.values(BrowserType)).toEqual(["Chromium", "Firefox"]);
   });
 
-  test("every selectable browser has a launch branch in SyntheticMonitor", () => {
+  test("every selectable browser has a launch branch in the synthetic worker", () => {
     /*
      * Guards the other half of the contract: installing an engine is pointless
-     * if nothing can launch it. SyntheticMonitor throws
-     * BadDataException("Invalid Browser Type.") once it runs out of branches.
+     * if nothing can launch it. The worker config validator rejects any
+     * browserType outside the enum, and the worker picks the engine from an
+     * explicit Chromium/Firefox branch.
      */
-    const syntheticMonitor: string = fs.readFileSync(
+    const workerTypes: string = fs.readFileSync(
       path.join(
         PROBE_ROOT,
         "Utils",
         "Monitors",
-        "MonitorTypes",
-        "SyntheticMonitor.ts",
+        "SyntheticRuntime",
+        "SyntheticMonitorWorkerTypes.ts",
       ),
       "utf8",
     );
 
     for (const browserType of Object.values(BrowserType)) {
-      expect(syntheticMonitor).toContain(
-        `data.browserType === BrowserType.${browserType}`,
+      expect(workerTypes).toContain(
+        `value["browserType"] === BrowserType.${browserType}`,
       );
     }
 
-    expect(syntheticMonitor).toContain(
-      'throw new BadDataException("Invalid Browser Type.")',
+    const worker: string = fs.readFileSync(
+      path.join(
+        PROBE_ROOT,
+        "Utils",
+        "Monitors",
+        "SyntheticRuntime",
+        "SyntheticMonitorWorker.ts",
+      ),
+      "utf8",
+    );
+    expect(worker).toContain(
+      "config.browserType === BrowserType.Chromium ? chromium : firefox",
     );
   });
 });

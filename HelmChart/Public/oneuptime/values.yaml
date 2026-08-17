@@ -1106,6 +1106,50 @@ statusPage:
 dashboard:
   cnameRecord:
 
+# Security defaults for the trusted Probe supervisor. The supervisor must start
+# as root so it can assign a different low-privilege UID/GID to each short-lived
+# synthetic worker. These defaults retain only the capabilities needed to
+# prepare/terminate/clean up cross-UID workers and to run ping/traceroute.
+# `allowPrivilegeEscalation: false` sets no_new_privs for the supervisor and all
+# descendants; changing UID/GID through the process API remains permitted by
+# the explicitly retained SETUID/SETGID capabilities.
+# An operator may still override the Probe to run non-root for compatibility;
+# in that mode workers share the Probe UID and retain the separate process and
+# browser-worker boundaries, but not the additional per-execution UID boundary.
+#
+# Kubernetes RuntimeDefault is available without provisioning files on every
+# node, so it is the operational default. Some runtimes block the user-namespace
+# syscalls used by Chromium's OS sandbox in RuntimeDefault. To use the
+# Chromium sandbox, install a CRI/OCI-compatible profile derived from your
+# runtime default with `clone`, `setns`, and `unshare` enabled in the kubelet
+# seccomp directory on every Probe node, then override a probe with:
+#
+# Do not install `Probe/seccomp_profile.json` verbatim in Kubernetes: that file
+# uses Moby-specific `includes`/`excludes` fields for Docker Compose.
+#
+#   containerSecurityContext:
+#     seccompProfile:
+#       type: Localhost
+#       localhostProfile: profiles/oneuptime-playwright.json
+#   syntheticMonitorChromiumSandboxEnabled: true
+#
+# The per-probe and legacy chart-wide `containerSecurityContext` maps are merged
+# over these defaults, so a seccomp override retains the other protections.
+probeContainerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+    add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - KILL
+      - NET_RAW
+      - SETGID
+      - SETUID
+  seccompProfile:
+    type: RuntimeDefault
+
 probes:
   one:
     name: "Probe"
@@ -1116,7 +1160,29 @@ probes:
     monitorRetryLimit: 3
     key:
     replicaCount: 1
+    # Probes do not call the Kubernetes API. Keep cluster credentials out of
+    # the pod—and therefore out of synthetic browser processes—by default.
+    automountServiceAccountToken: false
     syntheticMonitorScriptTimeoutInMs: 60000
+    # Maximum number of isolated browser worker processes started concurrently
+    # by this Probe. Additional executions wait in a bounded FIFO queue.
+    syntheticMonitorMaxConcurrency: 4
+    # Aggregate resident-memory ceiling for each short-lived synthetic worker
+    # and all of its browser descendants.
+    syntheticMonitorMaxProcessTreeRssBytes: 1610612736
+    # Maximum writable disk space for each short-lived synthetic execution,
+    # including browser profiles, caches, downloads, IndexedDB, and OPFS.
+    syntheticMonitorMaxDiskBytes: 268435456
+    # Pod-level backstop for Probe temporary files. The per-execution disk
+    # watchdog is the primary limit; this emptyDir ceiling contains failures
+    # across all concurrent executions and other temporary Probe data.
+    syntheticMonitorTempStorageSizeLimit: 2Gi
+    # RuntimeDefault is available on every conforming cluster but commonly
+    # blocks the user-namespace creation Chromium's OS sandbox needs. Leave the
+    # Chromium sandbox disabled with RuntimeDefault. Set this to true together
+    # with the Localhost Playwright seccomp override documented above; startup
+    # then fails closed if Chromium cannot activate its sandbox.
+    syntheticMonitorChromiumSandboxEnabled: false
     customCodeMonitorScriptTimeoutInMs: 60000
     # DNS settings for this probe. When unset, the probe inherits the chart-wide
     # `dnsConfig`/`dnsPolicy` defaults (ndots:1 + fallback nameservers — see the
@@ -1195,9 +1261,15 @@ probes:
 #   monitorFetchLimit: 10
 #   key:
 #   replicaCount: 1
+#   automountServiceAccountToken: false
 #   ports:
 #     http: 3874
 #   syntheticMonitorScriptTimeoutInMs: 60000
+#   syntheticMonitorMaxConcurrency: 4
+#   syntheticMonitorMaxProcessTreeRssBytes: 1610612736
+#   syntheticMonitorMaxDiskBytes: 268435456
+#   syntheticMonitorTempStorageSizeLimit: 2Gi
+#   syntheticMonitorChromiumSandboxEnabled: false
 #   customCodeMonitorScriptTimeoutInMs: 60000
 #   # DNS override for this probe (otherwise inherits the chart-wide dnsConfig default).
 #   dnsConfig:

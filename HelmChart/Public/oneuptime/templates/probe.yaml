@@ -1,6 +1,19 @@
 {{- if not $.Values.deployment.disableDeployments }}
 {{- range $key, $val := $.Values.probes }}
 {{- if or (not (hasKey $val "enabled")) $val.enabled }}
+{{- $probeContainerSecurityContext := deepCopy (default (dict) $.Values.probeContainerSecurityContext) }}
+{{- if $.Values.containerSecurityContext }}
+{{- $probeContainerSecurityContext = mergeOverwrite $probeContainerSecurityContext $.Values.containerSecurityContext }}
+{{- if hasKey $.Values.containerSecurityContext "seccompProfile" }}
+{{- $_ := set $probeContainerSecurityContext "seccompProfile" (deepCopy $.Values.containerSecurityContext.seccompProfile) }}
+{{- end }}
+{{- end }}
+{{- if $val.containerSecurityContext }}
+{{- $probeContainerSecurityContext = mergeOverwrite $probeContainerSecurityContext $val.containerSecurityContext }}
+{{- if hasKey $val.containerSecurityContext "seccompProfile" }}
+{{- $_ := set $probeContainerSecurityContext "seccompProfile" (deepCopy $val.containerSecurityContext.seccompProfile) }}
+{{- end }}
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -35,6 +48,7 @@ spec:
         {{- end }}
         appname: oneuptime
     spec:
+      automountServiceAccountToken: {{ default false $val.automountServiceAccountToken }}
       # DNS resolution for probe pods. Probes resolve mostly EXTERNAL hostnames,
       # so the cluster default (ndots:5 + a multi-entry search list) fans every
       # lookup out into ~7 queries and funnels them through a single upstream
@@ -84,14 +98,14 @@ spec:
       containers:
         - image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "probe") }}
           name: {{ printf "%s-%s" $.Release.Name (printf "probe-%s" $key)  }}
-          {{- if $val.containerSecurityContext }}
+          {{- if $probeContainerSecurityContext }}
           securityContext:
-            {{- toYaml $val.containerSecurityContext | nindent 12 }}
-          {{- else if $.Values.containerSecurityContext }}
-          securityContext:
-            {{- toYaml $.Values.containerSecurityContext | nindent 12 }}
+            {{- toYaml $probeContainerSecurityContext | nindent 12 }}
           {{- end }}
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          volumeMounts:
+            - name: synthetic-runtime-tmp
+              mountPath: /tmp
           env:
             - name: BILLING_ENABLED
               value: {{ $.Values.billing.enabled | squote }}
@@ -125,6 +139,14 @@ spec:
             # syntheticMonitorScriptTimeoutInMs
             - name: PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS
               value: {{ $val.syntheticMonitorScriptTimeoutInMs | squote }}
+            - name: PROBE_SYNTHETIC_MONITOR_MAX_CONCURRENCY
+              value: {{ default 4 $val.syntheticMonitorMaxConcurrency | squote }}
+            - name: PROBE_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES
+              value: {{ printf "%.0f" (float64 (default 1610612736 $val.syntheticMonitorMaxProcessTreeRssBytes)) | squote }}
+            - name: PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES
+              value: {{ printf "%.0f" (float64 (default 268435456 $val.syntheticMonitorMaxDiskBytes)) | squote }}
+            - name: PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED
+              value: {{ default false $val.syntheticMonitorChromiumSandboxEnabled | squote }}
             - name: PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS
               value: {{ $val.customCodeMonitorScriptTimeoutInMs | squote }}
             - name: PROBE_KEY
@@ -170,6 +192,10 @@ spec:
         {{- if $val.additionalContainers }}
         {{ toYaml $val.additionalContainers | nindent 8 }}
         {{- end }}
+      volumes:
+        - name: synthetic-runtime-tmp
+          emptyDir:
+            sizeLimit: {{ default "2Gi" $val.syntheticMonitorTempStorageSizeLimit | quote }}
       restartPolicy: {{ $.Values.image.restartPolicy }}
 ---
 
