@@ -13,6 +13,7 @@ import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
 import TelemetryAttributeService from "../Services/TelemetryAttributeService";
+import ResourceEntityFilter from "../Utils/Telemetry/ResourceEntityFilter";
 import LogAggregationService, {
   HistogramBucket,
   HistogramRequest,
@@ -421,15 +422,41 @@ router.post(
         (body["bucketSizeInMinutes"] as number) ||
         computeDefaultBucketSize(startTime, endTime);
 
-      const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
+      const requestedServiceIds: Array<ObjectID> | undefined = body[
+        "serviceIds"
+      ]
         ? (body["serviceIds"] as Array<string>).map((id: string) => {
             return new ObjectID(id);
           })
         : undefined;
 
-      const entityKeys: Array<string> | undefined = body["entityKeys"]
-        ? (body["entityKeys"] as Array<string>)
+      /*
+       * The explorer coalesces every resource facet into `serviceIds`. Ids that
+       * name a resource entity have to become entity keys instead, or they are
+       * matched against `primaryEntityId`, which OTLP telemetry never carries
+       * for anything but its Service. See ResourceEntityFilter.
+       */
+      const splitResourceFilters: {
+        serviceIds: Array<ObjectID>;
+        entityKeys: Array<string>;
+      } = await ResourceEntityFilter.splitResourceFilterIds({
+        projectId,
+        ids: requestedServiceIds || [],
+      });
+
+      const serviceIds: Array<ObjectID> | undefined = requestedServiceIds
+        ? splitResourceFilters.serviceIds
         : undefined;
+
+      const resourceEntityKeys: Array<string> = splitResourceFilters.entityKeys;
+
+      const entityKeys: Array<string> | undefined =
+        body["entityKeys"] || resourceEntityKeys.length > 0
+          ? [
+              ...((body["entityKeys"] as Array<string>) || []),
+              ...resourceEntityKeys,
+            ]
+          : undefined;
 
       const severityTexts: Array<string> | undefined = body["severityTexts"]
         ? (body["severityTexts"] as Array<string>)
@@ -521,15 +548,41 @@ router.post(
 
       const limit: number = (body["limit"] as number) || 500;
 
-      const serviceIds: Array<ObjectID> | undefined = body["serviceIds"]
+      const requestedServiceIds: Array<ObjectID> | undefined = body[
+        "serviceIds"
+      ]
         ? (body["serviceIds"] as Array<string>).map((id: string) => {
             return new ObjectID(id);
           })
         : undefined;
 
-      const entityKeys: Array<string> | undefined = body["entityKeys"]
-        ? (body["entityKeys"] as Array<string>)
+      /*
+       * The explorer coalesces every resource facet into `serviceIds`. Ids that
+       * name a resource entity have to become entity keys instead, or they are
+       * matched against `primaryEntityId`, which OTLP telemetry never carries
+       * for anything but its Service. See ResourceEntityFilter.
+       */
+      const splitResourceFilters: {
+        serviceIds: Array<ObjectID>;
+        entityKeys: Array<string>;
+      } = await ResourceEntityFilter.splitResourceFilterIds({
+        projectId,
+        ids: requestedServiceIds || [],
+      });
+
+      const serviceIds: Array<ObjectID> | undefined = requestedServiceIds
+        ? splitResourceFilters.serviceIds
         : undefined;
+
+      const resourceEntityKeys: Array<string> = splitResourceFilters.entityKeys;
+
+      const entityKeys: Array<string> | undefined =
+        body["entityKeys"] || resourceEntityKeys.length > 0
+          ? [
+              ...((body["entityKeys"] as Array<string>) || []),
+              ...resourceEntityKeys,
+            ]
+          : undefined;
 
       const severityTexts: Array<string> | undefined = body["severityTexts"]
         ? (body["severityTexts"] as Array<string>)
@@ -728,8 +781,7 @@ function parseTraceFilterBody(body: JSONObject): TraceFilters {
    * filtering is dropped entirely so it cannot narrow to nothing.
    */
   const attributeFilterRecord: () => TraceAttributeFilters | undefined = ():
-    | TraceAttributeFilters
-    | undefined => {
+    TraceAttributeFilters | undefined => {
     const raw: unknown = body["attributes"];
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
       return undefined;
@@ -2067,8 +2119,7 @@ router.post(
       const body: JSONObject = req.body as JSONObject;
 
       const filterQuery: string | undefined = body["filterQuery"] as
-        | string
-        | undefined;
+        string | undefined;
 
       if (!filterQuery) {
         return Response.sendErrorResponse(
