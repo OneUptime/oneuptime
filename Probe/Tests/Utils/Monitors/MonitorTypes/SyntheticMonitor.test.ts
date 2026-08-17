@@ -168,6 +168,68 @@ describe("SyntheticMonitor secure worker orchestration", () => {
     },
   );
 
+  test("sanitizes non-JSON-safe leaves instead of discarding the whole result", async () => {
+    runSpy.mockResolvedValue(
+      workerRunResult({
+        returnValue: {
+          data: {
+            ratio: 0.5,
+            count: NaN,
+            infinite: Infinity,
+            when: new Date("2026-01-02T03:04:05.000Z"),
+            missing: undefined,
+            callback: () => {
+              return true;
+            },
+            items: [1, NaN, "two"],
+          },
+        },
+        logMessages: [],
+        capturedMetrics: [],
+        screenshots: {},
+      }),
+    );
+
+    const responses: SyntheticMonitorResponse[] | null =
+      await SyntheticMonitor.execute({
+        script: "return { data: {} };",
+        browserTypes: [BrowserType.Chromium],
+        screenSizeTypes: [ScreenSizeType.Desktop],
+      });
+
+    expect(responses?.[0]?.result).toEqual({
+      ratio: 0.5,
+      count: null,
+      infinite: null,
+      when: "2026-01-02T03:04:05.000Z",
+      items: [1, null, "two"],
+    });
+    expect(responses?.[0]?.scriptError).toBeUndefined();
+  });
+
+  test("drops only genuinely unserializable return values", async () => {
+    const circular: Record<string, unknown> = {};
+    circular["self"] = circular;
+    runSpy.mockResolvedValue(
+      workerRunResult({
+        returnValue: { data: circular },
+        logMessages: [],
+        capturedMetrics: [],
+        screenshots: {},
+      }),
+    );
+
+    const responses: SyntheticMonitorResponse[] | null =
+      await SyntheticMonitor.execute({
+        script: "return { data: {} };",
+        browserTypes: [BrowserType.Chromium],
+        screenSizeTypes: [ScreenSizeType.Desktop],
+      });
+
+    expect(responses?.[0]?.result).toBeUndefined();
+    expect(responses?.[0]?.scriptError).toBeUndefined();
+  });
+
   test("passes the configured NO_PROXY list to the browser proxy", async () => {
     const configuredSpy: jest.SpyInstance = jest
       .spyOn(ProxyConfig, "isProxyConfigured")

@@ -219,10 +219,9 @@ export default class SyntheticMonitor {
       }
 
       scriptResult.screenshots = { ...result.screenshots };
-      const returnedData: unknown = this.getReturnedData(result.returnValue);
-      if (this.isJsonSafeResult(returnedData)) {
-        scriptResult.result = returnedData;
-      }
+      scriptResult.result = this.toJsonSafeResult(
+        this.getReturnedData(result.returnValue),
+      );
 
       if (result.scriptError) {
         logger.error(result.scriptError);
@@ -281,43 +280,35 @@ export default class SyntheticMonitor {
     return (returnValue as Record<string, unknown>)["data"];
   }
 
-  private static isJsonSafeResult(
+  /**
+   * Coerce the script's returned data to plain JSON, matching what the legacy
+   * runtime effectively delivered once the response was serialized to the
+   * server: NaN/Infinity become null, undefined object properties and
+   * functions are dropped, Dates become ISO strings, and prototypes are
+   * discarded. Only genuinely unserializable values (e.g. circular references,
+   * BigInt) drop the result — never a single bad leaf.
+   */
+  private static toJsonSafeResult(
     value: unknown,
-    seen: WeakSet<WeakKey> = new WeakSet<WeakKey>(),
-  ): value is CustomCodeMonitorResult {
-    if (
-      value === null ||
-      typeof value === "string" ||
-      typeof value === "boolean"
-    ) {
-      return true;
+  ): CustomCodeMonitorResult | undefined {
+    if (value === undefined) {
+      return undefined;
     }
 
-    if (typeof value === "number") {
-      return Number.isFinite(value);
+    try {
+      const json: string | undefined = JSON.stringify(value);
+      if (json === undefined) {
+        return undefined;
+      }
+      return JSON.parse(json) as CustomCodeMonitorResult;
+    } catch (error: unknown) {
+      logger.warn(
+        `Synthetic Monitor - script return value is not JSON-serializable and was dropped: ${
+          (error as Error)?.message || error
+        }`,
+      );
+      return undefined;
     }
-
-    if (typeof value !== "object" || seen.has(value)) {
-      return false;
-    }
-
-    if (
-      !Array.isArray(value) &&
-      Object.getPrototypeOf(value) !== Object.prototype &&
-      Object.getPrototypeOf(value) !== null
-    ) {
-      return false;
-    }
-
-    seen.add(value);
-    const entries: unknown[] = Array.isArray(value)
-      ? value
-      : Object.values(value as Record<string, unknown>);
-    const isJsonSafe: boolean = entries.every((entry: unknown) => {
-      return this.isJsonSafeResult(entry, seen);
-    });
-    seen.delete(value);
-    return isJsonSafe;
   }
 
   private static getPlaywrightBrowsersPath(): string {

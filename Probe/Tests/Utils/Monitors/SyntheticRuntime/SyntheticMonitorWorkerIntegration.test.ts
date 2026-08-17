@@ -114,6 +114,99 @@ describe("SyntheticMonitorWorker full process boundary", () => {
     });
   });
 
+  test("fails event listeners loudly and supports the compatibility surface", async () => {
+    const probeDirectory: string = path.resolve(__dirname, "../../../..");
+    const runner: ProcessRunner = new ProcessRunner({
+      workerEntryPath: path.join(
+        probeDirectory,
+        "Utils/Monitors/SyntheticRuntime/SyntheticMonitorWorker.ts",
+      ),
+      concurrencyLimit: 1,
+      maxPendingCount: 0,
+      workingDirectory: probeDirectory,
+    });
+    const config: SyntheticMonitorWorkerConfig = {
+      code: `
+        const attempt = async (operation) => {
+          try { return "ok:" + String(await operation()); }
+          catch (error) { return "error:" + error.message; }
+        };
+        const results = {};
+        results.pageOn = await attempt(() => page.on("dialog", () => {}));
+        results.contextOn = await attempt(() =>
+          page.context().on("page", () => {})
+        );
+        results.frames = await attempt(() => page.frames());
+        results.mainFrame = await attempt(() => page.mainFrame());
+        results.request = await attempt(() =>
+          page.request.get("https://example.com")
+        );
+        results.contextRequest = await attempt(() =>
+          page.context().request.get("https://example.com")
+        );
+        results.requestCoercion = await attempt(() => String(page.request));
+        results.setDefaultTimeout = await attempt(() =>
+          page.setDefaultTimeout(45000)
+        );
+        results.waitForNavigation = await attempt(() =>
+          page.waitForNavigation({ timeout: 250 })
+        );
+        await page.setContent('<input id="field" />');
+        await page.locator("#field").type("hello");
+        results.typedValue = await page.locator("#field").inputValue();
+        return { data: results };
+      `,
+      browserType: BrowserType.Chromium,
+      screenSizeType: ScreenSizeType.Desktop,
+      executablePath: chromium.executablePath(),
+      viewport: { width: 1_920, height: 1_080 },
+      timeoutInMs: 60_000,
+      chromiumSandboxEnabled: false,
+      args: {},
+    };
+
+    const output: ProcessRunResult<SyntheticMonitorWorkerResult> =
+      await runner.run<
+        SyntheticMonitorWorkerConfig,
+        SyntheticMonitorWorkerResult
+      >({
+        payload: config,
+        timeoutInMs: 180_000,
+        validateResult: isSyntheticMonitorWorkerResult,
+      });
+
+    expect(output.result.scriptError).toBeUndefined();
+    const data: Record<string, string> = (
+      output.result.returnValue as { data: Record<string, string> }
+    ).data;
+    expect(data["pageOn"]).toContain(
+      "error:Playwright API 'page.on()' is not available",
+    );
+    expect(data["contextOn"]).toContain(
+      "error:Playwright API 'browser-context.on()' is not available",
+    );
+    expect(data["frames"]).toContain(
+      "error:Playwright API 'page.frames()' is not available",
+    );
+    expect(data["mainFrame"]).toContain(
+      "error:Playwright API 'page.mainFrame()' is not available",
+    );
+    expect(data["request"]).toContain(
+      "error:Playwright API 'page.request.get()' is not available",
+    );
+    expect(data["contextRequest"]).toContain(
+      "error:Playwright API 'browser-context.request.get()' is not available",
+    );
+    expect(data["requestCoercion"]).toBe(
+      "ok:[page.request is unavailable in synthetic monitors]",
+    );
+    expect(data["setDefaultTimeout"]).toBe("ok:undefined");
+    expect(data["waitForNavigation"]).toContain("error:");
+    expect(data["waitForNavigation"]).toMatch(/timeout/i);
+    expect(data["waitForNavigation"]).not.toContain("not available");
+    expect(data["typedValue"]).toBe("hello");
+  });
+
   test.each([
     {
       label: "Chromium",

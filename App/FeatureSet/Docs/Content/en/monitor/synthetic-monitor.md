@@ -72,6 +72,22 @@ Function predicates for event, request, response, and URL wait methods do not
 cross the isolation boundary. Use string or regular-expression matchers,
 locators, or explicit polling instead.
 
+Playwright event listeners (`page.on(...)`, `page.once(...)`) cannot cross the
+isolation boundary either, and calling them fails with a clear error. Use
+`page.waitForEvent(...)` for dialogs and popups, or response and request waits
+with string or regular-expression matchers. The synchronous frame accessors
+(`page.frames()`, `page.mainFrame()`, `page.frame(...)`) and `page.request.*`
+are also unavailable — use `page.frameLocator(...)` for iframes and the `axios`
+global for HTTP requests. `page.waitForNavigation(...)`,
+`page.setDefaultTimeout(...)`, and `page.setDefaultNavigationTimeout(...)` are
+supported.
+
+Data returned from the script is serialized to JSON before it is stored: in
+plain objects and arrays, `NaN` and `Infinity` become `null`, `undefined`
+properties and functions are dropped, and `Date` objects become ISO strings —
+the same way `JSON.stringify` handles them. Class instances and other
+non-plain objects are dropped entirely.
+
 Browser permissions are limited to geolocation and notifications. Clipboard,
 camera, microphone, MIDI, local-font, and other host-device permissions are not
 available to monitor scripts.

@@ -121,6 +121,86 @@ describe("SyntheticRuntime WorkerController", () => {
     );
   });
 
+  test("fails event listeners and sync frame accessors loudly, supports timeout and navigation compat APIs", async () => {
+    const result: SandboxExecutionResult = await run({
+      html: '<!doctype html><input id="field">',
+      code: `
+        const attempt = async (operation) => {
+          try { return "ok:" + String(await operation()); }
+          catch (error) { return "error:" + error.message; }
+        };
+        const results = {};
+        results.pageOn = await attempt(() => page.on("dialog", () => {}));
+        results.contextOn = await attempt(() =>
+          page.context().on("page", () => {})
+        );
+        results.frames = await attempt(() => page.frames());
+        results.mainFrame = await attempt(() => page.mainFrame());
+        results.request = await attempt(() =>
+          page.request.get("${TARGET_URL}")
+        );
+        results.contextRequest = await attempt(() =>
+          page.context().request.get("${TARGET_URL}")
+        );
+        results.requestCoercion = await attempt(() => String(page.request));
+        results.setDefaultTimeout = await attempt(() =>
+          page.setDefaultTimeout(45000)
+        );
+        results.waitForNavigation = await attempt(() =>
+          page.waitForNavigation({ timeout: 250 })
+        );
+        await page.goto("${TARGET_URL}");
+        await page.locator("#field").type("hello");
+        results.typedValue = await page.locator("#field").inputValue();
+        return { data: results };
+      `,
+    });
+
+    expect(result.scriptError).toBeUndefined();
+    const data: Record<string, string> = (
+      result.returnValue as { data: Record<string, string> }
+    ).data;
+    expect(data["pageOn"]).toContain(
+      "error:Playwright API 'page.on()' is not available",
+    );
+    expect(data["contextOn"]).toContain(
+      "error:Playwright API 'browser-context.on()' is not available",
+    );
+    expect(data["frames"]).toContain(
+      "error:Playwright API 'page.frames()' is not available",
+    );
+    expect(data["mainFrame"]).toContain(
+      "error:Playwright API 'page.mainFrame()' is not available",
+    );
+    expect(data["request"]).toContain(
+      "error:Playwright API 'page.request.get()' is not available",
+    );
+    expect(data["contextRequest"]).toContain(
+      "error:Playwright API 'browser-context.request.get()' is not available",
+    );
+    expect(data["requestCoercion"]).toBe(
+      "ok:[page.request is unavailable in synthetic monitors]",
+    );
+    expect(data["setDefaultTimeout"]).toBe("ok:undefined");
+    expect(data["waitForNavigation"]).toContain("error:");
+    expect(data["waitForNavigation"]).toMatch(/timeout/i);
+    expect(data["waitForNavigation"]).not.toContain("not available");
+    expect(data["typedValue"]).toBe("hello");
+  });
+
+  test("keeps screenshot signatures intact", async () => {
+    const result: SandboxExecutionResult = await run({
+      code: `
+        screenshots["only"] = await page.screenshot();
+        return { data: true };
+      `,
+    });
+    expect(result.scriptError).toBeUndefined();
+    expect(result.screenshots["only"]?.subarray(0, 8)).toEqual(
+      Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    );
+  });
+
   test("supports legacy scripts that declare and return their own screenshots object", async () => {
     const result: SandboxExecutionResult = await run({
       code: `

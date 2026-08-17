@@ -179,6 +179,15 @@ export default class IfElse extends ComponentCode {
         options.log(msg);
       });
 
+      /*
+       * runCodeInSandbox resolves with `scriptError` when the expression
+       * threw or timed out — it no longer rejects. Fail the run instead of
+       * silently taking the "No" branch.
+       */
+      if (returnResult.scriptError) {
+        throw returnResult.scriptError;
+      }
+
       if (returnResult.returnValue) {
         return {
           returnValues: {},

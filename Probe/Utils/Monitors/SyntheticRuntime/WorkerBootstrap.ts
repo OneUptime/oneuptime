@@ -557,6 +557,58 @@ export function getSyntheticMonitorWorkerBootstrapSource(): string {
       "connect", "connectOverCDP", "constructor", "launch", "launchPersistentContext",
       "launchServer", "newCDPSession", "prototype", "route", "routeFromHAR", "tracing",
     ]);
+    /*
+     * Event subscriptions cannot cross the isolation boundary. Scripts call
+     * these without awaiting, so an RPC rejection would be swallowed as an
+     * unhandled rejection and the listener would silently never fire — throw
+     * synchronously instead so the script fails with an actionable error.
+     */
+    const eventEmitterMethods = new Set([
+      "addListener", "off", "on", "once", "prependListener",
+      "prependOnceListener", "removeAllListeners", "removeListener",
+    ]);
+    // Synchronous in Playwright, so an async facade would break chained calls.
+    const unavailableSyncPageMethods = new Map([
+      ["frame", "use page.frameLocator(...) instead"],
+      ["frames", "use page.frameLocator(...) instead"],
+      ["mainFrame", "call the equivalent method on page directly, or use page.frameLocator(...)"],
+      ["video", "recordings are not captured for synthetic monitors"],
+      ["workers", "web workers are not observable from synthetic monitors"],
+    ]);
+    const unavailableSyncFrameMethods = new Map([
+      ["childFrames", "use page.frameLocator(...) instead"],
+      ["frameElement", "use page.frameLocator(...) instead"],
+      ["page", "keep a reference to the page object instead"],
+      ["parentFrame", "use page.frameLocator(...) instead"],
+    ]);
+    function throwUnavailable(api, guidance) {
+      throw new Error(
+        "Playwright API '" + api + "' is not available in synthetic monitors" +
+          (guidance ? "; " + guidance : "") + ".",
+      );
+    }
+    function createUnavailableRequestProxy(ownerType) {
+      /*
+       * Benign coercions (String(...), JSON.stringify, symbols) must not
+       * throw — only actual method calls get the descriptive error.
+       */
+      return new Proxy(Object.create(null), {
+        get(_requestTarget, requestProperty) {
+          if (typeof requestProperty !== "string") return undefined;
+          if (requestProperty === "then") return undefined;
+          if (requestProperty === "toString" || requestProperty === "toJSON") {
+            return () => "[" + ownerType + ".request is unavailable in synthetic monitors]";
+          }
+          return () => {
+            throwUnavailable(
+              ownerType + ".request." + requestProperty + "()",
+              "use the axios global for HTTP requests instead",
+            );
+          };
+        },
+        getPrototypeOf() { return null; },
+      });
+    }
 
     function createLocatorProxy(rootCapabilityId, chain) {
       const metadata = Object.freeze({ __oneuptimeLocator: true, rootCapabilityId, chain });
@@ -620,8 +672,38 @@ export function getSyntheticMonitorWorkerBootstrapSource(): string {
           if (property === "toJSON") return () => capabilityState.metadata;
           if (typeof property !== "string" || blockedProperties.has(property) || property.startsWith("_")) return undefined;
 
+          if (eventEmitterMethods.has(property)) {
+            return () => {
+              throwUnavailable(
+                capabilityState.type + "." + property + "()",
+                "use page.waitForEvent(...), waitForResponse/waitForRequest with a string or RegExp, or locator-based waits instead",
+              );
+            };
+          }
+
+          if (
+            (capabilityState.type === "page" ||
+              capabilityState.type === "browser-context") &&
+            property === "request"
+          ) {
+            return createUnavailableRequestProxy(capabilityState.type);
+          }
+          if (
+            capabilityState.type === "frame" &&
+            unavailableSyncFrameMethods.has(property)
+          ) {
+            return () => {
+              throwUnavailable("frame." + property + "()", unavailableSyncFrameMethods.get(property));
+            };
+          }
+
           const snapshot = capabilityState.snapshot;
           if (capabilityState.type === "page") {
+            if (unavailableSyncPageMethods.has(property)) {
+              return () => {
+                throwUnavailable("page." + property + "()", unavailableSyncPageMethods.get(property));
+              };
+            }
             if (property === "context") return () => snapshot.context;
             if (property === "keyboard" || property === "mouse" || property === "touchscreen") return snapshot[property];
             if (property === "isClosed") return () => Boolean(snapshot.isClosed);

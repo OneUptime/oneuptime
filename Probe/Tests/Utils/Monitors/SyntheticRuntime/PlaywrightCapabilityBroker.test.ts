@@ -101,6 +101,42 @@ describe("SyntheticRuntime PlaywrightCapabilityBroker", () => {
     },
   );
 
+  test("allows page.setDefaultTimeout and setDefaultNavigationTimeout", async () => {
+    const timeoutResponse: PlaywrightRpcResponse = await broker.dispatch(
+      request("setDefaultTimeout", [45_000]),
+    );
+    expect(timeoutResponse.ok).toBe(true);
+
+    const navigationTimeoutResponse: PlaywrightRpcResponse =
+      await broker.dispatch(request("setDefaultNavigationTimeout", [45_000]));
+    expect(navigationTimeoutResponse.ok).toBe(true);
+  });
+
+  test("allows page.waitForNavigation through to Playwright", async () => {
+    /*
+     * No navigation happens, so reaching Playwright means a timeout error —
+     * not the broker's "not available" rejection.
+     */
+    const response: PlaywrightRpcResponse = await broker.dispatch(
+      request("waitForNavigation", [{ timeout: 250 }]),
+    );
+    expect(response.ok).toBe(false);
+    expect(response.error).toMatch(/Timeout/i);
+    expect(response.error).not.toMatch(/not available/);
+  });
+
+  test("allows locator.type through a locator chain", async () => {
+    await targetPage.setContent('<input id="field" />');
+
+    const typeRequest: PlaywrightRpcRequest = {
+      ...request("type", ["hello"]),
+      locatorChain: [{ method: "locator", args: ["#field"] }],
+    };
+    const response: PlaywrightRpcResponse = await broker.dispatch(typeRequest);
+    expect(response.ok).toBe(true);
+    expect(await targetPage.inputValue("#field")).toBe("hello");
+  });
+
   test("rejects wrong versions, executions, forged capabilities, and malformed methods", async () => {
     const valid: PlaywrightRpcRequest = request("title");
     const cases: unknown[] = [

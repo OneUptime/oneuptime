@@ -619,6 +619,18 @@ ${contextBlock}
         return null;
       }
 
+      /*
+       * runCodeInSandbox resolves with `scriptError` when the expression threw
+       * or timed out — it no longer rejects. Keep the pre-sandbox outcome
+       * (criteria not met) but retain the error log.
+       */
+      if (result.scriptError) {
+        logger.error(result.scriptError, {
+          projectId: input.monitor.projectId?.toString(),
+        });
+        return null;
+      }
+
       if (result && result.returnValue) {
         return `JavaScript Expression - ${expression} - evaluated to true.`;
       }
