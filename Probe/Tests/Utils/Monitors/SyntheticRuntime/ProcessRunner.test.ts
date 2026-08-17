@@ -425,7 +425,7 @@ describe("SyntheticRuntime ProcessRunner", () => {
     const activeNameMatch: RegExpMatchArray | null = path
       .basename(activeHome)
       .match(
-        /^oneuptime-synthetic-runtime-v2-(\d+)-([a-f0-9]{32})-[A-Za-z0-9]{6}$/,
+        /^oneuptime-synthetic-runtime-v3-(\d+)-([a-f0-9]{8})-[A-Za-z0-9]{6}$/,
       );
     expect(activeNameMatch?.[1]).toBe(String(process.pid));
     expect(fs.existsSync(activeHome)).toBe(false);
@@ -509,7 +509,7 @@ describe("SyntheticRuntime ProcessRunner", () => {
       forkOptionsAt(forkMock, 0).env?.["HOME"] as string,
     );
     const currentToken: string = firstRunDirectoryName.match(
-      /^oneuptime-synthetic-runtime-v2-\d+-([a-f0-9]{32})-[A-Za-z0-9]{6}$/,
+      /^oneuptime-synthetic-runtime-v3-\d+-([a-f0-9]{8})-[A-Za-z0-9]{6}$/,
     )?.[1] as string;
     const mismatchedToken: string =
       currentToken === "a".repeat(32) ? "b".repeat(32) : "a".repeat(32);

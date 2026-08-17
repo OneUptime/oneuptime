@@ -18,11 +18,20 @@ const DEFAULT_TERMINATION_GRACE_IN_MS: number = 1000;
 const DEFAULT_KILL_WAIT_IN_MS: number = 1000;
 const DEFAULT_MAX_OLD_SPACE_SIZE_IN_MB: number = 256;
 const RUN_DIRECTORY_BASE_PREFIX: string = "oneuptime-synthetic-runtime-";
-const RUN_DIRECTORY_FORMAT_VERSION: string = "v2";
-const RUN_DIRECTORY_PROCESS_TOKEN: string = randomBytes(16).toString("hex");
+/*
+ * The run directory is the browser's HOME and profile parent, and Chromium
+ * binds a UNIX socket at <profile>/SingletonSocket. sun_path caps such socket
+ * paths at ~107 bytes and Chromium crash-exits (SIGTRAP) beyond it, so the
+ * directory name must stay short: an 8-hex process token keeps the worst-case
+ * socket path near 92 bytes for /tmp roots. v2 names (32-hex tokens) exceeded
+ * the cap on most hosts; the parser still accepts them so leftovers from
+ * crashed v2 supervisors are scavenged by PID-liveness rather than age.
+ */
+const RUN_DIRECTORY_FORMAT_VERSION: string = "v3";
+const RUN_DIRECTORY_PROCESS_TOKEN: string = randomBytes(4).toString("hex");
 const CURRENT_RUN_DIRECTORY_PREFIX: string = `${RUN_DIRECTORY_BASE_PREFIX}${RUN_DIRECTORY_FORMAT_VERSION}-${process.pid}-${RUN_DIRECTORY_PROCESS_TOKEN}-`;
 const RUN_DIRECTORY_NAME_PATTERN: RegExp =
-  /^oneuptime-synthetic-runtime-v2-([1-9]\d*)-([a-f0-9]{32})-([A-Za-z0-9]{6})$/;
+  /^oneuptime-synthetic-runtime-v[23]-([1-9]\d*)-([a-f0-9]{8}|[a-f0-9]{32})-([A-Za-z0-9]{6})$/;
 const LEGACY_RUN_DIRECTORY_MINIMUM_AGE_IN_MS: number = 24 * 60 * 60 * 1000;
 const RUN_DIRECTORY_SCAVENGE_INTERVAL_IN_MS: number = 5 * 60 * 1000;
 const PROCESS_TREE_POLL_INTERVAL_IN_MS: number = 50;
