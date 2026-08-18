@@ -26,6 +26,7 @@ import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
 import {
   afterEach,
   beforeEach,
@@ -61,10 +62,31 @@ const MESSAGE_ID: ObjectID = new ObjectID(
   "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
 );
 
+/*
+ * A real member of PROJECT_ID. The tenant access permission entry is not
+ * decoration: every AI chat route asserts membership of the project named in
+ * the `tenantid` header (CommonAPI.assertAuthenticatedProjectMember), so props
+ * carrying only a user id and a tenant id are exactly what an outsider sends
+ * and are refused before the handler does anything. AIChatRouteAuthorization
+ * covers that refusal; these tests are about what a legitimate member gets.
+ */
 const props: DatabaseCommonInteractionProps = {
   userId: USER_ID,
   tenantId: PROJECT_ID,
-} as DatabaseCommonInteractionProps;
+  userTenantAccessPermission: {
+    [PROJECT_ID.toString()]: {
+      _type: "UserTenantAccessPermission",
+      projectId: PROJECT_ID,
+      permissions: [
+        {
+          _type: "UserPermission",
+          permission: Permission.ProjectMember,
+          labelIds: [],
+        },
+      ],
+    },
+  },
+} as unknown as DatabaseCommonInteractionProps;
 
 function requestFor(body: JSONObject): ExpressRequest {
   return {

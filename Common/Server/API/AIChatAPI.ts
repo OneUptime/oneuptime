@@ -9,7 +9,6 @@ import Express, {
 import Response from "../Utils/Response";
 import BadDataException from "../../Types/Exception/BadDataException";
 import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
-import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
@@ -89,18 +88,16 @@ router.post(
       const props: DatabaseCommonInteractionProps =
         await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-      if (!props.userId) {
-        throw new NotAuthorizedException(
-          "AI chat requires a logged-in user session.",
-        );
-      }
-
-      if (!props.tenantId) {
-        throw new BadDataException("Project ID is required (tenantid header).");
-      }
-
-      const projectId: ObjectID = props.tenantId;
-      const userId: ObjectID = props.userId;
+      /*
+       * Membership, not just a session. getUserMiddleware admits an
+       * unauthenticated request as "public" and reads the tenant id straight
+       * out of the caller-supplied `tenantid` header, so the pair of checks
+       * this replaces proved only that SOMEBODY was logged in and had named
+       * SOME project - never that they belonged to the project they named.
+       */
+      const projectId: ObjectID =
+        CommonAPI.assertAuthenticatedProjectMember(props);
+      const userId: ObjectID = props.userId!;
 
       const content: string = (req.body["content"] as string) || "";
 
@@ -502,17 +499,30 @@ router.post(
       const props: DatabaseCommonInteractionProps =
         await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-      if (!props.userId) {
-        throw new NotAuthorizedException(
-          "AI chat requires a logged-in user session.",
-        );
-      }
+      /*
+       * Membership, not just a session - see the note on send-message. This
+       * route is where that distinction was load-bearing: it took the project
+       * id straight from the header and handed it to root-privileged reads,
+       * so any logged-in user could name ANY project's UUID and be told which
+       * LLM providers that project has - their names, descriptions, types and
+       * models (GHSA-hm7m-9qjj-xj5x).
+       */
+      const projectId: ObjectID =
+        CommonAPI.assertAuthenticatedProjectMember(props);
 
-      if (!props.tenantId) {
-        throw new BadDataException("Project ID is required (tenantid header).");
-      }
-
-      const projectId: ObjectID = props.tenantId;
+      /*
+       * Membership is still not read authorisation. The very same rows served
+       * by a plain GET /llm-provider are gated there by LlmProvider's own read
+       * list, and a member whose teams grant none of those permissions has no
+       * business reading them through the chat picker instead. Asking the
+       * model for that list keeps the two paths from drifting apart.
+       */
+      CommonAPI.assertPermittedInProject({
+        databaseProps: props,
+        allowedPermissions: new LlmProvider().getReadPermissions(),
+        errorMessage:
+          "You do not have permission to read this project's AI providers.",
+      });
 
       const [providers, defaultProvider]: [
         Array<LlmProvider>,
@@ -561,18 +571,16 @@ router.post(
       const props: DatabaseCommonInteractionProps =
         await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-      if (!props.userId) {
-        throw new NotAuthorizedException(
-          "AI chat requires a logged-in user session.",
-        );
-      }
-
-      if (!props.tenantId) {
-        throw new BadDataException("Project ID is required (tenantid header).");
-      }
-
-      const projectId: ObjectID = props.tenantId;
-      const userId: ObjectID = props.userId;
+      /*
+       * Membership, not just a session. getUserMiddleware admits an
+       * unauthenticated request as "public" and reads the tenant id straight
+       * out of the caller-supplied `tenantid` header, so the pair of checks
+       * this replaces proved only that SOMEBODY was logged in and had named
+       * SOME project - never that they belonged to the project they named.
+       */
+      const projectId: ObjectID =
+        CommonAPI.assertAuthenticatedProjectMember(props);
+      const userId: ObjectID = props.userId!;
 
       const conversationIdString: string = req.body["conversationId"] as string;
       const assistantMessageIdString: string = req.body[
@@ -743,18 +751,16 @@ router.post(
       const props: DatabaseCommonInteractionProps =
         await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-      if (!props.userId) {
-        throw new NotAuthorizedException(
-          "AI chat requires a logged-in user session.",
-        );
-      }
-
-      if (!props.tenantId) {
-        throw new BadDataException("Project ID is required (tenantid header).");
-      }
-
-      const projectId: ObjectID = props.tenantId;
-      const userId: ObjectID = props.userId;
+      /*
+       * Membership, not just a session. getUserMiddleware admits an
+       * unauthenticated request as "public" and reads the tenant id straight
+       * out of the caller-supplied `tenantid` header, so the pair of checks
+       * this replaces proved only that SOMEBODY was logged in and had named
+       * SOME project - never that they belonged to the project they named.
+       */
+      const projectId: ObjectID =
+        CommonAPI.assertAuthenticatedProjectMember(props);
+      const userId: ObjectID = props.userId!;
 
       const conversationIdString: string = req.body["conversationId"] as string;
 
@@ -913,15 +919,8 @@ router.post(
       const props: DatabaseCommonInteractionProps =
         await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-      if (!props.userId) {
-        throw new NotAuthorizedException(
-          "AI chat requires a logged-in user session.",
-        );
-      }
-
-      if (!props.tenantId) {
-        throw new BadDataException("Project ID is required (tenantid header).");
-      }
+      // Membership, not just a session - see the note on send-message.
+      CommonAPI.assertAuthenticatedProjectMember(props);
 
       const messageIdString: string = req.body["messageId"] as string;
 
