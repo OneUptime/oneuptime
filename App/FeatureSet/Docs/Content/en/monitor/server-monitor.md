@@ -113,9 +113,9 @@ For each mounted disk/volume:
 
 You can configure criteria to determine when your server is considered online, degraded, or offline.
 
-### Available Check Types
+### Available Filter Types
 
-| Check Type             | Description                                                    |
+| Filter Type            | Description                                                    |
 | ---------------------- | -------------------------------------------------------------- |
 | Is Online              | Whether the server agent is reporting (based on heartbeat)     |
 | CPU Usage Percent      | Current CPU utilization percentage                             |
@@ -125,7 +125,7 @@ You can configure criteria to determine when your server is considered online, d
 | Server Process Command | Check if a process with a specific command is running          |
 | Server Process PID     | Check if a process with a specific PID is running              |
 
-### Filter Types
+### Filter Conditions
 
 For numeric metrics (CPU, memory, disk):
 
@@ -144,32 +144,32 @@ For process checks:
 
 #### Mark server as offline if agent stops reporting
 
-- **Check On**: Is Online
-- **Filter Type**: False
+- **Filter Type**: Is Online
+- **Filter Condition**: False
 
 #### Alert when CPU usage exceeds 90%
 
-- **Check On**: CPU Usage Percent
-- **Filter Type**: Greater Than
+- **Filter Type**: CPU Usage Percent
+- **Filter Condition**: Greater Than
 - **Value**: 90
 
 #### Alert when disk usage exceeds 85%
 
-- **Check On**: Disk Usage Percent
+- **Filter Type**: Disk Usage Percent
 - **Disk Path**: `/`
-- **Filter Type**: Greater Than
+- **Filter Condition**: Greater Than
 - **Value**: 85
 
 #### Alert when memory usage exceeds 80%
 
-- **Check On**: Memory Usage Percent
-- **Filter Type**: Greater Than
+- **Filter Type**: Memory Usage Percent
+- **Filter Condition**: Greater Than
 - **Value**: 80
 
 #### Alert if a critical process stops running
 
-- **Check On**: Server Process Name
-- **Filter Type**: Is Not Executing
+- **Filter Type**: Server Process Name
+- **Filter Condition**: Is Not Executing
 - **Value**: `nginx`
 
 ## Troubleshooting

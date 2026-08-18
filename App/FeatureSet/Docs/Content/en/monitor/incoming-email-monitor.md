@@ -36,11 +36,11 @@ For example: `monitor-abc123def456@inbound.yourdomain.com`
 
 You can copy this address from the monitor details page and configure your external systems to send emails to it.
 
-## Available Criteria Fields
+## Available Filter Types
 
 You can create criteria based on the following email fields:
 
-| Field              | Description                                      |
+| Filter Type        | Description                                      |
 | ------------------ | ------------------------------------------------ |
 | **Email Subject**  | The subject line of the incoming email           |
 | **Email From**     | The sender's email address                       |
@@ -48,11 +48,11 @@ You can create criteria based on the following email fields:
 | **Email To**       | The recipient email address                      |
 | **Email Received** | Time-based criteria for when emails are received |
 
-## Available Filter Types
+## Filter Conditions
 
 ### String Filters (Subject, From, Body, To)
 
-| Filter           | Description                               | Example                          |
+| Filter Condition | Description                               | Example                          |
 | ---------------- | ----------------------------------------- | -------------------------------- |
 | **Contains**     | Field contains the specified text         | Subject contains "CRITICAL"      |
 | **Not Contains** | Field does not contain the specified text | Subject not contains "TEST"      |
@@ -65,7 +65,7 @@ You can create criteria based on the following email fields:
 
 ### Time-Based Filters (Email Received)
 
-| Filter                      | Description                         | Example                          |
+| Filter Condition            | Description                         | Example                          |
 | --------------------------- | ----------------------------------- | -------------------------------- |
 | **Received In Minutes**     | Email was received within X minutes | Email received in 30 minutes     |
 | **Not Received In Minutes** | No email received in X minutes      | Email not received in 60 minutes |

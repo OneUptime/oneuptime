@@ -29,15 +29,15 @@ Enter the IPv4 or IPv6 address you want to monitor (e.g., `192.168.1.1` or `2001
 
 You can configure criteria to determine when your IP address is considered online, degraded, or offline based on:
 
-### Available Check Types
+### Available Filter Types
 
-| Check Type            | Description                         |
+| Filter Type           | Description                         |
 | --------------------- | ----------------------------------- |
 | Is Online             | Whether the IP address is reachable |
 | Response Time (in ms) | Response time in milliseconds       |
 | Is Request Timeout    | Whether the request timed out       |
 
-### Filter Types
+### Filter Conditions
 
 For **Is Online** and **Is Request Timeout**:
 
@@ -58,11 +58,11 @@ For **Response Time**:
 
 #### Mark as offline if IP is unreachable
 
-- **Check On**: Is Online
-- **Filter Type**: False
+- **Filter Type**: Is Online
+- **Filter Condition**: False
 
 #### Alert if latency exceeds 100ms
 
-- **Check On**: Response Time (in ms)
-- **Filter Type**: Greater Than
+- **Filter Type**: Response Time (in ms)
+- **Filter Condition**: Greater Than
 - **Value**: 100

@@ -36,13 +36,13 @@ Select one or more services to monitor profiles from. Services must be sending c
 
 ## Monitoring Criteria
 
-### Available Check Types
+### Available Filter Types
 
-| Check Type    | Description                                                     |
+| Filter Type   | Description                                                     |
 | ------------- | --------------------------------------------------------------- |
 | Profile Count | The number of profiles matching your filters in the time window |
 
-### Filter Types
+### Filter Conditions
 
 - **Greater Than** — Profile count exceeds a threshold
 - **Less Than** — Profile count is below a threshold
@@ -56,8 +56,8 @@ Select one or more services to monitor profiles from. Services must be sending c
 #### Alert if no profiles received in 5 minutes
 
 - **Time Window**: 300 seconds
-- **Check On**: Profile Count
-- **Filter Type**: Equal To
+- **Filter Type**: Profile Count
+- **Filter Condition**: Equal To
 - **Value**: 0
 
 ## Setup Requirements

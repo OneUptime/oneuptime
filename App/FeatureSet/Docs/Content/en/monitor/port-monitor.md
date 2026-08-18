@@ -55,17 +55,17 @@ When the target is an IP address, no DNS lookup is required, so the DNS phase is
 
 You can configure criteria to determine when your port is considered online, degraded, or offline based on:
 
-### Available Check Types
+### Available Filter Types
 
-| Check Type                    | Description                                                                         |
-| ----------------------------- | ----------------------------------------------------------------------------------- |
-| Is Online                     | Whether the port is open and accepting connections                                  |
-| Total Connection Time (DNS + TCP) (in ms) | Total connection time, including DNS lookup when the target is a hostname |
-| Port DNS Lookup Time (in ms)  | DNS lookup time before the first TCP attempt; unavailable when the target is an IP  |
-| Port TCP Connect Time (in ms) | Time from the first TCP attempt until a connection succeeds, including IP fallback  |
-| Is Request Timeout            | Whether the DNS lookup or TCP connection attempt exceeded the configured time limit |
+| Filter Type                               | Description                                                                         |
+| ----------------------------------------- | ----------------------------------------------------------------------------------- |
+| Is Online                                 | Whether the port is open and accepting connections                                  |
+| Total Connection Time (DNS + TCP) (in ms) | Total connection time, including DNS lookup when the target is a hostname           |
+| Port DNS Lookup Time (in ms)              | DNS lookup time before the first TCP attempt; unavailable when the target is an IP  |
+| Port TCP Connect Time (in ms)             | Time from the first TCP attempt until a connection succeeds, including IP fallback  |
+| Is Request Timeout                        | Whether the DNS lookup or TCP connection attempt exceeded the configured time limit |
 
-### Filter Types
+### Filter Conditions
 
 For **Is Online** and **Is Request Timeout**:
 
@@ -86,29 +86,29 @@ DNS lookup criteria have no value to evaluate when the target is already an IP a
 
 #### Mark as offline if port is closed
 
-- **Check On**: Is Online
-- **Filter Type**: False
+- **Filter Type**: Is Online
+- **Filter Condition**: False
 
 #### Alert if total connection time exceeds 500ms
 
-- **Check On**: Total Connection Time (DNS + TCP) (in ms)
-- **Filter Type**: Greater Than
+- **Filter Type**: Total Connection Time (DNS + TCP) (in ms)
+- **Filter Condition**: Greater Than
 - **Value**: 500
 
 #### Mark as degraded if the total connection is slow
 
-- **Check On**: Total Connection Time (DNS + TCP) (in ms)
-- **Filter Type**: Greater Than
+- **Filter Type**: Total Connection Time (DNS + TCP) (in ms)
+- **Filter Condition**: Greater Than
 - **Value**: 200
 
 #### Alert if DNS lookup is slow
 
-- **Check On**: Port DNS Lookup Time (in ms)
-- **Filter Type**: Greater Than
+- **Filter Type**: Port DNS Lookup Time (in ms)
+- **Filter Condition**: Greater Than
 - **Value**: 100
 
 #### Alert if TCP connection setup is slow
 
-- **Check On**: Port TCP Connect Time (in ms)
-- **Filter Type**: Greater Than
+- **Filter Type**: Port TCP Connect Time (in ms)
+- **Filter Condition**: Greater Than
 - **Value**: 250

@@ -115,11 +115,9 @@ Select the time window for metric evaluation:
 
 ## Monitoring Criteria
 
-### Available Check Types
+### What Gets Evaluated
 
-| Check Type   | Description                                         |
-| ------------ | --------------------------------------------------- |
-| Metric Value | The value of the configured metric query or formula |
+These monitors always evaluate the **Metric Value** — the value of the configured metric query or formula. The criteria form has no Filter Type selector; it shows **Metric**, **Aggregation**, **Condition**, and **Threshold**.
 
 ### Aggregation Types
 
@@ -132,7 +130,7 @@ Select the time window for metric evaluation:
 | All Values    | All values must match the criteria |
 | Any Value     | At least one value must match      |
 
-### Filter Types
+### Conditions
 
 - **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
 
