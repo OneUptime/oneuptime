@@ -1,7 +1,9 @@
 import AggregationType from "../../Types/BaseDatabase/AggregationType";
 import { CheckOn } from "../../Types/Monitor/CriteriaFilter";
 import MonitorMetricType from "../../Types/Monitor/MonitorMetricType";
-import MonitorType from "../../Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "../../Types/Monitor/MonitorType";
 
 /*
  * Groups of metrics rendered as separate cards on the monitor metrics page.
@@ -238,8 +240,21 @@ class MonitorMetricTypeUtil {
       monitorType === MonitorType.DNSSEC ||
       monitorType === MonitorType.Domain ||
       monitorType === MonitorType.SQLQuery ||
+      monitorType === MonitorType.SSLCertificate ||
       monitorType === MonitorType.ExternalStatusPage
     ) {
+      return [MonitorMetricType.IsOnline, MonitorMetricType.ResponseTime];
+    }
+
+    /*
+     * Any other type the probe actually checks still writes IsOnline and
+     * ResponseTime rows, so default to showing them rather than to an empty
+     * list. Falling through to [] hides the Monitor Metrics tab entirely -
+     * SSL Certificate monitors were missing from the list above and so had
+     * no metrics tab at all, which left an operator with no way to see that
+     * their monitor was running.
+     */
+    if (MonitorTypeHelper.isProbableMonitor(monitorType)) {
       return [MonitorMetricType.IsOnline, MonitorMetricType.ResponseTime];
     }
 

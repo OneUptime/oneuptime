@@ -189,12 +189,42 @@ export default class MonitorUtil {
         continue;
       }
 
-      const result: ProbeMonitorResponse | null = await this.probeMonitorStep({
-        monitorType: monitor.monitorType!,
-        monitorId: monitor.id!,
-        monitorStep: monitorStep,
-        projectId: monitor.projectId!,
-      });
+      /*
+       * A throw from any monitor-type handler used to escape all the way to
+       * Promise.allSettled in the FetchList job, where it was logged and
+       * dropped - BEFORE the ingest POST below. The monitor then produced no
+       * result at all, on every cycle, and the only symptom was a monitor
+       * that silently never changed state.
+       *
+       * Converting the throw into a reportable offline result keeps that
+       * class of bug visible: the check is recorded as failed, with the
+       * error as its cause, and criteria can act on it.
+       */
+      let result: ProbeMonitorResponse | null = null;
+
+      try {
+        result = await this.probeMonitorStep({
+          monitorType: monitor.monitorType!,
+          monitorId: monitor.id!,
+          monitorStep: monitorStep,
+          projectId: monitor.projectId!,
+        });
+      } catch (err) {
+        logger.error(
+          `Monitor ${monitor.id?.toString()} (${monitor.monitorType}) step ${monitorStep.id?.toString()} threw while probing:`,
+        );
+        logger.error(err);
+
+        result = {
+          monitorStepId: monitorStep.id,
+          projectId: monitor.projectId!,
+          monitorId: monitor.id!,
+          probeId: ProbeUtil.getProbeId(),
+          isOnline: false,
+          failureCause: API.getFriendlyErrorMessage(err as Error),
+          monitoredAt: OneUptimeDate.getCurrentDate(),
+        };
+      }
 
       if (result) {
         // report this back to Probe API.
@@ -525,19 +555,20 @@ export default class MonitorUtil {
     }
 
     if (monitorType === MonitorType.SSLCertificate) {
+      /*
+       * A step with no destination is a misconfiguration, and it has to
+       * produce a verdict criteria can act on. Returning a bare result left
+       * isOnline undefined, which matches nothing and reads as "healthy".
+       */
       if (!monitorStep.data?.monitorDestination) {
+        result.isOnline = false;
+        result.failureCause =
+          "SSL Certificate Monitor - destination URL is not specified.";
+
         return result;
       }
 
       result.monitorDestination = monitorStep.data.monitorDestination;
-
-      if (!monitorStep.data?.monitorDestination) {
-        result.isOnline = false;
-        result.responseTimeInMs = 0;
-        result.failureCause = "Port is not specified";
-
-        return result;
-      }
 
       const response: SslResponse | null = await SSLMonitor.ping(
         monitorStep.data?.monitorDestination as URL,
@@ -555,6 +586,11 @@ export default class MonitorUtil {
       result.isOnline = response.isOnline;
       result.failureCause = response.failureCause;
       result.isTimeout = response.isTimeout;
+      /*
+       * Without this the ResponseTime metric is never written for SSL
+       * monitors, so their metrics chart stays permanently empty.
+       */
+      result.responseTimeInMs = response.responseTimeInMs;
       result.sslResponse = {
         ...response,
       };

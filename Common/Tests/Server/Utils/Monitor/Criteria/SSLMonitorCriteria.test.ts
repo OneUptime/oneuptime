@@ -158,7 +158,9 @@ describe("SSLMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
         },
       );
 
-      expect(result).toBe("SSL certificate is not valid.");
+      // The reason is appended so the root cause reaches whoever is paged.
+      expect(result).toContain("SSL certificate is not valid");
+      expect(result).toContain("self signed");
     });
 
     test("valid cert + False → not met", async () => {
@@ -196,7 +198,7 @@ describe("SSLMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
         },
       );
 
-      expect(result).toBe("SSL certificate is not valid.");
+      expect(result).toContain("not reachable");
     });
   });
 
@@ -311,7 +313,8 @@ describe("SSLMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
         },
       );
 
-      expect(result).toBe("SSL certificate is not valid.");
+      expect(result).toContain("SSL certificate is not valid");
+      expect(result).toContain("expired");
     });
 
     test("healthy cert + False → met", async () => {
@@ -343,7 +346,7 @@ describe("SSLMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
         },
       );
 
-      expect(result).toBe("SSL certificate is not valid.");
+      expect(result).toContain("SSL certificate is not valid");
     });
   });
 
@@ -464,5 +467,372 @@ describe("SSLMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     );
 
     expect(result).toBeNull();
+  });
+
+  /*
+   * Regression suite for https://github.com/OneUptime/oneuptime/issues/3225.
+   *
+   * The reported monitor pointed at a host with an invalid certificate and
+   * sat Operational forever. Two things made that possible:
+   *
+   *  1. IsValidCertificate and IsNotAValidCertificate were computed
+   *     independently, so BOTH came out false whenever expiresAt was
+   *     missing or unparseable. No criterion matched, and a monitor already
+   *     at its default status writes no timeline entry when nothing
+   *     matches - so the check left no trace at all.
+   *
+   *  2. The verdict was inferred from !isSelfSigned, and the probe labelled
+   *     every validation failure "self signed". A certificate that failed
+   *     for any other reason could not be described.
+   */
+  describe("certificate validity (issue #3225)", () => {
+    const failureModes: Array<{ name: string; response: SslMonitorResponse }> =
+      [
+        {
+          name: "self-signed",
+          response: {
+            isValidCertificate: false,
+            isSelfSigned: true,
+            certificateValidationErrorCode: "DEPTH_ZERO_SELF_SIGNED_CERT",
+            certificateValidationError: "self signed certificate",
+            expiresAt: dateFromNow({ days: 100 }),
+          },
+        },
+        {
+          name: "hostname mismatch",
+          response: {
+            isValidCertificate: false,
+            isSelfSigned: false,
+            certificateValidationErrorCode: "ERR_TLS_CERT_ALTNAME_INVALID",
+            certificateValidationError: "Hostname/IP does not match",
+            expiresAt: dateFromNow({ days: 100 }),
+          },
+        },
+        {
+          name: "untrusted CA",
+          response: {
+            isValidCertificate: false,
+            isSelfSigned: false,
+            certificateValidationErrorCode: "SELF_SIGNED_CERT_IN_CHAIN",
+            certificateValidationError: "self signed certificate in chain",
+            expiresAt: dateFromNow({ days: 100 }),
+          },
+        },
+        {
+          name: "expired",
+          response: {
+            isValidCertificate: false,
+            isSelfSigned: false,
+            certificateValidationErrorCode: "CERT_HAS_EXPIRED",
+            certificateValidationError: "certificate has expired",
+            expiresAt: dateFromNow({ days: -5 }),
+          },
+        },
+        {
+          name: "incomplete chain",
+          response: {
+            isValidCertificate: false,
+            isSelfSigned: false,
+            certificateValidationErrorCode: "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+            certificateValidationError:
+              "unable to verify the first certificate",
+            expiresAt: dateFromNow({ days: 100 }),
+          },
+        },
+      ];
+
+    test.each(failureModes)(
+      "$name: IsNotAValidCertificate + True → met",
+      async ({ response }: { response: SslMonitorResponse }) => {
+        const result: string | null = await evaluate(
+          buildDataToProcess({ isOnline: true, sslResponse: response }),
+          {
+            checkOn: CheckOn.IsNotAValidCertificate,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+        );
+
+        expect(result).toBeTruthy();
+      },
+    );
+
+    test.each(failureModes)(
+      "$name: IsValidCertificate + True → not met",
+      async ({ response }: { response: SslMonitorResponse }) => {
+        const result: string | null = await evaluate(
+          buildDataToProcess({ isOnline: true, sslResponse: response }),
+          {
+            checkOn: CheckOn.IsValidCertificate,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+        );
+
+        expect(result).toBeNull();
+      },
+    );
+
+    test.each(failureModes)(
+      "$name: IsValidCertificate + False → met",
+      async ({ response }: { response: SslMonitorResponse }) => {
+        const result: string | null = await evaluate(
+          buildDataToProcess({ isOnline: true, sslResponse: response }),
+          {
+            checkOn: CheckOn.IsValidCertificate,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+        );
+
+        expect(result).toBeTruthy();
+      },
+    );
+
+    test("the two predicates are exact complements, even with no expiry", async () => {
+      /*
+       * The silent-healthy case: a certificate the probe could not fully
+       * read. Before the fix BOTH of these returned null and the monitor
+       * recorded nothing.
+       */
+      const response: SslMonitorResponse = {
+        isValidCertificate: false,
+        isSelfSigned: false,
+        certificateValidationErrorCode: "UNABLE_TO_GET_ISSUER_CERT",
+        certificateValidationError: "unable to get issuer certificate",
+        // deliberately no expiresAt
+      };
+
+      const isValid: string | null = await evaluate(
+        buildDataToProcess({ isOnline: true, sslResponse: response }),
+        {
+          checkOn: CheckOn.IsValidCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        },
+      );
+
+      const isNotValid: string | null = await evaluate(
+        buildDataToProcess({ isOnline: true, sslResponse: response }),
+        {
+          checkOn: CheckOn.IsNotAValidCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        },
+      );
+
+      expect(isValid).toBeNull();
+      expect(isNotValid).toBeTruthy();
+    });
+
+    test("a valid certificate satisfies IsValidCertificate and not its negation", async () => {
+      const response: SslMonitorResponse = {
+        isValidCertificate: true,
+        isSelfSigned: false,
+        certificateValidationErrorCode: "",
+        certificateValidationError: "",
+        expiresAt: dateFromNow({ days: 90 }),
+      };
+
+      const isValid: string | null = await evaluate(
+        buildDataToProcess({ isOnline: true, sslResponse: response }),
+        {
+          checkOn: CheckOn.IsValidCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        },
+      );
+
+      const isNotValid: string | null = await evaluate(
+        buildDataToProcess({ isOnline: true, sslResponse: response }),
+        {
+          checkOn: CheckOn.IsNotAValidCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        },
+      );
+
+      expect(isValid).toBeTruthy();
+      expect(isNotValid).toBeNull();
+    });
+
+    test("the reason names the underlying validation error", async () => {
+      const result: string | null = await evaluate(
+        buildDataToProcess({
+          isOnline: true,
+          sslResponse: {
+            isValidCertificate: false,
+            isSelfSigned: false,
+            certificateValidationErrorCode: "ERR_TLS_CERT_ALTNAME_INVALID",
+            certificateValidationError: "Hostname/IP does not match",
+            expiresAt: dateFromNow({ days: 100 }),
+          },
+        }),
+        {
+          checkOn: CheckOn.IsNotAValidCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        },
+      );
+
+      // The root cause has to reach whoever gets paged.
+      expect(result).toContain("Hostname/IP does not match");
+    });
+
+    test("an unreachable endpoint is not a valid certificate", async () => {
+      const result: string | null = await evaluate(
+        buildDataToProcess({
+          isOnline: false,
+          sslResponse: { isValidCertificate: false },
+        }),
+        {
+          checkOn: CheckOn.IsNotAValidCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        },
+      );
+
+      expect(result).toBeTruthy();
+    });
+
+    test("only genuine self-signed responses satisfy IsSelfSignedCertificate", async () => {
+      const mismatch: string | null = await evaluate(
+        buildDataToProcess({
+          isOnline: true,
+          sslResponse: {
+            isValidCertificate: false,
+            isSelfSigned: false,
+            certificateValidationErrorCode: "ERR_TLS_CERT_ALTNAME_INVALID",
+            expiresAt: dateFromNow({ days: 100 }),
+          },
+        }),
+        {
+          checkOn: CheckOn.IsSelfSignedCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        },
+      );
+
+      /*
+       * Pre-fix the probe set isSelfSigned=true for a hostname mismatch, so
+       * this criterion fired on a certificate that was not self-signed at
+       * all.
+       */
+      expect(mismatch).toBeNull();
+    });
+  });
+
+  /*
+   * Payloads written by a probe running an older build carry no
+   * isValidCertificate field. They must keep evaluating exactly as before,
+   * or upgrading the server would flip healthy monitors to Down.
+   */
+  describe("legacy payloads without an explicit verdict", () => {
+    test("a healthy legacy response is still valid", async () => {
+      const result: string | null = await evaluate(
+        buildDataToProcess({
+          isOnline: true,
+          sslResponse: {
+            isSelfSigned: false,
+            expiresAt: dateFromNow({ days: 60 }),
+          },
+        }),
+        {
+          checkOn: CheckOn.IsValidCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        },
+      );
+
+      expect(result).toBeTruthy();
+    });
+
+    test("a legacy self-signed response is still not valid", async () => {
+      const result: string | null = await evaluate(
+        buildDataToProcess({
+          isOnline: true,
+          sslResponse: {
+            isSelfSigned: true,
+            expiresAt: dateFromNow({ days: 60 }),
+          },
+        }),
+        {
+          checkOn: CheckOn.IsNotAValidCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        },
+      );
+
+      expect(result).toBeTruthy();
+    });
+
+    test("a legacy expired response is still not valid", async () => {
+      const result: string | null = await evaluate(
+        buildDataToProcess({
+          isOnline: true,
+          sslResponse: {
+            isSelfSigned: false,
+            expiresAt: dateFromNow({ days: -1 }),
+          },
+        }),
+        {
+          checkOn: CheckOn.IsValidCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        },
+      );
+
+      expect(result).toBeNull();
+    });
+  });
+
+  /*
+   * The probe serialises Dates to ISO strings over the wire, so by the time
+   * criteria run, expiresAt is a string rather than a Date. Expiry maths
+   * must behave identically either way.
+   */
+  describe("expiresAt arriving as an ISO string", () => {
+    test("a future expiry read from a string is still valid", async () => {
+      const result: string | null = await evaluate(
+        buildDataToProcess({
+          isOnline: true,
+          sslResponse: {
+            isValidCertificate: true,
+            isSelfSigned: false,
+            expiresAt: dateFromNow({
+              days: 30,
+            }).toISOString() as unknown as Date,
+          },
+        }),
+        {
+          checkOn: CheckOn.IsValidCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        },
+      );
+
+      expect(result).toBeTruthy();
+    });
+
+    test("ExpiresInDays compares correctly against a string expiry", async () => {
+      const result: string | null = await evaluate(
+        buildDataToProcess({
+          isOnline: true,
+          sslResponse: {
+            isValidCertificate: true,
+            expiresAt: dateFromNow({
+              days: 10,
+            }).toISOString() as unknown as Date,
+          },
+        }),
+        {
+          checkOn: CheckOn.ExpiresInDays,
+          filterType: FilterType.LessThan,
+          value: 30,
+        },
+      );
+
+      expect(result).toBeTruthy();
+    });
   });
 });
