@@ -127,7 +127,7 @@ describe("MicrosoftTeamsAPI.getTeamsAppManifest", () => {
       expect(names).not.toContain("ChatMessage.Send.Chat");
     });
 
-    test("declares exactly the five expected resource-specific permissions", () => {
+    test("declares exactly the six expected resource-specific permissions", () => {
       const permissions: Array<JSONObject> =
         getResourceSpecificPermissions(getManifest());
       const names: Array<string> = permissions.map((permission: JSONObject) => {
@@ -140,6 +140,12 @@ describe("MicrosoftTeamsAPI.getTeamsAppManifest", () => {
           "Channel.Create.Group",
           "ChatMessage.Read.Chat",
           "ChatMember.Read.Chat",
+          /*
+           * Lets OneUptime verify, per team, that the installed OneUptime app
+           * is the package built from this deployment before telling an admin
+           * their app is missing.
+           */
+          "TeamsAppInstallation.Read.Group",
         ].sort(),
       );
     });

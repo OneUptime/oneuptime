@@ -584,9 +584,37 @@ describe("MicrosoftTeamsUtil.removeTeamFromBotActivity", () => {
     });
 
     expect(removeSpy).toHaveBeenCalledTimes(1);
+    /*
+     * Uninstall passes both ids: the bot is already out of the team so the
+     * Graph id cannot be looked up, and records written before it was captured
+     * are only findable by the thread id. TEAM_ID here is a thread id, matching
+     * what channelData.team.id carries.
+     */
     expect(removeSpy).toHaveBeenCalledWith({
       tenantId: TENANT_ID,
-      teamId: TEAM_ID,
+      teamsThreadId: TEAM_ID,
+      graphTeamId: undefined,
+    });
+  });
+
+  test("an uninstall activity that still carries aadGroupId passes it through", async () => {
+    const removeSpy: jest.SpyInstance = jest
+      .spyOn(MicrosoftTeamsUtil, "removeTeamFromProjectAuthTokens")
+      .mockResolvedValue(undefined as never);
+
+    await MicrosoftTeamsUtil.removeTeamFromBotActivity({
+      activity: teamActivity({
+        channelData: {
+          team: { id: TEAM_ID, aadGroupId: "graph-team-1" },
+          tenant: { id: TENANT_ID },
+        },
+      }),
+    });
+
+    expect(removeSpy).toHaveBeenCalledWith({
+      tenantId: TENANT_ID,
+      teamsThreadId: TEAM_ID,
+      graphTeamId: "graph-team-1",
     });
   });
 
@@ -884,7 +912,7 @@ describe("MicrosoftTeamsUtil.removeTeamFromProjectAuthTokens", () => {
 
     await MicrosoftTeamsUtil.removeTeamFromProjectAuthTokens({
       tenantId: "tenant-abc",
-      teamId: TEAM_ID,
+      teamsThreadId: TEAM_ID,
     });
 
     expect(findBySpy).toHaveBeenCalledWith(
@@ -925,7 +953,7 @@ describe("MicrosoftTeamsUtil.removeTeamFromProjectAuthTokens", () => {
 
     await MicrosoftTeamsUtil.removeTeamFromProjectAuthTokens({
       tenantId: "tenant-abc",
-      teamId: teamToRemove.id,
+      teamsThreadId: teamToRemove.id,
     });
 
     expect(updateSpy).toHaveBeenCalledTimes(1);
@@ -950,7 +978,7 @@ describe("MicrosoftTeamsUtil.removeTeamFromProjectAuthTokens", () => {
 
     await MicrosoftTeamsUtil.removeTeamFromProjectAuthTokens({
       tenantId: "tenant-abc",
-      teamId: team.id,
+      teamsThreadId: team.id,
     });
 
     const savedMiscData: MicrosoftTeamsMiscData = getUpdateArgs(updateSpy, 0)
@@ -976,7 +1004,7 @@ describe("MicrosoftTeamsUtil.removeTeamFromProjectAuthTokens", () => {
 
     await MicrosoftTeamsUtil.removeTeamFromProjectAuthTokens({
       tenantId: "tenant-abc",
-      teamId: TEAM_ID,
+      teamsThreadId: TEAM_ID,
     });
 
     expect(updateSpy).not.toHaveBeenCalled();
@@ -991,7 +1019,7 @@ describe("MicrosoftTeamsUtil.removeTeamFromProjectAuthTokens", () => {
 
     await MicrosoftTeamsUtil.removeTeamFromProjectAuthTokens({
       tenantId: "tenant-abc",
-      teamId: TEAM_ID,
+      teamsThreadId: TEAM_ID,
     });
 
     expect(updateSpy).not.toHaveBeenCalled();
@@ -1014,7 +1042,7 @@ describe("MicrosoftTeamsUtil.removeTeamFromProjectAuthTokens", () => {
 
     await MicrosoftTeamsUtil.removeTeamFromProjectAuthTokens({
       tenantId: "tenant-abc",
-      teamId: team.id,
+      teamsThreadId: team.id,
     });
 
     expect(updateSpy).toHaveBeenCalledTimes(3);
@@ -1068,7 +1096,7 @@ describe("MicrosoftTeamsUtil.removeTeamFromProjectAuthTokens", () => {
 
     await MicrosoftTeamsUtil.removeTeamFromProjectAuthTokens({
       tenantId: "tenant-abc",
-      teamId: team.id,
+      teamsThreadId: team.id,
     });
 
     expect(updateSpy).toHaveBeenCalledTimes(1);
@@ -1104,7 +1132,7 @@ describe("MicrosoftTeamsUtil.removeTeamFromProjectAuthTokens", () => {
 
     await MicrosoftTeamsUtil.removeTeamFromProjectAuthTokens({
       tenantId: "tenant-abc",
-      teamId: "19:team-aaa@thread.tacv2",
+      teamsThreadId: "19:team-aaa@thread.tacv2",
     });
 
     expect(updateSpy).not.toHaveBeenCalled();
@@ -1120,7 +1148,7 @@ describe("MicrosoftTeamsUtil.removeTeamFromProjectAuthTokens", () => {
 
     await MicrosoftTeamsUtil.removeTeamFromProjectAuthTokens({
       tenantId: "tenant-abc",
-      teamId: team.id,
+      teamsThreadId: team.id,
     });
 
     expect(originalMiscData.installedTeams).toEqual({ [team.id]: team });
@@ -1495,9 +1523,15 @@ describe("MicrosoftTeamsUtil.handleBotMessageActivity - team install backfill wi
     });
 
     expect(spies.captureTeamSpy).toHaveBeenCalledTimes(1);
+    /*
+     * onlyIfMissingOrStale, because this runs on every inbound channel message:
+     * once the team is recorded it must cost one read, not a write plus a
+     * possible Bot Framework call to resolve the group id.
+     */
     expect(spies.captureTeamSpy).toHaveBeenCalledWith({
       activity: activity,
       turnContext: turnContext,
+      onlyIfMissingOrStale: true,
     });
     expect(spies.captureChatSpy).not.toHaveBeenCalled();
   });

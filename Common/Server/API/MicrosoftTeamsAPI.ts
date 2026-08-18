@@ -177,6 +177,16 @@ export default class MicrosoftTeamsAPI {
               type: "Application",
               name: "ChatMember.Read.Chat",
             },
+            /*
+             * Lets OneUptime confirm, per team, that the installed OneUptime app
+             * is the package built from THIS deployment before telling an admin
+             * their app is missing. Without it the installed-apps read falls back
+             * to "unknown" and the send is handed to Microsoft to reject.
+             */
+            {
+              type: "Application",
+              name: "TeamsAppInstallation.Read.Group",
+            },
           ],
         },
       },

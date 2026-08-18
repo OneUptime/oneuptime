@@ -252,228 +252,44 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           throw new BadDataException((err as Error)?.message);
         }
       }
+    }
 
-      // post message
+    /*
+     * Post to the channels this test just created.
+     *
+     * This loop used to sit inside the shouldPostToExistingChannel block, so a
+     * rule that only creates a channel created it, invited nobody (a no-op on
+     * Teams) and reported success without ever attempting a send. The one
+     * action an admin runs to prove the bot can post proved nothing, and a
+     * passing test was read as evidence that the workspace app was wired up
+     * correctly when it had never been exercised.
+     */
+    for (const createdChannel of createdChannels) {
+      await this.postTestMessageToChannels({
+        projectId: data.projectId,
+        messageBlocksByWorkspaceTypes: messageBlocksByWorkspaceTypes,
+        testByUserId: data.testByUserId,
+        channelNames: [],
+        channelIds: [createdChannel.id],
+        /*
+         * The team the channel was actually created in. This used to pass
+         * existingTeam, which is a different field on a different rule — for a
+         * create-only rule it is undefined, and when both are set they can name
+         * two different teams.
+         */
+        teamId: createdChannel.teamId,
+      });
+    }
 
-      for (const createdChannel of createdChannels) {
-        try {
-          const responses: Array<WorkspaceSendMessageResponse> =
-            await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
-              projectId: data.projectId,
-              messagePayloadsByWorkspace: messageBlocksByWorkspaceTypes.map(
-                (
-                  messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType,
-                ) => {
-                  const payload: WorkspaceMessagePayload = {
-                    _type: "WorkspaceMessagePayload",
-                    workspaceType: messageBlocksByWorkspaceType.workspaceType,
-                    messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
-                    channelNames: [],
-                    channelIds: [createdChannel.id],
-                    teamId: notificationRule.existingTeam,
-                  };
-
-                  return payload;
-                },
-              ),
-            });
-
-          // Log results for test sends (created channels)
-          const getMessageSummary: (wt: WorkspaceType) => string = (
-            wt: WorkspaceType,
-          ): string => {
-            const blocks: Array<WorkspaceMessageBlock> | undefined =
-              messageBlocksByWorkspaceTypes.find(
-                (b: MessageBlocksByWorkspaceType) => {
-                  return b.workspaceType === wt;
-                },
-              )?.messageBlocks;
-            if (!blocks) {
-              return "";
-            }
-            const texts: Array<string> = [];
-            for (const block of blocks) {
-              if (
-                (block as WorkspacePayloadMarkdown)._type ===
-                "WorkspacePayloadMarkdown"
-              ) {
-                texts.push((block as WorkspacePayloadMarkdown).text);
-              }
-            }
-            const joined: string = texts.join(" \n").trim();
-            return joined;
-          };
-
-          for (const res of responses) {
-            const messageSummary: string = getMessageSummary(res.workspaceType);
-
-            // Check for errors in the response
-            if (res.errors && res.errors.length > 0) {
-              /*
-               * Record the failure before throwing. Test sends used to throw
-               * straight out of here, so a failed test left no trace in
-               * Notification Logs and support had no way to see what Microsoft
-               * or Slack actually said.
-               */
-              await this.logTestSendFailures({
-                projectId: data.projectId,
-                workspaceType: res.workspaceType,
-                errors: res.errors,
-                message: messageSummary,
-                userId: data.testByUserId,
-              });
-
-              const errorMessages: Array<string> = res.errors.map(
-                (error: { channel: WorkspaceChannel; error: string }) => {
-                  return `Channel ${error.channel.name}: ${error.error}`;
-                },
-              );
-              throw new BadDataException(
-                `Failed to send test message to some channels: ${errorMessages.join(
-                  "; ",
-                )}`,
-              );
-            }
-
-            for (const thread of res.threads) {
-              const log: WorkspaceNotificationLog =
-                new WorkspaceNotificationLog();
-              log.projectId = data.projectId;
-              log.workspaceType = res.workspaceType;
-              log.channelId = thread.channel.id;
-              log.channelName = thread.channel.name;
-              log.threadId = thread.threadId;
-              log.message = messageSummary;
-              log.status = WorkspaceNotificationStatus.Success;
-              log.statusMessage = "Test message posted to workspace channel";
-              log.userId = data.testByUserId;
-              log.actionType = WorkspaceNotificationActionType.SendMessage;
-
-              await WorkspaceNotificationLogService.create({
-                data: log,
-                props: { isRoot: true },
-              });
-            }
-          }
-        } catch (err) {
-          throw new BadDataException(
-            "Cannot post message to channel. " + (err as Error)?.message,
-          );
-        }
-      }
-
-      for (const channel of existingChannels) {
-        try {
-          const responses: Array<WorkspaceSendMessageResponse> =
-            await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
-              projectId: data.projectId,
-              messagePayloadsByWorkspace: messageBlocksByWorkspaceTypes.map(
-                (
-                  messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType,
-                ) => {
-                  const payload: WorkspaceMessagePayload = {
-                    _type: "WorkspaceMessagePayload",
-                    workspaceType: messageBlocksByWorkspaceType.workspaceType,
-                    messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
-                    channelNames: [channel.name],
-                    channelIds: [],
-                  };
-
-                  if (
-                    messageBlocksByWorkspaceType.workspaceType ===
-                    WorkspaceType.MicrosoftTeams
-                  ) {
-                    payload.teamId = channel.teamId;
-                  }
-
-                  return payload;
-                },
-              ),
-            });
-
-          // Log results for test sends (existing channels)
-          const getMessageSummary: (wt: WorkspaceType) => string = (
-            wt: WorkspaceType,
-          ): string => {
-            const blocks: Array<WorkspaceMessageBlock> | undefined =
-              messageBlocksByWorkspaceTypes.find(
-                (b: MessageBlocksByWorkspaceType) => {
-                  return b.workspaceType === wt;
-                },
-              )?.messageBlocks;
-            if (!blocks) {
-              return "";
-            }
-            const texts: Array<string> = [];
-            for (const block of blocks) {
-              if (
-                (block as WorkspacePayloadMarkdown)._type ===
-                "WorkspacePayloadMarkdown"
-              ) {
-                texts.push((block as WorkspacePayloadMarkdown).text);
-              }
-            }
-            const joined: string = texts.join(" \n").trim();
-            return joined;
-          };
-
-          for (const res of responses) {
-            const messageSummary: string = getMessageSummary(res.workspaceType);
-
-            // Check for errors in the response
-            if (res.errors && res.errors.length > 0) {
-              /*
-               * Record the failure before throwing. Test sends used to throw
-               * straight out of here, so a failed test left no trace in
-               * Notification Logs and support had no way to see what Microsoft
-               * or Slack actually said.
-               */
-              await this.logTestSendFailures({
-                projectId: data.projectId,
-                workspaceType: res.workspaceType,
-                errors: res.errors,
-                message: messageSummary,
-                userId: data.testByUserId,
-              });
-
-              const errorMessages: Array<string> = res.errors.map(
-                (error: { channel: WorkspaceChannel; error: string }) => {
-                  return `Channel ${error.channel.name}: ${error.error}`;
-                },
-              );
-              throw new BadDataException(
-                `Failed to send test message to some channels: ${errorMessages.join(
-                  "; ",
-                )}`,
-              );
-            }
-
-            for (const thread of res.threads) {
-              const log: WorkspaceNotificationLog =
-                new WorkspaceNotificationLog();
-              log.projectId = data.projectId;
-              log.workspaceType = res.workspaceType;
-              log.channelId = thread.channel.id;
-              log.channelName = thread.channel.name;
-              log.threadId = thread.threadId;
-              log.message = messageSummary;
-              log.status = WorkspaceNotificationStatus.Success;
-              log.statusMessage = "Test message posted to workspace channel";
-              log.userId = data.testByUserId;
-              log.actionType = WorkspaceNotificationActionType.SendMessage;
-
-              await WorkspaceNotificationLogService.create({
-                data: log,
-                props: { isRoot: true },
-              });
-            }
-          }
-        } catch (err) {
-          throw new BadDataException(
-            "Cannot post message to channel. " + (err as Error)?.message,
-          );
-        }
-      }
+    for (const channel of existingChannels) {
+      await this.postTestMessageToChannels({
+        projectId: data.projectId,
+        messageBlocksByWorkspaceTypes: messageBlocksByWorkspaceTypes,
+        testByUserId: data.testByUserId,
+        channelNames: [channel.name],
+        channelIds: [],
+        teamId: channel.teamId,
+      });
     }
 
     // Post test message to Microsoft Teams chats.
@@ -565,6 +381,142 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           "Cannot post message to chat. " + (err as Error)?.message,
         );
       }
+    }
+  }
+
+  /*
+   * The markdown of a test message, for the Notification Log entry.
+   */
+  private getTestMessageSummary(data: {
+    messageBlocksByWorkspaceTypes: Array<MessageBlocksByWorkspaceType>;
+    workspaceType: WorkspaceType;
+  }): string {
+    const blocks: Array<WorkspaceMessageBlock> | undefined =
+      data.messageBlocksByWorkspaceTypes.find(
+        (b: MessageBlocksByWorkspaceType) => {
+          return b.workspaceType === data.workspaceType;
+        },
+      )?.messageBlocks;
+
+    if (!blocks) {
+      return "";
+    }
+
+    const texts: Array<string> = [];
+
+    for (const block of blocks) {
+      if (
+        (block as WorkspacePayloadMarkdown)._type === "WorkspacePayloadMarkdown"
+      ) {
+        texts.push((block as WorkspacePayloadMarkdown).text);
+      }
+    }
+
+    return texts.join(" \n").trim();
+  }
+
+  /*
+   * Post one test message to one set of destinations, then record the outcome in
+   * Notification Logs.
+   *
+   * Created channels and existing channels ran two byte-identical copies of
+   * this, which is how the created-channel copy ended up nested in the wrong
+   * conditional without anyone noticing. One path now serves both.
+   */
+  @CaptureSpan()
+  private async postTestMessageToChannels(data: {
+    projectId: ObjectID;
+    messageBlocksByWorkspaceTypes: Array<MessageBlocksByWorkspaceType>;
+    testByUserId: ObjectID;
+    channelNames: Array<string>;
+    channelIds: Array<string>;
+    teamId?: string | undefined;
+  }): Promise<void> {
+    try {
+      const responses: Array<WorkspaceSendMessageResponse> =
+        await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
+          projectId: data.projectId,
+          messagePayloadsByWorkspace: data.messageBlocksByWorkspaceTypes.map(
+            (messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType) => {
+              const payload: WorkspaceMessagePayload = {
+                _type: "WorkspaceMessagePayload",
+                workspaceType: messageBlocksByWorkspaceType.workspaceType,
+                messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
+                channelNames: data.channelNames,
+                channelIds: data.channelIds,
+              };
+
+              // teamId is a Microsoft Teams concept; Slack has no equivalent.
+              if (
+                messageBlocksByWorkspaceType.workspaceType ===
+                WorkspaceType.MicrosoftTeams
+              ) {
+                payload.teamId = data.teamId;
+              }
+
+              return payload;
+            },
+          ),
+        });
+
+      for (const res of responses) {
+        const messageSummary: string = this.getTestMessageSummary({
+          messageBlocksByWorkspaceTypes: data.messageBlocksByWorkspaceTypes,
+          workspaceType: res.workspaceType,
+        });
+
+        // Check for errors in the response
+        if (res.errors && res.errors.length > 0) {
+          /*
+           * Record the failure before throwing. Test sends used to throw
+           * straight out of here, so a failed test left no trace in
+           * Notification Logs and support had no way to see what Microsoft
+           * or Slack actually said.
+           */
+          await this.logTestSendFailures({
+            projectId: data.projectId,
+            workspaceType: res.workspaceType,
+            errors: res.errors,
+            message: messageSummary,
+            userId: data.testByUserId,
+          });
+
+          const errorMessages: Array<string> = res.errors.map(
+            (error: { channel: WorkspaceChannel; error: string }) => {
+              return `Channel ${error.channel.name}: ${error.error}`;
+            },
+          );
+
+          throw new BadDataException(
+            `Failed to send test message to some channels: ${errorMessages.join(
+              "; ",
+            )}`,
+          );
+        }
+
+        for (const thread of res.threads) {
+          const log: WorkspaceNotificationLog = new WorkspaceNotificationLog();
+          log.projectId = data.projectId;
+          log.workspaceType = res.workspaceType;
+          log.channelId = thread.channel.id;
+          log.channelName = thread.channel.name;
+          log.threadId = thread.threadId;
+          log.message = messageSummary;
+          log.status = WorkspaceNotificationStatus.Success;
+          log.statusMessage = "Test message posted to workspace channel";
+          log.userId = data.testByUserId;
+          log.actionType = WorkspaceNotificationActionType.SendMessage;
+
+          await WorkspaceNotificationLogService.create({
+            data: log,
+            props: { isRoot: true },
+          });
+        }
+      }
+    } catch (err) {
+      throw new BadDataException(
+        "Cannot post message to channel. " + (err as Error)?.message,
+      );
     }
   }
 
