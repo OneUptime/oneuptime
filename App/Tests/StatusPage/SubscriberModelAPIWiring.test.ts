@@ -78,9 +78,17 @@ describe("Status Page model requests stay in the Status Page auth boundary", () 
     (relativePath: string) => {
       const source: string = readSource(relativePath).replace(/\s+/g, " ");
 
-      expect(source).toContain(
-        "if (!props.allowSubscribersToChooseResources) { return; }",
+      /*
+       * The guard may reset UI state (e.g. setIsLoading) before bailing, but
+       * it must end in an early return and must never start a resource fetch.
+       */
+      const guard: RegExpMatchArray | null = source.match(
+        /if \(!props\.allowSubscribersToChooseResources\) \{([^}]*)\}/,
       );
+
+      expect(guard).not.toBeNull();
+      expect(guard![1]).toContain("return;");
+      expect(guard![1]).not.toContain("fetch");
       expect(source).toContain("[props.allowSubscribersToChooseResources]");
     },
   );
