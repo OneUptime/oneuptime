@@ -30,6 +30,21 @@ import {
   parseSiteMapResponse,
 } from "../../Components/NetworkSite/SiteHierarchyTypes";
 import { childTypeLabelFor } from "../../Components/NetworkSite/SiteMapViewModel";
+import StatusChipGroup, {
+  StatusChipOption,
+} from "../../Components/Filters/StatusChipGroup";
+import {
+  SiteHealthFilterMode,
+  SiteHealthState,
+  SiteHealthSummary,
+  buildSiteHealthFilterOptions,
+  buildSiteHealthIndex,
+  filterLinksByVisibleSites,
+  filterSitesByHealth,
+  filterSitesByHealthLookup,
+  isSiteHealthFilterActive,
+  summarizeSiteHealth,
+} from "../../Components/NetworkSite/SiteHealthFilter";
 import NetworkTopologyLiveView from "../../Components/Topology/NetworkTopologyLiveView";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -159,6 +174,17 @@ const NetworkSiteMap: FunctionComponent<
   const [searchText, setSearchTextState] = useState<string>((): string => {
     return readDrillStateFromUrl().searchText;
   });
+
+  /*
+   * Issue #3261: whether the level is narrowed to what needs attention.
+   * A view preference, and kept out of the URL for the same reason
+   * mapMode below is — the drill position is the shareable part of this
+   * page, and a link should stay a link to a LEVEL rather than to one
+   * reader's filter. Reset on every drill (see changeSite), because
+   * "needs attention" at one level says nothing about the next.
+   */
+  const [healthFilterMode, setHealthFilterMode] =
+    useState<SiteHealthFilterMode>("all");
 
   /*
    * How the map groups what it draws. Deliberately NOT in the URL: the
@@ -446,6 +472,14 @@ const NetworkSiteMap: FunctionComponent<
     setCurrentSiteId(siteId);
     // Text that narrowed THIS level would hide most of the next one.
     setSearchTextState("");
+    /*
+     * Same argument for health: arriving inside a region with the filter
+     * still on would show a level that is mostly empty, with the reason
+     * two rows up and easy to miss. Drilling INTO a problem is the normal
+     * way this filter gets used, and the whole point of drilling in is to
+     * see the level.
+     */
+    setHealthFilterMode("all");
     queueQueryStringUpdate({
       site: siteId,
       [NETWORK_MAP_SEARCH_PARAM]: null,
@@ -573,22 +607,57 @@ const NetworkSiteMap: FunctionComponent<
    * graph's grid layout off the work queue on every unrelated re-render.
    */
   const normalizedSearch: string = normalizeSiteSearchText(searchText);
-  const levelSites: Array<SiteChildView> = filterSitesBySearch(
+
+  /*
+   * Health narrows the same three lists the search does, and it narrows
+   * them FIRST — the counts on the chips are a claim about the level, not
+   * about the level as it stands after somebody typed three letters, and
+   * a chip whose number moved every keystroke would be unreadable.
+   *
+   * The summary is built from the CHILD rows rather than from the map
+   * markers: in grouped mode a marker can stand for a whole region, so
+   * counting markers would count regions and stores as the same unit.
+   */
+  const healthSummary: SiteHealthSummary = summarizeSiteHealth(allLevelSites);
+  const isHealthFiltered: boolean = isSiteHealthFilterActive(healthFilterMode);
+  /*
+   * The map's "no location" rows are name-and-type only, so their verdict
+   * has to be looked up from the child rows they were built from.
+   */
+  const healthById: Map<string, SiteHealthState> =
+    buildSiteHealthIndex(allLevelSites);
+
+  const healthySites: Array<SiteChildView> = filterSitesByHealth(
     allLevelSites,
+    healthFilterMode,
+  );
+  const healthyPinnedSites: Array<MapSiteView> = filterSitesByHealth(
+    allPinnedSites,
+    healthFilterMode,
+  );
+  const healthyUnplacedSites: Array<MapUnplacedSiteView> =
+    filterSitesByHealthLookup(
+      mapData?.unplacedSites || [],
+      healthById,
+      healthFilterMode,
+    );
+
+  const levelSites: Array<SiteChildView> = filterSitesBySearch(
+    healthySites,
     normalizedSearch,
   );
   const pinnedSites: Array<MapSiteView> = filterSitesBySearch(
-    allPinnedSites,
+    healthyPinnedSites,
     normalizedSearch,
   );
   const unplacedSites: Array<MapUnplacedSiteView> = filterSitesBySearch(
-    mapData?.unplacedSites || [],
+    healthyUnplacedSites,
     normalizedSearch,
   );
-  const levelLinks: Array<SiteLinkView> = filterLinksBySearch(
-    allLevelLinks,
-    normalizedSearch,
+  const levelLinks: Array<SiteLinkView> = filterLinksByVisibleSites(
+    filterLinksBySearch(allLevelLinks, normalizedSearch, siteIdSet(levelSites)),
     siteIdSet(levelSites),
+    healthFilterMode,
   );
   /*
    * The map draws its own links rather than the graph's: the map endpoint
@@ -598,10 +667,14 @@ const NetworkSiteMap: FunctionComponent<
    * sites still on the map — a search that hides one end of a link hides the
    * line with it.
    */
-  const mapLinks: Array<MapLinkView> = filterLinksBySearch(
-    mapData?.links || [],
-    normalizedSearch,
+  const mapLinks: Array<MapLinkView> = filterLinksByVisibleSites(
+    filterLinksBySearch(
+      mapData?.links || [],
+      normalizedSearch,
+      siteIdSet(pinnedSites),
+    ),
     siteIdSet(pinnedSites),
+    healthFilterMode,
   );
 
   const searchBox: ReactElement = (
@@ -615,6 +688,36 @@ const NetworkSiteMap: FunctionComponent<
     />
   );
 
+  /*
+   * The health row. Under the search box at every level rather than beside
+   * it: "which of these do I search for" and "which of these needs me" are
+   * different questions, and the chips carry counts that make this row the
+   * level's status line as much as its filter.
+   */
+  const healthChipOptions: Array<StatusChipOption> =
+    buildSiteHealthFilterOptions(healthSummary, childTypeLabel);
+  const healthFilterBar: ReactElement = (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <StatusChipGroup
+        dataTestId="network-map-health-filter"
+        ariaLabel="Filter by site health"
+        options={healthChipOptions}
+        value={healthFilterMode}
+        onChange={(value: string) => {
+          setHealthFilterMode(value as SiteHealthFilterMode);
+        }}
+      />
+      <p
+        className="text-xs text-gray-500"
+        data-testid="network-map-health-filter-hint"
+      >
+        {isHealthFiltered
+          ? `Showing ${healthSummary.attention} of ${healthSummary.total} — everything operational is hidden.`
+          : "Narrow this level to what needs a look — a site counts if its own status is down, or if any unit beneath it is."}
+      </p>
+    </div>
+  );
+
   const geoMap: ReactElement = (
     <SiteGeoMap
       sites={pinnedSites}
@@ -625,6 +728,7 @@ const NetworkSiteMap: FunctionComponent<
       unplacedSites={unplacedSites}
       childTypeLabel={childTypeLabel}
       searchText={searchText}
+      isHealthFiltered={isHealthFiltered}
       onSiteClick={changeSite}
     />
   );
@@ -649,7 +753,10 @@ const NetworkSiteMap: FunctionComponent<
            * graph under it, so it has to read as belonging to both rather
            * than as a control on either one.
            */}
-          <div className="mb-4 sm:max-w-md">{searchBox}</div>
+          <div className="mb-4 flex flex-col gap-3">
+            <div className="sm:max-w-md">{searchBox}</div>
+            {healthFilterBar}
+          </div>
 
           {/*
            * The map comes first at every level, and it is the SAME map:
@@ -677,6 +784,7 @@ const NetworkSiteMap: FunctionComponent<
                 childrenData?.descendantCountsTruncated,
               )}
               searchText={searchText}
+              isHealthFiltered={isHealthFiltered}
               onSiteClick={changeSite}
             />
           </MapSection>
@@ -739,7 +847,10 @@ const NetworkSiteMap: FunctionComponent<
        * sites are, and zoom/pan live on the map itself where the geography
        * is — see Components/NetworkSite/Geo/GeoViewport.ts.
        */}
-      <div className="mb-4 sm:max-w-md">{searchBox}</div>
+      <div className="mb-4 flex flex-col gap-3">
+        <div className="sm:max-w-md">{searchBox}</div>
+        {healthFilterBar}
+      </div>
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-gray-500">
@@ -781,6 +892,36 @@ const NetworkSiteMap: FunctionComponent<
                 <SiteCard key={site.id} site={site} onClick={changeSite} />
               );
             })}
+          </div>
+        </MapSection>
+      ) : isHealthFiltered ? (
+        /*
+         * The cards section disappearing under a health filter would read
+         * as the level having emptied. An empty level here is good news,
+         * and good news has to be said.
+         */
+        <MapSection
+          title="Sites"
+          count={0}
+          hint="Everything at this level is operational."
+        >
+          <div
+            className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-6 text-center"
+            data-testid="network-map-nothing-needs-attention"
+          >
+            <div className="flex items-center justify-center gap-2 text-sm font-medium text-gray-900">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-100">
+                <Icon
+                  className="h-3 w-3 text-green-600"
+                  icon={IconProp.CheckCircle}
+                />
+              </span>
+              Nothing needs attention
+            </div>
+            <p className="mt-1 text-sm text-gray-500">
+              Every site at this level is operational, and so is every unit
+              beneath them. Switch back to All to see them.
+            </p>
           </div>
         </MapSection>
       ) : (

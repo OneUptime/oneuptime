@@ -266,6 +266,13 @@ export interface ComponentProps {
    * rather than as "nothing matches what you typed".
    */
   searchText?: string | undefined;
+  /*
+   * True when the page's health filter is narrowing `sites`. Same contract
+   * as searchText, and needed for the same reason: a map emptied because
+   * everything is operational must not tell somebody their sites have no
+   * coordinates.
+   */
+  isHealthFiltered?: boolean | undefined;
   onSiteClick: (siteId: string) => void;
 }
 
@@ -843,6 +850,25 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
      * when the real answer is "that name is not here" sends them off to fix
      * something that is not broken.
      */
+    if (props.isHealthFiltered && !hasSites) {
+      return (
+        <div className="w-full rounded-lg border border-gray-200 bg-white shadow-sm">
+          <EmptyState
+            id="site-geo-map-nothing-needs-attention"
+            icon={IconProp.CheckCircle}
+            title="Nothing on this map needs attention"
+            description={
+              <span className="mx-auto block max-w-md">
+                {searchText
+                  ? `Nothing matching “${searchText}” at this level is down, and no unit beneath it is either. Switch back to All to see the map.`
+                  : "Every site at this level is operational, and so is every unit beneath them. Switch back to All to see the map."}
+              </span>
+            }
+          />
+        </div>
+      );
+    }
+
     if (searchText && !hasSites) {
       return (
         <div className="w-full rounded-lg border border-gray-200 bg-white shadow-sm">

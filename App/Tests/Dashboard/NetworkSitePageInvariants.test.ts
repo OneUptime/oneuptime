@@ -629,8 +629,16 @@ describe("the Network Map search narrows the whole level at once", () => {
         "const unplacedSites: Array<MapUnplacedSiteView> = filterSitesBySearch(",
       ),
     );
+    /*
+     * The link list is composed: the search predicate first, then the
+     * health filter (issue #3261) against what survived. Asserted as the
+     * whole composition rather than as the inner call alone, so dropping
+     * either half is a failure.
+     */
     expect(PAGE).toContain(
-      squash("const levelLinks: Array<SiteLinkView> = filterLinksBySearch("),
+      squash(
+        "const levelLinks: Array<SiteLinkView> = filterLinksByVisibleSites( filterLinksBySearch(allLevelLinks, normalizedSearch, siteIdSet(levelSites)),",
+      ),
     );
     // The link filter has to see the SURVIVING sites, not the raw list.
     expect(PAGE).toContain(squash("siteIdSet(levelSites),"));
@@ -1287,7 +1295,7 @@ describe("NetworkMap hands the map its own links", () => {
   test("the map's links come from the map payload", () => {
     expect(source).toContain(
       squash(
-        "const mapLinks: Array<MapLinkView> = filterLinksBySearch( mapData?.links || [], normalizedSearch, siteIdSet(pinnedSites), );",
+        "const mapLinks: Array<MapLinkView> = filterLinksByVisibleSites( filterLinksBySearch( mapData?.links || [], normalizedSearch, siteIdSet(pinnedSites), ), siteIdSet(pinnedSites), healthFilterMode, );",
       ),
     );
     expect(source).toContain("links={mapLinks}");
