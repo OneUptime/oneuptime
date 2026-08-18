@@ -95,11 +95,7 @@ const NetworkSiteDevices: FunctionComponent<
                     text="Down"
                     color={Red500}
                     size={PillSize.Small}
-                    tooltip={
-                      reachability.isStale
-                        ? `No SNMP poll has even been attempted in the last ${reachability.staleWindowInMinutes} minutes — check this device's probe.`
-                        : "The last SNMP poll could not reach this device."
-                    }
+                    tooltip="The last SNMP poll could not reach this device."
                   />
                 );
               }

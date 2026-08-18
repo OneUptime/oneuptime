@@ -244,13 +244,19 @@ describe("the last poll succeeded → Up", () => {
 });
 
 /*
- * The backstop. Reachability standing on the last poll's outcome would, on
- * its own, leave a fleet painted green forever if the probe died — nobody
- * would ever contradict the last good verdict. So a verdict we have not
- * been able to refresh for many cycles stops being trusted.
+ * Staleness ANNOTATES the verdict; it never replaces it.
+ *
+ * Two reasons, and the tests below pin both. Turning "nothing has polled
+ * this in a while" into "the device is down" is the exact inference this
+ * whole change exists to remove — doing it again at an hour instead of
+ * fifteen minutes would just move the bug. And the window is per-device
+ * (derived from each row's own interval), so a status that depended on it
+ * could never be expressed as a SQL filter — the device list's summary
+ * counts and its Status chip run in the database over `isReachable`, and a
+ * pill they cannot reproduce is a pill that contradicts them on screen.
  */
-describe("the polling pipeline stopped → Down (stale)", () => {
-  test("a good verdict older than the stale window goes Down", () => {
+describe("the polling pipeline stopped → still Up, but flagged stale", () => {
+  test("a good verdict older than the stale window stays Up and is flagged", () => {
     const result: DeviceReachabilityResult = reachabilityOf({
       isReachable: true,
       lastPolledAt: minutesAgo(61),
@@ -258,11 +264,11 @@ describe("the polling pipeline stopped → Down (stale)", () => {
       pollingIntervalInMinutes: 5,
     });
 
-    expect(result.status).toBe(NetworkDeviceReachability.Down);
+    expect(result.status).toBe(NetworkDeviceReachability.Up);
     expect(result.isStale).toBe(true);
   });
 
-  test("the boundary is strict: exactly at the window is still Up", () => {
+  test("the staleness boundary is strict, and moves only isStale", () => {
     expect(
       reachabilityOf({
         isReachable: true,
@@ -277,27 +283,58 @@ describe("the polling pipeline stopped → Down (stale)", () => {
         lastPolledAt: minutesAgo(60, 1),
         pollingIntervalInMinutes: 5,
       }),
-    ).toMatchObject({ status: NetworkDeviceReachability.Down, isStale: true });
+    ).toMatchObject({ status: NetworkDeviceReachability.Up, isStale: true });
   });
 
-  test("the window follows the device's interval, so a slow device is not stale early", () => {
+  test("the window follows the device's interval, so a slow device is not flagged early", () => {
     // 30-minute interval -> 300-minute window: four hours is fine.
     expect(
-      statusOf({
+      reachabilityOf({
         isReachable: true,
         lastPolledAt: minutesAgo(240),
         pollingIntervalInMinutes: 30,
-      }),
-    ).toBe(NetworkDeviceReachability.Up);
+      }).isStale,
+    ).toBe(false);
 
     // Six hours is not.
     expect(
-      statusOf({
+      reachabilityOf({
         isReachable: true,
         lastPolledAt: minutesAgo(360),
         pollingIntervalInMinutes: 30,
-      }),
-    ).toBe(NetworkDeviceReachability.Down);
+      }).isStale,
+    ).toBe(true);
+  });
+
+  /*
+   * The invariant that keeps the pill, the summary counts and the Status
+   * chip in agreement. The latter two are SQL over `isReachable` alone, so
+   * the moment anything else can change `status`, they diverge — which is
+   * precisely how a stale fleet came to render 40 red rows under a tile
+   * reading "Devices Down 0".
+   */
+  test("status is decided by isReachable alone, whatever the timestamps say", () => {
+    const ages: Array<number> = [0, 1, 59, 60, 61, 600, 60 * 24 * 30];
+
+    for (const age of ages) {
+      expect(
+        statusOf({
+          isReachable: true,
+          lastPolledAt: minutesAgo(age),
+          lastSeenAt: minutesAgo(age),
+          pollingIntervalInMinutes: 5,
+        }),
+      ).toBe(NetworkDeviceReachability.Up);
+
+      expect(
+        statusOf({
+          isReachable: false,
+          lastPolledAt: minutesAgo(age),
+          lastSeenAt: minutesAgo(age + 10),
+          pollingIntervalInMinutes: 5,
+        }),
+      ).toBe(NetworkDeviceReachability.Down);
+    }
   });
 
   test("the result names the window it judged against, so the UI can explain itself", () => {
@@ -330,7 +367,7 @@ describe("the polling pipeline stopped → Down (stale)", () => {
     expect(result.lastContactAt?.getTime()).toBe(minutesAgo(2).getTime());
   });
 
-  test("a device nobody has polled AND that never answered is stale", () => {
+  test("a device can be both Down and stale, reported independently", () => {
     const result: DeviceReachabilityResult = reachabilityOf({
       isReachable: false,
       lastPolledAt: minutesAgo(600),
@@ -537,7 +574,13 @@ describe("issue #3220 at fleet scale", () => {
     expect(down).toBe(3);
   });
 
-  test("a fleet whose probe has stopped entirely still goes down", () => {
+  /*
+   * A probe that has stopped entirely. The fleet keeps its last known
+   * verdicts — inventing an outage nobody observed is the failure mode this
+   * change exists to remove — but every device is flagged stale, which is
+   * the signal that says "check the probe" rather than "check 50 devices".
+   */
+  test("a fleet whose probe has stopped is flagged stale, not declared down", () => {
     const fleet: Array<DeviceReachabilityInput> = healthyFleetPolledOverMinutes(
       20,
       50,
@@ -555,7 +598,13 @@ describe("issue #3220 at fleet scale", () => {
         return statusOf(device) === NetworkDeviceReachability.Down;
       },
     ).length;
+    const stale: number = fleet.filter(
+      (device: DeviceReachabilityInput): boolean => {
+        return reachabilityOf(device).isStale;
+      },
+    ).length;
 
-    expect(down).toBe(50);
+    expect(down).toBe(0);
+    expect(stale).toBe(50);
   });
 });

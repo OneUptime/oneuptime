@@ -140,11 +140,19 @@ describe("SiteStatusRollupUtil.worstStatus", () => {
   });
 
   /*
-   * The backstop still fires: a site nothing has polled for hours cannot
-   * keep reporting the last good verdict.
+   * A site nothing has polled for hours keeps its last known status rather
+   * than flipping offline. Turning "nobody has checked lately" into a red
+   * site card is the same inference this change removed from the device
+   * pill — and doing it here alone would put the site card at odds with
+   * every device under it, which is the inconsistency issue #3220 reported.
    */
-  it("a device out of contact past its stale window maps to offline", () => {
-    expect(worst([answered(61)])).toBe(OFFLINE.monitorStatusId);
+  it("a device out of contact past its stale window keeps its last verdict", () => {
+    expect(worst([answered(61)])).toBe(OPERATIONAL.monitorStatusId);
+    expect(worst([answered(60 * 24)])).toBe(OPERATIONAL.monitorStatusId);
+  });
+
+  it("...but a device that actually failed its last poll still rolls up offline", () => {
+    expect(worst([failed(60 * 24)])).toBe(OFFLINE.monitorStatusId);
   });
 
   /*
@@ -267,6 +275,11 @@ describe("SiteStatusRollupUtil.worstStatus", () => {
    * migration (or their next walk) fills the rest in.
    */
   it("legacy rows with only lastSeenAt still roll up by freshness", () => {
+    /*
+     * The one place freshness survives: a row written before isReachable
+     * existed has nothing else to go on. The upgrade migration backfills
+     * these, so it is a short-lived path.
+     */
     expect(worst([{ lastSeenAt: minutesAgo(5) }])).toBe(
       OPERATIONAL.monitorStatusId,
     );

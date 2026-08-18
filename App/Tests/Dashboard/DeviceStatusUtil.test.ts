@@ -123,7 +123,12 @@ describe("DeviceStatusUtil.getStatus", () => {
     ).toBe(NetworkDeviceStatus.Up);
   });
 
-  test("a device nothing has polled for hours is Down", () => {
+  /*
+   * Staleness annotates the verdict rather than replacing it — see
+   * DeviceReachabilityUtil. The tiles and the Status chip are SQL over
+   * `isReachable`, so a pill they cannot reproduce would contradict them.
+   */
+  test("a device nothing has polled for hours keeps its last verdict", () => {
     expect(
       DeviceStatusUtil.getStatus({
         isReachable: true,
@@ -131,7 +136,7 @@ describe("DeviceStatusUtil.getStatus", () => {
         lastSeenAt: minutesAgo(180),
         pollingIntervalInMinutes: 5,
       }),
-    ).toBe(NetworkDeviceStatus.Down);
+    ).toBe(NetworkDeviceStatus.Up);
   });
 
   test("accepts the ISO strings a NetworkDevice row carries after a fetch", () => {
@@ -169,7 +174,8 @@ describe("DeviceStatusUtil.getReachability", () => {
       pollingIntervalInMinutes: 5,
     });
 
-    expect(result.status).toBe(NetworkDeviceStatus.Down);
+    // The verdict stands; the amber "Stale" pill rides alongside it.
+    expect(result.status).toBe(NetworkDeviceStatus.Up);
     expect(result.isStale).toBe(true);
     expect(result.staleWindowInMinutes).toBe(60);
     expect(result.lastContactAt).toBeInstanceOf(Date);

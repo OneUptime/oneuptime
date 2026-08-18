@@ -42,7 +42,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
-import { Gray500, Green, Red500 } from "Common/Types/BrandColors";
+import { Gray500, Green, Red500, Yellow500 } from "Common/Types/BrandColors";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -620,29 +620,49 @@ const NetworkDevices: FunctionComponent<
               const reachability: DeviceReachabilityResult =
                 DeviceStatusUtil.getReachability(item);
 
+              /*
+               * Stale qualifies the verdict, it does not replace it — so it
+               * rides along as an amber "Stale" pill next to the real one
+               * rather than repainting an answering device red. The row
+               * still says what the last poll found; the second pill says
+               * nothing has checked since.
+               */
+              const stalePill: ReactElement = reachability.isStale ? (
+                <Pill
+                  text="Stale"
+                  color={Yellow500}
+                  size={PillSize.Small}
+                  tooltip={`No SNMP poll has been attempted in the last ${reachability.staleWindowInMinutes} minutes, so this verdict may be out of date — check this device's probe.`}
+                />
+              ) : (
+                <></>
+              );
+
               if (reachability.status === NetworkDeviceStatus.Up) {
                 return (
-                  <Pill
-                    text="Up"
-                    color={Green}
-                    size={PillSize.Small}
-                    tooltip="The last SNMP poll reached this device."
-                  />
+                  <div className="flex items-center gap-1.5">
+                    <Pill
+                      text="Up"
+                      color={Green}
+                      size={PillSize.Small}
+                      tooltip="The last SNMP poll reached this device."
+                    />
+                    {stalePill}
+                  </div>
                 );
               }
 
               if (reachability.status === NetworkDeviceStatus.Down) {
                 return (
-                  <Pill
-                    text="Down"
-                    color={Red500}
-                    size={PillSize.Small}
-                    tooltip={
-                      reachability.isStale
-                        ? `No SNMP poll has even been attempted in the last ${reachability.staleWindowInMinutes} minutes — check this device's probe.`
-                        : "The last SNMP poll could not reach this device."
-                    }
-                  />
+                  <div className="flex items-center gap-1.5">
+                    <Pill
+                      text="Down"
+                      color={Red500}
+                      size={PillSize.Small}
+                      tooltip="The last SNMP poll could not reach this device."
+                    />
+                    {stalePill}
+                  </div>
                 );
               }
 
