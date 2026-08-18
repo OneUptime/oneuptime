@@ -381,6 +381,31 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "Incidents",
+    links: [
+      {
+        title: "Incidents Overview",
+        url: "/docs/incidents/index",
+      },
+      {
+        title: "Declaring an Incident",
+        url: "/docs/incidents/declaring-incidents",
+      },
+      {
+        title: "Incident States & Severities",
+        url: "/docs/incidents/states-and-severities",
+      },
+      {
+        title: "Incident Notes, Owners & Feed",
+        url: "/docs/incidents/notes-owners-and-feed",
+      },
+      {
+        title: "Incident Settings & Automation",
+        url: "/docs/incidents/settings",
+      },
+    ],
+  },
+  {
     title: "On Call",
     links: [
       {
@@ -491,6 +516,22 @@ const DocsNav: NavGroup[] = [
   {
     title: "Status Pages",
     links: [
+      {
+        title: "Status Pages Overview",
+        url: "/docs/status-pages/index",
+      },
+      {
+        title: "Status Page Resources & Groups",
+        url: "/docs/status-pages/resources-and-groups",
+      },
+      {
+        title: "Status Page Branding & Domains",
+        url: "/docs/status-pages/branding-and-domains",
+      },
+      {
+        title: "Subscribers & Announcements",
+        url: "/docs/status-pages/subscribers",
+      },
       {
         title: "Public API",
         url: "/docs/status-pages/public-api",

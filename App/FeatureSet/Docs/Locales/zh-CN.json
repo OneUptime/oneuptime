@@ -63,7 +63,8 @@
     "AI": "AI",
     "API Reference": "API 参考",
     "Self Hosted": "自托管",
-    "Inventory": "资产清单"
+    "Inventory": "资产清单",
+    "Incidents": "事件"
   },
   "navLinks": {
     "Getting Started": "快速开始",
@@ -188,6 +189,15 @@
     "SendGrid Inbound Email": "SendGrid 入站邮件",
     "Architecture": "架构",
     "Custom Fields": "自定义字段",
-    "Exporting to a CMDB": "导出到 CMDB"
+    "Exporting to a CMDB": "导出到 CMDB",
+    "Incidents Overview": "事件概览",
+    "Declaring an Incident": "声明事件",
+    "Incident States & Severities": "事件状态与严重级别",
+    "Incident Notes, Owners & Feed": "事件备注、负责人与动态",
+    "Incident Settings & Automation": "事件设置与自动化",
+    "Status Pages Overview": "状态页概览",
+    "Status Page Resources & Groups": "状态页资源与分组",
+    "Status Page Branding & Domains": "状态页品牌与域名",
+    "Subscribers & Announcements": "订阅者与公告"
   }
 }

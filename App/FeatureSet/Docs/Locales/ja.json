@@ -63,7 +63,8 @@
     "AI": "AI",
     "API Reference": "API リファレンス",
     "Self Hosted": "セルフホスト",
-    "Inventory": "インベントリ"
+    "Inventory": "インベントリ",
+    "Incidents": "インシデント"
   },
   "navLinks": {
     "Getting Started": "はじめに",
@@ -188,6 +189,15 @@
     "SendGrid Inbound Email": "SendGrid 受信メール",
     "Architecture": "アーキテクチャ",
     "Custom Fields": "カスタムフィールド",
-    "Exporting to a CMDB": "CMDB へのエクスポート"
+    "Exporting to a CMDB": "CMDB へのエクスポート",
+    "Incidents Overview": "インシデント 概要",
+    "Declaring an Incident": "インシデントの宣言",
+    "Incident States & Severities": "インシデントの状態と重大度",
+    "Incident Notes, Owners & Feed": "インシデントのメモ、オーナー、フィード",
+    "Incident Settings & Automation": "インシデントの設定と自動化",
+    "Status Pages Overview": "ステータス ページ 概要",
+    "Status Page Resources & Groups": "ステータス ページのリソースとグループ",
+    "Status Page Branding & Domains": "ステータス ページのブランディングとドメイン",
+    "Subscribers & Announcements": "購読者とお知らせ"
   }
 }

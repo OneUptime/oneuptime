@@ -63,7 +63,8 @@
     "AI": "AI",
     "API Reference": "API-referentie",
     "Self Hosted": "Zelf gehost",
-    "Inventory": "Inventaris"
+    "Inventory": "Inventaris",
+    "Incidents": "Incidenten"
   },
   "navLinks": {
     "Getting Started": "Aan de slag",
@@ -188,6 +189,15 @@
     "SendGrid Inbound Email": "SendGrid inkomende e-mail",
     "Architecture": "Architectuur",
     "Custom Fields": "Aangepaste velden",
-    "Exporting to a CMDB": "Exporteren naar een CMDB"
+    "Exporting to a CMDB": "Exporteren naar een CMDB",
+    "Incidents Overview": "Incidenten – Overzicht",
+    "Declaring an Incident": "Een incident melden",
+    "Incident States & Severities": "Incidentstatussen en ernstniveaus",
+    "Incident Notes, Owners & Feed": "Incidentnotities, eigenaren en feed",
+    "Incident Settings & Automation": "Incidentinstellingen en automatisering",
+    "Status Pages Overview": "Statuspagina's – Overzicht",
+    "Status Page Resources & Groups": "Statuspagina – bronnen en groepen",
+    "Status Page Branding & Domains": "Statuspagina – branding en domeinen",
+    "Subscribers & Announcements": "Abonnees en aankondigingen"
   }
 }

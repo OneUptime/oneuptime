@@ -63,7 +63,8 @@
     "AI": "AI",
     "API Reference": "Référence API",
     "Self Hosted": "Auto-hébergé",
-    "Inventory": "Inventaire"
+    "Inventory": "Inventaire",
+    "Incidents": "Incidents"
   },
   "navLinks": {
     "Getting Started": "Démarrage rapide",
@@ -188,6 +189,15 @@
     "SendGrid Inbound Email": "E-mail entrant SendGrid",
     "Architecture": "Architecture",
     "Custom Fields": "Champs personnalisés",
-    "Exporting to a CMDB": "Exporter vers une CMDB"
+    "Exporting to a CMDB": "Exporter vers une CMDB",
+    "Incidents Overview": "Vue d'ensemble des incidents",
+    "Declaring an Incident": "Déclarer un incident",
+    "Incident States & Severities": "États et sévérités des incidents",
+    "Incident Notes, Owners & Feed": "Notes, propriétaires et fil d'incident",
+    "Incident Settings & Automation": "Paramètres et automatisation des incidents",
+    "Status Pages Overview": "Vue d'ensemble des pages de statut",
+    "Status Page Resources & Groups": "Ressources et groupes de la page de statut",
+    "Status Page Branding & Domains": "Personnalisation et domaines de la page de statut",
+    "Subscribers & Announcements": "Abonnés et annonces"
   }
 }

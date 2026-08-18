@@ -63,7 +63,8 @@
     "AI": "AI",
     "API Reference": "API 참조",
     "Self Hosted": "자체 호스팅",
-    "Inventory": "인벤토리"
+    "Inventory": "인벤토리",
+    "Incidents": "인시던트"
   },
   "navLinks": {
     "Getting Started": "시작하기",
@@ -188,6 +189,15 @@
     "SendGrid Inbound Email": "SendGrid 수신 이메일",
     "Architecture": "아키텍처",
     "Custom Fields": "사용자 지정 필드",
-    "Exporting to a CMDB": "CMDB로 내보내기"
+    "Exporting to a CMDB": "CMDB로 내보내기",
+    "Incidents Overview": "인시던트 개요",
+    "Declaring an Incident": "인시던트 선언",
+    "Incident States & Severities": "인시던트 상태 및 심각도",
+    "Incident Notes, Owners & Feed": "인시던트 메모, 소유자 및 피드",
+    "Incident Settings & Automation": "인시던트 설정 및 자동화",
+    "Status Pages Overview": "상태 페이지 개요",
+    "Status Page Resources & Groups": "상태 페이지 리소스 및 그룹",
+    "Status Page Branding & Domains": "상태 페이지 브랜딩 및 도메인",
+    "Subscribers & Announcements": "구독자 및 공지"
   }
 }
