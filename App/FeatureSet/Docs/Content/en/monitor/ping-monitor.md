@@ -29,15 +29,15 @@ Enter the hostname or IP address of the target you want to monitor (e.g., `examp
 
 You can configure criteria to determine when your host is considered online, degraded, or offline based on:
 
-### Available Check Types
+### Available Filter Types
 
-| Check Type            | Description                                         |
+| Filter Type           | Description                                         |
 | --------------------- | --------------------------------------------------- |
 | Is Online             | Whether the host responds to ping requests          |
 | Response Time (in ms) | Round-trip time of the ping request in milliseconds |
 | Is Request Timeout    | Whether the ping request timed out                  |
 
-### Filter Types
+### Filter Conditions
 
 For **Is Online** and **Is Request Timeout**:
 
@@ -58,11 +58,11 @@ For **Response Time**:
 
 #### Mark as offline if host is unreachable
 
-- **Check On**: Is Online
-- **Filter Type**: False
+- **Filter Type**: Is Online
+- **Filter Condition**: False
 
 #### Alert if response time exceeds 200ms
 
-- **Check On**: Response Time (in ms)
-- **Filter Type**: Greater Than
+- **Filter Type**: Response Time (in ms)
+- **Filter Condition**: Greater Than
 - **Value**: 200

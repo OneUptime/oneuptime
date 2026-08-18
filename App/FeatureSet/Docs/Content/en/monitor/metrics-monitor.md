@@ -70,13 +70,11 @@ Choose how to aggregate the metric values for evaluation:
 
 ## Monitoring Criteria
 
-### Available Check Types
+### What Gets Evaluated
 
-| Check Type   | Description                                                    |
-| ------------ | -------------------------------------------------------------- |
-| Metric Value | The aggregated value of the configured metric query or formula |
+These monitors always evaluate the **Metric Value** — the aggregated value of the configured metric query or formula. The criteria form has no Filter Type selector; it shows **Metric**, **Aggregation**, **Condition**, and **Threshold**.
 
-### Filter Types
+### Conditions
 
 - **Greater Than** — Metric value exceeds a threshold
 - **Less Than** — Metric value is below a threshold
@@ -92,16 +90,14 @@ Choose how to aggregate the metric values for evaluation:
 - **Query a**: `http_requests_total` filtered by `status=5xx`
 - **Query b**: `http_requests_total`
 - **Formula**: `a / b * 100`
-- **Check On**: Metric Value
-- **Filter Type**: Greater Than
-- **Value**: 5
+- **Condition**: Greater Than
+- **Threshold**: 5
 
 #### Alert if request queue depth is high
 
 - **Query**: `request_queue_size`, aggregation: Maximum Value
-- **Check On**: Metric Value
-- **Filter Type**: Greater Than
-- **Value**: 1000
+- **Condition**: Greater Than
+- **Threshold**: 1000
 
 ## Setup Requirements
 

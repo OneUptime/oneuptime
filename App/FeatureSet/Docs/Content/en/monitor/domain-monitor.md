@@ -63,9 +63,9 @@ The timeout applies to each lookup, so an **Auto** check that tries RDAP and the
 
 You can configure criteria to determine when your domain is considered online, degraded, or offline based on:
 
-### Available Check Types
+### Available Filter Types
 
-| Check Type             | Description                                          |
+| Filter Type            | Description                                          |
 | ---------------------- | ---------------------------------------------------- |
 | Is Online              | Whether the registration lookup itself succeeded     |
 | Is Request Timeout     | Whether the registration lookup timed out            |
@@ -79,7 +79,7 @@ Status codes are normalized to their EPP names (`clientTransferProhibited`) rega
 
 Dates are normalized to ISO 8601. A date a registry publishes in a form that cannot be parsed is omitted rather than stored, so an expiry criterion reports "cannot decide" instead of silently answering "not expired" forever.
 
-### Filter Types
+### Filter Conditions
 
 For **Is Online**, **Is Request Timeout** and **Domain Is Expired**:
 
@@ -102,24 +102,24 @@ For **Domain Registrar**, **Domain Name Server**, and **Domain Status Code**:
 
 #### Alert if domain expires within 30 days
 
-- **Check On**: Domain Expires In Days
-- **Filter Type**: Less Than
+- **Filter Type**: Domain Expires In Days
+- **Filter Condition**: Less Than
 - **Value**: 30
 
 #### Mark as offline if domain is expired
 
-- **Check On**: Domain Is Expired
-- **Filter Type**: True
+- **Filter Type**: Domain Is Expired
+- **Filter Condition**: True
 
 #### Mark as offline if the registration cannot be read
 
-- **Check On**: Is Online
-- **Filter Type**: False
+- **Filter Type**: Is Online
+- **Filter Condition**: False
 
 #### Verify nameservers are correct
 
-- **Check On**: Domain Name Server
-- **Filter Type**: Contains
+- **Filter Type**: Domain Name Server
+- **Filter Condition**: Contains
 - **Value**: `ns1.example.com`
 
 ## Best Practices

@@ -179,9 +179,9 @@ Network Device monitors have no polling interval of their own: they are evaluate
 
 You can set up criteria to check poll results and trigger alerts or incidents.
 
-### Available Check Types
+### Available Filter Types
 
-| Check Type                         | Description                                                            |
+| Filter Type                        | Description                                                            |
 | ---------------------------------- | ---------------------------------------------------------------------- |
 | SNMP Device Is Online              | Check if the device responds to SNMP queries                           |
 | SNMP Response Time (in ms)         | Check the query response time in milliseconds                          |
@@ -247,8 +247,8 @@ For matching to work, register the device with the IP address it sends traps fro
 
 #### Example: raise an incident on linkDown
 
-- **Check On**: SNMP Trap Received (Trap OID)
-- **Filter Type**: Equal To
+- **Filter Type**: SNMP Trap Received (Trap OID)
+- **Filter Condition**: Equal To
 - **Value**: 1.3.6.1.6.3.1.1.5.3
 
 The filter also supports Contains / Starts With / Ends With, so a single criteria can match a family of enterprise traps by OID prefix.

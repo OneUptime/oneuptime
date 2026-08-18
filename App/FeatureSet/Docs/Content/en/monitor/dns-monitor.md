@@ -57,9 +57,9 @@ DNS monitors query DNS servers for specific record types and evaluate the result
 
 You can configure criteria to determine when your DNS is considered online, degraded, or offline based on:
 
-### Available Check Types
+### Available Filter Types
 
-| Check Type                | Description                                |
+| Filter Type               | Description                                |
 | ------------------------- | ------------------------------------------ |
 | DNS Is Online             | Whether the DNS server responds to queries |
 | DNS Response Time (in ms) | Query response time in milliseconds        |
@@ -67,7 +67,7 @@ You can configure criteria to determine when your DNS is considered online, degr
 | DNS Record Value          | The value returned by a DNS record         |
 | DNSSEC Is Valid           | Whether DNSSEC validation passes           |
 
-### Filter Types
+### Filter Conditions
 
 For **DNS Is Online**, **DNS Record Exists**, and **DNSSEC Is Valid**:
 
@@ -91,22 +91,22 @@ For **DNS Record Value**:
 
 #### Check if DNS is resolving
 
-- **Check On**: DNS Is Online
-- **Filter Type**: True
+- **Filter Type**: DNS Is Online
+- **Filter Condition**: True
 
 #### Verify A record points to correct IP
 
-- **Check On**: DNS Record Value
-- **Filter Type**: Equal To
+- **Filter Type**: DNS Record Value
+- **Filter Condition**: Equal To
 - **Value**: `93.184.216.34`
 
 #### Alert if DNS response is slow
 
-- **Check On**: DNS Response Time (in ms)
-- **Filter Type**: Greater Than
+- **Filter Type**: DNS Response Time (in ms)
+- **Filter Condition**: Greater Than
 - **Value**: 500
 
 #### Verify DNSSEC is valid
 
-- **Check On**: DNSSEC Is Valid
-- **Filter Type**: True
+- **Filter Type**: DNSSEC Is Valid
+- **Filter Condition**: True
