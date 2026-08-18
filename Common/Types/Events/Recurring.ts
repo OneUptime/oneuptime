@@ -313,7 +313,22 @@ export default class Recurring extends DatabaseProperty {
     value: Recurring | Array<Recurring> | FindOperator<Recurring>,
   ): JSONObject | Array<JSONObject> | null {
     if (Array.isArray(value)) {
-      return this.toJSONArray(value as Array<Recurring>);
+      /*
+       * Per item rather than through toJSONArray, which assumes every item is
+       * still a Recurring instance and throws "item.toJSON is not a function"
+       * on an already-serialized array. TypeORM can hand a transformer its own
+       * output — BaseAPI.getList shares one query object between findBy and
+       * countBy — so this has to be a fixpoint.
+       */
+      return (value as Array<Recurring | JSONObject>).map(
+        (item: Recurring | JSONObject) => {
+          if (item instanceof Recurring) {
+            return item.toJSON();
+          }
+
+          return JSONFunctions.serialize(item as JSONObject);
+        },
+      );
     }
 
     if (value && value instanceof Recurring) {
