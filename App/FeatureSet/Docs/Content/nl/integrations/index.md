@@ -20,6 +20,8 @@ Gebruik dit wanneer een extern systeem _iets in OneUptime moet aanmaken of bijwe
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
 ```
 
+> **Tip:** Specifiek voor alerting-tools is een **[Incoming Request-monitor](/docs/monitor/incoming-request-monitor)** meestal het betere inbound-pad. Je krijgt een webhook-URL zonder een workflow te bouwen, er wordt één incident geopend per alert in de payload, er wordt geëscaleerd naar een on-call policy, en elk incident wordt opgelost zodra de tool herstel meldt. Grijp naar een workflow wanneer je logica nodig hebt die OneUptime niet standaard biedt. Zie [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) voor een uitgewerkt voorbeeld.
+
 ### Outbound — OneUptime stuurt data naar een andere tool
 
 Gebruik dit wanneer _iets in OneUptime ook in een andere tool moet verschijnen_ — een Jira-ticket openen, iemand in PagerDuty pagen, posten naar Slack.
@@ -85,7 +87,7 @@ printf '%s' 'you@example.com:your_api_token' | base64
 
 Vrijwel elke tool past in één van de twee patronen hierboven:
 
-- Als de tool een **webhook kan sturen** wanneer er iets gebeurt, gebruik dan het **inbound**-patroon — wijs zijn webhook naar een OneUptime Webhook trigger.
+- Als de tool een **webhook kan sturen** wanneer er iets gebeurt, gebruik dan het **inbound**-patroon — wijs zijn webhook naar een [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) als het een alerting-tool is, of naar een OneUptime Webhook trigger als je eigen logica nodig hebt.
 - Als de tool een **REST API** heeft, gebruik dan het **outbound**-patroon — roep hem aan vanuit een **API-component**.
 - Als je data tussen beide moet omvormen, voeg dan een **[Custom Code](/docs/workflows/components#custom-code)**-blok in.
 
@@ -97,4 +99,5 @@ Dat dekt de lange staart — Zendesk, AWS CloudWatch (via SNS), New Relic, Splun
 - [Triggers](/docs/workflows/triggers) — Webhook- en OneUptime event-triggers in detail.
 - [Componenten](/docs/workflows/components) — de API-, Webhook- en datacomponenten.
 - [Variabelen](/docs/workflows/variables) — geheimen en data doorgeven tussen blokken.
+- [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) — het workflow-vrije inbound-pad voor alerting-tools.
 - [Zabbix](/docs/integrations/zabbix) en [Jira](/docs/integrations/jira) — uitgewerkte voorbeelden.

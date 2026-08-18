@@ -40,6 +40,10 @@ Følgende monitortyper støtter dynamisk maling med sine respektive variabler:
 | `requestMethod`             | HTTP-metoden for den innkommende forespørselen (GET, POST, osv.). | `string`              |
 | `incomingRequestReceivedAt` | Dato og klokkeslett da den innkommende forespørselen ble mottatt. | `Date`                |
 
+Når kriteriet har **Group incidents and alerts by a payload field** slått på, er den uttrukne grupperingsnøkkelen også tilgjengelig, under et variabelnavn hentet fra **siste segment** av grupperingsstien. Gruppering etter `requestBody.alerts[*].labels.alertname` gir deg `{{alertname}}`; gruppering etter `requestBody.alerts[*].fingerprint` gir deg `{{fingerprint}}`. Hele `requestBody` er fortsatt tilgjengelig ved siden av.
+
+> **Note:** `[*]` forstås bare i selve feltene for grupperingssti — her løses det ikke, så plassholderen skrives ut ordrett, krøllparenteser og alt. Inne i en tittel eller beskrivelse leser `{{requestBody.alerts[0].annotations.summary}}` alltid det første varselet i nyttelasten, ikke det hendelsen ble åpnet for. Bruk i stedet grupperingsvariabelen og nyttelastens felles felt (`commonLabels`, `commonAnnotations`). Se [Incoming Request-monitor](/docs/monitor/incoming-request-monitor).
+
 ### Ping-monitorer
 
 | Variabel           | Beskrivelse                                | Type      |
@@ -175,7 +179,7 @@ Array-indeksering støttes:
 First User: {{responseBody.users[0].name}}
 ```
 
-Hvis en sti ikke eksisterer, løses den til en tom streng som standard.
+Hvis en sti ikke eksisterer, blir plassholderen stående i utdataene nøyaktig slik den ble skrevet — `{{responseBody.error.id}}` vises ordrett, krøllparenteser og alt, i hendelsestittelen. Bare `{{#each}}`-blokker over en manglende sti fjernes.
 
 ## Avansert bruk
 

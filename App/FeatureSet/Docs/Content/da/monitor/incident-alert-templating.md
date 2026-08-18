@@ -40,6 +40,10 @@ Følgende monitortyper understøtter dynamisk skabelon med deres respektive vari
 | `requestMethod`             | HTTP-metoden for den indgående anmodning (GET, POST osv.).   | `string`              |
 | `incomingRequestReceivedAt` | Dato og tidspunkt for modtagelse af den indgående anmodning. | `Date`                |
 
+Når kriteriet har **Group incidents and alerts by a payload field** slået til, er den udtrukne grupperingsnøgle også tilgængelig, under et variabelnavn der svarer til **sidste segment** af grupperingsstien. Gruppering efter `requestBody.alerts[*].labels.alertname` giver dig `{{alertname}}`; gruppering efter `requestBody.alerts[*].fingerprint` giver dig `{{fingerprint}}`. Hele `requestBody` er stadig tilgængelig ved siden af.
+
+> **Note:** `[*]` forstås kun i selve felterne til grupperingsstien — her opløses det ikke, så pladsholderen udskrives ordret, med tuborgklammer og det hele. Inde i en titel eller beskrivelse læser `{{requestBody.alerts[0].annotations.summary}}` altid den første alarm i payloaden, ikke den som hændelsen blev åbnet for. Brug i stedet grupperingsvariablen og payloadens fælles felter (`commonLabels`, `commonAnnotations`). Se [Incoming Request-monitor](/docs/monitor/incoming-request-monitor).
+
 ### Ping-monitorer
 
 | Variabel           | Beskrivelse                              | Type      |
@@ -175,7 +179,7 @@ Array-indeksering er understøttet:
 First User: {{responseBody.users[0].name}}
 ```
 
-Hvis en sti ikke eksisterer, løses den som standard til en tom streng.
+Hvis en sti ikke eksisterer, bliver pladsholderen stående i outputtet nøjagtigt som skrevet — `{{responseBody.error.id}}` optræder ordret, med tuborgklammer og det hele, i hændelsestitlen. Kun `{{#each}}`-blokke over en manglende sti fjernes.
 
 ## Avanceret brug
 

@@ -40,6 +40,10 @@ I seguenti tipi di monitor supportano il template dinamico con le rispettive var
 | `requestMethod`             | Il metodo HTTP della richiesta in entrata (GET, POST, ecc.).     | `string`             |
 | `incomingRequestReceivedAt` | La data e l'ora in cui è stata ricevuta la richiesta in entrata. | `Date`               |
 
+Quando il criterio ha **Group incidents and alerts by a payload field** attivo, è disponibile anche la chiave di raggruppamento estratta, sotto un nome di variabile preso dall'**ultimo segmento** del percorso di raggruppamento. Raggruppare per `requestBody.alerts[*].labels.alertname` ti dà `{{alertname}}`; raggruppare per `requestBody.alerts[*].fingerprint` ti dà `{{fingerprint}}`. L'intero `requestBody` resta disponibile accanto a essa.
+
+> **Note:** `[*]` è compreso solo nei campi del percorso di raggruppamento — qui non viene risolto, quindi il segnaposto viene stampato alla lettera, parentesi graffe comprese. All'interno di un titolo o di una descrizione, `{{requestBody.alerts[0].annotations.summary}}` legge sempre il primo allarme del payload, non quello per cui l'incidente è stato aperto. Usa invece la variabile di raggruppamento e i campi condivisi del payload (`commonLabels`, `commonAnnotations`). Vedi [Monitor Incoming Request](/docs/monitor/incoming-request-monitor).
+
 ### Monitor Ping
 
 | Variabile          | Descrizione                                    | Tipo      |
@@ -175,7 +179,7 @@ L'indicizzazione degli array è supportata:
 Primo Utente: {{responseBody.users[0].name}}
 ```
 
-Se un percorso non esiste, viene risolto in una stringa vuota per impostazione predefinita.
+Se un percorso non esiste, il segnaposto resta nell'output esattamente come è stato scritto — `{{responseBody.error.id}}` compare alla lettera, parentesi graffe comprese, nel titolo dell'incidente. Vengono rimossi solo i blocchi `{{#each}}` su un percorso mancante.
 
 ## Utilizzo Avanzato
 
