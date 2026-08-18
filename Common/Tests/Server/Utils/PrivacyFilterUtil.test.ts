@@ -38,6 +38,70 @@ describe("combineWithPrivacyClause", () => {
     expect(children[1]).toBe(clause);
   });
 
+  it("keeps nested ObjectID values as UUID strings after database transformation", () => {
+    /*
+     * The clause this function builds lands on an ObjectID column
+     * (incidentId, alertId, the episode ids, an ownedThrough FK), and those
+     * columns carry ObjectID.getDatabaseTransformer(). TypeORM hands each
+     * child of the And() to that transformer, so a transformer that cannot
+     * cope with an operator replaces the caller's own equality with
+     * "[object Object]" — which Postgres then rejects for a uuid column with
+     * 22P02, i.e. a 500 on the incident/alert Feed, Internal Notes and Owners
+     * reads for anyone who is not a project owner or admin.
+     * https://github.com/OneUptime/oneuptime/issues/2497
+     */
+    const incidentId: ObjectID = ObjectID.generate();
+    const clause: FindOperatorType = makePrivacyClause();
+    const combined: any = combineWithPrivacyClause(incidentId, clause as any);
+
+    const transformed: any = ObjectID.getDatabaseTransformer().to(combined);
+
+    expect(transformed).toBeInstanceOf(FindOperator);
+    expect(transformed.type).toBe("and");
+    expect(transformed.value[0]).toBeInstanceOf(FindOperator);
+    expect(transformed.value[0].type).toBe("equal");
+    expect(transformed.value[0].value).toBe(incidentId.toString());
+    expect(transformed.value[0].value).not.toBe("[object Object]");
+    expect(transformed.value[1]).toBe(clause);
+  });
+
+  it("survives the transformation twice, as findBy then countBy would", () => {
+    /*
+     * BaseAPI.getList hands the same query object to findBy and then countBy,
+     * and the transformer mutates the operator in place.
+     */
+    const incidentId: ObjectID = ObjectID.generate();
+    const clause: FindOperatorType = makePrivacyClause();
+    const combined: any = combineWithPrivacyClause(incidentId, clause as any);
+
+    ObjectID.getDatabaseTransformer().to(combined);
+    const transformed: any = ObjectID.getDatabaseTransformer().to(combined);
+
+    expect(transformed.value[0].value).toBe(incidentId.toString());
+  });
+
+  it("keeps a re-combined clause intact when the privacy filter runs twice", () => {
+    /*
+     * countBy's hook sees the And that findBy's hook already built and wraps
+     * it again, so the operator handed to the transformer is And(And(...)).
+     */
+    const incidentId: ObjectID = ObjectID.generate();
+    const firstClause: FindOperatorType = makePrivacyClause();
+    const secondClause: FindOperatorType = makePrivacyClause();
+
+    const once: any = combineWithPrivacyClause(incidentId, firstClause as any);
+    const twice: any = combineWithPrivacyClause(once, secondClause as any);
+
+    const transformed: any = ObjectID.getDatabaseTransformer().to(twice);
+
+    expect(transformed.type).toBe("and");
+    expect(transformed.value[0]).toBe(once);
+    expect(transformed.value[0].type).toBe("and");
+    expect(transformed.value[0].value[0].value).toBe(incidentId.toString());
+    expect(transformed.value[0].value[1]).toBe(firstClause);
+    expect(transformed.value[1]).toBe(secondClause);
+  });
+
   it("ANDs an existing string equality with the privacy clause", () => {
     const clause: FindOperatorType = makePrivacyClause();
     const combined: any = combineWithPrivacyClause("some-id", clause as any);

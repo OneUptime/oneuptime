@@ -39,6 +39,44 @@ export default class DatabaseProperty extends SerializableObject {
       return value as any;
     }
 
+    /*
+     * A FindOperator reaches a transformer when the query value is an
+     * operator rather than a plain value. Two ways in:
+     *
+     *   - Nested. `And(Equal(id), Raw(privacyClause))` — the shape every
+     *     privacy/scope filter builds (Server/Utils/PrivacyFilterUtil.ts).
+     *     TypeORM calls `operator.transformValue(column.transformer)`
+     *     (SelectQueryBuilder.buildWhere), and FindOperator.transformValue
+     *     hands each CHILD OPERATOR to this function whenever the operator
+     *     carries multiple parameters — which And() and Or() both do.
+     *   - Top level. ColumnMetadata.getEntityValue applies the transformer to
+     *     the whole criteria of a .where()/.update()/.delete() call.
+     *
+     * Every toDatabase() below expects a value, so an operator makes it
+     * produce garbage: "[object Object]" from the string-ish types (ObjectID
+     * included — a uuid column then fails with Postgres 22P02 invalid input
+     * syntax for type uuid), `null` from Port, a serialized operator from the
+     * JSON types. The child is REPLACED by that garbage, so the caller's own
+     * predicate is lost and the privacy clause it was ANDed with can no
+     * longer match anything.
+     *
+     * Transform the operator's leaf value(s) in place and hand the operator
+     * back, so `And`/`Or`/`In`/`Not`/`Between` keep their structure and only
+     * the leaves are converted. Recursion terminates because transformValue
+     * always descends into the operator's value, and a leaf is never a
+     * FindOperator.
+     *
+     * NOTE: transformValue mutates. One query object can legitimately be
+     * transformed more than once — BaseAPI.getList shares it between findBy
+     * and countBy — so every toDatabase() has to be a fixpoint: handed its
+     * own output it must return that output unchanged. Tests/Types/Database/
+     * DatabasePropertyFindOperator.test.ts enforces that for each type.
+     */
+    if (value instanceof FindOperator) {
+      value.transformValue(this.getDatabaseTransformer());
+      return value as any;
+    }
+
     return this.toDatabase(value);
   }
 
