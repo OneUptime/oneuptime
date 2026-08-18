@@ -69,19 +69,38 @@ Sie erstellen `/etc/otelcol-contrib/config.yaml` in Schritt 2 und eine `launchd`
 
 ### Windows
 
-Laden Sie unter Windows das Upstream-**`otelcol-contrib`**-Release herunter — es bringt den `windows_service`-Receiver mit, der den Host-Tab **Dienste** versorgt (ab **v0.155.0**). Über eine PowerShell-Eingabeaufforderung **mit erhöhten Rechten**:
+Laden Sie unter Windows das Upstream-**`otelcol-contrib`**-Release herunter — es bringt den `windows_service`-Receiver mit, der den Host-Tab **Dienste** versorgt (ab **v0.155.0**).
+
+**Laden Sie das `contrib`-Artefakt herunter, nicht das Core-Artefakt.** Jedes Release veröffentlicht zwei Windows-Archive, deren Namen sich nur in einem Wort unterscheiden, und das falsche zu erwischen ist die häufigste Ursache dafür, dass diese Installation scheitert:
+
+| Release-Artefakt | Entpackt | Dieses verwenden? |
+| ---------------- | -------- | ----------------- |
+| `otelcol-contrib_<version>_windows_amd64.tar.gz` | `otelcol-contrib.exe` | **Ja** — die Contrib-Distribution |
+| `otelcol_<version>_windows_amd64.tar.gz` | `otelcol.exe` | Nein — der Core-Build, dem die unten verwendeten Windows-Receiver fehlen |
+
+Der Artefaktname muss **mit `otelcol-contrib_` beginnen**. Der Core-`otelcol_`-Build liefert weder einen `windowseventlog`- noch einen `windows_service`-Receiver mit, und ein Umbenennen von `otelcol.exe` in `otelcol-contrib.exe` fügt sie nicht hinzu — es tauscht lediglich einen Startfehler gegen einen anderen (siehe [Fehlerbehebung](#fehlerbehebung)).
+
+Führen Sie den Block über eine PowerShell-Eingabeaufforderung **mit erhöhten Rechten** als Ganzes aus — jede Zeile setzt die darüber gesetzten Variablen voraus:
 
 ```powershell
 $VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
+$ARCH    = "amd64"                            # use "arm64" on ARM hosts
 $dest    = "C:\Program Files\otelcol-contrib"
 $tar     = "$env:TEMP\otelcol-contrib.tar.gz"
+
+# Note the "-contrib" in the asset name; otelcol_... is the wrong archive.
+$url = "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_${VERSION}_windows_${ARCH}.tar.gz"
+
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
-# amd64; use the _windows_arm64.tar.gz asset on ARM
-Invoke-WebRequest -Uri "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_${VERSION}_windows_amd64.tar.gz" -OutFile $tar
+Invoke-WebRequest -Uri $url -OutFile $tar
 tar -xf $tar -C $dest                          # tar.exe ships with Windows 10 1803+ / Server 2019+
+
+Get-ChildItem $dest                            # expect otelcol-contrib.exe, not otelcol.exe
 ```
 
-Dies entpackt `otelcol-contrib.exe` nach `C:\Program Files\otelcol-contrib`. Sie erstellen `config.yaml` im selben Ordner in Schritt 2 und registrieren in Schritt 3 einen Windows-Dienst.
+Führen Sie den gesamten Block aus, statt eine einzelne Zeile herauszulösen: Die URL wird aus `$VERSION` und `$ARCH` zusammengesetzt, ein allein in eine frische Sitzung eingefügtes `Invoke-WebRequest` scheitert also an einer leeren `-Uri` und lädt nichts herunter. Die URL in einer eigenen `$url`-Zeile aufzubauen ist Absicht — wird die Version direkt in das `Invoke-WebRequest`-Argument interpoliert, macht eine nicht gesetzte Variable daraus stattdessen einen stillen 404.
+
+Dies entpackt `otelcol-contrib.exe` — **nicht** `otelcol.exe` — nach `C:\Program Files\otelcol-contrib`; die `Get-ChildItem`-Zeile oben bestätigt, welche der beiden Sie erhalten haben. Sie erstellen `config.yaml` im selben Ordner in Schritt 2 und registrieren in Schritt 3 einen Windows-Dienst.
 
 > Bevorzugen Sie einen nativen Installer? OpenTelemetry veröffentlicht auf derselben [Releases-Seite](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) auch eine signierte **`.msi`** (`otelcol-contrib_<version>_windows_x64.msi`), die den Collector für Sie als Windows-Dienst registriert. Wenn Sie sie verwenden, richten Sie sie auf die `config.yaml` aus Schritt 2 aus und stellen Sie sicher, dass der Dienst als `LocalSystem` läuft, damit der **Dienste**-Tab den Service Control Manager lesen kann.
 
@@ -881,6 +900,12 @@ Der OpenTelemetry Collector berücksichtigt die standardmäßigen Umgebungsvaria
   - Stellen Sie sicher, dass der Host `https://oneuptime.com/otlp` (oder Ihren selbst gehosteten Endpunkt) erreichen kann: `curl -v https://oneuptime.com/otlp` von demselben Rechner.
 - **HTTP 401 vom Exporter** — das Ingestion-Token ist ungültig oder widerrufen. Erstellen Sie ein neues unter _Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel_.
 - **Der Windows-Event-Log-Kanal `Security` gibt „access denied“ zurück** — der Dienst läuft nicht mit ausreichenden Berechtigungen. Erstellen Sie ihn unter `LocalSystem` neu (der Standard bei `sc.exe create`) oder erteilen Sie dem Dienstkonto das Benutzerrecht _Manage auditing and security log_.
+- **Der Windows-Dienst startet nicht und meldet `Error 2: The system cannot find the file specified`** — der Service Control Manager findet die ausführbare Datei nicht, auf die der Dienst registriert wurde. Führen Sie `sc.exe qc "otelcol-contrib"` aus und vergleichen Sie `BINARY_PATH_NAME` mit dem, was tatsächlich in `C:\Program Files\otelcol-contrib` liegt. Fast immer wurde das Core-Archiv `otelcol_<version>_windows_amd64.tar.gz` heruntergeladen — es entpackt `otelcol.exe` —, während Schritt 3 den Dienst auf `otelcol-contrib.exe` registriert, das nur das Archiv `otelcol-contrib_<version>_...` enthält. Laden Sie das `contrib`-Artefakt aus Schritt 1 erneut herunter; benennen Sie `otelcol.exe` **nicht** um, das führt stattdessen zum `1064` unten. Die andere Ursache ist ein `binPath=` ohne Anführungszeichen: Ein Pfad durch `C:\Program Files` wird am Leerzeichen getrennt, sofern er nicht exakt wie in Schritt 3 gezeigt in Anführungszeichen steht.
+- **Der Windows-Dienst startet nicht und meldet `Error 1064: An exception occurred in the service when handling the control request`** — der SCM hat die Binärdatei gestartet, aber der Collector hat sich während des Starts beendet. Ein Umbenennen von `otelcol.exe` in `otelcol-contrib.exe` lässt den Pfad aufgehen, ändert aber nichts am Inhalt der Binärdatei: Dem Core-Build fehlen die Receiver `windowseventlog` und `windows_service`, sodass er die Konfiguration aus Schritt 2 ablehnt und beendet wird, bevor der Dienst überhaupt als laufend gemeldet wird. Ein `--config`-Pfad ohne Anführungszeichen erzeugt denselben `1064` auch mit der richtigen Binärdatei: Ohne die inneren Anführungszeichen wird das Argument am Leerzeichen in `Program Files` getrennt, und der Collector beendet sich wegen einer Konfigurationsdatei, die er nicht lesen kann. Prüfen Sie, was Sie tatsächlich haben:
+  - `otelcol-contrib.exe --version` sollte `otelcol-contrib version ...` ausgeben. Gibt es `otelcol version ...` aus, ist es der umbenannte Core-Build — laden Sie das `contrib`-Artefakt aus Schritt 1 erneut herunter.
+  - `otelcol-contrib.exe components` sollte `windowseventlog` und `windows_service` unter den Receivern auflisten. Verwenden Sie `hostmetrics` nicht als Test — dieser Receiver steckt auch im Core-Build und beweist daher nichts. Alles, worauf die Konfiguration verweist, was dieser Befehl aber nicht auflistet, stoppt den Collector beim Start.
+  - Starten Sie ihn im Vordergrund, um statt des generischen `1064` den eigentlichen Fehler zu sehen: `& "C:\Program Files\otelcol-contrib\otelcol-contrib.exe" --config="C:\Program Files\otelcol-contrib\config.yaml"`.
+  - Sehen Sie unter _Event Viewer → Windows Logs → Application_ nach der Quelle `otelcol-contrib`, die den vom SCM verschluckten Startfehler protokolliert.
 - **Der `journald`-Receiver startet nicht** — stellen Sie sicher, dass `journalctl` im `PATH` des Collectors liegt und dass `/var/log/journal` existiert (führen Sie andernfalls `sudo systemd-tmpfiles --create --prefix /var/log/journal` aus).
 - **Der `systemd`-Receiver meldet einen D-Bus-Verbindungsfehler** — der Collector kann den System-Bus nicht erreichen. Prüfen Sie, ob `/run/dbus/system_bus_socket` existiert und ob der Benutzer des Collectors es öffnen kann; `systemctl list-units` als dieser Benutzer ausgeführt ist die schnellste Probe. Root ist nicht erforderlich. Ein Collector, der in einem Container läuft, sieht überhaupt keinen Bus, sofern Sie nicht den Socket des Hosts einhängen; bevorzugen Sie für diesen Receiver daher eine native Installation.
 - **Der `systemd`-Receiver protokolliert einen Scrape-Fehler pro Unit, oder der Collector verweigert wegen einer unbekannten Metrik den Start** — beides ist Versionsversatz. v0.142.0 sucht auf jeder Unit nach cgroup-Statistiken (ein Fehler pro Nicht-`.service`-Unit pro Scrape) und nennt seine CPU-Metrik `systemd.unit.cpu.time`; v0.143.0 und neuer beschränken diese Suche auf Dienste und haben die Metrik in `systemd.service.cpu.time` umbenannt. Aktualisieren Sie auf v0.143.0+ und stellen Sie sicher, dass eine etwaige `metrics:`-Überschreibung den Schlüssel benennt, den Ihr Build tatsächlich hat.

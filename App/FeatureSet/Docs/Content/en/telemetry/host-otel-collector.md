@@ -69,19 +69,38 @@ You will create `/etc/otelcol-contrib/config.yaml` in Step 2 and a `launchd` pli
 
 ### Windows
 
-On Windows, download the upstream **`otelcol-contrib`** release — it bundles the `windows_service` receiver that powers the host **Services** tab (from **v0.155.0** onward). From an **elevated** PowerShell prompt:
+On Windows, download the upstream **`otelcol-contrib`** release — it bundles the `windows_service` receiver that powers the host **Services** tab (from **v0.155.0** onward).
+
+**Download the `contrib` asset, not the core one.** Every release publishes two Windows archives whose names differ by one word, and picking the wrong one is the most common way this install fails:
+
+| Release asset                                    | Unpacks               | Use this?                                             |
+| ------------------------------------------------ | --------------------- | ----------------------------------------------------- |
+| `otelcol-contrib_<version>_windows_amd64.tar.gz` | `otelcol-contrib.exe` | **Yes** — the contrib distribution                    |
+| `otelcol_<version>_windows_amd64.tar.gz`         | `otelcol.exe`         | No — the core build, missing the Windows receivers used below |
+
+The asset name must **start with `otelcol-contrib_`**. The core `otelcol_` build ships no `windowseventlog` or `windows_service` receiver, and renaming `otelcol.exe` to `otelcol-contrib.exe` does not add them — it only swaps one startup failure for another (see [Troubleshooting](#troubleshooting)).
+
+From an **elevated** PowerShell prompt, run this block as a whole — each line depends on the variables set above it:
 
 ```powershell
 $VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
+$ARCH    = "amd64"                            # use "arm64" on ARM hosts
 $dest    = "C:\Program Files\otelcol-contrib"
 $tar     = "$env:TEMP\otelcol-contrib.tar.gz"
+
+# Note the "-contrib" in the asset name; otelcol_... is the wrong archive.
+$url = "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_${VERSION}_windows_${ARCH}.tar.gz"
+
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
-# amd64; use the _windows_arm64.tar.gz asset on ARM
-Invoke-WebRequest -Uri "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_${VERSION}_windows_amd64.tar.gz" -OutFile $tar
+Invoke-WebRequest -Uri $url -OutFile $tar
 tar -xf $tar -C $dest                          # tar.exe ships with Windows 10 1803+ / Server 2019+
+
+Get-ChildItem $dest                            # expect otelcol-contrib.exe, not otelcol.exe
 ```
 
-This unpacks `otelcol-contrib.exe` into `C:\Program Files\otelcol-contrib`. You will create `config.yaml` in the same folder in Step 2 and register a Windows service in Step 3.
+Run the whole block rather than lifting a single line out of it: the URL is assembled from `$VERSION` and `$ARCH`, so an `Invoke-WebRequest` pasted on its own into a fresh session fails with a null `-Uri` and downloads nothing. Building the URL into `$url` on its own line is deliberate — interpolating the version straight into the `Invoke-WebRequest` argument turns an unset variable into a silent 404 instead.
+
+This unpacks `otelcol-contrib.exe` — **not** `otelcol.exe` — into `C:\Program Files\otelcol-contrib`; the `Get-ChildItem` line above confirms which one you got. You will create `config.yaml` in the same folder in Step 2 and register a Windows service in Step 3.
 
 > Prefer a native installer? OpenTelemetry also publishes a signed **`.msi`** (`otelcol-contrib_<version>_windows_x64.msi`) on the same [releases page](https://github.com/open-telemetry/opentelemetry-collector-releases/releases), which registers the collector as a Windows service for you. If you use it, point it at the `config.yaml` from Step 2 and make sure the service runs as `LocalSystem` so the **Services** tab can read the Service Control Manager.
 
@@ -883,6 +902,12 @@ The OpenTelemetry Collector respects the standard `HTTPS_PROXY` / `HTTP_PROXY` /
   - Confirm the host can reach `https://oneuptime.com/otlp` (or your self-hosted endpoint): `curl -v https://oneuptime.com/otlp` from the same machine.
 - **HTTP 401 from the exporter** — the ingestion token is invalid or revoked. Generate a new one from _Project Settings → Telemetry & APM → Ingestion Keys_.
 - **`Security` Windows Event Log returns access denied** — the service is not running with sufficient privileges. Recreate it under `LocalSystem` (the default with `sc.exe create`) or grant the service account the _Manage auditing and security log_ user right.
+- **Windows service fails to start with `Error 2: The system cannot find the file specified`** — the Service Control Manager cannot find the executable the service was registered against. Run `sc.exe qc "otelcol-contrib"` and compare `BINARY_PATH_NAME` with what is actually in `C:\Program Files\otelcol-contrib`. Almost always the core `otelcol_<version>_windows_amd64.tar.gz` archive was downloaded — it unpacks `otelcol.exe` — while Step 3 registers the service against `otelcol-contrib.exe`, which only the `otelcol-contrib_<version>_...` archive contains. Re-download the `contrib` asset from Step 1; do **not** rename `otelcol.exe`, which produces the `1064` below instead. The other cause is an unquoted `binPath=`: a path through `C:\Program Files` splits on the space unless it is quoted exactly as Step 3 shows.
+- **Windows service fails to start with `Error 1064: An exception occurred in the service when handling the control request`** — the SCM launched the binary, but the collector exited during startup. Renaming `otelcol.exe` to `otelcol-contrib.exe` makes the path resolve without changing what is inside the binary: the core build has no `windowseventlog` or `windows_service` receiver, so it rejects the Step 2 config and dies before the service ever reports as running. An unquoted `--config` path gives the same `1064` even with the right binary: without the inner quotes the argument splits on the space in `Program Files` and the collector exits over a config file it cannot read. Check what you actually have:
+  - `otelcol-contrib.exe --version` should print `otelcol-contrib version ...`. If it prints `otelcol version ...`, it is the core build renamed — re-download the `contrib` asset from Step 1.
+  - `otelcol-contrib.exe components` should list `windowseventlog` and `windows_service` among the receivers. Do not test with `hostmetrics` — the core build ships that one too, so seeing it proves nothing. Anything the config references but this command does not list will stop the collector at startup.
+  - Run it in the foreground to see the real error instead of the generic `1064`: `& "C:\Program Files\otelcol-contrib\otelcol-contrib.exe" --config="C:\Program Files\otelcol-contrib\config.yaml"`.
+  - Check _Event Viewer → Windows Logs → Application_ for source `otelcol-contrib`, which records the startup error the SCM swallowed.
 - **`journald` receiver fails to start** — make sure `journalctl` is on the collector's `PATH` and that `/var/log/journal` exists (run `sudo systemd-tmpfiles --create --prefix /var/log/journal` if not).
 - **`systemd` receiver reports a D-Bus connection error** — the collector cannot reach the system bus. Confirm `/run/dbus/system_bus_socket` exists and that the collector's user can open it; `systemctl list-units` run as that user is the quickest check. Root is not required. A collector running inside a container sees no bus at all unless you bind-mount the host's socket, so prefer a native install for this receiver.
 - **`systemd` receiver logs a scrape error per unit, or the collector refuses to start over an unknown metric** — both are version skew. v0.142.0 looks for cgroup statistics on every unit (one error per non-`.service` unit per scrape) and calls its CPU metric `systemd.unit.cpu.time`; v0.143.0 and later limit that lookup to services and renamed the metric to `systemd.service.cpu.time`. Upgrade to v0.143.0+, and make sure any `metrics:` override names the key your build actually has.

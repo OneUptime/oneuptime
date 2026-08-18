@@ -69,19 +69,38 @@ Du opretter `/etc/otelcol-contrib/config.yaml` i Trin 2 og en `launchd`-plist i 
 
 ### Windows
 
-På Windows skal du downloade upstream-**`otelcol-contrib`**-udgivelsen — den medleverer `windows_service`-receiveren, der driver host-fanen **Tjenester** (fra **v0.155.0** og frem). Fra en **forhøjet** PowerShell-prompt:
+På Windows skal du downloade upstream-**`otelcol-contrib`**-udgivelsen — den medleverer `windows_service`-receiveren, der driver host-fanen **Tjenester** (fra **v0.155.0** og frem).
+
+**Download `contrib`-arkivet, ikke core-arkivet.** Hver udgivelse indeholder to Windows-arkiver, hvis navne kun adskiller sig med ét ord, og at vælge det forkerte er den hyppigste årsag til, at denne installation slår fejl:
+
+| Udgivelsesarkiv | Udpakker | Brug dette? |
+| --------------- | -------- | ----------- |
+| `otelcol-contrib_<version>_windows_amd64.tar.gz` | `otelcol-contrib.exe` | **Ja** — contrib-distributionen |
+| `otelcol_<version>_windows_amd64.tar.gz` | `otelcol.exe` | Nej — core-builden, som mangler de Windows-receivere, der bruges nedenfor |
+
+Arkivnavnet skal **begynde med `otelcol-contrib_`**. Core-`otelcol_`-builden leverer hverken `windowseventlog`- eller `windows_service`-receiveren, og at omdøbe `otelcol.exe` til `otelcol-contrib.exe` tilføjer dem ikke — det ombytter blot den ene opstartsfejl med den anden (se [Fejlfinding](#fejlfinding)).
+
+Fra en **forhøjet** PowerShell-prompt skal du køre hele blokken samlet — hver linje afhænger af de variabler, der er sat ovenfor:
 
 ```powershell
 $VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
+$ARCH    = "amd64"                            # use "arm64" on ARM hosts
 $dest    = "C:\Program Files\otelcol-contrib"
 $tar     = "$env:TEMP\otelcol-contrib.tar.gz"
+
+# Note the "-contrib" in the asset name; otelcol_... is the wrong archive.
+$url = "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_${VERSION}_windows_${ARCH}.tar.gz"
+
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
-# amd64; use the _windows_arm64.tar.gz asset on ARM
-Invoke-WebRequest -Uri "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_${VERSION}_windows_amd64.tar.gz" -OutFile $tar
+Invoke-WebRequest -Uri $url -OutFile $tar
 tar -xf $tar -C $dest                          # tar.exe ships with Windows 10 1803+ / Server 2019+
+
+Get-ChildItem $dest                            # expect otelcol-contrib.exe, not otelcol.exe
 ```
 
-Dette udpakker `otelcol-contrib.exe` til `C:\Program Files\otelcol-contrib`. Du opretter `config.yaml` i den samme mappe i Trin 2 og registrerer en Windows-tjeneste i Trin 3.
+Kør hele blokken frem for at rive en enkelt linje ud af den: URL'en samles ud fra `$VERSION` og `$ARCH`, så et `Invoke-WebRequest`, der indsættes alene i en ny session, fejler med en tom `-Uri` og henter ingenting. At bygge URL'en i `$url` på sin egen linje er bevidst — interpolerer man versionen direkte ind i `Invoke-WebRequest`-argumentet, bliver en usat variabel i stedet til en tavs 404.
+
+Dette udpakker `otelcol-contrib.exe` — **ikke** `otelcol.exe` — til `C:\Program Files\otelcol-contrib`; `Get-ChildItem`-linjen ovenfor bekræfter, hvilken du fik. Du opretter `config.yaml` i den samme mappe i Trin 2 og registrerer en Windows-tjeneste i Trin 3.
 
 > Foretrækker du et native installeringsprogram? OpenTelemetry publicerer også en signeret **`.msi`** (`otelcol-contrib_<version>_windows_x64.msi`) på den samme [udgivelsesside](https://github.com/open-telemetry/opentelemetry-collector-releases/releases), som registrerer collectoren som en Windows-tjeneste for dig. Hvis du bruger den, skal du pege den mod `config.yaml` fra Trin 2 og sørge for, at tjenesten kører som `LocalSystem`, så fanen **Tjenester** kan læse Service Control Manager.
 
@@ -881,6 +900,12 @@ OpenTelemetry Collector respekterer standard-miljøvariablerne `HTTPS_PROXY` / `
   - Bekræft, at hosten kan nå `https://oneuptime.com/otlp` (eller dit selvhostede endpoint): `curl -v https://oneuptime.com/otlp` fra den samme maskine.
 - **HTTP 401 fra eksportøren** — ingestion-tokenet er ugyldigt eller tilbagekaldt. Generér et nyt fra _Projektindstillinger → Telemetri og APM → Indtagelsesnøgler_.
 - **`Security` Windows Event Log returnerer access denied** — tjenesten kører ikke med tilstrækkelige privilegier. Genopret den under `LocalSystem` (standarden med `sc.exe create`), eller tildel tjenestekontoen brugerrettigheden _Manage auditing and security log_.
+- **Windows-tjenesten starter ikke og giver `Error 2: The system cannot find the file specified`** — Service Control Manager kan ikke finde den eksekverbare fil, tjenesten blev registreret mod. Kør `sc.exe qc "otelcol-contrib"`, og sammenlign `BINARY_PATH_NAME` med det, der faktisk ligger i `C:\Program Files\otelcol-contrib`. Næsten altid er core-arkivet `otelcol_<version>_windows_amd64.tar.gz` blevet downloadet — det udpakker `otelcol.exe` — mens Trin 3 registrerer tjenesten mod `otelcol-contrib.exe`, som kun arkivet `otelcol-contrib_<version>_...` indeholder. Download `contrib`-arkivet igen fra Trin 1; omdøb **ikke** `otelcol.exe`, hvilket i stedet giver `1064` nedenfor. Den anden årsag er et `binPath=` uden anførselstegn: en sti gennem `C:\Program Files` deles ved mellemrummet, medmindre den sættes i anførselstegn nøjagtigt som vist i Trin 3.
+- **Windows-tjenesten starter ikke og giver `Error 1064: An exception occurred in the service when handling the control request`** — SCM startede binæren, men collectoren afsluttede under opstart. At omdøbe `otelcol.exe` til `otelcol-contrib.exe` får stien til at gå op uden at ændre indholdet af binæren: core-builden har hverken `windowseventlog`- eller `windows_service`-receiveren, så den afviser konfigurationen fra Trin 2 og dør, før tjenesten nogensinde rapporterer som kørende. En `--config`-sti uden anførselstegn giver den samme `1064`, selv med den rigtige binær: uden de indre anførselstegn deles argumentet ved mellemrummet i `Program Files`, og collectoren afslutter over en konfigurationsfil, den ikke kan læse. Kontrollér, hvad du faktisk har:
+  - `otelcol-contrib.exe --version` bør skrive `otelcol-contrib version ...`. Hvis den skriver `otelcol version ...`, er det core-builden, der er omdøbt — download `contrib`-arkivet igen fra Trin 1.
+  - `otelcol-contrib.exe components` bør vise `windowseventlog` og `windows_service` blandt receiverne. Brug ikke `hostmetrics` som test — den findes også i core-builden og beviser derfor ingenting. Alt, hvad konfigurationen refererer til, men denne kommando ikke viser, stopper collectoren ved opstart.
+  - Kør den i forgrunden for at se den egentlige fejl i stedet for den generiske `1064`: `& "C:\Program Files\otelcol-contrib\otelcol-contrib.exe" --config="C:\Program Files\otelcol-contrib\config.yaml"`.
+  - Se under _Event Viewer → Windows Logs → Application_ efter kilden `otelcol-contrib`, som registrerer den opstartsfejl, SCM slugte.
 - **`journald`-receiveren undlader at starte** — sørg for, at `journalctl` er på collectorens `PATH`, og at `/var/log/journal` eksisterer (kør `sudo systemd-tmpfiles --create --prefix /var/log/journal`, hvis ikke).
 - **`systemd`-receiveren rapporterer en D-Bus-forbindelsesfejl** — collectoren kan ikke nå systembussen. Bekræft, at `/run/dbus/system_bus_socket` findes, og at collectorens bruger kan åbne den; at køre `systemctl list-units` som den bruger er den hurtigste kontrol. Root er ikke påkrævet. En collector, der kører inde i en container, ser slet ingen bus, medmindre du bind-mounter hostens socket, så foretræk en native installation til denne receiver.
 - **`systemd`-receiveren logger en scrape-fejl pr. unit, eller collectoren nægter at starte på grund af en ukendt metrik** — begge dele skyldes versionsforskelle. v0.142.0 leder efter cgroup-statistik på hver eneste unit (én fejl pr. unit, der ikke er en `.service`, pr. scrape) og kalder sin CPU-metrik `systemd.unit.cpu.time`; v0.143.0 og senere begrænser det opslag til tjenester og omdøbte metrikken til `systemd.service.cpu.time`. Opgradér til v0.143.0+, og sørg for, at en eventuel `metrics:`-overstyring navngiver den nøgle, dit build faktisk har.

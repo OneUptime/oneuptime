@@ -69,19 +69,38 @@ sudo mkdir -p /etc/otelcol-contrib
 
 ### Windows
 
-在 Windows 上，请下载上游的 **`otelcol-contrib`** 发布版——它打包了为主机的 **服务** 标签页提供数据的 `windows_service` 接收器（从 **v0.155.0** 起）。在**提升权限的** PowerShell 提示符下：
+在 Windows 上，请下载上游的 **`otelcol-contrib`** 发布版——它打包了为主机的 **服务** 标签页提供数据的 `windows_service` 接收器（从 **v0.155.0** 起）。
+
+**请下载 `contrib` 构件，而不是 core 构件。** 每个发布版都会发布两个 Windows 压缩包，名称仅相差一个词，选错正是这套安装失败的最常见原因：
+
+| 发布构件 | 解压出 | 用这个吗？ |
+| ---- | --- | ----- |
+| `otelcol-contrib_<version>_windows_amd64.tar.gz` | `otelcol-contrib.exe` | **是**——contrib 发行版 |
+| `otelcol_<version>_windows_amd64.tar.gz` | `otelcol.exe` | 否——core 构建，缺少下文用到的 Windows 接收器 |
+
+构件名称必须**以 `otelcol-contrib_` 开头**。core 的 `otelcol_` 构建不含 `windowseventlog` 或 `windows_service` 接收器，把 `otelcol.exe` 改名为 `otelcol-contrib.exe` 也不会把它们加进去——那只是把一种启动失败换成另一种（参见[故障排查](#故障排查)）。
+
+在**提升权限的** PowerShell 提示符下，请整块一起执行——每一行都依赖其上方已设置的变量：
 
 ```powershell
 $VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
+$ARCH    = "amd64"                            # use "arm64" on ARM hosts
 $dest    = "C:\Program Files\otelcol-contrib"
 $tar     = "$env:TEMP\otelcol-contrib.tar.gz"
+
+# Note the "-contrib" in the asset name; otelcol_... is the wrong archive.
+$url = "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_${VERSION}_windows_${ARCH}.tar.gz"
+
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
-# amd64; use the _windows_arm64.tar.gz asset on ARM
-Invoke-WebRequest -Uri "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_${VERSION}_windows_amd64.tar.gz" -OutFile $tar
+Invoke-WebRequest -Uri $url -OutFile $tar
 tar -xf $tar -C $dest                          # tar.exe ships with Windows 10 1803+ / Server 2019+
+
+Get-ChildItem $dest                            # expect otelcol-contrib.exe, not otelcol.exe
 ```
 
-这会将 `otelcol-contrib.exe` 解压到 `C:\Program Files\otelcol-contrib`。你将在第 2 步中在同一文件夹里创建 `config.yaml`，并在第 3 步中注册一个 Windows 服务。
+请执行整块，而不要从中只摘出一行：URL 由 `$VERSION` 和 `$ARCH` 拼装而成，因此单独粘贴到新会话里的 `Invoke-WebRequest` 会因 `-Uri` 为空而失败，什么也下载不到。把 URL 单独放在 `$url` 一行里是有意为之——若把版本号直接内插到 `Invoke-WebRequest` 的参数中，未设置的变量就会变成一个悄无声息的 404。
+
+这会把 `otelcol-contrib.exe`（**而不是** `otelcol.exe`）解压到 `C:\Program Files\otelcol-contrib`；上面的 `Get-ChildItem` 一行可确认你拿到的是哪一个。你将在第 2 步中在同一文件夹里创建 `config.yaml`，并在第 3 步中注册一个 Windows 服务。
 
 > 更偏好原生安装程序？OpenTelemetry 还在同一个[发布页面](https://github.com/open-telemetry/opentelemetry-collector-releases/releases)上发布了一个已签名的 **`.msi`**（`otelcol-contrib_<version>_windows_x64.msi`），它会为你将 collector 注册为一个 Windows 服务。如果你使用它，请让它指向第 2 步中的 `config.yaml`，并确保该服务以 `LocalSystem` 身份运行，这样 **服务** 标签页才能读取服务控制管理器（Service Control Manager）。
 
@@ -881,6 +900,12 @@ OpenTelemetry Collector 遵循标准的 `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY
   - 确认主机能够访问 `https://oneuptime.com/otlp`（或你的自托管端点）：从同一台机器执行 `curl -v https://oneuptime.com/otlp`。
 - **导出器返回 HTTP 401**——接入令牌无效或已被吊销。从 _项目设置 → 遥测与 APM → 摄取密钥_ 生成一个新令牌。
 - **`Security` Windows 事件日志返回拒绝访问（access denied）**——该服务未以足够的权限运行。在 `LocalSystem` 身份下重新创建它（`sc.exe create` 的默认设置），或为服务账户授予 _Manage auditing and security log_ 用户权限。
+- **Windows 服务启动失败并报 `Error 2: The system cannot find the file specified`**——服务控制管理器（SCM）找不到该服务注册时指向的可执行文件。运行 `sc.exe qc "otelcol-contrib"`，把 `BINARY_PATH_NAME` 与 `C:\Program Files\otelcol-contrib` 中实际存在的文件对照。几乎总是下载了 core 压缩包 `otelcol_<version>_windows_amd64.tar.gz`（它解压出的是 `otelcol.exe`），而第 3 步注册的服务指向 `otelcol-contrib.exe`，后者只存在于 `otelcol-contrib_<version>_...` 压缩包中。请按第 1 步重新下载 `contrib` 构件；**不要**给 `otelcol.exe` 改名，那只会变成下面的 `1064`。另一个原因是 `binPath=` 没加引号：经过 `C:\Program Files` 的路径若未按第 3 步所示精确加引号，就会在空格处被截断。
+- **Windows 服务启动失败并报 `Error 1064: An exception occurred in the service when handling the control request`**——SCM 已经启动了二进制文件，但 collector 在启动过程中退出了。把 `otelcol.exe` 改名为 `otelcol-contrib.exe` 只能让路径对得上，并不会改变二进制文件里的内容：core 构建没有 `windowseventlog` 和 `windows_service` 接收器，因此会拒绝第 2 步的配置，并在服务来得及报告为运行中之前就退出。即使二进制文件正确，未加引号的 `--config` 路径也会导致同样的 `1064`：没有内层引号时，该参数会在 `Program Files` 的空格处被截断，collector 随即因读不到配置文件而退出。请确认你手上到底是什么：
+  - `otelcol-contrib.exe --version` 应输出 `otelcol-contrib version ...`。如果输出的是 `otelcol version ...`，那就是改了名的 core 构建——请按第 1 步重新下载 `contrib` 构件。
+  - `otelcol-contrib.exe components` 应在接收器中列出 `windowseventlog` 和 `windows_service`。不要拿 `hostmetrics` 当判据——core 构建同样带有它，看到它并不能说明什么。配置里引用了、而该命令未列出的任何组件，都会让 collector 在启动时停止。
+  - 在前台运行它，即可看到真正的错误，而不是笼统的 `1064`：`& "C:\Program Files\otelcol-contrib\otelcol-contrib.exe" --config="C:\Program Files\otelcol-contrib\config.yaml"`。
+  - 查看 _Event Viewer → Windows Logs → Application_ 中来源为 `otelcol-contrib` 的记录，那里记录着被 SCM 吞掉的启动错误。
 - **`journald` 接收器无法启动**——确保 `journalctl` 在 collector 的 `PATH` 中，并且 `/var/log/journal` 存在（如不存在，请运行 `sudo systemd-tmpfiles --create --prefix /var/log/journal`）。
 - **`systemd` 接收器报告 D-Bus 连接错误**——collector 无法访问系统总线。请确认 `/run/dbus/system_bus_socket` 存在，且 collector 所用的用户能够打开它；以该用户身份运行 `systemctl list-units` 是最快的检查方式。并不需要 root。运行在容器内的 collector 除非你把主机的套接字绑定挂载进去，否则根本看不到总线，因此这个接收器更适合原生安装。
 - **`systemd` 接收器为每个单元记录一条抓取错误，或者 collector 因为一个未知指标而拒绝启动**——两者都是版本不匹配。v0.142.0 会为每一个单元查找 cgroup 统计信息（每次抓取为每个非 `.service` 单元产生一条错误），并把它的 CPU 指标称为 `systemd.unit.cpu.time`；v0.143.0 及以后把这项查找限制在服务上，并将该指标改名为 `systemd.service.cpu.time`。请升级到 v0.143.0+，并确保任何 `metrics:` 覆盖项写的都是你所运行的构建中确实存在的键名。

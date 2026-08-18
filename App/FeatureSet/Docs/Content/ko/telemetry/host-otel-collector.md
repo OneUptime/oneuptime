@@ -69,19 +69,38 @@ sudo mkdir -p /etc/otelcol-contrib
 
 ### Windows
 
-Windows에서는 업스트림 **`otelcol-contrib`** 릴리스를 다운로드하세요 — 이것은 (**v0.155.0**부터) 호스트 **서비스** 탭을 구동하는 `windows_service` receiver를 번들로 포함합니다. **권한이 상승된** PowerShell 프롬프트에서:
+Windows에서는 업스트림 **`otelcol-contrib`** 릴리스를 다운로드하세요 — 이것은 (**v0.155.0**부터) 호스트 **서비스** 탭을 구동하는 `windows_service` receiver를 번들로 포함합니다.
+
+**core가 아니라 `contrib` 아티팩트를 다운로드하세요.** 모든 릴리스는 이름이 한 단어만 다른 두 개의 Windows 아카이브를 게시하며, 잘못된 쪽을 고르는 것이 이 설치가 실패하는 가장 흔한 원인입니다:
+
+| 릴리스 아티팩트 | 압축 해제 결과 | 이것을 사용? |
+| -------- | -------- | ------- |
+| `otelcol-contrib_<version>_windows_amd64.tar.gz` | `otelcol-contrib.exe` | **예** — contrib 배포판 |
+| `otelcol_<version>_windows_amd64.tar.gz` | `otelcol.exe` | 아니요 — 아래에서 사용하는 Windows receiver가 없는 core 빌드 |
+
+아티팩트 이름은 반드시 **`otelcol-contrib_`로 시작**해야 합니다. core `otelcol_` 빌드에는 `windowseventlog`와 `windows_service` receiver가 없으며, `otelcol.exe`의 이름을 `otelcol-contrib.exe`로 바꿔도 추가되지 않습니다 — 시작 실패가 다른 것으로 바뀔 뿐입니다([문제 해결](#문제-해결) 참조).
+
+**권한이 상승된** PowerShell 프롬프트에서 블록 전체를 한 번에 실행하세요 — 각 줄은 그 위에서 설정한 변수에 의존합니다:
 
 ```powershell
 $VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
+$ARCH    = "amd64"                            # use "arm64" on ARM hosts
 $dest    = "C:\Program Files\otelcol-contrib"
 $tar     = "$env:TEMP\otelcol-contrib.tar.gz"
+
+# Note the "-contrib" in the asset name; otelcol_... is the wrong archive.
+$url = "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_${VERSION}_windows_${ARCH}.tar.gz"
+
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
-# amd64; use the _windows_arm64.tar.gz asset on ARM
-Invoke-WebRequest -Uri "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_${VERSION}_windows_amd64.tar.gz" -OutFile $tar
+Invoke-WebRequest -Uri $url -OutFile $tar
 tar -xf $tar -C $dest                          # tar.exe ships with Windows 10 1803+ / Server 2019+
+
+Get-ChildItem $dest                            # expect otelcol-contrib.exe, not otelcol.exe
 ```
 
-이것은 `otelcol-contrib.exe`를 `C:\Program Files\otelcol-contrib`에 압축 해제합니다. 2단계에서 같은 폴더에 `config.yaml`을 생성하고 3단계에서 Windows 서비스를 등록하게 됩니다.
+한 줄만 떼어내지 말고 블록 전체를 실행하세요: URL은 `$VERSION`과 `$ARCH`로 조립되므로, 새 세션에 `Invoke-WebRequest`만 붙여넣으면 `-Uri`가 비어 실패하고 아무것도 내려받지 않습니다. URL을 별도 줄의 `$url`로 만드는 것은 의도적입니다 — 버전을 `Invoke-WebRequest` 인수에 직접 끼워 넣으면 설정되지 않은 변수가 조용한 404로 바뀝니다.
+
+이것은 `otelcol.exe`가 **아니라** `otelcol-contrib.exe`를 `C:\Program Files\otelcol-contrib`에 압축 해제합니다. 위의 `Get-ChildItem` 줄로 어느 쪽을 받았는지 확인할 수 있습니다. 2단계에서 같은 폴더에 `config.yaml`을 생성하고 3단계에서 Windows 서비스를 등록하게 됩니다.
 
 > 네이티브 설치 프로그램을 선호하시나요? OpenTelemetry는 동일한 [릴리스 페이지](https://github.com/open-telemetry/opentelemetry-collector-releases/releases)에서 서명된 **`.msi`**(`otelcol-contrib_<version>_windows_x64.msi`)도 게시하며, 이는 Collector를 Windows 서비스로 자동 등록해 줍니다. 이를 사용하는 경우, 2단계의 `config.yaml`을 가리키도록 하고, **서비스** 탭이 Service Control Manager를 읽을 수 있도록 서비스가 `LocalSystem`으로 실행되는지 확인하세요.
 
@@ -881,6 +900,12 @@ OpenTelemetry Collector는 표준 `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY` 환�
   - 호스트가 `https://oneuptime.com/otlp`(또는 자체 호스팅 엔드포인트)에 도달할 수 있는지 확인하세요: 동일한 머신에서 `curl -v https://oneuptime.com/otlp`.
 - **exporter에서 HTTP 401** — ingestion token이 유효하지 않거나 취소되었습니다. *프로젝트 설정 → 텔레메트리 및 APM → 수집 키*에서 새로 생성하세요.
 - **`Security` Windows Event Log가 access denied를 반환함** — 서비스가 충분한 권한으로 실행되고 있지 않습니다. `LocalSystem`(`sc.exe create`의 기본값)으로 다시 생성하거나 서비스 계정에 _Manage auditing and security log_ 사용자 권한을 부여하세요.
+- **Windows 서비스가 `Error 2: The system cannot find the file specified`로 시작되지 않음** — 서비스 제어 관리자(SCM)가 서비스가 등록된 실행 파일을 찾지 못합니다. `sc.exe qc "otelcol-contrib"`를 실행해 `BINARY_PATH_NAME`을 `C:\Program Files\otelcol-contrib`에 실제로 있는 것과 비교하세요. 거의 항상 core 아카이브 `otelcol_<version>_windows_amd64.tar.gz`(`otelcol.exe`가 풀림)를 다운로드한 반면, 3단계는 `otelcol-contrib_<version>_...` 아카이브에만 들어 있는 `otelcol-contrib.exe`에 대해 서비스를 등록한 경우입니다. 1단계에서 `contrib` 아티팩트를 다시 다운로드하세요. `otelcol.exe`의 이름을 바꾸지 **마세요** — 그러면 대신 아래의 `1064`가 발생합니다. 다른 원인은 따옴표가 없는 `binPath=`입니다. `C:\Program Files`를 지나는 경로는 3단계에 나온 그대로 따옴표로 감싸지 않으면 공백에서 잘립니다.
+- **Windows 서비스가 `Error 1064: An exception occurred in the service when handling the control request`로 시작되지 않음** — SCM이 바이너리를 실행했지만 컬렉터가 시작 도중 종료되었습니다. `otelcol.exe`의 이름을 `otelcol-contrib.exe`로 바꾸면 경로는 해결되지만 바이너리 내부는 바뀌지 않습니다: core 빌드에는 `windowseventlog`와 `windows_service` receiver가 없으므로 2단계의 구성을 거부하고 서비스가 실행 중으로 보고되기도 전에 죽습니다. 따옴표가 없는 `--config` 경로는 올바른 바이너리로도 동일한 `1064`를 냅니다: 안쪽 따옴표가 없으면 인수가 `Program Files`의 공백에서 잘리고, 컬렉터는 읽을 수 없는 구성 파일 때문에 종료됩니다. 실제로 무엇을 가지고 있는지 확인하세요:
+  - `otelcol-contrib.exe --version`은 `otelcol-contrib version ...`을 출력해야 합니다. `otelcol version ...`이 출력되면 이름만 바꾼 core 빌드입니다 — 1단계에서 `contrib` 아티팩트를 다시 다운로드하세요.
+  - `otelcol-contrib.exe components`는 receiver 목록에 `windowseventlog`와 `windows_service`를 표시해야 합니다. `hostmetrics`는 판별 기준이 될 수 없습니다 — core 빌드에도 들어 있기 때문입니다. 구성이 참조하지만 이 명령이 나열하지 않는 것이 있으면 시작 시 컬렉터가 중단됩니다.
+  - 일반적인 `1064` 대신 실제 오류를 보려면 포그라운드에서 실행하세요: `& "C:\Program Files\otelcol-contrib\otelcol-contrib.exe" --config="C:\Program Files\otelcol-contrib\config.yaml"`.
+  - _Event Viewer → Windows Logs → Application_ 에서 원본 `otelcol-contrib`을 확인하세요. SCM이 삼킨 시작 오류가 기록되어 있습니다.
 - **`journald` receiver가 시작에 실패함** — `journalctl`이 Collector의 `PATH`에 있고 `/var/log/journal`이 존재하는지 확인하세요(존재하지 않으면 `sudo systemd-tmpfiles --create --prefix /var/log/journal`을 실행).
 - **`systemd` receiver가 D-Bus 연결 오류를 보고함** — Collector가 시스템 버스에 도달할 수 없습니다. `/run/dbus/system_bus_socket`이 존재하는지, 그리고 Collector의 사용자가 그것을 열 수 있는지 확인하세요. 해당 사용자로 `systemctl list-units`를 실행해 보는 것이 가장 빠른 확인 방법입니다. root는 필요하지 않습니다. 컨테이너 내부에서 실행되는 Collector는 호스트의 소켓을 바인드 마운트하지 않는 한 버스를 전혀 볼 수 없으므로, 이 receiver에는 네이티브 설치를 권장합니다.
 - **`systemd` receiver가 유닛마다 스크레이프 오류를 기록하거나, 알 수 없는 메트릭 때문에 Collector가 시작을 거부함** — 둘 다 버전 불일치입니다. v0.142.0은 모든 유닛에 대해 cgroup 통계를 찾고(스크레이프마다 `.service`가 아닌 유닛당 오류 하나) CPU 메트릭을 `systemd.unit.cpu.time`이라고 부릅니다. v0.143.0 이상은 그 조회를 서비스로만 제한하고 메트릭 이름을 `systemd.service.cpu.time`으로 바꿨습니다. v0.143.0 이상으로 업그레이드하고, `metrics:` 재정의가 실제로 실행 중인 빌드에 있는 키를 지정하는지 확인하세요.

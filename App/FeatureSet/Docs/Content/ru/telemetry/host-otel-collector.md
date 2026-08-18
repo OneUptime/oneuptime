@@ -69,19 +69,38 @@ sudo mkdir -p /etc/otelcol-contrib
 
 ### Windows
 
-В Windows загрузите релиз **`otelcol-contrib`** из апстрима — он включает приёмник `windows_service`, который питает вкладку **Службы** хоста (начиная с **v0.155.0**). Из **командной строки PowerShell с повышенными правами**:
+В Windows загрузите релиз **`otelcol-contrib`** из апстрима — он включает приёмник `windows_service`, который питает вкладку **Службы** хоста (начиная с **v0.155.0**).
+
+**Скачивайте артефакт `contrib`, а не core.** В каждом релизе публикуются два архива для Windows, имена которых отличаются одним словом, и выбор не того — самая частая причина, по которой эта установка не работает:
+
+| Артефакт релиза | Распаковывает | Использовать этот? |
+| --------------- | ------------- | ------------------ |
+| `otelcol-contrib_<version>_windows_amd64.tar.gz` | `otelcol-contrib.exe` | **Да** — дистрибутив contrib |
+| `otelcol_<version>_windows_amd64.tar.gz` | `otelcol.exe` | Нет — сборка core, в которой нет используемых ниже приёмников Windows |
+
+Имя артефакта должно **начинаться с `otelcol-contrib_`**. Сборка core `otelcol_` не содержит приёмников `windowseventlog` и `windows_service`, а переименование `otelcol.exe` в `otelcol-contrib.exe` их не добавляет — оно лишь меняет одну ошибку запуска на другую (см. [Устранение неполадок](#устранение-неполадок)).
+
+Из **командной строки PowerShell с повышенными правами** выполните блок целиком — каждая строка зависит от переменных, заданных выше:
 
 ```powershell
 $VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
+$ARCH    = "amd64"                            # use "arm64" on ARM hosts
 $dest    = "C:\Program Files\otelcol-contrib"
 $tar     = "$env:TEMP\otelcol-contrib.tar.gz"
+
+# Note the "-contrib" in the asset name; otelcol_... is the wrong archive.
+$url = "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_${VERSION}_windows_${ARCH}.tar.gz"
+
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
-# amd64; use the _windows_arm64.tar.gz asset on ARM
-Invoke-WebRequest -Uri "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_${VERSION}_windows_amd64.tar.gz" -OutFile $tar
+Invoke-WebRequest -Uri $url -OutFile $tar
 tar -xf $tar -C $dest                          # tar.exe ships with Windows 10 1803+ / Server 2019+
+
+Get-ChildItem $dest                            # expect otelcol-contrib.exe, not otelcol.exe
 ```
 
-Это распаковывает `otelcol-contrib.exe` в `C:\Program Files\otelcol-contrib`. Вы создадите `config.yaml` в той же папке на Шаге 2 и зарегистрируете службу Windows на Шаге 3.
+Выполняйте блок целиком, а не вырывайте из него одну строку: URL собирается из `$VERSION` и `$ARCH`, поэтому `Invoke-WebRequest`, вставленный отдельно в новый сеанс, завершается ошибкой из-за пустого `-Uri` и ничего не скачивает. Сборка URL в `$url` отдельной строкой сделана намеренно — если подставлять версию прямо в аргумент `Invoke-WebRequest`, незаданная переменная превращается в молчаливый 404.
+
+Это распаковывает `otelcol-contrib.exe` — а **не** `otelcol.exe` — в `C:\Program Files\otelcol-contrib`; строка `Get-ChildItem` выше подтверждает, что именно вы получили. Вы создадите `config.yaml` в той же папке на Шаге 2 и зарегистрируете службу Windows на Шаге 3.
 
 > Предпочитаете нативный установщик? OpenTelemetry также публикует подписанный **`.msi`** (`otelcol-contrib_<version>_windows_x64.msi`) на той же [странице релизов](https://github.com/open-telemetry/opentelemetry-collector-releases/releases), который регистрирует коллектор как службу Windows за вас. Если вы его используете, укажите ему на `config.yaml` из Шага 2 и убедитесь, что служба работает под `LocalSystem`, чтобы вкладка **Службы** могла читать Service Control Manager.
 
@@ -881,6 +900,12 @@ OpenTelemetry Collector учитывает стандартные перемен
   - Убедитесь, что хост может достучаться до `https://oneuptime.com/otlp` (или вашей самостоятельно размещённой конечной точки): `curl -v https://oneuptime.com/otlp` с той же машины.
 - **HTTP 401 от экспортёра** — токен приёма данных недействителен или отозван. Сгенерируйте новый в _Настройки проекта → Телеметрия и APM → Ключи приема_.
 - **Журнал событий Windows `Security` возвращает «access denied»** — служба работает с недостаточными привилегиями. Пересоздайте её под `LocalSystem` (по умолчанию при `sc.exe create`) или предоставьте учётной записи службы право пользователя _Manage auditing and security log_.
+- **Служба Windows не запускается с ошибкой `Error 2: The system cannot find the file specified`** — Service Control Manager не находит исполняемый файл, на который была зарегистрирована служба. Выполните `sc.exe qc "otelcol-contrib"` и сравните `BINARY_PATH_NAME` с тем, что фактически лежит в `C:\Program Files\otelcol-contrib`. Почти всегда был загружен архив core `otelcol_<version>_windows_amd64.tar.gz` — он распаковывает `otelcol.exe`, — тогда как Шаг 3 регистрирует службу на `otelcol-contrib.exe`, который содержится только в архиве `otelcol-contrib_<version>_...`. Скачайте артефакт `contrib` из Шага 1 заново; **не** переименовывайте `otelcol.exe` — это приводит к ошибке `1064` ниже. Вторая причина — `binPath=` без кавычек: путь через `C:\Program Files` разрывается по пробелу, если он не заключён в кавычки ровно так, как показано в Шаге 3.
+- **Служба Windows не запускается с ошибкой `Error 1064: An exception occurred in the service when handling the control request`** — SCM запустил бинарный файл, но коллектор завершился во время запуска. Переименование `otelcol.exe` в `otelcol-contrib.exe` заставляет путь разрешаться, но не меняет того, что внутри бинарного файла: в сборке core нет приёмников `windowseventlog` и `windows_service`, поэтому она отклоняет конфигурацию из Шага 2 и завершается до того, как служба вообще отчитается как запущенная. Путь `--config` без кавычек даёт ту же ошибку `1064` даже с правильным бинарным файлом: без внутренних кавычек аргумент разрывается по пробелу в `Program Files`, и коллектор завершается из-за файла конфигурации, который не может прочитать. Проверьте, что у вас на самом деле:
+  - `otelcol-contrib.exe --version` должен вывести `otelcol-contrib version ...`. Если он выводит `otelcol version ...`, это переименованная сборка core — скачайте артефакт `contrib` из Шага 1 заново.
+  - `otelcol-contrib.exe components` должен перечислить `windowseventlog` и `windows_service` среди приёмников. Не проверяйте по `hostmetrics` — он есть и в сборке core, поэтому ничего не доказывает. Всё, на что ссылается конфигурация, но чего эта команда не показывает, остановит коллектор при запуске.
+  - Запустите его на переднем плане, чтобы увидеть настоящую ошибку вместо общей `1064`: `& "C:\Program Files\otelcol-contrib\otelcol-contrib.exe" --config="C:\Program Files\otelcol-contrib\config.yaml"`.
+  - Посмотрите в _Event Viewer → Windows Logs → Application_ источник `otelcol-contrib`, который записывает ошибку запуска, проглоченную SCM.
 - **Приёмник `journald` не запускается** — убедитесь, что `journalctl` находится в `PATH` коллектора и что `/var/log/journal` существует (выполните `sudo systemd-tmpfiles --create --prefix /var/log/journal`, если нет).
 - **Приёмник `systemd` сообщает об ошибке подключения к D-Bus** — коллектор не может достучаться до системной шины. Убедитесь, что `/run/dbus/system_bus_socket` существует и что пользователь коллектора может его открыть; быстрее всего это проверить, выполнив `systemctl list-units` от этого пользователя. Root не требуется. Коллектор, работающий внутри контейнера, вообще не видит шины, если вы не смонтируете сокет хоста через bind mount, — поэтому для этого приёмника предпочтительна нативная установка.
 - **Приёмник `systemd` пишет по ошибке сбора на каждый юнит, либо коллектор отказывается стартовать из-за неизвестной метрики** — и то и другое означает расхождение версий. v0.142.0 запрашивает статистику cgroup для каждого юнита (по одной ошибке на каждый юнит, не являющийся `.service`, за сбор) и называет свою метрику CPU `systemd.unit.cpu.time`; v0.143.0 и новее ограничивают этот запрос службами и переименовали метрику в `systemd.service.cpu.time`. Обновитесь до v0.143.0+ и убедитесь, что любое переопределение в `metrics:` называет тот ключ, который действительно есть в вашей сборке.
