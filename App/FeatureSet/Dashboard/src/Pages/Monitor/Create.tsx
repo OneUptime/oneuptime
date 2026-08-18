@@ -666,6 +666,10 @@ const MonitorCreate: FunctionComponent<
                   required: true,
                   cardSelectOptions:
                     MonitorTypeUtil.monitorTypesAsCategorizedCardSelectOptions(),
+                  cardSelectSearchable: true,
+                  cardSelectSearchPlaceholder:
+                    "Search monitor types - try ping, ssl, k8s, postgres",
+                  cardSelectCollapsibleGroups: true,
                 },
                 /*
                  * Sits directly under the type picker, on the same step, so
