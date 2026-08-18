@@ -11,19 +11,18 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
+import InMemoryTTLCache from "Common/Server/Infrastructure/InMemoryTTLCache";
 
 export interface MetricRulesForProject {
   projectRules: Array<MetricPipelineRule>;
   rulesByServiceId: Map<string, Array<MetricPipelineRule>>;
 }
 
-interface CacheEntry {
-  rules: MetricRulesForProject;
-  loadedAt: number;
-}
-
 const CACHE_TTL_MS: number = 60 * 1000; // 60 seconds
-const ruleCache: Map<string, CacheEntry> = new Map();
+const MAX_CACHED_PROJECTS: number = 10_000;
+
+const ruleCache: InMemoryTTLCache<MetricRulesForProject> =
+  new InMemoryTTLCache<MetricRulesForProject>(MAX_CACHED_PROJECTS);
 
 /*
  * Compiled-regex memo for MatchesRegex / DoesNotMatchRegex filters.
@@ -77,10 +76,11 @@ export default class MetricPipelineRuleService {
     projectId: ObjectID,
   ): Promise<MetricRulesForProject> {
     const cacheKey: string = projectId.toString();
-    const cached: CacheEntry | undefined = ruleCache.get(cacheKey);
+    const cached: MetricRulesForProject | undefined = ruleCache.get(cacheKey);
 
-    if (cached && Date.now() - cached.loadedAt < CACHE_TTL_MS) {
-      return cached.rules;
+    // The object is truthy even with zero rules — negative caching preserved.
+    if (cached) {
+      return cached;
     }
 
     const service: DatabaseService<MetricPipelineRule> =
@@ -129,7 +129,7 @@ export default class MetricPipelineRuleService {
     }
 
     const result: MetricRulesForProject = { projectRules, rulesByServiceId };
-    ruleCache.set(cacheKey, { rules: result, loadedAt: Date.now() });
+    ruleCache.set(cacheKey, result, CACHE_TTL_MS);
     return result;
   }
 

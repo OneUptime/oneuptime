@@ -15,6 +15,7 @@ import {
   DropFilterSignal,
   recordDroppedRecord,
 } from "../Utils/DropFilterDropRecorder";
+import InMemoryTTLCache from "Common/Server/Infrastructure/InMemoryTTLCache";
 
 export interface LoadedLogDropFilter {
   filter: LogDropFilter;
@@ -32,24 +33,23 @@ export interface LoadedLogDropFilter {
   projectId: ObjectID;
 }
 
-interface CacheEntry {
-  filters: Array<LoadedLogDropFilter>;
-  loadedAt: number;
-}
-
 const CACHE_TTL_MS: number = 60 * 1000; // 60 seconds
+const MAX_CACHED_PROJECTS: number = 10_000;
 
-const dropFilterCache: Map<string, CacheEntry> = new Map();
+const dropFilterCache: InMemoryTTLCache<Array<LoadedLogDropFilter>> =
+  new InMemoryTTLCache<Array<LoadedLogDropFilter>>(MAX_CACHED_PROJECTS);
 
 export class LogDropFilterService {
   public static async loadDropFilters(
     projectId: ObjectID,
   ): Promise<Array<LoadedLogDropFilter>> {
     const cacheKey: string = projectId.toString();
-    const cached: CacheEntry | undefined = dropFilterCache.get(cacheKey);
+    const cached: Array<LoadedLogDropFilter> | undefined =
+      dropFilterCache.get(cacheKey);
 
-    if (cached && Date.now() - cached.loadedAt < CACHE_TTL_MS) {
-      return cached.filters;
+    // Empty arrays are truthy — zero-filter projects stay negatively cached.
+    if (cached) {
+      return cached;
     }
 
     const service: DatabaseService<LogDropFilter> =
@@ -99,7 +99,7 @@ export class LogDropFilterService {
       },
     );
 
-    dropFilterCache.set(cacheKey, { filters: loaded, loadedAt: Date.now() });
+    dropFilterCache.set(cacheKey, loaded, CACHE_TTL_MS);
     return loaded;
   }
 

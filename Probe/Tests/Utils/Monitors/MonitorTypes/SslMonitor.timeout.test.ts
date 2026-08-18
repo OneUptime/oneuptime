@@ -34,9 +34,8 @@ jest.mock("Common/Server/Utils/Logger", () => {
   };
 });
 
-import net from "net";
+import net, { AddressInfo } from "net";
 import tls from "tls";
-import { AddressInfo } from "net";
 import URL from "Common/Types/API/URL";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import SSLMonitor, {
