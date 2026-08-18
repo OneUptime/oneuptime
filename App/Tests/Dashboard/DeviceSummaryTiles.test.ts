@@ -13,7 +13,6 @@ import {
   buildDeviceInterfacesFacetQuery,
   buildDeviceStatusFacetQuery,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceFacets";
-import { DEVICE_FRESH_WINDOW_MINUTES } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceStatusUtil";
 import {
   FacetOperatorMap,
   FacetSelectionMap,
@@ -22,9 +21,7 @@ import {
 } from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/FacetTileSelection";
 import { FilterChipDropdownOption } from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/FilterChipDropdownTypes";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
-import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
-import LessThan from "Common/Types/BaseDatabase/LessThan";
 
 /*
  * DEVICE_SUMMARY_TILES is the contract between the number on a tile and the rows
@@ -40,9 +37,6 @@ import LessThan from "Common/Types/BaseDatabase/LessThan";
  * out through the chips' own option lists and query builders instead of
  * comparing it against a literal copied out of the module.
  */
-
-// A cutoff the Status builder can be handed without involving the wall clock.
-const CUTOFF: Date = new Date("2026-07-16T12:00:00.000Z");
 
 const ALL_STATUS_VALUES: Array<DeviceStatusFacetValue> = Object.values(
   DeviceStatusFacetValue,
@@ -159,7 +153,7 @@ describe("DEVICE_SUMMARY_TILES", () => {
       }),
     ).toEqual([
       "Devices Up",
-      "Devices Down / Stale",
+      "Devices Down",
       "Devices Pending",
       "Total Interfaces Down",
     ]);
@@ -196,17 +190,22 @@ describe("DEVICE_SUMMARY_TILES", () => {
   });
 
   /*
-   * The two clock-defined tiles have to say what "up" and "down" are measured
-   * against, because the answer changes with the freshness window and the
-   * caption is the only place on the card that can say so.
+   * The caption is the only place a card says what it counted, and what it
+   * counts is now the outcome of the last poll — not its age. A caption that
+   * goes back to promising a time window is a caption that has stopped
+   * describing the query underneath it (issue #3220).
    */
-  test("the Up and Down captions still quote the freshness window", () => {
-    expect(tileByKey("devices-up").caption).toContain(
-      `${DEVICE_FRESH_WINDOW_MINUTES} minutes`,
-    );
+  test("the Up and Down captions describe the last poll's outcome", () => {
+    expect(tileByKey("devices-up").caption).toContain("reached the device");
     expect(tileByKey("devices-down").caption).toContain(
-      `${DEVICE_FRESH_WINDOW_MINUTES} minutes`,
+      "could not reach the device",
     );
+  });
+
+  test("no device-status caption promises a freshness window", () => {
+    for (const key of ["devices-up", "devices-down", "devices-pending"]) {
+      expect(tileByKey(key).caption).not.toMatch(/minutes/i);
+    }
   });
 
   /*
@@ -364,15 +363,14 @@ describe("every selection reaches a real query", () => {
         buildDeviceStatusFacetQuery(
           tile.selection.values,
           tile.selection.operator,
-          CUTOFF,
         ),
-      ).toBeDefined();
+      ).not.toBeUndefined();
     }
   });
 
   /*
    * And the constraint is the one DeviceSummaryCards counted with, per tile:
-   * `>= cutoff` for Up, `< cutoff` for Down, `IS NULL` for Pending. Swap any
+   * `isReachable` true for Up, false for Down, IS NULL for Pending. Swap any
    * two and the tile opens a different set than it counted.
    */
   test("each Status tile builds the constraint its count was taken with", () => {
@@ -380,46 +378,46 @@ describe("every selection reaches a real query", () => {
       buildDeviceStatusFacetQuery(
         tileByKey("devices-up").selection.values,
         tileByKey("devices-up").selection.operator,
-        CUTOFF,
       ),
-    ).toBeInstanceOf(GreaterThanOrEqual);
+    ).toBe(true);
 
     expect(
       buildDeviceStatusFacetQuery(
         tileByKey("devices-down").selection.values,
         tileByKey("devices-down").selection.operator,
-        CUTOFF,
       ),
-    ).toBeInstanceOf(LessThan);
+    ).toBe(false);
 
     expect(
       buildDeviceStatusFacetQuery(
         tileByKey("devices-pending").selection.values,
         tileByKey("devices-pending").selection.operator,
-        CUTOFF,
       ),
     ).toBeInstanceOf(IsNull);
   });
 
   /*
-   * Up and Down meet at one instant with no gap and no overlap. Both read the
-   * cutoff they are handed, so a device seen at exactly the cutoff is Up and
-   * nothing falls between the two lists while still being counted by one tile.
+   * true / false / NULL are the only three states of the column, so the three
+   * tiles partition the fleet exactly and their counts always sum to its size
+   * — with no instant-in-time for a device to fall through between them, which
+   * is what the old pair of window comparisons could not promise.
    */
-  test("the Up and Down constraints meet at the cutoff they were given", () => {
-    const up: GreaterThanOrEqual<Date> = buildDeviceStatusFacetQuery(
-      tileByKey("devices-up").selection.values,
-      tileByKey("devices-up").selection.operator,
-      CUTOFF,
-    ) as GreaterThanOrEqual<Date>;
-    const down: LessThan<Date> = buildDeviceStatusFacetQuery(
-      tileByKey("devices-down").selection.values,
-      tileByKey("devices-down").selection.operator,
-      CUTOFF,
-    ) as LessThan<Date>;
+  test("the three Status tiles partition the column with no gap", () => {
+    const constraints: Array<unknown> = [
+      "devices-up",
+      "devices-down",
+      "devices-pending",
+    ].map((key: string): unknown => {
+      return buildDeviceStatusFacetQuery(
+        tileByKey(key).selection.values,
+        tileByKey(key).selection.operator,
+      );
+    });
 
-    expect(up.value.getTime()).toBe(CUTOFF.getTime());
-    expect(down.value.getTime()).toBe(CUTOFF.getTime());
+    expect(constraints[0]).toBe(true);
+    expect(constraints[1]).toBe(false);
+    expect(constraints[2]).toBeInstanceOf(IsNull);
+    expect(new Set(constraints.map(String)).size).toBe(3);
   });
 
   /*

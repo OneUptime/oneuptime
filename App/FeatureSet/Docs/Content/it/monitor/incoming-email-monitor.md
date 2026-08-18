@@ -40,13 +40,14 @@ Ad esempio: `monitor-abc123def456@inbound.yourdomain.com`
 
 È possibile creare criteri basati sui seguenti campi dell'email:
 
-| Campo                  | Descrizione                                                   |
-| ---------------------- | ------------------------------------------------------------- |
-| **Oggetto dell'email** | La riga dell'oggetto dell'email in entrata                    |
-| **Email mittente**     | L'indirizzo email del mittente                                |
-| **Corpo Email**        | Il contenuto testuale del corpo dell'email                    |
-| **Email A**            | L'indirizzo email del destinatario                            |
-| **Email Ricevuta**     | Criteri basati sul tempo per quando le email vengono ricevute |
+| Campo                      | Descrizione                                                      |
+| -------------------------- | ---------------------------------------------------------------- |
+| **Oggetto dell'email**     | La riga dell'oggetto dell'email in entrata                       |
+| **Email mittente**         | L'indirizzo email del mittente                                   |
+| **Corpo Email**            | Il contenuto testuale del corpo dell'email                       |
+| **Email A**                | L'indirizzo email del destinatario                               |
+| **Email Ricevuta**         | Criteri basati sul tempo per quando le email vengono ricevute    |
+| **Espressione JavaScript** | Un'espressione JavaScript personalizzata che deve risultare vera |
 
 ## Tipi di Filtro Disponibili
 
@@ -69,6 +70,12 @@ Ad esempio: `monitor-abc123def456@inbound.yourdomain.com`
 | -------------------------- | --------------------------------------- | ------------------------------- |
 | **Ricevuta In Minuti**     | L'email è stata ricevuta entro X minuti | Email ricevuta in 30 minuti     |
 | **Non Ricevuta In Minuti** | Nessuna email ricevuta in X minuti      | Email non ricevuta in 60 minuti |
+
+### Espressione JavaScript
+
+L'unica condizione di filtro è **Valutata Come Vera**: il criterio è soddisfatto quando l'espressione restituisce un valore vero.
+
+L'espressione viene eseguita in una sandbox a cui non è associato alcun campo dell'email, quindi non può leggere oggetto, mittente, corpo o destinatario del messaggio che ha attivato il controllo. Usa i tipi di filtro **Oggetto Email**, **Email Da**, **Corpo Email** e **Email A** per confrontare il contenuto dell'email.
 
 ## Configurazioni di Esempio
 

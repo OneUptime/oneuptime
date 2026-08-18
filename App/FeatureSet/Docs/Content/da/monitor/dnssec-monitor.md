@@ -52,18 +52,17 @@ Du kan konfigurere kriterier til at afgøre, hvornår din zone betragtes som onl
 | DNSSEC-signatur udløber om dage          | Antal dage indtil den førstkommende RRSIG-signatur udløber          |
 | DNSSEC-resolverkonsensus (AD-flag)       | Hver forespurgt resolver returnerer AD-flaget (Authenticated Data)  |
 | DNSSEC-navneservere er konsistente       | Alle autoritative navneservere returnerer det samme SOA-serienummer |
-| DNSSEC er gyldig                         | Samlet bestået/ikke bestået på tværs af alle valideringskontroller  |
 
 ### Filtertyper
 
-For **DNSSEC-kæde er gyldig**, **DNSSEC DNSKEY-post eksisterer**, **DNSSEC DS-post eksisterer ved overordnet**, **DNSSEC-resolverkonsensus (AD-flag)**, **DNSSEC-navneservere er konsistente** og **DNSSEC er gyldig**:
+For **DNSSEC-kæde er gyldig**, **DNSSEC DNSKEY-post eksisterer**, **DNSSEC DS-post eksisterer ved overordnet**, **DNSSEC-resolverkonsensus (AD-flag)** og **DNSSEC-navneservere er konsistente**:
 
 - **Sand** – Betingelse er sand
 - **Falsk** – Betingelse er falsk
 
 For **DNSSEC-signatur udløber om dage**:
 
-- **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med**, **Lig med**, **Ikke lig med**
+- **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med**
 
 ### Eksempelkriterier
 

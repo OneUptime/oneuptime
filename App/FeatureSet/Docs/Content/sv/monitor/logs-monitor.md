@@ -62,7 +62,6 @@ Filtrera loggar efter en eller flera allvarlighetsgrader:
 - **Större än eller lika med** – Loggantalet är vid eller över ett tröskelvärde
 - **Mindre än eller lika med** – Loggantalet är vid eller under ett tröskelvärde
 - **Lika med** – Loggantalet matchar exakt
-- **Inte lika med** – Loggantalet matchar inte
 
 ### Exempelkriterier
 

@@ -58,7 +58,7 @@ Für **Domain ist abgelaufen**:
 
 Für **Domain läuft ab in Tagen**:
 
-- **Größer als**, **Kleiner als**, **Größer oder gleich**, **Kleiner oder gleich**, **Gleich**, **Ungleich**
+- **Größer als**, **Kleiner als**, **Größer oder gleich**, **Kleiner oder gleich**
 
 Für **Domain-Registrar**, **Domain-Nameserver** und **Domain-Statuscode**:
 

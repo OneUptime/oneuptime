@@ -65,9 +65,8 @@ For **Svartid**:
 - **Mindre end** – Svartiden er under en grænseværdi
 - **Større end eller lig med** – Svartiden er ved eller over en grænseværdi
 - **Mindre end eller lig med** – Svartiden er ved eller under en grænseværdi
-- **Lig med** – Svartiden matcher nøjagtigt
-- **Ikke lig med** – Svartiden matcher ikke
-- **Evaluer over tid** – Evaluer ved hjælp af aggregering (Gennemsnit, Sum, Maksimum, Minimum, Alle værdier, Enhver værdi) over et tidsvindue
+
+**Evaluer dette kriterium over en periode** er et afkrydsningsfelt i kriterieformularen, ikke en filterbetingelse. Slå det til for at sammenligne en aggregering — valgt under **Evaluer** (Gennemsnit, Sum, Maksimum, Minimum, Alle værdier, Enhver værdi) over vinduet, der angives i **For de sidste (i minutter)** — i stedet for værdien fra den seneste kontrol.
 
 ### Eksempelkriterier
 

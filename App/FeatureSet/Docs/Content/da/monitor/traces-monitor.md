@@ -56,7 +56,6 @@ Vælg én eller flere tjenester, der skal overvåges traces fra. Tjenester skal 
 - **Større end eller lig med** – Span-antallet er ved eller over en grænseværdi
 - **Mindre end eller lig med** – Span-antallet er ved eller under en grænseværdi
 - **Lig med** – Span-antallet matcher nøjagtigt
-- **Ikke lig med** – Span-antallet matcher ikke
 
 ### Eksempelkriterier
 

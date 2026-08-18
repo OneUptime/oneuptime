@@ -1,3 +1,7 @@
+import DeviceReachabilityUtil, {
+  NetworkDeviceReachability,
+} from "../NetworkDevice/DeviceReachabilityUtil";
+
 /*
  * Worst-of health rollup for a NetworkSite's device subtree.
  *
@@ -16,8 +20,17 @@ export interface DeviceHealthState {
   currentMonitorStatusId?: string | null | undefined;
   // Priority of that status row; missing when the row no longer exists.
   monitorStatusPriority?: number | null | undefined;
-  // Last SNMP contact; drives the freshness fallback for unmonitored devices.
+  /*
+   * The SNMP fallback for devices no monitor stamps, resolved by the shared
+   * DeviceReachabilityUtil rule: the OUTCOME of the last poll, not the age
+   * of the last success. Rolling a site up from freshness alone is what
+   * turned "the probe is behind on a 900-device fleet" into a red site card
+   * over devices that were all answering.
+   */
+  isReachable?: boolean | null | undefined;
+  lastPolledAt?: Date | null | undefined;
   lastSeenAt?: Date | null | undefined;
+  pollingIntervalInMinutes?: number | null | undefined;
 }
 
 // A project MonitorStatus row a freshness fallback can resolve to.
@@ -27,32 +40,27 @@ export interface RollupStatusOption {
 }
 
 export class SiteStatusRollupUtil {
-  // A device is considered alive when SNMP data arrived within this window.
-  public static readonly DEFAULT_FRESHNESS_WINDOW_IN_MINUTES: number = 15;
-
   /*
    * Returns the winning MonitorStatus id for a set of devices, or null when
-   * no device contributes anything (empty subtree, or freshness fallbacks
-   * unavailable because the project has no operational/offline rows) - the
-   * caller treats null as "leave the site's status untouched".
+   * no device contributes anything (empty subtree, or fallbacks unavailable
+   * because the project has no operational/offline rows) - the caller
+   * treats null as "leave the site's status untouched".
    *
    * Per device: a stamped monitor status (with a known priority) wins;
-   * otherwise lastSeenAt within the freshness window maps to the project's
-   * isOperationalState row and anything staler (or never seen) maps to the
-   * isOfflineState row. Priority ties keep the first contributor (stable).
+   * otherwise the device's SNMP reachability maps Up to the project's
+   * isOperationalState row and Down to its isOfflineState row. A device
+   * that has never been polled contributes nothing at all - it is not
+   * evidence of an outage, and counting it as one used to pin a site red
+   * for as long as it took the first walk to land. Priority ties keep the
+   * first contributor (stable).
    */
   public static worstStatus(data: {
     deviceStates: Array<DeviceHealthState>;
     operationalStatus?: RollupStatusOption | null | undefined;
     offlineStatus?: RollupStatusOption | null | undefined;
     now?: Date | undefined;
-    freshnessWindowInMinutes?: number | undefined;
   }): string | null {
     const now: Date = data.now || new Date();
-    const windowInMinutes: number =
-      data.freshnessWindowInMinutes ??
-      SiteStatusRollupUtil.DEFAULT_FRESHNESS_WINDOW_IN_MINUTES;
-    const windowInMs: number = windowInMinutes * 60 * 1000;
 
     let winner: RollupStatusOption | null = null;
 
@@ -69,16 +77,25 @@ export class SiteStatusRollupUtil {
           priority: device.monitorStatusPriority,
         };
       } else {
-        const lastSeenAtInMs: number | null = device.lastSeenAt
-          ? new Date(device.lastSeenAt).getTime()
-          : null;
-        const isFresh: boolean =
-          lastSeenAtInMs !== null &&
-          now.getTime() - lastSeenAtInMs <= windowInMs;
+        const reachability: NetworkDeviceReachability =
+          DeviceReachabilityUtil.getStatus(
+            {
+              isReachable: device.isReachable,
+              lastPolledAt: device.lastPolledAt,
+              lastSeenAt: device.lastSeenAt,
+              pollingIntervalInMinutes: device.pollingIntervalInMinutes,
+            },
+            now,
+          );
 
-        candidate = isFresh
-          ? data.operationalStatus || null
-          : data.offlineStatus || null;
+        if (reachability === NetworkDeviceReachability.Pending) {
+          continue;
+        }
+
+        candidate =
+          reachability === NetworkDeviceReachability.Up
+            ? data.operationalStatus || null
+            : data.offlineStatus || null;
       }
 
       if (!candidate) {

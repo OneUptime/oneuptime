@@ -56,7 +56,6 @@ Välj en eller flera tjänster att övervaka spårningar från. Tjänster måste
 - **Större än eller lika med** – Span-antalet är vid eller över ett tröskelvärde
 - **Mindre än eller lika med** – Span-antalet är vid eller under ett tröskelvärde
 - **Lika med** – Span-antalet matchar exakt
-- **Inte lika med** – Span-antalet matchar inte
 
 ### Exempelkriterier
 

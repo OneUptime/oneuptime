@@ -40,6 +40,10 @@ JavaScriptエクスプレッションの監視条件と同じ `{{variable}}` プ
 | `requestMethod`             | 受信リクエストのHTTPメソッド（GET、POSTなど）。  | `string`               |
 | `incomingRequestReceivedAt` | 受信リクエストを受け取った日時。                 | `Date`                 |
 
+条件で **Group incidents and alerts by a payload field** を有効にしている場合、抽出されたグルーピングキーも利用できます。変数名はグルーピングパスの**最後のセグメント**から取られます。`requestBody.alerts[*].labels.alertname` でグルーピングすると `{{alertname}}`、`requestBody.alerts[*].fingerprint` でグルーピングすると `{{fingerprint}}` になります。`requestBody` 全体も引き続き併用できます。
+
+> **Note:** `[*]` が解釈されるのはグルーピングパスの入力欄だけです。ここでは解決されないため、プレースホルダーは波括弧ごとそのまま出力されます。タイトルや説明の中では、`{{requestBody.alerts[0].annotations.summary}}` は常にペイロードの最初のアラートを読み取り、そのインシデントが開かれた対象のアラートではありません。代わりにグルーピング変数と、ペイロードの共通フィールド (`commonLabels`、`commonAnnotations`) を使ってください。[Incoming Request モニター](/docs/monitor/incoming-request-monitor) を参照してください。
+
 ### Pingモニター
 
 | 変数               | 説明                                           | 型        |
@@ -175,7 +179,7 @@ APIは842ミリ秒で502を返しました
 最初のユーザー: {{responseBody.users[0].name}}
 ```
 
-パスが存在しない場合、デフォルトで空文字列として解決されます。
+パスが存在しない場合、プレースホルダーは書いたとおりそのまま出力に残ります。`{{responseBody.error.id}}` は波括弧ごとインシデントのタイトルにそのまま表示されます。取り除かれるのは、存在しないパスに対する `{{#each}}` ブロックだけです。
 
 ## 高度な使用方法
 

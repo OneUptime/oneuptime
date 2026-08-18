@@ -1,12 +1,13 @@
 import DeviceStatusUtil, {
-  DEVICE_FRESH_WINDOW_MINUTES,
+  DEVICE_STATUS_SELECT,
+  DeviceReachabilityResult,
   NetworkDeviceStatus,
 } from "./DeviceStatusUtil";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
-import { Gray500, Green, Red500 } from "Common/Types/BrandColors";
+import { Gray500, Green, Red500, Yellow500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -44,7 +45,7 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
         modelType: NetworkDevice,
         id: props.modelId,
         select: {
-          lastSeenAt: true,
+          ...DEVICE_STATUS_SELECT,
           lastRebootedAt: true,
           hostname: true,
           vendor: true,
@@ -107,9 +108,9 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const reachability: NetworkDeviceStatus = DeviceStatusUtil.getStatus(
-    device.lastSeenAt,
-  );
+  const reachabilityResult: DeviceReachabilityResult =
+    DeviceStatusUtil.getReachability(device);
+  const reachability: NetworkDeviceStatus = reachabilityResult.status;
 
   type GetReachabilityPillFunction = () => ReactElement;
 
@@ -120,7 +121,7 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
           text="Up"
           color={Green}
           size={PillSize.Normal}
-          tooltip={`Polled successfully within the last ${DEVICE_FRESH_WINDOW_MINUTES} minutes.`}
+          tooltip="The last SNMP poll reached this device."
         />
       );
     }
@@ -131,7 +132,7 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
           text="Down"
           color={Red500}
           size={PillSize.Normal}
-          tooltip={`No successful SNMP poll in the last ${DEVICE_FRESH_WINDOW_MINUTES} minutes.`}
+          tooltip="The last SNMP poll could not reach this device."
         />
       );
     }
@@ -141,7 +142,7 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
         text="Pending"
         color={Gray500}
         size={PillSize.Normal}
-        tooltip="This device has not been polled successfully yet."
+        tooltip="This device has not been polled yet."
       />
     );
   };
@@ -161,6 +162,19 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
   const lastSeenAt: Date | null = device.lastSeenAt
     ? OneUptimeDate.fromString(device.lastSeenAt)
     : null;
+
+  /*
+   * The last ATTEMPT, which is only worth its own line when it is not the
+   * last success — that gap is the whole diagnosis when a device reads Down
+   * while its interfaces read Up.
+   */
+  const lastPolledAt: Date | null = device.lastPolledAt
+    ? OneUptimeDate.fromString(device.lastPolledAt)
+    : null;
+  const isPollNewerThanContact: boolean = Boolean(
+    lastPolledAt &&
+      (!lastSeenAt || lastPolledAt.getTime() > lastSeenAt.getTime()),
+  );
 
   const uptimeText: string | null = device.lastRebootedAt
     ? OneUptimeDate.differenceBetweenTwoDatesAsFromattedString(
@@ -188,12 +202,25 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
           <div className="text-sm font-medium text-gray-500">Reachability</div>
           <div className="mt-1.5 flex items-center gap-2">
             {getReachabilityPill()}
+            {reachabilityResult.isStale && (
+              <Pill
+                text="Stale"
+                color={Yellow500}
+                size={PillSize.Normal}
+                tooltip={`No SNMP poll has been attempted in the last ${reachabilityResult.staleWindowInMinutes} minutes, so this verdict may be out of date — check that this device's probe is online and keeping up with its fleet.`}
+              />
+            )}
           </div>
           <div className="mt-1.5 text-xs text-gray-500">
             {lastSeenAt
               ? `Last seen ${OneUptimeDate.fromNow(lastSeenAt)}`
-              : "Never polled"}
+              : "Never answered a poll"}
           </div>
+          {isPollNewerThanContact && lastPolledAt && (
+            <div className="mt-0.5 text-xs text-gray-400">
+              {`Last polled ${OneUptimeDate.fromNow(lastPolledAt)}`}
+            </div>
+          )}
         </div>
 
         <div>

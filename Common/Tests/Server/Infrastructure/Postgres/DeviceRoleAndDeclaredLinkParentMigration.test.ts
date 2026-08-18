@@ -20,16 +20,14 @@ import { AddDeviceRoleAndDeclaredLinkParent1787400000000 } from "../../../../Ser
  * either would silently restate every device and every link in every
  * project as something an operator had chosen.
  *
- * The second is ORDERING. This is the newest registered migration, so it
- * inherits the guard that used to live in
- * EpisodeMemberNotifyIndexesMigration.test.ts: its timestamp must sort
- * above every other. A migration generated with `generate-postgres-
- * migration` carries a WALL-CLOCK timestamp, and the recent migrations in
- * this repo use hand-picked round numbers that run ahead of it — so the
- * generated file lands below several already-registered migrations unless
- * somebody renumbers it. That is exactly what happened to this one.
- * Whoever adds the next migration should move this test's ordering block
- * to theirs.
+ * The second is REGISTRATION: an import that never reaches the default
+ * export array leaves the migration unregistered, and it silently never
+ * runs.
+ *
+ * The ordering guard this file used to carry — "this is the newest
+ * migration, so its timestamp must sort above every other" — has moved on
+ * to AddNetworkDeviceReachabilityColumnsMigration.test.ts, which is now the
+ * newest. Whoever adds the next migration should move it again.
  */
 
 const MIGRATION_PATH: string = path.join(
@@ -38,15 +36,6 @@ const MIGRATION_PATH: string = path.join(
 );
 
 const SOURCE: string = fs.readFileSync(MIGRATION_PATH, "utf8");
-
-interface MigrationClass {
-  name: string;
-}
-
-function timestampOf(migrationClass: MigrationClass): number | null {
-  const match: RegExpMatchArray | null = migrationClass.name.match(/(\d+)$/);
-  return match ? Number(match[1]) : null;
-}
 
 describe("the columns it adds", () => {
   test("NetworkDevice gains deviceRole", () => {
@@ -190,50 +179,10 @@ describe("the migration runs", () => {
     );
   });
 
-  // The guard described in the header. Hand it to the next migration.
-  test("its timestamp sorts after every other registered migration", () => {
-    const ourTimestamp: number | null = timestampOf(
-      AddDeviceRoleAndDeclaredLinkParent1787400000000,
-    );
-
-    expect(ourTimestamp).not.toBeNull();
-
-    const otherTimestamps: Array<number> = [];
-
-    for (const migrationClass of SchemaMigrations) {
-      if (migrationClass === AddDeviceRoleAndDeclaredLinkParent1787400000000) {
-        continue;
-      }
-
-      const timestamp: number | null = timestampOf(
-        migrationClass as MigrationClass,
-      );
-
-      if (timestamp !== null) {
-        otherTimestamps.push(timestamp);
-      }
-    }
-
-    /*
-     * Math.max() of an empty list is -Infinity, which every timestamp beats.
-     * Prove the list was actually enumerated before leaning on the maximum.
-     */
-    expect(otherTimestamps.length).toBeGreaterThan(100);
-
-    expect(ourTimestamp).toBeGreaterThan(Math.max(...otherTimestamps));
-  });
-
-  test("it is registered last, matching that timestamp", () => {
-    expect(SchemaMigrations[SchemaMigrations.length - 1]).toBe(
-      AddDeviceRoleAndDeclaredLinkParent1787400000000,
-    );
-  });
-
   /*
    * ...and the timestamp in the class name is the one on disk. A class
    * renamed without renaming its file (or two migrations landing on the
-   * same timestamp) leaves the ordering above asserting something that is
-   * not what actually runs.
+   * same timestamp) runs in an order nobody declared.
    */
   test("exactly one file on disk carries its timestamp, and it is this one", () => {
     const directory: string = path.dirname(MIGRATION_PATH);

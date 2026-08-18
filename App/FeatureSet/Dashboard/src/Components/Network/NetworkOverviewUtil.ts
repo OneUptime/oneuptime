@@ -11,7 +11,15 @@ import DeviceStatusUtil, {
 export interface OverviewDeviceRow {
   _id?: string | undefined;
   name?: string | undefined;
+  /*
+   * The reachability inputs the shared rule reads. `isReachable` is the
+   * verdict; the rest only size the "polling has stopped" backstop. See
+   * DeviceStatusUtil.DEVICE_STATUS_SELECT — the page must select all four.
+   */
+  isReachable?: boolean | undefined;
+  lastPolledAt?: Date | undefined;
   lastSeenAt?: Date | undefined;
+  pollingIntervalInMinutes?: number | undefined;
   interfacesDown?: number | undefined;
   vendor?: string | undefined;
 }
@@ -45,9 +53,7 @@ export function summarizeDeviceFleet(
   };
 
   for (const device of devices) {
-    const status: NetworkDeviceStatus = DeviceStatusUtil.getStatus(
-      device.lastSeenAt,
-    );
+    const status: NetworkDeviceStatus = DeviceStatusUtil.getStatus(device);
 
     if (status === NetworkDeviceStatus.Up) {
       summary.up++;
@@ -64,11 +70,11 @@ export function summarizeDeviceFleet(
 }
 
 /*
- * Devices worth a human's next click: unreachable ones first (stalest
- * first, since the longest-silent device is the most likely hard-down),
- * then reachable devices carrying down interfaces (most down first).
- * Pending devices are excluded — never-polled is onboarding, not an
- * outage.
+ * Devices worth a human's next click: unreachable ones first (longest
+ * without a successful poll first, since the longest-silent device is the
+ * most likely hard-down), then reachable devices carrying down interfaces
+ * (most down first). Pending devices are excluded — never-polled is
+ * onboarding, not an outage.
  */
 export function pickDevicesNeedingAttention(
   devices: Array<OverviewDeviceRow>,
@@ -76,10 +82,7 @@ export function pickDevicesNeedingAttention(
 ): Array<OverviewDeviceRow> {
   const downDevices: Array<OverviewDeviceRow> = devices
     .filter((device: OverviewDeviceRow): boolean => {
-      return (
-        DeviceStatusUtil.getStatus(device.lastSeenAt) ===
-        NetworkDeviceStatus.Down
-      );
+      return DeviceStatusUtil.getStatus(device) === NetworkDeviceStatus.Down;
     })
     .sort((a: OverviewDeviceRow, b: OverviewDeviceRow): number => {
       return (
@@ -92,7 +95,7 @@ export function pickDevicesNeedingAttention(
     .filter((device: OverviewDeviceRow): boolean => {
       return (
         (device.interfacesDown || 0) > 0 &&
-        DeviceStatusUtil.getStatus(device.lastSeenAt) === NetworkDeviceStatus.Up
+        DeviceStatusUtil.getStatus(device) === NetworkDeviceStatus.Up
       );
     })
     .sort((a: OverviewDeviceRow, b: OverviewDeviceRow): number => {

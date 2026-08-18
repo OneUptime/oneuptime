@@ -52,18 +52,17 @@ Puedes configurar criterios para determinar cuándo tu zona se considera en lín
 | La firma DNSSEC expira en días                  | Días hasta que expire la firma RRSIG más próxima                                     |
 | Consenso de resolvers DNSSEC (indicador AD)     | Cada resolver consultado devuelve el indicador AD (Authenticated Data)               |
 | Los servidores de nombres DNSSEC son coherentes | Todos los servidores de nombres autoritativos devuelven el mismo número de serie SOA |
-| DNSSEC es válido                                | Resultado agregado de aprobado/fallido en todas las verificaciones de validación     |
 
 ### Tipos de filtro
 
-Para **La cadena DNSSEC es válida**, **El registro DNSKEY DNSSEC existe**, **El registro DS DNSSEC existe en la zona padre**, **Consenso de resolvers DNSSEC (indicador AD)**, **Los servidores de nombres DNSSEC son coherentes** y **DNSSEC es válido**:
+Para **La cadena DNSSEC es válida**, **El registro DNSKEY DNSSEC existe**, **El registro DS DNSSEC existe en la zona padre**, **Consenso de resolvers DNSSEC (indicador AD)** y **Los servidores de nombres DNSSEC son coherentes**:
 
 - **Verdadero**: La condición es verdadera
 - **Falso**: La condición es falsa
 
 Para **La firma DNSSEC expira en días**:
 
-- **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que**, **Igual a**, **Diferente de**
+- **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que**
 
 ### Ejemplos de criterios
 

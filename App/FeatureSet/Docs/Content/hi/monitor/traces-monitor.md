@@ -56,7 +56,6 @@ traces monitor करने के लिए एक या अधिक services
 - **Greater Than or Equal To** — Span count एक threshold पर या उससे ऊपर है
 - **Less Than or Equal To** — Span count एक threshold पर या उससे नीचे है
 - **Equal To** — Span count बिल्कुल match करती है
-- **Not Equal To** — Span count match नहीं करती
 
 ### उदाहरण Criteria
 

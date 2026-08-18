@@ -98,12 +98,6 @@ const SITE_CARDS: string = readSource(
   "NetworkSite",
   "SiteSummaryCards.tsx",
 );
-const SNAPSHOT_NOTE: string = readSource(
-  DASHBOARD_SRC,
-  "Components",
-  "Network",
-  "FacetSnapshotNote.tsx",
-);
 const HOOK: string = readSource(
   DASHBOARD_SRC,
   "Components",
@@ -140,11 +134,7 @@ describe("the Devices page wires its table to the facet bar", () => {
    */
   test("the bar comes from the hook and is rendered as the table's topContent", () => {
     expect(destructured).toContain("filterBar,");
-    expect(DEVICES_PAGE).toContain(
-      squash(
-        'topContent={ <Fragment> {filterBar} {statusSnapshotDetail ? ( <FacetSnapshotNote testIdSuffix="network-devices" detail={statusSnapshotDetail} /> ) : ( <></> )} </Fragment> }',
-      ),
-    );
+    expect(DEVICES_PAGE).toContain("topContent={filterBar}");
   });
 
   /*
@@ -314,107 +304,57 @@ describe("no Devices column filter collides with a chip", () => {
   });
 });
 
-describe("the Devices page dates its status window", () => {
-  /*
-   * The Status chip's cutoff is a snapshot taken when the value was picked,
-   * while the Status column recomputes the same window on every render — leave
-   * the page open long enough and a row inside the "Up" list paints a Down
-   * pill. This note is the only thing on screen that could explain that.
-   */
-  test("the note renders only when a time-based status is selected", () => {
+/*
+ * The Devices page used to carry a whole apparatus for a Status chip whose
+ * query was a wall-clock window: a ref-held cutoff snapshot so ModelTable
+ * would not refetch forever, a sync on every render so clearing the chip
+ * re-took the window, and a note under the bar telling the user which
+ * moment the list had been filtered at.
+ *
+ * All of it existed because the chip's meaning drifted away from the pills
+ * while the page sat open. The chip now filters on `isReachable` — a stored
+ * verdict, the same one the pill renders — so there is no drift, nothing to
+ * snapshot, and nothing to explain. These assert the apparatus stays gone:
+ * re-introducing any of it means the Status chip has gone back to being
+ * time-based, which is the shape issue #3220 came from.
+ */
+describe("the Devices page has no wall-clock status window left to date", () => {
+  test("the Status chip's query takes no cutoff", () => {
     expect(DEVICES_PAGE).toContain(
-      squash(
-        "const selectedDeviceStatus: string | null = facetSelections[DEVICE_STATUS_FACET_KEY]?.[0] || null;",
-      ),
+      squash("return buildDeviceStatusFacetQuery(values, operator);"),
     );
-    expect(DEVICES_PAGE).toContain(
-      squash(
-        "const statusSnapshotDetail: string | undefined = useMemo(() => { if (!isTimeBasedDeviceStatus(selectedDeviceStatus)) { return undefined; }",
-      ),
-    );
-    expect(DEVICES_PAGE).toContain("{statusSnapshotDetail ? (");
+  });
+
+  test("no cutoff is snapshotted, held in a ref, or re-derived per render", () => {
+    expect(DEVICES_PAGE).not.toContain("DeviceStatusCutoff");
+    expect(DEVICES_PAGE).not.toContain("getDeviceFreshCutoff");
+    expect(DEVICES_PAGE).not.toContain("statusWindowCutoff");
+  });
+
+  test("no snapshot note is rendered over the list", () => {
+    expect(DEVICES_PAGE).not.toContain("FacetSnapshotNote");
+    expect(DEVICES_PAGE).not.toContain("statusSnapshotDetail");
+    expect(DEVICES_PAGE).not.toContain("isTimeBasedDeviceStatus");
   });
 
   /*
-   * The note names the cutoff the QUERY was built against, not "now".
-   *
-   * Deriving it from the current time instead is how the two come to name
-   * different moments: the memo re-runs on any selection change, while the
-   * snapshot only moves when the window is actually re-taken. Reading the same
-   * Date the chip filters on makes them unable to disagree — and puts
-   * `statusWindowCutoff` in the dependency list, which is the observable trace of
-   * that.
+   * Status owns `isReachable` and Last Seen owns `lastSeenAt`, so the two
+   * chips no longer have to exclude each other — a user can ask "down, and
+   * not answered since Tuesday" in one go.
    */
-  test("the note is derived from the cutoff the query uses", () => {
-    const memoDeps: string = DEVICES_PAGE.split(
-      "const statusSnapshotDetail: string | undefined = useMemo(() => {",
-    )[1]!
-      .split("}, [")[1]!
-      .split("]);")[0]!;
-
-    /*
-     * Both names, in whatever order prettier leaves them — React does not care
-     * about the order, so neither should this.
-     */
-    expect(memoDeps).toContain("selectedDeviceStatus");
-    expect(memoDeps).toContain("statusWindowCutoff");
-
-    const noteBody: string = DEVICES_PAGE.split(
-      "const statusSnapshotDetail: string | undefined = useMemo(() => {",
-    )[1]!.split("}, [")[0]!;
-
-    expect(noteBody).toContain("statusWindowCutoff");
-    // Never from the clock — that is the bug this shape prevents.
-    expect(noteBody).not.toContain("OneUptimeDate.getCurrentDate()");
-
-    /*
-     * And it says which side of the boundary is down. Inverting the sentence would
-     * tell the user the opposite of what the query does, and nothing else here
-     * reads the copy.
-     */
-    expect(noteBody).toContain("count as down");
+  test("Status and Last Seen are no longer mutually exclusive", () => {
+    expect(DEVICES_PAGE).not.toContain("exclusiveWith:");
   });
 
   /*
-   * The cutoff lives in a ref-held DeviceStatusCutoff, not in a fresh
-   * getDeviceFreshCutoff() per render: the merged query goes to ModelTable,
-   * which refetches when it differs from the previous render's, so a new Date
-   * every render is an endless refetch loop.
+   * The pill and the chip have to read the same fact. The page selects the
+   * shared column set rather than listing columns by hand, because a
+   * hand-written select that omits `isReachable` silently drops every row
+   * back onto the legacy freshness path.
    */
-  test("the cutoff is snapshotted in a ref, not rebuilt per render", () => {
-    expect(DEVICES_PAGE).toContain(
-      squash(
-        "const statusCutoff: React.MutableRefObject<DeviceStatusCutoff> = useRef<DeviceStatusCutoff>(new DeviceStatusCutoff());",
-      ),
-    );
-    expect(DEVICES_PAGE).toContain(
-      'statusCutoff.current.getCutoffFor(values[0] || "")',
-    );
-    expect(DEVICES_PAGE).not.toContain("getDeviceFreshCutoff()");
-  });
-
-  /*
-   * Synced with the live selection every render, `null` included.
-   *
-   * Without being told about the clear, the snapshot stays keyed on "down", so
-   * "pick Down, clear the chip, pick Down an hour later" reuses the first hour's
-   * window: a device that went stale in between is missing from the Down list
-   * while its own Status pill says Down.
-   */
-  test("the snapshot is told when the chip is cleared", () => {
-    expect(DEVICES_PAGE).toContain(
-      squash(
-        "const statusWindowCutoff: Date = statusCutoff.current.getCutoffFor(selectedDeviceStatus);",
-      ),
-    );
-
-    /*
-     * And it happens before the render reads it: the merged query is built in the
-     * JSX below, so a sync placed after that would be a render behind.
-     */
-    expect(
-      DEVICES_PAGE.indexOf("const statusWindowCutoff: Date ="),
-    ).toBeLessThan(DEVICES_PAGE.indexOf("query={mergeFiltersIntoQuery("));
+  test("the table selects the shared reachability column set", () => {
+    expect(DEVICES_PAGE).toContain("DEVICE_STATUS_SELECT");
+    expect(DEVICES_PAGE).toContain(squash("...DEVICE_STATUS_SELECT,"));
   });
 });
 
@@ -940,26 +880,6 @@ describe("useResourceOwners exposes the chips a tile moves", () => {
     expect(returned).toContain("facetOperators,");
     expect(returned).toContain("setFacetSelection,");
     expect(returned).toContain("clearAllFacets,");
-  });
-});
-
-describe("FacetSnapshotNote", () => {
-  /*
-   * It says nothing of its own — the page that knows what its chip means
-   * supplies the sentence. A note that composed its own copy would have to know
-   * about the device status window, which is the one thing keeping this shared.
-   */
-  test("renders the detail it is given", () => {
-    expect(SNAPSHOT_NOTE).toContain("detail: string;");
-    expect(SNAPSHOT_NOTE).toContain("<span>{props.detail}</span>");
-  });
-
-  // Several tables can show a note; the tests in the wild have to tell them apart.
-  test("keeps a per-table test id", () => {
-    expect(SNAPSHOT_NOTE).toContain("testIdSuffix: string;");
-    expect(SNAPSHOT_NOTE).toContain(
-      "data-testid={`facet-snapshot-note-${props.testIdSuffix}`}",
-    );
   });
 });
 

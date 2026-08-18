@@ -40,13 +40,14 @@ Você pode copiar este endereço da página de detalhes do monitor e configurar 
 
 Você pode criar critérios com base nos seguintes campos de email:
 
-| Campo                 | Descrição                                                       |
-| --------------------- | --------------------------------------------------------------- |
-| **Assunto do e-mail** | A linha de assunto do email de entrada                          |
-| **E-mail de origem**  | O endereço de email do remetente                                |
-| **Email Body**        | O conteúdo em texto simples do corpo do email                   |
-| **Email To**          | O endereço de email do destinatário                             |
-| **Email Received**    | Critérios baseados em tempo para quando os emails são recebidos |
+| Campo                     | Descrição                                                                 |
+| ------------------------- | ------------------------------------------------------------------------- |
+| **Assunto do e-mail**     | A linha de assunto do email de entrada                                    |
+| **E-mail de origem**      | O endereço de email do remetente                                          |
+| **Email Body**            | O conteúdo em texto simples do corpo do email                             |
+| **Email To**              | O endereço de email do destinatário                                       |
+| **Email Received**        | Critérios baseados em tempo para quando os emails são recebidos           |
+| **JavaScript Expression** | Uma expressão JavaScript personalizada que precisa resultar em verdadeiro |
 
 ## Tipos de Filtro Disponíveis
 
@@ -69,6 +70,12 @@ Você pode criar critérios com base nos seguintes campos de email:
 | --------------------------- | ---------------------------------------- | -------------------------------- |
 | **Received In Minutes**     | O email foi recebido dentro de X minutos | Email received in 30 minutes     |
 | **Not Received In Minutes** | Nenhum email recebido em X minutos       | Email not received in 60 minutes |
+
+### JavaScript Expression
+
+A única condição de filtro é **Evaluates To True**: o critério é atendido quando a expressão retorna um valor verdadeiro.
+
+A expressão é executada em um sandbox sem nenhum campo do email vinculado, portanto não consegue ler o assunto, o remetente, o corpo nem o destinatário da mensagem que disparou a verificação. Use os tipos de filtro **Email Subject**, **Email From**, **Email Body** e **Email To** para comparar o conteúdo do email.
 
 ## Configurações de Exemplo
 

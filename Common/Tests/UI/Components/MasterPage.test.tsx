@@ -54,9 +54,44 @@ describe("MasterPage", () => {
   });
 
   it("should render correctly with makeTopSectionUnstick", () => {
-    render(<MasterPage {...defaultProps} makeTopSectionUnstick />);
+    render(
+      <MasterPage
+        {...defaultProps}
+        header={<div>Header</div>}
+        makeTopSectionUnstick
+      />,
+    );
 
     const topSection: HTMLElement = screen.getByRole("banner").parentElement!;
     expect(topSection).not.toHaveClass("sticky");
+  });
+
+  it("should render the top section when it has a header or a navbar", () => {
+    const { rerender } = render(
+      <MasterPage {...defaultProps} header={<div>Header</div>} />,
+    );
+    expect(screen.getByRole("banner")).toBeInTheDocument();
+
+    rerender(<MasterPage {...defaultProps} navBar={<div>NavBar</div>} />);
+    expect(screen.getByRole("banner")).toBeInTheDocument();
+  });
+
+  /*
+   * The status page renders its own header and navbar inside children and
+   * passes neither prop. Rendering the top section anyway left an empty white
+   * bar with a drop shadow above the content.
+   */
+  it("should not render an empty top section when it has neither", () => {
+    render(<MasterPage {...defaultProps} />);
+
+    expect(screen.queryByRole("banner")).not.toBeInTheDocument();
+  });
+
+  it("should not render the top section when its only header is hidden", () => {
+    render(
+      <MasterPage {...defaultProps} header={<div>Header</div>} hideHeader />,
+    );
+
+    expect(screen.queryByRole("banner")).not.toBeInTheDocument();
   });
 });

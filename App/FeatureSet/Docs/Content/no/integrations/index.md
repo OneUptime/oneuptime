@@ -20,6 +20,8 @@ Bruk dette når et eksternt system må _opprette eller oppdatere noe i OneUptime
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
 ```
 
+> **Tip:** Spesielt for varslingsverktøy er en **[Incoming Request-monitor](/docs/monitor/incoming-request-monitor)** som regel den bedre innkommende veien. Den gir deg en webhook-URL uten å bygge en arbeidsflyt, åpner én hendelse per varsel i nyttelasten, eskalerer til en vaktordning og løser hver hendelse når verktøyet melder at den er gjenopprettet. Bruk en arbeidsflyt når du trenger logikk OneUptime ikke gjør nativt. Se [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) for et fullstendig eksempel.
+
 ### Utgående — OneUptime sender data til et annet verktøy
 
 Bruk dette når _noe i OneUptime skal vises i et annet verktøy_ — åpne en Jira-sak, varsle noen i PagerDuty, poste til Slack.
@@ -85,7 +87,7 @@ printf '%s' 'you@example.com:your_api_token' | base64
 
 Nesten ethvert verktøy passer inn i ett av de to mønstrene ovenfor:
 
-- Hvis verktøyet kan **sende en webhook** når noe skjer, bruk det **innkommende** mønsteret — pek webhoken mot en OneUptime Webhook-trigger.
+- Hvis verktøyet kan **sende en webhook** når noe skjer, bruk det **innkommende** mønsteret — pek webhoken mot en [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) hvis det er et varslingsverktøy, eller mot en OneUptime Webhook-trigger hvis du trenger egendefinert logikk.
 - Hvis verktøyet har et **REST API**, bruk det **utgående** mønsteret — kall det fra en **API-komponent**.
 - Hvis du trenger å omforme data mellom de to, legg inn en **[Custom Code](/docs/workflows/components#custom-code)**-blokk.
 
@@ -97,4 +99,5 @@ Det dekker den lange halen — Zendesk, AWS CloudWatch (via SNS), New Relic, Spl
 - [Triggere](/docs/workflows/triggers) — Webhook- og OneUptime-hendelsestrigger i detalj.
 - [Komponenter](/docs/workflows/components) — API-, Webhook- og datakomponentene.
 - [Variabler](/docs/workflows/variables) — hemmeligheter og å sende data mellom blokker.
+- [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) — den arbeidsflytfrie innkommende veien for varslingsverktøy.
 - [Zabbix](/docs/integrations/zabbix) og [Jira](/docs/integrations/jira) — fullstendige utarbeidede eksempler.

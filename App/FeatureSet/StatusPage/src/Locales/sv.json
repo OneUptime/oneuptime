@@ -1,6 +1,7 @@
 {
   "a11y": {
-    "skipToMainContent": "Hoppa till huvudinnehåll"
+    "skipToMainContent": "Hoppa till huvudinnehåll",
+    "loading": "Läser in..."
   },
   "common": {
     "save": "Spara",
@@ -227,7 +228,8 @@
       "passwordDescription": "Ange lösenordet för att låsa upp den här sidan.",
       "passwordPlaceholder": "Ange lösenord",
       "submit": "Lås upp statussida"
-    }
+    },
+    "signingOut": "Loggar ut dig..."
   },
   "errors": {
     "notFound": {

@@ -83,7 +83,14 @@ Vælg, hvordan de metriske værdier skal aggregeres til evaluering:
 - **Større end eller lig med** – Metrisk værdi er ved eller over en grænseværdi
 - **Mindre end eller lig med** – Metrisk værdi er ved eller under en grænseværdi
 - **Lig med** – Metrisk værdi matcher nøjagtigt
-- **Ikke lig med** – Metrisk værdi matcher ikke
+
+Baseline-anomalidetektion (ingen grænseværdi — formularen viser i stedet **Følsomhed** og **Baseline-vindue** og sammenligner hver måling med baselinen for samme time på ugen):
+
+- **Anomalt højt** – Værdien stiger over det forventede interval
+- **Anomalt lavt** – Værdien falder under det forventede interval
+- **Anomalt** – Værdien forlader det forventede interval i begge retninger
+
+Anomalibetingelser udløser ingen advarsler, før der findes mindst det valgte baseline-vindue af historik (Learning-tilstand).
 
 ### Eksempelkriterier
 

@@ -65,9 +65,8 @@ For **Svartid**:
 - **Less Than** – Svartiden er under en terskel
 - **Greater Than or Equal To** – Svartiden er ved eller over en terskel
 - **Less Than or Equal To** – Svartiden er ved eller under en terskel
-- **Equal To** – Svartiden samsvarer nøyaktig
-- **Not Equal To** – Svartiden samsvarer ikke
-- **Evaluate Over Time** – Evaluer ved hjelp av aggregering (Average, Sum, Maximum, Minimum, All Values, Any Value) over et tidsvindu
+
+**Evaluate this criteria over a period of time** er en avkrysningsboks i kriterieskjemaet, ikke en filterbetingelse. Slå den på for å sammenligne en aggregering – valgt under **Evaluate** (Average, Sum, Maximum, Minimum, All Values, Any Value) over vinduet som angis i **For the last (in minutes)** – i stedet for verdien fra siste kontroll.
 
 ### Eksempelkriterier
 

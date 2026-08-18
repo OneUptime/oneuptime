@@ -113,11 +113,22 @@ export default class NetworkDeviceTopologyAPI {
                 name: true,
                 hostname: true,
                 sysName: true,
+                /*
+                 * Reachability: the OUTCOME of the last poll (isReachable),
+                 * not the age of the last success. lastPolledAt and the
+                 * interval only size the "polling has stopped entirely"
+                 * backstop. Dropping isReachable here would put the map back
+                 * to drawing a fleet the probe cannot poll inside 15 minutes
+                 * as an all-red network.
+                 */
+                isReachable: true,
+                lastPolledAt: true,
                 lastSeenAt: true,
+                pollingIntervalInMinutes: true,
                 /*
                  * Health for devices nothing polls. A monitor-backed device
-                 * (monitoringMethod "Monitor") has no SNMP walk to be fresh
-                 * from, so lastSeenAt alone would draw every one of them as
+                 * (monitoringMethod "Monitor") has no SNMP walk at all, so
+                 * the poll columns alone would draw every one of them as
                  * permanently unknown.
                  */
                 currentMonitorStatusId: true,
@@ -410,7 +421,10 @@ export default class NetworkDeviceTopologyAPI {
                 name: device.name || device.hostname || "Unnamed device",
                 hostname: device.hostname,
                 sysName: device.sysName,
+                isReachable: device.isReachable,
+                lastPolledAt: device.lastPolledAt,
                 lastSeenAt: device.lastSeenAt,
+                pollingIntervalInMinutes: device.pollingIntervalInMinutes,
                 monitorStatus: device.currentMonitorStatusId
                   ? nodeStatusByMonitorStatusId.get(
                       device.currentMonitorStatusId.toString(),

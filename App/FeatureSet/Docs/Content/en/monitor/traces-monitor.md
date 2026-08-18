@@ -43,20 +43,19 @@ Select one or more services to monitor traces from. Services must be sending tra
 
 ## Monitoring Criteria
 
-### Available Check Types
+### Available Filter Types
 
-| Check Type | Description                                                  |
-| ---------- | ------------------------------------------------------------ |
-| Span Count | The number of spans matching your filters in the time window |
+| Filter Type | Description                                                  |
+| ----------- | ------------------------------------------------------------ |
+| Span Count  | The number of spans matching your filters in the time window |
 
-### Filter Types
+### Filter Conditions
 
 - **Greater Than** — Span count exceeds a threshold
 - **Less Than** — Span count is below a threshold
 - **Greater Than or Equal To** — Span count is at or above a threshold
 - **Less Than or Equal To** — Span count is at or below a threshold
 - **Equal To** — Span count matches exactly
-- **Not Equal To** — Span count does not match
 
 ### Example Criteria
 
@@ -64,8 +63,8 @@ Select one or more services to monitor traces from. Services must be sending tra
 
 - **Span Statuses**: ERROR
 - **Time Window**: 60 seconds
-- **Check On**: Span Count
-- **Filter Type**: Greater Than
+- **Filter Type**: Span Count
+- **Filter Condition**: Greater Than
 - **Value**: 50
 
 #### Alert on errors in a specific endpoint
@@ -73,8 +72,8 @@ Select one or more services to monitor traces from. Services must be sending tra
 - **Span Name**: `POST /api/checkout`
 - **Span Statuses**: ERROR
 - **Time Window**: 120 seconds
-- **Check On**: Span Count
-- **Filter Type**: Greater Than
+- **Filter Type**: Span Count
+- **Filter Condition**: Greater Than
 - **Value**: 0
 
 ## Setup Requirements

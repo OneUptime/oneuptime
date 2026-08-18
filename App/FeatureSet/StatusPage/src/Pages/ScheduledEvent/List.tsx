@@ -25,7 +25,7 @@ import { ComponentProps as EventHistoryDayListComponentProps } from "Common/UI/C
 import EventHistoryList, {
   ComponentProps as EventHistoryListComponentProps,
 } from "Common/UI/Components/EventHistoryList/EventHistoryList";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import { EventListSkeleton } from "../../Components/Skeleton/PageSkeletons";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
@@ -296,36 +296,55 @@ const Overview: FunctionComponent<PageComponentProps> = (
     setEndedEventsParsedData(endedEventProps);
   }, [isLoading, i18nInstance.resolvedLanguage]);
 
+  type RenderPageFunction = (pageContent: ReactElement) => ReactElement;
+
+  /*
+   * The page chrome — title and breadcrumbs — comes from static translations,
+   * not from the request, so render it immediately and swap only the body
+   * between the loading skeleton, an error and the real content. Returning a
+   * bare loader instead used to blank the whole page and drag the footer up
+   * into the middle of the viewport until the data arrived.
+   */
+  const renderPage: RenderPageFunction = (
+    pageContent: ReactElement,
+  ): ReactElement => {
+    return (
+      <Page
+        title={t("scheduledEvents.title")}
+        breadcrumbLinks={[
+          {
+            title: t("nav.overview"),
+            to: RouteUtil.populateRouteParams(
+              StatusPageUtil.isPreviewPage()
+                ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
+                : (RouteMap[PageMap.OVERVIEW] as Route),
+            ),
+          },
+          {
+            title: t("scheduledEvents.title"),
+            to: RouteUtil.populateRouteParams(
+              StatusPageUtil.isPreviewPage()
+                ? (RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST] as Route)
+                : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route),
+            ),
+          },
+        ]}
+      >
+        {pageContent}
+      </Page>
+    );
+  };
+
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return renderPage(<EventListSkeleton />);
   }
 
   if (error) {
-    return <ErrorMessage message={error} />;
+    return renderPage(<ErrorMessage message={error} />);
   }
 
-  return (
-    <Page
-      title={t("scheduledEvents.title")}
-      breadcrumbLinks={[
-        {
-          title: t("nav.overview"),
-          to: RouteUtil.populateRouteParams(
-            StatusPageUtil.isPreviewPage()
-              ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
-              : (RouteMap[PageMap.OVERVIEW] as Route),
-          ),
-        },
-        {
-          title: t("scheduledEvents.title"),
-          to: RouteUtil.populateRouteParams(
-            StatusPageUtil.isPreviewPage()
-              ? (RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST] as Route)
-              : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route),
-          ),
-        },
-      ]}
-    >
+  return renderPage(
+    <>
       {ongoingEventsParsedData?.items &&
       ongoingEventsParsedData?.items.length > 0 ? (
         <div>
@@ -361,6 +380,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
       {scheduledMaintenanceEvents.length === 0 ? (
         <EmptyState
+          paddingClassName="py-12 sm:py-16"
           id="scheduled-events-empty-state"
           title={t("scheduledEvents.none")}
           description={t("scheduledEvents.noneDescription")}
@@ -369,7 +389,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       ) : (
         <></>
       )}
-    </Page>
+    </>,
   );
 };
 

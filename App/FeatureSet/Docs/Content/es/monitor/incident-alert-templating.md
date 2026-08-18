@@ -40,6 +40,10 @@ Los siguientes tipos de monitores admiten plantillas dinámicas con sus respecti
 | `requestMethod`             | El método HTTP de la solicitud entrante (GET, POST, etc.).    | `string`             |
 | `incomingRequestReceivedAt` | La fecha y hora en que se recibió la solicitud entrante.      | `Date`               |
 
+Cuando el criterio tiene activado **Group incidents and alerts by a payload field**, la clave de agrupación extraída también está disponible, bajo un nombre de variable tomado del **último segmento** de la ruta de agrupación. Agrupar por `requestBody.alerts[*].labels.alertname` te da `{{alertname}}`; agrupar por `requestBody.alerts[*].fingerprint` te da `{{fingerprint}}`. El `requestBody` completo sigue estando disponible junto a ella.
+
+> **Note:** `[*]` solo se entiende en los propios campos de ruta de agrupación — aquí no se resuelve, así que el marcador se imprime literalmente, con llaves incluidas. Dentro de un título o una descripción, `{{requestBody.alerts[0].annotations.summary}}` siempre lee la primera alerta de la carga útil, no aquella para la que se abrió el incidente. Usa en su lugar la variable de agrupación y los campos compartidos de la carga útil (`commonLabels`, `commonAnnotations`). Consulta [Monitor de Incoming Request](/docs/monitor/incoming-request-monitor).
+
 ### Monitores Ping
 
 | Variable           | Descripción                                         | Tipo      |
@@ -175,7 +179,7 @@ La indexación de arreglos es compatible:
 Primer usuario: {{responseBody.users[0].name}}
 ```
 
-Si una ruta no existe, se resuelve como una cadena vacía de forma predeterminada.
+Si una ruta no existe, el marcador se deja en la salida exactamente como está escrito — `{{responseBody.error.id}}` aparece literalmente, con llaves incluidas, en el título del incidente. Solo se eliminan los bloques `{{#each}}` sobre una ruta inexistente.
 
 ## Uso avanzado
 

@@ -62,7 +62,6 @@ Filtrer logger etter ett eller flere alvorlighetsnivåer:
 - **Greater Than or Equal To** – Loggantallet er ved eller over en terskel
 - **Less Than or Equal To** – Loggantallet er ved eller under en terskel
 - **Equal To** – Loggantallet samsvarer nøyaktig
-- **Not Equal To** – Loggantallet samsvarer ikke
 
 ### Eksempelkriterier
 

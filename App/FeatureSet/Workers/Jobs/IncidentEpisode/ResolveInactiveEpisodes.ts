@@ -6,7 +6,9 @@ import IncidentGroupingRuleService from "Common/Server/Services/IncidentGrouping
 import logger from "Common/Server/Utils/Logger";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentGroupingRule from "Common/Models/DatabaseModels/IncidentGroupingRule";
+import ObjectID from "Common/Types/ObjectID";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import LIMIT_MAX from "Common/Types/Database/LimitMax";
 
 RunCron(
   "IncidentEpisode:ResolveInactiveEpisodes",
@@ -44,10 +46,21 @@ RunCron(
         `IncidentEpisode:ResolveInactiveEpisodes - Found ${activeEpisodes.length} active episodes`,
       );
 
+      if (activeEpisodes.length === 0) {
+        return;
+      }
+
+      /*
+       * Episodes cluster by grouping rule, so fetch each distinct rule once
+       * per tick instead of once per episode.
+       */
+      const rulesById: Map<string, IncidentGroupingRule> =
+        await fetchGroupingRules(activeEpisodes);
+
       const promises: Array<Promise<void>> = [];
 
       for (const episode of activeEpisodes) {
-        promises.push(checkAndResolveInactiveEpisode(episode));
+        promises.push(checkAndResolveInactiveEpisode(episode, rulesById));
       }
 
       await Promise.allSettled(promises);
@@ -57,12 +70,65 @@ RunCron(
   },
 );
 
+type FetchGroupingRulesFunction = (
+  episodes: Array<IncidentEpisode>,
+) => Promise<Map<string, IncidentGroupingRule>>;
+
+const fetchGroupingRules: FetchGroupingRulesFunction = async (
+  episodes: Array<IncidentEpisode>,
+): Promise<Map<string, IncidentGroupingRule>> => {
+  const rulesById: Map<string, IncidentGroupingRule> = new Map();
+
+  const distinctRuleIds: Map<string, ObjectID> = new Map();
+  for (const episode of episodes) {
+    if (episode.incidentGroupingRuleId) {
+      distinctRuleIds.set(
+        episode.incidentGroupingRuleId.toString(),
+        episode.incidentGroupingRuleId,
+      );
+    }
+  }
+
+  if (distinctRuleIds.size === 0) {
+    return rulesById;
+  }
+
+  const rules: Array<IncidentGroupingRule> =
+    await IncidentGroupingRuleService.findBy({
+      query: {
+        _id: QueryHelper.any([...distinctRuleIds.values()]),
+      },
+      select: {
+        _id: true,
+        enableInactivityTimeout: true,
+        inactivityTimeoutMinutes: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+    });
+
+  for (const rule of rules) {
+    if (rule.id) {
+      rulesById.set(rule.id.toString(), rule);
+    }
+  }
+
+  return rulesById;
+};
+
 type CheckAndResolveInactiveEpisodeFunction = (
   episode: IncidentEpisode,
+  rulesById: Map<string, IncidentGroupingRule>,
 ) => Promise<void>;
 
 const checkAndResolveInactiveEpisode: CheckAndResolveInactiveEpisodeFunction =
-  async (episode: IncidentEpisode): Promise<void> => {
+  async (
+    episode: IncidentEpisode,
+    rulesById: Map<string, IncidentGroupingRule>,
+  ): Promise<void> => {
     try {
       if (!episode.id || !episode.projectId) {
         return;
@@ -73,17 +139,9 @@ const checkAndResolveInactiveEpisode: CheckAndResolveInactiveEpisodeFunction =
       let enableInactivityTimeout: boolean = false;
 
       if (episode.incidentGroupingRuleId) {
-        const rule: IncidentGroupingRule | null =
-          await IncidentGroupingRuleService.findOneById({
-            id: episode.incidentGroupingRuleId,
-            select: {
-              enableInactivityTimeout: true,
-              inactivityTimeoutMinutes: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
+        const rule: IncidentGroupingRule | undefined = rulesById.get(
+          episode.incidentGroupingRuleId.toString(),
+        );
 
         if (rule) {
           enableInactivityTimeout = rule.enableInactivityTimeout || false;

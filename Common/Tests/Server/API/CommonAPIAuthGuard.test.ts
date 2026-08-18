@@ -479,3 +479,293 @@ describe("CommonAPI.assertTenantScoped", () => {
     }).not.toThrow();
   });
 });
+
+/*
+ * Tests for CommonAPI.assertPermittedInProject — the third guard in the set.
+ *
+ * assertAuthenticatedProjectMember answers "are you in this project?" and
+ * assertResourceBelongsToProject answers "is this row in that project?".
+ * Neither answers "are you allowed to read this KIND of thing?", which is the
+ * question a CRUD read answers from the model's own access control lists and
+ * a custom route reading with `isRoot: true` skips entirely.
+ *
+ * The subtle part, and the reason this has its own tests: models routinely
+ * list Permission.Public as a reader (LlmProvider does, so the shared global
+ * providers stay visible), while getUserPermissions merges Public into EVERY
+ * caller's permission set — anonymous ones included. Intersecting the two
+ * lists as they come would therefore admit anybody. The guard first narrows
+ * the model's list to the permissions a team can actually grant inside a
+ * project.
+ */
+function buildPermittedProps(data: {
+  projectId: ObjectID;
+  granted: Array<Permission>;
+  blocked?: Array<Permission> | undefined;
+  isMasterAdmin?: boolean | undefined;
+}): DatabaseCommonInteractionProps {
+  const permissions: Array<UserPermission> = data.granted.map(
+    (permission: Permission) => {
+      return {
+        _type: "UserPermission",
+        permission: permission,
+        labelIds: [],
+        isBlockPermission: false,
+      } as UserPermission;
+    },
+  );
+
+  for (const blocked of data.blocked || []) {
+    permissions.push({
+      _type: "UserPermission",
+      permission: blocked,
+      labelIds: [],
+      isBlockPermission: true,
+    } as UserPermission);
+  }
+
+  const tenantPermission: UserTenantAccessPermission = {
+    _type: "UserTenantAccessPermission",
+    projectId: data.projectId,
+    permissions: permissions,
+  } as UserTenantAccessPermission;
+
+  const dictionary: Dictionary<UserTenantAccessPermission> = {};
+  dictionary[data.projectId.toString()] = tenantPermission;
+
+  return {
+    tenantId: data.projectId,
+    userId: ObjectID.generate(),
+    userTenantAccessPermission: dictionary,
+    isMasterAdmin: data.isMasterAdmin,
+  };
+}
+
+describe("CommonAPI.assertPermittedInProject", () => {
+  test("admits a caller holding one of the allowed permissions", () => {
+    const projectId: ObjectID = ObjectID.generate();
+
+    expect(() => {
+      CommonAPI.assertPermittedInProject({
+        databaseProps: buildPermittedProps({
+          projectId: projectId,
+          granted: [Permission.ProjectMember],
+        }),
+        allowedPermissions: [Permission.ProjectOwner, Permission.ProjectMember],
+      });
+    }).not.toThrow();
+  });
+
+  test("admits a caller holding any one of several allowed permissions", () => {
+    const projectId: ObjectID = ObjectID.generate();
+
+    expect(() => {
+      CommonAPI.assertPermittedInProject({
+        databaseProps: buildPermittedProps({
+          projectId: projectId,
+          granted: [Permission.ReadProjectIncident, Permission.SettingsViewer],
+        }),
+        allowedPermissions: [
+          Permission.ProjectOwner,
+          Permission.SettingsViewer,
+        ],
+      });
+    }).not.toThrow();
+  });
+
+  test("refuses a member of the project who holds none of them", () => {
+    const projectId: ObjectID = ObjectID.generate();
+
+    const thrown: unknown = captureThrown(() => {
+      CommonAPI.assertPermittedInProject({
+        databaseProps: buildPermittedProps({
+          projectId: projectId,
+          granted: [Permission.ReadProjectIncident],
+        }),
+        allowedPermissions: [Permission.ProjectOwner, Permission.ProjectAdmin],
+      });
+    });
+
+    expect(thrown).toBeInstanceOf(NotAuthorizedException);
+    expect((thrown as Exception).message).toBe(
+      "You do not have permission to access this project's data.",
+    );
+  });
+
+  test("uses the caller-supplied message when one is given", () => {
+    const projectId: ObjectID = ObjectID.generate();
+
+    const thrown: unknown = captureThrown(() => {
+      CommonAPI.assertPermittedInProject({
+        databaseProps: buildPermittedProps({
+          projectId: projectId,
+          granted: [],
+        }),
+        allowedPermissions: [Permission.ProjectOwner],
+        errorMessage:
+          "You do not have permission to read this project's AI providers.",
+      });
+    });
+
+    expect((thrown as Exception).message).toBe(
+      "You do not have permission to read this project's AI providers.",
+    );
+  });
+
+  /*
+   * The regression this guard exists to prevent. Public is in many models'
+   * read lists and in every caller's permission set, so a naive intersection
+   * would always succeed.
+   */
+  test("Permission.Public in the allowed list does not admit an ordinary member", () => {
+    const projectId: ObjectID = ObjectID.generate();
+
+    expect(() => {
+      CommonAPI.assertPermittedInProject({
+        databaseProps: buildPermittedProps({
+          projectId: projectId,
+          granted: [Permission.ReadProjectIncident],
+        }),
+        allowedPermissions: [Permission.Public, Permission.ProjectOwner],
+      });
+    }).toThrow(NotAuthorizedException);
+  });
+
+  test("Permission.Public in the allowed list does not admit an anonymous caller", () => {
+    const props: DatabaseCommonInteractionProps = {
+      tenantId: ObjectID.generate(),
+    };
+
+    expect(() => {
+      CommonAPI.assertPermittedInProject({
+        databaseProps: props,
+        allowedPermissions: [Permission.Public],
+      });
+    }).toThrow(NotAuthorizedException);
+  });
+
+  test("Permission.CurrentUser, which every logged-in caller carries, does not admit them either", () => {
+    const projectId: ObjectID = ObjectID.generate();
+
+    expect(() => {
+      CommonAPI.assertPermittedInProject({
+        databaseProps: buildPermittedProps({
+          projectId: projectId,
+          granted: [Permission.ReadProjectIncident],
+        }),
+        allowedPermissions: [Permission.CurrentUser, Permission.ProjectOwner],
+      });
+    }).toThrow(NotAuthorizedException);
+  });
+
+  test("an allowed list with nothing tenant-assignable in it denies everyone", () => {
+    const projectId: ObjectID = ObjectID.generate();
+
+    expect(() => {
+      CommonAPI.assertPermittedInProject({
+        databaseProps: buildPermittedProps({
+          projectId: projectId,
+          granted: [Permission.ProjectOwner],
+        }),
+        allowedPermissions: [Permission.Public, Permission.CurrentUser],
+      });
+    }).toThrow(NotAuthorizedException);
+  });
+
+  test("an empty allowed list denies everyone", () => {
+    const projectId: ObjectID = ObjectID.generate();
+
+    expect(() => {
+      CommonAPI.assertPermittedInProject({
+        databaseProps: buildPermittedProps({
+          projectId: projectId,
+          granted: [Permission.ProjectOwner],
+        }),
+        allowedPermissions: [],
+      });
+    }).toThrow(NotAuthorizedException);
+  });
+
+  /*
+   * userTenantAccessPermission holds grants AND denials in one array,
+   * discriminated only by isBlockPermission. Reading it raw would count a
+   * team's explicit block row as a grant.
+   */
+  test("a BLOCK row for an allowed permission is not counted as a grant of it", () => {
+    const projectId: ObjectID = ObjectID.generate();
+
+    expect(() => {
+      CommonAPI.assertPermittedInProject({
+        databaseProps: buildPermittedProps({
+          projectId: projectId,
+          granted: [Permission.ReadProjectIncident],
+          blocked: [Permission.ProjectOwner, Permission.ProjectMember],
+        }),
+        allowedPermissions: [Permission.ProjectOwner, Permission.ProjectMember],
+      });
+    }).toThrow(NotAuthorizedException);
+  });
+
+  test("permissions granted in ANOTHER project do not count", () => {
+    const callersProjectId: ObjectID = ObjectID.generate();
+    const targetProjectId: ObjectID = ObjectID.generate();
+
+    const props: DatabaseCommonInteractionProps = buildPermittedProps({
+      projectId: callersProjectId,
+      granted: [Permission.ProjectOwner],
+    });
+
+    // The header names the target project; the grants are for another one.
+    props.tenantId = targetProjectId;
+
+    expect(() => {
+      CommonAPI.assertPermittedInProject({
+        databaseProps: props,
+        allowedPermissions: [Permission.ProjectOwner],
+      });
+    }).toThrow(NotAuthorizedException);
+  });
+
+  test("a master admin bypasses the permission check", () => {
+    const projectId: ObjectID = ObjectID.generate();
+
+    expect(() => {
+      CommonAPI.assertPermittedInProject({
+        databaseProps: buildPermittedProps({
+          projectId: projectId,
+          granted: [],
+          isMasterAdmin: true,
+        }),
+        allowedPermissions: [Permission.ProjectOwner],
+      });
+    }).not.toThrow();
+  });
+
+  /*
+   * The guard answers one question only. Membership is assertAuthenticated-
+   * ProjectMember's job, and a route must call both — this test documents
+   * that calling only this one is not enough.
+   */
+  test("does not itself check membership — that stays with assertAuthenticatedProjectMember", () => {
+    const projectId: ObjectID = ObjectID.generate();
+    const props: DatabaseCommonInteractionProps = buildPermittedProps({
+      projectId: projectId,
+      granted: [Permission.ProjectOwner],
+    });
+
+    expect(() => {
+      CommonAPI.assertPermittedInProject({
+        databaseProps: props,
+        allowedPermissions: [Permission.ProjectOwner],
+      });
+    }).not.toThrow();
+
+    props.userId = undefined;
+
+    expect(() => {
+      CommonAPI.assertPermittedInProject({
+        databaseProps: props,
+        allowedPermissions: [Permission.ProjectOwner],
+      });
+    }).not.toThrow();
+  });
+});

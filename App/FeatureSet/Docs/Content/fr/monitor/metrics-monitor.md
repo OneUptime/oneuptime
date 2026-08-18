@@ -83,7 +83,14 @@ Choisissez comment agréger les valeurs de métriques pour l'évaluation :
 - **Supérieur ou égal à** — La valeur de la métrique est au-dessus ou égale à un seuil
 - **Inférieur ou égal à** — La valeur de la métrique est en dessous ou égale à un seuil
 - **Égal à** — La valeur de la métrique correspond exactement
-- **Différent de** — La valeur de la métrique ne correspond pas
+
+Détection d'anomalies par référence (aucun seuil — le formulaire affiche à la place **Sensibilité** et **Fenêtre de référence**, et compare chaque échantillon à la référence de la même heure de la semaine) :
+
+- **Anormalement élevé** — La valeur dépasse la plage attendue
+- **Anormalement bas** — La valeur passe sous la plage attendue
+- **Anormal** — La valeur sort de la plage attendue dans un sens ou dans l'autre
+
+Les conditions d'anomalie ne déclenchent aucune alerte tant qu'il n'existe pas au moins la fenêtre de référence configurée d'historique (état Learning).
 
 ### Exemples de critères
 

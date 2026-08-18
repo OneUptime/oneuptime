@@ -34,18 +34,16 @@ SSL 憑證監控器會連接到您的 HTTPS 端點並檢查 SSL/TLS 憑證。這
 
 | 檢查類型                   | 說明                           |
 | -------------------------- | ------------------------------ |
-| Is Online                  | 伺服器是否可連線               |
 | Is Valid Certificate       | 憑證是否有效（未到期、非自簽） |
 | Is Self-Signed Certificate | 憑證是否為自簽                 |
 | Is Expired Certificate     | 憑證是否已到期                 |
 | Is Not A Valid Certificate | 憑證是否無效                   |
 | Expires In Hours           | 距離憑證到期的小時數           |
 | Expires In Days            | 距離憑證到期的天數             |
-| Is Request Timeout         | 連線是否逾時                   |
 
 ### 篩選類型
 
-對於 **Is Online**、**Is Valid Certificate**、**Is Self-Signed Certificate**、**Is Expired Certificate**、**Is Not A Valid Certificate** 及 **Is Request Timeout**：
+對於 **Is Valid Certificate**、**Is Self-Signed Certificate**、**Is Expired Certificate** 及 **Is Not A Valid Certificate**：
 
 - **True** — 條件為真
 - **False** — 條件為假

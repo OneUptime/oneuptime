@@ -12,6 +12,7 @@ const PageNotFound: FunctionComponent<
   return (
     <Page>
       <EmptyState
+        paddingClassName="py-20 sm:py-28"
         id="empty-state-page-not-found"
         title={t("errors.notFound.title")}
         description={t("errors.notFound.description")}

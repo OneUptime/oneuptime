@@ -58,7 +58,7 @@
 
 對於 **Domain Expires In Days**：
 
-- **Greater Than**、**Less Than**、**Greater Than or Equal To**、**Less Than or Equal To**、**Equal To**、**Not Equal To**
+- **Greater Than**、**Less Than**、**Greater Than or Equal To**、**Less Than or Equal To**
 
 對於 **Domain Registrar**、**Domain Name Server** 與 **Domain Status Code**：
 

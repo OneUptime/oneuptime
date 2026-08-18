@@ -20,13 +20,16 @@ import {
   DevicePollConfig,
   fetchAndPollDevices,
   pollDevice,
+  pollDevices,
 } from "../../../Jobs/NetworkDevice/FetchList";
+import { PROBE_NETWORK_DEVICE_POLL_CONCURRENCY } from "../../../Config";
 
 /*
  * The probe's half of device-owned polling:
  *
  *   POST <ingest>/probe/network-device/list            → devices due for a walk
- *   (walk each device over SNMP, in batches of 5)
+ *   (walk each device over SNMP, PROBE_NETWORK_DEVICE_POLL_CONCURRENCY
+ *    at a time)
  *   POST <ingest>/probe/network-device/response/ingest → one result per device
  *
  * These tests pin the request contract the probe sends — URLs, per-device
@@ -309,7 +312,11 @@ describe("pollDevice — failures are reported, never swallowed", () => {
 
 describe("fetchAndPollDevices — batching", () => {
   test("all devices beyond one concurrency batch are polled, even when some walks fail", async () => {
-    // 7 devices with DEVICE_POLL_CONCURRENCY = 5 → two batches (5 + 2).
+    /*
+     * 7 devices, which is fewer than the default concurrency — the point of
+     * this case is the fault isolation, not the batching, and it holds
+     * however the batch is sized. The batching itself is pinned below.
+     */
     const devices: Array<DevicePollConfig> = Array.from(
       { length: 7 },
       (_unused: unknown, index: number) => {
@@ -349,5 +356,96 @@ describe("fetchAndPollDevices — batching", () => {
       "device-6",
       "device-7",
     ]);
+  });
+});
+
+/*
+ * The probe half of the fleet's poll cadence.
+ *
+ * A probe fetches once a minute and the server advances every claimed
+ * device's nextPollAt at claim time, so a probe that cannot get through a
+ * batch inside its cycle does not poll those devices late — it skips them.
+ * At the old fixed concurrency of 5 that ceiling was low enough that a
+ * large fleet fell minutes behind its configured intervals, which is the
+ * throughput half of issue #3220.
+ */
+describe("PROBE_NETWORK_DEVICE_POLL_CONCURRENCY", () => {
+  test("defaults wide enough to keep a real fleet on cadence", () => {
+    expect(PROBE_NETWORK_DEVICE_POLL_CONCURRENCY).toBeGreaterThanOrEqual(25);
+  });
+
+  test("walks run concurrently up to the configured width", async () => {
+    const deviceCount: number = PROBE_NETWORK_DEVICE_POLL_CONCURRENCY;
+    const devices: Array<DevicePollConfig> = Array.from(
+      { length: deviceCount },
+      (_unused: unknown, index: number) => {
+        return makeDevice({ networkDeviceId: `device-${index + 1}` });
+      },
+    );
+
+    let inFlight: number = 0;
+    let peakInFlight: number = 0;
+    const releases: Array<() => void> = [];
+
+    querySpy.mockImplementation((): Promise<SnmpMonitorResponse> => {
+      inFlight++;
+      peakInFlight = Math.max(peakInFlight, inFlight);
+
+      return new Promise<SnmpMonitorResponse>(
+        (resolve: (value: SnmpMonitorResponse) => void) => {
+          releases.push(() => {
+            inFlight--;
+            resolve(makeSnmpResponse());
+          });
+        },
+      );
+    });
+
+    const polling: Promise<void> = pollDevices(devices);
+
+    // Let every walk in the first batch start.
+    await new Promise<void>((resolve: () => void) => {
+      setImmediate(resolve);
+    });
+
+    expect(peakInFlight).toBe(deviceCount);
+
+    for (const release of [...releases]) {
+      release();
+    }
+    await polling;
+  });
+
+  /*
+   * The batch is a bound, not a target: it must not fan out past the
+   * configured width, or a probe with thousands of devices opens thousands
+   * of sockets at once.
+   */
+  test("never runs more walks at once than the configured width", async () => {
+    const devices: Array<DevicePollConfig> = Array.from(
+      { length: PROBE_NETWORK_DEVICE_POLL_CONCURRENCY * 2 + 3 },
+      (_unused: unknown, index: number) => {
+        return makeDevice({ networkDeviceId: `device-${index + 1}` });
+      },
+    );
+
+    let inFlight: number = 0;
+    let peakInFlight: number = 0;
+
+    querySpy.mockImplementation(async (): Promise<SnmpMonitorResponse> => {
+      inFlight++;
+      peakInFlight = Math.max(peakInFlight, inFlight);
+      await Promise.resolve();
+      inFlight--;
+      return makeSnmpResponse();
+    });
+
+    await pollDevices(devices);
+
+    expect(peakInFlight).toBeLessThanOrEqual(
+      PROBE_NETWORK_DEVICE_POLL_CONCURRENCY,
+    );
+    // And every device was still polled.
+    expect(querySpy).toHaveBeenCalledTimes(devices.length);
   });
 });

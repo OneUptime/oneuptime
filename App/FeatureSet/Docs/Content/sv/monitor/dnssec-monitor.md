@@ -52,18 +52,17 @@ Du kan konfigurera kriterier för att avgöra när din zon anses vara online, de
 | DNSSEC-signatur löper ut om dagar    | Antal dagar tills den närmast utgående RRSIG-signaturen löper ut    |
 | DNSSEC-resolverkonsensus (AD-flagga) | Varje förfrågad resolver returnerar AD-flaggan (Authenticated Data) |
 | DNSSEC-namnservrar är konsekventa    | Alla auktoritativa namnservrar returnerar samma SOA-serienummer     |
-| DNSSEC är giltig                     | Samlat godkänt/underkänt över alla valideringskontroller            |
 
 ### Filtertyper
 
-För **DNSSEC-kedjan är giltig**, **DNSSEC DNSKEY-post finns**, **DNSSEC DS-post finns hos överordnad**, **DNSSEC-resolverkonsensus (AD-flagga)**, **DNSSEC-namnservrar är konsekventa** och **DNSSEC är giltig**:
+För **DNSSEC-kedjan är giltig**, **DNSSEC DNSKEY-post finns**, **DNSSEC DS-post finns hos överordnad**, **DNSSEC-resolverkonsensus (AD-flagga)** och **DNSSEC-namnservrar är konsekventa**:
 
 - **Sant** – Villkoret är sant
 - **Falskt** – Villkoret är falskt
 
 För **DNSSEC-signatur löper ut om dagar**:
 
-- **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med**, **Lika med**, **Inte lika med**
+- **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med**
 
 ### Exempelkriterier
 

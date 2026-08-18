@@ -22,7 +22,7 @@ import ModelForm, {
 } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import { FormSkeleton } from "../../Components/Skeleton/PageSkeletons";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import SubscriberUtil from "Common/UI/Utils/StatusPage";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
@@ -50,7 +50,16 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
     categories: [],
     options: [],
   });
-  const [isLaoding, setIsLoading] = useState<boolean>(false);
+  /*
+   * Start in the loading state when the effect below is actually going to
+   * fetch. Starting at false rendered the whole form, then swapped it for a
+   * loader, then rendered it again — a visible flash on a page the reader is
+   * already looking at. It must stay false when the fetch is skipped, or the
+   * loader would never clear.
+   */
+  const [isLaoding, setIsLoading] = useState<boolean>(
+    Boolean(props.allowSubscribersToChooseResources),
+  );
   const [error, setError] = useState<string | undefined>(undefined);
 
   const fetchCheckboxOptionsAndCategories: PromiseVoidFunction =
@@ -77,6 +86,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
 
   useEffect(() => {
     if (!props.allowSubscribersToChooseResources) {
+      setIsLoading(false);
       return;
     }
 
@@ -277,7 +287,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         />
       }
     >
-      {isLaoding ? <PageLoader isVisible={isLaoding} /> : <></>}
+      {isLaoding ? <FormSkeleton /> : <></>}
 
       {error ? <ErrorMessage message={error} /> : <></>}
 

@@ -58,7 +58,7 @@ Domain monitors आपके domains के लिए WHOIS data query करत
 
 **Domain Expires In Days** के लिए:
 
-- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
+- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**
 
 **Domain Registrar**, **Domain Name Server** और **Domain Status Code** के लिए:
 

@@ -115,25 +115,31 @@ Du kan konfigurere kriterier til at afgøre, hvornår din server betragtes som o
 
 ### Tilgængelige kontroltyper
 
-| Kontroltype                   | Beskrivelse                                             |
-| ----------------------------- | ------------------------------------------------------- |
-| Er online                     | Om serveragenten rapporterer (baseret på hjerteslag)    |
-| CPU-udnyttelsesprocent        | Aktuel CPU-udnyttelsesprocent                           |
-| Hukommelsesudnyttelsesprocent | Aktuel hukommelsesudnyttelsesprocent                    |
-| Diskudnyttelsesprocent        | Aktuel diskudnyttelsesprocent (for en specifik disksti) |
-| Serverprocesnavn              | Kontroller, om en proces med et specifikt navn kører    |
-| Serverproceskommando          | Kontroller, om en proces med en specifik kommando kører |
-| Serverprocespid               | Kontroller, om en proces med et specifikt PID kører     |
+| Kontroltype                         | Beskrivelse                                             |
+| ----------------------------------- | ------------------------------------------------------- |
+| Er online                           | Om serveragenten rapporterer (baseret på hjerteslag)    |
+| CPU-udnyttelsesprocent              | Aktuel CPU-udnyttelsesprocent                           |
+| Hukommelsesudnyttelsesprocent       | Aktuel hukommelsesudnyttelsesprocent                    |
+| Diskudnyttelsesprocent              | Aktuel diskudnyttelsesprocent (for en specifik disksti) |
+| Swap-udnyttelsesprocent             | Aktuel swap-udnyttelsesprocent                          |
+| CPU IO-ventetid i procent           | Andel af CPU-tid brugt på at vente på I/O               |
+| Belastningsgennemsnit (1 minut)     | Systemets belastningsgennemsnit det seneste minut       |
+| Belastningsgennemsnit (5 minutter)  | Systemets belastningsgennemsnit de seneste 5 minutter   |
+| Belastningsgennemsnit (15 minutter) | Systemets belastningsgennemsnit de seneste 15 minutter  |
+| Serverprocesnavn                    | Kontroller, om en proces med et specifikt navn kører    |
+| Serverproceskommando                | Kontroller, om en proces med en specifik kommando kører |
+| Serverprocespid                     | Kontroller, om en proces med et specifikt PID kører     |
 
 ### Filtertyper
 
-For numeriske metrikker (CPU, hukommelse, disk):
+For numeriske metrikker (CPU, hukommelse, disk, swap, IO-ventetid, belastningsgennemsnit):
 
 - **Større end** – Værdien overskrider en grænseværdi
 - **Mindre end** – Værdien er under en grænseværdi
 - **Større end eller lig med** – Værdien er ved eller over en grænseværdi
 - **Mindre end eller lig med** – Værdien er ved eller under en grænseværdi
-- **Evaluer over tid** – Evaluer ved hjælp af aggregering (Gennemsnit, Sum, Maksimum, Minimum, Alle værdier, Enhver værdi) over et tidsvindue
+
+**Evaluer dette kriterium over en periode** er et afkrydsningsfelt i kriterieformularen, ikke en filterbetingelse. Slå det til for at sammenligne en aggregering — valgt under **Evaluer** (Gennemsnit, Sum, Maksimum, Minimum, Alle værdier, Enhver værdi) over vinduet, der angives i **For de sidste (i minutter)** — i stedet for værdien fra den seneste kontrol.
 
 For procestjek:
 

@@ -1,7 +1,9 @@
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import { CheckOn } from "../../../Types/Monitor/CriteriaFilter";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
-import MonitorType from "../../../Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "../../../Types/Monitor/MonitorType";
 import MonitorMetricTypeUtil, {
   MonitorMetricCategory,
 } from "../../../Utils/Monitor/MonitorMetricType";
@@ -331,5 +333,68 @@ describe("invariant: every displayed metric resolves its metadata", () => {
         ).toBeGreaterThan(0);
       }
     }
+  });
+});
+
+/*
+ * Regression suite for https://github.com/OneUptime/oneuptime/issues/3225.
+ *
+ * SSLCertificate was missing from getMonitorMetricTypesByMonitorType, so it
+ * fell through to `return []`. getMonitorMetricCategoriesByMonitorType
+ * short-circuits on an empty metric list and the dashboard hides the whole
+ * Monitor Metrics tab when there are no categories - so an SSL monitor
+ * showed no charts at all, even though IsOnline rows were being written to
+ * ClickHouse on every single check. An operator therefore had no way to see
+ * that their monitor was running, which is a large part of why the issue was
+ * reported as "the monitor never executes".
+ *
+ * The invariant test above cannot catch this: it iterates the metrics a type
+ * already lists, so an empty list passes vacuously.
+ */
+describe("SSL Certificate monitor metrics (issue #3225)", () => {
+  test("SSLCertificate reports IsOnline and ResponseTime", () => {
+    const metrics: Array<MonitorMetricType> =
+      MonitorMetricTypeUtil.getMonitorMetricTypesByMonitorType(
+        MonitorType.SSLCertificate,
+      );
+
+    expect(metrics).toContain(MonitorMetricType.IsOnline);
+    expect(metrics).toContain(MonitorMetricType.ResponseTime);
+  });
+
+  test("SSLCertificate produces at least one display category", () => {
+    const categories: Array<MonitorMetricCategory> =
+      MonitorMetricTypeUtil.getMonitorMetricCategoriesByMonitorType(
+        MonitorType.SSLCertificate,
+      );
+
+    // An empty list is what made the dashboard hide the metrics tab.
+    expect(categories.length).toBeGreaterThan(0);
+  });
+});
+
+describe("invariant: every probeable monitor type displays some metric", () => {
+  test("no probeable type falls through to an empty metric list", () => {
+    const typesWithoutMetrics: Array<MonitorType> = [];
+
+    for (const monitorType of ALL_MONITOR_TYPES) {
+      if (!MonitorTypeHelper.isProbableMonitor(monitorType)) {
+        continue;
+      }
+
+      const metrics: Array<MonitorMetricType> =
+        MonitorMetricTypeUtil.getMonitorMetricTypesByMonitorType(monitorType);
+
+      if (metrics.length === 0) {
+        typesWithoutMetrics.push(monitorType);
+      }
+    }
+
+    /*
+     * Asserting on the collected list rather than per-type so a failure
+     * names every offender at once - this is the structural hole that let
+     * SSLCertificate ship with no charts.
+     */
+    expect(typesWithoutMetrics).toEqual([]);
   });
 });

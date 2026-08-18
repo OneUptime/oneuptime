@@ -13,6 +13,12 @@ describe("NetworkTopologyUtil.buildTopology", () => {
   const now: Date = new Date("2026-07-22T12:00:00Z");
   const fresh: Date = new Date("2026-07-22T11:55:00Z");
   const stale: Date = new Date("2026-07-22T11:30:00Z");
+  /*
+   * Past the shared staleness window (an hour at the default interval), so
+   * "we have stopped polling this entirely" rather than "the probe is a bit
+   * behind" — the distinction issue #3220 turned on.
+   */
+  const outOfContact: Date = new Date("2026-07-22T09:00:00Z");
 
   const makeDevice: (
     id: string,
@@ -155,12 +161,24 @@ describe("NetworkTopologyUtil.buildTopology", () => {
       expect(nodeById(result, "d3")!.status).toBe("up");
     });
 
-    it("derives device status from lastSeenAt freshness", () => {
+    it("derives device status from the outcome of the last poll", () => {
       const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
         [
-          makeDevice("d1", "fresh-device", { lastSeenAt: fresh }),
-          makeDevice("d2", "stale-device", { lastSeenAt: stale }),
-          makeDevice("d3", "never-seen", { lastSeenAt: undefined }),
+          makeDevice("d1", "answered", {
+            isReachable: true,
+            lastPolledAt: fresh,
+            lastSeenAt: fresh,
+          }),
+          makeDevice("d2", "did-not-answer", {
+            isReachable: false,
+            lastPolledAt: fresh,
+            lastSeenAt: outOfContact,
+          }),
+          makeDevice("d3", "never-polled", {
+            isReachable: undefined,
+            lastPolledAt: undefined,
+            lastSeenAt: undefined,
+          }),
         ],
         now,
       );
@@ -168,6 +186,75 @@ describe("NetworkTopologyUtil.buildTopology", () => {
       expect(nodeById(result, "d1")!.status).toBe("up");
       expect(nodeById(result, "d2")!.status).toBe("down");
       expect(nodeById(result, "d3")!.status).toBe("unknown");
+    });
+
+    /*
+     * Issue #3220: the map drew a whole fleet red because its probe could
+     * not get round every device inside the old fixed 15-minute freshness
+     * window. A device that answered its last poll is up on the map however
+     * far behind the schedule has fallen.
+     */
+    it("issue #3220: a device that answered 30 minutes ago is still up on the map", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "behind-schedule", {
+            isReachable: true,
+            lastPolledAt: stale,
+            lastSeenAt: stale,
+          }),
+        ],
+        now,
+      );
+
+      expect(nodeById(result, "d1")!.status).toBe("up");
+    });
+
+    /*
+     * A device nothing has polled for hours keeps its last known colour
+     * rather than being drawn as an outage. Repainting a whole map red
+     * because its probe stopped is the false-positive storm this change
+     * exists to remove; the staleness signal belongs on the device page,
+     * not in the graph's only three colours.
+     */
+    it("a device nothing has polled for hours keeps its last known colour", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "out-of-contact", {
+            isReachable: true,
+            lastPolledAt: outOfContact,
+            lastSeenAt: outOfContact,
+          }),
+          makeDevice("d2", "out-of-contact-and-failing", {
+            isReachable: false,
+            lastPolledAt: outOfContact,
+            lastSeenAt: outOfContact,
+          }),
+        ],
+        now,
+      );
+
+      expect(nodeById(result, "d1")!.status).toBe("up");
+      expect(nodeById(result, "d2")!.status).toBe("down");
+    });
+
+    /*
+     * Rows written before the reachability columns existed carry only
+     * lastSeenAt; the map must keep drawing them from that until their next
+     * walk fills the rest in.
+     */
+    it("falls back to lastSeenAt for rows with no recorded poll outcome", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [
+          makeDevice("d1", "legacy-fresh", { lastSeenAt: fresh }),
+          makeDevice("d2", "legacy-out-of-contact", {
+            lastSeenAt: outOfContact,
+          }),
+        ],
+        now,
+      );
+
+      expect(nodeById(result, "d1")!.status).toBe("up");
+      expect(nodeById(result, "d2")!.status).toBe("down");
     });
 
     it("merges the same link reported from both ends by both protocols", () => {
@@ -762,7 +849,13 @@ describe("NetworkTopologyUtil.buildTopology", () => {
       expect(nodeById(result, "endpoint:ep-4")!.name).toBe("aa:00:00:00:00:04");
     });
 
-    it("derives endpoint status from lastSeenAt with the same freshness rule", () => {
+    /*
+     * Endpoints are ARP/FDB-learned hosts with no poll of their own, so
+     * freshness really is all there is. The window is the shared staleness
+     * one (an hour) rather than the old 15 minutes, so a host behind a
+     * switch its probe polls slowly does not blink out between walks.
+     */
+    it("derives endpoint status from lastSeenAt freshness", () => {
       const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
         [makeDevice("d1", "edge-1")],
         now,
@@ -774,7 +867,7 @@ describe("NetworkTopologyUtil.buildTopology", () => {
           }),
           makeEndpoint("ep-2", "aa:00:00:00:00:02", {
             attachedNetworkDeviceId: "d1",
-            lastSeenAt: stale,
+            lastSeenAt: outOfContact,
           }),
           makeEndpoint("ep-3", "aa:00:00:00:00:03", {
             attachedNetworkDeviceId: "d1",
@@ -786,6 +879,22 @@ describe("NetworkTopologyUtil.buildTopology", () => {
       expect(nodeById(result, "endpoint:ep-1")!.status).toBe("up");
       expect(nodeById(result, "endpoint:ep-2")!.status).toBe("down");
       expect(nodeById(result, "endpoint:ep-3")!.status).toBe("unknown");
+    });
+
+    it("an endpoint seen half an hour ago is still up, not blinked out", () => {
+      const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+        [makeDevice("d1", "edge-1")],
+        now,
+        [],
+        [
+          makeEndpoint("ep-1", "aa:00:00:00:00:01", {
+            attachedNetworkDeviceId: "d1",
+            lastSeenAt: stale,
+          }),
+        ],
+      );
+
+      expect(nodeById(result, "endpoint:ep-1")!.status).toBe("up");
     });
 
     it("labels the port from the interface row, then falls back to if<index>", () => {

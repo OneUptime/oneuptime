@@ -1,4 +1,3 @@
-import { DEVICE_FRESH_WINDOW_MINUTES } from "./DeviceStatusUtil";
 import {
   DEVICE_INTERFACES_FACET_KEY,
   DEVICE_STATUS_FACET_KEY,
@@ -44,7 +43,7 @@ export const DEVICE_SUMMARY_TILES: Array<DeviceSummaryTile> = [
     countField: "devicesUp",
     attentionClassName: "text-emerald-600",
     allClearClassName: "text-gray-900",
-    caption: `Polled within the last ${DEVICE_FRESH_WINDOW_MINUTES} minutes.`,
+    caption: "The last SNMP poll reached the device.",
     selection: {
       facetKey: DEVICE_STATUS_FACET_KEY,
       values: [DeviceStatusFacetValue.Up],
@@ -53,11 +52,11 @@ export const DEVICE_SUMMARY_TILES: Array<DeviceSummaryTile> = [
   },
   {
     key: "devices-down",
-    label: "Devices Down / Stale",
+    label: "Devices Down",
     countField: "devicesDown",
     attentionClassName: "text-red-600",
     allClearClassName: "text-gray-900",
-    caption: `No successful poll in the last ${DEVICE_FRESH_WINDOW_MINUTES} minutes.`,
+    caption: "The last SNMP poll could not reach the device.",
     selection: {
       facetKey: DEVICE_STATUS_FACET_KEY,
       values: [DeviceStatusFacetValue.Down],
@@ -70,7 +69,7 @@ export const DEVICE_SUMMARY_TILES: Array<DeviceSummaryTile> = [
     countField: "devicesPending",
     attentionClassName: "text-gray-500",
     allClearClassName: "text-gray-900",
-    caption: "Never polled successfully yet.",
+    caption: "Never polled yet.",
     selection: {
       facetKey: DEVICE_STATUS_FACET_KEY,
       values: [DeviceStatusFacetValue.Pending],

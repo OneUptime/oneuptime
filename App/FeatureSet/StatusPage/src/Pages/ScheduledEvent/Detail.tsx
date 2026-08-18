@@ -28,7 +28,7 @@ import EventItem, {
   TimelineItem,
   TimelineItemType,
 } from "Common/UI/Components/EventItem/EventItem";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import { EventDetailSkeleton } from "../../Components/Skeleton/PageSkeletons";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -462,12 +462,60 @@ const Overview: FunctionComponent<PageComponentProps> = (
     );
   }, [isLoading, i18nInstance.resolvedLanguage]);
 
+  type RenderPageFunction = (pageContent: ReactElement) => ReactElement;
+
+  /*
+   * The page chrome — title and breadcrumbs — comes from static translations,
+   * not from the request, so render it immediately and swap only the body
+   * between the loading skeleton, an error and the real content. Returning a
+   * bare loader instead used to blank the whole page and drag the footer up
+   * into the middle of the viewport until the data arrived.
+   */
+  const renderPage: RenderPageFunction = (
+    pageContent: ReactElement,
+  ): ReactElement => {
+    return (
+      <Page
+        title={t("scheduledEvents.report")}
+        breadcrumbLinks={[
+          {
+            title: t("nav.overview"),
+            to: RouteUtil.populateRouteParams(
+              StatusPageUtil.isPreviewPage()
+                ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
+                : (RouteMap[PageMap.OVERVIEW] as Route),
+            ),
+          },
+          {
+            title: t("scheduledEvents.title"),
+            to: RouteUtil.populateRouteParams(
+              StatusPageUtil.isPreviewPage()
+                ? (RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST] as Route)
+                : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route),
+            ),
+          },
+          {
+            title: t("scheduledEvents.singular"),
+            to: RouteUtil.populateRouteParams(
+              StatusPageUtil.isPreviewPage()
+                ? (RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL] as Route)
+                : (RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route),
+              Navigation.getLastParamAsObjectID(),
+            ),
+          },
+        ]}
+      >
+        {pageContent}
+      </Page>
+    );
+  };
+
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return renderPage(<EventDetailSkeleton />);
   }
 
   if (error) {
-    return <ErrorMessage message={error} />;
+    return renderPage(<ErrorMessage message={error} />);
   }
 
   /*
@@ -475,40 +523,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
    * falls through to the empty state below instead of loading forever.
    */
   if (scheduledMaintenanceEvent && !parsedData) {
-    return <PageLoader isVisible={true} />;
+    return renderPage(<EventDetailSkeleton />);
   }
 
-  return (
-    <Page
-      title={t("scheduledEvents.report")}
-      breadcrumbLinks={[
-        {
-          title: t("nav.overview"),
-          to: RouteUtil.populateRouteParams(
-            StatusPageUtil.isPreviewPage()
-              ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
-              : (RouteMap[PageMap.OVERVIEW] as Route),
-          ),
-        },
-        {
-          title: t("scheduledEvents.title"),
-          to: RouteUtil.populateRouteParams(
-            StatusPageUtil.isPreviewPage()
-              ? (RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST] as Route)
-              : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route),
-          ),
-        },
-        {
-          title: t("scheduledEvents.singular"),
-          to: RouteUtil.populateRouteParams(
-            StatusPageUtil.isPreviewPage()
-              ? (RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL] as Route)
-              : (RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route),
-            Navigation.getLastParamAsObjectID(),
-          ),
-        },
-      ]}
-    >
+  return renderPage(
+    <>
       {scheduledMaintenanceEvent && parsedData ? (
         <EventItem {...parsedData} />
       ) : (
@@ -516,6 +535,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       )}
       {!scheduledMaintenanceEvent ? (
         <EmptyState
+          paddingClassName="py-12 sm:py-16"
           id="scheduled-event-empty-state"
           title={t("scheduledEvents.singular")}
           description={t("scheduledEvents.notFound")}
@@ -524,7 +544,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       ) : (
         <></>
       )}
-    </Page>
+    </>,
   );
 };
 

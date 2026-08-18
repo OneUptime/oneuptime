@@ -44,26 +44,25 @@ Você pode configurar critérios para determinar quando sua zona é considerada 
 
 ### Tipos de Verificação Disponíveis
 
-| Tipo de Verificação                 | Descrição                                                                   |
-| ----------------------------------- | --------------------------------------------------------------------------- |
-| DNSSEC Chain Is Valid               | Toda a cadeia de validação (raiz → TLD → zona) é resolvida corretamente     |
-| DNSSEC DNSKEY Record Exists         | A zona publica pelo menos um registro DNSKEY                                |
-| DNSSEC DS Record Exists At Parent   | A zona pai publica um registro DS correspondente à KSK da zona              |
-| DNSSEC Signature Expires In Days    | Dias até que a próxima assinatura RRSIG expire                              |
-| DNSSEC Resolver Consensus (AD Flag) | Cada resolver consultado retorna o flag AD (Authenticated Data)             |
-| DNSSEC Nameservers Are Consistent   | Todos os nameservers autoritativos retornam o mesmo número de série SOA     |
-| DNSSEC Is Valid                     | Resultado agregado de aprovação/falha em todas as verificações de validação |
+| Tipo de Verificação                 | Descrição                                                               |
+| ----------------------------------- | ----------------------------------------------------------------------- |
+| DNSSEC Chain Is Valid               | Toda a cadeia de validação (raiz → TLD → zona) é resolvida corretamente |
+| DNSSEC DNSKEY Record Exists         | A zona publica pelo menos um registro DNSKEY                            |
+| DNSSEC DS Record Exists At Parent   | A zona pai publica um registro DS correspondente à KSK da zona          |
+| DNSSEC Signature Expires In Days    | Dias até que a próxima assinatura RRSIG expire                          |
+| DNSSEC Resolver Consensus (AD Flag) | Cada resolver consultado retorna o flag AD (Authenticated Data)         |
+| DNSSEC Nameservers Are Consistent   | Todos os nameservers autoritativos retornam o mesmo número de série SOA |
 
 ### Tipos de Filtro
 
-Para **DNSSEC Chain Is Valid**, **DNSSEC DNSKEY Record Exists**, **DNSSEC DS Record Exists At Parent**, **DNSSEC Resolver Consensus (AD Flag)**, **DNSSEC Nameservers Are Consistent** e **DNSSEC Is Valid**:
+Para **DNSSEC Chain Is Valid**, **DNSSEC DNSKEY Record Exists**, **DNSSEC DS Record Exists At Parent**, **DNSSEC Resolver Consensus (AD Flag)** e **DNSSEC Nameservers Are Consistent**:
 
 - **True** — Condição é verdadeira
 - **False** — Condição é falsa
 
 Para **DNSSEC Signature Expires In Days**:
 
-- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
+- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**
 
 ### Critérios de Exemplo
 

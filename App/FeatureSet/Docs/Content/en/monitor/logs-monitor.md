@@ -49,20 +49,19 @@ Filter logs by one or more severity levels:
 
 ## Monitoring Criteria
 
-### Available Check Types
+### Available Filter Types
 
-| Check Type | Description                                                 |
-| ---------- | ----------------------------------------------------------- |
-| Log Count  | The number of logs matching your filters in the time window |
+| Filter Type | Description                                                 |
+| ----------- | ----------------------------------------------------------- |
+| Log Count   | The number of logs matching your filters in the time window |
 
-### Filter Types
+### Filter Conditions
 
 - **Greater Than** — Log count exceeds a threshold
 - **Less Than** — Log count is below a threshold
 - **Greater Than or Equal To** — Log count is at or above a threshold
 - **Less Than or Equal To** — Log count is at or below a threshold
 - **Equal To** — Log count matches exactly
-- **Not Equal To** — Log count does not match
 
 ### Example Criteria
 
@@ -70,24 +69,24 @@ Filter logs by one or more severity levels:
 
 - **Severity Levels**: ERROR
 - **Time Window**: 60 seconds
-- **Check On**: Log Count
-- **Filter Type**: Greater Than
+- **Filter Type**: Log Count
+- **Filter Condition**: Greater Than
 - **Value**: 100
 
 #### Alert if any fatal logs appear
 
 - **Severity Levels**: FATAL
 - **Time Window**: 60 seconds
-- **Check On**: Log Count
-- **Filter Type**: Greater Than
+- **Filter Type**: Log Count
+- **Filter Condition**: Greater Than
 - **Value**: 0
 
 #### Monitor logs containing a specific error message
 
 - **Body**: `database connection timeout`
 - **Time Window**: 300 seconds
-- **Check On**: Log Count
-- **Filter Type**: Greater Than
+- **Filter Type**: Log Count
+- **Filter Condition**: Greater Than
 - **Value**: 5
 
 ## Setup Requirements

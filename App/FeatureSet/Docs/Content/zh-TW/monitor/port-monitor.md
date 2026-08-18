@@ -65,9 +65,8 @@
 - **Less Than** — 回應時間低於某個閾值
 - **Greater Than or Equal To** — 回應時間等於或高於某個閾值
 - **Less Than or Equal To** — 回應時間等於或低於某個閾值
-- **Equal To** — 回應時間完全相符
-- **Not Equal To** — 回應時間不相符
-- **Evaluate Over Time** — 在某個時間範圍內使用彙總（平均值、總和、最大值、最小值、所有值、任意值）進行評估
+
+**Evaluate this criteria over a period of time** 是條件表單上的核取方塊，而非篩選條件。啟用後，會比較在 **Evaluate** （平均值、總和、最大值、最小值、所有值、任意值） 中選擇的彙總值（時間範圍由 **For the last (in minutes)** 設定），而不是最近一次檢查的數值。
 
 ### 範例條件
 

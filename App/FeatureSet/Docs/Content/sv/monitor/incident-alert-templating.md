@@ -40,6 +40,10 @@ Följande monitortyper stöder dynamisk mallning med respektive variabler:
 | `requestMethod`             | HTTP-metoden för den inkommande förfrågan (GET, POST etc.). | `string`              |
 | `incomingRequestReceivedAt` | Datum och tid när den inkommande förfrågan togs emot.       | `Date`                |
 
+När kriteriet har **Group incidents and alerts by a payload field** påslaget är även den uttagna grupperingsnyckeln tillgänglig, under ett variabelnamn hämtat från **sista segmentet** i grupperingssökvägen. Gruppering på `requestBody.alerts[*].labels.alertname` ger dig `{{alertname}}`; gruppering på `requestBody.alerts[*].fingerprint` ger dig `{{fingerprint}}`. Hela `requestBody` finns fortfarande tillgänglig vid sidan av den.
+
+> **Note:** `[*]` förstås bara i själva fälten för grupperingssökväg — här löses det inte upp, så platshållaren skrivs ut ordagrant, klammerparenteser och allt. Inuti en titel eller beskrivning läser `{{requestBody.alerts[0].annotations.summary}}` alltid det första larmet i payloaden, inte det som incidenten öppnades för. Använd i stället grupperingsvariabeln och payloadens gemensamma fält (`commonLabels`, `commonAnnotations`). Se [Incoming Request-monitor](/docs/monitor/incoming-request-monitor).
+
 ### Ping-monitorer
 
 | Variabel           | Beskrivning                              | Typ       |
@@ -175,7 +179,7 @@ Array-indexering stöds:
 First User: {{responseBody.users[0].name}}
 ```
 
-Om en sökväg inte finns löser den upp till en tom sträng som standard.
+Om en sökväg inte finns lämnas platshållaren kvar i utdata exakt som den skrevs — `{{responseBody.error.id}}` visas ordagrant, klammerparenteser och allt, i incidentens titel. Endast `{{#each}}`-block över en saknad sökväg tas bort.
 
 ## Avancerad användning
 

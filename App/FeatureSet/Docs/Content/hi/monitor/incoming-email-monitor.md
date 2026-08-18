@@ -40,13 +40,14 @@ monitor-{secret-key}@{inbound-domain}
 
 आप निम्नलिखित email fields के आधार पर criteria बना सकते हैं:
 
-| Field              | विवरण                                                  |
-| ------------------ | ------------------------------------------------------ |
-| **ईमेल विषय**      | incoming email की subject line                         |
-| **ईमेल प्रेषक**    | sender का email address                                |
-| **Email Body**     | email body का plain text content                       |
-| **Email To**       | recipient email address                                |
-| **Email Received** | emails receive होने के time के लिए Time-based criteria |
+| Field                     | विवरण                                                       |
+| ------------------------- | ----------------------------------------------------------- |
+| **ईमेल विषय**             | incoming email की subject line                              |
+| **ईमेल प्रेषक**           | sender का email address                                     |
+| **Email Body**            | email body का plain text content                            |
+| **Email To**              | recipient email address                                     |
+| **Email Received**        | emails receive होने के time के लिए Time-based criteria      |
+| **JavaScript Expression** | एक custom JavaScript expression जो true evaluate होनी चाहिए |
 
 ## उपलब्ध Filter Types
 
@@ -69,6 +70,12 @@ monitor-{secret-key}@{inbound-domain}
 | --------------------------- | ----------------------------------------- | -------------------------------- |
 | **Received In Minutes**     | Email X minutes के भीतर received हुआ था   | Email received in 30 minutes     |
 | **Not Received In Minutes** | X minutes में कोई email received नहीं हुआ | Email not received in 60 minutes |
+
+### JavaScript Expression
+
+एकमात्र filter condition **Evaluates To True** है: expression कोई truthy value लौटाए तो criteria पूरा होता है।
+
+Expression एक sandbox में चलती है जिससे कोई email field bound नहीं होता, इसलिए वह check trigger करने वाले message का subject, sender, body या recipient नहीं पढ़ सकती। Email content पर match करने के लिए **Email Subject**, **Email From**, **Email Body** और **Email To** filter types का उपयोग करें।
 
 ## उदाहरण Configurations
 

@@ -62,7 +62,6 @@ Filtra los registros por uno o más niveles de gravedad:
 - **Mayor o igual que**: El recuento de registros está en o por encima de un umbral
 - **Menor o igual que**: El recuento de registros está en o por debajo de un umbral
 - **Igual a**: El recuento de registros coincide exactamente
-- **Diferente de**: El recuento de registros no coincide
 
 ### Ejemplos de criterios
 

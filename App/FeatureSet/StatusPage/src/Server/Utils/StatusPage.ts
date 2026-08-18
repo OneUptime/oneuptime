@@ -6,6 +6,10 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
+import {
+  SEARCH_ENGINE_INDEXING_FLAG_NAME,
+  isSearchEngineIndexingEnabled,
+} from "Common/Types/StatusPage/SearchEngineIndexing";
 
 export interface StatusPageData {
   id: string;
@@ -13,6 +17,12 @@ export interface StatusPageData {
   description: string;
   faviconUrl: string;
   defaultLanguage: string | null;
+  /*
+   * False only when the owner turned indexing off. See
+   * Common/Types/StatusPage/SearchEngineIndexing.ts for why anything else -
+   * including an unreachable /seo API - reads as indexable.
+   */
+  isSearchEngineIndexingEnabled: boolean;
 }
 
 export const getStatusPageData: (
@@ -61,47 +71,61 @@ export const getStatusPageData: (
       "Status Page lets you see real-time information about the status of our services.";
     let defaultLanguage: string | null = null;
 
-    if (isPreview) {
-      // For preview pages, use the extracted ID directly
-      statusPageId = statusPageIdOrDomain;
-      // For preview, we might not have SEO data, so use defaults
+    /*
+     * The /seo API resolves an id or a custom domain, so preview URLs
+     * (/status-page/:statusPageId) go through it too. They have to: the
+     * preview URL is the only URL a status page has until someone attaches a
+     * custom domain, so skipping the lookup here would leave the indexing
+     * opt-out working on custom domains and doing nothing for everyone else.
+     */
+    logger.debug(
+      `Pinging the API with statusPageIdOrDomain: ${statusPageIdOrDomain}`,
+      { service: "status-page" },
+    );
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.get({
+        url: URL.fromString(StatusPageApiInternalUrl.toString()).addRoute(
+          `/seo/${statusPageIdOrDomain}`,
+        ),
+      });
+
+    let seoData: JSONObject | null = null;
+
+    if (response instanceof HTTPErrorResponse) {
+      logger.debug(`Received error response from API: ${response}`, {
+        service: "status-page",
+      });
     } else {
-      // For live pages, call SEO API
-      logger.debug(
-        `Pinging the API with statusPageIdOrDomain: ${statusPageIdOrDomain}`,
-        { service: "status-page" },
-      );
-      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-        await API.get({
-          url: URL.fromString(StatusPageApiInternalUrl.toString()).addRoute(
-            `/seo/${statusPageIdOrDomain}`,
-          ),
-        });
-
-      if (response instanceof HTTPErrorResponse) {
-        logger.debug(`Received error response from API: ${response}`, {
-          service: "status-page",
-        });
-        return null;
-      }
-
       logger.debug("Successfully received response from API", {
         service: "status-page",
       });
+      seoData = response.data || null;
+    }
 
-      statusPageId = response.data?.["_id"] as string;
+    if (isPreview) {
+      /*
+       * A preview URL carries the id, so the page can still be rendered when
+       * the lookup fails - it just renders with the default title. Failing
+       * the render instead would take the page down over an SEO lookup.
+       */
+      statusPageId = statusPageIdOrDomain;
+    } else {
+      if (!seoData) {
+        return null;
+      }
+
+      statusPageId = seoData["_id"] as string;
       if (!statusPageId) {
         logger.debug("No status page ID in response", {
           service: "status-page",
         });
         return null;
       }
-
-      title = (response.data?.["title"] as string) || title;
-      description = (response.data?.["description"] as string) || description;
-      defaultLanguage =
-        (response.data?.["defaultLanguage"] as string | null) || null;
     }
+
+    title = (seoData?.["title"] as string) || title;
+    description = (seoData?.["description"] as string) || description;
+    defaultLanguage = (seoData?.["defaultLanguage"] as string | null) || null;
 
     return {
       id: statusPageId,
@@ -109,6 +133,9 @@ export const getStatusPageData: (
       description,
       faviconUrl: `/status-page-api/favicon/${statusPageIdOrDomain}`,
       defaultLanguage,
+      isSearchEngineIndexingEnabled: isSearchEngineIndexingEnabled(
+        seoData?.[SEARCH_ENGINE_INDEXING_FLAG_NAME],
+      ),
     };
   } catch (err) {
     logger.error("Error getting status page data:", { service: "status-page" });

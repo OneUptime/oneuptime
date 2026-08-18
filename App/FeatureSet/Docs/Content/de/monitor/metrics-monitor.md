@@ -78,7 +78,15 @@ Wählen Sie, wie die Metrikwerte zur Auswertung aggregiert werden:
 
 ### Filtertypen
 
-- **Größer als**, **Kleiner als**, **Größer oder gleich**, **Kleiner oder gleich**, **Gleich**, **Ungleich**
+- **Größer als**, **Kleiner als**, **Größer oder gleich**, **Kleiner oder gleich**, **Gleich**
+
+Baseline-Anomalieerkennung (kein Schwellenwert — das Formular zeigt stattdessen **Empfindlichkeit** und **Baseline-Zeitraum** und vergleicht jeden Messwert mit der Baseline derselben Wochenstunde):
+
+- **Anomal hoch** — Wert steigt über den erwarteten Bereich
+- **Anomal niedrig** — Wert fällt unter den erwarteten Bereich
+- **Anomal** — Wert verlässt den erwarteten Bereich in beide Richtungen
+
+Anomaliebedingungen lösen keine Alarme aus, solange nicht mindestens der gewählte Baseline-Zeitraum an Verlauf vorliegt (Learning-Zustand).
 
 ### Beispielkriterien
 

@@ -29,40 +29,41 @@ Enter the hostname or IP address of the target you want to monitor (e.g., `examp
 
 You can configure criteria to determine when your host is considered online, degraded, or offline based on:
 
-### Available Check Types
+### Available Filter Types
 
-| Check Type            | Description                                         |
-| --------------------- | --------------------------------------------------- |
-| Is Online             | Whether the host responds to ping requests          |
-| Response Time (in ms) | Round-trip time of the ping request in milliseconds |
-| Is Request Timeout    | Whether the ping request timed out                  |
+| Filter Type           | Description                                                                 |
+| --------------------- | --------------------------------------------------------------------------- |
+| Is Online             | Whether the host responds to ping requests                                  |
+| Response Time (in ms) | Round-trip time of the ping request in milliseconds                         |
+| Packet Loss (in %)    | Percentage of ICMP echo requests that received no reply                     |
+| Jitter (in ms)        | Standard deviation of round-trip times across the packets sent in one check |
+| Is Request Timeout    | Whether the ping request timed out                                          |
 
-### Filter Types
+### Filter Conditions
 
 For **Is Online** and **Is Request Timeout**:
 
 - **True** — Condition is true
 - **False** — Condition is false
 
-For **Response Time**:
+For **Response Time**, **Packet Loss**, and **Jitter**:
 
-- **Greater Than** — Response time exceeds a threshold
-- **Less Than** — Response time is below a threshold
-- **Greater Than or Equal To** — Response time is at or above a threshold
-- **Less Than or Equal To** — Response time is at or below a threshold
-- **Equal To** — Response time matches exactly
-- **Not Equal To** — Response time does not match
-- **Evaluate Over Time** — Evaluate using aggregation (Average, Sum, Maximum, Minimum, All Values, Any Value) over a time window
+- **Greater Than** — Value exceeds a threshold
+- **Less Than** — Value is below a threshold
+- **Greater Than or Equal To** — Value is at or above a threshold
+- **Less Than or Equal To** — Value is at or below a threshold
+
+**Evaluate this criteria over a period of time** is a separate checkbox on the criteria form rather than a filter condition. Turn it on to compare an aggregate — chosen under **Evaluate** (Average, Sum, Maximum Value, Minimum Value, All Values, Any Value) over the window set by **For the last (in minutes)** — instead of the value from the latest check.
 
 ### Example Criteria
 
 #### Mark as offline if host is unreachable
 
-- **Check On**: Is Online
-- **Filter Type**: False
+- **Filter Type**: Is Online
+- **Filter Condition**: False
 
 #### Alert if response time exceeds 200ms
 
-- **Check On**: Response Time (in ms)
-- **Filter Type**: Greater Than
+- **Filter Type**: Response Time (in ms)
+- **Filter Condition**: Greater Than
 - **Value**: 200

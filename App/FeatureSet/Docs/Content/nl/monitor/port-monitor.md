@@ -65,9 +65,8 @@ Voor **Reactietijd**:
 - **Kleiner dan** — Responstijd is onder een drempelwaarde
 - **Groter dan of gelijk aan** — Responstijd is op of boven een drempelwaarde
 - **Kleiner dan of gelijk aan** — Responstijd is op of onder een drempelwaarde
-- **Gelijk aan** — Responstijd komt exact overeen
-- **Niet gelijk aan** — Responstijd komt niet overeen
-- **Evalueren over tijd** — Evalueren met aggregatie (Gemiddelde, Som, Maximum, Minimum, Alle waarden, Elke waarde) over een tijdvenster
+
+**Dit criterium over een periode evalueren** is een selectievakje op het criteriaformulier, geen filtervoorwaarde. Zet het aan om een aggregatie — gekozen onder **Evalueren** (Gemiddelde, Som, Maximum, Minimum, Alle waarden, Elke waarde) over het venster dat is ingesteld bij **Voor de laatste (in minuten)** — te vergelijken in plaats van de waarde van de laatste controle.
 
 ### Voorbeeldcriteria
 

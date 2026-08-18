@@ -29,8 +29,9 @@ import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertSize } from "Common/UI/Components/Alerts/Alert";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Icon from "Common/UI/Components/Icon/Icon";
 import EventItem from "Common/UI/Components/EventItem/EventItem";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import { OverviewSkeleton } from "../../Components/Skeleton/PageSkeletons";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -452,12 +453,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
     loadPage().catch((err: Error) => {
       setError(err.message);
     });
-  }, []);
-
-  useEffect(() => {
-    loadPage().catch((err: Error) => {
-      setError(err.message);
-    });
   }, [
     StatusPageUtil.getStatusPageId()?.toString() || "",
     StatusPageUtil.isPreviewPage(),
@@ -597,11 +592,19 @@ const Overview: FunctionComponent<PageComponentProps> = (
   };
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return (
+      <Page>
+        <OverviewSkeleton />
+      </Page>
+    );
   }
 
   if (error) {
-    return <ErrorMessage message={error} />;
+    return (
+      <Page>
+        <ErrorMessage message={error} />
+      </Page>
+    );
   }
 
   type GetMonitorOverviewListInGroupFunction = (
@@ -797,9 +800,19 @@ const Overview: FunctionComponent<PageComponentProps> = (
     }
 
     if (elements.length === 0) {
+      /*
+       * A group with nothing in it yet is not a failure. ErrorMessage plus
+       * mb-20 put ~120px of blank space and an error-styled sentence inside an
+       * otherwise healthy card.
+       */
       elements.push(
-        <div key={1} className="mb-20">
-          <ErrorMessage message={t("overview.noResourcesInGroup")} />
+        <div
+          key="empty"
+          className="flex items-center justify-center gap-2 py-6 text-sm text-gray-500"
+          data-testid="status-page-group-empty"
+        >
+          <Icon icon={IconProp.Inbox} className="h-4 w-4 text-gray-400" />
+          {t("overview.noResourcesInGroup")}
         </div>,
       );
     }
@@ -1429,9 +1442,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
   return (
     <Page>
-      {isLoading ? <PageLoader isVisible={true} /> : <></>}
-      {error ? <ErrorMessage message={error} /> : <></>}
-
       {!isLoading && !error ? (
         <div data-testid="status-page-overview">
           {/* Overview Page Description */}
@@ -1556,7 +1566,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           {/* Load Active Incidents and Episodes */}
           {(activeIncidentsInIncidentGroup.length > 0 ||
             activeEpisodesInEpisodeGroup.length > 0) && (
-            <div id="incidents-list mt-2">
+            <div id="incidents-list">
               <Section title={t("overview.activeIncidents")} />
               {activeIncidentsInIncidentGroup.map(
                 (incidentGroup: IncidentGroup, i: number) => {
@@ -1606,7 +1616,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           {activeScheduledMaintenanceEventsInScheduledMaintenanceGroup &&
             activeScheduledMaintenanceEventsInScheduledMaintenanceGroup.length >
               0 && (
-              <div id="scheduled-events-list mt-2">
+              <div id="scheduled-events-list">
                 <Section title={t("overview.scheduledMaintenanceEvents")} />
                 {activeScheduledMaintenanceEventsInScheduledMaintenanceGroup.map(
                   (
@@ -1649,6 +1659,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             !isLoading &&
             !error && (
               <EmptyState
+                paddingClassName="py-12 sm:py-16"
                 id="overview-empty-state"
                 icon={IconProp.CheckCircle}
                 title={t("overview.allClearTitle")}

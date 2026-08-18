@@ -20,6 +20,8 @@ Brug dette, når et eksternt system har brug for at _oprette eller opdatere noge
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
 ```
 
+> **Tip:** Specielt for alarmeringsværktøjer er en **[Incoming Request-monitor](/docs/monitor/incoming-request-monitor)** normalt den bedre indgående vej. Den giver dig en webhook-URL uden at bygge et workflow, åbner én hændelse pr. alarm i payloaden, eskalerer til en vagtpolitik og løser hver hændelse, når værktøjet melder den genoprettet. Brug et workflow, når du har brug for logik, som OneUptime ikke gør indbygget. Se [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) for et gennemarbejdet eksempel.
+
 ### Udgående — OneUptime sender data til et andet værktøj
 
 Brug dette, når _noget i OneUptime skal vises i et andet værktøj_ — åbn en Jira-ticket, kontakt nogen i PagerDuty, post til Slack.
@@ -85,7 +87,7 @@ printf '%s' 'you@example.com:your_api_token' | base64
 
 Næsten ethvert værktøj passer ind i ét af de to mønstre ovenfor:
 
-- Hvis værktøjet kan **sende en webhook**, når noget sker, brug det **indgående** mønster — peg dets webhook mod en OneUptime Webhook-trigger.
+- Hvis værktøjet kan **sende en webhook**, når noget sker, brug det **indgående** mønster — peg dets webhook mod en [Incoming Request-monitor](/docs/monitor/incoming-request-monitor), hvis det er et alarmeringsværktøj, eller mod en OneUptime Webhook-trigger, hvis du har brug for tilpasset logik.
 - Hvis værktøjet har en **REST API**, brug det **udgående** mønster — kald det fra en **API-komponent**.
 - Hvis du har brug for at omforme data mellem de to, indsæt en **[Custom Code](/docs/workflows/components#custom-code)**-blok.
 
@@ -97,4 +99,5 @@ Det dækker den lange hale — Zendesk, AWS CloudWatch (via SNS), New Relic, Spl
 - [Triggere](/docs/workflows/triggers) — Webhook- og OneUptime event-triggere i detaljer.
 - [Komponenter](/docs/workflows/components) — API-, Webhook- og datakomponenter.
 - [Variabler](/docs/workflows/variables) — hemmeligheder og videregivelse af data mellem blokke.
+- [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) — den workflow-frie indgående vej for alarmeringsværktøjer.
 - [Zabbix](/docs/integrations/zabbix) og [Jira](/docs/integrations/jira) — fuldt udarbejdede eksempler.

@@ -26,7 +26,7 @@ import EventHistoryList, {
   ComponentProps as EventHistoryListComponentProps,
 } from "Common/UI/Components/EventHistoryList/EventHistoryList";
 import { ComponentProps as EventItemComponentProps } from "Common/UI/Components/EventItem/EventItem";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import { EventListSkeleton } from "../../Components/Skeleton/PageSkeletons";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
@@ -363,36 +363,55 @@ const Overview: FunctionComponent<PageComponentProps> = (
     );
   }, [isLoading, i18nInstance.resolvedLanguage]);
 
+  type RenderPageFunction = (pageContent: ReactElement) => ReactElement;
+
+  /*
+   * The page chrome — title and breadcrumbs — comes from static translations,
+   * not from the request, so render it immediately and swap only the body
+   * between the loading skeleton, an error and the real content. Returning a
+   * bare loader instead used to blank the whole page and drag the footer up
+   * into the middle of the viewport until the data arrived.
+   */
+  const renderPage: RenderPageFunction = (
+    pageContent: ReactElement,
+  ): ReactElement => {
+    return (
+      <Page
+        title={t("incidents.title")}
+        breadcrumbLinks={[
+          {
+            title: t("nav.overview"),
+            to: RouteUtil.populateRouteParams(
+              StatusPageUtil.isPreviewPage()
+                ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
+                : (RouteMap[PageMap.OVERVIEW] as Route),
+            ),
+          },
+          {
+            title: t("incidents.title"),
+            to: RouteUtil.populateRouteParams(
+              StatusPageUtil.isPreviewPage()
+                ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
+                : (RouteMap[PageMap.INCIDENT_LIST] as Route),
+            ),
+          },
+        ]}
+      >
+        {pageContent}
+      </Page>
+    );
+  };
+
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return renderPage(<EventListSkeleton />);
   }
 
   if (error) {
-    return <ErrorMessage message={error} />;
+    return renderPage(<ErrorMessage message={error} />);
   }
 
-  return (
-    <Page
-      title={t("incidents.title")}
-      breadcrumbLinks={[
-        {
-          title: t("nav.overview"),
-          to: RouteUtil.populateRouteParams(
-            StatusPageUtil.isPreviewPage()
-              ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
-              : (RouteMap[PageMap.OVERVIEW] as Route),
-          ),
-        },
-        {
-          title: t("incidents.title"),
-          to: RouteUtil.populateRouteParams(
-            StatusPageUtil.isPreviewPage()
-              ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
-              : (RouteMap[PageMap.INCIDENT_LIST] as Route),
-          ),
-        },
-      ]}
-    >
+  return renderPage(
+    <>
       {parsedActiveEventsData?.items &&
       parsedActiveEventsData?.items.length > 0 ? (
         <div>
@@ -416,6 +435,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       )}
       {!hasEvents ? (
         <EmptyState
+          paddingClassName="py-12 sm:py-16"
           id={"incidents-empty-state"}
           title={t("incidents.none")}
           description={t("incidents.noneDescription")}
@@ -424,7 +444,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       ) : (
         <></>
       )}
-    </Page>
+    </>,
   );
 };
 

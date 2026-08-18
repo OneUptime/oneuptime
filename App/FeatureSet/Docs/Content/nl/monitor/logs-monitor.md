@@ -62,7 +62,6 @@ Filter logboeken op een of meer ernstniveaus:
 - **Groter dan of gelijk aan** — Logboektelling is op of boven een drempelwaarde
 - **Kleiner dan of gelijk aan** — Logboektelling is op of onder een drempelwaarde
 - **Gelijk aan** — Logboektelling komt exact overeen
-- **Niet gelijk aan** — Logboektelling komt niet overeen
 
 ### Voorbeeldcriteria
 

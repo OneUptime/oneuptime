@@ -40,13 +40,14 @@ U kunt dit adres kopiëren van de monitordetailpagina en uw externe systemen con
 
 U kunt criteria aanmaken op basis van de volgende e-mailvelden:
 
-| Veld                 | Beschrijving                                                      |
-| -------------------- | ----------------------------------------------------------------- |
-| **E-mailonderwerp**  | De onderwerpregel van de inkomende e-mail                         |
-| **E-mail van**       | Het e-mailadres van de afzender                                   |
-| **E-maillichaam**    | De gewone tekstinhoud van het e-maillichaam                       |
-| **E-mail naar**      | Het e-mailadres van de ontvanger                                  |
-| **E-mail ontvangen** | Op tijd gebaseerde criteria voor wanneer e-mails worden ontvangen |
+| Veld                     | Beschrijving                                                      |
+| ------------------------ | ----------------------------------------------------------------- |
+| **E-mailonderwerp**      | De onderwerpregel van de inkomende e-mail                         |
+| **E-mail van**           | Het e-mailadres van de afzender                                   |
+| **E-maillichaam**        | De gewone tekstinhoud van het e-maillichaam                       |
+| **E-mail naar**          | Het e-mailadres van de ontvanger                                  |
+| **E-mail ontvangen**     | Op tijd gebaseerde criteria voor wanneer e-mails worden ontvangen |
+| **JavaScript-expressie** | Een aangepaste JavaScript-expressie die waar moet opleveren       |
 
 ## Beschikbare filtertypen
 
@@ -69,6 +70,12 @@ U kunt criteria aanmaken op basis van de volgende e-mailvelden:
 | ----------------------------- | -------------------------------------- | ----------------------------------- |
 | **Ontvangen in minuten**      | E-mail werd ontvangen binnen X minuten | E-mail ontvangen in 30 minuten      |
 | **Niet ontvangen in minuten** | Geen e-mail ontvangen in X minuten     | E-mail niet ontvangen in 60 minuten |
+
+### JavaScript-expressie
+
+De enige filtervoorwaarde is **Evalueert naar waar**: aan het criterium is voldaan wanneer de expressie een ware waarde retourneert.
+
+De expressie draait in een sandbox waaraan geen e-mailvelden zijn gekoppeld, dus kan het onderwerp, de afzender, de inhoud of de ontvanger van het bericht dat de controle activeerde niet lezen. Gebruik de controletypen **E-mailonderwerp**, **E-mail van**, **E-mailinhoud** en **E-mail aan** om op e-mailinhoud te matchen.
 
 ## Voorbeeldconfiguraties
 

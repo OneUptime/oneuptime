@@ -20,7 +20,7 @@ import JSONWebTokenData from "Common/Types/JsonWebTokenData";
 import Link from "Common/Types/Link";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import { ShellSkeleton } from "../Skeleton/PageSkeletons";
 import MasterPage from "Common/UI/Components/MasterPage/MasterPage";
 import JSONWebToken from "Common/UI/Utils/JsonWebToken";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -232,11 +232,15 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
   }, []);
 
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return <ShellSkeleton />;
   }
 
   if (error) {
-    return <ErrorMessage message={error} />;
+    return (
+      <div className="flex min-h-screen items-center justify-center px-3">
+        <ErrorMessage message={error} />
+      </div>
+    );
   }
 
   if (
@@ -247,7 +251,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     Navigation.getCurrentRoute().toString().includes("forbidden") ||
     Navigation.getCurrentRoute().toString().includes("master-password")
   ) {
-    return <>{props.children}</>;
+    return <div className="flex min-h-screen flex-col">{props.children}</div>;
   }
 
   const logo: BaseModel =
@@ -270,119 +274,128 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
   });
 
   return (
-    <div className="max-w-5xl m-auto px-3 sm:px-5">
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-indigo-600 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white focus:shadow-lg"
-      >
-        {t("a11y.skipToMainContent", {
-          defaultValue: "Skip to main content",
-        })}
-      </a>
-      {
-        <div>
-          <Banner
-            file={
-              (JSONFunctions.getJSONValueInPath(
-                masterPageData || {},
-                "statusPage.coverImageFile",
-              ) as BaseModel) || undefined
-            }
-            alt={statusPage?.coverImageAltText || ""}
-          />
-        </div>
-      }
-      <MasterPage
-        makeTopSectionUnstick={true}
-        isLoading={props.isLoading || false}
-        error={props.error || ""}
-        disableMainContentWrapper={true}
-      >
-        <>
-          {!headerHtml ? (
-            <Header
-              logo={logo}
-              logoAltText={
-                statusPage?.logoAltText ||
-                statusPage?.pageTitle ||
-                "Status Page"
-              }
-              links={links}
-              onLogoClicked={() => {
-                Navigation.navigate(
-                  props.isPreview
-                    ? RouteMap[PageMap.PREVIEW_OVERVIEW]!
-                    : RouteMap[PageMap.OVERVIEW]!,
-                );
-              }}
-            />
-          ) : (
-            <div
-              dangerouslySetInnerHTML={{
-                __html: headerHtml as string,
-              }}
-            />
-          )}
-          <NavBar
-            isPrivateStatusPage={props.isPrivateStatusPage}
-            show={true}
-            isPreview={props.isPreview}
-            enableEmailSubscribers={props.enableEmailSubscribers}
-            enableSMSSubscribers={props.enableSMSSubscribers}
-            enableSlackSubscribers={props.enableSlackSubscribers || false}
-            enableMicrosoftTeamsSubscribers={
-              props.enableMicrosoftTeamsSubscribers || false
-            }
-            enableWebhookSubscribers={props.enableWebhookSubscribers || false}
-            showIncidentsOnStatusPage={
-              statusPage?.showIncidentsOnStatusPage || false
-            }
-            showAnnouncementsOnStatusPage={
-              statusPage?.showAnnouncementsOnStatusPage || false
-            }
-            showScheduledMaintenanceEventsOnStatusPage={
-              statusPage?.showScheduledMaintenanceEventsOnStatusPage || false
-            }
-            showSubscriberPageOnStatusPage={
-              statusPage?.showSubscriberPageOnStatusPage || false
-            }
-          />
-          <main id="main-content" tabIndex={-1} className="focus:outline-none">
-            {props.children}
-          </main>
-          {!footerHtml ? (
-            <Footer
-              hidePoweredByOneUptimeBranding={hidePoweredByOneUptimeBranding}
-              enabledLanguages={statusPage?.enabledLanguages || null}
-              className="mx-auto w-full py-3 px-0 sm:py-5 md:flex md:items-center md:justify-between lg:px-0"
-              copyright={
+    <div className="flex min-h-screen flex-col">
+      <div className="mx-auto flex w-full max-w-5xl grow flex-col px-3 sm:px-5">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-indigo-600 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white focus:shadow-lg"
+        >
+          {t("a11y.skipToMainContent", {
+            defaultValue: "Skip to main content",
+          })}
+        </a>
+        {
+          <div>
+            <Banner
+              file={
                 (JSONFunctions.getJSONValueInPath(
                   masterPageData || {},
-                  "statusPage.copyrightText",
-                ) as string) || ""
+                  "statusPage.coverImageFile",
+                ) as BaseModel) || undefined
               }
-              links={(
-                (JSONFunctions.getJSONValueInPath(
-                  masterPageData || {},
-                  "footerLinks",
-                ) as Array<JSONObject>) || []
-              ).map((link: JSONObject) => {
-                return {
-                  title: link["title"] as string,
-                  to: link["link"] as URL,
-                  openInNewTab: true,
-                };
-              })}
+              alt={statusPage?.coverImageAltText || ""}
             />
-          ) : (
-            <div
-              dangerouslySetInnerHTML={{
-                __html: footerHtml as string,
-              }}
+          </div>
+        }
+        <MasterPage
+          makeTopSectionUnstick={true}
+          isLoading={props.isLoading || false}
+          error={props.error || ""}
+          disableMainContentWrapper={true}
+          className="flex grow flex-col"
+        >
+          <>
+            {!headerHtml ? (
+              <Header
+                logo={logo}
+                logoAltText={
+                  statusPage?.logoAltText ||
+                  statusPage?.pageTitle ||
+                  "Status Page"
+                }
+                links={links}
+                onLogoClicked={() => {
+                  Navigation.navigate(
+                    props.isPreview
+                      ? RouteMap[PageMap.PREVIEW_OVERVIEW]!
+                      : RouteMap[PageMap.OVERVIEW]!,
+                  );
+                }}
+              />
+            ) : (
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: headerHtml as string,
+                }}
+              />
+            )}
+            <NavBar
+              isPrivateStatusPage={props.isPrivateStatusPage}
+              show={true}
+              isPreview={props.isPreview}
+              enableEmailSubscribers={props.enableEmailSubscribers}
+              enableSMSSubscribers={props.enableSMSSubscribers}
+              enableSlackSubscribers={props.enableSlackSubscribers || false}
+              enableMicrosoftTeamsSubscribers={
+                props.enableMicrosoftTeamsSubscribers || false
+              }
+              enableWebhookSubscribers={props.enableWebhookSubscribers || false}
+              showIncidentsOnStatusPage={
+                statusPage?.showIncidentsOnStatusPage || false
+              }
+              showAnnouncementsOnStatusPage={
+                statusPage?.showAnnouncementsOnStatusPage || false
+              }
+              showScheduledMaintenanceEventsOnStatusPage={
+                statusPage?.showScheduledMaintenanceEventsOnStatusPage || false
+              }
+              showSubscriberPageOnStatusPage={
+                statusPage?.showSubscriberPageOnStatusPage || false
+              }
             />
-          )}
-        </>
-      </MasterPage>
+            <main
+              id="main-content"
+              tabIndex={-1}
+              className="grow focus:outline-none"
+            >
+              {props.children}
+            </main>
+            {!footerHtml ? (
+              <Footer
+                hidePoweredByOneUptimeBranding={hidePoweredByOneUptimeBranding}
+                enabledLanguages={statusPage?.enabledLanguages || null}
+                className="mt-8 w-full border-t border-gray-200"
+                innerClassName="w-full gap-4 py-6 md:flex md:items-center md:justify-between"
+                copyrightClassName="mt-5 md:order-1 md:mt-0"
+                copyright={
+                  (JSONFunctions.getJSONValueInPath(
+                    masterPageData || {},
+                    "statusPage.copyrightText",
+                  ) as string) || ""
+                }
+                links={(
+                  (JSONFunctions.getJSONValueInPath(
+                    masterPageData || {},
+                    "footerLinks",
+                  ) as Array<JSONObject>) || []
+                ).map((link: JSONObject) => {
+                  return {
+                    title: link["title"] as string,
+                    to: link["link"] as URL,
+                    openInNewTab: true,
+                  };
+                })}
+              />
+            ) : (
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: footerHtml as string,
+                }}
+              />
+            )}
+          </>
+        </MasterPage>
+      </div>
     </div>
   );
 };

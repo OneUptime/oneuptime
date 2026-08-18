@@ -636,7 +636,16 @@ export default class MonitorResourceUtil {
         }
       }
 
-      const monitorStep: MonitorStep | undefined =
+      /*
+       * The step this result was actually produced for. A probe result carries
+       * the monitorStepId it ran, and a monitor can have several steps whose
+       * criteria differ - so the step must be looked up, not assumed to be the
+       * first one. The lookup used to be performed and its result thrown away,
+       * which silently evaluated every result against step 0's criteria and fed
+       * step 0's id into checkProbeAgreement (so agreement compared this
+       * result against other probes' logs for the wrong step).
+       */
+      let monitorStep: MonitorStep | undefined =
         monitorSteps.data.monitorStepsInstanceArray[0];
 
       logger.debug(
@@ -644,14 +653,25 @@ export default class MonitorResourceUtil {
       );
 
       if ((dataToProcess as ProbeMonitorResponse).monitorStepId) {
-        monitorSteps.data.monitorStepsInstanceArray.find(
-          (monitorStep: MonitorStep) => {
-            return (
-              monitorStep.id.toString() ===
-              (dataToProcess as ProbeMonitorResponse).monitorStepId.toString()
-            );
-          },
-        );
+        const ingestedMonitorStep: MonitorStep | undefined =
+          monitorSteps.data.monitorStepsInstanceArray.find(
+            (step: MonitorStep) => {
+              return (
+                step.id.toString() ===
+                (dataToProcess as ProbeMonitorResponse).monitorStepId.toString()
+              );
+            },
+          );
+
+        /*
+         * An id that matches no step is stale - the step was deleted after the
+         * probe was scheduled. Keep the existing behaviour there and fall back
+         * to the first step rather than dropping the result.
+         */
+        if (ingestedMonitorStep) {
+          monitorStep = ingestedMonitorStep;
+        }
+
         logger.debug(
           `Found Monitor Step ID: ${(dataToProcess as ProbeMonitorResponse).monitorStepId}`,
         );

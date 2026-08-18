@@ -83,7 +83,14 @@ Escolha como agregar os valores de métricas para avaliação:
 - **Greater Than or Equal To** — O valor da métrica está no limite ou acima
 - **Less Than or Equal To** — O valor da métrica está no limite ou abaixo
 - **Equal To** — O valor da métrica corresponde exatamente
-- **Not Equal To** — O valor da métrica não corresponde
+
+Detecção de anomalias por baseline (sem limite — o formulário mostra **Sensitivity** e **Baseline Window** e compara cada amostra com a baseline da mesma hora da semana):
+
+- **Anomalously High** — O valor sobe acima da faixa esperada
+- **Anomalously Low** — O valor cai abaixo da faixa esperada
+- **Anomalous** — O valor sai da faixa esperada em qualquer direção
+
+As condições de anomalia não geram alertas até existir pelo menos o Baseline Window configurado de histórico (estado Learning).
 
 ### Critérios de Exemplo
 

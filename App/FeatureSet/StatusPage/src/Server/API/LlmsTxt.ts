@@ -4,6 +4,7 @@ import logger, {
 } from "Common/Server/Utils/Logger";
 import { StatusPageApiRoute } from "Common/ServiceRoute";
 import { getStatusPageData, StatusPageData } from "../Utils/StatusPage";
+import applyStatusPageRobotsHeader from "Common/Server/Utils/StatusPageSearchEngineIndexing";
 
 /*
  * Serves an llms.txt document for a status page so that AI agents and
@@ -36,6 +37,11 @@ export const handleLlmsTxt: (
     }
 
     const { id: statusPageId, title } = statusPageData;
+
+    applyStatusPageRobotsHeader(
+      res,
+      statusPageData.isSearchEngineIndexingEnabled,
+    );
 
     const isPreview: boolean = req.path.includes("/status-page/");
     const host: string = req.get("host") || "";

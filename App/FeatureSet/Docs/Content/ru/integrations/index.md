@@ -20,6 +20,8 @@ OneUptime подключается к инструментам, которыми
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
 ```
 
+> **Tip:** Именно для инструментов оповещения **[монитор Incoming Request](/docs/monitor/incoming-request-monitor)** обычно оказывается лучшим входящим путём. Он даёт вам URL вебхука без построения рабочего процесса, открывает по одному инциденту на каждое оповещение в нагрузке, эскалирует на политику дежурств и закрывает каждый инцидент, когда инструмент сообщает о восстановлении. Берите рабочий процесс, когда нужна логика, которой у OneUptime нет из коробки. Разобранный пример — в [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager).
+
 ### Исходящий — OneUptime отправляет данные в другой инструмент
 
 Используйте этот паттерн, когда _что-то в OneUptime должно отобразиться в другом инструменте_ — открыть тикет в Jira, вызвать кого-то через PagerDuty, опубликовать в Slack.
@@ -85,7 +87,7 @@ printf '%s' 'you@example.com:your_api_token' | base64
 
 Практически любой инструмент подходит под один из двух паттернов выше:
 
-- Если инструмент умеет **отправлять webhook** при наступлении события — используйте **входящий** паттерн: направьте его webhook на триггер Webhook в OneUptime.
+- Если инструмент умеет **отправлять webhook** при наступлении события — используйте **входящий** паттерн: направьте его webhook на [монитор Incoming Request](/docs/monitor/incoming-request-monitor), если это инструмент оповещения, или на триггер Webhook в OneUptime, если нужна своя логика.
 - Если у инструмента есть **REST API** — используйте **исходящий** паттерн: вызовите его из **компонента API**.
 - Если нужно преобразовать данные между двумя частями — добавьте блок **[Custom Code](/docs/workflows/components#custom-code)**.
 
@@ -97,4 +99,5 @@ printf '%s' 'you@example.com:your_api_token' | base64
 - [Триггеры](/docs/workflows/triggers) — Webhook и триггеры событий OneUptime подробно.
 - [Компоненты](/docs/workflows/components) — компоненты API, Webhook и данных.
 - [Переменные](/docs/workflows/variables) — секреты и передача данных между блоками.
+- [Монитор Incoming Request](/docs/monitor/incoming-request-monitor) — входящий путь для инструментов оповещения без рабочих процессов.
 - [Zabbix](/docs/integrations/zabbix) и [Jira](/docs/integrations/jira) — полные рабочие примеры.

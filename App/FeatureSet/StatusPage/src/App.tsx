@@ -8,7 +8,7 @@ import { VoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import { RouteFallbackSkeleton } from "./Components/Skeleton/PageSkeletons";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { useEffect, useState, lazy, Suspense } from "react";
 import {
@@ -381,7 +381,7 @@ const App: () => JSX.Element = () => {
         );
       }}
     >
-      <Suspense fallback={<PageLoader isVisible={true} />}>
+      <Suspense fallback={<RouteFallbackSkeleton />}>
         <Routes>
           {/* Live */}
           <PageRoute

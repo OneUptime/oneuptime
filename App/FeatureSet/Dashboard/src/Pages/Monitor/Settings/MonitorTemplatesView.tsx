@@ -607,6 +607,10 @@ const MonitorTemplatesView: FunctionComponent<
             required: true,
             cardSelectOptions:
               MonitorTypeUtil.monitorTypesAsCategorizedCardSelectOptions(),
+            cardSelectSearchable: true,
+            cardSelectSearchPlaceholder:
+              "Search monitor types - try ping, ssl, k8s, postgres",
+            cardSelectCollapsibleGroups: true,
           },
         ]}
         onSaveSuccess={(item: MonitorTemplate) => {

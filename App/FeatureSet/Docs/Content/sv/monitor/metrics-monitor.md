@@ -83,7 +83,14 @@ Välj hur mätvärdesvärden ska aggregeras för utvärdering:
 - **Större än eller lika med** – Mätvärdet är vid eller över ett tröskelvärde
 - **Mindre än eller lika med** – Mätvärdet är vid eller under ett tröskelvärde
 - **Lika med** – Mätvärdet matchar exakt
-- **Inte lika med** – Mätvärdet matchar inte
+
+Baslinjebaserad avvikelsedetektering (inget tröskelvärde – formuläret visar i stället **Känslighet** och **Baslinjefönster** och jämför varje mätvärde med baslinjen för samma timme i veckan):
+
+- **Onormalt högt** – Värdet stiger över det förväntade intervallet
+- **Onormalt lågt** – Värdet sjunker under det förväntade intervallet
+- **Onormalt** – Värdet lämnar det förväntade intervallet i någon riktning
+
+Avvikelsevillkor ger inga varningar förrän det finns minst det valda baslinjefönstret av historik (Learning-tillstånd).
 
 ### Exempelkriterier
 

@@ -124,6 +124,14 @@ spec:
               value: {{ $.Values.app.enableProfiling | quote }}
             - name: TELEMETRY_CONCURRENCY
               value: {{ $.Values.app.telemetryConcurrency | default 100 | squote }}
+            {{- if $.Values.app.networkDevicePollFetchLimit }}
+            # How many NetworkDevice SNMP walks one probe is handed per fetch,
+            # and so the ceiling on how fast that probe's fleet can be polled
+            # (it fetches once a minute). Pair it with the probe's own
+            # probe.<name>.networkDevicePollConcurrency.
+            - name: NETWORK_DEVICE_POLL_FETCH_LIMIT
+              value: {{ $.Values.app.networkDevicePollFetchLimit | squote }}
+            {{- end }}
             # Fan-in telemetry writer knobs (defaults match the code —
             # Common/Server/Utils/Telemetry/TelemetryFanInWriter.ts). Fleet-wide
             # ClickHouse insert concurrency is replicas x maxConcurrentInserts.

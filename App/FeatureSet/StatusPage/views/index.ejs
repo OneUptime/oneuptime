@@ -10,6 +10,20 @@
     <meta name="theme-color" content="#000000">
     <meta name="slack-app-id" content="ACVBMTPJQ">
     <meta name="description" content="<%= typeof description !== 'undefined' ? description : 'Status Page shows real-time status of all of our services.' %>">
+    <%
+      /*
+       * Search engine indexing opt-out. Only the explicit "off" emits a tag:
+       * an absent variable (the fallback render, or a status page the /seo
+       * lookup could not resolve) leaves the page indexable, which is the
+       * default every status page ships with. There is deliberately no
+       * "index, follow" branch - that is what a crawler already assumes, and
+       * emitting it would override a noindex set by a CDN or proxy in front
+       * of OneUptime.
+       */
+    %>
+    <% if(typeof isSearchEngineIndexingEnabled !== 'undefined' && isSearchEngineIndexingEnabled === false){ %>
+    <meta name="robots" content="noindex, nofollow">
+    <% } %>
     <script src="/status-page/env.js"></script>
     <link rel="icon" type="image/png" href="<%= typeof faviconUrl !== 'undefined' ? faviconUrl : '/status-page/assets/images/favicon.png' %>">
     <link rel="alternate" type="application/rss+xml" title="Status Page RSS" href="<%= typeof rssFeedPath !== 'undefined' && rssFeedPath ? rssFeedPath : '/rss' %>">
@@ -89,6 +103,19 @@
             fontFamily: {
               'display': ['Inter', 'sans-serif'],
               'body': ['Inter', 'sans-serif']
+            },
+            // Used by the header and navbar mobile dropdowns. Defined here
+            // rather than pulled from tailwindcss-animate, which this page
+            // does not load - the plugin's animate-in / slide-in-from-top-*
+            // classes silently generated nothing.
+            keyframes: {
+              'slide-down': {
+                '0%': { opacity: '0', transform: 'translateY(-0.5rem)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' }
+              }
+            },
+            animation: {
+              'slide-down': 'slide-down 200ms ease-out'
             },
           },
         },

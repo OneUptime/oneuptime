@@ -25,7 +25,6 @@ import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import { IsDevelopment } from "Common/Server/EnvironmentConfig";
-import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import EmailLogService from "Common/Server/Services/EmailLogService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import logger from "Common/Server/Utils/Logger";
@@ -490,20 +489,29 @@ export default class MailService {
     }
   }
 
+  /*
+   * Key is the raw template-name string (not the enum) because the
+   * notification API casts unvalidated strings into EmailTemplateType.
+   */
+  private static compiledEmailTemplates: Map<
+    string,
+    Handlebars.TemplateDelegate
+  > = new Map();
+
   private static async compileEmailBody(
     emailTemplateType: EmailTemplateType,
     vars: Dictionary<string | JSONObject>,
   ): Promise<string> {
-    // Localcache templates, so we don't read from disk all the time.
+    /*
+     * Cache the compiled delegate so Handlebars parse/codegen runs once per
+     * template per process. In development, re-read and recompile on every
+     * call so template edits hot-reload.
+     */
+    let compiledTemplate: Handlebars.TemplateDelegate | undefined =
+      this.compiledEmailTemplates.get(emailTemplateType);
 
-    let templateData: string;
-    if (
-      LocalCache.hasValue("email-templates", emailTemplateType) &&
-      !IsDevelopment
-    ) {
-      templateData = LocalCache.getString("email-templates", emailTemplateType);
-    } else {
-      templateData = await fsp.readFile(
+    if (!compiledTemplate || IsDevelopment) {
+      const templateData: string = await fsp.readFile(
         Path.resolve(
           process.cwd(),
           "FeatureSet",
@@ -513,16 +521,12 @@ export default class MailService {
         ),
         { encoding: "utf8", flag: "r" },
       );
-      LocalCache.setString(
-        "email-templates",
-        emailTemplateType,
-        templateData as string,
-      );
+
+      compiledTemplate = Handlebars.compile(templateData);
+      this.compiledEmailTemplates.set(emailTemplateType, compiledTemplate);
     }
 
-    const emailBody: Handlebars.TemplateDelegate =
-      Handlebars.compile(templateData);
-    return emailBody(vars).toString();
+    return compiledTemplate(vars).toString();
   }
 
   private static compileText(

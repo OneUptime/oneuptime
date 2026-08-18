@@ -20,6 +20,8 @@ OneUptime은 팀이 이미 사용하는 도구들 — Zabbix, Jira, PagerDuty, S
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
 ```
 
+> **Tip:** 특히 알림 도구의 경우 **[Incoming Request 모니터](/docs/monitor/incoming-request-monitor)** 가 대개 더 나은 인바운드 경로입니다. 워크플로를 만들지 않고도 webhook URL을 제공하고, 페이로드에 담긴 알림마다 인시던트를 하나씩 열며, 온콜 정책으로 에스컬레이션하고, 도구가 복구를 보고하면 각 인시던트를 해결합니다. OneUptime이 기본 제공하지 않는 로직이 필요할 때 워크플로를 사용하세요. 자세한 예시는 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) 를 참고하세요.
+
 ### 아웃바운드 — OneUptime이 다른 도구로 데이터를 보내는 경우
 
 _OneUptime의 무언가가 다른 도구에도 나타나야 할 때_ — Jira 티켓 열기, PagerDuty에 호출하기, Slack에 게시하기 — 사용합니다.
@@ -85,7 +87,7 @@ printf '%s' 'you@example.com:your_api_token' | base64
 
 거의 모든 도구는 위의 두 패턴 중 하나에 해당합니다.
 
-- 도구가 무언가 발생할 때 **webhook을 보낼 수 있다면**, **인바운드** 패턴을 사용하세요 — 해당 webhook을 OneUptime Webhook 트리거로 지정합니다.
+- 도구가 무언가 발생할 때 **webhook을 보낼 수 있다면**, **인바운드** 패턴을 사용하세요 — 알림 도구라면 해당 webhook을 [Incoming Request 모니터](/docs/monitor/incoming-request-monitor) 로, 커스텀 로직이 필요하다면 OneUptime Webhook 트리거로 지정합니다.
 - 도구에 **REST API** 가 있다면, **아웃바운드** 패턴을 사용하세요 — **API 컴포넌트** 에서 호출합니다.
 - 두 시스템 간에 데이터를 재구성해야 한다면 **[Custom Code](/docs/workflows/components#custom-code)** 블록을 사용하세요.
 
@@ -97,4 +99,5 @@ printf '%s' 'you@example.com:your_api_token' | base64
 - [트리거](/docs/workflows/triggers) — Webhook 및 OneUptime 이벤트 트리거 상세 설명.
 - [컴포넌트](/docs/workflows/components) — API, Webhook, 데이터 컴포넌트.
 - [변수](/docs/workflows/variables) — 시크릿과 블록 간 데이터 전달.
+- [Incoming Request 모니터](/docs/monitor/incoming-request-monitor) — 알림 도구를 위한 워크플로 없는 인바운드 경로.
 - [Zabbix](/docs/integrations/zabbix) 및 [Jira](/docs/integrations/jira) — 완성된 예시.

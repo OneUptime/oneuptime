@@ -20,6 +20,8 @@ OneUptime はチームがすでに使っているツール — Zabbix、Jira、P
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
 ```
 
+> **Tip:** 特にアラートツールについては、**[Incoming Request モニター](/docs/monitor/incoming-request-monitor)** の方がインバウンドの経路として適していることがほとんどです。ワークフローを組まずに Webhook URL が手に入り、ペイロードに含まれるアラートごとにインシデントを 1 件開き、オンコールポリシーにエスカレーションし、ツールが復旧を報告した時点でそれぞれのインシデントを解決します。OneUptime が標準で行わないロジックが必要な場合にワークフローを使ってください。実例は [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) を参照してください。
+
 ### アウトバウンド — OneUptime が別のツールにデータを送る
 
 OneUptime で起きたことを*別のツールに反映*させる場合 — Jira チケットを開く、PagerDuty で誰かに連絡する、Slack に投稿する — に使います。
@@ -85,7 +87,7 @@ printf '%s' 'you@example.com:your_api_token' | base64
 
 ほぼすべてのツールは上記 2 つのパターンのどちらかに当てはまります:
 
-- ツールが何かが起きたとき**Webhook を送信**できるなら、**インバウンド**パターンを使います — そのツールの Webhook を OneUptime の Webhook トリガーに向けます。
+- ツールが何かが起きたとき**Webhook を送信**できるなら、**インバウンド**パターンを使います — アラートツールであれば Webhook を [Incoming Request モニター](/docs/monitor/incoming-request-monitor) に、独自のロジックが必要であれば OneUptime の Webhook トリガーに向けます。
 - ツールが **REST API** を持つなら、**アウトバウンド**パターンを使います — **API コンポーネント**から呼び出します。
 - 2 つの間でデータを加工する必要がある場合は **[Custom Code](/docs/workflows/components#custom-code)** ブロックを追加します。
 
@@ -97,4 +99,5 @@ printf '%s' 'you@example.com:your_api_token' | base64
 - [トリガー](/docs/workflows/triggers) — Webhook と OneUptime イベントトリガーの詳細。
 - [コンポーネント](/docs/workflows/components) — API、Webhook、データコンポーネント。
 - [変数](/docs/workflows/variables) — シークレットとブロック間のデータの受け渡し。
+- [Incoming Request モニター](/docs/monitor/incoming-request-monitor) — アラートツール向けの、ワークフロー不要なインバウンド経路。
 - [Zabbix](/docs/integrations/zabbix) と [Jira](/docs/integrations/jira) — 完全なハンズオン例。

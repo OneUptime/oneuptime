@@ -115,11 +115,9 @@ Select the time window for metric evaluation:
 
 ## Monitoring Criteria
 
-### Available Check Types
+### What Gets Evaluated
 
-| Check Type   | Description                                         |
-| ------------ | --------------------------------------------------- |
-| Metric Value | The value of the configured metric query or formula |
+These monitors always evaluate the **Metric Value** — the value of the configured metric query or formula. The criteria form has no Filter Type selector; it shows **Metric**, **Aggregation**, **Condition**, and **Threshold**.
 
 ### Aggregation Types
 
@@ -132,9 +130,19 @@ Select the time window for metric evaluation:
 | All Values    | All values must match the criteria |
 | Any Value     | At least one value must match      |
 
-### Filter Types
+### Conditions
 
-- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
+Static thresholds — compared against the **Threshold** you enter:
+
+- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**
+
+Baseline anomaly detection — no threshold; the form shows **Sensitivity** and **Baseline Window** instead, and compares each sample to the same-hour-of-week baseline built from that window:
+
+- **Anomalously High** — Value rises above the expected range
+- **Anomalously Low** — Value falls below the expected range
+- **Anomalous** — Value leaves the expected range in either direction
+
+Anomaly conditions stay in a "Learning" state and produce no alerts until at least the chosen Baseline Window of metric history exists.
 
 ## Pre-built Alert Templates
 

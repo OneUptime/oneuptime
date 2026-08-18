@@ -58,7 +58,7 @@ For **Domæne er udløbet**:
 
 For **Domæne udløber om dage**:
 
-- **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med**, **Lig med**, **Ikke lig med**
+- **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med**
 
 For **Domæneregistrar**, **Domænenavneserver** og **Domænestatuskode**:
 

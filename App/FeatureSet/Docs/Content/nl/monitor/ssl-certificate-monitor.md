@@ -34,18 +34,16 @@ U kunt criteria configureren om te bepalen wanneer uw certificaatstatus als onli
 
 | Controletype                   | Beschrijving                                                       |
 | ------------------------------ | ------------------------------------------------------------------ |
-| Is online                      | Of de server bereikbaar is                                         |
 | Is geldig certificaat          | Of het certificaat geldig is (niet verlopen, niet zelfondertekend) |
 | Is zelfondertekend certificaat | Of het certificaat zelfondertekend is                              |
 | Is verlopen certificaat        | Of het certificaat verlopen is                                     |
 | Is geen geldig certificaat     | Of het certificaat ongeldig is                                     |
 | Verloopt over (uren)           | Aantal uren totdat het certificaat verloopt                        |
 | Verloopt over (dagen)          | Aantal dagen totdat het certificaat verloopt                       |
-| Is verzoek time-out            | Of de verbinding een time-out heeft                                |
 
 ### Filtertypen
 
-Voor **Is online**, **Is geldig certificaat**, **Is zelfondertekend certificaat**, **Is verlopen certificaat**, **Is geen geldig certificaat** en **Is verzoek time-out**:
+Voor **Is geldig certificaat**, **Is zelfondertekend certificaat**, **Is verlopen certificaat** en **Is geen geldig certificaat**:
 
 - **True** — Voorwaarde is waar
 - **False** — Voorwaarde is onwaar

@@ -122,7 +122,15 @@ Docker Agent bruger OpenTelemetry `docker_stats`-modtageren, som skraber Docker 
 
 ### Filtertyper
 
-- **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med**, **Lig med**, **Ikke lig med**
+- **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med**, **Lig med**
+
+Baseline-anomalidetektion (ingen grænseværdi — formularen viser i stedet **Følsomhed** og **Baseline-vindue** og sammenligner hver måling med baselinen for samme time på ugen):
+
+- **Anomalt højt** — Værdien stiger over det forventede interval
+- **Anomalt lavt** — Værdien falder under det forventede interval
+- **Anomalt** — Værdien forlader det forventede interval i begge retninger
+
+Anomalibetingelser udløser ingen advarsler, før der findes mindst det valgte baseline-vindue af historik (Learning-tilstand).
 
 ## Færdigbyggede advarsels-skabeloner
 

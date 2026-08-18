@@ -1,5 +1,4 @@
 import { DEVICE_SUMMARY_TILES, DeviceSummaryTile } from "./DeviceSummaryTiles";
-import { getDeviceFreshCutoff } from "./DeviceFacets";
 import {
   FacetOperatorMap,
   FacetSelectionMap,
@@ -7,8 +6,6 @@ import {
 } from "../ResourceOwners/FacetTileSelection";
 import ObjectID from "Common/Types/ObjectID";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
-import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
-import LessThan from "Common/Types/BaseDatabase/LessThan";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -59,12 +56,18 @@ const DeviceSummaryCards: FunctionComponent<ComponentProps> = (
       const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
 
       /*
-       * Same freshness window the topology API uses to decide up vs down, and the
-       * same one the Status chip builds its query from — so the rows a tile opens
-       * are the rows it counted.
+       * `isReachable` — the same stored verdict the Status pill renders and
+       * the Status chip filters on, so the rows a tile opens are the rows it
+       * counted. The three counts partition the fleet exactly: true, false,
+       * and NULL (never polled).
+       *
+       * This only stays true because status is decided by the column alone.
+       * A pill that layered anything else on top — a freshness window, a
+       * staleness override — could not be reproduced by a SQL count, and the
+       * strip would start contradicting the rows underneath it. See
+       * DeviceReachabilityUtil, which is why staleness annotates the verdict
+       * instead of replacing it.
        */
-      const freshCutoff: Date = getDeviceFreshCutoff();
-
       const [
         devicesUp,
         devicesDown,
@@ -77,7 +80,7 @@ const DeviceSummaryCards: FunctionComponent<ComponentProps> = (
             query: {
               projectId: projectId,
               isArchived: false,
-              lastSeenAt: new GreaterThanOrEqual(freshCutoff),
+              isReachable: true,
             },
           }),
           ModelAPI.count<NetworkDevice>({
@@ -85,7 +88,7 @@ const DeviceSummaryCards: FunctionComponent<ComponentProps> = (
             query: {
               projectId: projectId,
               isArchived: false,
-              lastSeenAt: new LessThan(freshCutoff),
+              isReachable: false,
             },
           }),
           ModelAPI.count<NetworkDevice>({
@@ -93,7 +96,7 @@ const DeviceSummaryCards: FunctionComponent<ComponentProps> = (
             query: {
               projectId: projectId,
               isArchived: false,
-              lastSeenAt: new IsNull(),
+              isReachable: new IsNull(),
             },
           }),
           ModelAPI.getList<NetworkDevice>({

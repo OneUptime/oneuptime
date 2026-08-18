@@ -58,7 +58,7 @@ Para **El dominio está caducado**:
 
 Para **El dominio caduca en días**:
 
-- **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que**, **Igual a**, **Diferente de**
+- **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que**
 
 Para **Registrador del dominio**, **Servidor de nombres del dominio** y **Código de estado del dominio**:
 

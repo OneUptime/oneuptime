@@ -7,6 +7,11 @@ import { LogLevel } from "Common/Server/EnvironmentConfig";
 import ConfigLogLevel from "Common/Server/Types/ConfigLogLevel";
 import { JSONObject } from "Common/Types/JSON";
 import Exception from "Common/Types/Exception/Exception";
+import {
+  REDACTED,
+  redactLogString,
+  redactLogValue,
+} from "Common/Server/Utils/LogRedaction";
 
 export type LogBody = string | JSONObject | Exception | Error | unknown;
 
@@ -19,13 +24,26 @@ export default class MCPLogger {
     return LogLevel;
   }
 
+  /*
+   * stderr is a log sink like any other, so this mirrors
+   * Common/Server/Utils/Logger: every body is redacted before it is written.
+   */
   public static serializeLogBody(body: LogBody): string {
-    if (typeof body === "string") {
-      return body;
-    } else if (body instanceof Exception || body instanceof Error) {
-      return body.message;
+    try {
+      if (typeof body === "string") {
+        return redactLogString(body);
+      } else if (body instanceof Exception || body instanceof Error) {
+        return redactLogString(body.message);
+      }
+
+      const serialized: string | undefined = JSON.stringify(
+        redactLogValue(body),
+      );
+
+      return serialized === undefined ? "" : serialized;
+    } catch {
+      return REDACTED;
     }
-    return JSON.stringify(body);
   }
 
   public static info(message: LogBody): void {

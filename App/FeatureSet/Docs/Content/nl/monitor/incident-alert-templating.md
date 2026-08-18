@@ -40,6 +40,10 @@ De volgende monitortypen ondersteunen dynamische sjablonen met hun respectieve v
 | `requestMethod`             | De HTTP-methode van het inkomende verzoek (GET, POST, enz.).  | `string`             |
 | `incomingRequestReceivedAt` | De datum en tijd waarop het inkomende verzoek werd ontvangen. | `Date`               |
 
+Wanneer bij het criterium **Group incidents and alerts by a payload field** aan staat, is de uitgelezen groeperingssleutel ook beschikbaar, onder een variabelenaam die is ontleend aan het **laatste segment** van het groeperingspad. Groeperen op `requestBody.alerts[*].labels.alertname` geeft je `{{alertname}}`; groeperen op `requestBody.alerts[*].fingerprint` geeft je `{{fingerprint}}`. De volledige `requestBody` blijft daarnaast beschikbaar.
+
+> **Note:** `[*]` wordt alleen begrepen in de groeperingspadvelden zelf — hier wordt het niet omgezet, dus de placeholder wordt letterlijk afgedrukt, accolades en al. Binnen een titel of beschrijving leest `{{requestBody.alerts[0].annotations.summary}}` altijd de eerste alert in de payload, niet die waarvoor het incident werd geopend. Gebruik in plaats daarvan de groeperingsvariabele en de gedeelde velden van de payload (`commonLabels`, `commonAnnotations`). Zie [Incoming Request-monitor](/docs/monitor/incoming-request-monitor).
+
 ### Ping-monitors
 
 | Variabele          | Beschrijving                                   | Type      |
@@ -175,7 +179,7 @@ Array-indexering wordt ondersteund:
 First User: {{responseBody.users[0].name}}
 ```
 
-Als een pad niet bestaat, wordt het standaard omgezet naar een lege tekenreeks.
+Als een pad niet bestaat, blijft de placeholder exact zoals geschreven in de uitvoer staan — `{{responseBody.error.id}}` verschijnt letterlijk, accolades en al, in de incidenttitel. Alleen `{{#each}}`-blokken over een ontbrekend pad worden verwijderd.
 
 ## Geavanceerd gebruik
 

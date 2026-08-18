@@ -20,6 +20,8 @@ OneUptime उन टूल्स से जुड़ता है जो आप�
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
 ```
 
+> **Tip:** खास तौर पर alerting टूल्स के लिए, **[Incoming Request मॉनिटर](/docs/monitor/incoming-request-monitor)** आमतौर पर बेहतर inbound रास्ता है। यह आपको वर्कफ़्लो बनाए बिना एक webhook URL देता है, payload में मौजूद हर alert के लिए एक incident खोलता है, on-call पॉलिसी तक एस्केलेट करता है, और जब टूल रिकवरी की सूचना देता है तो हर incident को resolve कर देता है। जब आपको ऐसी लॉजिक चाहिए जो OneUptime मूल रूप से नहीं करता, तब वर्कफ़्लो का इस्तेमाल करें। पूरा उदाहरण देखने के लिए [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) देखें।
+
 ### आउटबाउंड — OneUptime किसी अन्य टूल को डेटा भेजता है
 
 इसे तब इस्तेमाल करें जब _OneUptime में जो होता है वह किसी अन्य टूल में दिखना चाहिए_ — Jira टिकट खोलना, PagerDuty में किसी को पेज करना, Slack पर पोस्ट करना।
@@ -85,7 +87,7 @@ printf '%s' 'you@example.com:your_api_token' | base64
 
 लगभग हर टूल ऊपर के दो पैटर्न में से एक में फिट होता है:
 
-- यदि टूल कुछ होने पर **webhook भेज सकता है**, तो **inbound** पैटर्न इस्तेमाल करें — उसके webhook को OneUptime Webhook trigger की ओर पॉइंट करें।
+- यदि टूल कुछ होने पर **webhook भेज सकता है**, तो **inbound** पैटर्न इस्तेमाल करें — यदि यह alerting टूल है तो उसके webhook को [Incoming Request मॉनिटर](/docs/monitor/incoming-request-monitor) की ओर पॉइंट करें, और यदि आपको कस्टम लॉजिक चाहिए तो OneUptime Webhook trigger की ओर।
 - यदि टूल के पास **REST API** है, तो **outbound** पैटर्न इस्तेमाल करें — इसे **API component** से कॉल करें।
 - यदि दोनों के बीच डेटा को नया आकार देने की ज़रूरत है, तो एक **[Custom Code](/docs/workflows/components#custom-code)** ब्लॉक डालें।
 
@@ -97,4 +99,5 @@ printf '%s' 'you@example.com:your_api_token' | base64
 - [ट्रिगर](/docs/workflows/triggers) — Webhook और OneUptime event triggers विस्तार से।
 - [कंपोनेंट](/docs/workflows/components) — API, Webhook, और data components।
 - [वेरिएबल](/docs/workflows/variables) — सीक्रेट और ब्लॉक्स के बीच डेटा पास करना।
+- [Incoming Request मॉनिटर](/docs/monitor/incoming-request-monitor) — alerting टूल्स के लिए वर्कफ़्लो-रहित inbound रास्ता।
 - [Zabbix](/docs/integrations/zabbix) और [Jira](/docs/integrations/jira) — पूरे काम के उदाहरण।

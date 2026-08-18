@@ -52,18 +52,17 @@ U kunt criteria configureren om te bepalen wanneer uw zone als online, gedegrade
 | DNSSEC handtekening verloopt over dagen         | Aantal dagen tot de eerstvolgende RRSIG-handtekening verloopt                         |
 | DNSSEC-resolverconsensus (AD-vlag)              | Elke bevraagde resolver retourneert de AD-vlag (Authenticated Data)                   |
 | DNSSEC-naamservers zijn consistent              | Alle autoritatieve naamservers retourneren hetzelfde SOA-serienummer                  |
-| DNSSEC is geldig                                | Aggregaat geslaagd/mislukt over alle validatiecontroles                               |
 
 ### Filtertypen
 
-Voor **DNSSEC-keten is geldig**, **DNSSEC DNSKEY-record bestaat**, **DNSSEC DS-record bestaat bij bovenliggende zone**, **DNSSEC-resolverconsensus (AD-vlag)**, **DNSSEC-naamservers zijn consistent** en **DNSSEC is geldig**:
+Voor **DNSSEC-keten is geldig**, **DNSSEC DNSKEY-record bestaat**, **DNSSEC DS-record bestaat bij bovenliggende zone**, **DNSSEC-resolverconsensus (AD-vlag)** en **DNSSEC-naamservers zijn consistent**:
 
 - **True** — Voorwaarde is waar
 - **False** — Voorwaarde is onwaar
 
 Voor **DNSSEC handtekening verloopt over dagen**:
 
-- **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan**, **Gelijk aan**, **Niet gelijk aan**
+- **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan**
 
 ### Voorbeeldcriteria
 

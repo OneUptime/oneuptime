@@ -83,7 +83,14 @@ evaluation के लिए metric values को कैसे aggregate कर�
 - **Greater Than or Equal To** — Metric value एक threshold पर या उससे ऊपर है
 - **Less Than or Equal To** — Metric value एक threshold पर या उससे नीचे है
 - **Equal To** — Metric value बिल्कुल match करती है
-- **Not Equal To** — Metric value match नहीं करती
+
+Baseline anomaly detection (कोई threshold नहीं — form इसके बजाय **Sensitivity** और **Baseline Window** दिखाता है और प्रत्येक sample की तुलना सप्ताह के उसी घंटे की baseline से करता है):
+
+- **Anomalously High** — Value अपेक्षित range से ऊपर जाती है
+- **Anomalously Low** — Value अपेक्षित range से नीचे जाती है
+- **Anomalous** — Value किसी भी दिशा में अपेक्षित range से बाहर जाती है
+
+जब तक कम से कम चुनी गई Baseline Window जितना history न हो, anomaly conditions कोई alert नहीं बनातीं (Learning state)।
 
 ### उदाहरण Criteria
 

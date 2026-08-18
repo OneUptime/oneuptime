@@ -12,7 +12,6 @@ import {
 } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
 import { mockRouter } from "./Helpers";
-import ApiKeyPermission from "../../../Models/DatabaseModels/ApiKeyPermission";
 import LogPipeline from "../../../Models/DatabaseModels/LogPipeline";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -24,6 +23,19 @@ import Permission from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import { getJestSpyOn } from "../../Spy";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+
+/*
+ * PasswordHash has a known, pre-existing TS5.9 compile failure under ts-jest
+ * (Buffer vs BinaryLike) that breaks every suite whose import graph reaches
+ * it. Nothing here touches password hashing; stub the module before the
+ * service import graph drags it into compilation.
+ */
+jest.mock("../../../Server/Utils/PasswordHash", () => {
+  return {
+    __esModule: true,
+    default: class PasswordHashStub {},
+  };
+});
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -225,12 +237,13 @@ describe("BaseAPI CRUD auth contract for the ApiKey header (issue #3004)", () =>
   ): void => {
     findApiKey.mockResolvedValue({ id: API_KEY_ID, projectId: PROJECT_ID });
 
-    const apiKeyPermission: ApiKeyPermission = new ApiKeyPermission();
-    apiKeyPermission.permission = permission;
-    apiKeyPermission.labels = [];
-    apiKeyPermission.isBlockPermission = false;
-
-    findApiKeyPermissions.mockResolvedValue([apiKeyPermission]);
+    findApiKeyPermissions.mockResolvedValue([
+      {
+        permission: permission,
+        labelIds: [],
+        isBlockPermission: false,
+      },
+    ]);
   };
 
   beforeEach(() => {
@@ -250,7 +263,7 @@ describe("BaseAPI CRUD auth contract for the ApiKey header (issue #3004)", () =>
     );
     findApiKeyPermissions = getJestSpyOn(
       ApiKeyPermissionService,
-      "findBy",
+      "findPermissionsByApiKeyId",
     ).mockResolvedValue([]);
     getJestSpyOn(GlobalConfigService, "findOneBy").mockResolvedValue(null);
 

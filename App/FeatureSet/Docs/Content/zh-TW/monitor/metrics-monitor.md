@@ -83,7 +83,14 @@
 - **Greater Than or Equal To** — 指標值等於或高於閾值
 - **Less Than or Equal To** — 指標值等於或低於閾值
 - **Equal To** — 指標值完全符合
-- **Not Equal To** — 指標值不符合
+
+基準線異常偵測（不需門檻值 — 表單改為顯示 **Sensitivity** 與 **Baseline Window**，並將每個取樣與一週中相同時段的基準線比較）：
+
+- **Anomalously High** — 數值高於預期範圍
+- **Anomalously Low** — 數值低於預期範圍
+- **Anomalous** — 數值在任一方向超出預期範圍
+
+在累積至少所選 Baseline Window 的歷史資料之前，異常條件不會產生警示（Learning 狀態）。
 
 ### 條件範例
 

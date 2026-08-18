@@ -52,18 +52,17 @@ DNSSEC 모니터는 루트 영역부터 사용자의 도메인까지 이어지�
 | DNSSEC 서명 만료까지 남은 일수    | 가장 빨리 만료되는 RRSIG 서명까지 남은 일수               |
 | DNSSEC 리졸버 합의 (AD Flag)      | 쿼리한 모든 리졸버가 AD(Authenticated Data) flag를 반환함 |
 | DNSSEC 네임서버 일관성 여부       | 모든 권한 있는 네임서버가 동일한 SOA serial을 반환함      |
-| DNSSEC 유효 여부                  | 모든 검증 확인에 걸친 종합 통과/실패                      |
 
 ### 필터 유형
 
-**DNSSEC 체인 유효 여부**, **DNSSEC DNSKEY 레코드 존재 여부**, **상위에 DNSSEC DS 레코드 존재 여부**, **DNSSEC 리졸버 합의 (AD Flag)**, **DNSSEC 네임서버 일관성 여부**, **DNSSEC 유효 여부**:
+**DNSSEC 체인 유효 여부**, **DNSSEC DNSKEY 레코드 존재 여부**, **상위에 DNSSEC DS 레코드 존재 여부**, **DNSSEC 리졸버 합의 (AD Flag)**, **DNSSEC 네임서버 일관성 여부**:
 
 - **True** — 조건이 참임
 - **False** — 조건이 거짓임
 
 **DNSSEC 서명 만료까지 남은 일수**:
 
-- **초과**, **미만**, **이상**, **이하**, **동일**, **다름**
+- **초과**, **미만**, **이상**, **이하**
 
 ### 기준 예시
 

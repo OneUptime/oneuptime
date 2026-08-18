@@ -1156,8 +1156,20 @@ export default class MonitorStep extends DatabaseProperty {
             ),
           )
         : undefined,
+      /*
+       * Normalized for the same reason domainMonitor above is: a config
+       * authored through the API or a template need not carry `resolvers`,
+       * and the probe iterates that list without a guard. A raw passthrough
+       * therefore threw a TypeError inside the probe BEFORE it posted any
+       * result, so the monitor produced nothing at all - no check, no
+       * status change, no error the user could see.
+       */
       dnssecMonitor: json["dnssecMonitor"]
-        ? (json["dnssecMonitor"] as JSONObject)
+        ? MonitorStepDnssecMonitorUtil.toJSON(
+            MonitorStepDnssecMonitorUtil.fromJSON(
+              json["dnssecMonitor"] as JSONObject,
+            ),
+          )
         : undefined,
       sqlMonitor: json["sqlMonitor"]
         ? (json["sqlMonitor"] as JSONObject)

@@ -24,6 +24,15 @@ import ObjectID from "../../../Types/ObjectID";
 export const POLICY_CACHE_TTL_MS: number = 60 * 1000;
 export const KILL_KEY_CACHE_TTL_MS: number = 5 * 1000;
 
+/*
+ * The policy cache key includes a client-supplied appIdentifier, so without a
+ * bound anyone holding an ingestion key could grow this map forever. Caps
+ * match the InMemoryTTLCache house default; that class is not used directly
+ * because clearCache(projectId) needs the prefix key scan it lacks.
+ */
+export const MAX_POLICY_CACHE_ENTRIES: number = 10_000;
+export const MAX_KILL_KEY_CACHE_ENTRIES: number = 10_000;
+
 const KILL_KEY_PREFIX: string = "replay:gate:off:";
 
 /*
@@ -52,6 +61,29 @@ interface KillKeyCacheEntry {
 const policyCache: Map<string, PolicyCacheEntry<unknown>> = new Map();
 const killKeyCache: Map<string, KillKeyCacheEntry> = new Map();
 
+/*
+ * Coarse-LRU bounded write (mirrors InMemoryTTLCache): evict the oldest entry
+ * only when at capacity AND the key is new, so rewriting an existing key never
+ * evicts a different entry; delete-before-set refreshes insertion order. The
+ * entry being written always lands, which markProjectDisabled's local kill
+ * marker depends on.
+ */
+function boundedSet<TValue>(
+  map: Map<string, TValue>,
+  key: string,
+  value: TValue,
+  maxEntries: number,
+): void {
+  if (map.size >= maxEntries && !map.has(key)) {
+    const oldest: string | undefined = map.keys().next().value;
+    if (oldest !== undefined) {
+      map.delete(oldest);
+    }
+  }
+  map.delete(key);
+  map.set(key, value);
+}
+
 export default class SessionReplayGateCacheStore {
   public static getPolicyEntry<TPolicy>(
     cacheKey: string,
@@ -63,7 +95,12 @@ export default class SessionReplayGateCacheStore {
     cacheKey: string,
     policy: TPolicy | null,
   ): void {
-    policyCache.set(cacheKey, { policy: policy, loadedAt: Date.now() });
+    boundedSet(
+      policyCache,
+      cacheKey,
+      { policy: policy, loadedAt: Date.now() },
+      MAX_POLICY_CACHE_ENTRIES,
+    );
   }
 
   /*
@@ -93,10 +130,12 @@ export default class SessionReplayGateCacheStore {
       }
     }
 
-    killKeyCache.set(projectId.toString(), {
-      isDisabled: true,
-      loadedAt: Date.now(),
-    });
+    boundedSet(
+      killKeyCache,
+      projectId.toString(),
+      { isDisabled: true, loadedAt: Date.now() },
+      MAX_KILL_KEY_CACHE_ENTRIES,
+    );
   }
 
   /*
@@ -159,7 +198,12 @@ export default class SessionReplayGateCacheStore {
        * Failing closed here would make a Redis blip stop replay ingest for
        * every project that had correctly opted in.
        */
-      killKeyCache.set(cacheKey, { isDisabled: false, loadedAt: Date.now() });
+      boundedSet(
+        killKeyCache,
+        cacheKey,
+        { isDisabled: false, loadedAt: Date.now() },
+        MAX_KILL_KEY_CACHE_ENTRIES,
+      );
       return false;
     }
 
@@ -178,10 +222,12 @@ export default class SessionReplayGateCacheStore {
       isDisabled = false;
     }
 
-    killKeyCache.set(cacheKey, {
-      isDisabled: isDisabled,
-      loadedAt: Date.now(),
-    });
+    boundedSet(
+      killKeyCache,
+      cacheKey,
+      { isDisabled: isDisabled, loadedAt: Date.now() },
+      MAX_KILL_KEY_CACHE_ENTRIES,
+    );
 
     return isDisabled;
   }

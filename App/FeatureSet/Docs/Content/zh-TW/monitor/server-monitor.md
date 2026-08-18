@@ -115,25 +115,31 @@ sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --one
 
 ### 可用的檢查類型
 
-| 檢查類型               | 說明                                       |
-| ---------------------- | ------------------------------------------ |
-| Is Online              | 伺服器代理程式是否正在回報（依據心跳訊號） |
-| CPU Usage Percent      | 目前的 CPU 使用率百分比                    |
-| Memory Usage Percent   | 目前的記憶體使用率百分比                   |
-| Disk Usage Percent     | 目前的磁碟使用率百分比（針對特定磁碟路徑） |
-| Server Process Name    | 檢查具有特定名稱的處理程序是否正在執行     |
-| Server Process Command | 檢查具有特定指令的處理程序是否正在執行     |
-| Server Process PID     | 檢查具有特定 PID 的處理程序是否正在執行    |
+| 檢查類型                 | 說明                                       |
+| ------------------------ | ------------------------------------------ |
+| Is Online                | 伺服器代理程式是否正在回報（依據心跳訊號） |
+| CPU Usage Percent        | 目前的 CPU 使用率百分比                    |
+| Memory Usage Percent     | 目前的記憶體使用率百分比                   |
+| Disk Usage Percent       | 目前的磁碟使用率百分比（針對特定磁碟路徑） |
+| Swap Usage Percent       | 目前的置換空間使用率百分比                 |
+| CPU IO Wait Percent      | CPU 用於等待 I/O 的時間百分比              |
+| Load Average (1 minute)  | 最近 1 分鐘的系統平均負載                  |
+| Load Average (5 minute)  | 最近 5 分鐘的系統平均負載                  |
+| Load Average (15 minute) | 最近 15 分鐘的系統平均負載                 |
+| Server Process Name      | 檢查具有特定名稱的處理程序是否正在執行     |
+| Server Process Command   | 檢查具有特定指令的處理程序是否正在執行     |
+| Server Process PID       | 檢查具有特定 PID 的處理程序是否正在執行    |
 
 ### 篩選類型
 
-對於數值型指標（CPU、記憶體、磁碟）：
+對於數值型指標（CPU、記憶體、磁碟、置換空間、IO 等待、平均負載）：
 
 - **Greater Than** — 數值超過某個門檻
 - **Less Than** — 數值低於某個門檻
 - **Greater Than or Equal To** — 數值等於或高於某個門檻
 - **Less Than or Equal To** — 數值等於或低於某個門檻
-- **Evaluate Over Time** — 在某個時間範圍內使用彙總方式（平均值、總和、最大值、最小值、所有數值、任一數值）進行評估
+
+**Evaluate this criteria over a period of time** 是條件表單上的核取方塊，而非篩選條件。啟用後，會比較在 **Evaluate** （平均值、總和、最大值、最小值、所有數值、任一數值） 中選擇的彙總值（時間範圍由 **For the last (in minutes)** 設定），而不是最近一次檢查的數值。
 
 對於處理程序檢查：
 

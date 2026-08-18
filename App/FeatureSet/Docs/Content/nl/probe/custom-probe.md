@@ -210,6 +210,7 @@ De probe ondersteunt de volgende omgevingsvariabelen:
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Time-out voor aangepaste code-monitorscripts in milliseconden (standaard: 60000)
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` - Deadline voor elk verzoek dat de probe naar OneUptime stuurt (standaard: 45000)
 - `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` - Log een waarschuwing voor verzoeken aan OneUptime die trager zijn dan deze waarde (standaard: 10000)
+- `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` - Deadline voor het controleren van één monitor, waarna de controle wordt afgebroken en in de volgende cyclus opnieuw wordt geprobeerd (standaard: 900000)
 
 #### Proxyconfiguratie
 
