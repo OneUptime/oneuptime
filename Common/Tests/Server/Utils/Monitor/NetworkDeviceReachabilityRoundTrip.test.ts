@@ -317,13 +317,13 @@ describe("a device that genuinely stops answering still goes down", () => {
 });
 
 /*
- * And the other failure the new rule has to keep catching: the polling
- * pipeline going silent. Standing on the last poll's outcome alone would
- * leave a fleet green forever if its probe died, because nothing would ever
- * contradict the last good verdict.
+ * And the polling pipeline going silent. The fleet keeps its last known
+ * verdicts — manufacturing an outage nobody observed is the failure this
+ * change removes — but every device is flagged stale, which is what sends
+ * the operator to the probe instead of to 300 devices.
  */
-describe("a fleet whose probe has gone silent still goes down", () => {
-  test("a good verdict nobody has refreshed for hours is Down, and says why", async () => {
+describe("a fleet whose probe has gone silent is flagged, not condemned", () => {
+  test("a good verdict nobody has refreshed for hours stays Up and reads stale", async () => {
     const row: Record<string, unknown> = await walkAndReadBackDevice({
       isOnline: true,
       interfaces: reportedInterfaces(),
@@ -336,11 +336,34 @@ describe("a fleet whose probe has gone silent still goes down", () => {
       isStale: boolean;
     } = DeviceReachabilityUtil.getReachability(row, hoursLater);
 
-    expect(reachability.status).toBe(NetworkDeviceReachability.Down);
+    expect(reachability.status).toBe(NetworkDeviceReachability.Up);
     /*
-     * isStale is what makes the pill's tooltip say "check the probe"
-     * rather than "check the device" — two different investigations.
+     * isStale is what puts the amber "Stale" pill next to the verdict and
+     * points the tooltip at the probe — a different investigation from
+     * "this device is down", and the reason it is not expressed as Down.
      */
     expect(reachability.isStale).toBe(true);
+  });
+
+  /*
+   * The property that keeps the device list self-consistent: the summary
+   * tiles and the Status chip are SQL over `isReachable`, so whatever the
+   * clock says, the pill has to be reproducible from that column alone.
+   */
+  test("the verdict stays reproducible from the stored column alone", async () => {
+    const row: Record<string, unknown> = await walkAndReadBackDevice({
+      isOnline: true,
+      interfaces: reportedInterfaces(),
+    });
+
+    for (const hoursLater of [0, 1, 4, 24, 24 * 30]) {
+      const at: Date = new Date(WALKED_AT.getTime() + hoursLater * 3600 * 1000);
+
+      expect(DeviceReachabilityUtil.getStatus(row, at)).toBe(
+        row["isReachable"] === true
+          ? NetworkDeviceReachability.Up
+          : NetworkDeviceReachability.Down,
+      );
+    }
   });
 });

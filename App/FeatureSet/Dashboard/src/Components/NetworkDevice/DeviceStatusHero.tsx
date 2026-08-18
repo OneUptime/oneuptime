@@ -7,7 +7,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
-import { Gray500, Green, Red500 } from "Common/Types/BrandColors";
+import { Gray500, Green, Red500, Yellow500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -127,21 +127,12 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
     }
 
     if (reachability === NetworkDeviceStatus.Down) {
-      /*
-       * Two different failures wear the same pill, and saying which is the
-       * difference between "go look at the device" and "go look at the
-       * probe" — so the tooltip names the one that actually happened.
-       */
       return (
         <Pill
           text="Down"
           color={Red500}
           size={PillSize.Normal}
-          tooltip={
-            reachabilityResult.isStale
-              ? `No SNMP poll has even been attempted in the last ${reachabilityResult.staleWindowInMinutes} minutes — check that this device's probe is online and keeping up with its fleet.`
-              : "The last SNMP poll could not reach this device."
-          }
+          tooltip="The last SNMP poll could not reach this device."
         />
       );
     }
@@ -211,6 +202,14 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
           <div className="text-sm font-medium text-gray-500">Reachability</div>
           <div className="mt-1.5 flex items-center gap-2">
             {getReachabilityPill()}
+            {reachabilityResult.isStale && (
+              <Pill
+                text="Stale"
+                color={Yellow500}
+                size={PillSize.Normal}
+                tooltip={`No SNMP poll has been attempted in the last ${reachabilityResult.staleWindowInMinutes} minutes, so this verdict may be out of date — check that this device's probe is online and keeping up with its fleet.`}
+              />
+            )}
           </div>
           <div className="mt-1.5 text-xs text-gray-500">
             {lastSeenAt

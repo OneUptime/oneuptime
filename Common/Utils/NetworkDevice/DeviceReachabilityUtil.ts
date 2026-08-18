@@ -38,16 +38,16 @@ export enum NetworkDeviceReachability {
 export const DEFAULT_DEVICE_POLLING_INTERVAL_IN_MINUTES: number = 5;
 
 /*
- * Consecutive missed polls before a device that last answered successfully
- * is treated as out of contact.
+ * Consecutive missed polls before a device's last verdict is reported as
+ * STALE. Staleness is an annotation on the verdict, never the verdict
+ * itself — see getReachability for why turning it into "Down" would both
+ * re-create this bug at a longer timescale and put the pill permanently at
+ * odds with the summary counts.
  *
- * Deliberately generous. Real down-detection no longer rides on this number
- * — a device that stops answering is marked unreachable by the very next
- * poll — so the only thing this catches is the whole polling pipeline going
- * silent (probe offline, claim loop wedged, walk queue backed up). Ten
- * missed cycles is unambiguous; a tighter threshold would go back to
- * reporting scheduler lag as a fleet-wide outage, which is the bug this
- * exists to prevent.
+ * Deliberately generous: a device that stops answering is marked
+ * unreachable by the very next poll, so the only thing this flags is the
+ * whole polling pipeline going silent (probe offline, claim loop wedged,
+ * walk queue backed up). Ten missed cycles is unambiguous.
  */
 export const DEVICE_MISSED_POLL_ALLOWANCE: number = 10;
 
@@ -77,8 +77,10 @@ export interface DeviceReachabilityResult {
   status: NetworkDeviceReachability;
   /*
    * True when the last poll ATTEMPT is older than the staleness window —
-   * i.e. this verdict is being read off data we can no longer vouch for.
-   * Independent of `status`: an unreachable device can also be stale.
+   * i.e. this verdict is being read off data nothing has refreshed for a
+   * long time. Strictly independent of `status`: it qualifies the verdict
+   * ("and nobody has checked lately") rather than changing it, and either
+   * an Up or a Down device can be stale.
    */
   isStale: boolean;
   // The window `isStale` was measured against, so the UI can name it.
@@ -173,15 +175,26 @@ export default class DeviceReachabilityUtil {
     }
 
     /*
-     * The probe asked and the device answered. This is the case the old
-     * freshness rule got wrong: the answer stands until a later poll
-     * contradicts it, or until we have gone so long without polling that we
-     * can no longer vouch for it.
+     * The probe asked and the device answered. The answer stands until a
+     * later poll contradicts it.
+     *
+     * Staleness deliberately does NOT override this. Turning "we have not
+     * asked in a while" into "the device is down" is the exact move this
+     * whole change exists to undo — doing it again at a longer timescale
+     * would just relocate the bug. It is also not expressible as a database
+     * filter (the window is per-device, derived from each row's own
+     * interval), so a status that depended on it could never agree with the
+     * summary counts or the Status filter, which have to run in SQL over
+     * `isReachable`. A verdict the list cannot count or filter by is a
+     * verdict that contradicts itself on screen.
+     *
+     * `isStale` still comes back in the result, and the UI shows it as what
+     * it is — "nothing has polled this device in N minutes, check its
+     * probe" — which is a different and more actionable statement than
+     * "this device is down".
      */
     if (device.isReachable === true) {
-      return result(
-        isStale ? NetworkDeviceReachability.Down : NetworkDeviceReachability.Up,
-      );
+      return result(NetworkDeviceReachability.Up);
     }
 
     /*

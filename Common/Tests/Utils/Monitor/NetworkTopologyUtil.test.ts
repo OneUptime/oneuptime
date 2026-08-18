@@ -209,7 +209,14 @@ describe("NetworkTopologyUtil.buildTopology", () => {
       expect(nodeById(result, "d1")!.status).toBe("up");
     });
 
-    it("but a device nothing has polled for hours goes down on the map", () => {
+    /*
+     * A device nothing has polled for hours keeps its last known colour
+     * rather than being drawn as an outage. Repainting a whole map red
+     * because its probe stopped is the false-positive storm this change
+     * exists to remove; the staleness signal belongs on the device page,
+     * not in the graph's only three colours.
+     */
+    it("a device nothing has polled for hours keeps its last known colour", () => {
       const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
         [
           makeDevice("d1", "out-of-contact", {
@@ -217,11 +224,17 @@ describe("NetworkTopologyUtil.buildTopology", () => {
             lastPolledAt: outOfContact,
             lastSeenAt: outOfContact,
           }),
+          makeDevice("d2", "out-of-contact-and-failing", {
+            isReachable: false,
+            lastPolledAt: outOfContact,
+            lastSeenAt: outOfContact,
+          }),
         ],
         now,
       );
 
-      expect(nodeById(result, "d1")!.status).toBe("down");
+      expect(nodeById(result, "d1")!.status).toBe("up");
+      expect(nodeById(result, "d2")!.status).toBe("down");
     });
 
     /*

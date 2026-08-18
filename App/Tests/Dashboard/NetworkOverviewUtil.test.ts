@@ -212,7 +212,14 @@ describe("issue #3220 — a fleet its probe cannot keep up with", () => {
     ).toEqual(["really-down"]);
   });
 
-  test("but a fleet nothing has polled for hours is still all down", () => {
+  /*
+   * A fleet nothing has polled for hours keeps its last known verdicts, so
+   * this summary matches the device list's tiles — which are SQL counts
+   * over `isReachable` and cannot express a per-device staleness window.
+   * The two pages disagreeing about the same fleet is the inconsistency
+   * issue #3220 was reported as.
+   */
+  test("a fleet nothing has polled for hours keeps its last known verdicts", () => {
     const devices: Array<OverviewDeviceRow> = [1, 2, 3].map(
       (index: number): OverviewDeviceRow => {
         return { _id: `d${index}`, ...answered(240) };
@@ -221,8 +228,8 @@ describe("issue #3220 — a fleet its probe cannot keep up with", () => {
 
     expect(summarizeDeviceFleet(devices)).toMatchObject({
       total: 3,
-      up: 0,
-      down: 3,
+      up: 3,
+      down: 0,
     });
   });
 });

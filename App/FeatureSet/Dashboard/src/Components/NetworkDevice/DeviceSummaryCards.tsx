@@ -56,10 +56,17 @@ const DeviceSummaryCards: FunctionComponent<ComponentProps> = (
       const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
 
       /*
-       * `isReachable` — the same stored verdict the Status pill renders and the
-       * Status chip filters on, so the rows a tile opens are the rows it
+       * `isReachable` — the same stored verdict the Status pill renders and
+       * the Status chip filters on, so the rows a tile opens are the rows it
        * counted. The three counts partition the fleet exactly: true, false,
        * and NULL (never polled).
+       *
+       * This only stays true because status is decided by the column alone.
+       * A pill that layered anything else on top — a freshness window, a
+       * staleness override — could not be reproduced by a SQL count, and the
+       * strip would start contradicting the rows underneath it. See
+       * DeviceReachabilityUtil, which is why staleness annotates the verdict
+       * instead of replacing it.
        */
       const [
         devicesUp,
