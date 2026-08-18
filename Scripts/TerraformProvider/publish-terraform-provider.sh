@@ -158,6 +158,55 @@ parse_args() {
     fi
 }
 
+# Confirms the token can see the provider repo, retrying transient API failures.
+#
+# This is one HTTP call against the GitHub API, and it used to be a single
+# attempt whose stderr went to /dev/null — so every failure, whatever the cause,
+# was reported as "ensure the GitHub token has access to this repository". On
+# 2026-08-17 a GitHub API incident tripped it (the same outage returned
+# "Error 503: No server is currently available to service your request" to the
+# release-creation job, and failed CodeQL on both master and release). The
+# release run had already spent ~50 minutes at that point, and the log pointed
+# at a perfectly valid PAT.
+#
+# Retry rather than classify: telling "expired token" from "GitHub is down"
+# means pattern-matching gh's prose, which is exactly the kind of guess that
+# produced the misleading message in the first place. A few short retries cost
+# under a minute on a genuinely bad token, and gh's own words are printed either
+# way so whoever reads the log can tell which it was.
+validate_repo_access() {
+    local -a delays=(5 15 30)
+    local max_attempts=$(( ${#delays[@]} + 1 ))
+    local attempt=1
+    local output status delay
+
+    while true; do
+        # Capture the status on the same line: after a failed command whose
+        # output is being captured, $? belongs to the assignment otherwise.
+        status=0
+        output="$(GH_TOKEN="$GITHUB_TOKEN" gh repo view "$GITHUB_ORG/$PROVIDER_REPO" 2>&1)" || status=$?
+
+        if (( status == 0 )); then
+            if (( attempt > 1 )); then
+                print_success "Repository access check succeeded on attempt ${attempt}/${max_attempts}"
+            fi
+            return 0
+        fi
+
+        if (( attempt >= max_attempts )); then
+            print_error "Cannot access repository $GITHUB_ORG/$PROVIDER_REPO after ${max_attempts} attempts"
+            print_error "GitHub said: ${output}"
+            print_error "Either the GitHub token is expired or lacks access to this repository, or the GitHub API is degraded — check https://www.githubstatus.com before rotating the token."
+            exit 1
+        fi
+
+        delay="${delays[attempt - 1]}"
+        print_warning "Repository access check failed on attempt ${attempt}/${max_attempts}; retrying in ${delay}s. GitHub said: ${output}"
+        sleep "$delay"
+        attempt=$(( attempt + 1 ))
+    done
+}
+
 # Function to validate prerequisites
 validate_prerequisites() {
     print_step "Validating prerequisites..."
@@ -213,11 +262,7 @@ validate_prerequisites() {
 
         # Validate access to the target repository
         print_status "Validating access to target repository: $GITHUB_ORG/$PROVIDER_REPO"
-        if ! GH_TOKEN="$GITHUB_TOKEN" gh repo view "$GITHUB_ORG/$PROVIDER_REPO" &> /dev/null; then
-            print_error "Cannot access repository $GITHUB_ORG/$PROVIDER_REPO"
-            print_error "Please ensure the GitHub token has access to this repository"
-            exit 1
-        fi
+        validate_repo_access
         print_success "Repository access validated"
 
         if [[ -z "$GPG_PRIVATE_KEY" ]]; then

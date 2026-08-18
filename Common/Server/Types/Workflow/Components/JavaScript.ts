@@ -81,6 +81,15 @@ export default class JavaScriptCode extends ComponentCode {
         options.log(msg);
       });
 
+      /*
+       * runCodeInSandbox resolves with `scriptError` when the user script
+       * threw or timed out — it no longer rejects. Route those runs to the
+       * error port, matching the pre-sandbox behavior.
+       */
+      if (returnResult.scriptError) {
+        throw returnResult.scriptError;
+      }
+
       const returnVal: JSONValue = returnResult.returnValue;
 
       return {

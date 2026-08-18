@@ -3,7 +3,11 @@ import {
   PROBE_INGRESS_PORT,
   PROBE_MONITORING_WORKERS,
   PROBE_MONITOR_FETCH_LIMIT,
+  PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED,
   PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS,
+  PROBE_SYNTHETIC_MONITOR_MAX_CONCURRENCY,
+  PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES,
+  PROBE_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES,
   PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS,
   PROBE_MONITOR_RETRY_LIMIT,
 } from "./Config";
@@ -68,8 +72,13 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     });
 
     logger.info(
-      `Probe Service - Monitoring workers: ${PROBE_MONITORING_WORKERS}, Monitor fetch limit: ${PROBE_MONITOR_FETCH_LIMIT}, Script timeout: ${PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS}ms / ${PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}ms, Retry limit: ${PROBE_MONITOR_RETRY_LIMIT}`,
+      `Probe Service - Monitoring workers: ${PROBE_MONITORING_WORKERS}, Monitor fetch limit: ${PROBE_MONITOR_FETCH_LIMIT}, Synthetic concurrency: ${PROBE_SYNTHETIC_MONITOR_MAX_CONCURRENCY}, Synthetic process-tree RSS limit: ${PROBE_SYNTHETIC_MONITOR_MAX_PROCESS_TREE_RSS_BYTES} bytes, Synthetic per-run disk limit: ${PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES} bytes, Script timeout: ${PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS}ms / ${PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}ms, Retry limit: ${PROBE_MONITOR_RETRY_LIMIT}`,
     );
+    if (!PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED) {
+      logger.warn(
+        "Synthetic Chromium OS sandbox is disabled. Install a Playwright-compatible seccomp profile and set PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED=true for defense in depth.",
+      );
+    }
 
     /*
      * Print the whole connectivity-relevant environment once, and start

@@ -1,360 +1,13 @@
 import CapturedMetric from "../../../Types/Monitor/CustomCodeMonitor/CapturedMetric";
 import ReturnResult from "../../../Types/IsolatedVM/ReturnResult";
-import { JSONObject, JSONValue } from "../../../Types/JSON";
+import { JSONObject } from "../../../Types/JSON";
 import axios, { AxiosResponse } from "axios";
 import crypto from "crypto";
 import http from "http";
 import https from "https";
 import ivm from "isolated-vm";
 import CaptureSpan from "../Telemetry/CaptureSpan";
-import Dictionary from "../../../Types/Dictionary";
-import GenericObject from "../../../Types/GenericObject";
-import vm, { Context } from "vm";
 import SSRFProtection from "../SSRFProtection";
-
-/**
- * Symbol used to retrieve the real (unwrapped) target from a sandbox proxy.
- * Hidden from user code via ownKeys / has traps.
- */
-const PROXY_TARGET_SYMBOL: unique symbol = Symbol("sandboxProxyTarget");
-
-/**
- * Hardening prelude injected before user code in `runCodeInNodeVM`.
- *
- * Node's `vm` module is not a security boundary. The published PoC for
- * GHSA-g9cp-35m2-fjv6 forces a stack-overflow `RangeError`, walks
- * `e.__proto__.__proto__.__proto__` to `Object.prototype`, then reads
- * `.toString.constructor` to obtain a `Function` constructor that compiles
- * code in a realm where `process.binding('spawn_sync')` is reachable.
- *
- * This prelude closes that path by:
- *  - severing `Error.prototype`'s link to `Object.prototype` so the 3-level
- *    walk lands on `null` instead of `Object.prototype`;
- *  - deleting `.constructor` from every built-in prototype, so even a
- *    different walk (e.g. `(0).constructor.constructor`) cannot resolve to a
- *    function constructor;
- *  - clearing `Function` / `eval` from the sandbox global;
- *  - freezing the affected prototypes so user code cannot reattach them.
- *
- * This is a hotfix for the public PoC. The durable fix is to drop
- * `runCodeInNodeVM` in favor of running synthetic monitor scripts in an
- * out-of-process sandbox (tracked on the `probe-runner` branch).
- */
-const VM_HARDENING_PRELUDE: string = `(() => {
-  const _ctors = [
-    Object, Function, Array, String, Number, Boolean, RegExp,
-    Error, RangeError, TypeError, SyntaxError, ReferenceError, EvalError, URIError,
-    Symbol, Date, Map, Set, WeakMap, WeakSet, Promise, Proxy,
-    ArrayBuffer, DataView,
-    Int8Array, Uint8Array, Uint8ClampedArray,
-    Int16Array, Uint16Array, Int32Array, Uint32Array,
-    Float32Array, Float64Array,
-  ];
-  if (typeof BigInt !== 'undefined') _ctors.push(BigInt);
-
-  for (const C of _ctors) {
-    try { if (C && C.prototype) delete C.prototype.constructor; } catch (_) {}
-  }
-
-  // Generator / async-function prototypes have no named global — reach via syntax.
-  try { delete Object.getPrototypeOf(function*(){}).constructor; } catch (_) {}
-  try { delete Object.getPrototypeOf(async function(){}).constructor; } catch (_) {}
-  try { delete Object.getPrototypeOf(async function*(){}).constructor; } catch (_) {}
-
-  try { Object.setPrototypeOf(Error.prototype, null); } catch (_) {}
-
-  try {
-    Object.defineProperty(globalThis, 'Function', {
-      value: undefined, writable: false, configurable: false,
-    });
-  } catch (_) {}
-  try {
-    Object.defineProperty(globalThis, 'eval', {
-      value: undefined, writable: false, configurable: false,
-    });
-  } catch (_) {}
-
-  for (const C of _ctors) {
-    try { if (C && C.prototype) Object.freeze(C.prototype); } catch (_) {}
-  }
-})();`;
-
-/** Properties blocked on every host-realm object exposed to the sandbox. */
-const BLOCKED_SANDBOX_PROPERTIES: ReadonlySet<string> = new Set([
-  "constructor",
-  "__proto__",
-  "prototype",
-  "mainModule",
-  /*
-   * Block Playwright methods that can spawn processes or access internals.
-   * Prevents RCE via browser.browserType().launch({executablePath:"/bin/sh"})
-   * and traversal via page.context().browser().browserType().launch(...)
-   */
-  "browserType", // Browser → BrowserType (which has launch/connect)
-  "_browserType", // Internal alias for browserType — same escape vector
-  "launch", // BrowserType.launch() spawns a child process
-  "launchServer", // BrowserType.launchServer() spawns a browser server process
-  "launchPersistentContext", // BrowserType.launchPersistentContext() spawns a child process
-  "connectOverCDP", // BrowserType.connectOverCDP() connects via Chrome DevTools Protocol
-  "connect", // BrowserType.connect() connects to a remote browser
-  "newCDPSession", // BrowserContext/Page.newCDPSession() opens raw CDP sessions
-]);
-
-/**
- * Wraps a host-realm value in a Proxy that blocks prototype-chain traversal.
- * Primitives and null/undefined pass through unchanged.
- * Object proxies are cached to preserve identity; function proxies are created
- * per-access so they bind to the correct `this` (parent object).
- */
-function createSandboxProxy(
-  value: unknown,
-  cache: WeakMap<GenericObject, unknown>,
-  parentObj?: GenericObject,
-): unknown {
-  if (value === null || value === undefined) {
-    return value;
-  }
-
-  const valueType: string = typeof value;
-
-  if (valueType !== "object" && valueType !== "function") {
-    return value;
-  }
-
-  const target: GenericObject = value as GenericObject;
-
-  if (valueType === "function") {
-    /*
-     * Function proxies are NOT cached because the same function may be a method
-     * on different parent objects and needs a different `this` binding each time.
-     */
-    const fnProxy: unknown = new Proxy(
-      target as (...args: unknown[]) => unknown,
-      {
-        get(
-          fnTarget: (...args: unknown[]) => unknown,
-          prop: string | symbol,
-        ): unknown {
-          if (prop === PROXY_TARGET_SYMBOL) {
-            return fnTarget;
-          }
-          if (
-            typeof prop === "string" &&
-            BLOCKED_SANDBOX_PROPERTIES.has(prop)
-          ) {
-            return undefined;
-          }
-          const val: unknown = Reflect.get(
-            fnTarget,
-            prop,
-            fnTarget as GenericObject,
-          );
-          return createSandboxProxy(val, cache, fnTarget as GenericObject);
-        },
-        getPrototypeOf(): null {
-          return null;
-        },
-        apply(
-          fnTarget: (...args: unknown[]) => unknown,
-          _thisArg: unknown,
-          args: unknown[],
-        ): unknown {
-          const thisObj: GenericObject = (parentObj ||
-            fnTarget) as GenericObject;
-          try {
-            const result: unknown = Reflect.apply(fnTarget, thisObj, args);
-            if (result instanceof Promise) {
-              return result.then(
-                (v: unknown) => {
-                  return createSandboxProxy(v, cache);
-                },
-                (err: unknown) => {
-                  throw createSandboxProxy(err, cache);
-                },
-              );
-            }
-            return createSandboxProxy(result, cache);
-          } catch (err: unknown) {
-            throw createSandboxProxy(err, cache);
-          }
-        },
-        has(
-          fnTarget: (...args: unknown[]) => unknown,
-          prop: string | symbol,
-        ): boolean {
-          if (
-            typeof prop === "string" &&
-            BLOCKED_SANDBOX_PROPERTIES.has(prop)
-          ) {
-            return false;
-          }
-          return Reflect.has(fnTarget, prop);
-        },
-        ownKeys(
-          fnTarget: (...args: unknown[]) => unknown,
-        ): (string | symbol)[] {
-          return Reflect.ownKeys(fnTarget).filter((k: string | symbol) => {
-            return !(
-              typeof k === "string" && BLOCKED_SANDBOX_PROPERTIES.has(k)
-            );
-          });
-        },
-        getOwnPropertyDescriptor(
-          fnTarget: (...args: unknown[]) => unknown,
-          prop: string | symbol,
-        ): PropertyDescriptor | undefined {
-          if (
-            typeof prop === "string" &&
-            BLOCKED_SANDBOX_PROPERTIES.has(prop)
-          ) {
-            return undefined;
-          }
-          const desc: PropertyDescriptor | undefined =
-            Reflect.getOwnPropertyDescriptor(fnTarget, prop);
-          if (desc && "value" in desc) {
-            desc.value = createSandboxProxy(
-              desc.value,
-              cache,
-              fnTarget as GenericObject,
-            );
-          }
-          return desc;
-        },
-      },
-    );
-    return fnProxy;
-  }
-
-  // Object — use cache to preserve identity and handle circular references
-  if (cache.has(target)) {
-    return cache.get(target);
-  }
-
-  const objProxy: GenericObject = new Proxy(target, {
-    get(objTarget: GenericObject, prop: string | symbol): unknown {
-      if (prop === PROXY_TARGET_SYMBOL) {
-        return objTarget;
-      }
-      if (typeof prop === "string" && BLOCKED_SANDBOX_PROPERTIES.has(prop)) {
-        return undefined;
-      }
-      const val: unknown = Reflect.get(objTarget, prop, objTarget);
-      return createSandboxProxy(val, cache, objTarget);
-    },
-    getPrototypeOf(): null {
-      return null;
-    },
-    set(
-      objTarget: GenericObject,
-      prop: string | symbol,
-      newValue: unknown,
-    ): boolean {
-      return Reflect.set(objTarget, prop, newValue);
-    },
-    has(objTarget: GenericObject, prop: string | symbol): boolean {
-      if (typeof prop === "string" && BLOCKED_SANDBOX_PROPERTIES.has(prop)) {
-        return false;
-      }
-      return Reflect.has(objTarget, prop);
-    },
-    ownKeys(objTarget: GenericObject): (string | symbol)[] {
-      return Reflect.ownKeys(objTarget).filter((k: string | symbol) => {
-        return !(typeof k === "string" && BLOCKED_SANDBOX_PROPERTIES.has(k));
-      });
-    },
-    getOwnPropertyDescriptor(
-      objTarget: GenericObject,
-      prop: string | symbol,
-    ): PropertyDescriptor | undefined {
-      if (typeof prop === "string" && BLOCKED_SANDBOX_PROPERTIES.has(prop)) {
-        return undefined;
-      }
-      const desc: PropertyDescriptor | undefined =
-        Reflect.getOwnPropertyDescriptor(objTarget, prop);
-      if (desc && "value" in desc) {
-        desc.value = createSandboxProxy(desc.value, cache, objTarget);
-      }
-      return desc;
-    },
-  });
-
-  cache.set(target, objProxy);
-  return objProxy;
-}
-
-/**
- * Recursively unwraps sandbox proxies in a return value so the host code
- * receives original objects (e.g. Buffers that pass `instanceof` checks).
- */
-export function deepUnwrapProxies(
-  value: unknown,
-  visited?: WeakSet<GenericObject>,
-): unknown {
-  if (value === null || value === undefined) {
-    return value;
-  }
-
-  const valueType: string = typeof value;
-
-  if (valueType !== "object" && valueType !== "function") {
-    return value;
-  }
-
-  const obj: Record<string | symbol, unknown> = value as Record<
-    string | symbol,
-    unknown
-  >;
-
-  // If it's one of our proxies, unwrap to the original target
-  try {
-    const underlying: unknown = obj[PROXY_TARGET_SYMBOL];
-    if (underlying !== undefined) {
-      return underlying;
-    }
-  } catch {
-    // Not a proxy or symbol access failed — treat as a plain value
-  }
-
-  if (!visited) {
-    visited = new WeakSet<GenericObject>();
-  }
-
-  if (visited.has(obj as GenericObject)) {
-    return obj;
-  }
-
-  visited.add(obj as GenericObject);
-
-  if (Array.isArray(obj)) {
-    for (let i: number = 0; i < obj.length; i++) {
-      (obj as unknown[])[i] = deepUnwrapProxies((obj as unknown[])[i], visited);
-    }
-  } else if (valueType === "object") {
-    for (const key of Object.keys(obj as Record<string, unknown>)) {
-      (obj as Record<string, unknown>)[key] = deepUnwrapProxies(
-        (obj as Record<string, unknown>)[key],
-        visited,
-      );
-    }
-  }
-
-  return obj;
-}
-
-/**
- * Unwraps a single value if it is a sandbox proxy, otherwise returns it as-is.
- */
-function unwrapProxy<T>(value: T): T {
-  if (value && typeof value === "object") {
-    const underlying: unknown = (value as Record<symbol, unknown>)[
-      PROXY_TARGET_SYMBOL
-    ];
-    if (underlying !== undefined) {
-      return underlying as T;
-    }
-  }
-  return value;
-}
 
 export default class VMRunner {
   /*
@@ -403,237 +56,6 @@ export default class VMRunner {
   }
 
   @CaptureSpan()
-  public static async runCodeInNodeVM(data: {
-    code: string;
-    options: {
-      timeout?: number;
-      args?: JSONObject | undefined;
-      context?: Dictionary<GenericObject | string> | undefined;
-    };
-  }): Promise<ReturnResult> {
-    const { code, options } = data;
-    const timeout: number = options.timeout || 5000;
-
-    const logMessages: string[] = [];
-    const MAX_LOG_BYTES: number = 1_000_000; // 1MB cap
-    let totalLogBytes: number = 0;
-
-    const capturedMetrics: CapturedMetric[] = [];
-    const MAX_METRICS: number = 100;
-
-    // Track timer handles so we can clean them up after execution
-    type TimerHandle = ReturnType<typeof setTimeout>;
-    const pendingTimeouts: TimerHandle[] = [];
-    const pendingIntervals: TimerHandle[] = [];
-
-    const wrappedSetTimeout: (
-      fn: (...args: unknown[]) => void,
-      ms?: number,
-      ...rest: unknown[]
-    ) => TimerHandle = (
-      fn: (...args: unknown[]) => void,
-      ms?: number,
-      ...rest: unknown[]
-    ): TimerHandle => {
-      const handle: TimerHandle = setTimeout(fn, ms, ...rest);
-      pendingTimeouts.push(handle);
-      return handle;
-    };
-
-    const wrappedClearTimeout: (handle: TimerHandle) => void = (
-      handle: TimerHandle,
-    ): void => {
-      const actual: TimerHandle = unwrapProxy(handle);
-      clearTimeout(actual);
-      const idx: number = pendingTimeouts.indexOf(actual);
-      if (idx !== -1) {
-        pendingTimeouts.splice(idx, 1);
-      }
-    };
-
-    const wrappedSetInterval: (
-      fn: (...args: unknown[]) => void,
-      ms?: number,
-      ...rest: unknown[]
-    ) => TimerHandle = (
-      fn: (...args: unknown[]) => void,
-      ms?: number,
-      ...rest: unknown[]
-    ): TimerHandle => {
-      const handle: TimerHandle = setInterval(fn, ms, ...rest);
-      pendingIntervals.push(handle);
-      return handle;
-    };
-
-    const wrappedClearInterval: (handle: TimerHandle) => void = (
-      handle: TimerHandle,
-    ): void => {
-      const actual: TimerHandle = unwrapProxy(handle);
-      clearInterval(actual);
-      const idx: number = pendingIntervals.indexOf(actual);
-      if (idx !== -1) {
-        pendingIntervals.splice(idx, 1);
-      }
-    };
-
-    // Proxy cache shared across all wrapped host objects in this execution
-    const proxyCache: WeakMap<GenericObject, unknown> = new WeakMap();
-
-    // Use null-prototype object to break this.constructor chain on the global
-    const sandbox: Context = Object.create(null) as Context;
-    sandbox["process"] = Object.freeze(Object.create(null));
-    sandbox["console"] = createSandboxProxy(
-      {
-        log: (...args: JSONValue[]) => {
-          const msg: string = args.join(" ");
-          totalLogBytes += msg.length;
-          if (totalLogBytes <= MAX_LOG_BYTES) {
-            logMessages.push(msg);
-          }
-        },
-      },
-      proxyCache,
-    );
-    sandbox["http"] = createSandboxProxy(http, proxyCache);
-    sandbox["https"] = createSandboxProxy(https, proxyCache);
-    sandbox["axios"] = createSandboxProxy(axios, proxyCache);
-    sandbox["crypto"] = createSandboxProxy(crypto, proxyCache);
-    sandbox["setTimeout"] = createSandboxProxy(wrappedSetTimeout, proxyCache);
-    sandbox["clearTimeout"] = createSandboxProxy(
-      wrappedClearTimeout,
-      proxyCache,
-    );
-    sandbox["setInterval"] = createSandboxProxy(wrappedSetInterval, proxyCache);
-    sandbox["clearInterval"] = createSandboxProxy(
-      wrappedClearInterval,
-      proxyCache,
-    );
-
-    sandbox["oneuptime"] = createSandboxProxy(
-      {
-        captureMetric: (
-          name: unknown,
-          value: unknown,
-          attributes?: unknown,
-        ): void => {
-          if (typeof name !== "string" || name.length === 0) {
-            return;
-          }
-          if (typeof value !== "number" || isNaN(value)) {
-            return;
-          }
-          if (capturedMetrics.length >= MAX_METRICS) {
-            return;
-          }
-          const metric: CapturedMetric = {
-            name: name.substring(0, 200),
-            value: value,
-          };
-          if (attributes && typeof attributes === "object") {
-            const safeAttrs: JSONObject = {};
-            for (const [k, v] of Object.entries(
-              attributes as Record<string, unknown>,
-            )) {
-              if (
-                typeof v === "string" ||
-                typeof v === "number" ||
-                typeof v === "boolean"
-              ) {
-                safeAttrs[k] = String(v);
-              }
-            }
-            metric.attributes = safeAttrs;
-          }
-          capturedMetrics.push(metric);
-        },
-      },
-      proxyCache,
-    );
-
-    // Wrap any additional context (e.g. Playwright browser/page objects)
-    if (options.context) {
-      for (const key of Object.keys(options.context)) {
-        const val: GenericObject | string | undefined = options.context[key];
-        sandbox[key] =
-          typeof val === "string" ? val : createSandboxProxy(val, proxyCache);
-      }
-    }
-
-    if (options.args) {
-      // args is plain JSON data — no host functions to protect against
-      sandbox["args"] = options.args;
-    }
-
-    vm.createContext(sandbox, {
-      codeGeneration: {
-        strings: false,
-        wasm: false,
-      },
-    });
-
-    const script: string = `(async()=>{
-        ${VM_HARDENING_PRELUDE}
-        ${code}
-      })()`;
-
-    try {
-      let returnVal: unknown;
-      let scriptError: Error | undefined;
-
-      try {
-        /*
-         * vm timeout only covers synchronous CPU time, so wrap with
-         * Promise.race to also cover async operations (network, timers, etc.)
-         */
-        const vmPromise: Promise<unknown> = vm.runInContext(script, sandbox, {
-          timeout: timeout,
-        });
-
-        const overallTimeout: Promise<never> = new Promise(
-          (
-            _resolve: (value: never) => void,
-            reject: (reason: Error) => void,
-          ) => {
-            const handle: NodeJS.Timeout = global.setTimeout(() => {
-              reject(new Error("Script execution timed out"));
-            }, timeout + 5000);
-            // Don't let this timer keep the process alive
-            handle.unref();
-          },
-        );
-
-        returnVal = await Promise.race([vmPromise, overallTimeout]);
-      } catch (err: unknown) {
-        /*
-         * Capture user-thrown errors (including timeouts) so the caller can
-         * still access side-channel data collected before the throw — e.g.
-         * screenshots assigned to a host-realm object passed via `context`.
-         * Rethrowing here would discard those partial results.
-         */
-        scriptError =
-          err instanceof Error
-            ? err
-            : new Error(typeof err === "string" ? err : String(err));
-      }
-
-      return {
-        returnValue: deepUnwrapProxies(returnVal),
-        logMessages,
-        capturedMetrics,
-        scriptError,
-      };
-    } finally {
-      // Clean up any lingering timers to prevent resource leaks
-      for (const handle of pendingTimeouts) {
-        clearTimeout(handle);
-      }
-      for (const handle of pendingIntervals) {
-        clearInterval(handle);
-      }
-    }
-  }
-
-  @CaptureSpan()
   public static async runCodeInSandbox(data: {
     code: string;
     options: {
@@ -647,6 +69,87 @@ export default class VMRunner {
     const logMessages: string[] = [];
     const capturedMetrics: CapturedMetric[] = [];
     const MAX_METRICS: number = 100;
+    const MAX_LOG_MESSAGES: number = 1000;
+    const MAX_LOG_BYTES: number = 1_000_000;
+    const MAX_SCRIPT_ERROR_MESSAGE_LENGTH: number = 10_000;
+    let logBytes: number = 0;
+
+    const pendingHostTimeouts: Set<ReturnType<typeof global.setTimeout>> =
+      new Set<ReturnType<typeof global.setTimeout>>();
+    const pendingAxiosControllers: Set<AbortController> =
+      new Set<AbortController>();
+    let acceptingHostOperations: boolean = true;
+    type PendingAxiosOperation =
+      | { status: "pending" }
+      | { status: "fulfilled"; value: string }
+      | { status: "rejected"; errorMessage: string };
+    const pendingAxiosOperations: Map<string, PendingAxiosOperation> = new Map<
+      string,
+      PendingAxiosOperation
+    >();
+    let nextAxiosOperationId: number = 0;
+
+    type PendingSleepOperation = {
+      settled: boolean;
+    };
+    const pendingSleepOperations: Map<string, PendingSleepOperation> = new Map<
+      string,
+      PendingSleepOperation
+    >();
+    let nextSleepOperationId: number = 0;
+
+    const sanitizeScriptError: (error: unknown) => Error = (
+      error: unknown,
+    ): Error => {
+      let message: string = "Sandbox script failed";
+
+      try {
+        if (typeof error === "string") {
+          message = error;
+        } else if (error && typeof error === "object") {
+          const candidateMessage: unknown = (error as { message?: unknown })[
+            "message"
+          ];
+
+          if (typeof candidateMessage === "string") {
+            message = candidateMessage;
+          }
+        }
+      } catch {
+        // Do not invoke any attacker-controlled coercion while reporting errors.
+      }
+
+      let sanitizedMessage: string = "";
+
+      for (const character of message) {
+        const characterCode: number = character.charCodeAt(0);
+
+        if (
+          characterCode === 9 ||
+          characterCode === 10 ||
+          characterCode === 13 ||
+          (characterCode >= 32 && characterCode !== 127)
+        ) {
+          sanitizedMessage += character;
+        }
+
+        if (sanitizedMessage.length >= MAX_SCRIPT_ERROR_MESSAGE_LENGTH) {
+          break;
+        }
+      }
+
+      message = sanitizedMessage.substring(0, MAX_SCRIPT_ERROR_MESSAGE_LENGTH);
+
+      if (!message) {
+        message = "Sandbox script failed";
+      }
+
+      /*
+       * Deliberately create a fresh host Error so isolate-owned properties and
+       * stack frames never escape with the result.
+       */
+      return new Error(message);
+    };
 
     const isolate: ivm.Isolate = new ivm.Isolate({ memoryLimit: 128 });
 
@@ -657,24 +160,73 @@ export default class VMRunner {
       // Set up global object
       await jail.set("global", jail.derefInto());
 
-      // console.log - fire-and-forget callback
+      /*
+       * Callback values become ordinary functions in the destination isolate.
+       * Never expose ivm.Reference or ivm.ExternalCopy handles to user code:
+       * their prototype methods can be used to cross the isolate boundary.
+       */
       await jail.set(
-        "_log",
-        new ivm.Callback((...args: string[]) => {
-          logMessages.push(args.join(" "));
-        }),
+        "__oneuptimeHostLogCallback",
+        new ivm.Callback(
+          (message: string) => {
+            if (logMessages.length >= MAX_LOG_MESSAGES) {
+              return;
+            }
+
+            const messageBytes: number = Buffer.byteLength(message, "utf8");
+
+            if (logBytes + messageBytes > MAX_LOG_BYTES) {
+              return;
+            }
+
+            logBytes += messageBytes;
+            logMessages.push(message);
+          },
+          { sync: true },
+        ),
       );
 
       await context.eval(`
-        const console = { log: (...a) => _log(...a.map(v => {
-          try { return typeof v === 'object' ? JSON.stringify(v) : String(v); }
-          catch(_) { return String(v); }
-        }))};
+        (() => {
+          const hostLog = globalThis.__oneuptimeHostLogCallback;
+          delete globalThis.__oneuptimeHostLogCallback;
+          let sandboxLogCount = 0;
+          let sandboxLogCharacters = 0;
+
+          const sandboxConsole = Object.freeze({
+            log: (...args) => {
+              if (sandboxLogCount >= 1000 || sandboxLogCharacters >= 500000) {
+                return;
+              }
+
+              const message = args.map(value => {
+                try {
+                  return typeof value === 'object' ? JSON.stringify(value) : String(value);
+                } catch (_) {
+                  return String(value);
+                }
+              }).join(' ').substring(0, 250000);
+
+              if (sandboxLogCharacters + message.length > 500000) {
+                return;
+              }
+
+              sandboxLogCount += 1;
+              sandboxLogCharacters += message.length;
+              hostLog(message);
+            }
+          });
+
+          Object.defineProperty(globalThis, 'console', {
+            value: sandboxConsole,
+            writable: false,
+            configurable: false,
+          });
+        })();
       `);
 
-      // oneuptime.captureMetric - fire-and-forget callback
       await jail.set(
-        "_captureMetric",
+        "__oneuptimeHostMetricCallback",
         new ivm.Callback(
           (name: string, value: string, attributesJson?: string) => {
             if (capturedMetrics.length >= MAX_METRICS) {
@@ -697,27 +249,47 @@ export default class VMRunner {
             }
             capturedMetrics.push(metric);
           },
+          { sync: true },
         ),
       );
 
       await context.eval(`
-        const oneuptime = {
-          captureMetric: (name, value, attributes) => {
-            if (typeof name !== 'string' || name.length === 0) return;
-            if (typeof value !== 'number' || isNaN(value)) return;
-            const attrJson = attributes ? JSON.stringify(attributes) : undefined;
-            _captureMetric(String(name), String(value), attrJson);
-          }
-        };
+        (() => {
+          const hostCaptureMetric = globalThis.__oneuptimeHostMetricCallback;
+          delete globalThis.__oneuptimeHostMetricCallback;
+
+          const sandboxOneUptime = Object.freeze({
+            captureMetric: (name, value, attributes) => {
+              if (typeof name !== 'string' || name.length === 0) return;
+              if (typeof value !== 'number' || isNaN(value)) return;
+              const attrJson = attributes ? JSON.stringify(attributes) : undefined;
+              hostCaptureMetric(String(name), String(value), attrJson);
+            }
+          });
+
+          Object.defineProperty(globalThis, 'oneuptime', {
+            value: sandboxOneUptime,
+            writable: false,
+            configurable: false,
+          });
+        })();
       `);
 
       // args - deep copy into isolate
-      if (options.args) {
-        await jail.set("_args", new ivm.ExternalCopy(options.args).copyInto());
-        await context.eval("const args = _args;");
-      } else {
-        await context.eval("const args = {};");
-      }
+      await jail.set("__oneuptimeCopiedArgs", options.args || {}, {
+        copy: true,
+      });
+      await context.eval(`
+        (() => {
+          const copiedArgs = globalThis.__oneuptimeCopiedArgs;
+          delete globalThis.__oneuptimeCopiedArgs;
+          Object.defineProperty(globalThis, 'args', {
+            value: copiedArgs,
+            writable: false,
+            configurable: false,
+          });
+        })();
+      `);
 
       /*
        * http / https - provide Agent constructors that serialize across the boundary.
@@ -745,212 +317,317 @@ export default class VMRunner {
 
       /*
        * axios (get, head, options, post, put, patch, delete, request)
-       * bridged via applySyncPromise.
+       * bridged through a copied async callback.
        *
        * For GET/HEAD/OPTIONS/DELETE: args = [method, url, configJson?]
        * For POST/PUT/PATCH:         args = [method, url, bodyJson?, configJson?]
        * For REQUEST:                args = ['request', '', configJson]
        */
-      const axiosRef: ivm.Reference<
-        (
-          method: string,
-          url: string,
-          arg1?: string,
-          arg2?: string,
-        ) => Promise<string>
-      > = new ivm.Reference(
-        async (
-          method: string,
-          url: string,
-          arg1?: string,
-          arg2?: string,
-        ): Promise<string> => {
-          const methodsWithBody: string[] = ["post", "put", "patch"];
-          const hasBody: boolean = methodsWithBody.includes(method);
+      const executeAxiosRequest: (
+        signal: AbortSignal,
+        method: string,
+        url: string,
+        arg1?: string,
+        arg2?: string,
+      ) => Promise<string> = async (
+        signal: AbortSignal,
+        method: string,
+        url: string,
+        arg1?: string,
+        arg2?: string,
+      ): Promise<string> => {
+        const methodsWithBody: string[] = ["post", "put", "patch"];
+        const hasBody: boolean = methodsWithBody.includes(method);
 
-          /*
-           * For POST/PUT/PATCH: arg1=body, arg2=config
-           * For GET/HEAD/OPTIONS/DELETE/REQUEST: arg1=config
-           */
-          const body: JSONObject | undefined =
-            hasBody && arg1 ? (JSON.parse(arg1) as JSONObject) : undefined;
+        /*
+         * For POST/PUT/PATCH: arg1=body, arg2=config
+         * For GET/HEAD/OPTIONS/DELETE/REQUEST: arg1=config
+         */
+        const body: JSONObject | undefined =
+          hasBody && arg1 ? (JSON.parse(arg1) as JSONObject) : undefined;
 
-          const configStr: string | undefined = hasBody ? arg2 : arg1;
-          let config: JSONObject | undefined = configStr
-            ? (JSON.parse(configStr) as JSONObject)
-            : undefined;
+        const configStr: string | undefined = hasBody ? arg2 : arg1;
+        let config: JSONObject | undefined = configStr
+          ? (JSON.parse(configStr) as JSONObject)
+          : undefined;
 
-          // Reconstruct real http/https Agents from serialized markers
-          if (config) {
-            const httpsAgentConfig: JSONObject | undefined = config[
-              "httpsAgent"
-            ] as JSONObject | undefined;
+        // Reconstruct real http/https Agents from serialized markers
+        if (config) {
+          const httpsAgentConfig: JSONObject | undefined = config[
+            "httpsAgent"
+          ] as JSONObject | undefined;
 
-            if (
-              httpsAgentConfig &&
-              httpsAgentConfig["__agentType"] === "__https_agent__"
-            ) {
-              config["httpsAgent"] = new https.Agent(
-                httpsAgentConfig["options"] as https.AgentOptions,
-              ) as unknown as JSONObject;
-            }
-
-            const httpAgentConfig: JSONObject | undefined = config[
-              "httpAgent"
-            ] as JSONObject | undefined;
-
-            if (
-              httpAgentConfig &&
-              httpAgentConfig["__agentType"] === "__http_agent__"
-            ) {
-              config["httpAgent"] = new http.Agent(
-                httpAgentConfig["options"] as http.AgentOptions,
-              ) as unknown as JSONObject;
-            }
+          if (
+            httpsAgentConfig &&
+            httpsAgentConfig["__agentType"] === "__https_agent__"
+          ) {
+            config["httpsAgent"] = new https.Agent(
+              httpsAgentConfig["options"] as https.AgentOptions,
+            ) as unknown as JSONObject;
           }
 
-          /**
-           * Helper: convert AxiosHeaders (or any header-like object) to a
-           * plain record so it can be safely JSON-serialised.
-           */
-          const toPlainHeaders: (
-            headers: unknown,
-          ) => Record<string, unknown> = (
-            headers: unknown,
-          ): Record<string, unknown> => {
-            const plain: Record<string, unknown> = {};
-            if (headers) {
-              for (const hKey of Object.keys(
-                headers as Record<string, unknown>,
-              )) {
-                plain[hKey] = (headers as Record<string, unknown>)[hKey];
-              }
+          const httpAgentConfig: JSONObject | undefined = config[
+            "httpAgent"
+          ] as JSONObject | undefined;
+
+          if (
+            httpAgentConfig &&
+            httpAgentConfig["__agentType"] === "__http_agent__"
+          ) {
+            config["httpAgent"] = new http.Agent(
+              httpAgentConfig["options"] as http.AgentOptions,
+            ) as unknown as JSONObject;
+          }
+        }
+
+        /**
+         * Helper: convert AxiosHeaders (or any header-like object) to a
+         * plain record so it can be safely JSON-serialised.
+         */
+        const toPlainHeaders: (headers: unknown) => Record<string, unknown> = (
+          headers: unknown,
+        ): Record<string, unknown> => {
+          const plain: Record<string, unknown> = {};
+          if (headers) {
+            for (const hKey of Object.keys(
+              headers as Record<string, unknown>,
+            )) {
+              plain[hKey] = (headers as Record<string, unknown>)[hKey];
             }
-            return plain;
+          }
+          return plain;
+        };
+
+        /*
+         * SSRF guard (GHSA-v5xh-rw9h-77fv).
+         *
+         * This bridge hands the host process's real axios to code the user
+         * wrote - the Custom JavaScript workflow component documents "you can
+         * use axios module" - so without a check here it is a strictly more
+         * capable version of the hole that was reported against the API
+         * components: arbitrary method, headers and body against the internal
+         * network, with the full response marshalled back into the sandbox
+         * and on into the workflow log.
+         *
+         * It has to live on THIS side of the isolate boundary. The
+         * sandbox-side axios shim is attacker-editable - user code can simply
+         * redefine it - so a check there guards nothing.
+         */
+        const effectiveUrl: string = VMRunner.resolveEffectiveRequestUrl({
+          method,
+          url,
+          config,
+        });
+
+        await SSRFProtection.validateWebhookTargetIsSafe(effectiveUrl);
+
+        /*
+         * The URL that was just validated has to be the URL that gets
+         * dialled. Each of these would otherwise steer the connection
+         * somewhere else entirely, past the check above:
+         *   proxy      - sends the request to an arbitrary host:port
+         *   socketPath - connects to a unix socket (/var/run/docker.sock)
+         *   transport / adapter - replaces the transport wholesale
+         * and a redirect would let a validated public host nominate an
+         * internal one on the second hop.
+         */
+        const safeConfig: JSONObject = config || {};
+        delete safeConfig["proxy"];
+        delete safeConfig["socketPath"];
+        delete safeConfig["transport"];
+        delete safeConfig["adapter"];
+        safeConfig["maxRedirects"] = 0;
+        Object.defineProperty(safeConfig, "signal", {
+          value: signal,
+          enumerable: true,
+          configurable: true,
+        });
+        config = safeConfig;
+
+        try {
+          let response: AxiosResponse;
+
+          switch (method) {
+            case "get":
+              response = await axios.get(url, config);
+              break;
+            case "head":
+              response = await axios.head(url, config);
+              break;
+            case "options":
+              response = await axios.options(url, config);
+              break;
+            case "post":
+              response = await axios.post(url, body, config);
+              break;
+            case "put":
+              response = await axios.put(url, body, config);
+              break;
+            case "patch":
+              response = await axios.patch(url, body, config);
+              break;
+            case "delete":
+              response = await axios.delete(url, config);
+              break;
+            case "request":
+              response = await axios.request(
+                config as Parameters<typeof axios.request>[0],
+              );
+              break;
+            default:
+              throw new Error(`Unsupported HTTP method: ${method}`);
+          }
+
+          /*
+           * Convert AxiosHeaders to a plain object before serializing.
+           * JSON.stringify calls AxiosHeaders.toJSON(key) with a truthy key,
+           * which makes it join array headers (like set-cookie) with commas.
+           * This produces invalid Cookie headers when user code forwards them.
+           */
+          return JSON.stringify({
+            status: response.status,
+            headers: toPlainHeaders(response.headers),
+            data: response.data,
+          });
+        } catch (err: unknown) {
+          /*
+           * If this is an axios error with a response (4xx, 5xx, etc.),
+           * return the error details as JSON so the sandbox-side axios
+           * wrapper can reconstruct error.response for user code.
+           */
+          const axiosErr: {
+            isAxiosError?: boolean;
+            response?: AxiosResponse<any, any, Record<string, unknown>>;
+            message?: string;
+          } = err as {
+            isAxiosError?: boolean;
+            response?: AxiosResponse;
+            message?: string;
           };
 
-          /*
-           * SSRF guard (GHSA-v5xh-rw9h-77fv).
-           *
-           * This bridge hands the host process's real axios to code the user
-           * wrote - the Custom JavaScript workflow component documents "you can
-           * use axios module" - so without a check here it is a strictly more
-           * capable version of the hole that was reported against the API
-           * components: arbitrary method, headers and body against the internal
-           * network, with the full response marshalled back into the sandbox
-           * and on into the workflow log.
-           *
-           * It has to live on THIS side of the isolate boundary. The
-           * sandbox-side axios shim is attacker-editable - user code can simply
-           * redefine it - so a check there guards nothing.
-           */
-          const effectiveUrl: string = VMRunner.resolveEffectiveRequestUrl({
+          if (axiosErr.isAxiosError && axiosErr.response) {
+            return JSON.stringify({
+              __isAxiosError: true,
+              message: axiosErr.message || "Request failed",
+              status: axiosErr.response.status,
+              statusText: axiosErr.response.statusText,
+              headers: toPlainHeaders(axiosErr.response.headers),
+              data: axiosErr.response.data,
+            });
+          }
+
+          throw err;
+        }
+      };
+
+      const axiosStartCallback: ivm.Callback<
+        (method: string, url: string, arg1?: string, arg2?: string) => string
+      > = new ivm.Callback(
+        (method: string, url: string, arg1?: string, arg2?: string): string => {
+          const operationId: string = String(++nextAxiosOperationId);
+
+          if (!acceptingHostOperations) {
+            return operationId;
+          }
+
+          if (pendingAxiosOperations.size >= 100) {
+            pendingAxiosOperations.set(operationId, {
+              status: "rejected",
+              errorMessage: "Too many pending HTTP requests",
+            });
+            return operationId;
+          }
+
+          pendingAxiosOperations.set(operationId, { status: "pending" });
+          const abortController: AbortController = new AbortController();
+          pendingAxiosControllers.add(abortController);
+          void executeAxiosRequest(
+            abortController.signal,
             method,
             url,
-            config,
-          });
-
-          await SSRFProtection.validateWebhookTargetIsSafe(effectiveUrl);
-
-          /*
-           * The URL that was just validated has to be the URL that gets
-           * dialled. Each of these would otherwise steer the connection
-           * somewhere else entirely, past the check above:
-           *   proxy      - sends the request to an arbitrary host:port
-           *   socketPath - connects to a unix socket (/var/run/docker.sock)
-           *   transport / adapter - replaces the transport wholesale
-           * and a redirect would let a validated public host nominate an
-           * internal one on the second hop.
-           */
-          const safeConfig: JSONObject = config || {};
-          delete safeConfig["proxy"];
-          delete safeConfig["socketPath"];
-          delete safeConfig["transport"];
-          delete safeConfig["adapter"];
-          safeConfig["maxRedirects"] = 0;
-          config = safeConfig;
-
-          try {
-            let response: AxiosResponse;
-
-            switch (method) {
-              case "get":
-                response = await axios.get(url, config);
-                break;
-              case "head":
-                response = await axios.head(url, config);
-                break;
-              case "options":
-                response = await axios.options(url, config);
-                break;
-              case "post":
-                response = await axios.post(url, body, config);
-                break;
-              case "put":
-                response = await axios.put(url, body, config);
-                break;
-              case "patch":
-                response = await axios.patch(url, body, config);
-                break;
-              case "delete":
-                response = await axios.delete(url, config);
-                break;
-              case "request":
-                response = await axios.request(
-                  config as Parameters<typeof axios.request>[0],
-                );
-                break;
-              default:
-                throw new Error(`Unsupported HTTP method: ${method}`);
-            }
-
-            /*
-             * Convert AxiosHeaders to a plain object before serializing.
-             * JSON.stringify calls AxiosHeaders.toJSON(key) with a truthy key,
-             * which makes it join array headers (like set-cookie) with commas.
-             * This produces invalid Cookie headers when user code forwards them.
-             */
-            return JSON.stringify({
-              status: response.status,
-              headers: toPlainHeaders(response.headers),
-              data: response.data,
+            arg1,
+            arg2,
+          )
+            .then(
+              (value: string) => {
+                if (pendingAxiosOperations.has(operationId)) {
+                  pendingAxiosOperations.set(operationId, {
+                    status: "fulfilled",
+                    value,
+                  });
+                }
+              },
+              (error: unknown) => {
+                if (pendingAxiosOperations.has(operationId)) {
+                  pendingAxiosOperations.set(operationId, {
+                    status: "rejected",
+                    errorMessage: sanitizeScriptError(error).message,
+                  });
+                }
+              },
+            )
+            .finally(() => {
+              pendingAxiosControllers.delete(abortController);
             });
-          } catch (err: unknown) {
-            /*
-             * If this is an axios error with a response (4xx, 5xx, etc.),
-             * return the error details as JSON so the sandbox-side axios
-             * wrapper can reconstruct error.response for user code.
-             */
-            const axiosErr: {
-              isAxiosError?: boolean;
-              response?: AxiosResponse<any, any, Record<string, unknown>>;
-              message?: string;
-            } = err as {
-              isAxiosError?: boolean;
-              response?: AxiosResponse;
-              message?: string;
-            };
 
-            if (axiosErr.isAxiosError && axiosErr.response) {
+          return operationId;
+        },
+        { async: true },
+      );
+
+      const axiosPollCallback: ivm.Callback<(operationId: string) => string> =
+        new ivm.Callback(
+          (operationId: string): string => {
+            const operation: PendingAxiosOperation | undefined =
+              pendingAxiosOperations.get(operationId);
+
+            if (!operation) {
               return JSON.stringify({
-                __isAxiosError: true,
-                message: axiosErr.message || "Request failed",
-                status: axiosErr.response.status,
-                statusText: axiosErr.response.statusText,
-                headers: toPlainHeaders(axiosErr.response.headers),
-                data: axiosErr.response.data,
+                status: "rejected",
+                errorMessage: "HTTP request result is unavailable",
               });
             }
 
-            throw err;
-          }
-        },
-      );
+            if (operation.status !== "pending") {
+              pendingAxiosOperations.delete(operationId);
+            }
 
-      await jail.set("_axiosRef", axiosRef);
+            return JSON.stringify(operation);
+          },
+          { async: true },
+        );
+
+      await jail.set("__oneuptimeHostAxiosStartCallback", axiosStartCallback);
+      await jail.set("__oneuptimeHostAxiosPollCallback", axiosPollCallback);
 
       await context.eval(`
-        function _assertNoFunctions(obj, path) {
+        (() => {
+        const hostAxiosStart = globalThis.__oneuptimeHostAxiosStartCallback;
+        const hostAxiosPoll = globalThis.__oneuptimeHostAxiosPollCallback;
+        delete globalThis.__oneuptimeHostAxiosStartCallback;
+        delete globalThis.__oneuptimeHostAxiosPollCallback;
+        const axiosPollWaitArray = new Int32Array(new SharedArrayBuffer(4));
+
+        async function hostAxios(method, url, arg1, arg2) {
+          const operationId = await hostAxiosStart(method, url, arg1, arg2);
+
+          while (true) {
+            const operation = JSON.parse(await hostAxiosPoll(operationId));
+
+            if (operation.status === 'pending') {
+              Atomics.wait(axiosPollWaitArray, 0, 0, 1);
+              continue;
+            }
+
+            if (operation.status === 'rejected') {
+              throw new Error(operation.errorMessage);
+            }
+
+            return operation.value;
+          }
+        }
+
+        function assertNoFunctions(obj, path) {
           if (!obj || typeof obj !== 'object') return;
           if (Array.isArray(obj)) {
             for (let i = 0; i < obj.length; i++) {
@@ -962,7 +639,7 @@ export default class VMRunner {
                 );
               }
               if (obj[i] && typeof obj[i] === 'object') {
-                _assertNoFunctions(obj[i], fullPath);
+                assertNoFunctions(obj[i], fullPath);
               }
             }
             return;
@@ -976,12 +653,12 @@ export default class VMRunner {
               );
             }
             if (obj[key] && typeof obj[key] === 'object') {
-              _assertNoFunctions(obj[key], fullPath);
+              assertNoFunctions(obj[key], fullPath);
             }
           }
         }
 
-        function _parseAxiosResult(r) {
+        function parseAxiosResult(r) {
           const parsed = JSON.parse(r);
           if (parsed && parsed.__isAxiosError) {
             const err = new Error(parsed.message);
@@ -998,7 +675,7 @@ export default class VMRunner {
           return parsed;
         }
 
-        function _makeAxiosInstance(defaults) {
+        function makeAxiosInstance(defaults) {
           function mergeConfig(overrides) {
             if (!defaults && !overrides) return undefined;
             if (!defaults) return overrides;
@@ -1012,9 +689,9 @@ export default class VMRunner {
 
           async function _request(config) {
             const merged = mergeConfig(config);
-            if (merged) _assertNoFunctions(merged, 'config');
-            const r = await _axiosRef.applySyncPromise(undefined, ['request', '', merged ? JSON.stringify(merged) : undefined]);
-            return _parseAxiosResult(r);
+            if (merged) assertNoFunctions(merged, 'config');
+            const r = await hostAxios('request', '', merged ? JSON.stringify(merged) : undefined);
+            return parseAxiosResult(r);
           }
 
           // Make instance callable: axios(config) or axios(url, config)
@@ -1028,141 +705,258 @@ export default class VMRunner {
           instance.request = _request;
           instance.get = async (url, config) => {
             const merged = mergeConfig(config);
-            if (merged) _assertNoFunctions(merged, 'config');
-            const r = await _axiosRef.applySyncPromise(undefined, ['get', url, merged ? JSON.stringify(merged) : undefined]);
-            return _parseAxiosResult(r);
+            if (merged) assertNoFunctions(merged, 'config');
+            const r = await hostAxios('get', url, merged ? JSON.stringify(merged) : undefined);
+            return parseAxiosResult(r);
           };
           instance.head = async (url, config) => {
             const merged = mergeConfig(config);
-            if (merged) _assertNoFunctions(merged, 'config');
-            const r = await _axiosRef.applySyncPromise(undefined, ['head', url, merged ? JSON.stringify(merged) : undefined]);
-            return _parseAxiosResult(r);
+            if (merged) assertNoFunctions(merged, 'config');
+            const r = await hostAxios('head', url, merged ? JSON.stringify(merged) : undefined);
+            return parseAxiosResult(r);
           };
           instance.options = async (url, config) => {
             const merged = mergeConfig(config);
-            if (merged) _assertNoFunctions(merged, 'config');
-            const r = await _axiosRef.applySyncPromise(undefined, ['options', url, merged ? JSON.stringify(merged) : undefined]);
-            return _parseAxiosResult(r);
+            if (merged) assertNoFunctions(merged, 'config');
+            const r = await hostAxios('options', url, merged ? JSON.stringify(merged) : undefined);
+            return parseAxiosResult(r);
           };
           instance.post = async (url, data, config) => {
             const merged = mergeConfig(config);
-            if (data) _assertNoFunctions(data, 'data');
-            if (merged) _assertNoFunctions(merged, 'config');
-            const r = await _axiosRef.applySyncPromise(undefined, ['post', url, data ? JSON.stringify(data) : undefined, merged ? JSON.stringify(merged) : undefined]);
-            return _parseAxiosResult(r);
+            if (data) assertNoFunctions(data, 'data');
+            if (merged) assertNoFunctions(merged, 'config');
+            const r = await hostAxios('post', url, data ? JSON.stringify(data) : undefined, merged ? JSON.stringify(merged) : undefined);
+            return parseAxiosResult(r);
           };
           instance.put = async (url, data, config) => {
             const merged = mergeConfig(config);
-            if (data) _assertNoFunctions(data, 'data');
-            if (merged) _assertNoFunctions(merged, 'config');
-            const r = await _axiosRef.applySyncPromise(undefined, ['put', url, data ? JSON.stringify(data) : undefined, merged ? JSON.stringify(merged) : undefined]);
-            return _parseAxiosResult(r);
+            if (data) assertNoFunctions(data, 'data');
+            if (merged) assertNoFunctions(merged, 'config');
+            const r = await hostAxios('put', url, data ? JSON.stringify(data) : undefined, merged ? JSON.stringify(merged) : undefined);
+            return parseAxiosResult(r);
           };
           instance.patch = async (url, data, config) => {
             const merged = mergeConfig(config);
-            if (data) _assertNoFunctions(data, 'data');
-            if (merged) _assertNoFunctions(merged, 'config');
-            const r = await _axiosRef.applySyncPromise(undefined, ['patch', url, data ? JSON.stringify(data) : undefined, merged ? JSON.stringify(merged) : undefined]);
-            return _parseAxiosResult(r);
+            if (data) assertNoFunctions(data, 'data');
+            if (merged) assertNoFunctions(merged, 'config');
+            const r = await hostAxios('patch', url, data ? JSON.stringify(data) : undefined, merged ? JSON.stringify(merged) : undefined);
+            return parseAxiosResult(r);
           };
           instance.delete = async (url, config) => {
             const merged = mergeConfig(config);
-            if (merged) _assertNoFunctions(merged, 'config');
-            const r = await _axiosRef.applySyncPromise(undefined, ['delete', url, merged ? JSON.stringify(merged) : undefined]);
-            return _parseAxiosResult(r);
+            if (merged) assertNoFunctions(merged, 'config');
+            const r = await hostAxios('delete', url, merged ? JSON.stringify(merged) : undefined);
+            return parseAxiosResult(r);
           };
           instance.create = (instanceDefaults) => {
-            if (instanceDefaults) _assertNoFunctions(instanceDefaults, 'defaults');
+            if (instanceDefaults) assertNoFunctions(instanceDefaults, 'defaults');
             const combinedDefaults = mergeConfig(instanceDefaults);
-            return _makeAxiosInstance(combinedDefaults);
+            return makeAxiosInstance(combinedDefaults);
           };
 
           return instance;
         }
 
-        const axios = _makeAxiosInstance(null);
+        Object.defineProperty(globalThis, 'axios', {
+          value: makeAxiosInstance(null),
+          writable: false,
+          configurable: false,
+        });
+        })();
       `);
 
-      // crypto (createHash, createHmac, randomBytes, randomUUID, randomInt) - bridged via applySync
-      const cryptoRef: ivm.Reference<
+      // crypto (createHash, createHmac, randomBytes, randomUUID, randomInt)
+      const cryptoCallback: ivm.Callback<
         (op: string, ...args: string[]) => string
-      > = new ivm.Reference((op: string, ...args: string[]): string => {
-        switch (op) {
-          case "createHash": {
-            const [algorithm, inputData, encoding] = args;
-            return crypto
-              .createHash(algorithm!)
-              .update(inputData!)
-              .digest((encoding as crypto.BinaryToTextEncoding) || "hex");
+      > = new ivm.Callback(
+        (op: string, ...args: string[]): string => {
+          switch (op) {
+            case "createHash": {
+              const [algorithm, inputData, encoding] = args;
+              return crypto
+                .createHash(algorithm!)
+                .update(inputData!)
+                .digest((encoding as crypto.BinaryToTextEncoding) || "hex");
+            }
+            case "createHmac": {
+              const [algorithm, key, inputData, encoding] = args;
+              return crypto
+                .createHmac(algorithm!, key!)
+                .update(inputData!)
+                .digest((encoding as crypto.BinaryToTextEncoding) || "hex");
+            }
+            case "randomBytes": {
+              const [size] = args;
+              return crypto.randomBytes(parseInt(size!)).toString("hex");
+            }
+            case "randomUUID": {
+              return crypto.randomUUID();
+            }
+            case "randomInt": {
+              const [min, max] = args;
+              return String(crypto.randomInt(parseInt(min!), parseInt(max!)));
+            }
+            default:
+              throw new Error(`Unsupported crypto operation: ${op}`);
           }
-          case "createHmac": {
-            const [algorithm, key, inputData, encoding] = args;
-            return crypto
-              .createHmac(algorithm!, key!)
-              .update(inputData!)
-              .digest((encoding as crypto.BinaryToTextEncoding) || "hex");
-          }
-          case "randomBytes": {
-            const [size] = args;
-            return crypto.randomBytes(parseInt(size!)).toString("hex");
-          }
-          case "randomUUID": {
-            return crypto.randomUUID();
-          }
-          case "randomInt": {
-            const [min, max] = args;
-            return String(crypto.randomInt(parseInt(min!), parseInt(max!)));
-          }
-          default:
-            throw new Error(`Unsupported crypto operation: ${op}`);
-        }
-      });
+        },
+        { sync: true },
+      );
 
-      await jail.set("_cryptoRef", cryptoRef);
+      await jail.set("__oneuptimeHostCryptoCallback", cryptoCallback);
 
       await context.eval(`
-        const crypto = {
+        (() => {
+        const hostCrypto = globalThis.__oneuptimeHostCryptoCallback;
+        delete globalThis.__oneuptimeHostCryptoCallback;
+
+        const sandboxCrypto = {
           createHash: (algorithm) => ({
             _alg: algorithm, _data: '',
             update(d) { this._data = d; return this; },
-            digest(enc) { return _cryptoRef.applySync(undefined, ['createHash', this._alg, this._data, enc || 'hex']); }
+            digest(enc) { return hostCrypto('createHash', this._alg, this._data, enc || 'hex'); }
           }),
           createHmac: (algorithm, key) => ({
             _alg: algorithm, _key: key, _data: '',
             update(d) { this._data = d; return this; },
-            digest(enc) { return _cryptoRef.applySync(undefined, ['createHmac', this._alg, this._key, this._data, enc || 'hex']); }
+            digest(enc) { return hostCrypto('createHmac', this._alg, this._key, this._data, enc || 'hex'); }
           }),
           randomBytes: (size) => ({
-            toString(enc) { return _cryptoRef.applySync(undefined, ['randomBytes', String(size)]); }
+            toString(enc) { return hostCrypto('randomBytes', String(size)); }
           }),
           randomUUID: () => {
-            return _cryptoRef.applySync(undefined, ['randomUUID']);
+            return hostCrypto('randomUUID');
           },
           randomInt: (minOrMax, max) => {
             if (max === undefined) { max = minOrMax; minOrMax = 0; }
-            return Number(_cryptoRef.applySync(undefined, ['randomInt', String(minOrMax), String(max)]));
+            return Number(hostCrypto('randomInt', String(minOrMax), String(max)));
           },
         };
+
+        Object.defineProperty(globalThis, 'crypto', {
+          value: sandboxCrypto,
+          writable: false,
+          configurable: false,
+        });
+        })();
       `);
 
-      // setTimeout / sleep - bridged via applySyncPromise
-      const sleepRef: ivm.Reference<(ms: number) => Promise<void>> =
-        new ivm.Reference((ms: number): Promise<void> => {
-          return new Promise((resolve: () => void) => {
-            global.setTimeout(resolve, Math.min(ms, timeout));
-          });
-        });
+      // setTimeout / sleep - bridged through copied start/poll callbacks
+      const sleepStartCallback: ivm.Callback<(ms: number) => string> =
+        new ivm.Callback(
+          (ms: number): string => {
+            const operationId: string = String(++nextSleepOperationId);
 
-      await jail.set("_sleepRef", sleepRef);
+            if (!acceptingHostOperations) {
+              return operationId;
+            }
+
+            const numericDelay: number = Number(ms);
+            const boundedDelay: number = Number.isFinite(numericDelay)
+              ? Math.max(0, Math.min(numericDelay, timeout))
+              : 0;
+            const timeoutHandle: ReturnType<typeof global.setTimeout> =
+              global.setTimeout(() => {
+                const operation: PendingSleepOperation | undefined =
+                  pendingSleepOperations.get(operationId);
+
+                if (operation) {
+                  operation.settled = true;
+                }
+                pendingHostTimeouts.delete(timeoutHandle);
+              }, boundedDelay);
+
+            pendingHostTimeouts.add(timeoutHandle);
+            pendingSleepOperations.set(operationId, {
+              settled: false,
+            });
+
+            return operationId;
+          },
+          { async: true },
+        );
+
+      const sleepPollCallback: ivm.Callback<(operationId: string) => boolean> =
+        new ivm.Callback(
+          (operationId: string): boolean => {
+            const operation: PendingSleepOperation | undefined =
+              pendingSleepOperations.get(operationId);
+
+            if (!operation || operation.settled) {
+              pendingSleepOperations.delete(operationId);
+              return true;
+            }
+
+            return false;
+          },
+          { async: true },
+        );
+
+      await jail.set("__oneuptimeHostSleepStartCallback", sleepStartCallback);
+      await jail.set("__oneuptimeHostSleepPollCallback", sleepPollCallback);
 
       await context.eval(`
-        function setTimeout(fn, ms) {
-          _sleepRef.applySyncPromise(undefined, [ms || 0]);
-          if (typeof fn === 'function') fn();
-        }
-        async function sleep(ms) {
-          await _sleepRef.applySyncPromise(undefined, [ms || 0]);
-        }
+        (() => {
+          const hostSleepStart = globalThis.__oneuptimeHostSleepStartCallback;
+          const hostSleepPoll = globalThis.__oneuptimeHostSleepPollCallback;
+          delete globalThis.__oneuptimeHostSleepStartCallback;
+          delete globalThis.__oneuptimeHostSleepPollCallback;
+          const activeTimers = new WeakSet();
+          const pollWaitArray = new Int32Array(new SharedArrayBuffer(4));
+
+          async function hostSleep(ms) {
+            const operationId = await hostSleepStart(ms || 0);
+
+            while (!(await hostSleepPoll(operationId))) {
+              // Pace polling on the isolate worker without blocking Node's
+              // event loop.
+              Atomics.wait(pollWaitArray, 0, 0, 1);
+            }
+          }
+
+          function sandboxSetTimeout(fn, ms, ...args) {
+            if (typeof fn !== 'function') {
+              throw new TypeError('setTimeout callback must be a function');
+            }
+
+            const handle = {};
+            activeTimers.add(handle);
+            hostSleep(ms || 0).then(() => {
+              if (activeTimers.delete(handle)) {
+                fn(...args);
+              }
+            });
+            return handle;
+          }
+
+          function sandboxClearTimeout(handle) {
+            if (handle && typeof handle === 'object') {
+              activeTimers.delete(handle);
+            }
+          }
+
+          async function sandboxSleep(ms) {
+            await hostSleep(ms || 0);
+          }
+
+          Object.defineProperties(globalThis, {
+            setTimeout: {
+              value: sandboxSetTimeout,
+              writable: false,
+              configurable: false,
+            },
+            clearTimeout: {
+              value: sandboxClearTimeout,
+              writable: false,
+              configurable: false,
+            },
+            sleep: {
+              value: sandboxSleep,
+              writable: false,
+              configurable: false,
+            },
+          });
+        })();
       `);
 
       /*
@@ -1179,24 +973,35 @@ export default class VMRunner {
         catch(_) { return undefined; }
       })()`;
 
-      // Run with overall timeout covering both CPU and I/O wait
-      const resultPromise: Promise<unknown> = context.eval(wrappedCode, {
-        promise: true,
-        timeout: timeout,
-      });
+      let result: unknown;
+      let scriptError: Error | undefined;
 
-      const overallTimeout: Promise<never> = new Promise(
-        (_resolve: (value: never) => void, reject: (reason: Error) => void) => {
-          global.setTimeout(() => {
-            reject(new Error("Script execution timed out"));
-          }, timeout + 5000); // 5s grace period beyond isolate timeout
-        },
-      );
+      try {
+        // Run with overall timeout covering both CPU and I/O wait.
+        const resultPromise: Promise<unknown> = context.eval(wrappedCode, {
+          promise: true,
+          timeout: timeout,
+        });
 
-      const result: unknown = await Promise.race([
-        resultPromise,
-        overallTimeout,
-      ]);
+        const overallTimeout: Promise<never> = new Promise(
+          (
+            _resolve: (value: never) => void,
+            reject: (reason: Error) => void,
+          ) => {
+            const timeoutHandle: ReturnType<typeof global.setTimeout> =
+              global.setTimeout(() => {
+                pendingHostTimeouts.delete(timeoutHandle);
+                reject(new Error("Script execution timed out"));
+              }, timeout + 5000); // 5s grace period beyond isolate timeout
+
+            pendingHostTimeouts.add(timeoutHandle);
+          },
+        );
+
+        result = await Promise.race([resultPromise, overallTimeout]);
+      } catch (error: unknown) {
+        scriptError = sanitizeScriptError(error);
+      }
 
       // Parse the JSON string returned from inside the isolate
       let returnValue: unknown;
@@ -1215,8 +1020,22 @@ export default class VMRunner {
         returnValue,
         logMessages,
         capturedMetrics,
+        scriptError,
       };
     } finally {
+      acceptingHostOperations = false;
+
+      for (const timeoutHandle of pendingHostTimeouts) {
+        global.clearTimeout(timeoutHandle);
+      }
+      for (const abortController of pendingAxiosControllers) {
+        abortController.abort();
+      }
+      pendingHostTimeouts.clear();
+      pendingAxiosControllers.clear();
+      pendingSleepOperations.clear();
+      pendingAxiosOperations.clear();
+
       if (!isolate.isDisposed) {
         isolate.dispose();
       }

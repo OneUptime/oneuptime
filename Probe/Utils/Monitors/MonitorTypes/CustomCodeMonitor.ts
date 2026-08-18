@@ -70,6 +70,17 @@ export default class CustomCodeMonitor {
         }
 
         scriptResult.result = result?.returnValue?.data;
+
+        /*
+         * runCodeInSandbox resolves with `scriptError` when the user script
+         * threw or timed out — it no longer rejects. Surface it so Error-based
+         * monitor criteria keep working.
+         */
+        if (result.scriptError) {
+          logger.error(result.scriptError);
+          scriptResult.scriptError =
+            result.scriptError.message || result.scriptError.toString();
+        }
       } catch (err) {
         logger.error(err);
         scriptResult.scriptError =
