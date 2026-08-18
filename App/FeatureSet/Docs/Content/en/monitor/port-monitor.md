@@ -57,13 +57,13 @@ You can configure criteria to determine when your port is considered online, deg
 
 ### Available Check Types
 
-| Check Type                    | Description                                                                         |
-| ----------------------------- | ----------------------------------------------------------------------------------- |
-| Is Online                     | Whether the port is open and accepting connections                                  |
-| Total Connection Time (DNS + TCP) (in ms) | Total connection time, including DNS lookup when the target is a hostname |
-| Port DNS Lookup Time (in ms)  | DNS lookup time before the first TCP attempt; unavailable when the target is an IP  |
-| Port TCP Connect Time (in ms) | Time from the first TCP attempt until a connection succeeds, including IP fallback  |
-| Is Request Timeout            | Whether the DNS lookup or TCP connection attempt exceeded the configured time limit |
+| Check Type                                | Description                                                                         |
+| ----------------------------------------- | ----------------------------------------------------------------------------------- |
+| Is Online                                 | Whether the port is open and accepting connections                                  |
+| Total Connection Time (DNS + TCP) (in ms) | Total connection time, including DNS lookup when the target is a hostname           |
+| Port DNS Lookup Time (in ms)              | DNS lookup time before the first TCP attempt; unavailable when the target is an IP  |
+| Port TCP Connect Time (in ms)             | Time from the first TCP attempt until a connection succeeds, including IP fallback  |
+| Is Request Timeout                        | Whether the DNS lookup or TCP connection attempt exceeded the configured time limit |
 
 ### Filter Types
 

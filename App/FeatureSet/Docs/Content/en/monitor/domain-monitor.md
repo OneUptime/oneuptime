@@ -25,8 +25,8 @@ Domain monitors read the registration record for your domains. This enables you 
 
 Registration data can be read over two protocols, and which one works depends on the TLD.
 
-| Method    | Behaviour                                                                                          |
-| --------- | -------------------------------------------------------------------------------------------------- |
+| Method    | Behaviour                                                                                            |
+| --------- | ---------------------------------------------------------------------------------------------------- |
 | **Auto**  | Default. Uses RDAP when the TLD publishes an RDAP service, and falls back to WHOIS when it does not. |
 | **RDAP**  | RDAP only. Fails with a clear error if the TLD publishes no RDAP service.                            |
 | **WHOIS** | WHOIS only.                                                                                          |
@@ -43,17 +43,17 @@ Internationalized domain names are accepted in either form: `münchen.de` is con
 
 ### Basic Settings
 
-| Field         | Description                                            | Required |
-| ------------- | ------------------------------------------------------ | -------- |
-| Domain Name   | The domain to monitor (e.g., `example.com`)            | Yes      |
-| Lookup Method | `Auto`, `RDAP`, or `WHOIS` — see **Lookup Methods**    | Yes      |
+| Field         | Description                                         | Required |
+| ------------- | --------------------------------------------------- | -------- |
+| Domain Name   | The domain to monitor (e.g., `example.com`)         | Yes      |
+| Lookup Method | `Auto`, `RDAP`, or `WHOIS` — see **Lookup Methods** | Yes      |
 
 ### Advanced Settings
 
-| Field        | Description                                        | Default |
-| ------------ | -------------------------------------------------- | ------- |
-| Timeout (ms) | How long to wait for the registration lookup       | 10000   |
-| Retries      | Number of retry attempts on failure                | 3       |
+| Field        | Description                                  | Default |
+| ------------ | -------------------------------------------- | ------- |
+| Timeout (ms) | How long to wait for the registration lookup | 10000   |
+| Retries      | Number of retry attempts on failure          | 3       |
 
 Failures that cannot change on a retry — the domain is not registered, or the TLD publishes no RDAP service when you have asked for RDAP only — are reported immediately rather than retried. Everything else, including a WHOIS server that answers with no record (a rate-limited registrar looks the same as a retired one), is retried first.
 
@@ -65,17 +65,17 @@ You can configure criteria to determine when your domain is considered online, d
 
 ### Available Check Types
 
-| Check Type             | Description                                            |
-| ---------------------- | ------------------------------------------------------ |
-| Is Online              | Whether the registration lookup itself succeeded        |
-| Is Request Timeout     | Whether the registration lookup timed out               |
-| Domain Expires In Days | Number of days until the domain registration expires    |
-| Domain Registrar       | The domain registrar name                               |
-| Domain Name Server     | Nameserver hostnames for the domain                     |
-| Domain Status Code     | Domain status codes (EPP status names)                  |
-| Domain Is Expired      | Whether the domain has expired                          |
+| Check Type             | Description                                          |
+| ---------------------- | ---------------------------------------------------- |
+| Is Online              | Whether the registration lookup itself succeeded     |
+| Is Request Timeout     | Whether the registration lookup timed out            |
+| Domain Expires In Days | Number of days until the domain registration expires |
+| Domain Registrar       | The domain registrar name                            |
+| Domain Name Server     | Nameserver hostnames for the domain                  |
+| Domain Status Code     | Domain status codes (EPP status names)               |
+| Domain Is Expired      | Whether the domain has expired                       |
 
-Status codes are normalized to their EPP names (`clientTransferProhibited`) regardless of which protocol answered, so a criterion keeps matching when **Auto** switches between RDAP and WHOIS. Registrar *names* are whatever the answering service publishes and can differ slightly between the two protocols, so prefer **Contains** over **Equal To** for a **Domain Registrar** criterion.
+Status codes are normalized to their EPP names (`clientTransferProhibited`) regardless of which protocol answered, so a criterion keeps matching when **Auto** switches between RDAP and WHOIS. Registrar _names_ are whatever the answering service publishes and can differ slightly between the two protocols, so prefer **Contains** over **Equal To** for a **Domain Registrar** criterion.
 
 Dates are normalized to ISO 8601. A date a registry publishes in a form that cannot be parsed is omitted rather than stored, so an expiry criterion reports "cannot decide" instead of silently answering "not expired" forever.
 
