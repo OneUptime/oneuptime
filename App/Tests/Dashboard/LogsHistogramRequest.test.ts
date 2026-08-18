@@ -182,11 +182,15 @@ describe("buildLogsHistogramRequest", () => {
     });
 
     /*
-     * Resource facets are surfaced separately in the sidebar but all filter
-     * the same primaryEntityId column, so a selection across several of them
-     * is one union.
+     * Only the Services facet may ride `serviceIds` — that field becomes
+     * `primaryEntityId IN (...)`, and for OTLP telemetry that column holds
+     * the Service id. A host or cluster id sent there is compared against a
+     * column it can never appear in, which is why the Kubernetes Cluster
+     * facet returned no logs at all (issue #3216). Those facets ride
+     * `resourceFilters` instead, where the server resolves each id to the
+     * resource's entity key.
      */
-    test("merges every resource facet into a single service list", () => {
+    test("keeps non-Service resource facets out of the service list", () => {
       const request: JSONObject = build({
         appliedFacetFilters: facets({
           primaryEntityId: ["service-1"],
@@ -197,24 +201,71 @@ describe("buildLogsHistogramRequest", () => {
         }),
       });
 
-      expect(request["serviceIds"]).toEqual([
-        "service-1",
-        "host-1",
-        "docker-1",
-        "podman-1",
-        "cluster-1",
-      ]);
+      expect(request["serviceIds"]).toEqual(["service-1"]);
+      expect(request["resourceFilters"]).toEqual({
+        hostId: ["host-1"],
+        dockerHostId: ["docker-1"],
+        podmanHostId: ["podman-1"],
+        kubernetesClusterId: ["cluster-1"],
+      });
     });
 
-    test("de-duplicates a value selected under two resource facets", () => {
+    test("a cluster selection alone sends no serviceIds at all", () => {
+      const request: JSONObject = build({
+        appliedFacetFilters: facets({ kubernetesClusterId: ["cluster-1"] }),
+      });
+
+      /*
+       * The bug in one assertion: this used to be
+       * `serviceIds: ["cluster-1"]`, i.e. `primaryEntityId = '<clusterId>'`,
+       * which matched zero collector-ingested rows.
+       */
+      expect(request["serviceIds"]).toBeUndefined();
+      expect(request["resourceFilters"]).toEqual({
+        kubernetesClusterId: ["cluster-1"],
+      });
+    });
+
+    test("a cluster and a service are sent as two independent filters", () => {
+      const request: JSONObject = build({
+        appliedFacetFilters: facets({
+          primaryEntityId: ["service-1"],
+          kubernetesClusterId: ["cluster-1"],
+        }),
+      });
+
+      /*
+       * Sent apart, the server ANDs them. Coalesced into one IN list they
+       * OR-ed, which is what made "cluster + service" look like it worked
+       * while silently ignoring the cluster.
+       */
+      expect(request["serviceIds"]).toEqual(["service-1"]);
+      expect(request["resourceFilters"]).toEqual({
+        kubernetesClusterId: ["cluster-1"],
+      });
+    });
+
+    test("de-duplicates a value selected under two Service facet aliases", () => {
       const request: JSONObject = build({
         appliedFacetFilters: facets({
           primaryEntityId: ["shared-id"],
-          hostId: ["shared-id"],
+          serviceId: ["shared-id"],
         }),
       });
 
       expect(request["serviceIds"]).toEqual(["shared-id"]);
+    });
+
+    test("multiple values inside one resource facet stay together", () => {
+      const request: JSONObject = build({
+        appliedFacetFilters: facets({
+          kubernetesClusterId: ["cluster-1", "cluster-2"],
+        }),
+      });
+
+      expect(request["resourceFilters"]).toEqual({
+        kubernetesClusterId: ["cluster-1", "cluster-2"],
+      });
     });
 
     test("covers every resource facet key the sidebar can produce", () => {
@@ -223,8 +274,23 @@ describe("buildLogsHistogramRequest", () => {
           appliedFacetFilters: facets({ [facetKey]: ["picked"] }),
         });
 
-        expect(request["serviceIds"]).toEqual(["picked"]);
+        const routed: unknown =
+          request["serviceIds"] ??
+          (request["resourceFilters"] as Record<string, Array<string>>)[
+            facetKey
+          ];
+
+        // Every resource facet reaches the server through exactly one field.
+        expect(routed).toEqual(["picked"]);
       }
+    });
+
+    test("a resource facet never leaks into the request as a bare key", () => {
+      const request: JSONObject = build({
+        appliedFacetFilters: facets({ kubernetesClusterId: ["cluster-1"] }),
+      });
+
+      expect(request["kubernetesClusterId"]).toBeUndefined();
     });
 
     test("narrows the page's own scope when a resource is picked", () => {
@@ -244,6 +310,24 @@ describe("buildLogsHistogramRequest", () => {
       expect(request["spanIds"]).toEqual(["span-2"]);
     });
 
+    test("keeps the page's service scope when only a cluster is picked", () => {
+      const request: JSONObject = build({
+        serviceIds: ["service-1"],
+        appliedFacetFilters: facets({ kubernetesClusterId: ["cluster-1"] }),
+      });
+
+      /*
+       * The host page's scope must survive: a cluster chip narrows within
+       * it, it does not replace it. Coalescing used to overwrite serviceIds
+       * with the cluster id, which both broke the filter and silently
+       * widened the view past the service the page is about.
+       */
+      expect(request["serviceIds"]).toEqual(["service-1"]);
+      expect(request["resourceFilters"]).toEqual({
+        kubernetesClusterId: ["cluster-1"],
+      });
+    });
+
     test("ignores facets whose last value was just removed", () => {
       const request: JSONObject = build({
         serviceIds: ["service-1"],
@@ -252,12 +336,19 @@ describe("buildLogsHistogramRequest", () => {
           primaryEntityId: [],
           traceId: [],
           spanId: [],
+          kubernetesClusterId: [],
         }),
       });
 
       expect(request["severityTexts"]).toBeUndefined();
       expect(request["traceIds"]).toBeUndefined();
       expect(request["spanIds"]).toBeUndefined();
+      /*
+       * An emptied resource facet must send nothing at all — an empty id
+       * list would resolve to a scope with no branch, and a reader could
+       * easily turn that into "match nothing".
+       */
+      expect(request["resourceFilters"]).toBeUndefined();
       // The page's own scope survives an emptied facet.
       expect(request["serviceIds"]).toEqual(["service-1"]);
     });

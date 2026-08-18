@@ -95,6 +95,10 @@ import ResourceFacetResolver, {
   ResolvedFacetValue,
   ResourceFacetSpec,
 } from "../Utils/Telemetry/ResourceFacetResolver";
+import ResourceEntityFilter, {
+  ResourceEntityScope,
+} from "../Utils/Telemetry/ResourceEntityFilter";
+import { ResourceEntityFacetSelections } from "../../Types/Telemetry/ResourceEntityFacet";
 import Label from "../../Models/DatabaseModels/Label";
 import RumApplication from "../../Models/DatabaseModels/RumApplication";
 import RumApplicationService from "../Services/RumApplicationService";
@@ -456,6 +460,9 @@ router.post(
           ? (body["attributes"] as Record<string, string | Array<string>>)
           : undefined;
 
+      const resourceScopes: Array<ResourceEntityScope> | undefined =
+        await resolveResourceScopesFromBody(body, databaseProps.tenantId);
+
       const request: HistogramRequest = {
         projectId: databaseProps.tenantId,
         startTime,
@@ -463,6 +470,7 @@ router.post(
         bucketSizeInMinutes,
         serviceIds,
         entityKeys,
+        resourceScopes,
         severityTexts,
         bodySearchText,
         traceIds,
@@ -573,6 +581,9 @@ router.post(
        */
       const projectId: ObjectID = databaseProps.tenantId;
 
+      const resourceScopes: Array<ResourceEntityScope> | undefined =
+        await resolveResourceScopesFromBody(body, projectId);
+
       /*
        * Run facet queries in parallel so a slow individual facet can't
        * starve the endpoint. Per-facet errors degrade gracefully to [].
@@ -592,6 +603,7 @@ router.post(
                   limit,
                   serviceIds,
                   entityKeys,
+                  resourceScopes,
                   severityTexts,
                   bodySearchText,
                   traceIds,
@@ -655,6 +667,41 @@ router.post(
     }
   },
 );
+
+/**
+ * Resolve the `resourceFilters` field — the explorers' non-Service resource
+ * facet selections (Kubernetes cluster / host / docker host / podman host),
+ * sent as Postgres ids — into the scopes the aggregation services compile.
+ *
+ * Kept out of the sync body parsers because turning an id into an entity
+ * key needs a Postgres round trip: the id names a row whose identifying
+ * value (`clusterIdentifier` / `hostIdentifier`) is what ingest hashed into
+ * `entityKeys`.
+ *
+ * Returns undefined when nothing was selected so the request field stays
+ * absent rather than becoming an empty array.
+ */
+async function resolveResourceScopesFromBody(
+  body: JSONObject,
+  projectId: ObjectID,
+): Promise<Array<ResourceEntityScope> | undefined> {
+  const selections: ResourceEntityFacetSelections =
+    ResourceEntityFilter.parseSelections(
+      body["resourceFilters"] as JSONObject | undefined,
+    );
+
+  if (Object.keys(selections).length === 0) {
+    return undefined;
+  }
+
+  const scopes: Array<ResourceEntityScope> =
+    await ResourceEntityFilter.resolveScopes({
+      projectId,
+      selections,
+    });
+
+  return scopes.length > 0 ? scopes : undefined;
+}
 
 /*
  * Shared body parsing for every trace aggregation endpoint (histogram,
@@ -844,7 +891,13 @@ router.post(
         (body["bucketSizeInMinutes"] as number) ||
         computeDefaultBucketSize(startTime, endTime);
 
-      const traceFilters: TraceFilters = parseTraceFilterBody(body);
+      const traceFilters: TraceFilters = {
+        ...parseTraceFilterBody(body),
+        resourceScopes: await resolveResourceScopesFromBody(
+          body,
+          databaseProps.tenantId,
+        ),
+      };
 
       const request: TraceHistogramRequest = {
         projectId: databaseProps.tenantId,
@@ -904,7 +957,13 @@ router.post(
 
       const limit: number = (body["limit"] as number) || 500;
 
-      const traceFilters: TraceFilters = parseTraceFilterBody(body);
+      const traceFilters: TraceFilters = {
+        ...parseTraceFilterBody(body),
+        resourceScopes: await resolveResourceScopesFromBody(
+          body,
+          databaseProps.tenantId,
+        ),
+      };
 
       /*
        * Per-facet partial-match filter applied at the Postgres source-of-truth
@@ -1195,7 +1254,13 @@ router.post(
         ? Math.min(Math.max(Math.trunc(rawLimit), 1), 1000)
         : undefined;
 
-      const traceFilters: TraceFilters = parseTraceFilterBody(body);
+      const traceFilters: TraceFilters = {
+        ...parseTraceFilterBody(body),
+        resourceScopes: await resolveResourceScopesFromBody(
+          body,
+          databaseProps.tenantId,
+        ),
+      };
 
       const request: TraceAnalyticsRequest = {
         projectId: databaseProps.tenantId,
@@ -1800,6 +1865,9 @@ router.post(
         ? (body["limit"] as number)
         : undefined;
 
+      const resourceScopes: Array<ResourceEntityScope> | undefined =
+        await resolveResourceScopesFromBody(body, databaseProps.tenantId);
+
       const request: AnalyticsRequest = {
         projectId: databaseProps.tenantId,
         startTime,
@@ -1810,6 +1878,7 @@ router.post(
         aggregation,
         aggregationField,
         serviceIds,
+        resourceScopes,
         severityTexts,
         bodySearchText,
         traceIds,

@@ -39,6 +39,12 @@ import ObjectID from "Common/Types/ObjectID";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 
 import Includes from "Common/Types/BaseDatabase/Includes";
+import {
+  ResourceEntityFacetSelections,
+  collectResourceEntityFacetSelections,
+  collectServiceFacetSelections,
+  isResourceFacetKey,
+} from "Common/Types/Telemetry/ResourceEntityFacet";
 import ProjectUtil from "Common/UI/Utils/Project";
 import API from "Common/UI/Utils/API/API";
 import URL from "Common/Types/API/URL";
@@ -767,31 +773,31 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
 
     /*
-     * The primaryEntityId / hostId / dockerHostId / kubernetesClusterId facets
-     * all filter the same underlying `primaryEntityId` column on Span. Union
-     * the selected values into a single `primaryEntityId IN (...)` predicate.
+     * The Services facet reads out of `primaryEntityId` — that column holds
+     * the Service id for OTLP telemetry.
      */
-    const resourceFacetKeys: Set<string> = new Set<string>([
-      "primaryEntityId",
-      "hostId",
-      "dockerHostId",
-      "podmanHostId",
-      "kubernetesClusterId",
-    ]);
-    const resourceIds: Set<string> = new Set<string>();
-    for (const key of resourceFacetKeys) {
-      const values: Array<string> | undefined = facetGroups[key];
-      if (values) {
-        for (const v of values) {
-          resourceIds.add(v);
-        }
-      }
-    }
+    const resourceIds: Set<string> = new Set<string>(
+      collectServiceFacetSelections(Object.entries(facetGroups)),
+    );
     if (resourceIds.size > 0) {
       (query as Record<string, unknown>)["primaryEntityId"] =
         resourceIds.size === 1
           ? Array.from(resourceIds)[0]!
           : new Includes(Array.from(resourceIds));
+    }
+
+    /*
+     * Host / docker host / podman host / Kubernetes cluster selections do
+     * NOT read out of `primaryEntityId`: a span that carries a
+     * `service.name` is primary-keyed on its Service and only records the
+     * host / cluster in `entityKeys`. They ride `resourceFilters` so the
+     * server can resolve each id to the resource's entity key, one AND
+     * group per facet. See ResourceEntityFilter.
+     */
+    const resourceFilters: ResourceEntityFacetSelections =
+      collectResourceEntityFacetSelections(Object.entries(facetGroups));
+    if (Object.keys(resourceFilters).length > 0) {
+      (query as Record<string, unknown>)["resourceFilters"] = resourceFilters;
     }
 
     const { fieldFilters, freeText, attributes, attributeSearches } =
@@ -828,7 +834,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       }
     }
     for (const key of Object.keys(facetGroups)) {
-      if (resourceFacetKeys.has(key)) {
+      // Already compiled above, into primaryEntityId or resourceFilters.
+      if (isResourceFacetKey(key)) {
         continue;
       }
       const values: Array<string> = facetGroups[key]!;
@@ -1346,26 +1353,22 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
 
     /*
-     * primaryEntityId / hostId / dockerHostId / kubernetesClusterId all filter
-     * the underlying `primaryEntityId` column — union them into a single list.
+     * Mirror the list query: the Services facet narrows `serviceIds`, while
+     * host / docker / podman / Kubernetes selections travel under
+     * `resourceFilters` so the server matches them through the resource's
+     * entity key instead of against a column that only holds Service ids.
      */
-    const resourceIdSet: Set<string> = new Set<string>();
-    for (const k of [
-      "primaryEntityId",
-      "hostId",
-      "dockerHostId",
-      "podmanHostId",
-      "kubernetesClusterId",
-    ]) {
-      const values: Array<string> | undefined = groups[k];
-      if (values) {
-        for (const v of values) {
-          resourceIdSet.add(v);
-        }
-      }
-    }
+    const resourceIdSet: Set<string> = new Set<string>(
+      collectServiceFacetSelections(Object.entries(groups)),
+    );
     if (resourceIdSet.size > 0) {
       payload["serviceIds"] = Array.from(resourceIdSet);
+    }
+
+    const payloadResourceFilters: ResourceEntityFacetSelections =
+      collectResourceEntityFacetSelections(Object.entries(groups));
+    if (Object.keys(payloadResourceFilters).length > 0) {
+      payload["resourceFilters"] = payloadResourceFilters;
     }
 
     if (groups["statusCode"] && groups["statusCode"].length > 0) {

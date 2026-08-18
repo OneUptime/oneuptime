@@ -11,6 +11,10 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import logger from "../Utils/Logger";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import {
+  appendResourceScopeFilters,
+  ResourceEntityScope,
+} from "../Utils/Telemetry/ResourceEntityFilter";
 import ResourceFacetResolver, {
   ResolvedFacetValue,
   ResourceFacetSpec,
@@ -33,6 +37,15 @@ export type TraceAttributeFilters = Record<string, TraceAttributeFilterValue>;
 export interface TraceFilters {
   serviceIds?: Array<ObjectID> | undefined;
   entityKeys?: Array<string> | undefined;
+  /*
+   * Resource-facet selections (Kubernetes cluster / host / docker host /
+   * podman host) already resolved to their entity keys. One scope per
+   * facet: the branches inside a scope OR (a span proves membership either
+   * by being primary-keyed on the resource or by carrying its entity key),
+   * and the scopes AND with each other so two facets intersect. See
+   * ResourceEntityFilter.
+   */
+  resourceScopes?: Array<ResourceEntityScope> | undefined;
   statusCodes?: Array<number> | undefined;
   spanKinds?: Array<string> | undefined;
   spanNames?: Array<string> | undefined;
@@ -1007,6 +1020,8 @@ export class TraceAggregationService {
         }})`,
       );
     }
+
+    appendResourceScopeFilters(statement, request.resourceScopes);
 
     if (request.statusCodes && request.statusCodes.length > 0) {
       statement.append(

@@ -14,6 +14,9 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import InBetween from "../../Types/BaseDatabase/InBetween";
 import Includes from "../../Types/BaseDatabase/Includes";
 import ObjectID from "../../Types/ObjectID";
+import FindBy from "../Types/AnalyticsDatabase/FindBy";
+import { OnFind } from "../Types/AnalyticsDatabase/Hooks";
+import ResourceEntityFilter from "../Utils/Telemetry/ResourceEntityFilter";
 
 /**
  * Columns the proj_hist_by_minute projection can answer with. If a count
@@ -33,6 +36,24 @@ const PROJECTION_ELIGIBLE_KEYS: Set<string> = new Set([
 export class SpanService extends AnalyticsDatabaseService<Span> {
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
     super({ modelType: Span, database: clickhouseDatabase });
+  }
+
+  /*
+   * Resolve the traces explorer's resource-facet selections (a Kubernetes
+   * cluster, a host, ...) before the query is compiled. They arrive as
+   * Postgres ids under `resourceFilters`; matching them needs the
+   * resource's entity key, which only Postgres can supply. See
+   * ResourceEntityFilter.
+   */
+  protected override async onBeforeFind(
+    findBy: FindBy<Span>,
+  ): Promise<OnFind<Span>> {
+    await ResourceEntityFilter.rewriteAnalyticsQuery({
+      query: findBy.query as unknown as Record<string, unknown>,
+      projectId: findBy.props?.tenantId,
+    });
+
+    return { findBy, carryForward: null };
   }
 
   /**

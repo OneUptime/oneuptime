@@ -183,12 +183,26 @@ describe("buildLogsPivotScope", () => {
     expect(result.dropped).toEqual([]);
   });
 
-  test("base service scope unions with resource facet selections across all resource facets, deduped", () => {
+  test("base service scope unions with Service facet selections, deduped", () => {
     const result: LogsPivotScopeResult = Pivot.buildLogsPivotScope(
       input({
         serviceIds: ["svc-1", "svc-2"],
         appliedFacetFilters: facets({
           primaryEntityId: ["svc-2", "svc-3"],
+        }),
+      }),
+    );
+
+    expect(result.scope.serviceIds).toEqual(["svc-1", "svc-2", "svc-3"]);
+    expect(result.dropped).toEqual([]);
+  });
+
+  test("resource facets travel under their own key, not folded into serviceIds", () => {
+    const result: LogsPivotScopeResult = Pivot.buildLogsPivotScope(
+      input({
+        serviceIds: ["svc-1"],
+        appliedFacetFilters: facets({
+          primaryEntityId: ["svc-2"],
           hostId: ["host-1"],
           dockerHostId: ["docker-1"],
           podmanHostId: ["podman-1"],
@@ -197,16 +211,27 @@ describe("buildLogsPivotScope", () => {
       }),
     );
 
-    expect(result.scope.serviceIds).toEqual([
-      "svc-1",
-      "svc-2",
-      "svc-3",
-      "host-1",
-      "docker-1",
-      "podman-1",
-      "k8s-1",
-    ]);
+    /*
+     * A cluster id folded into serviceIds became a `primaryEntityId` chip in
+     * the pivot target — the same filter-matches-nothing bug the logs
+     * explorer had (issue #3216), just one page further along.
+     */
+    expect(result.scope.serviceIds).toEqual(["svc-1", "svc-2"]);
+    expect(result.scope.resourceFacetSelections).toEqual({
+      hostId: ["host-1"],
+      dockerHostId: ["docker-1"],
+      podmanHostId: ["podman-1"],
+      kubernetesClusterId: ["k8s-1"],
+    });
     expect(result.dropped).toEqual([]);
+  });
+
+  test("a view with no resource chips carries no resource selections", () => {
+    const result: LogsPivotScopeResult = Pivot.buildLogsPivotScope(
+      input({ appliedFacetFilters: facets({ primaryEntityId: ["svc-1"] }) }),
+    );
+
+    expect(result.scope.resourceFacetSelections).toBeUndefined();
   });
 
   test("base and applied trace/span ids union, and severity selections carry", () => {
@@ -592,7 +617,7 @@ describe("applyLogsFacetFiltersToQuery", () => {
     ).toEqual(["Error", "Fatal"]);
   });
 
-  test("coalesces every resource facet into one primaryEntityId predicate", () => {
+  test("routes Service ids to primaryEntityId and resources to resourceFilters", () => {
     const query: Record<string, unknown> = {};
 
     Pivot.applyLogsFacetFiltersToQuery(
@@ -604,12 +629,62 @@ describe("applyLogsFacetFiltersToQuery", () => {
       }),
     );
 
+    // Never a bare column predicate — neither key is a column on Log.
     expect(query["hostId"]).toBeUndefined();
     expect(query["dockerHostId"]).toBeUndefined();
+
+    expect(query["primaryEntityId"]).toBe("svc-1");
+    expect(query["resourceFilters"]).toEqual({
+      hostId: ["host-1"],
+      dockerHostId: ["docker-1"],
+    });
+  });
+
+  test("a cluster chip alone leaves primaryEntityId unconstrained", () => {
+    const query: Record<string, unknown> = {};
+
+    Pivot.applyLogsFacetFiltersToQuery(
+      query as Parameters<typeof Pivot.applyLogsFacetFiltersToQuery>[0],
+      facets({ kubernetesClusterId: ["k8s-1"] }),
+    );
+
+    /*
+     * `primaryEntityId = '<clusterId>'` is exactly the predicate that
+     * returned zero rows for collector-ingested logs. The cluster now rides
+     * resourceFilters and the server resolves it to the cluster's entity
+     * key.
+     */
+    expect(query["primaryEntityId"]).toBeUndefined();
+    expect(query["resourceFilters"]).toEqual({
+      kubernetesClusterId: ["k8s-1"],
+    });
+  });
+
+  test("multi-valued resource selections stay inside their facet", () => {
+    const query: Record<string, unknown> = {};
+
+    Pivot.applyLogsFacetFiltersToQuery(
+      query as Parameters<typeof Pivot.applyLogsFacetFiltersToQuery>[0],
+      facets({ kubernetesClusterId: ["k8s-1", "k8s-2"] }),
+    );
+
+    expect(query["resourceFilters"]).toEqual({
+      kubernetesClusterId: ["k8s-1", "k8s-2"],
+    });
+  });
+
+  test("the Services facet still compiles to Includes for multiple values", () => {
+    const query: Record<string, unknown> = {};
+
+    Pivot.applyLogsFacetFiltersToQuery(
+      query as Parameters<typeof Pivot.applyLogsFacetFiltersToQuery>[0],
+      facets({ primaryEntityId: ["svc-1", "svc-2"] }),
+    );
+
     expect(query["primaryEntityId"]).toBeInstanceOf(Includes);
     expect(
       (query["primaryEntityId"] as InstanceType<typeof Includes>).values,
-    ).toEqual(["svc-1", "host-1", "docker-1"]);
+    ).toEqual(["svc-1", "svc-2"]);
   });
 
   test("a single resource selection compiles to direct equality", () => {
@@ -653,7 +728,11 @@ describe("applyLogsFacetFiltersToQuery", () => {
 
     Pivot.applyLogsFacetFiltersToQuery(
       query as Parameters<typeof Pivot.applyLogsFacetFiltersToQuery>[0],
-      facets({ traceId: [], primaryEntityId: [] }),
+      facets({
+        traceId: [],
+        primaryEntityId: [],
+        kubernetesClusterId: [],
+      }),
     );
 
     expect(Object.keys(query)).toEqual([]);
@@ -694,6 +773,47 @@ describe("applyLogsFacetFiltersToQuery", () => {
     expect(query["severityText"]).toBe("Error");
     expect(query["primaryEntityId"]).toBe("svc-1");
     expect(query["traceId"]).toBe("trace-1");
+  });
+
+  test("a cluster survives the full pivot -> URL -> list-query round trip", () => {
+    /*
+     * End to end for the reported scenario: a Kubernetes cluster selected in
+     * one explorer, carried through a deep link, and compiled back into a
+     * list query. It must come out as a resourceFilters entry at every hop —
+     * the moment it degrades to a `primaryEntityId` value it stops matching
+     * collector-ingested telemetry.
+     */
+    const serialized: CrossSignalParams = toLogsExplorerQueryParams({
+      serviceIds: ["svc-1"],
+      resourceFacetSelections: { kubernetesClusterId: ["k8s-1"] },
+      startTime: WINDOW_START,
+      endTime: WINDOW_END,
+    });
+
+    const tuples: Array<[string, Array<string>]> = JSON.parse(
+      serialized.params["filters"] as string,
+    );
+
+    expect(tuples).toContainEqual(["kubernetesClusterId", ["k8s-1"]]);
+
+    const facetFilters: Map<string, Set<string>> = new Map(
+      tuples.map(
+        ([key, values]: [string, Array<string>]): [string, Set<string>] => {
+          return [key, new Set(values)];
+        },
+      ),
+    );
+
+    const query: Record<string, unknown> = {};
+    Pivot.applyLogsFacetFiltersToQuery(
+      query as Parameters<typeof Pivot.applyLogsFacetFiltersToQuery>[0],
+      facetFilters,
+    );
+
+    expect(query["primaryEntityId"]).toBe("svc-1");
+    expect(query["resourceFilters"]).toEqual({
+      kubernetesClusterId: ["k8s-1"],
+    });
   });
 });
 

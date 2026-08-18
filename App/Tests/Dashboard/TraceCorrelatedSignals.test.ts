@@ -407,7 +407,20 @@ describe("buildTracesPivotScope", () => {
     expect(result.notCarried).toEqual([]);
   });
 
-  test("unions every resource facet (and the prop scope) into deduped serviceIds", () => {
+  test("unions the prop scope with Service chips and search tokens, deduped", () => {
+    const result: TracesPivotScopeResult = buildTracesPivotScope(
+      pivotInput({
+        primaryEntityId: "svc-1",
+        activeFilters: [{ facetKey: "primaryEntityId", value: "svc-2" }],
+        fieldFilters: { primaryEntityId: ["svc-3", "svc-2"] },
+      }),
+    );
+
+    expect(result.scope.serviceIds).toEqual(["svc-1", "svc-2", "svc-3"]);
+    expect(result.notCarried).toEqual([]);
+  });
+
+  test("keeps resource chips under their own facet key rather than in serviceIds", () => {
     const result: TracesPivotScopeResult = buildTracesPivotScope(
       pivotInput({
         primaryEntityId: "svc-1",
@@ -415,22 +428,50 @@ describe("buildTracesPivotScope", () => {
           { facetKey: "primaryEntityId", value: "svc-2" },
           { facetKey: "hostId", value: "host-1" },
           { facetKey: "kubernetesClusterId", value: "cluster-1" },
-          { facetKey: "dockerHostId", value: "svc-1" },
+          { facetKey: "dockerHostId", value: "docker-1" },
           { facetKey: "podmanHostId", value: "podman-1" },
         ],
-        fieldFilters: { primaryEntityId: ["svc-3", "svc-2"] },
       }),
     );
 
-    expect(result.scope.serviceIds).toEqual([
-      "svc-1",
-      "svc-2",
-      "host-1",
-      "cluster-1",
-      "podman-1",
-      "svc-3",
-    ]);
+    /*
+     * Folding these into serviceIds handed the pivot target a
+     * `primaryEntityId = '<clusterId>'` chip, which matches nothing for
+     * OTLP telemetry (issue #3216). They keep their facet key so the target
+     * resolves them through the resource's entity key.
+     */
+    expect(result.scope.serviceIds).toEqual(["svc-1", "svc-2"]);
+    expect(result.scope.resourceFacetSelections).toEqual({
+      hostId: ["host-1"],
+      kubernetesClusterId: ["cluster-1"],
+      dockerHostId: ["docker-1"],
+      podmanHostId: ["podman-1"],
+    });
     expect(result.notCarried).toEqual([]);
+  });
+
+  test("two chips on one resource facet stay in the same selection list", () => {
+    const result: TracesPivotScopeResult = buildTracesPivotScope(
+      pivotInput({
+        activeFilters: [
+          { facetKey: "kubernetesClusterId", value: "cluster-1" },
+          { facetKey: "kubernetesClusterId", value: "cluster-2" },
+          { facetKey: "kubernetesClusterId", value: "cluster-1" },
+        ],
+      }),
+    );
+
+    expect(result.scope.resourceFacetSelections).toEqual({
+      kubernetesClusterId: ["cluster-1", "cluster-2"],
+    });
+  });
+
+  test("a view with no resource chips carries no resource selections", () => {
+    const result: TracesPivotScopeResult = buildTracesPivotScope(
+      pivotInput({ primaryEntityId: "svc-1" }),
+    );
+
+    expect(result.scope.resourceFacetSelections).toBeUndefined();
   });
 
   test("carries trace and span id filters from chips and search tokens", () => {

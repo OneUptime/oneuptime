@@ -12,6 +12,12 @@ import RangeStartAndEndDateTime, {
 import RouteMap, { RouteUtil } from "./RouteMap";
 import PageMap from "./PageMap";
 import { RESOURCE_FACET_KEYS } from "../Components/Logs/LogsHistogramRequest";
+import {
+  ResourceEntityFacetSelections,
+  collectResourceEntityFacetSelections,
+  collectServiceFacetSelections,
+  isResourceFacetKey,
+} from "Common/Types/Telemetry/ResourceEntityFacet";
 
 /*
  * Cross-signal glue that is specific to the logs explorer: compiling its
@@ -31,6 +37,14 @@ import { RESOURCE_FACET_KEYS } from "../Components/Logs/LogsHistogramRequest";
  */
 export interface LogsCrossSignalScope {
   serviceIds?: Array<string> | undefined;
+  /*
+   * Non-Service resource facet selections (host / docker host / podman host
+   * / Kubernetes cluster), keyed by facet. Kept separate from serviceIds
+   * because the target explorer has to resolve them through the resource's
+   * entity key — folding a cluster id into serviceIds carried a filter that
+   * matches nothing.
+   */
+  resourceFacetSelections?: ResourceEntityFacetSelections | undefined;
   attributes?: Dictionary<string> | undefined;
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
@@ -95,22 +109,20 @@ export const buildLogsPivotScope: BuildLogsPivotScopeFunction = (
   const dropped: Array<string> = [];
 
   /*
-   * All resource facets (service / host / docker / podman / kubernetes)
-   * filter the same primaryEntityId column, so their selections union with
-   * the base service scope.
+   * Only the Services facet unions with the base service scope — its values
+   * are the same kind of id. Host / docker / podman / Kubernetes selections
+   * name a different row and travel under their own key so the target
+   * explorer can resolve them to entity keys.
    */
-  const resourceSelections: Set<string> = new Set<string>();
-
-  for (const facetKey of RESOURCE_FACET_KEYS) {
-    for (const value of input.appliedFacetFilters.get(facetKey) || []) {
-      resourceSelections.add(value);
-    }
-  }
-
   const serviceIds: Array<string> = mergeUnique(
     input.serviceIds,
-    resourceSelections,
+    new Set<string>(
+      collectServiceFacetSelections(input.appliedFacetFilters.entries()),
+    ),
   );
+
+  const resourceFacetSelections: ResourceEntityFacetSelections =
+    collectResourceEntityFacetSelections(input.appliedFacetFilters.entries());
   const traceIds: Array<string> = mergeUnique(
     input.traceIds,
     input.appliedFacetFilters.get("traceId"),
@@ -188,6 +200,10 @@ export const buildLogsPivotScope: BuildLogsPivotScopeFunction = (
     scope.serviceIds = serviceIds;
   }
 
+  if (Object.keys(resourceFacetSelections).length > 0) {
+    scope.resourceFacetSelections = resourceFacetSelections;
+  }
+
   if (traceIds.length > 0) {
     scope.traceIds = traceIds;
   }
@@ -244,6 +260,11 @@ const DROPPED_FIELD_LABELS: Record<string, string> = {
   sessionIds: "sessions",
   startTime: "window start",
   endTime: "window end",
+  // Resource facet keys, as reported dropped by the metrics serializer.
+  hostId: "hosts",
+  dockerHostId: "docker hosts",
+  podmanHostId: "podman hosts",
+  kubernetesClusterId: "Kubernetes clusters",
 };
 
 type FormatDroppedScopeHintFunction = (dropped: Array<string>) => string;
@@ -311,27 +332,45 @@ type ApplyLogsFacetFiltersToQueryFunction = (
  * like the chips and histogram claim.
  *
  * Semantics:
- *  - all resource facets (service / host / docker / podman / kubernetes)
- *    filter the same underlying `primaryEntityId` column, so their selected
- *    values coalesce into one `primaryEntityId` predicate;
+ *  - the Services facet compiles to a `primaryEntityId` predicate — that
+ *    column holds Service ids for OTLP telemetry;
+ *  - host / docker host / podman host / Kubernetes cluster selections ride
+ *    `query.resourceFilters` instead, keyed by facet. The server resolves
+ *    each id to the resource's entity key and matches
+ *    `primaryEntityId IN (...) OR hasAny(entityKeys, ...)`, because for
+ *    telemetry that carries a `service.name` the resource is not the row's
+ *    primary entity at all. Each facet is its own AND group, so a cluster
+ *    and a service intersect;
  *  - `attributes.<key>` facets land under `query.attributes[<key>]`;
  *  - every other facet key is a top-level column predicate;
  *  - single values compile to equality, multiple to Includes.
  */
 export const applyLogsFacetFiltersToQuery: ApplyLogsFacetFiltersToQueryFunction =
   (query: Query<Log>, facetFilters: Map<string, Set<string>>): Query<Log> => {
-    const resourceIds: Set<string> = new Set<string>();
-    const resourceFacetKeys: Set<string> = new Set<string>(RESOURCE_FACET_KEYS);
+    const resourceFilters: ResourceEntityFacetSelections =
+      collectResourceEntityFacetSelections(facetFilters.entries());
+
+    /*
+     * Written unconditionally (deleted when empty) so re-compiling onto a
+     * query that already carried a selection cannot leave a stale one behind.
+     */
+    if (Object.keys(resourceFilters).length > 0) {
+      (query as any).resourceFilters = resourceFilters;
+    } else {
+      delete (query as any).resourceFilters;
+    }
+
+    const resourceIds: Set<string> = new Set<string>(
+      collectServiceFacetSelections(facetFilters.entries()),
+    );
 
     for (const [key, values] of facetFilters.entries()) {
       if (values.size === 0) {
         continue;
       }
 
-      if (resourceFacetKeys.has(key)) {
-        for (const value of values) {
-          resourceIds.add(value);
-        }
+      // Both resource groups are compiled above.
+      if (isResourceFacetKey(key)) {
         continue;
       }
 

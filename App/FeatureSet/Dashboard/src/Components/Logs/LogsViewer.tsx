@@ -73,6 +73,10 @@ import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import { APP_API_URL } from "Common/UI/Config";
 import ProjectUtil from "Common/UI/Utils/Project";
+import {
+  ResourceEntityFacetSelections,
+  parseResourceEntityFacetSelections,
+} from "Common/Types/Telemetry/ResourceEntityFacet";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -322,6 +326,28 @@ function buildFacetFiltersFromQuery(
     }
 
     const values: Array<string> = getQueryValues((query as any)[facetKey]);
+
+    if (values.length > 0) {
+      nextFilters.set(facetKey, new Set(values));
+    }
+  }
+
+  /*
+   * Host / docker / podman / Kubernetes chips live under `resourceFilters`
+   * rather than in a column of their own (see applyLogsFacetFiltersToQuery).
+   * Restoring them here is what makes a saved view keep its cluster chip:
+   * without it the chip row would come back empty and the next chip edit
+   * would recompile the query without the cluster.
+   */
+  const savedResourceFilters: ResourceEntityFacetSelections =
+    parseResourceEntityFacetSelections((query as any)["resourceFilters"]);
+
+  for (const facetKey of Object.keys(savedResourceFilters)) {
+    if ((baseQuery as any)[facetKey] !== undefined) {
+      continue;
+    }
+
+    const values: Array<string> = savedResourceFilters[facetKey] || [];
 
     if (values.length > 0) {
       nextFilters.set(facetKey, new Set(values));

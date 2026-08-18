@@ -69,6 +69,29 @@ export interface EntityScopeQueryValue {
   attributeValue: string;
 }
 
+/**
+ * One element of the synthetic query key "resourceEntityScopes": a single
+ * resource-facet selection (a Kubernetes cluster, a host, ...) already
+ * resolved to every way a row can prove it belongs to that resource.
+ *
+ * Unlike `entityScope` this carries an `entityIds` branch, because the same
+ * resource can be a row's PRIMARY entity (agent-ingested telemetry, where
+ * `primaryEntityId` holds the resource id) or merely one of its
+ * memberships (OTLP telemetry primary-keyed on its Service, where the
+ * resource only appears in `entityKeys`). Matching just one of the two is
+ * what made a Kubernetes cluster filter return nothing for
+ * collector-ingested logs.
+ *
+ * The three branches OR inside one scope; scopes AND with each other, so
+ * two different facets intersect.
+ */
+export interface ResourceEntityScopeQueryValue {
+  entityIds?: Array<string> | undefined;
+  entityKeys?: Array<string> | undefined;
+  attributeKey?: string | undefined;
+  attributeValues?: Array<string> | undefined;
+}
+
 const SIMPLE_AGGREGATE_FUNCTION_NAME_REGEX: RegExp = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
@@ -593,6 +616,127 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               type: TableColumnType.Text,
             }}`,
           );
+        }
+
+        continue;
+      }
+
+      /*
+       * "resourceEntityScopes" is a synthetic query key (not a column): an
+       * array of already-resolved resource-facet selections. Each element
+       * compiles to
+       *   (primaryEntityId IN (...) OR hasAny(entityKeys, [...]) OR
+       *    attributes['resource.x'] IN (...))
+       * and the elements AND with each other.
+       *
+       * The OR is what makes one facet work across both ingestion shapes:
+       * agent telemetry has the resource in `primaryEntityId`, OTLP
+       * telemetry that carries a service.name only records it in
+       * `entityKeys`. The AND is what makes two different facets intersect
+       * ("cluster X" + "service Y") instead of union. See
+       * Common/Server/Utils/Telemetry/ResourceEntityFilter.
+       *
+       * Every branch is parameter-bound; branches whose backing column is
+       * absent on this model are dropped, and a scope left with no branch
+       * at all emits no predicate (never an empty IN, which would match
+       * nothing).
+       */
+      if (key === "resourceEntityScopes") {
+        const scopes: Array<ResourceEntityScopeQueryValue> = Array.isArray(
+          value,
+        )
+          ? (value as Array<ResourceEntityScopeQueryValue>)
+          : [];
+
+        const primaryEntityIdColumn: AnalyticsTableColumn | null =
+          this.model.getTableColumn("primaryEntityId");
+        const scopeEntityKeysColumn: AnalyticsTableColumn | null =
+          this.model.getTableColumn("entityKeys");
+        const scopeAttributesColumn: AnalyticsTableColumn | null =
+          this.model.getTableColumn("attributes");
+
+        for (const scope of scopes) {
+          if (!scope || typeof scope !== "object") {
+            continue;
+          }
+
+          const entityIds: Array<string> = (scope.entityIds || []).filter(
+            (id: string): boolean => {
+              return typeof id === "string" && id.length > 0;
+            },
+          );
+          const membershipKeys: Array<string> = (scope.entityKeys || []).filter(
+            (entityKey: string): boolean => {
+              return typeof entityKey === "string" && entityKey.length > 0;
+            },
+          );
+          const attributeValues: Array<string> = (
+            scope.attributeValues || []
+          ).filter((attributeValue: string): boolean => {
+            return typeof attributeValue === "string";
+          });
+
+          const branches: Array<Statement> = [];
+
+          if (entityIds.length > 0 && primaryEntityIdColumn) {
+            branches.push(
+              SQL`${columnRef(primaryEntityIdColumn.key)} IN ${{
+                value: new Includes(entityIds),
+                type: primaryEntityIdColumn.type,
+              }}`,
+            );
+          }
+
+          if (
+            membershipKeys.length > 0 &&
+            scopeEntityKeysColumn &&
+            scopeEntityKeysColumn.type === TableColumnType.ArrayText
+          ) {
+            branches.push(
+              SQL`hasAny(${columnRef(scopeEntityKeysColumn.key)}, ${{
+                value: membershipKeys,
+                type: TableColumnType.ArrayText,
+              }})`,
+            );
+          }
+
+          if (
+            attributeValues.length > 0 &&
+            scope.attributeKey &&
+            scopeAttributesColumn &&
+            scopeAttributesColumn.type === TableColumnType.MapStringString
+          ) {
+            branches.push(
+              SQL`${columnRef(scopeAttributesColumn.key)}[${{
+                value: scope.attributeKey,
+                type: TableColumnType.Text,
+              }}] IN ${{
+                value: new Includes(attributeValues),
+                type: TableColumnType.Text,
+              }}`,
+            );
+          }
+
+          if (branches.length === 0) {
+            continue;
+          }
+
+          if (first) {
+            first = false;
+          } else {
+            whereStatement.append(SQL` `);
+          }
+
+          whereStatement.append(SQL`AND (`);
+
+          for (const [branchIndex, branch] of branches.entries()) {
+            if (branchIndex > 0) {
+              whereStatement.append(SQL` OR `);
+            }
+            whereStatement.append(branch);
+          }
+
+          whereStatement.append(SQL`)`);
         }
 
         continue;

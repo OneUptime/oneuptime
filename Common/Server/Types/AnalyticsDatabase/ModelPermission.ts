@@ -366,6 +366,15 @@ export default class ModelPermission {
        * never widens access (authorization stays on primaryEntityId).
        */
       "entityScope",
+      /*
+       * Synthetic query key compiled by StatementGenerator to an AND of
+       * per-resource-facet OR groups (primaryEntityId / entityKeys /
+       * resource attribute). Like entityScope it is not a real column and
+       * only ever narrows rows — authorization still runs on
+       * primaryEntityId. Written by the telemetry services' onBeforeFind
+       * from the client-sent `resourceFilters` ids.
+       */
+      "resourceEntityScopes",
     ];
 
     return returnArr;

@@ -26,6 +26,11 @@ import URL from "../../../../Types/API/URL";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import { JSONObject } from "../../../../Types/JSON";
+import {
+  ResourceEntityFacetSelections,
+  collectResourceEntityFacetSelections,
+  collectServiceFacetSelections,
+} from "../../../../Types/Telemetry/ResourceEntityFacet";
 import { APP_API_URL } from "../../../Config";
 import ModelAPI from "../../../Utils/ModelAPI/ModelAPI";
 import ComponentLoader from "../../ComponentLoader/ComponentLoader";
@@ -381,12 +386,29 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
             Array.from(severityValues);
         }
 
-        const serviceFilterValues: Set<string> | undefined =
-          props.appliedFacetFilters.get("primaryEntityId");
+        const serviceFilterValues: Array<string> =
+          collectServiceFacetSelections(props.appliedFacetFilters.entries());
 
-        if (serviceFilterValues && serviceFilterValues.size > 0) {
+        if (serviceFilterValues.length > 0) {
           (requestData as Record<string, unknown>)["serviceIds"] =
-            Array.from(serviceFilterValues);
+            serviceFilterValues;
+        }
+
+        /*
+         * Host / docker / podman / Kubernetes chips ride their own field —
+         * their ids are not `primaryEntityId` values for telemetry that
+         * carries a service.name, so the server resolves them to the
+         * resource's entity key. Without this the analytics tab silently
+         * ignored a cluster the sidebar was filtering by.
+         */
+        const resourceFilters: ResourceEntityFacetSelections =
+          collectResourceEntityFacetSelections(
+            props.appliedFacetFilters.entries(),
+          );
+
+        if (Object.keys(resourceFilters).length > 0) {
+          (requestData as Record<string, unknown>)["resourceFilters"] =
+            resourceFilters;
         }
 
         const traceFilterValues: Set<string> | undefined =
