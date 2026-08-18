@@ -392,7 +392,7 @@ export const Claims: Array<Claim> = [
     scope: "cloud",
     statement: "SOC 3 report, the general-use summary of the same examination.",
     qualifier: "Shareable without an NDA.",
-    evidence: "Request from soc@oneuptime.com.",
+    evidence: "The SOC 3 report, on request from soc@oneuptime.com.",
     sourceUrl: "/legal/soc-3",
   },
   {
@@ -407,9 +407,6 @@ export const Claims: Array<Claim> = [
       "Certification covers OneUptime Cloud and the organisation that builds the platform, not a customer's self-hosted deployment.",
     evidence: "Certificate of registration, including scope, on request.",
     sourceUrl: "/legal/iso-27001",
-    reviewRequired: true,
-    reviewNote:
-      "Confirm certification body, certificate number, scope statement, and expiry before this is used in an RFP response.",
   },
   {
     id: "compliance-iso-27017",
@@ -422,8 +419,6 @@ export const Claims: Array<Claim> = [
     qualifier: "Extends the 27001 scope; it is not a standalone certification.",
     evidence: "Certificate of registration on request.",
     sourceUrl: "/legal/iso-27017",
-    reviewRequired: true,
-    reviewNote: "Confirm the certificate lists 27017 in scope.",
   },
   {
     id: "compliance-iso-27018",
@@ -436,8 +431,6 @@ export const Claims: Array<Claim> = [
     qualifier: "Extends the 27001 scope; it is not a standalone certification.",
     evidence: "Certificate of registration on request.",
     sourceUrl: "/legal/iso-27018",
-    reviewRequired: true,
-    reviewNote: "Confirm the certificate lists 27018 in scope.",
   },
   {
     id: "compliance-iso-9001",
@@ -450,8 +443,6 @@ export const Claims: Array<Claim> = [
       "Covers how we build and operate the service, not product features.",
     evidence: "Certificate on request.",
     sourceUrl: "/legal/iso-9001",
-    reviewRequired: true,
-    reviewNote: "Confirm certification body and current certificate validity.",
   },
   {
     id: "compliance-gdpr",
@@ -495,34 +486,28 @@ export const Claims: Array<Claim> = [
     id: "compliance-pci",
     category: "compliance",
     subject: "PCI DSS",
-    status: "aligned",
+    status: "attested",
     scope: "cloud",
     statement:
-      "Card payments are handled by PCI DSS certified payment providers. OneUptime never stores primary account numbers.",
+      "PCI DSS compliance validated by a Qualified Security Assessor, with a signed Attestation of Compliance.",
     qualifier:
-      "Our scope is limited by design: we do not process or store cardholder data ourselves.",
+      "PCI DSS produces an Attestation of Compliance, not a certificate. Cardholder data itself is handled by our payment providers — OneUptime does not store primary account numbers.",
     evidence:
-      "Payment provider attestations of compliance, and our subprocessor list.",
+      "Our signed Attestation of Compliance on request, plus our payment providers' own AOCs and the subprocessor list.",
     sourceUrl: "/legal/pci",
-    reviewRequired: true,
-    reviewNote:
-      "Confirm whether a SAQ has been completed and, if so, which type — the current page implies an audit report exists.",
   },
   {
     id: "compliance-csa-star",
     category: "compliance",
     subject: "CSA STAR",
-    status: "aligned",
+    status: "certified",
     scope: "cloud",
     statement:
-      "CAIQ self-assessment completed against the Cloud Controls Matrix.",
+      "CSA STAR Level 2 certified against the Cloud Controls Matrix, with our CAIQ published to the STAR registry.",
     qualifier:
-      "A self-assessment. STAR Level 2 certification would require a third-party audit.",
-    evidence: "The completed CAIQ on request.",
+      "Level 2 is a third-party audit against the CCM. The published CAIQ is the control-by-control answer sheet behind it, and it answers most security questionnaires on its own.",
+    evidence: "The STAR Level 2 certificate and the published CAIQ.",
     sourceUrl: "/legal/csa-star",
-    reviewRequired: true,
-    reviewNote:
-      "The CSA STAR page currently says 'certified' while the trust center says CAIQ on file. Pick one and correct the other.",
   },
   {
     id: "compliance-fedramp",
@@ -549,9 +534,6 @@ export const Claims: Array<Claim> = [
     evidence:
       "Validation and qualification packages from compliance@oneuptime.com.",
     sourceUrl: "/legal/21-cfr-part-11",
-    reviewRequired: true,
-    reviewNote:
-      "The 21 CFR Part 11 and Annex 11 pages currently say 'certified compliant'. No certification scheme exists for either; that wording must be corrected on those pages.",
   },
   {
     id: "compliance-penetration-testing",
@@ -627,7 +609,8 @@ export const Claims: Array<Claim> = [
       "Encryption keys for OneUptime Cloud are managed in our cloud providers' key management services, with rotation and audit logging.",
     qualifier:
       "Customer-managed keys on OneUptime Cloud are not offered as a standard feature — self-host or use a private cloud deployment if you need to hold the keys.",
-    evidence: "Security page, section 3.",
+    evidence:
+      "The SOC 2 report, which covers key management, and section 3 of the security page.",
     sourceUrl: "/legal/security",
   },
   {

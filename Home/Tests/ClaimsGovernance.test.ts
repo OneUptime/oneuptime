@@ -150,6 +150,15 @@ describe("Aligned pages state the governed numbers", () => {
     expect(readView("demo.ejs")).toContain("/enterprise/self-hosted");
   });
 
+  test("the demo page separates certified, attested, and contractual claims", () => {
+    const contents: string = readView("demo.ejs");
+
+    expect(contents).toContain("CSA STAR Level 2 are certified");
+    expect(contents).toContain("attested by third-party auditors");
+    expect(contents).toContain("backed by a DPA or BAA");
+    expect(contents).toContain("/trust#claims");
+  });
+
   test("the security page points at the canonical trust center", () => {
     const contents: string = readView("security.ejs");
 
@@ -191,28 +200,61 @@ describe("Compliance pages use the governed status words", () => {
     return fs.readFileSync(path.join(VIEWS_ROOT, relativePath), "utf-8");
   }
 
-  test.each([
-    ["21-cfr-part-11.ejs"],
-    ["annex-11.ejs"],
-    ["gamp-5.ejs"],
-    ["csa-star.ejs"],
-  ])("%s states an aligned status and links to the matrix", (file: string) => {
-    const contents: string = readView(file);
+  test.each([["21-cfr-part-11.ejs"], ["annex-11.ejs"], ["gamp-5.ejs"]])(
+    "%s states an aligned status and links to the matrix",
+    (file: string) => {
+      const contents: string = readView(file);
 
-    expect(contents).toContain("<strong>aligned</strong>");
-    expect(contents).toContain("/trust#claims");
-  });
+      expect(contents).toContain("<strong>aligned</strong>");
+      expect(contents).toContain("/trust#claims");
+    },
+  );
 
-  test("the CSA STAR page describes a self-assessment, not a certification", () => {
+  test("the CSA STAR page states Level 2 certification, and which level it is", () => {
     const contents: string = readView("csa-star.ejs");
 
-    expect(contents).toContain("CAIQ self-assessment");
-    expect(contents).not.toContain("OneUptime is CSA STAR certified");
+    expect(contents).toContain("<strong>certified</strong>");
+    expect(contents).toContain("STAR Level 2");
+    expect(contents).toContain("/trust#claims");
+    // The distinction between the levels has to stay on the page.
+    expect(contents).toContain("third-party assessor");
+  });
+
+  test("the PCI page offers an Attestation of Compliance, not a certificate", () => {
+    const contents: string = readView("pci.ejs");
+
+    expect(contents).toContain("Attestation of Compliance");
+    expect(contents).toContain("Qualified Security Assessor");
+    expect(contents).toContain("/trust#claims");
+    expect(contents).not.toContain("To request the certificate please");
   });
 
   test("the ISO 27017 page explains it extends the ISO 27001 certificate", () => {
     const contents: string = readView("iso-27017.ejs");
 
     expect(contents).toContain("extension of our ISO/IEC 27001 certification");
+  });
+
+  test("the trust center badges use the governed status words", () => {
+    const contents: string = readView("trust.ejs");
+
+    for (const label of [
+      ">Certified</span>",
+      ">Attested</span>",
+      ">Compliant</span>",
+      ">Aligned</span>",
+      ">In progress</span>",
+    ]) {
+      expect(contents).toContain(label);
+    }
+
+    // Words that are not in the vocabulary must not appear as a status badge.
+    for (const stale of [
+      ">Available</span>",
+      ">CAIQ on file</span>",
+      ">BAA available</span>",
+    ]) {
+      expect(contents).not.toContain(stale);
+    }
   });
 });
