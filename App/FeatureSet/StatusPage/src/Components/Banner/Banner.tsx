@@ -15,15 +15,23 @@ const Banner: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
+  /*
+   * The image used to size itself, so it occupied nothing until the blob
+   * decoded and then pushed the header, nav and all the content down by up to
+   * 320px — the biggest layout shift on the page, on every load. Give it a
+   * container with a fixed height and let object-cover fill it. Cover images
+   * shorter than the clamp are now cropped to the banner rather than rendering
+   * at their own height.
+   */
   return (
-    <div className="w-full">
+    <div className="mb-5 mt-5 h-48 w-full overflow-hidden rounded-lg bg-gray-100 md:h-64 lg:h-80">
       <Image
         onClick={() => {
           if (props.onClick) {
             props.onClick();
           }
         }}
-        className="rounded-xl w-full mt-3 mb-3 md:mt-5 md:mb-5 object-cover max-h-48 md:max-h-64 lg:max-h-80"
+        className="h-full w-full object-cover"
         file={props.file}
         alt={props.alt || ""}
       />

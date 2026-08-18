@@ -104,6 +104,19 @@
               'display': ['Inter', 'sans-serif'],
               'body': ['Inter', 'sans-serif']
             },
+            // Used by the header and navbar mobile dropdowns. Defined here
+            // rather than pulled from tailwindcss-animate, which this page
+            // does not load - the plugin's animate-in / slide-in-from-top-*
+            // classes silently generated nothing.
+            keyframes: {
+              'slide-down': {
+                '0%': { opacity: '0', transform: 'translateY(-0.5rem)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' }
+              }
+            },
+            animation: {
+              'slide-down': 'slide-down 200ms ease-out'
+            },
           },
         },
       }

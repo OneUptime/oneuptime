@@ -10,7 +10,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import { FormSkeleton } from "../../Components/Skeleton/PageSkeletons";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import React, {
   FunctionComponent,
@@ -107,7 +107,7 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
         },
       ]}
     >
-      {isLaoding ? <PageLoader isVisible={isLaoding} /> : <></>}
+      {isLaoding ? <FormSkeleton /> : <></>}
 
       {error ? <ErrorMessage message={error} /> : <></>}
     </Page>

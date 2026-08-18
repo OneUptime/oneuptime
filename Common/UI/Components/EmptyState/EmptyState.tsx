@@ -11,6 +11,13 @@ export interface ComponentProps {
   id: string;
   iconClassName?: string;
   showSolidBackground?: boolean | undefined;
+  /*
+   * Vertical padding. The default is 13rem top and bottom, which suits a
+   * full-page dashboard empty state but swamps a short page. Override it
+   * rather than changing the default — several call sites cancel the 13rem
+   * with negative margins and would overlap their neighbours if it shrank.
+   */
+  paddingClassName?: string | undefined;
 }
 
 const EmptyState: FunctionComponent<ComponentProps> = (
@@ -21,7 +28,7 @@ const EmptyState: FunctionComponent<ComponentProps> = (
     <React.Fragment>
       <div
         id={props.id}
-        className={`flex pt-52 pb-52 ${
+        className={`flex ${props.paddingClassName || "pt-52 pb-52"} ${
           props.showSolidBackground ? "bg-white rounded shadow" : ""
         }`}
       >
