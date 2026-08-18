@@ -56,7 +56,6 @@ import RemediationSuggestionCard from "../../../Components/AutoRemediation/Remed
 import IncidentAffectedResources from "./AffectedResources";
 import MonitorSummarySnapshotCard from "../../../Components/Monitor/MonitorSummarySnapshotCard";
 import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentMemberRoleAssignment";
-import AskAIButton from "../../../Components/AIChat/AskAIButton";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
@@ -481,9 +480,6 @@ const IncidentView: FunctionComponent<
             await fetchData();
           }}
         />
-        <div className="mt-3 flex justify-end">
-          <AskAIButton label="Ask AI about this incident" />
-        </div>
       </div>
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
