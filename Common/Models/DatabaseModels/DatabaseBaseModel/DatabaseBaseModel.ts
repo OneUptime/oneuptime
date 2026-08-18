@@ -58,6 +58,32 @@ export type DbTypes =
   | JSONArray
   | Buffer;
 
+/*
+ * Metadata-only vanilla instances used by toJSONObject to read table-column
+ * metadata. Frozen and never exported, so they can never be mutated or escape
+ * this file. _fromJSON must never use this cache — it mutates and returns the
+ * instance it constructs.
+ */
+const vanillaModelCache: WeakMap<
+  { new (): DatabaseBaseModel },
+  DatabaseBaseModel
+> = new WeakMap();
+
+function getVanillaModel(modelType: {
+  new (): DatabaseBaseModel;
+}): DatabaseBaseModel {
+  let vanillaModel: DatabaseBaseModel | undefined =
+    vanillaModelCache.get(modelType);
+
+  if (!vanillaModel) {
+    vanillaModel = new modelType();
+    Object.freeze(vanillaModel);
+    vanillaModelCache.set(modelType, vanillaModel);
+  }
+
+  return vanillaModel;
+}
+
 export default class DatabaseBaseModel extends BaseEntity {
   @TableColumn({
     title: "ID",
@@ -614,7 +640,7 @@ export default class DatabaseBaseModel extends BaseEntity {
   ): JSONObject {
     const json: JSONObject = {};
 
-    const vanillaModel: DatabaseBaseModel = new modelType();
+    const vanillaModel: DatabaseBaseModel = getVanillaModel(modelType);
 
     for (const key of vanillaModel.getTableColumns().columns) {
       if ((model as any)[key] === undefined) {

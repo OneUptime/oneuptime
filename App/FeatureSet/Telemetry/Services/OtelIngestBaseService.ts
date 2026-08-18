@@ -271,6 +271,25 @@ export default abstract class OtelIngestBaseService {
       maxEntries: 10_000,
     });
 
+  /*
+   * L1 for the docker/podman container id -> name Redis caches
+   * (getDockerServiceName / getPodmanServiceName): otherwise every
+   * docker_stats metrics block pays one serialized SETEX and every filelog
+   * log block one GET, per resource block per job. Entries store the RAW
+   * (pre-normalization) name so memo hits and Redis hits normalize through
+   * the same function, and only POSITIVES are memoed — a memoed miss would
+   * delay first-contact name resolution and route that container's log rows
+   * to the DockerHost/PodmanHost entity for the TTL. On the write path the
+   * memo is set only after a successful Redis write, so an outage retries
+   * on the next block exactly as before. Same 60s-on-top-of-24h staleness
+   * trade-off documented for entityIdL1Memo above.
+   */
+  private static readonly containerNameL1Memo: InProcessMemo<string> =
+    new InProcessMemo<string>({
+      ttlInMs: 60 * 1000,
+      maxEntries: 10_000,
+    });
+
   /**
    * Read a discovered entity id through L1 -> L2 (Redis). Returns null when
    * neither layer has it — the caller then runs its findOrCreate* path and
@@ -324,13 +343,14 @@ export default abstract class OtelIngestBaseService {
   }
 
   /**
-   * Drop every in-process L1 memo (entity ids + fence refusals). For tests
-   * only — suites that reuse one resource id across cases need a way to
-   * simulate the TTLs expiring, the same way they already clear their fake
-   * Redis maps between cases.
+   * Drop every in-process L1 memo (entity ids, container names, fence
+   * refusals). For tests only — suites that reuse one resource id across
+   * cases need a way to simulate the TTLs expiring, the same way they
+   * already clear their fake Redis maps between cases.
    */
   public static clearInProcessMemos(): void {
     this.entityIdL1Memo.clear();
+    this.containerNameL1Memo.clear();
     this.maintenanceFenceNegativeMemo.clear();
   }
 
@@ -830,14 +850,21 @@ export default abstract class OtelIngestBaseService {
           req as ExpressRequest & { projectId?: ObjectID }
         ).projectId;
         if (projectId) {
-          await GlobalCache.setString(
-            this.DOCKER_CONTAINER_NAME_CACHE_NAMESPACE,
-            `${projectId.toString()}:${containerId}`,
-            containerName,
-            {
-              expiresInSeconds: this.DOCKER_CONTAINER_NAME_CACHE_EXPIRY_SECONDS,
-            },
-          );
+          const l1Key: string = `${this.DOCKER_CONTAINER_NAME_CACHE_NAMESPACE}:${projectId.toString()}:${containerId}`;
+          // Skip the SETEX when this process already wrote this exact name.
+          if (this.containerNameL1Memo.get(l1Key) !== containerName) {
+            await GlobalCache.setString(
+              this.DOCKER_CONTAINER_NAME_CACHE_NAMESPACE,
+              `${projectId.toString()}:${containerId}`,
+              containerName,
+              {
+                expiresInSeconds:
+                  this.DOCKER_CONTAINER_NAME_CACHE_EXPIRY_SECONDS,
+              },
+            );
+            // Only after a successful write — a failed write must retry.
+            this.containerNameL1Memo.set(l1Key, containerName);
+          }
         }
       } catch (err) {
         logger.error(
@@ -857,11 +884,19 @@ export default abstract class OtelIngestBaseService {
           req as ExpressRequest & { projectId?: ObjectID }
         ).projectId;
         if (projectId) {
+          const l1Key: string = `${this.DOCKER_CONTAINER_NAME_CACHE_NAMESPACE}:${projectId.toString()}:${containerId}`;
+          const memoed: string | undefined =
+            this.containerNameL1Memo.get(l1Key);
+          if (memoed !== undefined) {
+            return this.normalizeDockerContainerName(memoed);
+          }
           const cached: string | null = await GlobalCache.getString(
             this.DOCKER_CONTAINER_NAME_CACHE_NAMESPACE,
             `${projectId.toString()}:${containerId}`,
           );
           if (cached) {
+            // Positives only — see containerNameL1Memo.
+            this.containerNameL1Memo.set(l1Key, cached);
             return this.normalizeDockerContainerName(cached);
           }
         }
@@ -911,14 +946,21 @@ export default abstract class OtelIngestBaseService {
           req as ExpressRequest & { projectId?: ObjectID }
         ).projectId;
         if (projectId) {
-          await GlobalCache.setString(
-            this.PODMAN_CONTAINER_NAME_CACHE_NAMESPACE,
-            `${projectId.toString()}:${containerId}`,
-            containerName,
-            {
-              expiresInSeconds: this.PODMAN_CONTAINER_NAME_CACHE_EXPIRY_SECONDS,
-            },
-          );
+          const l1Key: string = `${this.PODMAN_CONTAINER_NAME_CACHE_NAMESPACE}:${projectId.toString()}:${containerId}`;
+          // Skip the SETEX when this process already wrote this exact name.
+          if (this.containerNameL1Memo.get(l1Key) !== containerName) {
+            await GlobalCache.setString(
+              this.PODMAN_CONTAINER_NAME_CACHE_NAMESPACE,
+              `${projectId.toString()}:${containerId}`,
+              containerName,
+              {
+                expiresInSeconds:
+                  this.PODMAN_CONTAINER_NAME_CACHE_EXPIRY_SECONDS,
+              },
+            );
+            // Only after a successful write — a failed write must retry.
+            this.containerNameL1Memo.set(l1Key, containerName);
+          }
         }
       } catch (err) {
         logger.error(
@@ -938,11 +980,19 @@ export default abstract class OtelIngestBaseService {
           req as ExpressRequest & { projectId?: ObjectID }
         ).projectId;
         if (projectId) {
+          const l1Key: string = `${this.PODMAN_CONTAINER_NAME_CACHE_NAMESPACE}:${projectId.toString()}:${containerId}`;
+          const memoed: string | undefined =
+            this.containerNameL1Memo.get(l1Key);
+          if (memoed !== undefined) {
+            return this.normalizePodmanContainerName(memoed);
+          }
           const cached: string | null = await GlobalCache.getString(
             this.PODMAN_CONTAINER_NAME_CACHE_NAMESPACE,
             `${projectId.toString()}:${containerId}`,
           );
           if (cached) {
+            // Positives only — see containerNameL1Memo.
+            this.containerNameL1Memo.set(l1Key, cached);
             return this.normalizePodmanContainerName(cached);
           }
         }

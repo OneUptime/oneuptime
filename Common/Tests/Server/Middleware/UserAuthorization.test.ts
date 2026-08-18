@@ -50,6 +50,25 @@ jest.mock("../../../Server/Services/ProjectService");
 jest.mock("../../../Server/Services/TeamMemberService");
 jest.mock("../../../Types/HashedString");
 jest.mock("../../../Types/JSONFunctions");
+/*
+ * PasswordHash carries a pre-existing TS5.9 diagnostic that fails any suite
+ * whose runtime require graph reaches it (DatabaseService, the base class of
+ * every concrete service, imports it). Nothing password-related is under
+ * test here, so the module is replaced WITH A FACTORY — an automock would
+ * still require (and type-check) the real file.
+ */
+jest.mock("../../../Server/Utils/PasswordHash", () => {
+  return {
+    __esModule: true,
+    default: {
+      hash: jest.fn(),
+      verify: jest.fn(),
+      generateSalt: jest.fn(),
+      needsUpgrade: jest.fn(),
+      applyPepper: jest.fn(),
+    },
+  };
+});
 
 type StringOrUndefined = string | undefined;
 
@@ -404,6 +423,66 @@ describe("UserMiddleware", () => {
       expect(res.set).not.toHaveBeenCalledWith(
         "global-permissions-hash",
         expect.anything(),
+      );
+      expect(next).toHaveBeenCalled();
+      expect(spyGetUserGlobalAccessPermission).toHaveBeenCalledWith(userId);
+    });
+
+    test("should not set global-permissions and global-permissions-hash in the response header, when the global-permissions-hash set in the request header equals the globalPermissionsHash computed from userGlobalAccessPermission", async () => {
+      const mockedRequest: Partial<ExpressRequest> = {
+        headers: { "global-permissions-hash": hashValue },
+      };
+
+      getJestSpyOn(ProjectMiddleware, "getProjectId").mockReturnValueOnce(null);
+      getJestSpyOn(JSONFunctions, "serialize").mockReturnValueOnce({});
+      const spyGetUserGlobalAccessPermission: jest.SpyInstance = getJestSpyOn(
+        AccessTokenService,
+        "getUserGlobalAccessPermission",
+      ).mockResolvedValueOnce(mockedGlobalAccessPermission);
+
+      await UserMiddleware.getUserMiddleware(
+        mockedRequest as ExpressRequest,
+        res,
+        next,
+      );
+
+      expect(res.set).not.toHaveBeenCalledWith(
+        "global-permissions",
+        expect.anything(),
+      );
+      expect(res.set).not.toHaveBeenCalledWith(
+        "global-permissions-hash",
+        expect.anything(),
+      );
+      expect(next).toHaveBeenCalled();
+      expect(spyGetUserGlobalAccessPermission).toHaveBeenCalledWith(userId);
+    });
+
+    test("should set global-permissions and global-permissions-hash in the response header, when the global-permissions-hash set in the request header does not equal the globalPermissionsHash computed from userGlobalAccessPermission", async () => {
+      const mockedRequest: Partial<ExpressRequest> = {
+        headers: { "global-permissions-hash": "different-hash" },
+      };
+
+      getJestSpyOn(ProjectMiddleware, "getProjectId").mockReturnValueOnce(null);
+      getJestSpyOn(JSONFunctions, "serialize").mockReturnValueOnce({});
+      const spyGetUserGlobalAccessPermission: jest.SpyInstance = getJestSpyOn(
+        AccessTokenService,
+        "getUserGlobalAccessPermission",
+      ).mockResolvedValueOnce(mockedGlobalAccessPermission);
+
+      await UserMiddleware.getUserMiddleware(
+        mockedRequest as ExpressRequest,
+        res,
+        next,
+      );
+
+      expect(res.set).toHaveBeenCalledWith(
+        "global-permissions",
+        JSON.stringify({}),
+      );
+      expect(res.set).toHaveBeenCalledWith(
+        "global-permissions-hash",
+        hashValue,
       );
       expect(next).toHaveBeenCalled();
       expect(spyGetUserGlobalAccessPermission).toHaveBeenCalledWith(userId);

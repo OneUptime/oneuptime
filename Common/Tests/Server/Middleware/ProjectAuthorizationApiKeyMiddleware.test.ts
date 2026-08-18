@@ -1,4 +1,3 @@
-import APIKeyPermission from "../../../Models/DatabaseModels/ApiKeyPermission";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import User from "../../../Models/DatabaseModels/User";
 import ProjectMiddleware from "../../../Server/Middleware/ProjectAuthorization";
@@ -38,6 +37,19 @@ import {
 } from "@jest/globals";
 
 /*
+ * PasswordHash has a known, pre-existing TS5.9 compile failure under ts-jest
+ * (Buffer vs BinaryLike) that breaks every suite whose import graph reaches
+ * it. Nothing here touches password hashing; stub the module before the
+ * service import graph drags it into compilation.
+ */
+jest.mock("../../../Server/Utils/PasswordHash", () => {
+  return {
+    __esModule: true,
+    default: class PasswordHashStub {},
+  };
+});
+
+/*
  * ProjectAuthorization.isValidProjectIdAndApiKeyMiddleware is the single door
  * every API-key request in the product walks through, and it had no test at all.
  *
@@ -67,9 +79,9 @@ describe("ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware", () => {
     ApiKeyService,
     "findApiKey",
   );
-  const spyApiKeyPermissionFindBy: jest.SpyInstance = getJestSpyOn(
+  const spyFindApiKeyPermissions: jest.SpyInstance = getJestSpyOn(
     ApiKeyPermissionService,
-    "findBy",
+    "findPermissionsByApiKeyId",
   );
   const spyGlobalConfigFindOneBy: jest.SpyInstance = getJestSpyOn(
     GlobalConfigService,
@@ -89,7 +101,7 @@ describe("ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware", () => {
     jest.clearAllMocks();
     next = getJestMockFunction();
     spyFindApiKey.mockResolvedValue(null);
-    spyApiKeyPermissionFindBy.mockResolvedValue([]);
+    spyFindApiKeyPermissions.mockResolvedValue([]);
     spyGlobalConfigFindOneBy.mockResolvedValue(null);
     spyUserFindOneBy.mockResolvedValue(null);
   });
@@ -129,16 +141,17 @@ describe("ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware", () => {
     type MockResolvedApiKeyFunction = () => void;
 
     const mockResolvedApiKey: MockResolvedApiKeyFunction = (): void => {
-      const apiKeyPermission: APIKeyPermission = new APIKeyPermission();
-      apiKeyPermission.permission = Permission.ProjectMember;
-      apiKeyPermission.labels = [];
-      apiKeyPermission.isBlockPermission = false;
-
       spyFindApiKey.mockResolvedValue({
         id: apiKeyId,
         projectId: keyProjectId,
       });
-      spyApiKeyPermissionFindBy.mockResolvedValue([apiKeyPermission]);
+      spyFindApiKeyPermissions.mockResolvedValue([
+        {
+          permission: Permission.ProjectMember,
+          labelIds: [],
+          isBlockPermission: false,
+        },
+      ]);
     };
 
     test("should call next with no argument and stamp API identity, tenant and permissions on the request", async () => {
@@ -211,11 +224,7 @@ describe("ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware", () => {
 
       await runMiddleware(req);
 
-      expect(spyApiKeyPermissionFindBy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: { apiKeyId: apiKeyId },
-        }),
-      );
+      expect(spyFindApiKeyPermissions).toHaveBeenCalledWith(apiKeyId);
 
       const permissions: Array<UserPermission> =
         (req as OneUptimeRequest).userTenantAccessPermission?.[

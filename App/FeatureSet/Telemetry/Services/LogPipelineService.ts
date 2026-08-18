@@ -20,6 +20,7 @@ import {
   evaluateCompiledFilter,
 } from "../Utils/LogFilterEvaluator";
 import logger from "Common/Server/Utils/Logger";
+import InMemoryTTLCache from "Common/Server/Infrastructure/InMemoryTTLCache";
 
 export interface LoadedPipeline {
   pipeline: LogPipeline;
@@ -30,11 +31,6 @@ export interface LoadedPipeline {
    */
   compiledFilter: CompiledFilter;
   processors: Array<LogPipelineProcessor>;
-}
-
-interface CacheEntry {
-  pipelines: Array<LoadedPipeline>;
-  loadedAt: number;
 }
 
 /*
@@ -49,18 +45,22 @@ interface CompiledCategoryConfig extends CategoryProcessorConfig {
 }
 
 const CACHE_TTL_MS: number = 60 * 1000; // 60 seconds
+const MAX_CACHED_PROJECTS: number = 10_000;
 
-const pipelineCache: Map<string, CacheEntry> = new Map();
+const pipelineCache: InMemoryTTLCache<Array<LoadedPipeline>> =
+  new InMemoryTTLCache<Array<LoadedPipeline>>(MAX_CACHED_PROJECTS);
 
 export class LogPipelineService {
   public static async loadPipelines(
     projectId: ObjectID,
   ): Promise<Array<LoadedPipeline>> {
     const cacheKey: string = projectId.toString();
-    const cached: CacheEntry | undefined = pipelineCache.get(cacheKey);
+    const cached: Array<LoadedPipeline> | undefined =
+      pipelineCache.get(cacheKey);
 
-    if (cached && Date.now() - cached.loadedAt < CACHE_TTL_MS) {
-      return cached.pipelines;
+    // Empty arrays are truthy — zero-pipeline projects stay negatively cached.
+    if (cached) {
+      return cached;
     }
 
     const pipelineService: DatabaseService<LogPipeline> =
@@ -123,7 +123,7 @@ export class LogPipelineService {
       });
     }
 
-    pipelineCache.set(cacheKey, { pipelines: loaded, loadedAt: Date.now() });
+    pipelineCache.set(cacheKey, loaded, CACHE_TTL_MS);
     return loaded;
   }
 

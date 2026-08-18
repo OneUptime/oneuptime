@@ -3,6 +3,9 @@ import AccessControlPermission from "../../../../../Server/Types/Database/Permis
 import QueryUtil from "../../../../../Server/Types/Database/QueryUtil";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseCommonInteractionPropsUtil, {
+  PermissionType,
+} from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission, {
   UserTenantAccessPermission,
@@ -185,5 +188,167 @@ describe("AccessControlPermission.addAccessControlIdsToQuery", () => {
 
     expect(result.labels).toBe(callerLabelFilter);
     expect(result._id).toBeUndefined();
+  });
+});
+
+describe("AccessControlPermission.getAccessControlIdsForQuery", () => {
+  const projectId: ObjectID = ObjectID.generate();
+  const userId: ObjectID = ObjectID.generate();
+  const permittedLabelA: ObjectID = ObjectID.generate();
+  const permittedLabelB: ObjectID = ObjectID.generate();
+
+  function makeLabelRestrictedProps(): DatabaseCommonInteractionProps {
+    // A user whose ONLY read grant on Monitor is label-restricted.
+    const tenantPermission: UserTenantAccessPermission = {
+      projectId,
+      _type: "UserTenantAccessPermission",
+      permissions: [
+        {
+          _type: "UserPermission",
+          permission: Permission.ReadProjectMonitor,
+          labelIds: [permittedLabelA, permittedLabelB],
+          isBlockPermission: false,
+        },
+      ],
+    };
+
+    return {
+      userId,
+      tenantId: projectId,
+      userTenantAccessPermission: {
+        [projectId.toString()]: tenantPermission,
+      },
+    };
+  }
+
+  function toStrings(ids: Array<ObjectID>): Array<string> {
+    return ids.map((id: ObjectID) => {
+      return id.toString();
+    });
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("returns the permitted label ids deduped for a multi-column select, same as a query-only call", () => {
+    const withSelect: Array<ObjectID> =
+      AccessControlPermission.getAccessControlIdsForQuery(
+        Monitor,
+        { projectId } as any,
+        { _id: true, createdAt: true, name: true } as any,
+        makeLabelRestrictedProps(),
+        DatabaseRequestType.Read,
+      );
+
+    const queryOnly: Array<ObjectID> =
+      AccessControlPermission.getAccessControlIdsForQuery(
+        Monitor,
+        { projectId } as any,
+        null,
+        makeLabelRestrictedProps(),
+        DatabaseRequestType.Read,
+      );
+
+    expect(toStrings(withSelect)).toEqual([
+      permittedLabelA.toString(),
+      permittedLabelB.toString(),
+    ]);
+    expect(toStrings(withSelect)).toEqual(toStrings(queryOnly));
+  });
+
+  it("returns an empty array for users with an unrestricted grant regardless of column count", () => {
+    const tenantPermission: UserTenantAccessPermission = {
+      projectId,
+      _type: "UserTenantAccessPermission",
+      permissions: [
+        {
+          _type: "UserPermission",
+          permission: Permission.ProjectMember,
+          labelIds: [],
+          isBlockPermission: false,
+        },
+      ],
+    };
+
+    const result: Array<ObjectID> =
+      AccessControlPermission.getAccessControlIdsForQuery(
+        Monitor,
+        { projectId } as any,
+        { _id: true, createdAt: true, updatedAt: true, name: true } as any,
+        {
+          userId,
+          tenantId: projectId,
+          userTenantAccessPermission: {
+            [projectId.toString()]: tenantPermission,
+          },
+        },
+        DatabaseRequestType.Read,
+      );
+
+    expect(result).toEqual([]);
+  });
+
+  it("computes user permissions exactly once regardless of column count", () => {
+    const getUserPermissionsSpy: jest.SpyInstance = jest.spyOn(
+      DatabaseCommonInteractionPropsUtil,
+      "getUserPermissions",
+    );
+
+    const props: DatabaseCommonInteractionProps = makeLabelRestrictedProps();
+
+    AccessControlPermission.getAccessControlIdsForQuery(
+      Monitor,
+      { projectId } as any,
+      { _id: true, createdAt: true, updatedAt: true, name: true } as any,
+      props,
+      DatabaseRequestType.Read,
+    );
+
+    /*
+     * Perf regression guard: the old code rebuilt the full user-permission
+     * set once per access-controlled column plus once for the model-level
+     * check. The context must be built exactly once per query.
+     */
+    expect(getUserPermissionsSpy).toHaveBeenCalledTimes(1);
+    expect(getUserPermissionsSpy).toHaveBeenCalledWith(
+      props,
+      PermissionType.Allow,
+    );
+  });
+
+  it("still applies the idempotent Public push to props exactly once", () => {
+    const props: DatabaseCommonInteractionProps = makeLabelRestrictedProps();
+
+    AccessControlPermission.getAccessControlIdsForQuery(
+      Monitor,
+      { projectId } as any,
+      { _id: true, createdAt: true, name: true } as any,
+      props,
+      DatabaseRequestType.Read,
+    );
+
+    const globalPermissions: Array<Permission> =
+      props.userGlobalAccessPermission?.globalPermissions || [];
+
+    expect(
+      globalPermissions.filter((permission: Permission) => {
+        return permission === Permission.Public;
+      }),
+    ).toHaveLength(1);
+  });
+
+  it("getAccessControlIdsForModel with three args still returns the model-level permitted ids", () => {
+    const result: Array<ObjectID> =
+      AccessControlPermission.getAccessControlIdsForModel(
+        Monitor,
+        makeLabelRestrictedProps(),
+        DatabaseRequestType.Read,
+      );
+
+    expect(toStrings(result)).toEqual([
+      permittedLabelA.toString(),
+      permittedLabelB.toString(),
+    ]);
   });
 });

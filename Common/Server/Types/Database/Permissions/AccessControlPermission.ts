@@ -23,6 +23,17 @@ import { combineWithPrivacyClause } from "../../../Utils/PrivacyFilterUtil";
 import QueryHelper from "../QueryHelper";
 import QueryUtil from "../QueryUtil";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+import Dictionary from "../../../../Types/Dictionary";
+
+/*
+ * Built once per invocation and threaded through the per-column loop; never
+ * cached on props or module scope (the multi-tenant path re-enters with
+ * different per-tenant props and must rebuild fresh).
+ */
+type AccessControlPermissionContext = {
+  nonAccessControlPermissions: Array<Permission>;
+  accessControlPermissions: Array<UserPermission>;
+};
 
 export default class AccessControlPermission {
   @CaptureSpan()
@@ -290,7 +301,10 @@ export default class AccessControlPermission {
     modelType: DatabaseBaseModelType,
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
+    context?: AccessControlPermissionContext,
   ): Array<ObjectID> {
+    context = context ?? this.buildPermissionContext(props);
+
     let labelIds: Array<ObjectID> = [];
 
     // check model level permissions.
@@ -299,7 +313,7 @@ export default class AccessControlPermission {
       TablePermission.getTablePermission(modelType, type);
 
     const modelLevelLabelIds: Array<ObjectID> =
-      this.getAccessControlIdsByPermissions(modelLevelPermissions, props);
+      this.getAccessControlIdsByPermissions(modelLevelPermissions, context);
 
     labelIds = [...labelIds, ...modelLevelLabelIds];
 
@@ -331,11 +345,23 @@ export default class AccessControlPermission {
       ];
     }
 
-    labelIds = this.getAccessControlIdsForModel(modelType, props, type);
+    // Build the permission context once — not per column.
+    const context: AccessControlPermissionContext =
+      this.buildPermissionContext(props);
+
+    labelIds = this.getAccessControlIdsForModel(
+      modelType,
+      props,
+      type,
+      context,
+    );
+
+    const columnAccessControlDictionary: Dictionary<ColumnAccessControl> =
+      model.getColumnAccessControlForAllColumns();
 
     for (const column of columnsToCheckPermissionFor) {
       const accessControl: ColumnAccessControl | null =
-        model.getColumnAccessControlFor(column);
+        columnAccessControlDictionary[column] || null;
 
       if (!accessControl) {
         continue;
@@ -343,21 +369,21 @@ export default class AccessControlPermission {
 
       if (type === DatabaseRequestType.Read && accessControl.read) {
         const columnReadLabelIds: Array<ObjectID> =
-          this.getAccessControlIdsByPermissions(accessControl.read, props);
+          this.getAccessControlIdsByPermissions(accessControl.read, context);
 
         labelIds = [...labelIds, ...columnReadLabelIds];
       }
 
       if (type === DatabaseRequestType.Create && accessControl.create) {
         const columnCreateLabelIds: Array<ObjectID> =
-          this.getAccessControlIdsByPermissions(accessControl.create, props);
+          this.getAccessControlIdsByPermissions(accessControl.create, context);
 
         labelIds = [...labelIds, ...columnCreateLabelIds];
       }
 
       if (type === DatabaseRequestType.Update && accessControl.update) {
         const columnUpdateLabelIds: Array<ObjectID> =
-          this.getAccessControlIdsByPermissions(accessControl.update, props);
+          this.getAccessControlIdsByPermissions(accessControl.update, context);
 
         labelIds = [...labelIds, ...columnUpdateLabelIds];
       }
@@ -369,35 +395,40 @@ export default class AccessControlPermission {
     return distinctLabelIds;
   }
 
-  private static getAccessControlIdsByPermissions(
-    permissions: Array<Permission>,
+  private static buildPermissionContext(
     props: DatabaseCommonInteractionProps,
-  ): Array<ObjectID> {
+  ): AccessControlPermissionContext {
     const userPermissions: Array<UserPermission> =
       DatabaseCommonInteractionPropsUtil.getUserPermissions(
         props,
         PermissionType.Allow,
       );
 
-    const nonAccessControlPermissionPermission: Array<Permission> =
-      PermissionHelper.getNonAccessControlPermissions(userPermissions);
+    return {
+      nonAccessControlPermissions:
+        PermissionHelper.getNonAccessControlPermissions(userPermissions),
+      accessControlPermissions:
+        PermissionHelper.getAccessControlPermissions(userPermissions),
+    };
+  }
 
-    const accessControlPermissions: Array<UserPermission> =
-      PermissionHelper.getAccessControlPermissions(userPermissions);
-
+  private static getAccessControlIdsByPermissions(
+    permissions: Array<Permission>,
+    context: AccessControlPermissionContext,
+  ): Array<ObjectID> {
     let labelIds: Array<ObjectID> = [];
 
     if (
       PermissionHelper.doesPermissionsIntersect(
         permissions,
-        nonAccessControlPermissionPermission,
+        context.nonAccessControlPermissions,
       )
     ) {
       return []; // if this is intersecting, then return empty array. We dont need to check for access control.
     }
 
     for (const permission of permissions) {
-      for (const accessControlPermission of accessControlPermissions) {
+      for (const accessControlPermission of context.accessControlPermissions) {
         if (
           accessControlPermission.permission === permission &&
           accessControlPermission.labelIds.length > 0

@@ -7,12 +7,7 @@ import { JSONObject } from "Common/Types/JSON";
 import LogScrubAction from "Common/Types/Log/LogScrubAction";
 import LogScrubPatternType from "Common/Types/Log/LogScrubPatternType";
 import crypto from "crypto";
-
-interface CacheEntry {
-  rules: Array<LogScrubRule>;
-  compiledPatterns: Array<CompiledRule>;
-  loadedAt: number;
-}
+import InMemoryTTLCache from "Common/Server/Infrastructure/InMemoryTTLCache";
 
 interface CompiledRule {
   rule: LogScrubRule;
@@ -20,8 +15,10 @@ interface CompiledRule {
 }
 
 const CACHE_TTL_MS: number = 60 * 1000; // 60 seconds
+const MAX_CACHED_PROJECTS: number = 10_000;
 
-const scrubRuleCache: Map<string, CacheEntry> = new Map();
+const scrubRuleCache: InMemoryTTLCache<Array<CompiledRule>> =
+  new InMemoryTTLCache<Array<CompiledRule>>(MAX_CACHED_PROJECTS);
 
 // Built-in PII detection patterns
 const BUILT_IN_PATTERNS: Record<string, RegExp> = {
@@ -50,10 +47,12 @@ export class LogScrubRuleService {
     projectId: ObjectID,
   ): Promise<Array<CompiledRule>> {
     const cacheKey: string = projectId.toString();
-    const cached: CacheEntry | undefined = scrubRuleCache.get(cacheKey);
+    const cached: Array<CompiledRule> | undefined =
+      scrubRuleCache.get(cacheKey);
 
-    if (cached && Date.now() - cached.loadedAt < CACHE_TTL_MS) {
-      return cached.compiledPatterns;
+    // Empty arrays are truthy — zero-rule projects stay negatively cached.
+    if (cached) {
+      return cached;
     }
 
     const service: DatabaseService<LogScrubRule> =
@@ -97,11 +96,7 @@ export class LogScrubRuleService {
       }
     }
 
-    scrubRuleCache.set(cacheKey, {
-      rules,
-      compiledPatterns,
-      loadedAt: Date.now(),
-    });
+    scrubRuleCache.set(cacheKey, compiledPatterns, CACHE_TTL_MS);
 
     return compiledPatterns;
   }

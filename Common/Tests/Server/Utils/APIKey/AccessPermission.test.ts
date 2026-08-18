@@ -6,10 +6,24 @@ import {
   it,
   jest,
 } from "@jest/globals";
+
+/*
+ * PasswordHash has a known, pre-existing TS5.9 compile failure under ts-jest
+ * (Buffer vs BinaryLike) that breaks every suite whose import graph reaches
+ * it. Nothing here touches password hashing; stub the module before the
+ * service import graph drags it into compilation.
+ */
+jest.mock("../../../../Server/Utils/PasswordHash", () => {
+  return {
+    __esModule: true,
+    default: class PasswordHashStub {},
+  };
+});
+
 import APIKeyAccessPermission from "../../../../Server/Utils/APIKey/AccessPermission";
-import ApiKeyPermissionService from "../../../../Server/Services/ApiKeyPermissionService";
-import APIKeyPermission from "../../../../Models/DatabaseModels/ApiKeyPermission";
-import Label from "../../../../Models/DatabaseModels/Label";
+import ApiKeyPermissionService, {
+  ApiKeyPermissionRow,
+} from "../../../../Server/Services/ApiKeyPermissionService";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission, {
   UserGlobalAccessPermission,
@@ -27,10 +41,11 @@ import { getJestSpyOn } from "../../../Spy";
  * key full control of the project; one that dropped it from the master path
  * would break trusted internal automation. Both directions are pinned below.
  *
- * getApiTenantAccessPermission also reshapes stored permission rows into the
- * runtime UserPermission shape (labels -> labelIds, block flag preserved). That
- * mapping is where a dropped label would quietly widen a scoped permission, so
- * it is tested against a spied service rather than a live database.
+ * getApiTenantAccessPermission also reshapes the (cached) permission rows into
+ * the runtime UserPermission shape (labelIds carried over, block flag
+ * preserved). That mapping is where a dropped label would quietly widen a
+ * scoped permission, so it is tested against a spied service rather than a
+ * live database.
  */
 
 const projectId: ObjectID = ObjectID.generate();
@@ -118,9 +133,9 @@ describe("APIKeyAccessPermission.getMasterApiTenantAccessPermission", () => {
 });
 
 describe("APIKeyAccessPermission.getApiTenantAccessPermission", () => {
-  const spyFindBy: jest.SpyInstance = getJestSpyOn(
+  const spyFindPermissions: jest.SpyInstance = getJestSpyOn(
     ApiKeyPermissionService,
-    "findBy",
+    "findPermissionsByApiKeyId",
   );
 
   beforeEach(() => {
@@ -135,40 +150,33 @@ describe("APIKeyAccessPermission.getApiTenantAccessPermission", () => {
     permission: Permission;
     labelIds?: Array<ObjectID>;
     isBlockPermission?: boolean;
-  }) => APIKeyPermission = (data: {
+  }) => ApiKeyPermissionRow = (data: {
     permission: Permission;
     labelIds?: Array<ObjectID>;
     isBlockPermission?: boolean;
-  }): APIKeyPermission => {
-    const row: APIKeyPermission = new APIKeyPermission();
-    row.permission = data.permission;
-    if (data.labelIds) {
-      row.labels = data.labelIds.map((id: ObjectID) => {
-        const label: Label = new Label();
-        label.id = id;
-        return label;
-      });
-    }
-    row.isBlockPermission = data.isBlockPermission ?? false;
-    return row;
+  }): ApiKeyPermissionRow => {
+    return {
+      permission: data.permission,
+      labelIds: data.labelIds ?? [],
+      isBlockPermission: data.isBlockPermission ?? false,
+    };
   };
 
   it("queries the permissions for exactly this api key", async () => {
-    spyFindBy.mockResolvedValue([] as never);
+    spyFindPermissions.mockResolvedValue([] as never);
 
     await APIKeyAccessPermission.getApiTenantAccessPermission(
       projectId,
       apiKeyId,
     );
 
-    expect(spyFindBy).toHaveBeenCalledTimes(1);
-    const arg: { query: { apiKeyId: ObjectID } } = spyFindBy.mock
-      .calls[0]![0] as { query: { apiKeyId: ObjectID } };
-    expect(arg.query.apiKeyId.toString()).toBe(apiKeyId.toString());
+    expect(spyFindPermissions).toHaveBeenCalledTimes(1);
+    const arg: ObjectID = spyFindPermissions.mock.calls[0]![0] as ObjectID;
+    expect(arg.toString()).toBe(apiKeyId.toString());
   });
 
   it("returns just the default baseline when the key has no permissions", async () => {
-    spyFindBy.mockResolvedValue([] as never);
+    spyFindPermissions.mockResolvedValue([] as never);
 
     const perm: UserTenantAccessPermission =
       await APIKeyAccessPermission.getApiTenantAccessPermission(
@@ -187,7 +195,7 @@ describe("APIKeyAccessPermission.getApiTenantAccessPermission", () => {
 
   it("maps each stored permission row onto the tenant permission", async () => {
     const labelId: ObjectID = ObjectID.generate();
-    spyFindBy.mockResolvedValue([
+    spyFindPermissions.mockResolvedValue([
       makeRow({
         permission: Permission.CreateProjectIncident,
         labelIds: [labelId],
@@ -219,7 +227,7 @@ describe("APIKeyAccessPermission.getApiTenantAccessPermission", () => {
   });
 
   it("preserves the block flag so a deny row stays a deny row", async () => {
-    spyFindBy.mockResolvedValue([
+    spyFindPermissions.mockResolvedValue([
       makeRow({
         permission: Permission.CreateProjectIncident,
         labelIds: [],
@@ -243,11 +251,16 @@ describe("APIKeyAccessPermission.getApiTenantAccessPermission", () => {
   });
 
   it("treats a row with no labels as an empty (unscoped) label set", async () => {
-    const row: APIKeyPermission = new APIKeyPermission();
-    row.permission = Permission.CreateProjectIncident;
-    // labels intentionally left undefined.
-    row.isBlockPermission = false;
-    spyFindBy.mockResolvedValue([row] as never);
+    /*
+     * The service DTO normalizes a stored row's undefined labels to [] (pinned
+     * in ApiKeyPermissionService.test.ts); here the mapping must keep that
+     * empty set an array rather than dropping it to undefined.
+     */
+    spyFindPermissions.mockResolvedValue([
+      makeRow({
+        permission: Permission.CreateProjectIncident,
+      }),
+    ] as never);
 
     const perm: UserTenantAccessPermission =
       await APIKeyAccessPermission.getApiTenantAccessPermission(
@@ -261,7 +274,6 @@ describe("APIKeyAccessPermission.getApiTenantAccessPermission", () => {
       },
     );
     expect(mapped).toBeDefined();
-    // No crash on undefined labels, and it becomes [] rather than undefined.
     expect(mapped!.labelIds).toEqual([]);
   });
 });
