@@ -52,18 +52,17 @@ DNSSEC 監控會驗證從根區域往下到您網域的整條信任鏈。這讓�
 | DNSSEC Signature Expires In Days    | 距離最早一筆 RRSIG 簽章過期的天數                     |
 | DNSSEC Resolver Consensus (AD Flag) | 每個被查詢的解析器都回傳 AD（Authenticated Data）旗標 |
 | DNSSEC Nameservers Are Consistent   | 所有權威名稱伺服器都回傳相同的 SOA 序號               |
-| DNSSEC Is Valid                     | 所有驗證檢查的彙總通過／失敗結果                      |
 
 ### 過濾器類型
 
-對於 **DNSSEC Chain Is Valid**、**DNSSEC DNSKEY Record Exists**、**DNSSEC DS Record Exists At Parent**、**DNSSEC Resolver Consensus (AD Flag)**、**DNSSEC Nameservers Are Consistent** 以及 **DNSSEC Is Valid**：
+對於 **DNSSEC Chain Is Valid**、**DNSSEC DNSKEY Record Exists**、**DNSSEC DS Record Exists At Parent**、**DNSSEC Resolver Consensus (AD Flag)** 以及 **DNSSEC Nameservers Are Consistent**：
 
 - **True** — 條件為真
 - **False** — 條件為假
 
 對於 **DNSSEC Signature Expires In Days**：
 
-- **Greater Than**、**Less Than**、**Greater Than or Equal To**、**Less Than or Equal To**、**Equal To**、**Not Equal To**
+- **Greater Than**、**Less Than**、**Greater Than or Equal To**、**Less Than or Equal To**
 
 ### 範例條件
 

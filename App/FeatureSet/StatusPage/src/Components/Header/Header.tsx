@@ -1,6 +1,5 @@
 import Logo from "../Logo/Logo";
 import Link from "Common/Types/Link";
-import Header from "Common/UI/Components/Header/Header";
 import UILink from "Common/UI/Components/Link/Link";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -10,6 +9,7 @@ import React, {
   ReactElement,
   useState,
   useEffect,
+  useRef,
 } from "react";
 
 export interface ComponentProps {
@@ -23,43 +23,27 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
-  const [isMobile, setIsMobile] = useState<boolean>(false);
+  const mobileMenuRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
 
-  // Check if we're on mobile
-  useEffect(() => {
-    const checkMobile: () => void = (): void => {
-      setIsMobile(window.innerWidth < 768); // md breakpoint
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-
-    return () => {
-      return window.removeEventListener("resize", checkMobile);
-    };
-  }, []);
-
-  // Close mobile menu when clicking outside
+  /*
+   * Close the mobile menu when clicking outside it. This used to look the
+   * toggle and the menu up with document.querySelector on data attributes
+   * passed to <Button>, which never reach the DOM — Button has an explicit
+   * prop list and spreads nothing — so both lookups returned null and the
+   * menu never closed. A ref on the wrapper that holds both is what actually
+   * works.
+   */
   useEffect(() => {
     const handleClickOutside: (event: MouseEvent) => void = (
       event: MouseEvent,
     ): void => {
-      if (isMobileMenuOpen && event.target instanceof Element) {
-        const mobileMenu: Element | null = document.querySelector(
-          "[data-mobile-header-menu]",
-        );
-        const mobileToggle: Element | null = document.querySelector(
-          "[data-mobile-header-toggle]",
-        );
-
-        if (
-          mobileMenu &&
-          mobileToggle &&
-          !mobileMenu.contains(event.target) &&
-          !mobileToggle.contains(event.target)
-        ) {
-          setIsMobileMenuOpen(false);
-        }
+      if (
+        mobileMenuRef.current &&
+        event.target instanceof Node &&
+        !mobileMenuRef.current.contains(event.target)
+      ) {
+        setIsMobileMenuOpen(false);
       }
     };
 
@@ -73,99 +57,95 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
     return () => {}; // Return cleanup function for all paths
   }, [isMobileMenuOpen]);
 
-  if (!props.logo && props.links.length === 0) {
+  const hasLinks: boolean = Boolean(props.links && props.links.length > 0);
+
+  if (!props.logo && !hasLinks) {
     return <></>;
   }
 
+  /*
+   * This deliberately does not use Common's <Header>. That component wraps its
+   * rightComponents in "hidden lg:flex", which hid this header's links — and
+   * the mobile menu button meant to replace them — on every viewport under
+   * 1024px. The status page header is a logo and a row of links; a plain flex
+   * row with md: breakpoints is both simpler and correct.
+   */
   return (
-    <div>
-      {(props.logo || props.links?.length > 0) && (
-        <Header
-          className="bg-transparent flex justify-between mt-5"
-          leftComponents={
-            <>
-              {props.logo && (
-                <div id="status-page-logo" className="flex h-12 mt-2">
-                  <Logo
-                    file={props.logo}
-                    alt={props.logoAltText}
-                    onClick={() => {
-                      props.onLogoClicked();
-                    }}
-                    style={{
-                      height: "50px",
-                    }}
-                  />
-                </div>
-              )}
-            </>
-          }
-          rightComponents={
-            <>
-              {props.links && props.links.length > 0 && (
-                <div key={"links"} className="relative">
-                  {/* Desktop: Show all links */}
-                  <div className="hidden md:flex space-x-4">
-                    {props.links.map((link: Link, i: number) => {
-                      return (
-                        <div key={i} className="flex items-center">
-                          <UILink
-                            className="flex w-full flex-col items-center text-gray-400 hover:text-gray-600 font-medium font-mono"
-                            to={link.to}
-                            openInNewTab={link.openInNewTab}
-                          >
-                            {link.title}
-                          </UILink>
-                        </div>
-                      );
-                    })}
-                  </div>
+    <div className="mt-5 flex items-start justify-between gap-4">
+      <div className="flex min-h-[3rem] items-center">
+        {props.logo && (
+          <div id="status-page-logo" className="flex">
+            <Logo
+              file={props.logo}
+              alt={props.logoAltText}
+              onClick={() => {
+                props.onLogoClicked();
+              }}
+              style={{
+                height: "50px",
+              }}
+            />
+          </div>
+        )}
+      </div>
 
-                  {/* Mobile: Show hamburger menu */}
-                  {isMobile && (
-                    <div className="md:hidden">
-                      <Button
-                        buttonStyle={ButtonStyleType.OUTLINE}
+      {hasLinks && (
+        <div className="relative flex min-h-[3rem] items-center">
+          {/* Desktop: every link inline. */}
+          <div className="hidden md:flex md:items-center md:gap-5">
+            {props.links.map((link: Link, i: number) => {
+              return (
+                <UILink
+                  key={i}
+                  className="rounded text-sm font-medium text-gray-500 transition-colors duration-200 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-indigo-500"
+                  to={link.to}
+                  openInNewTab={link.openInNewTab}
+                >
+                  {link.title}
+                </UILink>
+              );
+            })}
+          </div>
+
+          {/*
+           * Mobile: collapse the same links behind a menu button. Rendered
+           * unconditionally and hidden with md:hidden — deciding in JS from
+           * window.innerWidth made the button pop in after the first paint.
+           */}
+          <div className="md:hidden" ref={mobileMenuRef}>
+            <Button
+              buttonStyle={ButtonStyleType.OUTLINE}
+              onClick={() => {
+                return setIsMobileMenuOpen(!isMobileMenuOpen);
+              }}
+              className="p-2"
+              icon={isMobileMenuOpen ? IconProp.Close : IconProp.More}
+              dataTestId="mobile-header-toggle"
+              ariaExpanded={isMobileMenuOpen}
+            />
+
+            {isMobileMenuOpen && (
+              <div className="animate-slide-down absolute right-0 top-full z-50 mt-2 min-w-48 rounded-lg border border-gray-200 bg-white py-2 shadow-lg">
+                {props.links.map((link: Link, i: number) => {
+                  return (
+                    <div key={i} className="block">
+                      <UILink
+                        className="block px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900"
+                        to={link.to}
+                        openInNewTab={link.openInNewTab}
                         onClick={() => {
-                          return setIsMobileMenuOpen(!isMobileMenuOpen);
+                          return setIsMobileMenuOpen(false);
                         }}
-                        className="p-2"
-                        icon={isMobileMenuOpen ? IconProp.Close : IconProp.More}
-                        dataTestId="mobile-header-toggle"
-                        data-mobile-header-toggle
-                      />
-
-                      {/* Mobile dropdown menu */}
-                      {isMobileMenuOpen && (
-                        <div
-                          className="absolute top-full right-0 z-50 mt-2 min-w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2"
-                          data-mobile-header-menu
-                        >
-                          {props.links.map((link: Link, i: number) => {
-                            return (
-                              <div key={i} className="block">
-                                <UILink
-                                  className="block px-4 py-2 text-gray-700 hover:bg-gray-50 hover:text-gray-900 font-medium"
-                                  to={link.to}
-                                  openInNewTab={link.openInNewTab}
-                                  onClick={() => {
-                                    return setIsMobileMenuOpen(false);
-                                  }}
-                                >
-                                  {link.title}
-                                </UILink>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                      >
+                        {link.title}
+                      </UILink>
                     </div>
-                  )}
-                </div>
-              )}
-            </>
-          }
-        />
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

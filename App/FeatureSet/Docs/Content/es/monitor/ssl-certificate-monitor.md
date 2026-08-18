@@ -34,18 +34,16 @@ Puedes configurar criterios para determinar cuándo el estado de tu certificado 
 
 | Tipo de verificación                        | Descripción                                                           |
 | ------------------------------------------- | --------------------------------------------------------------------- |
-| Está en línea                               | Si el servidor es accesible                                           |
 | El certificado es válido                    | Si el certificado es válido (no caducado, no firmado automáticamente) |
 | El certificado está firmado automáticamente | Si el certificado está firmado automáticamente                        |
 | El certificado está caducado                | Si el certificado ha caducado                                         |
 | El certificado no es válido                 | Si el certificado no es válido                                        |
 | Caduca en horas                             | Número de horas hasta que caduca el certificado                       |
 | Caduca en días                              | Número de días hasta que caduca el certificado                        |
-| La solicitud superó el tiempo de espera     | Si la conexión superó el tiempo de espera                             |
 
 ### Tipos de filtro
 
-Para **Está en línea**, **El certificado es válido**, **El certificado está firmado automáticamente**, **El certificado está caducado**, **El certificado no es válido** y **La solicitud superó el tiempo de espera**:
+Para **El certificado es válido**, **El certificado está firmado automáticamente**, **El certificado está caducado** y **El certificado no es válido**:
 
 - **Verdadero**: La condición es verdadera
 - **Falso**: La condición es falsa

@@ -210,6 +210,7 @@ kubectl apply -f oneuptime-probe.yaml
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - 自訂程式碼監控器指令碼的逾時時間（以毫秒為單位，預設值：60000）
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` - 探針傳送至 OneUptime 的每個請求的期限（預設值：45000）
 - `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` - 對傳送至 OneUptime 且慢於此時間的請求記錄警告（預設值：10000）
+- `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` - 檢查單一監控器的時限，逾時後放棄本次檢查並於下一週期重試（預設值：900000）
 
 #### Proxy 設定
 

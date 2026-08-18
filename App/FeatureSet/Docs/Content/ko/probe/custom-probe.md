@@ -210,6 +210,7 @@ OneUptime을 자체 호스팅하는 경우 `ONEUPTIME_URL`을 커스텀 자체 �
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - 커스텀 코드 모니터 스크립트의 타임아웃 (밀리초 단위, 기본값: 60000)
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` - 프로브가 OneUptime으로 보내는 각 요청의 제한 시간 (기본값: 45000)
 - `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` - OneUptime으로 보낸 요청이 이 시간보다 느릴 때 경고를 기록 (기본값: 10000)
+- `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` - 모니터 하나를 검사하는 제한 시간으로, 초과하면 해당 검사를 중단하고 다음 주기에 다시 시도 (기본값: 900000)
 
 #### 프록시 구성
 

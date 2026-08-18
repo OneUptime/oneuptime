@@ -83,7 +83,14 @@ Velg hvordan metrikkverdiene skal aggregeres for evaluering:
 - **Greater Than or Equal To** – Metrikkverdien er ved eller over en terskel
 - **Less Than or Equal To** – Metrikkverdien er ved eller under en terskel
 - **Equal To** – Metrikkverdien samsvarer nøyaktig
-- **Not Equal To** – Metrikkverdien samsvarer ikke
+
+Baseline-anomalideteksjon (ingen terskel – skjemaet viser i stedet **Sensitivity** og **Baseline Window**, og sammenligner hver måling med baselinen for samme time i uken):
+
+- **Anomalously High** – Verdien stiger over det forventede området
+- **Anomalously Low** – Verdien faller under det forventede området
+- **Anomalous** – Verdien forlater det forventede området i begge retninger
+
+Anomalibetingelser gir ingen varsler før det finnes minst det valgte Baseline Window med historikk (Learning-tilstand).
 
 ### Eksempelkriterier
 

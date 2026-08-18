@@ -78,16 +78,8 @@ export default class ServerMonitorCriteria {
     }
 
     if (input.criteriaFilter.checkOn === CheckOn.IsValidCertificate) {
-      const isValidCertificate: boolean = Boolean(
-        sslResponse &&
-          dataToProcess.isOnline &&
-          sslResponse.expiresAt &&
-          !sslResponse.isSelfSigned &&
-          OneUptimeDate.isAfter(
-            sslResponse.expiresAt,
-            OneUptimeDate.getCurrentDate(),
-          ),
-      );
+      const isValidCertificate: boolean =
+        ServerMonitorCriteria.isValidCertificate(dataToProcess);
 
       const isTrue: boolean =
         input.criteriaFilter.filterType === FilterType.True;
@@ -100,7 +92,7 @@ export default class ServerMonitorCriteria {
       }
 
       if (!isValidCertificate && isFalse) {
-        return "SSL certificate is not valid.";
+        return ServerMonitorCriteria.invalidCertificateReason(dataToProcess);
       }
     }
 
@@ -149,18 +141,19 @@ export default class ServerMonitorCriteria {
     }
 
     if (input.criteriaFilter.checkOn === CheckOn.IsNotAValidCertificate) {
+      /*
+       * The exact complement of IsValidCertificate, by construction.
+       *
+       * These two used to be computed independently, and both came out
+       * false whenever expiresAt was missing or unparseable - so a
+       * certificate the probe could not fully read satisfied NEITHER
+       * "valid" nor "not valid", every criterion went unmatched, and the
+       * monitor silently stayed at its default status. Deriving one from
+       * the other makes that state unreachable.
+       */
       const isNotValid: boolean =
-        !sslResponse ||
-        !dataToProcess.isOnline ||
-        Boolean(
-          sslResponse &&
-            sslResponse.expiresAt &&
-            (sslResponse.isSelfSigned ||
-              OneUptimeDate.isBefore(
-                sslResponse.expiresAt,
-                OneUptimeDate.getCurrentDate(),
-              )),
-        );
+        !ServerMonitorCriteria.isValidCertificate(dataToProcess);
+
       const isTrue: boolean =
         input.criteriaFilter.filterType === FilterType.True;
 
@@ -168,7 +161,7 @@ export default class ServerMonitorCriteria {
         input.criteriaFilter.filterType === FilterType.False;
 
       if (isNotValid && isTrue) {
-        return "SSL certificate is not valid.";
+        return ServerMonitorCriteria.invalidCertificateReason(dataToProcess);
       }
 
       if (!isNotValid && isFalse) {
@@ -229,5 +222,83 @@ export default class ServerMonitorCriteria {
     }
 
     return null;
+  }
+
+  /*
+   * The single source of truth for "is this certificate trustworthy",
+   * shared by IsValidCertificate and IsNotAValidCertificate so the two can
+   * never both be false for the same response.
+   *
+   * The probe now records the strict-TLS verdict explicitly on
+   * sslResponse.isValidCertificate. Responses written before that field
+   * existed (rows already in MonitorProbe.lastMonitoringLog, and any probe
+   * still running an older build) do not carry it, so the pre-existing
+   * heuristic is kept as the fallback rather than treating those as
+   * invalid and flipping healthy monitors to Down on upgrade.
+   */
+  private static isValidCertificate(
+    dataToProcess: ProbeMonitorResponse,
+  ): boolean {
+    const sslResponse: SslMonitorResponse | undefined =
+      dataToProcess.sslResponse;
+
+    if (!sslResponse || !dataToProcess.isOnline) {
+      return false;
+    }
+
+    if (sslResponse.isValidCertificate !== undefined) {
+      return Boolean(sslResponse.isValidCertificate);
+    }
+
+    // Legacy payload: fall back to what could be inferred before.
+    return Boolean(
+      sslResponse.expiresAt &&
+        !sslResponse.isSelfSigned &&
+        OneUptimeDate.isAfter(
+          sslResponse.expiresAt,
+          OneUptimeDate.getCurrentDate(),
+        ),
+    );
+  }
+
+  /*
+   * Names WHY the certificate is not trustworthy. The root cause is what
+   * reaches the incident and the person paged by it, so "SSL certificate is
+   * not valid" on its own is not good enough when the probe knows it was a
+   * hostname mismatch.
+   */
+  private static invalidCertificateReason(
+    dataToProcess: ProbeMonitorResponse,
+  ): string {
+    const sslResponse: SslMonitorResponse | undefined =
+      dataToProcess.sslResponse;
+
+    if (!dataToProcess.isOnline) {
+      return "SSL certificate could not be checked because the endpoint is not reachable.";
+    }
+
+    if (!sslResponse) {
+      return "SSL certificate is not valid.";
+    }
+
+    if (sslResponse.certificateValidationError) {
+      return `SSL certificate is not valid: ${sslResponse.certificateValidationError}`;
+    }
+
+    if (sslResponse.isSelfSigned) {
+      return "SSL certificate is not valid: the certificate is self signed.";
+    }
+
+    if (
+      sslResponse.expiresAt &&
+      OneUptimeDate.isBefore(
+        sslResponse.expiresAt,
+        OneUptimeDate.getCurrentDate(),
+      )
+    ) {
+      return "SSL certificate is not valid: the certificate has expired.";
+    }
+
+    return "SSL certificate is not valid.";
   }
 }

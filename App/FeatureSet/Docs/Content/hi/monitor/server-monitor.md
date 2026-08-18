@@ -115,25 +115,31 @@ Agent आपके server से निम्नलिखित metrics एक�
 
 ### उपलब्ध Check Types
 
-| Check Type             | विवरण                                                              |
-| ---------------------- | ------------------------------------------------------------------ |
-| Is Online              | server agent report कर रहा है (heartbeat के आधार पर)               |
-| CPU Usage Percent      | वर्तमान CPU utilization percentage                                 |
-| Memory Usage Percent   | वर्तमान memory utilization percentage                              |
-| Disk Usage Percent     | वर्तमान disk utilization percentage (एक specific disk path के लिए) |
-| Server Process Name    | एक specific नाम वाला process चल रहा है या नहीं                     |
-| Server Process Command | एक specific command वाला process चल रहा है या नहीं                 |
-| Server Process PID     | एक specific PID वाला process चल रहा है या नहीं                     |
+| Check Type               | विवरण                                                              |
+| ------------------------ | ------------------------------------------------------------------ |
+| Is Online                | server agent report कर रहा है (heartbeat के आधार पर)               |
+| CPU Usage Percent        | वर्तमान CPU utilization percentage                                 |
+| Memory Usage Percent     | वर्तमान memory utilization percentage                              |
+| Disk Usage Percent       | वर्तमान disk utilization percentage (एक specific disk path के लिए) |
+| Swap Usage Percent       | वर्तमान swap utilization percentage                                |
+| CPU IO Wait Percent      | I/O के इंतज़ार में बिताए गए CPU समय का प्रतिशत                     |
+| Load Average (1 minute)  | पिछले 1 मिनट का system load average                                |
+| Load Average (5 minute)  | पिछले 5 मिनट का system load average                                |
+| Load Average (15 minute) | पिछले 15 मिनट का system load average                               |
+| Server Process Name      | एक specific नाम वाला process चल रहा है या नहीं                     |
+| Server Process Command   | एक specific command वाला process चल रहा है या नहीं                 |
+| Server Process PID       | एक specific PID वाला process चल रहा है या नहीं                     |
 
 ### Filter Types
 
-Numeric metrics के लिए (CPU, memory, disk):
+Numeric metrics के लिए (CPU, memory, disk, swap, IO wait, load average):
 
 - **Greater Than** — Value एक threshold से अधिक है
 - **Less Than** — Value एक threshold से कम है
 - **Greater Than or Equal To** — Value एक threshold पर या उससे ऊपर है
 - **Less Than or Equal To** — Value एक threshold पर या उससे नीचे है
-- **Evaluate Over Time** — एक time window पर aggregation (Average, Sum, Maximum, Minimum, All Values, Any Value) का उपयोग करके evaluate करें
+
+**Evaluate this criteria over a period of time** criteria form पर एक checkbox है, filter condition नहीं। इसे चालू करने पर नवीनतम check के value के बजाय **Evaluate** (Average, Sum, Maximum, Minimum, All Values, Any Value) में चुना गया aggregate उस window पर तुलना किया जाता है जो **For the last (in minutes)** में सेट है।
 
 Process checks के लिए:
 

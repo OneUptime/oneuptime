@@ -29,7 +29,7 @@ import EventItem, {
   TimelineItemType,
 } from "Common/UI/Components/EventItem/EventItem";
 import { StatusPageApiRoute } from "Common/ServiceRoute";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import { EventDetailSkeleton } from "../../Components/Skeleton/PageSkeletons";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -874,18 +874,66 @@ const Detail: FunctionComponent<PageComponentProps> = (
     }
   }, [isLoading, incident, episode, isEpisode, i18nInstance.resolvedLanguage]);
 
-  if (isLoading) {
-    return <PageLoader isVisible={true} />;
-  }
-
-  if (error) {
-    return <ErrorMessage message={error} />;
-  }
-
   const pageTitle: string = isEpisode
     ? t("episodes.report")
     : t("incidents.report");
   const hasItem: boolean = isEpisode ? Boolean(episode) : Boolean(incident);
+
+  type RenderPageFunction = (pageContent: ReactElement) => ReactElement;
+
+  /*
+   * The page chrome — title and breadcrumbs — comes from static translations,
+   * not from the request, so render it immediately and swap only the body
+   * between the loading skeleton, an error and the real content. Returning a
+   * bare loader instead used to blank the whole page and drag the footer up
+   * into the middle of the viewport until the data arrived.
+   */
+  const renderPage: RenderPageFunction = (
+    pageContent: ReactElement,
+  ): ReactElement => {
+    return (
+      <Page
+        title={pageTitle}
+        breadcrumbLinks={[
+          {
+            title: t("nav.overview"),
+            to: RouteUtil.populateRouteParams(
+              StatusPageUtil.isPreviewPage()
+                ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
+                : (RouteMap[PageMap.OVERVIEW] as Route),
+            ),
+          },
+          {
+            title: t("incidents.title"),
+            to: RouteUtil.populateRouteParams(
+              StatusPageUtil.isPreviewPage()
+                ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
+                : (RouteMap[PageMap.INCIDENT_LIST] as Route),
+            ),
+          },
+          {
+            title: pageTitle,
+            to: RouteUtil.populateRouteParams(
+              StatusPageUtil.isPreviewPage()
+                ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
+                : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
+              Navigation.getLastParamAsObjectID(),
+            ),
+          },
+        ]}
+      >
+        {pageContent}
+      </Page>
+    );
+  };
+
+  if (isLoading) {
+    return renderPage(<EventDetailSkeleton />);
+  }
+
+  if (error) {
+    return renderPage(<ErrorMessage message={error} />);
+  }
 
   /*
    * Only wait on parsedData when there is something to parse. If neither lookup found
@@ -893,43 +941,15 @@ const Detail: FunctionComponent<PageComponentProps> = (
    * below is what keeps this page from loading forever.
    */
   if (hasItem && !parsedData) {
-    return <PageLoader isVisible={true} />;
+    return renderPage(<EventDetailSkeleton />);
   }
 
-  return (
-    <Page
-      title={pageTitle}
-      breadcrumbLinks={[
-        {
-          title: t("nav.overview"),
-          to: RouteUtil.populateRouteParams(
-            StatusPageUtil.isPreviewPage()
-              ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
-              : (RouteMap[PageMap.OVERVIEW] as Route),
-          ),
-        },
-        {
-          title: t("incidents.title"),
-          to: RouteUtil.populateRouteParams(
-            StatusPageUtil.isPreviewPage()
-              ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
-              : (RouteMap[PageMap.INCIDENT_LIST] as Route),
-          ),
-        },
-        {
-          title: pageTitle,
-          to: RouteUtil.populateRouteParams(
-            StatusPageUtil.isPreviewPage()
-              ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
-              : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
-            Navigation.getLastParamAsObjectID(),
-          ),
-        },
-      ]}
-    >
+  return renderPage(
+    <>
       {hasItem && parsedData ? <EventItem {...parsedData} /> : <></>}
       {!hasItem ? (
         <EmptyState
+          paddingClassName="py-12 sm:py-16"
           id="item-empty-state"
           title={isEpisode ? t("episodes.none") : t("incidents.none")}
           description={
@@ -940,7 +960,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
       ) : (
         <></>
       )}
-    </Page>
+    </>,
   );
 };
 

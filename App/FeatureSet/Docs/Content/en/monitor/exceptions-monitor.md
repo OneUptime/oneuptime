@@ -38,13 +38,13 @@ Select one or more services to monitor exceptions from. Services must be sending
 
 ## Monitoring Criteria
 
-### Available Check Types
+### Available Filter Types
 
-| Check Type      | Description                                                       |
+| Filter Type     | Description                                                       |
 | --------------- | ----------------------------------------------------------------- |
 | Exception Count | The number of exceptions matching your filters in the time window |
 
-### Filter Types
+### Filter Conditions
 
 - **Greater Than** — Exception count exceeds a threshold
 - **Less Than** — Exception count is below a threshold
@@ -58,24 +58,24 @@ Select one or more services to monitor exceptions from. Services must be sending
 #### Alert if more than 10 exceptions in 60 seconds
 
 - **Time Window**: 60 seconds
-- **Check On**: Exception Count
-- **Filter Type**: Greater Than
+- **Filter Type**: Exception Count
+- **Filter Condition**: Greater Than
 - **Value**: 10
 
 #### Alert on any NullPointerException
 
 - **Exception Types**: `NullPointerException`
 - **Time Window**: 60 seconds
-- **Check On**: Exception Count
-- **Filter Type**: Greater Than
+- **Filter Type**: Exception Count
+- **Filter Condition**: Greater Than
 - **Value**: 0
 
 #### Monitor exceptions containing a specific message
 
 - **Message**: `out of memory`
 - **Time Window**: 300 seconds
-- **Check On**: Exception Count
-- **Filter Type**: Greater Than
+- **Filter Type**: Exception Count
+- **Filter Condition**: Greater Than
 - **Value**: 0
 
 ## Setup Requirements

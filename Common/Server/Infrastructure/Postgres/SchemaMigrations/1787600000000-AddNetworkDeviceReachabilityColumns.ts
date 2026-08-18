@@ -19,10 +19,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * reachable, with that timestamp as its last attempt. Rows that were never
  * seen stay NULL and read as Pending, exactly as they did before.
  */
-export class AddNetworkDeviceReachabilityColumns1787500000000
+export class AddNetworkDeviceReachabilityColumns1787600000000
   implements MigrationInterface
 {
-  public name = "AddNetworkDeviceReachabilityColumns1787500000000";
+  public name = "AddNetworkDeviceReachabilityColumns1787600000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

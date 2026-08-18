@@ -122,7 +122,15 @@ El Agente Docker usa el receptor `docker_stats` de OpenTelemetry, que sondea la 
 
 ### Tipos de filtro
 
-- **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que**, **Igual a**, **Diferente de**
+- **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que**, **Igual a**
+
+Detección de anomalías por línea base (sin umbral: el formulario muestra **Sensibilidad** y **Ventana de línea base**, y compara cada muestra con la línea base de la misma hora de la semana):
+
+- **Anómalamente alto** — El valor sube por encima del rango esperado
+- **Anómalamente bajo** — El valor baja por debajo del rango esperado
+- **Anómalo** — El valor sale del rango esperado en cualquier dirección
+
+Las condiciones de anomalía no generan alertas hasta que exista al menos la ventana de línea base configurada de historial (estado Learning).
 
 ## Plantillas de alerta predefinidas
 

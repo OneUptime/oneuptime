@@ -30,22 +30,20 @@ Enter the full HTTPS URL of the endpoint whose SSL certificate you want to monit
 
 You can configure criteria to determine when your certificate status is considered online, degraded, or offline based on:
 
-### Available Check Types
+### Available Filter Types
 
-| Check Type                 | Description                                                     |
+| Filter Type                | Description                                                     |
 | -------------------------- | --------------------------------------------------------------- |
-| Is Online                  | Whether the server is reachable                                 |
 | Is Valid Certificate       | Whether the certificate is valid (not expired, not self-signed) |
 | Is Self-Signed Certificate | Whether the certificate is self-signed                          |
 | Is Expired Certificate     | Whether the certificate has expired                             |
 | Is Not A Valid Certificate | Whether the certificate is invalid                              |
 | Expires In Hours           | Number of hours until the certificate expires                   |
 | Expires In Days            | Number of days until the certificate expires                    |
-| Is Request Timeout         | Whether the connection timed out                                |
 
-### Filter Types
+### Filter Conditions
 
-For **Is Online**, **Is Valid Certificate**, **Is Self-Signed Certificate**, **Is Expired Certificate**, **Is Not A Valid Certificate**, and **Is Request Timeout**:
+For **Is Valid Certificate**, **Is Self-Signed Certificate**, **Is Expired Certificate**, and **Is Not A Valid Certificate**:
 
 - **True** — Condition is true
 - **False** — Condition is false
@@ -56,31 +54,29 @@ For **Expires In Hours** and **Expires In Days**:
 - **Less Than** — Expiry is less than the specified value away
 - **Greater Than or Equal To** — Expiry is at or more than the specified value away
 - **Less Than or Equal To** — Expiry is at or less than the specified value away
-- **Equal To** — Expiry matches exactly
-- **Not Equal To** — Expiry does not match
 
 ### Example Criteria
 
 #### Mark as degraded if certificate expires within 30 days
 
-- **Check On**: Expires In Days
-- **Filter Type**: Less Than
+- **Filter Type**: Expires In Days
+- **Filter Condition**: Less Than
 - **Value**: 30
 
 #### Mark as offline if certificate is expired
 
-- **Check On**: Is Expired Certificate
-- **Filter Type**: True
+- **Filter Type**: Is Expired Certificate
+- **Filter Condition**: True
 
 #### Alert if certificate is self-signed
 
-- **Check On**: Is Self-Signed Certificate
-- **Filter Type**: True
+- **Filter Type**: Is Self-Signed Certificate
+- **Filter Condition**: True
 
 #### Mark as offline if certificate is invalid
 
-- **Check On**: Is Not A Valid Certificate
-- **Filter Type**: True
+- **Filter Type**: Is Not A Valid Certificate
+- **Filter Condition**: True
 
 ## Best Practices
 

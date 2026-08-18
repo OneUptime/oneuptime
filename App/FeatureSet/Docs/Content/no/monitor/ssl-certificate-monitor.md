@@ -34,18 +34,16 @@ Du kan konfigurere kriterier for å bestemme når sertifikatstatusen anses som t
 
 | Kontrolltype               | Beskrivelse                                               |
 | -------------------------- | --------------------------------------------------------- |
-| Is Online                  | Om serveren er tilgjengelig                               |
 | Is Valid Certificate       | Om sertifikatet er gyldig (ikke utløpt, ikke selvsignert) |
 | Is Self-Signed Certificate | Om sertifikatet er selvsignert                            |
 | Is Expired Certificate     | Om sertifikatet har utløpt                                |
 | Is Not A Valid Certificate | Om sertifikatet er ugyldig                                |
 | Expires In Hours           | Antall timer til sertifikatet utløper                     |
 | Expires In Days            | Antall dager til sertifikatet utløper                     |
-| Is Request Timeout         | Om tilkoblingen fikk tidsavbrudd                          |
 
 ### Filtertyper
 
-For **Is Online**, **Is Valid Certificate**, **Is Self-Signed Certificate**, **Is Expired Certificate**, **Is Not A Valid Certificate** og **Is Request Timeout**:
+For **Is Valid Certificate**, **Is Self-Signed Certificate**, **Is Expired Certificate** og **Is Not A Valid Certificate**:
 
 - **True** – Betingelsen er sann
 - **False** – Betingelsen er usann

@@ -58,7 +58,7 @@ Voor **Domein is verlopen**:
 
 Voor **Domein verloopt over (in dagen)**:
 
-- **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan**, **Gelijk aan**, **Niet gelijk aan**
+- **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan**
 
 Voor **Domeinregistrar**, **Domein-naamserver** en **Domeinstatuscode**:
 

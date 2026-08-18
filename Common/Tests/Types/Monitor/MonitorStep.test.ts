@@ -218,4 +218,104 @@ describe("MonitorStep", () => {
       expect(domainMonitor["lookupMethod"]).toBe(DomainLookupMethod.WHOIS);
     });
   });
+
+  /*
+   * Regression suite for https://github.com/OneUptime/oneuptime/issues/3225.
+   *
+   * fromJSON normalizes metricMonitor and domainMonitor through their
+   * Util.fromJSON/toJSON pair, each with a comment explaining that the probe
+   * would otherwise receive a config that does not satisfy its own type.
+   * dnssecMonitor was a raw passthrough.
+   *
+   * A DNSSEC config authored through the API, Terraform or an imported
+   * template need not carry `resolvers`, and the probe iterates that list
+   * without a guard - so it threw a TypeError BEFORE posting any result. The
+   * monitor produced nothing at all, on every cycle, with no status change
+   * and no error the user could see: the same silent-failure class the issue
+   * reports for SSL Certificate monitors.
+   */
+  describe("dnssecMonitor normalization (issue #3225)", () => {
+    /*
+     * Built from a real default step for the same reason the domainMonitor
+     * tests above are: fromJSON validates the whole envelope, so a hand-rolled
+     * fragment would fail for reasons unrelated to what is under test.
+     */
+    function restoreWithDnssecMonitor(
+      dnssecMonitor: JSONObject | undefined,
+    ): JSONObject | undefined {
+      const json: JSONObject =
+        MonitorStep.getDefaultMonitorStep(DEFAULT_ARG).toJSON();
+
+      if (dnssecMonitor) {
+        (json["value"] as JSONObject)["dnssecMonitor"] = dnssecMonitor;
+      }
+
+      return MonitorStep.fromJSON(json).data?.dnssecMonitor as unknown as
+        | JSONObject
+        | undefined;
+    }
+
+    test("back-fills resolvers when the stored config has none", () => {
+      const dnssec: JSONObject | undefined = restoreWithDnssecMonitor({
+        domainName: "oneuptime.com",
+      });
+
+      expect(dnssec?.["resolvers"]).toEqual(["1.1.1.1", "8.8.8.8", "9.9.9.9"]);
+    });
+
+    test("back-fills resolvers when the stored list is empty", () => {
+      const dnssec: JSONObject | undefined = restoreWithDnssecMonitor({
+        domainName: "oneuptime.com",
+        resolvers: [],
+      });
+
+      expect((dnssec?.["resolvers"] as Array<string>).length).toBeGreaterThan(
+        0,
+      );
+    });
+
+    test("preserves resolvers the caller actually supplied", () => {
+      const dnssec: JSONObject | undefined = restoreWithDnssecMonitor({
+        domainName: "oneuptime.com",
+        resolvers: ["9.9.9.9"],
+      });
+
+      expect(dnssec?.["resolvers"]).toEqual(["9.9.9.9"]);
+    });
+
+    test("back-fills the rest of the config the probe relies on", () => {
+      const dnssec: JSONObject | undefined = restoreWithDnssecMonitor({
+        domainName: "oneuptime.com",
+      });
+
+      expect(dnssec?.["checkNameserverConsistency"]).toBe(true);
+      expect(dnssec?.["signatureExpiryWarningDays"]).toBe(7);
+      expect(dnssec?.["timeout"]).toBe(10000);
+      expect(dnssec?.["retries"]).toBe(3);
+    });
+
+    test("a re-save repairs an already-stored row", () => {
+      /*
+       * toJSON(fromJSON(x)) is what a monitor edit performs, so rows
+       * persisted before the fix heal the next time they are written.
+       */
+      const json: JSONObject =
+        MonitorStep.getDefaultMonitorStep(DEFAULT_ARG).toJSON();
+
+      (json["value"] as JSONObject)["dnssecMonitor"] = {
+        domainName: "oneuptime.com",
+      };
+
+      const resaved: JSONObject = MonitorStep.fromJSON(json).toJSON()[
+        "value"
+      ] as JSONObject;
+      const dnssec: JSONObject = resaved["dnssecMonitor"] as JSONObject;
+
+      expect((dnssec["resolvers"] as Array<string>).length).toBeGreaterThan(0);
+    });
+
+    test("leaves a step without a dnssecMonitor untouched", () => {
+      expect(restoreWithDnssecMonitor(undefined)).toBeUndefined();
+    });
+  });
 });

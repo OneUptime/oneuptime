@@ -42,9 +42,9 @@ DNSSEC monitors validate the entire chain of trust from the root zone down to yo
 
 You can configure criteria to determine when your zone is considered online, degraded, or offline based on:
 
-### Available Check Types
+### Available Filter Types
 
-| Check Type                          | Description                                                        |
+| Filter Type                         | Description                                                        |
 | ----------------------------------- | ------------------------------------------------------------------ |
 | DNSSEC Chain Is Valid               | The entire validation chain (root → TLD → zone) resolves correctly |
 | DNSSEC DNSKEY Record Exists         | The zone publishes at least one DNSKEY record                      |
@@ -52,46 +52,45 @@ You can configure criteria to determine when your zone is considered online, deg
 | DNSSEC Signature Expires In Days    | Days until the soonest RRSIG signature expires                     |
 | DNSSEC Resolver Consensus (AD Flag) | Every queried resolver returns the AD (Authenticated Data) flag    |
 | DNSSEC Nameservers Are Consistent   | All authoritative nameservers return the same SOA serial           |
-| DNSSEC Is Valid                     | Aggregate pass/fail across all validation checks                   |
 
-### Filter Types
+### Filter Conditions
 
-For **DNSSEC Chain Is Valid**, **DNSSEC DNSKEY Record Exists**, **DNSSEC DS Record Exists At Parent**, **DNSSEC Resolver Consensus (AD Flag)**, **DNSSEC Nameservers Are Consistent**, and **DNSSEC Is Valid**:
+For **DNSSEC Chain Is Valid**, **DNSSEC DNSKEY Record Exists**, **DNSSEC DS Record Exists At Parent**, **DNSSEC Resolver Consensus (AD Flag)**, and **DNSSEC Nameservers Are Consistent**:
 
 - **True** — Condition is true
 - **False** — Condition is false
 
 For **DNSSEC Signature Expires In Days**:
 
-- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
+- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**
 
 ### Example Criteria
 
 #### Alert if the DNSSEC chain is broken
 
-- **Check On**: DNSSEC Chain Is Valid
-- **Filter Type**: False
+- **Filter Type**: DNSSEC Chain Is Valid
+- **Filter Condition**: False
 
 #### Warn before signatures expire
 
-- **Check On**: DNSSEC Signature Expires In Days
-- **Filter Type**: Less Than
+- **Filter Type**: DNSSEC Signature Expires In Days
+- **Filter Condition**: Less Than
 - **Value**: 7
 
 #### Catch missing DS at parent (delegation broken)
 
-- **Check On**: DNSSEC DS Record Exists At Parent
-- **Filter Type**: False
+- **Filter Type**: DNSSEC DS Record Exists At Parent
+- **Filter Condition**: False
 
 #### Detect resolver disagreement
 
-- **Check On**: DNSSEC Resolver Consensus (AD Flag)
-- **Filter Type**: False
+- **Filter Type**: DNSSEC Resolver Consensus (AD Flag)
+- **Filter Condition**: False
 
 #### Catch nameserver split-brain
 
-- **Check On**: DNSSEC Nameservers Are Consistent
-- **Filter Type**: False
+- **Filter Type**: DNSSEC Nameservers Are Consistent
+- **Filter Condition**: False
 
 ## Best Practices
 

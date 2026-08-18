@@ -20,6 +20,8 @@ Use this when an external system needs to _create or update something in OneUpti
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
 ```
 
+> **Tip:** For alerting tools specifically, an **[Incoming Request monitor](/docs/monitor/incoming-request-monitor)** is usually the better inbound path. It gives you a webhook URL without building a workflow, opens one incident per alert in the payload, escalates to an on-call policy, and resolves each incident when the tool reports it recovered. Reach for a workflow when you need logic OneUptime doesn't do natively. See [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) for a worked example.
+
 ### Outbound — OneUptime sends data to another tool
 
 Use this when _something in OneUptime should show up in another tool_ — open a Jira ticket, page someone in PagerDuty, post to Slack.
@@ -85,7 +87,7 @@ printf '%s' 'you@example.com:your_api_token' | base64
 
 Almost any tool fits one of the two patterns above:
 
-- If the tool can **send a webhook** when something happens, use the **inbound** pattern — point its webhook at a OneUptime Webhook trigger.
+- If the tool can **send a webhook** when something happens, use the **inbound** pattern — point its webhook at an [Incoming Request monitor](/docs/monitor/incoming-request-monitor) if it is an alerting tool, or at a OneUptime Webhook trigger if you need custom logic.
 - If the tool has a **REST API**, use the **outbound** pattern — call it from an **API component**.
 - If you need to reshape data between the two, drop in a **[Custom Code](/docs/workflows/components#custom-code)** block.
 
@@ -97,4 +99,5 @@ That covers the long tail — Zendesk, AWS CloudWatch (via SNS), New Relic, Splu
 - [Triggers](/docs/workflows/triggers) — Webhook and OneUptime event triggers in detail.
 - [Components](/docs/workflows/components) — the API, Webhook, and data components.
 - [Variables](/docs/workflows/variables) — secrets and passing data between blocks.
+- [Incoming Request Monitor](/docs/monitor/incoming-request-monitor) — the workflow-free inbound path for alerting tools.
 - [Zabbix](/docs/integrations/zabbix) and [Jira](/docs/integrations/jira) — full worked examples.

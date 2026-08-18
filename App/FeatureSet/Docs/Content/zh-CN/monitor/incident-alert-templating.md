@@ -40,6 +40,10 @@
 | `requestMethod`             | 传入请求的 HTTP 方法（GET、POST 等）。 | `string`             |
 | `incomingRequestReceivedAt` | 收到传入请求的日期和时间。             | `Date`               |
 
+当条件启用了 **Group incidents and alerts by a payload field** 时，提取出的分组键也可以使用，其变量名取自分组路径的**最后一段**。按 `requestBody.alerts[*].labels.alertname` 分组会得到 `{{alertname}}`；按 `requestBody.alerts[*].fingerprint` 分组会得到 `{{fingerprint}}`。完整的 `requestBody` 依然可以一并使用。
+
+> **Note:** `[*]` 只在分组路径字段本身中被识别——在这里它不会被解析，因此占位符会连同花括号原样输出。在标题或描述中，`{{requestBody.alerts[0].annotations.summary}}` 始终读取负载中的第一条告警，而不是该事件所对应的那一条。请改用分组变量以及负载的共享字段（`commonLabels`、`commonAnnotations`）。参见 [Incoming Request 监控器](/docs/monitor/incoming-request-monitor)。
+
 ### Ping 监控器
 
 | 变量               | 描述                        | 类型      |
@@ -175,7 +179,7 @@ Message: {{responseBody.error.message}}
 First User: {{responseBody.users[0].name}}
 ```
 
-如果路径不存在，默认解析为空字符串。
+如果路径不存在，占位符会原封不动地留在输出中——`{{responseBody.error.id}}` 会连同花括号原样出现在事件标题里。只有指向缺失路径的 `{{#each}}` 块会被移除。
 
 ## 高级用法
 

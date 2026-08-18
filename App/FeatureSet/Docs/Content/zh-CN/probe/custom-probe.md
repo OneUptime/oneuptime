@@ -210,6 +210,7 @@ kubectl apply -f oneuptime-probe.yaml
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - 自定义代码监控器脚本的超时时间（毫秒，默认：60000）
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` - 探针发送至 OneUptime 的每个请求的截止时间（默认：45000）
 - `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` - 对发送至 OneUptime 且耗时超过该值的请求记录警告日志（默认：10000）
+- `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` - 检查单个监控器的时限，超时后放弃本次检查并在下一周期重试（默认：900000）
 
 #### 代理配置
 

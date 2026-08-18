@@ -147,7 +147,11 @@ export default class DomainMonitorUtil {
         failureCause: failureCause,
       });
 
-      const maxRetries: number = options.retry || config.retries || 3;
+      /*
+       * ?? not ||: a caller asking for zero retries means zero, not "fall
+       * through to the config default".
+       */
+      const maxRetries: number = options.retry ?? config.retries ?? 3;
 
       /*
        * "This domain is not registered" and "this TLD has no usable

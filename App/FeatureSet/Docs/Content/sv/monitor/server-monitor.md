@@ -115,25 +115,31 @@ Du kan konfigurera kriterier för att avgöra när din server anses vara online,
 
 ### Tillgängliga kontrolltyper
 
-| Kontrolltyp              | Beskrivning                                                    |
-| ------------------------ | -------------------------------------------------------------- |
-| Är online                | Om serveragenten rapporterar (baserat på hjärtslag)            |
-| CPU-användningsprocent   | Aktuell CPU-utnyttjandeprocentens                              |
-| Minnesanvändningsprocent | Aktuell minnesutnyttjandeprocentens                            |
-| Diskanvändningsprocent   | Aktuell diskutnyttjandeprocentens (för en specifik disksökväg) |
-| Serverprocessnamn        | Kontrollera om en process med ett specifikt namn körs          |
-| Serverprocesskommando    | Kontrollera om en process med ett specifikt kommando körs      |
-| Serverprocess-PID        | Kontrollera om en process med ett specifikt PID körs           |
+| Kontrolltyp                     | Beskrivning                                                    |
+| ------------------------------- | -------------------------------------------------------------- |
+| Är online                       | Om serveragenten rapporterar (baserat på hjärtslag)            |
+| CPU-användningsprocent          | Aktuell CPU-utnyttjandeprocentens                              |
+| Minnesanvändningsprocent        | Aktuell minnesutnyttjandeprocentens                            |
+| Diskanvändningsprocent          | Aktuell diskutnyttjandeprocentens (för en specifik disksökväg) |
+| Swap-användningsprocent         | Aktuell swap-användning i procent                              |
+| CPU IO-väntetid i procent       | Andel CPU-tid som ägnas åt att vänta på I/O                    |
+| Genomsnittlig last (1 minut)    | Systemets genomsnittliga last den senaste minuten              |
+| Genomsnittlig last (5 minuter)  | Systemets genomsnittliga last de senaste 5 minuterna           |
+| Genomsnittlig last (15 minuter) | Systemets genomsnittliga last de senaste 15 minuterna          |
+| Serverprocessnamn               | Kontrollera om en process med ett specifikt namn körs          |
+| Serverprocesskommando           | Kontrollera om en process med ett specifikt kommando körs      |
+| Serverprocess-PID               | Kontrollera om en process med ett specifikt PID körs           |
 
 ### Filtertyper
 
-För numeriska mätvärden (CPU, minne, disk):
+För numeriska mätvärden (CPU, minne, disk, swap, IO-väntetid, genomsnittlig last):
 
 - **Större än** – Värdet överstiger ett tröskelvärde
 - **Mindre än** – Värdet understiger ett tröskelvärde
 - **Större än eller lika med** – Värdet är vid eller över ett tröskelvärde
 - **Mindre än eller lika med** – Värdet är vid eller under ett tröskelvärde
-- **Utvärdera över tid** – Utvärdera med aggregering (Medel, Summa, Maximum, Minimum, Alla värden, Valfritt värde) under ett tidsfönster
+
+**Utvärdera detta kriterium över en tidsperiod** är en kryssruta i kriterieformuläret, inte ett filtervillkor. Slå på den för att jämföra en aggregering – vald under **Utvärdera** (Medel, Summa, Maximum, Minimum, Alla värden, Valfritt värde) över fönstret som anges i **För de senaste (i minuter)** – i stället för värdet från den senaste kontrollen.
 
 För processkontroller:
 

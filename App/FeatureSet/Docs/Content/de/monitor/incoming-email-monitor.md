@@ -40,13 +40,14 @@ Sie können diese Adresse von der Monitor-Detailseite kopieren und Ihre externen
 
 Sie können Kriterien basierend auf den folgenden E-Mail-Feldern erstellen:
 
-| Feld                | Beschreibung                                  |
-| ------------------- | --------------------------------------------- |
-| **E-Mail-Betreff**  | Die Betreffzeile der eingehenden E-Mail       |
-| **E-Mail von**      | Die E-Mail-Adresse des Absenders              |
-| **E-Mail-Text**     | Der Nur-Text-Inhalt des E-Mail-Textkörpers    |
-| **E-Mail an**       | Die Empfänger-E-Mail-Adresse                  |
-| **E-Mail erhalten** | Zeitbasierte Kriterien für den E-Mail-Eingang |
+| Feld                    | Beschreibung                                                       |
+| ----------------------- | ------------------------------------------------------------------ |
+| **E-Mail-Betreff**      | Die Betreffzeile der eingehenden E-Mail                            |
+| **E-Mail von**          | Die E-Mail-Adresse des Absenders                                   |
+| **E-Mail-Text**         | Der Nur-Text-Inhalt des E-Mail-Textkörpers                         |
+| **E-Mail an**           | Die Empfänger-E-Mail-Adresse                                       |
+| **E-Mail erhalten**     | Zeitbasierte Kriterien für den E-Mail-Eingang                      |
+| **JavaScript-Ausdruck** | Ein benutzerdefinierter JavaScript-Ausdruck, der wahr ergeben muss |
 
 ## Verfügbare Filtertypen
 
@@ -69,6 +70,12 @@ Sie können Kriterien basierend auf den folgenden E-Mail-Feldern erstellen:
 | ------------------------------ | ---------------------------------------------- | ----------------------------------------------- |
 | **Empfangen in Minuten**       | E-Mail wurde innerhalb von X Minuten empfangen | E-Mail innerhalb von 30 Minuten empfangen       |
 | **Nicht empfangen in Minuten** | Keine E-Mail in X Minuten empfangen            | E-Mail nicht innerhalb von 60 Minuten empfangen |
+
+### JavaScript-Ausdruck
+
+Die einzige Filterbedingung ist **Ergibt Wahr**: Das Kriterium ist erfüllt, wenn der Ausdruck einen wahren Wert zurückgibt.
+
+Der Ausdruck läuft in einer Sandbox, an die keine E-Mail-Felder gebunden sind. Er kann Betreff, Absender, Text und Empfänger der auslösenden E-Mail also nicht lesen. Verwenden Sie die Prüftypen **E-Mail-Betreff**, **E-Mail von**, **E-Mail-Text** und **E-Mail an**, um auf E-Mail-Inhalte zu prüfen.
 
 ## Beispielkonfigurationen
 

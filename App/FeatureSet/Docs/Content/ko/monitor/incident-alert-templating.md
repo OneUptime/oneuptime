@@ -40,6 +40,10 @@
 | `requestMethod`             | 수신 요청의 HTTP 메서드 (GET, POST 등). | `string`             |
 | `incomingRequestReceivedAt` | 수신 요청이 수신된 날짜 및 시간.        | `Date`               |
 
+criteria에서 **Group incidents and alerts by a payload field** 를 켜두면 추출된 그룹화 키도 사용할 수 있으며, 변수 이름은 그룹화 경로의 **마지막 세그먼트** 에서 가져옵니다. `requestBody.alerts[*].labels.alertname` 으로 그룹화하면 `{{alertname}}`, `requestBody.alerts[*].fingerprint` 로 그룹화하면 `{{fingerprint}}` 가 됩니다. 전체 `requestBody` 도 함께 계속 사용할 수 있습니다.
+
+> **Note:** `[*]` 는 그룹화 경로 필드 자체에서만 인식됩니다 — 여기서는 해석되지 않으므로 플레이스홀더가 중괄호까지 그대로 출력됩니다. 제목이나 설명 안에서 `{{requestBody.alerts[0].annotations.summary}}` 는 항상 페이로드의 첫 번째 알림을 읽으며, 해당 인시던트가 열린 알림이 아닙니다. 대신 그룹화 변수와 페이로드의 공통 필드(`commonLabels`, `commonAnnotations`)를 사용하세요. [Incoming Request 모니터](/docs/monitor/incoming-request-monitor) 를 참고하세요.
+
 ### Ping 모니터
 
 | 변수               | 설명                                    | 유형      |
@@ -175,7 +179,7 @@ Message: {{responseBody.error.message}}
 First User: {{responseBody.users[0].name}}
 ```
 
-경로가 존재하지 않으면 기본적으로 빈 문자열로 확인됩니다.
+경로가 존재하지 않으면 플레이스홀더가 작성된 그대로 출력에 남습니다 — `{{responseBody.error.id}}` 는 중괄호까지 그대로 인시던트 제목에 표시됩니다. 없는 경로에 대한 `{{#each}}` 블록만 제거됩니다.
 
 ## 고급 사용법
 

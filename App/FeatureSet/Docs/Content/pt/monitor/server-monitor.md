@@ -115,25 +115,31 @@ Você pode configurar critérios para determinar quando seu servidor é consider
 
 ### Tipos de Verificação Disponíveis
 
-| Tipo de Verificação    | Descrição                                                                      |
-| ---------------------- | ------------------------------------------------------------------------------ |
-| Is Online              | Se o agente do servidor está relatando (com base no heartbeat)                 |
-| CPU Usage Percent      | Porcentagem de utilização de CPU atual                                         |
-| Memory Usage Percent   | Porcentagem de utilização de memória atual                                     |
-| Disk Usage Percent     | Porcentagem de utilização de disco atual (para um caminho de disco específico) |
-| Server Process Name    | Verificar se um processo com um nome específico está em execução               |
-| Server Process Command | Verificar se um processo com um comando específico está em execução            |
-| Server Process PID     | Verificar se um processo com um PID específico está em execução                |
+| Tipo de Verificação      | Descrição                                                                      |
+| ------------------------ | ------------------------------------------------------------------------------ |
+| Is Online                | Se o agente do servidor está relatando (com base no heartbeat)                 |
+| CPU Usage Percent        | Porcentagem de utilização de CPU atual                                         |
+| Memory Usage Percent     | Porcentagem de utilização de memória atual                                     |
+| Disk Usage Percent       | Porcentagem de utilização de disco atual (para um caminho de disco específico) |
+| Swap Usage Percent       | Porcentagem de utilização de swap atual                                        |
+| CPU IO Wait Percent      | Porcentagem do tempo de CPU gasto aguardando E/S                               |
+| Load Average (1 minute)  | Carga média do sistema no último minuto                                        |
+| Load Average (5 minute)  | Carga média do sistema nos últimos 5 minutos                                   |
+| Load Average (15 minute) | Carga média do sistema nos últimos 15 minutos                                  |
+| Server Process Name      | Verificar se um processo com um nome específico está em execução               |
+| Server Process Command   | Verificar se um processo com um comando específico está em execução            |
+| Server Process PID       | Verificar se um processo com um PID específico está em execução                |
 
 ### Tipos de Filtro
 
-Para métricas numéricas (CPU, memória, disco):
+Para métricas numéricas (CPU, memória, disco, swap, espera de E/S, carga média):
 
 - **Greater Than** — O valor excede um limite
 - **Less Than** — O valor está abaixo de um limite
 - **Greater Than or Equal To** — O valor está no limite ou acima
 - **Less Than or Equal To** — O valor está no limite ou abaixo
-- **Evaluate Over Time** — Avalie usando agregação (Média, Soma, Máximo, Mínimo, Todos os Valores, Qualquer Valor) em uma janela de tempo
+
+**Evaluate this criteria over a period of time** é uma caixa de seleção no formulário de critérios, não uma condição de filtro. Ative-a para comparar uma agregação — escolhida em **Evaluate** (Média, Soma, Máximo, Mínimo, Todos os Valores, Qualquer Valor) sobre a janela definida em **For the last (in minutes)** — em vez do valor da última verificação.
 
 Para verificações de processo:
 

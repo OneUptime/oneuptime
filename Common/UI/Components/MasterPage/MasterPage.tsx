@@ -31,6 +31,16 @@ const MasterPage: FunctionComponent<ComponentProps> = (
     React.useRef<HTMLDivElement>(null);
 
   /*
+   * The status page supplies neither header nor navbar — it renders its own
+   * inside children. Rendering TopSection anyway left an empty white bar with a
+   * drop shadow above the content, so only render it when it has something in
+   * it.
+   */
+  const hasTopSection: boolean = Boolean(
+    (!props.hideHeader && props.header) || props.navBar,
+  );
+
+  /*
    * Publish the sticky top section's height as --app-header-height so anything
    * that sticks underneath it (the side menu, for example) can offset itself by
    * the real header instead of guessing and ending up tucked behind it. The
@@ -89,6 +99,7 @@ const MasterPage: FunctionComponent<ComponentProps> = (
     props.isLoading,
     props.error,
     props.disableMainContentWrapper,
+    hasTopSection,
     isOnline,
   ]);
 
@@ -125,17 +136,19 @@ const MasterPage: FunctionComponent<ComponentProps> = (
               Skip to main content
             </a>
           )}
-          <div
-            ref={topSectionRef}
-            className={props.makeTopSectionUnstick ? "" : "sticky top-0 z-10"}
-          >
-            <TopSection
-              hideHeader={props.hideHeader}
-              className={props.topSectionClassName}
-              header={props.header}
-              navbar={props.navBar}
-            />
-          </div>
+          {hasTopSection && (
+            <div
+              ref={topSectionRef}
+              className={props.makeTopSectionUnstick ? "" : "sticky top-0 z-10"}
+            >
+              <TopSection
+                hideHeader={props.hideHeader}
+                className={props.topSectionClassName}
+                header={props.header}
+                navbar={props.navBar}
+              />
+            </div>
+          )}
 
           {props.disableMainContentWrapper ? (
             props.children

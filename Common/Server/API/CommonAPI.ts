@@ -9,6 +9,14 @@ import SpanUtil from "../Utils/Telemetry/SpanUtil";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import Permission, {
+  PermissionHelper,
+  PermissionProps,
+  UserPermission,
+} from "../../Types/Permission";
+import DatabaseCommonInteractionPropsUtil, {
+  PermissionType,
+} from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 
 export default class CommonAPI {
   /*
@@ -128,6 +136,87 @@ export default class CommonAPI {
     ) {
       throw new NotAuthorizedException(
         "You are not authorized to access this project's data.",
+      );
+    }
+  }
+
+  /*
+   * Membership is not read authorisation.
+   *
+   * assertAuthenticatedProjectMember proves the caller belongs to the project
+   * they named in the `tenantid` header; it says nothing about WHICH of that
+   * project's data they may see. A custom route that then reads with
+   * `isRoot: true` has skipped the permission check the equivalent CRUD read
+   * would have run, so the route has to make that check itself - otherwise a
+   * member whose teams grant nothing but, say, ReadProjectIncident still reads
+   * everything else the route happens to touch.
+   *
+   * The permissions consulted are the caller's grants in props.tenantId, so
+   * this must be called after assertAuthenticatedProjectMember has confirmed
+   * that tenant is one the caller actually belongs to.
+   *
+   * `allowedPermissions` is normally the model's own declared list, e.g.
+   * `new LlmProvider().getReadPermissions()`, so the custom route stays in
+   * step with the CRUD endpoint for the same data instead of inventing a
+   * second, quietly diverging rule.
+   *
+   * Permissions that are never assigned INSIDE a project are stripped from
+   * that list first. This matters: getUserPermissions merges the caller's
+   * global permissions in, and every caller - including an anonymous one -
+   * carries Permission.Public, which a model's read list very often contains
+   * (LlmProvider has it so the shared global providers stay readable). Left
+   * in, it would make this guard pass for anyone. What remains is the
+   * tenant-assignable subset, which is exactly what a team can grant.
+   *
+   * Stripping can empty the list, and an empty list denies everyone rather
+   * than admitting them - a model whose read access is purely public has no
+   * business behind this guard, and failing closed is the safe direction.
+   *
+   * Master admins bypass, matching every other permission gate in the API.
+   */
+  public static assertPermittedInProject(data: {
+    databaseProps: DatabaseCommonInteractionProps;
+    allowedPermissions: Array<Permission>;
+    errorMessage?: string | undefined;
+  }): void {
+    if (data.databaseProps.isMasterAdmin) {
+      return;
+    }
+
+    const tenantAssignablePermissions: Array<Permission> =
+      PermissionHelper.getTenantPermissionProps().map(
+        (permissionProps: PermissionProps) => {
+          return permissionProps.permission;
+        },
+      );
+
+    const requiredPermissions: Array<Permission> =
+      data.allowedPermissions.filter((permission: Permission) => {
+        return tenantAssignablePermissions.includes(permission);
+      });
+
+    /*
+     * Allow-only: getUserPermissions discriminates grants from denials by
+     * isBlockPermission, so a team's explicit BLOCK row for one of these
+     * permissions must never be counted as a grant of it.
+     */
+    const grantedPermissions: Array<Permission> =
+      DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        data.databaseProps,
+        PermissionType.Allow,
+      ).map((userPermission: UserPermission) => {
+        return userPermission.permission;
+      });
+
+    if (
+      !PermissionHelper.doesPermissionsIntersect(
+        grantedPermissions,
+        requiredPermissions,
+      )
+    ) {
+      throw new NotAuthorizedException(
+        data.errorMessage ||
+          "You do not have permission to access this project's data.",
       );
     }
   }

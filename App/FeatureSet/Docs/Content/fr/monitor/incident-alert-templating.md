@@ -40,6 +40,10 @@ Les types de moniteurs suivants prennent en charge la création dynamique de mod
 | `requestMethod`             | La méthode HTTP de la requête entrante (GET, POST, etc.).      | `string`             |
 | `incomingRequestReceivedAt` | La date et l'heure auxquelles la requête entrante a été reçue. | `Date`               |
 
+Lorsque le critère a **Group incidents and alerts by a payload field** activé, la clé de regroupement extraite est également disponible, sous un nom de variable repris du **dernier segment** du chemin de regroupement. Regrouper par `requestBody.alerts[*].labels.alertname` vous donne `{{alertname}}` ; regrouper par `requestBody.alerts[*].fingerprint` vous donne `{{fingerprint}}`. L'intégralité de `requestBody` reste disponible à côté.
+
+> **Note:** `[*]` n'est compris que dans les champs de chemin de regroupement eux-mêmes — ici il ne se résout pas, si bien que l'espace réservé est affiché littéralement, accolades comprises. Dans un titre ou une description, `{{requestBody.alerts[0].annotations.summary}}` lit toujours la première alerte de la charge utile, et non celle pour laquelle l'incident a été ouvert. Utilisez plutôt la variable de regroupement et les champs partagés de la charge utile (`commonLabels`, `commonAnnotations`). Voir [Moniteur Incoming Request](/docs/monitor/incoming-request-monitor).
+
 ### Moniteurs Ping
 
 | Variable           | Description                                     | Type      |
@@ -175,7 +179,7 @@ L'indexation des tableaux est prise en charge :
 Premier utilisateur : {{responseBody.users[0].name}}
 ```
 
-Si un chemin n'existe pas, il se résout en une chaîne vide par défaut.
+Si un chemin n'existe pas, l'espace réservé est laissé dans la sortie exactement tel qu'il a été écrit — `{{responseBody.error.id}}` apparaît littéralement, accolades comprises, dans le titre de l'incident. Seuls les blocs `{{#each}}` portant sur un chemin absent sont supprimés.
 
 ## Utilisation avancée
 

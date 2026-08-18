@@ -164,11 +164,15 @@ export default class SlackAPI {
           redirect_uri: redirectUri.toString(),
         };
 
+        /*
+         * Neither the token request nor the token response is logged: the
+         * request carries the app client secret and the authorization code,
+         * and the response carries the bot and user access tokens.
+         */
         logger.debug(
-          "Slack Auth Request Body: ",
+          "Exchanging Slack authorization code for an access token.",
           getLogAttributesFromRequest(req as any),
         );
-        logger.debug(requestBody, getLogAttributesFromRequest(req as any));
 
         // send the request to slack api to get the access token https://slack.com/api/oauth.v2.access
 
@@ -188,10 +192,9 @@ export default class SlackAPI {
         const responseBody: JSONObject = response.data;
 
         logger.debug(
-          "Slack Auth Request Body: ",
+          "Slack token exchange completed. ok: " + String(responseBody["ok"]),
           getLogAttributesFromRequest(req as any),
         );
-        logger.debug(responseBody, getLogAttributesFromRequest(req as any));
 
         let slackTeamId: string | undefined = undefined;
         let slackBotAccessToken: string | undefined = undefined;
@@ -384,11 +387,11 @@ export default class SlackAPI {
           redirect_uri: redirectUri.toString(),
         };
 
+        // Same as above: the body holds the client secret and the auth code.
         logger.debug(
-          "Slack Auth Request Body: ",
+          "Exchanging Slack authorization code for a user token.",
           getLogAttributesFromRequest(req as any),
         );
-        logger.debug(requestBody, getLogAttributesFromRequest(req as any));
 
         // send the request to slack api to get the access token https://slack.com/api/oauth.v2.access
 
@@ -408,10 +411,10 @@ export default class SlackAPI {
         const responseBody: JSONObject = response.data;
 
         logger.debug(
-          "Slack User Auth Request Body: ",
+          "Slack user token exchange completed. ok: " +
+            String(responseBody["ok"]),
           getLogAttributesFromRequest(req as any),
         );
-        logger.debug(responseBody, getLogAttributesFromRequest(req as any));
 
         if (
           responseBody["id_token"] &&
@@ -425,11 +428,11 @@ export default class SlackAPI {
               "base64",
             ).toString("utf8"),
           );
+          // The decoded ID token is identity material; only the fact is logged.
           logger.debug(
-            "Decoded ID Token: ",
+            "Decoded Slack ID token.",
             getLogAttributesFromRequest(req as any),
           );
-          logger.debug(decodedIdToken, getLogAttributesFromRequest(req as any));
           responseBody["id_token"] = decodedIdToken;
         }
 

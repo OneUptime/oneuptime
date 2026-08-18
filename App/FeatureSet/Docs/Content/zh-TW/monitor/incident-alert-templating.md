@@ -40,6 +40,10 @@
 | `requestMethod`             | 傳入請求的 HTTP 方法（GET、POST 等）。 | `string`             |
 | `incomingRequestReceivedAt` | 接收到傳入請求的日期與時間。           | `Date`               |
 
+當條件啟用了 **Group incidents and alerts by a payload field** 時，擷取出的分組鍵也可以使用，其變數名稱取自分組路徑的**最後一段**。以 `requestBody.alerts[*].labels.alertname` 分組會得到 `{{alertname}}`；以 `requestBody.alerts[*].fingerprint` 分組會得到 `{{fingerprint}}`。完整的 `requestBody` 仍可一併使用。
+
+> **Note:** `[*]` 只在分組路徑欄位本身中被理解——在這裡它不會被解析，因此佔位符會連同大括號原樣輸出。在標題或描述中，`{{requestBody.alerts[0].annotations.summary}}` 一律讀取酬載中的第一則警示，而不是該事件所對應的那一則。請改用分組變數以及酬載的共用欄位（`commonLabels`、`commonAnnotations`）。參見 [Incoming Request 監控](/docs/monitor/incoming-request-monitor)。
+
 ### Ping 監控
 
 | 變數               | 描述                       | 型別      |
@@ -175,7 +179,7 @@ Message: {{responseBody.error.message}}
 First User: {{responseBody.users[0].name}}
 ```
 
-若某個路徑不存在，預設會解析為空字串。
+若某個路徑不存在，佔位符會原封不動地留在輸出中——`{{responseBody.error.id}}` 會連同大括號原樣出現在事件標題中。只有指向缺失路徑的 `{{#each}}` 區塊會被移除。
 
 ## 進階用法
 

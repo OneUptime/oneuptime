@@ -36,6 +36,10 @@ import {
   NextFunction,
 } from "../Utils/Express";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
+import {
+  SEARCH_ENGINE_INDEXING_FLAG_NAME,
+  isSearchEngineIndexingEnabled,
+} from "../../Types/StatusPage/SearchEngineIndexing";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -192,6 +196,7 @@ export default class StatusPageAPI extends BaseAPI<
               pageDescription: true,
               name: true,
               defaultLanguage: true,
+              enableSearchEngineIndexing: true,
             },
             props: {
               isRoot: true,
@@ -212,6 +217,14 @@ export default class StatusPageAPI extends BaseAPI<
           description: statusPage.pageDescription,
           _id: statusPage._id?.toString(),
           defaultLanguage: statusPage.defaultLanguage || null,
+          /*
+           * Drives <meta name="robots"> and X-Robots-Tag on the rendered page.
+           * Normalised here rather than shipping the raw column, so the two
+           * frontend servers never have to decide what a missing value means.
+           */
+          [SEARCH_ENGINE_INDEXING_FLAG_NAME]: isSearchEngineIndexingEnabled(
+            statusPage.enableSearchEngineIndexing,
+          ),
         });
       },
     );

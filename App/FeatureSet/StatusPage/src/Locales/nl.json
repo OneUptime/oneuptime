@@ -1,6 +1,7 @@
 {
   "a11y": {
-    "skipToMainContent": "Naar hoofdinhoud springen"
+    "skipToMainContent": "Naar hoofdinhoud springen",
+    "loading": "Laden..."
   },
   "common": {
     "save": "Opslaan",
@@ -227,7 +228,8 @@
       "passwordDescription": "Voer het wachtwoord in om deze pagina te ontgrendelen.",
       "passwordPlaceholder": "Wachtwoord invoeren",
       "submit": "Statuspagina ontgrendelen"
-    }
+    },
+    "signingOut": "Bezig met afmelden..."
   },
   "errors": {
     "notFound": {

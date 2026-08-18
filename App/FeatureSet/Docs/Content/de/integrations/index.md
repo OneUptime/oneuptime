@@ -20,6 +20,8 @@ Verwenden Sie dieses Muster, wenn ein externes System in OneUptime _etwas erstel
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
 ```
 
+> **Tip:** Speziell für Alarmierungs-Tools ist ein **[Incoming Request-Monitor](/docs/monitor/incoming-request-monitor)** in der Regel der bessere eingehende Weg. Er liefert Ihnen eine Webhook-URL, ohne dass Sie einen Workflow bauen müssen, öffnet einen Vorfall pro Alarm in der Payload, eskaliert an eine Bereitschaftsrichtlinie und löst jeden Vorfall auf, sobald das Tool die Wiederherstellung meldet. Greifen Sie zu einem Workflow, wenn Sie Logik benötigen, die OneUptime nicht nativ bietet. Ein ausgearbeitetes Beispiel finden Sie unter [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager).
+
 ### Ausgehend — OneUptime sendet Daten an ein anderes Tool
 
 Verwenden Sie dieses Muster, wenn _etwas in OneUptime in einem anderen Tool erscheinen soll_ – ein Jira-Ticket öffnen, jemanden in PagerDuty benachrichtigen, in Slack posten.
@@ -85,7 +87,7 @@ printf '%s' 'you@example.com:your_api_token' | base64
 
 Fast jedes Tool passt in eines der zwei oben genannten Muster:
 
-- Wenn das Tool **einen Webhook senden** kann, wenn etwas passiert, verwenden Sie das **eingehende** Muster – verweisen Sie dessen Webhook auf einen OneUptime-Webhook-Auslöser.
+- Wenn das Tool **einen Webhook senden** kann, wenn etwas passiert, verwenden Sie das **eingehende** Muster – verweisen Sie dessen Webhook auf einen [Incoming Request-Monitor](/docs/monitor/incoming-request-monitor), wenn es sich um ein Alarmierungs-Tool handelt, oder auf einen OneUptime-Webhook-Auslöser, wenn Sie eigene Logik benötigen.
 - Wenn das Tool eine **REST-API** hat, verwenden Sie das **ausgehende** Muster – rufen Sie es aus einer **API-Komponente** auf.
 - Wenn Sie Daten zwischen beiden umformen müssen, fügen Sie einen **[Custom Code](/docs/workflows/components#custom-code)**-Block ein.
 
@@ -97,4 +99,5 @@ Das deckt den langen Schwanz ab – Zendesk, AWS CloudWatch (über SNS), New Rel
 - [Auslöser](/docs/workflows/triggers) — Webhook- und OneUptime-Ereignis-Auslöser im Detail.
 - [Komponenten](/docs/workflows/components) — die API-, Webhook- und Datenkomponenten.
 - [Variablen](/docs/workflows/variables) — Geheimnisse und Datenweitergabe zwischen Blöcken.
+- [Incoming Request-Monitor](/docs/monitor/incoming-request-monitor) — der workflowfreie eingehende Weg für Alarmierungs-Tools.
 - [Zabbix](/docs/integrations/zabbix) und [Jira](/docs/integrations/jira) — vollständige Praxisbeispiele.

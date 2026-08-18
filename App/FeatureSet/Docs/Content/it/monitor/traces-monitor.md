@@ -56,7 +56,6 @@ Selezionare uno o più servizi da cui monitorare le tracce. I servizi devono inv
 - **Maggiore o Uguale a** — Il conteggio degli span è pari o superiore a una soglia
 - **Minore o Uguale a** — Il conteggio degli span è pari o inferiore a una soglia
 - **Uguale a** — Il conteggio degli span corrisponde esattamente
-- **Diverso da** — Il conteggio degli span non corrisponde
 
 ### Criteri di Esempio
 

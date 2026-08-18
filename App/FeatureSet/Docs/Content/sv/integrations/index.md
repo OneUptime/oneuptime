@@ -20,6 +20,8 @@ Använd detta när ett externt system behöver _skapa eller uppdatera något i O
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
 ```
 
+> **Tip:** Särskilt för larmverktyg är en **[Incoming Request-monitor](/docs/monitor/incoming-request-monitor)** oftast den bättre inkommande vägen. Den ger dig en webhook-URL utan att du bygger ett arbetsflöde, öppnar en incident per larm i payloaden, eskalerar till en jourpolicy och löser varje incident när verktyget rapporterar återställning. Ta till ett arbetsflöde när du behöver logik som OneUptime inte gör inbyggt. Se [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) för ett genomarbetat exempel.
+
 ### Utgående — OneUptime skickar data till ett annat verktyg
 
 Använd detta när _något i OneUptime ska visas i ett annat verktyg_ — öppna ett Jira-ärende, larma någon i PagerDuty, posta till Slack.
@@ -85,7 +87,7 @@ printf '%s' 'you@example.com:your_api_token' | base64
 
 Nästan vilket verktyg som helst passar in i ett av de två mönstren ovan:
 
-- Om verktyget kan **skicka en webhook** när något händer, använd det **inkommande** mönstret — peka dess webhook mot en OneUptime Webhook-utlösare.
+- Om verktyget kan **skicka en webhook** när något händer, använd det **inkommande** mönstret — peka dess webhook mot en [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) om det är ett larmverktyg, eller mot en OneUptime Webhook-utlösare om du behöver egen logik.
 - Om verktyget har ett **REST API**, använd det **utgående** mönstret — anropa det från en **API-komponent**.
 - Om du behöver omforma data mellan de två, lägg till ett **[Custom Code](/docs/workflows/components#custom-code)**-block.
 
@@ -97,4 +99,5 @@ Det täcker den långa svansen — Zendesk, AWS CloudWatch (via SNS), New Relic,
 - [Utlösare](/docs/workflows/triggers) — Webhook- och OneUptime-händelseutlösare i detalj.
 - [Komponenter](/docs/workflows/components) — API-, Webhook- och datakomponenterna.
 - [Variabler](/docs/workflows/variables) — hemligheter och att skicka data mellan block.
+- [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) — den arbetsflödesfria inkommande vägen för larmverktyg.
 - [Zabbix](/docs/integrations/zabbix) och [Jira](/docs/integrations/jira) — fullständiga genomarbetade exempel.

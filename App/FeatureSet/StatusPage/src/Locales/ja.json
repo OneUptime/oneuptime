@@ -1,6 +1,7 @@
 {
   "a11y": {
-    "skipToMainContent": "メインコンテンツにスキップ"
+    "skipToMainContent": "メインコンテンツにスキップ",
+    "loading": "読み込み中..."
   },
   "common": {
     "save": "保存",
@@ -227,7 +228,8 @@
       "passwordDescription": "このページをロック解除するためのパスワードを入力してください。",
       "passwordPlaceholder": "パスワードを入力",
       "submit": "ステータスページをロック解除"
-    }
+    },
+    "signingOut": "サインアウトしています..."
   },
   "errors": {
     "notFound": {

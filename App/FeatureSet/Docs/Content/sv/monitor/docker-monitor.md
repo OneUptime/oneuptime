@@ -122,7 +122,15 @@ Docker Agent använder OpenTelemetry `docker_stats`-mottagaren som läser Docker
 
 ### Filtertyper
 
-- **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med**, **Lika med**, **Inte lika med**
+- **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med**, **Lika med**
+
+Baslinjebaserad avvikelsedetektering (inget tröskelvärde – formuläret visar i stället **Känslighet** och **Baslinjefönster** och jämför varje mätvärde med baslinjen för samma timme i veckan):
+
+- **Onormalt högt** — Värdet stiger över det förväntade intervallet
+- **Onormalt lågt** — Värdet sjunker under det förväntade intervallet
+- **Onormalt** — Värdet lämnar det förväntade intervallet i någon riktning
+
+Avvikelsevillkor ger inga varningar förrän det finns minst det valda baslinjefönstret av historik (Learning-tillstånd).
 
 ## Förbyggda varningsmallar
 

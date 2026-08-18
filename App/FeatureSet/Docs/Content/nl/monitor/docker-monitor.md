@@ -122,7 +122,15 @@ De Docker Agent gebruikt de OpenTelemetry `docker_stats`-ontvanger, die de Docke
 
 ### Filtertypen
 
-- **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan**, **Gelijk aan**, **Niet gelijk aan**
+- **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan**, **Gelijk aan**
+
+Baseline-anomaliedetectie (geen drempelwaarde — het formulier toont in plaats daarvan **Gevoeligheid** en **Baseline-venster** en vergelijkt elk meetpunt met de baseline van hetzelfde uur van de week):
+
+- **Abnormaal hoog** — Waarde stijgt boven het verwachte bereik
+- **Abnormaal laag** — Waarde daalt onder het verwachte bereik
+- **Abnormaal** — Waarde verlaat het verwachte bereik in beide richtingen
+
+Anomalievoorwaarden geven geen meldingen totdat er ten minste het ingestelde baseline-venster aan historie is (Learning-status).
 
 ## Voorgebouwde meldingssjablonen
 

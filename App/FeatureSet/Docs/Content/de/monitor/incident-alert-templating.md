@@ -40,6 +40,10 @@ Die folgenden Monitortypen unterstützen dynamisches Templating mit ihren jeweil
 | `requestMethod`             | Die HTTP-Methode der eingehenden Anfrage (GET, POST usw.). | `string`             |
 | `incomingRequestReceivedAt` | Datum und Uhrzeit des Eingangs der eingehenden Anfrage.    | `Date`               |
 
+Wenn bei der Kriterie **Group incidents and alerts by a payload field** aktiviert ist, steht auch der extrahierte Gruppierungsschlüssel zur Verfügung – unter einem Variablennamen, der dem **letzten Segment** des Gruppierungspfads entspricht. Eine Gruppierung nach `requestBody.alerts[*].labels.alertname` ergibt `{{alertname}}`; eine Gruppierung nach `requestBody.alerts[*].fingerprint` ergibt `{{fingerprint}}`. Die vollständige `requestBody` steht weiterhin daneben zur Verfügung.
+
+> **Note:** `[*]` wird nur in den Gruppierungspfad-Feldern selbst verstanden – hier wird es nicht aufgelöst, sodass der Platzhalter wörtlich, mitsamt geschweiften Klammern, ausgegeben wird. In einem Titel oder einer Beschreibung liest `{{requestBody.alerts[0].annotations.summary}}` immer den ersten Alarm der Payload, nicht denjenigen, für den der Vorfall geöffnet wurde. Verwenden Sie stattdessen die Gruppierungsvariable und die gemeinsamen Felder der Payload (`commonLabels`, `commonAnnotations`). Siehe [Incoming Request-Monitor](/docs/monitor/incoming-request-monitor).
+
 ### Ping-Monitore
 
 | Variable           | Beschreibung                                         | Typ       |
@@ -175,7 +179,7 @@ Array-Indizierung wird unterstützt:
 First User: {{responseBody.users[0].name}}
 ```
 
-Wenn ein Pfad nicht existiert, wird standardmäßig eine leere Zeichenkette zurückgegeben.
+Wenn ein Pfad nicht existiert, bleibt der Platzhalter exakt so in der Ausgabe stehen, wie er geschrieben wurde – `{{responseBody.error.id}}` erscheint wörtlich, mitsamt geschweiften Klammern, im Vorfallstitel. Nur `{{#each}}`-Blöcke über einen fehlenden Pfad werden entfernt.
 
 ## Erweiterte Verwendung
 

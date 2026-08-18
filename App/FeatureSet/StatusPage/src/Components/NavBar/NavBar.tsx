@@ -11,6 +11,7 @@ import React, {
   ReactElement,
   useState,
   useEffect,
+  useRef,
 } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -29,48 +30,40 @@ export interface ComponentProps {
   showSubscriberPageOnStatusPage: boolean;
 }
 
+interface NavItem {
+  id: string;
+  title: string;
+  icon: IconProp;
+  route: Route;
+  isActive: boolean;
+}
+
 const DashboardNavbar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { t } = useTranslation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
-  const [isMobile, setIsMobile] = useState<boolean>(false);
+  const mobileNavRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
 
-  // Check if we're on mobile
-  useEffect(() => {
-    const checkMobile: () => void = (): void => {
-      setIsMobile(window.innerWidth < 768); // md breakpoint
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-
-    return () => {
-      return window.removeEventListener("resize", checkMobile);
-    };
-  }, []);
-
-  // Close mobile menu when clicking outside
+  /*
+   * Close the mobile menu when clicking outside it. The previous version found
+   * the toggle and the menu with document.querySelector on data attributes
+   * handed to <Button>, which never reach the DOM — Button declares an explicit
+   * prop list and spreads nothing — so both lookups returned null and the guard
+   * below could never be true. A ref on the wrapper that contains both is what
+   * actually works.
+   */
   useEffect(() => {
     const handleClickOutside: (event: MouseEvent) => void = (
       event: MouseEvent,
     ): void => {
-      if (isMobileMenuOpen && event.target instanceof Element) {
-        const mobileMenu: Element | null = document.querySelector(
-          "[data-mobile-nav-menu]",
-        );
-        const mobileToggle: Element | null = document.querySelector(
-          "[data-mobile-nav-toggle]",
-        );
-
-        if (
-          mobileMenu &&
-          mobileToggle &&
-          !mobileMenu.contains(event.target) &&
-          !mobileToggle.contains(event.target)
-        ) {
-          setIsMobileMenuOpen(false);
-        }
+      if (
+        mobileNavRef.current &&
+        event.target instanceof Node &&
+        !mobileNavRef.current.contains(event.target)
+      ) {
+        setIsMobileMenuOpen(false);
       }
     };
 
@@ -84,82 +77,110 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     return () => {}; // Return cleanup function for all paths
   }, [isMobileMenuOpen]);
 
+  /*
+   * Close the mobile menu when the viewport grows past the mobile breakpoint,
+   * otherwise the dropdown stays mounted and overlaps the desktop nav.
+   */
+  useEffect(() => {
+    if (!isMobileMenuOpen) {
+      return undefined;
+    }
+
+    const closeOnDesktop: () => void = (): void => {
+      if (window.innerWidth >= 768) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", closeOnDesktop);
+
+    return () => {
+      return window.removeEventListener("resize", closeOnDesktop);
+    };
+  }, [isMobileMenuOpen]);
+
   if (!props.show) {
     return <></>;
   }
 
-  // Build array of all visible nav items
-  const navItems: Array<{
+  type GetRouteFunction = (livePage: PageMap, previewPage: PageMap) => Route;
+
+  const getRoute: GetRouteFunction = (
+    livePage: PageMap,
+    previewPage: PageMap,
+  ): Route => {
+    return RouteUtil.populateRouteParams(
+      props.isPreview
+        ? (RouteMap[previewPage] as Route)
+        : (RouteMap[livePage] as Route),
+    );
+  };
+
+  type AddNavItemFunction = (item: {
     id: string;
     title: string;
     icon: IconProp;
     route: Route;
-    isActive: boolean;
-  }> = [];
+  }) => void;
 
-  // Overview item
-  const overviewRoute: Route = RouteUtil.populateRouteParams(
-    props.isPreview
-      ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
-      : (RouteMap[PageMap.OVERVIEW] as Route),
-  );
-  navItems.push({
+  /*
+   * One list drives both layouts. The mobile and desktop navs used to be two
+   * hand-maintained copies of the same items, which is how they drifted apart.
+   */
+  const navItems: Array<NavItem> = [];
+
+  const addNavItem: AddNavItemFunction = (item: {
+    id: string;
+    title: string;
+    icon: IconProp;
+    route: Route;
+  }): void => {
+    navItems.push({
+      ...item,
+      isActive: Navigation.isOnThisPage(item.route),
+    });
+  };
+
+  addNavItem({
     id: "overview-nav-bar-item",
     title: t("nav.overview"),
     icon: IconProp.CheckCircle,
-    route: overviewRoute,
-    isActive: Navigation.isOnThisPage(overviewRoute),
+    route: getRoute(PageMap.OVERVIEW, PageMap.PREVIEW_OVERVIEW),
   });
 
-  // Incidents item
   if (props.showIncidentsOnStatusPage) {
-    const incidentsRoute: Route = RouteUtil.populateRouteParams(
-      props.isPreview
-        ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
-        : (RouteMap[PageMap.INCIDENT_LIST] as Route),
-    );
-    navItems.push({
+    addNavItem({
       id: "incidents-nav-bar-item",
       title: t("nav.incidents"),
       icon: IconProp.Alert,
-      route: incidentsRoute,
-      isActive: Navigation.isOnThisPage(incidentsRoute),
+      route: getRoute(PageMap.INCIDENT_LIST, PageMap.PREVIEW_INCIDENT_LIST),
     });
   }
 
-  // Announcements item
   if (props.showAnnouncementsOnStatusPage) {
-    const announcementsRoute: Route = RouteUtil.populateRouteParams(
-      props.isPreview
-        ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST] as Route)
-        : (RouteMap[PageMap.ANNOUNCEMENT_LIST] as Route),
-    );
-    navItems.push({
+    addNavItem({
       id: "announcements-nav-bar-item",
       title: t("nav.announcements"),
       icon: IconProp.Announcement,
-      route: announcementsRoute,
-      isActive: Navigation.isOnThisPage(announcementsRoute),
+      route: getRoute(
+        PageMap.ANNOUNCEMENT_LIST,
+        PageMap.PREVIEW_ANNOUNCEMENT_LIST,
+      ),
     });
   }
 
-  // Scheduled Events item
   if (props.showScheduledMaintenanceEventsOnStatusPage) {
-    const scheduledEventsRoute: Route = RouteUtil.populateRouteParams(
-      props.isPreview
-        ? (RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST] as Route)
-        : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route),
-    );
-    navItems.push({
+    addNavItem({
       id: "scheduled-events-nav-bar-item",
       title: t("nav.scheduledEvents"),
       icon: IconProp.Clock,
-      route: scheduledEventsRoute,
-      isActive: Navigation.isOnThisPage(scheduledEventsRoute),
+      route: getRoute(
+        PageMap.SCHEDULED_EVENT_LIST,
+        PageMap.PREVIEW_SCHEDULED_EVENT_LIST,
+      ),
     });
   }
 
-  // Subscribe item
   if (
     props.showSubscriberPageOnStatusPage &&
     (props.enableEmailSubscribers ||
@@ -168,54 +189,53 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       props.enableMicrosoftTeamsSubscribers ||
       props.enableWebhookSubscribers)
   ) {
-    const subscribeRoute: Route = RouteUtil.populateRouteParams(
-      props.isPreview
-        ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_EMAIL] as Route)
-        : (RouteMap[PageMap.SUBSCRIBE_EMAIL] as Route),
-    );
-    navItems.push({
+    addNavItem({
       id: "subscribe-nav-bar-item",
       title: t("nav.subscribe"),
       icon: IconProp.Email,
-      route: subscribeRoute,
-      isActive: Navigation.isOnThisPage(subscribeRoute),
+      route: getRoute(PageMap.SUBSCRIBE_EMAIL, PageMap.PREVIEW_SUBSCRIBE_EMAIL),
     });
   }
 
-  // Logout item
   if (props.isPrivateStatusPage) {
-    const logoutRoute: Route = RouteUtil.populateRouteParams(
-      props.isPreview
-        ? (RouteMap[PageMap.PREVIEW_LOGOUT] as Route)
-        : (RouteMap[PageMap.LOGOUT] as Route),
-    );
-    navItems.push({
+    addNavItem({
       id: "logout-nav-bar-item",
       title: t("nav.logout"),
       icon: IconProp.Logout,
-      route: logoutRoute,
-      isActive: Navigation.isOnThisPage(logoutRoute),
+      route: getRoute(PageMap.LOGOUT, PageMap.PREVIEW_LOGOUT),
     });
   }
 
-  // Find the currently active item
-  const activeItem: any =
-    navItems.find((item: any) => {
-      return item.isActive;
-    }) || navItems[0];
+  if (navItems.length === 0) {
+    return <></>;
+  }
 
-  const spaceAroundClassName: string = "justify-between";
+  const activeItem: NavItem = (navItems.find((item: NavItem) => {
+    return item.isActive;
+  }) || navItems[0]) as NavItem;
 
-  if (isMobile && navItems.length > 0 && activeItem) {
-    return (
-      <div className="relative md:hidden">
-        <NavBar
-          className={`bg-white text-center ${spaceAroundClassName} py-2 mt-5 rounded-lg shadow px-5`}
-        >
-          {/* Mobile: Show only active item and hamburger menu */}
-          <div className="flex items-center justify-between w-full">
+  /*
+   * Both layouts are always rendered and the breakpoint picks between them in
+   * CSS. Deciding in JS from window.innerWidth meant the first paint always
+   * assumed desktop, so on a phone the nav was missing until an effect ran and
+   * then popped in.
+   *
+   * Because both are in the DOM at once, only the desktop nav may use the
+   * canonical item ids — the mobile copies are prefixed so the document never
+   * carries the same id twice.
+   */
+  return (
+    <>
+      <div className="relative md:hidden" ref={mobileNavRef}>
+        <NavBar className="mt-5 justify-between rounded-lg bg-white px-5 py-2 text-center shadow">
+          <div className="flex w-full items-center justify-between">
+            {/*
+             * A fixed id, not the active item's: the open dropdown below
+             * renders every item including the active one, so deriving this id
+             * from it would put the same id in the document twice.
+             */}
             <NavBarItem
-              id={activeItem.id}
+              id="mobile-active-nav-bar-item"
               title={activeItem.title}
               icon={activeItem.icon}
               exact={true}
@@ -233,23 +253,19 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
               className="ml-2 p-2"
               icon={isMobileMenuOpen ? IconProp.Close : IconProp.Bars3}
               dataTestId="mobile-nav-toggle"
-              data-mobile-nav-toggle
+              ariaExpanded={isMobileMenuOpen}
             />
           </div>
         </NavBar>
 
-        {/* Mobile dropdown menu */}
         {isMobileMenuOpen && (
-          <div
-            className="absolute top-full left-0 right-0 z-50 mt-1 animate-in slide-in-from-top-2 duration-200"
-            data-mobile-nav-menu
-          >
-            <NavBar className="bg-white rounded-lg shadow-lg px-5 py-2 space-y-1 border border-gray-200">
-              {navItems.map((item: any) => {
+          <div className="animate-slide-down absolute left-0 right-0 top-full z-50 mt-1">
+            <NavBar className="space-y-1 rounded-lg border border-gray-200 bg-white px-5 py-2 shadow-lg">
+              {navItems.map((item: NavItem) => {
                 return (
                   <div key={item.id} className="block">
                     <NavBarItem
-                      id={item.id}
+                      id={`mobile-${item.id}`}
                       title={item.title}
                       icon={item.icon}
                       exact={true}
@@ -266,111 +282,22 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
           </div>
         )}
       </div>
-    );
-  }
 
-  // Desktop: Show all items as before
-  return (
-    <NavBar
-      className={`bg-white flex text-center ${spaceAroundClassName} py-2 mt-5 rounded-lg shadow px-5 hidden md:flex`}
-    >
-      <NavBarItem
-        id="overview-nav-bar-item"
-        title={t("nav.overview")}
-        icon={IconProp.CheckCircle}
-        exact={true}
-        route={RouteUtil.populateRouteParams(
-          props.isPreview
-            ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
-            : (RouteMap[PageMap.OVERVIEW] as Route),
-        )}
-      ></NavBarItem>
-
-      {props.showIncidentsOnStatusPage ? (
-        <NavBarItem
-          id="incidents-nav-bar-item"
-          title={t("nav.incidents")}
-          icon={IconProp.Alert}
-          exact={true}
-          route={RouteUtil.populateRouteParams(
-            props.isPreview
-              ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
-              : (RouteMap[PageMap.INCIDENT_LIST] as Route),
-          )}
-        ></NavBarItem>
-      ) : (
-        <></>
-      )}
-
-      {props.showAnnouncementsOnStatusPage ? (
-        <NavBarItem
-          id="announcements-nav-bar-item"
-          title={t("nav.announcements")}
-          icon={IconProp.Announcement}
-          exact={true}
-          route={RouteUtil.populateRouteParams(
-            props.isPreview
-              ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST] as Route)
-              : (RouteMap[PageMap.ANNOUNCEMENT_LIST] as Route),
-          )}
-        ></NavBarItem>
-      ) : (
-        <></>
-      )}
-
-      {props.showScheduledMaintenanceEventsOnStatusPage ? (
-        <NavBarItem
-          id="scheduled-events-nav-bar-item"
-          title={t("nav.scheduledEvents")}
-          icon={IconProp.Clock}
-          exact={true}
-          route={RouteUtil.populateRouteParams(
-            props.isPreview
-              ? (RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST] as Route)
-              : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route),
-          )}
-        ></NavBarItem>
-      ) : (
-        <></>
-      )}
-
-      {props.showSubscriberPageOnStatusPage &&
-      (props.enableEmailSubscribers ||
-        props.enableSMSSubscribers ||
-        props.enableSlackSubscribers ||
-        props.enableMicrosoftTeamsSubscribers ||
-        props.enableWebhookSubscribers) ? (
-        <NavBarItem
-          id="subscribe-nav-bar-item"
-          title={t("nav.subscribe")}
-          icon={IconProp.Email}
-          exact={true}
-          route={RouteUtil.populateRouteParams(
-            props.isPreview
-              ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_EMAIL] as Route)
-              : (RouteMap[PageMap.SUBSCRIBE_EMAIL] as Route),
-          )}
-        ></NavBarItem>
-      ) : (
-        <></>
-      )}
-
-      {props.isPrivateStatusPage ? (
-        <NavBarItem
-          id="logout-nav-bar-item"
-          title={t("nav.logout")}
-          icon={IconProp.Logout}
-          exact={true}
-          route={RouteUtil.populateRouteParams(
-            props.isPreview
-              ? (RouteMap[PageMap.PREVIEW_LOGOUT] as Route)
-              : (RouteMap[PageMap.LOGOUT] as Route),
-          )}
-        ></NavBarItem>
-      ) : (
-        <></>
-      )}
-    </NavBar>
+      <NavBar className="mt-5 hidden justify-between rounded-lg bg-white px-5 py-2 text-center shadow md:flex">
+        {navItems.map((item: NavItem) => {
+          return (
+            <NavBarItem
+              key={item.id}
+              id={item.id}
+              title={item.title}
+              icon={item.icon}
+              exact={true}
+              route={item.route}
+            />
+          );
+        })}
+      </NavBar>
+    </>
   );
 };
 

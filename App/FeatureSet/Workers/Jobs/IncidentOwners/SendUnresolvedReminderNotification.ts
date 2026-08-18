@@ -215,6 +215,15 @@ const sendReminderForIncident: SendReminderForIncidentFunction = async (
     await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)
   ).toString();
 
+  /*
+   * The description does not vary per owner, so convert it once per incident
+   * instead of once per owner notification.
+   */
+  const incidentDescriptionHtml: string = await Markdown.convertToHTML(
+    incident.description! || "",
+    MarkdownContentType.Email,
+  );
+
   let moreIncidentFeedInformationInMarkdown: string = "";
 
   for (const user of owners) {
@@ -228,10 +237,7 @@ const sendReminderForIncident: SendReminderForIncidentFunction = async (
         date: openedAt,
         timezones: user.timezone ? [user.timezone] : [],
       }),
-      incidentDescription: await Markdown.convertToHTML(
-        incident.description! || "",
-        MarkdownContentType.Email,
-      ),
+      incidentDescription: incidentDescriptionHtml,
       resourcesAffected: resourcesAffected || "None",
       incidentSeverity: incident.incidentSeverity?.name || "",
       incidentViewLink: incidentViewLink,

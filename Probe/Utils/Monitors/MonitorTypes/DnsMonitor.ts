@@ -45,8 +45,15 @@ export default class DnsMonitorUtil {
     const attemptedAt: Date = new Date();
 
     try {
+      /*
+       * An explicitly supplied options.timeout is the caller's per-step
+       * setting and outranks the config default. Reading config.timeout
+       * first silently dropped whatever the step asked for.
+       */
+      const timeoutInMs: number = options.timeout || config.timeout || 5000;
+
       const resolver: dns.promises.Resolver = new dns.promises.Resolver({
-        timeout: config.timeout || 5000,
+        timeout: timeoutInMs,
       });
 
       if (config.hostname) {
@@ -76,6 +83,7 @@ export default class DnsMonitorUtil {
           config.queryName,
           config.recordType,
           config.hostname,
+          timeoutInMs,
         );
       } catch (dnssecErr) {
         logger.debug(
@@ -139,7 +147,11 @@ export default class DnsMonitorUtil {
         failureCause: (err as Error).message || (err as Error).toString(),
       });
 
-      if (options.currentRetryCount < (options.retry || config.retries || 3)) {
+      /*
+       * ?? not ||: a caller asking for zero retries means zero, not "fall
+       * through to the config default".
+       */
+      if (options.currentRetryCount < (options.retry ?? config.retries ?? 3)) {
         options.currentRetryCount++;
         await Sleep.sleep(1000);
         return await DnsMonitorUtil.query(config, options);
@@ -339,6 +351,11 @@ export default class DnsMonitorUtil {
     queryName: string,
     recordType: DnsRecordType,
     dnsServer?: string | undefined,
+    /*
+     * Bounded by the same timeout as the query itself, so the AD-flag check
+     * cannot add a second, longer wait on top of a slow resolution.
+     */
+    timeoutInMs: number = 10000,
   ): Promise<boolean | undefined> {
     // Validate queryName to prevent argument injection
     if (!this.isValidHostnameOrIP(queryName)) {
@@ -369,7 +386,7 @@ export default class DnsMonitorUtil {
       execFile(
         "dig",
         args,
-        { timeout: 10000 },
+        { timeout: timeoutInMs },
         (error: Error | null, stdout: string) => {
           if (error) {
             // dig not available, return undefined

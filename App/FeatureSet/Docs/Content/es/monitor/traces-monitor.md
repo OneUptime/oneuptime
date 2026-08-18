@@ -56,7 +56,6 @@ Selecciona uno o más servicios desde los que monitorear trazas. Los servicios d
 - **Mayor o igual que**: El recuento de spans está en o por encima de un umbral
 - **Menor o igual que**: El recuento de spans está en o por debajo de un umbral
 - **Igual a**: El recuento de spans coincide exactamente
-- **Diferente de**: El recuento de spans no coincide
 
 ### Ejemplos de criterios
 

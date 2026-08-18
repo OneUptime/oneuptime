@@ -76,7 +76,7 @@ Para **DNS está en línea**, **El registro DNS existe** y **DNSSEC es válido**
 
 Para **Tiempo de respuesta DNS**:
 
-- **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que**, **Igual a**, **Diferente de**
+- **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que**
 
 Para **Valor del registro DNS**:
 

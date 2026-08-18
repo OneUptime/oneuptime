@@ -1,4 +1,4 @@
-import { AddNetworkDeviceReachabilityColumns1787500000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1787500000000-AddNetworkDeviceReachabilityColumns";
+import { AddNetworkDeviceReachabilityColumns1787600000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1787600000000-AddNetworkDeviceReachabilityColumns";
 import SchemaMigrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import { MigrationInterface, QueryRunner } from "typeorm";
@@ -43,7 +43,7 @@ const MIGRATION_DIRECTORY: string = path.join(
   "../../../Server/Infrastructure/Postgres/SchemaMigrations",
 );
 
-const MIGRATION_TIMESTAMP: string = "1787500000000";
+const MIGRATION_TIMESTAMP: string = "1787600000000";
 
 interface MigrationClass {
   name: string;
@@ -77,11 +77,11 @@ const makeQueryRunner: MakeQueryRunnerFunction = (): MakeQueryRunnerResult => {
   };
 };
 
-describe("AddNetworkDeviceReachabilityColumns1787500000000 — SQL contract", () => {
+describe("AddNetworkDeviceReachabilityColumns1787600000000 — SQL contract", () => {
   test("up() adds the two columns and backfills, in that order", async () => {
     const { runner, statements } = makeQueryRunner();
 
-    await new AddNetworkDeviceReachabilityColumns1787500000000().up(runner);
+    await new AddNetworkDeviceReachabilityColumns1787600000000().up(runner);
 
     expect(statements).toEqual([
       `ALTER TABLE "NetworkDevice" ADD "lastPolledAt" TIMESTAMP WITH TIME ZONE`,
@@ -99,7 +99,7 @@ describe("AddNetworkDeviceReachabilityColumns1787500000000 — SQL contract", ()
   test("both columns are nullable with no default", async () => {
     const { runner, statements } = makeQueryRunner();
 
-    await new AddNetworkDeviceReachabilityColumns1787500000000().up(runner);
+    await new AddNetworkDeviceReachabilityColumns1787600000000().up(runner);
 
     for (const statement of statements.filter((sql: string) => {
       return sql.includes("ALTER TABLE");
@@ -119,7 +119,7 @@ describe("AddNetworkDeviceReachabilityColumns1787500000000 — SQL contract", ()
   test("the backfill only touches rows that have actually been seen", async () => {
     const { runner, statements } = makeQueryRunner();
 
-    await new AddNetworkDeviceReachabilityColumns1787500000000().up(runner);
+    await new AddNetworkDeviceReachabilityColumns1787600000000().up(runner);
 
     const backfill: string = statements[2]!;
 
@@ -131,7 +131,7 @@ describe("AddNetworkDeviceReachabilityColumns1787500000000 — SQL contract", ()
   test("the backfill runs after the columns exist", async () => {
     const { runner, statements } = makeQueryRunner();
 
-    await new AddNetworkDeviceReachabilityColumns1787500000000().up(runner);
+    await new AddNetworkDeviceReachabilityColumns1787600000000().up(runner);
 
     const lastAddIndex: number = Math.max(
       statements.findIndex((sql: string) => {
@@ -151,7 +151,7 @@ describe("AddNetworkDeviceReachabilityColumns1787500000000 — SQL contract", ()
   test("down() drops exactly what up() added, and nothing else", async () => {
     const { runner, statements } = makeQueryRunner();
 
-    await new AddNetworkDeviceReachabilityColumns1787500000000().down(runner);
+    await new AddNetworkDeviceReachabilityColumns1787600000000().down(runner);
 
     expect(statements).toEqual([
       `ALTER TABLE "NetworkDevice" DROP COLUMN "isReachable"`,
@@ -169,8 +169,8 @@ describe("AddNetworkDeviceReachabilityColumns1787500000000 — SQL contract", ()
     const { runner: downRunner, statements: downStatements } =
       makeQueryRunner();
 
-    await new AddNetworkDeviceReachabilityColumns1787500000000().up(upRunner);
-    await new AddNetworkDeviceReachabilityColumns1787500000000().down(
+    await new AddNetworkDeviceReachabilityColumns1787600000000().up(upRunner);
+    await new AddNetworkDeviceReachabilityColumns1787600000000().down(
       downRunner,
     );
 
@@ -211,14 +211,14 @@ describe("registration", () => {
       },
     );
 
-    expect(names).toContain("AddNetworkDeviceReachabilityColumns1787500000000");
+    expect(names).toContain("AddNetworkDeviceReachabilityColumns1787600000000");
   });
 
   test("it is registered exactly once", () => {
     const occurrences: number = SchemaMigrations.filter(
       (migration: new () => MigrationInterface): boolean => {
         return (
-          migration.name === "AddNetworkDeviceReachabilityColumns1787500000000"
+          migration.name === "AddNetworkDeviceReachabilityColumns1787600000000"
         );
       },
     ).length;
@@ -231,8 +231,8 @@ describe("registration", () => {
    * name. A mismatch re-runs the migration on every boot.
    */
   test("its declared name matches its class name", () => {
-    expect(new AddNetworkDeviceReachabilityColumns1787500000000().name).toBe(
-      "AddNetworkDeviceReachabilityColumns1787500000000",
+    expect(new AddNetworkDeviceReachabilityColumns1787600000000().name).toBe(
+      "AddNetworkDeviceReachabilityColumns1787600000000",
     );
   });
 });
@@ -241,7 +241,7 @@ describe("registration", () => {
 describe("ordering", () => {
   test("its timestamp sorts after every other registered migration", () => {
     const ourTimestamp: number | null = timestampOf(
-      AddNetworkDeviceReachabilityColumns1787500000000,
+      AddNetworkDeviceReachabilityColumns1787600000000,
     );
 
     expect(ourTimestamp).not.toBeNull();
@@ -249,7 +249,7 @@ describe("ordering", () => {
     const otherTimestamps: Array<number> = [];
 
     for (const migrationClass of SchemaMigrations) {
-      if (migrationClass === AddNetworkDeviceReachabilityColumns1787500000000) {
+      if (migrationClass === AddNetworkDeviceReachabilityColumns1787600000000) {
         continue;
       }
 
@@ -273,7 +273,7 @@ describe("ordering", () => {
 
   test("it is registered last, matching that timestamp", () => {
     expect(SchemaMigrations[SchemaMigrations.length - 1]).toBe(
-      AddNetworkDeviceReachabilityColumns1787500000000,
+      AddNetworkDeviceReachabilityColumns1787600000000,
     );
   });
 

@@ -419,12 +419,13 @@ router.post(
           ),
         ).toString();
 
+        /*
+         * The reset URL embeds the single-use reset token, which is a
+         * password-equivalent credential until it is spent -- so it is not
+         * logged, only mailed.
+         */
         logger.debug(
           "User forgot password: " + user.email?.toString(),
-          getLogAttributesFromRequest(req as RequestLike),
-        );
-        logger.debug(
-          "Reset Password URL: " + tokenVerifyUrl,
           getLogAttributesFromRequest(req as RequestLike),
         );
 
@@ -996,8 +997,17 @@ const login: LoginFunction = async (options: {
 
     const data: JSONObject = req.body["data"];
 
+    /*
+     * The request body is NOT logged here. This handler is shared by password
+     * login, TOTP verification and WebAuthn verification, so the body carries a
+     * plaintext password, a TOTP code, or a WebAuthn assertion on every call --
+     * and DEBUG output goes to stdout, the recent-log buffer and telemetry at
+     * once. Log the stage instead; the user is identified by the request
+     * attributes.
+     */
     logger.debug(
-      "Login request data: " + JSON.stringify(req.body, null, 2),
+      "Login request received. stage: " +
+        (verifyTotpAuth ? "totp" : verifyWebAuthn ? "webauthn" : "password"),
       getLogAttributesFromRequest(req as RequestLike),
     );
 

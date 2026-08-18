@@ -31,11 +31,13 @@ Você pode configurar critérios para determinar quando seu endereço IP é cons
 
 ### Tipos de Verificação Disponíveis
 
-| Tipo de Verificação   | Descrição                          |
-| --------------------- | ---------------------------------- |
-| Is Online             | Se o endereço IP está acessível    |
-| Response Time (in ms) | Tempo de resposta em milissegundos |
-| Is Request Timeout    | Se a requisição expirou            |
+| Tipo de Verificação   | Descrição                                                    |
+| --------------------- | ------------------------------------------------------------ |
+| Is Online             | Se o endereço IP está acessível                              |
+| Response Time (in ms) | Tempo de resposta em milissegundos                           |
+| Packet Loss (in %)    | Percentual de requisições ICMP echo sem resposta             |
+| Jitter (in ms)        | Desvio padrão dos tempos de ida e volta dos pacotes enviados |
+| Is Request Timeout    | Se a requisição expirou                                      |
 
 ### Tipos de Filtro
 
@@ -44,15 +46,14 @@ Para **Is Online** e **Is Request Timeout**:
 - **True** — Condição é verdadeira
 - **False** — Condição é falsa
 
-Para **Tempo de resposta**:
+Para **Response Time**, **Packet Loss** e **Jitter**:
 
 - **Greater Than** — O tempo de resposta excede um limite
 - **Less Than** — O tempo de resposta está abaixo de um limite
 - **Greater Than or Equal To** — O tempo de resposta está no limite ou acima
 - **Less Than or Equal To** — O tempo de resposta está no limite ou abaixo
-- **Equal To** — O tempo de resposta corresponde exatamente
-- **Not Equal To** — O tempo de resposta não corresponde
-- **Evaluate Over Time** — Avalie usando agregação (Média, Soma, Máximo, Mínimo, Todos os Valores, Qualquer Valor) em uma janela de tempo
+
+**Evaluate this criteria over a period of time** é uma caixa de seleção no formulário de critérios, não uma condição de filtro. Ative-a para comparar uma agregação — escolhida em **Evaluate** (Média, Soma, Máximo, Mínimo, Todos os Valores, Qualquer Valor) sobre a janela definida em **For the last (in minutes)** — em vez do valor da última verificação.
 
 ### Critérios de Exemplo
 

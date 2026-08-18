@@ -12,6 +12,7 @@ import logger, {
   getLogAttributesFromRequest,
 } from "Common/Server/Utils/Logger";
 import { getStatusPageData, StatusPageData } from "../Utils/StatusPage";
+import applyStatusPageRobotsHeader from "Common/Server/Utils/StatusPageSearchEngineIndexing";
 
 type RSSItem = {
   title: string;
@@ -37,6 +38,15 @@ export const handleRSS: (
     }
 
     const { id: statusPageId, title, description } = statusPageData;
+
+    /*
+     * The feed is not HTML, so it has no <meta name="robots"> to carry the
+     * owner's opt-out. The header is the only channel it has.
+     */
+    applyStatusPageRobotsHeader(
+      res,
+      statusPageData.isSearchEngineIndexingEnabled,
+    );
 
     // Fetch incidents
     const incidentsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =

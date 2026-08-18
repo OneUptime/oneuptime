@@ -90,6 +90,9 @@ RunCron(
           },
           incidentNumber: true,
           incidentNumberWithPrefix: true,
+          incidentSeverity: {
+            name: true,
+          },
         },
       });
 
@@ -98,25 +101,6 @@ RunCron(
       }
 
       const incidentState: IncidentState = incidentStateTimeline.incidentState!;
-
-      // get incident severity
-      const incidentWithSeverity: Incident | null =
-        await IncidentService.findOneById({
-          id: incident.id!,
-          props: {
-            isRoot: true,
-          },
-          select: {
-            _id: true,
-            incidentSeverity: {
-              name: true,
-            },
-          },
-        });
-
-      if (!incidentWithSeverity) {
-        continue;
-      }
 
       await IncidentStateTimelineService.updateOneById({
         id: incidentStateTimeline.id!,
@@ -217,6 +201,11 @@ RunCron(
         incident.incidentNumberWithPrefix ||
         (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
 
+      const incidentDescriptionHtml: string = await Markdown.convertToHTML(
+        incident.description! || "",
+        MarkdownContentType.Email,
+      );
+
       for (const user of owners) {
         // Build the "Was X for Y" string
         const previousStateDurationText: string =
@@ -233,17 +222,14 @@ RunCron(
           previousState: previousState?.name || "",
           previousStateColor: previousState?.color?.toString() || "#6b7280",
           previousStateDurationText: previousStateDurationText,
-          incidentDescription: await Markdown.convertToHTML(
-            incident.description! || "",
-            MarkdownContentType.Email,
-          ),
+          incidentDescription: incidentDescriptionHtml,
           resourcesAffected: resourcesAffected || "None",
           stateChangedAt:
             OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
               date: incidentStateTimeline.createdAt!,
               timezones: user.timezone ? [user.timezone] : [],
             }),
-          incidentSeverity: incidentWithSeverity.incidentSeverity!.name!,
+          incidentSeverity: incident.incidentSeverity!.name!,
           incidentViewLink: (
             await IncidentService.getIncidentLinkInDashboard(
               incidentStateTimeline.projectId!,

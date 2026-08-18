@@ -1,6 +1,7 @@
 {
   "a11y": {
-    "skipToMainContent": "Vai al contenuto principale"
+    "skipToMainContent": "Vai al contenuto principale",
+    "loading": "Caricamento..."
   },
   "common": {
     "save": "Salva",
@@ -227,7 +228,8 @@
       "passwordDescription": "Inserisci la password per sbloccare questa pagina.",
       "passwordPlaceholder": "Inserisci password",
       "submit": "Sblocca pagina di stato"
-    }
+    },
+    "signingOut": "Disconnessione in corso..."
   },
   "errors": {
     "notFound": {

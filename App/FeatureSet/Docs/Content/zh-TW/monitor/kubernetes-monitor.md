@@ -134,7 +134,15 @@ Kubernetes 監視器使用叢集中的指標，為您的基礎架構提供深入
 
 ### 篩選類型
 
-- **Greater Than**、**Less Than**、**Greater Than or Equal To**、**Less Than or Equal To**、**Equal To**、**Not Equal To**
+- **Greater Than**、**Less Than**、**Greater Than or Equal To**、**Less Than or Equal To**、**Equal To**
+
+基準線異常偵測（不需門檻值 — 表單改為顯示 **Sensitivity** 與 **Baseline Window**，並將每個取樣與一週中相同時段的基準線比較）：
+
+- **Anomalously High** — 數值高於預期範圍
+- **Anomalously Low** — 數值低於預期範圍
+- **Anomalous** — 數值在任一方向超出預期範圍
+
+在累積至少所選 Baseline Window 的歷史資料之前，異常條件不會產生警示（Learning 狀態）。
 
 ## 預先建置的警示範本
 

@@ -182,6 +182,85 @@ export default class Hostname extends DatabaseProperty {
     return new Hostname(hostname);
   }
 
+  /*
+   * Splits a URL authority into its bare host and its port, using the same
+   * structure isValid() already understands: optional userinfo, then either
+   * a bracketed IPv6 literal, an unbracketed IPv6 literal, or a host with an
+   * optional ":port".
+   *
+   * fromString() is NOT a substitute. It splits on the FIRST colon, so it
+   * turns "[::1]:8080" into a host of "[" and a port of "", and any IPv6
+   * literal into nonsense. Callers that hold an authority (a URL's host
+   * component) and need the two parts apart must use this.
+   *
+   * Userinfo is dropped rather than preserved: the caller asked for a host
+   * to connect to, and credentials are not part of one. Anything that needs
+   * the original string still has the authority it passed in.
+   */
+  public static fromAuthority(authority: string): Hostname {
+    const trimmedAuthority: string = (authority || "").trim();
+
+    if (!trimmedAuthority) {
+      return new Hostname("");
+    }
+
+    /*
+     * Split on the LAST "@" for the same reason isValid() does: userinfo may
+     * itself contain an "@", and everything after the final one is the
+     * authority proper.
+     */
+    const atIndex: number = trimmedAuthority.lastIndexOf("@");
+    const hostAndPort: string =
+      atIndex === -1
+        ? trimmedAuthority
+        : trimmedAuthority.substring(atIndex + 1);
+
+    if (!hostAndPort) {
+      return new Hostname("");
+    }
+
+    // Bracketed IPv6, with or without a port: "[::1]", "[::1]:8080".
+    const bracketedIpv6Match: RegExpMatchArray | null = hostAndPort.match(
+      /^(\[[0-9a-fA-F:.]+\])(?::(\d{1,5}))?$/,
+    );
+
+    if (bracketedIpv6Match) {
+      const ipv6Host: string = bracketedIpv6Match[1] as string;
+      const ipv6Port: string | undefined = bracketedIpv6Match[2];
+
+      return ipv6Port
+        ? new Hostname(ipv6Host, ipv6Port)
+        : new Hostname(ipv6Host);
+    }
+
+    /*
+     * Unbracketed IPv6 literal: two or more colons cannot be a "host:port",
+     * so every colon belongs to the address itself and there is no port.
+     */
+    if ((hostAndPort.match(/:/g) || []).length > 1) {
+      return new Hostname(hostAndPort);
+    }
+
+    const colonIndex: number = hostAndPort.indexOf(":");
+
+    if (colonIndex === -1) {
+      return new Hostname(hostAndPort);
+    }
+
+    const host: string = hostAndPort.substring(0, colonIndex);
+    const port: string = hostAndPort.substring(colonIndex + 1);
+
+    /*
+     * A trailing colon with no digits ("host:") is not a port. Keep the host
+     * and drop the empty port rather than constructing an invalid Port.
+     */
+    if (!port) {
+      return new Hostname(host);
+    }
+
+    return new Hostname(host, port);
+  }
+
   public static override toDatabase(
     value: Hostname | FindOperator<Hostname>,
   ): string | null {

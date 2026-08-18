@@ -166,6 +166,7 @@ Sonden stöder följande miljövariabler:
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` – Timeout för anpassade kodmonitorskript i millisekunder (standard: 60000)
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` – Tidsgräns för varje förfrågan som sonden skickar till OneUptime (standard: 45000)
 - `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` – Logga en varning för förfrågningar till OneUptime som är långsammare än detta (standard: 10000)
+- `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` – Tidsgräns för att kontrollera en monitor, varefter kontrollen avbryts och görs om i nästa cykel (standard: 900000)
 
 #### Proxykonfiguration
 

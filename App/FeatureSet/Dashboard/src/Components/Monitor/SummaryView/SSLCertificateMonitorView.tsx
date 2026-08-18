@@ -13,6 +13,31 @@ export interface ComponentProps {
   probeName?: string | undefined;
 }
 
+/*
+ * Describes the certificate in one line: whether it is trustworthy, and if
+ * not, why. isValidCertificate is absent on responses written by an older
+ * probe, in which case fall back to what could be inferred before.
+ */
+export function sslStatusLabel(sslResponse: SslMonitorResponse): string {
+  const isValid: boolean | undefined = sslResponse.isValidCertificate;
+
+  if (isValid === true) {
+    return "Valid";
+  }
+
+  if (isValid === false) {
+    if (sslResponse.isSelfSigned) {
+      return "Not Valid - Self Signed";
+    }
+
+    return sslResponse.certificateValidationErrorCode
+      ? `Not Valid - ${sslResponse.certificateValidationErrorCode}`
+      : "Not Valid";
+  }
+
+  return sslResponse.isSelfSigned ? "Self Signed" : "Signed by a CA";
+}
+
 const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -51,10 +76,16 @@ const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
             title="Probe"
             value={props.probeName || "-"}
           />
+          {/*
+           * Reports the VALIDATION verdict, not just how the certificate was
+           * signed. "Signed by a CA" was shown for any certificate that was
+           * not self-signed, so an expired or wrong-hostname certificate read
+           * as reassuring - see issue #3225.
+           */}
           <InfoCard
             className="w-1/4 shadow-none border-2 border-gray-100 "
             title="SSL Status"
-            value={sslResponse.isSelfSigned ? "Self Signed" : "Signed by a CA"}
+            value={sslStatusLabel(sslResponse)}
           />
 
           <InfoCard
@@ -82,6 +113,23 @@ const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
           />
         </div>
 
+        {/*
+         * The reason a certificate failed validation is the single most
+         * useful thing on this page when something is wrong, so it is shown
+         * without needing to expand details.
+         */}
+        {sslResponse.certificateValidationError ? (
+          <div className="flex space-x-3 w-full">
+            <InfoCard
+              className="w-full shadow-none border-2 border-gray-100 "
+              title="Certificate Problem"
+              value={sslResponse.certificateValidationError}
+            />
+          </div>
+        ) : (
+          <></>
+        )}
+
         {showMoreDetails && hadRetries && (
           <ProbeAttemptsView
             attempts={probeAttempts}
@@ -108,6 +156,15 @@ const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
                 className="w-1/3 shadow-none border-2 border-gray-100 "
                 title="Organization"
                 value={sslResponse.organization || "-"}
+              />
+            </div>
+            <div className="flex space-x-3 w-full">
+              {/* Without this the product could not name the signing CA. */}
+              <InfoCard
+                className="w-full shadow-none border-2 border-gray-100 "
+                title="Issuer"
+                value={sslResponse.issuer || "-"}
+                textClassName="text-xs truncate"
               />
             </div>
             <div className="flex space-x-3 w-full">

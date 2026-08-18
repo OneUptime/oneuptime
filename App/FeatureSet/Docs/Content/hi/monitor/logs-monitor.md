@@ -62,7 +62,6 @@ logs monitor करने के लिए एक या अधिक services �
 - **Greater Than or Equal To** — Log count एक threshold पर या उससे ऊपर है
 - **Less Than or Equal To** — Log count एक threshold पर या उससे नीचे है
 - **Equal To** — Log count बिल्कुल match करती है
-- **Not Equal To** — Log count match नहीं करती
 
 ### उदाहरण Criteria
 

@@ -210,6 +210,7 @@ Proben støtter følgende miljøvariabler:
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` – Tidsavbrudd for egendefinerte kode-monitorskript i millisekunder (standard: 60000)
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` – Tidsfrist for hver forespørsel proben sender til OneUptime (standard: 45000)
 - `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` – Logg en advarsel for forespørsler til OneUptime som er tregere enn dette (standard: 10000)
+- `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` – Tidsfrist for å sjekke én monitor, før kontrollen avbrytes og forsøkes på nytt i neste syklus (standard: 900000)
 
 #### Proxy-konfigurasjon
 

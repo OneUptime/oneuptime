@@ -76,7 +76,7 @@ For **DNS er online**, **DNS-post eksisterer** og **DNSSEC er gyldig**:
 
 For **DNS-svartid**:
 
-- **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med**, **Lig med**, **Ikke lig med**
+- **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med**
 
 For **DNS-postværdi**:
 

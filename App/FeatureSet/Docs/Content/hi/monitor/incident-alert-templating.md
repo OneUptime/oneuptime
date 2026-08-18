@@ -40,6 +40,10 @@
 | `requestMethod`             | incoming request का HTTP method (GET, POST, आदि)। | `string`             |
 | `incomingRequestReceivedAt` | incoming request received होने की date और time।   | `Date`               |
 
+जब criteria में **Group incidents and alerts by a payload field** चालू होता है, तो निकाली गई grouping key भी उपलब्ध रहती है — एक ऐसे variable नाम के तहत जो grouping path के **आख़िरी segment** से लिया जाता है। `requestBody.alerts[*].labels.alertname` से grouping करने पर `{{alertname}}` मिलता है; `requestBody.alerts[*].fingerprint` से grouping करने पर `{{fingerprint}}` मिलता है। पूरा `requestBody` उसके साथ-साथ उपलब्ध रहता है।
+
+> **Note:** `[*]` केवल grouping path वाले फ़ील्ड्स में ही समझा जाता है — यहाँ यह resolve नहीं होता, इसलिए placeholder ज्यों का त्यों, ब्रेसेज़ समेत छप जाता है। किसी title या description के अंदर `{{requestBody.alerts[0].annotations.summary}}` हमेशा payload का पहला alert पढ़ता है, वह नहीं जिसके लिए incident खोला गया था। इसके बजाय grouping variable और payload के साझा फ़ील्ड (`commonLabels`, `commonAnnotations`) इस्तेमाल करें। देखें [Incoming Request मॉनिटर](/docs/monitor/incoming-request-monitor)।
+
 ### Ping Monitors
 
 | Variable           | विवरण                                    | Type      |
@@ -175,7 +179,7 @@ Array indexing supported है:
 First User: {{responseBody.users[0].name}}
 ```
 
-यदि कोई path मौजूद नहीं है तो वह default रूप से empty string में resolve होता है।
+यदि कोई path मौजूद नहीं है, तो placeholder जैसा लिखा गया है ठीक वैसा ही output में बना रहता है — `{{responseBody.error.id}}` incident title में ब्रेसेज़ समेत ज्यों का त्यों दिखता है। केवल किसी अनुपस्थित path पर बने `{{#each}}` ब्लॉक हटाए जाते हैं।
 
 ## Advanced Usage
 

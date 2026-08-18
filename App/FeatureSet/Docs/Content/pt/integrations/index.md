@@ -20,6 +20,8 @@ Use quando um sistema externo precisa _criar ou atualizar algo no OneUptime_ —
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
 ```
 
+> **Tip:** Especificamente para ferramentas de alertas, um **[monitor de Incoming Request](/docs/monitor/incoming-request-monitor)** costuma ser o melhor caminho de entrada. Ele fornece uma URL de webhook sem construir um workflow, abre um incidente por alerta presente no payload, escala para uma política de plantão e resolve cada incidente quando a ferramenta informa a recuperação. Recorra a um workflow quando precisar de lógica que o OneUptime não faz nativamente. Veja [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) para um exemplo completo.
+
 ### Saída — o OneUptime envia dados para outra ferramenta
 
 Use quando _algo no OneUptime deve aparecer em outra ferramenta_ — abrir um ticket no Jira, acionar alguém no PagerDuty, postar no Slack.
@@ -85,7 +87,7 @@ printf '%s' 'you@example.com:your_api_token' | base64
 
 Quase qualquer ferramenta se encaixa em um dos dois padrões acima:
 
-- Se a ferramenta consegue **enviar um webhook** quando algo acontece, use o padrão de **entrada** — aponte o webhook dela para um gatilho Webhook do OneUptime.
+- Se a ferramenta consegue **enviar um webhook** quando algo acontece, use o padrão de **entrada** — aponte o webhook dela para um [monitor de Incoming Request](/docs/monitor/incoming-request-monitor) se for uma ferramenta de alertas, ou para um gatilho Webhook do OneUptime se você precisar de lógica personalizada.
 - Se a ferramenta tem uma **REST API**, use o padrão de **saída** — chame-a a partir de um **componente API**.
 - Se você precisar reformatar dados entre os dois, adicione um bloco **[Custom Code](/docs/workflows/components#custom-code)**.
 
@@ -97,4 +99,5 @@ Isso cobre a longa cauda — Zendesk, AWS CloudWatch (via SNS), New Relic, Splun
 - [Gatilhos](/docs/workflows/triggers) — gatilhos Webhook e de evento do OneUptime em detalhes.
 - [Componentes](/docs/workflows/components) — os componentes API, Webhook e de dados.
 - [Variáveis](/docs/workflows/variables) — segredos e passagem de dados entre blocos.
+- [Monitor de Incoming Request](/docs/monitor/incoming-request-monitor) — o caminho de entrada sem workflow para ferramentas de alertas.
 - [Zabbix](/docs/integrations/zabbix) e [Jira](/docs/integrations/jira) — exemplos completos trabalhados.

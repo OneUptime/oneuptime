@@ -134,7 +134,15 @@ Kubernetes मॉनिटर आपके इंफ्रास्ट्रक�
 
 ### फ़िल्टर प्रकार
 
-- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
+- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**
+
+Baseline anomaly detection (कोई threshold नहीं — form इसके बजाय **Sensitivity** और **Baseline Window** दिखाता है और प्रत्येक sample की तुलना सप्ताह के उसी घंटे की baseline से करता है):
+
+- **Anomalously High** — Value अपेक्षित range से ऊपर जाती है
+- **Anomalously Low** — Value अपेक्षित range से नीचे जाती है
+- **Anomalous** — Value किसी भी दिशा में अपेक्षित range से बाहर जाती है
+
+जब तक कम से कम चुनी गई Baseline Window जितना history न हो, anomaly conditions कोई alert नहीं बनातीं (Learning state)।
 
 ## पूर्व-निर्मित अलर्ट टेम्पलेट्स
 

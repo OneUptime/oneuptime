@@ -62,7 +62,6 @@ Filtre logs por um ou mais níveis de severidade:
 - **Greater Than or Equal To** — A contagem de logs está no limite ou acima
 - **Less Than or Equal To** — A contagem de logs está no limite ou abaixo
 - **Equal To** — A contagem de logs corresponde exatamente
-- **Not Equal To** — A contagem de logs não corresponde
 
 ### Critérios de Exemplo
 

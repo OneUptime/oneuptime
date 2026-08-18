@@ -122,7 +122,15 @@ L'agent Docker utilise le récepteur `docker_stats` d'OpenTelemetry, qui interro
 
 ### Types de filtres
 
-- **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à**, **Égal à**, **Différent de**
+- **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à**, **Égal à**
+
+Détection d'anomalies par référence (aucun seuil — le formulaire affiche à la place **Sensibilité** et **Fenêtre de référence**, et compare chaque échantillon à la référence de la même heure de la semaine) :
+
+- **Anormalement élevé** — La valeur dépasse la plage attendue
+- **Anormalement bas** — La valeur passe sous la plage attendue
+- **Anormal** — La valeur sort de la plage attendue dans un sens ou dans l'autre
+
+Les conditions d'anomalie ne déclenchent aucune alerte tant qu'il n'existe pas au moins la fenêtre de référence configurée d'historique (état Learning).
 
 ## Modèles d'alertes préconfigurés
 

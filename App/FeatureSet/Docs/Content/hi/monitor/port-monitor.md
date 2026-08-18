@@ -65,9 +65,8 @@ monitor करने के लिए port number दर्ज करें (1�
 - **Less Than** — Response time एक threshold से कम है
 - **Greater Than or Equal To** — Response time एक threshold पर या उससे ऊपर है
 - **Less Than or Equal To** — Response time एक threshold पर या उससे नीचे है
-- **Equal To** — Response time बिल्कुल match करती है
-- **Not Equal To** — Response time match नहीं करती
-- **Evaluate Over Time** — एक time window पर aggregation (Average, Sum, Maximum, Minimum, All Values, Any Value) का उपयोग करके evaluate करें
+
+**Evaluate this criteria over a period of time** criteria form पर एक checkbox है, filter condition नहीं। इसे चालू करने पर नवीनतम check के value के बजाय **Evaluate** (Average, Sum, Maximum, Minimum, All Values, Any Value) में चुना गया aggregate उस window पर तुलना किया जाता है जो **For the last (in minutes)** में सेट है।
 
 ### उदाहरण Criteria
 

@@ -65,9 +65,8 @@ Pour **Temps de réponse** :
 - **Inférieur à** — Le temps de réponse est en dessous d'un seuil
 - **Supérieur ou égal à** — Le temps de réponse est au-dessus ou égal à un seuil
 - **Inférieur ou égal à** — Le temps de réponse est en dessous ou égal à un seuil
-- **Égal à** — Le temps de réponse correspond exactement
-- **Différent de** — Le temps de réponse ne correspond pas
-- **Évaluer dans le temps** — Évaluer en utilisant l'agrégation (Moyenne, Somme, Maximum, Minimum, Toutes les valeurs, N'importe quelle valeur) sur une fenêtre temporelle
+
+**Évaluer ce critère sur une période** est une case à cocher du formulaire de critères, et non une condition de filtre. Activez-la pour comparer une agrégation — choisie sous **Évaluer** (Moyenne, Somme, Maximum, Minimum, Toutes les valeurs, N'importe quelle valeur) sur la fenêtre définie par **Sur les dernières (en minutes)** — au lieu de la valeur du dernier contrôle.
 
 ### Exemples de critères
 
