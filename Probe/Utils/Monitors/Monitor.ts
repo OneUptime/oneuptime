@@ -79,6 +79,54 @@ export default class MonitorUtil {
     return URL.fromString(urlString);
   }
 
+  /*
+   * DNS, DNSSEC, Domain, SNMP and External Status Page steps carry their own
+   * timeout/retries in their type-specific config - that is what their form
+   * exposes - while every other type uses the step-level settings. So the
+   * resolution order is: what the user set on the step, then what they set on
+   * the type-specific config, then the probe-wide default. Passing
+   * PROBE_MONITOR_RETRY_LIMIT straight through (as these branches used to)
+   * discarded BOTH user settings, because the monitor utils treat a supplied
+   * options.retry as the winner.
+   */
+  public static resolveRetryCount(data: {
+    stepRetryCount: number | undefined | null;
+    monitorConfigRetries: number | undefined | null;
+  }): number {
+    if (data.stepRetryCount !== undefined && data.stepRetryCount !== null) {
+      return clampMonitorRetryCount(data.stepRetryCount);
+    }
+
+    if (
+      data.monitorConfigRetries !== undefined &&
+      data.monitorConfigRetries !== null
+    ) {
+      return data.monitorConfigRetries;
+    }
+
+    return PROBE_MONITOR_RETRY_LIMIT;
+  }
+
+  // Same precedence as resolveRetryCount, for the request timeout.
+  public static resolveTimeoutInMs(data: {
+    stepRequestTimeoutInMs: number | undefined | null;
+    monitorConfigTimeoutInMs: number | undefined | null;
+    defaultTimeoutInMs: number;
+  }): number {
+    if (
+      data.stepRequestTimeoutInMs !== undefined &&
+      data.stepRequestTimeoutInMs !== null
+    ) {
+      return clampMonitorRequestTimeoutInMs(data.stepRequestTimeoutInMs);
+    }
+
+    if (data.monitorConfigTimeoutInMs) {
+      return data.monitorConfigTimeoutInMs;
+    }
+
+    return data.defaultTimeoutInMs;
+  }
+
   public static async probeMonitorTest(
     monitorTest: MonitorTest,
   ): Promise<Array<ProbeMonitorResponse | null>> {
@@ -368,21 +416,20 @@ export default class MonitorUtil {
      * Per-step request timeout (capped at the user-facing max). Falls back
      * to the global default when the user hasn't configured one.
      */
-    const requestTimeoutInMs: number =
-      monitorStep.data.requestTimeoutInMs !== undefined &&
-      monitorStep.data.requestTimeoutInMs !== null
-        ? clampMonitorRequestTimeoutInMs(monitorStep.data.requestTimeoutInMs)
-        : DEFAULT_MONITOR_REQUEST_TIMEOUT_IN_MS;
+    const requestTimeoutInMs: number = MonitorUtil.resolveTimeoutInMs({
+      stepRequestTimeoutInMs: monitorStep.data.requestTimeoutInMs,
+      monitorConfigTimeoutInMs: undefined,
+      defaultTimeoutInMs: DEFAULT_MONITOR_REQUEST_TIMEOUT_IN_MS,
+    });
 
     /*
      * Per-step retry count (capped at the user-facing max). Falls back to
      * the probe-wide default (env var) when the user hasn't configured one.
      */
-    const retryCount: number =
-      monitorStep.data.retryCount !== undefined &&
-      monitorStep.data.retryCount !== null
-        ? clampMonitorRetryCount(monitorStep.data.retryCount)
-        : PROBE_MONITOR_RETRY_LIMIT;
+    const retryCount: number = MonitorUtil.resolveRetryCount({
+      stepRetryCount: monitorStep.data.retryCount,
+      monitorConfigRetries: undefined,
+    });
 
     if (monitorType === MonitorType.Ping || monitorType === MonitorType.IP) {
       if (!monitorStep.data?.monitorDestination) {
@@ -730,9 +777,16 @@ export default class MonitorUtil {
       const response: SnmpMonitorResponse | null = await SnmpMonitor.query(
         snmpConfig,
         {
-          retry: PROBE_MONITOR_RETRY_LIMIT,
+          retry: MonitorUtil.resolveRetryCount({
+            stepRetryCount: monitorStep.data.retryCount,
+            monitorConfigRetries: snmpConfig.retries,
+          }),
           monitorId: monitorId,
-          timeout: snmpConfig.timeout || 5000,
+          timeout: MonitorUtil.resolveTimeoutInMs({
+            stepRequestTimeoutInMs: monitorStep.data.requestTimeoutInMs,
+            monitorConfigTimeoutInMs: snmpConfig.timeout,
+            defaultTimeoutInMs: 5000,
+          }),
           /*
            * ARP/FDB endpoint collection rides the interface walk. Strictly
            * OPT-IN: it adds SNMP table walks per poll and an endpoint write
@@ -774,9 +828,16 @@ export default class MonitorUtil {
       const response: DnsMonitorResponse | null = await DnsMonitorUtil.query(
         dnsConfig,
         {
-          retry: PROBE_MONITOR_RETRY_LIMIT,
+          retry: MonitorUtil.resolveRetryCount({
+            stepRetryCount: monitorStep.data.retryCount,
+            monitorConfigRetries: dnsConfig.retries,
+          }),
           monitorId: monitorId,
-          timeout: dnsConfig.timeout || 5000,
+          timeout: MonitorUtil.resolveTimeoutInMs({
+            stepRequestTimeoutInMs: monitorStep.data.requestTimeoutInMs,
+            monitorConfigTimeoutInMs: dnsConfig.timeout,
+            defaultTimeoutInMs: 5000,
+          }),
         },
       );
 
@@ -809,9 +870,16 @@ export default class MonitorUtil {
 
       const response: DomainMonitorResponse | null =
         await DomainMonitorUtil.query(domainConfig, {
-          retry: PROBE_MONITOR_RETRY_LIMIT,
+          retry: MonitorUtil.resolveRetryCount({
+            stepRetryCount: monitorStep.data.retryCount,
+            monitorConfigRetries: domainConfig.retries,
+          }),
           monitorId: monitorId,
-          timeout: domainConfig.timeout || 10000,
+          timeout: MonitorUtil.resolveTimeoutInMs({
+            stepRequestTimeoutInMs: monitorStep.data.requestTimeoutInMs,
+            monitorConfigTimeoutInMs: domainConfig.timeout,
+            defaultTimeoutInMs: 10000,
+          }),
         });
 
       if (!response) {
@@ -843,9 +911,16 @@ export default class MonitorUtil {
 
       const response: DnssecMonitorResponse | null =
         await DnssecMonitorUtil.query(dnssecConfig, {
-          retry: PROBE_MONITOR_RETRY_LIMIT,
+          retry: MonitorUtil.resolveRetryCount({
+            stepRetryCount: monitorStep.data.retryCount,
+            monitorConfigRetries: dnssecConfig.retries,
+          }),
           monitorId: monitorId,
-          timeout: dnssecConfig.timeout || 10000,
+          timeout: MonitorUtil.resolveTimeoutInMs({
+            stepRequestTimeoutInMs: monitorStep.data.requestTimeoutInMs,
+            monitorConfigTimeoutInMs: dnssecConfig.timeout,
+            defaultTimeoutInMs: 10000,
+          }),
         });
 
       if (!response) {
@@ -918,9 +993,16 @@ export default class MonitorUtil {
 
       const response: ExternalStatusPageMonitorResponse | null =
         await ExternalStatusPageMonitorUtil.fetch(externalStatusPageConfig, {
-          retry: PROBE_MONITOR_RETRY_LIMIT,
+          retry: MonitorUtil.resolveRetryCount({
+            stepRetryCount: monitorStep.data.retryCount,
+            monitorConfigRetries: externalStatusPageConfig.retries,
+          }),
           monitorId: monitorId,
-          timeout: externalStatusPageConfig.timeout || 10000,
+          timeout: MonitorUtil.resolveTimeoutInMs({
+            stepRequestTimeoutInMs: monitorStep.data.requestTimeoutInMs,
+            monitorConfigTimeoutInMs: externalStatusPageConfig.timeout,
+            defaultTimeoutInMs: 10000,
+          }),
         });
 
       if (!response) {

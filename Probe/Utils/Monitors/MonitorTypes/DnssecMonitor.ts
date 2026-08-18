@@ -22,6 +22,23 @@ export interface DnssecQueryOptions {
   attempts?: Array<ProbeAttempt> | undefined;
 }
 
+/*
+ * A DNSSEC check is not one query: it is DNSKEY, DS, RRSIG, one dig per
+ * configured resolver, then an NS sweep with one dig per nameserver. Handing
+ * every one of those legs the full per-query timeout meant a check against an
+ * unresponsive resolver could run for minutes - with retries on top of that.
+ * The legs therefore share a single deadline: one attempt gets at most the
+ * per-leg timeout multiplied by this factor.
+ */
+const DNSSEC_TOTAL_TIMEOUT_MULTIPLIER: number = 3;
+
+interface DnssecTimeBudget {
+  perLegTimeoutMs: number;
+  deadlineAt: number;
+  // Set when a leg had to be skipped because the deadline had passed.
+  ranOutOfTime: boolean;
+}
+
 interface DigOptions {
   digFlags?: Array<string>;
   resolver?: string | undefined;
@@ -95,28 +112,35 @@ export default class DnssecMonitorUtil {
     }
 
     try {
-      const timeoutMs: number = config.timeout || 10000;
+      /*
+       * An explicitly supplied options.timeout is the caller's per-step
+       * setting and outranks the config default. Reading config.timeout
+       * first silently dropped whatever the step asked for.
+       */
+      const timeoutMs: number = options.timeout || config.timeout || 10000;
+      const budget: DnssecTimeBudget =
+        DnssecMonitorUtil.createTimeBudget(timeoutMs);
       const defaultResolver: string = config.resolvers[0] || "1.1.1.1";
 
       const dnskeys: Array<DnssecKeyRecord> =
         await DnssecMonitorUtil.fetchDnskeys(
           domainName,
           defaultResolver,
-          timeoutMs,
+          budget,
         );
 
       const parentDsRecords: Array<DnssecDsRecord> =
         await DnssecMonitorUtil.fetchParentDs(
           domainName,
           defaultResolver,
-          timeoutMs,
+          budget,
         );
 
       const rrsigs: Array<DnssecRrsigRecord> =
         await DnssecMonitorUtil.fetchRrsigs(
           domainName,
           defaultResolver,
-          timeoutMs,
+          budget,
         );
 
       const earliestExpiry: Date | undefined =
@@ -126,7 +150,7 @@ export default class DnssecMonitorUtil {
         await DnssecMonitorUtil.checkResolvers(
           domainName,
           config.resolvers,
-          timeoutMs,
+          budget,
         );
 
       let nameserverChecks: Array<DnssecNameserverCheck> = [];
@@ -134,7 +158,7 @@ export default class DnssecMonitorUtil {
         nameserverChecks = await DnssecMonitorUtil.checkNameserverConsistency(
           domainName,
           defaultResolver,
-          timeoutMs,
+          budget,
         );
       }
 
@@ -142,6 +166,38 @@ export default class DnssecMonitorUtil {
       const responseTimeInMs: number = Math.ceil(
         (endTime[0] * 1000000000 + endTime[1]) / 1000000,
       );
+
+      /*
+       * At least one leg never ran, so the record set is incomplete. Saying
+       * "zone not signed" or "resolvers disagree" off a partial sweep would
+       * be a fabricated DNSSEC verdict - report the timeout that actually
+       * happened instead. Not retried: the attempt already consumed a full
+       * budget, so another one would only spend the same time again.
+       */
+      if (budget.ranOutOfTime) {
+        const responseReceivedAt: Date = new Date();
+        const failureCause: string = `DNSSEC check did not finish within its overall budget of ${
+          timeoutMs * DNSSEC_TOTAL_TIMEOUT_MULTIPLIER
+        }ms.`;
+
+        options.attempts.push({
+          attemptNumber: options.currentRetryCount,
+          attemptedAt,
+          responseReceivedAt,
+          responseTimeInMs,
+          isOnline: false,
+          failureCause: failureCause,
+        });
+
+        return DnssecMonitorUtil.buildFailureResponse({
+          domainName: domainName,
+          responseTimeInMs: responseTimeInMs,
+          failureCause: failureCause,
+          isTimeout: true,
+          probeAttempts: options.attempts,
+          totalAttempts: options.attempts.length,
+        });
+      }
 
       const isZoneSigned: boolean = dnskeys.length > 0;
       const isParentDsPresent: boolean = parentDsRecords.length > 0;
@@ -232,7 +288,11 @@ export default class DnssecMonitorUtil {
         failureCause: (err as Error).message || (err as Error).toString(),
       });
 
-      if (options.currentRetryCount < (options.retry || config.retries || 3)) {
+      /*
+       * ?? not ||: a caller asking for zero retries means zero, not "fall
+       * through to the config default".
+       */
+      if (options.currentRetryCount < (options.retry ?? config.retries ?? 3)) {
         options.currentRetryCount++;
         await Sleep.sleep(1000);
         return await DnssecMonitorUtil.query(config, options);
@@ -261,6 +321,31 @@ export default class DnssecMonitorUtil {
         totalAttempts: options.attempts.length,
       });
     }
+  }
+
+  private static createTimeBudget(perLegTimeoutMs: number): DnssecTimeBudget {
+    return {
+      perLegTimeoutMs: perLegTimeoutMs,
+      deadlineAt:
+        Date.now() + perLegTimeoutMs * DNSSEC_TOTAL_TIMEOUT_MULTIPLIER,
+      ranOutOfTime: false,
+    };
+  }
+
+  /*
+   * How long the next dig may take: never more than the per-leg timeout, and
+   * never more than the shared deadline has left. Returns null once the
+   * deadline has passed, which is the caller's signal to stop issuing digs.
+   */
+  private static nextLegTimeoutMs(budget: DnssecTimeBudget): number | null {
+    const remainingMs: number = budget.deadlineAt - Date.now();
+
+    if (remainingMs <= 0) {
+      budget.ranOutOfTime = true;
+      return null;
+    }
+
+    return Math.min(budget.perLegTimeoutMs, remainingMs);
   }
 
   private static buildFailureResponse(arg: {
@@ -390,8 +475,13 @@ export default class DnssecMonitorUtil {
   private static async fetchDnskeys(
     domainName: string,
     resolver: string,
-    timeoutMs: number,
+    budget: DnssecTimeBudget,
   ): Promise<Array<DnssecKeyRecord>> {
+    const timeoutMs: number | null = DnssecMonitorUtil.nextLegTimeoutMs(budget);
+    if (timeoutMs === null) {
+      return [];
+    }
+
     try {
       const result: DigResult = await DnssecMonitorUtil.dig(
         domainName,
@@ -434,8 +524,13 @@ export default class DnssecMonitorUtil {
   private static async fetchParentDs(
     domainName: string,
     resolver: string,
-    timeoutMs: number,
+    budget: DnssecTimeBudget,
   ): Promise<Array<DnssecDsRecord>> {
+    const timeoutMs: number | null = DnssecMonitorUtil.nextLegTimeoutMs(budget);
+    if (timeoutMs === null) {
+      return [];
+    }
+
     try {
       const result: DigResult = await DnssecMonitorUtil.dig(domainName, "DS", {
         digFlags: ["+dnssec", "+short"],
@@ -480,8 +575,13 @@ export default class DnssecMonitorUtil {
   private static async fetchRrsigs(
     domainName: string,
     resolver: string,
-    timeoutMs: number,
+    budget: DnssecTimeBudget,
   ): Promise<Array<DnssecRrsigRecord>> {
+    const timeoutMs: number | null = DnssecMonitorUtil.nextLegTimeoutMs(budget);
+    if (timeoutMs === null) {
+      return [];
+    }
+
     try {
       // Ask for SOA + DNSSEC; the authoritative answer set includes RRSIG records.
       const result: DigResult = await DnssecMonitorUtil.dig(domainName, "SOA", {
@@ -561,11 +661,22 @@ export default class DnssecMonitorUtil {
   private static async checkResolvers(
     domainName: string,
     resolvers: Array<string>,
-    timeoutMs: number,
+    budget: DnssecTimeBudget,
   ): Promise<Array<DnssecResolverCheck>> {
     const checks: Array<DnssecResolverCheck> = [];
 
     for (const resolver of resolvers) {
+      /*
+       * One slow resolver used to cost a full timeout each for every
+       * resolver behind it. Once the shared deadline is gone we stop; the
+       * caller turns the truncated sweep into a timeout verdict.
+       */
+      const timeoutMs: number | null =
+        DnssecMonitorUtil.nextLegTimeoutMs(budget);
+      if (timeoutMs === null) {
+        break;
+      }
+
       try {
         // With CD=0 the resolver validates and SERVFAILs on bogus.
         const validating: DigResult = await DnssecMonitorUtil.dig(
@@ -606,8 +717,14 @@ export default class DnssecMonitorUtil {
   private static async checkNameserverConsistency(
     domainName: string,
     resolver: string,
-    timeoutMs: number,
+    budget: DnssecTimeBudget,
   ): Promise<Array<DnssecNameserverCheck>> {
+    const enumerationTimeoutMs: number | null =
+      DnssecMonitorUtil.nextLegTimeoutMs(budget);
+    if (enumerationTimeoutMs === null) {
+      return [];
+    }
+
     let nsList: Array<string> = [];
     try {
       const nsResult: DigResult = await DnssecMonitorUtil.dig(
@@ -616,7 +733,7 @@ export default class DnssecMonitorUtil {
         {
           digFlags: ["+short"],
           resolver: resolver,
-          timeoutMs: timeoutMs,
+          timeoutMs: enumerationTimeoutMs,
         },
       );
       nsList = nsResult.stdout
@@ -639,6 +756,13 @@ export default class DnssecMonitorUtil {
       if (!DnssecMonitorUtil.isValidHostnameOrIP(ns)) {
         continue;
       }
+
+      const timeoutMs: number | null =
+        DnssecMonitorUtil.nextLegTimeoutMs(budget);
+      if (timeoutMs === null) {
+        break;
+      }
+
       try {
         const soaResult: DigResult = await DnssecMonitorUtil.dig(
           domainName,
