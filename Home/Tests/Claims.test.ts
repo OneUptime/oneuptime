@@ -151,6 +151,30 @@ describe("Claims matrix", () => {
     }
   });
 
+  test("every published claim currently has its evidence confirmed", () => {
+    /*
+     * Legal and security signed off on the ISO family, the PCI attestation and
+     * the CSA STAR Level 2 certificate, so the queue is empty. If this fails,
+     * someone added a claim faster than the evidence for it — which is the
+     * whole failure mode this matrix exists to prevent. Either produce the
+     * evidence or soften the status.
+     */
+    expect(getClaimsNeedingReview()).toHaveLength(0);
+  });
+
+  test("a claim without confirmed evidence cannot silently ship", () => {
+    // The flag has to survive on the type, or the guard above becomes a no-op.
+    const flagged: Claim = {
+      ...getClaim("compliance-iso-27001")!,
+      id: "test-only",
+      reviewRequired: true,
+      reviewNote: "Reviewer must confirm the certificate number and scope.",
+    };
+
+    expect(flagged.reviewRequired).toBe(true);
+    expect(flagged.reviewNote).toBeDefined();
+  });
+
   test("getClaimsByCategory and getClaim look claims up", () => {
     const slaClaims: Array<Claim> = getClaimsByCategory("sla");
     expect(slaClaims.length).toBeGreaterThan(0);
@@ -222,12 +246,85 @@ describe("Claims match the documents that bind us", () => {
   });
 
   test("regimes with no vendor certification scheme are aligned, not certified", () => {
+    /*
+     * 21 CFR Part 11, Annex 11 and GAMP 5 certify no vendor — the regulated
+     * customer validates their own system. No amount of documentation on our
+     * side turns that into a certification.
+     */
+    expect(getClaim("compliance-gxp")!.status).toBe("aligned");
+  });
+
+  test("PCI DSS is attested — the scheme issues an AOC, not a certificate", () => {
+    const claim: Claim = getClaim("compliance-pci")!;
+
+    expect(claim.status).toBe("attested");
+    expect(claim.statement).toContain("Qualified Security Assessor");
+    expect(claim.statement).toContain("Attestation of Compliance");
+    expect(claim.qualifier).toContain("not a certificate");
+    // Our own scope limit still has to travel with the claim.
+    expect(claim.qualifier).toContain("does not store primary account numbers");
+  });
+
+  test("CSA STAR is certified at Level 2, and says which level", () => {
+    const claim: Claim = getClaim("compliance-csa-star")!;
+
+    expect(claim.status).toBe("certified");
+    expect(claim.statement).toContain("Level 2");
+    expect(claim.qualifier).toContain("third-party audit");
+  });
+
+  test("every certified claim can point at an actual certificate", () => {
+    const certified: Array<Claim> = Claims.filter((claim: Claim) => {
+      return claim.status === "certified";
+    });
+
+    expect(certified.length).toBeGreaterThan(0);
+
+    for (const claim of certified) {
+      expect(claim.evidence.toLowerCase()).toMatch(/certificate/);
+    }
+  });
+
+  test("every attested claim points at a third-party report, not a certificate", () => {
+    const attested: Array<Claim> = Claims.filter((claim: Claim) => {
+      return claim.status === "attested";
+    });
+
+    expect(attested.length).toBeGreaterThan(0);
+
+    for (const claim of attested) {
+      expect(claim.evidence.toLowerCase()).toMatch(
+        /report|attestation|status page|caiq/,
+      );
+    }
+  });
+
+  test("the ISO family is certified and scoped to the cloud service", () => {
     for (const id of [
-      "compliance-gxp",
-      "compliance-csa-star",
-      "compliance-pci",
+      "compliance-iso-27001",
+      "compliance-iso-27017",
+      "compliance-iso-27018",
+      "compliance-iso-9001",
     ]) {
-      expect(getClaim(id)!.status).toBe("aligned");
+      const claim: Claim = getClaim(id)!;
+
+      expect(claim.status).toBe("certified");
+      expect(claim.scope).toBe("cloud");
+      expect(claim.evidence.toLowerCase()).toContain("certificate");
+    }
+  });
+
+  test("ISO 27001 says certification does not cover a customer's own deployment", () => {
+    expect(getClaim("compliance-iso-27001")!.qualifier).toContain(
+      "not a customer's self-hosted deployment",
+    );
+  });
+
+  test("the 27017 and 27018 extensions do not claim to be standalone schemes", () => {
+    for (const id of ["compliance-iso-27017", "compliance-iso-27018"]) {
+      expect(getClaim(id)!.qualifier).toContain(
+        "not a standalone certification",
+      );
     }
   });
 

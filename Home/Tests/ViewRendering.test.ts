@@ -17,6 +17,8 @@ import {
   ClaimStatusDefinition,
   ClaimStatuses,
   Claims,
+  getClaim,
+  getClaimStatus,
   getClaimsMatrix,
   getClaimsNeedingReview,
 } from "../Utils/Claims";
@@ -236,10 +238,40 @@ describe("trust.ejs with the claims matrix", () => {
     }
   });
 
-  test("flags claims whose evidence is still under review", () => {
-    expect(getClaimsNeedingReview().length).toBeGreaterThan(0);
-    expect(html).toContain("Evidence under review");
+  test("reports that every published claim has confirmed evidence", () => {
+    expect(getClaimsNeedingReview()).toHaveLength(0);
+    expect(html).toContain(
+      "every published claim has had its evidence confirmed",
+    );
+    expect(html).not.toContain("Evidence under review");
   });
+
+  /*
+   * The certification cards at the top of the page and the matrix below them
+   * are written in different places. If they ever disagree about a status word,
+   * the page argues with itself — which is the exact failure this work fixes.
+   */
+  test.each([
+    ["SOC 2 Type II", "compliance-soc2"],
+    ["ISO/IEC 27001", "compliance-iso-27001"],
+    ["ISO/IEC 27017", "compliance-iso-27017"],
+    ["ISO/IEC 27018", "compliance-iso-27018"],
+    ["GDPR", "compliance-gdpr"],
+    ["CCPA", "compliance-ccpa"],
+    ["HIPAA", "compliance-hipaa"],
+    ["PCI DSS", "compliance-pci"],
+    ["FedRAMP", "compliance-fedramp"],
+    ["CSA STAR", "compliance-csa-star"],
+    ["VPAT (Accessibility)", "compliance-accessibility"],
+  ])(
+    "the %s card badge matches its governed status",
+    (cardTitle: string, claimId: string) => {
+      const claim: Claim = getClaim(claimId)!;
+      const expectedLabel: string = getClaimStatus(claim.status).label;
+
+      expect(badgeLabelForCard(html, cardTitle)).toBe(expectedLabel);
+    },
+  );
 
   test("links to the machine-readable matrix", () => {
     expect(html).toContain("/data/claims.json");
@@ -248,6 +280,133 @@ describe("trust.ejs with the claims matrix", () => {
   test("does not use retired claim language", () => {
     expect(html).not.toMatch(/99\.99\s*%\s*(?:uptime\s*)?SLA/i);
     expect(html).not.toMatch(/certified\s+compliant\s+with/i);
+  });
+});
+
+/*
+ * The review mechanism has to work in both directions: an unconfirmed claim
+ * must be visibly flagged, and an empty queue must say so. The live matrix only
+ * ever exercises one of those, so render the partial against fixtures.
+ */
+describe("claims-matrix.ejs review states", () => {
+  const baseClaim: Claim = {
+    id: "fixture-claim",
+    category: "compliance",
+    subject: "Fixture Framework",
+    status: "certified",
+    scope: "cloud",
+    statement: "Fixture statement about a framework.",
+    qualifier: "Fixture qualifier that must travel with it.",
+    evidence: "Fixture certificate on request.",
+    sourceUrl: "/legal/security",
+  };
+
+  type RenderMatrixFunction = (
+    claims: Array<Claim>,
+    underReviewCount: number,
+  ) => Promise<string>;
+
+  const renderMatrix: RenderMatrixFunction = async (
+    claims: Array<Claim>,
+    underReviewCount: number,
+  ): Promise<string> => {
+    return render("Partials/claims-matrix.ejs", {
+      claimStatuses: ClaimStatuses,
+      claimsMatrix: [
+        {
+          category: {
+            key: "compliance",
+            name: "Compliance",
+            description: "Fixture category.",
+            governingDocument: "Security at OneUptime",
+            governingDocumentUrl: "/legal/security",
+          },
+          claims,
+        },
+      ],
+      claimsUnderReviewCount: underReviewCount,
+    });
+  };
+
+  test("an unconfirmed claim renders the review badge and its reviewer note", async () => {
+    const html: string = await renderMatrix(
+      [
+        {
+          ...baseClaim,
+          reviewRequired: true,
+          reviewNote: "Confirm the certificate number before an RFP response.",
+        },
+      ],
+      1,
+    );
+
+    expect(html).toContain("Evidence under review");
+    expect(html).toContain(
+      "Confirm the certificate number before an RFP response.",
+    );
+    expect(html).toContain("1</strong>");
+    expect(html).toContain("claim is");
+  });
+
+  test("a confirmed claim renders no review badge", async () => {
+    const html: string = await renderMatrix([baseClaim], 0);
+
+    expect(html).not.toContain("Evidence under review");
+    expect(html).toContain(
+      "every published claim has had its evidence confirmed",
+    );
+  });
+
+  test("the pending count is pluralised", async () => {
+    const html: string = await renderMatrix(
+      [
+        { ...baseClaim, reviewRequired: true, reviewNote: "Confirm this one." },
+        {
+          ...baseClaim,
+          id: "fixture-claim-2",
+          reviewRequired: true,
+          reviewNote: "Confirm that one.",
+        },
+      ],
+      2,
+    );
+
+    expect(html).toContain("2</strong>");
+    expect(html).toContain("claims are");
+  });
+
+  test("every status in the vocabulary renders a distinct badge colour", async () => {
+    const html: string = await renderMatrix(
+      ClaimStatuses.map((status: ClaimStatusDefinition, index: number) => {
+        return {
+          ...baseClaim,
+          id: `fixture-${status.key}`,
+          subject: `Fixture ${index}`,
+          status: status.key,
+        };
+      }),
+      0,
+    );
+
+    for (const status of ClaimStatuses) {
+      /*
+       * The label and its colour have to appear together, or two statuses
+       * could render in the same colour and the legend would stop meaning
+       * anything.
+       */
+      const badge: RegExp = new RegExp(
+        `bg-${status.color}-50[^"]*"[\\s\\S]{0,400}?${status.label}`,
+      );
+
+      expect(html).toMatch(badge);
+    }
+
+    const colours: Array<string> = ClaimStatuses.map(
+      (status: ClaimStatusDefinition) => {
+        return status.color;
+      },
+    );
+    expect(new Set(colours).size).toBe(colours.length);
   });
 });
 
@@ -305,6 +464,32 @@ describe("aligned marketing pages still render", () => {
     expect(footer).toContain('href="/trust"');
   });
 });
+
+/*
+ * Read the status pill out of a certification card. The badge sits just above
+ * the card's heading, so walk back from the heading to the nearest pill.
+ */
+function badgeLabelForCard(html: string, cardTitle: string): string | null {
+  const headingIndex: number = html.indexOf(`>${cardTitle}</h3>`);
+
+  if (headingIndex === -1) {
+    return null;
+  }
+
+  const preceding: string = html.slice(0, headingIndex);
+  const badges: RegExpMatchArray | null = preceding.match(
+    /rounded-full ring-1 ring-[a-z]+-200\/60">([^<]+)<\/span>/g,
+  );
+
+  if (!badges || badges.length === 0) {
+    return null;
+  }
+
+  const lastBadge: string = badges[badges.length - 1]!;
+  const label: RegExpMatchArray | null = lastBadge.match(/">([^<]+)<\/span>$/);
+
+  return label ? label[1]!.trim() : null;
+}
 
 /*
  * EJS escapes `<%= %>` output, so assertions against rendered HTML have to
