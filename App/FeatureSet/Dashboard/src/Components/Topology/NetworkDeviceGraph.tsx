@@ -16,6 +16,10 @@ import { computeStarTopologyModel } from "../NetworkDevice/StarTopologyLayout";
 import { computeParentChildTopologyModel } from "../NetworkDevice/ParentChildTopologyLayout";
 import { TopologyPoint } from "../NetworkDevice/TopologyGraphUtil";
 import {
+  HEALTH_STATE_COLORS,
+  TopologyHealthFilterMode,
+} from "./TopologyHealthFilter";
+import {
   LABEL_VISIBILITY_MIN_SCALE,
   TopologyNodeFootprint,
 } from "../NetworkDevice/TopologyFootprint";
@@ -123,6 +127,13 @@ export interface ComponentProps {
   layoutMode?: TopologyLayoutMode | undefined;
   /** Node kinds to draw. Absent means all of them. */
   visibleKinds?: ReadonlySet<TopologyNodeKind> | undefined;
+  /*
+   * Narrow the map to devices in a problem state. Absent means "all",
+   * which is the no-op. Anything else removes healthy nodes, keeps each
+   * match's directly-linked network neighbours as dimmed context, and
+   * rings the matches so they are findable at a glance.
+   */
+  healthFilterMode?: TopologyHealthFilterMode | undefined;
   /*
    * Positions the user established by dragging. Owned by the parent so
    * they survive this component remounting and can be persisted and
@@ -504,6 +515,7 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
       positions: positions,
       searchText: props.searchText || "",
       visibleKinds: props.visibleKinds || ALL_NODE_KINDS,
+      healthFilterMode: props.healthFilterMode || "all",
       focusNodeIds: focusNodeIds,
       selectedNodeId: props.selectedNodeId || null,
       selectedEdgeKey: props.selectedEdgeKey || null,
@@ -515,6 +527,7 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
     positions,
     props.searchText,
     props.visibleKinds,
+    props.healthFilterMode,
     focusNodeIds,
     props.selectedNodeId,
     props.selectedEdgeKey,
@@ -690,6 +703,18 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
   }, [layoutMode]);
 
   /*
+   * A health filter is a question — "show me what needs me" — and an
+   * answer that lands outside the frame the reader happened to be looking
+   * at is not an answer. The coordinates do not move (that is the point:
+   * toggling the filter never reshuffles the map), so the only thing that
+   * has to move is the camera, and it has to move even when the reader
+   * had framed the map themselves.
+   */
+  useEffect(() => {
+    hasUserAdjustedView.current = false;
+  }, [props.healthFilterMode]);
+
+  /*
    * Fit on first paint and whenever the node set changes — but never once
    * the user has framed the map themselves. Yanking the viewport out from
    * under somebody mid-investigation is worse than a slightly stale
@@ -705,7 +730,17 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
      * view model, which changes on every hover, and re-fitting the
      * viewport when somebody hovers a device would be maddening.
      */
-  }, [structuralSignature, layoutMode, viewModel.nodes.length]);
+    /*
+     * The mode is a dependency in its own right, not just through the
+     * node count: switching between two filters that happen to leave the
+     * same number of devices drawn is still a different set of devices.
+     */
+  }, [
+    structuralSignature,
+    layoutMode,
+    props.healthFilterMode,
+    viewModel.nodes.length,
+  ]);
 
   const applyView: (next: ViewTransform) => void = useCallback(
     (next: ViewTransform): void => {
@@ -1329,16 +1364,44 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
           <div
             role="status"
             className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-white/80 px-6 text-center"
+            data-testid="network-topology-filtered-empty"
           >
-            <div>
-              <div className="text-sm font-medium text-gray-900">
-                No devices match your filters
+            {/*
+             * An empty canvas because everything is HEALTHY is good news,
+             * and reporting good news as "no devices match your filters"
+             * over an instruction to go and clear something reads as a
+             * fault. The two states share a container and share nothing
+             * else.
+             */}
+            {viewModel.isHealthFilterActive &&
+            viewModel.kindFilteredNodeCount > 0 ? (
+              <div>
+                <div className="flex items-center justify-center gap-2 text-sm font-medium text-gray-900">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-100">
+                    <Icon
+                      className="h-3 w-3 text-green-600"
+                      icon={IconProp.CheckCircle}
+                    />
+                  </span>
+                  Nothing needs attention right now
+                </div>
+                <p className="mt-1 text-sm text-gray-500">
+                  Every device on this map answered its last poll with all
+                  interfaces and links up. Switch back to All to see the whole
+                  network.
+                </p>
               </div>
-              <p className="mt-1 text-sm text-gray-500">
-                Clear the VLAN filter or re-enable a node type to see the map
-                again.
-              </p>
-            </div>
+            ) : (
+              <div>
+                <div className="text-sm font-medium text-gray-900">
+                  No devices match your filters
+                </div>
+                <p className="mt-1 text-sm text-gray-500">
+                  Clear the VLAN filter or re-enable a node type to see the map
+                  again.
+                </p>
+              </div>
+            )}
           </div>
         ) : (
           <></>
@@ -1592,6 +1655,40 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                       }}
                     >
                       <title>{nodeView.tooltip}</title>
+
+                      {/*
+                       * The attention halo. Only ever drawn while a health
+                       * filter is on: a permanent ring around every
+                       * unhealthy device would be a second status
+                       * encoding competing with the fill colour, and the
+                       * whole point of the filter is that the map stops
+                       * needing to be scanned. Under a filter it is the
+                       * opposite — the survivors include dimmed context
+                       * neighbours, and without a ring the matches are
+                       * indistinguishable from them at a glance.
+                       */}
+                      {viewModel.isHealthFilterActive &&
+                      nodeView.isHealthMatch ? (
+                        <circle
+                          cx={nodeView.x}
+                          cy={nodeView.y}
+                          r={
+                            Math.max(
+                              footprint.halfWidth,
+                              footprint.halfHeight,
+                            ) + 5
+                          }
+                          fill={HEALTH_STATE_COLORS[nodeView.health]}
+                          fillOpacity={0.16}
+                          stroke={HEALTH_STATE_COLORS[nodeView.health]}
+                          strokeOpacity={0.55}
+                          strokeWidth={1.5 * hairline}
+                          pointerEvents="none"
+                          data-testid={`network-topology-attention-halo-${nodeView.id}`}
+                        />
+                      ) : (
+                        <></>
+                      )}
 
                       {nodeView.isSelected ? (
                         <circle

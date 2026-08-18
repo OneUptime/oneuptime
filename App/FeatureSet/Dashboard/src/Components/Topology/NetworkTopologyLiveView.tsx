@@ -7,6 +7,15 @@ import {
   TopologyNodeKind,
   kindOfNode,
 } from "./NetworkTopologyViewModel";
+import StatusChipGroup, { StatusChipOption } from "../Filters/StatusChipGroup";
+import {
+  TopologyHealthFilterMode,
+  TopologyHealthSummary,
+  buildHealthFilterOptions,
+  healthCountForMode,
+  isHealthFilterActive,
+  summarizeTopologyHealth,
+} from "./TopologyHealthFilter";
 import {
   ArrangementPersistence,
   PositionOverrides,
@@ -198,6 +207,13 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
   );
   const [visibleKinds, setVisibleKinds] =
     useState<ReadonlySet<TopologyNodeKind> | null>(null);
+  /*
+   * Issue #3261: which health states the map is narrowed to. Opens on
+   * "all" — a map that hid two thirds of the network before anybody asked
+   * it to would be a different feature.
+   */
+  const [healthFilterMode, setHealthFilterMode] =
+    useState<TopologyHealthFilterMode>("all");
   /*
    * Node positions the user established by dragging. Owned here rather
    * than in the graph so they survive the graph remounting, and — more
@@ -458,6 +474,31 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
     visibleKinds || ALL_NODE_KINDS;
 
   /*
+   * The counts on the health chips describe what is ON THE MAP, not what
+   * came back from the endpoint: they are computed after the VLAN filter
+   * and after the kind filter, in that order, because a chip claiming
+   * "3 down" over a map showing none of them is worse than no chip at
+   * all.
+   */
+  const healthSummary: TopologyHealthSummary = useMemo(() => {
+    return summarizeTopologyHealth(
+      visibleTopology.nodes.filter((node: NetworkTopologyNode) => {
+        return effectiveVisibleKinds.has(kindOfNode(node));
+      }),
+      visibleTopology.edges,
+    );
+  }, [visibleTopology, effectiveVisibleKinds]);
+
+  const isHealthFiltered: boolean = isHealthFilterActive(healthFilterMode);
+  const healthFilterMatchCount: number = healthCountForMode(
+    healthSummary,
+    healthFilterMode,
+  );
+  const healthChipOptions: Array<StatusChipOption> = useMemo(() => {
+    return buildHealthFilterOptions(healthSummary);
+  }, [healthSummary]);
+
+  /*
    * ------------------------------------------------------------------
    * Saved arrangements
    * ------------------------------------------------------------------
@@ -685,111 +726,145 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
         },
       ]}
     >
-      <div className="mb-3 flex flex-col md:flex-row md:items-center gap-3">
-        <div className="md:w-72">
-          <Input
-            dataTestId="network-topology-search"
-            placeholder={
-              translateString("Search by name, sysName or vendor") ||
-              "Search by name, sysName or vendor"
-            }
-            value={searchText}
-            onChange={(value: string) => {
-              setSearchText(value);
-            }}
-          />
-        </div>
-        {vlanOptions.length > 1 ? (
-          <div className="md:w-48" data-testid="network-topology-vlan-filter">
-            <Dropdown
-              value={
-                vlanOptions.find((option: DropdownOption) => {
-                  return option.value === selectedVlan;
-                }) || vlanOptions[0]
+      <div className="mb-3 flex flex-col gap-3">
+        <div className="flex flex-col md:flex-row md:items-center gap-3">
+          <div className="md:w-72">
+            <Input
+              dataTestId="network-topology-search"
+              placeholder={
+                translateString("Search by name, sysName or vendor") ||
+                "Search by name, sysName or vendor"
               }
-              options={vlanOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                setSelectedVlan(value ? value.toString() : ALL_VLANS);
+              value={searchText}
+              onChange={(value: string) => {
+                setSearchText(value);
               }}
             />
           </div>
-        ) : (
-          <></>
-        )}
-        {/*
-         * Node-kind filters. The endpoint fan is what turns a busy site
-         * into a hairball, and until now the only way to hide it was a
-         * VLAN filter that exists only when endpoints happen to carry
-         * VLAN ids.
-         */}
-        <div
-          role="group"
-          aria-label={translateString("Node types") || "Node types"}
-          className="inline-flex flex-shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5"
-        >
-          {(
-            [
-              { kind: "device", label: "Devices" },
-              { kind: "unmanaged", label: "Peers" },
-              { kind: "endpoint", label: "Endpoints" },
-            ] as Array<{ kind: TopologyNodeKind; label: string }>
-          )
-            .filter((option: { kind: TopologyNodeKind; label: string }) => {
-              return availableKinds.has(option.kind);
-            })
-            .map(
-              (option: {
-                kind: TopologyNodeKind;
-                label: string;
-              }): ReactElement => {
-                const isActive: boolean = effectiveVisibleKinds.has(
-                  option.kind,
-                );
-                return (
-                  <button
-                    key={option.kind}
-                    type="button"
-                    title={option.label}
-                    aria-pressed={isActive}
-                    data-testid={`network-topology-kind-filter-${option.kind}`}
-                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                      isActive
-                        ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
-                        : "text-gray-500 hover:text-gray-800"
-                    }`}
-                    onClick={() => {
-                      setVisibleKinds(
-                        (
-                          current: ReadonlySet<TopologyNodeKind> | null,
-                        ): ReadonlySet<TopologyNodeKind> => {
-                          const next: Set<TopologyNodeKind> =
-                            new Set<TopologyNodeKind>(
-                              current || ALL_NODE_KINDS,
-                            );
-                          if (next.has(option.kind)) {
-                            next.delete(option.kind);
-                          } else {
-                            next.add(option.kind);
-                          }
-                          return next;
-                        },
-                      );
-                    }}
-                  >
-                    {translateString(option.label) || option.label}
-                  </button>
-                );
-              },
-            )}
+          {vlanOptions.length > 1 ? (
+            <div className="md:w-48" data-testid="network-topology-vlan-filter">
+              <Dropdown
+                value={
+                  vlanOptions.find((option: DropdownOption) => {
+                    return option.value === selectedVlan;
+                  }) || vlanOptions[0]
+                }
+                options={vlanOptions}
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ) => {
+                  setSelectedVlan(value ? value.toString() : ALL_VLANS);
+                }}
+              />
+            </div>
+          ) : (
+            <></>
+          )}
+          {/*
+           * Node-kind filters. The endpoint fan is what turns a busy site
+           * into a hairball, and until now the only way to hide it was a
+           * VLAN filter that exists only when endpoints happen to carry
+           * VLAN ids.
+           */}
+          <div
+            role="group"
+            aria-label={translateString("Node types") || "Node types"}
+            className="inline-flex flex-shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5"
+          >
+            {(
+              [
+                { kind: "device", label: "Devices" },
+                { kind: "unmanaged", label: "Peers" },
+                { kind: "endpoint", label: "Endpoints" },
+              ] as Array<{ kind: TopologyNodeKind; label: string }>
+            )
+              .filter((option: { kind: TopologyNodeKind; label: string }) => {
+                return availableKinds.has(option.kind);
+              })
+              .map(
+                (option: {
+                  kind: TopologyNodeKind;
+                  label: string;
+                }): ReactElement => {
+                  const isActive: boolean = effectiveVisibleKinds.has(
+                    option.kind,
+                  );
+                  return (
+                    <button
+                      key={option.kind}
+                      type="button"
+                      title={option.label}
+                      aria-pressed={isActive}
+                      data-testid={`network-topology-kind-filter-${option.kind}`}
+                      className={`rounded-md px-2.5 py-1 text-xs font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                        isActive
+                          ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
+                          : "text-gray-500 hover:text-gray-800"
+                      }`}
+                      onClick={() => {
+                        setVisibleKinds(
+                          (
+                            current: ReadonlySet<TopologyNodeKind> | null,
+                          ): ReadonlySet<TopologyNodeKind> => {
+                            const next: Set<TopologyNodeKind> =
+                              new Set<TopologyNodeKind>(
+                                current || ALL_NODE_KINDS,
+                              );
+                            if (next.has(option.kind)) {
+                              next.delete(option.kind);
+                            } else {
+                              next.add(option.kind);
+                            }
+                            return next;
+                          },
+                        );
+                      }}
+                    >
+                      {translateString(option.label) || option.label}
+                    </button>
+                  );
+                },
+              )}
+          </div>
+          <p className="text-xs text-gray-500 md:ml-auto">
+            {translateString(
+              "Drag a device to arrange the map — your layout is saved. Updates automatically every minute.",
+            ) ||
+              "Drag a device to arrange the map — your layout is saved. Updates automatically every minute."}
+          </p>
         </div>
-        <p className="text-xs text-gray-500 md:ml-auto">
-          {translateString(
-            "Drag a device to arrange the map — your layout is saved. Updates automatically every minute.",
-          ) ||
-            "Drag a device to arrange the map — your layout is saved. Updates automatically every minute."}
-        </p>
+
+        {/*
+         * Issue #3261: the health row. Its own line under the identity
+         * controls rather than a fifth item beside them — "which of these
+         * needs me" is a different question from "which of these am I
+         * looking for", and the chips carry counts that make this row the
+         * map's status line as much as its filter.
+         */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <StatusChipGroup
+            dataTestId="network-topology-health-filter"
+            ariaLabel="Filter by device health"
+            options={healthChipOptions}
+            value={healthFilterMode}
+            onChange={(value: string) => {
+              setHealthFilterMode(value as TopologyHealthFilterMode);
+            }}
+          />
+          <p
+            className="text-xs text-gray-500"
+            data-testid="network-topology-health-filter-hint"
+          >
+            {isHealthFiltered
+              ? `${healthFilterMatchCount} of ${healthSummary.total} ${
+                  healthSummary.total === 1 ? "device needs" : "devices need"
+                } a look. Healthy devices are hidden; each match keeps its neighbouring devices on the map, dimmed, so you can see where it sits.`
+              : translateString(
+                  "Narrow the map to the devices that need a look — counts refresh every minute.",
+                ) ||
+                "Narrow the map to the devices that need a look — counts refresh every minute."}
+          </p>
+        </div>
       </div>
 
       {error ? (
@@ -902,6 +977,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
         searchText={searchText}
         layoutMode={layoutMode}
         visibleKinds={effectiveVisibleKinds}
+        healthFilterMode={healthFilterMode}
         positionOverrides={positionOverrides}
         onPositionOverridesChange={setPositionOverrides}
         selectedNodeId={selectedNodeId}

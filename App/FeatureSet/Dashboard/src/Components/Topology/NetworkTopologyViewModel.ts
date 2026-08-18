@@ -30,6 +30,13 @@ import {
   footprintForNode,
   labelLinesForNode,
 } from "../NetworkDevice/TopologyFootprint";
+import {
+  TopologyHealthFilterMode,
+  TopologyHealthState,
+  TopologyHealthVisibility,
+  isHealthFilterActive,
+  resolveHealthVisibility,
+} from "./TopologyHealthFilter";
 import { TopologyPoint } from "../NetworkDevice/TopologyGraphUtil";
 
 /*
@@ -65,6 +72,14 @@ export interface TopologyNodeView {
   isDimmed: boolean;
   isSelected: boolean;
   isPinned: boolean;
+  /** down / degraded / healthy / unknown — what the health chips count. */
+  health: TopologyHealthState;
+  /*
+   * True when this node is what the health filter was asked for, as
+   * opposed to a neighbour kept to explain where it sits. Drives the
+   * attention halo — see NetworkDeviceGraph.
+   */
+  isHealthMatch: boolean;
   ariaLabel: string;
   tooltip: string;
   testId: string;
@@ -95,6 +110,12 @@ export interface TopologyViewModelInput {
   searchText: string;
   /** Node kinds the user has left switched on. */
   visibleKinds: ReadonlySet<TopologyNodeKind>;
+  /*
+   * What the health control is narrowed to. "all" is the default and
+   * costs nothing; anything else removes healthy nodes and keeps their
+   * directly-linked network neighbours as dimmed context.
+   */
+  healthFilterMode: TopologyHealthFilterMode;
   /** Nodes to keep at full strength; empty means "dim nothing". */
   focusNodeIds: ReadonlySet<string>;
   selectedNodeId: string | null;
@@ -118,6 +139,24 @@ export interface TopologyViewModel {
    * filter is what emptied the canvas sends them to the wrong control.
    */
   searchMatchCount: number;
+  /*
+   * How many drawn nodes the health filter actually asked for (the rest
+   * of the drawn nodes are dimmed context neighbours). Zero with an
+   * active filter is the "nothing needs attention" state — which is good
+   * news, and therefore has to be SAID rather than shown as an empty
+   * canvas.
+   */
+  healthMatchCount: number;
+  /** True when the health control is narrowed to anything but "All". */
+  isHealthFilterActive: boolean;
+  /*
+   * How many nodes survived the KIND filter, before health was applied.
+   * Zero means the kind (or VLAN) filters are what emptied the canvas —
+   * which needs a different message from "nothing needs attention",
+   * because pointing somebody at the health control when their node-type
+   * filter is the cause sends them to the wrong switch.
+   */
+  kindFilteredNodeCount: number;
 }
 
 export const kindOfNode: (node: NetworkTopologyNode) => TopologyNodeKind = (
@@ -172,6 +211,13 @@ const tooltipForNode: (node: NetworkTopologyNode) => string = (
  * the links that explain where it sits. Edges are dimmed WITH their
  * nodes — searching used to dim nodes only, so a filtered map was a
  * legible handful of devices behind an unchanged hairball of lines.
+ *
+ * The health filter is the third of the three and behaves like the kind
+ * filter (it REMOVES), with one concession: a match's directly-linked
+ * network neighbours stay on the map, dimmed, so three dead switches read
+ * as three dead switches somewhere rather than as three loose dots. The
+ * kind filter is applied FIRST and constrains it — a health filter must
+ * never put back a node type the user switched off.
  */
 export const buildTopologyViewModel: (
   input: TopologyViewModelInput,
@@ -194,11 +240,35 @@ export const buildTopologyViewModel: (
     }
   }
 
+  /*
+   * Health runs against the KIND-FILTERED set: the ids that survived the
+   * kind filter are the only ones eligible to match or to be pulled back
+   * in as context.
+   */
+  const eligibleNodeIds: Set<string> = new Set<string>(
+    visibleNodes.map((node: NetworkTopologyNode): string => {
+      return node.id;
+    }),
+  );
+  const healthVisibility: TopologyHealthVisibility = resolveHealthVisibility({
+    nodes: input.nodes || [],
+    edges: input.edges || [],
+    mode: input.healthFilterMode || "all",
+    eligibleNodeIds: eligibleNodeIds,
+  });
+  const healthFilterIsActive: boolean = isHealthFilterActive(
+    input.healthFilterMode || "all",
+  );
+
   const dimmedNodeIds: Set<string> = new Set<string>();
   const nodeViews: Array<TopologyNodeView> = [];
   let searchMatchCount: number = 0;
+  let healthMatchCount: number = 0;
 
   for (const node of visibleNodes) {
+    if (healthFilterIsActive && !healthVisibility.visibleNodeIds.has(node.id)) {
+      continue;
+    }
     const point: TopologyPoint | undefined = input.positions.get(node.id);
     if (!point) {
       continue;
@@ -210,7 +280,17 @@ export const buildTopologyViewModel: (
       searchMatchCount++;
     }
     const inFocus: boolean = !hasFocus || input.focusNodeIds.has(node.id);
-    const isDimmed: boolean = !matchesSearch || !inFocus;
+    /*
+     * A context neighbour is dimmed for the same reason a search miss is:
+     * it is on the map to be looked PAST. Folding it into the same flag
+     * keeps one dimming rule rather than two that have to agree.
+     */
+    const isHealthMatch: boolean = healthVisibility.matchedNodeIds.has(node.id);
+    if (isHealthMatch) {
+      healthMatchCount++;
+    }
+    const isDimmed: boolean =
+      !matchesSearch || !inFocus || (healthFilterIsActive && !isHealthMatch);
     if (isDimmed) {
       dimmedNodeIds.add(node.id);
     }
@@ -246,6 +326,8 @@ export const buildTopologyViewModel: (
       isDimmed: isDimmed,
       isSelected: input.selectedNodeId === node.id,
       isPinned: input.pinnedNodeIds.has(node.id),
+      health: healthVisibility.stateByNodeId.get(node.id) || "unknown",
+      isHealthMatch: isHealthMatch,
       ariaLabel: accessibleLabelForNode(node),
       tooltip: tooltipForNode(node),
       testId: `network-topology-node-${node.id}`,
@@ -312,6 +394,9 @@ export const buildTopologyViewModel: (
     totalNodeCount: totalNodeCount,
     isFilteredEmpty: totalNodeCount > 0 && nodeViews.length === 0,
     searchMatchCount: searchMatchCount,
+    healthMatchCount: healthMatchCount,
+    isHealthFilterActive: healthFilterIsActive,
+    kindFilteredNodeCount: eligibleNodeIds.size,
   };
 };
 

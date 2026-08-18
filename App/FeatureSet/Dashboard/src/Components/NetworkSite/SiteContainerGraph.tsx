@@ -227,6 +227,14 @@ export interface ComponentProps {
    * children", which is a different and much more alarming statement.
    */
   searchText?: string | undefined;
+  /*
+   * True when the page's health filter is narrowing this level. Same
+   * contract as searchText: the graph does not filter, it only has to
+   * word an empty result correctly — and an empty result under a health
+   * filter is GOOD NEWS, which reads as a fault if reported as "no child
+   * sites here yet".
+   */
+  isHealthFiltered?: boolean | undefined;
   onSiteClick: (siteId: string) => void;
 }
 
@@ -446,7 +454,20 @@ const SiteContainerGraph: FunctionComponent<ComponentProps> = (
        * placeholder; inside this page's card that reads as a hole.
        */
       <div className="-my-28">
-        {searchText ? (
+        {props.isHealthFiltered ? (
+          <EmptyState
+            id="site-container-nothing-needs-attention"
+            icon={IconProp.CheckCircle}
+            title="Nothing here needs attention"
+            description={
+              <span className="mx-auto block max-w-md">
+                {searchText
+                  ? `Nothing matching “${searchText}” at this level is down, and no unit beneath it is either. Switch back to All to see everything here.`
+                  : "Every site at this level is operational, and so is every unit beneath them. Switch back to All to see them."}
+              </span>
+            }
+          />
+        ) : searchText ? (
           <EmptyState
             id="site-container-no-search-match"
             icon={IconProp.Search}
