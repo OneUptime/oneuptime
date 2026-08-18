@@ -1,6 +1,6 @@
 # Workflows Overview
 
-Workflows let you automate tasks in OneUptime without writing code. Drag and drop a few blocks onto a canvas, connect them together, and you have automation that runs whenever something happens — an incident opens, a schedule fires, or another tool sends data to OneUptime.
+Workflows let you automate tasks in OneUptime without writing code. Add a few blocks to a canvas, connect them together, and you have automation that runs whenever something happens — an incident opens, a schedule fires, or another tool sends data to OneUptime.
 
 Think of workflows as background helpers for your project: they react to events, talk to other tools, and quietly keep things in sync while you focus on your work.
 
@@ -20,7 +20,7 @@ Every workflow has three parts:
 2. **One or more components** — what the workflow does. Send a message, make an HTTP call, run a quick check, branch based on a condition.
 3. **Connections between them** — you draw lines from one block to the next to decide the order.
 
-You build all of this visually on a canvas. No coding required for most workflows, though you can drop in a snippet of JavaScript when you need to.
+You build all of this visually on a canvas. No coding required for most workflows, though you can add a snippet of JavaScript when you need to.
 
 ## Key terms
 
@@ -34,30 +34,35 @@ You build all of this visually on a canvas. No coding required for most workflow
 
 ## Where to find workflows in OneUptime
 
-Open **Workflows** in the left navigation. From there:
+Open **Workflows** in the left navigation. That section holds:
 
 - **Workflows** — your list of workflows. Create a new one or open an existing one.
-- **Builder tab** — the canvas where you design the workflow.
-- **Logs tab** — every run of this workflow, with details.
-- **Settings tab** — name, description, owners, labels, enable/disable.
 - **Global Variables** — values shared across all your workflows.
 - **Runs & Logs** — execution history across every workflow in your project.
 
+Open a single workflow and its own left menu holds:
+
+- **Overview** — name, description, labels, and the **Enabled** switch.
+- **Builder** — the canvas where you design the workflow.
+- **Workflow Variables** — values scoped to this one workflow.
+- **Runs & Logs** — every run of this workflow, with details.
+- **Settings** — webhook secret, duplicate, and export.
+
 ## Building your first workflow
 
-1. **Create** — give your workflow a name and a short description.
+1. **Create** — pick a starting point, then give your workflow a name.
 2. **Pick a trigger** — manual, scheduled, webhook, or an event from OneUptime.
-3. **Add components** — drag actions onto the canvas and connect them.
-4. **Test** — click **Run Manually** and watch what happens in the logs.
-5. **Turn it on** — flip the **Enabled** switch in Settings when you're ready.
+3. **Add components** — add actions to the canvas and connect them.
+4. **Turn it on** — switch **Enabled** on from the **Overview** page. A disabled workflow can't run at all, not even by hand.
+5. **Test** — click **Run Workflow** on the Builder and watch the run log.
 
 ## A quick example
 
 Say you want to post in Slack whenever a critical incident is created:
 
 1. Create a workflow called "Critical incidents to Slack."
-2. Pick the **Incident → On Create** trigger.
-3. Add a **Conditions** block. Set it to check whether the incident title contains "Sev 1."
+2. Pick the **On Create Incident** trigger.
+3. Add an **If / Else** block. Set it to check whether the incident title contains "Sev 1."
 4. From the **Yes** branch, add a **Slack** block. Pick the channel and write the message.
 5. Turn the workflow on.
 

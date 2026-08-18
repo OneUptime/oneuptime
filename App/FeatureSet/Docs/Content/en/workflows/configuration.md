@@ -9,7 +9,7 @@ Every workflow has an **Enabled** switch in **Settings**. When it's off, the wor
 Use this switch as your "ready to go" gate:
 
 1. Build the workflow.
-2. Click **Run Manually** with a realistic payload.
+2. Click **Run Workflow** on the **Builder** with realistic values.
 3. Check the **Logs** — make sure every block went where you expected.
 4. Flip **Enabled** on.
 
@@ -48,7 +48,7 @@ The file holds the workflow's name, description, enabled state, and its graph. I
 - **Global variables.** A block that reads `{{global.variables.MY_SECRET}}` keeps that reference, but the value is not in the file. Create the variables in the destination project before you run the imported workflow.
 - **Owners and labels.** Your project's own label and owner rules run against the imported workflow, the same as if you had created it by hand.
 
-An imported workflow is always created **disabled**, even if it was enabled where it was exported from — its graph can point at monitors, on-call policies, or other workflows that don't exist in the destination project. Review it, use **Run Manually**, and then turn it on. Duplicating a workflow behaves the same way, so a copy never starts firing alongside the original before you've edited it.
+An imported workflow is always created **disabled**, even if it was enabled where it was exported from — its graph can point at monitors, on-call policies, or other workflows that don't exist in the destination project. Review it, enable it, test it with **Run Workflow**, and then leave it on. Duplicating a workflow behaves the same way, so a copy never starts firing alongside the original before you've edited it.
 
 Because the graph travels verbatim, anything typed straight into a block travels with it. That's the practical reason to keep credentials in secret variables: exporting a workflow with a hardcoded token hands that token to whoever receives the file.
 
@@ -99,7 +99,7 @@ Built-in bounds keep unattended calls finite: System Instructions, Prompt, and s
 Workflows respect your project's role-based access control. The relevant permissions:
 
 - **Create / Read / Edit / Delete Workflow** — the basic permissions on the workflow itself.
-- **Run Workflow** — needed to click **Run Manually** or trigger a workflow via API.
+- **Run Workflow** — needed to run a workflow by hand or trigger one via API.
 - **Read Workflow Log** — needed to view runs.
 - **Read / Create / Edit / Delete Workflow Variable** — control over the global variables list.
 

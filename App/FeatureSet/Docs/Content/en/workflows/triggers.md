@@ -4,7 +4,7 @@ A trigger is the first block in a workflow — it decides when the workflow runs
 
 ## Manual
 
-Run the workflow on demand by clicking **Run Manually** on the workflow page. You can paste a JSON payload that the rest of the workflow can read.
+Run the workflow on demand by clicking **Run Workflow** on the **Builder** page, filling in the trigger's fields, and confirming with **Run Workflow Manually**. The Manual trigger takes a JSON payload that the rest of the workflow can read.
 
 Good for: one-click automations you want a button for, like "rotate this key" or "send a test alert."
 
@@ -61,7 +61,7 @@ The full record is passed to the next block. For example, the **Incident → On 
 - **Status Page Subscriber** — welcome someone who subscribes to a status page.
 - **On-Call Duty Policy** — sync schedule changes to another roster system.
 
-Search the trigger palette by name to find the one you want.
+Search the **Add Trigger** panel by name to find the one you want.
 
 ## Which trigger should I use?
 
