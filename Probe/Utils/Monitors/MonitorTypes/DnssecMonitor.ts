@@ -68,6 +68,22 @@ export default class DnssecMonitorUtil {
       });
     }
 
+    /*
+     * Defence in depth alongside the normalization in
+     * MonitorStep.fromJSON: iterating an absent resolver list threw a
+     * TypeError that escaped before any result could be posted, so the
+     * monitor silently produced nothing. Report the misconfiguration
+     * instead of throwing.
+     */
+    if (!config.resolvers || config.resolvers.length === 0) {
+      return DnssecMonitorUtil.buildFailureResponse({
+        domainName: domainName,
+        responseTimeInMs: 0,
+        failureCause:
+          "No DNS resolvers are configured for this DNSSEC monitor.",
+      });
+    }
+
     for (const resolver of config.resolvers) {
       if (!DnssecMonitorUtil.isValidHostnameOrIP(resolver)) {
         return DnssecMonitorUtil.buildFailureResponse({
