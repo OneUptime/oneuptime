@@ -10,6 +10,10 @@ import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import {
+  appendResourceScopeFilters,
+  ResourceEntityScope,
+} from "../Utils/Telemetry/ResourceEntityFilter";
 
 export interface HistogramBucket {
   time: string;
@@ -27,6 +31,15 @@ export interface HistogramRequest {
   bucketSizeInMinutes: number;
   serviceIds?: Array<ObjectID> | undefined;
   entityKeys?: Array<string> | undefined;
+  /*
+   * Resource-facet selections (Kubernetes cluster / host / docker host /
+   * podman host) already resolved to their entity keys. One scope per
+   * facet: the branches inside a scope OR (a row proves membership either
+   * by being primary-keyed on the resource or by carrying its entity key),
+   * and the scopes AND with each other so two facets intersect. See
+   * ResourceEntityFilter.
+   */
+  resourceScopes?: Array<ResourceEntityScope> | undefined;
   severityTexts?: Array<string> | undefined;
   bodySearchText?: string | undefined;
   traceIds?: Array<string> | undefined;
@@ -49,6 +62,15 @@ export interface FacetRequest {
   limit?: number | undefined;
   serviceIds?: Array<ObjectID> | undefined;
   entityKeys?: Array<string> | undefined;
+  /*
+   * Resource-facet selections (Kubernetes cluster / host / docker host /
+   * podman host) already resolved to their entity keys. One scope per
+   * facet: the branches inside a scope OR (a row proves membership either
+   * by being primary-keyed on the resource or by carrying its entity key),
+   * and the scopes AND with each other so two facets intersect. See
+   * ResourceEntityFilter.
+   */
+  resourceScopes?: Array<ResourceEntityScope> | undefined;
   severityTexts?: Array<string> | undefined;
   bodySearchText?: string | undefined;
   traceIds?: Array<string> | undefined;
@@ -70,6 +92,15 @@ export interface AnalyticsRequest {
   aggregation: AnalyticsAggregation;
   aggregationField?: string | undefined;
   serviceIds?: Array<ObjectID> | undefined;
+  /*
+   * Resource-facet selections (Kubernetes cluster / host / docker host /
+   * podman host) already resolved to their entity keys. One scope per
+   * facet: the branches inside a scope OR (a row proves membership either
+   * by being primary-keyed on the resource or by carrying its entity key),
+   * and the scopes AND with each other so two facets intersect. See
+   * ResourceEntityFilter.
+   */
+  resourceScopes?: Array<ResourceEntityScope> | undefined;
   severityTexts?: Array<string> | undefined;
   bodySearchText?: string | undefined;
   traceIds?: Array<string> | undefined;
@@ -764,6 +795,7 @@ export class LogAggregationService {
       HistogramRequest,
       | "serviceIds"
       | "entityKeys"
+      | "resourceScopes"
       | "severityTexts"
       | "bodySearchText"
       | "traceIds"
@@ -793,6 +825,8 @@ export class LogAggregationService {
         }})`,
       );
     }
+
+    appendResourceScopeFilters(statement, request.resourceScopes);
 
     if (request.severityTexts && request.severityTexts.length > 0) {
       statement.append(

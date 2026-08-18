@@ -3,21 +3,21 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
+import {
+  ALL_RESOURCE_FACET_KEYS,
+  ResourceEntityFacetSelections,
+  collectResourceEntityFacetSelections,
+  collectServiceFacetSelections,
+} from "Common/Types/Telemetry/ResourceEntityFacet";
 
 /*
- * Facets that all read out of the same `primaryEntityId` column — the
- * discriminator (Service / Host / Docker host / Podman host / Kubernetes
- * cluster) only matters when the facet values are computed. Filtering by any
- * of them is a single `primaryEntityId IN (...)` predicate, so selections
- * across these facets are coalesced into one list.
+ * Every facet whose values name a resource, in sidebar order. Re-exported
+ * from the shared module so the viewer, the query compiler and the pivot
+ * all agree on the list; how a given key is turned into a predicate is
+ * decided there (Service ids read out of `primaryEntityId`, everything else
+ * has to go through the resource's entity key).
  */
-export const RESOURCE_FACET_KEYS: Array<string> = [
-  "primaryEntityId",
-  "hostId",
-  "dockerHostId",
-  "podmanHostId",
-  "kubernetesClusterId",
-];
+export const RESOURCE_FACET_KEYS: Array<string> = [...ALL_RESOURCE_FACET_KEYS];
 
 export interface LogsHistogramRequestParams {
   /** Current picker selection. Preset ranges resolve against "now" on every call. */
@@ -76,21 +76,34 @@ export function buildLogsHistogramRequest(
     requestData["severityTexts"] = Array.from(severityValues);
   }
 
-  const resourceFilterIds: Set<string> = new Set<string>();
+  /*
+   * The Services facet narrows the page's own service scope: its values are
+   * ids of the same kind, so replacing is what "drill into this service"
+   * means.
+   */
+  const serviceFacetIds: Array<string> = collectServiceFacetSelections(
+    params.appliedFacetFilters.entries(),
+  );
 
-  for (const facetKey of RESOURCE_FACET_KEYS) {
-    const values: Set<string> | undefined =
-      params.appliedFacetFilters.get(facetKey);
-
-    if (values) {
-      for (const value of values) {
-        resourceFilterIds.add(value);
-      }
-    }
+  if (serviceFacetIds.length > 0) {
+    requestData["serviceIds"] = serviceFacetIds;
   }
 
-  if (resourceFilterIds.size > 0) {
-    requestData["serviceIds"] = Array.from(resourceFilterIds);
+  /*
+   * Host / docker host / podman host / Kubernetes cluster selections ride
+   * their own field instead of being folded into `serviceIds`. Their values
+   * are ids of a different kind of row, and for OTLP telemetry the resource
+   * is not the row's primary entity at all — the server resolves each id to
+   * the resource's entity key and matches on membership. Folding them into
+   * `serviceIds` compared a cluster id against a column that only ever
+   * holds Service ids, which is why a Kubernetes cluster filter returned
+   * nothing and why pairing it with a service silently dropped the cluster.
+   */
+  const resourceFilters: ResourceEntityFacetSelections =
+    collectResourceEntityFacetSelections(params.appliedFacetFilters.entries());
+
+  if (Object.keys(resourceFilters).length > 0) {
+    requestData["resourceFilters"] = resourceFilters;
   }
 
   const traceFilterValues: Set<string> | undefined =

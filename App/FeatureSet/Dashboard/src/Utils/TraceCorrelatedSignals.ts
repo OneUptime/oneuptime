@@ -1,4 +1,9 @@
 import Dictionary from "Common/Types/Dictionary";
+import {
+  ResourceEntityFacetSelections,
+  isResourceEntityFacetKey,
+  isServiceFacetKey,
+} from "Common/Types/Telemetry/ResourceEntityFacet";
 import Route from "Common/Types/API/Route";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { JSONObject } from "Common/Types/JSON";
@@ -20,6 +25,12 @@ import { JSONObject } from "Common/Types/JSON";
 export interface TraceCrossSignalScope {
   /** Service ObjectID strings (Log/Span `primaryEntityId` values). */
   serviceIds?: Array<string> | undefined;
+  /**
+   * Non-Service resource selections keyed by facet. Not merged into
+   * serviceIds — a host or cluster id is not a `primaryEntityId` value for
+   * telemetry that carries a `service.name`.
+   */
+  resourceFacetSelections?: ResourceEntityFacetSelections | undefined;
   /** Exact-match telemetry attribute filters. Keys may contain dots. */
   attributes?: Dictionary<string> | undefined;
   traceIds?: Array<string> | undefined;
@@ -297,18 +308,6 @@ export const buildTraceFlamegraphRequest: BuildTraceFlamegraphRequestFunction =
   };
 
 /*
- * The facet keys that all resolve to the Span `primaryEntityId` column
- * (mirrors the resource-facet union in TracesViewer's query builders).
- */
-const RESOURCE_FACET_KEYS: Set<string> = new Set<string>([
-  "primaryEntityId",
-  "hostId",
-  "dockerHostId",
-  "podmanHostId",
-  "kubernetesClusterId",
-]);
-
-/*
  * Human labels for the trace-explorer filters that cannot ride a
  * cross-signal scope at all (no TelemetryCrossSignalScope field exists for
  * them), keyed by the chip facetKey / parsed-search field they arrive as.
@@ -380,9 +379,25 @@ export const buildTracesPivotScope: BuildTracesPivotScopeFunction = (
     addValue(serviceIds, input.primaryEntityId);
   }
 
+  const resourceFacetSelections: ResourceEntityFacetSelections = {};
+
   for (const filter of input.activeFilters) {
-    if (RESOURCE_FACET_KEYS.has(filter.facetKey)) {
+    if (isServiceFacetKey(filter.facetKey)) {
       addValue(serviceIds, filter.value);
+      continue;
+    }
+
+    /*
+     * Host / docker / podman / Kubernetes chips keep their facet key so the
+     * target explorer can resolve them through the resource's entity key.
+     * Folding them into serviceIds produced a `primaryEntityId` filter that
+     * matches nothing for OTLP telemetry.
+     */
+    if (isResourceEntityFacetKey(filter.facetKey)) {
+      const values: Array<string> =
+        resourceFacetSelections[filter.facetKey] || [];
+      addValue(values, filter.value);
+      resourceFacetSelections[filter.facetKey] = values;
       continue;
     }
 
@@ -493,6 +508,10 @@ export const buildTracesPivotScope: BuildTracesPivotScopeFunction = (
 
   if (serviceIds.length > 0) {
     scope.serviceIds = serviceIds;
+  }
+
+  if (Object.keys(resourceFacetSelections).length > 0) {
+    scope.resourceFacetSelections = resourceFacetSelections;
   }
 
   if (traceIds.length > 0) {

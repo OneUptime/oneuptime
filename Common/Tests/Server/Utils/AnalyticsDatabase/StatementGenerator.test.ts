@@ -957,6 +957,219 @@ describe("StatementGenerator", () => {
     });
 
     /*
+     * resourceEntityScopes: the compiled form of a resource-facet selection
+     * (a Kubernetes cluster, a host, ...). Unlike entityScope it carries an
+     * `entityIds` branch, because the same resource can be a row's PRIMARY
+     * entity (agent-ingested telemetry) or merely one of its memberships
+     * (OTLP telemetry primary-keyed on its Service). Matching only
+     * primaryEntityId is what made a cluster filter return zero rows for
+     * collector-ingested logs.
+     */
+    describe("resourceEntityScopes synthetic key", () => {
+      class ResourceScopeModel extends AnalyticsBaseModel {
+        public constructor() {
+          super({
+            tableName: "<resource-scope-table>",
+            singularName: "<singular>",
+            pluralName: "<plural>",
+            tableColumns: [
+              new AnalyticsTableColumn({
+                key: "_id",
+                title: "<title>",
+                description: "<description>",
+                required: true,
+                type: TableColumnType.ObjectID,
+              }),
+              new AnalyticsTableColumn({
+                key: "primaryEntityId",
+                title: "<title>",
+                description: "<description>",
+                required: true,
+                type: TableColumnType.ObjectID,
+              }),
+              new AnalyticsTableColumn({
+                key: "entityKeys",
+                title: "<title>",
+                description: "<description>",
+                required: true,
+                defaultValue: [],
+                type: TableColumnType.ArrayText,
+              }),
+              new AnalyticsTableColumn({
+                key: "attributes",
+                title: "<title>",
+                description: "<description>",
+                required: true,
+                defaultValue: {},
+                type: TableColumnType.MapStringString,
+              }),
+            ],
+            crudApiPath: new Route("route"),
+            primaryKeys: ["_id"],
+            sortKeys: ["_id"],
+            partitionKey: "_id",
+            tableEngine: AnalyticsTableEngine.MergeTree,
+          });
+        }
+      }
+
+      const CLUSTER_ID: string = "8c0f2f1e-2e4f-4a8c-9a1a-2f5b6c7d8e9f";
+      const HOST_ID: string = "5f4e3d2c-1b0a-4998-8776-655443322110";
+
+      let resourceGenerator: StatementGenerator<ResourceScopeModel>;
+      beforeEach(() => {
+        resourceGenerator = new StatementGenerator<ResourceScopeModel>({
+          modelType: ResourceScopeModel,
+          database: ClickhouseAppInstance,
+        });
+      });
+
+      test("ORs the three membership branches inside one scope", () => {
+        const statement: Statement = resourceGenerator.toWhereStatement({
+          resourceEntityScopes: [
+            {
+              entityIds: [CLUSTER_ID],
+              entityKeys: ["210dac24142f1baa"],
+              attributeKey: "resource.k8s.cluster.name",
+              attributeValues: ["prod-eu"],
+            },
+          ],
+        } as any);
+
+        expect(statement.query).toBe(
+          "AND ({p0:Identifier} IN {p1:Array(String)} OR hasAny({p2:Identifier}, {p3:Array(String)}) OR {p4:Identifier}[{p5:String}] IN {p6:Array(String)})",
+        );
+        expect(statement.query_params).toStrictEqual({
+          p0: "primaryEntityId",
+          p1: [CLUSTER_ID],
+          p2: "entityKeys",
+          p3: ["210dac24142f1baa"],
+          p4: "attributes",
+          p5: "resource.k8s.cluster.name",
+          p6: ["prod-eu"],
+        });
+      });
+
+      test("ANDs separate scopes so two facets intersect", () => {
+        const statement: Statement = resourceGenerator.toWhereStatement({
+          resourceEntityScopes: [
+            { entityIds: [CLUSTER_ID], entityKeys: ["210dac24142f1baa"] },
+            { entityIds: [HOST_ID], entityKeys: ["9f8e7d6c5b4a3928"] },
+          ],
+        } as any);
+
+        expect(statement.query).toBe(
+          "AND ({p0:Identifier} IN {p1:Array(String)} OR hasAny({p2:Identifier}, {p3:Array(String)})) " +
+            "AND ({p4:Identifier} IN {p5:Array(String)} OR hasAny({p6:Identifier}, {p7:Array(String)}))",
+        );
+      });
+
+      test("composes with a Services predicate — cluster AND service", () => {
+        const statement: Statement = resourceGenerator.toWhereStatement({
+          primaryEntityId: "<service-id>",
+          resourceEntityScopes: [
+            { entityIds: [CLUSTER_ID], entityKeys: ["210dac24142f1baa"] },
+          ],
+        } as any);
+
+        /*
+         * The regression the issue reports: these two used to be coalesced
+         * into ONE primaryEntityId IN (...) list, so adding a service made
+         * results reappear while silently dropping the cluster.
+         */
+        expect(statement.query).toBe(
+          "AND {p0:Identifier} = {p1:String} " +
+            "AND ({p2:Identifier} IN {p3:Array(String)} OR hasAny({p4:Identifier}, {p5:Array(String)}))",
+        );
+      });
+
+      test("a scope that resolved to ids only still narrows by primaryEntityId", () => {
+        const statement: Statement = resourceGenerator.toWhereStatement({
+          resourceEntityScopes: [{ entityIds: [CLUSTER_ID], entityKeys: [] }],
+        } as any);
+
+        expect(statement.query).toBe(
+          "AND ({p0:Identifier} IN {p1:Array(String)})",
+        );
+      });
+
+      test("an empty scope emits no predicate rather than an empty IN", () => {
+        const statement: Statement = resourceGenerator.toWhereStatement({
+          resourceEntityScopes: [{ entityIds: [], entityKeys: [] }],
+        } as any);
+
+        expect(statement.query).toBe("");
+        expect(statement.query_params).toStrictEqual({});
+      });
+
+      test("an empty scope does not break separators for later predicates", () => {
+        const statement: Statement = resourceGenerator.toWhereStatement({
+          resourceEntityScopes: [{ entityIds: [], entityKeys: [] }],
+          _id: "<value>",
+        } as any);
+
+        expect(statement.query).toBe("AND {p0:Identifier} = {p1:String}");
+      });
+
+      test("a non-array value carries no predicate", () => {
+        const statement: Statement = resourceGenerator.toWhereStatement({
+          resourceEntityScopes: { entityIds: [CLUSTER_ID] },
+        } as any);
+
+        expect(statement.query).toBe("");
+      });
+
+      test("blank ids and keys are filtered out of their branches", () => {
+        const statement: Statement = resourceGenerator.toWhereStatement({
+          resourceEntityScopes: [
+            { entityIds: ["", CLUSTER_ID], entityKeys: [""] },
+          ],
+        } as any);
+
+        expect(statement.query).toBe(
+          "AND ({p0:Identifier} IN {p1:Array(String)})",
+        );
+        expect(statement.query_params).toStrictEqual({
+          p0: "primaryEntityId",
+          p1: [CLUSTER_ID],
+        });
+      });
+
+      test("drops the branches whose backing column the model lacks", () => {
+        // TestModel (outer generator) has neither primaryEntityId nor entityKeys.
+        const statement: Statement = generator.toWhereStatement({
+          resourceEntityScopes: [
+            { entityIds: [CLUSTER_ID], entityKeys: ["210dac24142f1baa"] },
+          ],
+        } as any);
+
+        expect(statement.query).toBe("");
+      });
+
+      test("qualifies every branch when a table alias is in play", () => {
+        const statement: Statement = resourceGenerator.toWhereStatement(
+          {
+            resourceEntityScopes: [
+              {
+                entityIds: [CLUSTER_ID],
+                entityKeys: ["210dac24142f1baa"],
+                attributeKey: "resource.k8s.cluster.name",
+                attributeValues: ["prod-eu"],
+              },
+            ],
+          } as any,
+          { tableAlias: "t" },
+        );
+
+        expect(statement.query).toBe(
+          "AND ({p0_t:Identifier}.{p0_c:Identifier} IN {p1:Array(String)} OR " +
+            "hasAny({p2_t:Identifier}.{p2_c:Identifier}, {p3:Array(String)}) OR " +
+            "{p4_t:Identifier}.{p4_c:Identifier}[{p5:String}] IN {p6:Array(String)})",
+        );
+      });
+    });
+
+    /*
      * Table qualification (tableAlias option). Aggregate statements
      * alias expressions to real column names (`sum(col) as col`, and
      * `min(ts) as ts` under Total), and ClickHouse substitutes those

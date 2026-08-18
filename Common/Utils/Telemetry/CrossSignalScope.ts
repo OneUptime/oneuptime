@@ -1,4 +1,9 @@
 import Dictionary from "../../Types/Dictionary";
+import {
+  RESOURCE_ENTITY_FACET_KEYS,
+  ResourceEntityFacetSelections,
+  isResourceEntityFacetKey,
+} from "../../Types/Telemetry/ResourceEntityFacet";
 import OneUptimeDate from "../../Types/Date";
 import TimeRange from "../../Types/Time/TimeRange";
 import MetricExplorerUrl, {
@@ -61,6 +66,16 @@ const WHITESPACE: RegExp = /\s/;
 export interface TelemetryCrossSignalScope {
   /** Service ObjectID strings (Log/Span `primaryEntityId` values). */
   serviceIds?: Array<string> | undefined;
+  /**
+   * Non-Service resource selections keyed by facet — e.g.
+   * `{ kubernetesClusterId: ["<id>"] }`. Deliberately NOT merged into
+   * `serviceIds`: a host or cluster id is not a `primaryEntityId` value for
+   * telemetry that carries a `service.name`, so it has to reach the target
+   * explorer as its own facet and be resolved to the resource's entity key
+   * there. Both the logs and the traces `filters` grammar carry arbitrary
+   * facet keys, so these survive the trip intact.
+   */
+  resourceFacetSelections?: ResourceEntityFacetSelections | undefined;
   /** Exact-match telemetry attribute filters. Keys may contain dots. */
   attributes?: Dictionary<string> | undefined;
   traceIds?: Array<string> | undefined;
@@ -165,6 +180,36 @@ function sanitizeAttributeEntries(
   return entries;
 }
 
+/*
+ * Drop unknown facet keys and blank ids from a resource selection map. An
+ * unknown key would become a filter chip the target explorer cannot compile
+ * (it would land as an unknown column predicate), so it is reported as
+ * dropped by the callers instead of being emitted.
+ */
+function sanitizeResourceFacetSelections(
+  selections: ResourceEntityFacetSelections | undefined,
+): Array<[string, Array<string>]> {
+  if (!selections) {
+    return [];
+  }
+
+  const entries: Array<[string, Array<string>]> = [];
+
+  for (const facetKey of RESOURCE_ENTITY_FACET_KEYS) {
+    if (!isResourceEntityFacetKey(facetKey)) {
+      continue;
+    }
+
+    const values: Array<string> = sanitizeValues(selections[facetKey]);
+
+    if (values.length > 0) {
+      entries.push([facetKey, values]);
+    }
+  }
+
+  return entries;
+}
+
 function isValidDate(value: Date | undefined): value is Date {
   return value instanceof Date && !isNaN(value.getTime());
 }
@@ -248,6 +293,12 @@ export function toLogsExplorerQueryParams(
 
   if (serviceIds.length > 0) {
     tuples.push(["primaryEntityId", serviceIds]);
+  }
+
+  for (const [facetKey, values] of sanitizeResourceFacetSelections(
+    scope.resourceFacetSelections,
+  )) {
+    tuples.push([facetKey, values]);
   }
 
   const traceIds: Array<string> = sanitizeValues(scope.traceIds);
@@ -372,6 +423,19 @@ export function toTracesExplorerQueryParams(
     filterTuples.push(["primaryEntityId", serviceId]);
   }
 
+  /*
+   * The traces `filters` grammar is one [key, value] pair per chip, so a
+   * multi-valued selection fans out into one chip per id — the explorer
+   * groups same-key chips back into a single facet selection.
+   */
+  for (const [facetKey, values] of sanitizeResourceFacetSelections(
+    scope.resourceFacetSelections,
+  )) {
+    for (const value of values) {
+      filterTuples.push([facetKey, value]);
+    }
+  }
+
   for (const [key, value] of sanitizeAttributeEntries(scope.attributes)) {
     const tokenValue: string | null = isTraceTokenSafeKey(key)
       ? buildTraceSearchTokenValue(value)
@@ -438,10 +502,11 @@ export function toTracesExplorerQueryParams(
  * Custom by the absolute params alone — see MetricExplorerUrl). The
  * optional `metricName` argument names the query.
  *
- * Dropped: serviceIds, traceIds, spanIds, severityTexts — the metric
- * explorer's URL grammar has no service / trace / span / severity
- * dimension (metrics carry a primaryEntityId column, but the explorer only
- * parses metricName + attributes out of `metricQueries`).
+ * Dropped: serviceIds, resourceFacetSelections, traceIds, spanIds,
+ * severityTexts — the metric explorer's URL grammar has no service /
+ * resource / trace / span / severity dimension (metrics carry a
+ * primaryEntityId column, but the explorer only parses metricName +
+ * attributes out of `metricQueries`).
  */
 export function toMetricsExplorerQueryParams(
   scope: TelemetryCrossSignalScope,
@@ -482,6 +547,12 @@ export function toMetricsExplorerQueryParams(
 
   if (sanitizeValues(scope.serviceIds).length > 0) {
     dropped.push("serviceIds");
+  }
+
+  for (const [facetKey] of sanitizeResourceFacetSelections(
+    scope.resourceFacetSelections,
+  )) {
+    dropped.push(facetKey);
   }
 
   if (sanitizeValues(scope.traceIds).length > 0) {
