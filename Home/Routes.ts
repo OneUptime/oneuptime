@@ -48,6 +48,14 @@ import {
   RecentBlogPostLink,
 } from "./Utils/AIDiscovery";
 import BlogPostUtil, { BlogPostHeader } from "./Utils/BlogPost";
+import { getSelfHostedContent } from "./Utils/SelfHosted";
+import {
+  Claim,
+  ClaimStatuses,
+  Claims,
+  getClaimsMatrix,
+  getClaimsNeedingReview,
+} from "./Utils/Claims";
 
 // import jobs.
 import "./Jobs/UpdateBlog";
@@ -226,6 +234,24 @@ const HomeFeatureSet: FeatureSet = {
         res.json({
           reviews: AllReviews.map((review: Review) => {
             return { ...review };
+          }),
+        });
+      },
+    );
+
+    /*
+     * The governed claims matrix, machine-readable. Sales engineering, RFP
+     * tooling, and AI agents should read this rather than scrape a landing page.
+     */
+    app.get(
+      "/data/claims.json",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.setHeader("Cache-Control", "public, max-age=600");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.json({
+          statuses: ClaimStatuses,
+          claims: Claims.map((claim: Claim) => {
+            return { ...claim };
           }),
         });
       },
@@ -1001,6 +1027,42 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
+    app.get(
+      "/enterprise/self-hosted",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/enterprise/self-hosted",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/self-hosted.ejs`, {
+          support: false,
+          enableGoogleTagManager: IsBillingEnabled,
+          footerCards: true,
+          cta: false,
+          blackLogo: false,
+          requestDemoCta: true,
+          selfHosted: getSelfHostedContent(),
+          seo,
+        });
+      },
+    );
+
+    /*
+     * `/self-hosted` and `/on-premise` are what buyers type and what search
+     * results point at. Keep them alive, pointing at the canonical page.
+     */
+    app.get("/self-hosted", (_req: ExpressRequest, res: ExpressResponse) => {
+      res.redirect(301, "/enterprise/self-hosted");
+    });
+
+    app.get("/self-hosting", (_req: ExpressRequest, res: ExpressResponse) => {
+      res.redirect(301, "/enterprise/self-hosted");
+    });
+
+    app.get("/on-premise", (_req: ExpressRequest, res: ExpressResponse) => {
+      res.redirect(301, "/enterprise/self-hosted");
+    });
+
     // Solutions pages
     app.get(
       "/solutions/devops",
@@ -1625,8 +1687,30 @@ const HomeFeatureSet: FeatureSet = {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
+        claimStatuses: ClaimStatuses,
+        claimsMatrix: getClaimsMatrix(),
+        claimsUnderReviewCount: getClaimsNeedingReview().length,
         seo,
       });
+    });
+
+    /*
+     * /trust is the canonical trust center. /security and /security-center are
+     * what people type and what security questionnaires link to.
+     */
+    app.get("/security", (_req: ExpressRequest, res: ExpressResponse) => {
+      res.redirect(301, "/trust");
+    });
+
+    app.get(
+      "/security-center",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        res.redirect(301, "/trust");
+      },
+    );
+
+    app.get("/trust-center", (_req: ExpressRequest, res: ExpressResponse) => {
+      res.redirect(301, "/trust");
     });
 
     // Compare index / landing page

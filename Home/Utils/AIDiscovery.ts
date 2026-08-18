@@ -91,6 +91,7 @@ const machineReadableSection: (baseUrl: string) => Array<string> = (
     `- [Products (JSON)](${baseUrl}/data/products.json): every product with description and feature list`,
     `- [Comparisons (JSON)](${baseUrl}/data/compare.json): OneUptime vs other tools`,
     `- [Customer reviews (JSON)](${baseUrl}/data/reviews.json)`,
+    `- [Governed claims matrix (JSON)](${baseUrl}/data/claims.json): every published claim about service levels, support, compliance, encryption, deployment, migration, scale, discounts, and contract terms, with its status, qualifier, evidence, and source document`,
     `- [Blog RSS feed](${baseUrl}/blog/rss.xml): every post also has a raw markdown variant at /blog/post/<post>/markdown`,
   ];
 };
@@ -140,6 +141,21 @@ export function generateLlmsTxt(
       `- [${shortTitle(seo)}](${baseUrl}${seo.canonicalPath}.md): ${seo.description}`,
     );
   }
+
+  lines.push("");
+  lines.push("## Enterprise");
+  lines.push("");
+  for (const seo of getPagesByType("enterprise")) {
+    lines.push(
+      `- [${shortTitle(seo)}](${baseUrl}${seo.canonicalPath}.md): ${seo.description}`,
+    );
+  }
+  lines.push(
+    `- [Trust Center](${baseUrl}/trust): certifications, attestations, and the governed claims matrix`,
+  );
+  lines.push(
+    `- [Claims matrix (JSON)](${baseUrl}/data/claims.json): every published claim with its status, qualifier, evidence, and source document`,
+  );
 
   lines.push("");
   lines.push("## Compare OneUptime");

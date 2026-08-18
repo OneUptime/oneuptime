@@ -26,6 +26,7 @@
     "xmlbuilder2": "^4.0.3"
   },
   "devDependencies": {
+    "@types/ejs": "^3.1.1",
     "@types/jest": "^29.5.11",
     "@types/node": "^26.1.1",
     "jest": "^28.1.0",
