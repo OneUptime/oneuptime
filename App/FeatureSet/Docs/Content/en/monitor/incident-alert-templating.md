@@ -40,6 +40,10 @@ The following monitor types support dynamic templating with their respective var
 | `requestMethod`             | The HTTP method of the incoming request (GET, POST, etc.). | `string`             |
 | `incomingRequestReceivedAt` | The date and time when the incoming request was received.  | `Date`               |
 
+When the criteria has **Group incidents and alerts by a payload field** turned on, the extracted grouping key is also available, under a variable named after the **last segment** of the grouping path. Grouping by `requestBody.alerts[*].labels.alertname` gives you `{{alertname}}`; grouping by `requestBody.alerts[*].fingerprint` gives you `{{fingerprint}}`. The full `requestBody` is still available alongside it.
+
+> **Note:** `[*]` is only understood in the grouping path fields themselves — here it does not resolve, so the placeholder is printed verbatim, braces and all. Inside a title or description, `{{requestBody.alerts[0].annotations.summary}}` always reads the first alert in the payload, not the one the incident was opened for. Use the grouping variable and the payload's shared fields (`commonLabels`, `commonAnnotations`) instead. See [Incoming Request Monitor](/docs/monitor/incoming-request-monitor).
+
 ### Ping Monitors
 
 | Variable           | Description                                   | Type      |
@@ -187,7 +191,7 @@ Array indexing is supported:
 First User: {{responseBody.users[0].name}}
 ```
 
-If a path does not exist it resolves to an empty string by default.
+If a path does not exist, the placeholder is left in the output exactly as written — `{{responseBody.error.id}}` appears literally, braces and all, in the incident title. Only `{{#each}}` blocks over a missing path are removed.
 
 ## Advanced Usage
 
