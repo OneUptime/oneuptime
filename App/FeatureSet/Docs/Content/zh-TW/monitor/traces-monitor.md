@@ -56,7 +56,6 @@
 - **Greater Than or Equal To** — span 數量等於或高於某個閾值
 - **Less Than or Equal To** — span 數量等於或低於某個閾值
 - **Equal To** — span 數量完全相符
-- **Not Equal To** — span 數量不相符
 
 ### 準則範例
 

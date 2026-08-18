@@ -52,18 +52,17 @@ DNSSEC monitors root zone से आपके domain तक के पूरे 
 | DNSSEC Signature Expires In Days    | जल्द ही expire होने वाले RRSIG signature तक के दिन                      |
 | DNSSEC Resolver Consensus (AD Flag) | प्रत्येक queried resolver AD (Authenticated Data) flag लौटाता है        |
 | DNSSEC Nameservers Are Consistent   | सभी authoritative nameservers एक ही SOA serial लौटाते हैं               |
-| DNSSEC Is Valid                     | सभी validation checks में समग्र pass/fail                               |
 
 ### Filter Types
 
-**DNSSEC Chain Is Valid**, **DNSSEC DNSKEY Record Exists**, **DNSSEC DS Record Exists At Parent**, **DNSSEC Resolver Consensus (AD Flag)**, **DNSSEC Nameservers Are Consistent**, और **DNSSEC Is Valid** के लिए:
+**DNSSEC Chain Is Valid**, **DNSSEC DNSKEY Record Exists**, **DNSSEC DS Record Exists At Parent**, **DNSSEC Resolver Consensus (AD Flag)**, और **DNSSEC Nameservers Are Consistent** के लिए:
 
 - **True** — condition true है
 - **False** — condition false है
 
 **DNSSEC Signature Expires In Days** के लिए:
 
-- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
+- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**
 
 ### उदाहरण Criteria
 

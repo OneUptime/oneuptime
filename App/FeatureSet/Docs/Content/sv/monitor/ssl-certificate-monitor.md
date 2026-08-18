@@ -34,18 +34,16 @@ Du kan konfigurera kriterier för att avgöra när din certifikatstatus anses va
 
 | Kontrolltyp                    | Beskrivning                                                    |
 | ------------------------------ | -------------------------------------------------------------- |
-| Är online                      | Om servern är nåbar                                            |
 | Är giltigt certifikat          | Om certifikatet är giltigt (inte utgånget, inte självsignerat) |
 | Är självsignerat certifikat    | Om certifikatet är självsignerat                               |
 | Är utgånget certifikat         | Om certifikatet har löpt ut                                    |
 | Är inte ett giltigt certifikat | Om certifikatet är ogiltigt                                    |
 | Löper ut om timmar             | Antal timmar tills certifikatet löper ut                       |
 | Löper ut om dagar              | Antal dagar tills certifikatet löper ut                        |
-| Är förfrågningstimeout         | Om anslutningen fick timeout                                   |
 
 ### Filtertyper
 
-För **Är online**, **Är giltigt certifikat**, **Är självsignerat certifikat**, **Är utgånget certifikat**, **Är inte ett giltigt certifikat** och **Är förfrågningstimeout**:
+För **Är giltigt certifikat**, **Är självsignerat certifikat**, **Är utgånget certifikat** och **Är inte ett giltigt certifikat**:
 
 - **Sant** – Villkoret är sant
 - **Falskt** – Villkoret är falskt

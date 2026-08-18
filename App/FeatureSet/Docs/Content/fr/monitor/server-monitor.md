@@ -121,19 +121,25 @@ Vous pouvez configurer des critères pour déterminer quand votre serveur est co
 | Pourcentage d'utilisation CPU       | Pourcentage d'utilisation CPU actuel                                             |
 | Pourcentage d'utilisation mémoire   | Pourcentage d'utilisation mémoire actuel                                         |
 | Pourcentage d'utilisation du disque | Pourcentage d'utilisation du disque actuel (pour un chemin de disque spécifique) |
+| Pourcentage d'utilisation du swap   | Pourcentage d'utilisation du swap actuel                                         |
+| Pourcentage d'attente d'E/S CPU     | Pourcentage du temps CPU passé à attendre les E/S                                |
+| Charge moyenne (1 minute)           | Charge moyenne du système sur la dernière minute                                 |
+| Charge moyenne (5 minutes)          | Charge moyenne du système sur les 5 dernières minutes                            |
+| Charge moyenne (15 minutes)         | Charge moyenne du système sur les 15 dernières minutes                           |
 | Nom du processus serveur            | Vérifier si un processus avec un nom spécifique est en cours d'exécution         |
 | Commande du processus serveur       | Vérifier si un processus avec une commande spécifique est en cours d'exécution   |
 | PID du processus serveur            | Vérifier si un processus avec un PID spécifique est en cours d'exécution         |
 
 ### Types de filtres
 
-Pour les métriques numériques (CPU, mémoire, disque) :
+Pour les métriques numériques (CPU, mémoire, disque, swap, attente d'E/S, charge moyenne) :
 
 - **Supérieur à** — La valeur dépasse un seuil
 - **Inférieur à** — La valeur est en dessous d'un seuil
 - **Supérieur ou égal à** — La valeur est au-dessus ou égale à un seuil
 - **Inférieur ou égal à** — La valeur est en dessous ou égale à un seuil
-- **Évaluer dans le temps** — Évaluer en utilisant l'agrégation (Moyenne, Somme, Maximum, Minimum, Toutes les valeurs, N'importe quelle valeur) sur une fenêtre temporelle
+
+**Évaluer ce critère sur une période** est une case à cocher du formulaire de critères, et non une condition de filtre. Activez-la pour comparer une agrégation — choisie sous **Évaluer** (Moyenne, Somme, Maximum, Minimum, Toutes les valeurs, N'importe quelle valeur) sur la fenêtre définie par **Sur les dernières (en minutes)** — au lieu de la valeur du dernier contrôle.
 
 Pour les vérifications de processus :
 

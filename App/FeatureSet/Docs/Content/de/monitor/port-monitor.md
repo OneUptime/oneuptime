@@ -61,8 +61,9 @@ Für **Ist online** und **Anfrage-Timeout**:
 
 Für **Antwortzeit**:
 
-- **Größer als**, **Kleiner als**, **Größer oder gleich**, **Kleiner oder gleich**, **Gleich**, **Ungleich**
-- **Über Zeit auswerten** — Mit Aggregation (Durchschnitt, Summe, Maximum, Minimum, Alle Werte, Beliebiger Wert) über ein Zeitfenster auswerten
+- **Größer als**, **Kleiner als**, **Größer oder gleich**, **Kleiner oder gleich**
+
+**Dieses Kriterium über einen Zeitraum auswerten** ist ein Kontrollkästchen im Kriterienformular und keine Filterbedingung. Aktivieren Sie es, um statt des Werts der letzten Prüfung eine Aggregation zu vergleichen — ausgewählt unter **Auswerten** (Durchschnitt, Summe, Maximum, Minimum, Alle Werte, Beliebiger Wert) über den unter **Für die letzten (in Minuten)** festgelegten Zeitraum.
 
 ### Beispielkriterien
 

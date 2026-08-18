@@ -62,7 +62,6 @@ Filtrare i log per uno o più livelli di severità:
 - **Maggiore o Uguale a** — Il conteggio dei log è pari o superiore a una soglia
 - **Minore o Uguale a** — Il conteggio dei log è pari o inferiore a una soglia
 - **Uguale a** — Il conteggio dei log corrisponde esattamente
-- **Diverso da** — Il conteggio dei log non corrisponde
 
 ### Criteri di Esempio
 

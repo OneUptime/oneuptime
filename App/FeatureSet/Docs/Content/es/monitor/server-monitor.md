@@ -115,25 +115,31 @@ Puedes configurar criterios para determinar cuándo tu servidor se considera en 
 
 ### Tipos de verificación disponibles
 
-| Tipo de verificación             | Descripción                                                                    |
-| -------------------------------- | ------------------------------------------------------------------------------ |
-| Está en línea                    | Si el agente del servidor está reportando (basado en el latido)                |
-| Porcentaje de uso de CPU         | Porcentaje de utilización de CPU actual                                        |
-| Porcentaje de uso de memoria     | Porcentaje de utilización de memoria actual                                    |
-| Porcentaje de uso del disco      | Porcentaje de utilización del disco actual (para una ruta de disco específica) |
-| Nombre del proceso del servidor  | Verifica si hay un proceso con un nombre específico en ejecución               |
-| Comando del proceso del servidor | Verifica si hay un proceso con un comando específico en ejecución              |
-| PID del proceso del servidor     | Verifica si hay un proceso con un PID específico en ejecución                  |
+| Tipo de verificación               | Descripción                                                                    |
+| ---------------------------------- | ------------------------------------------------------------------------------ |
+| Está en línea                      | Si el agente del servidor está reportando (basado en el latido)                |
+| Porcentaje de uso de CPU           | Porcentaje de utilización de CPU actual                                        |
+| Porcentaje de uso de memoria       | Porcentaje de utilización de memoria actual                                    |
+| Porcentaje de uso del disco        | Porcentaje de utilización del disco actual (para una ruta de disco específica) |
+| Porcentaje de uso de swap          | Porcentaje de utilización de swap actual                                       |
+| Porcentaje de espera de E/S de CPU | Porcentaje de tiempo de CPU en espera de E/S                                   |
+| Carga media (1 minuto)             | Carga media del sistema en el último minuto                                    |
+| Carga media (5 minutos)            | Carga media del sistema en los últimos 5 minutos                               |
+| Carga media (15 minutos)           | Carga media del sistema en los últimos 15 minutos                              |
+| Nombre del proceso del servidor    | Verifica si hay un proceso con un nombre específico en ejecución               |
+| Comando del proceso del servidor   | Verifica si hay un proceso con un comando específico en ejecución              |
+| PID del proceso del servidor       | Verifica si hay un proceso con un PID específico en ejecución                  |
 
 ### Tipos de filtro
 
-Para métricas numéricas (CPU, memoria, disco):
+Para métricas numéricas (CPU, memoria, disco, swap, espera de E/S, carga media):
 
 - **Mayor que**: El valor supera un umbral
 - **Menor que**: El valor está por debajo de un umbral
 - **Mayor o igual que**: El valor está en o por encima de un umbral
 - **Menor o igual que**: El valor está en o por debajo de un umbral
-- **Evaluar en el tiempo**: Evaluar usando agregación (Promedio, Suma, Máximo, Mínimo, Todos los valores, Cualquier valor) sobre una ventana de tiempo
+
+**Evaluar este criterio durante un período de tiempo** es una casilla del formulario de criterios, no una condición de filtro. Actívala para comparar una agregación — elegida en **Evaluar** (Promedio, Suma, Máximo, Mínimo, Todos los valores, Cualquier valor) sobre la ventana definida en **Durante los últimos (en minutos)** — en lugar del valor de la última comprobación.
 
 Para verificaciones de procesos:
 

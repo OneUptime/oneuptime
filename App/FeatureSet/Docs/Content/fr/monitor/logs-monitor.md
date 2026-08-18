@@ -62,7 +62,6 @@ Filtrez les journaux par un ou plusieurs niveaux de gravité :
 - **Supérieur ou égal à** — Le nombre de journaux est au-dessus ou égal à un seuil
 - **Inférieur ou égal à** — Le nombre de journaux est en dessous ou égal à un seuil
 - **Égal à** — Le nombre de journaux correspond exactement
-- **Différent de** — Le nombre de journaux ne correspond pas
 
 ### Exemples de critères
 

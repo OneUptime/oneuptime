@@ -65,9 +65,8 @@ Para **Tempo de resposta**:
 - **Less Than** — O tempo de resposta está abaixo de um limite
 - **Greater Than or Equal To** — O tempo de resposta está no limite ou acima
 - **Less Than or Equal To** — O tempo de resposta está no limite ou abaixo
-- **Equal To** — O tempo de resposta corresponde exatamente
-- **Not Equal To** — O tempo de resposta não corresponde
-- **Evaluate Over Time** — Avalie usando agregação (Média, Soma, Máximo, Mínimo, Todos os Valores, Qualquer Valor) em uma janela de tempo
+
+**Evaluate this criteria over a period of time** é uma caixa de seleção no formulário de critérios, não uma condição de filtro. Ative-a para comparar uma agregação — escolhida em **Evaluate** (Média, Soma, Máximo, Mínimo, Todos os Valores, Qualquer Valor) sobre a janela definida em **For the last (in minutes)** — em vez do valor da última verificação.
 
 ### Critérios de Exemplo
 

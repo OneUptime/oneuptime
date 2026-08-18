@@ -58,7 +58,7 @@ Pour **Domaine expiré** :
 
 Pour **Expiration du domaine en jours** :
 
-- **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à**, **Égal à**, **Différent de**
+- **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à**
 
 Pour **Registraire du domaine**, **Serveur de noms du domaine** et **Code de statut du domaine** :
 

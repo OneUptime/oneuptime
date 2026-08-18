@@ -121,16 +121,22 @@ Sie können Kriterien konfigurieren, um zu bestimmen, wann Ihr Server als online
 | CPU-Auslastung in Prozent             | Aktuelle CPU-Auslastung in Prozent                                                |
 | Arbeitsspeicher-Auslastung in Prozent | Aktuelle Arbeitsspeicher-Auslastung in Prozent                                    |
 | Festplatten-Auslastung in Prozent     | Aktuelle Festplatten-Auslastung in Prozent (für einen bestimmten Festplattenpfad) |
+| Swap-Auslastung in Prozent            | Aktuelle Swap-Auslastung in Prozent                                               |
+| CPU-IO-Wait in Prozent                | Anteil der CPU-Zeit, die auf E/A gewartet wird                                    |
+| Load Average (1 Minute)               | Durchschnittliche Systemlast der letzten Minute                                   |
+| Load Average (5 Minuten)              | Durchschnittliche Systemlast der letzten 5 Minuten                                |
+| Load Average (15 Minuten)             | Durchschnittliche Systemlast der letzten 15 Minuten                               |
 | Server-Prozessname                    | Prüfen, ob ein Prozess mit einem bestimmten Namen läuft                           |
 | Server-Prozessbefehl                  | Prüfen, ob ein Prozess mit einem bestimmten Befehl läuft                          |
 | Server-Prozess-PID                    | Prüfen, ob ein Prozess mit einer bestimmten PID läuft                             |
 
 ### Filtertypen
 
-Für numerische Metriken (CPU, Arbeitsspeicher, Festplatte):
+Für numerische Metriken (CPU, Arbeitsspeicher, Festplatte, Swap, IO-Wait, Load Average):
 
 - **Größer als**, **Kleiner als**, **Größer oder gleich**, **Kleiner oder gleich**
-- **Über Zeit auswerten** — Mit Aggregation über ein Zeitfenster auswerten
+
+**Dieses Kriterium über einen Zeitraum auswerten** ist ein Kontrollkästchen im Kriterienformular und keine Filterbedingung. Aktivieren Sie es, um statt des Werts der letzten Prüfung eine Aggregation zu vergleichen — ausgewählt unter **Auswerten** (Durchschnitt, Summe, Maximum, Minimum, Alle Werte, Beliebiger Wert) über den unter **Für die letzten (in Minuten)** festgelegten Zeitraum.
 
 Für Prozessprüfungen:
 

@@ -83,7 +83,14 @@ Scegliere come aggregare i valori delle metriche per la valutazione:
 - **Maggiore o Uguale a** — Il valore della metrica è pari o superiore a una soglia
 - **Minore o Uguale a** — Il valore della metrica è pari o inferiore a una soglia
 - **Uguale a** — Il valore della metrica corrisponde esattamente
-- **Diverso da** — Il valore della metrica non corrisponde
+
+Rilevamento anomalie su baseline (nessuna soglia: il modulo mostra invece **Sensibilità** e **Finestra di baseline** e confronta ogni campione con la baseline della stessa ora della settimana):
+
+- **Anomalmente Alto** — Il valore sale sopra l'intervallo previsto
+- **Anomalmente Basso** — Il valore scende sotto l'intervallo previsto
+- **Anomalo** — Il valore esce dall'intervallo previsto in entrambe le direzioni
+
+Le condizioni di anomalia non generano avvisi finché non esiste almeno la finestra di baseline configurata di storico (stato Learning).
 
 ### Criteri di Esempio
 

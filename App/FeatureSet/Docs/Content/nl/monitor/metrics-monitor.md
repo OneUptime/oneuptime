@@ -83,7 +83,14 @@ Kies hoe de metriekwaarden voor evaluatie worden geaggregeerd:
 - **Groter dan of gelijk aan** — Metriekwaarde is op of boven een drempelwaarde
 - **Kleiner dan of gelijk aan** — Metriekwaarde is op of onder een drempelwaarde
 - **Gelijk aan** — Metriekwaarde komt exact overeen
-- **Niet gelijk aan** — Metriekwaarde komt niet overeen
+
+Baseline-anomaliedetectie (geen drempelwaarde — het formulier toont in plaats daarvan **Gevoeligheid** en **Baseline-venster** en vergelijkt elk meetpunt met de baseline van hetzelfde uur van de week):
+
+- **Abnormaal hoog** — Waarde stijgt boven het verwachte bereik
+- **Abnormaal laag** — Waarde daalt onder het verwachte bereik
+- **Abnormaal** — Waarde verlaat het verwachte bereik in beide richtingen
+
+Anomalievoorwaarden geven geen meldingen totdat er ten minste het ingestelde baseline-venster aan historie is (Learning-status).
 
 ### Voorbeeldcriteria
 

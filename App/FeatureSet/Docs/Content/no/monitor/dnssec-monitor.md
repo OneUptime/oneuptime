@@ -52,18 +52,17 @@ Du kan konfigurere kriterier for å bestemme når sonen din anses som tilgjengel
 | DNSSEC Signature Expires In Days    | Antall dager til den førstkommende RRSIG-signaturen utløper           |
 | DNSSEC Resolver Consensus (AD Flag) | Hver forespurte resolver returnerer AD-flagget (Authenticated Data)   |
 | DNSSEC Nameservers Are Consistent   | Alle autoritative navneservere returnerer det samme SOA-serienummeret |
-| DNSSEC Is Valid                     | Samlet bestått/ikke bestått på tvers av alle valideringskontroller    |
 
 ### Filtertyper
 
-For **DNSSEC Chain Is Valid**, **DNSSEC DNSKEY Record Exists**, **DNSSEC DS Record Exists At Parent**, **DNSSEC Resolver Consensus (AD Flag)**, **DNSSEC Nameservers Are Consistent** og **DNSSEC Is Valid**:
+For **DNSSEC Chain Is Valid**, **DNSSEC DNSKEY Record Exists**, **DNSSEC DS Record Exists At Parent**, **DNSSEC Resolver Consensus (AD Flag)** og **DNSSEC Nameservers Are Consistent**:
 
 - **True** – Betingelsen er sann
 - **False** – Betingelsen er usann
 
 For **DNSSEC Signature Expires In Days**:
 
-- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
+- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**
 
 ### Eksempelkriterier
 

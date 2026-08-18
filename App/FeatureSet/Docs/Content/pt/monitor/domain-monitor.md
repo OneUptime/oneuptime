@@ -58,7 +58,7 @@ Para **Domain Is Expired**:
 
 Para **Domain Expires In Days**:
 
-- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
+- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**
 
 Para **Domain Registrar**, **Domain Name Server** e **Domain Status Code**:
 

@@ -58,7 +58,7 @@ Per **Domain Is Expired**:
 
 Per **Domain Expires In Days**:
 
-- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
+- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**
 
 Per **Domain Registrar**, **Domain Name Server** e **Domain Status Code**:
 

@@ -40,13 +40,14 @@ Puedes copiar esta dirección desde la página de detalles del monitor y configu
 
 Puedes crear criterios basados en los siguientes campos de correo electrónico:
 
-| Campo                       | Descripción                                                     |
-| --------------------------- | --------------------------------------------------------------- |
-| **Asunto del correo**       | La línea de asunto del correo electrónico entrante              |
-| **Remitente del correo**    | La dirección de correo electrónico del remitente                |
-| **Cuerpo del correo**       | El contenido de texto simple del cuerpo del correo electrónico  |
-| **Destinatario del correo** | La dirección de correo electrónico del destinatario             |
-| **Correo recibido**         | Criterios basados en el tiempo de cuándo se reciben los correos |
+| Campo                       | Descripción                                                              |
+| --------------------------- | ------------------------------------------------------------------------ |
+| **Asunto del correo**       | La línea de asunto del correo electrónico entrante                       |
+| **Remitente del correo**    | La dirección de correo electrónico del remitente                         |
+| **Cuerpo del correo**       | El contenido de texto simple del cuerpo del correo electrónico           |
+| **Destinatario del correo** | La dirección de correo electrónico del destinatario                      |
+| **Correo recibido**         | Criterios basados en el tiempo de cuándo se reciben los correos          |
+| **Expresión JavaScript**    | Una expresión JavaScript personalizada que debe evaluarse como verdadera |
 
 ## Tipos de filtro disponibles
 
@@ -69,6 +70,12 @@ Puedes crear criterios basados en los siguientes campos de correo electrónico:
 | -------------------------- | ---------------------------------------- | -------------------------------- |
 | **Recibido en minutos**    | El correo se recibió dentro de X minutos | Correo recibido en 30 minutos    |
 | **No recibido en minutos** | Ningún correo recibido en X minutos      | Correo no recibido en 60 minutos |
+
+### Expresión JavaScript
+
+La única condición de filtro es **Se evalúa como verdadero**: el criterio se cumple cuando la expresión devuelve un valor verdadero.
+
+La expresión se ejecuta en un entorno aislado sin campos del correo vinculados, por lo que no puede leer el asunto, el remitente, el cuerpo ni el destinatario del mensaje que activó la comprobación. Usa los tipos de filtro **Asunto del correo**, **Correo de**, **Cuerpo del correo** y **Correo para** para comparar el contenido del correo.
 
 ## Configuraciones de ejemplo
 

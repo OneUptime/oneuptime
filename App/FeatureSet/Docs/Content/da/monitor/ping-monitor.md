@@ -31,11 +31,13 @@ Du kan konfigurere kriterier til at afgøre, hvornår din host betragtes som onl
 
 ### Tilgængelige kontroltyper
 
-| Kontroltype          | Beskrivelse                                        |
-| -------------------- | -------------------------------------------------- |
-| Er online            | Om hosten svarer på ping-anmodninger               |
-| Svartid (ms)         | Tur-retur-tid for ping-anmodningen i millisekunder |
-| Er anmodning-timeout | Om ping-anmodningen fik timeout                    |
+| Kontroltype          | Beskrivelse                                                  |
+| -------------------- | ------------------------------------------------------------ |
+| Er online            | Om hosten svarer på ping-anmodninger                         |
+| Svartid (ms)         | Tur-retur-tid for ping-anmodningen i millisekunder           |
+| Pakketab (i %)       | Procentdel af ICMP echo-anmodninger uden svar                |
+| Jitter (i ms)        | Standardafvigelse for svartider på tværs af de sendte pakker |
+| Er anmodning-timeout | Om ping-anmodningen fik timeout                              |
 
 ### Filtertyper
 
@@ -44,15 +46,14 @@ For **Er online** og **Er anmodning-timeout**:
 - **Sand** – Betingelse er sand
 - **Falsk** – Betingelse er falsk
 
-For **Svartid**:
+For **Svartid**, **Pakketab** og **Jitter**:
 
 - **Større end** – Svartiden overskrider en grænseværdi
 - **Mindre end** – Svartiden er under en grænseværdi
 - **Større end eller lig med** – Svartiden er ved eller over en grænseværdi
 - **Mindre end eller lig med** – Svartiden er ved eller under en grænseværdi
-- **Lig med** – Svartiden matcher nøjagtigt
-- **Ikke lig med** – Svartiden matcher ikke
-- **Evaluer over tid** – Evaluer ved hjælp af aggregering (Gennemsnit, Sum, Maksimum, Minimum, Alle værdier, Enhver værdi) over et tidsvindue
+
+**Evaluer dette kriterium over en periode** er et afkrydsningsfelt i kriterieformularen, ikke en filterbetingelse. Slå det til for at sammenligne en aggregering — valgt under **Evaluer** (Gennemsnit, Sum, Maksimum, Minimum, Alle værdier, Enhver værdi) over vinduet, der angives i **For de sidste (i minutter)** — i stedet for værdien fra den seneste kontrol.
 
 ### Eksempelkriterier
 

@@ -76,7 +76,7 @@ Pour **DNS en ligne**, **Enregistrement DNS existant** et **DNSSEC valide** :
 
 Pour **Temps de réponse DNS** :
 
-- **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à**, **Égal à**, **Différent de**
+- **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à**
 
 Pour **Valeur de l'enregistrement DNS** :
 

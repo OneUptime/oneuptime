@@ -76,7 +76,7 @@ DNS monitors specific record types के लिए DNS servers query करत�
 
 **DNS Response Time** के लिए:
 
-- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
+- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**
 
 **DNS Record Value** के लिए:
 

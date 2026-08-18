@@ -40,13 +40,14 @@ Du kan kopiera den här adressen från monitorns detaljsida och konfigurera dina
 
 Du kan skapa kriterier baserat på följande e-postfält:
 
-| Fält                | Beskrivning                                               |
-| ------------------- | --------------------------------------------------------- |
-| **E-postämne**      | Ämnesraden i det inkommande e-postmeddelandet             |
-| **E-post från**     | Avsändarens e-postadress                                  |
-| **E-postinnehåll**  | Det textinnehåll i e-postmeddelandets kropp               |
-| **E-post till**     | Mottagarens e-postadress                                  |
-| **E-post mottagen** | Tidsbaserade kriterier för när e-postmeddelanden tas emot |
+| Fält                   | Beskrivning                                                    |
+| ---------------------- | -------------------------------------------------------------- |
+| **E-postämne**         | Ämnesraden i det inkommande e-postmeddelandet                  |
+| **E-post från**        | Avsändarens e-postadress                                       |
+| **E-postinnehåll**     | Det textinnehåll i e-postmeddelandets kropp                    |
+| **E-post till**        | Mottagarens e-postadress                                       |
+| **E-post mottagen**    | Tidsbaserade kriterier för när e-postmeddelanden tas emot      |
+| **JavaScript-uttryck** | Ett anpassat JavaScript-uttryck som måste utvärderas till sant |
 
 ## Tillgängliga filtertyper
 
@@ -69,6 +70,12 @@ Du kan skapa kriterier baserat på följande e-postfält:
 | ------------------------------ | --------------------------------------------- | ------------------------------------ |
 | **Mottagen inom minuter**      | E-post togs emot inom X minuter               | E-post mottagen inom 30 minuter      |
 | **Inte mottagen inom minuter** | Inget e-postmeddelande mottogs inom X minuter | E-post inte mottagen inom 60 minuter |
+
+### JavaScript-uttryck
+
+Det enda filtervillkoret är **Utvärderas till sant**: kriteriet uppfylls när uttrycket returnerar ett sant värde.
+
+Uttrycket körs i en sandlåda utan några e-postfält bundna till sig, så det kan inte läsa ämne, avsändare, innehåll eller mottagare för det meddelande som utlöste kontrollen. Använd kontrolltyperna **E-postämne**, **E-post från**, **E-postinnehåll** och **E-post till** för att matcha på e-postens innehåll.
 
 ## Exempelkonfigurationer
 

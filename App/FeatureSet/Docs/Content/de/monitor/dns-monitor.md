@@ -76,7 +76,7 @@ Für **DNS ist online**, **DNS-Eintrag existiert** und **DNSSEC ist gültig**:
 
 Für **DNS-Antwortzeit**:
 
-- **Größer als**, **Kleiner als**, **Größer oder gleich**, **Kleiner oder gleich**, **Gleich**, **Ungleich**
+- **Größer als**, **Kleiner als**, **Größer oder gleich**, **Kleiner oder gleich**
 
 Für **DNS-Eintragswert**:
 

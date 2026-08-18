@@ -58,7 +58,7 @@ För **Domänen är utgången**:
 
 För **Domänen löper ut om dagar**:
 
-- **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med**, **Lika med**, **Inte lika med**
+- **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med**
 
 För **Domänregistrator**, **Domänens namnserver** och **Domänstatuskod**:
 

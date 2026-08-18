@@ -31,11 +31,13 @@ Puedes configurar criterios para determinar cuándo tu dirección IP se consider
 
 ### Tipos de verificación disponibles
 
-| Tipo de verificación                    | Descripción                                |
-| --------------------------------------- | ------------------------------------------ |
-| Está en línea                           | Si la dirección IP es accesible            |
-| Tiempo de respuesta (en ms)             | Tiempo de respuesta en milisegundos        |
-| La solicitud superó el tiempo de espera | Si la solicitud superó el tiempo de espera |
+| Tipo de verificación                    | Descripción                                                                 |
+| --------------------------------------- | --------------------------------------------------------------------------- |
+| Está en línea                           | Si la dirección IP es accesible                                             |
+| Tiempo de respuesta (en ms)             | Tiempo de respuesta en milisegundos                                         |
+| Pérdida de paquetes (en %)              | Porcentaje de solicitudes ICMP echo que no recibieron respuesta             |
+| Jitter (en ms)                          | Desviación estándar de los tiempos de ida y vuelta de los paquetes enviados |
+| La solicitud superó el tiempo de espera | Si la solicitud superó el tiempo de espera                                  |
 
 ### Tipos de filtro
 
@@ -44,15 +46,14 @@ Para **Está en línea** y **La solicitud superó el tiempo de espera**:
 - **Verdadero**: La condición es verdadera
 - **Falso**: La condición es falsa
 
-Para **Tiempo de respuesta**:
+Para **Tiempo de respuesta**, **Pérdida de paquetes** y **Jitter**:
 
 - **Mayor que**: El tiempo de respuesta supera un umbral
 - **Menor que**: El tiempo de respuesta está por debajo de un umbral
 - **Mayor o igual que**: El tiempo de respuesta está en o por encima de un umbral
 - **Menor o igual que**: El tiempo de respuesta está en o por debajo de un umbral
-- **Igual a**: El tiempo de respuesta coincide exactamente
-- **Diferente de**: El tiempo de respuesta no coincide
-- **Evaluar en el tiempo**: Evaluar usando agregación (Promedio, Suma, Máximo, Mínimo, Todos los valores, Cualquier valor) sobre una ventana de tiempo
+
+**Evaluar este criterio durante un período de tiempo** es una casilla del formulario de criterios, no una condición de filtro. Actívala para comparar una agregación — elegida en **Evaluar** (Promedio, Suma, Máximo, Mínimo, Todos los valores, Cualquier valor) sobre la ventana definida en **Durante los últimos (en minutos)** — en lugar del valor de la última comprobación.
 
 ### Ejemplos de criterios
 

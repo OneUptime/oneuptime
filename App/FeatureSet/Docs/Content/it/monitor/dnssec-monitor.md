@@ -52,18 +52,17 @@ Puoi configurare criteri per determinare quando la tua zona è considerata onlin
 | DNSSEC Signature Expires In Days    | Giorni rimanenti alla scadenza della prossima firma RRSIG                     |
 | DNSSEC Resolver Consensus (AD Flag) | Ogni resolver interrogato restituisce il flag AD (Authenticated Data)         |
 | DNSSEC Nameservers Are Consistent   | Tutti i nameserver autoritativi restituiscono lo stesso numero di serie SOA   |
-| DNSSEC Is Valid                     | Risultato aggregato passa/fallisce su tutti i controlli di validazione        |
 
 ### Tipi di Filtro
 
-Per **DNSSEC Chain Is Valid**, **DNSSEC DNSKEY Record Exists**, **DNSSEC DS Record Exists At Parent**, **DNSSEC Resolver Consensus (AD Flag)**, **DNSSEC Nameservers Are Consistent** e **DNSSEC Is Valid**:
+Per **DNSSEC Chain Is Valid**, **DNSSEC DNSKEY Record Exists**, **DNSSEC DS Record Exists At Parent**, **DNSSEC Resolver Consensus (AD Flag)** e **DNSSEC Nameservers Are Consistent**:
 
 - **True** — La condizione è vera
 - **False** — La condizione è falsa
 
 Per **DNSSEC Signature Expires In Days**:
 
-- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
+- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**
 
 ### Esempi di Criteri
 
