@@ -1,79 +1,84 @@
-# Workflows – Oversigt
+# Arbejdsgange – Oversigt
 
-Workflows lader dig automatisere opgaver i OneUptime uden at skrive kode. Træk og slip nogle få blokke ud på et lærred, forbind dem med hinanden, og du har en automatisering, der kører, når der sker noget — en hændelse åbner, en tidsplan udløses, eller et andet værktøj sender data til OneUptime.
+Arbejdsgange lader dig automatisere opgaver i OneUptime uden at skrive kode. Tilføj nogle få blokke på et lærred, forbind dem, og du har en automatisering, der kører, når som helst noget sker — en hændelse åbnes, en tidsplan udløses, eller et andet værktøj sender data til OneUptime.
 
-Tænk på workflows som baggrundshjælpere til dit projekt: de reagerer på events, taler med andre værktøjer, og holder stille og roligt tingene synkroniseret, mens du fokuserer på dit arbejde.
+Tænk på arbejdsgange som baggrundshjælpere for dit projekt: de reagerer på hændelser, taler med andre værktøjer og holder tingene synkroniseret i det stille, mens du fokuserer på dit arbejde.
 
-## Hvad du kan med workflows
+## Hvad du kan gøre med arbejdsgange
 
-- **Forbind OneUptime med dine andre værktøjer** — send hændelser til Slack, opret Jira-tickets, kald en webhook i din stack.
-- **Reagér på det, der sker i OneUptime** — når en kritisk hændelse oprettes, så underret vagtteamet og opret automatisk en ticket.
+- **Forbind OneUptime til dine andre værktøjer** — send hændelser til Slack, opret Jira-sager, post til en webhook i din stack.
+- **Reagér på det, der sker i OneUptime** — når en kritisk hændelse oprettes, giv vagtholdet besked og opret automatisk en sag.
 - **Kør job på en tidsplan** — hvert femte minut, hver nat, hver mandag morgen.
-- **Modtag data udefra** — lad andre systemer skubbe data ind i OneUptime via en unik URL.
-- **Genbrug almindelig automatisering** — byg den én gang, kald den fra ethvert andet workflow.
+- **Modtag data udefra** — lad andre systemer sende data ind i OneUptime gennem en unik URL.
+- **Genbrug fælles automatisering** — byg den én gang, kald den fra enhver anden arbejdsgang.
 
-## Sådan virker et workflow
+## Sådan virker en arbejdsgang
 
-Hvert workflow har tre dele:
+Hver arbejdsgang har tre dele:
 
-1. **En trigger** — det, der starter workflowet. Det kan være en manuel knap, en tidsplan, en indkommende webhook eller en event i OneUptime (såsom en ny hændelse).
-2. **En eller flere komponenter** — det, workflowet gør. Send en besked, foretag et HTTP-kald, kør et hurtigt tjek, forgren ud fra en betingelse.
-3. **Forbindelser mellem dem** — du tegner linjer fra én blok til den næste for at bestemme rækkefølgen.
+1. **En trigger** — det, der starter arbejdsgangen. Det kan være en manuel knap, en tidsplan, en indgående webhook eller en hændelse i OneUptime (som en ny hændelse).
+2. **En eller flere komponenter** — det, arbejdsgangen gør. Send en besked, foretag et HTTP-kald, kør et hurtigt tjek, forgren baseret på en betingelse.
+3. **Forbindelser mellem dem** — du trækker linjer fra én blok til den næste for at bestemme rækkefølgen.
 
-Du bygger det hele visuelt på et lærred. Ingen kodning krævet til de fleste workflows, men du kan dryppe en JavaScript-snippet ind, når du har brug for det.
+Du bygger alt dette visuelt på et lærred. Ingen kodning kræves til de fleste arbejdsgange, selvom du kan tilføje et lille stykke JavaScript, når du har brug for det.
 
 ## Nøglebegreber
 
-| Begreb              | Betydning                                                                                       |
-| ------------------- | ----------------------------------------------------------------------------------------------- |
-| **Workflow**        | Hele automatiseringen — et navn, et lærred og en kontakt til at tænde eller slukke for det.     |
-| **Trigger**         | Den første blok. Den bestemmer, hvornår workflowet kører. Hvert workflow har præcis én trigger. |
-| **Komponent**       | En handlingsblok — sender en besked, foretager en forespørgsel, tjekker en betingelse.          |
-| **Kørsel**          | Én afvikling af workflowet. Gemmes med tidsstempler og output fra hver blok.                    |
-| **Global variabel** | En værdi (såsom en API-nøgle), du gemmer én gang og genbruger i ethvert workflow.               |
+| Begreb                  | Hvad det betyder                                                                              |
+| ------------------------ | ----------------------------------------------------------------------------------------------- |
+| **Arbejdsgang**          | Hele automatiseringen — et navn, et lærred og en kontakt til at slå den til eller fra.          |
+| **Trigger**              | Den første blok. Den bestemmer, hvornår arbejdsgangen kører. Hver arbejdsgang har præcis én trigger. |
+| **Komponent**            | En handlingsblok — sender en besked, foretager en forespørgsel, tjekker en betingelse.          |
+| **Kørsel**               | Én eksekvering af arbejdsgangen. Gemt med tidsstempler og output fra hver blok.                 |
+| **Global variabel**      | En værdi (som en API-nøgle), du gemmer én gang og genbruger i enhver arbejdsgang.               |
 
-## Hvor du finder workflows i OneUptime
+## Sådan finder du arbejdsgange i OneUptime
 
-Åbn **Arbejdsgange** i venstre navigation. Derfra:
+Åbn **Workflows** i venstre navigation. Det afsnit indeholder:
 
-- **Arbejdsgange** — din liste over workflows. Opret et nyt, eller åbn et eksisterende.
-- **Bygger-fane** — lærredet, hvor du designer workflowet.
-- **Protokoller-fane** — hver kørsel af dette workflow, med detaljer.
-- **Indstillinger-fane** — navn, beskrivelse, ejere, labels, aktivér/deaktivér.
-- **Globale variabler** — værdier delt på tværs af alle dine workflows.
-- **Kørsler og logs** — afviklingshistorik på tværs af hvert workflow i dit projekt.
+- **Workflows** — din liste over arbejdsgange. Opret en ny eller åbn en eksisterende.
+- **Global Variables** — værdier delt på tværs af alle dine arbejdsgange.
+- **Runs & Logs** — udførelseshistorik på tværs af alle arbejdsgange i dit projekt.
 
-## Byg dit første workflow
+Åbn en enkelt arbejdsgang, og dens egen venstre menu indeholder:
 
-1. **Opret** — giv dit workflow et navn og en kort beskrivelse.
-2. **Vælg en trigger** — manuel, planlagt, webhook eller en event fra OneUptime.
-3. **Tilføj komponenter** — træk handlinger ud på lærredet og forbind dem.
-4. **Test** — klik **Run Manually** og se, hvad der sker i logfilerne.
-5. **Tænd for det** — slå **Aktiveret**-kontakten til i Settings, når du er klar.
+- **Overview** — navn, beskrivelse, etiketter og kontakten **Enabled**.
+- **Builder** — lærredet, hvor du designer arbejdsgangen.
+- **Workflow Variables** — værdier afgrænset til denne ene arbejdsgang.
+- **Runs & Logs** — hver kørsel af denne arbejdsgang, med detaljer.
+- **Settings** — webhook-hemmelighed, dublér og eksportér.
+
+## Byg din første arbejdsgang
+
+1. **Create** — vælg et udgangspunkt, og giv derefter din arbejdsgang et navn.
+2. **Vælg en trigger** — manuel, planlagt, webhook eller en hændelse fra OneUptime.
+3. **Tilføj komponenter** — tilføj handlinger til lærredet og forbind dem.
+4. **Slå den til** — slå **Enabled** til på siden **Overview**. En deaktiveret arbejdsgang kan slet ikke køre, heller ikke manuelt.
+5. **Test** — klik på **Run Workflow** i **Builder**, og følg med i kørselsloggen.
 
 ## Et hurtigt eksempel
 
-Lad os sige, at du vil poste i Slack, hver gang en kritisk hændelse oprettes:
+Sig, du vil poste i Slack, hver gang en kritisk hændelse oprettes:
 
-1. Opret et workflow kaldet "Kritiske hændelser til Slack."
-2. Vælg triggeren **Hændelse → On Create**.
-3. Tilføj en **Betingelser**-blok. Indstil den til at tjekke, om hændelsens titel indeholder "Sev 1."
-4. Fra **Ja**-grenen tilføjer du en **Slack**-blok. Vælg kanalen og skriv beskeden.
-5. Tænd for workflowet.
+1. Opret en arbejdsgang kaldet "Critical incidents to Slack."
+2. Vælg triggeren **On Create Incident**.
+3. Tilføj en **If / Else**-blok. Sæt den til at tjekke, om hændelsens titel indeholder "Sev 1."
+4. Fra grenen **Yes**, tilføj en **Slack**-blok. Vælg kanalen og skriv beskeden.
+5. Slå arbejdsgangen til.
 
 Næste gang nogen åbner en hændelse med "Sev 1" i titlen, lyser Slack op.
 
-## Hvordan workflows passer ind i resten af OneUptime
+## Sådan passer arbejdsgange ind i resten af OneUptime
 
-- **Monitorer** opdager problemet. **Hændelser** registrerer det. **Arbejdsgange** reagerer på det.
-- **Runbooks** er trin-for-trin-guides til mennesker. Workflows er ubemandet automatisering. Brug en runbook, når et menneske skal træffe beslutninger; brug et workflow, når trinnene er automatiske.
-- **Workspace-forbindelser** (Slack, Teams) er der, hvor workflows sender deres beskeder.
+- **Overvågninger** opdager problemet. **Hændelser** registrerer det. **Arbejdsgange** reagerer på det.
+- **Runbooks** er trin-for-trin-guider til mennesker. Arbejdsgange er ubemandet automatisering. Brug et runbook, når et menneske skal træffe beslutninger; brug en arbejdsgang, når trinnene er automatiske.
+- **Arbejdsområdeforbindelser** (Slack, Teams) er, hvor arbejdsgange sender deres beskeder.
 
-## Læs videre
+## Hvor du kan læse videre
 
-- [Opbygning af et workflow](/docs/workflows/authoring) — at bygge på lærredet.
-- [Triggere](/docs/workflows/triggers) — de forskellige måder, et workflow kan starte på.
-- [Komponenter](/docs/workflows/components) — de byggesten, du kan tilføje.
-- [Variabler](/docs/workflows/variables) — brug af værdier på tværs af blokke og workflows.
-- [Kørsler & logfiler](/docs/workflows/runs-and-logs) — tjek hvad der skete.
-- [Konfiguration & sikkerhed](/docs/workflows/configuration) — indstillinger, der er værd at kende.
+- [Oprettelse af en arbejdsgang](/docs/workflows/authoring) — bygning på lærredet.
+- [Triggers](/docs/workflows/triggers) — de forskellige måder, en arbejdsgang kan starte på.
+- [Komponenter](/docs/workflows/components) — de byggeklodser, du kan tilføje.
+- [Variabler](/docs/workflows/variables) — brug af værdier på tværs af blokke og arbejdsgange.
+- [Kørsler og logs](/docs/workflows/runs-and-logs) — tjek hvad der skete.
+- [Konfiguration og sikkerhed](/docs/workflows/configuration) — indstillinger, der er værd at kende.

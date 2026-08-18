@@ -63,7 +63,8 @@
     "AI": "AI",
     "API Reference": "API संदर्भ",
     "Self Hosted": "स्व-होस्टेड",
-    "Inventory": "इन्वेंटरी"
+    "Inventory": "इन्वेंटरी",
+    "Incidents": "घटनाएँ"
   },
   "navLinks": {
     "Getting Started": "शुरू करना",
@@ -188,6 +189,15 @@
     "SendGrid Inbound Email": "SendGrid आने वाला ईमेल",
     "Architecture": "वास्तुकला",
     "Custom Fields": "कस्टम फ़ील्ड",
-    "Exporting to a CMDB": "CMDB में निर्यात करना"
+    "Exporting to a CMDB": "CMDB में निर्यात करना",
+    "Incidents Overview": "घटनाओं का अवलोकन",
+    "Declaring an Incident": "घटना घोषित करना",
+    "Incident States & Severities": "घटना स्थितियाँ और गंभीरता",
+    "Incident Notes, Owners & Feed": "घटना नोट्स, स्वामी और फ़ीड",
+    "Incident Settings & Automation": "घटना सेटिंग्स और स्वचालन",
+    "Status Pages Overview": "स्थिति पृष्ठ अवलोकन",
+    "Status Page Resources & Groups": "स्थिति पृष्ठ संसाधन और समूह",
+    "Status Page Branding & Domains": "स्थिति पृष्ठ ब्रांडिंग और डोमेन",
+    "Subscribers & Announcements": "सब्सक्राइबर और घोषणाएँ"
   }
 }

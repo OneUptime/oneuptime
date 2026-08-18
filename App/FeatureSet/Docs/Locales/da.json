@@ -63,7 +63,8 @@
     "AI": "AI",
     "API Reference": "API-reference",
     "Self Hosted": "Selv-hostet",
-    "Inventory": "Inventar"
+    "Inventory": "Inventar",
+    "Incidents": "Hændelser"
   },
   "navLinks": {
     "Getting Started": "Kom godt i gang",
@@ -188,6 +189,15 @@
     "SendGrid Inbound Email": "SendGrid indgående e-mail",
     "Architecture": "Arkitektur",
     "Custom Fields": "Brugerdefinerede felter",
-    "Exporting to a CMDB": "Eksport til en CMDB"
+    "Exporting to a CMDB": "Eksport til en CMDB",
+    "Incidents Overview": "Hændelser – Oversigt",
+    "Declaring an Incident": "Opret en hændelse",
+    "Incident States & Severities": "Hændelsestilstande og alvorsgrader",
+    "Incident Notes, Owners & Feed": "Hændelsesnoter, ejere og feed",
+    "Incident Settings & Automation": "Hændelsesindstillinger og automatisering",
+    "Status Pages Overview": "Statussider – Oversigt",
+    "Status Page Resources & Groups": "Statusside – ressourcer og grupper",
+    "Status Page Branding & Domains": "Statusside – branding og domæner",
+    "Subscribers & Announcements": "Abonnenter og meddelelser"
   }
 }

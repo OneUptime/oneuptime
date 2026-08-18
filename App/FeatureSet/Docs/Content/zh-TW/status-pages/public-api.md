@@ -2,7 +2,7 @@
 
 以下說明如何使用公開狀態頁面 API 取得狀態頁面上各項資源的狀態。您只需要向 API 端點發出 POST 請求即可。
 
-#### 總覽 API
+## 總覽 API
 
 此 API 會擷取狀態頁面上的所有資源，包括資源的整體狀態、事件、維護作業等。
 
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/status-page-api/overview/:statusPageId
 }
 ```
 
-#### 運作時間 API
+## 運作時間 API
 
 此 API 會擷取狀態頁面上所有資源的運作時間。
 
@@ -252,7 +252,7 @@ curl -X POST https://oneuptime.com/status-page-api/uptime/:statusPageId
 }
 ```
 
-### 事件 API
+## 事件 API
 
 此 API 會擷取狀態頁面上的所有事件。若要取得狀態頁面上的所有事件，您可以向以下端點發出 POST 請求：
 
@@ -277,7 +277,7 @@ curl -X POST https://oneuptime.com/status-page-api/incidents/:statusPageId
 }
 ```
 
-### 排程維護 API
+## 排程維護 API
 
 此 API 會擷取狀態頁面上的所有排程維護作業。若要取得狀態頁面上的所有排程維護作業，您可以向以下端點發出 POST 請求：
 
@@ -302,7 +302,7 @@ curl -X POST https://oneuptime.com/status-page-api/scheduled-maintenance/:status
 }
 ```
 
-### 公告 API
+## 公告 API
 
 此 API 會擷取狀態頁面上的所有公告。若要取得狀態頁面上的所有公告，您可以向以下端點發出 POST 請求：
 
@@ -326,3 +326,11 @@ curl -X POST https://oneuptime.com/status-page-api/announcements/:statusPageId
   ]
 }
 ```
+
+## 接下來可以閱讀
+
+- [狀態頁概觀](/docs/status-pages/index) — 狀態頁是什麼,以及各部分如何搭配運作。
+- [狀態頁資源與群組](/docs/status-pages/resources-and-groups) — 這些端點回傳的資源。
+- [狀態頁品牌與網域](/docs/status-pages/branding-and-domains) — 提供這些端點服務的自訂網域。
+- [訂閱者與公告](/docs/status-pages/subscribers) — 公告端點提供的公告。
+- [事件概觀](/docs/incidents/index) — 這些回應中事件的來源。

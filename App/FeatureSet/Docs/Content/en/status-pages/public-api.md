@@ -2,7 +2,7 @@
 
 Here's how you can use the Public Status Page API to get the status of your resources that are on the Status Page. All you need to do is to make a POST request to the API endpoint.
 
-#### Overview API
+## Overview API
 
 This API will fetch all the resources that are on the status page including the overall status of the resources, incidents, and maintenance, and more.
 
@@ -155,7 +155,7 @@ This is the response from the API:
 }
 ```
 
-#### Uptime API
+## Uptime API
 
 This API will fetch all the uptime of all the resources on status page.
 
@@ -252,7 +252,7 @@ This is the example response from the API:
 }
 ```
 
-### Incident API
+## Incident API
 
 This API will fetch all the incidents that are on the status page. To get all the incidents on the status page, you can make a POST request to the following endpoint:
 
@@ -277,7 +277,7 @@ This is the response from the API:
 }
 ```
 
-### Scheduled Maintenance API
+## Scheduled maintenance API
 
 This API will fetch all the scheduled maintenance that are on the status page. To get all the scheduled maintenance on the status page, you can make a POST request to the following endpoint:
 
@@ -302,7 +302,7 @@ This is the response from the API:
 }
 ```
 
-### Announcements API
+## Announcements API
 
 This API will fetch all the announcements that are on the status page. To get all the announcements on the status page, you can make a POST request to the following endpoint:
 
@@ -326,3 +326,11 @@ This is the response from the API:
   ]
 }
 ```
+
+## Where to read next
+
+- [Status Pages Overview](/docs/status-pages/index) — what a status page is and how the pieces fit together.
+- [Status Page Resources & Groups](/docs/status-pages/resources-and-groups) — the resources these endpoints return.
+- [Status Page Branding & Domains](/docs/status-pages/branding-and-domains) — the custom domain these endpoints are served from.
+- [Subscribers & Announcements](/docs/status-pages/subscribers) — the announcements the announcements endpoint serves.
+- [Incidents Overview](/docs/incidents/index) — where the incidents in these responses come from.

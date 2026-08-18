@@ -4,78 +4,78 @@ En trigger er den første blokken i en arbeidsflyt — den bestemmer når arbeid
 
 ## Manuell
 
-Kjør arbeidsflyten på forespørsel ved å klikke **Run Manually** på arbeidsflytsiden. Du kan lime inn en JSON-nyttelast som resten av arbeidsflyten kan lese.
+Kjør arbeidsflyten på forespørsel ved å klikke **Run Workflow** på **Builder**-siden, fylle ut triggerens felter, og bekrefte med **Run Workflow Manually**. Manuell-triggeren tar imot en JSON-nyttelast som resten av arbeidsflyten kan lese.
 
-Bra for: ettklikks-automatiseringer du vil ha en knapp for, som "roter denne nøkkelen" eller "send et testvarsel."
+Godt egnet til: automatiseringer med ett klikk du vil ha en knapp for, som «roter denne nøkkelen» eller «send et testvarsel».
 
-**Utdata**: JSON-en du limte inn, eller et tomt objekt hvis du ikke gjorde det.
+**Output**: JSON-en du limte inn, eller et tomt objekt hvis du ikke gjorde det.
 
 ## Tidsplan
 
 Kjør arbeidsflyten på en gjentakende tidsplan ved hjelp av et cron-uttrykk.
 
-Bra for: nattlig opprydning, timesvis synkronisering, ukentlige rapporter.
+Godt egnet til: nattlig opprydding, timevis synkronisering, ukentlige rapporter.
 
-**Innstilling**: et cron-uttrykk. Noen vanlige:
+**Setting**: et cron-uttrykk. Noen vanlige eksempler:
 
-- `0 * * * *` — hver time, ved hel time.
+- `0 * * * *` — hver time, på timen.
 - `*/5 * * * *` — hvert 5. minutt.
 - `0 9 * * 1` — hver mandag klokken 09:00.
 
-Hvis systemet er kort utilgjengelig, plukkes kjøringen opp så snart det kommer tilbake — du trenger ikke bekymre deg for missede tikk for korte avbrudd.
+Hvis systemet er utilgjengelig en kort stund, blir kjøringen fanget opp så snart det er tilbake — du trenger ikke bekymre deg for tapte tikk ved korte driftsavbrudd.
 
 ## Webhook
 
-OneUptime oppretter en unik URL. Alt som treffer den URL-en starter arbeidsflyten. Headerne, spørringsparametrene og kroppen til forespørselen sendes inn.
+OneUptime oppretter en unik URL. Alt som treffer den URL-en starter arbeidsflyten. Headerne, spørreparametrene og kroppen i forespørselen sendes med.
 
-Bra for: å motta data inn til OneUptime fra et annet verktøy — CI/CD-tilbakekall, varsler fra annen overvåking, registreringer i CRM-en din.
+Godt egnet til: å motta data inn i OneUptime fra et annet verktøy — CI/CD-tilbakekall, varsler fra annen overvåking, registreringer i CRM-et ditt.
 
-**Utdata**:
+**Output**:
 
-- **Forespørselshoder** — alle headerne fra den innkommende forespørselen.
-- **Request Query Params** — den tolkede spørringsstrengen.
-- **Forespørselstekst** — den tolkede kroppen (eller råteksten hvis den ikke er JSON).
+- **Request Headers** — alle headerne fra den innkommende forespørselen.
+- **Request Query Params** — den analyserte spørrestrengen.
+- **Request Body** — den analyserte kroppen (eller rå tekst hvis den ikke er JSON).
 
-URL-en aksepterer både `GET` og `POST`. Den som kaller får en rask bekreftelse — selve arbeidsflyten kjører i bakgrunnen.
+URL-en godtar både `GET` og `POST`. Den som kaller den, får en rask bekreftelse — selve arbeidsflyten kjører i bakgrunnen.
 
-Behandle URL-en som et passord. Alle som har den kan starte arbeidsflyten din.
+Behandle URL-en som et passord. Alle som har den, kan starte arbeidsflyten din.
 
-## OneUptime hendelsestriggere
+## OneUptime-hendelsestriggere
 
-Nesten alt i OneUptime — monitorer, hendelser, varsler, planlagt vedlikehold, statussider, vaktordningspolicyer, team — kan trigge en arbeidsflyt. Hver av dem tilbyr tre hendelser:
+Nesten alt i OneUptime — overvåkinger, hendelser, varsler, planlagt vedlikehold, statussider, vaktordninger, team — kan utløse en arbeidsflyt. Hver enkelt tilbyr tre hendelser:
 
-- **On Create** — utløses når en ny legges til.
+- **On Create** — utløses når en ny opprettes.
 - **On Update** — utløses når en endres.
 - **On Delete** — utløses når en slettes.
 
-Slik bygger du "når X skjer i OneUptime, gjør Y" uten å måtte sjekke ting i en løkke.
+Slik bygger du «når X skjer i OneUptime, gjør Y» uten å måtte sjekke ting i en løkke.
 
-Hele oppføringen sendes til neste blokk. For eksempel sender triggeren **Hendelse → On Create** den nye hendelsen, slik at neste blokk kan lese tittelen, beskrivelsen, alvorlighetsgraden og ethvert annet felt.
+Hele posten sendes videre til neste blokk. For eksempel sender **Incident → On Create**-triggeren med den nye hendelsen, slik at neste blokk kan lese tittelen, beskrivelsen, alvorlighetsgraden og alle andre felt.
 
 ### Hendelser team bruker mest
 
-- **Hendelse** — reager når en hendelse åpnes, oppdateres (bekreftet, løst) eller slettes.
-- **Varsel** — samme tre for varsler.
-- **Overvåking** — reager når en monitor legges til, redigeres eller fjernes.
-- **Planlagt vedlikehold** — annonser et vedlikeholdsvindu automatisk når det planlegges.
-- **Statusside Abonnent** — ønsk velkommen til noen som abonnerer på en statusside.
-- **Vaktordningspolicy** — synkroniser tidsplanendringer til et annet vaktsystem.
+- **Incident** — reager når en hendelse åpnes, oppdateres (bekreftes, løses), eller slettes.
+- **Alert** — de samme tre for varsler.
+- **Monitor** — reager når en overvåking legges til, redigeres eller fjernes.
+- **Scheduled Maintenance** — annonser et vedlikeholdsvindu automatisk når det planlegges.
+- **Status Page Subscriber** — ønsk velkommen til noen som abonnerer på en statusside.
+- **On-Call Duty Policy** — synkroniser tidsplanendringer til et annet vaktsystem.
 
-Søk i triggerpaletten etter navn for å finne den du vil ha.
+Søk i **Add Trigger**-panelet etter navn for å finne den du vil ha.
 
 ## Hvilken trigger bør jeg bruke?
 
-| Hvis du vil…                              | Velg                   |
-| ----------------------------------------- | ---------------------- |
-| Klikke en knapp for å kjøre arbeidsflyten | **Manual**             |
-| Kjøre på en gjentakende tidsplan          | **Tidsplan**           |
-| La et annet system pushe data inn         | **Webhook**            |
-| Reagere på noe inne i OneUptime           | **OneUptime-hendelse** |
+| Hvis du vil…                              | Velg                |
+| ------------------------------------------ | -------------------- |
+| Klikke en knapp for å kjøre arbeidsflyten  | **Manual**           |
+| Kjøre på en gjentakende tidsplan           | **Schedule**         |
+| La et annet system pushe data inn          | **Webhook**          |
+| Reagere på noe inne i OneUptime            | **OneUptime event**  |
 
-En arbeidsflyt kan bare ha én trigger. Hvis du trenger to måter å starte samme automatisering på, bygg den delte logikken i én arbeidsflyt og kall den fra to tynne "wrapper"-arbeidsflyter ved å bruke komponenten **Kjør arbeidsflyt**.
+En arbeidsflyt kan bare ha én trigger. Hvis du trenger to måter å starte den samme automatiseringen på, bygg den delte logikken i én arbeidsflyt og kall den fra to tynne «wrapper»-arbeidsflyter ved hjelp av **Execute Workflow**-komponenten.
 
-## Hvor du leser videre
+## Hvor du kan lese videre
 
-- [Komponenter](/docs/workflows/components) — handlingene du legger til etter triggeren.
-- [Variabler](/docs/workflows/variables) — å lese trigger-utdata fra senere blokker.
-- [Kjøringer & logger](/docs/workflows/runs-and-logs) — å bekrefte at triggeren ble utløst.
+- [Components](/docs/workflows/components) — handlingene du legger til etter triggeren.
+- [Variables](/docs/workflows/variables) — å lese trigger-output fra senere blokker.
+- [Runs & Logs](/docs/workflows/runs-and-logs) — å bekrefte at triggeren din utløste.

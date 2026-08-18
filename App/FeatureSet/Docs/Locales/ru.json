@@ -63,7 +63,8 @@
     "AI": "AI",
     "API Reference": "Справочник API",
     "Self Hosted": "Самостоятельный хостинг",
-    "Inventory": "Инвентаризация"
+    "Inventory": "Инвентаризация",
+    "Incidents": "Инциденты"
   },
   "navLinks": {
     "Getting Started": "Начало работы",
@@ -188,6 +189,15 @@
     "SendGrid Inbound Email": "Входящие письма SendGrid",
     "Architecture": "Архитектура",
     "Custom Fields": "Пользовательские поля",
-    "Exporting to a CMDB": "Экспорт в CMDB"
+    "Exporting to a CMDB": "Экспорт в CMDB",
+    "Incidents Overview": "Обзор инцидентов",
+    "Declaring an Incident": "Объявление инцидента",
+    "Incident States & Severities": "Состояния и уровни серьёзности инцидентов",
+    "Incident Notes, Owners & Feed": "Заметки, владельцы и лента инцидента",
+    "Incident Settings & Automation": "Настройки и автоматизация инцидентов",
+    "Status Pages Overview": "Обзор страниц статуса",
+    "Status Page Resources & Groups": "Ресурсы и группы страницы статуса",
+    "Status Page Branding & Domains": "Оформление и домены страницы статуса",
+    "Subscribers & Announcements": "Подписчики и объявления"
   }
 }

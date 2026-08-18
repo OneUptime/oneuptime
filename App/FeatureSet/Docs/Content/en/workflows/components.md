@@ -2,7 +2,7 @@
 
 Components are the building blocks you add after the trigger. Each one does one thing — send a message, call an API, check a condition — and connects to whatever comes next.
 
-This page is the catalog. For how to drag, drop, and connect them on the canvas, see [Authoring a Workflow](/docs/workflows/authoring).
+This page is the catalog. For how to add and connect them on the canvas, see [Authoring a Workflow](/docs/workflows/authoring).
 
 ## API
 
@@ -120,7 +120,7 @@ Convert between text and JSON.
 
 ## Conditions
 
-Branch based on a comparison. In the palette this component is called **If / Else**.
+Branch based on a comparison. In the **Add Component** panel this block is called **If / Else**, under the Conditions category.
 
 **Settings**:
 
@@ -148,7 +148,7 @@ There's a safety limit so workflows can't keep calling each other in a loop. See
 
 ## OneUptime data components
 
-For every kind of record in OneUptime (monitors, incidents, alerts, status pages, on-call policies, and many more), the palette has these components — search by the type's name. Each title is generated from the record type, so the Monitor set reads:
+For every kind of record in OneUptime (monitors, incidents, alerts, status pages, on-call policies, and many more), the **Add Component** panel has these components — search by the type's name. Each title is generated from the record type, so the Monitor set reads:
 
 - **Find One Monitor** — read one record matching the query.
 - **Find Many Monitors** — read a list of records matching the query.
@@ -161,7 +161,7 @@ For every kind of record in OneUptime (monitors, incidents, alerts, status pages
 
 The same set gives you three triggers — **On Create Monitor**, **On Update Monitor**, and **On Delete Monitor**. See [Triggers](/docs/workflows/triggers).
 
-A type only offers the components its model allows. A read-only type has the two Find components and nothing else, so if you can't find **Delete One Monitor** in the palette, that type doesn't permit it.
+A type only offers the components its model allows. A read-only type has the two Find components and nothing else, so if you can't find **Delete One Monitor** in the panel, that type doesn't permit it.
 
 This is how a workflow can read and change OneUptime data. For example: a webhook from your CI tool can use **Create One Incident** to open an incident with the failure details.
 

@@ -2,7 +2,7 @@
 
 Här är hur du kan använda det offentliga statussid-API:et för att hämta statusen för dina resurser som finns på statussidan. Allt du behöver göra är att göra en POST-förfrågan till API-slutpunkten.
 
-#### Översikts-API
+## Översikts-API
 
 Detta API hämtar alla resurser som finns på statussidan, inklusive den övergripande statusen för resurser, incidenter och underhåll, med mera.
 
@@ -60,7 +60,7 @@ Detta är svaret från API:et:
 }
 ```
 
-#### Drifttids-API
+## Drifttids-API
 
 Detta API hämtar all drifttid för alla resurser på statussidan.
 
@@ -83,7 +83,7 @@ Du kan skicka startDate och endDate som förfrågningsinnehåll.
 
 Dessa datum bör inte vara mer än 90 dagar isär. Om du inte anger datum returnerar API:et drifttiden för de senaste 14 dagarna.
 
-### Incident-API
+## Incident-API
 
 Detta API hämtar alla incidenter som finns på statussidan. För att hämta alla incidenter på statussidan kan du göra en POST-förfrågan till följande slutpunkt:
 
@@ -105,7 +105,7 @@ Detta är svaret från API:et:
 }
 ```
 
-### API för planerat underhåll
+## API för planerat underhåll
 
 Detta API hämtar alla planerade underhållshändelser som finns på statussidan. För att hämta alla planerade underhållshändelser på statussidan kan du göra en POST-förfrågan till följande slutpunkt:
 
@@ -127,7 +127,7 @@ Detta är svaret från API:et:
 }
 ```
 
-### Meddelande-API
+## Meddelande-API
 
 Detta API hämtar alla meddelanden som finns på statussidan. För att hämta alla meddelanden på statussidan kan du göra en POST-förfrågan till följande slutpunkt:
 
@@ -148,3 +148,11 @@ Detta är svaret från API:et:
   ]
 }
 ```
+
+## Läs vidare
+
+- [Statussidor – Översikt](/docs/status-pages/index) — vad en statussida är och hur delarna hänger ihop.
+- [Statussidans resurser och grupper](/docs/status-pages/resources-and-groups) — resurserna som dessa endpoints returnerar.
+- [Statussidans varumärke och domäner](/docs/status-pages/branding-and-domains) — den anpassade domän som dessa endpoints serveras från.
+- [Prenumeranter och meddelanden](/docs/status-pages/subscribers) — meddelandena som meddelandeendpointen levererar.
+- [Incidenter – Översikt](/docs/incidents/index) — var incidenterna i dessa svar kommer ifrån.

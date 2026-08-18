@@ -2,7 +2,7 @@
 
 Hier erfahren Sie, wie Sie die öffentliche Status-Seiten-API verwenden können, um den Status Ihrer Ressourcen auf der Status-Seite abzurufen. Alles, was Sie tun müssen, ist einen POST-Request an den API-Endpunkt zu senden.
 
-#### Übersichts-API
+## Übersichts-API
 
 Diese API ruft alle Ressourcen auf der Status-Seite ab, einschließlich des Gesamtstatus der Ressourcen, Incidents, Wartungen und mehr.
 
@@ -133,7 +133,7 @@ Dies ist die Antwort von der API:
 }
 ```
 
-#### Verfügbarkeits-API
+## Verfügbarkeits-API
 
 Diese API ruft die Verfügbarkeit aller Ressourcen auf der Status-Seite ab.
 
@@ -156,7 +156,7 @@ Sie können startDate und endDate als Anfragetext senden.
 
 Diese Datumsangaben dürfen nicht mehr als 90 Tage auseinanderliegen. Wenn Sie keine Datumsangaben angeben, gibt die API die Verfügbarkeit für die letzten 14 Tage zurück.
 
-### Incidents-API
+## Incidents-API
 
 Diese API ruft alle Incidents auf der Status-Seite ab. Um alle Incidents abzurufen, können Sie einen POST-Request an den folgenden Endpunkt senden:
 
@@ -164,7 +164,7 @@ Diese API ruft alle Incidents auf der Status-Seite ab. Um alle Incidents abzuruf
 curl -X POST https://oneuptime.com/status-page-api/incidents/:statusPageId
 ```
 
-### Geplante Wartungs-API
+## Geplante Wartungs-API
 
 Diese API ruft alle geplanten Wartungen auf der Status-Seite ab:
 
@@ -172,10 +172,18 @@ Diese API ruft alle geplanten Wartungen auf der Status-Seite ab:
 curl -X POST https://oneuptime.com/status-page-api/scheduled-maintenance/:statusPageId
 ```
 
-### Ankündigungs-API
+## Ankündigungs-API
 
 Diese API ruft alle Ankündigungen auf der Status-Seite ab:
 
 ```bash
 curl -X POST https://oneuptime.com/status-page-api/announcements/:statusPageId
 ```
+
+## Wo Sie als Nächstes lesen sollten
+
+- [Statusseiten – Übersicht](/docs/status-pages/index) — was eine Statusseite ist und wie die Teile zusammenspielen.
+- [Statusseiten – Ressourcen & Gruppen](/docs/status-pages/resources-and-groups) — die Ressourcen, die diese Endpunkte zurückgeben.
+- [Statusseiten – Branding & Domains](/docs/status-pages/branding-and-domains) — die benutzerdefinierte Domain, von der diese Endpunkte bereitgestellt werden.
+- [Abonnenten & Ankündigungen](/docs/status-pages/subscribers) — die Ankündigungen, die der Ankündigungs-Endpunkt liefert.
+- [Vorfälle – Übersicht](/docs/incidents/index) — woher die Incidents in diesen Antworten stammen.
