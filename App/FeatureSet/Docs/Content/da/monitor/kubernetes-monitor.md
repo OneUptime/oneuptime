@@ -134,7 +134,15 @@ Vælg tidsvinduet for metrik-evaluering:
 
 ### Filtertyper
 
-- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
+- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**
+
+Baseline-anomalidetektion (ingen grænseværdi — formularen viser i stedet **Følsomhed** og **Baseline-vindue** og sammenligner hver måling med baselinen for samme time på ugen):
+
+- **Anomalt højt** — Værdien stiger over det forventede interval
+- **Anomalt lavt** — Værdien falder under det forventede interval
+- **Anomalt** — Værdien forlader det forventede interval i begge retninger
+
+Anomalibetingelser udløser ingen advarsler, før der findes mindst det valgte baseline-vindue af historik (Learning-tilstand).
 
 ## Forudbyggede alarmskabeloner
 

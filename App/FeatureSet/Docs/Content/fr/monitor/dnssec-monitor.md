@@ -52,18 +52,17 @@ Vous pouvez configurer des critères pour déterminer quand votre zone est consi
 | Expiration de la signature DNSSEC en jours             | Nombre de jours avant l'expiration de la prochaine signature RRSIG                 |
 | Consensus des résolveurs DNSSEC (drapeau AD)           | Chaque résolveur interrogé retourne le drapeau AD (Authenticated Data)             |
 | Serveurs de noms DNSSEC cohérents                      | Tous les serveurs de noms autoritaires retournent le même numéro de série SOA      |
-| DNSSEC valide                                          | Résultat global de réussite/échec sur toutes les vérifications de validation       |
 
 ### Types de filtres
 
-Pour **Chaîne DNSSEC valide**, **Enregistrement DNSKEY DNSSEC existant**, **Enregistrement DS DNSSEC existant dans la zone parente**, **Consensus des résolveurs DNSSEC (drapeau AD)**, **Serveurs de noms DNSSEC cohérents** et **DNSSEC valide** :
+Pour **Chaîne DNSSEC valide**, **Enregistrement DNSKEY DNSSEC existant**, **Enregistrement DS DNSSEC existant dans la zone parente**, **Consensus des résolveurs DNSSEC (drapeau AD)** et **Serveurs de noms DNSSEC cohérents** :
 
 - **Vrai** — La condition est vraie
 - **Faux** — La condition est fausse
 
 Pour **Expiration de la signature DNSSEC en jours** :
 
-- **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à**, **Égal à**, **Différent de**
+- **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à**
 
 ### Exemples de critères
 

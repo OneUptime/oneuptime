@@ -78,7 +78,8 @@ For **Total Connection Time (DNS + TCP)**, **Port DNS Lookup Time**, and **Port 
 - **Less Than** — Response time is below a threshold
 - **Greater Than or Equal To** — Response time is at or above a threshold
 - **Less Than or Equal To** — Response time is at or below a threshold
-- **Evaluate Over Time** — Evaluate using aggregation (Average, Sum, Maximum, Minimum, All Values, Any Value) over a time window
+
+**Evaluate this criteria over a period of time** is a separate checkbox on the criteria form rather than a filter condition. Turn it on to compare an aggregate — chosen under **Evaluate** (Average, Sum, Maximum Value, Minimum Value, All Values, Any Value) over the window set by **For the last (in minutes)** — instead of the value from the latest check.
 
 DNS lookup criteria have no value to evaluate when the target is already an IP address. Use the total or TCP connection time for criteria that must work with both hostnames and IP addresses.
 

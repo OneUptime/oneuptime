@@ -31,11 +31,13 @@ IP 監控會驗證特定 IP 位址是否可連線且能夠回應。這可讓您�
 
 ### 可用的檢查類型
 
-| 檢查類型              | 說明                   |
-| --------------------- | ---------------------- |
-| Is Online             | IP 位址是否可連線      |
-| Response Time (in ms) | 以毫秒為單位的回應時間 |
-| Is Request Timeout    | 請求是否逾時           |
+| 檢查類型              | 說明                               |
+| --------------------- | ---------------------------------- |
+| Is Online             | IP 位址是否可連線                  |
+| Response Time (in ms) | 以毫秒為單位的回應時間             |
+| Packet Loss (in %)    | 未收到回應的 ICMP echo 請求百分比  |
+| Jitter (in ms)        | 本次檢查所送出封包往返時間的標準差 |
+| Is Request Timeout    | 請求是否逾時                       |
 
 ### 篩選類型
 
@@ -44,15 +46,14 @@ IP 監控會驗證特定 IP 位址是否可連線且能夠回應。這可讓您�
 - **True** — 條件為真
 - **False** — 條件為假
 
-對於 **回應時間**：
+對於 **Response Time**、**Packet Loss** 與 **Jitter**：
 
 - **Greater Than** — 回應時間超過某個閾值
 - **Less Than** — 回應時間低於某個閾值
 - **Greater Than or Equal To** — 回應時間等於或高於某個閾值
 - **Less Than or Equal To** — 回應時間等於或低於某個閾值
-- **Equal To** — 回應時間完全相符
-- **Not Equal To** — 回應時間不相符
-- **Evaluate Over Time** — 在某個時間範圍內使用彙總方式（平均值、總和、最大值、最小值、所有值、任一值）進行評估
+
+**Evaluate this criteria over a period of time** 是條件表單上的核取方塊，而非篩選條件。啟用後，會比較在 **Evaluate** （平均值、總和、最大值、最小值、所有值、任一值） 中選擇的彙總值（時間範圍由 **For the last (in minutes)** 設定），而不是最近一次檢查的數值。
 
 ### 條件範例
 

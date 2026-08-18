@@ -56,7 +56,6 @@ Velg én eller flere tjenester det skal overvåkes spor fra. Tjenester må sende
 - **Greater Than or Equal To** – Span-antallet er ved eller over en terskel
 - **Less Than or Equal To** – Span-antallet er ved eller under en terskel
 - **Equal To** – Span-antallet samsvarer nøyaktig
-- **Not Equal To** – Span-antallet samsvarer ikke
 
 ### Eksempelkriterier
 

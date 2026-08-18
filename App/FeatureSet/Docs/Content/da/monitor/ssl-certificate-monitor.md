@@ -34,18 +34,16 @@ Du kan konfigurere kriterier til at afgøre, hvornår din certifikatstatus betra
 
 | Kontroltype                   | Beskrivelse                                                  |
 | ----------------------------- | ------------------------------------------------------------ |
-| Er online                     | Om serveren er tilgængelig                                   |
 | Er gyldigt certifikat         | Om certifikatet er gyldigt (ikke udløbet, ikke selvsigneret) |
 | Er selvsigneret certifikat    | Om certifikatet er selvsigneret                              |
 | Er udløbet certifikat         | Om certifikatet er udløbet                                   |
 | Er ikke et gyldigt certifikat | Om certifikatet er ugyldigt                                  |
 | Udløber om timer              | Antal timer, indtil certifikatet udløber                     |
 | Udløber om dage               | Antal dage, indtil certifikatet udløber                      |
-| Er anmodning-timeout          | Om forbindelsen fik timeout                                  |
 
 ### Filtertyper
 
-For **Er online**, **Er gyldigt certifikat**, **Er selvsigneret certifikat**, **Er udløbet certifikat**, **Er ikke et gyldigt certifikat** og **Er anmodning-timeout**:
+For **Er gyldigt certifikat**, **Er selvsigneret certifikat**, **Er udløbet certifikat** og **Er ikke et gyldigt certifikat**:
 
 - **Sand** – Betingelse er sand
 - **Falsk** – Betingelse er falsk

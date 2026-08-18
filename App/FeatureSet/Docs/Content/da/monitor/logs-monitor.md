@@ -62,7 +62,6 @@ Filtrer logs efter et eller flere alvorlighedsniveauer:
 - **Større end eller lig med** – Log-antallet er ved eller over en grænseværdi
 - **Mindre end eller lig med** – Log-antallet er ved eller under en grænseværdi
 - **Lig med** – Log-antallet matcher nøjagtigt
-- **Ikke lig med** – Log-antallet matcher ikke
 
 ### Eksempelkriterier
 

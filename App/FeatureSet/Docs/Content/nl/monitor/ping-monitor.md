@@ -31,11 +31,13 @@ U kunt criteria configureren om te bepalen wanneer uw host als online, gedegrade
 
 ### Beschikbare controletypen
 
-| Controletype        | Beschrijving                                     |
-| ------------------- | ------------------------------------------------ |
-| Is online           | Of de host reageert op ping-verzoeken            |
-| Responstijd (in ms) | Retourtijd van het ping-verzoek in milliseconden |
-| Is verzoek time-out | Of het ping-verzoek een time-out heeft           |
+| Controletype         | Beschrijving                                                      |
+| -------------------- | ----------------------------------------------------------------- |
+| Is online            | Of de host reageert op ping-verzoeken                             |
+| Responstijd (in ms)  | Retourtijd van het ping-verzoek in milliseconden                  |
+| Pakketverlies (in %) | Percentage ICMP echo-verzoeken zonder antwoord                    |
+| Jitter (in ms)       | Standaarddeviatie van de retourtijden over de verzonden pakketten |
+| Is verzoek time-out  | Of het ping-verzoek een time-out heeft                            |
 
 ### Filtertypen
 
@@ -44,15 +46,14 @@ Voor **Is online** en **Is verzoek time-out**:
 - **True** — Voorwaarde is waar
 - **False** — Voorwaarde is onwaar
 
-Voor **Reactietijd**:
+Voor **Responstijd**, **Pakketverlies** en **Jitter**:
 
 - **Groter dan** — Responstijd overschrijdt een drempelwaarde
 - **Kleiner dan** — Responstijd is onder een drempelwaarde
 - **Groter dan of gelijk aan** — Responstijd is op of boven een drempelwaarde
 - **Kleiner dan of gelijk aan** — Responstijd is op of onder een drempelwaarde
-- **Gelijk aan** — Responstijd komt exact overeen
-- **Niet gelijk aan** — Responstijd komt niet overeen
-- **Evalueren over tijd** — Evalueren met aggregatie (Gemiddelde, Som, Maximum, Minimum, Alle waarden, Elke waarde) over een tijdvenster
+
+**Dit criterium over een periode evalueren** is een selectievakje op het criteriaformulier, geen filtervoorwaarde. Zet het aan om een aggregatie — gekozen onder **Evalueren** (Gemiddelde, Som, Maximum, Minimum, Alle waarden, Elke waarde) over het venster dat is ingesteld bij **Voor de laatste (in minuten)** — te vergelijken in plaats van de waarde van de laatste controle.
 
 ### Voorbeeldcriteria
 

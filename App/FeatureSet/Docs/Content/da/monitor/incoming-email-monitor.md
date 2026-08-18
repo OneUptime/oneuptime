@@ -40,13 +40,14 @@ Du kan kopiere denne adresse fra monitorens detaljeside og konfigurere dine ekst
 
 Du kan oprette kriterier baseret på følgende e-mailfelter:
 
-| Felt                | Beskrivelse                                          |
-| ------------------- | ---------------------------------------------------- |
-| **E-mailemne**      | Emnelinjen i den indgående e-mail                    |
-| **E-mail fra**      | Afsenderens e-mailadresse                            |
-| **E-mailindhold**   | Det rene tekstindhold af e-mailens krop              |
-| **E-mail til**      | Modtagerens e-mailadresse                            |
-| **E-mail modtaget** | Tidsbaserede kriterier for, hvornår e-mails modtages |
+| Felt                  | Beskrivelse                                                        |
+| --------------------- | ------------------------------------------------------------------ |
+| **E-mailemne**        | Emnelinjen i den indgående e-mail                                  |
+| **E-mail fra**        | Afsenderens e-mailadresse                                          |
+| **E-mailindhold**     | Det rene tekstindhold af e-mailens krop                            |
+| **E-mail til**        | Modtagerens e-mailadresse                                          |
+| **E-mail modtaget**   | Tidsbaserede kriterier for, hvornår e-mails modtages               |
+| **JavaScript-udtryk** | Et brugerdefineret JavaScript-udtryk, der skal evalueres til sandt |
 
 ## Tilgængelige filtertyper
 
@@ -69,6 +70,12 @@ Du kan oprette kriterier baseret på følgende e-mailfelter:
 | ------------------------------------ | ------------------------------------------ | ------------------------------------------ |
 | **Modtaget inden for minutter**      | E-mail modtaget inden for X minutter       | E-mail modtaget inden for 30 minutter      |
 | **Ikke modtaget inden for minutter** | Ingen e-mail modtaget inden for X minutter | E-mail ikke modtaget inden for 60 minutter |
+
+### JavaScript-udtryk
+
+Den eneste filterbetingelse er **Evalueres til sand**: kriteriet er opfyldt, når udtrykket returnerer en sand værdi.
+
+Udtrykket køres i en sandkasse uden e-mailfelter bundet til sig, så det kan ikke læse emnet, afsenderen, indholdet eller modtageren af den e-mail, der udløste kontrollen. Brug filtertyperne **E-mailemne**, **E-mail fra**, **E-mailindhold** og **E-mail til** til at matche på e-mailens indhold.
 
 ## Eksempelkonfigurationer
 

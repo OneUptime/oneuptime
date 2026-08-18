@@ -52,18 +52,17 @@ Sie können Kriterien konfigurieren, um zu bestimmen, wann Ihre Zone als online,
 | DNSSEC-Signatur läuft ab in Tagen                  | Tage bis die nächste RRSIG-Signatur abläuft                                                    |
 | DNSSEC-Resolver-Konsens (AD-Flag)                  | Jeder abgefragte Resolver gibt das AD-Flag (Authenticated Data) zurück                         |
 | DNSSEC-Nameserver sind konsistent                  | Alle autoritativen Nameserver geben dieselbe SOA-Seriennummer zurück                           |
-| DNSSEC ist gültig                                  | Gesamtergebnis bestanden/nicht bestanden über alle Validierungsprüfungen                       |
 
 ### Filtertypen
 
-Für **DNSSEC-Kette ist gültig**, **DNSSEC-DNSKEY-Eintrag existiert**, **DNSSEC-DS-Eintrag existiert in übergeordneter Zone**, **DNSSEC-Resolver-Konsens (AD-Flag)**, **DNSSEC-Nameserver sind konsistent** und **DNSSEC ist gültig**:
+Für **DNSSEC-Kette ist gültig**, **DNSSEC-DNSKEY-Eintrag existiert**, **DNSSEC-DS-Eintrag existiert in übergeordneter Zone**, **DNSSEC-Resolver-Konsens (AD-Flag)** und **DNSSEC-Nameserver sind konsistent**:
 
 - **Wahr** — Bedingung ist wahr
 - **Falsch** — Bedingung ist falsch
 
 Für **DNSSEC-Signatur läuft ab in Tagen**:
 
-- **Größer als**, **Kleiner als**, **Größer oder gleich**, **Kleiner oder gleich**, **Gleich**, **Ungleich**
+- **Größer als**, **Kleiner als**, **Größer oder gleich**, **Kleiner oder gleich**
 
 ### Beispielkriterien
 

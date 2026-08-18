@@ -34,14 +34,12 @@ Sie können Kriterien konfigurieren, um zu bestimmen, wann Ihr Zertifikatsstatus
 
 | Prüftyp                          | Beschreibung                                                           |
 | -------------------------------- | ---------------------------------------------------------------------- |
-| Ist online                       | Ob der Server erreichbar ist                                           |
 | Ist gültiges Zertifikat          | Ob das Zertifikat gültig ist (nicht abgelaufen, nicht selbst signiert) |
 | Ist selbst signiertes Zertifikat | Ob das Zertifikat selbst signiert ist                                  |
 | Ist abgelaufenes Zertifikat      | Ob das Zertifikat abgelaufen ist                                       |
 | Ist kein gültiges Zertifikat     | Ob das Zertifikat ungültig ist                                         |
 | Läuft ab in Stunden              | Anzahl der Stunden bis zum Ablauf des Zertifikats                      |
 | Läuft ab in Tagen                | Anzahl der Tage bis zum Ablauf des Zertifikats                         |
-| Anfrage-Timeout                  | Ob die Verbindung ein Timeout hatte                                    |
 
 ### Filtertypen
 
@@ -52,7 +50,7 @@ Für boolesche Prüftypen:
 
 Für **Läuft ab in Stunden** und **Läuft ab in Tagen**:
 
-- **Größer als**, **Kleiner als**, **Größer oder gleich**, **Kleiner oder gleich**, **Gleich**, **Ungleich**
+- **Größer als**, **Kleiner als**, **Größer oder gleich**, **Kleiner oder gleich**
 
 ### Beispielkriterien
 

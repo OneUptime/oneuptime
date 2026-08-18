@@ -52,18 +52,17 @@ DNSSEC 监控器验证从根区域到您的域名的整个信任链。这使您�
 | DNSSEC 签名剩余有效天数       | 距离最早过期的 RRSIG 签名的天数                     |
 | DNSSEC 解析器共识（AD Flag）  | 每个查询的解析器都返回 AD（Authenticated Data）flag |
 | DNSSEC 名称服务器是否一致     | 所有权威名称服务器返回相同的 SOA serial             |
-| DNSSEC 是否有效               | 所有验证检查的综合通过/失败                         |
 
 ### 过滤类型
 
-对于 **DNSSEC 链是否有效**、**DNSSEC DNSKEY 记录是否存在**、**父区域是否存在 DNSSEC DS 记录**、**DNSSEC 解析器共识（AD Flag）**、**DNSSEC 名称服务器是否一致** 和 **DNSSEC 是否有效**：
+对于 **DNSSEC 链是否有效**、**DNSSEC DNSKEY 记录是否存在**、**父区域是否存在 DNSSEC DS 记录**、**DNSSEC 解析器共识（AD Flag）** 和 **DNSSEC 名称服务器是否一致**：
 
 - **True** — 条件为真
 - **False** — 条件为假
 
 对于 **DNSSEC 签名剩余有效天数**：
 
-- **大于**、**小于**、**大于或等于**、**小于或等于**、**等于**、**不等于**
+- **大于**、**小于**、**大于或等于**、**小于或等于**
 
 ### 示例标准
 

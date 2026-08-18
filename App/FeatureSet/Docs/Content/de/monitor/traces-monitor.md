@@ -51,7 +51,7 @@ Wählen Sie einen oder mehrere Dienste aus, von denen Traces überwacht werden s
 
 ### Filtertypen
 
-- **Größer als**, **Kleiner als**, **Größer oder gleich**, **Kleiner oder gleich**, **Gleich**, **Ungleich**
+- **Größer als**, **Kleiner als**, **Größer oder gleich**, **Kleiner oder gleich**, **Gleich**
 
 ### Beispielkriterien
 

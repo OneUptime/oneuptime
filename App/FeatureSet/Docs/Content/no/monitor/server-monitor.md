@@ -115,25 +115,31 @@ Du kan konfigurere kriterier for å bestemme når serveren anses som tilgjengeli
 
 ### Tilgjengelige kontrolltyper
 
-| Kontrolltype           | Beskrivelse                                                 |
-| ---------------------- | ----------------------------------------------------------- |
-| Is Online              | Om serveragenten rapporterer (basert på hjerteslag)         |
-| CPU Usage Percent      | Gjeldende CPU-utnyttelsesprosent                            |
-| Memory Usage Percent   | Gjeldende minneutnyttelsesprosent                           |
-| Disk Usage Percent     | Gjeldende diskutnyttelsesprosent (for en spesifikk disksti) |
-| Server Process Name    | Sjekk om en prosess med et spesifikt navn kjører            |
-| Server Process Command | Sjekk om en prosess med en spesifikk kommando kjører        |
-| Server Process PID     | Sjekk om en prosess med en spesifikk PID kjører             |
+| Kontrolltype             | Beskrivelse                                                 |
+| ------------------------ | ----------------------------------------------------------- |
+| Is Online                | Om serveragenten rapporterer (basert på hjerteslag)         |
+| CPU Usage Percent        | Gjeldende CPU-utnyttelsesprosent                            |
+| Memory Usage Percent     | Gjeldende minneutnyttelsesprosent                           |
+| Disk Usage Percent       | Gjeldende diskutnyttelsesprosent (for en spesifikk disksti) |
+| Swap Usage Percent       | Gjeldende swap-utnyttelsesprosent                           |
+| CPU IO Wait Percent      | Andel CPU-tid brukt på å vente på I/O                       |
+| Load Average (1 minute)  | Systemets gjennomsnittlige last siste minutt                |
+| Load Average (5 minute)  | Systemets gjennomsnittlige last siste 5 minutter            |
+| Load Average (15 minute) | Systemets gjennomsnittlige last siste 15 minutter           |
+| Server Process Name      | Sjekk om en prosess med et spesifikt navn kjører            |
+| Server Process Command   | Sjekk om en prosess med en spesifikk kommando kjører        |
+| Server Process PID       | Sjekk om en prosess med en spesifikk PID kjører             |
 
 ### Filtertyper
 
-For numeriske målinger (CPU, minne, disk):
+For numeriske målinger (CPU, minne, disk, swap, IO-venting, load average):
 
 - **Greater Than** – Verdien overskrider en terskel
 - **Less Than** – Verdien er under en terskel
 - **Greater Than or Equal To** – Verdien er ved eller over en terskel
 - **Less Than or Equal To** – Verdien er ved eller under en terskel
-- **Evaluate Over Time** – Evaluer ved hjelp av aggregering (Average, Sum, Maximum, Minimum, All Values, Any Value) over et tidsvindu
+
+**Evaluate this criteria over a period of time** er en avkrysningsboks i kriterieskjemaet, ikke en filterbetingelse. Slå den på for å sammenligne en aggregering – valgt under **Evaluate** (Average, Sum, Maximum, Minimum, All Values, Any Value) over vinduet som angis i **For the last (in minutes)** – i stedet for verdien fra siste kontroll.
 
 For prosesskontroller:
 

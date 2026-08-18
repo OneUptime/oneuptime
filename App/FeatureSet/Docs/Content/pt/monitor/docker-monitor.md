@@ -122,7 +122,15 @@ O Agente Docker usa o receptor `docker_stats` do OpenTelemetry, que faz scraping
 
 ### Tipos de Filtro
 
-- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
+- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**
+
+Detecção de anomalias por baseline (sem limite — o formulário mostra **Sensitivity** e **Baseline Window** e compara cada amostra com a baseline da mesma hora da semana):
+
+- **Anomalously High** — O valor sobe acima da faixa esperada
+- **Anomalously Low** — O valor cai abaixo da faixa esperada
+- **Anomalous** — O valor sai da faixa esperada em qualquer direção
+
+As condições de anomalia não geram alertas até existir pelo menos o Baseline Window configurado de histórico (estado Learning).
 
 ## Modelos de Alerta Pré-construídos
 

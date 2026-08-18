@@ -56,7 +56,6 @@ Sélectionnez un ou plusieurs services depuis lesquels surveiller les traces. Le
 - **Supérieur ou égal à** — Le nombre de spans est au-dessus ou égal à un seuil
 - **Inférieur ou égal à** — Le nombre de spans est en dessous ou égal à un seuil
 - **Égal à** — Le nombre de spans correspond exactement
-- **Différent de** — Le nombre de spans ne correspond pas
 
 ### Exemples de critères
 

@@ -40,13 +40,14 @@ You can copy this address from the monitor details page and configure your exter
 
 You can create criteria based on the following email fields:
 
-| Filter Type        | Description                                      |
-| ------------------ | ------------------------------------------------ |
-| **Email Subject**  | The subject line of the incoming email           |
-| **Email From**     | The sender's email address                       |
-| **Email Body**     | The plain text content of the email body         |
-| **Email To**       | The recipient email address                      |
-| **Email Received** | Time-based criteria for when emails are received |
+| Filter Type               | Description                                               |
+| ------------------------- | --------------------------------------------------------- |
+| **Email Subject**         | The subject line of the incoming email                    |
+| **Email From**            | The sender's email address                                |
+| **Email Body**            | The plain text content of the email body                  |
+| **Email To**              | The recipient email address                               |
+| **Email Received**        | Time-based criteria for when emails are received          |
+| **JavaScript Expression** | A custom JavaScript expression that must evaluate to true |
 
 ## Filter Conditions
 
@@ -69,6 +70,14 @@ You can create criteria based on the following email fields:
 | --------------------------- | ----------------------------------- | -------------------------------- |
 | **Received In Minutes**     | Email was received within X minutes | Email received in 30 minutes     |
 | **Not Received In Minutes** | No email received in X minutes      | Email not received in 60 minutes |
+
+### JavaScript Expression
+
+| Filter Condition      | Description                           |
+| --------------------- | ------------------------------------- |
+| **Evaluates To True** | The expression returns a truthy value |
+
+The expression runs in a sandbox with no email fields bound to it, so it cannot read the subject, sender, body, or recipient of the message that triggered the check. Use the **Email Subject**, **Email From**, **Email Body**, and **Email To** filter types to match on email content.
 
 ## Example Configurations
 

@@ -115,25 +115,31 @@ U kunt criteria configureren om te bepalen wanneer uw server als online, gedegra
 
 ### Beschikbare controletypen
 
-| Controletype               | Beschrijving                                                   |
-| -------------------------- | -------------------------------------------------------------- |
-| Is online                  | Of de serveragent rapporteert (op basis van heartbeat)         |
-| CPU-gebruikspercentage     | Huidig CPU-gebruikspercentage                                  |
-| Geheugengebruikspercentage | Huidig geheugengebruikspercentage                              |
-| Schijfgebruikspercentage   | Huidig schijfgebruikspercentage (voor een specifiek schijfpad) |
-| Serverprocesnaam           | Controleer of een proces met een specifieke naam actief is     |
-| Serverprocesopdracht       | Controleer of een proces met een specifieke opdracht actief is |
-| Serverprocesproces-ID      | Controleer of een proces met een specifieke PID actief is      |
+| Controletype                      | Beschrijving                                                   |
+| --------------------------------- | -------------------------------------------------------------- |
+| Is online                         | Of de serveragent rapporteert (op basis van heartbeat)         |
+| CPU-gebruikspercentage            | Huidig CPU-gebruikspercentage                                  |
+| Geheugengebruikspercentage        | Huidig geheugengebruikspercentage                              |
+| Schijfgebruikspercentage          | Huidig schijfgebruikspercentage (voor een specifiek schijfpad) |
+| Swapgebruikspercentage            | Huidig swapgebruikspercentage                                  |
+| CPU-IO-wachtpercentage            | Percentage CPU-tijd besteed aan wachten op I/O                 |
+| Belastingsgemiddelde (1 minuut)   | Systeembelastingsgemiddelde over de laatste minuut             |
+| Belastingsgemiddelde (5 minuten)  | Systeembelastingsgemiddelde over de laatste 5 minuten          |
+| Belastingsgemiddelde (15 minuten) | Systeembelastingsgemiddelde over de laatste 15 minuten         |
+| Serverprocesnaam                  | Controleer of een proces met een specifieke naam actief is     |
+| Serverprocesopdracht              | Controleer of een proces met een specifieke opdracht actief is |
+| Serverprocesproces-ID             | Controleer of een proces met een specifieke PID actief is      |
 
 ### Filtertypen
 
-Voor numerieke metrics (CPU, geheugen, schijf):
+Voor numerieke metrics (CPU, geheugen, schijf, swap, IO-wachttijd, belastingsgemiddelde):
 
 - **Groter dan** — Waarde overschrijdt een drempelwaarde
 - **Kleiner dan** — Waarde is onder een drempelwaarde
 - **Groter dan of gelijk aan** — Waarde is op of boven een drempelwaarde
 - **Kleiner dan of gelijk aan** — Waarde is op of onder een drempelwaarde
-- **Evalueren over tijd** — Evalueren met aggregatie (Gemiddelde, Som, Maximum, Minimum, Alle waarden, Elke waarde) over een tijdvenster
+
+**Dit criterium over een periode evalueren** is een selectievakje op het criteriaformulier, geen filtervoorwaarde. Zet het aan om een aggregatie — gekozen onder **Evalueren** (Gemiddelde, Som, Maximum, Minimum, Alle waarden, Elke waarde) over het venster dat is ingesteld bij **Voor de laatste (in minuten)** — te vergelijken in plaats van de waarde van de laatste controle.
 
 Voor procescontroles:
 

@@ -76,7 +76,7 @@ Voor **DNS is online**, **DNS-record bestaat** en **DNSSEC is geldig**:
 
 Voor **DNS-responstijd**:
 
-- **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan**, **Gelijk aan**, **Niet gelijk aan**
+- **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan**
 
 Voor **DNS-recordwaarde**:
 

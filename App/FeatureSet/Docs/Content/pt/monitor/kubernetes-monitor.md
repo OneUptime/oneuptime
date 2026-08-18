@@ -134,7 +134,15 @@ Selecione a janela temporal para a avaliação das métricas:
 
 ### Tipos de filtro
 
-- **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a**, **Igual a**, **Diferente de**
+- **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a**, **Igual a**
+
+Detecção de anomalias por baseline (sem limite — o formulário mostra **Sensitivity** e **Baseline Window** e compara cada amostra com a baseline da mesma hora da semana):
+
+- **Anomalously High** — O valor sobe acima da faixa esperada
+- **Anomalously Low** — O valor cai abaixo da faixa esperada
+- **Anomalous** — O valor sai da faixa esperada em qualquer direção
+
+As condições de anomalia não geram alertas até existir pelo menos o Baseline Window configurado de histórico (estado Learning).
 
 ## Modelos de alerta pré-construídos
 

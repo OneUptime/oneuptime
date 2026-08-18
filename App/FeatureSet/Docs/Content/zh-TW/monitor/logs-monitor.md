@@ -62,7 +62,6 @@
 - **Greater Than or Equal To** — 日誌計數等於或高於某個門檻值
 - **Less Than or Equal To** — 日誌計數等於或低於某個門檻值
 - **Equal To** — 日誌計數完全相符
-- **Not Equal To** — 日誌計數不相符
 
 ### 條件範例
 

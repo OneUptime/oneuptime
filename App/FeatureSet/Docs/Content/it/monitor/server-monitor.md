@@ -121,19 +121,25 @@ Per ogni disco/volume montato:
 | Percentuale Utilizzo CPU     | Percentuale di utilizzo della CPU corrente                                   |
 | Percentuale Utilizzo Memoria | Percentuale di utilizzo della memoria corrente                               |
 | Percentuale Utilizzo Disco   | Percentuale di utilizzo del disco corrente (per un percorso disco specifico) |
+| Percentuale Utilizzo Swap    | Percentuale di utilizzo dello swap corrente                                  |
+| Percentuale Attesa I/O CPU   | Percentuale di tempo CPU trascorso in attesa di I/O                          |
+| Load Average (1 minuto)      | Carico medio del sistema nell'ultimo minuto                                  |
+| Load Average (5 minuti)      | Carico medio del sistema negli ultimi 5 minuti                               |
+| Load Average (15 minuti)     | Carico medio del sistema negli ultimi 15 minuti                              |
 | Nome Processo Server         | Verificare se è in esecuzione un processo con un nome specifico              |
 | Comando Processo Server      | Verificare se è in esecuzione un processo con un comando specifico           |
 | PID Processo Server          | Verificare se è in esecuzione un processo con un PID specifico               |
 
 ### Tipi di Filtro
 
-Per le metriche numeriche (CPU, memoria, disco):
+Per le metriche numeriche (CPU, memoria, disco, swap, attesa I/O, load average):
 
 - **Maggiore Di** — Il valore supera una soglia
 - **Minore Di** — Il valore è inferiore a una soglia
 - **Maggiore o Uguale a** — Il valore è pari o superiore a una soglia
 - **Minore o Uguale a** — Il valore è pari o inferiore a una soglia
-- **Valuta Nel Tempo** — Valuta usando aggregazione (Media, Somma, Massimo, Minimo, Tutti i Valori, Qualsiasi Valore) su una finestra temporale
+
+**Valuta questo criterio su un periodo di tempo** è una casella di controllo del modulo dei criteri, non una condizione di filtro. Attivala per confrontare un'aggregazione — scelta in **Valuta** (Media, Somma, Massimo, Minimo, Tutti i Valori, Qualsiasi Valore) sulla finestra impostata in **Per gli ultimi (in minuti)** — invece del valore dell'ultimo controllo.
 
 Per i controlli dei processi:
 

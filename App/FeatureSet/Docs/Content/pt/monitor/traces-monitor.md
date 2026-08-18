@@ -56,7 +56,6 @@ Selecione um ou mais serviços para monitorar rastreamentos. Os serviços devem 
 - **Greater Than or Equal To** — A contagem de spans está no limite ou acima
 - **Less Than or Equal To** — A contagem de spans está no limite ou abaixo
 - **Equal To** — A contagem de spans corresponde exatamente
-- **Not Equal To** — A contagem de spans não corresponde
 
 ### Critérios de Exemplo
 

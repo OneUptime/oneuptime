@@ -76,7 +76,7 @@ För **DNS är online**, **DNS-post finns** och **DNSSEC är giltig**:
 
 För **DNS-svarstid**:
 
-- **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med**, **Lika med**, **Inte lika med**
+- **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med**
 
 För **DNS-postvärde**:
 

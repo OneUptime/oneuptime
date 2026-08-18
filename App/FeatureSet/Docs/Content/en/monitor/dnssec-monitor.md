@@ -52,18 +52,17 @@ You can configure criteria to determine when your zone is considered online, deg
 | DNSSEC Signature Expires In Days    | Days until the soonest RRSIG signature expires                     |
 | DNSSEC Resolver Consensus (AD Flag) | Every queried resolver returns the AD (Authenticated Data) flag    |
 | DNSSEC Nameservers Are Consistent   | All authoritative nameservers return the same SOA serial           |
-| DNSSEC Is Valid                     | Aggregate pass/fail across all validation checks                   |
 
 ### Filter Conditions
 
-For **DNSSEC Chain Is Valid**, **DNSSEC DNSKEY Record Exists**, **DNSSEC DS Record Exists At Parent**, **DNSSEC Resolver Consensus (AD Flag)**, **DNSSEC Nameservers Are Consistent**, and **DNSSEC Is Valid**:
+For **DNSSEC Chain Is Valid**, **DNSSEC DNSKEY Record Exists**, **DNSSEC DS Record Exists At Parent**, **DNSSEC Resolver Consensus (AD Flag)**, and **DNSSEC Nameservers Are Consistent**:
 
 - **True** — Condition is true
 - **False** — Condition is false
 
 For **DNSSEC Signature Expires In Days**:
 
-- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
+- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**
 
 ### Example Criteria
 

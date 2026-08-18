@@ -134,7 +134,15 @@ Velg tidsvinduet for metrikkevaluering:
 
 ### Filtertyper
 
-- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
+- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**
+
+Baseline-anomalideteksjon (ingen terskel – skjemaet viser i stedet **Sensitivity** og **Baseline Window**, og sammenligner hver måling med baselinen for samme time i uken):
+
+- **Anomalously High** — Verdien stiger over det forventede området
+- **Anomalously Low** — Verdien faller under det forventede området
+- **Anomalous** — Verdien forlater det forventede området i begge retninger
+
+Anomalibetingelser gir ingen varsler før det finnes minst det valgte Baseline Window med historikk (Learning-tilstand).
 
 ## Forhåndsbygde varselmaler
 

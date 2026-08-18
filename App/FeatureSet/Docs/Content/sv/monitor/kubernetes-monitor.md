@@ -134,7 +134,15 @@ Välj tidsfönster för metric-utvärdering:
 
 ### Filtertyper
 
-- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
+- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**
+
+Baslinjebaserad avvikelsedetektering (inget tröskelvärde – formuläret visar i stället **Känslighet** och **Baslinjefönster** och jämför varje mätvärde med baslinjen för samma timme i veckan):
+
+- **Onormalt högt** — Värdet stiger över det förväntade intervallet
+- **Onormalt lågt** — Värdet sjunker under det förväntade intervallet
+- **Onormalt** — Värdet lämnar det förväntade intervallet i någon riktning
+
+Avvikelsevillkor ger inga varningar förrän det finns minst det valda baslinjefönstret av historik (Learning-tillstånd).
 
 ## Förbyggda larmmallar
 

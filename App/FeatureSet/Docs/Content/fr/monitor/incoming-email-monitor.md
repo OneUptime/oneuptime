@@ -40,13 +40,14 @@ Vous pouvez copier cette adresse depuis la page de détails du moniteur et confi
 
 Vous pouvez créer des critères basés sur les champs d'e-mail suivants :
 
-| Champ                 | Description                                        |
-| --------------------- | -------------------------------------------------- |
-| **Objet de l'e-mail** | La ligne d'objet de l'e-mail entrant               |
-| **De l'e-mail**       | L'adresse e-mail de l'expéditeur                   |
-| **Corps de l'e-mail** | Le contenu en texte brut du corps de l'e-mail      |
-| **À l'e-mail**        | L'adresse e-mail du destinataire                   |
-| **E-mail reçu**       | Critères basés sur le temps pour les e-mails reçus |
+| Champ                     | Description                                                       |
+| ------------------------- | ----------------------------------------------------------------- |
+| **Objet de l'e-mail**     | La ligne d'objet de l'e-mail entrant                              |
+| **De l'e-mail**           | L'adresse e-mail de l'expéditeur                                  |
+| **Corps de l'e-mail**     | Le contenu en texte brut du corps de l'e-mail                     |
+| **À l'e-mail**            | L'adresse e-mail du destinataire                                  |
+| **E-mail reçu**           | Critères basés sur le temps pour les e-mails reçus                |
+| **Expression JavaScript** | Une expression JavaScript personnalisée qui doit s'évaluer à vrai |
 
 ## Types de filtres disponibles
 
@@ -69,6 +70,12 @@ Vous pouvez créer des critères basés sur les champs d'e-mail suivants :
 | ----------------------- | ------------------------------------------------ | ----------------------------- |
 | **Reçu en minutes**     | L'e-mail a été reçu dans les X dernières minutes | E-mail reçu en 30 minutes     |
 | **Non reçu en minutes** | Aucun e-mail reçu dans les X dernières minutes   | E-mail non reçu en 60 minutes |
+
+### Expression JavaScript
+
+La seule condition de filtre est **S'évalue à vrai** : le critère est satisfait lorsque l'expression renvoie une valeur vraie.
+
+L'expression s'exécute dans un bac à sable auquel aucun champ de l'e-mail n'est lié : elle ne peut donc pas lire l'objet, l'expéditeur, le corps ni le destinataire du message qui a déclenché la vérification. Utilisez les types de filtre **Objet de l'e-mail**, **E-mail de**, **Corps de l'e-mail** et **E-mail à** pour comparer le contenu de l'e-mail.
 
 ## Exemples de configuration
 

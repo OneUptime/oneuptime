@@ -56,7 +56,6 @@ Selecteer een of meer diensten waarvan traces worden bewaakt. Diensten moeten tr
 - **Groter dan of gelijk aan** — Span-telling is op of boven een drempelwaarde
 - **Kleiner dan of gelijk aan** — Span-telling is op of onder een drempelwaarde
 - **Gelijk aan** — Span-telling komt exact overeen
-- **Niet gelijk aan** — Span-telling komt niet overeen
 
 ### Voorbeeldcriteria
 

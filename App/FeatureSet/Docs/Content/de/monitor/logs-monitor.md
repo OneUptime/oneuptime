@@ -62,7 +62,6 @@ Logs nach einem oder mehreren Schweregraden filtern:
 - **Größer oder gleich** — Log-Anzahl ist gleich oder über einem Schwellenwert
 - **Kleiner oder gleich** — Log-Anzahl ist gleich oder unter einem Schwellenwert
 - **Gleich** — Log-Anzahl stimmt exakt überein
-- **Ungleich** — Log-Anzahl stimmt nicht überein
 
 ### Beispielkriterien
 

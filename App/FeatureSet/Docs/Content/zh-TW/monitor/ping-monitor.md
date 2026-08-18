@@ -35,6 +35,8 @@ Ping 監測器透過向主機傳送 ICMP ping 請求來測試基本的網路連�
 | --------------------- | ----------------------------------- |
 | Is Online             | 主機是否回應 ping 請求              |
 | Response Time (in ms) | ping 請求的往返時間（以毫秒為單位） |
+| Packet Loss (in %)    | 未收到回應的 ICMP echo 請求百分比   |
+| Jitter (in ms)        | 本次檢查所送出封包往返時間的標準差  |
 | Is Request Timeout    | ping 請求是否逾時                   |
 
 ### 篩選類型
@@ -44,15 +46,14 @@ Ping 監測器透過向主機傳送 ICMP ping 請求來測試基本的網路連�
 - **True** — 條件為真
 - **False** — 條件為假
 
-對於 **回應時間**：
+對於 **Response Time**、**Packet Loss** 與 **Jitter**：
 
 - **Greater Than** — 回應時間超過某個門檻
 - **Less Than** — 回應時間低於某個門檻
 - **Greater Than or Equal To** — 回應時間等於或高於某個門檻
 - **Less Than or Equal To** — 回應時間等於或低於某個門檻
-- **Equal To** — 回應時間完全相符
-- **Not Equal To** — 回應時間不相符
-- **Evaluate Over Time** — 在一個時間範圍內使用彙總（平均值、總和、最大值、最小值、所有值、任何值）進行評估
+
+**Evaluate this criteria over a period of time** 是條件表單上的核取方塊，而非篩選條件。啟用後，會比較在 **Evaluate** （平均值、總和、最大值、最小值、所有值、任何值） 中選擇的彙總值（時間範圍由 **For the last (in minutes)** 設定），而不是最近一次檢查的數值。
 
 ### 範例條件
 

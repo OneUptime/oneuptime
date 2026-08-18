@@ -115,25 +115,31 @@ You can configure criteria to determine when your server is considered online, d
 
 ### Available Filter Types
 
-| Filter Type            | Description                                                    |
-| ---------------------- | -------------------------------------------------------------- |
-| Is Online              | Whether the server agent is reporting (based on heartbeat)     |
-| CPU Usage Percent      | Current CPU utilization percentage                             |
-| Memory Usage Percent   | Current memory utilization percentage                          |
-| Disk Usage Percent     | Current disk utilization percentage (for a specific disk path) |
-| Server Process Name    | Check if a process with a specific name is running             |
-| Server Process Command | Check if a process with a specific command is running          |
-| Server Process PID     | Check if a process with a specific PID is running              |
+| Filter Type              | Description                                                    |
+| ------------------------ | -------------------------------------------------------------- |
+| Is Online                | Whether the server agent is reporting (based on heartbeat)     |
+| CPU Usage (in %)         | Current CPU utilization percentage                             |
+| Memory Usage (in %)      | Current memory utilization percentage                          |
+| Disk Usage (in %)        | Current disk utilization percentage (for a specific disk path) |
+| Swap Usage (in %)        | Current swap utilization percentage                            |
+| CPU IO Wait (in %)       | Percentage of CPU time spent waiting on I/O                    |
+| Load Average (1 minute)  | System load average over the last minute                       |
+| Load Average (5 minute)  | System load average over the last 5 minutes                    |
+| Load Average (15 minute) | System load average over the last 15 minutes                   |
+| Server Process Name      | Check if a process with a specific name is running             |
+| Server Process Command   | Check if a process with a specific command is running          |
+| Server Process PID       | Check if a process with a specific PID is running              |
 
 ### Filter Conditions
 
-For numeric metrics (CPU, memory, disk):
+For numeric metrics (CPU, memory, disk, swap, CPU IO wait, load average):
 
 - **Greater Than** — Value exceeds a threshold
 - **Less Than** — Value is below a threshold
 - **Greater Than or Equal To** — Value is at or above a threshold
 - **Less Than or Equal To** — Value is at or below a threshold
-- **Evaluate Over Time** — Evaluate using aggregation (Average, Sum, Maximum, Minimum, All Values, Any Value) over a time window
+
+**Evaluate this criteria over a period of time** is a separate checkbox on the criteria form rather than a filter condition. Turn it on to compare an aggregate — chosen under **Evaluate** (Average, Sum, Maximum Value, Minimum Value, All Values, Any Value) over the window set by **For the last (in minutes)** — instead of the value from the latest check.
 
 For process checks:
 
@@ -149,20 +155,20 @@ For process checks:
 
 #### Alert when CPU usage exceeds 90%
 
-- **Filter Type**: CPU Usage Percent
+- **Filter Type**: CPU Usage (in %)
 - **Filter Condition**: Greater Than
 - **Value**: 90
 
 #### Alert when disk usage exceeds 85%
 
-- **Filter Type**: Disk Usage Percent
+- **Filter Type**: Disk Usage (in %)
 - **Disk Path**: `/`
 - **Filter Condition**: Greater Than
 - **Value**: 85
 
 #### Alert when memory usage exceeds 80%
 
-- **Filter Type**: Memory Usage Percent
+- **Filter Type**: Memory Usage (in %)
 - **Filter Condition**: Greater Than
 - **Value**: 80
 
@@ -200,5 +206,5 @@ The agent is designed to be lightweight. If you notice high resource usage:
 1. **Set meaningful thresholds** — Configure degraded and offline criteria that match your server's normal operating ranges
 2. **Monitor critical processes** — Use process monitoring to ensure essential services like web servers and databases are always running
 3. **Monitor disk usage proactively** — Disk space issues can cascade into application failures; set alerts well before disks are full
-4. **Use "Evaluate Over Time"** — For metrics like CPU that can spike briefly, use time-based aggregation to avoid false alerts
+4. **Evaluate over a period of time** — For metrics like CPU that can spike briefly, turn on "Evaluate this criteria over a period of time" and use time-based aggregation to avoid false alerts
 5. **Keep the agent updated** — Periodically update the infrastructure agent to get the latest improvements and fixes

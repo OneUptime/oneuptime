@@ -65,9 +65,8 @@ Per **Tempo di risposta**:
 - **Minore Di** — Il tempo di risposta è inferiore a una soglia
 - **Maggiore o Uguale a** — Il tempo di risposta è pari o superiore a una soglia
 - **Minore o Uguale a** — Il tempo di risposta è pari o inferiore a una soglia
-- **Uguale a** — Il tempo di risposta corrisponde esattamente
-- **Diverso da** — Il tempo di risposta non corrisponde
-- **Valuta Nel Tempo** — Valuta usando aggregazione (Media, Somma, Massimo, Minimo, Tutti i Valori, Qualsiasi Valore) su una finestra temporale
+
+**Valuta questo criterio su un periodo di tempo** è una casella di controllo del modulo dei criteri, non una condizione di filtro. Attivala per confrontare un'aggregazione — scelta in **Valuta** (Media, Somma, Massimo, Minimo, Tutti i Valori, Qualsiasi Valore) sulla finestra impostata in **Per gli ultimi (in minuti)** — invece del valore dell'ultimo controllo.
 
 ### Criteri di Esempio
 

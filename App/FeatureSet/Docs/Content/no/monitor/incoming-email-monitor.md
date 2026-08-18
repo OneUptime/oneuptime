@@ -40,13 +40,14 @@ Du kan kopiere denne adressen fra monitorens detaljside og konfigurere eksterne 
 
 Du kan opprette kriterier basert på følgende e-postfelt:
 
-| Felt               | Beskrivelse                                   |
-| ------------------ | --------------------------------------------- |
-| **E-postemne**     | Emnelinjen i den innkommende e-posten         |
-| **E-post fra**     | Avsenderens e-postadresse                     |
-| **Email Body**     | Det rene tekstinnholdet i e-postkroppen       |
-| **Email To**       | Mottakerens e-postadresse                     |
-| **Email Received** | Tidsbaserte kriterier for når e-poster mottas |
+| Felt                      | Beskrivelse                                                  |
+| ------------------------- | ------------------------------------------------------------ |
+| **E-postemne**            | Emnelinjen i den innkommende e-posten                        |
+| **E-post fra**            | Avsenderens e-postadresse                                    |
+| **Email Body**            | Det rene tekstinnholdet i e-postkroppen                      |
+| **Email To**              | Mottakerens e-postadresse                                    |
+| **Email Received**        | Tidsbaserte kriterier for når e-poster mottas                |
+| **JavaScript Expression** | Et egendefinert JavaScript-uttrykk som må evalueres til sant |
 
 ## Tilgjengelige filtertyper
 
@@ -69,6 +70,12 @@ Du kan opprette kriterier basert på følgende e-postfelt:
 | --------------------------- | ------------------------------------- | ------------------------------------- |
 | **Received In Minutes**     | E-post ble mottatt innen X minutter   | E-post mottatt innen 30 minutter      |
 | **Not Received In Minutes** | Ingen e-post mottatt innen X minutter | E-post ikke mottatt innen 60 minutter |
+
+### JavaScript Expression
+
+Den eneste filterbetingelsen er **Evaluates To True**: kriteriet er oppfylt når uttrykket returnerer en sann verdi.
+
+Uttrykket kjører i en sandkasse uten e-postfelt bundet til seg, så det kan ikke lese emnet, avsenderen, innholdet eller mottakeren av e-posten som utløste kontrollen. Bruk kontrolltypene **Email Subject**, **Email From**, **Email Body** og **Email To** for å matche på innholdet i e-posten.
 
 ## Eksempelkonfigurasjoner
 

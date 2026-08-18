@@ -76,12 +76,21 @@ These monitors always evaluate the **Metric Value** — the aggregated value of 
 
 ### Conditions
 
+Static thresholds — compared against the **Threshold** you enter:
+
 - **Greater Than** — Metric value exceeds a threshold
 - **Less Than** — Metric value is below a threshold
 - **Greater Than or Equal To** — Metric value is at or above a threshold
 - **Less Than or Equal To** — Metric value is at or below a threshold
 - **Equal To** — Metric value matches exactly
-- **Not Equal To** — Metric value does not match
+
+Baseline anomaly detection — no threshold; the form shows **Sensitivity** and **Baseline Window** instead, and compares each sample to the same-hour-of-week baseline built from that window:
+
+- **Anomalously High** — Metric value rises above the expected range
+- **Anomalously Low** — Metric value falls below the expected range
+- **Anomalous** — Metric value leaves the expected range in either direction
+
+Anomaly conditions stay in a "Learning" state and produce no alerts until at least the chosen Baseline Window of metric history exists.
 
 ### Example Criteria
 

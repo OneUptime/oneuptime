@@ -56,7 +56,6 @@ Select one or more services to monitor traces from. Services must be sending tra
 - **Greater Than or Equal To** — Span count is at or above a threshold
 - **Less Than or Equal To** — Span count is at or below a threshold
 - **Equal To** — Span count matches exactly
-- **Not Equal To** — Span count does not match
 
 ### Example Criteria
 
