@@ -45,9 +45,26 @@ export interface MicrosoftTeamsChat {
  * roster member of. Listing a team is therefore NOT evidence that we can post
  * to it — this record is, which is why channel sends check it before calling
  * the Bot Framework.
+ *
+ * A Teams team has TWO ids and they are not interchangeable. Bot activities
+ * carry the thread id (channelData.team.id, "19:...@thread.tacv2"); Graph — and
+ * therefore every team picker, notification rule and channel URL in OneUptime —
+ * uses the AAD group id (a GUID, channelData.team.aadGroupId). Records used to
+ * be keyed by the thread id and looked up by the group id, so the lookup could
+ * never hit. Both are stored explicitly now so neither side has to guess which
+ * one it holds.
  */
 export interface MicrosoftTeamsInstalledTeam {
-  id: string; // Teams team (group) id.
+  /*
+   * Map key. The Graph team id when we could resolve it, otherwise the Teams
+   * thread id — a record written before this shipped, or one whose group id
+   * could not be resolved, keeps the thread id here so uninstall still matches.
+   * Read it through MicrosoftTeamsUtil.indexInstalledTeamsByGraphTeamId rather
+   * than assuming which id space it is in.
+   */
+  id: string;
+  graphTeamId?: string | undefined; // AAD group id — what Graph and notification rules use. Absent on unresolved records.
+  teamsThreadId?: string | undefined; // channelData.team.id ("19:...@thread.tacv2") — what bot activities carry.
   name?: string | undefined;
   serviceUrl?: string | undefined; // Bot Framework service URL captured on install. Required for GCC/DoD.
   addedAt?: string | undefined;
@@ -79,7 +96,7 @@ export interface MicrosoftTeamsMiscData extends MiscData {
   availableTeams?: Record<string, MicrosoftTeamsTeam>; // keyed by team id. Every team Graph can see in the tenant.
   appAccessTokenExpiresAt?: string;
   availableChats?: Record<string, MicrosoftTeamsChat>; // keyed by chat id. Chats the OneUptime app has been added to.
-  installedTeams?: Record<string, MicrosoftTeamsInstalledTeam>; // keyed by team id. Teams the OneUptime app has been added to.
+  installedTeams?: Record<string, MicrosoftTeamsInstalledTeam>; // keyed by MicrosoftTeamsInstalledTeam.id — see that type, the key is not always a Graph team id.
 }
 
 export type WorkspaceMiscData = SlackMiscData | MicrosoftTeamsMiscData;

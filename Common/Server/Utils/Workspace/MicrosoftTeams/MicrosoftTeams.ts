@@ -72,6 +72,7 @@ import {
   ConfigurationBotFrameworkAuthentication,
   TeamsActivityHandler,
   TeamsInfo,
+  TeamDetails,
   TeamsChannelAccount,
   TeamsPagedMembersResult,
   TurnContext,
@@ -123,6 +124,20 @@ export interface MicrosoftTeamsTenantResolution {
   projectAuth: WorkspaceProjectAuthToken | null;
   isAmbiguous: boolean;
   candidateProjectIds: Array<ObjectID>;
+}
+
+/*
+ * Whether the OneUptime Teams app is installed in a given team.
+ *
+ * Unknown is a first-class outcome, not an error: checking installation needs a
+ * Graph permission that deployments connected before it was documented have not
+ * consented to, and a tenant that answers "I won't tell you" must never be
+ * reported to an admin as "the app is not installed".
+ */
+export enum MicrosoftTeamsAppInstallState {
+  Installed = "Installed",
+  NotInstalled = "NotInstalled",
+  Unknown = "Unknown",
 }
 
 /*
@@ -1443,6 +1458,14 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug(`Team ID: ${data.teamId}`);
     logger.debug(`Adaptive card: ${JSON.stringify(data.adaptiveCard)}`);
 
+    /*
+     * Declared out here so the catch block can tell a rejection we predicted
+     * from one we could not, and word the error accordingly.
+     */
+    let installState: MicrosoftTeamsAppInstallState =
+      MicrosoftTeamsAppInstallState.Unknown;
+    let installStateCameFromGraph: boolean = false;
+
     try {
       // Get project auth to retrieve bot ID
       const projectAuth: WorkspaceProjectAuthToken | null =
@@ -1493,30 +1516,42 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
 
       /*
-       * Preflight: refuse before calling the Bot Framework when we know the
-       * app was never installed into this team. Channels are discovered with
-       * tenant-wide Graph application permissions, which see every team
-       * regardless of installation — so reaching this point proves nothing
-       * about whether we can actually post.
+       * Preflight. Channels are discovered with tenant-wide Graph application
+       * permissions, which see every team regardless of installation — so
+       * reaching this point proves nothing about whether we can actually post.
        *
-       * installedTeams is only populated from install events, so an empty map
-       * means "we have not observed any installs" (for example on a workspace
-       * connected before this shipped), not "nothing is installed". Only
-       * enforce once we have at least one record, and let the Bot Framework
-       * error be translated below otherwise.
+       * An install we recorded from a bot activity is the cheap positive
+       * signal, and it also carries the serviceUrl this send needs. When we
+       * have no record we ask Graph rather than assuming: absence from
+       * installedTeams used to be reported to admins as "the app is not
+       * installed", which is a claim install events alone cannot support (they
+       * only arrive for installs that happened while OneUptime was reachable).
+       * Only a verified negative refuses the send; anything we cannot verify
+       * goes to Microsoft, which is the real authority.
        */
-      const installedTeams: Record<string, MicrosoftTeamsInstalledTeam> =
-        miscData.installedTeams || {};
       const installedTeam: MicrosoftTeamsInstalledTeam | undefined =
-        installedTeams[data.teamId];
+        this.indexInstalledTeamsByGraphTeamId(miscData.installedTeams)[
+          data.teamId
+        ];
 
-      if (Object.keys(installedTeams).length > 0 && !installedTeam) {
-        throw new BadDataException(
-          this.getBotNotInTeamMessage({
-            channelName: data.workspaceChannel.name,
-            membershipType: data.workspaceChannel.membershipType,
-          }),
-        );
+      if (installedTeam) {
+        installState = MicrosoftTeamsAppInstallState.Installed;
+      } else {
+        installState = await this.isAppInstalledInTeam({
+          authToken: data.authToken,
+          projectId: data.projectId,
+          teamId: data.teamId,
+        });
+        installStateCameFromGraph = true;
+
+        if (installState === MicrosoftTeamsAppInstallState.NotInstalled) {
+          throw new BadDataException(
+            this.getBotNotInTeamMessage({
+              channelName: data.workspaceChannel.name,
+              membershipType: data.workspaceChannel.membershipType,
+            }),
+          );
+        }
       }
 
       // Get Bot Framework adapter
@@ -1592,14 +1627,47 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
       /*
        * Microsoft's roster rejection is meaningless to an admin ("The bot is
-       * not part of the conversation roster"). Replace it with the action that
-       * actually fixes it.
+       * not part of the conversation roster"). Replace it with something
+       * actionable — but only claim the app is missing from the team when we
+       * checked and it is. Otherwise the app can be installed exactly as
+       * documented and still be told to install it, which is how this error
+       * sent admins in circles.
        */
       if (this.isBotNotInConversationRosterError(error)) {
+        /*
+         * A local install record got us past the preflight without asking
+         * Graph, and it can be stale — the app may have been removed from the
+         * team since, and an uninstall event only reaches us if OneUptime was
+         * reachable at the time. So confirm before wording the error. This is
+         * the failure path, so the extra call costs nothing in normal operation.
+         */
+        let verifiedInstallState: MicrosoftTeamsAppInstallState = installState;
+
+        if (!installStateCameFromGraph) {
+          verifiedInstallState = await this.isAppInstalledInTeam({
+            authToken: data.authToken,
+            projectId: data.projectId,
+            teamId: data.teamId,
+          });
+        }
+
+        if (
+          verifiedInstallState === MicrosoftTeamsAppInstallState.NotInstalled
+        ) {
+          throw new BadDataException(
+            this.getBotNotInTeamMessage({
+              channelName: data.workspaceChannel.name,
+              membershipType: data.workspaceChannel.membershipType,
+            }),
+          );
+        }
+
         throw new BadDataException(
-          this.getBotNotInTeamMessage({
+          this.getRosterRejectionMessage({
             channelName: data.workspaceChannel.name,
             membershipType: data.workspaceChannel.membershipType,
+            installState: verifiedInstallState,
+            microsoftError: error,
           }),
         );
       }
@@ -1640,6 +1708,138 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     }
 
     return `The OneUptime app is not installed in the Microsoft Teams team that owns "${data.channelName}". In Microsoft Teams, click the "..." next to the team name, then Manage team > Apps > More apps, and add OneUptime. Installing OneUptime for yourself or in a chat is not the same as adding it to the team.`;
+  }
+
+  /*
+   * Microsoft rejected the post and we could not confirm why. Everything here
+   * is a real cause of that rejection for an app that IS present in the team's
+   * app list, which is the case getBotNotInTeamMessage got wrong: the app tile
+   * showing up in Manage team > Apps does not mean the bot behind it is the one
+   * this deployment authenticates as. Microsoft's own wording is included so
+   * the raw error is not lost in the rewrite.
+   */
+  public static getRosterRejectionMessage(data: {
+    channelName: string;
+    membershipType?: string | undefined;
+    installState: MicrosoftTeamsAppInstallState;
+    microsoftError?: unknown;
+  }): string {
+    const causes: Array<string> = [];
+
+    if (data.membershipType === "private") {
+      causes.push(
+        `"${data.channelName}" is a private channel, which needs the app installed into the channel itself (channel "..." > Manage channel > Apps > Add an app) — a team-level install does not cover it`,
+      );
+    } else if (data.installState === MicrosoftTeamsAppInstallState.Installed) {
+      causes.push(
+        "the app is installed in this team, so the bot behind it may not be the one this OneUptime deployment uses — check that the Teams app package was built from this deployment (Project Settings > Workspace > Microsoft Teams) and that its bot id matches MICROSOFT_TEAMS_APP_CLIENT_ID",
+      );
+    } else {
+      causes.push(
+        'the OneUptime app has not been added to this team (team "..." > Manage team > Apps > More apps), or the app that was added is a different package whose bot id is not this deployment\'s MICROSOFT_TEAMS_APP_CLIENT_ID',
+      );
+    }
+
+    causes.push(
+      "the Azure Bot resource for this deployment does not have the Microsoft Teams channel enabled",
+    );
+
+    const microsoftMessage: string =
+      data.microsoftError instanceof Error
+        ? data.microsoftError.message
+        : String(data.microsoftError || "");
+
+    const suffix: string = microsoftMessage
+      ? ` Microsoft's response was: "${microsoftMessage}"`
+      : "";
+
+    return `Microsoft Teams refused the message to "${data.channelName}" because the OneUptime bot is not a member of that conversation. Likely causes: ${causes.join("; ")}.${suffix}`;
+  }
+
+  /*
+   * Asks Graph whether this deployment's Teams app is installed in a team.
+   *
+   * Matching is on teamsApp.externalId, which is the manifest id — and the
+   * manifest OneUptime generates sets both that and the bot id to
+   * MICROSOFT_TEAMS_APP_CLIENT_ID. So this answers the question that actually
+   * matters ("is the app THIS deployment authenticates as installed here?"),
+   * not the weaker one an admin can answer by eye ("is something called
+   * OneUptime in the app list?").
+   *
+   * Every failure is Unknown. The call needs TeamsAppInstallation.ReadForTeam.All,
+   * which deployments connected before it was documented have not granted, and a
+   * missing permission must not be reported as a missing install.
+   */
+  @CaptureSpan()
+  public static async isAppInstalledInTeam(data: {
+    authToken: string;
+    projectId: ObjectID;
+    teamId: string;
+  }): Promise<MicrosoftTeamsAppInstallState> {
+    if (!MicrosoftTeamsAppClientId) {
+      return MicrosoftTeamsAppInstallState.Unknown;
+    }
+
+    try {
+      const accessToken: string = await this.getValidAccessToken({
+        authToken: data.authToken,
+        projectId: data.projectId,
+      });
+
+      let nextLink: string | null =
+        `https://graph.microsoft.com/v1.0/teams/${data.teamId}/installedApps?$expand=teamsApp`;
+      let pageCount: number = 0;
+
+      while (nextLink) {
+        pageCount++;
+
+        if (pageCount > MICROSOFT_TEAMS_MAX_PAGES) {
+          logger.warn(
+            `Stopped paginating installed apps for team ${data.teamId} after ${MICROSOFT_TEAMS_MAX_PAGES} pages.`,
+          );
+          return MicrosoftTeamsAppInstallState.Unknown;
+        }
+
+        const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+          await API.get({
+            url: URL.fromString(nextLink),
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+          });
+
+        if (response instanceof HTTPErrorResponse) {
+          logger.debug(
+            `Could not read installed apps for team ${data.teamId}; treating installation as unknown.`,
+          );
+          logger.debug(response);
+          return MicrosoftTeamsAppInstallState.Unknown;
+        }
+
+        const installedApps: Array<JSONObject> =
+          (response.data["value"] as Array<JSONObject>) || [];
+
+        for (const installedApp of installedApps) {
+          const teamsApp: JSONObject =
+            (installedApp["teamsApp"] as JSONObject) || {};
+
+          if (teamsApp["externalId"] === MicrosoftTeamsAppClientId) {
+            return MicrosoftTeamsAppInstallState.Installed;
+          }
+        }
+
+        nextLink = (response.data["@odata.nextLink"] as string) || null;
+      }
+
+      return MicrosoftTeamsAppInstallState.NotInstalled;
+    } catch (err) {
+      logger.debug(
+        `Error checking whether the OneUptime app is installed in team ${data.teamId}; treating installation as unknown.`,
+      );
+      logger.debug(err);
+      return MicrosoftTeamsAppInstallState.Unknown;
+    }
   }
 
   /*
@@ -2357,6 +2557,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       await this.captureTeamFromBotActivity({
         activity: data.activity,
         turnContext: data.turnContext,
+        onlyIfMissingOrStale: true,
       });
     }
 
@@ -4246,10 +4447,121 @@ All monitoring checks are passing normally.`;
    * (channels are not chats), so before this existed we threw away the only
    * signal that tells us a proactive channel post will be accepted.
    */
+  /*
+   * The AAD group id for a team, which is what Graph calls the team id and what
+   * every notification rule stores. Teams normally puts it on the activity as
+   * channelData.team.aadGroupId; when it does not, TeamsInfo.getTeamDetails
+   * fetches it. Returns undefined rather than throwing — a missing group id
+   * degrades the record, it does not invalidate the install.
+   */
+  public static async resolveGraphTeamIdFromBotActivity(data: {
+    team: JSONObject | undefined;
+    turnContext: TurnContext;
+  }): Promise<string | undefined> {
+    const aadGroupIdOnActivity: string =
+      (data.team?.["aadGroupId"] as string) || "";
+
+    if (aadGroupIdOnActivity) {
+      return aadGroupIdOnActivity;
+    }
+
+    try {
+      const teamDetails: TeamDetails = await TeamsInfo.getTeamDetails(
+        data.turnContext,
+      );
+
+      return teamDetails?.aadGroupId || undefined;
+    } catch (err) {
+      /*
+       * Uninstall activities are the common case here: the bot is already out
+       * of the team by the time we ask, so the call fails. Uninstall matches on
+       * the thread id anyway, so this is not worth an error-level log.
+       */
+      logger.debug(
+        "Could not resolve the Graph team id for a Microsoft Teams install:",
+      );
+      logger.debug(err);
+      return undefined;
+    }
+  }
+
+  /*
+   * installedTeams re-keyed by Graph team id, which is the id every caller
+   * outside the bot handlers actually holds. Records that could not be resolved
+   * to a group id are dropped: they cannot answer "is this team installed?" for
+   * a notification rule, and including them under their thread id would only
+   * invite the same confusion this replaced.
+   */
+  public static indexInstalledTeamsByGraphTeamId(
+    installedTeams: Record<string, MicrosoftTeamsInstalledTeam> | undefined,
+  ): Record<string, MicrosoftTeamsInstalledTeam> {
+    const index: Record<string, MicrosoftTeamsInstalledTeam> = {};
+
+    for (const installedTeam of Object.values(installedTeams || {})) {
+      const graphTeamId: string | undefined =
+        installedTeam?.graphTeamId || undefined;
+
+      if (!graphTeamId) {
+        continue;
+      }
+
+      index[graphTeamId] = installedTeam;
+    }
+
+    return index;
+  }
+
+  /*
+   * The stored record for a team in a tenant, if any, matched on either id.
+   * Used to keep the message-driven backfill cheap.
+   */
+  public static async getInstalledTeamForTenant(data: {
+    tenantId: string;
+    teamsThreadId?: string | undefined;
+    graphTeamId?: string | undefined;
+  }): Promise<MicrosoftTeamsInstalledTeam | null> {
+    const projectAuths: Array<WorkspaceProjectAuthToken> =
+      await WorkspaceProjectAuthTokenService.findBy({
+        query: {
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          workspaceProjectId: data.tenantId,
+        },
+        select: {
+          _id: true,
+          miscData: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    for (const projectAuth of projectAuths) {
+      const miscData: MicrosoftTeamsMiscData =
+        (projectAuth.miscData as MicrosoftTeamsMiscData) || {};
+
+      for (const existingTeam of Object.values(miscData.installedTeams || {})) {
+        if (
+          this.isSameInstalledTeam({
+            team: existingTeam,
+            graphTeamId: data.graphTeamId,
+            teamsThreadId: data.teamsThreadId,
+          })
+        ) {
+          return existingTeam;
+        }
+      }
+    }
+
+    return null;
+  }
+
   @CaptureSpan()
   public static async captureTeamFromBotActivity(data: {
     activity: JSONObject;
     turnContext: TurnContext;
+    onlyIfMissingOrStale?: boolean | undefined;
   }): Promise<void> {
     try {
       const channelData: JSONObject =
@@ -4259,9 +4571,9 @@ All monitoring checks are passing normally.`;
         | JSONObject
         | undefined;
 
-      const teamId: string = (team?.["id"] as string) || "";
+      const teamsThreadId: string = (team?.["id"] as string) || "";
 
-      if (!teamId) {
+      if (!teamsThreadId) {
         // Not a team-scoped activity (personal or group chat). Nothing to do.
         return;
       }
@@ -4274,13 +4586,55 @@ All monitoring checks are passing normally.`;
         return;
       }
 
+      const activityServiceUrl: string | undefined =
+        (data.activity["serviceUrl"] as string) ||
+        data.turnContext.activity.serviceUrl ||
+        undefined;
+
+      /*
+       * The backfill runs on every inbound channel message, so it must be cheap
+       * once the team is already on record: one read, then nothing. Without this
+       * every message meant a write, and now potentially a Bot Framework call to
+       * resolve the group id as well. A record that is missing the group id, or
+       * whose serviceUrl has moved, is still worth redoing.
+       */
+      if (data.onlyIfMissingOrStale) {
+        const existingTeam: MicrosoftTeamsInstalledTeam | null =
+          await this.getInstalledTeamForTenant({
+            tenantId: tenantId,
+            teamsThreadId: teamsThreadId,
+            graphTeamId: (team?.["aadGroupId"] as string) || undefined,
+          });
+
+        if (
+          existingTeam &&
+          existingTeam.graphTeamId &&
+          existingTeam.serviceUrl === activityServiceUrl
+        ) {
+          return;
+        }
+      }
+
+      /*
+       * The send path looks installs up by Graph team id, so resolving it here
+       * is what makes the record usable at all. Teams puts it on the activity
+       * as aadGroupId most of the time; when it does not, one Bot Framework
+       * call gets it. A record without it is still worth keeping for the
+       * serviceUrl and for uninstall matching, it just cannot be matched to a
+       * notification rule.
+       */
+      const graphTeamId: string | undefined =
+        await this.resolveGraphTeamIdFromBotActivity({
+          team: team,
+          turnContext: data.turnContext,
+        });
+
       const installedTeam: MicrosoftTeamsInstalledTeam = {
-        id: teamId,
+        id: graphTeamId || teamsThreadId,
+        graphTeamId: graphTeamId,
+        teamsThreadId: teamsThreadId,
         name: (team?.["name"] as string) || undefined,
-        serviceUrl:
-          (data.activity["serviceUrl"] as string) ||
-          data.turnContext.activity.serviceUrl ||
-          undefined,
+        serviceUrl: activityServiceUrl,
         addedAt: OneUptimeDate.getCurrentDate().toISOString(),
       };
 
@@ -4290,7 +4644,7 @@ All monitoring checks are passing normally.`;
       });
 
       logger.debug(
-        `Captured Microsoft Teams team install ${teamId} for tenant ${tenantId}`,
+        `Captured Microsoft Teams team install ${installedTeam.id} (thread ${teamsThreadId}, graph ${graphTeamId || "unresolved"}) for tenant ${tenantId}`,
       );
     } catch (err) {
       logger.error("Error capturing Microsoft Teams team from bot activity:");
@@ -4306,22 +4660,33 @@ All monitoring checks are passing normally.`;
       const channelData: JSONObject =
         (data.activity["channelData"] as JSONObject) || {};
 
-      const teamId: string =
-        ((channelData["team"] as JSONObject)?.["id"] as string) || "";
+      const team: JSONObject | undefined = channelData["team"] as
+        | JSONObject
+        | undefined;
+
+      const teamsThreadId: string = (team?.["id"] as string) || "";
       const tenantId: string =
         ((channelData["tenant"] as JSONObject)?.["id"] as string) || "";
 
-      if (!teamId || !tenantId) {
+      if (!teamsThreadId || !tenantId) {
         return;
       }
 
+      /*
+       * Uninstall matches on both ids because we cannot know which one the
+       * record was keyed by: the bot is already out of the team, so
+       * getTeamDetails will not answer, and records written before this shipped
+       * only have a thread id. aadGroupId is still on the activity often enough
+       * to be worth passing through.
+       */
       await this.removeTeamFromProjectAuthTokens({
         tenantId: tenantId,
-        teamId: teamId,
+        teamsThreadId: teamsThreadId,
+        graphTeamId: (team?.["aadGroupId"] as string) || undefined,
       });
 
       logger.debug(
-        `Removed Microsoft Teams team install ${teamId} for tenant ${tenantId}`,
+        `Removed Microsoft Teams team install ${teamsThreadId} for tenant ${tenantId}`,
       );
     } catch (err) {
       logger.error("Error removing Microsoft Teams team from bot activity:");
@@ -4361,10 +4726,32 @@ All monitoring checks are passing normally.`;
         ...((projectAuth.miscData as MicrosoftTeamsMiscData) || {}),
       } as MicrosoftTeamsMiscData;
 
-      miscData.installedTeams = {
-        ...(miscData.installedTeams || {}),
-        [data.team.id]: data.team,
-      };
+      /*
+       * Drop any other record describing the same team before inserting. A
+       * team captured before the group id was resolvable sits under its thread
+       * id, and re-capturing it under the group id would otherwise leave two
+       * records for one team — one of which can never be matched or removed.
+       */
+      const installedTeams: Record<string, MicrosoftTeamsInstalledTeam> = {};
+
+      for (const [key, existingTeam] of Object.entries(
+        miscData.installedTeams || {},
+      )) {
+        if (
+          this.isSameInstalledTeam({
+            team: existingTeam,
+            graphTeamId: data.team.graphTeamId,
+            teamsThreadId: data.team.teamsThreadId,
+          })
+        ) {
+          continue;
+        }
+
+        installedTeams[key] = existingTeam;
+      }
+
+      installedTeams[data.team.id] = data.team;
+      miscData.installedTeams = installedTeams;
 
       await WorkspaceProjectAuthTokenService.updateOneById({
         id: projectAuth.id!,
@@ -4378,10 +4765,45 @@ All monitoring checks are passing normally.`;
     }
   }
 
+  /*
+   * Whether a stored record describes the team identified by either id. Matches
+   * on the record's explicit ids and on its key, so records written before
+   * teamsThreadId existed — where the thread id is only in `id` — still match.
+   * Ids are compared case-sensitively, as Microsoft returns them.
+   */
+  public static isSameInstalledTeam(data: {
+    team: MicrosoftTeamsInstalledTeam | undefined;
+    graphTeamId?: string | undefined;
+    teamsThreadId?: string | undefined;
+  }): boolean {
+    if (!data.team) {
+      return false;
+    }
+
+    if (
+      data.graphTeamId &&
+      (data.team.graphTeamId === data.graphTeamId ||
+        data.team.id === data.graphTeamId)
+    ) {
+      return true;
+    }
+
+    if (
+      data.teamsThreadId &&
+      (data.team.teamsThreadId === data.teamsThreadId ||
+        data.team.id === data.teamsThreadId)
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
   @CaptureSpan()
   public static async removeTeamFromProjectAuthTokens(data: {
     tenantId: string;
-    teamId: string;
+    teamsThreadId?: string | undefined;
+    graphTeamId?: string | undefined;
   }): Promise<void> {
     const projectAuths: Array<WorkspaceProjectAuthToken> =
       await WorkspaceProjectAuthTokenService.findBy({
@@ -4405,14 +4827,34 @@ All monitoring checks are passing normally.`;
         ...((projectAuth.miscData as MicrosoftTeamsMiscData) || {}),
       } as MicrosoftTeamsMiscData;
 
-      if (!miscData.installedTeams || !miscData.installedTeams[data.teamId]) {
+      if (!miscData.installedTeams) {
         continue;
       }
 
-      const installedTeams: Record<string, MicrosoftTeamsInstalledTeam> = {
-        ...miscData.installedTeams,
-      };
-      delete installedTeams[data.teamId];
+      const installedTeams: Record<string, MicrosoftTeamsInstalledTeam> = {};
+      let removedAny: boolean = false;
+
+      for (const [key, existingTeam] of Object.entries(
+        miscData.installedTeams,
+      )) {
+        if (
+          this.isSameInstalledTeam({
+            team: existingTeam,
+            graphTeamId: data.graphTeamId,
+            teamsThreadId: data.teamsThreadId,
+          })
+        ) {
+          removedAny = true;
+          continue;
+        }
+
+        installedTeams[key] = existingTeam;
+      }
+
+      if (!removedAny) {
+        continue;
+      }
+
       miscData.installedTeams = installedTeams;
 
       await WorkspaceProjectAuthTokenService.updateOneById({

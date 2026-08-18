@@ -63,7 +63,9 @@ jest.mock("botbuilder", () => {
   };
 });
 
-import MicrosoftTeamsUtil from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import MicrosoftTeamsUtil, {
+  MicrosoftTeamsAppInstallState,
+} from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import WorkspaceProjectAuthTokenService from "../../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceProjectAuthToken, {
   MicrosoftTeamsInstalledTeam,
@@ -73,6 +75,9 @@ import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import ObjectID from "../../../../Types/ObjectID";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
+import API from "../../../../Utils/API";
+import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import WorkspaceMessagePayload, {
   WorkspacePayloadMarkdown,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
@@ -135,13 +140,24 @@ function baseMiscData(
   } as MicrosoftTeamsMiscData;
 }
 
+/*
+ * A captured install, as captureTeamFromBotActivity writes it: keyed by the
+ * GRAPH team id, with the Bot Framework thread id kept alongside. `id` is the
+ * Graph id here because that is the only form the send path can match — see
+ * MicrosoftTeamsInstalledTeamIdSpace.test.ts, which derives these fixtures from
+ * the real capture path instead of hand-writing them.
+ */
 function buildInstalledTeam(data: {
   id: string;
   name?: string | undefined;
   serviceUrl?: string | undefined;
+  graphTeamId?: string | undefined;
+  teamsThreadId?: string | undefined;
 }): MicrosoftTeamsInstalledTeam {
   const installedTeam: MicrosoftTeamsInstalledTeam = {
     id: data.id,
+    graphTeamId: "graphTeamId" in data ? data.graphTeamId : data.id,
+    teamsThreadId: data.teamsThreadId || `19:${data.id}@thread.tacv2`,
     name: data.name || "Engineering",
     addedAt: "2026-07-27T00:00:00.000Z",
   };
@@ -149,6 +165,33 @@ function buildInstalledTeam(data: {
     installedTeam.serviceUrl = data.serviceUrl;
   }
   return installedTeam;
+}
+
+/*
+ * Pin the Graph installed-apps check. The send path consults it whenever it has
+ * no local install record, so leaving it live would put every such test on the
+ * network. Unknown is the honest default for a tenant that has not granted the
+ * permission, and it is also the pre-existing behaviour (fall through to
+ * Microsoft), which keeps these suites about one thing at a time.
+ */
+let installStateSpy: jest.SpyInstance | undefined = undefined;
+
+function mockInstallState(
+  state: MicrosoftTeamsAppInstallState = MicrosoftTeamsAppInstallState.Unknown,
+): jest.SpyInstance {
+  installStateSpy = jest
+    .spyOn(MicrosoftTeamsUtil, "isAppInstalledInTeam")
+    .mockResolvedValue(state);
+  return installStateSpy;
+}
+
+/*
+ * The suite that tests isAppInstalledInTeam itself has to undo the file-wide
+ * stub, or it would only ever assert against the stub.
+ */
+function useRealInstallStateCheck(): void {
+  installStateSpy?.mockRestore();
+  installStateSpy = undefined;
 }
 
 function buildChannel(data?: {
@@ -276,6 +319,7 @@ afterEach(() => {
  * mockResolvedValueOnce queues leak between tests unless reset here.
  */
 beforeEach(() => {
+  mockInstallState();
   (MessageFactory.text as jest.Mock).mockReset();
   (MessageFactory.attachment as jest.Mock).mockReset();
   (MessageFactory.attachment as jest.Mock).mockImplementation(
@@ -541,60 +585,36 @@ describe("MicrosoftTeamsUtil.sendAdaptiveCardToChannel - shared channel refusal"
   });
 });
 
+/*
+ * The preflight decides whether to refuse locally or hand the send to Microsoft.
+ *
+ * It used to refuse purely on the absence of a local install record, which is
+ * not evidence: installedTeams is only written from bot activities, so a team
+ * the app was added to while OneUptime was unreachable — or before install
+ * capture shipped — looks identical to a team it was never added to. Admins who
+ * had followed every documented step were told to follow them again.
+ *
+ * A refusal now requires a POSITIVE answer from Graph that the app is absent.
+ * Installed and Unknown both proceed and let Microsoft, the only real authority
+ * on roster membership, decide.
+ */
 describe("MicrosoftTeamsUtil.sendAdaptiveCardToChannel - install preflight", () => {
-  test("installedTeams undefined (legacy workspace) does NOT block the send", async () => {
-    mockProjectAuth({ miscData: baseMiscData() });
-    const adapter: FakeBotAdapter = installFakeBotAdapter();
-
-    const thread: WorkspaceThread = await sendCardToChannel();
-
-    expect(adapter.continueConversationAsync).toHaveBeenCalledTimes(1);
-    expect(thread.threadId).toBe("msg-123");
-  });
-
-  test("an EMPTY installedTeams map does NOT block the send", async () => {
-    mockProjectAuth({ installedTeams: {} });
-    const adapter: FakeBotAdapter = installFakeBotAdapter();
-
-    await sendCardToChannel();
-
-    expect(adapter.continueConversationAsync).toHaveBeenCalledTimes(1);
-  });
-
-  test("installedTeams containing ONLY a different team refuses before the Bot Framework call", async () => {
-    mockProjectAuth({
-      installedTeams: {
-        "team-2": buildInstalledTeam({ id: "team-2", name: "Marketing" }),
-      },
-    });
-    const adapter: FakeBotAdapter = installFakeBotAdapter();
-
-    await expect(
-      sendCardToChannel({
-        teamId: TEAM_ID,
-        workspaceChannel: buildChannel({ name: "General" }),
-      }),
-    ).rejects.toThrow(
-      new BadDataException(
-        MicrosoftTeamsUtil.getBotNotInTeamMessage({ channelName: "General" }),
-      ),
-    );
-
-    expect(adapter.getBotAdapterSpy).not.toHaveBeenCalled();
-    expect(adapter.continueConversationAsync).not.toHaveBeenCalled();
-  });
-
-  test("installedTeams containing this team proceeds to the send", async () => {
+  test("a captured install for the target team proceeds without asking Graph", async () => {
     mockProjectAuth({
       installedTeams: {
         [TEAM_ID]: buildInstalledTeam({ id: TEAM_ID }),
       },
     });
+    const installSpy: jest.SpyInstance = mockInstallState(
+      MicrosoftTeamsAppInstallState.NotInstalled,
+    );
     const adapter: FakeBotAdapter = installFakeBotAdapter();
 
     await sendCardToChannel();
 
     expect(adapter.continueConversationAsync).toHaveBeenCalledTimes(1);
+    // The local record is the fast path; no Graph round trip per notification.
+    expect(installSpy).not.toHaveBeenCalled();
   });
 
   test("several installed teams, one of which is the target, proceeds", async () => {
@@ -612,13 +632,105 @@ describe("MicrosoftTeamsUtil.sendAdaptiveCardToChannel - install preflight", () 
     expect(adapter.continueConversationAsync).toHaveBeenCalledTimes(1);
   });
 
-  test("several installed teams, none of which is the target, refuses", async () => {
+  test("no local record + Graph says NOT installed refuses before the Bot Framework call", async () => {
     mockProjectAuth({
       installedTeams: {
-        "team-0": buildInstalledTeam({ id: "team-0" }),
+        "team-2": buildInstalledTeam({ id: "team-2", name: "Marketing" }),
+      },
+    });
+    mockInstallState(MicrosoftTeamsAppInstallState.NotInstalled);
+    const adapter: FakeBotAdapter = installFakeBotAdapter();
+
+    await expect(
+      sendCardToChannel({
+        teamId: TEAM_ID,
+        workspaceChannel: buildChannel({ name: "General" }),
+      }),
+    ).rejects.toThrow(
+      new BadDataException(
+        MicrosoftTeamsUtil.getBotNotInTeamMessage({ channelName: "General" }),
+      ),
+    );
+
+    expect(adapter.getBotAdapterSpy).not.toHaveBeenCalled();
+    expect(adapter.continueConversationAsync).not.toHaveBeenCalled();
+  });
+
+  test("the verified refusal is checked against the team the caller asked for", async () => {
+    mockProjectAuth({ installedTeams: {} });
+    const installSpy: jest.SpyInstance = mockInstallState(
+      MicrosoftTeamsAppInstallState.NotInstalled,
+    );
+    installFakeBotAdapter();
+
+    await expect(sendCardToChannel({ teamId: "team-99" })).rejects.toThrow(
+      /is not installed in the Microsoft Teams team/,
+    );
+
+    expect(installSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ teamId: "team-99" }),
+    );
+  });
+
+  test("no local record + Graph says installed proceeds to the send", async () => {
+    mockProjectAuth({ installedTeams: {} });
+    mockInstallState(MicrosoftTeamsAppInstallState.Installed);
+    const adapter: FakeBotAdapter = installFakeBotAdapter();
+
+    await sendCardToChannel();
+
+    expect(adapter.continueConversationAsync).toHaveBeenCalledTimes(1);
+  });
+
+  test("no local record + Graph cannot tell us proceeds rather than accusing", async () => {
+    mockProjectAuth({
+      installedTeams: {
         "team-2": buildInstalledTeam({ id: "team-2" }),
       },
     });
+    mockInstallState(MicrosoftTeamsAppInstallState.Unknown);
+    const adapter: FakeBotAdapter = installFakeBotAdapter();
+
+    await sendCardToChannel({ teamId: TEAM_ID });
+
+    expect(adapter.continueConversationAsync).toHaveBeenCalledTimes(1);
+  });
+
+  test("installedTeams undefined (legacy workspace) with an unknown install state does NOT block the send", async () => {
+    mockProjectAuth({ miscData: baseMiscData() });
+    const adapter: FakeBotAdapter = installFakeBotAdapter();
+
+    await sendCardToChannel();
+
+    expect(adapter.continueConversationAsync).toHaveBeenCalledTimes(1);
+  });
+
+  test("an EMPTY installedTeams map with an unknown install state does NOT block the send", async () => {
+    mockProjectAuth({ installedTeams: {} });
+    const adapter: FakeBotAdapter = installFakeBotAdapter();
+
+    await sendCardToChannel();
+
+    expect(adapter.continueConversationAsync).toHaveBeenCalledTimes(1);
+  });
+
+  test("a record written before graph ids were captured cannot vouch for a team, so Graph decides", async () => {
+    /*
+     * The legacy on-disk shape: keyed by the Bot Framework thread id, with no
+     * graphTeamId. It must not be mistaken for an install of the Graph team id
+     * that happens to be the rule's value, and it must not be treated as proof
+     * of anything either — Graph is asked, and here it says no.
+     */
+    mockProjectAuth({
+      installedTeams: {
+        "19:team-aaa@thread.tacv2": {
+          id: "19:team-aaa@thread.tacv2",
+          name: "Engineering",
+          addedAt: "2026-07-27T00:00:00.000Z",
+        } as MicrosoftTeamsInstalledTeam,
+      },
+    });
+    mockInstallState(MicrosoftTeamsAppInstallState.NotInstalled);
     const adapter: FakeBotAdapter = installFakeBotAdapter();
 
     await expect(sendCardToChannel({ teamId: TEAM_ID })).rejects.toThrow(
@@ -627,12 +739,29 @@ describe("MicrosoftTeamsUtil.sendAdaptiveCardToChannel - install preflight", () 
     expect(adapter.continueConversationAsync).not.toHaveBeenCalled();
   });
 
-  test("the team id lookup is exact — a differently-cased key does not count as installed", async () => {
+  test("a legacy record does not block a send Graph is willing to allow", async () => {
+    mockProjectAuth({
+      installedTeams: {
+        "19:team-aaa@thread.tacv2": {
+          id: "19:team-aaa@thread.tacv2",
+        } as MicrosoftTeamsInstalledTeam,
+      },
+    });
+    mockInstallState(MicrosoftTeamsAppInstallState.Installed);
+    const adapter: FakeBotAdapter = installFakeBotAdapter();
+
+    await sendCardToChannel({ teamId: TEAM_ID });
+
+    expect(adapter.continueConversationAsync).toHaveBeenCalledTimes(1);
+  });
+
+  test("the graph team id match is exact — a differently-cased record is not this team", async () => {
     mockProjectAuth({
       installedTeams: {
         "TEAM-1": buildInstalledTeam({ id: "TEAM-1" }),
       },
     });
+    mockInstallState(MicrosoftTeamsAppInstallState.NotInstalled);
     const adapter: FakeBotAdapter = installFakeBotAdapter();
 
     await expect(sendCardToChannel({ teamId: "team-1" })).rejects.toThrow(
@@ -641,12 +770,9 @@ describe("MicrosoftTeamsUtil.sendAdaptiveCardToChannel - install preflight", () 
     expect(adapter.continueConversationAsync).not.toHaveBeenCalled();
   });
 
-  test("the preflight refusal for a PRIVATE channel gives the channel-install instructions", async () => {
-    mockProjectAuth({
-      installedTeams: {
-        "team-2": buildInstalledTeam({ id: "team-2" }),
-      },
-    });
+  test("the verified refusal for a PRIVATE channel gives the channel-install instructions", async () => {
+    mockProjectAuth({ installedTeams: {} });
+    mockInstallState(MicrosoftTeamsAppInstallState.NotInstalled);
     installFakeBotAdapter();
 
     await expect(
@@ -666,29 +792,25 @@ describe("MicrosoftTeamsUtil.sendAdaptiveCardToChannel - install preflight", () 
     );
   });
 
-  test("the preflight refusal is a BadDataException", async () => {
-    mockProjectAuth({
-      installedTeams: {
-        "team-2": buildInstalledTeam({ id: "team-2" }),
-      },
-    });
+  test("the verified refusal is a BadDataException", async () => {
+    mockProjectAuth({ installedTeams: {} });
+    mockInstallState(MicrosoftTeamsAppInstallState.NotInstalled);
     installFakeBotAdapter();
 
     await expect(sendCardToChannel()).rejects.toBeInstanceOf(BadDataException);
   });
 
   test("the preflight never runs when the integration is missing entirely", async () => {
-    jest
-      .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuth")
-      .mockResolvedValue(null);
-    const adapter: FakeBotAdapter = installFakeBotAdapter();
+    mockProjectAuth({ miscData: null });
+    const installSpy: jest.SpyInstance = mockInstallState(
+      MicrosoftTeamsAppInstallState.NotInstalled,
+    );
+    installFakeBotAdapter();
 
     await expect(sendCardToChannel()).rejects.toThrow(
-      new BadDataException(
-        "Microsoft Teams integration not found for this project",
-      ),
+      /Microsoft Teams integration not found/,
     );
-    expect(adapter.continueConversationAsync).not.toHaveBeenCalled();
+    expect(installSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -822,9 +944,26 @@ describe("MicrosoftTeamsUtil.sendAdaptiveCardToChannel - conversation reference"
   });
 });
 
+/*
+ * How Microsoft's roster rejection is worded back to the admin.
+ *
+ * The rewrite used to assert "the app is not installed in the team" for every
+ * roster rejection. That is one cause among several, and for the customer who
+ * reported this it was the wrong one — the app was in the team's app list and
+ * the bot answered @mentions in the very channel that failed. The rewrite is
+ * now conditioned on what the preflight actually established: only a verified
+ * absence gets the install instructions, and anything else gets the causes that
+ * apply to an app which IS present, with Microsoft's own words attached.
+ */
 describe("MicrosoftTeamsUtil.sendAdaptiveCardToChannel - roster error translation", () => {
-  test("Microsoft's roster rejection is replaced with the parent-team install instructions", async () => {
-    mockProjectAuth();
+  test("a VERIFIED absent install still gets the parent-team install instructions", async () => {
+    /*
+     * Graph is asked before the send here and says the app is absent, but the
+     * refusal happens up front, so this asserts the message an admin who really
+     * has not added the app sees.
+     */
+    mockProjectAuth({ installedTeams: {} });
+    mockInstallState(MicrosoftTeamsAppInstallState.NotInstalled);
     installFakeBotAdapter({ adapterError: new Error(ROSTER_ERROR_TEXT) });
 
     await expect(
@@ -844,7 +983,145 @@ describe("MicrosoftTeamsUtil.sendAdaptiveCardToChannel - roster error translatio
     );
   });
 
-  test("the raw Microsoft text never reaches the caller", async () => {
+  test("an UNVERIFIED roster rejection does not claim the app is missing", async () => {
+    mockProjectAuth();
+    mockInstallState(MicrosoftTeamsAppInstallState.Unknown);
+    installFakeBotAdapter({ adapterError: new Error(ROSTER_ERROR_TEXT) });
+
+    let thrown: unknown = undefined;
+    try {
+      await sendCardToChannel({
+        workspaceChannel: buildChannel({ name: "General" }),
+      });
+    } catch (err) {
+      thrown = err;
+    }
+
+    expect(thrown).toBeInstanceOf(BadDataException);
+    expect((thrown as Error).message).not.toContain(
+      "The OneUptime app is not installed in the Microsoft Teams team",
+    );
+    expect((thrown as Error).message).toContain("Likely causes");
+  });
+
+  test("an unverified rejection names the channel and quotes Microsoft", async () => {
+    mockProjectAuth();
+    mockInstallState(MicrosoftTeamsAppInstallState.Unknown);
+    installFakeBotAdapter({ adapterError: new Error(ROSTER_ERROR_TEXT) });
+
+    let thrown: unknown = undefined;
+    try {
+      await sendCardToChannel({
+        workspaceChannel: buildChannel({ name: "test public channel" }),
+      });
+    } catch (err) {
+      thrown = err;
+    }
+
+    expect((thrown as Error).message).toContain('"test public channel"');
+    // The raw error is the one thing support needs and the rewrite used to eat.
+    expect((thrown as Error).message).toContain(ROSTER_ERROR_TEXT);
+  });
+
+  test("when the app IS known installed, the rejection points at the bot id instead", async () => {
+    /*
+     * The reporter's exact situation: a real install, and a roster rejection
+     * anyway. The actionable cause is that the installed package's bot is not
+     * the one this deployment authenticates as.
+     */
+    mockProjectAuth({
+      installedTeams: {
+        [TEAM_ID]: buildInstalledTeam({ id: TEAM_ID }),
+      },
+    });
+    mockInstallState(MicrosoftTeamsAppInstallState.Installed);
+    installFakeBotAdapter({ adapterError: new Error(ROSTER_ERROR_TEXT) });
+
+    let thrown: unknown = undefined;
+    try {
+      await sendCardToChannel({ teamId: TEAM_ID });
+    } catch (err) {
+      thrown = err;
+    }
+
+    expect((thrown as Error).message).toContain(
+      "MICROSOFT_TEAMS_APP_CLIENT_ID",
+    );
+    expect((thrown as Error).message).not.toContain(
+      "The OneUptime app is not installed in the Microsoft Teams team",
+    );
+  });
+
+  test("a STALE local install record is re-checked, and a confirmed removal gets the install instructions", async () => {
+    /*
+     * The local record let this send skip the preflight, but the app has since
+     * been removed from the team and no uninstall event reached us. Wording the
+     * error off the stale record would blame the bot id for a genuinely missing
+     * install, so Graph is asked again on the failure path.
+     */
+    mockProjectAuth({
+      installedTeams: {
+        [TEAM_ID]: buildInstalledTeam({ id: TEAM_ID }),
+      },
+    });
+    const installSpy: jest.SpyInstance = mockInstallState(
+      MicrosoftTeamsAppInstallState.NotInstalled,
+    );
+    installFakeBotAdapter({ adapterError: new Error(ROSTER_ERROR_TEXT) });
+
+    await expect(
+      sendCardToChannel({
+        teamId: TEAM_ID,
+        workspaceChannel: buildChannel({ name: "General" }),
+      }),
+    ).rejects.toThrow(
+      new BadDataException(
+        MicrosoftTeamsUtil.getBotNotInTeamMessage({ channelName: "General" }),
+      ),
+    );
+
+    // Not consulted on the happy path; consulted once the send actually failed.
+    expect(installSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("the Graph check is not repeated when the preflight already made it", async () => {
+    mockProjectAuth({ installedTeams: {} });
+    const installSpy: jest.SpyInstance = mockInstallState(
+      MicrosoftTeamsAppInstallState.Unknown,
+    );
+    installFakeBotAdapter({ adapterError: new Error(ROSTER_ERROR_TEXT) });
+
+    await expect(sendCardToChannel()).rejects.toThrow(/Likely causes/);
+
+    expect(installSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("an unverified rejection on a private channel still leads with the channel install", async () => {
+    mockProjectAuth();
+    mockInstallState(MicrosoftTeamsAppInstallState.Unknown);
+    installFakeBotAdapter({ adapterError: new Error(ROSTER_ERROR_TEXT) });
+
+    let thrown: unknown = undefined;
+    try {
+      await sendCardToChannel({
+        workspaceChannel: buildChannel({
+          name: "Ops War Room",
+          membershipType: "private",
+        }),
+      });
+    } catch (err) {
+      thrown = err;
+    }
+
+    expect((thrown as Error).message).toContain("Manage channel > Apps");
+  });
+
+  test("every roster rejection mentions the Azure Bot Teams channel", async () => {
+    /*
+     * A bot whose Azure resource has no Microsoft Teams channel enabled is
+     * rejected exactly like an uninstalled app, and nothing in OneUptime can
+     * detect it — so it has to be in the message.
+     */
     mockProjectAuth();
     installFakeBotAdapter({ adapterError: new Error(ROSTER_ERROR_TEXT) });
 
@@ -855,30 +1132,7 @@ describe("MicrosoftTeamsUtil.sendAdaptiveCardToChannel - roster error translatio
       thrown = err;
     }
 
-    expect(thrown).toBeInstanceOf(BadDataException);
-    expect((thrown as Error).message).not.toContain("conversation roster");
-    expect((thrown as Error).message).toContain("Manage team > Apps");
-  });
-
-  test("a roster rejection on a private channel gets the channel-install instructions", async () => {
-    mockProjectAuth();
-    installFakeBotAdapter({ adapterError: new Error(ROSTER_ERROR_TEXT) });
-
-    await expect(
-      sendCardToChannel({
-        workspaceChannel: buildChannel({
-          name: "Ops War Room",
-          membershipType: "private",
-        }),
-      }),
-    ).rejects.toThrow(
-      new BadDataException(
-        MicrosoftTeamsUtil.getBotNotInTeamMessage({
-          channelName: "Ops War Room",
-          membershipType: "private",
-        }),
-      ),
-    );
+    expect((thrown as Error).message).toContain("Microsoft Teams channel");
   });
 
   test("a roster rejection raised inside the proactive callback is translated too", async () => {
@@ -887,9 +1141,7 @@ describe("MicrosoftTeamsUtil.sendAdaptiveCardToChannel - roster error translatio
       sendActivityError: new Error(ROSTER_ERROR_TEXT),
     });
 
-    await expect(sendCardToChannel()).rejects.toThrow(
-      /is not installed in the Microsoft Teams team/,
-    );
+    await expect(sendCardToChannel()).rejects.toThrow(/Likely causes/);
   });
 
   test("a roster rejection thrown as a plain string is translated too", async () => {
@@ -898,9 +1150,7 @@ describe("MicrosoftTeamsUtil.sendAdaptiveCardToChannel - roster error translatio
       adapterError: "The bot is not part of the conversation roster.",
     });
 
-    await expect(sendCardToChannel()).rejects.toThrow(
-      /is not installed in the Microsoft Teams team/,
-    );
+    await expect(sendCardToChannel()).rejects.toThrow(/Likely causes/);
   });
 
   test("unrelated adapter errors propagate untouched", async () => {
@@ -1149,6 +1399,7 @@ describe("MicrosoftTeamsUtil.sendMessage - unresolvable channel destinations are
         "team-2": buildInstalledTeam({ id: "team-2" }),
       },
     });
+    mockInstallState(MicrosoftTeamsAppInstallState.NotInstalled);
     const adapter: FakeBotAdapter = installFakeBotAdapter();
 
     const response: WorkspaceSendMessageResponse = await callSendMessage(
@@ -1164,6 +1415,300 @@ describe("MicrosoftTeamsUtil.sendMessage - unresolvable channel destinations are
         channelName: "General",
         membershipType: "standard",
       }),
+    );
+  });
+});
+
+describe("MicrosoftTeamsUtil.getRosterRejectionMessage", () => {
+  test("names the channel that was refused", () => {
+    const message: string = MicrosoftTeamsUtil.getRosterRejectionMessage({
+      channelName: "test public channel",
+      installState: MicrosoftTeamsAppInstallState.Unknown,
+    });
+
+    expect(message).toContain('"test public channel"');
+  });
+
+  test("never tells an admin the app is not installed", () => {
+    /*
+     * The whole point of this message: it is used when we do NOT know, and the
+     * old wording turned "we do not know" into a false statement of fact.
+     */
+    for (const installState of [
+      MicrosoftTeamsAppInstallState.Unknown,
+      MicrosoftTeamsAppInstallState.Installed,
+    ]) {
+      const message: string = MicrosoftTeamsUtil.getRosterRejectionMessage({
+        channelName: "General",
+        installState: installState,
+      });
+
+      expect(message).not.toContain(
+        "The OneUptime app is not installed in the Microsoft Teams team",
+      );
+    }
+  });
+
+  test("a known install points at a bot id mismatch, not a missing install", () => {
+    const message: string = MicrosoftTeamsUtil.getRosterRejectionMessage({
+      channelName: "General",
+      installState: MicrosoftTeamsAppInstallState.Installed,
+    });
+
+    expect(message).toContain("MICROSOFT_TEAMS_APP_CLIENT_ID");
+    expect(message).toContain("the app is installed in this team");
+  });
+
+  test("an unknown install state still suggests adding the app", () => {
+    const message: string = MicrosoftTeamsUtil.getRosterRejectionMessage({
+      channelName: "General",
+      installState: MicrosoftTeamsAppInstallState.Unknown,
+    });
+
+    expect(message).toContain("Manage team > Apps");
+  });
+
+  test("a private channel leads with the channel-level install", () => {
+    const message: string = MicrosoftTeamsUtil.getRosterRejectionMessage({
+      channelName: "Ops War Room",
+      membershipType: "private",
+      installState: MicrosoftTeamsAppInstallState.Unknown,
+    });
+
+    expect(message).toContain("Manage channel > Apps");
+    expect(message).not.toContain("Manage team > Apps");
+  });
+
+  test("Microsoft's own wording is quoted when we have it", () => {
+    const message: string = MicrosoftTeamsUtil.getRosterRejectionMessage({
+      channelName: "General",
+      installState: MicrosoftTeamsAppInstallState.Unknown,
+      microsoftError: new Error(ROSTER_ERROR_TEXT),
+    });
+
+    expect(message).toContain(ROSTER_ERROR_TEXT);
+  });
+
+  test("a non-Error microsoftError is stringified rather than dropped", () => {
+    const message: string = MicrosoftTeamsUtil.getRosterRejectionMessage({
+      channelName: "General",
+      installState: MicrosoftTeamsAppInstallState.Unknown,
+      microsoftError: "BotNotInConversationRoster",
+    });
+
+    expect(message).toContain("BotNotInConversationRoster");
+  });
+
+  test("no trailing quote section when there is no Microsoft error to quote", () => {
+    const message: string = MicrosoftTeamsUtil.getRosterRejectionMessage({
+      channelName: "General",
+      installState: MicrosoftTeamsAppInstallState.Unknown,
+    });
+
+    expect(message).not.toContain("Microsoft's response was");
+    expect(message.endsWith(".")).toBe(true);
+  });
+
+  test("the Azure Bot Teams channel is always listed as a cause", () => {
+    for (const installState of [
+      MicrosoftTeamsAppInstallState.Unknown,
+      MicrosoftTeamsAppInstallState.Installed,
+      MicrosoftTeamsAppInstallState.NotInstalled,
+    ]) {
+      const message: string = MicrosoftTeamsUtil.getRosterRejectionMessage({
+        channelName: "General",
+        installState: installState,
+      });
+
+      expect(message).toContain(
+        "does not have the Microsoft Teams channel enabled",
+      );
+    }
+  });
+});
+
+/*
+ * The Graph installed-apps check.
+ *
+ * Its contract is asymmetric on purpose: it may only answer NotInstalled when
+ * Graph actually enumerated the team's apps and this deployment's app was not
+ * among them. Any other outcome — a permission the tenant never granted, a
+ * transport failure, an unconfigured client id — is Unknown, because reporting
+ * those as NotInstalled is what sent the reporter of this bug in circles.
+ */
+describe("MicrosoftTeamsUtil.isAppInstalledInTeam", () => {
+  function mockGraph(pages: Array<JSONObject | HTTPErrorResponse>): jest.Mock {
+    const get: jest.Mock = jest.fn();
+
+    for (const page of pages) {
+      if (page instanceof HTTPErrorResponse) {
+        get.mockResolvedValueOnce(page);
+        continue;
+      }
+      get.mockResolvedValueOnce({ data: page } as HTTPResponse<JSONObject>);
+    }
+
+    jest.spyOn(API, "get").mockImplementation(get as any);
+    return get;
+  }
+
+  function callIsAppInstalled(
+    teamId: string = TEAM_ID,
+  ): Promise<MicrosoftTeamsAppInstallState> {
+    return MicrosoftTeamsUtil.isAppInstalledInTeam({
+      authToken: "auth-token",
+      projectId: ObjectID.generate(),
+      teamId: teamId,
+    });
+  }
+
+  beforeEach(() => {
+    useRealInstallStateCheck();
+    jest
+      .spyOn(MicrosoftTeamsUtil, "getValidAccessToken")
+      .mockResolvedValue("app-access-token");
+  });
+
+  test("an installed app matching this deployment's client id is Installed", async () => {
+    mockGraph([
+      {
+        value: [
+          { id: "install-1", teamsApp: { externalId: MOCK_APP_CLIENT_ID } },
+        ],
+      },
+    ]);
+
+    await expect(callIsAppInstalled()).resolves.toBe(
+      MicrosoftTeamsAppInstallState.Installed,
+    );
+  });
+
+  test("matching is on externalId, so another vendor's OneUptime app is not ours", async () => {
+    /*
+     * This is the case the reporter's screenshots could not rule out: a tile
+     * called "OneUptime · HackerBay Inc" in the team's app list which is the
+     * public store package, whose bot is not this deployment's bot.
+     */
+    mockGraph([
+      {
+        value: [
+          {
+            id: "install-1",
+            teamsApp: {
+              externalId: "99999999-9999-9999-9999-999999999999",
+              displayName: "OneUptime",
+            },
+          },
+        ],
+      },
+    ]);
+
+    await expect(callIsAppInstalled()).resolves.toBe(
+      MicrosoftTeamsAppInstallState.NotInstalled,
+    );
+  });
+
+  test("an empty app list is NotInstalled", async () => {
+    mockGraph([{ value: [] }]);
+
+    await expect(callIsAppInstalled()).resolves.toBe(
+      MicrosoftTeamsAppInstallState.NotInstalled,
+    );
+  });
+
+  test("a response with no value array at all is NotInstalled", async () => {
+    mockGraph([{}]);
+
+    await expect(callIsAppInstalled()).resolves.toBe(
+      MicrosoftTeamsAppInstallState.NotInstalled,
+    );
+  });
+
+  test("the app is found on a later page", async () => {
+    const get: jest.Mock = mockGraph([
+      {
+        value: [{ id: "install-1", teamsApp: { externalId: "other-app" } }],
+        "@odata.nextLink": "https://graph.microsoft.com/v1.0/page-2",
+      },
+      {
+        value: [
+          { id: "install-2", teamsApp: { externalId: MOCK_APP_CLIENT_ID } },
+        ],
+      },
+    ]);
+
+    await expect(callIsAppInstalled()).resolves.toBe(
+      MicrosoftTeamsAppInstallState.Installed,
+    );
+    expect(get).toHaveBeenCalledTimes(2);
+  });
+
+  test("NotInstalled is only returned after every page was read", async () => {
+    const get: jest.Mock = mockGraph([
+      {
+        value: [{ id: "install-1", teamsApp: { externalId: "other-app" } }],
+        "@odata.nextLink": "https://graph.microsoft.com/v1.0/page-2",
+      },
+      { value: [{ id: "install-2", teamsApp: { externalId: "another-app" } }] },
+    ]);
+
+    await expect(callIsAppInstalled()).resolves.toBe(
+      MicrosoftTeamsAppInstallState.NotInstalled,
+    );
+    expect(get).toHaveBeenCalledTimes(2);
+  });
+
+  test("a Graph error is Unknown, never NotInstalled", async () => {
+    /*
+     * The realistic case: a workspace connected before
+     * TeamsAppInstallation.ReadForTeam.All was documented gets a 403 here. It
+     * must not be told its app is missing.
+     */
+    mockGraph([new HTTPErrorResponse(403, { error: "Forbidden" }, {})]);
+
+    await expect(callIsAppInstalled()).resolves.toBe(
+      MicrosoftTeamsAppInstallState.Unknown,
+    );
+  });
+
+  test("a thrown transport error is Unknown", async () => {
+    jest.spyOn(API, "get").mockRejectedValue(new Error("socket hang up"));
+
+    await expect(callIsAppInstalled()).resolves.toBe(
+      MicrosoftTeamsAppInstallState.Unknown,
+    );
+  });
+
+  test("a token failure is Unknown", async () => {
+    jest
+      .spyOn(MicrosoftTeamsUtil, "getValidAccessToken")
+      .mockRejectedValue(new Error("no token"));
+    const get: jest.Mock = mockGraph([{ value: [] }]);
+
+    await expect(callIsAppInstalled()).resolves.toBe(
+      MicrosoftTeamsAppInstallState.Unknown,
+    );
+    expect(get).not.toHaveBeenCalled();
+  });
+
+  test("the team id is scoped into the Graph URL and the app list is expanded", async () => {
+    const get: jest.Mock = mockGraph([{ value: [] }]);
+
+    await callIsAppInstalled("team-abc");
+
+    const requestedUrl: string = get.mock.calls[0]![0].url.toString();
+    expect(requestedUrl).toContain("/teams/team-abc/installedApps");
+    // Without $expand there is no teamsApp to match externalId against.
+    expect(requestedUrl).toContain("$expand=teamsApp");
+  });
+
+  test("the access token is sent as a bearer token", async () => {
+    const get: jest.Mock = mockGraph([{ value: [] }]);
+
+    await callIsAppInstalled();
+
+    expect(get.mock.calls[0]![0].headers.Authorization).toBe(
+      "Bearer app-access-token",
     );
   });
 });

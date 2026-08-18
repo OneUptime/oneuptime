@@ -40,12 +40,16 @@ To integrate Microsoft Teams with your self-hosted OneUptime instance, you need 
 - **Team.ReadBasic.All** - Required to list all teams in the organization after admin consent is granted
 - **Channel.ReadBasic.All** - Required to verify channel existence and retrieve channel details
 - **ChannelMessage.Send** - Required to send messages to channels programmatically
+- **TeamsAppInstallation.ReadForTeam.All** - Optional but strongly recommended. Lets OneUptime check whether the OneUptime app is really installed in a team before a notification is sent, so a failed send can tell you _which_ of the possible causes it is. Without it OneUptime cannot tell "not installed" apart from "installed, but something else is wrong", and simply reports what Microsoft said.
 
 **Note:** The Bot Framework handles message delivery using Resource-Specific Consent (RSC) permissions defined in the Teams app manifest. These permissions are:
 
 - **ChannelMessage.Send.Group** - Allows the bot to send messages to team channels
 - **ChannelMessage.Read.Group** - Allows the bot to read channel messages for interactive commands
 - **Channel.Create.Group** - Allows the bot to create channels when needed
+- **TeamsAppInstallation.Read.Group** - Allows OneUptime to confirm the app is installed in a team it is about to post to
+
+If you uploaded the app manifest before this permission existed, download it again from **Project Settings > Workspace > Microsoft Teams** and re-upload it to pick it up.
 
 3. Click "Grant admin consent" for your organization
 
@@ -146,7 +150,26 @@ If you encounter issues:
 
 ### "The OneUptime app is not installed in the Microsoft Teams team ..."
 
-The app was never added to that team (or, for a private channel, to that channel). Complete **Step 8** above. This is the most common cause of a failed test notification — OneUptime can list every channel in your tenant using Graph application permissions, but it can only *post* to teams the app is a member of.
+OneUptime checked with Microsoft Graph and the app really is absent from that team (or, for a private channel, from that channel). Complete **Step 8** above. OneUptime can list every channel in your tenant using Graph application permissions, but it can only _post_ to teams the app is a member of.
+
+### "Microsoft Teams refused the message ... because the OneUptime bot is not a member of that conversation"
+
+Microsoft rejected the post (its own wording is `BotNotInConversationRoster`) and OneUptime could **not** confirm the app is missing — so do not assume it is. Work through the causes in the order below; the first two are the ones that look identical to a correct setup from inside Teams.
+
+1. **The app in the team is a different package.** Seeing a tile named "OneUptime" under **Manage team > Apps** is not enough — what matters is whether that package's bot id is _this_ deployment's `MICROSOFT_TEAMS_APP_CLIENT_ID`. The public OneUptime app from the Teams store points at OneUptime Cloud's bot and will never accept posts from your self-hosted instance. Only the manifest downloaded from **Project Settings > Workspace > Microsoft Teams** (Step 7) is built for your deployment. If in doubt, remove the app from the team, re-upload your own manifest, and add that.
+2. **The Azure Bot has no Microsoft Teams channel.** Complete **Step 5**. Without it the bot is never provisioned into Teams conversations, so it is in no channel's roster — even though the app installs cleanly and the app list looks correct.
+3. **The app is installed for you, or in a chat, but not in the team.** Complete **Step 8**.
+4. **The channel is private.** A team-level install does not cover private channels — see the note under Step 8.
+
+Grant **TeamsAppInstallation.ReadForTeam.All** (Step 2) to have OneUptime tell you which of these it is instead of listing them.
+
+### Notifications work in one team but not another
+
+Installation is per team. Adding OneUptime to one team does nothing for any other, and neither does connecting the integration — that grants tenant-wide Graph _read_ access, which is why the channel picker can show you channels in teams the bot cannot post to. Complete **Step 8** for every team you want notifications in.
+
+### "Test Rule" passes but real notifications never arrive
+
+Check which destinations the rule actually has enabled. A rule only exercises what it is configured for: with **Create Microsoft Teams Channel** on, the test creates a channel and posts into that channel, which proves the bot can post _to the team that channel was created in_ — and nothing about any other team. Notification Logs (**Settings > Notification Logs**) records every test send, including the raw error from Microsoft when one fails.
 
 ### "Sorry, I couldn't find your project configuration"
 

@@ -255,10 +255,23 @@ const MicrosoftTeamsChannelsCard: FunctionComponent = (): ReactElement => {
                     })}
                   </ul>
                 </div>
+                {/*
+                 * This list is everything Graph can SEE in the tenant, which is
+                 * not the same as everything we can post to. Saying so here
+                 * matters: a channel showing up looks like a working
+                 * destination, and the usual reason a send then fails is that
+                 * the team has a different OneUptime package installed (for
+                 * example the one from the Teams store) rather than the
+                 * manifest built for this deployment.
+                 */}
                 <p className="text-xs text-gray-500">
-                  Notifications post to channels in teams where the OneUptime
-                  app is installed. Private channels require the OneUptime bot
-                  to be a member.
+                  Every channel in your tenant is listed here, but notifications
+                  only reach teams the OneUptime app has been added to — add it
+                  from the team&apos;s &quot;...&quot; menu &gt; Manage team
+                  &gt; Apps. Use the app manifest downloaded from this page;
+                  another OneUptime package, such as the one in the Teams store,
+                  will not accept messages from this instance. Private channels
+                  also need the OneUptime bot added to the channel itself.
                 </p>
               </div>
             )}
