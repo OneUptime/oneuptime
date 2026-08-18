@@ -32,6 +32,7 @@ export default class MonitorTypeUtil {
         title: props.title,
         description: props.description,
         icon: props.icon,
+        keywords: props.keywords,
       };
     });
   }
@@ -63,6 +64,7 @@ export default class MonitorTypeUtil {
                 title: typeProps.title,
                 description: typeProps.description,
                 icon: typeProps.icon,
+                keywords: typeProps.keywords,
               };
             })
             .filter(

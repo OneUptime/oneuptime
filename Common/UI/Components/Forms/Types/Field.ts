@@ -58,6 +58,14 @@ export default interface Field<TEntity> {
     | Array<CardSelectOption | CardSelectOptionGroup>
     | undefined;
   cardSelectSingleColumn?: boolean | undefined;
+  /*
+   * Give the card picker a search box and collapse its groups behind their
+   * headers. Both are opt in: a picker with a handful of cards reads fine as
+   * a plain grid, and turning them on there would only add chrome.
+   */
+  cardSelectSearchable?: boolean | undefined;
+  cardSelectSearchPlaceholder?: string | undefined;
+  cardSelectCollapsibleGroups?: boolean | undefined;
   fetchDropdownOptions?:
     | ((
         item: FormValues<TEntity>,

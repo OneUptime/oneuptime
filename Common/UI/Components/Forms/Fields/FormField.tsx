@@ -521,6 +521,9 @@ const FormField: <T extends GenericObject>(
               tabIndex={0}
               dataTestId={props.field.dataTestId}
               singleColumn={props.field.cardSelectSingleColumn}
+              searchable={props.field.cardSelectSearchable}
+              searchPlaceholder={props.field.cardSelectSearchPlaceholder}
+              collapsibleGroups={props.field.cardSelectCollapsibleGroups}
               onChange={(value: string) => {
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);
