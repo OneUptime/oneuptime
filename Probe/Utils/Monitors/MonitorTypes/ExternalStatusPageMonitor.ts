@@ -277,7 +277,11 @@ export default class ExternalStatusPageMonitorUtil {
         failureCause: (err as Error).message || (err as Error).toString(),
       });
 
-      if (options.currentRetryCount < (options.retry || config.retries || 3)) {
+      /*
+       * ?? not ||: a caller asking for zero retries means zero, not "fall
+       * through to the config default".
+       */
+      if (options.currentRetryCount < (options.retry ?? config.retries ?? 3)) {
         options.currentRetryCount++;
         await Sleep.sleep(1000);
         return await ExternalStatusPageMonitorUtil.fetch(config, options);
@@ -492,7 +496,12 @@ export default class ExternalStatusPageMonitorUtil {
   ): Promise<ExternalStatusPageMonitorResponse | null> {
     try {
       const baseUrl: string = config.statusPageUrl.replace(/\/+$/, "");
-      const timeout: number = config.timeout || options.timeout || 10000;
+      /*
+       * options.timeout first: it carries the caller's per-step setting,
+       * and reading config.timeout ahead of it meant the step setting could
+       * never win.
+       */
+      const timeout: number = options.timeout || config.timeout || 10000;
       const headers: Record<string, string> = {
         Accept: "application/json",
         "User-Agent": "OneUptime-Probe/1.0",
@@ -640,7 +649,7 @@ export default class ExternalStatusPageMonitorUtil {
       const apiUrl: string = `${origin}/proxy/${host}`;
 
       const apiResponse: AxiosResponse = await axios.get(apiUrl, {
-        timeout: config.timeout || options.timeout || 10000,
+        timeout: options.timeout || config.timeout || 10000,
         headers: {
           Accept: "application/json",
           "User-Agent": "OneUptime-Probe/1.0",
@@ -791,7 +800,7 @@ export default class ExternalStatusPageMonitorUtil {
       const feedUrl: string = config.statusPageUrl.replace(/\/+$/, "");
 
       const response: AxiosResponse = await axios.get(feedUrl, {
-        timeout: config.timeout || options.timeout || 10000,
+        timeout: options.timeout || config.timeout || 10000,
         headers: {
           Accept:
             "application/rss+xml, application/atom+xml, application/xml, text/xml",
@@ -984,7 +993,7 @@ export default class ExternalStatusPageMonitorUtil {
   ): Promise<ExternalStatusPageMonitorResponse> {
     try {
       const response: AxiosResponse = await axios.get(config.statusPageUrl, {
-        timeout: config.timeout || options.timeout || 10000,
+        timeout: options.timeout || config.timeout || 10000,
         headers: {
           "User-Agent": "OneUptime-Probe/1.0",
         },
