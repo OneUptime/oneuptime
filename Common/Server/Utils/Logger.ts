@@ -5,6 +5,12 @@ import { SeverityNumber } from "@opentelemetry/api-logs";
 import Exception from "../../Types/Exception/Exception";
 import { JSONObject } from "../../Types/JSON";
 import ConfigLogLevel from "../Types/ConfigLogLevel";
+import {
+  REDACTED,
+  isSensitiveLogKey,
+  redactLogString,
+  redactLogValue,
+} from "./LogRedaction";
 
 export type LogBody = string | JSONObject | Exception | Error | unknown;
 
@@ -68,9 +74,10 @@ export default class logger {
   private static readonly recentLogTrimSlack: number = 256;
   private static readonly maxRecentLogMessageLength: number = 4000;
 
+  // `body` has already been through redactBody -- see the level methods.
   private static record(level: string, body: LogBody): void {
     try {
-      const message: string = this.serializeLogBody(body);
+      const message: string = this.serializeRedactedBody(body);
 
       this.recentLogs.push({
         time: new Date().toISOString(),
@@ -114,13 +121,71 @@ export default class logger {
     return LogLevel;
   }
 
-  public static serializeLogBody(body: LogBody): string {
-    if (typeof body === "string") {
-      return body;
-    } else if (body instanceof Exception || body instanceof Error) {
-      return body.message;
+  /*
+   * Turns a body into a redacted copy, once, before it is handed to any sink.
+   * Every level method calls this and then passes the RESULT to console, to
+   * the recent-log buffer and to telemetry, so a log record is redacted a
+   * single time no matter how many places it ends up in.
+   *
+   * Objects come back as plain redacted copies, so console keeps printing them
+   * as objects rather than as a JSON string.
+   *
+   * Errors are special-cased: when nothing in the message or the stack needed
+   * redacting -- the overwhelmingly common case -- the original Error is
+   * returned untouched, so console still renders a real stack trace.
+   */
+  private static redactBody(body: LogBody): LogBody {
+    try {
+      if (typeof body === "string") {
+        return redactLogString(body);
+      }
+
+      if (body instanceof Exception || body instanceof Error) {
+        const originalStack: string = body.stack || "";
+        const message: string = redactLogString(body.message);
+        const stack: string = redactLogString(originalStack);
+
+        if (message === body.message && stack === originalStack) {
+          return body;
+        }
+
+        return stack || `${body.name}: ${message}`;
+      }
+
+      return redactLogValue(body) as LogBody;
+    } catch {
+      // Never pass on a body we could not prove was redacted.
+      return REDACTED;
     }
-    return JSON.stringify(body);
+  }
+
+  // Serialization only. The body must already have been through redactBody.
+  private static serializeRedactedBody(body: LogBody): string {
+    try {
+      if (typeof body === "string") {
+        return body;
+      } else if (body instanceof Exception || body instanceof Error) {
+        return body.message;
+      }
+
+      /*
+       * redactBody swept every string inside this copy already, so stringifying
+       * it needs no second textual pass.
+       */
+      const serialized: string | undefined = JSON.stringify(body);
+
+      return serialized === undefined ? "" : serialized;
+    } catch {
+      return REDACTED;
+    }
+  }
+
+  /*
+   * Redacts and serializes in one step, for callers outside the level methods
+   * that hold a raw body.
+   */
+  public static serializeLogBody(body: LogBody): string {
+    return this.serializeRedactedBody(this.redactBody(body));
   }
 
   private static sanitizeAttributes(
@@ -136,7 +201,16 @@ export default class logger {
       for (const key in attributes) {
         const value: string | number | boolean | undefined = attributes[key];
 
-        if (value !== undefined && value !== null) {
+        if (value === undefined || value === null) {
+          continue;
+        }
+
+        // Attributes are a log sink too, and they travel to telemetry verbatim.
+        if (isSensitiveLogKey(key, value)) {
+          sanitized[key] = REDACTED;
+        } else if (typeof value === "string") {
+          sanitized[key] = redactLogString(value);
+        } else {
           sanitized[key] = value;
         }
       }
@@ -151,16 +225,14 @@ export default class logger {
     const logLevel: ConfigLogLevel = this.getLogLevel();
 
     if (logLevel === ConfigLogLevel.DEBUG || logLevel === ConfigLogLevel.INFO) {
+      const body: LogBody = this.redactBody(message);
+
       // eslint-disable-next-line no-console
-      console.info(message);
+      console.info(body);
 
-      this.record("INFO", message);
+      this.record("INFO", body);
 
-      this.emit({
-        body: message,
-        severityNumber: SeverityNumber.INFO,
-        attributes,
-      });
+      this.emitRedacted(body, SeverityNumber.INFO, attributes);
     }
   }
 
@@ -173,16 +245,14 @@ export default class logger {
       logLevel === ConfigLogLevel.WARN ||
       logLevel === ConfigLogLevel.ERROR
     ) {
+      const body: LogBody = this.redactBody(message);
+
       // eslint-disable-next-line no-console
-      console.error(message);
+      console.error(body);
 
-      this.record("ERROR", message);
+      this.record("ERROR", body);
 
-      this.emit({
-        body: message,
-        severityNumber: SeverityNumber.ERROR,
-        attributes,
-      });
+      this.emitRedacted(body, SeverityNumber.ERROR, attributes);
     }
   }
 
@@ -194,16 +264,14 @@ export default class logger {
       logLevel === ConfigLogLevel.INFO ||
       logLevel === ConfigLogLevel.WARN
     ) {
+      const body: LogBody = this.redactBody(message);
+
       // eslint-disable-next-line no-console
-      console.warn(message);
+      console.warn(body);
 
-      this.record("WARN", message);
+      this.record("WARN", body);
 
-      this.emit({
-        body: message,
-        severityNumber: SeverityNumber.WARN,
-        attributes,
-      });
+      this.emitRedacted(body, SeverityNumber.WARN, attributes);
     }
   }
 
@@ -211,16 +279,14 @@ export default class logger {
     const logLevel: ConfigLogLevel = this.getLogLevel();
 
     if (logLevel === ConfigLogLevel.DEBUG) {
+      const body: LogBody = this.redactBody(message);
+
       // eslint-disable-next-line no-console
-      console.debug(message);
+      console.debug(body);
 
-      this.record("DEBUG", message);
+      this.record("DEBUG", body);
 
-      this.emit({
-        body: message,
-        severityNumber: SeverityNumber.DEBUG,
-        attributes,
-      });
+      this.emitRedacted(body, SeverityNumber.DEBUG, attributes);
     }
   }
 
@@ -229,6 +295,19 @@ export default class logger {
     severityNumber: SeverityNumber;
     attributes?: LogAttributes | undefined;
   }): void {
+    this.emitRedacted(
+      this.redactBody(data.body),
+      data.severityNumber,
+      data.attributes,
+    );
+  }
+
+  // `body` must already have been through redactBody.
+  private static emitRedacted(
+    body: LogBody,
+    severityNumber: SeverityNumber,
+    attributes?: LogAttributes | undefined,
+  ): void {
     try {
       const logger: TelemetryLogger | null = OneUptimeTelemetry.getLogger();
 
@@ -243,7 +322,7 @@ export default class logger {
        */
       const mergedAttributes: LogAttributes = {
         ...TelemetryContext.getAttributes(),
-        ...(data.attributes || {}),
+        ...(attributes || {}),
       };
 
       const sanitizedAttributes:
@@ -251,8 +330,8 @@ export default class logger {
         | undefined = this.sanitizeAttributes(mergedAttributes);
 
       logger.emit({
-        body: this.serializeLogBody(data.body),
-        severityNumber: data.severityNumber,
+        body: this.serializeRedactedBody(body),
+        severityNumber: severityNumber,
         ...(sanitizedAttributes ? { attributes: sanitizedAttributes } : {}),
       });
     } catch {
@@ -264,16 +343,14 @@ export default class logger {
     const logLevel: ConfigLogLevel = this.getLogLevel();
 
     if (logLevel === ConfigLogLevel.DEBUG) {
+      const body: LogBody = this.redactBody(message);
+
       // eslint-disable-next-line no-console
-      console.trace(message);
+      console.trace(body);
 
-      this.record("TRACE", message);
+      this.record("TRACE", body);
 
-      this.emit({
-        body: message,
-        severityNumber: SeverityNumber.DEBUG,
-        attributes,
-      });
+      this.emitRedacted(body, SeverityNumber.DEBUG, attributes);
     }
   }
 }

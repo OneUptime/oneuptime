@@ -386,12 +386,13 @@ export default class MicrosoftTeamsAPI {
               "https://graph.microsoft.com/User.Read https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/Channel.ReadBasic.All https://graph.microsoft.com/ChannelMessage.Send",
           };
 
+          /*
+           * The token request body holds the app client secret and the
+           * authorization code, and the response holds the user access and
+           * refresh tokens -- neither is logged.
+           */
           logger.debug(
-            "Microsoft Teams Token Request Body (static redirect): ",
-            getLogAttributesFromRequest(req as any),
-          );
-          logger.debug(
-            tokenRequestBody,
+            "Exchanging Microsoft Teams authorization code for an access token.",
             getLogAttributesFromRequest(req as any),
           );
 
@@ -420,10 +421,9 @@ export default class MicrosoftTeamsAPI {
 
           const tokenData: JSONObject = tokenResponse.data;
           logger.debug(
-            "Microsoft Teams Token Response (static redirect): ",
+            "Microsoft Teams token exchange completed.",
             getLogAttributesFromRequest(req as any),
           );
-          logger.debug(tokenData, getLogAttributesFromRequest(req as any));
 
           if (!tokenData["access_token"]) {
             return Response.sendErrorResponse(
@@ -725,11 +725,12 @@ export default class MicrosoftTeamsAPI {
             Date.now() + Math.max(0, (expiresInSec - 60) * 1000),
           ).toISOString();
 
+          // tokenData carries the app access token; only its expiry is logged.
           logger.debug(
-            "App Access Token acquired via admin consent: ",
+            "Microsoft Graph app token acquired via admin consent. expiresAt: " +
+              expiresAtIso,
             getLogAttributesFromRequest(req as any),
           );
-          logger.debug(tokenData, getLogAttributesFromRequest(req as any));
 
           // Get available teams from user auth token
           const userId: string = stateParts[1]!;
