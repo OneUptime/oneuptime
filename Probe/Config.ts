@@ -3,7 +3,11 @@ import ObjectID from "Common/Types/ObjectID";
 import logger from "Common/Server/Utils/Logger";
 import Port from "Common/Types/Port";
 import NumberUtil from "Common/Utils/Number";
-import { MAX_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS } from "./Utils/Monitors/SyntheticRuntime/Limits";
+import {
+  MAX_NODE_TIMER_DELAY_IN_MS,
+  MAX_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS,
+  SYNTHETIC_MONITOR_WORKER_STARTUP_ALLOWANCE_IN_MS,
+} from "./Utils/Monitors/SyntheticRuntime/Limits";
 
 if (!process.env["PROBE_INGEST_URL"] && !process.env["ONEUPTIME_URL"]) {
   logger.error("PROBE_INGEST_URL or ONEUPTIME_URL is not set");
@@ -137,6 +141,52 @@ export const PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS: number =
     value: process.env["PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS"],
     defaultValue: 10000,
     min: 100,
+  });
+
+/*
+ * Hard ceiling on ONE monitor's full check inside the probing loop — every
+ * step, every retry, and the ingest POST that reports each step's result.
+ *
+ * The probe fires all of a batch's checks into a Promise.allSettled and
+ * waits. A monitor implementation that never settles therefore never
+ * releases the worker probing it: no ingest POST, no monitor log, nothing
+ * to grep for — and the server already advanced nextPingAt when it claimed
+ * the monitor, so the row keeps looking correctly scheduled while the check
+ * silently never happens again. The SSL monitor shipping without a timeout
+ * of any kind was one such implementation (OneUptime issue #3225); this
+ * deadline is the layer that makes the next one survivable.
+ *
+ * Deliberately generous. Every monitor type enforces its own, far tighter
+ * timeout (a step is capped at 60s and retried at most 3 times), so a check
+ * that crosses this line means the implementation is wedged rather than the
+ * target being slow. Crossing it costs that monitor exactly one cycle —
+ * the worker logs it and moves on.
+ */
+const MONITOR_CHECK_TIMEOUT_BASELINE_IN_MS: number = 15 * 60 * 1000;
+
+/*
+ * ...but never tighter than a synthetic script is allowed to legitimately
+ * run for. An operator who raises the synthetic timeout must not silently
+ * get their synthetic monitors abandoned mid-script by this deadline, so
+ * the floor tracks that setting plus the worker startup allowance and the
+ * ingest POST that follows the script. Clamped to the largest delay a Node
+ * timer can represent: above that setTimeout overflows and fires ~immediately,
+ * which would abandon every check on its first tick.
+ */
+export const PROBE_MONITOR_CHECK_TIMEOUT_IN_MS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_MONITOR_CHECK_TIMEOUT_IN_MS"],
+    defaultValue: Math.min(
+      MAX_NODE_TIMER_DELAY_IN_MS,
+      Math.max(
+        MONITOR_CHECK_TIMEOUT_BASELINE_IN_MS,
+        PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS +
+          SYNTHETIC_MONITOR_WORKER_STARTUP_ALLOWANCE_IN_MS +
+          PROBE_API_REQUEST_TIMEOUT_IN_MS,
+      ),
+    ),
+    min: 1000,
+    max: MAX_NODE_TIMER_DELAY_IN_MS,
   });
 
 export const PORT: Port = new Port(

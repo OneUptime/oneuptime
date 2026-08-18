@@ -210,6 +210,7 @@ Il probe supporta le seguenti variabili d'ambiente:
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Timeout per gli script dei monitor codice personalizzato in millisecondi (predefinito: 60000)
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` - Tempo limite per ogni richiesta che il probe invia a OneUptime (predefinito: 45000)
 - `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` - Registra un avviso per le richieste a OneUptime più lente di questo valore (predefinito: 10000)
+- `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` - Tempo limite per il controllo di un singolo monitor, oltre il quale il controllo viene abbandonato e ritentato nel ciclo successivo (predefinito: 900000)
 
 #### Configurazione Proxy
 

@@ -210,6 +210,7 @@ La sonde prend en charge les variables d'environnement suivantes :
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Délai d'attente pour les scripts de moniteur de code personnalisé en millisecondes (par défaut : 60000)
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` - Délai limite pour chaque requête que la sonde envoie à OneUptime (par défaut : 45000)
 - `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` - Consigner un avertissement pour les requêtes vers OneUptime plus lentes que cette valeur (par défaut : 10000)
+- `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` - Délai limite pour vérifier un moniteur, au-delà duquel la vérification est abandonnée et réessayée au cycle suivant (par défaut : 900000)
 
 #### Configuration du proxy
 
