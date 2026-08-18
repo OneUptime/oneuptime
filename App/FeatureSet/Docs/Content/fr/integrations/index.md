@@ -20,6 +20,8 @@ Utilisez ceci lorsqu'un système externe doit _créer ou mettre à jour quelque 
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
 ```
 
+> **Tip:** Pour les outils d'alerting en particulier, un **[moniteur Incoming Request](/docs/monitor/incoming-request-monitor)** est généralement la meilleure voie entrante. Il vous donne une URL de webhook sans construire de workflow, ouvre un incident par alerte présente dans la charge utile, escalade vers une politique d'astreinte et résout chaque incident lorsque l'outil signale son rétablissement. Passez à un workflow lorsque vous avez besoin d'une logique que OneUptime ne fait pas nativement. Voir [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) pour un exemple complet.
+
 ### Sortant — OneUptime envoie des données vers un autre outil
 
 Utilisez ceci lorsque _quelque chose dans OneUptime doit apparaître dans un autre outil_ — ouvrir un ticket Jira, alerter quelqu'un dans PagerDuty, publier dans Slack.
@@ -85,7 +87,7 @@ printf '%s' 'you@example.com:your_api_token' | base64
 
 Presque tout outil correspond à l'un des deux schémas ci-dessus :
 
-- Si l'outil peut **envoyer un webhook** lorsque quelque chose se produit, utilisez le schéma **entrant** — pointez son webhook vers un déclencheur Webhook OneUptime.
+- Si l'outil peut **envoyer un webhook** lorsque quelque chose se produit, utilisez le schéma **entrant** — pointez son webhook vers un [moniteur Incoming Request](/docs/monitor/incoming-request-monitor) s'il s'agit d'un outil d'alerting, ou vers un déclencheur Webhook OneUptime si vous avez besoin d'une logique personnalisée.
 - Si l'outil dispose d'une **API REST**, utilisez le schéma **sortant** — appelez-la depuis un **composant API**.
 - Si vous avez besoin de remodeler les données entre les deux, ajoutez un bloc **[Custom Code](/docs/workflows/components#custom-code)**.
 
@@ -97,4 +99,5 @@ Cela couvre la longue traîne — Zendesk, AWS CloudWatch (via SNS), New Relic, 
 - [Déclencheurs](/docs/workflows/triggers) — les déclencheurs Webhook et événements OneUptime en détail.
 - [Composants](/docs/workflows/components) — les composants API, Webhook et de données.
 - [Variables](/docs/workflows/variables) — les secrets et la transmission de données entre blocs.
+- [Moniteur Incoming Request](/docs/monitor/incoming-request-monitor) — la voie entrante sans workflow pour les outils d'alerting.
 - [Zabbix](/docs/integrations/zabbix) et [Jira](/docs/integrations/jira) — des exemples complets et concrets.

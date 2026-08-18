@@ -40,6 +40,10 @@ Os seguintes tipos de monitor suportam modelos dinâmicos com suas respectivas v
 | `requestMethod`             | O método HTTP da requisição de entrada (GET, POST, etc.).    | `string`             |
 | `incomingRequestReceivedAt` | A data e hora em que a requisição de entrada foi recebida.   | `Date`               |
 
+Quando o critério tem **Group incidents and alerts by a payload field** ligado, a chave de agrupamento extraída também fica disponível, sob um nome de variável tirado do **último segmento** do caminho de agrupamento. Agrupar por `requestBody.alerts[*].labels.alertname` dá `{{alertname}}`; agrupar por `requestBody.alerts[*].fingerprint` dá `{{fingerprint}}`. O `requestBody` completo continua disponível ao lado dela.
+
+> **Note:** `[*]` só é entendido nos próprios campos de caminho de agrupamento — aqui ele não é resolvido, então o marcador é impresso literalmente, chaves e tudo. Dentro de um título ou descrição, `{{requestBody.alerts[0].annotations.summary}}` sempre lê o primeiro alerta do payload, e não aquele para o qual o incidente foi aberto. Use no lugar a variável de agrupamento e os campos compartilhados do payload (`commonLabels`, `commonAnnotations`). Veja [Monitor de Incoming Request](/docs/monitor/incoming-request-monitor).
+
 ### Monitores de Ping
 
 | Variável           | Descrição                                     | Tipo      |
@@ -175,7 +179,7 @@ A indexação de arrays é suportada:
 First User: {{responseBody.users[0].name}}
 ```
 
-Se um caminho não existir, resolverá para uma string vazia por padrão.
+Se um caminho não existir, o marcador permanece na saída exatamente como foi escrito — `{{responseBody.error.id}}` aparece literalmente, chaves e tudo, no título do incidente. Só são removidos os blocos `{{#each}}` sobre um caminho ausente.
 
 ## Uso Avançado
 

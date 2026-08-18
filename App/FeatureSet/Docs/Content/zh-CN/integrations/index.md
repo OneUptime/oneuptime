@@ -20,6 +20,8 @@ OneUptime 通过内置的自动化引擎 **[工作流](/docs/workflows/index)** 
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
 ```
 
+> **Tip:** 对告警工具来说，**[Incoming Request 监控器](/docs/monitor/incoming-request-monitor)** 通常是更好的入站路径。它无需构建工作流即可提供一个 webhook URL，为负载中的每条告警各开一个事件，升级到值班策略，并在工具报告恢复时逐个解决这些事件。当你需要 OneUptime 原生不支持的逻辑时，再使用工作流。完整示例见 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)。
+
 ### 出站——OneUptime 向另一个工具发送数据
 
 当 *OneUptime 中发生的事情需要呈现在另一个工具中*时使用此模式——在 Jira 中创建工单、在 PagerDuty 中呼叫某人、发布到 Slack。
@@ -85,7 +87,7 @@ printf '%s' 'you@example.com:your_api_token' | base64
 
 几乎所有工具都符合上面两种模式之一：
 
-- 如果该工具能**发送 webhook**，使用**入站**模式——将其 webhook 指向 OneUptime Webhook 触发器。
+- 如果该工具能**发送 webhook**，使用**入站**模式——如果它是告警工具，就将其 webhook 指向 [Incoming Request 监控器](/docs/monitor/incoming-request-monitor)；如果你需要自定义逻辑，则指向 OneUptime Webhook 触发器。
 - 如果该工具有 **REST API**，使用**出站**模式——从 **API 组件**中调用它。
 - 如果你需要在两者之间重塑数据，添加一个 **[Custom Code](/docs/workflows/components#custom-code)** 模块。
 
@@ -97,4 +99,5 @@ printf '%s' 'you@example.com:your_api_token' | base64
 - [触发器](/docs/workflows/triggers)——Webhook 和 OneUptime 事件触发器详解。
 - [组件](/docs/workflows/components)——API、Webhook 和数据组件。
 - [变量](/docs/workflows/variables)——机密和在模块间传递数据。
+- [Incoming Request 监控器](/docs/monitor/incoming-request-monitor)——面向告警工具、无需工作流的入站路径。
 - [Zabbix](/docs/integrations/zabbix) 和 [Jira](/docs/integrations/jira)——完整的实操示例。
