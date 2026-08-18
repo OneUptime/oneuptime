@@ -74,6 +74,7 @@ const PAGE_CONFIG: Record<string, SitemapPageConfig> = {
   // Important pages
   "/pricing": { priority: 0.9, changefreq: "weekly" },
   "/enterprise/demo": { priority: 0.9, changefreq: "weekly" },
+  "/enterprise/self-hosted": { priority: 0.9, changefreq: "weekly" },
   "/enterprise/overview": { priority: 0.8, changefreq: "weekly" },
   "/trust": { priority: 0.8, changefreq: "weekly" },
   "/about": { priority: 0.7, changefreq: "weekly" },
@@ -88,6 +89,34 @@ const PAGE_CONFIG: Record<string, SitemapPageConfig> = {
 
   // Community and legal
   "/oss-friends": { priority: 0.3, changefreq: "monthly" },
+};
+
+/*
+ * Paths that only exist to redirect somewhere else. Route introspection cannot
+ * tell a redirect from a page, and listing a 301 in the sitemap sends crawlers
+ * (and buyers reading it) to a URL that is not the canonical one.
+ */
+export const REDIRECT_PATHS: Set<string> = new Set<string>([
+  "/self-hosted",
+  "/self-hosting",
+  "/on-premise",
+  "/security",
+  "/security-center",
+  "/trust-center",
+  "/status-page",
+  "/logs-management",
+  "/workflows",
+  "/runbooks",
+  "/on-call",
+  "/scheduled-maintenance",
+]);
+
+export type IsRedirectPathFunction = (path: string) => boolean;
+
+export const isRedirectPath: IsRedirectPathFunction = (
+  path: string,
+): boolean => {
+  return REDIRECT_PATHS.has(path);
 };
 
 // Default config for pages not explicitly listed
@@ -315,6 +344,10 @@ function discoverStaticPaths(): string[] {
           continue;
         }
         if (p.startsWith("/api") || p.startsWith("/blog/post")) {
+          continue;
+        }
+        // Redirects are not canonical pages.
+        if (isRedirectPath(p)) {
           continue;
         }
         // We'll add compare pages separately with real slugs; skip base compare param route

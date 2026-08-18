@@ -104,6 +104,30 @@ describe("AIDiscovery", () => {
     }
   });
 
+  test("llms.txt lists the enterprise pages and the claims matrix", () => {
+    const txt: string = generateLlmsTxt(homeUrl, []);
+
+    expect(txt).toContain("## Enterprise");
+    expect(txt).toContain("https://oneuptime.com/enterprise/self-hosted.md");
+    expect(txt).toContain("https://oneuptime.com/trust");
+    expect(txt).toContain("https://oneuptime.com/data/claims.json");
+  });
+
+  test("the self-hosted page has a markdown variant with its deployment detail", () => {
+    const md: string = generatePageMarkdown(
+      PageSEOConfig["/enterprise/self-hosted"]!,
+      homeUrl,
+    );
+
+    expect(md).toContain("# OneUptime Self-Hosted");
+    expect(md).toContain("## Features");
+    expect(md.toLowerCase()).toContain("helm");
+    expect(md.toLowerCase()).toContain("air-gapped");
+    expect(md).toContain(
+      "Canonical page: https://oneuptime.com/enterprise/self-hosted",
+    );
+  });
+
   test("compare index json lists every comparison slug", () => {
     const comparisons: Array<JSONObject> = generateCompareIndexJson(homeUrl)[
       "comparisons"

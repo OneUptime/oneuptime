@@ -91,8 +91,8 @@
                 </div>
                 <div class="hidden sm:block w-px h-10 bg-gray-200"></div>
                 <div class="text-center">
-                  <p class="text-2xl sm:text-3xl font-semibold text-gray-900">99.99%</p>
-                  <p class="text-sm text-gray-500">Uptime SLA</p>
+                  <p class="text-2xl sm:text-3xl font-semibold text-gray-900">99.95%</p>
+                  <p class="text-sm text-gray-500">Enterprise uptime target</p>
                 </div>
                 <div class="hidden sm:block w-px h-10 bg-gray-200"></div>
                 <div class="text-center">
@@ -448,7 +448,7 @@
             Enterprise-grade security & compliance
           </h2>
           <p class="mt-3 sm:mt-4 text-base sm:text-lg text-gray-500 leading-relaxed">
-            Your data deserves the highest level of protection. We maintain rigorous security standards and compliance certifications trusted by Fortune 500 companies.
+            Your data deserves the highest level of protection. Every certification, attestation, and framework we claim is listed in our <a href="/trust#claims" class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">governed claims matrix</a>, with the evidence behind each one.
           </p>
         </div>
 
@@ -640,7 +640,7 @@
             </button>
             <div class="faq-content overflow-hidden max-h-0 transition-all duration-300 ease-out">
               <p class="pb-5 text-gray-500 text-sm leading-relaxed">
-                Yes. OneUptime is fully open source and can be deployed on your own infrastructure using Docker, Kubernetes, or Helm charts. Enterprise customers get dedicated deployment support, custom SLAs, and the option to deploy in air-gapped environments. We also offer managed hosting with custom data residency in US, EU, or APAC regions.
+                Yes. OneUptime is fully open source and deploys on your own infrastructure with our Helm chart on Kubernetes, or with Docker Compose on a single host. It runs air-gapped, with images mirrored to your registry and the update check disabled. Enterprise agreements add hardened images, deployment support, and custom data residency &mdash; and a private cloud option if you want a single-tenant environment you do not operate yourself. The full deployment story is on our <a href="/enterprise/self-hosted" class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">self-hosted page</a>.
               </p>
             </div>
           </div>
@@ -674,7 +674,7 @@
             </button>
             <div class="faq-content overflow-hidden max-h-0 transition-all duration-300 ease-out">
               <p class="pb-5 text-gray-500 text-sm leading-relaxed">
-                Enterprise plans include 99.99% uptime SLA with financial credits, 24/7 priority support with dedicated account managers, and guaranteed response times (15 minutes for critical issues). We also offer custom SLAs tailored to your organization's requirements.
+                Enterprise plans on OneUptime Cloud carry a 99.95% monthly uptime target, with service credits of up to 50% of monthly fees if we miss it. Support includes a one-hour first-response target for P1 issues, 24/7, and a named contact. Response targets are commitments we work to, not credit-backed guarantees &mdash; the exact wording is in the <a href="/legal/sla" class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">SLA</a>, and anything negotiated for you is written into your order form.
               </p>
             </div>
           </div>
@@ -725,7 +725,7 @@
             </button>
             <div class="faq-content overflow-hidden max-h-0 transition-all duration-300 ease-out">
               <p class="pb-5 text-gray-500 text-sm leading-relaxed">
-                Enterprise pricing is based on your usage and requirements. We offer annual contracts with volume discounts, custom invoicing (NET 30/60/90), and flexible terms. Unlike competitors, we don't charge per-host fees that can lead to surprise bills. Book a demo to get a custom quote for your organization.
+                Enterprise pricing is based on your usage and requirements. Annual contracts, volume discounts, purchase-order workflows, and custom invoicing terms are all available, and the terms that apply to you are the ones written into your order form. We don't charge per-host fees that lead to surprise bills. Book a demo for a written quote.
               </p>
             </div>
           </div>
@@ -742,7 +742,7 @@
             </button>
             <div class="faq-content overflow-hidden max-h-0 transition-all duration-300 ease-out">
               <p class="pb-5 text-gray-500 text-sm leading-relaxed">
-                OneUptime is built to handle enterprise scale. Our platform processes billions of data points daily, supports thousands of concurrent monitors, and handles millions of log events per second. Fortune 500 companies trust us to monitor their most critical infrastructure.
+                OneUptime scales horizontally. Telemetry lives in ClickHouse with replication and sharding, a dedicated writer tier keeps insert concurrency bounded while the worker fleet autoscales on queue depth, and there are no product-imposed caps on monitors, users, alerts, or API calls. On a self-hosted deployment your throughput is a function of the cluster you give it &mdash; an <a href="/enterprise/self-hosted#architecture-assessment" class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">architecture assessment</a> sizes it against your actual volume.
               </p>
             </div>
           </div>

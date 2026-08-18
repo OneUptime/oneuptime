@@ -1,0 +1,174 @@
+<%
+/*
+ * Governed claims matrix. Rendered from Home/Utils/Claims.ts — do not write
+ * claim copy directly into this template, or the matrix stops being the single
+ * source of truth it exists to be.
+ *
+ * Expects locals: claimStatuses, claimsMatrix, claimsUnderReviewCount.
+ */
+const statusBadgeClasses = {
+  emerald: 'text-emerald-700 bg-emerald-50 ring-emerald-200/70',
+  blue: 'text-blue-700 bg-blue-50 ring-blue-200/70',
+  violet: 'text-violet-700 bg-violet-50 ring-violet-200/70',
+  slate: 'text-slate-700 bg-slate-50 ring-slate-200/70',
+  amber: 'text-amber-700 bg-amber-50 ring-amber-200/70',
+  cyan: 'text-cyan-700 bg-cyan-50 ring-cyan-200/70'
+};
+
+const statusDotClasses = {
+  emerald: 'bg-emerald-500',
+  blue: 'bg-blue-500',
+  violet: 'bg-violet-500',
+  slate: 'bg-slate-400',
+  amber: 'bg-amber-500',
+  cyan: 'bg-cyan-500'
+};
+
+const statusByKey = {};
+claimStatuses.forEach(function (status) {
+  statusByKey[status.key] = status;
+});
+
+const scopeLabels = {
+  'cloud': 'OneUptime Cloud',
+  'self-hosted': 'Self-hosted',
+  'both': 'Cloud &amp; self-hosted'
+};
+%>
+
+<section id="claims" class="mt-24 lg:mt-32 scroll-mt-24">
+  <div class="max-w-3xl">
+    <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Governed claims</h2>
+    <p class="mt-4 text-base text-gray-600 leading-7">
+      Every commitment we make about service levels, support, compliance, encryption, deployment, migration, scale,
+      discounts, and contract terms &mdash; each one labelled with how strong it actually is, and linked to the
+      document that makes it true. Where a marketing page and a signed order form disagree, the order form governs.
+    </p>
+  </div>
+
+  <!-- Status vocabulary -->
+  <div class="mt-10 rounded-2xl border border-gray-200 bg-white p-6 sm:p-8">
+    <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-500">What each label means</h3>
+    <dl class="mt-6 grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
+      <% claimStatuses.forEach(function (status) { %>
+      <div>
+        <dt>
+          <span
+            class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset <%= statusBadgeClasses[status.color] %>">
+            <span class="h-1.5 w-1.5 rounded-full <%= statusDotClasses[status.color] %>"></span>
+            <%= status.label %>
+          </span>
+        </dt>
+        <dd class="mt-2.5 text-sm leading-6 text-gray-600"><%= status.definition %></dd>
+        <dd class="mt-2 text-xs leading-5 text-gray-400">
+          <span class="font-medium text-gray-500">Evidence bar:</span> <%= status.evidenceBar %>
+        </dd>
+      </div>
+      <% }); %>
+    </dl>
+  </div>
+
+  <!-- Category jump links -->
+  <nav class="mt-8 flex flex-wrap gap-2">
+    <% claimsMatrix.forEach(function (group) { %>
+    <a href="#claims-<%= group.category.key %>"
+      class="inline-flex items-center rounded-full bg-white px-3.5 py-1.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200 transition-colors hover:bg-gray-50 hover:text-gray-900">
+      <%= group.category.name %>
+      <span class="ml-1.5 text-gray-400"><%= group.claims.length %></span>
+    </a>
+    <% }); %>
+  </nav>
+
+  <!-- The matrix -->
+  <div class="mt-8 space-y-6">
+    <% claimsMatrix.forEach(function (group) { %>
+    <div id="claims-<%= group.category.key %>"
+      class="overflow-hidden rounded-2xl border border-gray-200 bg-white scroll-mt-24">
+      <div class="flex flex-col gap-3 border-b border-gray-100 bg-gray-50/70 px-6 py-5 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900"><%= group.category.name %></h3>
+          <p class="mt-1 max-w-2xl text-sm leading-6 text-gray-600"><%= group.category.description %></p>
+        </div>
+        <a href="<%= group.category.governingDocumentUrl %>"
+          class="inline-flex flex-shrink-0 items-center gap-1.5 self-start rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 transition-colors hover:bg-gray-50 hover:text-gray-900">
+          <svg class="h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" stroke-width="1.5"
+            viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25M9 16.5v.75m3-3v3M15 12v5.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+          </svg>
+          <%= group.category.governingDocument %>
+        </a>
+      </div>
+
+      <ul class="divide-y divide-gray-100">
+        <% group.claims.forEach(function (claim) { %>
+        <li class="px-6 py-6">
+          <div class="grid grid-cols-1 gap-x-8 gap-y-4 lg:grid-cols-12">
+            <div class="lg:col-span-4">
+              <p class="text-sm font-semibold text-gray-900"><%= claim.subject %></p>
+              <div class="mt-2.5 flex flex-wrap items-center gap-2">
+                <span
+                  class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset <%= statusBadgeClasses[statusByKey[claim.status].color] %>">
+                  <span class="h-1.5 w-1.5 rounded-full <%= statusDotClasses[statusByKey[claim.status].color] %>"></span>
+                  <%= statusByKey[claim.status].label %>
+                </span>
+                <span
+                  class="inline-flex items-center rounded-full bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-600 ring-1 ring-inset ring-gray-200"><%- scopeLabels[claim.scope] %></span>
+                <% if (claim.reviewRequired) { %>
+                <span
+                  class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200/70"
+                  title="<%= claim.reviewNote || 'Pending legal or security sign-off.' %>">
+                  <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+                  </svg>
+                  Evidence under review
+                </span>
+                <% } %>
+              </div>
+            </div>
+
+            <div class="lg:col-span-8">
+              <p class="text-sm leading-6 text-gray-900"><%= claim.statement %></p>
+              <p class="mt-2 text-sm leading-6 text-gray-500"><%= claim.qualifier %></p>
+              <p class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-400">
+                <span><span class="font-medium text-gray-500">Evidence:</span> <%= claim.evidence %></span>
+                <span class="text-gray-300">&middot;</span>
+                <a href="<%= claim.sourceUrl %>" <%= claim.sourceUrl.indexOf('http') === 0 ? 'target="_blank" rel="noopener"' : '' %>
+                  class="font-medium text-gray-600 underline underline-offset-2 hover:text-gray-900">Source</a>
+              </p>
+            </div>
+          </div>
+        </li>
+        <% }); %>
+      </ul>
+    </div>
+    <% }); %>
+  </div>
+
+  <div class="mt-8 rounded-2xl border border-gray-200 bg-gray-50 p-6">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h3 class="text-sm font-semibold text-gray-900">How this matrix is maintained</h3>
+        <p class="mt-1.5 max-w-2xl text-sm leading-6 text-gray-600">
+          Claims are reviewed by legal and security before their status is strengthened, and
+          <% if (claimsUnderReviewCount > 0) { %><strong class="font-semibold text-gray-900"><%= claimsUnderReviewCount %></strong>
+          <%= claimsUnderReviewCount === 1 ? 'claim is' : 'claims are' %> currently marked "evidence under review" &mdash;
+          the wording stays conservative until the reviewer confirms the underlying evidence.<% } else { %>
+          every published claim has had its evidence confirmed.<% } %>
+          Spot something that reads stronger than what we can prove? Tell us and we will correct it.
+        </p>
+      </div>
+      <div class="flex flex-shrink-0 flex-wrap gap-2">
+        <a href="/data/claims.json"
+          class="inline-flex items-center gap-1.5 rounded-lg bg-white px-3.5 py-2 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 transition-colors hover:bg-gray-50">
+          claims.json
+        </a>
+        <a href="mailto:compliance@oneuptime.com?subject=Claims%20matrix%20question"
+          class="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-3.5 py-2 text-xs font-medium text-white transition-colors hover:bg-gray-700">
+          Challenge a claim
+        </a>
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en" id="self-hosted">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>Self-Hosted OneUptime | Deployment, Architecture & Support</title>
+  <meta name="description"
+    content="Run the full OneUptime platform on your own infrastructure. Deployment models, reference architecture, Kubernetes requirements, high availability, air-gapped operation, hardened images, and support boundaries.">
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+  }) -%>
+
+  <style>
+    .sh-card {
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s ease;
+    }
+
+    .sh-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 18px 40px -20px rgba(15, 23, 42, 0.25);
+    }
+
+    .sh-code {
+      font-family: "Source Code Pro", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .sh-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    section[id] {
+      scroll-margin-top: 6rem;
+    }
+  </style>
+</head>
+
+<body class="bg-white antialiased text-gray-900">
+  <%- include('nav') -%>
+
+  <main id="main-content">
+
+    <!-- ============================================================ HERO -->
+    <div class="relative isolate overflow-hidden bg-white" id="self-hosted-hero">
+      <div
+        class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]">
+      </div>
+
+      <div id="self-hosted-grid-glow" class="absolute inset-0 -z-9 pointer-events-none"
+        style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(16, 185, 129, 0.28) 1px, transparent 1px), linear-gradient(to bottom, rgba(16, 185, 129, 0.28) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);">
+      </div>
+
+      <div class="py-20 sm:py-28 lg:py-32">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+            <span
+              class="mb-8 inline-flex items-center gap-2 rounded-full bg-gray-50 px-4 py-1.5 text-sm text-gray-600 ring-1 ring-inset ring-gray-200">
+              <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M5.25 14.25h13.5m-13.5 0a3 3 0 0 1-3-3m3 3a3 3 0 1 0 0 6h13.5a3 3 0 1 0 0-6m-16.5-3a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3m-19.5 0a4.5 4.5 0 0 1 .9-2.7L5.7 5.1a3 3 0 0 1 2.4-1.2h7.8a3 3 0 0 1 2.4 1.2l2.55 3.45a4.5 4.5 0 0 1 .9 2.7m0 0a3 3 0 0 1-3 3" />
+              </svg>
+              <span>Self-Hosted</span>
+              <span class="h-1 w-1 rounded-full bg-gray-300"></span>
+              <span>Apache 2.0</span>
+            </span>
+
+            <h1 class="text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.15]">
+              Run the whole platform
+              <span class="text-gray-500">inside your perimeter.</span>
+            </h1>
+
+            <p class="mt-6 text-base leading-7 text-gray-600 sm:text-lg sm:leading-8 max-w-2xl mx-auto">
+              Monitoring, incidents, on-call, status pages, logs, metrics, and traces &mdash; deployed on your
+              Kubernetes cluster, in your cloud or data centre, air-gapped if it has to be. Same product as our
+              cloud, no feature gates, no telemetry leaving your network.
+            </p>
+
+            <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+              <a href="#architecture-assessment"
+                class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
+                Book an architecture assessment
+                <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+              </a>
+              <a href="<%= selfHosted.helmDocs.installation %>" target="_blank" rel="noopener"
+                class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-white px-6 py-2.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-all hover:bg-gray-50">
+                Read the install guide
+              </a>
+            </div>
+
+            <div class="mt-12 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-gray-500">
+              <div class="flex items-center gap-2">
+                <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+                <span>No feature gates</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+                <span>Air-gapped capable</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+                <span>Hardened enterprise images</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+                <span>Your data, your keys</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick start -->
+          <div class="mx-auto mt-16 max-w-3xl">
+            <div class="overflow-hidden rounded-2xl bg-gray-900 shadow-xl ring-1 ring-gray-900/10">
+              <div class="flex items-center gap-2 border-b border-white/10 px-4 py-3">
+                <span class="h-2.5 w-2.5 rounded-full bg-rose-400/70"></span>
+                <span class="h-2.5 w-2.5 rounded-full bg-amber-400/70"></span>
+                <span class="h-2.5 w-2.5 rounded-full bg-emerald-400/70"></span>
+                <span class="ml-2 text-xs font-medium text-gray-400">Install on Kubernetes</span>
+              </div>
+              <div class="sh-scroll px-5 py-5">
+                <pre class="sh-code text-[13px] leading-6 text-gray-200"><span class="text-gray-500"># Add the chart repository</span>
+<span class="text-emerald-400">helm</span> repo add oneuptime https://helm-chart.oneuptime.com/
+
+<span class="text-gray-500"># Set your host and storage class in values.yaml, then install</span>
+<span class="text-emerald-400">helm</span> install oneuptime oneuptime/oneuptime -f values.yaml</pre>
+              </div>
+            </div>
+            <p class="mt-3 text-center text-xs text-gray-500">
+              The whole platform, one chart. Full configuration reference in the
+              <a href="<%= selfHosted.helmDocs.configuration %>" target="_blank" rel="noopener"
+                class="text-gray-700 underline underline-offset-2 hover:text-gray-900">chart docs</a>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section nav -->
+    <div class="sticky top-0 z-20 border-y border-gray-200 bg-white/90 backdrop-blur">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <nav class="sh-scroll flex items-center gap-6 py-3 text-sm text-gray-500 whitespace-nowrap">
+          <a href="#deployment-models" class="hover:text-gray-900">Deployment models</a>
+          <a href="#reference-architecture" class="hover:text-gray-900">Architecture</a>
+          <a href="#requirements" class="hover:text-gray-900">Requirements</a>
+          <a href="#availability" class="hover:text-gray-900">HA &amp; DR</a>
+          <a href="#upgrades" class="hover:text-gray-900">Upgrades</a>
+          <a href="#air-gapped" class="hover:text-gray-900">Air-gapped</a>
+          <a href="#hardened-images" class="hover:text-gray-900">Hardened images</a>
+          <a href="#data-residency" class="hover:text-gray-900">Data residency</a>
+          <a href="#support" class="hover:text-gray-900">Support boundaries</a>
+        </nav>
+      </div>
+    </div>
+
+    <!-- ================================================ DEPLOYMENT MODELS -->
+    <section id="deployment-models" class="bg-white py-20 sm:py-28">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-3xl">
+          <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">Deployment models</p>
+          <h2 class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Four ways to run OneUptime
+          </h2>
+          <p class="mt-4 text-base leading-7 text-gray-600">
+            The same platform, the same container images. What changes is who owns the infrastructure and who is
+            accountable for upgrades.
+          </p>
+        </div>
+
+        <div class="mt-12 grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <% selfHosted.deploymentModels.forEach(function(model) { %>
+          <div
+            class="sh-card relative flex h-full flex-col rounded-2xl border <%= model.recommended ? 'border-emerald-200 bg-emerald-50/30' : 'border-gray-200 bg-white' %> p-7 shadow-sm">
+            <% if (model.recommended) { %>
+            <span
+              class="absolute right-6 top-6 rounded-full bg-emerald-600 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">Recommended</span>
+            <% } %>
+
+            <h3 class="pr-28 text-xl font-semibold text-gray-900"><%= model.name %></h3>
+            <p class="mt-1.5 text-sm font-medium text-gray-500"><%= model.tagline %></p>
+            <p class="mt-4 text-sm leading-6 text-gray-600"><%= model.bestFor %></p>
+
+            <dl class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div class="rounded-xl bg-white/70 p-3 ring-1 ring-inset ring-gray-200">
+                <dt class="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Infrastructure</dt>
+                <dd class="mt-1 text-sm text-gray-700"><%= model.infrastructure %></dd>
+              </div>
+              <div class="rounded-xl bg-white/70 p-3 ring-1 ring-inset ring-gray-200">
+                <dt class="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Upgrades</dt>
+                <dd class="mt-1 text-sm text-gray-700"><%= model.upgrades %></dd>
+              </div>
+            </dl>
+
+            <ul class="mt-6 space-y-2.5">
+              <% model.highlights.forEach(function(highlight) { %>
+              <li class="flex gap-2.5 text-sm leading-6 text-gray-600">
+                <svg class="mt-1 h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24"
+                  stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+                <span><%= highlight %></span>
+              </li>
+              <% }); %>
+            </ul>
+
+            <div class="mt-auto pt-6">
+              <a href="<%= model.docsUrl %>" <%= model.docsUrl.startsWith('http') ? 'target="_blank" rel="noopener"' : '' %>
+                class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-900 hover:text-gray-600">
+                Documentation
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
+                </svg>
+              </a>
+            </div>
+          </div>
+          <% }); %>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ REFERENCE ARCHITECTURE -->
+    <section id="reference-architecture" class="border-t border-gray-100 bg-gray-50/60 py-20 sm:py-28">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-3xl">
+          <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">Reference architecture</p>
+          <h2 class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">What actually gets deployed
+          </h2>
+          <p class="mt-4 text-base leading-7 text-gray-600">
+            Four tiers, all inside your cluster. Nothing in this diagram calls out to us at runtime.
+          </p>
+        </div>
+
+        <div class="mt-12 space-y-6">
+          <% selfHosted.architectureTiers.forEach(function(tier, tierIndex) { %>
+          <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div class="flex flex-col gap-3 border-b border-gray-100 px-6 py-5 sm:flex-row sm:items-center sm:gap-5">
+              <div class="flex items-center gap-3">
+                <span
+                  class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-<%= tier.accent %>-50 text-sm font-semibold text-<%= tier.accent %>-600 ring-1 ring-inset ring-<%= tier.accent %>-100"><%= tierIndex + 1 %></span>
+                <h3 class="text-lg font-semibold text-gray-900"><%= tier.name %></h3>
+              </div>
+              <p class="text-sm leading-6 text-gray-600 sm:border-l sm:border-gray-200 sm:pl-5"><%= tier.description %>
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2 lg:grid-cols-3">
+              <% tier.components.forEach(function(component) { %>
+              <div class="flex h-full flex-col rounded-xl bg-gray-50/70 p-5 ring-1 ring-inset ring-gray-100">
+                <h4 class="text-sm font-semibold text-gray-900"><%= component.name %></h4>
+                <p class="mt-2 flex-1 text-sm leading-6 text-gray-600"><%= component.description %></p>
+                <p class="mt-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[11px] font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
+                  <svg class="h-3 w-3 text-gray-400" fill="none" stroke="currentColor" stroke-width="2"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M3 7.5 7.5 3m0 0L12 7.5M7.5 3v18m13.5-4.5L16.5 21m0 0L12 16.5m4.5 4.5V3"></path>
+                  </svg>
+                  <%= component.scaling %>
+                </p>
+              </div>
+              <% }); %>
+            </div>
+          </div>
+          <% }); %>
+        </div>
+
+        <p class="mt-8 text-sm text-gray-500">
+          Every component above is defined in the
+          <a href="<%= selfHosted.helmDocs.chart %>" target="_blank" rel="noopener"
+            class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">public Helm chart</a>
+          &mdash; read the templates before you deploy them.
+        </p>
+      </div>
+    </section>
+
+    <!-- ======================================================= REQUIREMENTS -->
+    <section id="requirements" class="bg-white py-20 sm:py-28">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-3xl">
+          <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">Requirements</p>
+          <h2 class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Kubernetes and
+            infrastructure requirements</h2>
+          <p class="mt-4 text-base leading-7 text-gray-600">
+            What your platform team needs to have in place before the first <span class="sh-code">helm install</span>.
+          </p>
+        </div>
+
+        <div class="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <% selfHosted.infrastructureRequirements.forEach(function(group) { %>
+          <div class="sh-card rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h3 class="text-base font-semibold text-gray-900"><%= group.title %></h3>
+            <ul class="mt-4 space-y-3">
+              <% group.items.forEach(function(item) { %>
+              <li class="flex gap-3 text-sm leading-6 text-gray-600">
+                <span class="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gray-300"></span>
+                <span><%= item %></span>
+              </li>
+              <% }); %>
+            </ul>
+          </div>
+          <% }); %>
+        </div>
+
+        <!-- Sizing -->
+        <div class="mt-16">
+          <h3 class="text-xl font-semibold tracking-tight text-gray-900">Starting points for sizing</h3>
+          <p class="mt-2 max-w-3xl text-sm leading-6 text-gray-600">
+            Indicative starting points, not a commitment. Real sizing depends on your telemetry volume and retention
+            policy &mdash; which is exactly what an architecture assessment works out with you.
+          </p>
+
+          <div class="sh-scroll mt-6 rounded-2xl border border-gray-200 shadow-sm">
+            <table class="min-w-full divide-y divide-gray-200 text-left">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th scope="col" class="px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-gray-500">Tier
+                  </th>
+                  <th scope="col" class="px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Workload</th>
+                  <th scope="col" class="px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-gray-500">Nodes
+                  </th>
+                  <th scope="col" class="px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-gray-500">CPU
+                  </th>
+                  <th scope="col" class="px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-gray-500">Memory
+                  </th>
+                  <th scope="col" class="px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Storage</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100 bg-white">
+                <% selfHosted.sizingTiers.forEach(function(tier) { %>
+                <tr>
+                  <td class="px-6 py-5 align-top">
+                    <p class="text-sm font-semibold text-gray-900"><%= tier.name %></p>
+                    <p class="mt-1 max-w-xs text-xs leading-5 text-gray-500"><%= tier.notes %></p>
+                  </td>
+                  <td class="px-6 py-5 align-top text-sm text-gray-600"><%= tier.workload %></td>
+                  <td class="px-6 py-5 align-top text-sm text-gray-600"><%= tier.nodes %></td>
+                  <td class="px-6 py-5 align-top text-sm text-gray-600"><%= tier.cpu %></td>
+                  <td class="px-6 py-5 align-top text-sm text-gray-600"><%= tier.memory %></td>
+                  <td class="px-6 py-5 align-top text-sm text-gray-600"><%= tier.storage %></td>
+                </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================================================== HA & DR -->
+    <section id="availability" class="border-t border-gray-100 bg-gray-50/60 py-20 sm:py-28">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-3xl">
+          <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">High availability</p>
+          <h2 class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Availability and disaster
+            recovery</h2>
+          <p class="mt-4 text-base leading-7 text-gray-600">
+            We ship the building blocks. On a self-hosted deployment the uptime number belongs to you &mdash; our
+            cloud SLA does not extend to infrastructure you operate.
+          </p>
+        </div>
+
+        <div class="mt-12 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+          <% selfHosted.availabilityControls.forEach(function(control) { %>
+          <div class="sh-card flex h-full flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h3 class="text-base font-semibold text-gray-900"><%= control.title %></h3>
+            <p class="mt-2.5 flex-1 text-sm leading-6 text-gray-600"><%= control.description %></p>
+            <code
+              class="sh-code mt-4 block truncate rounded-lg bg-gray-900 px-3 py-2 text-[12px] text-emerald-300"><%= control.setting %></code>
+          </div>
+          <% }); %>
+        </div>
+
+        <div class="mt-10 rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
+          <div class="flex items-center gap-3">
+            <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 ring-1 ring-inset ring-amber-100">
+              <svg class="h-5 w-5 text-amber-600" fill="none" stroke="currentColor" stroke-width="1.5"
+                viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75" />
+              </svg>
+            </span>
+            <h3 class="text-lg font-semibold text-gray-900">Disaster recovery is a shared exercise</h3>
+          </div>
+          <ul class="mt-6 grid grid-cols-1 gap-x-8 gap-y-3 md:grid-cols-2">
+            <% selfHosted.disasterRecoveryPractices.forEach(function(practice) { %>
+            <li class="flex gap-3 text-sm leading-6 text-gray-600">
+              <svg class="mt-1 h-4 w-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" stroke-width="2"
+                viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+              </svg>
+              <span><%= practice %></span>
+            </li>
+            <% }); %>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================== UPGRADES -->
+    <section id="upgrades" class="bg-white py-20 sm:py-28">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-3xl">
+          <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">Upgrades</p>
+          <h2 class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Who is responsible for
+            upgrades</h2>
+          <p class="mt-4 text-base leading-7 text-gray-600">
+            We ship. You choose when to apply. Here is the line, drawn precisely, so procurement does not have to
+            guess.
+          </p>
+        </div>
+
+        <div class="sh-scroll mt-12 rounded-2xl border border-gray-200 shadow-sm">
+          <table class="min-w-full divide-y divide-gray-200 text-left">
+            <thead class="bg-gray-50">
+              <tr>
+                <th scope="col" class="w-1/5 px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Area</th>
+                <th scope="col" class="px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-emerald-600">
+                  OneUptime does this</th>
+                <th scope="col" class="px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-gray-500">You do
+                  this</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 bg-white">
+              <% selfHosted.upgradeResponsibilities.forEach(function(row) { %>
+              <tr>
+                <th scope="row" class="px-6 py-5 align-top text-sm font-semibold text-gray-900"><%= row.area %></th>
+                <td class="px-6 py-5 align-top text-sm leading-6 text-gray-600"><%= row.oneuptime %></td>
+                <td class="px-6 py-5 align-top text-sm leading-6 text-gray-600"><%= row.customer %></td>
+              </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+          <a href="<%= selfHosted.helmDocs.upgradeNotes %>" target="_blank" rel="noopener"
+            class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">Upgrade notes</a>
+          <a href="<%= selfHosted.helmDocs.releases %>" target="_blank" rel="noopener"
+            class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">Release notes</a>
+          <a href="/legal/deprecation-policy"
+            class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">Deprecation policy</a>
+          <a href="<%= selfHosted.helmDocs.productionChecklist %>" target="_blank" rel="noopener"
+            class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">Production readiness
+            checklist</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================= AIR-GAPPED -->
+    <section id="air-gapped" class="border-t border-gray-100 bg-gray-900 py-20 sm:py-28">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-3xl">
+          <p class="text-sm font-medium uppercase tracking-wide text-emerald-400">Air-gapped</p>
+          <h2 class="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">Runs with no outbound
+            connectivity</h2>
+          <p class="mt-4 text-base leading-7 text-gray-400">
+            Six things to set, and the install never speaks to the internet again. This is the same chart everyone
+            else runs &mdash; there is no special air-gapped build to procure.
+          </p>
+        </div>
+
+        <div class="mt-12 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <% selfHosted.airGapSteps.forEach(function(step, stepIndex) { %>
+          <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition-colors hover:border-white/20">
+            <div class="flex items-center gap-3">
+              <span
+                class="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 text-xs font-semibold text-emerald-400 ring-1 ring-inset ring-emerald-500/20"><%= stepIndex + 1 %></span>
+              <h3 class="text-base font-semibold text-white"><%= step.title %></h3>
+            </div>
+            <p class="mt-3 text-sm leading-6 text-gray-400"><%= step.description %></p>
+            <code
+              class="sh-code mt-4 block truncate rounded-lg bg-black/40 px-3 py-2 text-[12px] text-emerald-300"><%= step.setting %></code>
+          </div>
+          <% }); %>
+        </div>
+
+        <div class="mt-10 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+          <p class="text-sm leading-6 text-gray-400">
+            <span class="font-semibold text-white">One honest caveat.</span> Anything that calls an external service by
+            design &mdash; a hosted AI model, a third-party SMS gateway, public DNS for external monitoring &mdash;
+            needs an internal equivalent or has to stay switched off. An architecture assessment goes through your
+            specific list.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================== HARDENED IMAGES -->
+    <section id="hardened-images" class="bg-white py-20 sm:py-28">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-16">
+          <div>
+            <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">Hardened images</p>
+            <h2 class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Enterprise Edition
+              hardening</h2>
+            <p class="mt-4 text-base leading-7 text-gray-600">
+              Community and Enterprise run the same product. What the Enterprise Edition changes is the container
+              image and what sits around it &mdash; selected with one chart value, and it requires a license.
+            </p>
+
+            <div class="mt-8 rounded-2xl bg-gray-900 p-5 shadow-lg">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">values.yaml</p>
+              <pre class="sh-code mt-2 text-[13px] leading-6 text-gray-200">image:
+  type: <span class="text-emerald-400">enterprise-edition</span>
+  registry: <span class="text-emerald-400">registry.internal.example.com</span>
+  tag: <span class="text-emerald-400">"8.0.1234"</span></pre>
+            </div>
+
+            <a href="#architecture-assessment"
+              class="mt-8 inline-flex items-center gap-2 rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-700">
+              Talk to us about Enterprise Edition
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+              </svg>
+            </a>
+          </div>
+
+          <ul class="space-y-4">
+            <% selfHosted.hardenedImageFeatures.forEach(function(feature) { %>
+            <li class="flex gap-3.5 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+              <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24"
+                stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
+              </svg>
+              <span class="text-sm leading-6 text-gray-600"><%= feature %></span>
+            </li>
+            <% }); %>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================== DATA RESIDENCY -->
+    <section id="data-residency" class="border-t border-gray-100 bg-gray-50/60 py-20 sm:py-28">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-3xl">
+          <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">Data residency</p>
+          <h2 class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Your data sits where you say
+            it sits</h2>
+        </div>
+
+        <div class="mt-12 grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <div class="sh-card rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-inset ring-emerald-100">
+              <svg class="h-5 w-5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="1.5"
+                viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+              </svg>
+            </span>
+            <h3 class="mt-5 text-base font-semibold text-gray-900">Self-hosted</h3>
+            <p class="mt-2 text-sm leading-6 text-gray-600">
+              Data never leaves the cluster you deployed. Residency is a property of where you put the cluster, and no
+              agreement with us is needed to prove it.
+            </p>
+          </div>
+
+          <div class="sh-card rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 ring-1 ring-inset ring-blue-100">
+              <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" stroke-width="1.5"
+                viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0 0a8.949 8.949 0 0 0 4.951-1.488A3.987 3.987 0 0 0 13 16h-2a3.987 3.987 0 0 0-3.951 3.512A8.949 8.949 0 0 0 12 21Zm3-11.25a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+              </svg>
+            </span>
+            <h3 class="mt-5 text-base font-semibold text-gray-900">Private cloud</h3>
+            <p class="mt-2 text-sm leading-6 text-gray-600">
+              A dedicated single-tenant environment in the region you choose, on AWS, Azure, GCP, or an agreed data
+              centre. Region is fixed at provisioning and named in the order form.
+            </p>
+          </div>
+
+          <div class="sh-card rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 ring-1 ring-inset ring-violet-100">
+              <svg class="h-5 w-5 text-violet-600" fill="none" stroke="currentColor" stroke-width="1.5"
+                viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+              </svg>
+            </span>
+            <h3 class="mt-5 text-base font-semibold text-gray-900">Contractual backing</h3>
+            <p class="mt-2 text-sm leading-6 text-gray-600">
+              A DPA with Standard Contractual Clauses, a BAA for covered entities, and the subprocessor list &mdash;
+              all published, all reviewable before you sign.
+            </p>
+            <a href="/legal/data-residency"
+              class="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-900 hover:text-gray-600">
+              Data residency details
+              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ SHARED RESPONSIBILITIES -->
+    <section id="responsibilities" class="bg-white py-20 sm:py-28">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-3xl">
+          <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">Shared responsibility</p>
+          <h2 class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Where our job ends and yours
+            begins</h2>
+          <p class="mt-4 text-base leading-7 text-gray-600">
+            Self-hosting moves real responsibility onto your team. Better you read that here than discover it during
+            an incident.
+          </p>
+        </div>
+
+        <div class="sh-scroll mt-12 rounded-2xl border border-gray-200 shadow-sm">
+          <table class="min-w-full divide-y divide-gray-200 text-left">
+            <thead class="bg-gray-50">
+              <tr>
+                <th scope="col" class="w-1/5 px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Area</th>
+                <th scope="col" class="px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-emerald-600">
+                  OneUptime</th>
+                <th scope="col" class="px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-gray-500">You</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 bg-white">
+              <% selfHosted.sharedResponsibilities.forEach(function(row) { %>
+              <tr>
+                <th scope="row" class="px-6 py-5 align-top text-sm font-semibold text-gray-900"><%= row.area %></th>
+                <td class="px-6 py-5 align-top text-sm leading-6 text-gray-600"><%= row.oneuptime %></td>
+                <td class="px-6 py-5 align-top text-sm leading-6 text-gray-600"><%= row.customer %></td>
+              </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ SUPPORT -->
+    <section id="support" class="border-t border-gray-100 bg-gray-50/60 py-20 sm:py-28">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-3xl">
+          <p class="text-sm font-medium uppercase tracking-wide text-emerald-600">Support boundaries</p>
+          <h2 class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">What support covers &mdash;
+            and what it does not</h2>
+          <p class="mt-4 text-base leading-7 text-gray-600">
+            Both editions are the same product. The difference is accountability, and we would rather be blunt about
+            it than have you find out at 3am.
+          </p>
+        </div>
+
+        <div class="mt-12 grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <% selfHosted.supportBoundaries.forEach(function(tier) { %>
+          <div
+            class="sh-card flex h-full flex-col rounded-2xl border <%= tier.key === 'enterprise' ? 'border-gray-900 bg-white' : 'border-gray-200 bg-white' %> p-7 shadow-sm">
+            <h3 class="text-xl font-semibold text-gray-900"><%= tier.name %></h3>
+            <p class="mt-2 text-sm leading-6 text-gray-600"><%= tier.description %></p>
+
+            <div class="mt-6">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-emerald-600">Included</p>
+              <ul class="mt-3 space-y-2.5">
+                <% tier.included.forEach(function(item) { %>
+                <li class="flex gap-2.5 text-sm leading-6 text-gray-600">
+                  <svg class="mt-1 h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24"
+                    stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                  <span><%= item %></span>
+                </li>
+                <% }); %>
+              </ul>
+            </div>
+
+            <div class="mt-6 border-t border-gray-100 pt-6">
+              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Not included</p>
+              <ul class="mt-3 space-y-2.5">
+                <% tier.excluded.forEach(function(item) { %>
+                <li class="flex gap-2.5 text-sm leading-6 text-gray-500">
+                  <svg class="mt-1 h-4 w-4 flex-shrink-0 text-gray-300" fill="none" viewBox="0 0 24 24"
+                    stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                  <span><%= item %></span>
+                </li>
+                <% }); %>
+              </ul>
+            </div>
+
+            <% if (tier.key === 'enterprise') { %>
+            <div class="mt-auto pt-6">
+              <a href="#architecture-assessment"
+                class="inline-flex w-full items-center justify-center rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-700">
+                Discuss an enterprise agreement
+              </a>
+            </div>
+            <% } else { %>
+            <div class="mt-auto pt-6">
+              <a href="<%= selfHosted.helmDocs.repository %>" target="_blank" rel="noopener"
+                class="inline-flex w-full items-center justify-center rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-gray-700 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50">
+                Start on GitHub
+              </a>
+            </div>
+            <% } %>
+          </div>
+          <% }); %>
+        </div>
+
+        <p class="mt-8 max-w-3xl text-sm leading-6 text-gray-500">
+          Every uptime, support, and compliance statement on this page is governed by our
+          <a href="/trust#claims" class="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">claims
+            matrix</a>, which links each one to the document that makes it true.
+        </p>
+      </div>
+    </section>
+
+    <!-- =========================================== ARCHITECTURE ASSESSMENT -->
+    <section id="architecture-assessment" class="relative isolate overflow-hidden bg-gray-900 py-20 sm:py-28">
+      <div
+        class="absolute inset-0 -z-10 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,#000_60%,transparent_110%)]">
+      </div>
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
+          <div>
+            <p class="text-sm font-medium uppercase tracking-wide text-emerald-400">Architecture assessment</p>
+            <h2 class="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+              Bring us your topology. Leave with a reference architecture.
+            </h2>
+            <p class="mt-5 text-base leading-7 text-gray-400">
+              A working session with the engineers who build the platform &mdash; not a sales call. We size your
+              cluster against your telemetry volume, settle the HA and DR posture, walk your air-gap and compliance
+              constraints, and write down exactly where each responsibility sits.
+            </p>
+
+            <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+              <a href="/enterprise/demo"
+                class="inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-sm font-semibold text-gray-900 shadow-sm transition-all hover:bg-gray-100">
+                Book an architecture assessment
+                <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                </svg>
+              </a>
+              <a href="mailto:enterprise@oneuptime.com?subject=Self-hosted%20architecture%20assessment"
+                class="inline-flex items-center justify-center rounded-lg border border-white/20 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/5">
+                Email enterprise@oneuptime.com
+              </a>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-7">
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">What we cover</p>
+            <ul class="mt-5 space-y-4">
+              <li class="flex gap-3">
+                <span class="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-400"></span>
+                <span class="text-sm leading-6 text-gray-300">Deployment model and cluster topology for your
+                  environment</span>
+              </li>
+              <li class="flex gap-3">
+                <span class="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-400"></span>
+                <span class="text-sm leading-6 text-gray-300">Sizing against your monitor count, ingest volume, and
+                  retention policy</span>
+              </li>
+              <li class="flex gap-3">
+                <span class="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-400"></span>
+                <span class="text-sm leading-6 text-gray-300">High availability, backup, and restore posture &mdash;
+                  with your RTO and RPO</span>
+              </li>
+              <li class="flex gap-3">
+                <span class="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-400"></span>
+                <span class="text-sm leading-6 text-gray-300">Upgrade process, maintenance windows, and rollback
+                  plan</span>
+              </li>
+              <li class="flex gap-3">
+                <span class="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-400"></span>
+                <span class="text-sm leading-6 text-gray-300">Network, egress, air-gap, and data residency
+                  constraints</span>
+              </li>
+              <li class="flex gap-3">
+                <span class="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-400"></span>
+                <span class="text-sm leading-6 text-gray-300">Security review support: evidence, questionnaires, and
+                  the responsibility split</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================ FAQ -->
+    <section id="faq" class="bg-white py-20 sm:py-28">
+      <div class="mx-auto max-w-4xl px-6 lg:px-8">
+        <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Questions buyers actually ask</h2>
+
+        <div class="mt-12 divide-y divide-gray-100 border-y border-gray-100">
+          <% selfHosted.faqs.forEach(function(faq) { %>
+          <details class="group py-6">
+            <summary class="flex cursor-pointer list-none items-start justify-between gap-6">
+              <span class="text-base font-medium text-gray-900"><%= faq.question %></span>
+              <span
+                class="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-transform group-open:rotate-45">
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"></path>
+                </svg>
+              </span>
+            </summary>
+            <p class="mt-4 text-sm leading-7 text-gray-600"><%= faq.answer %></p>
+          </details>
+          <% }); %>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <%- include('footer') -%>
+
+  <script>
+    (function () {
+      var hero = document.getElementById('self-hosted-hero');
+      var glow = document.getElementById('self-hosted-grid-glow');
+
+      if (!hero || !glow) {
+        return;
+      }
+
+      hero.addEventListener('mousemove', function (event) {
+        var rect = hero.getBoundingClientRect();
+        glow.style.setProperty('--mouse-x', (event.clientX - rect.left) + 'px');
+        glow.style.setProperty('--mouse-y', (event.clientY - rect.top) + 'px');
+        glow.style.opacity = '1';
+      });
+
+      hero.addEventListener('mouseleave', function () {
+        glow.style.opacity = '0';
+      });
+    })();
+  </script>
+</body>
+
+</html>

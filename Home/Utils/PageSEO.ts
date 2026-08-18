@@ -1195,6 +1195,39 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     ],
   },
 
+  "/enterprise/self-hosted": {
+    title:
+      "Self-Hosted OneUptime | Deployment, Architecture & Support | OneUptime",
+    description:
+      "Run the full OneUptime platform on your own infrastructure. Deployment models, reference architecture, Kubernetes requirements, high availability and disaster recovery, upgrade responsibility, air-gapped operation, hardened images, data residency, and support boundaries.",
+    canonicalPath: "/enterprise/self-hosted",
+    twitterCard: "summary_large_image",
+    pageType: "enterprise",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Enterprise", url: "/enterprise/overview" },
+      { name: "Self-Hosted", url: "/enterprise/self-hosted" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Self-Hosted",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Kubernetes, Linux, Docker",
+      description:
+        "The complete OneUptime observability and incident management platform, deployed on infrastructure you own and operate.",
+      features: [
+        "Kubernetes deployment with an official Helm chart",
+        "Docker Compose deployment for single-host installs",
+        "Private cloud and managed single-tenant options",
+        "High availability with CloudNativePG and Altinity ClickHouse operators",
+        "Pod Disruption Budgets, HPA, and KEDA autoscaling",
+        "Air-gapped operation with mirrored images and no outbound calls",
+        "Hardened Enterprise Edition container images",
+        "Customer-controlled data residency and encryption keys",
+        "Documented upgrade responsibility and support boundaries",
+      ],
+    },
+  },
+
   "/enterprise/demo": {
     title: "Request Demo | See OneUptime in Action | OneUptime",
     description:
@@ -1220,6 +1253,19 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     breadcrumbs: [
       { name: "Home", url: "/" },
       { name: "About", url: "/about" },
+    ],
+  },
+
+  "/trust": {
+    title: "Trust Center | Security, Compliance & Governed Claims | OneUptime",
+    description:
+      "OneUptime's canonical trust center. Certifications and attestations with the evidence behind each one, security architecture, privacy practices, and a governed claims matrix covering service levels, support, compliance, encryption, deployment, migration, scale, discounts, and contract terms.",
+    canonicalPath: "/trust",
+    twitterCard: "summary_large_image",
+    pageType: "other",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Trust Center", url: "/trust" },
     ],
   },
 
