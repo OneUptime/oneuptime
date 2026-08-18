@@ -1,99 +1,99 @@
 # Komponenter
 
-Komponenter er de byggesten, du tilføjer efter triggeren. Hver enkelt gør én ting — send en besked, kald et API, tjek en betingelse — og forbinder til det, der kommer bagefter.
+Komponenter er de byggeklodser, du tilføjer efter triggeren. Hver enkelt gør én ting — sender en besked, kalder et API, tjekker en betingelse — og forbinder sig til det, der kommer bagefter.
 
-Denne side er kataloget. For hvordan du tilføjer og forbinder dem på lærredet, se [Opbygning af et workflow](/docs/workflows/authoring).
+Denne side er kataloget. Hvordan du tilføjer og forbinder dem på lærredet, står i [Opret et workflow](/docs/workflows/authoring).
 
 ## API
 
-Foretag en HTTP-anmodning til en hvilken som helst URL.
+Send en HTTP-anmodning til en hvilken som helst URL.
 
-**Settings**:
+**Indstillinger**:
 
 - **Method** — `GET`, `POST`, `PUT`, `PATCH` eller `DELETE`.
 - **URL** — adressen, der skal kaldes.
-- **Headers** — eventuelle headers, der skal sendes.
-- **Body** — anmodningens body til `POST` / `PUT` / `PATCH`.
+- **Headers** — de headere, der skal sendes med.
+- **Body** — anmodningens body ved `POST` / `PUT` / `PATCH`.
 
 **Outputs**:
 
-- **Success** — udløses, når kaldet lykkedes (2xx-svar). Sender status, headers og body videre.
-- **Error** — udløses ved en netværksfejl eller et ikke-2xx-svar. Sender fejlbeskeden videre.
+- **Succes** — fyrer, når kaldet lykkedes (2xx-svar). Sender status, headere og body videre.
+- **Fejl** — fyrer ved en netværksfejl eller et svar uden for 2xx. Sender fejlmeddelelsen videre.
 
-Brug denne til: ethvert eksternt API, dine egne admin-endpoints, eller enhver integration, som ikke har sin egen komponent.
+Brug den til: et hvilket som helst eksternt API, dine egne admin-endpoints, eller enhver integration, der ikke har sin egen komponent.
 
 ## AI
 
 ### Generate Text with AI
 
-Generér ét tekstsvar ud fra en prompt og valgfri JSON-kontekst. Komponenten bruger projektets konfigurerede standard-LLM-udbyder, med fallback til installationens globale udbyder, når en er tilgængelig. Udbyder-credentials og -endpoints konfigureres centralt; de er ikke workflow-argumenter.
+Generér ét tekstsvar ud fra en prompt og valgfri JSON-kontekst. Komponenten bruger projektets konfigurerede standard-LLM-udbyder og falder tilbage til installationens globale udbyder, hvis der er en. Udbyderens adgangsoplysninger og endpoints konfigureres centralt; de er ikke argumenter i workflowet.
 
-**Settings**:
+**Indstillinger**:
 
-- **System Instructions** — valgfri vejledning til modellens rolle, tone og begrænsninger.
-- **Prompt** — den påkrævede opgave. Den kan inkludere workflow-variabler og output fra tidligere komponenter.
-- **Context** — valgfri JSON, som du bevidst inkluderer i anmodningen. Den tilføjes efter en eksplicit end-of-message-tillidsmarkør og behandles som utroværdige data resten af beskeden igennem.
-- **Temperature** — variation fra `0` til `1`. Standarden er `0.2` for forudsigelig automatisering.
-- **Maximum Output Tokens** — fra `1` til `4096`. Standarden er `1024`.
+- **System Instructions** — valgfri vejledning om modellens rolle, tone og begrænsninger.
+- **Prompt** — den påkrævede opgave. Den kan indeholde workflowvariabler og output fra tidligere komponenter.
+- **Context** — valgfri JSON, som du bevidst sender med i anmodningen. Den lægges efter en eksplicit tillidsmarkør for slutningen af beskeden og behandles som utroværdige data i resten af beskeden.
+- **Temperature** — variation fra `0` til `1`. Standard er `0.2` for forudsigelig automatik.
+- **Maximum Output Tokens** — fra `1` til `4096`. Standard er `1024`.
 
-De kombinerede System Instructions, Prompt og serialiserede Context er begrænset til 50.000 tegn. Udbyderanmodningen har en maksimal varighed på 60 sekunder og forsøges kun én gang. Højst tre workflow-AI-anmodninger kan køre samtidig pr. projekt.
+System Instructions, Prompt og den serialiserede Context er tilsammen begrænset til 50.000 tegn. Anmodningen til udbyderen har en maksimal varighed på 60 sekunder og forsøges én gang. Højst tre AI-anmodninger fra workflows kan køre samtidig pr. projekt.
 
 **Outputs**:
 
 - **Response** — den genererede tekst.
-- **Provider** og **Model** — konfigurationen brugt til kaldet.
-- **Total Tokens** og **Completion Tokens** — forbrug rapporteret af udbyderen.
+- **Udbyder** og **Model** — den konfiguration, kaldet brugte.
+- **Total Tokens** og **Completion Tokens** — det forbrug, udbyderen rapporterer.
 - **LLM Log ID** — den målte AI-logpost for kaldet.
-- **Error** — validerings-, adgangs-, udbyder-, budget-, fakturerings- eller timeout-fejlen, når den findes.
+- **Fejl** — validerings-, adgangs-, udbyder-, budget-, faktureringsfejlen eller timeout-fejlen, når der er en.
 
-Forbind **Success** til komponenter, der skal bruge svaret. Forbind **Error** til en eksplicit fallback, alarm eller log-sti. Komponenten foretager én modelanmodning uden værktøjsdefinitioner eller udbyder-native capability-felter: den kan ikke forespørge OneUptime, kalde API'er eller ændre projektdata på egen hånd. Ud over OneUptimes faste komponent-sikkerhedsinstruktioner sendes kun de System Instructions, Prompt og Context, du konfigurerer, til udbyderen, efter workflow-variabler i de felter er opløst. Den konfigurerede udbyder/model forbliver en tillidsgrænse, fordi en model kan have iboende udbyder-styrede capabilities.
+Forbind **Succes** til de komponenter, der skal bruge svaret. Forbind **Fejl** til en udtrykkelig reservevej, advarsel eller logvej. Komponenten laver én modelanmodning uden værktøjsdefinitioner eller udbyderspecifikke kapacitetsfelter: den kan ikke selv slå op i OneUptime, kalde API'er eller ændre projektets data. Ud over OneUptimes faste sikkerhedsinstruktioner for komponenten sendes kun de System Instructions, den Prompt og den Context, du selv har konfigureret, til udbyderen — efter at workflowvariabler i de felter er opløst. Den konfigurerede udbyder/model er stadig en tillidsgrænse, fordi en model kan have iboende, udbyderstyrede kapaciteter.
 
-Modeloutput er utroværdig tekst. Gennemgå det, før du sender kundevendt kommunikation, og brug ikke fritekst-AI-tekst alene til at autorisere destruktive workflow-handlinger. Se [Workflow-konfiguration & sikkerhed](/docs/workflows/configuration) for detaljer om udbyder, egress, logning og omkostninger.
+Modellens output er utroværdig tekst. Læs det igennem, før du sender kundevendt kommunikation, og brug ikke fritekst fra en AI alene til at godkende destruktive handlinger i et workflow. Se [Workflow-konfiguration & sikkerhed](/docs/workflows/configuration) for detaljer om udbyder, egress, logning og omkostninger.
 
 ## Webhook (udgående)
 
-En enklere version af API-komponenten til "fire and forget"-tilfælde. Poster en JSON-body til en URL.
+En enklere udgave af API-komponenten til "fyr og glem"-tilfælde. Sender en JSON-body til en URL.
 
-Brug **API**, hvis du har brug for at læse svaret. Brug **Webhook**, hvis du bare vil sende en notifikation og gå videre.
+Brug **API**, hvis du skal læse svaret. Brug **Webhook**, hvis du bare vil sende en besked af sted og komme videre.
 
 ## Slack
 
-Post en besked til en Slack-kanal.
+Slå en besked op i en Slack-kanal.
 
-**Settings**:
+**Indstillinger**:
 
-- **Channel** — kanalens navn. Bot'en skal allerede være i den kanal.
-- **Message** — den tekst, der skal sendes. Understøtter Slack-formatering.
+- **Kanal** — kanalnavnet. Botten skal allerede være i den kanal.
+- **Besked** — teksten, der skal sendes. Understøtter Slack-formatering.
 
-Forbind først Slack til dit projekt under **Project Settings → Workspace → Slack**. Se [Slack Workspace-forbindelse](/docs/workspace-connections/slack).
+Forbind først Slack til dit projekt under **Projektindstillinger → Arbejdsområde → Slack**. Se [Slack Workspace-forbindelse](/docs/workspace-connections/slack).
 
 ## Microsoft Teams
 
-Post en besked til en Microsoft Teams-kanal.
+Slå en besked op i en kanal i Microsoft Teams.
 
-**Settings**:
+**Indstillinger**:
 
-- **Team and channel** — hvor der skal postes.
-- **Message** — den tekst, der skal sendes.
+- **Team and channel** — hvor beskeden skal slås op.
+- **Besked** — teksten, der skal sendes.
 
 Se [Microsoft Teams Workspace-forbindelse](/docs/workspace-connections/microsoft-teams) for opsætning.
 
 ## Discord
 
-Post en besked til en Discord-kanal via en indkommende webhook-URL.
+Slå en besked op i en Discord-kanal via en indgående webhook-URL.
 
 ## Telegram
 
-Send en besked til en Telegram-chat ved hjælp af et bot-token og et chat-ID.
+Send en besked til en Telegram-chat med et bot-token og et chat-ID.
 
 ## Email
 
 Send en e-mail gennem OneUptime.
 
-**Settings**:
+**Indstillinger**:
 
-- **To** — modtagerens e-mailadresse.
-- **Subject** — emnelinjen.
+- **Til** — modtagerens e-mailadresse.
+- **Emne** — emnelinjen.
 - **Body** — beskeden i Markdown eller HTML.
 
 E-mailen sendes fra dit projekts konfigurerede afsender — se [SMTP](/docs/emails/smtp).
@@ -102,109 +102,109 @@ E-mailen sendes fra dit projekts konfigurerede afsender — se [SMTP](/docs/emai
 
 Kør et lille stykke JavaScript, når du har brug for noget, de andre blokke ikke kan.
 
-**Settings**:
+**Indstillinger**:
 
-- **Code** — din JavaScript. Den sidste værdi (eller det, du returnerer fra en async-funktion) bliver blokkens output.
+- **Kode** — dit JavaScript. Den sidste værdi (eller det, du returnerer fra en async-funktion) bliver blokkens output.
 - **Arguments** — navngivne værdier, du kan sende ind.
 
-**Outputs**: success (din returværdi) og error (enhver undtagelse).
+**Outputs**: succes (din returværdi) og fejl (enhver exception).
 
-Brug denne til: at omforme data mellem to systemer, lave en lille beregning, eller noget der ikke fortjener sin egen blok. Til tungere scripting kan du i stedet bruge en [Runbook](/docs/runbooks/index).
+Brug den til: at forme data om mellem to systemer, lave en lille udregning, alt det der ikke fortjener sin egen blok. Til tungere scripting bruger du i stedet et [Runbook](/docs/runbooks/index).
 
 ## JSON
 
 Konvertér mellem tekst og JSON.
 
-- **JSON → Text** — gør et JSON-objekt til en streng. Nyttigt, når den næste blok forventer tekst.
-- **Text → JSON** — parse en streng til et JSON-objekt. Nyttigt, når noget kom som tekst, og du skal læse et felt.
+- **JSON → Text** — lav et JSON-objekt om til en streng. Nyttigt, når den næste blok forventer tekst.
+- **Text → JSON** — fortolk en streng til et JSON-objekt. Nyttigt, når noget er kommet ind som tekst, og du skal læse et felt i det.
 
 ## Conditions
 
-Forgren ud fra en sammenligning. I panelet **Add Component** hedder denne blok **If / Else**, under kategorien Conditions.
+Forgren efter en sammenligning. I panelet **Tilføj komponent** hedder blokken **If / Else** og ligger under kategorien Conditions.
 
-**Settings**:
+**Indstillinger**:
 
-- **Left value** — typisk en værdi fra en tidligere blok.
+- **Left value** — som regel en værdi fra en tidligere blok.
 - **Operator** — `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts with`, `ends with`.
 - **Right value** — det, der skal sammenlignes med.
 
-**Outputs**: **Yes** og **No**. Forbind de næste blokke til den gren, du vil have.
+**Outputs**: **Ja** og **Nej**. Forbind de næste blokke til den gren, du vil have.
 
 ## Delay
 
-Sæt workflowet på pause i et bestemt stykke tid, før det fortsætter. Nyttigt, når du har brug for at give et andet system et øjeblik til at indhente det.
+Sæt workflowet på pause et bestemt stykke tid, før det fortsætter. Nyttigt, når du skal give et andet system et øjeblik til at følge med.
 
 ## Log
 
-Skriv en linje til kørselsloggen. Ingen ekstern effekt — den dukker bare op i workflowets logfiler, så du kan læse den. Praktisk til debugging.
+Skriv en linje i kørselsloggen. Ingen effekt udadtil — den dukker bare op i workflowets logge, så du kan læse den. Praktisk til fejlfinding.
 
 ## Execute Workflow
 
-Kald et andet workflow fra dette. Det kaldte workflow kører for sig selv — dit workflow fortsætter uden at vente på, at det afsluttes.
+Kald et andet workflow fra dette. Det kaldte workflow kører for sig selv — dit eget workflow fortsætter uden at vente på, at det bliver færdigt.
 
-Brug dette til at dele fælles logik. Byg ét "post til hændelseskanal"-workflow, og kald det så fra ethvert andet workflow, der har brug for at notificere kanalen.
+Brug det til at dele fælles logik. Byg et "slå op i hændelseskanalen"-workflow én gang, og kald det så fra alle de andre workflows, der skal give kanalen besked.
 
-Der er en sikkerhedsgrænse, så workflows ikke kan blive ved med at kalde hinanden i en løkke. Se [Workflow-konfiguration & sikkerhed](/docs/workflows/configuration).
+Der er en sikkerhedsgrænse, så workflows ikke kan blive ved med at kalde hinanden i ring. Se [Workflow-konfiguration & sikkerhed](/docs/workflows/configuration).
 
 ## OneUptime-datakomponenter
 
-For hver slags post i OneUptime (monitors, incidents, alerts, status pages, on-call-politikker og mange flere) har panelet **Add Component** disse komponenter — søg på typens navn. Hver titel genereres ud fra posttypen, så sættet for Monitor ser sådan ud:
+For hver slags post i OneUptime (monitorer, hændelser, advarsler, statussider, vagtpolitikker og mange flere) har panelet **Tilføj komponent** disse komponenter — søg efter typens navn. Hver titel dannes ud fra posttypen, så sættet for Monitor lyder:
 
 - **Find One Monitor** — læs én post, der matcher forespørgslen.
 - **Find Many Monitors** — læs en liste af poster, der matcher forespørgslen.
 - **Create One Monitor** — tilføj én post ud fra et JSON-objekt.
 - **Create Many Monitors** — tilføj flere poster ud fra et JSON-array.
-- **Update One Monitor** — anvend write-payloaden på én matchende post.
-- **Update Many Monitors** — anvend write-payloaden på matchende poster, op til Limit.
+- **Update One Monitor** — anvend skrive-payloaden på én matchende post.
+- **Update Many Monitors** — anvend skrive-payloaden på matchende poster, op til Limit.
 - **Delete One Monitor** — slet én matchende post.
 - **Delete Many Monitors** — slet matchende poster, op til Limit.
 
-Det samme sæt giver dig tre triggere — **On Create Monitor**, **On Update Monitor** og **On Delete Monitor**. Se [Triggere](/docs/workflows/triggers).
+Det samme sæt giver dig tre triggere — **On Create Monitor**, **On Update Monitor** og **On Delete Monitor**. Se [Workflow-triggere](/docs/workflows/triggers).
 
-En type tilbyder kun de komponenter, dens model tillader. En skrivebeskyttet type har kun de to Find-komponenter og intet andet, så hvis du ikke kan finde **Delete One Monitor** i panelet, tillader den type det ikke.
+En type tilbyder kun de komponenter, dens model tillader. En skrivebeskyttet type har de to Find-komponenter og ikke andet, så kan du ikke finde **Delete One Monitor** i panelet, tillader den type det ikke.
 
-Sådan kan et workflow læse og ændre OneUptime-data. For eksempel: en webhook fra dit CI-værktøj kan bruge **Create One Incident** til at åbne en hændelse med fejldetaljerne.
+Sådan kan et workflow læse og ændre data i OneUptime. For eksempel: en webhook fra dit CI-værktøj kan bruge **Create One Incident** til at åbne en hændelse med detaljerne om fejlen.
 
 ## At arbejde med poster
 
-Hvert felt på en datakomponent er nøglet på postens egne **kolonne**-navne — de samme navne, API'et bruger, ikke de labels, der vises på dashboard-formularen. ID-kolonnen er `_id`. Stavemåden `id` accepteres som et alias alle steder, du kan skrive et kolonnenavn, men `_id` er, hvad en post giver tilbage, så det er det, du skal læse på vej ud:
+Hvert felt på en datakomponent bygger på postens egne **kolonnenavne** — de samme navne, som API'et bruger, ikke etiketterne på formularen i dashboardet. ID-kolonnen hedder `_id`. Stavemåden `id` accepteres som alias overalt, hvor du kan skrive et kolonnenavn, men `_id` er det, en post giver tilbage, så det er dét, du skal læse på vejen ud:
 
 ```json
 { "_id": "00000000-0000-0000-0000-000000000000" }
 ```
 
-**Query** afgør, hvilke poster komponenten handler på. Nøgler er kolonner, værdier er det, der skal matches:
+**Query** afgør, hvilke poster komponenten arbejder på. Nøglerne er kolonner, værdierne er det, der skal matches:
 
 ```json
 { "monitorType": "Website", "isEnabled": true }
 ```
 
-En forespørgsel er altid afgrænset til det projekt, workflowet kører i. Du kan ikke nå et andet projekts poster, og du behøver ikke selv tilføje projektet til forespørgslen.
+En forespørgsel er altid afgrænset til det projekt, workflowet kører i. Du kan ikke nå et andet projekts poster, og du behøver ikke selv skrive projektet ind i forespørgslen.
 
-**JSON Object** på Create One, **JSON Array** på Create Many, og **Data (JSON Object)** på Update-komponenterne bærer de felter, der skal skrives, nøglet på samme måde:
+**JSON Object** på Create One, **JSON Array** på Create Many og **Data (JSON Object)** på Update-komponenterne bærer de felter, der skal skrives, med de samme nøgler:
 
 ```json
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-En nøgle, der ikke er en kolonne, ignoreres i stedet for at blive afvist — kørselsloggen navngiver dem, den droppede, så tjek der, når et felt ikke lander. **Select Fields**, på Find-komponenterne og triggerne, bruger de samme kolonnenøgler med `true`-værdier: `{"_id": true, "name": true}`.
+En nøgle, der ikke er en kolonne, bliver ignoreret frem for afvist — kørselsloggen navngiver dem, den droppede, så kig der, når et felt ikke lander. **Select Fields**, som findes på Find-komponenterne og på triggerne, bruger de samme kolonnenøgler med værdien `true`: `{"_id": true, "name": true}`.
 
-**Skip** og **Limit** er to talfelter på Find Many, Update Many og Delete Many — `Skip: 0` med `Limit: 100` tager de første hundrede matches. Limit er som standard `10`, og på Update Many og Delete Many begrænser den, hvor mange poster der rent faktisk skrives, ikke bare hvor mange der kommer tilbage. Så `Items Deleted: 10` betyder, at ti poster blev slettet, ikke at ti matchede. Sæt Limit op, når du mener at ændre mere end ti.
+**Spring over** og **Limit** er to talfelter på Find Many, Update Many og Delete Many — `Skip: 0` med `Limit: 100` tager de første hundrede match. Limit er som standard `10`, og på Update Many og Delete Many begrænser den, hvor mange poster der faktisk bliver skrevet, ikke bare hvor mange der kommer retur. Så `Items Deleted: 10` betyder, at ti poster blev slettet, ikke at ti matchede. Sæt Limit op, når du har til hensigt at ændre mere end ti.
 
-**Success** og **Error** rapporterer, om forespørgslen kørte, ikke hvad den fandt. En forespørgsel, der ikke matcher noget, returnerer `0` og går stadig ud gennem Success — det er ikke en fejl. For at forgrene på, om noget matchede, læs den returnerede count i en **If / Else**-blok.
+**Succes** og **Fejl** melder, om forespørgslen kørte, ikke hvad den fandt. En forespørgsel, der ikke matcher noget, returnerer `0` og går stadig ud gennem Succes — det er ikke en fejl. Vil du forgrene efter, om noget matchede, så læs det returnerede antal i en **If / Else**-blok.
 
 ## Hvilken komponent skal jeg bruge?
 
 Et par hurtige regler:
 
-- Hvis der findes en dedikeret blok til det, du vil have (Slack, Email, en OneUptime-post), så brug den — du får pænere fejlhåndtering og klarere logfiler.
-- Til ethvert andet eksternt API, brug **API**.
-- For at opsummere, klassificere eller udkaste tekst ud fra eksplicit udvalgt workflow-data, brug **Generate Text with AI**.
-- For at omforme data mellem blokke, brug **Custom Code** eller **JSON**.
-- For at tage forskellige handlinger baseret på en værdi, brug **Conditions**.
+- Findes der en dedikeret blok til det, du vil (Slack, Email, en OneUptime-post), så brug den — du får pænere fejlhåndtering og klarere logge.
+- Til alle andre eksterne API'er bruger du **API**.
+- Skal du opsummere, klassificere eller skrive udkast til tekst ud fra data, du bevidst har valgt fra workflowet, bruger du **Generate Text with AI**.
+- Skal du forme data om mellem blokke, bruger du **Custom Code** eller **JSON**.
+- Skal du gøre noget forskelligt afhængigt af en værdi, bruger du **Conditions**.
 
-## Læs videre
+## Hvor du kan læse videre
 
-- [Workflow-variabler](/docs/workflows/variables) — at sende data mellem blokke.
-- [Workflow-kørsler & logfiler](/docs/workflows/runs-and-logs) — tjek hvad hver blok gjorde i en kørsel.
+- [Workflow-variabler](/docs/workflows/variables) — sådan sender du data mellem blokke.
+- [Workflow-kørsler & logfiler](/docs/workflows/runs-and-logs) — sådan tjekker du, hvad hver blok gjorde i en kørsel.
 - [Workflow-konfiguration & sikkerhed](/docs/workflows/configuration) — grænser, ejere og hemmeligheder.

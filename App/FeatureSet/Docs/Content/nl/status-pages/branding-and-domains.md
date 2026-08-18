@@ -1,161 +1,161 @@
-# Huisstijl & Aangepaste Domeinen
+# Huisstijl en aangepaste domeinen
 
-Een statuspagina is het ene OneUptime-oppervlak dat je klanten daadwerkelijk bekijken, dus het moet eruitzien alsof het van jou is en op je eigen domein staan. Beide worden geconfigureerd vanuit de sectie **Huisstijl** in het zijmenu van een statuspagina, plus één instelling die verstopt zit in **Geavanceerde instellingen**.
+Een statuspagina is het enige OneUptime-oppervlak waar je klanten echt naar kijken, dus die hoort eruit te zien alsof hij van jou is en op je eigen domein te staan. Allebei regel je vanuit de sectie **Huisstijl** in het zijmenu van een statuspagina, plus één instelling die zich in **Geavanceerde instellingen** verstopt.
 
-Wat je moet weten voordat je begint: huisstijl is verspreid over zeven aparte schermen, en die verdeling is niet altijd waar je zou verwachten. Het logo en de omslagafbeelding staan niet op **Essentiële branding** — die staan op **Koptekst**. De favicon staat op **Essentiële branding**. Kleuren staan op **Overzichtspagina**. Al het andere dat je als "theming" zou beschouwen, is Aangepaste CSS.
+Wat je vooraf moet weten: de huisstijl is verdeeld over zeven aparte schermen, en die verdeling ligt niet altijd waar je zou gokken. Het logo en de omslagafbeelding staan niet op **Essentiële branding** — die staan op **Koptekst**. De favicon staat wél op **Essentiële branding**. Kleuren staan op **Overzichtspagina**. Al het andere dat je "theming" zou noemen, gaat via aangepaste CSS.
 
-Deze pagina doorloopt elk scherm stuk voor stuk, en neemt je daarna mee door de volledige CNAME-dan-SSL-reeks om de pagina op `status.jouwbedrijf.com` te zetten.
+Deze pagina loopt elk scherm langs en neemt je daarna mee door de volledige CNAME-en-dan-SSL-volgorde om de pagina op `status.jouwbedrijf.nl` te zetten.
 
-## Waar elke huisstijlbediening zich bevindt
+## Waar elke huisstijlinstelling staat
 
-Open een statuspagina, en de sectie **Huisstijl** van het zijmenu heeft zeven items. Hier is de kaart, zodat je niet meer hoeft te zoeken.
+Open een statuspagina en de sectie **Huisstijl** in het zijmenu heeft zeven items. Hier is de kaart, zodat je niet meer hoeft te zoeken.
 
-| Pagina                       | Wat je daar instelt                                                                         |
-| ---------------------------- | ------------------------------------------------------------------------------------------ |
-| **Essentiële branding**      | Paginatitel, paginabeschrijving, indexering door zoekmachines, favicon.                    |
-| **Koptekst**                 | Logo, omslagafbeelding, hun alt-tekst, en de koptekst-linkbalk.                            |
-| **Voettekst**                 | Copyrightregel en de voettekst-linkbalk.                                                   |
-| **Overzichtspagina**          | Overzichtsbeschrijving, balkkleuren van de geschiedenisgrafiek, downtime-statussen, algeheel uptimepercentage. |
-| **HTML, CSS & JavaScript**    | Koptekst-HTML, footer-HTML, aangepaste CSS, aangepaste JavaScript.                          |
-| **Aangepaste domeinen**       | Je eigen domein, CNAME-verificatie, en SSL.                                                |
-| **Talen**                     | Standaardtaal en de talen die worden aangeboden in de footer-schakelaar.                    |
+| Pagina                     | Wat je daar instelt                                                                        |
+| -------------------------- | ------------------------------------------------------------------------------------------ |
+| **Essentiële branding**    | Paginatitel, paginabeschrijving, indexering door zoekmachines, favicon.                    |
+| **Koptekst**               | Logo, omslagafbeelding, hun alt-teksten, en de linkbalk in de koptekst.                    |
+| **Voettekst**              | Copyrightregel en de linkbalk in de voettekst.                                             |
+| **Overzichtspagina**       | Beschrijving van het overzicht, balkkleuren van de geschiedenisgrafiek, downtime-statussen, totaal uptimepercentage. |
+| **HTML, CSS & JavaScript** | Koptekst-HTML, footer-HTML, aangepaste CSS, aangepaste JavaScript.                         |
+| **Aangepaste domeinen**    | Je eigen domein, CNAME-verificatie en SSL.                                                 |
+| **Talen**                  | Standaardtaal en de talen die de wisselaar in de voettekst aanbiedt.                       |
 
 ## Essentiële branding
 
 **Statuspagina's → jouw pagina → Huisstijl → Essentiële branding** (`{id}/branding`) bevat drie kaarten.
 
-- **Titel en beschrijving** — de kaart vermeldt dat dit ook wordt gebruikt voor SEO. **Edit** opent **Paginatitel** (placeholder `Please enter page title here.`) en **Paginabeschrijving**. Dit is wat zoekmachines en linkpreviews tonen, dus schrijf het voor een klant, niet voor je team.
-- **Search Engine Indexing** — een enkele schakelaar, **Allow Search Engines to Index this Status Page**, in het product beschreven als de bediening of Google en Bing de pagina mogen opnemen in hun resultaten. Deze staat standaard aan. Zet hem uit en de pagina wordt in plaats daarvan geserveerd met `noindex, nofollow`.
-- **Favicon** — **Edit Favicon** opent de afbeeldingsupload **Favicon**. Dit is het kleine icoontje in het browsertabblad.
+- **Titel en beschrijving** — de kaart vermeldt dat dit ook voor SEO wordt gebruikt. **Bewerken** opent **Paginatitel** (placeholder `Please enter page title here.`) en **Paginabeschrijving**. Dit is wat zoekmachines en linkvoorbeelden tonen, dus schrijf het voor een klant, niet voor je team.
+- **Search Engine Indexing** — één schakelaar, **Allow Search Engines to Index this Status Page**, in het product omschreven als de knop die bepaalt of Google en Bing de pagina in hun resultaten mogen opnemen. Standaard aan. Zet je hem uit, dan wordt de pagina geserveerd met `noindex, nofollow`.
+- **Favicon** — **Edit Favicon** opent de afbeeldingsupload **Favicon**. Dit is het icoontje in het browsertabblad.
 
-Gebruik dit wanneer: de pagina alleen intern is of nog wordt opgezet. Zet **Allow Search Engines to Index this Status Page** uit zodat een half afgemaakte pagina niet begint te ranken voor je merknaam.
+Gebruik het wanneer: de pagina alleen intern is of nog in aanbouw. Zet **Allow Search Engines to Index this Status Page** uit, zodat een halfafgemaakte pagina niet begint te scoren op je merknaam.
 
-## Het koptekst-scherm
+## Het scherm Koptekst
 
-**Statuspagina's → jouw pagina → Huisstijl → Koptekst** (`{id}/header-style`). Ondanks de naam in het zijmenu is dit waar je twee grootste merkactiva staan.
+**Statuspagina's → jouw pagina → Huisstijl → Koptekst** (`{id}/header-style`). Ondanks de naam in het zijmenu staan hier je twee grootste merkelementen.
 
-De eerste kaart heet **Logo, Cover and Favicon**, met een knop **Edit Images**:
+De eerste kaart heet **Logo, omslag en favicon**, met een knop **Edit Images**:
 
 - **Logo** — afbeeldingsupload, placeholder `Upload logo`.
-- **Logo Alt Text** — placeholder `Logo of My Company`. Laat je dit leeg, dan wordt in plaats daarvan de titel van de statuspagina gebruikt.
-- **Cover** — afbeeldingsupload, placeholder `Upload cover image`. Dit is de brede banner achter de koptekst.
+- **Logo Alt Text** — placeholder `Logo of My Company`. Laat je dit leeg, dan wordt de titel van de statuspagina gebruikt.
+- **Omslag** — afbeeldingsupload, placeholder `Upload cover image`. Dit is de brede banner achter de koptekst.
 - **Cover Image Alt Text** — hetzelfde idee voor de omslag.
 
-Daaronder staat een tabel **Header Links** ("Header Links for your status page"). Elke link heeft een **Title** en een **Link** (een URL, placeholder `https://link.com`), en rijen worden versleept om opnieuw te ordenen. Zonder configuratie staat er in de tabel "No status header link for this status page."
+Daaronder staat een tabel **Koptekstkoppelingen** ("Header Links for your status page"). Elke koppeling heeft een **Titel** en een **Koppeling** (een URL, placeholder `https://link.com`), en rijen herorden je door te slepen. Zonder configuratie leest de tabel "No status header link for this status page."
 
-Goed voor: bezoekers terugleiden naar je marketingsite, je documentatie, of een supportportaal zonder ze de URL te laten raden.
+Goed voor: bezoekers terugsturen naar je marketingsite, je documentatie of een supportportaal, zonder dat ze de URL moeten raden.
 
-## Het footer-scherm
+## Het scherm Voettekst
 
-**Statuspagina's → jouw pagina → Huisstijl → Voettekst** (`{id}/footer-style`) heeft dezelfde vorm als **Koptekst**, één kaart en één tabel.
+**Statuspagina's → jouw pagina → Huisstijl → Voettekst** (`{id}/footer-style`) heeft dezelfde vorm als **Koptekst**: één kaart en één tabel.
 
-- **Copyright Info** — **Edit Copyright** opent één veld, **Copyright Info**, met de placeholder `Acme, Inc.`.
-- **Footer Links** — hetzelfde paar **Title** plus **Link**, versleepbaar geordend, met lege melding "No status footer link for this status page."
+- **Copyrightinformatie** — **Edit Copyright** opent één veld, **Copyrightinformatie**, met de placeholder `Acme, Inc.`.
+- **Footerlinks** — hetzelfde paar **Titel** plus **Koppeling**, te ordenen met slepen, met als lege melding "No status footer link for this status page."
 
-Juridische links, privacy- en voorwaardenlinks horen hier thuis. Koptekstlinks zijn voor navigatie; footerlinks zijn voor de kleine lettertjes.
+Links naar juridische informatie, privacy en voorwaarden horen hier. Koptekstkoppelingen zijn voor navigatie; footerlinks zijn voor de kleine lettertjes.
 
 ## Huisstijl van de overzichtspagina
 
 **Statuspagina's → jouw pagina → Huisstijl → Overzichtspagina** (`{id}/overview-page-branding`) is het enige scherm waar kleuren instelbaar zijn, en het bepaalt ook wat "down" betekent op de grafiek.
 
-- **Overview Page** — **Edit Branding** opent een markdown-veld, **Overview Page Description.**, dat boven de resourcelijst wordt weergegeven. Gebruik het voor een zin context: wat deze pagina behandelt, en waar je terechtkunt voor support.
-- **Rules for Bar Colors of History Chart** — een geordende, versleepbare tabel met regels. Elke regel heeft **When uptime % is greater than or equal to** en **Then, use this bar color**; de tabelkolommen luiden `When Uptime Percent >=` en `Then, Bar Color is`. Volgorde is van belang, dus rangschik ze in de volgorde waarin je wilt dat ze worden geëvalueerd.
-- **Downtime Monitor Statuses** — **Edit Statuses** opent een multiselect die wordt omschreven als "These monitor statuses are considered as down". Zo bepaal je of, bijvoorbeeld, een degraded-status meetelt tegen de uptime op deze pagina.
-- **Default Bar Color of the History Chart** — **Edit Default Bar Color** opent de kleurenkiezer **Default Bar Color**, de kleur die wordt gebruikt wanneer geen enkele regel van toepassing is.
-- **Overall Uptime Percent** — **Edit Settings** opent de schakelaar **Show Overall Uptime Percent** en een dropdown **Select Uptime Precision**, die standaard op twee decimalen staat (`99.99% (Two Decimal)`).
+- **Overzichtspagina** — **Edit Branding** opent een markdownveld, **Beschrijving overzichtspagina.**, dat boven de resourcelijst wordt weergegeven. Gebruik het voor één zin context: wat deze pagina dekt en waar je terechtkunt voor support.
+- **Rules for Bar Colors of History Chart** — een geordende, sleepbare tabel met regels. Elke regel heeft **When uptime % is greater than or equal to** en **Then, use this bar color**; de tabelkolommen heten `When Uptime Percent >=` en `Then, Bar Color is`. De volgorde telt, dus zet ze zoals je ze geëvalueerd wilt hebben.
+- **Downtime-monitorstatussen** — **Edit Statuses** opent een multiselect, omschreven als "These monitor statuses are considered as down". Zo bepaal je of bijvoorbeeld een verminderde status op deze pagina meetelt tegen de uptime.
+- **Default Bar Color of the History Chart** — **Edit Default Bar Color** opent de kiezer **Standaard balkkleur**, de kleur die wordt gebruikt wanneer geen enkele regel matcht.
+- **Overall Uptime Percent** — **Edit Settings** opent de schakelaar **Totaal uptimepercentage weergeven** en een lijst **Selecteer uptime-precisie**, die standaard op twee decimalen staat (`99.99% (Two Decimal)`).
 
-**Hoeveel dagen de grafiek beslaat, wordt hier niet ingesteld.** Dat is **Show Uptime History (in days)** op **Statuspagina's → jouw pagina → Advanced → Geavanceerde instellingen** (`{id}/settings`), geldig van 1 tot 90.
+**Hoeveel dagen de grafiek beslaat, stel je hier niet in.** Dat is **Uptimegeschiedenis weergeven (in dagen)** op **Statuspagina's → jouw pagina → Geavanceerd → Geavanceerde instellingen** (`{id}/settings`), geldig van 1 tot 90.
 
 ## Aangepaste HTML, CSS en JavaScript
 
-**Statuspagina's → jouw pagina → Huisstijl → HTML, CSS & JavaScript** (`{id}/custom-code`) heeft vier onafhankelijk bewerkbare kaarten, ondersteund door de kolommen `headerHTML`, `footerHTML`, `customCSS` en `customJavaScript` op de statuspagina:
+**Statuspagina's → jouw pagina → Huisstijl → HTML, CSS & JavaScript** (`{id}/custom-code`) heeft vier los bewerkbare kaarten, gevoed door de kolommen `headerHTML`, `footerHTML`, `customCSS` en `customJavaScript` op de statuspagina:
 
-- **Header HTML** — placeholder `Insert Custom HTML here.`, geïnjecteerd in de paginakoptekst.
-- **Footer HTML** — hetzelfde, voor de footer.
-- **Custom CSS** — placeholder `Insert Custom CSS here.`
-- **Custom JavaScript** — placeholder `Insert Custom JavaScript here.`
+- **Koptekst-HTML** — placeholder `Insert Custom HTML here.`, geïnjecteerd in de koptekst van de pagina.
+- **Footer-HTML** — hetzelfde, voor de voettekst.
+- **Aangepaste CSS** — placeholder `Insert Custom CSS here.`
+- **Aangepaste JavaScript** — placeholder `Insert Custom JavaScript here.`
 
-**Er is geen themakiezer.** OneUptime-statuspagina's hebben geen thema- of merkkleurinstelling: de enige ingebouwde kleurbedieningen waar dan ook zijn **Default Bar Color** en de balkkleurregels van de geschiedenisgrafiek op het scherm **Overzichtspagina**. Lettertypen, achtergrondkleuren, accentkleuren en lay-outaanpassingen lopen allemaal via **Aangepaste CSS** hier. Als je op zoek was naar een "merkkleur"-veld, is dit het antwoord — er is er geen, en dit vak is het ontsnappingsluik.
+**Er is geen themakiezer.** OneUptime-statuspagina's hebben geen instelling voor thema of merkkleur: de enige ingebouwde kleurinstellingen zijn **Standaard balkkleur** en de balkkleurregels op het scherm **Overzichtspagina**. Lettertypen, achtergrondkleuren, accentkleuren en aanpassingen aan de indeling lopen allemaal via **Aangepaste CSS** hier. Zocht je naar een veld voor je merkkleur: dat bestaat niet, en dit vak is de nooduitgang.
 
-> Aangepaste JavaScript draait in de browsers van je bezoekers, op een pagina die mensen precies laden wanneer ze bang zijn dat er iets kapot is. Houd het klein, host het waar mogelijk zelf, en test het voordat je erop vertrouwt.
+> Aangepaste JavaScript draait in de browsers van je bezoekers, op een pagina die mensen juist laden wanneer ze bang zijn dat er iets stuk is. Houd het klein, host het zelf waar dat kan, en test het voordat je erop vertrouwt.
 
 ## Taalinstellingen
 
-**Statuspagina's → jouw pagina → Huisstijl → Talen** (`{id}/languages`) heeft twee kaarten, en beide gaan over de taalschakelaar die bezoekers krijgen in de paginafooter.
+**Statuspagina's → jouw pagina → Huisstijl → Talen** (`{id}/languages`) heeft twee kaarten, en beide gaan over de taalwisselaar die bezoekers in de voettekst krijgen.
 
-- **Default Language** — **Edit Default Language** opent een dropdown met elke ondersteunde taal, met inheemse naam en Engelse naam (`Deutsch (German)`). De kaart omschrijft dit als de taal die eerste bezoekers zien; bezoekers kunnen altijd wisselen vanuit de footer. Standaard staat dit op Engels.
-- **Enabled Languages** — **Edit Enabled Languages** opent een multiselect, placeholder `All languages`. Laat het leeg en elke ondersteunde taal wordt aangeboden. Kies er een paar en de footer-schakelaar toont alleen die.
+- **Standaardtaal** — **Edit Default Language** opent een vervolgkeuzelijst met elke ondersteunde taal in de eigen naam en de Engelse naam (`Deutsch (German)`). De kaart omschrijft het als de taal die nieuwe bezoekers zien; bezoekers kunnen altijd wisselen via de voettekst. Standaard Engels.
+- **Ingeschakelde talen** — **Edit Enabled Languages** opent een multiselect, placeholder `All languages`. Laat je die leeg, dan wordt elke ondersteunde taal aangeboden. Kies je er een paar, dan toont de wisselaar in de voettekst alleen die.
 
-Zestien talen worden standaard meegeleverd met OneUptime: Engels, Duits, Frans, Spaans, Italiaans, Portugees, Nederlands, Deens, Noors, Zweeds, Russisch, Japans, Koreaans, Chinees (vereenvoudigd), Chinees (traditioneel) en Hindi.
+OneUptime wordt geleverd met zestien talen: Engels, Duits, Frans, Spaans, Italiaans, Portugees, Nederlands, Deens, Noors, Zweeds, Russisch, Japans, Koreaans, Chinees (vereenvoudigd), Chinees (traditioneel) en Hindi.
 
 ## Aangepaste domeinen
 
-Standaard is een statuspagina bereikbaar op de preview-URL die wordt getoond op het scherm **Overview**. Om de pagina op je eigen hostnaam te zetten, ga je naar **Statuspagina's → jouw pagina → Huisstijl → Aangepaste domeinen** (`{id}/domains`).
+Standaard is een statuspagina bereikbaar op de preview-URL die op het scherm **Overzicht** staat. Wil je hem op je eigen hostnaam zetten, ga dan naar **Statuspagina's → jouw pagina → Huisstijl → Aangepaste domeinen** (`{id}/domains`).
 
-De kaart heet **Custom Domains** en de beschrijving spelt de vereiste direct uit: voeg het CNAME-record van je installatie's statuspagina toe als CNAME voor deze domeinen om dit te laten werken. Zonder configuratie staat er in de tabel "No custom domains found." De tabel heeft twee kolommen, **Domain** en **Status**, en filters voor **Domain**, **CNAME Valid** en **SSL Provisioned**.
+De kaart heet **Aangepaste domeinen** en de beschrijving zegt de voorwaarde recht voor zijn raap: voeg het statuspagina-CNAME-record van je installatie toe als CNAME voor deze domeinen, anders werkt het niet. Zonder configuratie leest de tabel "No custom domains found." De tabel heeft twee kolommen, **Domein** en **Status**, en filters voor **Domein**, **CNAME geldig** en **SSL geprovisioneerd**.
 
 ### Voordat je begint
 
-Twee voorwaarden, en het overslaan van een van beide is de gebruikelijke reden waarom dit niet werkt:
+Twee voorwaarden, en een ervan overslaan is de gebruikelijke reden dat dit niet werkt:
 
-- **Het bovenliggende domein moet al geverifieerd zijn.** De dropdown **Domain** toont alleen geverifieerde domeinen uit de projectinstellingen — de helptekst van het veld verwijst je naar **Meer → Projectinstellingen → Aangepaste domeinen** om er eerst een toe te voegen.
-- **De installatie moet een CNAME-record voor de statuspagina hebben geconfigureerd.** Op self-hosted installaties is dat de omgevingsvariabele `STATUS_PAGE_CNAME_RECORD` in Docker Compose, of `statusPage.cnameRecord` in de Helm `values.yaml`. Zonder dit tonen zowel de modal **Add CNAME** als **Order Free SSL** een bericht "Custom Domains not enabled for this OneUptime installation" in plaats van instructies.
+- **Het bovenliggende domein moet al geverifieerd zijn.** De lijst **Domein** toont alleen geverifieerde domeinen uit de projectinstellingen — de helptekst van het veld verwijst je naar **Meer → Projectinstellingen → Aangepaste domeinen** om er eerst een toe te voegen.
+- **De installatie moet een statuspagina-CNAME-record hebben.** Op zelf gehoste deployments is dat de omgevingsvariabele `STATUS_PAGE_CNAME_RECORD` in Docker Compose, of `statusPage.cnameRecord` in de Helm-`values.yaml`. Zonder dat tonen de modals **CNAME toevoegen** en **Gratis SSL bestellen** de melding "Custom Domains not enabled for this OneUptime installation" in plaats van instructies.
 
 ### Het domein toevoegen
 
 Klik op **Create Status Page Domain**. De modal (**Create New Status Page Domain**) heeft twee stappen:
 
-**Basic**
+**Basis**
 
-- **Subdomain** — alleen het label, placeholder `status (leave blank for root)`. Voer alleen `status` in, niet de volledige hostnaam. Laat het leeg of vul `@` in om het root-/apex-domein te gebruiken.
-- **Domain** — een dropdown met geverifieerde domeinen, placeholder `Select domain`.
+- **Subdomein** — alleen het label, placeholder `status (leave blank for root)`. Vul alleen `status` in, niet de hele hostnaam. Laat het leeg of vul `@` in om het root- of apexdomein te gebruiken.
+- **Domein** — een lijst met geverifieerde domeinen, placeholder `Select domain`.
 
-**More**
+**Meer**
 
-- **Upload Custom Certificate** — een schakelaar, standaard uit. Laat hem uit en OneUptime bestelt gratis een certificaat voor je. Zet hem aan en je krijgt de velden **Certificate** en **Certificate Private Key** voor je eigen PEM-materiaal.
+- **Aangepast certificaat uploaden** — een schakelaar, standaard uit. Laat je hem uit, dan bestelt OneUptime een gratis certificaat voor je. Zet je hem aan, dan krijg je de velden **Certificaat** en **Privésleutel van certificaat** voor je eigen PEM-materiaal.
 
 ## De CNAME verifiëren
 
-Zolang het domein niet geverifieerd is, toont de rij een actie **Add CNAME**. Deze opent een modal getiteld **Add CNAME** die je precies geeft wat je in je DNS-provider moet plakken:
+Zolang het domein niet geverifieerd is, toont de rij een actie **CNAME toevoegen**. Die opent een modal **CNAME toevoegen** die je precies geeft wat je bij je DNS-provider moet plakken:
 
-- **Record Type** — `CNAME`
-- **Name** — het volledige domein dat je zojuist hebt aangemaakt, bijvoorbeeld `status.jouwbedrijf.com`
-- **Content** — het CNAME-record van de statuspagina van je installatie
+- **Recordtype** — `CNAME`
+- **Naam** — het volledige domein dat je zojuist aanmaakte, bijvoorbeeld `status.jouwbedrijf.nl`
+- **Inhoud** — het statuspagina-CNAME-record van je installatie
 
-De modal vermeldt dat, zodra het record is geplaatst, automatische verificatie tot 24 uur kan duren. Je hoeft daar niet op te wachten: de submitknop van de modal is **Verify CNAME**, die het record op verzoek controleert.
+De modal vermeldt dat automatische verificatie tot 24 uur kan duren zodra het record staat. Daar hoef je niet op te wachten: de verzendknop van de modal is **CNAME verifiëren**, die het record direct controleert.
 
-Maak eerst het DNS-record aan, klik daarna op **Verify CNAME**. Erop klikken voordat het record bestaat mislukt gewoon.
+Maak eerst het DNS-record aan en klik daarna op **CNAME verifiëren**. Klik je voordat het record bestaat, dan mislukt het gewoon.
 
 ## Een SSL-certificaat bestellen
 
-Zodra de CNAME is geverifieerd — en alleen als je niet zelf een certificaat hebt geüpload — verschijnt op de rij een actie **Order Free SSL**. De bijbehorende modal, **Order Free SSL Certificate for this Status Page**, legt uit dat OneUptime LetsEncrypt gebruikt, dat het proces veilig en gratis is, en dat provisioning enkele uren duurt nadat de bestelling is geplaatst. De submitknop is **Order Free SSL**.
+Zodra de CNAME is geverifieerd — en alleen als je geen eigen certificaat hebt geüpload — verschijnt er een actie **Gratis SSL bestellen** op de rij. De bijbehorende modal, **Order Free SSL Certificate for this Status Page**, legt uit dat OneUptime LetsEncrypt gebruikt, dat het proces veilig en gratis is, en dat provisioning een paar uur duurt nadat de bestelling is geplaatst. De verzendknop is **Gratis SSL bestellen**.
 
-**De vermelde tijden verschillen tussen schermen**, dus lees niet te veel in één enkel getal: de bestelmodal zegt drie uur, de kolom **Status** zegt één uur, en een aangepast certificaat zegt dertig minuten. Behandel ze allemaal als "kom later vandaag terug", en neem contact op met support als er tegen die tijd nog niets is gebeurd.
+**De genoemde doorlooptijden spreken elkaar tegen tussen schermen**, dus hecht niet te veel waarde aan één getal: de bestelmodal zegt drie uur, de kolom **Status** zegt één uur, en bij een eigen certificaat staat dertig minuten. Lees ze allemaal als "kom later vandaag terug", en neem contact op met support als er tegen die tijd nog niets is gebeurd.
 
-Eenmaal geprovisioneerd, is vernieuwing automatisch. Er is niets terugkerends dat je nog hoeft te doen.
+Eenmaal geprovisioneerd verloopt de verlenging automatisch. Er is niets terugkerends dat jij moet doen.
 
 ## De kolom Status van het domein lezen
 
-De kolom **Status** is de hele setup-statusmachine in één cel. Elk bericht vertelt je wat de volgende stap is, of dat je klaar bent.
+De kolom **Status** is de hele setup-toestandsmachine in één cel. Elk bericht vertelt je wat de volgende stap is, of dat je klaar bent.
 
-| Wat de kolom Status zegt                               | Wat het betekent                                                                     |
-| ------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Action Required: Please add your CNAME record.         | De CNAME is nog niet geverifieerd. Voeg het record toe en klik op **Verify CNAME**. |
-| Action Required: Please order SSL certificate.          | CNAME is geverifieerd maar er is geen certificaat besteld. Klik op **Order Free SSL**. |
-| No action is required, allow 30 minutes to provision.   | Je hebt een aangepast certificaat geüpload en het wordt geïnstalleerd.               |
-| No action is required, this will be provisioned soon.   | Het gratis certificaat is besteld en onderweg. Neem contact op met support als het nooit aankomt. |
-| Certificate Provisioned. No action required.             | Klaar. OneUptime vernieuwt het certificaat automatisch.                             |
+| Wat de kolom Status zegt                              | Wat het betekent                                                                  |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Action Required: Please add your CNAME record.        | De CNAME is nog niet geverifieerd. Voeg het record toe en klik op **CNAME verifiëren**. |
+| Action Required: Please order SSL certificate.        | De CNAME is geverifieerd maar er is nog geen certificaat besteld. Klik op **Gratis SSL bestellen**. |
+| No action is required, allow 30 minutes to provision. | Je hebt een eigen certificaat geüpload en het wordt geïnstalleerd.                 |
+| No action is required, this will be provisioned soon. | Het gratis certificaat is besteld en onderweg. Neem contact op met support als het nooit aankomt. |
+| Certificate Provisioned. No action required.          | Klaar. OneUptime verlengt het certificaat automatisch.                            |
 
-Als een rij lang na het aanmaken van het DNS-item nog steeds "Action Required: Please add your CNAME record." toont, controleer dan of de naam van het record het volledige domein is en of de inhoud precies overeenkomt met het CNAME-record van je installatie.
+Blijft een rij lang nadat je het DNS-item aanmaakte op "Action Required: Please add your CNAME record." staan, controleer dan of de naam van het record het volledige domein is en of de inhoud exact overeenkomt met het CNAME-record van je installatie.
 
 ## Powered by OneUptime
 
-De regel "Powered by OneUptime" is geen instelling in de huisstijl-sectie. Deze staat op **Statuspagina's → jouw pagina → Advanced → Geavanceerde instellingen** (`{id}/settings`), in de kaart **Powered By OneUptime Branding**, als één enkele schakelaar: **Hide Powered By OneUptime Branding**. **Edit Settings** opent hem, zoals elke andere kaart op die pagina.
+De regel "Powered by OneUptime" is geen instelling uit de huisstijlsectie. Die staat op **Statuspagina's → jouw pagina → Geavanceerd → Geavanceerde instellingen** (`{id}/settings`), in de kaart **Aangedreven door OneUptime-branding**, als één schakelaar: **Verberg 'Powered By OneUptime'-branding**. **Edit Settings** opent hem, net als bij elke andere kaart op die pagina.
 
 ## Waar je hierna kunt lezen
 
 - [Statuspagina's – Overzicht](/docs/status-pages/index) — wat een statuspagina is en hoe de onderdelen samenhangen.
 - [Statuspagina – bronnen en groepen](/docs/status-pages/resources-and-groups) — kiezen wat bezoekers daadwerkelijk op de pagina zien.
-- [Abonnees en aankondigingen](/docs/status-pages/subscribers) — e-mail-, SMS-, Slack- en webhookabonnees, plus aankondigingen.
-- [Public API](/docs/status-pages/public-api) — statuspaginagegevens programmatisch uitlezen.
-- [Incidentstatussen en ernstniveaus](/docs/incidents/states-and-severities) — wat een incident op de pagina laat verschijnen en verdwijnen.
+- [Abonnees en aankondigingen](/docs/status-pages/subscribers) — abonnees via e-mail, sms, Slack en webhook, plus aankondigingen.
+- [Publieke API](/docs/status-pages/public-api) — statuspaginadata programmatisch uitlezen.
+- [Incidentstatussen en ernstniveaus](/docs/incidents/states-and-severities) — wat een incident op de pagina zet en er weer af haalt.

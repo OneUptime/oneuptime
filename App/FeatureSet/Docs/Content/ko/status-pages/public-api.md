@@ -327,10 +327,10 @@ API의 응답은 다음과 같습니다:
 }
 ```
 
-## 다음에 읽을 문서
+## 다음에 읽어 볼 내용
 
-- [상태 페이지 개요](/docs/status-pages/index) — 상태 페이지가 무엇이며 각 구성 요소가 어떻게 연결되는지.
-- [상태 페이지 리소스 및 그룹](/docs/status-pages/resources-and-groups) — 이 엔드포인트가 반환하는 리소스.
-- [상태 페이지 브랜딩 및 도메인](/docs/status-pages/branding-and-domains) — 이 엔드포인트가 제공되는 커스텀 도메인.
-- [구독자 및 공지](/docs/status-pages/subscribers) — 공지 엔드포인트가 제공하는 공지.
-- [인시던트 개요](/docs/incidents/index) — 이 응답에 포함된 인시던트의 출처.
+- [상태 페이지 개요](/docs/status-pages/index) — 상태 페이지가 무엇이고 각 조각이 어떻게 맞물리는지 다룹니다.
+- [상태 페이지 리소스 및 그룹](/docs/status-pages/resources-and-groups) — 이 엔드포인트들이 반환하는 리소스입니다.
+- [상태 페이지 브랜딩 및 도메인](/docs/status-pages/branding-and-domains) — 이 엔드포인트들이 제공되는 사용자 지정 도메인입니다.
+- [구독자 및 공지](/docs/status-pages/subscribers) — 공지 엔드포인트가 제공하는 그 공지입니다.
+- [인시던트 개요](/docs/incidents/index) — 이 응답에 담긴 인시던트가 어디에서 오는지 다룹니다.

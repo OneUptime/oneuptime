@@ -1,81 +1,81 @@
-# Triggers
+# ट्रिगर
 
-एक trigger किसी workflow का पहला block होता है — यह तय करता है कि workflow कब चलता है। हर workflow में ठीक एक trigger होता है। आप चार तरह में से एक चुनते हैं।
+trigger वर्कफ़्लो का पहला block है — यही तय करता है कि वर्कफ़्लो कब चले। हर वर्कफ़्लो में ठीक एक trigger होता है, और आप चार किस्मों में से चुनते हैं।
 
 ## Manual
 
-**Builder** page पर **Run Workflow** पर क्लिक करके, trigger के fields भरकर, और **Run Workflow Manually** से confirm करके workflow को demand पर चलाएं। Manual trigger एक JSON payload लेता है जिसे workflow का बाकी हिस्सा पढ़ सकता है।
+वर्कफ़्लो जब चाहें तब चलाइए: **बिल्डर** पेज पर **वर्कफ़्लो चलाएं** दबाइए, trigger के फ़ील्ड भरिए, और **Run Workflow Manually** से पुष्टि कर दीजिए। Manual trigger एक JSON payload लेता है, जिसे बाकी वर्कफ़्लो पढ़ सकता है।
 
-इसके लिए अच्छा है: वे one-click automations जिनके लिए आप एक button चाहते हैं, जैसे "इस key को rotate करो" या "एक test alert भेजो"।
+किसके लिए अच्छा: ऐसे एक-क्लिक automation जिनके लिए आप एक बटन चाहते हैं, जैसे "यह key बदल दो" या "एक test alert भेजो"।
 
-**Output**: जो JSON आपने paste किया था, या अगर आपने नहीं किया तो एक empty object।
+**Output**: वही JSON जो आपने चिपकाया था, और न चिपकाया हो तो एक खाली object।
 
 ## Schedule
 
-एक cron expression का उपयोग करके workflow को एक repeating schedule पर चलाएं।
+किसी cron expression की मदद से वर्कफ़्लो को दोहराते हुए schedule पर चलाइए।
 
-इसके लिए अच्छा है: nightly cleanup, hourly sync, weekly reports।
+किसके लिए अच्छा: रात की सफ़ाई, हर घंटे का sync, हफ़्तेवार रिपोर्ट।
 
-**Setting**: एक cron expression। कुछ आम expressions:
+**सेटिंग**: एक cron expression। कुछ आम उदाहरण:
 
-- `0 * * * *` — हर घंटे, घंटे के शुरू में।
-- `*/5 * * * *` — हर 5 मिनट में।
+- `0 * * * *` — हर घंटे, ठीक घंटा बजते ही।
+- `*/5 * * * *` — हर 5 मिनट पर।
 - `0 9 * * 1` — हर सोमवार सुबह 9:00 बजे।
 
-अगर system थोड़ी देर के लिए unavailable है, तो recover होते ही run उठा लिया जाता है — छोटे outages के लिए missed ticks की चिंता करने की जरूरत नहीं है।
+अगर सिस्टम थोड़ी देर के लिए उपलब्ध न हो, तो ठीक होते ही वह run उठा लिया जाता है — छोटे outage में छूटे हुए ticks की चिंता करने की ज़रूरत नहीं।
 
 ## Webhook
 
-OneUptime एक unique URL बनाता है। उस URL पर जो कुछ भी hit करता है वह workflow शुरू कर देता है। incoming request के headers, query parameters, और body pass किए जाते हैं।
+OneUptime एक अनोखा URL बनाता है। जो भी उस URL पर आता है, वह वर्कफ़्लो शुरू कर देता है। अनुरोध के headers, query parameters और body भीतर पास हो जाते हैं।
 
-इसके लिए अच्छा है: किसी दूसरे tool से OneUptime में data receive करना — CI/CD callbacks, दूसरी monitoring से alerts, आपके CRM में signups।
+किसके लिए अच्छा: किसी दूसरे tool से OneUptime में data लेना — CI/CD callbacks, दूसरी monitoring से आए alerts, आपके CRM में हुए signups।
 
 **Output**:
 
-- **Request Headers** — incoming request के सभी headers।
-- **Request Query Params** — parsed query string।
-- **Request Body** — parsed body (या अगर वह JSON नहीं है तो raw text)।
+- **अनुरोध हेडर** — आने वाले अनुरोध के सारे headers।
+- **Request Query Params** — parse की गई query string।
+- **अनुरोध बॉडी** — parse की गई body (या JSON न हो तो कच्चा text)।
 
-URL `GET` और `POST` दोनों accept करता है। caller को एक quick acknowledgement मिलता है — workflow खुद background में चलता है।
+यह URL `GET` और `POST` दोनों स्वीकार करता है। बुलाने वाले को तुरंत एक पावती मिल जाती है — वर्कफ़्लो खुद पीछे चलता रहता है।
 
-URL को password की तरह treat करें। जिसके पास भी यह हो वह आपका workflow शुरू कर सकता है।
+इस URL को पासवर्ड की तरह सँभालिए। जिसके पास यह है, वह आपका वर्कफ़्लो शुरू कर सकता है।
 
-## OneUptime event triggers
+## OneUptime के ईवेंट trigger
 
-OneUptime में लगभग हर चीज़ — monitors, incidents, alerts, scheduled maintenance, status pages, on-call policies, teams — किसी workflow को trigger कर सकती है। हर एक तीन events offer करता है:
+OneUptime की लगभग हर चीज़ — मॉनिटर, घटनाएँ, alerts, अनुसूचित रखरखाव, स्थिति पृष्ठ, on-call नीतियाँ, टीमें — कोई वर्कफ़्लो trigger कर सकती है। हर एक तीन ईवेंट देता है:
 
-- **On Create** — जब कोई नया बनता है तब fire होता है।
-- **On Update** — जब कोई बदला जाता है तब fire होता है।
-- **On Delete** — जब कोई delete किया जाता है तब fire होता है।
+- **On Create** — तब चलता है जब कोई नया जुड़ता है।
+- **On Update** — तब चलता है जब किसी में बदलाव होता है।
+- **On Delete** — तब चलता है जब कोई मिटाया जाता है।
 
-इस तरह आप बिना किसी loop में चीज़ें check किए "जब OneUptime में X होता है, तो Y करो" बना सकते हैं।
+इसी तरह आप "OneUptime में X हो तो Y करो" बनाते हैं, बिना किसी loop में बार-बार चीज़ें जाँचे।
 
-पूरा record अगले block को pass किया जाता है। उदाहरण के लिए, **Incident → On Create** trigger नया incident pass करता है, ताकि अगला block उसका title, description, severity, और कोई भी दूसरा field पढ़ सके।
+पूरा record अगले block को पास हो जाता है। जैसे **Incident → On Create** trigger नई घटना पास करता है, ताकि अगला block उसका शीर्षक, विवरण, गंभीरता और कोई भी दूसरा फ़ील्ड पढ़ सके।
 
-### सबसे ज्यादा इस्तेमाल होने वाले events
+### टीमें कौन-से ईवेंट सबसे ज़्यादा इस्तेमाल करती हैं
 
-- **Incident** — जब कोई incident खुले, बदले (acknowledged, resolved), या delete हो तब react करें।
-- **Alert** — alerts के लिए वही तीन।
-- **Monitor** — जब कोई monitor जोड़ा जाए, edit हो, या हटाया जाए तब react करें।
-- **Scheduled Maintenance** — जब maintenance window schedule हो तो अपने-आप उसकी घोषणा करें।
-- **Status Page Subscriber** — किसी status page को subscribe करने वाले का स्वागत करें।
-- **On-Call Duty Policy** — schedule में बदलाव किसी दूसरे roster system में sync करें।
+- **Incident** — घटना खुलने, बदलने (स्वीकार होने, सुलझने) या मिटने पर प्रतिक्रिया दीजिए।
+- **Alert** — alerts के लिए वही तीनों।
+- **Monitor** — कोई monitor जुड़ने, बदलने या हटने पर प्रतिक्रिया दीजिए।
+- **Scheduled Maintenance** — रखरखाव तय होते ही उसकी घोषणा अपने-आप करा दीजिए।
+- **Status Page Subscriber** — जो किसी स्थिति पृष्ठ की सदस्यता ले, उसका स्वागत कीजिए।
+- **On-Call Duty Policy** — schedule के बदलाव किसी दूसरे roster सिस्टम से मिलाइए।
 
-जिसे आप ढूंढ रहे हैं उसे पाने के लिए **Add Trigger** panel को नाम से search करें।
+जो चाहिए वह ढूँढने के लिए **Add Trigger** panel में नाम से खोजिए।
 
-## मुझे कौन सा trigger इस्तेमाल करना चाहिए?
+## मुझे कौन-सा trigger चुनना चाहिए?
 
-| अगर आप चाहते हैं…                        | चुनें                |
-| ------------------------------------------- | -------------------- |
-| workflow चलाने के लिए एक button क्लिक करना   | **Manual**           |
-| एक repeating schedule पर चलाना               | **Schedule**         |
-| किसी दूसरे system को data push करने देना     | **Webhook**          |
-| OneUptime के अंदर किसी चीज़ पर react करना    | **OneUptime event**  |
+| अगर आप चाहते हैं…                            | तो चुनिए            |
+| ----------------------------------- | ------------------- |
+| वर्कफ़्लो चलाने के लिए एक बटन दबाना          | **Manual**          |
+| दोहराते हुए schedule पर चलाना                 | **Schedule**        |
+| किसी दूसरे सिस्टम से data भिजवाना             | **Webhook**         |
+| OneUptime के भीतर की किसी बात पर प्रतिक्रिया देना | **OneUptime event** |
 
-एक workflow में सिर्फ एक ही trigger हो सकता है। अगर आपको एक ही automation को शुरू करने के दो तरीके चाहिए, तो shared logic को एक workflow में बनाएं और उसे **Execute Workflow** component का उपयोग करके दो पतले "wrapper" workflows से call करें।
+किसी वर्कफ़्लो में सिर्फ़ एक trigger हो सकता है। एक ही automation शुरू करने के दो रास्ते चाहिए, तो साझा logic एक वर्कफ़्लो में बनाइए और **Execute Workflow** component की मदद से उसे दो पतले "wrapper" वर्कफ़्लो से बुलाइए।
 
 ## आगे क्या पढ़ें
 
-- [Components](/docs/workflows/components) — trigger के बाद आप जो actions जोड़ते हैं।
-- [Variables](/docs/workflows/variables) — बाद के blocks से trigger का output पढ़ना।
-- [Runs & Logs](/docs/workflows/runs-and-logs) — यह पुष्टि करना कि आपका trigger fire हुआ।
+- [वर्कफ़्लो घटक](/docs/workflows/components) — trigger के बाद आप जो क्रियाएँ जोड़ते हैं।
+- [वर्कफ़्लो वेरिएबल](/docs/workflows/variables) — बाद वाले blocks से trigger का output पढ़ना।
+- [वर्कफ़्लो रन और लॉग](/docs/workflows/runs-and-logs) — यह पक्का करना कि आपका trigger चला।

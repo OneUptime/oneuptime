@@ -327,10 +327,10 @@ Voici la réponse de l'API :
 }
 ```
 
-## Pour aller plus loin
+## Où lire ensuite
 
-- [Vue d'ensemble des pages de statut](/docs/status-pages/index) — ce qu'est une page de statut et comment les éléments s'articulent.
-- [Ressources et groupes de la page de statut](/docs/status-pages/resources-and-groups) — les ressources renvoyées par ces points de terminaison.
+- [Vue d'ensemble des pages de statut](/docs/status-pages/index) — ce qu'est une page de statut et comment ses éléments s'articulent.
+- [Ressources et groupes de la page de statut](/docs/status-pages/resources-and-groups) — les ressources que renvoient ces points de terminaison.
 - [Personnalisation et domaines de la page de statut](/docs/status-pages/branding-and-domains) — le domaine personnalisé depuis lequel ces points de terminaison sont servis.
-- [Abonnés et annonces](/docs/status-pages/subscribers) — les annonces fournies par le point de terminaison des annonces.
-- [Vue d'ensemble des incidents](/docs/incidents/index) — d'où proviennent les incidents dans ces réponses.
+- [Abonnés et annonces](/docs/status-pages/subscribers) — les annonces que sert le point de terminaison des annonces.
+- [Vue d'ensemble des incidents](/docs/incidents/index) — d'où viennent les incidents présents dans ces réponses.

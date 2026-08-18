@@ -1,185 +1,185 @@
-# 状态页面概览
+# 状态页概览
 
-状态页是您所监控一切的公开门面：一个 URL，客户打开它就能知道情况，而不必发邮件问您是不是只有他们遇到了问题。它显示您选择公开的服务的当前状态、您正在处理的事件、您计划的维护，以及您想置顶的任何公告。
+状态页是你所监控的一切对外的那张脸：一个 URL，你的客户可以直接打开，而不必发邮件问你"是不是只有我这样"。它展示你选择公开的那些服务当前的状态、你正在处理的事件、你计划中的维护，以及任何你想置顶的公告。
 
-当凌晨两点出现故障时，状态页是您的支持队列首先链接过去的地方。它也是您的订阅者收到通知的来源——所以值得在需要之前就设置好，而不是等到故障发生时再手忙脚乱。
+凌晨两点出事的时候，状态页是你的支持队列第一个甩出去的链接。它也是给订阅者发通知的源头——所以值得在需要它之前就配好，而不是在故障当中现搭。
 
-状态页位于仪表板左侧导航的 **essentials** 分组下的 **Status Pages** 中。此页面上的一切都是按状态页配置的：一个项目可以运行任意多个状态页——面向客户的公开状态页、面向内部受众的私密状态页、针对特定市场的按区域状态页。
+状态页位于仪表板左侧导航的 **状态页面** 下，属于 **基础** 分组。本页讲的一切都是按状态页来配置的：一个项目想开多少个就开多少个——一个面向客户的公开页、一个面向内部受众的私密页、一个针对特定市场的区域页。
 
 ## 一览
 
-- **只需两个字段即可创建。** 新建状态页只需要 **Name** 和 **Description**。资源、品牌和域名都是之后配置的。
-- **资源就是访客所看到的内容。** 页面上的每一行都是一个 **Status Page Resource**——一个监视器（或监视器组），拥有自己的显示名称、工具提示和正常运行时间选项。分组把一个长页面拆分成若干区块，并且可以嵌套。
-- **从第一天起就有预览 URL。** 每个状态页都会获得一个预览链接，让您在自定义域名存在之前就能查看它。
-- **面向访客的路由由设置控制开关。** 事件、公告、计划事件和订阅页面，只有在 **Advanced Settings** 中对应的开关打开时才会出现。
-- **三种方式让页面变为私密。** 私人用户、主密码，或 SAML SSO / OIDC——再加上 IP 白名单。
-- **订阅者会被自动告知。** 电子邮件、短信、Slack、Microsoft Teams 和 Webhook 订阅者都可以关注一个页面，每个渠道都有各自的开关。
+- **创建时只要两个字段。** 新建状态页只问 **名称** 和 **描述**。资源、品牌和域名都是之后再配的。
+- **访客看到的就是资源。** 页面上的每一行都是一个 **状态页面 资源**——一个监视器（或监视器组），带有自己的显示名称、工具提示和正常运行时间选项。分组把长页面切成一个个区块，还可以嵌套。
+- **第一天就有预览 URL。** 每个状态页都会拿到一个预览链接，让你在自定义域名还不存在时就能看看效果。
+- **访客侧的路由由设置把关。** 事件、公告、计划事件和订阅页面，各自只有在 **高级设置** 上对应的开关打开时才会出现。
+- **有三种把它变私密的方式。** 私人用户、主密码，或者 SAML SSO / OIDC——外加一个 IP 白名单。
+- **订阅者会被自动告知。** 电子邮件、SMS、Slack、Microsoft Teams 和 Webhook 订阅者都可以关注一个页面，每个渠道背后都有自己的开关。
 
 ## 关键术语
 
-| 术语              | 含义                                                                                                                       |
+| 术语              | 含义                                                                                                                                |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| **Status page**   | 一个公开（或私密）的页面，拥有自己的品牌、域名、资源和订阅者。对应 `StatusPage` 模型。                    |
-| **Resource**      | 访客看到的一行——在页面上呈现的监视器或监视器组，带有显示名称和正常运行时间选项。                      |
-| **Group**         | 一个容纳资源的命名区块。分组可以嵌套在其他分组之中，每一层都会汇总其下所有内容的状态。 |
-| **Announcement**  | 您发布到一个或多个状态页的消息，带有开始时间和可选的结束时间。                                         |
-| **Subscriber**    | 通过电子邮件、短信、Slack、Microsoft Teams 或 Webhook 关注该页面的人（或系统）。                                                  |
-| **Custom domain** | 您自己的域名——如 `status.example.com`——通过 CNAME 和 SSL 证书指向该页面。                                 |
-| **Private user**  | 可以登录私密状态页的账户。与您的 OneUptime 项目用户是分开的。                                    |
+| **状态页**        | 一个公开（或私密）的页面，有自己的品牌、域名、资源和订阅者。对应 `StatusPage` 模型。                                                |
+| **资源**          | 访客看到的一行——一个被搬到页面上的监视器或监视器组，带显示名称和正常运行时间选项。                                                  |
+| **分组**          | 一个装着资源的具名区块。分组可以嵌套在其他分组里，每一层都会汇总它下面所有内容的状态。                                              |
+| **公告**          | 你发布到一个或多个状态页上的消息，带开始时间和可选的结束时间。                                                                      |
+| **订阅者**        | 通过电子邮件、SMS、Slack、Microsoft Teams 或 Webhook 关注该页面的某个人（或某个系统）。                                             |
+| **自定义域名**    | 你自己的域名——`status.example.com`——用一条 CNAME 和一张 SSL 证书指向该页面。                                                        |
+| **私人用户**      | 可以登录私密状态页的账号。与你的 OneUptime 项目用户是分开的。                                                                       |
 
-## 创建状态页
+## 创建一个状态页
 
-1. 打开 **Status Pages → All Status Pages**，点击 **Create Status Page**。
-2. 在 **Create New Status Page** 弹窗中，填写 **Name**（必填，至少两个字符），以及可选的 **Description**。
-3. 点击 **Create Status Page**。
+1. 打开 **状态页面 → 所有状态页面**，点击 **创建状态页面**。
+2. 在 **Create New Status Page** 弹窗中，填写 **名称**（必填，至少两个字符），以及可选的 **描述**。
+3. 点击 **创建状态页面**。
 
-创建表单就是这些。您返回后看到的列表显示 **Name**、**Description**、**Labels** 和 **Owners**，并可按 **Status Page ID**、**Name** 和 **Description** 进行筛选。
+整个创建表单就这些。回到的列表页会显示 **名称**、**描述**、**标签** 和 **所有者**，并且可以按 **状态页 ID**、**名称** 和 **描述** 过滤。
 
-打开新页面后，您会进入其 **Overview** 界面，其中包含两张卡片：**Status Page Preview URL**，带有指向页面本身的链接；以及 **Status Page Details**，您可以在此编辑刚才设置的名称、描述和标签。
+打开新建的页面，你会落在它的 **概览** 界面上，那里有两张卡片：带有页面本身链接的 **Status Page Preview URL**，以及可以修改你刚设好的名称、描述和标签的 **状态页详情**。
 
-接下来，按大致有用程度排序：
+接下来，按大致的实用度排序：
 
-- 添加资源，让页面上有内容——参见 [状态页资源与分组](/docs/status-pages/resources-and-groups)。
-- 设置页面标题、favicon、logo 和封面，然后绑定自定义域名——参见 [状态页品牌与域名](/docs/status-pages/branding-and-domains)。
-- 决定人们可以通过哪些渠道订阅——参见 [订阅者与公告](/docs/status-pages/subscribers)。
-- 在 **Advanced Settings** 中调整页面上显示的内容。
+- 加资源，好让页面上有东西——参见[状态页资源与分组](/docs/status-pages/resources-and-groups)。
+- 设好页面标题、网站图标、徽标和封面，然后挂上自定义域名——参见[状态页品牌与域名](/docs/status-pages/branding-and-domains)。
+- 决定人们可以通过哪些渠道订阅——参见[订阅者与公告](/docs/status-pages/subscribers)。
+- 在 **高级设置** 里调整页面上显示些什么。
 
-## 各功能所在的位置
+## 各项功能都在哪里
 
-打开一个状态页后，它自己的左侧菜单被分为九个部分。可以把这一节当作本文档组其余内容的地图。
+打开一个状态页之后，它自己的左侧菜单分成九个区块。把这份表当作本文档组其余部分的地图。
 
-| 部分               | 包含内容                                                                                                                   |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Basic**             | **Overview**、**Announcements**、**Owners**。                                                                                                   |
-| **Resources**         | 单一的 **Resources** 界面——左侧是分组，右侧是所选分组下的监视器。                                                |
-| **Subscribers**       | **Email Subscribers**、**SMS Subscribers**、**Slack Subscribers**、**MS Teams Subscribers**、**Webhook Subscribers**、**Subscriber Settings**。 |
-| **Notification Logs** | **Notification Logs**——发送给订阅者的内容记录。                                                                                          |
-| **Audit**             | **Audit Logs**。                                                                                                                                |
-| **Branding**          | **Essential Branding**、**HTML, CSS & JavaScript**、**Custom Domains**、**Header**、**Footer**、**Overview Page**、**Languages**。              |
-| **Security**          | **Private Users**、**SSO**、**OIDC**、**SCIM**、**Authentication Settings**。                                                                   |
-| **AI**                | **MCP**。                                                                                                                                       |
-| **Advanced**          | **Monitor Rules**、**Embedded Status**、**Reports**、**Custom Fields**、**Advanced Settings**、**Delete Status Page**。                         |
+| 区块                  | 里面有什么                                                                                                                                     |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| **基础**              | **概览**、**公告**、**所有者**。                                                                                                               |
+| **资源**              | 单独一个 **资源** 界面——左边是分组，右边是所选分组里的监视器。                                                                                 |
+| **订阅者**            | **电子邮件订阅者**、**SMS 订阅者**、**Slack 订阅者**、**MS Teams 订阅者**、**Webhook 订阅者**、**订阅者设置**。                                 |
+| **通知日志**          | **通知日志**——发给订阅者的都发了些什么。                                                                                                       |
+| **审计**              | **审计日志**。                                                                                                                                 |
+| **品牌**              | **基本品牌**、**HTML、CSS 和 JavaScript**、**自定义域名**、**页眉**、**页脚**、**概览页面**、**语言**。                                         |
+| **安全**              | **私人用户**、**SSO**、**OIDC**、**SCIM**、**认证设置**。                                                                                      |
+| **人工智能**          | **MCP**。                                                                                                                                      |
+| **高级**              | **Monitor Rules**、**嵌入状态**、**报告**、**自定义字段**、**高级设置**、**删除状态页面**。                                                     |
 
-在开始查找之前，有两个命名上的小细节值得了解：
+去找之前，有两处命名上的怪癖值得先知道：
 
-- **Resources** 这一项只有在项目启用了监视器组时才叫 **Resources**。否则它显示为 **Monitors**。两种情况下都是同一个界面。
-- 没有单独的分组页面。分组和资源已合并，旧的 `/groups` 路由现在会重定向到资源界面。
+- 只有当项目启用了监视器组时，那个条目才叫 **资源**。否则它写作 **监视器**。两种情况下是同一个界面。
+- 没有独立的分组页面。分组和资源已经合并，旧的 `/groups` 路由现在会重定向到资源界面。
 
-在单个页面之外，**Status Pages** 部分本身有一个 **More** 分区，包含 **Announcements**；还有一个折叠的 **Settings** 分区，包含 **Announcement Templates**、**Subscriber Templates**、**Custom Fields**、**Owner Rules** 和 **Label Rules**——这些是项目级别的，被所有状态页共享。
+在单个页面之外，**状态页面** 区块本身还有一个 **更多** 区块（内含 **公告**），以及一个折叠的 **设置** 区块，里面是 **公告模板**、**订阅者模板**、**自定义字段**、**所有者规则** 和 **标签规则**——这些是项目级的，所有状态页共用。
 
-## 访客看到的内容
+## 访客看到什么
 
-公开页面是一个独立的应用，拥有一小组路由：
+公开页面是它自己的一个应用，路由不多：
 
-- `/` —— **Overview**。
+- `/` —— **概览**。
 - `/incidents` 和 `/incidents/:id` —— 事件列表和单个事件。
 - `/announcements` 和 `/announcements/:id`。
 - `/scheduled-events` 和 `/scheduled-events/:id`。
 - `/subscribe/email`、`/subscribe/sms`、`/subscribe/slack`、`/subscribe/microsoft-teams`、`/subscribe/webhooks`。
 - `/rss` —— 订阅源。
-- `/login`、`/sso` 和 `/master-password` —— 仅在私密页面上有意义。
+- `/login`、`/sso` 和 `/master-password` —— 只在私密页面上有意义。
 
-顶部导航栏始终显示 **Overview**；其余项目只有在启用后才会出现。**Incidents**、**Announcements** 和 **Scheduled Events** 各自需要打开对应的开关；**Subscribe** 需要同时打开 **Show Subscriber Page** 并至少启用一个订阅渠道。私密页面还会多出一个 **Logout** 项。
+顶部导航栏始终显示 **概览**；其余的只在启用后才出现。**事件**、**公告** 和 **计划事件** 各自需要打开对应的开关；**订阅** 则需要同时满足 **显示订阅者页面** 已开启且至少启用了一个订阅渠道。私密页面还会多出一个 **退出** 条目。
 
 ### 概览页面
 
-概览页面是绝大多数访客唯一会看到的页面。从上到下，它会渲染：
+概览是大多数访客唯一会看的页面。从上到下它渲染：
 
-1. **任何正在进行的公告**——开始时间已过、结束时间尚未到达的公告。
-2. **一个整体状态横幅**——用一行文字概括所有资源还是仅部分资源受到影响。
-3. **一个整体正常运行时间百分比**，如果您开启了它。默认关闭。
-4. **资源分组**，每个分组下是其资源、当前状态，以及正常运行时间历史条形图。
-5. **Active Incidents**。
-6. **Scheduled Maintenance Events**。
+1. **所有生效中的公告**——开始时间已到、结束时间还没到的那些公告。
+2. **一条总体状态横幅**——一行话，说明是全部资源还是只有部分资源受到影响。
+3. **一个总体正常运行时间百分比**，前提是你把它打开了。默认关闭。
+4. **各个资源分组**，每组带着它的资源、当前状态和正常运行时间历史条。
+5. **活动事件**。
+6. **计划维护事件**。
 
-一个还没有任何内容的全新页面会显示一个空状态，提示您从仪表板添加资源——这正是提醒您前往 **Resources** 界面的信号。
+一个什么都没有的全新页面会显示一个空状态，提示你从仪表板添加资源——这就是在暗示你该去 **资源** 界面了。
 
-关于什么会让一个事件首次出现在此页面上，以及什么会让它再次消失，请参见 [事件状态与严重级别](/docs/incidents/states-and-severities)。
+至于究竟是什么把一个事件放上这个页面、又是什么把它撤下来，参见[事件状态与严重级别](/docs/incidents/states-and-severities)。
 
-## 选择页面上显示的内容
+## 选择页面上显示什么
 
-大多数显示开关都集中在同一个地方：**Status Pages → your page → Advanced → Advanced Settings**。每张卡片都有自己的 **Edit Settings** 按钮。
+大部分显示开关都集中在一个地方：**状态页面 → 你的页面 → 高级 → 高级设置**。每张卡片都有自己的 **Edit Settings** 按钮。
 
-**Incident Settings**：
+**事件设置**：
 
-- **Show Incidents**（`showIncidentsOnStatusPage`）——默认开启。关闭它也会移除 **Incidents** 导航项。
-- **Show Incident History (in days)**（`showIncidentHistoryInDays`）——事件列表向前追溯的天数。默认 14 天。
-- **Show Incident Labels**（`showIncidentLabelsOnStatusPage`）——默认关闭。
+- **显示事件**（`showIncidentsOnStatusPage`）——默认开启。关掉它同时也会移除 **事件** 导航项。
+- **显示事件历史记录（天数）**（`showIncidentHistoryInDays`）——事件列表往回追溯多久。默认 14。
+- **显示事件标签**（`showIncidentLabelsOnStatusPage`）——默认关闭。
 
-**Episode Settings**——事件分集（episode）的三个相同开关：**Show Episodes**（`showEpisodesOnStatusPage`，默认开启）、**Show Episode History (in days)**（默认 14 天），以及 **Show Episode Labels**（默认关闭）。Episode 是独立的模型，拥有自己的端点，而不是事件的一种视图。
+**片段设置**——针对事件片段的同样三个开关：**显示片段**（`showEpisodesOnStatusPage`，默认开启）、**显示片段历史记录（天数）**（默认 14）和 **显示片段标签**（默认关闭）。片段是它们自己的模型，有自己的接口，并不是事件的某种视图。
 
-**Announcement Settings**：
+**公告设置**：
 
-- **Show Announcements**（`showAnnouncementsOnStatusPage`）——默认开启。
-- **Show Announcement History (in days)**（`showAnnouncementHistoryInDays`）——默认 14 天。
+- **显示公告**（`showAnnouncementsOnStatusPage`）——默认开启。
+- **显示公告历史记录（天数）**（`showAnnouncementHistoryInDays`）——默认 14。
 
-**Scheduled Event Settings**：
+**计划事件设置**：
 
-- **Show Scheduled Maintenance Events**（`showScheduledMaintenanceEventsOnStatusPage`）——默认开启。
-- **Show Scheduled Event History (in days)**（`showScheduledEventHistoryInDays`）——默认 14 天。
-- **Show Event Labels**（`showScheduledEventLabelsOnStatusPage`）——默认关闭。
+- **显示计划维护事件**（`showScheduledMaintenanceEventsOnStatusPage`）——默认开启。
+- **显示计划事件历史记录（天数）**（`showScheduledEventHistoryInDays`）——默认 14。
+- **显示事件标签**（`showScheduledEventLabelsOnStatusPage`）——默认关闭。
 
-**Uptime History Settings**：
+**正常运行时间历史设置**：
 
-- **Show Uptime History (in days)**（`showUptimeHistoryInDays`）——每个资源旁正常运行时间条形图覆盖的天数长度。默认 90 天，取值必须在 1 到 90 之间。资源或分组上的每一个 **Show Uptime %** 和 **Show Status History Chart** 选项都读取这个数值。
+- **显示正常运行时间历史记录（天数）**（`showUptimeHistoryInDays`）——每个资源旁边那条正常运行时间条的长度。默认 90，取值必须在 1 到 90 之间。资源或分组上的每一个 **显示正常运行时间百分比** 和 **显示状态历史记录图表** 选项读的都是这个数字。
 
-**Subscriber Settings**：
+**订阅者设置**：
 
-- **Show Subscriber Page**（`showSubscriberPageOnStatusPage`）——默认开启，再加上五个按渠道分开的启用开关。相同的渠道开关也出现在 **Subscribers** 部分下专门的 **Subscriber Settings** 界面中；请把那个界面当作设置它们的权威位置。
+- **显示订阅者页面**（`showSubscriberPageOnStatusPage`）——默认开启，外加五个按渠道的启用开关。同样这些渠道开关在 **订阅者** 区块下专门的 **订阅者设置** 界面里也有一份；把那里当作设置它们的权威位置。
 
-**Powered By OneUptime Branding**：
+**由 OneUptime 提供支持的品牌标识**：
 
-- **Hide Powered By OneUptime Branding**——默认关闭，因此访客看到的页脚会显示“Powered by OneUptime”，直到您打开此开关。
+- **隐藏“由 OneUptime 提供支持”品牌标识**——默认关闭，所以在你打开它之前，访客看到的页脚会写着"由 OneUptime 提供"。
 
-**颜色设置在哪里。** 正常运行时间条形图的颜色不在这里——**Default Bar Color**、条形颜色规则、**Downtime Monitor Statuses** 和 **Show Overall Uptime Percent** 都位于 **Status Pages → your page → Branding → Overview Page**。这里没有任何主题或品牌颜色设置；超出这些控件之外的一切都要通过 **Custom CSS** 完成。
+**颜色在哪里。** 正常运行时间条的颜色不在这里——**默认条形颜色**、条形颜色规则、**停机监视器状态** 和 **显示总体正常运行时间百分比** 全都在 **状态页面 → 你的页面 → 品牌 → 概览页面** 上。产品里没有任何主题或品牌色设置；这些控件之外的一切都要靠 **自定义 CSS** 来做。
 
-## 在正式上线前预览
+## 上线前先预览
 
-每个状态页的 **Overview** 界面都带有一张 **Status Page Preview URL** 卡片，其中有一个直达页面本身的链接。在您还在添加资源、尚未绑定自定义域名之前，可以使用它。
+每个状态页的 **概览** 界面上都有一张 **Status Page Preview URL** 卡片，里面是直达页面的链接。在你还在加资源、自定义域名还不存在的时候就用它。
 
-在幕后，每一个公开路由都在 `/status-page/{statusPageId}/...` 下有一个预览版本——预览概览页、预览事件列表、预览订阅页面，等等。这意味着从仪表板预览中获取的 URL 或截图，在绑定自定义域名之后与客户实际看到的内容并不一致，所以在把链接粘贴到运行手册或邮件之前，请再三核对。
+在幕后，每条公开路由都有一个位于 `/status-page/{statusPageId}/...` 下的预览孪生体——预览概览、预览事件列表、预览订阅页面等等。这意味着从仪表板预览里取到的 URL 或截图，和挂上自定义域名后客户看到的并不一致，所以你粘进 runbook 或邮件里的链接要再确认一遍。
 
-## 限制谁可以查看页面
+## 限制谁能看到这个页面
 
-不是每个状态页都面向公众。所有相关控制都位于 **Security** 部分。
+不是每个状态页都是给公众看的。相关控件全在 **安全** 区块下。
 
 ### 私人用户
 
-在 **Status Pages → your page → Security → Authentication Settings** 中关闭 **Is Visible to Public**（对应 `isPublicStatusPage` 字段）。访客随后会进入 `/login` 并必须登录。
+在 **状态页面 → 你的页面 → 安全 → 认证设置** 上关掉 **对公众可见**（对应 `isPublicStatusPage` 列）。访客随后会落到 `/login`，必须登录才行。
 
-在 **Status Pages → your page → Security → Private Users** 中添加可以登录的人员。这里有一个 **Add in Bulk** 操作——粘贴一份电子邮件地址列表，每个地址都会收到一封邀请邮件。私人用户有自己独立的忘记密码和重置密码流程，与您的 OneUptime 项目账户是分开的。
+在 **状态页面 → 你的页面 → 安全 → 私人用户** 里添加允许登录的人。这里有一个 **批量添加** 操作——粘贴一串电子邮件地址，每一个都会收到一封邀请邮件。私人用户有自己独立的忘记密码和重置密码流程，与你的 OneUptime 项目账号无关。
 
 ### 主密码
 
-**Authentication Settings** 中还有一张 **Master Password** 卡片，带有 **Require Master Password** 开关和密码本身。访客随后会访问 `/master-password`，用一个共享密钥解锁页面。
+**认证设置** 上还有一张 **主密码** 卡片，包含一个 **要求主密码** 开关和密码本身。访客随后会走到 `/master-password`，用一个共享的口令解锁页面。
 
-**主密码与私人用户不能同时叠加使用。** 主密码开启期间，私人用户身份验证会被禁用，**Private Users** 界面会显示一条横幅告知这一点。
+**主密码和私人用户不叠加。** 主密码开启期间，私人用户认证会被禁用，**私人用户** 界面会显示一条横幅告诉你这件事。
 
-### SSO 与 OIDC
+### SSO 和 OIDC
 
-对于与您的身份提供商绑定的私密页面，**Status Pages → your page → Security → SSO** 配置 SAML（登录 URL、签发者、x509 证书、签名与摘要方法），**Status Pages → your page → Security → OIDC** 配置 OpenID Connect（发现 URL、签发者、客户端 ID 与密钥、作用域、声明名称）。**SCIM** 可以自动从身份提供商（IdP）配置私人用户。这些功能受套餐限制，因此并非在每个安装中都可用。
+如果私密页面要接到你的身份提供商，**状态页面 → 你的页面 → 安全 → SSO** 配置 SAML（登录 URL、颁发者、x509 证书、签名和摘要算法），**状态页面 → 你的页面 → 安全 → OIDC** 配置 OpenID Connect（发现 URL、颁发者、客户端 ID 和密钥、作用域、声明名称）。**SCIM** 则从 IdP 自动预配私人用户。这些功能受套餐限制，因此并非每个安装都有。
 
-**SSO Settings** 卡片上有一个 **Force SSO for Login**（`requireSsoForLogin`，默认关闭）开关。请在开启之前先测试您的 SSO 配置——如果配置有误，您将把自己锁在状态页之外。
+一张 **SSO 设置** 卡片提供 **强制登录使用 SSO**（`requireSsoForLogin`，默认关闭）。打开它之前先测通你的 SSO 配置——万一它不好使，你会把自己锁在状态页外面。
 
 ### IP 白名单
 
-**Authentication Settings** 中还有一张 **IP Whitelist** 卡片，由 `ipWhitelist` 字段支持，供只应响应已知网络的页面使用。
+**认证设置** 上还带着一张 **IP 白名单** 卡片，背后是 `ipWhitelist` 列，适用于那些只应响应已知网络的页面。
 
 ## 可嵌入徽章与 RSS 订阅源
 
-有两种方式可以在页面本身之外展示状态。
+有两种方式把状态呈现在页面之外的地方。
 
-**嵌入式状态徽章。** 在 **Status Pages → your page → Advanced → Embedded Status** 的 **Embedded Status Badge** 卡片中开启 **Enable Embedded Status Badge**（`enableEmbeddedOverallStatus`，默认关闭）。它与一个 `embeddedOverallStatusToken` 配对，并从 `/badge/:statusPageId` 提供徽章服务，因此您可以把当前的整体状态嵌入到您的文档、应用页脚或营销页面中。
+**嵌入式状态徽章。** 在 **状态页面 → 你的页面 → 高级 → 嵌入状态** 的 **嵌入式状态徽章** 卡片里打开 **启用嵌入式状态徽章**（`enableEmbeddedOverallStatus`，默认关闭）。它配合一个 `embeddedOverallStatusToken` 使用，并从 `/badge/:statusPageId` 提供徽章，于是你可以把当前的总体状态放进你的文档、应用页脚或营销页面。
 
-**RSS 订阅源。** 每个状态页都提供 `/rss`——一个标题为“{status page name} Updates”的订阅源，其条目分别以 `Incident: `、`Announcement: ` 和 `Scheduled Maintenance: ` 为前缀。适合那些更愿意把您的更新导入阅读器或聊天机器人，而不是通过电子邮件订阅的人。
+**RSS 订阅源。** 每个状态页都提供 `/rss`——一个标题为 "{status page name} Updates" 的订阅源，条目分别以 `Incident: `、`Announcement: ` 和 `Scheduled Maintenance: ` 作为前缀。对于那些宁愿把你的更新导进阅读器或聊天机器人、也不想订阅邮件的人来说很方便。
 
-如果您更愿意自己拉取数据，状态页背后有面向概览、事件、计划维护、公告和分集（episode）的公开只读端点——参见 [公共 API](/docs/status-pages/public-api)。
+如果你更想自己把数据拉过去，状态页背后有一组公开的读取接口，覆盖概览、事件、计划维护事件、公告和片段——参见[公共 API](/docs/status-pages/public-api)。
 
 ## 接下来读什么
 
-- [状态页资源与分组](/docs/status-pages/resources-and-groups)——把监视器放到页面上并组织成区块。
-- [状态页品牌与域名](/docs/status-pages/branding-and-domains)——logo、favicon、页脚、自定义代码，以及把您自己的域名指向该页面。
-- [订阅者与公告](/docs/status-pages/subscribers)——五个订阅渠道、双重确认订阅，以及发布公告。
-- [公共 API](/docs/status-pages/public-api)——以编程方式读取状态页数据。
-- [事件概览](/docs/incidents/index)——出现在页面上的事件。
-- [事件状态与严重级别](/docs/incidents/states-and-severities)——什么会让一个事件出现在状态页上，什么会让它消失。
+- [状态页资源与分组](/docs/status-pages/resources-and-groups) —— 把监视器放到页面上，并组织成区块。
+- [状态页品牌与域名](/docs/status-pages/branding-and-domains) —— 徽标、网站图标、页脚、自定义代码，以及把你自己的域名指向该页面。
+- [订阅者与公告](/docs/status-pages/subscribers) —— 五个订阅渠道、双重确认订阅，以及发布公告。
+- [公共 API](/docs/status-pages/public-api) —— 以编程方式读取状态页数据。
+- [事件概览](/docs/incidents/index) —— 出现在页面上的那些事件。
+- [事件状态与严重级别](/docs/incidents/states-and-severities) —— 什么会让一个事件出现在状态页上，什么会让它消失。

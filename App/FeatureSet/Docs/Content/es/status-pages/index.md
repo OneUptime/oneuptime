@@ -1,119 +1,119 @@
 # Visión general de las páginas de estado
 
-Una página de estado es la cara pública de todo lo que monitorizas: una URL que tus clientes pueden abrir en lugar de escribirte para preguntar si les pasa solo a ellos. Muestra el estado actual de los servicios que decidas exponer, los incidentes en los que estás trabajando, el mantenimiento que tienes planificado y cualquier anuncio que quieras fijar arriba.
+Una página de estado es la cara pública de todo lo que monitorizas: una única URL que tus clientes pueden abrir en lugar de escribirte para preguntar si les pasa solo a ellos. Muestra el estado actual de los servicios que decidas exponer, los incidentes en los que estás trabajando, el mantenimiento que tienes planificado y cualquier anuncio que quieras fijar arriba.
 
-Cuando algo se rompe a las 2 de la madrugada, la página de estado es lo primero que enlaza tu cola de soporte. Es también aquello desde lo que se notifica a tus suscriptores, así que conviene configurarla antes de necesitarla, no durante la interrupción.
+Cuando algo se rompe a las 2 de la madrugada, la página de estado es lo primero que enlaza tu cola de soporte. Es también el sitio desde el que se avisa a tus suscriptores, así que merece la pena montarla antes de necesitarla y no en plena caída.
 
-Las páginas de estado viven en **Páginas de Estado** en la navegación lateral del panel, en el grupo **Esenciales**. Todo lo de esta página es por página de estado: un proyecto puede tener tantas como quiera —una pública para clientes, una privada para una audiencia interna, una por región para un mercado concreto.
+Las páginas de estado viven en **Páginas de Estado**, en la navegación izquierda del panel, dentro del grupo **essentials**. Todo lo de esta página es por página de estado: un proyecto puede tener tantas como quiera —una pública para clientes, una privada para una audiencia interna, una por región para un mercado concreto.
 
 ## De un vistazo
 
 - **Se crea con dos campos.** Una página de estado nueva solo pide **Nombre** y **Descripción**. Los recursos, la marca y los dominios se configuran después.
-- **Los recursos son lo que ven los visitantes.** Cada fila de la página es un **Página de estado Recurso**: un monitor (o grupo de monitores) con su propio nombre para mostrar, información sobre herramientas y opciones de tiempo de actividad. Los grupos dividen una página larga en secciones y se pueden anidar.
-- **Una URL de vista previa desde el primer día.** Toda página de estado obtiene un enlace de vista previa para que puedas mirarla antes de que exista un dominio personalizado.
-- **Las rutas de cara al visitante están controladas por los ajustes.** Los incidentes, los anuncios, los eventos programados y la página de suscripción aparecen cada uno solo cuando su interruptor en **Ajustes Avanzados** está activado.
+- **Los recursos son lo que ven los visitantes.** Cada fila de la página es un **Página de estado Recurso**: un monitor (o un grupo de monitores) con su propio nombre para mostrar, su información sobre herramientas y sus opciones de tiempo de actividad. Los grupos parten una página larga en secciones y se pueden anidar.
+- **Una URL de vista previa desde el primer día.** Toda página de estado recibe un enlace de vista previa para que puedas mirarla antes de que exista un dominio personalizado.
+- **Las rutas de cara al visitante dependen de los ajustes.** Los incidentes, los anuncios, los eventos programados y la página de suscripción aparecen solo cuando su interruptor en **Ajustes Avanzados** está activado.
 - **Tres formas de hacerla privada.** Usuarios privados, una contraseña maestra o SAML SSO / OIDC, más una lista blanca de IP.
-- **A los suscriptores se les avisa automáticamente.** Los suscriptores por correo electrónico, SMS, Slack, Microsoft Teams y webhook pueden seguir una página, cada canal detrás de su propio interruptor.
+- **A los suscriptores se les avisa solo.** Los suscriptores por correo, SMS, Slack, Microsoft Teams y webhook pueden seguir una página, cada canal detrás de su propio interruptor.
 
 ## Términos clave
 
-| Término                    | Qué significa                                                                                                                                    |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Página de estado**       | Una página pública (o privada), con su propia marca, dominios, recursos y suscriptores. El modelo `StatusPage`.                                   |
-| **Recurso**                | Una fila que ven los visitantes: un monitor o grupo de monitores mostrado en la página con un nombre para mostrar y opciones de tiempo de actividad. |
-| **Grupo**                  | Una sección con nombre que contiene recursos. Los grupos se anidan dentro de otros grupos, y cada nivel agrega el estado de todo lo que hay debajo. |
-| **Anuncio**                | Un mensaje que publicas en una o más páginas de estado, con una hora de inicio y una hora de fin opcional.                                        |
-| **Suscriptor**             | Alguien (o algo) que sigue la página por correo electrónico, SMS, Slack, Microsoft Teams o un webhook.                                            |
-| **Dominio personalizado**  | Un dominio tuyo —`status.example.com`— apuntado a la página con un CNAME y un certificado SSL.                                                    |
-| **Usuario privado**        | Una cuenta que puede iniciar sesión en una página de estado privada. Independiente de los usuarios de tu proyecto de OneUptime.                   |
+| Término                      | Qué significa                                                                                                                          |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Página de estado**         | Una página pública (o privada), con su propia marca, sus dominios, sus recursos y sus suscriptores. El modelo `StatusPage`.             |
+| **Recurso**                  | Una fila de las que ven los visitantes: un monitor o grupo de monitores expuesto en la página con un nombre para mostrar y opciones de tiempo de actividad. |
+| **Grupo**                    | Una sección con nombre que contiene recursos. Los grupos se anidan dentro de otros grupos, y cada nivel agrega el estado de todo lo que tiene debajo. |
+| **Anuncio**                  | Un mensaje que publicas en una o varias páginas de estado, con hora de inicio y una hora de fin opcional.                               |
+| **Suscriptor**               | Alguien (o algo) que sigue la página por correo, SMS, Slack, Microsoft Teams o un webhook.                                              |
+| **Dominio personalizado**    | Un dominio tuyo —`status.example.com`— apuntado a la página con un CNAME y un certificado SSL.                                          |
+| **Usuario privado**          | Una cuenta que puede iniciar sesión en una página de estado privada. Es independiente de los usuarios de tu proyecto de OneUptime.      |
 
 ## Crear una página de estado
 
-1. Abre **Páginas de Estado → Todas las Páginas de Estado** y haz clic en **Crear página de estado**.
-2. En el modal **Create New Status Page**, rellena **Nombre** (obligatorio, al menos dos caracteres) y, opcionalmente, **Descripción**.
-3. Haz clic en **Crear página de estado**.
+1. Abre **Páginas de Estado → Todas las Páginas de Estado** y pulsa **Crear página de estado**.
+2. En el modal **Create New Status Page**, rellena **Nombre** (obligatorio, al menos dos caracteres) y, si quieres, **Descripción**.
+3. Pulsa **Crear página de estado**.
 
-Ese es todo el formulario de creación. La lista a la que vuelves muestra **Nombre**, **Descripción**, **Etiquetas** y **Propietarios**, y se puede filtrar por **Status Page ID**, **Nombre** y **Descripción**.
+Ese es todo el formulario de creación. La lista a la que vuelves muestra **Nombre**, **Descripción**, **Etiquetas** y **Propietarios**, y se puede filtrar por **ID de la página de estado**, **Nombre** y **Descripción**.
 
-Abre la página nueva y aterrizas en su pantalla **Vista General**, que lleva dos tarjetas: **Status Page Preview URL** con un enlace a la propia página, y **Detalles de la página de estado**, donde puedes editar el nombre, la descripción y las etiquetas que acabas de establecer.
+Abre la página nueva y aterrizas en su pantalla **Vista General**, que trae dos tarjetas: **Status Page Preview URL**, con un enlace a la página en sí, y **Detalles de la página de estado**, donde editas el nombre, la descripción y las etiquetas que acabas de poner.
 
-A continuación, en orden aproximado de utilidad:
+Lo siguiente, más o menos por orden de utilidad:
 
-- Añade recursos para que la página tenga algo — consulta [Recursos y grupos de la página de estado](/docs/status-pages/resources-and-groups).
-- Establece el título de la página, el favicon, el logotipo y la portada, y luego adjunta un dominio personalizado — consulta [Marca y dominios de la página de estado](/docs/status-pages/branding-and-domains).
-- Decide en qué canales puede suscribirse la gente — consulta [Suscriptores y anuncios](/docs/status-pages/subscribers).
-- Ajusta lo que aparece en la página en **Ajustes Avanzados**.
+- Añade recursos para que la página tenga algo que enseñar; consulta [Recursos y grupos de la página de estado](/docs/status-pages/resources-and-groups).
+- Pon el título, el favicon, el logotipo y la portada, y luego engancha un dominio personalizado; consulta [Marca y dominios de la página de estado](/docs/status-pages/branding-and-domains).
+- Decide en qué canales puede suscribirse la gente; consulta [Suscriptores y anuncios](/docs/status-pages/subscribers).
+- Ajusta qué se muestra en la página desde **Ajustes Avanzados**.
 
-## Dónde está cada cosa
+## Dónde vive cada cosa
 
-Una vez abierta una página de estado, su propio menú lateral está agrupado en nueve secciones. Úsalo como mapa para el resto de este grupo de documentación.
+Una vez abierta una página de estado, su propio menú lateral izquierdo se agrupa en nueve secciones. Úsalo como mapa del resto de esta documentación.
 
-| Sección                    | Qué contiene                                                                                                                                                        |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Básico**                 | **Vista General**, **Anuncios**, **Propietarios**.                                                                                                                  |
-| **Recursos**               | Una única pantalla **Recursos**: los grupos a la izquierda, los monitores del grupo seleccionado a la derecha.                                                       |
-| **Suscriptores**           | **Suscriptores de Correo**, **Suscriptores SMS**, **Suscriptores de Slack**, **Suscriptores de MS Teams**, **Suscriptores de webhook**, **Ajustes de Suscriptores**. |
-| **Registros de notificación** | **Registros de notificación**: lo que se envió a los suscriptores.                                                                                              |
-| **Auditoría**              | **Registros de Auditoría**.                                                                                                                                         |
-| **Marca**                  | **Marca Esencial**, **HTML, CSS y JavaScript**, **Dominios Personalizados**, **Encabezado**, **Pie de Página**, **Página de Vista General**, **Idiomas**.            |
-| **Seguridad**              | **Usuarios Privados**, **SSO**, **OIDC**, **SCIM**, **Ajustes de Autenticación**.                                                                                    |
-| **IA**                     | **MCP**.                                                                                                                                                            |
-| **Avanzado**               | **Monitor Rules**, **Estado Embebido**, **Informes**, **Campos Personalizados**, **Ajustes Avanzados**, **Eliminar Página de Estado**.                               |
+| Sección                        | Qué contiene                                                                                                                                                     |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Básico**                     | **Vista General**, **Anuncios**, **Propietarios**.                                                                                                               |
+| **Recursos**                   | Una única pantalla **Recursos**: los grupos a la izquierda, los monitores del grupo seleccionado a la derecha.                                                    |
+| **Suscriptores**               | **Suscriptores de Correo**, **Suscriptores SMS**, **Suscriptores de Slack**, **Suscriptores de MS Teams**, **Suscriptores de webhook**, **Ajustes de Suscriptores**. |
+| **Registros de notificación**  | **Registros de notificación**: lo que se envió a los suscriptores.                                                                                               |
+| **Auditoría**                  | **Registros de Auditoría**.                                                                                                                                      |
+| **Marca**                      | **Marca Esencial**, **HTML, CSS y JavaScript**, **Dominios Personalizados**, **Encabezado**, **Pie de Página**, **Página de Vista General**, **Idiomas**.         |
+| **Seguridad**                  | **Usuarios Privados**, **SSO**, **OIDC**, **SCIM**, **Ajustes de Autenticación**.                                                                                |
+| **IA**                         | **MCP**.                                                                                                                                                         |
+| **Avanzado**                   | **Monitor Rules**, **Estado Embebido**, **Informes**, **Campos Personalizados**, **Ajustes Avanzados**, **Eliminar Página de Estado**.                            |
 
-Dos peculiaridades de nomenclatura que conviene conocer antes de ponerte a buscar:
+Dos rarezas de nomenclatura que conviene saber antes de ponerte a buscar:
 
-- El elemento **Recursos** solo se llama **Recursos** cuando el proyecto tiene los grupos de monitores habilitados. Si no, dice **Monitores**. Es la misma pantalla en cualquier caso.
-- No hay una página de Grupos aparte. Los grupos y los recursos se fusionaron, y la antigua ruta `/groups` ahora redirige a la pantalla de recursos.
+- El elemento **Recursos** solo se llama **Recursos** cuando el proyecto tiene habilitados los grupos de monitores. Si no, pone **Monitores**. Es la misma pantalla en ambos casos.
+- No hay una página de grupos aparte. Los grupos y los recursos se fusionaron, y la antigua ruta `/groups` ahora redirige a la pantalla de recursos.
 
-Fuera de una página individual, la propia sección **Páginas de Estado** tiene una sección **Más** con **Anuncios**, y una sección **Ajustes** contraída que contiene **Plantillas de Anuncios**, **Plantillas de Suscriptores**, **Campos Personalizados**, **Reglas del propietario** y **Reglas de etiquetas**: estas son de todo el proyecto, compartidas entre todas las páginas de estado.
+Fuera de una página concreta, la sección **Páginas de Estado** tiene a su vez una sección **Más** con **Anuncios**, y una sección **Ajustes** plegada que contiene **Plantillas de Anuncios**, **Plantillas de Suscriptores**, **Campos Personalizados**, **Reglas del propietario** y **Reglas de etiquetas**: estas son de todo el proyecto y las comparten todas las páginas de estado.
 
-## Qué ven los visitantes
+## Lo que ven los visitantes
 
-La página pública es su propia aplicación, con un pequeño conjunto de rutas:
+La página pública es una aplicación propia, con un conjunto reducido de rutas:
 
 - `/` — la **Vista General**.
-- `/incidents` e `/incidents/:id` — la lista de incidentes y un incidente concreto.
+- `/incidents` y `/incidents/:id` — la lista de incidencias y una incidencia concreta.
 - `/announcements` y `/announcements/:id`.
 - `/scheduled-events` y `/scheduled-events/:id`.
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
 - `/rss` — el feed.
 - `/login`, `/sso` y `/master-password` — solo relevantes en una página privada.
 
-La barra de navegación superior siempre muestra **Vista General**; el resto aparece solo cuando está habilitado. **Incidentes**, **Anuncios** y **Eventos Programados** necesitan cada uno su interruptor activado; **Subscribe** necesita tanto **Mostrar página de suscriptores** como al menos un canal de suscriptores habilitado. Una página privada obtiene además un elemento **Cerrar sesión**.
+La barra de navegación superior siempre muestra **Resumen**; el resto aparece solo cuando está habilitado. **Incidencias**, **Anuncios** y **Eventos programados** necesitan cada uno su interruptor activado; **Suscribirse** necesita tanto **Mostrar página de suscriptores** como al menos un canal de suscripción habilitado. Una página privada gana además un elemento **Cerrar sesión**.
 
-### La página de vista general
+### La página de resumen
 
-La vista general es la página que ve la mayoría de los visitantes. De arriba abajo muestra:
+El resumen es lo único que la mayoría de los visitantes llegará a ver. De arriba abajo muestra:
 
-1. **Cualquier anuncio activo** — anuncios cuya hora de inicio ya pasó y cuya hora de fin aún no ha llegado.
-2. **Un banner de estado general** — una única línea que resume si todos los recursos están afectados o solo algunos.
+1. **Los anuncios en curso** — los anuncios cuya hora de inicio ya pasó y cuya hora de fin todavía no.
+2. **Un banner de estado general** — una sola línea que resume si están afectados todos los recursos o solo algunos.
 3. **Un porcentaje de tiempo de actividad general**, si lo activaste. Desactivado de forma predeterminada.
 4. **Los grupos de recursos**, cada uno con sus recursos, su estado actual y sus barras de historial de tiempo de actividad.
-5. **Incidentes Activos**.
+5. **Incidencias activas**.
 6. **Eventos de mantenimiento programado**.
 
-Una página recién creada y sin nada muestra un estado vacío que te dice que añadas recursos desde el panel, lo cual es tu señal para ir a la pantalla **Recursos**.
+Una página recién creada y todavía vacía muestra un estado vacío que te dice que añadas recursos desde el panel, lo cual es tu señal para irte a la pantalla **Recursos**.
 
-Para saber qué pone un incidente en esta página en primer lugar, y qué lo retira de nuevo, consulta [Estados y severidades de incidentes](/docs/incidents/states-and-severities).
+Para saber qué pone un incidente en esta página y qué lo quita de ella, consulta [Estados y severidades de incidentes](/docs/incidents/states-and-severities).
 
 ## Elegir qué se muestra en la página
 
-La mayoría de los interruptores de visualización viven en un solo sitio: **Páginas de Estado → tu página → Avanzado → Ajustes Avanzados**. Cada tarjeta tiene su propio botón **Edit Settings**.
+Casi todos los interruptores de visualización están en el mismo sitio: **Páginas de Estado → tu página → Avanzado → Ajustes Avanzados**. Cada tarjeta tiene su propio botón **Edit Settings**.
 
 **Ajustes de incidentes**:
 
-- **Mostrar incidentes** (`showIncidentsOnStatusPage`) — activado de forma predeterminada. Desactivarlo también retira el elemento de navegación **Incidentes**.
-- **Mostrar historial de incidentes (en días)** (`showIncidentHistoryInDays`) — hasta dónde llega hacia atrás la lista de incidentes. Predeterminado: 14.
+- **Mostrar incidentes** (`showIncidentsOnStatusPage`) — activado de forma predeterminada. Desactivarlo también quita el elemento **Incidencias** de la navegación.
+- **Mostrar historial de incidentes (en días)** (`showIncidentHistoryInDays`) — hasta dónde llega hacia atrás la lista de incidentes. El valor predeterminado es 14.
 - **Mostrar etiquetas de incidentes** (`showIncidentLabelsOnStatusPage`) — desactivado de forma predeterminada.
 
-**Ajustes de episodios** — los mismos tres interruptores para los episodios de incidente: **Mostrar episodios** (`showEpisodesOnStatusPage`, activado de forma predeterminada), **Mostrar historial de episodios (en días)** (predeterminado 14) y **Mostrar etiquetas de episodios** (desactivado de forma predeterminada). Los episodios son su propio modelo con sus propios puntos de conexión, no una vista de los incidentes.
+**Ajustes del episodio** — los mismos tres interruptores para los episodios de incidente: **Mostrar episodios** (`showEpisodesOnStatusPage`, activado de forma predeterminada), **Mostrar historial de episodios (en días)** (predeterminado 14) y **Mostrar etiquetas de episodios** (desactivado de forma predeterminada). Los episodios son un modelo propio con sus propios endpoints, no una vista de los incidentes.
 
-**Ajustes de anuncios**:
+**Ajustes del anuncio**:
 
 - **Mostrar anuncios** (`showAnnouncementsOnStatusPage`) — activado de forma predeterminada.
 - **Mostrar historial de anuncios (en días)** (`showAnnouncementHistoryInDays`) — predeterminado 14.
 
-**Ajustes de eventos programados**:
+**Ajustes de evento programado**:
 
 - **Mostrar eventos de mantenimiento programado** (`showScheduledMaintenanceEventsOnStatusPage`) — activado de forma predeterminada.
 - **Mostrar historial de eventos programados (en días)** (`showScheduledEventHistoryInDays`) — predeterminado 14.
@@ -121,23 +121,23 @@ La mayoría de los interruptores de visualización viven en un solo sitio: **Pá
 
 **Ajustes del historial de tiempo de actividad**:
 
-- **Mostrar historial de tiempo de actividad (en días)** (`showUptimeHistoryInDays`) — la longitud de la barra de tiempo de actividad junto a cada recurso. Predeterminado 90 y debe estar entre 1 y 90. Todas las opciones **Mostrar % de tiempo de actividad** y **Mostrar gráfico de historial de estado** de un recurso o grupo leen este número.
+- **Mostrar historial de tiempo de actividad (en días)** (`showUptimeHistoryInDays`) — la longitud de la barra de tiempo de actividad que hay junto a cada recurso. El valor predeterminado es 90 y tiene que estar entre 1 y 90. Cada opción **Mostrar % de tiempo de actividad** y **Mostrar gráfico de historial de estado** de un recurso o un grupo lee este número.
 
-**Ajustes de suscriptores**:
+**Ajustes de Suscriptores**:
 
-- **Mostrar página de suscriptores** (`showSubscriberPageOnStatusPage`) — activado de forma predeterminada, más los cinco interruptores de habilitación por canal. Los mismos interruptores de canal aparecen también en la pantalla dedicada **Ajustes de Suscriptores** bajo la sección **Suscriptores**; considera esa el sitio canónico para configurarlos.
+- **Mostrar página de suscriptores** (`showSubscriberPageOnStatusPage`) — activado de forma predeterminada, junto con los cinco interruptores de habilitación por canal. Esos mismos interruptores de canal aparecen también en la pantalla dedicada **Ajustes de Suscriptores**, bajo la sección **Suscriptores**; trata esa como el sitio canónico para tocarlos.
 
-**Marca «Powered By OneUptime»**:
+**Marca "Powered By OneUptime"**:
 
-- **Ocultar la marca Powered By OneUptime** — desactivado de forma predeterminada, así que el pie de página del visitante dice «Powered by OneUptime» hasta que lo actives.
+- **Ocultar la marca Powered By OneUptime** — desactivado de forma predeterminada, así que el pie del visitante dice "Powered by OneUptime" hasta que lo actives.
 
-**Dónde están los colores.** Los colores de la barra de tiempo de actividad no están aquí: el **Color de barra predeterminado**, las reglas de color de barra, los **Estados de monitor de tiempo de inactividad** y **Mostrar porcentaje de tiempo de actividad general** viven todos en **Páginas de Estado → tu página → Marca → Página de Vista General**. No hay ningún ajuste de tema o color de marca en ninguna parte; cualquier cosa más allá de esos controles se hace con **CSS personalizado**.
+**Dónde están los colores.** Los colores de la barra de tiempo de actividad no están aquí: el **Color de barra predeterminado**, las reglas de color de las barras, los **Estados de monitor de tiempo de inactividad** y **Mostrar porcentaje de tiempo de actividad general** viven todos en **Páginas de Estado → tu página → Marca → Página de Vista General**. No hay ningún ajuste de tema ni de color de marca en ninguna parte; todo lo que vaya más allá de esos controles se hace con **CSS personalizado**.
 
 ## Previsualizar antes de publicar
 
 La pantalla **Vista General** de toda página de estado lleva una tarjeta **Status Page Preview URL** con un enlace directo a la página. Úsala mientras sigues añadiendo recursos y antes de que exista ningún dominio personalizado.
 
-Entre bastidores, toda ruta pública tiene una gemela de vista previa bajo `/status-page/{statusPageId}/...`: una vista general de vista previa, una lista de incidentes de vista previa, una página de suscripción de vista previa, y así sucesivamente. Eso significa que una URL o una captura tomada de la vista previa del panel no coincidirá con lo que ve un cliente una vez adjuntado un dominio personalizado, así que revisa dos veces cualquier enlace que pegues en un runbook o un correo.
+Por debajo, cada ruta pública tiene su gemela de vista previa bajo `/status-page/{statusPageId}/...`: un resumen de vista previa, una lista de incidencias de vista previa, una página de suscripción de vista previa, etcétera. Eso significa que una URL o una captura tomada desde la vista previa del panel no coincidirá con lo que ve un cliente una vez enganchado un dominio personalizado, así que revisa dos veces cualquier enlace que pegues en un runbook o en un correo.
 
 ## Restringir quién puede ver la página
 
@@ -147,39 +147,39 @@ No toda página de estado es para el público. Todos los controles están bajo l
 
 Desactiva **Es visible para el público** en **Páginas de Estado → tu página → Seguridad → Ajustes de Autenticación** (la columna `isPublicStatusPage`). Los visitantes aterrizan entonces en `/login` y tienen que iniciar sesión.
 
-Añade a las personas que pueden iniciar sesión en **Páginas de Estado → tu página → Seguridad → Usuarios Privados**. Hay una acción **Añadir en masa**: pega una lista de direcciones de correo y cada una recibe un correo de invitación. Los usuarios privados tienen su propio flujo de contraseña olvidada y restablecimiento de contraseña, independiente de tus cuentas de proyecto de OneUptime.
+Añade a quienes puedan iniciar sesión en **Páginas de Estado → tu página → Seguridad → Usuarios Privados**. Hay una acción **Añadir en masa**: pegas una lista de direcciones de correo y cada una recibe un correo de invitación. Los usuarios privados tienen su propio flujo de contraseña olvidada y de restablecimiento, separado de las cuentas de tu proyecto de OneUptime.
 
 ### Contraseña maestra
 
-**Ajustes de Autenticación** tiene también una tarjeta **Contraseña maestra** con un interruptor **Requerir contraseña maestra** y la propia contraseña. Los visitantes llegan entonces a `/master-password` y desbloquean la página con un único secreto compartido.
+**Ajustes de Autenticación** tiene además una tarjeta **Contraseña maestra** con un interruptor **Requerir contraseña maestra** y la contraseña en sí. Los visitantes llegan entonces a `/master-password` y desbloquean la página con un único secreto compartido.
 
-**La contraseña maestra y los usuarios privados no se acumulan.** Mientras la contraseña maestra está activada, la autenticación de usuarios privados está deshabilitada, y la pantalla **Usuarios Privados** muestra un aviso que te lo indica.
+**La contraseña maestra y los usuarios privados no se acumulan.** Mientras la contraseña maestra esté activa, la autenticación de usuarios privados queda deshabilitada, y la pantalla **Usuarios Privados** te lo avisa con un banner.
 
 ### SSO y OIDC
 
-Para una página privada vinculada a tu proveedor de identidad, **Páginas de Estado → tu página → Seguridad → SSO** configura SAML (URL de inicio de sesión, emisor, certificado x509, métodos de firma y resumen) y **Páginas de Estado → tu página → Seguridad → OIDC** configura OpenID Connect (URL de descubrimiento, emisor, ID y secreto de cliente, ámbitos, nombres de reclamación). **SCIM** aprovisiona usuarios privados desde el IdP automáticamente. Estas funciones están sujetas a una característica de plan, así que puede que no estén disponibles en todas las instalaciones.
+Para una página privada atada a tu proveedor de identidad, **Páginas de Estado → tu página → Seguridad → SSO** configura SAML (URL de inicio de sesión, emisor, certificado x509, métodos de firma y de resumen) y **Páginas de Estado → tu página → Seguridad → OIDC** configura OpenID Connect (URL de descubrimiento, emisor, ID y secreto de cliente, ámbitos, nombres de claims). **SCIM** aprovisiona usuarios privados desde el IdP automáticamente. Todo esto depende de una funcionalidad de plan, así que puede no estar disponible en toda instalación.
 
-Una tarjeta **SSO Settings** expone **Forzar SSO para el inicio de sesión** (`requireSsoForLogin`, desactivado de forma predeterminada). Prueba tu configuración de SSO antes de activarlo: si no funciona, te dejarás fuera de la página de estado.
+Una tarjeta **Ajustes de SSO** expone **Forzar SSO para el inicio de sesión** (`requireSsoForLogin`, desactivado de forma predeterminada). Prueba tu configuración de SSO antes de activarlo: si no funciona, te dejarás fuera de tu propia página de estado.
 
 ### Lista blanca de IP
 
-**Ajustes de Autenticación** lleva también una tarjeta **Lista blanca de IP**, respaldada por la columna `ipWhitelist`, para páginas que solo deberían responder desde redes conocidas.
+**Ajustes de Autenticación** lleva también una tarjeta **Lista blanca de IP**, respaldada por la columna `ipWhitelist`, para las páginas que solo deban responder desde redes conocidas.
 
 ## La insignia incrustable y el feed RSS
 
-Dos formas de mostrar el estado en algún sitio que no sea la propia página.
+Dos maneras de sacar el estado a algún sitio que no sea la propia página.
 
-**Insignia de estado incrustada.** Activa **Habilitar insignia de estado incrustada** (`enableEmbeddedOverallStatus`, desactivado de forma predeterminada) en la tarjeta **Insignia de estado incrustada** de **Páginas de Estado → tu página → Avanzado → Estado Embebido**. Va acompañada de un `embeddedOverallStatusToken` y sirve la insignia desde `/badge/:statusPageId`, de modo que puedes colocar el estado general actual en tu documentación, en el pie de tu aplicación o en una página de marketing.
+**Insignia de estado incrustada.** Activa **Habilitar insignia de estado incrustada** (`enableEmbeddedOverallStatus`, desactivado de forma predeterminada) en la tarjeta **Insignia de estado incrustada**, en **Páginas de Estado → tu página → Avanzado → Estado Embebido**. Va acompañada de un `embeddedOverallStatusToken` y sirve la insignia desde `/badge/:statusPageId`, así que puedes colocar el estado general actual en tu documentación, en el pie de tu aplicación o en una página de marketing.
 
-**Feed RSS.** Toda página de estado sirve `/rss`: un feed titulado «{status page name} Updates» cuyos elementos llevan los prefijos `Incident: `, `Announcement: ` y `Scheduled Maintenance: `. Práctico para quien prefiera canalizar tus actualizaciones a un lector o a un bot de chat en lugar de suscribirse por correo.
+**Feed RSS.** Toda página de estado sirve `/rss` — un feed titulado "{nombre de la página de estado} Updates" cuyos elementos llevan los prefijos `Incident: `, `Announcement: ` y `Scheduled Maintenance: `. Práctico para quien prefiera canalizar tus actualizaciones a un lector o a un bot de chat antes que suscribirse por correo.
 
-Si prefieres extraer los datos tú mismo, la página de estado está respaldada por puntos de conexión públicos de lectura para la vista general, los incidentes, los eventos de mantenimiento programado, los anuncios y los episodios: consulta [API pública](/docs/status-pages/public-api).
+Si prefieres tirar tú de los datos, la página de estado se apoya en endpoints públicos de lectura para el resumen, los incidentes, los eventos de mantenimiento programado, los anuncios y los episodios; consulta [API pública](/docs/status-pages/public-api).
 
 ## Qué leer a continuación
 
 - [Recursos y grupos de la página de estado](/docs/status-pages/resources-and-groups) — poner monitores en la página y organizarlos en secciones.
-- [Marca y dominios de la página de estado](/docs/status-pages/branding-and-domains) — logotipo, favicon, pie de página, código personalizado y apuntar tu propio dominio a la página.
-- [Suscriptores y anuncios](/docs/status-pages/subscribers) — los cinco canales de suscriptores, el doble consentimiento y la publicación de anuncios.
+- [Marca y dominios de la página de estado](/docs/status-pages/branding-and-domains) — logotipo, favicon, pie de página, código propio y apuntar tu dominio a la página.
+- [Suscriptores y anuncios](/docs/status-pages/subscribers) — los cinco canales de suscripción, el doble consentimiento y la publicación de anuncios.
 - [API pública](/docs/status-pages/public-api) — leer los datos de la página de estado mediante programación.
-- [Visión general de los incidentes](/docs/incidents/index) — los eventos que aparecen en la página.
-- [Estados y severidades de incidentes](/docs/incidents/states-and-severities) — qué hace que un incidente aparezca en una página de estado y qué lo retira.
+- [Visión general de los incidentes](/docs/incidents/index) — los eventos que acaban apareciendo en la página.
+- [Estados y severidades de incidentes](/docs/incidents/states-and-severities) — qué hace que un incidente aparezca en una página de estado y qué lo quita.

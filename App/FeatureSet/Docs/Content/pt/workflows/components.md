@@ -1,210 +1,210 @@
 # Componentes
 
-Componentes são os blocos de construção que você adiciona depois do gatilho. Cada um faz uma coisa — enviar uma mensagem, chamar uma API, verificar uma condição — e se conecta ao que vem a seguir.
+Componentes são as peças que você adiciona depois do trigger. Cada um faz uma coisa — envia uma mensagem, chama uma API, verifica uma condição — e se liga ao que vem em seguida.
 
-Esta página é o catálogo. Para saber como adicioná-los e conectá-los no canvas, veja [Criar um workflow](/docs/workflows/authoring).
+Esta página é o catálogo. Para saber como adicionar e conectar os componentes no canvas, veja [Criar um workflow](/docs/workflows/authoring).
 
 ## API
 
 Faz uma requisição HTTP para qualquer URL.
 
-**Configurações**:
+**Settings**:
 
 - **Method** — `GET`, `POST`, `PUT`, `PATCH` ou `DELETE`.
 - **URL** — o endereço a chamar.
-- **Headers** — quaisquer cabeçalhos a enviar.
-- **Body** — o corpo da requisição para `POST` / `PUT` / `PATCH`.
+- **Headers** — os cabeçalhos a enviar.
+- **Body** — o corpo da requisição, para `POST` / `PUT` / `PATCH`.
 
-**Saídas**:
+**Outputs**:
 
-- **Success** — dispara quando a chamada funciona (resposta 2xx). Passa adiante o status, os cabeçalhos e o corpo.
-- **Error** — dispara em uma falha de rede ou resposta não-2xx. Passa adiante a mensagem de erro.
+- **Sucesso** — dispara quando a chamada deu certo (resposta 2xx). Repassa status, cabeçalhos e corpo.
+- **Erro** — dispara em falha de rede ou resposta fora da faixa 2xx. Repassa a mensagem de erro.
 
-Use isto para: qualquer API externa, seus próprios endpoints administrativos, ou qualquer integração que não tenha seu próprio componente.
+Use para: qualquer API externa, seus próprios endpoints administrativos, ou qualquer integração que não tenha componente próprio.
 
 ## AI
 
 ### Generate Text with AI
 
-Gera uma resposta em texto a partir de um prompt e um contexto JSON opcional. O componente usa o provedor de LLM padrão configurado do projeto, recorrendo ao provedor global da instalação quando disponível. As credenciais e endpoints do provedor são configurados centralmente; não são argumentos do workflow.
+Gera uma resposta de texto a partir de um prompt e de um contexto JSON opcional. O componente usa o provedor de LLM padrão configurado no projeto e recorre ao provedor global da instalação quando houver um. As credenciais e os endpoints do provedor são configurados centralmente; eles não são argumentos do workflow.
 
-**Configurações**:
+**Settings**:
 
-- **System Instructions** — orientação opcional para o papel, o tom e as restrições do modelo.
-- **Prompt** — a tarefa obrigatória. Pode incluir variáveis de workflow e saídas de componentes anteriores.
-- **Context** — JSON opcional que você inclui deliberadamente na requisição. É anexado depois de um marcador explícito de fim de confiança da mensagem e tratado como dado não confiável no restante dela.
-- **Temperature** — variação de `0` a `1`. O padrão é `0.2` para automação previsível.
+- **System Instructions** — orientação opcional sobre o papel, o tom e as restrições do modelo.
+- **Prompt** — a tarefa, obrigatória. Pode incluir variáveis do workflow e saídas de componentes anteriores.
+- **Context** — JSON opcional que você inclui deliberadamente na requisição. Ele é acrescentado depois de um marcador explícito de fim de mensagem e tratado como dado não confiável no restante da mensagem.
+- **Temperature** — variação de `0` a `1`. O padrão é `0.2`, para automação previsível.
 - **Maximum Output Tokens** — de `1` a `4096`. O padrão é `1024`.
 
-A combinação de System Instructions, Prompt e Context serializado é limitada a 50.000 caracteres. A requisição ao provedor tem uma duração máxima de 60 segundos e é tentada uma única vez. No máximo três requisições de AI de workflow podem rodar simultaneamente por projeto.
+Somados, System Instructions, Prompt e o Context serializado têm limite de 50.000 caracteres. A requisição ao provedor tem duração máxima de 60 segundos e é tentada uma única vez. No máximo três requisições de AI de workflow rodam ao mesmo tempo por projeto.
 
-**Saídas**:
+**Outputs**:
 
 - **Response** — o texto gerado.
-- **Provider** e **Model** — a configuração usada na chamada.
-- **Total Tokens** e **Completion Tokens** — uso reportado pelo provedor.
-- **LLM Log ID** — a entrada de registro de AI medida para a chamada.
-- **Error** — o erro de validação, acesso, provedor, orçamento, cobrança ou tempo limite, quando presente.
+- **Provedor** e **Model** — a configuração usada na chamada.
+- **Total Tokens** e **Completion Tokens** — o uso informado pelo provedor.
+- **LLM Log ID** — a entrada de registro de AI tarifada correspondente à chamada.
+- **Erro** — o erro de validação, acesso, provedor, orçamento, cobrança ou tempo limite, quando houver.
 
-Conecte **Success** a componentes que devem usar a resposta. Conecte **Error** a um caminho explícito de fallback, alerta ou registro. O componente faz uma única requisição ao modelo sem definições de ferramentas ou campos de capacidade nativos do provedor: ele não pode consultar o OneUptime, chamar APIs nem alterar dados do projeto por conta própria. Além das instruções fixas de segurança de componente do OneUptime, apenas o System Instructions, o Prompt e o Context que você configura são enviados ao provedor, depois que as variáveis de workflow nesses campos são resolvidas. O provedor/modelo configurado continua sendo um limite de confiança, porque um modelo pode ter capacidades intrínsecas gerenciadas pelo provedor.
+Ligue **Sucesso** aos componentes que devem usar a resposta. Ligue **Erro** a um caminho explícito de contingência, alerta ou registro. O componente faz uma única requisição ao modelo, sem definições de ferramentas e sem campos nativos de capacidade do provedor: ele não consegue consultar o OneUptime, chamar APIs nem alterar dados do projeto por conta própria. Além das instruções fixas de segurança de componente do OneUptime, só o System Instructions, o Prompt e o Context que você configurar são enviados ao provedor, depois de resolvidas as variáveis de workflow desses campos. O provedor/modelo configurado continua sendo uma fronteira de confiança, porque um modelo pode ter capacidades intrínsecas gerenciadas pelo provedor.
 
-A saída do modelo é texto não confiável. Revise-a antes de enviar comunicações voltadas ao cliente, e não use texto de AI livre sozinho para autorizar ações destrutivas do workflow. Veja [Configuração e segurança de workflow](/docs/workflows/configuration) para detalhes de provedor, saída de rede, registro e custo.
+O texto que o modelo devolve é dado não confiável. Revise-o antes de enviar comunicações para clientes, e não use texto livre gerado por AI, sozinho, para autorizar ações destrutivas de workflow. Veja [Configuração e segurança de workflow](/docs/workflows/configuration) para detalhes de provedor, saída de rede, registro e custo.
 
 ## Webhook (outbound)
 
-Uma versão mais simples do componente API para casos "disparar e esquecer". Envia (POST) um corpo JSON para uma URL.
+Uma versão mais simples do componente API, para casos de "disparar e esquecer". Envia um corpo JSON para uma URL.
 
-Use **API** se você precisa ler a resposta. Use **Webhook** se você só quer enviar uma notificação e seguir em frente.
+Use **API** se você precisa ler a resposta. Use **Webhook** se só quer mandar uma notificação e seguir em frente.
 
 ## Slack
 
 Publica uma mensagem em um canal do Slack.
 
-**Configurações**:
+**Settings**:
 
-- **Channel** — o nome do canal. O bot já precisa estar naquele canal.
-- **Message** — o texto a enviar. Suporta a formatação do Slack.
+- **Canal** — o nome do canal. O bot já precisa estar nele.
+- **Mensagem** — o texto a enviar. Aceita a formatação do Slack.
 
-Conecte o Slack ao seu projeto primeiro em **Project Settings → Workspace → Slack**. Veja [Conexão do workspace do Slack](/docs/workspace-connections/slack).
+Conecte o Slack ao seu projeto primeiro em **Configurações do projeto → Espaço de trabalho → Slack**. Veja [Conexão do workspace do Slack](/docs/workspace-connections/slack).
 
 ## Microsoft Teams
 
 Publica uma mensagem em um canal do Microsoft Teams.
 
-**Configurações**:
+**Settings**:
 
 - **Team and channel** — onde publicar.
-- **Message** — o texto a enviar.
+- **Mensagem** — o texto a enviar.
 
 Veja [Conexão do workspace do Microsoft Teams](/docs/workspace-connections/microsoft-teams) para a configuração.
 
 ## Discord
 
-Publica uma mensagem em um canal do Discord através de uma URL de webhook de entrada.
+Publica uma mensagem em um canal do Discord por meio de uma URL de webhook de entrada.
 
 ## Telegram
 
-Envia uma mensagem para um chat do Telegram usando um token de bot e um chat ID.
+Envia uma mensagem para um chat do Telegram usando um token de bot e o ID do chat.
 
 ## Email
 
-Envia um e-mail através do OneUptime.
+Envia um e-mail pelo OneUptime.
 
-**Configurações**:
+**Settings**:
 
-- **To** — o endereço de e-mail do destinatário.
-- **Subject** — a linha de assunto.
+- **Para** — o endereço de e-mail de quem recebe.
+- **Assunto** — a linha de assunto.
 - **Body** — a mensagem em Markdown ou HTML.
 
 O e-mail sai do remetente configurado do seu projeto — veja [SMTP](/docs/emails/smtp).
 
 ## Custom Code
 
-Roda um pequeno trecho de JavaScript quando você precisa de algo que os outros blocos não conseguem fazer.
+Roda um trecho pequeno de JavaScript quando você precisa de algo que os outros blocos não fazem.
 
-**Configurações**:
+**Settings**:
 
-- **Code** — o seu JavaScript. O último valor (ou o que você retorna de uma função async) se torna a saída do bloco.
-- **Arguments** — valores nomeados que você pode passar.
+- **Código** — o seu JavaScript. O último valor (ou o que você retornar de uma função assíncrona) vira a saída do bloco.
+- **Arguments** — valores nomeados que você pode passar para dentro.
 
-**Saídas**: sucesso (o valor que você retorna) e erro (qualquer exceção).
+**Outputs**: sucesso (o seu valor de retorno) e erro (qualquer exceção).
 
-Use isto para: remodelar dados entre dois sistemas, fazer um pequeno cálculo, qualquer coisa que não mereça seu próprio bloco. Para scripting mais pesado, use um [Runbook](/docs/runbooks/index) em vez disso.
+Use para: remodelar dados entre dois sistemas, fazer um cálculo pequeno, qualquer coisa que não mereça um bloco próprio. Para scripts mais pesados, use um [Runbook](/docs/runbooks/index).
 
 ## JSON
 
 Converte entre texto e JSON.
 
-- **JSON → Text** — transforma um objeto JSON em uma string. Útil quando o próximo bloco espera texto.
-- **Text → JSON** — converte uma string em um objeto JSON. Útil quando algo chegou como texto e você precisa ler um campo.
+- **JSON → Text** — transforma um objeto JSON em texto. Útil quando o bloco seguinte espera texto.
+- **Text → JSON** — interpreta um texto como objeto JSON. Útil quando algo chegou como texto e você precisa ler um campo.
 
 ## Conditions
 
-Ramifica com base em uma comparação. No painel **Add Component** este bloco é chamado de **If / Else**, na categoria Conditions.
+Ramifica com base em uma comparação. No painel **Add Component**, este bloco se chama **If / Else**, na categoria Conditions.
 
-**Configurações**:
+**Settings**:
 
-- **Left value** — geralmente um valor de um bloco anterior.
+- **Left value** — normalmente um valor vindo de um bloco anterior.
 - **Operator** — `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts with`, `ends with`.
 - **Right value** — com o que comparar.
 
-**Saídas**: **Yes** e **No**. Conecte os próximos blocos ao ramo que você quiser.
+**Outputs**: **Sim** e **Não**. Conecte os próximos blocos à ramificação que você quiser.
 
 ## Delay
 
-Pausa o workflow por um período de tempo definido antes de continuar. Útil quando você precisa dar a outro sistema um momento para se atualizar.
+Pausa o workflow por um tempo determinado antes de continuar. Útil quando você precisa dar um instante para outro sistema se acertar.
 
 ## Log
 
-Escreve uma linha no registro da execução. Sem efeito externo — apenas aparece nos registros do workflow para você ler. Útil para depuração.
+Escreve uma linha no registro da execução. Nenhum efeito externo — apenas aparece nos registros do workflow para você ler. Bom para depurar.
 
 ## Execute Workflow
 
-Chama outro workflow a partir deste. O workflow chamado roda por conta própria — seu workflow continua sem esperar que ele termine.
+Chama outro workflow a partir deste. O workflow chamado roda por conta própria — o seu segue em frente sem esperar que ele termine.
 
-Use isto para compartilhar lógica comum. Construa um workflow "postar no canal do incidente" uma vez e depois o chame de qualquer outro workflow que precise notificar o canal.
+Use para compartilhar lógica comum. Monte uma vez um workflow do tipo "publicar no canal do incidente" e chame-o de qualquer outro workflow que precise avisar o canal.
 
-Há um limite de segurança para que workflows não fiquem se chamando em loop. Veja [Configuração e segurança de workflow](/docs/workflows/configuration).
+Existe um limite de segurança para que os workflows não fiquem se chamando em loop. Veja [Configuração e segurança de workflow](/docs/workflows/configuration).
 
 ## Componentes de dados do OneUptime
 
-Para todo tipo de registro no OneUptime (monitores, incidentes, alertas, páginas de status, políticas de plantão e muitos outros), o painel **Add Component** tem estes componentes — busque pelo nome do tipo. Cada título é gerado a partir do tipo de registro, então o conjunto de Monitor mostra:
+Para cada tipo de registro do OneUptime (monitores, incidentes, alertas, páginas de status, políticas de plantão e muitos outros), o painel **Add Component** traz estes componentes — busque pelo nome do tipo. Cada título é gerado a partir do tipo de registro, então o conjunto de Monitor fica assim:
 
-- **Find One Monitor** — lê um registro que corresponde à consulta.
-- **Find Many Monitors** — lê uma lista de registros que correspondem à consulta.
+- **Find One Monitor** — lê um registro que corresponda à consulta.
+- **Find Many Monitors** — lê uma lista de registros que correspondam à consulta.
 - **Create One Monitor** — adiciona um registro a partir de um objeto JSON.
 - **Create Many Monitors** — adiciona vários registros a partir de um array JSON.
 - **Update One Monitor** — aplica o payload de escrita a um registro correspondente.
-- **Update Many Monitors** — aplica o payload de escrita a registros correspondentes, até o Limit.
+- **Update Many Monitors** — aplica o payload de escrita aos registros correspondentes, até o Limit.
 - **Delete One Monitor** — exclui um registro correspondente.
-- **Delete Many Monitors** — exclui registros correspondentes, até o Limit.
+- **Delete Many Monitors** — exclui os registros correspondentes, até o Limit.
 
-O mesmo conjunto fornece três gatilhos — **On Create Monitor**, **On Update Monitor** e **On Delete Monitor**. Veja [Triggers](/docs/workflows/triggers).
+O mesmo conjunto entrega três triggers — **On Create Monitor**, **On Update Monitor** e **On Delete Monitor**. Veja [Gatilhos de workflow](/docs/workflows/triggers).
 
-Um tipo só oferece os componentes que seu modelo permite. Um tipo somente leitura tem apenas os dois componentes Find e nada mais, então, se você não conseguir encontrar **Delete One Monitor** no painel, esse tipo não permite isso.
+Um tipo só oferece os componentes que o modelo dele permite. Um tipo somente leitura tem os dois componentes Find e nada mais, então, se você não acha **Delete One Monitor** no painel, é porque aquele tipo não permite.
 
-É assim que um workflow consegue ler e alterar dados do OneUptime. Por exemplo: um webhook da sua ferramenta de CI pode usar **Create One Incident** para abrir um incidente com os detalhes da falha.
+É assim que um workflow lê e altera dados do OneUptime. Por exemplo: um webhook da sua ferramenta de CI pode usar **Create One Incident** para abrir um incidente com os detalhes da falha.
 
 ## Trabalhando com registros
 
-Todo campo em um componente de dados é indexado pelos próprios nomes de **coluna** do registro — os mesmos nomes que a API usa, não os rótulos do formulário do painel. A coluna do ID é `_id`. A grafia `id` é aceita como um apelido em qualquer lugar em que você possa digitar um nome de coluna, mas `_id` é o que um registro devolve, então é isso que se lê na saída:
+Todo campo de um componente de dados é indexado pelos nomes de **coluna** do próprio registro — os mesmos nomes que a API usa, não os rótulos do formulário no painel. A coluna de ID é `_id`. A grafia `id` é aceita como apelido em qualquer lugar onde você digita um nome de coluna, mas o que um registro devolve é `_id`, então é isso que você lê na saída:
 
 ```json
 { "_id": "00000000-0000-0000-0000-000000000000" }
 ```
 
-**Query** decide quais registros o componente afeta. As chaves são colunas, os valores são o que corresponder:
+O **Query** decide sobre quais registros o componente age. As chaves são colunas e os valores são o que deve corresponder:
 
 ```json
 { "monitorType": "Website", "isEnabled": true }
 ```
 
-Uma consulta é sempre restrita ao projeto em que o workflow roda. Você não consegue alcançar os registros de outro projeto, e não precisa adicionar o projeto à consulta você mesmo.
+Uma consulta é sempre restrita ao projeto em que o workflow roda. Você não alcança registros de outro projeto e não precisa incluir o projeto na consulta.
 
-**JSON Object** no Create One, **JSON Array** no Create Many, e **Data (JSON Object)** nos componentes Update carregam os campos a escrever, indexados da mesma forma:
+O **JSON Object** do Create One, o **JSON Array** do Create Many e o **Data (JSON Object)** dos componentes de Update carregam os campos a gravar, indexados do mesmo jeito:
 
 ```json
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-Uma chave que não é uma coluna é ignorada em vez de rejeitada — o registro da execução nomeia as que descartou, então verifique lá quando um campo não for aplicado. **Select Fields**, nos componentes Find e nos gatilhos, usa as mesmas chaves de coluna com valores `true`: `{"_id": true, "name": true}`.
+Uma chave que não é coluna é ignorada, não recusada — o registro da execução nomeia as que foram descartadas, então confira lá quando um campo não chegar. O **Select Fields**, presente nos componentes Find e nos triggers, usa as mesmas chaves de coluna com valores `true`: `{"_id": true, "name": true}`.
 
-**Skip** e **Limit** são dois campos numéricos em Find Many, Update Many e Delete Many — `Skip: 0` com `Limit: 100` pega as cem primeiras correspondências. Limit tem o padrão `10`, e em Update Many e Delete Many ele limita quantos registros são de fato escritos, não apenas quantos são retornados. Então `Items Deleted: 10` significa que dez registros foram excluídos, não que dez corresponderam. Aumente o Limit quando pretender alterar mais de dez.
+**Pular** e **Limit** são dois campos numéricos em Find Many, Update Many e Delete Many — `Skip: 0` com `Limit: 100` pega as primeiras cem correspondências. O Limit tem padrão `10`, e em Update Many e Delete Many ele limita quantos registros são de fato alterados, não só quantos voltam. Ou seja, `Items Deleted: 10` significa que dez registros foram excluídos, não que dez corresponderam. Aumente o Limit quando a intenção for mexer em mais de dez.
 
-**Success** e **Error** reportam se a consulta rodou, não o que ela encontrou. Uma consulta que não corresponde a nada retorna `0` e ainda segue por Success — isso não é uma falha. Para ramificar com base em se algo correspondeu, leia a contagem retornada em um bloco **If / Else**.
+**Sucesso** e **Erro** dizem se a consulta rodou, não o que ela encontrou. Uma consulta que não corresponde a nada devolve `0` e ainda assim sai pelo Sucesso — isso não é falha. Para ramificar conforme houve ou não correspondência, leia a contagem retornada em um bloco **If / Else**.
 
 ## Qual componente devo usar?
 
 Algumas regras rápidas:
 
-- Se há um bloco dedicado para o que você quer (Slack, Email, um registro do OneUptime), use-o — você ganha tratamento de erro mais agradável e registros mais claros.
+- Se existe um bloco dedicado ao que você quer (Slack, Email, um registro do OneUptime), use-o — o tratamento de erro é melhor e os registros ficam mais claros.
 - Para qualquer outra API externa, use **API**.
-- Para resumir, classificar ou redigir texto a partir de dados de workflow explicitamente selecionados, use **Generate Text with AI**.
+- Para resumir, classificar ou redigir texto a partir de dados do workflow que você selecionou explicitamente, use **Generate Text with AI**.
 - Para remodelar dados entre blocos, use **Custom Code** ou **JSON**.
-- Para tomar ações diferentes com base em um valor, use **Conditions**.
+- Para tomar caminhos diferentes conforme um valor, use **Conditions**.
 
-## Onde ler a seguir
+## Onde ler em seguida
 
 - [Variáveis de workflow](/docs/workflows/variables) — passando dados entre blocos.
-- [Execuções e registros de workflow](/docs/workflows/runs-and-logs) — verificando o que cada bloco fez em uma execução.
+- [Execuções e registros de workflow](/docs/workflows/runs-and-logs) — conferindo o que cada bloco fez em uma execução.
 - [Configuração e segurança de workflow](/docs/workflows/configuration) — limites, proprietários e segredos.

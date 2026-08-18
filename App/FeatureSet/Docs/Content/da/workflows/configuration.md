@@ -1,124 +1,124 @@
-# Konfiguration og sikkerhed
+# Konfiguration & sikkerhed
 
-Denne side dækker de indstillinger og sikkerhedsgrænser, det er værd at kende, før du peger en arbejdsgang mod rigtig trafik.
+Denne side handler om de indstillinger og sikkerhedsgrænser, der er værd at kende, før du retter et workflow mod rigtig trafik.
 
-## Slå en arbejdsgang til eller fra
+## Sådan tænder og slukker du et workflow
 
-Hver arbejdsgang har en **Enabled**-kontakt i **Settings**. Når den er slået fra, kører arbejdsgangen ikke — webhook-kald, planlagte tidspunkter og OneUptime-hændelser ignoreres alle. Nye arbejdsgange starter deaktiverede.
+Hvert workflow har en kontakt, **Aktiveret**, under **Indstillinger**. Når den er slukket, kører workflowet ikke — webhook-kald, planlagte tidspunkter og OneUptime-begivenheder bliver alle ignoreret. Nye workflows starter deaktiveret.
 
-Brug denne kontakt som din "klar til brug"-port:
+Brug kontakten som din "klar til brug"-port:
 
-1. Byg arbejdsgangen.
-2. Klik på **Run Workflow** i **Builder** med realistiske værdier.
-3. Tjek **Logs** — sørg for, at hver blok gik, som du forventede.
-4. Slå **Enabled** til.
+1. Byg workflowet.
+2. Klik **Kør arbejdsgang** i **Bygger** med realistiske værdier.
+3. Tjek **Logs** — sørg for, at hver blok gik derhen, du forventede.
+4. Slå **Aktiveret** til.
 
-At slå en arbejdsgang fra stopper ikke kørsler, der allerede er i gang; det stopper blot nye i at starte.
+At slukke for et workflow stopper ikke kørsler, der allerede er i gang; det forhindrer bare nye i at starte.
 
 ## Ejere og etiketter
 
-- **Owners** — brugere og teams, der er angivet som ejere, får adgang til arbejdsgangen og kan vælge at modtage notifikationer, når den fejler. Sæt dem under **Settings → Owners**.
-- **Labels** — mærker til gruppering af arbejdsgange. Listen over arbejdsgange lader dig filtrere efter etiket, hvilket gør et travlt projekt langt lettere at navigere i. Nyttigt, når dine arbejdsgange er organiseret efter team, integration eller miljø.
-- **Label rules** — under **Workflows → Settings → Label Rules** kan du automatisk anvende etiketter på nye arbejdsgange baseret på mønstre i navn eller beskrivelse.
-- **Owner rules** — under **Workflows → Settings → Owner Rules** kan du automatisk tildele ejere til nye arbejdsgange.
+- **Ejere** — brugere og teams, der står som ejere, får adgang til workflowet og kan tilvælge besked, når det fejler. Sæt dem under **Indstillinger → Ejere**.
+- **Etiketter** — mærkater til at gruppere workflows. Listen over workflows kan filtreres på etiket, og det gør et travlt projekt langt nemmere at navigere i. Nyttigt, når du organiserer workflows efter team, integration eller miljø.
+- **Etiketregler** — under **Arbejdsgange → Indstillinger → Etiketregler** sætter du automatisk etiketter på nye workflows ud fra mønstre i navn eller beskrivelse.
+- **Ejerregler** — under **Arbejdsgange → Indstillinger → Ejerregler** tildeler du automatisk ejere til nye workflows.
 
 ## Hemmeligheder
 
-Markér en global variabel som en **secret**, hvis den indeholder noget følsomt. Værdien skjules fra normale API- og UI-læsninger, efter du har gemt den, og arbejdsgangens logning renser den udregnede værdi, før kørselsloggen gemmes.
+Markér en global variabel som en **Hemmelighed**, hvis den indeholder noget følsomt. Værdien skjules for almindelige API- og UI-læsninger, når du har gemt den, og workflow-logningen renser den opløste værdi ud, før kørselsloggen gemmes.
 
 Brug hemmelige variabler til:
 
 - API-nøgler til eksterne tjenester.
-- Autentifikationstokens.
+- Godkendelsestokens.
 - Signeringsnøgler til webhooks.
-- Alt, du ikke ville ønske, at nogen med skrivebeskyttet adgang kunne se.
+- Alt, du ikke ville bryde dig om, at en med læseadgang kunne se.
 
-Indsæt ikke en hemmelighed direkte i en blok — værdier som `Authorization: Bearer eyJh...` ender med at være synlige i arbejdsgangen og i loggene. Brug `{{global.variables.MY_SECRET}}` i stedet.
+Indsæt aldrig en hemmelighed direkte i en blok — værdier som `Authorization: Bearer eyJh...` ender synlige i både workflowet og logfilerne. Brug `{{global.variables.MY_SECRET}}` i stedet.
 
-## Eksport og import af arbejdsgange
+## Eksport og import af workflows
 
-Du kan flytte en arbejdsgang mellem projekter, eller mellem en selv-hostet installation og OneUptime Cloud, som en JSON-fil.
+Du kan flytte et workflow mellem projekter, eller mellem en selv-hostet installation og OneUptime Cloud, som en JSON-fil.
 
-- **Export** — åbn arbejdsgangen, og brug **Export Workflow** under **Settings**. Fra listen over arbejdsgange kan du også vælge flere arbejdsgange og eksportere dem til én samlet fil.
-- **Import** — på listen **Workflows** klikker du på **Import JSON** og vælger en fil eksporteret fra et hvilket som helst OneUptime-projekt.
+- **Eksport** — åbn workflowet, og brug **Export Workflow** under **Indstillinger**. Fra listen over workflows kan du også markere flere workflows og eksportere dem til én samlet fil.
+- **Import** — klik **Import JSON** på listen **Arbejdsgange**, og vælg en fil eksporteret fra et hvilket som helst OneUptime-projekt.
 
-Filen indeholder arbejdsgangens navn, beskrivelse, aktiveringstilstand og dens graf. Den indeholder med vilje ikke:
+Filen indeholder workflowets navn, beskrivelse, aktiveringstilstand og dets graf. Den indeholder bevidst ikke:
 
-- **Webhook-hemmeligheden.** En ny genereres, når arbejdsgangen oprettes, så en importeret arbejdsgang får en anden webhook-URL. Alt, der kalder den oprindelige, skal omdirigeres.
-- **Globale variabler.** En blok, der læser `{{global.variables.MY_SECRET}}`, beholder den reference, men værdien er ikke i filen. Opret variablerne i destinationsprojektet, før du kører den importerede arbejdsgang.
-- **Ejere og etiketter.** Dit projekts egne etiket- og ejerregler kører mod den importerede arbejdsgang, ligesom hvis du havde oprettet den i hånden.
+- **Webhook-hemmeligheden.** Der genereres en ny, når workflowet oprettes, så et importeret workflow har en anden webhook-URL. Alt, der kaldte det oprindelige, skal peges om.
+- **Globale variabler.** En blok, der læser `{{global.variables.MY_SECRET}}`, beholder referencen, men selve værdien ligger ikke i filen. Opret variablerne i modtagerprojektet, før du kører det importerede workflow.
+- **Ejere og etiketter.** Projektets egne etiket- og ejerregler kører mod det importerede workflow, præcis som hvis du havde oprettet det i hånden.
 
-En importeret arbejdsgang oprettes altid som **deaktiveret**, selv hvis den var aktiveret der, hvor den blev eksporteret fra — dens graf kan pege på overvågninger, vagtpolitikker eller andre arbejdsgange, der ikke findes i destinationsprojektet. Gennemgå den, aktivér den, test den med **Run Workflow**, og lad den derefter stå til. At duplikere en arbejdsgang opfører sig på samme måde, så en kopi begynder aldrig at køre sammen med originalen, før du har redigeret den.
+Et importeret workflow oprettes altid **deaktiveret**, også selvom det var aktiveret dér, hvor det blev eksporteret fra — dets graf kan pege på monitorer, vagtpolitikker eller andre workflows, der ikke findes i modtagerprojektet. Gennemgå det, aktivér det, test det med **Kør arbejdsgang**, og lad det så være tændt. Dublering af et workflow opfører sig på samme måde, så en kopi begynder aldrig at køre side om side med originalen, før du har redigeret den.
 
-Fordi grafen rejser ordret med, følger alt, der er skrevet direkte ind i en blok, med. Det er den praktiske grund til at holde legitimationsoplysninger i hemmelige variabler: at eksportere en arbejdsgang med en hardkodet token giver den token videre til den, der modtager filen.
+Fordi grafen rejser ordret med, følger alt, hvad der er skrevet direkte ind i en blok, også med. Det er den praktiske grund til at holde credentials i hemmelige variabler: eksporterer du et workflow med et hårdkodet token, forærer du det token til den, der modtager filen.
 
 ## Hvor længe en kørsel må tage
 
-Hvert udførelsesforsøg har en deadline i realtid. Kørselsmotoren tjekker den før og efter hver komponent og markerer en forsinket kørsel som **Timeout**, så snart kontrollen vender tilbage. Komponenter, der udfører netværks- eller scriptarbejde, skal også have deres egne tidsgrænser, fordi kørselsmotoren ikke kan tvinge en afbrydelse af vilkårlig komponentkode.
+Hvert eksekveringsforsøg har en deadline i faktisk tid. Runneren tjekker den før og efter hver komponent og markerer en kørsel, der er løbet over, som **Timeout**, så snart kontrollen vender tilbage. Komponenter, der laver netværks- eller script-arbejde, har også brug for deres egne timeouts, fordi runneren ikke med magt kan afbryde vilkårlig komponentkode.
 
-AI-komponenten udleder sin timeout for udbyderforespørgslen fra den resterende arbejdsgangstid og begrænser den til 60 sekunder, hvilket efterlader en lille margin til logning og oprydning.
+AI-komponenten udleder sin timeout for udbyderanmodningen af den resterende workflow-tid og skærer den af ved 60 sekunder, så der er en lille margen til logning og oprydning.
 
-## Grænse for at kalde andre arbejdsgange
+## Grænse for at kalde andre workflows
 
-Komponenten **Execute Workflow** lader én arbejdsgang kalde en anden. For at forhindre utilsigtede løkker, hvor arbejdsgang A kalder B, som kalder A igen, er der et loft for, hvor dyb kæden kan gå. En kørsel, der overskrider grænsen, ender med en klar fejl.
+Komponenten **Execute Workflow** lader ét workflow kalde et andet. For at forhindre utilsigtede løkker, hvor workflow A kalder B, som kalder A igen, er der et loft over, hvor dyb kæden må blive. En kørsel, der går forbi grænsen, ender med en tydelig fejl.
 
-Hvis du har et reelt behov for en lang kæde (som et job, der behandler ét element per kørsel), er det som regel enklere at lave en løkke inde i en enkelt arbejdsgang ved hjælp af **Custom Code**.
+Har du et reelt behov for en lang kæde (for eksempel et job, der behandler ét element per kørsel), er det som regel enklere at løkke inde i ét enkelt workflow med **Custom Code**.
 
 ## Webhook-sikkerhed
 
-Webhook-triggere giver dig en unik URL. Alle, der kender URL'en, kan ramme den. For at beskytte mod utilsigtede eller uønskede kaldere:
+Webhook-triggere giver dig en unik URL. Alle, der kender URL'en, kan ramme den. Sådan beskytter du dig mod utilsigtede eller uønskede kaldere:
 
 - Behandl URL'en som en adgangskode. Del den ikke offentligt, og commit den ikke til et offentligt repo.
-- For følsomme arbejdsgange, bed det kaldende system om at sende et delt token som en header (som `X-Webhook-Token`) og tjek det med en **Conditions**-blok, før du gør noget vigtigt. Gem det forventede token som en hemmelig variabel.
-- For meget følsomme arbejdsgange, foretræk en OneUptime-hændelsestrigger og et manuelt importtrin frem for en offentlig webhook.
+- Bed for følsomme workflows det kaldende system om at sende et delt token som header (for eksempel `X-Webhook-Token`), og tjek det med en **Conditions**-blok, før der sker noget vigtigt. Gem det forventede token som en hemmelig variabel.
+- For meget følsomme workflows er en OneUptime-begivenhedstrigger med et manuelt importtrin at foretrække frem for en offentlig webhook.
 
 ## Udgående netværksadgang
 
-API- og andre HTTP-blokke foretager deres anmodninger fra OneUptime. Hvis du selv-hoster, skal du sikre dig, at din installation kan nå de tjenester, du kalder. Hvis du bruger OneUptime Cloud, er vores udgående IP-intervaller listet under [IP Addresses](/docs/configuration/ip-addresses), så du kan tillade dem i den anden ende.
+API-blokke og andre HTTP-blokke sender deres anmodninger fra OneUptime. Hoster du selv, så sørg for, at din installation kan nå de tjenester, du kalder. Bruger du OneUptime Cloud, står vores udgående IP-intervaller i [IP-adresser](/docs/configuration/ip-addresses), så du kan tillade dem i den anden ende.
 
 ## AI-komponenter
 
-**Generate Text with AI** sender én anmodning gennem OneUptimes konfigurerede LLM-gateway. Den bruger projektets standard-LLM-udbyder, eller installationens globale udbyder, når projektet ikke har sin egen. Konfigurér udbydere under **Project Settings → AI → LLM Providers**; sæt aldrig en udbyders API-nøgle eller et vilkårligt model-endpoint direkte i arbejdsgangen.
+**Generate Text with AI** sender én anmodning gennem OneUptimes konfigurerede LLM-gateway. Den bruger projektets standard-LLM-udbyder, eller installationens globale udbyder, når projektet ikke har en. Konfigurér udbydere under **Projektindstillinger → AI → LLM-udbydere**; læg aldrig en udbyder-API-nøgle eller et vilkårligt model-endpoint ind i selve workflowet.
 
-AI-komponenten har en eksplicit udgangsgrænse:
+AI-komponenten har en eksplicit grænse for, hvad der forlader systemet:
 
-- OneUptime sender en fast komponent-sikkerhedsinstruktion plus de udregnede **System Instructions**, **Prompt** og serialiserede **Context** til den konfigurerede udbyder. Context tilføjes efter en eksplicit markør til sidst i brugerbeskeden; den faste instruktion siger, at alt efter den markør forbliver utroværdige data, selv når det indeholder tags eller instruktioner.
-- Den vedhæfter ikke automatisk triggerens nyttelast, arbejdsgangshistorik, andre komponenters output, projektposter, telemetri eller hemmeligheder. Data forlader kun systemet, når du refererer til det i én af de tre inputfelter.
-- Den sender ingen værktøjsdefinitioner eller udbyder-native kapacitetsfelter. Modellen kan ikke forespørge OneUptime, foretage HTTP-anmodninger eller ændre projektdata gennem denne komponent. Den konfigurerede udbyder/model forbliver en administrator-tillidsgrænse, så installationer, der kræver strengt offline generering, bør vælge en model uden indbygget udbyderstyret hentning.
-- Udbyderniveauets ekstra parametre er begrænset til en tilladelsesliste af rene generings-tuningfelter. De kan ikke erstatte arbejdsgangens beskeder, tilføje værktøjer eller udbyder-native websøgnings-/datakilder, aktivere andre modaliteter end tekst, anmode om flere svarmuligheder, aktivere streaming, beholde anmodningen gennem udbyderens lagringsflag eller hæve denne komponents loft for output-tokens. Ukendte fremtidige kapacitetsfelter frasorteres som standard.
-- System Instructions, Prompt, Context og de genererede Response-værdier redigeres væk fra denne AI-komponents egne argument- og returværdi-poster i den automatiske arbejdsgangs eksekveringslog. De forbliver tilgængelige for efterfølgende komponenter, mens kørslen udføres. Hvis du indsætter en af dem i en anden komponent, gælder den komponents logningspolitik, og den kan registrere den udregnede værdi — betragt genbrug som en eksplicit videregivelse. Udbyder-/modelnavne, tokenantal, LLM Log-ID'et og sikre fejlmeddelelser forbliver synlige til drift og fakturering. Rå fejlsvar fra udbyderen udelukkes fra arbejdsgangslogs, LLM-logs, applikationslogs og traces, fordi en udbyder kan ekko anmodningsindholdet tilbage.
+- OneUptime sender en fast komponent-sikkerhedsinstruktion plus de opløste **System Instructions**, **Prompt** og serialiserede **Context** til den konfigurerede udbyder. Context tilføjes efter en eksplicit markør i slutningen af brugerbeskeden; den faste instruktion siger, at alt efter den markør forbliver utroværdige data, også når det indeholder tags eller instruktioner.
+- Den vedhæfter ikke automatisk triggerens payload, workflowets historik, andre komponenters output, projektposter, telemetri eller hemmeligheder. Data forlader kun systemet, når du refererer til dem i et af de tre felter.
+- Den sender ingen værktøjsdefinitioner eller udbyder-specifikke kapabilitetsfelter. Modellen kan ikke forespørge OneUptime, foretage HTTP-anmodninger eller ændre projektdata gennem denne komponent. Den konfigurerede udbyder og model er fortsat en tillidsgrænse, administratoren sætter, så installationer, der kræver strengt offline generering, bør vælge en model uden indbygget udbyderstyret opslag.
+- Yderligere parametre på udbyderniveau er begrænset til en tilladelsesliste af rene genereringsindstillinger. De kan ikke erstatte workflowets beskeder, tilføje værktøjer eller udbyder-specifik websøgning og datakilder, aktivere ikke-tekstlige modaliteter, bede om flere svarmuligheder, aktivere streaming, gemme anmodningen via udbyderens lagringsflag eller hæve denne komponents loft for output-tokens. Ukendte fremtidige kapabilitetsfelter droppes som udgangspunkt.
+- Værdierne i System Instructions, Prompt, Context og det genererede Response redigeres væk fra denne AI-komponents egne argument- og returværdiposter i den automatiske workflow-eksekveringslog. De er stadig tilgængelige for efterfølgende komponenter, mens kørslen er i gang. Indsætter du en af dem i en anden komponent, gælder den komponents logningspolitik og kan gemme den opløste værdi; betragt genbrug som en bevidst videregivelse. Udbyder- og modelnavne, tokenantal, LLM Log ID og ufarlige fejlbeskeder er fortsat synlige til drift og fakturering. Rå fejlsvar fra udbyderen udelades fra workflow-logfiler, LLM-logfiler, applikationslogfiler og traces, fordi en udbyder kan gengive indholdet af anmodningen.
 
-Betragt enhver refereret variabel som data, du bevidst sender til udbyderen. Indsæt især ikke en hemmelig global variabel i prompten eller konteksten, medmindre den videregivelse er nødvendig, og udbyderen er godkendt til at modtage den. En selv-hostet lokal udbyder som Ollama kan holde anmodningen inde i din egen infrastruktur; en hostet udbyder modtager anmodningen under den udbyders databehandlingsvilkår.
+Betragt hver refereret variabel som data, du bevidst sender til udbyderen. Sæt især ikke en hemmelig global variabel ind i prompten eller konteksten, medmindre den videregivelse er nødvendig, og udbyderen er godkendt til at modtage den. En selv-hostet lokal udbyder som Ollama kan holde anmodningen inde i din egen infrastruktur; en hostet udbyder modtager anmodningen under den pågældende udbyders databehandlingsvilkår.
 
-Hvert kald registreres under **Project Settings → AI → AI Logs**, inklusive udbyder, model, status, tokens, omkostning og faktureringsoplysninger. Prompt- og svarforhåndsvisninger samt rå fejloplysninger fra udbyderen gemmes ikke i AI-loggen. Kald gennem en betalt global udbyder trækker på projektets AI-kreditsaldo. Workflow AI tæller også med i projektets daglige budget for autonome AI-tokens; når budgettet er opbrugt, tager komponenten sin **Error**-sti uden at kontakte modellen. Projekt-AI skal være aktiveret. På OneUptime Cloud skal abonnementet være betalt, og Growth-planen (eller en plan, der inkluderer Growth-funktioner) er påkrævet; selv-hostede installationer med fakturering slået fra har ikke denne plangrænse.
+Hvert kald registreres under **Projektindstillinger → AI → AI-logs**, inklusive udbyder, model, status, tokens, omkostning og faktureringsoplysninger. Forhåndsvisninger af prompt og svar samt rå fejldetaljer fra udbyderen gemmes ikke i AI-loggen. Kald gennem en betalt global udbyder trækker på projektets AI-kreditsaldo. Workflow-AI tæller også med i projektets daglige budget for autonome AI-tokens; er budgettet brugt op, tager komponenten sin **Error**-sti uden at kontakte modellen. Projekt-AI skal være aktiveret. På OneUptime Cloud skal abonnementet være betalt, og Growth-planen (eller en plan, der indeholder Growth-funktioner) er påkrævet; selv-hostede installationer med fakturering slået fra har ikke den planbegrænsning.
 
-Indbyggede grænser holder ubemandede kald endelige: System Instructions, Prompt og serialiseret Context er begrænset til 50.000 tegn i alt; Temperature skal være fra `0` til `1`; Maximum Output Tokens skal være fra `1` til `4096` (standard `1024`); og udbyderens anmodning forsøges én gang og får timeout efter højst 60 sekunder. Højst tre workflow-AI-kald kører samtidigt per projekt; yderligere kald tager stien **Error** og kan forsøges igen af en senere arbejdsgangskørsel. Validerings-, konfigurations-, adgangs-, budget-, saldo-, samtidigheds-, udbyder- og timeoutfejl tager alle stien **Error** og udfylder output **Error**. Forbind den sti, før du aktiverer en produktionsarbejdsgang.
+Indbyggede grænser holder kald uden opsyn endelige: System Instructions, Prompt og serialiseret Context er tilsammen begrænset til 50.000 tegn; Temperature skal ligge fra `0` til `1`; Maximum Output Tokens skal ligge fra `1` til `4096` (standard `1024`); og udbyderanmodningen forsøges én gang og timer ud efter højst 60 sekunder. Højst tre workflow-AI-kald kører samtidig per projekt; yderligere kald tager **Error**-stien og kan forsøges igen af en senere workflow-kørsel. Fejl i validering, konfiguration, adgang, budget, saldo, samtidighed, udbyder og timeout tager alle **Error**-stien og fylder outputtet **Error**. Forbind den sti, før du aktiverer et produktionsworkflow.
 
 ## Tilladelser
 
-Arbejdsgange respekterer dit projekts rollebaserede adgangskontrol. De relevante tilladelser:
+Workflows respekterer dit projekts rollebaserede adgangskontrol. De relevante tilladelser:
 
-- **Create / Read / Edit / Delete Workflow** — de grundlæggende tilladelser på selve arbejdsgangen.
-- **Run Workflow** — nødvendig for at køre en arbejdsgang manuelt eller udløse en via API.
+- **Create / Read / Edit / Delete Workflow** — de grundlæggende tilladelser på selve workflowet.
+- **Run Workflow** — nødvendig for at køre et workflow manuelt eller udløse et via API.
 - **Read Workflow Log** — nødvendig for at se kørsler.
-- **Read / Create / Edit / Delete Workflow Variable** — kontrol over listen over globale variabler.
+- **Read / Create / Edit / Delete Workflow Variable** — kontrol over listen af globale variabler.
 
-De fleste ingeniører bør have opret/redigér/læs på arbejdsgange, men ikke på variabler. Gem redigeringsadgang til variabler til dem, der administrerer dit projekts hemmeligheder.
+De fleste udviklere bør have opret/rediger/læs på workflows, men ikke på variabler. Gem redigeringsadgangen til variabler til de folk, der administrerer projektets hemmeligheder.
 
 ## Plangrænser
 
-OneUptime Cloud lægger et loft over antallet af kørsler per måned på mindre planer. Din nuværende grænse vises under **Project Settings → Billing**. Når du når den, afvises nye triggere indtil næste faktureringscyklus. Selv-hostede installationer har ikke denne grænse.
+OneUptime Cloud sætter et loft over antallet af kørsler per måned på de mindre planer. Din nuværende grænse står under **Projektindstillinger → Fakturering**. Når du når den, afvises nye triggere indtil næste faktureringsperiode. Selv-hostede installationer har ikke den grænse.
 
-## Når arbejdsgange ikke er det rigtige værktøj
+## Når workflows ikke er det rigtige værktøj
 
-Nogle tilfælde, hvor du bør gribe til noget andet:
+Et par tilfælde, hvor du bør gribe ud efter noget andet:
 
-- **Tung beregning eller store datasæt** — arbejdsgange er designet til let sammenkoblingsarbejde, ikke talknusning. Kør tungt arbejde i din egen infrastruktur, og lad en arbejdsgang starte det.
-- **Langvarig aktiv beregning** — et enkelt udførelsesforsøg er ment til at afslutte hurtigt. Til en passiv forsinkelse som "gør A, vent to timer, gør B", brug komponenten **Sleep**; den gemmer kørslen og genoptager den senere uden at optage en worker.
-- **Trin-for-trin hændelsesrespons med mennesker involveret** — det er, hvad [Runbooks](/docs/runbooks/index) er til. Arbejdsgange er til ubemandet automatisering.
+- **Tunge beregninger eller store datasæt** — workflows er lavet til let limarbejde, ikke til talknuseri. Kør det tunge arbejde i din egen infrastruktur, og lad et workflow sætte det i gang.
+- **Langvarig aktiv beregning** — ét eksekveringsforsøg er tænkt til at blive færdigt hurtigt. Til en passiv pause som "gør A, vent to timer, gør B" bruger du komponenten **Sleep**; den gemmer kørslen og genoptager den senere uden at optage en worker.
+- **Trin-for-trin-hændelseshåndtering med mennesker involveret** — det er dét, [Runbooks](/docs/runbooks/index) er til. Workflows er til automatik uden opsyn.
 
 ## Hvor du kan læse videre
 
-- [Arbejdsgange – Oversigt](/docs/workflows/index) — det store billede.
-- [Komponenter](/docs/workflows/components) — blok-for-blok-reference.
-- [Runbooks](/docs/runbooks/index) — hvornår du skal bruge et runbook i stedet.
+- [Workflows – Oversigt](/docs/workflows/index) — det store billede.
+- [Workflow-komponenter](/docs/workflows/components) — reference blok for blok.
+- [Runbooks – Oversigt](/docs/runbooks/index) — hvornår du hellere skal bruge et runbook.

@@ -1,111 +1,111 @@
-# Variables
+# वेरिएबल
 
-Workflows का मतलब है data को move करना — trigger से पहले block तक, एक block से अगले तक, और shared values से आपको जहाँ भी उनकी ज़रूरत हो वहाँ तक। Variables इसी data को move करने का तरीका हैं।
+वर्कफ़्लो का पूरा खेल data को इधर से उधर पहुँचाने का है — trigger से पहले block तक, एक block से अगले तक, और साझा मानों से वहाँ तक जहाँ आपको उनकी ज़रूरत हो। यह data जिनके सहारे चलता है, वे वेरिएबल हैं।
 
-Variable के दो scopes हैं, साथ ही एक run के दौरान produce होने वाले component outputs।
+वेरिएबल के दो दायरे हैं, और इनके अलावा run के दौरान बने घटक outputs।
 
-## Global variables
+## ग्लोबल वेरिएबल
 
-Project-wide values जिन्हें आप एक बार save करते हैं और कहीं भी reuse करते हैं। API keys, URLs, channel names — कोई भी ऐसी चीज़ जिसे आप दस अलग-अलग workflows में copy नहीं करना चाहते।
+पूरे प्रोजेक्ट के मान, जिन्हें एक बार सहेजकर आप कहीं भी दोबारा इस्तेमाल करते हैं। जैसे API keys, URLs, चैनल के नाम — वह सब जिसे आप दस अलग-अलग वर्कफ़्लो में copy नहीं करना चाहते।
 
-इन्हें **Workflows → Global Variables** के तहत खोजें। हर एक के पास होता है:
+ये **वर्कफ़्लो → ग्लोबल वेरिएबल** के नीचे मिलते हैं। हर एक में होता है:
 
-- **Name** — आप इसे कैसे reference करेंगे। कम से कम दो characters, कोई space नहीं, और सिर्फ letters, numbers, hyphens और underscores। `UPPER_SNAKE_CASE` एक अच्छी आदत है क्योंकि यह आपके blocks में अलग दिखता है।
-- **Description** — optional, free text जो आपको याद दिलाए कि यह किसलिए है।
-- **Secret** — on होने पर, value run logs और step traces से scrub कर दी जाती है।
-- **Content** — असली value। यह एक long-text field है, इसलिए multi-line values काम करती हैं।
+- **नाम** — जिससे आप उसे बुलाएँगे। कम से कम दो अक्षर, कोई space नहीं, और सिर्फ़ अक्षर, अंक, hyphen और underscore। `UPPER_SNAKE_CASE` अच्छी आदत है, क्योंकि तब वह आपके blocks में अलग से दिख जाता है।
+- **विवरण** — वैकल्पिक, खुला text, ताकि आपको याद रहे कि यह किस काम का है।
+- **रहस्य** — चालू हो, तो मान run लॉग और चरणों के ब्यौरे से पोंछ दिया जाता है।
+- **सामग्री** — असली मान। यह लंबा-text फ़ील्ड है, इसलिए कई पंक्तियों वाले मान भी चलते हैं।
 
-किसी भी workflow में global variable इस्तेमाल करें:
+किसी भी वर्कफ़्लो में ग्लोबल वेरिएबल इस तरह इस्तेमाल कीजिए:
 
 ```
 {{global.variables.NAME}}
 ```
 
-उदाहरण के लिए, अगर आपने अपनी PagerDuty key `PAGERDUTY_KEY` के रूप में save की है, तो कोई भी block इसे `{{global.variables.PAGERDUTY_KEY}}` के रूप में इस्तेमाल कर सकता है — editor reference को store करता है, और workflow logging resolved secret value को scrub करती है।
+मसलन, आपने अपनी PagerDuty key `PAGERDUTY_KEY` के नाम से सहेजी हो, तो कोई भी block उसे `{{global.variables.PAGERDUTY_KEY}}` कहकर इस्तेमाल कर सकता है — editor सिर्फ़ reference सहेजता है, और workflow logging हल हुए रहस्य को पोंछ देती है।
 
-Variables create और delete होते हैं, edit नहीं। table पर कोई edit button नहीं है, इसलिए UI में कोई value बदलने के लिए आप variable को delete करके फिर से create करते हैं — या इसे API के ज़रिए update करते हैं, जो इस page के अंत में cover किया गया है। Global और workflow variables एक Growth plan feature हैं।
+वेरिएबल बनाए और हटाए जाते हैं, संपादित नहीं। तालिका पर संपादन का कोई बटन नहीं है, इसलिए UI में मान बदलने के लिए आप वेरिएबल हटाकर उसे फिर बनाते हैं — या API से उसे अपडेट करते हैं, जिसकी बात इस पेज के आख़िर में है। ग्लोबल और वर्कफ़्लो वेरिएबल, दोनों Growth योजना की सुविधा हैं।
 
-## Local workflow variables
+## स्थानीय वर्कफ़्लो वेरिएबल
 
-Variables जो सिर्फ एक workflow तक scoped हैं, उस workflow के left menu में **Workflow Variables** के तहत manage होते हैं। इन्हें reference करें:
+ये वेरिएबल सिर्फ़ एक वर्कफ़्लो तक सीमित रहते हैं और उस वर्कफ़्लो के बाएँ मेनू में **वर्कफ़्लो वेरिएबल** के नीचे सँभाले जाते हैं। इन्हें ऐसे बुलाइए:
 
 ```
 {{local.variables.NAME}}
 ```
 
-## Component outputs (पहले वाले blocks से data)
+## घटक outputs (पिछले blocks से आया data)
 
-हर trigger और component किसी execution के दौरान output produce कर सकता है। reference को टाइप करने की बजाय editor में मौजूद component-value picker का इस्तेमाल करें — यह वही exact ids insert करता है जिनकी runner को उम्मीद है।
+हर trigger और हर घटक execution के दौरान output पैदा कर सकता है। reference हाथ से लिखने के बजाय editor के घटक-मान picker से बनाइए — वह ठीक वही ids डालता है जिनकी runner को उम्मीद है।
 
-किसी पहले वाले block के output को इस तरह reference करें:
+पिछले किसी block का output ऐसे बुलाइए:
 
 ```
 {{local.components.COMPONENT_ID.returnValues.FIELD_ID}}
 ```
 
-`COMPONENT_ID` block का **Identifier** है — block पर दिखाया गया छोटा id, वह नाम नहीं जो display होता है। नए blocks को `api-get-1` जैसा एक id मिलता है, और आप इसे block के **ID** section में rename कर सकते हैं। इसे rename करना उस पर मौजूद हर reference को तोड़ देता है, बिल्कुल वैसे ही जैसे किसी variable को rename करना करता है। `FIELD_ID` selected return-value id है।
+`COMPONENT_ID` block का **Identifier** है — block पर दिखने वाला छोटा id, उस पर लिखा नाम नहीं। नए blocks को `api-get-1` जैसा कोई id मिलता है, जिसे आप block के **ID** हिस्से में बदल सकते हैं। नाम बदलते ही उस पर आती हर reference टूट जाती है, ठीक वैसे ही जैसे वेरिएबल का नाम बदलने पर होता है। `FIELD_ID` वह return-value id है जिसे आपने चुना।
 
 उदाहरण:
 
-- किसी **API** component, जिसका ID `lookup-user` है, के चलने के बाद, इसका status code `{{local.components.lookup-user.returnValues.response-status}}` है और इसका body `{{local.components.lookup-user.returnValues.response-body}}` है।
-- किसी **Run Custom JavaScript** component, जिसका ID `transform` है, के बाद, इसकी returned value `{{local.components.transform.returnValues.returnValue}}` है।
-- किसी record type के triggers — **On Create Incident** और उनके जैसे अन्य — ठीक एक value, `model`, return करते हैं, और आप उसके अंदर drill करते हैं। जिस trigger का ID `incident-on-create-1` है, उसके लिए incident का title `{{local.components.incident-on-create-1.returnValues.model.title}}` है।
+- `lookup-user` ID वाला कोई **API** घटक चलने के बाद उसका status code `{{local.components.lookup-user.returnValues.response-status}}` है और उसकी body `{{local.components.lookup-user.returnValues.response-body}}`।
+- `transform` ID वाला कोई **Run Custom JavaScript** घटक चलने के बाद उसका लौटाया मान `{{local.components.transform.returnValues.returnValue}}` है।
+- किसी रिकॉर्ड क़िस्म के triggers — **On Create Incident** और उसके जैसे — ठीक एक मान लौटाते हैं, `model`, और आप उसी के भीतर उतरते हैं। `incident-on-create-1` ID वाले trigger के लिए घटना का शीर्षक `{{local.components.incident-on-create-1.returnValues.model.title}}` है।
 
-Local variables सिर्फ मौजूदा run के दौरान ही exist करते हैं। हर नया run fresh शुरू होता है।
+स्थानीय वेरिएबल सिर्फ़ मौजूदा run के दौरान रहते हैं। हर नया run नए सिरे से शुरू होता है।
 
-## Variables कहाँ काम करते हैं
+## वेरिएबल कहाँ-कहाँ चलते हैं
 
-लगभग हर text field variables accept करता है:
+लगभग हर text फ़ील्ड वेरिएबल लेता है:
 
-- किसी API block पर URL।
-- Slack, Teams, Discord, Telegram, Email पर message text।
-- किसी email का subject और body।
-- Headers और body fields (string values के अंदर)।
-- किसी **If / Else** block के दोनों sides (Conditions category के तहत listed)।
+- किसी API block का URL।
+- Slack, Teams, Discord, Telegram, ईमेल का संदेश।
+- ईमेल का विषय और उसकी body।
+- Headers और body के फ़ील्ड (string मानों के भीतर)।
+- किसी **If / Else** block के दोनों पक्ष (यह शर्तें श्रेणी के नीचे मिलता है)।
 
-JSON fields में आप किसी string value के अंदर variable इस्तेमाल कर सकते हैं, लेकिन key के रूप में नहीं। कोई reference जो पूरी की पूरी value अकेले occupy करता है वह bare substitute हो जाता है, इसलिए आप इस तरह किसी JSON field में एक पूरा object drop कर सकते हैं। अगर आपको कोई structure dynamically बनाना है, तो इसे बनाने के लिए एक **Run Custom JavaScript** block इस्तेमाल करें, फिर इसके output को अगले block को pass करें।
+JSON फ़ील्ड में आप वेरिएबल को किसी string मान के भीतर इस्तेमाल कर सकते हैं, पर key के रूप में नहीं। जो reference अकेले ही पूरा मान घेरती है, वह ज्यों की त्यों बैठा दी जाती है, इसलिए इस तरह आप पूरा object किसी JSON फ़ील्ड में उतार सकते हैं। कोई ढाँचा चलते-चलते बनाना हो, तो उसे **Run Custom JavaScript** block से बनाइए और उसका output अगले block को दे दीजिए।
 
-**Run Custom JavaScript** block को variables अपने-आप नहीं मिलते — sandbox में कुछ भी inject नहीं होता। `{{global.variables.NAME}}` (या कोई भी component reference) को block के **Arguments** JSON field में डालें; वे values script चलने से पहले substitute हो जाती हैं और `args` के रूप में पहुँचती हैं।
+**Run Custom JavaScript** block को वेरिएबल अपने-आप नहीं मिलते — sandbox में कुछ भी डाला नहीं जाता। `{{global.variables.NAME}}` (या कोई भी घटक reference) block के **Arguments** JSON फ़ील्ड में रखिए; वे मान script चलने से पहले बैठा दिए जाते हैं और `args` के रूप में पहुँचते हैं।
 
-## Arrays पर loop करना
+## Arrays पर चक्कर लगाना
 
-किसी text field के अंदर आप `{{#each path}}…{{/each}}` से किसी array को iterate कर सकते हैं। block के अंदर, `{{property}}` current element से पढ़ता है, `{{@index}}` 0-based position है, और `{{this}}` plain values के arrays के लिए element खुद है। किसी `{{#each}}` block के अंदर names trim होते हैं, इसलिए वहाँ stray spaces harmless हैं — बाकी हर जगह के उलट।
+किसी text फ़ील्ड के भीतर आप `{{#each path}}…{{/each}}` से किसी array पर चक्कर लगा सकते हैं। इस block के भीतर `{{property}}` मौजूदा तत्व से पढ़ता है, `{{@index}}` 0 से शुरू होने वाली स्थिति है, और सादे मानों की arrays के लिए `{{this}}` खुद वह तत्व है। `{{#each}}` block के भीतर नामों के आगे-पीछे की जगह छाँट दी जाती है, इसलिए वहाँ भटकी हुई spaces नुक़सान नहीं करतीं — बाकी हर जगह के उलट।
 
 ## उदाहरण
 
-### किसी webhook से payload बनाना
+### किसी वेबहुक से payload बनाना
 
-एक webhook `{ "service": "checkout", "status": "failed" }` जैसे body के साथ आता है। इसे OneUptime incident में बदलने के लिए:
+कोई वेबहुक `{ "service": "checkout", "status": "failed" }` जैसी body लेकर आता है। इसे OneUptime घटना में बदलने के लिए:
 
-1. id `ci-webhook` वाला **Webhook** trigger।
-2. **If / Else** block: webhook के Request Body output की `status` property चुनें, operator `==`, right `failed`।
-3. **Yes** branch से, एक **Create One Incident** block, इसके साथ:
-   - Title: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
-   - Description: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
+1. `ci-webhook` id वाला **Webhook** trigger।
+2. **If / Else** block: वेबहुक का Request Body output चुनिए और उसकी `status` property लीजिए, operator `==`, दायाँ पक्ष `failed`।
+3. **हाँ** शाखा से निकलकर एक **Create One Incident** block, जिसमें:
+   - शीर्षक: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
+   - विवरण: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 
-### किसी API call में secret इस्तेमाल करना
+### किसी API call में रहस्य इस्तेमाल करना
 
-एक workflow जो PagerDuty को call करता है:
+PagerDuty को बुलाने वाला वर्कफ़्लो:
 
-1. `PAGERDUTY_KEY` को एक secret global variable के रूप में save करें।
-2. **API** block पर, `Authorization` header को `Token token={{global.variables.PAGERDUTY_KEY}}` सेट करें।
+1. `PAGERDUTY_KEY` को रहस्य ग्लोबल वेरिएबल के रूप में सहेजिए।
+2. **API** block पर `Authorization` header को `Token token={{global.variables.PAGERDUTY_KEY}}` कर दीजिए।
 
-key workflow और logs दोनों से बाहर रहती है।
+key न वर्कफ़्लो में दिखती है, न लॉग में।
 
-### दो API calls को chain करना
+### दो API calls को एक कड़ी में बाँधना
 
-पहला call आपको एक ID देता है जिसकी दूसरे को ज़रूरत है:
+पहली call आपको वह ID देती है जो दूसरी को चाहिए:
 
-1. **API** component `lookup-order`: `GET /orders?email=...` में manual trigger के JSON email field को insert करने के लिए picker इस्तेमाल करें।
-2. **API** component `cancel-order`: `POST /orders/{{local.components.lookup-order.returnValues.response-body.id}}/cancel`।
+1. **API** घटक `lookup-order`: picker से manual trigger का JSON email फ़ील्ड `GET /orders?email=...` में डालिए।
+2. **API** घटक `cancel-order`: `POST /orders/{{local.components.lookup-order.returnValues.response-body.id}}/cancel`।
 
-अगर `lookup-order` fail होता है, तो इसका **Success** की बजाय **Error** output fire होता है। उसे किसी Email या Slack block से connect करें ताकि failures unnoticed न जाएँ।
+`lookup-order` नाकाम रहा, तो **सफलता** की जगह उसका **त्रुटि** output चलता है। उसे किसी Email या Slack block से जोड़ दीजिए, ताकि नाकामी अनदेखी न रह जाए।
 
-## किसी workflow से variable को update करना
+## किसी वर्कफ़्लो से वेरिएबल अपडेट करना
 
-एक common pattern schedule पर credential rotate करना है: किसी third party से fresh token fetch करें, फिर उसे variable में वापस store करें ताकि अगला run उसे उठा ले। इसे OneUptime API को call करने वाले एक **API** block से करें।
+एक आम तरीका यह है कि किसी credential को schedule पर बदला जाए: किसी तीसरे पक्ष से ताज़ा token लाइए, फिर उसे वेरिएबल में वापस रख दीजिए, ताकि अगला run वही उठाए। यह काम OneUptime API को बुलाने वाले किसी **API** block से कीजिए।
 
-`PUT /api/workflow-variable/<variable-id>` एक `ApiKey` header के साथ, और — यही वह हिस्सा है जहाँ लोग अटकते हैं — जो fields आप बदलना चाहते हैं वे एक `data` object में **wrap** होने चाहिए:
+`ApiKey` header के साथ `PUT /api/workflow-variable/<variable-id>` भेजिए, और — यही वह हिस्सा है जहाँ लोग अटकते हैं — जो फ़ील्ड बदलनी हैं उन्हें **एक `data` object के भीतर लपेटकर** भेजिए:
 
 ```json
 {
@@ -115,25 +115,25 @@ key workflow और logs दोनों से बाहर रहती है
 }
 ```
 
-`data` wrapper के बिना कोई flat body 400 के साथ reject हो जाता है। सिर्फ वे fields भेजें जो आप वाकई बदलना चाहते हैं; `name` और `description` payload से बाहर रह सकते हैं।
+`data` की लपेट के बिना भेजी गई सपाट body 400 कहकर लौटा दी जाती है। सिर्फ़ वही फ़ील्ड भेजिए जो आप सचमुच बदलना चाहते हैं; `name` और `description` payload से बाहर रह सकते हैं।
 
-API key को **Edit Workflow Variables** चाहिए। कोई read permission ज़रूरी नहीं है — update row को वापस पढ़ता नहीं है।
+API key को **Edit Workflow Variables** चाहिए। पढ़ने की अनुमति ज़रूरी नहीं — अपडेट उस row को वापस पढ़ता ही नहीं।
 
-दो बातें ध्यान रखने लायक:
+दो बातों का ध्यान रखिए:
 
-- **जिस variable को आप reference करते हैं उसे rename न करें।** `name` `{{local.variables.NAME}}` का हिस्सा है। इसे बदलना हर मौजूदा reference को unresolved छोड़ देता है, और कोई unresolved reference literal text के रूप में pass through होता है — नीचे gotcha देखें।
-- **कोई variable इस तरीके से लिखा तो जा सकता है लेकिन कभी वापस पढ़ा नहीं जा सकता।** `content` हर variable के लिए API पर write-only है, चाहे वह secret हो या नहीं। यही चीज़ किसी variable को किसी rotating token को रखने के लिए एक safe जगह बनाती है। इसे secret मार्क करना इसके ऊपर value को run logs और step traces से भी बाहर रखता है।
+- **जिस वेरिएबल की reference दी है, उसका नाम मत बदलिए।** `name` `{{local.variables.NAME}}` का हिस्सा है। इसे बदलते ही हर मौजूदा reference अनसुलझी रह जाती है, और अनसुलझी reference सादे text के रूप में आगे बढ़ा दी जाती है — नीचे वाली चेतावनी देखिए।
+- **इस तरह वेरिएबल लिखा तो जा सकता है, पर वापस पढ़ा नहीं जा सकता।** हर वेरिएबल के लिए `content` API पर सिर्फ़-लिखने वाला है, चाहे वह रहस्य हो या न हो। इसीलिए बदलते रहने वाले token को टिकाने के लिए वेरिएबल सुरक्षित जगह है। उसे रहस्य के रूप में चिह्नित करने से मान run लॉग और चरणों के ब्यौरे से भी बाहर रहता है।
 
-## Gotchas
+## फँसाने वाली बातें
 
-- **Pickers इस्तेमाल करें।** ये वही exact component, return-value, और variable ids insert करते हैं जिनकी runner को उम्मीद है, और references को display labels से independent रखते हैं।
-- **Variable names case-sensitive हैं।** `{{global.variables.MyKey}}` और `{{global.variables.mykey}}` अलग हैं।
-- **कोई reference जो resolve नहीं होता उसे as-is छोड़ दिया जाता है, blank नहीं किया जाता।** किसी ऐसी चीज़ को refer करना जो exist नहीं करती कोई error नहीं है, और यह आपको empty string भी नहीं देता: braces वैसे ही pass through हो जाते हैं, इसलिए `{{local.components.api-get-1.returnValues.body}}` किसी mistyped step id के साथ आपके Slack message, URL या request body में verbatim पहुँच जाता है, और run फिर भी **Executed** report करता है। run log में एक warning line होती है जो किसी भी छूटे हुए reference का नाम बताती है।
-- **Builder variable names check नहीं कर सकता।** यह उन component references को flag करता है जिन्हें यह match नहीं कर पाता — कोई unknown step id, कोई unknown return value, कोई malformed root — save करने से पहले। यह नहीं बता सकता कि कोई variable exist करता है या नहीं, इसलिए किसी rename हुए variable को सिर्फ run log ही पकड़ता है।
-- **Braces के अंदर spaces trim नहीं होते।** `{{ local.variables.NAME }}` `{{local.variables.NAME}}` से अलग lookup है और कभी resolve नहीं होता। इसका इकलौता अपवाद किसी `{{#each}}` block के अंदर है, जहाँ names trim होते हैं।
+- **Pickers इस्तेमाल कीजिए।** वे ठीक वही घटक, return-value और वेरिएबल ids डालते हैं जिनकी runner को उम्मीद है, और references को दिखने वाले लेबलों से अलग रखते हैं।
+- **वेरिएबल के नामों में छोटे-बड़े अक्षर मायने रखते हैं।** `{{global.variables.MyKey}}` और `{{global.variables.mykey}}` अलग-अलग हैं।
+- **जो reference हल न हो, वह ज्यों की त्यों रह जाती है, खाली नहीं होती।** किसी न मौजूद चीज़ की reference देना त्रुटि नहीं है, और इससे खाली string भी नहीं मिलती: braces सीधे आगे बढ़ा दिए जाते हैं, इसलिए ग़लत चरण id वाला `{{local.components.api-get-1.returnValues.body}}` हूबहू आपके Slack संदेश, URL या request body में जा बैठता है, और run फिर भी **Executed** बताता है। run log में एक चेतावनी पंक्ति हर उस reference का नाम लेती है जो यूँ ही निकल गई।
+- **बिल्डर वेरिएबल के नाम जाँच नहीं सकता।** सहेजने से पहले वह उन घटक references पर निशान लगा देता है जिन्हें मिला नहीं पाता — अनजाना चरण id, अनजाना return value, बिगड़ा हुआ root। पर वह यह नहीं बता सकता कि कोई वेरिएबल मौजूद है या नहीं, इसलिए नाम बदला हुआ वेरिएबल सिर्फ़ run log में पकड़ा जाता है।
+- **Braces के भीतर की spaces नहीं छाँटी जातीं।** `{{ local.variables.NAME }}` `{{local.variables.NAME}}` से अलग lookup है और कभी हल नहीं होता। इसका इकलौता अपवाद किसी `{{#each}}` block के भीतर है, जहाँ नाम छाँट दिए जाते हैं।
 
 ## आगे क्या पढ़ें
 
-- [Components](/docs/workflows/components) — हर block produce करने वाले outputs की पूरी list।
-- [Runs & Logs](/docs/workflows/runs-and-logs) — किसी run के बाद हर variable की असली value देखें।
-- [Configuration & Safety](/docs/workflows/configuration) — किसी global variable में क्या डालना safe है।
+- [वर्कफ़्लो घटक](/docs/workflows/components) — हर block जो outputs पैदा करता है, उनकी पूरी सूची।
+- [वर्कफ़्लो रन और लॉग](/docs/workflows/runs-and-logs) — किसी run के बाद हर वेरिएबल का असली मान देखिए।
+- [वर्कफ़्लो कॉन्फ़िगरेशन और सुरक्षा](/docs/workflows/configuration) — किसी ग्लोबल वेरिएबल में क्या रखना सुरक्षित है।

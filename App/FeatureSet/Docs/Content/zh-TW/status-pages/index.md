@@ -1,185 +1,185 @@
-# 狀態頁面概觀
+# 狀態頁概觀
 
-狀態頁面是您所監控一切的公開門面:一個 URL,讓您的客戶可以打開來查看,而不必寫信問您是不是只有他們遇到問題。它顯示您選擇公開的服務目前的狀態、您正在處理的事件、您排定的維護作業,以及您想釘選在頂端的任何公告。
+狀態頁面是你所監控的一切對外的門面：一個網址，讓客戶不必寫信問你「是不是只有我這樣」。它會呈現你選擇公開的服務目前的狀態、你正在處理的事件、你已排定的維護，以及任何你想釘在最上方的公告。
 
-當凌晨兩點出問題時,狀態頁面就是您的支援佇列首先連結過去的地方。它也是您的訂閱者會收到通知的來源——所以值得在需要之前就先設定好,而不是等到中斷發生時才做。
+凌晨兩點出事時，狀態頁面是你的客服佇列第一個會貼出來的連結。它也是通知訂閱者的來源——所以值得在你需要它之前就先設定好，而不是在故障當下才動手。
 
-狀態頁面位於儀表板左側導覽的 **Status Pages** 之下,屬於 **essentials** 群組。本頁的一切都是以單一狀態頁面為單位:一個專案可以隨意執行多個狀態頁面——一個給客戶的公開頁面、一個給內部觀眾的私人頁面、一個給特定市場的區域頁面。
+狀態頁面位於儀表板左側導覽的 **狀態頁面** 底下，屬於 **essentials** 群組。本頁提到的一切都是逐一狀態頁面設定的：一個專案想開幾個就開幾個——給客戶的公開頁面、給內部觀眾的私人頁面、給特定市場的區域頁面。
 
-## 一覽
+## 快速一覽
 
-- **只用兩個欄位建立。** 建立新狀態頁面只需要 **Name** 與 **Description**。資源、品牌與網域都是之後才設定的。
-- **資源就是訪客所看到的東西。** 頁面上的每一列都是一個 **Status Page Resource**——一個監測器(或監測器群組),擁有自己的顯示名稱、工具提示與正常運作時間選項。群組把一個長頁面切分成多個區段,並可以巢狀嵌套。
-- **從第一天起就有預覽 URL。** 每個狀態頁面都會取得一個預覽連結,讓您在自訂網域存在之前就能檢視它。
-- **訪客可見的路由受設定閘控。** 事件、公告、排定事件與訂閱頁面,只有在 **Advanced Settings** 上對應的開關開啟時才會出現。
-- **三種讓頁面變成私人的方式。** 私人使用者、主密碼,或 SAML SSO / OIDC——再加上一份 IP 白名單。
-- **訂閱者會自動收到通知。** 電子郵件、SMS、Slack、Microsoft Teams 與 Webhook 訂閱者都可以追蹤一個頁面,各個管道各有自己的開關。
+- **建立時只問兩個欄位。** 新的狀態頁面只需要 **名稱** 與 **描述**。資源、品牌與網域全都是之後才設定的。
+- **訪客看到的是資源。** 頁面上的每一列都是一個 **狀態頁面 資源**——一個監測器（或監測器群組），有自己的顯示名稱、工具提示與正常運作時間選項。群組把冗長的頁面切成區塊，而且可以巢狀。
+- **從第一天就有預覽網址。** 每個狀態頁面都會拿到一個預覽連結，讓你在自訂網域存在之前就能看看它長什麼樣。
+- **面向訪客的路由由設定把關。** 事件、公告、排定事件與訂閱頁面，各自只有在 **進階設定** 上的對應開關打開時才會出現。
+- **有三種方式把它變成私人的。** 私人使用者、主密碼，或 SAML SSO / OIDC——外加一份 IP 白名單。
+- **訂閱者會自動收到通知。** 電子郵件、SMS、Slack、Microsoft Teams 與 Webhook 訂閱者都能追蹤一個頁面，每個管道各有自己的開關。
 
 ## 關鍵術語
 
-| 術語              | 意義                                                                                                                       |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| **Status page**   | 一個公開(或私人)頁面,擁有自己的品牌、網域、資源與訂閱者。即 `StatusPage` 模型。                    |
-| **Resource**      | 訪客看到的一列——在頁面上呈現的監測器或監測器群組,擁有顯示名稱與正常運作時間選項。                      |
-| **Group**         | 容納資源的具名區段。群組可以巢狀嵌套於其他群組中,每一層都會匯總其下所有項目的狀態。 |
-| **Announcement**  | 您發佈到一個或多個狀態頁面的訊息,附有開始時間與選填的結束時間。                                         |
-| **Subscriber**    | 透過電子郵件、SMS、Slack、Microsoft Teams 或 Webhook 追蹤此頁面的人(或系統)。                                                  |
-| **Custom domain** | 屬於您的網域——例如 `status.example.com`——透過 CNAME 與 SSL 憑證指向該頁面。                                 |
-| **Private user**  | 可以登入私人狀態頁面的帳號。與您的 OneUptime 專案使用者是分開的。                                    |
+| 術語             | 代表什麼意思                                                                                     |
+| ---------------- | ------------------------------------------------------------------------------------------------ |
+| **狀態頁面**     | 一個公開（或私人）頁面，有自己的品牌、網域、資源與訂閱者。對應 `StatusPage` 模型。                |
+| **資源**         | 訪客看到的一列——一個監測器或監測器群組，帶著顯示名稱與正常運作時間選項呈現在頁面上。             |
+| **群組**         | 裝著資源的具名區塊。群組可以巢狀在其他群組裡，每一層都會匯總其下所有內容的狀態。                 |
+| **公告**         | 你發佈到一個或多個狀態頁面的訊息，有開始時間與選填的結束時間。                                   |
+| **訂閱者**       | 透過電子郵件、SMS、Slack、Microsoft Teams 或 Webhook 追蹤這個頁面的某個人（或某個東西）。        |
+| **自訂網域**     | 你自己的網域——`status.example.com`——用 CNAME 與一張 SSL 憑證指向這個頁面。                       |
+| **私人使用者**   | 可以登入私人狀態頁面的帳號。與你的 OneUptime 專案使用者是分開的。                                 |
 
 ## 建立狀態頁面
 
-1. 開啟 **Status Pages → All Status Pages** 並點選 **Create Status Page**。
-2. 在 **Create New Status Page** 對話框中,填寫 **Name**(必填,至少兩個字元),並可選填 **Description**。
-3. 點選 **Create Status Page**。
+1. 開啟 **狀態頁面 → 所有狀態頁面**，點擊 **建立狀態頁面**。
+2. 在 **Create New Status Page** 對話框裡填入 **名稱**（必填，至少兩個字元），以及選填的 **描述**。
+3. 點擊 **建立狀態頁面**。
 
-這就是完整的建立表單。回到清單頁後,您會看到 **Name**、**Description**、**Labels** 與 **Owners**,並可依 **Status Page ID**、**Name** 與 **Description** 篩選。
+建立表單就這樣而已。回到清單後，你會看到 **名稱**、**描述**、**標籤** 與 **擁有者**，並且可以用 **狀態頁面 ID**、**名稱** 與 **描述** 篩選。
 
-開啟新頁面後,您會進入它的 **Overview** 畫面,上面有兩張卡片:**Status Page Preview URL**,附有指向頁面本身的連結,以及 **Status Page Details**,您可以在此編輯剛剛設定的名稱、描述與標籤。
+開啟這個新頁面，你會落在它的 **概覽** 畫面，上面有兩張卡片：帶有頁面連結的 **Status Page Preview URL**，以及可以編輯你剛才設定的名稱、描述與標籤的 **狀態頁面詳細資料**。
 
-接下來,依實用性大致排序:
+接下來，大致按照實用性排序：
 
-- 新增資源,讓頁面有內容——請見 [Status Page Resources & Groups](/docs/status-pages/resources-and-groups)。
-- 設定頁面標題、favicon、標誌與封面,然後附加自訂網域——請見 [Status Page Branding & Domains](/docs/status-pages/branding-and-domains)。
-- 決定人們可以透過哪些管道訂閱——請見 [Subscribers & Announcements](/docs/status-pages/subscribers)。
-- 在 **Advanced Settings** 下調整頁面上顯示的內容。
+- 加上資源，讓頁面上有東西可看——請見 [狀態頁資源與群組](/docs/status-pages/resources-and-groups)。
+- 設定頁面標題、favicon、標誌與封面，然後掛上自訂網域——請見 [狀態頁品牌與網域](/docs/status-pages/branding-and-domains)。
+- 決定人們可以透過哪些管道訂閱——請見 [訂閱者與公告](/docs/status-pages/subscribers)。
+- 在 **進階設定** 底下調整頁面上要出現什麼。
 
-## 一切位於何處
+## 各項設定放在哪裡
 
-開啟狀態頁面後,它自己的左側選單分成九個區段。將此當作本文件群組其餘部分的地圖。
+開啟一個狀態頁面之後，它自己的左側選單分成九個區塊。把這張表當成本文件群組其餘部分的地圖。
 
-| 區段               | 內容                                                                                                                   |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Basic**             | **Overview**、**Announcements**、**Owners**。                                                                                                   |
-| **Resources**         | 單一 **Resources** 畫面——左側是群組,右側是所選群組的監測器。                                                |
-| **Subscribers**       | **Email Subscribers**、**SMS Subscribers**、**Slack Subscribers**、**MS Teams Subscribers**、**Webhook Subscribers**、**Subscriber Settings**。 |
-| **Notification Logs** | **Notification Logs**——已傳送給訂閱者的內容。                                                                                          |
-| **Audit**             | **Audit Logs**。                                                                                                                                |
-| **Branding**          | **Essential Branding**、**HTML, CSS & JavaScript**、**Custom Domains**、**Header**、**Footer**、**Overview Page**、**Languages**。              |
-| **Security**          | **Private Users**、**SSO**、**OIDC**、**SCIM**、**Authentication Settings**。                                                                   |
-| **AI**                | **MCP**。                                                                                                                                       |
-| **Advanced**          | **Monitor Rules**、**Embedded Status**、**Reports**、**Custom Fields**、**Advanced Settings**、**Delete Status Page**。                         |
+| 區塊              | 裡面有什麼                                                                                                                                     |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **基礎**          | **概覽**、**公告**、**擁有者**。                                                                                                               |
+| **資源**          | 單一的 **資源** 畫面——左邊是群組，右邊是所選群組裡的監測器。                                                                                   |
+| **訂閱者**        | **電子郵件訂閱者**、**SMS 訂閱者**、**Slack 訂閱者**、**MS Teams 訂閱者**、**Webhook 訂閱者**、**訂閱者設定**。                                |
+| **通知日誌**      | **通知日誌**——寄給訂閱者的內容。                                                                                                               |
+| **稽核**          | **稽核日誌**。                                                                                                                                 |
+| **品牌**          | **基本品牌**、**HTML、CSS 與 JavaScript**、**自訂網域**、**頁首**、**頁尾**、**概覽頁面**、**語言**。                                          |
+| **安全性**        | **私人使用者**、**SSO**、**OIDC**、**SCIM**、**驗證設定**。                                                                                    |
+| **人工智慧**      | **MCP**。                                                                                                                                      |
+| **進階**          | **Monitor Rules**、**嵌入狀態**、**報告**、**自訂欄位**、**進階設定**、**刪除狀態頁面**。                                                      |
 
-在您開始尋找之前,有兩個命名上的小怪癖值得知道:
+有兩個命名上的怪癖，在你去找之前值得先知道：
 
-- 只有在專案啟用監測器群組時,**Resources** 項目才會標示為 **Resources**。否則它會顯示為 **Monitors**。兩者都是同一個畫面。
-- 沒有獨立的 Groups 頁面。群組與資源已合併,舊的 `/groups` 路由現在會重新導向到資源畫面。
+- 只有當專案啟用了監測器群組時，**資源** 這個項目才會標示為 **資源**；否則它會顯示成 **監測器**。兩種情況下都是同一個畫面。
+- 沒有獨立的群組頁面。群組與資源已經合併，舊的 `/groups` 路由現在會轉址到資源畫面。
 
-在單一頁面之外,**Status Pages** 區段本身有一個 **More** 區段,內含 **Announcements**,以及一個收合的 **Settings** 區段,內含 **Announcement Templates**、**Subscriber Templates**、**Custom Fields**、**Owner Rules** 與 **Label Rules**——這些是專案範圍的,由每個狀態頁面共用。
+在個別頁面之外，**狀態頁面** 區塊本身還有一個 **更多** 區段，裡面是 **公告**；以及一個收合的 **設定** 區段，裡面是 **公告範本**、**訂閱者範本**、**自訂欄位**、**擁有者規則** 與 **標籤規則**——這些都是專案層級的，所有狀態頁面共用。
 
-## 訪客看到的內容
+## 訪客看到什麼
 
-公開頁面是它自己的應用程式,擁有一小組路由:
+公開頁面本身是一個獨立的應用程式，路由不多：
 
-- `/` —— **Overview**。
+- `/` —— **總覽**。
 - `/incidents` 與 `/incidents/:id` —— 事件清單與單一事件。
 - `/announcements` 與 `/announcements/:id`。
 - `/scheduled-events` 與 `/scheduled-events/:id`。
 - `/subscribe/email`、`/subscribe/sms`、`/subscribe/slack`、`/subscribe/microsoft-teams`、`/subscribe/webhooks`。
-- `/rss` —— 該摘要。
-- `/login`、`/sso` 與 `/master-password` —— 只在私人頁面上有意義。
+- `/rss` —— 訂閱來源。
+- `/login`、`/sso` 與 `/master-password` —— 只在私人頁面上才有意義。
 
-頂端導覽列一律顯示 **Overview**;其餘項目只在啟用時才會出現。**Incidents**、**Announcements** 與 **Scheduled Events** 各自需要開啟其開關;**Subscribe** 則需要同時開啟 **Show Subscriber Page** 以及至少一個訂閱者管道。私人頁面還會多出一個 **Logout** 項目。
+頂端導覽列一定會顯示 **總覽**，其餘只有在啟用時才出現。**事件**、**公告** 與 **排定事件** 各自需要打開對應的開關；**訂閱** 則同時需要 **顯示訂閱者頁面** 以及至少一個已啟用的訂閱管道。私人頁面還會多一個 **登出** 項目。
 
-### 概覽頁面
+### 總覽頁面
 
-概覽是大多數訪客唯一會看到的頁面。從上到下,它會呈現:
+總覽是大多數訪客唯一會看到的頁面。由上而下，它依序呈現：
 
-1. **任何進行中的公告**——開始時間已過且結束時間尚未到的公告。
-2. **整體狀態橫幅**——一行摘要,說明是所有資源都受影響,還是只有部分資源受影響。
-3. **整體正常運作時間百分比**,如果您開啟了此選項。預設為關閉。
-4. **資源群組**,各自附有其資源、目前狀態,以及正常運作時間歷史長條圖。
-5. **Active Incidents**。
-6. **Scheduled Maintenance Events**。
+1. **所有進行中的公告** —— 開始時間已過、結束時間還沒到的公告。
+2. **整體狀態橫幅** —— 一行文字，說明是全部資源受影響還是只有部分。
+3. **整體正常運作時間百分比**，如果你把它打開了的話。預設是關閉的。
+4. **各個資源群組**，各自帶著旗下的資源、目前狀態，以及正常運作時間歷史長條。
+5. **進行中事件**。
+6. **排定維護事件**。
 
-一個全新、什麼都沒有的頁面會顯示空白狀態,告訴您從儀表板新增資源——這正是提示您前往 **Resources** 畫面的信號。
+一個什麼都還沒放的全新頁面，會顯示一段空白狀態文字，要你從儀表板加入資源——那就是提示你該去 **資源** 畫面了。
 
-至於一開始是什麼讓事件出現在此頁面上,以及之後又是什麼讓它消失,請見 [Incident States & Severities](/docs/incidents/states-and-severities)。
+想知道究竟是什麼把一個事件放上這個頁面、又是什麼把它撤下來，請見 [事件狀態與嚴重程度](/docs/incidents/states-and-severities)。
 
-## 選擇頁面上顯示的內容
+## 決定頁面上顯示什麼
 
-大部分顯示開關都集中在同一處:**Status Pages → your page → Advanced → Advanced Settings**。每張卡片都有自己的 **Edit Settings** 按鈕。
+大部分顯示開關都集中在同一個地方：**狀態頁面 → 你的頁面 → 進階 → 進階設定**。每張卡片都有自己的 **Edit Settings** 按鈕。
 
-**Incident Settings**:
+**事件設定**：
 
-- **Show Incidents**(`showIncidentsOnStatusPage`)—— 預設開啟。關閉後也會移除 **Incidents** 導覽項目。
-- **Show Incident History (in days)**(`showIncidentHistoryInDays`)—— 事件清單回溯的天數。預設為 14。
-- **Show Incident Labels**(`showIncidentLabelsOnStatusPage`)—— 預設關閉。
+- **顯示事件**（`showIncidentsOnStatusPage`）—— 預設開啟。關掉它也會一併移除 **事件** 導覽項目。
+- **顯示事件歷史記錄（天數）**（`showIncidentHistoryInDays`）—— 事件清單要往回追多久。預設為 14。
+- **顯示事件標籤**（`showIncidentLabelsOnStatusPage`）—— 預設關閉。
 
-**Episode Settings** —— 針對事件片段的相同三個開關:**Show Episodes**(`showEpisodesOnStatusPage`,預設開啟)、**Show Episode History (in days)**(預設 14)、以及 **Show Episode Labels**(預設關閉)。事件片段是自己的模型,擁有自己的端點,而不是事件的某種檢視。
+**片段設定** —— 同樣三個開關，只是換成事件片段：**顯示片段**（`showEpisodesOnStatusPage`，預設開啟）、**顯示片段歷史記錄（天數）**（預設 14），以及 **顯示片段標籤**（預設關閉）。片段是自己的模型，有自己的端點，不是事件的某種檢視。
 
-**Announcement Settings**:
+**公告設定**：
 
-- **Show Announcements**(`showAnnouncementsOnStatusPage`)—— 預設開啟。
-- **Show Announcement History (in days)**(`showAnnouncementHistoryInDays`)—— 預設為 14。
+- **顯示公告**（`showAnnouncementsOnStatusPage`）—— 預設開啟。
+- **顯示公告歷史記錄（天數）**（`showAnnouncementHistoryInDays`）—— 預設為 14。
 
-**Scheduled Event Settings**:
+**排定事件設定**：
 
-- **Show Scheduled Maintenance Events**(`showScheduledMaintenanceEventsOnStatusPage`)—— 預設開啟。
-- **Show Scheduled Event History (in days)**(`showScheduledEventHistoryInDays`)—— 預設為 14。
-- **Show Event Labels**(`showScheduledEventLabelsOnStatusPage`)—— 預設關閉。
+- **顯示排定維護事件**（`showScheduledMaintenanceEventsOnStatusPage`）—— 預設開啟。
+- **顯示排定事件歷史記錄（天數）**（`showScheduledEventHistoryInDays`）—— 預設為 14。
+- **顯示事件標籤**（`showScheduledEventLabelsOnStatusPage`）—— 預設關閉。
 
-**Uptime History Settings**:
+**正常運作時間歷史記錄設定**：
 
-- **Show Uptime History (in days)**(`showUptimeHistoryInDays`)—— 每個資源旁正常運作時間長條圖的長度。預設為 90,且必須介於 1 到 90 之間。資源或群組上每個 **Show Uptime %** 與 **Show Status History Chart** 選項都讀取這個數字。
+- **顯示正常運作時間歷史記錄（天數）**（`showUptimeHistoryInDays`）—— 每個資源旁邊那條運作時間長條的長度。預設為 90，必須介於 1 到 90 之間。資源或群組上的每一個 **顯示正常運作時間 %** 與 **顯示狀態歷史記錄圖表** 選項，讀的都是這個數字。
 
-**Subscriber Settings**:
+**訂閱者設定**：
 
-- **Show Subscriber Page**(`showSubscriberPageOnStatusPage`)—— 預設開啟,再加上五個各管道啟用開關。相同的管道開關也出現在 **Subscribers** 區段下專屬的 **Subscriber Settings** 畫面上;請將該處視為設定它們的正式位置。
+- **顯示訂閱者頁面**（`showSubscriberPageOnStatusPage`）—— 預設開啟，另外還有五個各管道的啟用開關。同樣這幾個管道開關也會出現在 **訂閱者** 區塊底下專屬的 **訂閱者設定** 畫面上；請把那裡當作設定它們的正式位置。
 
-**Powered By OneUptime Branding**:
+**Powered By OneUptime 品牌標示**：
 
-- **Hide Powered By OneUptime Branding** —— 預設關閉,所以訪客頁尾會顯示「Powered by OneUptime」,直到您開啟此選項為止。
+- **隱藏「Powered By OneUptime」品牌標示** —— 預設關閉，所以在你打開它之前，訪客頁尾都會顯示「由 OneUptime 提供」。
 
-**顏色設定在哪裡。** 正常運作時間長條的顏色不在這裡——**Default Bar Color**、長條顏色規則、**Downtime Monitor Statuses** 與 **Show Overall Uptime Percent** 都在 **Status Pages → your page → Branding → Overview Page**。這裡沒有任何主題或品牌顏色設定;超出這些控制項的部分都要用 **Custom CSS** 完成。
+**顏色設定在哪裡。** 運作時間長條的顏色不在這裡——**預設長條顏色**、長條顏色規則、**停機監測器狀態** 與 **顯示整體正常運作時間百分比** 全都在 **狀態頁面 → 你的頁面 → 品牌 → 概覽頁面**。任何地方都沒有佈景主題或品牌色設定；超出這些控制項的部分，一律靠 **自訂 CSS** 完成。
 
 ## 上線前先預覽
 
-每個狀態頁面的 **Overview** 畫面都有一張 **Status Page Preview URL** 卡片,附有直接連到頁面的連結。在您還在新增資源、還沒有自訂網域時使用它。
+每個狀態頁面的 **概覽** 畫面都有一張 **Status Page Preview URL** 卡片，上面是直達該頁面的連結。在你還在加資源、自訂網域也還不存在的階段，就用它。
 
-在幕後,每個公開路由都在 `/status-page/{statusPageId}/...` 下有一個預覽對應版本——預覽概覽頁、預覽事件清單、預覽訂閱頁面等等。這代表從儀表板預覽取得的 URL 或截圖,一旦附加了自訂網域,將與客戶實際看到的內容不同,所以貼到 runbook 或電子郵件中的任何連結都要再三檢查。
+在背後，每一條公開路由都有一個位於 `/status-page/{statusPageId}/...` 底下的預覽雙胞胎——預覽總覽、預覽事件清單、預覽訂閱頁面等等。這代表你從儀表板預覽取得的網址或截圖，和客戶在自訂網域掛上之後看到的並不一致，所以貼進 Runbook 或電子郵件的連結，請再確認一次。
 
-## 限制誰能看到此頁面
+## 限制誰能看到這個頁面
 
-不是每個狀態頁面都是公開的。所有控制項都在 **Security** 區段之下。
+不是每個狀態頁面都是給大眾看的。所有相關控制項都在 **安全性** 區塊底下。
 
 ### 私人使用者
 
-在 **Status Pages → your page → Security → Authentication Settings**(`isPublicStatusPage` 欄位)關閉 **Is Visible to Public**。訪客接著會落在 `/login`,必須登入才能繼續。
+在 **狀態頁面 → 你的頁面 → 安全性 → 驗證設定** 上關掉 **對公眾可見**（對應 `isPublicStatusPage` 欄）。訪客接著會落在 `/login`，必須先登入。
 
-在 **Status Pages → your page → Security → Private Users** 新增可以登入的人員。這裡有一個 **Add in Bulk** 動作——貼上一份電子郵件地址清單,每個人都會收到一封邀請信。私人使用者有自己的忘記密碼與重設密碼流程,與您的 OneUptime 專案帳號是分開的。
+在 **狀態頁面 → 你的頁面 → 安全性 → 私人使用者** 加入可以登入的人。這裡有一個 **批次新增** 動作——貼上一串電子郵件地址，每一個都會收到一封邀請信。私人使用者有自己的忘記密碼與重設密碼流程，與你的 OneUptime 專案帳號是分開的。
 
 ### 主密碼
 
-**Authentication Settings** 也有一張 **Master Password** 卡片,附有 **Require Master Password** 開關與密碼本身。訪客接著會前往 `/master-password`,用一個共用的密碼解鎖頁面。
+**驗證設定** 上還有一張 **主密碼** 卡片，包含 **需要主密碼** 開關與密碼本身。訪客接著會進到 `/master-password`，用一組共用的密碼解鎖頁面。
 
-**主密碼與私人使用者不能並存。** 主密碼開啟時,私人使用者驗證會被停用,**Private Users** 畫面會顯示橫幅告知此事。
+**主密碼和私人使用者不能疊加。** 主密碼開啟期間，私人使用者驗證會被停用，而 **私人使用者** 畫面上會出現一則橫幅告訴你這件事。
 
 ### SSO 與 OIDC
 
-若要將私人頁面連結到您的身分識別提供者,**Status Pages → your page → Security → SSO** 設定 SAML(登入 URL、發行者、x509 憑證、簽章與摘要方法),**Status Pages → your page → Security → OIDC** 設定 OpenID Connect(探索 URL、發行者、用戶端 ID 與密鑰、範圍、宣告名稱)。**SCIM** 會自動從身分識別提供者佈建私人使用者。這些功能受方案功能閘控,因此並非每個安裝都會提供。
+如果私人頁面要接上你的身分提供者，**狀態頁面 → 你的頁面 → 安全性 → SSO** 設定 SAML（登入網址、簽發者、x509 憑證、簽章與摘要方法），**狀態頁面 → 你的頁面 → 安全性 → OIDC** 設定 OpenID Connect（探索網址、簽發者、用戶端 ID 與密鑰、範圍、宣告名稱）。**SCIM** 則從 IdP 自動佈建私人使用者。這些功能受方案限制，因此不一定每個安裝都能使用。
 
-**SSO Settings** 卡片提供 **Force SSO for Login**(`requireSsoForLogin`,預設關閉)。在開啟之前請先測試您的 SSO 設定——如果設定不正確,您會把自己鎖在狀態頁面之外。
+一張 **SSO 設定** 卡片提供 **強制使用 SSO 登入**（`requireSsoForLogin`，預設關閉）。開啟之前請先測試你的 SSO 設定——如果它不管用，你會把自己鎖在狀態頁面外面。
 
 ### IP 白名單
 
-**Authentication Settings** 也有一張 **IP Whitelist** 卡片,由 `ipWhitelist` 欄位支援,適用於只應回應已知網路的頁面。
+**驗證設定** 上同樣有一張 **IP 白名單** 卡片，背後是 `ipWhitelist` 欄，適合只該回應已知網路的頁面。
 
-## 嵌入式徽章與 RSS 摘要
+## 可嵌入的徽章與 RSS 訂閱來源
 
-有兩種方式可以在頁面本身之外呈現狀態。
+有兩種方式可以把狀態呈現在頁面本身以外的地方。
 
-**Embedded status badge。** 在 **Status Pages → your page → Advanced → Embedded Status** 的 **Embedded Status Badge** 卡片中開啟 **Enable Embedded Status Badge**(`enableEmbeddedOverallStatus`,預設關閉)。它會搭配一個 `embeddedOverallStatusToken`,並從 `/badge/:statusPageId` 提供徽章,讓您可以把目前的整體狀態嵌入您的文件、應用程式頁尾或行銷頁面中。
+**嵌入式狀態徽章。** 在 **狀態頁面 → 你的頁面 → 進階 → 嵌入狀態** 的 **嵌入式狀態徽章** 卡片裡，打開 **啟用嵌入式狀態徽章**（`enableEmbeddedOverallStatus`，預設關閉）。它會搭配一組 `embeddedOverallStatusToken`，並從 `/badge/:statusPageId` 提供徽章，讓你把目前的整體狀態放進文件、應用程式頁尾或行銷頁面。
 
-**RSS feed。** 每個狀態頁面都會提供 `/rss`——一個標題為「{status page name} Updates」的摘要,其項目分別以 `Incident: `、`Announcement: ` 與 `Scheduled Maintenance: ` 開頭。適合寧願把您的更新匯入閱讀器或聊天機器人,而不是透過電子郵件訂閱的人。
+**RSS 訂閱來源。** 每個狀態頁面都提供 `/rss`——一個標題為「{狀態頁面名稱} Updates」的訂閱來源，項目分別以 `Incident: `、`Announcement: ` 與 `Scheduled Maintenance: ` 開頭。對於寧可把你的更新導進閱讀器或聊天機器人、而不想用電子郵件訂閱的人來說很方便。
 
-如果您想自行擷取資料,狀態頁面背後有公開的讀取端點,涵蓋概覽、事件、排定維護事件、公告與片段——請見 [Public API](/docs/status-pages/public-api)。
+如果你想自己把資料抓下來，狀態頁面背後有一組公開的唯讀端點，涵蓋總覽、事件、排定維護事件、公告與片段——請見 [公開 API](/docs/status-pages/public-api)。
 
 ## 接下來可以閱讀
 
-- [狀態頁資源與群組](/docs/status-pages/resources-and-groups) —— 把監測器放上頁面並組織成區段。
-- [狀態頁品牌與網域](/docs/status-pages/branding-and-domains) —— 標誌、favicon、頁尾、自訂程式碼,以及將您自己的網域指向此頁面。
-- [訂閱者與公告](/docs/status-pages/subscribers) —— 五種訂閱者管道、雙重確認選擇加入,以及發佈公告。
-- [公開 API](/docs/status-pages/public-api) —— 以程式化方式讀取狀態頁面資料。
-- [事件概觀](/docs/incidents/index) —— 出現在頁面上的事件。
-- [事件狀態與嚴重程度](/docs/incidents/states-and-severities) —— 什麼會讓事件出現在狀態頁面上,以及什麼會讓它消失。
+- [狀態頁資源與群組](/docs/status-pages/resources-and-groups) —— 把監測器放上頁面，並整理成區塊。
+- [狀態頁品牌與網域](/docs/status-pages/branding-and-domains) —— 標誌、favicon、頁尾、自訂程式碼，以及把你自己的網域指向這個頁面。
+- [訂閱者與公告](/docs/status-pages/subscribers) —— 五種訂閱管道、雙重確認，以及發佈公告。
+- [公開 API](/docs/status-pages/public-api) —— 以程式方式讀取狀態頁面資料。
+- [事件概觀](/docs/incidents/index) —— 會出現在這個頁面上的那些事件。
+- [事件狀態與嚴重程度](/docs/incidents/states-and-severities) —— 什麼讓事件出現在狀態頁面上，又是什麼把它撤下來。

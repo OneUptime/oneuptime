@@ -1,161 +1,161 @@
 # ब्रांडिंग और कस्टम डोमेन
 
-एक status page वह अकेली OneUptime surface है जिसे आपके customers असल में देखते हैं, इसलिए इसे आपका जैसा दिखना चाहिए और आपके अपने domain पर रहना चाहिए। ये दोनों चीज़ें status page के side menu के **Branding** section से, और **Advanced Settings** में छिपी एक setting से configure होती हैं।
+OneUptime की जो एक चीज़ आपके ग्राहक असल में देखते हैं, वह स्थिति पृष्ठ है — इसलिए वह दिखना भी आपका ही चाहिए और रहना भी आपके अपने डोमेन पर चाहिए। ये दोनों बातें स्थिति पृष्ठ के side menu के **ब्रांडिंग** हिस्से से कॉन्फ़िगर होती हैं, और एक सेटिंग **उन्नत सेटिंग्स** में छिपी बैठी है।
 
-शुरू करने से पहले जान लेने वाली बात: branding सात अलग-अलग screens में बंटी है, और यह बँटवारा हमेशा वहाँ नहीं होता जहाँ आप अंदाज़ा लगाएंगे। Logo और cover image **Essential Branding** पर नहीं हैं — वे **Header** पर हैं। Favicon **Essential Branding** पर है। Colors **Overview Page** पर हैं। बाकी जो कुछ भी आप "theming" समझते होंगे वह Custom CSS है।
+शुरू करने से पहले एक बात जान लीजिए: ब्रांडिंग सात अलग-अलग screens में बँटी है, और बँटवारा हमेशा वहाँ नहीं है जहाँ आप अंदाज़ा लगाएँगे। लोगो और कवर image **आवश्यक ब्रांडिंग** पर नहीं हैं — वे **हेडर** पर हैं। favicon **आवश्यक ब्रांडिंग** पर है। रंग **अवलोकन पृष्ठ** पर हैं। बाकी जो कुछ भी आपको "theming" जैसा लगता है, वह कस्टम CSS है।
 
-यह page हर screen को बारी-बारी से देखता है, फिर आपको page को `status.yourcompany.com` पर रखने के लिए पूरे CNAME-फिर-SSL sequence से गुज़ारता है।
+यह पेज एक-एक करके हर screen से गुज़रता है, फिर पेज को `status.yourcompany.com` पर लाने के लिए पहले CNAME और फिर SSL वाला पूरा क्रम समझाता है।
 
-## हर branding control कहाँ रहता है
+## ब्रांडिंग का कौन-सा नियंत्रण कहाँ है
 
-कोई status page खोलें, और side menu के **Branding** section में सात items हैं। यहाँ एक map है, ताकि आपको खोजना न पड़े।
+कोई स्थिति पृष्ठ खोलिए, और side menu के **ब्रांडिंग** हिस्से में सात items मिलेंगे। यह रहा नक्शा, ताकि ढूँढना बंद हो।
 
-| Page                        | आप वहाँ क्या सेट करते हैं                                                                    |
-| ----------------------------- | ------------------------------------------------------------------------------------------------ |
-| **Essential Branding**        | Page title, page description, search engine indexing, favicon।                                  |
-| **Header**                    | Logo, cover image, उनका alt text, और header link bar।                                            |
-| **Footer**                    | Copyright line और footer link bar।                                                               |
-| **Overview Page**             | Overview description, history chart की bar colors, downtime statuses, overall uptime percent।   |
-| **HTML, CSS & JavaScript**    | Header HTML, footer HTML, custom CSS, custom JavaScript।                                         |
-| **Custom Domains**            | आपका अपना domain, CNAME verification, और SSL।                                                     |
-| **Languages**                 | डिफ़ॉल्ट language और footer switcher में दी जाने वाली languages।                                 |
+| पेज                            | वहाँ आप क्या तय करते हैं                                                                          |
+| ------------------------------ | -------------------------------------------------------------------------------------------------- |
+| **आवश्यक ब्रांडिंग**            | पेज का शीर्षक, पेज का विवरण, search engine indexing, favicon।                                     |
+| **हेडर**                       | लोगो, कवर image, उनका alt text, और header का link bar।                                            |
+| **फ़ुटर**                      | कॉपीराइट की पंक्ति और footer का link bar।                                                         |
+| **अवलोकन पृष्ठ**               | अवलोकन का विवरण, इतिहास चार्ट के bar रंग, downtime स्थितियाँ, समग्र अपटाइम प्रतिशत।              |
+| **HTML, CSS और JavaScript**    | हेडर HTML, footer HTML, कस्टम CSS, कस्टम JavaScript।                                              |
+| **कस्टम डोमेन**                | आपका अपना डोमेन, CNAME सत्यापन, और SSL।                                                           |
+| **भाषाएं**                     | डिफ़ॉल्ट भाषा और footer के switcher में दी जाने वाली भाषाएँ।                                       |
 
-## Essential branding
+## आवश्यक ब्रांडिंग
 
-**Status Pages → आपका page → Branding → Essential Branding** (`{id}/branding`) में तीन cards हैं।
+**स्थिति पृष्ठ → आपका पेज → ब्रांडिंग → आवश्यक ब्रांडिंग** (`{id}/branding`) पर तीन cards हैं।
 
-- **Title and Description** — card बताता है कि इसका इस्तेमाल SEO के लिए भी होता है। **Edit** **Page Title** (placeholder `Please enter page title here.`) और **Page Description** खोलता है। यही वह है जो search engines और link previews दिखाते हैं, इसलिए इसे अपनी team के लिए नहीं, एक customer के लिए लिखें।
-- **Search Engine Indexing** — एक अकेला toggle, **Allow Search Engines to Index this Status Page**, product में इसे इस तरह बताया गया है कि यह नियंत्रित करता है कि Google और Bing page को अपने results में list कर सकें या नहीं। यह डिफ़ॉल्ट रूप से on है। इसे off करने पर page `noindex, nofollow` के साथ serve होता है।
-- **Favicon** — **Edit Favicon** **Favicon** image upload खोलता है। यह browser tab में दिखने वाला छोटा icon है।
+- **शीर्षक और विवरण** — card बताता है कि इसका इस्तेमाल SEO में भी होता है। **संपादित करें** से **पृष्ठ शीर्षक** (placeholder `Please enter page title here.`) और **पृष्ठ विवरण** खुलते हैं। search engines और link previews यही दिखाते हैं, इसलिए इसे ग्राहक के लिए लिखिए, अपनी टीम के लिए नहीं।
+- **Search Engine Indexing** — एक अकेला toggle, **Allow Search Engines to Index this Status Page**, जिसके बारे में product कहता है कि यह तय करता है कि Google और Bing इस पेज को अपने नतीजों में दिखा सकते हैं या नहीं। यह डिफ़ॉल्ट रूप से on है। इसे बंद कीजिए और पेज `noindex, nofollow` के साथ परोसा जाने लगता है।
+- **Favicon** — **Edit Favicon** से **Favicon** वाला image upload खुलता है। browser tab में दिखने वाला वही छोटा icon।
 
-इसका इस्तेमाल तब करें जब: page internal-only हो या अभी setup हो रहा हो। एक आधा-अधूरा page आपके brand name के लिए rank करना शुरू न करे, इसके लिए **Allow Search Engines to Index this Status Page** को off कर दें।
+कब काम आता है: जब पेज सिर्फ़ भीतरी इस्तेमाल के लिए हो या अभी बन ही रहा हो। **Allow Search Engines to Index this Status Page** बंद कर दीजिए, ताकि अधूरा पेज आपके brand नाम पर rank करना न शुरू कर दे।
 
-## Header screen
+## हेडर वाली screen
 
-**Status Pages → आपका page → Branding → Header** (`{id}/header-style`)। side-menu के नाम के बावजूद, आपके दो सबसे बड़े brand assets यहीं रहते हैं।
+**स्थिति पृष्ठ → आपका पेज → ब्रांडिंग → हेडर** (`{id}/header-style`)। side menu में नाम चाहे जो हो, आपकी दो सबसे बड़ी brand चीज़ें यहीं रहती हैं।
 
-पहला card **Logo, Cover and Favicon** शीर्षक रखता है, एक **Edit Images** button के साथ:
+पहले card का शीर्षक **Logo, Cover and Favicon** है, और उस पर एक **Edit Images** बटन है:
 
-- **Logo** — image upload, placeholder `Upload logo`।
-- **Logo Alt Text** — placeholder `Logo of My Company`। अगर आप इसे खाली छोड़ते हैं, तो इसकी जगह status page का title इस्तेमाल होता है।
-- **Cover** — image upload, placeholder `Upload cover image`। यह header के पीछे का चौड़ा banner है।
-- **Cover Image Alt Text** — cover के लिए वही idea।
+- **लोगो** — image upload, placeholder `Upload logo`।
+- **Logo Alt Text** — placeholder `Logo of My Company`। खाली छोड़ देने पर स्थिति पृष्ठ का शीर्षक इस्तेमाल हो जाता है।
+- **कवर** — image upload, placeholder `Upload cover image`। यह header के पीछे वाला चौड़ा banner है।
+- **Cover Image Alt Text** — कवर के लिए वही बात।
 
-इसके नीचे एक **Header Links** table है ("Header Links for your status page")। हर link का एक **Title** और एक **Link** (एक URL, placeholder `https://link.com`) होता है, और rows को drag करके reorder किया जाता है। कुछ भी configure न होने पर table "No status header link for this status page." पढ़ता है।
+इसके नीचे एक **हेडर लिंक** table है ("Header Links for your status page")। हर लिंक के साथ एक **शीर्षक** और एक **लिंक** (कोई URL, placeholder `https://link.com`) होता है, और rows को खींचकर क्रम बदला जाता है। कुछ भी कॉन्फ़िगर न हो तो table में लिखा आता है "No status header link for this status page."।
 
-इसके लिए अच्छा: visitors को बिना URL अंदाज़ा लगवाए आपकी marketing site, आपके docs, या एक support portal पर वापस भेजना।
+किस काम का: visitors को वापस आपकी marketing साइट, आपके docs या किसी support portal तक भेजने के लिए, बिना उन्हें URL का अंदाज़ा लगवाए।
 
-## Footer screen
+## फ़ुटर वाली screen
 
-**Status Pages → आपका page → Branding → Footer** (`{id}/footer-style`) **Header** जैसी ही shape है, एक card और एक table।
+**स्थिति पृष्ठ → आपका पेज → ब्रांडिंग → फ़ुटर** (`{id}/footer-style`) की बनावट **हेडर** जैसी ही है — एक card और एक table।
 
-- **Copyright Info** — **Edit Copyright** एक अकेला field खोलता है, **Copyright Info**, placeholder `Acme, Inc.` के साथ।
-- **Footer Links** — वही **Title** और **Link** जोड़ी, drag-ordered, empty message "No status footer link for this status page."।
+- **कॉपीराइट जानकारी** — **Edit Copyright** से एक ही फ़ील्ड खुलता है, **कॉपीराइट जानकारी**, जिसका placeholder `Acme, Inc.` है।
+- **Footer लिंक** — वही **शीर्षक** और **लिंक** की जोड़ी, खींचकर क्रम लगाने वाली, और खाली होने पर संदेश "No status footer link for this status page."।
 
-Legal, privacy और terms links यहीं आते हैं। Header links navigation के लिए हैं; footer links छोटे print के लिए।
+कानूनी, गोपनीयता और शर्तों वाले लिंक यहीं के हैं। header लिंक navigation के लिए हैं; footer लिंक बारीक अक्षरों वाली बातों के लिए।
 
-## Overview page branding
+## अवलोकन पृष्ठ की ब्रांडिंग
 
-**Status Pages → आपका page → Branding → Overview Page** (`{id}/overview-page-branding`) वह अकेला screen है जहाँ colors configurable हैं, और यह यह भी तय करता है कि chart पर "down" का क्या मतलब है।
+**स्थिति पृष्ठ → आपका पेज → ब्रांडिंग → अवलोकन पृष्ठ** (`{id}/overview-page-branding`) इकलौती वह screen है जहाँ रंग बदले जा सकते हैं, और यहीं तय होता है कि चार्ट पर "down" का मतलब क्या है।
 
-- **Overview Page** — **Edit Branding** एक markdown field, **Overview Page Description.**, खोलता है जो resource list के ऊपर render होता है। इसका इस्तेमाल थोड़े context के लिए करें: यह page क्या cover करता है, और support के लिए कहाँ जाना है।
-- **Rules for Bar Colors of History Chart** — rules की एक ordered, drag-sortable table। हर rule में **When uptime % is greater than or equal to** और **Then, use this bar color** होता है; table के columns `When Uptime Percent >=` और `Then, Bar Color is` पढ़ते हैं। Order मायने रखता है, इसलिए इन्हें उस क्रम में arrange करें जिस क्रम में आप चाहते हैं कि वे evaluate हों।
-- **Downtime Monitor Statuses** — **Edit Statuses** एक multi-select खोलता है जिसे "These monitor statuses are considered as down" बताया गया है। इसी से आप तय करते हैं कि, मान लीजिए, एक degraded status इस page पर uptime के खिलाफ गिनी जाए या नहीं।
-- **Default Bar Color of the History Chart** — **Edit Default Bar Color** **Default Bar Color** picker खोलता है, वह color जो तब इस्तेमाल होता है जब कोई rule match नहीं करता।
-- **Overall Uptime Percent** — **Edit Settings** **Show Overall Uptime Percent** toggle और एक **Select Uptime Precision** dropdown खोलता है, जो डिफ़ॉल्ट रूप से दो decimals (`99.99% (Two Decimal)`) पर होता है।
+- **अवलोकन पृष्ठ** — **Edit Branding** से एक markdown फ़ील्ड खुलता है, **अवलोकन पृष्ठ विवरण।**, जो संसाधन सूची के ऊपर render होता है। एक वाक्य के सन्दर्भ के लिए इसे इस्तेमाल कीजिए: यह पेज किसे कवर करता है, और support के लिए कहाँ जाना है।
+- **Rules for Bar Colors of History Chart** — नियमों की एक क्रमबद्ध table, जिसे खींचकर छाँटा जा सकता है। हर नियम में **When uptime % is greater than or equal to** और **Then, use this bar color** होते हैं; table के columns `When Uptime Percent >=` और `Then, Bar Color is` कहते हैं। क्रम मायने रखता है, इसलिए इन्हें उसी क्रम में लगाइए जिसमें आप उन्हें जँचवाना चाहते हैं।
+- **डाउनटाइम मॉनिटर स्थितियां** — **Edit Statuses** से एक multi-select खुलता है, जिसके बारे में लिखा है "These monitor statuses are considered as down"। इसी से आप तय करते हैं कि, मान लीजिए, कोई degraded स्थिति इस पेज पर uptime के खिलाफ़ गिनी जाएगी या नहीं।
+- **इतिहास चार्ट का डिफ़ॉल्ट बार रंग** — **Edit Default Bar Color** से **डिफ़ॉल्ट बार रंग** वाला picker खुलता है, यानी वह रंग जो कोई नियम मेल न खाने पर इस्तेमाल होता है।
+- **समग्र अपटाइम प्रतिशत** — **Edit Settings** से **समग्र अपटाइम प्रतिशत दिखाएं** toggle और एक **अपटाइम परिशुद्धता चुनें** dropdown खुलते हैं, जिसका डिफ़ॉल्ट दो दशमलव है (`99.99% (Two Decimal)`)।
 
-**Chart कितने दिन cover करता है, यह यहाँ सेट नहीं होता।** वह **Status Pages → आपका page → Advanced → Advanced Settings** (`{id}/settings`) पर **Show Uptime History (in days)** है, जो 1 से 90 तक valid है।
+**चार्ट कितने दिन दिखाता है, यह यहाँ तय नहीं होता।** वह **स्थिति पृष्ठ → आपका पेज → उन्नत → उन्नत सेटिंग्स** (`{id}/settings`) पर मौजूद **अपटाइम इतिहास दिखाएं (दिनों में)** है, जिसकी मान्य सीमा 1 से 90 है।
 
-## Custom HTML, CSS और JavaScript
+## कस्टम HTML, CSS और JavaScript
 
-**Status Pages → आपका page → Branding → HTML, CSS & JavaScript** (`{id}/custom-code`) में चार स्वतंत्र रूप से editable cards हैं, जो status page के `headerHTML`, `footerHTML`, `customCSS` और `customJavaScript` columns से backed हैं:
+**स्थिति पृष्ठ → आपका पेज → ब्रांडिंग → HTML, CSS और JavaScript** (`{id}/custom-code`) पर चार cards हैं, हर एक अलग से संपादित होने वाला, और उनके पीछे स्थिति पृष्ठ के `headerHTML`, `footerHTML`, `customCSS` तथा `customJavaScript` columns हैं:
 
-- **Header HTML** — placeholder `Insert Custom HTML here.`, page header में inject होता है।
-- **Footer HTML** — वही, footer के लिए।
-- **Custom CSS** — placeholder `Insert Custom CSS here.`
-- **Custom JavaScript** — placeholder `Insert Custom JavaScript here.`
+- **हेडर HTML** — placeholder `Insert Custom HTML here.`, पेज के header में डाला जाता है।
+- **Footer HTML** — वही बात, footer के लिए।
+- **कस्टम CSS** — placeholder `Insert Custom CSS here.`
+- **कस्टम JavaScript** — placeholder `Insert Custom JavaScript here.`
 
-**कोई theme picker नहीं है।** OneUptime status pages में कोई theme या brand-color setting नहीं है: कहीं भी मौजूद अकेले built-in color controls **Overview Page** screen पर **Default Bar Color** और history chart की bar color rules हैं। Fonts, background colors, accent colors और layout tweaks — यह सब यहाँ **Custom CSS** के ज़रिए होता है। अगर आप एक "brand color" field खोज रहे थे, तो यही जवाब है — ऐसा कोई field नहीं है, और यह box ही escape hatch है।
+**कोई theme picker नहीं है।** OneUptime के स्थिति पृष्ठों पर कोई theme या brand-color सेटिंग नहीं है: कहीं भी मौजूद इकलौते built-in रंग नियंत्रण हैं **डिफ़ॉल्ट बार रंग** और **अवलोकन पृष्ठ** screen पर इतिहास चार्ट के bar रंग वाले नियम। fonts, background के रंग, accent रंग और layout की छेड़छाड़, सब यहीं **कस्टम CSS** से होती है। अगर आप "brand color" वाला फ़ील्ड ढूँढ रहे थे, तो जवाब यही है — ऐसा कोई फ़ील्ड है ही नहीं, और यह box ही निकलने का रास्ता है।
 
-> Custom JavaScript आपके visitors के browsers में एक ऐसे page पर चलता है जिसे लोग तब load करते हैं जब उन्हें ठीक-ठीक चिंता होती है कि कुछ टूटा हुआ है। इसे छोटा रखें, जहाँ हो सके self-hosted रखें, और भरोसा करने से पहले इसे test करें।
+> कस्टम JavaScript आपके visitors के browsers में उस पेज पर चलता है जिसे लोग ठीक तभी खोलते हैं जब उन्हें कुछ टूटने की चिंता होती है। इसे छोटा रखिए, जहाँ हो सके self-hosted रखिए, और उस पर भरोसा करने से पहले जाँच लीजिए।
 
-## Language settings
+## भाषा सेटिंग्स
 
-**Status Pages → आपका page → Branding → Languages** (`{id}/languages`) में दो cards हैं, और दोनों page के footer में visitors को मिलने वाले language switcher के बारे में हैं।
+**स्थिति पृष्ठ → आपका पेज → ब्रांडिंग → भाषाएं** (`{id}/languages`) पर दो cards हैं, और दोनों उसी भाषा switcher के बारे में हैं जो visitors को पेज के footer में मिलता है।
 
-- **Default Language** — **Edit Default Language** एक dropdown खोलता है जो हर supported language को उसके native name और English name (`Deutsch (German)`) से list करता है। Card इसे उस language के रूप में describe करता है जो first-time visitors देखते हैं; visitors हमेशा footer से switch कर सकते हैं। यह डिफ़ॉल्ट रूप से English है।
-- **Enabled Languages** — **Edit Enabled Languages** एक multi-select खोलता है, placeholder `All languages`। इसे खाली छोड़ने पर हर supported language offer की जाती है। कुछ चुनें और footer switcher सिर्फ़ उन्हें ही list करता है।
+- **डिफ़ॉल्ट भाषा** — **Edit Default Language** से एक dropdown खुलता है जो हर समर्थित भाषा को उसके अपने नाम और अंग्रेज़ी नाम से दिखाता है (`Deutsch (German)`)। card इसे वह भाषा बताता है जो पहली बार आए visitors को दिखती है; visitors footer से कभी भी भाषा बदल सकते हैं। डिफ़ॉल्ट अंग्रेज़ी है।
+- **सक्षम भाषाएं** — **Edit Enabled Languages** से एक multi-select खुलता है, placeholder `All languages`। इसे खाली छोड़िए तो हर समर्थित भाषा दी जाती है। कुछ चुन लीजिए तो footer का switcher सिर्फ़ उन्हीं को दिखाता है।
 
-OneUptime के साथ सोलह languages आती हैं: English, German, French, Spanish, Italian, Portuguese, Dutch, Danish, Norwegian, Swedish, Russian, Japanese, Korean, Chinese (Simplified), Chinese (Traditional) और Hindi।
+OneUptime के साथ सोलह भाषाएँ आती हैं: अंग्रेज़ी, जर्मन, फ़्रेंच, स्पेनिश, इतालवी, पुर्तगाली, डच, डेनिश, नॉर्वेजियन, स्वीडिश, रूसी, जापानी, कोरियाई, चीनी (सरलीकृत), चीनी (पारंपरिक) और हिंदी।
 
-## Custom domains
+## कस्टम डोमेन
 
-डिफ़ॉल्ट रूप से एक status page अपनी **Overview** screen पर दिखने वाले preview URL पर पहुँचा जा सकता है। इसे अपने hostname पर रखने के लिए, **Status Pages → आपका page → Branding → Custom Domains** (`{id}/domains`) पर जाएं।
+डिफ़ॉल्ट रूप से स्थिति पृष्ठ उसी preview URL पर पहुँचा जा सकता है जो उसकी **अवलोकन** screen पर दिखता है। उसे अपने hostname पर लाने के लिए **स्थिति पृष्ठ → आपका पेज → ब्रांडिंग → कस्टम डोमेन** (`{id}/domains`) पर जाइए।
 
-Card का शीर्षक **Custom Domains** है और इसका description सीधे requirement बताता है: इसके काम करने के लिए इन domains के CNAME के रूप में अपनी installation का status page CNAME record जोड़ें। कुछ भी configure न होने पर table "No custom domains found." पढ़ता है। Table में दो columns हैं, **Domain** और **Status**, और **Domain**, **CNAME Valid** और **SSL Provisioned** के लिए filters हैं।
+card का शीर्षक **कस्टम डोमेन** है और उसका विवरण शर्त सीधे-सीधे बता देता है: यह काम करे, इसके लिए अपने installation का स्थिति पृष्ठ CNAME record इन डोमेनों के CNAME के रूप में जोड़िए। कुछ भी कॉन्फ़िगर न हो तो table में लिखा आता है "No custom domains found."। table में दो columns हैं, **डोमेन** और **स्थिति**, और filters हैं **डोमेन**, **CNAME वैध** तथा **SSL प्रावधानित**।
 
 ### शुरू करने से पहले
 
-दो prerequisites, और इनमें से किसी एक को छोड़ना ही आमतौर पर वजह होती है कि यह काम नहीं करता:
+दो पूर्वशर्तें हैं, और इनमें से कोई एक छोड़ देना ही आम तौर पर इसके काम न करने की वजह होती है:
 
-- **Parent domain पहले से verified होना चाहिए।** **Domain** dropdown केवल project settings से verified domains list करता है — field का अपना help text आपको एक पहले जोड़ने के लिए **More → Project Settings → Custom Domains** की ओर इशारा करता है।
-- **Installation में एक status page CNAME record configure होना चाहिए।** Self-hosted deployments पर वह Docker Compose में `STATUS_PAGE_CNAME_RECORD` environment variable है, या Helm के `values.yaml` में `statusPage.cnameRecord`। इसके बिना, **Add CNAME** और **Order Free SSL** दोनों modals instructions के बजाय एक "Custom Domains not enabled for this OneUptime installation" message दिखाते हैं।
+- **मूल डोमेन पहले से सत्यापित होना चाहिए।** **डोमेन** dropdown सिर्फ़ प्रोजेक्ट सेटिंग्स के सत्यापित डोमेन दिखाता है — फ़ील्ड का अपना help text आपको पहले एक डोमेन जोड़ने के लिए **अधिक → प्रोजेक्ट सेटिंग्स → कस्टम डोमेन** पर भेजता है।
+- **installation पर स्थिति पृष्ठ का CNAME record कॉन्फ़िगर होना चाहिए।** स्व-होस्टेड deployments पर यह Docker Compose में `STATUS_PAGE_CNAME_RECORD` environment variable है, या Helm की `values.yaml` में `statusPage.cnameRecord`। इसके बिना **CNAME जोड़ें** और **निःशुल्क SSL ऑर्डर करें**, दोनों modals निर्देशों के बजाय "Custom Domains not enabled for this OneUptime installation" संदेश दिखाते हैं।
 
-### Domain जोड़ना
+### डोमेन जोड़ना
 
-**Create Status Page Domain** पर क्लिक करें। Modal (**Create New Status Page Domain**) में दो steps हैं:
+**Create Status Page Domain** पर क्लिक कीजिए। modal (**Create New Status Page Domain**) में दो चरण हैं:
 
-**Basic**
+**बेसिक**
 
-- **Subdomain** — सिर्फ़ label, placeholder `status (leave blank for root)`। सिर्फ़ `status` डालें, पूरा hostname नहीं। root/apex domain इस्तेमाल करने के लिए इसे खाली छोड़ें या `@` डालें।
-- **Domain** — verified domains का एक dropdown, placeholder `Select domain`।
+- **सबडोमेन** — सिर्फ़ label, placeholder `status (leave blank for root)`। बस `status` लिखिए, पूरा hostname नहीं। root/apex डोमेन इस्तेमाल करने के लिए इसे खाली छोड़िए या `@` लिखिए।
+- **डोमेन** — सत्यापित डोमेनों का dropdown, placeholder `Select domain`।
 
-**More**
+**अधिक**
 
-- **Upload Custom Certificate** — एक toggle, डिफ़ॉल्ट रूप से off। इसे off छोड़ दें और OneUptime आपके लिए एक free certificate order करता है। इसे on करें और आपको अपने खुद के PEM material के लिए **Certificate** और **Certificate Private Key** fields मिलते हैं।
+- **कस्टम प्रमाणपत्र अपलोड करें** — एक toggle, डिफ़ॉल्ट रूप से off। इसे off रहने दीजिए और OneUptime आपके लिए मुफ़्त प्रमाणपत्र ऑर्डर कर देता है। इसे on कीजिए तो आपको अपनी PEM सामग्री के लिए **प्रमाणपत्र** और **प्रमाणपत्र निजी कुंजी** फ़ील्ड मिलते हैं।
 
-## CNAME verify करना
+## CNAME सत्यापित करना
 
-जब तक domain unverified है, row एक **Add CNAME** action दिखाती है। यह **Add CNAME** शीर्षक वाला एक modal खोलता है जो बिल्कुल वही देता है जिसे आपको अपने DNS provider में paste करना है:
+जब तक डोमेन सत्यापित नहीं होता, row पर एक **CNAME जोड़ें** action दिखता है। यह **CNAME जोड़ें** शीर्षक वाला modal खोलता है, जो ठीक वही देता है जो आपको अपने DNS provider में चिपकाना है:
 
-- **Record Type** — `CNAME`
-- **Name** — वह पूरा domain जो आपने अभी बनाया, उदाहरण के लिए `status.yourcompany.com`
-- **Content** — आपकी installation का status page CNAME record
+- **रिकॉर्ड प्रकार** — `CNAME`
+- **नाम** — वही पूरा डोमेन जो आपने अभी बनाया, जैसे `status.yourcompany.com`
+- **सामग्री** — आपके installation का स्थिति पृष्ठ CNAME record
 
-Modal बताता है कि record के जगह पर आने के बाद, automatic verification में 24 घंटे तक लग सकते हैं। आपको इसके लिए इंतज़ार करने की ज़रूरत नहीं है: modal का submit button **Verify CNAME** है, जो record को demand पर check करता है।
+modal बताता है कि record लग जाने के बाद अपने आप होने वाले सत्यापन में 24 घंटे तक लग सकते हैं। इतना इंतज़ार करने की ज़रूरत नहीं: modal का submit बटन **CNAME सत्यापित करें** है, जो record को माँगने पर तुरंत जाँच लेता है।
 
-पहले DNS record बनाएं, फिर **Verify CNAME** पर क्लिक करें। record के मौजूद होने से पहले इसे क्लिक करना बस विफल हो जाता है।
+पहले DNS record बनाइए, फिर **CNAME सत्यापित करें** पर क्लिक कीजिए। record बनने से पहले क्लिक करने पर बस विफलता हाथ लगती है।
 
-## एक SSL certificate order करना
+## SSL प्रमाणपत्र ऑर्डर करना
 
-एक बार CNAME verify हो जाने पर — और केवल तब जब आपने अपना खुद का certificate upload नहीं किया — row पर एक **Order Free SSL** action दिखाई देता है। इसका modal, **Order Free SSL Certificate for this Status Page**, बताता है कि OneUptime LetsEncrypt इस्तेमाल करता है, कि process secure और free है, और order देने के बाद provisioning में कुछ घंटे लगते हैं। Submit button **Order Free SSL** है।
+CNAME सत्यापित हो जाने के बाद — और सिर्फ़ तब जब आपने अपना प्रमाणपत्र अपलोड न किया हो — row पर एक **निःशुल्क SSL ऑर्डर करें** action आ जाता है। इसका modal, **Order Free SSL Certificate for this Status Page**, बताता है कि OneUptime LetsEncrypt इस्तेमाल करता है, कि यह प्रक्रिया सुरक्षित और मुफ़्त है, और कि ऑर्डर देने के बाद provisioning में कुछ घंटे लगते हैं। submit बटन **निःशुल्क SSL ऑर्डर करें** है।
 
-**बताई गई timings screens के बीच अलग-अलग हैं**, इसलिए किसी एक number पर बहुत भरोसा न करें: order modal तीन घंटे कहता है, **Status** column एक घंटा कहता है, और एक custom certificate तीस मिनट कहता है। इन सबको "आज बाद में वापस देखें" के रूप में लें, और अगर तब तक कुछ नहीं हुआ तो support से contact करें।
+**बताए गए समय अलग-अलग screens पर आपस में नहीं मिलते**, इसलिए किसी एक संख्या का बहुत मतलब मत निकालिए: ऑर्डर वाला modal तीन घंटे कहता है, **स्थिति** column एक घंटा कहता है, और कस्टम प्रमाणपत्र तीस मिनट। इन सबको "आज दिन में बाद में देखिए" मान लीजिए, और तब तक भी कुछ न हो तो support से संपर्क कीजिए।
 
-एक बार provision हो जाने पर, renewal automatic है। आपके लिए कुछ भी recurring करने को नहीं है।
+एक बार provision हो जाने पर renewal अपने आप होता है। आपको बार-बार कुछ नहीं करना।
 
-## Domain के Status column को पढ़ना
+## डोमेन की Status column पढ़ना
 
-**Status** column एक ही cell में पूरा setup state machine है। हर message या तो बताता है कि आगे क्या करना है या यह कि आप पूरा कर चुके हैं।
+**स्थिति** column एक ही cell में पूरी setup state machine है। हर संदेश या तो बताता है कि आगे क्या करना है, या यह कि काम पूरा हो गया।
 
-| Status column क्या कहता है                            | इसका क्या मतलब है                                                                    |
-| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Action Required: Please add your CNAME record.             | CNAME अभी verify नहीं हुआ है। Record जोड़ें, फिर **Verify CNAME**।                       |
-| Action Required: Please order SSL certificate.              | CNAME verified है पर कोई certificate order पर नहीं है। **Order Free SSL** पर क्लिक करें। |
-| No action is required, allow 30 minutes to provision.       | आपने एक custom certificate upload किया है और यह install हो रहा है।                       |
-| No action is required, this will be provisioned soon.       | Free certificate order पर है और in flight है। अगर यह कभी न पहुँचे तो support से contact करें। |
-| Certificate Provisioned. No action required.                | पूरा हो गया। OneUptime certificate को automatically renew करता है।                       |
+| Status column में क्या लिखा है                        | इसका मतलब                                                                         |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Action Required: Please add your CNAME record.        | CNAME अभी सत्यापित नहीं है। record जोड़िए, फिर **CNAME सत्यापित करें**।           |
+| Action Required: Please order SSL certificate.        | CNAME सत्यापित है पर कोई प्रमाणपत्र ऑर्डर नहीं हुआ। **निःशुल्क SSL ऑर्डर करें**। |
+| No action is required, allow 30 minutes to provision. | आपने कस्टम प्रमाणपत्र अपलोड किया है और वह लगाया जा रहा है।                        |
+| No action is required, this will be provisioned soon. | मुफ़्त प्रमाणपत्र ऑर्डर हो चुका है और रास्ते में है। न पहुँचे तो support से कहिए। |
+| Certificate Provisioned. No action required.          | हो गया। OneUptime प्रमाणपत्र अपने आप renew करता रहता है।                          |
 
-अगर आपके DNS entry बनाने के काफ़ी बाद भी कोई row "Action Required: Please add your CNAME record." पर टिकी रहे, तो जाँचें कि record का name पूरा domain है और उसकी content आपकी installation के CNAME record से बिल्कुल match करती है।
+DNS entry बनाने के काफ़ी बाद तक भी अगर कोई row "Action Required: Please add your CNAME record." पर ही अटकी है, तो जाँचिए कि record का नाम पूरा डोमेन है और उसकी content आपके installation के CNAME record से हूबहू मेल खाती है।
 
 ## Powered by OneUptime
 
-"Powered by OneUptime" line branding-section की setting नहीं है। यह **Status Pages → आपका page → Advanced → Advanced Settings** (`{id}/settings`) पर, **Powered By OneUptime Branding** card में, एक अकेले toggle के रूप में रहती है: **Hide Powered By OneUptime Branding**। उस page के बाकी हर card की तरह, **Edit Settings** इसे खोलता है।
+"Powered by OneUptime" वाली पंक्ति ब्रांडिंग हिस्से की सेटिंग नहीं है। वह **स्थिति पृष्ठ → आपका पेज → उन्नत → उन्नत सेटिंग्स** (`{id}/settings`) पर, **Powered By OneUptime ब्रांडिंग** card में, एक अकेले toggle के रूप में रहती है: **Powered By OneUptime ब्रांडिंग छिपाएं**। उस पेज के बाकी हर card की तरह इसे भी **Edit Settings** खोलता है।
 
 ## आगे क्या पढ़ें
 
-- [स्थिति पृष्ठ अवलोकन](/docs/status-pages/index) — status page क्या है और टुकड़े कैसे साथ फिट होते हैं।
-- [स्थिति पृष्ठ संसाधन और समूह](/docs/status-pages/resources-and-groups) — visitors page पर असल में क्या देखते हैं यह चुनना।
-- [सब्सक्राइबर और घोषणाएँ](/docs/status-pages/subscribers) — email, SMS, Slack और webhook subscribers, साथ ही announcements।
-- [सार्वजनिक API](/docs/status-pages/public-api) — status page data को programmatically पढ़ना।
-- [घटना स्थितियाँ और गंभीरता](/docs/incidents/states-and-severities) — page पर कोई incident कब दिखती है और कब गायब होती है।
+- [स्थिति पृष्ठ अवलोकन](/docs/status-pages/index) — स्थिति पृष्ठ है क्या और उसके हिस्से आपस में कैसे बैठते हैं।
+- [स्थिति पृष्ठ संसाधन और समूह](/docs/status-pages/resources-and-groups) — visitors को पेज पर असल में क्या दिखेगा, यह चुनना।
+- [सब्सक्राइबर और घोषणाएँ](/docs/status-pages/subscribers) — ईमेल, SMS, Slack और webhook सब्सक्राइबर, साथ में घोषणाएँ।
+- [सार्वजनिक API](/docs/status-pages/public-api) — स्थिति पृष्ठ का data programmatically पढ़ना।
+- [घटना स्थितियाँ और गंभीरता](/docs/incidents/states-and-severities) — कोई घटना पेज पर आती क्यों है और उससे गायब कब होती है।

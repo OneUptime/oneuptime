@@ -329,8 +329,8 @@ Esta é a resposta da API:
 
 ## Onde ler a seguir
 
-- [Visão geral das páginas de status](/docs/status-pages/index) — o que é uma página de status e como as partes se encaixam.
-- [Recursos e grupos da página de status](/docs/status-pages/resources-and-groups) — os recursos que esses endpoints retornam.
+- [Visão geral das páginas de status](/docs/status-pages/index) — o que é uma página de status e como as peças se encaixam.
+- [Recursos e grupos da página de status](/docs/status-pages/resources-and-groups) — os recursos que esses endpoints devolvem.
 - [Marca e domínios da página de status](/docs/status-pages/branding-and-domains) — o domínio personalizado a partir do qual esses endpoints são servidos.
-- [Assinantes e comunicados](/docs/status-pages/subscribers) — os comunicados que o endpoint de comunicados fornece.
-- [Visão geral dos incidentes](/docs/incidents/index) — de onde vêm os incidentes nessas respostas.
+- [Assinantes e comunicados](/docs/status-pages/subscribers) — os comunicados que o endpoint de comunicados serve.
+- [Visão geral dos incidentes](/docs/incidents/index) — de onde vêm os incidentes que aparecem nessas respostas.

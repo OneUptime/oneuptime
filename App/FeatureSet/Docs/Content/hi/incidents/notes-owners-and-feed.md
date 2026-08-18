@@ -1,203 +1,203 @@
 # नोट्स, स्वामी और फ़ीड
 
-काम करते समय हर incident एक लिखित record जमा करती है। इसमें से कुछ record आपके customers के लिए होता है — वह update जो 02:14 बजे status page पर यह कहते हुए जाता है कि आपको खराब deploy मिल गया है। बाकी आपकी team के लिए होता है — किसी ने paste किया हुआ stack trace, वह graph जिसने आखिरकार सब समझा दिया, failover करने का decision।
+काम करते-करते हर घटना के साथ एक लिखित रिकॉर्ड जमा होता जाता है। उसका कुछ हिस्सा आपके ग्राहकों के लिए है — 02:14 बजे स्थिति पृष्ठ पर गया वह अपडेट जिसमें आपने बताया कि खराब deploy पकड़ में आ गया है। बाकी आपकी टीम के लिए है — किसी का चिपकाया हुआ stack trace, वह graph जिससे आख़िरकार बात समझ आई, fail over करने का फ़ैसला।
 
-OneUptime इन दोनों audiences को अलग रखता है। **Public Notes** आपके status page पर publish होते हैं और subscribers को notify कर सकते हैं। **Private Notes** (`IncidentInternalNote` model) dashboard के अंदर ही रहते हैं। दोनों के नीचे **Incident Feed** होती है, एक append-only timeline जो incident के साथ हुई हर चीज़ को record करती है, और **Owners** list, जो तय करती है कि किसे बताया जाए।
+OneUptime इन दोनों श्रोताओं को अलग-अलग रखता है। **सार्वजनिक नोट** आपके स्थिति पृष्ठ पर प्रकाशित होते हैं और सब्सक्राइबर को सूचित कर सकते हैं। **निजी नोट** (`IncidentInternalNote` model) डैशबोर्ड के भीतर ही रहते हैं। इन दोनों के नीचे **घटना फ़ीड** बैठी है, एक append-only टाइमलाइन जो घटना के साथ हुई हर बात दर्ज करती है, और **मालिक** सूची, जो तय करती है कि किसे बताया जाए।
 
-यह सब incident के left side menu से जुड़ा है: **Notes → Public Notes**, **Notes → Private Notes**, और **Team → Owners**। Feed incident के **Overview** page पर रहती है।
+यह सब घटना के बाएँ side menu से जुड़ा है: **नोट → सार्वजनिक नोट**, **नोट → निजी नोट**, और **टीम → मालिक**। फ़ीड घटना के **अवलोकन** पेज पर रहती है।
 
-## Public notes बनाम private notes
+## सार्वजनिक नोट बनाम निजी नोट
 
-Dashboard में दोनों note types एक जैसे दिखते हैं पर बहुत अलग तरीके से व्यवहार करते हैं।
+डैशबोर्ड में दोनों तरह के नोट एक जैसे दिखते हैं और व्यवहार बहुत अलग करते हैं।
 
-- **Public notes** — `IncidentPublicNote` model, जो incident timeline के हिस्से के रूप में status pages को दिए जाते हैं। ये एक **Posted At** date रखते हैं जिसे आप खुद सेट कर सकते हैं और एक **Notify Status Page Subscribers** checkbox।
-- **Private notes** — `IncidentInternalNote` model। status page app में इन्हें कुछ भी नहीं पढ़ता। इनके पास कोई posted-at field नहीं है (list `createdAt` से stamp और sort होती है) और कोई भी subscriber fields नहीं हैं, इसलिए private note कभी भी subscriber notification trigger नहीं कर सकता।
+- **सार्वजनिक नोट** — `IncidentPublicNote` model, जो घटना टाइमलाइन के हिस्से के रूप में स्थिति पृष्ठों तक परोसा जाता है। इनके साथ एक **पोस्ट किया गया** तारीख आती है जिसे आप खुद सेट कर सकते हैं, और एक **स्थिति पृष्ठ ग्राहकों को सूचित करें** checkbox।
+- **निजी नोट** — `IncidentInternalNote` model। स्थिति पृष्ठ ऐप में कुछ भी इन्हें नहीं पढ़ता। इनमें posted-at फ़ील्ड नहीं होता (सूची `createdAt` से मुहर लगाकर उसी से सजाई जाती है) और सब्सक्राइबर वाले फ़ील्ड बिल्कुल नहीं होते, इसलिए कोई निजी नोट कभी सब्सक्राइबर सूचना नहीं छेड़ सकता।
 
-**"Private" का असल मतलब क्या है।** इसका मतलब है "status page पर publish नहीं किया गया" — "लोगों के एक छोटे समूह तक सीमित" नहीं। दोनों note types समान read permissions साझा करते हैं, इसलिए जो कोई भी incident पढ़ सकता है वह इसके private notes भी पढ़ सकता है। यदि आपको यह restrict करना है कि incident को बिल्कुल कौन देख सकता है, तो incident पर ही **Private Incident** flag (`isPrivate`) का उपयोग करें, जो incident को हर status page से छुपा देता है और इसे incident के owner users, इसकी owner teams के members, और project admins तथा owners तक सीमित कर देता है।
+**"निजी" का असल मतलब।** इसका मतलब है "स्थिति पृष्ठ पर प्रकाशित नहीं" — न कि "कम लोगों तक सीमित"। दोनों तरह के नोट एक ही read permissions साझा करते हैं, इसलिए जो कोई भी घटना पढ़ सकता है वह उसके निजी नोट भी पढ़ सकता है। अगर आपको यह सीमित करना है कि घटना कौन देख सके, तो घटना पर ही **निजी घटना** flag (`isPrivate`) इस्तेमाल कीजिए, जो घटना को हर स्थिति पृष्ठ से छिपा देता है और उसे घटना के स्वामी उपयोगकर्ताओं, उसकी स्वामी टीमों के सदस्यों, तथा प्रोजेक्ट admins और स्वामियों तक सीमित कर देता है।
 
-**Owners दोनों देखते हैं।** owner notification job public और private दोनों notes को एक साथ query करती है। कोई private note आपके subscribers से private है, response करने वाले लोगों से नहीं।
+**स्वामियों को दोनों दिखते हैं।** स्वामी सूचना वाला job सार्वजनिक और निजी नोट साथ-साथ query करता है। निजी नोट आपके सब्सक्राइबर से निजी है, प्रतिक्रिया दे रहे लोगों से नहीं।
 
-| यदि आप चाहते हैं…                                        | चुनें             |
+| अगर आप चाहते हैं…                                        | तो चुनें             |
 | ------------------------------------------------------ | ---------------- |
-| Customers को बताएं कि आप क्या जानते हैं और कब और जानेंगे | **Public Note**  |
-| पहले कहीं और भेजे गए update को backdate करें            | **Public Note**  |
-| कोई hypothesis, चलाया गया command, या dead end record करें | **Private Note** |
-| Heap dump या internal dashboard screenshot attach करें | **Private Note** |
+| ग्राहकों को बताना कि आप क्या जानते हैं और आगे कब बताएँगे | **सार्वजनिक नोट**  |
+| कहीं और पहले भेजा जा चुका अपडेट पिछली तारीख से दर्ज करना     | **सार्वजनिक नोट**  |
+| कोई अनुमान, चलाई गई कमांड, या बंद गली दर्ज करना  | **निजी नोट** |
+| Heap dump या किसी आंतरिक डैशबोर्ड का screenshot जोड़ना | **निजी नोट** |
 
-## Public note post करना
+## सार्वजनिक नोट पोस्ट करना
 
-Incident side menu में **Notes → Public Notes** खोलें और एक note बनाएं। कार्ड बताता है कि आप यहाँ जो लिखेंगे वह status page पर दिखेगा; empty state में लिखा होता है कि अब तक इस incident के लिए कोई public notes नहीं बनाए गए हैं।
+घटना के side menu में **नोट → सार्वजनिक नोट** खोलिए और एक नोट बनाइए। Card बताता है कि आप यहाँ जो लिखेंगे वह स्थिति पृष्ठ पर दिखेगा; खाली अवस्था में लिखा आता है कि इस घटना के लिए अब तक कोई सार्वजनिक नोट नहीं बनाया गया है।
 
-| Field                              | उद्देश्य                                                                                                               |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| **Public Incident Note**           | Body, Markdown में। आवश्यक। Form याद दिलाता है कि note आपके status page पर visible है और एक cheatsheet link करता है। |
-| **Attachments**                    | status page पर subscribers के साथ साझा की गई files। वैकल्पिक।                                                          |
-| **Notify Status Page Subscribers** | Checkbox, डिफ़ॉल्ट रूप से on। चुपचाप publish करने के लिए इसे off करें।                                                 |
-| **Posted At**                      | आवश्यक date और time, डिफ़ॉल्ट रूप से अभी, आपके current timezone में दिखाया गया।                                        |
+| फ़ील्ड                              | काम                                                                                                               |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **सार्वजनिक घटना नोट**           | नोट का मुख्य भाग, Markdown में। आवश्यक। Form याद दिलाता है कि यह नोट आपके स्थिति पृष्ठ पर दिखता है, और एक cheatsheet से link करता है। |
+| **अनुलग्नक**                    | स्थिति पृष्ठ पर सब्सक्राइबर के साथ साझा की गई फ़ाइलें। वैकल्पिक।                                                           |
+| **स्थिति पृष्ठ ग्राहकों को सूचित करें** | Checkbox, डिफ़ॉल्ट रूप से चालू। चुपचाप प्रकाशित करना हो तो इसे बंद कर दें।                                                              |
+| **पोस्ट किया गया**                      | आवश्यक तारीख और समय, डिफ़ॉल्ट रूप से अभी, आपके मौजूदा timezone में दिखाया गया।                                                            |
 
-**Posted At ही note का असल timestamp है।** Status pages public notes को `postedAt` के अनुसार sort और display करते हैं, न कि आपने इन्हें कब टाइप किया — इसलिए यदि आप status page को 40 मिनट पहले भेजे गए किसी update के बारे में बता रहे हैं, तो **Posted At** को उस समय पर सेट करें जब वह वास्तव में हुआ था। यदि कोई note API के ज़रिए बिना किसी के आता है, तो OneUptime current time को stamp कर देता है।
+**नोट की असली timestamp यही है।** स्थिति पृष्ठ सार्वजनिक नोट `postedAt` से सजाते और दिखाते हैं, इस आधार पर नहीं कि आपने उन्हें कब टाइप किया — इसलिए अगर आप 40 मिनट पहले भेजे गए अपडेट से स्थिति पृष्ठ को अब बराबर कर रहे हैं, तो **पोस्ट किया गया** वही समय रखिए जब वह असल में हुआ था। अगर कोई नोट API से बिना इसके आता है, तो OneUptime मौजूदा समय की मुहर लगा देता है।
 
-List दिखाती है कि हर note किसने लिखा, इसका **Posted At**, rendered Markdown उसके attachments के साथ, और एक **Subscriber Notification Status** column। आप **Created By**, **Note**, और **Created At** से filter कर सकते हैं।
+सूची दिखाती है कि हर नोट किसने लिखा, उसका **पोस्ट किया गया**, अनुलग्नकों समेत rendered Markdown, और एक **ग्राहक सूचना स्थिति** column। आप **बनाया गया द्वारा**, **नोट** और **बनाया गया** से filter कर सकते हैं।
 
-## Private note post करना
+## निजी नोट पोस्ट करना
 
-**Notes → Private Notes** जानबूझकर सादा रखा गया है। इसमें केवल दो fields हैं:
+**नोट → निजी नोट** जानबूझकर ज़्यादा सादा है। यहाँ सिर्फ़ दो फ़ील्ड हैं:
 
-- **Private Incident Note** — Markdown body, आवश्यक। Form साफ कहता है कि यह आपकी team के लिए private है और status page पर visible नहीं है।
-- **Attachments** — incident response team के लिए बनाई गई files।
+- **निजी घटना नोट** — Markdown मुख्य भाग, आवश्यक। Form साफ़ कह देता है कि यह आपकी टीम के लिए निजी है और स्थिति पृष्ठ पर नहीं दिखता।
+- **अनुलग्नक** — घटना प्रतिक्रिया टीम के लिए बनी फ़ाइलें।
 
-कोई **Posted At** नहीं, कोई subscriber checkbox नहीं — note बनते ही stamp हो जाता है।
+न **पोस्ट किया गया**, न सब्सक्राइबर वाला checkbox — नोट बनते समय ही उस पर मुहर लग जाती है।
 
-## Notes पर Attachments
+## नोट पर अनुलग्नक
 
-दोनों note types एक **Attachments** field के माध्यम से file attachments स्वीकार करते हैं, और दोनों note body के नीचे एक attachment list render करते हैं जिसमें प्रति-file एक **Download attachment** link होती है।
+दोनों तरह के नोट **अनुलग्नक** फ़ील्ड से फ़ाइल अनुलग्नक लेते हैं, और दोनों नोट के नीचे अनुलग्नकों की सूची दिखाते हैं जिसमें हर फ़ाइल के लिए एक **Download attachment** link होता है।
 
-जहाँ ये अलग होते हैं वह है फाइल कौन fetch कर सकता है:
+फ़र्क़ इस बात में है कि फ़ाइल कौन ला सकता है:
 
-- **Public note attachments** status page visitors द्वारा एक status page route के ज़रिए, note के साथ ही, download की जा सकती हैं।
-- **Private note attachments** केवल authenticated dashboard API के ज़रिए ही पहुंच योग्य हैं। इनके लिए कोई status page route नहीं है।
+- **सार्वजनिक नोट के अनुलग्नक** स्थिति पृष्ठ के visitors एक status page route से डाउनलोड कर सकते हैं, नोट के साथ ही।
+- **निजी नोट के अनुलग्नक** सिर्फ़ प्रमाणीकृत डैशबोर्ड API से पहुँच में आते हैं। इनके लिए कोई status page route है ही नहीं।
 
-इससे attachments भी note text जैसा ही public/private decision बन जाता है। customer-facing timeline image एक public note पर जाती है; config dump एक private note पर।
+इससे अनुलग्नक भी वही सार्वजनिक/निजी फ़ैसला बन जाते हैं जो नोट का पाठ है। ग्राहकों को दिखाने लायक टाइमलाइन image सार्वजनिक नोट पर जाती है; config dump निजी नोट पर।
 
-## AI से note generate करना
+## AI से नोट बनवाना
 
-दोनों note pages पर एक **Generate with AI** button है। यह incident को आपके project के AI provider को भेजता है और generated Markdown को note editor में डाल देता है, जहाँ save करने से पहले आप इसे edit करते हैं — कुछ भी अपने आप publish नहीं होता।
+दोनों नोट पेजों पर **Generate with AI** बटन होता है। यह घटना आपके प्रोजेक्ट के AI provider को भेजता है और तैयार Markdown नोट editor में डाल देता है, जहाँ आप उसे सहेजने से पहले संपादित करते हैं — कुछ भी अपने आप प्रकाशित नहीं होता।
 
-- **Generate Public Note with AI** — customer-facing note बनाने के लिए incident data का analyze करने के रूप में वर्णित। Templates में **Status Update** और **Resolution Notice** शामिल हैं।
-- **Generate Private Note with AI** — इसके बजाय एक internal technical note बनाता है। Templates में **Investigation Update** और **Technical Analysis** शामिल हैं।
+- **Generate Public Note with AI** — इसका वर्णन है कि यह घटना के data का विश्लेषण करके ग्राहकों के लिए नोट तैयार करता है। टेम्पलेट में **Status Update** और **Resolution Notice** शामिल हैं।
+- **Generate Private Note with AI** — इसके बजाय एक आंतरिक तकनीकी नोट बनाता है। टेम्पलेट में **Investigation Update** और **Technical Analysis** शामिल हैं।
 
-Button के पीछे, dashboard चुने गए template और `public` या `internal` के note type के साथ `/incident/generate-note-from-ai/{incidentId}` पर post करता है।
+बटन के पीछे डैशबोर्ड चुने हुए टेम्पलेट और `public` या `internal` नोट प्रकार के साथ `/incident/generate-note-from-ai/{incidentId}` पर पोस्ट करता है।
 
-## Note templates
+## नोट टेम्पलेट
 
-यदि आपकी team हर outage में वही तीन updates लिखती है, तो उन्हें एक बार save कर लें। दोनों note pages पर एक **Create from Template** button है जो एक **Select Note Template** dropdown के साथ **Create Note from Template** picker खोलता है।
+अगर आपकी टीम हर आउटेज में वही तीन अपडेट लिखती है, तो उन्हें एक बार सहेज लीजिए। दोनों नोट पेजों पर **टेम्पलेट से बनाएँ** बटन है, जो **टेम्पलेट से नोट बनाएँ** picker खोलता है जिसमें **नोट टेम्पलेट चुनें** dropdown होता है।
 
-Templates public और private notes के बीच साझा किए जाते हैं: एक ही template list दोनों की सेवा करती है, और वही template किसी भी तरह के note में insert किया जा सकता है।
+टेम्पलेट सार्वजनिक और निजी नोटों के बीच साझा होते हैं: एक ही टेम्पलेट सूची दोनों को परोसती है, और वही टेम्पलेट किसी भी तरह के नोट में डाला जा सकता है।
 
-आप इन्हें **Incidents → Settings → Note Templates** पर manage करते हैं — कार्ड का title **Public or Private Note Templates for Incidents** है और इसके form में body के लिए एक **Template Info** step (**Template Name** और **Template Description**, दोनों आवश्यक) और एक **Note Details** step है। यदि आप कोई भी बनाने से पहले **Create from Template** क्लिक करते हैं, तो OneUptime बताता है कि अभी कोई मौजूद नहीं है; ध्यान दें कि message Project Settings की ओर इशारा करता है, लेकिन page वास्तव में **Incidents → Settings → Note Templates** के अंतर्गत रहता है।
+इन्हें आप **घटनाएं → सेटिंग्स → नोट टेम्पलेट** पर प्रबंधित करते हैं — card का शीर्षक **Public or Private Note Templates for Incidents** है और इसके form में **टेम्पलेट जानकारी** चरण (**टेम्पलेट नाम** और **टेम्पलेट विवरण**, दोनों आवश्यक) तथा मुख्य भाग के लिए **नोट विवरण** चरण होता है। कोई टेम्पलेट बनाए बिना ही आप **टेम्पलेट से बनाएँ** पर click करें, तो OneUptime बताता है कि अभी कोई मौजूद नहीं है; ध्यान रहे कि वह संदेश Project Settings की ओर इशारा करता है, जबकि पेज असल में **घटनाएं → सेटिंग्स → नोट टेम्पलेट** के नीचे रहता है।
 
-## Slack या Microsoft Teams से notes post करना
+## Slack या Microsoft Teams से नोट पोस्ट करना
 
-यदि आपने कोई workspace connect किया है, तो responders को channel छोड़ने की ज़रूरत नहीं। Slack और Microsoft Teams दोनों एक add-note action offer करते हैं जो एक dropdown वाला modal खोलता है जिसमें **Public Note** या **Private Note** के साथ एक text box होता है, और result को सीधे incident पर लिख देता है।
+अगर आपने कोई workspace जोड़ रखा है, तो प्रतिक्रिया देने वालों को channel छोड़ना ही नहीं पड़ता। Slack और Microsoft Teams दोनों एक add-note क्रिया देते हैं जो एक modal खोलती है — उसमें **सार्वजनिक नोट** या **निजी नोट** चुनने वाला dropdown और एक text box होता है — और नतीजा सीधे घटना पर लिख देती है।
 
-जानने लायक दो बातें:
+दो बातें जानने लायक हैं:
 
-- **Duplicate protection** — हर note उस Slack message को record करता है जिससे यह आया (`postedFromSlackMessageId`, फॉर्मेट `channel_id:message_ts`), इसलिए एक ही message पर कई लोगों के react करने से एक note बनता है, पांच नहीं।
-- **Notes echo back होते हैं** — दोनों तरह का note post करना connected incident channel में भी एक message push करता है, क्योंकि note के feed item को workspace notification enabled के साथ बनाया जाता है।
+- **दोहराव से बचाव** — हर नोट यह दर्ज करता है कि वह किस Slack संदेश से आया (`postedFromSlackMessageId`, प्रारूप `channel_id:message_ts`), इसलिए एक ही संदेश पर कई लोगों की प्रतिक्रिया से पाँच नहीं, एक ही नोट बनता है।
+- **नोट वापस गूँजते हैं** — किसी भी तरह का नोट पोस्ट करने पर जुड़े हुए घटना channel में भी एक संदेश चला जाता है, क्योंकि नोट की feed item workspace सूचना चालू रखते हुए बनाई जाती है।
 
-## Public note वास्तव में subscribers तक कब पहुंचता है
+## सार्वजनिक नोट असल में सब्सक्राइबर तक कब पहुँचता है
 
-**Notify Status Page Subscribers** on रखकर public note बनाना अपने आप email जाने की गारंटी नहीं देता। Note को checks की एक श्रृंखला पार करनी होती है, और हर failure error देने के बजाय एक विशिष्ट कारण record करती है:
+**स्थिति पृष्ठ ग्राहकों को सूचित करें** चालू रखकर सार्वजनिक नोट बनाने भर से यह पक्का नहीं हो जाता कि ईमेल निकलेगा। नोट को जाँचों की एक कड़ी पार करनी होती है, और हर नाकामी त्रुटि देने के बजाय एक ख़ास कारण दर्ज कर देती है:
 
-1. **Notify Status Page Subscribers** on होना चाहिए। यदि नहीं, तो note बनते ही skipped stamp हो जाता है।
-2. Note उस incident से संबंधित होना चाहिए जो अभी भी मौजूद है।
-3. Incident से कम से कम एक monitor जुड़ा होना चाहिए — बिना किसी monitors के note को route करने के लिए कोई status page resource नहीं है।
-4. Incident का **Visible on Status Page** flag (`isVisibleOnStatusPage`) true होना चाहिए।
-5. जिस भी status page तक incident पहुंचता है, उस हर status page पर **Show Incidents** (`showIncidentsOnStatusPage`) on होना चाहिए।
-6. हर subscriber को अपनी preferences पास करनी होंगी — unsubscribed नहीं, और इस resource के लिए और `Incident` event type के लिए subscribed, जहाँ page subscribers को चुनने देता है।
+1. **स्थिति पृष्ठ ग्राहकों को सूचित करें** चालू होना चाहिए। न हो, तो नोट बनते ही skipped की मुहर लग जाती है।
+2. नोट ऐसी घटना का होना चाहिए जो अब भी मौजूद है।
+3. घटना से कम से कम एक मॉनिटर जुड़ा होना चाहिए — मॉनिटर न हों तो नोट को भेजने के लिए कोई status page resource ही नहीं बचता।
+4. घटना का **स्थिति पृष्ठ पर दृश्यमान** flag (`isVisibleOnStatusPage`) true होना चाहिए।
+5. घटना जिस भी स्थिति पृष्ठ तक पहुँचती है, उस पर **घटनाएं दिखाएं** (`showIncidentsOnStatusPage`) चालू होना चाहिए।
+6. हर सब्सक्राइबर को अपनी प्राथमिकताओं की कसौटी पर खरा उतरना चाहिए — unsubscribed न हो, और इस संसाधन तथा `Incident` event type दोनों की सदस्यता ली हो, जहाँ पेज सब्सक्राइबर को चुनने देता है।
 
-**Notifications तुरंत नहीं होतीं।** इन्हें भेजने वाली job मिनट में एक बार चलती है, इसलिए note save करने और mail भेजे जाने के बीच लगभग एक मिनट तक की उम्मीद रखें। यही **Sending Soon** label का मतलब है।
+**सूचनाएँ तात्कालिक नहीं हैं।** इन्हें भेजने वाला job मिनट में एक बार चलता है, इसलिए नोट सहेजने और मेल निकलने के बीच लगभग एक मिनट तक का अंतर मानकर चलें। **Sending Soon** लेबल का यही मतलब है।
 
-**Subscriber Notification Status** column पूरी यात्रा को track करता है:
+**ग्राहक सूचना स्थिति** column पूरे सफ़र पर नज़र रखता है:
 
-| Status                       | इसका क्या मतलब है                                       |
-| ----------------------------- | -------------------------------------------------------- |
-| **Notifications skipped.**   | ऊपर के gates में से कोई एक बंद हुआ। कारण record किया गया है। |
-| **Sending Soon**             | Queued, send job के अगले run की प्रतीक्षा में।            |
-| **Notifications Being Sent** | Job subscriber list के जरिए काम कर रही है।                |
-| **Notifications Sent**       | हर subscriber notification भेजी जा चुकी है।               |
-| **Failed**                   | Job में error आई; error note के साथ संग्रहित है।          |
+| स्थिति                       | इसका मतलब                                          |
+| ---------------------------- | ------------------------------------------------------ |
+| **Notifications skipped.**   | ऊपर का कोई एक द्वार बंद मिला। कारण दर्ज है। |
+| **Sending Soon**             | कतार में, send job के अगले चक्र का इंतज़ार।      |
+| **Notifications Being Sent** | Job सब्सक्राइबर सूची पर काम कर रहा है।        |
+| **भेजी गई सूचनाएं**       | हर सब्सक्राइबर की सूचना निकल चुकी।             |
+| **विफल**                   | Job ने त्रुटि दी; error नोट के साथ संग्रहित है।      |
 
-Status पर **more details** क्लिक करके **Notification Status Details** खोलें। जहाँ resend करना उचित हो, उस modal का button **Retry** है, जो note को वापस pending state में डाल देता है ताकि अगला run इसे फिर उठाए।
+स्थिति पर **अधिक विवरण** click करके **सूचना स्थिति विवरण** खोलें। जहाँ दोबारा भेजना समझ आता है, वहाँ उस modal का बटन **Retry** होता है, जो नोट को वापस pending स्थिति में डाल देता है ताकि अगला चक्र उसे फिर उठा ले।
 
-Subscribers को मिलने वाला वास्तविक message प्रति status page और प्रति channel templated होता है — email, SMS, Slack और Microsoft Teams में से हर एक के पास **Subscriber Incident Note Created** event के लिए अपना template है, जिसमें status page name और URL, details link, प्रभावित resources, incident severity और title, note body, और प्रति-subscriber unsubscribe link के variables होते हैं। इन templates और channels को कैसे configure किया जाता है, इसके लिए [सब्सक्राइबर और घोषणाएँ](/docs/status-pages/subscribers) देखें।
+सब्सक्राइबर तक जो संदेश असल में जाता है वह हर स्थिति पृष्ठ और हर channel के हिसाब से टेम्पलेट किया जाता है — **Subscriber Incident Note Created** event के लिए ईमेल, SMS, Slack और Microsoft Teams सबका अपना टेम्पलेट है, जिसमें स्थिति पृष्ठ के नाम और URL, विवरण link, प्रभावित संसाधनों, घटना की गंभीरता और शीर्षक, नोट के मुख्य भाग, तथा प्रति-सब्सक्राइबर unsubscribe link के variables होते हैं। ये टेम्पलेट और channels कैसे configure होते हैं, इसके लिए [सब्सक्राइबर और घोषणाएँ](/docs/status-pages/subscribers) देखें।
 
-## Incident feed
+## घटना फ़ीड
 
-**Incident Feed** कार्ड incident के **Overview** page पर left column के नीचे रहता है। यह incident की क्रमबद्ध कहानी है: हर item में एक icon, जिसने इसे किया उसका avatar और नाम, hover करने पर exact local time दिखाने वाला relative timestamp, और एक Markdown body होता है। Items सबसे पुराने से sort किए गए हैं।
+**घटना फ़ीड** card घटना के **अवलोकन** पेज पर बाएँ column के सबसे नीचे बैठता है। यह घटना की कहानी क्रम से सुनाता है: हर item में एक icon, जिसकी वजह से वह हुआ उसका avatar और नाम, एक सापेक्ष timestamp (hover पर सटीक स्थानीय समय), और एक Markdown मुख्य भाग होता है। Items पुराने से नए क्रम में सजे रहते हैं।
 
-कुछ items में अतिरिक्त detail होता है — उदाहरण के लिए, एक owner notification उन सभी की list देता है जिन्हें mail किया गया। ये एक **More Information** button दिखाते हैं जो एक **More Information** panel खोलता है।
+कुछ items अतिरिक्त ब्यौरा लेकर आते हैं — जैसे कोई स्वामी सूचना उन सब की सूची देती है जिन्हें मेल गया। ऐसे items पर **More Information** बटन दिखता है जो एक **More Information** panel खोलता है।
 
-Card header में एक **Actions** menu भी है ताकि आप timeline छोड़े बिना कार्य कर सकें:
+Card के header में **क्रियाएँ** menu भी है, ताकि आप टाइमलाइन छोड़े बिना काम कर सकें:
 
-- **Execute Runbook** — इस incident पर एक [runbook](/docs/runbooks/index) चलाना शुरू करें।
-- **Execute On-Call Policy** — demand पर एक policy को page करें।
-- **Add Public Note** — Public Notes page जैसे ही चार fields, एक modal में।
-- **Add Private Note** — केवल note body और attachments।
+- **Execute Runbook** — इस घटना पर कोई [runbook](/docs/runbooks/index) शुरू करें।
+- **ऑन-कॉल नीति निष्पादित करें** — माँग पर किसी नीति को पेज करें।
+- **Add Public Note** — सार्वजनिक नोट पेज वाले वही चार फ़ील्ड, एक modal में।
+- **निजी नोट जोड़ें** — सिर्फ़ नोट का मुख्य भाग और अनुलग्नक।
 
-इसके बगल में, **Refresh** feed को फिर से fetch करता है।
+इसके बगल में **रिफ्रेश** फ़ीड दोबारा ले आता है।
 
-**Feed append-only है, और यह आपका audit log नहीं है।** API feed items बनाने और पढ़ने की अनुमति देता है पर update या delete करने की नहीं, इसलिए कोई भी चुपचाप किसी incident के इतिहास को फिर से नहीं लिख सकता। यह स्थायी भी नहीं है: billed installations पर, तीन साल से पुरानी feed rows हटा दी जाती हैं। किसने क्या बदला इसका स्थायी record पाने के लिए, incident side menu में **Audit → Audit Logs** का उपयोग करें।
+**फ़ीड append-only है, और यह आपका audit log नहीं है।** API feed items बनाने और पढ़ने की इजाज़त देती है, अपडेट या delete करने की नहीं, इसलिए कोई भी चुपचाप घटना का इतिहास दोबारा नहीं लिख सकता। यह स्थायी भी नहीं है: billed installations पर तीन साल से पुरानी feed rows हटा दी जाती हैं। किसने क्या बदला, इसके टिकाऊ रिकॉर्ड के लिए घटना के side menu में **ऑडिट → ऑडिट लॉग** इस्तेमाल करें।
 
-## Feed क्या record करता है
+## फ़ीड क्या-क्या दर्ज करती है
 
-Feed items incident service द्वारा खुद, दोनों note services द्वारा, state timeline द्वारा, owner और member changes द्वारा, rule engines द्वारा, on-call execution द्वारा, AI investigation और postmortem runners द्वारा, और notification cron jobs द्वारा लिखे जाते हैं। Event types में शामिल हैं:
+Feed items खुद incident service लिखती है, दोनों note services लिखती हैं, स्थिति टाइमलाइन लिखती है, स्वामी और सदस्य बदलाव लिखते हैं, rule engines लिखते हैं, ऑन-कॉल निष्पादन लिखता है, AI investigation और postmortem runners लिखते हैं, और सूचना cron jobs लिखते हैं। Event types में शामिल हैं:
 
-- **खुद incident** — `IncidentCreated`, `IncidentUpdated`, `IncidentStateChanged`।
-- **Notes और write-ups** — `PublicNote`, `PrivateNote`, `RootCause`, `RemediationNotes`, `PostmortemNote`।
+- **घटना खुद** — `IncidentCreated`, `IncidentUpdated`, `IncidentStateChanged`।
+- **नोट और लेखा-जोखा** — `PublicNote`, `PrivateNote`, `RootCause`, `RemediationNotes`, `PostmortemNote`।
 - **लोग** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`।
-- **Notifications** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`।
-- **Automation** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`।
+- **सूचनाएँ** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`।
+- **स्वचालन** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`।
 
-हर type का अपना icon होता है, इसलिए आप एक लंबी feed को scan करके state changes को chatter से अलग पहचान सकते हैं। AI-generated root cause analysis को अलग से चिह्नित किया जाता है और एक restricted Markdown mode में render किया जाता है।
+हर प्रकार को अपना icon मिलता है, इसलिए आप लंबी फ़ीड पर नज़र दौड़ाकर बकबक के बीच से स्थिति बदलाव छाँट सकते हैं। AI से बना मूल कारण विश्लेषण अलग से चिह्नित होता है और सीमित Markdown mode में दिखाया जाता है।
 
-Feeds incident privacy का सम्मान करते हैं: private incidents के लिए, feed reads उसी तरह filter की जाती हैं जैसे incident खुद।
+फ़ीड घटना की गोपनीयता का पालन करती है: निजी घटनाओं के लिए feed reads उसी तरह छाने जाते हैं जैसे घटना खुद।
 
-## Owners
+## मालिक
 
-Owners वे लोग और teams हैं जो किसी incident के लिए जिम्मेदार हैं। वे इसके साथ होने वाली हर चीज़ के notification target हैं — और यही कारण है कि जब हर कोई यह मान लेता है कि कोई और इस पर है, तो भी incident अनदेखी नहीं रहती।
+स्वामी वे लोग और टीमें हैं जो घटना के लिए ज़िम्मेदार हैं। घटना के साथ जो कुछ भी होता है, उसकी सूचना का निशाना यही हैं — और यही वजह है कि "कोई और देख रहा होगा" मानकर घटना अनदेखी नहीं रह जाती।
 
-Incident side menu में **Team → Owners** खोलें। **Owners** कार्ड एक count badge दिखाता है और owners को उन लोगों और teams के रूप में describe करता है जो इस incident के लिए जिम्मेदार हैं और बदलावों के बारे में notify किए जाते हैं, साथ में "2 people · 1 team" जैसी चलती count के साथ। Owners overlapping avatars के रूप में render होते हैं; किसी पर hover करने से व्यक्ति का email दिखता है या entry को **Team** के रूप में चिह्नित किया जाता है।
+घटना के side menu में **टीम → मालिक** खोलिए। **मालिक** card एक गिनती badge दिखाता है और स्वामियों का वर्णन उन लोगों और टीमों के रूप में करता है जो इस घटना के लिए ज़िम्मेदार हैं और जिन्हें बदलावों की सूचना दी जाती है, साथ में "2 people · 1 team" जैसी चलती गिनती। स्वामी एक-दूसरे पर चढ़े avatars के रूप में दिखते हैं; किसी पर hover करने से व्यक्ति का ईमेल दिखता है या entry **टीम** के रूप में चिह्नित होती है।
 
-- Search box वाला picker खोलने के लिए **Add owner** क्लिक करें, लोगों या teams के लिए।
-- किसी avatar पर remove control क्लिक करने से **Remove owner** confirmation खुलता है, फिर **Remove**।
-- अभी तक कोई owner न होने पर, कार्ड यह बता देता है और आपको किसी teammate या team को जोड़ने के लिए आमंत्रित करता है ताकि उन्हें बदलावों के बारे में notify किया जा सके।
+- लोगों या टीमों के लिए search box वाला picker खोलने के लिए **स्वामी जोड़ें** पर click करें।
+- किसी avatar पर remove नियंत्रण click करके **स्वामी हटाएं** की पुष्टि खोलें, फिर **हटाएं** दबाएँ।
+- अभी कोई स्वामी न हो, तो card यही बताता है और आपसे किसी साथी या टीम को जोड़ने को कहता है ताकि उन्हें बदलावों की सूचना मिले।
 
-Owner users और owner teams अलग-अलग records हैं — किसी team को जोड़ने से उस team का हर member notification purposes के लिए एक owner बन जाता है, बिना उन्हें अलग-अलग list किए।
+स्वामी उपयोगकर्ता और स्वामी टीमें अलग-अलग रिकॉर्ड हैं — कोई टीम जोड़ने से उस टीम का हर सदस्य सूचना के लिहाज़ से स्वामी बन जाता है, बिना उन्हें एक-एक करके सूचीबद्ध किए।
 
-## Owners कैसे assign होते हैं
+## स्वामी कैसे सौंपे जाते हैं
 
-Owners list पर पहुंचने के चार तरीके हैं:
+स्वामी सूची तक चार रास्ते जाते हैं:
 
-- **किसी incident template से** — templates में **Owner - Teams** और **Owner - Users** fields होते हैं, जिन्हें उन teams और users के रूप में describe किया जाता है जो incident के owner हैं और इसके बनने या update होने पर notify किए जाएंगे। Template से incident बनाना इन्हें prefill कर देता है। [घटना घोषित करना](/docs/incidents/declaring-incidents) देखें।
-- **Incident Owner Rules से** — matching rules creation time पर अपने आप owners जोड़ देते हैं।
-- **API के जरिए creation पर** — create call के साथ पास किए गए owner users और teams तुरंत जोड़ दिए जाते हैं, एक flag के साथ जो नियंत्रित करता है कि उन्हें "you were added" email मिलेगा या नहीं।
-- **हाथ से** — incident के दौरान किसी भी समय **Owners** page पर **Add owner** control।
+- **किसी घटना टेम्पलेट से** — टेम्पलेट में **स्वामी - टीमें** और **स्वामी - उपयोगकर्ता** फ़ील्ड होते हैं, जिनका वर्णन उन टीमों और उपयोगकर्ताओं के रूप में है जो घटना के स्वामी हैं और जिन्हें घटना बनने या अपडेट होने पर सूचना दी जाएगी। टेम्पलेट से घटना बनाने पर ये पहले से भर जाते हैं। [घटना घोषित करना](/docs/incidents/declaring-incidents) देखें।
+- **Incident Owner Rules से** — मेल खाते नियम घटना बनते समय अपने आप स्वामी जोड़ देते हैं।
+- **API से बनाते समय** — create कॉल के साथ भेजे गए स्वामी उपयोगकर्ता और टीमें तुरंत जुड़ जाते हैं, साथ में एक flag जो तय करता है कि उन्हें "आपको जोड़ा गया" वाला ईमेल जाए या नहीं।
+- **हाथ से** — **मालिक** पेज पर **स्वामी जोड़ें** नियंत्रण, घटना के दौरान किसी भी समय।
 
-एक ही व्यक्ति को दो बार जोड़ना safe है; पहले से assigned owners duplicate नहीं होते।
+एक ही व्यक्ति को दो बार जोड़ना सुरक्षित है; पहले से सौंपे गए स्वामी दोहराए नहीं जाते।
 
-## Incident owner rules
+## घटना स्वामी नियम
 
-**Incident Owner Rules** matching incidents के बनने पर owner users और teams को अपने आप assign करते हैं — यही routing layer है जिसकी वजह से database incident बिना किसी के सोचे database team पर पहुंच जाती है। ये [Incident Settings & Automation](/docs/incidents/settings) में बाकी incident automation के साथ मिलेंगे।
+**घटना स्वामी नियम** मेल खाती घटनाएँ बनने पर स्वामी उपयोगकर्ता और टीमें अपने आप सौंप देते हैं — यह वही routing परत है जिसकी बदौलत database की घटना बिना किसी के सोचे database टीम के पास पहुँच जाती है। ये आपको बाकी घटना स्वचालन के साथ [घटना सेटिंग्स और स्वचालन](/docs/incidents/settings) में मिलेंगे।
 
-Rule form में तीन steps हैं — **Basic Info**, **Match Criteria** और **Owners** — और owners step में दो sections हैं:
+नियम form के तीन चरण हैं — **मूल जानकारी**, **मिलान मानदंड** और **मालिक** — और स्वामी वाले चरण में दो सेक्शन होते हैं:
 
-- **Owners to Assign** — **Owner Teams** और **Owner Users** चुनें। जब rule match करता है, तो चुना गया हर user और team owner के रूप में जोड़ा जाता है, और पहले से assigned owners duplicate नहीं होते।
-- **Inherit Owners** — owners को नाम देने के बजाय related entities से assign करें। **Inherit Owners From Monitors** incident के monitors के हर owner को incident का owner बना देता है, और **Inherit Owners From Hosts**, **… From Kubernetes Clusters**, **… From Docker Hosts**, **… From Podman Hosts** और **… From Services** उन resources के लिए भी वही करते हैं।
+- **असाइन करने के लिए स्वामी** — **स्वामी टीमें** और **स्वामी उपयोगकर्ता** चुनिए। नियम मेल खाने पर हर चुना हुआ उपयोगकर्ता और टीम स्वामी के रूप में जुड़ जाते हैं, और पहले से सौंपे गए स्वामी दोहराए नहीं जाते।
+- **स्वामी इनहेरिट करें** — स्वामियों का नाम लेने के बजाय उन्हें जुड़े हुए entities से लीजिए। **मॉनिटर से स्वामी इनहेरिट करें** घटना के मॉनिटरों के हर स्वामी को घटना का स्वामी बना देता है, और **Inherit Owners From Hosts**, **… From Kubernetes Clusters**, **… From Docker Hosts**, **… From Podman Hosts** तथा **… From Services** उन्हीं संसाधनों के लिए यही करते हैं।
 
-एक **Notify Owners** toggle नियंत्रित करता है कि लोगों को पता चले या नहीं। असल routing के लिए इसे on रखें; चुपचाप owners जोड़ने के लिए इसे off करें — यह तब उपयोगी है जब कोई rule page करने के बजाय एक bookkeeping सुविधा हो।
+एक **स्वामियों को सूचित करें** toggle तय करता है कि लोगों को पता चले या नहीं। असली routing के लिए इसे चालू रखिए; चुपचाप स्वामी जोड़ने के लिए बंद कर दीजिए — यह तब काम आता है जब नियम पेज करने के लिए नहीं, बस हिसाब-किताब की सुविधा के लिए हो।
 
-हर rule execution incident feed में लिखा जाता है, इसलिए आप हमेशा बता सकते हैं कि किसी व्यक्ति को rule ने जोड़ा या किसी इंसान ने।
+हर नियम निष्पादन घटना फ़ीड में लिखा जाता है, इसलिए आप हमेशा बता सकते हैं कि किसी व्यक्ति को नियम ने जोड़ा या इंसान ने।
 
-## Owners को किस बारे में notify किया जाता है
+## स्वामियों को किस बात की सूचना मिलती है
 
-पांच jobs owners को notify करते हैं, हर एक मिनट में एक बार चलती है:
+पाँच jobs स्वामियों को सूचित करते हैं, और हर एक मिनट में एक बार चलता है:
 
-- **Incident created** — subject `[New Incident {number}] - {title}`।
-- **कोई note post हुआ** — public *और* private दोनों notes के लिए, subject `[Update Incident {number}] - {title}`।
-- **Incident की state बदली** — देखें [Incident States & Severities](/docs/incidents/states-and-severities)।
-- **आपको owner के रूप में जोड़ा गया** — subject `You have been added as the owner of Incident {number} - {title}`।
-- **अभी भी unresolved** — incident के next-reminder time द्वारा driven एक reminder, subject `[Reminder] Incident {number} is still {state} - {title}`।
+- **घटना बनी** — विषय `[New Incident {number}] - {title}`।
+- **कोई नोट पोस्ट हुआ** — सार्वजनिक *और* निजी दोनों नोट के लिए, विषय `[Update Incident {number}] - {title}`।
+- **घटना की स्थिति बदली** — [घटना स्थितियाँ और गंभीरता](/docs/incidents/states-and-severities) देखें।
+- **आपको स्वामी के रूप में जोड़ा गया** — विषय `You have been added as the owner of Incident {number} - {title}`।
+- **अब भी अनसुलझी** — घटना के अगले reminder समय से चलने वाला अनुस्मारक, विषय `[Reminder] Incident {number} is still {state} - {title}`।
 
-हर notification email, SMS, voice call, push और WhatsApp के लिए बनाई जाती है और user की notification settings को सौंपी जाती है, जो तय करती हैं कि वास्तव में क्या भेजा जाए। हर receiver इनमें से हर एक को अलग-अलग off कर सकता है — per-user settings को incident created, note posted, state changed, owner added, member assigned, और still-open reminder notifications भेजने के रूप में लिखा गया है। जो कोई भी केवल state changes के लिए call चाहता है, उसे बिल्कुल वही मिल सकता है।
+हर सूचना ईमेल, SMS, वॉइस कॉल, पुश और WhatsApp के लिए तैयार होती है और उपयोगकर्ता की सूचना सेटिंग्स को सौंप दी जाती है, जो तय करती हैं कि असल में क्या भेजा जाए। हर प्राप्तकर्ता इनमें से हर एक को अलग-अलग बंद कर सकता है — प्रति-उपयोगकर्ता सेटिंग्स की भाषा है कि आपको घटना बनने, नोट पोस्ट होने, स्थिति बदलने, स्वामी जुड़ने, सदस्य सौंपे जाने और अब भी खुली रहने के अनुस्मारक की सूचनाएँ भेजी जाएँ। जिसे सिर्फ़ स्थिति बदलाव पर कॉल चाहिए, उसे बिल्कुल वही मिल सकता है।
 
-**Ownerless incidents चुप नहीं रहतीं।** यदि किसी incident के पास बिल्कुल कोई owner नहीं है, तो notification jobs project के owners पर fallback कर जाती हैं, ताकि कुछ भी नज़रअंदाज न हो। Notify किए गए हर person को matching feed item में भी जोड़ा जाता है, ताकि आप बाद में ठीक-ठीक देख सकें कि किसे और किस address पर बताया गया था।
+**स्वामी-रहित घटनाएँ चुप नहीं रहतीं।** अगर किसी घटना का कोई स्वामी ही नहीं है, तो सूचना jobs प्रोजेक्ट के स्वामियों पर लौट आते हैं, ताकि कुछ भी ज़मीन पर न गिरे। हर सूचित व्यक्ति संबंधित feed item में भी जोड़ा जाता है, इसलिए बाद में आप ठीक-ठीक देख सकते हैं कि किसे और किस पते पर बताया गया।
 
 ## आगे क्या पढ़ें
 
-- [घटनाओं का अवलोकन](/docs/incidents/index) — incident क्या है और इसके हिस्से कैसे साथ फिट होते हैं।
-- [घटना घोषित करना](/docs/incidents/declaring-incidents) — hand से, templates से, और monitors से incidents बनाना।
-- [घटना स्थितियाँ और गंभीरता](/docs/incidents/states-and-severities) — वह state machine जो आधी feed को चलाती है।
-- [घटना सेटिंग्स और स्वचालन](/docs/incidents/settings) — owner rules, note templates, और बाकी automation।
-- [सब्सक्राइबर और घोषणाएँ](/docs/status-pages/subscribers) — public notes कहाँ पहुंचते हैं और उन्हें कौन receive करता है।
-- [स्थिति पृष्ठ अवलोकन](/docs/status-pages/index) — किसी incident का customer-facing हिस्सा।
+- [घटनाओं का अवलोकन](/docs/incidents/index) — घटना क्या है और इसके हिस्से आपस में कैसे जुड़ते हैं।
+- [घटना घोषित करना](/docs/incidents/declaring-incidents) — हाथ से, टेम्पलेट से और मॉनिटर से घटनाएँ बनाना।
+- [घटना स्थितियाँ और गंभीरता](/docs/incidents/states-and-severities) — वह state machine जो आधी फ़ीड चलाती है।
+- [घटना सेटिंग्स और स्वचालन](/docs/incidents/settings) — स्वामी नियम, नोट टेम्पलेट, और बाकी स्वचालन।
+- [सब्सक्राइबर और घोषणाएँ](/docs/status-pages/subscribers) — सार्वजनिक नोट कहाँ पहुँचते हैं और किसे मिलते हैं।
+- [स्थिति पृष्ठ अवलोकन](/docs/status-pages/index) — घटना का ग्राहकों वाला पक्ष।

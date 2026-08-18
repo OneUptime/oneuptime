@@ -1,84 +1,84 @@
-# Workflows Overview
+# वर्कफ़्लो अवलोकन
 
-Workflows आपको बिना code लिखे OneUptime में tasks को automate करने देते हैं। canvas पर कुछ blocks जोड़ें, उन्हें आपस में connect करें, और आपके पास एक ऐसा automation तैयार होता है जो हर बार कुछ होने पर चलता है — कोई incident खुलता है, कोई schedule fire होता है, या कोई दूसरा tool OneUptime को data भेजता है।
+वर्कफ़्लो से आप OneUptime में बिना कोई code लिखे काम अपने-आप करा सकते हैं। एक canvas पर कुछ blocks रखिए, उन्हें आपस में जोड़िए, और आपके पास ऐसा automation तैयार है जो कुछ होते ही चल पड़ता है — कोई घटना खुले, कोई schedule आए, या कोई दूसरा tool OneUptime को data भेजे।
 
-Workflows को अपने project के background helpers की तरह सोचें: ये events पर react करते हैं, दूसरे tools से बात करते हैं, और आपके काम पर ध्यान देते रहने के दौरान चीज़ों को चुपचाप sync रखते हैं।
+वर्कफ़्लो को अपने प्रोजेक्ट के पर्दे के पीछे काम करने वाले मददगार समझिए: वे घटनाओं पर प्रतिक्रिया देते हैं, दूसरे tools से बात करते हैं, और चुपचाप चीज़ों को आपस में मिलाए रखते हैं, जबकि आप अपने काम पर ध्यान देते रहते हैं।
 
-## आप workflows से क्या कर सकते हैं
+## वर्कफ़्लो से आप क्या कर सकते हैं
 
-- **Connect OneUptime to your other tools** — incidents को Slack पर भेजें, Jira tickets बनाएं, अपने stack के किसी webhook पर post करें।
-- **React to what happens in OneUptime** — जब कोई critical incident बनता है, तो on-call team को notify करें और अपने-आप एक ticket खोलें।
-- **Run jobs on a schedule** — हर पाँच मिनट में, हर रात, हर सोमवार सुबह।
-- **Receive data from outside** — दूसरे systems को एक unique URL के जरिए OneUptime में data push करने दें।
-- **Reuse common automation** — इसे एक बार बनाएं, किसी भी दूसरे workflow से call करें।
+- **OneUptime को अपने बाकी tools से जोड़िए** — घटनाएँ Slack पर भेजिए, Jira टिकट बनाइए, अपने stack के किसी webhook पर post कीजिए।
+- **OneUptime में जो होता है, उस पर प्रतिक्रिया दीजिए** — कोई गंभीर घटना बनते ही on-call टीम को सूचित कीजिए और अपने-आप एक टिकट खुलवा दीजिए।
+- **तय समय पर काम चलाइए** — हर पाँच मिनट, हर रात, हर सोमवार सुबह।
+- **बाहर से data लीजिए** — दूसरे सिस्टम एक अनोखे URL के ज़रिए OneUptime में data भेज सकते हैं।
+- **साझा automation दोबारा इस्तेमाल कीजिए** — एक बार बनाइए, फिर किसी भी दूसरे वर्कफ़्लो से बुला लीजिए।
 
-## एक workflow कैसे काम करता है
+## वर्कफ़्लो काम कैसे करता है
 
-हर workflow के तीन हिस्से होते हैं:
+हर वर्कफ़्लो के तीन हिस्से होते हैं:
 
-1. **A trigger** — जो workflow को शुरू करता है। यह एक manual button, एक schedule, एक incoming webhook, या OneUptime में कोई event (जैसे एक नया incident) हो सकता है।
-2. **One or more components** — जो workflow करता है। एक message भेजें, एक HTTP call करें, एक quick check चलाएं, किसी condition के आधार पर branch करें।
-3. **Connections between them** — order तय करने के लिए आप एक block से दूसरे तक lines खींचते हैं।
+1. **एक trigger** — जो वर्कफ़्लो शुरू करता है। यह कोई manual बटन, कोई schedule, कोई आने वाला webhook, या OneUptime का कोई ईवेंट (जैसे नई घटना) हो सकता है।
+2. **एक या ज़्यादा components** — जो वर्कफ़्लो करता है। कोई संदेश भेजना, कोई HTTP call करना, कोई छोटी जाँच चलाना, किसी शर्त पर branch करना।
+3. **उनके बीच के connections** — क्रम तय करने के लिए आप एक block से अगले तक line खींचते हैं।
 
-यह सब आप canvas पर visually बनाते हैं। ज्यादातर workflows के लिए coding की जरूरत नहीं है, हालांकि जब जरूरत हो तो आप JavaScript का एक snippet जोड़ सकते हैं।
+यह सब आप एक canvas पर आँखों के सामने बनाते हैं। ज़्यादातर वर्कफ़्लो के लिए कोई coding नहीं चाहिए, हालाँकि ज़रूरत पड़े तो आप JavaScript का एक टुकड़ा जोड़ सकते हैं।
 
 ## मुख्य शब्द
 
-| Term                 | इसका मतलब                                                                                  |
-| -------------------- | -------------------------------------------------------------------------------------------- |
-| **Workflow**         | पूरा automation — एक नाम, एक canvas, और इसे on या off करने के लिए एक switch।                      |
-| **Trigger**          | पहला block। यह तय करता है कि workflow कब चलता है। हर workflow में ठीक एक trigger होता है।              |
-| **Component**        | एक action block — यह एक message भेजता है, एक request करता है, एक condition check करता है।             |
-| **Run**              | workflow का एक execution। timestamps और हर block के output के साथ save किया जाता है।                |
-| **Global variable**  | एक value (जैसे एक API key) जिसे आप एक बार save करते हैं और किसी भी workflow में reuse करते हैं।         |
+| शब्द                | इसका मतलब                                                                                     |
+| ------------------- | ------------------------------------------------------------------------------------------------- |
+| **वर्कफ़्लो**       | पूरा automation — एक नाम, एक canvas, और उसे चालू या बंद करने वाला एक switch।                  |
+| **Trigger**         | पहला block। यह तय करता है कि वर्कफ़्लो कब चले। हर वर्कफ़्लो में ठीक एक trigger होता है।       |
+| **Component**       | क्रिया करने वाला block — संदेश भेजता है, अनुरोध करता है, कोई शर्त जाँचता है।                   |
+| **Run**             | वर्कफ़्लो का एक बार चलना। समय-मुहरों और हर block के output के साथ सहेजा जाता है।               |
+| **ग्लोबल वेरिएबल** | कोई मान (जैसे कोई API key) जिसे आप एक बार सहेजकर किसी भी वर्कफ़्लो में दोबारा इस्तेमाल करते हैं। |
 
-## OneUptime में workflows कहाँ मिलेंगे
+## OneUptime में वर्कफ़्लो कहाँ मिलते हैं
 
-left navigation में **Workflows** खोलें। इस section में ये होता है:
+बाएँ navigation में **वर्कफ़्लो** खोलिए। उस हिस्से में रहते हैं:
 
-- **Workflows** — आपके workflows की सूची। नया बनाएं या किसी मौजूदा को खोलें।
-- **Global Variables** — वे values जो आपके सभी workflows में shared होती हैं।
-- **Runs & Logs** — आपके project के हर workflow की execution history।
+- **वर्कफ़्लो** — आपके वर्कफ़्लो की सूची। नया बनाइए या कोई मौजूदा खोलिए।
+- **ग्लोबल वेरिएबल** — ऐसे मान जो आपके सभी वर्कफ़्लो में साझा रहते हैं।
+- **रन और लॉग** — आपके प्रोजेक्ट के हर वर्कफ़्लो के चलने का इतिहास।
 
-एक अकेला workflow खोलें और उसका खुद का left menu इस तरह दिखता है:
+कोई एक वर्कफ़्लो खोलिए, तो उसके अपने बाएँ menu में मिलता है:
 
-- **Overview** — नाम, description, labels, और **Enabled** switch।
-- **Builder** — वह canvas जहाँ आप workflow design करते हैं।
-- **Workflow Variables** — वे values जो सिर्फ इसी एक workflow तक scoped हैं।
-- **Runs & Logs** — इस workflow का हर run, details के साथ।
-- **Settings** — webhook secret, duplicate, और export।
+- **अवलोकन** — नाम, विवरण, लेबल, और **सक्षम** switch।
+- **बिल्डर** — वह canvas जहाँ आप वर्कफ़्लो design करते हैं।
+- **वर्कफ़्लो वेरिएबल** — सिर्फ़ इसी एक वर्कफ़्लो तक सीमित मान।
+- **रन और लॉग** — इस वर्कफ़्लो का हर run, ब्योरे के साथ।
+- **सेटिंग्स** — webhook secret, duplicate, और export।
 
-## अपना पहला workflow बनाना
+## अपना पहला वर्कफ़्लो बनाना
 
-1. **Create** — एक starting point चुनें, फिर अपने workflow को एक नाम दें।
-2. **Pick a trigger** — manual, scheduled, webhook, या OneUptime से कोई event।
-3. **Add components** — canvas पर actions जोड़ें और उन्हें connect करें।
-4. **Turn it on** — **Overview** page से **Enabled** को on करें। एक disabled workflow बिल्कुल भी नहीं चल सकता, हाथ से भी नहीं।
-5. **Test** — Builder पर **Run Workflow** पर क्लिक करें और run log देखें।
+1. **बनाइए** — कोई शुरुआती बिंदु चुनिए, फिर अपने वर्कफ़्लो को नाम दीजिए।
+2. **कोई trigger चुनिए** — manual, schedule, webhook, या OneUptime का कोई ईवेंट।
+3. **Components जोड़िए** — canvas पर क्रियाएँ जोड़िए और उन्हें आपस में जोड़ दीजिए।
+4. **चालू कीजिए** — **अवलोकन** पेज से **सक्षम** switch on कर दीजिए। बंद पड़ा वर्कफ़्लो बिल्कुल नहीं चल सकता, हाथ से भी नहीं।
+5. **जाँचिए** — बिल्डर पर **वर्कफ़्लो चलाएं** दबाइए और run log देखते रहिए।
 
-## एक जल्दी सा example
+## एक छोटा उदाहरण
 
-मान लीजिए आप चाहते हैं कि जब भी कोई critical incident बने तो Slack पर एक post हो जाए:
+मान लीजिए आप चाहते हैं कि जब भी कोई गंभीर घटना बने, Slack पर संदेश चला जाए:
 
-1. "Critical incidents to Slack" नाम का एक workflow बनाएं।
-2. **On Create Incident** trigger चुनें।
-3. एक **If / Else** block जोड़ें। इसे यह check करने के लिए set करें कि incident के title में "Sev 1" है या नहीं।
-4. **Yes** branch से, एक **Slack** block जोड़ें। channel चुनें और message लिखें।
-5. workflow को on करें।
+1. "Critical incidents to Slack." नाम का एक वर्कफ़्लो बनाइए।
+2. **On Create Incident** trigger चुनिए।
+3. एक **If / Else** block जोड़िए। इसे यह जाँचने पर लगाइए कि घटना के शीर्षक में "Sev 1" है या नहीं।
+4. **Yes** शाखा से एक **Slack** block जोड़िए। channel चुनिए और संदेश लिखिए।
+5. वर्कफ़्लो चालू कर दीजिए।
 
-अगली बार जब कोई "Sev 1" title वाला incident खोलेगा, तो Slack पर तुरंत सूचना पहुँच जाएगी।
+अगली बार जब कोई शीर्षक में "Sev 1" लिखी घटना खोलेगा, Slack जग उठेगा।
 
-## Workflows बाकी OneUptime के साथ कैसे fit होते हैं
+## बाकी OneUptime के साथ वर्कफ़्लो कैसे बैठते हैं
 
-- **Monitors** समस्या को पहचानते हैं। **Incidents** उसे record करते हैं। **Workflows** उस पर react करते हैं।
-- **Runbooks** लोगों के लिए step-by-step guides हैं। Workflows unattended automation हैं। जब किसी इंसान को decisions लेने हों तो runbook का उपयोग करें; जब steps automatic हों तो workflow का उपयोग करें।
-- **Workspace connections** (Slack, Teams) वे जगहें हैं जहाँ workflows अपने messages भेजते हैं।
+- **मॉनिटर** दिक्कत पकड़ते हैं। **घटनाएं** उसे दर्ज करती हैं। **वर्कफ़्लो** उस पर प्रतिक्रिया देते हैं।
+- **रनबुक** लोगों के लिए कदम-दर-कदम गाइड हैं। वर्कफ़्लो बिना किसी की मौजूदगी वाला automation हैं। फ़ैसले इंसान को लेने हों तो रनबुक चुनिए; कदम अपने-आप चलने हों तो वर्कफ़्लो।
+- **Workspace connections** (Slack, Teams) वे जगहें हैं जहाँ वर्कफ़्लो अपने संदेश भेजते हैं।
 
 ## आगे क्या पढ़ें
 
-- [Authoring a Workflow](/docs/workflows/authoring) — canvas पर building करना।
-- [Triggers](/docs/workflows/triggers) — जिन अलग-अलग तरीकों से एक workflow शुरू हो सकता है।
-- [Components](/docs/workflows/components) — जो building blocks आप जोड़ सकते हैं।
-- [Variables](/docs/workflows/variables) — blocks और workflows के बीच values का उपयोग करना।
-- [Runs & Logs](/docs/workflows/runs-and-logs) — यह देखना कि क्या हुआ।
-- [Configuration & Safety](/docs/workflows/configuration) — जानने लायक settings।
+- [वर्कफ़्लो बनाना](/docs/workflows/authoring) — canvas पर बनाने की प्रक्रिया।
+- [वर्कफ़्लो ट्रिगर](/docs/workflows/triggers) — वर्कफ़्लो शुरू होने के अलग-अलग तरीके।
+- [वर्कफ़्लो घटक](/docs/workflows/components) — वे building blocks जिन्हें आप जोड़ सकते हैं।
+- [वर्कफ़्लो वेरिएबल](/docs/workflows/variables) — blocks और वर्कफ़्लो के आर-पार मान इस्तेमाल करना।
+- [वर्कफ़्लो रन और लॉग](/docs/workflows/runs-and-logs) — यह देखना कि हुआ क्या।
+- [वर्कफ़्लो कॉन्फ़िगरेशन और सुरक्षा](/docs/workflows/configuration) — जानने लायक सेटिंग्स।

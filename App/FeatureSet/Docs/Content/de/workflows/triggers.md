@@ -1,81 +1,81 @@
 # Trigger
 
-Ein Trigger ist der erste Baustein in einem Workflow – er entscheidet, wann der Workflow läuft. Jeder Workflow hat genau einen Trigger. Sie wählen aus vier Arten.
+Ein Trigger ist der erste Baustein eines Workflows – er entscheidet, wann der Workflow läuft. Jeder Workflow hat genau einen Trigger. Sie haben die Wahl zwischen vier Arten.
 
 ## Manual
 
-Führen Sie den Workflow bei Bedarf aus, indem Sie auf der **Builder**-Seite auf **Run Workflow** klicken, die Felder des Triggers ausfüllen und mit **Run Workflow Manually** bestätigen. Der Manual-Trigger nimmt eine JSON-Payload entgegen, die der Rest des Workflows lesen kann.
+Führen Sie den Workflow bei Bedarf aus: Klicken Sie auf der Seite **Builder** auf **Arbeitsablauf ausführen**, füllen Sie die Felder des Triggers aus und bestätigen Sie mit **Run Workflow Manually**. Der Manual-Trigger nimmt eine JSON-Payload entgegen, die der Rest des Workflows lesen kann.
 
-Gut geeignet für: Automatisierungen mit einem Klick, für die Sie einen Knopf wollen, wie „diesen Schlüssel rotieren" oder „einen Test-Alarm senden".
+Gut geeignet für: Automatisierungen auf Knopfdruck, für die Sie einen Knopf haben wollen – „diesen Schlüssel rotieren“ oder „eine Testwarnung schicken“.
 
-**Ausgabe**: das JSON, das Sie eingefügt haben, oder ein leeres Objekt, wenn Sie nichts eingefügt haben.
+**Output**: das JSON, das Sie eingefügt haben, oder ein leeres Objekt, wenn Sie keines eingefügt haben.
 
-## Schedule
+## Zeitplan
 
-Führen Sie den Workflow nach einem wiederkehrenden Zeitplan mithilfe eines Cron-Ausdrucks aus.
+Den Workflow über einen Cron-Ausdruck nach einem wiederkehrenden Zeitplan ausführen.
 
-Gut geeignet für: nächtliche Aufräumarbeiten, stündliche Synchronisation, wöchentliche Berichte.
+Gut geeignet für: nächtliches Aufräumen, stündliches Synchronisieren, Wochenberichte.
 
-**Einstellung**: ein Cron-Ausdruck. Ein paar gängige Beispiele:
+**Einstellung**: ein Cron-Ausdruck. Ein paar gängige:
 
-- `0 * * * *` – jede volle Stunde.
+- `0 * * * *` – jede Stunde, zur vollen Stunde.
 - `*/5 * * * *` – alle 5 Minuten.
 - `0 9 * * 1` – jeden Montag um 9:00 Uhr.
 
-Falls das System kurzzeitig nicht verfügbar ist, wird die Ausführung nachgeholt, sobald es sich erholt hat – bei kurzen Ausfällen müssen Sie sich um verpasste Zeitpunkte keine Sorgen machen.
+Ist das System kurz nicht verfügbar, wird die Ausführung nachgeholt, sobald es sich erholt hat – um verpasste Takte bei kurzen Ausfällen müssen Sie sich also keine Sorgen machen.
 
 ## Webhook
 
-OneUptime erstellt eine eindeutige URL. Alles, was diese URL aufruft, startet den Workflow. Die Header, Query-Parameter und der Body der Anfrage werden übergeben.
+OneUptime erzeugt eine eindeutige URL. Alles, was diese URL aufruft, startet den Workflow. Header, Query-Parameter und Body der Anfrage werden hineingereicht.
 
-Gut geeignet für: das Empfangen von Daten in OneUptime aus einem anderen Tool – CI/CD-Callbacks, Alarme aus anderem Monitoring, Anmeldungen in Ihrem CRM.
+Gut geeignet für: Daten aus einem anderen Tool nach OneUptime hereinholen – Rückmeldungen aus CI/CD, Warnungen aus anderem Monitoring, Anmeldungen in Ihrem CRM.
 
-**Ausgabe**:
+**Output**:
 
-- **Request Headers** – alle Header aus der eingehenden Anfrage.
+- **Request Headers** – alle Header der eingehenden Anfrage.
 - **Request Query Params** – der geparste Query-String.
-- **Request Body** – der geparste Body (oder der Rohtext, wenn es kein JSON ist).
+- **Request Body** – der geparste Body (oder der rohe Text, wenn es kein JSON ist).
 
-Die URL akzeptiert sowohl `GET` als auch `POST`. Der Aufrufer erhält eine schnelle Bestätigung – der Workflow selbst läuft im Hintergrund.
+Die URL nimmt sowohl `GET` als auch `POST` an. Der Aufrufer bekommt eine schnelle Bestätigung – der Workflow selbst läuft im Hintergrund.
 
-Behandeln Sie die URL wie ein Passwort. Wer immer sie kennt, kann Ihren Workflow starten.
+Behandeln Sie die URL wie ein Passwort. Wer sie hat, kann Ihren Workflow starten.
 
 ## OneUptime-Ereignis-Trigger
 
-Fast alles in OneUptime – Monitore, Vorfälle, Alarme, geplante Wartungen, Statusseiten, Bereitschaftsrichtlinien, Teams – kann einen Workflow auslösen. Jedes davon bietet drei Ereignisse:
+Fast alles in OneUptime – Monitore, Vorfälle, Warnungen, geplante Wartungen, Statusseiten, Bereitschaftsrichtlinien, Teams – kann einen Workflow auslösen. Jedes davon bietet drei Ereignisse:
 
-- **On Create** – löst aus, wenn ein neues Objekt hinzugefügt wird.
-- **On Update** – löst aus, wenn ein Objekt geändert wird.
-- **On Delete** – löst aus, wenn ein Objekt gelöscht wird.
+- **On Create** – feuert, wenn ein neuer Datensatz hinzukommt.
+- **On Update** – feuert, wenn einer geändert wird.
+- **On Delete** – feuert, wenn einer gelöscht wird.
 
-So bauen Sie „wenn X in OneUptime passiert, tue Y", ohne Dinge in einer Schleife prüfen zu müssen.
+So bauen Sie „wenn X in OneUptime passiert, tu Y“, ohne in einer Schleife nachsehen zu müssen.
 
-Der vollständige Datensatz wird an den nächsten Baustein übergeben. Zum Beispiel übergibt der Trigger **Incident → On Create** den neuen Vorfall, sodass der nächste Baustein dessen Titel, Beschreibung, Schweregrad und jedes andere Feld lesen kann.
+Der vollständige Datensatz wird an den nächsten Baustein weitergereicht. Der Trigger **Vorfall → On Create** reicht zum Beispiel den neuen Vorfall weiter, sodass der nächste Baustein dessen Titel, Beschreibung, Schweregrad und jedes andere Feld lesen kann.
 
-### Am häufigsten genutzte Ereignisse
+### Ereignisse, die Teams am häufigsten nutzen
 
-- **Incident** – reagieren, wenn ein Vorfall eröffnet, geändert (bestätigt, behoben) oder gelöscht wird.
-- **Alert** – dieselben drei für Alarme.
+- **Vorfall** – reagieren, wenn ein Vorfall eröffnet, geändert (bestätigt, gelöst) oder gelöscht wird.
+- **Warnung** – dieselben drei für Warnungen.
 - **Monitor** – reagieren, wenn ein Monitor hinzugefügt, bearbeitet oder entfernt wird.
-- **Scheduled Maintenance** – ein Wartungsfenster automatisch ankündigen, sobald es geplant wird.
-- **Status Page Subscriber** – jemanden begrüßen, der eine Statusseite abonniert.
-- **On-Call Duty Policy** – Zeitplanänderungen mit einem anderen Bereitschaftssystem synchronisieren.
+- **Geplante Wartung** – ein Wartungsfenster automatisch ankündigen, sobald es geplant ist.
+- **Statusseite Abonnent** – jemanden begrüßen, der eine Statusseite abonniert.
+- **Bereitschaftsrichtlinie** – Änderungen am Dienstplan in ein anderes Rostersystem synchronisieren.
 
-Durchsuchen Sie das Panel **Add Trigger** nach dem Namen, um den gewünschten zu finden.
+Durchsuchen Sie das Panel **Add Trigger** nach dem Namen, um den passenden zu finden.
 
-## Welchen Trigger sollte ich verwenden?
+## Welchen Trigger sollte ich nehmen?
 
-| Wenn Sie …                              | Wählen               |
-| ----------------------------------------- | -------------------- |
-| einen Knopf drücken wollen, um den Workflow auszuführen | **Manual**            |
-| nach einem wiederkehrenden Zeitplan ausführen wollen    | **Schedule**          |
-| ein anderes System Daten hineinschieben lassen wollen   | **Webhook**           |
-| auf etwas innerhalb von OneUptime reagieren wollen      | **OneUptime event**   |
+| Wenn Sie …                                       | nehmen Sie             |
+| ------------------------------------------------ | ---------------------- |
+| den Workflow per Knopfdruck starten wollen        | **Manual**             |
+| nach einem wiederkehrenden Zeitplan laufen wollen | **Zeitplan**           |
+| Daten aus einem anderen System hereinschieben     | **Webhook**            |
+| auf etwas innerhalb von OneUptime reagieren       | **OneUptime-Ereignis** |
 
-Ein Workflow kann nur einen Trigger haben. Wenn Sie zwei Wege benötigen, um dieselbe Automatisierung zu starten, bauen Sie die gemeinsame Logik in einem Workflow und rufen Sie sie aus zwei schlanken „Wrapper"-Workflows mit der Komponente **Execute Workflow** auf.
+Ein Workflow kann nur einen Trigger haben. Brauchen Sie zwei Wege, dieselbe Automatisierung zu starten, bauen Sie die gemeinsame Logik in einen Workflow und rufen ihn aus zwei dünnen „Wrapper“-Workflows mit der Komponente **Execute Workflow** auf.
 
 ## Weiterführende Themen
 
 - [Workflow-Komponenten](/docs/workflows/components) – die Aktionen, die Sie nach dem Trigger hinzufügen.
-- [Workflow-Variablen](/docs/workflows/variables) – die Ausgabe des Triggers aus späteren Bausteinen lesen.
-- [Workflow-Ausführungen & Protokolle](/docs/workflows/runs-and-logs) – bestätigen, dass Ihr Trigger ausgelöst hat.
+- [Workflow-Variablen](/docs/workflows/variables) – Trigger-Ausgaben aus späteren Bausteinen lesen.
+- [Workflow-Ausführungen & Protokolle](/docs/workflows/runs-and-logs) – nachsehen, ob Ihr Trigger ausgelöst hat.

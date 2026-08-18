@@ -329,8 +329,8 @@ curl -X POST https://oneuptime.com/status-page-api/announcements/:statusPageId
 
 ## 接下來可以閱讀
 
-- [狀態頁概觀](/docs/status-pages/index) — 狀態頁是什麼,以及各部分如何搭配運作。
-- [狀態頁資源與群組](/docs/status-pages/resources-and-groups) — 這些端點回傳的資源。
-- [狀態頁品牌與網域](/docs/status-pages/branding-and-domains) — 提供這些端點服務的自訂網域。
-- [訂閱者與公告](/docs/status-pages/subscribers) — 公告端點提供的公告。
-- [事件概觀](/docs/incidents/index) — 這些回應中事件的來源。
+- [狀態頁概觀](/docs/status-pages/index) —— 狀態頁是什麼，以及各部分如何組合在一起。
+- [狀態頁資源與群組](/docs/status-pages/resources-and-groups) —— 這些端點回傳的那些資源。
+- [狀態頁品牌與網域](/docs/status-pages/branding-and-domains) —— 提供這些端點服務的自訂網域。
+- [訂閱者與公告](/docs/status-pages/subscribers) —— 公告端點所提供的那些公告。
+- [事件概觀](/docs/incidents/index) —— 這些回應裡的事件是從哪裡來的。

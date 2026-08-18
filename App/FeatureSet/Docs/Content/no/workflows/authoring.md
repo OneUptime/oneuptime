@@ -1,99 +1,99 @@
-# Lage en arbeidsflyt
+# Opprette en arbeidsflyt
 
-For å opprette en arbeidsflyt, åpne **Workflows** og klikk **Create Workflow**. En veiviser kalt **Create a workflow** leder deg gjennom det: først **Start from** — velg **Start from scratch** eller en av malene — deretter **Name**, og til slutt et **Configure**-trinn, som bare vises når malen du valgte spør om egne innstillinger.
+For å lage en arbeidsflyt åpner du **Arbeidsflyter** og klikker **Opprett arbeidsflyt**. En veiviser som heter **Create a workflow** tar deg gjennom det: først **Start from** — velg **Start from scratch** eller en av malene — så **Navn**, og til slutt et **Konfigurer**-trinn, som bare dukker opp når malen du valgte ber om egne innstillinger.
 
-Når den er opprettet, åpne **Builder** i venstremenyen. Det er lerretet hvor du designer arbeidsflyten.
+Så snart den er opprettet, åpner du **Bygger** i venstremenyen. Der ligger lerretet du utformer arbeidsflyten på.
 
 ## Lerretet
 
-En arbeidsflyt fra bunnen av åpnes med én stiplet blokk som sier **Please click here to add trigger**. Den blokken er utgangspunktet — klikk på den for å velge en trigger. En arbeidsflyt opprettet fra en mal åpnes med blokkene sine allerede på plass.
+En arbeidsflyt du bygger fra bunnen, åpner med én stiplet blokk der det står **Please click here to add trigger**. Den blokken er startpunktet — klikk på den for å velge en trigger. En arbeidsflyt laget fra en mal åpner med blokkene allerede på plass.
 
-Hver arbeidsflyt har nøyaktig én **trigger** øverst. Alt annet er en **component** som gjør noe. Å legge til en ny trigger erstatter den første, og å slette den siste setter den stiplede plassholderen tilbake.
+Hver arbeidsflyt har nøyaktig én **trigger** øverst. Alt annet er en **komponent** som gjør noe. Legger du til en trigger til, erstatter den den forrige, og sletter du den siste, kommer den stiplede plassholderen tilbake.
 
-Å legge til blokker:
+Slik legger du til blokker:
 
-- **Triggeren** — klikk den stiplede plassholderblokken. Et panel kalt **Add Trigger** åpnes.
-- **Alt annet** — klikk **Add Component** i verktøylinjen over lerretet. Det samme panelet åpnes, med tittelen **Add Component**.
+- **Triggeren** — klikk på den stiplede plassholderblokken. Et panel med tittelen **Add Trigger** åpnes.
+- **Alt annet** — klikk **Legg til komponent** i verktøylinjen over lerretet. Det samme panelet åpnes, nå med tittelen **Legg til komponent**.
 
-Begge panelene kan søkes i — trykk `/` for å hoppe til søkefeltet — og er gruppert etter kategori. Velg én blokk og klikk **Add to Workflow**.
+Du kan søke i begge panelene — trykk `/` for å hoppe til søkefeltet — og innholdet er gruppert etter kategori. Velg én blokk og klikk **Add to Workflow**.
 
-Nye blokker havner alltid på samme sted på lerretet, så en ny kan lande oppå noe du allerede har plassert. Dra den unna; lerretet snapper til et rutenett mens du gjør det. Blokkposisjoner lagres, så neste person ser samme oppsett du forlot.
+Nye blokker havner alltid på samme punkt på lerretet, så en ny kan lande oppå noe du allerede har plassert. Dra den unna; lerretet snapper til et rutenett underveis. Blokkposisjonene lagres, så neste person ser det samme oppsettet som du forlot.
 
-Endringer lagres automatisk. En pille i verktøylinjen sporer det: **Saving…** mens endringen er underveis, deretter **Saved**, eller **Could not save** hvis det ikke fungerte. Det finnes ingen Lagre-knapp og ikke noe eget publiseringstrinn.
+Endringer lagres automatisk. En pille i verktøylinjen holder rede på det: **Saving…** mens endringen er underveis, deretter **Lagret** — eller **Kunne ikke lagre** hvis det ikke gikk. Det finnes ingen lagreknapp og ingen egen publiseringsjobb.
 
-## Hva som er på en blokk
+## Hva en blokk består av
 
-| Felt                            | Hva det gjør                                                                                                                                                                                               |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Identifier** (under **ID**)    | Den korte iden vist på blokken, som `log-1`. Slik refererer andre blokker til denne, så å gi den nytt navn ødelegger hver `{{local.components.…}}`-referanse som peker på den. Blokkens overskrift er komponentens eget navn og kan ikke endres. |
-| **Settings**                     | Det blokken trenger for å gjøre jobben sin — en URL, en Slack-kanal, en meldingstekst. Valgfrie felt er merket **(Optional)**; alt annet er obligatorisk. Mindre brukte innstillinger ligger bak en **Advanced**-utvidelse. |
-| **Input**                        | Prikken på øvre kant, hvor linjer kommer inn fra tidligere blokker. Triggere har ingen — ingenting kjører før dem.                                                                                       |
-| **Outputs**                      | Prikkene langs nedre kant, merket rett over dem, hvor linjer går ut til neste blokker. Mange blokker har separate **Success**- og **Error**-utganger slik at du kan håndtere begge tilfellene.            |
+| Felt                             | Hva det gjør                                                                                                                                                                                                |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Identifier** (under **ID**)    | Den korte iden som vises på blokken, som `log-1`. Det er slik andre blokker refererer til denne, så et navnebytte ødelegger hver eneste `{{local.components.…}}`-referanse som peker hit. Overskriften på blokken er komponentens eget navn og kan ikke endres. |
+| **Innstillinger**                | Det blokken trenger for å gjøre jobben sin — en URL, en Slack-kanal, en meldingstekst. Valgfrie felt er merket **(Optional)**; alt annet er obligatorisk. Innstillinger som brukes sjeldnere, ligger bak et **Avansert**-panel. |
+| **Input**                        | Prikken på overkanten, der linjene fra tidligere blokker kommer inn. Triggere har den ikke — ingenting kjører før dem.                                                                                       |
+| **Outputs**                      | Prikkene langs underkanten, med etiketter rett over seg, der linjene går videre til neste blokker. Mange blokker har separate **Suksess**- og **Feil**-utganger, så du kan håndtere begge utfall.            |
 
 ## Å koble sammen blokker
 
-Dra fra en prikk på bunnen av én blokk ned til prikken på toppen av den neste. Linjen du tegner bestemmer hva som kjører videre.
+Dra fra en prikk nederst på én blokk ned til prikken på overkanten av den neste. Linjen du tegner, avgjør hva som kjører etterpå.
 
-- Hvis du kobler fra **Success**, kjører neste blokk bare når den forrige fungerte.
-- Hvis du kobler fra **Error**, kjører neste blokk bare når den forrige feilet.
-- Hvis du ikke kobler til en utgang, stopper den veien der.
+- Kobler du fra **Suksess**, kjører den neste blokken bare når den forrige gikk bra.
+- Kobler du fra **Feil**, kjører den neste blokken bare når den forrige feilet.
+- Lar du en utgang stå ukoblet, stopper den grenen der.
 
-Du kan koble én utgang til flere blokker. Alle sammen kjører — men én etter én, i én enkelt kø, ikke parallelt. Ikke stol på rekkefølgen mellom grener, og ikke regn med at de overlapper i tid. Hver blokk kjører maks én gang per kjøring, så en løkke tilbake til en tidligere blokk kjører den ikke to ganger.
+Du kan koble én utgang til flere blokker. Alle kjører — men etter hverandre, i én kø, ikke parallelt. Ikke stol på rekkefølgen mellom grener, og regn ikke med at de overlapper i tid. Hver blokk kjører maksimalt én gang per kjøring, så en sløyfe tilbake til en tidligere blokk kjører den ikke på nytt.
 
 ## Å konfigurere en blokk
 
-Klikk en blokk for å åpne innstillingene i en dialog. Hver innstilling har riktig type inndata — tekstfelt, nedtrekksmenyer, kodeeditorer, brytere og så videre. Fyll den ut og klikk **Save**.
+Klikk på en blokk for å åpne innstillingene i en dialog. Hver innstilling har den inndatatypen som passer — tekstfelt, nedtrekkslister, kodeeditorer, brytere og så videre. Fyll ut og klikk **Lagre**.
 
-Den samme dialogen er hvor du finner:
+I den samme dialogen finner du også:
 
-- **Delete** — fjern denne blokken.
-- **Run just this step** — kjør denne ene blokken alene, uten resten av arbeidsflyten. Verdier den skulle ha lest fra andre steg kommer tomme gjennom, og alt den sender, skriver eller sletter skjer faktisk.
-- **Documentation**, **Inputs**, **Outputs** og **Returns** — referansekort for hva denne blokken forventer og produserer.
+- **Slett** — fjern denne blokken.
+- **Run just this step** — kjør denne ene blokken alene, uten resten av arbeidsflyten. Verdier den ville lest fra andre trinn, kommer inn tomme, og alt den sender, skriver eller sletter skjer på ordentlig.
+- **Dokumentasjon**, **Inputs**, **Outputs** og **Returns** — oppslagskort for hva blokken forventer og hva den produserer.
 
-De fleste tekstfelt godtar variabler — det er slik data flyter fra én blokk til den neste. I stedet for å skrive syntaksen for hånd, bruk verdivelgeren i editoren: den bygger en korrekt referanse ut fra blokken og feltet du velger. Se [Variables](/docs/workflows/variables).
+De fleste tekstfelt tar imot variabler — det er slik data flyter fra én blokk til den neste. Fremfor å skrive syntaksen for hånd bør du bruke verdivelgeren i editoren: den bygger en korrekt referanse ut fra blokken og feltet du velger. Se [Arbeidsflyt-variabler](/docs/workflows/variables).
 
-## Sjekker mens du bygger
+## Kontroller mens du bygger
 
-Builder sjekker hele grafen hver gang du endrer den, og rapporterer det den finner i en pille i verktøylinjen. Klikk pillen for å åpne **Problems with this workflow**, som lister hvert problem og hopper deg til blokken som er ansvarlig. Blokker med et problem bærer også et rødt merke på lerretet.
+Byggeren sjekker hele grafen hver gang du endrer noe, og rapporterer det den finner i en pille i verktøylinjen. Klikk på pillen for å åpne **Problems with this workflow**, som lister opp hvert problem og hopper til blokken som er skyld i det. Blokker med problemer får også et rødt merke på lerretet.
 
-Den fanger opp feilene som ellers er usynlige helt til en kjøring går galt — ingen trigger, to blokker som deler en id, et punktum inni en id, en blokk ingenting kobler til, en obligatorisk innstilling som står tom, feilformet JSON, mellomrom inni `{{ }}`, og referanser til et steg eller en returverdi som ikke finnes.
+Den fanger opp feilene som ellers er usynlige helt til en kjøring går galt — ingen trigger, to blokker som deler en id, et punktum inni en id, en blokk ingenting kobler til, en obligatorisk innstilling som står tom, feilformet JSON, mellomrom inni `{{ }}`, og referanser til et trinn eller en returverdi som ikke finnes.
 
-Én ting den ikke kan sjekke: om et variabelnavn finnes. Et omdøpt variabelnavn vises først i kjøreloggen.
+Én ting den ikke får sjekket: om et variabelnavn finnes. En variabel som har byttet navn, dukker først opp i kjøreloggen.
 
 ## Din første arbeidsflyt
 
 Den raskeste måten å bli kjent med lerretet på:
 
-1. Klikk den stiplede plassholderblokken, velg **Manual** i **Add Trigger**-panelet, og klikk **Add to Workflow**.
-2. Klikk **Add Component**, velg **Log** (under **Utils**), og klikk **Add to Workflow**. Dra den nye blokken unna triggeren, koble deretter triggerens **Execute**-prikk ned til Log-blokkens input-prikk.
-3. Åpne Log-blokken og sett **Value** til `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` er triggerens **Identifier**, vist på triggerblokken — sjekk at den stemmer.
-4. Gå til **Overview**, klikk **Edit Workflow** på **Workflow Details**-kortet, og slå **Enabled** på. En deaktivert arbeidsflyt kan ikke kjøres i det hele tatt, ikke engang for hånd.
-5. Tilbake i **Builder**, klikk **Run Workflow**, legg `{ "name": "Ada" }` i **JSON**-feltet, klikk **Run Workflow Manually**, og bekreft med **Run**.
-6. Et **Workflow Run**-panel åpnes av seg selv og følger kjøringen. Loggen viser `Value:` etterfulgt av `Hello from Ada`.
+1. Klikk på den stiplede plassholderblokken, velg **Manual** i **Add Trigger**-panelet, og klikk **Add to Workflow**.
+2. Klikk **Legg til komponent**, velg **Log** (under **Utils**), og klikk **Add to Workflow**. Dra den nye blokken unna triggeren, og koble deretter triggerens **Execute**-prikk ned til inndataprikken på Log-blokken.
+3. Åpne Log-blokken og sett **Verdi** til `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` er triggerens **Identifier**, som står på triggerblokken — sjekk at den stemmer.
+4. Gå til **Oversikt**, klikk **Rediger arbeidsflyt** på kortet **Arbeidsflytdetaljer**, og slå på **Aktivert**. En deaktivert arbeidsflyt kan ikke kjøres i det hele tatt, ikke engang for hånd.
+5. Tilbake i **Bygger** klikker du **Kjør arbeidsflyt**, legger `{ "name": "Ada" }` i **JSON**-feltet, klikker **Run Workflow Manually** og bekrefter med **Run**.
+6. Et **Workflow Run**-panel åpner seg av seg selv og følger kjøringen. Loggen viser `Value:` etterfulgt av `Hello from Ada`.
 
-Den syklusen — legg til, koble, konfigurer, kjør, les loggen — er hvordan du bygger hver arbeidsflyt.
+Den runden — legg til, koble, konfigurer, kjør, les loggen — er slik du bygger hver eneste arbeidsflyt.
 
 ## Å slå den på
 
-Nye arbeidsflyter starter deaktiverte, og det gjør også enhver arbeidsflyt du dupliserer eller importerer.
+Nye arbeidsflyter starter deaktivert, og det samme gjør enhver arbeidsflyt du dupliserer eller importerer.
 
-**Enabled**-bryteren er på arbeidsflytens **Overview**-side, i **Workflow Details**-kortet — ikke på Settings-siden. Det samme kortet viser gjeldende status som en grønn **Enabled**- eller rød **Disabled**-pille.
+Bryteren **Aktivert** ligger på arbeidsflytens **Oversikt**-side, i kortet **Arbeidsflytdetaljer** — ikke på innstillingssiden. Det samme kortet viser gjeldende tilstand som en grønn **Aktivert**- eller rød **Deaktivert**-pille.
 
-En deaktivert arbeidsflyt kan ikke kjøre i det hele tatt. Manuelle kjøringer avvises med «This workflow is not enabled» akkurat som utløste kjøringer, så rekkefølgen er: aktiver den, test den med **Run Workflow**, les kjøreloggen, og slå **Enabled** av igjen hvis du ikke er klar for at triggeren skal utløses. For å teste én enkelt blokk uten å kjøre hele arbeidsflyten, bruk **Run just this step** i den blokkens innstillinger.
+En deaktivert arbeidsflyt kan ikke kjøre i det hele tatt. Manuelle kjøringer avvises med «This workflow is not enabled» akkurat som utløste kjøringer, så rekkefølgen er: slå den på, test den med **Kjør arbeidsflyt**, les kjøreloggen, og slå **Aktivert** av igjen hvis du ikke er klar for at triggeren skal fyre. Vil du teste én enkelt blokk uten å kjøre hele greia, bruker du **Run just this step** i innstillingene til den blokken.
 
-For å pause en arbeidsflyt uten å slette den, slå **Enabled** av. Ingen nye kjøringer starter. En kjøring som er midt i eksekvering fullføres, men en som er parkert på en **Sleep**-blokk avbrytes når den våkner og registreres som en feil.
+Vil du sette en arbeidsflyt på pause uten å slette den, slår du av **Aktivert**. Ingen nye kjøringer starter. En kjøring som er midt i utførelsen, blir ferdig, men en som står parkert på en **Sleep**-blokk, avbrytes når den våkner og føres opp som en feil.
 
 ## Rydding
 
-- Dra blokker for å flytte dem. Oppsettet lagres.
-- For å slette en linje, dra en av endene av prikken og slipp den på tomt lerret.
-- For å slette en blokk, klikk den og bruk **Delete** nederst i innstillingsdialogen. Å velge en blokk eller en linje og trykke Backspace fjerner den også.
-- Det finnes ingen måte å duplisere én enkelt blokk på. **Duplicate Workflow** på arbeidsflytens **Settings**-side kopierer hele greia, og kopien havner deaktivert.
-- Stable blokker fra topp til bunn slik at de leses i retningen de kjører — innganger er på øvre kant, utganger på nedre, så flyten går naturlig nedover.
+- Dra i blokker for å flytte dem. Oppsettet lagres.
+- Vil du slette en linje, drar du en av endene av prikken og slipper den på tomt lerret.
+- Vil du slette en blokk, klikker du på den og bruker **Slett** nederst i innstillingsdialogen. Du kan også markere en blokk eller en linje og trykke Backspace.
+- Det finnes ingen måte å duplisere én enkelt blokk på. **Duplicate Workflow** på arbeidsflytens **Innstillinger**-side kopierer det hele, og kopien lander deaktivert.
+- Stable blokkene ovenfra og ned så de leses i den retningen de kjører — inndata ligger på overkanten og utdata på underkanten, så flyten går naturlig nedover.
 
-## Hvor du kan lese videre
+## Hvor du leser videre
 
-- [Triggers](/docs/workflows/triggers) — de fire måtene en arbeidsflyt kan starte på.
-- [Components](/docs/workflows/components) — hver blokk du kan legge til.
-- [Variables](/docs/workflows/variables) — å flytte data mellom blokker.
-- [Runs & Logs](/docs/workflows/runs-and-logs) — å sjekke hva som skjedde.
+- [Arbeidsflyt-triggere](/docs/workflows/triggers) — de fire måtene en arbeidsflyt kan starte på.
+- [Arbeidsflyt-komponenter](/docs/workflows/components) — hver blokk du kan legge til.
+- [Arbeidsflyt-variabler](/docs/workflows/variables) — å flytte data mellom blokker.
+- [Arbeidsflyt-kjøringer & logger](/docs/workflows/runs-and-logs) — å sjekke hva som skjedde.

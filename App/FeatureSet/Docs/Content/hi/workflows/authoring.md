@@ -1,99 +1,99 @@
-# Authoring a Workflow
+# वर्कफ़्लो बनाना
 
-एक workflow बनाने के लिए, **Workflows** खोलें और **Create Workflow** पर क्लिक करें। **Create a workflow** नाम का एक wizard आपको इसमें से गुजारता है: पहले **Start from** — **Start from scratch** या किसी template में से चुनें — फिर **Name**, और आखिर में एक **Configure** step, जो सिर्फ तब दिखता है जब आपने चुना हुआ template अपनी खुद की settings मांगता है।
+वर्कफ़्लो बनाने के लिए **वर्कफ़्लो** खोलिए और **वर्कफ़्लो बनाएं** दबाइए। **Create a workflow** नाम का एक wizard आपको पूरे रास्ते ले जाता है: पहले **Start from** — जहाँ आप **Start from scratch** चुनते हैं या कोई template — फिर **नाम**, और आख़िर में **कॉन्फ़िगर करें** चरण, जो सिर्फ़ तभी आता है जब चुने हुए template को अपनी कुछ सेटिंग्स चाहिए होती हैं।
 
-बन जाने के बाद, left menu में **Builder** खोलें। यही वह canvas है जहाँ आप workflow design करते हैं।
+बन जाने के बाद बाएँ मेनू में **बिल्डर** खोलिए। यही वह canvas है जिस पर आप वर्कफ़्लो गढ़ते हैं।
 
 ## Canvas
 
-एक scratch से बना workflow एक अकेले dashed block के साथ खुलता है जिस पर लिखा होता है **Please click here to add trigger**। वह block starting point है — trigger चुनने के लिए इस पर क्लिक करें। किसी template से बनाया गया workflow अपने blocks पहले से जगह पर लिए हुए खुलता है।
+खाली से शुरू किया गया वर्कफ़्लो एक अकेले dashed block के साथ खुलता है, जिस पर लिखा रहता है **Please click here to add trigger**। वही शुरुआत का बिंदु है — trigger चुनने के लिए उस पर क्लिक कीजिए। template से बना वर्कफ़्लो अपने blocks पहले से लगे हुए खुलता है।
 
-हर workflow में सबसे ऊपर ठीक एक **trigger** होता है। बाकी सब कुछ एक **component** होता है जो कुछ करता है। दूसरा trigger जोड़ना पहले वाले की जगह ले लेता है, और आखिरी को delete करने पर dashed placeholder वापस आ जाता है।
+हर वर्कफ़्लो में सबसे ऊपर ठीक एक **trigger** होता है। बाकी हर चीज़ कोई न कोई काम करने वाला **घटक** है। दूसरा trigger जोड़ते ही पहला उसकी जगह छोड़ देता है, और आख़िरी trigger हटाने पर वही dashed placeholder लौट आता है।
 
 Blocks जोड़ना:
 
-- **The trigger** — dashed placeholder block पर क्लिक करें। **Add Trigger** शीर्षक वाला एक panel खुलता है।
-- **Everything else** — canvas के ऊपर toolbar में **Add Component** पर क्लिक करें। वही panel खुलता है, इस बार **Add Component** शीर्षक के साथ।
+- **Trigger** — dashed placeholder block पर क्लिक कीजिए। **Add Trigger** नाम का panel खुलता है।
+- **बाकी सब कुछ** — canvas के ऊपर वाले toolbar में **घटक जोड़ें** दबाइए। वही panel खुलता है, बस शीर्षक **Add Component** होता है।
 
-दोनों panels searchable हैं — search box पर जाने के लिए `/` दबाएं — और category के हिसाब से grouped हैं। एक block select करें और **Add to Workflow** पर क्लिक करें।
+दोनों panel खोजे जा सकते हैं — खोज बॉक्स पर सीधे पहुँचने के लिए `/` दबाइए — और चीज़ें श्रेणी के हिसाब से बँटी रहती हैं। एक block चुनिए और **Add to Workflow** दबा दीजिए।
 
-नए blocks हमेशा canvas पर एक ही जगह आकर गिरते हैं, इसलिए कोई नया block पहले से रखी किसी चीज़ के ऊपर आ सकता है। इसे खींचकर हटाएं; जैसे-जैसे आप करते हैं canvas एक grid पर snap होता जाता है। Block positions save होती हैं, इसलिए अगला व्यक्ति वही arrangement देखता है जो आपने छोड़ा था।
+नए blocks हमेशा canvas पर एक ही जगह आकर गिरते हैं, इसलिए हो सकता है कोई नया block पहले से रखी किसी चीज़ के ऊपर आ बैठे। उसे खींचकर हटा लीजिए; खींचते समय canvas grid से चिपकता चलता है। Blocks की जगहें सहेजी जाती हैं, इसलिए अगले व्यक्ति को वही सजावट दिखती है जो आप छोड़कर गए थे।
 
-Changes automatically save होते हैं। toolbar में एक pill इसे track करता है: change चलते समय **Saving…**, फिर **Saved**, या अगर काम नहीं बना तो **Could not save**। कोई Save button नहीं है और कोई अलग publish step नहीं है।
+बदलाव अपने-आप सहेजे जाते हैं। toolbar में एक pill इसका हिसाब रखता है: बदलाव रास्ते में हो तो **Saving…**, फिर **सहेजा गया**, और बात न बनी तो **सहेजा नहीं जा सका**। न कोई Save बटन है, न अलग से publish का कोई कदम।
 
-## एक block पर क्या होता है
+## Block पर क्या-क्या होता है
 
-| Field                          | यह क्या करता है                                                                                                                                                     |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Identifier** (**ID** के नीचे) | block पर दिखने वाला short id, जैसे `log-1`। इसी से बाकी blocks इसका reference देते हैं, इसलिए इसका नाम बदलना इस पर point करने वाले हर `{{local.components.…}}` reference को तोड़ देता है। block की heading component का खुद का नाम है और बदली नहीं जा सकती। |
-| **Settings**                    | block को अपना काम करने के लिए जिस चीज़ की जरूरत है — एक URL, एक Slack channel, एक message body। Optional fields **(Optional)** के रूप में label होते हैं; बाकी सब required है। कम इस्तेमाल होने वाली settings एक **Advanced** disclosure के पीछे रहती हैं। |
-| **Input**                       | ऊपरी edge पर वह dot, जहाँ पहले वाले blocks से lines आती हैं। Triggers के पास यह नहीं होता — उनसे पहले कुछ नहीं चलता।                                                              |
-| **Outputs**                     | नीचे की edge पर मौजूद dots, जिनके ऊपर उनका label होता है, जहाँ से lines अगले blocks की ओर जाती हैं। कई blocks के अलग **Success** और **Error** outputs होते हैं ताकि आप दोनों cases handle कर सकें। |
+| फ़ील्ड                          | यह क्या करता है                                                                                                                                                                                              |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Identifier** (**ID** के नीचे) | block पर दिखने वाला छोटा id, जैसे `log-1`। बाकी blocks इसी से इस block को पहचानते हैं, इसलिए इसे बदलते ही इस पर आती हर `{{local.components.…}}` reference टूट जाती है। block का शीर्षक घटक का अपना नाम है, जिसे बदला नहीं जा सकता। |
+| **सेटिंग्स**                     | अपना काम करने के लिए block को जो चाहिए — कोई URL, कोई Slack चैनल, कोई संदेश। वैकल्पिक फ़ील्ड पर **(वैकल्पिक)** लिखा रहता है; बाकी सब ज़रूरी हैं। कम काम आने वाली सेटिंग्स **उन्नत** disclosure के पीछे रहती हैं। |
+| **Input**                     | ऊपरी किनारे पर बना बिंदु, जहाँ पिछले blocks से लाइनें आकर मिलती हैं। Triggers पर यह नहीं होता — उनसे पहले कुछ चलता ही नहीं।                                                                                       |
+| **Outputs**                   | निचले किनारे पर बने बिंदु, जिनके ठीक ऊपर उनके नाम लिखे रहते हैं और जहाँ से लाइनें अगले blocks की ओर निकलती हैं। कई blocks में **सफलता** और **त्रुटि** के अलग-अलग outputs होते हैं, ताकि आप दोनों हालात सँभाल सकें।       |
 
-## Blocks को connect करना
+## Blocks को जोड़ना
 
-एक block के नीचे मौजूद dot से खींचकर अगले block के ऊपर वाले dot तक ले जाएं। जो line आप खींचते हैं वह तय करती है कि आगे क्या चलेगा।
+एक block के नीचे वाले बिंदु से खींचकर अगले block के ऊपर वाले बिंदु तक लाइए। आप जो लाइन खींचते हैं, वही तय करती है कि आगे क्या चलेगा।
 
-- अगर आप **Success** से connect करते हैं, तो अगला block तभी चलता है जब पहला वाला काम कर गया हो।
-- अगर आप **Error** से connect करते हैं, तो अगला block तभी चलता है जब पहला वाला fail हो गया हो।
-- अगर आप किसी output को connect नहीं करते, तो वह path वहीं रुक जाता है।
+- **सफलता** से जोड़ेंगे, तो अगला block तभी चलेगा जब पिछला block सफल रहा हो।
+- **त्रुटि** से जोड़ेंगे, तो अगला block तभी चलेगा जब पिछला block नाकाम रहा हो।
+- कोई output कहीं न जोड़ा हो, तो वह रास्ता वहीं खत्म हो जाता है।
 
-आप एक output को कई blocks से connect कर सकते हैं। वे सभी चलते हैं — लेकिन एक के बाद एक, एक ही queue में, parallel में नहीं। branches के बीच order पर भरोसा न करें, और यह उम्मीद न करें कि वे समय में overlap करेंगे। हर block एक run में ज्यादा से ज्यादा एक बार चलता है, इसलिए किसी पहले वाले block पर वापस जाने वाला loop उसे दो बार नहीं चलाएगा।
+एक output को कई blocks से जोड़ा जा सकता है। वे सब चलते हैं — पर एक के बाद एक, एक ही कतार में, साथ-साथ नहीं। शाखाओं के आपसी क्रम पर भरोसा मत कीजिए, और यह भी मत मान लीजिए कि वे एक ही समय पर चलेंगी। हर block एक run में ज़्यादा से ज़्यादा एक बार चलता है, इसलिए किसी पिछले block पर लौटता loop उसे दोबारा नहीं चलाएगा।
 
-## एक block को configure करना
+## Block की सेटिंग्स भरना
 
-किसी block पर क्लिक करने पर उसकी settings एक dialog में खुलती हैं। हर setting के पास सही तरह का input होता है — text fields, dropdowns, code editors, toggles, वगैरह। इसे भरें और **Save** पर क्लिक करें।
+किसी block पर क्लिक कीजिए, उसकी सेटिंग्स एक dialog में खुल जाती हैं। हर सेटिंग के लिए उसके मुताबिक input होता है — text फ़ील्ड, dropdown, code editor, toggle, वग़ैरह। भरिए और **सहेजें** दबा दीजिए।
 
-यही dialog वह जगह है जहाँ आपको मिलता है:
+इसी dialog में आपको ये भी मिलते हैं:
 
-- **Delete** — इस block को हटाएं।
-- **Run just this step** — बाकी workflow के बिना, सिर्फ इस एक block को अपने-आप चलाएं। जो values यह दूसरे steps से पढ़ता, वे खाली आती हैं, और जो कुछ भी यह भेजता है, लिखता है या delete करता है वह वाकई होता है।
-- **Documentation**, **Inputs**, **Outputs** और **Returns** — यह block क्या उम्मीद करता है और क्या produce करता है, इसके reference cards।
+- **हटाएं** — यह block हटा दीजिए।
+- **Run just this step** — बाकी वर्कफ़्लो के बिना सिर्फ़ इसी block को चलाइए। दूसरे चरणों से जो मान इसे मिलते, वे खाली आते हैं, पर यह जो भेजता, लिखता या मिटाता है वह सचमुच होता है।
+- **दस्तावेज़ीकरण**, **Inputs**, **Outputs** और **Returns** — यह block क्या माँगता है और क्या देता है, इसके संदर्भ कार्ड।
 
-ज्यादातर text fields variables accept करते हैं — इसी तरह data एक block से दूसरे तक बहता है। syntax हाथ से type करने के बजाय, editor में मौजूद value picker का उपयोग करें: यह आपके चुने गए block और field से एक सही reference बना देता है। [Variables](/docs/workflows/variables) देखें।
+ज़्यादातर text फ़ील्ड variables लेते हैं — data एक block से दूसरे तक इसी तरह पहुँचता है। syntax हाथ से टाइप करने के बजाय editor के value picker का इस्तेमाल कीजिए: आपके चुने हुए block और फ़ील्ड से वह सही reference खुद बना देता है। देखिए [वर्कफ़्लो वेरिएबल](/docs/workflows/variables)।
 
-## आप जैसे-जैसे बनाते हैं, checks होते रहते हैं
+## बनाते-बनाते होती जाँच
 
-Builder हर बार जब आप इसे बदलते हैं तो पूरे graph को check करता है, और toolbar में एक pill में अपने findings बताता है। pill पर क्लिक करके **Problems with this workflow** खोलें, जो हर issue को सूचीबद्ध करता है और आपको जिम्मेदार block तक ले जाता है। किसी problem वाले blocks पर canvas पर एक red badge भी होता है।
+आप जब भी कुछ बदलते हैं, बिल्डर पूरे graph की जाँच करता है और जो मिलता है उसे toolbar के एक pill में बता देता है। pill दबाने पर **Problems with this workflow** खुलता है, जो हर दिक़्क़त गिनाता है और आपको ज़िम्मेदार block तक ले जाता है। जिन blocks में गड़बड़ है, canvas पर उन पर लाल badge भी लगा रहता है।
 
-यह उन गलतियों को पकड़ता है जो वरना किसी run के गलत होने तक invisible रहतीं — कोई trigger नहीं, दो blocks एक id share कर रहे हैं, किसी id के अंदर एक dot, कोई block जिससे कुछ भी connect नहीं है, खाली छोड़ी गई एक required setting, malformed JSON, `{{ }}` के अंदर spaces, और किसी ऐसे step या return value का reference जो मौजूद ही नहीं है।
+यह ठीक वे ग़लतियाँ पकड़ता है जो run बिगड़ने तक दिखती ही नहीं — कोई trigger न होना, दो blocks का एक ही id, id के भीतर बिंदु, ऐसा block जिससे कुछ जुड़ा ही न हो, कोई ज़रूरी सेटिंग खाली, बिगड़ा हुआ JSON, `{{ }}` के भीतर spaces, और ऐसे चरण या return value की reference जो है ही नहीं।
 
-एक चीज़ जो यह check नहीं कर सकता: क्या कोई variable name मौजूद है। एक renamed variable सिर्फ run log में दिखता है।
+एक चीज़ यह नहीं जाँच सकता: कोई variable नाम मौजूद है या नहीं। नाम बदला हुआ variable सिर्फ़ run log में सामने आता है।
 
-## आपका पहला workflow
+## आपका पहला वर्कफ़्लो
 
-canvas को महसूस करने का सबसे तेज़ तरीका:
+canvas की आदत पड़ने का सबसे तेज़ तरीका:
 
-1. dashed placeholder block पर क्लिक करें, **Add Trigger** panel में **Manual** चुनें, और **Add to Workflow** पर क्लिक करें।
-2. **Add Component** पर क्लिक करें, (**Utils** के अंतर्गत) **Log** चुनें, और **Add to Workflow** पर क्लिक करें। नए block को trigger से हटाकर खींचें, फिर trigger के **Execute** dot को नीचे Log block के input dot से connect करें।
-3. Log block खोलें और इसका **Value** सेट करें `Hello from {{local.components.manual-1.returnValues.value.name}}`। `manual-1` trigger का **Identifier** है, जो trigger block पर दिखता है — check करें कि यह मेल खाता है।
-4. **Overview** पर जाएं, **Workflow Details** card पर **Edit Workflow** पर क्लिक करें, और **Enabled** on करें। एक disabled workflow बिल्कुल भी नहीं चल सकता, हाथ से भी नहीं।
-5. वापस **Builder** पर, **Run Workflow** पर क्लिक करें, **JSON** field में `{ "name": "Ada" }` डालें, **Run Workflow Manually** पर क्लिक करें, और **Run** से confirm करें।
-6. एक **Workflow Run** panel अपने-आप खुलता है और run को follow करता है। log में `Value:` के बाद `Hello from Ada` दिखता है।
+1. dashed placeholder block पर क्लिक कीजिए, **Add Trigger** panel में **Manual** चुनिए, और **Add to Workflow** दबाइए।
+2. **घटक जोड़ें** दबाइए, (**Utils** के नीचे) **Log** चुनिए, और **Add to Workflow** दबाइए। नए block को खींचकर trigger से अलग कीजिए, फिर trigger के **Execute** बिंदु को Log block के input बिंदु से जोड़ दीजिए।
+3. Log block खोलिए और उसका **मान** `Hello from {{local.components.manual-1.returnValues.value.name}}` कर दीजिए। `manual-1` trigger का **Identifier** है, जो trigger block पर लिखा दिखता है — मिलान कर लीजिए।
+4. **अवलोकन** पर जाइए, **वर्कफ़्लो विवरण** कार्ड पर **वर्कफ़्लो संपादित करें** दबाइए, और **सक्षम** चालू कर दीजिए। बंद वर्कफ़्लो बिल्कुल नहीं चलता, हाथ से भी नहीं।
+5. वापस **बिल्डर** पर आकर **वर्कफ़्लो चलाएं** दबाइए, **JSON** फ़ील्ड में `{ "name": "Ada" }` डालिए, **Run Workflow Manually** दबाइए, और **Run** से पुष्टि कर दीजिए।
+6. एक **Workflow Run** panel खुद-ब-खुद खुलकर run के साथ चलता है। log में `Value:` और उसके बाद `Hello from Ada` दिखता है।
 
-वह cycle — add, connect, configure, run, log पढ़ना — इसी तरह आप हर workflow बनाएंगे।
+यही चक्र — जोड़िए, जोड़-तोड़ कीजिए, सेटिंग्स भरिए, चलाइए, log पढ़िए — हर वर्कफ़्लो बनाने का तरीका है।
 
-## इसे on करना
+## इसे चालू करना
 
-नए workflows disabled शुरू होते हैं, और आपके duplicate या import किए गए किसी भी workflow के साथ भी यही होता है।
+नए वर्कफ़्लो बंद हालत में शुरू होते हैं, और आप जो वर्कफ़्लो copy या import करते हैं वे भी।
 
-**Enabled** switch workflow के **Overview** page पर है, **Workflow Details** card में — Settings page पर नहीं। वही card मौजूदा state को एक हरे **Enabled** या लाल **Disabled** pill के रूप में दिखाता है।
+**सक्षम** switch वर्कफ़्लो के **अवलोकन** पेज पर, **वर्कफ़्लो विवरण** कार्ड में है — सेटिंग्स पेज पर नहीं। वही कार्ड मौजूदा हालत हरे **सक्षम** या लाल **अक्षम** pill के रूप में दिखाता है।
 
-एक disabled workflow बिल्कुल भी नहीं चल सकता। Manual runs को ठीक trigger किए गए runs की तरह "This workflow is not enabled" कहकर reject कर दिया जाता है, इसलिए order यह है: इसे enable करें, **Run Workflow** से इसे test करें, run log पढ़ें, और अगर आप इसके trigger को fire होने देने के लिए तैयार नहीं हैं तो **Enabled** को वापस off कर दें। पूरे workflow को चलाए बिना किसी एक block को test करने के लिए, उस block की settings में **Run just this step** का उपयोग करें।
+बंद वर्कफ़्लो बिल्कुल नहीं चल सकता। हाथ से चलाए गए run भी triggered run की तरह ही "This workflow is not enabled" कहकर लौटा दिए जाते हैं, इसलिए क्रम यह है: चालू कीजिए, **वर्कफ़्लो चलाएं** से परखिए, run log पढ़िए, और अगर trigger चलने देने को अभी तैयार नहीं हैं तो **सक्षम** वापस बंद कर दीजिए। पूरा वर्कफ़्लो चलाए बिना किसी एक block को परखना हो, तो उस block की सेटिंग्स में **Run just this step** का इस्तेमाल कीजिए।
 
-किसी workflow को delete किए बिना pause करने के लिए, **Enabled** को off करें। कोई नया run शुरू नहीं होता। जो run mid-execution में है वह पूरा होता है, लेकिन कोई एक जो **Sleep** block पर parked है वह जागने पर cancel कर दिया जाता है और एक error के रूप में record होता है।
+वर्कफ़्लो को हटाए बिना रोकना हो, तो **सक्षम** बंद कर दीजिए। कोई नया run शुरू नहीं होता। जो run बीच में चल रहा है वह पूरा हो जाता है, पर **Sleep** block पर टिका run जागते ही रद्द कर दिया जाता है और त्रुटि के रूप में दर्ज होता है।
 
-## साफ-सफाई
+## सफ़ाई-सुथराई
 
-- Blocks को move करने के लिए खींचें। layout save होता है।
-- किसी line को delete करने के लिए, इसके किसी एक end को dot से खींचकर खाली canvas पर छोड़ दें।
-- किसी block को delete करने के लिए, इस पर क्लिक करें और इसकी settings dialog के नीचे मौजूद **Delete** का उपयोग करें। किसी block या line को select करके Backspace दबाना भी इसे हटा देता है।
-- किसी एक block को duplicate करने का कोई तरीका नहीं है। workflow के **Settings** page पर **Duplicate Workflow** पूरी चीज़ copy करता है, और copy disabled होकर आती है।
-- Blocks को ऊपर से नीचे stack करें ताकि वे उसी दिशा में पढ़े जाएं जिस दिशा में वे चलते हैं — inputs ऊपरी edge पर हैं, outputs नीचे की edge पर, इसलिए flow स्वाभाविक रूप से नीचे की ओर जाता है।
+- Blocks खींचकर इधर-उधर कीजिए। सजावट सहेज ली जाती है।
+- कोई लाइन हटानी हो, तो उसका कोई एक सिरा बिंदु से खींचकर खाली canvas पर छोड़ दीजिए।
+- कोई block हटाना हो, तो उस पर क्लिक कीजिए और उसकी सेटिंग्स dialog में सबसे नीचे **हटाएं** दबाइए। block या लाइन चुनकर Backspace दबाने से भी वह हट जाता है।
+- किसी अकेले block की नक़ल बनाने का कोई तरीका नहीं है। वर्कफ़्लो के **सेटिंग्स** पेज पर मौजूद **Duplicate Workflow** पूरी चीज़ की नक़ल बनाता है, और वह नक़ल बंद हालत में आती है।
+- Blocks को ऊपर से नीचे सजाइए ताकि वे उसी दिशा में पढ़े जाएँ जिस दिशा में चलते हैं — input ऊपरी किनारे पर हैं और output निचले किनारे पर, इसलिए बहाव अपने-आप नीचे की ओर जाता है।
 
 ## आगे क्या पढ़ें
 
-- [Triggers](/docs/workflows/triggers) — जिन चार तरीकों से एक workflow शुरू हो सकता है।
-- [Components](/docs/workflows/components) — वह हर block जिसे आप जोड़ सकते हैं।
-- [Variables](/docs/workflows/variables) — blocks के बीच data move करना।
-- [Runs & Logs](/docs/workflows/runs-and-logs) — यह देखना कि क्या हुआ।
+- [वर्कफ़्लो ट्रिगर](/docs/workflows/triggers) — वे चार तरीके जिनसे कोई वर्कफ़्लो शुरू हो सकता है।
+- [वर्कफ़्लो घटक](/docs/workflows/components) — हर वह block जिसे आप जोड़ सकते हैं।
+- [वर्कफ़्लो वेरिएबल](/docs/workflows/variables) — blocks के बीच data ले जाना।
+- [वर्कफ़्लो रन और लॉग](/docs/workflows/runs-and-logs) — यह देखना कि हुआ क्या।

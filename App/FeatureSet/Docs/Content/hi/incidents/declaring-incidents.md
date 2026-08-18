@@ -1,114 +1,114 @@
-# Declaring an Incident
+# घटना घोषित करना
 
-किसी incident को declare करना वह क्षण है जब OneUptime score रखना शुरू करता है। एक record बनता है, उस पर एक number stamp होता है, on-call policies चलती हैं, और — जब तक आप इसे मना नहीं करते — आपके status page subscribers को इसके बारे में पता चलता है। incident lifecycle में बाकी सब कुछ उस पहले write पर टिका होता है।
+घटना घोषित करना वह क्षण है जब OneUptime हिसाब रखना शुरू करता है। एक रिकॉर्ड बनता है, उस पर एक संख्या की मुहर लगती है, ऑन-कॉल नीतियां चलती हैं, और — जब तक आप मना न करें — आपके स्थिति पृष्ठ के सब्सक्राइबर को इसकी खबर मिल जाती है। घटना जीवनचक्र की बाकी हर चीज़ उसी पहले write पर टिकी है।
 
-OneUptime में एक incident आने के चार तरीके हैं, और वे सब एक ही जगह पहुँचते हैं: `Incident` table में एक row जिसमें एक severity, एक current state, और affected resources की एक list होती है। फर्क बस इतना है कि fields कौन भरता है — आप रात 3 बजे, एक saved template, किसी monitor की criteria, या आपका अपना code जो API को call करता है।
+घटना OneUptime में चार तरीकों से आती है, और चारों एक ही जगह पहुँचते हैं: `Incident` table में एक row, जिसमें गंभीरता, मौजूदा स्थिति और प्रभावित संसाधनों की सूची होती है। फ़र्क़ सिर्फ़ इतना है कि फ़ील्ड कौन भरता है — रात तीन बजे आप, कोई सहेजा हुआ टेम्पलेट, किसी मॉनिटर के मानदंड, या API को कॉल करता आपका अपना code।
 
-यह page सभी चारों को field-by-field देखता है, और फिर यह बताता है कि server आपके लिए क्या भरता है और incident के बनते ही क्या चलता है।
+यह पेज चारों रास्तों पर फ़ील्ड-दर-फ़ील्ड चलता है, और फिर बताता है कि server आपके लिए क्या भरता है और घटना बनते ही क्या-क्या चल पड़ता है।
 
-## एक incident declare होने के चार तरीके
+## घटना घोषित होने के चार तरीके
 
-| अगर आप चाहते हैं…                                              | चुनें                                                                        |
+| अगर आप चाहते हैं…                                              | तो चुनें                                                                        |
 | ------------------------------------------------------------ | --------------------------------------------------------------------------- |
-| एक incident हाथ से खोलना, सब कुछ खुद भरते हुए                    | **Declare Incident** wizard                                                 |
-| एक repeating तरह का incident खोलना जिसमें fields pre-filled हों | **Create from Template**                                                    |
-| किसी monitor की checks fail होने पर अपने-आप एक खोलना            | एक monitor criteria filter जिसमें **When filters match, declare an incident.** हो |
-| अपने खुद के code, script, या किसी और tool से एक खोलना            | `POST /api/incident`                                                        |
+| हाथ से घटना खोलना, सब कुछ खुद भरते हुए              | **घटना घोषित करें** wizard                                             |
+| बार-बार आने वाली तरह की घटना, फ़ील्ड पहले से भरे हुए | **टेम्पलेट से बनाएँ**                                                    |
+| मॉनिटर की जाँच फेल होने पर अपने आप घटना खुलना          | **When filters match, declare an incident.** वाला monitor criteria filter |
+| अपने code, script या किसी दूसरे tool से घटना खोलना       | `POST /api/incident`                                                        |
 
-चारों एक ही model पर write करते हैं, इसलिए किसी probe द्वारा खोला गया incident बिल्कुल वैसा ही दिखता है जैसा किसी responder द्वारा हाथ से खोला गया — बस automatic incidents पर server द्वारा set की गई कुछ bookkeeping columns को छोड़कर।
+चारों वही एक model लिखते हैं, इसलिए किसी probe की खोली घटना और किसी responder की हाथ से खोली घटना बिल्कुल एक जैसी दिखती है — बस कुछ बहीखाता columns को छोड़कर, जो server स्वचालित घटनाओं पर सेट करता है।
 
-## हाथ से एक declare करना
+## हाथ से घोषित करना
 
-**Incidents → All Incidents** खोलें और **Incidents** list के top right में **Declare Incident** पर क्लिक करें। इससे आप **Declare New Incident** शीर्षक वाले एक card पर पहुँचते हैं, जो form को पाँच steps में फैलाता है: **Incident Details**, **Resources Affected**, **Incident Roles**, **On-Call** और **More**। अंत में submit button भी **Declare Incident** पढ़ता है।
+**घटनाएं → सभी घटनाएं** खोलें और **घटनाएं** सूची के ऊपर दाईं ओर **घटना घोषित करें** पर click करें। इससे आप **नई घटना घोषित करें** शीर्षक वाले card पर पहुँचते हैं, जो form को पाँच चरणों में फैलाता है: **घटना विवरण**, **प्रभावित संसाधन**, **घटना भूमिकाएं**, **ऑन-कॉल** और **अधिक**। अंत में submit बटन पर भी **घटना घोषित करें** ही लिखा होता है।
 
-सिर्फ पहले step में required fields हैं। अगर आपको जल्दी है, तो **Incident Details** भरें और submit करें — आप बाद में incident के अपने pages से resources attach कर सकते हैं, roles assign कर सकते हैं और on-call policies जोड़ सकते हैं।
+सिर्फ़ पहले चरण में आवश्यक फ़ील्ड हैं। जल्दी में हों तो **घटना विवरण** भरकर submit कर दीजिए — संसाधन जोड़ना, भूमिकाएं सौंपना और ऑन-कॉल नीतियां जोड़ना घटना के अपने पेजों से बाद में भी हो जाएगा।
 
-### Step 1 — Incident Details
+### चरण 1 — घटना विवरण
 
-- **Title** — required। वह एक-लाइन summary जो सभी को list में, Slack में, और (अगर incident visible है) आपके status page पर दिखेगी। Placeholder: `Incident Title`।
-- **Description** — optional, Markdown में लिखा गया। यही वह field है जो status page पर render होता है, इसलिए इसे अपनी टीम के लिए नहीं बल्कि customers के लिए लिखें। आप इसे बाद में incident side menu में **Description** से edit कर सकते हैं।
-- **Declared At** — form में required, डिफ़ॉल्ट रूप से अभी (now) पर सेट। यह वह timestamp है जिससे incident पर हर duration मापी जाती है, इसलिए अगर आप कुछ ऐसा रिकॉर्ड कर रहे हैं जो पहले शुरू हुआ था तो इसे back-date करें।
-- **Incident Severity** — required। आपके project के लिए configure की गई severities में से एक; नए projects **Critical Incident**, **Major Incident** और **Minor Incident** के साथ seed होते हैं।
-- **Incident State** — optional। इसे न छुएँ तो incident उस state में पहुँचता है जो `isCreatedState` से flag है, जिसे नए projects **Identified** के रूप में seed करते हैं। इसे तभी सेट करें जब आप ऐसा incident रिकॉर्ड कर रहे हों जो पहले ही उस point से आगे निकल चुका था।
+- **शीर्षक** — आवश्यक। एक पंक्ति का सारांश जो सूची में, Slack में और (अगर घटना दिख रही है तो) आपके स्थिति पृष्ठ पर सबको दिखेगा। Placeholder: `Incident Title`।
+- **विवरण** — वैकल्पिक, Markdown में लिखा जाता है। यही वह फ़ील्ड है जो स्थिति पृष्ठ पर दिखता है, इसलिए इसे अपनी टीम के लिए नहीं, ग्राहकों के लिए लिखिए। इसे बाद में घटना के side menu में **विवरण** से संपादित किया जा सकता है।
+- **घोषित किया गया** — form में आवश्यक, डिफ़ॉल्ट रूप से अभी का समय। घटना की हर अवधि इसी timestamp से नापी जाती है, इसलिए अगर आप कुछ पहले शुरू हुई चीज़ दर्ज कर रहे हैं तो इसे पीछे कर दीजिए।
+- **घटना गंभीरता** — आवश्यक। आपके प्रोजेक्ट के लिए configure की गई गंभीरताओं में से एक; नए प्रोजेक्ट में **गंभीर घटना**, **प्रमुख घटना** और **छोटी घटना** seed होती हैं।
+- **घटना स्थिति** — वैकल्पिक। इसे छेड़िए मत और घटना उस स्थिति में पहुँचेगी जिस पर `isCreatedState` flag है, जिसे नए प्रोजेक्ट **पहचाना गया** के रूप में seed करते हैं। इसे तभी सेट करें जब आप ऐसी घटना दर्ज कर रहे हों जो पहले ही उस बिंदु से आगे निकल चुकी थी।
 
-**अगर state dropdown परेशानी दे।** अगर आपके project में कोई state `isCreatedState` flag नहीं रखता, तो create call fail हो जाता है और आपको settings से एक created incident state जोड़ने के लिए कहता है। यह आमतौर पर तभी होता है जब किसी project के states में बहुत बदलाव किया गया हो — देखें [Incident States & Severities](/docs/incidents/states-and-severities)।
+**अगर स्थिति वाला dropdown परेशान करे।** अगर आपके प्रोजेक्ट में `isCreatedState` flag वाली कोई स्थिति नहीं है, तो create कॉल विफल हो जाती है और आपसे सेटिंग्स से created incident state जोड़ने को कहती है। ऐसा आम तौर पर उसी प्रोजेक्ट में होता है जिसकी स्थितियाँ खूब संपादित की गई हों — [घटना स्थितियाँ और गंभीरता](/docs/incidents/states-and-severities) देखें।
 
-### Step 2 — Resources Affected
+### चरण 2 — प्रभावित संसाधन
 
-- **Resources Affected** — एक ही search box जो monitors, hosts, Kubernetes clusters, Docker hosts, Podman hosts और services को attach करता है। Under the hood ये incident पर अलग-अलग relations हैं (`monitors`, `hosts`, `kubernetesClusters`, `dockerHosts`, `podmanHosts`, `services` और अन्य), लेकिन form इन्हें एक ही picker में समेट देता है।
-- **Change Monitor Status to** — optional। एक monitor status चुनता है जो इस incident से जुड़े हर monitor पर लागू होता है, ताकि incident declare करना और monitors को degraded मार्क करना एक साथ एक ही action बन जाए।
+- **प्रभावित संसाधन** — एक ही search box, जो मॉनिटर, होस्ट, Kubernetes क्लस्टर, Docker होस्ट, Podman होस्ट और सेवाएं जोड़ता है। भीतर से ये घटना पर अलग-अलग relations हैं (`monitors`, `hosts`, `kubernetesClusters`, `dockerHosts`, `podmanHosts`, `services` और बाकी), पर form इन सबको एक ही picker में समेट देता है।
+- **Change Monitor Status to** — वैकल्पिक। एक मॉनिटर स्थिति चुनता है जो इस घटना से जुड़े हर मॉनिटर पर लागू होती है, ताकि घटना घोषित करना और मॉनिटर को degraded चिह्नित करना दो काम नहीं, एक ही काम रहे।
 
-**Monitors attach करें भले ही यह फालतू लगे।** किसी incident और status page के बीच link उस incident के monitors से होकर गुजरता है: एक status page किसी incident को तब दिखाता है जब उसके resources में से कोई एक उस incident के monitors में से एक हो। जब किसी incident से कोई monitor attached नहीं होता, तो subscribers को state-change notification बिल्कुल भेजी ही नहीं जाती। देखें [Status Page Resources & Groups](/docs/status-pages/resources-and-groups)।
+**मॉनिटर तब भी जोड़िए जब यह गैरज़रूरी लगे।** घटना और स्थिति पृष्ठ के बीच की कड़ी घटना के मॉनिटरों से होकर जाती है: स्थिति पृष्ठ किसी घटना को तभी दिखाता है जब उसका कोई संसाधन उस घटना के मॉनिटरों में से एक हो। घटना से कोई मॉनिटर जुड़ा ही न हो तो सब्सक्राइबर को जाने वाली स्थिति-बदलाव सूचना सीधे छोड़ दी जाती है। [स्थिति पृष्ठ संसाधन और समूह](/docs/status-pages/resources-and-groups) देखें।
 
-### Step 3 — Incident Roles
+### चरण 3 — घटना भूमिकाएं
 
-- **Assign Incident Roles** — team members को आपके project द्वारा defined roles पर assign करें। कुछ roles एक से ज्यादा user स्वीकार करते हैं।
+- **घटना भूमिकाएं असाइन करें** — अपने प्रोजेक्ट में परिभाषित भूमिकाओं पर टीम के सदस्य लगाएँ। कुछ भूमिकाएँ एक से ज़्यादा उपयोगकर्ता स्वीकार करती हैं।
 
-Roles खुद **Incidents → Settings → Incident Roles** पर configure होती हैं, जहाँ आप वे roles परिभाषित करते हैं जिन्हें response के दौरान assign किया जा सकता है — Incident Commander, Responder, और आपकी process को जो भी और चाहिए। अगर आप यह step skip करते हैं, तो अगर अभी तक कोई भी role नहीं रखता तो पहले state change पर एक Incident Commander अपने-आप assign हो जाता है।
+भूमिकाएँ खुद **घटनाएं → सेटिंग्स → घटना भूमिकाएं** पर configure होती हैं, जहाँ आप वे भूमिकाएँ तय करते हैं जो प्रतिक्रिया के दौरान सौंपी जा सकें — घटना कमांडर, Responder, और जो कुछ भी आपकी प्रक्रिया माँगती हो। इस चरण को छोड़ दें, तो पहली स्थिति बदलने पर एक घटना कमांडर अपने आप सौंप दिया जाता है, बशर्ते वह भूमिका अभी किसी के पास न हो।
 
-### Step 4 — On-Call
+### चरण 4 — ऑन-कॉल
 
-- **On-Call Policy** — इस incident के बनने पर execute होने वाली on-call duty policies का एक multi-select। यह incident पर `onCallDutyPolicies` से mapped होता है।
+- **ऑन-कॉल नीति** — इस घटना के बनने पर execute होने वाली on-call duty नीतियों का multi-select। यह घटना पर `onCallDutyPolicies` से मैप होता है।
 
-यह इकलौती जगह है जहाँ कोई on-call policy किसी incident से सीधे attach होती है। Severities कोई on-call policy नहीं रखतीं — severity एक label है, और यह paging को सिर्फ एक on-call rule के अंदर *match criterion* के रूप में प्रभावित करती है। **Incidents → Rules → On-Call Rules** पर configure किए गए rules यहाँ आपके चुने हुए के ऊपर अपनी policies जोड़ते हैं; जो final set चलता है वह दोनों का deduplicated union होता है।
+घटना से ऑन-कॉल नीति सीधे जोड़ने की यही एकमात्र जगह है। गंभीरताओं के साथ कोई ऑन-कॉल नीति नहीं आती — गंभीरता एक लेबल है, और पेजिंग पर उसका असर सिर्फ़ ऑन-कॉल नियम के भीतर एक *मिलान मानदंड* के रूप में पड़ता है। **घटनाएं → नियम → ऑन-कॉल नियम** पर configure किए गए नियम अपनी नीतियां आपके यहाँ चुनी हुई नीतियों के ऊपर जोड़ देते हैं; अंत में जो set चलता है वह दोनों का deduplicated union है।
 
-### Step 5 — More
+### चरण 5 — अधिक
 
-- **Labels** — optional और एक advanced feature: इन labels तक access रखने वाले team members ही वे होते हैं जो incident को access कर सकते हैं।
-- **Notify Status Page Subscribers** — checkbox, डिफ़ॉल्ट रूप से on। यह नियंत्रित करता है कि incident बनने पर subscribers को email किया जाए या नहीं (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`)। इसे उन internal चीज़ों के लिए off करें जिन्हें आप फिर भी record करना चाहते हैं।
-- **Private Incident** — checkbox, डिफ़ॉल्ट रूप से off (`isPrivate`)। एक private incident सिर्फ उसके owner users, उसकी owner teams के members, project admins और project owners को दिखता है — और यह हर status page से छिपा रहता है, चाहे कोई भी दूसरी setting हो। incidents list इन्हें एक red **Private** pill से चिह्नित करती है।
+- **लेबल** — वैकल्पिक और एक उन्नत सुविधा: घटना तक वही टीम सदस्य पहुँच सकते हैं जिनकी इन लेबल तक पहुँच है।
+- **स्थिति पृष्ठ ग्राहकों को सूचित करें** — checkbox, डिफ़ॉल्ट रूप से चालू। यह तय करता है कि घटना बनने पर सब्सक्राइबर को ईमेल जाए या नहीं (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`)। जो शोर आप भीतर दर्ज तो रखना चाहते हैं पर बाहर नहीं भेजना, उसके लिए इसे बंद कर दें।
+- **निजी घटना** — checkbox, डिफ़ॉल्ट रूप से बंद (`isPrivate`)। निजी घटना सिर्फ़ उसके स्वामी उपयोगकर्ताओं, उसकी स्वामी टीमों के सदस्यों, प्रोजेक्ट admins और प्रोजेक्ट स्वामियों को दिखती है — और वह हर स्थिति पृष्ठ से छिपी रहती है, बाकी किसी भी सेटिंग के बावजूद। घटनाओं की सूची इन्हें लाल **Private** pill से चिह्नित करती है।
 
-**Should be visible on status page?** flag (`isVisibleOnStatusPage`) wizard पर नहीं है; यह डिफ़ॉल्ट रूप से true होता है। इसे बाद में incident side menu में **Settings** से बदलें, जहाँ इसे **Visible on Status Page** लेबल किया गया है।
+**Should be visible on status page?** flag (`isVisibleOnStatusPage`) wizard पर नहीं है; यह डिफ़ॉल्ट रूप से true रहता है। इसे बाद में घटना के side menu में **सेटिंग्स** से बदलें, जहाँ इसका लेबल **स्थिति पृष्ठ पर दृश्यमान** है।
 
-## एक template से declare करना
+## टेम्पलेट से घोषित करना
 
-अगर आप बार-बार एक जैसे shape का incident declare करते रहते हैं — वही title pattern, वही severity, वही on-call policy — तो इसे एक बार template के रूप में save कर लें।
+अगर आप बार-बार एक ही तरह की घटना घोषित करते हैं — वही शीर्षक पैटर्न, वही गंभीरता, वही ऑन-कॉल नीति — तो उसे एक बार टेम्पलेट के रूप में सहेज लीजिए।
 
-**Declare Incident** के बगल में मौजूद outline button, **Create from Template** पर क्लिक करें और एक **Create Incident from Template** modal खुलता है, जिसमें एक **Select Incident Template** dropdown होता है। एक template चुनें और create form pre-filled खुल जाता है; submit करने से पहले आप फिर भी कुछ भी बदल सकते हैं। अगर आपके project में अभी तक कोई templates नहीं हैं, तो इसके बजाय आपको एक **No Incident Templates** modal मिलता है, जिसमें एक **Create Template** button होता है जो आपको **Incidents → Settings → Incident Templates** पर ले जाता है।
+**टेम्पलेट से बनाएँ** (**घटना घोषित करें** के बगल वाला outline बटन) पर click कीजिए और **टेम्पलेट से घटना बनाएँ** modal खुलता है, जिसमें **घटना टेम्पलेट चुनें** dropdown होता है। कोई टेम्पलेट चुनिए और create form पहले से भरा हुआ खुल जाता है; submit करने से पहले आप कुछ भी बदल सकते हैं। अगर आपके प्रोजेक्ट में अभी कोई टेम्पलेट नहीं है, तो इसकी जगह **No Incident Templates** modal मिलता है, जिसमें एक **Create Template** बटन आपको **घटनाएं → सेटिंग्स → घटना टेम्पलेट** पर ले जाता है।
 
-Templates अपने खुद के six-step wizard के साथ बनाए जाते हैं — **Template Info**, **Incident Details**, **Resources Affected**, **On-Call**, **Owners**, **Labels** — इन fields के साथ:
+टेम्पलेट अपने छह-चरणों वाले wizard से बनते हैं — **टेम्पलेट जानकारी**, **घटना विवरण**, **प्रभावित संसाधन**, **ऑन-कॉल**, **मालिक**, **लेबल** — और इनमें ये फ़ील्ड होते हैं:
 
-| Field                         | उद्देश्य                                                |
-| ----------------------------- | ------------------------------------------------------ |
-| **Template Name**             | picker में template को कैसे पहचाना जाता है।              |
-| **Template Description**      | अपने भविष्य के खुद के लिए एक नोट कि इसे कब इस्तेमाल करें। |
-| **Title**                     | incident पर pre-filled होने वाला title।                 |
-| **Description**               | incident पर pre-filled होने वाला Markdown description।  |
-| **Incident Severity**         | incident पर pre-filled होने वाली severity।              |
-| **Initial Incident State**    | वह state जिसमें इस template से बने incidents शुरू होते हैं। |
-| **Resources Affected**        | attach करने के लिए monitors, hosts, clusters और services। |
-| **Change Monitor Status to**  | attached monitors पर लागू होने वाला monitor status।      |
-| **On-Call Policy**            | incident बनने पर execute होने वाली policies।             |
-| **Owner - Teams**             | इस template से बने incidents को owner करने वाली teams।   |
-| **Owner - Users**             | इस template से बने incidents को owner करने वाले users।   |
-| **Labels**                    | incident पर लागू किए जाने वाले labels।                    |
+| फ़ील्ड                        | काम                                                |
+| ---------------------------- | ------------------------------------------------------ |
+| **टेम्पलेट नाम**            | Picker में टेम्पलेट किस नाम से पहचाना जाता है।          |
+| **टेम्पलेट विवरण**     | अपने भविष्य के लिए नोट कि इसे कब उठाना है। |
+| **शीर्षक**                    | वह शीर्षक जो घटना पर पहले से भर जाता है।                |
+| **विवरण**              | Markdown विवरण जो घटना पर पहले से भर जाता है।     |
+| **घटना गंभीरता**        | वह गंभीरता जो घटना पर पहले से भर जाती है।                 |
+| **प्रारंभिक घटना स्थिति**   | इस टेम्पलेट से बनी घटनाएँ जिस स्थिति में शुरू होती हैं।       |
+| **प्रभावित संसाधन**       | जोड़े जाने वाले मॉनिटर, होस्ट, क्लस्टर और सेवाएं।      |
+| **Change Monitor Status to** | जुड़े हुए मॉनिटरों पर लागू की जाने वाली मॉनिटर स्थिति।      |
+| **ऑन-कॉल नीति**           | घटना बनने पर execute होने वाली नीतियां।      |
+| **स्वामी - टीमें**            | वे टीमें जो इस टेम्पलेट से बनी घटनाओं की स्वामी हैं।   |
+| **स्वामी - उपयोगकर्ता**            | वे उपयोगकर्ता जो इस टेम्पलेट से बनी घटनाओं के स्वामी हैं।   |
+| **लेबल**                   | घटना पर लागू होने वाले लेबल।                        |
 
 कुछ त्वरित नियम:
 
-- Templates को templates list से edit नहीं किया जा सकता — आप एक बनाते हैं, फिर इसे बदलने के लिए इसे खोलते हैं।
-- एक template सिर्फ उस field को भरता है जिसे आपने खाली छोड़ा था। create page पर template को एक pre-fill की तरह लागू किया जाता है जिसे आप overwrite कर सकते हैं; API पर, server किसी field को template से तभी भरता है जब request में वह field `undefined` छोड़ी गई हो। caller ने जो भी दिया हो वह हमेशा जीतता है।
+- टेम्पलेट सूची से संपादित नहीं किए जा सकते — आप एक बनाते हैं, फिर उसे बदलने के लिए खोलते हैं।
+- टेम्पलेट सिर्फ़ वही फ़ील्ड भरता है जिसे आपने खाली छोड़ा हो। Create पेज पर टेम्पलेट एक pre-fill की तरह लगता है जिसे आप बदल सकते हैं; API पर server किसी फ़ील्ड को टेम्पलेट से तभी भरता है जब request ने उस फ़ील्ड को `undefined` छोड़ा हो। Caller ने जो भेजा है वह हमेशा जीतता है।
 
-## Monitor criteria से अपने-आप declare करना
+## Monitor criteria से अपने आप घोषित करना
 
-ज्यादातर incidents को किसी इंसान द्वारा टाइप किए जाने की जरूरत नहीं होनी चाहिए। किसी monitor के criteria editor में, **When filters match, declare an incident.** toggle को on करें और एक **Add Incident** button के साथ एक **Create Incident** section दिखता है — एक criteria filter एक से ज्यादा incidents declare कर सकता है।
+ज़्यादातर घटनाओं के लिए किसी इंसान को टाइप करने की ज़रूरत नहीं होनी चाहिए। किसी मॉनिटर के criteria editor में **When filters match, declare an incident.** toggle चालू कीजिए और एक **घटना बनाएं** सेक्शन दिखने लगता है जिसमें **घटना जोड़ें** बटन होता है — एक ही criteria filter एक से ज़्यादा घटनाएँ घोषित कर सकता है।
 
-हर entry में होता है:
+हर entry में यह होता है:
 
-- **Incident Title** — templating को support करता है; placeholder कुछ ऐसा suggest करता है जैसे `{{monitorName}} is down`।
-- **Severity** — required।
-- **Incident Description** — यह भी templated है।
-- **On-Call → On-Call Policies** — इस incident के बनने पर execute होने वाली policies।
-- **Incident Roles** — team members को roles पर pre-assign करें।
-- **Ownership & Labels → Owner Teams**, **Owner Users**, **Labels**।
-- **Advanced Options → Auto Resolve Incident** (criteria मेल खाना बंद होने पर incident को अपने-आप resolve करता है), **Show Incident on Status Page**, **Private Incident** और **Remediation Notes**।
+- **घटना शीर्षक** — templating सपोर्ट करता है; placeholder कुछ ऐसा सुझाता है जैसे `{{monitorName}} is down`।
+- **गंभीरता** — आवश्यक।
+- **घटना विवरण** — इसमें भी templating चलती है।
+- **ऑन-कॉल → ऑन-कॉल नीतियां** — इस घटना के बनने पर execute होने वाली नीतियां।
+- **घटना भूमिकाएं** — टीम सदस्यों को भूमिकाओं पर पहले से लगा दें।
+- **स्वामित्व और लेबल → स्वामी टीमें**, **स्वामी उपयोगकर्ता**, **लेबल**।
+- **उन्नत विकल्प → घटना स्वतः सुलझाएं** (मानदंड मेल खाना बंद कर दें तो घटना अपने आप सुलझ जाती है), **स्थिति पृष्ठ पर घटना दिखाएं**, **निजी घटना** और **सुधार नोट**।
 
-title, description और remediation notes में इस्तेमाल किए जा सकने वाले `{{variable}}` placeholders की पूरी list के लिए देखें [Incident & Alert Templating](/docs/monitor/incident-alert-templating)।
+शीर्षक, विवरण और सुधार नोट में इस्तेमाल किए जा सकने वाले `{{variable}}` placeholders की पूरी सूची के लिए [घटना और अलर्ट टेम्पलेट](/docs/monitor/incident-alert-templating) देखें।
 
-इस तरह बनाए गए incidents को server द्वारा tag किया जाता है: `isCreatedAutomatically` सेट होता है, `createdCriteriaId` यह रिकॉर्ड करता है कि कौन सा criteria filter चला, और `createdByProbe` यह रिकॉर्ड करता है कि किस probe ने इसे देखा। बाकी सब कुछ ठीक वैसे ही behave करता है जैसे हाथ से declare किया गया incident।
+इस तरह बनी घटनाओं पर server निशान लगाता है: `isCreatedAutomatically` सेट होता है, `createdCriteriaId` दर्ज करता है कि कौन-सा criteria filter चला, और `createdByProbe` दर्ज करता है कि किस probe ने इसे देखा। बाकी हर मामले में ये हाथ से घोषित घटना जैसा ही व्यवहार करती हैं।
 
-## API के जरिए declare करना
+## API से घोषित करना
 
-incident model एक standard CRUD endpoint expose करता है, इसलिए `POST /api/incident` एक बना देता है। **Project Settings → API Keys** पर generate की गई एक API key से authenticate करें, जिसे `apikey` header में भेजा जाता है — key ही project को पहचानती है, इसलिए आपको अलग से project id भेजने की जरूरत नहीं है।
+घटना model एक मानक CRUD endpoint देता है, इसलिए `POST /api/incident` एक घटना बना देता है। **प्रोजेक्ट सेटिंग्स → API कुंजियाँ** पर बनाई गई API key से प्रमाणीकरण करें, जिसे `apikey` header में भेजा जाता है — key ही प्रोजेक्ट की पहचान कर देती है, इसलिए project id अलग से भेजने की ज़रूरत नहीं।
 
 ```bash
 curl -X POST https://oneuptime.com/api/incident \
@@ -123,45 +123,45 @@ curl -X POST https://oneuptime.com/api/incident \
   }'
 ```
 
-request body पर उपयोगी fields:
+Request body में काम के फ़ील्ड:
 
-- `title` — इकलौती field जो आपको वाकई देनी ही होगी।
-- `declaredAt` — यहाँ optional है भले ही form इसे required रखता है। इसे छोड़ दें तो server current time का इस्तेमाल करता है।
-- `incidentSeverityId` और `currentIncidentStateId` — server जाँचता है कि दोनों उसी project के हैं जिसका API key है, और अगर नहीं हैं तो request reject कर देता है। यही check **Change Monitor Status to** के पीछे मौजूद monitor status पर भी लागू होता है।
-- `createdIncidentTemplateId` — एक saved template लागू करें। आप जो भी field छोड़ते हैं वह template से भर जाती है; आप जो भी field भेजते हैं वह वैसी ही रहती है।
+- `title` — असल में यही एक फ़ील्ड है जो आपको देना ही होगा।
+- `declaredAt` — form में आवश्यक होने के बावजूद यहाँ वैकल्पिक है। इसे छोड़ दें और server मौजूदा समय ले लेगा।
+- `incidentSeverityId` और `currentIncidentStateId` — server जाँचता है कि दोनों उसी प्रोजेक्ट के हैं जिसकी API key है, और न होने पर request अस्वीकार कर देता है। यही जाँच **Change Monitor Status to** के पीछे की मॉनिटर स्थिति पर भी लागू होती है।
+- `createdIncidentTemplateId` — कोई सहेजा हुआ टेम्पलेट लागू करें। जो फ़ील्ड आप छोड़ देते हैं वे टेम्पलेट से भर जाते हैं; जो भेजते हैं वे ज्यों के त्यों रहते हैं।
 
-Related endpoints हैं `/api/incident-state`, `/api/incident-severity` और `/api/incident-state-timeline`। generated [API reference](/reference) में इनमें से हर एक के exact request और response shapes हैं, जिसमें monitors जैसे relation fields को कैसे express किया जाता है यह भी शामिल है।
+इससे जुड़े endpoints हैं `/api/incident-state`, `/api/incident-severity` और `/api/incident-state-timeline`। जनरेट किए गए [API संदर्भ](/reference) में हर एक के लिए request और response की सटीक संरचना है, साथ ही यह भी कि monitors जैसे relation फ़ील्ड कैसे व्यक्त किए जाते हैं।
 
-## Incident numbers और prefixes
+## घटना संख्याएँ और उपसर्ग
 
-हर incident को creation के समय server द्वारा assign किया गया एक sequential number मिलता है, जो per-project counter से आता है। इसे दो columns रखते हैं: `incidentNumber` (raw integer) और `incidentNumberWithPrefix` (जो आप असल में देखते हैं)। कोई prefix configure न होने पर, display value `#42` होती है।
+हर घटना को प्रति-प्रोजेक्ट काउंटर से एक क्रमिक संख्या मिलती है, जिसे server बनाते समय ही सौंप देता है। इसे दो columns रखते हैं: `incidentNumber` (कच्चा integer) और `incidentNumberWithPrefix` (जो आप असल में देखते हैं)। कोई उपसर्ग configure न हो तो प्रदर्शित मान `#42` होता है।
 
-इसे बदलने के लिए, **Incidents → Settings → More Settings** पर जाएँ। **Number Prefix** card में एक **Incident Number Prefix** field है (20 characters तक, placeholder `INC-`) — इसे सेट करें और वही incident `INC-42` के रूप में render होता है। डिफ़ॉल्ट `#` रखने के लिए इसे खाली छोड़ें। इस card में episode numbering के लिए **Incident Episode Number Prefix** भी है।
+इसे बदलने के लिए **घटनाएं → सेटिंग्स → अधिक सेटिंग्स** पर जाएँ। **संख्या उपसर्ग** card में **घटना संख्या उपसर्ग** फ़ील्ड है (20 characters तक, placeholder `INC-`) — इसे सेट कीजिए और वही घटना `INC-42` के रूप में दिखने लगती है। डिफ़ॉल्ट `#` बनाए रखने के लिए इसे खाली छोड़ दें। उसी card पर episode क्रमांकन के लिए **घटना एपिसोड संख्या उपसर्ग** भी है।
 
-number incidents list के पहले column के रूप में दिखता है, incident से link करता है, और incident के **Overview** पर **Incident Number** के रूप में दिखता है।
+यह संख्या घटनाओं की सूची के पहले column में दिखती है, घटना से link होती है, और घटना के **अवलोकन** पर **घटना संख्या** के रूप में दिखाई देती है।
 
-## एक incident declare होते ही क्या होता है
+## घटना घोषित होते ही क्या होता है
 
-create call सिर्फ एक row लिखने से ज्यादा करता है। इस क्रम में:
+Create कॉल एक row लिखने से कहीं ज़्यादा करती है। क्रम से:
 
-1. **server खाली जगहें भरता है।** `declaredAt` डिफ़ॉल्ट रूप से अभी (now) होता है, current state डिफ़ॉल्ट रूप से project के `isCreatedState` state पर सेट होता है, और incident number तथा prefixed number project counter से assign होते हैं।
-2. **एक template लागू होता है**, अगर `createdIncidentTemplateId` दिया गया था — सिर्फ उन fields को भरते हुए जिन्हें caller ने undefined छोड़ा था।
-3. **Privacy rules चलती हैं**, incident को private मार्क करती हैं जब कोई matching rule ऐसा कहती है। यह पहला rule engine है जो चलता है, इसलिए इसके बाद आने वाली हर चीज़ सही privacy setting देखती है।
-4. **Owner rules चलती हैं**, matching rules द्वारा नामित owner users और teams जोड़ती हैं।
-5. **Label rules चलती हैं**, incident से मेल खाने वाले labels जोड़ती हैं।
-6. **On-call rules चलती हैं।** **Incidents → Rules → On-Call Rules** पर मौजूद हर enabled rule जिसकी criteria मेल खाती है, अपनी policies incident में जोड़ देता है। इसमें कोई priority order नहीं है और कोई short-circuit नहीं है — सभी matching rules चलते हैं और policies deduplicated होती हैं।
-7. **Runbook rules चलती हैं**, matching runbooks को attach और start करती हैं। देखें [Runbooks](/docs/runbooks/index)।
-8. **On-call policies execute होती हैं।** incident पर मौजूद हर policy — चाहे wizard में चुनी गई हो, किसी template से inherit हुई हो, या किसी rule द्वारा जोड़ी गई हो — event type `IncidentCreated` के साथ parallel में execute होती है। एक policy fail होने से बाकी नहीं रुकतीं।
-9. **Subscribers queue होते हैं**, अगर **Notify Status Page Subscribers** on छोड़ा गया था और incident status page पर visible है। Delivery आपके request के साथ inline नहीं, बल्कि एक background job द्वारा handle की जाती है।
-10. **Workflows चलते हैं।** **On Create Incident** trigger इस पर बना कोई भी workflow शुरू कर देता है। देखें [Workflows Overview](/docs/workflows/index)।
+1. **Server खाली जगहें भरता है।** `declaredAt` डिफ़ॉल्ट रूप से अभी का समय बन जाता है, मौजूदा स्थिति डिफ़ॉल्ट रूप से प्रोजेक्ट की `isCreatedState` वाली स्थिति बनती है, और घटना संख्या तथा उपसर्ग वाली संख्या प्रोजेक्ट काउंटर से सौंपी जाती हैं।
+2. **टेम्पलेट लागू होता है**, अगर `createdIncidentTemplateId` भेजा गया था — और सिर्फ़ वही फ़ील्ड भरता है जिन्हें caller ने undefined छोड़ा।
+3. **गोपनीयता नियम चलते हैं**, और मेल खाता नियम कहे तो घटना को निजी चिह्नित करते हैं। यह सबसे पहले चलने वाला rule engine है, ताकि इसके बाद की हर चीज़ को सही गोपनीयता सेटिंग दिखे।
+4. **स्वामी नियम चलते हैं**, और मेल खाते नियम जिन स्वामी उपयोगकर्ताओं और टीमों का नाम लेते हैं उन्हें जोड़ते हैं।
+5. **लेबल नियम चलते हैं**, और घटना से मेल खाते लेबल जोड़ते हैं।
+6. **ऑन-कॉल नियम चलते हैं।** **घटनाएं → नियम → ऑन-कॉल नियम** पर मौजूद हर सक्षम नियम, जिसके मानदंड मेल खाते हैं, अपनी नीतियां घटना पर जोड़ देता है। इसमें कोई प्राथमिकता क्रम नहीं है और कोई short-circuit भी नहीं — हर मेल खाता नियम चलता है और नीतियां deduplicate कर दी जाती हैं।
+7. **Runbook नियम चलते हैं**, और मेल खाते runbook जोड़कर शुरू कर देते हैं। [Runbook का अवलोकन](/docs/runbooks/index) देखें।
+8. **ऑन-कॉल नीतियां execute होती हैं।** घटना पर मौजूद हर नीति — चाहे wizard में चुनी गई हो, टेम्पलेट से आई हो, या किसी नियम ने जोड़ी हो — `IncidentCreated` event type के साथ समानांतर में execute होती है। एक नीति के विफल होने से बाकी नहीं रुकतीं।
+9. **सब्सक्राइबर कतार में लगते हैं**, अगर **स्थिति पृष्ठ ग्राहकों को सूचित करें** चालू छोड़ा गया था और घटना स्थिति पृष्ठ पर दिख रही है। डिलीवरी आपकी request के साथ inline नहीं, बल्कि background job से होती है।
+10. **वर्कफ़्लो चलते हैं।** **On Create Incident** trigger उस पर बना कोई भी workflow शुरू कर देता है। [वर्कफ़्लो अवलोकन](/docs/workflows/index) देखें।
 
-इसके बाद incident live हो जाता है: यह Incidents side menu में **Active Incidents** badge में गिना जाता है (कोई भी state जो `isResolvedState` flag नहीं रखता active माना जाता है), यह उन status pages पर दिखता है जो उसके किसी monitor को carry करते हैं, और इसकी **State Timeline** record करना शुरू कर देती है।
+यहाँ से घटना जीवित है: वह घटनाओं के side menu में **सक्रिय घटनाएं** badge में गिनी जाती है (जिस भी स्थिति पर `isResolvedState` flag नहीं है वह सक्रिय मानी जाती है), वह उन स्थिति पृष्ठों पर दिखती है जिन पर उसका कोई मॉनिटर है, और उसकी **स्थिति टाइमलाइन** दर्ज करना शुरू कर देती है।
 
 ## आगे क्या पढ़ें
 
-- [Incidents Overview](/docs/incidents/index) — incident model एक साथ कैसे fit होता है।
-- [Incident States & Severities](/docs/incidents/states-and-severities) — state flags क्या करते हैं और अपने खुद के कैसे जोड़ें।
-- [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) — public notes, private notes, owners और activity feed।
-- [Incident Settings & Automation](/docs/incidents/settings) — templates, custom fields, roles, rules और workflow triggers।
-- [Subscribers & Announcements](/docs/status-pages/subscribers) — आपके अभी declare किए गए incident के बारे में किसे पता चलता है।
-- [Incident & Alert Templating](/docs/monitor/incident-alert-templating) — auto-declared incidents के लिए उपलब्ध variables।
+- [घटनाओं का अवलोकन](/docs/incidents/index) — घटना model के हिस्से आपस में कैसे जुड़ते हैं।
+- [घटना स्थितियाँ और गंभीरता](/docs/incidents/states-and-severities) — state flags क्या करते हैं और अपनी स्थितियाँ कैसे जोड़ें।
+- [घटना नोट्स, स्वामी और फ़ीड](/docs/incidents/notes-owners-and-feed) — सार्वजनिक नोट, निजी नोट, स्वामी और गतिविधि फ़ीड।
+- [घटना सेटिंग्स और स्वचालन](/docs/incidents/settings) — टेम्पलेट, कस्टम फ़ील्ड, भूमिकाएँ, नियम और workflow triggers।
+- [सब्सक्राइबर और घोषणाएँ](/docs/status-pages/subscribers) — अभी-अभी घोषित की गई घटना की खबर किसे मिलती है।
+- [घटना और अलर्ट टेम्पलेट](/docs/monitor/incident-alert-templating) — अपने आप घोषित होने वाली घटनाओं के लिए उपलब्ध variables।

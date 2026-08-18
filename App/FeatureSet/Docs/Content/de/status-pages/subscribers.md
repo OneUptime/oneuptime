@@ -1,161 +1,161 @@
 # Abonnenten & Ankündigungen
 
-Eine Statusseite ist ein Ort, zu dem Menschen gehen. Abonnenten sind die Menschen, die das lieber nicht tun möchten – sie geben Ihnen einmalig eine E-Mail-Adresse, eine Telefonnummer, einen Slack-Webhook oder einen HTTP-Endpunkt, und danach kommen Ihre Updates zu ihnen.
+Eine Statusseite ist ein Ort, den Menschen aufsuchen. Abonnenten sind die Menschen, die sich das lieber sparen – sie hinterlassen einmal eine E-Mail-Adresse, eine Telefonnummer, einen Slack-Webhook oder einen HTTP-Endpunkt, und von da an kommen Ihre Updates zu ihnen.
 
-Ankündigungen sind die andere Hälfte derselben Aufgabe. Ein Monitor kann Ihren Besuchern mitteilen, dass der Checkout 500er zurückgibt; kein Monitor kann ihnen mitteilen, dass Sie am Samstag Datenbanken migrieren, dass ein Drittanbieter einen schlechten Tag hat, oder dass der Vorfall, über den sie gestern gelesen haben, vollständig behoben ist. Ankündigungen sind der Freitext-Kanal für alles, was Ihre Prüfungen nicht sehen können, und sie gehen an dieselbe Abonnentenliste hinaus.
+Ankündigungen sind die andere Hälfte derselben Aufgabe. Ein Monitor kann Ihren Besuchern sagen, dass der Checkout 500er zurückgibt; kein Monitor kann ihnen sagen, dass Sie am Samstag Datenbanken migrieren, dass ein Drittanbieter gerade einen schlechten Tag hat oder dass der Vorfall, von dem sie gestern gelesen haben, vollständig abgeschlossen ist. Ankündigungen sind der Freitextkanal für alles, was Ihre Prüfungen nicht sehen können, und sie gehen an dieselbe Abonnentenliste.
 
-Diese Seite behandelt beides: die fünf Abonnement-Kanäle und wie Besucher sich anmelden, worauf Abonnenten sich beschränken können, die Double-Opt-in- und Abmelde-Abläufe sowie wie Ankündigungen geschrieben, geplant und mit Vorlagen versehen werden.
+Diese Seite behandelt beides: die fünf Abonnementkanäle und wie Besucher sich eintragen, was Abonnenten sich aussuchen können, die Abläufe für Double Opt-in und Abmeldung sowie das Schreiben, Planen und Vorlagen von Ankündigungen.
 
-## Abonnement-Kanäle
+## Abonnementkanäle
 
-Eine Statusseite unterstützt fünf Kanäle, jeder mit einem eigenen Schalter auf der Statusseite. Gehen Sie zu **Status Pages → your page → Subscribers → Subscriber Settings**:
+Eine Statusseite unterstützt fünf Kanäle, jeder mit eigenem Schalter auf der Statusseite. Gehen Sie auf **Statusseiten → Ihre Seite → Abonnenten → Abonnenten-Einstellungen**:
 
-- **Enable Email Subscribers** (`enableEmailSubscribers`) – standardmäßig aktiviert. Alles andere ist deaktiviert, bis Sie es einschalten.
-- **Enable SMS Subscribers** (`enableSmsSubscribers`) – standardmäßig deaktiviert.
-- **Enable Slack Subscribers** (`enableSlackSubscribers`) – standardmäßig deaktiviert.
-- **Enable Microsoft Teams Subscribers** (`enableMicrosoftTeamsSubscribers`) – standardmäßig deaktiviert.
-- **Enable Webhook Subscribers** (`enableWebhookSubscribers`) – standardmäßig deaktiviert.
+- **E-Mail-Abonnenten aktivieren** (`enableEmailSubscribers`) – standardmäßig an. Alles andere ist aus, bis Sie es einschalten.
+- **SMS-Abonnenten aktivieren** (`enableSmsSubscribers`) – standardmäßig aus.
+- **Slack-Abonnenten aktivieren** (`enableSlackSubscribers`) – standardmäßig aus.
+- **Microsoft Teams-Abonnenten aktivieren** (`enableMicrosoftTeamsSubscribers`) – standardmäßig aus.
+- **Webhook-Abonnenten aktivieren** (`enableWebhookSubscribers`) – standardmäßig aus.
 
-Jeder Kanal erhält außerdem seine eigene Liste im Seitenmenü der Statusseite unter **Subscribers**: **Email Subscribers**, **SMS Subscribers**, **Slack Subscribers**, **MS Teams Subscribers** und **Webhook Subscribers**. Dort sehen Sie, wer angemeldet ist, fügen jemanden von Hand hinzu, oder hinterlassen sich selbst einen **Notes**-Eintrag (`internalNote`) zu einem bestimmten Abonnenten.
+Jeder Kanal bekommt außerdem seine eigene Liste im Seitenmenü der Statusseite unter **Abonnenten**: **E-Mail-Abonnenten**, **SMS-Abonnenten**, **Slack-Abonnenten**, **MS Teams-Abonnenten** und **Webhook-Abonnenten**. Dort sehen Sie, wer eingetragen ist, tragen jemanden von Hand nach oder hinterlassen sich zu einem bestimmten Abonnenten einen Eintrag unter **Notizen** (`internalNote`).
 
-**Ein Schalter allein genügt nicht.** Der Menüpunkt **Subscribe** in der Navigationsleiste der Statusseite erscheint nur, wenn **Show Subscriber Page** (`showSubscriberPageOnStatusPage`) aktiviert *und* mindestens ein Kanal freigeschaltet ist. Wenn Sie **Enable Email Subscribers** aktivieren, aber **Show Subscriber Page** deaktiviert lassen, haben Besucher keine Möglichkeit, das Formular zu erreichen.
+**Ein Schalter allein genügt nicht.** Der Eintrag **Abonnieren** in der Navigationsleiste der Statusseite erscheint nur, wenn **Abonnentenseite anzeigen** (`showSubscriberPageOnStatusPage`) an ist *und* mindestens ein Kanal aktiviert ist. Schalten Sie **E-Mail-Abonnenten aktivieren** ein, lassen aber **Abonnentenseite anzeigen** aus, kommen Besucher gar nicht erst zum Formular.
 
-Dieselben fünf Schalter erscheinen ein zweites Mal in der Karte **Subscriber Settings** auf **Advanced Settings**, neben **Show Subscriber Page**. Es sind darunter dieselben Spalten – wählen Sie einen Bildschirm und bleiben Sie dabei, und bevorzugen Sie die dedizierte Seite **Subscriber Settings**, da dort der Rest der Abonnentenkonfiguration lebt.
+Dieselben fünf Schalter tauchen ein zweites Mal in der Karte **Abonnenten-Einstellungen** unter **Erweiterte Einstellungen** auf, zusammen mit **Abonnentenseite anzeigen**. Darunter liegen dieselben Spalten – suchen Sie sich einen Bildschirm aus und bleiben Sie dort, am besten auf der eigenen Seite **Abonnenten-Einstellungen**, denn dort steht auch der Rest der Abonnentenkonfiguration.
 
-## Was ein Besucher auf der Subscribe-Seite sieht
+## Was ein Besucher auf der Seite Abonnieren sieht
 
-Die Seite **Subscribe** hat ein Untermenü mit einem Tab pro aktiviertem Kanal – **Email**, **SMS**, **Slack**, **MS Teams**, **Webhooks** – zugeordnet zu `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams` und `/subscribe/webhooks`. Jeder Tab fragt nach dem Minimum, das er benötigt:
+Die Seite **Abonnieren** hat ein Untermenü mit einem Reiter je aktiviertem Kanal – **E-Mail**, **SMS**, **Slack**, **MS Teams**, **Webhooks** –, die auf `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams` und `/subscribe/webhooks` zeigen. Jeder Reiter fragt nur das Nötigste ab:
 
-- **Email** – Überschrift **Subscribe by Email**, ein Feld **Your Email** mit dem Platzhalter `subscriber@company.com`.
-- **SMS** – Überschrift **Subscribe by SMS**, ein Feld **Your Phone Number** mit dem Platzhalter `+11234567890`.
-- **Slack** – Überschrift **Subscribe by Slack**, mit **Slack Workspace Name** (zur Validierung verwendet) und **Slack Incoming Webhook URL**, Platzhalter `https://hooks.slack.com/services/...`.
-- **MS Teams** – Überschrift **Subscribe by Microsoft Teams**, mit **Microsoft Teams Workspace Name** und **Microsoft Teams Incoming Webhook URL**, Platzhalter `https://outlook.office.com/webhook/...`.
-- **Webhooks** – Überschrift **Subscribe by Webhook**, ein Feld **Webhook URL**. Bei jedem Statusseiten-Ereignis wird dorthin ein JSON-`POST`-Request gesendet.
+- **E-Mail** – Überschrift **Per E-Mail abonnieren**, ein Feld **Ihre E-Mail** mit dem Platzhalter `abonnent@firma.de`.
+- **SMS** – Überschrift **Per SMS abonnieren**, ein Feld **Ihre Telefonnummer** mit dem Platzhalter `+491234567890`.
+- **Slack** – Überschrift **Über Slack abonnieren**, mit **Slack-Arbeitsbereichsname** (dient der Validierung) und **Slack Eingehende Webhook-URL**, Platzhalter `https://hooks.slack.com/services/...`.
+- **MS Teams** – Überschrift **Über Microsoft Teams abonnieren**, mit **Name des Microsoft Teams-Arbeitsbereichs** und **Microsoft Teams Eingehende Webhook-URL**, Platzhalter `https://outlook.office.com/webhook/...`.
+- **Webhooks** – Überschrift **Per Webhook abonnieren**, ein Feld **Webhook-URL**. Bei jedem Ereignis auf der Statusseite geht eine JSON-`POST`-Anfrage dorthin.
 
-Die Schaltfläche zum Absenden trägt die Beschriftung **Subscribe**, und eine erfolgreiche Anmeldung zeigt *You have been subscribed successfully.* Die Seite trägt außerdem eine Aufteilung **New Subscription** / **Manage Existing Subscription**, sodass jemand, der bereits abonniert hat, zu seinen Einstellungen zurückfinden kann, ohne nach einer alten E-Mail zu suchen.
+Der Absendeknopf heißt **Abonnieren**, und nach erfolgreicher Anmeldung erscheint *Sie wurden erfolgreich abonniert.* Die Seite trägt außerdem die Aufteilung **Neues Abonnement** / **Bestehendes Abonnement verwalten**, sodass jemand, der bereits abonniert hat, zu seinen Einstellungen zurückfindet, ohne eine alte E-Mail suchen zu müssen.
 
 ## Abonnenten Ressourcen und Ereignistypen wählen lassen
 
-Standardmäßig erhält ein Abonnent alles auf der Seite. Zwei Schalter in der Karte **Advanced Subscriber Settings** ändern das:
+Standardmäßig bekommt ein Abonnent alles, was auf der Seite steht. Zwei Schalter in der Karte **Erweiterte Abonnenten-Einstellungen** ändern das:
 
-- **Allow Subscribers to Choose Resources** (`allowSubscribersToChooseResources`) – standardmäßig deaktiviert. Schalten Sie es ein, und dem Anmeldeformular wächst ein Schalter **Subscribe to All Resources**; deaktivieren Sie ihn, und **Select Resources to Subscribe** erscheint, sodass der Besucher einzelne Ressourcen auswählen kann.
-- **Allow Subscribers to Choose Event Types** (`allowSubscribersToChooseEventTypes`) – standardmäßig deaktiviert. Gleiche Form: ein Schalter **Subscribe to All Event Types**, und darunter **Select Event Types to Subscribe**, wenn er deaktiviert ist.
+- **Abonnenten erlauben, Ressourcen auszuwählen** (`allowSubscribersToChooseResources`) – standardmäßig aus. Schalten Sie es ein, bekommt das Abonnementformular einen Schalter **Alle Ressourcen abonnieren**; nehmen Sie den heraus, erscheint **Ressourcen zum Abonnieren auswählen**, und der Besucher kann einzelne Ressourcen anhaken.
+- **Abonnenten erlauben, Ereignistypen auszuwählen** (`allowSubscribersToChooseEventTypes`) – standardmäßig aus. Gleiche Form: ein Schalter **Alle Ereignistypen abonnieren**, und darunter **Ereignistypen zum Abonnieren auswählen**, sobald er nicht gesetzt ist.
 
 Die Ereignistypen sind `Incident`, `Announcement` und `Scheduled Event`.
 
-Die Auswahlen landen auf dem Abonnentendatensatz als **Is Subscribed to All Resources** (`isSubscribedToAllResources`, Standard true), **Is Subscribed to All Event Types** (`isSubscribedToAllEventTypes`, Standard true), **Subscribed to Resources** und **Subscribed to Event Types**.
+Die Auswahl landet auf dem Abonnentendatensatz als **Is Subscribed to All Resources** (`isSubscribedToAllResources`, Standard true), **Is Subscribed to All Event Types** (`isSubscribedToAllEventTypes`, Standard true), **Subscribed to Resources** und **Subscribed to Event Types**.
 
-Gut für: eine Seite, die mehrere Produkte abdeckt. Ein Kunde, der nur Ihre API nutzt, möchte keine Seite jedes Mal, wenn die Marketing-Website wackelt – lassen Sie ihn die Liste selbst eingrenzen, statt zuzusehen, wie er sich ganz abmeldet.
+Gut geeignet für: eine Seite, die mehrere Produkte abdeckt. Ein Kunde, der nur Ihre API nutzt, will nicht jedes Mal eine Nachricht, wenn die Marketing-Website wackelt – lassen Sie ihn die Liste lieber selbst eingrenzen, statt zuzusehen, wie er sich ganz abmeldet.
 
-Dieselbe Karte trägt auch **Subscriber Timezones**.
+Dieselbe Karte enthält außerdem **Zeitzonen der Abonnenten**.
 
-## Double-Opt-in bei E-Mail
+## Double Opt-in per E-Mail
 
-E-Mail-Abonnenten bestätigen immer. Wenn ein Abonnent mit einer E-Mail-Adresse erstellt wird und nicht bereits als bestätigt angelegt wurde, wird **Is Subscription Confirmed** (`isSubscriptionConfirmed`) auf `false` gezwungen, und ein sechsstelliges **Subscription Confirmation Token** wird erzeugt. OneUptime versendet dann einen Bestätigungslink der Form `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Der Besucher landet auf einer Seite **Confirm Subscription** und sieht, sobald diese durchgeht, *Subscription confirmed successfully*.
+E-Mail-Abonnenten bestätigen immer. Wird ein Abonnent mit einer E-Mail-Adresse angelegt und nicht bereits als bestätigt erzeugt, wird **Is Subscription Confirmed** (`isSubscriptionConfirmed`) auf `false` gezwungen und ein sechsstelliger **Subscription Confirmation Token** erzeugt. OneUptime schickt dann einen Bestätigungslink der Form `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}` per E-Mail. Der Besucher landet auf einer Seite **Abonnement bestätigen** und sieht, sobald es durch ist, *Abonnement erfolgreich bestätigt*.
 
-SMS-, Slack-, Microsoft-Teams- und Webhook-Abonnenten überspringen dies – sie werden mit `isSubscriptionConfirmed` bereits auf `true` gesetzt erstellt.
+Abonnenten per SMS, Slack, Microsoft Teams und Webhook überspringen das – sie werden mit `isSubscriptionConfirmed` bereits auf `true` angelegt.
 
-**Unbestätigt bedeutet stumm.** Die Abfrage, die Abonnenten für eine Benachrichtigung holt, filtert auf `isUnsubscribed: false` und `isSubscriptionConfirmed: true`. Eine E-Mail-Adresse, die nie auf den Link geklickt hat, sitzt in Ihrer Liste **Email Subscribers** und erhält nichts. Wenn jemand beteuert, abonniert zu sein, aber nichts hört, prüfen Sie zuerst diese Spalte.
+**Unbestätigt heißt still.** Die Abfrage, die Abonnenten für eine Benachrichtigung holt, filtert auf `isUnsubscribed: false` und `isSubscriptionConfirmed: true`. Eine E-Mail-Adresse, die den Link nie angeklickt hat, steht in Ihrer Liste **E-Mail-Abonnenten** und bekommt nichts. Beteuert jemand, abonniert zu haben, hört aber nichts, prüfen Sie zuerst diese Spalte.
 
-Es gibt keinen Schalter, um die E-Mail-Bestätigung auszuschalten – sie ist bedingungslos für jeden, der sich über die Statusseite anmeldet. Eine separate Spalte pro Abonnent, **Send You Have Subscribed Message** (`sendYouHaveSubscribedMessage`, Standard true), steuert die "Sie haben abonniert"-E-Mail, die verschickt wird, sobald ein Abonnent bestätigt ist.
+Es gibt keinen Schalter, um die E-Mail-Bestätigung abzuschalten – sie gilt für jeden, der sich über die Statusseite einträgt. Eine eigene Spalte pro Abonnent, **Send You Have Subscribed Message** (`sendYouHaveSubscribedMessage`, Standard true), steuert die E-Mail „Sie haben abonniert“, die nach der Bestätigung eines Abonnenten hinausgeht.
 
 ## Ein Abonnement verwalten und kündigen
 
-Jede Abonnenten-E-Mail trägt einen Abmeldelink der Form `{statusPageUrl}/update-subscription/{statusPageSubscriberId}`. Diese Seite trägt den Titel **Update Subscription** und teilt dem Besucher mit, dass er dort seine Einstellungen aktualisieren oder sich abmelden kann. Sie enthält:
+Jede Abonnenten-E-Mail trägt einen Abmeldelink der Form `{statusPageUrl}/update-subscription/{statusPageSubscriberId}`. Diese Seite heißt **Abonnement aktualisieren** und sagt dem Besucher, dass er dort seine Einstellungen ändern oder sich abmelden kann. Sie enthält:
 
-- Welche Ressourcen- und Ereignistyp-Auswahlmöglichkeiten die Seite auch zulässt.
-- Einen Schalter **Unsubscribe**, beschrieben als Abmeldung von allen Ressourcen. Er schreibt **Is Unsubscribed** (`isUnsubscribed`, Standard false).
-- Eine Schaltfläche zum Absenden mit der Beschriftung **Update Subscription**; das Speichern zeigt *Your changes have been saved.*
+- Alle Ressourcen- und Ereignistyp-Auswahlen, die die Seite zulässt.
+- Einen Schalter **Abbestellen**, beschrieben als Abmeldung von allen Ressourcen. Er schreibt **Ist abgemeldet** (`isUnsubscribed`, Standard false).
+- Einen Absendeknopf **Abonnement aktualisieren**; nach dem Speichern erscheint *Ihre Änderungen wurden gespeichert.*
 
-Jemand, der den Link verloren hat, verwendet **Manage Existing Subscription** auf der Seite **Subscribe** und drückt **Send Management Link**. OneUptime antwortet, dass eine E-Mail mit dem Link gesendet wurde und man den Spam-Ordner prüfen soll, falls sie nicht ankommt.
+Wer den Link verloren hat, nutzt **Bestehendes Abonnement verwalten** auf der Seite **Abonnieren** und drückt auf **Verwaltungslink senden**. OneUptime antwortet, dass eine E-Mail mit dem Link unterwegs ist und man in den Spam-Ordner schauen soll, falls sie nicht ankommt.
 
-Die dahinterliegenden Endpunkte sind `POST .../subscribe/:statusPageId`, `POST .../manage-subscription/:statusPageId`, `POST .../get-subscription/:statusPageId/:subscriberId` und `PUT .../update-subscription/:statusPageId/:subscriberId`.
+Dahinter stehen die Endpunkte `POST .../subscribe/:statusPageId`, `POST .../manage-subscription/:statusPageId`, `POST .../get-subscription/:statusPageId/:subscriberId` und `PUT .../update-subscription/:statusPageId/:subscriberId`.
 
-Das Abmelden kippt ein Flag, statt eine Zeile zu löschen, sodass der Datensatz in der Kanalliste verbleibt, wobei **Is Unsubscribed** gesetzt ist – nützlich, wenn Sie später erklären müssen, warum eine bestimmte Adresse aufgehört hat, Mails zu erhalten.
+Eine Abmeldung setzt ein Kennzeichen um, statt eine Zeile zu löschen – der Datensatz bleibt also mit gesetztem **Ist abgemeldet** in der Kanalliste stehen. Praktisch, wenn Sie später erklären müssen, warum eine bestimmte Adresse keine Post mehr bekommen hat.
 
 ## Worüber Abonnenten benachrichtigt werden
 
-Abonnenten hören von den drei oben genannten Ereignistypen, aber jede Quelle hat ihren eigenen Schalter, sodass nichts versehentlich versendet wird.
+Abonnenten hören von den drei Ereignistypen oben, aber jede Quelle hat ihren eigenen Schalter, damit nichts aus Versehen hinausgeht.
 
-### Ankündigungs-Benachrichtigungen
+### Benachrichtigungen zu Ankündigungen
 
-Die Ankündigung selbst trägt **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), auf dem Erstellungsformular als Checkbox **Notify Status Page Subscribers** dargestellt und standardmäßig aktiviert. Wenn die Ankündigung unter **Monitors affected (Optional)** Monitore benennt, ist die Benachrichtigung auf diese Monitore beschränkt; lassen Sie es leer, werden alle Abonnenten benachrichtigt.
+Die Ankündigung selbst trägt **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`), im Erstellungsformular als Kontrollkästchen **Statusseiten-Abonnenten benachrichtigen** und standardmäßig an. Nennt die Ankündigung unter **Betroffene Monitore (Optional)** Monitore, ist die Benachrichtigung auf diese Monitore beschränkt; lassen Sie das Feld leer, werden alle Abonnenten benachrichtigt.
 
 ### Geplante Wartungsereignisse
 
-Ein geplantes Wartungsereignis hat seine eigenen Abonnentenspalten: **Should subscribers be notified when event is created?**, **Should subscribers be notified when event is changed to ongoing?**, **Should subscribers be notified when event is changed to ended?**, sowie **Subscriber notifications before the event** und **Next subscriber notification before the event at?** für Vorabwarnungen. **Status Pages** am Ereignis entscheidet, auf welchen Seiten es erscheint, und **Should be visible on status page?** entscheidet, ob es überhaupt erscheint.
+Ein geplantes Wartungsereignis hat einen eigenen Satz Abonnentenspalten: **Should subscribers be notified when event is created?**, **Should subscribers be notified when event is changed to ongoing?**, **Should subscribers be notified when event is changed to ended?**, dazu **Subscriber notifications before the event** und **Next subscriber notification before the event at?** für Vorwarnungen. **Statusseiten** am Ereignis entscheidet, auf welchen Seiten es auftaucht, und **Should be visible on status page?** entscheidet, ob es überhaupt auftaucht.
 
 ### Vorfälle
 
-`Incident` ist der dritte Ereignistyp. Was einen Vorfall überhaupt erst auf eine Statusseite bringt – welche Ressourcen er betrifft und welche Status ihn sichtbar halten – ist in [Vorfallstatus & Schweregrade](/docs/incidents/states-and-severities) behandelt.
+`Incident` ist der dritte Ereignistyp. Was einen Vorfall überhaupt auf eine Statusseite bringt – welche Ressourcen er berührt und welche Zustände ihn sichtbar halten – steht unter [Vorfallstatus & Schweregrade](/docs/incidents/states-and-severities).
 
-Der Abschnitt **Notification Logs** im Seitenmenü der Statusseite (`{id}/notification-logs`) ist der Ort, an den Sie gehen, wenn Sie sehen müssen, was die Seite tatsächlich versendet hat.
+Der Abschnitt **Benachrichtigungsprotokolle** im Seitenmenü der Statusseite (`{id}/notification-logs`) ist die Stelle, an der Sie nachsehen, was die Seite tatsächlich gesendet hat.
 
 ## Benachrichtigungsvorlagen anpassen
 
-Die Karte **Notification Templates** auf **Subscriber Settings** listet die von dieser Statusseite verwendeten Vorlagen auf, mit den Spalten **Template Name**, **Event Type** und **Notification Method** – so können Sie den Wortlaut pro Ereignistyp und pro Kanal variieren, statt für alles eine einzige Standardnachricht zu akzeptieren.
+Die Karte **Benachrichtigungsvorlagen** unter **Abonnenten-Einstellungen** listet die Vorlagen auf, die diese Statusseite verwendet, mit den Spalten **Vorlagenname**, **Ereignistyp** und **Benachrichtigungsmethode** – so können Sie den Wortlaut je Ereignistyp und je Kanal variieren, statt eine Standardnachricht für alles hinzunehmen.
 
-Projektweite Vorlagen liegen eine Ebene höher, unter **Status Pages → Settings → Subscriber Templates**, neben **Announcement Templates**.
+Projektweite Vorlagen liegen eine Ebene höher, unter **Statusseiten → Einstellungen → Abonnenten-Vorlagen**, neben **Ankündigungs-Vorlagen**.
 
-## E-Mail-Fußzeile, benutzerdefiniertes SMTP und Twilio
+## E-Mail-Fußzeile, eigenes SMTP und Twilio
 
-Drei weitere Karten auf **Subscriber Settings** steuern, wie Abonnentennachrichten Ihr Projekt verlassen:
+Drei weitere Karten unter **Abonnenten-Einstellungen** steuern, wie Abonnentennachrichten Ihr Projekt verlassen:
 
-- **Email Footer Settings** – **Enable Custom Email Footer Text** und **Subscriber Email Notification Footer Text** setzen Ihre eigene Fußzeile auf Abonnenten-E-Mails.
-- **Custom SMTP** – **Custom SMTP Config** sendet Abonnenten-E-Mails über Ihren eigenen Mailserver statt über den Standard.
-- **Twilio Config** – **Twilio Config** ist das für SMS-Abonnenten verwendete Twilio-Konto.
+- **E-Mail-Fußzeileneinstellungen** – **Benutzerdefinierten E-Mail-Fußzeilentext aktivieren** und **Fußzeilentext der Abonnenten-E-Mail-Benachrichtigung** setzen Ihre eigene Fußzeile unter Abonnenten-E-Mails.
+- **Benutzerdefiniertes SMTP** – **Benutzerdefinierte SMTP-Konfiguration** verschickt Abonnenten-E-Mails über Ihren eigenen Mailserver statt über den Standard.
+- **Twilio-Konfiguration** – **Twilio-Konfiguration** ist das Twilio-Konto, das für SMS-Abonnenten genutzt wird.
 
-Benutzerdefiniertes SMTP lohnt sich früh, wenn Sie E-Mail-Abonnenten haben: Mail, die von Ihrer eigenen Domain kommt, wird weit seltener herausgefiltert und weit eher von dem Kunden vertraut, der sie um 2 Uhr morgens liest.
+Eigenes SMTP lohnt sich früh, wenn Sie E-Mail-Abonnenten haben: Post von Ihrer eigenen Domain wird deutlich seltener weggefiltert und deutlich eher von dem Kunden ernst genommen, der sie um 2 Uhr nachts liest.
 
 ## Ankündigungen
 
-Eine Ankündigung ist ein projektweiter Datensatz (das Modell `StatusPageAnnouncement`), den Sie an eine oder mehrere Statusseiten ausstrahlen, optional auf bestimmte Monitore beschränkt, mit einem Zeitfenster, während dessen sie angezeigt wird.
+Eine Ankündigung ist ein Datensatz auf Projektebene (das Modell `StatusPageAnnouncement`), den Sie auf eine oder mehrere Statusseiten ausspielen, wahlweise auf bestimmte Monitore begrenzt und mit einem Zeitfenster, in dem er gezeigt wird.
 
-Sie erstellen eine über **Status Pages → More → Announcements**, oder über **Announcements** im Seitenmenü einer einzelnen Statusseite. Das Erstellungsformular ist ein vierstufiger Assistent:
+Sie legen eine über **Statusseiten → Mehr → Ankündigungen** an oder über **Ankündigungen** im Seitenmenü einer einzelnen Statusseite. Das Erstellungsformular ist ein Assistent mit vier Schritten:
 
-1. **Basic Information** – **Announcement Title** (erforderlich, mindestens zwei Zeichen), **Description** (Markdown, optional) und **Attachments** für Dateien, die zusammen mit der Ankündigung auf der Statusseite verfügbar sein sollen.
-2. **Status Pages** – **Show announcement on these status pages**, eine erforderliche Mehrfachauswahl. Eine Ankündigung kann mehrere Seiten gleichzeitig ansprechen.
-3. **Resources Affected** – **Monitors affected (Optional)**. Wählen Sie keinen aus, werden alle Abonnenten benachrichtigt.
-4. **Schedule & Settings** – **Start Showing Announcement At** (erforderlich, standardmäßig jetzt), **End Showing Announcement At** (optional) und **Notify Status Page Subscribers** (standardmäßig aktiviert).
+1. **Grundlegende Informationen** – **Ankündigungstitel** (Pflicht, mindestens zwei Zeichen), **Beschreibung** (Markdown, optional) und **Anhänge** für Dateien, die zusammen mit der Ankündigung auf der Statusseite verfügbar sein sollen.
+2. **Statusseiten** – **Ankündigung auf diesen Status-Seiten anzeigen**, eine Pflicht-Mehrfachauswahl. Eine Ankündigung kann mehrere Seiten auf einmal treffen.
+3. **Betroffene Ressourcen** – **Betroffene Monitore (Optional)**. Wählen Sie keinen aus, werden alle Abonnenten benachrichtigt.
+4. **Zeitplan & Einstellungen** – **Anzeige der Ankündigung beginnen ab** (Pflicht, Standard: jetzt), **Anzeige der Ankündigung beenden um** (optional) und **Statusseiten-Abonnenten benachrichtigen** (standardmäßig an).
 
-Besucher lesen Ankündigungen unter `/announcements`, aufgeteilt in **Active Announcements** und **Past Announcements**, jeweils mit **Announced at** versehen. Derzeit laufende Ankündigungen werden außerdem oben auf der Übersichtsseite angeheftet. Wenn es nichts anzuzeigen gibt, zeigt die Seite *No Announcement* mit dem Hinweis, dass bisher noch keine veröffentlicht wurden.
+Besucher lesen Ankündigungen unter `/announcements`, aufgeteilt in **Aktive Ankündigungen** und **Vergangene Ankündigungen**, jede mit **Angekündigt am** datiert. Aktuell laufende Ankündigungen werden zusätzlich oben auf der Übersichtsseite angeheftet. Gibt es nichts zu zeigen, steht dort *Keine Ankündigungen* mit dem Hinweis, dass bisher keine veröffentlicht wurden.
 
-Anhänge werden von `GET {statusPageCrudPath}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId` ausgeliefert, hinter derselben Leseprüfung wie die Statusseite selbst – sodass ein Anhang an einer privaten Seite privat bleibt.
+Anhänge werden über `GET {statusPageCrudPath}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId` ausgeliefert, hinter derselben Leseprüfung wie die Statusseite selbst – ein Anhang auf einer privaten Seite bleibt also privat.
 
-## Wie die Ankündigungsplanung funktioniert
+## Wie die Zeitsteuerung von Ankündigungen funktioniert
 
-**Show At** (`showAnnouncementAt`) und **End At** (`endAnnouncementAt`) steuern alles, aber die Übersichtsseite und die Ankündigungsliste stellen unterschiedliche Fragen, und der Unterschied bringt Leute zu Fall.
+**Show At** (`showAnnouncementAt`) und **End At** (`endAnnouncementAt`) treiben alles, aber die Übersichtsseite und die Ankündigungsliste stellen unterschiedliche Fragen, und dieser Unterschied bringt Leute ins Stolpern.
 
 - **Die Übersichtsseite** zeigt eine Ankündigung, wenn `showAnnouncementAt` in der Vergangenheit liegt und `endAnnouncementAt` entweder in der Zukunft liegt oder leer ist.
-- **Die Liste `/announcements`** zeigt Ankündigungen, deren `showAnnouncementAt` innerhalb von **Show Announcement History (in days)** (`showAnnouncementHistoryInDays`, Standard 14) liegt, und teilt sie dann clientseitig in aktive und vergangene auf.
+- **Die Liste `/announcements`** zeigt Ankündigungen, deren `showAnnouncementAt` in den Zeitraum **Ankündigungsverlauf anzeigen (in Tagen)** (`showAnnouncementHistoryInDays`, Standard 14) fällt, und teilt sie dann clientseitig in aktive und vergangene auf.
 
-Zwei Konsequenzen, mit denen Sie planen sollten:
+Zwei Folgen, die Sie einplanen sollten:
 
-- **Eine Ankündigung ohne Enddatum läuft nie ab.** Lassen Sie **End Showing Announcement At** leer, bleibt sie unbegrenzt oben auf der Übersichtsseite angeheftet. Setzen Sie ein Enddatum bei allem, was zeitlich begrenzt ist.
-- **Eine alte, aber noch aktive Ankündigung kann aus der Liste verschwinden.** Wenn sie vor mehr als `showAnnouncementHistoryInDays` Tagen begonnen hat, fällt sie aus `/announcements` heraus, bleibt aber auf der Übersicht. Erhöhen Sie das Historienfenster, wenn Sie langlaufende Hinweise pflegen.
+- **Eine Ankündigung ohne Enddatum läuft nie ab.** Lassen Sie **Anzeige der Ankündigung beenden um** leer, bleibt sie unbegrenzt oben auf der Übersichtsseite. Setzen Sie bei allem Zeitgebundenen ein Enddatum.
+- **Eine alte, aber noch aktive Ankündigung kann aus der Liste verschwinden.** Hat sie vor mehr als `showAnnouncementHistoryInDays` begonnen, fällt sie aus `/announcements` heraus, bleibt aber auf der Übersicht. Erhöhen Sie den Verlaufszeitraum, wenn Sie lange laufende Hinweise pflegen.
 
-Ob Ankündigungen überhaupt erscheinen, wird über die Karte **Announcement Settings** auf **Advanced Settings** gesteuert: **Show Announcements** (`showAnnouncementsOnStatusPage`, Standard true) und **Show Announcement History (in days)** (Standard 14). Ist **Show Announcements** deaktiviert, verweigert der Ankündigungs-Endpunkt die Anfrage rundweg.
+Ob Ankündigungen überhaupt erscheinen, steuert die Karte **Ankündigungseinstellungen** unter **Erweiterte Einstellungen**: **Ankündigungen anzeigen** (`showAnnouncementsOnStatusPage`, Standard true) und **Ankündigungsverlauf anzeigen (in Tagen)** (Standard 14). Ist **Ankündigungen anzeigen** aus, weist der Ankündigungs-Endpunkt die Anfrage rundheraus ab.
 
 ## Ankündigungsvorlagen
 
-Wenn Sie wiederholt dieselbe Art von Hinweis posten – eine monatliche Wartungsankündigung, eine wiederkehrende Beeinträchtigung eines Drittanbieters – legen Sie sie auf Vorrat an. **Status Pages → Settings → Announcement Templates** speichert das Modell `StatusPageAnnouncementTemplate`, und sein Formular fragt nach **Template Name**, **Template Description**, **Announcement Title**, **Description**, **Show announcement on these status pages**, **Monitors affected (Optional)** und **Notify Subscribers**, sodass die Ausstrahlung und die Benachrichtigungsentscheidung einmal getroffen werden statt jedes Mal.
+Wenn Sie dieselbe Art von Hinweis immer wieder veröffentlichen – die monatliche Wartungsankündigung, eine wiederkehrende Beeinträchtigung bei einem Drittanbieter –, legen Sie sie vor. **Statusseiten → Einstellungen → Ankündigungs-Vorlagen** speichert das Modell `StatusPageAnnouncementTemplate`, und sein Formular fragt nach **Vorlagenname**, **Vorlagenbeschreibung**, **Ankündigungstitel**, **Beschreibung**, **Ankündigung auf diesen Status-Seiten anzeigen**, **Betroffene Monitore (Optional)** und **Abonnenten benachrichtigen** – die Verteilung und die Benachrichtigungsentscheidung fallen also einmal statt jedes Mal.
 
 ## Webhook-Abonnenten und SSRF-Schutz
 
-Webhook-Abonnenten erhalten bei jedem Statusseiten-Ereignis einen JSON-`POST`-Request, was sie zum einfachsten Weg macht, Statusseiten-Updates in ein eigenes System einzuspeisen – einen Chatbot, ein internes Dashboard, eine Ticket-Warteschlange.
+Webhook-Abonnenten erhalten bei jedem Ereignis auf der Statusseite eine JSON-`POST`-Anfrage. Damit sind sie der einfachste Weg, Statusseiten-Updates in ein eigenes System zu leiten – einen Chatbot, ein internes Dashboard, eine Ticket-Warteschlange.
 
-Da das Abonnieren eine öffentliche Operation auf einer öffentlichen Seite ist, schützt OneUptime das Ziel:
+Weil das Abonnieren eine öffentliche Aktion auf einer öffentlichen Seite ist, schützt OneUptime das Ziel:
 
-- Eine generische **Webhook URL** wird vor der Annahme validiert, und private, Loopback-, Link-lokale und Cloud-Metadaten-Adressen werden abgelehnt. Sie können ein Abonnement nicht auf etwas innerhalb des eigenen Netzwerks der OneUptime-Bereitstellung richten.
-- Eine **Slack Incoming Webhook URL** muss mit `https://hooks.slack.com/services/` beginnen.
+- Eine allgemeine **Webhook-URL** wird vor der Annahme geprüft, und private, Loopback-, Link-Local- und Cloud-Metadaten-Adressen werden abgelehnt. Sie können ein Abonnement nicht auf etwas innerhalb des Netzwerks der OneUptime-Installation richten.
+- Eine **Slack Eingehende Webhook-URL** muss mit `https://hooks.slack.com/services/` beginnen.
 
 Wird ein Webhook-Abonnement bei der Anmeldung abgelehnt, ist eine interne oder fehlerhafte URL das Erste, was Sie prüfen sollten.
 
-## Weiterführende Themen
+## Wo Sie als Nächstes lesen sollten
 
 - [Statusseiten – Übersicht](/docs/status-pages/index) – was eine Statusseite ist und wie sie aufgebaut ist.
 - [Statusseiten – Ressourcen & Gruppen](/docs/status-pages/resources-and-groups) – die Monitore und Gruppen, zwischen denen Abonnenten wählen können.
-- [Statusseiten – Branding & Domains](/docs/status-pages/branding-and-domains) – benutzerdefinierte Domains, Logos und das Aussehen der Seite, auf die Ihre E-Mails verlinken.
-- [Öffentliche Status-Seiten-API](/docs/status-pages/public-api) – Statusseitendaten programmgesteuert lesen.
+- [Statusseiten – Branding & Domains](/docs/status-pages/branding-and-domains) – eigene Domains, Logos und das Aussehen der Seite, auf die Ihre E-Mails verlinken.
+- [Öffentliche API](/docs/status-pages/public-api) – Statusseitendaten programmatisch lesen.
 - [Vorfallstatus & Schweregrade](/docs/incidents/states-and-severities) – was einen Vorfall auf eine Statusseite bringt und was ihn wieder entfernt.
 - [Vorfalleinstellungen & Automatisierung](/docs/incidents/settings) – die projektweiten Regeln hinter der Vorfallkommunikation.
