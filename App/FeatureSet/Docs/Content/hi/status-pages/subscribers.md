@@ -1,161 +1,161 @@
 # सब्सक्राइबर और घोषणाएँ
 
-एक status page एक ऐसी जगह है जहाँ लोग जाते हैं। सब्सक्राइबर वे लोग हैं जो वहाँ बार-बार जाने के बजाय एक बार अपना email address, phone number, Slack webhook या HTTP endpoint आपको दे देते हैं, और उसके बाद आपके updates खुद उन तक पहुँच जाते हैं।
+स्थिति पृष्ठ वह जगह है जहाँ लोग खुद चलकर जाते हैं। सब्सक्राइबर वे लोग हैं जो जाना नहीं चाहते — वे आपको एक बार अपना ईमेल पता, फ़ोन नंबर, कोई Slack webhook या कोई HTTP endpoint दे देते हैं, और उसके बाद आपके अपडेट खुद उन तक पहुँचते हैं।
 
-घोषणाएँ (Announcements) उसी काम का दूसरा हिस्सा हैं। कोई monitor आपके visitors को यह बता सकता है कि checkout 500s दे रहा है; लेकिन कोई भी monitor उन्हें यह नहीं बता सकता कि आप शनिवार को databases migrate कर रहे हैं, कि कोई third-party provider का दिन खराब चल रहा है, या कि कल पढ़ी गई incident अब पूरी तरह बंद हो चुकी है। घोषणाएँ उस सब कुछ के लिए free-text channel हैं जिसे आपके checks नहीं देख सकते, और वे उसी subscriber list तक पहुँचती हैं।
+घोषणाएँ इसी काम का दूसरा आधा हिस्सा हैं। कोई monitor आपके visitors को बता सकता है कि checkout 500 लौटा रहा है; पर कोई monitor यह नहीं बता सकता कि शनिवार को आप databases migrate कर रहे हैं, कि किसी third-party प्रदाता का दिन खराब चल रहा है, या कि कल जिस घटना के बारे में उन्होंने पढ़ा था वह अब पूरी तरह बंद हो चुकी है। जो कुछ आपके checks देख ही नहीं सकते, उसके लिए घोषणाएँ खुले-लिखे शब्दों वाला channel हैं — और वे उसी सब्सक्राइबर सूची तक पहुँचती हैं।
 
-यह page दोनों को cover करता है: पाँच subscription channels और visitors कैसे sign up करते हैं, subscribers क्या-क्या सुनना चुन सकते हैं, double opt-in और unsubscribe flows, और घोषणाएँ कैसे लिखी, scheduled और templated की जाती हैं।
+यह पेज दोनों को कवर करता है: पाँच सदस्यता channels और visitors का साइन अप करना, सब्सक्राइबर किन चीज़ों की खबर चुन सकते हैं, double opt-in और सदस्यता समाप्त करने की प्रक्रिया, और घोषणाएँ कैसे लिखी, शेड्यूल और टेम्पलेट की जाती हैं।
 
-## Subscription channels
+## सदस्यता के channels
 
-एक status page पाँच channels को support करता है, हर एक का status page पर अपना toggle होता है। **Status Pages → your page → Subscribers → Subscriber Settings** पर जाएँ:
+एक स्थिति पृष्ठ पाँच channels समर्थित करता है, और हर एक का अपना अलग toggle पेज पर होता है। **स्थिति पृष्ठ → आपका पेज → सब्सक्राइबर → सब्सक्राइबर सेटिंग्स** पर जाइए:
 
-- **Enable Email Subscribers** (`enableEmailSubscribers`) — डिफ़ॉल्ट रूप से on। बाकी सब तब तक off रहता है जब तक आप इसे on नहीं करते।
-- **Enable SMS Subscribers** (`enableSmsSubscribers`) — डिफ़ॉल्ट रूप से off।
-- **Enable Slack Subscribers** (`enableSlackSubscribers`) — डिफ़ॉल्ट रूप से off।
-- **Enable Microsoft Teams Subscribers** (`enableMicrosoftTeamsSubscribers`) — डिफ़ॉल्ट रूप से off।
-- **Enable Webhook Subscribers** (`enableWebhookSubscribers`) — डिफ़ॉल्ट रूप से off।
+- **ईमेल सब्सक्राइबर सक्षम करें** (`enableEmailSubscribers`) — डिफ़ॉल्ट रूप से on। बाकी सब तब तक बंद रहता है जब तक आप उसे खुद चालू न करें।
+- **SMS सब्सक्राइबर सक्षम करें** (`enableSmsSubscribers`) — डिफ़ॉल्ट रूप से off।
+- **Slack सब्सक्राइबर सक्षम करें** (`enableSlackSubscribers`) — डिफ़ॉल्ट रूप से off।
+- **Microsoft Teams सब्सक्राइबर सक्षम करें** (`enableMicrosoftTeamsSubscribers`) — डिफ़ॉल्ट रूप से off।
+- **वेबहुक सब्सक्राइबर सक्षम करें** (`enableWebhookSubscribers`) — डिफ़ॉल्ट रूप से off।
 
-हर channel को status page के side menu में **Subscribers** के अंतर्गत अपनी अलग list भी मिलती है: **Email Subscribers**, **SMS Subscribers**, **Slack Subscribers**, **MS Teams Subscribers** और **Webhook Subscribers**। यहीं आप देखते हैं कि कौन sign up है, किसी को हाथ से add करते हैं, या किसी particular subscriber पर अपने लिए **Notes** (`internalNote`) entry छोड़ते हैं।
+हर channel को स्थिति पृष्ठ के side menu में **सब्सक्राइबर** के नीचे अपनी अलग सूची भी मिलती है: **ईमेल सब्सक्राइबर**, **SMS सब्सक्राइबर**, **Slack सब्सक्राइबर**, **MS Teams सब्सक्राइबर** और **Webhook ग्राहक**। यहीं आप देखते हैं कि कौन साइन अप है, हाथ से किसी को जोड़ते हैं, या किसी खास सब्सक्राइबर पर अपने लिए **नोट** (`internalNote`) छोड़ते हैं।
 
-**सिर्फ एक toggle काफी नहीं है।** status page nav bar में **Subscribe** item तभी दिखता है जब **Show Subscriber Page** (`showSubscriberPageOnStatusPage`) on हो *और* कम से कम एक channel enabled हो। अगर आप **Enable Email Subscribers** on करते हैं लेकिन **Show Subscriber Page** off छोड़ देते हैं, तो visitors के पास form तक पहुँचने का कोई रास्ता नहीं होता।
+**एक toggle काफ़ी नहीं है।** स्थिति पृष्ठ के nav bar में **सदस्यता लें** item तभी दिखता है जब **सब्सक्राइबर पृष्ठ दिखाएं** (`showSubscriberPageOnStatusPage`) on हो *और* कम से कम एक channel चालू हो। अगर आपने **ईमेल सब्सक्राइबर सक्षम करें** चालू कर दिया पर **सब्सक्राइबर पृष्ठ दिखाएं** बंद ही छोड़ दिया, तो visitors के पास form तक पहुँचने का कोई रास्ता नहीं बचता।
 
-यही पाँचों toggles **Advanced Settings** पर मौजूद **Subscriber Settings** card के अंदर दूसरी बार दिखते हैं, **Show Subscriber Page** के साथ। नीचे से ये वही columns हैं — एक screen चुनें और उसी पर टिके रहें, और dedicated **Subscriber Settings** page को prefer करें क्योंकि बाकी सारी subscriber configuration वहीं रहती है।
+यही पाँच toggles दूसरी बार **उन्नत सेटिंग्स** पर मौजूद **सब्सक्राइबर सेटिंग्स** card में भी दिखते हैं, **सब्सक्राइबर पृष्ठ दिखाएं** के साथ। भीतर वे वही columns हैं — कोई एक screen चुनकर उसी पर टिके रहिए, और बेहतर हो कि अलग वाला **सब्सक्राइबर सेटिंग्स** पेज चुनिए, क्योंकि बाकी सारी subscriber कॉन्फ़िगरेशन वहीं रहती है।
 
-## Subscribe page पर visitor को क्या दिखता है
+## सदस्यता वाले पेज पर visitor को क्या दिखता है
 
-**Subscribe** page में हर enabled channel के लिए एक tab वाला sub-menu होता है — **Email**, **SMS**, **Slack**, **MS Teams**, **Webhooks** — जो `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams` और `/subscribe/webhooks` से mapped हैं। हर tab को बस उतना ही चाहिए जितना जरूरी है:
+**सदस्यता लें** पेज पर एक sub-menu होता है, जिसमें हर चालू channel के लिए एक tab रहता है — **ईमेल**, **एसएमएस**, **Slack**, **MS Teams**, **वेबहुक** — और ये क्रमशः `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams` तथा `/subscribe/webhooks` से जुड़े हैं। हर tab उतना ही पूछता है जितना उसे ज़रूरी है:
 
-- **Email** — heading **Subscribe by Email**, एक field **Your Email** placeholder `subscriber@company.com` के साथ।
-- **SMS** — heading **Subscribe by SMS**, एक field **Your Phone Number** placeholder `+11234567890` के साथ।
-- **Slack** — heading **Subscribe by Slack**, इसमें **Slack Workspace Name** (validation के लिए इस्तेमाल होता है) और **Slack Incoming Webhook URL**, placeholder `https://hooks.slack.com/services/...`।
-- **MS Teams** — heading **Subscribe by Microsoft Teams**, इसमें **Microsoft Teams Workspace Name** और **Microsoft Teams Incoming Webhook URL**, placeholder `https://outlook.office.com/webhook/...`।
-- **Webhooks** — heading **Subscribe by Webhook**, एक field **Webhook URL**। हर status page event पर इसे एक JSON `POST` request भेजी जाती है।
+- **ईमेल** — शीर्षक **ईमेल द्वारा सदस्यता लें**, एक फ़ील्ड **आपका ईमेल**, placeholder `subscriber@company.com`।
+- **एसएमएस** — शीर्षक **एसएमएस द्वारा सदस्यता लें**, एक फ़ील्ड **आपका फ़ोन नंबर**, placeholder `+11234567890`।
+- **Slack** — शीर्षक **Slack द्वारा सदस्यता लें**, इसमें **Slack कार्यक्षेत्र का नाम** (सत्यापन के लिए) और **Slack इनकमिंग वेबहुक URL**, placeholder `https://hooks.slack.com/services/...`।
+- **MS Teams** — शीर्षक **Microsoft Teams द्वारा सदस्यता लें**, इसमें **Microsoft Teams कार्यक्षेत्र का नाम** और **Microsoft Teams इनकमिंग वेबहुक URL**, placeholder `https://outlook.office.com/webhook/...`।
+- **वेबहुक** — शीर्षक **वेबहुक के माध्यम से सदस्यता लें**, एक फ़ील्ड **वेबहुक URL**। हर स्थिति पृष्ठ ईवेंट पर उस पर एक JSON `POST` अनुरोध भेजा जाता है।
 
-Submit button पर **Subscribe** लिखा होता है, और सफल signup पर *You have been subscribed successfully.* दिखता है। page पर एक **New Subscription** / **Manage Existing Subscription** split भी होता है, ताकि जो पहले से subscribe कर चुका है वह पुराना email ढूँढे बिना अपनी preferences तक वापस पहुँच सके।
+submit बटन पर **सदस्यता लें** लिखा होता है, और साइन अप सफल होने पर *आपने सफलतापूर्वक सदस्यता ले ली है।* दिखता है। पेज पर **नई सदस्यता** / **मौजूदा सदस्यता प्रबंधित करें** का बँटवारा भी है, ताकि जो पहले सदस्यता ले चुका है वह कोई पुराना ईमेल खोजे बिना अपनी प्राथमिकताओं तक लौट सके।
 
-## Subscribers को resources और event types चुनने देना
+## सब्सक्राइबर को संसाधन और इवेंट प्रकार चुनने देना
 
-डिफ़ॉल्ट रूप से एक subscriber को page पर मौजूद सब कुछ मिलता है। **Advanced Subscriber Settings** card में दो toggles इसे बदल देते हैं:
+डिफ़ॉल्ट रूप से सब्सक्राइबर को पेज की हर चीज़ की खबर मिलती है। **उन्नत सब्सक्राइबर सेटिंग्स** card के दो toggles इसे बदल देते हैं:
 
-- **Allow Subscribers to Choose Resources** (`allowSubscribersToChooseResources`) — डिफ़ॉल्ट रूप से off। इसे on करने पर subscribe form में **Subscribe to All Resources** toggle जुड़ जाता है; इसे clear करने पर **Select Resources to Subscribe** दिखता है ताकि visitor individual resources चुन सके।
-- **Allow Subscribers to Choose Event Types** (`allowSubscribersToChooseEventTypes`) — डिफ़ॉल्ट रूप से off। वही structure: एक **Subscribe to All Event Types** toggle, और इसे clear करने पर नीचे **Select Event Types to Subscribe**।
+- **सब्सक्राइबर्स को संसाधन चुनने दें** (`allowSubscribersToChooseResources`) — डिफ़ॉल्ट रूप से off। इसे चालू कीजिए और सदस्यता form में **सभी संसाधनों की सदस्यता लें** toggle आ जाता है; उसे हटाइए तो **सदस्यता के लिए संसाधन चुनें** दिखने लगता है, ताकि visitor एक-एक संसाधन चुन सके।
+- **सब्सक्राइबर्स को इवेंट प्रकार चुनने दें** (`allowSubscribersToChooseEventTypes`) — डिफ़ॉल्ट रूप से off। बनावट वही है: एक **सभी प्रकार के कार्यक्रमों की सदस्यता लें** toggle, और उसे हटाने पर नीचे **सदस्यता के लिए कार्यक्रम प्रकार चुनें**।
 
-Event types हैं `Incident`, `Announcement` और `Scheduled Event`।
+इवेंट प्रकार हैं `Incident`, `Announcement` और `Scheduled Event`।
 
-ये चुनाव subscriber record पर **Is Subscribed to All Resources** (`isSubscribedToAllResources`, डिफ़ॉल्ट true), **Is Subscribed to All Event Types** (`isSubscribedToAllEventTypes`, डिफ़ॉल्ट true), **Subscribed to Resources** और **Subscribed to Event Types** के रूप में दर्ज होते हैं।
+ये चुनाव subscriber record पर **Is Subscribed to All Resources** (`isSubscribedToAllResources`, डिफ़ॉल्ट true), **Is Subscribed to All Event Types** (`isSubscribedToAllEventTypes`, डिफ़ॉल्ट true), **Subscribed to Resources** और **Subscribed to Event Types** के रूप में उतरते हैं।
 
-किसके लिए उपयोगी: ऐसा page जो कई products को cover करता हो। जो customer सिर्फ आपका API इस्तेमाल करता है वह हर बार page नहीं चाहेगा जब marketing site में हल्की गड़बड़ी हो — उन्हें पूरी तरह unsubscribe होते देखने के बजाय list खुद संकुचित करने दें।
+किसके लिए अच्छा: ऐसा पेज जो कई products को समेटता है। जो ग्राहक सिर्फ़ आपका API इस्तेमाल करता है, वह हर बार marketing साइट डगमगाने पर सूचना नहीं चाहता — उसे खुद सूची छाँटने दीजिए, बजाय इसके कि वह पूरी सदस्यता ही समाप्त कर दे।
 
-इसी card में **Subscriber Timezones** भी होता है।
+इसी card पर **सब्सक्राइबर टाइमज़ोन** भी रहता है।
 
-## Email double opt-in
+## ईमेल का double opt-in
 
-Email subscribers हमेशा confirm करते हैं। जब कोई subscriber email address के साथ बनाया जाता है और पहले से confirmed बनाकर नहीं बनाया गया, तो **Is Subscription Confirmed** (`isSubscriptionConfirmed`) को force करके `false` किया जाता है और एक छह-अंकों का **Subscription Confirmation Token** generate होता है। फिर OneUptime एक confirmation link वाला email भेजता है जिसका shape होता है `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`। visitor **Confirm Subscription** page पर पहुँचता है और, प्रक्रिया पूरी होने पर, *Subscription confirmed successfully* देखता है।
+ईमेल सब्सक्राइबर हमेशा पुष्टि करते हैं। जब कोई सब्सक्राइबर ईमेल पते के साथ बनता है और पहले से पुष्ट होकर नहीं आता, तो **Is Subscription Confirmed** (`isSubscriptionConfirmed`) ज़बरदस्ती `false` कर दिया जाता है और छह अंकों का **Subscription Confirmation Token** बनता है। इसके बाद OneUptime `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}` जैसी शक्ल का पुष्टि लिंक ईमेल करता है। visitor **सदस्यता की पुष्टि करें** पेज पर पहुँचता है, और पुष्टि हो जाने पर उसे *सदस्यता की पुष्टि सफलतापूर्वक हो गई* दिखता है।
 
-SMS, Slack, Microsoft Teams और webhook subscribers इसे skip कर देते हैं — वे पहले से `isSubscriptionConfirmed` को `true` सेट करके बनाए जाते हैं।
+SMS, Slack, Microsoft Teams और webhook सब्सक्राइबर यह चरण छोड़ देते हैं — वे `isSubscriptionConfirmed` पहले से `true` लिए हुए बनते हैं।
 
-**Unconfirmed का मतलब silent है।** notification के लिए subscribers fetch करने वाली query `isUnsubscribed: false` और `isSubscriptionConfirmed: true` पर filter करती है। जिस email address ने कभी link पर click नहीं किया वह आपकी **Email Subscribers** list में बैठा रहेगा और कुछ भी नहीं पाएगा। अगर कोई कहता है कि वह subscribed है लेकिन उसे कुछ नहीं मिल रहा, तो सबसे पहले यही column check करें।
+**बिना पुष्टि का मतलब है खामोशी।** किसी सूचना के लिए सब्सक्राइबर खींचने वाली query `isUnsubscribed: false` और `isSubscriptionConfirmed: true` पर छानती है। जिस ईमेल पते ने कभी लिंक पर क्लिक ही नहीं किया, वह आपकी **ईमेल सब्सक्राइबर** सूची में बैठा तो रहेगा, पर उसे कुछ नहीं मिलेगा। कोई कसम खाकर कहे कि उसने सदस्यता ली है फिर भी कुछ नहीं आता, तो सबसे पहले यही column देखिए।
 
-email confirmation को बंद करने के लिए कोई toggle नहीं है — यह status page के जरिए sign up करने वाले हर किसी के लिए unconditional है। एक अलग per-subscriber column, **Send You Have Subscribed Message** (`sendYouHaveSubscribedMessage`, डिफ़ॉल्ट true), उस "you have subscribed" email को control करता है जो subscriber confirm होने के बाद भेजा जाता है।
+ईमेल पुष्टि बंद करने का कोई toggle नहीं है — स्थिति पृष्ठ से साइन अप करने वाले हर व्यक्ति पर यह बिना शर्त लागू होती है। एक अलग per-subscriber column, **Send You Have Subscribed Message** (`sendYouHaveSubscribedMessage`, डिफ़ॉल्ट true), उस "आपने सदस्यता ले ली है" वाले ईमेल को तय करता है जो सब्सक्राइबर की पुष्टि होते ही जाता है।
 
-## Subscription को manage और cancel करना
+## सदस्यता प्रबंधित करना और रद्द करना
 
-हर subscriber email में इस रूप का एक unsubscribe link होता है `{statusPageUrl}/update-subscription/{statusPageSubscriberId}`। उस page का title **Update Subscription** है और यह visitor को बताता है कि वे वहाँ अपनी preferences update कर सकते हैं या unsubscribe कर सकते हैं। इसमें होता है:
+हर सब्सक्राइबर ईमेल में `{statusPageUrl}/update-subscription/{statusPageSubscriberId}` शक्ल का एक unsubscribe लिंक रहता है। उस पेज का शीर्षक **सदस्यता अपडेट करें** है और वह visitor को बताता है कि वह यहीं अपनी प्राथमिकताएँ बदल सकता है या सदस्यता समाप्त कर सकता है। उसमें रहता है:
 
-- page जो भी resource और event-type pickers allow करता है।
-- एक **Unsubscribe** toggle, जिसे सभी resources से unsubscribe करने के रूप में बताया गया है। यह **Is Unsubscribed** (`isUnsubscribed`, डिफ़ॉल्ट false) लिखता है।
-- एक submit button जिस पर **Update Subscription** लिखा है; save करने पर *Your changes have been saved.* दिखता है।
+- पेज जिन संसाधन और इवेंट-प्रकार वाले pickers की इजाज़त देता है, वे सब।
+- एक **सदस्यता समाप्त करें** toggle, जिसका विवरण कहता है कि यह सभी संसाधनों से सदस्यता समाप्त कर देता है। यह **सदस्यता समाप्त है** (`isUnsubscribed`, डिफ़ॉल्ट false) लिखता है।
+- **सदस्यता अपडेट करें** लिखा एक submit बटन; सहेजने पर *आपके परिवर्तन सहेजे गए हैं।* दिखता है।
 
-जिसका link खो गया हो वह **Subscribe** page पर **Manage Existing Subscription** का इस्तेमाल करता है और **Send Management Link** दबाता है। OneUptime जवाब देता है कि link वाला email भेज दिया गया है और अगर वह न आए तो spam folder check करने को कहता है।
+जिसका लिंक खो गया हो, वह **सदस्यता लें** पेज पर **मौजूदा सदस्यता प्रबंधित करें** चुनकर **प्रबंधन लिंक भेजें** दबाता है। OneUptime जवाब देता है कि लिंक वाला ईमेल भेज दिया गया है, और न मिले तो spam फ़ोल्डर देख लीजिए।
 
-इन सबके पीछे के endpoints हैं `POST .../subscribe/:statusPageId`, `POST .../manage-subscription/:statusPageId`, `POST .../get-subscription/:statusPageId/:subscriberId` और `PUT .../update-subscription/:statusPageId/:subscriberId`।
+इस सबके पीछे के endpoints हैं `POST .../subscribe/:statusPageId`, `POST .../manage-subscription/:statusPageId`, `POST .../get-subscription/:statusPageId/:subscriberId` और `PUT .../update-subscription/:statusPageId/:subscriberId`।
 
-Unsubscribe करने पर row delete नहीं होती बल्कि एक flag पलट जाता है, इसलिए record **Is Unsubscribed** set होने के साथ channel list में बना रहता है — यह तब काम आता है जब बाद में यह बताना हो कि कोई particular address क्यों mail पाना बंद कर चुका था।
+सदस्यता समाप्त करना row मिटाता नहीं, बस एक flag पलट देता है — इसलिए record channel की सूची में **सदस्यता समाप्त है** के साथ बना रहता है, जो बाद में यह समझाने के काम आता है कि किसी खास पते पर मेल आना क्यों बंद हुआ।
 
-## Subscribers को किस बारे में notify किया जाता है
+## सब्सक्राइबर को किन बातों की सूचना मिलती है
 
-Subscribers ऊपर बताए गए तीनों event types के बारे में सुनते हैं, लेकिन हर source का अपना switch है, ताकि गलती से कुछ न भेजा जाए।
+सब्सक्राइबर को ऊपर बताए तीनों इवेंट प्रकारों की खबर मिलती है, पर हर स्रोत का अपना switch है, ताकि गलती से कुछ भी न चला जाए।
 
-### Announcement notifications
+### घोषणा की सूचनाएँ
 
-घोषणा में खुद **Should subscribers be notified?** (`shouldStatusPageSubscribersBeNotified`) होता है, जो create form पर **Notify Status Page Subscribers** checkbox के रूप में दिखता है और डिफ़ॉल्ट रूप से on रहता है। अगर घोषणा **Monitors affected (Optional)** के अंतर्गत monitors बताती है, तो notification उन्हीं monitors तक सीमित रहती है; इसे खाली छोड़ने पर सभी subscribers को notify किया जाता है।
+घोषणा में खुद **क्या स्थिति पृष्ठ के सब्सक्राइबर को सूचित किया जाना चाहिए?** (`shouldStatusPageSubscribersBeNotified`) रहता है, जो बनाने वाले form पर **स्थिति पृष्ठ ग्राहकों को सूचित करें** checkbox के रूप में दिखता है और डिफ़ॉल्ट रूप से on है। अगर घोषणा **प्रभावित मॉनिटर (वैकल्पिक)** के नीचे monitors का नाम लेती है, तो सूचना उन्हीं monitors तक सीमित रहती है; इसे खाली छोड़िए और सभी सब्सक्राइबर को सूचना जाती है।
 
-### Scheduled maintenance events
+### निर्धारित रखरखाव कार्यक्रम
 
-एक scheduled maintenance event के अपने subscriber columns का सेट होता है: **Should subscribers be notified when event is created?**, **Should subscribers be notified when event is changed to ongoing?**, **Should subscribers be notified when event is changed to ended?**, साथ ही advance warnings के लिए **Subscriber notifications before the event** और **Next subscriber notification before the event at?**। event पर **Status Pages** यह तय करता है कि यह किन pages पर दिखेगा, और **Should be visible on status page?** यह तय करता है कि यह दिखेगा भी या नहीं।
+निर्धारित रखरखाव कार्यक्रम के अपने subscriber columns होते हैं: **जब यह इवेंट बनाया जाता है तो क्या स्थिति पृष्ठ के सब्सक्राइबर को सूचित किया जाना चाहिए?**, **जब इस इवेंट की स्थिति बदलकर जारी हो जाती है तो क्या स्थिति पृष्ठ के सब्सक्राइबर को सूचित किया जाना चाहिए?**, **जब इस इवेंट की स्थिति बदलकर समाप्त हो जाती है तो क्या स्थिति पृष्ठ के सब्सक्राइबर को सूचित किया जाना चाहिए?**, और पहले से चेतावनी देने के लिए **Subscriber notifications before the event** तथा **Next subscriber notification before the event at?**। इवेंट पर मौजूद **स्थिति पृष्ठ** तय करता है कि वह किन पेजों पर दिखेगा, और **Should be visible on status page?** तय करता है कि वह दिखेगा भी या नहीं।
 
-### Incidents
+### घटनाएँ
 
-`Incident` तीसरा event type है। किसी incident को status page तक पहुँचाने में सबसे पहले क्या मायने रखता है — यह किन resources को touch करता है और कौन-सी states इसे visible रखती हैं — यह [Incident States & Severities](/docs/incidents/states-and-severities) में cover किया गया है।
+`Incident` तीसरा इवेंट प्रकार है। कोई घटना स्थिति पृष्ठ तक पहुँचती पहले किस वजह से है — वह किन संसाधनों को छूती है और कौन-सी स्थितियाँ उसे दिखती रखती हैं — यह [घटना स्थितियाँ और गंभीरता](/docs/incidents/states-and-severities) में बताया गया है।
 
-status page के side menu में **Notification Logs** section (`{id}/notification-logs`) वहाँ है जहाँ आप यह देखने जाते हैं कि page ने वास्तव में क्या भेजा।
+स्थिति पृष्ठ के side menu में **सूचना लॉग** हिस्सा (`{id}/notification-logs`) वह जगह है जहाँ आप यह देखने जाते हैं कि पेज ने असल में भेजा क्या।
 
-## Notification templates को customize करना
+## सूचना टेम्पलेट अपने हिसाब से बदलना
 
-**Subscriber Settings** पर मौजूद **Notification Templates** card इस status page द्वारा इस्तेमाल किए जाने वाले templates को list करता है, इसके columns हैं **Template Name**, **Event Type** और **Notification Method** — ताकि सब कुछ के लिए एक ही house message स्वीकार करने के बजाय आप हर event type और हर channel के लिए wording अलग-अलग रख सकें।
+**सब्सक्राइबर सेटिंग्स** पर मौजूद **सूचना टेम्पलेट** card उन टेम्पलेट को सूचीबद्ध करता है जिन्हें यह स्थिति पृष्ठ इस्तेमाल करता है, इन columns के साथ: **टेम्पलेट नाम**, **ईवेंट प्रकार** और **सूचना विधि** — यानी हर चीज़ के लिए एक ही घिसा-पिटा संदेश मान लेने के बजाय आप हर इवेंट प्रकार और हर channel के लिए शब्द अलग रख सकते हैं।
 
-Project-wide templates एक level ऊपर रहते हैं, **Status Pages → Settings → Subscriber Templates** पर, **Announcement Templates** के बगल में।
+पूरे प्रोजेक्ट के टेम्पलेट एक स्तर ऊपर रहते हैं, **स्थिति पृष्ठ → सेटिंग्स → सब्सक्राइबर टेम्पलेट** पर, **घोषणा टेम्पलेट** के बगल में।
 
-## Email footer, custom SMTP और Twilio
+## ईमेल फुटर, कस्टम SMTP और Twilio
 
-**Subscriber Settings** पर तीन और cards यह control करते हैं कि subscriber messages आपके project से कैसे बाहर जाते हैं:
+**सब्सक्राइबर सेटिंग्स** पर तीन और cards तय करते हैं कि subscriber के संदेश आपके प्रोजेक्ट से बाहर कैसे जाते हैं:
 
-- **Email Footer Settings** — **Enable Custom Email Footer Text** और **Subscriber Email Notification Footer Text** subscriber emails पर आपका अपना footer डालते हैं।
-- **Custom SMTP** — **Custom SMTP Config** subscriber email को default के बजाय आपके अपने mail server से भेजता है।
-- **Twilio Config** — **Twilio Config** वही Twilio account है जो SMS subscribers के लिए इस्तेमाल होता है।
+- **ईमेल फुटर सेटिंग्स** — **कस्टम ईमेल फुटर टेक्स्ट सक्षम करें** और **सब्सक्राइबर ईमेल सूचना फ़ुटर टेक्स्ट** से subscriber ईमेल पर आपका अपना footer लग जाता है।
+- **कस्टम SMTP** — **कस्टम SMTP कॉन्फ़िग** subscriber ईमेल डिफ़ॉल्ट के बजाय आपके अपने mail server से भेजता है।
+- **Twilio कॉन्फ़िगरेशन** — **Twilio कॉन्फ़िगरेशन** वह Twilio खाता है जो SMS सब्सक्राइबर के लिए इस्तेमाल होता है।
 
-अगर आपके पास email subscribers हैं तो Custom SMTP जल्दी करना worth है: आपके अपने domain से आने वाला mail filter होने की संभावना बहुत कम होती है, और रात 2 बजे उसे पढ़ने वाले customer के लिए trust किए जाने की संभावना कहीं ज्यादा होती है।
+अगर आपके ईमेल सब्सक्राइबर हैं तो कस्टम SMTP जल्दी कर लेना फ़ायदे का सौदा है: आपके अपने डोमेन से आया मेल filter में फँसने की संभावना कहीं कम रखता है, और रात दो बजे उसे पढ़ रहे ग्राहक का भरोसा जीतने की संभावना कहीं ज़्यादा।
 
-## घोषणाएँ (Announcements)
+## घोषणाएँ
 
-एक announcement एक project-level record है (`StatusPageAnnouncement` model) जिसे आप एक या अधिक status pages पर fan out करते हैं, चाहें तो specific monitors तक scoped, एक ऐसी window के साथ जिसके दौरान यह दिखाई जाती है।
+घोषणा प्रोजेक्ट-स्तर का एक record है (`StatusPageAnnouncement` model) जिसे आप एक या कई स्थिति पृष्ठों पर फैलाते हैं, चाहें तो कुछ खास monitors तक सीमित रखते हैं, और जिसके साथ एक ऐसी अवधि होती है जिसमें वह दिखती है।
 
-आप इसे **Status Pages → More → Announcements** से बनाते हैं, या किसी individual status page के side menu में **Announcements** से। create form एक चार-step wizard है:
+इसे आप **स्थिति पृष्ठ → अधिक → घोषणाएं** से बनाते हैं, या किसी एक स्थिति पृष्ठ के side menu में **घोषणाएं** से। बनाने वाला form चार चरणों का wizard है:
 
-1. **Basic Information** — **Announcement Title** (required, कम से कम दो characters), **Description** (Markdown, optional) और **Attachments** उन files के लिए जिन्हें status page पर घोषणा के साथ उपलब्ध होना चाहिए।
-2. **Status Pages** — **Show announcement on these status pages**, एक required multi-select। एक announcement एक साथ कई pages को target कर सकती है।
-3. **Resources Affected** — **Monitors affected (Optional)**। अगर आप कोई नहीं चुनते, तो सभी subscribers को notify किया जाता है।
-4. **Schedule & Settings** — **Start Showing Announcement At** (required, डिफ़ॉल्ट अभी), **End Showing Announcement At** (optional) और **Notify Status Page Subscribers** (डिफ़ॉल्ट रूप से on)।
+1. **बुनियादी जानकारी** — **घोषणा शीर्षक** (आवश्यक, कम से कम दो वर्ण), **विवरण** (Markdown, वैकल्पिक) और **अनुलग्नक**, उन फ़ाइलों के लिए जो स्थिति पृष्ठ पर घोषणा के साथ उपलब्ध होनी चाहिए।
+2. **स्थिति पृष्ठ** — **इन स्थिति पृष्ठों पर घोषणा दिखाएं**, एक आवश्यक multi-select। एक ही घोषणा एक साथ कई पेजों को निशाना बना सकती है।
+3. **प्रभावित संसाधन** — **प्रभावित मॉनिटर (वैकल्पिक)**। कोई न चुनें तो सभी सब्सक्राइबर को सूचित किया जाता है।
+4. **अनुसूची और सेटिंग्स** — **घोषणा दिखाना यहाँ से शुरू करें** (आवश्यक, डिफ़ॉल्ट रूप से अभी), **घोषणा दिखाना समाप्त करें** (वैकल्पिक) और **स्थिति पृष्ठ ग्राहकों को सूचित करें** (डिफ़ॉल्ट रूप से on)।
 
-Visitors घोषणाएँ `/announcements` पर पढ़ते हैं, जो **Active Announcements** और **Past Announcements** में बँटी होती हैं, हर एक पर **Announced at** की मुहर होती है। जो घोषणाएँ अभी live हैं वे overview page के top पर भी pin रहती हैं। जब दिखाने के लिए कुछ न हो, तो page पर *No Announcement* के साथ यह note दिखता है कि अब तक कोई पोस्ट नहीं की गई।
+visitors घोषणाएँ `/announcements` पर पढ़ते हैं, जहाँ वे **सक्रिय घोषणाएँ** और **पिछली घोषणाएँ** में बँटी होती हैं और हर एक पर **घोषित किया गया** का समय लगा रहता है। अभी चल रही घोषणाएँ अवलोकन पेज के सबसे ऊपर भी टँगी रहती हैं। दिखाने को कुछ न हो तो पेज पर *कोई घोषणा नहीं* लिखा आता है, इस नोट के साथ कि अब तक कोई घोषणा पोस्ट नहीं की गई है।
 
-Attachments `GET {statusPageCrudPath}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId` से serve होते हैं, उसी read check के पीछे जो status page पर ही लागू होता है — इसलिए private page पर मौजूद attachment private ही रहता है।
+अनुलग्नक `GET {statusPageCrudPath}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId` से परोसे जाते हैं, उसी read जाँच के पीछे जो खुद स्थिति पृष्ठ पर लगती है — यानी निजी पेज पर लगा अनुलग्नक निजी ही रहता है।
 
-## Announcement scheduling कैसे काम करती है
+## घोषणा की शेड्यूलिंग कैसे काम करती है
 
-**Show At** (`showAnnouncementAt`) और **End At** (`endAnnouncementAt`) सब कुछ चलाते हैं, लेकिन overview page और announcements list अलग-अलग सवाल पूछते हैं, और यही अंतर लोगों को उलझा देता है।
+सब कुछ **Show At** (`showAnnouncementAt`) और **End At** (`endAnnouncementAt`) से चलता है, पर अवलोकन पेज और घोषणाओं की सूची अलग-अलग सवाल पूछते हैं, और यही फ़र्क़ लोगों को उलझा देता है।
 
-- **overview page** एक announcement तब दिखाता है जब `showAnnouncementAt` past में हो और `endAnnouncementAt` या तो future में हो या खाली हो।
-- **`/announcements` list** उन announcements को दिखाती है जिनका `showAnnouncementAt` **Show Announcement History (in days)** (`showAnnouncementHistoryInDays`, डिफ़ॉल्ट 14) के अंदर आता है, फिर उन्हें client-side पर active और past में बाँट देती है।
+- **अवलोकन पेज** घोषणा तब दिखाता है जब `showAnnouncementAt` बीत चुका हो और `endAnnouncementAt` या तो आगे का हो या खाली हो।
+- **`/announcements` सूची** वे घोषणाएँ दिखाती है जिनका `showAnnouncementAt` **घोषणा इतिहास दिखाएं (दिनों में)** (`showAnnouncementHistoryInDays`, डिफ़ॉल्ट 14) के भीतर आता है, और फिर उन्हें client पर सक्रिय तथा पिछली में बाँट देती है।
 
-दो परिणाम जिनके लिए plan करना जरूरी है:
+दो नतीजे, जिनका पहले से हिसाब रख लेना अच्छा है:
 
-- **बिना end date वाली announcement कभी expire नहीं होती।** **End Showing Announcement At** को खाली छोड़ें और यह overview page पर हमेशा के लिए pinned रहेगी। जो भी time-bound हो उस पर end date सेट करें।
-- **कोई पुरानी लेकिन अब भी active announcement list से गायब हो सकती है।** अगर यह `showAnnouncementHistoryInDays` से ज्यादा पहले शुरू हुई थी तो यह overview पर बनी रहते हुए भी `/announcements` से हट जाती है। अगर आप लंबे समय तक चलने वाले notices रखते हैं तो history window बढ़ाएँ।
+- **बिना समाप्ति तिथि वाली घोषणा कभी खत्म नहीं होती।** **घोषणा दिखाना समाप्त करें** खाली छोड़ दीजिए और वह अनंत काल तक अवलोकन पेज पर टँगी रहेगी। जो भी चीज़ समय-बद्ध हो, उस पर समाप्ति तिथि ज़रूर रखिए।
+- **पुरानी पर अब भी सक्रिय घोषणा सूची से गायब हो सकती है।** अगर वह `showAnnouncementHistoryInDays` से भी पहले शुरू हुई थी, तो वह `/announcements` से हट जाती है जबकि अवलोकन पर बनी रहती है। लंबे समय तक चलने वाली सूचनाएँ रखते हों तो इतिहास की अवधि बढ़ा दीजिए।
 
-घोषणाएँ बिल्कुल दिखेंगी या नहीं यह **Advanced Settings** पर मौजूद **Announcement Settings** card control करता है: **Show Announcements** (`showAnnouncementsOnStatusPage`, डिफ़ॉल्ट true) और **Show Announcement History (in days)** (डिफ़ॉल्ट 14)। **Show Announcements** off होने पर announcements endpoint request को सीधे मना कर देता है।
+घोषणाएँ दिखेंगी भी या नहीं, यह **उन्नत सेटिंग्स** पर मौजूद **घोषणा सेटिंग्स** card तय करता है: **घोषणाएं दिखाएं** (`showAnnouncementsOnStatusPage`, डिफ़ॉल्ट true) और **घोषणा इतिहास दिखाएं (दिनों में)** (डिफ़ॉल्ट 14)। **घोषणाएं दिखाएं** बंद हो तो announcements endpoint अनुरोध सिरे से ठुकरा देता है।
 
-## Announcement templates
+## घोषणा टेम्पलेट
 
-अगर आप एक ही तरह का notice बार-बार post करते हैं — एक monthly maintenance heads-up, कोई recurring third-party degradation — तो उसे pre-can कर लें। **Status Pages → Settings → Announcement Templates** `StatusPageAnnouncementTemplate` model को store करता है, और इसका form **Template Name**, **Template Description**, **Announcement Title**, **Description**, **Show announcement on these status pages**, **Monitors affected (Optional)** और **Notify Subscribers** माँगता है, ताकि fan-out और notify का फैसला हर बार के बजाय एक ही बार लिया जाए।
+अगर आप एक ही तरह की सूचना बार-बार पोस्ट करते हैं — हर महीने रखरखाव की चेतावनी, किसी third-party की बार-बार लौटती गिरावट — तो उसे पहले से तैयार रख लीजिए। **स्थिति पृष्ठ → सेटिंग्स → घोषणा टेम्पलेट** `StatusPageAnnouncementTemplate` model रखता है, और उसका form **टेम्पलेट नाम**, **टेम्पलेट विवरण**, **घोषणा शीर्षक**, **विवरण**, **इन स्थिति पृष्ठों पर घोषणा दिखाएं**, **प्रभावित मॉनिटर (वैकल्पिक)** और **सब्सक्राइबर्स को सूचित करें** माँगता है — यानी कहाँ-कहाँ फैलाना है और सूचित करना है या नहीं, यह फ़ैसला हर बार के बजाय एक ही बार होता है।
 
-## Webhook subscribers और SSRF protection
+## Webhook सब्सक्राइबर और SSRF से बचाव
 
-Webhook subscribers हर status page event पर एक JSON `POST` request पाते हैं, जो उन्हें status page updates को आपके अपने किसी system में — chatbot, internal dashboard, ticketing queue — pipe करने का सबसे आसान तरीका बनाता है।
+webhook सब्सक्राइबर को हर स्थिति पृष्ठ ईवेंट पर एक JSON `POST` अनुरोध मिलता है, और यही उन्हें स्थिति पृष्ठ के अपडेट अपने किसी सिस्टम तक पहुँचाने का सबसे आसान तरीका बनाता है — कोई chatbot, कोई भीतरी dashboard, कोई ticketing queue।
 
-चूँकि subscribe करना एक public page पर public operation है, OneUptime target को guard करता है:
+चूँकि सदस्यता लेना सार्वजनिक पेज पर होने वाली सार्वजनिक क्रिया है, इसलिए OneUptime लक्ष्य पर पहरा रखता है:
 
-- एक generic **Webhook URL** को accept करने से पहले validate किया जाता है, और private, loopback, link-local और cloud-metadata addresses reject कर दिए जाते हैं। आप किसी subscription को OneUptime deployment के अपने network के अंदर मौजूद किसी चीज़ की तरफ point नहीं कर सकते।
-- **Slack Incoming Webhook URL** का शुरुआत `https://hooks.slack.com/services/` से होनी ही चाहिए।
+- सामान्य **वेबहुक URL** स्वीकारे जाने से पहले जाँचा जाता है, और निजी, loopback, link-local तथा cloud-metadata पते ठुकरा दिए जाते हैं। किसी सदस्यता को आप OneUptime deployment के अपने network के भीतर की किसी चीज़ की ओर नहीं मोड़ सकते।
+- **Slack इनकमिंग वेबहुक URL** का `https://hooks.slack.com/services/` से शुरू होना ज़रूरी है।
 
-अगर signup पर कोई webhook subscription reject हो जाए, तो सबसे पहले किसी internal या malformed URL की जाँच करें।
+अगर साइन अप के वक़्त कोई webhook सदस्यता ठुकरा दी जाए, तो सबसे पहले यही देखिए कि URL भीतरी तो नहीं, या बिगड़ा हुआ तो नहीं।
 
 ## आगे क्या पढ़ें
 
-- [Status Pages Overview](/docs/status-pages/index) — status page क्या है और यह कैसे बना होता है।
-- [Status Page Resources & Groups](/docs/status-pages/resources-and-groups) — वे monitors और groups जिनके बीच subscribers चुन सकते हैं।
-- [Status Page Branding & Domains](/docs/status-pages/branding-and-domains) — custom domains, logos और उस page का look जिससे आपके emails link करते हैं।
-- [Public API](/docs/status-pages/public-api) — status page data को programmatically पढ़ना।
-- [Incident States & Severities](/docs/incidents/states-and-severities) — किसी incident को status page पर क्या डालता है और क्या हटाता है।
-- [Incident Settings & Automation](/docs/incidents/settings) — incident communication के पीछे project-level नियम।
+- [स्थिति पृष्ठ अवलोकन](/docs/status-pages/index) — स्थिति पृष्ठ होता क्या है और वह बनता कैसे है।
+- [स्थिति पृष्ठ संसाधन और समूह](/docs/status-pages/resources-and-groups) — वे monitors और समूह जिनमें से सब्सक्राइबर चुन सकते हैं।
+- [स्थिति पृष्ठ ब्रांडिंग और डोमेन](/docs/status-pages/branding-and-domains) — कस्टम डोमेन, लोगो, और उस पेज की शक्ल जिस पर आपके ईमेल लिंक करते हैं।
+- [सार्वजनिक API](/docs/status-pages/public-api) — स्थिति पृष्ठ का data programmatically पढ़ना।
+- [घटना स्थितियाँ और गंभीरता](/docs/incidents/states-and-severities) — किसी घटना को स्थिति पृष्ठ पर लाता क्या है और उससे हटाता क्या है।
+- [घटना सेटिंग्स और स्वचालन](/docs/incidents/settings) — घटना-संचार के पीछे के प्रोजेक्ट-स्तरीय नियम।

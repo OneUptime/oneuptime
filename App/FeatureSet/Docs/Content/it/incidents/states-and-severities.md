@@ -1,171 +1,171 @@
 # Stati e gravità
 
-Ogni incidente porta con sé due classificazioni: uno **stato** che indica a che punto è la vostra risposta, e una **gravità** che indica quanto sia grave. Nella dashboard si somigliano — entrambi appaiono come pillole colorate nell'elenco degli incidenti, entrambi sono elenchi legati al progetto che potete rinominare e ricolorare. Ma svolgono compiti molto diversi.
+Ogni incidente porta con sé due classificazioni: uno **stato**, che dice a che punto della vostra risposta si trova, e una **gravità**, che dice quanto fa male. Nella dashboard si somigliano — entrambi compaiono come pillole colorate nell'elenco degli incidenti, entrambi sono elenchi legati al progetto che potete rinominare e ricolorare. Ma svolgono lavori molto diversi.
 
-Gli stati determinano il comportamento. Tre flag booleani sulle righe di stato decidono quali incidenti contano come attivi, quali pulsanti compaiono nell'intestazione dell'incidente, quando si ferma l'orologio dell'SLA e quando l'incidente scompare dalla vostra pagina di stato. Le gravità di per sé non determinano nulla — sono etichette che descrivono l'impatto, e su cui altre regole possono fare corrispondenza.
+Gli stati guidano il comportamento. Tre flag booleani sulle righe di stato decidono quali incidenti contano come attivi, quali pulsanti compaiono nell'intestazione dell'incidente, quando si ferma il cronometro dello SLA e quando l'incidente sparisce dalla vostra pagina di stato. Le gravità, da sole, non guidano nulla: sono etichette che descrivono l'impatto e su cui altre regole possono fare corrispondenza.
 
-Entrambi gli elenchi vengono creati automaticamente quando il progetto viene creato, ed entrambi si modificano in **Incidents → Settings**. Quella sezione del menu laterale degli incidenti è chiusa per impostazione predefinita, quindi espandete **Settings** prima di cercarla.
+Entrambi gli elenchi vengono preimpostati alla creazione del progetto ed entrambi si modificano in **Incidenti → Impostazioni**. Quella sezione del menu laterale di Incidenti è compressa per impostazione predefinita, quindi espandete **Impostazioni** prima di cercarla.
 
-## Gli stati portano il comportamento, le gravità portano il significato
+## Gli stati portano comportamento, le gravità portano significato
 
-Il modello `IncidentState` ha `name`, `description`, `color` e `order`, oltre a tre booleani: `isCreatedState`, `isAcknowledgedState` e `isResolvedState`. Tutto ciò che il prodotto fa con gli stati dipende da questi booleani e da `order` — mai dal nome dello stato. Ecco perché potete rinominare **Resolved** in "Closed" senza che nulla si rompa: il flag viaggia insieme alla riga.
+Il modello `IncidentState` ha `name`, `description`, `color` e `order`, più tre booleani: `isCreatedState`, `isAcknowledgedState` e `isResolvedState`. Tutto ciò che il prodotto fa con gli stati si basa su quei booleani e su `order` — mai sul nome dello stato. È per questo che potete rinominare **Resolved** in "Chiuso" senza rompere nulla: il flag viaggia con la riga.
 
-Il modello `IncidentSeverity` ha `name`, `description`, `color` e `order` e nient'altro. Non ci sono flag. Niente in OneUptime tratta **Critical Incident** diversamente da **Minor Incident** di per sé — la gravità conta solo dove la puntate esplicitamente, come il criterio di corrispondenza **Incident Severities** su una regola di reperibilità.
+Il modello `IncidentSeverity` ha `name`, `description`, `color` e `order`, e nient'altro. Non ci sono flag. In OneUptime nulla tratta **Critical Incident** diversamente da **Minor Incident** di per sé: la gravità conta solo dove siete voi a puntarci qualcosa, come il criterio di corrispondenza **Incidente Gravità** su una regola di reperibilità.
 
-Alcune regole rapide:
+Qualche regola rapida:
 
-- **Scegliete la gravità per comunicare l'impatto** — appare nell'elenco degli incidenti, nella **Overview** dell'incidente, ed è un campo obbligatorio quando dichiarate un incidente.
-- **Scegliete gli stati per modellare il vostro processo** — i passaggi di risposta che effettivamente percorrete, nell'ordine in cui li percorrete.
-- **Non codificate l'urgenza negli stati** — uno stato chiamato "Critical" non avviserebbe nessuno. È la gravità unita a una regola di reperibilità a farlo.
+- **Scegliete la gravità per comunicare l'impatto** — compare nell'elenco degli incidenti, nella **Panoramica** dell'incidente ed è un campo obbligatorio quando dichiarate un incidente.
+- **Scegliete gli stati per modellare il vostro processo** — i passaggi di risposta che attraversate davvero, nell'ordine in cui li attraversate.
+- **Non codificate l'urgenza negli stati** — uno stato chiamato "Critico" non chiamerebbe nessuno. A farlo sono la gravità più una regola di reperibilità.
 
-## Gli stati seminati
+## Gli stati preimpostati
 
-Tre stati vengono creati con il progetto, in questo ordine. La creazione è idempotente — uno stato viene aggiunto solo quando non ne esiste già uno con quel nome.
+Tre stati vengono creati insieme al progetto, in quest'ordine. La preimpostazione è idempotente: uno stato viene aggiunto solo se non ne esiste già uno con quel nome.
 
-| Stato            | `order` | Flag                  | Colore    | Cosa significa                                          |
-| ---------------- | ------- | --------------------- | --------- | -------------------------------------------------------- |
-| **Identified**   | `1`     | `isCreatedState`      | `#fd625e` | Lo stato in cui atterrano i nuovi incidenti.              |
-| **Acknowledged** | `2`     | `isAcknowledgedState` | `#ffbf53` | Qualcuno ha preso in carico l'incidente.                  |
-| **Resolved**     | `3`     | `isResolvedState`     | `#2ab57d` | L'incidente è terminato e smette di contare come attivo.  |
+| Stato            | `order` | Flag                  | Colore     | Che cosa significa                                  |
+| ---------------- | ------- | --------------------- | --------- | -------------------------------------------------- |
+| **Identified**   | `1`     | `isCreatedState`      | `#fd625e` | Lo stato in cui atterrano i nuovi incidenti.       |
+| **Acknowledged** | `2`     | `isAcknowledgedState` | `#ffbf53` | Qualcuno ha preso in carico l'incidente.           |
+| **Resolved**     | `3`     | `isResolvedState`     | `#2ab57d` | L'incidente è finito e smette di contare come attivo. |
 
-Notate il nome: il primo stato è **Identified**, anche se diverse descrizioni all'interno del prodotto lo chiamano ancora lo stato "created". Quando un documento o un tooltip dice "created state", intende qualunque stato porti `isCreatedState` — in un progetto appena creato, è **Identified**.
+Attenzione al nome: il primo stato è **Identified**, anche se diverse descrizioni all'interno del prodotto continuano a chiamarlo stato "di creazione". Quando un documento o un suggerimento parla di "stato di creazione", intende lo stato che porta `isCreatedState` — in un progetto nuovo, **Identified**.
 
-## Cosa fa in pratica ogni flag di stato
+## Che cosa fa davvero ogni flag di stato
 
-| Flag                  | Scopo                                                                                                                                                                                                          |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isCreatedState`      | Lo stato che un incidente riceve quando nessuno ne ha scelto uno. Se nessuno stato del progetto porta questo flag, la creazione di un incidente fallisce con un errore che invita ad aggiungere uno stato di creazione dalle impostazioni. |
-| `isAcknowledgedState` | Alimenta il pulsante **Acknowledge** e la tessera statistica "<nome dello stato> in" nella **Overview** dell'incidente. Al passaggio a questo stato, l'SLA dell'incidente viene segnato come "risposto".    |
-| `isResolvedState`     | Alimenta il pulsante **Resolve** e la tessera statistica dei risolti, definisce l'elenco **Active Incidents**, ed è ciò che rimuove l'incidente dalla sezione attiva di una pagina di stato. Segna l'SLA come risolto. |
+| Flag                  | A cosa serve                                                                                                                                                                                          |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isCreatedState`      | Lo stato che un incidente riceve quando nessuno ne ha scelto uno. Se nel progetto nessuno stato porta questo flag, la creazione di un incidente fallisce con un errore che vi chiede di aggiungere uno stato di creazione dalle impostazioni. |
+| `isAcknowledgedState` | Alimenta il pulsante **Acknowledge** e il riquadro statistico "<nome stato> in" nella **Panoramica** dell'incidente. Al passaggio a questo stato, lo SLA dell'incidente viene marcato come "risposto". |
+| `isResolvedState`     | Alimenta il pulsante **Risolvi** e il riquadro statistico del risolto, definisce l'elenco **Incidenti attivi** ed è ciò che toglie l'incidente dalla sezione attiva di una pagina di stato. Marca lo SLA come risolto. |
 
-Ci si aspetta un solo stato per progetto per ciascun flag — le ricerche recuperano una singola riga. I tre stati contrassegnati possono essere rinominati, ricolorati e riordinati, ma la pagina delle impostazioni rifiuta di eliminarli e mostra un errore che nomina gli stati di creazione, riconoscimento e risoluzione.
+Per progetto ci si aspetta che ciascun flag sia portato da un solo stato — le ricerche recuperano una riga sola. I tre stati con i flag si possono rinominare, ricolorare e riordinare, ma la pagina delle impostazioni rifiuta di eliminarli e mostra un errore che nomina lo stato di creazione, quello di riconoscimento e quello di risoluzione.
 
-Poiché l'interfaccia legge i nomi degli stati dinamicamente, rinominare uno stato cambia ciò che vedete ovunque — le tessere statistiche, i titoli delle modali di conferma e la pillola nell'elenco degli incidenti seguono tutti il nome che avete dato alla riga.
+Poiché l'interfaccia legge i nomi degli stati in modo dinamico, rinominare uno stato cambia quello che vedete ovunque: i riquadri statistici, i titoli delle finestre di conferma e la pillola nell'elenco degli incidenti seguono tutti il nome che avete dato alla riga.
 
-## Aggiungere i vostri stati
+## Aggiungere stati vostri
 
-Andate su **Incidents → Settings → Incident State**. La pagina è un elenco ordinato per `order` crescente, e i nuovi stati vengono aggiunti in fondo. Trascinate una riga per cambiarne la posizione.
+Andate in **Incidenti → Impostazioni → Stato incidente**. La pagina è un elenco ordinato per `order` crescente e i nuovi stati vengono accodati in fondo. Trascinate una riga per cambiarne la posizione.
 
 **Campi di uno stato:**
 
-- **Name** — obbligatorio, almeno due caratteri. Il segnaposto suggerisce qualcosa come "Investigating".
-- **Description** — testo libero facoltativo che spiega quando un incidente si trova in questo stato.
-- **Color** — obbligatorio. Scelto dal selettore di colore; memorizzato come valore esadecimale tipo `#fd625e`.
+- **Nome** — obbligatorio, almeno due caratteri. Il segnaposto suggerisce qualcosa come "Investigating".
+- **Descrizione** — testo libero facoltativo che spiega quando un incidente si trova in questo stato.
+- **Colore** — obbligatorio. Scelto dal selettore di colori; memorizzato come valore esadecimale, tipo `#fd625e`.
 
-Non potete impostare i tre flag da questo modulo — appartengono alle righe seminate. Uno stato che aggiungete è quindi uno stato non contrassegnato, il che comporta due conseguenze da tenere presenti:
+Da questo modulo non potete impostare i tre flag: appartengono alle righe preimpostate. Uno stato che aggiungete voi è quindi uno stato senza flag, il che comporta due conseguenze da tenere presenti:
 
-- **Conta come attivo.** **Active Incidents** è definito come "lo stato corrente non è lo stato risolto", quindi qualsiasi cosa aggiungiate oltre allo stato risolto mantiene l'incidente nell'elenco attivo e nel conteggio della barra laterale.
-- **Il suo pulsante di transizione è generico.** Invece di **Acknowledge** o **Resolve**, la modale di conferma è intitolata **Mark Incident as `<nome dello stato>`** con un pulsante di invio **Mark as `<nome dello stato>`**.
+- **Conta come attivo.** **Incidenti attivi** è definito come "lo stato attuale non è lo stato risolto", quindi qualunque cosa aggiungiate a parte lo stato risolto tiene l'incidente nell'elenco attivo e nel conteggio della barra laterale.
+- **Il suo pulsante di transizione è generico.** Invece di **Acknowledge** o **Risolvi**, la finestra di conferma si intitola **Mark Incident as `<state name>`** con un pulsante di invio **Mark as `<state name>`**.
 
-Una forma comune è inserire un passaggio di triage o mitigazione tra gli stati riconosciuto e risolto — ad esempio, trascinate un nuovo stato "Mitigated" in modo che si trovi dopo **Acknowledged** e prima di **Resolved**.
+Una forma ricorrente è inserire un passaggio di triage o di mitigazione tra lo stato di riconoscimento e quello di risoluzione — per esempio, trascinare un nuovo stato "Mitigated" in modo che stia dopo **Acknowledged** e prima di **Resolved**.
 
 ## L'ordine è un vincolo reale, non una preferenza di visualizzazione
 
-La colonna `order` viene applicata quando un cambio di stato viene scritto, non solo quando l'elenco viene disegnato:
+La colonna `order` viene applicata quando si scrive un cambio di stato, non solo quando si disegna l'elenco:
 
-- **Le transizioni all'indietro vengono rifiutate.** Spostare un incidente a uno stato che si trova prima nell'ordine rispetto allo stato attuale fallisce con un errore che nomina entrambi gli stati.
+- **Le transizioni all'indietro vengono rifiutate.** Spostare un incidente a uno stato che nell'ordine precede quello attuale fallisce con un errore che nomina entrambi gli stati.
 - **Riselezionare lo stato attuale viene rifiutato.** Impostare un incidente sullo stato in cui si trova già fallisce con "Incident state cannot be same as previous state."
-- **Una riga retrodatata non può duplicare la sua vicina.** Anche l'inserimento di una riga nella cronologia il cui stato corrisponde alla riga che la segue viene rifiutato.
-- **I pulsanti dell'intestazione seguono la posizione degli stati contrassegnati nell'ordine.** **Acknowledge** e **Resolve** vengono proposti in base a dove si trova lo stato attuale nell'elenco ordinato. Uno stato personalizzato posizionato *dopo* lo stato risolto non mostrerà mai un pulsante **Resolve**, perché non resta nulla verso cui avanzare.
+- **Una riga retrodatata non può duplicare la vicina.** Anche inserire una riga di cronologia il cui stato coincide con quello della riga successiva viene rifiutato.
+- **I pulsanti dell'intestazione seguono la posizione degli stati con flag nell'ordine.** **Acknowledge** e **Risolvi** vengono proposti in base a dove si trova lo stato attuale nell'elenco ordinato. Uno stato personalizzato collocato *dopo* lo stato risolto non mostrerà mai un pulsante **Risolvi**, perché non c'è più nulla verso cui avanzare.
 
-Quindi, quando aggiungete uno stato, mettetelo dove un incidente passerebbe effettivamente. Ordinarlo male non è solo esteticamente scorretto — rende impossibili le transizioni.
+Quindi, quando aggiungete uno stato, mettetelo dove un incidente ci passerebbe davvero. Ordinarlo male non è solo brutto da vedere: rende impossibili le transizioni.
 
-## Le gravità seminate
+## Le gravità preimpostate
 
-Tre gravità vengono create con il progetto, in questo ordine:
+Tre gravità vengono create insieme al progetto, in quest'ordine:
 
-- **Critical Incident** (`order` 1, `#b70400`) — problemi che causano un impatto molto elevato sui clienti, che richiedono una risposta immediata. Un'interruzione totale o una violazione dei dati.
-- **Major Incident** (`order` 2, `#fd625e`) — impatto significativo, che di solito richiede una risposta immediata, a volte con una soluzione temporanea che limita il danno. Un sottosistema importante che si guasta.
-- **Minor Incident** (`order` 3, `#ffbf53`) — basso impatto, di solito gestito entro l'orario lavorativo, e la maggior parte dei clienti probabilmente non se ne accorge. Un lieve calo delle prestazioni dell'applicazione.
+- **Critical Incident** (`order` 1, `#b70400`) — problemi con impatto altissimo sui clienti, che richiedono una risposta immediata. Un disservizio totale o una violazione dei dati.
+- **Major Incident** (`order` 2, `#fd625e`) — impatto significativo, di norma con risposta immediata, a volte con una soluzione temporanea che limita i danni. Un sottosistema importante che smette di funzionare.
+- **Minor Incident** (`order` 3, `#ffbf53`) — impatto basso, di solito gestito in orario di lavoro, e difficilmente la maggior parte dei clienti se ne accorge. Un lieve calo delle prestazioni dell'applicazione.
 
-La gravità è obbligatoria quando dichiarate un incidente, ed è obbligatoria su ogni specifica di incidente nei criteri di un monitor, quindi ogni incidente — manuale o automatico — arriva con una gravità assegnata. Vedete [Declaring an Incident](/docs/incidents/declaring-incidents) per il flusso di dichiarazione e [Incident and Alert Templating](/docs/monitor/incident-alert-templating) per il percorso guidato dal monitor.
+La gravità è obbligatoria quando dichiarate un incidente ed è obbligatoria in ogni specifica di incidente nei criteri di un monitor, quindi ogni incidente — manuale o automatico — arriva con una. Vedete [Dichiarare un incidente](/docs/incidents/declaring-incidents) per il flusso di dichiarazione e [Modelli di incidenti e avvisi](/docs/monitor/incident-alert-templating) per il percorso guidato dai monitor.
 
 ## Modificare le gravità
 
-Andate su **Incidents → Settings → Incident Severity**. Stessa forma della pagina degli stati — un elenco ordinato per `order`, trascinabile per riordinare, con le nuove gravità aggiunte in fondo, e con **Name**, **Description** e **Color** nel modulo.
+Andate in **Incidenti → Impostazioni → Gravità incidente**. Stessa forma della pagina degli stati: un elenco ordinato per `order`, trascinamento per riordinare, nuove gravità accodate in fondo, con **Nome**, **Descrizione** e **Colore** nel modulo.
 
 Due differenze rispetto agli stati:
 
-- **Non c'è protezione contro l'eliminazione.** Qualsiasi gravità può essere eliminata, incluse le tre seminate.
-- **Non ci sono flag da ereditare.** Una nuova gravità si comporta esattamente come quelle seminate — è un'etichetta con un colore e una posizione.
+- **Non c'è protezione all'eliminazione.** Qualsiasi gravità può essere eliminata, comprese le tre preimpostate.
+- **Non ci sono flag da ereditare.** Una nuova gravità si comporta esattamente come quelle preimpostate: è un'etichetta con un colore e una posizione.
 
-**Una nota sui segnaposto.** Il modulo delle gravità riutilizza parola per parola il testo di esempio del modulo degli stati, quindi i suggerimenti parlano di stati dell'incidente invece che di gravità. Ignorateli e scrivete i vostri nomi e descrizioni di gravità.
+**Una nota sui segnaposto.** Il modulo delle gravità riusa parola per parola il testo di esempio del modulo degli stati, quindi i suggerimenti parlano di stati di incidente invece che di gravità. Ignorateli e scrivete nomi e descrizioni vostri.
 
-Dove la gravità fa di più che descrivere: su **Incidents → Rules → On-Call Rules**, il campo **Incident Severities** di una regola è un criterio di corrispondenza. Elencare **Critical Incident** lì è il modo in cui si esprime "avvisa il team database per qualsiasi cosa critica" — la policy di reperibilità vive nella regola, non nella gravità.
+Dove la gravità fa più che descrivere: in **Incidenti → Regole → Regole di reperibilità**, il campo **Incidente Gravità** di una regola è un criterio di corrispondenza. Elencare lì **Critical Incident** è il modo di esprimere "chiama il team database per qualsiasi cosa critica" — la policy di reperibilità sta sulla regola, non sulla gravità.
 
-## Far avanzare un incidente attraverso i suoi stati
+## Far avanzare un incidente tra i suoi stati
 
 Ci sono quattro modi in cui un incidente cambia stato:
 
-- **I pulsanti dell'intestazione.** Aprite un incidente. Se il suo stato attuale è precedente allo stato riconosciuto, ottenete **Acknowledge** e **Resolve**; se è tra i due, ottenete **Resolve**. Ciascuno apre una modale di conferma — **Acknowledge Incident** o **Resolve Incident** — che offre anche **Select Note Template**, **Public Note** e **Notify Status Page Subscribers**.
-- **La cronologia degli stati.** Aggiungete una riga manualmente dalla pagina **State Timeline** dell'incidente con **Incident Status**, **Starts At** e **Notify Status Page Subscribers**.
-- **Modifica in blocco.** L'elenco degli incidenti ha un'azione in blocco **Change State** per spostare più incidenti contemporaneamente.
-- **Automaticamente.** Un criterio di monitor con **Auto Resolve Incident** attivato risolve il suo incidente quando il criterio non è più soddisfatto, e l'API può aggiornare lo stato tramite `/api/incident-state-timeline`.
+- **I pulsanti dell'intestazione.** Aprite un incidente. Se il suo stato attuale precede lo stato di riconoscimento, avete **Acknowledge** e **Risolvi**; se sta tra i due, avete **Risolvi**. Ognuno apre una finestra di conferma — **Acknowledge Incident** o **Resolve Incident** — che offre anche **Seleziona modello di nota**, **Nota pubblica** e **Notifica gli iscritti alla pagina di stato**.
+- **La cronologia di stato.** Aggiungete una riga a mano dalla pagina **Cronologia stato** dell'incidente, con **Stato dell'incidente**, **Inizia il** e **Notifica gli iscritti alla pagina di stato**.
+- **Il cambio di gruppo.** L'elenco degli incidenti ha un'azione di gruppo **Cambia stato** per spostarne diversi in una volta.
+- **In automatico.** Un criterio di monitor con **Risoluzione automatica dell'incidente** attiva risolve il suo incidente quando il criterio non è più soddisfatto, e l'API può aggiornare lo stato tramite `/api/incident-state-timeline`.
 
-Ognuna di queste azioni scrive una riga nella cronologia. Un cambio di stato fa anche alcune cose che non dovete richiedere esplicitamente: pubblica una voce nel feed dell'incidente, assegna un Incident Commander se l'incidente non ne ha ancora uno, e aggiorna l'orologio dell'SLA. Riaprire un incidente risolto avvia un nuovo record SLA a partire dal momento della riapertura.
+Ognuno di questi scrive una riga di cronologia. Un cambio di stato fa anche qualche cosa che non dovete chiedere: pubblica una voce nel feed dell'incidente, assegna un Comandante dell'incidente se l'incidente non ne ha ancora uno e aggiorna il cronometro dello SLA. Riaprire un incidente risolto avvia un nuovo record SLA a partire dal momento della riapertura.
 
-## La cronologia degli stati
+## La cronologia di stato
 
-La pagina **State Timeline** dell'incidente nel menu laterale dell'incidente è il registro di controllo di ogni stato in cui l'incidente si è trovato. La scheda su quella pagina è intitolata **Status Timeline**, ed è ordinata dalla più recente.
+La pagina **Cronologia stato** nel menu laterale dell'incidente è la traccia di controllo di ogni stato attraversato. La scheda su quella pagina si intitola **Cronologia di stato** ed è ordinata dal più recente.
 
 **Colonne:**
 
-- **Incident Status** — una pillola colorata con il nome e il colore dello stato.
-- **Starts At** — quando l'incidente è entrato in questo stato.
-- **Ends At** — quando lo ha lasciato. Lo stato attuale mostra `Currently Active`.
-- **Duration** — tempo trascorso nello stato, contato fino ad ora per quello attuale.
-- **Subscriber Notification Status** — se la notifica della pagina di stato per questo cambiamento è stata inviata, saltata o è ancora in sospeso, con un link **more details**, e — quando l'invio è fallito — un'azione **Retry**.
+- **Stato dell'incidente** — una pillola colorata con nome e colore dello stato.
+- **Inizia il** — quando l'incidente è entrato in questo stato.
+- **Termina il** — quando ne è uscito. Lo stato attuale mostra `Currently Active`.
+- **Durata** — tempo trascorso nello stato, conteggiato fino a ora per quello attuale.
+- **Stato notifica iscritto** — se la notifica alla pagina di stato per questo cambiamento è stata inviata, saltata o è ancora in attesa, con un collegamento **maggiori dettagli** e — quando l'invio è fallito — un'azione **Retry**.
 
-**Azioni sulla riga:**
+**Azioni di riga:**
 
-- **View Cause** — apre una modale **Root Cause** che visualizza il markdown registrato con quel cambio di stato.
-- **View Logs** — apre una modale che spiega perché lo stato è cambiato, con un visualizzatore **Incident State Log**.
+- **Visualizza causa** — apre una finestra **Causa principale** che mostra il markdown registrato con quel cambio di stato.
+- **Visualizza log** — apre una finestra che spiega perché lo stato è cambiato, con un visualizzatore **Log dello stato dell'incidente**.
 
-Le righe della cronologia possono essere create ed eliminate, ma non modificate. Eliminare la riga sbagliata riscrive la storia dell'incidente, quindi trattatela come uno strumento di correzione, non come un'abitudine di pulizia.
+Le righe di cronologia si possono creare ed eliminare, ma non modificare. Eliminare la riga sbagliata riscrive la storia dell'incidente, quindi trattatelo come uno strumento di correzione, non come un'abitudine di pulizia.
 
-## L'elenco Active Incidents
+## L'elenco Incidenti attivi
 
-**Incidents → Active Incidents** è l'elenco che tenete d'occhio durante un turno. La sua definizione è esattamente una condizione: lo stato attuale dell'incidente è uno stato in cui `isResolvedState` è falso. Nient'altro viene considerato — non la gravità, non l'età, non se qualcuno lo ha riconosciuto.
+**Incidenti → Incidenti attivi** è l'elenco che tenete d'occhio durante un turno. La sua definizione è esattamente una condizione: lo stato attuale dell'incidente è uno stato in cui `isResolvedState` è falso. Nient'altro viene considerato — né la gravità, né l'età, né se qualcuno l'ha riconosciuto.
 
-La voce del menu laterale porta un badge rosso con il conteggio che usa la stessa query, quindi il badge e l'elenco sono sempre allineati. Quando non c'è nulla da vedere, la pagina lo dice.
+La voce del menu laterale porta un badge rosso con il conteggio basato sulla stessa query, così badge ed elenco concordano sempre. Quando non c'è nulla da vedere, la pagina ve lo dice.
 
-La conseguenza pratica: qualsiasi stato personalizzato che aggiungete mantiene gli incidenti in questo elenco. Di solito è ciò che volete — "Mitigated" non è "fatto" — ma significa che il badge si azzera solo quando gli incidenti raggiungono effettivamente lo stato risolto.
+La conseguenza pratica: qualsiasi stato personalizzato che aggiungete tiene gli incidenti in questo elenco. Di solito è quello che volete — "Mitigated" non è "finito" — ma significa anche che il badge si azzera solo quando gli incidenti raggiungono davvero lo stato risolto.
 
 ## Informare gli iscritti alla pagina di stato di un cambio di stato
 
-Un cambio di stato può inviare un'email agli iscritti alla vostra pagina di stato, ma passa attraverso diverse verifiche. Capirle vi risparmia molto lavoro di debug del tipo "perché nessuno è stato avvisato".
+Un cambio di stato può inviare un'e-mail agli iscritti alla vostra pagina di stato, ma passa attraverso diversi filtri. Capirli vi risparmia parecchie indagini del tipo "perché non è stato avvisato nessuno".
 
-La notifica viene richiesta per singola riga della cronologia tramite **Notify Status Page Subscribers** (`shouldStatusPageSubscribersBeNotified`), la casella di controllo nella modale di cambio stato e nel modulo manuale della cronologia. Quando è disattivata, la riga viene memorizzata con uno stato "saltato" e una spiegazione. Quando è attivata, la riga viene messa in coda e un job in background la elabora — il job viene eseguito ogni minuto, quindi la consegna è rapida ma non istantanea.
+La notifica viene richiesta per ogni riga di cronologia da **Notifica gli iscritti alla pagina di stato** (`shouldStatusPageSubscribersBeNotified`), la casella di spunta nella finestra di cambio stato e nel modulo manuale della cronologia. Quando è disattivata, la riga viene salvata con stato "saltata" e una spiegazione. Quando è attiva, la riga viene messa in coda e la raccoglie un job in background — il job gira ogni minuto, quindi la consegna è rapida ma non istantanea.
 
-**La riga in coda viene poi saltata quando una di queste condizioni è vera:**
+**La riga in coda viene poi saltata se vale una qualsiasi di queste condizioni:**
 
-- **Il nuovo stato è lo stato di creazione.** Gli iscritti sono già stati informati quando l'incidente è stato dichiarato, quindi la prima riga della cronologia deliberatamente non invia un secondo messaggio.
-- **L'incidente non ha monitor collegati.** Senza risorse, non c'è una pagina di stato su cui mappare l'incidente.
+- **Il nuovo stato è lo stato di creazione.** Gli iscritti erano già stati informati alla dichiarazione dell'incidente, quindi la prima riga di cronologia deliberatamente non invia un secondo messaggio.
+- **L'incidente non ha monitor collegati.** Senza risorse non c'è nessuna pagina di stato su cui mappare l'incidente.
 - **L'incidente non è visibile sulla pagina di stato** (`isVisibleOnStatusPage` è disattivato).
-- **La pagina di stato ha gli incidenti disattivati** (`showIncidentsOnStatusPage` è disattivato). Questo vale per singola pagina di stato — altre pagine che mostrano lo stesso monitor vengono comunque notificate.
+- **La pagina di stato ha gli incidenti disattivati** (`showIncidentsOnStatusPage` è disattivato). Questo vale per singola pagina di stato: le altre pagine che mostrano lo stesso monitor ricevono comunque la notifica.
 
-**Un'altra cosa che cambia l'esito.** Se digitate una **Public Note** nella modale di cambio stato, la riga della cronologia viene contrassegnata come già notificata invece di essere messa in coda. È la nota stessa a raggiungere gli iscritti, così ricevono un solo messaggio invece di due. Il tipo di evento dietro il semplice messaggio di cambio stato è `Subscriber Incident State Changed`.
+**Un'altra cosa che cambia l'esito.** Se scrivete una **Nota pubblica** nella finestra di cambio stato, la riga di cronologia viene marcata come già notificata invece che messa in coda. È la nota stessa a raggiungere gli iscritti, quindi ricevono un messaggio invece di due. Il tipo di evento dietro il messaggio semplice di cambio stato è `Subscriber Incident State Changed`.
 
-Per sapere chi riceve queste notifiche e come vengono scelti i modelli, vedete [Subscribers & Announcements](/docs/status-pages/subscribers).
+Per sapere chi riceve queste comunicazioni e come vengono scelti i modelli, vedete [Iscritti e annunci](/docs/status-pages/subscribers).
 
 ## Tenere un incidente fuori dalla pagina di stato
 
-Tre cose separate decidono se un incidente compare del tutto sulla pagina pubblica, e tutte e tre devono essere vere:
+Tre cose distinte decidono se un incidente compare sulla pagina pubblica, e tutte e tre devono essere vere:
 
-- **Show Incidents** (`showIncidentsOnStatusPage`) sulla pagina di stato stessa.
-- **Visible on Status Page** (`isVisibleOnStatusPage`) sull'incidente — un interruttore nella pagina **Settings** dell'incidente. È vero per impostazione predefinita e non si trova nella procedura guidata di dichiarazione; un criterio di monitor può impostarlo con **Show Incident on Status Page**.
-- **Lo stato attuale non è lo stato risolto.** Questo è ciò che rimuove un incidente dalla sezione attiva: la query della pagina di stato recupera gli incidenti il cui stato attuale è uno stato non risolto qualsiasi. Non archiviate né chiudete nulla — lo risolvete, e passa nella cronologia.
+- **Mostra incidenti** (`showIncidentsOnStatusPage`) sulla pagina di stato stessa.
+- **Visibile sulla pagina di stato** (`isVisibleOnStatusPage`) sull'incidente — un interruttore nella pagina **Impostazioni** dell'incidente. È attivo per impostazione predefinita e non compare nella procedura guidata di dichiarazione; un criterio di monitor può impostarlo con **Mostra incidente sulla pagina di stato**.
+- **Lo stato attuale non è lo stato risolto.** È questo a togliere un incidente dalla sezione attiva: la query della pagina di stato recupera gli incidenti il cui stato attuale è uno stato non risolto. Non archiviate né chiudete nulla — lo risolvete, e passa nello storico.
 
-**Gli incidenti privati non appaiono mai.** Attivare **Private Incident** nasconde l'incidente da ogni pagina di stato, indipendentemente dagli interruttori sopra, e lo limita ai suoi proprietari più agli amministratori e proprietari del progetto.
+**Gli incidenti privati non compaiono mai.** Attivare **Incidente privato** nasconde l'incidente da ogni pagina di stato, a prescindere dagli interruttori qui sopra, e lo limita ai suoi proprietari più gli amministratori e i proprietari del progetto.
 
-Quanta cronologia di incidenti risolti conserva la pagina è un'impostazione della pagina di stato, non dell'incidente. Vedete [Status Page Resources & Groups](/docs/status-pages/resources-and-groups) per come i monitor sulla pagina decidono quali incidenti compaiono in generale.
+Quanto storico risolto conserva la pagina è un'impostazione della pagina di stato, non dell'incidente. Vedete [Risorse e gruppi della pagina di stato](/docs/status-pages/resources-and-groups) per capire come i monitor sulla pagina decidono quali incidenti compaiono.
 
-## Cosa leggere dopo
+## Dove leggere ora
 
-- [Panoramica degli incidenti](/docs/incidents/index) — come si incastra l'area funzionale degli incidenti.
-- [Dichiarare un incidente](/docs/incidents/declaring-incidents) — la procedura guidata di dichiarazione, i modelli e l'API.
-- [Note, proprietari e feed degli incidenti](/docs/incidents/notes-owners-and-feed) — note pubbliche, note private e il feed di attività.
-- [Impostazioni e automazione degli incidenti](/docs/incidents/settings) — modelli, campi personalizzati, regole e trigger di workflow.
-- [Iscritti e annunci](/docs/status-pages/subscribers) — chi riceve le email che invia un cambio di stato.
-- [Panoramica delle pagine di stato](/docs/status-pages/index) — cosa mostra una pagina di stato e a chi.
+- [Panoramica degli incidenti](/docs/incidents/index) — come si incastra l'area degli incidenti.
+- [Dichiarare un incidente](/docs/incidents/declaring-incidents) — la procedura guidata, i modelli e l'API.
+- [Note, proprietari e feed degli incidenti](/docs/incidents/notes-owners-and-feed) — note pubbliche, note private e feed delle attività.
+- [Impostazioni e automazione degli incidenti](/docs/incidents/settings) — modelli, campi personalizzati, regole e trigger dei workflow.
+- [Iscritti e annunci](/docs/status-pages/subscribers) — chi riceve le e-mail generate da un cambio di stato.
+- [Panoramica delle pagine di stato](/docs/status-pages/index) — che cosa mostra una pagina di stato e a chi.
 - [Panoramica dei workflow](/docs/workflows/index) — reagire ai cambi di stato con l'automazione.

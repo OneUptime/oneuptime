@@ -1,185 +1,185 @@
 # Statusseiten – Übersicht
 
-Eine Statusseite ist das öffentliche Gesicht von allem, was Sie überwachen: eine URL, die Ihre Kunden öffnen können, statt Ihnen zu mailen und zu fragen, ob es nur bei ihnen hakt. Sie zeigt den aktuellen Zustand der Dienste, die Sie sichtbar machen möchten, die Vorfälle, an denen Sie gerade arbeiten, die geplante Wartung und jede Ankündigung, die Sie oben anheften möchten.
+Eine Statusseite ist das öffentliche Gesicht von allem, was Sie überwachen: eine einzige URL, die Ihre Kunden aufrufen können, statt Ihnen zu schreiben und zu fragen, ob es nur bei ihnen klemmt. Sie zeigt den aktuellen Zustand der Dienste, die Sie sichtbar machen, die Vorfälle, an denen Sie gerade arbeiten, die Wartungen, die Sie geplant haben, und jede Ankündigung, die Sie oben anheften möchten.
 
-Wenn um 2 Uhr nachts etwas kaputtgeht, ist die Statusseite das Erste, worauf Ihre Support-Warteschlange verlinkt. Sie ist auch das, wovon Ihre Abonnenten benachrichtigt werden – es lohnt sich also, sie einzurichten, bevor Sie sie brauchen, nicht während des Ausfalls.
+Wenn um 2 Uhr nachts etwas kaputtgeht, ist die Statusseite das Erste, was Ihre Support-Warteschlange verlinkt. Und sie ist die Quelle, aus der Ihre Abonnenten benachrichtigt werden – es lohnt sich also, sie einzurichten, bevor Sie sie brauchen, und nicht mitten im Ausfall.
 
-Statusseiten leben unter **Status Pages** in der linken Navigation des Dashboards, in der Gruppe **essentials**. Alles auf dieser Seite gilt pro Statusseite: Ein Projekt kann davon so viele betreiben, wie es möchte – eine öffentliche für Kunden, eine private für ein internes Publikum, eine pro Region für einen bestimmten Markt.
+Statusseiten liegen unter **Statusseiten** in der linken Navigation des Dashboards, in der Gruppe **essentials**. Alles auf dieser Seite gilt pro Statusseite: Ein Projekt darf beliebig viele davon betreiben – eine öffentliche für Kunden, eine private für ein internes Publikum, eine pro Region für einen bestimmten Markt.
 
 ## Auf einen Blick
 
-- **Mit zwei Feldern erstellt.** Eine neue Statusseite fragt nur nach **Name** und **Description**. Ressourcen, Branding und Domains werden alle im Nachhinein konfiguriert.
-- **Ressourcen sind das, was Besucher sehen.** Jede Zeile auf der Seite ist eine **Status Page Resource** – ein Monitor (oder eine Monitor-Gruppe) mit eigenem Anzeigenamen, Tooltip und Verfügbarkeitsoptionen. Gruppen unterteilen eine lange Seite in Abschnitte und können verschachtelt werden.
-- **Von Tag eins an eine Vorschau-URL.** Jede Statusseite erhält einen Vorschaulink, damit Sie sie ansehen können, bevor eine eigene Domain existiert.
-- **Besucherseitige Routen sind über Einstellungen geregelt.** Vorfälle, Ankündigungen, geplante Ereignisse und die Abonnieren-Seite erscheinen jeweils nur, wenn ihr Schalter unter **Advanced Settings** aktiviert ist.
-- **Drei Wege, sie privat zu machen.** Private Benutzer, ein Master-Passwort oder SAML-SSO/OIDC – plus eine IP-Whitelist.
-- **Abonnenten werden automatisch informiert.** E-Mail-, SMS-, Slack-, Microsoft-Teams- und Webhook-Abonnenten können alle einer Seite folgen, jeder Kanal hinter seinem eigenen Schalter.
+- **Mit zwei Feldern angelegt.** Eine neue Statusseite fragt nur nach **Name** und **Beschreibung**. Ressourcen, Branding und Domains richten Sie danach ein.
+- **Ressourcen sind das, was Besucher sehen.** Jede Zeile der Seite ist eine **Statusseite Ressource** – ein Monitor (oder eine Monitorgruppe) mit eigenem Anzeigenamen, eigenem Tooltip und eigenen Verfügbarkeitsoptionen. Gruppen teilen eine lange Seite in Abschnitte und lassen sich verschachteln.
+- **Eine Vorschau-URL ab dem ersten Tag.** Jede Statusseite bekommt einen Vorschaulink, damit Sie sie ansehen können, bevor es überhaupt eine eigene Domain gibt.
+- **Die besucherseitigen Routen hängen an Einstellungen.** Vorfälle, Ankündigungen, geplante Ereignisse und die Abonnentenseite erscheinen jeweils nur, wenn ihr Schalter unter **Erweiterte Einstellungen** aktiviert ist.
+- **Drei Wege, die Seite privat zu machen.** Private Benutzer, ein Master-Passwort oder SAML-SSO / OIDC – dazu eine IP-Whitelist.
+- **Abonnenten werden automatisch informiert.** Abonnenten per E-Mail, SMS, Slack, Microsoft Teams und Webhook können einer Seite folgen, jeder Kanal hinter einem eigenen Schalter.
 
-## Wichtige Begriffe
+## Zentrale Begriffe
 
-| Begriff                | Bedeutung                                                                                                                                 |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Statusseite**         | Eine öffentliche (oder private) Seite mit eigenem Branding, eigenen Domains, Ressourcen und Abonnenten. Das Modell `StatusPage`.           |
-| **Ressource**           | Eine Zeile, die Besucher sehen – ein Monitor oder eine Monitor-Gruppe, dargestellt auf der Seite mit Anzeigename und Verfügbarkeitsoptionen. |
-| **Gruppe**              | Ein benannter Abschnitt, der Ressourcen enthält. Gruppen verschachteln sich in anderen Gruppen, und jede Ebene fasst den Status von allem darunter zusammen. |
-| **Ankündigung**         | Eine Nachricht, die Sie auf einer oder mehreren Statusseiten veröffentlichen, mit einer Startzeit und einer optionalen Endzeit.             |
-| **Abonnent**            | Jemand (oder etwas), der der Seite über E-Mail, SMS, Slack, Microsoft Teams oder einen Webhook folgt.                                       |
-| **Benutzerdefinierte Domain** | Eine eigene Domain – `status.beispiel.de` –, die per CNAME und SSL-Zertifikat auf die Seite zeigt.                                    |
-| **Privater Benutzer**   | Ein Konto, das sich bei einer privaten Statusseite anmelden kann. Getrennt von Ihren OneUptime-Projektbenutzern.                            |
+| Begriff                          | Was er bedeutet                                                                                                                     |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Statusseite**                  | Eine öffentliche (oder private) Seite mit eigenem Branding, eigenen Domains, Ressourcen und Abonnenten. Das Modell `StatusPage`.     |
+| **Ressource**                    | Eine Zeile, die Besucher sehen – ein Monitor oder eine Monitorgruppe, auf der Seite mit Anzeigename und Verfügbarkeitsoptionen dargestellt. |
+| **Gruppe**                       | Ein benannter Abschnitt, der Ressourcen enthält. Gruppen lassen sich ineinander verschachteln, und jede Ebene fasst den Status von allem darunter zusammen. |
+| **Ankündigung**                  | Eine Meldung, die Sie auf einer oder mehreren Statusseiten veröffentlichen, mit Startzeit und optionaler Endzeit.                    |
+| **Abonnent**                     | Jemand (oder etwas), der der Seite per E-Mail, SMS, Slack, Microsoft Teams oder Webhook folgt.                                       |
+| **Benutzerdefinierte Domain**    | Eine Domain von Ihnen – `status.example.com` –, die per CNAME und SSL-Zertifikat auf die Seite zeigt.                                |
+| **Privater Benutzer**            | Ein Konto, das sich an einer privaten Statusseite anmelden kann. Getrennt von den Benutzern Ihres OneUptime-Projekts.                |
 
-## Eine Statusseite erstellen
+## Eine Statusseite anlegen
 
-1. Öffnen Sie **Status Pages → All Status Pages** und klicken Sie auf **Create Status Page**.
-2. Füllen Sie im Modal **Create New Status Page** **Name** (erforderlich, mindestens zwei Zeichen) und optional **Description** aus.
-3. Klicken Sie auf **Create Status Page**.
+1. Öffnen Sie **Statusseiten → Alle Statusseiten** und klicken Sie auf **Statusseite erstellen**.
+2. Füllen Sie im Dialog **Create New Status Page** das Feld **Name** (Pflicht, mindestens zwei Zeichen) und optional **Beschreibung** aus.
+3. Klicken Sie auf **Statusseite erstellen**.
 
-Das ist das gesamte Erstellungsformular. Die Liste, auf der Sie danach landen, zeigt **Name**, **Description**, **Labels** und **Owners** und lässt sich nach **Status Page ID**, **Name** und **Description** filtern.
+Das ist das ganze Erstellungsformular. Die Liste, auf der Sie wieder landen, zeigt **Name**, **Beschreibung**, **Beschriftungen** und **Eigentümer** und lässt sich nach **Statusseiten-ID**, **Name** und **Beschreibung** filtern.
 
-Öffnen Sie die neue Seite, landen Sie auf ihrem **Overview**-Bildschirm, der zwei Karten trägt: **Status Page Preview URL** mit einem Link zur Seite selbst, und **Status Page Details**, wo Sie den Namen, die Beschreibung und die Labels bearbeiten können, die Sie gerade gesetzt haben.
+Öffnen Sie die neue Seite, landen Sie auf ihrem Bildschirm **Übersicht** mit zwei Karten: **Status Page Preview URL** mit einem Link auf die Seite selbst und **Statusseiten-Details**, wo Sie Name, Beschreibung und Beschriftungen wieder bearbeiten können.
 
-Als Nächstes, in grober Reihenfolge der Nützlichkeit:
+Als Nächstes, grob nach Nutzen sortiert:
 
-- Fügen Sie Ressourcen hinzu, damit auf der Seite etwas zu sehen ist – siehe [Statusseiten – Ressourcen & Gruppen](/docs/status-pages/resources-and-groups).
-- Legen Sie Seitentitel, Favicon, Logo und Titelbild fest und binden Sie dann eine eigene Domain ein – siehe [Statusseiten – Branding & Domains](/docs/status-pages/branding-and-domains).
-- Entscheiden Sie, über welche Kanäle Personen abonnieren können – siehe [Abonnenten & Ankündigungen](/docs/status-pages/subscribers).
-- Stellen Sie unter **Advanced Settings** ein, was auf der Seite erscheint.
+- Fügen Sie Ressourcen hinzu, damit überhaupt etwas auf der Seite steht – siehe [Statusseiten – Ressourcen & Gruppen](/docs/status-pages/resources-and-groups).
+- Setzen Sie Seitentitel, Favicon, Logo und Titelbild und hängen Sie eine eigene Domain an – siehe [Statusseiten – Branding & Domains](/docs/status-pages/branding-and-domains).
+- Entscheiden Sie, über welche Kanäle Menschen abonnieren können – siehe [Abonnenten & Ankündigungen](/docs/status-pages/subscribers).
+- Stellen Sie unter **Erweiterte Einstellungen** ein, was auf der Seite erscheint.
 
 ## Wo alles liegt
 
-Sobald eine Statusseite geöffnet ist, ist ihr eigenes linkes Seitenmenü in neun Abschnitte gruppiert. Verwenden Sie dies als Landkarte für den Rest dieser Dokumentationsgruppe.
+Ist eine Statusseite geöffnet, gliedert sich ihr eigenes linkes Seitenmenü in neun Abschnitte. Nehmen Sie das als Landkarte für den Rest dieser Dokumentationsgruppe.
 
-| Abschnitt              | Was darin ist                                                                                                                                     |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Basic**               | **Overview**, **Announcements**, **Owners**.                                                                                                        |
-| **Resources**           | Ein einzelner Bildschirm **Resources** – Gruppen links, die Monitore der ausgewählten Gruppe rechts.                                                |
-| **Subscribers**         | **Email Subscribers**, **SMS Subscribers**, **Slack Subscribers**, **MS Teams Subscribers**, **Webhook Subscribers**, **Subscriber Settings**.     |
-| **Notification Logs**   | **Notification Logs** – was an Abonnenten gesendet wurde.                                                                                            |
-| **Audit**               | **Audit Logs**.                                                                                                                                       |
-| **Branding**            | **Essential Branding**, **HTML, CSS & JavaScript**, **Custom Domains**, **Header**, **Footer**, **Overview Page**, **Languages**.                    |
-| **Security**            | **Private Users**, **SSO**, **OIDC**, **SCIM**, **Authentication Settings**.                                                                          |
-| **AI**                  | **MCP**.                                                                                                                                               |
-| **Advanced**            | **Monitor Rules**, **Embedded Status**, **Reports**, **Custom Fields**, **Advanced Settings**, **Delete Status Page**.                                |
+| Abschnitt                        | Was darin steckt                                                                                                                               |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Grundlegend**                  | **Übersicht**, **Ankündigungen**, **Eigentümer**.                                                                                              |
+| **Ressourcen**                   | Ein einziger Bildschirm **Ressourcen** – links die Gruppen, rechts die Monitore der gewählten Gruppe.                                          |
+| **Abonnenten**                   | **E-Mail-Abonnenten**, **SMS-Abonnenten**, **Slack-Abonnenten**, **MS Teams-Abonnenten**, **Webhook-Abonnenten**, **Abonnenten-Einstellungen**. |
+| **Benachrichtigungsprotokolle**  | **Benachrichtigungsprotokolle** – was an Abonnenten gesendet wurde.                                                                             |
+| **Audit**                        | **Audit-Protokolle**.                                                                                                                          |
+| **Branding**                     | **Grundlegendes Branding**, **HTML, CSS und JavaScript**, **Benutzerdefinierte Domains**, **Kopfzeile**, **Fußzeile**, **Übersichtsseite**, **Sprachen**. |
+| **Sicherheit**                   | **Private Benutzer**, **SSO**, **OIDC**, **SCIM**, **Authentifizierungseinstellungen**.                                                         |
+| **KI**                           | **MCP**.                                                                                                                                       |
+| **Erweitert**                    | **Monitor Rules**, **Eingebetteter Status**, **Berichte**, **Benutzerdefinierte Felder**, **Erweiterte Einstellungen**, **Statusseite löschen**. |
 
-Zwei Namensbesonderheiten, die es sich zu kennen lohnt, bevor Sie danach suchen:
+Zwei Benennungs-Eigenheiten, die Sie kennen sollten, bevor Sie suchen:
 
-- Der Eintrag **Resources** heißt nur dann **Resources**, wenn im Projekt Monitor-Gruppen aktiviert sind. Andernfalls heißt er **Monitors**. Es ist so oder so derselbe Bildschirm.
-- Es gibt keine separate Groups-Seite. Gruppen und Ressourcen wurden zusammengeführt, und die alte Route `/groups` leitet jetzt auf den Resources-Bildschirm weiter.
+- Der Eintrag **Ressourcen** heißt nur dann **Ressourcen**, wenn im Projekt Monitorgruppen aktiviert sind. Sonst steht dort **Monitore**. Es ist in beiden Fällen derselbe Bildschirm.
+- Eine eigene Gruppen-Seite gibt es nicht. Gruppen und Ressourcen wurden zusammengelegt, und die alte Route `/groups` leitet jetzt auf den Ressourcen-Bildschirm um.
 
-Außerhalb einer einzelnen Seite hat der Abschnitt **Status Pages** selbst einen Bereich **More** mit **Announcements** sowie einen eingeklappten Abschnitt **Settings** mit **Announcement Templates**, **Subscriber Templates**, **Custom Fields**, **Owner Rules** und **Label Rules** – diese gelten projektweit, geteilt über alle Statusseiten hinweg.
+Außerhalb einer einzelnen Seite hat der Bereich **Statusseiten** selbst einen Abschnitt **Mehr** mit **Ankündigungen** sowie einen eingeklappten Abschnitt **Einstellungen** mit **Ankündigungs-Vorlagen**, **Abonnenten-Vorlagen**, **Benutzerdefinierte Felder**, **Eigentümerregeln** und **Beschriftungsregeln** – die gelten projektweit und werden von allen Statusseiten geteilt.
 
 ## Was Besucher sehen
 
-Die öffentliche Seite ist eine eigenständige App mit einer kleinen Menge an Routen:
+Die öffentliche Seite ist eine eigene Anwendung mit einer überschaubaren Menge an Routen:
 
-- `/` – die **Overview**.
+- `/` – die **Übersicht**.
 - `/incidents` und `/incidents/:id` – die Vorfallliste und ein einzelner Vorfall.
 - `/announcements` und `/announcements/:id`.
 - `/scheduled-events` und `/scheduled-events/:id`.
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
 - `/rss` – der Feed.
-- `/login`, `/sso` und `/master-password` – nur bei einer privaten Seite relevant.
+- `/login`, `/sso` und `/master-password` – nur auf einer privaten Seite relevant.
 
-Die obere Navigationsleiste zeigt immer **Overview**; der Rest erscheint nur, wenn aktiviert. **Incidents**, **Announcements** und **Scheduled Events** benötigen jeweils ihren eigenen Schalter; **Subscribe** benötigt sowohl **Show Subscriber Page** als auch mindestens einen aktivierten Abonnentenkanal. Eine private Seite erhält zusätzlich einen Eintrag **Logout**.
+Die obere Navigationsleiste zeigt immer **Übersicht**; der Rest erscheint nur, wenn er aktiviert ist. **Vorfälle**, **Ankündigungen** und **Geplante Ereignisse** brauchen jeweils ihren Schalter; **Abonnieren** braucht **Abonnentenseite anzeigen** und mindestens einen aktivierten Abonnentenkanal. Eine private Seite bekommt zusätzlich den Eintrag **Abmelden**.
 
 ### Die Übersichtsseite
 
-Die Übersicht ist die Seite, die die meisten Besucher jemals sehen. Von oben nach unten zeigt sie:
+Die Übersicht ist die Seite, die die meisten Besucher überhaupt zu sehen bekommen. Von oben nach unten zeigt sie:
 
-1. **Alle laufenden Ankündigungen** – Ankündigungen, deren Startzeit vergangen ist und deren Endzeit noch nicht erreicht wurde.
+1. **Alle laufenden Ankündigungen** – Ankündigungen, deren Startzeit vorbei und deren Endzeit noch nicht erreicht ist.
 2. **Ein Gesamtstatus-Banner** – eine einzelne Zeile, die zusammenfasst, ob alle oder nur einige Ressourcen betroffen sind.
-3. **Einen prozentualen Gesamtverfügbarkeitswert**, sofern Sie ihn aktiviert haben. Standardmäßig aus.
-4. **Die Ressourcengruppen**, jeweils mit ihren Ressourcen, deren aktuellem Status und ihren Verfügbarkeitsverlaufsbalken.
-5. **Active Incidents**.
-6. **Scheduled Maintenance Events**.
+3. **Einen Gesamtprozentsatz der Verfügbarkeit**, falls Sie ihn eingeschaltet haben. Standardmäßig aus.
+4. **Die Ressourcengruppen**, jede mit ihren Ressourcen, deren aktuellem Status und deren Verfügbarkeitsverlaufs-Balken.
+5. **Aktive Vorfälle**.
+6. **Geplante Wartungsereignisse**.
 
-Eine brandneue Seite, auf der noch nichts liegt, zeigt einen leeren Zustand, der Sie auffordert, Ressourcen aus dem Dashboard hinzuzufügen – Ihr Stichwort, um zum Bildschirm **Resources** zu gehen.
+Eine brandneue Seite ohne Inhalt zeigt einen Leerzustand, der Sie auffordert, Ressourcen über das Dashboard hinzuzufügen – Ihr Stichwort, zum Bildschirm **Ressourcen** zu wechseln.
 
-Was einen Vorfall überhaupt erst auf diese Seite bringt und was ihn wieder entfernt, erfahren Sie unter [Vorfallstatus & Schweregrade](/docs/incidents/states-and-severities).
+Was einen Vorfall überhaupt auf diese Seite bringt und was ihn wieder herunternimmt, steht unter [Vorfallstatus & Schweregrade](/docs/incidents/states-and-severities).
 
 ## Auswählen, was auf der Seite erscheint
 
-Die meisten Anzeigeschalter liegen an einem einzigen Ort: **Status Pages → Ihre Seite → Advanced → Advanced Settings**. Jede Karte hat ihre eigene Schaltfläche **Edit Settings**.
+Die meisten Anzeigeschalter liegen an einer Stelle: **Statusseiten → Ihre Seite → Erweitert → Erweiterte Einstellungen**. Jede Karte hat ihre eigene Schaltfläche **Edit Settings**.
 
-**Incident Settings**:
+**Vorfall-Einstellungen**:
 
-- **Show Incidents** (`showIncidentsOnStatusPage`) – standardmäßig an. Wird es ausgeschaltet, entfernt das auch den Navigationseintrag **Incidents**.
-- **Show Incident History (in days)** (`showIncidentHistoryInDays`) – wie weit die Vorfallliste zurückreicht. Standardmäßig 14.
-- **Show Incident Labels** (`showIncidentLabelsOnStatusPage`) – standardmäßig aus.
+- **Vorfälle anzeigen** (`showIncidentsOnStatusPage`) – standardmäßig an. Schalten Sie den Schalter aus, verschwindet auch der Navigationseintrag **Vorfälle**.
+- **Vorfallverlauf anzeigen (in Tagen)** (`showIncidentHistoryInDays`) – wie weit die Vorfallliste zurückreicht. Standard: 14.
+- **Vorfallbeschriftungen anzeigen** (`showIncidentLabelsOnStatusPage`) – standardmäßig aus.
 
-**Episode Settings** – dieselben drei Schalter für Vorfall-Episoden: **Show Episodes** (`showEpisodesOnStatusPage`, standardmäßig an), **Show Episode History (in days)** (Standard 14) und **Show Episode Labels** (standardmäßig aus). Episoden sind ihr eigenes Modell mit eigenen Endpunkten, keine Ansicht von Vorfällen.
+**Episodeneinstellungen** – dieselben drei Schalter für Vorfall-Episoden: **Episoden anzeigen** (`showEpisodesOnStatusPage`, standardmäßig an), **Episodenverlauf anzeigen (in Tagen)** (Standard 14) und **Episodenbeschriftungen anzeigen** (standardmäßig aus). Episoden sind ein eigenes Modell mit eigenen Endpunkten, keine Ansicht auf Vorfälle.
 
-**Announcement Settings**:
+**Ankündigungseinstellungen**:
 
-- **Show Announcements** (`showAnnouncementsOnStatusPage`) – standardmäßig an.
-- **Show Announcement History (in days)** (`showAnnouncementHistoryInDays`) – standardmäßig 14.
+- **Ankündigungen anzeigen** (`showAnnouncementsOnStatusPage`) – standardmäßig an.
+- **Ankündigungsverlauf anzeigen (in Tagen)** (`showAnnouncementHistoryInDays`) – Standard: 14.
 
-**Scheduled Event Settings**:
+**Einstellungen für geplante Ereignisse**:
 
-- **Show Scheduled Maintenance Events** (`showScheduledMaintenanceEventsOnStatusPage`) – standardmäßig an.
-- **Show Scheduled Event History (in days)** (`showScheduledEventHistoryInDays`) – standardmäßig 14.
-- **Show Event Labels** (`showScheduledEventLabelsOnStatusPage`) – standardmäßig aus.
+- **Geplante Wartungsereignisse anzeigen** (`showScheduledMaintenanceEventsOnStatusPage`) – standardmäßig an.
+- **Verlauf geplanter Ereignisse anzeigen (in Tagen)** (`showScheduledEventHistoryInDays`) – Standard: 14.
+- **Ereignisbeschriftungen anzeigen** (`showScheduledEventLabelsOnStatusPage`) – standardmäßig aus.
 
-**Uptime History Settings**:
+**Einstellungen für Verfügbarkeitsverlauf**:
 
-- **Show Uptime History (in days)** (`showUptimeHistoryInDays`) – die Länge des Verfügbarkeitsbalkens neben jeder Ressource. Standardmäßig 90 und muss zwischen 1 und 90 liegen. Jede Option **Show Uptime %** und **Show Status History Chart** an einer Ressource oder Gruppe liest diese Zahl.
+- **Verfügbarkeitsverlauf anzeigen (in Tagen)** (`showUptimeHistoryInDays`) – die Länge des Verfügbarkeitsbalkens neben jeder Ressource. Standard 90, erlaubt sind 1 bis 90. Jede Option **Verfügbarkeit % anzeigen** und **Statusverlaufsdiagramm anzeigen** an einer Ressource oder Gruppe liest diesen Wert.
 
-**Subscriber Settings**:
+**Abonnenten-Einstellungen**:
 
-- **Show Subscriber Page** (`showSubscriberPageOnStatusPage`) – standardmäßig an, plus die fünf kanalspezifischen Aktivierungsschalter. Dieselben Kanalschalter erscheinen auch auf dem eigenen Bildschirm **Subscriber Settings** im Abschnitt **Subscribers**; behandeln Sie diesen als den maßgeblichen Ort, um sie zu setzen.
+- **Abonnentenseite anzeigen** (`showSubscriberPageOnStatusPage`) – standardmäßig an, dazu die fünf Schalter für die einzelnen Kanäle. Dieselben Kanalschalter erscheinen auch auf dem eigenen Bildschirm **Abonnenten-Einstellungen** im Abschnitt **Abonnenten**; behandeln Sie diesen als den maßgeblichen Ort dafür.
 
-**Powered By OneUptime Branding**:
+**Branding „Powered By OneUptime“**:
 
-- **Hide Powered By OneUptime Branding** – standardmäßig aus, sodass die Besucher-Fußzeile „Powered by OneUptime" anzeigt, bis Sie dies aktivieren.
+- **Branding "Powered By OneUptime" ausblenden** – standardmäßig aus, in der Besucher-Fußzeile steht also „Powered by OneUptime“, bis Sie den Schalter umlegen.
 
-**Wo die Farben sind.** Die Farben des Verfügbarkeitsbalkens liegen nicht hier – **Default Bar Color**, die Balkenfarbregeln, **Downtime Monitor Statuses** und **Show Overall Uptime Percent** liegen alle unter **Status Pages → Ihre Seite → Branding → Overview Page**. Es gibt nirgendwo eine Theme- oder Markenfarbeinstellung; alles darüber hinaus wird mit **Custom CSS** erledigt.
+**Wo die Farben stecken.** Die Farben der Verfügbarkeitsbalken sind nicht hier – **Standard-Balkenfarbe**, die Balkenfarb-Regeln, **Ausfallzeit-Monitorstatus** und **Gesamtprozentsatz der Verfügbarkeit anzeigen** liegen allesamt unter **Statusseiten → Ihre Seite → Branding → Übersichtsseite**. Eine Theme- oder Markenfarben-Einstellung gibt es nirgends; alles darüber hinaus machen Sie mit **Benutzerdefiniertes CSS**.
 
 ## Vorschau, bevor Sie live gehen
 
-Der Bildschirm **Overview** jeder Statusseite trägt eine Karte **Status Page Preview URL** mit einem direkten Link zur Seite. Nutzen Sie sie, während Sie noch Ressourcen hinzufügen und bevor eine eigene Domain existiert.
+Der Bildschirm **Übersicht** jeder Statusseite trägt eine Karte **Status Page Preview URL** mit einem direkten Link auf die Seite. Nutzen Sie ihn, solange Sie noch Ressourcen hinzufügen und es noch keine eigene Domain gibt.
 
-Im Hintergrund hat jede öffentliche Route eine Vorschauzwillingsroute unter `/status-page/{statusPageId}/...` – eine Vorschauübersicht, eine Vorschau-Vorfallliste, eine Vorschau-Abonnieren-Seite und so weiter. Das bedeutet, dass eine URL oder ein Screenshot aus der Dashboard-Vorschau nicht dem entspricht, was ein Kunde sieht, sobald eine eigene Domain eingebunden ist – prüfen Sie also jeden Link, den Sie in ein Runbook oder eine E-Mail einfügen, noch einmal.
+Hinter den Kulissen hat jede öffentliche Route einen Vorschau-Zwilling unter `/status-page/{statusPageId}/...` – eine Vorschau-Übersicht, eine Vorschau-Vorfallliste, eine Vorschau-Abonnentenseite und so weiter. Eine URL oder ein Screenshot aus der Dashboard-Vorschau stimmt also nicht mit dem überein, was Kunden sehen, sobald eine eigene Domain hängt – prüfen Sie deshalb jeden Link doppelt, den Sie in ein Runbook oder eine E-Mail kopieren.
 
-## Einschränken, wer die Seite sehen kann
+## Einschränken, wer die Seite sehen darf
 
-Nicht jede Statusseite ist für die Öffentlichkeit. Alle Steuerungen liegen im Abschnitt **Security**.
+Nicht jede Statusseite ist für die Öffentlichkeit gedacht. Alle Steuerelemente dafür sitzen im Abschnitt **Sicherheit**.
 
 ### Private Benutzer
 
-Schalten Sie **Is Visible to Public** unter **Status Pages → Ihre Seite → Security → Authentication Settings** aus (die Spalte `isPublicStatusPage`). Besucher landen dann auf `/login` und müssen sich anmelden.
+Schalten Sie **Ist öffentlich sichtbar** unter **Statusseiten → Ihre Seite → Sicherheit → Authentifizierungseinstellungen** aus (die Spalte `isPublicStatusPage`). Besucher landen dann auf `/login` und müssen sich anmelden.
 
-Fügen Sie die Personen, die sich anmelden dürfen, unter **Status Pages → Ihre Seite → Security → Private Users** hinzu. Es gibt eine Aktion **Add in Bulk** – fügen Sie eine Liste von E-Mail-Adressen ein, und jede erhält eine Einladungs-E-Mail. Private Benutzer haben ihren eigenen Passwort-vergessen- und Passwort-zurücksetzen-Ablauf, getrennt von Ihren OneUptime-Projektkonten.
+Wer sich anmelden darf, tragen Sie unter **Statusseiten → Ihre Seite → Sicherheit → Private Benutzer** ein. Es gibt die Aktion **In großen Mengen hinzufügen** – fügen Sie eine Liste von E-Mail-Adressen ein, und jede bekommt eine Einladungs-E-Mail. Private Benutzer haben ihren eigenen Ablauf für vergessene und zurückgesetzte Passwörter, getrennt von Ihren OneUptime-Projektkonten.
 
 ### Master-Passwort
 
-**Authentication Settings** hat außerdem eine Karte **Master Password** mit einem Schalter **Require Master Password** und dem Passwort selbst. Besucher gelangen dann auf `/master-password` und schalten die Seite mit einem einzigen gemeinsamen Geheimnis frei.
+Die **Authentifizierungseinstellungen** haben außerdem eine Karte **Master-Passwort** mit dem Schalter **Master-Passwort erforderlich** und dem Passwort selbst. Besucher landen dann auf `/master-password` und schalten die Seite mit einem einzigen geteilten Geheimnis frei.
 
-**Master-Passwort und private Benutzer lassen sich nicht kombinieren.** Solange das Master-Passwort aktiv ist, ist die Authentifizierung privater Benutzer deaktiviert, und der Bildschirm **Private Users** zeigt einen entsprechenden Hinweis.
+**Master-Passwort und private Benutzer lassen sich nicht kombinieren.** Solange das Master-Passwort aktiv ist, ist die Authentifizierung über private Benutzer deaktiviert, und der Bildschirm **Private Benutzer** weist Sie mit einem Banner darauf hin.
 
 ### SSO und OIDC
 
-Für eine private Seite, die an Ihren Identitätsanbieter gebunden ist, konfiguriert **Status Pages → Ihre Seite → Security → SSO** SAML (Anmelde-URL, Aussteller, x509-Zertifikat, Signatur- und Digest-Methoden) und **Status Pages → Ihre Seite → Security → OIDC** konfiguriert OpenID Connect (Discovery-URL, Aussteller, Client-ID und -Secret, Scopes, Claim-Namen). **SCIM** versorgt private Benutzer automatisch vom IdP aus. Diese sind hinter einer Plan-Funktion verriegelt und daher möglicherweise nicht in jeder Installation verfügbar.
+Für eine private Seite, die an Ihren Identitätsanbieter gekoppelt ist, konfigurieren Sie unter **Statusseiten → Ihre Seite → Sicherheit → SSO** SAML (Sign-on-URL, Issuer, x509-Zertifikat, Signatur- und Digest-Verfahren) und unter **Statusseiten → Ihre Seite → Sicherheit → OIDC** OpenID Connect (Discovery-URL, Issuer, Client-ID und Secret, Scopes, Claim-Namen). **SCIM** stellt private Benutzer automatisch aus dem IdP bereit. Diese Funktionen hängen an einem Tarif-Feature und sind daher nicht in jeder Installation verfügbar.
 
-Eine Karte **SSO Settings** stellt **Force SSO for Login** (`requireSsoForLogin`, standardmäßig aus) bereit. Testen Sie Ihre SSO-Konfiguration, bevor Sie sie aktivieren – funktioniert sie nicht, sperren Sie sich selbst aus der Statusseite aus.
+Eine Karte **SSO-Einstellungen** bietet **SSO für Anmeldung erzwingen** (`requireSsoForLogin`, standardmäßig aus). Testen Sie Ihre SSO-Konfiguration, bevor Sie den Schalter umlegen – funktioniert sie nicht, sperren Sie sich selbst aus der Statusseite aus.
 
 ### IP-Whitelist
 
-**Authentication Settings** trägt außerdem eine Karte **IP Whitelist**, die auf der Spalte `ipWhitelist` beruht, für Seiten, die nur aus bekannten Netzwerken antworten sollen.
+Die **Authentifizierungseinstellungen** tragen außerdem eine Karte **IP-Whitelist**, gestützt auf die Spalte `ipWhitelist`, für Seiten, die nur aus bekannten Netzen antworten sollen.
 
 ## Das einbettbare Badge und der RSS-Feed
 
-Zwei Wege, um den Status auch außerhalb der Seite selbst sichtbar zu machen.
+Zwei Wege, den Status auch anderswo als auf der Seite selbst zu zeigen.
 
-**Eingebettetes Status-Badge.** Aktivieren Sie **Enable Embedded Status Badge** (`enableEmbeddedOverallStatus`, standardmäßig aus) in der Karte **Embedded Status Badge** unter **Status Pages → Ihre Seite → Advanced → Embedded Status**. Es geht mit einem `embeddedOverallStatusToken` einher und liefert das Badge über `/badge/:statusPageId`, sodass Sie den aktuellen Gesamtstatus in Ihre Dokumentation, die Fußzeile Ihrer App oder eine Marketingseite einbinden können.
+**Eingebettetes Status-Badge.** Aktivieren Sie **Eingebettetes Status-Badge aktivieren** (`enableEmbeddedOverallStatus`, standardmäßig aus) in der Karte **Eingebettetes Status-Badge** unter **Statusseiten → Ihre Seite → Erweitert → Eingebetteter Status**. Dazu gehört ein `embeddedOverallStatusToken`, und das Badge wird unter `/badge/:statusPageId` ausgeliefert – so setzen Sie den aktuellen Gesamtstatus in Ihre Doku, in die Fußzeile Ihrer App oder auf eine Marketingseite.
 
-**RSS-Feed.** Jede Statusseite stellt `/rss` bereit – einen Feed mit dem Titel „{Name der Statusseite} Updates", dessen Einträge mit `Incident: `, `Announcement: ` und `Scheduled Maintenance: ` beginnen. Praktisch für Personen, die Ihre Updates lieber in einen Reader oder einen Chatbot einspeisen, als sie per E-Mail zu abonnieren.
+**RSS-Feed.** Jede Statusseite liefert `/rss` aus – einen Feed mit dem Titel „{status page name} Updates“, dessen Einträge die Präfixe `Incident: `, `Announcement: ` und `Scheduled Maintenance: ` tragen. Praktisch für alle, die Ihre Updates lieber in einen Reader oder einen Chatbot leiten, als sie per E-Mail zu abonnieren.
 
-Wenn Sie die Daten lieber selbst abrufen möchten: Die Statusseite wird von öffentlichen Lese-Endpunkten für Übersicht, Vorfälle, geplante Wartungsereignisse, Ankündigungen und Episoden unterstützt – siehe [Öffentliche API](/docs/status-pages/public-api).
+Wenn Sie die Daten lieber selbst abholen: Hinter der Statusseite stehen öffentliche Lese-Endpunkte für Übersicht, Vorfälle, geplante Wartungsereignisse, Ankündigungen und Episoden – siehe [Öffentliche API](/docs/status-pages/public-api).
 
 ## Wo Sie als Nächstes lesen sollten
 
 - [Statusseiten – Ressourcen & Gruppen](/docs/status-pages/resources-and-groups) – Monitore auf die Seite bringen und in Abschnitte gliedern.
-- [Statusseiten – Branding & Domains](/docs/status-pages/branding-and-domains) – Logo, Favicon, Fußzeile, benutzerdefinierter Code und das Einbinden Ihrer eigenen Domain auf der Seite.
-- [Abonnenten & Ankündigungen](/docs/status-pages/subscribers) – die fünf Abonnentenkanäle, Double-Opt-in und das Veröffentlichen von Ankündigungen.
+- [Statusseiten – Branding & Domains](/docs/status-pages/branding-and-domains) – Logo, Favicon, Fußzeile, eigener Code und die Seite unter Ihrer eigenen Domain.
+- [Abonnenten & Ankündigungen](/docs/status-pages/subscribers) – die fünf Abonnentenkanäle, Double Opt-in und das Veröffentlichen von Ankündigungen.
 - [Öffentliche API](/docs/status-pages/public-api) – Statusseitendaten programmatisch lesen.
-- [Vorfälle – Übersicht](/docs/incidents/index) – die Ereignisse, die auf der Seite erscheinen.
-- [Vorfallstatus & Schweregrade](/docs/incidents/states-and-severities) – was einen Vorfall auf einer Statusseite erscheinen lässt und was ihn wieder entfernt.
+- [Vorfälle – Übersicht](/docs/incidents/index) – die Ereignisse, die auf der Seite auftauchen.
+- [Vorfallstatus & Schweregrade](/docs/incidents/states-and-severities) – was einen Vorfall auf eine Statusseite bringt und was ihn wieder entfernt.

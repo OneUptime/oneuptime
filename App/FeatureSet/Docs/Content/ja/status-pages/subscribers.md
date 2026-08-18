@@ -1,161 +1,161 @@
 # 購読者とお知らせ
 
-ステータスページは人が訪れる場所です。購読者は、できればそこを訪れなくて済ませたい人たちです — メールアドレス、電話番号、Slack の Webhook、あるいは HTTP エンドポイントを一度だけあなたに渡しておけば、あとは更新情報が向こうから届きます。
+ステータスページは、人がわざわざ見に行く場所です。購読者とは、できればわざわざ見に行きたくない人たちのことです — メールアドレス、電話番号、Slack の Webhook、HTTP エンドポイントのどれかを一度預けてもらえば、あとは更新のほうから相手に届きます。
 
-お知らせはその同じ仕事のもう半分です。チェックアウトが 500 エラーを返していることはモニターが訪問者に伝えられますが、土曜日にデータベースを移行中であること、サードパーティのプロバイダーが不調であること、昨日読んだあのインシデントが完全にクローズしたことは、どのモニターも伝えてくれません。お知らせは、あなたのチェックでは見えないすべてのことのための自由記述チャネルであり、同じ購読者リストに配信されます。
+お知らせは、同じ仕事のもう半分を担います。チェックアウトが 500 を返していることはモニターが訪問者に伝えられますが、土曜日にデータベースを移行すること、外部プロバイダーが不調な一日を過ごしていること、昨日読んだあのインシデントがすでに完全に片付いたことは、どのモニターにも伝えられません。お知らせは、チェックでは見えないすべてを伝えるための自由記述のチャネルで、配信先は購読者リストと同じです。
 
-このページでは両方を扱います。5 つの購読チャネルと訪問者の登録方法、購読者が受け取る内容を選べる仕組み、ダブルオプトインと購読解除のフロー、そしてお知らせの書き方・スケジュール設定・テンプレート化です。
+このページではその両方を扱います — 5 つの購読チャネルと訪問者の登録方法、購読者が受け取る内容をどこまで選べるか、ダブルオプトインと購読解除の流れ、そしてお知らせの書き方・スケジュール・テンプレート化です。
 
 ## 購読チャネル
 
-ステータスページは 5 つのチャネルに対応しており、それぞれステータスページ上に独自のトグルがあります。**Status Pages → your page → Subscribers → Subscriber Settings** を開いてください。
+ステータスページは 5 つのチャネルに対応していて、それぞれにステータスページ側のトグルがあります。**ステータスページ → 対象のページ → 購読者 → 購読者設定** を開いてください。
 
-- **Enable Email Subscribers**（`enableEmailSubscribers`）— デフォルトでオン。オンにするまで、それ以外はすべてオフです。
-- **Enable SMS Subscribers**（`enableSmsSubscribers`）— デフォルトでオフ。
-- **Enable Slack Subscribers**（`enableSlackSubscribers`）— デフォルトでオフ。
-- **Enable Microsoft Teams Subscribers**（`enableMicrosoftTeamsSubscribers`）— デフォルトでオフ。
-- **Enable Webhook Subscribers**（`enableWebhookSubscribers`）— デフォルトでオフ。
+- **メール購読者を有効化**（`enableEmailSubscribers`）— 既定でオン。ほかのチャネルは、自分でオンにするまですべてオフです。
+- **SMS購読者を有効化**（`enableSmsSubscribers`）— 既定でオフ。
+- **Slack購読者を有効化**（`enableSlackSubscribers`）— 既定でオフ。
+- **Microsoft Teams購読者を有効化**（`enableMicrosoftTeamsSubscribers`）— 既定でオフ。
+- **Webhook購読者を有効化**（`enableWebhookSubscribers`）— 既定でオフ。
 
-各チャネルには、ステータスページのサイドメニューの **Subscribers** 配下にそれぞれ専用の一覧もあります。**メール購読者**、**SMS 購読者**、**Slack 購読者**、**MS Teams 購読者**、**Webhook購読者**です。ここで誰が登録しているかを確認したり、手動で追加したり、特定の購読者に対して自分用の **Notes**（`internalNote`）を残したりできます。
+各チャネルには、ステータスページのサイドメニューの **購読者** の下に専用の一覧もあります — **メール購読者**、**SMS 購読者**、**Slack 購読者**、**MS Teams 購読者**、**Webhook購読者** です。誰が登録しているかを見たり、手作業で誰かを追加したり、特定の購読者に自分用の **ノート**（`internalNote`）を残したりするのはここです。
 
-**トグル 1 つでは足りません。** ステータスページのナビバーの **Subscribe** 項目は、**Show Subscriber Page**（`showSubscriberPageOnStatusPage`）がオンで、*かつ*少なくとも 1 つのチャネルが有効になっている場合にのみ表示されます。**Enable Email Subscribers** をオンにしても **Show Subscriber Page** をオフのままにしていると、訪問者はフォームにたどり着く方法がありません。
+**トグルを 1 つ入れるだけでは足りません。** ステータスページのナビゲーションバーに **購読する** が現れるのは、**購読者ページを表示**（`showSubscriberPageOnStatusPage`）がオンで、*かつ* チャネルが 1 つ以上有効になっているときだけです。**メール購読者を有効化** をオンにしても **購読者ページを表示** をオフのままにしていると、訪問者はフォームにたどり着けません。
 
-同じ 5 つのトグルは、**Advanced Settings** の **Subscriber Settings** カード内にも **Show Subscriber Page** と並んでもう一度表示されます。裏側では同じカラムなので、どちらか一方の画面を選んで使い続けてください。購読者に関する他の設定もすべてそこにあるため、専用の **Subscriber Settings** ページを使うことをおすすめします。
+同じ 5 つのトグルは、**詳細設定** にある **購読者設定** カードの中にも、**購読者ページを表示** と並んでもう一度出てきます。裏側の列は同じものです — どちらか一方の画面に決めて、そこから動かないでください。おすすめは専用の **購読者設定** ページです。購読者まわりの残りの設定はそこにまとまっています。
 
-## 訪問者が Subscribe ページで目にするもの
+## 購読ページで訪問者が目にするもの
 
-**Subscribe** ページには、有効になっているチャネルごとに 1 つのタブを持つサブメニューがあります — **Email**、**SMS**、**Slack**、**MS Teams**、**Webhooks** で、それぞれ `/subscribe/email`、`/subscribe/sms`、`/subscribe/slack`、`/subscribe/microsoft-teams`、`/subscribe/webhooks` に対応します。各タブは必要最小限のものだけを尋ねます。
+**購読する** ページには、有効なチャネルごとにタブが 1 つ並ぶサブメニューがあります — **メール**、**SMS**、**Slack**、**MS Teams**、**Webhooks** で、それぞれ `/subscribe/email`、`/subscribe/sms`、`/subscribe/slack`、`/subscribe/microsoft-teams`、`/subscribe/webhooks` に対応します。どのタブも、必要最小限のことしか尋ねません。
 
-- **Email** — 見出しは **Subscribe by Email**、フィールドは **Your Email** 1 つで、プレースホルダーは `subscriber@company.com`。
-- **SMS** — 見出しは **Subscribe by SMS**、フィールドは **Your Phone Number** 1 つで、プレースホルダーは `+11234567890`。
-- **Slack** — 見出しは **Subscribe by Slack**、**Slack Workspace Name**（検証に使用）と **Slack Incoming Webhook URL**（プレースホルダー `https://hooks.slack.com/services/...`）があります。
-- **MS Teams** — 見出しは **Subscribe by Microsoft Teams**、**Microsoft Teams Workspace Name** と **Microsoft Teams Incoming Webhook URL**（プレースホルダー `https://outlook.office.com/webhook/...`）があります。
-- **Webhooks** — 見出しは **Subscribe by Webhook**、フィールドは **Webhook URL** 1 つ。ステータスページのイベントごとに JSON の `POST` リクエストが送信されます。
+- **メール** — 見出しは **メールで購読する**。入力欄は **メールアドレス** の 1 つだけで、プレースホルダーは `subscriber@company.com` です。
+- **SMS** — 見出しは **SMSで購読する**。入力欄は **電話番号** の 1 つだけで、プレースホルダーは `+11234567890` です。
+- **Slack** — 見出しは **Slackで購読する**。**Slackワークスペース名**（検証に使われます）と **Slack 受信 Webhook URL** があり、プレースホルダーは `https://hooks.slack.com/services/...` です。
+- **MS Teams** — 見出しは **Microsoft Teamsで購読する**。**Microsoft Teamsワークスペース名** と **Microsoft Teams 受信 Webhook URL** があり、プレースホルダーは `https://outlook.office.com/webhook/...` です。
+- **Webhooks** — 見出しは **Webhookで購読**。入力欄は **Webhook URL** の 1 つだけです。ステータスページでイベントが起きるたびに、この URL へ JSON の `POST` リクエストが送られます。
 
-送信ボタンには **Subscribe** と表示され、登録に成功すると *You have been subscribed successfully.* と表示されます。このページには **New Subscription** と **Manage Existing Subscription** の切り替えもあり、すでに購読済みの人が古いメールを探し回らずに自分の設定へ戻れるようになっています。
+送信ボタンは **購読する** で、登録に成功すると *購読が正常に完了しました。* と表示されます。ページには **新規購読** と **既存の購読を管理** の切り替えもあるので、すでに購読している人は古いメールを探し回らなくても自分の設定に戻れます。
 
 ## 購読者にリソースとイベントタイプを選ばせる
 
-デフォルトでは、購読者はページ上のすべてを受け取ります。**Advanced Subscriber Settings** カード内の 2 つのトグルでこれを変更できます。
+既定では、購読者はそのページのすべてを受け取ります。これを変えるのが **詳細な購読者設定** カードにある 2 つのトグルです。
 
-- **Allow Subscribers to Choose Resources**（`allowSubscribersToChooseResources`）— デフォルトでオフ。オンにすると、購読フォームに **Subscribe to All Resources** トグルが追加されます。これをオフにすると **Select Resources to Subscribe** が表示され、訪問者が個々のリソースを選べるようになります。
-- **Allow Subscribers to Choose Event Types**（`allowSubscribersToChooseEventTypes`）— デフォルトでオフ。同じ構造で、**Subscribe to All Event Types** トグルがあり、オフにするとその下に **Select Event Types to Subscribe** が現れます。
+- **購読者にリソースの選択を許可する**（`allowSubscribersToChooseResources`）— 既定でオフ。オンにすると購読フォームに **すべてのリソースを購読する** トグルが増え、それを外すと **購読するリソースを選択** が現れて、訪問者がリソースを個別に選べるようになります。
+- **購読者にイベントタイプの選択を許可する**（`allowSubscribersToChooseEventTypes`）— 既定でオフ。形は同じで、**すべてのイベントタイプを購読する** トグルと、それを外したときに下に出る **購読するイベントタイプを選択** です。
 
-イベントタイプは `Incident`、`Announcement`、`Scheduled Event` です。
+イベントタイプは `Incident`、`Announcement`、`Scheduled Event` の 3 つです。
 
-これらの選択は、購読者レコード上の **Is Subscribed to All Resources**（`isSubscribedToAllResources`、デフォルト true）、**Is Subscribed to All Event Types**（`isSubscribedToAllEventTypes`、デフォルト true）、**Subscribed to Resources**、**Subscribed to Event Types** として保存されます。
+選んだ内容は購読者レコードの **Is Subscribed to All Resources**（`isSubscribedToAllResources`、既定は true）、**Is Subscribed to All Event Types**（`isSubscribedToAllEventTypes`、既定は true）、**Subscribed to Resources**、**Subscribed to Event Types** に入ります。
 
-こんな用途に向いています: 複数のプロダクトをカバーするページ。API しか使っていない顧客は、マーケティングサイトが少し不安定になるたびに通知を受け取りたくはありません。完全に購読解除されてしまうのを眺めるより、自分でリストを絞り込ませてあげましょう。
+向いている場面: 複数の製品をまとめて載せているページです。API しか使っていない顧客は、マーケティングサイトが少し揺らぐたびに呼び出されたいわけではありません — まるごと購読解除されるのを眺めるより、本人に対象を絞ってもらいましょう。
 
-同じカードには **Subscriber Timezones** もあります。
+同じカードには **購読者のタイムゾーン** もあります。
 
 ## メールのダブルオプトイン
 
-メール購読者は必ず確認を行います。購読者がメールアドレスで作成され、かつ最初から確認済みとして作成されたのでない場合、**Is Subscription Confirmed**（`isSubscriptionConfirmed`）は強制的に `false` になり、6 桁の **Subscription Confirmation Token** が生成されます。その後 OneUptime は、`{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}` という形の確認リンクをメールで送信します。訪問者は **Confirm Subscription** ページに着地し、確認が完了すると *Subscription confirmed successfully* と表示されます。
+メール購読者は必ず確認を挟みます。メールアドレス付きで購読者が作成され、しかも確認済みとして作られたのでなければ、**Is Subscription Confirmed**（`isSubscriptionConfirmed`）は強制的に `false` になり、6 桁の **Subscription Confirmation Token** が生成されます。そのうえで OneUptime が `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}` という形の確認リンクをメールで送ります。訪問者は **購読を確認** ページに着き、処理が通ると *購読が正常に確認されました* と表示されます。
 
-SMS、Slack、Microsoft Teams、Webhook の購読者はこれをスキップします — これらは最初から `isSubscriptionConfirmed` が `true` に設定された状態で作成されます。
+SMS、Slack、Microsoft Teams、Webhook の購読者はこれを飛ばします — 作成時点で `isSubscriptionConfirmed` が `true` になっています。
 
-**未確認は無音を意味します。** 通知対象の購読者を取得するクエリは `isUnsubscribed: false` と `isSubscriptionConfirmed: true` でフィルタします。確認リンクを一度もクリックしていないメールアドレスは、**Email Subscribers** の一覧には表示されますが、何も受け取りません。誰かが「確かに購読しているのに何も届かない」と言ったら、まずこの列を確認してください。
+**未確認は無音を意味します。** 通知先の購読者を取得するクエリは `isUnsubscribed: false` と `isSubscriptionConfirmed: true` で絞り込みます。リンクを一度もクリックしていないメールアドレスは、**メール購読者** の一覧に残ったまま、何も受け取りません。購読しているはずなのに何も届かないと言われたら、まずこの列を確認してください。
 
-メール確認をオフにするトグルは存在しません。ステータスページから登録した人全員に対して無条件です。別の購読者ごとのカラムである **Send You Have Subscribed Message**（`sendYouHaveSubscribedMessage`、デフォルト true）は、購読者が確認済みになった時点で送信される「購読しました」メールを制御します。
+メールの確認をオフにするトグルはありません — ステータスページから登録した人には無条件で適用されます。購読者ごとの別の列 **Send You Have Subscribed Message**（`sendYouHaveSubscribedMessage`、既定は true）は、購読者の確認が済んだあとに送られる「購読を受け付けました」メールを制御します。
 
 ## 購読の管理と解除
 
-すべての購読者メールには `{statusPageUrl}/update-subscription/{statusPageSubscriberId}` という形の購読解除リンクが含まれています。このページのタイトルは **Update Subscription** で、訪問者はここで設定を更新するか購読を解除できると案内されます。ここには次のものがあります。
+購読者宛のメールにはすべて `{statusPageUrl}/update-subscription/{statusPageSubscriberId}` という形の購読解除リンクが付いています。そのページのタイトルは **購読を更新** で、ここで設定の変更も解除もできると訪問者に伝えます。中身は次のとおりです。
 
-- ページが許可している範囲のリソースとイベントタイプの選択項目。
-- **Unsubscribe** トグル。すべてのリソースの購読を解除するものと説明されています。**Is Unsubscribed**（`isUnsubscribed`、デフォルト false）に書き込まれます。
-- **Update Subscription** と表示される送信ボタン。保存すると *Your changes have been saved.* と表示されます。
+- そのページが許可している範囲の、リソースとイベントタイプの選択欄。
+- **購読解除** トグル。すべてのリソースの購読を解除するもの、と説明されています。**購読解除済み**（`isUnsubscribed`、既定は false）に書き込みます。
+- **購読を更新** と書かれた送信ボタン。保存すると *変更が保存されました。* と表示されます。
 
-リンクを紛失した人は、**Subscribe** ページの **Manage Existing Subscription** を使い、**Send Management Link** を押します。OneUptime は、リンクを含むメールを送信したこと、届かない場合は迷惑メールフォルダを確認するよう案内する応答を返します。
+リンクを失くした人は、**購読する** ページの **既存の購読を管理** から **管理リンクを送信** を押します。OneUptime は、リンク入りのメールを送ったこと、届かないときはスパムフォルダを見ることを返します。
 
-これらすべての裏にあるエンドポイントは `POST .../subscribe/:statusPageId`、`POST .../manage-subscription/:statusPageId`、`POST .../get-subscription/:statusPageId/:subscriberId`、`PUT .../update-subscription/:statusPageId/:subscriberId` です。
+これらすべての裏側にあるエンドポイントは `POST .../subscribe/:statusPageId`、`POST .../manage-subscription/:statusPageId`、`POST .../get-subscription/:statusPageId/:subscriberId`、`PUT .../update-subscription/:statusPageId/:subscriberId` です。
 
-購読解除は行を削除するのではなくフラグを立てるだけなので、レコードは **Is Unsubscribed** が設定された状態でそのままチャネルの一覧に残ります。特定のアドレスがなぜメールを受け取らなくなったのかを後から説明する必要があるときに役立ちます。
+購読解除は行を削除するのではなくフラグを立てるだけなので、レコードは **購読解除済み** が付いた状態でチャネルの一覧に残ります — あとから「なぜこのアドレスにメールが届かなくなったのか」を説明する必要が出たときに役立ちます。
 
-## 購読者が通知される内容
+## 購読者に通知される内容
 
-購読者は上記の 3 つのイベントタイプについて通知を受けますが、それぞれの発信元には独自のスイッチがあるため、意図せず送信されることはありません。
+購読者が受け取るのは上の 3 つのイベントタイプですが、送信元ごとにそれぞれスイッチがあるので、うっかり送られてしまうことはありません。
 
 ### お知らせの通知
 
-お知らせ自体には **Should subscribers be notified?**（`shouldStatusPageSubscribersBeNotified`）があり、作成フォーム上では **Notify Status Page Subscribers** チェックボックスとして表示され、デフォルトでオンです。お知らせが **Monitors affected (Optional)** の下でモニターを指定している場合、通知はそれらのモニターに限定されます。空のままにすると、全購読者に通知されます。
+お知らせ自体が **Should subscribers be notified?**（`shouldStatusPageSubscribersBeNotified`）を持っていて、作成フォームでは **ステータスページの購読者に通知** チェックボックスとして現れ、既定でオンです。そのお知らせが **影響を受けるモニター（任意）** でモニターを指定していれば、通知はそのモニターに絞られます。空のままなら全購読者に通知されます。
 
-### 予定されたメンテナンスイベント
+### 定期メンテナンスのイベント
 
-予定されたメンテナンスイベントには、それ専用の購読者向けカラム群があります。**Should subscribers be notified when event is created?**、**Should subscribers be notified when event is changed to ongoing?**、**Should subscribers be notified when event is changed to ended?**、そして事前通知のための **Subscriber notifications before the event** と **Next subscriber notification before the event at?** です。イベント上の **Status Pages** はどのページに表示するかを決め、**Should be visible on status page?** はそもそも表示するかどうかを決めます。
+定期メンテナンスのイベントには、購読者向けの列が独自に用意されています — **Should subscribers be notified when event is created?**、**Should subscribers be notified when event is changed to ongoing?**、**Should subscribers be notified when event is changed to ended?**、それに事前告知のための **Subscriber notifications before the event** と **Next subscriber notification before the event at?** です。イベント側の **ステータスページ** がどのページに載せるかを決め、**Should be visible on status page?** がそもそも載せるかどうかを決めます。
 
 ### インシデント
 
-`Incident` は 3 つ目のイベントタイプです。何が最初にインシデントをステータスページに到達させるのか — どのリソースに関わり、どの状態のときに表示され続けるのか — については、[インシデントの状態と重大度](/docs/incidents/states-and-severities) で扱っています。
+3 つ目のイベントタイプが `Incident` です。そもそも何がインシデントをステータスページに載せるのか — どのリソースに関わるのか、どの状態なら表示され続けるのか — は [インシデントの状態と重大度](/docs/incidents/states-and-severities) で扱います。
 
-ステータスページのサイドメニューにある **Notification Logs** セクション（`{id}/notification-logs`）は、ページが実際に何を送信したかを確認したいときに見る場所です。
+ステータスページのサイドメニューにある **通知ログ**（`{id}/notification-logs`）は、そのページが実際に何を送ったのかを確かめたいときに行く場所です。
 
 ## 通知テンプレートをカスタマイズする
 
-**Subscriber Settings** の **Notification Templates** カードには、このステータスページが使用するテンプレートが一覧表示され、**Template Name**、**Event Type**、**Notification Method** の列があります。これにより、すべてに 1 つの定型文を受け入れるのではなく、イベントタイプごと、チャネルごとに文面を変えられます。
+**購読者設定** の **通知テンプレート** カードには、このステータスページが使うテンプレートが **テンプレート名**、**イベントタイプ**、**通知方法** の列で並びます — すべてを一律の定型文で済ませるのではなく、イベントタイプごと・チャネルごとに言い回しを変えられます。
 
-プロジェクト全体のテンプレートは 1 階層上の **Status Pages → Settings → Subscriber Templates** にあり、**Announcement Templates** の隣にあります。
+プロジェクト全体のテンプレートは 1 つ上の階層、**ステータスページ → 設定 → 購読者テンプレート** にあり、**アナウンステンプレート** の隣です。
 
 ## メールフッター、カスタム SMTP、Twilio
 
-**Subscriber Settings** にはさらに 3 つのカードがあり、購読者向けメッセージがプロジェクトからどう出ていくかを制御します。
+**購読者設定** にはあと 3 つ、購読者宛のメッセージがプロジェクトから出ていく経路を決めるカードがあります。
 
-- **Email Footer Settings** — **Enable Custom Email Footer Text** と **Subscriber Email Notification Footer Text** で、購読者向けメールに自分のフッターを付けられます。
-- **Custom SMTP** — **Custom SMTP Config** により、デフォルトの代わりに自分のメールサーバー経由で購読者向けメールを送信します。
-- **Twilio Config** — **Twilio Config** は、SMS 購読者に使われる Twilio アカウントです。
+- **メールフッター設定** — **カスタムメールフッターテキストを有効化** と **購読者メール通知フッターテキスト** で、購読者宛メールに自分たちのフッターを付けられます。
+- **カスタム SMTP** — **カスタム SMTP 設定** を使うと、購読者宛メールを既定のサーバーではなく自社のメールサーバー経由で送れます。
+- **Twilio設定** — **Twilio設定** は、SMS 購読者に使う Twilio アカウントです。
 
-メール購読者がいるなら、カスタム SMTP は早めにやっておく価値があります。自分自身のドメインから届くメールは、フィルタされにくく、午前 2 時にそれを読んでいる顧客にも信頼されやすくなります。
+メール購読者がいるなら、カスタム SMTP は早めにやっておく価値があります。自社ドメインから届くメールはフィルターに落とされにくく、午前 2 時にそれを読む顧客からも信用されやすいからです。
 
 ## お知らせ
 
-お知らせはプロジェクトレベルのレコード（`StatusPageAnnouncement` モデル）で、1 つ以上のステータスページに配信し、任意で特定のモニターに絞り込み、表示される期間を持たせることができます。
+お知らせはプロジェクト単位のレコード（`StatusPageAnnouncement` モデル）で、1 つ以上のステータスページに配信し、必要なら特定のモニターに絞り、表示する期間を持たせられます。
 
-作成は **Status Pages → More → Announcements** から、または個々のステータスページのサイドメニューの **Announcements** から行います。作成フォームは 4 ステップのウィザードです。
+作成は **ステータスページ → もっと → アナウンス** から、または個々のステータスページのサイドメニューの **アナウンス** から行います。作成フォームは 4 ステップのウィザードです。
 
-1. **Basic Information** — **Announcement Title**（必須、2 文字以上）、**Description**（Markdown、任意）、そしてお知らせと一緒にステータスページで公開したいファイル用の **Attachments**。
-2. **Status Pages** — **Show announcement on these status pages**、必須のマルチセレクト。1 つのお知らせを一度に複数のページに向けて発信できます。
-3. **Resources Affected** — **Monitors affected (Optional)**。何も選択しない場合、全購読者に通知されます。
-4. **Schedule & Settings** — **Start Showing Announcement At**（必須、デフォルトは現在時刻）、**End Showing Announcement At**（任意）、**Notify Status Page Subscribers**（デフォルトでオン）。
+1. **基本情報** — **お知らせのタイトル**（必須、2 文字以上）、**説明**（Markdown、任意）、そしてステータスページ上でお知らせと一緒に参照できるようにしたいファイルのための **添付ファイル**。
+2. **ステータスページ** — **これらのステータスページにお知らせを表示**。必須の複数選択です。1 つのお知らせを複数のページに同時に出せます。
+3. **影響を受けるリソース** — **影響を受けるモニター（任意）**。何も選ばなければ全購読者に通知されます。
+4. **スケジュールと設定** — **お知らせの表示開始日時**（必須、既定は現在時刻）、**お知らせの表示終了日時**（任意）、**ステータスページの購読者に通知**（既定でオン）。
 
-訪問者は `/announcements` でお知らせを読み、**Active Announcements** と **Past Announcements** に分かれ、それぞれ **Announced at** のスタンプが付きます。現在配信中のお知らせは概要ページの上部にも固定表示されます。表示するものが何もない場合、ページには *No Announcement* と、これまで投稿されたものがない旨の注記が表示されます。
+訪問者は `/announcements` でお知らせを読みます。**アクティブなお知らせ** と **過去のお知らせ** に分かれ、それぞれに **告知日時** が添えられます。いま表示中のお知らせは概要ページの先頭にも固定されます。出すものが何もないときは **お知らせなし** と表示され、まだ何も投稿されていない旨が添えられます。
 
-添付ファイルは `GET {statusPageCrudPath}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId` から配信され、ステータスページ自体と同じ読み取りチェックの対象になります。そのため、非公開ページの添付ファイルは非公開のままです。
+添付ファイルは `GET {statusPageCrudPath}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId` から配信され、ステータスページ本体と同じ読み取りチェックが掛かります — 非公開ページの添付ファイルは非公開のままです。
 
 ## お知らせのスケジュールの仕組み
 
-**Show At**（`showAnnouncementAt`）と **End At**（`endAnnouncementAt`）がすべてを動かしていますが、概要ページとお知らせ一覧では問いかけている内容が異なり、この違いが混乱の元になります。
+すべてを動かすのは **Show At**（`showAnnouncementAt`）と **End At**（`endAnnouncementAt`）ですが、概要ページとお知らせ一覧は違う問いを立てていて、その差が人をつまずかせます。
 
-- **概要ページ** は、`showAnnouncementAt` が過去であり、かつ `endAnnouncementAt` が未来か空である場合にお知らせを表示します。
-- **`/announcements` の一覧** は、`showAnnouncementAt` が **Show Announcement History (in days)**（`showAnnouncementHistoryInDays`、デフォルト 14）の範囲内に収まるお知らせを表示し、そのあとクライアント側で active と past に振り分けます。
+- **概要ページ** は、`showAnnouncementAt` が過去で、かつ `endAnnouncementAt` が未来か空のときにお知らせを表示します。
+- **`/announcements` の一覧** は、`showAnnouncementAt` が **お知らせ履歴の表示（日数）**（`showAnnouncementHistoryInDays`、既定は 14）の範囲に入るお知らせを取ってきて、それをクライアント側でアクティブと過去に振り分けます。
 
-計画しておく価値のある結果が 2 つあります。
+見越しておく価値のある結果が 2 つあります。
 
-- **終了日のないお知らせは決して期限切れになりません。** **End Showing Announcement At** を空欄のままにすると、そのお知らせは無期限に概要ページに固定され続けます。期間限定のものには必ず終了日を設定してください。
-- **古くてもまだアクティブなお知らせが一覧から消えることがあります。** `showAnnouncementHistoryInDays` より前に開始したお知らせは、概要ページには残ったまま `/announcements` からは外れます。長期間続くお知らせを扱うなら、履歴の日数を増やしてください。
+- **終了日時のないお知らせは期限切れになりません。** **お知らせの表示終了日時** を空のままにすると、概要ページにいつまでも固定されたままです。期間の決まっているものには必ず終了日時を入れてください。
+- **古いけれどまだアクティブなお知らせが、一覧から消えることがあります。** 開始が `showAnnouncementHistoryInDays` より前だと、概要ページには残ったまま `/announcements` から外れます。長く出し続ける告知があるなら、履歴の期間を広げてください。
 
-お知らせがそもそも表示されるかどうかは、**Advanced Settings** の **Announcement Settings** カードで制御されます。**Show Announcements**（`showAnnouncementsOnStatusPage`、デフォルト true）と **Show Announcement History (in days)**（デフォルト 14）です。**Show Announcements** がオフの場合、お知らせ用のエンドポイントはリクエストそのものを拒否します。
+そもそもお知らせを出すかどうかは、**詳細設定** の **お知らせの設定** カードで決まります — **お知らせを表示**（`showAnnouncementsOnStatusPage`、既定は true）と **お知らせ履歴の表示（日数）**（既定は 14）です。**お知らせを表示** がオフだと、お知らせのエンドポイントはリクエストそのものを拒否します。
 
-## お知らせテンプレート
+## お知らせのテンプレート
 
-同じ種類の通知を繰り返し投稿するなら — 毎月のメンテナンス予告や、繰り返し起きるサードパーティの性能低下など — あらかじめテンプレート化しておきましょう。**Status Pages → Settings → Announcement Templates** は `StatusPageAnnouncementTemplate` モデルを保存し、そのフォームでは **Template Name**、**Template Description**、**Announcement Title**、**Description**、**Show announcement on these status pages**、**Monitors affected (Optional)**、**Notify Subscribers** を尋ねます。これにより、配信先の選択と通知するかどうかの判断を、毎回ではなく一度で済ませられます。
+同じ種類の告知を繰り返し出すなら — 毎月のメンテナンス予告、いつもの外部サービスの劣化など — あらかじめ用意しておきましょう。**ステータスページ → 設定 → アナウンステンプレート** には `StatusPageAnnouncementTemplate` モデルが保存され、そのフォームは **テンプレート名**、**テンプレートの説明**、**お知らせのタイトル**、**説明**、**これらのステータスページにお知らせを表示**、**影響を受けるモニター（任意）**、**購読者に通知** を尋ねます。配信先と通知の判断を、毎回ではなく一度だけ決めておけるということです。
 
 ## Webhook 購読者と SSRF 対策
 
-Webhook 購読者は、ステータスページのイベントごとに JSON の `POST` リクエストを受け取ります。そのため、チャットボットや社内ダッシュボード、チケット管理キューなど、自分自身のシステムにステータスページの更新を流し込む最も簡単な方法になります。
+Webhook 購読者は、ステータスページのイベントごとに JSON の `POST` リクエストを受け取ります。ステータスページの更新を自前のシステム — チャットボット、社内ダッシュボード、チケットのキューなど — に流し込む、いちばん手軽な方法です。
 
-購読は公開ページ上の公開操作であるため、OneUptime は宛先を保護します。
+購読は公開ページ上の公開操作なので、OneUptime は送信先を守ります。
 
-- 汎用の **Webhook URL** は受け付けられる前に検証され、プライベートアドレス、ループバックアドレス、リンクローカルアドレス、クラウドメタデータアドレスは拒否されます。OneUptime の導入環境自身のネットワーク内にある何かを購読先に指定することはできません。
-- **Slack Incoming Webhook URL** は `https://hooks.slack.com/services/` で始まっている必要があります。
+- 一般の **Webhook URL** は受け付ける前に検証され、プライベート、ループバック、リンクローカル、クラウドのメタデータのアドレスは拒否されます。OneUptime のデプロイ自身のネットワーク内部に購読先を向けることはできません。
+- **Slack 受信 Webhook URL** は `https://hooks.slack.com/services/` で始まらなければなりません。
 
-Webhook の購読登録が拒否された場合、まず疑うべきは内部向けの URL や不正な形式の URL です。
+登録時に Webhook の購読が弾かれたときは、内部アドレスか不正な形式の URL をまず疑ってください。
 
 ## 次に読むべきページ
 
 - [ステータス ページ 概要](/docs/status-pages/index) — ステータスページとは何か、どう組み立てられているか。
-- [ステータス ページのリソースとグループ](/docs/status-pages/resources-and-groups) — 購読者が選択できるモニターとグループ。
-- [ステータス ページのブランディングとドメイン](/docs/status-pages/branding-and-domains) — カスタムドメイン、ロゴ、そしてメールがリンクするページの見た目。
-- [公開 API](/docs/status-pages/public-api) — ステータスページのデータをプログラムから読み取る。
-- [インシデントの状態と重大度](/docs/incidents/states-and-severities) — 何がインシデントをステータスページに載せ、何がそれを取り除くのか。
-- [インシデントの設定と自動化](/docs/incidents/settings) — インシデントのコミュニケーションを支えるプロジェクトレベルのルール。
+- [ステータス ページのリソースとグループ](/docs/status-pages/resources-and-groups) — 購読者が選べるモニターとグループ。
+- [ステータス ページのブランディングとドメイン](/docs/status-pages/branding-and-domains) — カスタムドメイン、ロゴ、そしてメールのリンク先になるページの見た目。
+- [公開 API](/docs/status-pages/public-api) — ステータスページのデータをプログラムから読む。
+- [インシデントの状態と重大度](/docs/incidents/states-and-severities) — 何がインシデントをステータスページに載せ、何が下ろすのか。
+- [インシデントの設定と自動化](/docs/incidents/settings) — インシデント連絡の裏にあるプロジェクト単位のルール。

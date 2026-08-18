@@ -1,185 +1,185 @@
-# Status Pages Overview
+# स्थिति पृष्ठ अवलोकन
 
-एक status page आप जो कुछ भी monitor करते हैं उसका public चेहरा है: एक URL जिसे आपके customers यह पूछने के लिए email करने के बजाय खोल सकते हैं कि क्या यह सिर्फ उनके साथ हो रहा है। यह उन services की current status दिखाता है जिन्हें आप expose करना चुनते हैं, वे incidents जिन पर आप काम कर रहे हैं, वह maintenance जिसकी आपने योजना बनाई है, और कोई भी announcement जिसे आप ऊपर pin करना चाहते हैं।
+स्थिति पृष्ठ आपकी पूरी monitoring का सार्वजनिक चेहरा है: एक ऐसा URL जिसे आपके ग्राहक खोल सकें, बजाय इसके कि वे आपको ईमेल करके पूछें कि दिक्कत सिर्फ़ उन्हीं के साथ है या नहीं। यह उन services की मौजूदा स्थिति दिखाता है जिन्हें आप सामने लाना चुनते हैं, वे घटनाएँ जिन पर आप काम कर रहे हैं, वह रखरखाव जिसकी आपने योजना बनाई है, और कोई भी घोषणा जिसे आप सबसे ऊपर टाँकना चाहते हैं।
 
-जब सुबह 2 बजे कुछ टूटता है, तो status page पहली चीज है जिससे आपकी support queue link करती है। यह वह चीज भी है जिससे आपके subscribers को notify किया जाता है — इसलिए इसे outage के दौरान नहीं, बल्कि पहले से set up कर लेना ही बेहतर है।
+रात दो बजे कुछ टूटता है तो आपकी support queue सबसे पहले स्थिति पृष्ठ का ही लिंक भेजती है। सब्सक्राइबर को सूचना भी यहीं से जाती है — इसलिए इसे ज़रूरत पड़ने से पहले सेट कर लेना समझदारी है, outage के बीचोंबीच नहीं।
 
-Status pages dashboard की बाईं navigation में **essentials** group के तहत **Status Pages** के नीचे रहते हैं। इस पेज पर सब कुछ per-status-page है: एक project इनमें से जितने चाहे चला सकता है — customers के लिए एक public, internal audience के लिए एक private, किसी specific market के लिए एक per-region।
+स्थिति पृष्ठ डैशबोर्ड के बाएँ navigation में **स्थिति पृष्ठ** के नीचे, **essentials** समूह में रहते हैं। इस पेज पर बताई हर चीज़ हर स्थिति पृष्ठ के लिए अलग-अलग है: एक प्रोजेक्ट जितने चाहे उतने स्थिति पृष्ठ चला सकता है — ग्राहकों के लिए एक सार्वजनिक, भीतरी दर्शकों के लिए एक निजी, किसी खास बाज़ार के लिए एक क्षेत्रवार।
 
 ## एक नज़र में
 
-- **दो fields से बनता है।** एक नया status page सिर्फ **Name** और **Description** माँगता है। Resources, branding और domains सब बाद में configure होते हैं।
-- **Resources वह हैं जो visitors देखते हैं।** पेज पर हर row एक **Status Page Resource** है — अपने display name, tooltip और uptime options के साथ एक monitor (या monitor group)। Groups एक लंबे पेज को sections में बाँटते हैं और nested हो सकते हैं।
-- **पहले दिन से एक preview URL।** हर status page को एक preview link मिलता है ताकि custom domain बनने से पहले आप इसे देख सकें।
-- **Visitor-facing routes settings से gated हैं।** Incidents, announcements, scheduled events और subscribe page — हर एक तभी दिखता है जब **Advanced Settings** पर उसका toggle on हो।
-- **इसे private बनाने के तीन तरीके।** Private users, एक master password, या SAML SSO / OIDC — साथ ही एक IP whitelist।
-- **Subscribers को अपने आप बताया जाता है।** Email, SMS, Slack, Microsoft Teams और webhook subscribers सभी किसी पेज को follow कर सकते हैं, हर channel अपने toggle के पीछे।
+- **दो फ़ील्ड से बन जाता है।** नया स्थिति पृष्ठ सिर्फ़ **नाम** और **विवरण** माँगता है। संसाधन, ब्रांडिंग और डोमेन सब बाद में कॉन्फ़िगर होते हैं।
+- **visitors को संसाधन ही दिखते हैं।** पेज की हर row एक **स्थिति पृष्ठ संसाधन** है — कोई monitor (या monitor समूह) अपने खुद के प्रदर्शन नाम, टूलटिप और uptime विकल्पों के साथ। समूह लंबे पेज को हिस्सों में बाँट देते हैं और एक-दूसरे के भीतर भी रखे जा सकते हैं।
+- **पहले दिन से एक preview URL।** हर स्थिति पृष्ठ को एक preview लिंक मिलता है, ताकि कस्टम डोमेन बनने से पहले ही आप उसे देख सकें।
+- **visitors वाले routes सेटिंग्स के पीछे हैं।** घटनाएँ, घोषणाएँ, निर्धारित कार्यक्रम और subscribe पेज तभी दिखते हैं जब **उन्नत सेटिंग्स** पर उनका toggle on हो।
+- **निजी बनाने के तीन तरीके।** निजी उपयोगकर्ता, कोई मास्टर पासवर्ड, या SAML SSO / OIDC — और साथ में एक IP श्वेतसूची।
+- **सब्सक्राइबर को खबर अपने आप मिलती है।** ईमेल, SMS, Slack, Microsoft Teams और webhook सब्सक्राइबर, सब किसी पेज को follow कर सकते हैं, और हर channel अपने अलग toggle के पीछे है।
 
-## प्रमुख शब्द
+## मुख्य शब्द
 
-| शब्द              | इसका मतलब                                                                                                                       |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| **Status page**   | एक public (या private) पेज, अपनी branding, domains, resources और subscribers के साथ। `StatusPage` model।                    |
-| **Resource**      | एक row जिसे visitors देखते हैं — एक monitor या monitor group जो display name और uptime options के साथ पेज पर दिखाया गया है।                      |
-| **Group**         | resources रखने वाला एक नामित section। Groups दूसरे groups के भीतर nest होते हैं, और हर level नीचे मौजूद हर चीज की status को roll up करता है। |
-| **Announcement**  | एक message जिसे आप एक या अधिक status pages पर post करते हैं, एक start time और एक वैकल्पिक end time के साथ।                                         |
-| **Subscriber**    | कोई (या कुछ) जो पेज को email, SMS, Slack, Microsoft Teams या एक webhook पर follow कर रहा है।                                                  |
-| **Custom domain** | आपका अपना domain — `status.example.com` — एक CNAME और एक SSL certificate के साथ पेज पर pointed।                                     |
-| **Private user**  | एक account जो private status page में log in कर सकता है। आपके OneUptime project users से अलग।                                    |
+| शब्द                 | इसका मतलब                                                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **स्थिति पृष्ठ**     | एक सार्वजनिक (या निजी) पेज, अपनी ब्रांडिंग, डोमेन, संसाधन और सब्सक्राइबर के साथ। `StatusPage` model।                                  |
+| **संसाधन**           | visitors को दिखने वाली एक row — पेज पर लाया गया कोई monitor या monitor समूह, प्रदर्शन नाम और uptime विकल्पों के साथ।                  |
+| **समूह**             | संसाधनों को रखने वाला एक नामित हिस्सा। समूह दूसरे समूहों के भीतर बैठते हैं, और हर स्तर अपने नीचे की हर चीज़ की स्थिति जोड़कर दिखाता है। |
+| **घोषणा**            | एक संदेश जो आप एक या कई स्थिति पृष्ठों पर पोस्ट करते हैं, शुरू होने के समय और वैकल्पिक समाप्ति समय के साथ।                            |
+| **सब्सक्राइबर**      | कोई व्यक्ति (या चीज़) जो पेज को ईमेल, SMS, Slack, Microsoft Teams या webhook से follow करता है।                                       |
+| **कस्टम डोमेन**      | आपका अपना डोमेन — `status.example.com` — जिसे CNAME और SSL प्रमाणपत्र के साथ पेज की ओर मोड़ा गया हो।                                  |
+| **निजी उपयोगकर्ता** | ऐसा खाता जो किसी निजी स्थिति पृष्ठ में लॉग इन कर सके। आपके OneUptime प्रोजेक्ट उपयोगकर्ताओं से अलग।                                   |
 
-## Status page बनाना
+## स्थिति पृष्ठ बनाना
 
-1. **Status Pages → All Status Pages** खोलें और **Create Status Page** पर click करें।
-2. **Create New Status Page** modal में, **Name** (आवश्यक, कम से कम दो characters) भरें और, वैकल्पिक रूप से, **Description**।
-3. **Create Status Page** पर click करें।
+1. **स्थिति पृष्ठ → सभी स्थिति पृष्ठ** खोलिए और **स्थिति पृष्ठ बनाएं** पर क्लिक कीजिए।
+2. **Create New Status Page** modal में **नाम** (आवश्यक, कम से कम दो वर्ण) और चाहें तो **विवरण** भरिए।
+3. **स्थिति पृष्ठ बनाएं** पर क्लिक कीजिए।
 
-यही पूरा create form है। जिस list पर आप वापस आते हैं वह **Name**, **Description**, **Labels** और **Owners** दिखाती है, और इसे **Status Page ID**, **Name** और **Description** से filter किया जा सकता है।
+बनाने का पूरा form इतना ही है। जिस सूची पर आप लौटते हैं, वह **नाम**, **विवरण**, **लेबल** और **मालिक** दिखाती है, और उसे **स्थिति पृष्ठ ID**, **नाम** तथा **विवरण** से filter किया जा सकता है।
 
-नया पेज खोलें और आप इसके **Overview** screen पर पहुँचते हैं, जो दो cards रखता है: **Status Page Preview URL** जिसमें पेज का ही link होता है, और **Status Page Details** जहाँ आप अभी set किए गए name, description और labels edit कर सकते हैं।
+नया पेज खोलिए और आप उसकी **अवलोकन** screen पर पहुँचते हैं, जिस पर दो cards हैं: **Status Page Preview URL**, जिसमें खुद पेज तक का लिंक होता है, और **स्थिति पृष्ठ विवरण**, जहाँ आप अभी-अभी दिए गए नाम, विवरण और लेबल संपादित कर सकते हैं।
 
-आगे, उपयोगिता के मोटे क्रम में:
+आगे, मोटे तौर पर उपयोगिता के क्रम में:
 
-- पेज पर कुछ रखने के लिए resources जोड़ें — देखें [Status Page Resources & Groups](/docs/status-pages/resources-and-groups)।
-- पेज का title, favicon, logo और cover set करें, फिर एक custom domain जोड़ें — देखें [Status Page Branding & Domains](/docs/status-pages/branding-and-domains)।
-- तय करें कि लोग किन channels पर subscribe कर सकते हैं — देखें [Subscribers & Announcements](/docs/status-pages/subscribers)।
-- **Advanced Settings** के तहत पेज पर क्या दिखता है उसे tune करें।
+- संसाधन जोड़िए ताकि पेज पर कुछ हो — [स्थिति पृष्ठ संसाधन और समूह](/docs/status-pages/resources-and-groups) देखिए।
+- पेज का शीर्षक, favicon, लोगो और कवर तय कीजिए, फिर कोई कस्टम डोमेन जोड़िए — [स्थिति पृष्ठ ब्रांडिंग और डोमेन](/docs/status-pages/branding-and-domains) देखिए।
+- तय कीजिए कि लोग किन channels पर सदस्यता ले सकते हैं — [सब्सक्राइबर और घोषणाएँ](/docs/status-pages/subscribers) देखिए।
+- **उन्नत सेटिंग्स** के नीचे तय कीजिए कि पेज पर क्या-क्या दिखे।
 
-## सब कुछ कहाँ रहता है
+## क्या कहाँ रहता है
 
-एक बार status page खुल जाए, इसका अपना बायाँ side menu नौ sections में बँटा होता है। इसे इस documentation group के बाकी हिस्से के लिए एक map की तरह इस्तेमाल करें।
+कोई स्थिति पृष्ठ खुल जाने पर उसका अपना बायाँ side menu नौ हिस्सों में बँटा होता है। इस documentation समूह के बाकी हिस्सों के नक्शे की तरह इसे इस्तेमाल कीजिए।
 
-| Section               | इसमें क्या है                                                                                                                   |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Basic**             | **Overview**, **Announcements**, **Owners**।                                                                                                   |
-| **Resources**         | एक single **Resources** screen — बाईं ओर groups, दाईं ओर चुने गए group के monitors।                                                |
-| **Subscribers**       | **Email Subscribers**, **SMS Subscribers**, **Slack Subscribers**, **MS Teams Subscribers**, **Webhook Subscribers**, **Subscriber Settings**। |
-| **Notification Logs** | **Notification Logs** — subscribers को क्या भेजा गया।                                                                                          |
-| **Audit**             | **Audit Logs**।                                                                                                                                |
-| **Branding**          | **Essential Branding**, **HTML, CSS & JavaScript**, **Custom Domains**, **Header**, **Footer**, **Overview Page**, **Languages**।              |
-| **Security**          | **Private Users**, **SSO**, **OIDC**, **SCIM**, **Authentication Settings**।                                                                   |
-| **AI**                | **MCP**।                                                                                                                                       |
-| **Advanced**          | **Monitor Rules**, **Embedded Status**, **Reports**, **Custom Fields**, **Advanced Settings**, **Delete Status Page**।                         |
+| हिस्सा                | उसमें क्या है                                                                                                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **बेसिक**             | **अवलोकन**, **घोषणाएं**, **मालिक**।                                                                                                             |
+| **संसाधन**            | एक ही **संसाधन** screen — बाईं ओर समूह, दाईं ओर चुने हुए समूह के monitors।                                                                       |
+| **सब्सक्राइबर**       | **ईमेल सब्सक्राइबर**, **SMS सब्सक्राइबर**, **Slack सब्सक्राइबर**, **MS Teams सब्सक्राइबर**, **Webhook ग्राहक**, **सब्सक्राइबर सेटिंग्स**।       |
+| **सूचना लॉग**         | **सूचना लॉग** — सब्सक्राइबर को क्या भेजा गया।                                                                                                    |
+| **ऑडिट**              | **ऑडिट लॉग**।                                                                                                                                    |
+| **ब्रांडिंग**         | **आवश्यक ब्रांडिंग**, **HTML, CSS और JavaScript**, **कस्टम डोमेन**, **हेडर**, **फ़ुटर**, **अवलोकन पृष्ठ**, **भाषाएं**।                          |
+| **सुरक्षा**           | **निजी उपयोगकर्ता**, **SSO**, **OIDC**, **SCIM**, **प्रमाणीकरण सेटिंग्स**।                                                                       |
+| **एआई**               | **MCP**।                                                                                                                                         |
+| **उन्नत**             | **Monitor Rules**, **एम्बेडेड स्थिति**, **रिपोर्ट**, **कस्टम फ़ील्ड**, **उन्नत सेटिंग्स**, **स्थिति पृष्ठ हटाएं**।                              |
 
-देखने से पहले जानने लायक दो naming quirks:
+ढूँढने निकलने से पहले नाम से जुड़ी दो बातें जान लीजिए:
 
-- **Resources** item केवल तभी **Resources** नाम से दिखता है जब project पर monitor groups enabled हों। नहीं तो यह **Monitors** पढ़ता है। दोनों ही स्थिति में यह एक ही screen है।
-- कोई अलग Groups page नहीं है। Groups और resources को merge कर दिया गया है, और पुराना `/groups` route अब resources screen पर redirect करता है।
+- **संसाधन** वाला item **संसाधन** तभी कहलाता है जब प्रोजेक्ट में monitor समूह चालू हों। वरना वहाँ **मॉनिटर** लिखा आता है। screen दोनों हालात में एक ही है।
+- समूहों के लिए कोई अलग पेज नहीं है। समूह और संसाधन एक कर दिए गए, और पुराना `/groups` route अब संसाधन वाली screen पर redirect कर देता है।
 
-किसी individual पेज के बाहर, **Status Pages** section में खुद एक **More** section है जिसमें **Announcements** है, और एक collapsed **Settings** section जिसमें **Announcement Templates**, **Subscriber Templates**, **Custom Fields**, **Owner Rules** और **Label Rules** हैं — ये project-wide हैं, हर status page में साझा।
+किसी एक पेज के बाहर, खुद **स्थिति पृष्ठ** हिस्से में एक **अधिक** भाग है जिसमें **घोषणाएं** हैं, और एक collapsed **सेटिंग्स** भाग है जिसमें **घोषणा टेम्पलेट**, **सब्सक्राइबर टेम्पलेट**, **कस्टम फ़ील्ड**, **स्वामी नियम** और **लेबल नियम** रहते हैं — ये पूरे प्रोजेक्ट के लिए हैं और हर स्थिति पृष्ठ में साझा होते हैं।
 
-## Visitors क्या देखते हैं
+## visitors को क्या दिखता है
 
-Public पेज अपनी ही एक app है, जिसमें routes का एक छोटा सा set है:
+सार्वजनिक पेज अपने आप में एक अलग app है, जिसके routes गिने-चुने हैं:
 
-- `/` — **Overview**।
-- `/incidents` और `/incidents/:id` — incident list और एक single incident।
+- `/` — **अवलोकन**।
+- `/incidents` और `/incidents/:id` — घटनाओं की सूची और कोई एक घटना।
 - `/announcements` और `/announcements/:id`।
 - `/scheduled-events` और `/scheduled-events/:id`।
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`।
 - `/rss` — feed।
-- `/login`, `/sso` और `/master-password` — केवल private पेज पर relevant।
+- `/login`, `/sso` और `/master-password` — सिर्फ़ निजी पेज पर मायने रखते हैं।
 
-Top nav bar हमेशा **Overview** दिखाता है; बाकी केवल तभी दिखते हैं जब enabled हों। **Incidents**, **Announcements** और **Scheduled Events** में से हर एक को अपना toggle on चाहिए; **Subscribe** को **Show Subscriber Page** और कम से कम एक subscriber channel enabled दोनों चाहिए। एक private पेज को एक **Logout** item भी मिलता है।
+ऊपर का nav bar हमेशा **अवलोकन** दिखाता है; बाकी सब तभी दिखते हैं जब चालू हों। **घटनाएँ**, **घोषणाएँ** और **निर्धारित कार्यक्रम**, हर एक के लिए उसका अपना toggle on होना चाहिए; **सदस्यता लें** के लिए **सब्सक्राइबर पृष्ठ दिखाएं** भी चाहिए और कम से कम एक subscriber channel भी चालू होना चाहिए। निजी पेज पर एक **लॉग आउट करें** item भी आता है।
 
-### Overview page
+### अवलोकन पृष्ठ
 
-Overview वह पेज है जिसे ज्यादातर visitors देखते हैं। ऊपर से नीचे यह render करता है:
+ज़्यादातर visitors बस अवलोकन ही देखते हैं। ऊपर से नीचे यह इस क्रम में render होता है:
 
-1. **कोई भी live announcements** — वे announcements जिनका start time बीत चुका है और end time नहीं आया।
-2. **एक overall status banner** — एक single line जो summarize करती है कि सभी resources प्रभावित हैं या केवल कुछ।
-3. **एक overall uptime percent**, अगर आपने इसे on किया है। डिफ़ॉल्ट रूप से off।
-4. **Resource groups**, हर एक अपने resources, उनकी current status, और उनके uptime history bars के साथ।
-5. **Active Incidents**।
-6. **Scheduled Maintenance Events**।
+1. **कोई भी चालू घोषणाएँ** — वे घोषणाएँ जिनके शुरू होने का समय बीत चुका है और खत्म होने का नहीं आया।
+2. **एक समग्र स्थिति banner** — एक पंक्ति जो बताती है कि सारे संसाधन प्रभावित हैं या कुछ ही।
+3. **एक समग्र अपटाइम प्रतिशत**, अगर आपने उसे चालू किया हो। डिफ़ॉल्ट रूप से बंद।
+4. **संसाधन समूह**, हर एक अपने संसाधनों, उनकी मौजूदा स्थिति और उनके uptime इतिहास वाले bars के साथ।
+5. **सक्रिय घटनाएँ**।
+6. **निर्धारित रखरखाव कार्यक्रम**।
 
-कुछ भी न होने वाला बिल्कुल नया पेज एक empty state दिखाता है जो आपको dashboard से resources जोड़ने के लिए कहता है — जो आपका संकेत है **Resources** screen पर जाने का।
+बिल्कुल नए, खाली पेज पर एक empty state दिखता है जो आपसे डैशबोर्ड से संसाधन जोड़ने को कहता है — यही आपका इशारा है कि **संसाधन** screen पर चला जाए।
 
-सबसे पहले किस चीज से कोई incident इस पेज पर आती है, और फिर से क्या उसे हटाती है, इसके लिए [Incident States & Severities](/docs/incidents/states-and-severities) देखें।
+कोई घटना इस पेज पर आती पहले क्यों है, और उतरती कब है, यह [घटना स्थितियाँ और गंभीरता](/docs/incidents/states-and-severities) में देखिए।
 
-## तय करना कि पेज पर क्या दिखे
+## पेज पर क्या दिखेगा, यह चुनना
 
-ज्यादातर display switches एक ही जगह रहते हैं: **Status Pages → आपका पेज → Advanced → Advanced Settings**। हर card का अपना **Edit Settings** बटन है।
+दिखावे के ज़्यादातर switches एक ही जगह रहते हैं: **स्थिति पृष्ठ → आपका पेज → उन्नत → उन्नत सेटिंग्स**। हर card का अपना **Edit Settings** बटन होता है।
 
-**Incident Settings**:
+**घटना सेटिंग्स**:
 
-- **Show Incidents** (`showIncidentsOnStatusPage`) — डिफ़ॉल्ट रूप से on। इसे off करने से **Incidents** nav item भी हट जाता है।
-- **Show Incident History (in days)** (`showIncidentHistoryInDays`) — incident list कितनी दूर पीछे तक जाती है। डिफ़ॉल्ट 14।
-- **Show Incident Labels** (`showIncidentLabelsOnStatusPage`) — डिफ़ॉल्ट रूप से off।
+- **घटनाएं दिखाएं** (`showIncidentsOnStatusPage`) — डिफ़ॉल्ट रूप से on। इसे बंद करने पर **घटनाएँ** वाला nav item भी हट जाता है।
+- **घटना इतिहास दिखाएं (दिनों में)** (`showIncidentHistoryInDays`) — घटनाओं की सूची कितना पीछे तक जाती है। डिफ़ॉल्ट 14।
+- **घटना लेबल दिखाएं** (`showIncidentLabelsOnStatusPage`) — डिफ़ॉल्ट रूप से off।
 
-**Episode Settings** — incident episodes के लिए वही तीन switches: **Show Episodes** (`showEpisodesOnStatusPage`, डिफ़ॉल्ट रूप से on), **Show Episode History (in days)** (डिफ़ॉल्ट 14), और **Show Episode Labels** (डिफ़ॉल्ट रूप से off)। Episodes अपना खुद का model है अपने खुद के endpoints के साथ, incidents का view नहीं।
+**एपिसोड सेटिंग्स** — घटना एपिसोड के लिए वही तीन switches: **एपिसोड दिखाएं** (`showEpisodesOnStatusPage`, डिफ़ॉल्ट रूप से on), **एपिसोड इतिहास दिखाएं (दिनों में)** (डिफ़ॉल्ट 14), और **एपिसोड लेबल दिखाएं** (डिफ़ॉल्ट रूप से off)। एपिसोड अपने endpoints वाला अपना अलग model हैं, घटनाओं का कोई view नहीं।
 
-**Announcement Settings**:
+**घोषणा सेटिंग्स**:
 
-- **Show Announcements** (`showAnnouncementsOnStatusPage`) — डिफ़ॉल्ट रूप से on।
-- **Show Announcement History (in days)** (`showAnnouncementHistoryInDays`) — डिफ़ॉल्ट 14।
+- **घोषणाएं दिखाएं** (`showAnnouncementsOnStatusPage`) — डिफ़ॉल्ट रूप से on।
+- **घोषणा इतिहास दिखाएं (दिनों में)** (`showAnnouncementHistoryInDays`) — डिफ़ॉल्ट 14।
 
-**Scheduled Event Settings**:
+**अनुसूचित इवेंट सेटिंग्स**:
 
-- **Show Scheduled Maintenance Events** (`showScheduledMaintenanceEventsOnStatusPage`) — डिफ़ॉल्ट रूप से on।
-- **Show Scheduled Event History (in days)** (`showScheduledEventHistoryInDays`) — डिफ़ॉल्ट 14।
-- **Show Event Labels** (`showScheduledEventLabelsOnStatusPage`) — डिफ़ॉल्ट रूप से off।
+- **अनुसूचित रखरखाव इवेंट दिखाएं** (`showScheduledMaintenanceEventsOnStatusPage`) — डिफ़ॉल्ट रूप से on।
+- **अनुसूचित इवेंट इतिहास दिखाएं (दिनों में)** (`showScheduledEventHistoryInDays`) — डिफ़ॉल्ट 14।
+- **इवेंट लेबल दिखाएं** (`showScheduledEventLabelsOnStatusPage`) — डिफ़ॉल्ट रूप से off।
 
-**Uptime History Settings**:
+**अपटाइम इतिहास सेटिंग्स**:
 
-- **Show Uptime History (in days)** (`showUptimeHistoryInDays`) — हर resource के बगल में uptime bar की लंबाई। डिफ़ॉल्ट 90 और 1 से 90 के बीच होना चाहिए। किसी resource या group पर हर **Show Uptime %** और **Show Status History Chart** option इसी संख्या को पढ़ता है।
+- **अपटाइम इतिहास दिखाएं (दिनों में)** (`showUptimeHistoryInDays`) — हर संसाधन के बगल वाले uptime bar की लंबाई। डिफ़ॉल्ट 90, और 1 से 90 के बीच होना चाहिए। किसी संसाधन या समूह पर मौजूद हर **अपटाइम % दिखाएं** और **स्थिति इतिहास चार्ट दिखाएं** विकल्प यही संख्या पढ़ता है।
 
-**Subscriber Settings**:
+**सब्सक्राइबर सेटिंग्स**:
 
-- **Show Subscriber Page** (`showSubscriberPageOnStatusPage`) — डिफ़ॉल्ट रूप से on, साथ ही पाँच per-channel enable toggles। वही channel toggles **Subscribers** section के तहत dedicated **Subscriber Settings** screen पर भी दिखते हैं; उसे इन्हें set करने की canonical जगह मानें।
+- **सब्सक्राइबर पृष्ठ दिखाएं** (`showSubscriberPageOnStatusPage`) — डिफ़ॉल्ट रूप से on, साथ में हर channel के लिए पाँच enable toggles। वही channel toggles **सब्सक्राइबर** हिस्से के नीचे अलग से बनी **सब्सक्राइबर सेटिंग्स** screen पर भी दिखते हैं; उन्हें तय करने की असली जगह उसी को मानिए।
 
-**Powered By OneUptime Branding**:
+**Powered By OneUptime ब्रांडिंग**:
 
-- **Hide Powered By OneUptime Branding** — डिफ़ॉल्ट रूप से off, इसलिए जब तक आप इसे on नहीं करते visitor footer "Powered by OneUptime" पढ़ता रहता है।
+- **Powered By OneUptime ब्रांडिंग छिपाएं** — डिफ़ॉल्ट रूप से off, इसलिए जब तक आप इसे on नहीं करते, visitor वाले footer में "OneUptime द्वारा संचालित" लिखा दिखता रहता है।
 
-**रंग कहाँ हैं।** Uptime bar के रंग यहाँ नहीं हैं — **Default Bar Color**, bar-color rules, **Downtime Monitor Statuses** और **Show Overall Uptime Percent** सभी **Status Pages → आपका पेज → Branding → Overview Page** पर रहते हैं। कहीं भी कोई theme या brand-color setting नहीं है; उन controls से आगे कुछ भी **Custom CSS** से किया जाता है।
+**रंग कहाँ हैं।** uptime bar के रंग यहाँ नहीं हैं — **डिफ़ॉल्ट बार रंग**, bar के रंग वाले नियम, **डाउनटाइम मॉनिटर स्थितियां** और **समग्र अपटाइम प्रतिशत दिखाएं**, ये सब **स्थिति पृष्ठ → आपका पेज → ब्रांडिंग → अवलोकन पृष्ठ** पर रहते हैं। कहीं कोई theme या brand-color सेटिंग नहीं है; इन नियंत्रणों से आगे का सब कुछ **कस्टम CSS** से किया जाता है।
 
-## Live जाने से पहले preview करना
+## live होने से पहले preview करना
 
-हर status page का **Overview** screen एक **Status Page Preview URL** card रखता है जिसमें सीधे पेज का link होता है। इसका उपयोग तब करें जब आप अभी भी resources जोड़ रहे हों और किसी custom domain के बनने से पहले।
+हर स्थिति पृष्ठ की **अवलोकन** screen पर एक **Status Page Preview URL** card होता है जिसमें सीधे पेज तक का लिंक रहता है। जब तक आप संसाधन जोड़ ही रहे हैं और कोई कस्टम डोमेन बना ही नहीं है, तब तक इसी का इस्तेमाल कीजिए।
 
-पर्दे के पीछे, हर public route का `/status-page/{statusPageId}/...` के तहत एक preview twin होता है — एक preview overview, एक preview incident list, एक preview subscribe page, वगैरह। इसका मतलब है कि dashboard preview से लिया गया URL या screenshot उससे मेल नहीं खाएगा जो customer एक बार custom domain जुड़ने के बाद देखता है, इसलिए किसी runbook या email में paste करने से पहले किसी भी link को दोबारा जाँच लें।
+पर्दे के पीछे, हर सार्वजनिक route का एक preview जुड़वाँ `/status-page/{statusPageId}/...` के नीचे मौजूद है — एक preview अवलोकन, एक preview घटना सूची, एक preview subscribe पेज, वगैरह। इसका मतलब है कि डैशबोर्ड के preview से लिया गया URL या screenshot उससे मेल नहीं खाएगा जो कस्टम डोमेन जुड़ने के बाद ग्राहक को दिखता है — इसलिए किसी runbook या ईमेल में चिपकाया जाने वाला हर लिंक दोबारा जाँच लीजिए।
 
-## पेज को कौन देख सकता है यह सीमित करना
+## पेज कौन देख सकता है, इसे सीमित करना
 
-हर status page public के लिए नहीं होता। सभी controls **Security** section के तहत रहते हैं।
+हर स्थिति पृष्ठ जनता के लिए नहीं होता। सारे नियंत्रण **सुरक्षा** हिस्से के नीचे बैठे हैं।
 
-### Private users
+### निजी उपयोगकर्ता
 
-**Status Pages → आपका पेज → Security → Authentication Settings** (`isPublicStatusPage` column) पर **Is Visible to Public** को off करें। Visitors तब `/login` पर पहुँचते हैं और उन्हें sign in करना पड़ता है।
+**स्थिति पृष्ठ → आपका पेज → सुरक्षा → प्रमाणीकरण सेटिंग्स** पर **सार्वजनिक रूप से दृश्यमान है** को बंद कीजिए (`isPublicStatusPage` column)। इसके बाद visitors `/login` पर पहुँचते हैं और उन्हें साइन इन करना पड़ता है।
 
-जो लोग sign in कर सकते हैं उन्हें **Status Pages → आपका पेज → Security → Private Users** पर जोड़ें। एक **Add in Bulk** action है — email addresses की एक list paste करें और हर एक को एक invitation email मिलता है। Private users का अपना forgot-password और reset-password flow है, आपके OneUptime project accounts से अलग।
+जिन लोगों को साइन इन करने देना है, उन्हें **स्थिति पृष्ठ → आपका पेज → सुरक्षा → निजी उपयोगकर्ता** पर जोड़िए। यहाँ एक **थोक में जोड़ें** action है — ईमेल पतों की सूची चिपकाइए और हर एक को निमंत्रण ईमेल चला जाता है। निजी उपयोगकर्ताओं का अपना forgot-password और reset-password flow होता है, जो आपके OneUptime प्रोजेक्ट खातों से अलग है।
 
-### Master password
+### मास्टर पासवर्ड
 
-**Authentication Settings** में एक **Master Password** card भी है जिसमें एक **Require Master Password** toggle और password खुद है। Visitors तब `/master-password` पर जाते हैं और एक single shared secret से पेज unlock करते हैं।
+**प्रमाणीकरण सेटिंग्स** पर एक **मास्टर पासवर्ड** card भी है, जिसमें **मास्टर पासवर्ड आवश्यक करें** toggle और खुद पासवर्ड रहता है। फिर visitors `/master-password` पर पहुँचते हैं और एक साझा गोपनीय शब्द से पेज खोल लेते हैं।
 
-**Master password और private users साथ में stack नहीं होते।** जब master password on हो, private-user authentication disabled रहता है, और **Private Users** screen एक banner दिखाती है जो आपको यह बताती है।
+**मास्टर पासवर्ड और निजी उपयोगकर्ता साथ-साथ नहीं चलते।** जब तक मास्टर पासवर्ड चालू है, निजी उपयोगकर्ता वाला प्रमाणीकरण बंद रहता है, और **निजी उपयोगकर्ता** screen आपको यही बताता हुआ banner दिखाती है।
 
 ### SSO और OIDC
 
-आपके identity provider से जुड़े एक private पेज के लिए, **Status Pages → आपका पेज → Security → SSO** SAML configure करता है (sign-on URL, issuer, x509 certificate, signature और digest methods) और **Status Pages → आपका पेज → Security → OIDC** OpenID Connect configure करता है (discovery URL, issuer, client ID और secret, scopes, claim names)। **SCIM** IdP से automatically private users provision करता है। ये एक plan feature के पीछे gated हैं, इसलिए ये हर installation पर उपलब्ध नहीं हो सकते।
+अगर निजी पेज को आपके identity provider से जोड़ना है, तो **स्थिति पृष्ठ → आपका पेज → सुरक्षा → SSO** पर SAML कॉन्फ़िगर होता है (sign-on URL, issuer, x509 प्रमाणपत्र, signature और digest methods) और **स्थिति पृष्ठ → आपका पेज → सुरक्षा → OIDC** पर OpenID Connect (discovery URL, issuer, client ID और secret, scopes, claim नाम)। **SCIM** निजी उपयोगकर्ताओं को IdP से अपने आप provision कर देता है। ये किसी plan feature के पीछे हैं, इसलिए हर installation पर उपलब्ध नहीं भी हो सकते।
 
-एक **SSO Settings** card **Force SSO for Login** (`requireSsoForLogin`, डिफ़ॉल्ट रूप से off) expose करता है। इसे on करने से पहले अपनी SSO configuration test करें — अगर यह काम नहीं करती तो आप खुद को status page से बाहर lock कर लेंगे।
+एक **SSO सेटिंग्स** card **लॉगिन के लिए SSO बाध्य करें** (`requireSsoForLogin`, डिफ़ॉल्ट रूप से off) सामने लाता है। इसे चालू करने से पहले अपना SSO configuration जाँच लीजिए — अगर वह काम नहीं करता तो आप खुद ही स्थिति पृष्ठ से बाहर बंद हो जाएँगे।
 
-### IP whitelist
+### IP श्वेतसूची
 
-**Authentication Settings** में एक **IP Whitelist** card भी है, `ipWhitelist` column पर आधारित, उन पेजों के लिए जिन्हें केवल known networks से जवाब देना चाहिए।
+**प्रमाणीकरण सेटिंग्स** पर एक **IP श्वेतसूची** card भी है, जिसके पीछे `ipWhitelist` column है — उन पेजों के लिए जिन्हें सिर्फ़ जाने-पहचाने networks से जवाब देना चाहिए।
 
-## Embeddable badge और RSS feed
+## embed होने वाला badge और RSS feed
 
-पेज के अलावा कहीं और status दिखाने के दो तरीके।
+पेज से बाहर कहीं और स्थिति दिखाने के दो तरीके।
 
-**Embedded status badge।** **Status Pages → आपका पेज → Advanced → Embedded Status** पर **Embedded Status Badge** card में **Enable Embedded Status Badge** (`enableEmbeddedOverallStatus`, डिफ़ॉल्ट रूप से off) on करें। यह एक `embeddedOverallStatusToken` के साथ जोड़ी बनाता है और `/badge/:statusPageId` से badge serve करता है, ताकि आप current overall status को अपने docs, अपनी app के footer या किसी marketing page में डाल सकें।
+**एम्बेडेड स्थिति बैज।** **स्थिति पृष्ठ → आपका पेज → उन्नत → एम्बेडेड स्थिति** पर मौजूद **एम्बेडेड स्थिति बैज** card में **एम्बेडेड स्थिति बैज सक्षम करें** (`enableEmbeddedOverallStatus`, डिफ़ॉल्ट रूप से off) चालू कीजिए। यह एक `embeddedOverallStatusToken` के साथ जोड़ी बनाता है और badge को `/badge/:statusPageId` से परोसता है, ताकि आप मौजूदा समग्र स्थिति अपने docs, अपने app के footer या किसी marketing पेज में डाल सकें।
 
-**RSS feed।** हर status page `/rss` serve करता है — "{status page name} Updates" शीर्षक वाला एक feed जिसके items `Incident: `, `Announcement: ` और `Scheduled Maintenance: ` से prefixed होते हैं। उन लोगों के लिए उपयोगी जो email से subscribe करने के बजाय आपके updates को किसी reader या chat bot में pipe करना पसंद करेंगे।
+**RSS feed।** हर स्थिति पृष्ठ `/rss` परोसता है — एक feed जिसका शीर्षक "{status page name} Updates" होता है और जिसकी items के आगे `Incident: `, `Announcement: ` और `Scheduled Maintenance: ` लगा रहता है। उन लोगों के लिए सुविधाजनक जो ईमेल से सदस्यता लेने के बजाय आपके अपडेट किसी reader या chat bot में भेजना पसंद करते हैं।
 
-अगर आप खुद data खींचना चाहते हैं, तो status page overview, incidents, scheduled maintenance events, announcements और episodes के लिए public read endpoints के पीछे है — देखें [Public API](/docs/status-pages/public-api)।
+अगर आप data खुद खींचना पसंद करें, तो स्थिति पृष्ठ के पीछे अवलोकन, घटनाओं, निर्धारित रखरखाव कार्यक्रमों, घोषणाओं और एपिसोड के लिए सार्वजनिक read endpoints मौजूद हैं — [सार्वजनिक API](/docs/status-pages/public-api) देखिए।
 
 ## आगे क्या पढ़ें
 
-- [स्थिति पृष्ठ संसाधन और समूह](/docs/status-pages/resources-and-groups) — monitors को पेज पर डालना और उन्हें sections में organize करना।
-- [स्थिति पृष्ठ ब्रांडिंग और डोमेन](/docs/status-pages/branding-and-domains) — logo, favicon, footer, custom code, और अपना खुद का domain पेज पर pointed करना।
-- [सब्सक्राइबर और घोषणाएँ](/docs/status-pages/subscribers) — पाँच subscriber channels, double opt-in, और announcements post करना।
-- [सार्वजनिक API](/docs/status-pages/public-api) — status page data को programmatically पढ़ना।
-- [घटनाओं का अवलोकन](/docs/incidents/index) — वे events जो पेज पर दिखाई देते हैं।
-- [घटना स्थितियाँ और गंभीरता](/docs/incidents/states-and-severities) — क्या किसी incident को status page पर दिखाता है और क्या उसे फिर से हटाता है।
+- [स्थिति पृष्ठ संसाधन और समूह](/docs/status-pages/resources-and-groups) — पेज पर monitors लगाना और उन्हें हिस्सों में बाँटना।
+- [स्थिति पृष्ठ ब्रांडिंग और डोमेन](/docs/status-pages/branding-and-domains) — लोगो, favicon, footer, कस्टम code, और अपना डोमेन पेज पर लगाना।
+- [सब्सक्राइबर और घोषणाएँ](/docs/status-pages/subscribers) — पाँच subscriber channels, double opt-in, और घोषणाएँ पोस्ट करना।
+- [सार्वजनिक API](/docs/status-pages/public-api) — स्थिति पृष्ठ का data programmatically पढ़ना।
+- [घटनाओं का अवलोकन](/docs/incidents/index) — वे घटनाएँ जो पेज पर दिखती हैं।
+- [घटना स्थितियाँ और गंभीरता](/docs/incidents/states-and-severities) — किसी घटना को स्थिति पृष्ठ पर लाता क्या है और उससे हटाता क्या है।

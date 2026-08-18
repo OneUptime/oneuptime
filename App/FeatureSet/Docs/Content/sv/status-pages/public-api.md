@@ -153,6 +153,6 @@ Detta är svaret från API:et:
 
 - [Statussidor – Översikt](/docs/status-pages/index) — vad en statussida är och hur delarna hänger ihop.
 - [Statussidans resurser och grupper](/docs/status-pages/resources-and-groups) — resurserna som dessa endpoints returnerar.
-- [Statussidans varumärke och domäner](/docs/status-pages/branding-and-domains) — den anpassade domän som dessa endpoints serveras från.
-- [Prenumeranter och meddelanden](/docs/status-pages/subscribers) — meddelandena som meddelandeendpointen levererar.
+- [Statussidans varumärke och domäner](/docs/status-pages/branding-and-domains) — den egna domän som dessa endpoints serveras från.
+- [Prenumeranter och meddelanden](/docs/status-pages/subscribers) — meddelandena som meddelande-endpointen serverar.
 - [Incidenter – Översikt](/docs/incidents/index) — var incidenterna i dessa svar kommer ifrån.

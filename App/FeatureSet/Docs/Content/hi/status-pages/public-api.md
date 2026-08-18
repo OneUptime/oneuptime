@@ -329,8 +329,8 @@ API से response यह है:
 
 ## आगे क्या पढ़ें
 
-- [स्थिति पृष्ठ अवलोकन](/docs/status-pages/index) — status page क्या है और इसके हिस्से आपस में कैसे जुड़ते हैं.
-- [स्थिति पृष्ठ संसाधन और समूह](/docs/status-pages/resources-and-groups) — वे resources जो ये endpoints लौटाते हैं.
-- [स्थिति पृष्ठ ब्रांडिंग और डोमेन](/docs/status-pages/branding-and-domains) — वह custom domain जिससे ये endpoints serve होते हैं.
-- [सब्सक्राइबर और घोषणाएँ](/docs/status-pages/subscribers) — वे announcements जो announcements endpoint provide करता है.
-- [घटनाओं का अवलोकन](/docs/incidents/index) — इन responses में incidents कहाँ से आते हैं.
+- [स्थिति पृष्ठ अवलोकन](/docs/status-pages/index) — status page क्या है और इसके हिस्से आपस में कैसे जुड़ते हैं।
+- [स्थिति पृष्ठ संसाधन और समूह](/docs/status-pages/resources-and-groups) — वे resources जो ये endpoints लौटाते हैं।
+- [स्थिति पृष्ठ ब्रांडिंग और डोमेन](/docs/status-pages/branding-and-domains) — वह custom domain जिससे ये endpoints serve किए जाते हैं।
+- [सब्सक्राइबर और घोषणाएँ](/docs/status-pages/subscribers) — वे announcements जो announcements endpoint देता है।
+- [घटनाओं का अवलोकन](/docs/incidents/index) — इन responses में आने वाली incidents कहाँ से आती हैं।

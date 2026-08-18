@@ -1,210 +1,210 @@
 # 组件
 
-组件是你在触发器之后添加的构建模块。每一个都只做一件事——发送一条消息、调用一个 API、检查一个条件——并连接到接下来的模块。
+组件就是你在触发器后面添加的那些构建模块。每个组件只干一件事——发一条消息、调一次 API、判断一个条件——然后接到后面的东西上。
 
-本页是组件目录。关于如何在画布上添加和连接它们,见 [Authoring a Workflow](/docs/workflows/authoring)。
+这一页是目录。至于怎么在画布上添加和连接它们，见[创建工作流](/docs/workflows/authoring)。
 
 ## API
 
 向任意 URL 发起一次 HTTP 请求。
 
-**Settings**:
+**设置**：
 
 - **Method**——`GET`、`POST`、`PUT`、`PATCH` 或 `DELETE`。
 - **URL**——要调用的地址。
-- **Headers**——要发送的任意头部。
-- **Body**——用于 `POST` / `PUT` / `PATCH` 的请求体。
+- **Headers**——要发送的头部。
+- **Body**——`POST` / `PUT` / `PATCH` 的请求正文。
 
-**Outputs**:
+**Outputs**：
 
-- **Success**——调用成功(2xx 响应)时触发。随之带出状态码、头部和响应体。
-- **Error**——发生网络失败或非 2xx 响应时触发。随之带出错误信息。
+- **成功**——调用成功（2xx 响应）时开火。把状态码、头部和正文一并传下去。
+- **错误**——网络失败或者非 2xx 响应时开火。把错误信息传下去。
 
-适合用于:任意外部 API、你自己的管理端点,或任何没有专用组件的集成。
+适合：任何外部 API、你自己的管理端点，或者任何还没有专属组件的集成。
 
 ## AI
 
 ### Generate Text with AI
 
-根据一段提示词和可选的 JSON 上下文生成一条文本回复。该组件使用项目配置的默认 LLM 提供方,在有可用配置时,回退到安装实例的全局提供方。提供方凭证和端点是集中配置的,不是工作流参数。
+根据一段提示词和可选的 JSON 上下文，生成一条文本回复。这个组件用的是项目配置的默认 LLM 提供商；当安装层面有全局提供商时，就回退到它。提供商的凭据和端点是集中配置的，不是工作流参数。
 
-**Settings**:
+**设置**：
 
-- **System Instructions**——可选,用来指导模型的角色、语气和约束。
-- **Prompt**——必填的任务描述。可以包含工作流变量以及前面组件的输出。
-- **Context**——可选的 JSON,由你主动决定是否随请求一起带上。它会被附加在一个明确的消息结束信任标记之后,并且在消息的其余部分中都被当作不受信任的数据处理。
-- **Temperature**——变化程度,从 `0` 到 `1`。默认值为 `0.2`,以便自动化流程有可预测的结果。
-- **Maximum Output Tokens**——从 `1` 到 `4096`。默认值为 `1024`。
+- **System Instructions**——可选，用来交代模型的角色、语气和约束。
+- **Prompt**——必填的任务描述。里面可以带工作流变量和前面组件的输出。
+- **Context**——可选的 JSON，由你自己决定要不要随请求一起带上。它会被追加在一个明确的消息结束信任标记之后，并在消息剩下的部分里被当作不可信数据对待。
+- **Temperature**——从 `0` 到 `1` 的变化幅度。默认是 `0.2`，让自动化的结果更可预测。
+- **Maximum Output Tokens**——从 `1` 到 `4096`。默认是 `1024`。
 
-System Instructions、Prompt 和序列化后的 Context 加在一起,限制在 50,000 个字符以内。提供方请求的最长时长为 60 秒,并且只会尝试一次。每个项目最多可以有三个工作流 AI 请求并发运行。
+System Instructions、Prompt 和序列化之后的 Context 加起来限制在 50,000 个字符以内。发给提供商的请求最长 60 秒，而且只尝试一次。每个项目最多同时跑三个工作流 AI 请求。
 
-**Outputs**:
+**Outputs**：
 
-- **Response**——生成的文本。
-- **Provider** 和 **Model**——本次调用实际使用的配置。
-- **Total Tokens** 和 **Completion Tokens**——提供方报告的用量。
-- **LLM Log ID**——本次调用对应的计费 AI 日志条目。
-- **Error**——出现时的校验、访问权限、提供方、预算、账单或超时错误。
+- **Response**——生成出来的文本。
+- **提供商** 和 **Model**——这次调用用的是哪套配置。
+- **Total Tokens** 和 **Completion Tokens**——提供商报告的用量。
+- **LLM Log ID**——这次调用对应的那条计量 AI 日志。
+- **错误**——验证、访问、提供商、预算、计费或者超时错误，有的话就在这里。
 
-把 **Success** 连接到需要使用这条回复的模块。把 **Error** 连接到一条明确的兜底、告警或日志路径。该组件只发起一次模型请求,不带工具定义或提供方原生能力字段:它不能自行查询 OneUptime、调用 API 或更改项目数据。除了 OneUptime 固定的组件安全指令之外,只有你配置的 System Instructions、Prompt 和 Context 会被发送给提供方,而且是在这些字段中的工作流变量被解析之后才发送。所配置的提供方/模型仍然是一个信任边界,因为一个模型可能具备提供方自身内置的能力。
+把 **成功** 接到要用这段回复的组件上。把 **错误** 接到一条明确的兜底、告警或者记录路径上。这个组件只发起一次模型请求，不带工具定义，也不带提供商原生的能力字段：它自己没法查询 OneUptime、调用 API 或者改动项目数据。除了 OneUptime 固定的组件安全指令之外，发给提供商的只有你配置的 System Instructions、Prompt 和 Context，而且是在这些字段里的工作流变量解析之后。配置好的提供商/模型仍然是一条信任边界，因为模型可能自带由提供商管理的能力。
 
-模型输出是不受信任的文本。在把它发给面向客户的通信之前先审阅一遍,也不要单凭自由文本形式的 AI 输出,来授权具有破坏性的工作流操作。提供方、出站流量、日志记录和成本方面的细节,见 [Configuration & Safety](/docs/workflows/configuration)。
+模型的输出是不可信文本。拿它去发面向客户的沟通之前先审一遍，也别只凭一段自由格式的 AI 文本就去授权破坏性的工作流动作。提供商、出网、日志和成本方面的细节见[工作流配置与安全](/docs/workflows/configuration)。
 
-## Webhook(出站)
+## Webhook（出站）
 
-API 组件的简化版本,适合"发出去就不管了"的场景。向一个 URL 发送一段 JSON 正文。
+API 组件的简化版，适合"发完就走"的场景。往一个 URL POST 一个 JSON 正文。
 
-如果你需要读取响应,用 **API**。如果你只想发个通知然后继续,用 **Webhook**。
+需要读响应就用 **API**。只想发个通知然后继续往下走，就用 **Webhook**。
 
 ## Slack
 
-向一个 Slack 频道发送一条消息。
+往一个 Slack 频道发消息。
 
-**Settings**:
+**设置**：
 
-- **Channel**——频道名称。机器人必须已经在那个频道里。
-- **Message**——要发送的文本。支持 Slack 格式。
+- **频道**——频道名称。机器人必须已经在那个频道里。
+- **消息**——要发送的文本。支持 Slack 的格式语法。
 
-请先在 **Project Settings → Workspace → Slack** 下把 Slack 连接到你的项目。见 [Slack Workspace Connection](/docs/workspace-connections/slack)。
+先在 **项目设置 → 工作区 → Slack** 下把 Slack 接到你的项目上。见 [Slack 工作区连接](/docs/workspace-connections/slack)。
 
 ## Microsoft Teams
 
-向一个 Microsoft Teams 频道发送一条消息。
+往一个 Microsoft Teams 频道发消息。
 
-**Settings**:
+**设置**：
 
-- **Team and channel**——发布到哪里。
-- **Message**——要发送的文本。
+- **Team and channel**——发到哪里。
+- **消息**——要发送的文本。
 
-设置方式见 [Microsoft Teams Workspace Connection](/docs/workspace-connections/microsoft-teams)。
+配置方法见 [Microsoft Teams 工作区连接](/docs/workspace-connections/microsoft-teams)。
 
 ## Discord
 
-通过一个入站 webhook URL,向一个 Discord 频道发送一条消息。
+通过一个入站 Webhook URL，往 Discord 频道发消息。
 
 ## Telegram
 
-使用一个机器人令牌和聊天 ID,向一个 Telegram 聊天发送消息。
+用一个机器人令牌和聊天 ID，往 Telegram 会话发消息。
 
-## Email
+## 电子邮件
 
-通过 OneUptime 发送一封邮件。
+通过 OneUptime 发一封邮件。
 
-**Settings**:
+**设置**：
 
-- **To**——收件人的邮箱地址。
-- **Subject**——邮件主题。
-- **Body**——Markdown 或 HTML 格式的正文内容。
+- **收件人**——收件人的邮箱地址。
+- **主题**——邮件的主题行。
+- **Body**——用 Markdown 或 HTML 写的正文。
 
-邮件会从你项目配置的发件人发出——见 [SMTP](/docs/emails/smtp)。
+邮件从你项目配置好的发件人那里发出去——见 [SMTP](/docs/emails/smtp)。
 
 ## Custom Code
 
-当其他模块办不到时,运行一小段 JavaScript。
+当别的方块都做不到时，跑一小段 JavaScript。
 
-**Settings**:
+**设置**：
 
-- **Code**——你的 JavaScript 代码。最后的值(或者异步函数中 return 的值)会成为该模块的输出。
-- **Arguments**——你可以传入的具名值。
+- **代码**——你的 JavaScript。最后一个值（或者你从 async 函数里返回的值）就是这个方块的输出。
+- **Arguments**——你可以传进去的具名值。
 
-**Outputs**:success(你的返回值)和 error(任何异常)。
+**Outputs**：成功（你的返回值）和错误（任何异常）。
 
-适合用于:在两个系统之间整形数据、做一个小计算,或者任何不值得单独做一个模块的事情。需要更重的脚本能力时,改用 [Runbook](/docs/runbooks/index)。
+适合：在两个系统之间重塑数据、做点小计算，以及任何还不值得单独做一个方块的事。要写更重的脚本，改用 [Runbook](/docs/runbooks/index)。
 
 ## JSON
 
-在文本和 JSON 之间转换。
+在文本和 JSON 之间来回转换。
 
-- **JSON → Text**——把一个 JSON 对象转换成字符串。当下一个模块需要文本时有用。
-- **Text → JSON**——把一个字符串解析成 JSON 对象。当某些内容以文本形式传来、而你需要读取其中某个字段时有用。
+- **JSON → Text**——把一个 JSON 对象变成字符串。下一个方块要的是文本时很有用。
+- **Text → JSON**——把一个字符串解析成 JSON 对象。东西是以文本形式送来的、而你需要读其中某个字段时很有用。
 
-## Conditions
+## 条件
 
-基于一次比较来分支。在 **Add Component** 面板中,这个模块叫 **If / Else**,归在 Conditions 分类下。
+按一次比较来分支。在 **添加组件** 面板里，这个方块叫 **If / Else**，在 条件 类别下面。
 
-**Settings**:
+**设置**：
 
-- **Left value**——通常是前面某个模块的一个值。
+- **Left value**——通常是前面某个方块给出的值。
 - **Operator**——`==`、`!=`、`>`、`>=`、`<`、`<=`、`contains`、`starts with`、`ends with`。
-- **Right value**——用来比较的对象。
+- **Right value**——拿来跟它比的东西。
 
-**Outputs**:**Yes** 和 **No**。把后续模块连接到你想要的那条分支上。
+**Outputs**：**是** 和 **否**。把后面的方块接到你想要的那条分支上。
 
 ## Delay
 
-让工作流暂停一段设定的时间后再继续。当你需要给另一个系统一点时间来跟上时很有用。
+让工作流暂停一段时间再往下走。当你需要给另一个系统一点时间跟上时很有用。
 
-## Log
+## 日志
 
-向运行日志写一行。没有任何外部影响——它只会出现在工作流的日志里供你查看。便于调试。
+往运行日志里写一行。没有任何对外的影响——它只是出现在这个工作流的日志里给你看。调试时很顺手。
 
 ## Execute Workflow
 
-从当前工作流中调用另一个工作流。被调用的工作流会独立运行——你的工作流不会等它执行完成。
+从这个工作流里调用另一个工作流。被调用的那个独立运行——你的工作流不会等它跑完，会继续往下走。
 
-用它来共享通用逻辑。构建一次"发布到事件频道"的工作流,然后在任何需要通知该频道的其他工作流里调用它。
+用它来复用公共逻辑。把"往事件频道发消息"这件事搭成一个工作流，之后任何需要通知那个频道的工作流都来调它。
 
-有一个安全限制,防止工作流之间循环互相调用。见 [Configuration & Safety](/docs/workflows/configuration)。
+有一个安全上限，防止工作流之间无限地互相调用。见[工作流配置与安全](/docs/workflows/configuration)。
 
 ## OneUptime 数据组件
 
-对于 OneUptime 中的每一种记录类型(监视器、事件、告警、状态页、值班策略,以及更多),**Add Component** 面板都提供这些组件——按类型名称搜索即可。每个标题都是根据记录类型生成的,所以 Monitor 这一组是:
+OneUptime 里的每一种记录（监视器、事件、警报、状态页面、值班策略，还有很多别的），在 **添加组件** 面板里都有下面这几个组件——按类型的名字搜就行。每个标题都是从记录类型生成出来的，所以监视器这一组是这样的：
 
-- **Find One Monitor**——读取一条匹配查询条件的记录。
-- **Find Many Monitors**——读取一批匹配查询条件的记录。
+- **Find One Monitor**——读取一条匹配查询的记录。
+- **Find Many Monitors**——读取一批匹配查询的记录。
 - **Create One Monitor**——用一个 JSON 对象新增一条记录。
 - **Create Many Monitors**——用一个 JSON 数组新增多条记录。
-- **Update One Monitor**——把写入负载应用到一条匹配的记录上。
-- **Update Many Monitors**——把写入负载应用到匹配的记录上,最多 Limit 条。
-- **Delete One Monitor**——删除一条匹配的记录。
-- **Delete Many Monitors**——删除匹配的记录,最多 Limit 条。
+- **Update One Monitor**——把写入载荷应用到一条匹配的记录上。
+- **Update Many Monitors**——把写入载荷应用到匹配的记录上，最多到 Limit 条。
+- **Delete One Monitor**——删掉一条匹配的记录。
+- **Delete Many Monitors**——删掉匹配的记录，最多到 Limit 条。
 
-同一组类型还提供三个触发器——**On Create Monitor**、**On Update Monitor** 和 **On Delete Monitor**。见 [Triggers](/docs/workflows/triggers)。
+同一组还给你三个触发器——**On Create Monitor**、**On Update Monitor** 和 **On Delete Monitor**。见[工作流触发器](/docs/workflows/triggers)。
 
-一种类型只会提供它的模型所允许的那些组件。一个只读类型只有两个 Find 组件,没有别的,所以如果你在面板里找不到 **Delete One Monitor**,说明该类型不允许删除。
+一种类型只提供它的模型允许的那些组件。只读的类型就只有两个 Find 组件，别的都没有，所以你要是在面板里找不到 **Delete One Monitor**，说明那个类型不允许删。
 
-这就是工作流读取和修改 OneUptime 数据的方式。例如:来自你 CI 工具的一个 webhook,可以用 **Create One Incident** 开启一个带有失败详情的事件。
+工作流就是这样读写 OneUptime 数据的。举个例子：从你 CI 工具来的一个 Webhook，可以用 **Create One Incident** 带上失败详情开一个事件。
 
 ## 处理记录
 
-数据组件上的每个字段,都是以记录自身的 **column** 名称为键的——和 API 使用的名称相同,不是仪表板表单上显示的标签。ID 列是 `_id`。在任何可以填写列名的地方,都可以用 `id` 这个拼法作为别名,但记录返回给你的是 `_id`,所以读取时要认准这个:
+数据组件上的每个字段，用的都是记录自己的 **列** 名——和 API 用的是同一套名字，不是控制台表单上的那些标签。ID 列叫 `_id`。凡是能填列名的地方，`id` 这种写法都作为别名被接受，但记录还给你的是 `_id`，所以出来的时候你要读的是它：
 
 ```json
 { "_id": "00000000-0000-0000-0000-000000000000" }
 ```
 
-**Query** 决定这个组件会作用于哪些记录。键是列名,值是要匹配的内容:
+**Query** 决定这个组件作用在哪些记录上。键是列，值是要匹配的内容：
 
 ```json
 { "monitorType": "Website", "isEnabled": true }
 ```
 
-一次查询始终限定在工作流所在的那个项目范围内。你无法触及另一个项目的记录,也不需要自己把项目加进查询条件里。
+查询永远被限定在工作流所在的那个项目里。你够不着别的项目的记录，也不需要自己往查询里加项目。
 
-Create One 上的 **JSON Object**、Create Many 上的 **JSON Array**,以及 Update 系列组件上的 **Data (JSON Object)**,承载的是要写入的字段,键的写法是一样的:
+Create One 上的 **JSON Object**、Create Many 上的 **JSON Array**，还有 Update 组件上的 **Data (JSON Object)**，装的是要写进去的字段，键的写法完全一样：
 
 ```json
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-不是列名的键会被忽略而不是拒绝——运行日志会点出它丢弃了哪些键,所以某个字段没生效时可以去那里查看。**Select Fields** 出现在 Find 组件和触发器上,用同样的列名作键,值为 `true`:`{"_id": true, "name": true}`。
+不是列的键会被忽略，而不是被拒绝——运行日志会点名它丢掉的那些，所以某个字段没落地的时候去那儿看。Find 组件和触发器上的 **Select Fields** 用的也是这套列名做键，值填 `true`：`{"_id": true, "name": true}`。
 
-**Skip** 和 **Limit** 是 Find Many、Update Many 和 Delete Many 上的两个数字字段——`Skip: 0` 配 `Limit: 100` 会取前一百条匹配记录。Limit 默认是 `10`,而在 Update Many 和 Delete Many 上,它限制的是实际被写入的记录数,而不只是返回了多少条。所以 `Items Deleted: 10` 的意思是删除了十条记录,而不是匹配到了十条。当你想修改超过十条记录时,要调高 Limit。
+**跳过** 和 **Limit** 是 Find Many、Update Many 和 Delete Many 上的两个数字字段——`Skip: 0` 配 `Limit: 100` 取的是前一百条匹配。Limit 默认是 `10`，而且在 Update Many 和 Delete Many 上，它限的是真正被写的记录条数，不只是返回多少条。所以 `Items Deleted: 10` 的意思是删掉了十条，不是匹配到了十条。你打算改动超过十条时，记得把 Limit 调大。
 
-**Success** 和 **Error** 反映的是这次查询是否执行成功,而不是它有没有找到东西。一次没有匹配到任何记录的查询会返回 `0`,并且仍然走 Success——这不算失败。要根据是否有东西匹配来分支,得在一个 **If / Else** 模块里读取返回的数量。
+**成功** 和 **错误** 报告的是查询有没有跑通，不是它找到了什么。一个什么都没匹配到的查询返回 `0`，照样从成功那边出去——那不算失败。要根据有没有匹配到来分支，就在一个 **If / Else** 方块里读那个返回的计数。
 
-## 我该用哪个组件?
+## 我该用哪个组件？
 
-几条简单的经验法则:
+几条速记规则：
 
-- 如果有为你想做的事情量身定制的模块(Slack、Email、某个 OneUptime 记录),就用它——你会得到更好的错误处理和更清晰的日志。
-- 对于任何其他外部 API,用 **API**。
-- 要基于明确选定的工作流数据来总结、分类或起草文本,用 **Generate Text with AI**。
-- 要在模块之间整形数据,用 **Custom Code** 或 **JSON**。
-- 要根据某个值采取不同的动作,用 **Conditions**。
+- 如果你要做的事有专属方块（Slack、电子邮件、某种 OneUptime 记录），就用它——错误处理更贴心，日志也更清楚。
+- 除此之外的任何外部 API，用 **API**。
+- 要对你明确选定的工作流数据做摘要、分类或者起草文本，用 **Generate Text with AI**。
+- 要在方块之间重塑数据，用 **Custom Code** 或 **JSON**。
+- 要根据某个值走不同的动作，用 **条件**。
 
 ## 接下来读什么
 
-- [Workflow Variables](/docs/workflows/variables)——在模块之间传递数据。
-- [Workflow Runs & Logs](/docs/workflows/runs-and-logs)——查看某次运行中每个模块做了什么。
-- [Workflow Configuration & Safety](/docs/workflows/configuration)——限制、所有者和密钥。
+- [工作流变量](/docs/workflows/variables) —— 在方块之间传递数据。
+- [工作流运行与日志](/docs/workflows/runs-and-logs) —— 查看一次运行里每个方块干了什么。
+- [工作流配置与安全](/docs/workflows/configuration) —— 上限、所有者和密钥。

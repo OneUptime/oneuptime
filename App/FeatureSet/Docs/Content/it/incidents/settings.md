@@ -1,185 +1,185 @@
 # Impostazioni e automazione
 
-La configurazione degli incidenti non risiede in Project Settings. Risiede all'interno dell'area prodotto Incidents stessa, sotto **Incidents → Settings** e **Incidents → Rules**, su percorsi che iniziano con `/dashboard/{projectId}/incidents/settings/`. Se avete cercato in **Project Settings** i modelli di incidente o i campi personalizzati, ecco perché non li avete trovati.
+La configurazione degli incidenti non vive nelle **Impostazioni del progetto**. Vive dentro l'area di prodotto Incidenti, sotto **Incidenti → Impostazioni** e **Incidenti → Regole**, agli indirizzi che iniziano con `/dashboard/{projectId}/incidents/settings/`. Se avete cercato i modelli di incidente o i campi personalizzati nelle **Impostazioni del progetto**, ecco perché non li avete trovati.
 
-Sia la sezione **Rules** sia la sezione **Settings** del menu laterale di Incidents sono compresse per impostazione predefinita, quindi dovete espanderle prima che gli elementi seguenti appaiano. Tutto qui è vincolato al progetto: modelli, ruoli, campi personalizzati e regole appartengono a un progetto e si applicano a ogni incidente dichiarato al suo interno.
+Sia la sezione **Regole** sia la sezione **Impostazioni** del menu laterale di Incidenti sono compresse per impostazione predefinita, quindi dovete espanderle prima che compaiano le voci qui sotto. Tutto ciò che trovate qui è legato al progetto: modelli, ruoli, campi personalizzati e regole appartengono a un progetto e valgono per ogni incidente dichiarato al suo interno.
 
-Questa pagina è il riferimento per quella configurazione — cosa contiene ogni pagina e quale parte viene eseguita automaticamente nel momento in cui un incidente viene creato.
+Questa pagina è il riferimento per quella configurazione — che cosa contiene ciascuna schermata e quale parte di essa entra in azione da sola nell'istante in cui un incidente viene creato.
 
-## Dove risiedono le impostazioni degli incidenti
+## Dove si trovano le impostazioni degli incidenti
 
-Aprite **Incidents** nella navigazione a sinistra, quindi espandete **Settings** in fondo al menu laterale.
+Aprite **Incidenti** nella navigazione a sinistra, poi espandete **Impostazioni** in fondo al menu laterale.
 
-| Pagina                   | Cosa fate lì                                                                                  |
-| ------------------------ | ----------------------------------------------------------------------------------------------- |
-| **Incident State**       | Aggiungete, rinominate, ricolorate e riordinate gli stati che un incidente attraversa.          |
-| **Incident Severity**    | Aggiungete, rinominate, ricolorate e riordinate i livelli di gravità.                            |
-| **Incident Templates**   | Pre-compilate un intero incidente — titolo, descrizione, risorse, policy di reperibilità, proprietari, etichette. |
-| **Note Templates**       | Testo riutilizzabile per note pubbliche e private.                                              |
-| **Postmortem Templates** | Strutture riutilizzabili per i postmortem.                                                      |
-| **Custom Fields**        | Definite campi aggiuntivi che compaiono su ogni incidente.                                      |
-| **Incident Roles**       | Definite i ruoli a cui assegnate i responder, come Incident Commander.                          |
-| **More Settings**        | I prefissi del numero di incidente e di episodio di incidente.                                  |
+| Pagina                     | Che cosa ci fate                                                                                            |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| **Stato incidente**       | Aggiungete, rinominate, ricolorate e riordinate gli stati che un incidente attraversa.                       |
+| **Gravità incidente**    | Aggiungete, rinominate, ricolorate e riordinate i livelli di gravità.                                            |
+| **Modelli di incidenti**   | Precompilate un incidente intero — titolo, descrizione, risorse, policy di reperibilità, proprietari, etichette. |
+| **Modelli di note**       | Testo riutilizzabile per le note pubbliche e private.                                                                  |
+| **Modelli post-mortem** | Strutture post-mortem riutilizzabili.                                                                                  |
+| **Campi personalizzati**        | Definite campi aggiuntivi che compaiono su ogni incidente.                                                           |
+| **Ruoli incidente**       | Definite i ruoli a cui assegnate chi risponde, per esempio Incident Commander.                       |
+| **Altre impostazioni**        | I prefissi dei numeri di incidente e di episodio.                                           |
 
-**Incident State** e **Incident Severity** sono trattati in dettaglio in [Stati e gravità degli incidenti](/docs/incidents/states-and-severities) — il resto di questa pagina riprende da **Incident Templates**.
+**Stato incidente** e **Gravità incidente** sono trattati a fondo in [Stati e gravità degli incidenti](/docs/incidents/states-and-severities) — il resto di questa pagina riparte dai **Modelli di incidenti**.
 
-Espandete **Rules** e ottenete altre otto pagine: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules** e **Reminder Rules**. Sono trattate più avanti.
+Espandete **Regole** e ottenete altre otto schermate: **Regole di raggruppamento**, **Regole di reperibilità**, **Regole del proprietario**, **Regole di runbook**, **Regole di privacy**, **Regole etichette**, **Regole SLA** e **Reminder Rules**. Le trovate più avanti.
 
-## Modelli di incidente
+## Modelli di incidenti
 
-Un modello di incidente è uno scheletro salvato di un incidente. Invece di ridigitare lo stesso titolo, lo stesso elenco di monitor e la stessa policy di reperibilità ogni volta che il cluster dei pagamenti vacilla, lo salvate una volta e dichiarate a partire da esso.
+Un modello di incidente è lo scheletro salvato di un incidente. Invece di riscrivere ogni volta lo stesso titolo, lo stesso elenco di monitor e la stessa policy di reperibilità quando il cluster dei pagamenti traballa, lo salvate una volta sola e dichiarate a partire da lì.
 
-Andate su **Incidents → Settings → Incident Templates** (`/dashboard/{projectId}/incidents/settings/templates`). La scheda si intitola **Incident Templates**. Crearne uno vi guida attraverso una procedura guidata in sei passaggi:
+Andate su **Incidenti → Impostazioni → Modelli di incidenti** (`/dashboard/{projectId}/incidents/settings/templates`). La scheda si intitola **Modelli di incidenti**. Crearne uno vi porta attraverso una procedura guidata in sei passaggi:
 
-- **Template Info** — **Template Name** e **Template Description**. Questi nominano il modello stesso; non compaiono mai sull'incidente.
-- **Incident Details** — **Title**, **Description** (Markdown), **Incident Severity** e **Initial Incident State**. **Initial Incident State** è opzionale e inizia vuoto; le sue opzioni sono elencate nell'ordine degli stati. Lasciatelo vuoto e gli incidenti creati da questo modello finiranno nello stato di creazione del progetto.
-- **Resources Affected** — i monitor, host, cluster e servizi a cui l'incidente deve essere collegato, oltre a **Change Monitor Status to**.
-- **On-Call** — **On-Call Policy**, le policy da eseguire quando un incidente creato da questo modello viene dichiarato.
-- **Owners** — **Owner - Teams** e **Owner - Users**.
-- **Labels** — **Labels**.
+- **Informazioni del modello** — **Nome del modello** e **Descrizione del modello**. Danno un nome al modello stesso; non compaiono mai sull'incidente.
+- **Dettagli dell'incidente** — **Titolo**, **Descrizione** (Markdown), **Gravità incidente** e **Stato iniziale dell'incidente**. **Stato iniziale dell'incidente** è facoltativo e parte vuoto; le sue opzioni sono elencate nell'ordine degli stati. Lasciatelo in bianco e gli incidenti nati da questo modello atterrano nello stato di creazione del progetto.
+- **Risorse interessate** — i monitor, gli host, i cluster e i servizi a cui l'incidente va collegato, più **Change Monitor Status to**.
+- **Reperibilità** — **Policy di reperibilità**, cioè le policy da eseguire quando viene dichiarato un incidente creato da questo modello.
+- **Proprietari** — **Proprietario - Team** e **Proprietario - Utenti**.
+- **Etichette** — **Etichette**.
 
-Alcune regole rapide:
+Qualche regola rapida:
 
-- L'elenco dei modelli mostra solo **Name** e **Description**. Le righe non sono modificabili o eliminabili dall'elenco — aprite un modello (`/dashboard/{projectId}/incidents/settings/templates/{modelId}`) per modificarlo.
-- I modelli supportano l'importazione ed esportazione JSON, così potete spostarne uno tra progetti.
-- Lo stato vuoto mostra "No incident templates found."
+- L'elenco dei modelli mostra solo **Nome** e **Descrizione**. Le righe non si modificano né si eliminano dall'elenco — aprite un modello (`/dashboard/{projectId}/incidents/settings/templates/{modelId}`) per cambiarlo.
+- I modelli supportano l'importazione e l'esportazione JSON, così potete spostarne uno da un progetto all'altro.
+- Lo stato vuoto recita "No incident templates found."
 
 ### Come viene applicato un modello
 
-Ci sono due percorsi, e si comportano allo stesso modo.
+Ci sono due strade, e si comportano allo stesso modo.
 
-- **Dalla dashboard** — il pulsante **Create from Template** nell'elenco degli incidenti apre un selettore **Select Incident Template**, e la pagina di dichiarazione legge il modello dal parametro di query string `incidentTemplateId`, quindi pre-compila il modulo con il modello più i suoi team proprietari e utenti proprietari.
-- **Dall'API** — passate `createdIncidentTemplateId` a `POST /api/incident` e il server compila l'incidente dal modello.
+- **Dalla dashboard** — il pulsante **Crea da modello** nell'elenco degli incidenti apre un selettore **Seleziona modello di incidente**, e la pagina di dichiarazione legge il modello dal parametro `incidentTemplateId` nella query string, poi precompila il modulo con il modello più i suoi team e utenti proprietari.
+- **Dall'API** — passate `createdIncidentTemplateId` a `POST /api/incident` e il server riempie l'incidente a partire dal modello.
 
-La parte importante è la regola di unione: **un modello compila solo un campo che avete lasciato indefinito**. Titolo, descrizione, gravità dell'incidente, stato iniziale dell'incidente, lo stato del monitor dietro **Change Monitor Status to**, monitor, host, cluster Kubernetes, host Docker, host Podman, servizi, policy di reperibilità ed etichette vengono copiati dal modello solo quando chi chiama o il modulo non ha fornito nulla. Qualsiasi cosa impostiate esplicitamente vince sempre.
+La parte importante è la regola di fusione: **un modello riempie solo i campi che avete lasciato indefiniti**. Titolo, descrizione, gravità, stato iniziale, lo stato del monitor dietro **Change Monitor Status to**, monitor, host, cluster Kubernetes, host Docker, host Podman, servizi, policy di reperibilità ed etichette vengono copiati dal modello solo quando chi chiama, o il modulo, non ha fornito nulla. Quello che impostate esplicitamente vince sempre.
 
-**La finestra di dialogo dello stato vuoto punta al posto sbagliato.** Se non avete ancora modelli, il pulsante **Create from Template** mostra una finestra di dialogo **No Incident Templates**. Il suo testo punta a Project Settings, ma il pulsante indirizza a **Incidents → Settings → Incident Templates** — quella è la posizione reale.
+**La finestra di dialogo dello stato vuoto indica il posto sbagliato.** Se non avete ancora nessun modello, il pulsante **Crea da modello** mostra una finestra **No Incident Templates**. Il suo testo rimanda alle Impostazioni del progetto, ma il pulsante porta a **Incidenti → Impostazioni → Modelli di incidenti** — è lì che stanno davvero.
 
-## Modelli di nota
+## Modelli di note
 
-I modelli di nota forniscono ai responder testo predefinito per gli aggiornamenti degli incidenti, così un aggiornamento della pagina di stato alle 3 del mattino non viene scritto da zero da qualcuno mezzo addormentato.
+I modelli di note danno a chi risponde del testo già pronto per gli aggiornamenti, così un aggiornamento sulla pagina di stato alle 3 del mattino non viene scritto da zero da qualcuno mezzo addormentato.
 
-Andate su **Incidents → Settings → Note Templates** (`/dashboard/{projectId}/incidents/settings/note-templates`). La scheda si intitola **Public or Private Note Templates for Incidents** — una singola libreria serve entrambi i tipi di nota. Il modulo di creazione ha due passaggi:
+Andate su **Incidenti → Impostazioni → Modelli di note** (`/dashboard/{projectId}/incidents/settings/note-templates`). La scheda si intitola **Modelli di nota pubblica o privata per gli incidenti** — un'unica libreria serve entrambi i tipi di nota. Il modulo di creazione ha due passaggi:
 
-- **Template Info** — **Template Name** e **Template Description**, entrambi obbligatori.
-- **Note Details** — il corpo della nota stesso, in Markdown, obbligatorio.
+- **Informazioni del modello** — **Nome del modello** e **Descrizione del modello**, entrambi obbligatori.
+- **Dettagli della nota** — il corpo della nota, in Markdown, obbligatorio.
 
-Come i modelli di incidente, le righe vengono create e visualizzate anziché modificate in linea; aprite un modello per modificarlo.
+Come per i modelli di incidente, le righe si creano e si consultano invece di modificarle sul posto; aprite un modello per cambiarlo.
 
-I modelli di nota emergono dove ne avete effettivamente bisogno: le finestre di dialogo di conferma **Acknowledge Incident** e **Resolve Incident** offrono entrambe **Select Note Template** accanto al campo **Public Note**. Vedete [Note, proprietari e feed degli incidenti](/docs/incidents/notes-owners-and-feed) per capire come differiscono le note pubbliche e private.
+I modelli di note compaiono dove servono davvero: le finestre di conferma **Acknowledge Incident** e **Resolve Incident** offrono entrambe **Seleziona modello di nota** accanto al campo **Nota pubblica**. Per la differenza tra note pubbliche e private, vedete [Note, proprietari e feed degli incidenti](/docs/incidents/notes-owners-and-feed).
 
-## Modelli di postmortem
+## Modelli post-mortem
 
-Un modello di postmortem è lo scheletro del resoconto che producete dopo un incidente — le vostre intestazioni, i vostri suggerimenti, le vostre domande ricorrenti — così ogni revisione nel progetto segue la stessa struttura.
+Un modello post-mortem è lo scheletro del resoconto che scrivete dopo un incidente — i vostri titoli, i vostri spunti, le vostre domande di rito — così ogni revisione del progetto segue la stessa forma.
 
-Andate su **Incidents → Settings → Postmortem Templates** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). La scheda si intitola **Postmortem Templates**. Il modulo di creazione ha due passaggi:
+Andate su **Incidenti → Impostazioni → Modelli post-mortem** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). La scheda si intitola **Modelli post-mortem**. Il modulo di creazione ha due passaggi:
 
-- **Template Info** — **Template Name** e **Template Description**, entrambi obbligatori.
-- **Postmortem Details** — **Postmortem Template**, il corpo stesso, in Markdown, obbligatorio.
+- **Informazioni del modello** — **Nome del modello** e **Descrizione del modello**, entrambi obbligatori.
+- **Dettagli del postmortem** — **Modello di postmortem**, cioè il corpo vero e proprio, in Markdown, obbligatorio.
 
-Ne applicate uno dall'incidente, non dalle impostazioni. Aprite un incidente, scegliete **Postmortem** nel suo menu laterale (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), e usate **Apply Template**. Questo apre una finestra di dialogo **Apply Postmortem Template** con un menu a discesa **Select Template**; sceglierne uno carica il corpo del modello nell'editor **Postmortem Note**, dove lo modificate prima di salvare. Gli episodi di incidente hanno la stessa pagina **Postmortem** e attingono dalla stessa libreria di modelli.
+Un modello si applica dall'incidente, non dalle impostazioni. Aprite un incidente, scegliete **Post-mortem** nel suo menu laterale (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) e usate **Applica modello**. Si apre una finestra **Applica modello di analisi post-incidente** con un menu a discesa **Seleziona modello**; sceglierne uno carica il corpo del modello nell'editor **Nota del postmortem**, dove lo modificate prima di salvare. Gli episodi di incidente hanno la stessa pagina **Post-mortem** e attingono alla stessa libreria di modelli.
 
 ## Campi personalizzati
 
-I campi personalizzati vi permettono di trasportare i vostri metadati su ogni incidente — un nome di servizio interno, un riferimento a un ticket di modifica, un livello cliente.
+I campi personalizzati vi permettono di portare i vostri metadati su ogni incidente — il nome interno di un servizio, il riferimento a un ticket di change, la fascia di un cliente.
 
-Andate su **Incidents → Settings → Custom Fields** (`/dashboard/{projectId}/incidents/settings/custom-fields`). La pagina si intitola **Incident Custom Fields**. Ogni definizione ha:
+Andate su **Incidenti → Impostazioni → Campi personalizzati** (`/dashboard/{projectId}/incidents/settings/custom-fields`). La pagina si intitola **Campi personalizzati dell'incidente**. Ogni definizione ha:
 
-- **Field Name** — obbligatorio, almeno due caratteri. Il segnaposto suggerisce un nome simile a uno slug, come `internal-service`.
-- **Field Description** — opzionale.
-- **Field Type** — obbligatorio. Sceglie come vengono inseriti i dati. I tipi a discesa richiedono anche l'elenco delle loro opzioni.
-- **Dropdown Options** — i valori che compaiono nel menu a discesa, ciascuno con un colore opzionale.
+- **Nome del campo** — obbligatorio, almeno due caratteri. Il segnaposto suggerisce un nome in stile slug, come `internal-service`.
+- **Descrizione del campo** — facoltativa.
+- **Tipo di campo** — obbligatorio. Sceglie come si inseriscono i dati. I tipi a menu a discesa richiedono anche l'elenco delle opzioni.
+- **Opzioni del menu a discesa** — i valori che compaiono nel menu, ciascuno con un colore facoltativo.
 
-Le definizioni risiedono nel proprio modello; i valori risiedono sull'incidente stesso nella colonna `customFields`. Su un singolo incidente li compilate da **Custom Fields** nel menu laterale dell'incidente (`/dashboard/{projectId}/incidents/{incidentId}/custom-fields`).
+Le definizioni vivono in un modello a sé; i valori vivono sull'incidente stesso, nella colonna `customFields`. Su un singolo incidente li compilate da **Campi personalizzati** nel menu laterale dell'incidente (`/dashboard/{projectId}/incidents/{incidentId}/custom-fields`).
 
-**Una lacuna da conoscere.** Le definizioni dei campi personalizzati degli incidenti sono l'unica parte della famiglia di incidenti senza trigger di workflow — vedete la sezione sui workflow più avanti.
+**Una lacuna da conoscere.** Le definizioni dei campi personalizzati degli incidenti sono l'unica parte della famiglia Incidenti senza trigger di workflow — vedete la sezione sui workflow più sotto.
 
 ## Ruoli incidente
 
-I ruoli incidente sono i lavori nominati a cui assegnate le persone durante una risposta. Definiteli su **Incidents → Settings → Incident Roles** (`/dashboard/{projectId}/incidents/settings/roles`); la descrizione della scheda fornisce Incident Commander e Responder come esempi.
+I ruoli incidente sono gli incarichi con un nome a cui assegnate le persone durante una risposta. Definiteli in **Incidenti → Impostazioni → Ruoli incidente** (`/dashboard/{projectId}/incidents/settings/roles`); la descrizione della scheda porta come esempi Incident Commander e Responder.
 
-I ruoli sono solo definizioni. Assegnate le persone ad essi per ogni incidente — la procedura guidata di dichiarazione ha un passaggio **Incident Roles** con un campo **Assign Incident Roles**, e ogni incidente ha una pagina **Roles** nel suo menu laterale.
+I ruoli sono solo definizioni. Le persone le assegnate incidente per incidente — la procedura di dichiarazione ha un passaggio **Ruoli incidente** con un campo **Assegna ruoli incidente**, e ogni incidente ha una pagina **Ruoli** nel proprio menu laterale.
 
-## Prefissi numerici
+## Prefissi dei numeri
 
-Ogni incidente riceve un numero. Per impostazione predefinita viene reso come `#42`. Se il vostro team dice ad alta voce "INC-42", fate in modo che anche il prodotto lo dica.
+Ogni incidente riceve un numero. Per impostazione predefinita viene reso come `#42`. Se il vostro team dice "INC-42" a voce, fatelo dire anche al prodotto.
 
-Andate su **Incidents → Settings → More Settings** (`/dashboard/{projectId}/incidents/settings/more`). La scheda è **Number Prefix** e contiene due campi sul progetto:
+Andate su **Incidenti → Impostazioni → Altre impostazioni** (`/dashboard/{projectId}/incidents/settings/more`). La scheda è **Prefisso del numero** e contiene due campi del progetto:
 
-- **Incident Number Prefix** — fino a 20 caratteri, segnaposto `INC-`. Impostatelo e l'incidente `#42` viene visualizzato come `INC-42`.
-- **Incident Episode Number Prefix** — la stessa idea per i numeri di episodio di incidente, segnaposto `IE-`.
+- **Prefisso del numero dell'incidente** — fino a 20 caratteri, segnaposto `INC-`. Impostatelo e l'incidente `#42` compare come `INC-42`.
+- **Prefisso del numero dell'episodio dell'incidente** — la stessa idea per i numeri degli episodi, segnaposto `IE-`.
 
-Lasciate uno dei due vuoto per mantenere il prefisso predefinito `#`; il campo non impostato mostra `# (default)`. Salvate con **Update**. Il valore con prefisso viene memorizzato sull'incidente come `incidentNumberWithPrefix`, che è ciò che l'elenco degli incidenti e l'intestazione dell'incidente rendono.
+Lasciate vuoto uno dei due per mantenere il prefisso predefinito `#`; il campo non impostato mostra `# (default)`. Salvate con **Aggiorna**. Il valore con prefisso viene memorizzato sull'incidente come `incidentNumberWithPrefix`, ed è quello che l'elenco degli incidenti e l'intestazione dell'incidente mostrano.
 
-## Regole eseguite alla creazione di un incidente
+## Le regole che scattano alla creazione di un incidente
 
-**Incidents → Rules** contiene otto motori di regole. Svolgono tutti lo stesso compito — osservano un incidente nel momento in cui viene creato, e agiscono se corrisponde — ma differiscono in cosa fanno e in come si risolvono più regole corrispondenti.
+**Incidenti → Regole** contiene otto motori di regole. Fanno tutti lo stesso mestiere — guardano un incidente nell'istante in cui viene creato e agiscono se corrisponde — ma si distinguono per che cosa fanno e per come si risolvono più regole che corrispondono insieme.
 
-- **Grouping Rules** — raggruppano incidenti correlati in episodi. Le regole vengono valutate in ordine di priorità; i numeri di priorità più bassi vanno per primi.
-- **On-Call Rules** — eseguono policy di turno di reperibilità per gli incidenti corrispondenti. Trattate in dettaglio più avanti.
-- **Owner Rules** — assegnano automaticamente i proprietari.
-- **Runbook Rules** — avviano un [runbook](/docs/runbooks/index) quando un incidente corrisponde.
-- **Privacy Rules** — decidono se un incidente corrispondente è privato.
-- **Label Rules** — applicano etichette automaticamente.
-- **SLA Rules** — tracciano i tempi di risposta e risoluzione. Le regole vengono valutate in ordine; i numeri d'ordine più bassi vanno per primi.
-- **Reminder Rules** — ricordano periodicamente ai proprietari dell'incidente mentre un incidente è ancora aperto. Le regole vengono valutate in ordine e la prima regola corrispondente vince.
+- **Regole di raggruppamento** — raggruppano incidenti correlati in episodi. Le regole vengono valutate in ordine di priorità; i numeri di priorità più bassi vanno per primi.
+- **Regole di reperibilità** — eseguono le policy di reperibilità per gli incidenti corrispondenti. Trattate in dettaglio più sotto.
+- **Regole del proprietario** — assegnano i proprietari automaticamente.
+- **Regole di runbook** — avviano un [runbook](/docs/runbooks/index) quando un incidente corrisponde.
+- **Regole di privacy** — decidono se un incidente corrispondente è privato.
+- **Regole etichette** — applicano le etichette automaticamente.
+- **Regole SLA** — tracciano i tempi di risposta e di risoluzione. Le regole vengono valutate in ordine; i numeri d'ordine più bassi vanno per primi.
+- **Reminder Rules** — ricordano periodicamente ai proprietari dell'incidente che l'incidente è ancora aperto. Le regole vengono valutate in ordine e vince la prima che corrisponde.
 
-**La semantica dell'ordine non è uniforme.** Grouping Rules, SLA Rules e Reminder Rules sono valutate in ordine. On-Call Rules non lo sono — ogni regola corrispondente si attiva. Non date per scontato che un modello si applichi a tutte e otto.
+**La semantica dell'ordine non è uniforme.** Regole di raggruppamento, Regole SLA e Reminder Rules sono valutate in ordine. Le Regole di reperibilità no — scattano tutte le regole che corrispondono. Non date per scontato che un solo modello valga per tutte e otto.
 
-Le pagine **On-Call Rules**, **Owner Rules**, **Label Rules** e **Privacy Rules** sono suddivise in schede — una scheda **Incident Rules** e una scheda **Episode Rules**, ciascuna con la propria tabella. Configurate la scheda **Incident Rules** a meno che non intendiate specificamente gli episodi. **Grouping Rules**, **Runbook Rules**, **SLA Rules** e **Reminder Rules** sono tabelle singole.
+Le pagine **Regole di reperibilità**, **Regole del proprietario**, **Regole etichette** e **Regole di privacy** hanno delle schede — una scheda **Incident Rules** e una scheda **Episode Rules**, ciascuna con la propria tabella. Configurate la scheda **Incident Rules**, a meno che non intendiate proprio gli episodi. **Regole di raggruppamento**, **Regole di runbook**, **Regole SLA** e **Reminder Rules** sono tabelle singole.
 
-## Regole di reperibilità per gli incidenti
+## Regole di reperibilità degli incidenti
 
-**Incidents → Rules → On-Call Rules** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) è dove rendete automatico il paging. La scheda, **Incident On-Call Rules**, descrive regole che eseguono automaticamente policy di turno di reperibilità quando vengono creati incidenti corrispondenti. La pagina ha due schede: **Incident Rules** ed **Episode Rules**.
+**Incidenti → Regole → Regole di reperibilità** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) è dove rendete automatica la chiamata al reperibile. La scheda, **Regole di reperibilità incidente**, descrive regole che eseguono automaticamente le policy di reperibilità quando vengono creati incidenti corrispondenti. La pagina ha due schede: **Incident Rules** e **Episode Rules**.
 
 Il modulo di creazione ha tre passaggi:
 
-- **Basic Info** — **Name** (il segnaposto suggerisce qualcosa come pagare il team database per qualsiasi incidente DB), **Description**, e un interruttore **Enabled**. L'elenco mostra una pillola verde **Enabled** o rossa **Disabled** per regola.
-- **Match Criteria** — **Monitors**, **Incident Severities**, **Incident Labels**, **Monitor Labels**, oltre a campi con espressioni regolari senza distinzione tra maiuscole e minuscole per il titolo dell'incidente, la descrizione dell'incidente, il nome del monitor e la descrizione del monitor.
-- **On-Call Policies** — le policy che questa regola esegue.
+- **Informazioni di base** — **Nome** (il segnaposto suggerisce qualcosa come chiamare il team database per qualsiasi incidente DB), **Descrizione** e un interruttore **Abilitato**. L'elenco mostra per ogni regola una pillola verde **Abilitato** o rossa **Disabilitato**.
+- **Criteri di corrispondenza** — **Monitor**, **Incidente Gravità**, **Etichette dell'incidente**, **Etichette del monitor**, più campi con espressioni regolari senza distinzione tra maiuscole e minuscole per titolo dell'incidente, descrizione dell'incidente, nome del monitor e descrizione del monitor.
+- **Policy di reperibilità** — le policy che questa regola esegue.
 
 ### Come si risolve la corrispondenza
 
-Le regole con cui la pagina viene fornita di default sono utili da interiorizzare:
+Vale la pena assimilare le regole con cui funziona la pagina stessa:
 
-- Una regola corrisponde solo quando **tutti** i criteri che avete compilato passano. I criteri lasciati vuoti vengono saltati, non falliti.
-- All'interno di un singolo criterio a elenco — **Monitors**, **Incident Severities**, **Incident Labels**, **Monitor Labels** — la corrispondenza è di tipo any-of.
-- I campi con pattern sono espressioni regolari senza distinzione tra maiuscole e minuscole.
-- **Tutte le regole corrispondenti si attivano.** Non c'è priorità né interruzione anticipata.
-- L'insieme di policy che effettivamente viene eseguito è l'unione delle policy di ogni regola corrispondente più eventuali policy allegate all'incidente manualmente o da un modello, deduplicate in modo che ogni policy venga eseguita al massimo una volta.
+- Una regola corrisponde solo quando **tutti** i criteri che avete compilato passano. I criteri lasciati vuoti vengono saltati, non considerati falliti.
+- All'interno di un singolo criterio a elenco — **Monitor**, **Incidente Gravità**, **Etichette dell'incidente**, **Etichette del monitor** — basta che corrisponda uno qualsiasi dei valori.
+- I campi con i pattern sono espressioni regolari senza distinzione tra maiuscole e minuscole.
+- **Scattano tutte le regole che corrispondono.** Non c'è priorità e non c'è cortocircuito.
+- L'insieme di policy che viene davvero eseguito è l'unione delle policy di ogni regola corrispondente, più le policy collegate all'incidente a mano o da un modello, deduplicate in modo che ogni policy venga eseguita al massimo una volta.
 
-La gravità è un criterio di corrispondenza qui e da nessun'altra parte. Non esiste un campo di reperibilità su una gravità di incidente — selezionare "Critical Incident" non fa scattare, di per sé, il paging di nessuno. Se volete che la gravità guidi il paging, scrivete una regola di reperibilità che corrisponda su di essa.
+La gravità è un criterio di corrispondenza qui e in nessun altro posto. Non esiste un campo di reperibilità su una gravità: scegliere "Critical Incident" non chiama nessuno di per sé. Se volete che sia la gravità a guidare le chiamate, scrivete una regola di reperibilità che corrisponda su di essa.
 
-## Collegare policy di reperibilità direttamente
+## Collegare direttamente le policy di reperibilità
 
-Le regole non sono l'unico percorso. Ogni incidente porta con sé un proprio elenco di policy di reperibilità, esposto come campo **On-Call Policy** nel passaggio **On-Call** della procedura guidata di dichiarazione e nel passaggio **On-Call** di un modello di incidente. La descrizione del campo lo dice chiaramente: queste sono le policy di turno di reperibilità da eseguire quando questo incidente viene creato.
+Le regole non sono l'unica strada. Ogni incidente porta con sé un proprio elenco di policy di reperibilità, esposto come campo **Policy di reperibilità** nel passaggio **Reperibilità** della procedura di dichiarazione e nel passaggio **Reperibilità** di un modello di incidente. La descrizione del campo lo dice chiaramente: sono le policy di reperibilità da eseguire quando questo incidente viene creato.
 
-Quando un incidente viene creato, OneUptime esegue le regole delle etichette, poi le regole di reperibilità (che uniscono le loro policy corrispondenti all'elenco dell'incidente), poi le regole runbook — e se l'elenco risultante non è vuoto, ogni policy al suo interno viene eseguita. Le esecuzioni vengono eseguite in parallelo e si risolvono in modo indipendente, quindi il fallimento di una policy non ferma le altre. Ogni esecuzione è contrassegnata con l'incidente che l'ha attivata e con il tipo di evento di notifica di creazione incidente.
+Quando un incidente viene creato, OneUptime esegue prima le regole etichette, poi le regole di reperibilità (che fondono le policy corrispondenti nell'elenco dell'incidente), poi le regole di runbook — e se l'elenco che ne risulta non è vuoto, ogni policy contenuta viene eseguita. Le esecuzioni partono in parallelo e si concludono in modo indipendente, quindi una policy che fallisce non ferma le altre. Ogni esecuzione viene marcata con l'incidente che l'ha innescata e con il tipo di evento di notifica "incidente creato".
 
-Per vedere cosa è successo, aprite l'incidente e scegliete **On-Call Executions** nel suo menu laterale (`/dashboard/{projectId}/incidents/{incidentId}/on-call-policy-execution-logs`).
+Per vedere che cosa è successo, aprite l'incidente e scegliete **Esecuzioni di reperibilità** nel suo menu laterale (`/dashboard/{projectId}/incidents/{incidentId}/on-call-policy-execution-logs`).
 
-## Guidare gli incidenti dai workflow
+## Pilotare gli incidenti dai workflow
 
-I trigger dei workflow per gli incidenti non sono scritti a mano — OneUptime li genera dai modelli di dati, quindi ogni modello della famiglia incidenti ottiene componenti **On Create X**, **On Update X** e **On Delete X**, denominati dal nome singolare del modello. I tre principali sono **On Create Incident**, **On Update Incident** e **On Delete Incident**, e risiedono nella categoria **Incident** del pannello **Aggiungi componente** su `/dashboard/{projectId}/workflows`.
+I trigger di workflow per gli incidenti non sono scritti a mano — OneUptime li genera dai modelli di dati, quindi ogni modello della famiglia Incidenti ottiene i componenti **On Create X**, **On Update X** e **On Delete X**, chiamati con il nome singolare del modello. I tre principali sono **On Create Incident**, **On Update Incident** e **On Delete Incident**, e li trovate sotto la categoria **Incidente** nel pannello **Aggiungi componente** all'indirizzo `/dashboard/{projectId}/workflows`.
 
-La stessa generazione vi fornisce trigger per la configurazione stessa: **On Create Incident State**, **On Update Incident Severity**, **On Create Incident Template**, **On Create Incident Note Template**, **On Create Incident State Timeline**, **On Create Incident Public Note**, **On Create Incident Internal Note**, **On Create Incident On-Call Rule**, **On Create Incident Role**, **On Create Incident Member** e altri ancora. Ogni modello ottiene anche componenti di azione corrispondenti — **Find One Incident**, **Create One Incident**, **Update One Incident**, **Delete One Incident** e i loro equivalenti multi-riga — così un trigger e un'azione con nomi simili si trovano fianco a fianco nella stessa categoria. **On Create Incident** avvia un workflow; **Create One Incident** ne apre uno.
+La stessa generazione vi dà i trigger per la configurazione stessa: **On Create Incident State**, **On Update Incident Severity**, **On Create Incident Template**, **On Create Incident Note Template**, **On Create Incident State Timeline**, **On Create Incident Public Note**, **On Create Incident Internal Note**, **On Create Incident On-Call Rule**, **On Create Incident Role**, **On Create Incident Member** e altri ancora. Ogni modello riceve anche i componenti di azione corrispondenti — **Find One Incident**, **Create One Incident**, **Update One Incident**, **Delete One Incident** e i loro equivalenti su più righe — perciò un trigger e un'azione dal nome simile finiscono uno accanto all'altro nella stessa categoria. **On Create Incident** avvia un workflow; **Create One Incident** apre un incidente.
 
-Alcuni dettagli che contano quando li collegate:
+Qualche dettaglio che conta quando li collegate:
 
-- **On Update X** accetta un argomento opzionale **Listen on** che restringe il trigger agli aggiornamenti che toccano campi specifici. Lasciatelo vuoto per attivarlo su qualsiasi modifica. Se un aggiornamento arriva senza una registrazione di quali campi sono cambiati, il filtro viene saltato e il workflow viene eseguito comunque.
-- **On Create X** e **On Update X** accettano entrambi un argomento obbligatorio **Select Fields**; **On Delete X** non accetta argomenti.
-- Tutti e tre espongono un'unica porta di uscita **Success**, e ciascuno accetta un argomento ID così potete eseguire il workflow manualmente su un singolo record.
-- I nomi derivano dal nome singolare del modello, non dal nome della sua tabella — ecco perché vedete **On Create Incident Team Owner** e **On Create Incident User Owner** anziché i nomi basati sulla tabella.
-- Non ci sono trigger per le definizioni dei campi personalizzati degli incidenti. Quel modello è l'unico membro della famiglia incidenti con i workflow disabilitati.
+- **On Update X** accetta un argomento facoltativo **Listen on** che restringe il trigger agli aggiornamenti che toccano determinati campi. Lasciatelo vuoto per scattare a ogni modifica. Se arriva un aggiornamento senza traccia di quali campi si siano mossi, il filtro viene saltato e il workflow parte comunque.
+- **On Create X** e **On Update X** richiedono entrambi un argomento obbligatorio **Select Fields**; **On Delete X** non accetta argomenti.
+- Tutti e tre espongono un'unica porta d'uscita **Successo**, e ciascuno accetta un argomento ID così potete eseguire il workflow a mano su un singolo record.
+- I nomi derivano dal nome singolare del modello, non dal nome della tabella — ed è per questo che vedete **On Create Incident Team Owner** e **On Create Incident User Owner** invece di nomi modellati sulle tabelle.
+- Non ci sono trigger per le definizioni dei campi personalizzati degli incidenti. Quel modello è l'unico membro della famiglia Incidenti con i workflow disattivati.
 
 Per costruire il resto del workflow, vedete [Creare un workflow](/docs/workflows/authoring) e [Variabili del workflow](/docs/workflows/variables).
 
 ## Dove leggere ora
 
-- [Panoramica degli incidenti](/docs/incidents/index) — come si combina insieme la funzionalità incidenti.
-- [Dichiarare un incidente](/docs/incidents/declaring-incidents) — la procedura guidata di dichiarazione, i modelli e l'API.
-- [Stati e gravità degli incidenti](/docs/incidents/states-and-severities) — le pagine di impostazione degli stati e delle gravità e cosa fanno i flag.
-- [Note, proprietari e feed degli incidenti](/docs/incidents/notes-owners-and-feed) — dove vengono usati i modelli di nota.
+- [Panoramica degli incidenti](/docs/incidents/index) — come si incastrano le parti della funzionalità Incidenti.
+- [Dichiarare un incidente](/docs/incidents/declaring-incidents) — la procedura di dichiarazione, i modelli e l'API.
+- [Stati e gravità degli incidenti](/docs/incidents/states-and-severities) — le pagine di impostazione di stati e gravità e che cosa fanno i flag.
+- [Note, proprietari e feed degli incidenti](/docs/incidents/notes-owners-and-feed) — dove si usano i modelli di note.
 - [Iscritti e annunci](/docs/status-pages/subscribers) — chi viene a sapere di un incidente fuori dal vostro team.
-- [Panoramica dei workflow](/docs/workflows/index) — automatizzare sopra i trigger degli incidenti.
-- [Panoramica dei Runbook](/docs/runbooks/index) — le procedure a cui le regole runbook si collegano.
+- [Panoramica dei workflow](/docs/workflows/index) — automatizzare a partire dai trigger degli incidenti.
+- [Panoramica dei Runbook](/docs/runbooks/index) — le procedure che le regole di runbook collegano.

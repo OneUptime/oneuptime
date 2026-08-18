@@ -182,8 +182,8 @@ curl -X POST https://oneuptime.com/status-page-api/announcements/:statusPageId
 
 ## Wo Sie als Nächstes lesen sollten
 
-- [Statusseiten – Übersicht](/docs/status-pages/index) — was eine Statusseite ist und wie die Teile zusammenspielen.
+- [Statusseiten – Übersicht](/docs/status-pages/index) — was eine Statusseite ist und wie die einzelnen Teile zusammenspielen.
 - [Statusseiten – Ressourcen & Gruppen](/docs/status-pages/resources-and-groups) — die Ressourcen, die diese Endpunkte zurückgeben.
-- [Statusseiten – Branding & Domains](/docs/status-pages/branding-and-domains) — die benutzerdefinierte Domain, von der diese Endpunkte bereitgestellt werden.
-- [Abonnenten & Ankündigungen](/docs/status-pages/subscribers) — die Ankündigungen, die der Ankündigungs-Endpunkt liefert.
-- [Vorfälle – Übersicht](/docs/incidents/index) — woher die Incidents in diesen Antworten stammen.
+- [Statusseiten – Branding & Domains](/docs/status-pages/branding-and-domains) — die eigene Domain, über die diese Endpunkte ausgeliefert werden.
+- [Abonnenten & Ankündigungen](/docs/status-pages/subscribers) — die Ankündigungen, die der Ankündigungs-Endpunkt ausliefert.
+- [Vorfälle – Übersicht](/docs/incidents/index) — woher die Vorfälle in diesen Antworten stammen.

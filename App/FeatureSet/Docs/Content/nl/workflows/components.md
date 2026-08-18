@@ -1,210 +1,210 @@
 # Componenten
 
-Componenten zijn de bouwstenen die je na de trigger toevoegt. Elke component doet één ding — een bericht versturen, een API aanroepen, een voorwaarde controleren — en koppelt aan wat erna komt.
+Componenten zijn de bouwblokken die je na de trigger toevoegt. Elk doet één ding — een bericht sturen, een API aanroepen, een voorwaarde controleren — en verbindt met wat erna komt.
 
-Deze pagina is de catalogus. Voor hoe je ze op het canvas toevoegt en verbindt, zie [Authoring a Workflow](/docs/workflows/authoring).
+Deze pagina is de catalogus. Hoe je ze op het canvas toevoegt en verbindt, lees je in [Een workflow maken](/docs/workflows/authoring).
 
 ## API
 
-Doe een HTTP-verzoek naar elke URL.
+Doe een HTTP-verzoek naar een willekeurige URL.
 
-**Settings**:
+**Instellingen**:
 
-- **Method** — `GET`, `POST`, `PUT`, `PATCH`, of `DELETE`.
-- **URL** — het adres dat je wilt aanroepen.
-- **Headers** — eventuele headers om mee te sturen.
-- **Body** — de request body voor `POST` / `PUT` / `PATCH`.
+- **Method** — `GET`, `POST`, `PUT`, `PATCH` of `DELETE`.
+- **URL** — het adres dat je aanroept.
+- **Headers** — de headers die je meestuurt.
+- **Body** — de body van het verzoek voor `POST` / `PUT` / `PATCH`.
 
 **Outputs**:
 
-- **Success** — gaat af wanneer de aanroep werkte (2xx-respons). Geeft de status, headers en body door.
-- **Error** — gaat af bij een netwerkfout of een respons die geen 2xx is. Geeft het foutbericht door.
+- **Succes** — gaat af wanneer de aanroep lukte (2xx-antwoord). Geeft de status, headers en body door.
+- **Fout** — gaat af bij een netwerkstoring of een antwoord dat geen 2xx is. Geeft de foutmelding door.
 
-Gebruik dit voor: elke externe API, je eigen admin-endpoints, of elke integratie die geen eigen component heeft.
+Gebruik dit voor: elke externe API, je eigen beheerendpoints, of elke integratie zonder eigen component.
 
 ## AI
 
 ### Generate Text with AI
 
-Genereer één tekstrespons vanuit een prompt en optionele JSON-context. De component gebruikt de geconfigureerde standaard-LLM-provider van het project, en valt terug op de globale provider van de installatie wanneer die beschikbaar is. Providercredentials en endpoints worden centraal geconfigureerd; het zijn geen workflowargumenten.
+Genereer één tekstantwoord uit een prompt en optionele JSON-context. Het component gebruikt de standaard-LLM-provider die voor het project is ingesteld, en valt terug op de globale provider van de installatie wanneer die er is. Providergegevens en -endpoints worden centraal geconfigureerd; het zijn geen workflowargumenten.
 
-**Settings**:
+**Instellingen**:
 
-- **System Instructions** — optionele richtlijnen voor de rol, toon en beperkingen van het model.
-- **Prompt** — de verplichte taak. Kan workflowvariabelen en outputs van eerdere componenten bevatten.
-- **Context** — optionele JSON die je bewust met het verzoek meestuurt. Deze wordt toegevoegd na een expliciete end-of-message-vertrouwensmarkering en door de rest van het bericht heen als niet-vertrouwde data behandeld.
-- **Temperature** — variatie van `0` tot `1`. De standaard is `0.2` voor voorspelbare automatisering.
+- **System Instructions** — optionele sturing voor de rol, toon en beperkingen van het model.
+- **Prompt** — de verplichte opdracht. Hij mag workflowvariabelen en uitvoer van eerdere componenten bevatten.
+- **Context** — optionele JSON die je bewust met het verzoek meestuurt. Hij komt achter een expliciete vertrouwensmarkering aan het eind van het bericht en wordt in de rest van het bericht als niet-vertrouwde data behandeld.
+- **Temperature** — variatie van `0` tot `1`. De standaard is `0.2`, voor voorspelbare automatisering.
 - **Maximum Output Tokens** — van `1` tot `4096`. De standaard is `1024`.
 
-De gecombineerde System Instructions, Prompt en geserialiseerde Context zijn beperkt tot 50.000 tekens. Het providerverzoek heeft een maximale duur van 60 seconden en wordt één keer geprobeerd. Er kunnen per project maximaal drie workflow-AI-verzoeken gelijktijdig draaien.
+De System Instructions, Prompt en geserialiseerde Context zijn samen beperkt tot 50.000 tekens. Het providerverzoek duurt maximaal 60 seconden en wordt één keer geprobeerd. Per project kunnen hoogstens drie AI-verzoeken uit workflows tegelijk lopen.
 
 **Outputs**:
 
 - **Response** — de gegenereerde tekst.
 - **Provider** en **Model** — de configuratie die voor de aanroep is gebruikt.
-- **Total Tokens** en **Completion Tokens** — gebruik gerapporteerd door de provider.
-- **LLM Log ID** — de gemeten AI-logvermelding voor de aanroep.
-- **Error** — de validatie-, toegangs-, provider-, budget-, facturerings- of timeoutfout, indien aanwezig.
+- **Total Tokens** en **Completion Tokens** — het gebruik zoals de provider het meldt.
+- **LLM Log ID** — het gemeten AI-logboekitem van de aanroep.
+- **Fout** — de validatie-, toegangs-, provider-, budget-, facturerings- of time-outfout, als die er is.
 
-Verbind **Success** met componenten die de respons moeten gebruiken. Verbind **Error** met een expliciet fallback-, alert- of logpad. De component doet één modelverzoek zonder tooldefinities of providernatieve capability-velden: hij kan niet zelfstandig OneUptime bevragen, API's aanroepen of projectdata wijzigen. Naast de vaste component-safety-instructies van OneUptime worden alleen de System Instructions, Prompt en Context die je configureert naar de provider gestuurd, nadat workflowvariabelen in die velden zijn opgelost. De geconfigureerde provider/model blijft een vertrouwensgrens omdat een model intrinsieke, providerbeheerde capabilities kan hebben.
+Verbind **Succes** met componenten die het antwoord moeten gebruiken. Verbind **Fout** met een expliciete terugval, waarschuwing of logpad. Het component doet één modelaanroep zonder tooldefinities of providereigen capability-velden: het kan uit zichzelf OneUptime niet bevragen, geen API's aanroepen en geen projectdata wijzigen. Behalve de vaste componentveiligheidsinstructies van OneUptime gaan alleen de System Instructions, Prompt en Context die jij instelt naar de provider, nadat de workflowvariabelen in die velden zijn opgelost. De ingestelde provider en het ingestelde model blijven een vertrouwensgrens, omdat een model intrinsieke, door de provider beheerde capaciteiten kan hebben.
 
-Model-output is niet-vertrouwde tekst. Beoordeel hem voordat je klantgerichte communicatie verstuurt, en gebruik vrije AI-tekst nooit alleen om destructieve workflowacties te autoriseren. Zie [Configuration & Safety](/docs/workflows/configuration) voor details over provider, uitgaand verkeer, logging en kosten.
+Modeluitvoer is niet-vertrouwde tekst. Beoordeel hem voordat je klantgerichte communicatie verstuurt, en gebruik vrije AI-tekst nooit als enige grond voor destructieve workflowacties. Zie [Workflow-configuratie en veiligheid](/docs/workflows/configuration) voor details over provider, uitgaand verkeer, logging en kosten.
 
-## Webhook (outbound)
+## Webhook (uitgaand)
 
-Een eenvoudigere versie van de API-component voor "fire and forget"-gevallen. Post een JSON-body naar een URL.
+Een eenvoudiger versie van het API-component, voor gevallen van "afvuren en vergeten". Post een JSON-body naar een URL.
 
-Gebruik **API** als je de respons moet lezen. Gebruik **Webhook** als je alleen een notificatie wilt versturen en verder wilt gaan.
+Gebruik **API** als je het antwoord moet lezen. Gebruik **Webhook** als je alleen een melding wilt sturen en verder wilt gaan.
 
 ## Slack
 
-Post een bericht in een Slack-kanaal.
+Plaats een bericht in een Slack-kanaal.
 
-**Settings**:
+**Instellingen**:
 
-- **Channel** — de kanaalnaam. De bot moet al lid zijn van dat kanaal.
-- **Message** — de te versturen tekst. Ondersteunt Slack-opmaak.
+- **Kanaal** — de naam van het kanaal. De bot moet al in dat kanaal zitten.
+- **Bericht** — de tekst die je stuurt. Ondersteunt Slack-opmaak.
 
-Koppel Slack eerst aan je project onder **Project Settings → Workspace → Slack**. Zie [Slack Workspace Connection](/docs/workspace-connections/slack).
+Verbind Slack eerst met je project onder **Projectinstellingen → Werkruimte → Slack**. Zie [Slack-werkruimteverbinding](/docs/workspace-connections/slack).
 
 ## Microsoft Teams
 
-Post een bericht in een Microsoft Teams-kanaal.
+Plaats een bericht in een Microsoft Teams-kanaal.
 
-**Settings**:
+**Instellingen**:
 
-- **Team and channel** — waar je wilt posten.
-- **Message** — de te versturen tekst.
+- **Team and channel** — waar je post.
+- **Bericht** — de tekst die je stuurt.
 
-Zie [Microsoft Teams Workspace Connection](/docs/workspace-connections/microsoft-teams) voor het opzetten.
+Zie [Microsoft Teams-werkruimteverbinding](/docs/workspace-connections/microsoft-teams) voor het instellen.
 
 ## Discord
 
-Post een bericht in een Discord-kanaal via een inkomende webhook-URL.
+Plaats een bericht in een Discord-kanaal via een inkomende webhook-URL.
 
 ## Telegram
 
-Verstuur een bericht naar een Telegram-chat met een bottoken en chat-ID.
+Stuur een bericht naar een Telegram-chat met een bottoken en een chat-ID.
 
-## Email
+## E-mail
 
 Verstuur een e-mail via OneUptime.
 
-**Settings**:
+**Instellingen**:
 
-- **To** — het e-mailadres van de ontvanger.
-- **Subject** — de onderwerpregel.
+- **Aan** — het e-mailadres van de ontvanger.
+- **Onderwerp** — de onderwerpregel.
 - **Body** — het bericht in Markdown of HTML.
 
-De e-mail wordt verstuurd vanaf de geconfigureerde afzender van je project — zie [SMTP](/docs/emails/smtp).
+De e-mail vertrekt vanaf de afzender die voor je project is ingesteld — zie [SMTP](/docs/emails/smtp).
 
 ## Custom Code
 
 Voer een klein stukje JavaScript uit wanneer je iets nodig hebt wat de andere blokken niet kunnen.
 
-**Settings**:
+**Instellingen**:
 
-- **Code** — je JavaScript. De laatste waarde (of wat je vanuit een async functie retourneert) wordt de output van het blok.
+- **Code** — jouw JavaScript. De laatste waarde (of wat je uit een async-functie teruggeeft) wordt de uitvoer van het blok.
 - **Arguments** — benoemde waarden die je kunt meegeven.
 
-**Outputs**: success (jouw returnwaarde) en error (een exception).
+**Outputs**: succes (je retourwaarde) en fout (een eventuele exceptie).
 
-Gebruik dit voor: data hervormen tussen twee systemen, een kleine berekening, alles wat geen eigen blok verdient. Gebruik voor zwaardere scripting een [Runbook](/docs/runbooks/index).
+Gebruik dit voor: data omvormen tussen twee systemen, een kleine berekening doen, alles wat geen eigen blok verdient. Voor zwaarder scriptwerk gebruik je een [runbook](/docs/runbooks/index).
 
 ## JSON
 
 Converteer tussen tekst en JSON.
 
-- **JSON → Text** — zet een JSON-object om in een string. Handig wanneer het volgende blok tekst verwacht.
-- **Text → JSON** — parseer een string naar een JSON-object. Handig wanneer iets als tekst is binnengekomen en je een veld moet lezen.
+- **JSON → Text** — maak van een JSON-object een string. Handig wanneer het volgende blok tekst verwacht.
+- **Text → JSON** — parseer een string tot een JSON-object. Handig wanneer iets als tekst binnenkwam en je er een veld uit moet lezen.
 
-## Conditions
+## Voorwaarden
 
-Vertak op basis van een vergelijking. In het **Add Component**-paneel heet dit blok **If / Else**, onder de categorie Conditions.
+Vertak op basis van een vergelijking. In het paneel **Component toevoegen** heet dit blok **If / Else**, onder de categorie Voorwaarden.
 
-**Settings**:
+**Instellingen**:
 
 - **Left value** — meestal een waarde uit een eerder blok.
 - **Operator** — `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts with`, `ends with`.
 - **Right value** — waarmee je vergelijkt.
 
-**Outputs**: **Yes** en **No**. Verbind de volgende blokken met de tak die je wilt.
+**Outputs**: **Ja** en **Nee**. Verbind de volgende blokken met de tak die je wilt.
 
 ## Delay
 
-Pauzeer de workflow voor een bepaalde tijd voordat je verdergaat. Handig wanneer je een ander systeem even moet laten bijkomen.
+Pauzeer de workflow een ingestelde tijd voordat hij verdergaat. Handig wanneer je een ander systeem even wilt laten bijkomen.
 
 ## Log
 
-Schrijf een regel naar het run-log. Geen extern effect — het verschijnt alleen in de logs van de workflow zodat jij het kunt lezen. Handig om te debuggen.
+Schrijf een regel naar het runlogboek. Geen extern effect — het verschijnt alleen in de logboeken van de workflow, zodat jij het kunt lezen. Prettig bij het debuggen.
 
 ## Execute Workflow
 
-Roep een andere workflow aan vanuit deze. De aangeroepen workflow draait op zichzelf — jouw workflow gaat verder zonder te wachten tot hij klaar is.
+Roep vanuit deze workflow een andere workflow aan. Die aangeroepen workflow draait op eigen kracht — jouw workflow gaat verder zonder te wachten tot hij klaar is.
 
-Gebruik dit om gemeenschappelijke logica te delen. Bouw één keer een "post to incident channel"-workflow en roep die aan vanuit elke andere workflow die het kanaal moet informeren.
+Gebruik dit om gemeenschappelijke logica te delen. Bouw één keer een workflow "post naar het incidentkanaal" en roep die aan vanuit elke andere workflow die het kanaal moet inlichten.
 
-Er is een veiligheidslimiet zodat workflows elkaar niet in een lus kunnen blijven aanroepen. Zie [Configuration & Safety](/docs/workflows/configuration).
+Er geldt een veiligheidslimiet, zodat workflows elkaar niet eindeloos in een lus kunnen blijven aanroepen. Zie [Workflow-configuratie en veiligheid](/docs/workflows/configuration).
 
 ## OneUptime-datacomponenten
 
-Voor elk soort record in OneUptime (monitors, incidents, alerts, statuspagina's, on-call policies en nog veel meer) heeft het **Add Component**-paneel deze componenten — zoek op de naam van het type. Elke titel wordt gegenereerd op basis van het recordtype, dus de Monitor-set luidt:
+Voor elk soort record in OneUptime (monitoren, incidenten, waarschuwingen, statuspagina's, piketbeleid en veel meer) biedt het paneel **Component toevoegen** deze componenten — zoek op de naam van het type. Elke titel wordt uit het recordtype opgebouwd, dus de set voor Monitor leest als:
 
 - **Find One Monitor** — lees één record dat aan de query voldoet.
 - **Find Many Monitors** — lees een lijst met records die aan de query voldoen.
 - **Create One Monitor** — voeg één record toe vanuit een JSON-object.
 - **Create Many Monitors** — voeg meerdere records toe vanuit een JSON-array.
-- **Update One Monitor** — pas de writepayload toe op één matchend record.
-- **Update Many Monitors** — pas de writepayload toe op matchende records, tot aan Limit.
-- **Delete One Monitor** — verwijder één matchend record.
-- **Delete Many Monitors** — verwijder matchende records, tot aan Limit.
+- **Update One Monitor** — pas de schrijfpayload toe op één passend record.
+- **Update Many Monitors** — pas de schrijfpayload toe op de passende records, tot aan Limit.
+- **Delete One Monitor** — verwijder één passend record.
+- **Delete Many Monitors** — verwijder de passende records, tot aan Limit.
 
-Dezelfde set geeft je drie triggers — **On Create Monitor**, **On Update Monitor**, en **On Delete Monitor**. Zie [Triggers](/docs/workflows/triggers).
+Dezelfde set geeft je drie triggers — **On Create Monitor**, **On Update Monitor** en **On Delete Monitor**. Zie [Workflow-triggers](/docs/workflows/triggers).
 
-Een type biedt alleen de componenten die zijn model toestaat. Een read-only type heeft alleen de twee Find-componenten en verder niets, dus als je **Delete One Monitor** niet in het paneel kunt vinden, staat dat type dat niet toe.
+Een type biedt alleen de componenten die zijn model toestaat. Een alleen-lezen type heeft de twee Find-componenten en verder niets, dus kun je **Delete One Monitor** niet vinden in het paneel, dan laat dat type het niet toe.
 
-Zo kan een workflow OneUptime-data lezen en wijzigen. Bijvoorbeeld: een webhook van je CI-tool kan **Create One Incident** gebruiken om een incident te openen met de faaldetails.
+Zo kan een workflow OneUptime-data lezen en wijzigen. Bijvoorbeeld: een webhook uit je CI-tool kan met **Create One Incident** een incident openen met de details van de mislukking.
 
 ## Werken met records
 
-Elk veld op een datacomponent is gekoppeld aan de eigen **column**-namen van het record — dezelfde namen die de API gebruikt, niet de labels op het dashboardformulier. De ID-kolom is `_id`. De spelling `id` wordt geaccepteerd als alias overal waar je een kolomnaam kunt typen, maar `_id` is wat een record teruggeeft, dus dat is wat je aan de uitgaande kant moet lezen:
+Elk veld op een datacomponent werkt met de eigen **kolomnamen** van het record — dezelfde namen die de API gebruikt, niet de labels op het formulier in het dashboard. De ID-kolom is `_id`. De schrijfwijze `id` wordt overal geaccepteerd waar je een kolomnaam kunt typen, maar `_id` is wat een record teruggeeft, dus dat lees je aan de uitgaande kant:
 
 ```json
 { "_id": "00000000-0000-0000-0000-000000000000" }
 ```
 
-**Query** bepaalt op welke records de component werkt. Sleutels zijn kolommen, waarden zijn wat er moet matchen:
+**Query** bepaalt op welke records het component werkt. Sleutels zijn kolommen, waarden zijn waar je op matcht:
 
 ```json
 { "monitorType": "Website", "isEnabled": true }
 ```
 
-Een query is altijd beperkt tot het project waarin de workflow draait. Je kunt niet bij de records van een ander project, en je hoeft het project zelf niet aan de query toe te voegen.
+Een query is altijd afgebakend tot het project waarin de workflow draait. Je komt niet bij records van een ander project, en je hoeft het project zelf niet aan de query toe te voegen.
 
-**JSON Object** op Create One, **JSON Array** op Create Many, en **Data (JSON Object)** op de Update-componenten bevatten de te schrijven velden, op dezelfde manier gekoppeld:
+**JSON Object** op Create One, **JSON Array** op Create Many en **Data (JSON Object)** op de Update-componenten bevatten de velden die je wegschrijft, op dezelfde manier gesleuteld:
 
 ```json
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-Een sleutel die geen kolom is, wordt genegeerd in plaats van geweigerd — het run-log noemt de sleutels die zijn weggevallen, dus kijk daar wanneer een veld niet aankomt. **Select Fields**, op de Find-componenten en de triggers, gebruikt dezelfde kolomsleutels met `true`-waarden: `{"_id": true, "name": true}`.
+Een sleutel die geen kolom is, wordt genegeerd in plaats van geweigerd — het runlogboek noemt de sleutels die het liet vallen, dus kijk daar wanneer een veld niet aankomt. **Select Fields**, op de Find-componenten en de triggers, gebruikt dezelfde kolomsleutels met de waarde `true`: `{"_id": true, "name": true}`.
 
-**Skip** en **Limit** zijn twee getalvelden op Find Many, Update Many en Delete Many — `Skip: 0` met `Limit: 100` neemt de eerste honderd matches. Limit staat standaard op `10`, en op Update Many en Delete Many begrenst het hoeveel records daadwerkelijk worden geschreven, niet alleen hoeveel er worden teruggegeven. Dus `Items Deleted: 10` betekent dat er tien records zijn verwijderd, niet dat er tien matchten. Verhoog Limit wanneer je meer dan tien wilt wijzigen.
+**Overslaan** en **Limit** zijn twee getalvelden op Find Many, Update Many en Delete Many — `Skip: 0` met `Limit: 100` pakt de eerste honderd treffers. Limit staat standaard op `10`, en op Update Many en Delete Many begrenst het hoeveel records er daadwerkelijk worden weggeschreven, niet alleen hoeveel er terugkomen. Dus `Items Deleted: 10` betekent dat er tien records zijn verwijderd, niet dat er tien matchten. Verhoog Limit wanneer je meer dan tien wilt wijzigen.
 
-**Success** en **Error** rapporteren of de query is uitgevoerd, niet wat hij vond. Een query die niets matcht, geeft `0` terug en gaat nog steeds via Success — dat is geen mislukking. Om te vertakken op basis van of er iets matchte, lees je het geretourneerde aantal in een **If / Else**-blok.
+**Succes** en **Fout** melden of de query gedraaid heeft, niet wat hij vond. Een query die niets vindt, geeft `0` terug en vertrekt alsnog via Succes — dat is geen mislukking. Wil je vertakken op basis van of er iets is gevonden, lees dan de teruggegeven telling uit in een blok **If / Else**.
 
-## Welke component moet ik gebruiken?
+## Welk component moet ik gebruiken?
 
-Een paar vuistregels:
+Een paar snelle vuistregels:
 
-- Als er een speciaal blok is voor wat je wilt (Slack, Email, een OneUptime-record), gebruik dat — je krijgt netter foutafhandeling en duidelijkere logs.
+- Is er een eigen blok voor wat je wilt (Slack, E-mail, een OneUptime-record), gebruik dat dan — je krijgt nettere foutafhandeling en duidelijkere logboeken.
 - Voor elke andere externe API gebruik je **API**.
-- Om tekst samen te vatten, te classificeren of op te stellen vanuit expliciet geselecteerde workflowdata, gebruik je **Generate Text with AI**.
-- Om data tussen blokken te hervormen, gebruik je **Custom Code** of **JSON**.
-- Om verschillende acties te nemen op basis van een waarde, gebruik je **Conditions**.
+- Wil je expliciet gekozen workflowdata samenvatten, classificeren of tot tekst opstellen, gebruik dan **Generate Text with AI**.
+- Wil je data omvormen tussen blokken, gebruik dan **Custom Code** of **JSON**.
+- Wil je verschillende acties op basis van een waarde, gebruik dan **Voorwaarden**.
 
-## Waar verder lezen
+## Waar je verder kunt lezen
 
-- [Variabelen](/docs/workflows/variables) — data tussen blokken doorgeven.
-- [Uitvoeringen en logboeken](/docs/workflows/runs-and-logs) — controleren wat elk blok bij een run heeft gedaan.
-- [Configuratie en veiligheid](/docs/workflows/configuration) — limieten, eigenaren en geheimen.
+- [Workflow-variabelen](/docs/workflows/variables) — data doorgeven tussen blokken.
+- [Workflow-uitvoeringen en logboeken](/docs/workflows/runs-and-logs) — nagaan wat elk blok tijdens een run deed.
+- [Workflow-configuratie en veiligheid](/docs/workflows/configuration) — limieten, eigenaren en geheimen.

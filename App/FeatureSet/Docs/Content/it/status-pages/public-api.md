@@ -329,8 +329,8 @@ Questa è la risposta dell'API:
 
 ## Dove leggere ora
 
-- [Panoramica delle pagine di stato](/docs/status-pages/index) — cos'è una pagina di stato e come si incastrano i suoi elementi.
-- [Risorse e gruppi della pagina di stato](/docs/status-pages/resources-and-groups) — le risorse restituite da questi endpoint.
-- [Branding e domini della pagina di stato](/docs/status-pages/branding-and-domains) — il dominio personalizzato da cui vengono serviti questi endpoint.
-- [Iscritti e annunci](/docs/status-pages/subscribers) — gli annunci forniti dall'endpoint degli annunci.
-- [Panoramica degli incidenti](/docs/incidents/index) — da dove provengono gli incidenti in queste risposte.
+- [Panoramica delle pagine di stato](/docs/status-pages/index) — che cos'è una pagina di stato e come si incastrano i suoi pezzi.
+- [Risorse e gruppi della pagina di stato](/docs/status-pages/resources-and-groups) — le risorse che questi endpoint restituiscono.
+- [Branding e domini della pagina di stato](/docs/status-pages/branding-and-domains) — il dominio personalizzato da cui questi endpoint vengono serviti.
+- [Iscritti e annunci](/docs/status-pages/subscribers) — gli annunci che l'endpoint degli annunci serve.
+- [Panoramica degli incidenti](/docs/incidents/index) — da dove arrivano gli incidenti presenti in queste risposte.

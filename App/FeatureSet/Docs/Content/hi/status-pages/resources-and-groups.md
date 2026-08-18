@@ -1,160 +1,160 @@
 # संसाधन और समूह
 
-एक resource आपके status page पर एक row है — एक monitor (या एक monitor group) जिसका नाम visitors समझ सकें, एक current status, और वैकल्पिक रूप से एक uptime number और एक history chart। एक group एक section है जो resources को होल्ड करता है, ताकि चालीस monitors वाला page एक अंतहीन list के बजाय "API", "Web app" और "Data pipeline" जैसा दिखे।
+संसाधन आपके स्थिति पृष्ठ की एक row है — कोई monitor (या monitor समूह) जिसका नाम visitors समझ सकें, जिसकी एक मौजूदा स्थिति हो, और चाहें तो एक uptime संख्या और एक इतिहास चार्ट भी। समूह वह हिस्सा है जो संसाधनों को अपने भीतर रखता है, ताकि चालीस monitors वाला पेज एक अंतहीन सूची के बजाय "API", "Web app" और "Data pipeline" की तरह पढ़ा जाए।
 
-आप दोनों को एक ही screen पर बनाते हैं। कोई status page खोलें और side menu में **संसाधन** चुनें (जिन projects में monitor groups enabled नहीं हैं, वहाँ यह item **मॉनिटर** पढ़ता है)। Groups पहले अपने खुद के page पर रहते थे; अब वे नहीं रहते, और पुराना `/groups` URL अब सीधे यहीं redirect होता है।
+दोनों आप एक ही screen पर बनाते हैं। कोई स्थिति पृष्ठ खोलिए और side menu में **संसाधन** चुनिए (जिन प्रोजेक्ट में monitor समूह चालू नहीं हैं, वहाँ यह item **मॉनिटर** कहलाता है)। समूह पहले अपने अलग पेज पर रहते थे; अब नहीं रहते, और पुराना `/groups` URL सीधे यहीं redirect कर देता है।
 
-इस हिस्से को सही करें और status page का बाकी हिस्सा बस सजावट है। Visitors इन rows से "यह मेरी वजह से है या उनकी?" तय करते हैं, इसलिए उनके नाम वैसे रखें जैसे customers आपके product की बात करते हैं — **Checkout API**, न कि `prod-checkout-lb-healthcheck-us-east-1`।
+यह हिस्सा ठीक कर लीजिए तो स्थिति पृष्ठ का बाकी सब सजावट है। visitors "गड़बड़ मेरी तरफ़ है या उनकी?" इन्हीं rows से तय करते हैं, इसलिए इन्हें उन्हीं नामों से पुकारिए जिनसे ग्राहक आपके product की बात करते हैं — **Checkout API**, न कि `prod-checkout-lb-healthcheck-us-east-1`।
 
-## Resources screen
+## संसाधन वाली screen
 
-Screen दो हिस्सों में बंटी है। बाईं ओर एक navigator है जो page पर मौजूद हर group की listing देता है; दाईं ओर आपने जो group चुना है उसकी contents हैं।
+screen दो हिस्सों में बँटी है। बाईं ओर एक navigator है जो पेज के हर समूह को सूचीबद्ध करता है; दाईं ओर उस समूह की सामग्री है जिसे आपने चुना है।
 
-- **Group navigator (बाईं ओर)** — groups का एक tree, ऊपर एक search box (**Search groups...**) और नीचे एक running count के साथ, जैसे `3 groups · 12 resources`। जब page पर fit होने से ज़्यादा groups हों, तो एक **Show N more of M** button बाकी दिखाता है।
-- **Top of page** — navigator की पहली row। इसमें वे resources होते हैं जो किसी group में नहीं हैं, और इसका tooltip बिल्कुल बताता है कि इसका क्या मतलब है: visitors इन्हें सबसे पहले देखते हैं, हर group के ऊपर। यदि page पर कोई group ही नहीं है, तो दायाँ pane इसके बजाय **All resources** शीर्षक रखता है।
-- **Resource pane (दाईं ओर)** — जिस group को आपने चुना है उसके शीर्षक के साथ। इसके header में **Edit Group**, primary **Add Monitor** button, और एक **More actions** overflow होता है।
+- **समूह navigator (बाईं ओर)** — समूहों का एक tree, जिसके ऊपर एक search box (**Search groups...**) और नीचे चलती हुई गिनती रहती है, जैसे `3 groups · 12 resources`। जब पेज पर समाने से ज़्यादा समूह हों, तो एक **Show N more of M** बटन बाकी दिखा देता है।
+- **Top of page** — navigator की पहली row। इसमें वे संसाधन रहते हैं जो किसी समूह में नहीं हैं, और इसका टूलटिप ठीक यही बात कहता है: visitors इन्हें सबसे पहले देखते हैं, हर समूह से ऊपर। अगर पेज पर कोई समूह ही नहीं है, तो दाएँ pane का शीर्षक **सभी संसाधन** होता है।
+- **संसाधन pane (दाईं ओर)** — इसका शीर्षक वही समूह होता है जिसे आपने चुना है। इसके header में **Edit Group**, मुख्य **मॉनिटर जोड़ें** बटन, और एक **More actions** overflow रहता है।
 
-Card के header में ही दो buttons रहते हैं: **New Group**, और एक three-dot overflow जिसमें **Import groups from CSV** और **Refresh** होते हैं।
+दो बटन खुद card के header में रहते हैं: **New Group**, और एक तीन-बिंदु वाला overflow जिसमें **Import groups from CSV** और **रिफ्रेश** हैं।
 
-Card का description आपके page के आकार के साथ बदलता है। Groups के साथ, यह बताता है कि यही सब कुछ है जो visitors देखते हैं और बाईं ओर से कोई group चुनकर उसमें मौजूद चीज़ें edit करें। अभी तक कोई group न होने पर, यह आपको एक बनाने के लिए प्रेरित करता है ताकि एक लंबे page को sections में बाँटा जा सके।
+card का विवरण आपके पेज की बनावट के साथ बदलता है। समूह होने पर वह कहता है कि visitors को यही सब दिखता है, और किसी समूह की सामग्री बदलने के लिए बाईं ओर से वह समूह चुनिए। अभी तक कोई समूह न हो, तो वह आपको एक समूह बनाने की ओर धकेलता है, ताकि लंबा पेज हिस्सों में बँट जाए।
 
-**Empty states आपको बताते हैं कि क्या करना है।** एक खाली group **No monitors here yet** के साथ **Add Monitor**, **Add Multiple**, और — केवल तब जब status page पर बिल्कुल कोई group न हो — **Create a Group** दिखाता है। एक search जो कुछ match नहीं करती वह **No resources match your search** दिखाती है। एक खाली navigator कहता है कि groups एक लंबे status page को sections में बाँटते हैं और उन्हें nest भी किया जा सकता है।
+**खाली अवस्थाएँ खुद बता देती हैं कि क्या करना है।** खाली समूह पर **No monitors here yet** दिखता है, साथ में **मॉनिटर जोड़ें**, **Add Multiple**, और — सिर्फ़ तब जब स्थिति पृष्ठ पर एक भी समूह न हो — **Create a Group**। जिस search का कुछ मेल न बैठे, वहाँ **No resources match your search** दिखता है। खाली navigator बताता है कि समूह लंबे स्थिति पृष्ठ को हिस्सों में बाँटते हैं और उन्हें एक-दूसरे के भीतर रखा जा सकता है।
 
-## एक monitor जोड़ना
+## कोई monitor जोड़ना
 
-वह group चुनें जिसमें आप resource रखना चाहते हैं (या एक ungrouped row के लिए **Top of page**), फिर **Add Monitor** पर क्लिक करें। Modal का शीर्षक **Add a monitor to {group}** है और इसमें दो steps हैं: **Monitor Details** और **Advanced**।
+वह समूह चुनिए जिसमें संसाधन जाना चाहिए (या बिना समूह वाली row के लिए **Top of page**), फिर **मॉनिटर जोड़ें** पर क्लिक कीजिए। modal का शीर्षक **Add a monitor to {group}** है और उसमें दो चरण हैं: **मॉनिटर विवरण** और **उन्नत**।
 
-**Monitor Details** पर:
+**मॉनिटर विवरण** पर:
 
-- **Monitor** — आपके project के monitors का dropdown, placeholder **Select Monitor**। आवश्यक।
-- **Display Name** — आवश्यक। यह वह text है जिसे visitors पढ़ते हैं, और यह monitor के अपने नाम से अलग store होता है, इसलिए आप monitoring को छुए बिना इसे यहाँ rename कर सकते हैं।
-- **Description** — वैकल्पिक markdown जो row के नीचे दिखता है। यह बताने के लिए अच्छा है कि service असल में क्या करती है।
+- **मॉनिटर** — आपके प्रोजेक्ट के monitors का dropdown, placeholder **मॉनिटर चुनें**। आवश्यक।
+- **प्रदर्शन नाम** — आवश्यक। visitors यही text पढ़ते हैं, और यह monitor के अपने नाम से अलग सहेजा जाता है, इसलिए monitoring को छुए बिना आप इसे यहाँ बदल सकते हैं।
+- **विवरण** — वैकल्पिक markdown, जो row के नीचे दिखता है। एक वाक्य में यह बताने के लिए अच्छा कि यह service असल में करती क्या है।
 
-अगर आपके project में monitor groups enabled हैं, तो dropdown के नीचे एक link **Add a Monitor Group instead.** पढ़ता है — इस पर क्लिक करें और **Monitor** dropdown की जगह एक **Monitor Group** dropdown (**Select Monitor Group**) आ जाता है। फिर link पलटकर **Add a Monitor instead.** हो जाता है ताकि आप वापस जा सकें। एक monitor group का उपयोग तब करें जब आप चाहते हों कि page पर एक row कई checks को एक साथ मिलाकर represent करे।
+अगर आपके प्रोजेक्ट में monitor समूह चालू हैं, तो dropdown के नीचे एक लिंक दिखता है — **Add a Monitor Group instead.** — उस पर क्लिक कीजिए और **मॉनिटर** dropdown की जगह **मॉनिटर समूह** dropdown (**मॉनिटर समूह चुनें**) आ जाता है। फिर लिंक पलटकर **Add a Monitor instead.** हो जाता है, ताकि आप वापस लौट सकें। monitor समूह तब इस्तेमाल कीजिए जब आप चाहते हों कि पेज की एक row कई checks को मिलाकर दिखाए।
 
 ### एक साथ कई जोड़ना
 
-**Add Multiple** (**More actions** menu में भी **Add multiple monitors** के रूप में) **Add Multiple Monitors** खोलता है। इसमें वही दो steps हैं, पर पहला step एक single dropdown के बजाय एक **Monitors** multi-select है, और **Advanced** पर आप जो display options चुनते हैं वे आपके चुने हर monitor पर लागू होते हैं। एक नया page seed करने का यह सबसे तेज़ तरीका है।
+**Add Multiple** (जो **More actions** menu में **Add multiple monitors** भी है) **Add Multiple Monitors** खोलता है। इसमें वही दो चरण हैं, बस पहला चरण एक अकेले dropdown के बजाय **मॉनिटर** वाला multi-select है, और **उन्नत** पर चुने गए दिखावे के विकल्प आपके चुने हर monitor पर लागू होते हैं। नया पेज भरने का यही सबसे तेज़ तरीका है।
 
-## किसी resource पर display options
+## किसी संसाधन पर दिखावे के विकल्प
 
-**Advanced** step single-add form और bulk modal दोनों पर एक जैसा है। यहाँ सब कुछ per-resource है — एक ही group की दो rows को अलग-अलग तरह से configure किया जा सकता है।
+**उन्नत** चरण एक-एक जोड़ने वाले form और bulk modal, दोनों पर एक जैसा है। यहाँ सब कुछ हर संसाधन के लिए अलग है — एक ही समूह की दो rows अलग-अलग कॉन्फ़िगर हो सकती हैं।
 
-| Field                                                     | उद्देश्य                                                                                       |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| **Tooltip** (`displayTooltip`)                              | आपके status page पर resource के बगल में दिखने वाला अतिरिक्त text। इसे scope के लिए इस्तेमाल करें: "US and EU customers"। |
-| **Show Current Resource Status** (`showCurrentStatus`)      | डिफ़ॉल्ट रूप से on। row के बगल में live status दिखाता है — operational, degraded, offline।          |
-| **Show Uptime %** (`showUptimePercent`)                     | डिफ़ॉल्ट रूप से off। resource के बगल में एक uptime percentage दिखाता है।                            |
-| **Select Uptime Precision** (`uptimePercentPrecision`)      | केवल **Show Uptime %** on होने पर दिखता है। आवश्यक, डिफ़ॉल्ट रूप से एक decimal।                     |
-| **Show Status History Chart** (`showStatusHistoryChart`)    | डिफ़ॉल्ट रूप से on। resource के लिए day-by-day uptime history bar chart दिखाता है।                |
+| फ़ील्ड                                                     | काम                                                                                                    |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| **टूलटिप** (`displayTooltip`)                             | आपके स्थिति पृष्ठ पर संसाधन के बगल में दिखने वाला अतिरिक्त text। दायरा बताने के लिए: "US और EU ग्राहक"। |
+| **वर्तमान संसाधन स्थिति दिखाएं** (`showCurrentStatus`)     | डिफ़ॉल्ट रूप से on। row के बगल में जीवंत स्थिति दिखाता है — कार्यरत, घटित, ऑफ़लाइन।                     |
+| **अपटाइम % दिखाएं** (`showUptimePercent`)                 | डिफ़ॉल्ट रूप से off। संसाधन के बगल में एक uptime प्रतिशत दिखाता है।                                     |
+| **अपटाइम परिशुद्धता चुनें** (`uptimePercentPrecision`)     | **अपटाइम % दिखाएं** on होने पर ही दिखता है। आवश्यक, डिफ़ॉल्ट एक दशमलव।                                 |
+| **स्थिति इतिहास चार्ट दिखाएं** (`showStatusHistoryChart`) | डिफ़ॉल्ट रूप से on। संसाधन के लिए दिन-प्रतिदिन का uptime इतिहास bar chart दिखाता है।                    |
 
-पहले step से **Display Name** (`displayName`) और **Description** (`displayDescription`) भी सिर्फ display के लिए हैं — वे कभी monitor को खुद नहीं बदलते।
+पहले चरण वाले **प्रदर्शन नाम** (`displayName`) और **विवरण** (`displayDescription`) भी सिर्फ़ दिखावे के लिए हैं — वे खुद monitor को कभी नहीं बदलते।
 
-## Uptime percentages और history charts
+## अपटाइम प्रतिशत और इतिहास चार्ट
 
-**Show Uptime %** और **Show Status History Chart** दोनों एक ऐसी setting पर निर्भर करते हैं जो कहीं और रहती है। वे जिस window को cover करते हैं वह **Status Pages → आपका page → Advanced → Advanced Settings** के अंतर्गत, **Uptime History Settings** card में **Show Uptime History (in days)** है। यह 1 से 90 दिनों तक स्वीकार करता है और डिफ़ॉल्ट रूप से 90 है।
+**अपटाइम % दिखाएं** और **स्थिति इतिहास चार्ट दिखाएं**, दोनों एक ऐसी सेटिंग पर टिके हैं जो कहीं और रहती है। वे जितनी अवधि दिखाते हैं, वह **स्थिति पृष्ठ → आपका पेज → उन्नत → उन्नत सेटिंग्स** के नीचे **अपटाइम इतिहास सेटिंग्स** card में मौजूद **अपटाइम इतिहास दिखाएं (दिनों में)** है। यह 1 से 90 दिन स्वीकार करती है और डिफ़ॉल्ट 90 है।
 
-तो क्रम यह है: per resource toggles on करें, फिर पूरे page के लिए एक बार window सेट करें।
+तो क्रम यह हुआ: हर संसाधन पर toggles चालू कीजिए, फिर पूरे पेज के लिए अवधि एक बार तय कर दीजिए।
 
-**Precision एक judgment call है।** **Select Uptime Precision** dropdown `99% (No Decimal)`, `99.9% (One Decimal)`, `99.99% (Two Decimal)` और `99.999% (Three Decimal)` देता है। ज़्यादा decimals precise लगते हैं और तीसरे वाले पर बहस को न्योता देते हैं; अगर आप three nines पर एक SLA publish करते हैं, तो उतना ही match करें, ज़्यादा नहीं।
+**परिशुद्धता समझदारी का फ़ैसला है।** **अपटाइम परिशुद्धता चुनें** dropdown में `99% (No Decimal)`, `99.9% (One Decimal)`, `99.99% (Two Decimal)` और `99.999% (Three Decimal)` मिलते हैं। ज़्यादा दशमलव सटीक तो लगते हैं, पर तीसरे अंक पर बहस बुला लेते हैं; अगर आपका प्रकाशित SLA तीन nines का है, तो उतना ही रखिए, उससे आगे नहीं।
 
-Groups के पास इन toggles की अपनी अलग copies हैं — नीचे देखें — इसलिए एक group एक rolled-up percentage दिखा सकता है जबकि उसके अंदर के individual monitors चुप रहें, या इसका उल्टा।
+समूहों के पास इन toggles की अपनी अलग प्रतियाँ होती हैं — नीचे देखिए — इसलिए कोई समूह जोड़कर बना प्रतिशत दिखा सकता है जबकि उसके भीतर के monitors चुप रहें, या इसका उल्टा भी हो सकता है।
 
-History chart की bars के रंग, और कौन-सी monitor statuses "down" गिनी जाती हैं, यह **Overview Page** branding screen पर सेट होता है, जिसे [स्थिति पृष्ठ ब्रांडिंग और डोमेन](/docs/status-pages/branding-and-domains) में कवर किया गया है।
+इतिहास चार्ट के bars के रंग, और कौन-सी monitor स्थितियाँ "down" गिनी जाएँ, ये **अवलोकन पृष्ठ** वाली ब्रांडिंग screen पर तय होते हैं, जिसे [स्थिति पृष्ठ ब्रांडिंग और डोमेन](/docs/status-pages/branding-and-domains) में देखा गया है।
 
-## Groups
+## समूह
 
-**New Group** पर क्लिक करके **Create New Status Page Group** खोलें। Form में तीन steps हैं: **Group Details**, **Layout** और **Advanced**।
+**New Group** पर क्लिक करके **Create New Status Page Group** खोलिए। form में तीन चरण हैं: **समूह विवरण**, **लेआउट** और **उन्नत**।
 
-**Group Details**:
+**समूह विवरण**:
 
-- **Group Name** (`name`) — आवश्यक। यह वह section heading है जो visitors देखते हैं।
-- **Group Description** (`description`) — वैकल्पिक markdown, heading के नीचे दिखता है।
-- **Parent Group** (`parentStatusPageGroupId`) — वैकल्पिक। group को top level पर रखने के लिए इसे **No parent group (top level)** पर छोड़ दें।
-- **Expand on Status Page by Default** (`isExpandedByDefault`) — क्या section visitors के लिए खुला शुरू होता है या collapsed।
+- **समूह नाम** (`name`) — आवश्यक। visitors को यही section heading दिखता है।
+- **समूह विवरण** (`description`) — वैकल्पिक markdown, heading के नीचे दिखता है।
+- **Parent Group** (`parentStatusPageGroupId`) — वैकल्पिक। समूह को सबसे ऊपरी स्तर पर रखने के लिए इसे **No parent group (top level)** पर छोड़ दीजिए।
+- **डिफ़ॉल्ट रूप से स्थिति पृष्ठ पर विस्तृत करें** (`isExpandedByDefault`) — visitors के लिए यह हिस्सा खुला शुरू हो या सिमटा हुआ।
 
-**Advanced** group स्तर पर resource toggles को mirror करता है:
+**उन्नत** समूह के स्तर पर संसाधन वाले toggles को दोहराता है:
 
-- **Show Current Group Status** (`showCurrentStatus`) — डिफ़ॉल्ट रूप से on। group heading के बगल में एक status दिखाता है।
-- **Show Uptime %** (`showUptimePercent`) — डिफ़ॉल्ट रूप से off, on होने पर **Select Uptime Precision** दिखता है।
+- **वर्तमान समूह स्थिति दिखाएं** (`showCurrentStatus`) — डिफ़ॉल्ट रूप से on। समूह की heading के बगल में एक स्थिति दिखाता है।
+- **अपटाइम % दिखाएं** (`showUptimePercent`) — डिफ़ॉल्ट रूप से off, और on होते ही **अपटाइम परिशुद्धता चुनें** सामने आ जाता है।
 
-Editing उसी तरह काम करती है: pane header में **Edit Group**, या navigator की row menu में **Edit group**, **Edit Status Page Group** खोलता है जिसमें एक **Save Changes** button है।
+संपादन भी उसी तरह चलता है: pane के header में **Edit Group**, या navigator की row वाले menu में **Edit group**, **Edit Status Page Group** खोलता है, जिसमें **परिवर्तन सहेजें** बटन होता है।
 
-Pane header उन settings के लिए chips दिखाता है जो अभी on हैं — **Grid**, **Collapsed by default**, **Uptime %** — ताकि आप form खोले बिना देख सकें कि group कैसे configure है।
+pane का header उन सेटिंग्स के लिए chips दिखाता है जो इस समय चालू हैं — **Grid**, **Collapsed by default**, **Uptime %** — ताकि form खोले बिना ही आप देख सकें कि समूह कैसे कॉन्फ़िगर है।
 
-### किसी group को manage करना
+### किसी समूह का प्रबंधन
 
-Navigator की per-row menu में **Edit group**, **Move up**, **Move down**, **Show ID** और **Delete group** होते हैं। Pane का **More actions** overflow इनके लंबे-form equivalents रखता है — **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Refresh** और **Delete this group**। बिना नाम के save किया गया group **Untitled group** के रूप में render होता है, जो एक अच्छा संकेत है कि आप कुछ type करना चाहते थे।
+navigator के हर row वाले menu में **Edit group**, **Move up**, **Move down**, **ID दिखाएँ** और **समूह हटाएं** रहते हैं। pane के **More actions** overflow में इनके लंबे रूप हैं — **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **रिफ्रेश** और **Delete this group**। बिना नाम सहेजा गया समूह **Untitled group** के रूप में दिखता है, जो साफ़ इशारा है कि आप वहाँ कुछ टाइप करना चाहते थे।
 
-## Groups को nest करना
+## समूहों को एक-दूसरे में रखना
 
-Groups nest किए जा सकते हैं: child पर **Parent Group** सेट करें, या navigator के **Add a sub group inside this group** action का उपयोग करें। Form का अपना help text उस shape का वर्णन करता है जिसके लिए यह बना है — Corporate Units › Region › Market जैसा कुछ — और बताता है कि हर level अपने नीचे मौजूद हर चीज़ का rolled-up status और uptime दिखाता है।
+समूह एक-दूसरे के भीतर रखे जा सकते हैं: बच्चे पर **Parent Group** तय कीजिए, या navigator का **Add a sub group inside this group** action इस्तेमाल कीजिए। form का अपना help text उस बनावट का ब्योरा देता है जिसके लिए यह बना है — कुछ इस तरह: Corporate Units › Region › Market — और बताता है कि हर स्तर अपने नीचे की सब चीज़ों की जुड़ी हुई स्थिति और uptime दिखाता है।
 
-जब किसी group के children होते हैं, तो resource pane एक **Sub groups** chip row दिखाता है जो सीधे हर child में link करता है, ताकि आप navigator पर वापस गए बिना hierarchy में चल सकें।
+जब किसी समूह के बच्चे हों, तो संसाधन pane एक **Sub groups** chip row दिखाता है जो सीधे हर बच्चे तक लिंक करती है, ताकि navigator पर लौटे बिना ही आप पूरी hierarchy में घूम सकें।
 
-बड़े pages पर nesting अपनी कमाई कर लेती है: एक hosting provider जिसके products के अंदर regions हों, या एक retailer जिसके business units के अंदर markets हों। बारह monitors वाले page पर, एक flat level ज़्यादा दोस्ताना है।
+nesting बड़े पेजों पर अपनी कीमत वसूल कर लेती है: कोई hosting provider जिसके products के भीतर regions हों, या कोई retailer जिसकी business units के भीतर बाज़ार हों। बारह monitors वाले पेज पर एक सपाट स्तर ज़्यादा सुविधाजनक रहता है।
 
 ## List layout बनाम grid layout
 
-**Layout** step group के लिए **View Mode** (`viewMode`) सेट करता है, और यह तय करता है कि group publicly कैसे render होता है।
+**लेआउट** चरण समूह के लिए **व्यू मोड** (`viewMode`) तय करता है, और इससे बदलता है कि समूह सार्वजनिक रूप से कैसे दिखेगा।
 
-| अगर आप चाहते हैं…                                                   | चुनें                    |
-| --------------------------------------------------------------------- | -------------------------- |
-| services की एक साधारण vertical list दिखाना, एक row प्रति service    | **List** (डिफ़ॉल्ट)        |
-| एक ही service को कई regions या tenants में एक matrix की तरह दिखाना  | **Grid**                   |
+| अगर आप चाहते हैं…                                                        | तो चुनिए                |
+| ----------------------------------------------------------------------- | ---------------------- |
+| services की एक सीधी-सादी खड़ी सूची, हर row पर एक                        | **List** (डिफ़ॉल्ट)     |
+| एक ही service को कई regions या tenants में matrix की तरह दिखाना          | **Grid**               |
 
-**Grid** चुनें और चार और fields दिखाई देते हैं:
+**Grid** चुनिए और चार और फ़ील्ड सामने आ जाते हैं:
 
-- **Row Axis Label** — row dimension का नाम, placeholder `Service`।
-- **Row Axis Values** — rows खुद, **Add Row** के साथ एक-एक करके जोड़ी जाती हैं (placeholder `e.g. Auth`)।
-- **Column Axis Label** — column dimension, placeholder `Region`।
-- **Column Axis Values** — **Add Column** के साथ जोड़ी जाती हैं (placeholder `e.g. US-East`)।
+- **पंक्ति अक्ष लेबल** — row वाले आयाम का नाम, placeholder `Service`।
+- **पंक्ति अक्ष मान** — खुद rows, जिन्हें **Add Row** से एक-एक करके जोड़ा जाता है (placeholder `e.g. Auth`)।
+- **कॉलम अक्ष लेबल** — column वाला आयाम, placeholder `Region`।
+- **कॉलम अक्ष मान** — **Add Column** से जोड़े जाते हैं (placeholder `e.g. US-East`)।
 
-Grid group का हर monitor फिर एक cell में रखा जाता है, इसलिए bulk modal monitors के साथ-साथ row और column भी पूछता है, आपके अपने axis labels का उपयोग करते हुए।
+grid समूह का हर monitor फिर किसी cell में बैठता है, इसलिए bulk modal monitors के साथ-साथ row और column भी पूछता है, और उसमें आपके अपने अक्ष लेबल इस्तेमाल होते हैं।
 
-**Monitors जोड़ने से पहले axes सेट करें।** बिना rows या columns वाला grid group एक amber notice दिखाता है जो कहता है कि axes बनने तक monitor रखने के लिए कहीं जगह नहीं है, साथ में एक **Set up the grid** button — और जब तक आप ऐसा नहीं करते, **Add Monitor** button वापस ले लिया जाता है।
+**monitors जोड़ने से पहले अक्ष तय कर लीजिए।** जिस grid समूह में न rows हों न columns, वहाँ अंबर रंग की एक सूचना दिखती है कि जब तक अक्ष नहीं बनते तब तक monitor रखने की कोई जगह नहीं है, साथ में एक **Set up the grid** बटन — और जब तक आप यह नहीं कर लेते, **मॉनिटर जोड़ें** बटन हटा लिया जाता है।
 
-## Visitors क्या देखते हैं, इसका order
+## visitors को क्या किस क्रम में दिखे
 
-Order स्पष्ट रूप से तय होता है, alphabetically नहीं, और इसे तीन जगहों पर सेट किया जाता है:
+क्रम आप खुद तय करते हैं, वह वर्णानुक्रम में नहीं बनता, और वह तीन जगह तय होता है:
 
-- **किसी group के अंदर के resources** — किसी row को drag करें। Pane यही कहता है: **Drag a row to change the order visitors see**।
-- **एक-दूसरे के सापेक्ष groups** — navigator की row menu में **Move up** / **Move down**, या pane के overflow में **Move group up** / **Move group down**।
-- **Ungrouped resources** — ये **Top of page** में रहते हैं और हमेशा हर group के ऊपर render होते हैं, इसलिए वह एक चीज़ जिसे हर कोई सबसे पहले check करता है, उसे वहाँ रखें।
+- **किसी समूह के भीतर के संसाधन** — row को खींच दीजिए। pane खुद यही कहता है: **Drag a row to change the order visitors see**।
+- **समूहों का आपस में क्रम** — navigator की row वाले menu में **Move up** / **Move down**, या pane के overflow में **Move group up** / **Move group down**।
+- **बिना समूह वाले संसाधन** — ये **Top of page** में रहते हैं और हमेशा हर समूह से ऊपर दिखते हैं, इसलिए जिस एक चीज़ को सब सबसे पहले देखते हैं, उसे वहीं रखिए।
 
-**दो मामलों में dragging off होती है।** **Search in {group}...** box से pane filter करने पर reordering disable हो जाता है — pane आपको बताता है `N of M shown · drag to reorder is off while filtering`, इसलिए पहले search साफ़ करें। और grid groups कभी drag ordering support नहीं करते, क्योंकि position row और column axes से आती है।
+**दो हालात जहाँ खींचना बंद रहता है।** **Search in {group}...** box से pane को filter करते ही क्रम बदलना बंद हो जाता है — pane आपको बताता है `N of M shown · drag to reorder is off while filtering`, इसलिए पहले search साफ़ कीजिए। और grid समूह drag से क्रम लगाना कभी सपोर्ट नहीं करते, क्योंकि वहाँ जगह row और column के अक्षों से तय होती है।
 
-अपनी सबसे ज़्यादा पूछी जाने वाली service को सबसे ऊपर रखें। जो visitors किसी outage के दौरान page पर आते हैं, वे आमतौर पर पहली screen के बाद पढ़ना बंद कर देते हैं।
+जिस service के बारे में सबसे ज़्यादा पूछा जाता है, उसे सबसे ऊपर रखिए। outage के दौरान पेज पर आने वाले visitors आम तौर पर पहली screen के बाद पढ़ना छोड़ देते हैं।
 
-## CSV से groups import करना
+## CSV से समूह import करना
 
-हाथ से एक गहरी hierarchy बनाना थकाऊ है। Card header का three-dot overflow **Import groups from CSV** रखता है, जो **Import Groups from CSV** modal खोलता है।
+गहरी hierarchy हाथ से बनाना उबाऊ काम है। card के header में मौजूद तीन-बिंदु वाले overflow में **Import groups from CSV** है, जो **Import Groups from CSV** modal खोलता है।
 
-Flow यह है: `status-page-groups-template.csv` पाने के लिए **Download CSV Template**, इसे भरें, **Choose CSV File**, फिर कुछ भी लिखे जाने से पहले यह जाँचने के लिए कि क्या बनेगा, **Preview Import**। नतीजा **Groups Imported** और **Some Groups Could Not Be Imported** में बंटता है, ताकि एक गलत row चुपचाप गायब न हो जाए।
+रास्ता यह है: `status-page-groups-template.csv` पाने के लिए **Download CSV Template**, उसे भरिए, फिर **Choose CSV File**, और उसके बाद **Preview Import** — ताकि कुछ लिखे जाने से पहले आप देख लें कि बनेगा क्या। नतीजा दो हिस्सों में बँटता है, **Groups Imported** और **Some Groups Could Not Be Imported**, ताकि कोई खराब row चुपचाप गायब न हो जाए।
 
-केवल `name` आवश्यक है। स्वीकृत columns ये हैं:
+सिर्फ़ `name` आवश्यक है। स्वीकार किए जाने वाले columns ये हैं:
 
-| Column                    | यह क्या सेट करता है                                    |
-| --------------------------- | --------------------------------------------------------- |
-| `name`                      | Group का नाम। आवश्यक।                                     |
-| `parentName`                | उस group का नाम जिसके अंदर यह nest होता है।              |
-| `description`               | Group का description।                                     |
-| `isExpandedByDefault`       | क्या section visitors के लिए खुला शुरू होता है।           |
-| `showCurrentStatus`         | क्या group heading के बगल में status दिखता है।            |
-| `showUptimePercent`         | क्या group के बगल में uptime percentage दिखता है।         |
-| `uptimePercentPrecision`    | वह percentage कितने decimal places इस्तेमाल करता है।     |
-| `viewMode`                  | `List` या `Grid`।                                          |
-| `rowAxisLabel`              | Grid group के लिए row dimension का नाम।                   |
-| `rowAxisValues`             | Grid group के लिए row values।                              |
-| `columnAxisLabel`           | Grid group के लिए column dimension का नाम।                |
-| `columnAxisValues`          | Grid group के लिए column values।                           |
+| Column                   | यह क्या तय करता है                                    |
+| ------------------------ | ---------------------------------------------------- |
+| `name`                   | समूह का नाम। आवश्यक।                                 |
+| `parentName`             | उस समूह का नाम जिसके भीतर यह बैठता है।               |
+| `description`            | समूह का विवरण।                                       |
+| `isExpandedByDefault`    | visitors के लिए यह हिस्सा खुला शुरू हो या नहीं।      |
+| `showCurrentStatus`      | समूह की heading के बगल में स्थिति दिखे या नहीं।      |
+| `showUptimePercent`      | समूह के बगल में uptime प्रतिशत दिखे या नहीं।         |
+| `uptimePercentPrecision` | वह प्रतिशत कितने दशमलव स्थानों तक जाए।               |
+| `viewMode`               | `List` या `Grid`।                                    |
+| `rowAxisLabel`           | grid समूह के लिए row वाले आयाम का नाम।               |
+| `rowAxisValues`          | grid समूह के लिए row के मान।                         |
+| `columnAxisLabel`        | grid समूह के लिए column वाले आयाम का नाम।            |
+| `columnAxisValues`       | grid समूह के लिए column के मान।                      |
 
-Import groups बनाता है, resources नहीं — बाद में **Add Monitor** या **Add Multiple** से monitors जोड़ें।
+import समूह बनाता है, संसाधन नहीं — monitors बाद में **मॉनिटर जोड़ें** या **Add Multiple** से जोड़िए।
 
 ## आगे क्या पढ़ें
 
-- [स्थिति पृष्ठ अवलोकन](/docs/status-pages/index) — status page क्या है और टुकड़े कैसे साथ फिट होते हैं।
-- [स्थिति पृष्ठ ब्रांडिंग और डोमेन](/docs/status-pages/branding-and-domains) — logo, favicon, chart colors, और page को अपने खुद के domain पर रखना।
-- [सब्सक्राइबर और घोषणाएँ](/docs/status-pages/subscribers) — जब ये resources बदलते हैं तो किसे बताया जाता है।
-- [सार्वजनिक API](/docs/status-pages/public-api) — status page data को programmatically पढ़ना।
-- [घटना स्थितियाँ और गंभीरता](/docs/incidents/states-and-severities) — page पर कोई incident कब दिखती है, और कब गायब होती है।
+- [स्थिति पृष्ठ अवलोकन](/docs/status-pages/index) — स्थिति पृष्ठ है क्या और उसके हिस्से आपस में कैसे बैठते हैं।
+- [स्थिति पृष्ठ ब्रांडिंग और डोमेन](/docs/status-pages/branding-and-domains) — लोगो, favicon, चार्ट के रंग, और पेज को अपने डोमेन पर लाना।
+- [सब्सक्राइबर और घोषणाएँ](/docs/status-pages/subscribers) — इन संसाधनों में बदलाव होने पर किसे खबर मिलती है।
+- [सार्वजनिक API](/docs/status-pages/public-api) — स्थिति पृष्ठ का data programmatically पढ़ना।
+- [घटना स्थितियाँ और गंभीरता](/docs/incidents/states-and-severities) — कोई घटना पेज पर आती क्यों है, और उससे गायब कब होती है।

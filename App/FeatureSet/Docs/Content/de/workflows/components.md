@@ -1,210 +1,210 @@
 # Komponenten
 
-Komponenten sind die Bausteine, die Sie nach dem Auslöser hinzufügen. Jede erledigt eine Aufgabe – eine Nachricht senden, eine API aufrufen, eine Bedingung prüfen – und verbindet sich mit dem, was als Nächstes kommt.
+Komponenten sind die Bausteine, die Sie nach dem Trigger hinzufügen. Jede tut genau eine Sache – eine Nachricht senden, eine API aufrufen, eine Bedingung prüfen – und verbindet sich mit dem, was als Nächstes kommt.
 
-Diese Seite ist der Katalog. Wie Sie sie auf der Arbeitsfläche hinzufügen und verbinden, erfahren Sie unter [Einen Workflow erstellen](/docs/workflows/authoring).
+Diese Seite ist der Katalog. Wie Sie sie auf der Arbeitsfläche hinzufügen und verbinden, steht unter [Einen Workflow erstellen](/docs/workflows/authoring).
 
 ## API
 
-Stellt eine HTTP-Anfrage an eine beliebige URL.
+Stellen Sie eine HTTP-Anfrage an eine beliebige URL.
 
-**Settings**:
+**Einstellungen**:
 
 - **Method** – `GET`, `POST`, `PUT`, `PATCH` oder `DELETE`.
-- **URL** – die aufzurufende Adresse.
-- **Headers** – alle zu sendenden Header.
-- **Body** – der Request-Body für `POST` / `PUT` / `PATCH`.
+- **URL** – die Adresse, die aufgerufen wird.
+- **Headers** – die Header, die mitgeschickt werden sollen.
+- **Body** – der Anfragetext für `POST` / `PUT` / `PATCH`.
 
 **Outputs**:
 
-- **Erfolg** – wird ausgelöst, wenn der Aufruf erfolgreich war (2xx-Antwort). Gibt Status, Header und Body weiter.
-- **Fehler** – wird bei einem Netzwerkfehler oder einer Nicht-2xx-Antwort ausgelöst. Gibt die Fehlermeldung weiter.
+- **Erfolg** – feuert, wenn der Aufruf geklappt hat (2xx-Antwort). Reicht Status, Header und Body weiter.
+- **Fehler** – feuert bei einem Netzwerkfehler oder einer Antwort außerhalb von 2xx. Reicht die Fehlermeldung weiter.
 
-Verwenden Sie diese Komponente für: jede externe API, Ihre eigenen Admin-Endpunkte oder jede Integration, die keine eigene Komponente besitzt.
+Gut geeignet für: jede externe API, Ihre eigenen Admin-Endpunkte oder jede Integration, die keine eigene Komponente hat.
 
-## KI
+## AI
 
 ### Generate Text with AI
 
-Erzeugt eine Textantwort aus einem Prompt und optionalem JSON-Kontext. Die Komponente verwendet den im Projekt konfigurierten Standard-LLM-Anbieter und greift auf den globalen Anbieter der Installation zurück, falls einer verfügbar ist. Anbieter-Zugangsdaten und Endpunkte werden zentral konfiguriert; sie sind keine Workflow-Argumente.
+Erzeugt aus einem Prompt und optionalem JSON-Kontext eine Textantwort. Die Komponente nutzt den im Projekt konfigurierten Standard-LLM-Anbieter und fällt auf den globalen Anbieter der Installation zurück, sofern es einen gibt. Zugangsdaten und Endpunkte der Anbieter werden zentral konfiguriert; sie sind keine Workflow-Argumente.
 
-**Settings**:
+**Einstellungen**:
 
-- **System Instructions** – optionale Vorgaben für Rolle, Ton und Einschränkungen des Modells.
-- **Prompt** – die erforderliche Aufgabe. Kann Workflow-Variablen und Ausgaben früherer Komponenten enthalten.
-- **Context** – optionales JSON, das Sie bewusst mit der Anfrage mitschicken. Es wird nach einer expliziten Vertrauensmarkierung am Nachrichtenende angehängt und für den Rest der Nachricht als nicht vertrauenswürdige Daten behandelt.
-- **Temperature** – Variation von `0` bis `1`. Der Standardwert ist `0.2` für vorhersagbare Automatisierung.
-- **Maximum Output Tokens** – von `1` bis `4096`. Der Standardwert ist `1024`.
+- **System Instructions** – optionale Vorgaben zu Rolle, Ton und Grenzen des Modells.
+- **Prompt** – die eigentliche Aufgabe, Pflichtfeld. Er darf Workflow-Variablen und Ausgaben früherer Komponenten enthalten.
+- **Context** – optionales JSON, das Sie bewusst mit der Anfrage mitschicken. Es wird nach einer ausdrücklichen Vertrauensmarkierung am Nachrichtenende angehängt und im weiteren Verlauf der Nachricht als nicht vertrauenswürdige Daten behandelt.
+- **Temperature** – Streuung von `0` bis `1`. Der Standard ist `0.2`, damit die Automatisierung vorhersehbar bleibt.
+- **Maximum Output Tokens** – von `1` bis `4096`. Der Standard ist `1024`.
 
-Die kombinierten System Instructions, Prompt und der serialisierte Context sind auf 50.000 Zeichen begrenzt. Die Anfrage an den Anbieter hat eine maximale Dauer von 60 Sekunden und wird einmal versucht. Pro Projekt können höchstens drei Workflow-KI-Anfragen gleichzeitig laufen.
+System Instructions, Prompt und serialisierter Context sind zusammen auf 50.000 Zeichen begrenzt. Die Anfrage an den Anbieter dauert höchstens 60 Sekunden und wird genau einmal versucht. Pro Projekt laufen höchstens drei KI-Anfragen aus Workflows gleichzeitig.
 
 **Outputs**:
 
-- **Response** – der generierte Text.
+- **Response** – der erzeugte Text.
 - **Anbieter** und **Model** – die für den Aufruf verwendete Konfiguration.
-- **Total Tokens** und **Completion Tokens** – vom Anbieter gemeldete Nutzung.
+- **Total Tokens** und **Completion Tokens** – die vom Anbieter gemeldete Nutzung.
 - **LLM Log ID** – der abgerechnete KI-Protokolleintrag für den Aufruf.
 - **Fehler** – der Validierungs-, Zugriffs-, Anbieter-, Budget-, Abrechnungs- oder Timeout-Fehler, sofern vorhanden.
 
-Verbinden Sie **Erfolg** mit Komponenten, die die Antwort weiterverwenden sollen. Verbinden Sie **Fehler** mit einem expliziten Fallback-, Alarm- oder Log-Pfad. Die Komponente stellt eine einzelne Modellanfrage ohne Tool-Definitionen oder anbieterseitige Capability-Felder: Sie kann OneUptime nicht selbst abfragen, keine APIs aufrufen und keine Projektdaten ändern. Abgesehen von OneUptimes festen Komponenten-Sicherheitsanweisungen werden nur die von Ihnen konfigurierten System Instructions, Prompt und Context an den Anbieter gesendet, nachdem Workflow-Variablen in diesen Feldern aufgelöst wurden. Der konfigurierte Anbieter/das Modell bleibt eine Vertrauensgrenze, weil ein Modell über intrinsische, vom Anbieter verwaltete Fähigkeiten verfügen kann.
+Verbinden Sie **Erfolg** mit den Komponenten, welche die Antwort nutzen sollen. Verbinden Sie **Fehler** mit einem ausdrücklichen Ausweichpfad, einer Warnung oder einer Protokollierung. Die Komponente stellt genau eine Modellanfrage, ohne Tool-Definitionen und ohne anbietereigene Capability-Felder: Sie kann von sich aus weder OneUptime abfragen noch APIs aufrufen noch Projektdaten ändern. Außer den festen Sicherheitsanweisungen, die OneUptime der Komponente mitgibt, gehen nur die von Ihnen konfigurierten System Instructions, Prompt und Context an den Anbieter – nachdem die Workflow-Variablen in diesen Feldern aufgelöst wurden. Der konfigurierte Anbieter und das Modell bleiben eine Vertrauensgrenze, weil ein Modell eigene, vom Anbieter verwaltete Fähigkeiten haben kann.
 
-Die Modellausgabe ist nicht vertrauenswürdiger Text. Prüfen Sie sie, bevor Sie kundenseitige Kommunikation versenden, und verwenden Sie frei formulierten KI-Text nicht allein, um destruktive Workflow-Aktionen zu autorisieren. Siehe [Konfiguration & Sicherheit](/docs/workflows/configuration) für Details zu Anbieter, Egress, Logging und Kosten.
+Die Ausgabe des Modells ist nicht vertrauenswürdiger Text. Prüfen Sie sie, bevor Sie Kundenkommunikation verschicken, und autorisieren Sie zerstörerische Workflow-Aktionen niemals allein mit freiem KI-Text. Details zu Anbietern, ausgehendem Datenverkehr, Protokollierung und Kosten finden Sie unter [Workflow-Konfiguration & Sicherheit](/docs/workflows/configuration).
 
 ## Webhook (ausgehend)
 
-Eine einfachere Variante der API-Komponente für „Fire and Forget"-Anwendungsfälle. Sendet einen JSON-Body per POST an eine URL.
+Eine einfachere Variante der API-Komponente für Fälle nach dem Motto „abschicken und vergessen“. Sie postet einen JSON-Body an eine URL.
 
-Verwenden Sie **API**, wenn Sie die Antwort lesen müssen. Verwenden Sie **Webhook**, wenn Sie einfach nur eine Benachrichtigung senden und weiterziehen wollen.
+Nehmen Sie **API**, wenn Sie die Antwort lesen müssen. Nehmen Sie **Webhook**, wenn Sie nur eine Benachrichtigung abschicken und weitermachen wollen.
 
 ## Slack
 
-Veröffentlicht eine Nachricht in einem Slack-Kanal.
+Eine Nachricht in einen Slack-Kanal posten.
 
-**Settings**:
+**Einstellungen**:
 
-- **Kanal** – der Kanalname. Der Bot muss bereits Mitglied dieses Kanals sein.
-- **Nachricht** – der zu sendende Text. Unterstützt Slack-Formatierung.
+- **Kanal** – der Name des Kanals. Der Bot muss bereits in diesem Kanal sein.
+- **Nachricht** – der zu sendende Text. Slack-Formatierung wird unterstützt.
 
 Verbinden Sie Slack zuerst mit Ihrem Projekt unter **Projekteinstellungen → Arbeitsbereich → Slack**. Siehe [Slack-Workspace-Verbindung](/docs/workspace-connections/slack).
 
 ## Microsoft Teams
 
-Veröffentlicht eine Nachricht in einem Microsoft-Teams-Kanal.
+Eine Nachricht in einen Microsoft-Teams-Kanal posten.
 
-**Settings**:
+**Einstellungen**:
 
-- **Team and channel** – wo veröffentlicht werden soll.
+- **Team and channel** – wohin gepostet wird.
 - **Nachricht** – der zu sendende Text.
 
 Zur Einrichtung siehe [Microsoft-Teams-Workspace-Verbindung](/docs/workspace-connections/microsoft-teams).
 
 ## Discord
 
-Veröffentlicht eine Nachricht in einem Discord-Kanal über eine eingehende Webhook-URL.
+Eine Nachricht über eine Incoming-Webhook-URL in einen Discord-Kanal posten.
 
 ## Telegram
 
-Sendet eine Nachricht in einen Telegram-Chat mithilfe eines Bot-Tokens und einer Chat-ID.
+Eine Nachricht mit einem Bot-Token und einer Chat-ID an einen Telegram-Chat senden.
 
-## E-Mail
+## Email
 
-Sendet eine E-Mail über OneUptime.
+Eine E-Mail über OneUptime versenden.
 
-**Settings**:
+**Einstellungen**:
 
 - **An** – die E-Mail-Adresse des Empfängers.
 - **Betreff** – die Betreffzeile.
 - **Body** – die Nachricht in Markdown oder HTML.
 
-Die E-Mail wird vom in Ihrem Projekt konfigurierten Absender verschickt – siehe [SMTP](/docs/emails/smtp).
+Die E-Mail geht von dem in Ihrem Projekt konfigurierten Absender raus – siehe [SMTP](/docs/emails/smtp).
 
 ## Custom Code
 
-Führt ein kleines Stück JavaScript aus, wenn Sie etwas brauchen, das die anderen Bausteine nicht abdecken.
+Führen Sie ein kleines Stück JavaScript aus, wenn Sie etwas brauchen, das die anderen Bausteine nicht können.
 
-**Settings**:
+**Einstellungen**:
 
-- **Code** – Ihr JavaScript. Der letzte Wert (oder das, was Sie aus einer asynchronen Funktion zurückgeben) wird zur Ausgabe des Bausteins.
-- **Arguments** – benannte Werte, die Sie übergeben können.
+- **Code** – Ihr JavaScript. Der letzte Wert (oder das, was Sie aus einer async-Funktion zurückgeben) wird zur Ausgabe des Bausteins.
+- **Arguments** – benannte Werte, die Sie hineinreichen können.
 
 **Outputs**: Erfolg (Ihr Rückgabewert) und Fehler (jede Ausnahme).
 
-Verwenden Sie diese Komponente für: Daten zwischen zwei Systemen umformen, eine kleine Berechnung durchführen, alles, was keinen eigenen Baustein verdient. Für umfangreichere Skripte verwenden Sie stattdessen ein [Runbook](/docs/runbooks/index).
+Gut geeignet für: Daten zwischen zwei Systemen umformen, eine kleine Berechnung anstellen, alles, was keinen eigenen Baustein verdient. Für umfangreicheres Skripting nehmen Sie stattdessen ein [Runbook](/docs/runbooks/index).
 
 ## JSON
 
-Konvertiert zwischen Text und JSON.
+Zwischen Text und JSON umwandeln.
 
-- **JSON → Text** – wandelt ein JSON-Objekt in eine Zeichenkette um. Praktisch, wenn der nächste Baustein Text erwartet.
-- **Text → JSON** – wandelt eine Zeichenkette in ein JSON-Objekt um. Praktisch, wenn etwas als Text ankam und Sie ein Feld auslesen müssen.
+- **JSON → Text** – ein JSON-Objekt in eine Zeichenkette verwandeln. Praktisch, wenn der nächste Baustein Text erwartet.
+- **Text → JSON** – eine Zeichenkette in ein JSON-Objekt parsen. Praktisch, wenn etwas als Text angekommen ist und Sie ein Feld daraus lesen müssen.
 
-## Bedingungen
+## Conditions
 
-Verzweigt anhand eines Vergleichs. Im Panel **Komponente hinzufügen** heißt dieser Baustein **If / Else**, unter der Kategorie Bedingungen.
+Anhand eines Vergleichs verzweigen. Im Panel **Komponente hinzufügen** heißt dieser Baustein **If / Else** und steht unter der Kategorie Conditions.
 
-**Settings**:
+**Einstellungen**:
 
 - **Left value** – meist ein Wert aus einem früheren Baustein.
 - **Operator** – `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts with`, `ends with`.
-- **Right value** – womit verglichen werden soll.
+- **Right value** – womit verglichen wird.
 
-**Outputs**: **Ja** und **Nein**. Verbinden Sie die nächsten Bausteine mit dem gewünschten Zweig.
+**Outputs**: **Ja** und **Nein**. Verbinden Sie die nächsten Bausteine mit dem Zweig, den Sie brauchen.
 
 ## Delay
 
-Pausiert den Workflow für eine festgelegte Zeit, bevor er fortgesetzt wird. Nützlich, wenn Sie einem anderen System einen Moment Zeit geben müssen, um nachzuziehen.
+Den Workflow für eine festgelegte Zeit anhalten, bevor es weitergeht. Praktisch, wenn Sie einem anderen System einen Moment zum Nachziehen geben müssen.
 
-## Protokoll
+## Log
 
-Schreibt eine Zeile in das Ausführungsprotokoll. Keine Außenwirkung – die Zeile erscheint nur in den Protokollen des Workflows, damit Sie sie nachlesen können. Hilfreich beim Debuggen.
+Eine Zeile ins Ausführungsprotokoll schreiben. Keine Wirkung nach außen – sie taucht einfach in den Protokollen des Workflows auf, damit Sie sie lesen können. Praktisch zur Fehlersuche.
 
 ## Execute Workflow
 
-Ruft aus diesem Workflow heraus einen anderen Workflow auf. Der aufgerufene Workflow läuft eigenständig – Ihr Workflow fährt fort, ohne auf dessen Abschluss zu warten.
+Aus diesem Workflow heraus einen anderen aufrufen. Der aufgerufene Workflow läuft eigenständig – Ihr Workflow macht weiter, ohne auf dessen Ende zu warten.
 
-So lassen sich gemeinsame Abläufe wiederverwenden. Bauen Sie zum Beispiel einmal einen Workflow „In Vorfall-Kanal posten" und rufen Sie ihn aus jedem anderen Workflow auf, der den Kanal benachrichtigen soll.
+So teilen Sie gemeinsame Logik. Bauen Sie einmal einen Workflow „in den Vorfallskanal posten“ und rufen Sie ihn aus jedem anderen Workflow auf, der den Kanal benachrichtigen muss.
 
-Es gibt ein Sicherheitslimit, damit Workflows einander nicht in einer Endlosschleife aufrufen können. Siehe [Konfiguration & Sicherheit](/docs/workflows/configuration).
+Es gibt eine Sicherheitsgrenze, damit Workflows sich nicht endlos gegenseitig aufrufen können. Siehe [Workflow-Konfiguration & Sicherheit](/docs/workflows/configuration).
 
 ## OneUptime-Datenkomponenten
 
-Für jede Art von Datensatz in OneUptime (Monitore, Vorfälle, Warnmeldungen, Statusseiten, Bereitschaftsrichtlinien und viele weitere) bietet das Panel **Komponente hinzufügen** diese Komponenten – suchen Sie einfach nach dem Namen des Typs. Jeder Titel wird aus dem Datensatztyp gebildet, für Monitor also:
+Für jede Art von Datensatz in OneUptime (Monitore, Vorfälle, Warnungen, Statusseiten, Bereitschaftsrichtlinien und viele mehr) hält das Panel **Komponente hinzufügen** diese Komponenten bereit – suchen Sie nach dem Namen des Typs. Jeder Titel wird aus dem Datensatztyp erzeugt, für Monitor lautet der Satz also:
 
-- **Find One Monitor** – liest einen Datensatz, der der Query entspricht.
-- **Find Many Monitors** – liest eine Liste von Datensätzen, die der Query entsprechen.
-- **Create One Monitor** – legt einen Datensatz aus einem JSON-Objekt an.
-- **Create Many Monitors** – legt mehrere Datensätze aus einem JSON-Array an.
-- **Update One Monitor** – wendet den Schreib-Payload auf einen passenden Datensatz an.
-- **Update Many Monitors** – wendet den Schreib-Payload auf passende Datensätze an, bis zum Limit.
-- **Delete One Monitor** – löscht einen passenden Datensatz.
-- **Delete Many Monitors** – löscht passende Datensätze, bis zum Limit.
+- **Find One Monitor** – einen Datensatz lesen, der zur Abfrage passt.
+- **Find Many Monitors** – eine Liste von Datensätzen lesen, die zur Abfrage passen.
+- **Create One Monitor** – einen Datensatz aus einem JSON-Objekt anlegen.
+- **Create Many Monitors** – mehrere Datensätze aus einem JSON-Array anlegen.
+- **Update One Monitor** – die Schreib-Payload auf einen passenden Datensatz anwenden.
+- **Update Many Monitors** – die Schreib-Payload auf die passenden Datensätze anwenden, bis zur Grenze aus Limit.
+- **Delete One Monitor** – einen passenden Datensatz löschen.
+- **Delete Many Monitors** – die passenden Datensätze löschen, bis zur Grenze aus Limit.
 
-Dasselbe Set gibt Ihnen drei Trigger – **On Create Monitor**, **On Update Monitor** und **On Delete Monitor**. Siehe [Trigger](/docs/workflows/triggers).
+Derselbe Satz liefert Ihnen drei Trigger – **On Create Monitor**, **On Update Monitor** und **On Delete Monitor**. Siehe [Workflow-Trigger](/docs/workflows/triggers).
 
-Ein Typ bietet nur die Komponenten, die sein Modell erlaubt. Ein reiner Lese-Typ hat nur die beiden Find-Komponenten und sonst nichts – wenn Sie **Delete One Monitor** also nicht im Panel finden, erlaubt dieser Typ das nicht.
+Ein Typ bietet nur die Komponenten an, die sein Modell zulässt. Ein nur lesbarer Typ hat die beiden Find-Komponenten und sonst nichts – wenn Sie also **Delete One Monitor** im Panel nicht finden, erlaubt dieser Typ es nicht.
 
-So kann ein Workflow OneUptime-Daten lesen und ändern. Beispiel: Ein Webhook aus Ihrem CI-Tool kann **Create One Incident** verwenden, um einen Vorfall mit den Fehlerdetails zu öffnen.
+So kann ein Workflow OneUptime-Daten lesen und ändern. Zum Beispiel: Ein Webhook aus Ihrem CI-Tool kann mit **Create One Incident** einen Vorfall mit den Fehlerdetails eröffnen.
 
 ## Mit Datensätzen arbeiten
 
-Jedes Feld einer Datenkomponente ist auf die eigenen **column**-Namen des Datensatzes bezogen – dieselben Namen, die die API verwendet, nicht die Beschriftungen im Dashboard-Formular. Die ID-Spalte ist `_id`. Die Schreibweise `id` wird überall als Alias akzeptiert, wo Sie einen Spaltennamen eingeben können, aber `_id` ist das, was ein Datensatz zurückgibt – das ist also das, was Sie beim Auslesen verwenden sollten:
+Jedes Feld einer Datenkomponente arbeitet mit den **Spaltennamen** des Datensatzes selbst – denselben Namen, die auch die API verwendet, nicht den Beschriftungen im Dashboard-Formular. Die ID-Spalte heißt `_id`. Die Schreibweise `id` wird überall dort als Alias akzeptiert, wo Sie einen Spaltennamen eintippen können, aber ein Datensatz gibt `_id` zurück – das ist es also, was Sie beim Auslesen verwenden:
 
 ```json
 { "_id": "00000000-0000-0000-0000-000000000000" }
 ```
 
-**Query** entscheidet, auf welche Datensätze die Komponente wirkt. Schlüssel sind Spalten, Werte sind das, womit verglichen wird:
+**Query** entscheidet, auf welche Datensätze die Komponente wirkt. Die Schlüssel sind Spalten, die Werte das, worauf verglichen wird:
 
 ```json
 { "monitorType": "Website", "isEnabled": true }
 ```
 
-Eine Query ist immer auf das Projekt begrenzt, in dem der Workflow läuft. Sie können nicht auf die Datensätze eines anderen Projekts zugreifen, und Sie müssen das Projekt der Query nicht selbst hinzufügen.
+Eine Abfrage ist immer auf das Projekt beschränkt, in dem der Workflow läuft. Sie erreichen die Datensätze eines anderen Projekts nicht, und Sie müssen das Projekt auch nicht selbst in die Abfrage schreiben.
 
-**JSON Object** bei Create One, **JSON Array** bei Create Many und **Data (JSON Object)** bei den Update-Komponenten enthalten die zu schreibenden Felder, auf dieselbe Weise referenziert:
+**JSON Object** bei Create One, **JSON Array** bei Create Many und **Data (JSON Object)** bei den Update-Komponenten enthalten die zu schreibenden Felder, mit denselben Schlüsseln:
 
 ```json
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-Ein Schlüssel, der keine Spalte ist, wird ignoriert statt abgelehnt – das Ausführungsprotokoll nennt die verworfenen Schlüssel, schauen Sie dort nach, wenn ein Feld nicht ankommt. **Select Fields** verwendet bei den Find-Komponenten und den Triggern dieselben Spaltenschlüssel mit `true`-Werten: `{"_id": true, "name": true}`.
+Ein Schlüssel, der keine Spalte ist, wird ignoriert statt abgelehnt – das Ausführungsprotokoll nennt die verworfenen, schauen Sie also dort nach, wenn ein Feld nicht ankommt. **Select Fields** an den Find-Komponenten und den Triggern nutzt dieselben Spaltenschlüssel mit dem Wert `true`: `{"_id": true, "name": true}`.
 
-**Überspringen** und **Limit** sind zwei Zahlenfelder bei Find Many, Update Many und Delete Many – `Skip: 0` mit `Limit: 100` nimmt die ersten hundert Treffer. Limit ist standardmäßig `10` und begrenzt bei Update Many und Delete Many, wie viele Datensätze tatsächlich geschrieben werden, nicht nur, wie viele zurückkommen. `Items Deleted: 10` bedeutet also, dass zehn Datensätze gelöscht wurden, nicht dass zehn Treffer gefunden wurden. Erhöhen Sie Limit, wenn Sie mehr als zehn ändern möchten.
+**Skip** und **Limit** sind zwei Zahlenfelder an Find Many, Update Many und Delete Many – `Skip: 0` zusammen mit `Limit: 100` nimmt die ersten hundert Treffer. Limit steht standardmäßig auf `10`, und bei Update Many und Delete Many begrenzt es, wie viele Datensätze tatsächlich geschrieben werden, nicht nur, wie viele zurückkommen. `Items Deleted: 10` heißt also, dass zehn Datensätze gelöscht wurden, nicht dass zehn gepasst haben. Erhöhen Sie Limit, wenn Sie mehr als zehn ändern wollen.
 
-**Erfolg** und **Fehler** melden, ob die Query gelaufen ist, nicht was sie gefunden hat. Eine Query, die nichts trifft, gibt `0` zurück und verlässt die Komponente trotzdem über Erfolg – das ist kein Fehlschlag. Um abhängig davon zu verzweigen, ob etwas getroffen wurde, lesen Sie die zurückgegebene Anzahl in einem **If / Else**-Baustein aus.
+**Erfolg** und **Fehler** melden, ob die Abfrage gelaufen ist, nicht was sie gefunden hat. Eine Abfrage ohne Treffer liefert `0` und verlässt den Baustein trotzdem über Erfolg – das ist kein Fehlschlag. Um danach zu verzweigen, ob überhaupt etwas gepasst hat, lesen Sie die zurückgegebene Anzahl in einem Baustein **If / Else** aus.
 
-## Welche Komponente soll ich verwenden?
+## Welche Komponente soll ich nehmen?
 
-Ein paar Faustregeln:
+Ein paar schnelle Faustregeln:
 
-- Wenn es für Ihr Vorhaben einen eigenen Baustein gibt (Slack, E-Mail, einen OneUptime-Datensatz), verwenden Sie ihn – Sie erhalten eine bessere Fehlerbehandlung und klarere Protokolle.
-- Für jede andere externe API verwenden Sie **API**.
-- Um Text aus explizit ausgewählten Workflow-Daten zusammenzufassen, zu klassifizieren oder zu entwerfen, verwenden Sie **Generate Text with AI**.
-- Um Daten zwischen Bausteinen umzuformen, verwenden Sie **Custom Code** oder **JSON**.
-- Um abhängig von einem Wert unterschiedliche Aktionen auszuführen, verwenden Sie **Bedingungen**.
+- Gibt es einen eigenen Baustein für das, was Sie vorhaben (Slack, E-Mail, ein OneUptime-Datensatz), nehmen Sie ihn – Sie bekommen sauberere Fehlerbehandlung und klarere Protokolle.
+- Für jede andere externe API nehmen Sie **API**.
+- Um aus ausdrücklich ausgewählten Workflow-Daten zusammenzufassen, zu klassifizieren oder Text zu entwerfen, nehmen Sie **Generate Text with AI**.
+- Um Daten zwischen Bausteinen umzuformen, nehmen Sie **Custom Code** oder **JSON**.
+- Um je nach Wert unterschiedlich zu handeln, nehmen Sie **Conditions**.
 
 ## Weiterführende Themen
 
-- [Variablen](/docs/workflows/variables) – Daten zwischen Bausteinen weitergeben.
-- [Ausführungen & Protokolle](/docs/workflows/runs-and-logs) – nachvollziehen, was jeder Baustein bei einer Ausführung getan hat.
-- [Konfiguration & Sicherheit](/docs/workflows/configuration) – Limits, Eigentümer und Geheimnisse.
+- [Workflow-Variablen](/docs/workflows/variables) – Daten zwischen Bausteinen weitergeben.
+- [Workflow-Ausführungen & Protokolle](/docs/workflows/runs-and-logs) – nachsehen, was jeder Baustein bei einer Ausführung getan hat.
+- [Workflow-Konfiguration & Sicherheit](/docs/workflows/configuration) – Grenzen, Owners und Geheimnisse.

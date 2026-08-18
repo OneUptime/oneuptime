@@ -1,160 +1,160 @@
 # Ressourcen & Gruppen
 
-Eine Ressource ist eine Zeile auf Ihrer Statusseite – ein Monitor (oder eine Monitor-Gruppe) mit einem Namen, den Besucher verstehen können, einem aktuellen Status und optional einer Verfügbarkeitszahl und einem Verlaufsdiagramm. Eine Gruppe ist ein Abschnitt, der Ressourcen enthält, sodass eine Seite mit vierzig Monitoren wie „API", „Web-App" und „Datenpipeline" wirkt, statt wie eine endlose Liste.
+Eine Ressource ist eine Zeile auf Ihrer Statusseite – ein Monitor (oder eine Monitorgruppe) mit einem Namen, den Besucher verstehen, einem aktuellen Status und wahlweise einer Verfügbarkeitszahl und einem Verlaufsdiagramm. Eine Gruppe ist ein Abschnitt, der Ressourcen aufnimmt, damit sich eine Seite mit vierzig Monitoren als „API“, „Web-App“ und „Datenpipeline“ liest statt als eine endlose Liste.
 
-Beide bauen Sie auf einem einzigen Bildschirm auf. Öffnen Sie eine Statusseite und wählen Sie **Resources** im Seitenmenü (der Eintrag heißt **Monitors** bei Projekten, die keine Monitor-Gruppen aktiviert haben). Gruppen hatten früher eine eigene Seite; das ist nicht mehr so, und die alte `/groups`-URL leitet einfach hierher um.
+Beides bauen Sie auf einem einzigen Bildschirm. Öffnen Sie eine Statusseite und wählen Sie **Ressourcen** im Seitenmenü (in Projekten ohne aktivierte Monitorgruppen heißt der Eintrag **Monitore**). Gruppen hatten früher eine eigene Seite; das ist vorbei, und die alte URL `/groups` leitet einfach hierher um.
 
-Bekommen Sie diesen Teil richtig hin, ist der Rest der Statusseite Dekoration. Besucher beurteilen „bin ich es oder sind sie es?" anhand dieser Zeilen, benennen Sie sie also so, wie Kunden über Ihr Produkt sprechen – **Checkout API**, nicht `prod-checkout-lb-healthcheck-us-east-1`.
+Machen Sie diesen Teil richtig, ist der Rest der Statusseite Dekoration. Besucher entscheiden anhand dieser Zeilen, ob es „an mir oder an denen“ liegt – benennen Sie sie also so, wie Kunden über Ihr Produkt sprechen: **Checkout API**, nicht `prod-checkout-lb-healthcheck-us-east-1`.
 
 ## Der Ressourcen-Bildschirm
 
-Der Bildschirm ist zweigeteilt. Links befindet sich ein Navigator, der jede Gruppe auf der Seite auflistet; rechts der Inhalt der jeweils ausgewählten Gruppe.
+Der Bildschirm ist zweigeteilt. Links steht ein Navigator mit allen Gruppen der Seite; rechts steht der Inhalt der Gruppe, die Sie ausgewählt haben.
 
-- **Der Gruppen-Navigator (links)** – ein Baum aus Gruppen, mit einem Suchfeld (**Search groups...**) darüber und einer laufenden Zählung darunter, etwa `3 groups · 12 resources`. Wenn eine Seite mehr Gruppen hat, als hineinpassen, zeigt eine Schaltfläche **Show N more of M** den Rest.
-- **Top of page** – die erste Zeile im Navigator. Sie enthält Ressourcen, die zu keiner Gruppe gehören, und ihr Tooltip erklärt genau, was das bedeutet: Besucher sehen diese zuerst, über allen Gruppen. Hat die Seite überhaupt keine Gruppen, ist der rechte Bereich stattdessen mit **All resources** überschrieben.
-- **Der Ressourcenbereich (rechts)** – überschrieben mit der ausgewählten Gruppe. In seiner Kopfzeile befinden sich **Edit Group**, die primäre Schaltfläche **Add Monitor** und ein Überlaufmenü **More actions**.
+- **Der Gruppennavigator (links)** – ein Baum von Gruppen, darüber ein Suchfeld (**Search groups...**) und darunter eine mitlaufende Zählung wie `3 groups · 12 resources`. Hat eine Seite mehr Gruppen, als hineinpassen, blendet eine Schaltfläche **Show N more of M** den Rest ein.
+- **Top of page** – die erste Zeile im Navigator. Sie enthält Ressourcen, die in keiner Gruppe stecken, und ihr Tooltip sagt genau, was das heißt: Besucher sehen diese zuerst, über jeder Gruppe. Hat die Seite überhaupt keine Gruppen, heißt der rechte Bereich stattdessen **All resources**.
+- **Der Ressourcenbereich (rechts)** – überschrieben mit der Gruppe, die Sie ausgewählt haben. Seine Kopfzeile trägt **Edit Group**, die primäre Schaltfläche **Monitor hinzufügen** und ein Überlaufmenü **More actions**.
 
-Zwei Schaltflächen befinden sich in der Kopfzeile der Karte selbst: **New Group** sowie ein Drei-Punkte-Überlaufmenü mit **Import groups from CSV** und **Refresh**.
+Zwei Schaltflächen sitzen in der Kopfzeile der Karte selbst: **New Group** und ein Drei-Punkte-Menü mit **Import groups from CSV** und **Aktualisieren**.
 
-Die Beschreibung der Karte ändert sich mit der Form Ihrer Seite. Mit Gruppen liest man dort, dass dies alles ist, was Besucher sehen, und dass man links eine Gruppe auswählen soll, um deren Inhalt zu bearbeiten. Ohne Gruppen ermuntert sie Sie, eine anzulegen, um eine längere Seite in Abschnitte zu unterteilen.
+Die Beschreibung der Karte richtet sich nach der Form Ihrer Seite. Mit Gruppen steht dort, dass dies alles ist, was Besucher sehen, und dass Sie links eine Gruppe wählen sollen, um deren Inhalt zu bearbeiten. Ohne Gruppen legt sie Ihnen nahe, eine anzulegen, um eine längere Seite in Abschnitte zu teilen.
 
-**Leerzustände sagen Ihnen, was zu tun ist.** Eine leere Gruppe zeigt **No monitors here yet** mit **Add Monitor**, **Add Multiple** und – nur wenn die Statusseite überhaupt keine Gruppen hat – **Create a Group**. Eine Suche, die nichts findet, zeigt **No resources match your search**. Ein leerer Navigator erklärt, dass Gruppen eine längere Statusseite in Abschnitte unterteilen und dass sie verschachtelt werden können.
+**Leerzustände sagen Ihnen, was zu tun ist.** Eine leere Gruppe zeigt **No monitors here yet** mit **Monitor hinzufügen**, **Add Multiple** und – nur wenn die Statusseite überhaupt keine Gruppen hat – **Create a Group**. Eine Suche ohne Treffer zeigt **No resources match your search**. Ein leerer Navigator erklärt, dass Gruppen eine längere Statusseite in Abschnitte teilen und sich verschachteln lassen.
 
 ## Einen Monitor hinzufügen
 
-Wählen Sie die Gruppe aus, in der die Ressource landen soll (oder **Top of page** für eine gruppenlose Zeile), und klicken Sie dann auf **Add Monitor**. Das Modal trägt den Titel **Add a monitor to {group}** und hat zwei Schritte: **Monitor Details** und **Advanced**.
+Wählen Sie die Gruppe, in der die Ressource landen soll (oder **Top of page** für eine Zeile ohne Gruppe), und klicken Sie auf **Monitor hinzufügen**. Der Dialog heißt **Add a monitor to {group}** und hat zwei Schritte: **Monitordetails** und **Erweitert**.
 
-Bei **Monitor Details**:
+Im Schritt **Monitordetails**:
 
-- **Monitor** – das Dropdown der Monitore in Ihrem Projekt, Platzhalter **Select Monitor**. Erforderlich.
-- **Display Name** – erforderlich. Das ist der Text, den Besucher lesen, und er wird getrennt vom eigenen Namen des Monitors gespeichert, sodass Sie ihn hier umbenennen können, ohne die Überwachung anzufassen.
-- **Description** – optionales Markdown, das unter der Zeile angezeigt wird. Gut für einen Satz, der erklärt, was der Dienst tatsächlich tut.
+- **Überwachung** – das Dropdown der Monitore in Ihrem Projekt, Platzhalter **Überwachung auswählen**. Pflichtfeld.
+- **Anzeigename** – Pflichtfeld. Das ist der Text, den Besucher lesen; er wird getrennt vom eigenen Namen des Monitors gespeichert, Sie können ihn hier also ändern, ohne die Überwachung anzufassen.
+- **Beschreibung** – optionales Markdown, unter der Zeile angezeigt. Gut für einen Satz, der erklärt, was der Dienst eigentlich tut.
 
-Wenn Ihr Projekt Monitor-Gruppen aktiviert hat, liest man unter dem Dropdown einen Link **Add a Monitor Group instead.** – klicken Sie ihn an, und das **Monitor**-Dropdown wird gegen ein **Monitor Group**-Dropdown getauscht (**Select Monitor Group**). Der Link kippt dann auf **Add a Monitor instead.**, damit Sie zurückwechseln können. Verwenden Sie eine Monitor-Gruppe, wenn eine Zeile auf der Seite mehrere zusammengefasste Prüfungen repräsentieren soll.
+Sind in Ihrem Projekt Monitorgruppen aktiviert, steht unter dem Dropdown ein Link **Add a Monitor Group instead.** – klicken Sie ihn an, und das Dropdown **Überwachung** wird gegen ein Dropdown **Monitor Gruppe** getauscht (**Überwachungsgruppe auswählen**). Der Link wechselt dann zu **Add a Monitor instead.**, damit Sie zurückkönnen. Nehmen Sie eine Monitorgruppe, wenn eine Zeile auf der Seite mehrere zusammengefasste Prüfungen darstellen soll.
 
 ### Mehrere auf einmal hinzufügen
 
-**Add Multiple** (auch **Add multiple monitors** im Menü **More actions**) öffnet **Add Multiple Monitors**. Es hat dieselben zwei Schritte, aber der erste ist eine Mehrfachauswahl **Monitors** statt eines einzelnen Dropdowns, und die auf **Advanced** gewählten Anzeigeoptionen gelten für jeden ausgewählten Monitor. Das ist der schnellste Weg, eine neue Seite zu befüllen.
+**Add Multiple** (im Menü **More actions** auch **Add multiple monitors**) öffnet **Add Multiple Monitors**. Der Dialog hat dieselben zwei Schritte, aber der erste ist eine Mehrfachauswahl **Monitore** statt eines einzelnen Dropdowns, und die Anzeigeoptionen aus **Erweitert** gelten für jeden Monitor, den Sie ausgewählt haben. Das ist der schnellste Weg, eine neue Seite zu bestücken.
 
-## Anzeigeoptionen einer Ressource
+## Anzeigeoptionen an einer Ressource
 
-Der Schritt **Advanced** ist im Einzelformular und im Sammelmodal identisch. Alles hier gilt pro Ressource – zwei Zeilen in derselben Gruppe können unterschiedlich konfiguriert sein.
+Der Schritt **Erweitert** ist im Einzelformular und im Massendialog derselbe. Alles hier gilt pro Ressource – zwei Zeilen in derselben Gruppe dürfen unterschiedlich konfiguriert sein.
 
-| Feld                                                      | Zweck                                                                                              |
-| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| **Tooltip** (`displayTooltip`)                            | Zusätzlicher Text, der neben der Ressource auf Ihrer Statusseite angezeigt wird. Nutzen Sie ihn für den Geltungsbereich: „US and EU customers". |
-| **Show Current Resource Status** (`showCurrentStatus`)    | Standardmäßig an. Zeigt den Live-Status – operational, degraded, offline – neben der Zeile.        |
-| **Show Uptime %** (`showUptimePercent`)                   | Standardmäßig aus. Zeigt einen Verfügbarkeitsprozentsatz neben der Ressource.                      |
-| **Select Uptime Precision** (`uptimePercentPrecision`)    | Erscheint erst, wenn **Show Uptime %** an ist. Erforderlich, Standard ist eine Nachkommastelle.    |
-| **Show Status History Chart** (`showStatusHistoryChart`)  | Standardmäßig an. Zeigt das tagesgenaue Balkendiagramm des Verfügbarkeitsverlaufs für die Ressource. |
+| Feld                                                              | Zweck                                                                                              |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| **Tooltip** (`displayTooltip`)                                    | Zusätzlicher Text neben der Ressource auf Ihrer Statusseite. Nutzen Sie ihn für den Geltungsbereich: „Kunden in den USA und der EU“. |
+| **Aktuellen Ressourcenstatus anzeigen** (`showCurrentStatus`)     | Standardmäßig an. Zeigt den Live-Status – betriebsbereit, beeinträchtigt, offline – neben der Zeile. |
+| **Verfügbarkeit % anzeigen** (`showUptimePercent`)                | Standardmäßig aus. Zeigt einen Verfügbarkeitsprozentsatz neben der Ressource.                       |
+| **Verfügbarkeitsgenauigkeit auswählen** (`uptimePercentPrecision`) | Erscheint erst, wenn **Verfügbarkeit % anzeigen** an ist. Pflichtfeld, Standard: eine Nachkommastelle. |
+| **Statusverlaufsdiagramm anzeigen** (`showStatusHistoryChart`)    | Standardmäßig an. Zeigt das tagesweise Verfügbarkeits-Balkendiagramm der Ressource.                 |
 
-**Display Name** (`displayName`) und **Description** (`displayDescription`) aus dem ersten Schritt sind ebenfalls rein anzeigebezogen – sie ändern nie den Monitor selbst.
+Auch **Anzeigename** (`displayName`) und **Beschreibung** (`displayDescription`) aus dem ersten Schritt sind reine Anzeigefelder – sie ändern den Monitor selbst nie.
 
-## Verfügbarkeitsprozentsätze und Verlaufsdiagramme
+## Verfügbarkeitsprozente und Verlaufsdiagramme
 
-Sowohl **Show Uptime %** als auch **Show Status History Chart** hängen von einer Einstellung ab, die sich woanders befindet. Das Zeitfenster, das sie abdecken, ist **Show Uptime History (in days)** unter **Status Pages → your page → Advanced → Advanced Settings**, in der Karte **Uptime History Settings**. Sie akzeptiert 1 bis 90 Tage und ist standardmäßig auf 90 gesetzt.
+Sowohl **Verfügbarkeit % anzeigen** als auch **Statusverlaufsdiagramm anzeigen** hängen an einer Einstellung, die woanders liegt. Der Zeitraum, den beide abdecken, ist **Verfügbarkeitsverlauf anzeigen (in Tagen)** unter **Statusseiten → Ihre Seite → Erweitert → Erweiterte Einstellungen**, in der Karte **Einstellungen für Verfügbarkeitsverlauf**. Sie nimmt 1 bis 90 Tage und steht standardmäßig auf 90.
 
-Die Reihenfolge ist also: die Umschalter pro Ressource aktivieren, dann das Zeitfenster einmal für die gesamte Seite festlegen.
+Die Reihenfolge ist also: die Schalter pro Ressource einschalten, dann den Zeitraum einmal für die ganze Seite setzen.
 
-**Genauigkeit ist eine Ermessensfrage.** Das Dropdown **Select Uptime Precision** bietet `99% (No Decimal)`, `99.9% (One Decimal)`, `99.99% (Two Decimal)` und `99.999% (Three Decimal)`. Mehr Nachkommastellen wirken präzise und laden zu Diskussionen über die dritte Stelle ein; wenn Sie ein SLA mit drei Neunen veröffentlichen, gleichen Sie es an, aber nicht mehr.
+**Die Genauigkeit ist eine Ermessensfrage.** Das Dropdown **Verfügbarkeitsgenauigkeit auswählen** bietet `99% (No Decimal)`, `99.9% (One Decimal)`, `99.99% (Two Decimal)` und `99.999% (Three Decimal)`. Mehr Nachkommastellen wirken präzise und laden zu Diskussionen über die dritte ein; wenn Sie ein SLA mit drei Neunen veröffentlichen, treffen Sie genau das und nicht mehr.
 
-Gruppen haben ihre eigenen Kopien dieser Umschalter – siehe unten –, sodass eine Gruppe einen zusammengefassten Prozentsatz zeigen kann, während die einzelnen Monitore darin still bleiben, oder umgekehrt.
+Gruppen haben eigene Kopien dieser Schalter – siehe unten –, eine Gruppe kann also einen zusammengefassten Prozentsatz zeigen, während die einzelnen Monitore darin stumm bleiben, oder umgekehrt.
 
-Die Farben der Verlaufsdiagramm-Balken und welche Monitorstatus als „down" gelten, werden auf dem Branding-Bildschirm **Overview Page** festgelegt, behandelt in [Statusseiten – Branding & Domains](/docs/status-pages/branding-and-domains).
+Die Farben der Balken im Verlaufsdiagramm und die Frage, welche Monitorstatus als „down“ zählen, stellen Sie auf dem Branding-Bildschirm **Übersichtsseite** ein – beschrieben unter [Statusseiten – Branding & Domains](/docs/status-pages/branding-and-domains).
 
 ## Gruppen
 
-Klicken Sie auf **New Group**, um **Create New Status Page Group** zu öffnen. Das Formular hat drei Schritte: **Group Details**, **Layout** und **Advanced**.
+Klicken Sie auf **New Group**, um **Create New Status Page Group** zu öffnen. Das Formular hat drei Schritte: **Gruppendetails**, **Layout** und **Erweitert**.
 
-**Group Details**:
+**Gruppendetails**:
 
-- **Group Name** (`name`) – erforderlich. Das ist die Abschnittsüberschrift, die Besucher sehen.
-- **Group Description** (`description`) – optionales Markdown, unter der Überschrift angezeigt.
-- **Parent Group** (`parentStatusPageGroupId`) – optional. Belassen Sie es bei **No parent group (top level)**, um die Gruppe auf oberster Ebene zu halten.
-- **Expand on Status Page by Default** (`isExpandedByDefault`) – ob der Abschnitt für Besucher geöffnet oder eingeklappt startet.
+- **Gruppenname** (`name`) – Pflichtfeld. Das ist die Abschnittsüberschrift, die Besucher sehen.
+- **Gruppenbeschreibung** (`description`) – optionales Markdown, unter der Überschrift angezeigt.
+- **Parent Group** (`parentStatusPageGroupId`) – optional. Lassen Sie das Feld auf **No parent group (top level)**, damit die Gruppe auf oberster Ebene bleibt.
+- **Auf Statusseite standardmäßig erweitern** (`isExpandedByDefault`) – ob der Abschnitt für Besucher offen oder eingeklappt startet.
 
-**Advanced** spiegelt die Ressourcen-Umschalter auf Gruppenebene:
+**Erweitert** spiegelt die Ressourcenschalter auf Gruppenebene:
 
-- **Show Current Group Status** (`showCurrentStatus`) – standardmäßig an. Zeigt einen Status neben der Gruppenüberschrift.
-- **Show Uptime %** (`showUptimePercent`) – standardmäßig aus, wobei **Select Uptime Precision** erscheint, sobald es an ist.
+- **Aktuellen Gruppenstatus anzeigen** (`showCurrentStatus`) – standardmäßig an. Zeigt einen Status neben der Gruppenüberschrift.
+- **Verfügbarkeit % anzeigen** (`showUptimePercent`) – standardmäßig aus; **Verfügbarkeitsgenauigkeit auswählen** erscheint, sobald der Schalter an ist.
 
-Das Bearbeiten funktioniert genauso: **Edit Group** in der Kopfzeile des Bereichs oder **Edit group** im Zeilenmenü des Navigators öffnet **Edit Status Page Group** mit einer Schaltfläche **Save Changes**.
+Das Bearbeiten läuft genauso: **Edit Group** in der Kopfzeile des Bereichs oder **Edit group** im Zeilenmenü des Navigators öffnet **Edit Status Page Group** mit einer Schaltfläche **Änderungen speichern**.
 
-Die Kopfzeile des Bereichs zeigt Chips für die derzeit aktiven Einstellungen – **Grid**, **Collapsed by default**, **Uptime %** –, sodass Sie sehen können, wie eine Gruppe konfiguriert ist, ohne das Formular zu öffnen.
+Die Kopfzeile des Bereichs zeigt Chips für die gerade aktiven Einstellungen – **Grid**, **Collapsed by default**, **Uptime %** –, sodass Sie die Konfiguration einer Gruppe sehen, ohne das Formular zu öffnen.
 
 ### Eine Gruppe verwalten
 
-Das Zeilenmenü des Navigators enthält **Edit group**, **Move up**, **Move down**, **Show ID** und **Delete group**. Das Überlaufmenü **More actions** des Bereichs hat die ausführlicheren Entsprechungen – **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Refresh** und **Delete this group**. Eine ohne Namen gespeicherte Gruppe erscheint als **Untitled group**, ein guter Hinweis darauf, dass Sie eigentlich etwas eingeben wollten.
+Das Zeilenmenü des Navigators enthält **Edit group**, **Move up**, **Move down**, **ID anzeigen** und **Delete group**. Das Überlaufmenü **More actions** des Bereichs hat die ausführlicheren Entsprechungen – **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Aktualisieren** und **Delete this group**. Eine ohne Namen gespeicherte Gruppe erscheint als **Untitled group** – ein deutliches Zeichen, dass Sie eigentlich etwas eintippen wollten.
 
 ## Gruppen verschachteln
 
-Gruppen sind verschachtelbar: Setzen Sie **Parent Group** beim Kind, oder nutzen Sie die Aktion **Add a sub group inside this group** des Navigators. Der Hilfetext des Formulars selbst beschreibt die Form, für die es gebaut ist – etwas wie Corporate Units › Region › Market – und weist darauf hin, dass jede Ebene den zusammengefassten Status und die Verfügbarkeit von allem darunter zeigt.
+Gruppen lassen sich verschachteln: Setzen Sie **Parent Group** an der Untergruppe oder nutzen Sie im Navigator die Aktion **Add a sub group inside this group**. Der Hilfetext des Formulars beschreibt die Form, für die es gebaut ist – etwa Geschäftsbereich › Region › Markt – und weist darauf hin, dass jede Ebene den zusammengefassten Status und die Verfügbarkeit von allem darunter zeigt.
 
-Hat eine Gruppe Kinder, zeigt der Ressourcenbereich eine Chip-Zeile **Sub groups**, die direkt zu jedem Kind führt, sodass Sie die Hierarchie durchgehen können, ohne zum Navigator zurückzukehren.
+Hat eine Gruppe Untergruppen, zeigt der Ressourcenbereich eine Chip-Zeile **Sub groups**, die direkt in jede Untergruppe verlinkt – so laufen Sie durch die Hierarchie, ohne zum Navigator zurückzukehren.
 
-Verschachtelung lohnt sich bei großen Seiten: ein Hosting-Anbieter mit Regionen innerhalb von Produkten, oder ein Händler mit Märkten innerhalb von Geschäftsbereichen. Bei einer Seite mit zwölf Monitoren ist eine flache Ebene freundlicher.
+Verschachtelung lohnt sich auf großen Seiten: ein Hosting-Anbieter mit Regionen innerhalb von Produkten oder ein Händler mit Märkten innerhalb von Geschäftsbereichen. Auf einer Seite mit zwölf Monitoren ist eine flache Ebene freundlicher.
 
-## Listen-Layout vs. Grid-Layout
+## Listen-Layout und Raster-Layout
 
-Der Schritt **Layout** legt **View Mode** (`viewMode`) für die Gruppe fest, und das ändert, wie die Gruppe öffentlich dargestellt wird.
+Der Schritt **Layout** setzt den **Ansichtsmodus** (`viewMode`) der Gruppe und verändert, wie die Gruppe öffentlich dargestellt wird.
 
-| Wenn Sie möchten …                                                          | Wählen                  |
-| ----------------------------------------------------------------------------- | ------------------------ |
-| Eine schlichte vertikale Liste von Diensten anzeigen, einer pro Zeile         | **List** (Standard)      |
-| Denselben Dienst über mehrere Regionen oder Mandanten als Matrix anzeigen     | **Grid**                 |
+| Wenn Sie …                                                                  | Wählen Sie             |
+| ----------------------------------------------------------------------------- | ---------------------- |
+| eine schlichte senkrechte Liste von Diensten zeigen wollen, einen pro Zeile   | **List** (Standard)    |
+| denselben Dienst über mehrere Regionen oder Mandanten hinweg als Matrix zeigen wollen | **Grid**       |
 
 Wählen Sie **Grid**, erscheinen vier weitere Felder:
 
-- **Row Axis Label** – der Name der Zeilendimension, Platzhalter `Service`.
-- **Row Axis Values** – die Zeilen selbst, einzeln hinzugefügt mit **Add Row** (Platzhalter `e.g. Auth`).
-- **Column Axis Label** – die Spaltendimension, Platzhalter `Region`.
-- **Column Axis Values** – hinzugefügt mit **Add Column** (Platzhalter `e.g. US-East`).
+- **Beschriftung der Zeilenachse** – der Name der Zeilendimension, Platzhalter `Service`.
+- **Werte der Zeilenachse** – die Zeilen selbst, einzeln über **Add Row** hinzugefügt (Platzhalter `e.g. Auth`).
+- **Beschriftung der Spaltenachse** – die Spaltendimension, Platzhalter `Region`.
+- **Werte der Spaltenachse** – über **Add Column** hinzugefügt (Platzhalter `e.g. US-East`).
 
-Jeder Monitor in einer Grid-Gruppe wird dann in eine Zelle eingeordnet, weshalb das Sammelmodal neben den Monitoren nach Zeile und Spalte fragt, unter Verwendung Ihrer eigenen Achsenbeschriftungen.
+Jeder Monitor in einer Grid-Gruppe sitzt dann in einer Zelle – der Massendialog fragt deshalb neben den Monitoren auch nach Zeile und Spalte und benutzt dabei Ihre eigenen Achsenbeschriftungen.
 
-**Richten Sie die Achsen ein, bevor Sie Monitore hinzufügen.** Eine Grid-Gruppe ohne Zeilen oder Spalten zeigt einen gelben Hinweis, dass es nirgendwo hin gibt, einen Monitor zu platzieren, bis die Achsen existieren, mit einer Schaltfläche **Set up the grid** – und die Schaltfläche **Add Monitor** wird bis dahin zurückgezogen.
+**Richten Sie die Achsen ein, bevor Sie Monitore hinzufügen.** Eine Grid-Gruppe ohne Zeilen und Spalten zeigt einen bernsteinfarbenen Hinweis, dass es keinen Platz für einen Monitor gibt, solange die Achsen fehlen, dazu eine Schaltfläche **Set up the grid** – und die Schaltfläche **Monitor hinzufügen** verschwindet, bis Sie das erledigt haben.
 
-## Reihenfolge dessen, was Besucher sehen
+## Die Reihenfolge festlegen, die Besucher sehen
 
-Die Reihenfolge ist explizit, nicht alphabetisch, und sie wird an drei Stellen festgelegt:
+Die Reihenfolge ist ausdrücklich gesetzt, nicht alphabetisch, und sie entsteht an drei Stellen:
 
-- **Ressourcen innerhalb einer Gruppe** – eine Zeile ziehen. Der Bereich weist darauf hin: **Drag a row to change the order visitors see**.
-- **Gruppen zueinander** – **Move up** / **Move down** im Zeilenmenü des Navigators, oder **Move group up** / **Move group down** im Überlaufmenü des Bereichs.
-- **Gruppenlose Ressourcen** – sie befinden sich unter **Top of page** und erscheinen immer über jeder Gruppe, platzieren Sie also dort das eine, das jeder zuerst prüft.
+- **Ressourcen innerhalb einer Gruppe** – ziehen Sie eine Zeile. Der Bereich sagt es selbst: **Drag a row to change the order visitors see**.
+- **Gruppen zueinander** – **Move up** / **Move down** im Zeilenmenü des Navigators oder **Move group up** / **Move group down** im Überlaufmenü des Bereichs.
+- **Ressourcen ohne Gruppe** – sie liegen unter **Top of page** und stehen immer über jeder Gruppe; setzen Sie also das eine Ding dorthin, das alle zuerst prüfen.
 
-**Zwei Fälle, in denen Ziehen deaktiviert ist.** Das Filtern des Bereichs mit dem Feld **Search in {group}...** deaktiviert das Neuanordnen – der Bereich meldet `N of M shown · drag to reorder is off while filtering`, löschen Sie also zuerst die Suche. Und Grid-Gruppen unterstützen niemals Ziehen zum Anordnen, weil die Position stattdessen von den Zeilen- und Spaltenachsen kommt.
+**Zwei Fälle, in denen das Ziehen abgeschaltet ist.** Filtern Sie den Bereich über das Feld **Search in {group}...**, ist das Umsortieren deaktiviert – der Bereich meldet `N of M shown · drag to reorder is off while filtering`, löschen Sie also zuerst die Suche. Und Grid-Gruppen unterstützen Drag-Sortierung grundsätzlich nicht, weil die Position dort aus den Zeilen- und Spaltenachsen kommt.
 
-Setzen Sie den am meisten nachgefragten Dienst nach oben. Besucher, die während eines Ausfalls auf die Seite kommen, hören meist nach dem ersten Bildschirm auf zu lesen.
+Setzen Sie den Dienst, nach dem am häufigsten gefragt wird, ganz nach oben. Besucher, die während eines Ausfalls auf die Seite kommen, hören meist nach dem ersten Bildschirm auf zu lesen.
 
 ## Gruppen aus CSV importieren
 
-Eine tiefe Hierarchie von Hand aufzubauen ist mühsam. Das Drei-Punkte-Überlaufmenü in der Kopfzeile der Karte hat **Import groups from CSV**, das das Modal **Import Groups from CSV** öffnet.
+Eine tiefe Hierarchie von Hand zu bauen ist mühsam. Das Drei-Punkte-Menü in der Kopfzeile der Karte hat **Import groups from CSV**, das den Dialog **Import Groups from CSV** öffnet.
 
-Der Ablauf ist: **Download CSV Template**, um `status-page-groups-template.csv` zu erhalten, ausfüllen, **Choose CSV File**, dann **Preview Import**, um zu prüfen, was angelegt wird, bevor irgendetwas geschrieben wird. Das Ergebnis teilt sich in **Groups Imported** und **Some Groups Could Not Be Imported**, sodass eine fehlerhafte Zeile nicht stillschweigend verschwindet.
+Der Ablauf: **Download CSV Template** liefert `status-page-groups-template.csv`, Sie füllen die Datei aus, wählen **Choose CSV File** und prüfen mit **Preview Import**, was angelegt wird, bevor irgendetwas geschrieben wird. Das Ergebnis teilt sich in **Groups Imported** und **Some Groups Could Not Be Imported** – eine fehlerhafte Zeile verschwindet also nicht stillschweigend.
 
-Nur `name` ist erforderlich. Die akzeptierten Spalten sind:
+Pflicht ist nur `name`. Akzeptiert werden diese Spalten:
 
-| Spalte                    | Was sie festlegt                                        |
-| ---------------------------- | ----------------------------------------------------------- |
-| `name`                       | Der Gruppenname. Erforderlich.                              |
-| `parentName`                 | Der Name der Gruppe, in die diese verschachtelt wird.        |
-| `description`                | Die Gruppenbeschreibung.                                     |
-| `isExpandedByDefault`        | Ob der Abschnitt für Besucher geöffnet startet.               |
-| `showCurrentStatus`          | Ob ein Status neben der Gruppenüberschrift angezeigt wird.    |
-| `showUptimePercent`          | Ob ein Verfügbarkeitsprozentsatz neben der Gruppe angezeigt wird. |
-| `uptimePercentPrecision`     | Wie viele Nachkommastellen dieser Prozentsatz verwendet.      |
-| `viewMode`                   | `List` oder `Grid`.                                          |
-| `rowAxisLabel`               | Name der Zeilendimension für eine Grid-Gruppe.                |
-| `rowAxisValues`              | Die Zeilenwerte für eine Grid-Gruppe.                         |
-| `columnAxisLabel`            | Name der Spaltendimension für eine Grid-Gruppe.               |
-| `columnAxisValues`           | Die Spaltenwerte für eine Grid-Gruppe.                        |
+| Spalte                   | Was sie setzt                                            |
+| ------------------------ | -------------------------------------------------------- |
+| `name`                   | Der Gruppenname. Pflicht.                                |
+| `parentName`             | Der Name der Gruppe, in der diese steckt.                |
+| `description`            | Die Gruppenbeschreibung.                                 |
+| `isExpandedByDefault`    | Ob der Abschnitt für Besucher offen startet.             |
+| `showCurrentStatus`      | Ob neben der Gruppenüberschrift ein Status erscheint.    |
+| `showUptimePercent`      | Ob neben der Gruppe ein Verfügbarkeitsprozentsatz erscheint. |
+| `uptimePercentPrecision` | Wie viele Nachkommastellen dieser Prozentsatz nutzt.     |
+| `viewMode`               | `List` oder `Grid`.                                      |
+| `rowAxisLabel`           | Name der Zeilendimension einer Grid-Gruppe.              |
+| `rowAxisValues`          | Die Zeilenwerte einer Grid-Gruppe.                       |
+| `columnAxisLabel`        | Name der Spaltendimension einer Grid-Gruppe.             |
+| `columnAxisValues`       | Die Spaltenwerte einer Grid-Gruppe.                      |
 
-Der Import legt Gruppen an, keine Ressourcen – fügen Sie Monitore anschließend mit **Add Monitor** oder **Add Multiple** hinzu.
+Der Import legt Gruppen an, keine Ressourcen – Monitore fügen Sie danach über **Monitor hinzufügen** oder **Add Multiple** hinzu.
 
 ## Wo Sie als Nächstes lesen sollten
 
 - [Statusseiten – Übersicht](/docs/status-pages/index) – was eine Statusseite ist und wie die Teile zusammenpassen.
-- [Statusseiten – Branding & Domains](/docs/status-pages/branding-and-domains) – Logo, Favicon, Diagrammfarben und die Seite auf Ihre eigene Domain bringen.
-- [Abonnenten & Ankündigungen](/docs/status-pages/subscribers) – wer benachrichtigt wird, wenn sich diese Ressourcen ändern.
-- [Public API](/docs/status-pages/public-api) – Statusseitendaten programmatisch abrufen.
+- [Statusseiten – Branding & Domains](/docs/status-pages/branding-and-domains) – Logo, Favicon, Diagrammfarben und die Seite unter Ihrer eigenen Domain.
+- [Abonnenten & Ankündigungen](/docs/status-pages/subscribers) – wer erfährt, wenn sich diese Ressourcen verändern.
+- [Öffentliche API](/docs/status-pages/public-api) – Statusseitendaten programmatisch lesen.
 - [Vorfallstatus & Schweregrade](/docs/incidents/states-and-severities) – was einen Vorfall auf der Seite erscheinen und wieder verschwinden lässt.

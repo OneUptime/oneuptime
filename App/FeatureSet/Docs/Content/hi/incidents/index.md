@@ -1,158 +1,158 @@
-# Incidents Overview
+# घटनाओं का अवलोकन
 
-OneUptime में एक incident वह रिकॉर्ड है जिसके इर्द-गिर्द आपकी टीम तब इकट्ठा होती है जब कुछ टूटता है। इसमें एक number, एक title, एक severity, एक current state, प्रभावित होने वाले resources, और वह सब कुछ होता है जो आपकी टीम response करते समय लिखती है — notes, root cause, remediation steps, और किसने क्या किया इसकी एक append-only feed।
+OneUptime में घटना वह रिकॉर्ड है जिसके इर्द-गिर्द कुछ बिगड़ने पर आपकी टीम इकट्ठा होती है। इसमें एक संख्या होती है, एक शीर्षक, एक गंभीरता, एक मौजूदा स्थिति, वे संसाधन जिन पर असर पड़ा है, और वह सब कुछ जो आपकी टीम प्रतिक्रिया के दौरान लिखती है — नोट, मूल कारण, सुधार के कदम, और किसने क्या किया इसकी append-only फ़ीड।
 
-Incidents वही चीज़ हैं जो किसी monitor के red होने को एक coordinated response में बदल देती हैं। किसी incident को declare करने से सही on-call rotation को page किया जाता है, owners जोड़े जाते हैं जिन्हें हर बदलाव की सूचना मिलती है, runbooks शुरू होते हैं, और — अगर आप चाहें — outage को आपके public status page पर post कर दिया जाता है ताकि customers यह पूछने के लिए tickets खोलना बंद कर दें कि क्या आपको पहले से पता है।
+घटनाएँ ही किसी मॉनिटर के लाल होने को एक तालमेल भरी प्रतिक्रिया में बदलती हैं। घटना घोषित करते ही सही ऑन-कॉल रोटेशन को पेज जाता है, ऐसे स्वामी जुड़ते हैं जिन्हें हर बदलाव की सूचना मिलती है, runbook शुरू होते हैं, और — अगर आप चाहें तो — यह आउटेज आपके सार्वजनिक स्थिति पृष्ठ पर भी पोस्ट हो जाता है, ताकि ग्राहक यह पूछने के लिए टिकट खोलना बंद कर दें कि आपको पता है या नहीं।
 
-आप रात 3 बजे हाथ से एक incident declare कर सकते हैं, या किसी monitor को उसकी criteria मेल खाते ही आपकी ओर से इसे declare करने दे सकते हैं। दोनों ही स्थितियों में incident एक ही object होता है, उसी lifecycle के साथ, और अंत में उसी paper trail के साथ।
+आप रात तीन बजे खुद हाथ से घटना घोषित कर सकते हैं, या किसी मॉनिटर को यह काम सौंप सकते हैं — उसके मानदंड मेल खाते ही वह खुद घोषित कर देगा। दोनों ही सूरत में घटना वही एक object है, वही जीवनचक्र है, और अंत में वही पूरा लिखित ब्यौरा।
 
 ## एक नज़र में
 
-- **Top-level feature** — dashboard के left navigation में **Incidents**, `/dashboard/{projectId}/incidents` पर।
-- **तीन seeded states** — हर नए project के लिए **Identified**, **Acknowledged** और **Resolved** बनाए जाते हैं। आप अपने खुद के states जोड़ सकते हैं; तीन seeded states का नाम और रंग बदला जा सकता है लेकिन उन्हें कभी हटाया नहीं जा सकता।
-- **तीन seeded severities** — **Critical Incident**, **Major Incident** और **Minor Incident**। Severity एक color और order वाला एक लेबल है — इसका अपना कोई behavior नहीं होता।
-- **अंदर आने के चार रास्ते** — **Declare Incident** wizard, **Create from Template**, एक monitor criteria rule, या `POST /api/incident`।
-- **हर project के लिए नंबर वाला** — हर incident को एक incident number मिलता है, जो डिफ़ॉल्ट रूप से `#42` की तरह दिखता है या आपके अपने prefix के साथ, जैसे `INC-42`।
-- **दो तरह के notes** — आपकी टीम के लिए private notes (internal notes), और status page subscribers के लिए public notes।
-- **Settings, Project Settings में नहीं बल्कि Incidents के अंतर्गत रहती हैं** — states, severities, templates, custom fields और rule engines सब **Incidents → Settings** और **Incidents → Rules** पर हैं।
+- **शीर्ष-स्तरीय फ़ीचर** — डैशबोर्ड की बाईं navigation में **घटनाएं**, `/dashboard/{projectId}/incidents` पर।
+- **तीन seeded स्थितियाँ** — हर नए प्रोजेक्ट के लिए **पहचाना गया**, **स्वीकार किया गया** और **सुलझाया गया** बनाई जाती हैं। आप अपनी स्थितियाँ जोड़ सकते हैं; इन तीनों का नाम और रंग बदला जा सकता है, पर इन्हें हटाया नहीं जा सकता।
+- **तीन seeded गंभीरताएँ** — **गंभीर घटना**, **प्रमुख घटना** और **छोटी घटना**। गंभीरता बस एक लेबल है जिसका अपना रंग और क्रम होता है — अपने आप में इसका कोई व्यवहार नहीं।
+- **अंदर आने के चार रास्ते** — **घटना घोषित करें** wizard, **टेम्पलेट से बनाएँ**, कोई monitor criteria नियम, या `POST /api/incident`।
+- **हर प्रोजेक्ट में क्रमांकित** — हर घटना को एक घटना संख्या मिलती है, जो डिफ़ॉल्ट रूप से `#42` जैसी दिखती है या आपके अपने उपसर्ग के साथ, जैसे `INC-42`।
+- **दो तरह के नोट** — आपकी टीम के लिए निजी नोट (internal notes), और स्थिति पृष्ठ के सब्सक्राइबर के लिए सार्वजनिक नोट।
+- **सेटिंग्स Project Settings में नहीं, घटनाओं के नीचे रहती हैं** — स्थितियाँ, गंभीरताएँ, टेम्पलेट, कस्टम फ़ील्ड और rule engines सब **घटनाएं → सेटिंग्स** और **घटनाएं → नियम** पर हैं।
 
-## मुख्य शब्द
+## प्रमुख शब्द
 
-इस section के लगभग हर दूसरे page पर कुछ शब्द बार-बार आते हैं। पहले इन्हें अच्छी तरह समझ लें।
+इस सेक्शन के हर दूसरे पेज पर ये कुछ शब्द बार-बार आते हैं। पहले इन्हें साफ़ कर लीजिए।
 
-| Term                    | इसका मतलब                                                                                                                                       |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Incident**            | रिकॉर्ड खुद — title, description, severity, current state, affected resources, और response के दौरान इस पर लिखी गई हर चीज़।              |
-| **Incident state**      | incident अपने lifecycle में कहाँ है। एक project-scoped row जिसमें name, color और `order` होता है, साथ ही वे flags जो इसे अर्थ देते हैं।                   |
-| **Incident severity**   | यह कितना बुरा है। एक project-scoped row जिसमें name, color और `order` होता है। यह सिर्फ एक classification है — product में कुछ भी किसी एक severity को खास तरीके से नहीं treat करता। |
-| **Incident number**     | एक per-project counter जो `#42` के रूप में दिखता है, या आपके configure किए गए prefix के साथ, जैसे `INC-42`।                                                  |
-| **Resources affected**  | monitors, hosts, Kubernetes clusters, Docker hosts, services और अन्य infrastructure जिन्हें आप incident से जोड़ते हैं।                               |
-| **Public note**         | status page पाठकों और subscribers के लिए लिखा गया update। यह status page timeline पर render होता है।                                                  |
-| **Private note**        | responding team के लिए एक internal note (`IncidentInternalNote` model)। यह कभी status page तक नहीं पहुँचता।                                        |
-| **Owner**                | incident के लिए जिम्मेदार एक user या team। जब incident बनता है, notes post होते हैं, और जब state बदलता है, तो owners को सूचना मिलती है।             |
-| **Incident feed**       | incident के **Overview** पर मौजूद append-only activity timeline, जो state changes, notes, owner changes, rule executions और notifications दर्ज करती है। |
-| **State timeline**      | यह रिकॉर्ड कि incident किस state में, कब और कितनी देर तक रहा — साथ ही हर transition के लिए subscriber notification status।                                |
+| शब्द                   | इसका मतलब                                                                                                                                       |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **घटना**           | रिकॉर्ड खुद — शीर्षक, विवरण, गंभीरता, मौजूदा स्थिति, प्रभावित संसाधन, और प्रतिक्रिया के दौरान उस पर लिखी गई हर बात।              |
+| **घटना स्थिति**     | घटना अपने जीवनचक्र में कहाँ है। नाम, रंग और `order` वाली project-scoped row, साथ में वे flags जो उसे अर्थ देते हैं।                   |
+| **घटना गंभीरता**  | मामला कितना बुरा है। नाम, रंग और `order` वाली project-scoped row। यह विशुद्ध वर्गीकरण है — product में कहीं भी किसी एक गंभीरता को खास बर्ताव नहीं मिलता। |
+| **घटना संख्या**    | प्रति-प्रोजेक्ट काउंटर, जो `#42` के रूप में दिखता है, या आपके तय किए उपसर्ग के साथ `INC-42` के रूप में।                                                                                  |
+| **प्रभावित संसाधन** | वे मॉनिटर, होस्ट, Kubernetes क्लस्टर, Docker होस्ट, सेवाएं और बाकी infrastructure जिन्हें आप घटना से जोड़ते हैं।                               |
+| **सार्वजनिक नोट**        | स्थिति पृष्ठ के पाठकों और सब्सक्राइबर के लिए लिखा गया अपडेट। यह स्थिति पृष्ठ की टाइमलाइन पर दिखता है।                                                  |
+| **निजी नोट**       | प्रतिक्रिया दे रही टीम के लिए आंतरिक नोट (`IncidentInternalNote` model)। यह कभी किसी स्थिति पृष्ठ तक नहीं पहुँचता।                                        |
+| **स्वामी**              | घटना के लिए ज़िम्मेदार उपयोगकर्ता या टीम। घटना बनने पर, नोट पोस्ट होने पर और स्थिति बदलने पर स्वामियों को सूचना जाती है।             |
+| **घटना फ़ीड**      | घटना के **अवलोकन** पर मौजूद append-only गतिविधि टाइमलाइन, जो स्थिति बदलाव, नोट, स्वामी बदलाव, नियम निष्पादन और सूचनाएँ दर्ज करती है। |
+| **स्थिति टाइमलाइन**     | इसका रिकॉर्ड कि घटना किस स्थिति में, कब और कितनी देर रही — हर बदलाव के लिए सब्सक्राइबर सूचना की स्थिति के साथ।                                            |
 
-## तीन states जो OneUptime हर project के लिए seed करता है
+## OneUptime हर प्रोजेक्ट में जो तीन स्थितियाँ seed करता है
 
-जब एक project बनता है, तो OneUptime ठीक तीन incident states seed करता है, इस क्रम में:
+प्रोजेक्ट बनते ही OneUptime ठीक तीन घटना स्थितियाँ seed करता है, इसी क्रम में:
 
-| State             | Order | Color               | इसका मतलब                                                              |
-| ------------------ | ----- | -------------------- | -------------------------------------------------------------------------- |
-| **Identified**     | 1     | Red (`#fd625e`)      | वह state जिसमें एक बिल्कुल नया incident आता है। यह created state है।           |
-| **Acknowledged**   | 2     | Yellow (`#ffbf53`)   | किसी ने incident को उठाया है और उस पर काम कर रहा है।                                |
-| **Resolved**       | 3     | Green (`#2ab57d`)    | incident खत्म हो चुका है। इसे resolve करना ही इसे आपके status page से हटाता है। |
+| स्थिति            | क्रम | रंग              | इसका मतलब                                                             |
+| ---------------- | ----- | ------------------ | ------------------------------------------------------------------------- |
+| **पहचाना गया**   | 1     | लाल (`#fd625e`)    | बिल्कुल नई घटना यहीं आकर बैठती है। यही created state है।       |
+| **स्वीकार किया गया** | 2     | पीला (`#ffbf53`) | किसी ने घटना उठा ली है और उस पर काम कर रहा है।                 |
+| **सुलझाया गया**     | 3     | हरा (`#2ab57d`)  | घटना खत्म। इसे सुलझाना ही इसे आपके स्थिति पृष्ठ से हटाता है। |
 
-नाम सिर्फ labels हैं — behavior को असल में तीन booleans चलाते हैं जो state row पर होते हैं: `isCreatedState`, `isAcknowledgedState` और `isResolvedState`। प्रत्येक project में हर एक flag सिर्फ एक ही state के पास होने की उम्मीद की जाती है।
+नाम बस लेबल हैं — व्यवहार असल में स्थिति row पर मौजूद तीन boolean चलाते हैं: `isCreatedState`, `isAcknowledgedState` और `isResolvedState`। हर प्रोजेक्ट में हर flag सिर्फ़ एक ही स्थिति पर होने की अपेक्षा है।
 
-यह अंतर सुनने से ज्यादा मायने रखता है:
+यह फ़र्क़ सुनने में जितना छोटा लगता है, उससे ज़्यादा मायने रखता है:
 
-- `isCreatedState` तय करता है कि एक नया incident कहाँ से शुरू होता है। यदि create करते समय कोई state explicitly नहीं चुना जाता, तो OneUptime project के created state को ढूँढकर उसका उपयोग करता है।
-- `isAcknowledgedState` और `isResolvedState` incident header में **Acknowledge** और **Resolve** buttons को, incident **Overview** पर मौजूद दो stat tiles को, और side menu में **Active Incidents** count badge को चलाते हैं।
-- **Active Incidents** को केवल इस तरह परिभाषित किया गया है कि "current state, resolved state नहीं है"। इसलिए आपके द्वारा जोड़ा गया कोई भी custom state तब तक active रहता है जब तक वह resolved state न हो।
+- `isCreatedState` तय करता है कि नई घटना कहाँ शुरू होती है। बनाते समय अगर कोई स्थिति साफ़-साफ़ नहीं चुनी गई, तो OneUptime प्रोजेक्ट की created state ढूँढकर उसे इस्तेमाल करता है।
+- `isAcknowledgedState` और `isResolvedState` घटना header के **Acknowledge** और **सुलझाएं** बटन, घटना के **अवलोकन** पर मौजूद दो stat tiles, और side menu में **सक्रिय घटनाएं** की गिनती वाले badge को चलाते हैं।
+- **सक्रिय घटनाएं** की परिभाषा सिर्फ़ इतनी है कि "मौजूदा स्थिति resolved state नहीं है"। इसलिए आपकी जोड़ी हुई हर custom स्थिति सक्रिय मानी जाती है, बशर्ते वह resolved वाली न हो।
 
-**नामकरण पर ध्यान दें।** पहले seeded state का नाम **Identified** है, भले ही product के अंदर कई जगह इसे अब भी created state कहा जाता है। यदि आप अपने project की state list में "Created" ढूँढ रहे हैं, तो वह **Identified** नाम वाला row है।
+**नामकरण पर ध्यान दीजिए।** पहली seeded स्थिति का नाम **पहचाना गया** है, भले ही product के भीतर कई जगह विवरण उसे अब भी created state कहते हैं। अगर आप अपने प्रोजेक्ट की स्थिति सूची में "Created" ढूँढ रहे हैं, तो वह **पहचाना गया** नाम वाली row है।
 
-आप अपने खुद के states **Incidents → Settings → Incident State** पर जोड़ सकते हैं। नए states ordered list के अंत में जोड़े जाते हैं और आप उन्हें drag करके reorder कर सकते हैं। तीन flagged states को हटाया नहीं जा सकता — OneUptime इसे block कर देता है — लेकिन आप उनका नाम और रंग बदल सकते हैं, यही वजह है कि UI state names को dynamically पढ़ता है।
+अपनी स्थितियाँ आप **घटनाएं → सेटिंग्स → घटना स्थिति** पर जोड़ सकते हैं। नई स्थितियाँ क्रमबद्ध सूची के अंत में जुड़ती हैं और आप उन्हें खींचकर क्रम बदल सकते हैं। तीनों flagged स्थितियाँ हटाई नहीं जा सकतीं — OneUptime इसे रोक देता है — लेकिन उनका नाम और रंग बदला जा सकता है, और इसीलिए UI स्थिति के नाम dynamically पढ़ता है।
 
-Order लागू होता है, यह सिर्फ cosmetic नहीं है: कोई incident उस state में नहीं जा सकता जो order में उसके current state से पहले आता है।
+क्रम सिर्फ़ दिखावे के लिए नहीं, लागू होता है: कोई घटना ऐसी स्थिति में नहीं जा सकती जो क्रम में उसकी मौजूदा स्थिति से पहले आती हो।
 
-पूरी जानकारी [Incident States & Severities](/docs/incidents/states-and-severities) में है।
+पूरा ब्यौरा [घटना स्थितियाँ और गंभीरता](/docs/incidents/states-and-severities) में है।
 
-## तीन severities जो OneUptime हर project के लिए seed करता है
+## OneUptime हर प्रोजेक्ट में जो तीन गंभीरताएँ seed करता है
 
-हर नए project को तीन severities भी मिलती हैं:
+हर नए प्रोजेक्ट को तीन गंभीरताएँ भी मिलती हैं:
 
-| Severity               | Order | Color               | इसका मतलब                                              |
-| ----------------------- | ----- | -------------------- | ------------------------------------------------------ |
-| **Critical Incident**   | 1     | Maroon (`#b70400`)   | बहुत ज्यादा customer impact, जिसमें तुरंत response चाहिए।       |
-| **Major Incident**      | 2     | Red (`#fd625e`)      | महत्वपूर्ण impact, जिसमें आमतौर पर तुरंत response चाहिए।         |
-| **Minor Incident**      | 3     | Yellow (`#ffbf53`)   | कम impact, जिसे आमतौर पर working hours में handle किया जाता है। |
+| गंभीरता              | क्रम | रंग              | इसका मतलब                                              |
+| --------------------- | ----- | ------------------ | ---------------------------------------------------------- |
+| **गंभीर घटना** | 1     | मैरून (`#b70400`) | ग्राहकों पर बहुत ज़्यादा असर, तुरंत प्रतिक्रिया चाहिए।  |
+| **प्रमुख घटना**    | 2     | लाल (`#fd625e`)    | बड़ा असर, आमतौर पर तुरंत प्रतिक्रिया की ज़रूरत। |
+| **छोटी घटना**    | 3     | पीला (`#ffbf53`) | कम असर, आमतौर पर कामकाजी घंटों में निपट जाता है।              |
 
-पूरे seeded descriptions [Incident States & Severities](/docs/incidents/states-and-severities) में हैं।
+पूरे seeded विवरण [घटना स्थितियाँ और गंभीरता](/docs/incidents/states-and-severities) में हैं।
 
-Severities में `name`, `description`, `color` और `order` होता है और कुछ नहीं। इनमें कोई flags नहीं होते, और कोई code path "Critical Incident" को किसी दूसरे row से अलग तरीके से treat नहीं करता। Severity यह है कि इंसान कैसे triage करते हैं, और जब आप on-call rules लिखते हैं तो यह एक match criterion के रूप में उपलब्ध होती है — लेकिन एक severity चुनने भर से अपने-आप किसी को page नहीं किया जाता।
+गंभीरताओं में `name`, `description`, `color` और `order` होते हैं, इसके अलावा कुछ नहीं। कोई flags नहीं हैं, और कोई भी code path "गंभीर घटना" के साथ बाकी rows से अलग बर्ताव नहीं करता। गंभीरता वह तरीका है जिससे इंसान triage करते हैं, और ऑन-कॉल नियम लिखते समय यह एक मिलान मानदंड के रूप में उपलब्ध रहती है — पर सिर्फ़ गंभीरता चुन लेने से अपने आप किसी को पेज नहीं जाता।
 
-Severities को **Incidents → Settings → Incident Severity** पर edit या add करें।
+गंभीरताएँ **घटनाएं → सेटिंग्स → घटना गंभीरता** पर संपादित करें या जोड़ें।
 
-## एक incident का जीवन
+## एक घटना का जीवन
 
-### 1. यह declare होता है
+### 1. वह घोषित होती है
 
-चार routes एक ही object पर पहुँचते हैं:
+चार रास्ते उसी एक object तक ले जाते हैं:
 
-- **हाथ से** — Incidents list से, **Declare Incident** पर क्लिक करें। इससे **Declare New Incident** wizard खुलता है, जो पाँच steps लंबा है: **Incident Details**, **Resources Affected**, **Incident Roles**, **On-Call**, **More**।
-- **एक template से** — **Create from Template** पर क्लिक करें और एक saved **Incident Template** चुनें। Templates title, description, severity, initial state, resources, on-call policies, owners और labels को pre-fill करते हैं।
-- **एक monitor से** — "declare an incident" toggle enabled वाला एक monitor criteria rule, उसके filters मेल खाते ही अपने-आप incident बना देता है। यहाँ titles और descriptions `{{variable}}` templating को support करते हैं।
-- **API के ज़रिए** — एक API key के साथ `POST /api/incident`। server आपके लिए `declaredAt`, created state, और incident number भर देता है।
+- **हाथ से** — घटनाओं की सूची से **घटना घोषित करें** पर click करें। इससे **नई घटना घोषित करें** wizard खुलता है, जो पाँच चरणों का है: **घटना विवरण**, **प्रभावित संसाधन**, **घटना भूमिकाएं**, **ऑन-कॉल**, **अधिक**।
+- **टेम्पलेट से** — **टेम्पलेट से बनाएँ** पर click करें और कोई सहेजा हुआ **घटना टेम्पलेट** चुनें। टेम्पलेट शीर्षक, विवरण, गंभीरता, शुरुआती स्थिति, संसाधन, ऑन-कॉल नीतियां, स्वामी और लेबल पहले से भर देते हैं।
+- **मॉनिटर से** — जिस monitor criteria नियम में "declare an incident" toggle चालू है, वह अपने filters मेल खाते ही अपने आप घटना बना देता है। वहाँ शीर्षक और विवरण `{{variable}}` templating सपोर्ट करते हैं।
+- **API से** — API key के साथ `POST /api/incident`। server आपके लिए `declaredAt`, created state और घटना संख्या भर देता है।
 
-field-by-field walkthrough के लिए [Declaring an Incident](/docs/incidents/declaring-incidents) देखें।
+फ़ील्ड-दर-फ़ील्ड चलने के लिए [घटना घोषित करना](/docs/incidents/declaring-incidents) देखें।
 
-### 2. सही लोगों को पता चलता है
+### 2. सही लोगों तक खबर पहुँचती है
 
-creation पर OneUptime आपकी configure की हुई automation चलाता है: label rules, on-call rules, owner rules और runbook rules। incident से जुड़ी कोई भी on-call duty policies — चाहे manually attach की गई हों, किसी template से आई हों, या किसी matching on-call rule से merge हुई हों — parallel में execute होती हैं।
+घटना बनते ही OneUptime आपका configure किया गया automation चलाता है: लेबल नियम, ऑन-कॉल नियम, स्वामी नियम और runbook नियम। घटना से जुड़ी कोई भी on-call duty नीति — चाहे हाथ से जोड़ी गई हो, टेम्पलेट से आई हो, या किसी मेल खाते ऑन-कॉल नियम से जुड़ी हो — समानांतर में execute होती है।
 
-Owners को email, SMS, call, push और WhatsApp के जरिए सूचित किया जाता है, यह हर user की अपनी notification preferences पर निर्भर करता है। यदि किसी incident का कोई owner नहीं है, तो notification drop होने के बजाय project owners तक fall back हो जाती है।
+स्वामियों को ईमेल, SMS, कॉल, पुश और WhatsApp पर सूचना जाती है, बशर्ते हर उपयोगकर्ता की अपनी सूचना प्राथमिकताएँ इसकी इजाज़त दें। अगर किसी घटना का कोई स्वामी ही नहीं है, तो सूचना छोड़ी नहीं जाती — वह प्रोजेक्ट के स्वामियों तक चली जाती है।
 
-अगर incident status page पर visible है और subscriber notifications enabled हैं, तो subscribers को भी बताया जाता है। Notifications cron-driven हैं और हर minute चलती हैं, इसलिए instant send के बजाय लगभग एक minute तक की देरी की उम्मीद करें।
+अगर घटना किसी स्थिति पृष्ठ पर दिख रही है और सब्सक्राइबर सूचनाएँ चालू हैं, तो सब्सक्राइबर को भी बताया जाता है। ये सूचनाएँ cron से चलती हैं और हर मिनट पर चलती हैं, इसलिए तुरंत भेजे जाने के बजाय लगभग एक मिनट तक की देरी मानकर चलें।
 
-### 3. आपकी टीम इस पर काम करती है
+### 3. आपकी टीम उस पर काम करती है
 
-Responders incident को acknowledge करते हैं, affected resources जोड़ते हैं, runbooks चलाते हैं, incident roles assign करते हैं, और जैसे-जैसे उन्हें चीज़ें पता चलती हैं, उन्हें लिखते जाते हैं — टीम के लिए private notes, customers के लिए public notes, और जब तस्वीर साफ हो जाए तो **Root Cause** और **Remediation** pages। वे जो कुछ भी करते हैं वह **Overview** page पर मौजूद **Incident Feed** में दर्ज होता है।
+प्रतिक्रिया देने वाले घटना को acknowledge करते हैं, प्रभावित संसाधन जोड़ते हैं, runbook चलाते हैं, घटना भूमिकाएं सौंपते हैं, और जो कुछ पता चलता है उसे लिखते जाते हैं — टीम के लिए निजी नोट, ग्राहकों के लिए सार्वजनिक नोट, और तस्वीर साफ़ होने पर **मूल कारण** और **सुधार** पेज। वे जो कुछ भी करते हैं वह **अवलोकन** पेज की **घटना फ़ीड** में दर्ज होता जाता है।
 
-### 4. यह resolve होता है
+### 4. वह सुलझ जाती है
 
-**Resolve** पर क्लिक करने से incident resolved state में चला जाता है, state timeline पर stamp लगता है, duration clock रुक जाता है, और incident को उस किसी भी status page के active section से हटा दिया जाता है जिस पर वह दिख रहा था। ऐसा होने के लिए और कुछ बदलने की जरूरत नहीं है — resolved state flag ही वह चीज़ है जिसे status page query देखती है।
+**सुलझाएं** पर click करने से घटना resolved state में चली जाती है, स्थिति टाइमलाइन पर मुहर लगती है, अवधि की घड़ी रुक जाती है, और घटना उस हर स्थिति पृष्ठ के सक्रिय हिस्से से हट जाती है जहाँ वह दिख रही थी। इसके लिए और कुछ बदलने की ज़रूरत नहीं — स्थिति पृष्ठ की query सिर्फ़ resolved state वाला flag देखती है।
 
-इसके बाद आप एक postmortem लिख सकते हैं और चाहें तो उसे status page पर publish कर सकते हैं।
+उसके बाद आप postmortem लिख सकते हैं और चाहें तो उसे स्थिति पृष्ठ पर प्रकाशित भी कर सकते हैं।
 
-## Dashboard में incidents कहाँ रहते हैं
+## डैशबोर्ड में घटनाएँ कहाँ रहती हैं
 
-left navigation में **Incidents** खोलें। इसका side menu sections में बँटा है:
+बाईं navigation में **घटनाएं** खोलें। इसका side menu कुछ सेक्शन में बँटा है:
 
-| Section       | आप वहाँ क्या करते हैं                                                                                                                                          |
+| सेक्शन       | आप वहाँ क्या करते हैं                                                                                                                                          |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Overview**  | **All Incidents** और **Active Incidents** — बाद वाले पर एक red badge होता है जिसमें उन incidents की संख्या होती है जो resolved state में नहीं हैं।                |
-| **Episodes**  | Incident episodes, अपने खुद के pages वाला एक अलग grouping feature।                                                                                              |
-| **AI**        | **Investigation** और **Remediation** — automatic investigation और auto-remediation settings।                                                                    |
-| **Workspace** | incidents के लिए **Slack** और **Microsoft Teams** connections।                                                                                                  |
-| **Rules**     | rule engines: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules**, **Reminder Rules**। |
-| **Settings**  | **Incident State**, **Incident Severity**, **Incident Templates**, **Note Templates**, **Postmortem Templates**, **Custom Fields**, **Incident Roles**, **More Settings**। |
+| **अवलोकन**  | **सभी घटनाएं** और **सक्रिय घटनाएं** — दूसरे पर लाल badge होता है जिसमें उन घटनाओं की गिनती है जो resolved state में नहीं हैं।                                |
+| **एपिसोड**  | घटना episodes, अपने अलग पेजों वाला एक अलग grouping फ़ीचर।                                                                                                         |
+| **एआई**        | **जांच** और **सुधार** — स्वचालित जांच और auto-remediation सेटिंग्स।                                                                             |
+| **वर्कस्पेस** | घटनाओं के लिए **Slack** और **Microsoft Teams** कनेक्शन।                                                                                                               |
+| **नियम**     | Rule engines: **समूहीकरण नियम**, **ऑन-कॉल नियम**, **स्वामी नियम**, **Runbook नियम**, **गोपनीयता नियम**, **लेबल नियम**, **SLA नियम**, **Reminder Rules**।        |
+| **सेटिंग्स**  | **घटना स्थिति**, **घटना गंभीरता**, **घटना टेम्पलेट**, **नोट टेम्पलेट**, **पोस्टमॉर्टम टेम्पलेट**, **कस्टम फ़ील्ड**, **घटना भूमिकाएं**, **अधिक सेटिंग्स**। |
 
-**Rules** और **Settings** डिफ़ॉल्ट रूप से collapsed रहती हैं — इन docs में जिन pages का ज़िक्र किया गया है उन्हें ढूँढने के लिए इन्हें expand करें। Incident configuration Project Settings के अंतर्गत नहीं है; यह सब यहीं रहता है।
+**नियम** और **सेटिंग्स** डिफ़ॉल्ट रूप से collapsed रहते हैं — इन दस्तावेज़ों में आगे जिन पेजों का ज़िक्र है, उन्हें ढूँढने के लिए इन्हें expand करें। घटना configuration Project Settings के नीचे नहीं है; वह सब यहीं रहती है।
 
-incidents list खुद **Incident Number**, **Title**, **State**, **Severity**, **Resources Affected**, **Declared**, **Duration**, **Labels** और **Owners** दिखाती है, साथ ही एक साथ कई को बंद करने के लिए एक **Change State** bulk action।
+घटनाओं की सूची खुद **घटना संख्या**, **शीर्षक**, **स्थिति**, **गंभीरता**, **प्रभावित संसाधन**, **घोषित**, **अवधि**, **लेबल** और **मालिक** दिखाती है, और एक साथ कई घटनाएँ बंद करने के लिए **स्थिति बदलें** bulk action देती है।
 
-## एक incident पर हर page क्या दिखाता है
+## घटना के हर पेज पर क्या दिखता है
 
-किसी incident को खोलें तो आपको एक left side menu मिलता है, इस तरह समूहित:
+कोई घटना खोलिए और आपको बाईं ओर एक side menu मिलता है, इस तरह समूहबद्ध:
 
-- **Overview** — **Incident Details** card (title, severity, labels, incident number, declared at, declared by, on-call policies), एक **Affected Resources** card, और **Incident Feed**। इनके ऊपर, time to acknowledge, time to resolve, और कुल **Duration** के लिए stat tiles।
-- **State Timeline** — incident जिन-जिन states में रहा है, हर एक के लिए **Starts At**, **Ends At**, **Duration** और subscriber notification status। **View Cause** और **View Logs** बताते हैं कि हर बदलाव क्यों हुआ।
-- **SLA** — इस incident के लिए SLA tracking।
-- **Description**, **Root Cause**, **Remediation** — तीन markdown pages। Description वही है जो आपके status page पर दिखता है।
-- **Runbooks** — इस incident से जुड़े runbook executions।
-- **Postmortem** — write-up, जिसे आप चाहें तो status page पर publish कर सकते हैं।
-- **Roles**, **On-Call Executions**, **Owners** — कौन इस पर है, कौन-सी policies चलीं, और किसे सूचित किया जाता है।
-- **Notification Logs**, **AI Logs**, **Audit Logs** — क्या भेजा गया और क्या बदला।
-- **Private Notes** और **Public Notes** — side menu के **Notes** section के अंतर्गत।
-- **Custom Fields**, **Settings**, **Delete Incident** — **Advanced** के अंतर्गत। **Settings** page में **Visible on Status Page**, **Private Incident** और **Reminders** card होते हैं।
+- **अवलोकन** — **घटना विवरण** card (शीर्षक, गंभीरता, लेबल, घटना संख्या, कब घोषित हुई, किसने घोषित की, ऑन-कॉल नीतियां), एक **प्रभावित संसाधन** card, और **घटना फ़ीड**। इनके ऊपर acknowledge तक लगे समय, सुलझाने तक लगे समय और कुल **अवधि** के stat tiles।
+- **स्थिति टाइमलाइन** — घटना जिन-जिन स्थितियों में रही, हर एक के लिए **शुरू होता है**, **समाप्त होता है**, **अवधि** और सब्सक्राइबर सूचना की स्थिति के साथ। **कारण देखें** और **लॉग्स देखें** बताते हैं कि हर बदलाव क्यों हुआ।
+- **SLA** — इस घटना के लिए SLA ट्रैकिंग।
+- **विवरण**, **मूल कारण**, **सुधार** — तीन markdown पेज। विवरण वही है जो आपके स्थिति पृष्ठ पर दिखता है।
+- **रनबुक** — इस घटना से जुड़े runbook निष्पादन।
+- **पोस्टमॉर्टम** — पूरा लेखा-जोखा, जिसे आप चाहें तो स्थिति पृष्ठ पर प्रकाशित कर सकते हैं।
+- **भूमिकाएं**, **ऑन-कॉल निष्पादन**, **मालिक** — कौन इस पर है, कौन-सी नीतियां चलीं, और किसे सूचना जाती है।
+- **सूचना लॉग**, **AI लॉग**, **ऑडिट लॉग** — क्या भेजा गया और क्या बदला।
+- **निजी नोट** और **सार्वजनिक नोट** — side menu के **नोट** सेक्शन के नीचे।
+- **कस्टम फ़ील्ड**, **सेटिंग्स**, **घटना हटाएं** — **उन्नत** के नीचे। **सेटिंग्स** पेज पर **स्थिति पृष्ठ पर दृश्यमान**, **निजी घटना** और **Reminders** card रहते हैं।
 
-collaboration pages के बारे में विस्तार से [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) में बताया गया है।
+[घटना नोट्स, स्वामी और फ़ीड](/docs/incidents/notes-owners-and-feed) सहयोग वाले पेजों को विस्तार से कवर करता है।
 
-## Incidents बाकी OneUptime के साथ कैसे fit होते हैं
+## घटनाएँ बाकी OneUptime के साथ कैसे जुड़ती हैं
 
-- **Monitors समस्या को पहचानते हैं; incidents उसे रिकॉर्ड करते हैं।** एक monitor criteria rule title, severity, on-call policies, owners, labels और remediation notes को pre-fill करते हुए अपने-आप एक incident declare कर सकता है। वहाँ उपलब्ध variables के लिए [Incident and Alert Templating](/docs/monitor/incident-alert-templating) देखें।
-- **On-call policies paging का काम करती हैं।** declare wizard के **On-Call** step पर, किसी template पर, या **Incidents → Rules → On-Call Rules** के जरिए policies attach करें। हर matching rule चलती है — executed set सभी matches और सीधे attach की गई किसी भी चीज़ का union होता है, deduplicated।
-- **Runbooks लोगों को बताते हैं क्या करना है।** जब कोई matching incident बनता है, तो runbook rules अपने-आप एक procedure attach कर देते हैं, और responders incident से खुद हाथ से भी एक शुरू कर सकते हैं। [Runbooks Overview](/docs/runbooks/index) देखें।
-- **Status pages customers को बताते हैं।** एक incident status page की active list में तब दिखता है जब page पर incidents enabled हों, incident status page पर visible के रूप में चिह्नित हो, और उसका current state resolved state न हो। Private incidents हर status page से हमेशा छिपे रहते हैं। [Status Pages Overview](/docs/status-pages/index) देखें।
-- **Workflows इसके इर्द-गिर्द automate करते हैं।** **On Create Incident**, **On Update Incident** और **On Delete Incident** triggers आपको incident lifecycle के ऊपर no-code automation बनाने देते हैं। [Workflows Overview](/docs/workflows/index) देखें।
+- **मॉनिटर समस्या पकड़ते हैं; घटनाएँ उसे दर्ज करती हैं।** कोई monitor criteria नियम अपने आप घटना घोषित कर सकता है और शीर्षक, गंभीरता, ऑन-कॉल नीतियां, स्वामी, लेबल और सुधार नोट पहले से भर सकता है। वहाँ उपलब्ध variables के लिए [घटना और अलर्ट टेम्पलेट](/docs/monitor/incident-alert-templating) देखें।
+- **पेजिंग ऑन-कॉल नीतियां करती हैं।** नीतियां declare wizard के **ऑन-कॉल** चरण पर, किसी टेम्पलेट पर, या **घटनाएं → नियम → ऑन-कॉल नियम** के ज़रिए जोड़ें। हर मेल खाता नियम चलता है — जो set अंत में execute होता है वह सभी मेल खाते नियमों और सीधे जोड़ी गई चीज़ों का deduplicated union है।
+- **Runbook लोगों को बताते हैं कि करना क्या है।** मेल खाती घटना बनने पर runbook नियम अपने आप एक प्रक्रिया जोड़ देते हैं, और प्रतिक्रिया देने वाले घटना से ही हाथ से कोई runbook शुरू कर सकते हैं। [Runbook का अवलोकन](/docs/runbooks/index) देखें।
+- **स्थिति पृष्ठ ग्राहकों को बताते हैं।** घटना किसी स्थिति पृष्ठ की सक्रिय सूची में तब दिखती है जब उस पेज पर घटनाएँ चालू हों, घटना स्थिति पृष्ठ पर दृश्यमान चिह्नित हो, और उसकी मौजूदा स्थिति resolved state न हो। निजी घटनाएँ हर स्थिति पृष्ठ से हमेशा छिपी रहती हैं। [स्थिति पृष्ठ अवलोकन](/docs/status-pages/index) देखें।
+- **वर्कफ़्लो इसके इर्द-गिर्द automation चलाते हैं।** **On Create Incident**, **On Update Incident** और **On Delete Incident** triggers से आप घटना जीवनचक्र के ऊपर no-code automation बना सकते हैं। [वर्कफ़्लो अवलोकन](/docs/workflows/index) देखें।
 
 ## आगे क्या पढ़ें
 
-- [Declaring an Incident](/docs/incidents/declaring-incidents) — wizard, templates, monitor criteria और API।
-- [Incident States & Severities](/docs/incidents/states-and-severities) — state flags, custom states और severity classification।
-- [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) — public और private notes, owners, और activity feed।
-- [Incident Settings & Automation](/docs/incidents/settings) — templates, custom fields, number prefixes और rule engines।
-- [Status Pages Overview](/docs/status-pages/index) — incidents आपके customers तक कैसे पहुँचते हैं।
-- [Subscribers & Announcements](/docs/status-pages/subscribers) — जब कोई incident बदलता है तो किसे सूचित किया जाता है।
+- [घटना घोषित करना](/docs/incidents/declaring-incidents) — wizard, टेम्पलेट, monitor criteria और API।
+- [घटना स्थितियाँ और गंभीरता](/docs/incidents/states-and-severities) — state flags, custom स्थितियाँ और गंभीरता वर्गीकरण।
+- [घटना नोट्स, स्वामी और फ़ीड](/docs/incidents/notes-owners-and-feed) — सार्वजनिक और निजी नोट, स्वामी, और गतिविधि फ़ीड।
+- [घटना सेटिंग्स और स्वचालन](/docs/incidents/settings) — टेम्पलेट, कस्टम फ़ील्ड, संख्या उपसर्ग और rule engines।
+- [स्थिति पृष्ठ अवलोकन](/docs/status-pages/index) — घटनाएँ आपके ग्राहकों तक कैसे पहुँचती हैं।
+- [सब्सक्राइबर और घोषणाएँ](/docs/status-pages/subscribers) — घटना आगे बढ़ने पर किसे सूचना मिलती है।

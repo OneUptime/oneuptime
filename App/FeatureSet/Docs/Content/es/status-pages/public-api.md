@@ -332,5 +332,5 @@ Esta es la respuesta de la API:
 - [Visión general de las páginas de estado](/docs/status-pages/index) — qué es una página de estado y cómo encajan sus piezas.
 - [Recursos y grupos de la página de estado](/docs/status-pages/resources-and-groups) — los recursos que devuelven estos endpoints.
 - [Marca y dominios de la página de estado](/docs/status-pages/branding-and-domains) — el dominio personalizado desde el que se sirven estos endpoints.
-- [Suscriptores y anuncios](/docs/status-pages/subscribers) — los anuncios que ofrece el endpoint de anuncios.
-- [Visión general de los incidentes](/docs/incidents/index) — de dónde provienen los incidentes en estas respuestas.
+- [Suscriptores y anuncios](/docs/status-pages/subscribers) — los anuncios que sirve el endpoint de anuncios.
+- [Visión general de los incidentes](/docs/incidents/index) — de dónde salen los incidentes que aparecen en estas respuestas.

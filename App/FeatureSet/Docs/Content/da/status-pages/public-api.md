@@ -327,10 +327,10 @@ Dette er svaret fra API'en:
 }
 ```
 
-## Læs videre
+## Hvor du kan læse videre
 
 - [Statussider – Oversigt](/docs/status-pages/index) — hvad en statusside er, og hvordan delene hænger sammen.
 - [Statusside – ressourcer og grupper](/docs/status-pages/resources-and-groups) — de ressourcer, som disse endpoints returnerer.
-- [Statusside – branding og domæner](/docs/status-pages/branding-and-domains) — det tilpassede domæne, som disse endpoints serveres fra.
-- [Abonnenter og meddelelser](/docs/status-pages/subscribers) — de meddelelser, som meddelelses-endpointet leverer.
-- [Hændelser – Oversigt](/docs/incidents/index) — hvor incidents i disse svar kommer fra.
+- [Statusside – branding og domæner](/docs/status-pages/branding-and-domains) — det brugerdefinerede domæne, som disse endpoints serveres fra.
+- [Abonnenter og meddelelser](/docs/status-pages/subscribers) — de meddelelser, som meddelelses-endpointet serverer.
+- [Hændelser – Oversigt](/docs/incidents/index) — hvor hændelserne i disse svar kommer fra.

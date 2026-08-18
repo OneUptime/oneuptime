@@ -329,8 +329,8 @@ Dit is de respons van de API:
 
 ## Waar je hierna kunt lezen
 
-- [Statuspagina's – Overzicht](/docs/status-pages/index) — wat een statuspagina is en hoe de onderdelen samenhangen.
-- [Statuspagina – bronnen en groepen](/docs/status-pages/resources-and-groups) — de bronnen die deze endpoints retourneren.
-- [Statuspagina – branding en domeinen](/docs/status-pages/branding-and-domains) — het aangepaste domein waarvandaan deze endpoints worden geserveerd.
-- [Abonnees en aankondigingen](/docs/status-pages/subscribers) — de aankondigingen die het aankondigingen-endpoint levert.
+- [Statuspagina's – Overzicht](/docs/status-pages/index) — wat een statuspagina is en hoe de onderdelen in elkaar passen.
+- [Statuspagina – bronnen en groepen](/docs/status-pages/resources-and-groups) — de bronnen die deze endpoints teruggeven.
+- [Statuspagina – branding en domeinen](/docs/status-pages/branding-and-domains) — het eigen domein waarvandaan deze endpoints worden geserveerd.
+- [Abonnees en aankondigingen](/docs/status-pages/subscribers) — de aankondigingen die het aankondigingen-endpoint serveert.
 - [Incidenten – Overzicht](/docs/incidents/index) — waar de incidenten in deze responses vandaan komen.

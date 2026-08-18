@@ -329,8 +329,8 @@ APIからのレスポンスは次のとおりです：
 
 ## 次に読むべきページ
 
-- [ステータス ページ 概要](/docs/status-pages/index) — ステータスページとは何か、各要素がどのように連携しているか。
+- [ステータス ページ 概要](/docs/status-pages/index) — ステータスページとは何か、そして各要素がどう噛み合うか。
 - [ステータス ページのリソースとグループ](/docs/status-pages/resources-and-groups) — これらのエンドポイントが返すリソース。
-- [ステータス ページのブランディングとドメイン](/docs/status-pages/branding-and-domains) — これらのエンドポイントの提供元となるカスタムドメイン。
-- [購読者とお知らせ](/docs/status-pages/subscribers) — お知らせエンドポイントが提供するお知らせ。
+- [ステータス ページのブランディングとドメイン](/docs/status-pages/branding-and-domains) — これらのエンドポイントが配信されるカスタムドメイン。
+- [購読者とお知らせ](/docs/status-pages/subscribers) — お知らせエンドポイントが返すお知らせ。
 - [インシデント 概要](/docs/incidents/index) — これらのレスポンスに含まれるインシデントの出どころ。

@@ -1,33 +1,33 @@
 # Variables
 
-Los workflows tratan de mover datos: del disparador al primer bloque, de un bloque al siguiente, y de valores compartidos hacia cualquier lugar donde los necesites. Las variables son la forma en que esos datos se mueven.
+Los flujos de trabajo van de mover datos — del disparador al primer bloque, de un bloque al siguiente y de los valores compartidos a cualquier sitio donde los necesites. Las variables son el vehículo de esos datos.
 
-Hay dos ámbitos de variables, más las salidas de componentes producidas durante una ejecución.
+Hay dos ámbitos de variables, más las salidas que los componentes producen durante una ejecución.
 
 ## Variables globales
 
-Valores de todo el proyecto que guardas una vez y reutilizas en cualquier lugar. Piensa en claves de API, URLs, nombres de canal: cualquier cosa que no quieras copiar en diez workflows distintos.
+Valores de todo el proyecto que guardas una vez y reutilizas donde quieras. Piensa en claves de API, URLs, nombres de canal — cualquier cosa que no te apetezca copiar en diez flujos de trabajo distintos.
 
-Encuéntralas en **Flujos de trabajo → Variables Globales**. Cada una tiene:
+Las encuentras en **Flujos de Trabajo → Variables Globales**. Cada una tiene:
 
-- **Name** — cómo la referenciarás. Al menos dos caracteres, sin espacios, y solo letras, números, guiones y guiones bajos. `UPPER_SNAKE_CASE` es un buen hábito porque destaca en tus bloques.
-- **Description** — opcional, texto libre para recordarte para qué sirve.
-- **Secret** — cuando está activado, el valor se elimina de los registros de ejecución y de los rastros de pasos.
-- **Content** — el valor real. Es un campo de texto largo, así que los valores multilínea funcionan.
+- **Nombre** — con lo que la referenciarás. Mínimo dos caracteres, sin espacios y solo letras, números, guiones y guiones bajos. `UPPER_SNAKE_CASE` es una buena costumbre porque destaca dentro de tus bloques.
+- **Descripción** — opcional, texto libre para recordarte para qué sirve.
+- **Secreto** — al activarlo, el valor se elimina de los registros de ejecución y de las trazas de pasos.
+- **Contenido** — el valor en sí. Es un campo de texto largo, así que admite varias líneas.
 
-Usa una variable global en cualquier workflow con:
+Para usar una variable global en cualquier flujo de trabajo:
 
 ```
 {{global.variables.NAME}}
 ```
 
-Por ejemplo, si guardaste tu clave de PagerDuty como `PAGERDUTY_KEY`, cualquier bloque puede usarla como `{{global.variables.PAGERDUTY_KEY}}`: el editor guarda la referencia, y el registro de workflow elimina el valor secreto resuelto.
+Por ejemplo, si guardaste tu clave de PagerDuty como `PAGERDUTY_KEY`, cualquier bloque puede usarla como `{{global.variables.PAGERDUTY_KEY}}` — el editor guarda la referencia, y el registro del flujo de trabajo depura el valor secreto ya resuelto.
 
-Las variables se crean y se eliminan, no se editan. No hay botón de editar en la tabla, así que para cambiar un valor en la interfaz eliminas la variable y la creas de nuevo, o la actualizas por la API, lo cual se explica al final de esta página. Las variables globales y de workflow son una función del plan Growth.
+Las variables se crean y se eliminan, no se editan. La tabla no tiene botón de editar, así que para cambiar un valor desde la interfaz eliminas la variable y la vuelves a crear — o la actualizas por la API, cosa que se explica al final de esta página. Las variables globales y de flujo de trabajo son una función del plan Growth.
 
-## Variables locales de workflow
+## Variables locales de un flujo de trabajo
 
-Variables con alcance a un solo workflow, gestionadas en **Workflow Variables** en el menú lateral de ese workflow. Referéncialas con:
+Variables que solo existen en un flujo de trabajo y se gestionan en **Variables de Flujo**, en el menú izquierdo de ese flujo. Se referencian así:
 
 ```
 {{local.variables.NAME}}
@@ -35,77 +35,77 @@ Variables con alcance a un solo workflow, gestionadas en **Workflow Variables** 
 
 ## Salidas de componentes (datos de bloques anteriores)
 
-Cada disparador y componente puede producir una salida durante una ejecución. Usa el selector de valores de componente en el editor para crear la referencia en lugar de escribirla a mano: inserta exactamente los ids que el runner espera.
+Todo disparador y todo componente puede producir salida durante una ejecución. Usa el selector de valores de componente del editor para crear la referencia en vez de escribirla: inserta exactamente los ids que el runner espera.
 
-Referencia la salida de un bloque anterior así:
+Para referenciar la salida de un bloque anterior:
 
 ```
 {{local.components.COMPONENT_ID.returnValues.FIELD_ID}}
 ```
 
-`COMPONENT_ID` es el **Identifier** del bloque: el id corto mostrado en el bloque, no el nombre que se muestra en él. Los bloques nuevos reciben uno como `api-get-1`, y puedes renombrarlo en la sección **ID** del bloque. Renombrarlo rompe cada referencia que ya apunte a él, igual que renombrar una variable. `FIELD_ID` es el id del return-value seleccionado.
+`COMPONENT_ID` es el **Identifier** del bloque — el id corto que se ve en él, no el nombre que muestra. Los bloques nuevos reciben uno del tipo `api-get-1`, y puedes cambiarlo en la sección **ID** del bloque. Cambiarlo rompe todas las referencias que ya apuntaban ahí, igual que pasa al renombrar una variable. `FIELD_ID` es el id del valor de retorno que elijas.
 
 Ejemplos:
 
-- Después de que se ejecute un componente **API** cuyo ID es `lookup-user`, su código de estado es `{{local.components.lookup-user.returnValues.response-status}}` y su cuerpo es `{{local.components.lookup-user.returnValues.response-body}}`.
-- Después de un componente **Run Custom JavaScript** cuyo ID es `transform`, su valor devuelto es `{{local.components.transform.returnValues.returnValue}}`.
-- Los disparadores para un tipo de registro — **On Create Incident** y similares — devuelven exactamente un valor, `model`, y tú profundizas en él. Para un disparador cuyo ID es `incident-on-create-1`, el título del incidente es `{{local.components.incident-on-create-1.returnValues.model.title}}`.
+- Después de ejecutarse un componente **API** cuyo ID es `lookup-user`, su código de estado es `{{local.components.lookup-user.returnValues.response-status}}` y su cuerpo es `{{local.components.lookup-user.returnValues.response-body}}`.
+- Después de un componente **Run Custom JavaScript** cuyo ID es `transform`, el valor que devuelve es `{{local.components.transform.returnValues.returnValue}}`.
+- Los disparadores de un tipo de registro — **On Create Incident** y compañía — devuelven un único valor, `model`, y tú profundizas dentro de él. Para un disparador cuyo ID es `incident-on-create-1`, el título del incidente es `{{local.components.incident-on-create-1.returnValues.model.title}}`.
 
-Las variables locales solo existen durante la ejecución actual. Cada ejecución nueva empieza de cero.
+Las variables locales solo existen mientras dura la ejecución en curso. Cada ejecución nueva empieza de cero.
 
 ## Dónde funcionan las variables
 
-Casi todos los campos de texto aceptan variables:
+Casi cualquier campo de texto acepta variables:
 
-- La URL en un bloque API.
-- El texto del mensaje en Slack, Teams, Discord, Telegram, Email.
+- La URL de un bloque API.
+- El texto del mensaje en Slack, Teams, Discord, Telegram y correo electrónico.
 - El asunto y el cuerpo de un correo.
-- Los campos de cabeceras y cuerpo (dentro de valores de cadena).
-- Ambos lados de un bloque **If / Else** (listado en la categoría Conditions).
+- Los campos de cabeceras y de cuerpo (dentro de valores de tipo cadena).
+- Los dos lados de un bloque **If / Else** (que está en la categoría Condiciones).
 
-En campos JSON puedes usar una variable dentro de un valor de cadena, pero no como clave. Una referencia que ocupa un valor completo por sí sola se sustituye tal cual, así que puedes soltar un objeto entero en un campo JSON de esa forma. Si necesitas construir una estructura dinámicamente, usa un bloque **Run Custom JavaScript** para construirla, y luego pasa su salida al siguiente bloque.
+En los campos JSON puedes usar una variable dentro de un valor de tipo cadena, pero no como clave. Una referencia que ocupa un valor entero ella sola se sustituye tal cual, así que por esa vía puedes colocar un objeto completo en un campo JSON. Si necesitas construir una estructura de forma dinámica, usa un bloque **Run Custom JavaScript** para armarla y pasa su salida al bloque siguiente.
 
-El bloque **Run Custom JavaScript** no recibe variables automáticamente: no se inyecta nada en el sandbox. Pon `{{global.variables.NAME}}` (o cualquier referencia de componente) en el campo JSON **Arguments** del bloque; esos valores se sustituyen antes de que se ejecute el script y llegan como `args`.
+El bloque **Run Custom JavaScript** no recibe variables automáticamente — no se inyecta nada en el sandbox. Pon `{{global.variables.NAME}}` (o cualquier referencia a un componente) en el campo JSON **Arguments** del bloque; esos valores se sustituyen antes de que se ejecute el script y llegan como `args`.
 
-## Iterar sobre arrays
+## Recorrer arrays
 
-Dentro de un campo de texto puedes iterar un array con `{{#each path}}…{{/each}}`. Dentro del bloque, `{{property}}` lee del elemento actual, `{{@index}}` es la posición basada en 0, y `{{this}}` es el elemento mismo para arrays de valores simples. Los nombres dentro de un bloque `{{#each}}` se recortan, así que los espacios sueltos son inofensivos ahí, a diferencia de en cualquier otro lugar.
+Dentro de un campo de texto puedes iterar un array con `{{#each path}}…{{/each}}`. Dentro del bloque, `{{property}}` lee del elemento actual, `{{@index}}` es la posición empezando en 0 y `{{this}}` es el elemento en sí cuando el array contiene valores simples. Los nombres dentro de un bloque `{{#each}}` se recortan, así que ahí los espacios sobrantes son inofensivos — al contrario que en el resto de sitios.
 
 ## Ejemplos
 
 ### Construir un payload a partir de un webhook
 
-Llega un webhook con un cuerpo como `{ "service": "checkout", "status": "failed" }`. Para convertir eso en un incidente de OneUptime:
+Llega un webhook con un cuerpo del estilo `{ "service": "checkout", "status": "failed" }`. Para convertirlo en un incidente de OneUptime:
 
-1. Disparador **Webhook** con el id `ci-webhook`.
-2. Bloque **If / Else**: selecciona la salida Request Body del webhook y usa su propiedad `status`, operador `==`, lado derecho `failed`.
-3. Desde la rama **Yes**, un bloque **Create One Incident** con:
-   - Title: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
-   - Description: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
+1. Un disparador **Webhook** con el id `ci-webhook`.
+2. Un bloque **If / Else**: selecciona la salida Request Body del webhook y usa su propiedad `status`, operador `==`, a la derecha `failed`.
+3. Desde la rama **Sí**, un bloque **Create One Incident** con:
+   - Título: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
+   - Descripción: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 
-### Usar un secreto en una llamada a la API
+### Usar un secreto en una llamada a una API
 
-Un workflow que llama a PagerDuty:
+Un flujo de trabajo que llama a PagerDuty:
 
 1. Guarda `PAGERDUTY_KEY` como variable global secreta.
-2. En el bloque **API**, establece la cabecera `Authorization` como `Token token={{global.variables.PAGERDUTY_KEY}}`.
+2. En el bloque **API**, pon la cabecera `Authorization` a `Token token={{global.variables.PAGERDUTY_KEY}}`.
 
-La clave se mantiene fuera del workflow y de los registros.
+La clave se queda fuera del flujo de trabajo y fuera de los registros.
 
-### Encadenar dos llamadas a la API
+### Encadenar dos llamadas a una API
 
-La primera llamada te da un ID que la segunda necesita:
+La primera llamada te da un ID que necesita la segunda:
 
-1. Componente **API** `lookup-order`: usa el selector para insertar el campo JSON de email del disparador manual en `GET /orders?email=...`.
+1. Componente **API** `lookup-order`: usa el selector para insertar el campo de correo del JSON del disparador manual en `GET /orders?email=...`.
 2. Componente **API** `cancel-order`: `POST /orders/{{local.components.lookup-order.returnValues.response-body.id}}/cancel`.
 
-Si `lookup-order` falla, su salida **Error** se activa en lugar de **Success**. Conecta eso a un bloque de Email o Slack para que los fallos no pasen desapercibidos.
+Si `lookup-order` falla, se activa su salida **Error** en lugar de **Success**. Conéctala a un bloque de correo electrónico o de Slack para que los fallos no pasen desapercibidos.
 
-## Actualizar una variable desde un workflow
+## Actualizar una variable desde un flujo de trabajo
 
-Un patrón común es rotar una credencial según una programación: obtener un token nuevo de un tercero, y luego guardarlo de vuelta en la variable para que la siguiente ejecución lo use. Haz eso con un bloque **API** que llame a la API de OneUptime.
+Un patrón habitual es rotar una credencial de forma programada: pides un token nuevo a un tercero y lo guardas de vuelta en la variable para que la siguiente ejecución lo use. Eso se hace con un bloque **API** que llama a la API de OneUptime.
 
-`PUT /api/workflow-variable/<variable-id>` con una cabecera `ApiKey`, y —esta es la parte que suele confundir a la gente— los campos que quieres cambiar **envueltos en un objeto `data`**:
+`PUT /api/workflow-variable/<variable-id>` con una cabecera `ApiKey` y — esta es la parte con la que todo el mundo tropieza — los campos que quieras cambiar **envueltos en un objeto `data`**:
 
 ```json
 {
@@ -115,25 +115,25 @@ Un patrón común es rotar una credencial según una programación: obtener un t
 }
 ```
 
-Un cuerpo plano sin el envoltorio `data` se rechaza con un 400. Envía solo los campos que realmente quieres cambiar; `name` y `description` pueden quedarse fuera del payload.
+Un cuerpo plano, sin el envoltorio `data`, se rechaza con un 400. Envía solo los campos que de verdad quieras cambiar; `name` y `description` pueden quedarse fuera del payload.
 
-La clave de API necesita **Edit Workflow Variables**. No se requiere permiso de lectura: la actualización no vuelve a leer la fila.
+La clave de API necesita **Edit Workflow Variables**. No hace falta permiso de lectura — la actualización no vuelve a leer la fila.
 
 Dos cosas a vigilar:
 
-- **No renombres una variable que referencias.** `name` forma parte de `{{local.variables.NAME}}`. Cambiarlo deja cada referencia existente sin resolver, y una referencia sin resolver se pasa como texto literal; consulta la trampa más abajo.
-- **Una variable se puede escribir de esta forma pero nunca leer de vuelta.** `content` es de solo escritura por la API para toda variable, secreta o no. Eso es lo que hace de una variable un lugar seguro para guardar un token que rota. Marcarla como secreta además mantiene el valor fuera de los registros de ejecución y de los rastros de pasos.
+- **No renombres una variable que estés referenciando.** `name` forma parte de `{{local.variables.NAME}}`. Cambiarlo deja sin resolver todas las referencias existentes, y una referencia sin resolver se pasa tal cual como texto literal — mira el detalle más abajo.
+- **Una variable se puede escribir por esta vía, pero nunca leer.** `content` es de solo escritura en la API para cualquier variable, sea secreta o no. Eso es justo lo que convierte a una variable en un buen sitio donde aparcar un token rotatorio. Marcarla como secreta añade que el valor se quede fuera de los registros de ejecución y de las trazas de pasos.
 
-## Trampas comunes
+## Detalles que se atragantan
 
-- **Usa los selectores.** Insertan exactamente los ids de componente, return-value y variable que el runner espera, y mantienen las referencias independientes de las etiquetas mostradas.
-- **Los nombres de variable distinguen mayúsculas de minúsculas.** `{{global.variables.MyKey}}` y `{{global.variables.mykey}}` son diferentes.
-- **Una referencia que no se resuelve se deja tal cual, no se deja en blanco.** Referirse a algo que no existe no es un error, y tampoco te da una cadena vacía: las llaves se pasan tal cual, así que `{{local.components.api-get-1.returnValues.body}}` con un id de paso mal escrito termina en tu mensaje de Slack, URL o cuerpo de la solicitud tal cual, y la ejecución sigue reportando **Executed**. El registro de la ejecución lleva una línea de advertencia nombrando cualquier referencia que se haya colado.
-- **El builder no puede comprobar nombres de variable.** Marca las referencias de componente que no puede emparejar —un id de paso desconocido, un return value desconocido, una raíz malformada— antes de que guardes. No puede saber si una variable existe, así que una variable renombrada solo se detecta en el registro de la ejecución.
-- **Los espacios dentro de las llaves no se recortan.** `{{ local.variables.NAME }}` es una búsqueda distinta de `{{local.variables.NAME}}` y nunca se resuelve. La única excepción es dentro de un bloque `{{#each}}`, donde los nombres sí se recortan.
+- **Usa los selectores.** Insertan exactamente los ids de componente, de valor de retorno y de variable que el runner espera, y mantienen las referencias al margen de las etiquetas visibles.
+- **Los nombres de variable distinguen mayúsculas de minúsculas.** `{{global.variables.MyKey}}` y `{{global.variables.mykey}}` son cosas distintas.
+- **Una referencia que no se resuelve se deja tal cual, no se vacía.** Referenciar algo que no existe no es un error, y tampoco te da una cadena vacía: las llaves pasan de largo, así que `{{local.components.api-get-1.returnValues.body}}` con un id de paso mal escrito acaba literalmente en tu mensaje de Slack, en tu URL o en tu cuerpo de petición, y la ejecución sigue reportándose como **Executed**. El registro de la ejecución incluye una línea de advertencia con el nombre de cada referencia que se coló.
+- **El constructor no puede comprobar los nombres de variable.** Sí marca, antes de que guardes, las referencias a componentes que no encajan — un id de paso desconocido, un valor de retorno desconocido, una raíz mal formada. Pero no sabe si una variable existe, así que una variable renombrada solo se descubre en el registro de la ejecución.
+- **Los espacios dentro de las llaves no se recortan.** `{{ local.variables.NAME }}` es una búsqueda distinta de `{{local.variables.NAME}}` y no se resuelve nunca. La única excepción es dentro de un bloque `{{#each}}`, donde los nombres sí se recortan.
 
 ## Qué leer a continuación
 
 - [Componentes de flujo de trabajo](/docs/workflows/components) — la lista completa de salidas que produce cada bloque.
-- [Ejecuciones y registros de flujo de trabajo](/docs/workflows/runs-and-logs) — ver el valor real de cada variable después de una ejecución.
+- [Ejecuciones y registros de flujo de trabajo](/docs/workflows/runs-and-logs) — ver el valor real de cada variable tras una ejecución.
 - [Configuración y seguridad del flujo de trabajo](/docs/workflows/configuration) — qué es seguro poner en una variable global.

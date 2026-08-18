@@ -1,91 +1,91 @@
 # Kørsler & logfiler
 
-Hver gang et workflow kører, gemmer OneUptime en optegnelse over, hvad der skete — hvornår det kørte, om det lykkedes, og hvad hver blok gjorde. Den optegnelse kaldes en **kørsel**. Kørsler er sådan, du bekræfter, at et workflow virkede, fejlfinder et der ikke gjorde, og kigger tilbage på tidligere aktivitet.
+Hver gang et workflow kører, gemmer OneUptime en optegnelse over, hvad der skete — hvornår det kørte, om det lykkedes, og hvad hver blok gjorde. Den optegnelse kaldes en **kørsel**. Kørsler er dem, du bruger til at bekræfte, at et workflow virkede, til at fejlfinde et, der ikke gjorde, og til at se tilbage på tidligere aktivitet.
 
 ## Hvor du finder dem
 
-| Side                                 | Hvad du ser                                                                                          |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| **Arbejdsgange → Kørsler og logs**   | Hver kørsel fra hvert workflow i projektet. Filtrér efter workflownavn, status og tid.                |
-| **Arbejdsgang → Kørsler og logs**    | Kun kørslerne af dette ene workflow. Denne har et **Run ID**-filter i stedet for et workflow-filter.  |
-| **En enkelt kørsel**                 | Åbnes med knappen **View Logs** på en kørselsrække — selve kørselsrækkerne kan ikke klikkes på.       |
+| Side                                | Hvad du ser                                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| **Arbejdsgange → Kørsler og logs**  | Alle kørsler fra alle workflows i projektet. Filtrér på workflownavn, status og tid.                 |
+| **Arbejdsgang → Kørsler og logs**   | Kun kørslerne for dette ene workflow. Her er der et **Kørsels-ID**-filter i stedet for et workflowfilter. |
+| **En enkelt kørsel**                | Åbnes med knappen **Vis logge** på en kørselsrække — selve rækkerne kan man ikke klikke på.           |
 
 ## Kørselsstatusser
 
-| Status                              | Hvad det betyder                                                                                                                                                        |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Scheduled**                        | Triggeren udløstes, og kørslen står i kø til en runner. Normalt en brøkdel af et sekund. En kørsel, der stadig er Scheduled efter 5 minutter, er fejlet — ingen tog den. |
-| **Running**                          | Workflowet er i gang. Langvarige blokke holder en kørsel i denne tilstand.                                                                                              |
-| **Waiting**                          | Kørslen er parkeret på en **Sleep**-blok og genoptages af sig selv. Den optager ingen worker, mens den venter.                                                          |
-| **Executed**                         | Kørslen nåede til enden uden at fejle. (Dette er succes-tilstanden — chippen viser **Executed**, ikke "Success".)                                                       |
-| **Error**                            | Kørslen stoppede, fordi en blok kastede en fejl. Bruges også, når en kørsel i kø aldrig bliver taget, når en sovende kørsels genoptagelse går tabt, når et schedule-udtryk ikke kan opløses, eller når workflowet deaktiveres midt i en kørsel. |
-| **Timeout**                          | Kørslen kørte længere end tilladt. Se [Konfiguration & sikkerhed](/docs/workflows/configuration).                                                                       |
-| **Execution Exceeded Current Plan**  | Projektet har brugt sine workflow-kørsler for de sidste 30 dage, eller abonnementet er ubetalt. Kørslen registreres, men eksekveres ikke. Kun OneUptime Cloud.          |
+| Status                              | Hvad det betyder                                                                                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Planlagt**                        | Triggeren fyrede, og kørslen står i kø til en runner. Som regel et splitsekund. En kørsel, der stadig er planlagt efter 5 minutter, er fejlet — ingen tog den. |
+| **Kører**                           | Workflowet er i gang. Blokke, der tager lang tid, holder en kørsel i denne tilstand.                                                                      |
+| **Venter**                          | Kørslen er parkeret på en **Sleep**-blok og fortsætter af sig selv. Den optager ingen worker imens.                                                       |
+| **Executed**                        | Kørslen nåede til enden uden at fejle. (Det er succes-tilstanden — pillen siger **Executed**, ikke "Success".)                                            |
+| **Fejl**                            | Kørslen stoppede, fordi en blok rejste en fejl. Bruges også, når en kørsel i kø aldrig bliver taget, når genoptagelsen af en sovende kørsel går tabt, når et tidsplansudtryk ikke kan opløses, eller når workflowet bliver deaktiveret midt i kørslen. |
+| **Timeout**                         | Kørslen kørte længere end tilladt. Se [Workflow-konfiguration & sikkerhed](/docs/workflows/configuration).                                                |
+| **Execution Exceeded Current Plan** | Projektet har brugt sine workflowkørsler for de seneste 30 dage, eller abonnementet er ubetalt. Kørslen registreres, men udføres ikke. Kun OneUptime Cloud. |
 
-En blok, der giver videre til sit **Error**-output — for eksempel en API-blok på en 4xx — får ikke kørslen til at fejle. Fejlgrenen kører, og kørslen ender stadig **Executed**. Selve trinnet tegnes dog stadig rødt, så du kan finde det.
+En blok, der giver videre fra sit **Fejl**-output — en API-blok på et 4xx, for eksempel — får ikke kørslen til at fejle. Fejlgrenen kører, og kørslen ender stadig som **Executed**. Trinnet selv tegnes stadig rødt, så du kan finde det.
 
 ## Læs en kørsel
 
-Klik på **View Logs** på en kørsel for at åbne den. Visningen **Workflow Run** har to faner.
+Klik **Vis logge** på en kørsel for at åbne den. Visningen **Workflow Run** har to faner.
 
-**Steps** — én række pr. blok, der kørte, i rækkefølge. Hver række viser blokkens titel, dens component id, hvor lang tid den tog, og det output, den forlod med (`→ success`, `→ error`, `→ yes`). Udvid en række for to blokke af detaljer:
+**Trin** — én række pr. blok, der kørte, i rækkefølge. Hver række viser blokkens titel, dens komponent-id, hvor lang tid den tog, og hvilket output den forlod ved (`→ success`, `→ error`, `→ yes`). Fold en række ud for to blokke med detaljer:
 
-- **Received** — de indstillinger, blokken fik, efter alle variabler var opløst.
+- **Received** — de indstillinger, blokken fik, efter at alle variabler var opløst.
 - **Returned** — det, den producerede.
 
-Fejlede trin er røde og starter udvidet, med fejlmeddelelsen printet over **Received**.
+Fejlede trin er røde og starter foldet ud, med fejlmeddelelsen skrevet over **Received**.
 
-**Full Log** — den rå, linje-for-linje log, runneren printede, inklusive alt, blokkene selv loggede. Brug den, når Steps-visningen ikke forklarer fejlen.
+**Full Log** — den rå log linje for linje, som runneren skrev, inklusive alt det, blokkene selv loggede. Brug den, når **Trin** ikke forklarer fejlen.
 
-To detaljer værd at kende. Component id'et printet under hver trin-titel er præcis den streng, du skal indsætte i en `{{local.components.<id>.returnValues.…}}`-reference, hvilket gør dette til den hurtigste måde at få en reference rigtig på. Og en kørsel beholder kun sine sidste 100 trin — en lang eller gentagne gange genoptaget kørsel viser en gul note, hvor de tidligere blev droppet.
+To detaljer er værd at kende. Komponent-id'et, der står under hver trintitel, er præcis den streng, du skal sætte ind i en `{{local.components.<id>.returnValues.…}}`-henvisning, og det gør det her til den hurtigste vej til en korrekt henvisning. Og en kørsel gemmer kun sine sidste 100 trin — en lang eller gentagne gange genoptaget kørsel viser en gul note der, hvor de tidligere trin blev droppet.
 
-De viste værdier er, hvad blokken så, efter variabler blev udfyldt, med to undtagelser: hemmeligheder og felter, blokken markerer som følsomme, er skjult, og meget lange værdier afkortes med "… (truncated)".
+De værdier, du ser, er dem, blokken så, efter at variablerne var fyldt ud, med to undtagelser: hemmeligheder og felter, blokken markerer som følsomme, er sløret, og meget lange værdier klippes af med "… (truncated)".
 
-Starter du en kørsel fra **Builder**, åbnes denne samme visning, allerede i gang med at følge kørslen, så du kan se den ske i stedet for at lede efter den bagefter.
+Starter du en kørsel fra **Bygger**, åbner den samme visning og følger allerede kørslen, så du kan se den ske i stedet for at lede efter den bagefter.
 
 ## Almindelig fejlfinding
 
 ### "Mit workflow kørte ikke."
 
-1. Sørg for, at workflowet er **Enabled** på sin **Overview**-side. Nye workflows starter deaktiverede, og et deaktiveret workflow afviser enhver kørsel — også manuelle.
-2. For en OneUptime event-trigger: bekræft, at eventen faktisk skete. Åbn posten og tjek dens historik.
-3. For en webhook-trigger: bekræft, at det andet system sender til den rigtige URL. De fleste værktøjer logger, når de sender en webhook — tjek der.
-4. For en schedule-trigger: bekræft, at cron-udtrykket matcher det tidspunkt, du forventer.
+1. Sikr dig, at workflowet er **Aktiveret** på siden **Oversigt**. Nye workflows starter deaktiveret, og et deaktiveret workflow afviser hver eneste kørsel — også de manuelle.
+2. Ved en OneUptime-begivenhedstrigger: bekræft, at begivenheden rent faktisk skete. Åbn posten, og tjek dens historik.
+3. Ved en webhook-trigger: bekræft, at det andet system sender til den rigtige URL. De fleste værktøjer logger, når de sender en webhook — kig der.
+4. Ved en tidsplanstrigger: bekræft, at cron-udtrykket rammer det tidspunkt, du forventer.
 
-Hvis kørslen *dukker op* med statussen **Execution Exceeded Current Plan**, har projektet brugt alle sine workflow-kørsler for de sidste 30 dage, eller abonnementet er ubetalt. Kørslens log navngiver antallet og din plans grænse. Dette gælder kun OneUptime Cloud.
+Dukker kørslen *op* med statussen **Execution Exceeded Current Plan**, har projektet brugt alle sine workflowkørsler for de seneste 30 dage, eller abonnementet er ubetalt. Kørslens log nævner antallet og din plans grænse. Det gælder kun OneUptime Cloud.
 
 ### "En senere blok kørte aldrig."
 
-En blok, der ikke kører, er som regel et koblingsproblem. Åbn **Builder** og tjek:
+En blok, der ikke kører, skyldes som regel forbindelserne. Åbn **Bygger**, og tjek:
 
 - Er den tidligere bloks output forbundet til denne bloks input?
-- Tog den tidligere blok et andet output, end du forventede — **Error** i stedet for **Success**, eller **No** i stedet for **Yes**? Steps-fanen viser, hvilken der blev taget.
+- Tog den tidligere blok et andet output, end du regnede med — **Fejl** i stedet for **Succes**, eller **Nej** i stedet for **Ja**? Fanen **Trin** viser, hvilket ét den tog.
 
-### "En variabel kom igennem tom."
+### "En variabel kom tom igennem."
 
-Åbn kørslen, og kig på det fejlende trins **Received**-blok.
+Åbn kørslen, og se på det fejlende trins **Received**-blok.
 
-- Hvis du ser den bogstavelige tekst `{{local.components.…}}`, blev referencen ikke løst op. Sædvanligvis er det en tastefejl i component id'et eller return-value id'et — husk, at det er blokkens **Identifier**, ikke navnet, der vises på den. Tjek også stavningen af selve `local.components`: `{{local.componets.api-get-1.returnValues.response-body}}` sendes som bogstavelig tekst, og kørslen rapporterer stadig **Executed**.
-- Hvis du ser en tom streng, kørte den tidligere blok, men producerede ikke det felt.
+- Ser du den bogstavelige `{{local.components.…}}`-tekst, blev henvisningen ikke opløst. Som regel er det en tastefejl i komponent-id'et eller i returværdiens id — husk, at det er blokkens **Identifier**, ikke det navn, der vises på den. Tjek også stavningen af `local.components` selv: `{{local.componets.api-get-1.returnValues.response-body}}` sendes som bogstavelig tekst, og kørslen melder stadig **Executed**.
+- Ser du en tom streng, kørte den tidligere blok, men producerede ikke det felt.
 
-Fanen **Full Log** bærer en advarselslinje, der navngiver enhver reference, der ikke blev løst op, hvilket sædvanligvis er den hurtigste måde at finde den på.
+Fanen **Full Log** har en advarselslinje, der navngiver enhver henvisning, som ikke blev opløst, og det er som regel den hurtigste måde at finde den på.
 
-### "Det virker, når jeg kører det manuelt, men ikke fra triggeren."
+### "Det virker, når jeg kører det i hånden, men ikke fra triggeren."
 
-Åbn **Builder**, klik **Run Workflow**, og udfyld triggerens felter med værdier, der ligner det, den rigtige trigger sender. Sammenlign så den kørsels **Received**-værdier med den rigtige kørsels, side om side. Forskellen er som regel et enkelt feltnavn eller en type.
+Åbn **Bygger**, klik **Kør arbejdsgang**, og udfyld triggerens felter med værdier, der ligner dem, den rigtige trigger sender. Sammenlign så den kørsels **Received**-værdier med den rigtige kørsels, side om side. Forskellen er som regel et enkelt feltnavn eller en type.
 
 ## Genkør et workflow
 
-Der er ingen "genkør denne kørsel"-knap. Vi genkører ikke gamle afviklinger automatisk, fordi sideeffekterne — Slack-beskeder, API-kald, tickets — måske ikke er sikre at gentage. For at gøre arbejdet om: ret workflowet, og lad den næste rigtige trigger udløse det, eller åbn **Builder**, og klik **Run Workflow** med de samme værdier.
+Der er ingen "kør denne kørsel igen"-knap. Vi genkører ikke gamle eksekveringer automatisk, fordi bivirkningerne — Slack-beskeder, API-kald, sager — ikke nødvendigvis er sikre at gentage. Vil du gøre arbejdet om, så ret workflowet, og lad den næste rigtige trigger fyre det af, eller åbn **Bygger** og klik **Kør arbejdsgang** med de samme værdier.
 
 ## Hvor længe gemmes kørsler?
 
-På OneUptime Cloud gemmes kørsler i **30 dage** og slettes derefter — det er derfor, begge kørselslister beskriver sig selv som dækkende de sidste 30 dage. Selv-hostede installationer beholder kørsler, indtil du sletter dem; hvis et workflow kører meget ofte og roder i din historik, så deaktivér eller slet det for at stoppe med at tilføje til støjen.
+På OneUptime Cloud gemmes kørsler i **30 dage** og slettes så — det er derfor, begge kørselslister beskriver sig selv som dækkende de seneste 30 dage. Selvhostede installationer gemmer kørsler, indtil du sletter dem; kører et workflow meget ofte og roder din historik til, så deaktivér eller slet det for at holde op med at lave støj.
 
-Kørsler registreret, før trin-sporing blev tilføjet, har intet **Steps**-indhold og viser kun deres **Full Log**.
+Kørsler, der blev registreret, før trinsporing kom til, har intet indhold under **Trin** og viser kun deres **Full Log**.
 
-## Læs videre
+## Hvor du kan læse videre
 
 - [Workflow-konfiguration & sikkerhed](/docs/workflows/configuration) — timeouts, rekursionsgrænser, skjulte hemmeligheder.
-- [Workflow-variabler](/docs/workflows/variables) — variabel-syntaksen brugt i dine blokke.
+- [Workflow-variabler](/docs/workflows/variables) — den variabelsyntaks, du bruger i dine blokke.
 - [Workflow-komponenter](/docs/workflows/components) — hvad hver blok producerer.

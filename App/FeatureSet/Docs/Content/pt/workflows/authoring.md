@@ -1,99 +1,99 @@
 # Criar um workflow
 
-Para criar um workflow, abra **Workflows** e clique em **Create Workflow**. Um assistente chamado **Create a workflow** guia você pelo processo: primeiro **Start from** — escolha **Start from scratch** ou um dos templates — depois **Name**, e finalmente uma etapa **Configure**, que só aparece quando o template escolhido exige configurações próprias.
+Para criar um workflow, abra **Fluxos de trabalho** e clique em **Criar fluxo de trabalho**. Um assistente chamado **Create a workflow** conduz você: primeiro **Start from** — escolha **Start from scratch** ou um dos modelos —, depois **Nome** e, por fim, uma etapa **Configurar**, que só aparece quando o modelo escolhido pede configurações próprias.
 
-Depois de criado, abra **Builder** no menu à esquerda. É o canvas onde você desenha o workflow.
+Criado o workflow, abra **Construtor** no menu à esquerda. É ali que fica o canvas onde você desenha o workflow.
 
 ## O canvas
 
-Um workflow criado do zero abre com um único bloco tracejado dizendo **Please click here to add trigger**. Esse bloco é o ponto de partida — clique nele para escolher um trigger. Um workflow criado a partir de um template abre com seus blocos já posicionados.
+Um workflow criado do zero abre com um único bloco tracejado dizendo **Please click here to add trigger**. Esse bloco é o ponto de partida — clique nele para escolher um trigger. Um workflow criado a partir de um modelo já abre com os blocos no lugar.
 
-Todo workflow tem exatamente um **trigger** no topo. Tudo o mais é um **componente** que faz algo. Adicionar um segundo trigger substitui o primeiro, e excluir o último devolve o placeholder tracejado.
+Todo workflow tem exatamente um **trigger** no topo. Todo o resto é um **componente**, que faz alguma coisa. Adicionar um segundo trigger substitui o primeiro, e excluir o último traz o bloco tracejado de volta.
 
-Adicionando blocos:
+Para adicionar blocos:
 
-- **O trigger** — clique no bloco placeholder tracejado. Um painel intitulado **Add Trigger** se abre.
-- **Todo o resto** — clique em **Add Component** na barra de ferramentas acima do canvas. O mesmo tipo de painel se abre, intitulado **Add Component**.
+- **O trigger** — clique no bloco tracejado. Abre um painel chamado **Add Trigger**.
+- **Todo o resto** — clique em **Adicionar componente**, na barra de ferramentas acima do canvas. Abre o mesmo painel, agora chamado **Add Component**.
 
-Ambos os painéis são pesquisáveis — pressione `/` para ir direto à caixa de busca — e agrupados por categoria. Selecione um bloco e clique em **Add to Workflow**.
+Os dois painéis têm busca — aperte `/` para pular direto para o campo — e são agrupados por categoria. Selecione um bloco e clique em **Add to Workflow**.
 
-Novos blocos sempre caem no mesmo ponto do canvas, então um novo pode cair em cima de algo que você já posicionou. Arraste-o para longe; o canvas se ajusta a uma grade conforme você move. As posições dos blocos são salvas, então a próxima pessoa vê o mesmo arranjo que você deixou.
+Blocos novos sempre aparecem no mesmo ponto do canvas, então um recém-adicionado pode cair em cima de algo que você já posicionou. Arraste-o para um espaço livre; o canvas se alinha a uma grade enquanto você arrasta. As posições são salvas, então a próxima pessoa vê o mesmo arranjo que você deixou.
 
-Mudanças são salvas automaticamente. Uma pill na barra de ferramentas acompanha isso: **Saving…** enquanto a mudança está em andamento, depois **Saved**, ou **Could not save** se não funcionou. Não há botão Save nem uma etapa de publicação separada.
+As alterações são salvas sozinhas. Uma pílula na barra de ferramentas mostra o andamento: **Saving…** enquanto a alteração está a caminho, depois **Salvo**, ou **Não foi possível salvar** se algo deu errado. Não há botão de salvar nem etapa separada de publicação.
 
 ## O que há em um bloco
 
 | Campo                         | O que faz                                                                                                                                                                                                |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Identifier** (em **ID**) | O id curto exibido no bloco, como `log-1`. É assim que outros blocos se referem a este, então renomeá-lo quebra toda referência `{{local.components.…}}` que apontava para ele. O título do bloco é o próprio nome do componente e não pode ser alterado. |
-| **Settings**                  | O que o bloco precisa para fazer seu trabalho — uma URL, um canal do Slack, o corpo de uma mensagem. Campos opcionais são rotulados **(Optional)**; todo o resto é obrigatório. Configurações menos usadas ficam atrás de um disclosure **Advanced**. |
-| **Input**                     | O ponto na borda superior, por onde entram linhas vindas de blocos anteriores. Triggers não têm um — nada roda antes deles.                                                                                       |
-| **Outputs**                   | Os pontos ao longo da borda inferior, rotulados logo acima deles, por onde saem linhas para os próximos blocos. Muitos blocos têm saídas separadas de **Success** e **Error** para você tratar os dois casos.                  |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Identifier** (em **ID**) | O id curto mostrado no bloco, como `log-1`. É por ele que os outros blocos se referem a este, então renomeá-lo quebra toda referência `{{local.components.…}}` que aponta para ele. O título do bloco é o nome do próprio componente e não pode ser alterado. |
+| **Settings**                  | O que o bloco precisa para fazer seu trabalho — uma URL, um canal do Slack, o texto de uma mensagem. Campos opcionais vêm marcados com **(Optional)**; todos os outros são obrigatórios. Configurações menos usadas ficam atrás de um recuo **Avançado**. |
+| **Input**                     | O ponto na borda superior, onde chegam as linhas vindas dos blocos anteriores. Triggers não têm — nada roda antes deles.                                                                                       |
+| **Outputs**                   | Os pontos na borda inferior, com o rótulo logo acima, de onde saem as linhas para os próximos blocos. Muitos blocos têm saídas **Sucesso** e **Erro** separadas, para você tratar os dois casos.                  |
 
 ## Conectando blocos
 
-Arraste de um ponto na parte inferior de um bloco até o ponto no topo do próximo. A linha que você desenha decide o que roda em seguida.
+Arraste de um ponto na parte de baixo de um bloco até o ponto no topo do bloco seguinte. A linha que você desenha define o que roda em seguida.
 
-- Se você conectar a partir de **Success**, o próximo bloco só roda quando o anterior funcionou.
-- Se você conectar a partir de **Error**, o próximo bloco só roda quando o anterior falhou.
-- Se você não conectar uma saída, esse caminho simplesmente para.
+- Se você conectar a partir de **Sucesso**, o próximo bloco só roda quando o anterior deu certo.
+- Se você conectar a partir de **Erro**, o próximo bloco só roda quando o anterior falhou.
+- Se você não conectar uma saída, aquele caminho simplesmente termina ali.
 
-Você pode conectar uma saída a vários blocos. Todos eles rodam — mas um após o outro, em uma única fila, não em paralelo. Não conte com a ordem entre branches, nem espere que se sobreponham no tempo. Cada bloco roda no máximo uma vez por execução, então um loop de volta a um bloco anterior não o roda duas vezes.
+Dá para conectar uma saída a vários blocos. Todos rodam — mas um depois do outro, em fila única, não em paralelo. Não conte com a ordem entre as ramificações, nem com elas acontecendo ao mesmo tempo. Cada bloco roda no máximo uma vez por execução, então um laço de volta a um bloco anterior não o faz rodar duas vezes.
 
 ## Configurando um bloco
 
-Clique em um bloco para abrir suas configurações em um diálogo. Cada configuração tem o tipo certo de campo — campos de texto, dropdowns, editores de código, toggles, e assim por diante. Preencha e clique em **Save**.
+Clique em um bloco para abrir suas configurações em uma janela. Cada configuração tem o tipo de campo adequado — texto, listas, editores de código, chaves e por aí vai. Preencha e clique em **Salvar**.
 
-O mesmo diálogo é onde você encontra:
+Nessa mesma janela você encontra:
 
-- **Delete** — remove este bloco.
-- **Run just this step** — roda apenas este bloco isoladamente, sem o resto do workflow. Valores que ele leria de outras etapas chegam vazios, e qualquer coisa que ele envia, escreve ou exclui realmente acontece.
-- **Documentation**, **Inputs**, **Outputs** e **Returns** — cartões de referência do que este bloco espera e produz.
+- **Excluir** — remove este bloco.
+- **Run just this step** — roda só este bloco, sem o resto do workflow. Os valores que ele leria de outras etapas chegam vazios, e tudo o que ele envia, grava ou apaga acontece de verdade.
+- **Documentação**, **Inputs**, **Outputs** e **Returns** — fichas de referência do que este bloco espera e do que produz.
 
-A maioria dos campos de texto aceita variáveis — é assim que os dados fluem de um bloco para o próximo. Em vez de digitar a sintaxe manualmente, use o seletor de valores no editor: ele monta uma referência correta a partir do bloco e do campo que você escolher. Veja [Variáveis de workflow](/docs/workflows/variables).
+A maioria dos campos de texto aceita variáveis — é assim que os dados fluem de um bloco para o outro. Em vez de digitar a sintaxe à mão, use o seletor de valores no editor: ele monta a referência correta a partir do bloco e do campo que você escolher. Veja [Variáveis de workflow](/docs/workflows/variables).
 
 ## Verificações enquanto você constrói
 
-O Builder verifica todo o grafo a cada mudança e reporta o que encontra em uma pill na barra de ferramentas. Clique na pill para abrir **Problems with this workflow**, que lista cada problema e leva você direto ao bloco responsável. Blocos com um problema também carregam um badge vermelho no canvas.
+O Construtor revisa o grafo inteiro a cada alteração e mostra o que encontrou em uma pílula na barra de ferramentas. Clique na pílula para abrir **Problems with this workflow**, que lista cada problema e leva você ao bloco responsável. Blocos com problema também ganham um selo vermelho no canvas.
 
-Ele detecta os erros que de outra forma ficariam invisíveis até uma execução dar errado — nenhum trigger, dois blocos compartilhando um id, um ponto dentro de um id, um bloco que nada conecta, uma configuração obrigatória deixada em branco, JSON malformado, espaços dentro de `{{ }}`, e referências a uma etapa ou valor de retorno que não existe.
+Ele pega justamente os erros que ficariam invisíveis até uma execução dar errado — nenhum trigger, dois blocos com o mesmo id, um ponto dentro de um id, um bloco que ninguém conecta, uma configuração obrigatória em branco, JSON malformado, espaços dentro de `{{ }}` e referências a uma etapa ou a um valor de retorno que não existe.
 
-Uma coisa que ele não consegue verificar: se um nome de variável existe. Uma variável renomeada só aparece no log de execução.
+Uma coisa ele não consegue verificar: se um nome de variável existe. Uma variável renomeada só aparece no registro da execução.
 
 ## Seu primeiro workflow
 
-A forma mais rápida de se familiarizar com o canvas:
+O jeito mais rápido de pegar o jeito do canvas:
 
-1. Clique no bloco placeholder tracejado, escolha **Manual** no painel **Add Trigger**, e clique em **Add to Workflow**.
-2. Clique em **Add Component**, escolha **Log** (em **Utils**), e clique em **Add to Workflow**. Arraste o novo bloco para longe do trigger, depois conecte o ponto **Execute** do trigger até o ponto de entrada do bloco Log.
-3. Abra o bloco Log e defina seu **Value** como `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` é o **Identifier** do trigger, exibido no bloco do trigger — confira se corresponde.
-4. Vá para **Overview**, clique em **Edit Workflow** no card **Workflow Details**, e ligue **Enabled**. Um workflow desabilitado não pode ser executado de forma alguma, nem mesmo manualmente.
-5. De volta no **Builder**, clique em **Run Workflow**, coloque `{ "name": "Ada" }` no campo **JSON**, clique em **Run Workflow Manually**, e confirme com **Run**.
-6. Um painel **Workflow Run** se abre sozinho e acompanha a execução. O log mostra `Value:` seguido de `Hello from Ada`.
+1. Clique no bloco tracejado, escolha **Manual** no painel **Add Trigger** e clique em **Add to Workflow**.
+2. Clique em **Adicionar componente**, escolha **Log** (em **Utils**) e clique em **Add to Workflow**. Arraste o novo bloco para longe do trigger e conecte o ponto **Execute** do trigger ao ponto de entrada do bloco Log.
+3. Abra o bloco Log e defina o **Valor** como `Hello from {{local.components.manual-1.returnValues.value.name}}`. `manual-1` é o **Identifier** do trigger, mostrado no bloco — confira se bate.
+4. Vá em **Visão geral**, clique em **Editar fluxo de trabalho** no cartão **Detalhes do Fluxo de Trabalho** e ligue **Habilitado**. Um workflow desabilitado não roda de jeito nenhum, nem manualmente.
+5. De volta ao **Construtor**, clique em **Executar fluxo de trabalho**, coloque `{ "name": "Ada" }` no campo **JSON**, clique em **Run Workflow Manually** e confirme em **Run**.
+6. Um painel **Workflow Run** abre sozinho e acompanha a execução. O registro mostra `Value:` seguido de `Hello from Ada`.
 
-Esse ciclo — adicionar, conectar, configurar, rodar, ler o log — é como você vai construir todo workflow.
+Esse ciclo — adicionar, conectar, configurar, rodar, ler o registro — é como você vai construir todos os seus workflows.
 
-## Ativando-o
+## Ativando o workflow
 
-Novos workflows começam desabilitados, assim como qualquer workflow que você duplicar ou importar.
+Workflows novos nascem desabilitados, e o mesmo vale para qualquer um que você duplique ou importe.
 
-O interruptor **Enabled** fica na página **Overview** do workflow, no card **Workflow Details** — não na página Settings. O mesmo card mostra o estado atual como uma pill verde **Enabled** ou vermelha **Disabled**.
+A chave **Habilitado** fica na página **Visão geral** do workflow, no cartão **Detalhes do Fluxo de Trabalho** — não na página de configurações. Esse mesmo cartão mostra o estado atual como uma pílula verde **Habilitado** ou vermelha **Desabilitado**.
 
-Um workflow desabilitado não pode rodar de forma alguma. Execuções manuais são rejeitadas com "This workflow is not enabled," exatamente como as disparadas por trigger, então a ordem é: habilite-o, teste-o com **Run Workflow**, leia o log de execução e desligue **Enabled** novamente se você ainda não estiver pronto para o trigger dele disparar. Para testar um único bloco sem rodar o workflow inteiro, use **Run just this step** nas configurações daquele bloco.
+Um workflow desabilitado não roda de jeito nenhum. Execuções manuais são recusadas com "This workflow is not enabled" exatamente como as disparadas por trigger. Então a ordem é: habilite, teste com **Executar fluxo de trabalho**, leia o registro da execução e desligue **Habilitado** de novo se ainda não estiver pronto para o trigger disparar. Para testar um bloco isolado sem rodar tudo, use **Run just this step** nas configurações daquele bloco.
 
-Para pausar um workflow sem excluí-lo, desligue **Enabled**. Nenhuma nova execução começa. Uma execução em andamento termina, mas uma parada em um bloco **Sleep** é cancelada quando ela acorda e é registrada como um erro.
+Para pausar um workflow sem excluí-lo, desligue **Habilitado**. Nenhuma execução nova começa. Uma execução em andamento termina, mas uma que estiver parada em um bloco **Sleep** é cancelada ao acordar e registrada como erro.
 
 ## Organizando
 
-- Arraste blocos para movê-los. O layout é salvo.
-- Para excluir uma linha, arraste uma de suas pontas para fora do ponto e solte-a em uma área vazia do canvas.
-- Para excluir um bloco, clique nele e use **Delete** na parte inferior do diálogo de configurações. Selecionar um bloco ou uma linha e pressionar Backspace também os remove.
-- Não há como duplicar um único bloco. **Duplicate Workflow** na página **Settings** do workflow copia tudo, e a cópia é criada desabilitada.
-- Empilhe blocos de cima para baixo para que se leiam na direção em que rodam — entradas ficam na borda superior, saídas na inferior, então o fluxo naturalmente desce.
+- Arraste os blocos para movê-los. O layout é salvo.
+- Para excluir uma linha, arraste uma das pontas para fora do ponto e solte em uma área vazia do canvas.
+- Para excluir um bloco, clique nele e use **Excluir** no rodapé da janela de configurações. Selecionar um bloco ou uma linha e apertar Backspace também remove.
+- Não dá para duplicar um bloco isolado. **Duplicate Workflow**, na página **Configurações** do workflow, copia tudo, e a cópia nasce desabilitada.
+- Empilhe os blocos de cima para baixo, para que sejam lidos na direção em que rodam — as entradas ficam na borda de cima e as saídas na de baixo, então o fluxo desce naturalmente.
 
-## Onde ler a seguir
+## Onde ler em seguida
 
 - [Gatilhos de workflow](/docs/workflows/triggers) — as quatro formas de um workflow começar.
-- [Componentes de workflow](/docs/workflows/components) — todo bloco que você pode adicionar.
+- [Componentes de workflow](/docs/workflows/components) — todos os blocos que você pode adicionar.
 - [Variáveis de workflow](/docs/workflows/variables) — movendo dados entre blocos.
-- [Execuções e registros de workflow](/docs/workflows/runs-and-logs) — verificando o que aconteceu.
+- [Execuções e registros de workflow](/docs/workflows/runs-and-logs) — conferindo o que aconteceu.
