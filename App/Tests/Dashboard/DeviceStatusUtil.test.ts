@@ -1,34 +1,68 @@
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { describe, expect, test } from "@jest/globals";
 import DeviceStatusUtil, {
-  DEVICE_FRESH_WINDOW_MINUTES,
+  DEVICE_MIN_STALE_WINDOW_IN_MINUTES,
+  DEVICE_MISSED_POLL_ALLOWANCE,
+  DEVICE_STATUS_SELECT,
+  DeviceReachabilityResult,
   NetworkDeviceStatus,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceStatusUtil";
 
 /*
- * DeviceStatusUtil classifies a device from its lastSeenAt timestamp:
- * never seen -> Pending, seen within the freshness window -> Up, older ->
- * Down. The cutoff is computed from the wall clock inside getStatus, so
- * these tests freeze time with jest's fake timers — that is the only way
- * the "exactly at the boundary" case is deterministic.
+ * DeviceStatusUtil is the dashboard's door onto the shared reachability
+ * rule (Common/Utils/NetworkDevice/DeviceReachabilityUtil, which has the
+ * exhaustive matrix). What is pinned here is the part the dashboard owns:
+ * that the door delegates rather than re-deciding, that it accepts a
+ * NetworkDevice row as-is, and that DEVICE_STATUS_SELECT names every column
+ * the rule reads — a page that selects a subset silently falls back to the
+ * legacy freshness path and puts the bug back.
+ *
+ * Time is not faked: getStatus reads the wall clock, so every case here is
+ * expressed as an offset from `Date.now()` at call time, which is what a
+ * page render actually does.
  */
-
-// The frozen "now" every test in this file runs at.
-const NOW: Date = new Date("2026-07-16T12:00:00.000Z");
 
 const MS_PER_MINUTE: number = 60 * 1000;
 
-function minutesAgo(minutes: number, extraMs: number = 0): Date {
-  return new Date(NOW.getTime() - minutes * MS_PER_MINUTE - extraMs);
+function minutesAgo(minutes: number): Date {
+  return new Date(Date.now() - minutes * MS_PER_MINUTE);
 }
 
-describe("DEVICE_FRESH_WINDOW_MINUTES", () => {
-  test("is 15 minutes — the window the device list and topology agree on", () => {
-    expect(DEVICE_FRESH_WINDOW_MINUTES).toBe(15);
+describe("DEVICE_STATUS_SELECT", () => {
+  /*
+   * The exact set the rule reads. If a column is added to the rule and not
+   * here, every page keeps compiling and quietly starts getting the wrong
+   * answer — so the set is asserted whole, not key by key.
+   */
+  test("names every column the reachability rule reads", () => {
+    expect(DEVICE_STATUS_SELECT).toEqual({
+      isReachable: true,
+      lastPolledAt: true,
+      lastSeenAt: true,
+      pollingIntervalInMinutes: true,
+    });
+  });
+
+  test("spreads into a ModelAPI select without nesting", () => {
+    const select: Record<string, unknown> = {
+      ...DEVICE_STATUS_SELECT,
+      name: true,
+    };
+
+    expect(select["isReachable"]).toBe(true);
+    expect(select["lastPolledAt"]).toBe(true);
+    expect(select["name"]).toBe(true);
+  });
+});
+
+describe("the constants the dashboard copy quotes", () => {
+  test("are re-exported so a tooltip cannot drift from the rule", () => {
+    expect(DEVICE_MISSED_POLL_ALLOWANCE).toBe(10);
+    expect(DEVICE_MIN_STALE_WINDOW_IN_MINUTES).toBe(60);
   });
 });
 
 describe("NetworkDeviceStatus", () => {
-  test("carries the display strings the device list renders", () => {
+  test("carries the display strings the pills render", () => {
     expect(NetworkDeviceStatus.Up).toBe("Up");
     expect(NetworkDeviceStatus.Down).toBe("Down");
     expect(NetworkDeviceStatus.Pending).toBe("Pending");
@@ -36,124 +70,132 @@ describe("NetworkDeviceStatus", () => {
 });
 
 describe("DeviceStatusUtil.getStatus", () => {
-  beforeEach(() => {
-    /*
-     * Only Date needs faking; the sinon backend jest 28 uses cannot hijack
-     * the read-only `performance` global on current Node, so leave the
-     * timer/callback APIs alone.
-     */
-    jest.useFakeTimers({
-      doNotFake: [
-        "performance",
-        "hrtime",
-        "queueMicrotask",
-        "requestAnimationFrame",
-        "cancelAnimationFrame",
-        "requestIdleCallback",
-        "cancelIdleCallback",
-        "setImmediate",
-        "clearImmediate",
-        "setInterval",
-        "clearInterval",
-        "setTimeout",
-        "clearTimeout",
-      ],
-    });
-    jest.setSystemTime(NOW);
+  test("a device whose last poll succeeded is Up", () => {
+    expect(
+      DeviceStatusUtil.getStatus({
+        isReachable: true,
+        lastPolledAt: minutesAgo(1),
+        lastSeenAt: minutesAgo(1),
+        pollingIntervalInMinutes: 5,
+      }),
+    ).toBe(NetworkDeviceStatus.Up);
   });
 
-  afterEach(() => {
-    jest.useRealTimers();
+  test("a device whose last poll failed is Down", () => {
+    expect(
+      DeviceStatusUtil.getStatus({
+        isReachable: false,
+        lastPolledAt: minutesAgo(1),
+        lastSeenAt: minutesAgo(40),
+        pollingIntervalInMinutes: 5,
+      }),
+    ).toBe(NetworkDeviceStatus.Down);
   });
 
-  describe("devices that were never polled", () => {
-    test("undefined lastSeenAt is Pending", () => {
-      expect(DeviceStatusUtil.getStatus(undefined)).toBe(
-        NetworkDeviceStatus.Pending,
-      );
-    });
-
-    test("null lastSeenAt (raw API payloads) is Pending", () => {
-      expect(DeviceStatusUtil.getStatus(null as unknown as undefined)).toBe(
-        NetworkDeviceStatus.Pending,
-      );
-    });
-
-    test("empty-string lastSeenAt is Pending", () => {
-      expect(DeviceStatusUtil.getStatus("")).toBe(NetworkDeviceStatus.Pending);
-    });
+  test("a device that has never been polled is Pending", () => {
+    expect(DeviceStatusUtil.getStatus({})).toBe(NetworkDeviceStatus.Pending);
   });
 
-  describe("devices seen within the fresh window", () => {
-    test("seen right now is Up", () => {
-      expect(DeviceStatusUtil.getStatus(new Date(NOW))).toBe(
-        NetworkDeviceStatus.Up,
-      );
-    });
-
-    test("seen one minute ago is Up", () => {
-      expect(DeviceStatusUtil.getStatus(minutesAgo(1))).toBe(
-        NetworkDeviceStatus.Up,
-      );
-    });
-
-    test("seen one millisecond inside the window is Up", () => {
-      expect(
-        DeviceStatusUtil.getStatus(minutesAgo(DEVICE_FRESH_WINDOW_MINUTES, -1)),
-      ).toBe(NetworkDeviceStatus.Up);
-    });
-
-    test("a slightly future lastSeenAt (probe clock skew) is Up, not Down", () => {
-      expect(DeviceStatusUtil.getStatus(minutesAgo(-1))).toBe(
-        NetworkDeviceStatus.Up,
-      );
-    });
-
-    test("accepts an ISO string the API serializes", () => {
-      expect(DeviceStatusUtil.getStatus("2026-07-16T11:55:00.000Z")).toBe(
-        NetworkDeviceStatus.Up,
-      );
-    });
+  /*
+   * Issue #3220. The device in the report answered SNMP — its Interfaces
+   * tab showed 14 ports up — but its probe, 980 devices behind, had not got
+   * back to it for 21 minutes, and the pill said Down.
+   */
+  test("issue #3220: a device polled 21 minutes ago on a 5-minute interval is Up", () => {
+    expect(
+      DeviceStatusUtil.getStatus({
+        isReachable: true,
+        lastPolledAt: minutesAgo(21),
+        lastSeenAt: minutesAgo(21),
+        pollingIntervalInMinutes: 5,
+      }),
+    ).toBe(NetworkDeviceStatus.Up);
   });
 
-  describe("the boundary", () => {
-    /*
-     * The util uses a strict `lastSeen < cutoff` comparison, so a device
-     * seen exactly DEVICE_FRESH_WINDOW_MINUTES ago sits ON the cutoff and
-     * is still Up — only strictly older timestamps go Down. This pins the
-     * comparator's direction; if the comparison ever becomes `<=`, this
-     * test is the one that must be consciously flipped.
-     */
-    test("seen exactly 15 minutes ago is still Up (strict comparison)", () => {
-      expect(
-        DeviceStatusUtil.getStatus(minutesAgo(DEVICE_FRESH_WINDOW_MINUTES)),
-      ).toBe(NetworkDeviceStatus.Up);
-    });
-
-    test("seen one millisecond past the window is Down", () => {
-      expect(
-        DeviceStatusUtil.getStatus(minutesAgo(DEVICE_FRESH_WINDOW_MINUTES, 1)),
-      ).toBe(NetworkDeviceStatus.Down);
-    });
+  test("a device on a 30-minute interval is not permanently Down", () => {
+    expect(
+      DeviceStatusUtil.getStatus({
+        isReachable: true,
+        lastPolledAt: minutesAgo(29),
+        lastSeenAt: minutesAgo(29),
+        pollingIntervalInMinutes: 30,
+      }),
+    ).toBe(NetworkDeviceStatus.Up);
   });
 
-  describe("stale devices", () => {
-    test("seen sixteen minutes ago is Down", () => {
-      expect(DeviceStatusUtil.getStatus(minutesAgo(16))).toBe(
-        NetworkDeviceStatus.Down,
-      );
+  test("a device nothing has polled for hours is Down", () => {
+    expect(
+      DeviceStatusUtil.getStatus({
+        isReachable: true,
+        lastPolledAt: minutesAgo(180),
+        lastSeenAt: minutesAgo(180),
+        pollingIntervalInMinutes: 5,
+      }),
+    ).toBe(NetworkDeviceStatus.Down);
+  });
+
+  test("accepts the ISO strings a NetworkDevice row carries after a fetch", () => {
+    expect(
+      DeviceStatusUtil.getStatus({
+        isReachable: true,
+        lastPolledAt: minutesAgo(2).toISOString(),
+        lastSeenAt: minutesAgo(2).toISOString(),
+      }),
+    ).toBe(NetworkDeviceStatus.Up);
+  });
+
+  /*
+   * The one that keeps the fix honest under a partial select: a page that
+   * forgets isReachable gets the legacy freshness answer, and this pins
+   * that it is at least the GENEROUS freshness answer rather than the
+   * 15-minute one the bug came from.
+   */
+  test("a row with only lastSeenAt still falls back to freshness", () => {
+    expect(DeviceStatusUtil.getStatus({ lastSeenAt: minutesAgo(21) })).toBe(
+      NetworkDeviceStatus.Up,
+    );
+    expect(DeviceStatusUtil.getStatus({ lastSeenAt: minutesAgo(180) })).toBe(
+      NetworkDeviceStatus.Down,
+    );
+  });
+});
+
+describe("DeviceStatusUtil.getReachability", () => {
+  test("hands the pill everything it needs to explain itself", () => {
+    const result: DeviceReachabilityResult = DeviceStatusUtil.getReachability({
+      isReachable: true,
+      lastPolledAt: minutesAgo(180),
+      lastSeenAt: minutesAgo(180),
+      pollingIntervalInMinutes: 5,
     });
 
-    test("seen hours ago via an ISO string is Down", () => {
-      expect(DeviceStatusUtil.getStatus("2026-07-16T08:00:00.000Z")).toBe(
-        NetworkDeviceStatus.Down,
-      );
+    expect(result.status).toBe(NetworkDeviceStatus.Down);
+    expect(result.isStale).toBe(true);
+    expect(result.staleWindowInMinutes).toBe(60);
+    expect(result.lastContactAt).toBeInstanceOf(Date);
+  });
+
+  /*
+   * The two Down tooltips say different things — "check the device" versus
+   * "check the probe" — and isStale is what picks between them.
+   */
+  test("a device that answered nothing is Down but not stale", () => {
+    const result: DeviceReachabilityResult = DeviceStatusUtil.getReachability({
+      isReachable: false,
+      lastPolledAt: minutesAgo(1),
+      lastSeenAt: minutesAgo(600),
+      pollingIntervalInMinutes: 5,
     });
 
-    test("seen days ago is Down", () => {
-      expect(
-        DeviceStatusUtil.getStatus(new Date("2026-07-01T00:00:00.000Z")),
-      ).toBe(NetworkDeviceStatus.Down);
-    });
+    expect(result.status).toBe(NetworkDeviceStatus.Down);
+    expect(result.isStale).toBe(false);
+  });
+});
+
+describe("DeviceStatusUtil.getStaleWindowInMinutes", () => {
+  test("scales with the device's own interval, floored at an hour", () => {
+    expect(DeviceStatusUtil.getStaleWindowInMinutes(5)).toBe(60);
+    expect(DeviceStatusUtil.getStaleWindowInMinutes(undefined)).toBe(60);
+    expect(DeviceStatusUtil.getStaleWindowInMinutes(30)).toBe(300);
   });
 });

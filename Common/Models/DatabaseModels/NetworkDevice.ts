@@ -1961,6 +1961,70 @@ export default class NetworkDevice extends BaseModel {
     ],
   })
   @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Last Polled At",
+    description:
+      'When the assigned probe last ATTEMPTED an SNMP walk of this device, whether or not the device answered. Paired with lastSeenAt (which only moves on a successful walk) this is what separates "the device did not answer" from "we have not asked recently". Managed by the probe.',
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public lastPolledAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    canReadOnRelationQuery: true,
+    title: "Is Reachable",
+    description:
+      "Whether the most recent SNMP walk reached this device. NULL means it has never been polled. This — not the age of lastSeenAt — is what the device list, the topology graph and the site rollup read, so a device whose last poll succeeded is never shown as down just because the probe is behind schedule. Managed by the probe.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Boolean,
+  })
+  public isReachable?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @TableColumn({
     type: TableColumnType.Number,
     title: "Interfaces Total",
     description: "Cached total count of interfaces on this device",

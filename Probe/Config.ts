@@ -60,6 +60,27 @@ export const PROBE_MONITOR_FETCH_LIMIT: number =
     min: 1,
   });
 
+/*
+ * How many NetworkDevice SNMP walks this probe runs at once.
+ *
+ * This is the probe half of the fleet's poll cadence, and it has to be read
+ * against the server's NETWORK_DEVICE_POLL_FETCH_LIMIT: the server claims a
+ * batch and advances every claimed device's nextPollAt whether or not the
+ * walk happens, so a probe that cannot get through a batch inside its
+ * one-minute cycle does not poll those devices late, it skips them.
+ *
+ * The old value was 5, which put a hard ~5-walks-per-round-trip ceiling on a
+ * probe and left large fleets minutes behind their configured intervals.
+ * SNMP walks are UDP round trips that spend nearly all their time waiting,
+ * so a much wider fan-out costs little.
+ */
+export const PROBE_NETWORK_DEVICE_POLL_CONCURRENCY: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_NETWORK_DEVICE_POLL_CONCURRENCY"],
+    defaultValue: 25,
+    min: 1,
+  });
+
 export const HOSTNAME: string = process.env["HOSTNAME"] || "localhost";
 
 export const PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS: number =

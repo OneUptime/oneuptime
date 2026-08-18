@@ -1,4 +1,7 @@
-import { PROBE_INGEST_URL } from "../../Config";
+import {
+  PROBE_INGEST_URL,
+  PROBE_NETWORK_DEVICE_POLL_CONCURRENCY,
+} from "../../Config";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
 import SnmpMonitor from "../../Utils/Monitors/MonitorTypes/SnmpMonitor";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -25,11 +28,15 @@ import logger from "Common/Server/Utils/Logger";
  */
 
 /*
- * Walks run concurrently in small batches: one slow device must not
- * starve the rest of the batch, but a big parallel burst of SNMP table
- * walks from one probe process would compete for sockets and CPU.
+ * Walks run concurrently in batches: one slow device must not starve the
+ * rest of the batch, but an unbounded parallel burst of SNMP table walks
+ * from one probe process would compete for sockets and CPU.
+ *
+ * Tunable (PROBE_NETWORK_DEVICE_POLL_CONCURRENCY) because it is one half of
+ * how fast a fleet can be polled — see the constant's definition in Config
+ * for how it pairs with the server's claim batch size.
  */
-const DEVICE_POLL_CONCURRENCY: number = 5;
+const DEVICE_POLL_CONCURRENCY: number = PROBE_NETWORK_DEVICE_POLL_CONCURRENCY;
 
 export interface DevicePollConfig {
   networkDeviceId: string;
@@ -213,8 +220,14 @@ export async function pollDevice(device: DevicePollConfig): Promise<void> {
 
 /*
  * A reachability-failure response the server can ingest like any other
- * walk: it keeps lastSeenAt untouched (isOnline false) and lets monitors
- * alerting on the device fire their "device unreachable" criteria.
+ * walk. isOnline false is what makes the server record the device as
+ * unreachable (isReachable false, lastSeenAt untouched, lastPolledAt
+ * stamped) and lets monitors alerting on the device fire their "device
+ * unreachable" criteria.
+ *
+ * Reporting the failure is not optional bookkeeping: an unreachable device
+ * is only ever marked down because this response arrives. A walk the probe
+ * silently drops leaves the device on its last known verdict.
  */
 function buildFailureResponse(failureCause: string): SnmpMonitorResponse {
   return {

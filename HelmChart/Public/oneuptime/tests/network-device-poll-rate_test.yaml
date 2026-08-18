@@ -1,0 +1,78 @@
+# How fast a NetworkDevice fleet gets polled is set by two knobs that have to
+# be raised together: the server hands a probe a bounded batch per fetch
+# (NETWORK_DEVICE_POLL_FETCH_LIMIT) and the probe walks a bounded number of
+# those at once (PROBE_NETWORK_DEVICE_POLL_CONCURRENCY). A probe fetches once
+# a minute, so the batch size is a hard ceiling on that probe's poll rate —
+# and claiming advances every claimed device's schedule whether the walk
+# happens or not, so a batch bigger than the probe can walk skips devices
+# rather than polling them sooner.
+#
+# Both are optional overrides: unset, each service uses its own in-code
+# default. These assertions keep the wiring honest in both states, because an
+# override that never reaches the container is invisible — the operator raises
+# the value, nothing changes, and the fleet goes on polling slowly (the
+# throughput half of issue #3220).
+suite: network device poll rate overrides
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: leaves the server's batch size to the code default when unset
+    templates:
+      - templates/app.yaml
+    set:
+      app.networkDevicePollFetchLimit: null
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: NETWORK_DEVICE_POLL_FETCH_LIMIT
+          any: true
+
+  - it: passes the server's batch size through when set
+    templates:
+      - templates/app.yaml
+    set:
+      app.networkDevicePollFetchLimit: 750
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: NETWORK_DEVICE_POLL_FETCH_LIMIT
+            value: "750"
+
+  - it: leaves the probe's walk concurrency to the code default when unset
+    templates:
+      - templates/probe.yaml
+    set:
+      probes.one.networkDevicePollConcurrency: null
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_NETWORK_DEVICE_POLL_CONCURRENCY
+          any: true
+
+  - it: passes the probe's walk concurrency through when set
+    templates:
+      - templates/probe.yaml
+    set:
+      probes.one.networkDevicePollConcurrency: 60
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PROBE_NETWORK_DEVICE_POLL_CONCURRENCY
+            value: "60"

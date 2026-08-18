@@ -1,4 +1,3 @@
-import { DEVICE_FRESH_WINDOW_MINUTES } from "./DeviceStatusUtil";
 import { FacetTileSelection } from "../ResourceOwners/FacetTileSelection";
 import { buildFacetDateRangeQuery } from "../ResourceOwners/FacetDateRange";
 import {
@@ -7,10 +6,7 @@ import {
 } from "../ResourceOwners/FilterChipDropdownTypes";
 import EqualTo from "Common/Types/BaseDatabase/EqualTo";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
-import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
-import LessThan from "Common/Types/BaseDatabase/LessThan";
-import OneUptimeDate from "Common/Types/Date";
 
 /*
  * The vocabulary of the device list's facet bar: which chips exist, what values
@@ -61,7 +57,14 @@ export const DEVICE_FACET_QUERY_FIELDS: {
   probe: string;
   lastSeen: string;
 } = {
-  status: "lastSeenAt",
+  /*
+   * The stored outcome of the last poll, not a window over `lastSeenAt`.
+   * That is what makes this chip return exactly the rows whose pills agree
+   * with it however far behind the polling schedule has fallen — and it is
+   * why Status and Last Seen are no longer two chips fighting over one
+   * column.
+   */
+  status: "isReachable",
   interfaces: "interfacesDown",
   /*
    * The foreign key, not the `site` relation: "is empty" then asks the column
@@ -70,29 +73,13 @@ export const DEVICE_FACET_QUERY_FIELDS: {
    */
   site: "siteId",
   probe: "probeId",
-  /*
-   * Deliberately the same column as `status`. Status asks a fixed
-   * DEVICE_FRESH_WINDOW_MINUTES question of `lastSeenAt` and Last Seen asks an
-   * arbitrary-date one, and there is no single-field query that is both — so
-   * the two chips are declared mutually exclusive (see
-   * DEVICE_STATUS_LAST_SEEN_EXCLUSION) and activating either clears the other,
-   * rather than one silently overwriting the other in the merged query.
-   */
+  // "when did this device last answer", on its own column and its own chip.
   lastSeen: "lastSeenAt",
 };
 
-/*
- * The two chips over `lastSeenAt`, named as a pair so the page cannot wire one
- * side of the exclusion and forget the other.
- */
-export const DEVICE_STATUS_LAST_SEEN_EXCLUSION: Array<string> = [
-  DEVICE_STATUS_FACET_KEY,
-  DEVICE_LAST_SEEN_FACET_KEY,
-];
-
 /**
  * The Status chip's values. Up / Down / Pending partition the fleet exactly:
- * `lastSeenAt` >= cutoff, < cutoff, and NULL. SQL drops NULLs from both
+ * `isReachable` true, false, and NULL. SQL drops NULLs from both equality
  * comparisons, so a never-polled device lands in Pending only and the three
  * always sum to the fleet size — which is what lets the three tiles' counts add
  * up to the total.
@@ -108,109 +95,47 @@ export enum DeviceInterfacesFacetValue {
   AllUp = "all-up",
 }
 
-/**
- * The instant that separates "up" from "stale" — mirrors
- * DeviceStatusUtil.getStatus, which decides the pill in the Status column, so
- * the rows a filter returns are the rows whose pills agree with it.
- */
-export type GetDeviceFreshCutoffFunction = () => Date;
-
-export const getDeviceFreshCutoff: GetDeviceFreshCutoffFunction = (): Date => {
-  return OneUptimeDate.getSomeMinutesAgo(DEVICE_FRESH_WINDOW_MINUTES);
-};
-
-export type IsTimeBasedDeviceStatusFunction = (
-  value: string | null | undefined,
-) => boolean;
-
-/**
- * Whether this Status value is defined against the freshness window, and so
- * against a cutoff taken at the moment it was selected.
- *
- * The page says when that was, because the Status column recomputes the same
- * window on every render — leave the page open long enough and a row inside the
- * "up" list paints a Down pill with nothing to explain it.
- */
-export const isTimeBasedDeviceStatus: IsTimeBasedDeviceStatusFunction = (
-  value: string | null | undefined,
-): boolean => {
-  return (
-    value === DeviceStatusFacetValue.Up || value === DeviceStatusFacetValue.Down
-  );
-};
-
-/**
- * A freshness cutoff that only moves when the selection does.
- *
- * The cutoff cannot be rebuilt per render: the merged query is handed to
- * ModelTable, which decides whether to refetch by comparing it against the
- * previous render's, so a fresh `Date` every render would look like a change
- * every render — an endless refetch loop.
- *
- * Re-deriving it on a timer instead would send anyone reading page 3 back to
- * page 1 every tick and drop any bulk selection they had made, which is worse
- * than the drift. So the window is a snapshot taken when the value was picked,
- * the page says when that was, and picking again takes a new one.
- */
-export class DeviceStatusCutoff {
-  private selection: string | null = null;
-  private cutoff: Date | null = null;
-
-  /**
-   * The cutoff for this selection, snapshotting a new one whenever the selection
-   * changes.
-   *
-   * Call it with the *live* selection on every render, `null` included. Being told
-   * about the clear is what makes picking the same value a second time take a fresh
-   * window: keyed on the value alone, "down → cleared → down an hour later" would
-   * silently reuse the first hour's cutoff while everything else on the page said
-   * otherwise.
-   */
-  public getCutoffFor(selection: string | null): Date {
-    if (this.selection !== selection || !this.cutoff) {
-      this.selection = selection;
-      this.cutoff = getDeviceFreshCutoff();
-    }
-
-    return this.cutoff;
-  }
-
-  /** The selection the current snapshot was taken for, or null before any. */
-  public getSelection(): string | null {
-    return this.selection;
-  }
-}
-
 export type BuildDeviceStatusFacetQueryFunction = (
   values: Array<string>,
   operator: FilterOperator,
-  cutoff: Date,
 ) => unknown;
 
 /**
- * The `lastSeenAt` constraint behind a Status selection.
+ * The `isReachable` constraint behind a Status selection.
  *
- * Single-select and "is"-only by construction: the three values are ranges over
- * one column, so "up or pending" is not expressible as a single field query, and
- * "is not up" would silently drop never-polled devices (NULL fails both
- * comparisons) while reading as though it included them.
+ * A stored verdict rather than a window, so the rows this returns are the rows
+ * whose pills say the same thing — permanently, not just for as long as the
+ * page has been open. The window it replaced was a snapshot of the wall clock
+ * taken when the value was picked, which drifted away from the pills (which
+ * recompute per render) the longer the list stayed open.
+ *
+ * Single-select and "is"-only by construction: the three values partition one
+ * column, so "up or pending" is not expressible as a single field query, and
+ * "is not up" would silently drop never-polled devices (NULL fails equality
+ * either way) while reading as though it included them.
  *
  * `undefined` means "do not constrain this column" — the honest answer to a
  * value this build does not recognise, which is what a hand-edited URL or a view
  * saved by an older build can hand over.
  */
 export const buildDeviceStatusFacetQuery: BuildDeviceStatusFacetQueryFunction =
-  (values: Array<string>, operator: FilterOperator, cutoff: Date): unknown => {
+  (values: Array<string>, operator: FilterOperator): unknown => {
     if (operator !== "is" || values.length !== 1) {
       return undefined;
     }
 
     switch (values[0]) {
+      /*
+       * Bare booleans, not EqualTo: CompareType covers number/Date/string
+       * only, and a plain boolean is what every other boolean query in the
+       * product (`isArchived: false`) already sends. `undefined` is the only
+       * value the facet layer drops, so `false` survives the merge.
+       */
       case DeviceStatusFacetValue.Up:
-        return new GreaterThanOrEqual(cutoff);
+        return true;
 
       case DeviceStatusFacetValue.Down:
-        return new LessThan(cutoff);
+        return false;
 
       case DeviceStatusFacetValue.Pending:
         return new IsNull();
@@ -254,17 +179,17 @@ export const DEVICE_STATUS_FACET_OPTIONS: Array<FilterChipDropdownOption> = [
   {
     value: DeviceStatusFacetValue.Up,
     label: "Up",
-    sublabel: `Polled in the last ${DEVICE_FRESH_WINDOW_MINUTES} minutes`,
+    sublabel: "The last SNMP poll reached the device",
   },
   {
     value: DeviceStatusFacetValue.Down,
-    label: "Down / Stale",
-    sublabel: `No successful poll in the last ${DEVICE_FRESH_WINDOW_MINUTES} minutes`,
+    label: "Down",
+    sublabel: "The last SNMP poll could not reach the device",
   },
   {
     value: DeviceStatusFacetValue.Pending,
     label: "Pending",
-    sublabel: "Never polled successfully",
+    sublabel: "Never polled",
   },
 ];
 
@@ -286,9 +211,9 @@ export const DEVICE_INTERFACES_FACET_OPTIONS: Array<FilterChipDropdownOption> =
  * The Last Seen chip's operators.
  *
  * "is empty" and "is not empty" are left out on purpose: over `lastSeenAt` they
- * are Pending and not-Pending, which the Status chip already offers in the
- * words the rest of the page uses. Two chips spelling one thing two ways is how
- * a user ends up believing they have applied two filters.
+ * read as "never answered a poll", which is close enough to the Status chip's
+ * Pending to be mistaken for it. Two chips spelling one thing two ways is how a
+ * user ends up believing they have applied two filters.
  */
 export const DEVICE_LAST_SEEN_FACET_OPERATORS: Array<FilterOperator> = [
   "is",
@@ -305,10 +230,9 @@ export type BuildDeviceLastSeenFacetQueryFunction = (
 /**
  * The `lastSeenAt` constraint behind a Last Seen selection.
  *
- * The chip the Status one cannot be: an arbitrary date rather than the fixed
- * freshness window, which is the only way to ask "which devices have not been
- * polled since last Tuesday" or "which were polled between the 1st and the
- * 5th".
+ * The question the Status chip does not answer: not "is it up now" but "when
+ * did it last answer" — the only way to ask "which devices have not answered
+ * since last Tuesday" or "which answered between the 1st and the 5th".
  *
  * Day-granular, and identical to what the column-filter popup's date entry
  * produced before the facet bar took the column over — so a question a user

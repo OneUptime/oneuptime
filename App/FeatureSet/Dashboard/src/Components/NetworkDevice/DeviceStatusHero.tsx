@@ -1,5 +1,6 @@
 import DeviceStatusUtil, {
-  DEVICE_FRESH_WINDOW_MINUTES,
+  DEVICE_STATUS_SELECT,
+  DeviceReachabilityResult,
   NetworkDeviceStatus,
 } from "./DeviceStatusUtil";
 import PageMap from "../../Utils/PageMap";
@@ -44,7 +45,7 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
         modelType: NetworkDevice,
         id: props.modelId,
         select: {
-          lastSeenAt: true,
+          ...DEVICE_STATUS_SELECT,
           lastRebootedAt: true,
           hostname: true,
           vendor: true,
@@ -107,9 +108,9 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const reachability: NetworkDeviceStatus = DeviceStatusUtil.getStatus(
-    device.lastSeenAt,
-  );
+  const reachabilityResult: DeviceReachabilityResult =
+    DeviceStatusUtil.getReachability(device);
+  const reachability: NetworkDeviceStatus = reachabilityResult.status;
 
   type GetReachabilityPillFunction = () => ReactElement;
 
@@ -120,18 +121,27 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
           text="Up"
           color={Green}
           size={PillSize.Normal}
-          tooltip={`Polled successfully within the last ${DEVICE_FRESH_WINDOW_MINUTES} minutes.`}
+          tooltip="The last SNMP poll reached this device."
         />
       );
     }
 
     if (reachability === NetworkDeviceStatus.Down) {
+      /*
+       * Two different failures wear the same pill, and saying which is the
+       * difference between "go look at the device" and "go look at the
+       * probe" — so the tooltip names the one that actually happened.
+       */
       return (
         <Pill
           text="Down"
           color={Red500}
           size={PillSize.Normal}
-          tooltip={`No successful SNMP poll in the last ${DEVICE_FRESH_WINDOW_MINUTES} minutes.`}
+          tooltip={
+            reachabilityResult.isStale
+              ? `No SNMP poll has even been attempted in the last ${reachabilityResult.staleWindowInMinutes} minutes — check that this device's probe is online and keeping up with its fleet.`
+              : "The last SNMP poll could not reach this device."
+          }
         />
       );
     }
@@ -141,7 +151,7 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
         text="Pending"
         color={Gray500}
         size={PillSize.Normal}
-        tooltip="This device has not been polled successfully yet."
+        tooltip="This device has not been polled yet."
       />
     );
   };
@@ -161,6 +171,19 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
   const lastSeenAt: Date | null = device.lastSeenAt
     ? OneUptimeDate.fromString(device.lastSeenAt)
     : null;
+
+  /*
+   * The last ATTEMPT, which is only worth its own line when it is not the
+   * last success — that gap is the whole diagnosis when a device reads Down
+   * while its interfaces read Up.
+   */
+  const lastPolledAt: Date | null = device.lastPolledAt
+    ? OneUptimeDate.fromString(device.lastPolledAt)
+    : null;
+  const isPollNewerThanContact: boolean = Boolean(
+    lastPolledAt &&
+      (!lastSeenAt || lastPolledAt.getTime() > lastSeenAt.getTime()),
+  );
 
   const uptimeText: string | null = device.lastRebootedAt
     ? OneUptimeDate.differenceBetweenTwoDatesAsFromattedString(
@@ -192,8 +215,13 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
           <div className="mt-1.5 text-xs text-gray-500">
             {lastSeenAt
               ? `Last seen ${OneUptimeDate.fromNow(lastSeenAt)}`
-              : "Never polled"}
+              : "Never answered a poll"}
           </div>
+          {isPollNewerThanContact && lastPolledAt && (
+            <div className="mt-0.5 text-xs text-gray-400">
+              {`Last polled ${OneUptimeDate.fromNow(lastPolledAt)}`}
+            </div>
+          )}
         </div>
 
         <div>

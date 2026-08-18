@@ -1,0 +1,561 @@
+import { describe, expect, test } from "@jest/globals";
+import DeviceReachabilityUtil, {
+  DEFAULT_DEVICE_POLLING_INTERVAL_IN_MINUTES,
+  DEVICE_MIN_STALE_WINDOW_IN_MINUTES,
+  DEVICE_MISSED_POLL_ALLOWANCE,
+  DeviceReachabilityInput,
+  DeviceReachabilityResult,
+  NetworkDeviceReachability,
+} from "../../../Utils/NetworkDevice/DeviceReachabilityUtil";
+
+/*
+ * DeviceReachabilityUtil is the single rule behind every up/down verdict a
+ * NetworkDevice gets: the device list pill, the summary tiles, the device
+ * Overview hero, the topology graph, the network map and the site rollup.
+ *
+ * The rule it replaced was "lastSeenAt newer than a fixed 15 minutes", and
+ * the whole point of these tests is to pin the distinction that rule could
+ * not make — "the device did not answer" versus "we have not asked". Every
+ * case below states which of the two it is about.
+ *
+ * `now` is passed explicitly rather than faked, because that is how every
+ * production caller uses it (the topology builder and the site rollup both
+ * thread one shared `now` through a whole graph).
+ */
+
+const NOW: Date = new Date("2026-08-18T12:00:00.000Z");
+
+const MS_PER_MINUTE: number = 60 * 1000;
+
+function minutesAgo(minutes: number, extraMs: number = 0): Date {
+  return new Date(NOW.getTime() - minutes * MS_PER_MINUTE - extraMs);
+}
+
+function statusOf(device: DeviceReachabilityInput): NetworkDeviceReachability {
+  return DeviceReachabilityUtil.getStatus(device, NOW);
+}
+
+function reachabilityOf(
+  device: DeviceReachabilityInput,
+): DeviceReachabilityResult {
+  return DeviceReachabilityUtil.getReachability(device, NOW);
+}
+
+describe("the constants the rule is built from", () => {
+  test("the default interval mirrors the NetworkDevice column default", () => {
+    expect(DEFAULT_DEVICE_POLLING_INTERVAL_IN_MINUTES).toBe(5);
+  });
+
+  test("ten missed polls, floored at an hour", () => {
+    expect(DEVICE_MISSED_POLL_ALLOWANCE).toBe(10);
+    expect(DEVICE_MIN_STALE_WINDOW_IN_MINUTES).toBe(60);
+  });
+
+  test("the enum carries the display strings the pills render", () => {
+    expect(NetworkDeviceReachability.Up).toBe("Up");
+    expect(NetworkDeviceReachability.Down).toBe("Down");
+    expect(NetworkDeviceReachability.Pending).toBe("Pending");
+  });
+});
+
+describe("DeviceReachabilityUtil.getPollingIntervalInMinutes", () => {
+  test("keeps a sane configured interval", () => {
+    expect(DeviceReachabilityUtil.getPollingIntervalInMinutes(5)).toBe(5);
+    expect(DeviceReachabilityUtil.getPollingIntervalInMinutes(30)).toBe(30);
+    expect(DeviceReachabilityUtil.getPollingIntervalInMinutes(1440)).toBe(1440);
+  });
+
+  test("a missing interval falls back to the column default", () => {
+    expect(DeviceReachabilityUtil.getPollingIntervalInMinutes(undefined)).toBe(
+      5,
+    );
+    expect(DeviceReachabilityUtil.getPollingIntervalInMinutes(null)).toBe(5);
+  });
+
+  /*
+   * The same clamp NetworkDeviceService.claimDevicesForPolling applies when
+   * it advances nextPollAt. If the two disagreed, the window would be sized
+   * against a schedule the scheduler never runs.
+   */
+  test("zero, negative and non-finite intervals fall back too", () => {
+    expect(DeviceReachabilityUtil.getPollingIntervalInMinutes(0)).toBe(5);
+    expect(DeviceReachabilityUtil.getPollingIntervalInMinutes(-15)).toBe(5);
+    expect(DeviceReachabilityUtil.getPollingIntervalInMinutes(NaN)).toBe(5);
+    expect(
+      DeviceReachabilityUtil.getPollingIntervalInMinutes(
+        Number.POSITIVE_INFINITY,
+      ),
+    ).toBe(5);
+  });
+
+  test("a sub-minute interval is clamped up to one minute", () => {
+    expect(DeviceReachabilityUtil.getPollingIntervalInMinutes(0.5)).toBe(1);
+  });
+});
+
+describe("DeviceReachabilityUtil.getStaleWindowInMinutes", () => {
+  test("short intervals get the one-hour floor, not ten times nothing", () => {
+    expect(DeviceReachabilityUtil.getStaleWindowInMinutes(1)).toBe(60);
+    expect(DeviceReachabilityUtil.getStaleWindowInMinutes(5)).toBe(60);
+    expect(DeviceReachabilityUtil.getStaleWindowInMinutes(6)).toBe(60);
+  });
+
+  test("beyond six minutes the window scales with the device's own schedule", () => {
+    expect(DeviceReachabilityUtil.getStaleWindowInMinutes(10)).toBe(100);
+    expect(DeviceReachabilityUtil.getStaleWindowInMinutes(30)).toBe(300);
+    expect(DeviceReachabilityUtil.getStaleWindowInMinutes(60)).toBe(600);
+  });
+
+  /*
+   * The old rule was a flat 15 minutes for every device, which a device
+   * polled every 15, 30 or 60 minutes could never satisfy — it was down the
+   * moment it was configured.
+   */
+  test("a slow-polled device's window always exceeds its own interval", () => {
+    for (const interval of [1, 5, 15, 30, 60, 120, 720, 1440]) {
+      expect(
+        DeviceReachabilityUtil.getStaleWindowInMinutes(interval),
+      ).toBeGreaterThan(interval);
+    }
+  });
+});
+
+describe("the last poll failed → Down", () => {
+  test("isReachable false is Down", () => {
+    expect(statusOf({ isReachable: false })).toBe(
+      NetworkDeviceReachability.Down,
+    );
+  });
+
+  /*
+   * The verdict does not expire. Nothing since has contradicted it, and
+   * inventing an expiry is how "we have not asked lately" became "the
+   * device is up" in the other direction.
+   */
+  test("Down stands however old the failed poll is", () => {
+    expect(
+      statusOf({
+        isReachable: false,
+        lastPolledAt: minutesAgo(1),
+        lastSeenAt: minutesAgo(90),
+      }),
+    ).toBe(NetworkDeviceReachability.Down);
+
+    expect(
+      statusOf({
+        isReachable: false,
+        lastPolledAt: minutesAgo(60 * 24 * 30),
+        lastSeenAt: minutesAgo(60 * 24 * 30),
+      }),
+    ).toBe(NetworkDeviceReachability.Down);
+  });
+
+  test("a device that answered recently but failed its LAST poll is Down", () => {
+    expect(
+      statusOf({
+        isReachable: false,
+        lastPolledAt: minutesAgo(1),
+        lastSeenAt: minutesAgo(6),
+        pollingIntervalInMinutes: 5,
+      }),
+    ).toBe(NetworkDeviceReachability.Down);
+  });
+});
+
+describe("the last poll succeeded → Up", () => {
+  test("isReachable true, polled just now, is Up", () => {
+    expect(
+      statusOf({
+        isReachable: true,
+        lastPolledAt: NOW,
+        lastSeenAt: NOW,
+        pollingIntervalInMinutes: 5,
+      }),
+    ).toBe(NetworkDeviceReachability.Up);
+  });
+
+  /*
+   * THE REGRESSION. Issue #3220: UN1234WANRTR01 answered SNMP — its
+   * Interfaces tab showed 14 ports up, written by that very walk — but the
+   * fleet was big enough that its probe could only get round to it every
+   * ~20 minutes, so the last successful poll was 21 minutes old and the old
+   * fixed 15-minute freshness window called the device Down.
+   */
+  test("issue #3220: a device polled 21 minutes ago on a 5-minute interval is Up", () => {
+    expect(
+      statusOf({
+        isReachable: true,
+        lastPolledAt: minutesAgo(21),
+        lastSeenAt: minutesAgo(21),
+        pollingIntervalInMinutes: 5,
+      }),
+    ).toBe(NetworkDeviceReachability.Up);
+  });
+
+  test("issue #3220, generalised: no lag short of the stale window flips a good poll to Down", () => {
+    for (const lagInMinutes of [16, 21, 30, 45, 59]) {
+      expect(
+        statusOf({
+          isReachable: true,
+          lastPolledAt: minutesAgo(lagInMinutes),
+          lastSeenAt: minutesAgo(lagInMinutes),
+          pollingIntervalInMinutes: 5,
+        }),
+      ).toBe(NetworkDeviceReachability.Up);
+    }
+  });
+
+  /*
+   * The other half of the same bug, with no fleet-size excuse needed: a
+   * device configured to be polled every 30 minutes could not be inside a
+   * 15-minute window at any point in its cycle.
+   */
+  test("a device on a 30-minute interval is Up right before its next poll", () => {
+    expect(
+      statusOf({
+        isReachable: true,
+        lastPolledAt: minutesAgo(29),
+        lastSeenAt: minutesAgo(29),
+        pollingIntervalInMinutes: 30,
+      }),
+    ).toBe(NetworkDeviceReachability.Up);
+  });
+
+  test("a device on a 60-minute interval is Up right before its next poll", () => {
+    expect(
+      statusOf({
+        isReachable: true,
+        lastPolledAt: minutesAgo(59),
+        lastSeenAt: minutesAgo(59),
+        pollingIntervalInMinutes: 60,
+      }),
+    ).toBe(NetworkDeviceReachability.Up);
+  });
+
+  test("a clock-skewed future timestamp is Up, not an error", () => {
+    expect(
+      statusOf({
+        isReachable: true,
+        lastPolledAt: minutesAgo(-5),
+        lastSeenAt: minutesAgo(-5),
+      }),
+    ).toBe(NetworkDeviceReachability.Up);
+  });
+});
+
+/*
+ * The backstop. Reachability standing on the last poll's outcome would, on
+ * its own, leave a fleet painted green forever if the probe died — nobody
+ * would ever contradict the last good verdict. So a verdict we have not
+ * been able to refresh for many cycles stops being trusted.
+ */
+describe("the polling pipeline stopped → Down (stale)", () => {
+  test("a good verdict older than the stale window goes Down", () => {
+    const result: DeviceReachabilityResult = reachabilityOf({
+      isReachable: true,
+      lastPolledAt: minutesAgo(61),
+      lastSeenAt: minutesAgo(61),
+      pollingIntervalInMinutes: 5,
+    });
+
+    expect(result.status).toBe(NetworkDeviceReachability.Down);
+    expect(result.isStale).toBe(true);
+  });
+
+  test("the boundary is strict: exactly at the window is still Up", () => {
+    expect(
+      reachabilityOf({
+        isReachable: true,
+        lastPolledAt: minutesAgo(60),
+        pollingIntervalInMinutes: 5,
+      }),
+    ).toMatchObject({ status: NetworkDeviceReachability.Up, isStale: false });
+
+    expect(
+      reachabilityOf({
+        isReachable: true,
+        lastPolledAt: minutesAgo(60, 1),
+        pollingIntervalInMinutes: 5,
+      }),
+    ).toMatchObject({ status: NetworkDeviceReachability.Down, isStale: true });
+  });
+
+  test("the window follows the device's interval, so a slow device is not stale early", () => {
+    // 30-minute interval -> 300-minute window: four hours is fine.
+    expect(
+      statusOf({
+        isReachable: true,
+        lastPolledAt: minutesAgo(240),
+        pollingIntervalInMinutes: 30,
+      }),
+    ).toBe(NetworkDeviceReachability.Up);
+
+    // Six hours is not.
+    expect(
+      statusOf({
+        isReachable: true,
+        lastPolledAt: minutesAgo(360),
+        pollingIntervalInMinutes: 30,
+      }),
+    ).toBe(NetworkDeviceReachability.Down);
+  });
+
+  test("the result names the window it judged against, so the UI can explain itself", () => {
+    expect(
+      reachabilityOf({ isReachable: true, pollingIntervalInMinutes: 30 })
+        .staleWindowInMinutes,
+    ).toBe(300);
+    expect(
+      reachabilityOf({ isReachable: true, pollingIntervalInMinutes: 5 })
+        .staleWindowInMinutes,
+    ).toBe(60);
+  });
+
+  /*
+   * A failing device is in contact — we are reaching its probe, the probe
+   * is reaching the network, the device just is not answering. Measuring
+   * staleness from lastSeenAt would call that "out of contact" and hide the
+   * real, more specific diagnosis behind a probe-health message.
+   */
+  test("a device failing every poll is Down but NOT stale", () => {
+    const result: DeviceReachabilityResult = reachabilityOf({
+      isReachable: false,
+      lastPolledAt: minutesAgo(2),
+      lastSeenAt: minutesAgo(600),
+      pollingIntervalInMinutes: 5,
+    });
+
+    expect(result.status).toBe(NetworkDeviceReachability.Down);
+    expect(result.isStale).toBe(false);
+    expect(result.lastContactAt?.getTime()).toBe(minutesAgo(2).getTime());
+  });
+
+  test("a device nobody has polled AND that never answered is stale", () => {
+    const result: DeviceReachabilityResult = reachabilityOf({
+      isReachable: false,
+      lastPolledAt: minutesAgo(600),
+      pollingIntervalInMinutes: 5,
+    });
+
+    expect(result.status).toBe(NetworkDeviceReachability.Down);
+    expect(result.isStale).toBe(true);
+  });
+});
+
+describe("never polled → Pending", () => {
+  test("a device with no poll history at all is Pending", () => {
+    expect(statusOf({})).toBe(NetworkDeviceReachability.Pending);
+  });
+
+  test("explicit nulls (raw API payloads) are Pending", () => {
+    expect(
+      statusOf({
+        isReachable: null,
+        lastPolledAt: null,
+        lastSeenAt: null,
+        pollingIntervalInMinutes: null,
+      }),
+    ).toBe(NetworkDeviceReachability.Pending);
+  });
+
+  test("empty-string dates are Pending, not Invalid Date", () => {
+    expect(statusOf({ lastPolledAt: "", lastSeenAt: "" })).toBe(
+      NetworkDeviceReachability.Pending,
+    );
+  });
+
+  test("Pending is never reported as stale — there is nothing to have gone stale", () => {
+    const result: DeviceReachabilityResult = reachabilityOf({});
+
+    expect(result.isStale).toBe(false);
+    expect(result.lastContactAt).toBeNull();
+  });
+
+  /*
+   * Polled repeatedly and never once answered. That is a device that is
+   * down, not a device waiting to be set up — calling it Pending would hide
+   * it from every "what is broken" view on the product.
+   */
+  test("polled but never answered is Down, not Pending", () => {
+    expect(
+      statusOf({
+        lastPolledAt: minutesAgo(2),
+        lastSeenAt: undefined,
+      }),
+    ).toBe(NetworkDeviceReachability.Down);
+  });
+});
+
+/*
+ * Rows written before the isReachable column existed carry only lastSeenAt
+ * until their first walk after the upgrade rewrites them. The upgrade
+ * migration backfills them, so this is a narrow window — but a device must
+ * not read Pending (and vanish from the Down list) during it.
+ */
+describe("rows with no recorded outcome fall back to freshness", () => {
+  test("a legacy row seen recently is Up", () => {
+    expect(statusOf({ lastSeenAt: minutesAgo(5) })).toBe(
+      NetworkDeviceReachability.Up,
+    );
+  });
+
+  test("a legacy row is judged against the same generous window", () => {
+    expect(statusOf({ lastSeenAt: minutesAgo(21) })).toBe(
+      NetworkDeviceReachability.Up,
+    );
+    expect(statusOf({ lastSeenAt: minutesAgo(61) })).toBe(
+      NetworkDeviceReachability.Down,
+    );
+  });
+
+  test("a legacy row's interval still sizes its window", () => {
+    expect(
+      statusOf({ lastSeenAt: minutesAgo(200), pollingIntervalInMinutes: 30 }),
+    ).toBe(NetworkDeviceReachability.Up);
+  });
+});
+
+describe("date parsing", () => {
+  test("accepts ISO strings, the form the API serializes", () => {
+    expect(
+      statusOf({
+        isReachable: true,
+        lastPolledAt: "2026-08-18T11:39:00.000Z",
+        lastSeenAt: "2026-08-18T11:39:00.000Z",
+      }),
+    ).toBe(NetworkDeviceReachability.Up);
+  });
+
+  test("accepts Date objects", () => {
+    expect(statusOf({ isReachable: true, lastPolledAt: new Date(NOW) })).toBe(
+      NetworkDeviceReachability.Up,
+    );
+  });
+
+  /*
+   * An Invalid Date compares false against every window, which would
+   * silently read as "fresh". Treating it as "not set" makes the outcome
+   * column the only thing deciding, which is at least honest.
+   */
+  test("an unparseable date reads as not-set rather than as fresh", () => {
+    const result: DeviceReachabilityResult = reachabilityOf({
+      lastSeenAt: "not-a-date-at-all",
+    });
+
+    expect(result.lastContactAt).toBeNull();
+    expect(result.status).toBe(NetworkDeviceReachability.Pending);
+  });
+});
+
+describe("lastContactAt is the newer of the two timestamps", () => {
+  test("the later attempt wins over the earlier success", () => {
+    expect(
+      reachabilityOf({
+        isReachable: false,
+        lastPolledAt: minutesAgo(1),
+        lastSeenAt: minutesAgo(30),
+      }).lastContactAt?.getTime(),
+    ).toBe(minutesAgo(1).getTime());
+  });
+
+  test("a legacy row with only lastSeenAt uses it", () => {
+    expect(
+      reachabilityOf({ lastSeenAt: minutesAgo(7) }).lastContactAt?.getTime(),
+    ).toBe(minutesAgo(7).getTime());
+  });
+
+  test("a device polled but never seen uses the attempt", () => {
+    expect(
+      reachabilityOf({
+        isReachable: false,
+        lastPolledAt: minutesAgo(3),
+      }).lastContactAt?.getTime(),
+    ).toBe(minutesAgo(3).getTime());
+  });
+});
+
+/*
+ * The scenario from the issue, at the scale the issue reports it: 980
+ * devices behind one probe that can only claim 50 a minute, so the fleet
+ * takes ~20 minutes to cycle and every device's last successful poll is
+ * uniformly spread across that window. Under the old rule roughly a quarter
+ * of a perfectly healthy fleet was red at any instant, which is what "323
+ * of 980 Down/Stale" was.
+ */
+describe("issue #3220 at fleet scale", () => {
+  function healthyFleetPolledOverMinutes(
+    cycleInMinutes: number,
+    deviceCount: number,
+  ): Array<DeviceReachabilityInput> {
+    const devices: Array<DeviceReachabilityInput> = [];
+
+    for (let index: number = 0; index < deviceCount; index++) {
+      const ageInMinutes: number = (index / deviceCount) * cycleInMinutes;
+      devices.push({
+        isReachable: true,
+        lastPolledAt: minutesAgo(ageInMinutes),
+        lastSeenAt: minutesAgo(ageInMinutes),
+        pollingIntervalInMinutes: 5,
+      });
+    }
+
+    return devices;
+  }
+
+  test("a healthy fleet on a 20-minute cycle reports zero devices down", () => {
+    const fleet: Array<DeviceReachabilityInput> = healthyFleetPolledOverMinutes(
+      20,
+      980,
+    );
+
+    const down: number = fleet.filter(
+      (device: DeviceReachabilityInput): boolean => {
+        return statusOf(device) === NetworkDeviceReachability.Down;
+      },
+    ).length;
+
+    expect(down).toBe(0);
+  });
+
+  test("genuinely unreachable devices in that fleet are still counted", () => {
+    const fleet: Array<DeviceReachabilityInput> = healthyFleetPolledOverMinutes(
+      20,
+      100,
+    );
+
+    // Three of them failed their last walk.
+    fleet[10]!.isReachable = false;
+    fleet[40]!.isReachable = false;
+    fleet[90]!.isReachable = false;
+
+    const down: number = fleet.filter(
+      (device: DeviceReachabilityInput): boolean => {
+        return statusOf(device) === NetworkDeviceReachability.Down;
+      },
+    ).length;
+
+    expect(down).toBe(3);
+  });
+
+  test("a fleet whose probe has stopped entirely still goes down", () => {
+    const fleet: Array<DeviceReachabilityInput> = healthyFleetPolledOverMinutes(
+      20,
+      50,
+    ).map((device: DeviceReachabilityInput): DeviceReachabilityInput => {
+      // Nothing has been polled for three hours.
+      return {
+        ...device,
+        lastPolledAt: minutesAgo(180),
+        lastSeenAt: minutesAgo(180),
+      };
+    });
+
+    const down: number = fleet.filter(
+      (device: DeviceReachabilityInput): boolean => {
+        return statusOf(device) === NetworkDeviceReachability.Down;
+      },
+    ).length;
+
+    expect(down).toBe(50);
+  });
+});

@@ -3,7 +3,8 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import AppLink from "../../../Components/AppLink/AppLink";
 import DeviceStatusUtil, {
-  DEVICE_FRESH_WINDOW_MINUTES,
+  DEVICE_STATUS_SELECT,
+  DeviceReachabilityResult,
   NetworkDeviceStatus,
 } from "../../../Components/NetworkDevice/DeviceStatusUtil";
 import Route from "Common/Types/API/Route";
@@ -19,7 +20,8 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
  * Every device assigned to this site — same status language as the main
- * device list (freshness-based Up / Down / Pending pills).
+ * device list (Up / Down / Pending, decided by the outcome of the last
+ * SNMP poll rather than by how long ago it happened).
  */
 const NetworkSiteDevices: FunctionComponent<
   PageComponentProps
@@ -62,6 +64,7 @@ const NetworkSiteDevices: FunctionComponent<
           },
         ]}
         selectMoreFields={{
+          ...DEVICE_STATUS_SELECT,
           interfacesDown: true,
         }}
         columns={[
@@ -72,28 +75,31 @@ const NetworkSiteDevices: FunctionComponent<
             title: "Status",
             type: FieldType.Element,
             getElement: (item: NetworkDevice): ReactElement => {
-              const status: NetworkDeviceStatus = DeviceStatusUtil.getStatus(
-                item.lastSeenAt,
-              );
+              const reachability: DeviceReachabilityResult =
+                DeviceStatusUtil.getReachability(item);
 
-              if (status === NetworkDeviceStatus.Up) {
+              if (reachability.status === NetworkDeviceStatus.Up) {
                 return (
                   <Pill
                     text="Up"
                     color={Green}
                     size={PillSize.Small}
-                    tooltip={`Polled successfully within the last ${DEVICE_FRESH_WINDOW_MINUTES} minutes.`}
+                    tooltip="The last SNMP poll reached this device."
                   />
                 );
               }
 
-              if (status === NetworkDeviceStatus.Down) {
+              if (reachability.status === NetworkDeviceStatus.Down) {
                 return (
                   <Pill
                     text="Down"
                     color={Red500}
                     size={PillSize.Small}
-                    tooltip={`No successful SNMP poll in the last ${DEVICE_FRESH_WINDOW_MINUTES} minutes.`}
+                    tooltip={
+                      reachability.isStale
+                        ? `No SNMP poll has even been attempted in the last ${reachability.staleWindowInMinutes} minutes — check this device's probe.`
+                        : "The last SNMP poll could not reach this device."
+                    }
                   />
                 );
               }
@@ -103,7 +109,7 @@ const NetworkSiteDevices: FunctionComponent<
                   text="Pending"
                   color={Gray500}
                   size={PillSize.Small}
-                  tooltip="This device has not been polled successfully yet."
+                  tooltip="This device has not been polled yet."
                 />
               );
             },
