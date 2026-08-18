@@ -80,16 +80,66 @@ jobs:
             fi
           done
 
+          # Answers "is this tag already released?" as one of three outcomes:
+          # yes (0), no (1), or could-not-tell (exits the step).
+          #
+          # This used to be a bare `gh release view ... &>/dev/null` inside an
+          # `if`, which collapses "no such release" and "the GitHub API is down"
+          # into the same non-zero exit — so an API blip read as "not released
+          # yet" and let the run re-publish a version that already exists. That
+          # is the one answer this guard exists to prevent, and the downstream
+          # release step passes `allowUpdates: true`, so it would have happily
+          # overwritten the real release. A GitHub outage did break this
+          # workflow on 2026-08-17; this check happened not to be the step that
+          # ran during it. Only a clean 404 counts as "not released".
+          #
+          # Asking for the release *by tag* also stops the pipeline blocking on
+          # its own unfinished work: this workflow creates a draft release and
+          # publishes it in a later job, and a draft has no tag, so it 404s
+          # here. `gh release view` saw drafts, which meant one interrupted run
+          # left every later run failing "already released" for a version that
+          # had in fact never shipped. Published releases — the ones this guard
+          # is actually for — still return 200 and still stop the run.
+          release_exists() {
+            local tag="$1"
+            local out status
+            local -a delays=(5 15 30)
+            local max_attempts=$(( ${#delays[@]} + 1 ))
+            local attempt=1
+
+            while true; do
+              status=0
+              out="$(gh api "repos/${REPOSITORY}/releases/tags/${tag}" 2>&1)" || status=$?
+
+              if (( status == 0 )); then
+                return 0
+              fi
+
+              if grep -q "HTTP 404" <<< "$out"; then
+                return 1
+              fi
+
+              if (( attempt >= max_attempts )); then
+                echo "::error::Could not determine whether ${tag} is already released after ${max_attempts} attempts. GitHub said: ${out}"
+                exit 1
+              fi
+
+              echo "Release lookup for ${tag} failed on attempt ${attempt}/${max_attempts}; retrying in ${delays[attempt - 1]}s. GitHub said: ${out}" >&2
+              sleep "${delays[attempt - 1]}"
+              attempt=$(( attempt + 1 ))
+            done
+          }
+
           # Check if this version is already released on GitHub
           echo "Checking if version $VERSION_RAW is already released on GitHub..."
 
-          if gh release view "$VERSION_RAW" --repo "$REPOSITORY" &>/dev/null; then
+          if release_exists "$VERSION_RAW"; then
             echo "::error::Version $VERSION_RAW is already released on GitHub. Please update the VERSION file to a new version."
             exit 1
           fi
 
           # Also check with 'v' prefix just in case
-          if gh release view "v$VERSION_RAW" --repo "$REPOSITORY" &>/dev/null; then
+          if release_exists "v$VERSION_RAW"; then
             echo "::error::Version v$VERSION_RAW is already released on GitHub. Please update the VERSION file to a new version."
             exit 1
           fi
@@ -1710,7 +1760,62 @@ jobs:
               echo "EOF"
             } >> "$GITHUB_OUTPUT"
           fi
-      - uses: ncipollo/release-action@v1
+      # ncipollo/release-action makes one REST call and has no retry of its own,
+      # so a momentary GitHub API failure reds a release run that has already
+      # spent ~90 minutes building and pushing every image. That is not
+      # hypothetical: on 2026-08-17 this step died on
+      #
+      #   Error 503: No server is currently available to service your request.
+      #
+      # while the same outage was failing CodeQL on master and release, and
+      # every image in the run had already been built and pushed.
+      #
+      # Actions has no step-level retry for `uses:` steps, so the step is
+      # written out three times. Repeating it is safe: `allowUpdates: true`
+      # makes each attempt idempotent, so an attempt that half-created the
+      # draft is corrected by the next rather than duplicated. A skipped step
+      # has outcome 'skipped', not 'failure', so each attempt only runs when
+      # every attempt before it actually ran and failed, and the last one is
+      # not `continue-on-error` — a genuine, persistent failure still fails the
+      # job.
+      - name: Create draft release
+        id: draft_release_1
+        continue-on-error: true
+        uses: ncipollo/release-action@v1
+        with:
+          tag: "${{needs.read-version.outputs.major_minor}}"
+          artifactErrorsFailBuild: true
+          draft: true
+          allowUpdates: true
+          prerelease: false
+          body: |
+            ${{steps.fallback_changelog.outputs.changelog}}
+
+      - name: Wait before retrying draft release
+        if: steps.draft_release_1.outcome == 'failure'
+        run: sleep 60
+
+      - name: Create draft release (retry)
+        id: draft_release_2
+        if: steps.draft_release_1.outcome == 'failure'
+        continue-on-error: true
+        uses: ncipollo/release-action@v1
+        with:
+          tag: "${{needs.read-version.outputs.major_minor}}"
+          artifactErrorsFailBuild: true
+          draft: true
+          allowUpdates: true
+          prerelease: false
+          body: |
+            ${{steps.fallback_changelog.outputs.changelog}}
+
+      - name: Wait before final draft release attempt
+        if: steps.draft_release_1.outcome == 'failure' && steps.draft_release_2.outcome == 'failure'
+        run: sleep 150
+
+      - name: Create draft release (final attempt)
+        if: steps.draft_release_1.outcome == 'failure' && steps.draft_release_2.outcome == 'failure'
+        uses: ncipollo/release-action@v1
         with:
           tag: "${{needs.read-version.outputs.major_minor}}"
           artifactErrorsFailBuild: true
@@ -2056,7 +2161,25 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const tag = '${{needs.read-version.outputs.major_minor}}';
-            try {
+
+            // This is the last gate in the release: everything is built,
+            // pushed and tagged, and all that is left is flipping the draft to
+            // published. Two unretried REST calls used to be enough to lose
+            // that on a transient GitHub failure — the kind that returned
+            // "503: No server is currently available to service your request"
+            // to the draft-creation job on 2026-08-17 — and the recovery was a
+            // manual re-run of a 90-minute workflow.
+            //
+            // Both calls are safe to repeat: listReleases is a read, and
+            // updateRelease sets the release to a fixed state rather than
+            // mutating it relative to what is already there, so publishing an
+            // already-published release is a no-op.
+            const delaysMs = [15000, 45000, 90000];
+            const maxAttempts = delaysMs.length + 1;
+
+            const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+            const publish = async () => {
               const releases = await github.paginate(github.rest.repos.listReleases, {
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -2077,10 +2200,24 @@ jobs:
                 prerelease: false,
                 make_latest: 'true',
               });
+            };
 
-              console.log(`Published release for ${tag}`);
-            } catch (error) {
-              throw new Error(`Failed to publish release for tag ${tag}: ${error.message ?? error}`);
+            for (let attempt = 1; ; attempt++) {
+              try {
+                await publish();
+                console.log(`Published release for ${tag}`);
+                break;
+              } catch (error) {
+                const message = error.message ?? error;
+
+                if (attempt >= maxAttempts) {
+                  throw new Error(`Failed to publish release for tag ${tag} after ${maxAttempts} attempts: ${message}`);
+                }
+
+                const delayMs = delaysMs[attempt - 1];
+                console.log(`Publishing ${tag} failed on attempt ${attempt}/${maxAttempts}; retrying in ${delayMs / 1000}s. GitHub said: ${message}`);
+                await sleep(delayMs);
+              }
             }
 
   # Publish Android app to Google Play Store.

@@ -10,19 +10,19 @@ The following example shows how to use a Synthetic Monitor:
 // Objects available in the context of the script are:
 
 // - axios: Axios module to make HTTP requests
-// - page: Playwright Page object to interact with the browser
-// - browserType: Browser type in the current run context - Chromium, Firefox, Webkit
+// - page: OneUptime's secure Playwright-compatible page facade
+// - browserType: Browser type in the current run context - Chromium or Firefox
 // - screenSizeType: Screen size type in the current run context - Mobile, Tablet, Desktop
 
 // You can use these objects to interact with the browser and make HTTP requests.
 
 await page.goto("https://playwright.dev/");
 
-// Playwright Documentation here: https://playwright.dev/docs/intro
+// The commonly used Page, Locator, Frame, and BrowserContext APIs are supported.
 
 // Here are some of the variables that you can use in the context of the monitored object:
 
-console.log(browserType); // This will list the browser type in the current run context - Chromium, Firefox, Webkit
+console.log(browserType); // This will list the browser type in the current run context - Chromium or Firefox
 
 console.log(screenSizeType); // This will list the screen size type in the current run context - Mobile, Tablet, Desktop
 
@@ -48,7 +48,49 @@ return {
 
 ### Use of Playwright
 
-We use Playwright to simulate user interactions. You can use Playwright `page` object to interact with the browser and perform actions like clicking buttons, filling forms, and taking screenshots.
+We use Playwright to simulate user interactions. The `page` value is a secure,
+Playwright-compatible facade for the page created for this execution. Common
+`Page`, `Locator`, `Frame`, `ElementHandle`, `JSHandle`, `Request`, `Response`,
+keyboard, mouse, and browser-context methods are available. This includes
+navigation, locators, clicks, form input, page evaluation, popups, additional
+pages, response inspection, and screenshots.
+
+Synthetic scripts do not run in the Probe's Node.js process. Values cross the
+runtime boundary as copied data or opaque, execution-scoped capabilities. APIs
+that would escape that boundary are intentionally unavailable: browser launch
+or connection methods, CDP sessions, request routing, exposed bindings,
+Playwright private fields, and any option that reads or writes a host filesystem
+path. `page.context().browser()` is therefore unavailable. Evaluation functions
+passed to methods such as `page.evaluate()` execute in the monitored browser
+page, never in the Probe process.
+
+Each execution can use up to eight pages. Full-page screenshots and PDF output
+are unavailable; viewport screenshots remain supported and retain the failure
+evidence behavior described below.
+
+Function predicates for event, request, response, and URL wait methods do not
+cross the isolation boundary. Use string or regular-expression matchers,
+locators, or explicit polling instead.
+
+Playwright event listeners (`page.on(...)`, `page.once(...)`) cannot cross the
+isolation boundary either, and calling them fails with a clear error. Use
+`page.waitForEvent(...)` for dialogs and popups, or response and request waits
+with string or regular-expression matchers. The synchronous frame accessors
+(`page.frames()`, `page.mainFrame()`, `page.frame(...)`) and `page.request.*`
+are also unavailable — use `page.frameLocator(...)` for iframes and the `axios`
+global for HTTP requests. `page.waitForNavigation(...)`,
+`page.setDefaultTimeout(...)`, and `page.setDefaultNavigationTimeout(...)` are
+supported.
+
+Data returned from the script is serialized to JSON before it is stored: in
+plain objects and arrays, `NaN` and `Infinity` become `null`, `undefined`
+properties and functions are dropped, and `Date` objects become ISO strings —
+the same way `JSON.stringify` handles them. Class instances and other
+non-plain objects are dropped entirely.
+
+Browser permissions are limited to geolocation and notifications. Clipboard,
+camera, microphone, MIDI, local-font, and other host-device permissions are not
+available to monitor scripts.
 
 ### Screenshots
 
@@ -162,22 +204,23 @@ Once captured, these metrics appear in the Metric Explorer under names like `cus
 
 ### Modules available in the script
 
-- `page`: You can use this module to interact with the browser. It is a Playwright Page object that allows you to perform actions like clicking buttons, filling forms, and taking screenshots. You can access the browser context via `page.context()` if needed (for example, to create a new page or deal with popups).
+- `page`: A secure Playwright-compatible facade for interacting with the browser. You can access the execution's browser context via `page.context()` to create pages or deal with popups, but browser launch/connect, CDP, routing, bindings, private fields, and host-path options are unavailable.
 - `screenshots`: A pre-declared object that you assign screenshots to (e.g. `screenshots['login-page'] = await page.screenshot()`). Screenshots assigned here are captured even if the script later throws.
-- `axios`: You can use this module to make HTTP requests. It is a promise-based HTTP client for the browser and Node.js.
-- `crypto`: You can use this module to perform cryptographic operations. It is a built-in Node.js module that provides cryptographic functionality that includes a set of wrappers for OpenSSL's hash, HMAC, cipher, decipher, sign, and verify functions.
+- `axios`: A promise-based HTTP client supporting callable Axios plus `request`, `get`, `head`, `options`, `post`, `put`, `patch`, `delete`, and `create`. Request size, response size, redirect, and timeout limits are enforced; custom transports, adapters, sockets, agents, and proxy overrides are unavailable.
+- `crypto`: A browser-worker implementation of SHA-256 hashes, HMAC-SHA-256, `randomBytes`, `randomInt`, and `randomUUID`.
 - `console.log`: You can use this module to log data to the console. This is useful for debugging purposes.
 - `oneuptime.captureMetric`: You can use this to capture custom metrics from your script. See the Custom Metrics section above.
-- `http`: You can use this module to make HTTP requests. It is a built-in Node.js module that provides an HTTP client and server.
-- `https`: You can use this module to make HTTPS requests. It is a built-in Node.js module that provides an HTTPS client and server.
+- `http`: A buffered, client-only compatibility facade supporting `request`, `get`, and `Agent`.
+- `https`: The HTTPS equivalent of the client-only `http` facade.
 
 ### Things to consider
 
-- The `page` object is the primary interface for interacting with the browser. This is from the Playwright Page class. You can access the browser context via `page.context()` if needed.
+- The `page` object is the primary interface for interacting with the browser. It intentionally implements an allowlisted Playwright surface rather than exposing raw Playwright or Node.js objects.
 - You can use `console.log` to log the data in the console. This will be available in the logs section of the monitor.
 - You can return the data from the script using the `return` statement. Assign screenshots to the provided `screenshots` object so they are preserved even if the script throws.
 - You can use `browserType` and `screenSizeType` variables to get the browser type and screen size type in the current run context. Feel free to use them in your script if you like.
 - This is a JavaScript script, so you can use all the JavaScript features in the script.
 - You can use `axios` module to make HTTP requests in the script. You can use it to make API calls from the script.
 - If you are using oneuptime.com, you will always have the latest version of Playwright & browsers available in the context of the script. If you're self-hosting, please make sure you update the probes to have the latest version of Playwright and the browsers.
-- Timeout for the script is 2 minutes. If the script takes more than 2 mins, it will be terminated.
+- The default script timeout is 60 seconds and can be configured by the Probe operator. Timed-out workers and all browser descendants are terminated.
+- Each execution has bounded memory and writable browser storage. Exceeding either limit terminates that execution and removes its temporary profile; self-hosted operators can configure these ceilings on the Probe.
