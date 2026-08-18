@@ -160,7 +160,7 @@
 
 ## 通过工作流驱动事件
 
-事件的工作流触发器不是手写的——OneUptime 会从数据模型中生成它们，因此事件家族的每一个模型都会得到以其单数名称命名的 **On Create X**、**On Update X** 和 **On Delete X** 组件。最主要的三个是 **On Create Incident**、**On Update Incident** 和 **On Delete Incident**，它们位于 `/dashboard/{projectId}/workflows` 上工作流组件面板的 **Incident** 分类中。
+事件的工作流触发器不是手写的——OneUptime 会从数据模型中生成它们，因此事件家族的每一个模型都会得到以其单数名称命名的 **On Create X**、**On Update X** 和 **On Delete X** 组件。最主要的三个是 **On Create Incident**、**On Update Incident** 和 **On Delete Incident**，它们位于 `/dashboard/{projectId}/workflows` 上 **添加组件** 面板的 **Incident** 分类中。
 
 同一套生成机制也为配置本身提供了触发器：**On Create Incident State**、**On Update Incident Severity**、**On Create Incident Template**、**On Create Incident Note Template**、**On Create Incident State Timeline**、**On Create Incident Public Note**、**On Create Incident Internal Note**、**On Create Incident On-Call Rule**、**On Create Incident Role**、**On Create Incident Member** 等等。每个模型也会得到相应的动作组件——**Find One Incident**、**Create One Incident**、**Update One Incident**、**Delete One Incident** 以及它们各自的多行版本——因此名称相近的触发器和动作会并列出现在同一个分类中。**On Create Incident** 启动一个工作流；**Create One Incident** 则会创建一个事件。
 

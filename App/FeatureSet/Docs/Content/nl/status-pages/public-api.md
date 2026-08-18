@@ -2,7 +2,7 @@
 
 Hier vindt u hoe u de openbare statuspagina API kunt gebruiken om de status van uw resources op de statuspagina op te halen. U hoeft alleen maar een POST-verzoek te doen naar het API-eindpunt.
 
-#### Overzichts-API
+## Overzichts-API
 
 Deze API haalt alle resources op die op de statuspagina staan, inclusief de algehele status van de resources, incidenten, onderhoud en meer.
 
@@ -155,7 +155,7 @@ Dit is de respons van de API:
 }
 ```
 
-#### Uptime API
+## Uptime API
 
 Deze API haalt de uptime op van alle resources op de statuspagina.
 
@@ -252,7 +252,7 @@ Dit is de voorbeeldrespons van de API:
 }
 ```
 
-### Incident API
+## Incident API
 
 Deze API haalt alle incidenten op die op de statuspagina staan. Om alle incidenten op de statuspagina te krijgen, kunt u een POST-verzoek doen naar het volgende eindpunt:
 
@@ -277,7 +277,7 @@ Dit is de respons van de API:
 }
 ```
 
-### Gepland onderhoud API
+## Gepland onderhoud API
 
 Deze API haalt al het geplande onderhoud op dat op de statuspagina staat. Om al het geplande onderhoud op de statuspagina te krijgen, kunt u een POST-verzoek doen naar het volgende eindpunt:
 
@@ -302,7 +302,7 @@ Dit is de respons van de API:
 }
 ```
 
-### Aankondigingen API
+## Aankondigingen API
 
 Deze API haalt alle aankondigingen op die op de statuspagina staan. Om alle aankondigingen op de statuspagina te krijgen, kunt u een POST-verzoek doen naar het volgende eindpunt:
 
@@ -326,3 +326,11 @@ Dit is de respons van de API:
   ]
 }
 ```
+
+## Waar je hierna kunt lezen
+
+- [Statuspagina's – Overzicht](/docs/status-pages/index) — wat een statuspagina is en hoe de onderdelen samenhangen.
+- [Statuspagina – bronnen en groepen](/docs/status-pages/resources-and-groups) — de bronnen die deze endpoints retourneren.
+- [Statuspagina – branding en domeinen](/docs/status-pages/branding-and-domains) — het aangepaste domein waarvandaan deze endpoints worden geserveerd.
+- [Abonnees en aankondigingen](/docs/status-pages/subscribers) — de aankondigingen die het aankondigingen-endpoint levert.
+- [Incidenten – Overzicht](/docs/incidents/index) — waar de incidenten in deze responses vandaan komen.

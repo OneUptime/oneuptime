@@ -1,6 +1,6 @@
 # Présentation des workflows
 
-Les workflows vous permettent d'automatiser des tâches dans OneUptime sans écrire de code. Glissez et déposez quelques blocs sur un canevas, reliez-les entre eux, et vous obtenez une automatisation qui s'exécute dès qu'un événement se produit — un incident s'ouvre, une planification se déclenche ou un autre outil envoie des données à OneUptime.
+Les workflows vous permettent d'automatiser des tâches dans OneUptime sans écrire de code. Ajoutez quelques blocs sur un canevas, reliez-les entre eux, et vous obtenez une automatisation qui s'exécute dès que quelque chose se produit — un incident s'ouvre, une planification se déclenche, ou un autre outil envoie des données à OneUptime.
 
 Considérez les workflows comme des assistants d'arrière-plan pour votre projet : ils réagissent aux événements, dialoguent avec d'autres outils et maintiennent les choses synchronisées en toute discrétion pendant que vous vous concentrez sur votre travail.
 
@@ -10,7 +10,7 @@ Considérez les workflows comme des assistants d'arrière-plan pour votre projet
 - **Réagir à ce qui se passe dans OneUptime** — quand un incident critique est créé, prévenir l'équipe d'astreinte et ouvrir un ticket automatiquement.
 - **Exécuter des tâches selon une planification** — toutes les cinq minutes, chaque nuit, tous les lundis matin.
 - **Recevoir des données depuis l'extérieur** — laisser d'autres systèmes pousser des données vers OneUptime via une URL unique.
-- **Réutiliser des automatisations courantes** — construisez-les une seule fois, appelez-les depuis n'importe quel autre workflow.
+- **Réutiliser une automatisation courante** — construisez-la une seule fois, appelez-la depuis n'importe quel autre workflow.
 
 ## Comment fonctionne un workflow
 
@@ -20,60 +20,65 @@ Chaque workflow comporte trois parties :
 2. **Un ou plusieurs composants** — ce que fait le workflow. Envoyer un message, effectuer un appel HTTP, lancer une vérification rapide, créer un embranchement selon une condition.
 3. **Des connexions entre eux** — vous tracez des lignes d'un bloc au suivant pour décider de l'ordre.
 
-Vous construisez tout cela visuellement sur un canevas. Aucune programmation n'est requise pour la plupart des workflows, même si vous pouvez insérer un extrait de JavaScript lorsque vous en avez besoin.
+Vous construisez tout cela visuellement sur un canevas. Aucune programmation n'est requise pour la plupart des workflows, même si vous pouvez ajouter un extrait de JavaScript lorsque vous en avez besoin.
 
 ## Termes clés
 
-| Terme                | Signification                                                                                                    |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| **Workflow**         | L'automatisation complète — un nom, un canevas et un interrupteur pour l'activer ou la désactiver.               |
-| **Déclencheur**      | Le premier bloc. Il décide quand le workflow s'exécute. Chaque workflow possède exactement un déclencheur.       |
-| **Composant**        | Un bloc d'action — envoie un message, effectue une requête, vérifie une condition.                               |
-| **Exécution**        | Une exécution du workflow. Enregistrée avec les horodatages et la sortie de chaque bloc.                         |
+| Terme                | Signification                                                                               |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **Workflow**         | L'automatisation complète — un nom, un canevas et un interrupteur pour l'activer ou la désactiver.          |
+| **Déclencheur**      | Le premier bloc. Il décide quand le workflow s'exécute. Chaque workflow possède exactement un déclencheur. |
+| **Composant**        | Un bloc d'action — envoie un message, effectue une requête, vérifie une condition.                          |
+| **Exécution**        | Une exécution du workflow. Enregistrée avec les horodatages et la sortie de chaque bloc.                    |
 | **Variable globale** | Une valeur (comme une clé d'API) que vous enregistrez une seule fois et réutilisez dans n'importe quel workflow. |
 
 ## Où trouver les workflows dans OneUptime
 
-Ouvrez **Flux de travail** dans la navigation de gauche. À partir de là :
+Ouvrez **Flux de travail** dans la navigation de gauche. Cette section contient :
 
 - **Flux de travail** — votre liste de workflows. Créez-en un nouveau ou ouvrez-en un existant.
-- **Onglet Constructeur** — le canevas où vous concevez le workflow.
-- **Onglet Journaux** — toutes les exécutions de ce workflow, avec leurs détails.
-- **Onglet Paramètres** — nom, description, propriétaires, étiquettes, activation/désactivation.
 - **Variables globales** — valeurs partagées entre tous vos workflows.
 - **Exécutions & journaux** — historique des exécutions de tous les workflows de votre projet.
 
+Ouvrez un workflow et son propre menu de gauche contient :
+
+- **Vue d'ensemble** — nom, description, étiquettes et l'interrupteur **Activé**.
+- **Constructeur** — le canevas où vous concevez le workflow.
+- **Variables de flux de travail** — valeurs limitées à ce seul workflow.
+- **Exécutions & journaux** — chaque exécution de ce workflow, avec ses détails.
+- **Paramètres** — secret du webhook, duplication et export.
+
 ## Construire votre premier workflow
 
-1. **Créez** — donnez un nom et une brève description à votre workflow.
-2. **Choisissez un déclencheur** — manuel, planifié, webhook ou un événement OneUptime.
-3. **Ajoutez des composants** — glissez les actions sur le canevas et reliez-les.
-4. **Testez** — cliquez sur **Run Manually** et observez ce qui se passe dans les journaux.
-5. **Activez-le** — basculez l'interrupteur **Activé** dans Settings lorsque vous êtes prêt.
+1. **Créer** — choisissez un point de départ, puis donnez un nom à votre workflow.
+2. **Choisir un déclencheur** — manuel, planifié, webhook ou un événement OneUptime.
+3. **Ajouter des composants** — ajoutez des actions sur le canevas et reliez-les.
+4. **Activez-le** — basculez **Activé** sur oui depuis la page **Vue d'ensemble**. Un workflow désactivé ne peut pas s'exécuter du tout, pas même à la main.
+5. **Testez** — cliquez sur **Run Workflow** sur le **Constructeur** et observez le journal d'exécution.
 
 ## Un exemple rapide
 
 Supposons que vous vouliez publier dans Slack chaque fois qu'un incident critique est créé :
 
 1. Créez un workflow appelé « Incidents critiques vers Slack ».
-2. Choisissez le déclencheur **Incident → On Create**.
-3. Ajoutez un bloc **Conditions**. Configurez-le pour vérifier si le titre de l'incident contient « Sev 1 ».
+2. Choisissez le déclencheur **On Create Incident**.
+3. Ajoutez un bloc **If / Else**. Configurez-le pour vérifier si le titre de l'incident contient « Sev 1 ».
 4. Depuis la branche **Yes**, ajoutez un bloc **Slack**. Choisissez le canal et rédigez le message.
 5. Activez le workflow.
 
-La prochaine fois que quelqu'un ouvrira un incident avec « Sev 1 » dans le titre, Slack s'illumine.
+La prochaine fois que quelqu'un ouvre un incident avec « Sev 1 » dans le titre, Slack s'allume.
 
 ## Comment les workflows s'intègrent au reste de OneUptime
 
-- Les **monitors** détectent le problème. Les **incidents** l'enregistrent. Les **workflows** y réagissent.
-- Les **runbooks** sont des guides pas à pas pour les humains. Les workflows sont des automatisations sans surveillance. Utilisez un runbook lorsqu'une personne doit prendre des décisions ; utilisez un workflow lorsque les étapes sont automatiques.
+- Les **Moniteurs** repèrent le problème. Les **Incidents** l'enregistrent. Les **Workflows** y réagissent.
+- Les **Runbooks** sont des guides étape par étape destinés aux personnes. Les workflows sont une automatisation sans surveillance. Utilisez un runbook quand un humain doit prendre des décisions ; utilisez un workflow quand les étapes sont automatiques.
 - Les **connexions d'espace de travail** (Slack, Teams) sont l'endroit où les workflows envoient leurs messages.
 
-## Pour aller plus loin
+## Où lire ensuite
 
-- [Création d'un workflow](/docs/workflows/authoring) — la construction sur le canevas.
-- [Déclencheurs](/docs/workflows/triggers) — les différentes manières de démarrer un workflow.
-- [Composants](/docs/workflows/components) — les briques de base que vous pouvez ajouter.
-- [Variables](/docs/workflows/variables) — l'utilisation de valeurs entre blocs et entre workflows.
-- [Exécutions et journaux](/docs/workflows/runs-and-logs) — vérifier ce qui s'est passé.
-- [Configuration et sécurité](/docs/workflows/configuration) — les paramètres à connaître.
+- [Créer un workflow](/docs/workflows/authoring) — construire sur le canevas.
+- [Déclencheurs de workflow](/docs/workflows/triggers) — les différentes façons de démarrer un workflow.
+- [Composants de workflow](/docs/workflows/components) — les blocs que vous pouvez ajouter.
+- [Variables de workflow](/docs/workflows/variables) — utiliser des valeurs à travers les blocs et les workflows.
+- [Exécutions et journaux de workflow](/docs/workflows/runs-and-logs) — vérifier ce qui s'est passé.
+- [Configuration et sécurité des workflows](/docs/workflows/configuration) — les paramètres à connaître.

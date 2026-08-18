@@ -160,7 +160,7 @@
 
 ## 以工作流程驅動事件
 
-事件的工作流程觸發器並非手動撰寫——OneUptime 會從資料模型自動產生它們,因此每個事件家族模型都會取得 **On Create X**、**On Update X** 與 **On Delete X** 元件,以模型的單數名稱命名。最主要的三個是 **On Create Incident**、**On Update Incident** 與 **On Delete Incident**,它們位於 `/dashboard/{projectId}/workflows` 工作流程元件面板的 **Incident** 類別中。
+事件的工作流程觸發器並非手動撰寫——OneUptime 會從資料模型自動產生它們,因此每個事件家族模型都會取得 **On Create X**、**On Update X** 與 **On Delete X** 元件,以模型的單數名稱命名。最主要的三個是 **On Create Incident**、**On Update Incident** 與 **On Delete Incident**,它們位於 `/dashboard/{projectId}/workflows` **新增元件** 面板的 **Incident** 類別中。
 
 同樣的產生機制也為設定本身提供觸發器:**On Create Incident State**、**On Update Incident Severity**、**On Create Incident Template**、**On Create Incident Note Template**、**On Create Incident State Timeline**、**On Create Incident Public Note**、**On Create Incident Internal Note**、**On Create Incident On-Call Rule**、**On Create Incident Role**、**On Create Incident Member** 等等。每個模型也會取得對應的動作元件——**Find One Incident**、**Create One Incident**、**Update One Incident**、**Delete One Incident** 及其多列版本——所以名稱相近的觸發器與動作會並列於同一類別中。**On Create Incident** 啟動一個工作流程;**Create One Incident** 則是開啟一個事件。
 

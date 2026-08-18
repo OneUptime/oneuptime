@@ -2,7 +2,7 @@
 
 यहाँ बताया गया है कि आप Status Page पर मौजूद अपने resources की status प्राप्त करने के लिए Public Status Page API कैसे उपयोग कर सकते हैं। आपको बस API endpoint पर एक POST request करनी है।
 
-#### Overview API
+## Overview API
 
 यह API status page पर मौजूद सभी resources को fetch करेगा, जिसमें resources की overall status, incidents, maintenance और अधिक शामिल हैं।
 
@@ -155,7 +155,7 @@ API से response यह है:
 }
 ```
 
-#### Uptime API
+## Uptime API
 
 यह API status page पर सभी resources का uptime fetch करेगा।
 
@@ -252,7 +252,7 @@ API से उदाहरण response यह है:
 }
 ```
 
-### Incident API
+## Incident API
 
 यह API status page पर मौजूद सभी incidents को fetch करेगा। Status page पर सभी incidents प्राप्त करने के लिए, आप निम्नलिखित endpoint पर एक POST request कर सकते हैं:
 
@@ -277,7 +277,7 @@ API से response यह है:
 }
 ```
 
-### Scheduled Maintenance API
+## Scheduled Maintenance API
 
 यह API status page पर मौजूद सभी scheduled maintenance को fetch करेगा। Status page पर सभी scheduled maintenance प्राप्त करने के लिए, आप निम्नलिखित endpoint पर एक POST request कर सकते हैं:
 
@@ -302,7 +302,7 @@ API से response यह है:
 }
 ```
 
-### Announcements API
+## Announcements API
 
 यह API status page पर मौजूद सभी announcements को fetch करेगा। Status page पर सभी announcements प्राप्त करने के लिए, आप निम्नलिखित endpoint पर एक POST request कर सकते हैं:
 
@@ -326,3 +326,11 @@ API से response यह है:
   ]
 }
 ```
+
+## आगे क्या पढ़ें
+
+- [स्थिति पृष्ठ अवलोकन](/docs/status-pages/index) — status page क्या है और इसके हिस्से आपस में कैसे जुड़ते हैं.
+- [स्थिति पृष्ठ संसाधन और समूह](/docs/status-pages/resources-and-groups) — वे resources जो ये endpoints लौटाते हैं.
+- [स्थिति पृष्ठ ब्रांडिंग और डोमेन](/docs/status-pages/branding-and-domains) — वह custom domain जिससे ये endpoints serve होते हैं.
+- [सब्सक्राइबर और घोषणाएँ](/docs/status-pages/subscribers) — वे announcements जो announcements endpoint provide करता है.
+- [घटनाओं का अवलोकन](/docs/incidents/index) — इन responses में incidents कहाँ से आते हैं.

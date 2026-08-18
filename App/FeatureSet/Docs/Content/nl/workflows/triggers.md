@@ -1,81 +1,81 @@
-# Triggers
+# Workflow-triggers
 
 Een trigger is het eerste blok in een workflow — het bepaalt wanneer de workflow draait. Elke workflow heeft precies één trigger. Je kiest uit vier soorten.
 
 ## Manual
 
-Voer de workflow op aanvraag uit door op **Run Manually** te klikken op de workflowpagina. Je kunt een JSON-payload plakken die de rest van de workflow kan lezen.
+Voer de workflow op aanvraag uit door op **Workflow uitvoeren** te klikken op de pagina **Bouwer**, de velden van de trigger in te vullen, en te bevestigen met **Run Workflow Manually**. De trigger Manual neemt een JSON-payload aan die de rest van de workflow kan lezen.
 
-Goed voor: éénklik-automatiseringen waar je een knop voor wilt, zoals "rotate this key" of "send a test alert".
+Goed voor: automatiseringen met één klik waar je een knop voor wilt, zoals "roteer deze sleutel" of "stuur een testwaarschuwing."
 
-**Output**: de JSON die je hebt geplakt, of een leeg object als je niets hebt geplakt.
+**Uitvoer**: de JSON die je hebt geplakt, of een leeg object als je dat niet deed.
 
 ## Schedule
 
 Voer de workflow uit op een herhalend schema met een cron-expressie.
 
-Goed voor: nachtelijke opruiming, uurlijkse synchronisatie, wekelijkse rapporten.
+Goed voor: nachtelijke opschoning, uursynchronisatie, wekelijkse rapporten.
 
-**Setting**: een cron-expressie. Een paar veelgebruikte:
+**Instelling**: een cron-expressie. Een paar veelgebruikte:
 
 - `0 * * * *` — elk uur, op het hele uur.
 - `*/5 * * * *` — elke 5 minuten.
-- `0 9 * * 1` — elke maandag om 9:00.
+- `0 9 * * 1` — elke maandag om 9:00 uur.
 
-Als het systeem kort niet beschikbaar is, wordt de run opgepakt zodra het herstelt — je hoeft je geen zorgen te maken over gemiste ticks bij korte onderbrekingen.
+Als het systeem kort niet beschikbaar is, wordt de run opgepikt zodra het herstelt — je hoeft je geen zorgen te maken over gemiste ticks bij korte storingen.
 
 ## Webhook
 
-OneUptime maakt een unieke URL aan. Alles wat die URL aanroept, start de workflow. De headers, query-parameters en body van het verzoek worden meegegeven.
+OneUptime maakt een unieke URL aan. Alles wat die URL raakt, start de workflow. De headers, queryparameters en body van het verzoek worden meegegeven.
 
-Goed voor: data naar OneUptime ontvangen vanuit een andere tool — CI/CD-callbacks, alerts van andere monitoring, signups in je CRM.
+Goed voor: gegevens naar OneUptime laten binnenkomen vanuit een andere tool — CI/CD-callbacks, waarschuwingen van andere monitoring, aanmeldingen in je CRM.
 
-**Output**:
+**Uitvoer**:
 
-- **Aanvraagheaders** — alle headers van het inkomende verzoek.
-- **Request Query Params** — de geparste query string.
-- **Verzoeklichaam** — de geparste body (of de ruwe tekst als het geen JSON is).
+- **Request Headers** — alle headers van het inkomende verzoek.
+- **Request Query Params** — de geparste queryreeks.
+- **Request Body** — de geparste body (of de ruwe tekst als het geen JSON is).
 
 De URL accepteert zowel `GET` als `POST`. De aanroeper krijgt een snelle bevestiging — de workflow zelf draait op de achtergrond.
 
 Behandel de URL als een wachtwoord. Iedereen die hem heeft kan je workflow starten.
 
-## OneUptime event-triggers
+## OneUptime-gebeurtenistriggers
 
-Bijna alles in OneUptime — monitors, incidenten, alerts, scheduled maintenance, statuspagina's, oncall-policies, teams — kan een workflow triggeren. Elk biedt drie events:
+Bijna alles in OneUptime — monitors, incidenten, waarschuwingen, geplande onderhoud, statuspagina's, piketbeleid, teams — kan een workflow triggeren. Elk biedt drie gebeurtenissen:
 
-- **On Create** — gaat af wanneer er een nieuwe wordt toegevoegd.
-- **On Update** — gaat af wanneer er een wordt gewijzigd.
-- **On Delete** — gaat af wanneer er een wordt verwijderd.
+- **On Create** — treedt op wanneer er een nieuwe wordt toegevoegd.
+- **On Update** — treedt op wanneer er een wordt gewijzigd.
+- **On Delete** — treedt op wanneer er een wordt verwijderd.
 
-Zo bouw je "wanneer X gebeurt in OneUptime, doe Y" zonder dat je in een lus dingen hoeft te controleren.
+Zo bouw je "wanneer X gebeurt in OneUptime, doe Y" zonder dingen in een lus te hoeven controleren.
 
-De volledige record wordt aan het volgende blok doorgegeven. Bijvoorbeeld: de trigger **Incident → On Create** geeft het nieuwe incident door, zodat het volgende blok de titel, beschrijving, severity en elk ander veld kan lezen.
+Het volledige record wordt doorgegeven aan het volgende blok. De trigger **Incident → On Create** geeft bijvoorbeeld het nieuwe incident door, zodat het volgende blok de titel, beschrijving, ernst en elk ander veld kan lezen.
 
-### Events die teams het meest gebruiken
+### Gebeurtenissen die teams het meest gebruiken
 
-- **Incident** — reageer wanneer een incident wordt geopend, gewijzigd (acknowledged, resolved) of verwijderd.
-- **Waarschuwing** — dezelfde drie voor alerts.
+- **Incident** — reageer wanneer een incident wordt geopend, bijgewerkt (bevestigd, opgelost), of verwijderd.
+- **Alert** — dezelfde drie voor waarschuwingen.
 - **Monitor** — reageer wanneer een monitor wordt toegevoegd, bewerkt of verwijderd.
-- **Geplande onderhoud** — kondig automatisch een onderhoudsvenster aan zodra het is gepland.
-- **Statuspagina Abonnee** — verwelkom iemand die zich abonneert op een statuspagina.
-- **On-Call Duty Policy** — synchroniseer wijzigingen in het rooster met een ander roostersysteem.
+- **Scheduled Maintenance** — kondig een onderhoudsvenster automatisch aan zodra het wordt gepland.
+- **Status Page Subscriber** — heet iemand welkom die zich abonneert op een statuspagina.
+- **On-Call Duty Policy** — synchroniseer schemawijzigingen met een ander roosterssysteem.
 
-Zoek in het trigger-palet op naam om de gewenste te vinden.
+Doorzoek het paneel **Add Trigger** op naam om de gewenste te vinden.
 
 ## Welke trigger moet ik gebruiken?
 
-| Als je wilt...                                | Kies                |
-| --------------------------------------------- | ------------------- |
-| Op een knop drukken om de workflow te draaien | **Manual**          |
-| Op een herhalend schema draaien               | **Schema**          |
-| Een ander systeem data laten doorgeven        | **Webhook**         |
-| Reageren op iets binnen OneUptime             | **OneUptime event** |
+| Als je wilt…                                | Kies                |
+| -------------------------------------------- | -------------------- |
+| Op een knop klikken om de workflow te draaien | **Manual**          |
+| Draaien op een herhalend schema              | **Schedule**         |
+| Een ander systeem gegevens laten pushen      | **Webhook**          |
+| Reageren op iets binnen OneUptime            | **OneUptime-gebeurtenis** |
 
-Een workflow kan maar één trigger hebben. Als je dezelfde automatisering op twee manieren wilt starten, bouw dan de gedeelde logica in één workflow en roep die aan vanuit twee dunne "wrapper"-workflows met de **Execute Workflow**-component.
+Een workflow kan maar één trigger hebben. Als je twee manieren nodig hebt om dezelfde automatisering te starten, bouw dan de gedeelde logica in één workflow en roep die aan vanuit twee dunne "wrapper"-workflows met het component **Execute Workflow**.
 
-## Waar verder lezen
+## Waar je verder kunt lezen
 
-- [Componenten](/docs/workflows/components) — de acties die je na de trigger toevoegt.
-- [Variabelen](/docs/workflows/variables) — output van de trigger lezen vanuit latere blokken.
-- [Uitvoeringen en logboeken](/docs/workflows/runs-and-logs) — bevestigen dat je trigger is afgegaan.
+- [Workflow-componenten](/docs/workflows/components) — de acties die je na de trigger toevoegt.
+- [Workflow-variabelen](/docs/workflows/variables) — triggeruitvoer lezen vanuit latere blokken.
+- [Workflow-uitvoeringen en logboeken](/docs/workflows/runs-and-logs) — bevestigen dat je trigger is afgegaan.

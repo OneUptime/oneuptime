@@ -1,81 +1,81 @@
-# Gatilhos
+# Gatilhos de workflow
 
-Um gatilho é o primeiro bloco em um workflow — ele decide quando o workflow roda. Todo workflow tem exatamente um gatilho. Você escolhe entre quatro tipos.
+Um trigger é o primeiro bloco em um workflow — ele decide quando o workflow roda. Todo workflow tem exatamente um trigger. Você escolhe entre quatro tipos.
 
 ## Manual
 
-Execute o workflow sob demanda clicando em **Executar Manualmente** na página do workflow. Você pode colar um payload JSON que o resto do workflow consegue ler.
+Execute o workflow sob demanda clicando em **Run Workflow** na página **Builder**, preenchendo os campos do trigger e confirmando com **Run Workflow Manually**. O trigger Manual recebe um payload JSON que o restante do workflow pode ler.
 
 Bom para: automações de um clique para as quais você quer um botão, como "rotacionar esta chave" ou "enviar um alerta de teste."
 
-**Saída**: o JSON que você colou ou um objeto vazio caso não tenha colado nada.
+**Saída**: o JSON que você colou, ou um objeto vazio se não colou nada.
 
-## Agendado
+## Schedule
 
-Execute o workflow em um agendamento recorrente usando uma expressão cron.
+Execute o workflow em um agendamento repetitivo usando uma expressão cron.
 
-Bom para: limpezas noturnas, sincronizações horárias, relatórios semanais.
+Bom para: limpeza noturna, sincronização por hora, relatórios semanais.
 
-**Configuração**: uma expressão cron. Alguns exemplos comuns:
+**Configuração**: uma expressão cron. Algumas comuns:
 
-- `0 * * * *` — toda hora, no minuto zero.
+- `0 * * * *` — toda hora, na hora cheia.
 - `*/5 * * * *` — a cada 5 minutos.
-- `0 9 * * 1` — toda segunda às 9:00.
+- `0 9 * * 1` — toda segunda-feira às 9h.
 
-Se o sistema ficar brevemente indisponível, a execução é retomada assim que ele se recupera — você não precisa se preocupar com disparos perdidos em pequenas interrupções.
+Se o sistema ficar brevemente indisponível, a execução é retomada assim que ele se recupera — você não precisa se preocupar com ciclos perdidos em interrupções curtas.
 
 ## Webhook
 
-O OneUptime cria uma URL única. Qualquer requisição a essa URL inicia o workflow. Os cabeçalhos, parâmetros de consulta e o corpo da requisição são repassados.
+O OneUptime cria uma URL única. Qualquer coisa que atinja essa URL inicia o workflow. Os headers, os parâmetros de query e o body da requisição são passados adiante.
 
-Bom para: receber dados de outra ferramenta no OneUptime — callbacks de CI/CD, alertas de outros monitoramentos, cadastros no seu CRM.
+Bom para: receber dados no OneUptime vindos de outra ferramenta — callbacks de CI/CD, alertas de outro monitoramento, cadastros no seu CRM.
 
 **Saída**:
 
-- **Cabeçalhos da Requisição** — todos os cabeçalhos da requisição recebida.
-- **Parâmetros de Consulta** — a query string já analisada.
-- **Corpo da Requisição** — o corpo analisado (ou o texto bruto se não for JSON).
+- **Request Headers** — todos os headers da requisição recebida.
+- **Request Query Params** — a query string interpretada.
+- **Request Body** — o body interpretado (ou o texto bruto, se não for JSON).
 
-A URL aceita tanto `GET` quanto `POST`. O chamador recebe uma confirmação rápida — o próprio workflow roda em segundo plano.
+A URL aceita tanto `GET` quanto `POST`. Quem chama recebe uma confirmação rápida — o workflow em si roda em segundo plano.
 
-Trate a URL como uma senha. Quem tiver acesso a ela pode iniciar seu workflow.
+Trate a URL como uma senha. Qualquer pessoa que a tenha pode iniciar seu workflow.
 
-## Gatilhos de eventos do OneUptime
+## Triggers de eventos do OneUptime
 
-Quase tudo no OneUptime — monitores, incidentes, alertas, manutenções programadas, páginas de status, políticas de plantão, equipes — pode disparar um workflow. Cada um oferece três eventos:
+Quase tudo no OneUptime — monitores, incidentes, alertas, manutenções programadas, páginas de status, políticas de plantão, times — pode disparar um workflow. Cada um oferece três eventos:
 
-- **Na Criação** — dispara quando um novo é adicionado.
-- **Na Atualização** — dispara quando um é alterado.
-- **Na Exclusão** — dispara quando um é excluído.
+- **On Create** — dispara quando um novo é adicionado.
+- **On Update** — dispara quando um é alterado.
+- **On Delete** — dispara quando um é excluído.
 
-É assim que você constrói "quando X acontecer no OneUptime, faça Y" sem precisar ficar verificando coisas em loop.
+É assim que você constrói "quando X acontecer no OneUptime, faça Y" sem precisar verificar coisas em um loop.
 
-O registro completo é repassado ao próximo bloco. Por exemplo, o gatilho **Incidente → Na Criação** repassa o novo incidente, então o próximo bloco pode ler o título, a descrição, a severidade e qualquer outro campo.
+O registro completo é passado para o próximo bloco. Por exemplo, o trigger **Incident → On Create** passa o novo incidente, de forma que o próximo bloco pode ler seu título, descrição, severidade e qualquer outro campo.
 
-### Eventos mais usados pelos times
+### Eventos mais usados pelas equipes
 
-- **Incidente** — reagir quando um incidente é aberto, atualizado (confirmado, resolvido) ou excluído.
-- **Alerta** — os mesmos três para alertas.
-- **Monitor** — reagir quando um monitor é adicionado, editado ou removido.
-- **Manutenção programada** — anunciar uma janela de manutenção automaticamente quando ela é agendada.
-- **Página de status Assinante** — dar boas-vindas a quem se inscreve em uma página de status.
-- **Política de Plantão** — sincronizar mudanças de escala com outro sistema de escalas.
+- **Incident** — reaja quando um incidente é aberto, atualizado (reconhecido, resolvido) ou excluído.
+- **Alert** — os mesmos três para alertas.
+- **Monitor** — reaja quando um monitor é adicionado, editado ou removido.
+- **Scheduled Maintenance** — anuncie uma janela de manutenção automaticamente quando ela for agendada.
+- **Status Page Subscriber** — dê boas-vindas a quem se inscreve em uma página de status.
+- **On-Call Duty Policy** — sincronize mudanças de escala com outro sistema de escalas.
 
-Busque pelo nome na paleta de gatilhos para encontrar o que você quer.
+Pesquise no painel **Add Trigger** pelo nome para encontrar o que você quer.
 
-## Qual gatilho devo usar?
+## Qual trigger devo usar?
 
-| Se você quer…                               | Escolha                 |
-| ------------------------------------------- | ----------------------- |
-| Clicar em um botão para executar o workflow | **Manual**              |
-| Executar em um agendamento recorrente       | **Agendamento**         |
-| Ter outro sistema enviando dados            | **Webhook**             |
-| Reagir a algo dentro do OneUptime           | **Evento do OneUptime** |
+| Se você quer…                     | Escolha                |
+| ----------------------------------- | -------------------- |
+| Clicar em um botão para rodar o workflow  | **Manual**          |
+| Rodar em um agendamento repetitivo         | **Schedule**        |
+| Fazer outro sistema enviar dados    | **Webhook**         |
+| Reagir a algo dentro do OneUptime | **OneUptime event** |
 
-Um workflow só pode ter um gatilho. Se você precisar de duas formas de iniciar a mesma automação, coloque a lógica compartilhada em um workflow e chame-a a partir de dois workflows "envoltórios" finos usando o componente **Executar Workflow**.
+Um workflow só pode ter um trigger. Se você precisa de duas formas de iniciar a mesma automação, construa a lógica compartilhada em um workflow e chame-a a partir de dois workflows "wrapper" simples, usando o componente **Execute Workflow**.
 
-## O que ler em seguida
+## Onde ler a seguir
 
-- [Componentes](/docs/workflows/components) — as ações que você adiciona depois do gatilho.
-- [Variáveis](/docs/workflows/variables) — lendo a saída do gatilho a partir dos blocos seguintes.
-- [Execuções e Registros](/docs/workflows/runs-and-logs) — confirmando que seu gatilho disparou.
+- [Componentes de workflow](/docs/workflows/components) — as ações que você adiciona depois do trigger.
+- [Variáveis de workflow](/docs/workflows/variables) — lendo a saída do trigger em blocos posteriores.
+- [Execuções e registros de workflow](/docs/workflows/runs-and-logs) — confirmando que seu trigger disparou.

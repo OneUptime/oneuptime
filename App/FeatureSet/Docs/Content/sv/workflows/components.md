@@ -2,7 +2,7 @@
 
 Komponenter är byggstenarna du lägger till efter utlösaren. Var och en gör en sak — skickar ett meddelande, anropar ett API, kontrollerar ett villkor — och kopplas till det som kommer härnäst.
 
-Den här sidan är katalogen. För hur du drar, släpper och kopplar dem på arbetsytan, se [Skapa ett arbetsflöde](/docs/workflows/authoring).
+Den här sidan är katalogen. För hur du lägger till och kopplar dem på arbetsytan, se [Skapa ett arbetsflöde](/docs/workflows/authoring).
 
 ## API
 
@@ -15,12 +15,40 @@ Gör en HTTP-förfrågan till valfri URL.
 - **Headers** — eventuella headers att skicka.
 - **Body** — förfrågans body för `POST` / `PUT` / `PATCH`.
 
-**Utdata**:
+**Outputs**:
 
-- **Framgång** — utlöses när anropet fungerade (2xx-svar). Skickar vidare status, headers och body.
-- **Fel** — utlöses vid nätverksfel eller ett icke-2xx-svar. Skickar vidare felmeddelandet.
+- **Success** — utlöses när anropet fungerade (2xx-svar). Skickar vidare status, headers och body.
+- **Error** — utlöses vid nätverksfel eller ett icke-2xx-svar. Skickar vidare felmeddelandet.
 
 Använd den för: alla externa API:er, dina egna administrationsendpoints, eller integrationer som inte har sin egen komponent.
+
+## AI
+
+### Generate Text with AI
+
+Generera ett textsvar från en prompt och valfri JSON-kontext. Komponenten använder projektets konfigurerade standard-LLM-leverantör, och faller tillbaka på installationens globala leverantör när en sådan finns tillgänglig. Leverantörens autentiseringsuppgifter och slutpunkter konfigureras centralt; de är inte arbetsflödesargument.
+
+**Inställningar**:
+
+- **System Instructions** — valfri vägledning för modellens roll, ton och begränsningar.
+- **Prompt** — den obligatoriska uppgiften. Den kan innehålla arbetsflödesvariabler och utdata från tidigare komponenter.
+- **Context** — valfri JSON som du medvetet inkluderar med förfrågan. Den läggs till efter en explicit slut-på-meddelande-förtroendemarkör och behandlas som opålitlig data genom resten av meddelandet.
+- **Temperature** — variation från `0` till `1`. Standardvärdet är `0.2` för förutsägbar automatisering.
+- **Maximum Output Tokens** — från `1` till `4096`. Standardvärdet är `1024`.
+
+De sammanslagna System Instructions, Prompt och serialiserad Context är begränsade till 50 000 tecken. Leverantörsförfrågan har en maximal varaktighet på 60 sekunder och görs ett enda försök. Som mest tre arbetsflödes-AI-förfrågningar kan köras samtidigt per projekt.
+
+**Outputs**:
+
+- **Response** — den genererade texten.
+- **Provider** och **Model** — konfigurationen som användes för anropet.
+- **Total Tokens** och **Completion Tokens** — användning rapporterad av leverantören.
+- **LLM Log ID** — den mätta AI-loggposten för anropet.
+- **Error** — validerings-, åtkomst-, leverantörs-, budget-, faktura- eller timeout-felet, när det finns.
+
+Koppla **Success** till komponenter som ska använda svaret. Koppla **Error** till en explicit fallback, varning eller loggväg. Komponenten gör en enda modellförfrågan utan verktygsdefinitioner eller leverantörsspecifika kapacitetsfält: den kan inte fråga OneUptime, anropa API:er eller ändra projektdata på egen hand. Förutom OneUptimes fasta komponentsäkerhetsinstruktioner skickas bara de System Instructions, Prompt och Context du konfigurerar till leverantören, efter att arbetsflödesvariabler i de fälten har lösts upp. Den konfigurerade leverantören/modellen förblir en förtroendegräns eftersom en modell kan ha inneboende leverantörshanterade kapaciteter.
+
+Modellutdata är opålitlig text. Granska den innan du skickar kundvänd kommunikation, och använd inte fritextgenererad AI-text ensam för att godkänna destruktiva arbetsflödesåtgärder. Se [Konfiguration & säkerhet](/docs/workflows/configuration) för detaljer om leverantör, utgående trafik, loggning och kostnad.
 
 ## Webhook (utgående)
 
@@ -34,10 +62,10 @@ Posta ett meddelande till en Slack-kanal.
 
 **Inställningar**:
 
-- **Kanal** — kanalnamnet. Boten måste redan vara med i den kanalen.
-- **Meddelande** — texten som ska skickas. Stöder Slack-formatering.
+- **Channel** — kanalnamnet. Boten måste redan vara med i den kanalen.
+- **Message** — texten som ska skickas. Stöder Slack-formatering.
 
-Koppla först Slack till ditt projekt under **Projektinställningar → Arbetsyta → Slack**. Se [Slack Workspace Connection](/docs/workspace-connections/slack).
+Koppla först Slack till ditt projekt under **Project Settings → Workspace → Slack**. Se [Slack Workspace Connection](/docs/workspace-connections/slack).
 
 ## Microsoft Teams
 
@@ -46,7 +74,7 @@ Posta ett meddelande till en Microsoft Teams-kanal.
 **Inställningar**:
 
 - **Team and channel** — var meddelandet ska postas.
-- **Meddelande** — texten som ska skickas.
+- **Message** — texten som ska skickas.
 
 Se [Microsoft Teams Workspace Connection](/docs/workspace-connections/microsoft-teams) för konfiguration.
 
@@ -64,8 +92,8 @@ Skicka ett e-postmeddelande via OneUptime.
 
 **Inställningar**:
 
-- **Till** — mottagarens e-postadress.
-- **Ämne** — ämnesraden.
+- **To** — mottagarens e-postadress.
+- **Subject** — ämnesraden.
 - **Body** — meddelandet i Markdown eller HTML.
 
 E-posten skickas från projektets konfigurerade avsändare — se [SMTP](/docs/emails/smtp).
@@ -76,10 +104,10 @@ Kör en liten bit JavaScript när du behöver något som de andra blocken inte k
 
 **Inställningar**:
 
-- **Kod** — din JavaScript. Det sista värdet (eller det du returnerar från en async-funktion) blir blockets utdata.
+- **Code** — din JavaScript. Det sista värdet (eller det du returnerar från en async-funktion) blir blockets utdata.
 - **Arguments** — namngivna värden du kan skicka in.
 
-**Utdata**: success (ditt returvärde) och error (eventuellt undantag).
+**Outputs**: success (ditt returvärde) och error (eventuellt undantag).
 
 Använd det för: omforma data mellan två system, göra en liten beräkning, eller något som inte förtjänar sitt eget block. För tyngre skriptning, använd en [Runbook](/docs/runbooks/index) istället.
 
@@ -92,7 +120,7 @@ Konvertera mellan text och JSON.
 
 ## Conditions
 
-Förgrena baserat på en jämförelse.
+Förgrena baserat på en jämförelse. I panelen **Add Component** kallas det här blocket **If / Else**, under kategorin Conditions.
 
 **Inställningar**:
 
@@ -100,7 +128,7 @@ Förgrena baserat på en jämförelse.
 - **Operator** — `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts with`, `ends with`.
 - **Right value** — vad det ska jämföras mot.
 
-**Utdata**: **Ja** och **Nej**. Koppla nästa block till vilken gren du vill.
+**Outputs**: **Yes** och **No**. Koppla nästa block till vilken gren du vill.
 
 ## Delay
 
@@ -120,18 +148,50 @@ Det finns en säkerhetsgräns så att arbetsflöden inte kan fortsätta anropa v
 
 ## OneUptime-datakomponenter
 
-För varje sorts post i OneUptime (monitorer, incidenter, larm, statussidor, jourpolicyer och många fler) har paletten dessa komponenter — sök på typens namn. Titlarna skapas från typens namn, så för Monitor blir de:
+För varje sorts post i OneUptime (monitorer, incidenter, larm, statussidor, jourpolicyer och många fler) har panelen **Add Component** dessa komponenter — sök på typens namn. Varje titel genereras från posttypen, så för Monitor-uppsättningen blir det:
 
-- **Find One Monitor** — hämta en post som matchar filtret.
-- **Find Many Monitors** — hämta en lista med poster som matchar filtret.
+- **Find One Monitor** — läs en post som matchar frågan.
+- **Find Many Monitors** — läs en lista med poster som matchar frågan.
 - **Create One Monitor** — lägg till en post från ett JSON-objekt.
 - **Create Many Monitors** — lägg till flera poster från en JSON-array.
-- **Update One Monitor** — ändra en post som matchar filtret.
-- **Update Many Monitors** — ändra posterna som matchar filtret, upp till Limit.
-- **Delete One Monitor** — ta bort en post som matchar filtret.
-- **Delete Many Monitors** — ta bort posterna som matchar filtret, upp till Limit.
+- **Update One Monitor** — tillämpa skrivnyttolasten på en matchande post.
+- **Update Many Monitors** — tillämpa skrivnyttolasten på matchande poster, upp till Limit.
+- **Delete One Monitor** — ta bort en matchande post.
+- **Delete Many Monitors** — ta bort matchande poster, upp till Limit.
 
-Det är så ett arbetsflöde kan läsa och ändra OneUptime-data. Till exempel: en webhook från ditt CI-verktyg kan använda **Create One Incident** för att öppna en incident med felinformationen.
+Samma uppsättning ger dig tre utlösare — **On Create Monitor**, **On Update Monitor** och **On Delete Monitor**. Se [Triggers](/docs/workflows/triggers).
+
+En typ erbjuder bara de komponenter dess modell tillåter. En skrivskyddad typ har bara de två Find-komponenterna och inget annat, så om du inte hittar **Delete One Monitor** i panelen tillåter den typen det inte.
+
+Det är så här ett arbetsflöde kan läsa och ändra OneUptime-data. Till exempel: en webhook från ditt CI-verktyg kan använda **Create One Incident** för att öppna en incident med felinformationen.
+
+## Arbeta med poster
+
+Varje fält på en datakomponent är nyckelbaserat på postens egna **kolumn**-namn — samma namn som API:et använder, inte etiketterna på instrumentpanelsformuläret. ID-kolumnen är `_id`. Stavningen `id` accepteras som ett alias överallt där du kan skriva ett kolumnnamn, men `_id` är vad en post ger tillbaka, så det är vad du ska läsa på vägen ut:
+
+```json
+{ "_id": "00000000-0000-0000-0000-000000000000" }
+```
+
+**Query** avgör vilka poster komponenten agerar på. Nycklar är kolumner, värden är vad som ska matchas:
+
+```json
+{ "monitorType": "Website", "isEnabled": true }
+```
+
+En fråga är alltid avgränsad till projektet arbetsflödet körs i. Du kan inte nå ett annat projekts poster, och du behöver inte lägga till projektet i frågan själv.
+
+**JSON Object** på Create One, **JSON Array** på Create Many, och **Data (JSON Object)** på Update-komponenterna bär fälten att skriva, nyckelbaserade på samma sätt:
+
+```json
+{ "name": "Checkout API", "monitorType": "Website" }
+```
+
+En nyckel som inte är en kolumn ignoreras istället för att avvisas — körningsloggen namnger de som släpptes, så kolla där när ett fält inte hamnar rätt. **Select Fields**, på Find-komponenterna och utlösarna, använder samma kolumnnycklar med `true`-värden: `{"_id": true, "name": true}`.
+
+**Skip** och **Limit** är två sifferfält på Find Many, Update Many och Delete Many — `Skip: 0` med `Limit: 100` tar de första hundra matchningarna. Limit är som standard `10`, och på Update Many och Delete Many begränsar den hur många poster som faktiskt skrivs, inte bara hur många som kommer tillbaka. Så `Items Deleted: 10` betyder att tio poster raderades, inte att tio matchade. Höj Limit när du menar att ändra fler än tio.
+
+**Success** och **Error** rapporterar om frågan kördes, inte vad den hittade. En fråga som inte matchar något returnerar `0` och lämnar ändå genom Success — det är inte ett misslyckande. För att förgrena baserat på om något matchade, läs det returnerade antalet i ett **If / Else**-block.
 
 ## Vilken komponent ska jag använda?
 
@@ -139,8 +199,9 @@ Några snabba regler:
 
 - Om det finns ett dedikerat block för det du vill (Slack, E-post, en OneUptime-post), använd det — du får snyggare felhantering och tydligare loggar.
 - För alla andra externa API:er, använd **API**.
+- För att sammanfatta, klassificera eller utkasta text från explicit valda arbetsflödesdata, använd **Generate Text with AI**.
 - För att omforma data mellan block, använd **Custom Code** eller **JSON**.
-- För att vidta olika åtgärder baserat på ett värde, använd **Villkor**.
+- För att vidta olika åtgärder baserat på ett värde, använd **Conditions**.
 
 ## Läs vidare
 

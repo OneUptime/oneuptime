@@ -2,7 +2,7 @@
 
 Her er, hvordan du kan bruge den Offentlige statussides API til at hente status for dine ressourcer, der er på statussiden. Alt du skal gøre er at sende en POST-anmodning til API-endpointet.
 
-#### Oversigtens API
+## Oversigtens API
 
 Denne API henter alle ressourcer, der er på statussiden, herunder den overordnede status for ressourcerne, incidents og vedligeholdelse og mere.
 
@@ -155,7 +155,7 @@ Dette er svaret fra API'en:
 }
 ```
 
-#### Oppetids-API
+## Oppetids-API
 
 Denne API henter al oppetid for alle ressourcer på statussiden.
 
@@ -252,7 +252,7 @@ Dette er eksempelsvaret fra API'en:
 }
 ```
 
-### Incident-API
+## Incident-API
 
 Denne API henter alle incidents, der er på statussiden. For at hente alle incidents på statussiden kan du sende en POST-anmodning til følgende endpoint:
 
@@ -277,7 +277,7 @@ Dette er svaret fra API'en:
 }
 ```
 
-### Planlagt vedligeholdelses-API
+## Planlagt vedligeholdelses-API
 
 Denne API henter al planlagt vedligeholdelse, der er på statussiden. For at hente al planlagt vedligeholdelse på statussiden kan du sende en POST-anmodning til følgende endpoint:
 
@@ -302,7 +302,7 @@ Dette er svaret fra API'en:
 }
 ```
 
-### Meddelelse-API
+## Meddelelse-API
 
 Denne API henter alle meddelelser, der er på statussiden. For at hente alle meddelelser på statussiden kan du sende en POST-anmodning til følgende endpoint:
 
@@ -326,3 +326,11 @@ Dette er svaret fra API'en:
   ]
 }
 ```
+
+## Læs videre
+
+- [Statussider – Oversigt](/docs/status-pages/index) — hvad en statusside er, og hvordan delene hænger sammen.
+- [Statusside – ressourcer og grupper](/docs/status-pages/resources-and-groups) — de ressourcer, som disse endpoints returnerer.
+- [Statusside – branding og domæner](/docs/status-pages/branding-and-domains) — det tilpassede domæne, som disse endpoints serveres fra.
+- [Abonnenter og meddelelser](/docs/status-pages/subscribers) — de meddelelser, som meddelelses-endpointet leverer.
+- [Hændelser – Oversigt](/docs/incidents/index) — hvor incidents i disse svar kommer fra.

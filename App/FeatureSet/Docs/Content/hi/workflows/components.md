@@ -1,149 +1,210 @@
-# कंपोनेंट
+# Components
 
-कंपोनेंट वे बिल्डिंग ब्लॉक हैं जिन्हें आप ट्रिगर के बाद जोड़ते हैं। हर एक एक काम करता है — एक संदेश भेजता है, एक API कॉल करता है, एक कंडीशन की जाँच करता है — और जो भी आगे आता है उससे जुड़ता है।
+Components trigger के बाद जोड़े जाने वाले building blocks हैं। हर एक एक काम करता है — message भेजना, API call करना, कोई condition check करना — और आगे जो भी हो उससे connect होता है।
 
-यह पेज कैटलॉग है। उन्हें कैनवास पर खींचने, छोड़ने, और जोड़ने के तरीके के लिए, [वर्कफ़्लो लिखना](/docs/workflows/authoring) देखें।
+यह page catalog है। इन्हें canvas पर add और connect कैसे करें, इसके लिए देखें [Authoring a Workflow](/docs/workflows/authoring)।
 
 ## API
 
-किसी भी URL पर एक HTTP अनुरोध करें।
+किसी भी URL पर एक HTTP request बनाएं।
 
-**सेटिंग्स**:
+**Settings**:
 
 - **Method** — `GET`, `POST`, `PUT`, `PATCH`, या `DELETE`।
-- **URL** — कॉल करने के लिए पता।
-- **Headers** — भेजने के लिए कोई हेडर।
-- **Body** — `POST` / `PUT` / `PATCH` के लिए अनुरोध बॉडी।
+- **URL** — call करने का address।
+- **Headers** — भेजने के लिए कोई भी headers।
+- **Body** — `POST` / `PUT` / `PATCH` के लिए request body।
 
 **Outputs**:
 
-- **सफलता** — कॉल काम करने पर चालू होता है (2xx प्रतिक्रिया)। स्थिति, हेडर, और बॉडी को आगे पास करता है।
-- **त्रुटि** — नेटवर्क विफलता या गैर-2xx प्रतिक्रिया पर चालू होता है। त्रुटि संदेश को आगे पास करता है।
+- **Success** — call काम करने पर (2xx response) fire होता है। status, headers, और body आगे पास करता है।
+- **Error** — किसी network failure या non-2xx response पर fire होता है। error message आगे पास करता है।
 
-इसके लिए इस्तेमाल करें: कोई बाहरी API, आपके अपने एडमिन एंडपॉइंट्स, या कोई इंटीग्रेशन जिसका अपना कंपोनेंट नहीं है।
+इसे इसके लिए इस्तेमाल करें: कोई भी external API, आपके अपने admin endpoints, या कोई भी integration जिसका अपना component नहीं है।
 
-## Webhook (आउटबाउंड)
+## AI
 
-"फायर एंड फॉरगेट" मामलों के लिए API कंपोनेंट का एक सरल संस्करण। एक URL पर एक JSON बॉडी पोस्ट करता है।
+### Generate Text with AI
 
-यदि आपको प्रतिक्रिया पढ़ने की आवश्यकता है तो **API** का उपयोग करें। यदि आप बस एक सूचना भेजना और आगे बढ़ना चाहते हैं तो **वेबहुक** का उपयोग करें।
+किसी prompt और optional JSON context से एक text response generate करें। यह component project के configured default LLM provider का इस्तेमाल करता है, और उपलब्ध होने पर installation के global provider पर fall back करता है। Provider credentials और endpoints centrally configure होते हैं; ये workflow arguments नहीं हैं।
+
+**Settings**:
+
+- **System Instructions** — model की role, tone, और constraints के लिए optional guidance।
+- **Prompt** — required task। इसमें workflow variables और पहले वाले components के outputs शामिल हो सकते हैं।
+- **Context** — optional JSON जिसे आप जानबूझकर request के साथ शामिल करते हैं। यह एक explicit end-of-message trust marker के बाद append होता है और message के बाकी हिस्से में untrusted data की तरह treat होता है।
+- **Temperature** — `0` से `1` तक variation। predictable automation के लिए default `0.2` है।
+- **Maximum Output Tokens** — `1` से `4096` तक। default `1024` है।
+
+मिलकर System Instructions, Prompt, और serialized Context 50,000 characters तक सीमित हैं। provider request की एक 60-second maximum duration है और यह एक बार attempt होता है। हर project में एक साथ ज़्यादा से ज़्यादा तीन workflow AI requests चल सकते हैं।
+
+**Outputs**:
+
+- **Response** — generated text।
+- **Provider** और **Model** — call के लिए इस्तेमाल की गई configuration।
+- **Total Tokens** और **Completion Tokens** — provider द्वारा report किया गया usage।
+- **LLM Log ID** — call के लिए metered AI log entry।
+- **Error** — validation, access, provider, budget, billing, या timeout error, जब मौजूद हो।
+
+**Success** को उन components से connect करें जिन्हें response इस्तेमाल करनी चाहिए। **Error** को किसी explicit fallback, alert, या log path से connect करें। यह component बिना tool definitions या provider-native capability fields के एक model request करता है: यह अपने-आप OneUptime को query नहीं कर सकता, APIs call नहीं कर सकता, या project data नहीं बदल सकता। OneUptime के fixed component-safety instructions के अलावा, सिर्फ आपके configure किए हुए System Instructions, Prompt, और Context ही provider को भेजे जाते हैं, वह भी उन fields में workflow variables resolve होने के बाद। configured provider/model फिर भी एक trust boundary बना रहता है क्योंकि किसी model में intrinsic provider-managed capabilities हो सकती हैं।
+
+Model output untrusted text है। customer-facing communications भेजने से पहले इसे review करें, और किसी destructive workflow action को authorize करने के लिए अकेले free-form AI text का इस्तेमाल न करें। provider, egress, logging, और cost details के लिए देखें [Configuration & Safety](/docs/workflows/configuration)।
+
+## Webhook (outbound)
+
+"fire and forget" cases के लिए API component का एक simpler version। किसी URL पर एक JSON body post करता है।
+
+अगर आपको response पढ़नी है तो **API** इस्तेमाल करें। अगर आप सिर्फ एक notification भेजकर आगे बढ़ना चाहते हैं तो **Webhook** इस्तेमाल करें।
 
 ## Slack
 
-एक Slack चैनल पर एक संदेश पोस्ट करें।
+किसी Slack channel पर एक message post करें।
 
-**सेटिंग्स**:
+**Settings**:
 
-- **चैनल** — चैनल का नाम। बॉट उस चैनल में पहले से होना चाहिए।
-- **संदेश** — भेजने के लिए टेक्स्ट। Slack फ़ॉर्मेटिंग का समर्थन करता है।
+- **Channel** — channel का नाम। bot पहले से उस channel में होना चाहिए।
+- **Message** — भेजने के लिए text। Slack formatting support करता है।
 
-पहले **प्रोजेक्ट सेटिंग्स → वर्कस्पेस → Slack** के अंतर्गत Slack को अपने प्रोजेक्ट से जोड़ें। [Slack Workspace Connection](/docs/workspace-connections/slack) देखें।
+पहले अपने project को **Project Settings → Workspace → Slack** के तहत Slack से connect करें। देखें [Slack Workspace Connection](/docs/workspace-connections/slack)।
 
 ## Microsoft Teams
 
-एक Microsoft Teams चैनल पर एक संदेश पोस्ट करें।
+किसी Microsoft Teams channel पर एक message post करें।
 
-**सेटिंग्स**:
+**Settings**:
 
-- **Team and channel** — कहाँ पोस्ट करना है।
-- **संदेश** — भेजने के लिए टेक्स्ट।
+- **Team and channel** — कहाँ post करना है।
+- **Message** — भेजने के लिए text।
 
-सेटअप के लिए [Microsoft Teams Workspace Connection](/docs/workspace-connections/microsoft-teams) देखें।
+Setup के लिए देखें [Microsoft Teams Workspace Connection](/docs/workspace-connections/microsoft-teams)।
 
 ## Discord
 
-एक इनकमिंग webhook URL के माध्यम से Discord चैनल पर एक संदेश पोस्ट करें।
+किसी incoming webhook URL के ज़रिए किसी Discord channel पर एक message post करें।
 
 ## Telegram
 
-एक बॉट टोकन और चैट ID का उपयोग करके एक Telegram चैट में एक संदेश भेजें।
+एक bot token और chat ID इस्तेमाल करके किसी Telegram chat पर एक message भेजें।
 
 ## Email
 
-OneUptime के माध्यम से एक ईमेल भेजें।
+OneUptime के ज़रिए एक email भेजें।
 
-**सेटिंग्स**:
+**Settings**:
 
-- **प्रति** — प्राप्तकर्ता का ईमेल पता।
-- **विषय** — विषय पंक्ति।
-- **Body** — Markdown या HTML में संदेश।
+- **To** — recipient का email address।
+- **Subject** — subject line।
+- **Body** — Markdown या HTML में message।
 
-ईमेल आपके प्रोजेक्ट के कॉन्फ़िगर किए गए प्रेषक से जाता है — [SMTP](/docs/emails/smtp) देखें।
+email आपके project के configured sender से बाहर जाता है — देखें [SMTP](/docs/emails/smtp)।
 
 ## Custom Code
 
-जब आपको कुछ ऐसा चाहिए जो अन्य ब्लॉक नहीं कर सकते तब JavaScript का एक छोटा टुकड़ा चलाएँ।
+जब बाकी blocks कुछ न कर पाएं तो थोड़ा-सा JavaScript चलाएं।
 
-**सेटिंग्स**:
+**Settings**:
 
-- **कोड** — आपका JavaScript। अंतिम मान (या जो आप एक async फ़ंक्शन से रिटर्न करते हैं) ब्लॉक का आउटपुट बन जाता है।
-- **Arguments** — नामित मान जिन्हें आप पास कर सकते हैं।
+- **Code** — आपका JavaScript। last value (या किसी async function से आप जो return करते हैं) block का output बन जाती है।
+- **Arguments** — named values जिन्हें आप pass कर सकते हैं।
 
-**Outputs**: success (आपका रिटर्न मान) और error (कोई एक्सेप्शन)।
+**Outputs**: success (आपकी return value) और error (कोई भी exception)।
 
-इसके लिए इस्तेमाल करें: दो सिस्टमों के बीच डेटा को नया आकार देना, एक छोटा गणना करना, कुछ भी जो अपने स्वयं के ब्लॉक के लायक नहीं है। भारी स्क्रिप्टिंग के लिए, इसके बजाय एक [Runbook](/docs/runbooks/index) का उपयोग करें।
+इसे इसके लिए इस्तेमाल करें: दो systems के बीच data को reshape करना, कोई छोटी calculation करना, कुछ भी जो अपना खुद का block deserve नहीं करता। heavier scripting के लिए, इसकी बजाय एक [Runbook](/docs/runbooks/index) इस्तेमाल करें।
 
 ## JSON
 
-टेक्स्ट और JSON के बीच कनवर्ट करें।
+text और JSON के बीच convert करें।
 
-- **JSON → Text** — एक JSON ऑब्जेक्ट को स्ट्रिंग में बदलें। उपयोगी जब अगला ब्लॉक टेक्स्ट की अपेक्षा करता है।
-- **Text → JSON** — एक स्ट्रिंग को एक JSON ऑब्जेक्ट में पार्स करें। उपयोगी जब कुछ टेक्स्ट के रूप में आया है और आपको एक फ़ील्ड पढ़ने की आवश्यकता है।
+- **JSON → Text** — किसी JSON object को एक string में बदलें। तब useful जब अगला block text की उम्मीद रखता हो।
+- **Text → JSON** — किसी string को एक JSON object में parse करें। तब useful जब कुछ text के रूप में आया हो और आपको एक field पढ़नी हो।
 
 ## Conditions
 
-तुलना के आधार पर शाखा करें।
+किसी comparison के आधार पर branch करें। **Add Component** panel में इस block को **If / Else** कहा जाता है, Conditions category के तहत।
 
-**सेटिंग्स**:
+**Settings**:
 
-- **Left value** — आमतौर पर पहले के किसी ब्लॉक से एक मान।
+- **Left value** — आमतौर पर किसी पहले वाले block की एक value।
 - **Operator** — `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts with`, `ends with`।
-- **Right value** — किसके मुकाबले तुलना करनी है।
+- **Right value** — किसके against compare करना है।
 
-**Outputs**: **हाँ** और **नहीं**। अगले ब्लॉक्स को जिस भी शाखा से चाहें जोड़ें।
+**Outputs**: **Yes** और **No**। अगले blocks को जिस branch पर चाहें उससे connect करें।
 
 ## Delay
 
-जारी रखने से पहले निर्धारित समय के लिए वर्कफ़्लो को रोकें। उपयोगी जब आपको किसी अन्य सिस्टम को पकड़ने के लिए एक क्षण देने की आवश्यकता है।
+आगे बढ़ने से पहले workflow को कुछ समय के लिए रोक दें। तब useful जब आपको किसी दूसरे system को catch up करने का एक पल देना हो।
 
 ## Log
 
-run लॉग में एक पंक्ति लिखें। कोई बाहरी प्रभाव नहीं — यह बस वर्कफ़्लो के लॉग में आपके पढ़ने के लिए दिखाई देता है। डीबगिंग के लिए सुविधाजनक।
+run log में एक line लिखें। इसका कोई external effect नहीं है — यह सिर्फ workflow के logs में आपके पढ़ने के लिए दिखता है। debugging के लिए handy है।
 
 ## Execute Workflow
 
-इस वर्कफ़्लो से किसी अन्य वर्कफ़्लो को कॉल करें। कॉल किया गया वर्कफ़्लो अपने आप चलता है — आपका वर्कफ़्लो उसके समाप्त होने का इंतज़ार किए बिना जारी रहता है।
+इस workflow से किसी दूसरे workflow को call करें। called workflow अपने-आप चलता है — आपका workflow इसके खत्म होने का इंतज़ार किए बिना आगे बढ़ता रहता है।
 
-सामान्य लॉजिक साझा करने के लिए इसका उपयोग करें। एक बार "incident चैनल पर पोस्ट" वर्कफ़्लो बनाएँ, फिर इसे किसी भी अन्य वर्कफ़्लो से कॉल करें जिसे चैनल को सूचित करने की आवश्यकता है।
+common logic share करने के लिए इसे इस्तेमाल करें। एक "post to incident channel" workflow एक बार बनाएं, फिर इसे किसी भी दूसरे workflow से call करें जिसे channel को notify करना है।
 
-एक सुरक्षा सीमा है ताकि वर्कफ़्लो लूप में एक-दूसरे को कॉल करते न रहें। [कॉन्फ़िगरेशन और सुरक्षा](/docs/workflows/configuration) देखें।
+एक safety limit है ताकि workflows एक loop में एक-दूसरे को बार-बार call न करते रहें। देखें [Configuration & Safety](/docs/workflows/configuration)।
 
-## OneUptime डेटा कंपोनेंट
+## OneUptime data components
 
-OneUptime में हर प्रकार के रिकॉर्ड के लिए (monitors, incidents, alerts, status pages, on-call policies, और कई अन्य), पैलेट में ये कंपोनेंट होते हैं — टाइप के नाम से सर्च करें। टाइटल टाइप के नाम से बनते हैं, इसलिए Monitor के लिए ये हैं:
+OneUptime में हर तरह के record के लिए (monitors, incidents, alerts, status pages, on-call policies, और कई और), **Add Component** panel में ये components हैं — type के नाम से search करें। हर title record type से generate होता है, इसलिए Monitor set इस तरह पढ़ता है:
 
-- **Find One Monitor** — फ़िल्टर से मेल खाने वाला एक रिकॉर्ड प्राप्त करें।
-- **Find Many Monitors** — फ़िल्टर से मेल खाने वाले रिकॉर्ड्स की सूची प्राप्त करें।
-- **Create One Monitor** — JSON ऑब्जेक्ट से एक रिकॉर्ड जोड़ें।
-- **Create Many Monitors** — JSON ऐरे से कई रिकॉर्ड जोड़ें।
-- **Update One Monitor** — फ़िल्टर से मेल खाने वाला एक रिकॉर्ड बदलें।
-- **Update Many Monitors** — फ़िल्टर से मेल खाने वाले रिकॉर्ड्स बदलें, Limit तक।
-- **Delete One Monitor** — फ़िल्टर से मेल खाने वाला एक रिकॉर्ड हटाएँ।
-- **Delete Many Monitors** — फ़िल्टर से मेल खाने वाले रिकॉर्ड्स हटाएँ, Limit तक।
+- **Find One Monitor** — matching query वाला एक record पढ़ें।
+- **Find Many Monitors** — matching query वाले records की एक list पढ़ें।
+- **Create One Monitor** — एक JSON object से एक record जोड़ें।
+- **Create Many Monitors** — एक JSON array से कई records जोड़ें।
+- **Update One Monitor** — एक matching record पर write payload लागू करें।
+- **Update Many Monitors** — matching records पर write payload लागू करें, Limit तक।
+- **Delete One Monitor** — एक matching record delete करें।
+- **Delete Many Monitors** — matching records delete करें, Limit तक।
 
-इसी तरह एक वर्कफ़्लो OneUptime डेटा को पढ़ और बदल सकता है। उदाहरण के लिए: आपके CI टूल से एक webhook विफलता विवरण के साथ एक incident खोलने के लिए **Create One Incident** का उपयोग कर सकता है।
+वही set आपको तीन triggers देता है — **On Create Monitor**, **On Update Monitor**, और **On Delete Monitor**। देखें [Triggers](/docs/workflows/triggers)।
 
-## मुझे कौन सा कंपोनेंट इस्तेमाल करना चाहिए?
+कोई type सिर्फ वे components offer करता है जिनकी उसका model अनुमति देता है। कोई read-only type सिर्फ दो Find components रखता है और कुछ नहीं, इसलिए अगर आपको panel में **Delete One Monitor** नहीं मिलता, तो वह type इसकी अनुमति नहीं देता।
+
+इसी तरह कोई workflow OneUptime data को पढ़ और बदल सकता है। उदाहरण के लिए: आपके CI tool से आया एक webhook failure details के साथ एक incident खोलने के लिए **Create One Incident** इस्तेमाल कर सकता है।
+
+## Records के साथ काम करना
+
+किसी data component पर हर field record के अपने **column** names पर keyed है — वही names जो API इस्तेमाल करता है, dashboard form पर मौजूद labels नहीं। ID column `_id` है। `id` spelling को कहीं भी alias के रूप में स्वीकार किया जाता है जहाँ आप कोई column name टाइप कर सकते हैं, लेकिन कोई record वापस `_id` ही देता है, इसलिए बाहर आते समय यही पढ़ना है:
+
+```json
+{ "_id": "00000000-0000-0000-0000-000000000000" }
+```
+
+**Query** तय करता है कि component किन records पर काम करता है। keys columns हैं, values वह हैं जिनसे match करना है:
+
+```json
+{ "monitorType": "Website", "isEnabled": true }
+```
+
+कोई query हमेशा उस project तक scoped होता है जिसमें workflow चलता है। आप किसी दूसरे project के records तक नहीं पहुँच सकते, और आपको query में खुद project जोड़ने की ज़रूरत नहीं है।
+
+Create One पर **JSON Object**, Create Many पर **JSON Array**, और Update components पर **Data (JSON Object)** लिखने के लिए fields carry करते हैं, वही keyed तरीके से:
+
+```json
+{ "name": "Checkout API", "monitorType": "Website" }
+```
+
+कोई key जो कोई column नहीं है reject होने की बजाय ignore हो जाती है — run log उन नामों को बताता है जिन्हें इसने drop किया, इसलिए जब कोई field नहीं land करती तो वहाँ जाँचें। **Select Fields**, Find components और triggers पर, `true` values के साथ वही column keys इस्तेमाल करता है: `{"_id": true, "name": true}`।
+
+**Skip** और **Limit** Find Many, Update Many, और Delete Many पर दो number fields हैं — `Skip: 0` के साथ `Limit: 100` पहले सौ matches लेता है। Limit default रूप से `10` है, और Update Many और Delete Many पर यह सीमित करता है कि वास्तव में कितने records write हुए, सिर्फ कितने वापस आए यह नहीं। तो `Items Deleted: 10` का मतलब है दस records delete हुए, यह नहीं कि दस match हुए। दस से ज़्यादा बदलने का इरादा हो तो Limit बढ़ाएं।
+
+**Success** और **Error** यह report करते हैं कि query चली या नहीं, इसने क्या पाया नहीं। कुछ भी match न करने वाली query `0` return करती है और फिर भी Success से निकलती है — यह कोई failure नहीं है। कुछ match हुआ या नहीं इस पर branch करने के लिए, किसी **If / Else** block में returned count पढ़ें।
+
+## मुझे कौन सा component इस्तेमाल करना चाहिए?
 
 कुछ त्वरित नियम:
 
-- यदि आप जो चाहते हैं उसके लिए एक समर्पित ब्लॉक है (Slack, Email, एक OneUptime रिकॉर्ड), तो उसका उपयोग करें — आपको बेहतर त्रुटि हैंडलिंग और स्पष्ट लॉग मिलते हैं।
-- किसी भी अन्य बाहरी API के लिए, **API** का उपयोग करें।
-- ब्लॉक्स के बीच डेटा को नया आकार देने के लिए, **Custom Code** या **JSON** का उपयोग करें।
-- किसी मान के आधार पर अलग-अलग कार्रवाई करने के लिए, **शर्तें** का उपयोग करें।
+- अगर आप जो चाहते हैं उसके लिए एक dedicated block है (Slack, Email, कोई OneUptime record), उसे इस्तेमाल करें — आपको बेहतर error handling और साफ़ logs मिलते हैं।
+- किसी भी दूसरे external API के लिए, **API** इस्तेमाल करें।
+- explicitly select की गई workflow data से text summarize, classify, या draft करने के लिए, **Generate Text with AI** इस्तेमाल करें।
+- blocks के बीच data reshape करने के लिए, **Custom Code** या **JSON** इस्तेमाल करें।
+- किसी value के आधार पर अलग actions लेने के लिए, **Conditions** इस्तेमाल करें।
 
 ## आगे क्या पढ़ें
 
-- [वेरिएबल](/docs/workflows/variables) — ब्लॉक्स के बीच डेटा पास करना।
-- [Runs और Logs](/docs/workflows/runs-and-logs) — run पर हर ब्लॉक ने क्या किया यह जाँचना।
-- [कॉन्फ़िगरेशन और सुरक्षा](/docs/workflows/configuration) — सीमाएँ, मालिक, और सीक्रेट।
+- [Variables](/docs/workflows/variables) — blocks के बीच data pass करना।
+- [Runs & Logs](/docs/workflows/runs-and-logs) — किसी run पर हर block ने क्या किया यह जाँचना।
+- [Configuration & Safety](/docs/workflows/configuration) — limits, owners, और secrets।

@@ -2,7 +2,7 @@
 
 Voici comment vous pouvez utiliser l'API publique de page de statut pour obtenir le statut de vos ressources figurant sur la page de statut. Il vous suffit d'effectuer une requête POST vers le point d'accès de l'API.
 
-#### API de vue d'ensemble
+## API de vue d'ensemble
 
 Cette API récupère toutes les ressources figurant sur la page de statut, y compris le statut global des ressources, les incidents, les maintenances, et plus encore.
 
@@ -155,7 +155,7 @@ Voici la réponse de l'API :
 }
 ```
 
-#### API de disponibilité
+## API de disponibilité
 
 Cette API récupère la disponibilité de toutes les ressources sur la page de statut.
 
@@ -252,7 +252,7 @@ Voici l'exemple de réponse de l'API :
 }
 ```
 
-### API des incidents
+## API des incidents
 
 Cette API récupère tous les incidents figurant sur la page de statut. Pour obtenir tous les incidents sur la page de statut, vous pouvez effectuer une requête POST vers le point d'accès suivant :
 
@@ -277,7 +277,7 @@ Voici la réponse de l'API :
 }
 ```
 
-### API de maintenance planifiée
+## API de maintenance planifiée
 
 Cette API récupère toutes les maintenances planifiées figurant sur la page de statut. Pour obtenir toutes les maintenances planifiées sur la page de statut, vous pouvez effectuer une requête POST vers le point d'accès suivant :
 
@@ -302,7 +302,7 @@ Voici la réponse de l'API :
 }
 ```
 
-### API des annonces
+## API des annonces
 
 Cette API récupère toutes les annonces figurant sur la page de statut. Pour obtenir toutes les annonces sur la page de statut, vous pouvez effectuer une requête POST vers le point d'accès suivant :
 
@@ -326,3 +326,11 @@ Voici la réponse de l'API :
   ]
 }
 ```
+
+## Pour aller plus loin
+
+- [Vue d'ensemble des pages de statut](/docs/status-pages/index) — ce qu'est une page de statut et comment les éléments s'articulent.
+- [Ressources et groupes de la page de statut](/docs/status-pages/resources-and-groups) — les ressources renvoyées par ces points de terminaison.
+- [Personnalisation et domaines de la page de statut](/docs/status-pages/branding-and-domains) — le domaine personnalisé depuis lequel ces points de terminaison sont servis.
+- [Abonnés et annonces](/docs/status-pages/subscribers) — les annonces fournies par le point de terminaison des annonces.
+- [Vue d'ensemble des incidents](/docs/incidents/index) — d'où proviennent les incidents dans ces réponses.

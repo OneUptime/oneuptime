@@ -2,7 +2,7 @@
 
 Ecco come usare l'API Pubblica della Pagina di Stato per ottenere lo stato delle risorse presenti nella Pagina di Stato. È sufficiente effettuare una richiesta POST all'endpoint API.
 
-#### API Panoramica
+## API Panoramica
 
 Questa API recupera tutte le risorse presenti nella pagina di stato, incluso lo stato complessivo delle risorse, gli incidenti, le manutenzioni e altro ancora.
 
@@ -155,7 +155,7 @@ Questa è la risposta dell'API:
 }
 ```
 
-#### API Uptime
+## API Uptime
 
 Questa API recupera l'uptime di tutte le risorse nella pagina di stato.
 
@@ -252,7 +252,7 @@ Questa è la risposta di esempio dall'API:
 }
 ```
 
-### API Incidenti
+## API Incidenti
 
 Questa API recupera tutti gli incidenti presenti nella pagina di stato. Per ottenere tutti gli incidenti nella pagina di stato, è possibile effettuare una richiesta POST al seguente endpoint:
 
@@ -277,7 +277,7 @@ Questa è la risposta dell'API:
 }
 ```
 
-### API Manutenzioni Programmate
+## API Manutenzioni Programmate
 
 Questa API recupera tutte le manutenzioni programmate presenti nella pagina di stato. Per ottenerle, è possibile effettuare una richiesta POST al seguente endpoint:
 
@@ -302,7 +302,7 @@ Questa è la risposta dell'API:
 }
 ```
 
-### API Annunci
+## API Annunci
 
 Questa API recupera tutti gli annunci presenti nella pagina di stato. Per ottenerli, è possibile effettuare una richiesta POST al seguente endpoint:
 
@@ -326,3 +326,11 @@ Questa è la risposta dell'API:
   ]
 }
 ```
+
+## Dove leggere ora
+
+- [Panoramica delle pagine di stato](/docs/status-pages/index) — cos'è una pagina di stato e come si incastrano i suoi elementi.
+- [Risorse e gruppi della pagina di stato](/docs/status-pages/resources-and-groups) — le risorse restituite da questi endpoint.
+- [Branding e domini della pagina di stato](/docs/status-pages/branding-and-domains) — il dominio personalizzato da cui vengono serviti questi endpoint.
+- [Iscritti e annunci](/docs/status-pages/subscribers) — gli annunci forniti dall'endpoint degli annunci.
+- [Panoramica degli incidenti](/docs/incidents/index) — da dove provengono gli incidenti in queste risposte.

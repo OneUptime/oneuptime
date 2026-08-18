@@ -1,89 +1,124 @@
-# कॉन्फ़िगरेशन और सुरक्षा
+# Configuration & Safety
 
-यह पेज उन सेटिंग्स और सुरक्षा सीमाओं को कवर करता है जिनके बारे में आपको असली ट्रैफ़िक पर वर्कफ़्लो को इंगित करने से पहले जानना चाहिए।
+इस page में वे settings और safety limits बताई गई हैं जो किसी workflow को real traffic पर लगाने से पहले जान लेनी चाहिए।
 
-## एक वर्कफ़्लो को चालू या बंद करना
+## किसी workflow को on या off करना
 
-हर वर्कफ़्लो में **सेटिंग्स** में एक **सक्षम** स्विच होता है। जब यह बंद होता है, वर्कफ़्लो नहीं चलता — webhook कॉल, शेड्यूल किए गए समय, और OneUptime इवेंट्स सभी अनदेखे किए जाते हैं। नए वर्कफ़्लो अक्षम अवस्था से शुरू होते हैं।
+हर workflow में **Settings** के अंदर एक **Enabled** switch होता है। जब यह off होता है, तो workflow नहीं चलता — webhook calls, scheduled times, और OneUptime events, सभी को ignore कर दिया जाता है। नए workflows disabled शुरू होते हैं।
 
-इस स्विच का उपयोग अपने "जाने के लिए तैयार" गेट के रूप में करें:
+इस switch को अपने "ready to go" gate के रूप में इस्तेमाल करें:
 
-1. वर्कफ़्लो बनाएँ।
-2. एक वास्तविक पेलोड के साथ **Run Manually** पर क्लिक करें।
-3. **लॉग** जाँचें — सुनिश्चित करें कि हर ब्लॉक वहाँ गया जहाँ आपने अपेक्षा की थी।
-4. **सक्षम** चालू करें।
+1. workflow बनाएं।
+2. **Builder** पर realistic values के साथ **Run Workflow** पर क्लिक करें।
+3. **Logs** check करें — पक्का करें कि हर block वहीं गया जहाँ आपने उम्मीद की थी।
+4. **Enabled** on करें।
 
-वर्कफ़्लो को बंद करना पहले से प्रगति पर चल रहे runs को नहीं रोकता; यह केवल नए शुरू होने से रोकता है।
+किसी workflow को off करना पहले से चल रहे runs को नहीं रोकता; यह सिर्फ नए runs को शुरू होने से रोकता है।
 
-## मालिक और लेबल
+## Owners और labels
 
-- **मालिक** — मालिकों के रूप में सूचीबद्ध उपयोगकर्ता और टीमें वर्कफ़्लो तक पहुँच प्राप्त करते हैं और विफल होने पर सूचनाओं के लिए ऑप्ट-इन कर सकते हैं। उन्हें **सेटिंग्स → मालिक** के अंतर्गत सेट करें।
-- **लेबल** — वर्कफ़्लो को समूहित करने के लिए टैग। वर्कफ़्लो सूची आपको लेबल द्वारा फ़िल्टर करने देती है, जो एक व्यस्त प्रोजेक्ट को नेविगेट करना बहुत आसान बनाता है। उपयोगी जब आपके पास टीम, इंटीग्रेशन, या परिवेश द्वारा संगठित वर्कफ़्लो हों।
-- **Label rules** — **वर्कफ़्लो → सेटिंग्स → लेबल नियम** के अंतर्गत, नाम या विवरण पैटर्न के आधार पर स्वचालित रूप से नए वर्कफ़्लो पर लेबल लागू करें।
-- **Owner rules** — **वर्कफ़्लो → सेटिंग्स → स्वामी नियम** के अंतर्गत, स्वचालित रूप से नए वर्कफ़्लो को मालिक असाइन करें।
+- **Owners** — owners के रूप में listed users और teams को workflow तक access मिलता है और वे इसके fail होने पर notifications के लिए opt in कर सकते हैं। इन्हें **Settings → Owners** के अंतर्गत set करें।
+- **Labels** — workflows को group करने के लिए tags। workflow list आपको label के हिसाब से filter करने देती है, जिससे व्यस्त project में navigate करना काफी आसान हो जाता है। यह तब उपयोगी है जब आपके workflows team, integration, या environment के हिसाब से organize हों।
+- **Label rules** — **Workflows → Settings → Label Rules** के अंतर्गत, नए workflows पर नाम या description patterns के आधार पर automatically labels लागू करें।
+- **Owner rules** — **Workflows → Settings → Owner Rules** के अंतर्गत, नए workflows को automatically owners assign करें।
 
-## सीक्रेट
+## Secrets
 
-यदि किसी global वेरिएबल में कुछ संवेदनशील है तो उसे **secret** के रूप में चिह्नित करें। मान एन्क्रिप्ट किया जाता है, सहेजने के बाद UI में छुपा होता है, और run लॉग में छुपा होता है (`[REDACTED]` के रूप में दिखाया जाता है)।
+अगर किसी global variable में कुछ sensitive है, तो उसे **secret** के रूप में mark करें। save करने के बाद value normal API और UI reads से छिपा दी जाती है, और run log persist होने से पहले workflow logging resolved value को scrub कर देती है।
 
-सीक्रेट वेरिएबल का उपयोग करें:
+secret variables का उपयोग इनके लिए करें:
 
-- बाहरी सेवाओं के लिए API कुंजियाँ।
-- प्रमाणीकरण टोकन।
-- Webhook साइनिंग कुंजियाँ।
-- कुछ भी जो आप नहीं चाहेंगे कि केवल-पढ़ने योग्य पहुँच वाला कोई देखे।
+- बाहरी services के लिए API keys।
+- Authentication tokens।
+- Webhook signing keys।
+- कोई भी ऐसी चीज़ जिसे read-only access वाला कोई व्यक्ति न देख पाए।
 
-किसी ब्लॉक में सीधे एक सीक्रेट पेस्ट न करें — `Authorization: Bearer eyJh...` जैसे मान वर्कफ़्लो और लॉग में दृश्यमान हो जाते हैं। इसके बजाय `{{variable.MY_SECRET}}` का उपयोग करें।
+किसी secret को सीधे किसी block में paste न करें — `Authorization: Bearer eyJh...` जैसी values workflow और logs में दिखने लगती हैं। इसके बजाय `{{global.variables.MY_SECRET}}` का उपयोग करें।
 
-## एक run कितना समय ले सकता है
+## Workflows को export और import करना
 
-हर run की एक अधिकतम लंबाई होती है। यदि एक run समय में समाप्त नहीं हुआ है, तो इसे **Timeout** के रूप में चिह्नित किया जाता है और प्रगति पर ब्लॉक रद्द किया जाता है। डिफ़ॉल्ट उदार है — सामान्य HTTP कॉल और ब्लॉक्स की श्रृंखलाओं के लिए पर्याप्त लंबा।
+आप किसी workflow को projects के बीच, या self-hosted install और OneUptime Cloud के बीच, एक JSON file के रूप में move कर सकते हैं।
 
-अलग-अलग ब्लॉक्स के उसके भीतर अपने स्वयं के समय सीमाएँ होती हैं — उदाहरण के लिए, एक API ब्लॉक एक हैंग किए हुए आउटबाउंड अनुरोध पर पूरे run से बहुत पहले हार मान लेता है।
+- **Export** — workflow खोलें और **Settings** के अंतर्गत **Export Workflow** का उपयोग करें। workflow list से आप कई workflows चुनकर उन्हें एक ही file में export भी कर सकते हैं।
+- **Import** — **Workflows** list पर, **Import JSON** पर क्लिक करें और किसी भी OneUptime project से export की गई file चुनें।
 
-## अन्य वर्कफ़्लो को कॉल करने की सीमा
+यह file workflow का नाम, description, enabled state, और उसका graph रखती है। यह जानबूझकर इन्हें नहीं रखती:
 
-**Execute Workflow** कंपोनेंट एक वर्कफ़्लो को दूसरे को कॉल करने देता है। दुर्घटनावश लूप्स को रोकने के लिए जहाँ वर्कफ़्लो A, B को कॉल करता है जो फिर A को कॉल करता है, इस बात की एक सीमा है कि श्रृंखला कितनी गहरी जा सकती है। सीमा से आगे जाने वाला एक run एक स्पष्ट त्रुटि के साथ समाप्त होता है।
+- **The webhook secret key.** workflow बनते समय एक नया secret generate होता है, इसलिए imported workflow का webhook URL अलग होता है। original को call करने वाली किसी भी चीज़ को दोबारा point करना होगा।
+- **Global variables.** जो block `{{global.variables.MY_SECRET}}` पढ़ता है वह उस reference को रखता है, लेकिन value file में नहीं होती। imported workflow चलाने से पहले destination project में variables बनाएं।
+- **Owners और labels.** आपके project के खुद के label और owner rules imported workflow पर वैसे ही चलते हैं जैसे आपने इसे हाथ से बनाया हो।
 
-यदि आपकी एक लंबी श्रृंखला की वास्तविक आवश्यकता है (जैसे एक जॉब जो प्रति run एक आइटम प्रोसेस करता है), तो आमतौर पर **Custom Code** का उपयोग करके एकल वर्कफ़्लो के अंदर लूप करना सरल होता है।
+एक imported workflow हमेशा **disabled** बनाया जाता है, भले ही यह export होते समय enabled रहा हो — इसका graph उन monitors, on-call policies, या दूसरे workflows की ओर point कर सकता है जो destination project में मौजूद नहीं हैं। इसे review करें, enable करें, **Run Workflow** से test करें, और फिर इसे on छोड़ दें। किसी workflow को duplicate करने पर भी यही होता है, इसलिए कोई copy आपके edit करने से पहले original के साथ-साथ fire होना कभी शुरू नहीं करती।
 
-## Webhook सुरक्षा
+चूंकि graph verbatim travel करता है, किसी block में सीधे type की गई कोई भी चीज़ उसके साथ travel करती है। यही practical वजह है credentials को secret variables में रखने की: hardcoded token वाले workflow को export करना वह token उसे दे देता है जो file receive करता है।
 
-Webhook ट्रिगर आपको एक यूनिक URL देते हैं। जो भी URL जानता है वह इसे हिट कर सकता है। आकस्मिक या अनचाहे कॉलर्स से बचाने के लिए:
+## एक run कितनी देर चल सकता है
 
-- URL को पासवर्ड की तरह मानें। इसे सार्वजनिक रूप से साझा न करें या इसे सार्वजनिक रिपो में कमिट न करें।
-- संवेदनशील वर्कफ़्लो के लिए, कॉलिंग सिस्टम से एक हेडर के रूप में एक साझा टोकन भेजने के लिए कहें (जैसे `X-Webhook-Token`) और कुछ भी महत्वपूर्ण करने से पहले एक **शर्तें** ब्लॉक के साथ इसे जाँचें। अपेक्षित टोकन को एक सीक्रेट वेरिएबल के रूप में सहेजें।
-- बहुत संवेदनशील वर्कफ़्लो के लिए, सार्वजनिक webhook के बजाय एक OneUptime इवेंट ट्रिगर और एक मैनुअल इम्पोर्ट चरण को प्राथमिकता दें।
+हर execution attempt की एक wall-clock deadline होती है। runner इसे हर component से पहले और बाद में check करता है और control वापस आते ही किसी overdue run को **Timeout** mark कर देता है। जो components network या script का काम करते हैं उन्हें अपने खुद के timeouts की भी जरूरत होती है क्योंकि runner arbitrary component code को जबरदस्ती interrupt नहीं कर सकता।
 
-## आउटबाउंड नेटवर्क पहुँच
+AI component अपने provider-request timeout को बचे हुए workflow समय से derive करता है और इसे 60 seconds पर cap करता है, logging और cleanup के लिए थोड़ी सी margin छोड़ते हुए।
 
-API और अन्य HTTP ब्लॉक अपने अनुरोध OneUptime से करते हैं। यदि आप सेल्फ-होस्ट करते हैं, तो सुनिश्चित करें कि आपका इंस्टॉलेशन उन सेवाओं तक पहुँच सकता है जिन्हें आप कॉल कर रहे हैं। यदि आप OneUptime Cloud का उपयोग करते हैं, हमारे आउटबाउंड IP रेंज [IP Addresses](/docs/configuration/ip-addresses) में सूचीबद्ध हैं ताकि आप दूसरी तरफ उन्हें अनुमति दे सकें।
+## दूसरे workflows को call करने की limit
 
-## अनुमतियाँ
+**Execute Workflow** component एक workflow को दूसरे को call करने देता है। accidental loops से बचने के लिए जहाँ workflow A, B को call करे और B फिर से A को call करे, chain कितनी गहरी जा सकती है इस पर एक cap है। जो run इस limit से आगे जाता है वह एक साफ error के साथ खत्म होता है।
 
-वर्कफ़्लो आपके प्रोजेक्ट के रोल-आधारित एक्सेस कंट्रोल का सम्मान करते हैं। प्रासंगिक अनुमतियाँ:
+अगर आपको वाकई एक लंबी chain की जरूरत है (जैसे एक job जो हर run में एक item process करे), तो आमतौर पर एक ही workflow के अंदर **Custom Code** का उपयोग करके loop करना ज्यादा आसान होता है।
 
-- **Create / Read / Edit / Delete Workflow** — वर्कफ़्लो पर ही बुनियादी अनुमतियाँ।
-- **वर्कफ़्लो चलाएं** — **Run Manually** क्लिक करने या API के माध्यम से वर्कफ़्लो को ट्रिगर करने के लिए आवश्यक।
-- **Read Workflow Log** — runs देखने के लिए आवश्यक।
-- **Read / Create / Edit / Delete Workflow Variable** — global वेरिएबल सूची पर नियंत्रण।
+## Webhook security
 
-ज़्यादातर इंजीनियरों के पास वर्कफ़्लो पर create/edit/read होना चाहिए लेकिन वेरिएबल पर नहीं। वेरिएबल संपादन पहुँच उन लोगों के लिए सहेजें जो आपके प्रोजेक्ट के सीक्रेट प्रबंधित करते हैं।
+Webhook triggers आपको एक unique URL देते हैं। जो कोई भी URL जानता है वह इसे hit कर सकता है। accidental या अनचाहे callers से बचाव के लिए:
 
-## प्लान सीमाएँ
+- URL को password की तरह treat करें। इसे publicly share न करें या किसी public repo में commit न करें।
+- sensitive workflows के लिए, calling system से एक shared token को header के रूप में भेजने को कहें (जैसे `X-Webhook-Token`) और कुछ भी महत्वपूर्ण करने से पहले इसे एक **Conditions** block से check करें। expected token को एक secret variable के रूप में save करें।
+- बहुत sensitive workflows के लिए, public webhook की जगह OneUptime event trigger और एक manual import step को prefer करें।
 
-OneUptime Cloud छोटे प्लान्स पर प्रति माह runs की संख्या को सीमित करता है। आपकी वर्तमान सीमा **प्रोजेक्ट सेटिंग्स → बिलिंग** के अंतर्गत दिखाई गई है। जब आप इस पर पहुँचते हैं, अगले बिलिंग चक्र तक नए ट्रिगर अस्वीकार किए जाते हैं। सेल्फ-होस्टेड इंस्टॉलेशन में यह सीमा नहीं है।
+## Outbound network access
 
-## जब वर्कफ़्लो सही टूल नहीं हैं
+API और दूसरे HTTP blocks अपने requests OneUptime से करते हैं। अगर आप self-host कर रहे हैं, तो पक्का करें कि आपकी installation उन services तक पहुँच सके जिन्हें आप call कर रहे हैं। अगर आप OneUptime Cloud इस्तेमाल करते हैं, तो हमारी outbound IP ranges [IP Addresses](/docs/configuration/ip-addresses) में listed हैं ताकि आप उन्हें दूसरी तरफ allow कर सकें।
 
-कुछ मामले जहाँ आपको कुछ और के लिए पहुँचना चाहिए:
+## AI components
 
-- **भारी गणना या बड़े डेटासेट** — वर्कफ़्लो हल्के ग्लू काम के लिए डिज़ाइन किए गए हैं, संख्या क्रंचिंग के लिए नहीं। अपने स्वयं के बुनियादी ढाँचे में भारी काम चलाएँ और एक वर्कफ़्लो को इसे शुरू करने दें।
-- **घंटों तक चलने वाली लंबी प्रक्रियाएँ** — एक एकल run का जल्दी समाप्त होना है। यदि आपको "A करें, दो घंटे प्रतीक्षा करें, B करें" की आवश्यकता है, तो एक बाहरी शेड्यूलर का उपयोग करें जो समय आने पर OneUptime को वापस webhook भेजता है।
-- **इंसानों के साथ चरण-दर-चरण incident प्रतिक्रिया** — यही [Runbooks](/docs/runbooks/index) के लिए हैं। वर्कफ़्लो बिना देखरेख वाले ऑटोमेशन के लिए हैं।
+**Generate Text with AI** OneUptime के configured LLM gateway के जरिए एक request भेजता है। यह project के default LLM provider का उपयोग करता है, या जब project के पास अपना नहीं है तो installation के global provider का। providers को **Project Settings → AI → LLM Providers** के अंतर्गत configure करें; workflow में खुद कभी कोई provider API key या arbitrary model endpoint न डालें।
+
+AI component की एक explicit egress boundary है:
+
+- OneUptime एक fixed component-safety instruction के साथ-साथ resolved **System Instructions**, **Prompt**, और serialized **Context** configured provider को भेजता है। Context user message के अंत में एक explicit marker के बाद append किया जाता है; fixed instruction कहता है कि उस marker के बाद सब कुछ untrusted data ही रहता है, भले ही उसमें tags या instructions हों।
+- यह trigger payload, workflow history, दूसरे component outputs, project records, telemetry, या secrets को automatically attach नहीं करता। data तभी बाहर जाता है जब आप इसे उन तीन inputs में से किसी में reference करते हैं।
+- यह कोई tool definitions या provider-native capability fields नहीं भेजता। model इस component के जरिए OneUptime को query नहीं कर सकता, HTTP requests नहीं कर सकता, या project data mutate नहीं कर सकता। configured provider/model एक administrator trust boundary ही रहता है, इसलिए जिन installations को strictly offline generation चाहिए उन्हें intrinsic provider-managed retrieval के बिना कोई model चुनना चाहिए।
+- Provider-level additional parameters सिर्फ generation-only tuning fields की एक allowlist तक सीमित हैं। ये workflow messages को replace नहीं कर सकते, tools या provider-native web search/data sources नहीं जोड़ सकते, non-text modalities enable नहीं कर सकते, कई choices request नहीं कर सकते, streaming enable नहीं कर सकते, provider storage flags के जरिए request को retain नहीं कर सकते, या इस component के output-token cap को नहीं बढ़ा सकते। अनजान future capability fields default रूप से drop कर दिए जाते हैं।
+- System Instructions, Prompt, Context, और generated Response values को automatic workflow execution log में इस AI component की खुद की argument और return-value entries से redact किया जाता है। run चलते समय ये downstream components के लिए उपलब्ध रहते हैं। अगर आप इनमें से किसी को किसी और component में डालते हैं, तो उस component की logging policy लागू होती है और वह resolved value को record कर सकती है; इसे reuse को एक explicit disclosure मानें। Provider/model नाम, token counts, LLM Log ID, और safe error messages operations और billing के लिए visible रहते हैं। Raw provider error bodies workflow logs, LLM logs, application logs, और traces से बाहर रखे जाते हैं क्योंकि कोई provider request content को echo कर सकता है।
+
+हर referenced variable को ऐसा data मानें जिसे आप जानबूझकर provider को भेज रहे हैं। खासकर, किसी secret global variable को prompt या context में तब तक न डालें जब तक वह disclosure जरूरी न हो और provider उसे receive करने के लिए approved न हो। Ollama जैसा एक self-hosted local provider request को आपके खुद के infrastructure के अंदर रख सकता है; एक hosted provider request को उस provider की data-processing terms के तहत receive करता है।
+
+हर call **Project Settings → AI → AI Logs** में record होती है, जिसमें provider, model, status, tokens, cost, और billing information शामिल है। Prompt और response previews और raw provider error details AI log में store नहीं होते। किसी costed global provider के जरिए की गई calls project के AI credit balance से consume होती हैं। Workflow AI project के daily autonomous AI token budget में भी count होता है; जब budget खत्म हो जाता है, तो component model से contact किए बिना अपना **Error** path लेता है। Project AI enabled होना चाहिए। OneUptime Cloud पर, subscription paid होनी चाहिए और Growth plan (या Growth features वाला कोई plan) जरूरी है; billing disabled वाली self-hosted installations में यह plan gate नहीं होता।
+
+Built-in bounds unattended calls को finite रखते हैं: System Instructions, Prompt, और serialized Context मिलाकर 50,000 characters तक cap हैं; Temperature `0` से `1` तक होना चाहिए; Maximum Output Tokens `1` से `4096` तक होना चाहिए (default `1024`); और provider request एक बार attempt होता है और ज्यादा से ज्यादा 60 seconds बाद timeout हो जाता है। प्रति project ज्यादा से ज्यादा तीन workflow AI calls concurrently चलती हैं; अतिरिक्त calls **Error** path लेती हैं और बाद के किसी workflow run से retry की जा सकती हैं। Validation, configuration, access, budget, balance, concurrency, provider, और timeout failures सभी **Error** path लेती हैं और **Error** output भरती हैं। किसी production workflow को enable करने से पहले उस path को connect करें।
+
+## Permissions
+
+Workflows आपके project के role-based access control का पालन करते हैं। संबंधित permissions:
+
+- **Create / Read / Edit / Delete Workflow** — workflow पर ही basic permissions।
+- **Run Workflow** — किसी workflow को हाथ से चलाने या API के जरिए trigger करने के लिए जरूरी।
+- **Read Workflow Log** — runs देखने के लिए जरूरी।
+- **Read / Create / Edit / Delete Workflow Variable** — global variables list पर control।
+
+ज्यादातर engineers के पास workflows पर create/edit/read होना चाहिए लेकिन variables पर नहीं। variable edit access उन लोगों के लिए बचाकर रखें जो आपके project के secrets manage करते हैं।
+
+## Plan limits
+
+OneUptime Cloud छोटे plans पर हर महीने runs की संख्या को cap करता है। आपकी मौजूदा limit **Project Settings → Billing** के अंतर्गत दिखती है। जब आप इस तक पहुँच जाते हैं, तो अगले billing cycle तक नए triggers reject कर दिए जाते हैं। Self-hosted installations में यह limit नहीं होती।
+
+## जब workflows सही tool नहीं हैं
+
+कुछ मामले जहाँ आपको कोई और तरीका अपनाना चाहिए:
+
+- **Heavy computation or large datasets** — workflows हल्के glue work के लिए बनाए गए हैं, number crunching के लिए नहीं। भारी काम अपनी खुद की infrastructure में चलाएं और उसे शुरू करने का काम एक workflow को दें।
+- **Long-running active computation** — एक अकेला execution attempt जल्दी खत्म होने के लिए बना है। "A करो, दो घंटे wait करो, फिर B करो" जैसी passive delay के लिए, **Sleep** component का उपयोग करें; यह run को persist करता है और किसी worker को occupy किए बिना बाद में इसे resume करता है।
+- **Step-by-step incident response with humans in the loop** — इसके लिए [Runbooks](/docs/runbooks/index) हैं। Workflows unattended automation के लिए हैं।
 
 ## आगे क्या पढ़ें
 
-- [वर्कफ़्लो अवलोकन](/docs/workflows/index) — बड़ी तस्वीर।
-- [कंपोनेंट](/docs/workflows/components) — ब्लॉक-दर-ब्लॉक संदर्भ।
-- [Runbooks](/docs/runbooks/index) — कब इसके बजाय एक runbook का उपयोग करें।
+- [Workflows Overview](/docs/workflows/index) — बड़ी तस्वीर।
+- [Components](/docs/workflows/components) — block-by-block reference।
+- [Runbooks](/docs/runbooks/index) — कब runbook का उपयोग करना चाहिए।

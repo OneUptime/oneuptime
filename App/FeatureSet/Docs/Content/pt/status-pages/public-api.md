@@ -2,7 +2,7 @@
 
 Veja como usar a API Pública de Página de Status para obter o status dos seus recursos que estão na Página de Status. Tudo o que você precisa fazer é fazer uma requisição POST para o endpoint da API.
 
-#### API de Visão Geral
+## API de Visão Geral
 
 Esta API buscará todos os recursos que estão na página de status, incluindo o status geral dos recursos, incidentes, manutenções e mais.
 
@@ -155,7 +155,7 @@ Esta é a resposta da API:
 }
 ```
 
-#### API de Uptime
+## API de Uptime
 
 Esta API buscará todo o uptime de todos os recursos na página de status.
 
@@ -252,7 +252,7 @@ Este é o exemplo de resposta da API:
 }
 ```
 
-### API de Incidentes
+## API de Incidentes
 
 Esta API buscará todos os incidentes que estão na página de status. Para obter todos os incidentes na página de status, você pode fazer uma requisição POST para o seguinte endpoint:
 
@@ -277,7 +277,7 @@ Esta é a resposta da API:
 }
 ```
 
-### API de Manutenção Programada
+## API de Manutenção Programada
 
 Esta API buscará todas as manutenções programadas que estão na página de status. Para obter todas as manutenções programadas na página de status, você pode fazer uma requisição POST para o seguinte endpoint:
 
@@ -302,7 +302,7 @@ Esta é a resposta da API:
 }
 ```
 
-### API de Anúncios
+## API de Anúncios
 
 Esta API buscará todos os anúncios que estão na página de status. Para obter todos os anúncios na página de status, você pode fazer uma requisição POST para o seguinte endpoint:
 
@@ -326,3 +326,11 @@ Esta é a resposta da API:
   ]
 }
 ```
+
+## Onde ler a seguir
+
+- [Visão geral das páginas de status](/docs/status-pages/index) — o que é uma página de status e como as partes se encaixam.
+- [Recursos e grupos da página de status](/docs/status-pages/resources-and-groups) — os recursos que esses endpoints retornam.
+- [Marca e domínios da página de status](/docs/status-pages/branding-and-domains) — o domínio personalizado a partir do qual esses endpoints são servidos.
+- [Assinantes e comunicados](/docs/status-pages/subscribers) — os comunicados que o endpoint de comunicados fornece.
+- [Visão geral dos incidentes](/docs/incidents/index) — de onde vêm os incidentes nessas respostas.

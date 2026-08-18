@@ -2,7 +2,7 @@
 
 Aquí tienes cómo puedes usar la API pública de la página de estado para obtener el estado de tus recursos que se encuentran en la página de estado. Todo lo que necesitas hacer es realizar una solicitud POST al punto de conexión de la API.
 
-#### API de información general
+## API de información general
 
 Esta API obtendrá todos los recursos que se encuentran en la página de estado, incluyendo el estado general de los recursos, incidentes, mantenimiento y más.
 
@@ -155,7 +155,7 @@ Esta es la respuesta de la API:
 }
 ```
 
-#### API de tiempo de actividad
+## API de tiempo de actividad
 
 Esta API obtendrá el tiempo de actividad de todos los recursos en la página de estado.
 
@@ -252,7 +252,7 @@ Esta es la respuesta de ejemplo de la API:
 }
 ```
 
-### API de incidentes
+## API de incidentes
 
 Esta API obtendrá todos los incidentes que están en la página de estado. Para obtener todos los incidentes en la página de estado, puedes realizar una solicitud POST al siguiente punto de conexión:
 
@@ -277,7 +277,7 @@ Esta es la respuesta de la API:
 }
 ```
 
-### API de mantenimiento programado
+## API de mantenimiento programado
 
 Esta API obtendrá todos los mantenimientos programados que están en la página de estado. Para obtener todos los mantenimientos programados en la página de estado, puedes realizar una solicitud POST al siguiente punto de conexión:
 
@@ -302,7 +302,7 @@ Esta es la respuesta de la API:
 }
 ```
 
-### API de anuncios
+## API de anuncios
 
 Esta API obtendrá todos los anuncios que están en la página de estado. Para obtener todos los anuncios en la página de estado, puedes realizar una solicitud POST al siguiente punto de conexión:
 
@@ -326,3 +326,11 @@ Esta es la respuesta de la API:
   ]
 }
 ```
+
+## Qué leer a continuación
+
+- [Visión general de las páginas de estado](/docs/status-pages/index) — qué es una página de estado y cómo encajan sus piezas.
+- [Recursos y grupos de la página de estado](/docs/status-pages/resources-and-groups) — los recursos que devuelven estos endpoints.
+- [Marca y dominios de la página de estado](/docs/status-pages/branding-and-domains) — el dominio personalizado desde el que se sirven estos endpoints.
+- [Suscriptores y anuncios](/docs/status-pages/subscribers) — los anuncios que ofrece el endpoint de anuncios.
+- [Visión general de los incidentes](/docs/incidents/index) — de dónde provienen los incidentes en estas respuestas.

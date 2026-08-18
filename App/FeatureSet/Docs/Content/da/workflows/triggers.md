@@ -1,81 +1,81 @@
-# Triggere
+# Triggers
 
-En trigger er den første blok i et workflow — den bestemmer, hvornår workflowet kører. Hvert workflow har præcis én trigger. Du vælger mellem fire slags.
+En trigger er den første blok i en arbejdsgang — den bestemmer, hvornår arbejdsgangen kører. Hver arbejdsgang har præcis én trigger. Du vælger mellem fire slags.
 
-## Manuel
+## Manual
 
-Kør workflowet on demand ved at klikke **Run Manually** på workflow-siden. Du kan indsætte en JSON-payload, som resten af workflowet kan læse.
+Kør arbejdsgangen efter behov ved at klikke på **Run Workflow** på siden **Builder**, udfylde triggerens felter og bekræfte med **Run Workflow Manually**. Triggeren Manual tager en JSON-nyttelast, som resten af arbejdsgangen kan læse.
 
-God til: ét-klik-automatiseringer, du gerne vil have en knap til, såsom "roter denne nøgle" eller "send en testalarm."
+Godt til: automatiseringer med ét klik, du vil have en knap til, som "rotér denne nøgle" eller "send en testalarm."
 
 **Output**: den JSON, du indsatte, eller et tomt objekt, hvis du ikke gjorde.
 
-## Tidsplan
+## Schedule
 
-Kør workflowet på en gentagen tidsplan ved hjælp af et cron-udtryk.
+Kør arbejdsgangen på en gentagende tidsplan ved hjælp af et cron-udtryk.
 
-God til: natlig oprydning, synkronisering hver time, ugentlige rapporter.
+Godt til: natlig oprydning, timelig synkronisering, ugentlige rapporter.
 
-**Indstilling**: et cron-udtryk. Et par almindelige:
+**Setting**: et cron-udtryk. Nogle almindelige eksempler:
 
-- `0 * * * *` — hver time, på timen.
+- `0 * * * *` — hver time, på hele timen.
 - `*/5 * * * *` — hvert 5. minut.
-- `0 9 * * 1` — hver mandag kl. 9:00.
+- `0 9 * * 1` — hver mandag klokken 9:00.
 
-Hvis systemet er kortvarigt utilgængeligt, samles kørslen op, så snart det kommer sig igen — du behøver ikke bekymre dig om missede tick'er ved korte udfald.
+Hvis systemet er kortvarigt utilgængeligt, bliver kørslen samlet op, så snart det kommer sig igen — du behøver ikke bekymre dig om forpassede tikninger ved korte nedbrud.
 
 ## Webhook
 
-OneUptime opretter en unik URL. Alt, der rammer den URL, starter workflowet. Anmodningens headers, query-parametre og body sendes med ind.
+OneUptime opretter en unik URL. Alt, der rammer den URL, starter arbejdsgangen. Headers, forespørgselsparametre og body fra anmodningen sendes med.
 
-God til: at modtage data ind i OneUptime fra et andet værktøj — CI/CD-callbacks, alarmer fra anden overvågning, tilmeldinger i dit CRM.
+Godt til: at modtage data ind i OneUptime fra et andet værktøj — CI/CD-callbacks, alarmer fra anden overvågning, tilmeldinger i dit CRM.
 
 **Output**:
 
-- **Anmodningsheadere** — alle headers fra den indkommende anmodning.
-- **Request Query Params** — den parsede querystreng.
-- **Anmodningsbrødtekst** — den parsede body (eller den rå tekst, hvis det ikke er JSON).
+- **Request Headers** — alle headers fra den indkommende anmodning.
+- **Request Query Params** — den parsede forespørgselsstreng.
+- **Request Body** — den parsede body (eller rå tekst, hvis det ikke er JSON).
 
-URL'en accepterer både `GET` og `POST`. Kalderen får en hurtig bekræftelse — selve workflowet kører i baggrunden.
+URL'en accepterer både `GET` og `POST`. Kalderen får en hurtig kvittering — selve arbejdsgangen kører i baggrunden.
 
-Behandl URL'en som en adgangskode. Enhver, der har den, kan starte dit workflow.
+Behandl URL'en som en adgangskode. Alle, der har den, kan starte din arbejdsgang.
 
-## OneUptime event-triggere
+## OneUptime-hændelsestriggere
 
-Næsten alt i OneUptime — monitorer, hændelser, alarmer, planlagt vedligeholdelse, statussider, vagtpolitikker, teams — kan udløse et workflow. Hver enkelt tilbyder tre events:
+Næsten alt i OneUptime — overvågninger, hændelser, alarmer, planlagt vedligeholdelse, statussider, vagtpolitikker, teams — kan udløse en arbejdsgang. Hver af dem tilbyder tre hændelser:
 
-- **On Create** — udløses, når en ny tilføjes.
+- **On Create** — udløses, når en ny oprettes.
 - **On Update** — udløses, når en ændres.
 - **On Delete** — udløses, når en slettes.
 
-Sådan bygger du "når X sker i OneUptime, så gør Y" uden at skulle tjekke ting i en løkke.
+Sådan bygger du "når X sker i OneUptime, gør Y" uden at skulle tjekke ting i en løkke.
 
-Hele posten sendes videre til den næste blok. For eksempel sender triggeren **Hændelse → On Create** den nye hændelse, så den næste blok kan læse dens titel, beskrivelse, alvorlighed og ethvert andet felt.
+Den fulde post sendes til den næste blok. For eksempel sender triggeren **Incident → On Create** den nye hændelse videre, så den næste blok kan læse dens titel, beskrivelse, alvorsgrad og alle andre felter.
 
-### Events som teams bruger mest
+### Hændelser de fleste teams bruger
 
-- **Hændelse** — reagér, når en hændelse åbnes, opdateres (bekræftes, løses) eller slettes.
-- **Advarsel** — samme tre for alarmer.
-- **Overvågning** — reagér, når en monitor tilføjes, redigeres eller fjernes.
-- **Planlagt vedligeholdelse** — annoncér automatisk et vedligeholdelsesvindue, når det planlægges.
-- **Statusside Abonnent** — byd nogen velkommen, der tilmelder sig en statusside.
-- **On-Call Duty Policy** — synkronisér vagtplansændringer til et andet roster-system.
+- **Incident** — reagér, når en hændelse åbnes, opdateres (bekræftes, løses) eller slettes.
+- **Alert** — de samme tre for alarmer.
+- **Monitor** — reagér, når en overvågning tilføjes, redigeres eller fjernes.
+- **Scheduled Maintenance** — annoncér automatisk et vedligeholdelsesvindue, når det planlægges.
+- **Status Page Subscriber** — byd nogen velkommen, når de abonnerer på en statusside.
+- **On-Call Duty Policy** — synkronisér ændringer i vagtplanen til et andet rostersystem.
 
-Søg i trigger-paletten efter navn for at finde den, du vil have.
+Søg i panelet **Add Trigger** efter navn for at finde den, du vil have.
 
 ## Hvilken trigger skal jeg bruge?
 
-| Hvis du vil…                             | Vælg                |
-| ---------------------------------------- | ------------------- |
-| Klikke på en knap for at køre workflowet | **Manual**          |
-| Køre på en gentagen tidsplan             | **Tidsplan**        |
-| Lade et andet system skubbe data ind     | **Webhook**         |
-| Reagere på noget inde i OneUptime        | **OneUptime event** |
+| Hvis du vil…                                | Vælg                |
+| -------------------------------------------- | -------------------- |
+| Klikke på en knap for at køre arbejdsgangen  | **Manual**           |
+| Køre på en gentagende tidsplan               | **Schedule**         |
+| Lade et andet system sende data ind          | **Webhook**          |
+| Reagere på noget inde i OneUptime            | **OneUptime event**  |
 
-Et workflow kan kun have én trigger. Hvis du har brug for to måder at starte den samme automatisering på, så byg den fælles logik i ét workflow og kald det fra to tynde "wrapper"-workflows ved hjælp af komponenten **Execute Workflow**.
+En arbejdsgang kan kun have én trigger. Hvis du har brug for to måder at starte den samme automatisering på, skal du bygge den fælles logik i én arbejdsgang og kalde den fra to tynde "wrapper"-arbejdsgange ved hjælp af komponenten **Execute Workflow**.
 
-## Læs videre
+## Hvor du kan læse videre
 
 - [Komponenter](/docs/workflows/components) — de handlinger, du tilføjer efter triggeren.
-- [Variabler](/docs/workflows/variables) — at læse trigger-output fra senere blokke.
-- [Kørsler & logfiler](/docs/workflows/runs-and-logs) — bekræft at din trigger udløstes.
+- [Variabler](/docs/workflows/variables) — læsning af triggerens output fra senere blokke.
+- [Kørsler og logs](/docs/workflows/runs-and-logs) — bekræft, at din trigger blev udløst.

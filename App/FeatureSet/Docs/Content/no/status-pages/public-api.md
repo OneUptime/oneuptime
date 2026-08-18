@@ -2,7 +2,7 @@
 
 Her er hvordan du kan bruke det offentlige statusside-API-et for å hente status for ressursene på statussiden. Alt du trenger å gjøre er å sende en POST-forespørsel til API-endepunktet.
 
-#### Oversikts-API
+## Oversikts-API
 
 Dette API-et vil hente alle ressursene på statussiden, inkludert den overordnede statusen til ressursene, hendelser, vedlikehold og mer.
 
@@ -155,7 +155,7 @@ Dette er svaret fra API-et:
 }
 ```
 
-#### Oppetids-API
+## Oppetids-API
 
 Dette API-et vil hente all oppetid for alle ressurser på statussiden.
 
@@ -252,7 +252,7 @@ Dette er eksempelsvaret fra API-et:
 }
 ```
 
-### Hendelses-API
+## Hendelses-API
 
 Dette API-et vil hente alle hendelsene som er på statussiden. For å hente alle hendelsene på statussiden kan du sende en POST-forespørsel til følgende endepunkt:
 
@@ -277,7 +277,7 @@ Dette er svaret fra API-et:
 }
 ```
 
-### Planlagt vedlikeholds-API
+## Planlagt vedlikeholds-API
 
 Dette API-et vil hente all planlagt vedlikehold som er på statussiden. For å hente all planlagt vedlikehold på statussiden kan du sende en POST-forespørsel til følgende endepunkt:
 
@@ -302,7 +302,7 @@ Dette er svaret fra API-et:
 }
 ```
 
-### Kunngjørings-API
+## Kunngjørings-API
 
 Dette API-et vil hente alle kunngjøringer som er på statussiden. For å hente alle kunngjøringer på statussiden kan du sende en POST-forespørsel til følgende endepunkt:
 
@@ -326,3 +326,11 @@ Dette er svaret fra API-et:
   ]
 }
 ```
+
+## Hvor du leser videre
+
+- [Statussider – Oversikt](/docs/status-pages/index) — hva en statusside er og hvordan delene henger sammen.
+- [Statusside – ressurser og grupper](/docs/status-pages/resources-and-groups) — ressursene disse endepunktene returnerer.
+- [Statusside – merkevare og domener](/docs/status-pages/branding-and-domains) — det tilpassede domenet disse endepunktene serveres fra.
+- [Abonnenter og kunngjøringer](/docs/status-pages/subscribers) — kunngjøringene kunngjøringsendepunktet leverer.
+- [Hendelser – Oversikt](/docs/incidents/index) — hvor hendelsene i disse svarene kommer fra.

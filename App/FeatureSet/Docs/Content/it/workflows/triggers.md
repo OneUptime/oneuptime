@@ -1,81 +1,81 @@
 # Trigger
 
-Un trigger e il primo blocco di un workflow — decide quando il workflow viene eseguito. Ogni workflow ha esattamente un trigger. Puoi sceglierne tra quattro tipologie.
+Un trigger è il primo blocco in un workflow — decide quando viene eseguito il workflow. Ogni workflow ha esattamente un trigger. Puoi scegliere tra quattro tipi.
 
-## Manuale
+## Manual
 
-Esegui il workflow su richiesta cliccando **Run Manually** nella pagina del workflow. Puoi incollare un payload JSON che il resto del workflow potra leggere.
+Esegui il workflow su richiesta cliccando **Esegui flusso di lavoro** sulla pagina **Costruttore**, compilando i campi del trigger e confermando con **Run Workflow Manually**. Il trigger Manual accetta un payload JSON che il resto del workflow può leggere.
 
-Adatto per: automazioni "one-click" per cui vuoi un pulsante, come "ruota questa chiave" o "invia un test di allarme."
+Utile per: automazioni con un clic per cui vuoi un pulsante, come "ruota questa chiave" o "invia un avviso di prova."
 
-**Output**: il JSON che hai incollato, o un oggetto vuoto se non l'hai fornito.
+**Output**: il JSON che hai incollato, oppure un oggetto vuoto se non l'hai fatto.
 
 ## Schedule
 
-Esegui il workflow su una pianificazione ricorrente utilizzando un'espressione cron.
+Esegui il workflow su una pianificazione ricorrente usando un'espressione cron.
 
-Adatto per: pulizia notturna, sincronizzazione oraria, report settimanali.
+Utile per: pulizia notturna, sincronizzazione oraria, report settimanali.
 
 **Impostazione**: un'espressione cron. Alcune comuni:
 
 - `0 * * * *` — ogni ora, allo scoccare dell'ora.
 - `*/5 * * * *` — ogni 5 minuti.
-- `0 9 * * 1` — ogni lunedi alle 9:00.
+- `0 9 * * 1` — ogni lunedì alle 9:00.
 
-Se il sistema e brevemente non disponibile, l'esecuzione viene avviata non appena si riprende — non devi preoccuparti di scatti persi per brevi interruzioni.
+Se il sistema è temporaneamente non disponibile, l'esecuzione viene recuperata non appena si ripristina — non devi preoccuparti dei tick mancati per interruzioni brevi.
 
 ## Webhook
 
-OneUptime crea un URL univoco. Qualunque cosa raggiunga quell'URL avvia il workflow. Gli header, i parametri della query e il body della richiesta vengono passati al workflow.
+OneUptime crea un URL univoco. Qualsiasi cosa raggiunga quell'URL avvia il workflow. Le intestazioni, i parametri di query e il corpo della richiesta vengono passati in ingresso.
 
-Adatto per: ricevere dati in OneUptime da un altro strumento — callback CI/CD, allarmi da altri sistemi di monitoraggio, registrazioni nel tuo CRM.
+Utile per: ricevere dati in OneUptime da un altro strumento — callback CI/CD, avvisi da altri sistemi di monitoraggio, iscrizioni nel tuo CRM.
 
 **Output**:
 
-- **Intestazioni della richiesta** — tutti gli header della richiesta in arrivo.
-- **Request Query Params** — la query string analizzata.
-- **Corpo della Richiesta** — il corpo analizzato (o il testo grezzo se non e JSON).
+- **Request Headers** — tutte le intestazioni della richiesta in arrivo.
+- **Request Query Params** — la stringa di query analizzata.
+- **Request Body** — il corpo analizzato (o il testo grezzo se non è JSON).
 
-L'URL accetta sia `GET` che `POST`. Il chiamante riceve un riscontro rapido — il workflow vero e proprio viene eseguito in background.
+L'URL accetta sia `GET` che `POST`. Chi chiama riceve una rapida conferma di ricezione — il workflow stesso viene eseguito in background.
 
-Tratta l'URL come una password. Chiunque lo possieda puo avviare il tuo workflow.
+Tratta l'URL come una password. Chiunque lo possieda può avviare il tuo workflow.
 
-## Trigger sugli eventi di OneUptime
+## Trigger di eventi OneUptime
 
-Quasi tutti gli elementi di OneUptime — monitor, incidenti, allarmi, manutenzioni programmate, status page, policy on-call, team — possono attivare un workflow. Ognuno offre tre eventi:
+Quasi ogni cosa in OneUptime — monitor, incidenti, avvisi, manutenzioni programmate, pagine di stato, politiche di reperibilità, team — può attivare un workflow. Ciascuno offre tre eventi:
 
-- **On Create** — scatta quando ne viene aggiunto uno nuovo.
-- **On Update** — scatta quando ne viene modificato uno.
-- **On Delete** — scatta quando ne viene eliminato uno.
+- **On Create** — si attiva quando ne viene aggiunto uno nuovo.
+- **On Update** — si attiva quando uno viene modificato.
+- **On Delete** — si attiva quando uno viene eliminato.
 
-Ecco come costruire "quando X accade in OneUptime, fai Y" senza dover controllare le cose in un ciclo.
+È così che costruisci "quando succede X in OneUptime, fai Y" senza dover controllare le cose in un ciclo.
 
-Il record completo viene passato al blocco successivo. Per esempio, il trigger **Incidente → On Create** passa il nuovo incidente, cosi il blocco successivo puo leggerne titolo, descrizione, severita e qualsiasi altro campo.
+Il record completo viene passato al blocco successivo. Ad esempio, il trigger **Incident → On Create** passa il nuovo incidente, così il blocco successivo può leggerne il titolo, la descrizione, la gravità e qualsiasi altro campo.
 
-### Eventi piu utilizzati dai team
+### Gli eventi più usati dai team
 
-- **Incidente** — reagisci quando un incidente viene aperto, aggiornato (preso in carico, risolto) o eliminato.
-- **Avviso** — gli stessi tre eventi per gli allarmi.
+- **Incident** — reagisci quando un incidente viene aperto, aggiornato (riconosciuto, risolto) o eliminato.
+- **Alert** — le stesse tre opzioni per gli avvisi.
 - **Monitor** — reagisci quando un monitor viene aggiunto, modificato o rimosso.
-- **Manutenzione programmata** — annuncia automaticamente una finestra di manutenzione quando viene pianificata.
-- **Pagina di stato Iscritto** — dai il benvenuto a chi si iscrive a una status page.
+- **Scheduled Maintenance** — annuncia automaticamente una finestra di manutenzione quando viene programmata.
+- **Status Page Subscriber** — dai il benvenuto a chi si iscrive a una pagina di stato.
 - **On-Call Duty Policy** — sincronizza le modifiche alla pianificazione con un altro sistema di turni.
 
-Cerca nel pannello dei trigger per nome per trovare quello che ti serve.
+Cerca nel pannello **Add Trigger** per nome per trovare quello che ti serve.
 
-## Quale trigger usare?
+## Quale trigger dovrei usare?
 
-| Se vuoi…                                      | Scegli              |
-| --------------------------------------------- | ------------------- |
-| Cliccare un pulsante per eseguire il workflow | **Manual**          |
-| Eseguire su una pianificazione ricorrente     | **Pianificazione**  |
-| Far inviare dati a un altro sistema           | **Webhook**         |
-| Reagire a qualcosa all'interno di OneUptime   | **OneUptime event** |
+| Se vuoi…                                       | Scegli               |
+| ----------------------------------------------- | --------------------- |
+| Cliccare un pulsante per eseguire il workflow   | **Manual**            |
+| Eseguire su una pianificazione ricorrente       | **Schedule**          |
+| Far inviare dati da un altro sistema            | **Webhook**           |
+| Reagire a qualcosa dentro OneUptime             | **OneUptime event**   |
 
-Un workflow puo avere un solo trigger. Se hai bisogno di due modi per avviare la stessa automazione, costruisci la logica condivisa in un workflow e richiamala da due workflow "wrapper" sottili usando il componente **Execute Workflow**.
+Un workflow può avere un solo trigger. Se hai bisogno di due modi per avviare la stessa automazione, costruisci la logica condivisa in un workflow e richiamala da due workflow "wrapper" più semplici usando il componente **Execute Workflow**.
 
-## Letture successive
+## Dove leggere in seguito
 
-- [Componenti](/docs/workflows/components) — le azioni che aggiungi dopo il trigger.
-- [Variabili](/docs/workflows/variables) — leggere l'output del trigger dai blocchi successivi.
-- [Esecuzioni e log](/docs/workflows/runs-and-logs) — confermare che il trigger sia scattato.
+- [Componenti del workflow](/docs/workflows/components) — le azioni che aggiungi dopo il trigger.
+- [Variabili del workflow](/docs/workflows/variables) — leggere l'output del trigger dai blocchi successivi.
+- [Esecuzioni e log del workflow](/docs/workflows/runs-and-logs) — verificare che il tuo trigger si sia attivato.

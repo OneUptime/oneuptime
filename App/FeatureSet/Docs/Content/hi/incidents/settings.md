@@ -160,7 +160,7 @@ Rules ही एकमात्र रास्ता नहीं हैं। 
 
 ## Workflows से incidents चलाना
 
-Incidents के लिए workflow triggers हाथ से नहीं लिखे गए हैं — OneUptime इन्हें data models से generate करता है, इसलिए incident-family के हर model को model के singular name से नामित **On Create X**, **On Update X** और **On Delete X** components मिलते हैं। मुख्य तीन हैं **On Create Incident**, **On Update Incident** और **On Delete Incident**, और ये `/dashboard/{projectId}/workflows` पर workflow component palette के **Incident** category में रहते हैं।
+Incidents के लिए workflow triggers हाथ से नहीं लिखे गए हैं — OneUptime इन्हें data models से generate करता है, इसलिए incident-family के हर model को model के singular name से नामित **On Create X**, **On Update X** और **On Delete X** components मिलते हैं। मुख्य तीन हैं **On Create Incident**, **On Update Incident** और **On Delete Incident**, और ये `/dashboard/{projectId}/workflows` पर **घटक जोड़ें** panel के **Incident** category में रहते हैं।
 
 वही generation आपको configuration के लिए भी triggers देता है: **On Create Incident State**, **On Update Incident Severity**, **On Create Incident Template**, **On Create Incident Note Template**, **On Create Incident State Timeline**, **On Create Incident Public Note**, **On Create Incident Internal Note**, **On Create Incident On-Call Rule**, **On Create Incident Role**, **On Create Incident Member** और और भी बहुत कुछ। हर model को matching action components भी मिलते हैं — **Find One Incident**, **Create One Incident**, **Update One Incident**, **Delete One Incident** और उनके कई-row equivalents — इसलिए मिलते-जुलते नामों वाला एक trigger और एक action एक ही category में साथ-साथ रहते हैं। **On Create Incident** एक workflow शुरू करता है; **Create One Incident** एक खोलता है।
 

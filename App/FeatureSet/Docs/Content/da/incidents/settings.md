@@ -160,7 +160,7 @@ For at se, hvad der skete, skal du åbne hændelsen og vælge **Vagtudførelser*
 
 ## At drive hændelser fra workflows
 
-Workflow-triggere til hændelser er ikke håndskrevne — OneUptime genererer dem ud fra datamodellerne, så hver model i hændelsesfamilien får komponenterne **On Create X**, **On Update X** og **On Delete X**, navngivet efter modellens ental. De tre vigtigste er **On Create Incident**, **On Update Incident** og **On Delete Incident**, og de bor i kategorien **Incident** i workflow-komponentpaletten på `/dashboard/{projectId}/workflows`.
+Workflow-triggere til hændelser er ikke håndskrevne — OneUptime genererer dem ud fra datamodellerne, så hver model i hændelsesfamilien får komponenterne **On Create X**, **On Update X** og **On Delete X**, navngivet efter modellens ental. De tre vigtigste er **On Create Incident**, **On Update Incident** og **On Delete Incident**, og de bor i kategorien **Incident** i panelet **Tilføj komponent** på `/dashboard/{projectId}/workflows`.
 
 Den samme generering giver dig triggere til selve konfigurationen: **On Create Incident State**, **On Update Incident Severity**, **On Create Incident Template**, **On Create Incident Note Template**, **On Create Incident State Timeline**, **On Create Incident Public Note**, **On Create Incident Internal Note**, **On Create Incident On-Call Rule**, **On Create Incident Role**, **On Create Incident Member** med flere. Hver model får også tilsvarende handlingskomponenter — **Find One Incident**, **Create One Incident**, **Update One Incident**, **Delete One Incident** og deres flerrækkes-modstykker — så en trigger og en handling med lignende navne ligger side om side i samme kategori. **On Create Incident** starter et workflow; **Create One Incident** åbner en hændelse.
 

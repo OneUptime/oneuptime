@@ -2,7 +2,7 @@
 
 以下是如何使用公共状态页面 API 获取状态页面上资源状态的方法。您只需向 API 端点发送 POST 请求即可。
 
-#### 概览 API
+## 概览 API
 
 此 API 将获取状态页面上的所有资源，包括资源的整体状态、事件、维护等信息。
 
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/status-page-api/overview/:statusPageId
 }
 ```
 
-#### 正常运行时间 API
+## 正常运行时间 API
 
 此 API 将获取状态页面上所有资源的正常运行时间。
 
@@ -252,7 +252,7 @@ curl -X POST https://oneuptime.com/status-page-api/uptime/:statusPageId
 }
 ```
 
-### 事件 API
+## 事件 API
 
 此 API 将获取状态页面上的所有事件。要获取状态页面上的所有事件，您可以向以下端点发送 POST 请求：
 
@@ -277,7 +277,7 @@ curl -X POST https://oneuptime.com/status-page-api/incidents/:statusPageId
 }
 ```
 
-### 计划维护 API
+## 计划维护 API
 
 此 API 将获取状态页面上的所有计划维护。要获取状态页面上的所有计划维护，您可以向以下端点发送 POST 请求：
 
@@ -302,7 +302,7 @@ curl -X POST https://oneuptime.com/status-page-api/scheduled-maintenance/:status
 }
 ```
 
-### 公告 API
+## 公告 API
 
 此 API 将获取状态页面上的所有公告。要获取状态页面上的所有公告，您可以向以下端点发送 POST 请求：
 
@@ -326,3 +326,11 @@ curl -X POST https://oneuptime.com/status-page-api/announcements/:statusPageId
   ]
 }
 ```
+
+## 接下来读什么
+
+- [状态页概览](/docs/status-pages/index) — 状态页是什么,以及各部分如何协同工作。
+- [状态页资源与分组](/docs/status-pages/resources-and-groups) — 这些接口返回的资源。
+- [状态页品牌与域名](/docs/status-pages/branding-and-domains) — 提供这些接口的自定义域名。
+- [订阅者与公告](/docs/status-pages/subscribers) — 公告接口提供的公告。
+- [事件概览](/docs/incidents/index) — 这些响应中事件的来源。
