@@ -531,14 +531,6 @@ export default class MonitorUtil {
 
       result.monitorDestination = monitorStep.data.monitorDestination;
 
-      if (!monitorStep.data?.monitorDestination) {
-        result.isOnline = false;
-        result.responseTimeInMs = 0;
-        result.failureCause = "Port is not specified";
-
-        return result;
-      }
-
       const response: SslResponse | null = await SSLMonitor.ping(
         monitorStep.data?.monitorDestination as URL,
         {
@@ -553,6 +545,7 @@ export default class MonitorUtil {
       }
 
       result.isOnline = response.isOnline;
+      result.responseTimeInMs = response.responseTimeInMs;
       result.failureCause = response.failureCause;
       result.isTimeout = response.isTimeout;
       result.sslResponse = {

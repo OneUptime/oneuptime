@@ -21,6 +21,39 @@ export default class DnssecMonitorCriteria {
     const dnssecResponse: DnssecMonitorResponse | undefined =
       dataToProcess.dnssecResponse;
 
+    /*
+     * Reachability is read straight off the probe response and is meaningful
+     * even when the DNSSEC query produced no result at all, so these are
+     * answered before the dnssecResponse guard below.
+     *
+     * They were missing entirely, which made an "Is Online" filter on a DNSSEC
+     * monitor silently inert - it could never match in either direction, and a
+     * criteria that never matches leaves the monitor parked at its default
+     * status with no timeline event and no error. The dashboard's "Add Filter"
+     * button seeded exactly that filter.
+     */
+    if (input.criteriaFilter.checkOn === CheckOn.IsOnline) {
+      if (dataToProcess.isOnline === undefined) {
+        return null;
+      }
+
+      return CompareCriteria.compareCriteriaBoolean({
+        value: dataToProcess.isOnline,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
+    if (input.criteriaFilter.checkOn === CheckOn.IsRequestTimeout) {
+      if (dataToProcess.isTimeout === undefined) {
+        return null;
+      }
+
+      return CompareCriteria.compareCriteriaBoolean({
+        value: dataToProcess.isTimeout,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
     if (!dnssecResponse) {
       return null;
     }

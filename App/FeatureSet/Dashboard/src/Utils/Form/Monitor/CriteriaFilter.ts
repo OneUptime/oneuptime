@@ -194,15 +194,23 @@ export default class CriteriaFilterUtil {
     let options: Array<DropdownOption> =
       DropdownUtil.getDropdownOptionsFromEnum(CheckOn);
 
-    if (monitorType === MonitorType.Ping || monitorType === MonitorType.IP) {
-      options = options.filter((i: DropdownOption) => {
-        return (
-          i.value === CheckOn.IsOnline ||
-          i.value === CheckOn.ResponseTime ||
-          i.value === CheckOn.PacketLossPercent ||
-          i.value === CheckOn.Jitter ||
-          i.value === CheckOn.IsRequestTimeout
-        );
+    /*
+     * Audited types read their list from Common so the dropdown and the
+     * save-time validation in MonitorCriteriaInstance cannot drift apart
+     * again. They had: SSL Certificate and DNSSEC monitors offered no way to
+     * pick the reachability checks their evaluators do read, so a filter
+     * seeded with one rendered as a blank select over a live value. Types that
+     * return undefined keep their bespoke filtering below until audited.
+     *
+     * Returning early is safe only because none of the audited types does
+     * post-filter processing (unlike Port, which relabels Response Time).
+     */
+    const supportedCheckOns: Array<CheckOn> | undefined =
+      CommonCriteriaFilterUtil.getSupportedCheckOns(monitorType);
+
+    if (supportedCheckOns) {
+      return options.filter((i: DropdownOption) => {
+        return supportedCheckOns.includes(i.value as CheckOn);
       });
     }
 
@@ -266,19 +274,6 @@ export default class CriteriaFilterUtil {
           i.value === CheckOn.ExecutionTime ||
           i.value === CheckOn.BrowserType ||
           i.value === CheckOn.ScreenSizeType
-        );
-      });
-    }
-
-    if (monitorType === MonitorType.SSLCertificate) {
-      options = options.filter((i: DropdownOption) => {
-        return (
-          i.value === CheckOn.IsValidCertificate ||
-          i.value === CheckOn.IsSelfSignedCertificate ||
-          i.value === CheckOn.IsExpiredCertificate ||
-          i.value === CheckOn.IsNotAValidCertificate ||
-          i.value === CheckOn.ExpiresInDays ||
-          i.value === CheckOn.ExpiresInHours
         );
       });
     }
@@ -390,19 +385,6 @@ export default class CriteriaFilterUtil {
           i.value === CheckOn.DomainNameServer ||
           i.value === CheckOn.DomainStatusCode ||
           i.value === CheckOn.DomainIsExpired
-        );
-      });
-    }
-
-    if (monitorType === MonitorType.DNSSEC) {
-      options = options.filter((i: DropdownOption) => {
-        return (
-          i.value === CheckOn.DnssecChainValid ||
-          i.value === CheckOn.DnssecDnskeyExists ||
-          i.value === CheckOn.DnssecDsExists ||
-          i.value === CheckOn.DnssecResolverConsensus ||
-          i.value === CheckOn.DnssecNameserverConsistent ||
-          i.value === CheckOn.DnssecSignatureExpiresInDays
         );
       });
     }

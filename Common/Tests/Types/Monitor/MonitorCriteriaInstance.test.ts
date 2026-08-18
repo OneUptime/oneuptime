@@ -316,6 +316,105 @@ describe("MonitorCriteriaInstance", () => {
       expect(error).toContain("Ping Monitor cannot have filter type");
     });
 
+    /*
+     * Issue #3225. The Ping-only guard is now driven by
+     * CriteriaFilterUtil.getSupportedCheckOns, so every audited type rejects a
+     * checkOn its evaluator never reads. Saving one produced a criteria that
+     * could never match in either direction - and a criteria set where nothing
+     * matches is silent: the monitor sits at its default status forever with no
+     * timeline event and no error to go on.
+     */
+    test("rejects a filter type that an SSL Certificate monitor cannot support", () => {
+      const instance: MonitorCriteriaInstance = buildValidInstance();
+      instance.data!.filters = [
+        {
+          checkOn: CheckOn.ResponseStatusCode,
+          filterType: FilterType.EqualTo,
+          value: 200,
+        },
+      ];
+      const error: string | null = MonitorCriteriaInstance.getValidationError(
+        instance,
+        MonitorType.SSLCertificate,
+      );
+      expect(error).toContain(
+        "SSL Certificate Monitor cannot have filter type",
+      );
+    });
+
+    test("rejects a filter type that a DNSSEC monitor cannot support", () => {
+      const instance: MonitorCriteriaInstance = buildValidInstance();
+      instance.data!.filters = [
+        {
+          checkOn: CheckOn.IsValidCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        },
+      ];
+      const error: string | null = MonitorCriteriaInstance.getValidationError(
+        instance,
+        MonitorType.DNSSEC,
+      );
+      expect(error).toContain("DNSSEC Monitor cannot have filter type");
+    });
+
+    /*
+     * The reachability checks stay legal on both types: their evaluators have
+     * always read them, and any monitor already carrying one has to remain
+     * saveable.
+     */
+    test("accepts Is Online on an SSL Certificate monitor", () => {
+      const instance: MonitorCriteriaInstance = buildValidInstance();
+      instance.data!.filters = [
+        {
+          checkOn: CheckOn.IsOnline,
+          filterType: FilterType.False,
+          value: undefined,
+        },
+      ];
+      expect(
+        MonitorCriteriaInstance.getValidationError(
+          instance,
+          MonitorType.SSLCertificate,
+        ),
+      ).toBeNull();
+    });
+
+    test("accepts Is Online on a DNSSEC monitor", () => {
+      const instance: MonitorCriteriaInstance = buildValidInstance();
+      instance.data!.filters = [
+        {
+          checkOn: CheckOn.IsOnline,
+          filterType: FilterType.False,
+          value: undefined,
+        },
+      ];
+      expect(
+        MonitorCriteriaInstance.getValidationError(
+          instance,
+          MonitorType.DNSSEC,
+        ),
+      ).toBeNull();
+    });
+
+    // A type with no audited list is unconstrained, exactly as before.
+    test("accepts any filter type on a monitor type that has not been audited", () => {
+      const instance: MonitorCriteriaInstance = buildValidInstance();
+      instance.data!.filters = [
+        {
+          checkOn: CheckOn.IsValidCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        },
+      ];
+      expect(
+        MonitorCriteriaInstance.getValidationError(
+          instance,
+          MonitorType.Website,
+        ),
+      ).toBeNull();
+    });
+
     test("requires a disk path for Disk Usage Percent filters", () => {
       const instance: MonitorCriteriaInstance = buildValidInstance();
       instance.data!.filters = [
@@ -502,6 +601,86 @@ describe("MonitorCriteriaInstance", () => {
   describe("isValid", () => {
     test("returns true (permissive by contract)", () => {
       expect(MonitorCriteriaInstance.isValid({})).toBe(true);
+    });
+  });
+
+  /*
+   * Issue #3225. The dashboard's "Add Criteria" button used to push a bare
+   * `new MonitorCriteriaInstance()`, whose hardcoded IsOnline filter is not in
+   * the SSL Certificate or DNSSEC dropdowns - so the checkOn select rendered
+   * blank over a live value, and a user who only touched the filterType select
+   * saved a filter they never knowingly chose.
+   */
+  describe("getEmptyCriteriaInstance", () => {
+    test("seeds an SSL Certificate criteria with a certificate check", () => {
+      const instance: MonitorCriteriaInstance =
+        MonitorCriteriaInstance.getEmptyCriteriaInstance(
+          MonitorType.SSLCertificate,
+        );
+
+      expect(instance.data?.filters).toHaveLength(1);
+      expect(instance.data?.filters[0]?.checkOn).toBe(
+        CheckOn.IsValidCertificate,
+      );
+    });
+
+    test("seeds a DNSSEC criteria with a DNSSEC check", () => {
+      const instance: MonitorCriteriaInstance =
+        MonitorCriteriaInstance.getEmptyCriteriaInstance(MonitorType.DNSSEC);
+
+      expect(instance.data?.filters[0]?.checkOn).toBe(CheckOn.DnssecChainValid);
+    });
+
+    test("leaves filterType unset so the user has to pick one", () => {
+      const instance: MonitorCriteriaInstance =
+        MonitorCriteriaInstance.getEmptyCriteriaInstance(
+          MonitorType.SSLCertificate,
+        );
+
+      expect(instance.data?.filters[0]?.filterType).toBeUndefined();
+    });
+
+    test("seeds a checkOn the type validates", () => {
+      for (const monitorType of [
+        MonitorType.SSLCertificate,
+        MonitorType.DNSSEC,
+        MonitorType.Ping,
+        MonitorType.Website,
+      ]) {
+        const instance: MonitorCriteriaInstance =
+          MonitorCriteriaInstance.getEmptyCriteriaInstance(monitorType);
+
+        instance.data!.name = "Seeded";
+        instance.data!.description = "Seeded";
+        instance.data!.monitorStatusId = ObjectID.generate();
+        instance.data!.filters[0]!.filterType = FilterType.True;
+
+        expect(
+          MonitorCriteriaInstance.getValidationError(instance, monitorType),
+        ).toBeNull();
+      }
+    });
+
+    /*
+     * An un-audited type has no list to seed from, so it keeps the bare
+     * constructor's shape.
+     */
+    test("falls back to the constructor default for an unaudited type", () => {
+      const instance: MonitorCriteriaInstance =
+        MonitorCriteriaInstance.getEmptyCriteriaInstance(MonitorType.Website);
+
+      expect(instance.data?.filters[0]?.checkOn).toBe(CheckOn.IsOnline);
+    });
+
+    /*
+     * The bare constructor is used in ~40 places by the alert-pack builders and
+     * by fromJSON, which overwrite filters immediately and depend on its shape.
+     */
+    test("the bare constructor is unchanged", () => {
+      const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+
+      expect(instance.data?.filters).toHaveLength(1);
+      expect(instance.data?.filters[0]?.checkOn).toBe(CheckOn.IsOnline);
     });
   });
 });

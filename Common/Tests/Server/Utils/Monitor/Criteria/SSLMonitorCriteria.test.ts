@@ -465,4 +465,234 @@ describe("SSLMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
 
     expect(result).toBeNull();
   });
+
+  /*
+   * A probe that could not reach the host at all still ships an sslResponse -
+   * the probe fills it from the offline result object - so it is truthy but
+   * carries no certificate. IsSelfSignedCertificate and IsExpiredCertificate
+   * used to answer "not self signed" / "not expired" from that, which turned an
+   * outage into a green check for anyone using either in their Operational
+   * criteria. Both now gate on reachability the way IsValidCertificate always
+   * has.
+   */
+  describe("an unreachable host cannot produce a green certificate check", () => {
+    const offlineWithEmptySslResponse: () => ProbeMonitorResponse = () => {
+      return buildDataToProcess({
+        isOnline: false,
+        sslResponse: {},
+      });
+    };
+
+    test("IsSelfSignedCertificate + False → indeterminate, not met", async () => {
+      const result: string | null = await evaluate(
+        offlineWithEmptySslResponse(),
+        {
+          checkOn: CheckOn.IsSelfSignedCertificate,
+          filterType: FilterType.False,
+          value: undefined,
+        },
+      );
+
+      expect(result).toBeNull();
+    });
+
+    test("IsSelfSignedCertificate + True → indeterminate", async () => {
+      const result: string | null = await evaluate(
+        offlineWithEmptySslResponse(),
+        {
+          checkOn: CheckOn.IsSelfSignedCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        },
+      );
+
+      expect(result).toBeNull();
+    });
+
+    test("IsExpiredCertificate + False → indeterminate, not met", async () => {
+      const result: string | null = await evaluate(
+        offlineWithEmptySslResponse(),
+        {
+          checkOn: CheckOn.IsExpiredCertificate,
+          filterType: FilterType.False,
+          value: undefined,
+        },
+      );
+
+      expect(result).toBeNull();
+    });
+
+    test("IsExpiredCertificate + True → indeterminate", async () => {
+      const result: string | null = await evaluate(
+        offlineWithEmptySslResponse(),
+        {
+          checkOn: CheckOn.IsExpiredCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        },
+      );
+
+      expect(result).toBeNull();
+    });
+
+    test("no sslResponse at all + False → indeterminate", async () => {
+      const dataToProcess: ProbeMonitorResponse = buildDataToProcess({
+        isOnline: false,
+        includeSslResponse: false,
+      });
+
+      await expect(
+        evaluate(dataToProcess, {
+          checkOn: CheckOn.IsSelfSignedCertificate,
+          filterType: FilterType.False,
+          value: undefined,
+        }),
+      ).resolves.toBeNull();
+
+      await expect(
+        evaluate(dataToProcess, {
+          checkOn: CheckOn.IsExpiredCertificate,
+          filterType: FilterType.False,
+          value: undefined,
+        }),
+      ).resolves.toBeNull();
+    });
+
+    /*
+     * The reachability checks still answer - they are the ones that are
+     * supposed to notice a dead host.
+     */
+    test("IsOnline + False still reports the host as down", async () => {
+      const result: string | null = await evaluate(
+        offlineWithEmptySslResponse(),
+        {
+          checkOn: CheckOn.IsOnline,
+          filterType: FilterType.False,
+          value: undefined,
+        },
+      );
+
+      expect(result).toBeTruthy();
+    });
+
+    test("IsNotAValidCertificate + True still fires", async () => {
+      const result: string | null = await evaluate(
+        offlineWithEmptySslResponse(),
+        {
+          checkOn: CheckOn.IsNotAValidCertificate,
+          filterType: FilterType.True,
+          value: undefined,
+        },
+      );
+
+      expect(result).toBe("SSL certificate is not valid.");
+    });
+  });
+
+  /*
+   * Issue #3225. The reporter's monitor pointed at self-signed.badssl.com,
+   * which the probe reports as reachable (a certificate was obtained) but
+   * untrusted. Their two criteria were "Is Valid Certificate = True" for
+   * Operational and "Is Online = False" for Down - and NEITHER can match that
+   * response. A criteria set where nothing matches is completely silent: the
+   * monitor stays parked at its default status with no timeline event and no
+   * incident, which reads in the dashboard exactly like a monitor that never
+   * ran at all.
+   */
+  describe("issue #3225 - a self-signed host under the reporter's criteria", () => {
+    const selfSignedButReachable: () => ProbeMonitorResponse = () => {
+      return buildDataToProcess({
+        isOnline: true,
+        sslResponse: {
+          isSelfSigned: true,
+          expiresAt: dateFromNow({ days: 365 }),
+        },
+      });
+    };
+
+    test("IsValidCertificate = True does not match", async () => {
+      const result: string | null = await evaluate(selfSignedButReachable(), {
+        checkOn: CheckOn.IsValidCertificate,
+        filterType: FilterType.True,
+        value: undefined,
+      });
+
+      expect(result).toBeNull();
+    });
+
+    test("IsOnline = False does not match", async () => {
+      const result: string | null = await evaluate(selfSignedButReachable(), {
+        checkOn: CheckOn.IsOnline,
+        filterType: FilterType.False,
+        value: undefined,
+      });
+
+      expect(result).toBeNull();
+    });
+
+    /*
+     * The criteria the product ships by default DOES catch this host, which is
+     * why the stock configuration was never affected. Pinning it makes sure the
+     * default keeps working.
+     */
+    test("the shipped default offline criteria (IsNotAValidCertificate = True) does match", async () => {
+      const result: string | null = await evaluate(selfSignedButReachable(), {
+        checkOn: CheckOn.IsNotAValidCertificate,
+        filterType: FilterType.True,
+        value: undefined,
+      });
+
+      expect(result).toBe("SSL certificate is not valid.");
+    });
+
+    test("IsSelfSignedCertificate = True also catches it", async () => {
+      const result: string | null = await evaluate(selfSignedButReachable(), {
+        checkOn: CheckOn.IsSelfSignedCertificate,
+        filterType: FilterType.True,
+        value: undefined,
+      });
+
+      expect(result).toBe("SSL Certificate is self signed.");
+    });
+  });
+
+  /*
+   * A handshake that never completed is not a reachable endpoint. The probe
+   * used to report isOnline: true alongside isTimeout: true on that path, which
+   * would have kept an "Is Online = True" criteria matching forever against a
+   * host that had stopped answering.
+   */
+  describe("a timed-out check", () => {
+    test("is reported as offline and timed out", async () => {
+      const timedOut: ProbeMonitorResponse = buildDataToProcess({
+        isOnline: false,
+        isTimeout: true,
+        sslResponse: {},
+      });
+
+      await expect(
+        evaluate(timedOut, {
+          checkOn: CheckOn.IsRequestTimeout,
+          filterType: FilterType.True,
+          value: undefined,
+        }),
+      ).resolves.toBeTruthy();
+
+      await expect(
+        evaluate(timedOut, {
+          checkOn: CheckOn.IsOnline,
+          filterType: FilterType.False,
+          value: undefined,
+        }),
+      ).resolves.toBeTruthy();
+
+      await expect(
+        evaluate(timedOut, {
+          checkOn: CheckOn.IsOnline,
+          filterType: FilterType.True,
+          value: undefined,
+        }),
+      ).resolves.toBeNull();
+    });
+  });
 });

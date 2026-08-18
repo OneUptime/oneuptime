@@ -1,4 +1,5 @@
 import CriteriaFilterElement from "./CriteriaFilter";
+import CriteriaFilterUiUtil from "../../../Utils/Form/Monitor/CriteriaFilter";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   CheckOn,
@@ -14,6 +15,7 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -122,6 +124,25 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
               props.monitorType === MonitorType.Kubernetes ||
               props.monitorType === MonitorType.Metrics;
 
+            /*
+             * Seed with a check this monitor type actually supports. This used
+             * to hard-code CheckOn.IsOnline with FilterType.EqualTo for every
+             * non-metric type. On SSL Certificate and DNSSEC neither value was
+             * in the type's dropdown, so both selects rendered blank over a
+             * live value - a user who touched only the second select ended up
+             * saving a filter they never knowingly chose, and on DNSSEC no
+             * evaluator read it at all, so the criteria could never fire.
+             *
+             * filterType is intentionally left undefined rather than
+             * defaulted: EqualTo is invalid for most boolean checks, and an
+             * empty required select is a visible prompt where a wrong
+             * prefilled one is not.
+             */
+            const checkOnOptions: Array<DropdownOption> =
+              CriteriaFilterUiUtil.getCheckOnOptionsByMonitorType(
+                props.monitorType,
+              );
+
             newCriteriaFilters.push(
               isMetricOnly
                 ? {
@@ -133,8 +154,9 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
                     },
                   }
                 : {
-                    checkOn: CheckOn.IsOnline,
-                    filterType: FilterType.EqualTo,
+                    checkOn:
+                      (checkOnOptions[0]?.value as CheckOn) || CheckOn.IsOnline,
+                    filterType: undefined,
                     value: "",
                   },
             );

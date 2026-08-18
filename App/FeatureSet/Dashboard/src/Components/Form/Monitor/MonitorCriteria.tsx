@@ -399,7 +399,16 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
             const newMonitorCriterias: Array<MonitorCriteriaInstance> = [
               ...(monitorCriteria.data?.monitorCriteriaInstanceArray || []),
             ];
-            newMonitorCriterias.push(new MonitorCriteriaInstance());
+            /*
+             * Seeded with a filter this monitor type supports - the bare
+             * constructor always seeded IsOnline, which SSL Certificate and
+             * DNSSEC monitors do not offer in their dropdown.
+             */
+            newMonitorCriterias.push(
+              MonitorCriteriaInstance.getEmptyCriteriaInstance(
+                props.monitorType,
+              ),
+            );
             props.onChange?.(
               MonitorCriteria.fromJSON({
                 _type: "MonitorCriteria",

@@ -105,6 +105,20 @@ export default class ServerMonitorCriteria {
     }
 
     if (input.criteriaFilter.checkOn === CheckOn.IsSelfSignedCertificate) {
+      /*
+       * With no certificate in hand there is no answer to give. The probe
+       * still populates sslResponse on an unreachable host (with nothing but
+       * a failureCause in it), so this used to return "SSL Certificate is not
+       * self signed." for an endpoint that was down - turning an outage into
+       * a green check for anyone using this filter in their Operational
+       * criteria. Absence of evidence is not evidence of absence: return null
+       * (indeterminate) and let the criteria that do test reachability
+       * decide. IsValidCertificate already gates on exactly this pair.
+       */
+      if (!sslResponse || !dataToProcess.isOnline) {
+        return null;
+      }
+
       const isSelfSigned: boolean = Boolean(
         sslResponse && sslResponse.isSelfSigned,
       );
@@ -124,6 +138,17 @@ export default class ServerMonitorCriteria {
     }
 
     if (input.criteriaFilter.checkOn === CheckOn.IsExpiredCertificate) {
+      /*
+       * Same reasoning as IsSelfSignedCertificate above - "not expired" was
+       * reported for hosts the probe could not reach at all. Gated on
+       * isOnline and deliberately not on expiresAt: a reachable host whose
+       * certificate carries no parsable expiry is still legitimately "not
+       * expired".
+       */
+      if (!sslResponse || !dataToProcess.isOnline) {
+        return null;
+      }
+
       const isExpired: boolean = Boolean(
         sslResponse &&
           sslResponse.expiresAt &&

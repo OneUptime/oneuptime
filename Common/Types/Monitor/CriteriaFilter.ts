@@ -1,5 +1,6 @@
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 import MetricCriteriaContext from "./MetricMonitor/MetricCriteriaContext";
+import MonitorType from "./MonitorType";
 
 export enum CheckOn {
   ResponseTime = "Response Time (in ms)",
@@ -276,6 +277,74 @@ export enum FilterType {
 }
 
 export class CriteriaFilterUtil {
+  /*
+   * The checks a monitor type's evaluator actually reads.
+   *
+   * Two things used to be maintained separately and had drifted apart: which
+   * checks the dashboard offers, and which checks are legal to save. A filter
+   * whose checkOn the type's evaluator never reads is not a value that reads
+   * oddly - it is a filter that can never match in either direction, and
+   * "nothing matched" is invisible at runtime because it simply leaves the
+   * monitor parked at its default status with no timeline event and no error.
+   * That is how issue #3225 stayed hidden for days.
+   *
+   * undefined means "this type has not been audited yet" and callers must
+   * treat it as no constraint, so adding a type here is opt-in and cannot
+   * affect the types that are not listed.
+   *
+   * The type-specific checks come first: the dashboard seeds a new filter with
+   * the first entry, and the useful default for an SSL monitor is a
+   * certificate check, not a reachability one.
+   */
+  public static getSupportedCheckOns(
+    monitorType: MonitorType,
+  ): Array<CheckOn> | undefined {
+    if (monitorType === MonitorType.SSLCertificate) {
+      /*
+       * IsOnline / IsRequestTimeout are reachability checks: on an SSL
+       * monitor they mean "we obtained a certificate at all", not "the chain
+       * is trusted". SSLMonitorCriteria has always evaluated them, they were
+       * simply absent from the dropdown - so a filter carrying one rendered as
+       * a blank select over a live value.
+       */
+      return [
+        CheckOn.IsValidCertificate,
+        CheckOn.IsSelfSignedCertificate,
+        CheckOn.IsExpiredCertificate,
+        CheckOn.IsNotAValidCertificate,
+        CheckOn.ExpiresInDays,
+        CheckOn.ExpiresInHours,
+        CheckOn.IsOnline,
+        CheckOn.IsRequestTimeout,
+      ];
+    }
+
+    if (monitorType === MonitorType.DNSSEC) {
+      return [
+        CheckOn.DnssecChainValid,
+        CheckOn.DnssecDnskeyExists,
+        CheckOn.DnssecDsExists,
+        CheckOn.DnssecResolverConsensus,
+        CheckOn.DnssecNameserverConsistent,
+        CheckOn.DnssecSignatureExpiresInDays,
+        CheckOn.IsOnline,
+        CheckOn.IsRequestTimeout,
+      ];
+    }
+
+    if (monitorType === MonitorType.Ping || monitorType === MonitorType.IP) {
+      return [
+        CheckOn.IsOnline,
+        CheckOn.ResponseTime,
+        CheckOn.PacketLossPercent,
+        CheckOn.Jitter,
+        CheckOn.IsRequestTimeout,
+      ];
+    }
+
+    return undefined;
+  }
+
   /**
    * Whether the filter is anomaly-based. Anomaly filters skip the
    * static threshold value/unit fields and instead read sensitivity

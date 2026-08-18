@@ -70,6 +70,35 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     };
   }
 
+  /*
+   * An empty criteria for the dashboard's "Add Criteria" button, seeded with a
+   * check the monitor type actually supports.
+   *
+   * The bare constructor keeps its IsOnline default: it is used in ~40 places
+   * by the alert-pack builders and by fromJSON, all of which overwrite filters
+   * immediately and depend on the current shape.
+   */
+  public static getEmptyCriteriaInstance(
+    monitorType: MonitorType,
+  ): MonitorCriteriaInstance {
+    const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+
+    const supportedCheckOns: Array<CheckOn> | undefined =
+      CriteriaFilterUtil.getSupportedCheckOns(monitorType);
+
+    if (instance.data && supportedCheckOns && supportedCheckOns[0]) {
+      instance.data.filters = [
+        {
+          checkOn: supportedCheckOns[0],
+          filterType: undefined,
+          value: undefined,
+        },
+      ];
+    }
+
+    return instance;
+  }
+
   public static getDefaultOnlineMonitorCriteriaInstance(arg: {
     monitorType: MonitorType;
     monitorStatusId: ObjectID;
@@ -1438,13 +1467,19 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         return `Filter Type is required for criteria "${value.data.name}"`;
       }
 
-      if (
-        monitorType === MonitorType.Ping &&
-        filter.checkOn !== CheckOn.IsOnline &&
-        filter.checkOn !== CheckOn.ResponseTime &&
-        filter.checkOn !== CheckOn.IsRequestTimeout
-      ) {
-        return "Ping Monitor cannot have filter type: " + filter.checkOn;
+      /*
+       * Generalized from a Ping-only special case. A checkOn the monitor
+       * type's evaluator never reads is a criteria that can never fire in
+       * either direction, and until now it saved without complaint on every
+       * type except Ping - the monitor then sat silently at its default
+       * status forever (issue #3225). Types the list has not audited yet
+       * return undefined and keep saving anything.
+       */
+      const supportedCheckOns: Array<CheckOn> | undefined =
+        CriteriaFilterUtil.getSupportedCheckOns(monitorType);
+
+      if (supportedCheckOns && !supportedCheckOns.includes(filter.checkOn)) {
+        return `${monitorType} Monitor cannot have filter type: ${filter.checkOn}`;
       }
 
       if (

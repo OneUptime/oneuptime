@@ -304,4 +304,171 @@ describe("DnssecMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
 
     expect(result).toBeNull();
   });
+
+  /*
+   * These were missing entirely, so an "Is Online" filter on a DNSSEC monitor
+   * could never match in either direction. A criteria that never matches is
+   * silent at runtime - the monitor just stays parked at its default status -
+   * and the dashboard's "Add Filter" button seeded exactly that filter, since
+   * IsOnline was its hardcoded default for every non-metric monitor type.
+   */
+  describe("reachability checks", () => {
+    function evaluateWith(input: {
+      isOnline?: boolean | undefined;
+      isTimeout?: boolean | undefined;
+      dnssecResponse?: DnssecMonitorResponse | undefined;
+      criteriaFilter: CriteriaFilter;
+    }): Promise<string | null> {
+      return DnssecMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess: {
+          projectId: ObjectID.generate(),
+          monitorId: ObjectID.generate(),
+          monitorStepId: ObjectID.generate(),
+          probeId: ObjectID.generate(),
+          failureCause: "",
+          isOnline: input.isOnline,
+          isTimeout: input.isTimeout,
+          responseTimeInMs: 10,
+          dnssecResponse: input.dnssecResponse,
+          monitoredAt: new Date(),
+        },
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
+    test("IsOnline online + True → met", async () => {
+      await expect(
+        evaluateWith({
+          isOnline: true,
+          dnssecResponse: buildDnssecResponse({}),
+          criteriaFilter: {
+            checkOn: CheckOn.IsOnline,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+        }),
+      ).resolves.toBeTruthy();
+    });
+
+    test("IsOnline online + False → not met", async () => {
+      await expect(
+        evaluateWith({
+          isOnline: true,
+          dnssecResponse: buildDnssecResponse({}),
+          criteriaFilter: {
+            checkOn: CheckOn.IsOnline,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+        }),
+      ).resolves.toBeNull();
+    });
+
+    test("IsOnline offline + False → met", async () => {
+      await expect(
+        evaluateWith({
+          isOnline: false,
+          dnssecResponse: buildDnssecResponse({ isOnline: false }),
+          criteriaFilter: {
+            checkOn: CheckOn.IsOnline,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+        }),
+      ).resolves.toBeTruthy();
+    });
+
+    /*
+     * The whole point of answering these before the dnssecResponse guard: a
+     * DNSSEC query that produced no result at all is exactly when the user
+     * most needs "is this thing reachable" to fire.
+     */
+    test("IsOnline is answered even when the DNSSEC query produced no response", async () => {
+      await expect(
+        evaluateWith({
+          isOnline: false,
+          dnssecResponse: undefined,
+          criteriaFilter: {
+            checkOn: CheckOn.IsOnline,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+        }),
+      ).resolves.toBeTruthy();
+    });
+
+    test("IsOnline is indeterminate when the probe reported no reachability at all", async () => {
+      await expect(
+        evaluateWith({
+          isOnline: undefined,
+          dnssecResponse: undefined,
+          criteriaFilter: {
+            checkOn: CheckOn.IsOnline,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+        }),
+      ).resolves.toBeNull();
+    });
+
+    test("IsRequestTimeout timed out + True → met", async () => {
+      await expect(
+        evaluateWith({
+          isOnline: false,
+          isTimeout: true,
+          dnssecResponse: undefined,
+          criteriaFilter: {
+            checkOn: CheckOn.IsRequestTimeout,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+        }),
+      ).resolves.toBeTruthy();
+    });
+
+    test("IsRequestTimeout did not time out + False → met", async () => {
+      await expect(
+        evaluateWith({
+          isOnline: true,
+          isTimeout: false,
+          dnssecResponse: buildDnssecResponse({}),
+          criteriaFilter: {
+            checkOn: CheckOn.IsRequestTimeout,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+        }),
+      ).resolves.toBeTruthy();
+    });
+
+    test("IsRequestTimeout is indeterminate when the probe reported nothing", async () => {
+      await expect(
+        evaluateWith({
+          isOnline: false,
+          isTimeout: undefined,
+          dnssecResponse: undefined,
+          criteriaFilter: {
+            checkOn: CheckOn.IsRequestTimeout,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+        }),
+      ).resolves.toBeNull();
+    });
+
+    // Guards the ordering: the new block must not swallow the DNSSEC checks.
+    test("the DNSSEC checks still return null when there is no response", async () => {
+      await expect(
+        evaluateWith({
+          isOnline: false,
+          dnssecResponse: undefined,
+          criteriaFilter: {
+            checkOn: CheckOn.DnssecChainValid,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+        }),
+      ).resolves.toBeNull();
+    });
+  });
 });
