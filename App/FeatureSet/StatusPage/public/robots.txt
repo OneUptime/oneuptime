@@ -1,3 +1,10 @@
 # https://www.robotstxt.org/robotstxt.html
+#
+# Per-status-page indexing is NOT controlled here. A status page whose owner
+# turned off "Search Engine Indexing" (Status Page > Branding) is served with
+# <meta name="robots" content="noindex, nofollow"> and an X-Robots-Tag header
+# instead. Disallow would be the wrong tool for it: it blocks the crawl, and a
+# crawler that never fetches the page never sees the noindex, so the URL can
+# still surface in results.
 User-agent: *
 Disallow: /api/*

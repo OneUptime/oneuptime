@@ -18,6 +18,7 @@ import {
   DEFAULT_STATUS_PAGE_LANGUAGE,
   SUPPORTED_STATUS_PAGE_LANGUAGE_CODES,
 } from "Common/Types/StatusPage/StatusPageLanguage";
+import applyStatusPageRobotsHeader from "Common/Server/Utils/StatusPageSearchEngineIndexing";
 
 export const APP_NAME: string = "status-page";
 
@@ -44,7 +45,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       },
       getVariablesToRenderIndexPage: async (
         req: ExpressRequest,
-        _res: ExpressResponse,
+        res: ExpressResponse,
       ) => {
         const statusPageData: StatusPageData | null =
           await getStatusPageData(req);
@@ -72,12 +73,24 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
               ? statusPageData.defaultLanguage
               : DEFAULT_STATUS_PAGE_LANGUAGE;
 
+          /*
+           * Belt and braces with the <meta name="robots"> the template
+           * renders from isSearchEngineIndexingEnabled below: the header is
+           * honoured even if a crawler gives up on the HTML.
+           */
+          applyStatusPageRobotsHeader(
+            res,
+            statusPageData.isSearchEngineIndexingEnabled,
+          );
+
           return {
             title: statusPageData.title,
             description: statusPageData.description,
             faviconUrl: statusPageData.faviconUrl,
             lang: resolvedLang,
             rssFeedPath: rssFeedPath,
+            isSearchEngineIndexingEnabled:
+              statusPageData.isSearchEngineIndexingEnabled,
           };
         }
         return {

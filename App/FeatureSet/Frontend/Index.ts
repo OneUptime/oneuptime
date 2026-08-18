@@ -25,6 +25,7 @@ import {
   StatusPageData,
   getStatusPageData,
 } from "./Utils/StatusPage";
+import applyStatusPageRobotsHeader from "Common/Server/Utils/StatusPageSearchEngineIndexing";
 import { handlePublicDashboardLlmsTxt } from "./Utils/PublicDashboard";
 import DashboardDomainService from "Common/Server/Services/DashboardDomainService";
 import DashboardDomain from "Common/Models/DatabaseModels/DashboardDomain";
@@ -144,7 +145,7 @@ const StatusPageFrontendConfig: FrontendConfig = {
   indexViewPath: StatusPageViewPath,
   getVariablesToRenderIndexPage: async (
     req: ExpressRequest,
-    _res: ExpressResponse,
+    res: ExpressResponse,
   ): Promise<JSONObject> => {
     const statusPageData: StatusPageData | null = await getStatusPageData(req);
 
@@ -163,11 +164,23 @@ const StatusPageFrontendConfig: FrontendConfig = {
         : "/rss";
 
     if (statusPageData) {
+      /*
+       * Belt and braces with the <meta name="robots"> the template renders
+       * from isSearchEngineIndexingEnabled below: the header is honoured even
+       * if a crawler gives up on the HTML.
+       */
+      applyStatusPageRobotsHeader(
+        res,
+        statusPageData.isSearchEngineIndexingEnabled,
+      );
+
       return {
         title: statusPageData.title,
         description: statusPageData.description,
         faviconUrl: statusPageData.faviconUrl,
         rssFeedPath: rssFeedPath,
+        isSearchEngineIndexingEnabled:
+          statusPageData.isSearchEngineIndexingEnabled,
       };
     }
 
