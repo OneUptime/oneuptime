@@ -168,6 +168,28 @@ RunCron(
         continue;
       }
 
+      /*
+       * These values do not vary per owner, so compute them once per status
+       * timeline instead of once per owner notification.
+       */
+      const monitorDescriptionHtml: string = await Markdown.convertToHTML(
+        monitor.description! || "",
+        MarkdownContentType.Email,
+      );
+
+      const monitorViewLink: string = (
+        await MonitorService.getMonitorLinkInDashboard(
+          monitorStatusTimeline.projectId!,
+          monitor.id!,
+        )
+      ).toString();
+
+      const rootCauseHtml: string =
+        (await Markdown.convertToHTML(
+          monitorStatusTimeline.rootCause || "",
+          MarkdownContentType.Email,
+        )) || "";
+
       for (const user of owners) {
         // Build the "Was X for Y" string
         const previousStatusDurationText: string =
@@ -183,26 +205,14 @@ RunCron(
           previousStatus: previousStatus?.name || "",
           previousStatusColor: previousStatus?.color?.toString() || "#94a3b8",
           previousStatusDurationText: previousStatusDurationText,
-          monitorDescription: await Markdown.convertToHTML(
-            monitor.description! || "",
-            MarkdownContentType.Email,
-          ),
+          monitorDescription: monitorDescriptionHtml,
           statusChangedAt:
             OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
               date: monitorStatusTimeline.createdAt!,
               timezones: user.timezone ? [user.timezone] : [],
             }),
-          monitorViewLink: (
-            await MonitorService.getMonitorLinkInDashboard(
-              monitorStatusTimeline.projectId!,
-              monitor.id!,
-            )
-          ).toString(),
-          rootCause:
-            (await Markdown.convertToHTML(
-              monitorStatusTimeline.rootCause || "",
-              MarkdownContentType.Email,
-            )) || "",
+          monitorViewLink: monitorViewLink,
+          rootCause: rootCauseHtml,
           monitorDestination: destinationInfo.monitorDestination,
           requestType: destinationInfo.requestType,
           monitorType: destinationInfo.monitorType,

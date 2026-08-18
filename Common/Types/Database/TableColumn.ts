@@ -63,21 +63,48 @@ type GetTableColumnsFunction = <T extends BaseModel>(
   target: T,
 ) => Dictionary<TableColumnMetadata>;
 
+/*
+ * Per-class cache. Safe to key on the constructor because every decorated
+ * column is initialised to `undefined` in the class body, so Object.keys()
+ * is identical for every instance of a class (see OwnerOnlyColumn.ts).
+ */
+const tableColumnsCache: WeakMap<
+  { new (): BaseModel },
+  Dictionary<TableColumnMetadata>
+> = new WeakMap();
+
 export const getTableColumns: GetTableColumnsFunction = <T extends BaseModel>(
   target: T,
 ): Dictionary<TableColumnMetadata> => {
-  const dictonary: Dictionary<TableColumnMetadata> = {};
-  const keys: Array<string> = Object.keys(target);
+  const modelClass: { new (): BaseModel } = target.constructor as {
+    new (): BaseModel;
+  };
+  let cached: Dictionary<TableColumnMetadata> | undefined =
+    tableColumnsCache.get(modelClass);
 
-  for (const key of keys) {
-    if (Reflect.getMetadata(tableColumn, target, key)) {
-      dictonary[key] = Reflect.getMetadata(
+  if (!cached) {
+    const dictonary: Dictionary<TableColumnMetadata> = {};
+    const keys: Array<string> = Object.keys(target);
+
+    for (const key of keys) {
+      const metadata: TableColumnMetadata | undefined = Reflect.getMetadata(
         tableColumn,
         target,
         key,
-      ) as TableColumnMetadata;
+      ) as TableColumnMetadata | undefined;
+      if (metadata) {
+        dictonary[key] = metadata;
+      }
     }
+
+    cached = dictonary;
+    tableColumnsCache.set(modelClass, cached);
   }
 
-  return dictonary;
+  /*
+   * Hand out a copy, not the cached dictionary itself: callers mutate the
+   * result (the API reference docs delete entries from it), which would
+   * otherwise strip columns from every later call for the same class.
+   */
+  return { ...cached };
 };

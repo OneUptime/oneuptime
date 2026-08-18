@@ -135,6 +135,38 @@ Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await
         incident.incidentNumberWithPrefix ||
         (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
 
+      /*
+       * These values do not vary per owner, so convert them once per incident
+       * instead of once per owner notification. A conversion failure must
+       * stay contained to this incident, like every other failure in this loop.
+       */
+      let incidentDescriptionHtml: string = "";
+      let remediationNotesHtml: string = "";
+      let rootCauseHtml: string = "";
+
+      try {
+        incidentDescriptionHtml = await Markdown.convertToHTML(
+          incident.description! || "",
+          MarkdownContentType.Email,
+        );
+
+        remediationNotesHtml =
+          (await Markdown.convertToHTML(
+            incident.remediationNotes! || "",
+            MarkdownContentType.Email,
+          )) || "";
+
+        rootCauseHtml =
+          (await Markdown.convertToHTML(
+            incident.rootCause || "No root cause identified for this incident",
+            MarkdownContentType.Email,
+          )) || "";
+      } catch (e) {
+        logger.error("Error in sending incident created resource notification");
+        logger.error(e);
+        continue;
+      }
+
       for (const user of owners) {
         try {
           const vars: Dictionary<string> = {
@@ -142,10 +174,7 @@ Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await
             incidentNumber: incidentNumberStr,
             projectName: incident.project!.name!,
             currentState: incident.currentIncidentState!.name!,
-            incidentDescription: await Markdown.convertToHTML(
-              incident.description! || "",
-              MarkdownContentType.Email,
-            ),
+            incidentDescription: incidentDescriptionHtml,
             resourcesAffected:
               incident
                 .monitors!.map((monitor: Monitor) => {
@@ -160,17 +189,8 @@ Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await
               },
             ),
             declaredBy: declaredBy,
-            remediationNotes:
-              (await Markdown.convertToHTML(
-                incident.remediationNotes! || "",
-                MarkdownContentType.Email,
-              )) || "",
-            rootCause:
-              (await Markdown.convertToHTML(
-                incident.rootCause ||
-                  "No root cause identified for this incident",
-                MarkdownContentType.Email,
-              )) || "",
+            remediationNotes: remediationNotesHtml,
+            rootCause: rootCauseHtml,
             incidentViewLink: (
               await IncidentService.getIncidentLinkInDashboard(
                 incident.projectId!,

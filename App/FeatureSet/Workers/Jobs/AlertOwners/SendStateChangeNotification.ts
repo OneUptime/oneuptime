@@ -86,6 +86,9 @@ RunCron(
           },
           alertNumber: true,
           alertNumberWithPrefix: true,
+          alertSeverity: {
+            name: true,
+          },
         },
       });
 
@@ -94,24 +97,6 @@ RunCron(
       }
 
       const alertState: AlertState = alertStateTimeline.alertState!;
-
-      // get alert severity
-      const alertWithSeverity: Alert | null = await AlertService.findOneById({
-        id: alert.id!,
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-          alertSeverity: {
-            name: true,
-          },
-        },
-      });
-
-      if (!alertWithSeverity) {
-        continue;
-      }
 
       await AlertStateTimelineService.updateOneById({
         id: alertStateTimeline.id!,
@@ -205,6 +190,11 @@ RunCron(
         alert.alertNumberWithPrefix ||
         (alert.alertNumber ? `#${alert.alertNumber}` : "");
 
+      const alertDescriptionHtml: string = await Markdown.convertToHTML(
+        alert.description! || "",
+        MarkdownContentType.Email,
+      );
+
       for (const user of owners) {
         const alertIdentifier: string =
           alert.alertNumber !== undefined
@@ -226,17 +216,14 @@ RunCron(
           previousState: previousState?.name || "",
           previousStateColor: previousState?.color?.toString() || "#6b7280",
           previousStateDurationText: previousStateDurationText,
-          alertDescription: await Markdown.convertToHTML(
-            alert.description! || "",
-            MarkdownContentType.Email,
-          ),
+          alertDescription: alertDescriptionHtml,
           resourcesAffected: alert.monitor?.name || "",
           stateChangedAt:
             OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
               date: alertStateTimeline.createdAt!,
               timezones: user.timezone ? [user.timezone] : [],
             }),
-          alertSeverity: alertWithSeverity.alertSeverity!.name!,
+          alertSeverity: alert.alertSeverity!.name!,
           alertViewLink: (
             await AlertService.getAlertLinkInDashboard(
               alertStateTimeline.projectId!,

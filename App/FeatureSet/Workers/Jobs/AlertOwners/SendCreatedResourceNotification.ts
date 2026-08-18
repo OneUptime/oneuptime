@@ -133,6 +133,38 @@ RunCron(
         alert.alertNumberWithPrefix ||
         (alert.alertNumber ? `#${alert.alertNumber}` : "");
 
+      /*
+       * These values do not vary per owner, so convert them once per alert
+       * instead of once per owner notification. A conversion failure must
+       * stay contained to this alert, like every other failure in this loop.
+       */
+      let alertDescriptionHtml: string = "";
+      let remediationNotesHtml: string = "";
+      let rootCauseHtml: string = "";
+
+      try {
+        alertDescriptionHtml = await Markdown.convertToHTML(
+          alert.description! || "",
+          MarkdownContentType.Email,
+        );
+
+        remediationNotesHtml =
+          (await Markdown.convertToHTML(
+            alert.remediationNotes! || "",
+            MarkdownContentType.Email,
+          )) || "";
+
+        rootCauseHtml =
+          (await Markdown.convertToHTML(
+            alert.rootCause || "No root cause identified for this alert",
+            MarkdownContentType.Email,
+          )) || "";
+      } catch (e) {
+        logger.error("Error in sending alert created resource notification");
+        logger.error(e);
+        continue;
+      }
+
       for (const user of owners) {
         try {
           const alertIdentifier: string =
@@ -145,10 +177,7 @@ RunCron(
             alertNumber: alertNumberStr,
             projectName: alert.project!.name!,
             currentState: alert.currentAlertState!.name!,
-            alertDescription: await Markdown.convertToHTML(
-              alert.description! || "",
-              MarkdownContentType.Email,
-            ),
+            alertDescription: alertDescriptionHtml,
             resourcesAffected: alert.monitor?.name || "None",
             alertSeverity: alert.alertSeverity!.name!,
             declaredAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
@@ -158,16 +187,8 @@ RunCron(
               },
             ),
             declaredBy: declaredBy,
-            remediationNotes:
-              (await Markdown.convertToHTML(
-                alert.remediationNotes! || "",
-                MarkdownContentType.Email,
-              )) || "",
-            rootCause:
-              (await Markdown.convertToHTML(
-                alert.rootCause || "No root cause identified for this alert",
-                MarkdownContentType.Email,
-              )) || "",
+            remediationNotes: remediationNotesHtml,
+            rootCause: rootCauseHtml,
             alertViewLink: (
               await AlertService.getAlertLinkInDashboard(
                 alert.projectId!,

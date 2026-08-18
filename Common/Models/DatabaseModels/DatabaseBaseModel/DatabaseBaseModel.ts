@@ -252,8 +252,7 @@ export default class DatabaseBaseModel extends BaseEntity {
   }
 
   public getTableColumnMetadata(columnName: string): TableColumnMetadata {
-    const dictionary: Dictionary<TableColumnMetadata> = getTableColumns(this);
-    return dictionary[columnName] as TableColumnMetadata;
+    return getTableColumn(this, columnName);
   }
 
   public hasColumn(columnName: string): boolean {
@@ -275,8 +274,10 @@ export default class DatabaseBaseModel extends BaseEntity {
   }
 
   public getColumnAccessControlForAllColumns(): Dictionary<ColumnAccessControl> {
-    const dictionary: Dictionary<ColumnAccessControl> =
-      getColumnAccessControlForAllColumns(this);
+    // Copy: the helper's dictionary is cached per class and must stay pristine.
+    const dictionary: Dictionary<ColumnAccessControl> = {
+      ...getColumnAccessControlForAllColumns(this),
+    };
 
     const defaultColumns: Array<string> = [
       "_id",

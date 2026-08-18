@@ -5,7 +5,6 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
-import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import ProbeStatusReport from "Common/Types/Probe/ProbeStatusReport";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import MailService from "Common/Server/Services/MailService";
@@ -279,11 +278,7 @@ router.post(
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const probeResponse: ProbeMonitorResponse = JSONFunctions.deserialize(
-        req.body["probeMonitorResponse"],
-      ) as any;
-
-      if (!probeResponse) {
+      if (!req.body["probeMonitorResponse"]) {
         return Response.sendErrorResponse(
           req,
           res,
@@ -351,13 +346,9 @@ router.post(
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const probeResponse: ProbeMonitorResponse = JSONFunctions.deserialize(
-        req.body["probeMonitorResponse"],
-      ) as any;
+      const testIdInParams: string | undefined = req.params["testId"];
 
-      const testId: ObjectID = new ObjectID(req.params["testId"] as string);
-
-      if (!testId) {
+      if (!testIdInParams) {
         return Response.sendErrorResponse(
           req,
           res,
@@ -365,13 +356,15 @@ router.post(
         );
       }
 
-      if (!probeResponse) {
+      if (!req.body["probeMonitorResponse"]) {
         return Response.sendErrorResponse(
           req,
           res,
           new BadDataException("ProbeMonitorResponse not found"),
         );
       }
+
+      const testId: ObjectID = new ObjectID(testIdInParams);
 
       // Return response immediately
       Response.sendEmptySuccessResponse(req, res);
