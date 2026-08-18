@@ -529,6 +529,7 @@ import { AddAIChatMessageFeedback1787200000000 } from "./1787200000000-AddAIChat
 import { AddEpisodeMemberNotifyIndexes1787300000000 } from "./1787300000000-AddEpisodeMemberNotifyIndexes";
 import { AddDeviceRoleAndDeclaredLinkParent1787400000000 } from "./1787400000000-AddDeviceRoleAndDeclaredLinkParent";
 import { AddEnableSearchEngineIndexingToStatusPage1787500000000 } from "./1787500000000-AddEnableSearchEngineIndexingToStatusPage";
+import { AddNetworkDeviceReachabilityColumns1787600000000 } from "./1787600000000-AddNetworkDeviceReachabilityColumns";
 
 export default [
   InitialMigration,
@@ -1062,4 +1063,5 @@ export default [
   AddEpisodeMemberNotifyIndexes1787300000000,
   AddDeviceRoleAndDeclaredLinkParent1787400000000,
   AddEnableSearchEngineIndexingToStatusPage1787500000000,
+  AddNetworkDeviceReachabilityColumns1787600000000,
 ];

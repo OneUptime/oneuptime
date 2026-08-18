@@ -83,18 +83,35 @@ export default class NetworkInventoryUtil {
     const now: Date = OneUptimeDate.getCurrentDate();
 
     /*
-     * lastSeenAt is "last time the device actually answered", not "last time
-     * we tried": the device list's status pill and the topology map both
-     * derive up/down from its freshness, so bumping it on a failed poll
-     * would paint an unreachable device green. A poll where the probe could
-     * not reach the device reports isOnline === false; treat anything else
-     * (reachable, or a walk that reports no reachability) as seen.
+     * A poll where the probe could not reach the device reports
+     * isOnline === false; treat anything else (reachable, or a walk that
+     * reports no reachability at all) as answered.
      */
     const isDeviceReachable: boolean = data.isOnline !== false;
 
     try {
       // --- Device enrichment + cached counts ---
       const deviceUpdate: Record<string, unknown> = {};
+
+      /*
+       * Three columns, three different questions, and the difference
+       * between them is the whole reason a reachable device used to show as
+       * down:
+       *
+       *   lastPolledAt - when we last ASKED. Always stamped, success or
+       *                  failure. Without it there is no way to tell a
+       *                  device that did not answer from one nothing got
+       *                  round to polling, which is what made a fleet
+       *                  bigger than one probe's claim rate read as a
+       *                  fleet-wide outage.
+       *   isReachable  - what the answer WAS. This is what the device list,
+       *                  the topology graph and the site rollup read.
+       *   lastSeenAt   - when the device last ANSWERED. Only moves on a
+       *                  successful walk, so it stays honest as "last
+       *                  contact" and never paints a dead device green.
+       */
+      deviceUpdate["lastPolledAt"] = now;
+      deviceUpdate["isReachable"] = isDeviceReachable;
 
       if (isDeviceReachable) {
         deviceUpdate["lastSeenAt"] = now;
@@ -181,7 +198,11 @@ export default class NetworkInventoryUtil {
         ).length;
       }
 
-      // An unreachable poll with no walk data leaves nothing worth writing.
+      /*
+       * Always non-empty now: even a walk that reached nothing has to
+       * record that we tried, or the staleness backstop cannot tell a
+       * failing device from an unpolled one.
+       */
       if (Object.keys(deviceUpdate).length > 0) {
         await NetworkDeviceService.updateOneById({
           id: deviceId,

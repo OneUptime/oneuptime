@@ -1,6 +1,7 @@
 import { mockRouter } from "Common/Tests/Server/API/Helpers";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import Response from "Common/Server/Utils/Response";
+import logger from "Common/Server/Utils/Logger";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -110,6 +111,21 @@ const responseUtil: {
   sendErrorResponse: jest.Mock;
   sendJsonObjectResponse: jest.Mock;
 };
+
+const loggerMock: { warn: jest.Mock; debug: jest.Mock } = logger as unknown as {
+  warn: jest.Mock;
+  debug: jest.Mock;
+};
+
+/*
+ * The claim batch size, restated here rather than imported: it is not
+ * exported, and it is precisely the number these tests exist to hold
+ * still. It is also the ceiling on how fast one probe's fleet can be
+ * polled — the probe fetches once a minute, so a probe can never poll more
+ * than this many devices per minute (see the constant's comment in
+ * NetworkDevicePoll.ts and issue #3220).
+ */
+const DEVICE_POLL_FETCH_LIMIT: number = 250;
 
 function makeRequest(data: {
   probeId?: ObjectID | undefined;
@@ -236,7 +252,7 @@ describe("POST /probe/network-device/list", () => {
     expect((claimArgs["probeId"] as ObjectID).toString()).toBe(
       probeId.toString(),
     );
-    expect(claimArgs["limit"]).toBe(50);
+    expect(claimArgs["limit"]).toBe(DEVICE_POLL_FETCH_LIMIT);
 
     // Nothing claimed: no device fetch, and the probe gets an empty batch.
     expect(deviceService.findBy).not.toHaveBeenCalled();
@@ -245,6 +261,64 @@ describe("POST /probe/network-device/list", () => {
       mockResponse,
       { devices: [] },
     );
+  });
+
+  /*
+   * Issue #3220's underlying cause. The batch size is a per-minute ceiling
+   * on poll throughput, and at the old value of 50 a probe with 980 devices
+   * took ~20 minutes to get round its fleet however short the devices'
+   * configured intervals were. Nothing surfaced that: the fleet simply
+   * polled five times slower than it was configured to, and the UI called
+   * the result an outage.
+   */
+  describe("the claim batch is the fleet's poll-rate ceiling", () => {
+    test("one probe can be handed at least 250 devices a minute", () => {
+      /*
+       * 250/minute clears a 1000-device fleet on a 5-minute interval, which
+       * needs 200/minute. The old 50 could not clear 250 devices.
+       */
+      expect(DEVICE_POLL_FETCH_LIMIT).toBeGreaterThanOrEqual(250);
+    });
+
+    test("a full batch warns that the cap, not the interval, is setting the cadence", async () => {
+      const claimed: Array<ObjectID> = Array.from(
+        { length: DEVICE_POLL_FETCH_LIMIT },
+        () => {
+          return ObjectID.generate();
+        },
+      );
+      deviceService.claimDevicesForPolling.mockResolvedValue(claimed as never);
+      deviceService.findBy.mockResolvedValue([] as never);
+
+      await callListEndpoint(makeRequest({ probeId }));
+
+      expect(loggerMock.warn).toHaveBeenCalledTimes(1);
+      const warning: string = loggerMock.warn.mock.calls[0]![0] as string;
+
+      // Names the condition and the knob, or it is not actionable.
+      expect(warning).toContain("polling slower than its configured intervals");
+      expect(warning).toContain("NETWORK_DEVICE_POLL_FETCH_LIMIT");
+      expect(warning).toContain("PROBE_NETWORK_DEVICE_POLL_CONCURRENCY");
+    });
+
+    test("a partial batch is the healthy case and warns about nothing", async () => {
+      deviceService.claimDevicesForPolling.mockResolvedValue([
+        ObjectID.generate(),
+      ] as never);
+      deviceService.findBy.mockResolvedValue([] as never);
+
+      await callListEndpoint(makeRequest({ probeId }));
+
+      expect(loggerMock.warn).not.toHaveBeenCalled();
+    });
+
+    test("an empty claim warns about nothing either", async () => {
+      deviceService.claimDevicesForPolling.mockResolvedValue([] as never);
+
+      await callListEndpoint(makeRequest({ probeId }));
+
+      expect(loggerMock.warn).not.toHaveBeenCalled();
+    });
   });
 
   test("fetches claimed devices with every column a probe-executable SNMP config needs", async () => {

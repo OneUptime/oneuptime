@@ -13,7 +13,7 @@ import {
   summarizeVendors,
 } from "../../Components/Network/NetworkOverviewUtil";
 import DeviceStatusUtil, {
-  DEVICE_FRESH_WINDOW_MINUTES,
+  DEVICE_STATUS_SELECT,
   NetworkDeviceStatus,
 } from "../../Components/NetworkDevice/DeviceStatusUtil";
 import Route from "Common/Types/API/Route";
@@ -88,9 +88,9 @@ const NetworkOverview: FunctionComponent<
           limit: LIMIT_PER_PROJECT,
           skip: 0,
           select: {
+            ...DEVICE_STATUS_SELECT,
             _id: true,
             name: true,
-            lastSeenAt: true,
             interfacesDown: true,
             vendor: true,
           },
@@ -218,7 +218,10 @@ const NetworkOverview: FunctionComponent<
       return {
         _id: device._id?.toString(),
         name: device.name,
+        isReachable: device.isReachable,
+        lastPolledAt: device.lastPolledAt,
         lastSeenAt: device.lastSeenAt,
+        pollingIntervalInMinutes: device.pollingIntervalInMinutes,
         interfacesDown: device.interfacesDown,
         vendor: device.vendor,
       };
@@ -364,7 +367,7 @@ const NetworkOverview: FunctionComponent<
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <Card
           title="Devices needing attention"
-          description={`Unreachable devices first (no SNMP contact in ${DEVICE_FRESH_WINDOW_MINUTES} minutes), then devices with down interfaces.`}
+          description="Unreachable devices first (the last SNMP poll could not reach them), then devices with down interfaces."
         >
           {attentionDevices.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-500">
@@ -376,7 +379,7 @@ const NetworkOverview: FunctionComponent<
               {attentionDevices.map(
                 (device: OverviewDeviceRow): ReactElement => {
                   const isDown: boolean =
-                    DeviceStatusUtil.getStatus(device.lastSeenAt) ===
+                    DeviceStatusUtil.getStatus(device) ===
                     NetworkDeviceStatus.Down;
 
                   return (
@@ -397,7 +400,7 @@ const NetworkOverview: FunctionComponent<
                               ? `Last seen ${OneUptimeDate.fromNow(
                                   OneUptimeDate.fromString(device.lastSeenAt),
                                 )}`
-                              : "Never seen"}
+                              : "Never answered"}
                           </span>
                         ) : (
                           <span className="font-medium text-amber-700">

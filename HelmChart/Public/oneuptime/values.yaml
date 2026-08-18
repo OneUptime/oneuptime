@@ -1158,6 +1158,11 @@ probes:
     monitoringWorkers: 3
     monitorFetchLimit: 10
     monitorRetryLimit: 3
+    # How many NetworkDevice SNMP walks this probe runs at once. Unset uses
+    # the probe's own default (25). Raise it together with the server's
+    # NETWORK_DEVICE_POLL_FETCH_LIMIT for fleets of many hundreds of devices
+    # — between them the two set how fast a fleet can be polled.
+    networkDevicePollConcurrency:
     key:
     replicaCount: 1
     # Probes do not call the Kubernetes API. Keep cluster credentials out of
@@ -1573,6 +1578,14 @@ app:
   workerConcurrency: 100
   # Max concurrent telemetry ingestion jobs processed by each pod
   telemetryConcurrency: 100
+  # How many NetworkDevice SNMP walks one probe is handed per fetch. A probe
+  # fetches once a minute, so this is the ceiling on how fast that probe's
+  # fleet can be polled, whatever the devices' configured intervals say.
+  # Unset uses the server default (250). Raise it together with the probe's
+  # probe.<name>.networkDevicePollConcurrency for fleets of many hundreds of
+  # devices; handing a probe more than it can walk in a cycle skips devices
+  # rather than polling them sooner.
+  networkDevicePollFetchLimit:
   # Fan-in telemetry writer (per pod). Batches all telemetry ClickHouse inserts
   # into a handful of large INSERTs so pods can scale horizontally without
   # exploding ClickHouse insert concurrency. Defaults match the code

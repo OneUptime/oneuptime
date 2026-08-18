@@ -201,14 +201,17 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
     expect(spies.timelineCreate).not.toHaveBeenCalled();
   });
 
-  it("uses the freshness fallback for devices without a stamped status", async () => {
+  it("uses the SNMP fallback for devices without a stamped status", async () => {
     const spies: RollupSpies = setupRollup({
       site: fakeSite({ currentMonitorStatusId: OPERATIONAL_STATUS_ID }),
       devices: [
         {
           id: DEVICE_ID,
-          // Unmonitored and last seen an hour ago -> offline equivalent.
+          // Unmonitored, and its last poll could not reach it.
+          isReachable: false,
+          lastPolledAt: new Date(Date.now() - 60 * 1000),
           lastSeenAt: new Date(Date.now() - 60 * 60 * 1000),
+          pollingIntervalInMinutes: 5,
         },
       ] as unknown as Array<NetworkDevice>,
     });
@@ -219,6 +222,57 @@ describe("NetworkSiteService.recomputeRollupForSite", () => {
     expect(updateArgs.data.currentMonitorStatusId.toString()).toBe(
       OFFLINE_STATUS_ID.toString(),
     );
+  });
+
+  /*
+   * Issue #3220 at the site card. A probe behind on a large fleet leaves
+   * every device's last successful poll well outside the old fixed
+   * 15-minute freshness window, and the site above them went red even
+   * though each one had answered. The rollup asks about the last poll's
+   * OUTCOME now, so it does not.
+   */
+  it("issue #3220: devices answering 21 minutes ago keep the site operational", async () => {
+    const spies: RollupSpies = setupRollup({
+      site: fakeSite({ currentMonitorStatusId: OFFLINE_STATUS_ID }),
+      devices: [
+        {
+          id: DEVICE_ID,
+          isReachable: true,
+          lastPolledAt: new Date(Date.now() - 21 * 60 * 1000),
+          lastSeenAt: new Date(Date.now() - 21 * 60 * 1000),
+          pollingIntervalInMinutes: 5,
+        },
+      ] as unknown as Array<NetworkDevice>,
+    });
+
+    await NetworkSiteService.recomputeRollupForSite(SITE_ID);
+
+    const updateArgs: any = spies.updateColumns.mock.calls[0]![0];
+    expect(updateArgs.data.currentMonitorStatusId.toString()).toBe(
+      OPERATIONAL_STATUS_ID.toString(),
+    );
+  });
+
+  /*
+   * The rollup reads four columns and the query has to fetch all four. A
+   * missing `isReachable` here compiles, runs, and silently drops the whole
+   * subtree back onto the legacy freshness path.
+   */
+  it("selects every column the reachability rule reads", async () => {
+    const spies: RollupSpies = setupRollup({
+      site: fakeSite({ currentMonitorStatusId: OPERATIONAL_STATUS_ID }),
+      devices: [],
+    });
+
+    await NetworkSiteService.recomputeRollupForSite(SITE_ID);
+
+    const select: Record<string, unknown> =
+      spies.deviceFindBy.mock.calls[0]![0].select;
+
+    expect(select["isReachable"]).toBe(true);
+    expect(select["lastPolledAt"]).toBe(true);
+    expect(select["lastSeenAt"]).toBe(true);
+    expect(select["pollingIntervalInMinutes"]).toBe(true);
   });
 
   it("does nothing when the site does not exist", async () => {

@@ -27,7 +27,6 @@ import React, {
   ReactElement,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -52,9 +51,9 @@ import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import DeviceSummaryCards from "../../Components/NetworkDevice/DeviceSummaryCards";
-import FacetSnapshotNote from "../../Components/Network/FacetSnapshotNote";
 import DeviceStatusUtil, {
-  DEVICE_FRESH_WINDOW_MINUTES,
+  DEVICE_STATUS_SELECT,
+  DeviceReachabilityResult,
   NetworkDeviceStatus,
 } from "../../Components/NetworkDevice/DeviceStatusUtil";
 import {
@@ -67,12 +66,10 @@ import {
   DEVICE_SITE_FACET_KEY,
   DEVICE_STATUS_FACET_KEY,
   DEVICE_STATUS_FACET_OPTIONS,
-  DeviceStatusCutoff,
   NETWORK_DEVICES_TABLE_ID,
   buildDeviceInterfacesFacetQuery,
   buildDeviceLastSeenFacetQuery,
   buildDeviceStatusFacetQuery,
-  isTimeBasedDeviceStatus,
 } from "../../Components/NetworkDevice/DeviceFacets";
 import { DeviceSummaryTile } from "../../Components/NetworkDevice/DeviceSummaryTiles";
 import { applyFacetTileSelection } from "../../Components/ResourceOwners/FacetTileSelection";
@@ -107,14 +104,6 @@ const NetworkDevices: FunctionComponent<
   const [error, setError] = useState<string>("");
 
   /*
-   * Holds the freshness cutoff behind the Status chip, re-snapshotting it only
-   * when the selection changes. See DeviceStatusCutoff for why it cannot simply
-   * be "now".
-   */
-  const statusCutoff: React.MutableRefObject<DeviceStatusCutoff> =
-    useRef<DeviceStatusCutoff>(new DeviceStatusCutoff());
-
-  /*
    * The chips above the table. Rebuilt only when the probes land, so the array
    * identity the facet bar memoises against stays stable across renders.
    */
@@ -127,28 +116,18 @@ const NetworkDevices: FunctionComponent<
         icon: IconProp.Heartbeat,
         isMultiSelect: false,
         /*
-         * "is" only. The three values are ranges over one column, so "up or
+         * "is" only. The three values partition one column, so "up or
          * pending" is not expressible as a single field query, and the empty
-         * operators would write IsNull/NotNull over `lastSeenAt` — duplicating
-         * Pending under different wording.
+         * operators would write IsNull/NotNull over `isReachable` —
+         * duplicating Pending under different wording.
          */
         supportedOperators: ["is"],
         options: DEVICE_STATUS_FACET_OPTIONS,
-        /*
-         * Both chips write `lastSeenAt`, and the merged query has room for one
-         * constraint per column — so picking either clears the other rather
-         * than one quietly overwriting the other while both stay lit.
-         */
-        exclusiveWith: [DEVICE_LAST_SEEN_FACET_KEY],
         toQueryValue: (
           values: Array<string>,
           operator: FilterOperator,
         ): unknown => {
-          return buildDeviceStatusFacetQuery(
-            values,
-            operator,
-            statusCutoff.current.getCutoffFor(values[0] || ""),
-          );
+          return buildDeviceStatusFacetQuery(values, operator);
         },
       },
       {
@@ -158,12 +137,13 @@ const NetworkDevices: FunctionComponent<
         icon: IconProp.Clock,
         type: "dateRange",
         /*
-         * The question the Status chip cannot express: an arbitrary date rather
-         * than the fixed 15-minute freshness window. "Not polled since last
-         * Tuesday" and "polled between the 1st and the 5th" live here.
+         * The question the Status chip does not answer: not "is it up now"
+         * but "when did it last answer". "Has not answered since last
+         * Tuesday" and "answered between the 1st and the 5th" live here.
+         * Status owns `isReachable` and this chip owns `lastSeenAt`, so the
+         * two no longer have to exclude each other.
          */
         supportedOperators: DEVICE_LAST_SEEN_FACET_OPERATORS,
-        exclusiveWith: [DEVICE_STATUS_FACET_KEY],
         toQueryValue: (
           values: Array<string>,
           operator: FilterOperator,
@@ -321,37 +301,6 @@ const NetworkDevices: FunctionComponent<
     });
   };
 
-  const selectedDeviceStatus: string | null =
-    facetSelections[DEVICE_STATUS_FACET_KEY]?.[0] || null;
-
-  /*
-   * Synced with the live selection on every render, including the `null` of a
-   * cleared chip. That is what makes picking the SAME value a second time take a
-   * fresh window: without seeing the clear, the snapshot would still be keyed on
-   * "down" and hand back the window from the first time round.
-   *
-   * The chip's own toQueryValue asks for the same selection later in this render,
-   * so it gets this very Date — stable across renders, which is what stops
-   * ModelTable refetching forever.
-   */
-  const statusWindowCutoff: Date =
-    statusCutoff.current.getCutoffFor(selectedDeviceStatus);
-
-  /*
-   * The note under the bar, derived from the cutoff the query actually uses rather
-   * than from "now" — the two naming different moments is exactly the confusion
-   * this note exists to prevent.
-   */
-  const statusSnapshotDetail: string | undefined = useMemo(() => {
-    if (!isTimeBasedDeviceStatus(selectedDeviceStatus)) {
-      return undefined;
-    }
-
-    return `Up and down are measured against a ${DEVICE_FRESH_WINDOW_MINUTES}-minute window: devices last polled before ${OneUptimeDate.getLocalHourAndMinuteFromDate(
-      statusWindowCutoff,
-    )} count as down. Pick the status again to refresh it.`;
-  }, [selectedDeviceStatus, statusWindowCutoff]);
-
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<NetworkDevice>({ modelType: NetworkDevice });
 
@@ -398,19 +347,13 @@ const NetworkDevices: FunctionComponent<
         query={mergeFiltersIntoQuery(BASE_DEVICE_QUERY)}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
-        topContent={
-          <Fragment>
-            {filterBar}
-            {statusSnapshotDetail ? (
-              <FacetSnapshotNote
-                testIdSuffix="network-devices"
-                detail={statusSnapshotDetail}
-              />
-            ) : (
-              <></>
-            )}
-          </Fragment>
-        }
+        /*
+         * No snapshot note any more: the Status chip filters on a stored
+         * verdict rather than on a wall-clock window taken when the value was
+         * picked, so there is no drift between the rows and the pills for a
+         * note to have to explain.
+         */
+        topContent={filterBar}
         /*
          * "No network device" under a chip that matched nothing reads as an empty
          * project. This says the fleet is there and the bar is what is hiding it.
@@ -674,28 +617,31 @@ const NetworkDevices: FunctionComponent<
                 );
               }
 
-              const status: NetworkDeviceStatus = DeviceStatusUtil.getStatus(
-                item.lastSeenAt,
-              );
+              const reachability: DeviceReachabilityResult =
+                DeviceStatusUtil.getReachability(item);
 
-              if (status === NetworkDeviceStatus.Up) {
+              if (reachability.status === NetworkDeviceStatus.Up) {
                 return (
                   <Pill
                     text="Up"
                     color={Green}
                     size={PillSize.Small}
-                    tooltip={`Polled successfully within the last ${DEVICE_FRESH_WINDOW_MINUTES} minutes.`}
+                    tooltip="The last SNMP poll reached this device."
                   />
                 );
               }
 
-              if (status === NetworkDeviceStatus.Down) {
+              if (reachability.status === NetworkDeviceStatus.Down) {
                 return (
                   <Pill
                     text="Down"
                     color={Red500}
                     size={PillSize.Small}
-                    tooltip={`No successful SNMP poll in the last ${DEVICE_FRESH_WINDOW_MINUTES} minutes.`}
+                    tooltip={
+                      reachability.isStale
+                        ? `No SNMP poll has even been attempted in the last ${reachability.staleWindowInMinutes} minutes — check this device's probe.`
+                        : "The last SNMP poll could not reach this device."
+                    }
                   />
                 );
               }
@@ -705,7 +651,7 @@ const NetworkDevices: FunctionComponent<
                   text="Pending"
                   color={Gray500}
                   size={PillSize.Small}
-                  tooltip="This device has not been polled successfully yet."
+                  tooltip="This device has not been polled yet."
                 />
               );
             },
@@ -877,14 +823,14 @@ const NetworkDevices: FunctionComponent<
           },
         ]}
         selectMoreFields={{
+          ...DEVICE_STATUS_SELECT,
           interfacesDown: true,
           sysName: true,
           deviceModel: true,
-          lastSeenAt: true,
           /*
            * The status pill reads a monitor-backed device's health from its
-           * monitor, not from SNMP freshness — nothing polls those, so
-           * lastSeenAt would leave every one of them stuck on "Pending".
+           * monitor, not from an SNMP walk — nothing polls those, so the poll
+           * columns would leave every one of them stuck on "Pending".
            */
           monitoringMethod: true,
           currentMonitorStatus: {

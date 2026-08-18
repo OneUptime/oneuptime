@@ -1,37 +1,67 @@
-import OneUptimeDate from "Common/Types/Date";
+import DeviceReachabilityUtil, {
+  DEVICE_MISSED_POLL_ALLOWANCE,
+  DEVICE_MIN_STALE_WINDOW_IN_MINUTES,
+  DeviceReachabilityInput,
+  DeviceReachabilityResult,
+  NetworkDeviceReachability,
+} from "Common/Utils/NetworkDevice/DeviceReachabilityUtil";
 
 /*
- * A device is considered up when its last successful SNMP poll happened
- * within this window. Mirrors FRESH_WINDOW_MS in
- * Common/Utils/Monitor/NetworkTopologyUtil.ts so the device list and the
- * topology view agree on what "up" means.
+ * The dashboard's view of Common/Utils/NetworkDevice/DeviceReachabilityUtil,
+ * which is the single rule the device list, the device Overview hero, the
+ * topology graph, the network map and the site rollup all decide up/down by.
+ *
+ * A device is Up when its LAST POLL SUCCEEDED — not when that poll was
+ * recent. The two are different questions, and answering the second one
+ * meant a fleet whose real poll cadence exceeded the old fixed 15-minute
+ * window (a probe hands out a bounded number of devices per cycle, so
+ * cadence is a function of fleet size) showed healthy devices as Down while
+ * their own Interfaces tab, written by the same successful walk, showed
+ * them Up.
  */
-export const DEVICE_FRESH_WINDOW_MINUTES: number = 15;
 
-export enum NetworkDeviceStatus {
-  Up = "Up",
-  Down = "Down",
-  Pending = "Pending",
-}
+export {
+  DEVICE_MISSED_POLL_ALLOWANCE,
+  DEVICE_MIN_STALE_WINDOW_IN_MINUTES,
+  NetworkDeviceReachability as NetworkDeviceStatus,
+};
+export type { DeviceReachabilityInput, DeviceReachabilityResult };
+
+/*
+ * The columns every caller of this util has to select. Exported so a page
+ * cannot add a status pill and forget one of them — a missing `isReachable`
+ * silently falls back to the legacy freshness rule and reintroduces the bug.
+ */
+export const DEVICE_STATUS_SELECT: {
+  isReachable: boolean;
+  lastPolledAt: boolean;
+  lastSeenAt: boolean;
+  pollingIntervalInMinutes: boolean;
+} = {
+  isReachable: true,
+  lastPolledAt: true,
+  lastSeenAt: true,
+  pollingIntervalInMinutes: true,
+};
 
 export default class DeviceStatusUtil {
   public static getStatus(
-    lastSeenAt: Date | string | undefined,
-  ): NetworkDeviceStatus {
-    if (!lastSeenAt) {
-      // Never polled successfully — the device is still pending discovery.
-      return NetworkDeviceStatus.Pending;
-    }
+    device: DeviceReachabilityInput,
+  ): NetworkDeviceReachability {
+    return DeviceReachabilityUtil.getStatus(device);
+  }
 
-    const lastSeen: Date = OneUptimeDate.fromString(lastSeenAt);
-    const cutoff: Date = OneUptimeDate.getSomeMinutesAgo(
-      DEVICE_FRESH_WINDOW_MINUTES,
+  public static getReachability(
+    device: DeviceReachabilityInput,
+  ): DeviceReachabilityResult {
+    return DeviceReachabilityUtil.getReachability(device);
+  }
+
+  public static getStaleWindowInMinutes(
+    pollingIntervalInMinutes?: number | null | undefined,
+  ): number {
+    return DeviceReachabilityUtil.getStaleWindowInMinutes(
+      pollingIntervalInMinutes,
     );
-
-    if (lastSeen.getTime() < cutoff.getTime()) {
-      return NetworkDeviceStatus.Down;
-    }
-
-    return NetworkDeviceStatus.Up;
   }
 }

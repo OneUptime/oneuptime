@@ -1,5 +1,6 @@
 import { formatUptimePercent } from "./SiteMapViewModel";
 import DeviceStatusUtil, {
+  DEVICE_STATUS_SELECT,
   NetworkDeviceStatus,
 } from "../NetworkDevice/DeviceStatusUtil";
 import { Gray500 } from "Common/Types/BrandColors";
@@ -87,7 +88,7 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
           limit: LIMIT_PER_PROJECT,
           skip: 0,
           select: {
-            lastSeenAt: true,
+            ...DEVICE_STATUS_SELECT,
           },
           sort: {},
         }),
@@ -129,9 +130,7 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
       let devicesDown: number = 0;
 
       for (const device of deviceResult.data) {
-        const status: NetworkDeviceStatus = DeviceStatusUtil.getStatus(
-          device.lastSeenAt,
-        );
+        const status: NetworkDeviceStatus = DeviceStatusUtil.getStatus(device);
         if (status === NetworkDeviceStatus.Up) {
           devicesUp++;
         } else if (status === NetworkDeviceStatus.Down) {

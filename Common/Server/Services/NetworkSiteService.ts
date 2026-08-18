@@ -849,7 +849,16 @@ export class Service extends DatabaseService<Model> {
       select: {
         _id: true,
         currentMonitorStatusId: true,
+        /*
+         * All four reachability inputs. isReachable is the one that decides
+         * up/down; the other three only size the "polling has stopped
+         * entirely" backstop. Selecting lastSeenAt alone silently drops the
+         * rollup back to the old freshness rule.
+         */
+        isReachable: true,
+        lastPolledAt: true,
         lastSeenAt: true,
+        pollingIntervalInMinutes: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -908,7 +917,10 @@ export class Service extends DatabaseService<Model> {
           monitorStatusPriority: statusId
             ? priorityByStatusId.get(statusId)
             : undefined,
+          isReachable: device.isReachable,
+          lastPolledAt: device.lastPolledAt,
           lastSeenAt: device.lastSeenAt,
+          pollingIntervalInMinutes: device.pollingIntervalInMinutes,
         };
       },
     );

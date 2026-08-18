@@ -236,8 +236,33 @@ describe("NetworkInventoryUtil.updateFromWalk — project-membership guard", () 
   });
 });
 
-describe("NetworkInventoryUtil.updateFromWalk — reachability gating", () => {
-  test("an unreachable poll with no walk data writes nothing (no phantom lastSeenAt)", async () => {
+/*
+ * The three columns this util writes on every walk are what the whole
+ * up/down story rests on, so they get their own block:
+ *
+ *   lastPolledAt - when we ASKED    (always)
+ *   isReachable  - what we got back (always)
+ *   lastSeenAt   - when it ANSWERED (successful walks only)
+ *
+ * The bug this pins (issue #3220) was that only lastSeenAt existed, so a
+ * device that answered its last poll 21 minutes ago was indistinguishable
+ * from one that had failed its last poll — and the UI, having to guess,
+ * called both of them Down.
+ */
+describe("NetworkInventoryUtil.updateFromWalk — reachability recording", () => {
+  test("a reachable poll stamps all three columns", async () => {
+    mockServices();
+
+    await runWalk();
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(update["lastPolledAt"]).toEqual(NOW);
+    expect(update["isReachable"]).toBe(true);
+    expect(update["lastSeenAt"]).toEqual(NOW);
+  });
+
+  test("an unreachable poll with no walk data still records the attempt", async () => {
     mockServices();
 
     await runWalk(
@@ -249,8 +274,17 @@ describe("NetworkInventoryUtil.updateFromWalk — reachability gating", () => {
       { isOnline: false },
     );
 
-    // lastSeenAt drives the up/down pill; a failed poll must not bump it.
-    expect(deviceUpdateSpy).not.toHaveBeenCalled();
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    /*
+     * This write used to be skipped entirely ("nothing worth writing"),
+     * which is exactly what left the reader unable to tell a failing device
+     * from one nothing had got round to polling.
+     */
+    expect(update["lastPolledAt"]).toEqual(NOW);
+    expect(update["isReachable"]).toBe(false);
+    // The device did not answer, so its last contact must not move.
+    expect(update).not.toHaveProperty("lastSeenAt");
   });
 
   test("an unreachable poll with walk data still enriches but never stamps lastSeenAt", async () => {
@@ -267,15 +301,54 @@ describe("NetworkInventoryUtil.updateFromWalk — reachability gating", () => {
     const update: DeviceUpdatePayload = deviceUpdatePayload();
 
     expect(update["sysName"]).toBe("core-sw-01");
+    expect(update["isReachable"]).toBe(false);
+    expect(update["lastPolledAt"]).toEqual(NOW);
     expect(update).not.toHaveProperty("lastSeenAt");
   });
 
-  test("a walk that reports no reachability at all is treated as seen", async () => {
+  test("a walk that reports no reachability at all is treated as answered", async () => {
     mockServices();
 
     await runWalk(undefined, { isOnline: undefined });
 
-    expect(deviceUpdatePayload()["lastSeenAt"]).toEqual(NOW);
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(update["isReachable"]).toBe(true);
+    expect(update["lastPolledAt"]).toEqual(NOW);
+    expect(update["lastSeenAt"]).toEqual(NOW);
+  });
+
+  test("lastPolledAt and lastSeenAt are the SAME instant on a good walk", async () => {
+    mockServices();
+
+    await runWalk();
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    /*
+     * The reader treats "polled later than seen" as evidence of a failed
+     * attempt, so a successful walk must not leave even a millisecond of
+     * skew between the two.
+     */
+    expect((update["lastPolledAt"] as Date).getTime()).toBe(
+      (update["lastSeenAt"] as Date).getTime(),
+    );
+  });
+
+  test("a failed poll after a successful one leaves lastSeenAt behind lastPolledAt", async () => {
+    mockServices();
+
+    await runWalk();
+    const good: DeviceUpdatePayload = deviceUpdatePayload();
+
+    deviceUpdateSpy.mockClear();
+    await runWalk({ isOnline: false }, { isOnline: false });
+    const bad: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(bad["isReachable"]).toBe(false);
+    expect(bad).not.toHaveProperty("lastSeenAt");
+    // The previous success stays the device's last contact.
+    expect(good["lastSeenAt"]).toEqual(NOW);
   });
 });
 
@@ -690,7 +763,7 @@ describe("NetworkInventoryUtil.updateFromWalk — walks without interfaces", () 
     expect(interfaceCreateSpy).not.toHaveBeenCalled();
   });
 
-  test("a walk with no snmpResponse at all still stamps lastSeenAt", async () => {
+  test("a walk with no snmpResponse at all still records the poll", async () => {
     mockServices();
 
     await NetworkInventoryUtil.updateFromWalk({
@@ -700,7 +773,12 @@ describe("NetworkInventoryUtil.updateFromWalk — walks without interfaces", () 
       isOnline: true,
     });
 
-    expect(deviceUpdatePayload()).toEqual({ lastSeenAt: NOW });
+    // Exactly the reachability columns and nothing else — no walk, no data.
+    expect(deviceUpdatePayload()).toEqual({
+      lastPolledAt: NOW,
+      isReachable: true,
+      lastSeenAt: NOW,
+    });
     expect(interfaceFindSpy).not.toHaveBeenCalled();
   });
 });

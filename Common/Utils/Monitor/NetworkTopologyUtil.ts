@@ -13,13 +13,27 @@ import {
   classifyEndpointRole,
   resolveDeviceRole,
 } from "./NetworkDeviceRoleUtil";
+import DeviceReachabilityUtil, {
+  NetworkDeviceReachability,
+} from "../NetworkDevice/DeviceReachabilityUtil";
 
 export interface TopologyDeviceInput {
   id: string;
   name: string;
   hostname?: string | undefined;
   sysName?: string | undefined;
+  /*
+   * Reachability inputs, all three of them. `isReachable` is the outcome of
+   * the last poll and is what actually decides up/down; `lastPolledAt` and
+   * `pollingIntervalInMinutes` only size the "we have stopped polling
+   * entirely" backstop. Passing lastSeenAt alone still works (that is the
+   * legacy path for rows written before the columns existed) but re-creates
+   * the bug where a fleet the probe cannot keep up with draws all-red.
+   */
+  isReachable?: boolean | undefined;
+  lastPolledAt?: Date | undefined;
   lastSeenAt?: Date | undefined;
+  pollingIntervalInMinutes?: number | undefined;
   interfacesUp?: number | undefined;
   interfacesDown?: number | undefined;
   vendor?: string | undefined;
@@ -232,11 +246,16 @@ interface ResolvedClaim {
  */
 const IPV4_PATTERN: RegExp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
 
-// A device not seen within this window is treated as not currently up.
-const FRESH_WINDOW_MS: number = 15 * 60 * 1000;
-
 // Endpoint nodes rendered per graph; the slice is deterministic (by MAC).
 const ENDPOINT_RENDER_CAP: number = 2000;
+
+/*
+ * How long an ARP/FDB-learned endpoint keeps its "up" colour after the last
+ * walk that saw it. Taken from the shared device rule at its default
+ * interval so the map's two node kinds age out on comparable timescales.
+ */
+const ENDPOINT_FRESH_WINDOW_MS: number =
+  DeviceReachabilityUtil.getStaleWindowInMinutes(undefined) * 60 * 1000;
 
 export default class NetworkTopologyUtil {
   /*
@@ -1305,10 +1324,17 @@ export default class NetworkTopologyUtil {
     if (device.monitorStatus) {
       return device.monitorStatus;
     }
-    return NetworkTopologyUtil.statusFromLastSeen(device.lastSeenAt, now);
+    return NetworkTopologyUtil.statusFromPoll(device, now);
   }
 
-  // The shared freshness rule: seen within the window = up, stale = down.
+  /*
+   * Endpoints (ARP/FDB-learned hosts) have no poll of their own: they are
+   * re-learned from whichever device's tables they appear in, so freshness
+   * really is all there is to go on. The window is the shared default
+   * staleness window rather than the old fixed 15 minutes, so a host on a
+   * switch its probe polls slowly does not blink out of the map between
+   * walks.
+   */
   private static statusFromLastSeen(
     lastSeenAt: Date | undefined,
     now: Date,
@@ -1316,10 +1342,36 @@ export default class NetworkTopologyUtil {
     if (!lastSeenAt) {
       return "unknown";
     }
+
     const ageMs: number = now.getTime() - new Date(lastSeenAt).getTime();
-    if (ageMs > FRESH_WINDOW_MS) {
-      return "down";
+
+    return ageMs > ENDPOINT_FRESH_WINDOW_MS ? "down" : "up";
+  }
+
+  /*
+   * The shared reachability rule (DeviceReachabilityUtil), mapped onto the
+   * graph's three node states. "Pending" — never polled — is the graph's
+   * "unknown", which is what keeps a device nothing walks from being drawn
+   * as a failure.
+   */
+  private static statusFromPoll(
+    device: TopologyDeviceInput,
+    now: Date,
+  ): NetworkTopologyNodeStatus {
+    const status: NetworkDeviceReachability = DeviceReachabilityUtil.getStatus(
+      {
+        isReachable: device.isReachable,
+        lastPolledAt: device.lastPolledAt,
+        lastSeenAt: device.lastSeenAt,
+        pollingIntervalInMinutes: device.pollingIntervalInMinutes,
+      },
+      now,
+    );
+
+    if (status === NetworkDeviceReachability.Pending) {
+      return "unknown";
     }
-    return "up";
+
+    return status === NetworkDeviceReachability.Up ? "up" : "down";
   }
 }

@@ -14,12 +14,16 @@ import {
   summarizeDeviceFleet,
   summarizeVendors,
 } from "../../FeatureSet/Dashboard/src/Components/Network/NetworkOverviewUtil";
-import { DEVICE_FRESH_WINDOW_MINUTES } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceStatusUtil";
-
 /*
- * The Network Overview page's fleet rollups. Device freshness runs
- * through DeviceStatusUtil, which reads the wall clock — so these freeze
- * time the same way DeviceStatusUtil.test.ts does.
+ * The Network Overview page's fleet rollups. Device status runs through
+ * DeviceStatusUtil, which reads the wall clock — so these freeze time the
+ * same way the topology and rollup suites do.
+ *
+ * The rows here spell out the reachability columns rather than leaning on
+ * lastSeenAt alone, because that is what the page selects
+ * (DEVICE_STATUS_SELECT) and because the difference between "did not
+ * answer" and "not asked recently" is the point of the fix these guard
+ * (issue #3220).
  */
 
 const NOW: Date = new Date("2026-07-16T12:00:00.000Z");
@@ -29,9 +33,34 @@ function minutesAgo(minutes: number): Date {
   return new Date(NOW.getTime() - minutes * MS_PER_MINUTE);
 }
 
-const FRESH: Date = minutesAgo(1);
-const STALE: Date = minutesAgo(DEVICE_FRESH_WINDOW_MINUTES + 5);
-const STALER: Date = minutesAgo(DEVICE_FRESH_WINDOW_MINUTES + 60);
+// A device whose last poll succeeded `minutes` ago.
+function answered(minutes: number): Partial<OverviewDeviceRow> {
+  return {
+    isReachable: true,
+    lastPolledAt: minutesAgo(minutes),
+    lastSeenAt: minutesAgo(minutes),
+    pollingIntervalInMinutes: 5,
+  };
+}
+
+// A device whose last poll failed `minutes` ago.
+function unreachable(
+  minutes: number,
+  lastAnsweredMinutesAgo: number,
+): Partial<OverviewDeviceRow> {
+  return {
+    isReachable: false,
+    lastPolledAt: minutesAgo(minutes),
+    lastSeenAt: minutesAgo(lastAnsweredMinutesAgo),
+    pollingIntervalInMinutes: 5,
+  };
+}
+
+const HEALTHY: Partial<OverviewDeviceRow> = answered(1);
+// Failed its last poll a minute ago; last answered 20 minutes ago.
+const DOWN: Partial<OverviewDeviceRow> = unreachable(1, 20);
+// Failed its last poll a minute ago; has not answered for hours.
+const LONGER_DOWN: Partial<OverviewDeviceRow> = unreachable(1, 300);
 
 beforeEach(() => {
   jest.useFakeTimers({
@@ -61,10 +90,10 @@ afterEach(() => {
 describe("summarizeDeviceFleet", () => {
   test("splits the fleet into up / down / pending and sums down interfaces", () => {
     const devices: Array<OverviewDeviceRow> = [
-      { _id: "a", lastSeenAt: FRESH, interfacesDown: 0 },
-      { _id: "b", lastSeenAt: STALE, interfacesDown: 2 },
-      { _id: "c", lastSeenAt: undefined, interfacesDown: undefined },
-      { _id: "d", lastSeenAt: FRESH, interfacesDown: 3 },
+      { _id: "a", ...HEALTHY, interfacesDown: 0 },
+      { _id: "b", ...DOWN, interfacesDown: 2 },
+      { _id: "c", interfacesDown: undefined },
+      { _id: "d", ...HEALTHY, interfacesDown: 3 },
     ];
 
     expect(summarizeDeviceFleet(devices)).toEqual({
@@ -88,11 +117,11 @@ describe("summarizeDeviceFleet", () => {
 });
 
 describe("pickDevicesNeedingAttention", () => {
-  test("unreachable devices come first, stalest first", () => {
+  test("unreachable devices come first, longest-silent first", () => {
     const devices: Array<OverviewDeviceRow> = [
-      { _id: "recent-down", lastSeenAt: STALE },
-      { _id: "old-down", lastSeenAt: STALER },
-      { _id: "healthy", lastSeenAt: FRESH },
+      { _id: "recent-down", ...DOWN },
+      { _id: "old-down", ...LONGER_DOWN },
+      { _id: "healthy", ...HEALTHY },
     ];
 
     const picked: Array<OverviewDeviceRow> = pickDevicesNeedingAttention(
@@ -109,10 +138,10 @@ describe("pickDevicesNeedingAttention", () => {
 
   test("reachable devices with down interfaces follow, most down first", () => {
     const devices: Array<OverviewDeviceRow> = [
-      { _id: "one-down", lastSeenAt: FRESH, interfacesDown: 1 },
-      { _id: "hard-down", lastSeenAt: STALE },
-      { _id: "three-down", lastSeenAt: FRESH, interfacesDown: 3 },
-      { _id: "clean", lastSeenAt: FRESH, interfacesDown: 0 },
+      { _id: "one-down", ...HEALTHY, interfacesDown: 1 },
+      { _id: "hard-down", ...DOWN },
+      { _id: "three-down", ...HEALTHY, interfacesDown: 3 },
+      { _id: "clean", ...HEALTHY, interfacesDown: 0 },
     ];
 
     const picked: Array<OverviewDeviceRow> = pickDevicesNeedingAttention(
@@ -129,7 +158,7 @@ describe("pickDevicesNeedingAttention", () => {
 
   test("pending (never-polled) devices are onboarding, not outages", () => {
     const devices: Array<OverviewDeviceRow> = [
-      { _id: "never-seen", lastSeenAt: undefined, interfacesDown: 0 },
+      { _id: "never-polled", interfacesDown: 0 },
     ];
 
     expect(pickDevicesNeedingAttention(devices, 10)).toEqual([]);
@@ -137,12 +166,64 @@ describe("pickDevicesNeedingAttention", () => {
 
   test("respects the limit", () => {
     const devices: Array<OverviewDeviceRow> = [
-      { _id: "a", lastSeenAt: STALE },
-      { _id: "b", lastSeenAt: STALER },
-      { _id: "c", lastSeenAt: FRESH, interfacesDown: 1 },
+      { _id: "a", ...DOWN },
+      { _id: "b", ...LONGER_DOWN },
+      { _id: "c", ...HEALTHY, interfacesDown: 1 },
     ];
 
     expect(pickDevicesNeedingAttention(devices, 2)).toHaveLength(2);
+  });
+});
+
+/*
+ * Issue #3220 at the page that summarises the whole fleet: the Overview's
+ * "devices down" number was the same freshness count as the list's tile,
+ * so on a fleet its probe could not keep up with it reported hundreds of
+ * healthy devices as down.
+ */
+describe("issue #3220 — a fleet its probe cannot keep up with", () => {
+  test("devices answering 21 minutes apart are all counted up", () => {
+    const devices: Array<OverviewDeviceRow> = [16, 19, 21, 25, 30].map(
+      (ageInMinutes: number, index: number): OverviewDeviceRow => {
+        return { _id: `d${index}`, ...answered(ageInMinutes) };
+      },
+    );
+
+    expect(summarizeDeviceFleet(devices)).toMatchObject({
+      total: 5,
+      up: 5,
+      down: 0,
+      pending: 0,
+    });
+  });
+
+  test("none of them are put in front of a human as needing attention", () => {
+    const devices: Array<OverviewDeviceRow> = [
+      { _id: "lagging", ...answered(21) },
+      { _id: "really-down", ...DOWN },
+    ];
+
+    expect(
+      pickDevicesNeedingAttention(devices, 10).map(
+        (device: OverviewDeviceRow) => {
+          return device._id;
+        },
+      ),
+    ).toEqual(["really-down"]);
+  });
+
+  test("but a fleet nothing has polled for hours is still all down", () => {
+    const devices: Array<OverviewDeviceRow> = [1, 2, 3].map(
+      (index: number): OverviewDeviceRow => {
+        return { _id: `d${index}`, ...answered(240) };
+      },
+    );
+
+    expect(summarizeDeviceFleet(devices)).toMatchObject({
+      total: 3,
+      up: 0,
+      down: 3,
+    });
   });
 });
 

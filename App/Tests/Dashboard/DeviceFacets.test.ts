@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { describe, expect, test } from "@jest/globals";
 import {
   DEVICE_FACET_QUERY_FIELDS,
   DEVICE_INTERFACES_FACET_KEY,
@@ -9,19 +9,14 @@ import {
   DEVICE_SITE_FACET_KEY,
   DEVICE_STATUS_FACET_KEY,
   DEVICE_STATUS_FACET_OPTIONS,
-  DEVICE_STATUS_LAST_SEEN_EXCLUSION,
   DeviceInterfacesFacetValue,
-  DeviceStatusCutoff,
   DeviceStatusFacetValue,
   NETWORK_DEVICES_TABLE_ID,
   UNASSIGNED_DEVICES_FACET_SELECTION,
   buildDeviceInterfacesFacetQuery,
   buildDeviceLastSeenFacetQuery,
   buildDeviceStatusFacetQuery,
-  getDeviceFreshCutoff,
-  isTimeBasedDeviceStatus,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceFacets";
-import { DEVICE_FRESH_WINDOW_MINUTES } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceStatusUtil";
 import {
   FILTER_OPERATOR_LABELS,
   FilterChipDropdownOption,
@@ -52,13 +47,6 @@ import OneUptimeDate from "Common/Types/Date";
 // The frozen "now" the clock-dependent tests run at.
 const NOW: Date = new Date("2026-07-16T12:00:00.000Z");
 const MS_PER_MINUTE: number = 60 * 1000;
-const FRESH_WINDOW_MS: number = DEVICE_FRESH_WINDOW_MINUTES * MS_PER_MINUTE;
-
-/*
- * An arbitrary cutoff, nowhere near "now", so a query that computed its own
- * window instead of carrying the one it was handed cannot pass by accident.
- */
-const CUTOFF: Date = new Date("2001-02-03T04:05:06.007Z");
 
 /*
  * Only Date needs faking; the sinon backend jest 28 uses cannot hijack the
@@ -228,7 +216,7 @@ describe("the facet keys", () => {
 
 describe("DEVICE_FACET_QUERY_FIELDS", () => {
   test("names the columns each chip owns", () => {
-    expect(DEVICE_FACET_QUERY_FIELDS.status).toBe("lastSeenAt");
+    expect(DEVICE_FACET_QUERY_FIELDS.status).toBe("isReachable");
     expect(DEVICE_FACET_QUERY_FIELDS.interfaces).toBe("interfacesDown");
     expect(DEVICE_FACET_QUERY_FIELDS.site).toBe("siteId");
     expect(DEVICE_FACET_QUERY_FIELDS.probe).toBe("probeId");
@@ -259,81 +247,37 @@ describe("DEVICE_FACET_QUERY_FIELDS", () => {
    * writing the same column would have the later one silently replace the
    * earlier — one chip lit over a list it is not filtering.
    *
-   * Status and Last Seen are the one deliberate exception: both ask about
-   * `lastSeenAt`, one against the fixed freshness window and one against a date
-   * the user picks, and no single-field query is both. They are declared
-   * mutually exclusive instead, so activating either clears the other and the
-   * merge never has two constraints to choose between.
+   * Status and Last Seen used to be that pair: both asked about `lastSeenAt`,
+   * one against a fixed freshness window and one against a date the user
+   * picked, and they had to be declared mutually exclusive because no single
+   * field query is both. Status now reads the stored `isReachable` verdict, so
+   * every chip owns a column outright and the exclusion is gone.
    */
-  test("gives every chip a column of its own, except the pair that is declared exclusive", () => {
+  test("gives every chip a column of its own", () => {
     const duplicated: Array<string> = ALL_QUERY_FIELDS.filter(
       (field: string, index: number) => {
         return ALL_QUERY_FIELDS.indexOf(field) !== index;
       },
     );
 
-    expect(duplicated).toEqual([DEVICE_FACET_QUERY_FIELDS.status]);
-    expect(DEVICE_FACET_QUERY_FIELDS.lastSeen).toBe(
-      DEVICE_FACET_QUERY_FIELDS.status,
+    expect(duplicated).toEqual([]);
+    expect(new Set(ALL_QUERY_FIELDS).size).toBe(ALL_QUERY_FIELDS.length);
+  });
+
+  test("Status and Last Seen no longer fight over lastSeenAt", () => {
+    expect(DEVICE_FACET_QUERY_FIELDS.status).not.toBe(
+      DEVICE_FACET_QUERY_FIELDS.lastSeen,
     );
+    expect(DEVICE_FACET_QUERY_FIELDS.lastSeen).toBe("lastSeenAt");
   });
 
   /*
-   * The exclusion is what makes a shared column safe, so it has to name exactly
-   * the chips that share one. Derived from the field map rather than restated,
-   * so a third chip pointed at `lastSeenAt` — or a second pair sharing some
-   * other column — fails here instead of silently overwriting at runtime.
+   * The join has to cover the map, or a role could share a column unwatched.
    */
-  test("every chip sharing a column is named in the exclusion", () => {
-    // The join has to cover the map, or a role could share a column unwatched.
+  test("every chip role is accounted for", () => {
     expect(Object.keys(FACET_KEY_BY_QUERY_FIELD_ROLE).sort()).toEqual(
       Object.keys(DEVICE_FACET_QUERY_FIELDS).sort(),
     );
-
-    const facetKeysByColumn: Map<string, Array<string>> = new Map();
-
-    for (const [role, facetKey] of Object.entries(
-      FACET_KEY_BY_QUERY_FIELD_ROLE,
-    )) {
-      const column: string = (
-        DEVICE_FACET_QUERY_FIELDS as unknown as Record<string, string>
-      )[role]!;
-
-      facetKeysByColumn.set(column, [
-        ...(facetKeysByColumn.get(column) || []),
-        facetKey,
-      ]);
-    }
-
-    const sharedColumns: Array<Array<string>> = [
-      ...facetKeysByColumn.values(),
-    ].filter((facetKeys: Array<string>) => {
-      return facetKeys.length > 1;
-    });
-
-    expect(sharedColumns).toHaveLength(1);
-    expect([...sharedColumns[0]!].sort()).toEqual(
-      [...DEVICE_STATUS_LAST_SEEN_EXCLUSION].sort(),
-    );
-  });
-});
-
-describe("DEVICE_STATUS_LAST_SEEN_EXCLUSION", () => {
-  test("names the two chips that write lastSeenAt", () => {
-    expect(DEVICE_STATUS_LAST_SEEN_EXCLUSION).toEqual([
-      DEVICE_STATUS_FACET_KEY,
-      DEVICE_LAST_SEEN_FACET_KEY,
-    ]);
-  });
-
-  test("names real facet keys, and only those two", () => {
-    expect(DEVICE_STATUS_LAST_SEEN_EXCLUSION).toHaveLength(2);
-
-    for (const key of DEVICE_STATUS_LAST_SEEN_EXCLUSION) {
-      expect(ALL_FACET_KEYS).toContain(key);
-    }
-
-    expect(new Set(DEVICE_STATUS_LAST_SEEN_EXCLUSION).size).toBe(2);
   });
 });
 
@@ -356,126 +300,82 @@ describe("DeviceInterfacesFacetValue", () => {
 
 describe("buildDeviceStatusFacetQuery", () => {
   /*
-   * DeviceSummaryCards counts the "Devices Up" tile with
-   * `lastSeenAt: new GreaterThanOrEqual(freshCutoff)`. Anything else here and
-   * the tile opens a different set than it counted.
+   * The chip filters on `isReachable`, the stored outcome of the last poll —
+   * the same column DeviceSummaryCards counts and the same fact the Status
+   * pill renders. It replaced a wall-clock window snapshotted when the value
+   * was picked, which drifted away from the pills (recomputed every render)
+   * the longer the list stayed open, and which — being a fixed 15 minutes —
+   * put healthy devices in the Down list whenever the probe was behind
+   * (issue #3220).
    */
   describe("Up", () => {
-    test("is lastSeenAt >= the cutoff", () => {
-      const query: unknown = buildDeviceStatusFacetQuery(
-        [DeviceStatusFacetValue.Up],
-        "is",
-        CUTOFF,
-      );
-
-      expect(query).toBeInstanceOf(GreaterThanOrEqual);
-      expect((query as GreaterThanOrEqual<Date>).value).toBe(CUTOFF);
-      expect((query as GreaterThanOrEqual<Date>).value.getTime()).toBe(
-        CUTOFF.getTime(),
-      );
-    });
-
-    /*
-     * DeviceStatusUtil.getStatus calls a device seen exactly at the cutoff
-     * "Up", so the boundary has to be inclusive here too — otherwise a device
-     * on the boundary shows an Up pill in a list filtered to Down, or vanishes
-     * from both.
-     */
-    test("includes the boundary, matching the Status pill", () => {
+    test("is isReachable = true", () => {
       expect(
-        buildDeviceStatusFacetQuery([DeviceStatusFacetValue.Up], "is", CUTOFF),
-      ).not.toBeInstanceOf(GreaterThan);
+        buildDeviceStatusFacetQuery([DeviceStatusFacetValue.Up], "is"),
+      ).toBe(true);
     });
   });
 
   describe("Down", () => {
-    test("is lastSeenAt < the cutoff", () => {
+    test("is isReachable = false", () => {
+      expect(
+        buildDeviceStatusFacetQuery([DeviceStatusFacetValue.Down], "is"),
+      ).toBe(false);
+    });
+
+    /*
+     * `undefined` is the one value the facet layer drops (buildFacetColumnQuery
+     * returns null for it), which would leave the chip lit over an unfiltered
+     * list. `false` is a real constraint and must stay distinguishable from it.
+     */
+    test("false is a constraint, not a no-op", () => {
       const query: unknown = buildDeviceStatusFacetQuery(
         [DeviceStatusFacetValue.Down],
         "is",
-        CUTOFF,
       );
 
-      expect(query).toBeInstanceOf(LessThan);
-      expect((query as LessThan<Date>).value).toBe(CUTOFF);
-      expect((query as LessThan<Date>).value.getTime()).toBe(CUTOFF.getTime());
+      expect(query).not.toBeUndefined();
+      expect(query).toBe(false);
     });
   });
 
   describe("Pending", () => {
-    test("is lastSeenAt IS NULL, and carries no date at all", () => {
-      const query: unknown = buildDeviceStatusFacetQuery(
-        [DeviceStatusFacetValue.Pending],
-        "is",
-        CUTOFF,
-      );
-
-      expect(query).toBeInstanceOf(IsNull);
-      expect(query).not.toBeInstanceOf(CompareBase);
+    test("is isReachable IS NULL", () => {
+      expect(
+        buildDeviceStatusFacetQuery([DeviceStatusFacetValue.Pending], "is"),
+      ).toBeInstanceOf(IsNull);
     });
   });
 
   describe("the three values partition the fleet", () => {
     /*
-     * Up is >= cutoff and Down is < cutoff against the SAME instant. If the
-     * two ever drifted apart — a rounded cutoff on one side, a separately
-     * derived window on the other — devices in the gap would appear in
-     * neither list while still being counted by one of the tiles.
+     * true, false and NULL are the only three states the column has, so the
+     * three tile counts always sum to the fleet size. SQL drops NULLs from
+     * both equality comparisons, which is what keeps a never-polled device in
+     * Pending and nowhere else.
      */
-    test("Up and Down meet at exactly one instant, with no gap and no overlap", () => {
-      const up: GreaterThanOrEqual<Date> = buildDeviceStatusFacetQuery(
-        [DeviceStatusFacetValue.Up],
-        "is",
-        CUTOFF,
-      ) as GreaterThanOrEqual<Date>;
-      const down: LessThan<Date> = buildDeviceStatusFacetQuery(
-        [DeviceStatusFacetValue.Down],
-        "is",
-        CUTOFF,
-      ) as LessThan<Date>;
-
-      expect(up.value.getTime()).toBe(down.value.getTime());
-      expect(up.value).toBe(down.value);
-    });
-
-    /*
-     * A never-polled device has to land in Pending and nowhere else. SQL
-     * evaluates both `NULL >= x` and `NULL < x` as unknown, so it is dropped
-     * from Up and Down — but only as long as those two stay plain
-     * comparisons. The moment either becomes a coalescing operator
-     * (GreaterThanOrNull, LessThanOrNull) pending devices get counted twice
-     * and the three tile counts stop summing to the fleet size.
-     */
-    test("Up and Down stay plain comparisons, so pending devices match neither", () => {
-      const up: unknown = buildDeviceStatusFacetQuery(
-        [DeviceStatusFacetValue.Up],
-        "is",
-        CUTOFF,
-      );
-      const down: unknown = buildDeviceStatusFacetQuery(
-        [DeviceStatusFacetValue.Down],
-        "is",
-        CUTOFF,
-      );
-
-      expect(operatorNameOf(up)).toBe("GreaterThanOrEqual");
-      expect(operatorNameOf(down)).toBe("LessThan");
+    test("Up and Down are the two boolean states, and neither matches NULL", () => {
+      expect(
+        buildDeviceStatusFacetQuery([DeviceStatusFacetValue.Up], "is"),
+      ).toBe(true);
+      expect(
+        buildDeviceStatusFacetQuery([DeviceStatusFacetValue.Down], "is"),
+      ).toBe(false);
+      expect(
+        buildDeviceStatusFacetQuery([DeviceStatusFacetValue.Pending], "is"),
+      ).toBeInstanceOf(IsNull);
     });
 
     test("every value produces a constraint, so no chip value is a no-op", () => {
       for (const value of ALL_STATUS_VALUES) {
-        expect(
-          buildDeviceStatusFacetQuery([value], "is", CUTOFF),
-        ).toBeDefined();
+        expect(buildDeviceStatusFacetQuery([value], "is")).not.toBeUndefined();
       }
     });
 
     test("no two values produce the same constraint", () => {
       const shapes: Array<string> = ALL_STATUS_VALUES.map(
         (value: DeviceStatusFacetValue): string => {
-          return JSON.stringify(
-            buildDeviceStatusFacetQuery([value], "is", CUTOFF),
-          );
+          return JSON.stringify(buildDeviceStatusFacetQuery([value], "is"));
         },
       );
 
@@ -484,23 +384,22 @@ describe("buildDeviceStatusFacetQuery", () => {
   });
 
   /*
-   * The three values are ranges over one column, so "up or pending" is not
+   * The three values partition one column, so "up or pending" is not
    * expressible as a single field query and "is not up" would silently drop
-   * never-polled devices (NULL fails both comparisons) while reading as though
-   * it included them. Both are refused outright rather than approximated.
+   * never-polled devices (NULL fails equality either way) while reading as
+   * though it included them. Both are refused outright rather than
+   * approximated.
    */
   describe("refuses anything it cannot express honestly", () => {
     test.each(JUNK_VALUES)(
       "%s does not constrain the column",
       (_label: string, raw: string) => {
-        expect(
-          buildDeviceStatusFacetQuery([raw], "is", CUTOFF),
-        ).toBeUndefined();
+        expect(buildDeviceStatusFacetQuery([raw], "is")).toBeUndefined();
       },
     );
 
     test("an empty selection does not constrain the column", () => {
-      expect(buildDeviceStatusFacetQuery([], "is", CUTOFF)).toBeUndefined();
+      expect(buildDeviceStatusFacetQuery([], "is")).toBeUndefined();
     });
 
     test("a multi-select does not constrain the column", () => {
@@ -508,7 +407,6 @@ describe("buildDeviceStatusFacetQuery", () => {
         buildDeviceStatusFacetQuery(
           [DeviceStatusFacetValue.Up, DeviceStatusFacetValue.Down],
           "is",
-          CUTOFF,
         ),
       ).toBeUndefined();
       expect(
@@ -519,7 +417,6 @@ describe("buildDeviceStatusFacetQuery", () => {
             DeviceStatusFacetValue.Pending,
           ],
           "is",
-          CUTOFF,
         ),
       ).toBeUndefined();
     });
@@ -529,7 +426,6 @@ describe("buildDeviceStatusFacetQuery", () => {
         buildDeviceStatusFacetQuery(
           [DeviceStatusFacetValue.Up, DeviceStatusFacetValue.Up],
           "is",
-          CUTOFF,
         ),
       ).toBeUndefined();
     });
@@ -539,7 +435,7 @@ describe("buildDeviceStatusFacetQuery", () => {
       (operator: FilterOperator) => {
         for (const value of ALL_STATUS_VALUES) {
           expect(
-            buildDeviceStatusFacetQuery([value], operator, CUTOFF),
+            buildDeviceStatusFacetQuery([value], operator),
           ).toBeUndefined();
         }
       },
@@ -565,34 +461,34 @@ describe("buildDeviceStatusFacetQuery", () => {
 
   /*
    * ModelTable decides whether to refetch by comparing the serialised query
-   * against the previous render's. Given the same cutoff the fragment has to
-   * serialise identically, or every render looks like a change — an unbounded
-   * refetch loop against the API.
+   * against the previous render's. The fragment is now a constant per value,
+   * so it cannot change between renders at all — which is what removed the
+   * "window taken at HH:MM" note the page used to need.
    */
-  test("serialises identically for the same cutoff", () => {
-    expect(
-      JSON.stringify(
-        buildDeviceStatusFacetQuery([DeviceStatusFacetValue.Up], "is", CUTOFF),
-      ),
-    ).toBe(
-      JSON.stringify(
-        buildDeviceStatusFacetQuery([DeviceStatusFacetValue.Up], "is", CUTOFF),
-      ),
-    );
-  });
+  describe("stable across renders", () => {
+    test("serialises identically every call", () => {
+      for (const value of ALL_STATUS_VALUES) {
+        expect(JSON.stringify(buildDeviceStatusFacetQuery([value], "is"))).toBe(
+          JSON.stringify(buildDeviceStatusFacetQuery([value], "is")),
+        );
+      }
+    });
 
-  test("moves with the cutoff it is given, and only with that", () => {
-    const later: Date = new Date(CUTOFF.getTime() + MS_PER_MINUTE);
+    test("does not move with the wall clock", () => {
+      freezeTime(NOW);
+      const atNow: string = JSON.stringify(
+        buildDeviceStatusFacetQuery([DeviceStatusFacetValue.Up], "is"),
+      );
 
-    expect(
-      JSON.stringify(
-        buildDeviceStatusFacetQuery([DeviceStatusFacetValue.Up], "is", later),
-      ),
-    ).not.toBe(
-      JSON.stringify(
-        buildDeviceStatusFacetQuery([DeviceStatusFacetValue.Up], "is", CUTOFF),
-      ),
-    );
+      freezeTime(new Date(NOW.getTime() + 6 * 60 * MS_PER_MINUTE));
+      const sixHoursLater: string = JSON.stringify(
+        buildDeviceStatusFacetQuery([DeviceStatusFacetValue.Up], "is"),
+      );
+
+      jest.useRealTimers();
+
+      expect(sixHoursLater).toBe(atNow);
+    });
   });
 });
 
@@ -983,29 +879,20 @@ describe("buildDeviceLastSeenFacetQuery", () => {
   /*
    * Why this chip has to exist alongside Status rather than instead of it.
    *
-   * Status only ever produces an open-ended comparison against the freshness
-   * cutoff, or a null test. A bounded range — "polled between the 1st and the
-   * 5th", or "polled on the 16th" — is a shape it cannot make at any cutoff,
-   * which is exactly the question this chip was added to restore.
-   *
-   * The overlap runs the other way and is fine: "before" at the freshness
-   * cutoff IS Down. The two chips are mutually exclusive because they write one
-   * column, not because they can never agree.
+   * Status asks about `isReachable` — is the device up right now — and can
+   * only ever say true, false or NULL. "Answered between the 1st and the
+   * 5th", or "answered on the 16th", is a question about `lastSeenAt` that
+   * Status cannot express at all. The two now own different columns, so
+   * unlike before they can be applied together.
    */
-  test("expresses a bounded range, which the Status chip cannot", () => {
+  test("expresses a bounded date range, which the Status chip cannot", () => {
     const statusShapes: Set<string> = new Set(
       ALL_STATUS_VALUES.map((value: DeviceStatusFacetValue): string => {
-        return operatorNameOf(
-          buildDeviceStatusFacetQuery([value], "is", PICKED_DAY),
-        );
+        return operatorNameOf(buildDeviceStatusFacetQuery([value], "is"));
       }),
     );
 
-    expect([...statusShapes].sort()).toEqual([
-      "GreaterThanOrEqual",
-      "IsNull",
-      "LessThan",
-    ]);
+    expect([...statusShapes].sort()).toEqual(["Boolean", "IsNull"]);
 
     for (const operator of ["is", "between"] as Array<FilterOperator>) {
       const query: unknown = buildDeviceLastSeenFacetQuery(
@@ -1018,292 +905,6 @@ describe("buildDeviceLastSeenFacetQuery", () => {
 
       expect(operatorNameOf(query)).toBe("InBetween");
       expect(statusShapes).not.toContain(operatorNameOf(query));
-    }
-  });
-});
-
-describe("getDeviceFreshCutoff", () => {
-  test("is the freshness window in the past", () => {
-    const cutoff: Date = getDeviceFreshCutoff();
-    const age: number = Date.now() - cutoff.getTime();
-
-    expect(cutoff).toBeInstanceOf(Date);
-    expect(Number.isNaN(cutoff.getTime())).toBe(false);
-    // Tolerance for the wall clock advancing between the two reads.
-    expect(age).toBeGreaterThanOrEqual(FRESH_WINDOW_MS - 2000);
-    expect(age).toBeLessThanOrEqual(FRESH_WINDOW_MS + 2000);
-  });
-
-  describe("with the clock frozen", () => {
-    beforeEach(() => {
-      freezeTime(NOW);
-    });
-
-    afterEach(() => {
-      jest.useRealTimers();
-    });
-
-    test("is exactly the window ago", () => {
-      expect(getDeviceFreshCutoff().getTime()).toBe(
-        NOW.getTime() - FRESH_WINDOW_MS,
-      );
-    });
-
-    /*
-     * The Status column's pill, the tile counts and the chip's query all have
-     * to agree on where "up" ends. They agree because all of them read this
-     * one constant.
-     */
-    test("uses the same window as the Status pill", () => {
-      expect(DEVICE_FRESH_WINDOW_MINUTES).toBe(15);
-    });
-
-    /*
-     * A fresh object every call is exactly why DeviceStatusCutoff exists:
-     * handed straight to ModelTable this compares unequal on every render.
-     */
-    test("returns a new Date object every call, snapshot-free", () => {
-      expect(getDeviceFreshCutoff()).not.toBe(getDeviceFreshCutoff());
-      expect(getDeviceFreshCutoff().getTime()).toBe(
-        getDeviceFreshCutoff().getTime(),
-      );
-    });
-  });
-});
-
-/*
- * The cutoff cannot be rebuilt per render: the merged query goes to ModelTable,
- * which decides whether to refetch by comparing it against the previous
- * render's, so a fresh Date every render looks like a change every render — an
- * endless refetch loop. Object identity is therefore the property that matters,
- * and it is what these assert.
- */
-describe("DeviceStatusCutoff", () => {
-  beforeEach(() => {
-    freezeTime(NOW);
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
-  test("has taken no snapshot before it is asked for one", () => {
-    expect(new DeviceStatusCutoff().getSelection()).toBeNull();
-  });
-
-  test("snapshots on the very first call, and reports what for", () => {
-    const cutoff: DeviceStatusCutoff = new DeviceStatusCutoff();
-    const first: Date = cutoff.getCutoffFor(DeviceStatusFacetValue.Up);
-
-    expect(first.getTime()).toBe(NOW.getTime() - FRESH_WINDOW_MS);
-    expect(cutoff.getSelection()).toBe(DeviceStatusFacetValue.Up);
-  });
-
-  test("hands back the identical Date for repeated calls with the same selection", () => {
-    const cutoff: DeviceStatusCutoff = new DeviceStatusCutoff();
-    const first: Date = cutoff.getCutoffFor(DeviceStatusFacetValue.Down);
-
-    expect(cutoff.getCutoffFor(DeviceStatusFacetValue.Down)).toBe(first);
-    expect(cutoff.getCutoffFor(DeviceStatusFacetValue.Down)).toBe(first);
-    expect(cutoff.getCutoffFor(DeviceStatusFacetValue.Down)).toBe(first);
-  });
-
-  /*
-   * The snapshot going stale is the deliberate trade: re-deriving it on a
-   * timer would send anyone reading page 3 back to page 1 every tick and drop
-   * any bulk selection they had made. The page says when the window was taken
-   * instead.
-   */
-  test("holds the snapshot still even as the clock moves on", () => {
-    const cutoff: DeviceStatusCutoff = new DeviceStatusCutoff();
-    const first: Date = cutoff.getCutoffFor(DeviceStatusFacetValue.Up);
-
-    jest.setSystemTime(new Date(NOW.getTime() + 60 * MS_PER_MINUTE));
-
-    const again: Date = cutoff.getCutoffFor(DeviceStatusFacetValue.Up);
-
-    expect(again).toBe(first);
-    expect(again.getTime()).toBe(NOW.getTime() - FRESH_WINDOW_MS);
-  });
-
-  test("takes a new snapshot when the selection changes", () => {
-    const cutoff: DeviceStatusCutoff = new DeviceStatusCutoff();
-    const up: Date = cutoff.getCutoffFor(DeviceStatusFacetValue.Up);
-
-    jest.setSystemTime(new Date(NOW.getTime() + 5 * MS_PER_MINUTE));
-
-    const down: Date = cutoff.getCutoffFor(DeviceStatusFacetValue.Down);
-
-    expect(down).not.toBe(up);
-    expect(down.getTime() - up.getTime()).toBe(5 * MS_PER_MINUTE);
-    expect(cutoff.getSelection()).toBe(DeviceStatusFacetValue.Down);
-  });
-
-  /*
-   * Switching away and back is a fresh look at the fleet, not a return to the
-   * old window — otherwise the note on the page would claim a window the user
-   * has just re-taken.
-   */
-  test("re-snapshots when the same selection is picked again after another", () => {
-    const cutoff: DeviceStatusCutoff = new DeviceStatusCutoff();
-    const firstUp: Date = cutoff.getCutoffFor(DeviceStatusFacetValue.Up);
-
-    cutoff.getCutoffFor(DeviceStatusFacetValue.Pending);
-    jest.setSystemTime(new Date(NOW.getTime() + 9 * MS_PER_MINUTE));
-
-    const secondUp: Date = cutoff.getCutoffFor(DeviceStatusFacetValue.Up);
-
-    expect(secondUp).not.toBe(firstUp);
-    expect(secondUp.getTime()).toBe(
-      NOW.getTime() + 9 * MS_PER_MINUTE - FRESH_WINDOW_MS,
-    );
-  });
-
-  test("clearing the chip is itself a selection change", () => {
-    const cutoff: DeviceStatusCutoff = new DeviceStatusCutoff();
-    const up: Date = cutoff.getCutoffFor(DeviceStatusFacetValue.Up);
-
-    jest.setSystemTime(new Date(NOW.getTime() + MS_PER_MINUTE));
-
-    const cleared: Date = cutoff.getCutoffFor("");
-
-    expect(cleared).not.toBe(up);
-    expect(cutoff.getSelection()).toBe("");
-    // And the empty selection is itself snapshotted, not re-derived per call.
-    expect(cutoff.getCutoffFor("")).toBe(cleared);
-  });
-
-  /*
-   * The page syncs this with the live selection every render, `null` included, and
-   * that clear is load-bearing.
-   *
-   * Keyed on the value alone, "pick Down at 10:00, clear the chip, pick Down again
-   * at 11:00" would hand back the 09:45 cutoff — so a device that went stale in
-   * between would be missing from the Down list while the Status column painted it
-   * Down, and the note under the bar would name 11:00. That disagreement is the
-   * exact confusion the note exists to prevent.
-   */
-  test("clearing the chip and re-picking the same value takes a fresh window", () => {
-    const cutoff: DeviceStatusCutoff = new DeviceStatusCutoff();
-    const first: Date = cutoff.getCutoffFor(DeviceStatusFacetValue.Down);
-
-    // The chip is cleared: the page reports the live selection, which is now null.
-    expect(cutoff.getCutoffFor(null)).not.toBe(first);
-    expect(cutoff.getSelection()).toBeNull();
-
-    jest.setSystemTime(new Date(NOW.getTime() + 60 * MS_PER_MINUTE));
-
-    const second: Date = cutoff.getCutoffFor(DeviceStatusFacetValue.Down);
-
-    expect(second).not.toBe(first);
-    expect(second.getTime()).toBe(
-      NOW.getTime() + 60 * MS_PER_MINUTE - FRESH_WINDOW_MS,
-    );
-  });
-
-  // A cleared chip is still a snapshot, not a fresh window on every render.
-  test("holds one snapshot while the chip stays cleared", () => {
-    const cutoff: DeviceStatusCutoff = new DeviceStatusCutoff();
-    const cleared: Date = cutoff.getCutoffFor(null);
-
-    jest.setSystemTime(new Date(NOW.getTime() + 4 * MS_PER_MINUTE));
-
-    expect(cutoff.getCutoffFor(null)).toBe(cleared);
-  });
-
-  /*
-   * State per instance, not per module: two tables on screen (or a page
-   * remounting) must not share one snapshot, or one of them silently filters
-   * against the other's window.
-   */
-  test("each instance keeps its own snapshot", () => {
-    const one: DeviceStatusCutoff = new DeviceStatusCutoff();
-    const first: Date = one.getCutoffFor(DeviceStatusFacetValue.Up);
-
-    jest.setSystemTime(new Date(NOW.getTime() + 3 * MS_PER_MINUTE));
-
-    const two: DeviceStatusCutoff = new DeviceStatusCutoff();
-
-    expect(two.getSelection()).toBeNull();
-    expect(two.getCutoffFor(DeviceStatusFacetValue.Up)).not.toBe(first);
-    expect(one.getCutoffFor(DeviceStatusFacetValue.Up)).toBe(first);
-  });
-
-  /*
-   * The point of the whole mechanism, end to end: the query handed to
-   * ModelTable has to serialise identically render after render while the
-   * selection is unchanged, and change the moment the user picks another
-   * value.
-   */
-  test("keeps the built query byte-identical across renders", () => {
-    const cutoff: DeviceStatusCutoff = new DeviceStatusCutoff();
-
-    function build(selection: DeviceStatusFacetValue): string {
-      return JSON.stringify(
-        buildDeviceStatusFacetQuery(
-          [selection],
-          "is",
-          cutoff.getCutoffFor(selection),
-        ),
-      );
-    }
-
-    const first: string = build(DeviceStatusFacetValue.Up);
-
-    jest.setSystemTime(new Date(NOW.getTime() + 7 * MS_PER_MINUTE));
-
-    expect(build(DeviceStatusFacetValue.Up)).toBe(first);
-    expect(build(DeviceStatusFacetValue.Down)).not.toBe(first);
-  });
-});
-
-/*
- * Gates the "window taken at HH:MM" note. Up and Down are the only two values
- * defined against the freshness window, so they are the only two whose result
- * set is a snapshot; Pending is a plain NULL check and never drifts. A wrong
- * answer here either hides the explanation for a row whose pill has since
- * changed, or puts a misleading note over a list that cannot go stale.
- */
-describe("isTimeBasedDeviceStatus", () => {
-  test("up and down are", () => {
-    expect(isTimeBasedDeviceStatus(DeviceStatusFacetValue.Up)).toBe(true);
-    expect(isTimeBasedDeviceStatus(DeviceStatusFacetValue.Down)).toBe(true);
-  });
-
-  test("pending is not — a never-polled device does not go stale", () => {
-    expect(isTimeBasedDeviceStatus(DeviceStatusFacetValue.Pending)).toBe(false);
-  });
-
-  test.each([
-    ["null", null],
-    ["undefined", undefined],
-  ])("%s is not", (_label: string, value: string | null | undefined) => {
-    expect(isTimeBasedDeviceStatus(value)).toBe(false);
-  });
-
-  test.each(JUNK_VALUES)("%s is not", (_label: string, raw: string) => {
-    expect(isTimeBasedDeviceStatus(raw)).toBe(false);
-  });
-
-  test.each(ALL_INTERFACES_VALUES)(
-    "the other chip's %s value is not",
-    (value: DeviceInterfacesFacetValue) => {
-      expect(isTimeBasedDeviceStatus(value)).toBe(false);
-    },
-  );
-
-  /*
-   * The real invariant, rather than a second hand-maintained list: a value is
-   * time-based exactly when the query built for it carries a Date. Checked
-   * against the query builder itself so the two cannot drift.
-   */
-  test("says yes exactly when the query carries the cutoff", () => {
-    for (const value of ALL_STATUS_VALUES) {
-      const query: unknown = buildDeviceStatusFacetQuery([value], "is", CUTOFF);
-      const carriesTheCutoff: boolean =
-        query instanceof CompareBase && query.value instanceof Date;
-
-      expect(isTimeBasedDeviceStatus(value)).toBe(carriesTheCutoff);
     }
   });
 });
@@ -1357,20 +958,38 @@ describe("DEVICE_STATUS_FACET_OPTIONS", () => {
     expect(new Set(labels).size).toBe(labels.length);
   });
 
-  /*
-   * The sublabels are the only place the dropdown explains what "up" means, so
-   * they have to quote the same window the query uses rather than a number
-   * typed out by hand that can drift from the constant.
-   */
-  test("the time-based options explain themselves with the real window", () => {
+  test("every option explains itself", () => {
     for (const option of DEVICE_STATUS_FACET_OPTIONS) {
       expect(option.sublabel).toBeTruthy();
+    }
+  });
 
-      if (isTimeBasedDeviceStatus(option.value)) {
-        expect(option.sublabel).toContain(
-          `${DEVICE_FRESH_WINDOW_MINUTES} minutes`,
-        );
-      }
+  /*
+   * The dropdown is the only place the list says what "up" means, and after
+   * issue #3220 what it means is the outcome of the last poll — not its age.
+   * A sublabel that goes back to promising a time window is a sublabel that
+   * has stopped describing the query underneath it.
+   */
+  test("no option describes itself as a time window any more", () => {
+    for (const option of DEVICE_STATUS_FACET_OPTIONS) {
+      expect(option.sublabel).not.toMatch(/minutes/i);
+      expect(option.sublabel).not.toMatch(/last \d/i);
+    }
+  });
+
+  test("the Up and Down options are worded as poll outcomes", () => {
+    const [up, down]: Array<FilterChipDropdownOption> =
+      DEVICE_STATUS_FACET_OPTIONS;
+
+    expect(up!.label).toBe("Up");
+    expect(up!.sublabel).toContain("reached");
+    expect(down!.label).toBe("Down");
+    expect(down!.sublabel).toContain("could not reach");
+  });
+
+  test("every option the menu offers actually filters", () => {
+    for (const value of optionValues(DEVICE_STATUS_FACET_OPTIONS)) {
+      expect(buildDeviceStatusFacetQuery([value], "is")).not.toBeUndefined();
     }
   });
 });

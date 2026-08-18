@@ -1700,6 +1700,13 @@
                         "monitorRetryLimit": {
                             "type": "integer"
                         },
+                        "networkDevicePollConcurrency": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        },
                         "key": {
                             "type": [
                                 "string",
@@ -2659,6 +2666,13 @@
                 },
                 "telemetryConcurrency": {
                     "type": "integer"
+                },
+                "networkDevicePollFetchLimit": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1
                 },
                 "telemetryFanInMaxBatchRows": {
                     "type": "integer",
