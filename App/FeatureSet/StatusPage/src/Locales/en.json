@@ -1,6 +1,7 @@
 {
   "a11y": {
-    "skipToMainContent": "Skip to main content"
+    "skipToMainContent": "Skip to main content",
+    "loading": "Loading..."
   },
   "common": {
     "save": "Save",
@@ -227,7 +228,8 @@
       "passwordDescription": "Enter the password to unlock this page.",
       "passwordPlaceholder": "Enter password",
       "submit": "Unlock Status Page"
-    }
+    },
+    "signingOut": "Signing you out..."
   },
   "errors": {
     "notFound": {

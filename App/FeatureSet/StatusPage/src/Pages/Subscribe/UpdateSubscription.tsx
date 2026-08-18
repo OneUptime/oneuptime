@@ -17,7 +17,7 @@ import ModelForm, {
 } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import { FormSkeleton } from "../../Components/Skeleton/PageSkeletons";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
 import SubscriberUtil from "Common/UI/Utils/StatusPage";
@@ -232,7 +232,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
 
   return (
     <Page>
-      {isLaoding ? <PageLoader isVisible={isLaoding} /> : <></>}
+      {isLaoding ? <FormSkeleton /> : <></>}
 
       {error ? <ErrorMessage message={error} /> : <></>}
 

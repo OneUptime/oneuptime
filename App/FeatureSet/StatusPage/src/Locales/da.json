@@ -1,6 +1,7 @@
 {
   "a11y": {
-    "skipToMainContent": "Spring til hovedindhold"
+    "skipToMainContent": "Spring til hovedindhold",
+    "loading": "Indlæser..."
   },
   "common": {
     "save": "Gem",
@@ -227,7 +228,8 @@
       "passwordDescription": "Indtast adgangskoden for at låse denne side op.",
       "passwordPlaceholder": "Indtast adgangskode",
       "submit": "Lås statusside op"
-    }
+    },
+    "signingOut": "Logger dig ud..."
   },
   "errors": {
     "notFound": {

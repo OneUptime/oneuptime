@@ -1,6 +1,7 @@
 {
   "a11y": {
-    "skipToMainContent": "मुख्य सामग्री पर जाएं"
+    "skipToMainContent": "मुख्य सामग्री पर जाएं",
+    "loading": "लोड हो रहा है..."
   },
   "common": {
     "save": "सहेजें",
@@ -227,7 +228,8 @@
       "passwordDescription": "इस पृष्ठ को अनलॉक करने के लिए पासवर्ड दर्ज करें।",
       "passwordPlaceholder": "पासवर्ड दर्ज करें",
       "submit": "स्थिति पृष्ठ अनलॉक करें"
-    }
+    },
+    "signingOut": "आपको साइन आउट किया जा रहा है..."
   },
   "errors": {
     "notFound": {

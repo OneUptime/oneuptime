@@ -9,6 +9,8 @@ export interface ComponentProps {
   copyright?: string | undefined;
   links: Array<Link>;
   className?: string | undefined;
+  innerClassName?: string | undefined;
+  copyrightClassName?: string | undefined;
   hidePoweredByOneUptimeBranding?: boolean | undefined;
   enabledLanguages?: Array<string> | null | undefined;
 }
@@ -36,6 +38,8 @@ const StatusPageFooter: FunctionComponent<ComponentProps> = (
   return (
     <Footer
       className={props.className}
+      innerClassName={props.innerClassName}
+      copyrightClassName={props.copyrightClassName}
       copyright={props.copyright}
       links={links}
     />

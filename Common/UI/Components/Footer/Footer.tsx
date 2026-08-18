@@ -16,6 +16,18 @@ export interface ComponentProps {
   links: Array<FooterLink>;
   style?: React.CSSProperties | undefined;
   className?: string | undefined;
+  /*
+   * Classes for the inner row. The default adds its own horizontal padding,
+   * which double-indents the footer inside a layout that is already padded —
+   * the status page, for one. Override it to align the footer with the content
+   * above it.
+   */
+  innerClassName?: string | undefined;
+  /*
+   * Classes for the copyright block. The default hides it between md and lg,
+   * which is not something every layout wants.
+   */
+  copyrightClassName?: string | undefined;
 }
 
 const Footer: FunctionComponent<ComponentProps> = (
@@ -29,7 +41,12 @@ const Footer: FunctionComponent<ComponentProps> = (
         }
         style={props.style}
       >
-        <div className="mx-auto w-full py-6 px-6 md:flex md:items-center md:justify-between lg:px-8">
+        <div
+          className={
+            props.innerClassName ||
+            "mx-auto w-full py-6 px-6 md:flex md:items-center md:justify-between lg:px-8"
+          }
+        >
           {/* Mobile: Stack links vertically, Desktop: Horizontal layout */}
           <div className="flex flex-col space-y-3 md:flex-row md:justify-center md:items-center md:space-y-0 md:space-x-8 md:order-2">
             {props.links &&
@@ -63,14 +80,23 @@ const Footer: FunctionComponent<ComponentProps> = (
                 );
               })}
           </div>
-          {/* Copyright: Show on mobile, hide on larger screens unless specified */}
-          <div className="mt-5 md:order-1 md:mt-0 block md:hidden lg:block">
-            {props.copyright && (
+          {/*
+           * Guard the wrapper, not just the <p>: with no copyright configured
+           * the empty div still contributed its mt-5, leaving a dead gap under
+           * the links.
+           */}
+          {props.copyright && (
+            <div
+              className={
+                props.copyrightClassName ||
+                "mt-5 md:order-1 md:mt-0 block md:hidden lg:block"
+              }
+            >
               <p className="text-center text-sm text-gray-500">
                 &copy; {props.copyright}
               </p>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </footer>
     </React.Fragment>

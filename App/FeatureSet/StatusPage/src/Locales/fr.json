@@ -1,6 +1,7 @@
 {
   "a11y": {
-    "skipToMainContent": "Passer au contenu principal"
+    "skipToMainContent": "Passer au contenu principal",
+    "loading": "Chargement..."
   },
   "common": {
     "save": "Enregistrer",
@@ -227,7 +228,8 @@
       "passwordDescription": "Saisissez le mot de passe pour déverrouiller cette page.",
       "passwordPlaceholder": "Saisir le mot de passe",
       "submit": "Déverrouiller la page de statut"
-    }
+    },
+    "signingOut": "Déconnexion en cours..."
   },
   "errors": {
     "notFound": {

@@ -1,6 +1,7 @@
 {
   "a11y": {
-    "skipToMainContent": "Hopp til hovedinnhold"
+    "skipToMainContent": "Hopp til hovedinnhold",
+    "loading": "Laster..."
   },
   "common": {
     "save": "Lagre",
@@ -227,7 +228,8 @@
       "passwordDescription": "Skriv inn passordet for å låse opp denne siden.",
       "passwordPlaceholder": "Skriv inn passord",
       "submit": "Lås opp statusside"
-    }
+    },
+    "signingOut": "Logger deg ut..."
   },
   "errors": {
     "notFound": {

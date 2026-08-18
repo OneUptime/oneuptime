@@ -27,7 +27,7 @@ import EventItem, {
   TimelineAttachment,
 } from "Common/UI/Components/EventItem/EventItem";
 import { StatusPageApiRoute } from "Common/ServiceRoute";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import { EventDetailSkeleton } from "../../Components/Skeleton/PageSkeletons";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
@@ -298,12 +298,60 @@ const Overview: FunctionComponent<PageComponentProps> = (
     );
   }, [isLoading, statusPageId]);
 
+  type RenderPageFunction = (pageContent: ReactElement) => ReactElement;
+
+  /*
+   * The page chrome — title and breadcrumbs — comes from static translations,
+   * not from the request, so render it immediately and swap only the body
+   * between the loading skeleton, an error and the real content. Returning a
+   * bare loader instead used to blank the whole page and drag the footer up
+   * into the middle of the viewport until the data arrived.
+   */
+  const renderPage: RenderPageFunction = (
+    pageContent: ReactElement,
+  ): ReactElement => {
+    return (
+      <Page
+        title={t("announcements.singular")}
+        breadcrumbLinks={[
+          {
+            title: t("nav.overview"),
+            to: RouteUtil.populateRouteParams(
+              StatusPageUtil.isPreviewPage()
+                ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
+                : (RouteMap[PageMap.OVERVIEW] as Route),
+            ),
+          },
+          {
+            title: t("announcements.title"),
+            to: RouteUtil.populateRouteParams(
+              StatusPageUtil.isPreviewPage()
+                ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST] as Route)
+                : (RouteMap[PageMap.ANNOUNCEMENT_LIST] as Route),
+            ),
+          },
+          {
+            title: t("announcements.singular"),
+            to: RouteUtil.populateRouteParams(
+              StatusPageUtil.isPreviewPage()
+                ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_DETAIL] as Route)
+                : (RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route),
+              Navigation.getLastParamAsObjectID(),
+            ),
+          },
+        ]}
+      >
+        {pageContent}
+      </Page>
+    );
+  };
+
   if (isLoading) {
-    return <PageLoader isVisible={true} />;
+    return renderPage(<EventDetailSkeleton />);
   }
 
   if (error) {
-    return <ErrorMessage message={error} />;
+    return renderPage(<ErrorMessage message={error} />);
   }
 
   /*
@@ -311,43 +359,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
    * announcement falls through to the empty state below instead of loading forever.
    */
   if (announcement && !parsedData) {
-    return <PageLoader isVisible={true} />;
+    return renderPage(<EventDetailSkeleton />);
   }
 
-  return (
-    <Page
-      title={t("announcements.singular")}
-      breadcrumbLinks={[
-        {
-          title: t("nav.overview"),
-          to: RouteUtil.populateRouteParams(
-            StatusPageUtil.isPreviewPage()
-              ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
-              : (RouteMap[PageMap.OVERVIEW] as Route),
-          ),
-        },
-        {
-          title: t("announcements.title"),
-          to: RouteUtil.populateRouteParams(
-            StatusPageUtil.isPreviewPage()
-              ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST] as Route)
-              : (RouteMap[PageMap.ANNOUNCEMENT_LIST] as Route),
-          ),
-        },
-        {
-          title: t("announcements.singular"),
-          to: RouteUtil.populateRouteParams(
-            StatusPageUtil.isPreviewPage()
-              ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_DETAIL] as Route)
-              : (RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route),
-            Navigation.getLastParamAsObjectID(),
-          ),
-        },
-      ]}
-    >
+  return renderPage(
+    <>
       {announcement && parsedData ? <EventItem {...parsedData} /> : <></>}
       {!announcement ? (
         <EmptyState
+          paddingClassName="py-12 sm:py-16"
           id="announcement-empty-state"
           title={t("announcements.none")}
           description={t("announcements.notFound")}
@@ -356,7 +376,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       ) : (
         <></>
       )}
-    </Page>
+    </>,
   );
 };
 

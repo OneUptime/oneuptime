@@ -1,6 +1,7 @@
 {
   "a11y": {
-    "skipToMainContent": "본문으로 건너뛰기"
+    "skipToMainContent": "본문으로 건너뛰기",
+    "loading": "불러오는 중..."
   },
   "common": {
     "save": "저장",
@@ -227,7 +228,8 @@
       "passwordDescription": "이 페이지의 잠금을 해제하려면 비밀번호를 입력해주세요.",
       "passwordPlaceholder": "비밀번호 입력",
       "submit": "상태 페이지 잠금 해제"
-    }
+    },
+    "signingOut": "로그아웃 중..."
   },
   "errors": {
     "notFound": {

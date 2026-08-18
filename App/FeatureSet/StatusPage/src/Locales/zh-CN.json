@@ -1,6 +1,7 @@
 {
   "a11y": {
-    "skipToMainContent": "跳到主要内容"
+    "skipToMainContent": "跳到主要内容",
+    "loading": "加载中..."
   },
   "common": {
     "save": "保存",
@@ -227,7 +228,8 @@
       "passwordDescription": "输入密码以解锁此页面。",
       "passwordPlaceholder": "输入密码",
       "submit": "解锁状态页"
-    }
+    },
+    "signingOut": "正在退出登录..."
   },
   "errors": {
     "notFound": {
