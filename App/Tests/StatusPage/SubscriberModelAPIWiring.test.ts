@@ -12,6 +12,11 @@ import path from "path";
  * These tests cover every hand-written Status Page call site. That is useful
  * in addition to the ModelAPI unit tests because a future subscriber channel
  * can compile while silently omitting the page-scoped adapter prop.
+ *
+ * The per-page lists below are pinned on purpose and enforced complete by
+ * the inventory tests: a new page that renders a ModelForm or fetches
+ * selectable resources fails the inventory until it is added here — which
+ * is what opts it into every boundary assertion in this file.
  */
 
 const STATUS_PAGE_SRC: string = path.join(
@@ -34,6 +39,17 @@ const ACCOUNT_FORM_PAGES: ReadonlyArray<string> = [
   "Pages/Accounts/ResetPassword.tsx",
 ];
 
+/**
+ * The one module allowed to import the dashboard-scoped ModelAPI: the
+ * adapter that rebinds it to the Status Page client and headers.
+ */
+const MODEL_API_ADAPTER: string = "Utils/ModelAPI.ts";
+
+const SOURCE_FILE_PATTERN: RegExp = /\.tsx?$/;
+const MODEL_FORM_PATTERN: RegExp = /<ModelForm/;
+const DASHBOARD_MODEL_API_IMPORT_PATTERN: RegExp =
+  /from\s+"Common\/UI\/Utils\/ModelAPI\/ModelAPI"/;
+
 function readSource(relativePath: string): string {
   return fs
     .readFileSync(path.join(STATUS_PAGE_SRC, relativePath), "utf8")
@@ -45,7 +61,80 @@ function occurrences(source: string, expression: RegExp): number {
   return source.match(expression)?.length || 0;
 }
 
+/** Every .ts / .tsx source file under StatusPage/src, relative to it. */
+function listSourceFiles(relativeDir: string = ""): Array<string> {
+  const absoluteDir: string = path.join(STATUS_PAGE_SRC, relativeDir);
+  const files: Array<string> = [];
+
+  for (const entry of fs.readdirSync(absoluteDir, { withFileTypes: true })) {
+    const relativePath: string = relativeDir
+      ? `${relativeDir}/${entry.name}`
+      : entry.name;
+
+    if (entry.isDirectory()) {
+      files.push(...listSourceFiles(relativePath));
+    } else if (SOURCE_FILE_PATTERN.test(entry.name)) {
+      files.push(relativePath);
+    }
+  }
+
+  return files.sort();
+}
+
 describe("Status Page model requests stay in the Status Page auth boundary", () => {
+  /*
+   * Inventory: discover every call site from the source tree and require the
+   * pinned lists above to match exactly. This is what keeps the per-page
+   * assertions below meaningful over time — a new subscriber channel (or a
+   * moved page) fails here first, with instructions, instead of silently
+   * shipping unasserted.
+   */
+  test("every page that renders a ModelForm is in the pinned inventory", () => {
+    const discovered: Array<string> = listSourceFiles("Pages").filter(
+      (relativePath: string): boolean => {
+        return MODEL_FORM_PATTERN.test(readSource(relativePath));
+      },
+    );
+
+    expect(discovered).toEqual(
+      [...SUBSCRIBE_PAGES, ...ACCOUNT_FORM_PAGES].slice().sort(),
+    );
+  });
+
+  test("every page that fetches selectable resources is in the pinned inventory", () => {
+    const discovered: Array<string> = listSourceFiles("Pages").filter(
+      (relativePath: string): boolean => {
+        return readSource(relativePath).includes(
+          "getCategoryCheckboxPropsBasedOnResources",
+        );
+      },
+    );
+
+    expect(discovered).toEqual(SUBSCRIBE_PAGES.slice().sort());
+  });
+
+  /*
+   * The boundary itself: nothing under StatusPage/src may import the
+   * dashboard ModelAPI except the adapter that wraps it. Any other import is
+   * a compile-clean path to the dashboard logout routine wiping the page's
+   * browser storage on the first 401.
+   */
+  test("only the adapter imports the dashboard-scoped ModelAPI", () => {
+    const offenders: Array<string> = listSourceFiles().filter(
+      (relativePath: string): boolean => {
+        if (relativePath === MODEL_API_ADAPTER) {
+          return false;
+        }
+
+        return DASHBOARD_MODEL_API_IMPORT_PATTERN.test(
+          readSource(relativePath),
+        );
+      },
+    );
+
+    expect(offenders).toEqual([]);
+  });
+
   test.each([...SUBSCRIBE_PAGES, ...ACCOUNT_FORM_PAGES])(
     "%s gives every ModelForm the page-scoped ModelAPI",
     (relativePath: string) => {
@@ -80,15 +169,26 @@ describe("Status Page model requests stay in the Status Page auth boundary", () 
 
       /*
        * The guard may reset UI state (e.g. setIsLoading) before bailing, but
-       * it must end in an early return and must never start a resource fetch.
+       * it must END in an early return and must never start a resource fetch
+       * itself.
        */
       const guard: RegExpMatchArray | null = source.match(
         /if \(!props\.allowSubscribersToChooseResources\) \{([^}]*)\}/,
       );
 
       expect(guard).not.toBeNull();
-      expect(guard![1]).toContain("return;");
+      expect(guard![1]!.trim().endsWith("return;")).toBe(true);
       expect(guard![1]).not.toContain("fetch");
+      expect(guard![1]).not.toContain("getCategoryCheckbox");
+
+      /*
+       * And it must be the FIRST statement of the effect that triggers the
+       * fetch — nothing may run before it — with the effect keyed to the
+       * prop so toggling resource selection re-evaluates the guard.
+       */
+      expect(source).toContain(
+        "useEffect(() => { if (!props.allowSubscribersToChooseResources) {",
+      );
       expect(source).toContain("[props.allowSubscribersToChooseResources]");
     },
   );
