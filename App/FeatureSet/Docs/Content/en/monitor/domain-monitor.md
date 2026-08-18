@@ -87,7 +87,7 @@ For **Is Online**, **Is Request Timeout** and **Domain Is Expired**:
 
 For **Domain Expires In Days**:
 
-- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
+- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**
 
 For **Domain Registrar**, **Domain Name Server**, and **Domain Status Code**:
 

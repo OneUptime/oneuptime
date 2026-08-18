@@ -34,18 +34,16 @@ You can configure criteria to determine when your certificate status is consider
 
 | Filter Type                | Description                                                     |
 | -------------------------- | --------------------------------------------------------------- |
-| Is Online                  | Whether the server is reachable                                 |
 | Is Valid Certificate       | Whether the certificate is valid (not expired, not self-signed) |
 | Is Self-Signed Certificate | Whether the certificate is self-signed                          |
 | Is Expired Certificate     | Whether the certificate has expired                             |
 | Is Not A Valid Certificate | Whether the certificate is invalid                              |
 | Expires In Hours           | Number of hours until the certificate expires                   |
 | Expires In Days            | Number of days until the certificate expires                    |
-| Is Request Timeout         | Whether the connection timed out                                |
 
 ### Filter Conditions
 
-For **Is Online**, **Is Valid Certificate**, **Is Self-Signed Certificate**, **Is Expired Certificate**, **Is Not A Valid Certificate**, and **Is Request Timeout**:
+For **Is Valid Certificate**, **Is Self-Signed Certificate**, **Is Expired Certificate**, and **Is Not A Valid Certificate**:
 
 - **True** — Condition is true
 - **False** — Condition is false
@@ -56,8 +54,6 @@ For **Expires In Hours** and **Expires In Days**:
 - **Less Than** — Expiry is less than the specified value away
 - **Greater Than or Equal To** — Expiry is at or more than the specified value away
 - **Less Than or Equal To** — Expiry is at or less than the specified value away
-- **Equal To** — Expiry matches exactly
-- **Not Equal To** — Expiry does not match
 
 ### Example Criteria
 

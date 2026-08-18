@@ -76,7 +76,7 @@ For **DNS Is Online**, **DNS Record Exists**, and **DNSSEC Is Valid**:
 
 For **DNS Response Time**:
 
-- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**, **Equal To**, **Not Equal To**
+- **Greater Than**, **Less Than**, **Greater Than or Equal To**, **Less Than or Equal To**
 
 For **DNS Record Value**:
 

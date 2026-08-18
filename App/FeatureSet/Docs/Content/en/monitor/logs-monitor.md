@@ -62,7 +62,6 @@ Filter logs by one or more severity levels:
 - **Greater Than or Equal To** — Log count is at or above a threshold
 - **Less Than or Equal To** — Log count is at or below a threshold
 - **Equal To** — Log count matches exactly
-- **Not Equal To** — Log count does not match
 
 ### Example Criteria
 
