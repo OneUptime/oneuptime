@@ -76,30 +76,51 @@ app.set("view engine", "ejs");
 app.set("trust proxy", TrustedProxyHops);
 app.use(CookieParser());
 
-const jsonBodyParserMiddleware: RequestHandler = ExpressJson({
+export type BodyParserVerify = (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  buf: Buffer,
+) => void;
+
+export interface BodyParserOptions {
+  limit: string;
+  extended: boolean;
+  verify: BodyParserVerify;
+}
+
+export const jsonBodyParserOptions: BodyParserOptions = {
   limit: "50mb",
   extended: true,
-  verify: (req: ExpressRequest, _res: ExpressResponse, buf: Buffer) => {
+  verify: (req: ExpressRequest, _res: ExpressResponse, buf: Buffer): void => {
     (req as OneUptimeRequest).rawBody = buf.toString();
     logger.debug(
       `Raw JSON Body for signature verification captured`,
       getLogAttributesFromRequest(req as OneUptimeRequest),
     );
   },
-}); // 50 MB limit.
+};
 
-const urlEncodedMiddleware: RequestHandler = ExpressUrlEncoded({
+const jsonBodyParserMiddleware: RequestHandler = ExpressJson(
+  jsonBodyParserOptions,
+); // 50 MB limit.
+
+export const urlEncodedBodyParserOptions: BodyParserOptions = {
   limit: "50mb",
   extended: true,
-  verify: (req: ExpressRequest, _res: ExpressResponse, buf: Buffer) => {
-    (req as OneUptimeRequest).rawFormUrlEncodedBody = buf.toString();
-    (req as OneUptimeRequest).rawBody = buf.toString(); // Also set rawBody for consistency
+  verify: (req: ExpressRequest, _res: ExpressResponse, buf: Buffer): void => {
+    const raw: string = buf.toString();
+    (req as OneUptimeRequest).rawFormUrlEncodedBody = raw;
+    (req as OneUptimeRequest).rawBody = raw; // Also set rawBody for consistency
     logger.debug(
-      `Raw Form Url Encoded Body: ${(req as OneUptimeRequest).rawFormUrlEncodedBody}`,
+      `Raw Form Url Encoded Body for signature verification captured`,
       getLogAttributesFromRequest(req as OneUptimeRequest),
     );
   },
-}); // 50 MB limit.
+};
+
+const urlEncodedMiddleware: RequestHandler = ExpressUrlEncoded(
+  urlEncodedBodyParserOptions,
+); // 50 MB limit.
 
 const setDefaultHeaders: RequestHandler = (
   req: ExpressRequest,

@@ -34,6 +34,7 @@ import Encryption from "../Utils/Encryption";
 import PasswordHash from "../Utils/PasswordHash";
 import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import logger, { LogAttributes } from "../Utils/Logger";
+import ConfigLogLevel from "../Types/ConfigLogLevel";
 import BaseService from "./BaseService";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { WorkflowRoute } from "../../ServiceRoute";
@@ -2268,6 +2269,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        */
       const affectedItems: Array<TBaseModel> = [];
 
+      /*
+       * The per-item debug payload below is a pretty-printed JSON.stringify
+       * of every matched row; skip building it entirely unless the log level
+       * is DEBUG, since logger.debug() no-ops at any other level.
+       */
+      const isDebugLogEnabled: boolean =
+        logger.getLogLevel() === ConfigLogLevel.DEBUG;
+
       for (const item of items) {
         /*
          * _id must be set AFTER the spread: update data can carry an
@@ -2282,12 +2291,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           _id: item._id!,
         } as any;
 
-        logger.debug("Updated Item", {
-          projectId: updateBy.props.tenantId?.toString(),
-        } as LogAttributes);
-        logger.debug(JSON.stringify(updatedItem, null, 2), {
-          projectId: updateBy.props.tenantId?.toString(),
-        } as LogAttributes);
+        if (isDebugLogEnabled) {
+          logger.debug("Updated Item", {
+            projectId: updateBy.props.tenantId?.toString(),
+          } as LogAttributes);
+          logger.debug(JSON.stringify(updatedItem, null, 2), {
+            projectId: updateBy.props.tenantId?.toString(),
+          } as LogAttributes);
+        }
 
         if (hasRelationUpdates) {
           await this.getRepository().save(updatedItem);
