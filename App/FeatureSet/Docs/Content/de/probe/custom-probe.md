@@ -158,6 +158,7 @@ Die Probe unterstützt die folgenden Umgebungsvariablen:
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Timeout für benutzerdefinierte Code-Monitor-Skripte in Millisekunden (Standard: 60000)
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` - Zeitlimit für jede Anfrage, die die Probe an OneUptime sendet (Standard: 45000)
 - `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` - Warnung protokollieren für Anfragen an OneUptime, die langsamer als dieser Wert sind (Standard: 10000)
+- `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` - Zeitlimit für die Prüfung eines einzelnen Monitors, bevor die Prüfung abgebrochen und im nächsten Zyklus wiederholt wird (Standard: 900000)
 
 ### Verifizieren
 

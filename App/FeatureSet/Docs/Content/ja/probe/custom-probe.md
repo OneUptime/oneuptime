@@ -210,6 +210,7 @@ OneUptimeをセルフホストしている場合は、`ONEUPTIME_URL` をカス�
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - カスタムコードモニタースクリプトのタイムアウト（ミリ秒、デフォルト：60000）
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` - プローブがOneUptimeに送信する各リクエストの期限（デフォルト：45000）
 - `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` - OneUptimeへのリクエストがこの値より遅い場合に警告をログに記録（デフォルト：10000）
+- `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` - モニター1件のチェックの期限。超過したチェックは中止され、次のサイクルで再試行されます（デフォルト：900000）
 
 #### プロキシ設定
 

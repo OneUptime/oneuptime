@@ -210,6 +210,7 @@ The probe supports the following environment variables:
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Timeout for custom code monitor scripts in milliseconds (default: 60000)
 - `PROBE_API_REQUEST_TIMEOUT_IN_MS` - Deadline for each request the probe sends to OneUptime (default: 45000)
 - `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` - Log a warning for requests to OneUptime slower than this (default: 10000)
+- `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` - Deadline for checking one monitor, after which the check is abandoned and retried next cycle (default: 900000)
 
 #### Proxy Configuration
 
