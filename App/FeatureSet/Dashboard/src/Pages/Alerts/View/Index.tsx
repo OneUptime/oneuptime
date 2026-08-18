@@ -1,5 +1,4 @@
 import ChangeAlertState from "../../../Components/Alert/ChangeState";
-import AskAIButton from "../../../Components/AIChat/AskAIButton";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import PageComponentProps from "../../PageComponentProps";
@@ -426,9 +425,6 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             await fetchData();
           }}
         />
-        <div className="mt-3 flex justify-end">
-          <AskAIButton label="Ask AI about this alert" />
-        </div>
       </div>
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">

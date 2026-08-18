@@ -43,17 +43,9 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
   // ---- open/close ----------------------------------------------------------
 
   useEffect(() => {
-    /*
-     * AI_CHAT_TOGGLE toggles by default; dispatchers can pass
-     * { forceOpen: true } ("Ask AI about this" buttons on entity pages) so a
-     * click never accidentally closes an already-open panel.
-     */
-    const toggle: (event: CustomEvent) => void = (event: CustomEvent): void => {
-      const forceOpen: boolean = Boolean(
-        (event?.detail as { forceOpen?: boolean } | undefined)?.forceOpen,
-      );
+    const toggle: () => void = (): void => {
       setIsOpen((open: boolean) => {
-        return forceOpen ? true : !open;
+        return !open;
       });
     };
 
