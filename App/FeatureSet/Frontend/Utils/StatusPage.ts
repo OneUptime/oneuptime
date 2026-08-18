@@ -7,12 +7,23 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
+import applyStatusPageRobotsHeader from "Common/Server/Utils/StatusPageSearchEngineIndexing";
+import {
+  SEARCH_ENGINE_INDEXING_FLAG_NAME,
+  isSearchEngineIndexingEnabled,
+} from "Common/Types/StatusPage/SearchEngineIndexing";
 
 export interface StatusPageData {
   id: string;
   title: string;
   description: string;
   faviconUrl: string;
+  /*
+   * False only when the owner turned indexing off. See
+   * Common/Types/StatusPage/SearchEngineIndexing.ts for why anything else -
+   * including an unreachable /seo API - reads as indexable.
+   */
+  isSearchEngineIndexingEnabled: boolean;
 }
 
 export const getStatusPageData: (
@@ -60,47 +71,67 @@ export const getStatusPageData: (
     let description: string =
       "Status Page lets you see real-time information about the status of our services.";
 
-    if (isPreview) {
-      // For preview pages, use the extracted ID directly.
-      statusPageId = statusPageIdOrDomain;
+    /*
+     * The /seo API resolves an id or a custom domain, so preview URLs
+     * (/status-page/:statusPageId) go through it too. They have to: the
+     * preview URL is the only URL a status page has until someone attaches a
+     * custom domain, so skipping the lookup here would leave the indexing
+     * opt-out working on custom domains and doing nothing for everyone else.
+     */
+    logger.debug(
+      `Pinging the API with statusPageIdOrDomain: ${statusPageIdOrDomain}`,
+      { service: "frontend" },
+    );
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.get({
+        url: URL.fromString(StatusPageApiInternalUrl.toString()).addRoute(
+          `/seo/${statusPageIdOrDomain}`,
+        ),
+      });
+
+    let seoData: JSONObject | null = null;
+
+    if (response instanceof HTTPErrorResponse) {
+      logger.debug(`Received error response from API: ${response}`, {
+        service: "frontend",
+      });
     } else {
-      logger.debug(
-        `Pinging the API with statusPageIdOrDomain: ${statusPageIdOrDomain}`,
-        { service: "frontend" },
-      );
-      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-        await API.get({
-          url: URL.fromString(StatusPageApiInternalUrl.toString()).addRoute(
-            `/seo/${statusPageIdOrDomain}`,
-          ),
-        });
-
-      if (response instanceof HTTPErrorResponse) {
-        logger.debug(`Received error response from API: ${response}`, {
-          service: "frontend",
-        });
-        return null;
-      }
-
       logger.debug("Successfully received response from API", {
         service: "frontend",
       });
+      seoData = response.data || null;
+    }
 
-      statusPageId = response.data?.["_id"] as string;
+    if (isPreview) {
+      /*
+       * A preview URL carries the id, so the page can still be rendered when
+       * the lookup fails - it just renders with the default title. Failing
+       * the render instead would take the page down over an SEO lookup.
+       */
+      statusPageId = statusPageIdOrDomain;
+    } else {
+      if (!seoData) {
+        return null;
+      }
+
+      statusPageId = seoData["_id"] as string;
       if (!statusPageId) {
         logger.debug("No status page ID in response", { service: "frontend" });
         return null;
       }
-
-      title = (response.data?.["title"] as string) || title;
-      description = (response.data?.["description"] as string) || description;
     }
+
+    title = (seoData?.["title"] as string) || title;
+    description = (seoData?.["description"] as string) || description;
 
     return {
       id: statusPageId,
       title,
       description,
       faviconUrl: `/status-page-api/favicon/${statusPageIdOrDomain}`,
+      isSearchEngineIndexingEnabled: isSearchEngineIndexingEnabled(
+        seoData?.[SEARCH_ENGINE_INDEXING_FLAG_NAME],
+      ),
     };
   } catch (err) {
     logger.error("Error getting status page data:", { service: "frontend" });
@@ -132,6 +163,15 @@ export const handleRSS: (
     }
 
     const { id: statusPageId, title, description } = statusPageData;
+
+    /*
+     * The feed is not HTML, so it has no <meta name="robots"> to carry the
+     * owner's opt-out. The header is the only channel it has.
+     */
+    applyStatusPageRobotsHeader(
+      res,
+      statusPageData.isSearchEngineIndexingEnabled,
+    );
 
     const incidentsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post({
@@ -293,6 +333,11 @@ export const handleLlmsTxt: (
     }
 
     const { id: statusPageId, title } = statusPageData;
+
+    applyStatusPageRobotsHeader(
+      res,
+      statusPageData.isSearchEngineIndexingEnabled,
+    );
 
     const isPreview: boolean = req.path.includes("/status-page/");
     const host: string = req.get("host") || "";

@@ -317,6 +317,65 @@ export default class StatusPage extends BaseModel {
   })
   public pageDescription?: string = undefined;
 
+  /*
+   * Search engine indexing opt-out. Indexing stays on unless the owner turns
+   * it off, so this defaults to true and every pre-existing status page keeps
+   * being indexed exactly as it is today.
+   *
+   * Turning it off is served two ways, both of which a crawler honours before
+   * it decides to index: a <meta name="robots" content="noindex, nofollow">
+   * in the server-rendered index.ejs (so it is there before the JS bundle
+   * loads) and an X-Robots-Tag response header (so it also covers the RSS
+   * feed and llms.txt, which are not HTML).
+   *
+   * Deliberately NOT wired into robots.txt: Disallow blocks the crawl, and a
+   * crawler that never fetches the page never sees the noindex, so the URL can
+   * still surface in results. Letting crawlers in and telling them not to
+   * index is what actually removes the page.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Search Engine Indexing",
+    description:
+      "Should search engines like Google and Bing be allowed to index this status page? Turn this off to keep the page reachable by link but out of search results.",
+    defaultValue: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: true,
+    nullable: false,
+  })
+  public enableSearchEngineIndexing?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
