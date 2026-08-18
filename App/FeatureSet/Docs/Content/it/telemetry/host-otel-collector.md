@@ -69,19 +69,38 @@ Creerai `/etc/otelcol-contrib/config.yaml` nel Passo 2 e un plist `launchd` nel 
 
 ### Windows
 
-Su Windows, scarica la release **`otelcol-contrib`** upstream — include il receiver `windows_service` che alimenta la scheda **Servizi** dell'host (a partire dalla **v0.155.0**). Da un prompt PowerShell **con privilegi elevati**:
+Su Windows, scarica la release **`otelcol-contrib`** upstream — include il receiver `windows_service` che alimenta la scheda **Servizi** dell'host (a partire dalla **v0.155.0**).
+
+**Scarica l'artefatto `contrib`, non quello core.** Ogni release pubblica due archivi per Windows i cui nomi differiscono per una sola parola, e sceglierne uno sbagliato è la causa più comune del fallimento di questa installazione:
+
+| Artefatto della release | Estrae | Da usare? |
+| ----------------------- | ------ | --------- |
+| `otelcol-contrib_<version>_windows_amd64.tar.gz` | `otelcol-contrib.exe` | **Sì** — la distribuzione contrib |
+| `otelcol_<version>_windows_amd64.tar.gz` | `otelcol.exe` | No — la build core, priva dei receiver Windows usati più sotto |
+
+Il nome dell'artefatto deve **iniziare con `otelcol-contrib_`**. La build core `otelcol_` non include alcun receiver `windowseventlog` o `windows_service`, e rinominare `otelcol.exe` in `otelcol-contrib.exe` non li aggiunge — si limita a sostituire un errore di avvio con un altro (vedi [Risoluzione dei problemi](#risoluzione-dei-problemi)).
+
+Da un prompt PowerShell **con privilegi elevati**, esegui il blocco per intero — ogni riga dipende dalle variabili impostate sopra:
 
 ```powershell
 $VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
+$ARCH    = "amd64"                            # use "arm64" on ARM hosts
 $dest    = "C:\Program Files\otelcol-contrib"
 $tar     = "$env:TEMP\otelcol-contrib.tar.gz"
+
+# Note the "-contrib" in the asset name; otelcol_... is the wrong archive.
+$url = "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_${VERSION}_windows_${ARCH}.tar.gz"
+
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
-# amd64; use the _windows_arm64.tar.gz asset on ARM
-Invoke-WebRequest -Uri "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_${VERSION}_windows_amd64.tar.gz" -OutFile $tar
+Invoke-WebRequest -Uri $url -OutFile $tar
 tar -xf $tar -C $dest                          # tar.exe ships with Windows 10 1803+ / Server 2019+
+
+Get-ChildItem $dest                            # expect otelcol-contrib.exe, not otelcol.exe
 ```
 
-Questo estrae `otelcol-contrib.exe` in `C:\Program Files\otelcol-contrib`. Creerai `config.yaml` nella stessa cartella nel Passo 2 e registrerai un servizio Windows nel Passo 3.
+Esegui l'intero blocco anziché estrarne una singola riga: l'URL è composto a partire da `$VERSION` e `$ARCH`, quindi un `Invoke-WebRequest` incollato da solo in una sessione nuova fallisce con un `-Uri` nullo e non scarica nulla. Costruire l'URL in `$url`, su una riga a sé, è voluto: interpolare la versione direttamente nell'argomento di `Invoke-WebRequest` trasforma una variabile non impostata in un 404 silenzioso.
+
+Questo estrae `otelcol-contrib.exe` — **non** `otelcol.exe` — in `C:\Program Files\otelcol-contrib`; la riga `Get-ChildItem` qui sopra conferma quale dei due hai ottenuto. Creerai `config.yaml` nella stessa cartella nel Passo 2 e registrerai un servizio Windows nel Passo 3.
 
 > Preferisci un installer nativo? OpenTelemetry pubblica anche un **`.msi`** firmato (`otelcol-contrib_<version>_windows_x64.msi`) sulla stessa [pagina delle release](https://github.com/open-telemetry/opentelemetry-collector-releases/releases), che registra il collector come servizio Windows al posto tuo. Se lo usi, puntalo al `config.yaml` del Passo 2 e assicurati che il servizio venga eseguito come `LocalSystem` così che la scheda **Servizi** possa leggere il Service Control Manager.
 
@@ -881,6 +900,12 @@ L'OpenTelemetry Collector rispetta le variabili d'ambiente standard `HTTPS_PROXY
   - Verifica che l'host possa raggiungere `https://oneuptime.com/otlp` (o il tuo endpoint self-hosted): `curl -v https://oneuptime.com/otlp` dalla stessa macchina.
 - **HTTP 401 dall'exporter** — il token di ingestione non è valido o è stato revocato. Generane uno nuovo da _Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione_.
 - **Il canale `Security` del Windows Event Log restituisce access denied** — il servizio non viene eseguito con privilegi sufficienti. Ricrealo come `LocalSystem` (l'impostazione predefinita con `sc.exe create`) o concedi all'account del servizio il diritto utente _Manage auditing and security log_.
+- **Il servizio Windows non si avvia e restituisce `Error 2: The system cannot find the file specified`** — il Service Control Manager non trova l'eseguibile con cui il servizio è stato registrato. Esegui `sc.exe qc "otelcol-contrib"` e confronta `BINARY_PATH_NAME` con ciò che è davvero presente in `C:\Program Files\otelcol-contrib`. Quasi sempre è stato scaricato l'archivio core `otelcol_<version>_windows_amd64.tar.gz` — che estrae `otelcol.exe` — mentre il Passo 3 registra il servizio su `otelcol-contrib.exe`, contenuto solo nell'archivio `otelcol-contrib_<version>_...`. Riscarica l'artefatto `contrib` dal Passo 1; **non** rinominare `otelcol.exe`, cosa che produce invece il `1064` qui sotto. L'altra causa è un `binPath=` senza virgolette: un percorso che attraversa `C:\Program Files` si spezza sullo spazio a meno che non sia racchiuso tra virgolette esattamente come mostra il Passo 3.
+- **Il servizio Windows non si avvia e restituisce `Error 1064: An exception occurred in the service when handling the control request`** — l'SCM ha avviato il binario, ma il collector è terminato durante l'avvio. Rinominare `otelcol.exe` in `otelcol-contrib.exe` fa risolvere il percorso senza cambiare ciò che c'è dentro il binario: la build core non ha i receiver `windowseventlog` e `windows_service`, quindi rifiuta la configurazione del Passo 2 e muore prima che il servizio risulti in esecuzione. Un percorso `--config` senza virgolette produce lo stesso `1064` anche con il binario giusto: senza le virgolette interne l'argomento si spezza sullo spazio in `Program Files` e il collector termina per un file di configurazione che non riesce a leggere. Verifica cosa hai davvero:
+  - `otelcol-contrib.exe --version` dovrebbe stampare `otelcol-contrib version ...`. Se stampa `otelcol version ...`, è la build core rinominata — riscarica l'artefatto `contrib` dal Passo 1.
+  - `otelcol-contrib.exe components` dovrebbe elencare `windowseventlog` e `windows_service` tra i receiver. Non usare `hostmetrics` come test: è presente anche nella build core, quindi vederlo non dimostra nulla. Tutto ciò a cui la configurazione fa riferimento ma che questo comando non elenca bloccherà il collector all'avvio.
+  - Eseguilo in primo piano per vedere l'errore reale invece del generico `1064`: `& "C:\Program Files\otelcol-contrib\otelcol-contrib.exe" --config="C:\Program Files\otelcol-contrib\config.yaml"`.
+  - Controlla _Event Viewer → Windows Logs → Application_ cercando l'origine `otelcol-contrib`, che registra l'errore di avvio inghiottito dall'SCM.
 - **Il receiver `journald` non si avvia** — assicurati che `journalctl` sia nel `PATH` del collector e che `/var/log/journal` esista (esegui `sudo systemd-tmpfiles --create --prefix /var/log/journal` in caso contrario).
 - **Il receiver `systemd` segnala un errore di connessione D-Bus** — il collector non riesce a raggiungere il bus di sistema. Verifica che `/run/dbus/system_bus_socket` esista e che l'utente del collector possa aprirlo; eseguire `systemctl list-units` con quell'utente è la verifica più rapida. Non servono privilegi di root. Un collector eseguito dentro un container non vede alcun bus, a meno che tu non monti in bind il socket dell'host: per questo receiver è quindi preferibile un'installazione nativa.
 - **Il receiver `systemd` registra un errore di scrape per ogni unità, oppure il collector si rifiuta di avviarsi per una metrica sconosciuta** — in entrambi i casi si tratta di disallineamento di versione. La v0.142.0 cerca le statistiche cgroup su ogni unità (un errore per ciascuna unità non `.service` a ogni scrape) e chiama la propria metrica CPU `systemd.unit.cpu.time`; la v0.143.0 e successive limitano quella ricerca ai soli servizi e hanno rinominato la metrica in `systemd.service.cpu.time`. Aggiorna alla v0.143.0+ e assicurati che qualsiasi override in `metrics:` indichi la chiave effettivamente presente nella tua build.

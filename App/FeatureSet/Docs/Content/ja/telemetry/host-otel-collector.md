@@ -69,19 +69,38 @@ sudo mkdir -p /etc/otelcol-contrib
 
 ### Windows
 
-Windows では、アップストリームの **`otelcol-contrib`** リリースをダウンロードします — これはホストの **サービス** タブを支える `windows_service` レシーバーを（**v0.155.0** 以降で）同梱しています。**管理者権限の** PowerShell プロンプトから実行します。
+Windows では、アップストリームの **`otelcol-contrib`** リリースをダウンロードします — これはホストの **サービス** タブを支える `windows_service` レシーバーを（**v0.155.0** 以降で）同梱しています。
+
+**core ではなく `contrib` のアセットをダウンロードしてください。** 各リリースは名前が 1 語だけ違う 2 つの Windows 用アーカイブを公開しており、間違ったほうを選ぶことがこのインストールに失敗する最も多い原因です。
+
+| リリースアセット | 展開されるもの | これを使う？ |
+| -------- | ------- | ------ |
+| `otelcol-contrib_<version>_windows_amd64.tar.gz` | `otelcol-contrib.exe` | **はい** — contrib ディストリビューション |
+| `otelcol_<version>_windows_amd64.tar.gz` | `otelcol.exe` | いいえ — core ビルド。以下で使う Windows 用レシーバーがありません |
+
+アセット名は必ず **`otelcol-contrib_` で始まります**。core の `otelcol_` ビルドには `windowseventlog` と `windows_service` のレシーバーが含まれておらず、`otelcol.exe` を `otelcol-contrib.exe` にリネームしてもそれらは追加されません — 起動時のエラーが別のものに変わるだけです（[トラブルシューティング](#トラブルシューティング)を参照）。
+
+**管理者権限の** PowerShell プロンプトから、ブロック全体をまとめて実行してください。各行は、その上で設定した変数に依存します。
 
 ```powershell
 $VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
+$ARCH    = "amd64"                            # use "arm64" on ARM hosts
 $dest    = "C:\Program Files\otelcol-contrib"
 $tar     = "$env:TEMP\otelcol-contrib.tar.gz"
+
+# Note the "-contrib" in the asset name; otelcol_... is the wrong archive.
+$url = "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_${VERSION}_windows_${ARCH}.tar.gz"
+
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
-# amd64; use the _windows_arm64.tar.gz asset on ARM
-Invoke-WebRequest -Uri "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_${VERSION}_windows_amd64.tar.gz" -OutFile $tar
+Invoke-WebRequest -Uri $url -OutFile $tar
 tar -xf $tar -C $dest                          # tar.exe ships with Windows 10 1803+ / Server 2019+
+
+Get-ChildItem $dest                            # expect otelcol-contrib.exe, not otelcol.exe
 ```
 
-これにより `otelcol-contrib.exe` が `C:\Program Files\otelcol-contrib` に展開されます。ステップ 2 で同じフォルダに `config.yaml` を作成し、ステップ 3 で Windows サービスを登録します。
+1 行だけを抜き出さず、ブロック全体を実行してください。URL は `$VERSION` と `$ARCH` から組み立てられるため、新しいセッションに `Invoke-WebRequest` だけを貼り付けると `-Uri` が空になって失敗し、何もダウンロードされません。URL を独立した行の `$url` で組み立てているのは意図的です — バージョンを `Invoke-WebRequest` の引数に直接埋め込むと、未設定の変数がそのまま無言の 404 になります。
+
+これにより `otelcol.exe` では **なく** `otelcol-contrib.exe` が `C:\Program Files\otelcol-contrib` に展開されます。どちらを取得したかは上の `Get-ChildItem` の行で確認できます。ステップ 2 で同じフォルダに `config.yaml` を作成し、ステップ 3 で Windows サービスを登録します。
 
 > ネイティブインストーラーがお好みですか？ OpenTelemetry は、同じ[リリースページ](https://github.com/open-telemetry/opentelemetry-collector-releases/releases)で署名済みの **`.msi`**（`otelcol-contrib_<version>_windows_x64.msi`）も公開しており、これはコレクターを Windows サービスとして自動的に登録します。これを使用する場合は、ステップ 2 の `config.yaml` を指定し、**サービス** タブが Service Control Manager を読み取れるよう、サービスが `LocalSystem` として実行されることを確認してください。
 
@@ -881,6 +900,12 @@ OpenTelemetry Collector は、標準の `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY
   - ホストが `https://oneuptime.com/otlp`（またはセルフホストのエンドポイント）に到達できることを確認します。同じマシンから `curl -v https://oneuptime.com/otlp` を実行します。
 - **エクスポーターから HTTP 401 が返る** — 取り込みトークンが無効か失効しています。_プロジェクト設定 → テレメトリと APM → 取り込みキー_ から新しいものを生成してください。
 - **`Security` の Windows イベントログでアクセス拒否が返る** — サービスが十分な権限で実行されていません。`LocalSystem`（`sc.exe create` のデフォルト）の下で再作成するか、サービスアカウントに _Manage auditing and security log_（監査とセキュリティログの管理）ユーザー権利を付与してください。
+- **Windows サービスが `Error 2: The system cannot find the file specified` で起動しない** — サービス コントロール マネージャー（SCM）が、サービスの登録先となっている実行ファイルを見つけられません。`sc.exe qc "otelcol-contrib"` を実行し、`BINARY_PATH_NAME` を `C:\Program Files\otelcol-contrib` に実際にあるものと比較してください。ほとんどの場合、core のアーカイブ `otelcol_<version>_windows_amd64.tar.gz`（`otelcol.exe` が展開されます）をダウンロードしている一方で、ステップ 3 は `otelcol-contrib_<version>_...` アーカイブにしか含まれない `otelcol-contrib.exe` に対してサービスを登録しています。ステップ 1 から `contrib` のアセットをダウンロードし直してください。`otelcol.exe` をリネームしては **いけません** — 代わりに下の `1064` になります。もう 1 つの原因は引用符で囲まれていない `binPath=` です。`C:\Program Files` を通るパスは、ステップ 3 のとおりに正確に引用符で囲まないとスペースで分割されます。
+- **Windows サービスが `Error 1064: An exception occurred in the service when handling the control request` で起動しない** — SCM はバイナリを起動しましたが、コレクターが起動処理中に終了しました。`otelcol.exe` を `otelcol-contrib.exe` にリネームするとパスは解決しますが、バイナリの中身は変わりません。core ビルドには `windowseventlog` と `windows_service` のレシーバーがないため、ステップ 2 の設定を受け付けられず、サービスが実行中として報告される前に終了します。引用符で囲まれていない `--config` のパスは、正しいバイナリであっても同じ `1064` を引き起こします。内側の引用符がないと引数が `Program Files` のスペースで分割され、コレクターは読み取れない設定ファイルが原因で終了します。実際に何を持っているかを確認してください。
+  - `otelcol-contrib.exe --version` は `otelcol-contrib version ...` と表示されるはずです。`otelcol version ...` と表示される場合はリネームした core ビルドです — ステップ 1 から `contrib` のアセットをダウンロードし直してください。
+  - `otelcol-contrib.exe components` のレシーバー一覧に `windowseventlog` と `windows_service` が表示されるはずです。`hostmetrics` は判定に使えません — core ビルドにも含まれているためです。設定が参照しているのにこのコマンドの一覧にないものがあると、起動時にコレクターが停止します。
+  - 汎用的な `1064` ではなく本当のエラーを見るには、フォアグラウンドで実行します: `& "C:\Program Files\otelcol-contrib\otelcol-contrib.exe" --config="C:\Program Files\otelcol-contrib\config.yaml"`。
+  - _Event Viewer → Windows Logs → Application_ でソース `otelcol-contrib` を確認してください。SCM が飲み込んだ起動エラーが記録されています。
 - **`journald` レシーバーが起動に失敗する** — `journalctl` がコレクターの `PATH` 上にあること、および `/var/log/journal` が存在することを確認してください（存在しない場合は `sudo systemd-tmpfiles --create --prefix /var/log/journal` を実行）。
 - **`systemd` レシーバーが D-Bus の接続エラーを報告する** — コレクターがシステムバスに到達できていません。`/run/dbus/system_bus_socket` が存在し、コレクターのユーザーがそれを開けることを確認してください。そのユーザーで `systemctl list-units` を実行するのが最も手早い確認方法です。root は必要ありません。コンテナ内で実行しているコレクターは、ホストのソケットをバインドマウントしない限りバスにまったく到達できないため、このレシーバーにはネイティブインストールを推奨します。
 - **`systemd` レシーバーがユニットごとにスクレイプエラーを記録する、またはコレクターが未知のメトリクスを理由に起動を拒否する** — どちらもバージョンの不一致です。v0.142.0 はすべてのユニットについて cgroup の統計情報を探し（スクレイプごとに `.service` 以外のユニット 1 つにつき 1 件のエラー）、CPU メトリクスを `systemd.unit.cpu.time` と呼びます。v0.143.0 以降はこの参照をサービスのみに限定し、メトリクスを `systemd.service.cpu.time` に改名しました。v0.143.0 以降にアップグレードし、`metrics:` のオーバーライドが実際に動作しているビルドに存在するキーを指定していることを確認してください。
