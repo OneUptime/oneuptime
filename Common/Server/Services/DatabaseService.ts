@@ -2886,6 +2886,107 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     await repository.manager.query(sql, params);
   }
 
+  /*
+   * Add one to a numeric column and return what it became, in a SINGLE
+   * statement.
+   *
+   * This exists for counters that GATE something, where the read and the
+   * write cannot be allowed to come apart. The motivating case is the failed
+   * attempt counter on a notification-channel verification code: read the
+   * count, decide, then write it back, and N requests racing each other all
+   * read the same pre-increment value and all decide they are under the
+   * limit — which is precisely the shape an attacker running a brute-force
+   * loop produces. `atomicAddToColumnsByIdWithoutHooks` closes the
+   * lost-update half of that but cannot answer "and what is it now?", and
+   * `getRepository().increment()` cannot either.
+   *
+   * RETURNING makes the increment and the observation the same operation, so
+   * every concurrent caller gets a distinct value and the k-th attempt is
+   * refused no matter how the requests interleave.
+   *
+   * COALESCE so a NULL counter starts from zero rather than staying NULL.
+   *
+   * The column and table identifiers come from entity metadata, never from
+   * the caller, and the id is bound as a parameter. Hooks, the `version`
+   * bump and access control are all skipped: use ONLY for trusted internal
+   * counter writes.
+   */
+  @CaptureSpan()
+  public async atomicIncrementColumnValueByOneAndGetValue(data: {
+    id: ObjectID;
+    columnName: keyof TBaseModel;
+  }): Promise<number> {
+    if (!data.id) {
+      throw new BadDataException("id is required");
+    }
+
+    const repository: Repository<TBaseModel> = this.getRepository();
+    const metadata: EntityMetadata = repository.metadata;
+
+    const column: ColumnMetadata | undefined =
+      metadata.findColumnWithPropertyName(data.columnName as string);
+
+    if (!column) {
+      throw new BadDataException(
+        `atomicIncrementColumnValueByOneAndGetValue: unknown column "${String(
+          data.columnName,
+        )}" on "${metadata.tableName}"`,
+      );
+    }
+
+    const primaryColumnName: string =
+      metadata.primaryColumns[0]?.databaseName || "_id";
+
+    const quoted: string = `"${column.databaseName}"`;
+
+    const sql: string = `UPDATE "${metadata.tableName}" SET ${quoted} = COALESCE(${quoted}, 0) + 1 WHERE "${primaryColumnName}" = $1 RETURNING ${quoted}`;
+
+    const result: unknown = await repository.manager.query(sql, [
+      data.id.toString(),
+    ]);
+
+    /*
+     * TypeORM's Postgres driver returns `[rows, affectedCount]` for an UPDATE
+     * and a bare row array for everything else, so both shapes are unwrapped
+     * rather than one being assumed.
+     */
+    const rows: Array<unknown> = Array.isArray(result)
+      ? Array.isArray(result[0])
+        ? (result[0] as Array<unknown>)
+        : (result as Array<unknown>)
+      : [];
+
+    const row: unknown = rows[0];
+
+    if (!row || typeof row !== "object" || Array.isArray(row)) {
+      /*
+       * Nothing came back, so the row does not exist — deleted underneath us,
+       * or never there. Callers gate on the returned count, so this must be an
+       * error and not a zero, which would read as a fresh allowance.
+       */
+      throw new BadDataException(
+        `Item with ID ${data.id.toString()} not found`,
+      );
+    }
+
+    const value: unknown = (row as Record<string, unknown>)[
+      column.databaseName
+    ];
+
+    const parsed: number =
+      typeof value === "number" ? value : parseInt(String(value), 10);
+
+    if (!Number.isFinite(parsed)) {
+      throw new BadDataException(
+        `atomicIncrementColumnValueByOneAndGetValue: "${String(
+          data.columnName,
+        )}" did not return a number`,
+      );
+    }
+
+    return parsed;
+  }
+
   @CaptureSpan()
   protected async atomicIncrementColumnValueByOne(data: {
     id: ObjectID;

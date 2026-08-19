@@ -236,19 +236,115 @@ export default class Text {
     return null;
   }
 
-  public static generateRandomText(length?: number): string {
-    if (!length) {
-      length = 10;
+  /*
+   * Cryptographically secure random bytes, or null if this runtime has no
+   * CSPRNG at all.
+   *
+   * `globalThis.crypto` is the Web Crypto API: present in every browser, and a
+   * global in Node since 19. It is used here rather than `require("crypto")`
+   * because this file is bundled into the dashboard as well as the server, so
+   * it cannot reach for a Node built-in.
+   */
+  private static getSecureRandomBytes(byteCount: number): Uint8Array | null {
+    const webCrypto: { getRandomValues?: (array: Uint8Array) => Uint8Array } =
+      (
+        globalThis as unknown as {
+          crypto?: { getRandomValues?: (array: Uint8Array) => Uint8Array };
+        }
+      ).crypto || {};
+
+    if (typeof webCrypto.getRandomValues !== "function") {
+      return null;
     }
 
-    let result: string = "";
-    const characters: string =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    return webCrypto.getRandomValues(new Uint8Array(byteCount));
+  }
+
+  /*
+   * Draw `length` characters uniformly at random from `characters`.
+   *
+   * TWO properties here are load-bearing, and this used to have neither:
+   *
+   * 1. The source is a CSPRNG. Math.random is a fast non-cryptographic PRNG
+   *    (xorshift128+ in V8) whose entire internal state can be recovered from
+   *    a handful of observed outputs and then run forwards AND backwards. For
+   *    a value used as a secret that is worse than a short code: an attacker
+   *    who sees one generated value predicts the next one exactly, with no
+   *    guessing at all.
+   *
+   * 2. The draw is unbiased. `byte % n` is only uniform when n divides 256.
+   *    Rejection sampling discards the short tail of the byte range instead of
+   *    folding it, which is what keeps a k-character code at its full
+   *    k * log2(n) bits of entropy.
+   *
+   * The Math.random fallback survives ONLY for the case where no CSPRNG exists
+   * at all, which is unreachable on any supported runtime. It is there so the
+   * non-secret callers - SQL alias suffixes in QueryHelper and friends, which
+   * run on every query - cannot be broken by an exotic environment. Secrets
+   * must NOT come through here: notification-channel codes go through
+   * Common/Server/Utils/VerificationCode.ts, which throws rather than
+   * downgrading.
+   */
+  private static generateRandomString(
+    length: number,
+    characters: string,
+  ): string {
     const charactersLength: number = characters.length;
-    for (let i: number = 0; i < length; i++) {
-      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+
+    /*
+     * The largest multiple of charactersLength that fits in a byte. Bytes at
+     * or above it are thrown away rather than folded - that is the whole of
+     * the rejection sampling, and skipping it is what biases the result.
+     */
+    const unbiasedCeiling: number = 256 - (256 % charactersLength);
+
+    let result: string = "";
+
+    while (result.length < length) {
+      const remaining: number = length - result.length;
+
+      /*
+       * Over-draw a little so a rejected byte usually does not cost a second
+       * trip into the CSPRNG. With a 10-character alphabet fewer than 3% of
+       * bytes are rejected, so one pass almost always finishes the job.
+       */
+      const bytes: Uint8Array | null = Text.getSecureRandomBytes(
+        remaining + Math.ceil(remaining / 4) + 4,
+      );
+
+      if (!bytes) {
+        while (result.length < length) {
+          result += characters.charAt(
+            Math.floor(Math.random() * charactersLength),
+          );
+        }
+
+        return result;
+      }
+
+      for (let i: number = 0; i < bytes.length; i++) {
+        if (result.length >= length) {
+          break;
+        }
+
+        const byte: number | undefined = bytes[i];
+
+        if (byte === undefined || byte >= unbiasedCeiling) {
+          continue;
+        }
+
+        result += characters.charAt(byte % charactersLength);
+      }
     }
+
     return result;
+  }
+
+  public static generateRandomText(length?: number): string {
+    return Text.generateRandomString(
+      length || 10,
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+    );
   }
 
   public static trimLines(text: string): string {
@@ -260,18 +356,14 @@ export default class Text {
       .join("\n");
   }
 
+  /*
+   * The alphabet used to be the string "12134567890" - eleven characters, with
+   * "1" written twice and every digit therefore NOT equally likely. Combined
+   * with Math.random that made a six-digit code both biased and predictable.
+   * Both halves are fixed in generateRandomString above.
+   */
   public static generateRandomNumber(length?: number): string {
-    if (!length) {
-      length = 10;
-    }
-
-    let result: string = "";
-    const characters: string = "12134567890";
-    const charactersLength: number = characters.length;
-    for (let i: number = 0; i < length; i++) {
-      result += characters.charAt(Math.floor(Math.random() * charactersLength));
-    }
-    return result;
+    return Text.generateRandomString(length || 10, "0123456789");
   }
 
   public static convertNumberToWords(num: number): string {

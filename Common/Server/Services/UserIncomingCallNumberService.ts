@@ -9,7 +9,8 @@ import SmsService from "./SmsService";
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
-import Text from "../../Types/Text";
+import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
+import ChannelVerification from "../Utils/ChannelVerification";
 import Project from "../../Models/DatabaseModels/Project";
 import Model from "../../Models/DatabaseModels/UserIncomingCallNumber";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -99,7 +100,8 @@ export class Service extends DatabaseService<Model> {
     createdItem: Model,
   ): Promise<Model> {
     if (!createdItem.isVerified) {
-      this.sendVerificationCode(createdItem);
+      // issue and send the first verification code
+      await this.issueAndSendVerificationCode(createdItem);
     }
 
     return createdItem;
@@ -114,10 +116,10 @@ export class Service extends DatabaseService<Model> {
       },
       select: {
         phone: true,
-        verificationCode: true,
         isVerified: true,
         projectId: true,
         userId: true,
+        verificationCodeSentAt: true,
       },
     });
 
@@ -172,30 +174,61 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    // Generate new verification code
-    item.verificationCode = Text.generateRandomNumber(6);
+    /*
+     * Resend cooldown.
+     *
+     * Without it, spending the attempt budget on a code and asking for
+     * another one is free, which turns the attempt limit into a speed bump
+     * rather than a wall — and the resend control doubles as a way to send
+     * somebody unsolicited messages as fast as the network allows, at the
+     * project's expense.
+     */
+    const retryAfterSeconds: number =
+      ChannelVerification.getResendRetryAfterSeconds({
+        lastSentAt: item.verificationCodeSentAt,
+      });
 
-    await this.updateOneById({
-      id: item.id!,
-      props: {
-        isRoot: true,
-      },
-      data: {
-        verificationCode: item.verificationCode,
-      },
-    });
+    if (retryAfterSeconds > 0) {
+      throw new TooManyRequestsException(
+        `Please wait ${retryAfterSeconds} seconds before requesting another verification code.`,
+      );
+    }
 
-    this.sendVerificationCode(item);
+    await this.issueAndSendVerificationCode(item);
   }
 
-  public sendVerificationCode(item: Model): void {
+  /*
+   * Mint a fresh code for this row, store only its digest, and send the
+   * plaintext to the channel.
+   *
+   * The plaintext exists in memory for exactly as long as it takes to hand it
+   * to the notification service and is never written anywhere. Everything
+   * about why — expiry, the attempt counter, rotation, the resend cooldown —
+   * is in Common/Server/Utils/ChannelVerification.ts.
+   *
+   * This does NOT check whether a send is allowed. Callers decide that:
+   * onCreateSuccess because a brand new row has never been sent to, and
+   * resendVerificationCode after the cooldown and the channel's own
+   * preconditions have passed.
+   */
+  @CaptureSpan()
+  public async issueAndSendVerificationCode(item: Model): Promise<void> {
+    const plainCode: string = await ChannelVerification.issueCodeOnItem({
+      service: this,
+      itemId: item.id!,
+    });
+
+    this.sendVerificationCode(item, plainCode);
+  }
+
+  public sendVerificationCode(item: Model, code: string): void {
     // Send verification SMS
     SmsService.sendSms(
       {
         to: item.phone!,
         message:
           "This message is from OneUptime. Your verification code for incoming call routing is " +
-          item.verificationCode,
+          code,
       },
       {
         projectId: item.projectId,
@@ -204,75 +237,6 @@ export class Service extends DatabaseService<Model> {
       },
     ).catch((err: Error) => {
       logger.error(err);
-    });
-  }
-
-  @CaptureSpan()
-  public async verifyPhoneNumber(
-    itemId: ObjectID,
-    userId: ObjectID,
-    code: string,
-  ): Promise<void> {
-    const item: Model | null = await this.findOneById({
-      id: itemId,
-      props: {
-        isRoot: true,
-      },
-      select: {
-        userId: true,
-        verificationCode: true,
-        isVerified: true,
-        projectId: true,
-      },
-    });
-
-    if (!item) {
-      throw new BadDataException("Item not found");
-    }
-
-    // Check user ID
-    if (item.userId?.toString() !== userId.toString()) {
-      throw new BadDataException("Invalid user ID");
-    }
-
-    if (item.isVerified) {
-      throw new BadDataException("Phone number is already verified");
-    }
-
-    if (item.verificationCode !== code) {
-      throw new BadDataException("Invalid verification code");
-    }
-
-    // Check if user already has a verified number for this project
-    const existingVerifiedNumber: Model | null = await this.findOneBy({
-      query: {
-        userId: item.userId!,
-        projectId: item.projectId!,
-        isVerified: true,
-      },
-      select: {
-        _id: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (existingVerifiedNumber) {
-      throw new BadDataException(
-        "You already have a verified phone number for this project. Please delete the existing one before verifying a new one.",
-      );
-    }
-
-    // Mark as verified
-    await this.updateOneById({
-      id: itemId,
-      props: {
-        isRoot: true,
-      },
-      data: {
-        isVerified: true,
-      },
     });
   }
 }

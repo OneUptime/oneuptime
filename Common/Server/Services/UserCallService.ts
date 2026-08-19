@@ -16,7 +16,8 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
-import Text from "../../Types/Text";
+import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
+import ChannelVerification from "../Utils/ChannelVerification";
 import Project from "../../Models/DatabaseModels/Project";
 import Model from "../../Models/DatabaseModels/UserCall";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -144,7 +145,8 @@ export class Service extends DatabaseService<Model> {
     createdItem: Model,
   ): Promise<Model> {
     if (!createdItem.isVerified) {
-      this.sendVerificationCode(createdItem);
+      // issue and send the first verification code
+      await this.issueAndSendVerificationCode(createdItem);
     }
     return createdItem;
   }
@@ -158,9 +160,10 @@ export class Service extends DatabaseService<Model> {
       },
       select: {
         phone: true,
-        verificationCode: true,
         isVerified: true,
         projectId: true,
+        userId: true,
+        verificationCodeSentAt: true,
       },
     });
 
@@ -215,23 +218,57 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    // generate new verification code
-    item.verificationCode = Text.generateRandomNumber(6);
+    /*
+     * Resend cooldown.
+     *
+     * Without it, spending the attempt budget on a code and asking for
+     * another one is free, which turns the attempt limit into a speed bump
+     * rather than a wall — and the resend control doubles as a way to send
+     * somebody unsolicited messages as fast as the network allows, at the
+     * project's expense.
+     */
+    const retryAfterSeconds: number =
+      ChannelVerification.getResendRetryAfterSeconds({
+        lastSentAt: item.verificationCodeSentAt,
+      });
 
-    await this.updateOneById({
-      id: item.id!,
-      props: {
-        isRoot: true,
-      },
-      data: {
-        verificationCode: item.verificationCode,
-      },
-    });
+    if (retryAfterSeconds > 0) {
+      throw new TooManyRequestsException(
+        `Please wait ${retryAfterSeconds} seconds before requesting another verification code.`,
+      );
+    }
 
-    this.sendVerificationCode(item);
+    await this.issueAndSendVerificationCode(item);
   }
 
-  public sendVerificationCode(item: Model): void {
+  /*
+   * Mint a fresh code for this row, store only its digest, and send the
+   * plaintext to the channel.
+   *
+   * The plaintext exists in memory for exactly as long as it takes to hand it
+   * to the notification service and is never written anywhere. Everything
+   * about why — expiry, the attempt counter, rotation, the resend cooldown —
+   * is in Common/Server/Utils/ChannelVerification.ts.
+   *
+   * This does NOT check whether a send is allowed. Callers decide that:
+   * onCreateSuccess because a brand new row has never been sent to, and
+   * resendVerificationCode after the cooldown and the channel's own
+   * preconditions have passed.
+   */
+  @CaptureSpan()
+  public async issueAndSendVerificationCode(item: Model): Promise<void> {
+    const plainCode: string = await ChannelVerification.issueCodeOnItem({
+      service: this,
+      itemId: item.id!,
+    });
+
+    this.sendVerificationCode(item, plainCode);
+  }
+
+  public sendVerificationCode(item: Model, code: string): void {
+    // add space to make it more clear and slow down the message
+    const spokenCode: string = code.split("").join("  ");
+
     const callRequest: CallRequest = {
       to: item.phone!,
       data: [
@@ -239,19 +276,13 @@ export class Service extends DatabaseService<Model> {
           sayMessage: "This call is from One Uptime.",
         },
         {
-          sayMessage:
-            "Your verification code is " +
-            item.verificationCode?.split("").join("  "), // add space to make it more clear and slow down the message
+          sayMessage: "Your verification code is " + spokenCode,
         },
         {
-          sayMessage:
-            "Your verification code is " +
-            item.verificationCode?.split("").join("  "), // add space to make it more clear and slow down the message
+          sayMessage: "Your verification code is " + spokenCode,
         },
         {
-          sayMessage:
-            "Your verification code is " +
-            item.verificationCode?.split("").join("  "), // add space to make it more clear and slow down the message
+          sayMessage: "Your verification code is " + spokenCode,
         },
         {
           sayMessage: "Thank you for using One Uptime. Goodbye.",
