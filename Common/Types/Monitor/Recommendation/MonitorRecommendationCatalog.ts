@@ -5,6 +5,7 @@ import RecommendationType from "../../Recommendation/RecommendationType";
 import {
   MonitorRecommendation,
   MonitorRecommendationArgs,
+  MonitorRecommendationContext,
   MonitorRecommendationResourceType,
   MonitorRecommendationSeverity,
   buildRecommendationId,
@@ -46,6 +47,11 @@ import {
   RumAlertTemplate,
   getAllRumAlertTemplates,
 } from "../RumAlertTemplates";
+import {
+  ServiceAlertTemplate,
+  getAllServiceAlertTemplates,
+  getServiceAlertTemplates,
+} from "../ServiceAlertTemplates";
 
 /*
  * A resource type's entry in the registry.
@@ -70,17 +76,49 @@ export interface MonitorRecommendationResourceTypeDefinition {
     | "clusterIdentifier"
     | "hostIdentifier"
     | "fleetIdentifier"
-    | "rumApplicationId";
+    | "rumApplicationId"
+    | "serviceId";
   icon: IconProp;
-  getRecommendations: () => Array<MonitorRecommendation>;
+  /*
+   * What to recommend for ONE resource of this type.
+   *
+   * Nine of the ten resource types ignore the argument entirely — every
+   * Kubernetes cluster is offered the same eighteen recommendations, and a
+   * zero-argument function satisfies this type, so those nine are declared
+   * exactly as they were. Services are the exception: see
+   * `MonitorRecommendationContext`.
+   *
+   * Passing no context means "nothing is known about this resource", and the
+   * only honest answer to that is the context-free subset. It does NOT mean
+   * "give me everything" — that is what `getAllPossibleRecommendations` is
+   * for, and conflating the two is how a UI ends up offering JVM monitors to
+   * a Go service.
+   */
+  getRecommendations: (
+    context?: MonitorRecommendationContext | undefined,
+  ) => Array<MonitorRecommendation>;
+  /*
+   * Every recommendation this resource type can EVER produce, across every
+   * context. Only worth setting on a resource type whose set actually varies;
+   * `getAllRecommendations` falls back to `getRecommendations()` for the rest.
+   *
+   * This is what the registry-wide invariants have to run against — globally
+   * unique recommendation ids, globally distinct coverage fingerprints,
+   * a severity every mapper understands. Running them over the context-free
+   * subset instead would leave every language-specific template unchecked,
+   * which is precisely the set most likely to collide.
+   */
+  getAllPossibleRecommendations?:
+    | (() => Array<MonitorRecommendation>)
+    | undefined;
 }
 
 /*
- * The structural shape every `<X>AlertTemplate` interface shares. The eight
- * modules declare eight separate interfaces that differ only in the literal
+ * The structural shape every `<X>AlertTemplate` interface shares. The ten
+ * modules declare ten separate interfaces that differ only in the literal
  * union used for `category` (and the args type of `getMonitorStep`), so the
  * normalizer below widens `category` to `string` rather than trying to union
- * eight unrelated literal unions.
+ * ten unrelated literal unions.
  */
 interface StructuralAlertTemplate {
   id: string;
@@ -307,6 +345,55 @@ function getRumRecommendations(): Array<MonitorRecommendation> {
   });
 }
 
+/*
+ * The Service adapter, and the only one that is two functions rather than one.
+ *
+ * `getServiceRecommendations` answers "what should THIS service be offered",
+ * which depends on its runtime. `getAllServiceRecommendations` answers "what
+ * can a service ever be offered", which does not. Both go through the same
+ * normalizer so a template cannot be shaped differently depending on which
+ * door it came through.
+ */
+function normalizeServiceTemplate(
+  template: ServiceAlertTemplate,
+): MonitorRecommendation {
+  return normalize({
+    resourceType: MonitorRecommendationResourceType.Service,
+    /*
+     * Read off the template rather than fixed, because the service catalog —
+     * like RUM's — deliberately spans metric, trace and exception monitors.
+     */
+    monitorType: template.monitorType,
+    template: template,
+    getMonitorStep: (args: MonitorRecommendationArgs) => {
+      return template.getMonitorStep({
+        serviceId: args.resourceIdentifier,
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+      });
+    },
+  });
+}
+
+function getServiceRecommendations(
+  context?: MonitorRecommendationContext | undefined,
+): Array<MonitorRecommendation> {
+  return getServiceAlertTemplates(context?.serviceLanguage).map(
+    (template: ServiceAlertTemplate) => {
+      return normalizeServiceTemplate(template);
+    },
+  );
+}
+
+function getAllServiceRecommendations(): Array<MonitorRecommendation> {
+  return getAllServiceAlertTemplates().map((template: ServiceAlertTemplate) => {
+    return normalizeServiceTemplate(template);
+  });
+}
+
 const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefinition> =
   [
     {
@@ -385,6 +472,19 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       icon: IconProp.Globe,
       getRecommendations: getRumRecommendations,
     },
+    {
+      resourceType: MonitorRecommendationResourceType.Service,
+      monitorTypes: [
+        MonitorType.Metrics,
+        MonitorType.Traces,
+        MonitorType.Exceptions,
+      ],
+      resourceLabel: "Service",
+      identifierFieldName: "serviceId",
+      icon: IconProp.Code,
+      getRecommendations: getServiceRecommendations,
+      getAllPossibleRecommendations: getAllServiceRecommendations,
+    },
   ];
 
 export default class MonitorRecommendationCatalog {
@@ -402,8 +502,14 @@ export default class MonitorRecommendationCatalog {
     );
   }
 
+  /*
+   * What to offer ONE resource. `context` is what a caller knows about that
+   * specific resource; omitting it is a valid answer meaning "nothing", and
+   * yields the subset that is true of every resource of this type.
+   */
   public static getRecommendations(
     resourceType: MonitorRecommendationResourceType,
+    context?: MonitorRecommendationContext | undefined,
   ): Array<MonitorRecommendation> {
     const definition: MonitorRecommendationResourceTypeDefinition | undefined =
       this.getResourceTypeDefinition(resourceType);
@@ -412,13 +518,26 @@ export default class MonitorRecommendationCatalog {
       return [];
     }
 
-    return definition.getRecommendations();
+    return definition.getRecommendations(context);
   }
 
+  /*
+   * Every recommendation the catalog can produce, for any resource, in any
+   * context.
+   *
+   * Deliberately takes no context. Its two jobs — resolving a
+   * `recommendationId` back to its recommendation, and giving the
+   * registry-wide invariant tests something exhaustive to run over — are both
+   * jobs where filtering would silently weaken the answer. Resolving an id in
+   * particular has to work from a dismissal row alone, which carries no
+   * language.
+   */
   public static getAllRecommendations(): Array<MonitorRecommendation> {
     return RESOURCE_TYPE_DEFINITIONS.flatMap(
       (definition: MonitorRecommendationResourceTypeDefinition) => {
-        return definition.getRecommendations();
+        return definition.getAllPossibleRecommendations
+          ? definition.getAllPossibleRecommendations()
+          : definition.getRecommendations();
       },
     );
   }
@@ -441,10 +560,14 @@ export default class MonitorRecommendationCatalog {
    */
   public static getCategories(
     resourceType: MonitorRecommendationResourceType,
+    context?: MonitorRecommendationContext | undefined,
   ): Array<string> {
     const categories: Array<string> = [];
 
-    for (const recommendation of this.getRecommendations(resourceType)) {
+    for (const recommendation of this.getRecommendations(
+      resourceType,
+      context,
+    )) {
       if (!categories.includes(recommendation.category)) {
         categories.push(recommendation.category);
       }

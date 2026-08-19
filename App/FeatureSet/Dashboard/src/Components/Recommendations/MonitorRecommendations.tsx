@@ -44,6 +44,7 @@ import { MonitorRecommendationSeverityOption } from "Common/Types/Monitor/Recomm
 import {
   MonitorRecommendation,
   MonitorRecommendationArgs,
+  MonitorRecommendationContext,
   MonitorRecommendationNotificationSettings,
   MonitorRecommendationResourceType,
 } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
@@ -86,6 +87,19 @@ export interface ComponentProps {
   resourceDisplayName: string;
   // The resource's own row id. Dismissals are scoped to it.
   resourceId: ObjectID;
+  /*
+   * What the caller knows about this specific resource that narrows the
+   * catalog — today, a service's detected runtime. Optional because eight of
+   * the ten resource types have nothing to narrow by, and omitting it yields
+   * the subset that is true of every resource of the type.
+   */
+  resourceContext?: MonitorRecommendationContext | undefined;
+  /*
+   * One sentence saying what the context did to the list, shown above it.
+   * Undefined for the resource types whose list is a constant — there is
+   * nothing to explain there.
+   */
+  resourceContextNote?: string | undefined;
 }
 
 interface ProjectDefaults {
@@ -159,10 +173,21 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
     MonitorRecommendationCatalog.getResourceTypeDefinition(props.resourceType);
 
   const recommendations: Array<MonitorRecommendation> =
-    MonitorRecommendationCatalog.getRecommendations(props.resourceType);
+    MonitorRecommendationCatalog.getRecommendations(
+      props.resourceType,
+      props.resourceContext,
+    );
 
+  /*
+   * Categories come from the same call so the section headings and the cards
+   * under them describe the same set. Deriving them from the unfiltered
+   * catalog instead would render an empty "JVM Runtime" heading on a Go
+   * service — `groupByCategory` drops empty categories, so it would not
+   * actually break, but the two would be answering different questions.
+   */
   const categories: Array<string> = MonitorRecommendationCatalog.getCategories(
     props.resourceType,
+    props.resourceContext,
   );
 
   type BuildArgsFunction = (
@@ -717,6 +742,20 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       >
         <div className="space-y-6">
           {actionError ? <ErrorMessage message={actionError} /> : <></>}
+
+          {/*
+           * Rendered above the toolbar rather than folded into the card
+           * description, because it is the answer to "why are there only
+           * eight of these" and needs to be next to the count tiles that
+           * prompt the question.
+           */}
+          {props.resourceContextNote ? (
+            <div className="rounded-md bg-gray-50 px-4 py-3 text-sm text-gray-600">
+              {props.resourceContextNote}
+            </div>
+          ) : (
+            <></>
+          )}
 
           <RecommendationToolbar
             counts={counts}

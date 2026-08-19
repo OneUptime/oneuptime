@@ -21,6 +21,7 @@ import MonitorRecommendationCatalog, {
 import MonitorRecommendationUtil from "Common/Types/Monitor/Recommendation/MonitorRecommendationUtil";
 import {
   MonitorRecommendation,
+  MonitorRecommendationContext,
   MonitorRecommendationResourceType,
 } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import MonitorRecommendationCreateUtil from "./MonitorRecommendationCreateUtil";
@@ -72,18 +73,36 @@ const RecommendationsSideMenuItem: FunctionComponent<ComponentProps> = (
     }
 
     try {
-      const recommendations: Array<MonitorRecommendation> =
-        MonitorRecommendationCatalog.getRecommendations(props.resourceType);
-
-      if (recommendations.length === 0) {
-        return;
-      }
-
+      /*
+       * The fetch comes FIRST, before the catalog is consulted, because for a
+       * service the catalog's answer depends on the row: a Java service is
+       * offered six more recommendations than the language-agnostic set, and
+       * computing the set before the fetch would badge every service with the
+       * agnostic count while the page next door listed the full one. Two views
+       * of the same number disagreeing is a far harder bug to spot than a
+       * missing badge.
+       */
       const resource: BaseModel | null = await ModelAPI.getItem({
         modelType: resourceDefinition.modelType,
         id: props.resourceId,
         select: RecommendationResourceRegistry.getSelect(props.resourceType),
       });
+
+      const resourceContext: MonitorRecommendationContext =
+        RecommendationResourceRegistry.readContext({
+          resourceType: props.resourceType,
+          model: resource,
+        });
+
+      const recommendations: Array<MonitorRecommendation> =
+        MonitorRecommendationCatalog.getRecommendations(
+          props.resourceType,
+          resourceContext,
+        );
+
+      if (recommendations.length === 0) {
+        return;
+      }
 
       const { resourceIdentifier, resourceDisplayName } =
         RecommendationResourceRegistry.readResourceFields({

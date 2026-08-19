@@ -11,6 +11,12 @@ export function getServiceBreadcrumbs(path: string): Array<Link> | undefined {
       "Services",
       "View Service",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_RECOMMENDATIONS, [
+      "Project",
+      "Services",
+      "View Service",
+      "Recommendations",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_OWNERS, [
       "Project",
       "Services",

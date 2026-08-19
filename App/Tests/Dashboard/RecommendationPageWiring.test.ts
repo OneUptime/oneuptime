@@ -103,6 +103,7 @@ const PAGE_FOLDER_BY_RESOURCE_TYPE: Record<
   [MonitorRecommendationResourceType.Ceph]: "Ceph",
   [MonitorRecommendationResourceType.IoTDevice]: "IoT",
   [MonitorRecommendationResourceType.RumApplication]: "Rum",
+  [MonitorRecommendationResourceType.Service]: "Service",
 };
 
 /*
@@ -143,7 +144,7 @@ describe("the resource-type table this file loops over", () => {
    * ever empty or short, every one of those tests would pass by never running.
    */
   test("covers every member of the enum", () => {
-    expect(ALL_RESOURCE_TYPES.length).toBe(9);
+    expect(ALL_RESOURCE_TYPES.length).toBe(10);
     expect(RESOURCE_CASES.length).toBe(ALL_RESOURCE_TYPES.length);
 
     for (const resourceCase of RESOURCE_CASES) {
@@ -255,6 +256,54 @@ describe("every resource type routes its Recommendations page through the shared
     expect(shell).toContain("resourceId={modelId}");
     expect(shell).toContain("resourceIdentifier={resourceIdentifier}");
     expect(shell).toContain("resourceDisplayName={resourceDisplayName}");
+  });
+
+  /*
+   * The shell also reads what narrows the catalog, from the same fetched row.
+   * Dropping this does not break the page — it renders a service's
+   * language-agnostic recommendations and looks entirely normal — while the
+   * badge next to it, which reads the context itself, counts the full set.
+   * Two views of the same number disagreeing, with nothing on screen to say
+   * which is right.
+   */
+  test("the shell reads the recommendation context and passes it down", () => {
+    const shell: string = readCode(
+      "Components",
+      "Recommendations",
+      "RecommendationsPage.tsx",
+    );
+
+    expect(shell).toContain(
+      squash(
+        "RecommendationResourceRegistry.readContext({ resourceType: props.resourceType, model: resource, })",
+      ),
+    );
+    expect(shell).toContain("resourceContext={resourceContext}");
+  });
+
+  test("the page component narrows its catalog call by that context", () => {
+    const page: string = readCode(
+      "Components",
+      "Recommendations",
+      "MonitorRecommendations.tsx",
+    );
+
+    expect(page).toContain(
+      squash(
+        "MonitorRecommendationCatalog.getRecommendations( props.resourceType, props.resourceContext, )",
+      ),
+    );
+
+    /*
+     * Categories from the same call as the cards. Deriving them from the
+     * unfiltered catalog would render section headings for runtimes this
+     * service does not use.
+     */
+    expect(page).toContain(
+      squash(
+        "MonitorRecommendationCatalog.getCategories( props.resourceType, props.resourceContext, )",
+      ),
+    );
   });
 });
 
@@ -385,6 +434,33 @@ describe("the Recommendations side-menu badge cannot break the menu", () => {
     expect(tryBody).toContain("RecommendationDismissalUtil.getDismissals({");
     // Including the write: a throw from the state setter is still a throw.
     expect(tryBody).toContain("setCount(");
+  });
+
+  /*
+   * Order, not just presence. For a service the catalog's answer depends on
+   * the fetched row, so consulting the catalog first would badge every service
+   * with the language-agnostic count while the page listed the full set.
+   */
+  test("the badge fetches the resource before it asks the catalog", () => {
+    const fetchIndex: number = BADGE_CODE.indexOf("await ModelAPI.getItem({");
+    const contextIndex: number = BADGE_CODE.indexOf(
+      "RecommendationResourceRegistry.readContext({",
+    );
+    const catalogIndex: number = BADGE_CODE.indexOf(
+      "MonitorRecommendationCatalog.getRecommendations(",
+    );
+
+    expect(fetchIndex).toBeGreaterThan(-1);
+    expect(contextIndex).toBeGreaterThan(fetchIndex);
+    expect(catalogIndex).toBeGreaterThan(contextIndex);
+  });
+
+  test("the badge narrows its catalog call by the context it just read", () => {
+    expect(BADGE_CODE).toContain(
+      squash(
+        "MonitorRecommendationCatalog.getRecommendations( props.resourceType, resourceContext, )",
+      ),
+    );
   });
 
   test("the catch swallows rather than re-raising or surfacing an error", () => {
