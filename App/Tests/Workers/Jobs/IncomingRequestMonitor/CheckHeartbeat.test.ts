@@ -4,6 +4,7 @@ import OneUptimeDate from "Common/Types/Date";
 import { CheckOn } from "Common/Types/Monitor/CriteriaFilter";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
+import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 
@@ -388,6 +389,38 @@ describe("IncomingRequestMonitor:CheckHeartbeat worker", () => {
         makeMonitor({
           id: MONITOR_A_ID,
           monitorSteps: stepsWithCheckOn(CheckOn.ResponseTime),
+        }),
+      ])
+      .mockResolvedValueOnce([]);
+
+    await runWorkerTick();
+
+    expect(monitorService.updateColumnsByIdWithoutHooks).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(monitorResourceMock).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The out-of-the-box criteria for this monitor type check the REQUEST BODY,
+   * not the arrival clock, so a monitor left on its defaults has nothing for
+   * this cron to re-evaluate: it is stamped and skipped, and its status is
+   * decided only when a request actually lands. Users who want a missing-
+   * heartbeat alarm add a CheckOn.IncomingRequest criteria by hand, which the
+   * test above covers.
+   */
+  test("a monitor on the default body criteria is stamped but never evaluated", async () => {
+    monitorService.findAllBy
+      .mockResolvedValueOnce([
+        makeMonitor({
+          id: MONITOR_A_ID,
+          monitorSteps: stepsWithCheckOn(
+            MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance({
+              monitorType: MonitorType.IncomingRequest,
+              monitorStatusId: new ObjectID("online-status"),
+              monitorName: "Payments API",
+            })!.data!.filters[0]!.checkOn,
+          ),
         }),
       ])
       .mockResolvedValueOnce([]);

@@ -4,6 +4,7 @@ import OneUptimeDate from "Common/Types/Date";
 import { CheckOn } from "Common/Types/Monitor/CriteriaFilter";
 import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
+import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 
@@ -392,6 +393,38 @@ describe("IncomingEmailMonitor:CheckOnlineStatus worker", () => {
         makeMonitor({
           id: MONITOR_A_ID,
           monitorSteps: stepsWithCheckOn(CheckOn.IncomingRequest),
+        }),
+      ])
+      .mockResolvedValueOnce([]);
+
+    await runWorkerTick();
+
+    expect(monitorService.updateColumnsByIdWithoutHooks).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(monitorResourceMock).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The out-of-the-box criteria for this monitor type check the EMAIL BODY,
+   * not the arrival clock, so a monitor left on its defaults has nothing for
+   * this cron to re-evaluate: it is stamped and skipped, and its status is
+   * decided only when mail actually lands. Users who want a missing-email
+   * alarm add a CheckOn.EmailReceivedAt criteria by hand, which the test
+   * above covers.
+   */
+  test("a monitor on the default body criteria is stamped but never evaluated", async () => {
+    monitorService.findAllBy
+      .mockResolvedValueOnce([
+        makeMonitor({
+          id: MONITOR_A_ID,
+          monitorSteps: stepsWithCheckOn(
+            MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance({
+              monitorType: MonitorType.IncomingEmail,
+              monitorStatusId: new ObjectID("online-status"),
+              monitorName: "Nightly Backup",
+            })!.data!.filters[0]!.checkOn,
+          ),
         }),
       ])
       .mockResolvedValueOnce([]);
