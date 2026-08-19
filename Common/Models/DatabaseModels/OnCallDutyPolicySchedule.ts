@@ -588,6 +588,20 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.ObjectID,
+    /*
+     * Read through a relation, alongside `name`, so a joined schedule row can
+     * say whether it would page anybody right now. An escalation rule lists
+     * schedules by name and has to mark the ones that are currently uncovered;
+     * that is one join away from the rule, and without this flag
+     * QueryPermission rejects the whole select rather than dropping the column
+     * - the escalation rule page fails to load at all.
+     *
+     * The disclosure is a user id belonging to the same project as the
+     * schedule, to a caller who is already reading the schedule's name off the
+     * same joined row. It is not an @OwnerOnlyColumn: who is on call is
+     * operational state the team is meant to see, not a personal credential.
+     */
+    canReadOnRelationQuery: true,
     title: "Current User ID On Roster",
     description: "User ID who is currently on roster",
     example: "c3d4e5f6-a7b8-9012-cdef-123456789012",
