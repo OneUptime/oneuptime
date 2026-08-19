@@ -22,6 +22,7 @@ not stop the others, so one run tells you everything that is broken.
 | `lint`              | no              | `helm lint` over the `oneuptime` and `kubernetes-agent` charts                        |
 | `unit`              | no              | the helm-unittest suites in [`Public/oneuptime/tests`](Public/oneuptime/tests)        |
 | `secrets-lifecycle` | yes             | installs and upgrades the chart for real, to cover Secret handling across an upgrade  |
+| `keda-bootstrap`    | yes             | the KEDA CRD bootstrap and the `keda.install` / `keda.enabled` split, against a real API server |
 
 Run one suite, or keep the cluster around to poke at a failure:
 
@@ -32,12 +33,16 @@ KEEP_CLUSTER=true bash HelmChart/Tests/run.sh secrets-lifecycle
 
 `npm run test-helm-chart` still runs just the helm-unittest suites — they need
 no cluster and no Docker, so they are the quick loop while editing templates.
-The cluster-backed `secrets-lifecycle` suite exists because those unit tests
-render without an API server, which means `lookup` always comes back empty and
-only the "regenerate" leg of `templates/secrets.yaml` is exercised; the
-behaviour that file is there for — an upgrade must *not* rotate a secret it
-already generated — can only be asserted against a real cluster. It pulls no
-images.
+The cluster-backed suites exist because those unit tests render without an API
+server. `secrets-lifecycle` needs one because `lookup` always comes back empty
+without it, so only the "regenerate" leg of `templates/secrets.yaml` is
+exercised; the behaviour that file is there for — an upgrade must *not* rotate a
+secret it already generated — can only be asserted against a real cluster.
+`keda-bootstrap` needs one because Helm resolves a rendered manifest against the
+API server before applying it, and `helm template` uses a fake client that never
+does: the chart's first install with KEDA autoscaling was impossible for months
+while lint, unit tests and `helm template` all stayed green. Neither suite waits
+on a pod, so no images are pulled.
 
 Adding a suite: drop it in `Tests/suites`, source `lib/harness.sh` for the
 assertions and the cluster, end with `harness_report`, and list it in
@@ -55,6 +60,10 @@ Moving an existing install from a standalone database to its bundled operator:
 - [ClickHouse: Standalone → Altinity operator](Docs/MigrateClickhouseStandaloneToOperator.md)
 
 ## Scaling guides
+
+Autoscaling the queue-driven tiers:
+
+- [KEDA: the two flags, the CRD bootstrap, and an externally managed KEDA](Docs/Keda.md)
 
 Scaling an operator-managed (Altinity) ClickHouse:
 

@@ -14,7 +14,8 @@ tests:
           count: 0
 
   # --- the guard -------------------------------------------------------------
-  # The global flag gates the KEDA operator subchart AND every ScaledObject.
+  # The global flag gates every ScaledObject, and is also the fallback the KEDA
+  # operator subchart's dependency condition lands on when keda.install is unset.
   # Leaving a per-service flag on while the global one is off renders nothing at
   # all, and on an upgrade from a release that had the global flag on it
   # uninstalls the operator out from under ScaledObjects that are already live.
@@ -23,13 +24,17 @@ tests:
   # NOTE: none of these tests set `keda.enabled` -- they inherit it. That is
   # deliberate: it means each one also pins the new shipped default to false. If
   # the global default is ever flipped back to true these all stop failing.
+  # They leave `keda.install` unset too, so the dependency condition falls
+  # through to keda.enabled, which is what makes the operator-uninstall half of
+  # the message true. The bootstrap exemption (install explicitly true) has its
+  # own section at the bottom of this suite.
 
   - it: should fail when app opts in but the global flag is inherited off
     set:
       app.keda.enabled: true
     asserts:
       - failedTemplate:
-          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: app.keda.enabled. The global flag gates both the bundled KEDA operator (see the dependency condition in Chart.yaml) and every ScaledObject in this chart, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to fall back to the plain HorizontalPodAutoscaler.'
+          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: app.keda.enabled. The global flag gates every ScaledObject in this chart, and (via the dependency condition in Chart.yaml) the bundled KEDA operator too, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to leave those tiers on `autoscaling` instead — a plain HorizontalPodAutoscaler where you have enabled it, and a fixed replicaCount where you have not. If this is the first install on a cluster that has no KEDA yet, run the bootstrap pass once with --set keda.install=true --set keda.enabled=false and then install again normally — see HelmChart/Docs/Keda.md.'
 
   - it: should fail when worker opts in but the global flag is inherited off
     set:
@@ -37,7 +42,7 @@ tests:
       worker.keda.enabled: true
     asserts:
       - failedTemplate:
-          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: worker.keda.enabled. The global flag gates both the bundled KEDA operator (see the dependency condition in Chart.yaml) and every ScaledObject in this chart, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to fall back to the plain HorizontalPodAutoscaler.'
+          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: worker.keda.enabled. The global flag gates every ScaledObject in this chart, and (via the dependency condition in Chart.yaml) the bundled KEDA operator too, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to leave those tiers on `autoscaling` instead — a plain HorizontalPodAutoscaler where you have enabled it, and a fixed replicaCount where you have not. If this is the first install on a cluster that has no KEDA yet, run the bootstrap pass once with --set keda.install=true --set keda.enabled=false and then install again normally — see HelmChart/Docs/Keda.md.'
 
   - it: should fail when telemetryWriter opts in but the global flag is inherited off
     set:
@@ -45,21 +50,21 @@ tests:
       telemetryWriter.keda.enabled: true
     asserts:
       - failedTemplate:
-          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: telemetryWriter.keda.enabled. The global flag gates both the bundled KEDA operator (see the dependency condition in Chart.yaml) and every ScaledObject in this chart, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to fall back to the plain HorizontalPodAutoscaler.'
+          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: telemetryWriter.keda.enabled. The global flag gates every ScaledObject in this chart, and (via the dependency condition in Chart.yaml) the bundled KEDA operator too, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to leave those tiers on `autoscaling` instead — a plain HorizontalPodAutoscaler where you have enabled it, and a fixed replicaCount where you have not. If this is the first install on a cluster that has no KEDA yet, run the bootstrap pass once with --set keda.install=true --set keda.enabled=false and then install again normally — see HelmChart/Docs/Keda.md.'
 
   - it: should fail when runner opts in but the global flag is inherited off
     set:
       runner.keda.enabled: true
     asserts:
       - failedTemplate:
-          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: runner.keda.enabled. The global flag gates both the bundled KEDA operator (see the dependency condition in Chart.yaml) and every ScaledObject in this chart, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to fall back to the plain HorizontalPodAutoscaler.'
+          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: runner.keda.enabled. The global flag gates every ScaledObject in this chart, and (via the dependency condition in Chart.yaml) the bundled KEDA operator too, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to leave those tiers on `autoscaling` instead — a plain HorizontalPodAutoscaler where you have enabled it, and a fixed replicaCount where you have not. If this is the first install on a cluster that has no KEDA yet, run the bootstrap pass once with --set keda.install=true --set keda.enabled=false and then install again normally — see HelmChart/Docs/Keda.md.'
 
   - it: should fail when a probe opts in but the global flag is inherited off
     set:
       probes.one.keda.enabled: true
     asserts:
       - failedTemplate:
-          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: probes.one.keda.enabled. The global flag gates both the bundled KEDA operator (see the dependency condition in Chart.yaml) and every ScaledObject in this chart, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to fall back to the plain HorizontalPodAutoscaler.'
+          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: probes.one.keda.enabled. The global flag gates every ScaledObject in this chart, and (via the dependency condition in Chart.yaml) the bundled KEDA operator too, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to leave those tiers on `autoscaling` instead — a plain HorizontalPodAutoscaler where you have enabled it, and a fixed replicaCount where you have not. If this is the first install on a cluster that has no KEDA yet, run the bootstrap pass once with --set keda.install=true --set keda.enabled=false and then install again normally — see HelmChart/Docs/Keda.md.'
 
   # worker.enabled ships false, so this ScaledObject would not render even with
   # the global flag on. The flag is still a lie about what the release does, and
@@ -70,7 +75,7 @@ tests:
       worker.keda.enabled: true
     asserts:
       - failedTemplate:
-          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: worker.keda.enabled. The global flag gates both the bundled KEDA operator (see the dependency condition in Chart.yaml) and every ScaledObject in this chart, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to fall back to the plain HorizontalPodAutoscaler.'
+          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: worker.keda.enabled. The global flag gates every ScaledObject in this chart, and (via the dependency condition in Chart.yaml) the bundled KEDA operator too, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to leave those tiers on `autoscaling` instead — a plain HorizontalPodAutoscaler where you have enabled it, and a fixed replicaCount where you have not. If this is the first install on a cluster that has no KEDA yet, run the bootstrap pass once with --set keda.install=true --set keda.enabled=false and then install again normally — see HelmChart/Docs/Keda.md.'
 
   # One render pass has to report ALL of them, otherwise an operator with several
   # tiers on fixes them one failed upgrade at a time. Order is probes (map order),
@@ -84,7 +89,7 @@ tests:
       runner.keda.enabled: true
     asserts:
       - failedTemplate:
-          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: probes.one.keda.enabled, app.keda.enabled, worker.keda.enabled, telemetryWriter.keda.enabled, runner.keda.enabled. The global flag gates both the bundled KEDA operator (see the dependency condition in Chart.yaml) and every ScaledObject in this chart, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to fall back to the plain HorizontalPodAutoscaler.'
+          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: probes.one.keda.enabled, app.keda.enabled, worker.keda.enabled, telemetryWriter.keda.enabled, runner.keda.enabled. The global flag gates every ScaledObject in this chart, and (via the dependency condition in Chart.yaml) the bundled KEDA operator too, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to leave those tiers on `autoscaling` instead — a plain HorizontalPodAutoscaler where you have enabled it, and a fixed replicaCount where you have not. If this is the first install on a cluster that has no KEDA yet, run the bootstrap pass once with --set keda.install=true --set keda.enabled=false and then install again normally — see HelmChart/Docs/Keda.md.'
 
   # probes.two is created here with no `keda` key. The guard ranges over every probe,
   # so a missing keda block must neither error the range nor be reported as an
@@ -96,7 +101,7 @@ tests:
       app.keda.enabled: true
     asserts:
       - failedTemplate:
-          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: app.keda.enabled. The global flag gates both the bundled KEDA operator (see the dependency condition in Chart.yaml) and every ScaledObject in this chart, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to fall back to the plain HorizontalPodAutoscaler.'
+          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: app.keda.enabled. The global flag gates every ScaledObject in this chart, and (via the dependency condition in Chart.yaml) the bundled KEDA operator too, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to leave those tiers on `autoscaling` instead — a plain HorizontalPodAutoscaler where you have enabled it, and a fixed replicaCount where you have not. If this is the first install on a cluster that has no KEDA yet, run the bootstrap pass once with --set keda.install=true --set keda.enabled=false and then install again normally — see HelmChart/Docs/Keda.md.'
 
   # --- the guard must not over-fire -----------------------------------------
   - it: should not fire when the global flag is off and nothing opts in
@@ -167,7 +172,7 @@ tests:
       runner.keda.enabled: true
     asserts:
       - failedTemplate:
-          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: probes.two.keda.enabled, app.keda.enabled, runner.keda.enabled. The global flag gates both the bundled KEDA operator (see the dependency condition in Chart.yaml) and every ScaledObject in this chart, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to fall back to the plain HorizontalPodAutoscaler.'
+          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: probes.two.keda.enabled, app.keda.enabled, runner.keda.enabled. The global flag gates every ScaledObject in this chart, and (via the dependency condition in Chart.yaml) the bundled KEDA operator too, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to leave those tiers on `autoscaling` instead — a plain HorizontalPodAutoscaler where you have enabled it, and a fixed replicaCount where you have not. If this is the first install on a cluster that has no KEDA yet, run the bootstrap pass once with --set keda.install=true --set keda.enabled=false and then install again normally — see HelmChart/Docs/Keda.md.'
 
   # NOTE on telemetryWriter, which has no case here: it is the one tier whose
   # ScaledObject condition does NOT read disableAutoscaler (neither does its
@@ -241,3 +246,43 @@ tests:
     asserts:
       - hasDocuments:
           count: 0
+
+  # --- the bootstrap exemption -----------------------------------------------
+  # `keda.install: true` with keda.enabled false is the one-time bootstrap pass
+  # (HelmChart/Docs/Keda.md): the bundled subchart ships its CRDs as templates
+  # rather than in a crds/ directory, so Helm cannot resolve a ScaledObject
+  # against a CRD that the same release has not applied yet, and a cluster with
+  # no KEDA needs one pass that installs the operator and renders no CR.
+  #
+  # The guard must stand down for it. Neither harm it exists to prevent applies:
+  # the operator is being installed rather than removed, so nothing is orphaned,
+  # and the render is a deliberate no-op rather than a silent one -- install is
+  # absent from values.yaml and tracks keda.enabled, so it is only true here
+  # because an operator typed it.
+  - it: should not fire during the bootstrap pass, even with tiers opted in
+    set:
+      keda.enabled: false
+      keda.install: true
+      probes.one.keda.enabled: true
+      app.keda.enabled: true
+      worker.enabled: true
+      worker.keda.enabled: true
+      telemetryWriter.enabled: true
+      telemetryWriter.keda.enabled: true
+      runner.keda.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # install: false is the OTHER half of the split -- an externally managed KEDA.
+  # It does not excuse anything: keda.enabled still gates the ScaledObjects, so a
+  # per-service flag on top of it is the same silent no-op as before and must
+  # still fail. Only `install: true` is a bootstrap.
+  - it: should still fire when install is explicitly false
+    set:
+      keda.enabled: false
+      keda.install: false
+      app.keda.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: 'the global keda.enabled is false but these per-service KEDA flags are true: app.keda.enabled. The global flag gates every ScaledObject in this chart, and (via the dependency condition in Chart.yaml) the bundled KEDA operator too, so no ScaledObject would be rendered — and on upgrade from a release that had it on, the operator would be uninstalled while the live ScaledObjects it was reconciling are left orphaned. Set keda.enabled=true to autoscale those services with KEDA, or set them back to false to leave those tiers on `autoscaling` instead — a plain HorizontalPodAutoscaler where you have enabled it, and a fixed replicaCount where you have not. If this is the first install on a cluster that has no KEDA yet, run the bootstrap pass once with --set keda.install=true --set keda.enabled=false and then install again normally — see HelmChart/Docs/Keda.md.'

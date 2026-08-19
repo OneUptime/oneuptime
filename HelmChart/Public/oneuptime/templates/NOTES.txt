@@ -9,6 +9,17 @@ One all the pods are running. You can check the service status to see if the IP 
 kubectl get svc --namespace={{ $.Release.Namespace }} {{ $.Release.Name }}-nginx 
 
 You should then be able to access OneUptime cluster with that IP. Please make sure your host matches the host set in values.yaml which currently is {{ .Values.host }}. If you would like to change this host to another value, please do a helm upgrade.
+{{- if and (include "oneuptime.kedaOperatorInstalled" .) (not .Values.keda.enabled) }}
+
+The bundled KEDA operator is installed, but this release renders no ScaledObject
+(keda.enabled is false). If you ran this as the one-time bootstrap pass, the KEDA
+CRDs now exist on the cluster — run the install again with your normal values to
+render the ScaledObjects:
+
+helm upgrade --install {{ .Release.Name }} oneuptime/oneuptime --namespace={{ .Release.Namespace }} -f values.yaml
+
+Details: HelmChart/Docs/Keda.md
+{{- end }}
 {{- if .Values.vllm.enabled }}
 
 vLLM (local LLM server) is enabled. Its OpenAI-compatible endpoint inside the cluster is:

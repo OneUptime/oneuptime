@@ -1222,6 +1222,33 @@ spec:
 
 
 {{/*
+Whether THIS release installs the bundled KEDA operator subchart. Returns the
+string "true" or "" so it composes with `if`/`eq`.
+
+This must agree with the `condition: keda.install,keda.enabled` on the keda
+dependency in Chart.yaml, because Helm evaluates that condition itself and the
+templates never see the result. Helm walks the comma-separated paths in order and
+takes the FIRST one that resolves to an actual bool — a path that is absent, null
+or a quoted string is skipped (with a warning, in the non-absent cases) and the
+next path is tried. `kindIs "bool"` reproduces that test exactly; anything looser
+(hasKey, a plain truthiness check, `default`) would disagree with Helm on a
+`--set-string keda.install=true`, and the guard that reads this would then talk
+about an operator that is not there, or stay silent about one that is. (`install:
+~` cannot get this far — values.schema.json pins install to boolean — but the
+test costs nothing and keeps this honest if that ever loosens.)
+
+Usage: include "oneuptime.kedaOperatorInstalled" .   ($ or any ctx with .Values)
+*/}}
+{{- define "oneuptime.kedaOperatorInstalled" -}}
+{{- $install := .Values.keda.enabled -}}
+{{- if kindIs "bool" .Values.keda.install -}}
+{{- $install = .Values.keda.install -}}
+{{- end -}}
+{{- if $install }}true{{ end -}}
+{{- end }}
+
+
+{{/*
 KEDA ScaledObject template for metric-based autoscaling
 Usage: include "oneuptime.kedaScaledObject" (dict "ServiceName" "service-name" "Release" .Release "Values" .Values "MetricsConfig" {...})
 

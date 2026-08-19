@@ -3257,6 +3257,9 @@
             "properties": {
                 "enabled": {
                     "type": "boolean"
+                },
+                "install": {
+                    "type": "boolean"
                 }
             },
             "additionalProperties": true

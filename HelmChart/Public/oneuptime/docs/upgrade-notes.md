@@ -37,6 +37,6 @@ configuration options.
 
 | Chart                          | Description                                                                                 | Repository |
 |--------------------------------|---------------------------------------------------------------------------------------------|------------|
-| `keda`                         | Kubernetes Event-driven Autoscaling.                                                        | https://kedacore.github.io/charts |
+| `keda`                         | Kubernetes Event-driven Autoscaling — installed only when `keda.install` (or, unset, `keda.enabled`) is `true`. | https://kedacore.github.io/charts |
 | `cloudnative-pg`               | CloudNativePG operator — installed only when `postgresOperator.cnpg.enabled` is `true`.     | https://cloudnative-pg.github.io/charts |
 | `altinity-clickhouse-operator` | Altinity ClickHouse operator — installed only when `clickhouseOperator.altinity.enabled` is `true`. | https://helm.altinity.com/ |
