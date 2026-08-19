@@ -317,6 +317,12 @@ export default class BlogPostUtil {
     const formattedPostDate: string =
       this.getFormattedPostDateFromFileName(fileName);
 
+    // Skip posts whose README.md does not exist on disk (e.g. entries in
+    // Blogs.json that reference a post folder that has not been created yet).
+    if (!(await LocalFile.doesFileExist(filePath))) {
+      return null;
+    }
+
     let markdownContent: string = await LocalFile.read(filePath);
 
     // Resolve author WITHOUT hitting GitHub API. Use Blogs.json to get username, Authors.json for name/bio.
