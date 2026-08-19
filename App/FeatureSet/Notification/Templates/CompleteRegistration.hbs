@@ -1,0 +1,37 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{> EmailTitle title="Finish Setting Up Your Account" }}
+
+{{!--
+  Sent when somebody tried to register this address and it already had an
+  unclaimed invitation behind it. The recipient may not have made that request
+  themselves, so the wording avoids congratulating them on an action they may
+  not have taken, and the closing note tells them what to do if it was not them.
+--}}
+
+{{> InfoBlock info="Someone asked to finish setting up the OneUptime account for this email address. If that was you, use the button below to choose a password and get started."}}
+
+{{> ButtonBlock buttonUrl=registrationLink buttonText="Complete Registration"}}
+
+{{> VerticalSpace this}}
+
+{{> InfoBlock info="Or copy and paste this link into your browser:"}}
+{{> InfoBlock info=registrationLink}}
+
+{{> VerticalSpace this}}
+
+{{!--
+  Pre-formatted server-side: the `concat` helper takes exactly two arguments, so
+  building this sentence here would silently drop everything after the count.
+--}}
+{{> InfoBlock info=expiryNote}}
+
+{{> InfoBlock info="If you weren't expecting this, you can safely ignore this email. Your account cannot be set up without the link above, so nothing changes until you use it."}}
+
+{{> SupportBlock this }}
+
+{{> Footer this}}
+
+{{> End this}}

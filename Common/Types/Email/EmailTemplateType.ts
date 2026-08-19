@@ -3,6 +3,7 @@ enum EmailTemplateType {
   ForgotPassword = "ForgotPassword.hbs",
   ProbeOffline = "ProbeOffline.hbs",
   SignupWelcomeEmail = "SignupWelcomeEmail.hbs",
+  CompleteRegistration = "CompleteRegistration.hbs",
   ProbeConnectionStatusChange = "ProbeConnectionStatusChange.hbs",
   AIAgentConnectionStatusChange = "AIAgentConnectionStatusChange.hbs",
   AIAgentOwnerAdded = "AIAgentOwnerAdded.hbs",

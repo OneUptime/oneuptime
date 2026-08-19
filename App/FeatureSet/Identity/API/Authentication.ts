@@ -49,6 +49,7 @@ import logger, {
 } from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import TotpAuth from "Common/Server/Utils/TotpAuth";
+import UserRegistrationToken from "Common/Server/Utils/UserRegistrationToken";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
 import User from "Common/Models/DatabaseModels/User";
 import UserSession from "Common/Models/DatabaseModels/UserSession";
@@ -236,7 +237,75 @@ router.post(
 
       let savedUser: User | null = null;
 
+      /*
+       * True once this request has claimed a pending invitation rather than
+       * created a fresh account. Spending the registration token is itself
+       * proof of mailbox ownership, so the verification mail further down would
+       * be asking them to prove something they just proved.
+       */
+      let didClaimInvitedAccount: boolean = false;
+
       if (alreadySavedUser) {
+        /*
+         * A row with no password is an invitation nobody has claimed yet --
+         * TeamMemberService creates it so the membership has a user to point
+         * at, and it stays passwordless until the invited person registers.
+         *
+         * Reaching this branch therefore means the caller is claiming someone
+         * else's pending invitation, and the only thing separating the invited
+         * person from an attacker who guessed a corporate address is the token
+         * that went out in the invitation email (GHSA-qg84-6hrg-mr5g). Anything
+         * derived from the request body -- the address itself included -- is
+         * attacker-supplied and proves nothing.
+         */
+        const suppliedRegistrationToken: string | undefined = (
+          miscDataProps["registrationToken"] as string | undefined
+        )
+          ?.toString()
+          .trim();
+
+        const hasProvenMailboxOwnership: boolean =
+          Boolean(suppliedRegistrationToken) &&
+          ObjectID.isValidUUID(suppliedRegistrationToken!) &&
+          (await UserRegistrationToken.consumeRegistrationToken({
+            token: new ObjectID(suppliedRegistrationToken!),
+            email: partialUser.email as Email,
+          }));
+
+        if (!hasProvenMailboxOwnership) {
+          /*
+           * Nothing is written and no session is issued. The account is left
+           * exactly as the invitation left it, so a failed claim cannot set a
+           * password, cannot lock the invited person out, and cannot be told
+           * apart from a successful one by the caller.
+           *
+           * Instead the *mailbox owner* gets a fresh link. That covers the two
+           * honest ways to land here -- an invitation sent before invitations
+           * carried tokens, and a token that has since expired -- without
+           * covering the dishonest one, because the mail goes to the address,
+           * never to the requester. The captcha verified at the top of this
+           * handler is what stops this branch from being a mail cannon.
+           */
+          await AuthenticationEmail.sendCompleteRegistrationEmail({
+            userId: alreadySavedUser.id!,
+            email: partialUser.email as Email,
+          });
+
+          logger.info(
+            "Registration link re-sent for an unclaimed invited account: " +
+              partialUser.email?.toString(),
+            getLogAttributesFromRequest(req as RequestLike),
+          );
+
+          return Response.sendEntityResponse(req, res, null, User, {
+            miscData: {
+              registrationEmailSent: true,
+            },
+          });
+        }
+
+        didClaimInvitedAccount = true;
+
         savedUser = await UserService.updateOneByIdAndFetch({
           id: alreadySavedUser.id!,
           data: {
@@ -244,6 +313,12 @@ router.post(
             name: partialUser.name!,
             companyPhoneNumber: partialUser.companyPhoneNumber!,
             companyName: partialUser.companyName!,
+            /*
+             * The token arrived by email and was spent to get here, which is
+             * the same thing /verify-email checks for. Leaving this false would
+             * mail them a second link to prove the same fact.
+             */
+            isEmailVerified: true,
           },
           select: {
             email: true,
@@ -267,43 +342,51 @@ router.post(
         });
       }
 
-      const generatedToken: ObjectID = ObjectID.generate();
-
-      const emailVerificationToken: EmailVerificationToken =
-        new EmailVerificationToken();
-      emailVerificationToken.userId = savedUser?.id as ObjectID;
-      emailVerificationToken.email = savedUser?.email as Email;
-      emailVerificationToken.token = generatedToken;
-      emailVerificationToken.expires = OneUptimeDate.getOneDayAfter();
-
-      await EmailVerificationTokenService.create({
-        data: emailVerificationToken,
-        props: {
-          isRoot: true,
-        },
-      });
-
       const host: Hostname = await DatabaseConfig.getHost();
       const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-      MailService.sendMail({
-        toEmail: partialUser.email as Email,
-        subject: "Welcome to OneUptime. Please verify your email.",
-        templateType: EmailTemplateType.SignupWelcomeEmail,
-        vars: {
-          name: (partialUser.name! as Name).toString(),
-          tokenVerifyUrl: new URL(
-            httpProtocol,
-            host,
-            new Route(AccountsRoute.toString()).addRoute(
-              "/verify-email/" + generatedToken.toString(),
-            ),
-          ).toString(),
-          homeUrl: new URL(httpProtocol, host).toString(),
-        },
-      }).catch((err: Error) => {
-        logger.error(err, getLogAttributesFromRequest(req as RequestLike));
-      });
+      /*
+       * Skipped when this signup claimed an invitation: the registration token
+       * it spent was itself an emailed secret, so the address is already
+       * verified and a "please verify your email" mail would be asking for a
+       * proof that has just been given.
+       */
+      if (!didClaimInvitedAccount) {
+        const generatedToken: ObjectID = ObjectID.generate();
+
+        const emailVerificationToken: EmailVerificationToken =
+          new EmailVerificationToken();
+        emailVerificationToken.userId = savedUser?.id as ObjectID;
+        emailVerificationToken.email = savedUser?.email as Email;
+        emailVerificationToken.token = generatedToken;
+        emailVerificationToken.expires = OneUptimeDate.getOneDayAfter();
+
+        await EmailVerificationTokenService.create({
+          data: emailVerificationToken,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        MailService.sendMail({
+          toEmail: partialUser.email as Email,
+          subject: "Welcome to OneUptime. Please verify your email.",
+          templateType: EmailTemplateType.SignupWelcomeEmail,
+          vars: {
+            name: (partialUser.name! as Name).toString(),
+            tokenVerifyUrl: new URL(
+              httpProtocol,
+              host,
+              new Route(AccountsRoute.toString()).addRoute(
+                "/verify-email/" + generatedToken.toString(),
+              ),
+            ).toString(),
+            homeUrl: new URL(httpProtocol, host).toString(),
+          },
+        }).catch((err: Error) => {
+          logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+        });
+      }
 
       if (savedUser) {
         // Refresh Permissions for this user here.

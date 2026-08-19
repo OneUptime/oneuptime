@@ -10,6 +10,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import Errors from "../Utils/Errors";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProductAnalytics from "../Utils/ProductAnalytics";
+import UserRegistrationToken from "../Utils/UserRegistrationToken";
 import AccessTokenService from "./AccessTokenService";
 import BillingService from "./BillingService";
 import DatabaseService from "./DatabaseService";
@@ -166,8 +167,23 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         ? (createBy.miscDataProps["name"] as string).trim()
         : undefined;
 
-      let user: User | null = await UserService.findByEmail(email, {
-        isRoot: true,
+      /*
+       * `password` comes back too, because whether this person has finished
+       * registering decides both which link the invitation carries and whether
+       * that link needs a registration token. UserService.findByEmail selects
+       * only the id, so it cannot answer that.
+       */
+      let user: User | null = await UserService.findOneBy({
+        query: {
+          email: email,
+        },
+        select: {
+          _id: true,
+          password: true,
+        },
+        props: {
+          isRoot: true,
+        },
       });
 
       let isNewUser: boolean = false;
@@ -228,6 +244,39 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         const host: Hostname = await DatabaseConfig.getHost();
         const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
+        /*
+         * "Still has to register", not "we just created the row". Someone
+         * invited to a second project before they ever signed up already has a
+         * user row and still has no password, and used to be sent the sign-in
+         * link — which they could not use, having no password to sign in with.
+         */
+        const needsRegistration: boolean = isNewUser || !user.password;
+
+        /*
+         * The token is what lets the recipient claim this account, so it exists
+         * only on the link inside this email and only for someone who has not
+         * registered yet. An already-registered invitee gets the plain link;
+         * they sign in instead, and minting a claim token for an account that
+         * cannot be claimed would just be a spare key lying around.
+         */
+        const registerLink: string = needsRegistration
+          ? (
+              await UserRegistrationToken.generateRegistrationLink({
+                userId: user.id!,
+                email: email,
+              })
+            ).toString()
+          : URL.fromString(
+              new URL(
+                httpProtocol,
+                host,
+                new Route(AccountsRoute.toString()),
+              ).toString(),
+            )
+              .addRoute("/register")
+              .addQueryParam("email", email.toString(), true)
+              .toString();
+
         MailService.sendMail(
           {
             toEmail: email,
@@ -240,17 +289,8 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
                   new Route(AccountsRoute.toString()),
                 ).toString(),
               ).toString(),
-              registerLink: URL.fromString(
-                new URL(
-                  httpProtocol,
-                  host,
-                  new Route(AccountsRoute.toString()),
-                ).toString(),
-              )
-                .addRoute("/register")
-                .addQueryParam("email", email.toString(), true)
-                .toString(),
-              isNewUser: isNewUser.toString(),
+              registerLink: registerLink,
+              isNewUser: needsRegistration.toString(),
               /*
                * An auto-accepted member has nothing left to accept, so the
                * template drops the "sign in to accept your invitation" framing
