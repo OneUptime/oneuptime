@@ -265,7 +265,7 @@ describe("DashboardCommandPalette Cmd/Ctrl+K chord", () => {
 });
 
 describe("DashboardCommandPalette global toggle event", () => {
-  test("the COMMAND_PALETTE_TOGGLE event toggles the palette (header pill path)", () => {
+  test("the COMMAND_PALETTE_TOGGLE event toggles the palette", () => {
     render(<DashboardCommandPalette />);
     expect(palette()).toBeNull();
 

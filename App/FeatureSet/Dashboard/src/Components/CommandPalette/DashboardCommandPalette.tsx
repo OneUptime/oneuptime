@@ -149,7 +149,7 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
     setIsOpen(false);
   }, []);
 
-  // Toggle from anywhere via the global event bus (header pill, future callers).
+  // Toggle from anywhere via the global event bus.
   useEffect(() => {
     const toggle: () => void = (): void => {
       setIsOpen((open: boolean) => {

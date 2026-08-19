@@ -1,5 +1,4 @@
 import AlertStateUtil from "../../Utils/AlertState";
-import EventName from "../../Utils/EventName";
 import IncidentStateUtil from "../../Utils/IncidentState";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -21,19 +20,12 @@ import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Header from "Common/UI/Components/Header/Header";
-import Icon from "Common/UI/Components/Icon/Icon";
-import KeyboardKey from "Common/UI/Components/KeyboardShortcut/KeyboardKey";
-import KeyboardShortcut, {
-  KeyboardShortcutSize,
-  KeyboardShortcutVariant,
-} from "Common/UI/Components/KeyboardShortcut/KeyboardShortcut";
 import { HeaderAlertType } from "Common/UI/Components/HeaderAlert/HeaderAlert";
 import {
   NotificationBell,
   NotificationItem,
 } from "Common/UI/Components/HeaderAlert/NotificationBell";
 import { APP_API_URL, BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
-import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import Navigation from "Common/UI/Utils/Navigation";
 import User from "Common/UI/Utils/User";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
@@ -872,44 +864,6 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
               onProjectSelected={props.onProjectSelected}
               selectedProject={props.selectedProject}
             />
-          </>
-        }
-        centerComponents={
-          <>
-            {/*
-             * Linear-style search pill: opens the command palette. Only shown
-             * when a project is selected — without one the palette has no
-             * project-scoped pages or entity search to offer.
-             */}
-            {props.selectedProject ? (
-              <button
-                type="button"
-                data-testid="command-palette-trigger"
-                aria-label={t(
-                  "commandPalette.openLabel",
-                  "Open command palette",
-                )}
-                onClick={() => {
-                  GlobalEvents.dispatchEvent(EventName.COMMAND_PALETTE_TOGGLE);
-                }}
-                className="hidden lg:flex items-center gap-2 cursor-pointer w-64 rounded-lg border border-gray-200 bg-white/70 px-3 py-1.5 text-sm text-gray-400 hover:border-gray-300 hover:text-gray-500 transition-colors duration-150"
-              >
-                <Icon
-                  icon={IconProp.MagnifyingGlass}
-                  className="h-4 w-4 flex-none"
-                />
-                <span className="flex-1 truncate text-left">
-                  {t("commandPalette.triggerPlaceholder", "Search…")}
-                </span>
-                <KeyboardShortcut
-                  keys={[KeyboardKey.Mod, "K"]}
-                  variant={KeyboardShortcutVariant.Ghost}
-                  size={KeyboardShortcutSize.ExtraSmall}
-                />
-              </button>
-            ) : (
-              <></>
-            )}
           </>
         }
         mobileRightComponents={<ThemeToggle />}
