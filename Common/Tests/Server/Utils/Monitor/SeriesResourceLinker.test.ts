@@ -36,8 +36,9 @@ import SeriesResourceLinker, {
 } from "../../../../Server/Utils/Monitor/SeriesResourceLinker";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import { JSONObject } from "../../../../Types/JSON";
+import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
-import { MonitorClusterContext } from "../../../../Server/Utils/Monitor/MonitorClusterContext";
+
 import {
   afterEach,
   beforeEach,
@@ -176,8 +177,13 @@ function includesValues(value: unknown): Array<string> {
   });
 }
 
-function emptyClusterContext(): MonitorClusterContext {
+function emptyResourceContext(): SeriesResolvedResourceIds {
   return {
+    hostIds: [],
+    dockerHostIds: [],
+    podmanHostIds: [],
+    kubernetesClusterIds: [],
+    serviceIds: [],
     proxmoxClusterIds: [],
     cephClusterIds: [],
     dockerSwarmClusterIds: [],
@@ -355,6 +361,73 @@ describe("SeriesResourceLinker.linkSeriesResourcesToModel", () => {
       expect(includesValues(query[nameColumn])).toEqual(["the-resource"]);
     },
   );
+
+  test.each([[MonitorType.Docker], [MonitorType.Podman]])(
+    "a %s monitor's host.name label links no Host",
+    async (monitorType: MonitorType) => {
+      /*
+       * The container agents stamp the box their containers run on under
+       * the generic `resource.host.name`, which the label key map hands
+       * to Host. On a Docker/Podman monitor that value names a
+       * DockerHost / PodmanHost row, so honouring the map would attach an
+       * unrelated Host and surface the event on that host's Activity tab.
+       * The step-config path (MonitorStepResourceIdentity) links the
+       * right model instead.
+       */
+      rowsByRelation.set("hosts", [{ _id: "host-1" }]);
+
+      const alert: Alert = new Alert();
+
+      await SeriesResourceLinker.linkSeriesResourcesToModel({
+        model: alert,
+        seriesLabels: { "host.name": "docker-prod-01" },
+        projectId: PROJECT_ID,
+        monitorType: monitorType,
+      });
+
+      expect(alert.hosts).toBeUndefined();
+      expect(HostService.findBy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a host.name label still links a Host for every other monitor type", async () => {
+    // The suppression must be scoped to the two container types only.
+    rowsByRelation.set("hosts", [{ _id: "host-1" }]);
+
+    const alert: Alert = new Alert();
+
+    await SeriesResourceLinker.linkSeriesResourcesToModel({
+      model: alert,
+      seriesLabels: { "host.name": "prod-01" },
+      projectId: PROJECT_ID,
+      monitorType: MonitorType.Host,
+    });
+
+    expect(idsOn(alert, "hosts")).toEqual(["host-1"]);
+  });
+
+  test("a Docker monitor still links the docker host its labels name", async () => {
+    /*
+     * Suppression must drop ONLY the host refs — the DockerHost the
+     * series actually identifies has to survive.
+     */
+    rowsByRelation.set("dockerHosts", [{ _id: "docker-1" }]);
+
+    const alert: Alert = new Alert();
+
+    await SeriesResourceLinker.linkSeriesResourcesToModel({
+      model: alert,
+      seriesLabels: {
+        "host.name": "docker-prod-01",
+        "oneuptime.docker.host.name": "docker-prod-01",
+      },
+      projectId: PROJECT_ID,
+      monitorType: MonitorType.Docker,
+    });
+
+    expect(alert.hosts).toBeUndefined();
+    expect(idsOn(alert, "dockerHosts")).toEqual(["docker-1"]);
+  });
 
   test("a bare host name never resolves a docker or podman host", async () => {
     /*
@@ -596,13 +669,14 @@ describe("SeriesResourceLinker.resolveResourcesFromSeriesLabels", () => {
   });
 });
 
-describe("SeriesResourceLinker.attachClusterContext", () => {
-  test("attaches the monitor-step clusters", () => {
+describe("SeriesResourceLinker.attachResolvedResources", () => {
+  test("attaches the monitor-step resources", () => {
     const alert: Alert = new Alert();
 
-    SeriesResourceLinker.attachClusterContext({
+    SeriesResourceLinker.attachResolvedResources({
       model: alert,
-      clusterContext: {
+      resolved: {
+        ...emptyResourceContext(),
         proxmoxClusterIds: ["pve-1"],
         cephClusterIds: ["ceph-1"],
         dockerSwarmClusterIds: ["swarm-1"],
@@ -633,10 +707,10 @@ describe("SeriesResourceLinker.attachClusterContext", () => {
       projectId: PROJECT_ID,
     });
 
-    SeriesResourceLinker.attachClusterContext({
+    SeriesResourceLinker.attachResolvedResources({
       model: alert,
-      clusterContext: {
-        ...emptyClusterContext(),
+      resolved: {
+        ...emptyResourceContext(),
         proxmoxClusterIds: ["pve-from-step-config"],
       },
     });
@@ -658,10 +732,10 @@ describe("SeriesResourceLinker.attachClusterContext", () => {
       projectId: PROJECT_ID,
     });
 
-    SeriesResourceLinker.attachClusterContext({
+    SeriesResourceLinker.attachResolvedResources({
       model: alert,
-      clusterContext: {
-        ...emptyClusterContext(),
+      resolved: {
+        ...emptyResourceContext(),
         cephClusterIds: ["ceph-1"],
       },
     });
@@ -669,12 +743,12 @@ describe("SeriesResourceLinker.attachClusterContext", () => {
     expect(idsOn(alert, "cephClusters")).toEqual(["ceph-1"]);
   });
 
-  test("leaves every relation untouched when the monitor has no clusters", () => {
+  test("leaves every relation untouched when the monitor names no resource", () => {
     const alert: Alert = new Alert();
 
-    SeriesResourceLinker.attachClusterContext({
+    SeriesResourceLinker.attachResolvedResources({
       model: alert,
-      clusterContext: emptyClusterContext(),
+      resolved: emptyResourceContext(),
     });
 
     expect(alert.proxmoxClusters).toBeUndefined();
@@ -686,10 +760,10 @@ describe("SeriesResourceLinker.attachClusterContext", () => {
   test("attaches to an incident the same way", () => {
     const incident: Incident = new Incident();
 
-    SeriesResourceLinker.attachClusterContext({
+    SeriesResourceLinker.attachResolvedResources({
       model: incident,
-      clusterContext: {
-        ...emptyClusterContext(),
+      resolved: {
+        ...emptyResourceContext(),
         dockerSwarmClusterIds: ["swarm-1"],
       },
     });

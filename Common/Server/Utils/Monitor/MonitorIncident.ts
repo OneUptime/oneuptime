@@ -37,10 +37,10 @@ import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapsho
 import MonitorSummarySnapshotUtil from "../../../Utils/Monitor/MonitorSummarySnapshotUtil";
 import { IncidentMemberRoleAssignment } from "../../../Types/Monitor/CriteriaIncident";
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
-import MonitorClusterContextUtil, {
-  MonitorClusterContext,
-} from "./MonitorClusterContext";
-import SeriesResourceLinker from "./SeriesResourceLinker";
+import MonitorResourceContextUtil from "./MonitorResourceContext";
+import SeriesResourceLinker, {
+  SeriesResolvedResourceIds,
+} from "./SeriesResourceLinker";
 
 export default class MonitorIncident {
   @CaptureSpan()
@@ -364,15 +364,17 @@ export default class MonitorIncident {
     }
 
     /*
-     * Proxmox/Ceph monitors: resolve the monitored cluster once per
-     * evaluation (lookup-only, from the step config's clusterIdentifier)
-     * so every incident created below is attached to it. Series labels
-     * cannot supply this — they carry datapoint labels (`id`,
-     * `ceph_daemon`, `pool_id`), not cluster identity, and ungrouped
-     * templates have no series at all. No-op for other monitor types.
+     * Resolve the resources this monitor's own config names — its host,
+     * cluster, fleet, telemetry services, or the resource its metric
+     * filters scope it to — once per evaluation, so every incident
+     * created below is attached to them. Series labels cannot supply
+     * this: they only exist for grouped criteria, and most monitors
+     * (every shipped Host/Docker/Podman template, all Logs/Traces/
+     * Exceptions monitors) are ungrouped. No-op, and no round-trip, for
+     * monitor types whose config names no resource.
      */
-    const clusterContext: MonitorClusterContext =
-      await MonitorClusterContextUtil.resolveClusterContextForMonitor({
+    const resourceContext: SeriesResolvedResourceIds =
+      await MonitorResourceContextUtil.resolveResourceContextForMonitor({
         monitor: input.monitor,
       });
 
@@ -656,19 +658,20 @@ export default class MonitorIncident {
             model: incident,
             seriesLabels,
             projectId: input.monitor.projectId!,
+            monitorType: input.monitor.monitorType,
           });
         }
 
         /*
-         * Deterministic Proxmox/Ceph cluster link from the monitor's
-         * step config (resolved once above). Runs for both grouped and
-         * ungrouped incidents and merges with anything the series-label
-         * path resolved, so the per-cluster Activity tabs always see
+         * Deterministic resource link from the monitor's step config
+         * (resolved once above). Runs for both grouped and ungrouped
+         * incidents and merges with anything the series-label path
+         * resolved, so the per-resource Activity tabs always see
          * monitor-created incidents.
          */
-        SeriesResourceLinker.attachClusterContext({
+        SeriesResourceLinker.attachResolvedResources({
           model: incident,
-          clusterContext,
+          resolved: resourceContext,
         });
 
         incident.onCallDutyPolicies =

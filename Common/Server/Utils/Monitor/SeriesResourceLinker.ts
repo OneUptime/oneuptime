@@ -10,6 +10,7 @@ import Service from "../../../Models/DatabaseModels/Service";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { JSONObject } from "../../../Types/JSON";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import CephClusterService from "../../Services/CephClusterService";
 import DockerHostService from "../../Services/DockerHostService";
@@ -20,10 +21,17 @@ import KubernetesClusterService from "../../Services/KubernetesClusterService";
 import PodmanHostService from "../../Services/PodmanHostService";
 import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
 import ServiceService from "../../Services/ServiceService";
-import { MonitorClusterContext } from "./MonitorClusterContext";
+import QueryHelper from "../../Types/Database/QueryHelper";
 import SeriesResourceLabels, {
   SeriesResourceRefs,
 } from "./SeriesResourceLabels";
+
+/*
+ * How a resource's NAME is matched against its identifier column.
+ * Ingest-written series labels match byte for byte; user-typed monitor
+ * step identifiers may differ from the agent-stamped name by case.
+ */
+export type NameMatchMode = "exact" | "caseInsensitive";
 
 /*
  * A grouped monitor opens one alert/incident per breaching series, and
@@ -100,10 +108,60 @@ export default class SeriesResourceLinker {
   public static async resolveResourcesFromSeriesLabels(input: {
     seriesLabels: JSONObject;
     projectId: ObjectID;
+    /*
+     * Optional, and only consulted to disambiguate `host.name`. Left
+     * undefined by callers that have no monitor in hand.
+     */
+    monitorType?: MonitorType | undefined;
   }): Promise<SeriesResolvedResourceIds> {
     const refs: SeriesResourceRefs = SeriesResourceLabels.extractResourceRefs(
       input.seriesLabels,
     );
+
+    /*
+     * On a Docker or Podman monitor, `resource.host.name` names the
+     * DockerHost / PodmanHost the containers run on — the agent stamps
+     * the container runtime's host under the generic key. The label key
+     * map hands that key to Host, which would attach an unrelated Host
+     * row and surface the event on that host's Activity tab. The
+     * step-config path links the right model instead
+     * (MonitorStepResourceIdentity), so drop the host refs here rather
+     * than linking a resource the event is not about.
+     */
+    if (
+      input.monitorType === MonitorType.Docker ||
+      input.monitorType === MonitorType.Podman
+    ) {
+      refs.hostIds = [];
+      refs.hostNames = [];
+    }
+
+    /*
+     * Series labels are ingest-written, so they match the resource
+     * rows' identifier columns byte for byte. See resolveResourceIds
+     * for why that rules out case-insensitive matching here.
+     */
+    return this.resolveResourceRefs({
+      refs: refs,
+      projectId: input.projectId,
+      nameMatch: "exact",
+    });
+  }
+
+  /*
+   * The one place that turns identifiers into database ids, shared by
+   * the series-label path and the monitor-step-config path
+   * (MonitorStepResourceIdentity). Keeping the nine-way lookup table,
+   * the project scoping and the `Includes` batching in a single
+   * function is what stops the two paths from resolving the same
+   * identifier to different rows.
+   */
+  public static async resolveResourceRefs(input: {
+    refs: SeriesResourceRefs;
+    projectId: ObjectID;
+    nameMatch: NameMatchMode;
+  }): Promise<SeriesResolvedResourceIds> {
+    const refs: SeriesResourceRefs = input.refs;
 
     /*
      * Proxmox / Ceph / Docker Swarm / IoT carry no `oneuptime.*.id`
@@ -186,6 +244,7 @@ export default class SeriesResourceLinker {
           names: spec.names,
           nameColumn: spec.nameColumn,
           projectId: input.projectId,
+          nameMatch: input.nameMatch,
           findBy: spec.findBy,
         });
       }),
@@ -206,9 +265,10 @@ export default class SeriesResourceLinker {
 
   /*
    * Resolve the series' resources and MERGE them onto the alert/incident.
-   * Merging (rather than assigning) matters because attachClusterContext
-   * writes the same four cluster relations from the monitor's step
-   * config; whichever runs second must not erase the other's work.
+   * Merging (rather than assigning) matters because
+   * attachResolvedResources writes the same relations from the
+   * monitor's step config; whichever runs second must not erase the
+   * other's work.
    *
    * Relations the series says nothing about are left untouched —
    * `undefined`, not `[]` — so an ungrouped event and an event whose
@@ -223,11 +283,17 @@ export default class SeriesResourceLinker {
     model: SeriesLinkableModel;
     seriesLabels: JSONObject;
     projectId: ObjectID;
+    /*
+     * Optional, and only consulted to disambiguate `host.name`. Left
+     * undefined by callers that have no monitor in hand.
+     */
+    monitorType?: MonitorType | undefined;
   }): Promise<void> {
     const resolved: SeriesResolvedResourceIds =
       await this.resolveResourcesFromSeriesLabels({
         seriesLabels: input.seriesLabels,
         projectId: input.projectId,
+        monitorType: input.monitorType,
       });
 
     this.mergeResolvedIdsIntoModel({
@@ -237,30 +303,22 @@ export default class SeriesResourceLinker {
   }
 
   /*
-   * Attach the cluster ids resolved from the monitor's step config
-   * (Proxmox / Ceph / Docker Swarm / IoT), merging with — never
-   * overwriting — anything the series-label path already linked. Both
-   * paths can resolve the same cluster, so this dedupes by id. Unlike
-   * the label path this runs for ungrouped events too: those monitor
-   * types get their cluster identity from the step config alone.
+   * Attach the resources resolved from the monitor's own step config
+   * (MonitorResourceContext), merging with — never overwriting —
+   * anything the series-label path already linked. Both paths can
+   * resolve the same resource, so this dedupes by id.
+   *
+   * Unlike the label path this runs for ungrouped events too, and that
+   * is the whole point: an ungrouped monitor has no series labels, so
+   * before this existed it linked nothing at all.
    */
-  public static attachClusterContext(input: {
+  public static attachResolvedResources(input: {
     model: SeriesLinkableModel;
-    clusterContext: MonitorClusterContext;
+    resolved: SeriesResolvedResourceIds;
   }): void {
     this.mergeResolvedIdsIntoModel({
       model: input.model,
-      resolved: {
-        hostIds: [],
-        dockerHostIds: [],
-        podmanHostIds: [],
-        kubernetesClusterIds: [],
-        serviceIds: [],
-        proxmoxClusterIds: input.clusterContext.proxmoxClusterIds,
-        cephClusterIds: input.clusterContext.cephClusterIds,
-        dockerSwarmClusterIds: input.clusterContext.dockerSwarmClusterIds,
-        iotFleetIds: input.clusterContext.iotFleetIds,
-      },
+      resolved: input.resolved,
     });
   }
 
@@ -396,16 +454,23 @@ export default class SeriesResourceLinker {
    * Costs zero round-trips when the series carries neither, which is the
    * common case for most of the nine types on any given series.
    *
-   * Name matching is exact. Every identifier column read here is written
-   * by ingest from the same attribute the series label carries — host
-   * identifiers are canonicalized on both sides — so exact matching is
-   * what keeps a lookup from straying onto a neighbouring row.
+   * `nameMatch: "exact"` is for series labels. Every identifier column
+   * read here is written by ingest from the same attribute the series
+   * label carries — host identifiers are canonicalized on both sides —
+   * so exact matching is what keeps a lookup from straying onto a
+   * neighbouring row.
+   *
+   * `nameMatch: "caseInsensitive"` is for monitor step configs, where
+   * the identifier was typed by a user and the row's name was stamped
+   * by an agent; the two legitimately differ by case. This mirrors what
+   * ingest discovery itself does when it keys a row by name.
    */
   private static async resolveResourceIds(input: {
     ids: Array<string>;
     names: Array<string>;
     nameColumn: string;
     projectId: ObjectID;
+    nameMatch: NameMatchMode;
     /*
      * Loosely typed because each resource service has its own
      * `Query<TBaseModel>` shape and we deliberately abstract over
@@ -443,7 +508,10 @@ export default class SeriesResourceLinker {
         input.findBy({
           query: {
             projectId: input.projectId,
-            [input.nameColumn]: new Includes(input.names),
+            [input.nameColumn]:
+              input.nameMatch === "caseInsensitive"
+                ? QueryHelper.findWithSameTextAnyOf(input.names)
+                : new Includes(input.names),
           },
           select: { _id: true },
           skip: 0,

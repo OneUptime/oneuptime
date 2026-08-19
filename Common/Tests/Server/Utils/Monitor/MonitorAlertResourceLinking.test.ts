@@ -26,7 +26,8 @@ import ProxmoxClusterService from "../../../../Server/Services/ProxmoxClusterSer
 import ServiceService from "../../../../Server/Services/ServiceService";
 import ProjectScopedReferenceValidator from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import MonitorAlert from "../../../../Server/Utils/Monitor/MonitorAlert";
-import MonitorClusterContextUtil from "../../../../Server/Utils/Monitor/MonitorClusterContext";
+import MonitorResourceContextUtil from "../../../../Server/Utils/Monitor/MonitorResourceContext";
+import { SeriesResolvedResourceIds } from "../../../../Server/Utils/Monitor/SeriesResourceLinker";
 import MonitorIncident from "../../../../Server/Utils/Monitor/MonitorIncident";
 import Dictionary from "../../../../Types/Dictionary";
 import { JSONObject } from "../../../../Types/JSON";
@@ -133,6 +134,25 @@ function idsOn(
   });
 }
 
+/*
+ * The nine-relation shape MonitorResourceContext resolves from the
+ * monitor's own step config. Tests stub the util and hand back one of
+ * these, spreading over it to name only the relations under test.
+ */
+function emptyResourceContext(): SeriesResolvedResourceIds {
+  return {
+    hostIds: [],
+    dockerHostIds: [],
+    podmanHostIds: [],
+    kubernetesClusterIds: [],
+    serviceIds: [],
+    proxmoxClusterIds: [],
+    cephClusterIds: [],
+    dockerSwarmClusterIds: [],
+    iotFleetIds: [],
+  };
+}
+
 describe("Alerts link the resources their series identifies", () => {
   let createdAlerts: Array<Alert> = [];
   let createdIncidents: Array<Incident> = [];
@@ -151,12 +171,7 @@ describe("Alerts link the resources their series identifies", () => {
   let dockerSwarmClusterRows: Array<{ _id: string }> = [];
   let iotFleetRows: Array<{ _id: string }> = [];
 
-  let clusterContext: {
-    proxmoxClusterIds: Array<string>;
-    cephClusterIds: Array<string>;
-    dockerSwarmClusterIds: Array<string>;
-    iotFleetIds: Array<string>;
-  };
+  let resourceContext: SeriesResolvedResourceIds;
 
   beforeEach(() => {
     createdAlerts = [];
@@ -172,12 +187,7 @@ describe("Alerts link the resources their series identifies", () => {
     dockerSwarmClusterRows = [];
     iotFleetRows = [];
 
-    clusterContext = {
-      proxmoxClusterIds: [],
-      cephClusterIds: [],
-      dockerSwarmClusterIds: [],
-      iotFleetIds: [],
-    };
+    resourceContext = emptyResourceContext();
 
     // No alert / incident is already open for this monitor.
     jest.spyOn(AlertService, "findBy").mockResolvedValue([]);
@@ -188,9 +198,9 @@ describe("Alerts link the resources their series identifies", () => {
       .mockResolvedValue(true);
 
     jest
-      .spyOn(MonitorClusterContextUtil, "resolveClusterContextForMonitor")
+      .spyOn(MonitorResourceContextUtil, "resolveResourceContextForMonitor")
       .mockImplementation(async () => {
-        return clusterContext;
+        return resourceContext;
       });
 
     jest
@@ -396,10 +406,13 @@ describe("Alerts link the resources their series identifies", () => {
     expect(idsOn(createdAlerts[1]!.hosts)).toEqual(["host-7"]);
   });
 
-  it("links nothing, and still opens the alert, for an ungrouped monitor", async () => {
+  it("links nothing from LABELS, and still opens the alert, for an ungrouped monitor", async () => {
     /*
-     * A whole-monitor alert has no series and therefore no resource
-     * identity. It must not inherit one, and it must still be created.
+     * A whole-monitor alert has no series, so the LABEL path has nothing
+     * to work with. It must not invent an identity from another
+     * series, and it must still be created. (The step-config path can
+     * still name a resource here — that is the test above; this one
+     * pins that the label path alone contributes nothing.)
      */
     hostRows = [{ _id: "host-1" }];
 
@@ -417,6 +430,131 @@ describe("Alerts link the resources their series identifies", () => {
     expect(HostService.findBy).not.toHaveBeenCalled();
   });
 
+  it("links the service an ungrouped metric monitor is scoped to", async () => {
+    /*
+     * THE REPORTED BUG. ALT-144 came from a Metrics monitor whose only
+     * resource identity was the attribute filter
+     * `oneuptime.service.name = app-plan-starship-online-production`.
+     * It is ungrouped, so there are no series labels and the label path
+     * links nothing — the alert's "Affected Resources" card read "No
+     * resources affected" even though the monitor named the service.
+     *
+     * `matchesPerSeries` is deliberately omitted: that is what makes
+     * this the ungrouped path.
+     */
+    resourceContext = {
+      ...emptyResourceContext(),
+      serviceIds: ["service-1"],
+    };
+
+    await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
+      criteriaInstance: criteriaInstance(),
+      monitor: monitor(),
+      dataToProcess: dataToProcess,
+      rootCause: "Memory is above 60%",
+      autoResolveCriteriaInstanceIdAlertIdsDictionary: NO_AUTO_RESOLVE,
+      props: {},
+    });
+
+    expect(createdAlerts).toHaveLength(1);
+    expect(idsOn(createdAlerts[0]!.services)).toEqual(["service-1"]);
+  });
+
+  it("links the host an ungrouped host monitor is scoped to", async () => {
+    // Same shape for the infra types: the step config names the host.
+    resourceContext = {
+      ...emptyResourceContext(),
+      hostIds: ["host-1"],
+    };
+
+    await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
+      criteriaInstance: criteriaInstance(),
+      monitor: monitor(),
+      dataToProcess: dataToProcess,
+      rootCause: "CPU is above 90%",
+      autoResolveCriteriaInstanceIdAlertIdsDictionary: NO_AUTO_RESOLVE,
+      props: {},
+    });
+
+    expect(idsOn(createdAlerts[0]!.hosts)).toEqual(["host-1"]);
+  });
+
+  it("merges the step-config service with the one the series names", async () => {
+    /*
+     * A grouped monitor can resolve a service from its labels while the
+     * step config names another. Neither may erase the other.
+     */
+    serviceRows = [{ _id: "service-from-label" }];
+    resourceContext = {
+      ...emptyResourceContext(),
+      serviceIds: ["service-from-step-config"],
+    };
+
+    await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
+      criteriaInstance: criteriaInstance(),
+      monitor: monitor(),
+      dataToProcess: dataToProcess,
+      rootCause: "CPU is above 90%",
+      autoResolveCriteriaInstanceIdAlertIdsDictionary: NO_AUTO_RESOLVE,
+      matchesPerSeries: [series({ "service.name": "checkout-api" }, "fp-1")],
+      props: {},
+    });
+
+    expect(idsOn(createdAlerts[0]!.services).sort()).toEqual([
+      "service-from-label",
+      "service-from-step-config",
+    ]);
+  });
+
+  it("dedupes a service both paths resolved", async () => {
+    serviceRows = [{ _id: "service-1" }];
+    resourceContext = {
+      ...emptyResourceContext(),
+      serviceIds: ["service-1"],
+    };
+
+    await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
+      criteriaInstance: criteriaInstance(),
+      monitor: monitor(),
+      dataToProcess: dataToProcess,
+      rootCause: "CPU is above 90%",
+      autoResolveCriteriaInstanceIdAlertIdsDictionary: NO_AUTO_RESOLVE,
+      matchesPerSeries: [series({ "service.name": "checkout-api" }, "fp-1")],
+      props: {},
+    });
+
+    expect(idsOn(createdAlerts[0]!.services)).toEqual(["service-1"]);
+  });
+
+  it("attaches the step-config resources to EVERY alert of a grouped monitor", async () => {
+    /*
+     * One evaluation, two breaching series, one shared monitor config.
+     * Both alerts are about the same service.
+     */
+    hostRows = [{ _id: "host-2" }];
+    resourceContext = {
+      ...emptyResourceContext(),
+      serviceIds: ["service-1"],
+    };
+
+    await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
+      criteriaInstance: criteriaInstance(),
+      monitor: monitor(),
+      dataToProcess: dataToProcess,
+      rootCause: "CPU is above 90%",
+      autoResolveCriteriaInstanceIdAlertIdsDictionary: NO_AUTO_RESOLVE,
+      matchesPerSeries: [
+        series({ "host.name": "node-a" }, "fp-1"),
+        series({ "host.name": "node-b" }, "fp-2"),
+      ],
+      props: {},
+    });
+
+    expect(createdAlerts).toHaveLength(2);
+    expect(idsOn(createdAlerts[0]!.services)).toEqual(["service-1"]);
+    expect(idsOn(createdAlerts[1]!.services)).toEqual(["service-1"]);
+  });
+
   it("merges the monitor's step-config cluster with the one the series names", async () => {
     /*
      * The alert path used to ASSIGN the step-config clusters over
@@ -424,7 +562,8 @@ describe("Alerts link the resources their series identifies", () => {
      * Proxmox cluster, an assignment would drop one of them.
      */
     proxmoxClusterRows = [{ _id: "pve-from-label" }];
-    clusterContext = {
+    resourceContext = {
+      ...emptyResourceContext(),
       proxmoxClusterIds: ["pve-from-step-config"],
       cephClusterIds: [],
       dockerSwarmClusterIds: [],
@@ -448,7 +587,8 @@ describe("Alerts link the resources their series identifies", () => {
   });
 
   it("still attaches the step-config cluster to an ungrouped alert", async () => {
-    clusterContext = {
+    resourceContext = {
+      ...emptyResourceContext(),
       proxmoxClusterIds: [],
       cephClusterIds: ["ceph-1"],
       dockerSwarmClusterIds: [],

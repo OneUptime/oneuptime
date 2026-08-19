@@ -51,6 +51,36 @@ export default class QueryHelper {
     );
   }
 
+  /*
+   * Case-insensitive `IN (...)` — the multi-value twin of
+   * findWithSameText. Used where a user-typed identifier has to match an
+   * ingest-stamped name that may differ only by case (monitor step
+   * configs vs. the resource rows discovered from telemetry), and where
+   * issuing one findOneBy per identifier would cost a round-trip each.
+   *
+   * An empty list would compile to `IN ()`, which is a syntax error, so
+   * callers must not pass one; they have nothing to look up anyway.
+   */
+  @CaptureSpan()
+  public static findWithSameTextAnyOf(
+    texts: Array<string>,
+  ): FindWhereProperty<any> {
+    const rid: string = Text.generateRandomText(10);
+
+    const normalizedTexts: Array<string> = texts.map((text: string): string => {
+      return text.toLowerCase().trim();
+    });
+
+    return Raw(
+      (alias: string) => {
+        return `(LOWER(${alias}) IN (:...${rid}))`;
+      },
+      {
+        [rid]: normalizedTexts,
+      },
+    );
+  }
+
   @CaptureSpan()
   public static isNull(): any {
     return Raw((alias: string) => {

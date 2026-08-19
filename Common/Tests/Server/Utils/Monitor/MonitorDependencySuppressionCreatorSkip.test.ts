@@ -30,7 +30,7 @@ import IncidentStateTimelineService from "../../../../Server/Services/IncidentSt
 import NetworkDeviceOwnerUserService from "../../../../Server/Services/NetworkDeviceOwnerUserService";
 import ProjectScopedReferenceValidator from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import MonitorAlert from "../../../../Server/Utils/Monitor/MonitorAlert";
-import MonitorClusterContextUtil from "../../../../Server/Utils/Monitor/MonitorClusterContext";
+import MonitorResourceContextUtil from "../../../../Server/Utils/Monitor/MonitorResourceContext";
 import { DependencySuppressionResult } from "../../../../Server/Utils/Monitor/MonitorDependencySuppression";
 import MonitorIncident from "../../../../Server/Utils/Monitor/MonitorIncident";
 import Dictionary from "../../../../Types/Dictionary";
@@ -185,7 +185,7 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
 
   let alertFindBySpy: SpyLike;
   let incidentFindBySpy: SpyLike;
-  let clusterContextSpy: SpyLike;
+  let resourceContextSpy: SpyLike;
 
   beforeEach(() => {
     createdIncidents = [];
@@ -211,9 +211,14 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
      * creators — its call count is how these tests observe whether the flow
      * proceeded past the block.
      */
-    clusterContextSpy = jest
-      .spyOn(MonitorClusterContextUtil, "resolveClusterContextForMonitor")
+    resourceContextSpy = jest
+      .spyOn(MonitorResourceContextUtil, "resolveResourceContextForMonitor")
       .mockResolvedValue({
+        hostIds: [],
+        dockerHostIds: [],
+        podmanHostIds: [],
+        kubernetesClusterIds: [],
+        serviceIds: [],
         proxmoxClusterIds: [],
         cephClusterIds: [],
         dockerSwarmClusterIds: [],
@@ -349,7 +354,7 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
       expect(skipEvent.relatedCriteriaId).toBe("criteria-1");
 
       // The skip block RETURNS: nothing after it (cluster context) runs.
-      expect(clusterContextSpy.mock.calls).toHaveLength(0);
+      expect(resourceContextSpy.mock.calls).toHaveLength(0);
     });
 
     it("suppressed: the open-alert resolve pass still runs before the skip block (resolution is never suppressed)", async () => {
@@ -421,7 +426,7 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
       // The resolve pass still ran (it sits above both gates) ...
       expect(alertFindBySpy.mock.calls).toHaveLength(1);
       // ... and nothing after the gates did.
-      expect(clusterContextSpy.mock.calls).toHaveLength(0);
+      expect(resourceContextSpy.mock.calls).toHaveLength(0);
     });
 
     it("resolve-only entry point resolves an open alert — suppression state cannot block resolution", async () => {
@@ -488,7 +493,7 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
       );
       expect(skipEvent.relatedCriteriaId).toBe("criteria-1");
 
-      expect(clusterContextSpy.mock.calls).toHaveLength(0);
+      expect(resourceContextSpy.mock.calls).toHaveLength(0);
     });
 
     it("suppressed: the open-incident resolve pass still runs before the skip block (resolution is never suppressed)", async () => {
@@ -556,7 +561,7 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
       expect(createdIncidents).toHaveLength(0);
 
       expect(incidentFindBySpy.mock.calls).toHaveLength(1);
-      expect(clusterContextSpy.mock.calls).toHaveLength(0);
+      expect(resourceContextSpy.mock.calls).toHaveLength(0);
     });
 
     it("resolve-only entry point resolves an open incident — suppression state cannot block resolution", async () => {
