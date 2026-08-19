@@ -15,6 +15,11 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import {
+  MemoryRouter,
+  Route as RouterRoute,
+  Routes as RouterRoutes,
+} from "react-router-dom";
 import React, { FunctionComponent, ReactElement } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -365,7 +370,14 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 });
 
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
-import UserViewNotificationRules from "../../../../App/FeatureSet/Dashboard/src/Pages/Users/View/NotificationRules";
+import UserViewOnCallLayout from "../../../../App/FeatureSet/Dashboard/src/Pages/Users/View/OnCall/Layout";
+import UserViewOnCallReadiness from "../../../../App/FeatureSet/Dashboard/src/Pages/Users/View/OnCall/Readiness";
+import UserViewOnCallRules, {
+  ALERT_EPISODE_RULES_PROPS,
+  ALERT_RULES_PROPS,
+  INCIDENT_EPISODE_RULES_PROPS,
+  INCIDENT_RULES_PROPS,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Users/View/OnCall/Rules";
 import AlertOnCallRules from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/AlertOnCallRules";
 import EpisodeOnCallRules from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/EpisodeOnCallRules";
 import IncidentEpisodeOnCallRules from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/IncidentEpisodeOnCallRules";
@@ -758,16 +770,80 @@ type RenderAdminPageFunction = (
  * offset yields an ObjectID of the literal string "notification-rules", which
  * every assertion about whose rules these are would then fail on.
  */
+
+/*
+ * Every page the On-Call section holds that has a rule table or a readiness
+ * surface on it, mounted at once under ONE section layout.
+ *
+ * The section used to be a single route and is six now, and these assertions
+ * are about the shared machinery underneath rather than about which URL a card
+ * ends up on: the severity axes, the masked dropdown, the on-behalf-of context,
+ * the coverage grid. Mounting the readiness page beside all four rule pages
+ * keeps every one of them pointed at a single load of identity and readiness -
+ * which is exactly what the layout does in the product - so what is asserted
+ * here is what the section actually composes to.
+ *
+ * That each ROUTE renders only its own page is a different claim, and it is
+ * asserted where it belongs: AdminUserOnCallPages.test.tsx walks the real route
+ * table.
+ */
+const AdminOnCallSection: FunctionComponent = (): ReactElement => {
+  return (
+    <>
+      <UserViewOnCallReadiness {...pageProps} />
+      <UserViewOnCallRules {...INCIDENT_RULES_PROPS} />
+      <UserViewOnCallRules {...INCIDENT_EPISODE_RULES_PROPS} />
+      <UserViewOnCallRules {...ALERT_RULES_PROPS} />
+      <UserViewOnCallRules {...ALERT_EPISODE_RULES_PROPS} />
+    </>
+  );
+};
+
+type RenderSectionFunction = (
+  targetUserId: string,
+  children: ReactElement,
+) => HTMLElement;
+
+/*
+ * The real nesting, through a real router.
+ *
+ * The section layout reads the target user from `useParams`, not by counting
+ * segments off window.location, so a stubbed location would tell it nothing.
+ * Driving it through MemoryRouter with the same `:id` parent the app uses is
+ * what makes "whose configuration is this?" answered here the same way it is
+ * answered in the product - and reading the wrong param would leave every
+ * assertion about the target user failing on an id of "on-call-readiness".
+ */
+const renderSection: RenderSectionFunction = (
+  targetUserId: string,
+  children: ReactElement,
+): HTMLElement => {
+  const { container } = render(
+    <MemoryRouter
+      initialEntries={[
+        `/dashboard/${PROJECT_ID_STRING}/users/${targetUserId}/on-call-readiness`,
+      ]}
+    >
+      <RouterRoutes>
+        <RouterRoute path="/dashboard/:projectId/users/:id">
+          <RouterRoute element={<UserViewOnCallLayout />}>
+            <RouterRoute path="on-call-readiness" element={children} />
+          </RouterRoute>
+        </RouterRoute>
+      </RouterRoutes>
+    </MemoryRouter>,
+  );
+
+  return container;
+};
+
 const renderAdminPage: RenderAdminPageFunction = async (
   targetUserId: string = TARGET_USER_ID_STRING,
 ): Promise<HTMLElement> => {
-  window.history.pushState(
-    {},
-    "",
-    `/dashboard/${PROJECT_ID_STRING}/users/${targetUserId}/notification-rules`,
+  const container: HTMLElement = renderSection(
+    targetUserId,
+    <AdminOnCallSection />,
   );
-
-  const { container } = render(<UserViewNotificationRules {...pageProps} />);
 
   await waitForSettledPage(ADMIN_TABLE_COUNT);
 
@@ -1852,7 +1928,7 @@ describe("the on-behalf-of banner", () => {
     const container: HTMLElement = await renderAdminPage();
 
     expect(container.textContent).toContain(
-      "These are your own notification rules.",
+      "This is your own on-call configuration.",
     );
     expect(container.textContent).not.toContain("on behalf of");
 
@@ -1869,13 +1945,7 @@ describe("the on-behalf-of banner", () => {
   test("a member with no permission is refused, and the page reads nothing about the user", async () => {
     jest.spyOn(PermissionUtil, "getAllPermissions").mockReturnValue([]);
 
-    window.history.pushState(
-      {},
-      "",
-      `/dashboard/${PROJECT_ID_STRING}/users/${TARGET_USER_ID_STRING}/notification-rules`,
-    );
-
-    render(<UserViewNotificationRules {...pageProps} />);
+    renderSection(TARGET_USER_ID_STRING, <AdminOnCallSection />);
 
     expect(
       await screen.findByText(/do not have permission to view this user/),
@@ -1913,111 +1983,111 @@ describe("the on-behalf-of banner", () => {
     });
 
     /*
-     * And it must not invent an empty method list out of a failed request. "No
-     * methods" is the most alarming thing this page can print about somebody,
-     * and printing it because a fetch failed sends an admin chasing an account
-     * that is perfectly well configured.
+     * And it must not invent a diagnosis out of a failed request. An unreported
+     * coverage matrix and a matrix full of holes look identical once drawn, and
+     * only one of them is a reason to go and add rules - so a failed readiness
+     * read says so rather than rendering an empty grid.
      */
-    expect(container.textContent).toContain(
-      "Notification methods could not be loaded",
-    );
+    expect(container.textContent).toContain("Coverage could not be loaded");
     expect(container.textContent).not.toContain(
       "has no notification methods at all",
     );
   });
 });
 
-describe("notification methods are read-only", () => {
-  test("lists each method masked, with its verification state", async () => {
-    await renderAdminPage();
+describe("methods are a page of their own now, not a card on this one", () => {
+  /*
+   * WHAT THIS BLOCK USED TO SAY, AND WHY IT NO LONGER DOES.
+   *
+   * It asserted that an administrator was offered NO control for adding a
+   * notification method to somebody else's account: a masked, read-only list
+   * and a prefilled "please add one yourself" email. That was correct for what
+   * the server could do at the time - the seven method models are scoped to
+   * their owner and the attempt to widen them leaked every raw column behind
+   * them - but it left the commonest broken responder, a new joiner with no
+   * method at all, fixable by nobody but themselves.
+   *
+   * An administrator can now add one, through a narrow server-side capability
+   * that never hands them the row, and CANNOT MAKE IT LIVE: the method is
+   * written unverified, the code goes to the device, and every verify endpoint
+   * refuses a caller who is not the row's owner. That capability and its
+   * limits are tested in AdminUserNotificationMethodsPage.test.tsx and in the
+   * server suites; what matters HERE is that the rule surfaces did not quietly
+   * inherit it.
+   */
+  test("the readiness page no longer carries the method list", async () => {
+    const container: HTMLElement = await renderAdminPage();
 
-    const methods: HTMLElement = cardNamed("Notification methods");
+    /*
+     * The masked identifiers are what the RULE dropdown is built from, so they
+     * are still in the section's props - but the standing list of a colleague's
+     * devices belongs on the page that manages them, not under a diagnosis.
+     */
+    expect(
+      screen.queryByTestId("admin-notification-method-list"),
+    ).not.toBeInTheDocument();
 
-    expect(methods.textContent).toContain(MASKED_EMAIL);
-    expect(methods.textContent).toContain(MASKED_PHONE);
-    expect(methods.textContent).toContain(MASKED_TELEGRAM);
-    expect(methods.textContent).toContain("Verified");
-    expect(methods.textContent).toContain("Unverified");
-
-    // The asymmetry stated out loud, where somebody looking for a button is.
-    expect(methods.textContent).toContain(
+    expect(container.textContent).not.toContain(
       "Identifiers are masked and cannot be edited from here",
     );
   });
 
-  test("offers no control for adding a method on the user's behalf", async () => {
-    await renderAdminPage();
-
-    const methods: HTMLElement = cardNamed("Notification methods");
+  test("points at the page that does manage them", async () => {
+    const container: HTMLElement = await renderAdminPage();
 
     /*
-     * Structural rather than copy-deep, because the next person to be tempted
-     * will add a button, not a sentence. Letting an admin type in a phone
-     * number would point another person's pages at a device the admin controls,
-     * and it would not solve the case it appears to solve: a responder with no
-     * methods needs a device THEY hold and can verify.
+     * A diagnosis with no route to the repair is how the single page this
+     * replaced came to be scrolled past. The readiness page names every page
+     * that can change the answer it just gave.
      */
-    expect(
-      methods.querySelectorAll("button, input, select, textarea, form"),
-    ).toHaveLength(0);
-
-    /*
-     * The only link out of this card is the mail draft. A link INTO somebody
-     * else's notification-method settings would be the same capability wearing
-     * a different hat.
-     */
-    Array.from(methods.querySelectorAll("a")).forEach((anchor: HTMLElement) => {
-      expect(anchor.getAttribute("href") || "").toMatch(/^mailto:/);
-    });
+    expect(container.textContent).toContain("Notification methods");
+    expect(container.textContent).toContain("Incident on-call rules");
+    expect(container.textContent).toContain("Alert episode on-call rules");
   });
 
-  test("the no-methods empty state offers a reminder rather than a form", async () => {
-    respondWithReadiness(NO_METHODS_READINESS);
-
-    await renderAdminPage();
-
-    const methods: HTMLElement = cardNamed("Notification methods");
-
-    expect(methods.textContent).toContain("has no notification methods at all");
-    expect(methods.textContent).toContain(
-      `Only ${TARGET_USER_FIRST_NAME} can add one`,
-    );
-
-    // A nudge, with the link already in it - and still not a single control.
-    expect(
-      methods.querySelectorAll("button, input, select, textarea, form"),
-    ).toHaveLength(0);
-
-    const href: string = mailtoHrefIn(methods);
-
-    expect(href).toContain(TARGET_LOGIN_EMAIL);
-    expect(href).toContain("notification-methods");
-    expect(href).toContain(
-      "only you can add the device or address they send to",
-    );
-
-    /*
-     * The draft has to say what is actually wrong, or it is a form letter. With
-     * no method at all the consequence is not a late page, it is no page.
-     */
-    expect(href).toContain("dropped");
-  });
-
-  test("the rule tables stay editable while the methods stay locked", async () => {
+  test("the rule tables stay editable for a user with no method at all", async () => {
     respondWithReadiness(NO_METHODS_READINESS);
 
     await renderAdminPage();
 
     /*
-     * The whole design of this phase in one assertion: rules are the admin's to
-     * repair, methods are not. A responder with no verified method still needs
-     * rules waiting for the moment they add one.
+     * A responder with no verified method still needs rules waiting for the
+     * moment one is added - by them, or now by an admin on the methods page.
+     * Folding "cannot be reached" into "cannot be configured" would make the
+     * broken case the one that is hardest to repair.
      */
     capturedTables.forEach((table: CapturedTableProps) => {
       expect(table.isCreateable).toBe(true);
       expect(table.isDeleteable).toBe(true);
       expect(table.modelType).toBe(UserNotificationRule);
     });
+  });
+
+  test("still asks the reader to chase the one thing an admin cannot do", async () => {
+    respondWithReadiness(NO_METHODS_READINESS);
+
+    await renderAdminPage();
+
+    const href: string = mailtoHrefIn(cardNamed("On-call readiness"));
+
+    expect(href).toContain(TARGET_LOGIN_EMAIL);
+    expect(href).toContain("notification-methods");
+
+    /*
+     * The draft's ask moved with the capability. An admin can add a method now,
+     * so asking the responder to add one would be asking them to do work that
+     * has already been offered to the admin; what is still theirs alone is
+     * VERIFYING it, because the code goes to their device.
+     */
+    expect(href).toContain(
+      "only you can verify the device or address it sends to",
+    );
+
+    /*
+     * And it has to say what is actually wrong, or it is a form letter. With no
+     * method at all the consequence is not a late page, it is no page.
+     */
+    expect(href).toContain("dropped");
   });
 });
 
@@ -2377,24 +2447,33 @@ describe("no unmasked identifier reaches the DOM", () => {
     expect(container.textContent || "").not.toMatch(UNMASKED_PHONE_PATTERN);
   };
 
-  test("the admin page renders masked identifiers only", async () => {
+  test("the admin rule surfaces render no identifier at all", async () => {
     const container: HTMLElement = await renderAdminPage();
 
-    // The masked forms are present, so this is not passing by rendering nothing.
-    expect(container.textContent).toContain(MASKED_EMAIL);
-    expect(container.textContent).toContain(MASKED_PHONE);
+    /*
+     * Not vacuous: readiness DID hand this section three methods, and their
+     * masked labels are on the rule dropdown's props a few tests below. What
+     * the rule surfaces render is none of them - the standing list of somebody
+     * else's devices belongs on the page that manages them, and a page that
+     * prints a colleague's channels under a diagnosis was one of the reasons
+     * the old combined page was too long to read.
+     */
+    expect(capturedTables.length).toBeGreaterThan(0);
+    expect(methodOptionsFor(capturedTables[0]!).length).toBeGreaterThan(0);
+
+    expect(container.textContent).not.toContain(MASKED_EMAIL);
+    expect(container.textContent).not.toContain(MASKED_PHONE);
 
     assertNoRawIdentifiers(container);
   });
 
-  test("an unreachable user's empty state leaks nothing either", async () => {
+  test("an unreachable user's readiness page leaks nothing either", async () => {
     respondWithReadiness(NO_METHODS_READINESS);
 
     const container: HTMLElement = await renderAdminPage();
 
-    expect(container.textContent).toContain(
-      "has no notification methods at all",
-    );
+    // Not vacuous: the page really is reporting the unreachable state.
+    expect(container.textContent).toContain("Unreachable");
 
     assertNoRawIdentifiers(container);
   });
@@ -2443,7 +2522,7 @@ describe("no unmasked identifier reaches the DOM", () => {
 
     await renderAdminPage();
 
-    const href: string = mailtoHrefIn(cardNamed("Notification methods"));
+    const href: string = mailtoHrefIn(cardNamed("On-call readiness"));
 
     expect(href).toContain(TARGET_LOGIN_EMAIL);
 

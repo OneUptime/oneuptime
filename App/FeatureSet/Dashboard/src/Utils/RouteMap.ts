@@ -836,6 +836,12 @@ export const UsersRoutePath: Dictionary<string> = {
   [PageMap.USER_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.USER_VIEW_TEAMS]: `${RouteParams.ModelID}/teams`,
   [PageMap.USER_VIEW_NOTIFICATION_RULES]: `${RouteParams.ModelID}/notification-rules`,
+  [PageMap.USER_VIEW_ON_CALL_READINESS]: `${RouteParams.ModelID}/on-call-readiness`,
+  [PageMap.USER_VIEW_NOTIFICATION_METHODS]: `${RouteParams.ModelID}/notification-methods`,
+  [PageMap.USER_VIEW_INCIDENT_ON_CALL_RULES]: `${RouteParams.ModelID}/incident-on-call-rules`,
+  [PageMap.USER_VIEW_INCIDENT_EPISODE_ON_CALL_RULES]: `${RouteParams.ModelID}/incident-episode-on-call-rules`,
+  [PageMap.USER_VIEW_ALERT_ON_CALL_RULES]: `${RouteParams.ModelID}/alert-on-call-rules`,
+  [PageMap.USER_VIEW_ALERT_EPISODE_ON_CALL_RULES]: `${RouteParams.ModelID}/alert-episode-on-call-rules`,
   [PageMap.USER_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
   [PageMap.USER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
 };
@@ -4970,6 +4976,42 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.USER_VIEW_NOTIFICATION_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/users/${
       UsersRoutePath[PageMap.USER_VIEW_NOTIFICATION_RULES]
+    }`,
+  ),
+
+  [PageMap.USER_VIEW_ON_CALL_READINESS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/users/${
+      UsersRoutePath[PageMap.USER_VIEW_ON_CALL_READINESS]
+    }`,
+  ),
+
+  [PageMap.USER_VIEW_NOTIFICATION_METHODS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/users/${
+      UsersRoutePath[PageMap.USER_VIEW_NOTIFICATION_METHODS]
+    }`,
+  ),
+
+  [PageMap.USER_VIEW_INCIDENT_ON_CALL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/users/${
+      UsersRoutePath[PageMap.USER_VIEW_INCIDENT_ON_CALL_RULES]
+    }`,
+  ),
+
+  [PageMap.USER_VIEW_INCIDENT_EPISODE_ON_CALL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/users/${
+      UsersRoutePath[PageMap.USER_VIEW_INCIDENT_EPISODE_ON_CALL_RULES]
+    }`,
+  ),
+
+  [PageMap.USER_VIEW_ALERT_ON_CALL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/users/${
+      UsersRoutePath[PageMap.USER_VIEW_ALERT_ON_CALL_RULES]
+    }`,
+  ),
+
+  [PageMap.USER_VIEW_ALERT_EPISODE_ON_CALL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/users/${
+      UsersRoutePath[PageMap.USER_VIEW_ALERT_EPISODE_ON_CALL_RULES]
     }`,
   ),
 

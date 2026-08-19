@@ -1364,6 +1364,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
+import UserNotificationMethodAdminAPI from "Common/Server/API/UserNotificationMethodAdminAPI";
 import TeamComplianceAPI from "Common/Server/API/TeamComplianceAPI";
 
 import OnCallDutyPolicyFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyFeed";
@@ -4240,6 +4241,16 @@ const BaseAPIFeatureSet: FeatureSet = {
      * code.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallReadinessAPI);
+
+    /*
+     * Administrative management of another member's notification methods —
+     * add, remove, re-send a verification code. A bare router for the same
+     * reason as the one above: it inherits from no CRUD model, and the seven
+     * method models it acts on stay scoped to their owners, so this router
+     * carries its own authorisation rather than borrowing theirs. See the
+     * header of UserNotificationMethodAdminAPI.ts.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, UserNotificationMethodAdminAPI);
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
