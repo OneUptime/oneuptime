@@ -108,7 +108,7 @@ describe("MonitorCriteriaInstance", () => {
       );
     });
 
-    test("IncomingRequest monitor uses a RecievedInMinutes filter", () => {
+    test("IncomingRequest monitor is online while the request body carries no error", () => {
       const instance: MonitorCriteriaInstance | null =
         MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance({
           monitorType: MonitorType.IncomingRequest,
@@ -116,11 +116,13 @@ describe("MonitorCriteriaInstance", () => {
           monitorName: "Heartbeat",
         });
       expect(instance).not.toBeNull();
-      expect(instance?.data?.filters[0]?.checkOn).toBe(CheckOn.IncomingRequest);
+      expect(instance?.data?.filters[0]?.checkOn).toBe(CheckOn.RequestBody);
       expect(instance?.data?.filters[0]?.filterType).toBe(
-        FilterType.RecievedInMinutes,
+        FilterType.NotContains,
       );
-      expect(instance?.data?.filters[0]?.value).toBe(30);
+      expect(instance?.data?.filters[0]?.value).toBe(
+        MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD,
+      );
     });
 
     test("Metrics monitor threads the first metric alias into options", () => {

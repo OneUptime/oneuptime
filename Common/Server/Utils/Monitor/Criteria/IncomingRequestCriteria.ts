@@ -160,36 +160,33 @@ export default class IncomingRequestCriteria {
     }
 
     if (input.criteriaFilter.checkOn === CheckOn.RequestBody) {
-      let responseBody: string | JSONObject | undefined = (
+      let requestBody: string | JSONObject | undefined = (
         input.dataToProcess as IncomingMonitorRequest
       ).requestBody;
 
-      if (responseBody && typeof responseBody === Typeof.Object) {
-        responseBody = JSON.stringify(responseBody);
+      if (requestBody && typeof requestBody === Typeof.Object) {
+        requestBody = JSON.stringify(requestBody);
       }
 
-      if (!responseBody) {
-        return null;
-      }
+      /*
+       * A request that carried no body is an empty body, not an unknown one.
+       * Normalising to "" (the same thing IncomingEmailCriteria does for the
+       * email fields) is what lets a "Not Contains" filter match a bodiless
+       * heartbeat ping - the default online criteria for this monitor type.
+       * "Contains" is unaffected: "" contains nothing.
+       */
+      const body: string = (requestBody as string | undefined) || "";
 
       // contains
       if (input.criteriaFilter.filterType === FilterType.Contains) {
-        if (
-          value &&
-          responseBody &&
-          (responseBody as string).includes(value as string)
-        ) {
+        if (value && body.includes(value as string)) {
           return `Request body contains ${value}.`;
         }
         return null;
       }
 
       if (input.criteriaFilter.filterType === FilterType.NotContains) {
-        if (
-          value &&
-          responseBody &&
-          !(responseBody as string).includes(value as string)
-        ) {
+        if (value && !body.includes(value as string)) {
           return `Request body does not contain ${value}.`;
         }
         return null;

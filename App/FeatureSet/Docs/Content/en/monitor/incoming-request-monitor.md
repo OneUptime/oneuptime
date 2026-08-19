@@ -90,6 +90,21 @@ requests.get('https://oneuptime.com/heartbeat/YOUR_SECRET_KEY')
 
 You can configure criteria to determine when your service is considered online, degraded, or offline. Each criteria filter has a **Filter Type** (what to look at), a **Filter Condition** (how to compare it), and a **Value**.
 
+### What you get out of the box
+
+A new Incoming Request monitor is created with two criteria that read the request body:
+
+| Criteria | Filter Type  | Filter Condition | Value   | Effect                                     |
+| -------- | ------------ | ---------------- | ------- | ------------------------------------------ |
+| Offline  | Request Body | Contains         | `error` | Marks the monitor offline, opens an incident |
+| Online   | Request Body | Not Contains     | `error` | Marks the monitor online                   |
+
+This suits the common case where the sender reports its own health in the payload: a request whose body mentions `error` takes the monitor down, and the next request without it brings the monitor back up. A request with no body at all counts as "does not contain `error`", so a plain heartbeat ping keeps the monitor online.
+
+Change the value to whatever your sender actually emits (`"status":"firing"`, `FAILED`, and so on) — the match is a case-sensitive substring test.
+
+These defaults are **not** a dead-man's switch: nothing here fires when requests stop arriving. If you want to be alerted on silence, add an **Incoming Request** / **Not Recieved In Minutes** criteria as described below.
+
 ### Available Filter Types
 
 | Filter Type           | Checks                                                 | Notes                                                                                        |
@@ -119,7 +134,7 @@ Object bodies are compared as compact JSON with no spaces, so a **Request Body**
 
 ### Example Criteria
 
-#### Mark as offline if no heartbeat in 10 minutes
+#### Mark as offline if no heartbeat in 10 minutes (a dead-man's switch)
 
 - **Filter Type**: Incoming Request
 - **Filter Condition**: Not Recieved In Minutes

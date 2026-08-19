@@ -44,6 +44,19 @@ export interface MonitorCriteriaInstanceType {
 }
 
 export default class MonitorCriteriaInstance extends DatabaseProperty {
+  /*
+   * Keyword the out-of-the-box criteria for the two incoming monitor types
+   * (Incoming Request and Incoming Email) look for in the payload body.
+   *
+   * These monitors are driven by whatever the sender pushes, so the default
+   * that is useful to the most people is "the sender told us something broke":
+   * a body carrying this keyword takes the monitor offline and opens an
+   * incident, a body without it puts the monitor back online. Users who want
+   * a dead-man's-switch instead can still add an Incoming Request /
+   * Email Received criteria by hand.
+   */
+  public static readonly DEFAULT_INCOMING_BODY_ERROR_KEYWORD: string = "error";
+
   public data: MonitorCriteriaInstanceType | undefined = undefined;
 
   public constructor() {
@@ -88,9 +101,9 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         filterCondition: FilterCondition.All,
         filters: [
           {
-            checkOn: CheckOn.IncomingRequest,
-            filterType: FilterType.RecievedInMinutes,
-            value: 30,
+            checkOn: CheckOn.RequestBody,
+            filterType: FilterType.NotContains,
+            value: MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD,
           },
         ],
         incidents: [],
@@ -99,7 +112,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         changeMonitorStatus: true,
         createIncidents: false,
         name: `Check if ${arg.monitorName} is online`,
-        description: `This criteria checks if the ${arg.monitorName} is online`,
+        description: `This criteria checks if the request body of ${arg.monitorName} does not contain "${MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD}"`,
       };
 
       return monitorCriteriaInstance;
@@ -115,9 +128,9 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         filterCondition: FilterCondition.All,
         filters: [
           {
-            checkOn: CheckOn.EmailReceivedAt,
-            filterType: FilterType.RecievedInMinutes,
-            value: 30,
+            checkOn: CheckOn.EmailBody,
+            filterType: FilterType.NotContains,
+            value: MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD,
           },
         ],
         incidents: [],
@@ -126,7 +139,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         changeMonitorStatus: true,
         createIncidents: false,
         name: `Check if ${arg.monitorName} is online`,
-        description: `This criteria checks if the ${arg.monitorName} is online`,
+        description: `This criteria checks if the email body of ${arg.monitorName} does not contain "${MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD}"`,
       };
 
       return monitorCriteriaInstance;
@@ -1198,15 +1211,19 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         filterCondition: FilterCondition.Any,
         filters: [
           {
-            checkOn: CheckOn.IncomingRequest,
-            filterType: FilterType.NotRecievedInMinutes,
-            value: 30, // if the request is not recieved in 30 minutes, then the monitor is offline
+            /*
+             * If the sender reports an error in the request body, the monitor
+             * is offline.
+             */
+            checkOn: CheckOn.RequestBody,
+            filterType: FilterType.Contains,
+            value: MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD,
           },
         ],
         alerts: [
           {
             title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline.`,
+            description: `${arg.monitorName} is currently offline. The request body contains "${MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD}".`,
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
@@ -1217,7 +1234,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         incidents: [
           {
             title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline.`,
+            description: `${arg.monitorName} is currently offline. The request body contains "${MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD}".`,
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1227,7 +1244,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         changeMonitorStatus: true,
         createIncidents: true,
         name: `Check if ${arg.monitorName} is offline`,
-        description: `This criteria checks if the ${arg.monitorName} is offline`,
+        description: `This criteria checks if the request body of ${arg.monitorName} contains "${MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD}"`,
       };
     }
 
@@ -1238,15 +1255,19 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         filterCondition: FilterCondition.Any,
         filters: [
           {
-            checkOn: CheckOn.EmailReceivedAt,
-            filterType: FilterType.NotRecievedInMinutes,
-            value: 30, // if email is not received in 30 minutes, then the monitor is offline
+            /*
+             * If the received email reports an error in its body, the monitor
+             * is offline.
+             */
+            checkOn: CheckOn.EmailBody,
+            filterType: FilterType.Contains,
+            value: MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD,
           },
         ],
         alerts: [
           {
             title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline. No email received.`,
+            description: `${arg.monitorName} is currently offline. The email body contains "${MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD}".`,
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
@@ -1257,7 +1278,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         incidents: [
           {
             title: `${arg.monitorName} is offline`,
-            description: `${arg.monitorName} is currently offline. No email received.`,
+            description: `${arg.monitorName} is currently offline. The email body contains "${MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD}".`,
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1267,7 +1288,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         changeMonitorStatus: true,
         createIncidents: true,
         name: `Check if ${arg.monitorName} is offline`,
-        description: `This criteria checks if the ${arg.monitorName} is offline`,
+        description: `This criteria checks if the email body of ${arg.monitorName} contains "${MonitorCriteriaInstance.DEFAULT_INCOMING_BODY_ERROR_KEYWORD}"`,
       };
     }
 

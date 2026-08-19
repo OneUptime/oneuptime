@@ -36,6 +36,21 @@ For example: `monitor-abc123def456@inbound.yourdomain.com`
 
 You can copy this address from the monitor details page and configure your external systems to send emails to it.
 
+## What you get out of the box
+
+A new Incoming Email Monitor is created with two criteria that read the email body:
+
+| Criteria | Filter Type | Filter Condition | Value   | Effect                                       |
+| -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
+| Offline  | Email Body  | Contains         | `error` | Marks the monitor offline, opens an incident |
+| Online   | Email Body  | Not Contains     | `error` | Marks the monitor online                     |
+
+This suits the common case where a job or a third-party tool emails its own result: a message whose body mentions `error` takes the monitor down, and the next message without it brings the monitor back up. Body matching is case-insensitive, so `Error` and `ERROR` match too.
+
+Change the value to whatever your sender actually writes (`FAILED`, `exit code 1`, and so on).
+
+These defaults are **not** a dead-man's switch: nothing here fires when mail stops arriving. Criteria that only read the subject, sender, body, or recipient are evaluated when an email lands and at no other time. If you want to be alerted on silence, add an **Email Received** / **Not Received In Minutes** criteria — see Example 3 below.
+
 ## Available Filter Types
 
 You can create criteria based on the following email fields:
