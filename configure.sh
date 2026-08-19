@@ -36,6 +36,24 @@ command_exists() {
 
 # Install system packages based on OS
 install_system_packages() {
+    # Skip the package-manager step entirely when every required package is
+    # already available. On CI runners git and curl are always present, and the
+    # `apt-get update` (or dnf/apk equivalent) is a slow network call that has
+    # intermittently hung and timed out the docker-build "Preinstall" step
+    # (nick-fields/retry then fails to kill the root-owned apt child with
+    # "kill EPERM"). There is nothing to install when nothing is missing.
+    local missing_packages=""
+    for pkg in $REQUIRED_PACKAGES; do
+        if ! command_exists "$pkg"; then
+            missing_packages="$missing_packages $pkg"
+        fi
+    done
+    if [[ -z "${missing_packages// /}" ]]; then
+        print_success "Required packages already installed ($REQUIRED_PACKAGES); skipping package cache update."
+        return 0
+    fi
+    print_info "Missing packages:${missing_packages}"
+
     if [[ "$OSTYPE" == "darwin"* ]]; then
         if ! command_exists brew; then
             print_error "Homebrew not installed. Please install homebrew and restart installer"
