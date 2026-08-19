@@ -56,7 +56,9 @@
     "submitButton": "Sign Up",
     "haveAccountPrompt": "Already have an account?",
     "loginLink": "Log in.",
-    "notifySelfHosted": "Notify me about security patches and new releases"
+    "notifySelfHosted": "Notify me about security patches and new releases",
+    "checkEmailTitle": "Check your email",
+    "checkEmailMessage": "If this email address has an account waiting to be set up, we've sent it a link to finish registering. Please do not forget to check spam."
   },
   "forgotPassword": {
     "title": "Forgot your password",

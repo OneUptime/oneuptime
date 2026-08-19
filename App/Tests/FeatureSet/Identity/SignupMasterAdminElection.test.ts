@@ -292,7 +292,31 @@ jest.mock("Common/Server/Utils/JsonWebToken", () => {
 jest.mock("../../../FeatureSet/Identity/Utils/AuthenticationEmail", () => {
   return {
     __esModule: true,
-    default: { sendVerificationEmail: jest.fn() },
+    default: {
+      sendVerificationEmail: jest.fn(),
+      sendCompleteRegistrationEmail: jest.fn(),
+    },
+  };
+});
+
+/*
+ * Claiming an invited account needs a registration token from the invitation
+ * email (GHSA-qg84-6hrg-mr5g). Held true here so the update path stays
+ * reachable -- what this file is about is which fields that update writes, not
+ * how the claim is authorized. InvitedAccountClaim.test.ts covers the gate.
+ */
+jest.mock("Common/Server/Utils/UserRegistrationToken", () => {
+  return {
+    __esModule: true,
+    REGISTRATION_TOKEN_EXPIRY_IN_DAYS: 7,
+    default: {
+      consumeRegistrationToken: (): Promise<boolean> => {
+        return Promise.resolve(true);
+      },
+      generateRegistrationToken: jest.fn(),
+      generateRegistrationLink: jest.fn(),
+      getRegistrationLink: jest.fn(),
+    },
   };
 });
 
@@ -369,6 +393,23 @@ const signupBody: SignupBodyFunction = (
       name: { _type: "Name", value: "New User" },
       companyName: "Example Inc",
       ...(data || {}),
+    },
+  };
+};
+
+/*
+ * The same body plus the registration token an invited person carries over
+ * from their invitation email. The value only has to be a well-formed id --
+ * the route checks the shape before handing it to UserRegistrationToken, which
+ * is stubbed to accept it above.
+ */
+const invitedSignupBody: SignupBodyFunction = (
+  data?: Record<string, unknown>,
+): unknown => {
+  return {
+    ...(signupBody(data) as Record<string, unknown>),
+    miscDataProps: {
+      registrationToken: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
     },
   };
 };
@@ -563,7 +604,7 @@ describe("Identity /signup -- Master Admin is never decided by the route", () =>
     });
 
     it("updates the existing row instead of creating one", async () => {
-      await signup(signupBody({ email: "invited@example.com" }));
+      await signup(invitedSignupBody({ email: "invited@example.com" }));
 
       expect(userUpdateOneByIdAndFetch).toHaveBeenCalledTimes(1);
       expect(userCreateUserOnSignup).not.toHaveBeenCalled();
@@ -571,7 +612,7 @@ describe("Identity /signup -- Master Admin is never decided by the route", () =>
     });
 
     it("never writes isMasterAdmin on the update path", async () => {
-      await signup(signupBody({ isMasterAdmin: true }));
+      await signup(invitedSignupBody({ isMasterAdmin: true }));
 
       const call: Record<string, any> = userUpdateOneByIdAndFetch.mock
         .calls[0]![0] as Record<string, any>;
@@ -580,12 +621,17 @@ describe("Identity /signup -- Master Admin is never decided by the route", () =>
        * There is nothing to elect here: a row already existing means the
        * instance is not empty. The update must carry only the fields signup
        * fills in, so an invited account can never be promoted by re-signing up.
+       *
+       * isEmailVerified is on that list because the registration token this
+       * request spent arrived by email, which is the same proof /verify-email
+       * asks for.
        */
       expect(Object.keys(call["data"])).toEqual([
         "password",
         "name",
         "companyPhoneNumber",
         "companyName",
+        "isEmailVerified",
       ]);
       expect(call["data"]["isMasterAdmin"]).toBeUndefined();
     });

@@ -56,6 +56,15 @@ const RegisterPage: () => JSX.Element = () => {
     undefined,
   );
 
+  /*
+   * Set when the address already had an unclaimed invitation behind it and this
+   * request could not prove it owns the mailbox. The API deliberately says the
+   * same thing whether or not that was true, so all this page can do -- and all
+   * it should do -- is repeat it.
+   */
+  const [registrationEmailSent, setRegistrationEmailSent] =
+    React.useState<boolean>(false);
+
   const isCaptchaEnabled: boolean =
     CAPTCHA_ENABLED && Boolean(CAPTCHA_SITE_KEY);
 
@@ -305,6 +314,26 @@ const RegisterPage: () => JSX.Element = () => {
     return <PageLoader isVisible={true} />;
   }
 
+  if (registrationEmailSent) {
+    return (
+      <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
+        <div className="w-full max-w-md mx-auto">
+          <img
+            className="mx-auto h-10 w-auto sm:h-12"
+            src={OneUptimeLogo}
+            alt="OneUptime"
+          />
+          <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
+            {t("register.checkEmailTitle")}
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
+            {t("register.checkEmailMessage")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-full flex-col justify-center py-6 px-4 sm:py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md mx-auto lg:max-w-2xl">
@@ -361,6 +390,20 @@ const RegisterPage: () => JSX.Element = () => {
                 setShouldResetCaptcha(true);
               }
 
+              /*
+               * Carried straight through from the invitation link. Read here
+               * rather than held in state so a token that arrives with the URL
+               * cannot be lost to a stale closure, and passed as a miscDataProp
+               * rather than a User field because it authorizes the request --
+               * it is not part of the account being created.
+               */
+              const registrationToken: string | null =
+                Navigation.getQueryStringByName("token");
+
+              if (registrationToken) {
+                miscDataProps["registrationToken"] = registrationToken;
+              }
+
               const utmParams: Dictionary<string> = UserUtil.getUtmParams();
 
               if (utmParams && Object.keys(utmParams).length > 0) {
@@ -407,6 +450,17 @@ const RegisterPage: () => JSX.Element = () => {
               }
             }}
             onSuccess={(value: User, miscData: JSONObject | undefined) => {
+              /*
+               * No account was created or claimed: a link went to the address
+               * instead. There is no session to start, and nothing here counts
+               * as a completed signup, so this returns before the analytics and
+               * the login below.
+               */
+              if (miscData && miscData["registrationEmailSent"]) {
+                setRegistrationEmailSent(true);
+                return;
+              }
+
               if (value && value.email) {
                 UiAnalytics.userAuth(value.email);
                 UiAnalytics.capture("accounts/register");

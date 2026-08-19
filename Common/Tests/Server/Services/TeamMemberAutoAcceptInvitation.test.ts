@@ -21,6 +21,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import EmailMessage from "../../../Types/Email/EmailMessage";
+import HashedString from "../../../Types/HashedString";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -156,6 +157,20 @@ function verifiedUser(): User {
   return user;
 }
 
+/*
+ * The invitee in this file has already finished registering. The password is
+ * what says so: onBeforeCreate reads it to decide whether the invitation needs
+ * to carry a registration token, and an invitee without one sends it down the
+ * token-minting path these tests do not stub. Which link the mail carries is
+ * covered in TeamMemberInviteRegistrationToken.test.ts instead.
+ */
+function registeredUser(): User {
+  const user: User = verifiedUser();
+  user.password = new HashedString("already-registered", true);
+
+  return user;
+}
+
 let sendMailSpy: jest.SpyInstance;
 let addSettingsSpy: jest.SpyInstance;
 let addRuleSpy: jest.SpyInstance;
@@ -191,7 +206,12 @@ beforeEach(() => {
   findUserByIdSpy = jest
     .spyOn(UserService, "findOneById")
     .mockResolvedValue(verifiedUser());
-  jest.spyOn(UserService, "findByEmail").mockResolvedValue(verifiedUser());
+
+  /*
+   * onBeforeCreate looks the invitee up with findOneBy rather than findByEmail,
+   * because it needs the password column and findByEmail selects only the id.
+   */
+  jest.spyOn(UserService, "findOneBy").mockResolvedValue(registeredUser());
 
   addSettingsSpy = jest
     .spyOn(
