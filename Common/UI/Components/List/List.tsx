@@ -1,6 +1,5 @@
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import Field from "../Detail/Field";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import FilterViewer from "../Filters/FilterViewer";
@@ -8,6 +7,7 @@ import FilterType from "../Filters/Types/Filter";
 import FilterData from "../Filters/Types/FilterData";
 import Pagination from "../Pagination/Pagination";
 import ListBody from "./ListBody";
+import ListSkeleton from "./ListSkeleton";
 import { ListDetailProps } from "./ListRow";
 import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement } from "react";
@@ -67,12 +67,30 @@ type ListFunction = <T extends GenericObject>(
 const List: ListFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  /*
+   * A refetch with cards already on screen (pagination, sort, refresh - the
+   * parent never clears `data` while fetching) keeps those cards visible and
+   * dims them; skeletons are only for a load with nothing to show yet.
+   */
+  const isRefetchingWithData: boolean =
+    props.isLoading && props.data.length > 0;
+
   const getListbody: GetReactElementFunction = (): ReactElement => {
-    if (props.isLoading) {
-      return <ComponentLoader />;
+    if (props.isLoading && props.data.length === 0) {
+      return (
+        <ListSkeleton
+          fieldsCount={props.fields.length}
+          itemsOnPage={props.itemsOnPage}
+        />
+      );
     }
 
-    if (props.error) {
+    /*
+     * Loading still wins over error and empty (same priority as before the
+     * skeletons): while a refetch is in flight the stale cards render, never
+     * a stale error or a premature "no items".
+     */
+    if (!props.isLoading && props.error) {
       return (
         <div className="p-6">
           <ErrorMessage
@@ -145,7 +163,21 @@ const List: ListFunction = <T extends GenericObject>(
               }
             }}
           >
-            {getListbody()}
+            {/*
+             * Dims the stale cards while a refetch is in flight and blocks
+             * clicks on them - actions against data about to be replaced
+             * are a race.
+             */}
+            <div
+              data-testid="list-content"
+              className={
+                isRefetchingWithData
+                  ? "opacity-60 pointer-events-none transition-opacity duration-150"
+                  : "transition-opacity duration-150"
+              }
+            >
+              {getListbody()}
+            </div>
           </DragDropContext>
           {!props.disablePagination && (
             <div className="mt-5 -mb-6">

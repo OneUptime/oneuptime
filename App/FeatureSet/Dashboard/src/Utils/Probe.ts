@@ -13,42 +13,47 @@ export default class ProbeUtil {
    * endpoint).
    */
   public static async getAllProbes(): Promise<Array<Probe>> {
-    const projectProbeList: ListResult<Probe> = await ModelAPI.getList({
-      modelType: Probe,
-      query: {
-        projectId: ProjectUtil.getCurrentProjectId()!,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      select: {
-        name: true,
-        _id: true,
-        shouldAutoEnableProbeOnNewMonitors: true,
-      },
-      sort: {},
-    });
+    // The two lists are independent, so fetch them in parallel.
+    const [projectProbeList, globalProbeList]: [
+      ListResult<Probe>,
+      ListResult<Probe>,
+    ] = await Promise.all([
+      ModelAPI.getList<Probe>({
+        modelType: Probe,
+        query: {
+          projectId: ProjectUtil.getCurrentProjectId()!,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          name: true,
+          _id: true,
+          shouldAutoEnableProbeOnNewMonitors: true,
+        },
+        sort: {},
+      }),
+      ModelAPI.getList<Probe>({
+        modelType: Probe,
+        query: {},
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          name: true,
+          _id: true,
+          shouldAutoEnableProbeOnNewMonitors: true,
+        },
+        sort: {},
+        requestOptions: {
+          overrideRequestUrl: URL.fromString(APP_API_URL.toString()).addRoute(
+            "/probe/global-probes",
+          ),
+        },
+      }),
+    ]);
 
     for (const probe of projectProbeList.data) {
       probe.isGlobalProbe = false;
     }
-
-    const globalProbeList: ListResult<Probe> = await ModelAPI.getList({
-      modelType: Probe,
-      query: {},
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      select: {
-        name: true,
-        _id: true,
-        shouldAutoEnableProbeOnNewMonitors: true,
-      },
-      sort: {},
-      requestOptions: {
-        overrideRequestUrl: URL.fromString(APP_API_URL.toString()).addRoute(
-          "/probe/global-probes",
-        ),
-      },
-    });
 
     /*
      * The global-probes endpoint does not select isGlobalProbe, but every row

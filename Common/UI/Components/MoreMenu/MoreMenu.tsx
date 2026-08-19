@@ -114,6 +114,13 @@ const MoreMenu: React.ForwardRefExoticComponent<
 
     const [isDropdownVisible, setDropdownVisible] = useState<boolean>(false);
 
+    /*
+     * The menu is mounted in its closed state (faded, slightly shrunk towards
+     * origin-top-right) and flipped open one frame later so the browser has
+     * something to transition from — the same pattern Modal uses.
+     */
+    const [hasMenuEntered, setHasMenuEntered] = useState<boolean>(false);
+
     useEffect(() => {
       setDropdownVisible(isComponentVisible);
       if (isComponentVisible) {
@@ -121,6 +128,30 @@ const MoreMenu: React.ForwardRefExoticComponent<
       } else {
         setFocusedIndex(-1);
       }
+    }, [isComponentVisible]);
+
+    useEffect(() => {
+      if (!isComponentVisible) {
+        setHasMenuEntered(false);
+        return undefined;
+      }
+
+      const open: () => void = (): void => {
+        setHasMenuEntered(true);
+      };
+
+      const frame: number = requestAnimationFrame(open);
+
+      /*
+       * A hidden or throttled tab never runs an animation frame; the timer
+       * skips the transition rather than leaving the menu at zero opacity.
+       */
+      const fallbackTimer: ReturnType<typeof setTimeout> = setTimeout(open, 80);
+
+      return () => {
+        cancelAnimationFrame(frame);
+        clearTimeout(fallbackTimer);
+      };
     }, [isComponentVisible]);
 
     useEffect(() => {
@@ -427,7 +458,14 @@ const MoreMenu: React.ForwardRefExoticComponent<
           <div
             ref={ref}
             id={menuId}
-            className="absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-lg bg-white shadow-xl ring-1 ring-gray-200 focus:outline-none py-1"
+            /*
+             * Once settled the menu carries no transform class at all: a
+             * lingering scale would make it the containing block for any
+             * position:fixed descendant (the Modal invariant).
+             */
+            className={`absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-lg bg-white shadow-xl ring-1 ring-gray-200 focus:outline-none py-1 transition duration-150 ease-out motion-reduce:transition-none ${
+              hasMenuEntered ? "opacity-100" : "opacity-0 scale-95"
+            }`}
             role="menu"
             aria-orientation="vertical"
             aria-labelledby={buttonId}

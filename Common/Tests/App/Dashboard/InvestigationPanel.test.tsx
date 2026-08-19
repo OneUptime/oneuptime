@@ -60,7 +60,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
  * Record MarkdownViewer's props so safeMode remains an asserted part of the
  * contract even when the Common Jest config replaces its markdown renderer.
  */
-jest.mock("../../../UI/Components/Markdown.tsx/MarkdownViewer", () => {
+jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   return {
     __esModule: true,
     default: (props: MarkdownViewerProps): React.ReactElement => {

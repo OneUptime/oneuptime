@@ -76,7 +76,6 @@ SyntaxHighlighter.registerLanguage("ruby", ruby);
 SyntaxHighlighter.registerLanguage("php", php);
 SyntaxHighlighter.registerLanguage("graphql", graphql);
 SyntaxHighlighter.registerLanguage("http", http);
-import mermaid from "mermaid";
 import DOMPurify from "dompurify";
 import OneUptimeDate from "../../../Types/Date";
 import { Theme, useTheme } from "../../Utils/Theme";
@@ -90,7 +89,48 @@ import { Theme, useTheme } from "../../Utils/Theme";
 const ISO_8601_REGEX: RegExp =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$/;
 
-const initializeMermaid: (theme: Theme) => void = (theme: Theme): void => {
+/*
+ * mermaid's pre-bundled build is ~4.5MB — by far the heaviest dependency of
+ * this component — so it is loaded on demand the first time a mermaid fence
+ * actually renders. Plain markdown (the overwhelmingly common case) never
+ * pays for it: there is no static import and no module-scope initialization.
+ * The promise is cached module-wide so multiple diagrams share one load, and
+ * theme setup runs only after the load resolves.
+ */
+type MermaidApi = typeof import("mermaid").default;
+
+let mermaidLoadPromise: Promise<MermaidApi> | null = null;
+
+const loadMermaid: () => Promise<MermaidApi> = (): Promise<MermaidApi> => {
+  if (!mermaidLoadPromise) {
+    const loadPromise: Promise<MermaidApi> = import("mermaid").then(
+      (mermaidModule: { default: MermaidApi }): MermaidApi => {
+        return mermaidModule.default;
+      },
+    );
+
+    mermaidLoadPromise = loadPromise;
+
+    /*
+     * A failed chunk load (flaky network, deploy rotating hashed chunk
+     * names) must not be cached forever — clear the slot so the next
+     * diagram retries the import. The reset rides a side branch of the
+     * promise: the original is still returned below, so the caller that
+     * triggered this load sees the rejection through its own error path.
+     */
+    loadPromise.catch((): void => {
+      if (mermaidLoadPromise === loadPromise) {
+        mermaidLoadPromise = null;
+      }
+    });
+  }
+  return mermaidLoadPromise;
+};
+
+const initializeMermaid: (mermaid: MermaidApi, theme: Theme) => void = (
+  mermaid: MermaidApi,
+  theme: Theme,
+): void => {
   const isDark: boolean = theme === Theme.Dark;
 
   mermaid.initialize({
@@ -120,10 +160,8 @@ const initializeMermaid: (theme: Theme) => void = (theme: Theme): void => {
   });
 };
 
-initializeMermaid(Theme.Light);
-
-// Mermaid diagram component
-const MermaidDiagram: FunctionComponent<{ chart: string }> = ({
+// Mermaid diagram component (exported so tests can exercise the lazy load directly)
+export const MermaidDiagram: FunctionComponent<{ chart: string }> = ({
   chart,
 }: {
   chart: string;
@@ -136,27 +174,34 @@ const MermaidDiagram: FunctionComponent<{ chart: string }> = ({
     let isCancelled: boolean = false;
 
     const renderDiagram: () => Promise<void> = async (): Promise<void> => {
-      if (containerRef.current) {
+      try {
+        /*
+         * Dynamic load first; a failed chunk load surfaces through the same
+         * error path as a failed render. Theme setup MUST follow the load —
+         * there is deliberately no module-scope initialization any more.
+         */
+        const mermaid: MermaidApi = await loadMermaid();
+        if (!containerRef.current || isCancelled) {
+          return;
+        }
         containerRef.current.innerHTML = "";
-        try {
-          initializeMermaid(theme);
-          const id: string = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
-          const { svg } = await mermaid.render(id, chart);
-          if (containerRef.current && !isCancelled) {
-            containerRef.current.innerHTML = DOMPurify.sanitize(svg, {
-              USE_PROFILES: { svg: true, svgFilters: true },
-              ADD_TAGS: ["foreignObject"],
-            });
-          }
-        } catch (error) {
-          if (containerRef.current && !isCancelled) {
-            const errorMessage: string = String(error);
-            const errorEl: HTMLPreElement = document.createElement("pre");
-            errorEl.className = "text-red-500";
-            errorEl.textContent = `Error rendering diagram: ${errorMessage}`;
-            containerRef.current.innerHTML = "";
-            containerRef.current.appendChild(errorEl);
-          }
+        initializeMermaid(mermaid, theme);
+        const id: string = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+        const { svg } = await mermaid.render(id, chart);
+        if (containerRef.current && !isCancelled) {
+          containerRef.current.innerHTML = DOMPurify.sanitize(svg, {
+            USE_PROFILES: { svg: true, svgFilters: true },
+            ADD_TAGS: ["foreignObject"],
+          });
+        }
+      } catch (error) {
+        if (containerRef.current && !isCancelled) {
+          const errorMessage: string = String(error);
+          const errorEl: HTMLPreElement = document.createElement("pre");
+          errorEl.className = "text-red-500";
+          errorEl.textContent = `Error rendering diagram: ${errorMessage}`;
+          containerRef.current.innerHTML = "";
+          containerRef.current.appendChild(errorEl);
         }
       }
     };

@@ -158,7 +158,11 @@ describe("network topology detail panel layering", () => {
      * higher, not merely equal.
      */
     const toast: number = highestZIndexIn(
-      readCommonCode("UI", "Components", "Toast", "Toast.tsx"),
+      /*
+       * The fixed z-40 toast region lives on the ONE stacking container in
+       * ToastInit.tsx; Toast.tsx is just the card and declares no z-index.
+       */
+      readCommonCode("UI", "Components", "Toast", "ToastInit.tsx"),
     );
     const aiChatPanel: number = highestZIndexIn(
       readAppCode("Components", "AIChat", "AIChatPanel.tsx"),

@@ -63,10 +63,17 @@ describe("List", () => {
     expect(screen.getByTestId("list-pagination")).toBeInTheDocument();
   });
 
-  it("renders loading state", () => {
+  it("renders skeleton cards while loading with nothing to show yet", () => {
+    render(<List {...defaultProps} isLoading={true} data={[]} />);
+
+    expect(screen.getByTestId("list-skeleton-loader")).toBeInTheDocument();
+  });
+
+  it("keeps existing cards visible, dimmed, while refetching", () => {
     render(<List {...defaultProps} isLoading={true} />);
 
-    expect(screen.getByTestId("component-loader")).toBeInTheDocument();
+    expect(screen.queryByTestId("list-skeleton-loader")).toBeNull();
+    expect(screen.getByTestId("list-content")).toHaveClass("opacity-60");
   });
 
   it("renders error state", () => {

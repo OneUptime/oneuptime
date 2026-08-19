@@ -226,8 +226,13 @@ export default class API {
   }
 
   public static getDefaultHeaders(_props?: any): Headers {
+    /*
+     * NOTE: no "Access-Control-Allow-Origin" here - that is a RESPONSE-only
+     * header. Sending it as a request header forces a CORS preflight on every
+     * cross-origin call (self-hosted setups where the API is on a different
+     * origin), doubling the request count for zero benefit.
+     */
     const defaultHeaders: Headers = {
-      "Access-Control-Allow-Origin": "*",
       Accept: "application/json",
       "Content-Type": "application/json;charset=UTF-8",
     };

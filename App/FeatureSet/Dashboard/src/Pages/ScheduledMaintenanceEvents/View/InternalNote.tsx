@@ -31,7 +31,7 @@ import React, {
   useState,
 } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import AttachmentList from "../../../Components/Attachment/AttachmentList";
 import { getModelIdString } from "../../../Utils/ModelId";
 import GenerateFromAIModal, {

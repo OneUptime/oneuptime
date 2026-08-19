@@ -304,7 +304,12 @@ describe("the side menu reaches the whole product", () => {
 });
 
 describe("the navbar link exists and is not commented out", () => {
-  const navBarRaw: string = readSource("Components", "NavBar", "NavBar.tsx");
+  /*
+   * The nav catalog moved out of NavBar.tsx into the shared
+   * useDashboardNavigationItems hook so the command palette and the navbar
+   * read one source of truth — the Inventory entry is pinned there now.
+   */
+  const navBarRaw: string = readSource("Utils", "NavigationItems.tsx");
   const navBar: string = squash(navBarRaw);
 
   test("there is a live Inventory entry", () => {

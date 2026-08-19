@@ -24,7 +24,7 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";

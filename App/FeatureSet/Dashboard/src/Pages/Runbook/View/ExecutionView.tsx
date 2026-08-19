@@ -17,7 +17,7 @@ import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import { RUNBOOK_URL } from "Common/UI/Config";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import RunbookExecutionStatus from "Common/Types/Runbook/RunbookExecutionStatus";

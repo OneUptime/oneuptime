@@ -1,8 +1,8 @@
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Icon, { SizeProp } from "../Icon/Icon";
 import Item from "./Item";
+import Skeleton from "../Skeleton/Skeleton";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
 import React, { ReactElement } from "react";
@@ -33,11 +33,49 @@ type OrderedStatesListFunction = <T extends GenericObject>(
 const OrderedStatesList: OrderedStatesListFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
-  if (props.isLoading) {
-    return <ComponentLoader />;
+  /*
+   * A refetch with states already on screen keeps them visible and dims
+   * them; the skeleton stack is only for a load with nothing to show yet.
+   */
+  const isRefetchingWithData: boolean =
+    Boolean(props.isLoading) && props.data.length > 0;
+
+  if (props.isLoading && props.data.length === 0) {
+    /*
+     * Three card-shaped placeholders where the ordered state cards will
+     * land (matching Item's rounded bordered card), so the page keeps its
+     * shape instead of collapsing to a centered spinner.
+     */
+    return (
+      <div
+        data-testid="ordered-states-list-skeleton-loader"
+        role="status"
+        aria-live="polite"
+        className="m-32 text-center"
+      >
+        <span className="sr-only">Loading...</span>
+        {[0, 1, 2].map((index: number) => {
+          return (
+            <div key={index} className="w-fit m-auto">
+              <Skeleton className="h-32 w-64 rounded p-10" />
+              {index < 2 && (
+                <div className="items-center m-10">
+                  <Skeleton className="m-auto h-5 w-5" />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
   }
 
-  if (props.error) {
+  /*
+   * Loading still wins over error and empty (same priority as before the
+   * skeletons): while a refetch is in flight the stale states render, never
+   * a stale error or a premature "no items".
+   */
+  if (!props.isLoading && props.error) {
     return (
       <ErrorMessage
         message={props.error}
@@ -82,7 +120,14 @@ const OrderedStatesList: OrderedStatesListFunction = <T extends GenericObject>(
   }
 
   return (
-    <div className="m-32 text-center">
+    <div
+      data-testid="ordered-states-list-content"
+      className={`m-32 text-center${
+        isRefetchingWithData
+          ? " opacity-60 pointer-events-none transition-opacity duration-150"
+          : " transition-opacity duration-150"
+      }`}
+    >
       {props.error && <p>{props.error}</p>}
       {!props.error &&
         props.data &&

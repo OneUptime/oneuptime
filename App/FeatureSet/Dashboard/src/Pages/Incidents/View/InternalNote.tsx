@@ -25,7 +25,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
 import User from "Common/Models/DatabaseModels/User";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import React, {
   Fragment,
   FunctionComponent,
