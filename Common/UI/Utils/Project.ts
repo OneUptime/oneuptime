@@ -10,6 +10,7 @@ import Project from "../../Models/DatabaseModels/Project";
 import SubscriptionStatus, {
   SubscriptionStatusUtil,
 } from "../../Types/Billing/SubscriptionStatus";
+import ModelListCache from "./ModelListCache";
 import Navigation from "./Navigation";
 import SessionStorage from "./SessionStorage";
 import Telemetry from "./Telemetry/Telemetry";
@@ -284,6 +285,14 @@ export default class ProjectUtil {
     LocalStorage.setItem(`project_${currentProjectId}`, project);
     SessionStorage.setItem(CURRENT_PROJECT_ID_STORAGE_KEY, currentProjectId);
 
+    /*
+     * Cached reference lists (incident/alert states, custom fields...) are
+     * keyed by project id, so a switch could never serve another project's
+     * rows — this just guarantees fresh reads and frees the old entries now
+     * that project selection can happen without a full page reload.
+     */
+    ModelListCache.invalidateAll();
+
     // Remember this project for the next time the user opens the dashboard.
     this.setLastAccessedProjectId(currentProjectId);
 
@@ -302,6 +311,9 @@ export default class ProjectUtil {
     }
 
     SessionStorage.removeItem(CURRENT_PROJECT_ID_STORAGE_KEY);
+
+    // Project-scoped cached reference lists must not outlive the project.
+    ModelListCache.invalidateAll();
 
     /*
      * The project is gone (or the user is leaving it), so it must not be

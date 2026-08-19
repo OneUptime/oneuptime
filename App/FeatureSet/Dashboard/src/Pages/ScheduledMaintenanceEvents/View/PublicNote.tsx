@@ -28,7 +28,7 @@ import User from "Common/Models/DatabaseModels/User";
 import ProjectUtil from "Common/UI/Utils/Project";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import React, {
   Fragment,
   FunctionComponent,

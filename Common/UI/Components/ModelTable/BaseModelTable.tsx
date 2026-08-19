@@ -47,7 +47,7 @@ import List from "../List/List";
 import { ListDetailProps } from "../List/ListRow";
 import ConfirmModal from "../Modal/ConfirmModal";
 import Modal, { ModalWidth } from "../Modal/Modal";
-import MarkdownViewer from "../Markdown.tsx/MarkdownViewer";
+import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
 import Icon from "../Icon/Icon";
 import Filter from "../ModelFilter/Filter";
 import { DropdownOption, DropdownOptionLabel } from "../Dropdown/Dropdown";

@@ -1,4 +1,4 @@
-import i18n from "i18next";
+import i18n, { BackendModule, ReadCallback, ResourceKey } from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
 
@@ -9,22 +9,16 @@ import {
   SUPPORTED_DASHBOARD_LANGUAGE_CODES,
 } from "Common/Types/Dashboard/DashboardLanguage";
 
+import { loadLocaleResource, LocaleResource } from "./I18nLocaleLoader";
+
+/*
+ * English is the ONLY locale bundled statically: it is the fallback language,
+ * so it must be available synchronously from the very first render. Every
+ * other locale is code-split into its own chunk and fetched on demand by the
+ * lazy backend below — keeping ~11MB of unused translations out of the entry
+ * bundle.
+ */
 import en from "../Locales/en.json";
-import de from "../Locales/de.json";
-import fr from "../Locales/fr.json";
-import es from "../Locales/es.json";
-import it from "../Locales/it.json";
-import pt from "../Locales/pt.json";
-import nl from "../Locales/nl.json";
-import da from "../Locales/da.json";
-import no from "../Locales/no.json";
-import sv from "../Locales/sv.json";
-import ru from "../Locales/ru.json";
-import ja from "../Locales/ja.json";
-import ko from "../Locales/ko.json";
-import zhCN from "../Locales/zh-CN.json";
-import zhTW from "../Locales/zh-TW.json";
-import hi from "../Locales/hi.json";
 
 export type SupportedLanguage = DashboardLanguage;
 
@@ -83,28 +77,51 @@ const convertDetectedLanguage: (lng: string) => string = (
   return lng;
 };
 
-i18n
+/*
+ * i18next backend that resolves a non-English language to its lazily-loaded
+ * chunk (see I18nLocaleLoader). With `partialBundledLanguages: true` below,
+ * i18next only calls this for languages missing from the static `resources`
+ * map — i.e. never for English. A failed chunk fetch is reported back to
+ * i18next (which retries, then gives up and serves the English fallback)
+ * rather than thrown, so a flaky network can never take the app down.
+ */
+const lazyLocaleBackend: BackendModule = {
+  type: "backend",
+  init: (): void => {
+    // Nothing to configure — the locale loader is stateless.
+  },
+  read: (
+    language: string,
+    _namespace: string,
+    callback: ReadCallback,
+  ): void => {
+    loadLocaleResource(language)
+      .then((resource: LocaleResource): void => {
+        callback(null, resource as ResourceKey);
+      })
+      .catch((error: unknown): void => {
+        callback(error as Error, null);
+      });
+  },
+};
+
+/*
+ * Initialization is asynchronous now that non-English locales are fetched on
+ * demand: Index.tsx awaits this promise before the first render, so a user
+ * whose detected language is (say) Japanese never sees raw translation keys.
+ * For English — already in memory — this settles in a microtask. The promise
+ * always settles: if a locale chunk cannot be fetched, i18next exhausts its
+ * retries and initialization still completes with the English fallback.
+ */
+export const i18nReady: Promise<void> = i18n
   .use(LanguageDetector)
+  .use(lazyLocaleBackend)
   .use(initReactI18next)
   .init({
     resources: {
       en: { translation: en },
-      de: { translation: de },
-      fr: { translation: fr },
-      es: { translation: es },
-      it: { translation: it },
-      pt: { translation: pt },
-      nl: { translation: nl },
-      da: { translation: da },
-      no: { translation: no },
-      sv: { translation: sv },
-      ru: { translation: ru },
-      ja: { translation: ja },
-      ko: { translation: ko },
-      "zh-CN": { translation: zhCN },
-      "zh-TW": { translation: zhTW },
-      hi: { translation: hi },
     },
+    partialBundledLanguages: true,
     fallbackLng: DEFAULT_LANGUAGE,
     supportedLngs: SUPPORTED_DASHBOARD_LANGUAGE_CODES,
     load: "currentOnly",
@@ -117,6 +134,9 @@ i18n
       caches: ["localStorage"],
       convertDetectedLanguage,
     },
+  })
+  .then((): void => {
+    // Resolve with void — callers only care about readiness, not `t`.
   });
 
 export default i18n;

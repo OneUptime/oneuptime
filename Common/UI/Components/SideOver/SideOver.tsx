@@ -80,6 +80,32 @@ const SideOver: FunctionComponent<ComponentProps> = (
   const titleId: string = useId();
   const descriptionId: string = useId();
 
+  /*
+   * The panel is mounted parked off the right edge and flipped into place one
+   * frame later so the browser has something to transition from — the same
+   * pattern Modal uses for its entrance.
+   */
+  const [hasEntered, setHasEntered] = useState<boolean>(false);
+
+  useEffect(() => {
+    const open: () => void = (): void => {
+      setHasEntered(true);
+    };
+
+    const frame: number = requestAnimationFrame(open);
+
+    /*
+     * A hidden or throttled tab never runs an animation frame; the timer
+     * skips the transition rather than leaving the panel offscreen.
+     */
+    const fallbackTimer: ReturnType<typeof setTimeout> = setTimeout(open, 80);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(fallbackTimer);
+    };
+  }, []);
+
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(
     getPortalTarget,
   );
@@ -148,7 +174,16 @@ const SideOver: FunctionComponent<ComponentProps> = (
         className="pointer-events-none fixed inset-0 flex justify-end"
         data-testid="side-over-layer"
       >
-        <div className={`pointer-events-auto w-full ${widthClass}`}>
+        {/*
+         * Settled state carries no transform class at all: a lingering
+         * translate would make the panel the containing block for
+         * position:fixed descendants (the Modal invariant).
+         */}
+        <div
+          className={`pointer-events-auto w-full ${widthClass} transition-transform duration-200 ease-out motion-reduce:transition-none ${
+            hasEntered ? "" : "translate-x-full"
+          }`}
+        >
           <div className="flex h-full flex-col bg-white shadow-xl">
             <div className="flex-shrink-0 flex flex-col bg-gray-50 px-4 py-6 sm:px-6">
               <div className="flex items-start justify-between space-x-3">
@@ -176,7 +211,7 @@ const SideOver: FunctionComponent<ComponentProps> = (
                     type="button"
                     title="Close panel"
                     data-testid="close-button"
-                    className="text-gray-400 hover:text-gray-500"
+                    className="rounded-md text-gray-400 transition-colors duration-150 ease-out hover:text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                   >
                     <span className="sr-only">Close panel</span>
 

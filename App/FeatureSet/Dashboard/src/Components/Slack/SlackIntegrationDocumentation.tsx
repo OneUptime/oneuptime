@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import Card from "Common/UI/Components/Card/Card";
 import { JSONObject } from "Common/Types/JSON";
 

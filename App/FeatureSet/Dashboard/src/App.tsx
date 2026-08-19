@@ -1,9 +1,14 @@
 import ToastLayout from "Common/UI/Components/Toast/ToastInit";
 import AIChatPanel from "./Components/AIChat/AIChatPanel";
+import DashboardCommandPalette from "./Components/CommandPalette/DashboardCommandPalette";
 import MasterPage from "./Components/MasterPage/MasterPage";
 import UseTimezoneInitElement from "./Components/UserTimezone/UserTimezoneInit";
 import EventName from "./Utils/EventName";
 import PageMap from "./Utils/PageMap";
+import {
+  ProjectSelectionNavigationDecision,
+  getProjectSelectionNavigationDecision,
+} from "./Utils/ProjectNavigation";
 import RouteMap from "./Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
@@ -55,366 +60,148 @@ import ActiveIncidentEpisodes from "./Pages/Global/ActiveIncidentEpisodes";
 import MyOnCallPolicies from "./Pages/Global/MyOnCallPolicies";
 import PageNotFound from "./Pages/PageNotFound/PageNotFound";
 
-// Lazy-loaded route bundles (all routes in one bundle to minimize chunk count)
-type AllRoutesModule = typeof import("./Routes/AllRoutes");
+/*
+ * Lazy-loaded route bundles. Each section lazy()-imports its OWN module so a
+ * navigation only downloads that section's pages. These previously all pointed
+ * at the Routes/AllRoutes barrel ("all routes in one bundle to minimize chunk
+ * count"), which made the first navigation into ANY section download every
+ * page of the app in one multi-megabyte chunk. esbuild's code splitting hoists
+ * shared code into common chunks, chunk names are content-hashed (so the
+ * service worker's cache-first policy for /dist/ stays correct), and the
+ * ErrorBoundary below already catches a lazy chunk that 404s after a deploy,
+ * so per-section chunks are safe.
+ */
+type LazyRoutes = React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+>;
+
 const InitRoutes: React.LazyExoticComponent<
   React.FunctionComponent<RoutesProps>
 > = lazy(() => {
   return import("./Routes/InitRoutes");
 });
 
-const LogsRoutes: React.LazyExoticComponent<AllRoutesModule["LogsRoutes"]> =
-  lazy(() => {
-    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-      return { default: m.LogsRoutes };
-    });
-  });
-const MetricsRoutes: React.LazyExoticComponent<
-  AllRoutesModule["MetricsRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.MetricsRoutes,
-    };
-  });
+const LogsRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/LogsRoutes");
 });
-const TracesRoutes: React.LazyExoticComponent<AllRoutesModule["TracesRoutes"]> =
-  lazy(() => {
-    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-      return {
-        default: m.TracesRoutes,
-      };
-    });
-  });
-const ExceptionsRoutes: React.LazyExoticComponent<
-  AllRoutesModule["ExceptionsRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.ExceptionsRoutes,
-    };
-  });
+const MetricsRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/MetricsRoutes");
 });
-
-const LlmRoutes: React.LazyExoticComponent<AllRoutesModule["LlmRoutes"]> = lazy(
-  () => {
-    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-      return {
-        default: m.LlmRoutes,
-      };
-    });
-  },
-);
-
-const InventoryRoutes: React.LazyExoticComponent<
-  AllRoutesModule["InventoryRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.InventoryRoutes,
-    };
-  });
+const TracesRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/TracesRoutes");
 });
-
-const TopologyRoutes: React.LazyExoticComponent<
-  AllRoutesModule["TopologyRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.TopologyRoutes,
-    };
-  });
+const ExceptionsRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/ExceptionsRoutes");
 });
-const ProfilesRoutes: React.LazyExoticComponent<
-  AllRoutesModule["ProfilesRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.ProfilesRoutes,
-    };
-  });
+const LlmRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/LlmRoutes");
 });
-const IncidentsRoutes: React.LazyExoticComponent<
-  AllRoutesModule["IncidentsRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.IncidentsRoutes,
-    };
-  });
+const InventoryRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/InventoryRoutes");
 });
-const AlertsRoutes: React.LazyExoticComponent<AllRoutesModule["AlertsRoutes"]> =
-  lazy(() => {
-    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-      return {
-        default: m.AlertsRoutes,
-      };
-    });
-  });
-const ScheduledMaintenanceEventsRoutes: React.LazyExoticComponent<
-  AllRoutesModule["ScheduledMaintenanceEventsRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.ScheduledMaintenanceEventsRoutes,
-    };
-  });
+const TopologyRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/TopologyRoutes");
 });
-const OnCallDutyRoutes: React.LazyExoticComponent<
-  AllRoutesModule["OnCallDutyRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.OnCallDutyRoutes,
-    };
-  });
+const ProfilesRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/ProfilesRoutes");
 });
-const MonitorsRoutes: React.LazyExoticComponent<
-  AllRoutesModule["MonitorsRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.MonitorsRoutes,
-    };
-  });
+const IncidentsRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/IncidentsRoutes");
 });
-const MonitorGroupRoutes: React.LazyExoticComponent<
-  AllRoutesModule["MonitorGroupRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.MonitorGroupRoutes,
-    };
-  });
+// The next two module file names differ from their component names.
+const AlertsRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/AlertRoutes");
 });
-const WorkflowRoutes: React.LazyExoticComponent<
-  AllRoutesModule["WorkflowRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.WorkflowRoutes,
-    };
-  });
+const ScheduledMaintenanceEventsRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/ScheduleMaintenanceEventsRoutes");
 });
-const RunbookRoutes: React.LazyExoticComponent<
-  AllRoutesModule["RunbookRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.RunbookRoutes,
-    };
-  });
+const OnCallDutyRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/OnCallDutyRoutes");
 });
-const StatusPagesRoutes: React.LazyExoticComponent<
-  AllRoutesModule["StatusPagesRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.StatusPagesRoutes,
-    };
-  });
+const MonitorsRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/MonitorsRoutes");
 });
-const DashboardRoutes: React.LazyExoticComponent<
-  AllRoutesModule["DashboardRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.DashboardRoutes,
-    };
-  });
+const MonitorGroupRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/MonitorGroupRoutes");
 });
-const ServiceRoutes: React.LazyExoticComponent<
-  AllRoutesModule["ServiceRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.ServiceRoutes,
-    };
-  });
+const WorkflowRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/WorkflowRoutes");
 });
-const KubernetesRoutes: React.LazyExoticComponent<
-  AllRoutesModule["KubernetesRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.KubernetesRoutes,
-    };
-  });
+const RunbookRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/RunbookRoutes");
 });
-const DockerRoutes: React.LazyExoticComponent<AllRoutesModule["DockerRoutes"]> =
-  lazy(() => {
-    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-      return {
-        default: m.DockerRoutes,
-      };
-    });
-  });
-const NetworkDeviceRoutes: React.LazyExoticComponent<
-  AllRoutesModule["NetworkDeviceRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.NetworkDeviceRoutes,
-    };
-  });
+const StatusPagesRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/StatusPagesRoutes");
 });
-const NetworkSiteRoutes: React.LazyExoticComponent<
-  AllRoutesModule["NetworkSiteRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.NetworkSiteRoutes,
-    };
-  });
+const DashboardRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/DashboardRoutes");
 });
-const SloRoutes: React.LazyExoticComponent<AllRoutesModule["SloRoutes"]> = lazy(
-  () => {
-    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-      return {
-        default: m.SloRoutes,
-      };
-    });
-  },
-);
-const PodmanRoutes: React.LazyExoticComponent<AllRoutesModule["PodmanRoutes"]> =
-  lazy(() => {
-    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-      return {
-        default: m.PodmanRoutes,
-      };
-    });
-  });
-const ProxmoxRoutes: React.LazyExoticComponent<
-  AllRoutesModule["ProxmoxRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.ProxmoxRoutes,
-    };
-  });
+const ServiceRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/ServiceRoutes");
 });
-const IoTRoutes: React.LazyExoticComponent<AllRoutesModule["IoTRoutes"]> = lazy(
-  () => {
-    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-      return {
-        default: m.IoTRoutes,
-      };
-    });
-  },
-);
-const DockerSwarmRoutes: React.LazyExoticComponent<
-  AllRoutesModule["DockerSwarmRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.DockerSwarmRoutes,
-    };
-  });
+const KubernetesRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/KubernetesRoutes");
 });
-const CephRoutes: React.LazyExoticComponent<AllRoutesModule["CephRoutes"]> =
-  lazy(() => {
-    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-      return {
-        default: m.CephRoutes,
-      };
-    });
-  });
-const HostRoutes: React.LazyExoticComponent<AllRoutesModule["HostRoutes"]> =
-  lazy(() => {
-    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-      return {
-        default: m.HostRoutes,
-      };
-    });
-  });
-const ServerlessRoutes: React.LazyExoticComponent<
-  AllRoutesModule["ServerlessRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.ServerlessRoutes,
-    };
-  });
+const DockerRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/DockerRoutes");
 });
-const CloudResourceRoutes: React.LazyExoticComponent<
-  AllRoutesModule["CloudResourceRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.CloudResourceRoutes,
-    };
-  });
+const NetworkDeviceRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/NetworkDeviceRoutes");
 });
-const RumApplicationRoutes: React.LazyExoticComponent<
-  AllRoutesModule["RumApplicationRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.RumApplicationRoutes,
-    };
-  });
+const NetworkSiteRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/NetworkSiteRoutes");
 });
-const CodeRepositoryRoutes: React.LazyExoticComponent<
-  AllRoutesModule["CodeRepositoryRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.CodeRepositoryRoutes,
-    };
-  });
+const SloRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/SloRoutes");
 });
-const AIAgentTasksRoutes: React.LazyExoticComponent<
-  AllRoutesModule["AIAgentTasksRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.AIAgentTasksRoutes,
-    };
-  });
+const PodmanRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/PodmanRoutes");
 });
-const AIInsightsRoutes: React.LazyExoticComponent<
-  AllRoutesModule["AIInsightsRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.AIInsightsRoutes,
-    };
-  });
+const ProxmoxRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/ProxmoxRoutes");
 });
-const SettingsRoutes: React.LazyExoticComponent<
-  AllRoutesModule["SettingsRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.SettingsRoutes,
-    };
-  });
+const IoTRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/IoTRoutes");
 });
-const UserSettingsRoutes: React.LazyExoticComponent<
-  AllRoutesModule["UserSettingsRoutes"]
-> = lazy(() => {
-  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-    return {
-      default: m.UserSettingsRoutes,
-    };
-  });
+const DockerSwarmRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/DockerSwarmRoutes");
 });
-const UsersRoutes: React.LazyExoticComponent<AllRoutesModule["UsersRoutes"]> =
-  lazy(() => {
-    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-      return {
-        default: m.UsersRoutes,
-      };
-    });
-  });
-const TeamsRoutes: React.LazyExoticComponent<AllRoutesModule["TeamsRoutes"]> =
-  lazy(() => {
-    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
-      return {
-        default: m.TeamsRoutes,
-      };
-    });
-  });
+const CephRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/CephRoutes");
+});
+const HostRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/HostRoutes");
+});
+const ServerlessRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/ServerlessRoutes");
+});
+const CloudResourceRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/CloudResourceRoutes");
+});
+const RumApplicationRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/RumApplicationRoutes");
+});
+const CodeRepositoryRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/CodeRepositoryRoutes");
+});
+const AIAgentTasksRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/AIAgentTasksRoutes");
+});
+const AIInsightsRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/AIInsightsRoutes");
+});
+const SettingsRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/SettingsRoutes");
+});
+const UserSettingsRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/UserSettingsRoutes");
+});
+const UsersRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/UsersRoutes");
+});
+const TeamsRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/TeamsRoutes");
+});
 
 const App: () => JSX.Element = () => {
   const location: ReturnType<typeof useLocation> = useLocation();
@@ -430,14 +217,20 @@ const App: () => JSX.Element = () => {
 
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
-  const [ispaymentMethodsCountLoading, setPaymentMethodsCountLoading] =
-    useState<boolean>(false);
   const [paymentMethodsCount, setPaymentMethodsCount] = useState<
     number | undefined
   >(undefined);
 
   const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean>(false);
 
+  /*
+   * Deliberately a BACKGROUND fetch: this count must never feed MasterPage's
+   * isLoading. Gating on it unmounted the entire app (header, navbar, page)
+   * behind a full-screen loader for one count query on every project
+   * selection, and the remount re-fired every mount-time request. Consumers
+   * already tolerate the count arriving late — Header renders its add-card
+   * nag only once paymentMethodsCount !== undefined.
+   */
   useAsyncEffect(async () => {
     try {
       if (selectedProject && selectedProject._id) {
@@ -445,8 +238,6 @@ const App: () => JSX.Element = () => {
       }
 
       if (selectedProject && selectedProject._id && BILLING_ENABLED) {
-        setPaymentMethodsCountLoading(true);
-
         const paymentMethodsCount: number = await ModelAPI.count({
           modelType: BillingPaymentMethod,
           query: { projectId: selectedProject._id },
@@ -464,17 +255,22 @@ const App: () => JSX.Element = () => {
       if (!BILLING_ENABLED) {
         setHasPaymentMethod(true);
       }
-
-      setPaymentMethodsCountLoading(false);
     } catch (e) {
       setError(API.getFriendlyMessage(e));
-      setPaymentMethodsCountLoading(false);
     }
   }, [selectedProject?._id]);
 
   const onProjectSelected: (project: Project) => void = (
     project: Project,
   ): void => {
+    /*
+     * Captured BEFORE setSelectedProject: the in-memory id is what separates
+     * a fresh boot (null — login, reload, auto-select) from an actual switch
+     * between two projects inside this document.
+     */
+    const previousProjectId: string | null =
+      selectedProject?._id?.toString() || null;
+
     setSelectedProject(project);
 
     if (
@@ -487,10 +283,25 @@ const App: () => JSX.Element = () => {
 
     const currentRoute: Route = Navigation.getCurrentRoute();
 
-    if (!currentRoute.toString().includes(project._id!)) {
+    const decision: ProjectSelectionNavigationDecision =
+      getProjectSelectionNavigationDecision({
+        currentRoute: currentRoute.toString(),
+        selectedProjectId: project._id?.toString(),
+        previousProjectId: previousProjectId,
+      });
+
+    if (decision.shouldNavigate) {
       ProjectUtil.setCurrentProject(project);
-      Navigation.navigate(new Route("/dashboard/" + project._id), {
-        forceNavigate: true,
+
+      /*
+       * forceNavigate (a full document reload) ONLY when switching between
+       * two different projects, where the reload resets mounted components
+       * still holding the old project's state. The first selection after
+       * login/reload stays an in-app (SPA) navigation — a full reload there
+       * re-ran the whole boot and threw away every in-flight request.
+       */
+      Navigation.navigate(new Route(decision.routePath), {
+        forceNavigate: decision.forceNavigate,
       });
     }
   };
@@ -550,7 +361,7 @@ const App: () => JSX.Element = () => {
 
   return (
     <MasterPage
-      isLoading={isLoading || ispaymentMethodsCountLoading}
+      isLoading={isLoading}
       projects={projects}
       error={error}
       paymentMethodsCount={paymentMethodsCount}
@@ -565,6 +376,7 @@ const App: () => JSX.Element = () => {
       <UseTimezoneInitElement />
       <ToastLayout />
       <AIChatPanel />
+      <DashboardCommandPalette />
       {/*
        * Contain page-level render errors here. Without a boundary a single
        * throwing component (or a lazy chunk that 404s after a deploy) unmounts

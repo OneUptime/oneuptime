@@ -91,22 +91,28 @@ const Button: FunctionComponent<ComponentProps> = ({
   const translatedTitle: string | undefined = translateString(title);
   const translatedTooltip: string | undefined = translateString(tooltip);
   useEffect(() => {
-    // componentDidMount
-    if (shortcutKey) {
-      window.addEventListener(`keydown`, (e: KeyboardEventProp) => {
-        return handleKeyboard(e);
-      });
+    if (!shortcutKey) {
+      return undefined;
     }
 
-    // componentDidUnmount
-    return () => {
-      if (shortcutKey) {
-        window.removeEventListener(`keydown`, (e: KeyboardEventProp) => {
-          return handleKeyboard(e);
-        });
-      }
+    /*
+     * One stable function for the whole subscription. The previous version
+     * passed a fresh arrow function to removeEventListener, which never
+     * matches the one that was added — every render leaked a live keydown
+     * listener for the lifetime of the page.
+     */
+    const onKeyDown: (event: KeyboardEventProp) => void = (
+      event: KeyboardEventProp,
+    ): void => {
+      return handleKeyboard(event);
     };
-  });
+
+    window.addEventListener(`keydown`, onKeyDown);
+
+    return () => {
+      window.removeEventListener(`keydown`, onKeyDown);
+    };
+  }, [shortcutKey, onClick]);
 
   type HandleKeyboardFunction = (event: KeyboardEventProp) => void;
 
@@ -141,7 +147,7 @@ const Button: FunctionComponent<ComponentProps> = ({
   }
 
   if (buttonStyle === ButtonStyleType.LINK) {
-    buttonStyleCssClass = `text-indigo-600 hover:text-indigo-900  space-x-2`;
+    buttonStyleCssClass = `text-indigo-600 hover:text-indigo-900  space-x-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`;
 
     if (icon) {
       buttonStyleCssClass += ` flex`;
@@ -149,7 +155,7 @@ const Button: FunctionComponent<ComponentProps> = ({
   }
 
   if (buttonStyle === ButtonStyleType.SECONDARY_LINK) {
-    buttonStyleCssClass = `text-sm text-gray-400 hover:text-gray-500 space-x-2`;
+    buttonStyleCssClass = `text-sm text-gray-400 hover:text-gray-500 space-x-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`;
 
     if (icon) {
       buttonStyleCssClass += ` flex`;
@@ -238,6 +244,13 @@ const Button: FunctionComponent<ComponentProps> = ({
       disabled ? "" : "hover:bg-yellow-50"
     }   focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
   }
+
+  /*
+   * The one shared point every variant funnels through: hover/focus colour
+   * changes ease in instead of snapping, at the same 150ms the other
+   * primitives use.
+   */
+  buttonStyleCssClass += ` transition-colors duration-150 ease-out`;
 
   buttonStyleCssClass += ` ` + buttonSize;
 

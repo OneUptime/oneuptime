@@ -589,7 +589,12 @@ const Dropdown: FunctionComponent<ComponentProps> = (
             return "text-gray-400 transition-colors duration-150 hover:text-red-500";
           },
           menu: () => {
-            return "!mt-2 !rounded-xl !border !border-gray-100 !bg-white !shadow-xl";
+            /*
+             * ou-animate-pop-in (Theme.css) is a CSS animation, not a
+             * transition: react-select mounts the portalled menu already open,
+             * so there is no closed state to transition from.
+             */
+            return "!mt-2 !rounded-xl !border !border-gray-100 !bg-white !shadow-xl ou-animate-pop-in";
           },
           menuList: () => {
             return "!py-2";

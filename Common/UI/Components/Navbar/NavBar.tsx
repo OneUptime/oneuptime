@@ -65,6 +65,14 @@ export interface ComponentProps {
     description: string;
     link: URL;
   };
+  /*
+   * When true, the document-level Cmd/Ctrl+K shortcut that toggles the
+   * products menu is not registered — for apps where another surface (e.g. a
+   * command palette) owns that shortcut. The menu itself stays fully usable
+   * via its trigger button. Defaults to false: existing consumers keep the
+   * shortcut.
+   */
+  disableCommandKShortcut?: boolean | undefined;
   className?: string;
   // Legacy support for children-based usage
   children?: ReactElement | Array<ReactElement>;
@@ -165,6 +173,11 @@ const Navbar: FunctionComponent<ComponentProps> = (
 
   // Open/close the products menu with Cmd/Ctrl + K from anywhere.
   useEffect(() => {
+    if (props.disableCommandKShortcut) {
+      // Another surface (e.g. a command palette) owns Cmd/Ctrl+K.
+      return;
+    }
+
     const handleGlobalKeyDown: (event: KeyboardEvent) => void = (
       event: KeyboardEvent,
     ): void => {
@@ -180,7 +193,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
     return () => {
       document.removeEventListener("keydown", handleGlobalKeyDown);
     };
-  }, []);
+  }, [props.disableCommandKShortcut]);
 
   // More menu open/close.
   const openMoreMenu: () => void = (): void => {

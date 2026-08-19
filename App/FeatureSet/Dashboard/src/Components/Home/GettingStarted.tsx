@@ -121,6 +121,14 @@ const getDismissKey: GetDismissKeyFunction = (projectId: ObjectID): string => {
   return `getting-started-dismissed-${projectId.toString()}`;
 };
 
+type GetCompleteKeyFunction = (projectId: ObjectID) => string;
+
+const getCompleteKey: GetCompleteKeyFunction = (
+  projectId: ObjectID,
+): string => {
+  return `getting-started-complete-${projectId.toString()}`;
+};
+
 const GettingStarted: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -145,6 +153,20 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
         completion[task.key] = results[i] || false;
       });
 
+      const isEveryTaskComplete: boolean = gettingStartedTasks.every(
+        (task: GettingStartedTask) => {
+          return completion[task.key];
+        },
+      );
+
+      if (isEveryTaskComplete) {
+        /*
+         * A finished checklist never renders again — remember that, so
+         * future Home visits skip these count requests entirely.
+         */
+        LocalStorage.setItem(getCompleteKey(props.projectId), true);
+      }
+
       setTaskCompletion(completion);
     } catch {
       // the checklist is a progressive enhancement — hide it if we cannot load it.
@@ -153,9 +175,23 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
   };
 
   useEffect(() => {
-    setIsDismissed(
-      Boolean(LocalStorage.getItem(getDismissKey(props.projectId))),
+    const dismissed: boolean = Boolean(
+      LocalStorage.getItem(getDismissKey(props.projectId)),
     );
+
+    setIsDismissed(dismissed);
+
+    /*
+     * A dismissed or already-completed checklist renders nothing, so bail
+     * out BEFORE firing the four count requests — otherwise every Home
+     * visit pays for a card that will never be shown.
+     */
+    if (
+      dismissed ||
+      Boolean(LocalStorage.getItem(getCompleteKey(props.projectId)))
+    ) {
+      return;
+    }
 
     fetchTaskCompletion().catch(() => {
       // handled in fetchTaskCompletion.

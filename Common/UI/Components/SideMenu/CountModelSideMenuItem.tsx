@@ -7,7 +7,14 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
 import Link from "../../../Types/Link";
-import React, { ReactElement, useEffect, useState, useCallback } from "react";
+import React, {
+  MutableRefObject,
+  ReactElement,
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 import GlobalEvents from "../../Utils/GlobalEvents";
 
 export const REFRESH_SIDEBAR_COUNT_EVENT: string = "REFRESH_SIDEBAR_COUNTS";
@@ -70,7 +77,39 @@ const CountModelSideMenuItem: <TBaseModel extends BaseModel>(
       props.onCountFetchInit,
     ]);
 
+  /*
+   * Side menus rebuild `countQuery` / `requestOptions` as fresh object
+   * literals on every render, so their identity changes on every parent
+   * re-render (which happens on every in-section navigation). Guard the fetch
+   * with a value-level compare - the same JSON.stringify-in-a-ref pattern
+   * BaseModelTable uses for its `props.query` - so only a real change
+   * re-issues the count request. The global refresh event below still forces
+   * a refetch regardless of this guard.
+   */
+  const lastFetchedModelTypeRef: MutableRefObject<
+    { new (): TBaseModel } | undefined
+  > = useRef<{ new (): TBaseModel } | undefined>(undefined);
+  const lastFetchedQueryJsonRef: MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
+
   useEffect(() => {
+    const queryJson: string = JSON.stringify({
+      countQuery: props.countQuery || null,
+      requestOptions: props.requestOptions || null,
+    });
+
+    // only fetch if the query has changed by value (or on first mount).
+    if (
+      lastFetchedModelTypeRef.current === props.modelType &&
+      lastFetchedQueryJsonRef.current === queryJson
+    ) {
+      return;
+    }
+
+    lastFetchedModelTypeRef.current = props.modelType;
+    lastFetchedQueryJsonRef.current = queryJson;
+
     fetchCount().catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
     });

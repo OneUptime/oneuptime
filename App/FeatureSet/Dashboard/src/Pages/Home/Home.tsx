@@ -91,32 +91,41 @@ const Home: FunctionComponent<ComponentProps> = (
       }
     >
       <div>
-        {isLoading && <PageLoader isVisible={true} />}
-        {error && <ErrorMessage message={error} />}
-
-        {!isLoading && !error && currentProjectId && (
+        {/*
+         * GettingStarted and OverviewStats only need the project id and manage
+         * their own loading states — gating them behind the incident-states
+         * fetch would serialize the page's requests for nothing. Only the
+         * incidents table below actually needs the unresolved states.
+         */}
+        {currentProjectId && (
           <div>
             <GettingStarted projectId={currentProjectId} />
 
             <OverviewStats projectId={currentProjectId} />
-
-            {unresolvedIncidentStates.length > 0 && (
-              <IncidentsTable
-                query={{
-                  projectId: currentProjectId,
-                  currentIncidentStateId: new Includes(
-                    unresolvedIncidentStates.map((state: IncidentState) => {
-                      return state.id!;
-                    }),
-                  ),
-                }}
-                noItemsMessage="Nice work! No Active Incidents so far."
-                title="Active Incidents"
-                description="Here is a list of all the Active Incidents for this project."
-              />
-            )}
           </div>
         )}
+
+        {isLoading && <PageLoader isVisible={true} />}
+        {error && <ErrorMessage message={error} />}
+
+        {!isLoading &&
+          !error &&
+          currentProjectId &&
+          unresolvedIncidentStates.length > 0 && (
+            <IncidentsTable
+              query={{
+                projectId: currentProjectId,
+                currentIncidentStateId: new Includes(
+                  unresolvedIncidentStates.map((state: IncidentState) => {
+                    return state.id!;
+                  }),
+                ),
+              }}
+              noItemsMessage="Nice work! No Active Incidents so far."
+              title="Active Incidents"
+              description="Here is a list of all the Active Incidents for this project."
+            />
+          )}
       </div>
     </Page>
   );

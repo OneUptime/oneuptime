@@ -40,13 +40,30 @@ describe("OrderedSateList", () => {
     render(<OrderedStatesList {...props} />);
     expect(props.data).toHaveLength(3);
   });
-  it("renders a ComponentLoader if isLoading prop is true", () => {
+  it("renders a skeleton stack if isLoading is true with nothing to show yet", () => {
+    const props: ComponentProps<ItemData> = {
+      ...defaultProps,
+      data: [],
+      isLoading: true,
+    };
+    render(<OrderedStatesList {...props} />);
+    expect(
+      screen.getByTestId("ordered-states-list-skeleton-loader"),
+    ).toBeInTheDocument();
+  });
+  it("keeps existing states visible, dimmed, while refetching", () => {
     const props: ComponentProps<ItemData> = {
       ...defaultProps,
       isLoading: true,
     };
     render(<OrderedStatesList {...props} />);
-    expect(screen.getByTestId("bar-loader")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("ordered-states-list-skeleton-loader"),
+    ).toBeNull();
+    expect(screen.getByText("item 1")).toBeInTheDocument();
+    expect(screen.getByTestId("ordered-states-list-content")).toHaveClass(
+      "opacity-60",
+    );
   });
   it("should render an error message if error prop is present", () => {
     const props: ComponentProps<ItemData> = {

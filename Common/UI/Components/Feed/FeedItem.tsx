@@ -8,7 +8,7 @@ import UserUtil from "../../Utils/User";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 import Tooltip from "../Tooltip/Tooltip";
-import MarkdownViewer from "../Markdown.tsx/MarkdownViewer";
+import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import ConfirmModal from "../Modal/ConfirmModal";
 import Icon from "../Icon/Icon";
