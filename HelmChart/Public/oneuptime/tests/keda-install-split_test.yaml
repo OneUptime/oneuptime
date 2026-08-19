@@ -1,0 +1,123 @@
+# `keda.enabled` used to gate two unrelated things: whether this chart renders
+# ScaledObjects, and whether it installs a KEDA operator. That left two clusters
+# unserved. One that already runs KEDA cluster-wide could not use the chart's
+# ScaledObjects at all -- turning the flag on tried to install a second operator
+# and collided with the existing release on cluster-scoped objects ("ClusterRole
+# keda-operator ... cannot be imported into the current release"). And one with
+# no KEDA at all could not do a first install, because the bundled subchart ships
+# its CRDs as ordinary templates rather than in a crds/ directory, so Helm was
+# asked to resolve a ScaledObject against a CRD the same release had not applied
+# yet ("no matches for kind ScaledObject in version keda.sh/v1alpha1").
+#
+# `keda.install` splits them: it is the first path of the dependency condition in
+# Chart.yaml and decides the operator on its own, while keda.enabled keeps
+# deciding the ScaledObjects. This suite pins the ScaledObject half of that
+# matrix -- the operator half is in keda-subchart_test.yaml (the ON side; the OFF
+# side is not expressible in helm-unittest) and both halves are checked against a
+# real cluster in HelmChart/Tests/suites/keda-bootstrap.sh.
+suite: keda install/enabled split
+templates:
+  - templates/keda-scaledobjects.yaml
+release:
+  name: ou
+  namespace: oneuptime
+tests:
+  # THE case the split exists for. The platform team's KEDA reconciles these; the
+  # chart must render the custom resources and keep its hands off the operator.
+  - it: should render ScaledObjects for an externally managed KEDA
+    set:
+      keda.enabled: true
+      keda.install: false
+      worker.enabled: true
+      worker.keda.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 2
+      - containsDocument:
+          apiVersion: keda.sh/v1alpha1
+          kind: ScaledObject
+          name: ou-worker-scaledobject
+          namespace: oneuptime
+          any: true
+      - containsDocument:
+          apiVersion: keda.sh/v1alpha1
+          kind: TriggerAuthentication
+          name: ou-worker-trigger-auth
+          namespace: oneuptime
+          any: true
+
+  # install is about the operator and nothing else. Rendering must be identical
+  # whether it is unset, true, or false -- if any of these three diverge, an
+  # operator who flips install to adopt their own KEDA silently loses (or gains)
+  # autoscaling on a live tier.
+  - it: should render the same ScaledObjects when install is unset
+    set:
+      keda.enabled: true
+      worker.enabled: true
+      worker.keda.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 2
+      - containsDocument:
+          apiVersion: keda.sh/v1alpha1
+          kind: ScaledObject
+          name: ou-worker-scaledobject
+          namespace: oneuptime
+          any: true
+
+  - it: should render the same ScaledObjects when install is explicitly true
+    set:
+      keda.enabled: true
+      keda.install: true
+      worker.enabled: true
+      worker.keda.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 2
+      - containsDocument:
+          apiVersion: keda.sh/v1alpha1
+          kind: ScaledObject
+          name: ou-worker-scaledobject
+          namespace: oneuptime
+          any: true
+
+  # The bootstrap pass has to be a genuine no-op on the CR side. If anything
+  # renders here the first install still fails on the missing CRD, which is the
+  # entire bug this pass works around.
+  - it: should render no ScaledObjects during the bootstrap pass
+    set:
+      keda.enabled: false
+      keda.install: true
+      worker.enabled: true
+      worker.keda.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # install must not stand in for enabled. Installing an operator does not opt any
+  # tier into autoscaling, and a tier that never opted in must not acquire a
+  # ScaledObject just because the operator is present.
+  - it: should render no ScaledObjects when install is on and no tier opted in
+    set:
+      keda.enabled: false
+      keda.install: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # Every tier travels the same path, so one non-worker tier is enough to catch a
+  # gate that reads install where it should read enabled.
+  - it: should render an app ScaledObject for an externally managed KEDA
+    set:
+      keda.enabled: true
+      keda.install: false
+      app.keda.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 2
+      - containsDocument:
+          apiVersion: keda.sh/v1alpha1
+          kind: ScaledObject
+          name: ou-app-scaledobject
+          namespace: oneuptime
+          any: true

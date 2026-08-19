@@ -3,14 +3,22 @@ release:
   name: ou
   namespace: oneuptime
 tests:
-  # The global flag is also the `condition:` on the KEDA dependency in Chart.yaml,
-  # so it decides whether the operator's three Deployments (manager, metrics
-  # server, webhooks) are installed at all. This pins the ON side: the subchart
-  # templates are reachable and DO render when the flag is true.
+  # `condition: keda.install,keda.enabled` on the KEDA dependency in Chart.yaml
+  # decides whether the operator's three Deployments (manager, metrics server,
+  # webhooks) are installed at all. Helm walks those paths in order and takes the
+  # first that holds a real bool, so keda.enabled decides while keda.install is
+  # unset -- which is the whole of backward compatibility for anyone already
+  # running `keda.enabled: true`. This pins the ON side: the subchart templates
+  # are reachable and DO render when the flag is true.
   #
   # The OFF side cannot be expressed here: when the condition excludes the
   # subchart, helm-unittest reports its templates as "not exists" (a suite error)
-  # rather than as zero documents. `helm template` on default values renders zero
+  # rather than as zero documents. That is why `keda.install: false` -- the
+  # externally-managed-KEDA case, and the entire point of the split -- has no
+  # case in this suite; it is covered from the other side in
+  # keda-install-split_test.yaml (ScaledObjects still render) and end to end in
+  # HelmChart/Tests/suites/keda-bootstrap.sh, which counts the operator's objects
+  # against a real cluster. `helm template` on default values renders zero
   # keda-operator/keda-metrics-server/keda-webhook objects -- verified out of band.
   - it: should install the KEDA operator manager when the global flag is on
     templates:
@@ -44,3 +52,51 @@ tests:
           count: 1
       - isKind:
           of: Deployment
+
+  # The bootstrap pass: keda.enabled is false, so no ScaledObject renders, but
+  # keda.install: true still has to bring the operator and its CRDs in. If the
+  # condition ever loses its first path this stops rendering and the two-phase
+  # first install documented in HelmChart/Docs/Keda.md has no first phase.
+  - it: should install the KEDA operator when install is on and enabled is off
+    templates:
+      - charts/keda/templates/manager/deployment.yaml
+    set:
+      keda.enabled: false
+      keda.install: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Deployment
+
+  # The CRDs the bootstrap pass exists to apply. They ship as ordinary templates
+  # in the subchart rather than in a crds/ directory -- that packaging is the
+  # whole reason a single-pass install cannot work, so pin that these two (the
+  # only kinds this chart renders custom resources for) come with the operator.
+  - it: should install the ScaledObject CRD with the operator
+    templates:
+      - charts/keda/templates/crds/crd-scaledobjects.yaml
+    set:
+      keda.install: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: CustomResourceDefinition
+      - equal:
+          path: metadata.name
+          value: scaledobjects.keda.sh
+
+  - it: should install the TriggerAuthentication CRD with the operator
+    templates:
+      - charts/keda/templates/crds/crd-triggerauthentications.yaml
+    set:
+      keda.install: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: CustomResourceDefinition
+      - equal:
+          path: metadata.name
+          value: triggerauthentications.keda.sh

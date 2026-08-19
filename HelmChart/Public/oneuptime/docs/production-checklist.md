@@ -65,6 +65,16 @@ Work through this list to make your OneUptime installation production-ready.
   `app.keda.targetCPUUtilizationPercentage` (with `app.resources.requests.cpu`)
   so the API tier still autoscales once its queue-size trigger is disabled.
 
+- [ ] **Decide where KEDA comes from before the first install.** `keda.enabled`
+  renders the chart's `ScaledObject`s; `keda.install` decides whether the chart
+  also installs the operator, and follows `keda.enabled` unless you set it. On a
+  cluster where a platform team already runs KEDA, set `keda.install: false` —
+  installing a second operator collides on cluster-scoped objects the existing
+  release owns. On a cluster with no KEDA, the first install needs one extra
+  bootstrap pass, because the bundled operator's CRDs have to reach the cluster
+  before the `ScaledObject`s can. Both paths are in
+  [KEDA Ops](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md).
+
 - [ ] **Size ClickHouse insert concurrency when scaling telemetry ingest
   workers.** Every telemetry-ingesting pod runs a fan-in writer that batches
   all telemetry ClickHouse inserts into a handful of large INSERTs, so worker

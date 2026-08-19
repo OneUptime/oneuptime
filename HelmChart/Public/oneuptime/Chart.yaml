@@ -65,7 +65,12 @@ dependencies:
 - name: keda
   version: "2.20.1"
   repository: "https://kedacore.github.io/charts"
-  condition: keda.enabled
+  # Two paths, tried in order, first one that holds a bool wins: `keda.install`
+  # decides on its own when it is set, and falls through to `keda.enabled` when
+  # it is not (values.yaml deliberately leaves it unset). That is what lets a
+  # cluster that already runs KEDA render this chart's ScaledObjects without
+  # installing a second operator — see the keda block in values.yaml.
+  condition: keda.install,keda.enabled
 - name: cloudnative-pg
   version: "0.28.2"
   repository: "https://cloudnative-pg.github.io/charts"

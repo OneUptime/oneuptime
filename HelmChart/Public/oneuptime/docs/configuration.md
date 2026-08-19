@@ -114,6 +114,8 @@ externalSecrets:
 | Parameter                                       | Description                                                                                   | Default |
 |-------------------------------------------------|-----------------------------------------------------------------------------------------------|---------|
 | `deployment.replicaCount`                       | Number of replicas.                                                                            | `1`     |
+| `keda.enabled`                                  | Render the chart's KEDA `ScaledObject`s, so the opted-in tiers scale on queue backlog instead of a plain HorizontalPodAutoscaler. Opt a tier in with `<service>.keda.enabled`. | `false` |
+| `keda.install`                                  | Install the bundled KEDA operator. Unset by default, which makes it follow `keda.enabled`; set it to `false` to use a KEDA your platform team already runs. See [KEDA Ops](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Docs/Keda.md). | unset |
 | `autoscaling.enabled`                           | Enable autoscaling.                                                                            | `false` |
 | `autoscaling.minReplicas`                       | Minimum number of replicas.                                                                    | `1`     |
 | `autoscaling.maxReplicas`                       | Maximum number of replicas.                                                                    | `100`   |

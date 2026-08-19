@@ -2144,23 +2144,62 @@ queueDashboard:
   enabled: false
   secret:
 
-# KEDA (Kubernetes Event-driven Autoscaling). This single flag gates BOTH the
-# bundled KEDA operator subchart (see the `condition: keda.enabled` dependency
-# in Chart.yaml) AND every ScaledObject the chart renders
-# (templates/keda-scaledobjects.yaml).
+# KEDA (Kubernetes Event-driven Autoscaling). Two flags, because who runs the
+# operator and who owns the ScaledObjects are separate questions:
 #
-# Ships false: every per-service `keda.enabled` also ships false, so on default
-# values the operator was installed (3 Deployments — manager, metrics server,
-# webhooks — plus their CRDs) purely to sit idle. Turn this on together with at
-# least one per-service `<service>.keda.enabled` to autoscale on queue depth.
+#   keda.enabled  renders every ScaledObject/TriggerAuthentication in this chart
+#                 (templates/keda-scaledobjects.yaml).
+#   keda.install  installs the bundled KEDA operator subchart — it is the
+#                 `condition:` on the dependency in Chart.yaml. Deliberately NOT
+#                 set below: an unset condition path falls through to the next
+#                 one, so it tracks keda.enabled until you set it to a literal
+#                 true/false yourself. Only a real bool counts — values.schema.json
+#                 pins it to boolean so `install: ~` is rejected outright, and a
+#                 quoted "true" from --set-string would make Helm warn and fall
+#                 back to keda.enabled rather than install anything.
 #
-# Setting a per-service `keda.enabled` while this stays false is a hard error —
-# it would render no ScaledObject at all (and, on upgrade from a release that
-# had this on, uninstall the operator out from under live ScaledObjects), so
-# templates/keda-scaledobjects.yaml fails the render instead of silently
-# dropping your autoscaling.
+# keda.enabled ships false: every per-service `keda.enabled` also ships false,
+# so on default values the operator was installed (3 Deployments — manager,
+# metrics server, webhooks — plus 6 CRDs, 9 ClusterRoles, a validating webhook
+# and an aggregated APIService that takes over external.metrics.k8s.io
+# cluster-wide) purely to sit idle. Turn it on together with at least one
+# per-service `<service>.keda.enabled` to autoscale on queue depth.
+#
+# The three combinations that matter:
+#
+#   enabled: true                  bundled operator + this chart's ScaledObjects.
+#                                  The default relationship — leave install unset.
+#
+#   enabled: true, install: false  your platform team already runs KEDA. The chart
+#                                  renders only the ScaledObjects and leaves the
+#                                  operator alone. Without this the install fails
+#                                  on cluster-scoped resources the existing KEDA
+#                                  release already owns ("ClusterRole
+#                                  keda-operator ... cannot be imported").
+#
+#   enabled: false, install: true  the one-time bootstrap pass on a cluster with
+#                                  no KEDA. The bundled subchart ships its CRDs as
+#                                  templates rather than in a crds/ directory, and
+#                                  only a crds/ directory is applied ahead of the
+#                                  rest of the release — so the first install
+#                                  aborts on "no matches for kind ScaledObject"
+#                                  before anything lands at all. This pass installs
+#                                  the operator and its CRDs and renders no custom
+#                                  resources; the next one renders the
+#                                  ScaledObjects. Walkthrough:
+#                                  HelmChart/Docs/Keda.md.
+#
+# Setting a per-service `keda.enabled` while keda.enabled stays false is a hard
+# error unless install is explicitly true (the bootstrap pass above) — it would
+# render no ScaledObject at all, and on upgrade from a release that had it on it
+# would uninstall the operator out from under live ScaledObjects, so
+# templates/keda-scaledobjects.yaml fails the render instead of silently dropping
+# your autoscaling.
 keda:
   enabled: false
+  # Uncomment (true or false) to decide the operator on its own. Leave it
+  # commented out — not null — to keep following keda.enabled.
+  # install: true
 
 # CloudNativePG operator — bundled dependency. Installed ONLY when
 # postgresOperator.cnpg.enabled is true (see the condition in Chart.yaml).
