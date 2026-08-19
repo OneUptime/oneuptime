@@ -25,9 +25,11 @@ describe("ProductCompare slugs", () => {
   });
 
   test("slugs are URL-safe — they become /compare/<slug> paths", () => {
-    // Lowercase alphanumerics with interior hyphens or dots (brand slugs like
-    // "incident.io" and "statuspage.io" carry a dot). Anything else — a slash,
-    // a space, an uppercase letter — would produce a broken or ambiguous URL.
+    /*
+     * Lowercase alphanumerics with interior hyphens or dots (brand slugs like
+     * "incident.io" and "statuspage.io" carry a dot). Anything else — a slash,
+     * a space, an uppercase letter — would produce a broken or ambiguous URL.
+     */
     const urlSafe: RegExp = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
     for (const slug of slugs) {
       expect(slug).toMatch(urlSafe);
@@ -35,8 +37,10 @@ describe("ProductCompare slugs", () => {
   });
 
   test("no slug ends in .md — that would collide with the markdown route", () => {
-    // The `/compare/<slug>.md` variant is served by a `\.md$` route that strips
-    // the suffix; a slug literally ending in .md would be unreachable as a page.
+    /*
+     * The `/compare/<slug>.md` variant is served by a `\.md$` route that strips
+     * the suffix; a slug literally ending in .md would be unreachable as a page.
+     */
     for (const slug of slugs) {
       expect(slug.endsWith(".md")).toBe(false);
     }
@@ -47,8 +51,10 @@ describe("ProductCompare slugs", () => {
   });
 
   test("the flagship comparison pages are present", () => {
-    // These are the highest-traffic competitor terms; losing one silently
-    // would drop a page buyers actively search for.
+    /*
+     * These are the highest-traffic competitor terms; losing one silently
+     * would drop a page buyers actively search for.
+     */
     expect(slugs).toEqual(expect.arrayContaining(["pagerduty", "datadog"]));
   });
 });
@@ -65,8 +71,10 @@ describe("ProductCompare lookup", () => {
   });
 
   test("inherited object keys do not resolve as products", () => {
-    // The lookup uses hasOwnProperty so prototype keys cannot leak a bogus,
-    // half-populated object into a rendered page.
+    /*
+     * The lookup uses hasOwnProperty so prototype keys cannot leak a bogus,
+     * half-populated object into a rendered page.
+     */
     expect(ProductCompare("constructor")).toBeUndefined();
     expect(ProductCompare("toString")).toBeUndefined();
     expect(ProductCompare("__proto__")).toBeUndefined();
@@ -107,9 +115,11 @@ describe("Every product is fully populated", () => {
 
         for (const item of category.data as Array<Item>) {
           expect(item.title.trim().length).toBeGreaterThan(0);
-          // Both feature cells must be strings — the markdown renderer treats
-          // "tick" as a checkmark and "" as "not available", so undefined
-          // would render the literal word "undefined" in the table.
+          /*
+           * Both feature cells must be strings — the markdown renderer treats
+           * "tick" as a checkmark and "" as "not available", so undefined
+           * would render the literal word "undefined" in the table.
+           */
           expect(typeof item.productColumn).toBe("string");
           expect(typeof item.oneuptimeColumn).toBe("string");
         }

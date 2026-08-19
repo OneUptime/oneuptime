@@ -14,9 +14,11 @@ import Pricing, {
  * plan list and the feature matrix rather than any specific price.
  */
 
-const planKeys: Array<string> = PricingPlans.map((plan: PricingPlan): string => {
-  return plan.key;
-});
+const planKeys: Array<string> = PricingPlans.map(
+  (plan: PricingPlan): string => {
+    return plan.key;
+  },
+);
 const planKeySet: Set<string> = new Set(planKeys);
 
 describe("PricingPlans", () => {
@@ -32,18 +34,21 @@ describe("PricingPlans", () => {
     expect(planKeySet.size).toBe(planKeys.length);
   });
 
-  test.each(PricingPlans)("plan %# has every required field", (plan: PricingPlan) => {
-    for (const field of [
-      "key",
-      "name",
-      "monthlyPricePerUser",
-      "yearlyMonthlyPricePerUser",
-      "description",
-    ] as Array<keyof PricingPlan>) {
-      expect(typeof plan[field]).toBe("string");
-      expect(plan[field].trim().length).toBeGreaterThan(0);
-    }
-  });
+  test.each(PricingPlans)(
+    "plan %# has every required field",
+    (plan: PricingPlan) => {
+      for (const field of [
+        "key",
+        "name",
+        "monthlyPricePerUser",
+        "yearlyMonthlyPricePerUser",
+        "description",
+      ] as Array<keyof PricingPlan>) {
+        expect(typeof plan[field]).toBe("string");
+        expect(plan[field].trim().length).toBeGreaterThan(0);
+      }
+    },
+  );
 });
 
 describe("Pricing feature matrix", () => {
@@ -65,18 +70,22 @@ describe("Pricing feature matrix", () => {
 
         const featurePlanKeys: Array<string> = Object.keys(feature.plans);
 
-        // Every plan column that exists must reference a real plan key. A typo
-        // like "grwoth" would otherwise render as an orphaned, invisible cell.
+        /*
+         * Every plan column that exists must reference a real plan key. A typo
+         * like "grwoth" would otherwise render as an orphaned, invisible cell.
+         */
         for (const key of featurePlanKeys) {
           expect(planKeySet.has(key)).toBe(true);
         }
 
-        // And every plan must have a cell for this feature, so no plan column
-        // is silently blank in the rendered matrix.
+        /*
+         * And every plan must have a cell for this feature, so no plan column
+         * is silently blank in the rendered matrix.
+         */
         for (const key of planKeys) {
-          expect(
-            Object.prototype.hasOwnProperty.call(feature.plans, key),
-          ).toBe(true);
+          expect(Object.prototype.hasOwnProperty.call(feature.plans, key)).toBe(
+            true,
+          );
         }
       }
     }
@@ -88,8 +97,10 @@ describe("Pricing feature matrix", () => {
         for (const value of Object.values(feature.plans)) {
           expect(["string", "boolean"]).toContain(typeof value);
           if (typeof value === "string") {
-            // An empty string renders as a blank cell rather than an explicit
-            // "not included" — the data uses `false` for that instead.
+            /*
+             * An empty string renders as a blank cell rather than an explicit
+             * "not included" — the data uses `false` for that instead.
+             */
             expect(value.trim().length).toBeGreaterThan(0);
           }
         }

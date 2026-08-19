@@ -36,7 +36,7 @@ test.describe("Home: Product comparison pages", () => {
     });
 
     expect(response?.status()).toBe(200);
-    expect((response?.headers()["content-type"] || "")).toContain("text/html");
+    expect(response?.headers()["content-type"] || "").toContain("text/html");
   });
 
   test("a flagship competitor page renders with both product names", async ({
@@ -57,12 +57,13 @@ test.describe("Home: Product comparison pages", () => {
 
     expect(response?.status()).toBe(200);
 
-    const bodyHandle: Awaited<ReturnType<typeof page.$>> =
-      await page.$("body");
+    const bodyHandle: Awaited<ReturnType<typeof page.$>> = await page.$("body");
     const body: string = (await bodyHandle?.innerText()) || "";
 
-    // A comparison page must name the competitor and OneUptime; a blank shell
-    // (missing data) would drop both.
+    /*
+     * A comparison page must name the competitor and OneUptime; a blank shell
+     * (missing data) would drop both.
+     */
     expect(body).toContain("PagerDuty");
     expect(body).toContain("OneUptime");
   });
@@ -106,8 +107,10 @@ test.describe("Home: Product comparison pages", () => {
 
     page.setDefaultNavigationTimeout(120000);
 
-    // Regression guard: "incident.io" is a real slug, and the dot must not be
-    // swallowed by the `\.md$` markdown route or truncated by path parsing.
+    /*
+     * Regression guard: "incident.io" is a real slug, and the dot must not be
+     * swallowed by the `\.md$` markdown route or truncated by path parsing.
+     */
     const response: Response | null = await page.goto(
       urlFor("/compare/incident.io"),
       { waitUntil: "networkidle" },
