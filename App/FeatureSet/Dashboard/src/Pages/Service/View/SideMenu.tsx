@@ -20,6 +20,8 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import RecommendationsSideMenuItem from "../../../Components/Recommendations/RecommendationsSideMenuItem";
+import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -110,6 +112,26 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Info}
+        />
+
+        {/*
+         * Not a plain SideMenuItem: the badge counts what still needs setting
+         * up here, which is the catalog minus what already exists minus what
+         * the team dismissed — a number no single table holds. For a service
+         * the catalog part of that also depends on the detected runtime, so
+         * this component fetches the service before it counts.
+         */}
+        <RecommendationsSideMenuItem
+          link={{
+            title: "Recommendations",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVICE_VIEW_RECOMMENDATIONS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          resourceType={MonitorRecommendationResourceType.Service}
+          resourceId={props.modelId}
+          icon={IconProp.Sparkles}
         />
 
         <SideMenuItem

@@ -105,6 +105,8 @@ beforeAll(async () => {
       PageMap.IOT_FLEET_VIEW_RECOMMENDATIONS,
     [MonitorRecommendationResourceType.RumApplication]:
       PageMap.RUM_APPLICATION_VIEW_RECOMMENDATIONS,
+    [MonitorRecommendationResourceType.Service]:
+      PageMap.SERVICE_VIEW_RECOMMENDATIONS,
   };
 });
 

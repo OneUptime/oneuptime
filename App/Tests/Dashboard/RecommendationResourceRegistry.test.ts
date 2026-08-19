@@ -2,6 +2,8 @@ import RecommendationResourceRegistry, {
   RecommendationResourceDefinition,
 } from "../../FeatureSet/Dashboard/src/Components/Recommendations/RecommendationResourceRegistry";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Service from "Common/Models/DatabaseModels/Service";
+import TechStack from "Common/Types/Service/TechStack";
 import MonitorRecommendationCatalog from "Common/Types/Monitor/Recommendation/MonitorRecommendationCatalog";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 
@@ -57,6 +59,7 @@ const EXPECTED_IDENTIFIER_FIELD: Record<
   [MonitorRecommendationResourceType.Ceph]: "name",
   [MonitorRecommendationResourceType.IoTDevice]: "name",
   [MonitorRecommendationResourceType.RumApplication]: "_id",
+  [MonitorRecommendationResourceType.Service]: "_id",
 };
 
 function getDefinitionOrFail(
@@ -73,6 +76,25 @@ function getDefinitionOrFail(
 }
 
 /* Build a model instance for a resource type with both fields populated. */
+/*
+ * A Service row carrying only the technology columns, for the context tests.
+ * Written straight onto the instance the way the API response is, so this is
+ * the exact shape `readContext` indexes into.
+ */
+function buildServiceModel(values: {
+  telemetrySdkLanguage?: string | undefined;
+  runtimeName?: string | undefined;
+  techStack?: Array<TechStack> | undefined;
+}): BaseModel {
+  const model: Service = new Service();
+
+  model.telemetrySdkLanguage = values.telemetrySdkLanguage;
+  model.runtimeName = values.runtimeName;
+  model.techStack = values.techStack;
+
+  return model;
+}
+
 function buildModel(
   resourceType: MonitorRecommendationResourceType,
   values: { identifier?: unknown; displayName?: unknown },
@@ -212,17 +234,30 @@ describe("RecommendationResourceRegistry", () => {
       for (const definition of RecommendationResourceRegistry.getDefinitions()) {
         const model: BaseModel = new definition.modelType();
 
-        expect(model.hasColumn(definition.identifierFieldName)).toBe(true);
-        expect(model.hasColumn(definition.displayNameFieldName)).toBe(true);
-
         /*
-         * These models declare their columns as optional public properties
-         * initialised to `undefined`, so the property is a real own property of
-         * a fresh instance. `readResourceFields` indexes the instance directly,
-         * so this is the exact lookup it performs.
+         * Context columns are held to exactly the same bar as the two
+         * mandatory ones. They fail more quietly than either: a mistyped
+         * context column does not blank the page, it silently narrows a Java
+         * service's recommendations down to the language-agnostic subset,
+         * which looks like a correct page with fewer cards on it.
          */
-        expect(definition.identifierFieldName in model).toBe(true);
-        expect(definition.displayNameFieldName in model).toBe(true);
+        const declaredFields: Array<string> = [
+          definition.identifierFieldName,
+          definition.displayNameFieldName,
+          ...(definition.contextFieldNames || []),
+        ];
+
+        for (const fieldName of declaredFields) {
+          expect(model.hasColumn(fieldName)).toBe(true);
+
+          /*
+           * These models declare their columns as optional public properties
+           * initialised to `undefined`, so the property is a real own property
+           * of a fresh instance. `readResourceFields` indexes the instance
+           * directly, so this is the exact lookup it performs.
+           */
+          expect(fieldName in model).toBe(true);
+        }
       }
     });
 
@@ -236,6 +271,10 @@ describe("RecommendationResourceRegistry", () => {
 
         expect(columns).toContain(definition.identifierFieldName);
         expect(columns).toContain(definition.displayNameFieldName);
+
+        for (const contextFieldName of definition.contextFieldNames || []) {
+          expect(columns).toContain(contextFieldName);
+        }
       }
     });
   });
@@ -294,7 +333,7 @@ describe("RecommendationResourceRegistry", () => {
       }
     });
 
-    test("selects nothing beyond the two declared fields", () => {
+    test("selects nothing beyond the declared fields", () => {
       for (const resourceType of ALL_RESOURCE_TYPES) {
         const definition: RecommendationResourceDefinition =
           getDefinitionOrFail(resourceType);
@@ -302,6 +341,7 @@ describe("RecommendationResourceRegistry", () => {
         const allowed: Set<string> = new Set<string>([
           definition.identifierFieldName,
           definition.displayNameFieldName,
+          ...(definition.contextFieldNames || []),
         ]);
 
         for (const key of Object.keys(
@@ -546,6 +586,197 @@ describe("RecommendationResourceRegistry", () => {
         );
 
       expect([...registryTypes].sort()).toEqual([...catalogTypes].sort());
+    });
+  });
+
+  /*
+   * The context reader — the half of this registry that decides WHICH
+   * recommendations a resource is offered, rather than which resource they are
+   * scoped to.
+   *
+   * Every failure here is quiet in a new way. The identifier reader failing
+   * produces a visible "No telemetry yet" empty state; the context reader
+   * failing produces a page that looks completely normal with six fewer cards
+   * on it, and nobody can tell by looking whether that is correct.
+   */
+  describe("readContext", () => {
+    test("reads a service's runtime from the SDK language attribute", () => {
+      const model: BaseModel = buildServiceModel({
+        telemetrySdkLanguage: "java",
+      });
+
+      expect(
+        RecommendationResourceRegistry.readContext({
+          resourceType: MonitorRecommendationResourceType.Service,
+          model: model,
+        }),
+      ).toEqual({ serviceLanguage: "java" });
+    });
+
+    test("falls back to the runtime name, then to the tech stack", () => {
+      expect(
+        RecommendationResourceRegistry.readContext({
+          resourceType: MonitorRecommendationResourceType.Service,
+          model: buildServiceModel({ runtimeName: "OpenJDK Runtime" }),
+        }),
+      ).toEqual({ serviceLanguage: "java" });
+
+      expect(
+        RecommendationResourceRegistry.readContext({
+          resourceType: MonitorRecommendationResourceType.Service,
+          model: buildServiceModel({ techStack: [TechStack.Go] }),
+        }),
+      ).toEqual({ serviceLanguage: "go" });
+    });
+
+    test("reports an unknown runtime as null, never as a guess", () => {
+      expect(
+        RecommendationResourceRegistry.readContext({
+          resourceType: MonitorRecommendationResourceType.Service,
+          model: buildServiceModel({}),
+        }),
+      ).toEqual({ serviceLanguage: null });
+    });
+
+    /*
+     * `techStack` is a JSON column, so what comes back is whatever was stored.
+     * A string would be iterated character by character by the detector, and
+     * a single stray character matching a tech stack value would assign a
+     * language from nothing at all.
+     */
+    test("ignores a techStack that is not an array", () => {
+      expect(
+        RecommendationResourceRegistry.readContext({
+          resourceType: MonitorRecommendationResourceType.Service,
+          model: buildServiceModel({
+            techStack: "Java" as unknown as Array<TechStack>,
+          }),
+        }),
+      ).toEqual({ serviceLanguage: null });
+    });
+
+    test("returns an empty context for a null model", () => {
+      expect(
+        RecommendationResourceRegistry.readContext({
+          resourceType: MonitorRecommendationResourceType.Service,
+          model: null,
+        }),
+      ).toEqual({});
+    });
+
+    test("returns an empty context for an unregistered resource type", () => {
+      expect(
+        RecommendationResourceRegistry.readContext({
+          resourceType: UNKNOWN_RESOURCE_TYPE,
+          model: new Service(),
+        }),
+      ).toEqual({});
+    });
+
+    test("returns an empty context for every resource type without a reader", () => {
+      for (const resourceType of ALL_RESOURCE_TYPES) {
+        const definition: RecommendationResourceDefinition =
+          getDefinitionOrFail(resourceType);
+
+        if (definition.readContext) {
+          continue;
+        }
+
+        expect(
+          RecommendationResourceRegistry.readContext({
+            resourceType: resourceType,
+            model: new definition.modelType(),
+          }),
+        ).toEqual({});
+      }
+    });
+
+    /*
+     * The load-bearing one. `readContext` indexes the fetched model directly,
+     * so a column it reads but `getSelect` does not request comes back
+     * undefined — and undefined here does not throw, it silently narrows a
+     * Java service down to the language-agnostic recommendations.
+     */
+    test("every column the reader reads is a column the fetch requests", () => {
+      for (const resourceType of ALL_RESOURCE_TYPES) {
+        const definition: RecommendationResourceDefinition =
+          getDefinitionOrFail(resourceType);
+
+        const select: Record<string, boolean> =
+          RecommendationResourceRegistry.getSelect(resourceType);
+
+        for (const contextFieldName of definition.contextFieldNames || []) {
+          expect(select[contextFieldName]).toBe(true);
+        }
+      }
+    });
+
+    test("explains the runtime it detected, and what it means when it did not", () => {
+      const known: string | undefined =
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.Service,
+          context: { serviceLanguage: "dotnet" },
+        });
+
+      expect(known).toContain(".NET");
+
+      const unknown: string | undefined =
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.Service,
+          context: { serviceLanguage: null },
+        });
+
+      /*
+       * The unknown case is the one worth pinning. Without a note the page is
+       * eight cards with no explanation, and the user cannot tell whether that
+       * is everything OneUptime has or a gap they can close. The note has to
+       * name what to do about it.
+       */
+      expect(unknown).toBeTruthy();
+      expect(unknown).toContain("telemetry.sdk.language");
+      expect(unknown).not.toBe(known);
+    });
+
+    test("says nothing for resource types whose list is a constant", () => {
+      for (const resourceType of ALL_RESOURCE_TYPES) {
+        if (getDefinitionOrFail(resourceType).describeContext) {
+          continue;
+        }
+
+        expect(
+          RecommendationResourceRegistry.describeContext({
+            resourceType: resourceType,
+            context: {},
+          }),
+        ).toBeUndefined();
+      }
+
+      expect(
+        RecommendationResourceRegistry.describeContext({
+          resourceType: UNKNOWN_RESOURCE_TYPE,
+          context: {},
+        }),
+      ).toBeUndefined();
+    });
+
+    test("a reader and its column list are declared together, or not at all", () => {
+      for (const resourceType of ALL_RESOURCE_TYPES) {
+        const definition: RecommendationResourceDefinition =
+          getDefinitionOrFail(resourceType);
+
+        expect(Boolean(definition.readContext)).toBe(
+          Boolean(definition.contextFieldNames?.length),
+        );
+
+        /*
+         * And a describer only makes sense where there is a context to
+         * describe — a note on a resource type whose list never varies would
+         * be a permanent, meaningless banner.
+         */
+        expect(Boolean(definition.describeContext)).toBe(
+          Boolean(definition.readContext),
+        );
+      }
     });
   });
 });

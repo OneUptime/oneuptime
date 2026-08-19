@@ -149,7 +149,7 @@ describe("MonitorRecommendationNotificationMode", () => {
     it("has recommendations to test at all", () => {
       // Guards every for-loop in this file against a vacuous pass.
       expect(ALL_RECOMMENDATIONS.length).toBeGreaterThan(0);
-      expect(ONE_PER_RESOURCE_TYPE.length).toBe(9);
+      expect(ONE_PER_RESOURCE_TYPE.length).toBe(10);
     });
 
     it("ships every unhealthy criteria with createIncidents AND createAlerts true, and both arrays populated", () => {

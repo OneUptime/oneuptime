@@ -1,5 +1,6 @@
 import ObjectID from "../../ObjectID";
 import RecommendationType from "../../Recommendation/RecommendationType";
+import { ServiceLanguage } from "../../Service/ServiceLanguage";
 import MonitorStep from "../MonitorStep";
 import MonitorType from "../MonitorType";
 
@@ -10,9 +11,14 @@ import MonitorType from "../MonitorType";
  * member here and an adapter in `MonitorRecommendationCatalog.ts`, and the
  * catalog's own tests fail until both exist.
  *
- * These values are persisted nowhere. They are a UI/registry key only, so
- * they are free to differ from `MonitorType` (which they do: `DockerSwarm`
- * here vs `"Docker Swarm"` there).
+ * These values are NOT persisted directly, but they ARE written into
+ * `RecommendationDismissal.resourceType` (a free-text column) and into every
+ * `recommendationId` via `buildRecommendationId`. Renaming a member orphans
+ * the dismissals recorded under the old value, exactly as renaming a
+ * `RecommendationType` member does.
+ *
+ * They are free to differ from `MonitorType`, and they do: `DockerSwarm` here
+ * vs `"Docker Swarm"` there.
  */
 export enum MonitorRecommendationResourceType {
   Kubernetes = "Kubernetes",
@@ -24,13 +30,46 @@ export enum MonitorRecommendationResourceType {
   Ceph = "Ceph",
   IoTDevice = "IoTDevice",
   RumApplication = "RumApplication",
+  /*
+   * An APM telemetry service — a backend process reporting OTel traces,
+   * metrics and exceptions under a `service.name`. The only resource type
+   * whose recommendation set is not a constant: see
+   * `MonitorRecommendationContext`.
+   */
+  Service = "Service",
+}
+
+/*
+ * What is known about ONE resource, for resource types whose recommendation
+ * set depends on it.
+ *
+ * Every other resource type answers "what should I monitor here?" from the
+ * resource type alone — every Kubernetes cluster gets the same eighteen
+ * recommendations. Services do not: the runtime signals worth alerting on for
+ * a Java service (heap pressure, GC pause time, thread exhaustion) do not
+ * exist on a Go service, and recommending them there produces monitors that
+ * silently never fire, which is worse than recommending nothing.
+ *
+ * Optional everywhere, and every field inside it is optional too, so a caller
+ * that knows nothing still gets the language-agnostic recommendations rather
+ * than an empty list or a guess.
+ */
+export interface MonitorRecommendationContext {
+  /*
+   * The service's detected runtime. `null` and `undefined` mean the same
+   * thing here — nothing identified the runtime — and both are accepted
+   * because `detectServiceLanguage` returns `null` while an absent field is
+   * `undefined`, and forcing every call site to normalize one into the other
+   * is how a `null` ends up narrowing to some default language by accident.
+   */
+  serviceLanguage?: ServiceLanguage | null | undefined;
 }
 
 /*
  * Every template module declares its own
  * `<X>AlertTemplateSeverity = "Critical" | "Warning"` union. They are
  * identical, so the registry uses one shared type rather than a union of
- * eight structurally-equal unions.
+ * ten structurally-equal unions.
  */
 export type MonitorRecommendationSeverity = "Critical" | "Warning";
 
@@ -42,11 +81,12 @@ export type MonitorRecommendationSeverity = "Critical" | "Warning";
  *   hostIdentifier    -> Host, Docker, Podman
  *   fleetIdentifier   -> IoTDevice
  *   rumApplicationId  -> RUM application
+ *   serviceId         -> APM service
  *
  * The registry normalizes that single difference into `resourceIdentifier`
  * and each catalog adapter renames it back on the way into the module's own
  * `getMonitorStep`. Nothing else about the args differs, which is why this
- * one interface can drive all eight.
+ * one interface can drive all ten.
  */
 export interface MonitorRecommendationArgs {
   resourceIdentifier: string;
@@ -89,9 +129,9 @@ export interface MonitorRecommendation {
  * Registry-wide unique id for a recommendation.
  *
  * Every template module happens to self-prefix its ids today (`host-high-cpu`,
- * `docker-high-cpu`, `podman-high-cpu`), so the 76 template ids are in fact
- * globally unique right now. That is a convention across eight independently
- * maintained files, not a contract — each module only guarantees uniqueness
+ * `docker-high-cpu`, `podman-high-cpu`), so every shipped template id is in
+ * fact globally unique right now. That is a convention across ten
+ * independently maintained files, not a contract — each module only guarantees uniqueness
  * WITHIN itself. Prefixing here makes the registry correct regardless: without
  * it, the day two modules pick the same id, selecting one card in the UI would
  * silently also select the other. `MonitorRecommendationCatalog.test.ts` keeps

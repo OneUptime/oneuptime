@@ -513,7 +513,7 @@ describe("MonitorRecommendationUtil.getCoveredRecommendationMonitorIds", () => {
      * both a covered and an uncovered answer are exercised for all eight
      * resource types.
      */
-    expect(RESOURCE_TYPE_DEFINITIONS.length).toBe(9);
+    expect(RESOURCE_TYPE_DEFINITIONS.length).toBe(10);
 
     for (const definition of RESOURCE_TYPE_DEFINITIONS) {
       const recommendations: Array<MonitorRecommendation> =

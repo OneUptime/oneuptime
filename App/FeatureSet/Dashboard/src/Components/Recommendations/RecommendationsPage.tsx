@@ -12,7 +12,10 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
+import {
+  MonitorRecommendationContext,
+  MonitorRecommendationResourceType,
+} from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import MonitorRecommendations from "./MonitorRecommendations";
 import RecommendationResourceRegistry, {
   RecommendationResourceDefinition,
@@ -99,6 +102,17 @@ const RecommendationsPage: FunctionComponent<ComponentProps> = (
       model: resource,
     });
 
+  /*
+   * Read from the SAME fetched row the identifier came from, rather than
+   * fetched separately, so the page cannot end up showing one service's
+   * recommendations narrowed by another's runtime.
+   */
+  const resourceContext: MonitorRecommendationContext =
+    RecommendationResourceRegistry.readContext({
+      resourceType: props.resourceType,
+      model: resource,
+    });
+
   return (
     <Fragment>
       <MonitorRecommendations
@@ -106,6 +120,11 @@ const RecommendationsPage: FunctionComponent<ComponentProps> = (
         resourceIdentifier={resourceIdentifier}
         resourceDisplayName={resourceDisplayName}
         resourceId={modelId}
+        resourceContext={resourceContext}
+        resourceContextNote={RecommendationResourceRegistry.describeContext({
+          resourceType: props.resourceType,
+          context: resourceContext,
+        })}
       />
     </Fragment>
   );

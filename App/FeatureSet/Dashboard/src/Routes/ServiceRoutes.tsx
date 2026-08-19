@@ -11,6 +11,8 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 import Services from "../Pages/Service/Services";
 import ServiceView from "../Pages/Service/View/Index";
 
+import ServiceViewRecommendations from "../Pages/Service/View/Recommendations";
+
 import ServiceViewLogs from "../Pages/Service/View/Logs";
 
 import ServiceViewTraces from "../Pages/Service/View/Traces";
@@ -99,6 +101,20 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
             <ServiceView
               {...props}
               pageRoute={RouteMap[PageMap.SERVICE_VIEW] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SERVICE_VIEW_RECOMMENDATIONS,
+          )}
+          element={
+            <ServiceViewRecommendations
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SERVICE_VIEW_RECOMMENDATIONS] as Route
+              }
             />
           }
         />

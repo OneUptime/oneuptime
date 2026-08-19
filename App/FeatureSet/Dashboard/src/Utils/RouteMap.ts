@@ -48,6 +48,7 @@ export const MonitorsRoutePath: Dictionary<string> = {
 
 export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.SERVICE_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.SERVICE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.SERVICE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.SERVICE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
@@ -2148,6 +2149,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SERVICE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_VIEW]
+    }`,
+  ),
+
+  [PageMap.SERVICE_VIEW_RECOMMENDATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_VIEW_RECOMMENDATIONS]
     }`,
   ),
 
