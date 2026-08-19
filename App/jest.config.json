@@ -10,7 +10,10 @@
   },
   "modulePathIgnorePatterns": ["<rootDir>/build"],
   "moduleNameMapper": {
-    "Common/(.*)": "<rootDir>/../Common/$1"
+    "\\.(css|less|scss|sass)$": "<rootDir>/Tests/__mocks__/styleMock.js",
+    "\\.(svg|png|jpg|jpeg|gif|webp)$": "<rootDir>/Tests/__mocks__/styleMock.js",
+    "Common/(.*)": "<rootDir>/../Common/$1",
+    "^posthog-js$": "<rootDir>/Tests/__mocks__/posthog-js.js"
   },
   "moduleFileExtensions": ["ts", "tsx", "js", "json"],
   "transform": {
