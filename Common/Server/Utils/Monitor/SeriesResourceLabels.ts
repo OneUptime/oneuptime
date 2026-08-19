@@ -74,7 +74,7 @@ export const PodmanHostNameLabelKeys: ReadonlyArray<string> = [
  * Like Proxmox/Ceph, the shipped Swarm alert templates group by
  * datapoint labels (`container.name`), so their series labels do NOT
  * carry this key; the deterministic cluster link for those monitors
- * comes from the monitor step config instead (see MonitorClusterContext).
+ * comes from the monitor step config instead (see MonitorResourceContext).
  * These keys cover user-built monitors that group by the cluster
  * attribute.
  */
@@ -105,7 +105,7 @@ export const KubernetesClusterNameLabelKeys: ReadonlyArray<string> = [
  * datapoint labels (`id`, `ceph_daemon`, `pool_id`), so their series
  * labels do NOT carry these keys; the deterministic cluster link for
  * those monitors comes from the monitor step config instead (see
- * MonitorClusterContext). These keys cover user-built monitors that
+ * MonitorResourceContext). These keys cover user-built monitors that
  * group by the cluster attribute, exactly like the K8s keys above.
  */
 export const ProxmoxClusterNameLabelKeys: ReadonlyArray<string> = [
@@ -127,7 +127,7 @@ export const CephClusterNameLabelKeys: ReadonlyArray<string> = [
  * alert templates group by the datapoint label `device.id`, so their
  * series labels do NOT carry these keys; the deterministic fleet link
  * for those monitors comes from the monitor step config instead (see
- * MonitorClusterContext). These keys cover user-built monitors that
+ * MonitorResourceContext). These keys cover user-built monitors that
  * group by the fleet attribute.
  */
 export const IoTFleetNameLabelKeys: ReadonlyArray<string> = [

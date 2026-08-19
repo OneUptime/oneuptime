@@ -42,6 +42,17 @@ RunCron(
           shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
           shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing: true,
           monitors: true,
+          /*
+           * The rest of the affected resources. Without these the
+           * recurrence silently drops every host / cluster / service the
+           * user attached to the template, so only the first event was
+           * ever scoped correctly.
+           */
+          hosts: true,
+          kubernetesClusters: true,
+          dockerHosts: true,
+          podmanHosts: true,
+          services: true,
           statusPages: true,
           scheduleNextEventAt: true,
           firstEventStartsAt: true,
@@ -128,6 +139,12 @@ RunCron(
         scheduledMaintenanceEvent.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing =
           recurringTemplate.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing!;
         scheduledMaintenanceEvent.monitors = recurringTemplate.monitors!;
+        scheduledMaintenanceEvent.hosts = recurringTemplate.hosts!;
+        scheduledMaintenanceEvent.kubernetesClusters =
+          recurringTemplate.kubernetesClusters!;
+        scheduledMaintenanceEvent.dockerHosts = recurringTemplate.dockerHosts!;
+        scheduledMaintenanceEvent.podmanHosts = recurringTemplate.podmanHosts!;
+        scheduledMaintenanceEvent.services = recurringTemplate.services!;
         scheduledMaintenanceEvent.statusPages = recurringTemplate.statusPages!;
         scheduledMaintenanceEvent.title = recurringTemplate.title!;
         scheduledMaintenanceEvent.description = recurringTemplate.description!;

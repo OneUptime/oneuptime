@@ -24,11 +24,11 @@ import NetworkDeviceOwnerUserService, {
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
-import MonitorClusterContextUtil, {
-  MonitorClusterContext,
-} from "./MonitorClusterContext";
+import MonitorResourceContextUtil from "./MonitorResourceContext";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
-import SeriesResourceLinker from "./SeriesResourceLinker";
+import SeriesResourceLinker, {
+  SeriesResolvedResourceIds,
+} from "./SeriesResourceLinker";
 import MonitorDependencySuppression, {
   DependencySuppressionResult,
 } from "./MonitorDependencySuppression";
@@ -322,15 +322,17 @@ export default class MonitorAlert {
     }
 
     /*
-     * Proxmox/Ceph monitors: resolve the monitored cluster once per
-     * evaluation (lookup-only, from the step config's clusterIdentifier)
-     * so every alert created below is attached to it. Series labels
-     * cannot supply this — they carry datapoint labels (`id`,
-     * `ceph_daemon`, `pool_id`), not cluster identity, and ungrouped
-     * templates have no series at all. No-op for other monitor types.
+     * Resolve the resources this monitor's own config names — its host,
+     * cluster, fleet, telemetry services, or the resource its metric
+     * filters scope it to — once per evaluation, so every alert created
+     * below is attached to them. Series labels cannot supply this: they
+     * only exist for grouped criteria, and most monitors (every shipped
+     * Host/Docker/Podman template, all Logs/Traces/Exceptions monitors)
+     * are ungrouped. No-op, and no round-trip, for monitor types whose
+     * config names no resource.
      */
-    const clusterContext: MonitorClusterContext =
-      await MonitorClusterContextUtil.resolveClusterContextForMonitor({
+    const resourceContext: SeriesResolvedResourceIds =
+      await MonitorResourceContextUtil.resolveResourceContextForMonitor({
         monitor: input.monitor,
       });
 
@@ -556,21 +558,22 @@ export default class MonitorAlert {
             model: alert,
             seriesLabels,
             projectId: input.monitor.projectId!,
+            monitorType: input.monitor.monitorType,
           });
         }
 
         /*
-         * Deterministic Proxmox/Ceph/Swarm/IoT cluster link from the
-         * monitor's step config (resolved once above). The shipped
-         * templates for those monitor types group by datapoint labels
-         * that carry no cluster identity, so this — not the label path
-         * above — is what makes the per-cluster Activity tabs and badge
-         * counts see monitor-created alerts. Runs for both grouped and
-         * ungrouped alerts, and merges with whatever the labels resolved.
+         * Deterministic resource link from the monitor's step config
+         * (resolved once above). For most monitor types this — not the
+         * label path above — is what makes the per-resource Activity
+         * tabs and badge counts see monitor-created alerts, because
+         * their criteria are ungrouped and emit no series labels at
+         * all. Runs for both grouped and ungrouped alerts, and merges
+         * with whatever the labels resolved.
          */
-        SeriesResourceLinker.attachClusterContext({
+        SeriesResourceLinker.attachResolvedResources({
           model: alert,
-          clusterContext,
+          resolved: resourceContext,
         });
 
         alert.onCallDutyPolicies =

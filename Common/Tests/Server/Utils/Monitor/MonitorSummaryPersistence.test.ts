@@ -5,7 +5,7 @@ import AlertService from "../../../../Server/Services/AlertService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import NetworkDeviceOwnerUserService from "../../../../Server/Services/NetworkDeviceOwnerUserService";
 import MonitorAlert from "../../../../Server/Utils/Monitor/MonitorAlert";
-import MonitorClusterContextUtil from "../../../../Server/Utils/Monitor/MonitorClusterContext";
+import MonitorResourceContextUtil from "../../../../Server/Utils/Monitor/MonitorResourceContext";
 import MonitorIncident from "../../../../Server/Utils/Monitor/MonitorIncident";
 import ProjectScopedReferenceValidator from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import Dictionary from "../../../../Types/Dictionary";
@@ -132,8 +132,13 @@ describe("The monitor summary is stored on the incident / alert it created", () 
       .mockResolvedValue(true);
 
     jest
-      .spyOn(MonitorClusterContextUtil, "resolveClusterContextForMonitor")
+      .spyOn(MonitorResourceContextUtil, "resolveResourceContextForMonitor")
       .mockResolvedValue({
+        hostIds: [],
+        dockerHostIds: [],
+        podmanHostIds: [],
+        kubernetesClusterIds: [],
+        serviceIds: [],
         proxmoxClusterIds: [],
         cephClusterIds: [],
         dockerSwarmClusterIds: [],
