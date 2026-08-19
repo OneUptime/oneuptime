@@ -1085,6 +1085,24 @@ enum Permission {
   ReadProjectUserNotificationRule = "ReadProjectUserNotificationRule",
   EditProjectUserNotificationRule = "EditProjectUserNotificationRule",
 
+  /*
+   * Adding and removing the notification METHODS a member's rules point at:
+   * the email address, phone number or device a page is actually delivered to.
+   *
+   * Separate from EditProjectUserNotificationRule, and deliberately not implied
+   * by it. Repairing somebody's rules re-points their pages between devices
+   * they have already proved they hold; adding a method introduces a device
+   * nobody has proved anything about, so the two have different blast radii and
+   * an installation must be able to hand out the first without the second.
+   *
+   * What it does NOT grant, and cannot: making a method live. A method added
+   * this way lands unverified and the verification code goes to the address
+   * itself, and every verify endpoint refuses a caller who is not the row's
+   * owner. So this permission lets an administrator do the typing for a
+   * colleague; only that colleague can finish it.
+   */
+  ManageProjectUserNotificationMethod = "ManageProjectUserNotificationMethod",
+
   // Resource Permissions (Team Permission)
   CreateProjectOnCallDutyPolicySchedule = "CreateProjectOnCallDutyPolicySchedule",
   EditProjectOnCallDutyPolicySchedule = "EditProjectOnCallDutyPolicySchedule",
@@ -6063,6 +6081,23 @@ export class PermissionHelper {
         title: "Edit User Notification Rules",
         description:
           "This permission can create, edit and delete the on-call notification rules of any user in this project, in order to repair a member who would otherwise never be paged. It does not permit adding or changing a user's notification methods.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.OnCallDutyPolicy,
+      },
+      /*
+       * isRolePermission false for the same reason as the two above: a true
+       * value would file it under getRolePermissionProps(), the list every
+       * default project role is built from, and the ability to put a new phone
+       * number on a colleague's account would then arrive silently with an
+       * existing role rather than being handed out on purpose.
+       */
+      {
+        permission: Permission.ManageProjectUserNotificationMethod,
+        title: "Manage User Notification Methods",
+        description:
+          "This permission can add and remove the notification methods (email, SMS, call, WhatsApp) of any user in this project, so an administrator can set up a member who cannot yet be paged at all. Addresses are only ever shown masked, an added method stays unverified until the person who owns the device verifies it, and that person is emailed about every change.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
