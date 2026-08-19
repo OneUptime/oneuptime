@@ -411,6 +411,20 @@ export const uploadToProvider: UploadToProviderFunction = async (
         continue;
       }
 
+      if (!provider.isUploadableConversionType(conversion)) {
+        await setProviderState({
+          conversion: conversion,
+          providerKey: provider.key,
+          state: {
+            status: MarketingConversionUploadStatus.Skipped,
+            error: `Conversion type ${
+              conversion.conversionType || "unknown"
+            } has no explicit ad-platform mapping`,
+          },
+        });
+        continue;
+      }
+
       const skip: ConversionSkip | null = provider.getSkipReason(conversion);
 
       if (skip) {

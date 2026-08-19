@@ -1,7 +1,14 @@
 export enum MarketingConversionType {
   SignUp = "SignUp",
+  MeetingBooked = "MeetingBooked",
   PaidSubscription = "PaidSubscription",
 }
+
+export const AdUploadableMarketingConversionTypes: Array<MarketingConversionType> =
+  [
+    MarketingConversionType.SignUp,
+    MarketingConversionType.PaidSubscription,
+  ];
 
 export enum MarketingConversionUploadStatus {
   Uploaded = "Uploaded",
