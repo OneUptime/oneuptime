@@ -152,6 +152,91 @@ describe("CommandPalette", () => {
     });
   });
 
+  describe("focus management", () => {
+    /*
+     * The React onKeyDown on the dialog root dies the moment focus escapes
+     * the subtree, so a document-level listener (Modal's pattern) backs it
+     * up — and flags the key consumed for listeners after it.
+     */
+    test("Escape still closes after focus has escaped to the body", () => {
+      const onClose: jest.Mock = jest.fn();
+      renderPalette({ onClose });
+
+      (document.activeElement as HTMLElement).blur();
+      expect(document.activeElement).toBe(document.body);
+
+      // fireEvent returns false when a handler called preventDefault().
+      expect(fireEvent.keyDown(document.body, { key: "Escape" })).toBe(false);
+
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    test("mousedown on non-interactive panel chrome is prevented so the input keeps focus", () => {
+      renderPalette();
+
+      const input: HTMLElement = screen.getByTestId("command-palette-input");
+      expect(document.activeElement).toBe(input);
+
+      /*
+       * The hints footer is non-interactive chrome: its mousedown default
+       * (focus moving to the body) is prevented, so the keyboard keeps
+       * working. fireEvent returns false when preventDefault was called.
+       */
+      const footer: HTMLElement = screen.getByTestId("command-palette-footer");
+      expect(fireEvent.mouseDown(footer)).toBe(false);
+      expect(document.activeElement).toBe(input);
+
+      // The input keeps its native caret/selection mousedown behavior…
+      expect(fireEvent.mouseDown(input)).toBe(true);
+
+      // …option rows keep their native press behavior…
+      const homeRow: HTMLElement = screen.getByTestId(
+        "command-palette-option-go-home",
+      );
+      expect(fireEvent.mouseDown(homeRow)).toBe(true);
+
+      /*
+       * …and the scroll container keeps its default: a scrollbar drag starts
+       * as a mousedown on the listbox itself, and preventDefault would
+       * cancel the drag.
+       */
+      expect(fireEvent.mouseDown(screen.getByRole("listbox"))).toBe(true);
+    });
+
+    test("returns focus to the previously focused element after close", () => {
+      const trigger: HTMLButtonElement = document.createElement("button");
+      document.body.appendChild(trigger);
+      trigger.focus();
+      expect(document.activeElement).toBe(trigger);
+
+      const { rerender } = render(
+        <CommandPalette
+          commands={defaultCommands}
+          isOpen={true}
+          onClose={(): void => {}}
+        />,
+      );
+
+      // Opening moved focus into the palette…
+      expect(document.activeElement).toBe(
+        screen.getByTestId("command-palette-input"),
+      );
+
+      rerender(
+        <CommandPalette
+          commands={defaultCommands}
+          isOpen={false}
+          onClose={(): void => {}}
+        />,
+      );
+
+      // …and closing hands it back to the opener.
+      expect(document.activeElement).toBe(trigger);
+
+      document.body.removeChild(trigger);
+    });
+  });
+
   describe("body scroll lock", () => {
     test("locks body scrolling while open and restores it when closed", () => {
       const { rerender } = renderPalette();

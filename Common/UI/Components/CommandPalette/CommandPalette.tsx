@@ -135,6 +135,28 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
     Array<HTMLDivElement | null>
   >([]);
 
+  /*
+   * Whatever had focus when the palette opened gets it back on close —
+   * captured at first render, before the autofocus effect moves focus into
+   * the input (Modal's pattern).
+   */
+  const previouslyFocusedElementRef: React.MutableRefObject<HTMLElement | null> =
+    useRef<HTMLElement | null>(
+      typeof document !== "undefined" &&
+        document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null,
+    );
+
+  // Kept fresh so the mount-once document listener never calls a stale close.
+  const onCloseRef: React.MutableRefObject<() => void> = useRef<() => void>(
+    props.onClose,
+  );
+
+  useEffect(() => {
+    onCloseRef.current = props.onClose;
+  }, [props.onClose]);
+
   // Recently run command ids, read once when the palette opens.
   const [recentCommandIds] = useState<Array<string>>(() => {
     return props.recentStorageKey
@@ -182,6 +204,45 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
 
   useEffect(() => {
     inputRef.current?.focus();
+  }, []);
+
+  /*
+   * Escape must dismiss the palette even after focus has escaped the dialog
+   * subtree (a click on the backdrop scrollbar, a programmatic blur): the
+   * React onKeyDown on the dialog root only hears keys fired inside it, so a
+   * document-level listener backs it up while the panel is mounted (Modal's
+   * pattern). No double-fire: the React handler preventDefaults AND stops
+   * propagation, so an Escape it consumed either never reaches document or
+   * arrives flagged defaultPrevented — which is also the flag any other
+   * dialog above us would set.
+   */
+  useEffect(() => {
+    const handleDocumentKeyDown: (event: KeyboardEvent) => void = (
+      event: KeyboardEvent,
+    ): void => {
+      if (event.defaultPrevented || event.key !== "Escape") {
+        return;
+      }
+
+      // Flag the key consumed for listeners after us (window-level ones too).
+      event.preventDefault();
+      onCloseRef.current();
+    };
+
+    document.addEventListener("keydown", handleDocumentKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleDocumentKeyDown);
+    };
+  }, []);
+
+  // Return focus to where it was before the palette opened (Modal's pattern).
+  useEffect(() => {
+    return () => {
+      if (previouslyFocusedElementRef.current?.isConnected) {
+        previouslyFocusedElementRef.current.focus();
+      }
+    };
   }, []);
 
   const providerSections: Array<ProviderSearchSection> = useProviderSearch(
@@ -411,13 +472,17 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
    * One handler on the dialog root: keys fired in the input bubble here, and
    * so do keys fired with focus anywhere else inside the palette. Every
    * handled key calls preventDefault so listeners beneath the palette
-   * (page shortcuts, scrolling) can see the key was consumed.
+   * (page shortcuts, scrolling) can see the key was consumed. Escape goes
+   * one step further and also stops propagating: the topmost dialog consumes
+   * its dismiss key outright, so document/window Escape listeners underneath
+   * (the Ask AI slide-over, page-level shortcuts) never see it at all.
    */
   const handleKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => void = (
     event: React.KeyboardEvent<HTMLDivElement>,
   ): void => {
     if (event.key === "Escape") {
       event.preventDefault();
+      event.stopPropagation();
       props.onClose();
       return;
     }
@@ -447,6 +512,35 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
         runEntry(entry);
       }
     }
+  };
+
+  /*
+   * A mousedown on non-interactive panel chrome (section headers, the hints
+   * footer, the empty state) would move focus to the body and kill arrow-key
+   * navigation. preventDefault keeps focus in the input. Interactive targets
+   * keep their default: the input (caret/selection), option rows, and the
+   * scroll container itself — a scrollbar drag starts as a mousedown on it,
+   * and preventDefault would cancel the drag.
+   */
+  const handlePanelMouseDown: (
+    event: React.MouseEvent<HTMLDivElement>,
+  ) => void = (event: React.MouseEvent<HTMLDivElement>): void => {
+    const target: HTMLElement | null =
+      event.target instanceof HTMLElement ? event.target : null;
+
+    if (!target) {
+      return;
+    }
+
+    if (target.id === "command-palette-listbox") {
+      return;
+    }
+
+    if (target.closest('input, textarea, select, button, a, [role="option"]')) {
+      return;
+    }
+
+    event.preventDefault();
   };
 
   const activeEntry: FlatEntry | undefined = flatEntries[activeIndex];
@@ -492,6 +586,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
             onClick={(event: React.MouseEvent<HTMLDivElement>) => {
               event.stopPropagation();
             }}
+            onMouseDown={handlePanelMouseDown}
           >
             {/* Search input */}
             <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-3.5">
@@ -626,7 +721,10 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
             </div>
 
             {/* Keyboard hints */}
-            <div className="flex items-center gap-4 border-t border-gray-100 px-4 py-2">
+            <div
+              data-testid="command-palette-footer"
+              className="flex items-center gap-4 border-t border-gray-100 px-4 py-2"
+            >
               <span className="flex items-center gap-1.5 text-[11px] text-gray-400">
                 <KeyboardShortcut
                   keys={[KeyboardKey.ArrowUp, KeyboardKey.ArrowDown]}

@@ -23,6 +23,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
@@ -40,7 +41,19 @@ const Home: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const currentProjectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  /*
+   * ProjectUtil.getCurrentProjectId() constructs a fresh ObjectID on every
+   * call, so its identity churns on every render. GettingStarted and
+   * OverviewStats key their fetch effects on this id — memoize it on its
+   * string VALUE so a Home re-render (loading flags flipping, projects
+   * reloading) never re-fires their count requests.
+   */
+  const currentProjectIdString: string | null =
+    ProjectUtil.getCurrentProjectId()?.toString() || null;
+
+  const currentProjectId: ObjectID | null = useMemo((): ObjectID | null => {
+    return currentProjectIdString ? new ObjectID(currentProjectIdString) : null;
+  }, [currentProjectIdString]);
 
   const fetchIncidentStates: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);

@@ -103,11 +103,26 @@ let mermaidLoadPromise: Promise<MermaidApi> | null = null;
 
 const loadMermaid: () => Promise<MermaidApi> = (): Promise<MermaidApi> => {
   if (!mermaidLoadPromise) {
-    mermaidLoadPromise = import("mermaid").then(
+    const loadPromise: Promise<MermaidApi> = import("mermaid").then(
       (mermaidModule: { default: MermaidApi }): MermaidApi => {
         return mermaidModule.default;
       },
     );
+
+    mermaidLoadPromise = loadPromise;
+
+    /*
+     * A failed chunk load (flaky network, deploy rotating hashed chunk
+     * names) must not be cached forever — clear the slot so the next
+     * diagram retries the import. The reset rides a side branch of the
+     * promise: the original is still returned below, so the caller that
+     * triggered this load sees the rejection through its own error path.
+     */
+    loadPromise.catch((): void => {
+      if (mermaidLoadPromise === loadPromise) {
+        mermaidLoadPromise = null;
+      }
+    });
   }
   return mermaidLoadPromise;
 };

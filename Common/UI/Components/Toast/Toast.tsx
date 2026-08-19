@@ -2,6 +2,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import Icon from "../Icon/Icon";
@@ -65,7 +66,17 @@ const Component: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
-  const onCloseProp: (() => void) | undefined = props.onClose;
+  /*
+   * The latest onClose lives in a ref so the exit effect can depend on
+   * isLeaving alone. Owners may recreate onClose every render, and a dep on
+   * it would restart the unmount timer whenever a sibling toast re-renders
+   * the stack mid-exit — leaving an invisible pointer-events-auto card
+   * intercepting clicks past its original deadline.
+   */
+  const onCloseRef: React.MutableRefObject<(() => void) | undefined> = useRef<
+    (() => void) | undefined
+  >(props.onClose);
+  onCloseRef.current = props.onClose;
 
   useEffect(() => {
     if (!isLeaving) {
@@ -74,15 +85,15 @@ const Component: FunctionComponent<ComponentProps> = (
 
     const exitTimer: ReturnType<typeof setTimeout> = setTimeout(() => {
       setShow(false);
-      if (onCloseProp) {
-        onCloseProp();
+      if (onCloseRef.current) {
+        onCloseRef.current();
       }
     }, EXIT_DURATION_IN_MS);
 
     return () => {
       clearTimeout(exitTimer);
     };
-  }, [isLeaving, onCloseProp]);
+  }, [isLeaving]);
 
   let typeCssClass: string = "text-gray-400";
   let iconType: IconProp = IconProp.Info;

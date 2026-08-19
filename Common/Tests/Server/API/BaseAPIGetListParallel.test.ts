@@ -44,13 +44,19 @@ jest.mock("../../../Server/Utils/Response", () => {
 /*
  * The real DatabaseService pulls in the whole server dependency graph. The
  * suite drives BaseAPI.getList with hand-built service stubs instead, so the
- * class is reduced to a bare mock constructor — its (empty) prototype is
- * exactly what getList's stock-hook check compares against. The returned
- * instance still needs the methods that concrete services invoke at module
- * load (the require graph instantiates them all), mirroring BaseAPI.test.ts.
+ * class is reduced to a mock constructor. getList's stock-hook check compares
+ * service.onBeforeFind against DatabaseService.prototype.onBeforeFind BY
+ * REFERENCE, so the mock's prototype must carry a real function — a bare
+ * jest.fn() constructor's prototype has no onBeforeFind, and every stub would
+ * then pass the compare as undefined === undefined, never exercising the
+ * inherited-vs-own mechanics the gate relies on. Stock-path stubs inherit the
+ * hook (createServiceStub below); override-path stubs shadow it with their
+ * own function. The returned instance still needs the methods that concrete
+ * services invoke at module load (the require graph instantiates them all),
+ * mirroring BaseAPI.test.ts.
  */
 jest.mock("../../../Server/Services/DatabaseService", () => {
-  return jest.fn().mockImplementation(() => {
+  const DatabaseServiceMock: jest.Mock = jest.fn().mockImplementation(() => {
     return {
       countBy: jest.fn(),
       findBy: jest.fn(),
@@ -63,6 +69,23 @@ jest.mock("../../../Server/Services/DatabaseService", () => {
       hardDeleteItemsOlderThanInDays: jest.fn(),
     };
   });
+
+  /*
+   * The shared stock hook: a named function on the prototype, so the gate's
+   * reference compare works against the same shared-function-inheritance
+   * shape it sees in production.
+   */
+  function stockOnBeforeFind(findBy: unknown): Promise<unknown> {
+    return Promise.resolve(findBy);
+  }
+
+  (
+    DatabaseServiceMock as unknown as {
+      prototype: { onBeforeFind: unknown };
+    }
+  ).prototype.onBeforeFind = stockOnBeforeFind;
+
+  return DatabaseServiceMock;
 });
 
 jest.mock(
@@ -165,11 +188,20 @@ type ServiceStub = {
   onBeforeFind?: (...args: Array<unknown>) => Promise<unknown>;
 };
 
+/*
+ * Stock-path stubs must INHERIT onBeforeFind from the mocked DatabaseService
+ * prototype — exactly how a concrete service that never overrides the hook
+ * holds it in production — so getList's reference compare is exercised for
+ * real. Override-path tests shadow it by assigning an own function.
+ */
 function createServiceStub(): ServiceStub {
-  return {
-    findBy: jest.fn(),
-    countBy: jest.fn(),
-  };
+  const stub: ServiceStub = Object.create(
+    (DatabaseService as unknown as { prototype: Record<string, unknown> })
+      .prototype,
+  ) as ServiceStub;
+  stub.findBy = jest.fn();
+  stub.countBy = jest.fn();
+  return stub;
 }
 
 function createApi(
@@ -192,6 +224,33 @@ function createListRequest(body?: JSONObject): OneUptimeRequest {
 describe("BaseAPI.getList findBy/countBy parallel dispatch", () => {
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe("harness guard: the stock-hook compare stays non-degenerate", () => {
+    it("gives stock stubs the inherited prototype hook and override stubs their own", () => {
+      const proto: { onBeforeFind: unknown } = (
+        DatabaseService as unknown as {
+          prototype: { onBeforeFind: unknown };
+        }
+      ).prototype;
+
+      /*
+       * The gate under test is a function-reference equality. If the mocked
+       * prototype ever loses its hook, both sides collapse to undefined and
+       * every stub — overridden or not — would take the parallel path, so
+       * pin that the two compares genuinely differ.
+       */
+      expect(typeof proto.onBeforeFind).toBe("function");
+
+      const stockStub: ServiceStub = createServiceStub();
+      expect(stockStub.onBeforeFind).toBe(proto.onBeforeFind);
+
+      const overrideStub: ServiceStub = createServiceStub();
+      overrideStub.onBeforeFind = jest.fn() as unknown as (
+        ...args: Array<unknown>
+      ) => Promise<unknown>;
+      expect(overrideStub.onBeforeFind).not.toBe(proto.onBeforeFind);
+    });
   });
 
   describe("service with the stock onBeforeFind hook (parallel path)", () => {

@@ -149,4 +149,50 @@ describe("Toast stacking", () => {
 
     expect(titles).toEqual(["Second", "Third"]);
   });
+
+  /*
+   * Regression: dispatching a toast re-renders the whole stack, and the
+   * layout used to hand every card a freshly created onClose on each render.
+   * A dismissed card mid-exit-fade saw the new prop, cleared its unmount
+   * timer, and re-armed it — so a burst of toasts could keep an invisible
+   * pointer-events-auto card alive indefinitely, intercepting clicks.
+   */
+  test("a toast dispatched during another toast's exit fade does not restart its unmount timer", () => {
+    jest.useFakeTimers();
+
+    try {
+      const onCloseFirst: () => void = jest.fn();
+
+      render(<ToastLayout />);
+
+      showToast("First", onCloseFirst);
+
+      fireEvent.click(screen.getByTestId("close-button"));
+
+      // 100ms into the 150ms exit fade a second toast re-renders the stack.
+      act(() => {
+        jest.advanceTimersByTime(100);
+      });
+      showToast("Second");
+
+      expect(screen.getAllByTestId("toast")).toHaveLength(2);
+
+      // The ORIGINAL 150ms deadline holds: 50ms later the first card is gone.
+      act(() => {
+        jest.advanceTimersByTime(50);
+      });
+
+      expect(onCloseFirst).toHaveBeenCalledTimes(1);
+
+      const titles: Array<string | null> = screen
+        .getAllByTestId("title")
+        .map((title: HTMLElement) => {
+          return title.textContent;
+        });
+
+      expect(titles).toEqual(["Second"]);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });

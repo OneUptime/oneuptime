@@ -1,10 +1,16 @@
 import Toast, { ToastType } from "../../../UI/Components/Toast/Toast";
 import "@testing-library/jest-dom";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
 import * as React from "react";
-import { describe, expect, test } from "@jest/globals";
+import { describe, expect, jest, test } from "@jest/globals";
 
 /*
  * The toast mounts closed (faded, nudged down) and opens on the next
@@ -133,5 +139,59 @@ describe("Test for Toast.tsx", () => {
     await waitFor(() => {
       expect(screen.queryByTestId("toast")).toBeFalsy();
     });
+  });
+
+  /*
+   * Owners (ToastInit) may hand the toast a NEW onClose identity on any
+   * re-render. The exit timer must not restart because of that — it keys off
+   * isLeaving alone and reads the latest onClose through a ref — otherwise a
+   * re-render mid-fade would leave an invisible pointer-events-auto card
+   * intercepting clicks past the original deadline.
+   */
+  test("a re-render with a new onClose mid-exit neither restarts the timer nor calls a stale handler", () => {
+    jest.useFakeTimers();
+
+    try {
+      const staleOnClose: () => void = jest.fn();
+      const latestOnClose: () => void = jest.fn();
+
+      const { rerender } = render(
+        <Toast
+          type={ToastType.SUCCESS}
+          title="Spread"
+          description="Love"
+          onClose={staleOnClose}
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId("close-button"));
+
+      // 100ms into the 150ms exit fade the owner re-renders the toast…
+      act(() => {
+        jest.advanceTimersByTime(100);
+      });
+      rerender(
+        <Toast
+          type={ToastType.SUCCESS}
+          title="Spread"
+          description="Love"
+          onClose={latestOnClose}
+        />,
+      );
+
+      // …the card is still mid-fade…
+      expect(screen.getByTestId("toast")).toHaveClass("opacity-0");
+
+      // …and the ORIGINAL 150ms deadline still unmounts it 50ms later.
+      act(() => {
+        jest.advanceTimersByTime(50);
+      });
+
+      expect(screen.queryByTestId("toast")).toBeFalsy();
+      expect(latestOnClose).toHaveBeenCalledTimes(1);
+      expect(staleOnClose).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

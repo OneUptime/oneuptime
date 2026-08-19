@@ -279,6 +279,17 @@ export default class ProjectUtil {
   public static setCurrentProject(project: JSONObject | Project): void {
     const currentProjectId: string | undefined =
       project._id?.toString() || this.getCurrentProjectId()?.toString();
+
+    /*
+     * What this tab was showing BEFORE this call, read straight off session
+     * storage (not getCurrentProjectId(), whose URL fallback may already
+     * carry the NEW project mid-switch) so it can be compared after the
+     * overwrite below.
+     */
+    const previousProjectId: string | undefined = this.toProjectId(
+      SessionStorage.getItem(CURRENT_PROJECT_ID_STORAGE_KEY),
+    )?.toString();
+
     if (project instanceof Project) {
       project = BaseModel.toJSON(project, Project);
     }
@@ -288,10 +299,16 @@ export default class ProjectUtil {
     /*
      * Cached reference lists (incident/alert states, custom fields...) are
      * keyed by project id, so a switch could never serve another project's
-     * rows — this just guarantees fresh reads and frees the old entries now
-     * that project selection can happen without a full page reload.
+     * rows — invalidation just guarantees fresh reads and frees the old
+     * entries now that project selection can happen without a full page
+     * reload. Only on an actual CHANGE though: setCurrentProject also runs
+     * on every boot, in the same commit as the Header/Home mounts whose
+     * reference-list requests are already in flight, and wiping the cache
+     * then would discard its very first fill.
      */
-    ModelListCache.invalidateAll();
+    if (previousProjectId !== currentProjectId) {
+      ModelListCache.invalidateAll();
+    }
 
     // Remember this project for the next time the user opens the dashboard.
     this.setLastAccessedProjectId(currentProjectId);

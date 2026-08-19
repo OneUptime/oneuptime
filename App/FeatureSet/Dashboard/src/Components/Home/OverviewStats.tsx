@@ -180,7 +180,12 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
     fetchCounts().catch(() => {
       // handled in fetchCounts.
     });
-  }, [props.projectId]);
+    /*
+     * Keyed on the string VALUE, not the ObjectID instance: callers that
+     * rebuild the id each render (identity churn) must not re-fire these
+     * count requests.
+     */
+  }, [props.projectId.toString()]);
 
   if (hasError) {
     return <></>;

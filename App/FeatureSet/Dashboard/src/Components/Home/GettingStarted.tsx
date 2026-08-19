@@ -196,7 +196,12 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
     fetchTaskCompletion().catch(() => {
       // handled in fetchTaskCompletion.
     });
-  }, [props.projectId]);
+    /*
+     * Keyed on the string VALUE, not the ObjectID instance: callers that
+     * rebuild the id each render (identity churn) must not re-fire these
+     * count requests.
+     */
+  }, [props.projectId.toString()]);
 
   if (isDismissed || !taskCompletion) {
     return <></>;

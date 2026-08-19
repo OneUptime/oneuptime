@@ -17,7 +17,15 @@ import {
   slugifyPaletteCommandId,
 } from "../../FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPaletteHelpers";
 import PageMap from "../../FeatureSet/Dashboard/src/Utils/PageMap";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Alert from "Common/Models/DatabaseModels/Alert";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import MultiSearch from "Common/Types/BaseDatabase/MultiSearch";
+import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
+import TableColumnType from "Common/Types/Database/TableColumnType";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject, ObjectType } from "Common/Types/JSON";
 import Permission from "Common/Types/Permission";
@@ -274,48 +282,76 @@ describe("getVisibleActionIds", () => {
 });
 
 describe("entity search specs and query construction", () => {
-  test("the search field lists match what the entity tables declare as searchable", () => {
+  // The model class each provider searches — same pairing the palette host wires up.
+  const modelTypeBySpecId: Record<string, { new (): BaseModel }> = {
+    monitors: Monitor,
+    incidents: Incident,
+    alerts: Alert,
+    "status-pages": StatusPage,
+    "on-call-policies": OnCallDutyPolicy,
+  };
+
+  test("every spec searches real text columns of its model", () => {
     /*
      * A wrong field name reaches TypeORM as raw SQL and errors server-side.
-     * These lists are verified against the model classes and mirror the
-     * searchableFields of MonitorTable, IncidentsTable, AlertsTable,
-     * StatusPages and OnCallDutyPolicies.
+     * Rather than comparing the spec to a copy of itself, each spec's fields
+     * are checked against the MODEL's own column metadata, so a model-side
+     * rename (or a repoint at a non-text column no ILIKE can search) turns
+     * this suite red.
      */
+    const specs: Array<PaletteEntitySearchSpec> = getEntitySearchSpecs();
+
+    expect(
+      specs
+        .map((spec: PaletteEntitySearchSpec) => {
+          return spec.id;
+        })
+        .sort(),
+    ).toEqual(Object.keys(modelTypeBySpecId).sort());
+
+    // The one-OR-joined-ILIKE the server builds only makes sense over text.
+    const searchableColumnTypes: Array<TableColumnType> = [
+      TableColumnType.ShortText,
+      TableColumnType.LongText,
+      TableColumnType.VeryLongText,
+      TableColumnType.Markdown,
+    ];
+
+    for (const spec of specs) {
+      const model: BaseModel = new modelTypeBySpecId[spec.id]!();
+
+      // The displayed column must itself be searched, or results look random.
+      expect(spec.searchFields).toContain(spec.titleField);
+
+      for (const field of new Set<string>([
+        ...spec.searchFields,
+        spec.titleField,
+      ])) {
+        // The column exists on the model...
+        expect(model.hasColumn(field)).toBe(true);
+
+        // ...and is a free-text one.
+        const metadata: TableColumnMetadata =
+          model.getTableColumnMetadata(field);
+        expect(searchableColumnTypes).toContain(metadata.type);
+      }
+    }
+  });
+
+  test("each spec's view route is its entity's view page", () => {
+    // Routing is a UI decision the models cannot verify — pin it directly.
     const byId: Map<string, PaletteEntitySearchSpec> = new Map(
       getEntitySearchSpecs().map((spec: PaletteEntitySearchSpec) => {
         return [spec.id, spec];
       }),
     );
 
-    expect(byId.get("monitors")!.searchFields).toEqual(["name", "description"]);
-    expect(byId.get("monitors")!.titleField).toBe("name");
     expect(byId.get("monitors")!.viewPageMap).toBe(PageMap.MONITOR_VIEW);
-
-    expect(byId.get("incidents")!.searchFields).toEqual([
-      "title",
-      "description",
-    ]);
-    expect(byId.get("incidents")!.titleField).toBe("title");
     expect(byId.get("incidents")!.viewPageMap).toBe(PageMap.INCIDENT_VIEW);
-
-    expect(byId.get("alerts")!.searchFields).toEqual(["title", "description"]);
-    expect(byId.get("alerts")!.titleField).toBe("title");
     expect(byId.get("alerts")!.viewPageMap).toBe(PageMap.ALERT_VIEW);
-
-    expect(byId.get("status-pages")!.searchFields).toEqual([
-      "name",
-      "description",
-    ]);
-    expect(byId.get("status-pages")!.titleField).toBe("name");
     expect(byId.get("status-pages")!.viewPageMap).toBe(
       PageMap.STATUS_PAGE_VIEW,
     );
-
-    expect(byId.get("on-call-policies")!.searchFields).toEqual([
-      "name",
-      "description",
-    ]);
-    expect(byId.get("on-call-policies")!.titleField).toBe("name");
     expect(byId.get("on-call-policies")!.viewPageMap).toBe(
       PageMap.ON_CALL_DUTY_POLICY_VIEW,
     );

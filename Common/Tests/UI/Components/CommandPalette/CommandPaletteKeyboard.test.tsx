@@ -14,10 +14,13 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 /*
  * The palette is portalled to document.body and handles its keys on the
  * dialog root. This suite pins the flat-list keyboard contract AND what the
- * rest of the document observes: handled keys still bubble (the palette does
- * not stopPropagation) but arrive flagged defaultPrevented, so page-level
- * shortcut listeners that respect the flag stay quiet — the same
- * document-listener technique OperatorSelectorKeyboard.test.tsx uses.
+ * rest of the document observes: handled keys bubble flagged
+ * defaultPrevented, so page-level shortcut listeners that respect the flag
+ * stay quiet — except Escape, which the topmost dialog consumes outright
+ * (preventDefault + stopPropagation), so document/window Escape listeners
+ * underneath never see it at all and cannot dismiss their own layer on the
+ * same keypress. Same document-listener technique as
+ * OperatorSelectorKeyboard.test.tsx.
  */
 
 interface ObservedKey {
@@ -181,16 +184,21 @@ describe("CommandPalette keyboard contract", () => {
     expect(fireEvent.keyDown(harness.input, { key: "a" })).toBe(true);
   });
 
-  test("keys bubble to document-level listeners flagged as consumed", () => {
+  test("handled keys bubble flagged as consumed — except Escape, which never reaches the document", () => {
     const harness: PaletteHarness = renderPalette(THREE_COMMANDS);
 
     fireEvent.keyDown(harness.input, { key: "ArrowDown" });
     fireEvent.keyDown(harness.input, { key: "Escape" });
 
+    /*
+     * Escape is absent: the palette stopPropagation's its dismiss key so a
+     * dialog layered underneath (Ask AI's window listener) cannot also close
+     * itself on the same keypress.
+     */
     expect(documentKeys).toEqual([
       { key: "ArrowDown", defaultPrevented: true },
-      { key: "Escape", defaultPrevented: true },
     ]);
+    expect(harness.onClose).toHaveBeenCalledTimes(1);
   });
 
   test("navigation keys do nothing (and stay unprevented) on an empty list", () => {

@@ -41,6 +41,72 @@ function readCommonCode(...relativeParts: Array<string>): string {
   );
 }
 
+/*
+ * The balanced `open...close` block starting at openIndex — the same
+ * structural-extraction technique HomeWaterfall.test.ts uses. The sources
+ * under test keep braces balanced even inside template literals, so a depth
+ * counter is sufficient and avoids pinning any exact formatting.
+ */
+function balancedBlock(
+  source: string,
+  openIndex: number,
+  open: string,
+  close: string,
+): string {
+  let depth: number = 0;
+
+  for (let i: number = openIndex; i < source.length; i++) {
+    const character: string = source.charAt(i);
+
+    if (character === open) {
+      depth++;
+    } else if (character === close) {
+      depth--;
+
+      if (depth === 0) {
+        return source.slice(openIndex, i + 1);
+      }
+    }
+  }
+
+  throw new Error(
+    `Unbalanced ${open}${close} block at index ${openIndex} — the source under test changed shape; update CommandPaletteWiring.test.ts to match.`,
+  );
+}
+
+/*
+ * The index of the first top-level `:` after a top-level `?` inside a JSX
+ * expression container `{cond ? consequent : alternate}` — the split between
+ * the two ternary branches. "Top level" means brace/paren/bracket depth 1,
+ * i.e. directly inside the container's own braces; both branches are wrapped
+ * in parens in the sources under test, so their contents sit deeper. Returns
+ * -1 when the container is not a ternary (an `&&` gate has no else branch).
+ */
+function ternaryElseIndex(block: string): number {
+  let depth: number = 0;
+  let sawTopLevelQuestion: boolean = false;
+
+  for (let i: number = 0; i < block.length; i++) {
+    const character: string = block.charAt(i);
+
+    if (character === "{" || character === "(" || character === "[") {
+      depth++;
+    } else if (character === "}" || character === ")" || character === "]") {
+      depth--;
+    } else if (
+      depth === 1 &&
+      character === "?" &&
+      block.charAt(i + 1) !== "." // optional chaining is not a ternary
+    ) {
+      sawTopLevelQuestion = true;
+    } else if (depth === 1 && character === ":" && sawTopLevelQuestion) {
+      return i;
+    }
+  }
+
+  return -1;
+}
+
 const COMMON_NAVBAR: string = readCommonCode(
   "UI",
   "Components",
@@ -151,13 +217,58 @@ describe("command palette wiring", () => {
   test("the header pill only renders when a project is selected", () => {
     /*
      * Without a project the palette has no project-scoped pages or entity
-     * search to offer — the pill's render must be conditioned on the selected
-     * project, in whatever conditional form, near the dispatch call.
+     * search to offer — the dispatch must sit INSIDE a JSX block gated on
+     * props.selectedProject (a proximity match would also pass on an
+     * unrelated `selectedProject={...}` prop pass, so the gate is extracted
+     * structurally instead).
      */
-    const pillRegion: RegExpMatchArray | null = DASHBOARD_HEADER.match(
-      /selectedProject[\s\S]{0,800}?COMMAND_PALETTE_TOGGLE/,
+    const dispatchMatch: RegExpMatchArray | null = DASHBOARD_HEADER.match(
+      /GlobalEvents\.dispatchEvent\(\s*EventName\.COMMAND_PALETTE_TOGGLE/,
     );
-    expect(pillRegion).not.toBeNull();
+    expect(dispatchMatch).not.toBeNull();
+    const dispatchIndex: number = dispatchMatch!.index as number;
+
+    /*
+     * Every JSX expression container that CONDITIONS on the selected project
+     * — `{props.selectedProject ? … : …}` or `{props.selectedProject && …}`.
+     * A plain prop pass has neither operator and never matches.
+     */
+    const gatePattern: RegExp = /\{\s*props\.selectedProject\s*(?:\?[^.]|&&)/g;
+    let gate: string | null = null;
+    let gateStart: number = -1;
+
+    let match: RegExpExecArray | null = gatePattern.exec(DASHBOARD_HEADER);
+    while (match !== null) {
+      const block: string = balancedBlock(
+        DASHBOARD_HEADER,
+        match.index,
+        "{",
+        "}",
+      );
+
+      if (
+        dispatchIndex > match.index &&
+        dispatchIndex < match.index + block.length
+      ) {
+        gate = block;
+        gateStart = match.index;
+        break;
+      }
+
+      match = gatePattern.exec(DASHBOARD_HEADER);
+    }
+
+    expect(gate).not.toBeNull();
+
+    /*
+     * And inside a ternary gate the dispatch must live in the truthy branch —
+     * a pill moved to the else side would render exactly when there is NO
+     * project.
+     */
+    const elseIndex: number = ternaryElseIndex(gate!);
+    if (elseIndex >= 0) {
+      expect(dispatchIndex - gateStart).toBeLessThan(elseIndex);
+    }
   });
 
   test("the palette host guards project-scoped navigation with the ':' check", () => {

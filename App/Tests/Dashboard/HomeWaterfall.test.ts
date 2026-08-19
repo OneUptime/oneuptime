@@ -365,6 +365,81 @@ describe("Home page request waterfall", () => {
     ).toBe(true);
   });
 
+  test("Home hands the widgets a project id memoized on its string value", () => {
+    /*
+     * ProjectUtil.getCurrentProjectId() constructs a fresh ObjectID on every
+     * call, so passing its raw result to the widgets would change the prop's
+     * identity on every Home re-render and re-fire their fetch effects
+     * (~3x the count requests per visit). The id handed down must therefore
+     * be memoized, and the memo must be keyed on the id's STRING value —
+     * the only stable form — not on another ObjectID instance.
+     */
+    // "useMemo(" — the call, not the identifier in the react import list.
+    const memoIndex: number = HOME_SOURCE.indexOf("useMemo(");
+
+    expect(memoIndex).toBeGreaterThanOrEqual(0);
+
+    const memoCall: string = balancedBlock(
+      HOME_SOURCE,
+      HOME_SOURCE.indexOf("(", memoIndex),
+      "(",
+      ")",
+    );
+
+    // The memo is the (sole) place the widgets' ObjectID gets built...
+    expect(memoCall).toContain("ObjectID");
+
+    // ...and its dependency is a plain identifier, not an expression.
+    const depsMatch: RegExpMatchArray | null = memoCall.match(
+      /\[\s*([A-Za-z0-9_$]+)\s*\]\s*\)$/,
+    );
+
+    expect(depsMatch).not.toBeNull();
+
+    /*
+     * That identifier must be derived from the current project id's string
+     * form — anything else (the raw getter result, a fresh ObjectID) would
+     * defeat the memo.
+     */
+    const depName: string = depsMatch![1] as string;
+
+    expect(HOME_SOURCE).toMatch(
+      new RegExp(
+        `${depName}[^;]*=[^;]*getCurrentProjectId\\(\\)\\?\\.toString\\(\\)`,
+      ),
+    );
+
+    // The widgets receive the memoized id, never the raw getter result.
+    expect(HOME_SOURCE).not.toMatch(
+      /<(?:GettingStarted|OverviewStats)[^/>]*getCurrentProjectId/,
+    );
+  });
+
+  test("both widgets key their fetch effects on the string form of the project id", () => {
+    /*
+     * Belt and braces on the consumer side: even a future caller that
+     * rebuilds the ObjectID every render must not re-fire the widgets'
+     * count requests, so the effects depend on the id's string value —
+     * an instance dep (`[props.projectId]`) would refetch on identity
+     * churn alone.
+     */
+    const gettingStartedEffect: string = useEffectContaining(
+      GETTING_STARTED_SOURCE,
+      "fetchTaskCompletion",
+    );
+
+    const overviewStatsEffect: string = useEffectContaining(
+      OVERVIEW_STATS_SOURCE,
+      "fetchCounts",
+    );
+
+    for (const effect of [gettingStartedEffect, overviewStatsEffect]) {
+      expect(effect).toMatch(
+        /\[\s*props\.projectId\??\.toString\(\)\s*\]\s*\)$/,
+      );
+    }
+  });
+
   test("the state lists load inside the incident/alert chains, not ahead of everything", () => {
     /*
      * The shared state utils must still be the source of the lists (a caching

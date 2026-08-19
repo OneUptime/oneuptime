@@ -23,6 +23,13 @@ export const ShowToastNotification: ShowToastNotificationFunction = (
 interface ToastEntry {
   id: number;
   toast: ToastComponentProps;
+  /*
+   * Built once at dispatch and stable for the toast's lifetime: recreating
+   * onClose per render would hand every Toast a fresh prop on each stack
+   * re-render, which used to restart the exit-unmount timer of any toast
+   * mid-fade.
+   */
+  onClose: () => void;
 }
 
 const ToastLayout: FunctionComponent = (): ReactElement => {
@@ -39,13 +46,26 @@ const ToastLayout: FunctionComponent = (): ReactElement => {
       const id: number = nextToastIdRef.current;
       nextToastIdRef.current += 1;
 
+      // setCurrentToasts is stable, so this closure never goes stale.
+      const onClose: () => void = (): void => {
+        if (toast.onClose) {
+          toast.onClose();
+        }
+
+        setCurrentToasts((toasts: Array<ToastEntry>) => {
+          return toasts.filter((candidate: ToastEntry) => {
+            return candidate.id !== id;
+          });
+        });
+      };
+
       /*
        * Functional update: this listener is registered once, so reading
        * currentToasts from its closure would always see the mount-time empty
        * array and every new toast would clobber the ones before it.
        */
       setCurrentToasts((toasts: Array<ToastEntry>) => {
-        return [...toasts, { id, toast }];
+        return [...toasts, { id, toast, onClose }];
       });
     };
 
@@ -78,17 +98,7 @@ const ToastLayout: FunctionComponent = (): ReactElement => {
               description={entry.toast.description}
               type={entry.toast.type}
               icon={entry.toast.icon}
-              onClose={() => {
-                if (entry.toast.onClose) {
-                  entry.toast.onClose();
-                }
-
-                setCurrentToasts((toasts: Array<ToastEntry>) => {
-                  return toasts.filter((candidate: ToastEntry) => {
-                    return candidate.id !== entry.id;
-                  });
-                });
-              }}
+              onClose={entry.onClose}
             />
           );
         })}
