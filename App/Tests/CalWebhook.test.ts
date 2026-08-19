@@ -6,7 +6,13 @@ import {
 } from "../API/CalWebhook";
 
 jest.mock("Common/Server/Services/MarketingConversionService", () => {
-  return { __esModule: true, default: {} };
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      create: jest.fn(),
+    },
+  };
 });
 
 describe("Cal webhook conversion foundation", () => {
@@ -18,9 +24,7 @@ describe("Cal webhook conversion foundation", () => {
       .update(rawBody)
       .digest("hex");
 
-    expect(
-      verifyCalWebhookSignature({ rawBody, signature, secret }),
-    ).toBe(true);
+    expect(verifyCalWebhookSignature({ rawBody, signature, secret })).toBe(true);
     expect(
       verifyCalWebhookSignature({
         rawBody,
