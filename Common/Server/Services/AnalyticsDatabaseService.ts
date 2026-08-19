@@ -1542,6 +1542,159 @@ export default class AnalyticsDatabaseService<
     return { ...sort, _id: direction } as Sort<TBaseModel>;
   }
 
+  /**
+   * Bounds the rows an `ORDER BY ... , _id` find has to sort, without
+   * changing which rows it returns.
+   *
+   * ClickHouse can read in sorting-key order — and stop early — only when the
+   * ORDER BY lines up with the table's physical key. The `_id` tiebreaker
+   * appended by `toPaginationStableSort` is deliberately NOT a sorting-key
+   * column, so it denies that plan: the engine reads every row matching the
+   * WHERE, sorts the lot in memory, then discards all but one page. On the
+   * Logs viewer that turned a 100-row page into a full-window scan and tripped
+   * the 3 GiB `max_memory_usage` ceiling (Code 241, surfacing as
+   * "Server Error").
+   *
+   * Weakening the tiebreaker would reintroduce the skip/repeat paging bug it
+   * was added to fix, so bound the input instead. `min(k)` over the top
+   * `skip + limit` values of the leading sort key `k` is a rank statistic of
+   * k's MULTISET: it does not depend on which of several tied rows the inner
+   * LIMIT happened to keep. Every row that could reach position `skip + limit`
+   * satisfies `k >= min(k)`, and every row tied at the boundary value is
+   * admitted — so the page is exactly the page the unbounded query returns.
+   * That is what makes this a pure cost change: every gate below is a
+   * performance gate, and getting one wrong can only make a query slower,
+   * never lose or repeat a row.
+   *
+   * The inner pass reads one narrow key column in physical order and stops at
+   * `skip + limit` rows, so it costs far less than the wide outer read it
+   * saves.
+   *
+   * `min()` is nested over a subquery rather than taken as the N-th value via
+   * `ORDER BY k DESC LIMIT 1 OFFSET n - 1` on purpose: on a final page with
+   * fewer than `skip + limit` matching rows the latter returns no row, the
+   * scalar is NULL, `k >= NULL` is NULL, and the page comes back empty.
+   * `min()` over the available rows degrades to the smallest matching value.
+   */
+  private toSortKeyBoundaryFilter(
+    findBy: FindBy<TBaseModel>,
+    sort: Sort<TBaseModel>,
+    options: { hasGroupBy: boolean; databaseName: string },
+  ): Statement | null {
+    /*
+     * Under GROUP BY the predicate would restrict the aggregation INPUT
+     * rather than the page, so it would change results. Mirrors the
+     * tiebreaker's own exemption, leaving grouped finds byte-identical.
+     */
+    if (options.hasGroupBy) {
+      return null;
+    }
+
+    /*
+     * Without an `_id` column there is no off-key tiebreaker — the six
+     * `includeBaseColumns: false` aggregate targets — so the ORDER BY is
+     * already key-aligned and the bound would be pure overhead. Same
+     * condition toPaginationStableSort bails on.
+     */
+    const hasIdColumn: boolean = this.model.tableColumns.some(
+      (column: AnalyticsTableColumn): boolean => {
+        return column.key === "_id";
+      },
+    );
+
+    if (!hasIdColumn) {
+      return null;
+    }
+
+    const leadingSortKey: string | undefined = Object.keys(sort || {})[0];
+
+    if (!leadingSortKey) {
+      return null;
+    }
+
+    /*
+     * Only a column in the physical sorting key can be read in order, so
+     * only there can the off-key `_id` term have cost anything. Off-key
+     * leads (e.g. Log by `severityText`) already plan a bounded top-N and
+     * an extra pass would be pure waste.
+     */
+    if (!this.model.sortKeys.includes(leadingSortKey)) {
+      return null;
+    }
+
+    /*
+     * A non-required column is `Nullable(...)` in the DDL, and `k >= NULL`
+     * is NULL — the predicate would DROP those rows rather than just
+     * narrowing the scan. Fail safe to today's behavior.
+     */
+    const leadingSortColumn: AnalyticsTableColumn | null =
+      this.model.getTableColumn(leadingSortKey);
+
+    if (!leadingSortColumn || !leadingSortColumn.required) {
+      return null;
+    }
+
+    /*
+     * `findOneById` funnels a point lookup through `findOneBy` carrying the
+     * model's default sort. At most one row can match, so bounding it would
+     * double a query that has no ordering problem to begin with.
+     */
+    if ((findBy.query as Record<string, unknown> | undefined)?.["_id"]) {
+      return null;
+    }
+
+    /*
+     * The predicate is valid only BECAUSE of LIMIT/OFFSET: it admits the
+     * rows that can reach position `skip + limit` and no more. Guards the
+     * `new PositiveNumber(undefined)` -> NaN path that exists upstream.
+     */
+    const limit: number = Number(findBy.limit);
+    const skip: number = Number(findBy.skip);
+
+    if (!Number.isFinite(limit) || !Number.isFinite(skip)) {
+      return null;
+    }
+
+    const boundaryRowCount: number = skip + limit;
+
+    if (boundaryRowCount <= 0) {
+      return null;
+    }
+
+    const isDescending: boolean =
+      (sort as Record<string, SortOrder | undefined>)[leadingSortKey] !==
+      SortOrder.Ascending;
+
+    /*
+     * The bound must be computed over the same row set the outer query
+     * filters on, so the WHERE is regenerated rather than shared: appending
+     * one Statement into two places would bind its parameters twice.
+     */
+    const boundaryWhereStatement: Statement =
+      this.statementGenerator.toWhereStatement(findBy.query);
+
+    const boundaryStatement: Statement = SQL` AND ${leadingSortKey} `;
+
+    boundaryStatement.append(isDescending ? SQL`>=` : SQL`<=`);
+    boundaryStatement.append(
+      isDescending
+        ? SQL` (SELECT min(${leadingSortKey}) FROM (SELECT ${leadingSortKey} FROM ${options.databaseName}.${this.model.tableName} WHERE TRUE `
+        : SQL` (SELECT max(${leadingSortKey}) FROM (SELECT ${leadingSortKey} FROM ${options.databaseName}.${this.model.tableName} WHERE TRUE `,
+    );
+    boundaryStatement.append(boundaryWhereStatement);
+    boundaryStatement.append(this.getRetentionReadFilter());
+    boundaryStatement.append(SQL` ORDER BY ${leadingSortKey} `);
+    boundaryStatement.append(isDescending ? SQL`DESC` : SQL`ASC`);
+    boundaryStatement.append(
+      SQL` LIMIT ${{
+        value: boundaryRowCount,
+        type: TableColumnType.Number,
+      }}))`,
+    );
+
+    return boundaryStatement;
+  }
+
   public toFindStatement(findBy: FindBy<TBaseModel>): {
     statement: Statement;
     columns: Array<string>;
@@ -1577,6 +1730,18 @@ export default class AnalyticsDatabaseService<
       }),
     );
 
+    /*
+     * Keeps the `_id` tiebreaker affordable. Result-preserving by
+     * construction, so it is appended to the WHERE without touching the
+     * ORDER BY above. Null whenever the bound cannot help or cannot be
+     * proven safe.
+     */
+    const sortKeyBoundaryStatement: Statement | null =
+      this.toSortKeyBoundaryFilter(findBy, findBy.sort!, {
+        hasGroupBy: Boolean(groupByStatement),
+        databaseName: databaseName,
+      });
+
     const statement: Statement = SQL``;
 
     statement.append(SQL`SELECT `.append(select.statement));
@@ -1585,6 +1750,10 @@ export default class AnalyticsDatabaseService<
       .append(SQL` WHERE TRUE `)
       .append(whereStatement)
       .append(this.getRetentionReadFilter());
+
+    if (sortKeyBoundaryStatement) {
+      statement.append(sortKeyBoundaryStatement);
+    }
 
     if (groupByStatement) {
       statement.append(SQL` GROUP BY `).append(groupByStatement);
