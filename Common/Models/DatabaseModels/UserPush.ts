@@ -346,6 +346,43 @@ class UserPush extends BaseModel {
     default: false,
   })
   public isVerified?: boolean = undefined;
+
+  /*
+   * Whether this handset should be paged through silent mode and Do Not
+   * Disturb when it is on call. Per DEVICE and not per user on purpose: the
+   * responder's work phone on the nightstand and their tablet on the sofa are
+   * the same person making two different decisions, and only the phone should
+   * be allowed to wake the house.
+   *
+   * Off unless the responder turns it on from that device. It is the one
+   * setting in this product that deliberately defeats the switch a person
+   * flicked to be left alone, so it is opted into rather than out of, and the
+   * app only offers it once the OS has actually granted the capability
+   * (the iOS critical-alert entitlement, or Do Not Disturb access on Android).
+   *
+   * `update` is empty like every other column here: the value is written by
+   * UserPushAPI's critical-alerts route, which checks the row belongs to the
+   * caller and then writes as root. That keeps "who may change this" in one
+   * readable place rather than spread across the generic CRUD surface.
+   */
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    title: "Critical Alerts Enabled",
+    description:
+      "Should on-call notifications to this device override silent mode and Do Not Disturb?",
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public isCriticalAlertEnabled?: boolean = undefined;
 }
 
 export default UserPush;

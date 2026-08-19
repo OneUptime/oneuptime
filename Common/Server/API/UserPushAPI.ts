@@ -21,6 +21,35 @@ import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
 import UserPush from "../../Models/DatabaseModels/UserPush";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 
+/*
+ * Booleans arrive from the mobile client as JSON booleans, but the same routes
+ * get called by hand and from form posts where "true" is a string.
+ *
+ * On REGISTRATION, absence is the normal case and means off: overriding a
+ * silenced phone is never something a device registration turns on by itself.
+ */
+export function parseCriticalAlertFlag(raw: unknown): boolean {
+  return raw === true || raw === "true";
+}
+
+/*
+ * On the toggle route the caller is stating an intent, so an unrecognised
+ * value is refused rather than read as false. Quietly storing "off" for a
+ * client that meant "on" leaves a responder believing their phone will ring
+ * while it will not, and nothing surfaces the mistake until a missed page.
+ */
+export function parseCriticalAlertFlagStrict(raw: unknown): boolean {
+  if (raw === true || raw === "true") {
+    return true;
+  }
+
+  if (raw === false || raw === "false") {
+    return false;
+  }
+
+  throw new BadDataException("isEnabled must be either true or false.");
+}
+
 function getAuthenticatedUserId(req: ExpressRequest): ObjectID {
   const userId: ObjectID | undefined = (req as OneUptimeRequest)
     .userAuthorization?.userId;
@@ -111,6 +140,16 @@ export default class UserPushAPI extends BaseAPI<
           userPush.deviceType = req.body.deviceType;
           userPush.deviceName = req.body.deviceName || "Unknown Device";
           userPush.isVerified = true; // Web, iOS, and Android devices are verified immediately
+          /*
+           * The mobile app sends this when the responder already had critical
+           * alerts on and the device is re-registering (a reinstall, a new push
+           * token, a second project). Absent, it stays off: overriding a
+           * silenced phone is never something a registration turns on by
+           * itself.
+           */
+          userPush.isCriticalAlertEnabled = parseCriticalAlertFlag(
+            req.body.isCriticalAlertEnabled,
+          );
 
           const savedDevice: UserPush = await this.service.create({
             data: userPush,
@@ -216,6 +255,7 @@ export default class UserPushAPI extends BaseAPI<
               deviceType: true,
               isVerified: true,
               projectId: true,
+              isCriticalAlertEnabled: true,
             },
           });
 
@@ -246,14 +286,32 @@ export default class UserPushAPI extends BaseAPI<
 
           try {
             // Send test notification
+            const isCriticalAlert: boolean = Boolean(
+              device.isCriticalAlertEnabled,
+            );
+
+            /*
+             * A test that behaves unlike the real page is not a test of
+             * anything. Critical alerts are the one setting whose effect a
+             * responder cannot check by reasoning about it - they have to
+             * silence the phone and hear it ring - so a device with the option
+             * on gets a test that overrides silent mode exactly as a 3am page
+             * would.
+             */
             const testMessage: PushNotificationMessage =
               PushNotificationUtil.createGenericNotification({
-                title: "Test Notification from OneUptime",
-                body: "This is a test notification to verify your device is working correctly.",
+                title: isCriticalAlert
+                  ? "Test Critical Alert from OneUptime"
+                  : "Test Notification from OneUptime",
+                body: isCriticalAlert
+                  ? "This is a test critical alert. If your device is silenced or in Do Not Disturb and you heard this, on-call pages will reach you."
+                  : "This is a test notification to verify your device is working correctly.",
                 clickAction: "/dashboard",
                 tag: "test-notification",
                 requireInteraction: false,
               });
+
+            testMessage.isCriticalAlert = isCriticalAlert;
 
             await PushNotificationService.sendPushNotification(
               {
@@ -283,6 +341,72 @@ export default class UserPushAPI extends BaseAPI<
           return Response.sendJsonObjectResponse(req, res, {
             success: true,
             message: "Test notification sent successfully",
+          });
+        } catch (error) {
+          return next(error);
+        }
+      },
+    );
+
+    /*
+     * Turn "ring me through silent mode" on or off for this handset.
+     *
+     * A dedicated route rather than the generic CRUD update, for the same
+     * reason verify/unverify are: UserPush grants no update permission to
+     * anybody, so every write to it passes an explicit ownership check first
+     * and then runs as root. That keeps the set of things that can change a
+     * responder's paging configuration short and readable.
+     *
+     * Keyed on the device token, like unregister and unlike verify: the mobile
+     * app knows its own push token and holds no row ids, and one phone has a
+     * row per project it is registered against.
+     */
+    this.router.post(
+      `/user-push/critical-alerts`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          req = req as OneUptimeRequest;
+
+          const userId: ObjectID = getAuthenticatedUserId(req);
+
+          if (!req.body.deviceToken) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Device token is required"),
+            );
+          }
+
+          /*
+           * Required rather than defaulted. A request that forgot the field
+           * would otherwise silently turn the setting OFF, and a responder
+           * whose pages stopped overriding Do Not Disturb has no way to notice
+           * until the page they missed.
+           */
+          if (req.body.isEnabled === undefined || req.body.isEnabled === null) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("isEnabled is required"),
+            );
+          }
+
+          const isEnabled: boolean = parseCriticalAlertFlagStrict(
+            req.body.isEnabled,
+          );
+
+          const updatedCount: number =
+            await this.service.setCriticalAlertEnabledForDeviceToken({
+              userId: userId,
+              deviceToken: req.body.deviceToken,
+              isEnabled: isEnabled,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            success: true,
+            isCriticalAlertEnabled: isEnabled,
+            devicesUpdated: updatedCount,
           });
         } catch (error) {
           return next(error);

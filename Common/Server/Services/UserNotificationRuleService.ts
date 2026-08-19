@@ -644,6 +644,14 @@ export class Service extends DatabaseService<Model> {
           deviceType: true,
           isVerified: true,
           userId: true,
+          /*
+           * Whether this handset asked to be rung through silent mode. Unselected
+           * it reads as undefined, which Boolean()s to false further down - the
+           * page still goes out, just quietly, which is the wrong outcome for the
+           * one channel a sleeping responder relies on. It is selected here so
+           * that cannot happen.
+           */
+          isCriticalAlertEnabled: true,
         },
       },
       props: {
@@ -2419,6 +2427,16 @@ export class Service extends DatabaseService<Model> {
       notificationRuleItem.userPush?.deviceToken &&
       notificationRuleItem.userPush?.isVerified
     ) {
+      /*
+       * This is the on-call paging path - the notification that exists to wake
+       * somebody at 3am - so it is the only push in the product allowed to
+       * override the ringer switch, and then only for a device whose owner
+       * turned the option on. Owner subscriptions and note-posted notifications
+       * go out through UserNotificationSettingService and never set this.
+       */
+      const isCriticalAlert: boolean = Boolean(
+        notificationRuleItem.userPush.isCriticalAlertEnabled,
+      );
       // send push notification for alert
       if (
         options.userNotificationEventType ===
@@ -2458,6 +2476,8 @@ export class Service extends DatabaseService<Model> {
             alertId: alert.id!.toString(),
             projectId: alert.projectId!.toString(),
           });
+
+        pushMessage.isCriticalAlert = isCriticalAlert;
 
         // send push notification.
         PushNotificationService.sendPushNotification(
@@ -2540,6 +2560,8 @@ export class Service extends DatabaseService<Model> {
             projectId: incident.projectId!.toString(),
           });
 
+        pushMessage.isCriticalAlert = isCriticalAlert;
+
         // send push notification.
         PushNotificationService.sendPushNotification(
           {
@@ -2620,6 +2642,8 @@ export class Service extends DatabaseService<Model> {
             projectId: alertEpisode.projectId!.toString(),
           });
 
+        pushMessage.isCriticalAlert = isCriticalAlert;
+
         PushNotificationService.sendPushNotification(
           {
             devices: [
@@ -2698,6 +2722,8 @@ export class Service extends DatabaseService<Model> {
             incidentEpisodeId: incidentEpisode.id!.toString(),
             projectId: incidentEpisode.projectId!.toString(),
           });
+
+        pushMessage.isCriticalAlert = isCriticalAlert;
 
         PushNotificationService.sendPushNotification(
           {

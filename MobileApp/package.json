@@ -8,6 +8,9 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "compile": "tsc --noEmit",
+    "test": "jest",
+    "test-file": "jest --runInBand",
+    "coverage": "jest --coverage",
     "prebuild": "npx expo prebuild --clean",
     "android:build": "npx eas-cli build --platform android --profile production",
     "android:build-local": "npm run prebuild && cd android && ./gradlew bundleRelease",
@@ -58,8 +61,14 @@
     "tailwindcss": "^3.4.19"
   },
   "devDependencies": {
+    "@testing-library/react-native": "^14.0.1",
+    "@types/jest": "^29.5.14",
     "@types/react": "~19.1.0",
+    "@types/react-test-renderer": "^19.1.0",
     "babel-preset-expo": "^54.0.10",
+    "jest": "^29.7.0",
+    "jest-expo": "~54.0.18",
+    "react-test-renderer": "19.1.0",
     "typescript": "~5.9.2"
   },
   "private": true

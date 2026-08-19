@@ -6,6 +6,7 @@ import logger from "../utils/logger";
 export async function registerPushDevice(params: {
   deviceToken: string;
   projectId: string;
+  isCriticalAlertEnabled?: boolean;
 }): Promise<void> {
   const deviceType: string =
     Platform.OS === "ios"
@@ -20,6 +21,14 @@ export async function registerPushDevice(params: {
       deviceType: deviceType,
       deviceName: Device.modelName || "Unknown Device",
       projectId: params.projectId,
+      /*
+       * Restated on every registration. A responder who joins a new project,
+       * reinstalls, or is issued a fresh push token creates a new device row,
+       * and a row created without this defaults to off - so the phone would
+       * quietly stop overriding Do Not Disturb for exactly the project they
+       * just joined.
+       */
+      isCriticalAlertEnabled: Boolean(params.isCriticalAlertEnabled),
     });
     logger.info(
       `[PushNotifications] Device registered successfully for project ${params.projectId}`,
@@ -46,6 +55,33 @@ export async function registerPushDevice(params: {
     );
     throw error;
   }
+}
+
+/*
+ * Turn "ring through silent mode" on or off for this handset, across every
+ * project it is registered against. Keyed on the push token because that is
+ * the only device identity the app holds; the server resolves it to the
+ * caller's own rows.
+ *
+ * Errors are not swallowed. Enabling is a promise to the responder that their
+ * phone will wake them, and a toggle that looked like it worked but did not
+ * reach the server is the exact failure mode this feature is meant to remove,
+ * so the caller reverts the switch and says so.
+ */
+export async function setCriticalAlertsEnabledOnServer(params: {
+  deviceToken: string;
+  isEnabled: boolean;
+}): Promise<void> {
+  await apiClient.post("/api/user-push/critical-alerts", {
+    deviceToken: params.deviceToken,
+    isEnabled: params.isEnabled,
+  });
+
+  logger.info(
+    `[PushNotifications] Critical alerts ${
+      params.isEnabled ? "enabled" : "disabled"
+    } for this device`,
+  );
 }
 
 export async function unregisterPushDevice(deviceToken: string): Promise<void> {

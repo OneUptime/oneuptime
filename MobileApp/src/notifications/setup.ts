@@ -4,6 +4,7 @@ import * as Device from "expo-device";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { PermissionStatus } from "expo-modules-core";
+import { NOTIFICATION_CHANNELS } from "./channels";
 import logger from "../utils/logger";
 
 // Show notifications when app is in foreground
@@ -24,31 +25,23 @@ export async function setupNotificationChannels(): Promise<void> {
     return;
   }
 
-  await Notifications.setNotificationChannelAsync("oncall_critical", {
-    name: "Critical Alerts",
-    importance: Notifications.AndroidImportance.MAX,
-    sound: "default",
-    vibrationPattern: [0, 500, 250, 500],
-    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-  });
-
-  await Notifications.setNotificationChannelAsync("oncall_high", {
-    name: "High Priority",
-    importance: Notifications.AndroidImportance.HIGH,
-    sound: "default",
-    vibrationPattern: [0, 250, 250, 250],
-  });
-
-  await Notifications.setNotificationChannelAsync("oncall_normal", {
-    name: "Normal Priority",
-    importance: Notifications.AndroidImportance.DEFAULT,
-    sound: "default",
-  });
-
-  await Notifications.setNotificationChannelAsync("oncall_low", {
-    name: "Low Priority",
-    importance: Notifications.AndroidImportance.LOW,
-  });
+  /*
+   * Created on every launch, not only the first. Android treats this as a
+   * no-op for a channel that already exists, and a responder who cleared the
+   * app's data or restored to a new phone otherwise ends up with the server
+   * naming channels that are not there - which does not error, it just
+   * delivers the page with default settings.
+   */
+  for (const { id, channel } of NOTIFICATION_CHANNELS) {
+    try {
+      await Notifications.setNotificationChannelAsync(id, channel);
+    } catch (error: unknown) {
+      logger.error(
+        `[PushNotifications] Failed to create notification channel ${id}:`,
+        error,
+      );
+    }
+  }
 }
 
 export async function setupNotificationCategories(): Promise<void> {

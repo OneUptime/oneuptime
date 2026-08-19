@@ -26,6 +26,7 @@ import UserPush from "../../Models/DatabaseModels/UserPush";
 import PushNotificationLog from "../../Models/DatabaseModels/PushNotificationLog";
 import PushNotificationLogService from "./PushNotificationLogService";
 import PushStatus from "../../Types/PushNotification/PushStatus";
+import AndroidNotificationChannel from "../../Types/PushNotification/AndroidNotificationChannel";
 
 /*
  * The push services the browsers actually use. A Web Push subscription is a
@@ -65,6 +66,43 @@ export interface PushNotificationOptions {
   onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
   onCallScheduleId?: ObjectID | undefined;
   teamId?: ObjectID | undefined;
+}
+
+/*
+ * What Expo needs to be told for a notification to ring through a silenced
+ * handset. The two platforms disagree about where the answer lives, so this is
+ * computed once and reused by both the direct-SDK and relay send paths.
+ *
+ * iOS reads the payload: a `sound` object with `critical: true` plus
+ * `interruptionLevel: "critical"` is what makes APNs ignore the ringer switch
+ * and Focus, and it is refused unless the app carries Apple's critical-alert
+ * entitlement.
+ *
+ * Android ignores all of that and reads the CHANNEL. Sound, importance and Do
+ * Not Disturb bypass are baked into the channel when the app creates it and
+ * cannot be raised by a payload, so the only lever the server has is which
+ * channel id it names.
+ */
+export type ExpoPushSound =
+  | string
+  | null
+  | {
+      critical?: boolean;
+      name?: string | null;
+      volume?: number;
+    };
+
+export type ExpoInterruptionLevel =
+  | "active"
+  | "critical"
+  | "passive"
+  | "time-sensitive";
+
+export interface ExpoDeliveryOptions {
+  channelId: string;
+  sound: ExpoPushSound;
+  priority: "high";
+  interruptionLevel?: ExpoInterruptionLevel;
 }
 
 export default class PushNotificationService {
@@ -408,6 +446,57 @@ export default class PushNotificationService {
     }
   }
 
+  /*
+   * Volume is pinned rather than exposed as a setting. A critical alert exists
+   * to wake somebody, and a responder who has already opted this device in and
+   * granted the OS permission has not asked to be woken quietly.
+   */
+  public static readonly CRITICAL_ALERT_VOLUME: number = 1;
+
+  public static getExpoDeliveryOptions(
+    message: PushNotificationMessage,
+    deviceType: PushDeviceType,
+  ): ExpoDeliveryOptions {
+    const isAndroid: boolean = deviceType === PushDeviceType.Android;
+    const isCritical: boolean = Boolean(message.isCriticalAlert);
+
+    /*
+     * iOS has no channels, so "default" here is the payload's own sound rather
+     * than a channel id. Android without the critical flag stays on
+     * oncall_high, which is what every push has used until now.
+     */
+    const channelId: string = isAndroid
+      ? isCritical
+        ? AndroidNotificationChannel.Critical
+        : AndroidNotificationChannel.High
+      : "default";
+
+    if (!isCritical) {
+      return {
+        channelId: channelId,
+        sound: "default",
+        priority: "high",
+      };
+    }
+
+    return {
+      channelId: channelId,
+      /*
+       * Sent to Android too, and harmlessly ignored there. Expo forwards it to
+       * APNs where it is the whole mechanism, and to FCM where the channel has
+       * already decided the sound; keeping one shape avoids a per-platform
+       * branch that could silently drop the iOS half.
+       */
+      sound: {
+        critical: true,
+        name: "default",
+        volume: PushNotificationService.CRITICAL_ALERT_VOLUME,
+      },
+      priority: "high",
+      interruptionLevel: "critical",
+    };
+  }
+
   private static async sendExpoPushNotification(
     expoPushToken: string,
     message: PushNotificationMessage,
@@ -430,8 +519,10 @@ export default class PushNotificationService {
       dataPayload["url"] = message.url || message.clickAction || "";
     }
 
-    const channelId: string =
-      deviceType === PushDeviceType.Android ? "oncall_high" : "default";
+    const delivery: ExpoDeliveryOptions = this.getExpoDeliveryOptions(
+      message,
+      deviceType,
+    );
 
     // If EXPO_ACCESS_TOKEN is not set, relay through the push notification gateway
     if (!ExpoAccessToken) {
@@ -439,7 +530,7 @@ export default class PushNotificationService {
         expoPushToken,
         message,
         dataPayload,
-        channelId,
+        delivery,
         deviceType,
       );
       return;
@@ -452,9 +543,12 @@ export default class PushNotificationService {
         title: message.title,
         body: message.body,
         data: dataPayload,
-        sound: "default",
-        priority: "high",
-        channelId: channelId,
+        sound: delivery.sound,
+        priority: delivery.priority,
+        channelId: delivery.channelId,
+        ...(delivery.interruptionLevel
+          ? { interruptionLevel: delivery.interruptionLevel }
+          : {}),
       };
 
       const tickets: ExpoPushTicket[] =
@@ -500,7 +594,7 @@ export default class PushNotificationService {
     expoPushToken: string,
     message: PushNotificationMessage,
     dataPayload: { [key: string]: string },
-    channelId: string,
+    delivery: ExpoDeliveryOptions,
     deviceType: PushDeviceType,
   ): Promise<void> {
     logger.info(
@@ -516,9 +610,19 @@ export default class PushNotificationService {
             title: message.title || "",
             body: message.body || "",
             data: dataPayload,
-            sound: "default",
-            priority: "high",
-            channelId: channelId,
+            /*
+             * The relay re-sends exactly what it is given, so a critical page
+             * that loses its sound object here arrives on the responder's
+             * phone as an ordinary silent notification. That is the failure
+             * this feature exists to prevent, so the whole delivery shape
+             * crosses the wire rather than the channel id alone.
+             */
+            sound: delivery.sound,
+            priority: delivery.priority,
+            channelId: delivery.channelId,
+            ...(delivery.interruptionLevel
+              ? { interruptionLevel: delivery.interruptionLevel }
+              : {}),
           },
         });
 
@@ -552,9 +656,10 @@ export default class PushNotificationService {
     title?: string;
     body?: string;
     data?: { [key: string]: string };
-    sound?: string;
+    sound?: ExpoPushSound;
     priority?: string;
     channelId?: string;
+    interruptionLevel?: ExpoInterruptionLevel;
   }): Promise<void> {
     if (!ExpoAccessToken) {
       throw new Error(
@@ -562,14 +667,24 @@ export default class PushNotificationService {
       );
     }
 
+    /*
+     * `sound: null` is a caller asking for a silent notification and has to
+     * survive, so the fallback tests for undefined rather than falsiness.
+     */
+    const sound: ExpoPushSound =
+      data.sound === undefined ? "default" : data.sound;
+
     const expoPushMessage: ExpoPushMessage = {
       to: data.to,
       title: data.title || "",
       body: data.body || "",
       data: data.data || {},
-      sound: (data.sound as "default" | null) || "default",
+      sound: sound,
       priority: (data.priority as "default" | "normal" | "high") || "high",
       channelId: data.channelId || "default",
+      ...(data.interruptionLevel
+        ? { interruptionLevel: data.interruptionLevel }
+        : {}),
     };
 
     const tickets: ExpoPushTicket[] =

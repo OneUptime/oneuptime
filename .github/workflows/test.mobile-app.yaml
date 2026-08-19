@@ -26,6 +26,19 @@ jobs:
       - name: Run Expo Doctor
         run: cd MobileApp && npx expo-doctor@latest
 
+  jest:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      - run: cd MobileApp && npm install
+      - name: Run Jest Tests
+        run: cd MobileApp && npm test
+
   expo-web-export:
     runs-on: ubuntu-latest
     env:
