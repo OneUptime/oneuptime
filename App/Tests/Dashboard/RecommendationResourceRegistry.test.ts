@@ -88,9 +88,23 @@ function buildServiceModel(values: {
 }): BaseModel {
   const model: Service = new Service();
 
-  model.telemetrySdkLanguage = values.telemetrySdkLanguage;
-  model.runtimeName = values.runtimeName;
-  model.techStack = values.techStack;
+  /*
+   * Written through an index signature rather than through the typed
+   * properties, for the same reason `buildModel` above does it: the model
+   * declares these columns as optional, and under `exactOptionalPropertyTypes`
+   * assigning an explicit `undefined` to an optional property is an error even
+   * though that is exactly the state the API leaves an unselected column in.
+   * Indexing reproduces the real shape `readContext` has to cope with —
+   * including a column that is present and undefined.
+   */
+  const record: Record<string, unknown> = model as unknown as Record<
+    string,
+    unknown
+  >;
+
+  record["telemetrySdkLanguage"] = values.telemetrySdkLanguage;
+  record["runtimeName"] = values.runtimeName;
+  record["techStack"] = values.techStack;
 
   return model;
 }
