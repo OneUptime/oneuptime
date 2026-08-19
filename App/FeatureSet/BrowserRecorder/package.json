@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/browser-recorder",
-  "version": "12.0.12",
+  "version": "12.0.13",
   "private": false,
   "description": "OneUptime session replay browser recorder. Shipped to third-party origins as an IIFE bundle.",
   "repository": {
