@@ -245,7 +245,16 @@ const WhatsApp: () => JSX.Element = (): ReactElement => {
                   minLength: 6,
                   maxLength: 6,
                 },
-                fieldType: FormFieldSchemaType.Number,
+                /*
+                 * Text, not Number. A verification code is a six-character
+                 * string that happens to be digits, and one in ten of them
+                 * starts with a zero — which a numeric input silently eats,
+                 * turning "012345" into "12345". That was always wrong; it
+                 * matters more now that a code only gets five attempts before
+                 * it is burned, so a mangled entry costs the user their
+                 * budget for a mistake the form made.
+                 */
+                fieldType: FormFieldSchemaType.Text,
               },
             ],
           }}

@@ -318,15 +318,27 @@ class UserEmail extends BaseModel {
   @OwnerOnlyColumn()
   @TableColumn({
     title: "Verification Code",
-    description: "Temporary Verification Code",
+    description:
+      "Keyed digest of the temporary verification code — never the code itself",
     isDefaultValueColumn: true,
     computed: true,
     required: true,
     type: TableColumnType.ShortText,
+    /*
+     * A row is born with NO usable code on it: a 64-character random
+     * placeholder that no six-digit code can ever hash to. The real code is
+     * generated, hashed and sent by this channel's service once the row
+     * exists — the row id is part of the hashed message, so the digest cannot
+     * be computed before the insert has assigned one.
+     *
+     * This stays a forced default rather than moving wholly into the service
+     * hook because the column is NOT NULL and must be satisfied on every
+     * create path, including those that pass props.ignoreHooks.
+     */
     forceGetDefaultValueOnCreate: () => {
-      return Text.generateRandomNumber(6);
+      return Text.generateRandomText(64);
     },
-    example: "123456",
+    example: "9f2c1b4a7d3e6058c1f0a9b8d7e6f5c4b3a291807f6e5d4c3b2a19081726354",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -334,6 +346,85 @@ class UserEmail extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public verificationCode?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  /*
+   * When the code currently on this row stops being accepted.
+   *
+   * NULL means there is no live code: none was ever issued, or the last one
+   * was used, or it was burned by the attempt limit — or the row predates
+   * this column, which is read the same conservative way. Without an expiry
+   * the six-digit code space stood open indefinitely, which is what made
+   * walking it worthwhile.
+   */
+  @TableColumn({
+    title: "Verification Code Expires At",
+    description: "When the verification code on this row stops being accepted",
+    computed: true,
+    type: TableColumnType.Date,
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public verificationCodeExpiresAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  /*
+   * Wrong guesses made against the code currently on this row, reset to zero
+   * each time a code is issued.
+   *
+   * This is the counter that stops /verify being an unlimited oracle over a
+   * space small enough to walk in minutes. It is incremented with a single
+   * atomic UPDATE ... RETURNING rather than a read-modify-write, because
+   * requests racing each other are the normal shape of the attack.
+   */
+  @TableColumn({
+    title: "Verification Failed Attempts",
+    description:
+      "Incorrect verification attempts made against the current verification code",
+    computed: true,
+    type: TableColumnType.Number,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 0,
+  })
+  public verificationFailedAttempts?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  /*
+   * When a verification code was last sent for this row.
+   *
+   * Drives the resend cooldown. Without it, "spend the five attempts, ask for
+   * a fresh code, repeat" costs an attacker nothing — and the resend control
+   * doubles as a way to send somebody unsolicited messages at whatever rate
+   * the network allows, at the project's expense.
+   */
+  @TableColumn({
+    title: "Verification Code Sent At",
+    description: "When a verification code was last sent for this row",
+    computed: true,
+    type: TableColumnType.Date,
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public verificationCodeSentAt?: Date = undefined;
 }
 
 export default UserEmail;

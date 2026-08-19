@@ -1,5 +1,7 @@
 import UserIncomingCallNumberAPI from "../../../Server/API/UserIncomingCallNumberAPI";
 import UserIncomingCallNumberService from "../../../Server/Services/UserIncomingCallNumberService";
+import ChannelVerification from "../../../Server/Utils/ChannelVerification";
+import VerificationCode from "../../../Server/Utils/VerificationCode";
 import {
   NextFunction,
   OneUptimeRequest,
@@ -76,6 +78,11 @@ describe("UserIncomingCallNumberAPI", () => {
     UserIncomingCallNumberService.updateOneById = jest
       .fn()
       .mockResolvedValue(undefined);
+    UserIncomingCallNumberService.atomicIncrementColumnValueByOneAndGetValue =
+      jest.fn().mockResolvedValue(1);
+    UserIncomingCallNumberService.getModel = jest
+      .fn()
+      .mockReturnValue({ tableName: "UserIncomingCallNumber" });
     UserIncomingCallNumberService.resendVerificationCode = jest
       .fn()
       .mockResolvedValue(undefined);
@@ -361,13 +368,38 @@ describe("UserIncomingCallNumberAPI", () => {
       );
     });
 
+    /*
+     * GHSA-5cr8-vph4-3hrf: the row no longer stores the code. It stores a
+     * keyed digest that is only accepted while its expiry is in the future,
+     * so a live row has to be built rather than hand-written.
+     */
+    const liveItemOwnedBy: (
+      userId: string,
+      overrides?: Partial<UserIncomingCallNumber>,
+    ) => UserIncomingCallNumber = (
+      userId: string,
+      overrides: Partial<UserIncomingCallNumber> = {},
+    ) => {
+      return {
+        ...itemOwnedBy(userId),
+        projectId: new ObjectID("5f8d0d55b54764421b7156e0"),
+        isVerified: false,
+        verificationCode: VerificationCode.hashCode({
+          code: "123456",
+          channelId: new ObjectID(ITEM_ID),
+        }),
+        verificationCodeExpiresAt: ChannelVerification.getExpiresAt(),
+        verificationFailedAttempts: 0,
+        ...overrides,
+      } as UserIncomingCallNumber;
+    };
+
     it("should reject verifying an item that belongs to another user", async () => {
       mockRequest.body = { itemId: ITEM_ID, code: "123456" };
       authenticateAs(ATTACKER_USER_ID);
-      UserIncomingCallNumberService.findOneById = jest.fn().mockResolvedValue({
-        ...itemOwnedBy(CALLER_USER_ID),
-        verificationCode: "123456",
-      });
+      UserIncomingCallNumberService.findOneById = jest
+        .fn()
+        .mockResolvedValue(liveItemOwnedBy(CALLER_USER_ID));
 
       await callRoute(VERIFY_ROUTE);
 
@@ -382,12 +414,11 @@ describe("UserIncomingCallNumberAPI", () => {
     });
 
     it("should reject an incorrect verification code", async () => {
-      mockRequest.body = { itemId: ITEM_ID, code: "123456" };
+      mockRequest.body = { itemId: ITEM_ID, code: "654321" };
       authenticateAs(CALLER_USER_ID);
-      UserIncomingCallNumberService.findOneById = jest.fn().mockResolvedValue({
-        ...itemOwnedBy(CALLER_USER_ID),
-        verificationCode: "654321",
-      });
+      UserIncomingCallNumberService.findOneById = jest
+        .fn()
+        .mockResolvedValue(liveItemOwnedBy(CALLER_USER_ID));
 
       await callRoute(VERIFY_ROUTE);
 
@@ -401,21 +432,80 @@ describe("UserIncomingCallNumberAPI", () => {
       ).not.toHaveBeenCalled();
     });
 
-    it("should mark the number verified on a correct code", async () => {
-      mockRequest.body = { itemId: ITEM_ID, code: "123456" };
+    /* The case that fails if the plaintext comparison ever comes back. */
+    it("should reject the stored verification column replayed as a code", async () => {
+      const item: UserIncomingCallNumber = liveItemOwnedBy(CALLER_USER_ID);
+
+      mockRequest.body = { itemId: ITEM_ID, code: item.verificationCode };
       authenticateAs(CALLER_USER_ID);
-      UserIncomingCallNumberService.findOneById = jest.fn().mockResolvedValue({
-        ...itemOwnedBy(CALLER_USER_ID),
-        verificationCode: "123456",
-      });
+      UserIncomingCallNumberService.findOneById = jest
+        .fn()
+        .mockResolvedValue(item);
 
       await callRoute(VERIFY_ROUTE);
 
-      expect(UserIncomingCallNumberService.updateOneById).toHaveBeenCalledWith({
-        id: new ObjectID(ITEM_ID),
-        props: { isRoot: true },
-        data: { isVerified: true },
-      });
+      expect(Response.sendErrorResponse).toHaveBeenCalledWith(
+        mockRequest,
+        mockResponse,
+        new BadDataException("Invalid code"),
+      );
+    });
+
+    it("should reject a code whose expiry has passed", async () => {
+      mockRequest.body = { itemId: ITEM_ID, code: "123456" };
+      authenticateAs(CALLER_USER_ID);
+      UserIncomingCallNumberService.findOneById = jest.fn().mockResolvedValue(
+        liveItemOwnedBy(CALLER_USER_ID, {
+          verificationCodeExpiresAt: new Date(Date.now() - 1000),
+        }),
+      );
+
+      await callRoute(VERIFY_ROUTE);
+
+      expect(Response.sendErrorResponse).toHaveBeenCalled();
+      expect(
+        UserIncomingCallNumberService.updateOneById,
+      ).not.toHaveBeenCalled();
+    });
+
+    it("should reject once the attempt budget for the code is spent", async () => {
+      mockRequest.body = { itemId: ITEM_ID, code: "123456" };
+      authenticateAs(CALLER_USER_ID);
+      UserIncomingCallNumberService.findOneById = jest.fn().mockResolvedValue(
+        liveItemOwnedBy(CALLER_USER_ID, {
+          verificationFailedAttempts: 5,
+        }),
+      );
+
+      await callRoute(VERIFY_ROUTE);
+
+      expect(Response.sendErrorResponse).toHaveBeenCalled();
+      expect(
+        UserIncomingCallNumberService.updateOneById,
+      ).not.toHaveBeenCalled();
+    });
+
+    it("should mark the number verified on a correct code", async () => {
+      mockRequest.body = { itemId: ITEM_ID, code: "123456" };
+      authenticateAs(CALLER_USER_ID);
+      UserIncomingCallNumberService.findOneById = jest
+        .fn()
+        .mockResolvedValue(liveItemOwnedBy(CALLER_USER_ID));
+
+      await callRoute(VERIFY_ROUTE);
+
+      /* Verified AND the used code cleared, in the same write. */
+      expect(UserIncomingCallNumberService.updateOneById).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: new ObjectID(ITEM_ID),
+          props: { isRoot: true },
+          data: expect.objectContaining({
+            isVerified: true,
+            verificationFailedAttempts: 0,
+            verificationCodeExpiresAt: null,
+          }),
+        }),
+      );
       expect(Response.sendEmptySuccessResponse).toHaveBeenCalledWith(
         mockRequest,
         mockResponse,

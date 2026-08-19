@@ -1,22 +1,44 @@
 import UserMiddleware from "../Middleware/UserAuthorization";
+import VerificationCodeRateLimit, {
+  VerificationCodeRateLimitBucket,
+} from "../Middleware/VerificationCodeRateLimit";
 import UserCallService, {
   Service as UserCallServiceType,
 } from "../Services/UserCallService";
-import UserNotificationRuleService from "../Services/UserNotificationRuleService";
 import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
   OneUptimeRequest,
 } from "../Utils/Express";
+import ChannelVerification, {
+  ChannelVerificationOutcome,
+  ChannelVerificationResult,
+} from "../Utils/ChannelVerification";
 import Response from "../Utils/Response";
-import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import BaseAPI from "./BaseAPI";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import UserCall from "../../Models/DatabaseModels/UserCall";
-import UserSMS from "../../Models/DatabaseModels/UserSMS";
+import UserNotificationRuleService from "../Services/UserNotificationRuleService";
+import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 
+/*
+ * The verify and resend routes for this notification channel.
+ *
+ * Neither the checking of a submitted code nor the issuing of a new one lives
+ * here, on purpose. The state machine is shared by all five channels
+ * (Common/Server/Utils/ChannelVerification.ts) so that a control added for one
+ * of them cannot quietly go missing on another — which is exactly what went
+ * wrong before: five hand-written copies of "compare the column, set
+ * isVerified", none of which expired the code, counted attempts, or refused a
+ * caller running the comparison a million times against somebody else's phone
+ * number.
+ *
+ * What is left here is the HTTP shape: reject malformed bodies, run the rate
+ * limiter before anything costs a database read, and turn the outcome into a
+ * response.
+ */
 export default class UserCallAPI extends BaseAPI<
   UserCall,
   UserCallServiceType
@@ -27,6 +49,9 @@ export default class UserCallAPI extends BaseAPI<
     this.router.post(
       `/user-call/verify`,
       UserMiddleware.getUserMiddleware,
+      VerificationCodeRateLimit.getMiddleware(
+        VerificationCodeRateLimitBucket.Verify,
+      ),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           req = req as OneUptimeRequest;
@@ -47,33 +72,10 @@ export default class UserCallAPI extends BaseAPI<
             );
           }
 
-          // Check if the code matches and verify the phone number.
-          const item: UserSMS | null = await this.service.findOneById({
-            id: req.body["itemId"],
-            props: {
-              isRoot: true,
-            },
-            select: {
-              userId: true,
-              projectId: true,
-              verificationCode: true,
-            },
-          });
+          const userId: ObjectID | undefined = (req as OneUptimeRequest)
+            ?.userAuthorization?.userId;
 
-          if (!item) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Item not found"),
-            );
-          }
-
-          //check user id
-
-          if (
-            item.userId?.toString() !==
-            (req as OneUptimeRequest)?.userAuthorization?.userId?.toString()
-          ) {
+          if (!userId) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -81,32 +83,30 @@ export default class UserCallAPI extends BaseAPI<
             );
           }
 
-          if (item.verificationCode !== req.body["code"]) {
+          const result: ChannelVerificationResult =
+            await ChannelVerification.verifyCode({
+              service: this.service,
+              itemId: new ObjectID(req.body["itemId"].toString()),
+              userId: userId,
+              code: req.body["code"].toString(),
+            });
+
+          if (result.outcome !== ChannelVerificationOutcome.Verified) {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid code"),
+              ChannelVerification.getFailureException(result.outcome),
             );
           }
 
-          await this.service.updateOneById({
-            id: item.id!,
-            props: {
-              isRoot: true,
-            },
-            data: {
-              isVerified: true,
-            },
-          });
-
-          // Create default notification rules for this verified call number
+          /* Create default notification rules for this verified call number */
           try {
             await UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod(
               {
-                projectId: new ObjectID(item.projectId!.toString()),
-                userId: new ObjectID(item.userId!.toString()),
+                projectId: new ObjectID(result.projectId!.toString()),
+                userId: new ObjectID(result.userId!.toString()),
                 notificationMethod: {
-                  userCallId: item.id!,
+                  userCallId: result.itemId!,
                 },
               },
             );
@@ -127,6 +127,9 @@ export default class UserCallAPI extends BaseAPI<
     this.router.post(
       `/user-call/resend-verification-code`,
       UserMiddleware.getUserMiddleware,
+      VerificationCodeRateLimit.getMiddleware(
+        VerificationCodeRateLimitBucket.Resend,
+      ),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           req = req as OneUptimeRequest;
@@ -157,6 +160,11 @@ export default class UserCallAPI extends BaseAPI<
             );
           }
 
+          /*
+           * A caller may only ask for a code to be sent to a row they own.
+           * Without this the resend route is a way to make somebody else's
+           * device ring on demand.
+           */
           if (
             item.userId?.toString() !==
             (req as OneUptimeRequest)?.userAuthorization?.userId?.toString()
