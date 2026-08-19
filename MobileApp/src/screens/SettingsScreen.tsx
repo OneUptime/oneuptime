@@ -7,6 +7,10 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { useAuth } from "../hooks/useAuth";
 import { useBiometric } from "../hooks/useBiometric";
+import {
+  useCriticalAlerts,
+  type CriticalAlertsState,
+} from "../hooks/useCriticalAlerts";
 import { useHaptics } from "../hooks/useHaptics";
 import { getServerUrl } from "../storage/serverUrl";
 import Logo from "../components/Logo";
@@ -154,6 +158,7 @@ export default function SettingsScreen(): React.JSX.Element {
   const navigation: SettingsNavigationProp =
     useNavigation<SettingsNavigationProp>();
   const biometric: ReturnType<typeof useBiometric> = useBiometric();
+  const criticalAlerts: CriticalAlertsState = useCriticalAlerts();
   const { selectionFeedback } = useHaptics();
   const [serverUrl, setServerUrlState] = useState("");
 
@@ -165,6 +170,15 @@ export default function SettingsScreen(): React.JSX.Element {
     value: boolean,
   ): Promise<void> => {
     await biometric.setEnabled(value);
+    if (value) {
+      selectionFeedback();
+    }
+  };
+
+  const handleCriticalAlertsToggle: (value: boolean) => Promise<void> = async (
+    value: boolean,
+  ): Promise<void> => {
+    await criticalAlerts.setEnabled(value);
     if (value) {
       selectionFeedback();
     }
@@ -318,6 +332,96 @@ export default function SettingsScreen(): React.JSX.Element {
           </Text>
         </View>
       </View>
+
+      {/* Notifications */}
+      {criticalAlerts.isSupported ? (
+        <View style={{ marginBottom: 24 }}>
+          <Text
+            style={{
+              fontSize: 12,
+              fontWeight: "600",
+              textTransform: "uppercase",
+              marginBottom: 8,
+              marginLeft: 4,
+              color: theme.colors.textTertiary,
+              letterSpacing: 0.8,
+            }}
+          >
+            Notifications
+          </Text>
+          <View
+            style={{
+              borderRadius: 16,
+              overflow: "hidden",
+              backgroundColor: theme.colors.backgroundElevated,
+              borderWidth: 1,
+              borderColor: theme.colors.borderGlass,
+            }}
+          >
+            <SettingsRow
+              label="Critical On-Call Alerts"
+              iconName="notifications-outline"
+              isLast
+              rightElement={
+                <Switch
+                  value={criticalAlerts.isEnabled}
+                  onValueChange={handleCriticalAlertsToggle}
+                  disabled={criticalAlerts.isBusy}
+                  trackColor={{
+                    false: theme.colors.backgroundTertiary,
+                    true: theme.colors.actionPrimary,
+                  }}
+                  thumbColor="#FFFFFF"
+                />
+              }
+            />
+          </View>
+          <Text
+            style={{
+              fontSize: 12,
+              marginTop: 6,
+              marginLeft: 4,
+              lineHeight: 16,
+              color: theme.colors.textTertiary,
+            }}
+          >
+            Play a sound for on-call pages even when this device is silenced or
+            in Do Not Disturb. Only urgent on-call notifications override silent
+            mode.
+          </Text>
+          {/*
+            The error is the actionable half of this setting: on Android it is
+            what tells a responder they still have to grant Do Not Disturb
+            access before the switch will stay on, and on iOS which Settings
+            screen to visit.
+          */}
+          {criticalAlerts.error ? (
+            <Text
+              style={{
+                fontSize: 12,
+                marginTop: 6,
+                marginLeft: 4,
+                lineHeight: 16,
+                color: theme.colors.statusError,
+              }}
+            >
+              {criticalAlerts.error}
+            </Text>
+          ) : criticalAlerts.isEnabled && criticalAlerts.statusMessage ? (
+            <Text
+              style={{
+                fontSize: 12,
+                marginTop: 6,
+                marginLeft: 4,
+                lineHeight: 16,
+                color: theme.colors.statusSuccess,
+              }}
+            >
+              {criticalAlerts.statusMessage}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
 
       {/* Security */}
       {biometric.isAvailable ? (

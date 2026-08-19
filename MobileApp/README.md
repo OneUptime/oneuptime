@@ -92,11 +92,49 @@ ServerUrlScreen → LoginScreen → MainTabNavigator (Home, Incidents, Alerts, S
 - Access tokens are refreshed automatically on 401 responses.
 - Logout clears all stored tokens and returns to the login screen.
 
+## Tests
+
+```bash
+npm test
+```
+
+Jest with the `jest-expo` preset. Tests live next to the code they cover
+(`src/**/*.test.ts[x]`); shared native-module mocks are in
+`src/__tests__/setup.ts`.
+
 ## Push Notifications
 
 Native push notifications (iOS/Android) are powered by Expo Push and require no server-side configuration. The mobile app registers an Expo Push Token with the backend on login. The backend sends notifications via the public Expo Push API.
 
 Web push uses VAPID keys (configured separately). See the [Push Notifications docs](../Docs/Content/self-hosted/push-notifications.md) for details.
+
+### Critical on-call alerts
+
+**Settings > Notifications > Critical On-Call Alerts** lets a responder have
+on-call pages play a sound even when the handset is silenced or in Do Not
+Disturb. It is per device and off by default, and only on-call pages are
+escalated - never owner subscriptions or note-posted notices.
+
+- **Android** uses the `oncall_critical` notification channel, which requests
+  `bypassDnd` and plays on the alarm audio stream. The Do Not Disturb bypass
+  needs the user to grant this app **Do Not Disturb access** in system
+  settings; the app opens that screen when the switch is turned on. Channel
+  settings are frozen by Android at creation, so changing them means shipping a
+  new channel id, not editing `src/notifications/channels.ts`.
+- **iOS** needs Apple's critical-alerts entitlement, which is **not** enabled by
+  default because a build declaring an entitlement the Apple team has not been
+  granted fails to sign. Once Apple grants it:
+
+  ```bash
+  EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT=true npm run prebuild
+  ```
+
+  or set `EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT: "true"` in the relevant
+  `eas.json` build profile's `env`.
+
+Without the OS capability the app does not pretend: the settings screen reads
+the real state back from the OS and tells the responder which setting is
+missing.
 
 ## Troubleshooting
 

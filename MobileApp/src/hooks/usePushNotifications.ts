@@ -15,6 +15,7 @@ import { registerPushDevice } from "../api/pushDevice";
 import { useAuth } from "./useAuth";
 import { useProject } from "./useProject";
 import { PUSH_TOKEN_KEY } from "./pushTokenUtils";
+import { getCriticalAlertsEnabled } from "../storage/preferences";
 import logger from "../utils/logger";
 
 const RETRY_DELAY_MS: number = 5000;
@@ -80,6 +81,15 @@ export function usePushNotifications(navigationRef: unknown): void {
 
       await AsyncStorage.setItem(PUSH_TOKEN_KEY, token);
 
+      /*
+       * Carried into every registration below. Each project gets its own device
+       * row, and a row created without this defaults to off - so without it a
+       * responder who had critical alerts on would silently lose the override
+       * for any project they joined after switching it on, and for every
+       * project at all after a reinstall issued a new push token.
+       */
+      const isCriticalAlertEnabled: boolean = await getCriticalAlertsEnabled();
+
       // Register with each project
       for (const project of projectList) {
         if (cancelled) {
@@ -89,6 +99,7 @@ export function usePushNotifications(navigationRef: unknown): void {
           await registerPushDevice({
             deviceToken: token,
             projectId: project._id,
+            isCriticalAlertEnabled: isCriticalAlertEnabled,
           });
         } catch (error: unknown) {
           logger.warn(

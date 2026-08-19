@@ -531,6 +531,7 @@ import { AddDeviceRoleAndDeclaredLinkParent1787400000000 } from "./1787400000000
 import { AddEnableSearchEngineIndexingToStatusPage1787500000000 } from "./1787500000000-AddEnableSearchEngineIndexingToStatusPage";
 import { AddNetworkDeviceReachabilityColumns1787600000000 } from "./1787600000000-AddNetworkDeviceReachabilityColumns";
 import { MigrationName1787142779538 } from "./1787142779538-MigrationName";
+import { MigrationName1787156982416 } from "./1787156982416-MigrationName";
 
 export default [
   InitialMigration,
@@ -1066,4 +1067,5 @@ export default [
   AddEnableSearchEngineIndexingToStatusPage1787500000000,
   AddNetworkDeviceReachabilityColumns1787600000000,
   MigrationName1787142779538,
+  MigrationName1787156982416,
 ];

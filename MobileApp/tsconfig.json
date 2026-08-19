@@ -7,6 +7,6 @@
       "@/*": ["src/*"],
       "Common/*": ["../Common/build/dist/*"]
     },
-    "types": ["nativewind/types"]
+    "types": ["nativewind/types", "jest"]
   }
 }

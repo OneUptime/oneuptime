@@ -12,6 +12,7 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
 import UserPush from "../../Models/DatabaseModels/UserPush";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 
 export class Service extends DatabaseService<UserPush> {
   public constructor() {
@@ -119,6 +120,94 @@ export class Service extends DatabaseService<UserPush> {
         isRoot: true,
       },
     });
+  }
+
+  /**
+   * Turn on-call critical alerts on or off for a handset.
+   *
+   * Keyed on the device TOKEN rather than a row id, because one phone owns one
+   * row per project it is registered against, and "ring me through silent
+   * mode" is a property of the phone. Toggling it per row would leave a
+   * responder loud for one project and silent for the next - a distinction
+   * nothing in the app offers to make and nobody would think to check.
+   * Deletion already works this way for the same reason (see the unregister
+   * route).
+   *
+   * Scoped to `userId` so a token cannot be used to reconfigure somebody
+   * else's device, and to the two mobile platforms because no browser can
+   * override a device's ringer: storing the preference on a web row would
+   * read back as though it did something.
+   *
+   * Returns how many rows were updated, so the caller can tell a real toggle
+   * apart from one that matched no device at all.
+   */
+  @CaptureSpan()
+  public async setCriticalAlertEnabledForDeviceToken(data: {
+    userId: ObjectID;
+    deviceToken: string;
+    isEnabled: boolean;
+  }): Promise<number> {
+    const devices: Array<UserPush> = await this.findBy({
+      query: {
+        userId: data.userId,
+        deviceToken: data.deviceToken,
+      },
+      select: {
+        _id: true,
+        deviceType: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (devices.length === 0) {
+      throw new BadDataException(
+        "No registered device was found for this device token.",
+      );
+    }
+
+    const mobileDeviceIds: Array<string> = devices
+      .filter((device: UserPush) => {
+        return (
+          device.deviceType === PushDeviceType.iOS ||
+          device.deviceType === PushDeviceType.Android
+        );
+      })
+      .map((device: UserPush) => {
+        return device._id!.toString();
+      });
+
+    if (mobileDeviceIds.length === 0) {
+      throw new BadDataException(
+        "Critical alerts are only available on iOS and Android devices.",
+      );
+    }
+
+    let updatedCount: number = 0;
+
+    /*
+     * One update per row rather than an `_id: In([...])` query: the query
+     * builder used here takes a single value per column, and the count of
+     * projects a responder belongs to is small.
+     */
+    for (const deviceId of mobileDeviceIds) {
+      updatedCount += await this.updateOneBy({
+        query: {
+          _id: deviceId,
+        },
+        data: {
+          isCriticalAlertEnabled: data.isEnabled,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    return updatedCount;
   }
 }
 
