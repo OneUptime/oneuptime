@@ -8,6 +8,7 @@ import {
   registerAndCreateProject,
   submitIngestionKeyModal,
 } from "./Helpers/ProductOnboarding";
+import { selectMonitorTypeCard } from "./Helpers/Monitors";
 
 /*
  * Telemetry ingestion keys are 36-char UUIDs (ObjectID.generate()), so a
@@ -113,10 +114,7 @@ test.describe.skip("Docker Swarm Product Onboarding", () => {
       .locator("#create-monitor-form input[placeholder='Monitor Name']")
       .fill("E2E Docker Swarm Monitor " + Faker.generateName().toString());
 
-    await expect(
-      page.getByTestId("card-select-option-Docker Swarm"),
-    ).toBeVisible();
-    await page.getByTestId("card-select-option-Docker Swarm").click();
+    await selectMonitorTypeCard({ page, cardValue: "Docker Swarm" });
     /*
      * On a billing-enabled deployment a Free plan project must acknowledge
      * pay-as-you-go pricing before a non-Manual monitor can be created.

@@ -8,6 +8,7 @@ import {
   registerAndCreateProject,
   submitIngestionKeyModal,
 } from "./Helpers/ProductOnboarding";
+import { selectMonitorTypeCard } from "./Helpers/Monitors";
 
 /*
  * Telemetry ingestion keys are 36-char UUIDs (ObjectID.generate()), so a
@@ -110,8 +111,7 @@ test.describe.skip("Ceph Product Onboarding", () => {
       .locator("#create-monitor-form input[placeholder='Monitor Name']")
       .fill("E2E Ceph Monitor " + Faker.generateName().toString());
 
-    await expect(page.getByTestId("card-select-option-Ceph")).toBeVisible();
-    await page.getByTestId("card-select-option-Ceph").click();
+    await selectMonitorTypeCard({ page, cardValue: "Ceph" });
     /*
      * On a billing-enabled deployment a Free plan project must acknowledge
      * pay-as-you-go pricing before a non-Manual monitor can be created.

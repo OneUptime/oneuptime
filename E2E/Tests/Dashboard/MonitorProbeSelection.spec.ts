@@ -1,6 +1,7 @@
 import { BASE_URL } from "../../Config";
 import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
 import { toId } from "./Helpers/MonitorAlerting";
+import { selectMonitorTypeCard } from "./Helpers/Monitors";
 import {
   APIResponse,
   Browser,
@@ -195,9 +196,7 @@ test.describe("Monitor probe selection", () => {
     await page
       .locator(`${monitorCreateFormSelector} input[placeholder='Monitor Name']`)
       .fill(monitorName);
-    const card: Locator = page.getByTestId("card-select-option-Website");
-    await expect(card).toBeVisible({ timeout: 30000 });
-    await card.click();
+    await selectMonitorTypeCard({ page, cardValue: "Website" });
     await page.getByTestId(submitButtonTestId).click();
 
     // Step 2: criteria. Wait for the async defaults, then fill the URL.

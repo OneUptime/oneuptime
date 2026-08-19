@@ -51,6 +51,15 @@ const search: SearchFunction = (value: string): void => {
   });
 };
 
+// Every type the catalog actually offers, in the order the picker lists them.
+const catalogTypeValues: Array<string> = categorizedOptions.flatMap(
+  (group: CardSelectOptionGroup) => {
+    return group.options.map((option: CardSelectOption) => {
+      return option.value;
+    });
+  },
+);
+
 type ShownTypesFunction = () => Array<string>;
 
 const shownTypes: ShownTypesFunction = (): Array<string> => {
@@ -231,6 +240,25 @@ describe("Monitor type picker", () => {
 
       expect(onChange).toHaveBeenCalledWith(MonitorType.Kubernetes);
     });
+
+    /*
+     * The e2e suite reaches a folded-away type by typing its MonitorType value
+     * into this box and then clicking card-select-option-<value>
+     * (selectMonitorTypeCard in E2E/Tests/Dashboard/Helpers/Monitors.ts). That
+     * only holds while every type's own value is a search term that finds it,
+     * which a renamed title or a reworded description can quietly break — and
+     * the only thing that would notice is a full release e2e run.
+     */
+    test.each(catalogTypeValues)(
+      "typing %s finds the card the e2e suite goes on to click",
+      (value: string) => {
+        renderPicker();
+
+        search(value);
+
+        expect(screen.getByTestId(`card-select-option-${value}`)).toBeVisible();
+      },
+    );
   });
 
   describe("coming back to a form that already has a type", () => {

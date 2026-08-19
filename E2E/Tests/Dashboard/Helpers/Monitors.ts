@@ -47,6 +47,69 @@ const monitorNameInputSelector: string =
   "#create-monitor-form input[placeholder='Monitor Name']";
 const submitButtonTestId: string = "Create Monitor";
 
+const cardSelectSearchTestId: string = "card-select-search";
+
+/*
+ * The picker is on screen once either its search box or its first card is:
+ * both render in the same pass, so whichever comes first in the DOM answers
+ * "the catalog is up". Waiting on the surrounding form is not enough — the
+ * search box can still be a render away, and asking whether the picker is
+ * searchable before it exists answers "no" and silently skips the search.
+ */
+const cardSelectReadySelector: string = `[data-testid="${cardSelectSearchTestId}"], [data-testid^="card-select-option-"]`;
+
+/*
+ * Picks a monitor type card on any page that renders the full monitor type
+ * catalog (Create Monitor, Monitor Templates, Monitor Template View).
+ *
+ * Those pickers fold every category but the first behind its heading, so only
+ * the eight "Basic Monitoring" cards are in the DOM on first paint. Every
+ * other type — Manual, the telemetry types, the infrastructure types — has no
+ * card-select-option-<value> element at all until the catalog is opened up, so
+ * a plain getByTestId waits out its whole timeout against markup that was
+ * never rendered.
+ *
+ * Typing into the picker's search box is the way through: a search flattens
+ * the categories and renders every match regardless of which headings are
+ * folded. It is also what a user does, so the spec drives the picker the way
+ * the picker is meant to be driven instead of reaching past its own UI.
+ *
+ * The MonitorType enum value is always a safe search term. Search lowercases
+ * what is typed, splits it on whitespace and requires every word somewhere
+ * across the card's title, description, category heading and keywords — and
+ * the value is the card's title for every type the catalog offers except
+ * Docker and Podman, where it is the first word of it ("Docker Container").
+ */
+type SelectMonitorTypeFunction = (data: {
+  page: Page;
+  cardValue: string;
+}) => Promise<void>;
+
+export const selectMonitorTypeCard: SelectMonitorTypeFunction = async (data: {
+  page: Page;
+  cardValue: string;
+}): Promise<void> => {
+  const page: Page = data.page;
+
+  await page
+    .locator(cardSelectReadySelector)
+    .first()
+    .waitFor({ state: "visible", timeout: 30000 });
+
+  const search: Locator = page.getByTestId(cardSelectSearchTestId);
+
+  // A picker with a handful of cards does not opt into the search box.
+  if ((await search.count()) > 0) {
+    await search.first().fill(data.cardValue);
+  }
+
+  const card: Locator = page.getByTestId(
+    `card-select-option-${data.cardValue}`,
+  );
+  await expect(card).toBeVisible({ timeout: 30000 });
+  await card.click();
+};
+
 /*
  * Matches a monitor id (a uuid) in the view-monitor URL.
  *
@@ -252,11 +315,7 @@ export const createMonitor: CreateMonitorFunction = async (data: {
 
   // Step 1: name + type.
   await page.locator(monitorNameInputSelector).fill(data.monitorName);
-  const card: Locator = page.getByTestId(
-    `card-select-option-${data.recipe.cardValue}`,
-  );
-  await expect(card).toBeVisible({ timeout: 30000 });
-  await card.click();
+  await selectMonitorTypeCard({ page, cardValue: data.recipe.cardValue });
   await page.getByTestId(submitButtonTestId).click();
 
   if (!data.recipe.skipsCriteria) {
@@ -456,11 +515,7 @@ export const createInfraMonitor: CreateInfraMonitorFunction = async (data: {
 
   // Step 1: name + type.
   await page.locator(monitorNameInputSelector).fill(data.monitorName);
-  const card: Locator = page.getByTestId(
-    `card-select-option-${data.recipe.cardValue}`,
-  );
-  await expect(card).toBeVisible({ timeout: 30000 });
-  await card.click();
+  await selectMonitorTypeCard({ page, cardValue: data.recipe.cardValue });
   await page.getByTestId(submitButtonTestId).click();
 
   // Criteria step: pick the seeded entity from the first dropdown.
