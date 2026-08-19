@@ -807,7 +807,20 @@ enum PageMap {
 
   USER_VIEW = "USER_VIEW",
   USER_VIEW_TEAMS = "USER_VIEW_TEAMS",
+  /*
+   * The legacy combined route. It no longer renders a page of its own — the
+   * readiness overview, the notification methods and the four rule types are
+   * six pages now — but the key and the path stay so that bookmarks, links in
+   * older emails and anything an operator has written down still land somewhere
+   * useful. See UsersRoutes.tsx.
+   */
   USER_VIEW_NOTIFICATION_RULES = "USER_VIEW_NOTIFICATION_RULES",
+  USER_VIEW_ON_CALL_READINESS = "USER_VIEW_ON_CALL_READINESS",
+  USER_VIEW_NOTIFICATION_METHODS = "USER_VIEW_NOTIFICATION_METHODS",
+  USER_VIEW_INCIDENT_ON_CALL_RULES = "USER_VIEW_INCIDENT_ON_CALL_RULES",
+  USER_VIEW_INCIDENT_EPISODE_ON_CALL_RULES = "USER_VIEW_INCIDENT_EPISODE_ON_CALL_RULES",
+  USER_VIEW_ALERT_ON_CALL_RULES = "USER_VIEW_ALERT_ON_CALL_RULES",
+  USER_VIEW_ALERT_EPISODE_ON_CALL_RULES = "USER_VIEW_ALERT_EPISODE_ON_CALL_RULES",
   USER_VIEW_CUSTOM_FIELDS = "USER_VIEW_CUSTOM_FIELDS",
   USER_VIEW_DELETE = "USER_VIEW_DELETE",
 
