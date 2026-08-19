@@ -25,7 +25,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
 import User from "Common/Models/DatabaseModels/User";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import React, {
   Fragment,
   FunctionComponent,

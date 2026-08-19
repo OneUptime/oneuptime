@@ -9,7 +9,7 @@ import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 import IconProp from "../../../Types/Icon/IconProp";
 import React from "react";
-import { describe, expect, jest } from "@jest/globals";
+import { afterEach, describe, expect, jest } from "@jest/globals";
 
 describe("Button", () => {
   test("it should render correctly with title and icon", () => {
@@ -475,6 +475,180 @@ describe("Button disabled behaviour", () => {
     );
 
     fireEvent.click(screen.getByTestId("test-id"));
+
+    expect(handleClick).not.toBeCalled();
+  });
+});
+
+describe("Button motion", () => {
+  /*
+   * Hover/focus colour changes ease in instead of snapping. The classes are
+   * appended once at the shared point every variant funnels through, so every
+   * style must carry them.
+   */
+  test.each(ALL_BUTTON_STYLES)(
+    "%s carries the shared colour-transition classes",
+    (_name: string, buttonStyle: ButtonStyleType) => {
+      expect(renderButton({ buttonStyle })).toHaveClass(
+        "transition-colors",
+        "duration-150",
+        "ease-out",
+      );
+    },
+  );
+});
+
+describe("Button link focus rings", () => {
+  /*
+   * LINK and SECONDARY_LINK used to have no ring at all, leaving keyboard
+   * users with no focus indicator on text links. focus-visible (rather than
+   * focus:) so mouse clicks do not flash a ring.
+   */
+  const LINK_STYLES: Array<[string, ButtonStyleType]> = [
+    ["LINK", ButtonStyleType.LINK],
+    ["SECONDARY_LINK", ButtonStyleType.SECONDARY_LINK],
+  ];
+
+  test.each(LINK_STYLES)(
+    "%s carries a focus-visible ring",
+    (_name: string, buttonStyle: ButtonStyleType) => {
+      expect(renderButton({ buttonStyle })).toHaveClass(
+        "focus:outline-none",
+        "focus-visible:ring-2",
+        "focus-visible:ring-indigo-500",
+        "focus-visible:ring-offset-2",
+      );
+    },
+  );
+});
+
+interface ListenerCall {
+  handler: unknown;
+}
+
+type FindKeydownCallsFunction = (
+  spy: ReturnType<typeof jest.spyOn>,
+) => Array<ListenerCall>;
+
+const findKeydownCalls: FindKeydownCallsFunction = (
+  spy: ReturnType<typeof jest.spyOn>,
+): Array<ListenerCall> => {
+  const calls: Array<Array<unknown>> = spy.mock.calls as unknown as Array<
+    Array<unknown>
+  >;
+
+  return calls
+    .filter((call: Array<unknown>): boolean => {
+      return call[0] === "keydown";
+    })
+    .map((call: Array<unknown>): ListenerCall => {
+      return { handler: call[1] };
+    });
+};
+
+describe("Button shortcut listener lifecycle", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  /*
+   * The regression this suite exists for: the shortcut effect had no
+   * dependency array and its cleanup passed a NEW arrow function to
+   * removeEventListener, which therefore never matched the one that was
+   * added — every render leaked a live window keydown listener.
+   */
+  test("unmount removes the same keydown handler that was added", () => {
+    const addSpy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      window,
+      "addEventListener",
+    );
+    const removeSpy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      window,
+      "removeEventListener",
+    );
+
+    const { unmount } = render(
+      <Button dataTestId="test-id" shortcutKey={ShortcutKey.Settings} />,
+    );
+
+    const adds: Array<ListenerCall> = findKeydownCalls(addSpy);
+
+    expect(adds).toHaveLength(1);
+    expect(findKeydownCalls(removeSpy)).toHaveLength(0);
+
+    unmount();
+
+    const removes: Array<ListenerCall> = findKeydownCalls(removeSpy);
+
+    expect(removes).toHaveLength(1);
+    /*
+     * removeEventListener only detaches when the handler identity matches the
+     * add; counting calls alone would let the old always-leaking cleanup pass.
+     */
+    expect(removes[0]?.handler).toBe(adds[0]?.handler);
+  });
+
+  test("re-rendering with the same props does not stack extra listeners", () => {
+    const addSpy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      window,
+      "addEventListener",
+    );
+
+    const { rerender } = render(
+      <Button dataTestId="test-id" shortcutKey={ShortcutKey.Settings} />,
+    );
+
+    rerender(
+      <Button dataTestId="test-id" shortcutKey={ShortcutKey.Settings} />,
+    );
+    rerender(
+      <Button dataTestId="test-id" shortcutKey={ShortcutKey.Settings} />,
+    );
+
+    expect(findKeydownCalls(addSpy)).toHaveLength(1);
+  });
+
+  test("a button without a shortcut registers no keydown listener", () => {
+    const addSpy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      window,
+      "addEventListener",
+    );
+
+    render(<Button dataTestId="test-id" />);
+
+    expect(findKeydownCalls(addSpy)).toHaveLength(0);
+  });
+
+  test("the shortcut key pressed on the page body fires onClick", () => {
+    const handleClick: () => void = jest.fn();
+
+    render(
+      <Button
+        dataTestId="test-id"
+        shortcutKey={ShortcutKey.Settings}
+        onClick={handleClick}
+      />,
+    );
+
+    fireEvent.keyDown(document.body, { key: "s" });
+
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+
+  test("the shortcut stops firing after unmount", () => {
+    const handleClick: () => void = jest.fn();
+
+    const { unmount } = render(
+      <Button
+        dataTestId="test-id"
+        shortcutKey={ShortcutKey.Settings}
+        onClick={handleClick}
+      />,
+    );
+
+    unmount();
+
+    fireEvent.keyDown(document.body, { key: "s" });
 
     expect(handleClick).not.toBeCalled();
   });

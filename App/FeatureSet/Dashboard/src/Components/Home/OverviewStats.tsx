@@ -58,18 +58,61 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hasError, setHasError] = useState<boolean>(false);
 
+  /*
+   * Only the incident and alert tiles need an unresolved-state list before
+   * their count can be scoped, so each of these helpers fetches its own list
+   * and chains the count off it. Keeping the lists inside the helpers is what
+   * lets the three state-independent counts in fetchCounts run in parallel
+   * with them instead of waiting behind both lists.
+   */
+  const fetchActiveIncidentsCount: () => Promise<number> =
+    async (): Promise<number> => {
+      const unresolvedIncidentStates: Array<IncidentState> =
+        await IncidentStateUtil.getUnresolvedIncidentStates(props.projectId);
+
+      if (unresolvedIncidentStates.length === 0) {
+        return 0;
+      }
+
+      return ModelAPI.count<Incident>({
+        modelType: Incident,
+        query: {
+          projectId: props.projectId,
+          currentIncidentStateId: new Includes(
+            unresolvedIncidentStates.map((state: IncidentState) => {
+              return state.id!;
+            }),
+          ),
+        },
+      });
+    };
+
+  const fetchActiveAlertsCount: () => Promise<number> =
+    async (): Promise<number> => {
+      const unresolvedAlertStates: Array<AlertState> =
+        await AlertStateUtil.getUnresolvedAlertStates(props.projectId);
+
+      if (unresolvedAlertStates.length === 0) {
+        return 0;
+      }
+
+      return ModelAPI.count<Alert>({
+        modelType: Alert,
+        query: {
+          projectId: props.projectId,
+          currentAlertStateId: new Includes(
+            unresolvedAlertStates.map((state: AlertState) => {
+              return state.id!;
+            }),
+          ),
+        },
+      });
+    };
+
   const fetchCounts: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
 
     try {
-      const [unresolvedIncidentStates, unresolvedAlertStates]: [
-        Array<IncidentState>,
-        Array<AlertState>,
-      ] = await Promise.all([
-        IncidentStateUtil.getUnresolvedIncidentStates(props.projectId),
-        AlertStateUtil.getUnresolvedAlertStates(props.projectId),
-      ]);
-
       const [
         activeIncidents,
         activeAlerts,
@@ -77,32 +120,8 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
         ongoingMaintenance,
         slosNeedingAttention,
       ]: [number, number, number, number, number] = await Promise.all([
-        unresolvedIncidentStates.length > 0
-          ? ModelAPI.count<Incident>({
-              modelType: Incident,
-              query: {
-                projectId: props.projectId,
-                currentIncidentStateId: new Includes(
-                  unresolvedIncidentStates.map((state: IncidentState) => {
-                    return state.id!;
-                  }),
-                ),
-              },
-            })
-          : Promise.resolve(0),
-        unresolvedAlertStates.length > 0
-          ? ModelAPI.count<Alert>({
-              modelType: Alert,
-              query: {
-                projectId: props.projectId,
-                currentAlertStateId: new Includes(
-                  unresolvedAlertStates.map((state: AlertState) => {
-                    return state.id!;
-                  }),
-                ),
-              },
-            })
-          : Promise.resolve(0),
+        fetchActiveIncidentsCount(),
+        fetchActiveAlertsCount(),
         ModelAPI.count<Monitor>({
           modelType: Monitor,
           query: {
@@ -161,7 +180,12 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
     fetchCounts().catch(() => {
       // handled in fetchCounts.
     });
-  }, [props.projectId]);
+    /*
+     * Keyed on the string VALUE, not the ObjectID instance: callers that
+     * rebuild the id each render (identity churn) must not re-fire these
+     * count requests.
+     */
+  }, [props.projectId.toString()]);
 
   if (hasError) {
     return <></>;

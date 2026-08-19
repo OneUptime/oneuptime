@@ -10,7 +10,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import Card from "Common/UI/Components/Card/Card";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { JSONObject } from "Common/Types/JSON";

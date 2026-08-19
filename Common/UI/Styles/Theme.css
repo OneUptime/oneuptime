@@ -127,6 +127,7 @@ html.dark [class~="!bg-white"] {
 
 html.dark :is(
     [class~="bg-white/60"],
+    [class~="bg-white/70"],
     [class~="bg-white/80"],
     [class~="bg-white/90"],
     [class~="bg-white/95"]
@@ -202,6 +203,14 @@ html.dark .bg-gray-900.text-white {
 
 html.dark [class~="bg-gray-900/5"] {
   background-color: rgb(148 163 184 / 12%);
+}
+
+/*
+ * Overlay scrims built from a mid-gray: literal gray-500 at 25% paints a LIGHT
+ * veil over a dark page, so the command palette backdrop deepens instead.
+ */
+html.dark [class~="bg-gray-500/25"] {
+  background-color: rgb(2 6 23 / 55%);
 }
 
 /* State variants that otherwise flash back to literal light Tailwind colors. */
@@ -1339,4 +1348,35 @@ html.dark svg :is([fill="#94a3b8"], [fill="#6b7280"]) {
 html.dark :fullscreen,
 html.dark ::backdrop {
   background-color: var(--ou-background-primary);
+}
+
+/*
+ * Motion. Tailwind here is the Play-CDN runtime configured inline per app, so
+ * a new animate-* utility name would silently generate nothing unless its
+ * keyframes were duplicated into every EJS config. Plain CSS in this one
+ * shared stylesheet sidesteps that entirely.
+ *
+ * ou-animate-pop-in exists for surfaces that MOUNT already open (react-select
+ * portals its menu fully formed), where a transition has no closed state to
+ * start from. It is an animation, so it ends by reverting to the element's
+ * own style — no transform lingers to become a containing block for
+ * position:fixed descendants. Surfaces that control their own mount use the
+ * Modal hasEntered transition pattern instead.
+ */
+@keyframes ou-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ou-animate-pop-in {
+    animation: ou-pop-in 120ms ease-out;
+  }
 }

@@ -14,7 +14,7 @@ import AlignItem from "Common/UI/Types/AlignItem";
 import Navigation from "Common/UI/Utils/Navigation";
 import AlertEpisodeInternalNote from "Common/Models/DatabaseModels/AlertEpisodeInternalNote";
 import User from "Common/Models/DatabaseModels/User";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const EpisodeInternalNote: FunctionComponent<PageComponentProps> = (

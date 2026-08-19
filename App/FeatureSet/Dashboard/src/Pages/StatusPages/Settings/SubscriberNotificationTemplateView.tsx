@@ -23,7 +23,7 @@ import React, {
 } from "react";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Card from "Common/UI/Components/Card/Card";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { getSubscriberNotificationTemplateVariablesDocumentation } from "../../../Utils/SubscriberNotificationTemplateVariables";
 

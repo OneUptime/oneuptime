@@ -117,6 +117,15 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
     const onKeyDown: (event: KeyboardEvent) => void = (
       event: KeyboardEvent,
     ): void => {
+      /*
+       * A dialog stacked above this panel (the command palette) flags the
+       * Escape it consumed with preventDefault — honoring the flag (the same
+       * guard the Cmd+I listener uses) keeps one keypress from dismissing
+       * both layers at once.
+       */
+      if (event.defaultPrevented) {
+        return;
+      }
       if (event.key === "Escape") {
         setIsOpen(false);
       }

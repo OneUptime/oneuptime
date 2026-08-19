@@ -1,4 +1,4 @@
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

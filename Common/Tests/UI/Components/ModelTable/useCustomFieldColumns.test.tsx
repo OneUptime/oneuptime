@@ -50,6 +50,7 @@ jest.mock("../../../../UI/Utils/Project", () => {
 import useCustomFieldColumns, {
   CustomFieldColumnsResult,
 } from "../../../../UI/Components/ModelTable/useCustomFieldColumns";
+import ModelListCache from "../../../../UI/Utils/ModelListCache";
 import { CustomFieldDefinition } from "../../../../UI/Components/ModelTable/CustomFieldColumns";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentCustomField from "../../../../Models/DatabaseModels/IncidentCustomField";
@@ -115,6 +116,13 @@ afterEach(() => {
   cleanup();
   getListMock.mockReset();
   getCurrentProjectIdMock.mockReset();
+  /*
+   * The hook now reads through ModelListCache, whose module-level cache and
+   * in-flight dedup survive between tests. Every test here uses the same
+   * model + project + shape (one key), so without a reset one test's request
+   * - resolved or deliberately never-resolving - would be served to the next.
+   */
+  ModelListCache.invalidateAll();
 });
 
 describe("useCustomFieldColumns — isLoading on the first render", () => {

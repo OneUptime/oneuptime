@@ -10,6 +10,7 @@ import Project from "../../Models/DatabaseModels/Project";
 import SubscriptionStatus, {
   SubscriptionStatusUtil,
 } from "../../Types/Billing/SubscriptionStatus";
+import ModelListCache from "./ModelListCache";
 import Navigation from "./Navigation";
 import SessionStorage from "./SessionStorage";
 import Telemetry from "./Telemetry/Telemetry";
@@ -278,11 +279,36 @@ export default class ProjectUtil {
   public static setCurrentProject(project: JSONObject | Project): void {
     const currentProjectId: string | undefined =
       project._id?.toString() || this.getCurrentProjectId()?.toString();
+
+    /*
+     * What this tab was showing BEFORE this call, read straight off session
+     * storage (not getCurrentProjectId(), whose URL fallback may already
+     * carry the NEW project mid-switch) so it can be compared after the
+     * overwrite below.
+     */
+    const previousProjectId: string | undefined = this.toProjectId(
+      SessionStorage.getItem(CURRENT_PROJECT_ID_STORAGE_KEY),
+    )?.toString();
+
     if (project instanceof Project) {
       project = BaseModel.toJSON(project, Project);
     }
     LocalStorage.setItem(`project_${currentProjectId}`, project);
     SessionStorage.setItem(CURRENT_PROJECT_ID_STORAGE_KEY, currentProjectId);
+
+    /*
+     * Cached reference lists (incident/alert states, custom fields...) are
+     * keyed by project id, so a switch could never serve another project's
+     * rows — invalidation just guarantees fresh reads and frees the old
+     * entries now that project selection can happen without a full page
+     * reload. Only on an actual CHANGE though: setCurrentProject also runs
+     * on every boot, in the same commit as the Header/Home mounts whose
+     * reference-list requests are already in flight, and wiping the cache
+     * then would discard its very first fill.
+     */
+    if (previousProjectId !== currentProjectId) {
+      ModelListCache.invalidateAll();
+    }
 
     // Remember this project for the next time the user opens the dashboard.
     this.setLastAccessedProjectId(currentProjectId);
@@ -302,6 +328,9 @@ export default class ProjectUtil {
     }
 
     SessionStorage.removeItem(CURRENT_PROJECT_ID_STORAGE_KEY);
+
+    // Project-scoped cached reference lists must not outlive the project.
+    ModelListCache.invalidateAll();
 
     /*
      * The project is gone (or the user is leaving it), so it must not be

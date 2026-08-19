@@ -23,6 +23,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
@@ -40,7 +41,19 @@ const Home: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const currentProjectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  /*
+   * ProjectUtil.getCurrentProjectId() constructs a fresh ObjectID on every
+   * call, so its identity churns on every render. GettingStarted and
+   * OverviewStats key their fetch effects on this id — memoize it on its
+   * string VALUE so a Home re-render (loading flags flipping, projects
+   * reloading) never re-fires their count requests.
+   */
+  const currentProjectIdString: string | null =
+    ProjectUtil.getCurrentProjectId()?.toString() || null;
+
+  const currentProjectId: ObjectID | null = useMemo((): ObjectID | null => {
+    return currentProjectIdString ? new ObjectID(currentProjectIdString) : null;
+  }, [currentProjectIdString]);
 
   const fetchIncidentStates: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -91,32 +104,41 @@ const Home: FunctionComponent<ComponentProps> = (
       }
     >
       <div>
-        {isLoading && <PageLoader isVisible={true} />}
-        {error && <ErrorMessage message={error} />}
-
-        {!isLoading && !error && currentProjectId && (
+        {/*
+         * GettingStarted and OverviewStats only need the project id and manage
+         * their own loading states — gating them behind the incident-states
+         * fetch would serialize the page's requests for nothing. Only the
+         * incidents table below actually needs the unresolved states.
+         */}
+        {currentProjectId && (
           <div>
             <GettingStarted projectId={currentProjectId} />
 
             <OverviewStats projectId={currentProjectId} />
-
-            {unresolvedIncidentStates.length > 0 && (
-              <IncidentsTable
-                query={{
-                  projectId: currentProjectId,
-                  currentIncidentStateId: new Includes(
-                    unresolvedIncidentStates.map((state: IncidentState) => {
-                      return state.id!;
-                    }),
-                  ),
-                }}
-                noItemsMessage="Nice work! No Active Incidents so far."
-                title="Active Incidents"
-                description="Here is a list of all the Active Incidents for this project."
-              />
-            )}
           </div>
         )}
+
+        {isLoading && <PageLoader isVisible={true} />}
+        {error && <ErrorMessage message={error} />}
+
+        {!isLoading &&
+          !error &&
+          currentProjectId &&
+          unresolvedIncidentStates.length > 0 && (
+            <IncidentsTable
+              query={{
+                projectId: currentProjectId,
+                currentIncidentStateId: new Includes(
+                  unresolvedIncidentStates.map((state: IncidentState) => {
+                    return state.id!;
+                  }),
+                ),
+              }}
+              noItemsMessage="Nice work! No Active Incidents so far."
+              title="Active Incidents"
+              description="Here is a list of all the Active Incidents for this project."
+            />
+          )}
       </div>
     </Page>
   );

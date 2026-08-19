@@ -6,7 +6,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 const markdownViewerMock: MockFunction = getJestMockFunction();
 
-jest.mock("../../../UI/Components/Markdown.tsx/MarkdownViewer", () => {
+jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   return {
     __esModule: true,
     default: (props: MarkdownViewerProps): React.ReactElement => {

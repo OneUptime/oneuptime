@@ -21,7 +21,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
 import { APP_API_URL, STATUS_PAGE_URL } from "Common/UI/Config";
 import HiddenText from "Common/UI/Components/HiddenText/HiddenText";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import Sort from "Common/Types/BaseDatabase/Sort";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";

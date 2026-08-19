@@ -37,7 +37,7 @@ import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import MicrosoftTeamsIntegrationDocumentation from "./MicrosoftTeamsIntegrationDocumentation";
 import Link from "Common/UI/Components/Link/Link";
 import { ButtonStyleType as SharedButtonStyle } from "Common/UI/Components/Button/Button";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import TeamsAvailableModal from "./TeamsAvailableModal";
 import MicrosoftTeamsChatsCard from "./MicrosoftTeamsChatsCard";
 import MicrosoftTeamsChannelsCard from "./MicrosoftTeamsChannelsCard";

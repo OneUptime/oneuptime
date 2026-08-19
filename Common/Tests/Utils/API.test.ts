@@ -22,7 +22,6 @@ import axios, {
 } from "axios";
 
 const DEFAULT_HEADERS: Headers = {
-  "Access-Control-Allow-Origin": "*",
   Accept: "application/json",
   "Content-Type": "application/json;charset=UTF-8",
 };
@@ -76,7 +75,6 @@ function createAxiosResponse<T = any, D = any>(
 }
 
 const mergedHeaders: Headers = {
-  "Access-Control-Allow-Origin": "*",
   Accept: "application/json",
   "Content-Type": "application/json", // replace default header
   "X-PoweredBy": "coffee", // add new header
@@ -326,6 +324,22 @@ describe("fetch", () => {
 describe("getDefaultHeaders", () => {
   test("should return default headers", () => {
     expect(API.getDefaultHeaders()).toEqual(DEFAULT_HEADERS);
+  });
+
+  test("should not send the response-only Access-Control-Allow-Origin header on requests", () => {
+    /*
+     * "Access-Control-Allow-Origin" is a RESPONSE header. Sending it as a
+     * request header is not just useless - as a non-simple custom header it
+     * forces a CORS preflight on every cross-origin call (self-hosted setups
+     * where the API lives on another origin), doubling the request count.
+     */
+    expect(API.getDefaultHeaders()).not.toHaveProperty(
+      "Access-Control-Allow-Origin",
+    );
+    // and merging caller headers must not resurrect it either.
+    expect(API["getHeaders"]({ "X-PoweredBy": "coffee" })).not.toHaveProperty(
+      "Access-Control-Allow-Origin",
+    );
   });
 });
 

@@ -10,7 +10,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { RouteUtil } from "../../../Utils/RouteMap";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";

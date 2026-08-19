@@ -69,6 +69,30 @@ describe("Tabs", () => {
     expect(getByTestId("tab-tab2")).toHaveClass(activeClass);
   });
 
+  test("tabs ease colour changes and carry a focus-visible ring", () => {
+    const onTabChange: MockFunction = getJestMockFunction();
+
+    const { getByTestId } = render(
+      <Tabs tabs={tabs} onTabChange={onTabChange} />,
+    );
+
+    /*
+     * Selected and unselected tabs share the base classes, so asserting one
+     * of each covers the whole strip. The ring is focus-visible (not focus:)
+     * so mouse clicks do not flash it.
+     */
+    for (const tabTestId of ["tab-tab1", "tab-tab2"]) {
+      expect(getByTestId(tabTestId)).toHaveClass(
+        "transition-colors",
+        "duration-150",
+        "focus:outline-none",
+        "focus-visible:ring-2",
+        "focus-visible:ring-indigo-500",
+        "focus-visible:ring-offset-2",
+      );
+    }
+  });
+
   test("it should handle empty tabs array gracefully", () => {
     const tabs: Array<Tab> = [];
     const onTabChange: MockFunction = getJestMockFunction();

@@ -7,7 +7,6 @@ import BulkUpdateForm, {
   BulkActionButtonSchema,
   BulkActionOnClickProps,
 } from "../BulkUpdate/BulkUpdateForm";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import FilterViewer from "../Filters/FilterViewer";
 import Filter from "../Filters/Types/Filter";
@@ -15,6 +14,7 @@ import FilterData from "../Filters/Types/FilterData";
 import Pagination from "../Pagination/Pagination";
 import TableBody from "./TableBody";
 import TableHeader from "./TableHeader";
+import TableSkeletonRows from "./TableSkeletonRows";
 import Columns from "./Types/Columns";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import GenericObject from "../../../Types/GenericObject";
@@ -211,22 +211,34 @@ const Table: TableFunction = <T extends GenericObject>(
     colspan = 1;
   }
 
+  /*
+   * A refetch with rows already on screen (pagination, sort, refresh - the
+   * parent never clears `data` while fetching) keeps those rows visible and
+   * dims them instead of tearing the layout down to placeholders. Skeletons
+   * are only for a load with nothing to show yet.
+   */
+  const isRefetchingWithData: boolean =
+    props.isLoading && props.data.length > 0;
+
   const getTablebody: GetReactElementFunction = (): ReactElement => {
-    if (props.isLoading) {
+    if (props.isLoading && props.data.length === 0) {
       return (
-        <tbody>
-          <tr>
-            <td colSpan={colspan}>
-              <div className="flex justify-center w-full">
-                <ComponentLoader />
-              </div>
-            </td>
-          </tr>
-        </tbody>
+        <TableSkeletonRows
+          columns={props.columns}
+          enableDragAndDrop={props.enableDragAndDrop}
+          isBulkActionsEnabled={isBulkActionsEnabled}
+          itemsOnPage={props.itemsOnPage}
+          isMobile={isMobile}
+        />
       );
     }
 
-    if (props.error) {
+    /*
+     * Loading still wins over error and empty (same priority as before the
+     * skeletons): while a refetch is in flight the stale rows render, never a
+     * stale error or a premature "no items".
+     */
+    if (!props.isLoading && props.error) {
       return (
         <tbody>
           <tr>
@@ -260,7 +272,7 @@ const Table: TableFunction = <T extends GenericObject>(
       );
     }
 
-    if (props.filterError) {
+    if (!props.isLoading && props.filterError) {
       return <></>;
     }
 
@@ -418,38 +430,56 @@ const Table: TableFunction = <T extends GenericObject>(
                   : "overflow-hidden border-t border-gray-200"
               }
             >
-              {isMobile ? (
-                // Mobile view: render as list
-                <div className="min-w-full divide-y divide-gray-200">
-                  {getTablebody()}
-                </div>
-              ) : (
-                // Desktop view: render as table
-                <table className="min-w-full divide-y divide-gray-200">
-                  <TableHeader
-                    id={`${props.id}-header`}
-                    columns={props.columns}
-                    onSortChanged={props.onSortChanged}
-                    enableDragAndDrop={props.enableDragAndDrop}
-                    sortBy={props.sortBy}
-                    sortOrder={props.sortOrder}
-                    isBulkActionsEnabled={isBulkActionsEnabled}
-                    onAllItemsDeselected={() => {
-                      setIsAllItemsSelected(false);
-                      props.onBulkClearAllItems?.();
-                    }}
-                    onAllItemsOnThePageSelected={() => {
-                      if (props.onBulkSelectItemsOnCurrentPage) {
-                        props.onBulkSelectItemsOnCurrentPage();
+              {/*
+               * Dims the stale rows (header included) while a refetch is in
+               * flight and blocks clicks on them - a sort or row action
+               * against data about to be replaced is a race. The wrapper
+               * sits OUTSIDE the <table> because a <div> cannot legally wrap
+               * a <tbody> inside one.
+               */}
+              <div
+                data-testid="table-content"
+                className={
+                  isRefetchingWithData
+                    ? "opacity-60 pointer-events-none transition-opacity duration-150"
+                    : "transition-opacity duration-150"
+                }
+              >
+                {isMobile ? (
+                  // Mobile view: render as list
+                  <div className="min-w-full divide-y divide-gray-200">
+                    {getTablebody()}
+                  </div>
+                ) : (
+                  // Desktop view: render as table
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <TableHeader
+                      id={`${props.id}-header`}
+                      columns={props.columns}
+                      onSortChanged={props.onSortChanged}
+                      enableDragAndDrop={props.enableDragAndDrop}
+                      sortBy={props.sortBy}
+                      sortOrder={props.sortOrder}
+                      isBulkActionsEnabled={isBulkActionsEnabled}
+                      onAllItemsDeselected={() => {
+                        setIsAllItemsSelected(false);
+                        props.onBulkClearAllItems?.();
+                      }}
+                      onAllItemsOnThePageSelected={() => {
+                        if (props.onBulkSelectItemsOnCurrentPage) {
+                          props.onBulkSelectItemsOnCurrentPage();
+                        }
+                      }}
+                      isAllItemsOnThePageSelected={isAllItemsOnThePageSelected}
+                      isSomeItemsOnThePageSelected={
+                        isSomeItemsOnThePageSelected
                       }
-                    }}
-                    isAllItemsOnThePageSelected={isAllItemsOnThePageSelected}
-                    isSomeItemsOnThePageSelected={isSomeItemsOnThePageSelected}
-                    hasTableItems={selectableRowsOnThePage.length > 0}
-                  />
-                  {getTablebody()}
-                </table>
-              )}
+                      hasTableItems={selectableRowsOnThePage.length > 0}
+                    />
+                    {getTablebody()}
+                  </table>
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -347,19 +347,29 @@ export default class ModelAPI {
       !requestOptions.isMultiTenantRequest ||
       Object.keys(requestOptions).length === 0
     ) {
-      const project: Project | null = ProjectUtil.getCurrentProject();
+      /*
+       * Read the tenant id via getCurrentProjectId() first - a plain string
+       * read off the URL/SessionStorage/LocalStorage id keys. This is what
+       * makes requests work in the SSO-login window where the project ID is
+       * already available in URL/SessionStorage but the full project data
+       * hasn't been fetched yet, and it avoids hydrating the entire Project
+       * model from LocalStorage on every single request just for the id.
+       */
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-      if (project && project.id) {
-        headers["tenantid"] = project.id.toString();
+      if (projectId) {
+        headers["tenantid"] = projectId.toString();
       } else {
         /*
-         * Fallback to getCurrentProjectId() when full project data is not yet loaded
-         * This can happen after SSO login when the project ID is available in URL/SessionStorage
-         * but the full project data hasn't been fetched yet
+         * Fallback to the stored project. getCurrentProject() resolves its id
+         * through getCurrentProjectId() too, so this only matters if that
+         * resolution ever diverges - kept to preserve the historical fallback
+         * chain.
          */
-        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-        if (projectId) {
-          headers["tenantid"] = projectId.toString();
+        const project: Project | null = ProjectUtil.getCurrentProject();
+
+        if (project && project.id) {
+          headers["tenantid"] = project.id.toString();
         }
       }
     }

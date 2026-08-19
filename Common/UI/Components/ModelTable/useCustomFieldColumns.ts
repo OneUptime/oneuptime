@@ -4,7 +4,7 @@ import {
   getCustomFieldColumns,
   getCustomFieldDefinitions,
 } from "./CustomFieldColumns";
-import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
+import ModelListCache from "../../Utils/ModelListCache";
 import ProjectUtil from "../../Utils/Project";
 import { Logger } from "../../Utils/Logger";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
@@ -96,8 +96,14 @@ const useCustomFieldColumns: UseCustomFieldColumnsFunction = <
       setError("");
 
       try {
-        const result: ListResult<BaseModel> = await ModelAPI.getList<BaseModel>(
-          {
+        /*
+         * Through ModelListCache rather than ModelAPI: a table mounts two
+         * instances of this hook (the facet bar and the column set), and both
+         * want the same definition list - the cache turns that into one
+         * request, shared for the next minute.
+         */
+        const result: ListResult<BaseModel> =
+          await ModelListCache.getList<BaseModel>({
             modelType: customFieldsModelType,
             query: {
               projectId: projectId,
@@ -113,8 +119,8 @@ const useCustomFieldColumns: UseCustomFieldColumnsFunction = <
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any,
             sort: {},
-          },
-        );
+            projectId: projectId,
+          });
 
         if (isCancelled) {
           return;

@@ -1,4 +1,9 @@
-import { ComponentProps } from "./MarkdownViewer";
+/*
+ * Type-only on purpose: the sole static edge to MarkdownViewer must be
+ * erasable, so the viewer (and the mermaid chunk it lazily pulls) stays out
+ * of every eager bundle that imports this wrapper.
+ */
+import type { ComponentProps } from "./MarkdownViewer";
 import React, {
   FunctionComponent,
   LazyExoticComponent,

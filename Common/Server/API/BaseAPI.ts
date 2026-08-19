@@ -298,20 +298,85 @@ export default class BaseAPI<
     const databaseProps: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-    const list: Array<BaseModel> = await this.service.findBy({
-      query,
-      select,
-      skip: skip,
-      limit: limit,
-      groupBy: groupBy,
-      sort: sort,
-      props: databaseProps,
-    });
+    /*
+     * findBy and countBy are independent reads, so run them in parallel to
+     * cut list latency where the count is costly. The one thing that makes
+     * the sequential order load-bearing is a service-level onBeforeFind
+     * override that mutates the shared query/props objects in place (e.g.
+     * ProjectService elevates props.isRoot and pins query._id for users with
+     * no projects; the incident/alert privacy filters rewrite query keys):
+     * countBy historically ran after findBy and inherited those mutations.
+     * Services on the stock hook cannot mutate anything (and the permission
+     * pipeline copies the query before touching it, ReadPermission.ts:33),
+     * so only they run in parallel; hook-overriding services keep the
+     * sequential order and its exact semantics.
+     */
+    const usesStockOnBeforeFindHook: boolean =
+      (this.service as unknown as { onBeforeFind: unknown }).onBeforeFind ===
+      (DatabaseService.prototype as unknown as { onBeforeFind: unknown })
+        .onBeforeFind;
 
-    const count: PositiveNumber = await this.service.countBy({
-      query,
-      props: databaseProps,
-    });
+    let list: Array<BaseModel>;
+    let count: PositiveNumber;
+
+    if (usesStockOnBeforeFindHook) {
+      const listPromise: Promise<Array<BaseModel>> = this.service.findBy({
+        query,
+        select,
+        skip: skip,
+        limit: limit,
+        groupBy: groupBy,
+        sort: sort,
+        props: databaseProps,
+      });
+
+      /*
+       * Shallow copies so a countBy override that rewrites top-level query
+       * keys (the established privacy-filter pattern) can never race the
+       * concurrent findBy's reads of the shared objects.
+       */
+      const countPromise: Promise<PositiveNumber> = this.service.countBy({
+        query: { ...query },
+        props: { ...databaseProps },
+      });
+
+      /*
+       * allSettled instead of Promise.all: a findBy rejection must not leave
+       * countPromise as an unhandled rejection, and findBy's error keeps
+       * priority when both fail - the same failure the sequential code
+       * surfaced.
+       */
+      const [listResult, countResult]: [
+        PromiseSettledResult<Array<BaseModel>>,
+        PromiseSettledResult<PositiveNumber>,
+      ] = await Promise.allSettled([listPromise, countPromise]);
+
+      if (listResult.status === "rejected") {
+        throw listResult.reason;
+      }
+
+      if (countResult.status === "rejected") {
+        throw countResult.reason;
+      }
+
+      list = listResult.value;
+      count = countResult.value;
+    } else {
+      list = await this.service.findBy({
+        query,
+        select,
+        skip: skip,
+        limit: limit,
+        groupBy: groupBy,
+        sort: sort,
+        props: databaseProps,
+      });
+
+      count = await this.service.countBy({
+        query,
+        props: databaseProps,
+      });
+    }
 
     return Response.sendEntityArrayResponse(
       req,
