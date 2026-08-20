@@ -204,6 +204,26 @@ export default class GlobalSSO extends BaseModel {
   @TableColumn({
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
+    title: "Restrict to Attached Projects",
+    description:
+      "When enabled, a login through this provider only satisfies SSO enforcement for the projects attached below. Leave this off (the default) and the provider satisfies SSO enforcement for every project the user is a member of, which is how attachments have always behaved - they are the provisioning allow-list, not an access boundary. Turning this on narrows access for people already signed in.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public restrictToAttachedProjects?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
     title: "Enabled",
     description: "Is this SSO provider enabled?",
     defaultValue: false,

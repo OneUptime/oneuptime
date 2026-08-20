@@ -255,6 +255,15 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
             },
             {
               field: {
+                restrictToAttachedProjects: true,
+              },
+              title: "Restrict to Attached Projects",
+              description:
+                "When on, this provider only satisfies SSO enforcement for the projects attached below. Off by default, where attachments control provisioning only.",
+              fieldType: FormFieldSchemaType.Toggle,
+            },
+            {
+              field: {
                 isEnabled: true,
               },
               title: "Enabled",
@@ -326,6 +335,14 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
                   disableSignUpWithSso: true,
                 },
                 title: "Disable Sign Up with SSO",
+                fieldType: FieldType.Boolean,
+                placeholder: t("common.no"),
+              },
+              {
+                field: {
+                  restrictToAttachedProjects: true,
+                },
+                title: "Restrict to Attached Projects",
                 fieldType: FieldType.Boolean,
                 placeholder: t("common.no"),
               },

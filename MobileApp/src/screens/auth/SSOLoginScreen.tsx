@@ -198,7 +198,8 @@ export default function SSOLoginScreen(): React.JSX.Element {
       const serverUrl: string = await getServerUrl();
 
       return buildSsoLoginUrl(serverUrl, {
-        kind: "project",
+        // SAML and OIDC project providers are served by different routers.
+        kind: provider.kind,
         providerId: provider._id,
         projectId: provider.projectId,
       });

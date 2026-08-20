@@ -12,6 +12,7 @@
 import { storeTokens } from "../storage/keychain";
 import { storeGlobalSsoToken, storeSsoToken } from "../storage/ssoTokens";
 import { parseSsoCallbackUrl, type SsoCallbackResult } from "./callbackUrl";
+import { clearAllSsoDenials, clearProjectSsoDenial } from "./ssoDenials";
 
 export type CompleteSsoLoginOutcome =
   | {
@@ -56,6 +57,17 @@ export async function completeSsoLoginFromUrl(
       parsed.projectSsoToken.projectId,
       parsed.projectSsoToken.ssoToken,
     );
+
+    clearProjectSsoDenial(parsed.projectSsoToken.projectId);
+  }
+
+  /*
+   * A global login can satisfy any number of projects at once and the token
+   * does not say which, so every recorded denial is dropped and the server
+   * gets to answer again.
+   */
+  if (parsed.globalSsoToken) {
+    clearAllSsoDenials();
   }
 
   return {

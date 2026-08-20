@@ -16,6 +16,7 @@ import {
   getCachedGlobalSsoToken,
   getCachedSsoTokens,
 } from "../storage/ssoTokens";
+import { clearProjectSsoDenial, markProjectSsoDenied } from "../sso/ssoDenials";
 
 /**
  * Recursively normalizes OneUptime API serialized types in response data.
@@ -107,10 +108,59 @@ apiClient.interceptors.request.use(
   },
 );
 
+/*
+ * Axios stores a header under whatever casing the caller wrote, so a raw index
+ * read only finds `tenantid` and would silently miss a `tenantId` written in
+ * the natural camelCase - turning a 406 into a recorded-nothing dead end, the
+ * exact state this feature exists to remove. AxiosHeaders.get() is
+ * case-insensitive; fall back to a manual scan for a plain object.
+ */
+function readTenantId(config: InternalAxiosRequestConfig | undefined): string {
+  const headers: unknown = config?.headers;
+
+  if (!headers || typeof headers !== "object") {
+    return "";
+  }
+
+  const getter: unknown = (headers as { get?: unknown }).get;
+
+  if (typeof getter === "function") {
+    const value: unknown = (getter as (name: string) => unknown).call(
+      headers,
+      "tenantid",
+    );
+
+    return typeof value === "string" ? value : "";
+  }
+
+  for (const key of Object.keys(headers as Record<string, unknown>)) {
+    if (key.toLowerCase() === "tenantid") {
+      const value: unknown = (headers as Record<string, unknown>)[key];
+      return typeof value === "string" ? value : "";
+    }
+  }
+
+  return "";
+}
+
 // Response interceptor: normalize OneUptime serialized types then handle 401
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     response.data = normalizeResponseData(response.data);
+
+    /*
+     * A successful response is the server's LATER word about this project, so
+     * it retires any earlier SSO refusal. Without this, a denial recorded
+     * before an admin re-enabled the provider would keep the project showing
+     * "Authenticate with SSO" for the rest of the session even though its
+     * requests are now succeeding.
+     */
+    const tenantId: string = readTenantId(response.config);
+
+    if (tenantId) {
+      clearProjectSsoDenial(tenantId);
+    }
+
     return response;
   },
   async (error: AxiosError) => {
@@ -119,6 +169,21 @@ apiClient.interceptors.response.use(
     } = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };
+
+    /*
+     * 406 is ExceptionCode.SsoAuthorizationException - the server saying this
+     * project needs an SSO login the caller has not completed (or no longer
+     * has: the token expired, or the provider was disabled). Record it against
+     * the project so the UI can offer the fix, instead of every screen
+     * separately rendering "SSO Authorization Required" with nothing to press.
+     */
+    if (error.response?.status === 406) {
+      const tenantId: string = readTenantId(originalRequest);
+
+      if (tenantId) {
+        markProjectSsoDenied(tenantId);
+      }
+    }
 
     if (error.response?.status !== 401 || originalRequest._retry) {
       return Promise.reject(error);

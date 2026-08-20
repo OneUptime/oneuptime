@@ -677,9 +677,16 @@ describe("UserMiddleware", () => {
       ProjectService,
       "getRequireSsoWithSsoProviderId",
     );
-    const spyDoesSsoTokenForProjectExist: jest.SpyInstance = getJestSpyOn(
+    /*
+     * The enforcement entry point is `isSsoSatisfiedForProject`, not the
+     * stateless `doesSsoTokenForProjectExist`: a Global SSO token also has to
+     * clear the provider-trust and project-governance checks, which need the
+     * database. Spying here keeps these tests about the middleware's control
+     * flow rather than about SSO token internals.
+     */
+    const spyIsSsoSatisfiedForProject: jest.SpyInstance = getJestSpyOn(
       UserMiddleware,
-      "doesSsoTokenForProjectExist",
+      "isSsoSatisfiedForProject",
     );
     const spyGetGlobalRequireSsoForLogin: jest.SpyInstance = getJestSpyOn(
       GlobalConfigService,
@@ -717,7 +724,7 @@ describe("UserMiddleware", () => {
     test("should throw SsoAuthorizationException error, when sso login is required but sso token for the projectId does not exist", async () => {
       spyGetRequireSsoForLogin.mockResolvedValueOnce(true);
 
-      spyDoesSsoTokenForProjectExist.mockReturnValueOnce(false);
+      spyIsSsoSatisfiedForProject.mockResolvedValueOnce(false);
 
       await expect(
         UserMiddleware.getUserTenantAccessPermissionWithTenantId({
@@ -726,12 +733,12 @@ describe("UserMiddleware", () => {
           userId,
         }),
       ).rejects.toThrowError(new SsoAuthorizationException());
-      expect(spyDoesSsoTokenForProjectExist).toHaveBeenCalledWith(
+      expect(spyIsSsoSatisfiedForProject).toHaveBeenCalledWith({
         req,
         projectId,
         userId,
-        undefined,
-      );
+        requiredSsoProviderId: undefined,
+      });
     });
 
     test("should return null when getUserTenantAccessPermission returns null", async () => {
@@ -797,9 +804,16 @@ describe("UserMiddleware", () => {
       ProjectService,
       "getRequireSsoWithSsoProviderId",
     );
-    const spyDoesSsoTokenForProjectExist: jest.SpyInstance = getJestSpyOn(
+    /*
+     * The enforcement entry point is `isSsoSatisfiedForProject`, not the
+     * stateless `doesSsoTokenForProjectExist`: a Global SSO token also has to
+     * clear the provider-trust and project-governance checks, which need the
+     * database. Spying here keeps these tests about the middleware's control
+     * flow rather than about SSO token internals.
+     */
+    const spyIsSsoSatisfiedForProject: jest.SpyInstance = getJestSpyOn(
       UserMiddleware,
-      "doesSsoTokenForProjectExist",
+      "isSsoSatisfiedForProject",
     );
     const spyGetGlobalRequireSsoForLogin: jest.SpyInstance = getJestSpyOn(
       GlobalConfigService,
@@ -833,7 +847,7 @@ describe("UserMiddleware", () => {
     });
 
     test("should return default tenant access permission, when project for a projectId is found, sso is required for login, but sso token does not exist for that projectId", async () => {
-      spyDoesSsoTokenForProjectExist.mockReturnValueOnce(false);
+      spyIsSsoSatisfiedForProject.mockResolvedValueOnce(false);
       spyGetProjectRequireSsoForLogin.mockResolvedValueOnce(true);
 
       const spyGetDefaultUserTenantAccessPermission: jest.SpyInstance =
@@ -852,12 +866,12 @@ describe("UserMiddleware", () => {
       expect(result).toEqual({
         [projectId.toString()]: mockedUserTenantAccessPermission,
       });
-      expect(spyDoesSsoTokenForProjectExist).toHaveBeenCalledWith(
+      expect(spyIsSsoSatisfiedForProject).toHaveBeenCalledWith({
         req,
         projectId,
         userId,
-        undefined,
-      );
+        requiredSsoProviderId: undefined,
+      });
       expect(spyGetDefaultUserTenantAccessPermission).toHaveBeenCalledWith(
         projectId,
       );
@@ -879,7 +893,7 @@ describe("UserMiddleware", () => {
       expect(result).toEqual({
         [projectId.toString()]: mockedUserTenantAccessPermission,
       });
-      expect(spyDoesSsoTokenForProjectExist).not.toBeCalled();
+      expect(spyIsSsoSatisfiedForProject).not.toBeCalled();
       expect(spyGetUserTenantAccessPermission).toHaveBeenCalledWith(
         userId,
         projectId,

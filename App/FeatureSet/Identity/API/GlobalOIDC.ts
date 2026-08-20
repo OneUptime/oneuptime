@@ -18,6 +18,7 @@ import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Exception from "Common/Types/Exception/Exception";
 import ServerException from "Common/Types/Exception/ServerException";
 import ObjectID from "Common/Types/ObjectID";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import SsoProviderType from "Common/Types/SSO/SsoProviderType";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
@@ -401,6 +402,7 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
         emailClaimName: true,
         nameClaimName: true,
         disableSignUpWithSso: true,
+        restrictToAttachedProjects: true,
       },
       props: { isRoot: true },
     });
@@ -646,6 +648,55 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
       query: { userId: alreadySavedUser.id! },
       props: { isRoot: true },
     });
+
+    /*
+     * When the admin has restricted this provider to its attached projects,
+     * the session it is about to mint only authorizes those projects. Check
+     * the user actually belongs to one of them BEFORE minting, otherwise the
+     * login reports success and then every request is refused, with
+     * re-authenticating producing an identical token - a dead end with no way
+     * out from inside the product.
+     */
+    if (globalOidc.restrictToAttachedProjects && !isDefaultAllMode) {
+      const governedProjectIds: Array<ObjectID> = attachments
+        .filter((attachment: GlobalOIDCProject) => {
+          return Boolean(attachment.projectId);
+        })
+        .map((attachment: GlobalOIDCProject) => {
+          return attachment.projectId!;
+        });
+
+      const governedMembershipCount: PositiveNumber =
+        governedProjectIds.length === 0
+          ? new PositiveNumber(0)
+          : await TeamMemberService.countBy({
+              query: {
+                userId: alreadySavedUser.id!,
+                projectId: QueryHelper.any(governedProjectIds),
+              },
+              props: { isRoot: true },
+            });
+
+      if (governedMembershipCount.toNumber() === 0) {
+        if (
+          respondToMobileSsoFailure({
+            res,
+            isMobileRequest,
+            error: "no_project_access",
+            errorDescription:
+              "This SSO provider does not grant access to any project you are a member of. Please contact your administrator.",
+          })
+        ) {
+          return;
+        }
+
+        return Response.render(req, res, MESSAGE_VIEW, {
+          title: "No project access.",
+          message:
+            "This SSO provider does not grant access to any project you are a member of. Please contact your administrator.",
+        });
+      }
+    }
 
     if (memberProjectCount.toNumber() === 0) {
       if (

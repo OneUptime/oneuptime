@@ -20,6 +20,10 @@ import {
 } from "../../api/sso";
 import { getServerUrl } from "../../storage/serverUrl";
 import { getSsoTokens, getGlobalSsoToken } from "../../storage/ssoTokens";
+import {
+  getSsoDeniedProjectIds,
+  subscribeToSsoDenials,
+} from "../../sso/ssoDenials";
 import { buildSsoLoginUrl } from "../../sso/providerUrl";
 import {
   openSsoAuthSession,
@@ -50,6 +54,16 @@ export default function ProjectsScreen({
     string | null
   >(null);
   const [error, setError] = useState<string | null>(null);
+  const [deniedProjectIds, setDeniedProjectIds] = useState<Array<string>>(
+    getSsoDeniedProjectIds(),
+  );
+
+  // The API client records denials as requests fail; mirror them into state.
+  useEffect(() => {
+    return subscribeToSsoDenials((): void => {
+      setDeniedProjectIds(getSsoDeniedProjectIds());
+    });
+  }, []);
 
   const loadData: () => Promise<void> = useCallback(async (): Promise<void> => {
     try {
@@ -186,7 +200,8 @@ export default function ProjectsScreen({
             _id: provider._id,
             name: provider.name,
             description: provider.description,
-            kind: "project" as const,
+            // "project" (SAML) or "project-oidc" - different routers.
+            kind: provider.kind,
           };
         }),
       ];
@@ -218,7 +233,18 @@ export default function ProjectsScreen({
   const isProjectAuthenticated: (projectId: string) => boolean = (
     projectId: string,
   ): boolean => {
-    // A global SSO token satisfies enforcement for every project.
+    /*
+     * The server has the last word. A stored token - global or per-project -
+     * is only evidence; if the server has actually refused this project on SSO
+     * grounds (expired token, disabled provider, a provider restricted to
+     * other projects) then it is not authenticated no matter what is in
+     * storage, and the user needs the button rather than a green badge.
+     */
+    if (deniedProjectIds.includes(projectId)) {
+      return false;
+    }
+
+    // Otherwise a global SSO token satisfies enforcement for every project.
     return Boolean(ssoTokens[projectId] || globalSsoToken);
   };
 

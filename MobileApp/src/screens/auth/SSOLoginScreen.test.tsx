@@ -144,6 +144,8 @@ function projectProvider(overrides: Partial<SSOProvider> = {}): SSOProvider {
     name: "Acme Okta",
     projectId: "project-1",
     project: { name: "Acme Production" },
+    // Project SAML by default; pass kind: "project-oidc" for the OIDC router.
+    kind: "project",
     ...overrides,
   };
 }
@@ -773,6 +775,261 @@ describe("Choosing a project provider", () => {
     await waitFor(() => {
       expect(mockAuth.setIsAuthenticated).toHaveBeenCalledWith(true);
     });
+  });
+});
+
+/*
+ * Project OIDC is served by a SECOND discovery endpoint
+ * (/identity/service-provider-login-oidc) that this screen never asked. It
+ * knew about project SAML and the two global kinds only, so a project whose
+ * only identity provider was OIDC did not appear here at all - and because
+ * project discovery is email-scoped, there was no address a user could type
+ * that would ever reveal it. They were told their email had no SSO config.
+ *
+ * Neither project payload carries a type field, so the `kind` stamped on by
+ * whichever endpoint answered is the only thing separating the two - and it
+ * picks the router: project SAML is /identity/sso/:projectId/:providerId,
+ * project OIDC is /identity/oidc/:projectId/:providerId. Each router 400s on
+ * the other's ids, so a mis-routed row is a login that cannot complete.
+ */
+function projectOidcProvider(
+  overrides: Partial<SSOProvider> = {},
+): SSOProvider {
+  return projectProvider({
+    _id: "provider-oidc-1",
+    name: "Acme Entra ID",
+    kind: "project-oidc",
+    ...overrides,
+  });
+}
+
+describe("A project whose identity provider is OIDC", () => {
+  test("is offered on the provider list like any other", async () => {
+    projectDiscovery().mockResolvedValue(found([projectOidcProvider()]));
+
+    await renderScreen();
+    await submitEmail("user@acme.com");
+
+    expect(await screen.findByText("Select your SSO provider")).toBeTruthy();
+    expect(screen.getByText("Acme Entra ID")).toBeTruthy();
+    expect(screen.getByText("Acme Production")).toBeTruthy();
+  });
+
+  test("tapping it opens the project OIDC route for that project", async () => {
+    projectDiscovery().mockResolvedValue(found([projectOidcProvider()]));
+
+    await renderScreen();
+    await submitEmail("user@acme.com");
+
+    await fireEvent.press(await screen.findByLabelText("Acme Entra ID"));
+
+    await waitFor(() => {
+      expect(authSession()).toHaveBeenCalledWith(
+        "https://oneuptime.com/identity/oidc/project-1/provider-oidc-1?mobile=true",
+      );
+    });
+  });
+
+  test("and never the SAML route, which has never heard of its id", async () => {
+    /*
+     * The kind is the only thing standing between an OIDC provider and
+     * /identity/sso/..., where the id belongs to no SAML config and the login
+     * dies on a 400 inside the auth browser - after the user has already been
+     * sent away from the app.
+     */
+    projectDiscovery().mockResolvedValue(found([projectOidcProvider()]));
+
+    await renderScreen();
+    await submitEmail("user@acme.com");
+
+    await fireEvent.press(await screen.findByLabelText("Acme Entra ID"));
+
+    await waitFor(() => {
+      expect(authSession()).toHaveBeenCalledTimes(1);
+    });
+
+    const requestedUrl: string = authSession().mock.calls[0][0] as string;
+
+    expect(requestedUrl).toContain("/identity/oidc/");
+    expect(requestedUrl).not.toContain("/identity/sso/");
+  });
+
+  test("a completed OIDC login signs the user in", async () => {
+    projectDiscovery().mockResolvedValue(found([projectOidcProvider()]));
+    authSession().mockResolvedValue({
+      status: "callback",
+      url: "oneuptime://sso-callback?sso-token=abc&project-id=project-1",
+    });
+
+    await renderScreen();
+    await submitEmail("user@acme.com");
+
+    await fireEvent.press(await screen.findByLabelText("Acme Entra ID"));
+
+    await waitFor(() => {
+      expect(completeLogin()).toHaveBeenCalledWith(
+        "oneuptime://sso-callback?sso-token=abc&project-id=project-1",
+      );
+    });
+
+    expect(mockAuth.setIsAuthenticated).toHaveBeenCalledWith(true);
+  });
+
+  test("one with no project id is reported as misconfigured, not routed", async () => {
+    /*
+     * The project-scoped guard has to cover BOTH project kinds. If it only
+     * knew about SAML, an OIDC row from a sparse payload would build
+     * /identity/oidc//provider-oidc-1 and fail somewhere the user cannot see.
+     */
+    projectDiscovery().mockResolvedValue(
+      found([projectOidcProvider({ projectId: "" })]),
+    );
+
+    await renderScreen();
+    await submitEmail("user@acme.com");
+
+    await fireEvent.press(await screen.findByLabelText("Acme Entra ID"));
+
+    expect(
+      await screen.findByText(
+        "This SSO provider is misconfigured and cannot be used. Please contact your admin.",
+      ),
+    ).toBeTruthy();
+    expect(authSession()).not.toHaveBeenCalled();
+    expect(mockAuth.setIsAuthenticated).not.toHaveBeenCalled();
+  });
+});
+
+describe("A project that has both a SAML and an OIDC provider", () => {
+  function bothKinds(): Array<SSOProvider> {
+    return [projectProvider(), projectOidcProvider()];
+  }
+
+  test("offers both of them, under the one project heading", async () => {
+    /*
+     * They belong to the same project, so grouping by project id has to put
+     * them together - a second "Acme Production" heading would read as a
+     * second project the user has to choose between.
+     */
+    projectDiscovery().mockResolvedValue(found(bothKinds()));
+
+    await renderScreen();
+    await submitEmail("user@acme.com");
+
+    expect(await screen.findByText("Acme Okta")).toBeTruthy();
+    expect(screen.getByText("Acme Entra ID")).toBeTruthy();
+    expect(screen.getAllByText("Acme Production")).toHaveLength(1);
+  });
+
+  test("and each row starts its own router", async () => {
+    projectDiscovery().mockResolvedValue(found(bothKinds()));
+    authSession().mockResolvedValue({ status: "cancelled" });
+
+    await renderScreen();
+    await submitEmail("user@acme.com");
+
+    await fireEvent.press(await screen.findByLabelText("Acme Okta"));
+
+    await waitFor(() => {
+      expect(authSession()).toHaveBeenCalledWith(
+        "https://oneuptime.com/identity/sso/project-1/provider-1?mobile=true",
+      );
+    });
+
+    await fireEvent.press(await screen.findByLabelText("Acme Entra ID"));
+
+    await waitFor(() => {
+      expect(authSession()).toHaveBeenCalledWith(
+        "https://oneuptime.com/identity/oidc/project-1/provider-oidc-1?mobile=true",
+      );
+    });
+
+    expect(authSession()).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("Two projects that federate the same address differently", () => {
+  function oneOfEach(): Array<SSOProvider> {
+    return [
+      projectProvider(),
+      projectOidcProvider({
+        projectId: "project-2",
+        project: { name: "Acme Staging" },
+      }),
+    ];
+  }
+
+  test("are listed under their own project names", async () => {
+    projectDiscovery().mockResolvedValue(found(oneOfEach()));
+
+    await renderScreen();
+    await submitEmail("user@acme.com");
+
+    expect(await screen.findByText("Acme Production")).toBeTruthy();
+    expect(screen.getByText("Acme Staging")).toBeTruthy();
+    expect(screen.getByText("Acme Okta")).toBeTruthy();
+    expect(screen.getByText("Acme Entra ID")).toBeTruthy();
+  });
+
+  test("and the OIDC one carries its own project into the URL", async () => {
+    /*
+     * Both ids come out of the path, so an OIDC row that borrowed the SAML
+     * project's id would start a login for the wrong project.
+     */
+    projectDiscovery().mockResolvedValue(found(oneOfEach()));
+
+    await renderScreen();
+    await submitEmail("user@acme.com");
+
+    await fireEvent.press(await screen.findByLabelText("Acme Entra ID"));
+
+    await waitFor(() => {
+      expect(authSession()).toHaveBeenCalledWith(
+        "https://oneuptime.com/identity/oidc/project-2/provider-oidc-1?mobile=true",
+      );
+    });
+  });
+});
+
+describe("An instance whose only SSO is project OIDC", () => {
+  test("has a working login screen rather than nothing at all", async () => {
+    /*
+     * The regression in one test: no global providers, no project SAML, one
+     * project OIDC provider. This used to land on "No SSO configuration found
+     * for the email", because the only endpoint the app asked was the SAML
+     * one and it correctly answered that there was no SAML.
+     */
+    globalDiscovery().mockResolvedValue(found<GlobalSSOProvider>([]));
+    projectDiscovery().mockResolvedValue(found([projectOidcProvider()]));
+
+    await renderScreen();
+    await submitEmail("user@acme.com");
+
+    expect(await screen.findByText("Acme Entra ID")).toBeTruthy();
+    expect(screen.queryByText(/No SSO configuration found/i)).toBeNull();
+    expectNoErrorShown();
+  });
+
+  test("and the login it starts is one that can complete", async () => {
+    globalDiscovery().mockResolvedValue(found<GlobalSSOProvider>([]));
+    projectDiscovery().mockResolvedValue(found([projectOidcProvider()]));
+    authSession().mockResolvedValue({
+      status: "callback",
+      url: "oneuptime://sso-callback?sso-token=abc&project-id=project-1",
+    });
+
+    await renderScreen();
+    await submitEmail("user@acme.com");
+
+    await fireEvent.press(await screen.findByLabelText("Acme Entra ID"));
+
+    await waitFor(() => {
+      expect(authSession()).toHaveBeenCalledWith(
+        "https://oneuptime.com/identity/oidc/project-1/provider-oidc-1?mobile=true",
+      );
+    });
+
+    expect(mockAuth.setIsAuthenticated).toHaveBeenCalledWith(true);
   });
 });
 

@@ -18,6 +18,11 @@ import {
 } from "../storage/ssoTokens";
 import { logout as apiLogout } from "../api/auth";
 import { unregisterPushToken } from "./pushTokenUtils";
+/*
+ * Deliberately NOT mocked: the assertion below is about real denial state
+ * surviving (or not) a sign-out, which a spy would not tell us.
+ */
+import { isProjectSsoDenied, markProjectSsoDenied } from "../sso/ssoDenials";
 
 /*
  * AuthProvider is the only thing running when the app cold-starts, so it is
@@ -548,6 +553,26 @@ describe("AuthProvider logout", () => {
     });
 
     expect(unregisterPushTokenSpy()).toHaveBeenCalled();
+  });
+
+  test("clears the recorded SSO denials, so they do not follow the next user", async () => {
+    /*
+     * The denial set is module-scope and in-memory, cleared only by a
+     * successful SSO callback or by the process restarting. Without a clear on
+     * sign-out, a project the PREVIOUS user was refused would still read as
+     * "needs SSO" for whoever signs in next on the same handset - and that
+     * user may need no SSO at all.
+     */
+    markProjectSsoDenied("project-from-the-previous-user");
+    expect(isProjectSsoDenied("project-from-the-previous-user")).toBe(true);
+
+    await renderAuthProvider();
+
+    await act(async () => {
+      await currentAuth().logout();
+    });
+
+    expect(isProjectSsoDenied("project-from-the-previous-user")).toBe(false);
   });
 
   test("the context reports the user as signed out afterwards", async () => {
