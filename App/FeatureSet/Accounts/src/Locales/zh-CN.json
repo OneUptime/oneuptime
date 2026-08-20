@@ -56,7 +56,9 @@
     "submitButton": "注册",
     "haveAccountPrompt": "已经有账户？",
     "loginLink": "登录。",
-    "notifySelfHosted": "通知我有关安全补丁和新版本"
+    "notifySelfHosted": "通知我有关安全补丁和新版本",
+    "checkEmailTitle": "请查看您的电子邮件",
+    "checkEmailMessage": "如果此电子邮件地址有一个等待设置的账户，我们已向其发送了完成注册的链接。请不要忘记检查垃圾邮件。"
   },
   "forgotPassword": {
     "title": "忘记密码",

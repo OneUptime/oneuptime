@@ -56,7 +56,9 @@
     "submitButton": "サインアップ",
     "haveAccountPrompt": "すでにアカウントをお持ちですか？",
     "loginLink": "ログイン。",
-    "notifySelfHosted": "セキュリティパッチと新リリースについて通知する"
+    "notifySelfHosted": "セキュリティパッチと新リリースについて通知する",
+    "checkEmailTitle": "メールをご確認ください",
+    "checkEmailMessage": "このメールアドレスに設定待ちのアカウントがある場合、登録を完了するためのリンクを送信しました。迷惑メールフォルダーもご確認ください。"
   },
   "forgotPassword": {
     "title": "パスワードをお忘れの場合",

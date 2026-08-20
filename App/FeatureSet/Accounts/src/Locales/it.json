@@ -56,7 +56,9 @@
     "submitButton": "Registrati",
     "haveAccountPrompt": "Hai già un account?",
     "loginLink": "Accedi.",
-    "notifySelfHosted": "Avvisami delle patch di sicurezza e delle nuove versioni"
+    "notifySelfHosted": "Avvisami delle patch di sicurezza e delle nuove versioni",
+    "checkEmailTitle": "Controlla la tua email",
+    "checkEmailMessage": "Se a questo indirizzo email è associato un account in attesa di configurazione, gli abbiamo inviato un link per completare la registrazione. Non dimenticare di controllare la cartella spam."
   },
   "forgotPassword": {
     "title": "Password dimenticata",

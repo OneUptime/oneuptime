@@ -56,7 +56,9 @@
     "submitButton": "Registrieren",
     "haveAccountPrompt": "Sie haben bereits ein Konto?",
     "loginLink": "Anmelden.",
-    "notifySelfHosted": "Benachrichtigen Sie mich über Sicherheitsupdates und neue Versionen"
+    "notifySelfHosted": "Benachrichtigen Sie mich über Sicherheitsupdates und neue Versionen",
+    "checkEmailTitle": "Überprüfen Sie Ihre E-Mails",
+    "checkEmailMessage": "Falls für diese E-Mail-Adresse ein Konto zur Einrichtung bereitsteht, haben wir einen Link zum Abschließen der Registrierung gesendet. Bitte denken Sie daran, auch den Spam-Ordner zu überprüfen."
   },
   "forgotPassword": {
     "title": "Passwort vergessen",

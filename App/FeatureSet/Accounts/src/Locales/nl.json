@@ -56,7 +56,9 @@
     "submitButton": "Aanmelden",
     "haveAccountPrompt": "Hebt u al een account?",
     "loginLink": "Inloggen.",
-    "notifySelfHosted": "Stel mij op de hoogte van beveiligingspatches en nieuwe versies"
+    "notifySelfHosted": "Stel mij op de hoogte van beveiligingspatches en nieuwe versies",
+    "checkEmailTitle": "Controleer uw e-mail",
+    "checkEmailMessage": "Als er voor dit e-mailadres een account klaarstaat om te worden ingesteld, hebben we een link gestuurd om de registratie te voltooien. Vergeet niet om uw spammap te controleren."
   },
   "forgotPassword": {
     "title": "Wachtwoord vergeten",

@@ -56,7 +56,9 @@
     "submitButton": "註冊",
     "haveAccountPrompt": "已經有帳號？",
     "loginLink": "登入。",
-    "notifySelfHosted": "通知我有關安全修補程式與新版本"
+    "notifySelfHosted": "通知我有關安全修補程式與新版本",
+    "checkEmailTitle": "請查看您的電子郵件",
+    "checkEmailMessage": "如果此電子郵件地址有一個等待設定的帳戶，我們已向其發送了完成註冊的連結。請不要忘記檢查垃圾郵件。"
   },
   "forgotPassword": {
     "title": "忘記密碼",
