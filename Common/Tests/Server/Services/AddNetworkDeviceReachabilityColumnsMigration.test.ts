@@ -27,15 +27,11 @@ import { describe, expect, test } from "@jest/globals";
  *
  * Pure SQL-contract assertions against a fake QueryRunner. No Postgres.
  *
- * This file also carries the ORDERING guard, handed on from
- * DeviceRoleAndDeclaredLinkParentMigration.test.ts: this is the newest
- * registered migration, so its timestamp must sort above every other one.
- * `generate-postgres-migration` stamps a WALL-CLOCK timestamp, while the
- * recent migrations here use hand-picked round numbers that already run
- * ahead of it — so a generated file lands BELOW several registered
- * migrations unless somebody renumbers it, and runs out of order without
- * anything saying so. Whoever adds the next migration should move this
- * block to theirs.
+ * This file used to carry the ORDERING guard. It has moved on to
+ * FixTotpOtpUrlAlgorithmMigration.test.ts, which is the newest registered
+ * migration — the guard only says anything while it sits on the newest one.
+ * What stays here is the file-on-disk check, which is about THIS migration
+ * and stays true forever.
  */
 
 const MIGRATION_DIRECTORY: string = path.join(
@@ -44,15 +40,6 @@ const MIGRATION_DIRECTORY: string = path.join(
 );
 
 const MIGRATION_TIMESTAMP: string = "1787600000000";
-
-interface MigrationClass {
-  name: string;
-}
-
-function timestampOf(migrationClass: MigrationClass): number | null {
-  const match: RegExpMatchArray | null = migrationClass.name.match(/(\d+)$/);
-  return match ? Number(match[1]) : null;
-}
 
 type MakeQueryRunnerResult = {
   runner: QueryRunner;
@@ -237,51 +224,12 @@ describe("registration", () => {
   });
 });
 
-// The guard described in the header. Hand it to the next migration.
-describe("ordering", () => {
-  test("its timestamp sorts after every other registered migration", () => {
-    const ourTimestamp: number | null = timestampOf(
-      AddNetworkDeviceReachabilityColumns1787600000000,
-    );
-
-    expect(ourTimestamp).not.toBeNull();
-
-    const otherTimestamps: Array<number> = [];
-
-    for (const migrationClass of SchemaMigrations) {
-      if (migrationClass === AddNetworkDeviceReachabilityColumns1787600000000) {
-        continue;
-      }
-
-      const timestamp: number | null = timestampOf(
-        migrationClass as MigrationClass,
-      );
-
-      if (timestamp !== null) {
-        otherTimestamps.push(timestamp);
-      }
-    }
-
-    /*
-     * Math.max() of an empty list is -Infinity, which every timestamp beats.
-     * Prove the list was actually enumerated before leaning on the maximum.
-     */
-    expect(otherTimestamps.length).toBeGreaterThan(100);
-
-    expect(ourTimestamp).toBeGreaterThan(Math.max(...otherTimestamps));
-  });
-
-  test("it is registered last, matching that timestamp", () => {
-    expect(SchemaMigrations[SchemaMigrations.length - 1]).toBe(
-      AddNetworkDeviceReachabilityColumns1787600000000,
-    );
-  });
-
+describe("identity on disk", () => {
   /*
-   * ...and the timestamp in the class name is the one on disk. A class
-   * renamed without renaming its file (or two migrations landing on the
-   * same timestamp) leaves the ordering above asserting something that is
-   * not what actually runs.
+   * The timestamp in the class name is the one on disk. A class renamed
+   * without renaming its file — or two migrations landing on the same
+   * timestamp — makes the registered ordering describe something that is not
+   * what actually runs.
    */
   test("exactly one file on disk carries its timestamp, and it is this one", () => {
     const matching: Array<string> = fs
