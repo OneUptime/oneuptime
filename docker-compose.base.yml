@@ -88,6 +88,13 @@ x-common-runtime-variables: &common-runtime-variables
   BILLING_ENABLED: ${BILLING_ENABLED}
   BILLING_WEBHOOK_SECRET: ${BILLING_WEBHOOK_SECRET}
 
+  # TEST-ONLY. Unset (empty) in every shipped config, so the API never returns
+  # a notification-channel verification code. The CI end-to-end job sets it to
+  # "true" for its own stack because the e2e suite has no mailbox to read the
+  # emailed code from; production leaves it empty and the code stays on the
+  # mail path only. See Common/Server/Services/UserEmailService.ts.
+  EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E: ${EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E:-}
+
   CLICKHOUSE_USER: ${CLICKHOUSE_USER}
   CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
   CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE}

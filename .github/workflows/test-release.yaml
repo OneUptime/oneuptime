@@ -930,6 +930,20 @@ jobs:
           else
             echo "APP_TAG=${SANITIZED_VERSION}" > config.env
           fi
+      - name: Expose notification-channel verification codes to the e2e suite
+        run: |
+          set -euo pipefail
+          # TEST-ONLY. The e2e stack has no mailbox, so the API is told to hand
+          # back the notification-channel verification code on the create
+          # response (Common/Server/Services/UserEmailService.ts). This is set
+          # ONLY here, for the ephemeral CI stack; it is never in a shipped
+          # config, and production leaves it empty so the code stays emailed.
+          KEY=EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E
+          if [ -f config.env ] && grep -q "^${KEY}=" config.env; then
+            sed -i "s|^${KEY}=.*|${KEY}=true|" config.env
+          else
+            echo "${KEY}=true" >> config.env
+          fi
       - name: Start Server with release tag
         run: |
           set -euo pipefail

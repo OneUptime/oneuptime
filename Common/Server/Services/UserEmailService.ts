@@ -102,7 +102,32 @@ export class Service extends DatabaseService<Model> {
   ): Promise<Model> {
     if (!createdItem.isVerified) {
       // issue and send the first verification code
-      await this.issueAndSendVerificationCode(createdItem);
+      const plainCode: string =
+        await this.issueAndSendVerificationCode(createdItem);
+
+      /*
+       * TEST-ONLY seam, OFF unless explicitly switched on.
+       *
+       * The plaintext code is otherwise only ever emailed - never returned by
+       * the API - which is deliberate: returning it would let a caller add
+       * anybody's address and confirm it instantly, the exact takeover the
+       * hashing/expiry/attempt controls exist to stop (see ChannelVerification
+       * and VerificationCode). The end-to-end stack has no mailbox to read the
+       * emailed code from, so this narrow hatch hands the code back on the
+       * create response for it to confirm the address the way a user would.
+       *
+       * It is gated on an environment variable that is unset in every shipped
+       * config and set true ONLY in the CI e2e job (docker-compose passes it
+       * through, .github/workflows/test-release.yaml sets it for the SaaS run).
+       * In production the flag is absent, this branch never runs, and the code
+       * never leaves the mail path.
+       */
+      if (
+        process.env["EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E"] ===
+        "true"
+      ) {
+        createdItem.verificationCode = plainCode;
+      }
     }
 
     return createdItem;
@@ -172,13 +197,21 @@ export class Service extends DatabaseService<Model> {
    * preconditions have passed.
    */
   @CaptureSpan()
-  public async issueAndSendVerificationCode(item: Model): Promise<void> {
+  public async issueAndSendVerificationCode(item: Model): Promise<string> {
     const plainCode: string = await ChannelVerification.issueCodeOnItem({
       service: this,
       itemId: item.id!,
     });
 
     this.sendVerificationCode(item, plainCode);
+
+    /*
+     * The plaintext exists here for exactly as long as it takes to hand it to
+     * the mailer, and is returned so a caller that has a legitimate reason to
+     * see it can - see onCreateSuccess for the one place that does, and the
+     * hard gate around it.
+     */
+    return plainCode;
   }
 
   public sendVerificationCode(item: Model, code: string): void {

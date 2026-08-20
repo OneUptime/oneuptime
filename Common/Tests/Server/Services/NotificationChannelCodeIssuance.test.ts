@@ -295,4 +295,107 @@ describe("notification channel verification code issuance", () => {
       expect(select["verificationCode"]).toBeUndefined();
     });
   });
+
+  /*
+   * The create response must NOT carry the plaintext code unless the e2e-only
+   * env flag is exactly "true". This is the whole security boundary of the
+   * seam UserEmailService.onCreateSuccess adds for the end-to-end suite: an
+   * accidental default-on, or a loose truthy check, would hand every caller a
+   * just-issued code on the create response and reinstate the takeover the
+   * hashing/expiry/attempt controls exist to stop. Pinned in both directions.
+   */
+  describe("the e2e verification-code exposure seam (onCreateSuccess)", () => {
+    const FLAG: string = "EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E";
+
+    type OnCreateSuccess = (
+      onCreate: unknown,
+      createdItem: UserEmail,
+    ) => Promise<UserEmail>;
+
+    const runOnCreateSuccess: (item: UserEmail) => Promise<UserEmail> = (
+      item: UserEmail,
+    ) => {
+      return (
+        UserEmailService as unknown as { onCreateSuccess: OnCreateSuccess }
+      ).onCreateSuccess({}, item);
+    };
+
+    const sentCode: () => string = () => {
+      return (
+        (MailService.sendMail as unknown as jest.Mock).mock.calls[0]?.[0] as {
+          vars: Record<string, string>;
+        }
+      ).vars["code"] as string;
+    };
+
+    let previousFlag: string | undefined;
+
+    beforeEach(() => {
+      previousFlag = process.env[FLAG];
+      delete process.env[FLAG];
+    });
+
+    afterEach(() => {
+      if (previousFlag === undefined) {
+        delete process.env[FLAG];
+      } else {
+        process.env[FLAG] = previousFlag;
+      }
+    });
+
+    it("with the flag unset, a code is issued and mailed but never returned", async () => {
+      const result: UserEmail = await runOnCreateSuccess(buildItem());
+
+      expect(sentCode()).toMatch(/^[0-9]{6}$/);
+      expect(result.verificationCode).toBeUndefined();
+    });
+
+    it('only an exact "true" opens the hatch - any other truthy value stays closed', async () => {
+      for (const value of ["1", "TRUE", "yes", "on", " true "]) {
+        jest.clearAllMocks();
+        updateOneById = jest.fn().mockResolvedValue(1);
+        UserEmailService.updateOneById = updateOneById as never;
+        (MailService.sendMail as unknown as jest.Mock).mockResolvedValue(
+          undefined as never,
+        );
+
+        process.env[FLAG] = value;
+        const result: UserEmail = await runOnCreateSuccess(buildItem());
+
+        expect(result.verificationCode).toBeUndefined();
+      }
+    });
+
+    it('with the flag exactly "true", the response carries the mailed plaintext', async () => {
+      process.env[FLAG] = "true";
+      const result: UserEmail = await runOnCreateSuccess(buildItem());
+
+      expect(result.verificationCode).toBe(sentCode());
+      expect(result.verificationCode).toMatch(/^[0-9]{6}$/);
+    });
+
+    it("even with the hatch open, storage is still the digest and never the code", async () => {
+      process.env[FLAG] = "true";
+      await runOnCreateSuccess(buildItem());
+
+      const written: AnyRecord = (
+        updateOneById.mock.calls[0]?.[0] as { data: AnyRecord }
+      ).data;
+
+      expect(written["verificationCode"]).toMatch(/^[0-9a-f]{64}$/);
+      expect(written["verificationCode"]).not.toBe(sentCode());
+    });
+
+    it("an already-verified row issues no code and exposes nothing, flag on or off", async () => {
+      process.env[FLAG] = "true";
+      const result: UserEmail = await runOnCreateSuccess(
+        buildItem({ isVerified: true }),
+      );
+
+      expect(
+        MailService.sendMail as unknown as jest.Mock,
+      ).not.toHaveBeenCalled();
+      expect(result.verificationCode).toBeUndefined();
+    });
+  });
 });
