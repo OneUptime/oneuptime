@@ -32,7 +32,7 @@ export default class MetaProvider extends ConversionUploadProvider {
     return Boolean(MetaConversionsPixelId && MetaConversionsAccessToken);
   }
 
-  public override getSkipReason(
+  protected override getProviderSkipReason(
     conversion: MarketingConversion,
   ): ConversionSkip | null {
     if (!this.getClickId(conversion, "fbclid")) {

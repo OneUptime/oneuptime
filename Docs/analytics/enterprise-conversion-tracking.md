@@ -1,96 +1,115 @@
 # Enterprise conversion tracking
 
-This document defines the current boundary between browser analytics, the
-server-confirmed conversion ledger, Cal.com, native Revenue, and downstream
-providers.
+This document defines the boundary between browser analytics, the
+server-confirmed conversion ledger, Cal.com, native Revenue, and the ad
+platforms.
 
 ## Architecture and sources of truth
 
-| Concern | Source of truth | Notes |
-| --- | --- | --- |
-| A meeting was booked | App `MarketingConversion` ledger | Written only after a verified Cal `BOOKING_CREATED` webhook. Browser events are supporting diagnostics, not proof of conversion. |
-| Booking details | Cal.com | The webhook supplies the booking identifier and time. Do not treat copied browser payloads as authoritative. |
-| Contact, account, deal, qualification, and pipeline stage | Native Revenue | A meeting conversion does not create, qualify, or advance Revenue records. |
-| First-touch acquisition | OneUptime's persisted first-touch attribution | Joining it to a booking is blocked until the Cal metadata contract is confirmed. |
-| Web analytics | GA4/PostHog/GTM | Useful for aggregate funnel analysis and client-side diagnostics. Never the authoritative conversion ledger. |
-| Ad-platform conversion state | `MarketingConversion.uploadState` and the provider | Only explicitly eligible conversion types and explicitly defined provider mappings may be uploaded. |
+| Concern                                                   | Source of truth                                    | Notes                                                                                                                                      |
+| --------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| A meeting was booked                                      | `MarketingConversion` ledger                       | Written only after a signature-verified Cal `BOOKING_CREATED` webhook. Browser events are supporting diagnostics, not proof of conversion. |
+| Booking details                                           | Cal.com                                            | The webhook supplies the booking identifier and time. Copied browser payloads are not authoritative.                                       |
+| Contact, account, deal, qualification, and pipeline stage | Native Revenue                                     | A meeting conversion does not create, qualify, or advance Revenue records.                                                                 |
+| First-touch acquisition                                   | OneUptime's persisted first-touch attribution      | Joining it to a booking is blocked until the Cal metadata contract is confirmed.                                                           |
+| Web analytics                                             | GA4 / PostHog / GTM                                | Useful for aggregate funnel analysis and client-side diagnostics. Never the authoritative conversion ledger.                               |
+| Ad-platform conversion state                              | `MarketingConversion.uploadState` and the provider | Only conversion types with an explicit provider mapping may be uploaded.                                                                   |
 
-The App endpoint is the trust boundary. Cal signs the exact request bytes, the
-App verifies them, and only then may the App write the internal conversion
-ledger. Analytics and provider delivery are best-effort consumers and must not
-block booking or Revenue workflows.
+`POST /api/cal-webhook` is the trust boundary. Cal signs the exact request
+bytes, the App verifies them, and only then does the App write the ledger.
+Analytics and ad-platform delivery are best-effort consumers downstream of
+that; neither may block booking or Revenue workflows.
 
 ## Canonical `meeting_booked` semantics
 
-`meeting_booked` means: **Cal.com emitted a valid, signature-verified
+`meeting_booked` means: **Cal.com emitted a signature-verified
 `BOOKING_CREATED` event with a stable booking identifier, and the App recorded
-that booking once in the server-side conversion ledger.** The corresponding
-internal enum value is `MarketingConversionType.MeetingBooked`.
+that booking once in the server-side conversion ledger.** The internal enum
+value is `MarketingConversionType.MeetingBooked`.
 
 A page view, opening the Cal embed, choosing a time, or a client-side callback
-alone is not `meeting_booked`. Reschedules and cancellations are also not new
-bookings under the current contract. Only `BOOKING_CREATED` is accepted.
+alone is not `meeting_booked`. Reschedules and cancellations are not new
+bookings: only `BOOKING_CREATED` is accepted.
 
-The Home Cal embeds still have a legacy `bookingSuccessful` browser listener.
-That listener currently emits legacy client events such as `demo_request`,
-`demo_booked`, and `home/demo-booked`. Keep it for continuity and diagnostics,
-but do not count it as the canonical conversion or use it to write the ledger.
-If GTM/GA4 exposes a canonical `meeting_booked` event, it must be derived from a
-server-confirmed event or clearly reported as a modeled mirror; it must not
-silently relabel the legacy browser callback as authoritative.
+The Home Cal embeds (`/enterprise/demo` and `/support`) also emit a browser
+`meeting_booked` through `window.oneUptimeTrackMeetingBooked`, defined in
+`Home/Views/head-basic.ejs`. That event is a mirror of the same moment for
+funnel analysis, not the commercial record — the browser can be blocked, can
+double-fire, and can be forged. The per-page legacy events
+(`home/demo-booked`, `home/support-call-booked`, `demo_request`,
+`demo_booked`) are still emitted so existing dashboards keep their history.
+When reconciling the two, treat the ledger as the count and the browser event
+as coverage.
 
 ## Cal webhook
 
-The public endpoint is:
+The endpoint is:
 
 ```text
 POST /api/cal-webhook
 ```
 
-Configure the App with `CAL_WEBHOOK_SECRET`. Configure a Cal.com webhook for the
-production URL ending in `/api/cal-webhook`, subscribe it to
-`BOOKING_CREATED`, and configure the same secret in Cal. Do not put the secret
-in source control, client JavaScript, documentation examples, logs, or analytics
-properties.
+Configure the App with `CAL_WEBHOOK_SECRET`, then create a Cal.com webhook
+pointed at the production URL ending in `/api/cal-webhook`, subscribed to
+`BOOKING_CREATED` only, with the same secret. Never put the secret in source
+control, client JavaScript, documentation examples, logs, or analytics
+properties. It is deliberately absent from `FRONTEND_ENV_ALLOW_LIST`.
+
+Where the value is set:
+
+| Deployment     | Location                                                        |
+| -------------- | --------------------------------------------------------------- |
+| Docker Compose | `CAL_WEBHOOK_SECRET` in `config.env` (see `config.example.env`) |
+| Helm           | `marketing.cal.webhookSecret` in the chart values               |
 
 Cal sends the signature in `x-cal-signature-256`. The App computes HMAC-SHA256
 over the **exact raw HTTP request body bytes** using `CAL_WEBHOOK_SECRET` and
-compares the hexadecimal digest in constant time. JSON parsed and serialized
-again is not equivalent: whitespace, escaping, and key order can change the
-signature. Proxies and middleware must preserve the body unchanged and the App
-must retain the raw body before JSON parsing.
+compares the hexadecimal digest in constant time. A `sha256=` prefix and
+uppercase hex are both tolerated. JSON parsed and serialised again is not
+equivalent — whitespace, escaping, and key order all change the digest — so
+proxies and middleware must pass the body through unchanged, and the App reads
+the raw body express captured before parsing.
 
 Expected responses:
 
 - `200 {"accepted":true}` for a valid new `BOOKING_CREATED` event.
 - `200 {"accepted":true,"duplicate":true}` when the booking is already in the
-  ledger (a concurrent duplicate may return the first shape after its unique
-  conflict is safely absorbed).
+  ledger, whether that was found by the pre-insert read or by absorbing the
+  unique violation from a concurrent delivery.
 - `200 {"accepted":false}` for a validly signed but unsupported event type.
-- `400` for an invalid supported-event payload.
-- `401` for a missing or invalid signature.
+- `400` for a `BOOKING_CREATED` payload with no usable booking identifier or an
+  unparseable date.
+- `401` for a missing, malformed, or invalid signature.
 - `503` when `CAL_WEBHOOK_SECRET` is not configured.
+
+The booking identifier is read from `payload.uid`, `payload.booking.uid`,
+`payload.bookingUid`, `payload.booking.id` or `payload.id`, in that order.
+Cal's `uid` is a string and its row `id` is a number; both are accepted.
 
 ## Idempotency
 
-Retries for one Cal booking resolve to one deterministic ledger UUID. The App
-hashes the namespace `cal.com/booking` plus the stable Cal booking identifier,
-uses the first 16 digest bytes as a UUIDv5-shaped value, and assigns that UUID as
-the `MarketingConversion` primary key. It checks for that ID before insert and
-also treats a database unique violation as a successful retry.
+Cal retries on any non-2xx, so a booking arriving more than once is the normal
+path rather than an edge case. Every delivery of one booking resolves to one
+deterministic ledger UUID: the App hashes the namespace `cal.com/booking` plus
+the Cal booking identifier, takes the first 16 digest bytes as a UUIDv5-shaped
+value, and uses that as the `MarketingConversion` primary key. It reads that id
+before inserting, and treats a unique violation on insert as a success — the
+row exists, which is the whole point of deriving the key.
 
 Consequences:
 
 - The booking identifier must be stable and non-empty.
-- Retrying the exact event cannot create another conversion.
+- Retrying the exact event cannot create a second conversion.
 - Do not generate a random UUID per webhook delivery.
-- Do not use attendee email, time, or mutable booking fields as the idempotency
-  key.
+- Do not key on attendee email, time, or any other mutable booking field.
+- Do not change `cal.com/booking`. Re-keying would make every booking already
+  in the ledger insertable a second time.
 
 ## Privacy and attribution
 
-The webhook parser retains only allowlisted click-ID keys found in supported Cal
-metadata/response locations:
+The webhook parser retains only allowlisted click-ID keys, read from
+`payload.metadata`, `payload.booking.metadata` and `payload.responses`
+(a `{ label, value }` answer is unwrapped):
 
 - `gclid`
 - `wbraid`
@@ -101,18 +120,32 @@ metadata/response locations:
 - `twclid`
 - `rdt_cid`
 
-Unknown metadata is not copied into `clickIds`; retained values are length
-bounded. Attendee email may be stored internally for controlled matching, but
-it is PII and must not be sent to GA4, GTM's `dataLayer`, PostHog event
-properties intended for broad analytics, URLs, or logs. Never send names,
-emails, phone numbers, free-form booking answers, or other customer content to
-GA4. GA4 events should contain only non-PII fields needed for aggregate
-measurement, such as the stable event name, schema version, and coarse page or
-source classification.
+This is an allowlist, not a denylist. Cal metadata and booking answers are
+free-form customer content — names, notes, phone numbers, answers to booking
+questions — and nothing outside the list above is copied into the ledger.
+Retained values are length bounded.
 
-Provider uploads require their own explicit mapping, consent/privacy review,
-and supported identifier handling. The existence of a click ID in the ledger
-does not authorize an upload.
+The attendee email is stored internally for controlled matching, and it is
+PII: it must not be sent to GA4, GTM's `dataLayer`, PostHog event properties,
+URLs, or logs. The browser `meeting_booked` event carries only
+`event_schema_version`, `booking_source`, `booking_kind`, `page_path`,
+`cal_event_type` and `cal_namespace` for exactly this reason — Cal's `bookingSuccessful` detail
+holds the attendee's name and email, and none of it is forwarded.
+
+## Ad-platform uploads
+
+`MeetingBooked` is a ledger-only conversion type. Every provider maps a
+conversion to a platform conversion action with a two-way branch on
+`isSignUp()`, so a type with no mapping would be uploaded as a _purchase_
+carrying whatever value the row holds. `ConversionUploadProvider.getSkipReason`
+screens conversion types against `AdUploadableMarketingConversionTypes` before
+any provider hook runs, and the worker records the result as `Skipped`.
+
+Adding a conversion type to that allowlist requires an explicit mapping in
+every provider: conversion action, eligibility rules, timestamp and value
+semantics, identifier policy, consent requirements, retry behaviour, and a
+reconciliation source. Mapping by similar event name is not allowed. The
+presence of a click ID in the ledger does not by itself authorise an upload.
 
 ## End-to-end local/staging test
 
@@ -135,63 +168,51 @@ does not contain or print a real secret.
 3. Send those exact bytes (adjust the host only):
 
    ```sh
-   curl --fail-with-body -i \
-     -X POST 'http://localhost:3002/api/cal-webhook' \
-     -H 'content-type: application/json' \
-     -H "x-cal-signature-256: $SIGNATURE" \
-     --data-binary "$BODY"
+   curl --fail-with-body -i -X POST 'http://localhost:3002/api/cal-webhook' -H 'content-type: application/json' -H "x-cal-signature-256: $SIGNATURE" --data-binary "$BODY"
    ```
 
-4. Verify a `200` response with `accepted: true`. In the test database, verify
-   there is one `MeetingBooked` ledger row, the conversion time matches the
-   payload, `gclid` is retained, and `unapproved_key` is absent. Verify no PII
-   appeared in GA4/GTM payloads or application logs.
+4. Verify a `200` response with `accepted: true`. In the database, verify there
+   is one `MeetingBooked` row, its `conversionAt` matches the payload, `gclid`
+   is retained, and `unapproved_key` is absent. Verify no PII appeared in
+   GA4/GTM payloads or application logs.
 
-5. Repeat the identical `curl`. Verify it remains `200` and that the ledger row
-   count is still one. The response will normally include `duplicate: true`.
+5. Repeat the identical `curl`. Verify it is still `200`, that the response
+   carries `duplicate: true`, and that the row count is still one.
 
-6. Negative test the signature without changing the stored environment secret:
+6. Negative-test the signature without changing the stored environment secret:
 
    ```sh
-   curl -i \
-     -X POST 'http://localhost:3002/api/cal-webhook' \
-     -H 'content-type: application/json' \
-     -H 'x-cal-signature-256: 0000000000000000000000000000000000000000000000000000000000000000' \
-     --data-binary "$BODY"
+   curl -i -X POST 'http://localhost:3002/api/cal-webhook' -H 'content-type: application/json' -H 'x-cal-signature-256: 0000000000000000000000000000000000000000000000000000000000000000' --data-binary "$BODY"
    ```
 
-   Verify `401` and no additional ledger row.
+   Verify `401` and no additional row.
 
-7. In Cal's staging/test configuration, create a webhook to the externally
-   reachable staging `/api/cal-webhook` URL, select only `BOOKING_CREATED`, set
-   the staging secret, make one test booking, and repeat the ledger,
-   idempotency, allowlist, and analytics-privacy checks. Remove the disposable
-   booking and rotate the staging test secret after validation.
+7. In Cal's staging configuration, create a webhook to the externally reachable
+   staging `/api/cal-webhook` URL, select only `BOOKING_CREATED`, set the
+   staging secret, make one test booking, and repeat the ledger, idempotency,
+   allowlist and analytics-privacy checks. Remove the disposable booking and
+   rotate the staging test secret afterwards.
 
 The example email uses the reserved `.invalid` domain and must not be replaced
 with a real person's data.
 
-## Blockers and follow-ups
+## Deliberately not implemented
 
-1. **Confirm the Cal metadata schema.** Define exactly how first-touch UTMs and
-   click IDs are transferred into Cal and returned by `BOOKING_CREATED`. Also
-   define stable, validated native Revenue contact, account, and deal reference
-   fields. Until that contract is confirmed, do not claim that bookings can be
-   reliably joined to first-touch attribution or Revenue records.
-2. **Do not auto-qualify or create a deal.** `meeting_booked` records a meeting,
+1. **First-touch UTM and Revenue joins.** How first-touch UTMs and click IDs
+   are transferred into Cal, and which stable native Revenue contact, account
+   and deal reference fields come back on `BOOKING_CREATED`, is not defined.
+   Until that contract is confirmed, bookings cannot be reliably joined to
+   first-touch attribution or Revenue records, and the ledger does not claim
+   otherwise.
+2. **Auto-qualification and Deal creation.** `MeetingBooked` records a meeting,
    not enterprise qualification, technical evaluation, or opportunity
-   acceptance. Native Revenue remains authoritative and its workflows must make
-   those decisions explicitly.
-3. **Do not add `QualifiedEnterpriseLead`, `TechnicalEvaluationStarted`,
-   `OpportunityCreated`, or `ClosedWon` yet.** Add them only after native Revenue
-   emits durable domain events with documented semantics, identifiers,
-   idempotency, and ownership.
-4. **Define provider mappings before upload.** For every future Revenue event,
-   explicitly map the native event to each provider's conversion action,
-   eligibility rules, timestamp/value semantics, identifier policy, consent
-   requirements, retry behavior, and reconciliation source. No implicit mapping
-   by similar event name is allowed.
-5. **Reconcile the legacy listener.** Once the server-confirmed event can be
-   mirrored safely to browser analytics, update dashboards/GTM to distinguish
-   the canonical `meeting_booked` metric from legacy `bookingSuccessful`-based
-   events and document any historical discontinuity.
+   acceptance. Native Revenue remains authoritative and must make those calls
+   explicitly.
+3. **`QualifiedEnterpriseLead`, `TechnicalEvaluationStarted`,
+   `OpportunityCreated`, `ClosedWon`.** Add them only once native Revenue emits
+   durable domain events with documented semantics, identifiers, idempotency
+   and ownership.
+4. **Reconciling the legacy browser events.** Dashboards and GTM still mix the
+   canonical `meeting_booked` with the older `bookingSuccessful`-derived
+   events. Separating them, and documenting the historical discontinuity, is
+   follow-up work.

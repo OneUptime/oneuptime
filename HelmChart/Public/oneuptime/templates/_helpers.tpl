@@ -252,6 +252,8 @@ its userlist at startup.
   value: {{ default "" ((($.Values.marketing).redditAds).oauthRefreshToken) | quote }}
 - name: REDDIT_ADS_ACCOUNT_ID
   value: {{ default "" ((($.Values.marketing).redditAds).accountId) | quote }}
+- name: CAL_WEBHOOK_SECRET
+  value: {{ default "" ((($.Values.marketing).cal).webhookSecret) | quote }}
 - name: CAPTCHA_ENABLED
   value: {{ ternary "true" "false" (default false $.Values.captcha.enabled) | quote }}
 - name: CAPTCHA_SITE_KEY

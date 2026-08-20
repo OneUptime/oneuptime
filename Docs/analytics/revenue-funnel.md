@@ -14,6 +14,10 @@ Manager `dataLayer`. Event names and properties are defined in
 | Revenue       | `subscription_upgraded`   | A project moves to a higher plan. `is_paid_conversion` identifies free-to-paid. |
 | Revenue       | `subscription_downgraded` | A project moves to a lower plan.                                                |
 
+Sales-led bookings are tracked separately — see
+[enterprise-conversion-tracking.md](./enterprise-conversion-tracking.md) for
+`meeting_booked` and the server-confirmed conversion ledger behind it.
+
 ## GA4 setup
 
 In Google Tag Manager, create GA4 Event tags for these exact event names and

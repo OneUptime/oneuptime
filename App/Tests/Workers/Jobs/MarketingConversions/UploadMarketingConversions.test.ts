@@ -123,7 +123,7 @@ class TestProvider extends ConversionUploadProvider {
     return true;
   }
 
-  public override getSkipReason(
+  protected override getProviderSkipReason(
     conversion: MarketingConversion,
   ): ConversionSkip | null {
     return this.skipReasons.get(conversion.id?.toString() || "") || null;
@@ -740,6 +740,84 @@ describe("UploadMarketingConversions", () => {
 
       await uploadToProvider(provider);
 
+      expect(provider.uploadedBatches).toHaveLength(0);
+    });
+
+    /*
+     * The MeetingBooked rows the Cal webhook writes share this ledger and this
+     * job. No provider has a conversion action for a booked meeting, and every
+     * provider's mapping is `isSignUp ? signup : purchase` -- so an unscreened
+     * booking would be uploaded as a purchase. The screen lives in
+     * ConversionUploadProvider.getSkipReason; what matters here is that the job
+     * honours it and settles the row instead of retrying it forever.
+     */
+    test("skips a conversion type no ad platform has a mapping for", async () => {
+      const meeting: MarketingConversion = makeConversion({
+        id: "meeting-booked",
+        type: MarketingConversionType.MeetingBooked,
+      });
+      jest
+        .spyOn(MarketingConversionService, "findBy")
+        .mockResolvedValue([meeting] as never);
+      const provider: TestProvider = new TestProvider();
+
+      await uploadToProvider(provider);
+
+      expect(provider.uploadedBatches).toHaveLength(0);
+      expect(getProviderState(meeting, provider.key)).toMatchObject({
+        status: MarketingConversionUploadStatus.Skipped,
+        error:
+          "Conversion type MeetingBooked has no ad platform conversion mapping",
+      });
+    });
+
+    test("uploads the mapped conversions in a batch that also holds a meeting", async () => {
+      const signUp: MarketingConversion = makeConversion({
+        id: "mixed-signup",
+        type: MarketingConversionType.SignUp,
+      });
+      const meeting: MarketingConversion = makeConversion({
+        id: "mixed-meeting",
+        type: MarketingConversionType.MeetingBooked,
+      });
+      const paid: MarketingConversion = makeConversion({
+        id: "mixed-paid",
+        type: MarketingConversionType.PaidSubscription,
+      });
+      jest
+        .spyOn(MarketingConversionService, "findBy")
+        .mockResolvedValue([signUp, meeting, paid] as never);
+      const provider: TestProvider = new TestProvider();
+
+      await uploadToProvider(provider);
+
+      expect(provider.uploadedBatches).toEqual([[signUp, paid]]);
+    });
+
+    // Permanent, so the next run filters it out rather than re-skipping it.
+    test("settles the skipped meeting so a later run never revisits it", async () => {
+      const meeting: MarketingConversion = makeConversion({
+        id: "meeting-settled",
+        type: MarketingConversionType.MeetingBooked,
+      });
+      const findBySpy: SpyInstance<any> = jest
+        .spyOn(MarketingConversionService, "findBy")
+        .mockResolvedValue([meeting] as never);
+      const provider: TestProvider = new TestProvider();
+
+      await uploadToProvider(provider);
+
+      const updateCallsAfterFirstRun: number = (
+        MarketingConversionService.updateOneById as unknown as jest.Mock
+      ).mock.calls.length;
+
+      findBySpy.mockResolvedValue([meeting] as never);
+      await uploadToProvider(provider);
+
+      expect(
+        (MarketingConversionService.updateOneById as unknown as jest.Mock).mock
+          .calls.length,
+      ).toBe(updateCallsAfterFirstRun);
       expect(provider.uploadedBatches).toHaveLength(0);
     });
   });

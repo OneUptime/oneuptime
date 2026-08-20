@@ -14,9 +14,13 @@ import ObjectID from "../../Types/ObjectID";
 import { Column, Entity, Index } from "typeorm";
 
 /*
- * Internal table recording server-confirmed marketing conversions and the
- * status of uploading eligible ad-attributed rows to ad platforms. Browser
- * analytics are evidence only and never write this ledger directly.
+ * Internal table (no API access) recording server-confirmed conversions —
+ * signups, booked meetings and paid subscriptions, along with any ad click IDs
+ * the converting visitor carried — and the status of uploading the
+ * ad-uploadable ones to ad platforms (Google Ads offline click conversions,
+ * Meta Conversions API). Browser analytics never write this table: rows are
+ * written by the signup/subscription flows and the Cal.com webhook, and read
+ * by the MarketingConversions worker job.
  */
 @TableAccessControl({
   create: [],
@@ -31,24 +35,39 @@ import { Column, Entity, Index } from "typeorm";
   pluralName: "Marketing Conversions",
   icon: IconProp.ChartBar,
   tableDescription:
-    "Server-confirmed marketing conversions and their optional ad-platform upload status.",
+    "Server-confirmed conversions (signups, meetings booked, paid subscriptions) and their upload status to ad platforms for offline conversion tracking.",
 })
-@Entity({ name: "MarketingConversion" })
+@Entity({
+  name: "MarketingConversion",
+})
+/*
+ * One conversion of each type per user/project. Postgres treats NULLs as
+ * distinct, so these indexes only constrain rows that actually carry a user or
+ * project id — conversion types with neither (a booked meeting from an
+ * anonymous visitor) are de-duplicated by their deterministic primary key
+ * instead.
+ */
 @Index("uq_marketing_conversion_type_user", ["conversionType", "userId"], {
   unique: true,
 })
 @Index(
   "uq_marketing_conversion_type_project",
   ["conversionType", "projectId"],
-  { unique: true },
+  {
+    unique: true,
+  },
 )
 export default class MarketingConversion extends BaseModel {
-  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
   @TableColumn({
     type: TableColumnType.ShortText,
     required: true,
     title: "Conversion Type",
-    description: "Canonical server-confirmed conversion type.",
+    description: "SignUp, MeetingBooked or PaidSubscription.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -57,13 +76,18 @@ export default class MarketingConversion extends BaseModel {
   })
   public conversionType?: string = undefined;
 
-  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
   @Index("idx_marketing_conversion_user_id")
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: false,
     title: "User ID",
-    description: "User this conversion belongs to, when known.",
+    description:
+      "User this conversion belongs to (SignUp conversions). Null when the conversion has no OneUptime user yet, as with a booked meeting.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -72,13 +96,18 @@ export default class MarketingConversion extends BaseModel {
   })
   public userId?: ObjectID = undefined;
 
-  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
   @Index("idx_marketing_conversion_project_id")
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: false,
     title: "Project ID",
-    description: "Project this conversion belongs to, when known.",
+    description:
+      "Project this conversion belongs to (PaidSubscription conversions).",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -87,13 +116,17 @@ export default class MarketingConversion extends BaseModel {
   })
   public projectId?: ObjectID = undefined;
 
-  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
   @TableColumn({
     type: TableColumnType.ShortText,
     required: false,
     title: "Email",
     description:
-      "Internal matching email. Hashed before upload to providers that support enhanced matching.",
+      "Email of the converting user. Hashed before being sent to ad platforms that support enhanced matching (Meta).",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -102,45 +135,74 @@ export default class MarketingConversion extends BaseModel {
   })
   public email?: string | undefined = undefined;
 
-  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
   @TableColumn({
     type: TableColumnType.JSON,
     required: true,
     title: "Click IDs",
-    description: "Allowlisted ad click identifiers retained for this conversion.",
+    description:
+      "Ad click identifiers (gclid, wbraid, gbraid, fbclid, ...) captured for this conversion.",
   })
-  @Column({ type: ColumnType.JSON, nullable: false })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: false,
+  })
   public clickIds?: JSONObject = undefined;
 
-  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
   @TableColumn({
     type: TableColumnType.Date,
     required: true,
     title: "Conversion At",
     description: "When the conversion happened.",
   })
-  @Column({ type: ColumnType.Date, nullable: false })
+  @Column({
+    type: ColumnType.Date,
+    nullable: false,
+  })
   public conversionAt?: Date = undefined;
 
-  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
   @TableColumn({
     type: TableColumnType.Number,
     required: false,
     title: "Conversion Value (USD Cents)",
     description:
-      "Conversion value in USD cents. Null when unknown or not applicable.",
+      "Conversion value in USD cents (monthly recurring revenue for paid subscriptions). Null when unknown (custom pricing) or not applicable (signups, booked meetings).",
   })
-  @Column({ type: ColumnType.Number, nullable: true })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
   public conversionValueInUSDCents?: number | undefined = undefined;
 
-  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
   @TableColumn({
     type: TableColumnType.JSON,
     required: false,
     title: "Upload State",
     description:
-      "Per-ad-platform upload state. Ledger-only conversion types are explicitly skipped.",
+      "Per-ad-platform upload state, keyed by provider (google, meta, microsoft, linkedin, reddit, ...): { status: Uploaded|Failed|Skipped, attempts, error, uploadedAt }. Absent key or absent status means pending.",
   })
-  @Column({ type: ColumnType.JSON, nullable: true })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
   public uploadState?: JSONObject = undefined;
 }

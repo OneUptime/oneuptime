@@ -368,9 +368,12 @@ export const SubscriptionPlans: Array<SubscriptionPlan> =
 export const AnalyticsKey: string = process.env["ANALYTICS_KEY"] || "";
 export const AnalyticsHost: string = process.env["ANALYTICS_HOST"] || "";
 
-// Verifies Cal.com BOOKING_CREATED webhooks; must not enter FRONTEND_ENV_ALLOW_LIST.
-export const CalWebhookSecret: string =
-  process.env["CAL_WEBHOOK_SECRET"] || "";
+/*
+ * Shared secret Cal.com signs booking webhooks with (App/API/CalWebhook.ts).
+ * Server-only — must never be added to FRONTEND_ENV_ALLOW_LIST. Empty means
+ * the webhook endpoint is disabled and answers 503.
+ */
+export const CalWebhookSecret: string = process.env["CAL_WEBHOOK_SECRET"] || "";
 
 /*
  * Google Ads offline conversion uploads (MarketingConversions worker job).

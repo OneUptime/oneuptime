@@ -186,59 +186,45 @@
     })();
 </script>
 
-<!-- Canonical enterprise demo booking analytics mirror. -->
+<!--
+    Canonical browser mirror of a booked meeting. The commercial record of a
+    booking is the MeetingBooked row the verified Cal webhook writes server
+    side (Docs/analytics/enterprise-conversion-tracking.md) - this is analytics
+    evidence of the same moment, so it carries no attendee details. Cal's
+    bookingSuccessful detail includes the attendee's name and email; never pass
+    it through. The legacy per-page PostHog event is emitted alongside so
+    existing dashboards keep their history.
+-->
 <script>
-    (function () {
-        if (window.location.pathname !== '/enterprise/demo' || window.__oneUptimeDemoBookingListenerRegistered) {
-            return;
+    window.oneUptimeTrackMeetingBooked = function (options) {
+        options = options || {};
+
+        var properties = {
+            event_schema_version: 1,
+            booking_source: 'cal.com',
+            booking_kind: options.bookingKind || 'unknown',
+            page_path: window.location.pathname,
+            cal_event_type: typeof options.calEventType === 'string' ? options.calEventType : 'bookingSuccessful',
+            cal_namespace: typeof options.calNamespace === 'string' ? options.calNamespace : 'default'
+        };
+
+        if (typeof posthog !== 'undefined' && posthog && posthog.capture) {
+            posthog.capture('meeting_booked', properties);
+
+            // Legacy event name, kept so existing PostHog dashboards do not break.
+            if (options.legacyEventName) {
+                posthog.capture(options.legacyEventName, properties);
+            }
         }
 
-        var attempts = 0;
-        var maxAttempts = 50;
-
-        function registerDemoBookingListener() {
-            if (window.__oneUptimeDemoBookingListenerRegistered) {
-                return;
-            }
-
-            if (typeof window.Cal !== 'function') {
-                attempts += 1;
-                if (attempts < maxAttempts) {
-                    setTimeout(registerDemoBookingListener, 100);
-                }
-                return;
-            }
-
-            window.__oneUptimeDemoBookingListenerRegistered = true;
-            window.Cal('on', {
-                action: 'bookingSuccessful',
-                callback: function (event) {
-                    var detail = event && event.detail ? event.detail : {};
-                    var properties = {
-                        booking_source: 'cal.com',
-                        booking_kind: 'enterprise_demo',
-                        page_path: window.location.pathname,
-                        cal_event_type: typeof detail.type === 'string' ? detail.type : 'bookingSuccessful',
-                        cal_namespace: typeof detail.namespace === 'string' ? detail.namespace : 'default',
-                        legacy_event_name: 'home/demo-booked'
-                    };
-
-                    if (window.posthog && typeof window.posthog.capture === 'function') {
-                        window.posthog.capture('meeting_booked', properties);
-                    }
-
-                    if (typeof window.gtag === 'function') {
-                        window.gtag('event', 'meeting_booked', properties);
-                    }
-
-                    window.dataLayer = window.dataLayer || [];
-                    window.dataLayer.push(Object.assign({ event: 'meeting_booked' }, properties));
-                }
-            });
+        if (typeof window.gtag === 'function') {
+            window.gtag('event', 'meeting_booked', properties);
         }
 
-        registerDemoBookingListener();
-    })();
+        if (typeof dataLayer !== 'undefined') {
+            dataLayer.push(Object.assign({ event: 'meeting_booked' }, properties));
+        }
+    };
 </script>
 
 <script>

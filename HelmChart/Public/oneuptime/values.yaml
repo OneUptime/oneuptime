@@ -1019,6 +1019,11 @@ marketing:
     oauthClientSecret:
     oauthRefreshToken:
     accountId:
+  cal:
+    # Shared secret Cal.com signs booking webhooks with. Set the same value on
+    # the Cal.com webhook pointed at https://<host>/api/cal-webhook. Empty
+    # leaves the endpoint disabled.
+    webhookSecret:
 
 
 # CAPTCHA Configuration

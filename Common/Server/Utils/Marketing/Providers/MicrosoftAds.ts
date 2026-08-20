@@ -45,7 +45,7 @@ export default class MicrosoftAdsProvider extends ConversionUploadProvider {
     );
   }
 
-  public override getSkipReason(
+  protected override getProviderSkipReason(
     conversion: MarketingConversion,
   ): ConversionSkip | null {
     if (!this.getClickId(conversion, "msclkid")) {
