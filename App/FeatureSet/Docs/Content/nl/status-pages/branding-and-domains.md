@@ -70,6 +70,8 @@ Links naar juridische informatie, privacy en voorwaarden horen hier. Koptekstkop
 
 **Statuspagina's → jouw pagina → Huisstijl → HTML, CSS & JavaScript** (`{id}/custom-code`) heeft vier los bewerkbare kaarten, gevoed door de kolommen `headerHTML`, `footerHTML`, `customCSS` en `customJavaScript` op de statuspagina:
 
+> Actieve aangepaste HTML, CSS en JavaScript worden alleen aangeboden op een geverifieerd aangepast domein. Op de standaard-URL `/status-page/:id` zijn ze uitgeschakeld, omdat die URL dezelfde oorsprong heeft als het aangemelde gedeelte van OneUptime.
+
 - **Koptekst-HTML** — placeholder `Insert Custom HTML here.`, geïnjecteerd in de koptekst van de pagina.
 - **Footer-HTML** — hetzelfde, voor de voettekst.
 - **Aangepaste CSS** — placeholder `Insert Custom CSS here.`

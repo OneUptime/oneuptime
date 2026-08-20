@@ -70,6 +70,8 @@ Lenker til juridisk informasjon, personvern og vilkår hører hjemme her. Toppte
 
 **Statussider → siden din → Merkevare → HTML, CSS og JavaScript** (`{id}/custom-code`) har fire kort som redigeres uavhengig av hverandre, og som ligger på kolonnene `headerHTML`, `footerHTML`, `customCSS` og `customJavaScript` på statussiden:
 
+> Aktiv egendefinert HTML, CSS og JavaScript leveres bare på et verifisert egendefinert domene. Det er deaktivert på standardadressen `/status-page/:id`, fordi URL-en har samme opphav som den delen av OneUptime der brukerne er logget inn.
+
 - **Topptekst-HTML** — plassholder `Insert Custom HTML here.`, injisert i sidens topptekst.
 - **Bunntekst-HTML** — det samme, for bunnteksten.
 - **Egendefinert CSS** — plassholder `Insert Custom CSS here.`

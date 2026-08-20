@@ -70,6 +70,8 @@ Länkar till juridik, integritetspolicy och villkor hör hemma här. Sidhuvudets
 
 **Statussidor → din sida → Varumärke → HTML, CSS och JavaScript** (`{id}/custom-code`) har fyra kort som redigeras var för sig, uppbackade av kolumnerna `headerHTML`, `footerHTML`, `customCSS` och `customJavaScript` på statussidan:
 
+> Aktiv anpassad HTML, CSS och JavaScript levereras bara på en verifierad anpassad domän. Det är inaktiverat på standardadressen `/status-page/:id`, eftersom URL:en har samma ursprung som den del av OneUptime där användarna är inloggade.
+
 - **Sidhuvud-HTML** — platshållare `Insert Custom HTML here.`, injiceras i sidans sidhuvud.
 - **Sidfots-HTML** — samma sak, för sidfoten.
 - **Anpassad CSS** — platshållare `Insert Custom CSS here.`
