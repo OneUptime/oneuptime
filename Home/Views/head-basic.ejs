@@ -186,6 +186,61 @@
     })();
 </script>
 
+<!-- Canonical enterprise demo booking analytics mirror. -->
+<script>
+    (function () {
+        if (window.location.pathname !== '/enterprise/demo' || window.__oneUptimeDemoBookingListenerRegistered) {
+            return;
+        }
+
+        var attempts = 0;
+        var maxAttempts = 50;
+
+        function registerDemoBookingListener() {
+            if (window.__oneUptimeDemoBookingListenerRegistered) {
+                return;
+            }
+
+            if (typeof window.Cal !== 'function') {
+                attempts += 1;
+                if (attempts < maxAttempts) {
+                    setTimeout(registerDemoBookingListener, 100);
+                }
+                return;
+            }
+
+            window.__oneUptimeDemoBookingListenerRegistered = true;
+            window.Cal('on', {
+                action: 'bookingSuccessful',
+                callback: function (event) {
+                    var detail = event && event.detail ? event.detail : {};
+                    var properties = {
+                        booking_source: 'cal.com',
+                        booking_kind: 'enterprise_demo',
+                        page_path: window.location.pathname,
+                        cal_event_type: typeof detail.type === 'string' ? detail.type : 'bookingSuccessful',
+                        cal_namespace: typeof detail.namespace === 'string' ? detail.namespace : 'default',
+                        legacy_event_name: 'home/demo-booked'
+                    };
+
+                    if (window.posthog && typeof window.posthog.capture === 'function') {
+                        window.posthog.capture('meeting_booked', properties);
+                    }
+
+                    if (typeof window.gtag === 'function') {
+                        window.gtag('event', 'meeting_booked', properties);
+                    }
+
+                    window.dataLayer = window.dataLayer || [];
+                    window.dataLayer.push(Object.assign({ event: 'meeting_booked' }, properties));
+                }
+            });
+        }
+
+        registerDemoBookingListener();
+    })();
+</script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         // Track page view
