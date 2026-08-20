@@ -104,7 +104,13 @@ interface TopologyViewData extends NetworkTopology {
   droppedEndpointCount?: number | undefined;
   // Nodes the project has hidden; drives the "N hidden — show them" note.
   suppressedNodeCount?: number | undefined;
-  // Link rules that resolved to nothing, with the reason each one gave.
+  /*
+   * Link rules with something to explain, at most one line each: a rule that
+   * drew nothing at all, or a site-scoped one that drew in some sites and
+   * could not in others. Not "rules that resolved to nothing" — a site-scoped
+   * rule can draw thirteen sites' uplinks and still owe an account of the
+   * fourteenth.
+   */
   linkRuleWarnings?: Array<TopologyLinkRuleWarning> | undefined;
 }
 
@@ -943,10 +949,12 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
       )}
 
       {/*
-       * The rules that drew nothing. Surfaced on the map rather than only on
-       * the rule page: an ambiguous parent is invisible from the rule list,
-       * which is exactly where somebody would go looking and find a rule
-       * that appears perfectly configured.
+       * The rules with something to explain — including a site-scoped rule
+       * that drew in most of its sites and failed in the rest, so a listed
+       * rule has not necessarily drawn nothing. Surfaced on the map rather
+       * than only on the rule page: an ambiguous parent is invisible from the
+       * rule list, which is exactly where somebody would go looking and find
+       * a rule that appears perfectly configured.
        */}
       {topology.linkRuleWarnings && topology.linkRuleWarnings.length > 0 ? (
         <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
