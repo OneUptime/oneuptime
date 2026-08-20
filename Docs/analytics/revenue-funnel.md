@@ -75,26 +75,34 @@ and pollute the property with names GA4 cannot use.
 
 ### 2. Mark the key events
 
-The property already had eight key events starred, all reading "No stream data
-detected" because nothing ever reached them: `cta_get_started`,
-`cta_request_demo`, `demo_request`, `generate_lead`, `page_view_demo`,
-`page_view_pricing`, `purchase`, `sign_up`. Marking a key event by name is
-allowed before any data arrives, so the list looked configured while the
-container silently dropped everything.
+Nothing becomes a key event on its own, and GA4 only lets you star an event it
+has already received — there is no "create key event by name" in the current
+UI. So the order matters: the event has to fire once, wait for the daily
+processing cycle, and only then can it be starred.
 
-Two corrections are outstanding in **GA4 → Admin → Data display → Events**:
+The property had eight events starred before any of them could possibly fire,
+which is why the list looked configured while the container dropped everything.
+Current state:
 
-- **Unstar `page_view_pricing` and `page_view_demo`.** They fire on every load
-  of those pages, so as key events they report browsing as conversions and
-  would train Google Ads bidding on page views. Keep them as ordinary events —
-  still useful for remarketing audiences.
-- **Star the revenue and activation events**, none of which are marked:
-  `subscription_upgraded` (the only event carrying `value`/`currency`),
-  `meeting_booked`, `workspace_created`, `monitor_created`, `teammate_invited`.
+| Event               | Key event | Why                                                                                     |
+| ------------------- | --------- | --------------------------------------------------------------------------------------- |
+| `sign_up`           | yes       | The primary self-serve conversion.                                                      |
+| `cta_get_started`   | yes       | Micro-conversion, useful early signal while volume is low.                              |
+| `cta_request_demo`  | yes       | Same.                                                                                   |
+| `purchase`          | forced    | A GA4 default that cannot be unmarked. Nothing emits it, so it stays at zero.           |
+| `page_view_pricing` | no        | Fires on every pricing page load — as a key event it reported browsing as a conversion. |
+| `page_view_demo`    | no        | Same.                                                                                   |
+| `demo_request`      | no        | Never had a working delivery path and is no longer emitted at all.                      |
+| `generate_lead`     | no        | Nothing emits it.                                                                       |
 
-`demo_request`, `generate_lead` and `purchase` are starred but nothing emits
-them; they are harmless and can be left or removed. `demo_request` in
-particular is gone for good — see below.
+Still to star, once each has fired at least once and appeared in the list:
+`subscription_upgraded` (the only event carrying `value`/`currency`),
+`meeting_booked`, `workspace_created`, `monitor_created`, `teammate_invited`.
+
+If you point Google Ads at this property, choose which key events count as
+conversion actions there rather than assuming all of them should. `sign_up` and
+`subscription_upgraded` are the ones worth bidding on; the `cta_*` pair is
+early signal, not revenue.
 
 ### 3. One event, one path
 
