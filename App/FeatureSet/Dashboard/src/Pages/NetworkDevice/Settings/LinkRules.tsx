@@ -8,8 +8,12 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import NetworkDeviceLinkRule from "Common/Models/DatabaseModels/NetworkDeviceLinkRule";
 import React, { FunctionComponent, ReactElement } from "react";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Blue, Green, Grey, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
+import NetworkDeviceLinkRuleScope, {
+  NetworkDeviceLinkRuleScopeUtil,
+} from "Common/Types/NetworkDevice/NetworkDeviceLinkRuleScope";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 
 const networkDeviceLinkRuleDocumentation: string = `
 ### How Network Device Link Rules Work
@@ -29,6 +33,19 @@ This is deliberately not "link devices that share a label". Forty devices sharin
 
 Either way the topology map tells you, rather than leaving you with an empty result and no explanation. Narrow the parent labels until they name one device.
 
+### One rule, or one rule per site
+
+**Parent Scope** decides how wide the "exactly one device" question is asked.
+
+- **Project** (the default, and what every rule written before this option existed does) looks for one parent device across the whole project.
+- **Site** asks the same question once per site. If every one of your buildings has a router labelled the same way, one rule draws the uplinks in all of them — instead of reporting every router as a candidate and drawing nothing anywhere.
+
+A site-scoped rule only looks inside each device's **own** site. A device assigned to no site is skipped, and the map tells you how many. If your parent device sits on a parent site while its children sit on the sites beneath it, a site-scoped rule will not find it — put the parent on the same site as the devices that uplink to it, or use Project scope.
+
+### What the map tells you
+
+A site-scoped rule is not all-or-nothing. If it resolves in thirteen sites and fails in the fourteenth, it draws the thirteen and names the one that failed. Sites where nothing carries the child labels are not failures — the rule simply does not apply there, and the map stays quiet about them.
+
 ### Rules are live, not stored
 
 Links are worked out each time the map loads. Relabel a device and the map follows on the next refresh; delete a rule and its links simply stop being drawn. Nothing is left behind to clean up.
@@ -37,6 +54,17 @@ Links are worked out each time the map loads. Relabel a device and the map follo
 
 A link you drew by hand under **Device Links** wins over a rule covering the same pair — it keeps its own name and port labels. A rule link that discovery later confirms merges into the discovered link rather than doubling it.
 `;
+
+const LINK_RULE_SCOPE_OPTIONS: Array<DropdownOption> = [
+  {
+    value: NetworkDeviceLinkRuleScope.Project,
+    label: "Project — one parent device for the whole project",
+  },
+  {
+    value: NetworkDeviceLinkRuleScope.Site,
+    label: "Site — one parent device in each site",
+  },
+];
 
 const NetworkDeviceLinkRulesPage: FunctionComponent<
   PageComponentProps
@@ -67,7 +95,7 @@ const NetworkDeviceLinkRulesPage: FunctionComponent<
       }}
       sortBy="name"
       sortOrder={SortOrder.Ascending}
-      selectMoreFields={{ isEnabled: true }}
+      selectMoreFields={{ isEnabled: true, scope: true }}
       filters={[
         { field: { name: true }, title: "Name", type: FieldType.Text },
         {
@@ -92,6 +120,18 @@ const NetworkDeviceLinkRulesPage: FunctionComponent<
               <Pill color={Green} text="Enabled" />
             ) : (
               <Pill color={Red} text="Disabled" />
+            );
+          },
+        },
+        {
+          field: { scope: true },
+          title: "Parent Scope",
+          type: FieldType.Text,
+          getElement: (item: NetworkDeviceLinkRule): ReactElement => {
+            return NetworkDeviceLinkRuleScopeUtil.isSiteScoped(item.scope) ? (
+              <Pill color={Blue} text="Per site" />
+            ) : (
+              <Pill color={Grey} text="Project" />
             );
           },
         },
@@ -158,6 +198,18 @@ const NetworkDeviceLinkRulesPage: FunctionComponent<
           },
           required: true,
           placeholder: "Select Labels",
+        },
+        {
+          field: { scope: true },
+          title: "Parent Scope",
+          stepId: "devices",
+          fieldType: FormFieldSchemaType.Dropdown,
+          dropdownOptions: LINK_RULE_SCOPE_OPTIONS,
+          required: false,
+          defaultValue: NetworkDeviceLinkRuleScope.Project,
+          placeholder: "Project",
+          description:
+            "Project: the parent labels must name exactly one device across the whole project. Site: they must name exactly one device inside each site, and the rule is applied once per site. Devices that are not assigned to a site are skipped by a site-scoped rule.",
         },
       ]}
       showRefreshButton={true}
