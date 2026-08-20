@@ -227,6 +227,10 @@ criteria = [
 
 A filter has `check_on` (what to inspect), `filter_type` (the comparison), and `value` (the operand — a string; omit it for boolean comparisons like `True` / `False`). Filters that evaluate over a time window additionally take `evaluate_over_time = true`, `evaluate_over_time_minutes`, and `evaluate_over_time_type` (`Average`, `Sum`, `Maximum Value`, `Minimum Value`, `All Values`, `Any Value`).
 
+`All Values` means "every check in the window breached", so it only matches once the window is actually covered by data — a monitor that has just been created waits for the window to fill rather than matching on its first check. Give it a window at least twice the monitor's `monitoring_interval`, otherwise the window can only ever hold one sample and "all values" means the same thing as "any value". `Any Value` matches on a single breaching check by design.
+
+`evaluate_over_time_no_data_policy` decides what the filter does while the window cannot back it: `Ignore` (the default) does not match, `Trigger` treats the missing data as the failure (heartbeat semantics), and `Treat As Zero` compares the window as a single zero.
+
 Common `check_on` values by monitor type:
 
 | Monitor type | Typical `check_on` values |

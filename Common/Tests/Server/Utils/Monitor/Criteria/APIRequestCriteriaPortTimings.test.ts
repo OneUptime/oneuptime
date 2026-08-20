@@ -1,5 +1,7 @@
 import APIRequestCriteria from "../../../../../Server/Utils/Monitor/Criteria/APIRequestCriteria";
-import EvaluateOverTime from "../../../../../Server/Utils/Monitor/Criteria/EvaluateOverTime";
+import EvaluateOverTime, {
+  OverTimeCriteriaValue,
+} from "../../../../../Server/Utils/Monitor/Criteria/EvaluateOverTime";
 import {
   CheckOn,
   CriteriaFilter,
@@ -142,8 +144,11 @@ describe("APIRequestCriteria Port connection phase timings", () => {
 
   test("uses an evaluate-over-time aggregate instead of the current phase", async () => {
     const overTimeSpy: ReturnType<typeof jest.spyOn> = jest
-      .spyOn(EvaluateOverTime, "getValueOverTime")
-      .mockResolvedValue(250);
+      .spyOn(EvaluateOverTime, "getOverTimeValueForCriteriaFilter")
+      .mockResolvedValue({
+        earlyReturn: null,
+        value: 250,
+      } as OverTimeCriteriaValue);
 
     const response: ProbeMonitorResponse = buildResponse({
       dnsLookupInMs: 5,
@@ -164,13 +169,20 @@ describe("APIRequestCriteria Port connection phase timings", () => {
       expect.objectContaining({
         projectId: response.projectId,
         monitorId: response.monitorId,
-        metricType: CheckOn.PortDnsLookupTime,
+        criteriaFilter: expect.objectContaining({
+          checkOn: CheckOn.PortDnsLookupTime,
+        }),
       }),
     );
   });
 
   test("does not replace a zero evaluate-over-time aggregate with the current value", async () => {
-    jest.spyOn(EvaluateOverTime, "getValueOverTime").mockResolvedValue(0);
+    jest
+      .spyOn(EvaluateOverTime, "getOverTimeValueForCriteriaFilter")
+      .mockResolvedValue({
+        earlyReturn: null,
+        value: 0,
+      } as OverTimeCriteriaValue);
 
     const result: string | null = await evaluate(
       buildResponse({
@@ -189,10 +201,19 @@ describe("APIRequestCriteria Port connection phase timings", () => {
     expect(result).not.toBeNull();
   });
 
-  test("falls back to the current phase if the history query fails", async () => {
+  /*
+   * An over-time filter whose history could not be read says nothing about
+   * the last N minutes, so it must not fire. It used to quietly compare the
+   * single phase timing from this one check instead - the same fallback that
+   * let "all values over the last N minutes" fire off one bad probe.
+   */
+  test("does not fire off the current phase if the history query fails", async () => {
     jest
-      .spyOn(EvaluateOverTime, "getValueOverTime")
-      .mockRejectedValue(new Error("history unavailable"));
+      .spyOn(EvaluateOverTime, "getOverTimeValueForCriteriaFilter")
+      .mockResolvedValue({
+        earlyReturn: { result: null },
+        value: undefined,
+      } as OverTimeCriteriaValue);
 
     const result: string | null = await evaluate(
       buildResponse({
@@ -207,6 +228,6 @@ describe("APIRequestCriteria Port connection phase timings", () => {
       }),
     );
 
-    expect(result).not.toBeNull();
+    expect(result).toBeNull();
   });
 });

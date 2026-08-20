@@ -33,6 +33,16 @@
  * MonitorResourceProbeAgreementReuse.test.ts. Pure in-memory model instances.
  */
 
+/*
+ * MonitorResource's import chain reaches the native isolated-vm addon
+ * through the sandbox runner. Nothing here touches the sandbox and the
+ * prebuilt binary cannot always dlopen in the test environment, so stub it
+ * out before anything imports it.
+ */
+jest.mock("isolated-vm", () => {
+  return {};
+});
+
 jest.mock("../../../../Server/Utils/Monitor/MonitorCriteriaEvaluator", () => {
   return {
     __esModule: true,
@@ -450,6 +460,82 @@ describe("MonitorResourceUtil.monitorResource ingested monitor step selection", 
       expect(response.ingestedMonitorStepId?.toString()).toBe(
         stepOne.id.toString(),
       );
+    });
+  });
+
+  /*
+   * Over-time criteria size their evaluation window from the monitor's
+   * polling schedule, so the monitor load on this path has to select it.
+   * Without it the cadence is always inferred from the samples, and a
+   * monitor that can only ever produce one sample per window can never
+   * satisfy "All Values" - alerting goes quiet with nothing logged.
+   */
+  describe("monitor load", () => {
+    test("selects the monitoring interval", async () => {
+      const step: MonitorStep = makeStep("Step one criteria");
+      const monitor: Monitor = makeMonitor({
+        monitorType: MonitorType.Website,
+        steps: [step],
+      });
+      monitor.monitoringInterval = "*/5 * * * *";
+
+      const probeId: ObjectID = ObjectID.generate();
+
+      const monitorProbe: MonitorProbe = new MonitorProbe();
+      monitorProbe.id = ObjectID.generate();
+      monitorProbe.probeId = probeId;
+      monitorProbe.isEnabled = true;
+
+      findOneByIdMock.mockResolvedValue(monitor);
+      findByMock.mockResolvedValue([monitorProbe]);
+
+      await MonitorResourceUtil.monitorResource(
+        makeProbeResult({
+          monitor: monitor,
+          probeId: probeId,
+          monitorStepId: step.id,
+        }),
+      );
+
+      const select: Record<string, unknown> = (
+        findOneByIdMock.mock.calls[0]![0] as {
+          select: Record<string, unknown>;
+        }
+      ).select;
+
+      expect(select["monitoringInterval"]).toBe(true);
+    });
+
+    test("hands the monitoring interval to the criteria evaluator", async () => {
+      const step: MonitorStep = makeStep("Step one criteria");
+      const monitor: Monitor = makeMonitor({
+        monitorType: MonitorType.Website,
+        steps: [step],
+      });
+      monitor.monitoringInterval = "*/5 * * * *";
+
+      const probeId: ObjectID = ObjectID.generate();
+
+      const monitorProbe: MonitorProbe = new MonitorProbe();
+      monitorProbe.id = ObjectID.generate();
+      monitorProbe.probeId = probeId;
+      monitorProbe.isEnabled = true;
+
+      findOneByIdMock.mockResolvedValue(monitor);
+      findByMock.mockResolvedValue([monitorProbe]);
+
+      await MonitorResourceUtil.monitorResource(
+        makeProbeResult({
+          monitor: monitor,
+          probeId: probeId,
+          monitorStepId: step.id,
+        }),
+      );
+
+      const evaluatorInput: { monitor: Monitor } = processMonitorStepMock.mock
+        .calls[0]![0] as { monitor: Monitor };
+
+      expect(evaluatorInput.monitor.monitoringInterval).toBe("*/5 * * * *");
     });
   });
 });

@@ -149,12 +149,13 @@ func monitorStepsFullUserList(t *testing.T) types.List {
 			"filter_type": types.StringValue("True"),
 		}),
 		monitorStepsTestObj(t, monitorStepsFilterAttrTypes(), map[string]attr.Value{
-			"check_on":                   types.StringValue("Response Status Code"),
-			"filter_type":                types.StringValue("Equal To"),
-			"value":                      types.StringValue("200"),
-			"evaluate_over_time":         types.BoolValue(true),
-			"evaluate_over_time_minutes": types.Int64Value(5),
-			"evaluate_over_time_type":    types.StringValue("Average"),
+			"check_on":                          types.StringValue("Response Status Code"),
+			"filter_type":                       types.StringValue("Equal To"),
+			"value":                             types.StringValue("200"),
+			"evaluate_over_time":                types.BoolValue(true),
+			"evaluate_over_time_minutes":        types.Int64Value(5),
+			"evaluate_over_time_type":           types.StringValue("Average"),
+			"evaluate_over_time_no_data_policy": types.StringValue("Trigger"),
 		}),
 	)
 
@@ -380,7 +381,7 @@ func TestMonitorStepsRoundTripFullyPopulated(t *testing.T) {
 	                        "filterType": "Equal To",
 	                        "value": "200",
 	                        "evaluateOverTime": true,
-	                        "evaluateOverTimeOptions": {"timeValueInMinutes": 5, "evaluateOverTimeType": "Average"}
+	                        "evaluateOverTimeOptions": {"timeValueInMinutes": 5, "evaluateOverTimeType": "Average", "onNoDataPolicy": "Trigger"}
 	                      }
 	                    ]
 	                  }
@@ -565,7 +566,7 @@ func TestMonitorStepsRoundTripMinimal(t *testing.T) {
 		}
 	}
 	filterAttrs := criteriaAttrs["filters"].(types.List).Elements()[0].(types.Object).Attributes()
-	for _, name := range []string{"value", "evaluate_over_time", "evaluate_over_time_minutes", "evaluate_over_time_type", "disk_path", "metric_monitor_options", "snmp_monitor_options"} {
+	for _, name := range []string{"value", "evaluate_over_time", "evaluate_over_time_minutes", "evaluate_over_time_type", "evaluate_over_time_no_data_policy", "disk_path", "metric_monitor_options", "snmp_monitor_options"} {
 		v := filterAttrs[name]
 		if !v.IsNull() {
 			t.Fatalf("filter attribute %q should be null after round trip, got %s", name, v)

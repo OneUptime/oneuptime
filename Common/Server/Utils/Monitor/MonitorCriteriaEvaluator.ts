@@ -666,6 +666,7 @@ ${contextBlock}
         await APIRequestCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
         });
 
       if (apiRequestCriteriaResult) {
@@ -711,6 +712,7 @@ ${contextBlock}
         await IncomingRequestCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
         });
 
       if (incomingRequestResult) {
@@ -735,6 +737,7 @@ ${contextBlock}
         await SSLMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
         });
 
       if (sslMonitorResult) {
@@ -747,6 +750,7 @@ ${contextBlock}
         await ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
         });
 
       if (serverMonitorResult) {
@@ -830,6 +834,7 @@ ${contextBlock}
         await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
         });
 
       if (snmpMonitorResult) {
@@ -842,6 +847,7 @@ ${contextBlock}
         await DnsMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
         });
 
       if (dnsMonitorResult) {
@@ -854,6 +860,7 @@ ${contextBlock}
         await DomainMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
         });
 
       if (domainMonitorResult) {
@@ -891,6 +898,7 @@ ${contextBlock}
           {
             dataToProcess: input.dataToProcess,
             criteriaFilter: input.criteriaFilter,
+            monitoringInterval: input.monitor.monitoringInterval,
           },
         );
 

@@ -530,6 +530,65 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
+        {criteriaFilter?.checkOn &&
+        CriteriaFilterUtil.isEvaluateOverTimeFilter(criteriaFilter?.checkOn) &&
+        criteriaFilter.evaluateOverTime ? (
+          <div className="mt-1">
+            <FieldLabelElement
+              title="If No Data"
+              description={
+                "What should happen while the window does not have enough data yet — for example a monitor that has only just started, or one whose checks stopped being recorded?"
+              }
+            />
+            <Dropdown
+              value={(() => {
+                const policy: NoDataPolicy =
+                  criteriaFilter?.evaluateOverTimeOptions?.onNoDataPolicy ||
+                  NoDataPolicy.Ignore;
+                return { value: policy, label: policy };
+              })()}
+              options={[
+                {
+                  value: NoDataPolicy.Ignore,
+                  label: NoDataPolicy.Ignore,
+                },
+                {
+                  value: NoDataPolicy.TreatAsZero,
+                  label: NoDataPolicy.TreatAsZero,
+                },
+                {
+                  value: NoDataPolicy.Trigger,
+                  label: NoDataPolicy.Trigger,
+                },
+              ]}
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
+                const evaluateOverTimeOption: EvaluateOverTimeOptions =
+                  criteriaFilter?.evaluateOverTimeOptions
+                    ? {
+                        ...criteriaFilter?.evaluateOverTimeOptions,
+                      }
+                    : {
+                        timeValueInMinutes: 5,
+                        evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+                      };
+
+                props.onChange?.({
+                  ...criteriaFilter,
+                  evaluateOverTime: true,
+                  evaluateOverTimeOptions: {
+                    ...evaluateOverTimeOption,
+                    onNoDataPolicy: value?.toString() as NoDataPolicy,
+                  },
+                });
+              }}
+            />
+          </div>
+        ) : (
+          <></>
+        )}
+
         {!criteriaFilter?.checkOn ||
           (criteriaFilter?.checkOn && (
             <div className="mt-1">

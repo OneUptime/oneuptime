@@ -95,6 +95,46 @@ class MonitorMetricTypeUtil {
     }
   }
 
+  /**
+   * Metric series that backs this CheckOn, or null when nothing records it.
+   *
+   * The throwing variant below is kept for callers that genuinely cannot
+   * continue without a series. Over-time evaluation needs the null instead:
+   * it used to call the throwing one inside a try/catch that swallowed the
+   * error and quietly compared the instantaneous value, so "evaluate over
+   * time" was a no-op for every CheckOn missing from this map - DNS, SNMP
+   * and External Status Page checks among them.
+   */
+  public static getMonitorMetricTypeByCheckOnOrNull(
+    checkOn: CheckOn,
+  ): MonitorMetricType | null {
+    switch (checkOn) {
+      /*
+       * DNS / SNMP / External Status Page probes write into the shared
+       * online and response-time series like every other probe check, so
+       * their CheckOns map onto those series rather than onto ones of their
+       * own.
+       */
+      case CheckOn.DnsIsOnline:
+      case CheckOn.SnmpIsOnline:
+      case CheckOn.ExternalStatusPageIsOnline:
+        return MonitorMetricType.IsOnline;
+      case CheckOn.DnsResponseTime:
+      case CheckOn.SnmpResponseTime:
+      case CheckOn.ExternalStatusPageResponseTime:
+        return MonitorMetricType.ResponseTime;
+      default:
+        break;
+    }
+
+    try {
+      return this.getMonitorMeticTypeByCheckOn(checkOn);
+    } catch {
+      // No series records this CheckOn.
+      return null;
+    }
+  }
+
   public static getMonitorMeticTypeByCheckOn(
     checkOn: CheckOn,
   ): MonitorMetricType {
