@@ -26,6 +26,13 @@ export interface DiscoveryScanOutcome {
    */
   respondedHostSummary: string | null;
   /*
+   * True when the scan has reported host counts. The explanation below is
+   * worth showing WITHOUT them — a scan that never ran has no counts and is
+   * exactly the case that needs explaining — so the two have to be asked
+   * about separately rather than the caller inferring one from the other.
+   */
+  hasReported: boolean;
+  /*
    * Hosts the sweep found alive that did not answer SNMP. Shown alongside the
    * responder count so a zero is never mistaken for an empty network.
    */
@@ -92,6 +99,7 @@ export function summarizeDiscoveryScan(
     respondedHostSummary: hasReported
       ? `${respondedHostCount} of ${scan?.scannedHostCount ?? "?"} hosts`
       : null,
+    hasReported: hasReported,
     pingOnlyHostCount: countPingOnlyHosts(scan),
     // Empty string is "no explanation", not an explanation.
     explanation: scan?.statusMessage || null,

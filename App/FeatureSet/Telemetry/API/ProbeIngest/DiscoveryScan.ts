@@ -122,6 +122,15 @@ router.post(
           data: {
             status: "In Progress",
             startedAt: OneUptimeDate.getCurrentDate(),
+            /*
+             * Clear the "nobody has picked this scan up" note the worker
+             * writes onto a long-unclaimed Pending scan
+             * (Workers/Jobs/NetworkDeviceDiscovery/RequeueRecurringScans.ts).
+             * A probe claiming the scan is precisely the thing that note said
+             * was not happening, so leaving it would have the row explain, for
+             * the whole sweep, why it had not started.
+             */
+            statusMessage: null,
           } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
         });
       }
@@ -191,6 +200,8 @@ router.post(
           select: {
             _id: true,
             projectId: true,
+            // Needed to reject a result for a run that is no longer current.
+            status: true,
             // Needed to schedule the next run of a recurring scan below.
             isRecurring: true,
             rescanIntervalInMinutes: true,
@@ -208,29 +219,80 @@ router.post(
         );
       }
 
+      /*
+       * The result belongs to a run that has already been superseded.
+       *
+       * A sweep can outlive its own claim: the stale-In-Progress reaper marks
+       * a scan Failed after 2 hours and, if it recurs, the requeue pass then
+       * flips it back to Pending for a fresh run
+       * (Workers/Jobs/NetworkDeviceDiscovery/RequeueRecurringScans.ts). A
+       * probe that finally reports the ABANDONED run would land on that row
+       * and stamp it Completed — retiring a run that was queued and never
+       * happened, and replacing the new run's empty result set with results
+       * from hours ago.
+       *
+       * Only Pending is refused. A late result for a scan the reaper marked
+       * Failed is still the truth about that same run, and overwriting the
+       * reaper's guess with the probe's actual findings is the right outcome —
+       * which is why this is a status check and not a claim token.
+       */
+      if (scan.status === "Pending") {
+        logger.warn(
+          `Discarding a discovery scan result for ${scanId}: the scan is queued for a new run, so this result is from a run that was already abandoned.`,
+        );
+
+        return Response.sendJsonObjectResponse(req, res, {
+          result: "discarded",
+        });
+      }
+
       const discoveredDevices: Array<JSONObject> =
         (req.body["discoveredDevices"] as Array<JSONObject>) || [];
 
-      // Flag hosts that already have a NetworkDevice at that IP.
-      const existing: Array<NetworkDevice> = await NetworkDeviceService.findBy({
-        query: {
-          projectId: scan.projectId!,
-        },
-        select: {
-          hostname: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+      /*
+       * Flag hosts that already have a NetworkDevice at that IP.
+       *
+       * Paged, because this used to be a single findBy at LIMIT_MAX (10,000)
+       * with no paging and no sort. A project with more devices than that got
+       * an arbitrary 10,000 of them, so every device past the cap was reported
+       * to the dashboard as NOT registered, and the reviewer's "import"
+       * re-created devices that already existed. A truncated answer here is
+       * worse than a slow one: it produces duplicates in the inventory.
+       */
+      const existingHostnames: Set<string> = new Set<string>();
 
-      const existingHostnames: Set<string> = new Set(
-        existing.map((device: NetworkDevice) => {
-          return device.hostname || "";
-        }),
-      );
+      for (let skip: number = 0; ; skip += LIMIT_MAX) {
+        const existing: Array<NetworkDevice> =
+          await NetworkDeviceService.findBy({
+            query: {
+              projectId: scan.projectId!,
+            },
+            select: {
+              hostname: true,
+            },
+            /*
+             * Sorted, so paging is stable. Without an explicit order Postgres
+             * makes no promise across the two queries, and a row could be
+             * returned twice — or skipped entirely — between pages.
+             */
+            sort: {
+              createdAt: SortOrder.Ascending,
+            },
+            limit: LIMIT_MAX,
+            skip: skip,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        for (const device of existing) {
+          existingHostnames.add(device.hostname || "");
+        }
+
+        if (existing.length < LIMIT_MAX) {
+          break;
+        }
+      }
 
       for (const device of discoveredDevices) {
         device["isAlreadyRegistered"] = existingHostnames.has(
