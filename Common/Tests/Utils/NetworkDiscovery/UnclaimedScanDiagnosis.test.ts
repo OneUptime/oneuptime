@@ -1,6 +1,7 @@
 import {
   MAX_SCAN_STATUS_MESSAGE_LENGTH,
   UNCLAIMED_PENDING_MINUTES,
+  UnclaimedScanProbeState,
   buildUnclaimedScanDiagnosis,
 } from "../../../Utils/NetworkDiscovery/UnclaimedScanDiagnosis";
 import OneUptimeDate from "../../../Types/Date";
@@ -21,13 +22,13 @@ import { describe, expect, test } from "@jest/globals";
  * and whether the sentence survives the varchar(500) column it is written to.
  */
 
-const disconnectedProbe = {
+const disconnectedProbe: UnclaimedScanProbeState = {
   probeName: "Datacentre Probe",
   isProbeConnected: false,
   lastAliveAt: OneUptimeDate.getSomeHoursAgo(6),
 };
 
-const connectedProbe = {
+const connectedProbe: UnclaimedScanProbeState = {
   probeName: "Datacentre Probe",
   isProbeConnected: true,
   lastAliveAt: OneUptimeDate.getCurrentDate(),
