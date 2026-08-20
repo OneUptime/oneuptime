@@ -1,5 +1,6 @@
 import {
   buildSsoLoginUrl,
+  isProjectScopedKind,
   SsoProviderKind,
   SsoProviderTarget,
 } from "./providerUrl";
@@ -431,6 +432,430 @@ describe("The server URL is normalised before the path is appended", () => {
       }),
     ).toBe(
       `https://https-example.https/identity/global-sso/${PROVIDER_ID}?mobile=true`,
+    );
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Project OIDC.
+ *
+ * The fourth kind arrived last. Discovery for it is a SECOND endpoint
+ * (/identity/service-provider-login-oidc) whose payload is shaped exactly like
+ * the SAML one and carries no type field, so `kind` is stamped from whichever
+ * endpoint answered and is the ONLY thing that decides which router the login
+ * is sent to:
+ *
+ *   /identity/sso/:projectId/:projectSsoId    - App/FeatureSet/Identity/API/SSO.ts
+ *   /identity/oidc/:projectId/:projectOidcId  - App/FeatureSet/Identity/API/OIDC.ts
+ *
+ * Two routers, two id columns, one URL shape. A provider id sent to the wrong
+ * one is not a 404 the app can distinguish - it is a "Project ID not found" /
+ * unknown-provider BadRequest rendered inside the auth browser, minutes into a
+ * login, with nothing in the app to explain it.
+ * ---------------------------------------------------------------------------
+ */
+
+interface KindExpectation {
+  target: SsoProviderTarget;
+  isProjectScoped: boolean;
+  expectedUrl: string;
+}
+
+/*
+ * Every value of SsoProviderKind, as a Record so the compiler REQUIRES an
+ * entry per kind: adding a fifth kind to the union without describing it here
+ * fails type-checking, and the runtime assertions below then pin what the
+ * helper and the builder must do with it. That is the point of driving these
+ * tests off one table instead of listing kinds by hand in each test.
+ *
+ * `projectId` is supplied for every kind on purpose, including the global
+ * ones - it is what lets a single table assert both "the project kinds put it
+ * in the path" and "the global kinds drop it on the floor".
+ */
+const EVERY_KIND: Record<SsoProviderKind, KindExpectation> = {
+  project: {
+    target: {
+      kind: "project",
+      providerId: PROVIDER_ID,
+      projectId: PROJECT_ID,
+    },
+    isProjectScoped: true,
+    expectedUrl: `${SERVER}/identity/sso/${PROJECT_ID}/${PROVIDER_ID}?mobile=true`,
+  },
+  "project-oidc": {
+    target: {
+      kind: "project-oidc",
+      providerId: PROVIDER_ID,
+      projectId: PROJECT_ID,
+    },
+    isProjectScoped: true,
+    expectedUrl: `${SERVER}/identity/oidc/${PROJECT_ID}/${PROVIDER_ID}?mobile=true`,
+  },
+  "global-sso": {
+    target: {
+      kind: "global-sso",
+      providerId: PROVIDER_ID,
+      projectId: PROJECT_ID,
+    },
+    isProjectScoped: false,
+    expectedUrl: `${SERVER}/identity/global-sso/${PROVIDER_ID}?mobile=true`,
+  },
+  "global-oidc": {
+    target: {
+      kind: "global-oidc",
+      providerId: PROVIDER_ID,
+      projectId: PROJECT_ID,
+    },
+    isProjectScoped: false,
+    expectedUrl: `${SERVER}/identity/global-oidc/${PROVIDER_ID}?mobile=true`,
+  },
+};
+
+const EVERY_KIND_CASE: Array<[SsoProviderKind, KindExpectation]> =
+  Object.entries(EVERY_KIND) as Array<[SsoProviderKind, KindExpectation]>;
+
+describe("A project OIDC login goes to the OIDC router", () => {
+  test("hits /identity/oidc/<projectId>/<providerId>", () => {
+    /*
+     * Pinned as a whole literal against the route registered in
+     * App/FeatureSet/Identity/API/OIDC.ts:
+     *   router.get("/oidc/:projectId/:projectOidcId", ...)
+     * mounted under /identity, and reading `req.query["mobile"] === "true"`
+     * inside that same handler.
+     */
+    expect(
+      buildSsoLoginUrl(SERVER, {
+        kind: "project-oidc",
+        providerId: PROVIDER_ID,
+        projectId: PROJECT_ID,
+      }),
+    ).toBe(`${SERVER}/identity/oidc/${PROJECT_ID}/${PROVIDER_ID}?mobile=true`);
+  });
+
+  test("puts the project id before the provider id, not after", () => {
+    /*
+     * Same positional trap as the SAML route: :projectId then :projectOidcId,
+     * two opaque uuids, and a swap produces a URL that looks fine.
+     */
+    expect(
+      pathSegmentsOf(
+        buildSsoLoginUrl(SERVER, {
+          kind: "project-oidc",
+          providerId: PROVIDER_ID,
+          projectId: PROJECT_ID,
+        }),
+      ),
+    ).toEqual(["identity", "oidc", PROJECT_ID, PROVIDER_ID]);
+  });
+
+  test("passes both ids through verbatim", () => {
+    expect(
+      buildSsoLoginUrl(SERVER, {
+        kind: "project-oidc",
+        providerId: "AAAA-bbbb-CCCC",
+        projectId: "DDDD-eeee-FFFF",
+      }),
+    ).toBe(`${SERVER}/identity/oidc/DDDD-eeee-FFFF/AAAA-bbbb-CCCC?mobile=true`);
+  });
+
+  test("does not route a project OIDC login through a global router", () => {
+    const url: string = buildSsoLoginUrl(SERVER, {
+      kind: "project-oidc",
+      providerId: PROVIDER_ID,
+      projectId: PROJECT_ID,
+    });
+
+    expect(url).not.toContain("global-sso");
+    expect(url).not.toContain("global-oidc");
+  });
+
+  test("the two project kinds are not interchangeable", () => {
+    /*
+     * THE failure this kind exists to prevent. Before `project-oidc` there was
+     * one project kind, so a project OIDC provider - if it had been discovered
+     * at all - would have been handed to /identity/sso/:projectId/:projectSsoId
+     * with an id that router has never heard of. Identical ids here, so only
+     * the path can tell the two URLs apart.
+     */
+    const samlUrl: string = buildSsoLoginUrl(SERVER, {
+      kind: "project",
+      providerId: PROVIDER_ID,
+      projectId: PROJECT_ID,
+    });
+    const oidcUrl: string = buildSsoLoginUrl(SERVER, {
+      kind: "project-oidc",
+      providerId: PROVIDER_ID,
+      projectId: PROJECT_ID,
+    });
+
+    expect(samlUrl).not.toBe(oidcUrl);
+    expect(samlUrl).toContain("/identity/sso/");
+    expect(oidcUrl).toContain("/identity/oidc/");
+    expect(samlUrl).not.toContain("/identity/oidc/");
+    expect(oidcUrl).not.toContain("/identity/sso/");
+  });
+
+  test("the SAML segment is not a prefix match of the OIDC one", () => {
+    /*
+     * `/oidc/` ends in the same three letters as nothing else here, but
+     * `/identity/oidc/...` does contain "identity/o..." - assert on the
+     * segment list so a builder that emitted "/identity/sso-oidc/" or
+     * "/identity/oidc-callback/" (a real route, for the IdP's return leg)
+     * cannot pass on a substring technicality.
+     */
+    const segments: Array<string> = pathSegmentsOf(
+      buildSsoLoginUrl(SERVER, EVERY_KIND["project-oidc"].target),
+    );
+
+    expect(segments[1]).toBe("oidc");
+    expect(segments).toHaveLength(4);
+  });
+});
+
+describe("A project OIDC login without a project id fails loudly", () => {
+  /*
+   * Identical rule to project SAML, and it has to be asserted separately: the
+   * guard is written against `isProjectScopedKind`, so a helper that forgot
+   * the new kind would let `/identity/oidc/undefined/<id>` out of the door
+   * while every project-SAML test above stayed green.
+   */
+  test("throws when projectId is missing entirely", () => {
+    expect(() => {
+      return buildSsoLoginUrl(SERVER, {
+        kind: "project-oidc",
+        providerId: PROVIDER_ID,
+      });
+    }).toThrow(/projectId/);
+  });
+
+  test("throws when projectId is explicitly undefined", () => {
+    expect(() => {
+      return buildSsoLoginUrl(SERVER, {
+        kind: "project-oidc",
+        providerId: PROVIDER_ID,
+        projectId: undefined,
+      });
+    }).toThrow(/projectId/);
+  });
+
+  test("throws on an empty-string projectId", () => {
+    /*
+     * `/identity/oidc//<providerId>` would collapse to a three-segment path
+     * and miss the two-parameter route entirely.
+     */
+    expect(() => {
+      return buildSsoLoginUrl(SERVER, {
+        kind: "project-oidc",
+        providerId: PROVIDER_ID,
+        projectId: "",
+      });
+    }).toThrow(/projectId/);
+  });
+
+  test("throws an Error, so a caller's catch block sees a message", () => {
+    expect(() => {
+      return buildSsoLoginUrl(SERVER, {
+        kind: "project-oidc",
+        providerId: PROVIDER_ID,
+        projectId: "",
+      });
+    }).toThrow(Error);
+  });
+});
+
+describe("All four kinds build their own router's URL", () => {
+  test("the kind table covers the whole union", () => {
+    /*
+     * Guards the tables below: they are only exhaustive while this is. The
+     * Record type already forces an entry per kind at compile time; this is
+     * the runtime half, so a fifth kind cannot slip through a test run that
+     * never type-checked.
+     */
+    expect(
+      EVERY_KIND_CASE.map(
+        ([kind]: [SsoProviderKind, KindExpectation]): SsoProviderKind => {
+          return kind;
+        },
+      ),
+    ).toEqual(["project", "project-oidc", "global-sso", "global-oidc"]);
+  });
+
+  test.each(EVERY_KIND_CASE)(
+    "a %s login builds exactly its own path",
+    (_kind: SsoProviderKind, expectation: KindExpectation): void => {
+      expect(buildSsoLoginUrl(SERVER, expectation.target)).toBe(
+        expectation.expectedUrl,
+      );
+    },
+  );
+
+  test("no two kinds produce the same URL for the same ids", () => {
+    /*
+     * Every kind is discovered with the same payload shape and the same id
+     * field. If any two collapsed onto one URL, the app would be silently
+     * sending one provider's id to the other's router.
+     */
+    const urls: Array<string> = EVERY_KIND_CASE.map(
+      ([, expectation]: [SsoProviderKind, KindExpectation]): string => {
+        return buildSsoLoginUrl(SERVER, expectation.target);
+      },
+    );
+
+    expect(new Set(urls).size).toBe(urls.length);
+  });
+
+  test.each(EVERY_KIND_CASE)(
+    "a %s login sets mobile=true",
+    (_kind: SsoProviderKind, expectation: KindExpectation): void => {
+      /*
+       * Parsed, not substring-matched: the server compares
+       * `req.query["mobile"] === "true"` exactly - OIDC.ts does it in the
+       * /oidc/:projectId/:projectOidcId handler itself.
+       */
+      expect(
+        queryParamsOf(buildSsoLoginUrl(SERVER, expectation.target))["mobile"],
+      ).toBe("true");
+    },
+  );
+
+  test.each(EVERY_KIND_CASE)(
+    "a %s login sends mobile as its only query param",
+    (_kind: SsoProviderKind, expectation: KindExpectation): void => {
+      expect(queryStringOf(buildSsoLoginUrl(SERVER, expectation.target))).toBe(
+        "mobile=true",
+      );
+    },
+  );
+
+  test.each(EVERY_KIND_CASE)(
+    "a %s login ends on the lower-case flag",
+    (_kind: SsoProviderKind, expectation: KindExpectation): void => {
+      expect(
+        buildSsoLoginUrl(SERVER, expectation.target).endsWith("?mobile=true"),
+      ).toBe(true);
+    },
+  );
+
+  test.each(EVERY_KIND_CASE)(
+    "a %s login carries a project segment only when it is project scoped",
+    (kind: SsoProviderKind, expectation: KindExpectation): void => {
+      /*
+       * Every target in the table carries a projectId, including the global
+       * ones. A global login that let it through would mint a token for the
+       * wrong scope through a router that does not expect a project at all;
+       * a project login that dropped it would 404.
+       */
+      const url: string = buildSsoLoginUrl(SERVER, expectation.target);
+
+      expect(url.includes(PROJECT_ID)).toBe(expectation.isProjectScoped);
+      expect(pathSegmentsOf(url)).toHaveLength(
+        isProjectScopedKind(kind) ? 4 : 3,
+      );
+    },
+  );
+});
+
+describe("isProjectScopedKind knows about every kind", () => {
+  test.each(EVERY_KIND_CASE)(
+    "%s",
+    (kind: SsoProviderKind, expectation: KindExpectation): void => {
+      expect(isProjectScopedKind(kind)).toBe(expectation.isProjectScoped);
+    },
+  );
+
+  test("exactly the two project kinds are project scoped", () => {
+    expect(
+      EVERY_KIND_CASE.filter(
+        ([kind]: [SsoProviderKind, KindExpectation]): boolean => {
+          return isProjectScopedKind(kind);
+        },
+      ).map(([kind]: [SsoProviderKind, KindExpectation]): SsoProviderKind => {
+        return kind;
+      }),
+    ).toEqual(["project", "project-oidc"]);
+  });
+
+  test.each(EVERY_KIND_CASE)(
+    "%s: the helper agrees with what the builder actually requires",
+    (kind: SsoProviderKind): void => {
+      /*
+       * The invariant that survives a fifth kind: SSOProviderSelectScreen asks
+       * `isProjectScopedKind` whether to pass a projectId, and
+       * `buildSsoLoginUrl` throws when a kind it considers project scoped did
+       * not get one. If those two ever disagree, the screen either omits an id
+       * the builder demands (a hard throw where a login should have started)
+       * or passes one the builder ignores (a scope leak). Derived rather than
+       * hard-coded, so no expectation has to be updated for a new kind - only
+       * the source has to stay consistent.
+       */
+      let threwWithoutProjectId: boolean = false;
+
+      try {
+        buildSsoLoginUrl(SERVER, { kind: kind, providerId: PROVIDER_ID });
+      } catch {
+        threwWithoutProjectId = true;
+      }
+
+      expect(threwWithoutProjectId).toBe(isProjectScopedKind(kind));
+    },
+  );
+});
+
+describe("Server URL normalisation applies to every kind", () => {
+  test.each(EVERY_KIND_CASE)(
+    "a single trailing slash does not double up for a %s login",
+    (_kind: SsoProviderKind, expectation: KindExpectation): void => {
+      expect(buildSsoLoginUrl(`${SERVER}/`, expectation.target)).toBe(
+        expectation.expectedUrl,
+      );
+    },
+  );
+
+  test.each(EVERY_KIND_CASE)(
+    "several trailing slashes are all removed for a %s login",
+    (_kind: SsoProviderKind, expectation: KindExpectation): void => {
+      expect(buildSsoLoginUrl(`${SERVER}///`, expectation.target)).toBe(
+        expectation.expectedUrl,
+      );
+    },
+  );
+
+  test.each(EVERY_KIND_CASE)(
+    "a normalised %s URL contains no empty path segment",
+    (_kind: SsoProviderKind, expectation: KindExpectation): void => {
+      const url: string = buildSsoLoginUrl(`${SERVER}//`, expectation.target);
+
+      expect(url.replace(/^[a-z]+:\/\//, "")).not.toContain("//");
+      expect(pathSegmentsOf(url)).not.toContain("");
+    },
+  );
+
+  test("a self-hosted host with a port AND a trailing slash keeps the OIDC path", () => {
+    /*
+     * The shape a self-hosted user actually types on the server URL screen,
+     * against the newest of the four routes.
+     */
+    expect(
+      buildSsoLoginUrl("http://192.168.1.10:3002/", {
+        kind: "project-oidc",
+        providerId: PROVIDER_ID,
+        projectId: PROJECT_ID,
+      }),
+    ).toBe(
+      `http://192.168.1.10:3002/identity/oidc/${PROJECT_ID}/${PROVIDER_ID}?mobile=true`,
+    );
+  });
+
+  test("a server hosted under a sub-path keeps that prefix on the OIDC path", () => {
+    expect(
+      buildSsoLoginUrl("https://intranet.example.com/oneuptime/", {
+        kind: "project-oidc",
+        providerId: PROVIDER_ID,
+        projectId: PROJECT_ID,
+      }),
+    ).toBe(
+      `https://intranet.example.com/oneuptime/identity/oidc/${PROJECT_ID}/${PROVIDER_ID}?mobile=true`,
     );
   });
 });

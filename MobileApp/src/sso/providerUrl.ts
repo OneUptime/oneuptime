@@ -13,20 +13,32 @@
  *
  * - `project` - SAML configured inside one project's settings. Grants access
  *   to that project only.
+ * - `project-oidc` - OIDC configured inside one project's settings.
  * - `global-sso` - instance-wide SAML configured on the admin dashboard.
  * - `global-oidc` - instance-wide OIDC configured on the admin dashboard.
  *
- * The two global kinds are separate because they are served by two different
- * routers (`/identity/global-sso/...` and `/identity/global-oidc/...`), and
- * the discovery endpoints do not return a type field to tell them apart.
+ * Every kind is a separate value because each is served by a different router
+ * (`/identity/sso/...`, `/identity/oidc/...`, `/identity/global-sso/...`,
+ * `/identity/global-oidc/...`), and none of the discovery endpoints returns a
+ * type field to tell them apart - the endpoint you asked is the only thing
+ * that says which kind came back.
  */
-export type SsoProviderKind = "project" | "global-sso" | "global-oidc";
+export type SsoProviderKind =
+  | "project"
+  | "project-oidc"
+  | "global-sso"
+  | "global-oidc";
 
 export interface SsoProviderTarget {
   kind: SsoProviderKind;
   providerId: string;
-  // Required for `project`, ignored for the global kinds.
+  // Required for the project kinds, ignored for the global ones.
   projectId?: string | undefined;
+}
+
+/** True for the kinds whose login URL needs a project id in the path. */
+export function isProjectScopedKind(kind: SsoProviderKind): boolean {
+  return kind === "project" || kind === "project-oidc";
 }
 
 /*
@@ -51,12 +63,20 @@ export function buildSsoLoginUrl(
 ): string {
   const base: string = normalizeServerUrl(serverUrl);
 
-  if (target.kind === "project") {
+  if (isProjectScopedKind(target.kind)) {
     if (!target.projectId) {
       throw new Error("projectId is required to start a project SSO login.");
     }
 
-    return `${base}/identity/sso/${target.projectId}/${target.providerId}?mobile=true`;
+    /*
+     * Project SAML and project OIDC are different routers:
+     * `/identity/sso/:projectId/:projectSsoId` versus
+     * `/identity/oidc/:projectId/:projectOidcId`. Sending one to the other
+     * produces a 400 from a router that has never heard of the id.
+     */
+    const segment: string = target.kind === "project-oidc" ? "oidc" : "sso";
+
+    return `${base}/identity/${segment}/${target.projectId}/${target.providerId}?mobile=true`;
   }
 
   return `${base}/identity/${target.kind}/${target.providerId}?mobile=true`;

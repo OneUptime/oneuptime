@@ -1,5 +1,6 @@
 import axios from "axios";
 import { getServerUrl } from "../storage/serverUrl";
+import { buildSsoLoginUrl } from "../sso/providerUrl";
 import {
   GlobalSSOProvider,
   SSOProvider,
@@ -7,7 +8,9 @@ import {
   fetchAllGlobalProviders,
   fetchGlobalOIDCProviders,
   fetchGlobalSSOProviders,
+  fetchProjectOIDCProviders,
   fetchProjectProvidersForEmail,
+  fetchSSOProviders,
   fetchSSOProvidersForProject,
 } from "./sso";
 import { beforeEach, describe, expect, test } from "@jest/globals";
@@ -581,6 +584,13 @@ describe("fetchProjectProvidersForEmail separates 'none' from 'unreachable'", ()
       description: "Acme staff",
       projectId: "project-1",
       project: { name: "Acme" },
+      /*
+       * Stamped by the endpoint that answered, not by the payload. The
+       * discovery response carries no type field, so this is the only thing
+       * telling the app to start the login at /identity/sso rather than
+       * /identity/oidc.
+       */
+      kind: "project",
     });
   });
 
@@ -686,5 +696,614 @@ describe("fetchSSOProvidersForProject", () => {
     await expect(fetchSSOProvidersForProject("project-1")).rejects.toThrow(
       "Network Error",
     );
+  });
+});
+
+/*
+ * The two project-scoped discovery routes, as registered by the server:
+ * App/FeatureSet/Identity/API/SSO.ts  -> router.get("/service-provider-login")
+ * App/FeatureSet/Identity/API/OIDC.ts -> router.get("/service-provider-login-oidc")
+ *
+ * Note the first is a strict PREFIX of the second. Any routing done with
+ * `includes()` sends both requests down the same branch.
+ */
+const PROJECT_SAML_URL: string = `${SERVER_URL}/identity/service-provider-login`;
+const PROJECT_OIDC_URL: string = `${SERVER_URL}/identity/service-provider-login-oidc`;
+
+/**
+ * An axios-shaped rejection carrying an HTTP status, the way axios rejects on
+ * a 4xx/5xx response.
+ */
+function httpStatus(status: number): Error {
+  const error: Error & { response?: { status: number } } = new Error(
+    `Request failed with status code ${status}`,
+  );
+  error.response = { status };
+  return error;
+}
+
+/*
+ * Route the two PROJECT discovery calls independently, as stubGlobalEndpoints
+ * does for the instance-wide pair. fetchProjectProvidersForEmail fires both in
+ * parallel, so "SAML answered, OIDC did not" is only expressible by keying off
+ * the URL.
+ *
+ * The match is exact and longest-first on purpose: "/service-provider-login"
+ * is a prefix of "/service-provider-login-oidc", so a naive
+ * `url.includes("/service-provider-login")` would hand BOTH requests the SAML
+ * outcome and every assertion below would pass for the wrong reason. Any URL
+ * that is neither route is rejected as a transport error, so a route the
+ * module gets wrong shows up as an outage rather than as a silent pass.
+ */
+function stubProjectEndpoints(saml: Outcome, oidc: Outcome): void {
+  getSpy().mockImplementation((url: string): Promise<unknown> => {
+    let outcome: Outcome;
+
+    if (url === PROJECT_OIDC_URL) {
+      outcome = oidc;
+    } else if (url === PROJECT_SAML_URL) {
+      outcome = saml;
+    } else {
+      outcome = new Error(`unexpected discovery URL: ${url}`);
+    }
+
+    if (outcome instanceof Error) {
+      return Promise.reject(outcome);
+    }
+
+    return Promise.resolve(outcome);
+  });
+}
+
+/** A project discovery response body: `{ data: { data: [...] } }`. */
+function projectResponse(items: Array<unknown>): { data: unknown } {
+  return { data: wrapped(items) };
+}
+
+/** Every URL axios.get was asked for, in call order. */
+function getUrls(): Array<string> {
+  return getSpy().mock.calls.map((call: Array<unknown>) => {
+    return call[0] as string;
+  });
+}
+
+/** The config object passed alongside `url`. */
+function configForUrl(url: string): Record<string, unknown> {
+  const call: Array<unknown> | undefined = getSpy().mock.calls.find(
+    (candidate: Array<unknown>) => {
+      return candidate[0] === url;
+    },
+  );
+
+  return (call?.[1] as Record<string, unknown>) || {};
+}
+
+describe("fetchProjectOIDCProviders asks the route the server actually registers", () => {
+  /*
+   * This endpoint existed on the server the whole time and the app never
+   * called it: discovery offered project SAML and both global kinds, so a
+   * project whose only identity provider was OIDC did not appear on the SSO
+   * login screen at all. The literal below is the contract with
+   * App/FeatureSet/Identity/API/OIDC.ts, `router.get("/service-provider-login-oidc")`.
+   * A typo does not fail to compile and does not throw - the request 404s,
+   * which discovery reads as "the server answered", and the screen quietly
+   * goes back to offering nothing.
+   */
+  test("GETs /identity/service-provider-login-oidc with the email as a query param", async () => {
+    respondWith({ data: [] });
+
+    await fetchProjectOIDCProviders("responder@acme.com");
+
+    expect(firstGetUrl()).toBe(PROJECT_OIDC_URL);
+    expect(firstGetConfig()["params"]).toEqual({ email: "responder@acme.com" });
+  });
+
+  test("is a different URL from the SAML route, not a suffix-less near miss", async () => {
+    /*
+     * Guards the prefix trap from the other side: if this ever became the SAML
+     * URL, fetchProjectProvidersForEmail would ask the same endpoint twice and
+     * list every SAML provider twice, half of them mis-stamped as OIDC.
+     */
+    respondWith({ data: [] });
+
+    await fetchProjectOIDCProviders("responder@acme.com");
+
+    expect(firstGetUrl()).not.toBe(PROJECT_SAML_URL);
+    expect(firstGetUrl().endsWith("-oidc")).toBe(true);
+  });
+
+  test("carries the same 15s timeout as the rest of discovery", async () => {
+    respondWith({ data: [] });
+
+    await fetchProjectOIDCProviders("responder@acme.com");
+
+    expect(firstGetConfig()["timeout"]).toBe(15000);
+  });
+
+  test("builds the URL from the stored server, not a hard-coded host", async () => {
+    serverUrlSpy().mockResolvedValue("https://status.acme.internal" as never);
+    respondWith({ data: [] });
+
+    await fetchProjectOIDCProviders("responder@acme.com");
+
+    expect(firstGetUrl()).toBe(
+      "https://status.acme.internal/identity/service-provider-login-oidc",
+    );
+  });
+
+  test("a rejection is surfaced to the caller - the raw fetcher does not settle", async () => {
+    /*
+     * Only fetchProjectProvidersForEmail is allowed to swallow a failure into
+     * `failed`. If this one started resolving to [] on its own, an outage
+     * would become "this email has no OIDC" one level too early.
+     */
+    getSpy().mockRejectedValue(httpStatus(503) as never);
+
+    await expect(
+      fetchProjectOIDCProviders("responder@acme.com"),
+    ).rejects.toThrow("Request failed with status code 503");
+  });
+});
+
+describe("The project kind is stamped by the endpoint that answered", () => {
+  /*
+   * The whole point of the `kind` field. Neither project discovery payload
+   * carries a type, so the endpoint asked is the only thing that can say
+   * whether a provider's login starts at /identity/sso/:projectId/:id or
+   * /identity/oidc/:projectId/:id. Sending one to the other 400s from a router
+   * that has never heard of that id.
+   */
+  test("every provider from the OIDC endpoint is stamped project-oidc", async () => {
+    respondWith(wrapped([{ _id: "a", name: "Entra" }, { _id: "b" }]));
+
+    const providers: Array<SSOProvider> =
+      await fetchProjectOIDCProviders("responder@acme.com");
+
+    expect(
+      providers.map((provider: SSOProvider) => {
+        return provider.kind;
+      }),
+    ).toEqual(["project-oidc", "project-oidc"]);
+  });
+
+  test("every provider from the SAML endpoint is stamped project", async () => {
+    respondWith(wrapped([{ _id: "a", name: "Okta" }, { _id: "b" }]));
+
+    const providers: Array<SSOProvider> =
+      await fetchSSOProviders("responder@acme.com");
+
+    expect(
+      providers.map((provider: SSOProvider) => {
+        return provider.kind;
+      }),
+    ).toEqual(["project", "project"]);
+  });
+
+  test("a kind field in the payload never overrides the endpoint", async () => {
+    /*
+     * Nothing on the server sends this today. If something ever starts - or a
+     * stale cached body carries one - the endpoint still has to win.
+     */
+    respondWith(wrapped([{ _id: "a", name: "Entra", kind: "project" }]));
+
+    const providers: Array<SSOProvider> =
+      await fetchProjectOIDCProviders("responder@acme.com");
+
+    expect(providers[0]!.kind).toBe("project-oidc");
+  });
+
+  test("the stamped kind routes the login to the OIDC router, not the SAML one", async () => {
+    /*
+     * Ties the stamp to the thing it exists for: the discovered provider fed
+     * to buildSsoLoginUrl has to come out on /identity/oidc/:projectId/:id,
+     * which is what App/FeatureSet/Identity/API/OIDC.ts registers.
+     */
+    respondWith(
+      wrapped([
+        {
+          _id: { _type: "ObjectID", value: "oidc-1" },
+          name: "Entra",
+          projectId: { _type: "ObjectID", value: "project-1" },
+        },
+      ]),
+    );
+
+    const provider: SSOProvider = (
+      await fetchProjectOIDCProviders("responder@acme.com")
+    )[0]!;
+
+    expect(
+      buildSsoLoginUrl(SERVER_URL, {
+        kind: provider.kind,
+        providerId: provider._id,
+        projectId: provider.projectId,
+      }),
+    ).toBe(`${SERVER_URL}/identity/oidc/project-1/oidc-1?mobile=true`);
+  });
+});
+
+describe("fetchProjectOIDCProviders de-serialises the payload like the SAML one", () => {
+  test("unwraps the ObjectID envelopes and the project relation", async () => {
+    respondWith({
+      data: [
+        {
+          _id: { _type: "ObjectID", value: "oidc-1" },
+          name: "Acme Entra",
+          description: "Acme staff",
+          projectId: { _type: "ObjectID", value: "project-1" },
+          project: { name: "Acme" },
+        },
+      ],
+    });
+
+    const providers: Array<SSOProvider> =
+      await fetchProjectOIDCProviders("responder@acme.com");
+
+    expect(providers[0]).toEqual({
+      _id: "oidc-1",
+      name: "Acme Entra",
+      description: "Acme staff",
+      projectId: "project-1",
+      project: { name: "Acme" },
+      kind: "project-oidc",
+    });
+  });
+
+  test("ids that are already plain strings are left alone", async () => {
+    respondWith(
+      wrapped([{ _id: "oidc-1", name: "Entra", projectId: "project-1" }]),
+    );
+
+    const providers: Array<SSOProvider> =
+      await fetchProjectOIDCProviders("responder@acme.com");
+
+    expect(providers[0]!._id).toBe("oidc-1");
+    expect(providers[0]!.projectId).toBe("project-1");
+  });
+
+  test("a missing projectId becomes an empty string, never undefined", async () => {
+    /*
+     * The projectId is a path segment of the login URL. undefined would be
+     * pasted in literally as "/identity/oidc/undefined/<id>"; the empty string
+     * is what buildSsoLoginUrl checks for before it throws.
+     */
+    respondWith(wrapped([{ _id: "oidc-1", name: "Entra" }]));
+
+    const providers: Array<SSOProvider> =
+      await fetchProjectOIDCProviders("responder@acme.com");
+
+    expect(providers[0]!.projectId).toBe("");
+    expect(providers[0]!._id).toBe("oidc-1");
+  });
+
+  test("a missing name becomes an empty string so the row still renders", async () => {
+    respondWith(wrapped([{ _id: "oidc-1" }]));
+
+    const providers: Array<SSOProvider> =
+      await fetchProjectOIDCProviders("responder@acme.com");
+
+    expect(providers[0]!.name).toBe("");
+  });
+
+  test("an empty project name carries no project object", async () => {
+    /*
+     * The select screen prints "<provider> - <project>" only when there is a
+     * project to print; an empty name would render a dangling separator.
+     */
+    respondWith(
+      wrapped([{ _id: "oidc-1", name: "Entra", project: { name: "" } }]),
+    );
+
+    const providers: Array<SSOProvider> =
+      await fetchProjectOIDCProviders("responder@acme.com");
+
+    expect(providers[0]!.project).toBeUndefined();
+  });
+
+  test("a missing project relation leaves project undefined", async () => {
+    respondWith(wrapped([{ _id: "oidc-1", name: "Entra" }]));
+
+    const providers: Array<SSOProvider> =
+      await fetchProjectOIDCProviders("responder@acme.com");
+
+    expect(providers[0]!.project).toBeUndefined();
+  });
+
+  test("a null body yields an empty list instead of throwing", async () => {
+    respondWith(null);
+
+    await expect(
+      fetchProjectOIDCProviders("responder@acme.com"),
+    ).resolves.toEqual([]);
+  });
+
+  test("a body with no data key yields an empty list", async () => {
+    respondWith({});
+
+    await expect(
+      fetchProjectOIDCProviders("responder@acme.com"),
+    ).resolves.toEqual([]);
+  });
+});
+
+describe("fetchProjectProvidersForEmail asks BOTH project endpoints", () => {
+  test("fires two GETs, one per route, each carrying the email", async () => {
+    stubProjectEndpoints(projectResponse([]), projectResponse([]));
+
+    await fetchProjectProvidersForEmail("responder@acme.com");
+
+    const urls: Array<string> = getUrls();
+
+    expect(urls).toHaveLength(2);
+    expect(urls).toContain(PROJECT_SAML_URL);
+    expect(urls).toContain(PROJECT_OIDC_URL);
+    expect(configForUrl(PROJECT_SAML_URL)["params"]).toEqual({
+      email: "responder@acme.com",
+    });
+    expect(configForUrl(PROJECT_OIDC_URL)["params"]).toEqual({
+      email: "responder@acme.com",
+    });
+  });
+
+  test("concatenates SAML first, then OIDC, with the right kind on each half", async () => {
+    stubProjectEndpoints(
+      projectResponse([
+        {
+          _id: "saml-1",
+          name: "Acme Okta",
+          projectId: { _type: "ObjectID", value: "project-1" },
+          project: { name: "Acme" },
+        },
+      ]),
+      projectResponse([
+        {
+          _id: "oidc-1",
+          name: "Acme Entra",
+          projectId: { _type: "ObjectID", value: "project-2" },
+          project: { name: "Beta" },
+        },
+      ]),
+    );
+
+    const result: SsoDiscoveryResult<SSOProvider> =
+      await fetchProjectProvidersForEmail("responder@acme.com");
+
+    expect(result.failed).toBe(false);
+    expect(
+      result.providers.map((provider: SSOProvider) => {
+        return [provider._id, provider.projectId, provider.kind];
+      }),
+    ).toEqual([
+      ["saml-1", "project-1", "project"],
+      ["oidc-1", "project-2", "project-oidc"],
+    ]);
+  });
+
+  test("the order is the request order, not the order the endpoints answer in", async () => {
+    /*
+     * Promise.all preserves the input order, so a slow SAML endpoint must not
+     * push its providers below the OIDC ones - the select screen lists them in
+     * this order and an unstable list would reshuffle under the user's finger.
+     */
+    getSpy().mockImplementation((url: string): Promise<unknown> => {
+      if (url === PROJECT_OIDC_URL) {
+        return Promise.resolve(projectResponse([{ _id: "oidc-1" }]));
+      }
+
+      return new Promise((resolve: (value: unknown) => void): void => {
+        setTimeout(() => {
+          resolve(projectResponse([{ _id: "saml-1" }]));
+        }, 20);
+      });
+    });
+
+    const result: SsoDiscoveryResult<SSOProvider> =
+      await fetchProjectProvidersForEmail("responder@acme.com");
+
+    expect(
+      result.providers.map((provider: SSOProvider) => {
+        return provider._id;
+      }),
+    ).toEqual(["saml-1", "oidc-1"]);
+  });
+
+  test("two identically named providers keep the kind of the endpoint they came from", async () => {
+    /*
+     * A tenant that runs both SAML and OIDC against the same IdP names them
+     * the same thing. Nothing in the merged list distinguishes them except
+     * `kind`, and that is what picks the router.
+     */
+    stubProjectEndpoints(
+      projectResponse([{ _id: "same-name-1", name: "Corp IdP" }]),
+      projectResponse([{ _id: "same-name-2", name: "Corp IdP" }]),
+    );
+
+    const result: SsoDiscoveryResult<SSOProvider> =
+      await fetchProjectProvidersForEmail("responder@acme.com");
+
+    expect(
+      result.providers.map((provider: SSOProvider) => {
+        return [provider.name, provider.kind];
+      }),
+    ).toEqual([
+      ["Corp IdP", "project"],
+      ["Corp IdP", "project-oidc"],
+    ]);
+  });
+});
+
+describe("fetchProjectProvidersForEmail reports failure only when BOTH routes are down", () => {
+  const samlOnly: { data: unknown } = projectResponse([
+    { _id: "saml-1", name: "Okta" },
+  ]);
+  const oidcOnly: { data: unknown } = projectResponse([
+    { _id: "oidc-1", name: "Entra" },
+  ]);
+
+  test("both endpoints answering is not failed", async () => {
+    stubProjectEndpoints(samlOnly, oidcOnly);
+
+    const result: SsoDiscoveryResult<SSOProvider> =
+      await fetchProjectProvidersForEmail("responder@acme.com");
+
+    expect(result.failed).toBe(false);
+    expect(result.providers).toHaveLength(2);
+  });
+
+  test("only SAML failing still returns a usable OIDC list, and is not failed", async () => {
+    /*
+     * This is the regression the whole change exists for, in its harshest
+     * form: the project's SAML endpoint is down and its ONLY identity provider
+     * is OIDC. Reporting failure here would hide a login that works perfectly
+     * behind a retry prompt.
+     */
+    stubProjectEndpoints(httpStatus(503), oidcOnly);
+
+    const result: SsoDiscoveryResult<SSOProvider> =
+      await fetchProjectProvidersForEmail("responder@acme.com");
+
+    expect(result.failed).toBe(false);
+    expect(result.providers).toHaveLength(1);
+    expect(result.providers[0]!._id).toBe("oidc-1");
+    expect(result.providers[0]!.kind).toBe("project-oidc");
+  });
+
+  test("only OIDC failing still returns the SAML list, and is not failed", async () => {
+    stubProjectEndpoints(samlOnly, new Error("Network Error"));
+
+    const result: SsoDiscoveryResult<SSOProvider> =
+      await fetchProjectProvidersForEmail("responder@acme.com");
+
+    expect(result.failed).toBe(false);
+    expect(result.providers).toHaveLength(1);
+    expect(result.providers[0]!._id).toBe("saml-1");
+    expect(result.providers[0]!.kind).toBe("project");
+  });
+
+  test("both endpoints unreachable is the only case reported as failed", async () => {
+    stubProjectEndpoints(
+      new Error("Network Error"),
+      new Error("Network Error"),
+    );
+
+    const result: SsoDiscoveryResult<SSOProvider> =
+      await fetchProjectProvidersForEmail("responder@acme.com");
+
+    expect(result.failed).toBe(true);
+    expect(result.providers).toEqual([]);
+  });
+
+  test("both endpoints answering 5xx is failed too", async () => {
+    stubProjectEndpoints(httpStatus(502), httpStatus(500));
+
+    const result: SsoDiscoveryResult<SSOProvider> =
+      await fetchProjectProvidersForEmail("responder@acme.com");
+
+    expect(result.failed).toBe(true);
+    expect(result.providers).toEqual([]);
+  });
+
+  /*
+   * The 4xx distinction, applied to the pair. Both routes answer the ordinary
+   * "nothing configured for this address" case with HTTP 400 - SSO.ts says
+   * "No SSO config found for this user", OIDC.ts says "No OIDC config found
+   * for this user" - and axios rejects on 4xx. A 400 from one endpoint while
+   * the other hands back providers is the single most common real-world
+   * outcome, and calling it an outage would tell a user whose network is fine
+   * to go and check their network.
+   */
+  test("a 400 from OIDC alongside SAML providers is not an outage", async () => {
+    stubProjectEndpoints(samlOnly, httpStatus(400));
+
+    const result: SsoDiscoveryResult<SSOProvider> =
+      await fetchProjectProvidersForEmail("responder@acme.com");
+
+    expect(result.failed).toBe(false);
+    expect(result.providers).toHaveLength(1);
+    expect(result.providers[0]!.kind).toBe("project");
+  });
+
+  test("a 400 from SAML alongside OIDC providers is not an outage", async () => {
+    stubProjectEndpoints(httpStatus(400), oidcOnly);
+
+    const result: SsoDiscoveryResult<SSOProvider> =
+      await fetchProjectProvidersForEmail("responder@acme.com");
+
+    expect(result.failed).toBe(false);
+    expect(result.providers).toHaveLength(1);
+    expect(result.providers[0]!.kind).toBe("project-oidc");
+  });
+
+  test("both endpoints answering 400 is empty and NOT failed", async () => {
+    stubProjectEndpoints(httpStatus(400), httpStatus(400));
+
+    const result: SsoDiscoveryResult<SSOProvider> =
+      await fetchProjectProvidersForEmail("responder@acme.com");
+
+    expect(result.failed).toBe(false);
+    expect(result.providers).toEqual([]);
+  });
+
+  test("both endpoints answering an empty list is empty and NOT failed", async () => {
+    /*
+     * "No project on this instance federates that address" and "we could not
+     * reach your server" are the same empty list; only the second is worth a
+     * retry button.
+     */
+    stubProjectEndpoints(projectResponse([]), projectResponse([]));
+
+    const result: SsoDiscoveryResult<SSOProvider> =
+      await fetchProjectProvidersForEmail("responder@acme.com");
+
+    expect(result.failed).toBe(false);
+    expect(result.providers).toEqual([]);
+  });
+
+  test("one endpoint empty and the other populated is not failed", async () => {
+    stubProjectEndpoints(projectResponse([]), oidcOnly);
+
+    const result: SsoDiscoveryResult<SSOProvider> =
+      await fetchProjectProvidersForEmail("responder@acme.com");
+
+    expect(result.failed).toBe(false);
+    expect(result.providers).toHaveLength(1);
+    expect(result.providers[0]!.kind).toBe("project-oidc");
+  });
+
+  test("a 400 from one route and a 5xx from the other is still not reported as failed", async () => {
+    /*
+     * The documented rule taken to its edge: `failed` means BOTH endpoints
+     * were unreachable, and a 400 counts as reached. So SAML answering "no
+     * config for this user" while OIDC is genuinely down produces an empty
+     * list with failed=false - the user is told they have no project SSO
+     * without a retry button, even though the OIDC half was never heard from.
+     */
+    stubProjectEndpoints(httpStatus(400), httpStatus(503));
+
+    const result: SsoDiscoveryResult<SSOProvider> =
+      await fetchProjectProvidersForEmail("responder@acme.com");
+
+    expect(result.failed).toBe(false);
+    expect(result.providers).toEqual([]);
+  });
+
+  test("a malformed 200 from one route does not throw out of the merge", async () => {
+    /*
+     * `response.data.data` being an object rather than an array makes .map
+     * throw inside the fetcher. That happens while the user is typing their
+     * email, so it must land in `failed` rather than escape as an unhandled
+     * rejection - and the other route's providers must survive it.
+     */
+    stubProjectEndpoints(
+      { data: { data: { message: "unauthorized" } } },
+      oidcOnly,
+    );
+
+    const result: SsoDiscoveryResult<SSOProvider> =
+      await fetchProjectProvidersForEmail("responder@acme.com");
+
+    expect(result.failed).toBe(false);
+    expect(result.providers).toHaveLength(1);
+    expect(result.providers[0]!.kind).toBe("project-oidc");
   });
 });

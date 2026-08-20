@@ -29,6 +29,7 @@ import {
   completeSsoLoginFromUrl,
   type CompleteSsoLoginOutcome,
 } from "../sso/session";
+import { clearAllSsoDenials } from "../sso/ssoDenials";
 
 interface AuthContextValue {
   isAuthenticated: boolean;
@@ -145,6 +146,12 @@ export function AuthProvider({
     await unregisterPushToken();
     await apiLogout();
     await clearAllSsoTokens();
+    /*
+     * The denial set is module-scope and in-memory, so without this a project
+     * the previous user was refused would still read as "needs SSO" for
+     * whoever signs in next on the same handset.
+     */
+    clearAllSsoDenials();
     setIsAuthenticated(false);
     setUser(null);
   }, []);

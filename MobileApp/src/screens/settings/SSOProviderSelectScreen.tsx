@@ -10,7 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../../theme";
 import { getServerUrl } from "../../storage/serverUrl";
-import { buildSsoLoginUrl } from "../../sso/providerUrl";
+import { buildSsoLoginUrl, isProjectScopedKind } from "../../sso/providerUrl";
 import {
   openSsoAuthSession,
   type SsoAuthSessionOutcome,
@@ -52,7 +52,7 @@ export default function SSOProviderSelectScreen({
       const ssoUrl: string = buildSsoLoginUrl(serverUrl, {
         kind: provider.kind,
         providerId: provider._id,
-        projectId: provider.kind === "project" ? projectId : undefined,
+        projectId: isProjectScopedKind(provider.kind) ? projectId : undefined,
       });
 
       const outcome: SsoAuthSessionOutcome = await openSsoAuthSession(ssoUrl);
@@ -92,12 +92,12 @@ export default function SSOProviderSelectScreen({
 
   const globalProviders: Array<SelectableSsoProvider> = providers.filter(
     (provider: SelectableSsoProvider) => {
-      return provider.kind !== "project";
+      return !isProjectScopedKind(provider.kind);
     },
   );
   const projectProviders: Array<SelectableSsoProvider> = providers.filter(
     (provider: SelectableSsoProvider) => {
-      return provider.kind === "project";
+      return isProjectScopedKind(provider.kind);
     },
   );
 
@@ -161,7 +161,7 @@ export default function SSOProviderSelectScreen({
                 >
                   <Ionicons
                     name={
-                      provider.kind === "project"
+                      isProjectScopedKind(provider.kind)
                         ? "shield-checkmark-outline"
                         : "globe-outline"
                     }

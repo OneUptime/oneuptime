@@ -33,20 +33,29 @@ describe("UserMiddleware.doesSsoTokenForProjectExist - requiredSsoProviderId", (
     return u;
   };
 
-  // Build a request whose cookies carry a real `sso-<projectId>` token.
+  /*
+   * Build a request whose cookies carry a real `sso-<projectId>` token.
+   *
+   * The type defaults to ProjectSSO because that is what a PROJECT SSO login
+   * actually mints, and the project-scoped slot now refuses Global-typed
+   * credentials outright - see the "legacy Global-typed token" block below for
+   * why, and for the tests that pin it.
+   */
   const buildRequestWithSsoToken: (data: {
     tokenProjectId: ObjectID;
     discriminatorProviderId?: ObjectID | undefined;
+    ssoProviderType?: SsoProviderType | undefined;
   }) => ExpressRequest = (data: {
     tokenProjectId: ObjectID;
     discriminatorProviderId?: ObjectID | undefined;
+    ssoProviderType?: SsoProviderType | undefined;
   }): ExpressRequest => {
     const token: string = CookieUtil.getSSOToken({
       user: buildUser(),
       projectId: data.tokenProjectId,
       ssoProviderId: data.discriminatorProviderId,
       ssoProviderType: data.discriminatorProviderId
-        ? SsoProviderType.GlobalSSO
+        ? data.ssoProviderType || SsoProviderType.ProjectSSO
         : undefined,
     });
 
@@ -170,6 +179,86 @@ describe("UserMiddleware.doesSsoTokenForProjectExist - requiredSsoProviderId", (
  * a matching token. The token is sourced from the `global-sso-token` cookie
  * (web) or the `x-global-sso-token` header (mobile).
  */
+/*
+ * A Global-typed credential must never be accepted from the per-project slot.
+ *
+ * Before the single-token redesign, the Global SSO router fanned out one
+ * per-project `sso-<projectId>` cookie per project the user belonged to, typed
+ * GlobalSSO and signed for 30 days. Those are still in browsers, and the
+ * mobile app still replays every non-expired stored token as `x-sso-tokens`.
+ * If the project slot accepted them, they would short-circuit past the
+ * provider-trust check - so disabling a provider would still not revoke them,
+ * for up to a month. They are refused here instead, which sends the user
+ * through a fresh global login that mints a properly-typed token.
+ */
+describe("UserMiddleware.doesSsoTokenForProjectExist - legacy Global-typed token in the project slot", () => {
+  const legacyProjectId: ObjectID = ObjectID.generate();
+  const legacyUserId: ObjectID = ObjectID.generate();
+  const legacyProviderId: ObjectID = ObjectID.generate();
+
+  const buildLegacyRequest: (
+    ssoProviderType: SsoProviderType,
+  ) => ExpressRequest = (ssoProviderType: SsoProviderType): ExpressRequest => {
+    const user: User = new User();
+    user.id = legacyUserId;
+    user.email = new Email("legacy-sso-user@oneuptime.com");
+
+    const token: string = CookieUtil.getSSOToken({
+      user,
+      projectId: legacyProjectId,
+      ssoProviderId: legacyProviderId,
+      ssoProviderType,
+    });
+
+    return {
+      cookies: {
+        [CookieUtil.getUserSSOKey(legacyProjectId)]: token,
+      },
+      headers: {},
+    } as unknown as ExpressRequest;
+  };
+
+  test("a GlobalSSO-typed token in the project slot is refused", () => {
+    expect(
+      UserMiddleware.doesSsoTokenForProjectExist(
+        buildLegacyRequest(SsoProviderType.GlobalSSO),
+        legacyProjectId,
+        legacyUserId,
+      ),
+    ).toBe(false);
+  });
+
+  test("a GlobalOIDC-typed token in the project slot is refused", () => {
+    expect(
+      UserMiddleware.doesSsoTokenForProjectExist(
+        buildLegacyRequest(SsoProviderType.GlobalOIDC),
+        legacyProjectId,
+        legacyUserId,
+      ),
+    ).toBe(false);
+  });
+
+  test("the SAME token typed ProjectSSO is accepted, so the refusal is about the type and nothing else", () => {
+    expect(
+      UserMiddleware.doesSsoTokenForProjectExist(
+        buildLegacyRequest(SsoProviderType.ProjectSSO),
+        legacyProjectId,
+        legacyUserId,
+      ),
+    ).toBe(true);
+  });
+
+  test("a ProjectOIDC-typed token in the project slot is accepted", () => {
+    expect(
+      UserMiddleware.doesSsoTokenForProjectExist(
+        buildLegacyRequest(SsoProviderType.ProjectOIDC),
+        legacyProjectId,
+        legacyUserId,
+      ),
+    ).toBe(true);
+  });
+});
+
 describe("UserMiddleware.doesSsoTokenForProjectExist - global SSO token", () => {
   const projectId: ObjectID = ObjectID.generate();
   const otherProjectId: ObjectID = ObjectID.generate();

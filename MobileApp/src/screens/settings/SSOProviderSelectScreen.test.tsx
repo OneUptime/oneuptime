@@ -5,8 +5,10 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react-native";
 import SSOProviderSelectScreen from "./SSOProviderSelectScreen";
+import type { SsoProviderKind } from "../../sso/providerUrl";
 import {
   openSsoAuthSession,
   type SsoAuthSessionOutcome,
@@ -105,6 +107,20 @@ const projectSamlProvider: SelectableSsoProvider = {
 };
 
 /*
+ * The fourth kind, and the last one the app learned to discover. It is the
+ * only one that is BOTH project-scoped and OIDC, so it is the one a routing
+ * shortcut gets wrong: treated as project SAML it goes to `/identity/sso/...`,
+ * treated as OIDC-therefore-global it loses the project id, and both land on a
+ * router that has never heard of the id.
+ */
+const projectOidcProvider: SelectableSsoProvider = {
+  _id: "bbbbbbbbbbbbbbbbbbbbbbb2",
+  name: "Production Keycloak",
+  description: "OIDC configured in this project's settings",
+  kind: "project-oidc",
+};
+
+/*
  * Every message this screen is capable of showing contains one of these words.
  * Used to assert the ABSENCE of an error, which a `queryByText` of one specific
  * string would not really establish.
@@ -185,6 +201,30 @@ function lastOpenedUrl(): string {
   return urls[urls.length - 1] as string;
 }
 
+// The element type RNTL's queries hand back; it has no exported name.
+type QueriedElement = ReturnType<typeof screen.getByText>;
+
+/**
+ * Queries scoped to the section a heading introduces.
+ *
+ * Each heading and the card of rows it labels are the two children of one
+ * wrapper View, so the heading's parent IS the section. Scoping to it is what
+ * turns "the row is on the screen somewhere" into "the row is on the side of
+ * the global/project line it belongs on" - and grouping is the whole point of
+ * the two headings, since picking a provider from the wrong group is a
+ * rejection the server explains to nobody.
+ */
+function withinSection(heading: string): ReturnType<typeof within> {
+  const headingNode: QueriedElement = screen.getByText(heading);
+  const section: QueriedElement | null = headingNode.parent;
+
+  if (!section) {
+    throw new Error(`The "${heading}" heading is not inside a section.`);
+  }
+
+  return within(section);
+}
+
 function isRowDisabled(name: string): boolean {
   const row: { props: { accessibilityState?: { disabled?: boolean } } } =
     screen.getByLabelText(name) as unknown as {
@@ -262,6 +302,50 @@ describe("The row sends the user to the router that owns the provider", () => {
       `${SERVER_URL}/identity/global-oidc/${globalOidcProvider._id}?mobile=true`,
     );
     expect(lastOpenedUrl()).not.toContain(PROJECT_ID);
+  });
+
+  test("a project OIDC provider goes to the project OIDC router, keeping the project id", async () => {
+    /*
+     * The other half of the same regression, from the other direction: a
+     * project whose only identity provider is OIDC was invisible to the app
+     * until discovery learned to ask `/identity/service-provider-login-oidc`,
+     * and a row for it is only useful if it opens
+     * `/identity/oidc/<projectId>/<id>`. Both neighbouring routes are wrong in
+     * a way the user cannot see - `/identity/sso/...` is project SAML and
+     * would 400 on an id it does not own, and `/identity/global-oidc/...` is
+     * the instance-wide OIDC router, which takes no project at all.
+     */
+    await renderScreen([projectOidcProvider]);
+
+    await pressProvider(projectOidcProvider.name);
+    await settleAuthFlow();
+
+    expect(lastOpenedUrl()).toBe(
+      `${SERVER_URL}/identity/oidc/${PROJECT_ID}/${projectOidcProvider._id}?mobile=true`,
+    );
+    expect(lastOpenedUrl()).not.toContain("/identity/sso/");
+    expect(lastOpenedUrl()).not.toContain("/identity/global-oidc/");
+  });
+
+  test("the two project kinds do not share a route", async () => {
+    /*
+     * Nothing in the discovery payload says which of the two a provider is -
+     * only the endpoint that answered does - so if `kind` were dropped
+     * anywhere between discovery and this row, both would open the same URL
+     * and one of them would be silently broken.
+     */
+    await renderScreen([projectSamlProvider, projectOidcProvider]);
+
+    await pressProvider(projectSamlProvider.name);
+    await settleAuthFlow();
+    await pressProvider(projectOidcProvider.name);
+    await settleAuthFlow();
+
+    const [samlUrl, oidcUrl]: Array<string> = openedUrls();
+
+    expect(samlUrl).toContain(`/identity/sso/${PROJECT_ID}/`);
+    expect(oidcUrl).toContain(`/identity/oidc/${PROJECT_ID}/`);
+    expect(samlUrl).not.toBe(oidcUrl);
   });
 
   test("every login is flagged as a mobile login", async () => {
@@ -346,6 +430,23 @@ describe("A completed login is persisted before the sheet closes", () => {
 
     expect(mockCompleteSsoLoginFromUrl).toHaveBeenCalledWith(CALLBACK_URL);
     expect(rendered.goBack).toHaveBeenCalledTimes(1);
+  });
+
+  test("a project OIDC login is stored and the sheet closes", async () => {
+    /*
+     * A project OIDC login comes back with a project-bound token, exactly like
+     * project SAML - the newest kind must not be the one that reaches the
+     * hand-off differently.
+     */
+    const rendered: RenderedScreen = await renderScreen([projectOidcProvider]);
+
+    await pressProvider(projectOidcProvider.name);
+    await settleAuthFlow();
+
+    expect(mockCompleteSsoLoginFromUrl).toHaveBeenCalledTimes(1);
+    expect(mockCompleteSsoLoginFromUrl).toHaveBeenCalledWith(CALLBACK_URL);
+    expect(rendered.goBack).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(ANY_ERROR_MESSAGE)).toBeNull();
   });
 
   test("the url handed over is the browser's callback, not the login url", async () => {
@@ -467,6 +568,28 @@ describe("Nothing is claimed when the login did not complete", () => {
     );
 
     await pressProvider(projectSamlProvider.name);
+
+    await waitFor((): void => {
+      expect(screen.getByText(/SSO authentication failed/i)).toBeTruthy();
+    });
+
+    expect(mockOpenSsoAuthSession).not.toHaveBeenCalled();
+    expect(rendered.goBack).not.toHaveBeenCalled();
+  });
+
+  test("a project OIDC row with no project id is refused too", async () => {
+    /*
+     * `isProjectScopedKind` is what decides whether a project id is demanded.
+     * If project OIDC had been left out of it, this would open
+     * `/identity/global-oidc/<projectOidcId>` - a URL that is well-formed, so
+     * the browser opens happily and the failure only surfaces at the IdP.
+     */
+    const rendered: RenderedScreen = await renderScreen(
+      [projectOidcProvider],
+      "",
+    );
+
+    await pressProvider(projectOidcProvider.name);
 
     await waitFor((): void => {
       expect(screen.getByText(/SSO authentication failed/i)).toBeTruthy();
@@ -637,6 +760,68 @@ describe("Grouping the providers a user can choose from", () => {
     expect(screen.queryByText("Available providers")).toBeNull();
   });
 
+  test("a project OIDC provider is listed under the project heading, not the organization one", async () => {
+    /*
+     * "OIDC" is not a synonym for "global": project OIDC belongs to this one
+     * project, and filing it with the organization's providers would both
+     * mislabel it and - since the grouping and the routing are the same
+     * `isProjectScopedKind` call - mean its login url had lost the project id.
+     */
+    await renderScreen([globalOidcProvider, projectOidcProvider]);
+
+    expect(
+      withinSection("This project").getByLabelText(projectOidcProvider.name),
+    ).toBeTruthy();
+    expect(
+      withinSection("Your organization").queryByLabelText(
+        projectOidcProvider.name,
+      ),
+    ).toBeNull();
+    expect(
+      withinSection("Your organization").getByLabelText(
+        globalOidcProvider.name,
+      ),
+    ).toBeTruthy();
+  });
+
+  test("both project kinds share the one project heading", async () => {
+    await renderScreen([
+      globalSamlProvider,
+      projectSamlProvider,
+      projectOidcProvider,
+    ]);
+
+    const projectSection: ReturnType<typeof within> =
+      withinSection("This project");
+
+    expect(
+      projectSection.getByLabelText(projectSamlProvider.name),
+    ).toBeTruthy();
+    expect(
+      projectSection.getByLabelText(projectOidcProvider.name),
+    ).toBeTruthy();
+    expect(projectSection.queryByLabelText(globalSamlProvider.name)).toBeNull();
+
+    // One project card, not one per kind.
+    expect(screen.queryAllByText("This project")).toHaveLength(1);
+    expect(screen.queryByText("Available providers")).toBeNull();
+  });
+
+  test("a sheet of only project OIDC providers gets the project-only heading", async () => {
+    /*
+     * The case that motivated the discovery fix: a project whose sole identity
+     * provider is OIDC. There is no organization group to contrast with, so
+     * the heading is the neutral one - and "Your organization" appearing here
+     * would tell the user this signs them into the whole instance.
+     */
+    await renderScreen([projectOidcProvider]);
+
+    expect(screen.getByText("Available providers")).toBeTruthy();
+    expect(screen.getByLabelText(projectOidcProvider.name)).toBeTruthy();
+    expect(screen.queryByText("Your organization")).toBeNull();
+    expect(screen.queryByText("This project")).toBeNull();
+  });
+
   test("project-only instances get no organization heading", async () => {
     // Nothing to contrast with, so the heading would be noise.
     await renderScreen([projectSamlProvider]);
@@ -658,5 +843,164 @@ describe("Grouping the providers a user can choose from", () => {
     expect(
       screen.getByText(globalSamlProvider.description as string),
     ).toBeTruthy();
+  });
+});
+
+/*
+ * What every kind of provider is supposed to do, keyed by the kind itself.
+ *
+ * `Record<SsoProviderKind, ...>` is the point: a fifth kind added to the union
+ * does not compile until it has a row here, and every test below is driven off
+ * `Object.keys`, so a new kind arrives with its route, its project binding and
+ * its grouping already asserted instead of quietly untested. Project OIDC is
+ * exactly the kind that was missing for a while, on the screen before this one.
+ */
+interface KindExpectation {
+  provider: SelectableSsoProvider;
+  expectedUrl: string;
+  isProjectScoped: boolean;
+  heading: string;
+}
+
+const expectationByKind: Record<SsoProviderKind, KindExpectation> = {
+  "global-sso": {
+    provider: globalSamlProvider,
+    expectedUrl: `${SERVER_URL}/identity/global-sso/${globalSamlProvider._id}?mobile=true`,
+    isProjectScoped: false,
+    heading: "Your organization",
+  },
+  "global-oidc": {
+    provider: globalOidcProvider,
+    expectedUrl: `${SERVER_URL}/identity/global-oidc/${globalOidcProvider._id}?mobile=true`,
+    isProjectScoped: false,
+    heading: "Your organization",
+  },
+  project: {
+    provider: projectSamlProvider,
+    expectedUrl: `${SERVER_URL}/identity/sso/${PROJECT_ID}/${projectSamlProvider._id}?mobile=true`,
+    isProjectScoped: true,
+    heading: "This project",
+  },
+  "project-oidc": {
+    provider: projectOidcProvider,
+    expectedUrl: `${SERVER_URL}/identity/oidc/${PROJECT_ID}/${projectOidcProvider._id}?mobile=true`,
+    isProjectScoped: true,
+    heading: "This project",
+  },
+};
+
+const allKinds: Array<SsoProviderKind> = Object.keys(
+  expectationByKind,
+) as Array<SsoProviderKind>;
+
+const allExpectations: Array<KindExpectation> = allKinds.map(
+  (kind: SsoProviderKind): KindExpectation => {
+    return expectationByKind[kind];
+  },
+);
+
+const everyKindOfProvider: Array<SelectableSsoProvider> = allExpectations.map(
+  (expectation: KindExpectation): SelectableSsoProvider => {
+    return expectation.provider;
+  },
+);
+
+describe("A sheet carrying every kind at once", () => {
+  test("the table covers each kind exactly once", async () => {
+    /*
+     * Guards the tests below rather than the screen: a table with a duplicated
+     * or mismatched provider would make them pass while covering three kinds.
+     */
+    for (const kind of allKinds) {
+      expect(expectationByKind[kind].provider.kind).toBe(kind);
+    }
+
+    const ids: Array<string> = everyKindOfProvider.map(
+      (provider: SelectableSsoProvider): string => {
+        return provider._id;
+      },
+    );
+
+    expect(new Set<string>(ids).size).toBe(allKinds.length);
+  });
+
+  test("a row is rendered for every kind", async () => {
+    /*
+     * A mixed instance - global SSO on the admin dashboard plus a project that
+     * configured its own - is the normal case, not a contrived one, and a kind
+     * the screen cannot render is a kind the user cannot sign in with.
+     */
+    await renderScreen(everyKindOfProvider);
+
+    for (const expectation of allExpectations) {
+      expect(screen.getByLabelText(expectation.provider.name)).toBeTruthy();
+    }
+  });
+
+  test("each row opens the route its own kind is served by", async () => {
+    await renderScreen(everyKindOfProvider);
+
+    for (const expectation of allExpectations) {
+      await pressProvider(expectation.provider.name);
+      await settleAuthFlow();
+
+      expect(lastOpenedUrl()).toBe(expectation.expectedUrl);
+    }
+
+    // Nothing was skipped, and no row started two sessions.
+    expect(openedUrls()).toHaveLength(allExpectations.length);
+    expect(new Set<string>(openedUrls()).size).toBe(allExpectations.length);
+  });
+
+  test("only the project-scoped kinds carry the project id", async () => {
+    /*
+     * Both mistakes are invisible on the device and fatal on the server: a
+     * project id in a global login is a 400, and a missing one in a project
+     * login is `/identity/oidc/undefined/<id>`.
+     */
+    await renderScreen(everyKindOfProvider);
+
+    for (const expectation of allExpectations) {
+      await pressProvider(expectation.provider.name);
+      await settleAuthFlow();
+
+      if (expectation.isProjectScoped) {
+        expect(lastOpenedUrl()).toContain(`/${PROJECT_ID}/`);
+      } else {
+        expect(lastOpenedUrl()).not.toContain(PROJECT_ID);
+      }
+    }
+  });
+
+  test("each row is filed under the heading its kind belongs to", async () => {
+    await renderScreen(everyKindOfProvider);
+
+    for (const expectation of allExpectations) {
+      expect(
+        withinSection(expectation.heading).getByLabelText(
+          expectation.provider.name,
+        ),
+      ).toBeTruthy();
+    }
+  });
+
+  test("a completed login is handed over and closes the sheet for every kind", async () => {
+    const rendered: RenderedScreen = await renderScreen(everyKindOfProvider);
+
+    for (const expectation of allExpectations) {
+      await pressProvider(expectation.provider.name);
+      await settleAuthFlow();
+    }
+
+    expect(mockCompleteSsoLoginFromUrl).toHaveBeenCalledTimes(
+      allExpectations.length,
+    );
+
+    for (const call of mockCompleteSsoLoginFromUrl.mock.calls) {
+      expect(call[0]).toBe(CALLBACK_URL);
+    }
+
+    expect(rendered.goBack).toHaveBeenCalledTimes(allExpectations.length);
+    expect(screen.queryByText(ANY_ERROR_MESSAGE)).toBeNull();
   });
 });

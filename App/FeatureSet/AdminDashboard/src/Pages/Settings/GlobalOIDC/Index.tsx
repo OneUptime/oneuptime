@@ -261,6 +261,16 @@ const Settings: FunctionComponent = (): ReactElement => {
           },
           {
             field: {
+              restrictToAttachedProjects: true,
+            },
+            title: "Restrict to Attached Projects",
+            description:
+              "Off by default. When off, signing in with this provider satisfies SSO enforcement for every project the user is a member of, and the attached projects below only control provisioning. Turn this on to make the attached projects an access boundary too - note that this NARROWS access for people who are already signed in.",
+            fieldType: FormFieldSchemaType.Toggle,
+            stepId: "more",
+          },
+          {
+            field: {
               isEnabled: true,
             },
             description:

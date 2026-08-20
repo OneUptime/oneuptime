@@ -23,7 +23,7 @@ export interface SelectableSsoProvider {
   _id: string;
   name: string;
   description?: string;
-  kind: "project" | "global-sso" | "global-oidc";
+  kind: "project" | "project-oidc" | "global-sso" | "global-oidc";
 }
 
 export type SettingsStackParamList = {
