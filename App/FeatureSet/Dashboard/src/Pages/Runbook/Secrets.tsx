@@ -191,6 +191,7 @@ const RunbookSecrets: FunctionComponent<
       {currentlyEditingItem && (
         <BasicFormModal
           title={"Update Secret Value"}
+          name="Runbook > Update Secret Value"
           isLoading={isLoading}
           onClose={() => {
             setIsLoading(false);

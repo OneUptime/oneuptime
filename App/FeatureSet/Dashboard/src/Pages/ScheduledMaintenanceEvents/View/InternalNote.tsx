@@ -383,6 +383,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
       scheduledMaintenanceNoteTemplates.length > 0 ? (
         <BasicFormModal<JSONObject>
           title="Create Note from Template"
+          name="Scheduled Maintenance > Internal Note from Template"
           isLoading={isLoading}
           submitButtonText="Create from Template"
           onClose={() => {
