@@ -8,7 +8,6 @@ import NetworkDeviceDiscoveryScan, {
   DiscoveredNetworkDevice,
 } from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import Probe from "Common/Models/DatabaseModels/Probe";
-import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -365,16 +364,28 @@ const NetworkDeviceDiscovery: FunctionComponent<
               openLinkInNewTab: true,
             },
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: probes.map((probe: Probe) => {
-              if (!probe.name || !probe._id) {
-                throw new BadDataException(`Probe name or id is missing`);
-              }
-
-              return {
-                label: probe.name,
-                value: probe._id,
-              };
-            }),
+            /*
+             * A probe with no id cannot be scanned with, so it is dropped.
+             * A probe with no NAME still can be, so it is kept under a
+             * stand-in label.
+             *
+             * This used to throw for either. The .map runs in the component's
+             * render body, not lazily when the create modal opens, so a single
+             * unnamed probe row — a global probe, or one registered before it
+             * was named — did not degrade the dropdown: it threw during render
+             * and blanked the entire Discovery Scans page, including the list
+             * of existing scans.
+             */
+            dropdownOptions: probes
+              .filter((probe: Probe) => {
+                return Boolean(probe._id);
+              })
+              .map((probe: Probe) => {
+                return {
+                  label: probe.name || `Probe ${probe._id}`,
+                  value: probe._id!,
+                };
+              }),
             required: true,
             placeholder: "Probe",
           },
@@ -480,11 +491,33 @@ const NetworkDeviceDiscovery: FunctionComponent<
             title: "Responded Hosts",
             type: FieldType.Element,
             getElement: (item: NetworkDeviceDiscoveryScan): ReactElement => {
-              if (
-                item.respondedHostCount === undefined ||
-                item.respondedHostCount === null
-              ) {
-                return <span className="text-sm text-gray-400">—</span>;
+              const outcome: DiscoveryScanOutcome =
+                summarizeDiscoveryScan(item);
+
+              /*
+               * No host counts yet. That used to render a bare em-dash and
+               * stop, which threw away the only explanation a scan that never
+               * ran ever gets: the worker's "nobody has claimed this" note
+               * (Workers/Jobs/NetworkDeviceDiscovery/RequeueRecurringScans.ts)
+               * and the stale-In-Progress reaper's "the probe did not report a
+               * result within 2 hours" were both written to statusMessage,
+               * fetched by this page, and then rendered nowhere — so a stuck
+               * scan looked identical to one that had simply just been
+               * submitted (OneUptime issue #3287).
+               */
+              if (!outcome.hasReported) {
+                if (!outcome.explanation) {
+                  return <span className="text-sm text-gray-400">—</span>;
+                }
+
+                return (
+                  <div
+                    className="text-xs text-gray-500 max-w-md"
+                    title={outcome.explanation}
+                  >
+                    {outcome.explanation}
+                  </div>
+                );
               }
 
               /*
@@ -496,9 +529,6 @@ const NetworkDeviceDiscovery: FunctionComponent<
                * explanation of the sweep — which was already being stored and
                * fetched, and was simply never rendered anywhere.
                */
-              const outcome: DiscoveryScanOutcome =
-                summarizeDiscoveryScan(item);
-
               return (
                 <div>
                   <div className="text-sm text-gray-900">
