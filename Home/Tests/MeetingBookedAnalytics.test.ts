@@ -207,17 +207,25 @@ describe("meeting_booked analytics", () => {
       ]);
     });
 
-    test("mirrors the same event to GA4 and the GTM dataLayer", () => {
+    /*
+     * One booking must reach Google exactly once. Once the Google tag is on
+     * the page, gtag interop is live and a `gtag('event', ...)` call goes
+     * straight to GA4, bypassing the container - so mirroring the event to
+     * both gtag and the dataLayer double-counts it as soon as the GTM Custom
+     * Event trigger forwards the dataLayer push. The dataLayer is the only
+     * sanctioned path.
+     */
+    test("reaches Google exactly once, through the dataLayer only", () => {
       const harness: TrackerHarness = loadTracker(html);
 
       harness.track({ bookingKind: "enterprise_demo" });
 
-      expect(harness.gtagCalls[0]?.[0]).toBe("event");
-      expect(harness.gtagCalls[0]?.[1]).toBe("meeting_booked");
+      expect(harness.dataLayer).toHaveLength(1);
       expect(harness.dataLayer[0]).toMatchObject({
         event: "meeting_booked",
         booking_kind: "enterprise_demo",
       });
+      expect(harness.gtagCalls).toHaveLength(0);
     });
 
     test("also emits the caller's legacy event name", () => {
@@ -283,9 +291,10 @@ describe("meeting_booked analytics", () => {
     });
 
     /*
-     * gtag is only defined inside the GTM block, so an unguarded call throws a
-     * ReferenceError on a page rendered without it — losing the PostHog
-     * capture. Analytics must never take the page down with it either way.
+     * dataLayer is only defined inside the GTM block, so an unguarded push
+     * throws a ReferenceError on a page rendered without it - losing the
+     * PostHog capture. Analytics must never take the page down with it either
+     * way.
      */
     test("still reports to PostHog when GTM is absent", async () => {
       const withoutGtm: string = await renderDemo(false);
@@ -307,8 +316,8 @@ describe("meeting_booked analytics", () => {
       expect(() => {
         return harness.track({ bookingKind: "enterprise_demo" });
       }).not.toThrow();
-      expect(harness.gtagCalls).toHaveLength(1);
       expect(harness.dataLayer).toHaveLength(1);
+      expect(harness.gtagCalls).toHaveLength(0);
     });
   });
 
