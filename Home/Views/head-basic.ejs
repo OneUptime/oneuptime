@@ -186,6 +186,47 @@
     })();
 </script>
 
+<!--
+    Canonical browser mirror of a booked meeting. The commercial record of a
+    booking is the MeetingBooked row the verified Cal webhook writes server
+    side (Docs/analytics/enterprise-conversion-tracking.md) - this is analytics
+    evidence of the same moment, so it carries no attendee details. Cal's
+    bookingSuccessful detail includes the attendee's name and email; never pass
+    it through. The legacy per-page PostHog event is emitted alongside so
+    existing dashboards keep their history.
+-->
+<script>
+    window.oneUptimeTrackMeetingBooked = function (options) {
+        options = options || {};
+
+        var properties = {
+            event_schema_version: 1,
+            booking_source: 'cal.com',
+            booking_kind: options.bookingKind || 'unknown',
+            page_path: window.location.pathname,
+            cal_event_type: typeof options.calEventType === 'string' ? options.calEventType : 'bookingSuccessful',
+            cal_namespace: typeof options.calNamespace === 'string' ? options.calNamespace : 'default'
+        };
+
+        if (typeof posthog !== 'undefined' && posthog && posthog.capture) {
+            posthog.capture('meeting_booked', properties);
+
+            // Legacy event name, kept so existing PostHog dashboards do not break.
+            if (options.legacyEventName) {
+                posthog.capture(options.legacyEventName, properties);
+            }
+        }
+
+        if (typeof window.gtag === 'function') {
+            window.gtag('event', 'meeting_booked', properties);
+        }
+
+        if (typeof dataLayer !== 'undefined') {
+            dataLayer.push(Object.assign({ event: 'meeting_booked' }, properties));
+        }
+    };
+</script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         // Track page view

@@ -41,7 +41,7 @@ export default class LinkedInProvider extends ConversionUploadProvider {
     return Boolean(LinkedInConversionsAccessToken);
   }
 
-  public override getSkipReason(
+  protected override getProviderSkipReason(
     conversion: MarketingConversion,
   ): ConversionSkip | null {
     if (!this.getClickId(conversion, "li_fat_id")) {

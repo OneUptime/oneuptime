@@ -46,7 +46,7 @@ export default class GoogleAdsProvider extends ConversionUploadProvider {
     );
   }
 
-  public override getSkipReason(
+  protected override getProviderSkipReason(
     conversion: MarketingConversion,
   ): ConversionSkip | null {
     if (!this.getGoogleClickId(conversion)) {

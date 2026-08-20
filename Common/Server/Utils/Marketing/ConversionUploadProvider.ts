@@ -1,6 +1,9 @@
 import { AxiosError } from "axios";
 import { JSONObject } from "../../../Types/JSON";
-import { MarketingConversionType } from "../../../Types/Marketing/MarketingConversion";
+import {
+  AdUploadableMarketingConversionTypes,
+  MarketingConversionType,
+} from "../../../Types/Marketing/MarketingConversion";
 import MarketingConversion from "../../../Models/DatabaseModels/MarketingConversion";
 
 /*
@@ -11,9 +14,12 @@ import MarketingConversion from "../../../Models/DatabaseModels/MarketingConvers
  *
  * Contract:
  * - getSkipReason returns a human-readable reason when this conversion can
- *   never be uploaded to this platform (wrong/missing click id, outside the
- *   platform's upload window, provider not configured for this conversion
- *   type). Null means uploadable.
+ *   never be uploaded to this platform (conversion type with no ad-platform
+ *   mapping, wrong/missing click id, outside the platform's upload window,
+ *   provider not configured for this conversion type). Null means uploadable.
+ *   It is implemented here and must not be overridden — providers implement
+ *   getProviderSkipReason instead, which only runs for conversion types that
+ *   are ad-uploadable at all.
  * - upload() sends one batch. Per-conversion PERMANENT rejections are
  *   returned in the result keyed by array index; they will not be retried.
  *   Transport/auth-level failures must THROW — the whole batch stays pending
@@ -52,7 +58,31 @@ export default abstract class ConversionUploadProvider {
 
   public abstract isConfigured(): boolean;
 
-  public abstract getSkipReason(
+  /*
+   * Every provider maps a conversion onto a platform conversion action by
+   * branching on isSignUp() — so a conversion type the ad platforms have no
+   * mapping for (a booked meeting) would otherwise be silently uploaded as a
+   * purchase. Screen those out here, before any provider sees them, so no
+   * provider or call site can skip the check.
+   */
+  public getSkipReason(conversion: MarketingConversion): ConversionSkip | null {
+    if (
+      !AdUploadableMarketingConversionTypes.includes(
+        conversion.conversionType as MarketingConversionType,
+      )
+    ) {
+      return {
+        reason: `Conversion type ${
+          conversion.conversionType || "unknown"
+        } has no ad platform conversion mapping`,
+        isPermanent: true,
+      };
+    }
+
+    return this.getProviderSkipReason(conversion);
+  }
+
+  protected abstract getProviderSkipReason(
     conversion: MarketingConversion,
   ): ConversionSkip | null;
 

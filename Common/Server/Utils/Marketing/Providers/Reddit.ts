@@ -41,7 +41,7 @@ export default class RedditProvider extends ConversionUploadProvider {
     );
   }
 
-  public override getSkipReason(
+  protected override getProviderSkipReason(
     conversion: MarketingConversion,
   ): ConversionSkip | null {
     if (!this.getClickId(conversion, "rdt_cid")) {

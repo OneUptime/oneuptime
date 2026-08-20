@@ -205,23 +205,20 @@
         Cal("on", {
           action: "bookingSuccessful",
           callback: (e) => {
-            const { data, type, namespace } = e.detail;
-            // PostHog tracking
-            if (typeof posthog !== 'undefined' && posthog) {
-              posthog.capture('home/demo-booked', {
-                'page': {
-                  'path': window.location.pathname,
-                  'referrer': document.referrer,
-                  'search': window.location.search,
-                  'url': window.location.href,
-                  'title': document.title,
-                },
-                'data': data,
-                'type': type,
-                'namespace': namespace
-              });
-            }
-            
+            const { type, namespace } = e.detail;
+
+            /*
+             * Canonical meeting_booked, plus the legacy events. e.detail.data
+             * carries the attendee's name and email and is deliberately not
+             * forwarded to any analytics destination.
+             */
+            window.oneUptimeTrackMeetingBooked({
+              bookingKind: 'enterprise_demo',
+              legacyEventName: 'home/demo-booked',
+              calEventType: type,
+              calNamespace: namespace
+            });
+
             // GA4 tracking - for conversion tracking
             if (typeof gtag !== 'undefined') {
               gtag('event', 'demo_request', {

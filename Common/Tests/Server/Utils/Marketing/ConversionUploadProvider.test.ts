@@ -15,7 +15,7 @@ class TestProvider extends ConversionUploadProvider {
     return true;
   }
 
-  public override getSkipReason(
+  protected override getProviderSkipReason(
     _conversion: MarketingConversion,
   ): ConversionSkip | null {
     return null;

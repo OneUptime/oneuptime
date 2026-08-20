@@ -369,22 +369,19 @@
                                 Cal("on", {
                                     action: "bookingSuccessful",
                                     callback: (e) => {
-                                        const { data, type, namespace } = e.detail;
+                                        const { type, namespace } = e.detail;
 
-                                        if (typeof posthog !== 'undefined' && posthog) {
-                                            posthog.capture('home/support-call-booked', {
-                                                'page': {
-                                                    'path': window.location.pathname,
-                                                    'referrer': document.referrer,
-                                                    'search': window.location.search,
-                                                    'url': window.location.href,
-                                                    'title': document.title,
-                                                },
-                                                'data': data,
-                                                'type': type,
-                                                'namespace': namespace
-                                            });
-                                        }
+                                        /*
+                                         * Canonical meeting_booked, plus the legacy event.
+                                         * e.detail.data carries the attendee's name and email
+                                         * and is deliberately not forwarded to analytics.
+                                         */
+                                        window.oneUptimeTrackMeetingBooked({
+                                            bookingKind: 'support_call',
+                                            legacyEventName: 'home/support-call-booked',
+                                            calEventType: type,
+                                            calNamespace: namespace
+                                        });
                                     }
                                 })
                             </script>

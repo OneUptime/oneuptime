@@ -1497,6 +1497,15 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "cal": {
+                    "type": "object",
+                    "properties": {
+                        "webhookSecret": {
+                            "type": ["string", "number", "null"]
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false

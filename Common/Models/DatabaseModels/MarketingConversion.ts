@@ -14,11 +14,13 @@ import ObjectID from "../../Types/ObjectID";
 import { Column, Entity, Index } from "typeorm";
 
 /*
- * Internal table (no API access) recording ad-attributed conversions —
- * signups and paid subscriptions from visitors that carried ad click IDs —
- * and the status of uploading each of them to ad platforms (Google Ads
- * offline click conversions, Meta Conversions API). Written and read only by
- * the MarketingConversions worker job.
+ * Internal table (no API access) recording server-confirmed conversions —
+ * signups, booked meetings and paid subscriptions, along with any ad click IDs
+ * the converting visitor carried — and the status of uploading the
+ * ad-uploadable ones to ad platforms (Google Ads offline click conversions,
+ * Meta Conversions API). Browser analytics never write this table: rows are
+ * written by the signup/subscription flows and the Cal.com webhook, and read
+ * by the MarketingConversions worker job.
  */
 @TableAccessControl({
   create: [],
@@ -33,11 +35,18 @@ import { Column, Entity, Index } from "typeorm";
   pluralName: "Marketing Conversions",
   icon: IconProp.ChartBar,
   tableDescription:
-    "Ad-attributed conversions (signups, paid subscriptions) and their upload status to ad platforms for offline conversion tracking.",
+    "Server-confirmed conversions (signups, meetings booked, paid subscriptions) and their upload status to ad platforms for offline conversion tracking.",
 })
 @Entity({
   name: "MarketingConversion",
 })
+/*
+ * One conversion of each type per user/project. Postgres treats NULLs as
+ * distinct, so these indexes only constrain rows that actually carry a user or
+ * project id — conversion types with neither (a booked meeting from an
+ * anonymous visitor) are de-duplicated by their deterministic primary key
+ * instead.
+ */
 @Index("uq_marketing_conversion_type_user", ["conversionType", "userId"], {
   unique: true,
 })
@@ -58,7 +67,7 @@ export default class MarketingConversion extends BaseModel {
     type: TableColumnType.ShortText,
     required: true,
     title: "Conversion Type",
-    description: "SignUp or PaidSubscription.",
+    description: "SignUp, MeetingBooked or PaidSubscription.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -77,7 +86,8 @@ export default class MarketingConversion extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     title: "User ID",
-    description: "User this conversion belongs to (SignUp conversions).",
+    description:
+      "User this conversion belongs to (SignUp conversions). Null when the conversion has no OneUptime user yet, as with a booked meeting.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -170,7 +180,7 @@ export default class MarketingConversion extends BaseModel {
     required: false,
     title: "Conversion Value (USD Cents)",
     description:
-      "Conversion value in USD cents (monthly recurring revenue for paid subscriptions). Null when unknown (custom pricing) or not applicable (signups).",
+      "Conversion value in USD cents (monthly recurring revenue for paid subscriptions). Null when unknown (custom pricing) or not applicable (signups, booked meetings).",
   })
   @Column({
     type: ColumnType.Number,
