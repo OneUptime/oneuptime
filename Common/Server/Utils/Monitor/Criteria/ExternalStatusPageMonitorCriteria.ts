@@ -6,15 +6,16 @@ import {
 } from "../../../../Types/Monitor/CriteriaFilter";
 import ExternalStatusPageMonitorResponse from "../../../../Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
-import EvaluateOverTime from "./EvaluateOverTime";
+import EvaluateOverTime, { EvaluateOverTimeResult } from "./EvaluateOverTime";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
-import logger from "../../Logger";
 
 export default class ExternalStatusPageMonitorCriteria {
   @CaptureSpan()
   public static async isMonitorInstanceCriteriaFilterMet(input: {
     dataToProcess: DataToProcess;
     criteriaFilter: CriteriaFilter;
+    monitoringInterval?: string | undefined;
+    overTimeContext?: { notMetReason?: string } | undefined;
   }): Promise<string | null> {
     let threshold: number | string | undefined | null =
       input.criteriaFilter.value;
@@ -33,24 +34,27 @@ export default class ExternalStatusPageMonitorCriteria {
       input.criteriaFilter.evaluateOverTime &&
       input.criteriaFilter.evaluateOverTimeOptions
     ) {
-      try {
-        overTimeValue = await EvaluateOverTime.getValueOverTime({
+      const overTimeDecision: EvaluateOverTimeResult =
+        await EvaluateOverTime.resolveFilterOverTime({
           projectId: (input.dataToProcess as ProbeMonitorResponse).projectId,
           monitorId: input.dataToProcess.monitorId!,
           evaluateOverTimeOptions: input.criteriaFilter.evaluateOverTimeOptions,
           metricType: input.criteriaFilter.checkOn,
+          monitoringInterval: input.monitoringInterval,
         });
 
-        if (Array.isArray(overTimeValue) && overTimeValue.length === 0) {
-          overTimeValue = undefined;
+      if (overTimeDecision.decision === "not-met") {
+        if (input.overTimeContext) {
+          input.overTimeContext.notMetReason = overTimeDecision.reason;
         }
-      } catch (err) {
-        logger.error(
-          `Error in getting over time value for ${input.criteriaFilter.checkOn}`,
-        );
-        logger.error(err);
-        overTimeValue = undefined;
+        return null;
       }
+
+      if (overTimeDecision.decision === "trigger") {
+        return overTimeDecision.reason;
+      }
+
+      overTimeValue = overTimeDecision.value;
     }
 
     // Check if external status page is online
