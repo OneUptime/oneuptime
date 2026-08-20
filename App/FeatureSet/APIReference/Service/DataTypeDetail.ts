@@ -2014,7 +2014,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         type: "object",
         required: false,
         description:
-          "Configuration for time-based evaluation. Contains 'timeValueInMinutes' (number of minutes to evaluate) and 'evaluateOverTimeType' (aggregation: 'Average', 'Sum', 'Maximum Value', 'Minimum Value', 'All Values', 'Any Value').",
+          "Configuration for time-based evaluation. Contains 'timeValueInMinutes' (number of minutes to evaluate), 'evaluateOverTimeType' (aggregation: 'Average', 'Sum', 'Maximum Value', 'Minimum Value', 'All Values', 'Any Value'), and 'onNoDataPolicy' ('Ignore' (default), 'Treat As Zero' or 'Trigger') which decides what happens while the window does not hold enough data to judge the filter. Note that 'All Values' only matches once the window is actually covered by data, so a monitor that has just been created waits for the window to fill instead of matching on its first check.",
       },
       {
         name: "serverMonitorOptions",
@@ -2125,6 +2125,19 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
           evaluateOverTimeOptions: {
             timeValueInMinutes: 5,
             evaluateOverTimeType: "Average",
+          },
+        },
+        "// Example 13: Require the whole window to breach":
+          "Only matches after 5 minutes of consecutive non-200 responses",
+        filter13: {
+          checkOn: "Response Status Code",
+          filterType: "Not Equal To",
+          value: 200,
+          evaluateOverTime: true,
+          evaluateOverTimeOptions: {
+            timeValueInMinutes: 5,
+            evaluateOverTimeType: "All Values",
+            onNoDataPolicy: "Ignore",
           },
         },
       },

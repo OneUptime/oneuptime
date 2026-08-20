@@ -81,6 +81,14 @@ For **Total Connection Time (DNS + TCP)**, **Port DNS Lookup Time**, and **Port 
 
 **Evaluate this criteria over a period of time** is a separate checkbox on the criteria form rather than a filter condition. Turn it on to compare an aggregate — chosen under **Evaluate** (Average, Sum, Maximum Value, Minimum Value, All Values, Any Value) over the window set by **For the last (in minutes)** — instead of the value from the latest check.
 
+**All Values** only matches once the window is genuinely covered by data. A monitor that has just been created, or one whose checks stopped being recorded, does not have enough history to say anything about the last N minutes, so the criteria waits rather than matching on the one reading it does have. **Any Value** is the setting for "tell me the moment a single check breaches" and still fires immediately.
+
+**If No Data** controls what happens while the window cannot back the criteria:
+
+- **Ignore** (default) — the criteria does not match. Use this for ordinary threshold alerting.
+- **Trigger** — treat the missing data as the problem. Use this for heartbeat-style checks where silence is itself a failure.
+- **Treat As Zero** — compare the window as a single zero. Use this for counters where "no events" genuinely means zero.
+
 DNS lookup criteria have no value to evaluate when the target is already an IP address. Use the total or TCP connection time for criteria that must work with both hostnames and IP addresses.
 
 ### Example Criteria
