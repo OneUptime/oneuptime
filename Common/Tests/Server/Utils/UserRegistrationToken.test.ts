@@ -128,12 +128,24 @@ describe("UserRegistrationToken.generateRegistrationToken", () => {
       "data"
     ] as EmailVerificationToken;
 
-    const daysOut: number = OneUptimeDate.getDaysBetweenTwoDates(
-      OneUptimeDate.getCurrentDate(),
-      created.expires!,
-    );
+    /*
+     * The source stamps expires = now + N days, then a few milliseconds later
+     * this test reads the clock again to measure the gap. Measuring in whole
+     * days would truncate that sub-day drift down to N-1 (moment's diff rounds
+     * toward zero), which is a timing race that fails under CI load. Measure the
+     * raw gap in milliseconds and allow a generous tolerance for the execution
+     * time between the two clock reads instead.
+     */
+    const msOut: number =
+      created.expires!.getTime() - OneUptimeDate.getCurrentDate().getTime();
+    const expectedMs: number =
+      REGISTRATION_TOKEN_EXPIRY_IN_DAYS * 24 * 60 * 60 * 1000;
 
-    expect(daysOut).toBe(REGISTRATION_TOKEN_EXPIRY_IN_DAYS);
+    // Never longer than configured, and no more than a minute short of it.
+    expect(msOut).toBeLessThanOrEqual(expectedMs);
+    expect(msOut).toBeGreaterThan(expectedMs - 60 * 1000);
+
+    // It lasts days, not the 24 hours a plain verification link gets.
     expect(REGISTRATION_TOKEN_EXPIRY_IN_DAYS).toBeGreaterThan(1);
   });
 });
