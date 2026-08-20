@@ -70,6 +70,8 @@
 
 **상태 페이지 → 해당 페이지 → 브랜딩 → HTML, CSS 및 JavaScript**(`{id}/custom-code`)에는 각각 독립적으로 편집하는 카드 네 개가 있으며, 상태 페이지의 `headerHTML`, `footerHTML`, `customCSS`, `customJavaScript` 열이 이를 뒷받침합니다.
 
+> 활성 사용자 지정 HTML, CSS, JavaScript는 검증된 사용자 지정 도메인에서만 제공됩니다. 기본 `/status-page/:id` URL은 로그인한 OneUptime 영역과 같은 오리진을 공유하므로 여기서는 비활성화됩니다.
+
 - **헤더 HTML** — 플레이스홀더 `Insert Custom HTML here.`, 페이지 헤더에 주입됩니다.
 - **푸터 HTML** — 푸터에 대한 같은 것입니다.
 - **사용자 지정 CSS** — 플레이스홀더 `Insert Custom CSS here.`

@@ -70,6 +70,8 @@
 
 **ステータスページ → 対象のページ → ブランディング → HTML、CSS、JavaScript**（`{id}/custom-code`）には、それぞれ独立して編集できるカードが 4 つあります。ステータスページの `headerHTML`、`footerHTML`、`customCSS`、`customJavaScript` カラムに対応します。
 
+> カスタム HTML、CSS、JavaScript が有効になるのは、検証済みのカスタムドメイン上だけです。既定の `/status-page/:id` URL では、ログイン後の OneUptime と同じオリジンを共有するため無効です。
+
 - **ヘッダーHTML** — プレースホルダーは `Insert Custom HTML here.`。ページのヘッダーに挿入されます。
 - **フッターHTML** — フッターに対する同じもの。
 - **カスタム CSS** — プレースホルダーは `Insert Custom CSS here.`

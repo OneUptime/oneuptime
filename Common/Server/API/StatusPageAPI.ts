@@ -117,6 +117,7 @@ import StatusPageSubscriberNotificationTemplate from "../../Models/DatabaseModel
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "../Services/StatusPageSubscriberNotificationTemplateService";
+import { canServeStatusPageCustomizations } from "../Utils/StatusPageCustomizationAccess";
 
 type EscapeXmlFunction = (text: string) => string;
 
@@ -860,6 +861,12 @@ export default class StatusPageAPI extends BaseAPI<
           ObjectID.validateUUID(statusPageIdParam);
           const objectId: ObjectID = new ObjectID(statusPageIdParam);
 
+          const allowStatusPageCustomizations: boolean =
+            await canServeStatusPageCustomizations({
+              req,
+              statusPageId: objectId,
+            });
+
           const select: Select<StatusPage> = {
             _id: true,
             slug: true,
@@ -870,11 +877,7 @@ export default class StatusPageAPI extends BaseAPI<
             pageTitle: true,
             pageDescription: true,
             copyrightText: true,
-            customCSS: true,
-            customJavaScript: true,
             hidePoweredByOneUptimeBranding: true,
-            headerHTML: true,
-            footerHTML: true,
             enableEmailSubscribers: true,
             enableSlackSubscribers: true,
             enableMicrosoftTeamsSubscribers: true,
@@ -911,6 +914,13 @@ export default class StatusPageAPI extends BaseAPI<
             enabledLanguages: true,
           };
 
+          if (allowStatusPageCustomizations) {
+            select.customCSS = true;
+            select.customJavaScript = true;
+            select.headerHTML = true;
+            select.footerHTML = true;
+          }
+
           const hasEnabledSSO: PositiveNumber =
             await StatusPageSsoService.countBy({
               query: {
@@ -932,6 +942,20 @@ export default class StatusPageAPI extends BaseAPI<
 
           if (!item) {
             throw new BadDataException("Status Page not found");
+          }
+
+          if (!allowStatusPageCustomizations) {
+            /*
+             * The conditional select above keeps these values out of the
+             * normal database result. Explicit redaction is the second half
+             * of the boundary: it prevents a future eager-load, hook, cache,
+             * or over-populated service result from serializing tenant code
+             * onto the authenticated application's origin.
+             */
+            delete item.customCSS;
+            delete item.customJavaScript;
+            delete item.headerHTML;
+            delete item.footerHTML;
           }
 
           const footerLinks: Array<StatusPageFooterLink> =
@@ -987,6 +1011,7 @@ export default class StatusPageAPI extends BaseAPI<
               StatusPageHeaderLink,
             ),
             hasEnabledSSO: hasEnabledSSO.toNumber(),
+            allowStatusPageCustomizations,
           };
 
           return Response.sendJsonObjectResponse(req, res, response);

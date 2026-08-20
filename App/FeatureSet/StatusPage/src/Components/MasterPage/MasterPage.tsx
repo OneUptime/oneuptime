@@ -5,6 +5,10 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import RouteParams from "../../Utils/RouteParams";
 import StatusPageUtil from "../../Utils/StatusPage";
+import {
+  canUseStatusPageCustomizations,
+  getPermittedStatusPageCustomization,
+} from "../../Utils/StatusPageCustomizations";
 import Banner from "../Banner/Banner";
 import Footer from "../Footer/Footer";
 import Header from "../Header/Header";
@@ -61,11 +65,19 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
   const [headerHtml, setHeaderHtml] = useState<null | string>(null);
   const [footerHtml, setFooterHTML] = useState<null | string>(null);
+  const [customCss, setCustomCss] = useState<null | string>(null);
+  const [allowStatusPageCustomizations, setAllowStatusPageCustomizations] =
+    useState<boolean>(false);
 
   const [statusPage, setStatusPage] = useState<StatusPage | null>(null);
 
   const [hidePoweredByOneUptimeBranding, setHidePoweredByOneUptimeBranding] =
     useState<boolean>(false);
+
+  const canRenderCustomizations: boolean = canUseStatusPageCustomizations({
+    allowStatusPageCustomizations: allowStatusPageCustomizations,
+    isPreview: props.isPreview,
+  });
 
   useEffect(() => {
     // if there is an SSO token. We need to save that to localstorage.
@@ -131,6 +143,20 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     }
   }, [statusPageId]);
 
+  useEffect(() => {
+    if (!canRenderCustomizations || !customCss) {
+      return;
+    }
+
+    const style: HTMLStyleElement = document.createElement("style");
+    style.innerText = customCss;
+    document.head.appendChild(style);
+
+    return () => {
+      style.remove();
+    };
+  }, [canRenderCustomizations, customCss]);
+
   type GetIdFunction = () => Promise<ObjectID>;
 
   const getId: GetIdFunction = async (): Promise<ObjectID> => {
@@ -177,6 +203,18 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         headers: {},
       });
 
+      const serverAllowsStatusPageCustomizations: boolean =
+        response.data["allowStatusPageCustomizations"] === true;
+      const customizationContext: {
+        allowStatusPageCustomizations: boolean;
+        isPreview: boolean;
+      } = {
+        allowStatusPageCustomizations: serverAllowsStatusPageCustomizations,
+        isPreview: props.isPreview,
+      };
+
+      setAllowStatusPageCustomizations(serverAllowsStatusPageCustomizations);
+
       setMasterPageData(response.data);
 
       // set status page.
@@ -193,15 +231,17 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         enabledLanguages: statusPage.enabledLanguages || null,
       });
 
-      // setcss.
-      const css: string | null = statusPage.customCSS || null;
-      if (css) {
-        const style: any = document.createElement("style");
-        style.innerText = css;
-        (document as any).getElementsByTagName("head")[0].appendChild(style);
-      }
+      setCustomCss(
+        getPermittedStatusPageCustomization(
+          statusPage.customCSS,
+          customizationContext,
+        ),
+      );
 
-      const headHtml: string | null = statusPage.headerHTML || null;
+      const headHtml: string | null = getPermittedStatusPageCustomization(
+        statusPage.headerHTML,
+        customizationContext,
+      );
 
       const hidePoweredByOneUptimeBranding: boolean | null =
         statusPage.hidePoweredByOneUptimeBranding || false;
@@ -210,15 +250,13 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         Boolean(hidePoweredByOneUptimeBranding),
       );
 
-      const footHTML: string | null = statusPage.footerHTML || null;
+      const footHTML: string | null = getPermittedStatusPageCustomization(
+        statusPage.footerHTML,
+        customizationContext,
+      );
 
-      if (headHtml) {
-        setHeaderHtml(headHtml);
-      }
-
-      if (footHTML) {
-        setFooterHTML(footHTML);
-      }
+      setHeaderHtml(headHtml);
+      setFooterHTML(footHTML);
 
       props.onLoadComplete(response.data);
 
@@ -305,7 +343,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
           className="flex grow flex-col"
         >
           <>
-            {!headerHtml ? (
+            {!canRenderCustomizations || !headerHtml ? (
               <Header
                 logo={logo}
                 logoAltText={
@@ -360,7 +398,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             >
               {props.children}
             </main>
-            {!footerHtml ? (
+            {!canRenderCustomizations || !footerHtml ? (
               <Footer
                 hidePoweredByOneUptimeBranding={hidePoweredByOneUptimeBranding}
                 enabledLanguages={statusPage?.enabledLanguages || null}

@@ -70,6 +70,8 @@ Legal, privacy and terms links belong here. Header links are for navigation; foo
 
 **Status Pages → your page → Branding → HTML, CSS & JavaScript** (`{id}/custom-code`) has four independently editable cards, backed by the `headerHTML`, `footerHTML`, `customCSS` and `customJavaScript` columns on the status page:
 
+> Active custom HTML, CSS and JavaScript is served only on a verified custom domain. It is disabled on the default `/status-page/:id` URL because that URL shares OneUptime's authenticated origin.
+
 - **Header HTML** — placeholder `Insert Custom HTML here.`, injected into the page header.
 - **Footer HTML** — the same, for the footer.
 - **Custom CSS** — placeholder `Insert Custom CSS here.`

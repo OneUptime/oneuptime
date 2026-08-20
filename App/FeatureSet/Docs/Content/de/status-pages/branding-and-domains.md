@@ -70,6 +70,8 @@ Impressum, Datenschutz und Nutzungsbedingungen gehören hierhin. Kopfzeilen-Link
 
 **Statusseiten → Ihre Seite → Branding → HTML, CSS und JavaScript** (`{id}/custom-code`) hat vier unabhängig bearbeitbare Karten, gestützt auf die Spalten `headerHTML`, `footerHTML`, `customCSS` und `customJavaScript` der Statusseite:
 
+> Aktives benutzerdefiniertes HTML, CSS und JavaScript wird nur über eine verifizierte eigene Domain ausgeliefert. Unter der Standard-URL `/status-page/:id` ist es deaktiviert, da diese URL denselben Ursprung wie der angemeldete OneUptime-Bereich hat.
+
 - **Header-HTML** – Platzhalter `Insert Custom HTML here.`, wird in die Kopfzeile der Seite eingefügt.
 - **Footer-HTML** – dasselbe für die Fußzeile.
 - **Benutzerdefiniertes CSS** – Platzhalter `Insert Custom CSS here.`
