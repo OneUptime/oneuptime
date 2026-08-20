@@ -778,6 +778,7 @@ describe("UserNotificationRuleService - the deliverNotificationForRule extractio
           deviceType: true,
           isVerified: true,
           userId: true,
+          isCriticalAlertEnabled: true,
         },
       });
     });

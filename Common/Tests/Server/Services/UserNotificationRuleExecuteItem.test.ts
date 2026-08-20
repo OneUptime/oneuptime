@@ -619,6 +619,7 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
           deviceType: true,
           isVerified: true,
           userId: true,
+          isCriticalAlertEnabled: true,
         },
       });
     });

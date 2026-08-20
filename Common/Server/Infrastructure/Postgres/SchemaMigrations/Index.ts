@@ -1061,11 +1061,11 @@ export default [
   AddInventoryItemArchiveAndCustomFields1786900000000,
   AddOnCallNotificationFallbackColumns1787000000000,
   AddAIConversationPageContext1787100000000,
+  MigrationName1787142779538,
+  MigrationName1787156982416,
   AddAIChatMessageFeedback1787200000000,
   AddEpisodeMemberNotifyIndexes1787300000000,
   AddDeviceRoleAndDeclaredLinkParent1787400000000,
   AddEnableSearchEngineIndexingToStatusPage1787500000000,
   AddNetworkDeviceReachabilityColumns1787600000000,
-  MigrationName1787142779538,
-  MigrationName1787156982416,
 ];
