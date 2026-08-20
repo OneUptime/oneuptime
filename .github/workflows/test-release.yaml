@@ -944,6 +944,10 @@ jobs:
           else
             echo "${KEY}=true" >> config.env
           fi
+          # Also surface it as a real environment variable for every later step,
+          # so `docker compose` interpolates ${KEY} straight from the process
+          # env and does not depend on the config.env round-trip.
+          echo "${KEY}=true" >> "$GITHUB_ENV"
       - name: Start Server with release tag
         run: |
           set -euo pipefail
@@ -953,6 +957,14 @@ jobs:
           npm run status-check
       - name: Wait for server to start
         run: bash ./Tests/Scripts/status-check.sh http://localhost
+      - name: Diagnose verification-code exposure wiring (non-fatal)
+        run: |
+          set +e
+          echo "config.env flag line:"
+          grep -n "EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E" config.env || echo "  (not in config.env)"
+          echo "runner env flag: [${EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E:-UNSET}]"
+          echo "app container flag:"
+          docker compose -f docker-compose.billing.yml exec -T app sh -lc 'echo "  APP_FLAG=[${EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E:-UNSET}]"' || echo "  (exec into app failed)"
       - name: Run E2E Tests. Run docker container e2e in docker compose file
         run: |
           export $(grep -v '^#' config.env | xargs)
