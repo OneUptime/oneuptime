@@ -22,7 +22,13 @@ set -eu
 SOCKET="${DOCKER_INVENTORY_SOCKET:-/var/run/docker.sock}"
 LOG_PATH="${DOCKER_INVENTORY_LOG_PATH:-/var/log/oneuptime-docker-swarm-inventory.log}"
 INTERVAL="${DOCKER_INVENTORY_INTERVAL_SECONDS:-300}"
-DOCKER_API="http://localhost/v1.44"
+API_VERSION="${DOCKER_API_VERSION:-1.44}"
+
+# Follow the collector's DOCKER_API_VERSION (same default; docker-compose.yml
+# passes it to both services) so a host that lowers the docker_stats
+# receiver's version for an older daemon lowers ours too. The modern default
+# keeps newer daemons from rejecting us with "client version too old".
+DOCKER_API="http://localhost/v${API_VERSION}"
 
 TMP_DIR="$(dirname "${LOG_PATH}")"
 SERVICES_JSON="${TMP_DIR}/.oneuptime-swarm-services.json"

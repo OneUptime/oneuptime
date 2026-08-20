@@ -61,6 +61,7 @@ The cluster auto-registers in OneUptime on first telemetry (keyed by `DOCKER_SWA
 | `ONEUPTIME_SERVICE_TOKEN`           | yes      | —                       | Telemetry ingestion key                                        |
 | `DOCKER_SWARM_CLUSTER_NAME`         | yes      | `docker-swarm`          | The cluster join key (matches the cluster's Name in OneUptime) |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | no       | `300`                   | How often the poller refreshes the inventory snapshot          |
+| `DOCKER_API_VERSION`                | no       | `1.44`                  | Docker Engine API version to negotiate (see Troubleshooting)   |
 
 ## How it differs from the Docker Host agent
 
@@ -80,3 +81,24 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-d
 - **No inventory appears**: confirm the poller is on a manager (`docker node ls` works there). Check `docker compose logs oneuptime-docker-swarm-inventory` for `failed to emit ...` lines.
 - **Cluster not appearing at all**: check the collector logs and that `ONEUPTIME_SERVICE_TOKEN` / `ONEUPTIME_URL` are correct.
 - **Status flaps to Disconnected**: the cluster is marked disconnected after 15 minutes without telemetry; make sure the collector container stays up.
+
+### Collector exits with "client version is too new"
+
+```
+Error: cannot start pipelines: failed to start "docker_stats" receiver:
+Error response from daemon: client version 1.44 is too new.
+Maximum supported API version is 1.41
+```
+
+The daemon refuses a client newer than its own maximum, the receiver fails to start,
+and the collector exits with it — so the container restart-loops. Set
+`DOCKER_API_VERSION` to the daemon's maximum:
+
+```bash
+docker version --format '{{ .Server.APIVersion }}'   # e.g. 1.41 on Engine 20.10
+```
+
+Then add `DOCKER_API_VERSION=1.41` (or the value you got) to `.env` and run
+`docker compose up -d`, on every node the collector runs on. The value keeps working
+after the daemon is upgraded, since newer daemons still serve older API versions, so it
+can be removed on its own schedule.

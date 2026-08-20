@@ -50,6 +50,7 @@ podman compose up -d
 | `ONEUPTIME_URL` | Yes | Your OneUptime instance URL |
 | `ONEUPTIME_SERVICE_TOKEN` | Yes | Telemetry ingestion service token (Settings → API Keys) |
 | `PODMAN_HOST_NAME` | No | Friendly name for this host (default: `podman-host`) |
+| `DOCKER_API_VERSION` | No | Docker Engine API version to negotiate (default: `1.44`) |
 
 ## Image Tags
 
@@ -157,6 +158,28 @@ podman build -f ./PodmanAgent/Dockerfile -t oneuptime/podman-agent:local .
 ### Podman Socket Permission Denied
 
 The agent must run as root (`--user 0:0`) to access `/run/podman/podman.sock`. Ensure the `--user 0:0` flag (or `user: "0:0"` in Compose) is present, and that the Podman socket is enabled (`systemctl enable --now podman.socket`).
+
+### Container Exits With "client version is too new"
+
+```
+Error: cannot start pipelines: failed to start "docker_stats" receiver:
+Error response from daemon: client version 1.44 is too new.
+Maximum supported API version is 1.41
+```
+
+The `docker_stats` receiver speaks a pinned Docker API version to the socket
+(`DOCKER_API_VERSION`, default `1.44`). A Docker-API server that enforces a maximum
+client version refuses a newer one — Docker Engine reports it as above — so the
+receiver fails to start, the collector exits with it, and the container restart-loops.
+Set `DOCKER_API_VERSION` to the version the socket reports:
+
+```bash
+curl -s -o /dev/null -D - --unix-socket /run/podman/podman.sock http://localhost/_ping | grep -i '^api-version'
+podman run -d ... -e DOCKER_API_VERSION=1.41 ...   # or set it in Compose
+```
+
+The value keeps working after an upgrade, since newer servers still serve older API
+versions, so it can be removed on its own schedule.
 
 ### No Container Logs in the Dashboard
 

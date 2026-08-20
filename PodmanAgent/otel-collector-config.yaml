@@ -1,12 +1,15 @@
 receivers:
   docker_stats:
     endpoint: unix:///run/podman/podman.sock
-    # Pin to a modern Docker Engine API version. The receiver default is
-    # "1.25" which modern daemons reject ("client version too old").
+    # Pin the Docker Engine API version: the receiver default is "1.25", which
+    # modern daemons reject ("client version too old"). The value comes from
+    # DOCKER_API_VERSION (the image defaults it to 1.44) so that a host running an
+    # older daemon can lower it -- a daemon also rejects a client newer than its
+    # own maximum, and that failure stops the receiver and the collector with it.
     # Podman exposes a Docker-API compatible socket, so the docker_stats
     # receiver works unchanged against it (there is no podman_stats
     # receiver in otel-contrib).
-    api_version: "1.44"
+    api_version: "${env:DOCKER_API_VERSION}"
     collection_interval: 30s
     # Enable optional metrics that the OneUptime Podman monitor alert
     # templates depend on (container restarts, uptime, pid count,

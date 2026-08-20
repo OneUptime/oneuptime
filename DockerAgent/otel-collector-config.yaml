@@ -1,9 +1,12 @@
 receivers:
   docker_stats:
     endpoint: unix:///var/run/docker.sock
-    # Pin to a modern Docker Engine API version. The receiver default is
-    # "1.25" which modern Docker daemons reject ("client version too old").
-    api_version: "1.44"
+    # Pin the Docker Engine API version: the receiver default is "1.25", which
+    # modern daemons reject ("client version too old"). The value comes from
+    # DOCKER_API_VERSION (the image defaults it to 1.44) so that a host running an
+    # older daemon can lower it -- a daemon also rejects a client newer than its
+    # own maximum, and that failure stops the receiver and the collector with it.
+    api_version: "${env:DOCKER_API_VERSION}"
     collection_interval: 30s
     # Enable optional metrics that the OneUptime Docker monitor alert
     # templates depend on (container restarts, uptime, pid count,
