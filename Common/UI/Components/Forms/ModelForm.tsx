@@ -21,6 +21,7 @@ import Field from "./Types/Field";
 import Fields from "./Types/Fields";
 import { FormStep } from "./Types/FormStep";
 import FormValues from "./Types/FormValues";
+import FormAnalyticsName from "./Utils/FormAnalyticsName";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import AccessControlModel from "../../../Models/DatabaseModels/DatabaseBaseModel/AccessControlModel";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -854,7 +855,15 @@ const ModelForm: <TBaseModel extends BaseModel>(
         disableAutofocus={props.disableAutofocus}
         model={model}
         id={props.id}
-        name={props.name}
+        name={FormAnalyticsName.resolve(
+          props.name,
+          props.title,
+          model.singularName
+            ? `${
+                props.formType === FormType.Create ? "Create" : "Update"
+              } ${model.singularName}`
+            : undefined,
+        )}
         onFormStepChange={props.onFormStepChange}
         onIsLastFormStep={props.onIsLastFormStep}
         fields={fields}

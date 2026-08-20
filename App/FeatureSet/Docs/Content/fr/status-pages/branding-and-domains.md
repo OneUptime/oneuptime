@@ -70,6 +70,8 @@ Les liens légaux, de confidentialité et de conditions d'utilisation ont leur p
 
 **Pages de statut → votre page → Image de marque → HTML, CSS et JavaScript** (`{id}/custom-code`) réunit quatre cartes modifiables indépendamment, adossées aux colonnes `headerHTML`, `footerHTML`, `customCSS` et `customJavaScript` de la page de statut :
 
+> Le HTML, le CSS et le JavaScript personnalisés actifs ne sont servis que sur un domaine personnalisé vérifié. Ils sont désactivés sur l'URL par défaut `/status-page/:id`, car celle-ci partage la même origine que l'espace OneUptime authentifié.
+
 - **HTML d'en-tête** — texte indicatif `Insert Custom HTML here.`, injecté dans l'en-tête de la page.
 - **HTML du pied de page** — la même chose, pour le pied de page.
 - **CSS personnalisé** — texte indicatif `Insert Custom CSS here.`

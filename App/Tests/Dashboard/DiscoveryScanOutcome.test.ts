@@ -240,3 +240,101 @@ describe("summarizeDiscoveryScan — the probe's explanation", () => {
     ).toBeNull();
   });
 });
+
+/*
+ * `hasReported` exists so the scans table can tell "no result yet" apart from
+ * "nothing to say".
+ *
+ * The Responded Hosts cell used to short-circuit to an em-dash the moment
+ * respondedHostCount was missing, which threw away the only explanation a scan
+ * that never ran ever gets — the worker's "nobody has claimed this scan" note
+ * and the reaper's "the probe did not report a result within 2 hours" are both
+ * written to statusMessage, on rows that by definition have no counts. Both
+ * were stored, both were fetched by the page, and neither was ever rendered
+ * (OneUptime issue #3287).
+ */
+describe("summarizeDiscoveryScan — has this scan reported yet", () => {
+  test("a Completed scan has reported", () => {
+    expect(summarizeDiscoveryScan(makeScan()).hasReported).toBe(true);
+  });
+
+  test("zero responders is a report, not the absence of one", () => {
+    expect(
+      summarizeDiscoveryScan(makeScan({ respondedHostCount: 0 })).hasReported,
+    ).toBe(true);
+  });
+
+  test("a Pending scan has not reported", () => {
+    expect(
+      summarizeDiscoveryScan(
+        makeScan({
+          status: "Pending",
+          respondedHostCount: undefined,
+          scannedHostCount: undefined,
+        } as never),
+      ).hasReported,
+    ).toBe(false);
+  });
+
+  test("a null respondedHostCount is not a report either", () => {
+    expect(
+      summarizeDiscoveryScan(makeScan({ respondedHostCount: null } as never))
+        .hasReported,
+    ).toBe(false);
+  });
+
+  test("null and undefined scans have not reported", () => {
+    expect(summarizeDiscoveryScan(null).hasReported).toBe(false);
+    expect(summarizeDiscoveryScan(undefined).hasReported).toBe(false);
+  });
+
+  /*
+   * The combination the fix turns on: no counts AND an explanation. Before,
+   * this row rendered as a bare em-dash.
+   */
+  test("an unreported scan can still carry the explanation the cell now shows", () => {
+    const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(
+      makeScan({
+        status: "Pending",
+        respondedHostCount: undefined,
+        scannedHostCount: undefined,
+        statusMessage:
+          'Not started yet: Probe "Datacentre Probe" is not connected to OneUptime, so it has not picked this scan up.',
+      } as never),
+    );
+
+    expect(outcome.hasReported).toBe(false);
+    expect(outcome.respondedHostSummary).toBeNull();
+    expect(outcome.explanation).toContain("is not connected to OneUptime");
+  });
+
+  /*
+   * And the case that must still render an em-dash: a scan submitted moments
+   * ago has nothing to report and nothing to explain.
+   */
+  test("a freshly submitted scan has neither a summary nor an explanation", () => {
+    const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(
+      makeScan({
+        status: "Pending",
+        respondedHostCount: undefined,
+        scannedHostCount: undefined,
+        statusMessage: undefined,
+      } as never),
+    );
+
+    expect(outcome.hasReported).toBe(false);
+    expect(outcome.explanation).toBeNull();
+  });
+
+  test("hasReported agrees with respondedHostSummary in every case", () => {
+    for (const scan of [
+      makeScan(),
+      makeScan({ respondedHostCount: 12 }),
+      makeScan({ respondedHostCount: undefined } as never),
+      makeScan({ respondedHostCount: null } as never),
+    ]) {
+      const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(scan);
+      expect(outcome.hasReported).toBe(outcome.respondedHostSummary !== null);
+    }
+  });
+});

@@ -15,6 +15,7 @@ import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import JSONWebTokenData from "Common/Types/JsonWebTokenData";
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
+import applyStatusPageContentSecurityPolicy from "Common/Server/Utils/StatusPageContentSecurityPolicy";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
@@ -147,6 +148,8 @@ const StatusPageFrontendConfig: FrontendConfig = {
     req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<JSONObject> => {
+    applyStatusPageContentSecurityPolicy(req, res);
+
     const statusPageData: StatusPageData | null = await getStatusPageData(req);
 
     /*

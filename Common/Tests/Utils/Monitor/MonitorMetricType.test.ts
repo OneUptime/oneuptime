@@ -398,3 +398,83 @@ describe("invariant: every probeable monitor type displays some metric", () => {
     expect(typesWithoutMetrics).toEqual([]);
   });
 });
+
+/*
+ * The null-returning variant exists because over-time evaluation asks "is
+ * there a series behind this CheckOn?" for every filter it sees. It used to
+ * ask by calling the throwing variant inside a try/catch that swallowed the
+ * error and quietly compared the instantaneous value instead - so "evaluate
+ * over time" was a silent no-op for every CheckOn missing from the map.
+ */
+describe("getMonitorMetricTypeByCheckOnOrNull", () => {
+  test("returns the same series as the throwing variant for mapped CheckOns", () => {
+    const mapped: Array<CheckOn> = [
+      CheckOn.ResponseTime,
+      CheckOn.ResponseStatusCode,
+      CheckOn.IsOnline,
+      CheckOn.CPUUsagePercent,
+      CheckOn.MemoryUsagePercent,
+      CheckOn.DiskUsagePercent,
+      CheckOn.PacketLossPercent,
+      CheckOn.Jitter,
+      CheckOn.PortDnsLookupTime,
+      CheckOn.PortTcpConnectTime,
+    ];
+
+    for (const checkOn of mapped) {
+      expect(
+        MonitorMetricTypeUtil.getMonitorMetricTypeByCheckOnOrNull(checkOn),
+      ).toBe(MonitorMetricTypeUtil.getMonitorMeticTypeByCheckOn(checkOn));
+    }
+  });
+
+  /*
+   * DNS, SNMP and External Status Page probes write into the shared online
+   * and response-time series like every other probe check, and the criteria
+   * UI advertises all six of these as over-time capable - but none of them
+   * had a mapping, so the window could never be read.
+   */
+  test("maps the DNS / SNMP / status page online checks onto the online series", () => {
+    for (const checkOn of [
+      CheckOn.DnsIsOnline,
+      CheckOn.SnmpIsOnline,
+      CheckOn.ExternalStatusPageIsOnline,
+    ]) {
+      expect(
+        MonitorMetricTypeUtil.getMonitorMetricTypeByCheckOnOrNull(checkOn),
+      ).toBe(MonitorMetricType.IsOnline);
+    }
+  });
+
+  test("maps their response time checks onto the response time series", () => {
+    for (const checkOn of [
+      CheckOn.DnsResponseTime,
+      CheckOn.SnmpResponseTime,
+      CheckOn.ExternalStatusPageResponseTime,
+    ]) {
+      expect(
+        MonitorMetricTypeUtil.getMonitorMetricTypeByCheckOnOrNull(checkOn),
+      ).toBe(MonitorMetricType.ResponseTime);
+    }
+  });
+
+  test("returns null instead of throwing for CheckOns no series records", () => {
+    for (const checkOn of [
+      CheckOn.ResponseBody,
+      CheckOn.ResponseHeader,
+      CheckOn.IsRequestTimeout,
+      CheckOn.JavaScriptExpression,
+      CheckOn.IncomingRequest,
+    ]) {
+      expect(
+        MonitorMetricTypeUtil.getMonitorMetricTypeByCheckOnOrNull(checkOn),
+      ).toBeNull();
+    }
+  });
+
+  test("the throwing variant still throws for those CheckOns", () => {
+    expect(() => {
+      MonitorMetricTypeUtil.getMonitorMeticTypeByCheckOn(CheckOn.ResponseBody);
+    }).toThrow();
+  });
+});

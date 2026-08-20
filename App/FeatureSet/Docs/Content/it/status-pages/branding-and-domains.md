@@ -70,6 +70,8 @@ Qui vanno i link legali, la privacy e i termini. I link dell'intestazione servon
 
 **Pagine di stato → la tua pagina → Branding → HTML, CSS e JavaScript** (`{id}/custom-code`) ha quattro schede modificabili in modo indipendente, appoggiate alle colonne `headerHTML`, `footerHTML`, `customCSS` e `customJavaScript` della pagina di stato:
 
+> Il codice HTML, CSS e JavaScript personalizzato attivo viene servito solo su un dominio personalizzato verificato. È disabilitato sull'URL predefinito `/status-page/:id` perché condivide la stessa origine dell'area autenticata di OneUptime.
+
 - **HTML intestazione** — segnaposto `Insert Custom HTML here.`, iniettato nell'intestazione della pagina.
 - **HTML del footer** — lo stesso, per il piè di pagina.
 - **CSS personalizzato** — segnaposto `Insert Custom CSS here.`

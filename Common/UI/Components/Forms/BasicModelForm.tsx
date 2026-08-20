@@ -8,6 +8,7 @@ import BasicForm, {
 import Fields from "./Types/Fields";
 import { FormStep } from "./Types/FormStep";
 import FormValues from "./Types/FormValues";
+import FormAnalyticsName from "./Utils/FormAnalyticsName";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import React, {
   MutableRefObject,
@@ -113,7 +114,7 @@ const BasicModelForm: <TBaseModel extends BaseModel>(
       onValidate={props.onValidate ? props.onValidate : DefaultValidateFunction}
       disableAutofocus={props.disableAutofocus}
       steps={props.steps}
-      name={props.name}
+      name={FormAnalyticsName.resolve(props.name, props.title)}
       onFormStepChange={props.onFormStepChange}
       submitButtonStyleType={props.submitButtonStyleType}
       onSubmit={props.onSubmit}

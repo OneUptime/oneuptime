@@ -531,6 +531,8 @@ import { AddDeviceRoleAndDeclaredLinkParent1787400000000 } from "./1787400000000
 import { AddEnableSearchEngineIndexingToStatusPage1787500000000 } from "./1787500000000-AddEnableSearchEngineIndexingToStatusPage";
 import { AddNetworkDeviceReachabilityColumns1787600000000 } from "./1787600000000-AddNetworkDeviceReachabilityColumns";
 import { FixTotpOtpUrlAlgorithm1787700000000 } from "./1787700000000-FixTotpOtpUrlAlgorithm";
+import { AddScopeToNetworkDeviceLinkRule1787800000000 } from "./1787800000000-AddScopeToNetworkDeviceLinkRule";
+import { AddRestrictToAttachedProjectsToGlobalSso1787900000000 } from "./1787900000000-AddRestrictToAttachedProjectsToGlobalSso";
 import { MigrationName1787142779538 } from "./1787142779538-MigrationName";
 import { MigrationName1787156982416 } from "./1787156982416-MigrationName";
 
@@ -1070,4 +1072,6 @@ export default [
   AddEnableSearchEngineIndexingToStatusPage1787500000000,
   AddNetworkDeviceReachabilityColumns1787600000000,
   FixTotpOtpUrlAlgorithm1787700000000,
+  AddScopeToNetworkDeviceLinkRule1787800000000,
+  AddRestrictToAttachedProjectsToGlobalSso1787900000000,
 ];

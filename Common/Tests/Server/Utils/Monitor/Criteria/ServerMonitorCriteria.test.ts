@@ -1,5 +1,7 @@
 import ServerMonitorCriteria from "../../../../../Server/Utils/Monitor/Criteria/ServerMonitorCriteria";
-import EvaluateOverTime from "../../../../../Server/Utils/Monitor/Criteria/EvaluateOverTime";
+import EvaluateOverTime, {
+  OverTimeCriteriaValue,
+} from "../../../../../Server/Utils/Monitor/Criteria/EvaluateOverTime";
 import BasicInfrastructureMetrics, {
   BasicDiskMetrics,
   LoadMetrics,
@@ -893,15 +895,35 @@ describe("ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
   });
 
   /*
-   * The evaluate-over-time path replaces the current metric value with a
-   * historical aggregate. The DB-backed EvaluateOverTime.getValueOverTime is
-   * spied so these tests stay deterministic.
+   * The evaluate-over-time path replaces the current metric value with the
+   * window recorded for the monitor. The DB-backed lookup is spied so these
+   * tests stay deterministic.
    */
   describe("evaluate over time", () => {
+    /** The window produced a usable value. */
+    function usable(
+      value: Array<number | boolean> | number | boolean,
+    ): OverTimeCriteriaValue {
+      return { earlyReturn: null, value: value };
+    }
+
+    /** The window could not back the filter, so nothing is compared. */
+    function noUsableWindow(): OverTimeCriteriaValue {
+      return { earlyReturn: { result: null }, value: undefined };
+    }
+
+    function mockOverTime(
+      result: OverTimeCriteriaValue,
+    ): ReturnType<typeof jest.spyOn> {
+      return jest
+        .spyOn(EvaluateOverTime, "getOverTimeValueForCriteriaFilter")
+        .mockResolvedValue(result) as ReturnType<typeof jest.spyOn>;
+    }
+
     test("uses the over-time boolean series for IsOnline while online", async () => {
-      const spy: ReturnType<typeof jest.spyOn> = jest
-        .spyOn(EvaluateOverTime, "getValueOverTime")
-        .mockResolvedValue([true, false]);
+      const spy: ReturnType<typeof jest.spyOn> = mockOverTime(
+        usable([true, false]),
+      );
 
       const response: ServerMonitorResponse = buildServerResponse({
         minutesSinceLastCheck: 5,
@@ -923,7 +945,9 @@ describe("ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
         expect.objectContaining({
           projectId: response.projectId,
           monitorId: response.monitorId,
-          metricType: CheckOn.IsOnline,
+          criteriaFilter: expect.objectContaining({
+            checkOn: CheckOn.IsOnline,
+          }),
         }),
       );
     });
@@ -934,9 +958,7 @@ describe("ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
      * been offline under the default of 3.
      */
     test("timeValueInMinutes overrides the offline threshold", async () => {
-      jest
-        .spyOn(EvaluateOverTime, "getValueOverTime")
-        .mockResolvedValue([false, false]);
+      mockOverTime(usable([false, false]));
 
       const result: string | null = await evaluate(
         buildServerResponse({ minutesSinceLastCheck: 5 }),
@@ -956,11 +978,14 @@ describe("ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     });
 
     /*
-     * An empty history array is reset to undefined, so IsOnline falls back to
-     * the "recent check → online" default rather than an empty series.
+     * "Is Online" is the one filter that keeps its fallback: for a server
+     * monitor the absence of data IS the signal, and the last-check-in
+     * arithmetic above already implements the "wait this long" behaviour. So
+     * an unusable window still falls back to the "recent check -> online"
+     * default rather than declining to evaluate.
      */
     test("empty over-time series falls back to the liveness default", async () => {
-      jest.spyOn(EvaluateOverTime, "getValueOverTime").mockResolvedValue([]);
+      mockOverTime(noUsableWindow());
 
       const result: string | null = await evaluate(
         buildServerResponse({ minutesSinceLastCheck: 1 }),
@@ -984,9 +1009,7 @@ describe("ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
      * metric. The array (70, 80) breaches while the live value (10) would not.
      */
     test("over-time numeric series takes precedence over the live CPU metric", async () => {
-      jest
-        .spyOn(EvaluateOverTime, "getValueOverTime")
-        .mockResolvedValue([70, 80]);
+      mockOverTime(usable([70, 80]));
 
       const result: string | null = await evaluate(
         buildServerResponse({ metrics: buildMetrics({ cpuPercentUsed: 10 }) }),
@@ -1007,14 +1030,45 @@ describe("ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     });
 
     /*
-     * A scalar zero aggregate is falsy, so the evaluator falls back to the
-     * live CPU metric rather than treating 0 as the value to compare.
+     * Only the disk-usage series carries a diskPath attribute. Scoping any
+     * other series by it would filter against an attribute no row has, and
+     * an unusable window now means the filter waits rather than comparing
+     * the live value - so the stray option would silence it outright.
      */
-    test("scalar zero aggregate falls back to the live CPU metric", async () => {
-      jest.spyOn(EvaluateOverTime, "getValueOverTime").mockResolvedValue(0);
+    test("scopes the window by disk path only for disk usage", async () => {
+      const spy: ReturnType<typeof jest.spyOn> = mockOverTime(usable([95]));
 
-      const result: string | null = await evaluate(
-        buildServerResponse({ metrics: buildMetrics({ cpuPercentUsed: 90 }) }),
+      await evaluate(
+        buildServerResponse({
+          metrics: buildMetrics({
+            diskMetrics: [
+              buildDiskMetric({ diskPath: "/data", percentUsed: 95 }),
+            ],
+          }),
+        }),
+        {
+          checkOn: CheckOn.DiskUsagePercent,
+          filterType: FilterType.GreaterThan,
+          value: 90,
+          evaluateOverTime: true,
+          evaluateOverTimeOptions: {
+            timeValueInMinutes: 5,
+            evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+          },
+          serverMonitorOptions: { diskPath: "/data" },
+        },
+      );
+
+      expect(spy).toHaveBeenCalledWith(
+        expect.objectContaining({ miscData: { diskPath: "/data" } }),
+      );
+    });
+
+    test("does not scope a CPU window by a stray disk path", async () => {
+      const spy: ReturnType<typeof jest.spyOn> = mockOverTime(usable([70, 80]));
+
+      await evaluate(
+        buildServerResponse({ metrics: buildMetrics({ cpuPercentUsed: 75 }) }),
         {
           checkOn: CheckOn.CPUUsagePercent,
           filterType: FilterType.GreaterThan,
@@ -1022,23 +1076,103 @@ describe("ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
           evaluateOverTime: true,
           evaluateOverTimeOptions: {
             timeValueInMinutes: 5,
-            evaluateOverTimeType: EvaluateOverTimeType.Average,
+            evaluateOverTimeType: EvaluateOverTimeType.AllValues,
           },
+          serverMonitorOptions: { diskPath: "/" },
         },
       );
 
-      expect(result).toContain(CheckOn.CPUUsagePercent);
-      expect(result).toContain("90");
+      expect(spy).toHaveBeenCalledWith(
+        expect.objectContaining({ miscData: undefined }),
+      );
     });
 
     /*
-     * If the history query throws, the error is swallowed and the evaluator
-     * falls back to the live metric instead of failing the criterion.
+     * Disk usage read its over-time window and then threw the result away,
+     * comparing the reading from this check instead - so "evaluate over
+     * time" on a disk filter did nothing at all.
      */
-    test("history query failure falls back to the live CPU metric", async () => {
-      jest
-        .spyOn(EvaluateOverTime, "getValueOverTime")
-        .mockRejectedValue(new Error("history unavailable"));
+    test("disk usage compares the over-time window, not just this check", async () => {
+      mockOverTime(usable([95, 96, 97]));
+
+      const result: string | null = await evaluate(
+        buildServerResponse({
+          metrics: buildMetrics({
+            diskMetrics: [buildDiskMetric({ diskPath: "/", percentUsed: 10 })],
+          }),
+        }),
+        {
+          checkOn: CheckOn.DiskUsagePercent,
+          filterType: FilterType.GreaterThan,
+          value: 90,
+          evaluateOverTime: true,
+          evaluateOverTimeOptions: {
+            timeValueInMinutes: 5,
+            evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+          },
+          serverMonitorOptions: { diskPath: "/" },
+        },
+      );
+
+      expect(result).toContain("All values of");
+      expect(result).toContain("95");
+    });
+
+    test("disk usage does not fire while its window is unusable", async () => {
+      mockOverTime(noUsableWindow());
+
+      const result: string | null = await evaluate(
+        buildServerResponse({
+          metrics: buildMetrics({
+            diskMetrics: [buildDiskMetric({ diskPath: "/", percentUsed: 99 })],
+          }),
+        }),
+        {
+          checkOn: CheckOn.DiskUsagePercent,
+          filterType: FilterType.GreaterThan,
+          value: 90,
+          evaluateOverTime: true,
+          evaluateOverTimeOptions: {
+            timeValueInMinutes: 5,
+            evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+          },
+          serverMonitorOptions: { diskPath: "/" },
+        },
+      );
+
+      expect(result).toBeNull();
+    });
+
+    /*
+     * A disk filter that does NOT evaluate over time keeps comparing the
+     * reading from this check.
+     */
+    test("disk usage without over-time still compares this check", async () => {
+      const result: string | null = await evaluate(
+        buildServerResponse({
+          metrics: buildMetrics({
+            diskMetrics: [buildDiskMetric({ diskPath: "/", percentUsed: 99 })],
+          }),
+        }),
+        {
+          checkOn: CheckOn.DiskUsagePercent,
+          filterType: FilterType.GreaterThan,
+          value: 90,
+          serverMonitorOptions: { diskPath: "/" },
+        },
+      );
+
+      expect(result).toContain("99");
+    });
+
+    /*
+     * An average of exactly zero is a real measurement, not a missing one.
+     * It used to be swallowed by a truthiness check and replaced with the
+     * live CPU reading, so "average CPU over 5 minutes above 50%" could fire
+     * on a single busy sample while the average itself was 0.
+     */
+    test("a zero aggregate is compared as zero, not replaced by the live metric", async () => {
+      mockOverTime(usable(0));
 
       const result: string | null = await evaluate(
         buildServerResponse({ metrics: buildMetrics({ cpuPercentUsed: 90 }) }),
@@ -1054,8 +1188,32 @@ describe("ServerMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
         },
       );
 
-      expect(result).toContain(CheckOn.CPUUsagePercent);
-      expect(result).toContain("90");
+      expect(result).toBeNull();
+    });
+
+    /*
+     * A window that could not be read says nothing about the last five
+     * minutes, so the filter waits rather than firing off the single live
+     * reading that happens to have arrived with this check.
+     */
+    test("an unreadable window does not fire off the live CPU metric", async () => {
+      mockOverTime(noUsableWindow());
+
+      const result: string | null = await evaluate(
+        buildServerResponse({ metrics: buildMetrics({ cpuPercentUsed: 90 }) }),
+        {
+          checkOn: CheckOn.CPUUsagePercent,
+          filterType: FilterType.GreaterThan,
+          value: 50,
+          evaluateOverTime: true,
+          evaluateOverTimeOptions: {
+            timeValueInMinutes: 5,
+            evaluateOverTimeType: EvaluateOverTimeType.Average,
+          },
+        },
+      );
+
+      expect(result).toBeNull();
     });
   });
 });

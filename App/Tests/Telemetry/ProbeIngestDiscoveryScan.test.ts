@@ -10,6 +10,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -221,9 +222,22 @@ describe("POST /probe/discovery-scan/list", () => {
       .mock.calls[0]![0] as JSONObject;
     expect((updateArgs["id"] as ObjectID).toString()).toBe(scanId.toString());
     const data: JSONObject = expectPlainUpdateData(updateArgs["data"]);
-    expect(Object.keys(data).sort()).toEqual(["startedAt", "status"]);
+    expect(Object.keys(data).sort()).toEqual([
+      "startedAt",
+      "status",
+      "statusMessage",
+    ]);
     expect(data["status"]).toBe("In Progress");
     expect(data["startedAt"]).toBeInstanceOf(Date);
+    /*
+     * Cleared, not left behind: the worker writes a "nobody has picked this
+     * scan up" note onto a long-unclaimed Pending scan
+     * (Workers/Jobs/NetworkDeviceDiscovery/RequeueRecurringScans.ts), and a
+     * probe claiming the scan is exactly the thing that note said was not
+     * happening. Leaving it would have the row explain, for the whole sweep,
+     * why it had not started.
+     */
+    expect(data["statusMessage"]).toBeNull();
 
     // The scans are returned to the probe.
     expect(responseUtil.sendEntityArrayResponse).toHaveBeenCalledWith(
@@ -773,5 +787,221 @@ describe("POST /probe/discovery-scan/result", () => {
     );
 
     expect(next).toHaveBeenCalledWith(boom);
+  });
+});
+
+/*
+ * A sweep can outlive its own claim. The stale-In-Progress reaper marks a scan
+ * Failed after two hours and, if it recurs, the requeue pass then flips it
+ * back to Pending for a fresh run
+ * (Workers/Jobs/NetworkDeviceDiscovery/RequeueRecurringScans.ts). A probe that
+ * finally reports the ABANDONED run lands on that row — and used to stamp it
+ * Completed, retiring a run that had been queued and never happened and
+ * replacing the new run's empty result set with findings from hours earlier.
+ */
+describe("POST /probe/discovery-scan/result — a result for a superseded run", () => {
+  const probeId: ObjectID = ObjectID.generate();
+  const scanId: ObjectID = ObjectID.generate();
+  const projectId: ObjectID = ObjectID.generate();
+
+  function makeScanWithStatus(status: string): NetworkDeviceDiscoveryScan {
+    const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan(
+      scanId,
+    );
+    scan.projectId = projectId;
+    scan.status = status;
+    return scan;
+  }
+
+  function resultRequest(): ExpressRequest {
+    return makeRequest({
+      probeId,
+      body: {
+        scanId: scanId.toString(),
+        success: true,
+        statusMessage: "Swept 254 hosts.",
+        scannedHostCount: 254,
+        discoveredDevices: [{ ipAddress: "10.0.0.5", sysName: "sw1" }],
+      },
+    });
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    deviceService.findBy.mockResolvedValue([] as never);
+    scanService.updateOneById.mockResolvedValue(undefined as never);
+  });
+
+  test("a scan that is queued for a new run keeps its fresh state", async () => {
+    scanService.findOneBy.mockResolvedValue(
+      makeScanWithStatus("Pending") as never,
+    );
+
+    const { next } = await callResultEndpoint(resultRequest());
+
+    expect(next).not.toHaveBeenCalled();
+    expect(scanService.updateOneById).not.toHaveBeenCalled();
+    expect(responseUtil.sendJsonObjectResponse).toHaveBeenCalledWith(
+      expect.anything(),
+      mockResponse,
+      { result: "discarded" },
+    );
+  });
+
+  /*
+   * Only Pending is refused. A late result for a scan the reaper GUESSED was
+   * abandoned is still the truth about that same run, so the probe's actual
+   * findings must replace the reaper's guess.
+   */
+  test("a scan the reaper marked Failed still accepts the real result", async () => {
+    scanService.findOneBy.mockResolvedValue(
+      makeScanWithStatus("Failed") as never,
+    );
+
+    await callResultEndpoint(resultRequest());
+
+    expect(scanService.updateOneById).toHaveBeenCalledTimes(1);
+    const data: JSONObject = expectPlainUpdateData(
+      (scanService.updateOneById.mock.calls[0]![0] as JSONObject)["data"],
+    );
+    expect(data["status"]).toBe("Completed");
+  });
+
+  test("an In Progress scan — the ordinary case — is written as before", async () => {
+    scanService.findOneBy.mockResolvedValue(
+      makeScanWithStatus("In Progress") as never,
+    );
+
+    await callResultEndpoint(resultRequest());
+
+    expect(scanService.updateOneById).toHaveBeenCalledTimes(1);
+  });
+
+  test("the status column is actually selected, or the check above is vacuous", async () => {
+    scanService.findOneBy.mockResolvedValue(
+      makeScanWithStatus("In Progress") as never,
+    );
+
+    await callResultEndpoint(resultRequest());
+
+    const findOneArgs: JSONObject = scanService.findOneBy.mock
+      .calls[0]![0] as JSONObject;
+    expect((findOneArgs["select"] as JSONObject)["status"]).toBe(true);
+  });
+});
+
+/*
+ * The already-registered flag used to come from ONE findBy at LIMIT_MAX with
+ * no paging and no sort. A project with more devices than that got an
+ * arbitrary 10,000 of them, so every device past the cap was reported to the
+ * dashboard as NOT registered and the reviewer's "import" re-created devices
+ * that already existed.
+ */
+describe("POST /probe/discovery-scan/result — flagging already-registered hosts", () => {
+  const probeId: ObjectID = ObjectID.generate();
+  const scanId: ObjectID = ObjectID.generate();
+  const projectId: ObjectID = ObjectID.generate();
+
+  function makeFullPage(): Array<NetworkDevice> {
+    const page: Array<NetworkDevice> = [];
+    for (let index: number = 0; index < LIMIT_MAX; index++) {
+      const device: NetworkDevice = new NetworkDevice();
+      device.hostname = `10.99.${Math.floor(index / 256)}.${index % 256}`;
+      page.push(device);
+    }
+    return page;
+  }
+
+  function deviceWithHostname(hostname: string): NetworkDevice {
+    const device: NetworkDevice = new NetworkDevice();
+    device.hostname = hostname;
+    return device;
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    scanService.updateOneById.mockResolvedValue(undefined as never);
+    const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan(
+      scanId,
+    );
+    scan.projectId = projectId;
+    scan.status = "In Progress";
+    scanService.findOneBy.mockResolvedValue(scan as never);
+  });
+
+  function discoveredResultRequest(): ExpressRequest {
+    return makeRequest({
+      probeId,
+      body: {
+        scanId: scanId.toString(),
+        success: true,
+        discoveredDevices: [
+          { ipAddress: "10.0.0.5" },
+          { ipAddress: "10.0.0.6" },
+        ],
+      },
+    });
+  }
+
+  test("a single short page is fetched once and not paged again", async () => {
+    deviceService.findBy.mockResolvedValue([
+      deviceWithHostname("10.0.0.5"),
+    ] as never);
+
+    await callResultEndpoint(discoveredResultRequest());
+
+    expect(deviceService.findBy).toHaveBeenCalledTimes(1);
+
+    const data: JSONObject = expectPlainUpdateData(
+      (scanService.updateOneById.mock.calls[0]![0] as JSONObject)["data"],
+    );
+    const devices: Array<JSONObject> = data[
+      "discoveredDevices"
+    ] as Array<JSONObject>;
+    expect(devices[0]!["isAlreadyRegistered"]).toBe(true);
+    expect(devices[1]!["isAlreadyRegistered"]).toBe(false);
+  });
+
+  test("a full page is followed by another, so device 10,001 is still seen", async () => {
+    deviceService.findBy
+      .mockResolvedValueOnce(makeFullPage() as never)
+      .mockResolvedValueOnce([deviceWithHostname("10.0.0.6")] as never);
+
+    await callResultEndpoint(discoveredResultRequest());
+
+    expect(deviceService.findBy).toHaveBeenCalledTimes(2);
+
+    // The second call must actually move the cursor, or this loops forever.
+    const firstCall: JSONObject = deviceService.findBy.mock
+      .calls[0]![0] as JSONObject;
+    const secondCall: JSONObject = deviceService.findBy.mock
+      .calls[1]![0] as JSONObject;
+    expect(firstCall["skip"]).toBe(0);
+    expect(secondCall["skip"]).toBe(LIMIT_MAX);
+
+    const data: JSONObject = expectPlainUpdateData(
+      (scanService.updateOneById.mock.calls[0]![0] as JSONObject)["data"],
+    );
+    const devices: Array<JSONObject> = data[
+      "discoveredDevices"
+    ] as Array<JSONObject>;
+    // Only found on the SECOND page — the case the old cap silently dropped.
+    expect(devices[1]!["isAlreadyRegistered"]).toBe(true);
+  });
+
+  /*
+   * Postgres makes no ordering promise without an ORDER BY, so an unsorted
+   * paged read can return a row twice, or skip one entirely, between pages.
+   */
+  test("paging is stably ordered", async () => {
+    deviceService.findBy.mockResolvedValue([] as never);
+
+    await callResultEndpoint(discoveredResultRequest());
+
+    const findArgs: JSONObject = deviceService.findBy.mock
+      .calls[0]![0] as JSONObject;
+    expect((findArgs["sort"] as JSONObject)["createdAt"]).toBe(
+      SortOrder.Ascending,
+    );
   });
 });

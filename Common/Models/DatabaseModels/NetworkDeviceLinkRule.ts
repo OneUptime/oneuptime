@@ -1,6 +1,7 @@
 import Label from "./Label";
 import Project from "./Project";
 import User from "./User";
+import NetworkDeviceLinkRuleScope from "../../Types/NetworkDevice/NetworkDeviceLinkRuleScope";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
@@ -41,6 +42,15 @@ import {
  * nothing, because picking one of them would be a guess about somebody's
  * cabling. Both cases are reported rather than silently producing an empty
  * map — see NetworkDeviceLinkRuleUtil.
+ *
+ * "Exactly one" needs a universe, and `scope` names it. By default the
+ * question is asked across the whole project, which is what every rule
+ * written before that column existed means. Setting it to Site asks the same
+ * question once per site instead, so one rule draws the same router-to-switch
+ * star in every building rather than reporting fourteen candidate routers and
+ * drawing nothing anywhere. A site-scoped rule looks only inside each device's
+ * OWN site — it never reaches up to a parent site — and skips devices that
+ * have no site at all, reporting how many it walked past.
  *
  * Rules are evaluated when the topology is built, not materialised into
  * NetworkDeviceLink rows: relabelling a device then shows up on the next
@@ -341,6 +351,42 @@ export default class NetworkDeviceLinkRule extends BaseModel {
     },
   })
   public parentDeviceLabels?: Array<Label> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateNetworkDeviceLinkRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadNetworkDeviceLinkRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditNetworkDeviceLinkRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Parent Scope",
+    description:
+      "How wide the 'exactly one parent device' question is asked. Project (the default) looks for one parent across the whole project. Site asks once per site, so the same rule can draw an uplink in every building. Rules created before this existed are Project.",
+    example: "Project",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    default: NetworkDeviceLinkRuleScope.Project,
+  })
+  public scope?: string = undefined;
 
   @ColumnAccessControl({
     create: [

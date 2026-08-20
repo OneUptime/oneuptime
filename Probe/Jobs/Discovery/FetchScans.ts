@@ -1,7 +1,11 @@
-import { PROBE_INGEST_URL } from "../../Config";
+import {
+  PROBE_DISCOVERY_SCAN_TIMEOUT_IN_MS,
+  PROBE_INGEST_URL,
+} from "../../Config";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
 import SubnetScanner, {
   DiscoveredHost,
+  type SubnetScanConfig,
   type SubnetScanResult,
 } from "../../Utils/Discovery/SubnetScanner";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -197,6 +201,96 @@ const InitJob: VoidFunction = (): void => {
   });
 };
 
+/*
+ * The server's own words for a rejected request, or "" when it accepted it.
+ *
+ * Exported for tests. API.fetch RETURNS a rejected request as an
+ * HTTPErrorResponse rather than throwing — it only throws when no response
+ * arrived at all — so a call site that merely wraps the fetch in try/catch
+ * treats every 4xx and 5xx as a success. All three discovery calls need the
+ * same sentence out of that response, so it is built once here.
+ *
+ * `instanceof` is the whole test, deliberately. Axios rejects on any status
+ * outside 2xx and API.getErrorResponse turns exactly those into an
+ * HTTPErrorResponse, so the type IS the verdict — and unlike
+ * HTTPResponse.isSuccess(), which is `statusCode === 200`, it does not
+ * misread a 201 or 204 as a rejection.
+ */
+export function getRejectionReason(
+  result: HTTPResponse<JSONArray> | HTTPErrorResponse,
+): string {
+  if (!(result instanceof HTTPErrorResponse)) {
+    return "";
+  }
+
+  const serverMessage: string = result.message;
+
+  return (
+    `HTTP ${result.statusCode}` + (serverMessage ? ` — ${serverMessage}` : "")
+  );
+}
+
+/*
+ * Exported for tests: bounds ONE sweep in time.
+ *
+ * Mirrors probeMonitorWithDeadline in Jobs/Monitor/FetchList.ts, and exists
+ * for the same reason: Promise.race subscribes to both promises, so a sweep
+ * that settles late is still observed and can never surface as an unhandled
+ * rejection, and nothing here can cancel the sweep — the point is that the
+ * discovery CYCLE stops waiting on it.
+ *
+ * That matters more here than it does for a monitor. The discovery cron holds
+ * a process-lifetime single-flight guard across the whole cycle, so a sweep
+ * that never settles does not cost one cycle: it stops discovery on this
+ * probe permanently, and every scan queued behind it stays "Pending" until
+ * the container is restarted. Rejecting on the deadline drops into runScan's
+ * existing catch, which reports the scan Failed with this reason, so the
+ * operator gets a sentence instead of a row that never changes.
+ */
+export async function scanWithDeadline(
+  config: SubnetScanConfig,
+  scanId: string,
+  deadlineInMs: number = PROBE_DISCOVERY_SCAN_TIMEOUT_IN_MS,
+): Promise<SubnetScanResult> {
+  let deadlineTimer: ReturnType<typeof setTimeout> | undefined = undefined;
+
+  const deadline: Promise<never> = new Promise<never>(
+    (_resolve: (value: never) => void, reject: (err: Error) => void) => {
+      deadlineTimer = setTimeout(() => {
+        /*
+         * Logged here, at the moment the deadline is crossed, rather than in
+         * the catch below: only this branch knows the sweep stopped settling
+         * rather than failing for a reason of its own, and the probe log is
+         * the only place that can name WHICH sweep it was.
+         */
+        logger.error(
+          `Discovery scan ${scanId} on ${config.cidr} did not settle within ${deadlineInMs}ms. Abandoning this sweep so discovery on this probe can continue.`,
+        );
+
+        reject(
+          new Error(
+            `The sweep of ${config.cidr} did not finish within ${Math.round(
+              deadlineInMs / 60000,
+            )} minutes and was abandoned. Narrow the scan target, or raise PROBE_DISCOVERY_SCAN_TIMEOUT_IN_MS on the probe if this range legitimately needs longer.`,
+          ),
+        );
+      }, deadlineInMs);
+    },
+  );
+
+  try {
+    return await Promise.race([SubnetScanner.scan(config), deadline]);
+  } finally {
+    /*
+     * Always clear it: an un-cleared timer holds the event loop open after an
+     * otherwise healthy sweep, and this one is up to 90 minutes long.
+     */
+    if (deadlineTimer) {
+      clearTimeout(deadlineTimer);
+    }
+  }
+}
+
 // Exported for tests: this is the probe's half of the discovery lifecycle.
 export async function fetchAndRunScans(): Promise<void> {
   const listUrl: URL = URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
@@ -213,6 +307,42 @@ export async function fetchAndRunScans(): Promise<void> {
       headers: {},
       options: ProbeAPIRequest.getDefaultRequestOptions(listUrl),
     });
+
+  /*
+   * API.fetch RETURNS an HTTPErrorResponse for a 4xx/5xx (it only throws when
+   * no response arrived at all), and this union was never discriminated: the
+   * error body — a JSON object, not an array — went straight into
+   * fromJSONArray, whose `for...of` threw "json is not iterable". So the one
+   * thing the operator needed, the server's own explanation ("Probe not
+   * found", "Invalid Probe ID or Probe Key"), was replaced by a TypeError
+   * about a shape, while every scan sat in "Pending" with nothing in the
+   * product to say why (OneUptime issue #3287).
+   */
+  const listRejection: string = getRejectionReason(result);
+
+  if (listRejection) {
+    logger.error(
+      `The server rejected this probe's request for pending discovery scans: ${listRejection}. ` +
+        `No scan on this probe can leave "Pending" until that is resolved.`,
+    );
+
+    return;
+  }
+
+  /*
+   * A 200 whose body is not a list. Nothing the server sends today looks like
+   * this, so it means a proxy or gateway answered in the server's place — the
+   * captive-portal / SSO-login-page case. Naming it beats the same
+   * "not iterable" TypeError one layer down.
+   */
+  if (!Array.isArray(result.data)) {
+    logger.error(
+      `Discovery scan list returned a ${typeof result.data}, not a list of scans. ` +
+        `Something between this probe and the server is answering for it — check PROBE_INGEST_URL and any proxy in front of it.`,
+    );
+
+    return;
+  }
 
   const scans: Array<NetworkDeviceDiscoveryScan> = BaseModel.fromJSONArray(
     result.data as JSONArray,
@@ -237,31 +367,48 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
       `Running discovery scan ${scan.id?.toString()} on ${scan.cidr}`,
     );
 
-    scanResult = await SubnetScanner.scan({
-      cidr: scan.cidr || "",
-      snmpVersion: scan.snmpVersion,
-      snmpCommunityString: scan.snmpCommunityString,
-      snmpV3Auth: buildSnmpV3Auth(scan),
-      snmpPort: scan.snmpPort,
-    });
+    scanResult = await scanWithDeadline(
+      {
+        cidr: scan.cidr || "",
+        snmpVersion: scan.snmpVersion,
+        snmpCommunityString: scan.snmpCommunityString,
+        snmpV3Auth: buildSnmpV3Auth(scan),
+        snmpPort: scan.snmpPort,
+      },
+      scan.id?.toString() || "scan",
+    );
   } catch (err) {
     logger.error(`Discovery scan ${scan.id?.toString()} failed: ${err}`);
 
     // Report the SWEEP failure so the scan doesn't sit In Progress forever.
     try {
-      await API.fetch<JSONArray>({
-        method: HTTPMethod.POST,
-        url: resultUrl,
-        data: {
-          ...ProbeAPIRequest.getDefaultRequestBody(),
-          scanId: scan.id?.toString(),
-          success: false,
-          statusMessage: (err as Error).message || String(err),
-          discoveredDevices: [],
-        },
-        headers: {},
-        options: ProbeAPIRequest.getDefaultRequestOptions(resultUrl),
-      });
+      const reportResult: HTTPResponse<JSONArray> | HTTPErrorResponse =
+        await API.fetch<JSONArray>({
+          method: HTTPMethod.POST,
+          url: resultUrl,
+          data: {
+            ...ProbeAPIRequest.getDefaultRequestBody(),
+            scanId: scan.id?.toString(),
+            success: false,
+            statusMessage: (err as Error).message || String(err),
+            discoveredDevices: [],
+          },
+          headers: {},
+          options: ProbeAPIRequest.getDefaultRequestOptions(resultUrl),
+        });
+
+      /*
+       * A rejected failure report is not a lost diagnostic — it is a scan
+       * that stays In Progress until the server's reaper eventually times it
+       * out, with the real reason known only to this probe. Say so.
+       */
+      const reportRejection: string = getRejectionReason(reportResult);
+
+      if (reportRejection) {
+        logger.error(
+          `The server rejected the failure report for discovery scan ${scan.id?.toString()}: ${reportRejection}`,
+        );
+      }
     } catch (reportErr) {
       logger.error(
         `Failed to report discovery scan failure for ${scan.id?.toString()}: ${reportErr}`,
@@ -310,20 +457,40 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
    * self-heals that case.
    */
   try {
-    await API.fetch<JSONArray>({
-      method: HTTPMethod.POST,
-      url: resultUrl,
-      data: {
-        ...ProbeAPIRequest.getDefaultRequestBody(),
-        scanId: scan.id?.toString(),
-        success: true,
-        statusMessage: statusMessage,
-        discoveredDevices: scanResult.discoveredHosts as unknown as JSONArray,
-        scannedHostCount: scanResult.scannedHostCount,
-      },
-      headers: {},
-      options: ProbeAPIRequest.getDefaultRequestOptions(resultUrl),
-    });
+    const uploadResult: HTTPResponse<JSONArray> | HTTPErrorResponse =
+      await API.fetch<JSONArray>({
+        method: HTTPMethod.POST,
+        url: resultUrl,
+        data: {
+          ...ProbeAPIRequest.getDefaultRequestBody(),
+          scanId: scan.id?.toString(),
+          success: true,
+          statusMessage: statusMessage,
+          discoveredDevices: scanResult.discoveredHosts as unknown as JSONArray,
+          scannedHostCount: scanResult.scannedHostCount,
+        },
+        headers: {},
+        options: ProbeAPIRequest.getDefaultRequestOptions(resultUrl),
+      });
+
+    /*
+     * A rejected upload used to produce no log line at all. API.fetch returns
+     * a 4xx/5xx instead of throwing, so the catch below never ran, and the
+     * only other line on this path is the debug one underneath — which claims
+     * the hosts were delivered and, at the default log level, is not printed
+     * anyway. A sweep that ran for half an hour lost its entire result in
+     * silence. That is worth an error.
+     */
+    const uploadRejection: string = getRejectionReason(uploadResult);
+
+    if (uploadRejection) {
+      logger.error(
+        `The server rejected the result of discovery scan ${scan.id?.toString()}: ${uploadRejection}. ` +
+          `${scanResult.discoveredHosts.length} discovered host(s) were not saved.`,
+      );
+
+      return;
+    }
 
     logger.debug(
       `Discovery scan ${scan.id?.toString()} found ${snmpResponderCount} SNMP hosts (${scanResult.discoveredHosts.length} alive in total)`,

@@ -70,6 +70,8 @@
 
 **狀態頁面 → 你的頁面 → 品牌 → HTML、CSS 與 JavaScript**（`{id}/custom-code`）有四張可以各自獨立編輯的卡片，背後是狀態頁面上的 `headerHTML`、`footerHTML`、`customCSS` 與 `customJavaScript` 欄：
 
+> 已啟用的自訂 HTML、CSS 與 JavaScript 只會在經過驗證的自訂網域上提供。預設 `/status-page/:id` URL 與已登入的 OneUptime 區域共用同一來源，因此會停用這些自訂內容。
+
 - **標頭 HTML** —— 佔位文字 `Insert Custom HTML here.`，會注入頁面標頭。
 - **頁尾 HTML** —— 同上，只是換成頁尾。
 - **自訂 CSS** —— 佔位文字 `Insert Custom CSS here.`

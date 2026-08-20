@@ -5,7 +5,8 @@
   "globals": {
     "ts-jest": {
       "tsconfig": "tsconfig.json",
-      "babelConfig": false
+      "babelConfig": false,
+      "isolatedModules": true
     }
   },
   "modulePathIgnorePatterns": ["<rootDir>/build"],

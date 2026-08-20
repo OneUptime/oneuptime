@@ -100,6 +100,15 @@ var monitorStepsEvaluateOverTimeTypeValues = []string{
 	"Any Value",
 }
 
+// NoDataPolicy enum (Common/Types/Monitor/CriteriaFilter.ts). Governs what
+// an over-time filter does while its evaluation window does not hold enough
+// data to judge it.
+var monitorStepsNoDataPolicyValues = []string{
+	"Ignore",
+	"Treat As Zero",
+	"Trigger",
+}
+
 // CheckOn enum (Common/Types/Monitor/CriteriaFilter.ts).
 var monitorStepsCheckOnValues = []string{
 	"Response Time (in ms)",
@@ -220,6 +229,7 @@ var (
 	monitorStepsScreenSizeTypeValidator       = stringvalidator.OneOf(monitorStepsScreenSizeTypeValues...)
 	monitorStepsBrowserTypeValidator          = stringvalidator.OneOf(monitorStepsBrowserTypeValues...)
 	monitorStepsEvaluateOverTimeTypeValidator = stringvalidator.OneOf(monitorStepsEvaluateOverTimeTypeValues...)
+	monitorStepsNoDataPolicyValidator         = stringvalidator.OneOf(monitorStepsNoDataPolicyValues...)
 	monitorStepsCheckOnValidator              = stringvalidator.OneOf(monitorStepsCheckOnValues...)
 	monitorStepsFilterTypeValidator           = stringvalidator.OneOf(monitorStepsFilterTypeValues...)
 )
@@ -269,15 +279,16 @@ var monitorStepsSubConfigs = []monitorStepsSubConfig{
 
 func monitorStepsFilterAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"check_on":                   types.StringType,
-		"filter_type":                types.StringType,
-		"value":                      types.StringType,
-		"evaluate_over_time":         types.BoolType,
-		"evaluate_over_time_minutes": types.Int64Type,
-		"evaluate_over_time_type":    types.StringType,
-		"disk_path":                  types.StringType,
-		"metric_monitor_options":     types.StringType,
-		"snmp_monitor_options":       types.StringType,
+		"check_on":                          types.StringType,
+		"filter_type":                       types.StringType,
+		"value":                             types.StringType,
+		"evaluate_over_time":                types.BoolType,
+		"evaluate_over_time_minutes":        types.Int64Type,
+		"evaluate_over_time_type":           types.StringType,
+		"evaluate_over_time_no_data_policy": types.StringType,
+		"disk_path":                         types.StringType,
+		"metric_monitor_options":            types.StringType,
+		"snmp_monitor_options":              types.StringType,
 	}
 }
 
@@ -570,9 +581,14 @@ func monitorStepsFilterSchema() schema.NestedAttributeObject {
 				Validators:          []validator.Int64{int64validator.AtLeast(1)},
 			},
 			"evaluate_over_time_type": schema.StringAttribute{
-				MarkdownDescription: "Aggregation applied over the evaluation window (e.g. `Average`, `Sum`, `Any Value`).",
+				MarkdownDescription: "Aggregation applied over the evaluation window (e.g. `Average`, `Sum`, `Any Value`). `All Values` only matches once the window is actually covered by data, so give it a window at least twice the monitoring interval.",
 				Optional:            true,
 				Validators:          []validator.String{monitorStepsEvaluateOverTimeTypeValidator},
+			},
+			"evaluate_over_time_no_data_policy": schema.StringAttribute{
+				MarkdownDescription: "What the filter does while the evaluation window does not hold enough data to judge it — for example a monitor that has just been created. `Ignore` (the default) does not match, `Trigger` treats the missing data as the failure, and `Treat As Zero` compares the window as a single zero.",
+				Optional:            true,
+				Validators:          []validator.String{monitorStepsNoDataPolicyValidator},
 			},
 			"disk_path": schema.StringAttribute{
 				MarkdownDescription: "Disk path for `Disk Usage (in %)` filters on Server monitors (e.g. `/` or `C:`).",
@@ -1065,6 +1081,9 @@ func monitorStepsFilterToAPI(attrs map[string]attr.Value, attrPath string, diags
 	if v, ok := monitorStepsAttrString(attrs, "evaluate_over_time_type"); ok {
 		evalOpts["evaluateOverTimeType"] = v
 	}
+	if v, ok := monitorStepsAttrString(attrs, "evaluate_over_time_no_data_policy"); ok {
+		evalOpts["onNoDataPolicy"] = v
+	}
 	if len(evalOpts) > 0 {
 		out["evaluateOverTimeOptions"] = evalOpts
 	}
@@ -1530,6 +1549,9 @@ func monitorStepsFilterFromAPI(v interface{}, diags *diag.Diagnostics) (types.Ob
 		}
 		if s, ok := monitorStepsAPIString(opts["evaluateOverTimeType"]); ok {
 			attrs["evaluate_over_time_type"] = types.StringValue(s)
+		}
+		if s, ok := monitorStepsAPIString(opts["onNoDataPolicy"]); ok {
+			attrs["evaluate_over_time_no_data_policy"] = types.StringValue(s)
 		}
 	}
 	if opts, ok := m["serverMonitorOptions"].(map[string]interface{}); ok {

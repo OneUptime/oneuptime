@@ -18,6 +18,7 @@ import {
   DEFAULT_STATUS_PAGE_LANGUAGE,
   SUPPORTED_STATUS_PAGE_LANGUAGE_CODES,
 } from "Common/Types/StatusPage/StatusPageLanguage";
+import applyStatusPageContentSecurityPolicy from "Common/Server/Utils/StatusPageContentSecurityPolicy";
 import applyStatusPageRobotsHeader from "Common/Server/Utils/StatusPageSearchEngineIndexing";
 
 export const APP_NAME: string = "status-page";
@@ -47,6 +48,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         req: ExpressRequest,
         res: ExpressResponse,
       ) => {
+        applyStatusPageContentSecurityPolicy(req, res);
+
         const statusPageData: StatusPageData | null =
           await getStatusPageData(req);
 

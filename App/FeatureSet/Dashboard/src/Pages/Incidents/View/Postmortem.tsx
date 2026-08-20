@@ -456,6 +456,7 @@ const IncidentPostmortem: FunctionComponent<
       {showTemplateModal && incidentPostmortemTemplates.length > 0 ? (
         <BasicFormModal<JSONObject>
           title="Apply Postmortem Template"
+          name="Incident > Apply Postmortem Template"
           isLoading={isLoading}
           submitButtonText="Apply Template"
           onClose={() => {

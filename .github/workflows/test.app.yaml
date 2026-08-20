@@ -15,6 +15,23 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # This job stopped finishing altogether: it ran into the 6h runner ceiling
+    # and was killed there, so master had no App test signal at all. The suite
+    # is ~340 files, two thirds of them under Tests/Dashboard, and each one was
+    # dragging the Dashboard's React import graph through ts-jest's per-file
+    # type check -- in a single process, because --detectOpenHandles implies
+    # --runInBand. It now transpiles instead of type-checking
+    # (App/jest.config.json sets isolatedModules) and runs on jest's worker
+    # pool, which took the whole suite to under three minutes of test time.
+    #
+    # Nothing goes unchecked: the compile-app job in the Compile workflow has
+    # every App test file as a tsc program root, and checks the whole program
+    # once in about a minute rather than 338 times over.
+    #
+    # This cap is the tripwire. The suite has room to grow several times over
+    # before it comes close, so if the job ever hits it something has regressed
+    # and it should fail here rather than quietly block the queue for a workday.
+    timeout-minutes: 30
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
       BILLING_PRIVATE_KEY: ${{secrets.TEST_BILLING_PRIVATE_KEY}}

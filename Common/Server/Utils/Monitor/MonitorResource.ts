@@ -24,6 +24,7 @@ import MonitorType, {
 } from "../../../Types/Monitor/MonitorType";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ObjectID from "../../../Types/ObjectID";
+import { JSONObject } from "../../../Types/JSON";
 import ProbeApiIngestResponse from "../../../Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -141,6 +142,13 @@ export default class MonitorResourceUtil {
         _id: true,
         name: true,
         minimumProbeAgreement: true,
+        /*
+         * How often this monitor is checked. Over-time criteria filters need
+         * it to work out how many samples a fully covered evaluation window
+         * should hold - without it a monitor that has only just started
+         * looks the same as one whose whole window is breaching.
+         */
+        monitoringInterval: true,
         /*
          * Recorded as oneuptime.label.* / oneuptime.customField.* attributes on
          * every monitor metric this result produces, so response time and
@@ -737,6 +745,7 @@ export default class MonitorResourceUtil {
             monitorStep: monitorStep,
             currentCriteriaMetId: response.criteriaMetId || null,
             currentRootCause: response.rootCause || null,
+            currentProbeId: (dataToProcess as ProbeMonitorResponse).probeId,
             monitorProbes: monitorProbesForMonitor || undefined,
           });
 
@@ -1238,12 +1247,115 @@ export default class MonitorResourceUtil {
     }
   }
 
+  /**
+   * Turn a probe response read back out of MonitorProbe.lastMonitoringLog
+   * into one the criteria evaluators can actually use.
+   *
+   * The column stores `JSON.parse(JSON.stringify(response))`, which turns
+   * every ObjectID into a plain `{ _type: "ObjectID", value: "..." }` object
+   * and every Date into a string. Those plain objects are not `instanceof
+   * ObjectID`, so the analytics query builder binds them as-is and the
+   * "evaluate over time" lookup silently matches zero rows - which used to
+   * be indistinguishable from "this monitor has no history" and sent the
+   * evaluator down its instantaneous-value fallback. The result was a
+   * decision that disagreed with the evaluation summary shown beside it.
+   */
+  public static hydrateStoredProbeResponse(
+    probeResponse: ProbeMonitorResponse,
+  ): ProbeMonitorResponse {
+    const hydrated: ProbeMonitorResponse = {
+      ...probeResponse,
+    };
+
+    const toObjectID: (value: unknown) => ObjectID | undefined = (
+      value: unknown,
+    ): ObjectID | undefined => {
+      if (!value) {
+        return undefined;
+      }
+
+      if (value instanceof ObjectID) {
+        return value;
+      }
+
+      if (typeof value === "string") {
+        return new ObjectID(value);
+      }
+
+      if (typeof value === "object") {
+        const asJson: JSONObject = value as JSONObject;
+
+        if (asJson["value"]) {
+          return new ObjectID(asJson["value"].toString());
+        }
+      }
+
+      return undefined;
+    };
+
+    const toDate: (value: unknown) => Date | undefined = (
+      value: unknown,
+    ): Date | undefined => {
+      if (!value) {
+        return undefined;
+      }
+
+      if (value instanceof Date) {
+        return value;
+      }
+
+      const parsed: Date = new Date(value as string);
+
+      return isNaN(parsed.getTime()) ? undefined : parsed;
+    };
+
+    const projectId: ObjectID | undefined = toObjectID(probeResponse.projectId);
+    if (projectId) {
+      hydrated.projectId = projectId;
+    }
+
+    const monitorId: ObjectID | undefined = toObjectID(probeResponse.monitorId);
+    if (monitorId) {
+      hydrated.monitorId = monitorId;
+    }
+
+    const monitorStepId: ObjectID | undefined = toObjectID(
+      probeResponse.monitorStepId,
+    );
+    if (monitorStepId) {
+      hydrated.monitorStepId = monitorStepId;
+    }
+
+    const probeId: ObjectID | undefined = toObjectID(probeResponse.probeId);
+    if (probeId) {
+      hydrated.probeId = probeId;
+    }
+
+    const monitoredAt: Date | undefined = toDate(probeResponse.monitoredAt);
+    if (monitoredAt) {
+      hydrated.monitoredAt = monitoredAt;
+    }
+
+    const ingestedAt: Date | undefined = toDate(probeResponse.ingestedAt);
+    if (ingestedAt) {
+      hydrated.ingestedAt = ingestedAt;
+    }
+
+    return hydrated;
+  }
+
   @CaptureSpan()
   private static async checkProbeAgreement(input: {
     monitor: Monitor;
     monitorStep: MonitorStep;
     currentCriteriaMetId: string | null;
     currentRootCause: string | null;
+    /*
+     * Probe that produced the result being handled right now. Its verdict is
+     * already in currentCriteriaMetId / currentRootCause, so it is reused
+     * rather than recomputed - see the loop below.
+     */
+    currentProbeId?: ObjectID | undefined;
     /*
      * Pre-fetched MonitorProbe rows for this monitor (probeId, isEnabled,
      * lastMonitoringLog, probe.name/connectionStatus). The probe-result hot
@@ -1342,30 +1454,58 @@ export default class MonitorResourceUtil {
         continue;
       }
 
-      // Evaluate this probe's response against criteria
-      const tempResponse: ProbeApiIngestResponse = {
-        monitorId: monitor.id!,
-        criteriaMetId: undefined,
-        rootCause: null,
-      };
+      let evaluatedCriteriaMetId: string | undefined = undefined;
+      let evaluatedRootCause: string | null = null;
 
-      const tempEvaluationSummary: MonitorEvaluationSummary = {
-        evaluatedAt: OneUptimeDate.getCurrentDate(),
-        criteriaResults: [],
-        events: [],
-      };
+      const isCurrentProbe: boolean = Boolean(
+        input.currentProbeId &&
+          monitorProbe.probeId?.toString() === input.currentProbeId.toString(),
+      );
 
-      const evaluatedResponse: ProbeApiIngestResponse =
-        await MonitorCriteriaEvaluator.processMonitorStep({
-          dataToProcess: probeResponse as DataToProcess,
-          monitorStep: monitorStep,
-          monitor: monitor,
-          probeApiIngestResponse: tempResponse,
-          evaluationSummary: tempEvaluationSummary,
-        });
+      if (isCurrentProbe) {
+        /*
+         * The probe whose result we are handling right now was already
+         * evaluated by the caller, and that evaluation is the one the user
+         * sees in the evaluation summary. Re-running it here would evaluate
+         * a *different* window for any "evaluate over time" filter - seconds
+         * have passed, and this pass reads the payload back out of
+         * lastMonitoringLog rather than using the live object. That is how
+         * an incident could be created citing a criteria the summary right
+         * next to it reported as not met.
+         */
+        evaluatedCriteriaMetId = currentCriteriaMetId || undefined;
+        evaluatedRootCause = currentRootCause;
+      } else {
+        // Evaluate this probe's response against criteria
+        const tempResponse: ProbeApiIngestResponse = {
+          monitorId: monitor.id!,
+          criteriaMetId: undefined,
+          rootCause: null,
+        };
+
+        const tempEvaluationSummary: MonitorEvaluationSummary = {
+          evaluatedAt: OneUptimeDate.getCurrentDate(),
+          criteriaResults: [],
+          events: [],
+        };
+
+        const evaluatedResponse: ProbeApiIngestResponse =
+          await MonitorCriteriaEvaluator.processMonitorStep({
+            dataToProcess: MonitorResourceUtil.hydrateStoredProbeResponse(
+              probeResponse,
+            ) as DataToProcess,
+            monitorStep: monitorStep,
+            monitor: monitor,
+            probeApiIngestResponse: tempResponse,
+            evaluationSummary: tempEvaluationSummary,
+          });
+
+        evaluatedCriteriaMetId = evaluatedResponse.criteriaMetId;
+        evaluatedRootCause = evaluatedResponse.rootCause;
+      }
 
       // Record the result
-      const criteriaKey: string = evaluatedResponse.criteriaMetId || "none";
+      const criteriaKey: string = evaluatedCriteriaMetId || "none";
       const existing:
         | { count: number; rootCause: string | null; probeNames: Array<string> }
         | undefined = criteriaAgreements.get(criteriaKey);
@@ -1379,7 +1519,7 @@ export default class MonitorResourceUtil {
       } else {
         criteriaAgreements.set(criteriaKey, {
           count: 1,
-          rootCause: evaluatedResponse.rootCause,
+          rootCause: evaluatedRootCause,
           probeNames: [probeName],
         });
       }

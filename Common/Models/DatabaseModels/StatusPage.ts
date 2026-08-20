@@ -928,7 +928,8 @@ export default class StatusPage extends BaseModel {
     required: false,
     type: TableColumnType.HTML,
     title: "Header HTML",
-    description: "Status Page Custom HTML Header",
+    description:
+      "Status Page Custom HTML Header. Served only from a verified custom domain.",
   })
   @Column({
     nullable: true,
@@ -973,7 +974,8 @@ export default class StatusPage extends BaseModel {
     required: false,
     type: TableColumnType.HTML,
     title: "Footer HTML",
-    description: "Status Page Custom HTML Footer",
+    description:
+      "Status Page Custom HTML Footer. Served only from a verified custom domain.",
   })
   @Column({
     nullable: true,
@@ -1018,7 +1020,8 @@ export default class StatusPage extends BaseModel {
     required: false,
     type: TableColumnType.CSS,
     title: "CSS",
-    description: "Status Page Custom CSS Header",
+    description:
+      "Status Page Custom CSS. Served only from a verified custom domain.",
   })
   @Column({
     nullable: true,
@@ -1064,7 +1067,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.JavaScript,
     title: "JavaScript",
     description:
-      "Status Page Custom JavaScript. This runs when the status page is loaded.",
+      "Status Page Custom JavaScript. This runs when the status page is loaded from a verified custom domain.",
   })
   @Column({
     nullable: true,

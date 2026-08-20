@@ -70,6 +70,8 @@ Links til jura, privatliv og vilkår hører til her. Links i sidehovedet er til 
 
 **Statussider → din side → Branding → HTML, CSS og JavaScript** (`{id}/custom-code`) har fire kort, der kan redigeres uafhængigt af hinanden, understøttet af kolonnerne `headerHTML`, `footerHTML`, `customCSS` og `customJavaScript` på statussiden:
 
+> Aktiv brugerdefineret HTML, CSS og JavaScript leveres kun på et verificeret brugerdefineret domæne. Det er deaktiveret på standardadressen `/status-page/:id`, fordi URL'en har samme oprindelse som den del af OneUptime, hvor brugerne er logget ind.
+
 - **Header-HTML** — pladsholder `Insert Custom HTML here.`, injiceres i sidens sidehoved.
 - **Sidefods-HTML** — det samme, til sidefoden.
 - **Brugerdefineret CSS** — pladsholder `Insert Custom CSS here.`

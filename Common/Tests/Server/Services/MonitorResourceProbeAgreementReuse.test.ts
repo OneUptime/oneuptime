@@ -28,6 +28,16 @@
  * Postgres, no Redis, no isolated-vm.
  */
 
+/*
+ * MonitorResource's import chain reaches the native isolated-vm addon
+ * through the sandbox runner. Nothing here touches the sandbox and the
+ * prebuilt binary cannot always dlopen in the test environment, so stub it
+ * out before anything imports it.
+ */
+jest.mock("isolated-vm", () => {
+  return {};
+});
+
 jest.mock("../../../Server/Utils/Monitor/MonitorCriteriaEvaluator", () => {
   return {
     __esModule: true,

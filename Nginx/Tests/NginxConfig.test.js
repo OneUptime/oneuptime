@@ -66,6 +66,34 @@ test("the template still has exactly three server blocks", () => {
   assert.ok(primaryServerBlock, "expected a 'localhost ingress' server block");
 });
 
+test("every status-page API ingress passes the browser-selected Host upstream", () => {
+  /*
+   * The master-page API uses the raw Host as a security boundary: custom
+   * content is returned only when that host belongs to the requested status
+   * page. Express's req.hostname may honor an untrusted X-Forwarded-Host when
+   * proxy trust is enabled, so every public ingress must overwrite Host with
+   * nginx's parsed $host before the request reaches the app.
+   */
+  for (const serverBlock of serverBlocks) {
+    const statusPageApiLocation = getLocationBlocks(serverBlock.body).find(
+      (location) => {
+        return location.spec === "/status-page-api/";
+      },
+    );
+
+    assert.ok(
+      statusPageApiLocation,
+      "every server block should route /status-page-api/",
+    );
+    assert.ok(
+      getDirectives(statusPageApiLocation.body, "proxy_set_header").includes(
+        "proxy_set_header Host $host;",
+      ),
+      "/status-page-api/ must replace the upstream Host with nginx's $host",
+    );
+  }
+});
+
 test("every server block that enables gzip also pins the compression level", () => {
   const gzipBlocks = serverBlocks.filter((block) => {
     return getDirectives(block.body, "gzip").includes("gzip on;");

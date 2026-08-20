@@ -70,6 +70,8 @@ OneUptime की जो एक चीज़ आपके ग्राहक अ�
 
 **स्थिति पृष्ठ → आपका पेज → ब्रांडिंग → HTML, CSS और JavaScript** (`{id}/custom-code`) पर चार cards हैं, हर एक अलग से संपादित होने वाला, और उनके पीछे स्थिति पृष्ठ के `headerHTML`, `footerHTML`, `customCSS` तथा `customJavaScript` columns हैं:
 
+> सक्रिय कस्टम HTML, CSS और JavaScript केवल सत्यापित कस्टम डोमेन पर दिए जाते हैं। डिफ़ॉल्ट `/status-page/:id` URL पर ये बंद रहते हैं, क्योंकि यह OneUptime के logged-in हिस्से के समान origin पर है।
+
 - **हेडर HTML** — placeholder `Insert Custom HTML here.`, पेज के header में डाला जाता है।
 - **Footer HTML** — वही बात, footer के लिए।
 - **कस्टम CSS** — placeholder `Insert Custom CSS here.`

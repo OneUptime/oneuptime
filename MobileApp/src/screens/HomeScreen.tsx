@@ -14,7 +14,7 @@ import { useTheme } from "../theme";
 import { useAllProjectCounts } from "../hooks/useAllProjectCounts";
 import { useProject } from "../hooks/useProject";
 import { useHaptics } from "../hooks/useHaptics";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { MainTabParamList } from "../navigation/types";
 import type { ProjectItem } from "../api/types";
@@ -22,6 +22,7 @@ import Logo from "../components/Logo";
 import GradientButton from "../components/GradientButton";
 import { useAllProjectOnCallPolicies } from "../hooks/useAllProjectOnCallPolicies";
 import { getGlobalSsoToken, getSsoTokens } from "../storage/ssoTokens";
+import { isProjectSsoDenied } from "../sso/ssoDenials";
 
 type HomeNavProp = BottomTabNavigationProp<MainTabParamList, "Home">;
 
@@ -193,7 +194,21 @@ export default function HomeScreen(): React.JSX.Element {
       const globalSsoToken: string | null = await getGlobalSsoToken();
       const unauthenticated: ProjectItem[] = projectList.filter(
         (p: ProjectItem) => {
-          return p.requireSsoForLogin && !ssoTokens[p._id] && !globalSsoToken;
+          if (!p.requireSsoForLogin) {
+            return false;
+          }
+
+          /*
+           * A denial recorded by the API client outranks anything in storage:
+           * the server has already refused this project, so a stored token
+           * (expired, or issued by a provider that has since been disabled or
+           * restricted) does not make it authenticated.
+           */
+          if (isProjectSsoDenied(p._id)) {
+            return true;
+          }
+
+          return !ssoTokens[p._id] && !globalSsoToken;
         },
       );
       setUnauthenticatedSsoProjects(unauthenticated);
@@ -202,6 +217,19 @@ export default function HomeScreen(): React.JSX.Element {
   useEffect((): void => {
     checkSsoStatus();
   }, [checkSsoStatus]);
+
+  /*
+   * The Home tab stays mounted while the user goes off to Settings to complete
+   * an SSO login, so a plain effect keyed on projectList never re-runs and the
+   * banner keeps demanding SSO for a project that is now authenticated. Re-check
+   * whenever the tab regains focus - which is exactly when the user comes back
+   * from the login they just finished.
+   */
+  useFocusEffect(
+    useCallback((): void => {
+      checkSsoStatus();
+    }, [checkSsoStatus]),
+  );
 
   const onRefresh: () => Promise<void> = async (): Promise<void> => {
     lightImpact();

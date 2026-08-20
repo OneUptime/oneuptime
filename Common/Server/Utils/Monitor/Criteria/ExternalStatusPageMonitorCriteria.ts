@@ -6,15 +6,21 @@ import {
 } from "../../../../Types/Monitor/CriteriaFilter";
 import ExternalStatusPageMonitorResponse from "../../../../Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
-import EvaluateOverTime from "./EvaluateOverTime";
+import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
-import logger from "../../Logger";
 
 export default class ExternalStatusPageMonitorCriteria {
   @CaptureSpan()
   public static async isMonitorInstanceCriteriaFilterMet(input: {
     dataToProcess: DataToProcess;
     criteriaFilter: CriteriaFilter;
+    /*
+     * The monitor's monitoringInterval cron. Over-time filters use it to
+     * work out how many samples a fully covered window should hold, so a
+     * monitor that has only just started is not mistaken for one whose
+     * whole window is breaching.
+     */
+    monitoringInterval?: string | undefined;
   }): Promise<string | null> {
     let threshold: number | string | undefined | null =
       input.criteriaFilter.value;
@@ -26,37 +32,36 @@ export default class ExternalStatusPageMonitorCriteria {
       | ExternalStatusPageMonitorResponse
       | undefined = dataToProcess.externalStatusPageResponse;
 
-    let overTimeValue: Array<number | boolean> | number | boolean | undefined =
-      undefined;
+    const overTime: OverTimeCriteriaValue =
+      await EvaluateOverTime.getOverTimeValueForCriteriaFilter({
+        projectId: (input.dataToProcess as ProbeMonitorResponse).projectId,
+        monitorId: input.dataToProcess.monitorId!,
+        criteriaFilter: input.criteriaFilter,
+        monitoringInterval: input.monitoringInterval,
+      });
 
-    if (
-      input.criteriaFilter.evaluateOverTime &&
-      input.criteriaFilter.evaluateOverTimeOptions
-    ) {
-      try {
-        overTimeValue = await EvaluateOverTime.getValueOverTime({
-          projectId: (input.dataToProcess as ProbeMonitorResponse).projectId,
-          monitorId: input.dataToProcess.monitorId!,
-          evaluateOverTimeOptions: input.criteriaFilter.evaluateOverTimeOptions,
-          metricType: input.criteriaFilter.checkOn,
-        });
-
-        if (Array.isArray(overTimeValue) && overTimeValue.length === 0) {
-          overTimeValue = undefined;
-        }
-      } catch (err) {
-        logger.error(
-          `Error in getting over time value for ${input.criteriaFilter.checkOn}`,
-        );
-        logger.error(err);
-        overTimeValue = undefined;
-      }
+    /*
+     * The window could not back this over-time filter (nothing recorded yet,
+     * or the monitor has not been running long enough to cover it). Return
+     * the decision the no-data policy already made instead of falling
+     * through to the value that arrived with this one check - that fallback
+     * is what let "all values over the last N minutes" fire off a single
+     * bad reading.
+     */
+    if (overTime.earlyReturn) {
+      return overTime.earlyReturn.result;
     }
+
+    const overTimeValue:
+      | Array<number | boolean>
+      | number
+      | boolean
+      | undefined = overTime.value;
 
     // Check if external status page is online
     if (input.criteriaFilter.checkOn === CheckOn.ExternalStatusPageIsOnline) {
       const currentIsOnline: boolean | Array<boolean> =
-        (overTimeValue as Array<boolean>) ||
+        (overTimeValue as Array<boolean>) ??
         (input.dataToProcess as ProbeMonitorResponse).isOnline;
 
       return CompareCriteria.compareCriteriaBoolean({
@@ -76,9 +81,9 @@ export default class ExternalStatusPageMonitorCriteria {
       }
 
       const currentResponseTime: number | Array<number> =
-        (overTimeValue as Array<number>) ||
-        externalStatusPageResponse?.responseTimeInMs ||
-        (input.dataToProcess as ProbeMonitorResponse).responseTimeInMs;
+        (overTimeValue as Array<number>) ??
+        (externalStatusPageResponse?.responseTimeInMs ||
+          (input.dataToProcess as ProbeMonitorResponse).responseTimeInMs);
 
       if (currentResponseTime === null || currentResponseTime === undefined) {
         return null;

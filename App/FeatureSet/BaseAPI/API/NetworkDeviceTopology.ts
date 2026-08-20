@@ -39,6 +39,7 @@ import Label from "Common/Models/DatabaseModels/Label";
 import NetworkDeviceLinkRuleUtil, {
   LinkRuleDeviceInput,
   LinkRuleOutcome,
+  LinkRuleWarning,
 } from "Common/Utils/Monitor/NetworkDeviceLinkRuleUtil";
 import NetworkTopologySuppressionService from "Common/Server/Services/NetworkTopologySuppressionService";
 
@@ -163,6 +164,19 @@ export default class NetworkDeviceTopologyAPI {
                  */
                 labels: {
                   _id: true,
+                },
+                /*
+                 * Not rendered either — read only by site-scoped uplink rules,
+                 * which ask "exactly one parent" once per site rather than
+                 * once per project. The name rides along so a rule that fails
+                 * in one site can name it; NetworkSite.name is
+                 * canReadOnRelationQuery, so this needs no ReadNetworkSite
+                 * permission and a separate site query (which would 403 a
+                 * device-only role and take the whole map down) is avoided.
+                 */
+                siteId: true,
+                site: {
+                  name: true,
                 },
                 /*
                  * The LLDP and CDP walks ride along with the interface walk,
@@ -463,6 +477,7 @@ export default class NetworkDeviceTopologyAPI {
                 _id: true,
                 name: true,
                 isEnabled: true,
+                scope: true,
                 childDeviceLabels: {
                   _id: true,
                 },
@@ -494,6 +509,14 @@ export default class NetworkDeviceTopologyAPI {
               return {
                 id: device.id!.toString(),
                 labelIds: labelIdsOf(device.labels),
+                /*
+                 * .toString() is load-bearing: the resolver keys a Map on this
+                 * to group devices by site, and an ObjectID instance would
+                 * compare by identity — putting every device in a site of its
+                 * own and silently reducing site scope to nothing.
+                 */
+                siteId: device.siteId?.toString(),
+                siteName: device.site?.name,
               };
             },
           );
@@ -507,6 +530,7 @@ export default class NetworkDeviceTopologyAPI {
                   isEnabled: rule.isEnabled,
                   childLabelIds: labelIdsOf(rule.childDeviceLabels),
                   parentLabelIds: labelIdsOf(rule.parentDeviceLabels),
+                  scope: rule.scope,
                 };
               }),
               ruleDeviceInput,
@@ -589,7 +613,9 @@ export default class NetworkDeviceTopologyAPI {
            * present, only their state is missing) and search cannot fix it,
            * so it gets its own flag rather than lying in this one.
            */
-          topology.isTruncated = devices.length >= LIMIT_PER_PROJECT;
+          const isDeviceListTruncated: boolean =
+            devices.length >= LIMIT_PER_PROJECT;
+          topology.isTruncated = isDeviceListTruncated;
 
           /*
            * The builder reports endpoints it dropped internally; OR in
@@ -607,22 +633,42 @@ export default class NetworkDeviceTopologyAPI {
             ...(topology as unknown as JSONObject),
             interfacesTruncated: interfaceRows.length >= LIMIT_PER_PROJECT,
             /*
-             * Only the rules that drew nothing. A rule doing its job needs no
-             * explanation, but one that silently produces no edges is
-             * indistinguishable from one that is working — which is the
-             * failure mode this whole feature is supposed to remove, not add.
+             * Only the rules with something to explain — at most one line
+             * each. A rule doing its job needs no explanation, but one that
+             * silently produces no edges is indistinguishable from one that is
+             * working, which is the failure mode this whole feature exists to
+             * remove rather than add.
+             *
+             * NOT `links.length === 0` any more, and that is the point of
+             * issue #3260: a site-scoped rule can draw in thirteen sites and
+             * still owe the operator an account of the fourteenth, so the
+             * resolver decides what is worth saying and this only asks.
              */
             linkRuleWarnings: ruleOutcomes
-              .filter((outcome: LinkRuleOutcome) => {
-                return outcome.links.length === 0;
-              })
               .map((outcome: LinkRuleOutcome) => {
-                return {
-                  ruleId: outcome.ruleId,
-                  ruleName: outcome.ruleName,
-                  reason: outcome.skipReason,
-                  message: NetworkDeviceLinkRuleUtil.describeOutcome(outcome),
-                };
+                return NetworkDeviceLinkRuleUtil.getWarning(outcome);
+              })
+              .filter(
+                (
+                  warning: LinkRuleWarning | null,
+                ): warning is LinkRuleWarning => {
+                  return warning !== null;
+                },
+              )
+              .map((warning: LinkRuleWarning) => {
+                /*
+                 * Truncation is a fact about the query, not about the rule, so
+                 * it is admitted here rather than inside the resolver. It
+                 * matters more under site scoping: a cut-off device list can
+                 * strand whole sites whose router simply was not in the first
+                 * page of rows.
+                 */
+                return isDeviceListTruncated
+                  ? {
+                      ...warning,
+                      message: `${warning.message} ${NetworkDeviceLinkRuleUtil.TRUNCATED_DEVICE_LIST_NOTE}`,
+                    }
+                  : warning;
               }) as unknown as JSONObject[],
           };
 

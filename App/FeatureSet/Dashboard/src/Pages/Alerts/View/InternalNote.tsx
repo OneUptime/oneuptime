@@ -365,6 +365,7 @@ const AlertDelete: FunctionComponent<PageComponentProps> = (
       {showAlertNoteTemplateModal && alertNoteTemplates.length > 0 ? (
         <BasicFormModal<JSONObject>
           title="Create Note from Template"
+          name="Alert > Internal Note from Template"
           isLoading={isLoading}
           submitButtonText="Create from Template"
           onClose={() => {

@@ -192,6 +192,7 @@ const MonitorSecrets: FunctionComponent<
       {currentlyEditingItem && (
         <BasicFormModal
           title={"Update Secret Value"}
+          name="Monitor > Update Secret Value"
           isLoading={isLoading}
           onClose={() => {
             setIsLoading(false);

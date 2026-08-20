@@ -2,6 +2,10 @@ import MasterPage from "./Components/MasterPage/MasterPage";
 import PageMap from "./Utils/PageMap";
 import RouteMap from "./Utils/RouteMap";
 import StatusPageUtil from "./Utils/StatusPage";
+import {
+  executeStatusPageCustomJavaScript,
+  getPermittedStatusPageCustomization,
+} from "./Utils/StatusPageCustomizations";
 import i18n from "./Utils/i18n";
 import Route from "Common/Types/API/Route";
 import { VoidFunction } from "Common/Types/FunctionTypes";
@@ -10,7 +14,7 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import { RouteFallbackSkeleton } from "./Components/Skeleton/PageSkeletons";
 import Navigation from "Common/UI/Utils/Navigation";
-import React, { useEffect, useState, lazy, Suspense } from "react";
+import React, { useState, lazy, Suspense } from "react";
 import {
   Route as PageRoute,
   Routes,
@@ -198,7 +202,7 @@ const App: () => JSX.Element = () => {
   Navigation.setLocation(useLocation());
   Navigation.setParams(useParams());
 
-  const [isPreview, setIsPreview] = useState<boolean>(false);
+  const isPreview: boolean = StatusPageUtil.isPreviewPage();
   const [enableEmailSubscribers, setenableEmailSubscribers] =
     useState<boolean>(true);
 
@@ -228,17 +232,15 @@ const App: () => JSX.Element = () => {
   const [hasEnabledSSO, setHasEnabledSSO] = useState<boolean>(false);
   const [forceSSO, setForceSSO] = useState<boolean>(false);
 
-  useEffect(() => {
-    const preview: boolean = StatusPageUtil.isPreviewPage();
-    setIsPreview(preview);
-  }, []);
-
   const [javascript, setJavaScript] = useState<string | null>(null);
+  const [allowStatusPageCustomizations, setAllowStatusPageCustomizations] =
+    useState<boolean>(false);
 
   const onPageLoadComplete: VoidFunction = (): void => {
-    if (javascript) {
-      new Function(javascript)();
-    }
+    executeStatusPageCustomJavaScript(javascript, {
+      allowStatusPageCustomizations: allowStatusPageCustomizations,
+      isPreview: isPreview,
+    });
   };
 
   return (
@@ -251,6 +253,11 @@ const App: () => JSX.Element = () => {
       enableWebhookSubscribers={enableWebhookSubscribers}
       isPrivateStatusPage={isPrivateStatusPage}
       onLoadComplete={(masterpage: JSONObject) => {
+        const serverAllowsStatusPageCustomizations: boolean =
+          masterpage["allowStatusPageCustomizations"] === true;
+
+        setAllowStatusPageCustomizations(serverAllowsStatusPageCustomizations);
+
         document.title =
           (JSONFunctions.getJSONValueInPath(
             masterpage || {},
@@ -271,9 +278,12 @@ const App: () => JSX.Element = () => {
           masterpage || {},
           "statusPage.customJavaScript",
         ) as string | null;
-        if (javascript) {
-          setJavaScript(javascript);
-        }
+        setJavaScript(
+          getPermittedStatusPageCustomization(javascript, {
+            allowStatusPageCustomizations: serverAllowsStatusPageCustomizations,
+            isPreview: isPreview,
+          }),
+        );
 
         const statusPageName: string | null = JSONFunctions.getJSONValueInPath(
           masterpage || {},

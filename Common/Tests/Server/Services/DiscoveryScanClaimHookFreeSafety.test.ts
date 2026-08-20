@@ -8,7 +8,8 @@ import { describe, expect, test } from "@jest/globals";
 /*
  * The /probe-ingest/probe/discovery-scan/list route hands the requesting
  * probe its pending subnet scans and claims them (status "In Progress" +
- * startedAt) via DatabaseService.updateColumnsByIdWithoutHooks — one raw
+ * startedAt, and a cleared statusMessage) via
+ * DatabaseService.updateColumnsByIdWithoutHooks — one raw
  * parameterized UPDATE that skips ALL on-update hooks: workflow HTTP
  * triggers, audit-log inserts, realtime events, service
  * onBeforeUpdate/onUpdateSuccess. The probe synchronously waits on this
@@ -18,8 +19,8 @@ import { describe, expect, test } from "@jest/globals";
  * pre-fetch SELECT + row re-fetch + save() transaction).
  *
  *   - App/FeatureSet/Telemetry/API/ProbeIngest/DiscoveryScan.ts
- *       NetworkDeviceDiscoveryScan.status/startedAt when a probe claims a
- *       Pending scan
+ *       NetworkDeviceDiscoveryScan.status/startedAt/statusMessage when a
+ *       probe claims a Pending scan
  *
  * The conversion dropped NOTHING: the model declares no update workflow, no
  * audit logging and no realtime events. But the fast path skips hooks
@@ -36,8 +37,8 @@ import { describe, expect, test } from "@jest/globals";
  * be written by a root caller that bypasses the create-time check. That hook
  * is deliberately safe to skip here, and the assertions below pin exactly
  * why rather than merely restating that it exists: the claim write stamps
- * only `status` and `startedAt`, which the hook does not look at, and the
- * hook is a pass-through for that payload. If the hook ever grows to
+ * only `status`, `startedAt` and `statusMessage`, none of which the hook
+ * looks at, and the hook is a pass-through for that payload. If the hook ever grows to
  * validate a column the claim write touches — or the claim write grows to
  * touch `cidr` — these fail.
  *
@@ -79,7 +80,11 @@ describe("discovery-scan claim hookless write safety preconditions", () => {
      */
     test("NetworkDeviceDiscoveryScan has every column the claim write stamps", () => {
       const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan();
-      const fastPathColumns: Array<string> = ["status", "startedAt"];
+      const fastPathColumns: Array<string> = [
+        "status",
+        "startedAt",
+        "statusMessage",
+      ];
       for (const column of fastPathColumns) {
         expect(scan.isTableColumn(column)).toBe(true);
       }
@@ -130,7 +135,11 @@ describe("discovery-scan claim hookless write safety preconditions", () => {
      * overlap shows up here.
      */
     test("the claim write's columns are disjoint from what onBeforeUpdate validates", () => {
-      const claimWriteColumns: Array<string> = ["status", "startedAt"];
+      const claimWriteColumns: Array<string> = [
+        "status",
+        "startedAt",
+        "statusMessage",
+      ];
       const columnsValidatedByHook: Array<string> = ["cidr"];
 
       for (const column of claimWriteColumns) {
@@ -146,7 +155,11 @@ describe("discovery-scan claim hookless write safety preconditions", () => {
     test("onBeforeUpdate is a pass-through for the exact claim payload", async () => {
       const claimUpdateBy: unknown = {
         query: { _id: "some-scan-id" },
-        data: { status: "In Progress", startedAt: new Date(0) },
+        data: {
+          status: "In Progress",
+          startedAt: new Date(0),
+          statusMessage: null,
+        },
         props: { isRoot: true },
         limit: 1,
         skip: 0,

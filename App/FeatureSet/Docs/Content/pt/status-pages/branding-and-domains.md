@@ -70,6 +70,8 @@ Links jurídicos, de privacidade e de termos pertencem aqui. Links de cabeçalho
 
 **Páginas de status → sua página → Marca → HTML, CSS e JavaScript** (`{id}/custom-code`) tem quatro cartões editáveis de forma independente, apoiados nas colunas `headerHTML`, `footerHTML`, `customCSS` e `customJavaScript` da página de status:
 
+> O HTML, CSS e JavaScript personalizados ativos só são servidos em um domínio personalizado verificado. Eles ficam desativados na URL padrão `/status-page/:id` porque ela compartilha a mesma origem da área autenticada do OneUptime.
+
 - **HTML do Cabeçalho** — placeholder `Insert Custom HTML here.`, injetado no cabeçalho da página.
 - **HTML do rodapé** — o mesmo, para o rodapé.
 - **CSS Personalizado** — placeholder `Insert Custom CSS here.`

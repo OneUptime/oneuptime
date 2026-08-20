@@ -70,6 +70,8 @@ Los enlaces legales, de privacidad y de términos van aquí. Los de la cabecera 
 
 **Páginas de Estado → tu página → Marca → HTML, CSS y JavaScript** (`{id}/custom-code`) tiene cuatro tarjetas que se editan por separado, respaldadas por las columnas `headerHTML`, `footerHTML`, `customCSS` y `customJavaScript` de la página de estado:
 
+> El HTML, CSS y JavaScript personalizados activos solo se sirven en un dominio personalizado verificado. Se desactivan en la URL predeterminada `/status-page/:id` porque comparte el mismo origen que el área autenticada de OneUptime.
+
 - **HTML de la cabecera** — marcador de posición `Insert Custom HTML here.`, se inyecta en la cabecera de la página.
 - **HTML del pie de página** — lo mismo, para el pie.
 - **CSS personalizado** — marcador de posición `Insert Custom CSS here.`

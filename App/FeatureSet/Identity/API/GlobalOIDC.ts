@@ -1,5 +1,12 @@
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
 import OIDCUtil, { OidcCallbackResult } from "../Utils/OIDC";
+import {
+  buildMobileSsoSuccessUrl,
+  clearMobileSsoIntentCookie,
+  isMobileSsoRequest,
+  respondToMobileSsoFailure,
+  setMobileSsoIntentCookie,
+} from "../Utils/MobileSso";
 import { DashboardRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
@@ -11,6 +18,7 @@ import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Exception from "Common/Types/Exception/Exception";
 import ServerException from "Common/Types/Exception/ServerException";
 import ObjectID from "Common/Types/ObjectID";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import SsoProviderType from "Common/Types/SSO/SsoProviderType";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
@@ -151,7 +159,22 @@ router.get(
         );
       }
 
-      const isMobileRequest: boolean = req.query["mobile"] === "true";
+      const isMobileRequest: boolean = isMobileSsoRequest({
+        req,
+        providerId: globalOidc.id!,
+      });
+
+      /*
+       * The mobile flag normally travels inside the signed state cookie. That
+       * cookie is also the thing most likely to be MISSING when the callback
+       * fails (expired login, cookie dropped by the browser), and in exactly
+       * that case the error would be rendered as a web page the app cannot
+       * read. A separate intent cookie survives independently and keeps the
+       * failure routable back to the app.
+       */
+      if (isMobileRequest) {
+        setMobileSsoIntentCookie(res, globalOidc.id!);
+      }
 
       const redirectUri: URL = URL.fromString(
         `${HttpProtocol}${Host}/identity/global-oidc-callback/${globalOidc.id?.toString()}`,
@@ -236,6 +259,17 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
 ): Promise<void> => {
   try {
     if (!req.params["globalOidcId"]) {
+      if (
+        respondToMobileSsoFailure({
+          res,
+          isMobileRequest: isMobileSsoRequest({ req }),
+          error: "sso_failed",
+          errorDescription: "This sign-in link is missing its provider.",
+        })
+      ) {
+        return;
+      }
+
       return Response.sendErrorResponse(
         req,
         res,
@@ -245,11 +279,34 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
 
     const globalOidcId: ObjectID = new ObjectID(req.params["globalOidcId"]);
 
+    /*
+     * The authoritative mobile flag lives in the signed state cookie below.
+     * This one is the fallback for the case where that cookie is gone - which
+     * is precisely when the login is failing and the app most needs to be
+     * told why, rather than being shown a web page it cannot parse.
+     */
+    let isMobileRequest: boolean = isMobileSsoRequest({
+      req,
+      providerId: globalOidcId,
+    });
+
     const stateCookieName: string = getGlobalOidcStateCookieName(globalOidcId);
     const stateCookieValue: string | undefined =
       CookieUtil.getCookieFromExpressRequest(req, stateCookieName);
 
     if (!stateCookieValue) {
+      if (
+        respondToMobileSsoFailure({
+          res,
+          isMobileRequest,
+          error: "login_session_expired",
+          errorDescription:
+            "Your sign-in session expired. Please try signing in again.",
+        })
+      ) {
+        return;
+      }
+
       return Response.sendErrorResponse(
         req,
         res,
@@ -262,7 +319,6 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
     let storedState: string;
     let storedNonce: string;
     let storedCodeVerifier: string;
-    let isMobileRequest: boolean;
 
     try {
       const decoded: Record<string, unknown> = JSONWebToken.decodeJsonPayload(
@@ -272,8 +328,20 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
       storedState = decoded["state"] as string;
       storedNonce = decoded["nonce"] as string;
       storedCodeVerifier = decoded["codeVerifier"] as string;
-      isMobileRequest = Boolean(decoded["isMobile"]);
+      isMobileRequest = isMobileRequest || Boolean(decoded["isMobile"]);
     } catch {
+      if (
+        respondToMobileSsoFailure({
+          res,
+          isMobileRequest,
+          error: "login_session_invalid",
+          errorDescription:
+            "Your sign-in session is no longer valid. Please try signing in again.",
+        })
+      ) {
+        return;
+      }
+
       return Response.sendErrorResponse(
         req,
         res,
@@ -284,6 +352,41 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
     }
 
     CookieUtil.removeCookie(res, stateCookieName);
+    clearMobileSsoIntentCookie(res, globalOidcId);
+
+    /*
+     * An identity provider reports a refusal (consent denied, account
+     * disabled) by redirecting back with `error` rather than `code`. Handling
+     * it here means the user sees what their IdP actually said, instead of it
+     * being fed into the token exchange and re-emerging as a generic failure.
+     */
+    const oidcError: unknown = req.query["error"];
+
+    if (typeof oidcError === "string" && oidcError) {
+      const oidcErrorDescription: unknown = req.query["error_description"];
+
+      if (
+        respondToMobileSsoFailure({
+          res,
+          isMobileRequest,
+          error: oidcError,
+          errorDescription:
+            typeof oidcErrorDescription === "string" && oidcErrorDescription
+              ? oidcErrorDescription
+              : "Your identity provider declined the sign-in request.",
+        })
+      ) {
+        return;
+      }
+
+      return Response.render(req, res, MESSAGE_VIEW, {
+        title: "Sign in was declined.",
+        message:
+          typeof oidcErrorDescription === "string" && oidcErrorDescription
+            ? oidcErrorDescription
+            : "Your identity provider declined the sign-in request. Please try again or contact your administrator.",
+      });
+    }
 
     const globalOidc: GlobalOIDC | null = await GlobalOIDCService.findOneBy({
       query: {
@@ -299,11 +402,24 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
         emailClaimName: true,
         nameClaimName: true,
         disableSignUpWithSso: true,
+        restrictToAttachedProjects: true,
       },
       props: { isRoot: true },
     });
 
     if (!globalOidc) {
+      if (
+        respondToMobileSsoFailure({
+          res,
+          isMobileRequest,
+          error: "provider_unavailable",
+          errorDescription:
+            "This SSO provider is no longer available. Please contact your administrator.",
+        })
+      ) {
+        return;
+      }
+
       return Response.sendErrorResponse(
         req,
         res,
@@ -317,6 +433,18 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
       !globalOidc.clientId ||
       !globalOidc.clientSecret
     ) {
+      if (
+        respondToMobileSsoFailure({
+          res,
+          isMobileRequest,
+          error: "provider_misconfigured",
+          errorDescription:
+            "This SSO provider is not fully configured. Please contact your administrator.",
+        })
+      ) {
+        return;
+      }
+
       return Response.sendErrorResponse(
         req,
         res,
@@ -358,6 +486,19 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
       });
     } catch (err: unknown) {
       logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+
+      if (
+        respondToMobileSsoFailure({
+          res,
+          isMobileRequest,
+          error: "token_exchange_failed",
+          errorDescription:
+            "We could not complete the exchange with your identity provider. Please try again.",
+        })
+      ) {
+        return;
+      }
+
       if (err instanceof Exception) {
         return Response.sendErrorResponse(req, res, err);
       }
@@ -402,6 +543,18 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
 
     if (!alreadySavedUser) {
       if (isSignUpDisabled) {
+        if (
+          respondToMobileSsoFailure({
+            res,
+            isMobileRequest,
+            error: "invitation_required",
+            errorDescription:
+              "You must be invited to a project on this OneUptime instance before you can sign in with SSO. Please contact your administrator.",
+          })
+        ) {
+          return;
+        }
+
         return Response.render(req, res, MESSAGE_VIEW, {
           title: "You need to be invited.",
           message:
@@ -421,6 +574,18 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
 
     if (!alreadySavedUser.isEmailVerified && !isNewUser) {
       await AuthenticationEmail.sendVerificationEmail(alreadySavedUser!);
+
+      if (
+        respondToMobileSsoFailure({
+          res,
+          isMobileRequest,
+          error: "email_not_verified",
+          errorDescription:
+            "Your email is not verified. We have sent you a verification link - please check your inbox, and your spam folder.",
+        })
+      ) {
+        return;
+      }
 
       return Response.render(req, res, MESSAGE_VIEW, {
         title: "Email not verified.",
@@ -484,7 +649,68 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
       props: { isRoot: true },
     });
 
+    /*
+     * When the admin has restricted this provider to its attached projects,
+     * the session it is about to mint only authorizes those projects. Check
+     * the user actually belongs to one of them BEFORE minting, otherwise the
+     * login reports success and then every request is refused, with
+     * re-authenticating producing an identical token - a dead end with no way
+     * out from inside the product.
+     */
+    if (globalOidc.restrictToAttachedProjects && !isDefaultAllMode) {
+      const governedProjectIds: Array<ObjectID> = attachments
+        .filter((attachment: GlobalOIDCProject) => {
+          return Boolean(attachment.projectId);
+        })
+        .map((attachment: GlobalOIDCProject) => {
+          return attachment.projectId!;
+        });
+
+      const governedMembershipCount: PositiveNumber =
+        governedProjectIds.length === 0
+          ? new PositiveNumber(0)
+          : await TeamMemberService.countBy({
+              query: {
+                userId: alreadySavedUser.id!,
+                projectId: QueryHelper.any(governedProjectIds),
+              },
+              props: { isRoot: true },
+            });
+
+      if (governedMembershipCount.toNumber() === 0) {
+        if (
+          respondToMobileSsoFailure({
+            res,
+            isMobileRequest,
+            error: "no_project_access",
+            errorDescription:
+              "This SSO provider does not grant access to any project you are a member of. Please contact your administrator.",
+          })
+        ) {
+          return;
+        }
+
+        return Response.render(req, res, MESSAGE_VIEW, {
+          title: "No project access.",
+          message:
+            "This SSO provider does not grant access to any project you are a member of. Please contact your administrator.",
+        });
+      }
+    }
+
     if (memberProjectCount.toNumber() === 0) {
+      if (
+        respondToMobileSsoFailure({
+          res,
+          isMobileRequest,
+          error: "no_project_access",
+          errorDescription:
+            "You are not a member of any project on this OneUptime instance. Please contact your administrator to be invited.",
+        })
+      ) {
+        return;
+      }
+
       return Response.render(req, res, MESSAGE_VIEW, {
         title: "No project access.",
         message:
@@ -528,24 +754,22 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
         expiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
       });
 
-      const params: URLSearchParams = new URLSearchParams();
-      params.set("accessToken", accessToken);
-      params.set("refreshToken", sessionMetadata.refreshToken);
-      params.set(
-        "refreshTokenExpiresAt",
-        sessionMetadata.refreshTokenExpiresAt.toISOString(),
-      );
-      params.set("userId", alreadySavedUser.id!.toString());
-      params.set("email", alreadySavedUser.email!.toString());
-      params.set("name", alreadySavedUser.name?.toString() || "");
-      params.set(
-        "isMasterAdmin",
-        String(alreadySavedUser.isMasterAdmin || false),
-      );
-      // Single global SSO token (mobile sends it via the x-global-sso-token header).
-      params.set("globalSsoToken", globalSsoToken);
-
-      const deepLinkUrl: string = `oneuptime://sso-callback?${params.toString()}`;
+      /*
+       * Built through the shared helper so the SAML and OIDC routers cannot
+       * drift apart on the param names the mobile app parses. The single
+       * global SSO token is sent back as `globalSsoToken`; the app replays it
+       * on every request as the `x-global-sso-token` header.
+       */
+      const deepLinkUrl: string = buildMobileSsoSuccessUrl({
+        accessToken,
+        refreshToken: sessionMetadata.refreshToken,
+        refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
+        userId: alreadySavedUser.id!.toString(),
+        email: alreadySavedUser.email!.toString(),
+        name: alreadySavedUser.name?.toString() || "",
+        isMasterAdmin: Boolean(alreadySavedUser.isMasterAdmin),
+        globalSsoToken,
+      });
 
       logger.info(
         "User logged in with Global OIDC (mobile): " + result.email.toString(),
@@ -588,6 +812,24 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
     );
   } catch (err) {
     logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+
+    /*
+     * Last resort. An unexpected server error must still leave the mobile
+     * browser on the deep link, otherwise the app waits out the auth session
+     * and reports a cancellation the user cannot act on.
+     */
+    if (
+      respondToMobileSsoFailure({
+        res,
+        isMobileRequest: isMobileSsoRequest({ req }),
+        error: "sso_failed",
+        errorDescription:
+          "Something went wrong while signing you in. Please try again.",
+      })
+    ) {
+      return;
+    }
+
     Response.sendErrorResponse(req, res, err as Exception);
   }
 };

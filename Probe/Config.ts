@@ -210,6 +210,50 @@ export const PROBE_MONITOR_CHECK_TIMEOUT_IN_MS: number =
     max: MAX_NODE_TIMER_DELAY_IN_MS,
   });
 
+/*
+ * Hard ceiling on ONE network discovery sweep, for exactly the reason
+ * PROBE_MONITOR_CHECK_TIMEOUT_IN_MS exists — and the discovery job needs it
+ * more, not less.
+ *
+ * The discovery cron holds a single-flight guard across the WHOLE cycle
+ * (Jobs/Discovery/FetchScans.ts): list fetch, sweep, and result upload. Every
+ * HTTP call in that cycle carries PROBE_API_REQUEST_TIMEOUT_IN_MS, but the
+ * sweep between them had no deadline of any kind. A sweep opens one ICMP
+ * child process and one UDP SNMP session per address — up to
+ * ScanTargetUtil.MAX_SCAN_HOSTS of them — so it is exactly the kind of code
+ * where one non-settling promise is plausible, and a single one of those
+ * strands the guard set. Not for a cycle: FOREVER. Every later scan then sits
+ * in "Pending" until someone restarts the probe container, with nothing in
+ * the product to say why (OneUptime issue #3287).
+ *
+ * The number is a wall-clock budget with two sides to fit between.
+ *
+ * The floor is the slowest sweep that is still legitimately working. At
+ * MAX_SCAN_HOSTS (32,768) with SubnetScanner's 32 workers, the documented
+ * worst case is a full 1s-per-host ICMP pass (~17 min) followed by a full
+ * 2s-per-host SNMP pass over every address (~34 min) when the ICMP-filtered
+ * fallback triggers — ~51 min, before SNMP v3's extra engine-discovery round
+ * trip.
+ *
+ * The ceiling is the server: it declares an In Progress scan abandoned after
+ * 2 hours (Workers/Jobs/NetworkDeviceDiscovery/RequeueRecurringScans.ts). The
+ * probe has to give up FIRST, or a wedged sweep is reaped server-side while
+ * the probe is still holding its guard — the scan reads Failed while
+ * discovery on that probe stays stopped.
+ *
+ * 90 minutes sits between the two: comfortably above any sweep that is
+ * genuinely making progress, and comfortably below the server's window, so
+ * a scan that crosses this line is reported by the probe itself, with its
+ * own reason, and the next tick fetches again.
+ */
+export const PROBE_DISCOVERY_SCAN_TIMEOUT_IN_MS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_DISCOVERY_SCAN_TIMEOUT_IN_MS"],
+    defaultValue: 90 * 60 * 1000,
+    min: 1000,
+    max: MAX_NODE_TIMER_DELAY_IN_MS,
+  });
+
 export const PORT: Port = new Port(
   NumberUtil.parseNumberWithDefault({
     value: process.env["PORT"],

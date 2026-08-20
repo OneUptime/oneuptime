@@ -1,6 +1,6 @@
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
-import EvaluateOverTime from "./EvaluateOverTime";
+import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
 import OneUptimeDate from "../../../../Types/Date";
 import { BasicDiskMetrics } from "../../../../Types/Infrastructure/BasicMetrics";
 import { JSONObject } from "../../../../Types/JSON";
@@ -20,38 +20,59 @@ export default class ServerMonitorCriteria {
   public static async isMonitorInstanceCriteriaFilterMet(input: {
     dataToProcess: DataToProcess;
     criteriaFilter: CriteriaFilter;
+    /*
+     * The monitor's monitoringInterval cron. Over-time filters use it to
+     * work out how many samples a fully covered window should hold, so a
+     * monitor that has only just started is not mistaken for one whose
+     * whole window is breaching.
+     */
+    monitoringInterval?: string | undefined;
   }): Promise<string | null> {
     // Server Monitoring Checks
 
     let threshold: number | string | undefined | null =
       input.criteriaFilter.value;
-    let overTimeValue: Array<number | boolean> | number | boolean | undefined =
-      undefined;
+    const overTime: OverTimeCriteriaValue =
+      await EvaluateOverTime.getOverTimeValueForCriteriaFilter({
+        projectId: (input.dataToProcess as ServerMonitorResponse).projectId,
+        monitorId: input.dataToProcess.monitorId!,
+        criteriaFilter: input.criteriaFilter,
+        /*
+         * Only the disk-usage series carries a diskPath attribute, so
+         * scoping any other series by it would filter against an attribute
+         * no row has - and an empty window now means "cannot judge yet"
+         * rather than "compare the live value", which would silence the
+         * filter outright.
+         */
+        miscData:
+          input.criteriaFilter.checkOn === CheckOn.DiskUsagePercent
+            ? (input.criteriaFilter.serverMonitorOptions as JSONObject)
+            : undefined,
+        monitoringInterval: input.monitoringInterval,
+      });
 
+    /*
+     * The window could not back this over-time filter, so the no-data policy
+     * has already decided it - do not fall through to the value that arrived
+     * with this one check.
+     *
+     * "Is Online" is exempt: for a server monitor the absence of data IS the
+     * signal, and the differenceInMinutes check below already implements the
+     * "wait this long before calling it offline" behaviour off the agent's
+     * last check-in time. Letting it fall through preserves that.
+     */
     if (
-      input.criteriaFilter.evaluateOverTime &&
-      input.criteriaFilter.evaluateOverTimeOptions
+      overTime.earlyReturn &&
+      input.criteriaFilter.checkOn !== CheckOn.IsOnline
     ) {
-      try {
-        overTimeValue = await EvaluateOverTime.getValueOverTime({
-          projectId: (input.dataToProcess as ServerMonitorResponse).projectId,
-          monitorId: input.dataToProcess.monitorId!,
-          evaluateOverTimeOptions: input.criteriaFilter.evaluateOverTimeOptions,
-          metricType: input.criteriaFilter.checkOn,
-          miscData: input.criteriaFilter.serverMonitorOptions as JSONObject,
-        });
-
-        if (Array.isArray(overTimeValue) && overTimeValue.length === 0) {
-          overTimeValue = undefined;
-        }
-      } catch (err) {
-        logger.error(
-          `Error in getting over time value for ${input.criteriaFilter.checkOn}`,
-        );
-        logger.error(err);
-        overTimeValue = undefined;
-      }
+      return overTime.earlyReturn.result;
     }
+
+    const overTimeValue:
+      | Array<number | boolean>
+      | number
+      | boolean
+      | undefined = overTime.value;
 
     const lastCheckTime: Date = (input.dataToProcess as ServerMonitorResponse)
       .requestReceivedAt;
@@ -108,7 +129,7 @@ export default class ServerMonitorCriteria {
       differenceInMinutes >= offlineIfNotCheckedInMinutes
     ) {
       const currentIsOnline: boolean | Array<boolean> =
-        (overTimeValue as Array<boolean>) || false; // false because no request receieved in the last 2 minutes
+        (overTimeValue as Array<boolean>) ?? false; // false because no request receieved in the last 2 minutes
 
       logger.debug(`Current Is Online: ${currentIsOnline}`);
 
@@ -127,7 +148,7 @@ export default class ServerMonitorCriteria {
       differenceInMinutes < offlineIfNotCheckedInMinutes
     ) {
       const currentIsOnline: boolean | Array<boolean> =
-        (overTimeValue as Array<boolean>) || true; // true because request receieved in the last 2 minutes
+        (overTimeValue as Array<boolean>) ?? true; // true because request receieved in the last 2 minutes
 
       logger.debug(`Current Is Online: ${currentIsOnline}`);
 
@@ -148,10 +169,10 @@ export default class ServerMonitorCriteria {
       threshold = CompareCriteria.convertToNumber(threshold);
 
       const currentCpuPercent: number | Array<number> =
-        (overTimeValue as Array<number>) ||
-        (input.dataToProcess as ServerMonitorResponse)
+        (overTimeValue as Array<number>) ??
+        ((input.dataToProcess as ServerMonitorResponse)
           .basicInfrastructureMetrics?.cpuMetrics.percentUsed ||
-        0;
+          0);
 
       return CompareCriteria.compareCriteriaNumbers({
         value: currentCpuPercent,
@@ -167,10 +188,10 @@ export default class ServerMonitorCriteria {
       threshold = CompareCriteria.convertToNumber(threshold);
 
       const memoryPercent: number | Array<number> =
-        (overTimeValue as Array<number>) ||
-        (input.dataToProcess as ServerMonitorResponse)
+        (overTimeValue as Array<number>) ??
+        ((input.dataToProcess as ServerMonitorResponse)
           .basicInfrastructureMetrics?.memoryMetrics.percentUsed ||
-        0;
+          0);
 
       return CompareCriteria.compareCriteriaNumbers({
         value: memoryPercent,
@@ -201,8 +222,16 @@ export default class ServerMonitorCriteria {
       const diskUsagePercent: number =
         diskMetric?.percentUsed ?? diskMetric?.percentFree ?? 0;
 
+      /*
+       * Disk usage was the one server metric that computed its over-time
+       * window and then threw it away, comparing the reading from this check
+       * instead - so "evaluate over time" was a no-op here.
+       */
+      const value: number | Array<number> =
+        (overTimeValue as Array<number>) ?? diskUsagePercent;
+
       return CompareCriteria.compareCriteriaNumbers({
-        value: diskUsagePercent,
+        value: value,
         threshold: threshold as number,
         criteriaFilter: input.criteriaFilter,
       });
@@ -232,7 +261,7 @@ export default class ServerMonitorCriteria {
       }
 
       const value: number | Array<number> =
-        (overTimeValue as Array<number>) || currentLoad || 0;
+        (overTimeValue as Array<number>) ?? (currentLoad || 0);
 
       return CompareCriteria.compareCriteriaNumbers({
         value: value,
@@ -248,10 +277,10 @@ export default class ServerMonitorCriteria {
       threshold = CompareCriteria.convertToNumber(threshold);
 
       const swapPercent: number | Array<number> =
-        (overTimeValue as Array<number>) ||
-        (input.dataToProcess as ServerMonitorResponse)
+        (overTimeValue as Array<number>) ??
+        ((input.dataToProcess as ServerMonitorResponse)
           .basicInfrastructureMetrics?.memoryMetrics?.swapPercentUsed ||
-        0;
+          0);
 
       return CompareCriteria.compareCriteriaNumbers({
         value: swapPercent,
@@ -267,10 +296,10 @@ export default class ServerMonitorCriteria {
       threshold = CompareCriteria.convertToNumber(threshold);
 
       const ioWaitPercent: number | Array<number> =
-        (overTimeValue as Array<number>) ||
-        (input.dataToProcess as ServerMonitorResponse)
+        (overTimeValue as Array<number>) ??
+        ((input.dataToProcess as ServerMonitorResponse)
           .basicInfrastructureMetrics?.cpuMetrics?.timeIoWaitPercent ||
-        0;
+          0);
 
       return CompareCriteria.compareCriteriaNumbers({
         value: ioWaitPercent,

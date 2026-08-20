@@ -7,6 +7,7 @@ import ModelForm, {
   ComponentProps as ModelFormComponentProps,
 } from "../Forms/ModelForm";
 import FormValues from "../Forms/Types/FormValues";
+import FormAnalyticsName from "../Forms/Utils/FormAnalyticsName";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { JSONObject } from "../../../Types/JSON";
@@ -77,7 +78,11 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
         <>
           <ModelForm<TBaseModel>
             {...props.formProps}
-            name={props.name}
+            name={FormAnalyticsName.resolve(
+              props.name,
+              props.formProps.name,
+              props.title,
+            )}
             modelAPI={props.modelAPI}
             modelType={props.modelType}
             onIsLastFormStep={(isLastFormStep: boolean) => {

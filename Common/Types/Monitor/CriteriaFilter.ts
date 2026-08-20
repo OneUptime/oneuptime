@@ -224,6 +224,14 @@ export enum EvaluateOverTimeMinutes {
 export interface EvaluateOverTimeOptions {
   timeValueInMinutes: number | undefined;
   evaluateOverTimeType: EvaluateOverTimeType | undefined;
+  /*
+   * Governs what happens when the evaluation window cannot back the filter -
+   * either nothing was recorded in it, or the monitor has not been running
+   * long enough to cover it yet. Defaults to Ignore when unset, so a filter
+   * asked to look at the last N minutes waits for N minutes of data instead
+   * of firing off the reading that happens to have just arrived.
+   */
+  onNoDataPolicy?: NoDataPolicy | undefined;
 }
 
 export interface CriteriaFilter {
@@ -449,5 +457,6 @@ export const CriteriaFilterSchema: ZodSchema = Zod.object({
   evaluateOverTimeOptions: Zod.object({
     timeValueInMinutes: Zod.number().optional(),
     evaluateOverTimeType: Zod.string().optional(),
+    onNoDataPolicy: Zod.string().optional(),
   }).optional(),
 });

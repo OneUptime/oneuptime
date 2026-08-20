@@ -117,10 +117,10 @@ export class Service extends DatabaseService<Model> {
        * create response for it to confirm the address the way a user would.
        *
        * It is gated on an environment variable that is unset in every shipped
-       * config and set true ONLY in the CI e2e job (docker-compose passes it
-       * through, .github/workflows/test-release.yaml sets it for the SaaS run).
-       * In production the flag is absent, this branch never runs, and the code
-       * never leaves the mail path.
+       * config and set true ONLY in the CI e2e jobs (docker-compose passes it
+       * through; both SaaS e2e jobs set it — test-release.yaml for master and
+       * release.yml for the release branch). In production the flag is absent,
+       * this branch never runs, and the code never leaves the mail path.
        */
       if (
         process.env["EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E"] ===
