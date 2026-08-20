@@ -20,6 +20,7 @@ import FormFieldSchemaType from "./Types/FormFieldSchemaType";
 import { FormStep } from "./Types/FormStep";
 import FormValues from "./Types/FormValues";
 import Validation from "./Validation";
+import FormAnalyticsName from "./Utils/FormAnalyticsName";
 import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
 import { VoidFunction } from "../../../Types/FunctionTypes";
@@ -447,7 +448,18 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           }
         }
 
-        UiAnalytics.capture("FORM SUBMIT: " + props.name);
+        const analyticsName: string | undefined = FormAnalyticsName.resolve(
+          props.name,
+        );
+
+        /*
+         * Unnamed forms are embedded sub-forms (filter builders, argument
+         * editors) rather than conversions. Skip them instead of reporting an
+         * event named after a missing prop.
+         */
+        if (analyticsName) {
+          UiAnalytics.capture("FORM SUBMIT: " + analyticsName);
+        }
 
         props.onSubmit(values, () => {
           setDidSomethingChange(false);

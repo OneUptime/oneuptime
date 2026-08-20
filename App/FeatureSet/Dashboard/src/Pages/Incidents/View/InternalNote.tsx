@@ -366,6 +366,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
       {showIncidentNoteTemplateModal && incidentNoteTemplates.length > 0 ? (
         <BasicFormModal<JSONObject>
           title="Create Note from Template"
+          name="Incident > Internal Note from Template"
           isLoading={isLoading}
           submitButtonText="Create from Template"
           onClose={() => {

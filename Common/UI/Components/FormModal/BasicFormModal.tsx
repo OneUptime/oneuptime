@@ -5,12 +5,19 @@ import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BasicForm, {
   BaseComponentProps as BasicFormComponentProps,
 } from "../Forms/BasicForm";
+import FormAnalyticsName from "../Forms/Utils/FormAnalyticsName";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
   title: string;
+  /*
+   * Identifies this form in the "FORM SUBMIT" analytics event. Falls back to
+   * formProps.name and then to the modal title, so every modal reports a
+   * distinguishable conversion without each caller having to name it.
+   */
+  name?: string | undefined;
   isLoading?: boolean | undefined;
   error?: string | undefined;
   onClose?: undefined | (() => void);
@@ -51,6 +58,11 @@ const BasicFormModal: <T extends GenericObject>(
         {!isLoading && (
           <BasicForm
             {...props.formProps}
+            name={FormAnalyticsName.resolve(
+              props.name,
+              props.formProps.name,
+              props.title,
+            )}
             hideSubmitButton={true}
             ref={formRef}
             onLoadingChange={(isFormLoading: boolean) => {
