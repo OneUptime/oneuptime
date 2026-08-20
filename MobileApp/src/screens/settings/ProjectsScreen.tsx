@@ -8,20 +8,32 @@ import {
   RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import * as WebBrowser from "expo-web-browser";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../../theme";
 import { fetchProjects } from "../../api/projects";
-import { fetchSSOProvidersForProject, SSOProvider } from "../../api/sso";
-import { getServerUrl } from "../../storage/serverUrl";
 import {
-  getCachedSsoTokens,
-  storeSsoToken,
-  getSsoTokens,
-  getGlobalSsoToken,
-} from "../../storage/ssoTokens";
+  fetchAllGlobalProviders,
+  fetchSSOProvidersForProject,
+  GlobalSSOProvider,
+  SSOProvider,
+  type SsoDiscoveryResult,
+} from "../../api/sso";
+import { getServerUrl } from "../../storage/serverUrl";
+import { getSsoTokens, getGlobalSsoToken } from "../../storage/ssoTokens";
+import { buildSsoLoginUrl } from "../../sso/providerUrl";
+import {
+  openSsoAuthSession,
+  type SsoAuthSessionOutcome,
+} from "../../sso/authSession";
+import {
+  completeSsoLoginFromUrl,
+  type CompleteSsoLoginOutcome,
+} from "../../sso/session";
 import type { ProjectItem, ListResponse } from "../../api/types";
-import type { SettingsStackParamList } from "../../navigation/types";
+import type {
+  SelectableSsoProvider,
+  SettingsStackParamList,
+} from "../../navigation/types";
 
 type Props = NativeStackScreenProps<SettingsStackParamList, "ProjectsList">;
 
@@ -64,23 +76,31 @@ export default function ProjectsScreen({
     }
   }, []);
 
+  /*
+   * Re-reads the stored SSO tokens. Both reads drop anything that has expired,
+   * so this doubles as the eviction pass that turns a lapsed token back into a
+   * visible "Authenticate with SSO" button instead of a project that claims to
+   * be authenticated and 406s on every request.
+   */
+  const refreshSsoState: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      const [tokens, globalToken]: [Record<string, string>, string | null] =
+        await Promise.all([getSsoTokens(), getGlobalSsoToken()]);
+      setSsoTokens(tokens);
+      setGlobalSsoToken(globalToken);
+    }, []);
+
   useEffect(() => {
     loadData();
   }, [loadData]);
 
   // Refresh SSO token state when returning from the provider selection screen
   useEffect(() => {
-    const unsubscribe: () => void = navigation.addListener(
-      "focus",
-      async () => {
-        const [tokens, globalToken]: [Record<string, string>, string | null] =
-          await Promise.all([getSsoTokens(), getGlobalSsoToken()]);
-        setSsoTokens(tokens);
-        setGlobalSsoToken(globalToken);
-      },
-    );
+    const unsubscribe: () => void = navigation.addListener("focus", () => {
+      refreshSsoState();
+    });
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, refreshSsoState]);
 
   const handleRefresh: () => void = (): void => {
     setIsRefreshing(true);
@@ -88,36 +108,51 @@ export default function ProjectsScreen({
   };
 
   const openSsoAuth: (
-    provider: SSOProvider,
+    provider: SelectableSsoProvider,
     projectId: string,
   ) => Promise<void> = async (
-    provider: SSOProvider,
+    provider: SelectableSsoProvider,
     projectId: string,
   ): Promise<void> => {
     const serverUrl: string = await getServerUrl();
-    const ssoUrl: string = `${serverUrl}/identity/sso/${projectId}/${provider._id}?mobile=true`;
 
-    await WebBrowser.warmUpAsync();
+    const ssoUrl: string = buildSsoLoginUrl(serverUrl, {
+      kind: provider.kind,
+      providerId: provider._id,
+      projectId: provider.kind === "project" ? projectId : undefined,
+    });
 
-    const result: WebBrowser.WebBrowserAuthSessionResult =
-      await WebBrowser.openAuthSessionAsync(ssoUrl, "oneuptime://sso-callback");
+    const outcome: SsoAuthSessionOutcome = await openSsoAuthSession(ssoUrl);
 
-    if (result.type === "success" && result.url) {
-      const url: URL = new URL(result.url);
-      const params: URLSearchParams = url.searchParams;
-
-      const ssoToken: string | null = params.get("ssoToken");
-      const returnedProjectId: string | null = params.get("projectId");
-
-      if (ssoToken && returnedProjectId) {
-        await storeSsoToken(returnedProjectId, ssoToken);
-        setSsoTokens({ ...getCachedSsoTokens() });
-      }
+    if (outcome.status === "cancelled") {
+      return;
     }
 
-    WebBrowser.coolDownAsync();
+    if (outcome.status === "error") {
+      setError(outcome.message);
+      return;
+    }
+
+    const completed: CompleteSsoLoginOutcome = await completeSsoLoginFromUrl(
+      outcome.url,
+    );
+
+    if (completed.status === "error") {
+      setError(completed.message);
+      return;
+    }
+
+    await refreshSsoState();
   };
 
+  /*
+   * A project that enforces SSO can be satisfied two ways: by a provider
+   * configured inside the project, or by an instance-wide Global SSO/OIDC
+   * provider the admin set up. Only the first was ever offered here, so on an
+   * instance whose identity provider is global, an authenticated user hit a
+   * dead end - "No SSO providers are configured" - with no way forward short
+   * of signing out entirely.
+   */
   const handleAuthenticate: (project: ProjectItem) => Promise<void> = async (
     project: ProjectItem,
   ): Promise<void> => {
@@ -127,32 +162,50 @@ export default function ProjectsScreen({
     setError(null);
 
     try {
-      // Fetch SSO providers for this specific project (like the dashboard does)
-      const providers: SSOProvider[] =
-        await fetchSSOProvidersForProject(projectId);
+      const [projectProviders, globalResult]: [
+        Array<SSOProvider>,
+        SsoDiscoveryResult<GlobalSSOProvider>,
+      ] = await Promise.all([
+        fetchSSOProvidersForProject(projectId).catch(() => {
+          return [] as Array<SSOProvider>;
+        }),
+        fetchAllGlobalProviders(),
+      ]);
 
-      if (providers.length === 0) {
+      const selectable: Array<SelectableSsoProvider> = [
+        ...globalResult.providers.map((provider: GlobalSSOProvider) => {
+          return {
+            _id: provider._id,
+            name: provider.name,
+            description: provider.description,
+            kind: provider.type,
+          };
+        }),
+        ...projectProviders.map((provider: SSOProvider) => {
+          return {
+            _id: provider._id,
+            name: provider.name,
+            description: provider.description,
+            kind: "project" as const,
+          };
+        }),
+      ];
+
+      if (selectable.length === 0) {
         setError(
           "No SSO providers are configured or enabled for this project. Please contact your admin.",
         );
         return;
       }
 
-      if (providers.length === 1) {
-        // Single provider — go directly to SSO auth
-        await openSsoAuth(providers[0]!, projectId);
+      if (selectable.length === 1) {
+        // Single provider - go straight to it rather than showing a list of one.
+        await openSsoAuth(selectable[0]!, projectId);
       } else {
-        // Multiple providers — navigate to selection screen
         navigation.navigate("SSOProviderSelect", {
           projectId,
           projectName: project.name,
-          providers: providers.map((p: SSOProvider) => {
-            return {
-              _id: p._id,
-              name: p.name,
-              description: p.description,
-            };
-          }),
+          providers: selectable,
         });
       }
     } catch {
@@ -388,7 +441,15 @@ export default function ProjectsScreen({
                     onPress={() => {
                       return handleAuthenticate(project);
                     }}
-                    disabled={isAuthenticating}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Authenticate with SSO for ${project.name}`}
+                    /*
+                     * Disabled for EVERY row while any row is authenticating,
+                     * not just the busy one: expo-web-browser allows a single
+                     * auth session at a time and throws
+                     * "WebBrowser is already open" on a second tap.
+                     */
+                    disabled={authenticatingProjectId !== null}
                     style={{
                       marginTop: 12,
                       paddingVertical: 10,
@@ -396,7 +457,7 @@ export default function ProjectsScreen({
                       backgroundColor: theme.colors.actionPrimary,
                       alignItems: "center",
                       justifyContent: "center",
-                      opacity: isAuthenticating ? 0.7 : 1,
+                      opacity: authenticatingProjectId !== null ? 0.7 : 1,
                     }}
                   >
                     {isAuthenticating ? (

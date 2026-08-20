@@ -20,6 +20,15 @@ import {
   getGlobalSsoToken,
   getSsoTokens,
 } from "../storage/ssoTokens";
+import {
+  consumeInitialSsoCallbackUrl,
+  startSsoCallbackCapture,
+  stopSsoCallbackCapture,
+} from "../sso/deepLink";
+import {
+  completeSsoLoginFromUrl,
+  type CompleteSsoLoginOutcome,
+} from "../sso/session";
 
 interface AuthContextValue {
   isAuthenticated: boolean;
@@ -48,7 +57,16 @@ export function AuthProvider({
   const [needsServerUrl, setNeedsServerUrl] = useState<boolean>(false);
   const [user, setUser] = useState<LoginResponse["user"] | null>(null);
 
-  useEffect((): void => {
+  useEffect((): (() => void) => {
+    /*
+     * Start capturing `oneuptime://sso-callback` before anything else can
+     * open a browser. The capture also drains the launch URL, which is how
+     * the callback arrives when the OS killed the app while the user was at
+     * their identity provider - common on Android under memory pressure.
+     * Without this the completed login is simply lost.
+     */
+    startSsoCallbackCapture();
+
     const checkAuth: () => Promise<void> = async (): Promise<void> => {
       try {
         const hasUrl: boolean = await hasServerUrl();
@@ -56,6 +74,25 @@ export function AuthProvider({
           setNeedsServerUrl(true);
           setIsLoading(false);
           return;
+        }
+
+        /*
+         * A callback waiting at launch means an SSO login completed while the
+         * app was dead. Finish it here so the user lands signed in instead of
+         * back on the login screen with no explanation.
+         */
+        const launchCallbackUrl: string | null =
+          await consumeInitialSsoCallbackUrl();
+
+        if (launchCallbackUrl) {
+          const completed: CompleteSsoLoginOutcome =
+            await completeSsoLoginFromUrl(launchCallbackUrl);
+
+          if (completed.status === "success") {
+            setIsAuthenticated(true);
+            setIsLoading(false);
+            return;
+          }
         }
 
         const tokens: { accessToken: string; refreshToken: string } | null =
@@ -75,6 +112,10 @@ export function AuthProvider({
     };
 
     checkAuth();
+
+    return (): void => {
+      stopSsoCallbackCapture();
+    };
   }, []);
 
   // Register auth failure handler for 401 interceptor

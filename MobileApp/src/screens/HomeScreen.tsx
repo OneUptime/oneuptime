@@ -14,7 +14,7 @@ import { useTheme } from "../theme";
 import { useAllProjectCounts } from "../hooks/useAllProjectCounts";
 import { useProject } from "../hooks/useProject";
 import { useHaptics } from "../hooks/useHaptics";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { MainTabParamList } from "../navigation/types";
 import type { ProjectItem } from "../api/types";
@@ -202,6 +202,19 @@ export default function HomeScreen(): React.JSX.Element {
   useEffect((): void => {
     checkSsoStatus();
   }, [checkSsoStatus]);
+
+  /*
+   * The Home tab stays mounted while the user goes off to Settings to complete
+   * an SSO login, so a plain effect keyed on projectList never re-runs and the
+   * banner keeps demanding SSO for a project that is now authenticated. Re-check
+   * whenever the tab regains focus - which is exactly when the user comes back
+   * from the login they just finished.
+   */
+  useFocusEffect(
+    useCallback((): void => {
+      checkSsoStatus();
+    }, [checkSsoStatus]),
+  );
 
   const onRefresh: () => Promise<void> = async (): Promise<void> => {
     lightImpact();

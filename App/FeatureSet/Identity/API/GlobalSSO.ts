@@ -1,5 +1,12 @@
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
 import SSOUtil, { VerifiedSamlResponse } from "../Utils/SSO";
+import {
+  buildMobileSsoSuccessUrl,
+  clearMobileSsoIntentCookie,
+  isMobileSsoRequest,
+  respondToMobileSsoFailure,
+  setMobileSsoIntentCookie,
+} from "../Utils/MobileSso";
 import { DashboardRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
@@ -147,7 +154,22 @@ router.get(
         );
       }
 
-      const isMobileRequest: boolean = req.query["mobile"] === "true";
+      const isMobileRequest: boolean = isMobileSsoRequest({
+        req,
+        providerId: globalSso.id!,
+      });
+
+      /*
+       * RelayState is the primary carrier of "this is a mobile login", but it
+       * is optional in the SAML specification and some identity providers do
+       * not echo it back. Record the intent in a short-lived cookie as well,
+       * so the ACS callback can still route the user to the app instead of
+       * dropping them on the web dashboard, where the app cannot reach the
+       * session.
+       */
+      if (isMobileRequest) {
+        setMobileSsoIntentCookie(res, globalSso.id!);
+      }
 
       const samlRequestUrl: URL = SSOUtil.createSAMLRequestUrl({
         acsUrl: URL.fromString(
@@ -217,6 +239,18 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
     const samlResponseBase64: string = req.body.SAMLResponse;
 
     if (!samlResponseBase64) {
+      if (
+        respondToMobileSsoFailure({
+          res,
+          isMobileRequest: isMobileSsoRequest({ req }),
+          error: "sso_failed",
+          errorDescription:
+            "Your identity provider did not return a sign-in response. Please try again.",
+        })
+      ) {
+        return;
+      }
+
       return Response.sendErrorResponse(
         req,
         res,
@@ -225,6 +259,17 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
     }
 
     if (!req.params["globalSsoId"]) {
+      if (
+        respondToMobileSsoFailure({
+          res,
+          isMobileRequest: isMobileSsoRequest({ req }),
+          error: "sso_failed",
+          errorDescription: "This sign-in link is missing its provider.",
+        })
+      ) {
+        return;
+      }
+
       return Response.sendErrorResponse(
         req,
         res,
@@ -233,6 +278,26 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
     }
 
     const globalSsoId: ObjectID = new ObjectID(req.params["globalSsoId"]);
+
+    /*
+     * Resolved once, here, and used by every exit below. Mobile logins have to
+     * end on the app's deep link whatever the outcome - a server-rendered page
+     * or a JSON error is a dead end inside the auth browser, and the app can
+     * only report it to the user as an unexplained cancellation.
+     */
+    const isMobileRequest: boolean = isMobileSsoRequest({
+      req,
+      providerId: globalSsoId,
+    });
+
+    /*
+     * The intent has been read into `isMobileRequest`; drop the cookie now so
+     * a later WEB login through the same provider in the same browser is not
+     * redirected into the app.
+     */
+    if (isMobileRequest) {
+      clearMobileSsoIntentCookie(res, globalSsoId);
+    }
 
     const samlResponse: string = Buffer.from(
       samlResponseBase64,
@@ -254,6 +319,18 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
     });
 
     if (!globalSso) {
+      if (
+        respondToMobileSsoFailure({
+          res,
+          isMobileRequest,
+          error: "provider_unavailable",
+          errorDescription:
+            "This SSO provider is no longer available. Please contact your administrator.",
+        })
+      ) {
+        return;
+      }
+
       return Response.sendErrorResponse(
         req,
         res,
@@ -262,6 +339,18 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
     }
 
     if (!globalSso.issuerURL) {
+      if (
+        respondToMobileSsoFailure({
+          res,
+          isMobileRequest,
+          error: "provider_misconfigured",
+          errorDescription:
+            "This SSO provider is missing its issuer URL. Please contact your administrator.",
+        })
+      ) {
+        return;
+      }
+
       return Response.sendErrorResponse(
         req,
         res,
@@ -270,6 +359,18 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
     }
 
     if (!globalSso.publicCertificate) {
+      if (
+        respondToMobileSsoFailure({
+          res,
+          isMobileRequest,
+          error: "provider_misconfigured",
+          errorDescription:
+            "This SSO provider is missing its certificate. Please contact your administrator.",
+        })
+      ) {
+        return;
+      }
+
       return Response.sendErrorResponse(
         req,
         res,
@@ -297,6 +398,26 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
       email = verifiedSaml.email;
       fullName = verifiedSaml.name;
     } catch (err: unknown) {
+      /*
+       * Logged before the mobile branch short-circuits: a failed signature
+       * verification is security-relevant, and the deep-link redirect returns
+       * without going through Response.sendErrorResponse, which is what
+       * records it on the web path.
+       */
+      logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+
+      if (
+        respondToMobileSsoFailure({
+          res,
+          isMobileRequest,
+          error: "invalid_assertion",
+          errorDescription:
+            "We could not verify the response from your identity provider. Please try again.",
+        })
+      ) {
+        return;
+      }
+
       if (err instanceof Exception) {
         return Response.sendErrorResponse(req, res, err);
       }
@@ -311,6 +432,18 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
           issuerUrl.toString(),
         getLogAttributesFromRequest(req as RequestLike),
       );
+      if (
+        respondToMobileSsoFailure({
+          res,
+          isMobileRequest,
+          error: "issuer_mismatch",
+          errorDescription:
+            "The response came from an unexpected identity provider. Please contact your administrator.",
+        })
+      ) {
+        return;
+      }
+
       return Response.sendErrorResponse(
         req,
         res,
@@ -356,6 +489,18 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
 
     if (!alreadySavedUser) {
       if (isSignUpDisabled) {
+        if (
+          respondToMobileSsoFailure({
+            res,
+            isMobileRequest,
+            error: "invitation_required",
+            errorDescription:
+              "You must be invited to a project on this OneUptime instance before you can sign in with SSO. Please contact your administrator.",
+          })
+        ) {
+          return;
+        }
+
         return Response.render(req, res, MESSAGE_VIEW, {
           title: "You need to be invited.",
           message:
@@ -377,6 +522,18 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
 
     if (!alreadySavedUser.isEmailVerified && !isNewUser) {
       await AuthenticationEmail.sendVerificationEmail(alreadySavedUser!);
+
+      if (
+        respondToMobileSsoFailure({
+          res,
+          isMobileRequest,
+          error: "email_not_verified",
+          errorDescription:
+            "Your email is not verified. We have sent you a verification link - please check your inbox, and your spam folder.",
+        })
+      ) {
+        return;
+      }
 
       return Response.render(req, res, MESSAGE_VIEW, {
         title: "Email not verified.",
@@ -445,15 +602,24 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
     });
 
     if (memberProjectCount.toNumber() === 0) {
+      if (
+        respondToMobileSsoFailure({
+          res,
+          isMobileRequest,
+          error: "no_project_access",
+          errorDescription:
+            "You are not a member of any project on this OneUptime instance. Please contact your administrator to be invited.",
+        })
+      ) {
+        return;
+      }
+
       return Response.render(req, res, MESSAGE_VIEW, {
         title: "No project access.",
         message:
           "You are not a member of any project on this OneUptime instance. Please contact your administrator to be invited.",
       });
     }
-
-    const isMobileRequest: boolean =
-      req.body.RelayState === "mobile" || req.query["RelayState"] === "mobile";
 
     const sessionMetadata: SessionMetadata =
       await UserSessionService.createSession({
@@ -493,24 +659,22 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
         expiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
       });
 
-      const params: URLSearchParams = new URLSearchParams();
-      params.set("accessToken", accessToken);
-      params.set("refreshToken", sessionMetadata.refreshToken);
-      params.set(
-        "refreshTokenExpiresAt",
-        sessionMetadata.refreshTokenExpiresAt.toISOString(),
-      );
-      params.set("userId", alreadySavedUser.id!.toString());
-      params.set("email", alreadySavedUser.email!.toString());
-      params.set("name", alreadySavedUser.name?.toString() || "");
-      params.set(
-        "isMasterAdmin",
-        String(alreadySavedUser.isMasterAdmin || false),
-      );
-      // Single global SSO token (mobile sends it via the x-global-sso-token header).
-      params.set("globalSsoToken", globalSsoToken);
-
-      const deepLinkUrl: string = `oneuptime://sso-callback?${params.toString()}`;
+      /*
+       * Built through the shared helper so the SAML and OIDC routers cannot
+       * drift apart on the param names the mobile app parses. The single
+       * global SSO token is sent back as `globalSsoToken`; the app replays it
+       * on every request as the `x-global-sso-token` header.
+       */
+      const deepLinkUrl: string = buildMobileSsoSuccessUrl({
+        accessToken,
+        refreshToken: sessionMetadata.refreshToken,
+        refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
+        userId: alreadySavedUser.id!.toString(),
+        email: alreadySavedUser.email!.toString(),
+        name: alreadySavedUser.name?.toString() || "",
+        isMasterAdmin: Boolean(alreadySavedUser.isMasterAdmin),
+        globalSsoToken,
+      });
 
       logger.info(
         "User logged in with Global SSO (mobile): " + email.toString(),
@@ -554,6 +718,24 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
     );
   } catch (err) {
     logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+
+    /*
+     * Last resort. An unexpected server error must still leave the mobile
+     * browser on the deep link, otherwise the app waits out the auth session
+     * and reports a cancellation the user cannot act on.
+     */
+    if (
+      respondToMobileSsoFailure({
+        res,
+        isMobileRequest: isMobileSsoRequest({ req }),
+        error: "sso_failed",
+        errorDescription:
+          "Something went wrong while signing you in. Please try again.",
+      })
+    ) {
+      return;
+    }
+
     Response.sendErrorResponse(req, res, err as Exception);
   }
 };
