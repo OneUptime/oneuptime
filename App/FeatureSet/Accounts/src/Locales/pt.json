@@ -56,7 +56,9 @@
     "submitButton": "Cadastrar",
     "haveAccountPrompt": "Já tem uma conta?",
     "loginLink": "Entrar.",
-    "notifySelfHosted": "Notifique-me sobre patches de segurança e novas versões"
+    "notifySelfHosted": "Notifique-me sobre patches de segurança e novas versões",
+    "checkEmailTitle": "Verifique seu e-mail",
+    "checkEmailMessage": "Se este endereço de e-mail tiver uma conta aguardando configuração, enviamos um link para concluir o registro. Não se esqueça de verificar a pasta de spam."
   },
   "forgotPassword": {
     "title": "Esqueceu a senha",

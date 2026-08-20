@@ -56,7 +56,9 @@
     "submitButton": "S'inscrire",
     "haveAccountPrompt": "Vous avez déjà un compte ?",
     "loginLink": "Connexion.",
-    "notifySelfHosted": "M'avertir des correctifs de sécurité et des nouvelles versions"
+    "notifySelfHosted": "M'avertir des correctifs de sécurité et des nouvelles versions",
+    "checkEmailTitle": "Vérifiez votre boîte de réception",
+    "checkEmailMessage": "Si un compte est en attente de configuration pour cette adresse e-mail, nous lui avons envoyé un lien pour terminer l'inscription. N'oubliez pas de vérifier vos courriers indésirables."
   },
   "forgotPassword": {
     "title": "Mot de passe oublié",

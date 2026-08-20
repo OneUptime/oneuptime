@@ -56,7 +56,9 @@
     "submitButton": "Tilmeld",
     "haveAccountPrompt": "Har du allerede en konto?",
     "loginLink": "Log ind.",
-    "notifySelfHosted": "Underret mig om sikkerhedsrettelser og nye udgivelser"
+    "notifySelfHosted": "Underret mig om sikkerhedsrettelser og nye udgivelser",
+    "checkEmailTitle": "Tjek din e-mail",
+    "checkEmailMessage": "Hvis der er en konto, der venter på at blive oprettet til denne e-mailadresse, har vi sendt et link til at fuldføre registreringen. Husk at tjekke din spammappe."
   },
   "forgotPassword": {
     "title": "Glemt adgangskode",

@@ -56,7 +56,9 @@
     "submitButton": "가입하기",
     "haveAccountPrompt": "이미 계정이 있으신가요?",
     "loginLink": "로그인.",
-    "notifySelfHosted": "보안 패치 및 새 릴리스에 대한 알림 받기"
+    "notifySelfHosted": "보안 패치 및 새 릴리스에 대한 알림 받기",
+    "checkEmailTitle": "이메일을 확인하세요",
+    "checkEmailMessage": "이 이메일 주소로 설정 대기 중인 계정이 있는 경우 등록을 완료할 수 있는 링크를 보냈습니다. 스팸 폴더도 확인하는 것을 잊지 마세요."
   },
   "forgotPassword": {
     "title": "비밀번호 잊음",

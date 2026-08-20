@@ -56,7 +56,9 @@
     "submitButton": "Registrarse",
     "haveAccountPrompt": "¿Ya tiene una cuenta?",
     "loginLink": "Iniciar sesión.",
-    "notifySelfHosted": "Notificarme sobre parches de seguridad y nuevas versiones"
+    "notifySelfHosted": "Notificarme sobre parches de seguridad y nuevas versiones",
+    "checkEmailTitle": "Revise su correo electrónico",
+    "checkEmailMessage": "Si esta dirección de correo electrónico tiene una cuenta pendiente de configurar, le hemos enviado un enlace para completar el registro. No olvide revisar la carpeta de spam."
   },
   "forgotPassword": {
     "title": "Olvidó su contraseña",

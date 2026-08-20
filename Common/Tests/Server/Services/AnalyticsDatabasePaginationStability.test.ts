@@ -315,6 +315,35 @@ describe("AnalyticsDatabaseService pagination stability", () => {
     });
 
     /*
+     * The sort-key boundary filter (toSortKeyBoundaryFilter) puts its own
+     * `ORDER BY <key> LIMIT n` in a subquery inside the WHERE, so the
+     * statement now carries two. The tiebreaker lives on the LAST one —
+     * the outer sort that actually orders the page.
+     */
+    const outerOrderBy: (query: string) => string = (query: string): string => {
+      return query
+        .slice(query.lastIndexOf("ORDER BY "))
+        .replace("ORDER BY ", "")
+        .split(" LIMIT")[0]!;
+    };
+
+    /*
+     * Resolves the rendered `{pN:Identifier}` terms of an ORDER BY back to
+     * the column names they are bound to, so the assertions do not depend
+     * on parameter numbering.
+     */
+    const orderByColumns: (statement: Statement) => Array<string> = (
+      statement: Statement,
+    ): Array<string> => {
+      return outerOrderBy(statement.query)
+        .split(", ")
+        .map((term: string): string => {
+          const param: string = term.split(":")[0]!.replace("{", "");
+          return statement.query_params[param] as string;
+        });
+    };
+
+    /*
      * The generator is NOT mocked here, so this asserts the real ORDER BY
      * text — the separator fix and the tiebreaker together.
      */
@@ -328,13 +357,10 @@ describe("AnalyticsDatabaseService pagination stability", () => {
         skip: 100,
       } as never);
 
-      expect(statement.query).toContain(
-        "ORDER BY {p2:Identifier} DESC, {p3:Identifier} DESC",
+      expect(outerOrderBy(statement.query)).toMatch(
+        /^\{p\d+:Identifier\} DESC, \{p\d+:Identifier\} DESC$/,
       );
-      expect(statement.query_params).toMatchObject({
-        p2: TIME_COLUMN,
-        p3: "_id",
-      });
+      expect(orderByColumns(statement)).toStrictEqual([TIME_COLUMN, "_id"]);
     });
 
     test("the ORDER BY ends with _id, immediately before LIMIT", () => {
@@ -347,13 +373,7 @@ describe("AnalyticsDatabaseService pagination stability", () => {
         skip: 0,
       } as never);
 
-      const orderBy: string = statement.query
-        .split("ORDER BY ")[1]!
-        .split(" LIMIT")[0]!;
-      const lastTerm: string = orderBy.split(", ").pop()!;
-      const lastParam: string = lastTerm.split(":")[0]!.replace("{", "");
-
-      expect(statement.query_params[lastParam]).toBe("_id");
+      expect(orderByColumns(statement).pop()).toBe("_id");
     });
   });
 

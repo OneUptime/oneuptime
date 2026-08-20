@@ -56,7 +56,9 @@
     "submitButton": "Registrer deg",
     "haveAccountPrompt": "Har du allerede en konto?",
     "loginLink": "Logg inn.",
-    "notifySelfHosted": "Varsle meg om sikkerhetsoppdateringer og nye utgivelser"
+    "notifySelfHosted": "Varsle meg om sikkerhetsoppdateringer og nye utgivelser",
+    "checkEmailTitle": "Sjekk e-posten din",
+    "checkEmailMessage": "Hvis denne e-postadressen har en konto som venter på å bli satt opp, har vi sendt en lenke for å fullføre registreringen. Ikke glem å sjekke søppelpostmappen."
   },
   "forgotPassword": {
     "title": "Glemt passord",

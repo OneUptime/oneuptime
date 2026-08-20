@@ -17,7 +17,7 @@ import { describe, expect, test } from "@jest/globals";
  * produces a confusing failure a long way from here.
  */
 
-/* eslint-disable @typescript-eslint/no-var-requires */
+/* eslint-disable @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports */
 const appConfig: {
   IOS_CRITICAL_ALERTS_ENTITLEMENT: string;
   isCriticalAlertsEntitlementEnabled: (env: unknown) => boolean;
