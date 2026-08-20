@@ -1512,6 +1512,32 @@ jobs:
           else
             echo "APP_TAG=${SANITIZED_VERSION}" > config.env
           fi
+      - name: Expose notification-channel verification codes to the e2e suite
+        run: |
+          set -euo pipefail
+          # TEST-ONLY, and the same step the master SaaS e2e job runs
+          # (.github/workflows/test-release.yaml). The e2e stack has no mailbox,
+          # so the API is told to hand back the notification-channel
+          # verification code on the create response
+          # (Common/Server/Services/UserEmailService.ts). Without it the create
+          # response carries the stored HASH instead, which is truthy — so the
+          # suite gets past its "did we get a code?" guard and then fails on
+          # POST /api/user-email/verify with 400 "Invalid code", which is
+          # exactly how this job broke 12.0.13 and 12.0.14.
+          #
+          # This is set ONLY here, for the ephemeral CI stack; it is never in a
+          # shipped config, and production leaves it empty so the code stays
+          # emailed.
+          KEY=EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E
+          if [ -f config.env ] && grep -q "^${KEY}=" config.env; then
+            sed -i "s|^${KEY}=.*|${KEY}=true|" config.env
+          else
+            echo "${KEY}=true" >> config.env
+          fi
+          # Also surface it as a real environment variable for every later step,
+          # so `docker compose` interpolates ${KEY} straight from the process
+          # env and does not depend on the config.env round-trip.
+          echo "${KEY}=true" >> "$GITHUB_ENV"
       - name: Start Server with version tag
         run: |
           export $(grep -v '^#' config.env | xargs)
@@ -1520,6 +1546,14 @@ jobs:
           npm run status-check
       - name: Wait for server to start
         run: bash ./Tests/Scripts/status-check.sh http://localhost
+      - name: Diagnose verification-code exposure wiring (non-fatal)
+        run: |
+          set +e
+          echo "config.env flag line:"
+          grep -n "EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E" config.env || echo "  (not in config.env)"
+          echo "runner env flag: [${EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E:-UNSET}]"
+          echo "app container flag:"
+          docker compose -f docker-compose.billing.yml exec -T app sh -lc 'echo "  APP_FLAG=[${EXPOSE_VERIFICATION_CODE_IN_API_RESPONSE_FOR_E2E:-UNSET}]"' || echo "  (exec into app failed)"
       - name: Pull E2E test image
         run: |
           set -euo pipefail
