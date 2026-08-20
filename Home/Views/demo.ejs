@@ -219,24 +219,19 @@
               calNamespace: namespace
             });
 
-            // GA4 tracking - for conversion tracking
-            if (typeof gtag !== 'undefined') {
-              gtag('event', 'demo_request', {
-                'event_category': 'conversion',
-                'event_label': 'demo_booked',
-                'value': 1
-              });
-            }
-            
-            // GTM dataLayer push (backup)
-            if (typeof dataLayer !== 'undefined') {
-              dataLayer.push({
-                'event': 'demo_booked',
-                'eventCategory': 'conversion',
-                'eventAction': 'demo_request',
-                'eventLabel': window.location.pathname
-              });
-            }
+            /*
+             * No extra emissions here. One booking must produce exactly one
+             * conversion event, or GA4 key-event counts and Google Ads bidding
+             * are inflated. This block previously also sent 'demo_request'
+             * through the gtag shim and 'demo_booked' through dataLayer, so a
+             * single booking looked like three conversions under three names.
+             *
+             * The 'demo_request' path could never arrive at all: `gtag` here is
+             * the shim defined in head-basic.ejs (`dataLayer.push(arguments)`),
+             * which pushes an Arguments object carrying no `event` key, so no
+             * GTM Custom Event trigger can match it. support.ejs already had
+             * this shape; demo.ejs was the outlier.
+             */
           }
         });
       </script>

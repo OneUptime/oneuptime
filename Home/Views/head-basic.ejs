@@ -217,10 +217,18 @@
             }
         }
 
-        if (typeof window.gtag === 'function') {
-            window.gtag('event', 'meeting_booked', properties);
-        }
-
+        /*
+         * One booking, one GA4 event. The dataLayer push below is the only
+         * path to Google; the GTM container forwards it with a Custom Event
+         * trigger (see Docs/analytics/revenue-funnel.md).
+         *
+         * There used to be a `gtag('event', 'meeting_booked', ...)` mirror
+         * here as well. Once the Google tag is on the page, gtag interop is
+         * live and that call reaches GA4 *directly*, bypassing GTM - so with
+         * the forwarding tag in place the same booking was counted twice,
+         * under one name, from two mechanisms. Keep every OneUptime event on
+         * the dataLayer path so the container stays the single control point.
+         */
         if (typeof dataLayer !== 'undefined') {
             dataLayer.push(Object.assign({ event: 'meeting_booked' }, properties));
         }
