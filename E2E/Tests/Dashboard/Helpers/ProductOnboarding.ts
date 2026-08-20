@@ -154,12 +154,26 @@ export const gotoProjectPage: GotoProjectPageFunction = async (data: {
         break;
       }
 
-      await data.page.waitForURL(
-        new RegExp(`/dashboard/${data.projectId}(?:/home/?)?$`),
-        {
-          timeout: 30000,
-        },
-      );
+      /*
+       * Best-effort settle before the next attempt: wait for the SPA's
+       * project-selection redirect to land back on the project home. This is
+       * only a recovery hint. If the app does not reach that URL within the
+       * window, that timeout is NOT itself the failure - swallow it and let the
+       * loop retry goto() anyway. Letting this waitForURL throw is what turned a
+       * slow redirect into a hard failure and aborted the retry that would
+       * otherwise have recovered, so the real (goto/ready) error is the only one
+       * allowed to propagate, and only after every attempt is spent.
+       */
+      try {
+        await data.page.waitForURL(
+          new RegExp(`/dashboard/${data.projectId}(?:/home/?)?$`),
+          {
+            timeout: 30000,
+          },
+        );
+      } catch {
+        // Redirect did not settle in time; fall through and retry goto().
+      }
       await data.page.waitForTimeout(1000);
     }
   }
