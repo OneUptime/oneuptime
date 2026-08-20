@@ -12,6 +12,19 @@ import crypto from "crypto";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
+/*
+ * Meta sends the digest as "sha256=" followed by the 64 hex characters of a
+ * SHA-256 HMAC. The header is attacker-controlled and the endpoint is
+ * unauthenticated by design - the signature IS the authentication - so the
+ * shape has to be checked before the value reaches crypto.timingSafeEqual,
+ * which throws RangeError on a length mismatch rather than returning false.
+ * Without the guard, any unauthenticated request carrying a signature header
+ * of some other length threw out of the middleware instead of getting the
+ * intended 400.
+ */
+const SIGNATURE_PREFIX: string = "sha256=";
+const HEX_DIGEST_REGEX: RegExp = /^[a-f0-9]{64}$/i;
+
 export default class WhatsAppAuthorization {
   @CaptureSpan()
   public static async isAuthorizedWhatsAppRequest(
@@ -37,6 +50,26 @@ export default class WhatsAppAuthorization {
         req,
         res,
         new BadDataException("Missing X-Hub-Signature-256 header."),
+      );
+    }
+
+    /*
+     * Checked up front, before the config lookup: a request whose signature
+     * cannot possibly verify should not cost a database round trip.
+     */
+    const providedDigest: string = signature.startsWith(SIGNATURE_PREFIX)
+      ? signature.slice(SIGNATURE_PREFIX.length)
+      : "";
+
+    if (!HEX_DIGEST_REGEX.test(providedDigest)) {
+      logger.error(
+        "WhatsApp webhook request has a malformed X-Hub-Signature-256 header.",
+        getLogAttributesFromRequest(req),
+      );
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("WhatsApp webhook signature verification failed."),
       );
     }
 
@@ -70,12 +103,19 @@ export default class WhatsAppAuthorization {
 
     const rawBody: string = req.rawBody || "";
 
-    const expectedSignature: string = `sha256=${crypto.createHmac("sha256", appSecret).update(rawBody).digest("hex")}`;
+    const expectedDigest: string = crypto
+      .createHmac("sha256", appSecret)
+      .update(rawBody)
+      .digest("hex");
 
+    /*
+     * Both sides are decoded from 64 validated hex characters, so both
+     * buffers are 32 bytes and timingSafeEqual cannot throw here.
+     */
     if (
       !crypto.timingSafeEqual(
-        Buffer.from(expectedSignature) as Uint8Array,
-        Buffer.from(signature) as Uint8Array,
+        Buffer.from(expectedDigest, "hex") as Uint8Array,
+        Buffer.from(providedDigest, "hex") as Uint8Array,
       )
     ) {
       logger.error(
