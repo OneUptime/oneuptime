@@ -15,6 +15,27 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # This job used to run every App suite in one serial pass and stopped
+    # finishing at all: it ran into the 6h runner ceiling and was killed, so
+    # master had no App test signal. Three things bound it now.
+    #
+    # 1. jest --shard splits the ~340 suites across these runners. The split is
+    #    by hash of the test path, so the Dashboard suites -- two thirds of the
+    #    total, and the expensive ones -- spread evenly instead of landing in
+    #    one shard.
+    # 2. The suite no longer runs serially, and ts-jest no longer type-checks
+    #    every file it loads (App/jest.config.json sets isolatedModules). The
+    #    types are still checked, once and in about a minute, by the compile-app
+    #    job in the Compile workflow: App's tsconfig has every test file as a
+    #    program root, so nothing here goes unchecked.
+    # 3. This cap is the tripwire. If the suite creeps back towards hours the
+    #    job fails here rather than quietly blocking the queue for a workday.
+    timeout-minutes: 30
+    strategy:
+      # One slow or broken shard should not hide the results of the others.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
       BILLING_PRIVATE_KEY: ${{secrets.TEST_BILLING_PRIVATE_KEY}}
@@ -27,4 +48,4 @@ jobs:
       # App tests import Common sources directly (jest maps Common/* to
       # ../Common), so Common's own dependencies must be installed too.
       - run: cd Common && npm install
-      - run: cd App && npm install && npm run test
+      - run: cd App && npm install && npm run test -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}
