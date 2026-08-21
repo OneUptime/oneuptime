@@ -156,12 +156,47 @@ export interface LinkRuleOutcome {
   unsitedChildDeviceCount?: number | undefined;
 }
 
+/*
+ * One failing site, as the banner lists it rather than as the resolver
+ * computed it. Deliberately not LinkRuleGroupFailure itself: this crosses the
+ * wire to the browser, so it carries the two numbers an operator acts on and
+ * nothing else.
+ */
+export interface LinkRuleWarningSite {
+  siteId: string;
+  siteName?: string | undefined;
+  reason: LinkRuleGroupSkipReason;
+  /*
+   * Devices in THIS site the rule wanted to place and could not — the damage
+   * count for one line of the list, which sums to the sentence's total.
+   */
+  strandedDeviceCount: number;
+  // Devices in this site carrying the parent labels: 0, or >= 2 when ambiguous.
+  matchedParentCount: number;
+}
+
 /** One bullet in the topology map's warning banner. At most one per rule. */
 export interface LinkRuleWarning {
   ruleId: string;
   ruleName?: string | undefined;
   reason: LinkRuleWarningReason;
   message: string;
+  /*
+   * The failing sites themselves, in the same order the sentence names them,
+   * capped at MAX_LISTED_SITES. Present only for a site-scoped rule that
+   * failed somewhere.
+   *
+   * The sentence names three sites and then says "and 694 more", which is a
+   * blast radius and not something anybody can act on — issue #3321, where an
+   * operator with 949 sites had no way to find out WHICH of them were broken.
+   * The list is what turns that number back into work.
+   */
+  sites?: Array<LinkRuleWarningSite> | undefined;
+  /*
+   * Exact number of failing sites, still exact when `sites` was capped. Always
+   * >= sites.length, so the UI can say how many it is not showing.
+   */
+  siteCount?: number | undefined;
 }
 
 /*
@@ -204,6 +239,13 @@ export default class NetworkDeviceLinkRuleUtil {
 
   // Three names is enough to recognise a pattern; fourteen is a wall of text.
   private static readonly MAX_NAMED_SITES: number = 3;
+  /*
+   * How many failing sites ride back on the warning for the operator to work
+   * through. Far more than the sentence names, because this is a list nobody
+   * reads until they open it — but still capped: a project with 949 broken
+   * sites must not turn a 60-second map poll into a megabyte of site names.
+   */
+  public static readonly MAX_LISTED_SITES: number = 100;
   // Site names are ShortText and can run to 100 characters.
   private static readonly MAX_SITE_NAME_LENGTH: number = 40;
   private static readonly UNNAMED_SITE: string = "an unnamed site";
@@ -530,18 +572,17 @@ export default class NetworkDeviceLinkRuleUtil {
   }
 
   /*
-   * "Unit 4, Unit 9 and 2 more sites".
-   *
-   * Sorted before naming, and that is load-bearing rather than cosmetic: the
-   * live view refetches every sixty seconds and the device query has no ORDER
-   * BY, so an unsorted list would reshuffle the banner on every poll and read
-   * as a change that did not happen. The count stays exact even when the names
-   * are elided, so the operator always knows the true blast radius.
+   * By site name, then by id so equally-named (and unnamed) sites still have
+   * ONE order. Load-bearing rather than cosmetic: the live view refetches
+   * every sixty seconds and the device query has no ORDER BY, so an unsorted
+   * list would reshuffle the banner on every poll and read as a change that
+   * did not happen. The sentence and the site list share it so the three names
+   * the sentence gives are the first three rows of the list.
    */
-  private static describeSiteList(
+  private static sortSiteFailures(
     failures: Array<LinkRuleGroupFailure>,
-  ): string {
-    const sorted: Array<LinkRuleGroupFailure> = [...failures].sort(
+  ): Array<LinkRuleGroupFailure> {
+    return [...failures].sort(
       (a: LinkRuleGroupFailure, b: LinkRuleGroupFailure) => {
         return (
           (a.siteName || "").localeCompare(b.siteName || "") ||
@@ -549,6 +590,21 @@ export default class NetworkDeviceLinkRuleUtil {
         );
       },
     );
+  }
+
+  /*
+   * "Unit 4, Unit 9 and 2 more sites".
+   *
+   * Named in sortSiteFailures order, for the reasons given there. The count
+   * stays exact even when the names are elided, so the operator always knows
+   * the true blast radius — and `getWarning` sends the sites themselves
+   * alongside, because a blast radius is not a list of buildings.
+   */
+  private static describeSiteList(
+    failures: Array<LinkRuleGroupFailure>,
+  ): string {
+    const sorted: Array<LinkRuleGroupFailure> =
+      NetworkDeviceLinkRuleUtil.sortSiteFailures(failures);
 
     const names: Array<string> = sorted
       .slice(0, NetworkDeviceLinkRuleUtil.MAX_NAMED_SITES)
@@ -721,7 +777,7 @@ export default class NetworkDeviceLinkRuleUtil {
       );
     }
 
-    return {
+    const warning: LinkRuleWarning = {
       ruleId: outcome.ruleId,
       ruleName: outcome.ruleName,
       // Highest-ranked condition present. Ambiguity outranks a missing parent.
@@ -733,5 +789,31 @@ export default class NetworkDeviceLinkRuleUtil {
             : "devicesWithoutSite",
       message: parts.join(" "),
     };
+
+    /*
+     * The list, for the sentence the operator cannot act on. Written only when
+     * there are failing sites, so a warning that is purely about unsited
+     * devices — which names no site at all — keeps the exact shape it had.
+     *
+     * `siteCount` is the true total and `sites` may be shorter; a caller that
+     * reads sites.length as the number of broken sites is wrong at the cap,
+     * which is precisely the scale this exists for.
+     */
+    if (failures.length > 0) {
+      warning.siteCount = failures.length;
+      warning.sites = NetworkDeviceLinkRuleUtil.sortSiteFailures(failures)
+        .slice(0, NetworkDeviceLinkRuleUtil.MAX_LISTED_SITES)
+        .map((failure: LinkRuleGroupFailure) => {
+          return {
+            siteId: failure.siteId,
+            siteName: failure.siteName,
+            reason: failure.reason,
+            strandedDeviceCount: failure.matchedChildCount,
+            matchedParentCount: failure.matchedParentCount,
+          };
+        });
+    }
+
+    return warning;
   }
 }
