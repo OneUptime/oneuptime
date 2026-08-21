@@ -8,6 +8,7 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import UserAuthenticationStatus from "Common/Types/UserAuthenticationStatus";
+import TwoFactorAuthStatus from "Common/Types/TwoFactorAuthStatus";
 import { MINIMUM_PASSWORD_LENGTH } from "Common/Types/Password";
 import IconProp from "Common/Types/Icon/IconProp";
 import User from "Common/Models/DatabaseModels/User";
@@ -75,6 +76,22 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
   const [isSendingResetLink, setIsSendingResetLink] = useState<boolean>(false);
   const [resetLinkError, setResetLinkError] = useState<string>("");
   const [resetLinkSuccess, setResetLinkSuccess] = useState<string>("");
+
+  /*
+   * The three two-factor actions share one error/success pair and one loading
+   * flag, because only one of them can be open at a time -- each is behind its
+   * own confirmation modal. Separate state per action would let a stale
+   * "requirement removed" banner sit under a fresh reset failure.
+   */
+  const [showRequireTwoFactorModal, setShowRequireTwoFactorModal] =
+    useState<boolean>(false);
+  const [showDoNotRequireTwoFactorModal, setShowDoNotRequireTwoFactorModal] =
+    useState<boolean>(false);
+  const [showResetTwoFactorModal, setShowResetTwoFactorModal] =
+    useState<boolean>(false);
+  const [isSavingTwoFactor, setIsSavingTwoFactor] = useState<boolean>(false);
+  const [twoFactorError, setTwoFactorError] = useState<string>("");
+  const [twoFactorSuccess, setTwoFactorSuccess] = useState<string>("");
 
   const loadStatus: () => Promise<void> = async (): Promise<void> => {
     setIsStatusLoading(true);
@@ -180,8 +197,99 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
       }
     };
 
+  /*
+   * Both two-factor writes reload the status afterwards. That is not a
+   * cosmetic refresh: the tri-state label and BOTH buttons' disabled states
+   * are read off it, so skipping it would leave "Require" greyed out on an
+   * account whose requirement was just removed.
+   */
+  const setTwoFactorAuthRequired: (
+    isRequired: boolean,
+  ) => Promise<void> = async (isRequired: boolean): Promise<void> => {
+    setIsSavingTwoFactor(true);
+    setTwoFactorError("");
+    setTwoFactorSuccess("");
+
+    try {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post<JSONObject>({
+          url: userAuthenticationRoute(modelId, "set-two-factor-auth-required"),
+          data: {
+            isRequired: isRequired,
+          },
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
+
+      setTwoFactorSuccess(
+        isRequired
+          ? t("pages.userAuthentication.twoFactorRequireSuccess")
+          : t("pages.userAuthentication.twoFactorDoNotRequireSuccess"),
+      );
+
+      setShowRequireTwoFactorModal(false);
+      setShowDoNotRequireTwoFactorModal(false);
+
+      await loadStatus();
+    } catch (err) {
+      setTwoFactorError(API.getFriendlyMessage(err));
+    } finally {
+      setIsSavingTwoFactor(false);
+    }
+  };
+
+  const resetTwoFactorAuth: () => Promise<void> = async (): Promise<void> => {
+    setIsSavingTwoFactor(true);
+    setTwoFactorError("");
+    setTwoFactorSuccess("");
+
+    try {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post<JSONObject>({
+          url: userAuthenticationRoute(modelId, "reset-two-factor-auth"),
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
+
+      setTwoFactorSuccess(t("pages.userAuthentication.twoFactorResetSuccess"));
+
+      setShowResetTwoFactorModal(false);
+
+      await loadStatus();
+    } catch (err) {
+      setTwoFactorError(API.getFriendlyMessage(err));
+    } finally {
+      setIsSavingTwoFactor(false);
+    }
+  };
+
   const yesNo: (value: boolean) => string = (value: boolean): string => {
     return value ? t("common.yes") : t("common.no");
+  };
+
+  /*
+   * The one field on this page where a boolean would lie. "Two Factor Auth
+   * Enabled: Yes" is true of an account an admin has just mandated and that
+   * has nothing set up behind the mandate -- which is exactly the account an
+   * operator is on this page to help, and exactly the one they would then walk
+   * away from believing was fine.
+   */
+  const twoFactorStatusLabel: (
+    twoFactorAuthStatus: TwoFactorAuthStatus,
+  ) => string = (twoFactorAuthStatus: TwoFactorAuthStatus): string => {
+    if (twoFactorAuthStatus === TwoFactorAuthStatus.EnabledConfigured) {
+      return t("pages.userAuthentication.twoFactorStatusConfigured");
+    }
+
+    if (twoFactorAuthStatus === TwoFactorAuthStatus.EnabledPendingSetup) {
+      return t("pages.userAuthentication.twoFactorStatusPendingSetup");
+    }
+
+    return t("pages.userAuthentication.twoFactorStatusNotEnabled");
   };
 
   return (
@@ -275,7 +383,15 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
                     {t("pages.userAuthentication.twoFactorLabel")}
                   </p>
                   <p className="text-sm text-gray-900">
-                    {yesNo(status.isTwoFactorAuthEnabled)}
+                    {twoFactorStatusLabel(status.twoFactorAuthStatus)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">
+                    {t("pages.userAuthentication.twoFactorMethodCountLabel")}
+                  </p>
+                  <p className="text-sm text-gray-900">
+                    {status.verifiedTwoFactorAuthMethodCount}
                   </p>
                 </div>
                 <div>
@@ -287,6 +403,83 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
                   </p>
                 </div>
               </div>
+            ) : (
+              <></>
+            )}
+          </div>
+        </Card>
+
+        <Card
+          title={t("pages.userAuthentication.twoFactorCardTitle")}
+          description={t("pages.userAuthentication.twoFactorCardDescription")}
+          buttons={[
+            {
+              title: t("pages.userAuthentication.twoFactorRequireButton"),
+              icon: IconProp.ShieldCheck,
+              buttonStyle: ButtonStyleType.NORMAL,
+              /*
+               * Disabled rather than hidden, with the reason on hover. A
+               * button that vanishes when it would be a no-op reads as a
+               * missing feature; one that explains itself reads as a
+               * finished state.
+               */
+              disabled: status?.isTwoFactorAuthEnabled === true,
+              tooltip:
+                status?.isTwoFactorAuthEnabled === true
+                  ? t(
+                      "pages.userAuthentication.twoFactorAlreadyRequiredTooltip",
+                    )
+                  : undefined,
+              onClick: () => {
+                setTwoFactorError("");
+                setTwoFactorSuccess("");
+                setShowRequireTwoFactorModal(true);
+              },
+            },
+            {
+              title: t("pages.userAuthentication.twoFactorDoNotRequireButton"),
+              icon: IconProp.LockOpen,
+              buttonStyle: ButtonStyleType.NORMAL,
+              disabled: status?.isTwoFactorAuthEnabled === false,
+              tooltip:
+                status?.isTwoFactorAuthEnabled === false
+                  ? t("pages.userAuthentication.twoFactorNotRequiredTooltip")
+                  : undefined,
+              onClick: () => {
+                setTwoFactorError("");
+                setTwoFactorSuccess("");
+                setShowDoNotRequireTwoFactorModal(true);
+              },
+            },
+            {
+              title: t("pages.userAuthentication.twoFactorResetButton"),
+              icon: IconProp.ShieldExclamation,
+              buttonStyle: ButtonStyleType.DANGER,
+              /*
+               * Never disabled. An operator does not necessarily know what a
+               * locked-out user has set up, and running a reset against an
+               * account with nothing on it is a harmless no-op.
+               */
+              onClick: () => {
+                setTwoFactorError("");
+                setTwoFactorSuccess("");
+                setShowResetTwoFactorModal(true);
+              },
+            },
+          ]}
+        >
+          <div className="mt-3">
+            {twoFactorSuccess ? (
+              <Alert type={AlertType.SUCCESS} title={twoFactorSuccess} />
+            ) : (
+              <></>
+            )}
+
+            {twoFactorError &&
+            !showRequireTwoFactorModal &&
+            !showDoNotRequireTwoFactorModal &&
+            !showResetTwoFactorModal ? (
+              <Alert type={AlertType.DANGER} title={twoFactorError} />
             ) : (
               <></>
             )}
@@ -385,6 +578,83 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
             )}
           </div>
         </Card>
+
+        {showRequireTwoFactorModal ? (
+          <ConfirmModal
+            title={t("pages.userAuthentication.twoFactorRequireModalTitle")}
+            description={t(
+              "pages.userAuthentication.twoFactorRequireModalDescription",
+            )}
+            submitButtonText={t(
+              "pages.userAuthentication.twoFactorRequireModalSubmit",
+            )}
+            submitButtonType={ButtonStyleType.PRIMARY}
+            isLoading={isSavingTwoFactor}
+            error={twoFactorError || undefined}
+            onSubmit={() => {
+              setTwoFactorAuthRequired(true).catch(() => {
+                // Surfaced through twoFactorError.
+              });
+            }}
+            onClose={() => {
+              setShowRequireTwoFactorModal(false);
+            }}
+          />
+        ) : (
+          <></>
+        )}
+
+        {showDoNotRequireTwoFactorModal ? (
+          <ConfirmModal
+            title={t(
+              "pages.userAuthentication.twoFactorDoNotRequireModalTitle",
+            )}
+            description={t(
+              "pages.userAuthentication.twoFactorDoNotRequireModalDescription",
+            )}
+            submitButtonText={t(
+              "pages.userAuthentication.twoFactorDoNotRequireModalSubmit",
+            )}
+            submitButtonType={ButtonStyleType.PRIMARY}
+            isLoading={isSavingTwoFactor}
+            error={twoFactorError || undefined}
+            onSubmit={() => {
+              setTwoFactorAuthRequired(false).catch(() => {
+                // Surfaced through twoFactorError.
+              });
+            }}
+            onClose={() => {
+              setShowDoNotRequireTwoFactorModal(false);
+            }}
+          />
+        ) : (
+          <></>
+        )}
+
+        {showResetTwoFactorModal ? (
+          <ConfirmModal
+            title={t("pages.userAuthentication.twoFactorResetModalTitle")}
+            description={t(
+              "pages.userAuthentication.twoFactorResetModalDescription",
+            )}
+            submitButtonText={t(
+              "pages.userAuthentication.twoFactorResetModalSubmit",
+            )}
+            submitButtonType={ButtonStyleType.DANGER}
+            isLoading={isSavingTwoFactor}
+            error={twoFactorError || undefined}
+            onSubmit={() => {
+              resetTwoFactorAuth().catch(() => {
+                // Surfaced through twoFactorError.
+              });
+            }}
+            onClose={() => {
+              setShowResetTwoFactorModal(false);
+            }}
+          />
+        ) : (
+          <></>
+        )}
 
         {showResetLinkModal ? (
           <ConfirmModal

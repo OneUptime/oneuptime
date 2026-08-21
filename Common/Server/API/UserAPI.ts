@@ -325,6 +325,94 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
       },
     );
 
+    /*
+     * Require -- or stop requiring -- two factor auth for one user.
+     *
+     * Master-admin only, and its own route rather than a PUT to /user/:id
+     * carrying `enableTwoFactorAuth` for a reason that is not cosmetic: the
+     * generic write would succeed (a master admin bypasses the column's ACL)
+     * but it would NOT revoke the user's sessions, so "two factor auth is now
+     * required" would be a promise the product silently failed to keep for
+     * everybody already signed in. That revocation lives in
+     * UserService.setTwoFactorAuthRequired, where a caller cannot forget it.
+     *
+     * Session-only middleware, deliberately. This route WRITES, and the
+     * instance-wide master API key is scoped to reads for exactly this class
+     * of reason: a leaked static key that can read discloses, but one that can
+     * turn two factor auth off across every account on the instance is an
+     * account takeover with the safety catch removed.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:userId/set-two-factor-auth-required`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const userId: ObjectID = UserAPI.getUserIdFromParams(req);
+
+          const isRequired: unknown = req.body?.["isRequired"];
+
+          /*
+           * Type-checked rather than cast, and the check has to be `typeof`
+           * rather than truthiness. `Boolean(req.body["isRequired"])` would
+           * read a missing field, a null, or the string "false" as a request
+           * to turn the requirement OFF -- silently weakening an account's
+           * security in response to a malformed call.
+           */
+          if (typeof isRequired !== "boolean") {
+            throw new BadDataException(
+              "isRequired is required and must be a boolean.",
+            );
+          }
+
+          await UserService.setTwoFactorAuthRequired({
+            userId: userId,
+            isRequired: isRequired,
+          });
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * Clear everything one user has set up for two factor auth.
+     *
+     * This is the lost-device escape hatch. Two factor auth is self-service
+     * everywhere else in the product, which works right up until the phone
+     * holding the authenticator is gone: the user cannot produce a code, so
+     * they cannot sign in, so they cannot reach the page that would let them
+     * enrol a new one. Somebody outside the account has to be able to cut the
+     * knot.
+     *
+     * It does NOT turn the requirement off -- see
+     * UserService.resetTwoFactorAuth. Reset means "start again from a fresh QR
+     * code", not "you may now sign in with a password alone", and an operator
+     * helping with a lost phone should not have to notice that they had just
+     * downgraded the account.
+     *
+     * Takes no body: there is nothing to configure, and a route that ignores
+     * its body cannot be steered by one.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:userId/reset-two-factor-auth`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const userId: ObjectID = UserAPI.getUserIdFromParams(req);
+
+          await UserService.resetTwoFactorAuth({
+            userId: userId,
+          });
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/profile-picture/:userId`,
       async (req: ExpressRequest, res: ExpressResponse) => {

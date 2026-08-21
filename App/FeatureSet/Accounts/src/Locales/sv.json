@@ -47,6 +47,13 @@
       "securityKeyInstructions": "Följ instruktionerna på din säkerhetsnyckelenhet.",
       "codeFieldDescription": "Ange koden från din autentiseringsapp",
       "selectDifferentMethod": "Välj en annan metod för tvåfaktorsautentisering"
+    },
+    "twoFactorEnrolment": {
+      "title": "Konfigurera tvåfaktorsautentisering",
+      "subtitle": "Din administratör kräver tvåfaktorsautentisering för det här kontot. Konfigurera den nu för att slutföra inloggningen.",
+      "scanInstruction": "Skanna den här QR-koden med en autentiseringsapp som Google Authenticator, Microsoft Authenticator eller 1Password.",
+      "codeFieldDescription": "Ange den sexsiffriga koden som din autentiseringsapp visar.",
+      "submitButton": "Verifiera och logga in"
     }
   },
   "register": {
