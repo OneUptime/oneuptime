@@ -93,6 +93,7 @@ const DashboardFallbackRoutePrefixesToSkip: Array<string> = [
    */
   "/session-replay",
   "/incoming-request-ingest",
+  "/incoming-request",
   "/otlp",
   "/opentelemetry.proto.collector",
   "/probe-ingest",
