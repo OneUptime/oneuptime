@@ -1,8 +1,21 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { SavedViewOption } from "../types";
 import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
+import SavedViewsSearchInput from "../../SavedViews/SavedViewsSearchInput";
+import SavedViewsShowMoreButton from "../../SavedViews/SavedViewsShowMoreButton";
+import {
+  VisibleSavedViews,
+  getVisibleSavedViews,
+  shouldShowSavedViewsSearch,
+} from "../../SavedViews/SavedViewsList";
 
 export interface SavedViewsDropdownProps {
   savedViews: Array<SavedViewOption>;
@@ -33,6 +46,21 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
   const { ref, isComponentVisible, setIsComponentVisible } =
     useComponentOutsideClick(false);
 
+  const [searchText, setSearchText] = useState<string>("");
+  const [showAll, setShowAll] = useState<boolean>(false);
+
+  /*
+   * A search is scoped to the visit that typed it. Leaving it behind means
+   * the next open shows a filtered list with no obvious reason why — the
+   * dropdown has no persistent chrome to remind anyone a filter is on.
+   */
+  useEffect(() => {
+    if (!isComponentVisible) {
+      setSearchText("");
+      setShowAll(false);
+    }
+  }, [isComponentVisible]);
+
   const selectedView: SavedViewOption | undefined = props.savedViews.find(
     (view: SavedViewOption) => {
       return view.id === props.selectedSavedViewId;
@@ -44,6 +72,19 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
    * "Clear view" row sitting above an unfiltered explorer says nothing.
    */
   const canClear: boolean = Boolean(props.onClear && selectedView);
+
+  const showSearch: boolean = shouldShowSavedViewsSearch(
+    props.savedViews.length,
+  );
+
+  const visible: VisibleSavedViews<SavedViewOption> = useMemo(() => {
+    return getVisibleSavedViews<SavedViewOption>({
+      savedViews: props.savedViews,
+      searchText: searchText,
+      showAll: showAll,
+      selectedSavedViewId: props.selectedSavedViewId,
+    });
+  }, [props.savedViews, props.selectedSavedViewId, searchText, showAll]);
 
   const clearSelection: () => void = (): void => {
     props.onClear?.();
@@ -120,6 +161,22 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
             </div>
           )}
 
+          {/*
+           * Search once the list is long enough that reading it is slower
+           * than typing — issue 3319. Same threshold the facet sections use.
+           */}
+          {showSearch && (
+            <div className="border-b border-gray-100 px-3 py-2">
+              <SavedViewsSearchInput
+                value={searchText}
+                className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700 placeholder-gray-400 outline-none focus:border-indigo-300 focus:bg-white focus:ring-1 focus:ring-indigo-200"
+                onChange={(text: string) => {
+                  setSearchText(text);
+                }}
+              />
+            </div>
+          )}
+
           {/* View list */}
           <div className="max-h-72 overflow-y-auto py-1">
             {props.savedViews.length === 0 && (
@@ -128,7 +185,13 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
               </div>
             )}
 
-            {props.savedViews.map((view: SavedViewOption) => {
+            {props.savedViews.length > 0 && visible.views.length === 0 && (
+              <div className="px-3 py-6 text-center text-xs text-gray-400">
+                No matches found
+              </div>
+            )}
+
+            {visible.views.map((view: SavedViewOption) => {
               const isSelected: boolean = view.id === props.selectedSavedViewId;
 
               return (
@@ -243,6 +306,21 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                 </div>
               );
             })}
+
+            {/*
+             * A search result is already the whole answer, so the toggle
+             * stays out of its way — SavedViewsShowMoreButton renders
+             * nothing once neither half of it has anything to do.
+             */}
+            <div className="px-3">
+              <SavedViewsShowMoreButton
+                hiddenCount={visible.hiddenCount}
+                isShowingAll={showAll && !visible.isSearching}
+                onToggle={() => {
+                  setShowAll(!showAll);
+                }}
+              />
+            </div>
           </div>
 
           {/* Footer action */}
