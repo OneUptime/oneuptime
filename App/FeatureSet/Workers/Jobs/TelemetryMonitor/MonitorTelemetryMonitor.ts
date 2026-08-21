@@ -3497,37 +3497,38 @@ type MonitorSecurityEventsFunction = (data: {
   projectId: ObjectID;
 }) => Promise<SecurityEventsMonitorResponse>;
 
-export const monitorSecurityEvents: MonitorSecurityEventsFunction = async (data: {
-  monitorStep: MonitorStep;
-  monitorId: ObjectID;
-  projectId: ObjectID;
-}): Promise<SecurityEventsMonitorResponse> => {
-  /*
-   * Same fallback rationale as monitorLogs above: a step saved on
-   * defaults can persist its sub-config as undefined, and throwing here
-   * would wedge the monitor instead of evaluating the default query.
-   */
-  const securityEventsQueryConfig: MonitorStepSecurityEventsMonitor =
-    data.monitorStep.data?.securityEventsMonitor ||
-    MonitorStepSecurityEventsMonitorUtil.getDefault();
+export const monitorSecurityEvents: MonitorSecurityEventsFunction =
+  async (data: {
+    monitorStep: MonitorStep;
+    monitorId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<SecurityEventsMonitorResponse> => {
+    /*
+     * Same fallback rationale as monitorLogs above: a step saved on
+     * defaults can persist its sub-config as undefined, and throwing here
+     * would wedge the monitor instead of evaluating the default query.
+     */
+    const securityEventsQueryConfig: MonitorStepSecurityEventsMonitor =
+      data.monitorStep.data?.securityEventsMonitor ||
+      MonitorStepSecurityEventsMonitorUtil.getDefault();
 
-  const query: Query<SecurityEvent> =
-    MonitorStepSecurityEventsMonitorUtil.toQuery(securityEventsQueryConfig);
-  query.projectId = data.projectId;
+    const query: Query<SecurityEvent> =
+      MonitorStepSecurityEventsMonitorUtil.toQuery(securityEventsQueryConfig);
+    query.projectId = data.projectId;
 
-  const countEvents: PositiveNumber = await SecurityEventService.countBy({
-    query: query,
-    limit: LIMIT_PER_PROJECT,
-    skip: 0,
-    props: {
-      isRoot: true,
-    },
-  });
+    const countEvents: PositiveNumber = await SecurityEventService.countBy({
+      query: query,
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
 
-  return {
-    projectId: data.projectId,
-    securityEventCount: countEvents.toNumber(),
-    securityEventQuery: JSONFunctions.anyObjectToJSONObject(query),
-    monitorId: data.monitorId,
+    return {
+      projectId: data.projectId,
+      securityEventCount: countEvents.toNumber(),
+      securityEventQuery: JSONFunctions.anyObjectToJSONObject(query),
+      monitorId: data.monitorId,
+    };
   };
-};

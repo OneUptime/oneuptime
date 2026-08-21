@@ -43,6 +43,7 @@ export const targetTypeToPageMap: {
   [AIChatCitationTargetType.WorkflowView]: PageMap.WORKFLOW_VIEW,
   [AIChatCitationTargetType.Probes]: PageMap.MONITORS_SETTINGS_PROBES,
   [AIChatCitationTargetType.Teams]: PageMap.TEAMS,
+  [AIChatCitationTargetType.SecurityEvents]: PageMap.SECURITY_EVENTS,
 };
 
 export const targetTypeToIcon: {
@@ -73,6 +74,7 @@ export const targetTypeToIcon: {
   [AIChatCitationTargetType.WorkflowView]: IconProp.Workflow,
   [AIChatCitationTargetType.Probes]: IconProp.Signal,
   [AIChatCitationTargetType.Teams]: IconProp.Team,
+  [AIChatCitationTargetType.SecurityEvents]: IconProp.ShieldExclamation,
 };
 
 export function getRouteForCitationTarget(

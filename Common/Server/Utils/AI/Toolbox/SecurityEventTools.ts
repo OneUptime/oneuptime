@@ -5,6 +5,10 @@ import Search from "../../../../Types/BaseDatabase/Search";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { JSONObject } from "../../../../Types/JSON";
 import Permission from "../../../../Types/Permission";
+import {
+  AIChatCitationTarget,
+  AIChatCitationTargetType,
+} from "../../../../Types/AI/AIChatTypes";
 import SecurityEventService from "../../../Services/SecurityEventService";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
@@ -191,10 +195,15 @@ export const SearchSecurityEventsTool: ObservabilityTool = {
     const serialized: SerializedResult =
       ToolResultSerializer.serializeRows(rows);
 
+    const securityEventsLink: AIChatCitationTarget = {
+      type: AIChatCitationTargetType.SecurityEvents,
+    };
+
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
       citationLabel: `Security events ${startTime.toISOString()} – ${endTime.toISOString()} (${serialized.rowCount} shown)`,
+      citationTarget: securityEventsLink,
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
       widget:
@@ -210,6 +219,7 @@ export const SearchSecurityEventsTool: ObservabilityTool = {
                 { key: "principalHost", title: "Host", type: "text" },
               ],
               rows: rows,
+              link: securityEventsLink,
             })
           : undefined,
     };
@@ -316,6 +326,9 @@ export const SecurityEventSummaryTool: ObservabilityTool = {
       dataForLlm: serialized.text + sampleNote,
       rowCount: serialized.rowCount,
       citationLabel: `Security event summary ${startTime.toISOString()} – ${endTime.toISOString()}${sampleNote}`,
+      citationTarget: {
+        type: AIChatCitationTargetType.SecurityEvents,
+      },
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
       widget:

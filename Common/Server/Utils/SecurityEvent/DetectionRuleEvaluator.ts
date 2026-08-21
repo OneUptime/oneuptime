@@ -126,8 +126,7 @@ export default class DetectionRuleEvaluator {
             id: rule.id,
             data: {
               lastEvaluatedAt: OneUptimeDate.getCurrentDate(),
-              lastError:
-                error instanceof Error ? error.message : String(error),
+              lastError: error instanceof Error ? error.message : String(error),
             },
             props: {
               isRoot: true,
@@ -147,7 +146,8 @@ export default class DetectionRuleEvaluator {
     }
 
     const parsedRule: SigmaRule = SigmaRuleParser.parse(rule.sigmaRuleYaml);
-    const whereFragment: Statement = SigmaClickhouseCompiler.compile(parsedRule);
+    const whereFragment: Statement =
+      SigmaClickhouseCompiler.compile(parsedRule);
 
     const endTime: Date = OneUptimeDate.getCurrentDate();
     const intervalInMinutes: number = Math.max(

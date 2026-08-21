@@ -171,8 +171,7 @@ export default class GenericNormalizer {
 
     return {
       time: time || new Date(),
-      eventUid:
-        readFirst(payload, ID_FIELDS) || contentHashEventUid(payload),
+      eventUid: readFirst(payload, ID_FIELDS) || contentHashEventUid(payload),
       categoryUid: 0,
       categoryName: "Uncategorized",
       classUid: 0,

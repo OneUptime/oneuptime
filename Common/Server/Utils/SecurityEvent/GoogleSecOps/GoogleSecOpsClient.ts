@@ -36,7 +36,8 @@ export type FetchLike = (
   },
 ) => Promise<FetchResponseLike>;
 
-const CHRONICLE_SCOPE: string = "https://www.googleapis.com/auth/cloud-platform";
+const CHRONICLE_SCOPE: string =
+  "https://www.googleapis.com/auth/cloud-platform";
 const TOKEN_LIFETIME_IN_SECONDS: number = 3600;
 const TOKEN_EXPIRY_SLACK_IN_SECONDS: number = 60;
 const DEFAULT_MAX_ALERTS: number = 1000;
@@ -69,8 +70,7 @@ export default class GoogleSecOpsClient {
       data.serviceAccountJson,
     );
     this.fetchImplementation =
-      data.fetchImplementation ||
-      (fetch as unknown as FetchLike);
+      data.fetchImplementation || (fetch as unknown as FetchLike);
   }
 
   public static validateRegion(region: string): void {
@@ -97,9 +97,7 @@ export default class GoogleSecOpsClient {
     try {
       parsed = JSON.parse(serviceAccountJson || "") as JSONObject;
     } catch {
-      throw new BadDataException(
-        "Service account JSON is not valid JSON.",
-      );
+      throw new BadDataException("Service account JSON is not valid JSON.");
     }
 
     const clientEmail: string = String(parsed["client_email"] || "");
@@ -178,9 +176,7 @@ export default class GoogleSecOpsClient {
     );
 
     if (!accessToken) {
-      throw new APIException(
-        "Google token exchange returned no access_token.",
-      );
+      throw new APIException("Google token exchange returned no access_token.");
     }
 
     this.cachedAccessToken = accessToken;
@@ -242,7 +238,9 @@ export default class GoogleSecOpsClient {
   public static extractAlerts(payload: JSONValue): Array<JSONObject> {
     if (Array.isArray(payload)) {
       return (payload as JSONArray).filter((item: JSONValue): boolean => {
-        return typeof item === "object" && item !== null && !Array.isArray(item);
+        return (
+          typeof item === "object" && item !== null && !Array.isArray(item)
+        );
       }) as Array<JSONObject>;
     }
 

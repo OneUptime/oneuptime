@@ -194,10 +194,7 @@ function group(inner: Statement): Statement {
   return statement;
 }
 
-function joinStatements(
-  parts: Array<Statement>,
-  separator: string,
-): Statement {
+function joinStatements(parts: Array<Statement>, separator: string): Statement {
   const statement: Statement = new Statement();
 
   parts.forEach((part: Statement, index: number): void => {
@@ -409,9 +406,11 @@ export default class SigmaClickhouseCompiler {
       values = expanded;
     }
 
-    const parts: Array<Statement> = values.map((value: JSONValue): Statement => {
-      return this.compileSingleValue(resolved, requirement, value);
-    });
+    const parts: Array<Statement> = values.map(
+      (value: JSONValue): Statement => {
+        return this.compileSingleValue(resolved, requirement, value);
+      },
+    );
 
     return joinStatements(parts, isAll ? " AND " : " OR ");
   }
@@ -543,9 +542,7 @@ export default class SigmaClickhouseCompiler {
         return statement;
       }
 
-      const statement: Statement = new Statement([
-        `has(${resolved.column}, `,
-      ]);
+      const statement: Statement = new Statement([`has(${resolved.column}, `]);
       statement.append(textParam(String(value)));
       statement.append(")");
       return statement;

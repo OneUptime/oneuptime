@@ -60,9 +60,7 @@ function makeServiceMetadata(): TelemetryServiceMetadata {
   };
 }
 
-function makeFakeClient(
-  alerts: Array<JSONObject>,
-): {
+function makeFakeClient(alerts: Array<JSONObject>): {
   client: GoogleSecOpsClient;
   calls: Array<{ startTime: Date; endTime: Date }>;
 } {
@@ -87,16 +85,17 @@ describe("GoogleSecOpsPoller.pollConnection", () => {
   beforeEach(() => {
     insertedRows = [];
 
-    getJestSpyOn(OTelIngestService, "telemetryServiceFromName").mockResolvedValue(
-      makeServiceMetadata() as never,
-    );
+    getJestSpyOn(
+      OTelIngestService,
+      "telemetryServiceFromName",
+    ).mockResolvedValue(makeServiceMetadata() as never);
 
-    getJestSpyOn(SecurityEventService, "insertJsonRows").mockImplementation(
-      ((rows: Array<JSONObject>): Promise<void> => {
-        insertedRows.push(...rows);
-        return Promise.resolve();
-      }) as never,
-    );
+    getJestSpyOn(SecurityEventService, "insertJsonRows").mockImplementation(((
+      rows: Array<JSONObject>,
+    ): Promise<void> => {
+      insertedRows.push(...rows);
+      return Promise.resolve();
+    }) as never);
 
     getJestSpyOn(
       GoogleSecOpsConnectionService,
@@ -129,9 +128,9 @@ describe("GoogleSecOpsPoller.pollConnection", () => {
     expect(insertedRows[0]!["ruleName"]).toBe("Brute force");
     expect(insertedRows[0]!["projectId"]).toBe(PROJECT_ID.toString());
 
-    expect(
-      GoogleSecOpsConnectionService.updateOneById,
-    ).toHaveBeenCalledTimes(1);
+    expect(GoogleSecOpsConnectionService.updateOneById).toHaveBeenCalledTimes(
+      1,
+    );
     const updateArgs: JSONObject = (
       GoogleSecOpsConnectionService.updateOneById as unknown as jest.Mock
     ).mock.calls[0]![0] as JSONObject;
@@ -152,8 +151,10 @@ describe("GoogleSecOpsPoller.pollConnection", () => {
       (60 * 1000);
     expect(Math.round(firstWindowMinutes)).toBe(15);
 
-    // Second poll with a cursor five minutes ago: window starts one
-    // overlap-minute before the cursor.
+    /*
+     * Second poll with a cursor five minutes ago: window starts one
+     * overlap-minute before the cursor.
+     */
     const cursorDate: Date = new Date(Date.now() - 5 * 60 * 1000);
     connection.cursor = cursorDate.toISOString();
 

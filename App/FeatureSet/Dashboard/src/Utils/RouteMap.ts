@@ -471,6 +471,13 @@ export const LogsRoutePath: Dictionary<string> = {
   [PageMap.LOGS_SETTINGS_SCRUB_RULES]: "settings/scrub-rules",
 };
 
+// Security Events product routes
+export const SecurityEventsRoutePath: Dictionary<string> = {
+  [PageMap.SECURITY_EVENTS]: "",
+  [PageMap.SECURITY_EVENTS_CORRELATE]: "correlate",
+  [PageMap.SECURITY_EVENTS_DETECTION_RULES]: "detection-rules",
+};
+
 // Metrics product routes
 export const MetricsRoutePath: Dictionary<string> = {
   [PageMap.METRICS]: "",
@@ -4732,6 +4739,27 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.LOGS_SETTINGS_SCRUB_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/logs/${
       LogsRoutePath[PageMap.LOGS_SETTINGS_SCRUB_RULES]
+    }`,
+  ),
+
+  // Security Events Product Routes
+  [PageMap.SECURITY_EVENTS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/*`,
+  ),
+
+  [PageMap.SECURITY_EVENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_CORRELATE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_CORRELATE]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_DETECTION_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_DETECTION_RULES]
     }`,
   ),
 

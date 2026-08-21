@@ -36,6 +36,11 @@ const SUPPORTED_MODIFIERS: Set<string> = new Set<string>([
   "windash",
 ]);
 
+const WHITESPACE_REGEX: RegExp = /\s/;
+const COUNT_REGEX: RegExp = /^\d+$/;
+const TACTIC_TAG_REGEX: RegExp = /^ta\d{4}$/i;
+const TECHNIQUE_TAG_REGEX: RegExp = /^t\d{4}(\.\d{3})?$/i;
+
 type Token =
   | { kind: "lparen" }
   | { kind: "rparen" }
@@ -59,7 +64,7 @@ function tokenizeCondition(condition: string): Array<Token> {
     } else if (char === ")") {
       flush();
       tokens.push({ kind: "rparen" });
-    } else if (/\s/.test(char)) {
+    } else if (WHITESPACE_REGEX.test(char)) {
       flush();
     } else {
       current += char;
@@ -160,7 +165,7 @@ class ConditionParser {
 
     // Quantifier: `1 of x*`, `all of them`, `any of selection*`.
     const lowered: string = word.toLowerCase();
-    const isCount: boolean = /^\d+$/.test(word);
+    const isCount: boolean = COUNT_REGEX.test(word);
 
     if (isCount || lowered === "all" || lowered === "any") {
       const next: Token | undefined = this.tokens[this.position + 1];
@@ -284,7 +289,9 @@ function parseSelection(name: string, rawValue: JSONValue): SigmaSelection {
     }
 
     if (requirements.length === 0) {
-      throw new BadDataException(`Sigma detection: selection "${name}" is empty.`);
+      throw new BadDataException(
+        `Sigma detection: selection "${name}" is empty.`,
+      );
     }
 
     return { name, fieldMaps: [requirements], keywords: [] };
@@ -363,12 +370,12 @@ function extractMitre(tags: Array<string>): {
 
     const remainder: string = tag.slice("attack.".length);
 
-    if (/^ta\d{4}$/i.test(remainder)) {
+    if (TACTIC_TAG_REGEX.test(remainder)) {
       const tactic: string = remainder.toUpperCase();
       if (!tactics.includes(tactic)) {
         tactics.push(tactic);
       }
-    } else if (/^t\d{4}(\.\d{3})?$/i.test(remainder)) {
+    } else if (TECHNIQUE_TAG_REGEX.test(remainder)) {
       const technique: string = remainder.toUpperCase();
       if (!techniques.includes(technique)) {
         techniques.push(technique);
@@ -438,9 +445,7 @@ export default class SigmaRuleParser {
         continue;
       }
 
-      selections.push(
-        parseSelection(key, detectionObject[key] as JSONValue),
-      );
+      selections.push(parseSelection(key, detectionObject[key] as JSONValue));
     }
 
     if (selections.length === 0) {

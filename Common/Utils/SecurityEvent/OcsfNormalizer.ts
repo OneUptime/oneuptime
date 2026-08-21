@@ -109,7 +109,8 @@ export default class OcsfNormalizer {
       readString(payload, "device.hostname");
 
     const principalIp: string =
-      readString(payload, "src_endpoint.ip") || readString(payload, "device.ip");
+      readString(payload, "src_endpoint.ip") ||
+      readString(payload, "device.ip");
 
     const targetUser: string = readString(payload, "user.name");
     const targetHost: string = readString(payload, "dst_endpoint.hostname");

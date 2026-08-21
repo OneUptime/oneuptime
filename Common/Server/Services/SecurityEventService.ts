@@ -40,8 +40,8 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
       this.useDefaultDatabase();
     }
 
-    const databaseName: string = this.database!.getDatasourceOptions()
-      .database!;
+    const databaseName: string =
+      this.database!.getDatasourceOptions().database!;
 
     const statement: Statement = SQL`SELECT `;
 
@@ -55,23 +55,27 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
       ` AS groupValue, count() AS matchCount, any(message) AS sampleMessage, arrayDistinct(arrayFlatten(groupArray(20)(observables))) AS sampleObservables FROM ${databaseName}.${this.model.tableName} WHERE `,
     );
 
-    statement.append(SQL`projectId = ${{
-      type: TableColumnType.ObjectID,
-      value: data.projectId,
-    }} AND time >= ${{
-      type: TableColumnType.DateTime64,
-      value: data.startTime,
-    }} AND time < ${{
-      type: TableColumnType.DateTime64,
-      value: data.endTime,
-    }} AND (`);
+    statement.append(
+      SQL`projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }} AND time >= ${{
+        type: TableColumnType.DateTime64,
+        value: data.startTime,
+      }} AND time < ${{
+        type: TableColumnType.DateTime64,
+        value: data.endTime,
+      }} AND (`,
+    );
 
     statement.append(data.whereFragment);
     statement.append(") GROUP BY groupValue ORDER BY matchCount DESC LIMIT ");
-    statement.append(SQL`${{
-      type: TableColumnType.Number,
-      value: data.maxGroups,
-    }}`);
+    statement.append(
+      SQL`${{
+        type: TableColumnType.Number,
+        value: data.maxGroups,
+      }}`,
+    );
     statement.append(getQuerySettings({ maxExecutionTimeInSeconds: 60 }));
 
     const result: Results = await this.executeQuery(statement);
@@ -80,22 +84,20 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
       data?: Array<JSONObject>;
     }>();
 
-    return (response.data || []).map(
-      (row: JSONObject): DetectionMatchGroup => {
-        return {
-          groupValue: String(row["groupValue"] ?? ""),
-          matchCount: Number(row["matchCount"] || 0),
-          sampleMessage: String(row["sampleMessage"] ?? ""),
-          sampleObservables: Array.isArray(row["sampleObservables"])
-            ? (row["sampleObservables"] as Array<unknown>).map(
-                (value: unknown): string => {
-                  return String(value);
-                },
-              )
-            : [],
-        };
-      },
-    );
+    return (response.data || []).map((row: JSONObject): DetectionMatchGroup => {
+      return {
+        groupValue: String(row["groupValue"] ?? ""),
+        matchCount: Number(row["matchCount"] || 0),
+        sampleMessage: String(row["sampleMessage"] ?? ""),
+        sampleObservables: Array.isArray(row["sampleObservables"])
+          ? (row["sampleObservables"] as Array<unknown>).map(
+              (value: unknown): string => {
+                return String(value);
+              },
+            )
+          : [],
+      };
+    });
   }
 }
 

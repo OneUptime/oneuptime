@@ -41,9 +41,10 @@ interface RecordedRequest {
   body?: string | undefined;
 }
 
-function makeFetch(
-  responses: Array<{ status: number; body: string }>,
-): { fetchImplementation: FetchLike; requests: Array<RecordedRequest> } {
+function makeFetch(responses: Array<{ status: number; body: string }>): {
+  fetchImplementation: FetchLike;
+  requests: Array<RecordedRequest>;
+} {
   const requests: Array<RecordedRequest> = [];
   let callIndex: number = 0;
 
@@ -62,9 +63,8 @@ function makeFetch(
       body: init.body,
     });
 
-    const response: { status: number; body: string } = responses[
-      Math.min(callIndex, responses.length - 1)
-    ]!;
+    const response: { status: number; body: string } =
+      responses[Math.min(callIndex, responses.length - 1)]!;
     callIndex++;
 
     return Promise.resolve({
@@ -149,9 +149,9 @@ describe("GoogleSecOpsClient.extractAlerts", () => {
   });
 
   test("accepts alerts and detections envelopes", () => {
-    expect(
-      GoogleSecOpsClient.extractAlerts({ alerts: [{ id: "a" }] }),
-    ).toEqual([{ id: "a" }]);
+    expect(GoogleSecOpsClient.extractAlerts({ alerts: [{ id: "a" }] })).toEqual(
+      [{ id: "a" }],
+    );
     expect(
       GoogleSecOpsClient.extractAlerts({ detections: [{ id: "d" }] }),
     ).toEqual([{ id: "d" }]);
@@ -165,9 +165,10 @@ describe("GoogleSecOpsClient.extractAlerts", () => {
 });
 
 describe("GoogleSecOpsClient.fetchDetectionAlerts", () => {
-  function makeClient(
-    responses: Array<{ status: number; body: string }>,
-  ): { client: GoogleSecOpsClient; requests: Array<RecordedRequest> } {
+  function makeClient(responses: Array<{ status: number; body: string }>): {
+    client: GoogleSecOpsClient;
+    requests: Array<RecordedRequest>;
+  } {
     const { fetchImplementation, requests } = makeFetch(responses);
 
     const client: GoogleSecOpsClient = new GoogleSecOpsClient({

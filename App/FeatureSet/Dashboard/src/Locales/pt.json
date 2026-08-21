@@ -59,6 +59,8 @@
       "scheduledMaintenanceDescription": "Planeje e gerencie a manutenção.",
       "logsTitle": "Registros",
       "logsDescription": "Pesquise e analise logs.",
+      "securityEventsTitle": "Security Events",
+      "securityEventsDescription": "SIEM signals correlated with your observability data.",
       "metricsTitle": "Métricas",
       "metricsDescription": "Monitore e visualize métricas do sistema em seus serviços.",
       "tracesTitle": "Traços",

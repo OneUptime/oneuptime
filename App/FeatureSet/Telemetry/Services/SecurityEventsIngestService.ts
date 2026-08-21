@@ -73,7 +73,7 @@ export default class SecurityEventsIngestService extends OtelIngestBaseService {
 
       if (entries.length === 0) {
         throw new BadRequestException(
-          "No security events found in request. Send a JSON object, an array of objects, or { \"events\": [...] }.",
+          'No security events found in request. Send a JSON object, an array of objects, or { "events": [...] }.',
         );
       }
 
@@ -151,7 +151,9 @@ export default class SecurityEventsIngestService extends OtelIngestBaseService {
       }
 
       if (normalizedEvents.length === 0) {
-        logger.warn("Security events ingest: no valid events after normalization");
+        logger.warn(
+          "Security events ingest: no valid events after normalization",
+        );
         return;
       }
 

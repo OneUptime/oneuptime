@@ -36,6 +36,7 @@ export enum AIChatCitationTargetType {
   WorkflowView = "WorkflowView",
   Probes = "Probes",
   Teams = "Teams",
+  SecurityEvents = "SecurityEvents",
 }
 
 export interface AIChatCitationTarget {

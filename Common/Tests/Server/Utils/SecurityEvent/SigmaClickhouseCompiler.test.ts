@@ -120,9 +120,7 @@ describe("SigmaClickhouseCompiler value matching", () => {
       singleFieldRule("principalUser: Alice"),
     );
 
-    expect(statement.query).toContain(
-      "lowerUTF8(principalUser) = {p0:String}",
-    );
+    expect(statement.query).toContain("lowerUTF8(principalUser) = {p0:String}");
     expect(statement.query_params["p0"]).toBe("alice");
   });
 
@@ -202,9 +200,7 @@ detection:
   });
 
   test("null on an attribute field compiles to NOT mapContains", () => {
-    const statement: Statement = compile(
-      singleFieldRule("custom.field: null"),
-    );
+    const statement: Statement = compile(singleFieldRule("custom.field: null"));
 
     expect(statement.query).toContain(
       "NOT mapContains(attributes, {p0:String})",
@@ -256,9 +252,7 @@ detection:
   });
 
   test("numeric comparison on an attribute goes through toFloat64OrNull", () => {
-    const statement: Statement = compile(
-      singleFieldRule("event.count|gte: 5"),
-    );
+    const statement: Statement = compile(singleFieldRule("event.count|gte: 5"));
 
     expect(statement.query).toContain(
       "toFloat64OrNull(attributes[{p0:String}]) >= {p1:Int32}",
@@ -340,9 +334,7 @@ detection:
     const orStatement: Statement = compileWithCondition("sel_a or sel_b");
     expect(orStatement.query).toContain(") OR (");
 
-    const notStatement: Statement = compileWithCondition(
-      "sel_a and not sel_b",
-    );
+    const notStatement: Statement = compileWithCondition("sel_a and not sel_b");
     expect(notStatement.query).toContain("NOT (");
   });
 
@@ -399,7 +391,7 @@ detection:
 
   test("hostile regex stays a parameter", () => {
     const statement: Statement = compile(
-      singleFieldRule("message|re: \"') OR 1=1 --\""),
+      singleFieldRule('message|re: "\') OR 1=1 --"'),
     );
 
     expect(statement.query).toContain("match(message, {p0:String})");

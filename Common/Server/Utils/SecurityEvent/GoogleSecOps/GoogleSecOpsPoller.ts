@@ -25,8 +25,10 @@ const SECOPS_SERVICE_NAME: string = "Google SecOps";
 const DEFAULT_LOOKBACK_IN_MINUTES: number = 15;
 const MAX_LOOKBACK_IN_MINUTES: number = 24 * 60;
 
-// Overlap between windows so boundary alerts are never missed; the
-// eventUid content hash keeps redelivered alerts deduplicatable.
+/*
+ * Overlap between windows so boundary alerts are never missed; the
+ * eventUid content hash keeps redelivered alerts deduplicatable.
+ */
 const WINDOW_OVERLAP_IN_MINUTES: number = 1;
 
 export default class GoogleSecOpsPoller {
@@ -87,8 +89,7 @@ export default class GoogleSecOpsPoller {
             id: connection.id,
             data: {
               lastPolledAt: OneUptimeDate.getCurrentDate(),
-              lastError:
-                error instanceof Error ? error.message : String(error),
+              lastError: error instanceof Error ? error.message : String(error),
             },
             props: {
               isRoot: true,

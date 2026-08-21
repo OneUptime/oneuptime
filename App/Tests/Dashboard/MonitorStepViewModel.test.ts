@@ -6,6 +6,7 @@ import URL from "Common/Types/API/URL";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import IP from "Common/Types/IP/IP";
 import LogSeverity from "Common/Types/Log/LogSeverity";
+import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
 import MetricsViewConfig from "Common/Types/Metrics/MetricsViewConfig";
 import DnsRecordType from "Common/Types/Monitor/DnsMonitor/DnsRecordType";
 import DomainLookupMethod from "Common/Types/Monitor/DomainMonitor/DomainLookupMethod";
@@ -237,6 +238,19 @@ function buildStepForMonitorType(monitorType: MonitorType): MonitorStep {
           ],
           entityKeys: ["host:web-1"],
           lastXSecondsOfLogs: 300,
+        },
+      });
+    case MonitorType.SecurityEvents:
+      return buildStep({
+        securityEventsMonitor: {
+          attributes: { "principal.hostname": "web-1" },
+          messageContains: "failed login",
+          severityNames: [OcsfSeverity.High],
+          classNames: ["Authentication"],
+          telemetryServiceIds: [
+            new ObjectID("11111111-1111-4111-8111-111111111111"),
+          ],
+          lastXSecondsOfEvents: 300,
         },
       });
     case MonitorType.Traces:

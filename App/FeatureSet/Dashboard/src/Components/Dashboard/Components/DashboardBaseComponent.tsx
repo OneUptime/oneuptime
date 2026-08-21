@@ -18,6 +18,8 @@ import DashboardDataSourceTableComponent from "./DashboardDataSourceTableCompone
 import DashboardSloComponent from "./DashboardSloComponent";
 import DashboardLogStreamComponent from "./DashboardLogStreamComponent";
 import DashboardLogChartComponent from "./DashboardLogChartComponent";
+import DashboardSecurityEventsListComponent from "./DashboardSecurityEventsListComponent";
+import DashboardSecurityEventsFlowComponent from "./DashboardSecurityEventsFlowComponent";
 import DashboardTraceListComponent from "./DashboardTraceListComponent";
 import DashboardTraceChartComponent from "./DashboardTraceChartComponent";
 import DashboardTraceTableComponent from "./DashboardTraceTableComponent";
@@ -116,6 +118,10 @@ const WIDGET_BY_TYPE: Partial<
   [DashboardComponentType.DataSourceTable]: DashboardDataSourceTableComponent,
   [DashboardComponentType.LogStream]: DashboardLogStreamComponent,
   [DashboardComponentType.LogChart]: DashboardLogChartComponent,
+  [DashboardComponentType.SecurityEventsList]:
+    DashboardSecurityEventsListComponent,
+  [DashboardComponentType.SecurityEventsFlow]:
+    DashboardSecurityEventsFlowComponent,
   [DashboardComponentType.TraceList]: DashboardTraceListComponent,
   [DashboardComponentType.TraceChart]: DashboardTraceChartComponent,
   [DashboardComponentType.TraceTable]: DashboardTraceTableComponent,

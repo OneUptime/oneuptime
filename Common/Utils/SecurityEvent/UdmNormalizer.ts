@@ -161,7 +161,10 @@ function readAny(payload: JSONObject, paths: Array<string>): string {
   return "";
 }
 
-function readAnyArray(payload: JSONObject, paths: Array<string>): Array<string> {
+function readAnyArray(
+  payload: JSONObject,
+  paths: Array<string>,
+): Array<string> {
   for (const path of paths) {
     const value: Array<string> = readStringArray(payload, path);
     if (value.length > 0) {

@@ -43,6 +43,10 @@ import React, {
   useState,
 } from "react";
 import LogMonitorStepForm from "./LogMonitor/LogMonitorStepFrom";
+import SecurityEventsMonitorStepForm from "./SecurityEventsMonitor/SecurityEventsMonitorStepForm";
+import MonitorStepSecurityEventsMonitor, {
+  MonitorStepSecurityEventsMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepSecurityEventsMonitor";
 import TraceMonitorStepForm from "./TraceMonitor/TraceMonitorStepForm";
 import Service from "Common/Models/DatabaseModels/Service";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
@@ -1213,6 +1217,27 @@ return {
             attributeKeys={attributeKeys}
             telemetryServices={telemetryServices}
             telemetryEntities={telemetryEntities}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.SecurityEvents && (
+        <Card
+          title="Security Events Monitor Configuration"
+          description="Configure the security event monitoring settings"
+        >
+          <SecurityEventsMonitorStepForm
+            monitorStepSecurityEventsMonitor={
+              monitorStep.data?.securityEventsMonitor ||
+              MonitorStepSecurityEventsMonitorUtil.getDefault()
+            }
+            onMonitorStepSecurityEventsMonitorChanged={(
+              value: MonitorStepSecurityEventsMonitor,
+            ) => {
+              monitorStep.setSecurityEventsMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            telemetryServices={telemetryServices}
           />
         </Card>
       )}

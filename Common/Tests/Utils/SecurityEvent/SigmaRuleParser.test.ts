@@ -221,9 +221,7 @@ detection:
     });
 
     test("not binds tighter than and", () => {
-      const node: SigmaConditionNode = parseCondition(
-        "sel_a and not filter_x",
-      );
+      const node: SigmaConditionNode = parseCondition("sel_a and not filter_x");
 
       expect(node.kind).toBe("and");
       if (node.kind === "and") {
@@ -296,7 +294,10 @@ detection:
     });
 
     test("missing detection", () => {
-      expectParseError("title: No detection", "`detection` mapping is required");
+      expectParseError(
+        "title: No detection",
+        "`detection` mapping is required",
+      );
     });
 
     test("missing condition", () => {
@@ -346,7 +347,7 @@ detection:
     a: b
   condition: all of filter_*
 `,
-        'matches no selection',
+        "matches no selection",
       );
     });
 
@@ -445,9 +446,10 @@ detection:
 
   describe("matchSelectionNames", () => {
     test("them matches everything", () => {
-      expect(
-        SigmaRuleParser.matchSelectionNames("them", ["a", "b"]),
-      ).toEqual(["a", "b"]);
+      expect(SigmaRuleParser.matchSelectionNames("them", ["a", "b"])).toEqual([
+        "a",
+        "b",
+      ]);
     });
 
     test("prefix wildcard", () => {

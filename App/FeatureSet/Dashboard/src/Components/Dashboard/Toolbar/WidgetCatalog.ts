@@ -227,6 +227,46 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
     ],
   },
   {
+    name: "Security",
+    group: WidgetCategoryGroup.Observability,
+    icon: IconProp.ShieldExclamation,
+    description: "SIEM signals stored beside your observability data.",
+    items: [
+      {
+        type: DashboardComponentType.SecurityEventsList,
+        label: "Security Events",
+        icon: IconProp.ShieldExclamation,
+        description:
+          "Most recent security events matching a filter, with severity, event class, and acting host.",
+        keywords: [
+          "siem",
+          "detection",
+          "threat",
+          "events",
+          "ocsf",
+          "severity",
+          "finding",
+        ],
+      },
+      {
+        type: DashboardComponentType.SecurityEventsFlow,
+        label: "Security Events Flow",
+        icon: IconProp.ChartBar,
+        description:
+          "Sankey flow of security events — from source, through OCSF event class, to severity.",
+        keywords: [
+          "siem",
+          "detection",
+          "threat",
+          "sankey",
+          "flow",
+          "events",
+          "diagram",
+        ],
+      },
+    ],
+  },
+  {
     name: "Traces",
     group: WidgetCategoryGroup.Observability,
     icon: IconProp.Waterfall,

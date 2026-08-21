@@ -1,10 +1,4 @@
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * Unit coverage for the security-events ingest pipeline
@@ -462,9 +456,12 @@ describe("SecurityEventsIngestService.processSecurityEventsFromQueue — queue w
 
   test("the x-oneuptime-service-name header wins over payload attribution", async () => {
     await SecurityEventsIngestService.processSecurityEventsFromQueue(
-      makeQueueRequest({ events: [udmEventFixture()] }, {
-        "x-oneuptime-service-name": "edge-firewall",
-      }),
+      makeQueueRequest(
+        { events: [udmEventFixture()] },
+        {
+          "x-oneuptime-service-name": "edge-firewall",
+        },
+      ),
     );
 
     expect(serviceFromNameSpy).toHaveBeenCalledTimes(1);
@@ -496,11 +493,7 @@ describe("SecurityEventsIngestService.processSecurityEventsFromQueue — queue w
   test("rows flush in TELEMETRY_LOG_FLUSH_BATCH_SIZE batches: 3 events with batch size 2 make a 2-row and a 1-row submission", async () => {
     await SecurityEventsIngestService.processSecurityEventsFromQueue(
       makeQueueRequest({
-        events: [
-          { message: "e1" },
-          { message: "e2" },
-          { message: "e3" },
-        ],
+        events: [{ message: "e1" }, { message: "e2" }, { message: "e3" }],
       }),
     );
 
@@ -516,7 +509,9 @@ describe("SecurityEventsIngestService.processSecurityEventsFromQueue — queue w
       makeQueueRequest({ events: [] }),
     );
     await SecurityEventsIngestService.processSecurityEventsFromQueue(
-      makeQueueRequest({ events: [42, "junk"] as unknown as Array<JSONObject> }),
+      makeQueueRequest({
+        events: [42, "junk"] as unknown as Array<JSONObject>,
+      }),
     );
     await SecurityEventsIngestService.processSecurityEventsFromQueue(
       makeQueueRequest(null),

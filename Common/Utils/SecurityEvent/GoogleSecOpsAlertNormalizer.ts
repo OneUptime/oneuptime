@@ -126,8 +126,7 @@ export default class GoogleSecOpsAlertNormalizer {
       : "";
 
     const severityName: OcsfSeverity =
-      (detection &&
-        normalizeOcsfSeverity(readString(detection, "severity"))) ||
+      (detection && normalizeOcsfSeverity(readString(detection, "severity"))) ||
       normalizeOcsfSeverity(readString(payload, "severity")) ||
       OcsfSeverity.Unknown;
 

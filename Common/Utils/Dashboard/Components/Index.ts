@@ -38,6 +38,8 @@ import DashboardPodmanImageListComponentUtil from "./DashboardPodmanImageListCom
 import DashboardPodmanNetworkListComponentUtil from "./DashboardPodmanNetworkListComponent";
 import DashboardPodmanVolumeListComponentUtil from "./DashboardPodmanVolumeListComponent";
 import DashboardProxmoxGuestListComponentUtil from "./DashboardProxmoxGuestListComponent";
+import DashboardSecurityEventsFlowComponentUtil from "./DashboardSecurityEventsFlowComponent";
+import DashboardSecurityEventsListComponentUtil from "./DashboardSecurityEventsListComponent";
 import DashboardSloComponentUtil from "./DashboardSloComponent";
 import DashboardProxmoxNodeListComponentUtil from "./DashboardProxmoxNodeListComponent";
 import DashboardDockerSwarmNodeListComponentUtil from "./DashboardDockerSwarmNodeListComponent";
@@ -121,6 +123,18 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.LogChart) {
       return DashboardLogChartComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.SecurityEventsList) {
+      return DashboardSecurityEventsListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.SecurityEventsFlow) {
+      return DashboardSecurityEventsFlowComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }
