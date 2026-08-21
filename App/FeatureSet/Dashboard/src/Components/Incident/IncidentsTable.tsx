@@ -57,6 +57,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import Route from "Common/Types/API/Route";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import Navigation from "Common/UI/Utils/Navigation";
 import {
   BulkActionButtonSchema,
@@ -516,30 +517,45 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
   let cardbuttons: Array<CardButtonSchema> = [];
 
   if (!props.disableCreate) {
-    // then add a card button that takes to monitor create page
+    /*
+     * Both buttons route to the incident create page instead of the table's
+     * built in create modal, so ModelTable's permission gate never sees them.
+     * Gate them here or a viewer walks the whole flow and is refused at the
+     * end (issue #3306).
+     */
     cardbuttons = [
-      {
-        title: "Create from Template",
-        icon: IconProp.Template,
-        buttonStyle: ButtonStyleType.OUTLINE,
-        onClick: async (): Promise<void> => {
-          setShowIncidentTemplateModal(true);
-          await fetchIncidentTemplates();
+      PermissionGate.gateCardButton(
+        {
+          title: "Create from Template",
+          icon: IconProp.Template,
+          buttonStyle: ButtonStyleType.OUTLINE,
+          onClick: async (): Promise<void> => {
+            setShowIncidentTemplateModal(true);
+            await fetchIncidentTemplates();
+          },
         },
-      },
-      {
-        title: "Declare Incident",
-        onClick: () => {
-          Navigation.navigate(
-            RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENT_CREATE] as Route,
-            ),
-          );
+        new Incident(),
+        ModelAction.Create,
+      ),
+      PermissionGate.gateCardButton(
+        {
+          title: "Declare Incident",
+          onClick: () => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.INCIDENT_CREATE] as Route,
+              ),
+            );
+          },
+          buttonStyle: ButtonStyleType.NORMAL,
+          icon: IconProp.Add,
         },
-        buttonStyle: ButtonStyleType.NORMAL,
-        icon: IconProp.Add,
-      },
-    ];
+        new Incident(),
+        ModelAction.Create,
+      ),
+    ].filter((button: CardButtonSchema | null): boolean => {
+      return button !== null;
+    }) as Array<CardButtonSchema>;
   }
 
   return (

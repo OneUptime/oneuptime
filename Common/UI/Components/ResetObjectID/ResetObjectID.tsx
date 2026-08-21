@@ -1,6 +1,10 @@
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import { ButtonStyleType } from "../Button/Button";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "../../Utils/PermissionGate";
 import Card from "../Card/Card";
 import ConfirmModal from "../Modal/ConfirmModal";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -62,6 +66,12 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
   const tableColumnName: string =
     tableColumn?.title || (props.fieldName as string);
 
+  /* Resetting the id writes to the record, so it is an update. */
+  const updateGate: PermissionGateResult = PermissionGate.check(
+    model,
+    ModelAction.Update,
+  );
+
   return (
     <>
       <Card
@@ -71,7 +81,13 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
           {
             title: `${props.title}`,
             buttonStyle: ButtonStyleType.NORMAL,
+            disabled: !updateGate.isAllowed,
+            tooltip: updateGate.disabledReason,
             onClick: () => {
+              if (!updateGate.isAllowed) {
+                return;
+              }
+
               setShowModal(true);
             },
             isLoading: isLoading,

@@ -23,6 +23,30 @@ const getCurrentProjectIdMock: MockFunction = getJestMockFunction();
  * requires, so naming the mocks directly would capture them before their
  * initializers have run.
  */
+/*
+ * The Edit Fields button is gated on the viewer's permissions now - custom
+ * field values live on the record, so editing them is an update of it. Without
+ * a permission snapshot the card cannot tell "not allowed" from "not loaded
+ * yet" and offers no button at all, which is correct and covered in the
+ * permission gating suites.
+ */
+jest.mock("../../../UI/Utils/Permission", () => {
+  return {
+    __esModule: true,
+    default: {
+      getAllPermissions: (): Array<string> => {
+        return ["ProjectOwner"];
+      },
+      getProjectPermissions: (): null => {
+        return null;
+      },
+      getGlobalPermissions: (): { globalPermissions: Array<string> } => {
+        return { globalPermissions: ["ProjectOwner"] };
+      },
+    },
+  };
+});
+
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,

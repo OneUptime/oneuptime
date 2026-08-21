@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 import API from "../../../UI/Utils/API/API";
 import ProjectUtil from "../../../UI/Utils/Project";
 import PermissionUtil from "../../../UI/Utils/Permission";
+import Permission from "../../../Types/Permission";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
@@ -171,6 +172,16 @@ describe("Settings > Danger Zone", () => {
     getJestSpyOn(PermissionUtil, "clearProjectPermissions").mockImplementation(
       () => {},
     );
+
+    /*
+     * The delete button is gated on the viewer's permissions now, and without a
+     * permission snapshot the card cannot tell "not allowed" from "not loaded
+     * yet" and offers no button at all. Deleting a project is the owner's to
+     * do, so that is who these tests are.
+     */
+    getJestSpyOn(PermissionUtil, "getAllPermissions").mockReturnValue([
+      Permission.ProjectOwner,
+    ]);
 
     getJestSpyOn(API, "post").mockImplementation((data: any) => {
       postCalls.push({

@@ -50,6 +50,8 @@ export interface BulkActionButtonSchema<T extends GenericObject> {
   className?: string | undefined;
   onClick: (props: BulkActionOnClickProps<T>) => Promise<void>;
   disabled?: boolean | undefined;
+  /* Why the action is unavailable - shown on hover of the locked menu item. */
+  tooltip?: string | undefined;
   shortcutKey?: undefined | ShortcutKey;
   confirmMessage?: ((items: Array<T>) => string) | undefined;
   confirmTitle?: ((items: Array<T>) => string) | undefined;
@@ -214,6 +216,7 @@ const BulkUpdateForm: <T extends GenericObject>(
         className={itemClassName}
         iconClassName={iconClassName}
         isDisabled={isDisabled}
+        tooltip={button.tooltip}
         onClick={() => {
           triggerButtonClick(button);
         }}

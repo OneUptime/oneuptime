@@ -1,6 +1,8 @@
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
-import PermissionUtil from "../../Utils/Permission";
-import User from "../../Utils/User";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "../../Utils/PermissionGate";
 import Navigation from "../../Utils/Navigation";
 import { ButtonStyleType } from "../Button/Button";
 import Card, {
@@ -17,11 +19,6 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import IconProp from "../../../Types/Icon/IconProp";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
-import {
-  PermissionHelper,
-  UserPermission,
-  UserTenantAccessPermission,
-} from "../../../Types/Permission";
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
@@ -67,20 +64,15 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
   }, [props.refresher]);
 
   useEffect(() => {
-    const userProjectPermissions: UserTenantAccessPermission | null =
-      PermissionUtil.getProjectPermissions();
-
-    const hasPermissionToEdit: boolean =
-      Boolean(
-        userProjectPermissions &&
-          userProjectPermissions.permissions &&
-          PermissionHelper.doesPermissionsIntersect(
-            model.updateRecordPermissions,
-            userProjectPermissions.permissions.map((item: UserPermission) => {
-              return item.permission;
-            }),
-          ),
-      ) || User.isMasterAdmin();
+    /*
+     * This used to look at project permissions only, so a permission granted
+     * globally did not count, and it read the raw updateRecordPermissions
+     * field rather than going through the model's own accessor.
+     */
+    const updateGate: PermissionGateResult = PermissionGate.check(
+      model,
+      ModelAction.Update,
+    );
 
     let cardButtons: Array<CardButtonSchema | ReactElement> = [];
 
@@ -114,11 +106,27 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
       });
     }
 
-    if (props.isEditable && hasPermissionToEdit) {
+    /*
+     * Without update permission the button stays where it is, locked, and the
+     * tooltip names the permission that is missing. Removing it made the page
+     * look like editing was not a thing rather than not allowed. It is only
+     * dropped entirely when there is nothing honest to say - the permission
+     * snapshot has not loaded, or the model declares no update permissions.
+     */
+    if (
+      props.isEditable &&
+      (updateGate.isAllowed || updateGate.disabledReason)
+    ) {
       cardButtons.push({
         title: props.editButtonText || `Edit ${model.singularName}`,
         buttonStyle: ButtonStyleType.NORMAL,
+        disabled: !updateGate.isAllowed,
+        tooltip: updateGate.disabledReason,
         onClick: () => {
+          if (!updateGate.isAllowed) {
+            return;
+          }
+
           if (onBeforeEditRef.current && onBeforeEditRef.current() === false) {
             return;
           }
@@ -133,7 +141,12 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
     }
 
     setCardButtons(cardButtons);
-  }, []);
+    /*
+     * props.refresher is the card's existing "something changed, look again"
+     * signal. The permission snapshot arrives on an API response header, so a
+     * one-shot read at mount could permanently show the wrong state.
+     */
+  }, [props.refresher, props.isEditable, props.editButtonText]);
 
   return (
     <>

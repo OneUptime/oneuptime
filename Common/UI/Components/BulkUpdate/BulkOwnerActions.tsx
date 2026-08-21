@@ -14,6 +14,10 @@ import ObjectID from "../../../Types/ObjectID";
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../Utils/Project";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "../../Utils/PermissionGate";
 import { ButtonStyleType } from "../Button/Button";
 import { DropdownOption, DropdownOptionGroup } from "../Dropdown/Dropdown";
 import BasicFormModal from "../FormModal/BasicFormModal";
@@ -411,6 +415,43 @@ function useBulkOwnerActions<T extends BaseModel>(
       return groups;
     }, [userOptions, teamOptions]);
 
+  /*
+   * Bulk actions are handed straight to the table's action bar, which never
+   * looks at permissions - so a viewer on an otherwise gated table could still
+   * reassign every row they had selected. Ownership is stored as rows in the
+   * owner junction tables, so adding an owner is a create there and removing
+   * one is a delete.
+   */
+  const addGate: PermissionGateResult = PermissionGate.check(
+    new config.ownerUserModelType(),
+    ModelAction.Create,
+  );
+
+  const removeGate: PermissionGateResult = PermissionGate.check(
+    new config.ownerUserModelType(),
+    ModelAction.Delete,
+  );
+
+  type GateActionFunction = (
+    action: BulkActionButtonSchema<T>,
+    gate: PermissionGateResult,
+  ) => BulkActionButtonSchema<T>;
+
+  const gateAction: GateActionFunction = (
+    action: BulkActionButtonSchema<T>,
+    gate: PermissionGateResult,
+  ): BulkActionButtonSchema<T> => {
+    if (gate.isAllowed || !gate.disabledReason) {
+      return action;
+    }
+
+    return {
+      ...action,
+      disabled: true,
+      tooltip: gate.disabledReason,
+    };
+  };
+
   const addOwnerAction: BulkActionButtonSchema<T> = {
     title: "Add Owner",
     buttonStyleType: ButtonStyleType.NORMAL,
@@ -507,7 +548,10 @@ function useBulkOwnerActions<T extends BaseModel>(
   );
 
   return {
-    bulkActions: [addOwnerAction, removeOwnerAction],
+    bulkActions: [
+      gateAction(addOwnerAction, addGate),
+      gateAction(removeOwnerAction, removeGate),
+    ],
     modals: modals,
   };
 }

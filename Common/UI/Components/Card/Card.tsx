@@ -9,6 +9,11 @@ export interface CardButtonSchema {
   buttonStyle?: ButtonStyleType | undefined;
   onClick: () => void;
   disabled?: boolean | undefined;
+  /*
+   * Shown on hover. The reason a disabled button is disabled belongs here -
+   * Button keeps a disabled button hoverable precisely so this can be read.
+   */
+  tooltip?: string | undefined;
   icon: IconProp;
   isLoading?: undefined | boolean;
   className?: string | undefined;
@@ -104,6 +109,7 @@ const Card: FunctionComponent<ComponentProps> = (
                                   disabled={
                                     (button as CardButtonSchema).disabled
                                   }
+                                  tooltip={(button as CardButtonSchema).tooltip}
                                   icon={(button as CardButtonSchema).icon}
                                   shortcutKey={
                                     (button as CardButtonSchema).shortcutKey

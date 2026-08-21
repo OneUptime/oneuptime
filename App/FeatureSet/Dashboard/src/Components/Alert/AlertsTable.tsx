@@ -48,6 +48,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import Route from "Common/Types/API/Route";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import Navigation from "Common/UI/Utils/Navigation";
 import AffectedResourcesCell from "../AffectedResources/AffectedResourcesCell";
 import {
@@ -551,20 +552,32 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
   let cardbuttons: Array<CardButtonSchema> = [];
 
   if (!props.disableCreate) {
+    /*
+     * These route to a dedicated create page instead of the table's built in
+     * create modal, so ModelTable's own permission gate never sees them. Gate
+     * them here or a viewer walks the whole flow and is refused at the end
+     * (issue #3306).
+     */
     cardbuttons = [
-      {
-        title: "Create Alert",
-        onClick: () => {
-          Navigation.navigate(
-            RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ALERT_CREATE] as Route,
-            ),
-          );
+      PermissionGate.gateCardButton(
+        {
+          title: "Create Alert",
+          onClick: () => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.ALERT_CREATE] as Route,
+              ),
+            );
+          },
+          buttonStyle: ButtonStyleType.NORMAL,
+          icon: IconProp.Add,
         },
-        buttonStyle: ButtonStyleType.NORMAL,
-        icon: IconProp.Add,
-      },
-    ];
+        new Alert(),
+        ModelAction.Create,
+      ),
+    ].filter((button: CardButtonSchema | null): boolean => {
+      return button !== null;
+    }) as Array<CardButtonSchema>;
   }
 
   return (
