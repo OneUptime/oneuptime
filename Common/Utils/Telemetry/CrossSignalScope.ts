@@ -32,9 +32,11 @@ const WHITESPACE: RegExp = /\s/;
  *  - Logs explorer (App/FeatureSet/Dashboard/src/Components/Logs/
  *    LogsViewer.tsx, readInitialUrlState): `filters` is a JSON array of
  *    [facetKey, values[]] tuples. Supported facet keys are the top-level
- *    columns severityText / primaryEntityId / traceId / spanId plus
+ *    columns severityText / primaryEntityId / traceId / spanId / body plus
  *    `attributes.<key>` for telemetry attributes (dots in <key> are kept —
- *    only the first "attributes." prefix is stripped). `range` is a
+ *    only the first "attributes." prefix is stripped). A `body` chip is the
+ *    one whose value compiles to a CONTAINS match rather than an equality
+ *    (LogsCrossSignalPivot.applyLogsFacetFiltersToQuery). `range` is a
  *    TimeRange enum value; a Custom range additionally needs `start` and
  *    `end` (parsed with `new Date(...)`). There is no `search` param.
  *
@@ -88,6 +90,13 @@ export interface TelemetryCrossSignalScope {
    * carry the exact stored casing.
    */
   severityTexts?: Array<string> | undefined;
+  /**
+   * Free-text the log body must CONTAIN. Only the logs explorer has a
+   * body dimension, and only as a substring match — an exact-equality
+   * filter on a body carrying a timestamp or a request id matches
+   * nothing. Traces and metrics report it as dropped.
+   */
+  bodyContains?: string | undefined;
   startTime?: Date | undefined;
   endTime?: Date | undefined;
 }
@@ -210,6 +219,18 @@ function sanitizeResourceFacetSelections(
   return entries;
 }
 
+/*
+ * A blank body filter carries no scope: emitting it would add a chip that
+ * matches every row while telling the user their view is filtered.
+ */
+function sanitizeBodyContains(value: string | undefined): string {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim();
+}
+
 function isValidDate(value: Date | undefined): value is Date {
   return value instanceof Date && !isNaN(value.getTime());
 }
@@ -258,9 +279,10 @@ function resolveTimeWindow(
  *
  * Field support: serviceIds -> `primaryEntityId` filter tuple, severityTexts
  * -> `severityText` (canonicalized casing), traceIds -> `traceId`, spanIds
- * -> `spanId`, attributes -> `attributes.<key>` tuples, startTime+endTime ->
- * `range=Custom` + `start`/`end`. Every scope field is expressible in the
- * logs grammar, so `dropped` only ever reports a lone time endpoint.
+ * -> `spanId`, attributes -> `attributes.<key>` tuples, bodyContains ->
+ * `body` (a contains-match chip), startTime+endTime -> `range=Custom` +
+ * `start`/`end`. Every scope field is expressible in the logs grammar, so
+ * `dropped` only ever reports a lone time endpoint.
  */
 export function toLogsExplorerQueryParams(
   scope: TelemetryCrossSignalScope,
@@ -315,6 +337,12 @@ export function toLogsExplorerQueryParams(
 
   for (const [key, value] of sanitizeAttributeEntries(scope.attributes)) {
     tuples.push([`attributes.${key}`, [value]]);
+  }
+
+  const bodyContains: string = sanitizeBodyContains(scope.bodyContains);
+
+  if (bodyContains.length > 0) {
+    tuples.push(["body", [bodyContains]]);
   }
 
   if (tuples.length > 0) {
@@ -406,7 +434,8 @@ function buildTraceSearchTokenValue(value: string): string | null {
  * valueDisplayMap, where a `service:` token would show the raw ObjectID),
  * startTime+endTime -> `range=Custom` + `start`/`end`.
  *
- * Dropped: severityTexts — spans have no severity dimension.
+ * Dropped: severityTexts and bodyContains — spans have neither a severity
+ * nor a message-body dimension.
  */
 export function toTracesExplorerQueryParams(
   scope: TelemetryCrossSignalScope,
@@ -488,6 +517,10 @@ export function toTracesExplorerQueryParams(
     dropped.push("severityTexts");
   }
 
+  if (sanitizeBodyContains(scope.bodyContains).length > 0) {
+    dropped.push("bodyContains");
+  }
+
   dropped.push(...window.dropped);
 
   return { params, dropped };
@@ -503,9 +536,9 @@ export function toTracesExplorerQueryParams(
  * optional `metricName` argument names the query.
  *
  * Dropped: serviceIds, resourceFacetSelections, traceIds, spanIds,
- * severityTexts — the metric explorer's URL grammar has no service /
- * resource / trace / span / severity dimension (metrics carry a
- * primaryEntityId column, but the explorer only parses metricName +
+ * severityTexts, bodyContains — the metric explorer's URL grammar has no
+ * service / resource / trace / span / severity / message dimension (metrics
+ * carry a primaryEntityId column, but the explorer only parses metricName +
  * attributes out of `metricQueries`).
  */
 export function toMetricsExplorerQueryParams(
@@ -565,6 +598,10 @@ export function toMetricsExplorerQueryParams(
 
   if (sanitizeValues(scope.severityTexts).length > 0) {
     dropped.push("severityTexts");
+  }
+
+  if (sanitizeBodyContains(scope.bodyContains).length > 0) {
+    dropped.push("bodyContains");
   }
 
   dropped.push(...window.dropped);

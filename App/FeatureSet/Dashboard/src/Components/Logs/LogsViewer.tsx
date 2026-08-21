@@ -1946,6 +1946,12 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       kubernetesClusterId: "Kubernetes Cluster",
       traceId: "Trace",
       spanId: "Span",
+      /*
+       * The one chip whose value is a substring rather than an exact id —
+       * "Message contains" says so, since "body: connection refused" reads
+       * like an equality the filter is not.
+       */
+      body: "Message contains",
     };
 
     /*

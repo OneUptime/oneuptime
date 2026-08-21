@@ -20,6 +20,7 @@ import type {
 type PivotModule =
   typeof import("../../FeatureSet/Dashboard/src/Utils/LogsCrossSignalPivot");
 type IncludesModule = typeof import("Common/Types/BaseDatabase/Includes");
+type SearchModule = typeof import("Common/Types/BaseDatabase/Search");
 type InBetweenModule = typeof import("Common/Types/BaseDatabase/InBetween");
 type ObjectIDModule = typeof import("Common/Types/ObjectID");
 type SpanModule = typeof import("Common/Models/AnalyticsModels/Span");
@@ -28,6 +29,7 @@ type RumSessionModule =
 
 let Pivot: PivotModule;
 let Includes: IncludesModule["default"];
+let Search: SearchModule["default"];
 let InBetween: InBetweenModule["default"];
 let ObjectID: ObjectIDModule["default"];
 let Span: SpanModule["default"];
@@ -157,6 +159,7 @@ beforeAll(async () => {
   ] as SerializeScopeFunction;
 
   Includes = (await import("Common/Types/BaseDatabase/Includes")).default;
+  Search = (await import("Common/Types/BaseDatabase/Search")).default;
   InBetween = (await import("Common/Types/BaseDatabase/InBetween")).default;
   ObjectID = (await import("Common/Types/ObjectID")).default;
   Span = (await import("Common/Models/AnalyticsModels/Span")).default;
@@ -638,6 +641,61 @@ describe("applyLogsFacetFiltersToQuery", () => {
       hostId: ["host-1"],
       dockerHostId: ["docker-1"],
     });
+  });
+
+  test("a body chip compiles to a contains-match, not an equality", () => {
+    const query: Record<string, unknown> = {};
+
+    Pivot.applyLogsFacetFiltersToQuery(
+      query as Parameters<typeof Pivot.applyLogsFacetFiltersToQuery>[0],
+      facets({ body: ["connection refused"] }),
+    );
+
+    /*
+     * A message filter is only ever a substring of the line. Equality on a
+     * body carrying a timestamp or a request id matches nothing, which is
+     * exactly what an Insights "Top Errors" deep link would have produced.
+     */
+    expect(query["body"]).toBeInstanceOf(Search);
+    expect((query["body"] as InstanceType<typeof Search>).toString()).toBe(
+      "connection refused",
+    );
+  });
+
+  test("a body chip never becomes an Includes set", () => {
+    const query: Record<string, unknown> = {};
+
+    Pivot.applyLogsFacetFiltersToQuery(
+      query as Parameters<typeof Pivot.applyLogsFacetFiltersToQuery>[0],
+      facets({ body: ["first", "second"] }),
+    );
+
+    /*
+     * Includes is an exact-set match, so a two-valued body chip would
+     * silently stop matching anything. The first value wins instead.
+     */
+    expect(query["body"]).toBeInstanceOf(Search);
+    expect(query["body"]).not.toBeInstanceOf(Includes);
+    expect((query["body"] as InstanceType<typeof Search>).toString()).toBe(
+      "first",
+    );
+  });
+
+  test("a body chip combines with severity and service chips", () => {
+    const query: Record<string, unknown> = {};
+
+    Pivot.applyLogsFacetFiltersToQuery(
+      query as Parameters<typeof Pivot.applyLogsFacetFiltersToQuery>[0],
+      facets({
+        body: ["connection refused"],
+        severityText: ["Error", "Fatal"],
+        primaryEntityId: ["svc-1"],
+      }),
+    );
+
+    expect(query["body"]).toBeInstanceOf(Search);
+    expect(query["severityText"]).toBeInstanceOf(Includes);
+    expect(query["primaryEntityId"]).toBe("svc-1");
   });
 
   test("a cluster chip alone leaves primaryEntityId unconstrained", () => {
