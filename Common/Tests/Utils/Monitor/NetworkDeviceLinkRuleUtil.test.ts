@@ -1487,3 +1487,288 @@ describe("NetworkDeviceLinkRuleUtil.getWarning", () => {
     expect(warning.message.length).toBeLessThanOrEqual(700);
   });
 });
+
+/*
+ * ISSUE #3321 — the audit list.
+ *
+ * The sentence a failing site-scoped rule produces names three sites and then
+ * a number: "…in WB Franchise Unit 0005, WB Franchise Unit 0047, WB Franchise
+ * Unit 0069 and 694 more sites". At fourteen sites that is a summary. At 949
+ * it is a dead end — the operator has been told the size of the problem and
+ * nothing about where it is. These rows are what the banner expands into.
+ */
+describe("NetworkDeviceLinkRuleUtil.getWarning — the failing-site list", () => {
+  type ResolvedWarningSite = NonNullable<ResolvedWarning["sites"]>[number];
+
+  /** Zero padded past three digits so 949 sites still sort as text. */
+  const fourDigit: (value: number) => string = (value: number): string => {
+    return `${value}`.padStart(4, "0");
+  };
+
+  /**
+   * `franchise(index, routers, switches)` — one WB-style unit, named the way
+   * the reporter's are so the sort order under test is the one they see.
+   */
+  const franchise: (
+    index: number,
+    routerCount: number,
+    switchCount: number,
+  ) => Array<LinkRuleDeviceInput> = (
+    index: number,
+    routerCount: number,
+    switchCount: number,
+  ): Array<LinkRuleDeviceInput> => {
+    const siteId: string = `wb-${fourDigit(index)}`;
+    const siteName: string = `WB Franchise Unit ${fourDigit(index)}`;
+    const devices: Array<LinkRuleDeviceInput> = [];
+    for (let router: number = 1; router <= routerCount; router++) {
+      devices.push(routerAt(`wb-router-${index}-${router}`, siteId, siteName));
+    }
+    for (let leaf: number = 1; leaf <= switchCount; leaf++) {
+      devices.push(switchAt(`wb-switch-${index}-${leaf}`, siteId, siteName));
+    }
+    return devices;
+  };
+
+  const sitesOf: (outcome: LinkRuleOutcome) => Array<ResolvedWarningSite> = (
+    outcome: LinkRuleOutcome,
+  ): Array<ResolvedWarningSite> => {
+    return warningOf(outcome).sites || [];
+  };
+
+  it("lists the sites the sentence could only count", () => {
+    const outcome: LinkRuleOutcome = NetworkDeviceLinkRuleUtil.resolveRule(
+      scopedRule(),
+      [
+        ...franchise(5, 1, 2),
+        // No router: three switches with nowhere to go.
+        ...franchise(47, 0, 3),
+        ...franchise(69, 0, 1),
+      ],
+    );
+
+    const warning: ResolvedWarning = warningOf(outcome);
+
+    expect(warning.siteCount).toBe(2);
+    expect(warning.sites).toEqual([
+      {
+        siteId: "wb-0047",
+        siteName: "WB Franchise Unit 0047",
+        reason: "noParentMatched",
+        strandedDeviceCount: 3,
+        matchedParentCount: 0,
+      },
+      {
+        siteId: "wb-0069",
+        siteName: "WB Franchise Unit 0069",
+        reason: "noParentMatched",
+        strandedDeviceCount: 1,
+        matchedParentCount: 0,
+      },
+    ]);
+  });
+
+  it("carries each site's own reason, not the rule's headline one", () => {
+    /*
+     * The rule's `reason` is the highest-ranked condition present, so a mixed
+     * failure reads "ambiguousParent" — which is wrong about every one of the
+     * parentless sites. Per-site reasons are the whole reason the list is
+     * worth sending: the two faults need opposite fixes (delete a label vs.
+     * add one), and a list that got them backwards would be worse than none.
+     */
+    const outcome: LinkRuleOutcome = NetworkDeviceLinkRuleUtil.resolveRule(
+      scopedRule(),
+      [
+        ...franchise(1, 1, 1),
+        // Two routers in one unit.
+        ...franchise(2, 2, 1),
+        // None in the other.
+        ...franchise(3, 0, 2),
+      ],
+    );
+
+    const warning: ResolvedWarning = warningOf(outcome);
+
+    expect(warning.reason).toBe("ambiguousParent");
+    expect(
+      (warning.sites || []).map((site: ResolvedWarningSite) => {
+        return [site.siteName, site.reason, site.matchedParentCount];
+      }),
+    ).toEqual([
+      ["WB Franchise Unit 0002", "ambiguousParent", 2],
+      ["WB Franchise Unit 0003", "noParentMatched", 0],
+    ]);
+  });
+
+  it("orders the list exactly as the sentence names them", () => {
+    /*
+     * The first rows of the list must be the sites the sentence already
+     * named, or the two read as different sets of buildings. Both go through
+     * one sort for that reason.
+     */
+    const outcome: LinkRuleOutcome = NetworkDeviceLinkRuleUtil.resolveRule(
+      scopedRule(),
+      [
+        ...franchise(1, 1, 1),
+        ...franchise(69, 0, 1),
+        ...franchise(5, 0, 1),
+        ...franchise(47, 0, 1),
+        ...franchise(12, 0, 1),
+      ],
+    );
+
+    const warning: ResolvedWarning = warningOf(outcome);
+
+    expect(warning.message).toContain(
+      "WB Franchise Unit 0005, WB Franchise Unit 0012, WB Franchise Unit 0047 and 1 more site",
+    );
+    expect(
+      (warning.sites || []).map((site: ResolvedWarningSite) => {
+        return site.siteName;
+      }),
+    ).toEqual([
+      "WB Franchise Unit 0005",
+      "WB Franchise Unit 0012",
+      "WB Franchise Unit 0047",
+      "WB Franchise Unit 0069",
+    ]);
+  });
+
+  it("stays byte-identical however the device query ordered its rows", () => {
+    /*
+     * The live view refetches every sixty seconds; a reshuffling list reads
+     * as a change that did not happen.
+     */
+    const forwards: Array<LinkRuleDeviceInput> = [
+      ...franchise(3, 0, 1),
+      ...franchise(1, 0, 1),
+      ...franchise(2, 0, 1),
+    ];
+    const backwards: Array<LinkRuleDeviceInput> = [
+      ...franchise(2, 0, 1),
+      ...franchise(3, 0, 1),
+      ...franchise(1, 0, 1),
+    ];
+
+    expect(
+      sitesOf(NetworkDeviceLinkRuleUtil.resolveRule(scopedRule(), forwards)),
+    ).toEqual(
+      sitesOf(NetworkDeviceLinkRuleUtil.resolveRule(scopedRule(), backwards)),
+    );
+  });
+
+  it("names a site with no name nothing at all rather than guessing one", () => {
+    /*
+     * A device can carry a siteId whose name never came back — the name rides
+     * on a relation read. The row still has to be sent: its id is what the
+     * operator navigates by.
+     */
+    const outcome: LinkRuleOutcome = NetworkDeviceLinkRuleUtil.resolveRule(
+      scopedRule(),
+      [...franchise(1, 1, 1), switchAt("nameless-switch", "site-nameless")],
+    );
+
+    expect(sitesOf(outcome)).toEqual([
+      {
+        siteId: "site-nameless",
+        siteName: undefined,
+        reason: "noParentMatched",
+        strandedDeviceCount: 1,
+        matchedParentCount: 0,
+      },
+    ]);
+  });
+
+  it("caps the list but never the count", () => {
+    /*
+     * The cap is what keeps a 60-second poll from carrying a megabyte of site
+     * names. Reporting sites.length as the number of broken sites is then a
+     * bug waiting to happen, so the exact total rides alongside.
+     */
+    const devices: Array<LinkRuleDeviceInput> = [...franchise(1, 1, 1)];
+    for (let index: number = 2; index <= 400; index++) {
+      devices.push(...franchise(index, 0, 1));
+    }
+
+    const outcome: LinkRuleOutcome = NetworkDeviceLinkRuleUtil.resolveRule(
+      scopedRule(),
+      devices,
+    );
+    const warning: ResolvedWarning = warningOf(outcome);
+
+    expect(warning.siteCount).toBe(399);
+    expect(warning.sites).toHaveLength(
+      NetworkDeviceLinkRuleUtil.MAX_LISTED_SITES,
+    );
+    // The cap keeps the sentence's own three sites, which are the first rows.
+    expect((warning.sites || [])[0]!.siteName).toBe("WB Franchise Unit 0002");
+  });
+
+  it("says nothing about sites when the rule is project scoped", () => {
+    /*
+     * A project-scoped outcome has no site dimension at all, and inventing an
+     * empty list for it would put a "0 sites need attention" control on a
+     * banner that is not about sites.
+     */
+    const outcome: LinkRuleOutcome = NetworkDeviceLinkRuleUtil.resolveRule(
+      scopedRule({ scope: "Project" }),
+      [...franchise(1, 1, 1), ...franchise(2, 1, 1)],
+    );
+
+    const warning: ResolvedWarning = warningOf(outcome);
+
+    expect(warning.reason).toBe("ambiguousParent");
+    expect(warning.sites).toBeUndefined();
+    expect(warning.siteCount).toBeUndefined();
+  });
+
+  it("says nothing about sites when only unsited devices are wrong", () => {
+    const outcome: LinkRuleOutcome = NetworkDeviceLinkRuleUtil.resolveRule(
+      scopedRule(),
+      [...franchise(1, 1, 1), switchAt("spare-switch")],
+    );
+
+    const warning: ResolvedWarning = warningOf(outcome);
+
+    expect(warning.reason).toBe("devicesWithoutSite");
+    expect(warning.sites).toBeUndefined();
+    expect(warning.siteCount).toBeUndefined();
+  });
+
+  it("keeps the list and the sentence telling the same story at 949 sites", () => {
+    /*
+     * The reporter's estate, with the truncation removed: 949 units, of which
+     * 697 have no router. The two numbers an operator reads — the coverage
+     * fraction and the stranded device total — have to be reproducible from
+     * the rows, or the list is a second opinion rather than a breakdown.
+     */
+    const devices: Array<LinkRuleDeviceInput> = [];
+    for (let index: number = 1; index <= 252; index++) {
+      devices.push(...franchise(index, 1, 3));
+    }
+    for (let index: number = 253; index <= 949; index++) {
+      devices.push(...franchise(index, 0, 3));
+    }
+
+    const outcome: LinkRuleOutcome = NetworkDeviceLinkRuleUtil.resolveRule(
+      scopedRule(),
+      devices,
+    );
+    const warning: ResolvedWarning = warningOf(outcome);
+
+    expect(outcome.links).toHaveLength(252 * 3);
+    expect(outcome.applicableSiteCount).toBe(949);
+    expect(warning.message).toContain("Drawing in 252 of 949 sites.");
+    expect(warning.message).toContain("so 2091 devices there have no uplink.");
+
+    expect(warning.siteCount).toBe(697);
+    expect(warning.sites).toHaveLength(
+      NetworkDeviceLinkRuleUtil.MAX_LISTED_SITES,
+    );
+    for (const site of warning.sites || []) {
+      expect(site.reason).toBe("noParentMatched");
+      expect(site.strandedDeviceCount).toBe(3);
+      expect(site.matchedParentCount).toBe(0);
+    }
+  });
+});
