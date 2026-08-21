@@ -19,6 +19,14 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @AllowAccessIfSubscriptionIsUnpaid()
 @TenantColumn("projectId")
+/*
+ * `Permission.ProjectUser` on read, and on the projectId column, is what lets
+ * the dashboard shell count this project's payment methods at boot - it decides
+ * whether to warn that billing is unconfigured, and a refusal there replaces the
+ * whole app with an error page. A count needs the table and the column it
+ * filters on, and nothing else, so ProjectUser reaches neither the card details
+ * nor who added them; those stay with the billing roles.
+ */
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
@@ -64,7 +72,6 @@ export default class BillingPaymentMethod extends BaseModel {
     ],
     read: [
       Permission.ProjectOwner,
-      Permission.ProjectUser,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
@@ -139,7 +146,6 @@ export default class BillingPaymentMethod extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectUser,
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.BillingAdmin,
@@ -180,7 +186,6 @@ export default class BillingPaymentMethod extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectUser,
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.BillingAdmin,
@@ -208,7 +213,6 @@ export default class BillingPaymentMethod extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectUser,
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.BillingAdmin,
@@ -246,7 +250,6 @@ export default class BillingPaymentMethod extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectUser,
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.BillingAdmin,
@@ -278,7 +281,6 @@ export default class BillingPaymentMethod extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectUser,
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.BillingAdmin,
@@ -302,7 +304,6 @@ export default class BillingPaymentMethod extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectUser,
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.BillingAdmin,
@@ -326,7 +327,6 @@ export default class BillingPaymentMethod extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectUser,
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.BillingAdmin,
@@ -354,7 +354,6 @@ export default class BillingPaymentMethod extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectUser,
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.BillingAdmin,
@@ -382,7 +381,6 @@ export default class BillingPaymentMethod extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectUser,
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.BillingAdmin,

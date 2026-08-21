@@ -40,7 +40,23 @@ export interface PermissionProps {
 }
 
 enum Permission {
-  // All users in the project will have this permission.
+  /*
+   * Held by every user who is a member of the project, in addition to whatever
+   * roles their teams grant. It is not something an administrator hands out to
+   * make something work - AccessTokenService adds it to the tenant permission
+   * set of anyone who has accepted an invitation to the project.
+   *
+   * Its purpose is the shared plumbing of the dashboard: saved table views,
+   * labels, teams, member profiles. Those are not "settings" in the sense of a
+   * capability somebody is trusted with; they are the furniture every page is
+   * built out of, and a user scoped to a single domain (Monitor Viewer, say)
+   * needs to read them or the page they *are* allowed to see cannot render.
+   *
+   * Only models that are shared in that sense may list it. Anything holding
+   * data one role should be able to keep from another - billing, credentials,
+   * a domain's own records - must not, because every principal in the project
+   * has it. See ProjectSharedResources.test.ts, which enforces both halves.
+   */
   ProjectUser = "ProjectUser",
 
   AuthenticatedRequest = "AuthenticatedRequest", // Authenticated request - could be API, User, MCP server or any other authenticated request.
@@ -2393,7 +2409,8 @@ export class PermissionHelper {
       {
         permission: Permission.ProjectUser,
         title: "Project User",
-        description: "User of this project.",
+        description:
+          "Member of this project. Every user in the project holds this permission; it grants read access to shared workspace resources such as saved table views, labels, teams and member profiles.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
