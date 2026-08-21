@@ -13,7 +13,17 @@ export type RouteHandler = (
 export type CapturedRoute = {
   method: string;
   uri: string;
+
+  /* The route handler proper -- the last function passed to router.post. */
   handler: RouteHandler;
+
+  /*
+   * Everything passed to router.post, middleware first, handler last. `match`
+   * returns only the handler so that a test written against the handler keeps
+   * working when middleware is added in front of it; `matchAll` is for the
+   * tests that are about the middleware BEING there.
+   */
+  handlers: Array<RouteHandler>;
 };
 
 /*
@@ -29,6 +39,7 @@ export type MockIdentityRouter = {
   delete: jest.Mock;
   routes: Array<CapturedRoute>;
   match: (method: string, uri: string) => RouteHandler;
+  matchAll: (method: string, uri: string) => Array<RouteHandler>;
 };
 
 type RegisterForMethod = (
@@ -36,6 +47,36 @@ type RegisterForMethod = (
 ) => (uri: string, ...handlers: Array<RouteHandler>) => void;
 
 export type CreateMockIdentityRouterFunction = () => MockIdentityRouter;
+
+type FindRouteFunction = (
+  routes: Array<CapturedRoute>,
+  method: string,
+  uri: string,
+) => CapturedRoute;
+
+const findRoute: FindRouteFunction = (
+  routes: Array<CapturedRoute>,
+  method: string,
+  uri: string,
+): CapturedRoute => {
+  const route: CapturedRoute | undefined = routes.find(
+    (route: CapturedRoute) => {
+      return route.method === method.toUpperCase() && route.uri === uri;
+    },
+  );
+
+  if (!route) {
+    throw new Error(
+      `Route ${method} ${uri} not registered. Registered: ${routes
+        .map((r: CapturedRoute) => {
+          return `${r.method} ${r.uri}`;
+        })
+        .join(", ")}`,
+    );
+  }
+
+  return route;
+};
 
 export const createMockIdentityRouter: CreateMockIdentityRouterFunction =
   (): MockIdentityRouter => {
@@ -49,7 +90,12 @@ export const createMockIdentityRouter: CreateMockIdentityRouterFunction =
           throw new Error(`No handler registered for ${method} ${uri}`);
         }
 
-        routes.push({ method: method.toUpperCase(), uri, handler });
+        routes.push({
+          method: method.toUpperCase(),
+          uri,
+          handler,
+          handlers: handlers,
+        });
       };
     };
 
@@ -60,37 +106,39 @@ export const createMockIdentityRouter: CreateMockIdentityRouterFunction =
       delete: jest.fn(registerForMethod("delete")),
       routes,
       match: (method: string, uri: string): RouteHandler => {
-        const route: CapturedRoute | undefined = routes.find(
-          (route: CapturedRoute) => {
-            return route.method === method.toUpperCase() && route.uri === uri;
-          },
-        );
-
-        if (!route) {
-          throw new Error(
-            `Route ${method} ${uri} not registered. Registered: ${routes
-              .map((r: CapturedRoute) => {
-                return `${r.method} ${r.uri}`;
-              })
-              .join(", ")}`,
-          );
-        }
-
-        return route.handler;
+        return findRoute(routes, method, uri).handler;
+      },
+      matchAll: (method: string, uri: string): Array<RouteHandler> => {
+        return findRoute(routes, method, uri).handlers;
       },
     };
   };
 
-export type BuildRequestFunction = (body: unknown) => ExpressRequest;
+/*
+ * Anything a test needs to vary about the request beyond its body. `headers`
+ * and `socketAddress` are what the rate limiter reads to decide which client
+ * an attempt is billed to.
+ */
+export type BuildRequestOverrides = {
+  headers?: Record<string, string | Array<string>> | undefined;
+  socketAddress?: string | undefined;
+};
+
+export type BuildRequestFunction = (
+  body: unknown,
+  overrides?: BuildRequestOverrides,
+) => ExpressRequest;
 
 export const buildRequest: BuildRequestFunction = (
   body: unknown,
+  overrides?: BuildRequestOverrides,
 ): ExpressRequest => {
   return {
     body: body,
     params: {},
     query: {},
-    headers: {},
+    headers: overrides?.headers || {},
+    socket: { remoteAddress: overrides?.socketAddress },
     get: (): undefined => {
       return undefined;
     },
