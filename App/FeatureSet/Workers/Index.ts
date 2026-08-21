@@ -18,6 +18,7 @@ import "./Jobs/IncidentOwners/SendUnresolvedReminderNotification";
 import "./Jobs/IncidentMembers/SendMemberAddedNotification";
 
 // Incident SLA
+import "./Jobs/Measurement/BackfillMeasurements";
 import "./Jobs/IncidentSla/CheckSlaBreaches";
 import "./Jobs/IncidentSla/SendNoteReminders";
 import "./Jobs/Slo/EvaluateSlos";

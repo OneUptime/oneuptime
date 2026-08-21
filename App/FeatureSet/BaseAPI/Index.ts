@@ -442,6 +442,24 @@ import IncidentSlaService, {
 import IncidentSlaRuleService, {
   Service as IncidentSlaRuleServiceType,
 } from "Common/Server/Services/IncidentSlaRuleService";
+import IncidentMeasurementService, {
+  Service as IncidentMeasurementServiceType,
+} from "Common/Server/Services/IncidentMeasurementService";
+import IncidentMeasurementValueService, {
+  Service as IncidentMeasurementValueServiceType,
+} from "Common/Server/Services/IncidentMeasurementValueService";
+import AlertMeasurementService, {
+  Service as AlertMeasurementServiceType,
+} from "Common/Server/Services/AlertMeasurementService";
+import AlertMeasurementValueService, {
+  Service as AlertMeasurementValueServiceType,
+} from "Common/Server/Services/AlertMeasurementValueService";
+import ScheduledMaintenanceMeasurementService, {
+  Service as ScheduledMaintenanceMeasurementServiceType,
+} from "Common/Server/Services/ScheduledMaintenanceMeasurementService";
+import ScheduledMaintenanceMeasurementValueService, {
+  Service as ScheduledMaintenanceMeasurementValueServiceType,
+} from "Common/Server/Services/ScheduledMaintenanceMeasurementValueService";
 import ServiceLevelObjectiveService, {
   Service as ServiceLevelObjectiveServiceType,
 } from "Common/Server/Services/ServiceLevelObjectiveService";
@@ -1118,6 +1136,12 @@ import IncidentEpisodePrivacyRule from "Common/Models/DatabaseModels/IncidentEpi
 import IncidentEpisodeLabelRule from "Common/Models/DatabaseModels/IncidentEpisodeLabelRule";
 import IncidentSla from "Common/Models/DatabaseModels/IncidentSla";
 import IncidentSlaRule from "Common/Models/DatabaseModels/IncidentSlaRule";
+import IncidentMeasurement from "Common/Models/DatabaseModels/IncidentMeasurement";
+import IncidentMeasurementValue from "Common/Models/DatabaseModels/IncidentMeasurementValue";
+import AlertMeasurement from "Common/Models/DatabaseModels/AlertMeasurement";
+import AlertMeasurementValue from "Common/Models/DatabaseModels/AlertMeasurementValue";
+import ScheduledMaintenanceMeasurement from "Common/Models/DatabaseModels/ScheduledMaintenanceMeasurement";
+import ScheduledMaintenanceMeasurementValue from "Common/Models/DatabaseModels/ScheduledMaintenanceMeasurementValue";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
@@ -2615,6 +2639,60 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<IncidentSlaRule, IncidentSlaRuleServiceType>(
         IncidentSlaRule,
         IncidentSlaRuleService,
+      ).getRouter(),
+    );
+
+    // IncidentMeasurement
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentMeasurement, IncidentMeasurementServiceType>(
+        IncidentMeasurement,
+        IncidentMeasurementService,
+      ).getRouter(),
+    );
+
+    // IncidentMeasurementValue
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentMeasurementValue, IncidentMeasurementValueServiceType>(
+        IncidentMeasurementValue,
+        IncidentMeasurementValueService,
+      ).getRouter(),
+    );
+
+    // AlertMeasurement
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertMeasurement, AlertMeasurementServiceType>(
+        AlertMeasurement,
+        AlertMeasurementService,
+      ).getRouter(),
+    );
+
+    // AlertMeasurementValue
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertMeasurementValue, AlertMeasurementValueServiceType>(
+        AlertMeasurementValue,
+        AlertMeasurementValueService,
+      ).getRouter(),
+    );
+
+    // ScheduledMaintenanceMeasurement
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ScheduledMaintenanceMeasurement, ScheduledMaintenanceMeasurementServiceType>(
+        ScheduledMaintenanceMeasurement,
+        ScheduledMaintenanceMeasurementService,
+      ).getRouter(),
+    );
+
+    // ScheduledMaintenanceMeasurementValue
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ScheduledMaintenanceMeasurementValue, ScheduledMaintenanceMeasurementValueServiceType>(
+        ScheduledMaintenanceMeasurementValue,
+        ScheduledMaintenanceMeasurementValueService,
       ).getRouter(),
     );
 

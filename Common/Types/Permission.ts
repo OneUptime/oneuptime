@@ -1805,6 +1805,33 @@ enum Permission {
   EditIncidentSlaRule = "EditIncidentSlaRule",
   ReadIncidentSlaRule = "ReadIncidentSlaRule",
 
+  // Incident Measurement Permissions
+  CreateIncidentMeasurement = "CreateIncidentMeasurement",
+  DeleteIncidentMeasurement = "DeleteIncidentMeasurement",
+  EditIncidentMeasurement = "EditIncidentMeasurement",
+  ReadIncidentMeasurement = "ReadIncidentMeasurement",
+
+  // Incident Measurement Value Permissions
+  ReadIncidentMeasurementValue = "ReadIncidentMeasurementValue",
+
+  // Alert Measurement Permissions
+  CreateAlertMeasurement = "CreateAlertMeasurement",
+  DeleteAlertMeasurement = "DeleteAlertMeasurement",
+  EditAlertMeasurement = "EditAlertMeasurement",
+  ReadAlertMeasurement = "ReadAlertMeasurement",
+
+  // Alert Measurement Value Permissions
+  ReadAlertMeasurementValue = "ReadAlertMeasurementValue",
+
+  // Scheduled Maintenance Measurement Permissions
+  CreateScheduledMaintenanceMeasurement = "CreateScheduledMaintenanceMeasurement",
+  DeleteScheduledMaintenanceMeasurement = "DeleteScheduledMaintenanceMeasurement",
+  EditScheduledMaintenanceMeasurement = "EditScheduledMaintenanceMeasurement",
+  ReadScheduledMaintenanceMeasurement = "ReadScheduledMaintenanceMeasurement",
+
+  // Scheduled Maintenance Measurement Value Permissions
+  ReadScheduledMaintenanceMeasurementValue = "ReadScheduledMaintenanceMeasurementValue",
+
   // Incident Reminder Rule Permissions
   CreateIncidentReminderRule = "CreateIncidentReminderRule",
   DeleteIncidentReminderRule = "DeleteIncidentReminderRule",
@@ -14532,6 +14559,168 @@ export class PermissionHelper {
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Incident,
+      },
+
+      // Incident Measurement Permissions
+      {
+        permission: Permission.CreateIncidentMeasurement,
+        title: "Create Incident Measurement",
+        description:
+          "This permission can create Incident Measurements in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.DeleteIncidentMeasurement,
+        title: "Delete Incident Measurement",
+        description:
+          "This permission can delete Incident Measurements of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.EditIncidentMeasurement,
+        title: "Edit Incident Measurement",
+        description:
+          "This permission can edit Incident Measurements of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentMeasurement,
+        title: "Read Incident Measurement",
+        description:
+          "This permission can read Incident Measurements of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+
+      // Incident Measurement Value Permissions
+      {
+        permission: Permission.ReadIncidentMeasurementValue,
+        title: "Read Incident Measurement Value",
+        description:
+          "This permission can read Incident Measurement Values of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+
+      // Alert Measurement Permissions
+      {
+        permission: Permission.CreateAlertMeasurement,
+        title: "Create Alert Measurement",
+        description:
+          "This permission can create Alert Measurements in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.DeleteAlertMeasurement,
+        title: "Delete Alert Measurement",
+        description:
+          "This permission can delete Alert Measurements of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.EditAlertMeasurement,
+        title: "Edit Alert Measurement",
+        description:
+          "This permission can edit Alert Measurements of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.ReadAlertMeasurement,
+        title: "Read Alert Measurement",
+        description:
+          "This permission can read Alert Measurements of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+
+      // Alert Measurement Value Permissions
+      {
+        permission: Permission.ReadAlertMeasurementValue,
+        title: "Read Alert Measurement Value",
+        description:
+          "This permission can read Alert Measurement Values of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+
+      // Scheduled Maintenance Measurement Permissions
+      {
+        permission: Permission.CreateScheduledMaintenanceMeasurement,
+        title: "Create Scheduled Maintenance Measurement",
+        description:
+          "This permission can create Scheduled Maintenance Measurements in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ScheduledMaintenance,
+      },
+      {
+        permission: Permission.DeleteScheduledMaintenanceMeasurement,
+        title: "Delete Scheduled Maintenance Measurement",
+        description:
+          "This permission can delete Scheduled Maintenance Measurements of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ScheduledMaintenance,
+      },
+      {
+        permission: Permission.EditScheduledMaintenanceMeasurement,
+        title: "Edit Scheduled Maintenance Measurement",
+        description:
+          "This permission can edit Scheduled Maintenance Measurements of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ScheduledMaintenance,
+      },
+      {
+        permission: Permission.ReadScheduledMaintenanceMeasurement,
+        title: "Read Scheduled Maintenance Measurement",
+        description:
+          "This permission can read Scheduled Maintenance Measurements of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ScheduledMaintenance,
+      },
+
+      // Scheduled Maintenance Measurement Value Permissions
+      {
+        permission: Permission.ReadScheduledMaintenanceMeasurementValue,
+        title: "Read Scheduled Maintenance Measurement Value",
+        description:
+          "This permission can read Scheduled Maintenance Measurement Values of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ScheduledMaintenance,
       },
 
       // Incident Reminder Rule Permissions

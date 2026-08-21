@@ -1,4 +1,5 @@
 import CreateBy from "../Types/Database/CreateBy";
+import IncidentMeasurementValueService from "./IncidentMeasurementValueService";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -647,6 +648,21 @@ ${createdItem.rootCause}`,
       } as LogAttributes);
     });
 
+    /*
+     * A new timeline row moves every anchor that resolves against it, so the
+     * derived measurements have to be recomputed. Fire-and-forget: the state
+     * change itself is the user-visible write and must not fail because a
+     * derived number could not be recalculated.
+     */
+    IncidentMeasurementValueService.recomputeForIncident({
+      incidentId: createdItem.incidentId!,
+    }).catch((error: Error) => {
+      logger.error(`Error while recomputing incident measurements:`, {
+        incidentId: createdItem.incidentId?.toString(),
+      } as LogAttributes);
+      logger.error(error);
+    });
+
     // Track SLA response/resolution times
     this.trackSlaStateChange({
       incidentId: createdItem.incidentId,
@@ -747,6 +763,7 @@ ${createdItem.rootCause}`,
     }
 
     this.refreshIncidentMetricsForIncidentIds(incidentIds);
+    this.recomputeMeasurementsForIncidentIds(incidentIds);
 
     return onUpdate;
   }
@@ -784,6 +801,30 @@ ${createdItem.rootCause}`,
     return Array.from(incidentIds.values());
   }
 
+  /*
+   * Recomputes measurements for each affected entity exactly once. The
+   * caller may hand the same id in twice -- an update can match the same
+   * row before and after -- and a recompute is a whole-entity operation.
+   */
+  private recomputeMeasurementsForIncidentIds(ids: Array<ObjectID>): void {
+    const uniqueIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+    for (const id of ids) {
+      uniqueIds.set(id.toString(), id);
+    }
+
+    for (const id of uniqueIds.values()) {
+      IncidentMeasurementValueService.recomputeForIncident({
+        incidentId: id,
+      }).catch((error: Error) => {
+        logger.error(`Error while recomputing incident measurements:`, {
+          incidentId: id.toString(),
+        } as LogAttributes);
+        logger.error(error);
+      });
+    }
+  }
+
   private refreshIncidentMetricsForIncidentIds(
     incidentIds: Array<ObjectID>,
   ): void {
@@ -806,6 +847,19 @@ ${createdItem.rootCause}`,
         logger.error(error, {
           incidentId: incidentId.toString(),
         } as LogAttributes);
+      });
+
+      /*
+       * Deleting a timeline row can move an anchor or remove it entirely, so
+       * the derived measurements must be recomputed from what is left.
+       */
+      IncidentMeasurementValueService.recomputeForIncident({
+        incidentId: incidentId,
+      }).catch((error: Error) => {
+        logger.error(`Error while recomputing incident measurements:`, {
+          incidentId: incidentId?.toString(),
+        } as LogAttributes);
+        logger.error(error);
       });
     }
   }
