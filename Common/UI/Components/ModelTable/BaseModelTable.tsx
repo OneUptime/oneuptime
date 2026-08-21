@@ -19,6 +19,10 @@ import buildQueryFromFilterData, {
   sanitizeFilterData,
 } from "./FilterDataToQuery";
 import PermissionUtil from "../../Utils/Permission";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "../../Utils/PermissionGate";
 import ProjectUtil from "../../Utils/Project";
 import User from "../../Utils/User";
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
@@ -388,6 +392,45 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     props.bulkActions?.matchBulkSelectedItemByField || "_id";
 
   const model: TBaseModel = new props.modelType();
+
+  /*
+   * How a create / update / delete affordance should be rendered for this
+   * viewer. A user without the permission used to simply not see the button,
+   * which reads as "this feature does not exist" - and on the flows that route
+   * to a dedicated create page it did not even do that: the page opened, the
+   * form submitted, and the API refused it with a validation error about a
+   * field the user was never shown (issue #3306). The button now stays put and
+   * says which permission is missing.
+   *
+   * `show: false` is reserved for the two cases where there is nothing honest
+   * to say - the permission snapshot has not arrived yet, or the model has no
+   * permissions declared for the operation at all.
+   */
+  interface ActionGate {
+    show: boolean;
+    disabled: boolean;
+    tooltip: string | undefined;
+  }
+
+  type GetActionGateFunction = (action: ModelAction) => ActionGate;
+
+  const getActionGate: GetActionGateFunction = (
+    action: ModelAction,
+  ): ActionGate => {
+    const result: PermissionGateResult = PermissionGate.check(model, action, {
+      singularName: props.singularName || model.singularName || undefined,
+    });
+
+    if (result.isAllowed) {
+      return { show: true, disabled: false, tooltip: undefined };
+    }
+
+    if (result.disabledReason) {
+      return { show: true, disabled: true, tooltip: result.disabledReason };
+    }
+
+    return { show: false, disabled: false, tooltip: undefined };
+  };
 
   const [bulkSelectedItems, setBulkSelectedItems] = useState<Array<TBaseModel>>(
     [],
@@ -1247,29 +1290,21 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       }
     }
 
-    const permissions: Array<Permission> | null =
-      PermissionUtil.getAllPermissions();
-
-    let showActionsColumn: boolean = Boolean(
-      (permissions &&
-        ((props.isDeleteable && model.hasDeletePermissions(permissions)) ||
-          (props.isEditable && model.hasUpdatePermissions(permissions)) ||
-          (props.isViewable && model.hasReadPermissions(permissions)))) ||
+    /*
+     * The column has to exist for a locked Edit / Delete button to have
+     * somewhere to live, so it follows what the table author asked for rather
+     * than what this particular viewer is allowed to do. View is the exception
+     * - a disabled "View X" on a row would confirm a record the viewer is not
+     * allowed to know about - so it still disappears without read permission.
+     */
+    const showActionsColumn: boolean = Boolean(
+      (props.isDeleteable && getActionGate(ModelAction.Delete).show) ||
+        (props.isEditable && getActionGate(ModelAction.Update).show) ||
+        (props.isViewable &&
+          PermissionGate.check(model, ModelAction.Read).isAllowed) ||
         (props.actionButtons && props.actionButtons.length > 0) ||
         props.showViewIdButton,
     );
-
-    if (User.isMasterAdmin()) {
-      if (
-        (props.actionButtons && props.actionButtons.length > 0) ||
-        props.showViewIdButton ||
-        props.isDeleteable ||
-        props.isEditable ||
-        props.isViewable
-      ) {
-        showActionsColumn = true;
-      }
-    }
 
     if (showActionsColumn) {
       columns.push({
@@ -2126,22 +2161,19 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       headerbuttons = [...headerbuttons, ...props.cardProps.buttons];
     }
 
-    const permissions: Array<Permission> | null =
-      PermissionUtil.getAllPermissions();
-
-    let hasPermissionToCreate: boolean = false;
-
-    if (permissions) {
-      hasPermissionToCreate =
-        model.hasCreatePermissions(permissions) || User.isMasterAdmin();
-    }
+    const createGate: ActionGate = getActionGate(ModelAction.Create);
 
     const showFilterButton: boolean = props.filters.length > 0;
 
-    // because ordered list add button is inside the table and not on the card header.
+    /*
+     * because ordered list add button is inside the table and not on the card
+     * header. Without create permission the button is shown locked rather than
+     * removed, so the user can see the action exists and read why it is not
+     * available to them.
+     */
     if (
       props.isCreateable &&
-      hasPermissionToCreate &&
+      createGate.show &&
       showAs !== ShowAs.OrderedStatesList
     ) {
       headerbuttons.push({
@@ -2151,7 +2183,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         buttonStyle: ButtonStyleType.NORMAL,
         buttonSize: ButtonSize.Normal,
         className: "",
+        disabled: createGate.disabled,
+        tooltip: createGate.tooltip,
         onClick: () => {
+          if (createGate.disabled) {
+            return;
+          }
+
           if (props.onCreateClick) {
             props.onCreateClick();
             return;
@@ -2346,8 +2384,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   const getUserPermissions: GetUserPermissionsFunction =
     (): Array<Permission> => {
-      let userPermissions: Array<Permission> =
-        PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
+      /*
+       * A copy - Public is appended below, and pushing into the array the util
+       * handed back mutates the snapshot every other permission check on the
+       * page reads from.
+       */
+      let userPermissions: Array<Permission> = [
+        ...(PermissionUtil.getGlobalPermissions()?.globalPermissions || []),
+      ];
       if (
         PermissionUtil.getProjectPermissions() &&
         PermissionUtil.getProjectPermissions()?.permissions &&
@@ -2490,13 +2534,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         });
       }
 
-      if (
-        props.isEditable &&
-        (model.hasUpdatePermissions(permissions) || User.isMasterAdmin())
-      ) {
+      const updateGate: ActionGate = getActionGate(ModelAction.Update);
+
+      if (props.isEditable && updateGate.show) {
         actionsSchema.push({
           title: tx(props.editButtonText || "Edit"),
           buttonStyleType: ButtonStyleType.OUTLINE,
+          disabled: updateGate.disabled,
+          tooltip: updateGate.tooltip,
           onClick: async (
             item: TBaseModel,
             onCompleteAction: VoidFunction,
@@ -2519,14 +2564,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         });
       }
 
-      if (
-        props.isDeleteable &&
-        (model.hasDeletePermissions(permissions) || User.isMasterAdmin())
-      ) {
+      const deleteGate: ActionGate = getActionGate(ModelAction.Delete);
+
+      if (props.isDeleteable && deleteGate.show) {
         actionsSchema.push({
           title: tx(props.deleteButtonText || "Delete"),
           icon: IconProp.Trash,
           buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
+          disabled: deleteGate.disabled,
+          tooltip: deleteGate.tooltip,
           onClick: async (
             item: TBaseModel,
             onCompleteAction: VoidFunction,
@@ -2723,10 +2769,20 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           await getFilterDropdownItems();
         }}
         bulkActions={(() => {
-          const permissions: Array<Permission> =
-            PermissionUtil.getAllPermissions();
-          const userCanDelete: boolean =
-            model.hasDeletePermissions(permissions);
+          const bulkDeleteGate: ActionGate = getActionGate(ModelAction.Delete);
+
+          /*
+           * Whether to auto-add the default Delete still follows the model
+           * check alone, exactly as it did before. Folding the master-admin
+           * short circuit in here would grow a row-selection column onto every
+           * table a master admin opens without project permissions - Table
+           * derives those checkboxes from this array being non-empty - which is
+           * a layout change nobody asked for. The gate above still decides
+           * whether the action, once present, is locked and what it says.
+           */
+          const userCanDelete: boolean = model.hasDeletePermissions(
+            PermissionUtil.getAllPermissions(),
+          );
 
           const sourceButtons: Array<
             BulkActionButtonSchema<TBaseModel> | ModalTableBulkDefaultActions
@@ -2740,6 +2796,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
            * per-row Delete button in the Actions column, not bulk operations.
            * The confirmation modal is wired up via the schema's confirmMessage
            * / confirmTitle below. Skip if the table author already added it.
+           *
+           * Only auto-inject it when the table already offers bulk actions.
+           * Table derives the row checkboxes from this array being non-empty,
+           * so injecting a locked Delete into an otherwise empty array would
+           * grow a selection column onto tables that have never had one.
            */
           const alreadyHasDeleteAction: boolean = sourceButtons.some(
             (
@@ -2762,26 +2823,64 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               return false;
             },
           );
-          if (userCanDelete && !alreadyHasDeleteAction) {
+
+          const canAutoInjectDelete: boolean =
+            userCanDelete ||
+            (bulkDeleteGate.disabled && sourceButtons.length > 0);
+
+          if (canAutoInjectDelete && !alreadyHasDeleteAction) {
             sourceButtons.push(ModalTableBulkDefaultActions.Delete);
           }
 
           return {
-            buttons: sourceButtons.map(
-              (
-                action:
+            buttons: sourceButtons
+              .map(
+                (
+                  action:
+                    | BulkActionButtonSchema<TBaseModel>
+                    | ModalTableBulkDefaultActions,
+                ):
                   | BulkActionButtonSchema<TBaseModel>
-                  | ModalTableBulkDefaultActions,
-              ) => {
-                if (
-                  action === ModalTableBulkDefaultActions.Delete &&
-                  userCanDelete
-                ) {
-                  return getDeleteBulkAction();
-                }
-                return action;
-              },
-            ) as Array<BulkActionButtonSchema<TBaseModel>>,
+                  | ModalTableBulkDefaultActions
+                  | null => {
+                  if (action !== ModalTableBulkDefaultActions.Delete) {
+                    return action;
+                  }
+
+                  /*
+                   * A table author who asked for the default Delete but whose
+                   * viewer cannot delete used to leave the raw enum string in
+                   * the array, which then reached BulkUpdateForm as if it were
+                   * a button schema. Resolve it here, in every branch.
+                   */
+                  if (!bulkDeleteGate.show) {
+                    return null;
+                  }
+
+                  const deleteAction: BulkActionButtonSchema<TBaseModel> =
+                    getDeleteBulkAction();
+
+                  if (bulkDeleteGate.disabled) {
+                    return {
+                      ...deleteAction,
+                      disabled: true,
+                      tooltip: bulkDeleteGate.tooltip,
+                    };
+                  }
+
+                  return deleteAction;
+                },
+              )
+              .filter(
+                (
+                  action:
+                    | BulkActionButtonSchema<TBaseModel>
+                    | ModalTableBulkDefaultActions
+                    | null,
+                ): boolean => {
+                  return action !== null;
+                },
+              ) as Array<BulkActionButtonSchema<TBaseModel>>,
           };
         })()}
         onBulkActionEnd={async () => {
@@ -2976,7 +3075,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           await fetchItems();
         }}
         onCreateNewItem={
-          props.isCreateable
+          props.isCreateable && getActionGate(ModelAction.Create).show
             ? (order: number) => {
                 setOrderedStatesListNewItemOrder(order);
                 setModalType(ModalType.Create);
@@ -2984,6 +3083,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               }
             : undefined
         }
+        createDisabledReason={getActionGate(ModelAction.Create).tooltip}
         singularLabel={props.singularName || model.singularName || "Item"}
         actionButtons={actionButtonSchema}
         getTitleElement={getTitleElement}
@@ -3637,9 +3737,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         buttonSize={b.buttonSize}
         className={b.className}
         onClick={() => {
+          if (b.disabled) {
+            return;
+          }
+
           b.onClick?.();
         }}
         disabled={b.disabled}
+        tooltip={b.tooltip}
         icon={b.icon}
         shortcutKey={b.shortcutKey}
         dataTestId="card-button"
@@ -3708,6 +3813,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               }
             }}
             isDisabled={b.disabled}
+            tooltip={b.tooltip}
           />
         );
       },
@@ -4033,7 +4139,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                */}
               {tableColumns.length === 0 && allColumns.length > 0 ? (
                 <ErrorMessage
-                  message={`You are not authorized to view this table. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
+                  message={`You are not authorized to view this table. You need any one of these permissions: ${PermissionGate.getPermissionTitles(
                     model.getReadPermissions(),
                   ).join(", ")}`}
                 />

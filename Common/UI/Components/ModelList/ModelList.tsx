@@ -1,5 +1,9 @@
 import API from "../../Utils/API/API";
 import Query from "../../../Types/BaseDatabase/Query";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "../../Utils/PermissionGate";
 import ModelAPI, {
   ListResult,
   RequestOptions,
@@ -51,6 +55,16 @@ const ModelList: <TBaseModel extends BaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
+  /*
+   * The row Delete button used to appear for anybody the caller marked the
+   * list deleteable for, permission or not. It now stays visible but locked
+   * when the viewer cannot delete the model.
+   */
+  const deleteGate: PermissionGateResult = PermissionGate.check(
+    new props.modelType(),
+    ModelAction.Delete,
+  );
+
   const [selectedList, setSelectedList] = useState<Array<TBaseModel>>([]);
   const [modelList, setModalList] = useState<Array<TBaseModel>>([]);
   const [error, setError] = useState<string>("");
@@ -262,12 +276,17 @@ const ModelList: <TBaseModel extends BaseModel>(
             }}
             titleField={props.titleField}
             onDelete={
-              props.isDeleteable
+              props.isDeleteable && deleteGate.isAllowed
                 ? async (item: TBaseModel) => {
                     await deleteItem(item);
                   }
-                : undefined
+                : props.isDeleteable && deleteGate.disabledReason
+                  ? () => {
+                      // Locked - the tooltip below explains why.
+                    }
+                  : undefined
             }
+            deleteDisabledReason={deleteGate.disabledReason}
             selectedItems={selectedList}
             onClick={(model: TBaseModel) => {
               if (props.selectMultiple) {

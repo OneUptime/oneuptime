@@ -22,6 +22,11 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   onClick: (item: TBaseModel) => void;
   titleField: string;
   onDelete?: ((item: TBaseModel) => void) | undefined;
+  /*
+   * When set, the row Delete buttons stay on screen but are locked, and say
+   * this on hover.
+   */
+  deleteDisabledReason?: string | undefined;
   customElement?: ((item: TBaseModel) => ReactElement) | undefined;
   enableDragAndDrop?: boolean | undefined;
   dragAndDropScope?: string | undefined;
@@ -103,7 +108,13 @@ const StaticModelList: <TBaseModel extends BaseModel>(
               icon={IconProp.Trash}
               buttonStyle={ButtonStyleType.OUTLINE}
               title="Delete"
+              disabled={Boolean(props.deleteDisabledReason)}
+              tooltip={props.deleteDisabledReason}
               onClick={() => {
+                if (props.deleteDisabledReason) {
+                  return;
+                }
+
                 props.onDelete?.(model);
               }}
             />

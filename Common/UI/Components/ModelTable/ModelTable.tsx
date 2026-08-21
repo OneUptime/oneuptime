@@ -3,8 +3,10 @@ import API from "../../Utils/API/API";
 import ModelImportExportUtil, {
   ImportResult,
 } from "../../Utils/ModelImportExport";
-import PermissionUtil from "../../Utils/Permission";
-import User from "../../Utils/User";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "../../Utils/PermissionGate";
 import { FormType, ModelField } from "../Forms/ModelForm";
 import ModelFormModal from "../ModelFormModal/ModelFormModal";
 import BaseModelTable, {
@@ -28,7 +30,6 @@ import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import Permission from "../../../Types/Permission";
 import React, { ReactElement, useState } from "react";
 import Query from "../../../Types/BaseDatabase/Query";
 import GroupBy from "../../../Types/BaseDatabase/GroupBy";
@@ -129,14 +130,13 @@ const ModelTable: <TBaseModel extends BaseModel>(
       buttons: [...(props.bulkActions?.buttons || []), getExportBulkAction()],
     };
 
-    const permissions: Array<Permission> | null =
-      PermissionUtil.getAllPermissions();
+    /* Importing writes new records, so it is gated on create permission. */
+    const createGate: PermissionGateResult = PermissionGate.check(
+      model,
+      ModelAction.Create,
+    );
 
-    const hasPermissionToCreate: boolean = permissions
-      ? model.hasCreatePermissions(permissions) || User.isMasterAdmin()
-      : false;
-
-    if (hasPermissionToCreate) {
+    if (createGate.isAllowed || createGate.disabledReason) {
       cardProps = {
         ...(props.cardProps || {}),
         buttons: [
@@ -145,7 +145,13 @@ const ModelTable: <TBaseModel extends BaseModel>(
             title: "Import JSON",
             buttonStyle: ButtonStyleType.OUTLINE,
             icon: IconProp.Upload,
+            disabled: !createGate.isAllowed,
+            tooltip: createGate.disabledReason,
             onClick: () => {
+              if (!createGate.isAllowed) {
+                return;
+              }
+
               setShowImportModal(true);
             },
           },

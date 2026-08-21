@@ -66,6 +66,7 @@ import URL from "Common/Types/API/URL";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ObjectID from "Common/Types/ObjectID";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProbeUtil from "../../Utils/Probe";
 
 export interface ComponentProps {
@@ -474,21 +475,34 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     : [];
 
   if (!props.disableCreate) {
-    // then add a card button that takes to monitor create page
+    /*
+     * A card button that routes to the monitor create page rather than the
+     * table's built in create modal - which means ModelTable's own permission
+     * gate never sees it. Without this check a viewer could open the whole
+     * wizard and only find out at submit, via a validation error about a field
+     * they were never shown (issue #3306).
+     */
+    const createMonitorButton: CardButtonSchema | null =
+      PermissionGate.gateCardButton(
+        {
+          title: "Create Monitor",
+          onClick: () => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.MONITOR_CREATE] as Route,
+              ),
+            );
+          },
+          buttonStyle: ButtonStyleType.NORMAL,
+          icon: IconProp.Add,
+        },
+        new Monitor(),
+        ModelAction.Create,
+      );
+
     cardbuttons = [
       ...(props.cardButtons || []),
-      {
-        title: "Create Monitor",
-        onClick: () => {
-          Navigation.navigate(
-            RouteUtil.populateRouteParams(
-              RouteMap[PageMap.MONITOR_CREATE] as Route,
-            ),
-          );
-        },
-        buttonStyle: ButtonStyleType.NORMAL,
-        icon: IconProp.Add,
-      },
+      ...(createMonitorButton ? [createMonitorButton] : []),
     ];
   }
 

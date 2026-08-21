@@ -10,6 +10,10 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import React, { Fragment, ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
@@ -41,6 +45,17 @@ const ArchiveResourceCard: <TBaseModel extends BaseModel>(
   const model: TBaseModel = new props.modelType();
   const singularName: string =
     props.singularName || model.singularName || "resource";
+
+  /*
+   * Archiving flips a column on the record, so it needs update permission.
+   * Without it the button stays put and says which permission is missing,
+   * rather than opening a confirmation the API will refuse.
+   */
+  const updateGate: PermissionGateResult = PermissionGate.check(
+    model,
+    ModelAction.Update,
+    { singularName: props.singularName },
+  );
 
   const loadState: () => Promise<void> = async (): Promise<void> => {
     setIsLoading(true);
@@ -126,7 +141,13 @@ const ArchiveResourceCard: <TBaseModel extends BaseModel>(
             title: isArchived ? "Unarchive" : "Archive",
             icon: isArchived ? IconProp.Unarchive : IconProp.Archive,
             buttonStyle: ButtonStyleType.NORMAL,
+            disabled: !updateGate.isAllowed,
+            tooltip: updateGate.disabledReason,
             onClick: () => {
+              if (!updateGate.isAllowed) {
+                return;
+              }
+
               setShowConfirm(true);
             },
           },

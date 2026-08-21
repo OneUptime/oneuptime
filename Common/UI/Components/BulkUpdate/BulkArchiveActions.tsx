@@ -4,6 +4,10 @@ import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "../../Utils/PermissionGate";
 import { ButtonStyleType } from "../Button/Button";
 import {
   BulkActionButtonSchema,
@@ -103,6 +107,35 @@ function useBulkArchiveActions<T extends BaseModel>(
     onBulkActionEnd();
   };
 
+  /*
+   * Bulk actions are handed straight to the table's action bar, which never
+   * looks at permissions - so a viewer on an otherwise gated table could still
+   * relabel, reassign or archive every row they had selected. Each of these
+   * actions is an update of the records it touches.
+   */
+  const updateGate: PermissionGateResult = PermissionGate.check(
+    new config.modelType(),
+    ModelAction.Update,
+  );
+
+  type GateActionFunction = (
+    action: BulkActionButtonSchema<T>,
+  ) => BulkActionButtonSchema<T>;
+
+  const gateAction: GateActionFunction = (
+    action: BulkActionButtonSchema<T>,
+  ): BulkActionButtonSchema<T> => {
+    if (updateGate.isAllowed || !updateGate.disabledReason) {
+      return action;
+    }
+
+    return {
+      ...action,
+      disabled: true,
+      tooltip: updateGate.disabledReason,
+    };
+  };
+
   const archiveAction: BulkActionButtonSchema<T> = {
     title: "Archive",
     icon: IconProp.Archive,
@@ -142,8 +175,8 @@ function useBulkArchiveActions<T extends BaseModel>(
   };
 
   return {
-    archiveBulkActions: [archiveAction],
-    unarchiveBulkActions: [unarchiveAction],
+    archiveBulkActions: [gateAction(archiveAction)],
+    unarchiveBulkActions: [gateAction(unarchiveAction)],
   };
 }
 

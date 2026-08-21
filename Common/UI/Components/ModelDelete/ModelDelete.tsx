@@ -1,5 +1,9 @@
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "../../Utils/PermissionGate";
 import { ButtonStyleType } from "../Button/Button";
 import Card from "../Card/Card";
 import ConfirmModal from "../Modal/ConfirmModal";
@@ -33,6 +37,16 @@ const ModelDelete: <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
   const model: TBaseModel = new props.modelType();
+  /*
+   * The delete card used to be rendered for everybody: a viewer got a live
+   * "Delete <X>" button, a confirmation dialog, and then a refusal from the
+   * API. It now stays visible but locked, and says which permission is
+   * missing.
+   */
+  const deleteGate: PermissionGateResult = PermissionGate.check(
+    model,
+    ModelAction.Delete,
+  );
   const [showModal, setShowModal] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -69,7 +83,13 @@ const ModelDelete: <TBaseModel extends BaseModel>(
           {
             title: `Delete ${model.singularName}`,
             buttonStyle: ButtonStyleType.DANGER,
+            disabled: !deleteGate.isAllowed,
+            tooltip: deleteGate.disabledReason,
             onClick: () => {
+              if (!deleteGate.isAllowed) {
+                return;
+              }
+
               setShowModal(true);
             },
             isLoading: isLoading,

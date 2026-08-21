@@ -10,6 +10,13 @@ interface ActionButtonSchema<T extends GenericObject> {
   isLoading?: boolean | undefined;
   isVisible?: (item: T) => boolean | undefined;
   hideOnMobile?: boolean | undefined;
+  /*
+   * A row action the viewer is not allowed to perform stays on screen, locked,
+   * so the row does not silently look different from everybody else's. The
+   * tooltip is what turns a dead button into an explanation.
+   */
+  disabled?: boolean | undefined;
+  tooltip?: string | undefined;
   onClick: (
     item: T,
     onCompleteAction: VoidFunction,

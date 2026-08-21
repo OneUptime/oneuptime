@@ -5,7 +5,12 @@ import ModelAPI, {
   ModelAPIHttpResponse,
   RequestOptions,
 } from "../../Utils/ModelAPI/ModelAPI";
+import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import PermissionUtil from "../../Utils/Permission";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "../../Utils/PermissionGate";
 import User from "../../Utils/User";
 import { ButtonStyleType } from "../Button/Button";
 import {
@@ -180,8 +185,14 @@ const ModelForm: <TBaseModel extends BaseModel>(
       return true; // master admin can do anything.
     }
 
-    let userPermissions: Array<Permission> =
-      PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
+    /*
+     * A copy. The Public permission is appended below, and pushing into the
+     * array the util handed back mutates the snapshot every other permission
+     * check on the page reads from.
+     */
+    let userPermissions: Array<Permission> = [
+      ...(PermissionUtil.getGlobalPermissions()?.globalPermissions || []),
+    ];
     if (
       PermissionUtil.getProjectPermissions() &&
       PermissionUtil.getProjectPermissions()?.permissions &&
@@ -844,6 +855,47 @@ const ModelForm: <TBaseModel extends BaseModel>(
         <Loader loaderType={LoaderType.Bar} color={VeryLightGray} size={200} />
       </div>
     );
+  }
+
+  /*
+   * A create form for a model the viewer cannot create is worse than no form:
+   * the per-field access control above strips every column, so the wizard
+   * renders empty steps that all read as complete, and the submit fails with
+   * whatever the server happens to validate first - which is how creating a
+   * monitor as a Viewer produced "Monitor type required to create monitor"
+   * with not a word about permissions (issue #3306). Say the real reason.
+   *
+   * Deliberately narrow, because a false positive here blanks a page:
+   *
+   *  - create only. An update form is reached through an Edit button that is
+   *    gated already, and gating the form as well only risks a dead end.
+   *  - only when the form posts to the model's own CRUD endpoint. Sign-in,
+   *    sign-up, password reset and status page subscribe are all ModelForms
+   *    with formType Create that submit somewhere else entirely; the model's
+   *    create permission has nothing to do with whether the visitor may use
+   *    them, and a signed-in user opening a status page in the same browser
+   *    would otherwise be locked out of its login form by an unrelated
+   *    project permission.
+   *  - never for a model Public may create, which is the marker for "anybody
+   *    may do this".
+   */
+  const isModelCrudCreate: boolean =
+    props.formType === FormType.Create && !props.createOrUpdateApiUrl;
+
+  const isPublicCreate: boolean = PermissionGate.getModelPermissions(
+    model,
+    ModelAction.Create,
+  ).includes(Permission.Public);
+
+  if (isModelCrudCreate && !isPublicCreate) {
+    const createGate: PermissionGateResult = PermissionGate.check(
+      model,
+      ModelAction.Create,
+    );
+
+    if (!createGate.isAllowed && createGate.disabledReason) {
+      return <ErrorMessage message={createGate.disabledReason} />;
+    }
   }
 
   return (

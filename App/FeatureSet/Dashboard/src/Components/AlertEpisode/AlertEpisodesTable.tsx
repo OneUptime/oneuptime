@@ -27,6 +27,7 @@ import React, {
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import Navigation from "Common/UI/Utils/Navigation";
 import {
   BulkActionButtonSchema,
@@ -34,6 +35,7 @@ import {
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import IconProp from "Common/Types/Icon/IconProp";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -267,19 +269,30 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
           description:
             props.description ||
             "Here is a list of alert episodes for this project.",
+          /*
+           * Routes to the episode create page rather than the table's built in
+           * create modal, so ModelTable's own permission gate never sees this
+           * button - it has to be gated here (issue #3306).
+           */
           buttons: [
-            {
-              title: "Create Episode",
-              onClick: () => {
-                Navigation.navigate(
-                  RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.ALERT_EPISODE_CREATE] as Route,
-                  ),
-                );
+            PermissionGate.gateCardButton(
+              {
+                title: "Create Episode",
+                onClick: () => {
+                  Navigation.navigate(
+                    RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.ALERT_EPISODE_CREATE] as Route,
+                    ),
+                  );
+                },
+                icon: IconProp.Add,
               },
-              icon: IconProp.Add,
-            },
-          ],
+              new AlertEpisode(),
+              ModelAction.Create,
+            ),
+          ].filter((button: CardButtonSchema | null): boolean => {
+            return button !== null;
+          }) as Array<CardButtonSchema>,
         }}
         noItemsMessage={props.noItemsMessage || "No episodes found."}
         showRefreshButton={true}
