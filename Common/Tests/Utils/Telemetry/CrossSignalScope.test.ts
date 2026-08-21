@@ -696,3 +696,85 @@ describe("toMetricsExplorerQueryParams", () => {
     });
   });
 });
+
+/*
+ * `bodyContains` exists so a Logs Insights "Top Errors" row can deep-link to
+ * the raw occurrences it counted. Only the logs grammar has a message
+ * dimension, so the other two targets must report it rather than dropping it
+ * in silence.
+ */
+describe("bodyContains", () => {
+  test("logs: becomes a body filter chip", () => {
+    const result: CrossSignalQueryParams = toLogsExplorerQueryParams({
+      bodyContains: "connection refused",
+    });
+
+    expect(JSON.parse(result.params["filters"] as string)).toContainEqual([
+      "body",
+      ["connection refused"],
+    ]);
+    expect(result.dropped).toEqual([]);
+  });
+
+  test("logs: rides alongside severity, service and window scope", () => {
+    const result: CrossSignalQueryParams = toLogsExplorerQueryParams({
+      ...fullScope(),
+      bodyContains: "connection refused",
+    });
+
+    const filters: Array<[string, Array<string>]> = JSON.parse(
+      result.params["filters"] as string,
+    );
+
+    expect(filters).toContainEqual(["body", ["connection refused"]]);
+    expect(filters).toContainEqual(["severityText", ["Error", "Warning"]]);
+    expect(result.params["range"]).toBe(TimeRange.CUSTOM);
+  });
+
+  test("logs: a blank or whitespace-only value carries no scope", () => {
+    /*
+     * An empty body chip would match every row while telling the user their
+     * view is filtered — worse than no chip at all.
+     */
+    for (const bodyContains of ["", "   ", undefined]) {
+      const result: CrossSignalQueryParams = toLogsExplorerQueryParams({
+        bodyContains,
+      });
+
+      expect(result.params["filters"]).toBeUndefined();
+      expect(result.dropped).toEqual([]);
+    }
+  });
+
+  test("logs: surrounding whitespace is trimmed off the chip value", () => {
+    const result: CrossSignalQueryParams = toLogsExplorerQueryParams({
+      bodyContains: "  timed out  ",
+    });
+
+    expect(JSON.parse(result.params["filters"] as string)).toContainEqual([
+      "body",
+      ["timed out"],
+    ]);
+  });
+
+  test("traces and metrics report it as dropped rather than ignoring it", () => {
+    expect(
+      toTracesExplorerQueryParams({ bodyContains: "connection refused" })
+        .dropped,
+    ).toContain("bodyContains");
+
+    expect(
+      toMetricsExplorerQueryParams({ bodyContains: "connection refused" })
+        .dropped,
+    ).toContain("bodyContains");
+  });
+
+  test("traces and metrics stay silent about a blank value", () => {
+    expect(toTracesExplorerQueryParams({ bodyContains: "  " }).dropped).toEqual(
+      [],
+    );
+    expect(
+      toMetricsExplorerQueryParams({ bodyContains: "  " }).dropped,
+    ).toEqual([]);
+  });
+});

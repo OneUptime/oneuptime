@@ -120,6 +120,24 @@ export function buildLogsHistogramRequest(
     requestData["spanIds"] = Array.from(spanFilterValues);
   }
 
+  /*
+   * A body chip is a contains-match on the message (the logs list compiles
+   * it to a Search predicate). The histogram has to receive it as
+   * bodySearchText or the chart would keep counting rows the list no longer
+   * shows — which is exactly what a deep link from Insights' Top Errors
+   * produces.
+   */
+  const bodyValues: Set<string> | undefined =
+    params.appliedFacetFilters.get("body");
+
+  if (bodyValues && bodyValues.size > 0) {
+    const bodySearchText: string = Array.from(bodyValues)[0]!;
+
+    if (bodySearchText.trim().length > 0) {
+      requestData["bodySearchText"] = bodySearchText;
+    }
+  }
+
   if (params.attributes) {
     requestData["attributes"] = params.attributes;
   }

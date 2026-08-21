@@ -7,295 +7,316 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import Service from "Common/Models/DatabaseModels/Service";
-import Log from "Common/Models/AnalyticsModels/Log";
-import LogSeverity from "Common/Types/Log/LogSeverity";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import AnalyticsModelAPI, {
-  ListResult as AnalyticsListResult,
-} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import ProjectUtil from "Common/UI/Utils/Project";
 import API from "Common/UI/Utils/API/API";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import Dictionary from "Common/Types/Dictionary";
+import Dropdown, {
+  DropdownOption,
+  DropdownOptionGroup,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import Query from "Common/Types/BaseDatabase/Query";
-import Select from "Common/Types/BaseDatabase/Select";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import ObjectID from "Common/Types/ObjectID";
-import RangeStartAndEndDateTime, {
-  RangeStartAndEndDateTimeUtil,
-} from "Common/Types/Time/RangeStartAndEndDateTime";
-import TimeRange from "Common/Types/Time/TimeRange";
-import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
-import ServiceElement from "../Service/ServiceElement";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageMap from "../../Utils/PageMap";
+import { JSONObject } from "Common/Types/JSON";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ObjectID from "Common/Types/ObjectID";
+import ProjectUtil from "Common/UI/Utils/Project";
+import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import Route from "Common/Types/API/Route";
+import Service from "Common/Models/DatabaseModels/Service";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import TimeRange from "Common/Types/Time/TimeRange";
+import { getSeverityTheme } from "Common/UI/Components/LogsViewer/components/severityTheme";
 import AppLink from "../AppLink/AppLink";
+import ErrorPatternDetail from "./ErrorPatternDetail";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import ServiceElement from "../Service/ServiceElement";
+import TopErrorsPanel from "./TopErrorsPanel";
+import {
+  fetchInsightsHistogram,
+  fetchResourceBreakdown,
+  fetchScopeFacets,
+  fetchTopErrorPatterns,
+} from "./LogsInsightsApi";
+import {
+  INSIGHTS_SCOPE_FACET_KEYS,
+  INSIGHTS_SCOPE_FACET_LABELS,
+  LogVolumeSummary,
+  LogsInsightsScope,
+  ParsedScopeSelections,
+  ResourceLogBreakdown,
+  ScopeFacetValue,
+  SeverityShare,
+  TopErrorPatternRow,
+  describeTimeRange,
+  encodeScopeSelection,
+  parseScopeSelections,
+  summarizeSeverityBuckets,
+} from "../../Utils/LogsInsights";
 
-interface SeverityBucket {
-  severity: LogSeverity;
-  count: number;
-  color: string;
-  bgColor: string;
-  barColor: string;
-}
+/*
+ * The Logs Insights page.
+ *
+ * Two things distinguish it from a wall of counters. First, every number is
+ * aggregated in ClickHouse over the whole window: the page previously
+ * fetched a capped page of raw log rows and counted those in the browser,
+ * so on any busy project its totals silently described the fetch rather
+ * than the project. Second, it names the errors — the distinct messages,
+ * how often each happened, and, one click in, what surrounded it.
+ */
 
-interface ServiceSummary {
-  service: Service;
-  logCount: number;
-  errorCount: number;
-  warnCount: number;
-}
+/** How many error patterns the list asks for. */
+const TOP_ERROR_LIMIT: number = 12;
 
-const SEVERITY_STYLES: Record<
-  string,
-  { color: string; bgColor: string; barColor: string; order: number }
-> = {
-  Fatal: {
-    color: "text-rose-700",
-    bgColor: "bg-rose-50",
-    barColor: "bg-rose-500",
-    order: 0,
-  },
-  Error: {
-    color: "text-red-700",
-    bgColor: "bg-red-50",
-    barColor: "bg-red-400",
-    order: 1,
-  },
-  Warning: {
-    color: "text-amber-700",
-    bgColor: "bg-amber-50",
-    barColor: "bg-amber-400",
-    order: 2,
-  },
-  Information: {
-    color: "text-sky-700",
-    bgColor: "bg-sky-50",
-    barColor: "bg-sky-400",
-    order: 3,
-  },
-  Debug: {
-    color: "text-violet-700",
-    bgColor: "bg-violet-50",
-    barColor: "bg-violet-400",
-    order: 4,
-  },
-  Trace: {
-    color: "text-emerald-700",
-    bgColor: "bg-emerald-50",
-    barColor: "bg-emerald-400",
-    order: 5,
-  },
-  Unspecified: {
-    color: "text-gray-700",
-    bgColor: "bg-gray-100",
-    barColor: "bg-gray-300",
-    order: 6,
-  },
-};
-
-function timeRangeLabel(range: RangeStartAndEndDateTime): string {
-  if (range.range === TimeRange.CUSTOM) {
-    return "the selected time range";
-  }
-  return `the ${(range.range as string).toLowerCase()}`;
-}
+/** How many resources the per-service section renders before cutting off. */
+const RESOURCE_CARD_LIMIT: number = 12;
 
 const LogsDashboard: FunctionComponent = (): ReactElement => {
   const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
-    range: TimeRange.PAST_ONE_HOUR,
+    range: TimeRange.PAST_ONE_DAY,
   });
+  /*
+   * Encoded "<facetKey>:<id>" values — one flat multi-select over Services
+   * AND the resources that log under their own id (hosts, docker hosts,
+   * Kubernetes clusters). Decoded into the two scope fields the API takes
+   * by parseScopeSelections.
+   */
+  const [selectedScopeValues, setSelectedScopeValues] = useState<Array<string>>(
+    [],
+  );
 
   const [services, setServices] = useState<Array<Service>>([]);
-  const [logs, setLogs] = useState<Array<Log>>([]);
+  const [scopeFacets, setScopeFacets] = useState<
+    Dictionary<Array<ScopeFacetValue>>
+  >({});
+  const [volume, setVolume] = useState<LogVolumeSummary | null>(null);
+  const [errorPatterns, setErrorPatterns] = useState<Array<TopErrorPatternRow>>(
+    [],
+  );
+  const [resourceBreakdown, setResourceBreakdown] = useState<
+    Array<ResourceLogBreakdown>
+  >([]);
+  const [selectedPattern, setSelectedPattern] =
+    useState<TopErrorPatternRow | null>(null);
+
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
-  const loadDashboard: () => Promise<void> = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError("");
+  /*
+   * One scope object, shared by every panel and by the detail drawer, so a
+   * correlation the page draws is always a correlation inside the slice the
+   * user selected.
+   */
+  const scope: LogsInsightsScope = useMemo(() => {
+    const selections: ParsedScopeSelections =
+      parseScopeSelections(selectedScopeValues);
 
+    return { timeRange, ...selections };
+  }, [timeRange, selectedScopeValues]);
+
+  const loadServices: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
       const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
       if (!projectId) {
-        setIsLoading(false);
         return;
       }
 
-      const dateRange: InBetween<Date> =
-        RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+      const result: { data: Array<Service> } = await ModelAPI.getList({
+        modelType: Service,
+        query: { projectId },
+        select: { name: true, serviceColor: true },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        sort: { name: SortOrder.Ascending },
+      });
 
-      const [servicesResult, logsResult] = await Promise.all([
-        ModelAPI.getList({
-          modelType: Service,
-          query: { projectId },
-          select: { name: true, serviceColor: true },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          sort: { name: SortOrder.Ascending },
-        }),
-        AnalyticsModelAPI.getList<Log>({
-          modelType: Log,
-          query: {
-            projectId,
-            time: new InBetween<Date>(dateRange.startValue, dateRange.endValue),
-          } as Query<Log>,
-          limit: 5000,
-          skip: 0,
-          select: {
-            primaryEntityId: true,
-            severityText: true,
-            time: true,
-          } as Select<Log>,
-          sort: { time: SortOrder.Descending } as Record<string, SortOrder>,
-          requestOptions: {},
-        }),
-      ]);
+      setServices(result.data || []);
+    }, []);
 
-      setServices(servicesResult.data || []);
-      setLogs(
-        ((logsResult as AnalyticsListResult<Log>).data || []) as Array<Log>,
-      );
-    } catch (err) {
-      setError(API.getFriendlyMessage(err as Error));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [timeRange]);
+  const loadInsights: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      try {
+        setIsLoading(true);
+        setError("");
+
+        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+        if (!projectId) {
+          setIsLoading(false);
+          return;
+        }
+
+        const [buckets, patterns, breakdown, facets] = await Promise.all([
+          fetchInsightsHistogram(scope),
+          fetchTopErrorPatterns(scope, TOP_ERROR_LIMIT),
+          fetchResourceBreakdown(scope),
+          /*
+           * Non-critical: without it the picker just falls back to the
+           * Services the project has, which is still a usable page.
+           */
+          fetchScopeFacets(scope).catch(
+            (): Dictionary<Array<ScopeFacetValue>> => {
+              return {};
+            },
+          ),
+        ]);
+
+        setVolume(summarizeSeverityBuckets(buckets as Array<JSONObject>));
+        setErrorPatterns(patterns);
+        setResourceBreakdown(breakdown);
+        setScopeFacets(facets);
+      } catch (err) {
+        setError(API.getFriendlyMessage(err as Error));
+      } finally {
+        setIsLoading(false);
+      }
+    }, [scope]);
 
   useEffect(() => {
-    void loadDashboard();
-  }, [loadDashboard]);
+    void loadServices();
+  }, [loadServices]);
 
-  const stats: {
-    severityCounts: Map<string, number>;
-    logsByService: Map<string, { total: number; error: number; warn: number }>;
-    total: number;
-    errorCount: number;
-    warnCount: number;
-  } = useMemo(() => {
-    const severityCounts: Map<string, number> = new Map();
-    const logsByService: Map<
-      string,
-      { total: number; error: number; warn: number }
-    > = new Map();
-    let errorCount: number = 0;
-    let warnCount: number = 0;
+  useEffect(() => {
+    void loadInsights();
+  }, [loadInsights]);
 
-    for (const log of logs) {
-      const sev: LogSeverity | undefined = log.severityText;
-      const sevKey: string = (sev as string) || "Unspecified";
-      severityCounts.set(sevKey, (severityCounts.get(sevKey) || 0) + 1);
+  /*
+   * A drawer opened against the previous scope would keep describing a
+   * window the page has moved on from, so close it when the scope changes.
+   */
+  useEffect(() => {
+    setSelectedPattern(null);
+  }, [scope]);
 
-      const isError: boolean =
-        sev === LogSeverity.Error || sev === LogSeverity.Fatal;
-      const isWarn: boolean = sev === LogSeverity.Warning;
-      if (isError) {
-        errorCount++;
-      }
-      if (isWarn) {
-        warnCount++;
-      }
+  const serviceById: Map<string, Service> = useMemo(() => {
+    const map: Map<string, Service> = new Map();
 
-      const primaryEntityId: ObjectID | undefined = log.primaryEntityId;
-      if (primaryEntityId) {
-        const sid: string = primaryEntityId.toString();
-        const existing: { total: number; error: number; warn: number } =
-          logsByService.get(sid) || { total: 0, error: 0, warn: 0 };
-        existing.total++;
-        if (isError) {
-          existing.error++;
-        }
-        if (isWarn) {
-          existing.warn++;
-        }
-        logsByService.set(sid, existing);
+    for (const service of services) {
+      const id: string | undefined =
+        service.id?.toString() || (service._id as string | undefined);
+
+      if (id) {
+        map.set(id, service);
       }
     }
 
-    return {
-      severityCounts,
-      logsByService,
-      total: logs.length,
-      errorCount,
-      warnCount,
-    };
-  }, [logs]);
+    return map;
+  }, [services]);
 
-  const severityBuckets: Array<SeverityBucket> = useMemo(() => {
-    return Array.from(stats.severityCounts.entries())
-      .map(([name, count]: [string, number]): SeverityBucket => {
-        const style: {
-          color: string;
-          bgColor: string;
-          barColor: string;
-          order: number;
-        } = SEVERITY_STYLES[name] || SEVERITY_STYLES["Unspecified"]!;
-        return {
-          severity: name as LogSeverity,
-          count,
-          color: style.color,
-          bgColor: style.bgColor,
-          barColor: style.barColor,
-        };
-      })
-      .sort((a: SeverityBucket, b: SeverityBucket): number => {
-        const oa: number = SEVERITY_STYLES[a.severity as string]?.order ?? 99;
-        const ob: number = SEVERITY_STYLES[b.severity as string]?.order ?? 99;
-        return oa - ob;
-      });
-  }, [stats.severityCounts]);
+  /*
+   * One option group per resource kind. Built from the facet response
+   * rather than from the project's Service list so the picker offers
+   * exactly what has telemetry in the window — including hosts and
+   * clusters, which have no Service row at all.
+   */
+  const scopeOptionGroups: Array<DropdownOptionGroup> = useMemo(() => {
+    const groups: Array<DropdownOptionGroup> = [];
 
-  const serviceSummaries: Array<ServiceSummary> = useMemo(() => {
-    const serviceById: Map<string, Service> = new Map();
-    for (const s of services) {
-      if (s.id) {
-        serviceById.set(s.id.toString(), s);
-      }
-    }
+    for (const facetKey of INSIGHTS_SCOPE_FACET_KEYS) {
+      const values: Array<ScopeFacetValue> = scopeFacets[facetKey] || [];
 
-    const out: Array<ServiceSummary> = [];
-    for (const [sid, counts] of stats.logsByService.entries()) {
-      const service: Service | undefined = serviceById.get(sid);
-      if (!service) {
+      if (values.length === 0) {
         continue;
       }
-      out.push({
-        service,
-        logCount: counts.total,
-        errorCount: counts.error,
-        warnCount: counts.warn,
+
+      groups.push({
+        label: INSIGHTS_SCOPE_FACET_LABELS[facetKey] || facetKey,
+        options: values.map((value: ScopeFacetValue): DropdownOption => {
+          return {
+            value: encodeScopeSelection(facetKey, value.value),
+            label:
+              serviceById.get(value.value)?.name?.toString() ||
+              value.displayName,
+          };
+        }),
       });
     }
-    return out.sort((a: ServiceSummary, b: ServiceSummary): number => {
-      return b.logCount - a.logCount;
-    });
-  }, [services, stats.logsByService]);
 
-  const reportingServices: number = serviceSummaries.length;
-  const quietServices: number = Math.max(
-    0,
-    services.length - reportingServices,
-  );
-  const errorRate: number =
-    stats.total > 0 ? Math.round((stats.errorCount / stats.total) * 100) : 0;
-  const rangeLabel: string = timeRangeLabel(timeRange);
+    return groups;
+  }, [scopeFacets, serviceById]);
+
+  const scopeOptionByValue: Map<string, DropdownOption> = useMemo(() => {
+    const map: Map<string, DropdownOption> = new Map();
+
+    for (const group of scopeOptionGroups) {
+      for (const option of group.options) {
+        map.set(option.value as string, option);
+      }
+    }
+
+    return map;
+  }, [scopeOptionGroups]);
+
+  const selectedScopeOptions: Array<DropdownOption> = useMemo(() => {
+    return selectedScopeValues
+      .map((value: string): DropdownOption | undefined => {
+        /*
+         * A selection whose option has left the facet list (the window
+         * moved and that host stopped logging) still has to render, or the
+         * user would have a filter they cannot see or remove.
+         */
+        return (
+          scopeOptionByValue.get(value) || {
+            value,
+            label: value.split(":")[1] || value,
+          }
+        );
+      })
+      .filter(
+        (option: DropdownOption | undefined): option is DropdownOption => {
+          return option !== undefined;
+        },
+      );
+  }, [selectedScopeValues, scopeOptionByValue]);
+
+  const rangeLabel: string = describeTimeRange(timeRange);
 
   const headerBar: ReactElement = (
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
       <div>
         <h2 className="text-base font-semibold text-gray-900">Insights</h2>
         <p className="text-xs text-gray-500">
-          Log activity across your services in {rangeLabel}.
+          What your services are logging in {rangeLabel} — and what is going
+          wrong.
         </p>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="min-w-[16rem]">
+          <Dropdown
+            options={scopeOptionGroups}
+            value={selectedScopeOptions}
+            isMultiSelect={true}
+            placeholder="All services and hosts"
+            ariaLabel="Scope insights to a service, host or cluster"
+            onChange={(
+              value: DropdownValue | Array<DropdownValue> | null,
+            ): void => {
+              if (!value) {
+                setSelectedScopeValues([]);
+                return;
+              }
+
+              const values: Array<DropdownValue> = Array.isArray(value)
+                ? value
+                : [value];
+
+              setSelectedScopeValues(
+                values
+                  .map((item: DropdownValue): string => {
+                    return String(item);
+                  })
+                  .filter((item: string): boolean => {
+                    return item.length > 0;
+                  }),
+              );
+            }}
+          />
+        </div>
         <TelemetryTimeRangePicker
           value={timeRange}
           onChange={(value: RangeStartAndEndDateTime): void => {
@@ -305,7 +326,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
         <button
           type="button"
           onClick={() => {
-            void loadDashboard();
+            void loadInsights();
           }}
           className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
           title="Refresh"
@@ -317,7 +338,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
     </div>
   );
 
-  if (isLoading) {
+  if (isLoading && !volume) {
     return (
       <Fragment>
         {headerBar}
@@ -335,14 +356,16 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
         <ErrorMessage
           message={error}
           onRefreshClick={() => {
-            void loadDashboard();
+            void loadInsights();
           }}
         />
       </Fragment>
     );
   }
 
-  if (stats.total === 0) {
+  const total: number = volume?.total || 0;
+
+  if (total === 0) {
     return (
       <Fragment>
         {headerBar}
@@ -355,8 +378,8 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
           </h3>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-gray-500">
             Once your services start shipping logs via OpenTelemetry,
-            you&apos;ll see severity distribution, error rate, and per-service
-            volume here.
+            you&apos;ll see your top errors, severity distribution and
+            per-service volume here.
           </p>
           <div className="mt-6 flex items-center justify-center gap-2">
             <AppLink
@@ -383,9 +406,25 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
     );
   }
 
-  const maxLogs: number = Math.max(
-    ...serviceSummaries.map((s: ServiceSummary): number => {
-      return s.logCount;
+  const reportingResources: number = resourceBreakdown.length;
+  /*
+   * Counted against the resources that ARE Services, not against every
+   * reporting resource: hosts and clusters log under their own ids too, and
+   * including them would make "quiet services" go negative on any project
+   * running the infrastructure agent.
+   */
+  const reportingServices: number = resourceBreakdown.filter(
+    (row: ResourceLogBreakdown): boolean => {
+      return serviceById.has(row.resourceId);
+    },
+  ).length;
+  const quietServices: number = Math.max(
+    0,
+    services.length - reportingServices,
+  );
+  const maxResourceVolume: number = Math.max(
+    ...resourceBreakdown.map((row: ResourceLogBreakdown): number => {
+      return row.total;
     }),
     1,
   );
@@ -398,28 +437,32 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Total logs"
-          value={stats.total}
+          value={total}
           subtext={`ingested in ${rangeLabel}`}
           icon={IconProp.List}
           tone="indigo"
         />
         <StatCard
           label="Errors"
-          value={stats.errorCount}
-          subtext={`${errorRate}% of total volume`}
+          value={volume?.errorCount || 0}
+          subtext={`${volume?.errorRatePercent || 0}% of total volume`}
           icon={IconProp.Alert}
-          tone={stats.errorCount > 0 ? "amber" : "emerald"}
+          tone={(volume?.errorCount || 0) > 0 ? "amber" : "emerald"}
         />
         <StatCard
-          label="Warnings"
-          value={stats.warnCount}
-          subtext="warning-level logs"
-          icon={IconProp.Alert}
-          tone="amber"
+          label="Distinct errors"
+          value={errorPatterns.length}
+          subtext={
+            errorPatterns.length > 0
+              ? "unique messages, listed below"
+              : "nothing failing"
+          }
+          icon={IconProp.Search}
+          tone={errorPatterns.length > 0 ? "amber" : "emerald"}
         />
         <StatCard
-          label={quietServices > 0 ? "Quiet services" : "Reporting services"}
-          value={quietServices > 0 ? quietServices : reportingServices}
+          label={quietServices > 0 ? "Quiet services" : "Reporting sources"}
+          value={quietServices > 0 ? quietServices : reportingResources}
           subtext={
             quietServices > 0
               ? "no logs in range"
@@ -433,48 +476,49 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
       </div>
 
       {/* Severity distribution */}
-      {severityBuckets.length > 0 && (
+      {volume && volume.severities.length > 0 && (
         <div className="mb-5 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="mb-3 flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900">
-                Severity distribution
-              </h3>
-              <p className="text-xs text-gray-500">
-                How {stats.total} log{stats.total === 1 ? "" : "s"} break down
-                by severity
-              </p>
-            </div>
+          <div className="mb-3">
+            <h3 className="text-sm font-semibold text-gray-900">
+              Severity distribution
+            </h3>
+            <p className="text-xs text-gray-500">
+              How {total.toLocaleString()} log{total === 1 ? "" : "s"} break
+              down by severity
+            </p>
           </div>
           <div className="flex h-2 overflow-hidden rounded-full bg-gray-100">
-            {severityBuckets.map((b: SeverityBucket): ReactElement => {
-              const pct: number =
-                stats.total > 0 ? (b.count / stats.total) * 100 : 0;
+            {volume.severities.map((share: SeverityShare): ReactElement => {
+              const widthPercent: number =
+                total > 0 ? (share.count / total) * 100 : 0;
+
               return (
                 <div
-                  key={b.severity as string}
-                  className={b.barColor}
-                  style={{ width: `${Math.max(pct, 1)}%` }}
-                  title={`${b.severity as string}: ${b.count}`}
+                  key={share.severity}
+                  className={getSeverityTheme(share.severity).dotClass}
+                  style={{ width: `${Math.max(widthPercent, 1)}%` }}
+                  title={`${share.severity}: ${share.count}`}
                 />
               );
             })}
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            {severityBuckets.map((b: SeverityBucket): ReactElement => {
-              const pct: number =
-                stats.total > 0 ? Math.round((b.count / stats.total) * 100) : 0;
+            {volume.severities.map((share: SeverityShare): ReactElement => {
               return (
                 <div
-                  key={b.severity as string}
-                  className={`inline-flex items-center gap-2 rounded-md px-2.5 py-1 ${b.bgColor}`}
+                  key={share.severity}
+                  className={`inline-flex items-center gap-2 rounded-md px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${
+                    getSeverityTheme(share.severity).badgeClass
+                  }`}
                 >
-                  <span className={`h-2 w-2 rounded-full ${b.barColor}`} />
-                  <span className={`text-xs font-medium ${b.color}`}>
-                    {b.severity as string}
-                  </span>
-                  <span className={`text-xs ${b.color} opacity-70`}>
-                    {b.count} · {pct}%
+                  <span
+                    className={`h-2 w-2 rounded-full ${
+                      getSeverityTheme(share.severity).dotClass
+                    }`}
+                  />
+                  <span>{share.severity}</span>
+                  <span className="opacity-70">
+                    {share.count.toLocaleString()} · {share.percent}%
                   </span>
                 </div>
               );
@@ -483,11 +527,22 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
         </div>
       )}
 
-      {/* Per-service cards */}
+      <TopErrorsPanel
+        patterns={errorPatterns}
+        timeRange={timeRange}
+        isLoading={isLoading}
+        serviceNameById={serviceById}
+        selectedPattern={selectedPattern?.pattern}
+        onSelect={(row: TopErrorPatternRow): void => {
+          setSelectedPattern(row);
+        }}
+      />
+
+      {/* Per-resource volume */}
       <div className="mb-3 flex items-center justify-between">
         <div>
           <h3 className="text-base font-semibold text-gray-900">
-            Services reporting logs
+            Sources reporting logs
           </h3>
           <p className="text-xs text-gray-500">
             Volume and error signal per service in {rangeLabel}
@@ -502,36 +557,42 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
         </AppLink>
       </div>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-        {serviceSummaries.map((summary: ServiceSummary): ReactElement => {
-          const coverage: number = Math.round(
-            (summary.logCount / maxLogs) * 100,
-          );
-          const sid: string =
-            summary.service.id?.toString() ||
-            (summary.service._id as string) ||
-            "";
-          return (
-            <AppLink
-              key={sid}
-              className="block"
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.SERVICE_VIEW_LOGS] as Route,
-                { modelId: new ObjectID(sid) },
-              )}
-            >
-              <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md">
-                <div className="mb-4 flex items-start justify-between">
-                  <ServiceElement service={summary.service} />
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {summary.errorCount > 0 && (
+        {resourceBreakdown
+          .slice(0, RESOURCE_CARD_LIMIT)
+          .map((row: ResourceLogBreakdown): ReactElement => {
+            const service: Service | undefined = serviceById.get(
+              row.resourceId,
+            );
+            const coverage: number = Math.round(
+              (row.total / maxResourceVolume) * 100,
+            );
+
+            const card: ReactElement = (
+              <div className="h-full rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md">
+                <div className="mb-4 flex items-start justify-between gap-2">
+                  {service ? (
+                    <ServiceElement service={service} />
+                  ) : (
+                    /*
+                     * Logs primary-keyed on a host, cluster or other
+                     * non-Service resource have no Service row to name them.
+                     * Showing the raw id beats dropping the row: it is still
+                     * volume the user is paying for and can search on.
+                     */
+                    <span className="truncate font-mono text-xs text-gray-500">
+                      {row.resourceId}
+                    </span>
+                  )}
+                  <div className="flex flex-wrap items-center justify-end gap-1.5">
+                    {row.errorCount > 0 && (
                       <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
-                        {summary.errorCount} error
-                        {summary.errorCount === 1 ? "" : "s"}
+                        {row.errorCount.toLocaleString()} error
+                        {row.errorCount === 1 ? "" : "s"}
                       </span>
                     )}
-                    {summary.warnCount > 0 && (
+                    {row.warnCount > 0 && (
                       <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
-                        {summary.warnCount} warn
+                        {row.warnCount.toLocaleString()} warn
                       </span>
                     )}
                   </div>
@@ -540,10 +601,10 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
                 <div className="mb-1">
                   <div className="mb-1.5 flex items-end justify-between">
                     <span className="text-2xl font-bold text-gray-900">
-                      {summary.logCount}
+                      {row.total.toLocaleString()}
                     </span>
                     <span className="mb-1 text-xs text-gray-400">
-                      log{summary.logCount === 1 ? "" : "s"}
+                      log{row.total === 1 ? "" : "s"}
                     </span>
                   </div>
                   <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
@@ -554,10 +615,37 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
                   </div>
                 </div>
               </div>
-            </AppLink>
-          );
-        })}
+            );
+
+            if (!service) {
+              return <div key={row.resourceId}>{card}</div>;
+            }
+
+            return (
+              <AppLink
+                key={row.resourceId}
+                className="block"
+                to={RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.SERVICE_VIEW_LOGS] as Route,
+                  { modelId: new ObjectID(row.resourceId) },
+                )}
+              >
+                {card}
+              </AppLink>
+            );
+          })}
       </div>
+
+      {selectedPattern && (
+        <ErrorPatternDetail
+          pattern={selectedPattern}
+          scope={scope}
+          serviceNameById={serviceById}
+          onClose={() => {
+            setSelectedPattern(null);
+          }}
+        />
+      )}
     </Fragment>
   );
 };
@@ -601,6 +689,7 @@ const StatCard: FunctionComponent<StatCardProps> = (
 ): ReactElement => {
   const tone: { bg: string; text: string; valueText: string } =
     TONE_STYLES[props.tone];
+
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-center justify-between">
@@ -612,7 +701,7 @@ const StatCard: FunctionComponent<StatCardProps> = (
         </div>
       </div>
       <p className={`mt-2 text-3xl font-bold ${tone.valueText}`}>
-        {props.value}
+        {props.value.toLocaleString()}
       </p>
       <p className="mt-1 text-xs text-gray-400">{props.subtext}</p>
     </div>

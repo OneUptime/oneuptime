@@ -1,0 +1,117 @@
+import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
+import { SQL, Statement } from "../AnalyticsDatabase/Statement";
+import {
+  LOG_ERROR_PATTERN_MAX_LENGTH,
+  LOG_ERROR_PATTERN_RULES,
+  LogErrorPatternRule,
+} from "../../../Utils/Telemetry/LogErrorPattern";
+
+/*
+ * Compiles the shared error-pattern rules (Common/Utils/Telemetry/
+ * LogErrorPattern) into the ClickHouse expression that does the grouping.
+ *
+ * The grouping has to happen in the database. Normalizing client-side would
+ * mean shipping a page of raw bodies to the browser and counting those,
+ * which answers "what are the top errors in the 5000 rows I happened to
+ * fetch" — a different, and much less useful, question than "what are the
+ * top errors in this window".
+ *
+ * Shape of the emitted expression, for rules r0..rN in order:
+ *
+ *   trimBoth(substring(trimBoth(
+ *     replaceRegexpAll(...replaceRegexpAll(ifNull(body,''), p0, x0)..., pN, xN)
+ *   ), 1, 300))
+ *
+ * The innermost call is the FIRST rule, matching the sequential application
+ * order `normalizeLogBodyToErrorPattern` uses, and the trim/truncate/trim
+ * tail mirrors its `.trim()` -> `.slice()` -> `.trim()`. Parity between the
+ * two is pinned by Common/Tests/Utils/Telemetry/LogErrorPatternSql.test.ts.
+ *
+ * Patterns and replacements ride as bound query parameters rather than
+ * being interpolated. ClickHouse substitutes parameters into the AST as
+ * constant literals during parsing, so `replaceRegexpAll` still sees the
+ * constant regexp argument it requires (the same shape the Sigma compiler
+ * already relies on for `match(expr, {p:String})`), and no rule text ever
+ * reaches the SQL text itself.
+ */
+
+/**
+ * The column expression the pattern is computed from.
+ *
+ * `body` is Nullable(String) on the Log table, and `replaceRegexpAll(NULL,
+ * ...)` is NULL — which would collapse every body-less row into one NULL
+ * group. Coalescing first turns those into the empty pattern, which the
+ * callers exclude with a `!= ''` predicate.
+ */
+export const LOG_ERROR_PATTERN_SOURCE_EXPRESSION: string = "ifNull(body, '')";
+
+/**
+ * Build the pattern expression over `sourceExpression`.
+ *
+ * `sourceExpression` is appended to the statement as trusted SQL — it must
+ * be a literal owned by this codebase (in practice always
+ * LOG_ERROR_PATTERN_SOURCE_EXPRESSION), never anything derived from a
+ * request.
+ */
+export function buildLogErrorPatternExpression(
+  sourceExpression: string = LOG_ERROR_PATTERN_SOURCE_EXPRESSION,
+): Statement {
+  const statement: Statement = new Statement();
+
+  statement.append("trimBoth(substring(trimBoth(");
+
+  // One open paren per rule; the arguments below close them inside-out.
+  statement.append("replaceRegexpAll(".repeat(LOG_ERROR_PATTERN_RULES.length));
+
+  statement.append(sourceExpression);
+
+  /*
+   * Ascending order: rule 0's arguments close the innermost call, so it is
+   * applied first — exactly as the JavaScript normalizer iterates.
+   */
+  for (const rule of LOG_ERROR_PATTERN_RULES) {
+    statement.append(
+      SQL`, ${{
+        type: TableColumnType.Text,
+        value: rule.pattern,
+      }}, ${{
+        type: TableColumnType.Text,
+        value: rule.replacement,
+      }})`,
+    );
+  }
+
+  statement.append(
+    SQL`), 1, ${{
+      type: TableColumnType.Number,
+      value: LOG_ERROR_PATTERN_MAX_LENGTH,
+    }}))`,
+  );
+
+  return statement;
+}
+
+/**
+ * How many bound parameters `buildLogErrorPatternExpression` contributes.
+ * Exported so callers reasoning about parameter budgets (and the tests that
+ * pin statement shapes) do not have to count rules by hand.
+ */
+export function getLogErrorPatternParameterCount(): number {
+  return LOG_ERROR_PATTERN_RULES.length * 2 + 1;
+}
+
+/**
+ * Guard for a caller-supplied pattern value (the detail endpoints echo one
+ * back to scope their queries). Patterns are compared with `=` against the
+ * expression above, so an over-long value can only ever match nothing —
+ * clamping keeps the parameter bounded without changing any result.
+ */
+export function clampLogErrorPattern(pattern: string): string {
+  if (pattern.length <= LOG_ERROR_PATTERN_MAX_LENGTH) {
+    return pattern;
+  }
+
+  return pattern.slice(0, LOG_ERROR_PATTERN_MAX_LENGTH);
+}
+
+export type { LogErrorPatternRule };

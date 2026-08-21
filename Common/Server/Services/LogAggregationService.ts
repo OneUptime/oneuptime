@@ -14,6 +14,10 @@ import {
   appendResourceScopeFilters,
   ResourceEntityScope,
 } from "../Utils/Telemetry/ResourceEntityFilter";
+import {
+  buildLogErrorPatternExpression,
+  clampLogErrorPattern,
+} from "../Utils/Telemetry/LogErrorPatternSql";
 
 export interface HistogramBucket {
   time: string;
@@ -123,6 +127,111 @@ export interface AnalyticsTopItem {
 export interface AnalyticsTableRow {
   groupValues: Record<string, string>;
   count: number;
+}
+
+/*
+ * ---------------------------------------------------------------------
+ * Error-pattern insights
+ * ---------------------------------------------------------------------
+ *
+ * The Logs Insights page answers "what is actually going wrong, and where"
+ * by clustering error bodies into patterns (see
+ * Common/Utils/Telemetry/LogErrorPattern) and counting the clusters in the
+ * database. Everything below shares one filter shape so the top-list and
+ * every drill-down run against exactly the same slice of logs — a
+ * correlation panel that silently widened its own scope would be worse
+ * than no panel at all.
+ */
+
+/** Severities treated as "an error" when the caller does not say. */
+export const DEFAULT_ERROR_LOG_SEVERITIES: Array<string> = ["Error", "Fatal"];
+
+export interface ErrorPatternFilters {
+  projectId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+  serviceIds?: Array<ObjectID> | undefined;
+  entityKeys?: Array<string> | undefined;
+  resourceScopes?: Array<ResourceEntityScope> | undefined;
+  /** Defaults to DEFAULT_ERROR_LOG_SEVERITIES when absent or empty. */
+  severityTexts?: Array<string> | undefined;
+  bodySearchText?: string | undefined;
+  traceIds?: Array<string> | undefined;
+  spanIds?: Array<string> | undefined;
+  sessionIds?: Array<string> | undefined;
+  attributes?: LogAttributeFilters | undefined;
+}
+
+export interface TopErrorPatternsRequest extends ErrorPatternFilters {
+  limit?: number | undefined;
+}
+
+export interface TopErrorPattern {
+  /** The normalized message every occurrence in this group shares. */
+  pattern: string;
+  /** The most recent raw body in the group, for display. */
+  sampleBody: string;
+  count: number;
+  /** ClickHouse datetime strings — parse with OneUptimeDate.fromString. */
+  firstSeenAt: string;
+  lastSeenAt: string;
+  /** Distinct services / hosts / clusters this pattern was seen on. */
+  resourceCount: number;
+  resourceIds: Array<string>;
+  severities: Array<string>;
+  /** Distinct traces carrying at least one occurrence. */
+  traceCount: number;
+  sampleTraceIds: Array<string>;
+}
+
+export interface ErrorPatternDetailRequest extends ErrorPatternFilters {
+  pattern: string;
+  limit?: number | undefined;
+}
+
+export interface ErrorPatternTimelineRequest extends ErrorPatternDetailRequest {
+  bucketSizeInMinutes: number;
+}
+
+export interface ErrorPatternTimelinePoint {
+  time: string;
+  count: number;
+}
+
+export interface ErrorPatternCoOccurrence {
+  pattern: string;
+  sampleBody: string;
+  count: number;
+}
+
+export interface ErrorPatternAttribute {
+  key: string;
+  value: string;
+  count: number;
+}
+
+export interface ErrorPatternResource {
+  resourceId: string;
+  resourceType: string;
+  count: number;
+  lastSeenAt: string;
+}
+
+export interface ErrorPatternTrace {
+  traceId: string;
+  count: number;
+  lastSeenAt: string;
+  resourceId: string;
+}
+
+export interface ErrorPatternSample {
+  logId: string;
+  time: string;
+  body: string;
+  severityText: string;
+  resourceId: string;
+  traceId: string;
+  spanId: string;
 }
 
 export class LogAggregationService {
@@ -1217,6 +1326,639 @@ export class LogAggregationService {
       totalLogs > 0 ? Math.round((matchingLogs / totalLogs) * 100) : 0;
 
     return { totalLogs, matchingLogs, estimatedReductionPercent };
+  }
+
+  // --- Error pattern insights ---
+
+  private static readonly DEFAULT_ERROR_PATTERN_LIMIT: number = 10;
+  private static readonly MAX_ERROR_PATTERN_LIMIT: number = 50;
+  private static readonly ERROR_PATTERN_SAMPLE_ARRAY_LIMIT: number = 5;
+  /* Every severity a pattern can carry fits comfortably in eight slots. */
+  private static readonly ERROR_PATTERN_SEVERITY_ARRAY_LIMIT: number = 8;
+  /*
+   * Bodies that are empty or nothing but whitespace normalize to the empty
+   * pattern, which would otherwise become a single meaningless "" group
+   * sitting at the top of the list. Excluded at the source instead of via
+   * HAVING so the rows never enter the aggregation at all.
+   */
+  private static readonly NON_EMPTY_BODY_FILTER: string =
+    " AND notEmpty(trimBoth(ifNull(body, '')))";
+
+  /**
+   * The distinct error messages in the window, most frequent first.
+   *
+   * This is the "Top Errors" list: one row per pattern with its occurrence
+   * count, when it started and last happened, how many resources it spans,
+   * and enough sample material (a real body, some trace ids) for the UI to
+   * render the row without a second round trip.
+   */
+  @CaptureSpan()
+  public static async getTopErrorPatterns(
+    request: TopErrorPatternsRequest,
+  ): Promise<Array<TopErrorPattern>> {
+    const statement: Statement =
+      LogAggregationService.buildTopErrorPatternsStatement(request);
+
+    const rows: Array<JSONObject> =
+      await LogAggregationService.runQuery(statement);
+
+    return rows
+      .map((row: JSONObject): TopErrorPattern => {
+        return {
+          pattern: String(row["pattern"] || ""),
+          sampleBody: String(row["sampleBody"] || ""),
+          count: Number(row["cnt"] || 0),
+          firstSeenAt: String(row["firstSeen"] || ""),
+          lastSeenAt: String(row["lastSeen"] || ""),
+          resourceCount: Number(row["resourceCount"] || 0),
+          resourceIds: LogAggregationService.toStringArray(row["resourceIds"]),
+          severities: LogAggregationService.toStringArray(row["severities"]),
+          traceCount: Number(row["traceCount"] || 0),
+          sampleTraceIds: LogAggregationService.toStringArray(
+            row["sampleTraceIds"],
+          ),
+        };
+      })
+      .filter((item: TopErrorPattern): boolean => {
+        return item.pattern.length > 0;
+      });
+  }
+
+  /**
+   * When one pattern happened, bucketed over the window — the "is this a
+   * steady drip or a spike at 14:05" question.
+   */
+  @CaptureSpan()
+  public static async getErrorPatternTimeline(
+    request: ErrorPatternTimelineRequest,
+  ): Promise<Array<ErrorPatternTimelinePoint>> {
+    const statement: Statement =
+      LogAggregationService.buildErrorPatternTimelineStatement(request);
+
+    const rows: Array<JSONObject> =
+      await LogAggregationService.runQuery(statement);
+
+    return rows.map((row: JSONObject): ErrorPatternTimelinePoint => {
+      return {
+        time: String(row["bucket"] || ""),
+        count: Number(row["cnt"] || 0),
+      };
+    });
+  }
+
+  /**
+   * Other error patterns that fired in the same time buckets as this one.
+   *
+   * This is the correlation the Insights page exists for: rather than
+   * eyeballing two log lists side by side, the panel names the errors that
+   * keep company with the one under investigation. "Same bucket" is a
+   * deliberately coarse notion of simultaneity — it inherits whatever
+   * bucket size the timeline is drawn at, so a wide window correlates
+   * loosely and a narrow one tightly.
+   */
+  @CaptureSpan()
+  public static async getErrorPatternCoOccurrences(
+    request: ErrorPatternTimelineRequest,
+  ): Promise<Array<ErrorPatternCoOccurrence>> {
+    const statement: Statement =
+      LogAggregationService.buildErrorPatternCoOccurrenceStatement(request);
+
+    const rows: Array<JSONObject> =
+      await LogAggregationService.runQuery(statement);
+
+    return rows
+      .map((row: JSONObject): ErrorPatternCoOccurrence => {
+        return {
+          pattern: String(row["pattern"] || ""),
+          sampleBody: String(row["sampleBody"] || ""),
+          count: Number(row["cnt"] || 0),
+        };
+      })
+      .filter((item: ErrorPatternCoOccurrence): boolean => {
+        return item.pattern.length > 0;
+      });
+  }
+
+  /**
+   * The attribute key/value pairs carried by this pattern's occurrences,
+   * most common first — how the page answers "which host is this?" without
+   * the user having to open a log line and read its attributes.
+   */
+  @CaptureSpan()
+  public static async getErrorPatternAttributes(
+    request: ErrorPatternDetailRequest,
+  ): Promise<Array<ErrorPatternAttribute>> {
+    const statement: Statement =
+      LogAggregationService.buildErrorPatternAttributesStatement(request);
+
+    const rows: Array<JSONObject> =
+      await LogAggregationService.runQuery(statement);
+
+    return rows
+      .map((row: JSONObject): ErrorPatternAttribute => {
+        return {
+          key: String(row["attrKey"] || ""),
+          value: String(row["attrValue"] || ""),
+          count: Number(row["cnt"] || 0),
+        };
+      })
+      .filter((item: ErrorPatternAttribute): boolean => {
+        return item.key.length > 0;
+      });
+  }
+
+  /** Which services / hosts / clusters this pattern is happening on. */
+  @CaptureSpan()
+  public static async getErrorPatternResources(
+    request: ErrorPatternDetailRequest,
+  ): Promise<Array<ErrorPatternResource>> {
+    const statement: Statement =
+      LogAggregationService.buildErrorPatternResourcesStatement(request);
+
+    const rows: Array<JSONObject> =
+      await LogAggregationService.runQuery(statement);
+
+    return rows
+      .map((row: JSONObject): ErrorPatternResource => {
+        return {
+          resourceId: String(row["resourceId"] || ""),
+          resourceType: String(row["resourceType"] || ""),
+          count: Number(row["cnt"] || 0),
+          lastSeenAt: String(row["lastSeen"] || ""),
+        };
+      })
+      .filter((item: ErrorPatternResource): boolean => {
+        return item.resourceId.length > 0;
+      });
+  }
+
+  /**
+   * Traces that carry at least one occurrence — the jump from "this error
+   * happened" to the request it happened inside.
+   */
+  @CaptureSpan()
+  public static async getErrorPatternTraces(
+    request: ErrorPatternDetailRequest,
+  ): Promise<Array<ErrorPatternTrace>> {
+    const statement: Statement =
+      LogAggregationService.buildErrorPatternTracesStatement(request);
+
+    const rows: Array<JSONObject> =
+      await LogAggregationService.runQuery(statement);
+
+    return rows
+      .map((row: JSONObject): ErrorPatternTrace => {
+        return {
+          traceId: String(row["traceId"] || ""),
+          count: Number(row["cnt"] || 0),
+          lastSeenAt: String(row["lastSeen"] || ""),
+          resourceId: String(row["resourceId"] || ""),
+        };
+      })
+      .filter((item: ErrorPatternTrace): boolean => {
+        return item.traceId.length > 0;
+      });
+  }
+
+  /** The most recent raw log lines behind the pattern. */
+  @CaptureSpan()
+  public static async getErrorPatternSamples(
+    request: ErrorPatternDetailRequest,
+  ): Promise<Array<ErrorPatternSample>> {
+    const statement: Statement =
+      LogAggregationService.buildErrorPatternSamplesStatement(request);
+
+    const rows: Array<JSONObject> =
+      await LogAggregationService.runQuery(statement);
+
+    return rows.map((row: JSONObject): ErrorPatternSample => {
+      return {
+        logId: String(row["_id"] || ""),
+        time: String(row["time"] || ""),
+        body: String(row["body"] || ""),
+        severityText: String(row["severityText"] || ""),
+        resourceId: String(row["resourceId"] || ""),
+        traceId: String(row["traceId"] || ""),
+        spanId: String(row["spanId"] || ""),
+      };
+    });
+  }
+
+  private static async runQuery(
+    statement: Statement,
+  ): Promise<Array<JSONObject>> {
+    const dbResult: Results = await LogDatabaseService.executeQuery(statement);
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    return response.data || [];
+  }
+
+  /*
+   * ClickHouse returns array-valued aggregates (groupUniqArray) as JSON
+   * arrays, but a row that reached us through a different serializer could
+   * carry anything — coerce defensively rather than trusting the shape.
+   */
+  private static toStringArray(value: unknown): Array<string> {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value
+      .map((item: unknown): string => {
+        return String(item ?? "");
+      })
+      .filter((item: string): boolean => {
+        return item.length > 0;
+      });
+  }
+
+  private static clampErrorPatternLimit(limit: number | undefined): number {
+    if (typeof limit !== "number" || !Number.isFinite(limit)) {
+      return LogAggregationService.DEFAULT_ERROR_PATTERN_LIMIT;
+    }
+
+    return Math.min(
+      Math.max(1, Math.floor(limit)),
+      LogAggregationService.MAX_ERROR_PATTERN_LIMIT,
+    );
+  }
+
+  /*
+   * Error-pattern reads share one WHERE clause so a drill-down can never
+   * see rows the top-list did not. The only thing this adds over
+   * appendCommonFilters is the severity default: a request that names no
+   * severities means "errors", not "every log in the project".
+   */
+  private static appendErrorPatternScope(
+    statement: Statement,
+    request: ErrorPatternFilters,
+  ): void {
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }} AND time >= ${{
+        type: TableColumnType.Date,
+        value: request.startTime,
+      }} AND time <= ${{
+        type: TableColumnType.Date,
+        value: request.endTime,
+      }}`,
+    );
+
+    statement.append(LogAggregationService.RETENTION_FILTER);
+    statement.append(LogAggregationService.NON_EMPTY_BODY_FILTER);
+
+    LogAggregationService.appendCommonFilters(statement, {
+      ...request,
+      severityTexts:
+        request.severityTexts && request.severityTexts.length > 0
+          ? request.severityTexts
+          : DEFAULT_ERROR_LOG_SEVERITIES,
+    });
+  }
+
+  /*
+   * ` AND <pattern expression> = '<the pattern>'` — the predicate every
+   * drill-down uses to reduce the window to one cluster. The pattern value
+   * is clamped to the same maximum length the expression truncates to, so
+   * an oversized parameter cannot be used to push a huge constant into the
+   * query (it could only ever match nothing anyway).
+   */
+  private static appendErrorPatternEquality(
+    statement: Statement,
+    pattern: string,
+  ): void {
+    statement.append(" AND ");
+    statement.append(buildLogErrorPatternExpression());
+    statement.append(
+      SQL` = ${{
+        type: TableColumnType.Text,
+        value: clampLogErrorPattern(pattern),
+      }}`,
+    );
+  }
+
+  private static errorPatternQuerySettings(): string {
+    /*
+     * Same ceiling as every other aggregation here: below the client's 58s
+     * request timeout, 'break' so a wide window degrades to partial counts
+     * instead of an error page, and the scan-memory bound because these
+     * queries read the fat `attributes` map alongside `body`.
+     */
+    return getQuerySettings({
+      maxExecutionTimeInSeconds: 45,
+      timeoutOverflowMode: "break",
+      boundScanMemory: true,
+    });
+  }
+
+  private static buildTopErrorPatternsStatement(
+    request: TopErrorPatternsRequest,
+  ): Statement {
+    const limit: number = LogAggregationService.clampErrorPatternLimit(
+      request.limit,
+    );
+    /*
+     * Inlined rather than bound as a parameter: these are the parameters of
+     * a PARAMETRIC aggregate function, which ClickHouse requires to be
+     * constants, and they are trusted class constants rather than anything
+     * a caller supplies.
+     */
+    const sampleLimit: number =
+      LogAggregationService.ERROR_PATTERN_SAMPLE_ARRAY_LIMIT;
+    const severityLimit: number =
+      LogAggregationService.ERROR_PATTERN_SEVERITY_ARRAY_LIMIT;
+
+    const statement: Statement = new Statement();
+
+    statement.append("SELECT ");
+    statement.append(buildLogErrorPatternExpression());
+    statement.append(" AS pattern");
+    statement.append(", count() AS cnt");
+    /*
+     * The newest real body in the group. Showing a raw example alongside
+     * the normalized pattern is what makes a row readable — `<num>` reads
+     * very differently next to the line it came from.
+     */
+    statement.append(", argMax(ifNull(body, ''), time) AS sampleBody");
+    statement.append(", min(time) AS firstSeen");
+    statement.append(", max(time) AS lastSeen");
+    statement.append(", uniqExact(primaryEntityId) AS resourceCount");
+    statement.append(
+      `, groupUniqArray(${sampleLimit})(toString(primaryEntityId)) AS resourceIds`,
+    );
+    statement.append(
+      `, groupUniqArray(${severityLimit})(toString(severityText)) AS severities`,
+    );
+    statement.append(
+      ", uniqExactIf(traceId, ifNull(traceId, '') != '') AS traceCount",
+    );
+    statement.append(
+      `, groupUniqArrayIf(${sampleLimit})(ifNull(traceId, ''), ifNull(traceId, '') != '') AS sampleTraceIds`,
+    );
+    statement.append(` FROM ${LogAggregationService.TABLE_NAME}`);
+
+    LogAggregationService.appendErrorPatternScope(statement, request);
+
+    statement.append(
+      SQL` GROUP BY pattern ORDER BY cnt DESC LIMIT ${{
+        type: TableColumnType.Number,
+        value: limit,
+      }}`,
+    );
+
+    statement.append(LogAggregationService.errorPatternQuerySettings());
+
+    return statement;
+  }
+
+  private static buildErrorPatternTimelineStatement(
+    request: ErrorPatternTimelineRequest,
+  ): Statement {
+    const intervalSeconds: number =
+      LogAggregationService.resolveBucketSeconds(request);
+
+    const statement: Statement = SQL`SELECT toStartOfInterval(time, INTERVAL ${{
+      type: TableColumnType.Number,
+      value: intervalSeconds,
+    }} SECOND) AS bucket, count() AS cnt`;
+
+    statement.append(` FROM ${LogAggregationService.TABLE_NAME}`);
+
+    LogAggregationService.appendErrorPatternScope(statement, request);
+    LogAggregationService.appendErrorPatternEquality(
+      statement,
+      request.pattern,
+    );
+
+    statement.append(" GROUP BY bucket ORDER BY bucket ASC");
+    statement.append(LogAggregationService.errorPatternQuerySettings());
+
+    return statement;
+  }
+
+  private static buildErrorPatternCoOccurrenceStatement(
+    request: ErrorPatternTimelineRequest,
+  ): Statement {
+    const intervalSeconds: number =
+      LogAggregationService.resolveBucketSeconds(request);
+    const limit: number = LogAggregationService.clampErrorPatternLimit(
+      request.limit,
+    );
+
+    const statement: Statement = new Statement();
+
+    statement.append("SELECT ");
+    statement.append(buildLogErrorPatternExpression());
+    statement.append(" AS pattern");
+    statement.append(", count() AS cnt");
+    statement.append(", argMax(ifNull(body, ''), time) AS sampleBody");
+    statement.append(` FROM ${LogAggregationService.TABLE_NAME}`);
+
+    LogAggregationService.appendErrorPatternScope(statement, request);
+
+    /*
+     * Everything EXCEPT the pattern under investigation. Written as the
+     * full expression rather than the `pattern` alias: ClickHouse
+     * substitutes same-level SELECT aliases into WHERE, and an alias that
+     * shadows nothing today can start shadowing a real column tomorrow.
+     */
+    statement.append(" AND ");
+    statement.append(buildLogErrorPatternExpression());
+    statement.append(
+      SQL` != ${{
+        type: TableColumnType.Text,
+        value: clampLogErrorPattern(request.pattern),
+      }}`,
+    );
+
+    // ...restricted to the buckets the investigated pattern itself landed in.
+    statement.append(
+      SQL` AND toStartOfInterval(time, INTERVAL ${{
+        type: TableColumnType.Number,
+        value: intervalSeconds,
+      }} SECOND) IN (SELECT DISTINCT toStartOfInterval(time, INTERVAL ${{
+        type: TableColumnType.Number,
+        value: intervalSeconds,
+      }} SECOND)`,
+    );
+
+    statement.append(` FROM ${LogAggregationService.TABLE_NAME}`);
+
+    LogAggregationService.appendErrorPatternScope(statement, request);
+    LogAggregationService.appendErrorPatternEquality(
+      statement,
+      request.pattern,
+    );
+
+    statement.append(")");
+
+    statement.append(
+      SQL` GROUP BY pattern ORDER BY cnt DESC LIMIT ${{
+        type: TableColumnType.Number,
+        value: limit,
+      }}`,
+    );
+
+    statement.append(LogAggregationService.errorPatternQuerySettings());
+
+    return statement;
+  }
+
+  private static buildErrorPatternAttributesStatement(
+    request: ErrorPatternDetailRequest,
+  ): Statement {
+    const limit: number = LogAggregationService.clampErrorPatternLimit(
+      request.limit,
+    );
+
+    /*
+     * The ARRAY JOIN runs over a pre-filtered subquery on purpose. Written
+     * flat, the join explodes every row in the window into one row per
+     * attribute BEFORE the WHERE narrows to a single pattern — on a service
+     * carrying twenty resource attributes that is a twentyfold scan for a
+     * result the size of a tooltip.
+     */
+    const statement: Statement = new Statement();
+
+    statement.append(
+      `SELECT attrKey, attrValue, count() AS cnt FROM (SELECT attributes FROM ${LogAggregationService.TABLE_NAME}`,
+    );
+
+    LogAggregationService.appendErrorPatternScope(statement, request);
+    LogAggregationService.appendErrorPatternEquality(
+      statement,
+      request.pattern,
+    );
+
+    statement.append(
+      ") ARRAY JOIN mapKeys(attributes) AS attrKey, mapValues(attributes) AS attrValue",
+    );
+    statement.append(
+      SQL` GROUP BY attrKey, attrValue ORDER BY cnt DESC LIMIT ${{
+        type: TableColumnType.Number,
+        value: limit,
+      }}`,
+    );
+
+    statement.append(LogAggregationService.errorPatternQuerySettings());
+
+    return statement;
+  }
+
+  private static buildErrorPatternResourcesStatement(
+    request: ErrorPatternDetailRequest,
+  ): Statement {
+    const limit: number = LogAggregationService.clampErrorPatternLimit(
+      request.limit,
+    );
+
+    const statement: Statement = new Statement();
+
+    statement.append(
+      `SELECT toString(primaryEntityId) AS resourceId, any(ifNull(primaryEntityType, '')) AS resourceType, count() AS cnt, max(time) AS lastSeen FROM ${LogAggregationService.TABLE_NAME}`,
+    );
+
+    LogAggregationService.appendErrorPatternScope(statement, request);
+    LogAggregationService.appendErrorPatternEquality(
+      statement,
+      request.pattern,
+    );
+
+    statement.append(
+      SQL` GROUP BY resourceId ORDER BY cnt DESC LIMIT ${{
+        type: TableColumnType.Number,
+        value: limit,
+      }}`,
+    );
+
+    statement.append(LogAggregationService.errorPatternQuerySettings());
+
+    return statement;
+  }
+
+  private static buildErrorPatternTracesStatement(
+    request: ErrorPatternDetailRequest,
+  ): Statement {
+    const limit: number = LogAggregationService.clampErrorPatternLimit(
+      request.limit,
+    );
+
+    const statement: Statement = new Statement();
+
+    statement.append(
+      `SELECT ifNull(traceId, '') AS traceId, count() AS cnt, max(time) AS lastSeen, any(toString(primaryEntityId)) AS resourceId FROM ${LogAggregationService.TABLE_NAME}`,
+    );
+
+    LogAggregationService.appendErrorPatternScope(statement, request);
+    LogAggregationService.appendErrorPatternEquality(
+      statement,
+      request.pattern,
+    );
+
+    statement.append(" AND ifNull(traceId, '') != ''");
+
+    statement.append(
+      SQL` GROUP BY traceId ORDER BY cnt DESC LIMIT ${{
+        type: TableColumnType.Number,
+        value: limit,
+      }}`,
+    );
+
+    statement.append(LogAggregationService.errorPatternQuerySettings());
+
+    return statement;
+  }
+
+  private static buildErrorPatternSamplesStatement(
+    request: ErrorPatternDetailRequest,
+  ): Statement {
+    const limit: number = LogAggregationService.clampErrorPatternLimit(
+      request.limit,
+    );
+
+    const statement: Statement = new Statement();
+
+    statement.append(
+      `SELECT _id, time, ifNull(body, '') AS body, toString(severityText) AS severityText, toString(primaryEntityId) AS resourceId, ifNull(traceId, '') AS traceId, ifNull(spanId, '') AS spanId FROM ${LogAggregationService.TABLE_NAME}`,
+    );
+
+    LogAggregationService.appendErrorPatternScope(statement, request);
+    LogAggregationService.appendErrorPatternEquality(
+      statement,
+      request.pattern,
+    );
+
+    statement.append(
+      SQL` ORDER BY time DESC LIMIT ${{
+        type: TableColumnType.Number,
+        value: limit,
+      }}`,
+    );
+
+    statement.append(LogAggregationService.errorPatternQuerySettings());
+
+    return statement;
+  }
+
+  /*
+   * Bucket size in seconds, clamped to a minute floor. A zero or negative
+   * bucket would compile to `INTERVAL 0 SECOND`, which ClickHouse rejects —
+   * and the correlation query's "same bucket" join would lose all meaning.
+   */
+  private static resolveBucketSeconds(
+    request: ErrorPatternTimelineRequest,
+  ): number {
+    const minutes: number = request.bucketSizeInMinutes;
+
+    if (typeof minutes !== "number" || !Number.isFinite(minutes)) {
+      return 60;
+    }
+
+    return Math.max(1, Math.floor(minutes)) * 60;
   }
 
   private static isTopLevelColumn(key: string): boolean {

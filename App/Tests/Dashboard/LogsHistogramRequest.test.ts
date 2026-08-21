@@ -380,3 +380,45 @@ describe("buildLogsHistogramRequest", () => {
     expect(second).toEqual(first);
   });
 });
+
+/*
+ * The body chip is the one facet whose predicate is a contains-match. The
+ * histogram receives it under its own request field, or the chart would
+ * keep counting rows the list no longer shows — which is exactly what a
+ * deep link from Insights' Top Errors produces.
+ */
+describe("buildLogsHistogramRequest — body chips", () => {
+  test("forwards a body chip as bodySearchText", () => {
+    const request: JSONObject = build({
+      appliedFacetFilters: facets({ body: ["connection refused"] }),
+    });
+
+    expect(request["bodySearchText"]).toBe("connection refused");
+  });
+
+  test("omits the field for an absent, empty or blank chip", () => {
+    expect(build()["bodySearchText"]).toBeUndefined();
+    expect(
+      build({ appliedFacetFilters: facets({ body: [] }) })["bodySearchText"],
+    ).toBeUndefined();
+    expect(
+      build({ appliedFacetFilters: facets({ body: ["   "] }) })[
+        "bodySearchText"
+      ],
+    ).toBeUndefined();
+  });
+
+  test("a body chip does not disturb the other facet fields", () => {
+    const request: JSONObject = build({
+      appliedFacetFilters: facets({
+        body: ["timeout"],
+        severityText: ["Error"],
+        primaryEntityId: ["svc-1"],
+      }),
+    });
+
+    expect(request["bodySearchText"]).toBe("timeout");
+    expect(request["severityTexts"]).toEqual(["Error"]);
+    expect(request["serviceIds"]).toEqual(["svc-1"]);
+  });
+});
