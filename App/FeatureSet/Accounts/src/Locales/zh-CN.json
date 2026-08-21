@@ -53,7 +53,8 @@
       "subtitle": "您的管理员要求此账户使用双重身份验证。请立即设置以完成登录。",
       "scanInstruction": "请使用 Google Authenticator、Microsoft Authenticator 或 1Password 等身份验证器应用扫描此二维码。",
       "codeFieldDescription": "请输入身份验证器应用显示的六位数验证码。",
-      "submitButton": "验证并登录"
+      "submitButton": "验证并登录",
+      "backToSignIn": "以其他用户身份登录"
     }
   },
   "register": {

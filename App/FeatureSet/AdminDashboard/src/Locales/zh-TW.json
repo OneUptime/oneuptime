@@ -193,7 +193,7 @@
       "twoFactorDoNotRequireButton": "取消要求",
       "twoFactorResetButton": "重設雙重驗證",
       "twoFactorRequireModalTitle": "要求雙重驗證",
-      "twoFactorRequireModalDescription": "此使用者將從所有使用中的工作階段登出。其下次登入時必須先設定驗證器應用程式，才能使用 OneUptime。",
+      "twoFactorRequireModalDescription": "此使用者將從所有使用中的工作階段登出。其下次登入時必須先完成雙重驗證，才能使用 OneUptime；如果尚未設定驗證器應用程式，則需先進行設定。",
       "twoFactorRequireModalSubmit": "要求雙重驗證",
       "twoFactorDoNotRequireModalTitle": "取消雙重驗證要求",
       "twoFactorDoNotRequireModalDescription": "此使用者將可以只使用密碼登入。其已設定的內容會保留，但不會再要求進行驗證。",

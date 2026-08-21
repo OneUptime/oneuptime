@@ -1552,8 +1552,13 @@ const login: LoginFunction = async (options: {
           /*
            * Any OTHER half-finished enrolment for this account is now dead
            * weight -- an abandoned scan from a previous attempt, still holding
-           * a secret nobody uses. Sweeping them keeps a later "reset" from
-           * handing the user back a stale QR code.
+           * a secret nobody uses.
+           *
+           * Sweeping them matters because `getOrCreatePendingTotpEnrolment`
+           * REUSES the first unverified row it finds. Leave one behind and the
+           * next time this account is sent through enrolment -- after an admin
+           * resets it, say -- it would be offered that stale secret rather than
+           * a fresh one.
            */
           await UserTotpAuthService.deleteBy({
             query: {

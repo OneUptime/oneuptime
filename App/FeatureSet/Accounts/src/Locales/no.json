@@ -53,7 +53,8 @@
       "subtitle": "Administratoren din krever tofaktorautentisering på denne kontoen. Konfigurer den nå for å fullføre innloggingen.",
       "scanInstruction": "Skann denne QR-koden med en autentiseringsapp som Google Authenticator, Microsoft Authenticator eller 1Password.",
       "codeFieldDescription": "Skriv inn den sekssifrede koden som autentiseringsappen din viser.",
-      "submitButton": "Bekreft og logg inn"
+      "submitButton": "Bekreft og logg inn",
+      "backToSignIn": "Logg inn som en annen bruker"
     }
   },
   "register": {

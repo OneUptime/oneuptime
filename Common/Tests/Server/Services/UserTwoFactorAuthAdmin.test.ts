@@ -143,9 +143,20 @@ describe("UserService -- admin-controlled two factor auth", () => {
       },
     );
 
+    /*
+     * Returns ONE row, not an empty list, and that is load-bearing rather than
+     * incidental.
+     *
+     * The guard this suite exists to prove is gone read its users through
+     * `findBy` and threw from INSIDE `for (const user of users)`. Stub that to
+     * `[]` and a verbatim restoration of the guard iterates zero times, throws
+     * nothing, and every "the guard stays deleted" test below stays green
+     * while the feature is dead. A non-empty list is what makes those tests
+     * able to fail.
+     */
     findBySpy = getJestSpyOn(UserService, "findBy").mockImplementation(
       async (): Promise<Array<User>> => {
-        return [];
+        return [buildUser({ id: foundUserId })];
       },
     );
 
@@ -980,11 +991,19 @@ describe("UserService -- admin-controlled two factor auth", () => {
 
     test("that same update issues no probes into the authenticator tables", async () => {
       /*
-       * The guard's fingerprint, and the thing that makes the test above
-       * non-vacuous. A resurrected guard has to ask one of these two services
-       * how many factors the user has before it can decide to throw, so "no
-       * probe was made" catches a reinstated check even in a form that happens
-       * to let this particular update through.
+       * The guard's fingerprint, and a second line of defence behind the test
+       * above. A resurrected guard has to ask one of these two services how
+       * many factors the user has before it can decide to throw, so "no probe
+       * was made" catches a reinstated check even in a form that happens to
+       * let this particular update through.
+       *
+       * Note the spy list below covers `countBy` and `findBy`, NOT `findOneBy`
+       * -- and the original guard probed with `findOneBy`, which
+       * DatabaseService routes through a private `_findBy` rather than the
+       * public method spied here. So this assertion alone would NOT have
+       * caught the guard in its original form. What catches that is the
+       * non-empty `findBy` stub in beforeEach, which lets the restored guard
+       * actually reach its throw.
        *
        * It is also a cost assertion in its own right: `onBeforeUpdate` runs on
        * EVERY user update in the product -- lastActive being written on every

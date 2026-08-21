@@ -896,9 +896,9 @@ export class Service extends DatabaseService<Model> {
    *    company out to give them LESS to do would be gratuitous.
    *
    * Session revocation lives here rather than in `onUpdateSuccess` because
-   * that hook only fires its revocation for updates carrying a password
-   * (`onBeforeUpdate` does not even populate `carryForward` for anything else),
-   * so an MFA-only write reaches none of it.
+   * that hook only fires its revocation for updates carrying a password, and
+   * `onBeforeUpdate` only populates the `carryForward` it reads for password
+   * or email writes. An MFA-only write reaches neither.
    */
   @CaptureSpan()
   public async setTwoFactorAuthRequired(data: {

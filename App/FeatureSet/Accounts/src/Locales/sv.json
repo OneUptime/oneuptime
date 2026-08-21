@@ -53,7 +53,8 @@
       "subtitle": "Din administratör kräver tvåfaktorsautentisering för det här kontot. Konfigurera den nu för att slutföra inloggningen.",
       "scanInstruction": "Skanna den här QR-koden med en autentiseringsapp som Google Authenticator, Microsoft Authenticator eller 1Password.",
       "codeFieldDescription": "Ange den sexsiffriga koden som din autentiseringsapp visar.",
-      "submitButton": "Verifiera och logga in"
+      "submitButton": "Verifiera och logga in",
+      "backToSignIn": "Logga in som en annan användare"
     }
   },
   "register": {

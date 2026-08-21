@@ -53,7 +53,8 @@
       "subtitle": "管理者がこのアカウントに二要素認証を必須にしています。サインインを完了するには、今すぐ設定してください。",
       "scanInstruction": "Google Authenticator、Microsoft Authenticator、1Password などの認証アプリでこの QR コードをスキャンしてください。",
       "codeFieldDescription": "認証アプリに表示されている 6 桁のコードを入力してください。",
-      "submitButton": "確認してサインイン"
+      "submitButton": "確認してサインイン",
+      "backToSignIn": "別のユーザーとしてサインイン"
     }
   },
   "register": {

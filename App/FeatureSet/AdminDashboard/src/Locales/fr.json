@@ -193,7 +193,7 @@
       "twoFactorDoNotRequireButton": "Ne pas exiger",
       "twoFactorResetButton": "Réinitialiser l'authentification à deux facteurs",
       "twoFactorRequireModalTitle": "Exiger l'authentification à deux facteurs",
-      "twoFactorRequireModalDescription": "Cet utilisateur sera déconnecté de toutes ses sessions actives. À sa prochaine connexion, il devra configurer une application d'authentification avant de pouvoir utiliser OneUptime.",
+      "twoFactorRequireModalDescription": "Cet utilisateur sera déconnecté de toutes ses sessions actives. À sa prochaine connexion, il devra effectuer l'authentification à deux facteurs avant de pouvoir utiliser OneUptime, en configurant d'abord une application d'authentification s'il ne l'a pas déjà fait.",
       "twoFactorRequireModalSubmit": "Exiger l'authentification à deux facteurs",
       "twoFactorDoNotRequireModalTitle": "Cesser d'exiger l'authentification à deux facteurs",
       "twoFactorDoNotRequireModalDescription": "Cet utilisateur pourra se connecter avec son seul mot de passe. Ce qu'il a déjà configuré est conservé, mais ne lui sera plus demandé.",

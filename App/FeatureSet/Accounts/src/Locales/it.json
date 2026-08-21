@@ -53,7 +53,8 @@
       "subtitle": "Il tuo amministratore richiede l'autenticazione a due fattori su questo account. Configurala ora per completare l'accesso.",
       "scanInstruction": "Scansiona questo codice QR con un'app di autenticazione come Google Authenticator, Microsoft Authenticator o 1Password.",
       "codeFieldDescription": "Inserisci il codice a sei cifre mostrato dalla tua app di autenticazione.",
-      "submitButton": "Verifica e accedi"
+      "submitButton": "Verifica e accedi",
+      "backToSignIn": "Accedi come un altro utente"
     }
   },
   "register": {
