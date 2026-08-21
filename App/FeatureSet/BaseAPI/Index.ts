@@ -500,6 +500,9 @@ import LogPipelineProcessorService, {
 import LogDropFilterService, {
   Service as LogDropFilterServiceType,
 } from "Common/Server/Services/LogDropFilterService";
+import DetectionRuleService, {
+  Service as DetectionRuleServiceType,
+} from "Common/Server/Services/DetectionRuleService";
 import LogScrubRuleService, {
   Service as LogScrubRuleServiceType,
 } from "Common/Server/Services/LogScrubRuleService";
@@ -707,6 +710,9 @@ import AuditLogService, {
 import LogService, {
   LogService as LogServiceType,
 } from "Common/Server/Services/LogService";
+import SecurityEventService, {
+  SecurityEventService as SecurityEventServiceType,
+} from "Common/Server/Services/SecurityEventService";
 
 import MetricService from "Common/Server/Services/MetricService";
 import MetricAPI from "Common/Server/API/MetricAPI";
@@ -1023,6 +1029,7 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import Log from "Common/Models/AnalyticsModels/Log";
+import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import Span from "Common/Models/AnalyticsModels/Span";
 import Profile from "Common/Models/AnalyticsModels/Profile";
 import ProfileSample from "Common/Models/AnalyticsModels/ProfileSample";
@@ -1306,6 +1313,7 @@ import TraceSavedView from "Common/Models/DatabaseModels/TraceSavedView";
 import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProcessor";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
+import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import MetricPipelineRule from "Common/Models/DatabaseModels/MetricPipelineRule";
 import MetricRecordingRule from "Common/Models/DatabaseModels/MetricRecordingRule";
@@ -2784,6 +2792,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAnalyticsAPI<SecurityEvent, SecurityEventServiceType>(
+        SecurityEvent,
+        SecurityEventService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAnalyticsAPI<AuditLog, AuditLogServiceType>(
         AuditLog,
         AuditLogService,
@@ -3104,6 +3120,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<LogDropFilter, LogDropFilterServiceType>(
         LogDropFilter,
         LogDropFilterService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DetectionRule, DetectionRuleServiceType>(
+        DetectionRule,
+        DetectionRuleService,
       ).getRouter(),
     );
 

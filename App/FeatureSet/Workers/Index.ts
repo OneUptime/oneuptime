@@ -189,6 +189,7 @@ import "./Jobs/AIInsight/ScanForInsights";
 
 // Telemetry Monitors.
 import "./Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations";
+import "./Jobs/DetectionRules/EvaluateDetectionRules";
 
 // Instance health and capacity management.
 import "./Jobs/InstanceHealth/EvaluateClickhouseCapacity";

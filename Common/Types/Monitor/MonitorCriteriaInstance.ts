@@ -145,6 +145,39 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       return monitorCriteriaInstance;
     }
 
+    if (arg.monitorType === MonitorType.SecurityEvents) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      /*
+       * Inverse of the Logs default on purpose: silence is the healthy
+       * state for a security-events monitor. Zero matching events means
+       * all clear; matches are what the offline/alerting criteria fires
+       * on.
+       */
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.SecurityEventCount,
+            filterType: FilterType.EqualTo,
+            value: 0, // no matching security events - all clear.
+          },
+        ],
+        incidents: [],
+        alerts: [],
+        changeMonitorStatus: true,
+        createIncidents: false,
+        createAlerts: false,
+        name: `Check if ${arg.monitorName} is clear`,
+        description: `This criteria checks that ${arg.monitorName} has no matching security events`,
+      };
+
+      return monitorCriteriaInstance;
+    }
+
     if (arg.monitorType === MonitorType.Logs) {
       const monitorCriteriaInstance: MonitorCriteriaInstance =
         new MonitorCriteriaInstance();
@@ -983,6 +1016,37 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createIncidents: true,
         name: `Check if ${arg.monitorName} is offline`,
         description: `This criteria checks if the ${arg.monitorName} is offline`,
+      };
+    }
+
+    if (arg.monitorType === MonitorType.SecurityEvents) {
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.monitorStatusId,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.SecurityEventCount,
+            filterType: FilterType.GreaterThan,
+            value: 0, // matching security events were found.
+          },
+        ],
+        incidents: [],
+        alerts: [
+          {
+            title: `${arg.monitorName} detected security events`,
+            description: `${arg.monitorName} found matching security events.`,
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        createAlerts: true,
+        changeMonitorStatus: true,
+        createIncidents: false,
+        name: `Check if ${arg.monitorName} found security events`,
+        description: `This criteria fires when ${arg.monitorName} finds matching security events`,
       };
     }
 

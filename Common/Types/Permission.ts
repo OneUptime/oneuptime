@@ -26,6 +26,7 @@ export enum PermissionGroup {
   Probe = "Probe",
   NotificationLog = "Notification Log",
   AuditLog = "Audit Log",
+  Security = "Security",
 }
 
 export interface PermissionProps {
@@ -148,6 +149,18 @@ enum Permission {
   DeleteTelemetryServiceLog = "DeleteTelemetryServiceLog",
   EditTelemetryServiceLog = "EditTelemetryServiceLog",
   ReadTelemetryServiceLog = "ReadTelemetryServiceLog",
+
+  // Security Events (SIEM signals stored in ClickHouse)
+  CreateSecurityEvent = "CreateSecurityEvent",
+  DeleteSecurityEvent = "DeleteSecurityEvent",
+  EditSecurityEvent = "EditSecurityEvent",
+  ReadSecurityEvent = "ReadSecurityEvent",
+
+  // Detection Rules (Sigma detections-as-code over security events)
+  CreateProjectDetectionRule = "CreateProjectDetectionRule",
+  DeleteProjectDetectionRule = "DeleteProjectDetectionRule",
+  EditProjectDetectionRule = "EditProjectDetectionRule",
+  ReadProjectDetectionRule = "ReadProjectDetectionRule",
 
   // Log Pipelines
   CreateProjectLogPipeline = "CreateProjectLogPipeline",
@@ -6985,6 +6998,90 @@ export class PermissionHelper {
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
+      },
+
+      // Security Event Permissions
+      {
+        permission: Permission.CreateSecurityEvent,
+        title: "Create Security Event",
+        description:
+          "This permission can create Security Events in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteSecurityEvent,
+        title: "Delete Security Event",
+        description:
+          "This permission can delete Security Events of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditSecurityEvent,
+        title: "Edit Security Event",
+        description:
+          "This permission can edit Security Events of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityEvent,
+        title: "Read Security Event",
+        description:
+          "This permission can read Security Events of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Detection Rule Permissions
+      {
+        permission: Permission.CreateProjectDetectionRule,
+        title: "Create Detection Rule",
+        description:
+          "This permission can create Detection Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteProjectDetectionRule,
+        title: "Delete Detection Rule",
+        description:
+          "This permission can delete Detection Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditProjectDetectionRule,
+        title: "Edit Detection Rule",
+        description:
+          "This permission can edit Detection Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadProjectDetectionRule,
+        title: "Read Detection Rule",
+        description:
+          "This permission can read Detection Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
       },
 
       // Log Pipeline Permissions

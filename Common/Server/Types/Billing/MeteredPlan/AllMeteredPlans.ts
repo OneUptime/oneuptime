@@ -60,6 +60,17 @@ export const SessionReplayDataIngestMeteredPlan: TelemetryMeteredPlanType =
       SESSION_REPLAY_PRICE_IN_USD_PER_GB / TELEMETRY_PRICE_RETENTION_IN_DAYS, // 2.00 per 15 days per GB
   });
 
+/*
+ * Security events are priced at telemetry parity: they ride the same
+ * ingest/storage machinery as logs and the driver is the same (bytes of
+ * events retained).
+ */
+export const SecurityEventsDataIngestMeteredPlan: TelemetryMeteredPlanType =
+  new TelemetryMeteredPlanType({
+    productType: ProductType.SecurityEvents,
+    unitCostInUSD: TELEMETRY_UNIT_COST_IN_USD, // 0.10 per 15 days per GB
+  });
+
 const AllMeteredPlans: Array<ServerMeteredPlan> = [
   ActiveMonitoringMeteredPlan,
   LogDataIngestMeteredPlan,
@@ -67,6 +78,7 @@ const AllMeteredPlans: Array<ServerMeteredPlan> = [
   TracesDataIngestMetredPlan,
   ProfilesDataIngestMeteredPlan,
   SessionReplayDataIngestMeteredPlan,
+  SecurityEventsDataIngestMeteredPlan,
 ];
 
 export class MeteredPlanUtil {
@@ -84,6 +96,8 @@ export class MeteredPlanUtil {
       return ProfilesDataIngestMeteredPlan;
     } else if (productType === ProductType.SessionReplay) {
       return SessionReplayDataIngestMeteredPlan;
+    } else if (productType === ProductType.SecurityEvents) {
+      return SecurityEventsDataIngestMeteredPlan;
     } else if (productType === ProductType.ActiveMonitoring) {
       return ActiveMonitoringMeteredPlan;
     }

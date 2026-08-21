@@ -8,6 +8,7 @@ import OtelMetricsIngestService from "../../Services/OtelMetricsIngestService";
 import OtelProfilesIngestService from "../../Services/OtelProfilesIngestService";
 import SyslogIngestService from "../../Services/SyslogIngestService";
 import FluentLogsIngestService from "../../Services/FluentLogsIngestService";
+import SecurityEventsIngestService from "../../Services/SecurityEventsIngestService";
 import {
   processProbeFromQueue,
   processIncomingEmailFromQueue,
@@ -122,6 +123,7 @@ const INSERT_DEDUP_TYPES: Array<TelemetryType> = [
   TelemetryType.Profiles,
   TelemetryType.Syslog,
   TelemetryType.FluentLogs,
+  TelemetryType.SecurityEvents,
   TelemetryType.KubernetesCostIngest,
 ];
 
@@ -301,6 +303,22 @@ if (DisableQueueWorkers) {
               await SyslogIngestService.processSyslogFromQueue(mockRequest);
               logger.debug(
                 `Successfully processed syslog payload for project: ${jobData.projectId}`,
+              );
+              break;
+            }
+
+            case TelemetryType.SecurityEvents: {
+              const mockRequest: TelemetryRequest = {
+                projectId: new ObjectID(jobData.projectId!.toString()),
+                body: jobData.requestBody!,
+                headers: jobData.requestHeaders!,
+              } as TelemetryRequest;
+
+              await SecurityEventsIngestService.processSecurityEventsFromQueue(
+                mockRequest,
+              );
+              logger.debug(
+                `Successfully processed security events for project: ${jobData.projectId}`,
               );
               break;
             }

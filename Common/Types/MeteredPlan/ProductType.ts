@@ -4,6 +4,7 @@ enum ProductType {
   Metrics = "Metrics",
   Profiles = "Profiles",
   SessionReplay = "Session Replay",
+  SecurityEvents = "Security Events",
   ActiveMonitoring = "Active Monitoring",
 }
 

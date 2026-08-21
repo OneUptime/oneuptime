@@ -3,6 +3,7 @@ import KubernetesCostIngestAPI from "./API/KubernetesCostIngest";
 import MetricsAPI from "./API/Metrics";
 import SyslogAPI from "./API/Syslog";
 import FluentAPI from "./API/Fluent";
+import SecurityEventsIngestAPI from "./API/SecurityEventsIngest";
 import PyroscopeAPI from "./API/Pyroscope";
 import SessionReplayIngestAPI from "./API/SessionReplayIngest";
 import TelemetryWriterAPI from "./API/TelemetryWriter";
@@ -74,6 +75,7 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(TELEMETRY_PREFIXES, MetricsAPI);
       app.use(TELEMETRY_PREFIXES, SyslogAPI);
       app.use(TELEMETRY_PREFIXES, FluentAPI);
+      app.use(TELEMETRY_PREFIXES, SecurityEventsIngestAPI);
       app.use(TELEMETRY_PREFIXES, PyroscopeAPI);
       /*
        * Session replay ingest. Mounted on both prefixes like the rest, which
