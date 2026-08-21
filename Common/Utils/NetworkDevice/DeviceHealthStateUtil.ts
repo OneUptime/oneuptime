@@ -1,0 +1,214 @@
+import DeviceReachabilityUtil, {
+  NetworkDeviceReachability,
+} from "./DeviceReachabilityUtil";
+
+/*
+ * The one place that decides how healthy a single NetworkDevice is, and how
+ * a pile of those verdicts rolls up into the counts a site card prints.
+ *
+ * The topology graph has always answered this question — a node is drawn
+ * red, amber or green — but it answered it inside the graph, from a
+ * NetworkTopologyNode that only exists once the whole map has been built.
+ * Issue #3320 needs the same verdict one level up, per SITE, so a franchise
+ * estate of 949 sites can say WHICH sites hold a device that needs
+ * attention without first drawing 21,700 device nodes.
+ *
+ * So the rule moves here, and both halves read it:
+ *
+ *   status  — a monitor-stamped status wins outright; otherwise the shared
+ *             reachability rule (the OUTCOME of the last poll, never its
+ *             age) decides, and a device nothing has ever polled is
+ *             `unknown` rather than a failure.
+ *   degraded — an up device with dark ports. A switch that answers every
+ *             poll while three of its interfaces are down is not down, but
+ *             it is exactly what somebody is looking for.
+ *
+ * This deliberately mirrors NetworkTopologyUtil.deviceStatus followed by
+ * TopologyHealthFilter.healthStateForNode, because a device that reads
+ * "degraded" on the map and "healthy" on the site card above it is the two
+ * halves of the product describing different networks.
+ *
+ * The ONE input the map has that a site rollup does not is the link layer:
+ * the map also degrades a node with an operationally-down link attached.
+ * That fact lives in the topology edges, which are built per-site and never
+ * exist at rollup time. The asymmetry is safe in the direction that matters
+ * — the device at the other end of a dead link reports its own dark port —
+ * but it is why a site's device counts can be very slightly kinder than the
+ * map you get when you drill into it, and never the reverse.
+ */
+
+/**
+ * How healthy one device is.
+ *
+ * "unknown" is a real answer and not a synonym for healthy: a device
+ * nothing has polled yet has never been judged, and counting it either way
+ * would put onboarding into an operator's attention list (or hide a real
+ * gap behind a green count).
+ */
+export type NetworkDeviceHealthState =
+  | "down"
+  | "degraded"
+  | "healthy"
+  | "unknown";
+
+/**
+ * The columns the classifier reads. Every caller selects exactly these.
+ *
+ * `monitorStatusIsOperational` is the resolved verdict of the device's
+ * stamped MonitorStatus row — `undefined` when no monitor backs the device
+ * (the ordinary case for an SNMP-walked switch), which is what sends the
+ * decision down to reachability.
+ */
+export interface DeviceHealthStateInput {
+  monitorStatusIsOperational?: boolean | null | undefined;
+  isReachable?: boolean | null | undefined;
+  lastPolledAt?: Date | string | null | undefined;
+  lastSeenAt?: Date | string | null | undefined;
+  pollingIntervalInMinutes?: number | null | undefined;
+  interfacesDown?: number | null | undefined;
+}
+
+/**
+ * How many devices in some scope are in each state.
+ *
+ * `total` is carried rather than derived so a caller can print "4 of 128"
+ * without summing four fields, and so a partial rollup (see the
+ * truncation flags on the hierarchy endpoint) still reports an honest
+ * denominator.
+ */
+export interface DeviceHealthCounts {
+  total: number;
+  down: number;
+  degraded: number;
+  healthy: number;
+  unknown: number;
+}
+
+/**
+ * The state of one device.
+ *
+ * Order is load-bearing. A stamped monitor status is the operator's own
+ * system of record and beats everything; then hard-down beats everything
+ * else, because a device that does not answer has interface counts that
+ * are by definition stale; then — and only for a device known to be up —
+ * dark ports make it degraded.
+ */
+export function deviceHealthState(
+  device: DeviceHealthStateInput | null | undefined,
+  now?: Date | undefined,
+): NetworkDeviceHealthState {
+  if (!device) {
+    return "unknown";
+  }
+
+  let isUp: boolean;
+
+  if (
+    device.monitorStatusIsOperational === true ||
+    device.monitorStatusIsOperational === false
+  ) {
+    isUp = device.monitorStatusIsOperational;
+  } else {
+    const reachability: NetworkDeviceReachability =
+      DeviceReachabilityUtil.getStatus(
+        {
+          isReachable: device.isReachable,
+          lastPolledAt: device.lastPolledAt,
+          lastSeenAt: device.lastSeenAt,
+          pollingIntervalInMinutes: device.pollingIntervalInMinutes,
+        },
+        now,
+      );
+
+    if (reachability === NetworkDeviceReachability.Pending) {
+      return "unknown";
+    }
+
+    isUp = reachability === NetworkDeviceReachability.Up;
+  }
+
+  if (!isUp) {
+    return "down";
+  }
+
+  if (
+    typeof device.interfacesDown === "number" &&
+    Number.isFinite(device.interfacesDown) &&
+    device.interfacesDown > 0
+  ) {
+    return "degraded";
+  }
+
+  return "healthy";
+}
+
+/** A fresh, all-zero tally. */
+export function emptyDeviceHealthCounts(): DeviceHealthCounts {
+  return {
+    total: 0,
+    down: 0,
+    degraded: 0,
+    healthy: 0,
+    unknown: 0,
+  };
+}
+
+/**
+ * Add one device's verdict to a tally, in place.
+ *
+ * Mutating on purpose: the hierarchy aggregator walks tens of thousands of
+ * devices into a few hundred buckets in one pass, and allocating a fresh
+ * five-field object per device is the whole cost of that pass.
+ */
+export function addDeviceHealth(
+  counts: DeviceHealthCounts,
+  state: NetworkDeviceHealthState,
+): void {
+  counts.total += 1;
+  counts[state] += 1;
+}
+
+/** The sum of two tallies, as a new object. */
+export function mergeDeviceHealthCounts(
+  first: DeviceHealthCounts,
+  second: DeviceHealthCounts,
+): DeviceHealthCounts {
+  return {
+    total: first.total + second.total,
+    down: first.down + second.down,
+    degraded: first.degraded + second.degraded,
+    healthy: first.healthy + second.healthy,
+    unknown: first.unknown + second.unknown,
+  };
+}
+
+/**
+ * How many devices in this tally need somebody to look at them — the union
+ * of down and degraded, which is what every "needs attention" control in
+ * the product means by the phrase.
+ */
+export function deviceAttentionCount(counts: DeviceHealthCounts): number {
+  return counts.down + counts.degraded;
+}
+
+/**
+ * The worst state present in a tally, or "unknown" for an empty one.
+ *
+ * Used to color a site by its devices: one dark switch in a store of forty
+ * makes the store's device rollup read "down", the same worst-of rule
+ * SiteStatusRollupUtil applies to the site's own MonitorStatus.
+ */
+export function worstDeviceHealthState(
+  counts: DeviceHealthCounts,
+): NetworkDeviceHealthState {
+  if (counts.down > 0) {
+    return "down";
+  }
+  if (counts.degraded > 0) {
+    return "degraded";
+  }
+  if (counts.healthy > 0) {
+    return "healthy";
+  }
+  return "unknown";
+}

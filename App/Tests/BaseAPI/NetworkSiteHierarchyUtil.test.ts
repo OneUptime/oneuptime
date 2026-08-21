@@ -3,6 +3,7 @@ import NetworkSiteHierarchyUtil, {
   BreadcrumbEntry,
   ChildAggregate,
   DEFAULT_UPTIME_WINDOW_DAYS,
+  DeviceAttachmentRow,
   MAX_SEARCH_TEXT_LENGTH,
   MAX_UPTIME_WINDOW_DAYS,
   MIN_UPTIME_WINDOW_DAYS,
@@ -364,7 +365,9 @@ describe("aggregateChildStats", () => {
     return NetworkSiteHierarchyUtil.aggregateChildStats({
       children: children,
       descendants: descendants,
-      deviceSiteIds: deviceSiteIds,
+      devices: deviceSiteIds.map((siteId: string): DeviceAttachmentRow => {
+        return { siteId: siteId, healthState: "healthy" };
+      }),
       operationalStatusIds: operationalStatusIds,
     });
   }
@@ -414,7 +417,7 @@ describe("aggregateChildStats", () => {
           },
         ],
         descendants: [],
-        deviceSiteIds: [],
+        devices: [],
         operationalStatusIds: operationalStatusIds,
       });
     expect(result.get("unitB")!.unitStats).toEqual({
@@ -428,7 +431,7 @@ describe("aggregateChildStats", () => {
       NetworkSiteHierarchyUtil.aggregateChildStats({
         children: [{ id: "unitB", siteType: "Store", isUnitLevel: true }],
         descendants: [],
-        deviceSiteIds: [],
+        devices: [],
         operationalStatusIds: operationalStatusIds,
       });
     expect(result.get("unitB")!.unitStats).toEqual({
@@ -467,7 +470,7 @@ describe("aggregateChildStats", () => {
             currentMonitorStatusId: OPERATIONAL,
           },
         ],
-        deviceSiteIds: [],
+        devices: [],
         operationalStatusIds: operationalStatusIds,
       });
     // Only "realLeaf" is unit-level, despite "misnamed" being typed "Unit".
@@ -508,7 +511,7 @@ describe("aggregateChildStats", () => {
             currentMonitorStatusId: OPERATIONAL,
           },
         ],
-        deviceSiteIds: ["unit1"],
+        devices: [{ siteId: "unit1", healthState: "healthy" }],
         operationalStatusIds: operationalStatusIds,
       });
     expect(result.get("marketA")!.childSiteCount).toBe(1);
@@ -524,10 +527,163 @@ describe("aggregateChildStats", () => {
       NetworkSiteHierarchyUtil.aggregateChildStats({
         children: [],
         descendants: descendants,
-        deviceSiteIds: ["unit1"],
+        devices: [{ siteId: "unit1", healthState: "healthy" }],
         operationalStatusIds: operationalStatusIds,
       });
     expect(result.size).toBe(0);
+  });
+
+  /*
+   * Issue #3320: the level has to be able to say WHICH of its children
+   * holds something that needs attention, which is the whole reason the
+   * device rollup carries a health breakdown rather than only a count.
+   */
+  describe("device health rolls up alongside the count", () => {
+    function aggregateWithHealth(
+      devices: Array<DeviceAttachmentRow>,
+    ): Map<string, ChildAggregate> {
+      return NetworkSiteHierarchyUtil.aggregateChildStats({
+        children: children,
+        descendants: descendants,
+        devices: devices,
+        operationalStatusIds: operationalStatusIds,
+      });
+    }
+
+    test("each state lands in its own bucket of the owning child", () => {
+      const result: Map<string, ChildAggregate> = aggregateWithHealth([
+        { siteId: "unit1", healthState: "down" },
+        { siteId: "unit3", healthState: "degraded" },
+        { siteId: "marketA", healthState: "healthy" },
+        { siteId: "unitB", healthState: "unknown" },
+      ]);
+      expect(result.get("marketA")!.deviceStats).toEqual({
+        total: 3,
+        down: 1,
+        degraded: 1,
+        healthy: 1,
+        unknown: 0,
+      });
+      expect(result.get("unitB")!.deviceStats).toEqual({
+        total: 1,
+        down: 0,
+        degraded: 0,
+        healthy: 0,
+        unknown: 1,
+      });
+    });
+
+    test("deviceStats.total and deviceCount never disagree", () => {
+      const result: Map<string, ChildAggregate> = aggregateWithHealth([
+        { siteId: "unit1", healthState: "down" },
+        { siteId: "unit1", healthState: "healthy" },
+        { siteId: "unit2", healthState: "degraded" },
+        { siteId: "unitB", healthState: "healthy" },
+      ]);
+      for (const aggregate of result.values()) {
+        expect(aggregate.deviceStats.total).toBe(aggregate.deviceCount);
+      }
+    });
+
+    /*
+     * A device attached to the requested site itself, or to a site outside
+     * the subtree entirely, belongs to no child — counting it under one
+     * would put a red badge on a store that is perfectly fine.
+     */
+    test("devices outside every child's subtree are counted nowhere", () => {
+      const result: Map<string, ChildAggregate> = aggregateWithHealth([
+        { siteId: "parent", healthState: "down" },
+        { siteId: "elsewhere", healthState: "down" },
+      ]);
+      for (const aggregate of result.values()) {
+        expect(aggregate.deviceStats.total).toBe(0);
+        expect(aggregate.deviceStats.down).toBe(0);
+      }
+    });
+
+    test("a child with no devices reports a zeroed tally, not a missing one", () => {
+      const result: Map<string, ChildAggregate> = aggregateWithHealth([]);
+      expect(result.get("emptyC")!.deviceStats).toEqual({
+        total: 0,
+        down: 0,
+        degraded: 0,
+        healthy: 0,
+        unknown: 0,
+      });
+    });
+
+    test("each child's tally is its own object, never a shared one", () => {
+      const result: Map<string, ChildAggregate> = aggregateWithHealth([
+        { siteId: "unit1", healthState: "down" },
+      ]);
+      expect(result.get("marketA")!.deviceStats.down).toBe(1);
+      expect(result.get("unitB")!.deviceStats.down).toBe(0);
+      expect(result.get("marketA")!.deviceStats).not.toBe(
+        result.get("unitB")!.deviceStats,
+      );
+    });
+  });
+});
+
+/*
+ * The level the reader is STANDING on. aggregateChildStats deliberately
+ * says nothing about it — a site's own devices belong to no child's
+ * subtree — so before this helper they were counted nowhere and drawn
+ * nowhere.
+ */
+describe("tallyDeviceHealth", () => {
+  const devices: Array<DeviceAttachmentRow> = [
+    { siteId: "dc1", healthState: "down" },
+    { siteId: "dc1", healthState: "healthy" },
+    { siteId: "dc1", healthState: "degraded" },
+    { siteId: "store7", healthState: "healthy" },
+    { siteId: "store8", healthState: "unknown" },
+  ];
+
+  test("counts only the sites asked about", () => {
+    expect(
+      NetworkSiteHierarchyUtil.tallyDeviceHealth(
+        devices,
+        new Set<string>(["dc1"]),
+      ),
+    ).toEqual({
+      total: 3,
+      down: 1,
+      degraded: 1,
+      healthy: 1,
+      unknown: 0,
+    });
+  });
+
+  test("takes more than one site at a time", () => {
+    expect(
+      NetworkSiteHierarchyUtil.tallyDeviceHealth(
+        devices,
+        new Set<string>(["store7", "store8"]),
+      ),
+    ).toEqual({
+      total: 2,
+      down: 0,
+      degraded: 0,
+      healthy: 1,
+      unknown: 1,
+    });
+  });
+
+  test("a site nothing is attached to tallies to zeroes", () => {
+    expect(
+      NetworkSiteHierarchyUtil.tallyDeviceHealth(
+        devices,
+        new Set<string>(["nobody"]),
+      ).total,
+    ).toBe(0);
+  });
+
+  test("an empty site set counts nothing at all", () => {
+    expect(
+      NetworkSiteHierarchyUtil.tallyDeviceHealth(devices, new Set<string>())
+        .total,
+    ).toBe(0);
   });
 });
 

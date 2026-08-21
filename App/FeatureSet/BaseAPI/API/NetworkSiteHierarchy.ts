@@ -33,8 +33,14 @@ import SiteUptimeUtil from "Common/Utils/NetworkSite/SiteUptimeUtil";
 import NetworkSiteHierarchyUtil, {
   BreadcrumbEntry,
   ChildAggregate,
+  DeviceAttachmentRow,
   SiteLinkRow,
 } from "../Utils/NetworkSiteHierarchyUtil";
+import {
+  DeviceHealthCounts,
+  deviceHealthState,
+  emptyDeviceHealthCounts,
+} from "Common/Utils/NetworkDevice/DeviceHealthStateUtil";
 import NetworkSiteMapUtil, {
   MapChildRow,
   MapLinkRow,
@@ -377,9 +383,23 @@ export default class NetworkSiteHierarchyAPI {
                 siteId: QueryHelper.notNull(),
                 isArchived: false,
               },
+              /*
+               * Issue #3320: the drill-down now reports device HEALTH per
+               * level, not just a count, so these rows carry the same
+               * columns the topology map reads and are classified by the
+               * same shared rule (DeviceHealthStateUtil). Selecting them
+               * here is what lets a level of 949 sites say which ones hold
+               * a problem without drawing one device node.
+               */
               select: {
                 _id: true,
                 siteId: true,
+                isReachable: true,
+                lastPolledAt: true,
+                lastSeenAt: true,
+                pollingIntervalInMinutes: true,
+                currentMonitorStatusId: true,
+                interfacesDown: true,
               },
               limit: LIMIT_PER_PROJECT,
               skip: 0,
@@ -533,6 +553,16 @@ export default class NetworkSiteHierarchyAPI {
               statusIds.add(row.monitorStatusId.toString());
             }
           }
+          /*
+           * Device-stamped statuses too: a monitor-backed device has no SNMP
+           * walk at all, so without these rows every one of them would fall
+           * through to reachability and be tallied "unknown" forever.
+           */
+          for (const device of deviceRows) {
+            if (device.currentMonitorStatusId) {
+              statusIds.add(device.currentMonitorStatusId.toString());
+            }
+          }
           for (const statusId of statusIdByMonitorId.values()) {
             statusIds.add(statusId);
           }
@@ -549,6 +579,48 @@ export default class NetworkSiteHierarchyAPI {
               operationalStatusIds.add(status.id);
             }
           }
+
+          /*
+           * One health verdict per device, computed once against a single
+           * clock so every rollup on this response agrees with every other
+           * one. Devices whose site was deleted out from under them (or that
+           * the caller cannot read the site of) simply have no siteId and
+           * belong to no level.
+           */
+          const now: Date = OneUptimeDate.getCurrentDate();
+          const deviceAttachments: Array<DeviceAttachmentRow> = deviceRows
+            .map((device: NetworkDevice): DeviceAttachmentRow | null => {
+              const deviceSiteId: string | undefined =
+                device.siteId?.toString();
+              if (!deviceSiteId) {
+                return null;
+              }
+              const deviceStatus: StatusInfo | undefined =
+                device.currentMonitorStatusId
+                  ? statusById.get(device.currentMonitorStatusId.toString())
+                  : undefined;
+              return {
+                siteId: deviceSiteId,
+                healthState: deviceHealthState(
+                  {
+                    monitorStatusIsOperational: deviceStatus
+                      ? deviceStatus.isOperationalState
+                      : undefined,
+                    isReachable: device.isReachable,
+                    lastPolledAt: device.lastPolledAt,
+                    lastSeenAt: device.lastSeenAt,
+                    pollingIntervalInMinutes: device.pollingIntervalInMinutes,
+                    interfacesDown: device.interfacesDown,
+                  },
+                  now,
+                ),
+              };
+            })
+            .filter(
+              (row: DeviceAttachmentRow | null): row is DeviceAttachmentRow => {
+                return row !== null;
+              },
+            );
 
           const aggregates: Map<string, ChildAggregate> =
             NetworkSiteHierarchyUtil.aggregateChildStats({
@@ -574,17 +646,7 @@ export default class NetworkSiteHierarchyAPI {
                       row.currentMonitorStatusId?.toString(),
                   };
                 }),
-              deviceSiteIds: deviceRows
-                .map((device: NetworkDevice) => {
-                  return device.siteId?.toString();
-                })
-                .filter(
-                  (
-                    deviceSiteId: string | undefined,
-                  ): deviceSiteId is string => {
-                    return Boolean(deviceSiteId);
-                  },
-                ),
+              devices: deviceAttachments,
               operationalStatusIds: operationalStatusIds,
             });
 
@@ -639,6 +701,7 @@ export default class NetworkSiteHierarchyAPI {
               const aggregate: ChildAggregate = aggregates.get(childId) || {
                 childSiteCount: 0,
                 deviceCount: 0,
+                deviceStats: emptyDeviceHealthCounts(),
                 unitStats: { totalUnits: 0, operationalUnits: 0 },
               };
 
@@ -678,6 +741,7 @@ export default class NetworkSiteHierarchyAPI {
                   : undefined,
                 childSiteCount: aggregate.childSiteCount,
                 deviceCount: aggregate.deviceCount,
+                deviceStats: aggregate.deviceStats,
                 unitStats: aggregate.unitStats,
                 uptimePercent: uptimePercent,
               } as unknown as JSONObject;
@@ -702,10 +766,50 @@ export default class NetworkSiteHierarchyAPI {
             },
           );
 
+          /*
+           * Devices hanging off the level the caller is standing on, rather
+           * than off one of its children. A site can have both — a
+           * distribution centre with its own core switches above a dozen
+           * stores — and until the topology explorer went hierarchy-first
+           * there was nowhere for them to show up.
+           */
+          const ownDeviceStats: DeviceHealthCounts = siteId
+            ? NetworkSiteHierarchyUtil.tallyDeviceHealth(
+                deviceAttachments,
+                new Set<string>([siteId]),
+              )
+            : emptyDeviceHealthCounts();
+
+          /*
+           * How the project splits between sites and nothing: the topology
+           * explorer opens on the hierarchy only when devices are actually
+           * attached to sites, and falls back to the flat device map when
+           * they are not. `attachedDeviceCount` is what it reads to decide,
+           * and `unattachedDeviceCount` is what the hierarchy tells the user
+           * it is NOT showing them.
+           */
+          const unattachedDeviceCount: number = (
+            await NetworkDeviceService.countBy({
+              query: {
+                projectId: projectId,
+                siteId: QueryHelper.isNull(),
+                isArchived: false,
+              },
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              props: props,
+            })
+          ).toNumber();
+
           return Response.sendJsonObjectResponse(req, res, {
             breadcrumb: breadcrumb,
             children: children,
             links: links,
+            ownDeviceStats: ownDeviceStats,
+            deviceScope: {
+              attachedDeviceCount: deviceAttachments.length,
+              unattachedDeviceCount: unattachedDeviceCount,
+            },
             // Caps hit → the rollups below this level may be partial.
             childrenTruncated: childRows.length >= LIMIT_PER_PROJECT,
             descendantCountsTruncated:

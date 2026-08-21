@@ -1,4 +1,8 @@
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import {
+  DeviceHealthCounts,
+  emptyDeviceHealthCounts,
+} from "Common/Utils/NetworkDevice/DeviceHealthStateUtil";
 
 /*
  * Pure, react-free client-side shapes for the Network Site hierarchy
@@ -51,8 +55,34 @@ export interface SiteChildView {
   currentMonitorStatus: SiteStatusInfo | undefined;
   childSiteCount: number;
   deviceCount: number;
+  /*
+   * The health of every device in this child's subtree (issue #3320).
+   * `deviceStats.total` is always `deviceCount` — see ChildAggregate on the
+   * server for why both are carried.
+   *
+   * Never undefined on the client even against a server that predates it:
+   * the parser falls back to a zeroed tally, which reads as "this level has
+   * nothing to say about devices" rather than crashing every consumer that
+   * indexes into it.
+   */
+  deviceStats: DeviceHealthCounts;
   unitStats: SiteUnitStats;
   uptimePercent: number | null;
+}
+
+/*
+ * How the project's devices divide between the hierarchy and everything
+ * outside it — what the topology explorer reads to decide whether a
+ * hierarchy is worth showing at all.
+ *
+ * `attachedDeviceCount` of zero is the whole reason this exists: a project
+ * that models sites but has never set a device's site has a hierarchy of
+ * empty rooms, and drilling through it to reach an always-empty topology is
+ * strictly worse than the flat map it replaced.
+ */
+export interface SiteDeviceScope {
+  attachedDeviceCount: number;
+  unattachedDeviceCount: number;
 }
 
 export interface SiteLinkStatusInfo {
@@ -75,6 +105,12 @@ export interface SiteChildrenResponse {
   breadcrumb: Array<SiteBreadcrumbEntry>;
   children: Array<SiteChildView>;
   links: Array<SiteLinkView>;
+  /*
+   * Devices attached to the level in view ITSELF, not to any of its
+   * children. Zeroed at the root, which has no site of its own.
+   */
+  ownDeviceStats: DeviceHealthCounts;
+  deviceScope: SiteDeviceScope;
   childrenTruncated: boolean;
   descendantCountsTruncated: boolean;
 }
@@ -237,6 +273,34 @@ const parseBreadcrumbEntry: (value: unknown) => SiteBreadcrumbEntry | null = (
   };
 };
 
+/*
+ * A device-health tally, narrowed defensively.
+ *
+ * Every field falls back to zero and `total` is CLAMPED UP to the sum of
+ * the four states: a payload where they disagree (an older server, a
+ * partial rollup) must not produce a card that reads "2 of 0 devices down",
+ * which is the kind of number that makes an operator stop trusting the
+ * page.
+ */
+const parseDeviceHealthCounts: (value: unknown) => DeviceHealthCounts = (
+  value: unknown,
+): DeviceHealthCounts => {
+  const counts: DeviceHealthCounts = emptyDeviceHealthCounts();
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return counts;
+  }
+  const row: JSONObject = value as JSONObject;
+  counts.down = Math.max(0, asFiniteNumber(row["down"], 0));
+  counts.degraded = Math.max(0, asFiniteNumber(row["degraded"], 0));
+  counts.healthy = Math.max(0, asFiniteNumber(row["healthy"], 0));
+  counts.unknown = Math.max(0, asFiniteNumber(row["unknown"], 0));
+  counts.total = Math.max(
+    asFiniteNumber(row["total"], 0),
+    counts.down + counts.degraded + counts.healthy + counts.unknown,
+  );
+  return counts;
+};
+
 const parseChildRow: (value: unknown) => SiteChildView | null = (
   value: unknown,
 ): SiteChildView | null => {
@@ -255,6 +319,7 @@ const parseChildRow: (value: unknown) => SiteChildView | null = (
     currentMonitorStatus: parseStatusInfo(row["currentMonitorStatus"]),
     childSiteCount: asFiniteNumber(row["childSiteCount"], 0),
     deviceCount: asFiniteNumber(row["deviceCount"], 0),
+    deviceStats: parseDeviceHealthCounts(row["deviceStats"]),
     unitStats: {
       totalUnits: asFiniteNumber(unitStatsRow["totalUnits"], 0),
       operationalUnits: asFiniteNumber(unitStatsRow["operationalUnits"], 0),
@@ -353,10 +418,23 @@ export const parseSiteChildrenResponse: (
     .filter((link: SiteLinkView | null): link is SiteLinkView => {
       return link !== null;
     });
+  const deviceScopeRow: JSONObject = (data?.["deviceScope"] ||
+    {}) as JSONObject;
   return {
     breadcrumb: breadcrumb,
     children: children,
     links: links,
+    ownDeviceStats: parseDeviceHealthCounts(data?.["ownDeviceStats"]),
+    deviceScope: {
+      attachedDeviceCount: Math.max(
+        0,
+        asFiniteNumber(deviceScopeRow["attachedDeviceCount"], 0),
+      ),
+      unattachedDeviceCount: Math.max(
+        0,
+        asFiniteNumber(deviceScopeRow["unattachedDeviceCount"], 0),
+      ),
+    },
     childrenTruncated: data?.["childrenTruncated"] === true,
     descendantCountsTruncated: data?.["descendantCountsTruncated"] === true,
   };
