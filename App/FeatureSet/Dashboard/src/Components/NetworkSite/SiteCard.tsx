@@ -5,6 +5,11 @@ import {
   formatUptimePercent,
   unitRollupTone,
 } from "./SiteMapViewModel";
+import {
+  DeviceHealthCounts,
+  deviceAttentionCount,
+  emptyDeviceHealthCounts,
+} from "Common/Utils/NetworkDevice/DeviceHealthStateUtil";
 
 /*
  * Shared card body for one network site: name, site-type label, health
@@ -57,6 +62,26 @@ const pluralUnits: (count: number) => string = (count: number): string => {
   return count === 1 ? "unit" : "units";
 };
 
+/*
+ * "3 down, 1 degraded of 128 devices" — only ever rendered when at least
+ * one of the two is non-zero, so the healthy case never has to read a
+ * sentence built out of zeroes.
+ */
+const describeDeviceAttention: (counts: DeviceHealthCounts) => string = (
+  counts: DeviceHealthCounts,
+): string => {
+  const parts: Array<string> = [];
+  if (counts.down > 0) {
+    parts.push(`${counts.down} down`);
+  }
+  if (counts.degraded > 0) {
+    parts.push(`${counts.degraded} degraded`);
+  }
+  return `${parts.join(", ")} of ${counts.total} device${
+    counts.total === 1 ? "" : "s"
+  }`;
+};
+
 export interface SiteCardBodyProps {
   site: SiteChildView;
 }
@@ -96,6 +121,10 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
       leadCaption = `of ${totalUnits} ${pluralUnits(totalUnits)} down`;
     }
   }
+
+  const deviceStats: DeviceHealthCounts =
+    site.deviceStats || emptyDeviceHealthCounts();
+  const devicesNeedingAttention: number = deviceAttentionCount(deviceStats);
 
   const hasCounts: boolean = site.childSiteCount > 0 || site.deviceCount > 0;
   const hasUptime: boolean = site.uptimePercent !== null;
@@ -218,7 +247,25 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
               ) : (
                 <></>
               )}
-              {site.deviceCount} device{site.deviceCount === 1 ? "" : "s"}
+              {/*
+               * Issue #3320: the device count says how MANY, and — when any
+               * of them are complaining — how many of them need a look. A
+               * card that prints "128 devices" over a subtree holding four
+               * dark switches is the exact failure the drill-down exists to
+               * fix: the number is true and useless.
+               */}
+              {devicesNeedingAttention > 0 ? (
+                <span
+                  data-testid={`site-card-device-health-${site.id}`}
+                  className="font-medium text-red-600"
+                >
+                  {describeDeviceAttention(deviceStats)}
+                </span>
+              ) : (
+                <span>
+                  {site.deviceCount} device{site.deviceCount === 1 ? "" : "s"}
+                </span>
+              )}
             </div>
           ) : (
             <></>
@@ -233,6 +280,14 @@ export interface ComponentProps {
   site: SiteChildView;
   /** Navigate deeper — injected by the page, keeps this component router-free. */
   onClick?: ((siteId: string) => void) | undefined;
+  /*
+   * This is the card a filter landed the reader on (issue #3320's
+   * auto-zoom, at the hierarchy level). Drawn with a ring rather than a
+   * different colour: colour on this card already means health, and a
+   * second meaning for it would make a highlighted healthy site look
+   * broken.
+   */
+  isHighlighted?: boolean | undefined;
 }
 
 // The plain-div skin, used for the root-level site grid on the map page.
@@ -250,7 +305,12 @@ const SiteCard: FunctionComponent<ComponentProps> = (
           ? `${props.site.name} — ${props.site.siteType}, open this site`
           : undefined
       }
-      className={`rounded-xl border border-gray-200 bg-white p-4 shadow-sm ${
+      data-highlighted={props.isHighlighted ? "true" : undefined}
+      className={`rounded-xl border bg-white p-4 shadow-sm ${
+        props.isHighlighted
+          ? "border-indigo-400 ring-2 ring-indigo-400 ring-offset-2"
+          : "border-gray-200"
+      } ${
         isClickable
           ? "cursor-pointer transition hover:border-indigo-300 hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
           : ""
