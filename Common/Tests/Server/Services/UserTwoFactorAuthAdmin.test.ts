@@ -8,6 +8,7 @@ import User from "../../../Models/DatabaseModels/User";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import Email from "../../../Types/Email";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
@@ -867,6 +868,94 @@ describe("UserService -- admin-controlled two factor auth", () => {
         }
       ).onBeforeUpdate(updateBy);
     };
+
+    /*
+     * ---------------------------------------------------------------------
+     * The guard that REPLACED the deleted one, and the reason it had to
+     * exist at all.
+     *
+     * `enableTwoFactorAuth` carries `update: [Permission.CurrentUser]`
+     * (Common/Models/DatabaseModels/User.ts) and the User table's row ACL
+     * scopes updates to the caller's own id, so every signed-in user can
+     * write their own copy of this flag through the ordinary CRUD API -- and
+     * the product ships the button that does it, at Dashboard > Profile >
+     * Two Factor Authentication.
+     *
+     * Without the guard the whole feature is self-undoing: the admin requires
+     * two factor auth, the user is marched through enrolment at their next
+     * sign-in, and then from the session they just earned they flip the
+     * toggle back off and delete the factor -- which the removal of the
+     * onBeforeDelete guards now also permits. The account is password-only
+     * again and the Authentication page reports the mandate as simply absent.
+     * ---------------------------------------------------------------------
+     */
+    test("onBeforeUpdate refuses to let a non-root caller turn the requirement OFF", async () => {
+      await expect(
+        callOnBeforeUpdate({
+          query: { _id: userId },
+          data: { enableTwoFactorAuth: false },
+          props: {},
+        }),
+      ).rejects.toThrow(BadDataException);
+    });
+
+    test("the refusal names an administrator, so the user knows who to ask", async () => {
+      /*
+       * The message is the only thing the user sees when the profile toggle
+       * refuses. "Bad data" would send them to support with nothing to say.
+       */
+      await expect(
+        callOnBeforeUpdate({
+          query: { _id: userId },
+          data: { enableTwoFactorAuth: false },
+          props: {},
+        }),
+      ).rejects.toThrow(/administrator/i);
+    });
+
+    test("a ROOT caller may turn the requirement off -- that is the admin endpoint", async () => {
+      /*
+       * setTwoFactorAuthRequired({ isRequired: false }) writes with
+       * props.isRoot, so the guard must not catch it. If it did, the admin's
+       * "Do Not Require" button would fail for every user.
+       */
+      await expect(
+        callOnBeforeUpdate({
+          query: { _id: userId },
+          data: { enableTwoFactorAuth: false },
+          props: { isRoot: true },
+        }),
+      ).resolves.toBeDefined();
+    });
+
+    test("a non-root caller may still turn the requirement ON for themselves", async () => {
+      /*
+       * Self-service enrolment stays. The guard is deliberately one-way: it
+       * bounds who can WEAKEN an account, not who can strengthen one.
+       */
+      await expect(
+        callOnBeforeUpdate({
+          query: { _id: userId },
+          data: { enableTwoFactorAuth: true },
+          props: {},
+        }),
+      ).resolves.toBeDefined();
+    });
+
+    test("an unrelated non-root update is untouched by the guard", async () => {
+      /*
+       * The guard keys on the value being exactly `false`, so an update that
+       * does not mention the column at all must sail through -- otherwise
+       * every profile edit in the product starts failing.
+       */
+      await expect(
+        callOnBeforeUpdate({
+          query: { _id: userId },
+          data: { name: "Someone" },
+          props: {},
+        }),
+      ).resolves.toBeDefined();
+    });
 
     test("onBeforeUpdate allows enableTwoFactorAuth: true for a user with no verified factor", async () => {
       /*

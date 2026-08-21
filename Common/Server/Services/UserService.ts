@@ -310,7 +310,43 @@ export class Service extends DatabaseService<Model> {
      * Keeping the guard would have meant an admin could only require two
      * factor auth from users who had already volunteered for it, which is the
      * opposite of what a mandate is for.
+     *
+     * What replaces it is the guard below, which protects the opposite
+     * direction.
      */
+
+    /*
+     * TURNING THE REQUIREMENT OFF IS A MASTER-ADMIN ACTION, NOT A USER ONE.
+     *
+     * `enableTwoFactorAuth` carries `update: [Permission.CurrentUser]` and the
+     * User table's row ACL scopes updates to the caller's own id, so without
+     * this every signed-in user can clear their own flag with an ordinary
+     * `PUT /user/<their own id>` -- and the product ships the button that does
+     * it, at Dashboard > Profile > Two Factor Authentication.
+     *
+     * That makes an admin mandate self-undoing. The admin requires two factor
+     * auth, the user is marched through enrolment at their next sign-in, and
+     * then, from the session they just earned, they switch it straight back
+     * off and delete the factor. The account is password-only again and the
+     * Authentication page reports the mandate as simply absent.
+     *
+     * So: anybody may turn the requirement ON for themselves -- self-service
+     * enrolment is a feature and taking it away would help nobody -- but only
+     * a root caller may turn it OFF. The one root caller is
+     * `setTwoFactorAuthRequired` below, reached through the master-admin
+     * endpoint. A user who wants two factor auth removed now has to ask an
+     * administrator, which is the point of the feature.
+     *
+     * Keyed on `isRoot` rather than on a master-admin check because a master
+     * admin editing their OWN row through the CRUD API is still that user, and
+     * the flag should move through the endpoint that also revokes sessions
+     * either way.
+     */
+    if (updateBy.data.enableTwoFactorAuth === false && !updateBy.props.isRoot) {
+      throw new BadDataException(
+        "Only an administrator can turn off two factor authentication for this account.",
+      );
+    }
 
     return { updateBy, carryForward: carryForward };
   }
