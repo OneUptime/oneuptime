@@ -660,6 +660,33 @@ const LoginPage: () => JSX.Element = () => {
           ) : (
             <></>
           )}
+
+          {/*
+           * Without this the enrolment screen is a dead end: the login form is
+           * hidden, the register prompt is hidden, and somebody who typed the
+           * wrong address has nowhere to go but the browser's back button.
+           *
+           * It clears the submitted credentials as well as the enrolment,
+           * because those are the email and password the next step would
+           * re-submit -- leaving them behind would let the previous account's
+           * password ride along into a fresh attempt.
+           */}
+          {totpEnrolment ? (
+            <div className="text-muted mb-0 text-gray-500">
+              <Link
+                onClick={() => {
+                  setTotpEnrolment(undefined);
+                  setTwoFactorAuthError("");
+                  setInitialValues({});
+                }}
+                className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
+              >
+                {t("login.twoFactorEnrolment.backToSignIn")}
+              </Link>
+            </div>
+          ) : (
+            <></>
+          )}
         </div>
       </div>
     </div>

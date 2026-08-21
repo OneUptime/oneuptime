@@ -53,7 +53,8 @@
       "subtitle": "Votre administrateur exige l'authentification à deux facteurs sur ce compte. Configurez-la maintenant pour terminer la connexion.",
       "scanInstruction": "Scannez ce code QR avec une application d'authentification telle que Google Authenticator, Microsoft Authenticator ou 1Password.",
       "codeFieldDescription": "Saisissez le code à six chiffres affiché par votre application d'authentification.",
-      "submitButton": "Vérifier et se connecter"
+      "submitButton": "Vérifier et se connecter",
+      "backToSignIn": "Connectez-vous en tant qu'autre utilisateur"
     }
   },
   "register": {

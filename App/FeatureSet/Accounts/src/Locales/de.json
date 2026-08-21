@@ -53,7 +53,8 @@
       "subtitle": "Ihr Administrator verlangt für dieses Konto eine Zwei-Faktor-Authentifizierung. Richten Sie sie jetzt ein, um die Anmeldung abzuschließen.",
       "scanInstruction": "Scannen Sie diesen QR-Code mit einer Authenticator-App wie Google Authenticator, Microsoft Authenticator oder 1Password.",
       "codeFieldDescription": "Geben Sie den sechsstelligen Code aus Ihrer Authenticator-App ein.",
-      "submitButton": "Bestätigen und anmelden"
+      "submitButton": "Bestätigen und anmelden",
+      "backToSignIn": "Melden Sie sich als anderer Benutzer an"
     }
   },
   "register": {

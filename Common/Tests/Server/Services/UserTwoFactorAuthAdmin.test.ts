@@ -8,6 +8,7 @@ import User from "../../../Models/DatabaseModels/User";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import Email from "../../../Types/Email";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
@@ -142,9 +143,20 @@ describe("UserService -- admin-controlled two factor auth", () => {
       },
     );
 
+    /*
+     * Returns ONE row, not an empty list, and that is load-bearing rather than
+     * incidental.
+     *
+     * The guard this suite exists to prove is gone read its users through
+     * `findBy` and threw from INSIDE `for (const user of users)`. Stub that to
+     * `[]` and a verbatim restoration of the guard iterates zero times, throws
+     * nothing, and every "the guard stays deleted" test below stays green
+     * while the feature is dead. A non-empty list is what makes those tests
+     * able to fail.
+     */
     findBySpy = getJestSpyOn(UserService, "findBy").mockImplementation(
       async (): Promise<Array<User>> => {
-        return [];
+        return [buildUser({ id: foundUserId })];
       },
     );
 
@@ -868,6 +880,94 @@ describe("UserService -- admin-controlled two factor auth", () => {
       ).onBeforeUpdate(updateBy);
     };
 
+    /*
+     * ---------------------------------------------------------------------
+     * The guard that REPLACED the deleted one, and the reason it had to
+     * exist at all.
+     *
+     * `enableTwoFactorAuth` carries `update: [Permission.CurrentUser]`
+     * (Common/Models/DatabaseModels/User.ts) and the User table's row ACL
+     * scopes updates to the caller's own id, so every signed-in user can
+     * write their own copy of this flag through the ordinary CRUD API -- and
+     * the product ships the button that does it, at Dashboard > Profile >
+     * Two Factor Authentication.
+     *
+     * Without the guard the whole feature is self-undoing: the admin requires
+     * two factor auth, the user is marched through enrolment at their next
+     * sign-in, and then from the session they just earned they flip the
+     * toggle back off and delete the factor -- which the removal of the
+     * onBeforeDelete guards now also permits. The account is password-only
+     * again and the Authentication page reports the mandate as simply absent.
+     * ---------------------------------------------------------------------
+     */
+    test("onBeforeUpdate refuses to let a non-root caller turn the requirement OFF", async () => {
+      await expect(
+        callOnBeforeUpdate({
+          query: { _id: userId },
+          data: { enableTwoFactorAuth: false },
+          props: {},
+        }),
+      ).rejects.toThrow(BadDataException);
+    });
+
+    test("the refusal names an administrator, so the user knows who to ask", async () => {
+      /*
+       * The message is the only thing the user sees when the profile toggle
+       * refuses. "Bad data" would send them to support with nothing to say.
+       */
+      await expect(
+        callOnBeforeUpdate({
+          query: { _id: userId },
+          data: { enableTwoFactorAuth: false },
+          props: {},
+        }),
+      ).rejects.toThrow(/administrator/i);
+    });
+
+    test("a ROOT caller may turn the requirement off -- that is the admin endpoint", async () => {
+      /*
+       * setTwoFactorAuthRequired({ isRequired: false }) writes with
+       * props.isRoot, so the guard must not catch it. If it did, the admin's
+       * "Do Not Require" button would fail for every user.
+       */
+      await expect(
+        callOnBeforeUpdate({
+          query: { _id: userId },
+          data: { enableTwoFactorAuth: false },
+          props: { isRoot: true },
+        }),
+      ).resolves.toBeDefined();
+    });
+
+    test("a non-root caller may still turn the requirement ON for themselves", async () => {
+      /*
+       * Self-service enrolment stays. The guard is deliberately one-way: it
+       * bounds who can WEAKEN an account, not who can strengthen one.
+       */
+      await expect(
+        callOnBeforeUpdate({
+          query: { _id: userId },
+          data: { enableTwoFactorAuth: true },
+          props: {},
+        }),
+      ).resolves.toBeDefined();
+    });
+
+    test("an unrelated non-root update is untouched by the guard", async () => {
+      /*
+       * The guard keys on the value being exactly `false`, so an update that
+       * does not mention the column at all must sail through -- otherwise
+       * every profile edit in the product starts failing.
+       */
+      await expect(
+        callOnBeforeUpdate({
+          query: { _id: userId },
+          data: { name: "Someone" },
+          props: {},
+        }),
+      ).resolves.toBeDefined();
+    });
+
     test("onBeforeUpdate allows enableTwoFactorAuth: true for a user with no verified factor", async () => {
       /*
        * The deleted guard, asserted at its own level.
@@ -891,11 +991,19 @@ describe("UserService -- admin-controlled two factor auth", () => {
 
     test("that same update issues no probes into the authenticator tables", async () => {
       /*
-       * The guard's fingerprint, and the thing that makes the test above
-       * non-vacuous. A resurrected guard has to ask one of these two services
-       * how many factors the user has before it can decide to throw, so "no
-       * probe was made" catches a reinstated check even in a form that happens
-       * to let this particular update through.
+       * The guard's fingerprint, and a second line of defence behind the test
+       * above. A resurrected guard has to ask one of these two services how
+       * many factors the user has before it can decide to throw, so "no probe
+       * was made" catches a reinstated check even in a form that happens to
+       * let this particular update through.
+       *
+       * Note the spy list below covers `countBy` and `findBy`, NOT `findOneBy`
+       * -- and the original guard probed with `findOneBy`, which
+       * DatabaseService routes through a private `_findBy` rather than the
+       * public method spied here. So this assertion alone would NOT have
+       * caught the guard in its original form. What catches that is the
+       * non-empty `findBy` stub in beforeEach, which lets the restored guard
+       * actually reach its throw.
        *
        * It is also a cost assertion in its own right: `onBeforeUpdate` runs on
        * EVERY user update in the product -- lastActive being written on every

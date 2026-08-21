@@ -193,7 +193,7 @@
       "twoFactorDoNotRequireButton": "Kræv ikke",
       "twoFactorResetButton": "Nulstil tofaktorgodkendelse",
       "twoFactorRequireModalTitle": "Kræv tofaktorgodkendelse",
-      "twoFactorRequireModalDescription": "Denne bruger bliver logget ud af alle aktive sessioner. Næste gang vedkommende logger ind, skal der konfigureres en godkendelsesapp, før OneUptime kan bruges.",
+      "twoFactorRequireModalDescription": "Denne bruger bliver logget ud af alle aktive sessioner. Næste gang vedkommende logger ind, skal tofaktorgodkendelse fuldføres, før OneUptime kan bruges, og hvis vedkommende ikke allerede har en godkendelsesapp, skal den konfigureres først.",
       "twoFactorRequireModalSubmit": "Kræv tofaktorgodkendelse",
       "twoFactorDoNotRequireModalTitle": "Stop med at kræve tofaktorgodkendelse",
       "twoFactorDoNotRequireModalDescription": "Denne bruger kan logge ind med adgangskoden alene. Alt, hvad vedkommende allerede har konfigureret, bevares, men der bliver ikke længere bedt om det.",

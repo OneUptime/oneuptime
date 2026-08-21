@@ -53,7 +53,8 @@
       "subtitle": "Uw beheerder vereist tweefactorauthenticatie voor dit account. Stel het nu in om het aanmelden te voltooien.",
       "scanInstruction": "Scan deze QR-code met een authenticator-app zoals Google Authenticator, Microsoft Authenticator of 1Password.",
       "codeFieldDescription": "Voer de zescijferige code in die uw authenticator-app toont.",
-      "submitButton": "Verifiëren en aanmelden"
+      "submitButton": "Verifiëren en aanmelden",
+      "backToSignIn": "Meld u aan als een andere gebruiker"
     }
   },
   "register": {

@@ -193,7 +193,7 @@
       "twoFactorDoNotRequireButton": "取消要求",
       "twoFactorResetButton": "重置双重身份验证",
       "twoFactorRequireModalTitle": "要求双重身份验证",
-      "twoFactorRequireModalDescription": "该用户将从所有活动会话中登出。其下次登录时必须先设置身份验证器应用，才能使用 OneUptime。",
+      "twoFactorRequireModalDescription": "该用户将从所有活动会话中登出。其下次登录时必须先完成双重身份验证，才能使用 OneUptime；如果尚未设置身份验证器应用，则需先进行设置。",
       "twoFactorRequireModalSubmit": "要求双重身份验证",
       "twoFactorDoNotRequireModalTitle": "取消双重身份验证要求",
       "twoFactorDoNotRequireModalDescription": "该用户将可以仅使用密码登录。其已设置的内容会保留，但不会再要求进行验证。",

@@ -193,7 +193,7 @@
       "twoFactorDoNotRequireButton": "Ikke krev",
       "twoFactorResetButton": "Tilbakestill tofaktorautentisering",
       "twoFactorRequireModalTitle": "Krev tofaktorautentisering",
-      "twoFactorRequireModalDescription": "Denne brukeren blir logget ut av alle aktive økter. Neste gang vedkommende logger inn, må det settes opp en autentiseringsapp før OneUptime kan brukes.",
+      "twoFactorRequireModalDescription": "Denne brukeren blir logget ut av alle aktive økter. Neste gang vedkommende logger inn, må tofaktorautentisering fullføres før OneUptime kan brukes, og hvis vedkommende ikke allerede har en autentiseringsapp, må den settes opp først.",
       "twoFactorRequireModalSubmit": "Krev tofaktorautentisering",
       "twoFactorDoNotRequireModalTitle": "Slutt å kreve tofaktorautentisering",
       "twoFactorDoNotRequireModalDescription": "Denne brukeren kan logge inn med passordet alene. Alt vedkommende allerede har satt opp, beholdes, men det blir ikke lenger spurt om det.",

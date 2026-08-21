@@ -193,7 +193,7 @@
       "twoFactorDoNotRequireButton": "Niet verplichten",
       "twoFactorResetButton": "Tweefactorauthenticatie resetten",
       "twoFactorRequireModalTitle": "Tweefactorauthenticatie verplichten",
-      "twoFactorRequireModalDescription": "Deze gebruiker wordt uit alle actieve sessies afgemeld. De volgende keer dat hij zich aanmeldt, moet hij eerst een authenticator-app instellen voordat hij OneUptime kan gebruiken.",
+      "twoFactorRequireModalDescription": "Deze gebruiker wordt uit alle actieve sessies afgemeld. De volgende keer dat hij zich aanmeldt, moet hij tweefactorauthenticatie voltooien voordat hij OneUptime kan gebruiken, en eerst een authenticator-app instellen als hij dat nog niet heeft gedaan.",
       "twoFactorRequireModalSubmit": "Tweefactorauthenticatie verplichten",
       "twoFactorDoNotRequireModalTitle": "Tweefactorauthenticatie niet langer verplichten",
       "twoFactorDoNotRequireModalDescription": "Deze gebruiker kan zich voortaan met alleen zijn wachtwoord aanmelden. Wat hij al heeft ingesteld blijft bewaard, maar er wordt niet meer om gevraagd.",

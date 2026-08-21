@@ -53,7 +53,8 @@
       "subtitle": "आपके व्यवस्थापक ने इस खाते के लिए दो-कारक प्रमाणीकरण अनिवार्य किया है। साइन इन पूरा करने के लिए इसे अभी सेट करें।",
       "scanInstruction": "इस QR कोड को Google Authenticator, Microsoft Authenticator या 1Password जैसे प्रमाणक ऐप से स्कैन करें।",
       "codeFieldDescription": "अपने प्रमाणक ऐप में दिख रहा छह अंकों का कोड दर्ज करें।",
-      "submitButton": "सत्यापित करें और साइन इन करें"
+      "submitButton": "सत्यापित करें और साइन इन करें",
+      "backToSignIn": "किसी अन्य उपयोगकर्ता के रूप में साइन इन करें"
     }
   },
   "register": {

@@ -193,7 +193,7 @@
       "twoFactorDoNotRequireButton": "Nicht verlangen",
       "twoFactorResetButton": "Zwei-Faktor-Authentifizierung zurücksetzen",
       "twoFactorRequireModalTitle": "Zwei-Faktor-Authentifizierung verlangen",
-      "twoFactorRequireModalDescription": "Dieser Benutzer wird aus allen aktiven Sitzungen abgemeldet. Bei der nächsten Anmeldung muss er zuerst eine Authenticator-App einrichten, bevor er OneUptime nutzen kann.",
+      "twoFactorRequireModalDescription": "Dieser Benutzer wird aus allen aktiven Sitzungen abgemeldet. Bei der nächsten Anmeldung muss er die Zwei-Faktor-Authentifizierung abschließen, bevor er OneUptime nutzen kann, wobei er zuvor eine Authenticator-App einrichten muss, falls dies noch nicht geschehen ist.",
       "twoFactorRequireModalSubmit": "Zwei-Faktor-Authentifizierung verlangen",
       "twoFactorDoNotRequireModalTitle": "Zwei-Faktor-Authentifizierung nicht mehr verlangen",
       "twoFactorDoNotRequireModalDescription": "Dieser Benutzer kann sich dann allein mit seinem Passwort anmelden. Alles, was er bereits eingerichtet hat, bleibt erhalten, wird aber nicht mehr abgefragt.",
