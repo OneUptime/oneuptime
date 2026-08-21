@@ -20,6 +20,8 @@ import type {
 type PivotModule =
   typeof import("../../FeatureSet/Dashboard/src/Utils/LogsCrossSignalPivot");
 type IncludesModule = typeof import("Common/Types/BaseDatabase/Includes");
+type SearchModule = typeof import("Common/Types/BaseDatabase/Search");
+type IsNullModule = typeof import("Common/Types/BaseDatabase/IsNull");
 type InBetweenModule = typeof import("Common/Types/BaseDatabase/InBetween");
 type ObjectIDModule = typeof import("Common/Types/ObjectID");
 type SpanModule = typeof import("Common/Models/AnalyticsModels/Span");
@@ -28,6 +30,8 @@ type RumSessionModule =
 
 let Pivot: PivotModule;
 let Includes: IncludesModule["default"];
+let Search: SearchModule["default"];
+let IsNull: IsNullModule["default"];
 let InBetween: InBetweenModule["default"];
 let ObjectID: ObjectIDModule["default"];
 let Span: SpanModule["default"];
@@ -157,6 +161,8 @@ beforeAll(async () => {
   ] as SerializeScopeFunction;
 
   Includes = (await import("Common/Types/BaseDatabase/Includes")).default;
+  Search = (await import("Common/Types/BaseDatabase/Search")).default;
+  IsNull = (await import("Common/Types/BaseDatabase/IsNull")).default;
   InBetween = (await import("Common/Types/BaseDatabase/InBetween")).default;
   ObjectID = (await import("Common/Types/ObjectID")).default;
   Span = (await import("Common/Models/AnalyticsModels/Span")).default;
@@ -270,6 +276,60 @@ describe("buildLogsPivotScope", () => {
       "http.method": "POST",
       requestId: "req-1",
       "k8s.pod.name": "pod-a",
+    });
+    expect(result.dropped).toEqual([]);
+  });
+
+  test("a base attribute filter that carries an operator is reported dropped", () => {
+    /*
+     * The scope's attribute filters are exact single-value matches. Once the
+     * attribute filter rows gained an operator dropdown, a base filter could
+     * be an operator object instead of a string — and it used to be copied
+     * straight through, arriving in the target explorer's query params as
+     * "[object Object]", which matched nothing while looking like a carried
+     * filter. Report it dropped so the pivot button says so.
+     */
+    const result: LogsPivotScopeResult = Pivot.buildLogsPivotScope(
+      input({
+        attributes: {
+          "http.method": "GET",
+          logtype: new Includes(["web", "api"]),
+        },
+      }),
+    );
+
+    expect(result.scope.attributes).toEqual({ "http.method": "GET" });
+    expect(result.dropped).toEqual(["attributes.logtype"]);
+  });
+
+  test("every operator shape is dropped, not stringified", () => {
+    const result: LogsPivotScopeResult = Pivot.buildLogsPivotScope(
+      input({
+        attributes: {
+          a: new Includes(["web"]),
+          b: new Search<string>("web"),
+          c: new IsNull(),
+        },
+      }),
+    );
+
+    expect(result.scope.attributes).toBeUndefined();
+    expect(result.dropped).toEqual([
+      "attributes.a",
+      "attributes.b",
+      "attributes.c",
+    ]);
+    expect(JSON.stringify(result.scope)).not.toContain("[object Object]");
+  });
+
+  test("scalar base attributes still carry over unchanged", () => {
+    const result: LogsPivotScopeResult = Pivot.buildLogsPivotScope(
+      input({ attributes: { "http.method": "GET", statusCode: 500 } }),
+    );
+
+    expect(result.scope.attributes).toEqual({
+      "http.method": "GET",
+      statusCode: "500",
     });
     expect(result.dropped).toEqual([]);
   });

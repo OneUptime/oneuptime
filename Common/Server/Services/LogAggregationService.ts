@@ -2,7 +2,7 @@ import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import LogDatabaseService from "./LogService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
-import { JSONObject } from "../../Types/JSON";
+import { JSONObject, ObjectType } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Includes from "../../Types/BaseDatabase/Includes";
@@ -21,7 +21,21 @@ export interface HistogramBucket {
   count: number;
 }
 
-export type LogAttributeFilterValue = string | Array<string>;
+/*
+ * A serialized QueryOperator (`{_type: "Search", value: "web"}` and friends)
+ * — how an attribute filter row that uses any operator other than the
+ * implicit `=` arrives over the wire, since every QueryOperator's toJSON()
+ * emits this shape. See appendAttributeOperatorFilter.
+ */
+export interface SerializedAttributeOperator {
+  _type: string;
+  value?: unknown;
+}
+
+export type LogAttributeFilterValue =
+  | string
+  | Array<string>
+  | SerializedAttributeOperator;
 export type LogAttributeFilters = Record<string, LogAttributeFilterValue>;
 
 export interface HistogramRequest {
@@ -902,6 +916,12 @@ export class LogAggregationService {
               value: new Includes(attrValue),
             }}), mapKeys(attributes), mapValues(attributes))`,
           );
+        } else if (typeof attrValue === "object" && attrValue !== null) {
+          LogAggregationService.appendAttributeOperatorFilter(
+            statement,
+            attrKey,
+            attrValue as unknown as Record<string, unknown>,
+          );
         } else {
           statement.append(
             SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
@@ -914,6 +934,204 @@ export class LogAggregationService {
           );
         }
       }
+    }
+  }
+
+  /*
+   * Attribute filter rows carry an operator (`contains`, `is any of`,
+   * `is empty`, ...) as well as a value, and the operator travels over the
+   * wire as the serialized `{_type, value}` shape every QueryOperator's
+   * toJSON() produces. The list query compiles those through
+   * StatementGenerator; these aggregation endpoints (histogram, facets,
+   * export) used to treat anything non-array as a plain string, so an
+   * operator object bound as "[object Object]", matched nothing, and left the
+   * log monitor preview showing an empty chart beside a populated list.
+   *
+   * Predicates mirror StatementGenerator's map-attribute branches, in the
+   * case-insensitive arrayExists form the rest of this builder uses — these
+   * keys are typed by a user, not canonical column names.
+   */
+  private static appendAttributeOperatorFilter(
+    statement: Statement,
+    attrKey: string,
+    attrValue: Record<string, unknown>,
+  ): void {
+    const operatorType: unknown = attrValue["_type"];
+    const rawValue: unknown = attrValue["value"];
+
+    type MatchesFunction = (predicate: Statement) => Statement;
+
+    // `<key> matches case-insensitively AND <predicate>` over the map pairs.
+    const matches: MatchesFunction = (predicate: Statement): Statement => {
+      return SQL`arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
+        type: TableColumnType.Text,
+        value: attrKey,
+      }}) AND `
+        .append(predicate)
+        .append(SQL`, mapKeys(attributes), mapValues(attributes))`);
+    };
+
+    type TextValueFunction = () => string;
+
+    const textValue: TextValueFunction = (): string => {
+      return rawValue === undefined || rawValue === null
+        ? ""
+        : String(rawValue);
+    };
+
+    type LikeFunction = (pattern: string) => Statement;
+
+    const like: LikeFunction = (pattern: string): Statement => {
+      return SQL`v ILIKE ${{
+        type: TableColumnType.Text,
+        value: pattern,
+      }}`;
+    };
+
+    type NumericFunction = (comparison: string) => Statement;
+
+    /*
+     * Map values are stored as text; toFloat64OrNull yields NULL for
+     * non-numeric values (including the empty default for a missing key),
+     * which compares false against any threshold and drops those rows.
+     */
+    const numeric: NumericFunction = (comparison: string): Statement => {
+      /*
+       * The comparison is appended as raw SQL — an interpolation in the SQL
+       * tag becomes a bound Identifier, which is not what `>` is. Every
+       * caller passes a literal from the switch below, never user input.
+       */
+      return SQL`toFloat64OrNull(v) `.append(comparison).append(
+        SQL` ${{
+          type: TableColumnType.Number,
+          value: Number(rawValue),
+        }}`,
+      );
+    };
+
+    type MembershipValuesFunction = () => Array<string>;
+
+    const membershipValues: MembershipValuesFunction = (): Array<string> => {
+      return Array.isArray(rawValue)
+        ? rawValue.map((entry: unknown) => {
+            return String(entry);
+          })
+        : [];
+    };
+
+    switch (operatorType) {
+      case ObjectType.EqualTo:
+        statement.append(
+          SQL` AND `.append(
+            matches(
+              SQL`v = ${{
+                type: TableColumnType.Text,
+                value: textValue(),
+              }}`,
+            ),
+          ),
+        );
+        return;
+
+      case ObjectType.NotEqual:
+        /*
+         * Negating the whole existence test is what makes rows that lack the
+         * attribute pass, matching the map-subscript form's semantics (a
+         * missing key reads as '' and so is != the value).
+         */
+        statement.append(
+          SQL` AND NOT `.append(
+            matches(
+              SQL`v = ${{
+                type: TableColumnType.Text,
+                value: textValue(),
+              }}`,
+            ),
+          ),
+        );
+        return;
+
+      case ObjectType.Search:
+        statement.append(SQL` AND `.append(matches(like(`%${textValue()}%`))));
+        return;
+
+      case ObjectType.NotContains:
+        statement.append(
+          SQL` AND NOT `.append(matches(like(`%${textValue()}%`))),
+        );
+        return;
+
+      case ObjectType.StartsWith:
+        statement.append(SQL` AND `.append(matches(like(`${textValue()}%`))));
+        return;
+
+      case ObjectType.EndsWith:
+        statement.append(SQL` AND `.append(matches(like(`%${textValue()}`))));
+        return;
+
+      case ObjectType.GreaterThan:
+        statement.append(SQL` AND `.append(matches(numeric(">"))));
+        return;
+
+      case ObjectType.GreaterThanOrEqual:
+        statement.append(SQL` AND `.append(matches(numeric(">="))));
+        return;
+
+      case ObjectType.LessThan:
+        statement.append(SQL` AND `.append(matches(numeric("<"))));
+        return;
+
+      case ObjectType.LessThanOrEqual:
+        statement.append(SQL` AND `.append(matches(numeric("<="))));
+        return;
+
+      case ObjectType.IsNull:
+        // "is empty" — no non-empty value stored under that key.
+        statement.append(SQL` AND NOT `.append(matches(SQL`v != ''`)));
+        return;
+
+      case ObjectType.NotNull:
+        statement.append(SQL` AND `.append(matches(SQL`v != ''`)));
+        return;
+
+      case ObjectType.Includes:
+      case ObjectType.IncludesNone: {
+        const values: Array<string> = membershipValues();
+
+        /*
+         * An empty membership list means "All", not "nothing" — skipping the
+         * predicate matches how StatementGenerator and the form treat it, and
+         * avoids emitting `IN ()`.
+         */
+        if (values.length === 0) {
+          return;
+        }
+
+        const membership: Statement = matches(
+          SQL`v IN (${{
+            type: TableColumnType.Text,
+            value: new Includes(values),
+          }})`,
+        );
+
+        statement.append(
+          (operatorType === ObjectType.Includes
+            ? SQL` AND `
+            : SQL` AND NOT `
+          ).append(membership),
+        );
+        return;
+      }
+
+      default:
+        /*
+         * An unrecognized shape is a filter this builder cannot honour.
+         * Refuse it rather than binding an object as text and quietly
+         * returning counts that disagree with the logs list.
+         */
+        throw new BadDataException(
+          `Unsupported attribute filter for "${attrKey}"`,
+        );
     }
   }
 

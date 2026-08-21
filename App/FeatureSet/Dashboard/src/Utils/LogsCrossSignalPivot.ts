@@ -2,6 +2,7 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Query from "Common/Types/BaseDatabase/Query";
 import Dictionary from "Common/Types/Dictionary";
+import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
 import Log from "Common/Models/AnalyticsModels/Log";
 import RumSession from "Common/Models/AnalyticsModels/RumSession";
 import Span from "Common/Models/AnalyticsModels/Span";
@@ -59,8 +60,13 @@ export interface LogsPivotScopeInput {
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
   sessionIds?: Array<string> | undefined;
-  /** Base attribute filters from the host page's logQuery. */
-  attributes?: Record<string, string> | undefined;
+  /*
+   * Base attribute filters from the host page's logQuery. Values are plain
+   * strings only for the implicit `=` operator; every other operator on an
+   * attribute filter row stores an operator instance (`Includes`, `Search`,
+   * ...), which no cross-signal scope field can express.
+   */
+  attributes?: Dictionary<DictionaryEntryValue> | undefined;
   /** Facet chips the user has applied in the sidebar / search bar. */
   appliedFacetFilters: Map<string, Set<string>>;
   /** Current picker selection; preset ranges resolve against "now". */
@@ -139,9 +145,23 @@ export const buildLogsPivotScope: BuildLogsPivotScopeFunction = (
   const attributes: Dictionary<string> = {};
 
   for (const [key, value] of Object.entries(input.attributes || {})) {
-    if (key && value) {
-      attributes[key] = value;
+    if (!key || !value) {
+      continue;
     }
+
+    /*
+     * The scope's attribute filters are exact single-value matches, so an
+     * operator filter (`contains`, `is any of`, `is empty`, ...) has no
+     * representation. Report it dropped rather than stringifying the operator
+     * object into the target explorer's query params, where it arrived as
+     * "[object Object]" and silently matched nothing.
+     */
+    if (typeof value === "object") {
+      dropped.push(`${ATTRIBUTE_FACET_PREFIX}${key}`);
+      continue;
+    }
+
+    attributes[key] = String(value);
   }
 
   const knownFacetKeys: Set<string> = new Set<string>([

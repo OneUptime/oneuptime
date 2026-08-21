@@ -450,3 +450,59 @@ export const buildDictionaryValue: (input: {
       return trimmed;
   }
 };
+
+/**
+ * Render a stored dictionary entry value as plain text, for the places that
+ * show a filter rather than edit it (the log viewer's filter chips, tooltips,
+ * summaries).
+ *
+ * Every operator other than `EqualTo` is stored as an operator *instance*
+ * (`Includes`, `Search`, `NotEqual`, ...) — see `buildDictionaryValue`. Those
+ * are objects, and handing one to React as a child throws "Objects are not
+ * valid as a React child (found: object with keys {_values})", which took the
+ * whole monitoring-criteria modal down with it and left no way to reach Save.
+ * Anything that puts an attribute filter on screen has to come through here.
+ *
+ * Equality renders bare (`web`) because that is the implicit operator and how
+ * these filters have always read; every other operator is prefixed with its
+ * label so the chip says what it actually matches (`contains web`,
+ * `is any of web, api`, `is not empty`).
+ */
+export const formatDictionaryValueForDisplay: (value: unknown) => string = (
+  value: unknown,
+): string => {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  const detected: RawValueAndOperator = detectOperatorFromValue(value);
+  const option: DictionaryFilterOperatorOption = getOperatorOption(
+    detected.operator,
+  );
+
+  // IsEmpty / IsNotEmpty carry no value — the label is the whole filter.
+  if (option.hidesValueInput) {
+    return option.label;
+  }
+
+  if (option.expectsMultiValue) {
+    const values: Array<string> = detected.rawValues ?? [];
+
+    /*
+     * An empty membership list is a no-op downstream (StatementGenerator
+     * skips the predicate rather than emitting `IN ()`), so there are no
+     * values to name — show the operator alone rather than a dangling label.
+     */
+    return values.length > 0
+      ? `${option.label} ${values.join(", ")}`
+      : option.label;
+  }
+
+  if (detected.operator === DictionaryFilterOperator.EqualTo) {
+    return detected.rawValue;
+  }
+
+  return detected.rawValue === ""
+    ? option.label
+    : `${option.label} ${detected.rawValue}`;
+};

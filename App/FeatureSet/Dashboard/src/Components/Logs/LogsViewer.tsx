@@ -88,6 +88,8 @@ import { shouldAdoptTimeRangeOverride } from "../../Utils/SharedTelemetryTimeCur
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 import Navigation from "Common/UI/Utils/Navigation";
 import Dictionary from "Common/Types/Dictionary";
+import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
+import { buildAttributeFilterChips } from "./LogsAttributeFilterChips";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   CrossSignalQueryParams,
@@ -712,22 +714,35 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     return [...props.sessionIds];
   }, [props.sessionIds]);
 
-  // Extract attribute filters from logQuery for histogram/facets API calls
-  const logQueryAttributes: Record<string, string> | undefined = useMemo(() => {
-    if (!props.logQuery) {
-      return undefined;
-    }
+  /*
+   * Extract attribute filters from logQuery for the chips, the
+   * histogram/facets API calls and the cross-signal pivots.
+   *
+   * These are NOT `Record<string, string>`. Since the attribute filter rows
+   * gained an operator dropdown, every operator other than `=` stores an
+   * operator instance (`Includes`, `Search`, `NotEqual`, ...) as the value —
+   * that is what the log monitor's criteria form writes into
+   * `MonitorStepLogMonitor.attributes` and what `toQuery()` hands over here.
+   * Typing them as strings is what let one reach `ActiveFilterChips` and
+   * throw "Objects are not valid as a React child", taking the criteria modal
+   * down with it. Each consumer below decides for itself how to narrow them.
+   */
+  const logQueryAttributes: Dictionary<DictionaryEntryValue> | undefined =
+    useMemo(() => {
+      if (!props.logQuery) {
+        return undefined;
+      }
 
-    const attributes: Record<string, string> | undefined = (
-      props.logQuery as any
-    ).attributes as Record<string, string> | undefined;
+      const attributes: Dictionary<DictionaryEntryValue> | undefined = (
+        props.logQuery as any
+      ).attributes as Dictionary<DictionaryEntryValue> | undefined;
 
-    if (!attributes || Object.keys(attributes).length === 0) {
-      return undefined;
-    }
+      if (!attributes || Object.keys(attributes).length === 0) {
+        return undefined;
+      }
 
-    return attributes;
-  }, [props.logQuery]);
+      return attributes;
+    }, [props.logQuery]);
 
   /*
    * Extract the entityKeys membership filter from logQuery so the histogram
@@ -1903,24 +1918,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       }
     }
 
-    if (logQueryAttributes) {
-      const attributeDisplayNames: Record<string, string> = {
-        "resource.k8s.cluster.name": "Cluster",
-        "resource.k8s.pod.name": "Pod",
-        "resource.k8s.container.name": "Container",
-        "resource.k8s.namespace.name": "Namespace",
-      };
-
-      for (const [attrKey, attrValue] of Object.entries(logQueryAttributes)) {
-        filters.push({
-          facetKey: `attributes.${attrKey}`,
-          value: attrValue,
-          displayKey: attributeDisplayNames[attrKey] || attrKey,
-          displayValue: attrValue,
-          readOnly: true,
-        });
-      }
-    }
+    filters.push(...buildAttributeFilterChips(logQueryAttributes));
 
     return filters;
   }, [
