@@ -81,7 +81,7 @@ export class MonitorStepSecurityEventsMonitorUtil {
       severityNames: (json["severityNames"] as Array<OcsfSeverity>) || [],
       classNames: (json["classNames"] as Array<string>) || [],
       telemetryServiceIds: ObjectID.fromJSONArray(
-        json["telemetryServiceIds"] as Array<JSONObject>,
+        (json["telemetryServiceIds"] as Array<JSONObject>) || [],
       ),
       lastXSecondsOfEvents: (json["lastXSecondsOfEvents"] as number) || 60,
     };

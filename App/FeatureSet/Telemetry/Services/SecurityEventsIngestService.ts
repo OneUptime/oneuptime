@@ -50,8 +50,8 @@ class SecurityEventStorageFlushError extends Error {
  * normalized to OCSF and written to the SecurityEvent ClickHouse table.
  *
  * Pipeline shape mirrors FluentLogsIngestService: the HTTP handler
- * validates, responds 200, and enqueues; the queue worker normalizes and
- * batch-writes through the fan-in writer with ack-after-flush.
+ * validates, enqueues, then responds 200; the queue worker normalizes
+ * and batch-writes through the fan-in writer with ack-after-flush.
  */
 export default class SecurityEventsIngestService extends OtelIngestBaseService {
   private static readonly DEFAULT_SERVICE_NAME: string = "Security Events";
@@ -84,11 +84,17 @@ export default class SecurityEventsIngestService extends OtelIngestBaseService {
         ...(format ? { format } : {}),
       } satisfies JSONObject;
 
-      Response.sendEmptySuccessResponse(req, res);
-
+      /*
+       * Enqueue BEFORE acknowledging: if the Redis enqueue fails the
+       * client gets an error and retries, instead of a 200 for events
+       * that were silently lost. (Session replay ingest fixed the same
+       * ordering; see TelemetryQueueService.addSessionReplayIngestJob.)
+       */
       await SecurityEventsQueueService.addSecurityEventsIngestJob(
         req as TelemetryRequest,
       );
+
+      Response.sendEmptySuccessResponse(req, res);
 
       return;
     } catch (error) {
@@ -289,10 +295,16 @@ export default class SecurityEventsIngestService extends OtelIngestBaseService {
   ): SecurityEventFormat | null {
     const fromQuery: string = String(req.query?.["format"] || "");
     const fromHeader: string = String(
-      req.headers["x-oneuptime-security-event-format"] || "",
+      req.headers?.["x-oneuptime-security-event-format"] || "",
     );
+    const fromBody: string =
+      req.body && typeof req.body === "object" && !Array.isArray(req.body)
+        ? String((req.body as JSONObject)["format"] || "")
+        : "";
 
-    return SecurityEventNormalizer.parseFormat(fromQuery || fromHeader);
+    return SecurityEventNormalizer.parseFormat(
+      fromQuery || fromHeader || fromBody,
+    );
   }
 
   private static async submitEventsBuffer(

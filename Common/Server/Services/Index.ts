@@ -236,6 +236,7 @@ import AlertOwnerTeamService from "./AlertOwnerTeamService";
 import AlertOwnerUserService from "./AlertOwnerUserService";
 import AlertSeverityService from "./AlertSeverityService";
 import DetectionRuleService from "./DetectionRuleService";
+import GoogleSecOpsConnectionService from "./GoogleSecOpsConnectionService";
 import AlertNoteTemplateService from "./AlertNoteTemplateService";
 
 // AlertEpisode Services
@@ -525,6 +526,7 @@ const services: Array<BaseService> = [
   AlertOwnerUserService,
   AlertSeverityService,
   DetectionRuleService,
+  GoogleSecOpsConnectionService,
   AlertNoteTemplateService,
   AlertFeedService,
 

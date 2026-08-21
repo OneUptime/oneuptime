@@ -503,6 +503,9 @@ import LogDropFilterService, {
 import DetectionRuleService, {
   Service as DetectionRuleServiceType,
 } from "Common/Server/Services/DetectionRuleService";
+import GoogleSecOpsConnectionService, {
+  Service as GoogleSecOpsConnectionServiceType,
+} from "Common/Server/Services/GoogleSecOpsConnectionService";
 import LogScrubRuleService, {
   Service as LogScrubRuleServiceType,
 } from "Common/Server/Services/LogScrubRuleService";
@@ -1314,6 +1317,7 @@ import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProcessor";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
+import GoogleSecOpsConnection from "Common/Models/DatabaseModels/GoogleSecOpsConnection";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import MetricPipelineRule from "Common/Models/DatabaseModels/MetricPipelineRule";
 import MetricRecordingRule from "Common/Models/DatabaseModels/MetricRecordingRule";
@@ -3128,6 +3132,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DetectionRule, DetectionRuleServiceType>(
         DetectionRule,
         DetectionRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<GoogleSecOpsConnection, GoogleSecOpsConnectionServiceType>(
+        GoogleSecOpsConnection,
+        GoogleSecOpsConnectionService,
       ).getRouter(),
     );
 

@@ -253,9 +253,10 @@ export function buildObservables(
  * uid, so downstream consumers can dedupe.
  */
 export function contentHashEventUid(payload: JSONObject): string {
+  const flattened: JSONObject = flattenPayload(payload);
   const canonical: string = JSON.stringify(
-    flattenPayload(payload),
-    Object.keys(flattenPayload(payload)).sort(),
+    flattened,
+    Object.keys(flattened).sort(),
   );
 
   return `sha256:${Crypto.getSha256Hash(canonical)}`;

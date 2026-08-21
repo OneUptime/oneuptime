@@ -180,7 +180,10 @@ export default class GoogleSecOpsAlertNormalizer {
       activityName: "Create",
       severityId: OcsfSeverityId[severityName],
       severityName,
-      statusName: readString(payload, "detection.alertState") || "",
+      statusName:
+        readString(payload, "detection.alertState") ||
+        readString(payload, "detection.alert_state") ||
+        "",
       message,
       vendorName: "Google",
       productName: "Google SecOps",

@@ -591,6 +591,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/integrations/datadog",
       },
       {
+        title: "Google SecOps",
+        url: "/docs/integrations/google-secops",
+      },
+      {
         title: "GitHub",
         url: "/docs/integrations/github",
       },
@@ -642,6 +646,10 @@ const DocsNav: NavGroup[] = [
       { title: "FluentBit", url: "/docs/telemetry/fluentbit" },
       { title: "Fluentd", url: "/docs/telemetry/fluentd" },
       { title: "Syslog", url: "/docs/telemetry/syslog" },
+      {
+        title: "Security Events (SIEM)",
+        url: "/docs/telemetry/security-events",
+      },
       {
         title: "Host OpenTelemetry Collector",
         url: "/docs/telemetry/host-otel-collector",

@@ -115,6 +115,7 @@ import LogPipeline from "./LogPipeline";
 import LogPipelineProcessor from "./LogPipelineProcessor";
 import LogDropFilter from "./LogDropFilter";
 import DetectionRule from "./DetectionRule";
+import GoogleSecOpsConnection from "./GoogleSecOpsConnection";
 import LogScrubRule from "./LogScrubRule";
 import MetricPipelineRule from "./MetricPipelineRule";
 import MetricRecordingRule from "./MetricRecordingRule";
@@ -455,6 +456,7 @@ const AllModelTypes: Array<{
   LogPipelineProcessor,
   LogDropFilter,
   DetectionRule,
+  GoogleSecOpsConnection,
   LogScrubRule,
   MetricPipelineRule,
   MetricRecordingRule,

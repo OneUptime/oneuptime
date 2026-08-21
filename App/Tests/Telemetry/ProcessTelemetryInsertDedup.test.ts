@@ -143,6 +143,8 @@ describe("shouldUseInsertDedup — per-type policy matrix", () => {
     TelemetryType.Profiles,
     TelemetryType.Syslog,
     TelemetryType.FluentLogs,
+    // Security events ride the same fan-in writer as fluent/syslog logs.
+    TelemetryType.SecurityEvents,
     TelemetryType.KubernetesCostIngest,
   ];
 
