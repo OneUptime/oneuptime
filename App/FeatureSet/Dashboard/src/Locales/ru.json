@@ -59,6 +59,8 @@
       "scheduledMaintenanceDescription": "Планируйте и управляйте обслуживанием.",
       "logsTitle": "Логи",
       "logsDescription": "Поиск и анализ логов.",
+      "securityEventsTitle": "Security Events",
+      "securityEventsDescription": "SIEM signals correlated with your observability data.",
       "metricsTitle": "Метрики",
       "metricsDescription": "Отслеживайте и визуализируйте системные метрики ваших сервисов.",
       "tracesTitle": "Трассировка",

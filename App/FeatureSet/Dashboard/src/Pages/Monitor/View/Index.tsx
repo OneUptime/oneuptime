@@ -62,6 +62,7 @@ import useAsyncEffect from "use-async-effect";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
 import LogMonitorPreview from "../../../Components/Monitor/LogMonitor/LogMonitorPreview";
+import SecurityEventsMonitorPreview from "../../../Components/Monitor/SecurityEventsMonitor/SecurityEventsMonitorPreview";
 import TraceTable from "../../../Components/Traces/TraceTable";
 import { MonitorStepTraceMonitorUtil } from "Common/Types/Monitor/MonitorStepTraceMonitor";
 import MetricMonitorPreview from "../../../Components/Monitor/MetricMonitor/MetricMonitorPreview";
@@ -842,6 +843,27 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 monitorStepLogMonitor={
                   monitor.monitorSteps.data?.monitorStepsInstanceArray[0]?.data
                     ?.logMonitor
+                }
+              />
+            </Card>
+          </div>
+        )}
+
+      {monitor?.monitorType === MonitorType.SecurityEvents &&
+        monitor.monitorSteps &&
+        monitor.monitorSteps.data?.monitorStepsInstanceArray &&
+        monitor.monitorSteps.data?.monitorStepsInstanceArray.length > 0 && (
+          <div>
+            <Card
+              title={"Security Events Preview"}
+              description={
+                "Preview of the security events that match the filter of this monitor."
+              }
+            >
+              <SecurityEventsMonitorPreview
+                monitorStepSecurityEventsMonitor={
+                  monitor.monitorSteps.data?.monitorStepsInstanceArray[0]?.data
+                    ?.securityEventsMonitor
                 }
               />
             </Card>

@@ -23,6 +23,12 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import CronTab from "Common/Server/Utils/CronTab";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import LogMonitorResponse from "Common/Types/Monitor/LogMonitor/LogMonitorResponse";
+import SecurityEventsMonitorResponse from "Common/Types/Monitor/SecurityEventsMonitor/SecurityEventsMonitorResponse";
+import MonitorStepSecurityEventsMonitor, {
+  MonitorStepSecurityEventsMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepSecurityEventsMonitor";
+import SecurityEventService from "Common/Server/Services/SecurityEventService";
+import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import MonitorStepLogMonitor, {
   MonitorStepLogMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepLogMonitor";
@@ -130,6 +136,7 @@ import TelemetryQueueService, {
 
 type TelemetryMonitorResponse =
   | LogMonitorResponse
+  | SecurityEventsMonitorResponse
   | TraceMonitorResponse
   | MetricMonitorResponse
   | ExceptionMonitorResponse
@@ -149,6 +156,7 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: () => Promise<void> =
 
         monitorType: DatabaseQueryHelper.any([
           MonitorType.Logs,
+          MonitorType.SecurityEvents,
           MonitorType.Traces,
           MonitorType.Metrics,
           MonitorType.Exceptions,
@@ -983,6 +991,7 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
   projectId: ObjectID;
 }): Promise<
   | LogMonitorResponse
+  | SecurityEventsMonitorResponse
   | TraceMonitorResponse
   | MetricMonitorResponse
   | ExceptionMonitorResponse
@@ -992,6 +1001,14 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
 
   if (monitorType === MonitorType.Logs) {
     return monitorLogs({
+      monitorStep,
+      monitorId,
+      projectId,
+    });
+  }
+
+  if (monitorType === MonitorType.SecurityEvents) {
+    return monitorSecurityEvents({
       monitorStep,
       monitorId,
       projectId,
@@ -3473,3 +3490,45 @@ export const monitorLogs: MonitorLogsFunction = async (data: {
     monitorId: data.monitorId,
   };
 };
+
+type MonitorSecurityEventsFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}) => Promise<SecurityEventsMonitorResponse>;
+
+export const monitorSecurityEvents: MonitorSecurityEventsFunction =
+  async (data: {
+    monitorStep: MonitorStep;
+    monitorId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<SecurityEventsMonitorResponse> => {
+    /*
+     * Same fallback rationale as monitorLogs above: a step saved on
+     * defaults can persist its sub-config as undefined, and throwing here
+     * would wedge the monitor instead of evaluating the default query.
+     */
+    const securityEventsQueryConfig: MonitorStepSecurityEventsMonitor =
+      data.monitorStep.data?.securityEventsMonitor ||
+      MonitorStepSecurityEventsMonitorUtil.getDefault();
+
+    const query: Query<SecurityEvent> =
+      MonitorStepSecurityEventsMonitorUtil.toQuery(securityEventsQueryConfig);
+    query.projectId = data.projectId;
+
+    const countEvents: PositiveNumber = await SecurityEventService.countBy({
+      query: query,
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return {
+      projectId: data.projectId,
+      securityEventCount: countEvents.toNumber(),
+      securityEventQuery: JSONFunctions.anyObjectToJSONObject(query),
+      monitorId: data.monitorId,
+    };
+  };

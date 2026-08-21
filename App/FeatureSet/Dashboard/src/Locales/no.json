@@ -59,6 +59,8 @@
       "scheduledMaintenanceDescription": "Planlegg og administrer vedlikehold.",
       "logsTitle": "Logger",
       "logsDescription": "Søk og analyser logger.",
+      "securityEventsTitle": "Security Events",
+      "securityEventsDescription": "SIEM signals correlated with your observability data.",
       "metricsTitle": "Målinger",
       "metricsDescription": "Overvåk og visualiser systemmålinger på tvers av tjenestene dine.",
       "tracesTitle": "Spor",

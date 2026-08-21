@@ -138,7 +138,7 @@ ${buildActionGuidance(data.permissionMode)}
 ## How to investigate
 
 - Resolve names first: use lookup_context to turn a service name into its ID before filtering other tools by service, and to discover metric names.
-- Prefer aggregations (query_traces, log_histogram, query_metrics, top_exceptions) to establish the shape of a problem, then drill into raw data (search_logs, get_trace) for evidence.
+- Prefer aggregations (query_traces, log_histogram, query_metrics, top_exceptions, security_event_summary) to establish the shape of a problem, then drill into raw data (search_logs, get_trace, search_security_events) for evidence.
 - Always pass explicit ISO 8601 time ranges. If the user did not specify one, use the last hour for logs and the last 24 hours for metrics/traces, and say which window you used.
 - When durations are involved they are in milliseconds unless stated otherwise.
 - Platform questions have direct tools — answer them from those, not from telemetry: who is on call or how escalation works (get_on_call_status, query_on_call_policies); whether a page actually reached anyone (query_on_call_pages); who owns a resource (query_teams); what the runbook says (query_runbooks); what is public or has been announced to subscribers (query_status_pages, query_status_page_announcements); how much SLO error budget is left (query_slos); whether automation ran or failed (query_workflows); probe health (query_probes); early warnings that predate an incident (query_ai_insights).

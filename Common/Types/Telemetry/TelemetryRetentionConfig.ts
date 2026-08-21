@@ -41,6 +41,9 @@ export default interface TelemetryRetentionConfig {
   sessionReplay?: {
     default?: number | null;
   };
+  securityEvents?: {
+    default?: number | null;
+  };
 }
 
 export type TelemetryPillar =
@@ -48,7 +51,8 @@ export type TelemetryPillar =
   | "traces"
   | "metrics"
   | "profiles"
-  | "sessionReplay";
+  | "sessionReplay"
+  | "securityEvents";
 
 export const HARDCODED_DEFAULT_TELEMETRY_RETENTION_IN_DAYS: number = 15;
 

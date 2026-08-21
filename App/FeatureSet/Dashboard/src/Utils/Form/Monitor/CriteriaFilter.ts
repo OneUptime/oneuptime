@@ -332,6 +332,12 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    if (monitorType === MonitorType.SecurityEvents) {
+      options = options.filter((i: DropdownOption) => {
+        return i.value === CheckOn.SecurityEventCount;
+      });
+    }
+
     if (monitorType === MonitorType.Traces) {
       options = options.filter((i: DropdownOption) => {
         return i.value === CheckOn.SpanCount;
@@ -466,6 +472,7 @@ export default class CriteriaFilterUtil {
     if (
       checkOn === CheckOn.LogCount ||
       checkOn === CheckOn.SpanCount ||
+      checkOn === CheckOn.SecurityEventCount ||
       checkOn === CheckOn.MetricValue
     ) {
       const allowAnomaly: boolean = checkOn === CheckOn.MetricValue;
@@ -1002,6 +1009,10 @@ export default class CriteriaFilterUtil {
     }
 
     if (checkOn === CheckOn.LogCount) {
+      return "1";
+    }
+
+    if (checkOn === CheckOn.SecurityEventCount) {
       return "1";
     }
 

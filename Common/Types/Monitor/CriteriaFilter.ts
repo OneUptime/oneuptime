@@ -49,6 +49,9 @@ export enum CheckOn {
   // Log monitors.
   LogCount = "Log Count",
 
+  // Security event monitors.
+  SecurityEventCount = "Security Event Count",
+
   // Trace monitors.
   SpanCount = "Span Count",
 

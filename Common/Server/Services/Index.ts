@@ -76,6 +76,7 @@ import LlmProviderService from "./LlmProviderService";
 import DataSourceService from "./DataSourceService";
 import AuditLogService from "./AuditLogService";
 import LogService from "./LogService";
+import SecurityEventService from "./SecurityEventService";
 import MailService from "./MailService";
 import MetricService from "./MetricService";
 import MetricItemAggMV1mService from "./MetricItemAggMV1mService";
@@ -234,6 +235,8 @@ import AlertInternalNoteService from "./AlertInternalNoteService";
 import AlertOwnerTeamService from "./AlertOwnerTeamService";
 import AlertOwnerUserService from "./AlertOwnerUserService";
 import AlertSeverityService from "./AlertSeverityService";
+import DetectionRuleService from "./DetectionRuleService";
+import GoogleSecOpsConnectionService from "./GoogleSecOpsConnectionService";
 import AlertNoteTemplateService from "./AlertNoteTemplateService";
 
 // AlertEpisode Services
@@ -522,6 +525,8 @@ const services: Array<BaseService> = [
   AlertOwnerTeamService,
   AlertOwnerUserService,
   AlertSeverityService,
+  DetectionRuleService,
+  GoogleSecOpsConnectionService,
   AlertNoteTemplateService,
   AlertFeedService,
 
@@ -607,6 +612,7 @@ export const AnalyticsServices: Array<
   RumSessionService,
   RumSessionChunkService,
   AuditLogService,
+  SecurityEventService,
 ];
 
 export default services;

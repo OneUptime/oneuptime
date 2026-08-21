@@ -1,5 +1,12 @@
 enum AnalyticsTableName {
   Log = "LogItemV3",
+  /*
+   * SIEM signals normalized to OCSF at ingest (Google SecOps UDM, native
+   * OCSF, generic security JSON). Peer of LogItemV3 in layout: same sort
+   * key shape, per-row retentionDate TTL, and Map(String,String)
+   * attributes with a keys sidecar for arbitrary-field filtering.
+   */
+  SecurityEvent = "SecurityEventItemV1",
   Metric = "MetricItemV3",
   ExceptionInstance = "ExceptionItemV3",
   Span = "SpanItemV3",

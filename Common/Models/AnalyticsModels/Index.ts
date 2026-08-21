@@ -1,5 +1,6 @@
 import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
 import Log from "./Log";
+import SecurityEvent from "./SecurityEvent";
 import Metric from "./Metric";
 import MetricItemAggMV1m from "./MetricItemAggMV1m";
 import MetricItemAggMV1mByHostV2 from "./MetricItemAggMV1mByHostV2";
@@ -59,6 +60,7 @@ const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
   RumSession,
   RumSessionChunk,
   AuditLog,
+  SecurityEvent,
 ];
 
 const modelTypeMap: { [key: string]: { new (): AnalyticsBaseModel } } = {};

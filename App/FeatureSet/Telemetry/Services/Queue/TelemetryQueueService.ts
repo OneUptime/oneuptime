@@ -22,6 +22,7 @@ export enum TelemetryType {
   Profiles = "profiles",
   Syslog = "syslog",
   FluentLogs = "fluentlogs",
+  SecurityEvents = "security-events",
   ProbeIngest = "probe-ingest",
   ServerMonitorIngest = "server-monitor-ingest",
   IncomingRequestIngest = "incoming-request-ingest",
@@ -523,6 +524,12 @@ export default class TelemetryQueueService {
     req: TelemetryRequest,
   ): Promise<void> {
     return this.addTelemetryIngestJob(req, TelemetryType.FluentLogs);
+  }
+
+  public static async addSecurityEventsIngestJob(
+    req: TelemetryRequest,
+  ): Promise<void> {
+    return this.addTelemetryIngestJob(req, TelemetryType.SecurityEvents);
   }
 
   public static async addProbeIngestJob(data: {

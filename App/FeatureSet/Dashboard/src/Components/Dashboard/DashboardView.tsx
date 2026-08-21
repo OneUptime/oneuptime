@@ -29,6 +29,8 @@ import DashboardDataSourceGaugeComponentUtil from "Common/Utils/Dashboard/Compon
 import DashboardDataSourceTableComponentUtil from "Common/Utils/Dashboard/Components/DashboardDataSourceTableComponent";
 import DashboardLogStreamComponentUtil from "Common/Utils/Dashboard/Components/DashboardLogStreamComponent";
 import DashboardLogChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardLogChartComponent";
+import DashboardSecurityEventsListComponentUtil from "Common/Utils/Dashboard/Components/DashboardSecurityEventsListComponent";
+import DashboardSecurityEventsFlowComponentUtil from "Common/Utils/Dashboard/Components/DashboardSecurityEventsFlowComponent";
 import DashboardTraceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceListComponent";
 import DashboardTraceChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceChartComponent";
 import DashboardTraceTableComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceTableComponent";
@@ -604,6 +606,16 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
           if (componentType === DashboardComponentType.LogChart) {
             newComponent = DashboardLogChartComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.SecurityEventsList) {
+            newComponent =
+              DashboardSecurityEventsListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.SecurityEventsFlow) {
+            newComponent =
+              DashboardSecurityEventsFlowComponentUtil.getDefaultComponent();
           }
 
           if (componentType === DashboardComponentType.TraceList) {

@@ -9,6 +9,7 @@ import DomainLookupMethod from "Common/Types/Monitor/DomainMonitor/DomainLookupM
 import MonitorStep, { MonitorStepType } from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
+import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
 
 /*
  * WHY THIS FILE EXISTS
@@ -370,6 +371,8 @@ export default class MonitorStepViewModel {
         return MonitorStepViewModel.getExternalStatusPageRows(data);
       case MonitorType.Logs:
         return MonitorStepViewModel.getLogRows(data);
+      case MonitorType.SecurityEvents:
+        return MonitorStepViewModel.getSecurityEventsRows(data);
       case MonitorType.Traces:
         return MonitorStepViewModel.getTraceRows(data);
       case MonitorType.Exceptions:
@@ -955,6 +958,76 @@ export default class MonitorStepViewModel {
         description: "Telemetry services to monitor.",
         valueType: MonitorStepViewValueType.TelemetryServices,
         value: (logMonitor?.telemetryServiceIds || []).map(
+          (serviceId: { toString: () => string }) => {
+            return serviceId.toString();
+          },
+        ),
+        placeholder: "No telemetry services entered",
+      }),
+    ]);
+  }
+
+  private static getSecurityEventsRows(
+    data: MonitorStepType,
+  ): Array<MonitorStepViewRow> {
+    const securityEventsMonitor: MonitorStepType["securityEventsMonitor"] =
+      data.securityEventsMonitor;
+
+    return compact([
+      optional({
+        key: "securityEventMessage",
+        title: "Filter Event Message",
+        description: "Filter by event message with this text:",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(securityEventsMonitor?.messageContains),
+        placeholder: "No event message entered",
+      }),
+      optional({
+        key: "lastXSecondsOfEvents",
+        title: "Monitor security events for the last (time)",
+        description: "How many seconds of security events to monitor.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toDuration(securityEventsMonitor?.lastXSecondsOfEvents),
+        placeholder: "1 minute",
+      }),
+      optional({
+        key: "securityEventSeverityNames",
+        title: "Event Severity",
+        description: "OCSF severity of the security events to monitor.",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        value: (securityEventsMonitor?.severityNames || []).map(
+          (severity: OcsfSeverity) => {
+            return String(severity);
+          },
+        ),
+        placeholder: "No severity entered",
+      }),
+      optional({
+        key: "securityEventClassNames",
+        title: "Event Class",
+        description: "OCSF event classes to monitor.",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        value: (securityEventsMonitor?.classNames || []).map(
+          (className: string) => {
+            return String(className);
+          },
+        ),
+        placeholder: "No event class entered",
+      }),
+      optional({
+        key: "securityEventAttributes",
+        title: "Event Attributes",
+        description: "Attributes of the security events to monitor.",
+        valueType: MonitorStepViewValueType.JSON,
+        value: securityEventsMonitor?.attributes as JSONObject | undefined,
+        placeholder: "No attributes entered",
+      }),
+      optional({
+        key: "securityEventTelemetryServices",
+        title: "Telemetry Services",
+        description: "Telemetry services to monitor.",
+        valueType: MonitorStepViewValueType.TelemetryServices,
+        value: (securityEventsMonitor?.telemetryServiceIds || []).map(
           (serviceId: { toString: () => string }) => {
             return serviceId.toString();
           },

@@ -84,6 +84,9 @@ const InitRoutes: React.LazyExoticComponent<
 const LogsRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/LogsRoutes");
 });
+const SecurityEventsRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/SecurityEventsRoutes");
+});
 const MetricsRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/MetricsRoutes");
 });
@@ -529,6 +532,12 @@ const App: () => JSX.Element = () => {
             <PageRoute
               path={RouteMap[PageMap.LOGS_ROOT]?.toString() || ""}
               element={<LogsRoutes {...commonPageProps} />}
+            />
+
+            {/* Security Events */}
+            <PageRoute
+              path={RouteMap[PageMap.SECURITY_EVENTS_ROOT]?.toString() || ""}
+              element={<SecurityEventsRoutes {...commonPageProps} />}
             />
 
             {/* Metrics */}

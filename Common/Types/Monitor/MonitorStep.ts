@@ -13,6 +13,9 @@ import MonitorCriteria from "./MonitorCriteria";
 import MonitorStepLogMonitor, {
   MonitorStepLogMonitorUtil,
 } from "./MonitorStepLogMonitor";
+import MonitorStepSecurityEventsMonitor, {
+  MonitorStepSecurityEventsMonitorUtil,
+} from "./MonitorStepSecurityEventsMonitor";
 import MonitorType from "./MonitorType";
 import BrowserType from "./SyntheticMonitors//BrowserType";
 import ScreenSizeType from "./SyntheticMonitors/ScreenSizeType";
@@ -163,6 +166,9 @@ export interface MonitorStepType {
   // Log monitor type.
   logMonitor?: MonitorStepLogMonitor | undefined;
 
+  // Security events monitor type.
+  securityEventsMonitor?: MonitorStepSecurityEventsMonitor | undefined;
+
   // trace monitor type.
   traceMonitor?: MonitorStepTraceMonitor | undefined;
 
@@ -251,6 +257,7 @@ export default class MonitorStep extends DatabaseProperty {
       requestTimeoutInMs: undefined,
       retryCount: undefined,
       logMonitor: undefined,
+      securityEventsMonitor: undefined,
       traceMonitor: undefined,
       metricMonitor: undefined,
       exceptionMonitor: undefined,
@@ -313,6 +320,10 @@ export default class MonitorStep extends DatabaseProperty {
       logMonitor:
         arg.monitorType === MonitorType.Logs
           ? MonitorStepLogMonitorUtil.getDefault()
+          : undefined,
+      securityEventsMonitor:
+        arg.monitorType === MonitorType.SecurityEvents
+          ? MonitorStepSecurityEventsMonitorUtil.getDefault()
           : undefined,
       traceMonitor:
         arg.monitorType === MonitorType.Traces
@@ -491,6 +502,13 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
+  public setSecurityEventsMonitor(
+    securityEventsMonitor: MonitorStepSecurityEventsMonitor,
+  ): MonitorStep {
+    this.data!.securityEventsMonitor = securityEventsMonitor;
+    return this;
+  }
+
   public setMetricMonitor(
     metricMonitor: MonitorStepMetricMonitor,
   ): MonitorStep {
@@ -643,6 +661,7 @@ export default class MonitorStep extends DatabaseProperty {
         requestTimeoutInMs: undefined,
         retryCount: undefined,
         logMonitor: undefined,
+        securityEventsMonitor: undefined,
         exceptionMonitor: undefined,
         kubernetesMonitor: undefined,
         dockerMonitor: undefined,
@@ -935,6 +954,11 @@ export default class MonitorStep extends DatabaseProperty {
                 this.data.logMonitor || MonitorStepLogMonitorUtil.getDefault(),
               )
             : undefined,
+          securityEventsMonitor: this.data.securityEventsMonitor
+            ? MonitorStepSecurityEventsMonitorUtil.toJSON(
+                this.data.securityEventsMonitor,
+              )
+            : undefined,
           metricMonitor: this.data.metricMonitor
             ? MonitorStepMetricMonitorUtil.toJSON(this.data.metricMonitor)
             : undefined,
@@ -1114,6 +1138,9 @@ export default class MonitorStep extends DatabaseProperty {
       logMonitor: json["logMonitor"]
         ? (json["logMonitor"] as JSONObject)
         : undefined,
+      securityEventsMonitor: json["securityEventsMonitor"]
+        ? (json["securityEventsMonitor"] as JSONObject)
+        : undefined,
       /*
        * Normalize rather than pass the raw JSON straight through. Steps saved
        * by older builds can carry a metricMonitor with no metricViewConfig,
@@ -1229,6 +1256,7 @@ export default class MonitorStep extends DatabaseProperty {
         requestTimeoutInMs: Zod.number().optional(),
         retryCount: Zod.number().optional(),
         logMonitor: Zod.any().optional(),
+        securityEventsMonitor: Zod.any().optional(),
         traceMonitor: Zod.any().optional(),
         metricMonitor: Zod.any().optional(),
         profileMonitor: Zod.any().optional(),

@@ -4,6 +4,7 @@ enum TelemetryType {
   Log = "Log",
   Exception = "Exception",
   Profile = "Profile",
+  SecurityEvent = "SecurityEvent",
 }
 
 export default TelemetryType;
