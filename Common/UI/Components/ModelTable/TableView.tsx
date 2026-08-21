@@ -56,6 +56,19 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const [error, setError] = useState<string>("");
+  /*
+   * Kept apart from `error` because the two deserve different treatment.
+   * `error` is the result of something the user asked for - deleting a view -
+   * and is worth a modal. This one is the mount-time list fetch, which every
+   * table in the product runs whether or not anybody went looking for a saved
+   * view, so it must not put a dialog over a page the user came to read.
+   *
+   * Issue #3305 was that dialog: one permission list that a domain-scoped role
+   * could not satisfy, and every table in the dashboard opened onto
+   * "Something went wrong...". The permission list is fixed; this makes the
+   * next such gap cost the control rather than the page.
+   */
+  const [loadError, setLoadError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [allTableViews, setAllTableViews] = useState<Array<TableView>>([]);
   const [tableViewToDelete, setTableViewToDelete] = useState<
@@ -79,7 +92,7 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
   // load all the filters for this user and for this project.
   const fetchTableViews: PromiseVoidFunction = async (): Promise<void> => {
     try {
-      setError("");
+      setLoadError("");
       setIsLoading(true);
 
       const tableViews: ListResult<TableView> = await ModelAPI.getList({
@@ -106,7 +119,8 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
 
       setAllTableViews(tableViews.data);
     } catch (err) {
-      setError(API.getFriendlyErrorMessage(err as Error));
+      setAllTableViews([]);
+      setLoadError(API.getFriendlyErrorMessage(err as Error));
     }
 
     setIsLoading(false);
@@ -138,7 +152,7 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
 
   useEffect(() => {
     fetchTableViews().catch((err: Error) => {
-      setError(API.getFriendlyErrorMessage(err as Error));
+      setLoadError(API.getFriendlyErrorMessage(err as Error));
     });
   }, []);
 
@@ -250,9 +264,22 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
 
       const elements: Array<ReactElement> = [];
 
+      /*
+       * Say why the list is empty rather than showing an empty menu. The reason
+       * lives inside the control it belongs to, so the rest of the page is
+       * untouched.
+       */
+      if (loadError) {
+        elements.push(
+          <MoreMenuSection title="Saved Views" key={"saved-views-error"}>
+            <div className="px-3 pb-2 text-sm text-red-600">{loadError}</div>
+          </MoreMenuSection>,
+        );
+      }
+
       if (allTableViews.length > 0) {
         elements.push(
-          <MoreMenuSection title="Saved Views">
+          <MoreMenuSection title="Saved Views" key={"saved-views"}>
             {getViewItems()}
           </MoreMenuSection>,
         );
@@ -495,6 +522,11 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
     }
   };
 
+  /*
+   * Nothing to offer and nothing to say: no saved views, nothing worth saving,
+   * and no view applied. A failed load is deliberately not a reason to render -
+   * a user who never opens the menu should not be told the menu is broken.
+   */
   if (
     !isLoading &&
     allTableViews.length === 0 &&

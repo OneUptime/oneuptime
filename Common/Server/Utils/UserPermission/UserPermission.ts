@@ -26,6 +26,58 @@ export default class UserPermissionUtil {
     return `${userId.toString()}:${projectId.toString()}`;
   }
 
+  /*
+   * Adds the implicit `ProjectUser` grant to a member's permission set.
+   *
+   * `ProjectUser` is not stored on any TeamPermission row - it is what being a
+   * member of the project means, and it is what shared workspace resources
+   * (saved table views, labels, teams, member profiles) are read through. A
+   * user whose teams only grant a domain role such as `MonitorViewer` holds no
+   * project-wide role, so without this the dashboard refuses to render the very
+   * pages that role exists to give them.
+   *
+   * Applied on the way out of the cache as well as at refresh time. A snapshot
+   * written before this existed would otherwise keep a signed-in member locked
+   * out until something invalidated it, and the cache entry lives for 30 days
+   * (GlobalCache.setString's default) unless a team or membership change
+   * rewrites it first.
+   *
+   * Deliberately NOT part of `getDefaultUserTenantAccessPermission`: that is
+   * also the permission set handed to a user who has not satisfied a project's
+   * SSO requirement, and such a user is not yet a member for this purpose.
+   */
+  public static withProjectUserPermission(
+    permission: UserTenantAccessPermission,
+  ): UserTenantAccessPermission {
+    const alreadyGranted: boolean = permission.permissions.some(
+      (userPermission: UserPermission) => {
+        return userPermission.permission === Permission.ProjectUser;
+      },
+    );
+
+    if (alreadyGranted) {
+      return permission;
+    }
+
+    /*
+     * A new object rather than a push. The caller may be holding a snapshot
+     * that came out of a cache and is shared with something else; appending in
+     * place would grow that array once per read.
+     */
+    return {
+      ...permission,
+      permissions: [
+        ...permission.permissions,
+        {
+          permission: Permission.ProjectUser,
+          labelIds: [],
+          isBlockPermission: false,
+          _type: "UserPermission",
+        },
+      ],
+    };
+  }
+
   @CaptureSpan()
   public static async getUserTenantAccessPermissionFromCache(
     userId: ObjectID,
@@ -45,7 +97,11 @@ export default class UserPermissionUtil {
       return null;
     }
 
-    return json;
+    if (!json.permissions) {
+      json.permissions = [];
+    }
+
+    return this.withProjectUserPermission(json);
   }
 
   @CaptureSpan()

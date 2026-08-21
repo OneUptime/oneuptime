@@ -192,10 +192,23 @@ export class AccessTokenService extends BaseService {
       });
     }
 
-    const permission: UserTenantAccessPermission =
+    const defaultPermission: UserTenantAccessPermission =
       UserPermissionUtil.getDefaultUserTenantAccessPermission(projectId);
 
-    permission.permissions = permission.permissions.concat(userPermissions);
+    defaultPermission.permissions =
+      defaultPermission.permissions.concat(userPermissions);
+
+    /*
+     * Reaching here means the user holds an accepted membership in at least one
+     * team of this project, so they are a project member whatever roles those
+     * teams carry - the empty-team case returned above. `ProjectUser` says
+     * exactly that, and shared workspace resources - saved table views, labels,
+     * teams, member rows - are read through it. Without it a user scoped to a
+     * single domain (Monitor Viewer and nothing else) cannot load the tables
+     * that role exists to give them.
+     */
+    const permission: UserTenantAccessPermission =
+      UserPermissionUtil.withProjectUserPermission(defaultPermission);
 
     await GlobalCache.setJSON(
       PermissionNamespace.ProjectPermission,
