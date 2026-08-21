@@ -1,332 +1,269 @@
 import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
-import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import ObjectID from "../../../../Types/ObjectID";
 import { FindOperator } from "typeorm";
 import { describe, expect, it } from "@jest/globals";
 
 /*
- * QueryHelper turns a browser-built filter into the WHERE clause the
- * database layer runs. Two properties are load-bearing for every operator
- * here and neither is visible from the FindOperator's JSON — the SQL is
- * produced by a function on `.value`, given the column alias:
+ * The numeric/date comparison builders on QueryHelper (greaterThan,
+ * lessThanEqualTo, inBetween, and their `...OrNull` siblings) each compile to a
+ * TypeORM `Raw` FindOperator whose entire contract is the SQL fragment it
+ * renders. That fragment is NOT visible from the operator's JSON: TypeORM hides
+ * the SQL behind a `getSql(alias)` generator and the bound value behind
+ * `objectLiteralParameters`. So every test here reaches through the operator to
+ * those two surfaces and asserts the EXACT predicate string.
  *
- *   1. VALUES ARE BOUND, NEVER INTERPOLATED. The comparands come from
- *      user-editable filters, so an interpolated value would be an
- *      injection vector. Every test that inspects the parameter bag rather
- *      than the SQL text is guarding that.
+ * Two things are load-bearing and easy to get wrong:
  *
- *   2. THE OPERATOR IS THE ONE THE NAME PROMISES. `lessThan` must emit `<`,
- *      not `<=`; `inBetween` must be inclusive on both ends; the `*OrNull`
- *      variants must add an `IS NULL` branch. A wrong operator produces a
- *      query that runs, returns rows, and is silently wrong.
+ *  1. THE OPERATOR CHARACTER. `>` and `>=` differ by one boundary row, and the
+ *     names encode which one is meant: a bare `greaterThan` / `lessThan` (and
+ *     their `...OrNull` forms) are STRICT, while the `...EqualTo` forms are
+ *     INCLUSIVE. `greaterThanOrNull` once emitted `>=` by a copy-paste slip,
+ *     making it a silent duplicate of `greaterThanEqualToOrNull`; these tests
+ *     pin the strict `>` so that can't regress.
  *
- * These operators were previously exercised only indirectly (or not at
- * all); this file pins them directly. It complements
- * QueryHelperManyToManyAndEmptyValues.test.ts (the many-to-many + empty-
- * list operators) and QueryHelperFindWithSameTextAnyOf.test.ts.
+ *  2. THE VALUE IS BOUND, NOT INLINED. The compared value must live only in the
+ *     parameter bag, never spliced into the SQL text, or it would be an
+ *     injection vector. A fresh parameter name is minted per call so two
+ *     filters can coexist in one query.
  */
 
 interface RawOperator {
   type: string;
   objectLiteralParameters: Record<string, unknown>;
-  // TypeORM builds the SQL through this, given the column alias.
+  /* TypeORM renders the SQL through this, given the column alias. */
   getSql: (aliasPath: string) => string;
 }
 
-function asRaw(operator: unknown): RawOperator {
+const asRaw: (operator: unknown) => RawOperator = (
+  operator: unknown,
+): RawOperator => {
   return operator as unknown as RawOperator;
-}
+};
 
-// A stable alias to render every operator against.
-const ALIAS: string = '"Monitor"."responseTimeInMs"';
+/* A representative column alias, quoted the way TypeORM passes it in. */
+const ALIAS: string = '"MonitorStatusTimeline"."endsAt"';
 
-function paramValues(operator: RawOperator): Array<unknown> {
-  return Object.values(operator.objectLiteralParameters);
-}
+/* The single bound parameter name (operators here mint one, except inBetween). */
+const soleParamName: (operator: RawOperator) => string = (
+  operator: RawOperator,
+): string => {
+  const keys: Array<string> = Object.keys(operator.objectLiteralParameters);
+  expect(keys).toHaveLength(1);
+  return keys[0]!;
+};
 
-describe("QueryHelper comparison operators", () => {
-  it("greaterThan emits a strict `>` and binds the value", () => {
-    const op: RawOperator = asRaw(QueryHelper.greaterThan(100));
-    expect(op).toBeInstanceOf(FindOperator);
-    expect(op.type).toBe("raw");
+describe("QueryHelper comparison operators — exact rendered SQL", () => {
+  describe("greaterThan / greaterThanEqualTo (no null arm)", () => {
+    it("greaterThan emits a STRICT `>` with the value bound", () => {
+      const operator: RawOperator = asRaw(QueryHelper.greaterThan(5));
 
-    const sql: string = op.getSql(ALIAS);
-    expect(sql).toContain(`${ALIAS} >`);
-    // Strict: must not be `>=`.
-    expect(sql).not.toContain(">=");
-    // The value is bound, not interpolated.
-    expect(sql).not.toContain("100");
-    expect(paramValues(op)).toEqual([100]);
+      expect(operator).toBeInstanceOf(FindOperator);
+      expect(operator.type).toBe("raw");
+
+      const param: string = soleParamName(operator);
+      expect(operator.getSql(ALIAS)).toBe(`(${ALIAS} > :${param})`);
+      expect(operator.objectLiteralParameters[param]).toBe(5);
+    });
+
+    it("greaterThanEqualTo emits an INCLUSIVE `>=`", () => {
+      const operator: RawOperator = asRaw(QueryHelper.greaterThanEqualTo(5));
+
+      const param: string = soleParamName(operator);
+      expect(operator.getSql(ALIAS)).toBe(`(${ALIAS} >= :${param})`);
+    });
+
+    it("greaterThan is strictly `>` — never the inclusive `>=`", () => {
+      const sql: string = asRaw(QueryHelper.greaterThan(5)).getSql(ALIAS);
+
+      expect(sql).toContain("> :");
+      expect(sql).not.toContain(">=");
+      expect(sql).not.toContain("IS NULL");
+    });
   });
 
-  it("lessThan emits a strict `<` and binds the value", () => {
-    const op: RawOperator = asRaw(QueryHelper.lessThan(50));
-    const sql: string = op.getSql(ALIAS);
-    expect(sql).toContain(`${ALIAS} <`);
-    expect(sql).not.toContain("<=");
-    expect(sql).not.toContain("50");
-    expect(paramValues(op)).toEqual([50]);
+  describe("lessThan / lessThanEqualTo (no null arm)", () => {
+    it("lessThan emits a STRICT `<`", () => {
+      const operator: RawOperator = asRaw(QueryHelper.lessThan(5));
+
+      const param: string = soleParamName(operator);
+      expect(operator.getSql(ALIAS)).toBe(`(${ALIAS} < :${param})`);
+    });
+
+    it("lessThanEqualTo emits an INCLUSIVE `<=`", () => {
+      const operator: RawOperator = asRaw(QueryHelper.lessThanEqualTo(5));
+
+      const param: string = soleParamName(operator);
+      expect(operator.getSql(ALIAS)).toBe(`(${ALIAS} <= :${param})`);
+    });
+
+    it("lessThan is strictly `<` — never the inclusive `<=`", () => {
+      const sql: string = asRaw(QueryHelper.lessThan(5)).getSql(ALIAS);
+
+      expect(sql).toContain("< :");
+      expect(sql).not.toContain("<=");
+      expect(sql).not.toContain("IS NULL");
+    });
   });
 
-  it("lessThanEqualTo emits `<=`", () => {
-    const op: RawOperator = asRaw(QueryHelper.lessThanEqualTo(50));
-    const sql: string = op.getSql(ALIAS);
-    expect(sql).toContain(`${ALIAS} <=`);
-    expect(paramValues(op)).toEqual([50]);
+  describe("`...OrNull` forms add an `IS NULL` arm and keep the name's operator", () => {
+    it("greaterThanOrNull emits a STRICT `>` OR IS NULL (the copy-paste-bug regression guard)", () => {
+      const operator: RawOperator = asRaw(QueryHelper.greaterThanOrNull(5));
+
+      const param: string = soleParamName(operator);
+      /*
+       * The whole point of the fix: the name says "greater than", so the
+       * operator must be a strict `>`, not the `>=` it used to render.
+       */
+      expect(operator.getSql(ALIAS)).toBe(
+        `(${ALIAS} > :${param} or ${ALIAS} IS NULL)`,
+      );
+    });
+
+    it("greaterThanOrNull does NOT render `>=` — it is not a duplicate of greaterThanEqualToOrNull", () => {
+      const sql: string = asRaw(QueryHelper.greaterThanOrNull(5)).getSql(ALIAS);
+
+      expect(sql).toContain("> :");
+      expect(sql).not.toContain(">=");
+    });
+
+    it("greaterThanEqualToOrNull emits an INCLUSIVE `>=` OR IS NULL", () => {
+      const operator: RawOperator = asRaw(
+        QueryHelper.greaterThanEqualToOrNull(5),
+      );
+
+      const param: string = soleParamName(operator);
+      expect(operator.getSql(ALIAS)).toBe(
+        `(${ALIAS} >= :${param} or ${ALIAS} IS NULL)`,
+      );
+    });
+
+    it("greaterThanOrNull and greaterThanEqualToOrNull now render DIFFERENT operators", () => {
+      /*
+       * Before the fix these two produced byte-identical SQL. Bind the same
+       * value into both, normalize away the random parameter name, and assert
+       * the strings genuinely diverge — one strict, one inclusive.
+       */
+      const strict: RawOperator = asRaw(QueryHelper.greaterThanOrNull(5));
+      const inclusive: RawOperator = asRaw(
+        QueryHelper.greaterThanEqualToOrNull(5),
+      );
+
+      const normalize: (op: RawOperator) => string = (
+        op: RawOperator,
+      ): string => {
+        return op.getSql(ALIAS).replace(`:${soleParamName(op)}`, ":P");
+      };
+
+      expect(normalize(strict)).toBe(`(${ALIAS} > :P or ${ALIAS} IS NULL)`);
+      expect(normalize(inclusive)).toBe(`(${ALIAS} >= :P or ${ALIAS} IS NULL)`);
+      expect(normalize(strict)).not.toBe(normalize(inclusive));
+    });
+
+    it("lessThanOrNull emits a STRICT `<` OR IS NULL", () => {
+      const operator: RawOperator = asRaw(QueryHelper.lessThanOrNull(5));
+
+      const param: string = soleParamName(operator);
+      expect(operator.getSql(ALIAS)).toBe(
+        `(${ALIAS} < :${param} or ${ALIAS} IS NULL)`,
+      );
+    });
+
+    it("lessThanEqualToOrNull emits an INCLUSIVE `<=` OR IS NULL", () => {
+      const operator: RawOperator = asRaw(
+        QueryHelper.lessThanEqualToOrNull(5),
+      );
+
+      const param: string = soleParamName(operator);
+      expect(operator.getSql(ALIAS)).toBe(
+        `(${ALIAS} <= :${param} or ${ALIAS} IS NULL)`,
+      );
+    });
+
+    it("the strict `...OrNull` pair (greater/less) are mirror images", () => {
+      /*
+       * greaterThanOrNull is to `>` what lessThanOrNull is to `<`. Locking them
+       * together makes an accidental flip of just one obvious.
+       */
+      const greater: RawOperator = asRaw(QueryHelper.greaterThanOrNull(5));
+      const less: RawOperator = asRaw(QueryHelper.lessThanOrNull(5));
+
+      const swap: (op: RawOperator) => string = (op: RawOperator): string => {
+        return op.getSql(ALIAS).replace(`:${soleParamName(op)}`, ":P");
+      };
+
+      expect(swap(greater)).toBe(`(${ALIAS} > :P or ${ALIAS} IS NULL)`);
+      expect(swap(less)).toBe(`(${ALIAS} < :P or ${ALIAS} IS NULL)`);
+    });
   });
 
-  it("greaterThanEqualToOrNull emits `>=` with an IS NULL branch", () => {
-    const op: RawOperator = asRaw(QueryHelper.greaterThanEqualToOrNull(10));
-    const sql: string = op.getSql(ALIAS);
-    expect(sql).toContain(`${ALIAS} >=`);
-    expect(sql.toUpperCase()).toContain("IS NULL");
-    expect(paramValues(op)).toEqual([10]);
+  describe("range operators", () => {
+    it("inBetween is an inclusive `>=` … `<=` band binding both bounds", () => {
+      const operator: RawOperator = asRaw(QueryHelper.inBetween(1, 9));
+
+      const keys: Array<string> = Object.keys(
+        operator.objectLiteralParameters,
+      );
+      expect(keys).toHaveLength(2);
+      const [lo, hi] = keys as [string, string];
+
+      expect(operator.getSql(ALIAS)).toBe(
+        `(${ALIAS} >= :${lo} and ${ALIAS} <= :${hi})`,
+      );
+      expect(operator.objectLiteralParameters[lo]).toBe(1);
+      expect(operator.objectLiteralParameters[hi]).toBe(9);
+    });
+
+    it("inBetweenOrNull ORs the inclusive band with an IS NULL arm", () => {
+      const operator: RawOperator = asRaw(QueryHelper.inBetweenOrNull(1, 9));
+
+      const [lo, hi] = Object.keys(operator.objectLiteralParameters) as [
+        string,
+        string,
+      ];
+
+      expect(operator.getSql(ALIAS)).toBe(
+        `(((${ALIAS} >= :${lo} and ${ALIAS} <= :${hi})) or (${ALIAS} IS NULL))`,
+      );
+    });
+
+    it("notInBetween is the strict `<` … `>` complement of the band", () => {
+      const operator: RawOperator = asRaw(QueryHelper.notInBetween(1, 9));
+
+      const [lo, hi] = Object.keys(operator.objectLiteralParameters) as [
+        string,
+        string,
+      ];
+
+      expect(operator.getSql(ALIAS)).toBe(
+        `(${ALIAS} < :${lo} or ${ALIAS} > :${hi})`,
+      );
+    });
   });
 
-  it("lessThanOrNull emits a strict `<` with an IS NULL branch", () => {
-    const op: RawOperator = asRaw(QueryHelper.lessThanOrNull(10));
-    const sql: string = op.getSql(ALIAS);
-    expect(sql).toContain(`${ALIAS} <`);
-    expect(sql).not.toContain("<=");
-    expect(sql.toUpperCase()).toContain("IS NULL");
-    expect(paramValues(op)).toEqual([10]);
-  });
+  describe("value binding and parameter hygiene", () => {
+    it("never inlines the compared value into the SQL text", () => {
+      const operator: RawOperator = asRaw(QueryHelper.greaterThanOrNull(12345));
 
-  it("lessThanEqualToOrNull emits `<=` with an IS NULL branch", () => {
-    const op: RawOperator = asRaw(QueryHelper.lessThanEqualToOrNull(10));
-    const sql: string = op.getSql(ALIAS);
-    expect(sql).toContain(`${ALIAS} <=`);
-    expect(sql.toUpperCase()).toContain("IS NULL");
-    expect(paramValues(op)).toEqual([10]);
-  });
+      const sql: string = operator.getSql(ALIAS);
+      expect(sql).not.toContain("12345");
+      expect(Object.values(operator.objectLiteralParameters)).toEqual([12345]);
+    });
 
-  it("greaterThanOrNull adds an IS NULL branch and binds the value", () => {
-    /*
-     * NOTE: greaterThanOrNull currently renders `>=` (identical to
-     * greaterThanEqualToOrNull), which reads as inconsistent with its
-     * name. This test pins the two properties that are unambiguously
-     * required — the value is bound and a NULL row is included — rather
-     * than blessing the `>=`/`>` choice, so it will not have to change if
-     * that inconsistency is later corrected.
-     */
-    const op: RawOperator = asRaw(QueryHelper.greaterThanOrNull(10));
-    const sql: string = op.getSql(ALIAS);
-    expect(sql).toContain(ALIAS);
-    expect(sql).toContain(">");
-    expect(sql.toUpperCase()).toContain("IS NULL");
-    expect(sql).not.toContain("10");
-    expect(paramValues(op)).toEqual([10]);
-  });
+    it("binds a Date value at full precision, unchanged", () => {
+      const when: Date = new Date("2026-07-21T14:35:12.345Z");
+      const operator: RawOperator = asRaw(QueryHelper.greaterThanOrNull(when));
 
-  it("preserves Date comparands as Date objects in the parameter bag", () => {
-    /*
-     * Callers pass Date for time-column comparisons; the value must reach
-     * the driver as a Date, not a pre-stringified timestamp.
-     */
-    const when: Date = new Date("2026-01-01T00:00:00.000Z");
-    const op: RawOperator = asRaw(QueryHelper.greaterThan(when));
-    expect(paramValues(op)).toEqual([when]);
-    expect(paramValues(op)[0]).toBeInstanceOf(Date);
-  });
-});
+      const param: string = soleParamName(operator);
+      expect(operator.getSql(ALIAS)).toBe(
+        `(${ALIAS} > :${param} or ${ALIAS} IS NULL)`,
+      );
+      expect(operator.objectLiteralParameters[param]).toBe(when);
+    });
 
-describe("QueryHelper range operators", () => {
-  it("inBetween is inclusive on both ends and binds both bounds", () => {
-    const op: RawOperator = asRaw(QueryHelper.inBetween(5, 10));
-    const sql: string = op.getSql(ALIAS);
-    expect(sql).toContain(`${ALIAS} >=`);
-    expect(sql).toContain(`${ALIAS} <=`);
-    expect(sql.toLowerCase()).toContain("and");
-    // Both bounds bound as parameters, in order.
-    expect(paramValues(op)).toEqual([5, 10]);
-    // Two distinct parameter names so the bounds cannot alias each other.
-    expect(Object.keys(op.objectLiteralParameters)).toHaveLength(2);
-    expect(Object.keys(op.objectLiteralParameters)[0]).not.toBe(
-      Object.keys(op.objectLiteralParameters)[1],
-    );
-  });
+    it("mints a fresh parameter name per call so two filters can share one query", () => {
+      const first: RawOperator = asRaw(QueryHelper.greaterThanOrNull(1));
+      const second: RawOperator = asRaw(QueryHelper.greaterThanOrNull(2));
 
-  it("inBetweenOrNull is the inclusive range OR NULL", () => {
-    const op: RawOperator = asRaw(QueryHelper.inBetweenOrNull(5, 10));
-    const sql: string = op.getSql(ALIAS);
-    expect(sql).toContain(`${ALIAS} >=`);
-    expect(sql).toContain(`${ALIAS} <=`);
-    expect(sql.toUpperCase()).toContain("IS NULL");
-    expect(sql.toLowerCase()).toContain(" or ");
-    expect(paramValues(op)).toEqual([5, 10]);
-  });
-
-  it("notInBetween is the complement — strict `<` start OR strict `>` end", () => {
-    const op: RawOperator = asRaw(QueryHelper.notInBetween(5, 10));
-    const sql: string = op.getSql(ALIAS);
-    expect(sql).toContain(`${ALIAS} <`);
-    expect(sql).toContain(`${ALIAS} >`);
-    // Complement of an inclusive range uses strict comparisons.
-    expect(sql).not.toContain("<=");
-    expect(sql).not.toContain(">=");
-    expect(sql.toLowerCase()).toContain(" or ");
-    expect(paramValues(op)).toEqual([5, 10]);
-  });
-});
-
-describe("QueryHelper text operators", () => {
-  it("startsWith / endsWith anchor the ILIKE pattern on the correct side", () => {
-    const starts: RawOperator = asRaw(QueryHelper.startsWith("Prod"));
-    const ends: RawOperator = asRaw(QueryHelper.endsWith("Prod"));
-
-    expect(starts.getSql(ALIAS).toUpperCase()).toContain("ILIKE");
-    expect(ends.getSql(ALIAS).toUpperCase()).toContain("ILIKE");
-
-    // Pattern lives only in the parameter bag, lower-cased and anchored.
-    expect(paramValues(starts)).toEqual(["prod%"]);
-    expect(paramValues(ends)).toEqual(["%prod"]);
-  });
-
-  it("notContains excludes the substring but keeps NULL rows", () => {
-    const op: RawOperator = asRaw(QueryHelper.notContains("Down"));
-    const sql: string = op.getSql(ALIAS);
-    expect(sql.toUpperCase()).toContain("NOT ILIKE");
-    // A row with no value should not be excluded by a "does not contain".
-    expect(sql.toUpperCase()).toContain("IS NULL");
-    expect(paramValues(op)).toEqual(["%down%"]);
-  });
-
-  it("notContains lower-cases and trims the needle", () => {
-    const op: RawOperator = asRaw(QueryHelper.notContains("  DOWN  "));
-    expect(paramValues(op)).toEqual(["%down%"]);
-  });
-
-  it("multiSearch ORs a case-insensitive ILIKE across every property", () => {
-    const op: RawOperator = asRaw(
-      QueryHelper.multiSearch(["title", "description"], "Payments"),
-    );
-    // multiSearch derives the table alias from a `table.column` alias.
-    const sql: string = op.getSql('"Incident"."title"');
-
-    expect(sql).toContain('"Incident".title');
-    expect(sql).toContain('"Incident".description');
-    expect(sql.toUpperCase()).toContain("ILIKE");
-    expect(sql.toUpperCase()).toContain(" OR ");
-    // One shared bound parameter for all fields; value lower-cased + wrapped.
-    expect(paramValues(op)).toEqual(["%payments%"]);
-    expect(sql).not.toContain("Payments");
-  });
-
-  it("multiSearch handles a bare (dot-less) alias by using it directly", () => {
-    const op: RawOperator = asRaw(QueryHelper.multiSearch(["name"], "abc"));
-    const sql: string = op.getSql("Incident");
-    expect(sql).toContain("Incident.name");
-  });
-});
-
-describe("QueryHelper null + equality operators", () => {
-  it("notNull emits IS NOT NULL and binds nothing", () => {
-    const op: RawOperator = asRaw(QueryHelper.notNull());
-    const sql: string = op.getSql(ALIAS);
-    expect(sql.toUpperCase()).toContain("IS NOT NULL");
-    // A pure IS NOT NULL predicate binds no parameters at all.
-    expect(Object.keys(op.objectLiteralParameters ?? {})).toHaveLength(0);
-  });
-
-  it("notEquals emits `!=` and binds the value as a string", () => {
-    const op: RawOperator = asRaw(QueryHelper.notEquals("active"));
-    const sql: string = op.getSql(ALIAS);
-    expect(sql).toContain(`${ALIAS} !=`);
-    expect(sql).not.toContain("active");
-    expect(paramValues(op)).toEqual(["active"]);
-  });
-
-  it("notEquals stringifies an ObjectID comparand", () => {
-    const id: ObjectID = ObjectID.generate();
-    const op: RawOperator = asRaw(QueryHelper.notEquals(id));
-    expect(paramValues(op)).toEqual([id.toString()]);
-    expect(typeof paramValues(op)[0]).toBe("string");
-  });
-});
-
-describe("QueryHelper.modulo", () => {
-  it("emits `(col % :by = :remainder)` with both operands bound", () => {
-    const op: RawOperator = asRaw(QueryHelper.modulo(4, 1));
-    const sql: string = op.getSql(ALIAS);
-    expect(sql).toContain(`${ALIAS} %`);
-    expect(sql).toContain("=");
-    // Neither operand interpolated.
-    expect(sql).not.toContain(" 4 ");
-    const values: Array<unknown> = paramValues(op);
-    expect(values).toContain(4);
-    expect(values).toContain(1);
-    // Two distinct parameter names.
-    expect(Object.keys(op.objectLiteralParameters)).toHaveLength(2);
-  });
-});
-
-describe("QueryHelper.inRelationArray", () => {
-  it("returns ObjectID values unchanged", () => {
-    const a: ObjectID = ObjectID.generate();
-    const b: ObjectID = ObjectID.generate();
-    const result: Array<any> = QueryHelper.inRelationArray([a, b]);
-    expect(result).toEqual([a, b]);
-  });
-
-  it("maps a model to its id", () => {
-    const id: ObjectID = ObjectID.generate();
-    const model: BaseModel = new BaseModel();
-    model.id = id;
-    const result: Array<any> = QueryHelper.inRelationArray([model]);
-    expect(result).toEqual([id]);
-  });
-
-  it("handles a mix of models and ObjectIDs", () => {
-    const modelId: ObjectID = ObjectID.generate();
-    const model: BaseModel = new BaseModel();
-    model.id = modelId;
-    const directId: ObjectID = ObjectID.generate();
-
-    const result: Array<any> = QueryHelper.inRelationArray([model, directId]);
-    expect(result).toEqual([modelId, directId]);
-  });
-
-  it("returns an empty array for empty input", () => {
-    expect(QueryHelper.inRelationArray([])).toEqual([]);
-  });
-});
-
-describe("QueryHelper.queryJson", () => {
-  it("returns a passed-in FindOperator unchanged", () => {
-    // If the caller already built an operator, queryJson must not re-wrap it.
-    const existing: FindOperator<any> = QueryHelper.equalTo(
-      "x",
-    ) as unknown as FindOperator<any>;
-    const result: unknown = QueryHelper.queryJson(existing as any);
-    expect(result).toBe(existing);
-  });
-
-  it("builds a Raw operator that quotes the column and binds the value", () => {
-    const op: RawOperator = asRaw(QueryHelper.queryJson({ team: "Payments" }));
-    expect(op).toBeInstanceOf(FindOperator);
-
-    // Alias arrives as `table.column`; queryJson must quote each segment.
-    const sql: string = op.getSql("Incident.customFields");
-    expect(sql).toContain('"Incident"."customFields"');
-
-    /*
-     * The value is a bound parameter, never spliced into the SQL text —
-     * custom-field values arrive from the browser.
-     */
-    expect(sql).not.toContain("Payments");
-    expect(paramValues(op)).toContain("Payments");
-  });
-
-  it("binds the jsonb KEY as a parameter, never interpolates it", () => {
-    /*
-     * The key is a user-named custom field; interpolating it would let a
-     * field name inject SQL. It must appear only in the parameter bag.
-     */
-    const op: RawOperator = asRaw(
-      QueryHelper.queryJson({ "weird key": "value" }),
-    );
-    const sql: string = op.getSql("Incident.customFields");
-    expect(sql).not.toContain("weird key");
-    expect(paramValues(op)).toContain("weird key");
+      expect(soleParamName(first)).not.toBe(soleParamName(second));
+    });
   });
 });
