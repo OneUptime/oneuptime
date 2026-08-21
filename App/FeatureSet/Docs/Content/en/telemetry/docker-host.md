@@ -64,11 +64,12 @@ docker compose up -d
 
 ## Environment Variables
 
-| Variable                  | Required | Description                                                                                                         |
-| ------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
-| `ONEUPTIME_URL`           | Yes      | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host)                          |
-| `ONEUPTIME_SERVICE_TOKEN` | Yes      | Telemetry ingestion token from _Project Settings → Telemetry & APM → Ingestion Keys_                                        |
-| `DOCKER_HOST_NAME`        | No       | Friendly name for this host. Defaults to `docker-host`. Set it to something stable per host (e.g. `prod-docker-01`) |
+| Variable                  | Required | Description                                                                                                                      |
+| ------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`           | Yes      | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host)                                       |
+| `ONEUPTIME_SERVICE_TOKEN` | Yes      | Telemetry ingestion token from _Project Settings → Telemetry & APM → Ingestion Keys_                                             |
+| `DOCKER_HOST_NAME`        | No       | Friendly name for this host. Defaults to `docker-host`. Set it to something stable per host (e.g. `prod-docker-01`)              |
+| `DOCKER_API_VERSION`      | No       | Docker Engine API version the agent negotiates. Defaults to `1.44`; lower it on hosts with an older daemon (see Troubleshooting) |
 
 ## Verify the Installation
 
@@ -141,6 +142,25 @@ If your instance is HTTP-only, use `http://` and the appropriate port.
 ### Docker Socket Permission Denied
 
 The agent container must run as root (`--user 0:0`) to access `/var/run/docker.sock`. Ensure the `--user 0:0` flag (or `user: "0:0"` in Compose) is present.
+
+### Agent Restarts With "client version is too new"
+
+```
+Error: cannot start pipelines: failed to start "docker_stats" receiver:
+Error response from daemon: client version 1.44 is too new.
+Maximum supported API version is 1.41
+```
+
+A daemon refuses a client newer than its own maximum, so the receiver never starts
+and the collector exits with it. Check the daemon's maximum and pass it to the agent:
+
+```bash
+docker version --format '{{ .Server.APIVersion }}'
+```
+
+Then add `-e DOCKER_API_VERSION=1.41` (or the value you got) to `docker run`, or set
+`DOCKER_API_VERSION` in Compose. Newer daemons still serve older API versions, so the
+setting stays valid after an upgrade.
 
 ### Agent Shows as Disconnected
 
