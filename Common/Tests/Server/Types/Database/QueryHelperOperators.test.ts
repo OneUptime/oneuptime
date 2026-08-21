@@ -168,9 +168,7 @@ describe("QueryHelper comparison operators — exact rendered SQL", () => {
     });
 
     it("lessThanEqualToOrNull emits an INCLUSIVE `<=` OR IS NULL", () => {
-      const operator: RawOperator = asRaw(
-        QueryHelper.lessThanEqualToOrNull(5),
-      );
+      const operator: RawOperator = asRaw(QueryHelper.lessThanEqualToOrNull(5));
 
       const param: string = soleParamName(operator);
       expect(operator.getSql(ALIAS)).toBe(
@@ -199,9 +197,7 @@ describe("QueryHelper comparison operators — exact rendered SQL", () => {
     it("inBetween is an inclusive `>=` … `<=` band binding both bounds", () => {
       const operator: RawOperator = asRaw(QueryHelper.inBetween(1, 9));
 
-      const keys: Array<string> = Object.keys(
-        operator.objectLiteralParameters,
-      );
+      const keys: Array<string> = Object.keys(operator.objectLiteralParameters);
       expect(keys).toHaveLength(2);
       const [lo, hi] = keys as [string, string];
 
