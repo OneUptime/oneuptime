@@ -18,6 +18,16 @@ export interface LoginResponse {
     isMasterAdmin: boolean;
   };
   twoFactorRequired?: boolean;
+
+  /*
+   * The server is demanding two factor auth SETUP, not a code: an admin turned
+   * the requirement on for an account that has nothing enrolled yet, so
+   * /login answered with a QR code instead of a session. Distinct from
+   * `twoFactorRequired` because the remedy is different -- there is no code to
+   * type here, the user has to enrol first, and this app has no enrolment
+   * screen.
+   */
+  twoFactorEnrolmentRequired?: boolean;
 }
 
 export async function validateServerUrl(url: string): Promise<boolean> {
@@ -59,6 +69,25 @@ export async function login(
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const responseData: any = response.data;
+
+  /*
+   * Checked BEFORE the challenge lists below, and the order matters: a user
+   * being forced to enrol has NO factors set up, so those lists are empty for
+   * them. Without this branch the response would fall through to the success
+   * path with an undefined access token, and the sign-in button would simply
+   * do nothing.
+   */
+  if (responseData._miscData?.twoFactorEnrolmentRequired) {
+    return {
+      ...responseData,
+      twoFactorRequired: true,
+      twoFactorEnrolmentRequired: true,
+      accessToken: "",
+      refreshToken: "",
+      refreshTokenExpiresAt: "",
+      user: responseData.data || {},
+    };
+  }
 
   // Check if 2FA is required
   if (

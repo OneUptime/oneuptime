@@ -47,6 +47,13 @@
       "securityKeyInstructions": "請依照安全金鑰裝置上的指示操作。",
       "codeFieldDescription": "請輸入驗證器應用程式中的代碼",
       "selectDifferentMethod": "選擇不同的雙重驗證方式"
+    },
+    "twoFactorEnrolment": {
+      "title": "設定雙重驗證",
+      "subtitle": "您的管理員要求此帳戶使用雙重驗證。請立即設定以完成登入。",
+      "scanInstruction": "請使用 Google Authenticator、Microsoft Authenticator 或 1Password 等驗證器應用程式掃描此 QR 碼。",
+      "codeFieldDescription": "請輸入驗證器應用程式顯示的六位數驗證碼。",
+      "submitButton": "驗證並登入"
     }
   },
   "register": {

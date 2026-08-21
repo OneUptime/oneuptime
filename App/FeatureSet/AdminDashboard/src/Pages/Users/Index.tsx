@@ -10,6 +10,11 @@ import BulkAddUsersToProjectModal, {
   BulkAddUsersToProjectSelection,
 } from "../../Components/User/BulkAddUsersToProjectModal";
 import Route from "Common/Types/API/Route";
+import URL from "Common/Types/API/URL";
+import ObjectID from "Common/Types/ObjectID";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { JSONObject } from "Common/Types/JSON";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
@@ -24,6 +29,7 @@ import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
+import { APP_API_URL } from "Common/UI/Config";
 import User from "Common/Models/DatabaseModels/User";
 import React, {
   Fragment,
@@ -32,6 +38,24 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+
+/*
+ * The master-admin endpoint behind the bulk two-factor actions.
+ *
+ * Spelled out here rather than shared with Pages/Users/View/Authentication.tsx
+ * on purpose: that page's wiring test scrapes its own source for the literal
+ * `userAuthenticationRoute(modelId, "...")` call shape, and a shared helper
+ * imported from elsewhere would make both files' contracts invisible to it.
+ * Two short builders that each name their own endpoint are cheaper than one
+ * abstraction neither test can see through.
+ */
+const setTwoFactorAuthRequiredRoute: (userId: ObjectID) => URL = (
+  userId: ObjectID,
+): URL => {
+  return URL.fromString(APP_API_URL.toString()).addRoute(
+    `/user/${userId.toString()}/set-two-factor-auth-required`,
+  );
+};
 
 const Users: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -94,6 +118,113 @@ const Users: FunctionComponent = (): ReactElement => {
                 isBlocked: isBlocked,
               },
             });
+
+            successItems.push(user);
+          } catch (err) {
+            failedItems.push({
+              item: user,
+              failedMessage: API.getFriendlyMessage(err),
+            });
+          }
+
+          onProgressInfo({
+            totalItems: totalItems,
+            failed: failedItems,
+            successItems: successItems,
+            inProgressItems: inProgressItems,
+          });
+        }
+
+        onBulkActionEnd();
+      },
+    };
+  };
+
+  /*
+   * Org-wide two factor auth enforcement, one selection at a time.
+   *
+   * Deliberately POSTs to the master-admin endpoint rather than writing
+   * `enableTwoFactorAuth` through AdminModelAPI.updateById, even though the
+   * CRUD write would succeed. The endpoint also revokes each user's sessions,
+   * and a bulk "require two factor auth" that left everybody's current session
+   * running would be the version of this feature that quietly does nothing for
+   * the people already signed in.
+   *
+   * There is no bulk RESET. Clearing every selected user's authenticator in
+   * one click has no undo and no partial recovery - the reset is per-user, on
+   * the Authentication page, where the operator is looking at the one person
+   * who lost their phone.
+   */
+  const getBulkSetTwoFactorAuthRequiredAction: (
+    isRequired: boolean,
+  ) => BulkActionButtonSchema<User> = (
+    isRequired: boolean,
+  ): BulkActionButtonSchema<User> => {
+    return {
+      title: isRequired
+        ? t("pages.users.bulkRequireTwoFactorAuth")
+        : t("pages.users.bulkDoNotRequireTwoFactorAuth"),
+      icon: isRequired ? IconProp.ShieldCheck : IconProp.LockOpen,
+      /*
+       * NORMAL rather than DANGER: a DANGER style relocates the item below the
+       * divider at the bottom of the bulk menu, where Delete lives.
+       */
+      buttonStyleType: ButtonStyleType.NORMAL,
+      confirmTitle: (items: Array<User>): string => {
+        return isRequired
+          ? t("pages.users.bulkRequireTwoFactorAuthTitle", {
+              userCount: items.length,
+            })
+          : t("pages.users.bulkDoNotRequireTwoFactorAuthTitle", {
+              userCount: items.length,
+            });
+      },
+      confirmMessage: (items: Array<User>): string => {
+        return isRequired
+          ? t("pages.users.bulkRequireTwoFactorAuthDescription", {
+              userCount: items.length,
+            })
+          : t("pages.users.bulkDoNotRequireTwoFactorAuthDescription", {
+              userCount: items.length,
+            });
+      },
+      onClick: async (
+        onClickProps: BulkActionOnClickProps<User>,
+      ): Promise<void> => {
+        const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
+          onClickProps;
+
+        onBulkActionStart();
+
+        const inProgressItems: Array<User> = [...items];
+        const totalItems: Array<User> = [...items];
+        const successItems: Array<User> = [];
+        const failedItems: Array<BulkActionFailed<User>> = [];
+
+        /*
+         * Sequential, and every failure is collected rather than thrown. An
+         * admin who selected two hundred users needs to be told WHICH ones did
+         * not take, not to have the run abandoned at the first one.
+         */
+        for (const user of totalItems) {
+          inProgressItems.splice(inProgressItems.indexOf(user), 1);
+
+          try {
+            if (!user.id) {
+              throw new BadDataException("User ID not found");
+            }
+
+            const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+              await API.post<JSONObject>({
+                url: setTwoFactorAuthRequiredRoute(user.id),
+                data: {
+                  isRequired: isRequired,
+                },
+              });
+
+            if (response instanceof HTTPErrorResponse) {
+              throw response;
+            }
 
             successItems.push(user);
           } catch (err) {
@@ -326,6 +457,8 @@ const Users: FunctionComponent = (): ReactElement => {
           bulkActions={{
             buttons: [
               getBulkAddToProjectAction(),
+              getBulkSetTwoFactorAuthRequiredAction(true),
+              getBulkSetTwoFactorAuthRequiredAction(false),
               getBulkSetBlockedAction(true),
               getBulkSetBlockedAction(false),
               getBulkDeleteAction(),

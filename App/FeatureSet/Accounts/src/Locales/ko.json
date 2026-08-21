@@ -47,6 +47,13 @@
       "securityKeyInstructions": "보안 키 장치의 지침을 따르세요.",
       "codeFieldDescription": "인증 앱에서 코드를 입력하세요",
       "selectDifferentMethod": "다른 이중 인증 방법 선택"
+    },
+    "twoFactorEnrolment": {
+      "title": "2단계 인증 설정",
+      "subtitle": "관리자가 이 계정에 2단계 인증을 요구합니다. 로그인을 완료하려면 지금 설정하세요.",
+      "scanInstruction": "Google Authenticator, Microsoft Authenticator, 1Password와 같은 인증 앱으로 이 QR 코드를 스캔하세요.",
+      "codeFieldDescription": "인증 앱에 표시된 6자리 코드를 입력하세요.",
+      "submitButton": "확인하고 로그인"
     }
   },
   "register": {

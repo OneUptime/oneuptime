@@ -15,6 +15,7 @@ import NotFoundException from "../../../Types/Exception/NotFoundException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import UserAuthenticationStatus from "../../../Types/UserAuthenticationStatus";
+import TwoFactorAuthStatus from "../../../Types/TwoFactorAuthStatus";
 import {
   afterEach,
   beforeAll,
@@ -87,6 +88,14 @@ const AUTHENTICATION_STATUS: UserAuthenticationStatus = {
   hasPassword: true,
   isEmailVerified: false,
   isTwoFactorAuthEnabled: true,
+  /*
+   * The interesting combination on purpose: the requirement is on and nothing
+   * is set up behind it, which is the state an admin creates by mandating two
+   * factor auth. A serializer that dropped `twoFactorAuthStatus` would leave
+   * the page rendering "2FA: Yes" for exactly this user.
+   */
+  twoFactorAuthStatus: TwoFactorAuthStatus.EnabledPendingSetup,
+  verifiedTwoFactorAuthMethodCount: 0,
   hasPendingPasswordResetLink: false,
 };
 
@@ -206,6 +215,8 @@ describe("GET /user/:userId/authentication-status", () => {
       hasPassword: true,
       isEmailVerified: false,
       isTwoFactorAuthEnabled: true,
+      twoFactorAuthStatus: TwoFactorAuthStatus.EnabledPendingSetup,
+      verifiedTwoFactorAuthMethodCount: 0,
       hasPendingPasswordResetLink: false,
     });
   });

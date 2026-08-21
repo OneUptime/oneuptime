@@ -42,14 +42,13 @@ import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import Model from "../../Models/DatabaseModels/User";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import ProductAnalytics from "../Utils/ProductAnalytics";
-import UserTotpAuth from "../../Models/DatabaseModels/UserTotpAuth";
 import UserTotpAuthService from "./UserTotpAuthService";
-import UserWebAuthn from "../../Models/DatabaseModels/UserWebAuthn";
 import UserWebAuthnService from "./UserWebAuthnService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import { getPasswordValidationError } from "../../Types/Password";
 import UserAuthenticationStatus from "../../Types/UserAuthenticationStatus";
+import TwoFactorAuthStatus from "../../Types/TwoFactorAuthStatus";
 import Name from "../../Types/Name";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Timezone from "../../Types/Timezone";
@@ -293,56 +292,25 @@ export class Service extends DatabaseService<Model> {
       carryForward = users;
     }
 
-    if (updateBy.data.enableTwoFactorAuth) {
-      // check if any two factor auth is verified.
-
-      const users: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
-          _id: true,
-          email: true,
-        },
-        props: updateBy.props,
-        limit: LIMIT_MAX,
-        skip: 0,
-      });
-
-      for (const user of users) {
-        const totpAuth: UserTotpAuth | null =
-          await UserTotpAuthService.findOneBy({
-            query: {
-              userId: user.id!,
-              isVerified: true,
-            },
-            select: {
-              _id: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-        const webAuthn: UserWebAuthn | null =
-          await UserWebAuthnService.findOneBy({
-            query: {
-              userId: user.id!,
-              isVerified: true,
-            },
-            select: {
-              _id: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-        if (!totpAuth && !webAuthn) {
-          throw new BadDataException(
-            "Please verify two factor authentication method before you enable two factor authentication.",
-          );
-        }
-      }
-    }
+    /*
+     * There used to be a guard here refusing to set `enableTwoFactorAuth` on
+     * an account with no verified authenticator, on the grounds that doing so
+     * locked the user out: login demanded a second factor, found none, and
+     * said "contact your admin".
+     *
+     * That is no longer true, and the guard was the single thing standing in
+     * the way of the feature it appeared to protect. Login now sends an
+     * account in that state through ENROLMENT -- a QR code and a code to type
+     * back -- rather than refusing it (see App/FeatureSet/Identity/API/
+     * Authentication.ts). "Required, nothing set up yet" is therefore an
+     * ordinary, recoverable state, and it is exactly the state an admin
+     * creates on purpose when they mandate two factor auth for somebody who
+     * has never used it.
+     *
+     * Keeping the guard would have meant an admin could only require two
+     * factor auth from users who had already volunteered for it, which is the
+     * opposite of what a mandate is for.
+     */
 
     return { updateBy, carryForward: carryForward };
   }
@@ -782,12 +750,241 @@ export class Service extends DatabaseService<Model> {
         !OneUptimeDate.hasExpired(user.resetPasswordExpires),
     );
 
+    const isTwoFactorAuthEnabled: boolean = Boolean(user.enableTwoFactorAuth);
+
+    const verifiedTwoFactorAuthMethodCount: number =
+      await this.countVerifiedTwoFactorAuthMethods(userId);
+
     return {
       hasPassword: Boolean(user.password),
       isEmailVerified: Boolean(user.isEmailVerified),
-      isTwoFactorAuthEnabled: Boolean(user.enableTwoFactorAuth),
+      isTwoFactorAuthEnabled: isTwoFactorAuthEnabled,
+      twoFactorAuthStatus: Service.deriveTwoFactorAuthStatus({
+        isTwoFactorAuthEnabled: isTwoFactorAuthEnabled,
+        verifiedMethodCount: verifiedTwoFactorAuthMethodCount,
+      }),
+      verifiedTwoFactorAuthMethodCount: verifiedTwoFactorAuthMethodCount,
       hasPendingPasswordResetLink: hasPendingPasswordResetLink,
     };
+  }
+
+  /**
+   * How many authenticators this user has actually finished setting up, across
+   * TOTP apps and security keys together.
+   *
+   * `isVerified: true` is mandatory on BOTH queries and the two tables reach
+   * it differently, which is what makes leaving it off a real bug rather than
+   * a redundancy. `UserTotpAuthService.onBeforeCreate` writes `isVerified =
+   * false` and only the enrolment step flips it, so an abandoned QR scan
+   * leaves a row behind forever; `UserWebAuthnService` creates its rows
+   * already verified because the WebAuthn ceremony has no half-finished state.
+   * Counting unverified rows would therefore report a user who has never once
+   * typed a code as fully configured -- and that user is precisely the one an
+   * operator is looking at the page to help.
+   */
+  @CaptureSpan()
+  private async countVerifiedTwoFactorAuthMethods(
+    userId: ObjectID,
+  ): Promise<number> {
+    const verifiedTotpCount: PositiveNumber = await UserTotpAuthService.countBy(
+      {
+        query: {
+          userId: userId,
+          isVerified: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      },
+    );
+
+    const verifiedWebAuthnCount: PositiveNumber =
+      await UserWebAuthnService.countBy({
+        query: {
+          userId: userId,
+          isVerified: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    return verifiedTotpCount.toNumber() + verifiedWebAuthnCount.toNumber();
+  }
+
+  /**
+   * The requirement and the configuration folded into one value.
+   *
+   * Kept as a pure static so the table in Common/Types/TwoFactorAuthStatus.ts
+   * exists in exactly one place in code as well as in prose. Note the middle
+   * case: required with nothing set up is NOT an error state, it is the state
+   * an admin deliberately creates and that login resolves through enrolment.
+   */
+  public static deriveTwoFactorAuthStatus(data: {
+    isTwoFactorAuthEnabled: boolean;
+    verifiedMethodCount: number;
+  }): TwoFactorAuthStatus {
+    if (!data.isTwoFactorAuthEnabled) {
+      return TwoFactorAuthStatus.NotEnabled;
+    }
+
+    if (data.verifiedMethodCount > 0) {
+      return TwoFactorAuthStatus.EnabledConfigured;
+    }
+
+    return TwoFactorAuthStatus.EnabledPendingSetup;
+  }
+
+  /**
+   * Turn the two factor auth requirement on or off for one user, on a master
+   * admin's say-so.
+   *
+   * This is a dedicated method rather than a `PUT /user/:id` carrying
+   * `enableTwoFactorAuth`, for the same reason `setPassword` is: the generic
+   * write would work -- a master admin bypasses the column's ACL -- but it
+   * would skip the session revocation below, and nothing about the URL would
+   * tell a reader that turning this flag on signs somebody out.
+   *
+   * Turning it ON revokes every session; turning it OFF does not. That
+   * asymmetry is deliberate:
+   *
+   *  - `getUserMiddleware` validates an access token statelessly and never
+   *    looks at `UserSession`, so a user who is already signed in keeps working
+   *    for the rest of that token's ~15 minute life no matter what is written
+   *    here. Revoking is what stops POST /refresh-token -- which DOES check
+   *    `isRevoked` -- from renewing it indefinitely, so it bounds the window
+   *    to one token lifetime instead of leaving it open forever. Without this
+   *    call, "require two factor auth" would be a promise the product does not
+   *    keep for anybody currently signed in;
+   *  - relaxing a requirement creates no such window, and signing the whole
+   *    company out to give them LESS to do would be gratuitous.
+   *
+   * Session revocation lives here rather than in `onUpdateSuccess` because
+   * that hook only fires its revocation for updates carrying a password
+   * (`onBeforeUpdate` does not even populate `carryForward` for anything else),
+   * so an MFA-only write reaches none of it.
+   */
+  @CaptureSpan()
+  public async setTwoFactorAuthRequired(data: {
+    userId: ObjectID;
+    isRequired: boolean;
+  }): Promise<void> {
+    const user: Model | null = await this.findOneBy({
+      query: {
+        _id: data.userId,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException("User not found.");
+    }
+
+    await this.updateOneById({
+      id: user.id!,
+      data: {
+        enableTwoFactorAuth: data.isRequired,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (data.isRequired) {
+      /*
+       * Kept short on purpose: `UserSession.revokedReason` is a ShortText
+       * column, and an over-long reason would fail the write that is supposed
+       * to be closing a security window.
+       */
+      await UserSessionService.revokeAllSessionsByUserId(user.id!, {
+        reason: "Two factor auth required by admin",
+      });
+    }
+
+    logger.info(
+      `Two factor auth requirement set to ${data.isRequired} by a master admin for user: ${user.id!.toString()}`,
+    );
+  }
+
+  /**
+   * Throw away everything this user has set up for two factor auth, so that
+   * they start again from a fresh QR code.
+   *
+   * This is the lost-device fix. Somebody whose phone is gone cannot produce a
+   * code, cannot therefore sign in, and -- because two factor auth is
+   * self-service everywhere else in the product -- cannot reach the page that
+   * would let them enrol a new one. Deleting their authenticators from the
+   * outside is the only way back in.
+   *
+   * `enableTwoFactorAuth` is deliberately LEFT ALONE. "Reset" means clear the
+   * configuration and keep the requirement: an account under a mandate lands
+   * on a new QR code at its next sign-in, which is the whole point. Clearing
+   * the flag as well would quietly downgrade the account's security while
+   * answering a request that never asked for that, and an operator helping
+   * with a lost phone would have no reason to notice.
+   *
+   * Unverified rows go too. They are abandoned enrolment attempts, and leaving
+   * one behind would hand the user back the very QR code they could not
+   * finish rather than a new one.
+   */
+  @CaptureSpan()
+  public async resetTwoFactorAuth(data: { userId: ObjectID }): Promise<void> {
+    const user: Model | null = await this.findOneBy({
+      query: {
+        _id: data.userId,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException("User not found.");
+    }
+
+    await UserTotpAuthService.deleteBy({
+      query: {
+        userId: user.id!,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    await UserWebAuthnService.deleteBy({
+      query: {
+        userId: user.id!,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    /*
+     * Ordered after the deletes, not before. A session that survives a reset
+     * is a session that never has to prove the second factor again, which
+     * would make "reset because the device was stolen" do nothing about the
+     * person holding the stolen device.
+     */
+    await UserSessionService.revokeAllSessionsByUserId(user.id!, {
+      reason: "Two factor auth reset by admin",
+    });
+
+    logger.info(
+      `Two factor auth reset by a master admin for user: ${user.id!.toString()}`,
+    );
   }
 
   /**

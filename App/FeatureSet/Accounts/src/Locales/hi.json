@@ -47,6 +47,13 @@
       "securityKeyInstructions": "कृपया अपने सुरक्षा कुंजी डिवाइस पर निर्देशों का पालन करें।",
       "codeFieldDescription": "अपने प्रमाणीकरण ऐप से कोड दर्ज करें",
       "selectDifferentMethod": "एक अलग दो-कारक प्रमाणीकरण विधि चुनें"
+    },
+    "twoFactorEnrolment": {
+      "title": "दो-कारक प्रमाणीकरण सेट करें",
+      "subtitle": "आपके व्यवस्थापक ने इस खाते के लिए दो-कारक प्रमाणीकरण अनिवार्य किया है। साइन इन पूरा करने के लिए इसे अभी सेट करें।",
+      "scanInstruction": "इस QR कोड को Google Authenticator, Microsoft Authenticator या 1Password जैसे प्रमाणक ऐप से स्कैन करें।",
+      "codeFieldDescription": "अपने प्रमाणक ऐप में दिख रहा छह अंकों का कोड दर्ज करें।",
+      "submitButton": "सत्यापित करें और साइन इन करें"
     }
   },
   "register": {

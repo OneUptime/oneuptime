@@ -375,6 +375,8 @@ describe("User > Authentication server contract", () => {
         "authentication-status",
         "set-password",
         "send-password-reset-link",
+        "set-two-factor-auth-required",
+        "reset-two-factor-auth",
       ]),
     );
   });
@@ -411,12 +413,17 @@ describe("User > Authentication server contract", () => {
     expect(mismatched).toEqual([]);
   });
 
-  test("the status read is a GET and both credential changes are POSTs", () => {
+  test("the status read is a GET and every credential change is a POST", () => {
     /*
      * Pinned from the page's side too, so that "the two files agree" cannot be
-     * satisfied by both of them moving to a GET. Setting a password and mailing
-     * a reset link revoke sessions and send email; neither may be reachable by
+     * satisfied by both of them moving to a GET. Every action other than the
+     * status read revokes sessions and changes how somebody signs in --
+     * setting a password, mailing a reset link, requiring two factor auth or
+     * wiping what they have set up. None of those may be reachable by
      * following a link or replaying a prefetch.
+     *
+     * Asserted as an exact map rather than a subset, so a new action added to
+     * this page has to be written down here and, one hopes, thought about.
      */
     const verbsByAction: Record<string, string> = {};
 
@@ -428,6 +435,8 @@ describe("User > Authentication server contract", () => {
       "authentication-status": "get",
       "set-password": "post",
       "send-password-reset-link": "post",
+      "set-two-factor-auth-required": "post",
+      "reset-two-factor-auth": "post",
     });
   });
 

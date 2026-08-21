@@ -1,3 +1,5 @@
+import TwoFactorAuthStatus from "./TwoFactorAuthStatus";
+
 /**
  * What an operator needs to know about how one user can sign in, with nothing
  * secret in it.
@@ -28,6 +30,22 @@ export default interface UserAuthenticationStatus {
    * who very much has it on.
    */
   isTwoFactorAuthEnabled: boolean;
+
+  /*
+   * The requirement and the configuration folded into one value, because
+   * neither answers the operator's question alone. `isTwoFactorAuthEnabled`
+   * above is the raw flag; this is what the page actually renders, and the
+   * distinction it adds -- required with nothing set up yet, versus required
+   * and configured -- is the whole reason the admin page exists.
+   */
+  twoFactorAuthStatus: TwoFactorAuthStatus;
+
+  /*
+   * How many authenticators the user has actually finished setting up, across
+   * TOTP apps and security keys together. Counted with `isVerified: true`, so
+   * an abandoned QR scan does not read as a working factor.
+   */
+  verifiedTwoFactorAuthMethodCount: number;
 
   // Is there an unexpired password-reset link outstanding for this user?
   hasPendingPasswordResetLink: boolean;

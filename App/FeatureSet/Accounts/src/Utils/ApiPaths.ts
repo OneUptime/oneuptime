@@ -13,6 +13,17 @@ export const VERIFY_TOTP_AUTH_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/verify-totp-auth"),
 );
 
+/*
+ * Finishes a two factor auth setup an admin made mandatory, and signs the user
+ * in at the same time. Reached only when /login answers with
+ * `twoFactorEnrolmentRequired` -- there is no session at this point, so the
+ * request carries the email and password again, exactly as the TOTP challenge
+ * above does.
+ */
+export const VERIFY_TOTP_ENROLMENT_API_URL: URL = URL.fromURL(
+  IDENTITY_URL,
+).addRoute(new Route("/verify-totp-enrolment"));
+
 export const GENERATE_WEBAUTHN_AUTH_OPTIONS_API_URL: URL = URL.fromURL(
   APP_API_URL,
 ).addRoute(new Route("/user-webauthn/generate-authentication-options"));

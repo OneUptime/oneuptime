@@ -3,6 +3,8 @@ import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
 import MailService from "../../../Server/Services/MailService";
 import UserService from "../../../Server/Services/UserService";
 import UserSessionService from "../../../Server/Services/UserSessionService";
+import UserTotpAuthService from "../../../Server/Services/UserTotpAuthService";
+import UserWebAuthnService from "../../../Server/Services/UserWebAuthnService";
 import logger from "../../../Server/Utils/Logger";
 import User from "../../../Models/DatabaseModels/User";
 import Hostname from "../../../Types/API/Hostname";
@@ -15,7 +17,9 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
+import PositiveNumber from "../../../Types/PositiveNumber";
 import UserAuthenticationStatus from "../../../Types/UserAuthenticationStatus";
+import TwoFactorAuthStatus from "../../../Types/TwoFactorAuthStatus";
 import { getJestSpyOn } from "../../Spy";
 import {
   afterEach,
@@ -128,6 +132,8 @@ describe("UserService -- master-admin authentication management", () => {
   let updateOneByIdSpy: any;
   let sendMailSpy: any;
   let revokeSessionsSpy: any;
+  let totpCountSpy: any;
+  let webAuthnCountSpy: any;
 
   beforeEach(() => {
     jest.restoreAllMocks();
@@ -163,6 +169,26 @@ describe("UserService -- master-admin authentication management", () => {
       "revokeAllSessionsByUserId",
     ).mockImplementation(async (): Promise<void> => {
       return undefined;
+    });
+
+    /*
+     * getAuthenticationStatus counts this user's verified authenticators to
+     * derive the tri-state `twoFactorAuthStatus`. Stubbed to zero by default so
+     * every test that is not ABOUT two factor auth keeps describing a user with
+     * nothing set up; the cases below that care override them.
+     */
+    totpCountSpy = getJestSpyOn(
+      UserTotpAuthService,
+      "countBy",
+    ).mockImplementation(async (): Promise<PositiveNumber> => {
+      return new PositiveNumber(0);
+    });
+
+    webAuthnCountSpy = getJestSpyOn(
+      UserWebAuthnService,
+      "countBy",
+    ).mockImplementation(async (): Promise<PositiveNumber> => {
+      return new PositiveNumber(0);
     });
 
     getJestSpyOn(DatabaseConfig, "getHost").mockImplementation(
@@ -406,18 +432,29 @@ describe("UserService -- master-admin authentication management", () => {
         "hasPendingPasswordResetLink",
         "isEmailVerified",
         "isTwoFactorAuthEnabled",
+        "twoFactorAuthStatus",
+        "verifiedTwoFactorAuthMethodCount",
       ]);
 
       const serialized: string = JSON.stringify(status);
       expect(serialized).not.toContain(digest);
       expect(serialized).not.toContain("a-hashed-token");
 
-      for (const value of Object.values(status)) {
-        expect(typeof value).toBe("boolean");
-      }
+      /*
+       * Typed per field rather than "everything is a boolean". Two of these
+       * deliberately are not, and the point of the check is unchanged: nothing
+       * structured (a row, a model, a nested object) may ride along, because
+       * anything that did would carry columns nobody vetted.
+       */
+      expect(typeof status.hasPassword).toBe("boolean");
+      expect(typeof status.isEmailVerified).toBe("boolean");
+      expect(typeof status.isTwoFactorAuthEnabled).toBe("boolean");
+      expect(typeof status.hasPendingPasswordResetLink).toBe("boolean");
+      expect(typeof status.twoFactorAuthStatus).toBe("string");
+      expect(typeof status.verifiedTwoFactorAuthMethodCount).toBe("number");
     });
 
-    test("selects exactly the columns the four booleans are derived from", async () => {
+    test("selects exactly the columns the row-derived fields come from", async () => {
       /*
        * Pinned literally because both halves matter. Dropping a column here
        * turns its boolean permanently false rather than raising anything --
@@ -442,6 +479,181 @@ describe("UserService -- master-admin authentication management", () => {
 
       expect(call.query).toEqual({ _id: userId });
       expect(call.props).toEqual({ isRoot: true });
+    });
+
+    /*
+     * ---------------------------------------------------------------------
+     * The tri-state. `isTwoFactorAuthEnabled` above is the REQUIREMENT;
+     * `twoFactorAuthStatus` is the requirement and the configuration folded
+     * together, and the middle value is the one this whole feature turns on:
+     * an account an admin has mandated that has nothing set up behind the
+     * mandate. Rendering that as "2FA: Yes" is how an operator walks away from
+     * the one user who cannot sign in.
+     * ---------------------------------------------------------------------
+     */
+    type SetVerifiedFactorCountsFunction = (data: {
+      totp: number;
+      webAuthn: number;
+    }) => void;
+
+    const setVerifiedFactorCounts: SetVerifiedFactorCountsFunction = (data: {
+      totp: number;
+      webAuthn: number;
+    }): void => {
+      totpCountSpy.mockImplementation(async (): Promise<PositiveNumber> => {
+        return new PositiveNumber(data.totp);
+      });
+
+      webAuthnCountSpy.mockImplementation(async (): Promise<PositiveNumber> => {
+        return new PositiveNumber(data.webAuthn);
+      });
+    };
+
+    test("NotEnabled when the requirement is off and nothing is set up", async () => {
+      resolveUser(buildUser({ id: userId, enableTwoFactorAuth: false }));
+      setVerifiedFactorCounts({ totp: 0, webAuthn: 0 });
+
+      const status: UserAuthenticationStatus =
+        await UserService.getAuthenticationStatus(userId);
+
+      expect(status.twoFactorAuthStatus).toBe(TwoFactorAuthStatus.NotEnabled);
+      expect(status.verifiedTwoFactorAuthMethodCount).toBe(0);
+    });
+
+    test("still NotEnabled for a user who enrolled voluntarily and is no longer required to", async () => {
+      /*
+       * The status is about the REQUIREMENT first. Somebody who set up an
+       * authenticator and then had the mandate lifted is not "configured" in
+       * the sense the page means -- login will not ask them for it -- but the
+       * count still reports what they have, so an operator can see it is there.
+       */
+      resolveUser(buildUser({ id: userId, enableTwoFactorAuth: false }));
+      setVerifiedFactorCounts({ totp: 2, webAuthn: 0 });
+
+      const status: UserAuthenticationStatus =
+        await UserService.getAuthenticationStatus(userId);
+
+      expect(status.twoFactorAuthStatus).toBe(TwoFactorAuthStatus.NotEnabled);
+      expect(status.verifiedTwoFactorAuthMethodCount).toBe(2);
+    });
+
+    test("EnabledPendingSetup when required with nothing set up", async () => {
+      /*
+       * THE STATE THIS FEATURE EXISTS FOR. Before forced enrolment this was
+       * unreachable and would have been a lockout; now it is what an admin
+       * creates on purpose, and the page has to say so rather than reporting a
+       * cheerful "Yes".
+       */
+      resolveUser(buildUser({ id: userId, enableTwoFactorAuth: true }));
+      setVerifiedFactorCounts({ totp: 0, webAuthn: 0 });
+
+      const status: UserAuthenticationStatus =
+        await UserService.getAuthenticationStatus(userId);
+
+      expect(status.twoFactorAuthStatus).toBe(
+        TwoFactorAuthStatus.EnabledPendingSetup,
+      );
+      expect(status.verifiedTwoFactorAuthMethodCount).toBe(0);
+      expect(status.isTwoFactorAuthEnabled).toBe(true);
+    });
+
+    test("EnabledConfigured once one authenticator app is verified", async () => {
+      resolveUser(buildUser({ id: userId, enableTwoFactorAuth: true }));
+      setVerifiedFactorCounts({ totp: 1, webAuthn: 0 });
+
+      const status: UserAuthenticationStatus =
+        await UserService.getAuthenticationStatus(userId);
+
+      expect(status.twoFactorAuthStatus).toBe(
+        TwoFactorAuthStatus.EnabledConfigured,
+      );
+      expect(status.verifiedTwoFactorAuthMethodCount).toBe(1);
+    });
+
+    test("EnabledConfigured for a user whose only factor is a security key", async () => {
+      /*
+       * Counting only the TOTP table would report this user as Pending Setup
+       * and invite an operator to "fix" an account that is working perfectly.
+       */
+      resolveUser(buildUser({ id: userId, enableTwoFactorAuth: true }));
+      setVerifiedFactorCounts({ totp: 0, webAuthn: 1 });
+
+      const status: UserAuthenticationStatus =
+        await UserService.getAuthenticationStatus(userId);
+
+      expect(status.twoFactorAuthStatus).toBe(
+        TwoFactorAuthStatus.EnabledConfigured,
+      );
+      expect(status.verifiedTwoFactorAuthMethodCount).toBe(1);
+    });
+
+    test("the method count is the sum of both tables", async () => {
+      resolveUser(buildUser({ id: userId, enableTwoFactorAuth: true }));
+      setVerifiedFactorCounts({ totp: 2, webAuthn: 3 });
+
+      const status: UserAuthenticationStatus =
+        await UserService.getAuthenticationStatus(userId);
+
+      expect(status.verifiedTwoFactorAuthMethodCount).toBe(5);
+    });
+
+    test("counts only VERIFIED factors, in both tables", async () => {
+      /*
+       * The load-bearing filter. UserTotpAuthService.onBeforeCreate writes
+       * `isVerified: false` and only the enrolment step flips it, so every
+       * abandoned QR scan leaves a row behind. Counting those would label a
+       * user who has never once typed a code "Enabled - Configured" -- and
+       * that user is precisely the one an operator came to this page to help.
+       */
+      resolveUser(buildUser({ id: userId, enableTwoFactorAuth: true }));
+
+      await UserService.getAuthenticationStatus(userId);
+
+      for (const spy of [totpCountSpy, webAuthnCountSpy]) {
+        expect(spy).toHaveBeenCalledTimes(1);
+        expect(spy.mock.calls[0][0]).toEqual({
+          query: {
+            userId: userId,
+            isVerified: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+    });
+
+    test("does not count anything for a user that does not exist", async () => {
+      resolveUser(null);
+
+      await expect(UserService.getAuthenticationStatus(userId)).rejects.toThrow(
+        NotFoundException,
+      );
+
+      expect(totpCountSpy).not.toHaveBeenCalled();
+      expect(webAuthnCountSpy).not.toHaveBeenCalled();
+    });
+
+    test("the tri-state follows enableTwoFactorAuth, not the vestigial column", async () => {
+      /*
+       * The same trap as the boolean above, one level up: a derivation that
+       * read `twoFactorAuthEnabled` would report Pending Setup for an account
+       * under no mandate at all, and send an operator chasing an enrolment
+       * that is never going to be demanded.
+       */
+      resolveUser(
+        buildUser({
+          id: userId,
+          enableTwoFactorAuth: false,
+          twoFactorAuthEnabled: true,
+        }),
+      );
+      setVerifiedFactorCounts({ totp: 0, webAuthn: 0 });
+
+      const status: UserAuthenticationStatus =
+        await UserService.getAuthenticationStatus(userId);
+
+      expect(status.twoFactorAuthStatus).toBe(TwoFactorAuthStatus.NotEnabled);
     });
   });
 

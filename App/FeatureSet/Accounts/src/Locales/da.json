@@ -47,6 +47,13 @@
       "securityKeyInstructions": "Følg venligst instruktionerne på din sikkerhedsnøgleenhed.",
       "codeFieldDescription": "Indtast koden fra din autentifikator-app",
       "selectDifferentMethod": "Vælg en anden tofaktorgodkendelsesmetode"
+    },
+    "twoFactorEnrolment": {
+      "title": "Konfigurer tofaktorgodkendelse",
+      "subtitle": "Din administrator kræver tofaktorgodkendelse på denne konto. Konfigurer den nu for at fuldføre login.",
+      "scanInstruction": "Scan denne QR-kode med en godkendelsesapp som Google Authenticator, Microsoft Authenticator eller 1Password.",
+      "codeFieldDescription": "Indtast den sekscifrede kode, som din godkendelsesapp viser.",
+      "submitButton": "Bekræft og log ind"
     }
   },
   "register": {
