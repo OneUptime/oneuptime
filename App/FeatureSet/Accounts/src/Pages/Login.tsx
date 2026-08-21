@@ -43,6 +43,20 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import QRCodeElement from "Common/UI/Components/QR/QR";
 
+/*
+ * The misc bag travels on the wire under `_miscData` — the key
+ * Response.sendEntityResponse sets. ModelAPI renames it to `miscData` while
+ * parsing a response, but the two factor verify calls below post through API
+ * directly and bypass that rename, so they read the wire key themselves.
+ */
+type GetMiscDataFunction = (response: HTTPResponse<JSONObject>) => JSONObject;
+
+const getMiscData: GetMiscDataFunction = (
+  response: HTTPResponse<JSONObject>,
+): JSONObject => {
+  return ((response.data as JSONObject)["_miscData"] as JSONObject) || {};
+};
+
 const LoginPage: () => JSX.Element = () => {
   const { t } = useTranslation();
   const apiUrl: URL = LOGIN_API_URL;
@@ -268,7 +282,7 @@ const LoginPage: () => JSX.Element = () => {
           verifyResult.data as JSONObject,
           User,
         ) as User;
-        const miscData: JSONObject = {};
+        const miscData: JSONObject = getMiscData(verifyResult);
 
         login(user as User, miscData);
       } catch (error) {
@@ -532,11 +546,9 @@ const LoginPage: () => JSX.Element = () => {
                     result["data"] as JSONObject,
                     User,
                   ) as User;
-                  const miscData: JSONObject = (result["data"] as JSONObject)[
-                    "miscData"
-                  ] as JSONObject;
+                  const miscData: JSONObject = getMiscData(result);
 
-                  login(user as User, miscData as JSONObject);
+                  login(user as User, miscData);
                 } catch (error) {
                   setTwoFactorAuthError(
                     API.getFriendlyErrorMessage(error as Error),
