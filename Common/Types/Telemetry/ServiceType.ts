@@ -12,6 +12,7 @@ enum ServiceType {
   NetworkDevice = "NetworkDevice",
   Alert = "Alert",
   Incident = "Incident",
+  ScheduledMaintenance = "ScheduledMaintenance",
   Host = "Host",
   DockerHost = "DockerHost",
   PodmanHost = "PodmanHost",

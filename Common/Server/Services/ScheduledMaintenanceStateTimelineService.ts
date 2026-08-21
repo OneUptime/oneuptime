@@ -1,6 +1,7 @@
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnCreate, OnDelete } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
 import MonitorService from "./MonitorService";
@@ -9,6 +10,7 @@ import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
 import ScheduledMaintenancePublicNoteService from "./ScheduledMaintenancePublicNoteService";
 import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 import ScheduledMaintenanceStateService from "./ScheduledMaintenanceStateService";
+import ScheduledMaintenanceMeasurementValueService from "./ScheduledMaintenanceMeasurementValueService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -655,7 +657,171 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
       });
     }
 
+    /*
+     * A new timeline row moves every anchor that resolves against it, so the
+     * derived measurements have to be recomputed. Fire-and-forget: the state
+     * change itself is the user-visible write and must not fail because a
+     * derived number could not be recalculated.
+     */
+    ScheduledMaintenanceMeasurementValueService.recomputeForScheduledMaintenance(
+      {
+        scheduledMaintenanceId: createdItem.scheduledMaintenanceId,
+      },
+    ).catch((error: Error) => {
+      logger.error(
+        `Error while recomputing scheduled maintenance measurements:`,
+        {
+          projectId: createdItem.projectId?.toString(),
+          scheduledMaintenanceId:
+            createdItem.scheduledMaintenanceId?.toString(),
+        } as LogAttributes,
+      );
+      logger.error(error, {
+        projectId: createdItem.projectId?.toString(),
+        scheduledMaintenanceId: createdItem.scheduledMaintenanceId?.toString(),
+      } as LogAttributes);
+    });
+
     return createdItem;
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<ScheduledMaintenanceStateTimeline>,
+  ): Promise<OnUpdate<ScheduledMaintenanceStateTimeline>> {
+    /*
+     * Resolved before the update runs, because the update may narrow or move
+     * the rows the query matches -- and because a row can be repointed at a
+     * different event, in which case the event it LEFT also has to be
+     * recomputed. onUpdateSuccess unions this with the after-state.
+     */
+    const scheduledMaintenanceIds: Array<ObjectID> =
+      await this.getScheduledMaintenanceIdsForTimelineQuery(updateBy);
+
+    return {
+      updateBy,
+      carryForward: scheduledMaintenanceIds,
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<ScheduledMaintenanceStateTimeline>,
+    updatedItemIds: ObjectID[],
+  ): Promise<OnUpdate<ScheduledMaintenanceStateTimeline>> {
+    const scheduledMaintenanceIds: Array<ObjectID> = [
+      ...(Array.isArray(onUpdate.carryForward)
+        ? (onUpdate.carryForward as Array<ObjectID>)
+        : []),
+    ];
+
+    if (updatedItemIds.length > 0) {
+      const updatedTimelines: Array<ScheduledMaintenanceStateTimeline> =
+        await this.findBy({
+          query: {
+            _id: QueryHelper.any(updatedItemIds),
+          },
+          select: {
+            scheduledMaintenanceId: true,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
+
+      scheduledMaintenanceIds.push(
+        ...this.getScheduledMaintenanceIdsFromTimelines(updatedTimelines),
+      );
+    }
+
+    this.recomputeMeasurementsForScheduledMaintenanceIds(
+      scheduledMaintenanceIds,
+    );
+
+    return onUpdate;
+  }
+
+  private async getScheduledMaintenanceIdsForTimelineQuery(
+    updateBy: UpdateBy<ScheduledMaintenanceStateTimeline>,
+  ): Promise<Array<ObjectID>> {
+    const timelines: Array<ScheduledMaintenanceStateTimeline> =
+      await this.findBy({
+        query: updateBy.query,
+        select: {
+          scheduledMaintenanceId: true,
+        },
+        skip: updateBy.skip,
+        limit: updateBy.limit,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+
+    return this.getScheduledMaintenanceIdsFromTimelines(timelines);
+  }
+
+  private getScheduledMaintenanceIdsFromTimelines(
+    timelines: Array<ScheduledMaintenanceStateTimeline>,
+  ): Array<ObjectID> {
+    const scheduledMaintenanceIds: Map<string, ObjectID> = new Map<
+      string,
+      ObjectID
+    >();
+
+    for (const timeline of timelines) {
+      if (timeline.scheduledMaintenanceId) {
+        scheduledMaintenanceIds.set(
+          timeline.scheduledMaintenanceId.toString(),
+          timeline.scheduledMaintenanceId,
+        );
+      }
+    }
+
+    return Array.from(scheduledMaintenanceIds.values());
+  }
+
+  /*
+   * `startsAt` on a timeline row is editable so an operator can correct a
+   * wrong timestamp. Every measurement anchored on that row is derived from
+   * it, so the stored values must move with the correction -- otherwise the
+   * page shows a number computed from a timestamp that no longer exists.
+   */
+  private recomputeMeasurementsForScheduledMaintenanceIds(
+    scheduledMaintenanceIds: Array<ObjectID>,
+  ): void {
+    const uniqueScheduledMaintenanceIds: Map<string, ObjectID> = new Map<
+      string,
+      ObjectID
+    >();
+
+    for (const scheduledMaintenanceId of scheduledMaintenanceIds) {
+      uniqueScheduledMaintenanceIds.set(
+        scheduledMaintenanceId.toString(),
+        scheduledMaintenanceId,
+      );
+    }
+
+    for (const scheduledMaintenanceId of uniqueScheduledMaintenanceIds.values()) {
+      ScheduledMaintenanceMeasurementValueService.recomputeForScheduledMaintenance(
+        {
+          scheduledMaintenanceId: scheduledMaintenanceId,
+        },
+      ).catch((error: Error) => {
+        logger.error(
+          `Error while recomputing scheduled maintenance measurements:`,
+          {
+            scheduledMaintenanceId: scheduledMaintenanceId.toString(),
+          } as LogAttributes,
+        );
+        logger.error(error, {
+          scheduledMaintenanceId: scheduledMaintenanceId.toString(),
+        } as LogAttributes);
+      });
+    }
   }
 
   @CaptureSpan()
@@ -979,6 +1145,27 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
           },
         });
       }
+
+      /*
+       * A deleted timeline row removes the point some anchors resolved to.
+       * The recompute is a total function of what is left, so it converges
+       * without any per-case repair -- but it has to be triggered.
+       */
+      ScheduledMaintenanceMeasurementValueService.recomputeForScheduledMaintenance(
+        {
+          scheduledMaintenanceId: scheduledMaintenanceId,
+        },
+      ).catch((error: Error) => {
+        logger.error(
+          `Error while recomputing scheduled maintenance measurements:`,
+          {
+            scheduledMaintenanceId: scheduledMaintenanceId?.toString(),
+          } as LogAttributes,
+        );
+        logger.error(error, {
+          scheduledMaintenanceId: scheduledMaintenanceId?.toString(),
+        } as LogAttributes);
+      });
     }
 
     return onDelete;

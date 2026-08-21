@@ -307,6 +307,48 @@ export default class Alert extends BaseModel {
       Permission.AlertViewer,
       Permission.ReadAlert,
     ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlert,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Impact Started At",
+    description:
+      "When customer impact actually began. Left blank until someone records it - never inferred, because a guessed value is worse than no value.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public impactStartedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlert,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlert,
+    ],
     update: [],
   })
   @TableColumn({

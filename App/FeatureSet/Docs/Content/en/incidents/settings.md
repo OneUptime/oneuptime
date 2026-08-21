@@ -18,6 +18,7 @@ Open **Incidents** in the left navigation, then expand **Settings** at the botto
 | **Note Templates**       | Reusable text for public and private notes.                                                  |
 | **Postmortem Templates** | Reusable postmortem structures.                                                              |
 | **Custom Fields**        | Define extra fields that appear on every incident.                                           |
+| **Measurements**         | Define named durations — time to detect, time to mitigate — computed for every incident.     |
 | **Incident Roles**       | Define the roles you assign responders to, such as Incident Commander.                       |
 | **More Settings**        | The incident and incident episode number prefixes.                                           |
 
@@ -93,6 +94,80 @@ Go to **Incidents → Settings → Custom Fields** (`/dashboard/{projectId}/inci
 Definitions live in their own model; the values live on the incident itself in the `customFields` column. On a single incident you fill them in from **Custom Fields** in the incident side menu (`/dashboard/{projectId}/incidents/{incidentId}/custom-fields`).
 
 **One gap worth knowing.** Incident custom field definitions are the only part of the incident family with no workflow triggers — see the workflow section below.
+
+## Measurements
+
+A measurement is a named duration between two points in an incident's life, computed for every incident automatically. "Time to Detect", "Time to Mitigate" and "Time to Resolve" are measurements. They are definitions you write once, not numbers somebody reads off a timeline.
+
+Go to **Incidents → Settings → Measurements** (`/dashboard/{projectId}/incidents/settings/measurements`). Each definition has a **name**, a permanent **key**, a **starting point** and an **ending point**.
+
+Alerts and scheduled maintenance events have the same feature, at **Alerts → Settings → Measurements** and **Scheduled Maintenance → Settings → Measurements**. Everything below applies to all three, with each domain's own vocabulary.
+
+### Choosing the two ends
+
+An end is either a timestamp on the incident or a point in its state timeline.
+
+| Ending point            | Resolves to                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------- |
+| **Impact Started At**   | When customer impact actually began. Blank until someone records it.                |
+| **Declared At**         | When the incident was declared. Defaults to the moment it was created.              |
+| **Created At**          | Row creation time.                                                                  |
+| **Timeline Start**      | The origin the built-in incident metrics use. Pick this to match those numbers.     |
+| **State Entered**       | The moment a specific state was entered.                                            |
+| **State Role Entered**  | The moment whichever state is the acknowledged (or created, or resolved) one was entered. |
+| **Postmortem Posted At**| When the postmortem was published.                                                  |
+
+**State Entered** pins one state by id. **State Role Entered** follows the role instead, so it keeps working if you later rename or replace the state that plays that part.
+
+When a state is entered more than once — a reopened incident — **Occurrence** decides which entry counts. **First** matches how the built-in metrics behave. **Last** follows a reopen through to the final entry.
+
+### What a measurement reports
+
+| Status             | Meaning                                                                                   |
+| ------------------ | ----------------------------------------------------------------------------------------- |
+| **Recorded**       | Both ends resolved. The duration is on the incident and charted.                           |
+| **Pending**        | An end has not happened yet, but still can.                                                 |
+| **Not Applicable** | An end can never resolve — the state was skipped, or the timestamp was never recorded.      |
+| **Invalid**        | Both ends resolved, but the end is before the start. Your recorded timestamps disagree.     |
+
+Only **Recorded** values become metric points. A skipped milestone writes nothing rather than a zero, so it cannot drag an average towards it.
+
+**Invalid** is the status worth watching. It is what a measurement says when the timeline it was computed from is wrong — for example an end 17 minutes before its start. That is deliberately louder than a plausible-looking number nobody questions.
+
+### Impact Started At, and why it is blank
+
+**Impact Started At** is a field on the incident, editable from the incident page. It is blank by default and OneUptime never fills it in.
+
+That is the point. `Declared At` records when OneUptime found out, which for a monitor-triggered incident is when the criteria were processed — not when impact began. If "Time to Detect" defaulted its start to the same timestamp its end uses, every incident would report zero and the chart would read "we detect instantly". A blank field and a **Not Applicable** measurement say the true thing: nobody has recorded when this started.
+
+### Correcting a wrong timestamp
+
+Every measurement is recomputed from scratch whenever the data underneath it changes — a state timeline entry created, edited or deleted, or `Impact Started At`, `Declared At` or `Postmortem Posted At` corrected on the incident. Nothing is patched incrementally, so there is no stale value to repair.
+
+The **Starts At** field on a state timeline entry is editable. If an incident was acknowledged at 09:12 but the entry says 09:29, correct the entry and every measurement derived from it moves with it.
+
+### Charts, API and Terraform
+
+Each enabled measurement writes a metric named `oneuptime.incident.measurement.<key>`, which appears in the dashboard chart picker once its first value is written. Alerts use `oneuptime.alert.measurement.<key>` and scheduled maintenance uses `oneuptime.scheduled-maintenance.measurement.<key>`.
+
+Definitions are ordinary API resources, so the Terraform provider manages them as `oneuptime_incident_measurement`, `oneuptime_alert_measurement` and `oneuptime_scheduled_maintenance_measurement`. Computed values are read-only and surface as data sources.
+
+The **key** is permanent because it is part of the metric name — changing it would orphan the series. Rename the measurement freely; the key stays.
+
+### Migrating from another incident platform
+
+If you are coming from a tool with declarative measurement definitions, these map across directly:
+
+| Their measurement       | Set it up here as                                                                  |
+| ----------------------- | ----------------------------------------------------------------------------------- |
+| Time to Detect          | Impact Started At → Declared At                                                     |
+| Time to Acknowledge     | Timeline Start → State Role Entered (acknowledged)                                  |
+| Time to Mitigate        | Timeline Start → State Entered (a **Mitigated** state you add between Acknowledged and Resolved) |
+| Time to Resolve         | Timeline Start → State Role Entered (resolved)                                      |
+
+Time to Mitigate needs a state that does not exist by default. Add it on **Incidents → Settings → Incident State** — the ordered list lets you insert a state between two existing ones, and everything after it shifts down.
+
+**One thing to know about history.** A definition you create today fills in for past incidents in the background, and those stored values appear on each incident. Charted history fills forward from the moment you create the definition; individual past incidents also refresh on their next state change.
 
 ## Incident roles
 

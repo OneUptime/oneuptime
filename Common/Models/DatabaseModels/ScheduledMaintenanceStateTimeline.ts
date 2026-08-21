@@ -677,12 +677,20 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceStateTimeline,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditScheduledMaintenanceStateTimeline,
+    ],
   })
   @TableColumn({
     type: TableColumnType.Date,
     title: "Starts At",
-    description: "When did this status change?",
+    description:
+      "When did this status change? Correct this when the recorded time is wrong - every measurement derived from this timeline is recomputed from the corrected value.",
     example: "2024-01-16T02:00:00.000Z",
   })
   @Column({

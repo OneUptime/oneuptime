@@ -260,6 +260,12 @@ import IncidentEpisodeStateTimelineService from "./IncidentEpisodeStateTimelineS
 import IncidentEpisodePublicNoteService from "./IncidentEpisodePublicNoteService";
 import AlertGroupingRuleService from "./AlertGroupingRuleService";
 import IncidentSlaRuleService from "./IncidentSlaRuleService";
+import IncidentMeasurementService from "./IncidentMeasurementService";
+import IncidentMeasurementValueService from "./IncidentMeasurementValueService";
+import AlertMeasurementService from "./AlertMeasurementService";
+import AlertMeasurementValueService from "./AlertMeasurementValueService";
+import ScheduledMaintenanceMeasurementService from "./ScheduledMaintenanceMeasurementService";
+import ScheduledMaintenanceMeasurementValueService from "./ScheduledMaintenanceMeasurementValueService";
 import IncidentSlaService from "./IncidentSlaService";
 import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
 import ServiceLevelObjectiveBurnRateRuleService from "./ServiceLevelObjectiveBurnRateRuleService";
@@ -551,6 +557,12 @@ const services: Array<BaseService> = [
   IncidentEpisodePublicNoteService,
   AlertGroupingRuleService,
   IncidentSlaRuleService,
+  IncidentMeasurementService,
+  IncidentMeasurementValueService,
+  AlertMeasurementService,
+  AlertMeasurementValueService,
+  ScheduledMaintenanceMeasurementService,
+  ScheduledMaintenanceMeasurementValueService,
   IncidentSlaService,
   ServiceLevelObjectiveService,
   ServiceLevelObjectiveBurnRateRuleService,
