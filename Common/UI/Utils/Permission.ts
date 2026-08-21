@@ -41,12 +41,15 @@ export default class PermissionUtil {
     if (projectPermissions) {
       permissions = [
         ...permissions,
-        ...projectPermissions.permissions.map((i: UserPermission) => {
-          return i.permission;
-        }),
+        ...projectPermissions.permissions
+          .filter((i: UserPermission) => {
+            return !i.isBlockPermission;
+          })
+          .map((i: UserPermission) => {
+            return i.permission;
+          }),
       ];
     }
-
     return permissions;
   }
 
