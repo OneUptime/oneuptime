@@ -84,20 +84,32 @@ The property had eight events starred before any of them could possibly fire,
 which is why the list looked configured while the container dropped everything.
 Current state:
 
-| Event               | Key event | Why                                                                                     |
-| ------------------- | --------- | --------------------------------------------------------------------------------------- |
-| `sign_up`           | yes       | The primary self-serve conversion.                                                      |
-| `cta_get_started`   | yes       | Micro-conversion, useful early signal while volume is low.                              |
-| `cta_request_demo`  | yes       | Same.                                                                                   |
-| `purchase`          | forced    | A GA4 default that cannot be unmarked. Nothing emits it, so it stays at zero.           |
-| `page_view_pricing` | no        | Fires on every pricing page load — as a key event it reported browsing as a conversion. |
-| `page_view_demo`    | no        | Same.                                                                                   |
-| `demo_request`      | no        | Never had a working delivery path and is no longer emitted at all.                      |
-| `generate_lead`     | no        | Nothing emits it.                                                                       |
+| Event                     | Key event | Why                                                                                              |
+| ------------------------- | --------- | ------------------------------------------------------------------------------------------------ |
+| `sign_up`                 | yes       | The primary self-serve conversion.                                                               |
+| `workspace_created`       | yes       | Activation.                                                                                      |
+| `monitor_created`         | yes       | Activation.                                                                                      |
+| `teammate_invited`        | yes       | Collaboration.                                                                                   |
+| `cta_get_started`         | yes       | Micro-conversion, useful early signal while volume is low.                                       |
+| `cta_request_demo`        | yes       | Same.                                                                                            |
+| `purchase`                | forced    | A GA4 default that cannot be unmarked. Nothing emits it, so it stays at zero.                    |
+| `signup_started`          | no        | A funnel step, not a conversion — starring it would inflate conversions against real signups.    |
+| `page_view_pricing`       | no        | Fires on every pricing page load — as a key event it reported browsing as a conversion.          |
+| `page_view_demo`          | no        | Same.                                                                                            |
+| `demo_request`            | no        | Never had a working delivery path and is no longer emitted at all.                               |
+| `generate_lead`           | no        | Nothing emits it.                                                                                |
+| `subscription_upgraded`   | not yet   | Carries `value`/`currency`. Cannot be starred until it fires once — nobody has changed plan yet. |
+| `subscription_downgraded` | not yet   | Same.                                                                                            |
+| `meeting_booked`          | not yet   | Same — no booking since the deploy.                                                              |
 
-Still to star, once each has fired at least once and appeared in the list:
-`subscription_upgraded` (the only event carrying `value`/`currency`),
-`meeting_booked`, `workspace_created`, `monitor_created`, `teammate_invited`.
+`subscription_upgraded`, `subscription_downgraded` and `meeting_booked` are
+the three left. Star each one the first time it appears in the list; until
+then GA4 has nothing to star.
+
+`subscription_upgraded` is worth a closer look when it does arrive — it is the
+only event carrying `value` and `currency`, and that mapping has never been
+exercised against real data. Check the first one in DebugView rather than
+assuming the revenue lands.
 
 If you point Google Ads at this property, choose which key events count as
 conversion actions there rather than assuming all of them should. `sign_up` and
