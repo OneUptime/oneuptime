@@ -277,6 +277,25 @@ describe("buildLogsPivotScope", () => {
     expect(result.dropped).toEqual([]);
   });
 
+  test("an operator-valued base attribute is reported dropped, not degraded to an equality", () => {
+    const result: LogsPivotScopeResult = Pivot.buildLogsPivotScope(
+      input({
+        attributes: {
+          "http.method": "GET",
+          "http.route": new Search<string>("/api"),
+        },
+      }),
+    );
+
+    /*
+     * scope.attributes is an exact-match map. Carrying `contains /api` across
+     * as `= /api` would silently narrow the pivot to a filter the user never
+     * set, so the operator entry travels in `dropped` instead.
+     */
+    expect(result.scope.attributes).toEqual({ "http.method": "GET" });
+    expect(result.dropped).toEqual(["attributes.http.route"]);
+  });
+
   test("a multi-valued attribute selection has no representation and is reported dropped", () => {
     const result: LogsPivotScopeResult = Pivot.buildLogsPivotScope(
       input({

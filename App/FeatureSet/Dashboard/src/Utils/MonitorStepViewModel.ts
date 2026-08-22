@@ -941,7 +941,7 @@ export default class MonitorStepViewModel {
         title: "Log Attributes",
         description: "Attributes of the logs to monitor.",
         valueType: MonitorStepViewValueType.JSON,
-        value: logMonitor?.attributes as JSONObject | undefined,
+        value: logMonitor?.attributes,
         placeholder: "No attributes entered",
       }),
       optional({
@@ -1019,7 +1019,7 @@ export default class MonitorStepViewModel {
         title: "Event Attributes",
         description: "Attributes of the security events to monitor.",
         valueType: MonitorStepViewValueType.JSON,
-        value: securityEventsMonitor?.attributes as JSONObject | undefined,
+        value: securityEventsMonitor?.attributes,
         placeholder: "No attributes entered",
       }),
       optional({
@@ -1074,7 +1074,7 @@ export default class MonitorStepViewModel {
         title: "Span Attributes",
         description: "Attributes of the spans to monitor.",
         valueType: MonitorStepViewValueType.JSON,
-        value: traceMonitor?.attributes as JSONObject | undefined,
+        value: traceMonitor?.attributes,
         placeholder: "No attributes entered",
       }),
       optional({

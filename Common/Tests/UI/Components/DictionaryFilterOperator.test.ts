@@ -3,9 +3,16 @@ import {
   DictionaryFilterOperator,
   buildDictionaryValue,
   detectOperatorFromValue,
+  formatDictionaryEntryValue,
 } from "../../../UI/Components/Dictionary/DictionaryFilterOperator";
+import EqualTo from "../../../Types/BaseDatabase/EqualTo";
+import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import IsNull from "../../../Types/BaseDatabase/IsNull";
+import NotEqual from "../../../Types/BaseDatabase/NotEqual";
+import NotNull from "../../../Types/BaseDatabase/NotNull";
+import Search from "../../../Types/BaseDatabase/Search";
 import { ObjectType } from "../../../Types/JSON";
 import { describe, expect, it } from "@jest/globals";
 
@@ -170,5 +177,64 @@ describe("DictionaryFilterOperator - IsNoneOf (multi-value exclusion)", () => {
 
     expect(detected.operator).toBe(DictionaryFilterOperator.IsNoneOf);
     expect(detected.rawValues).toEqual(["nice", "softirq"]);
+  });
+});
+
+describe("formatDictionaryEntryValue", () => {
+  /*
+   * These values reach React children (filter chips, read-only viewers).
+   * Rendering an operator instance directly throws "Objects are not valid as
+   * a React child", so every branch has to come back as a string.
+   */
+  it("renders a bare scalar unchanged so pre-operator filters look the same", () => {
+    expect(formatDictionaryEntryValue("prod")).toBe("prod");
+    expect(formatDictionaryEntryValue(42)).toBe("42");
+    expect(formatDictionaryEntryValue(true)).toBe("true");
+  });
+
+  it("renders an EqualTo wrapper without a redundant '=' prefix", () => {
+    expect(formatDictionaryEntryValue(new EqualTo<string>("prod"))).toBe(
+      "prod",
+    );
+  });
+
+  it("prefixes every other operator with its symbol", () => {
+    expect(formatDictionaryEntryValue(new NotEqual<string>("prod"))).toBe(
+      "!= prod",
+    );
+    expect(formatDictionaryEntryValue(new Search<string>("prod"))).toBe(
+      "contains prod",
+    );
+    expect(formatDictionaryEntryValue(new GreaterThan<number>(500))).toBe(
+      "> 500",
+    );
+  });
+
+  it("joins multi-value operators", () => {
+    expect(formatDictionaryEntryValue(new Includes(["system", "user"]))).toBe(
+      "is any of system, user",
+    );
+    expect(
+      formatDictionaryEntryValue(new IncludesNone(["system", "user"])),
+    ).toBe("is none of system, user");
+  });
+
+  it("renders value-less operators as the symbol alone", () => {
+    expect(formatDictionaryEntryValue(new IsNull())).toBe("is empty");
+    expect(formatDictionaryEntryValue(new NotNull())).toBe("is not empty");
+  });
+
+  it("renders raw `{_type, value}` JSON straight out of storage", () => {
+    expect(
+      formatDictionaryEntryValue({
+        _type: ObjectType.Search,
+        value: "prod",
+      }),
+    ).toBe("contains prod");
+  });
+
+  it("returns a string for null / undefined rather than throwing", () => {
+    expect(formatDictionaryEntryValue(null)).toBe("");
+    expect(formatDictionaryEntryValue(undefined)).toBe("");
   });
 });

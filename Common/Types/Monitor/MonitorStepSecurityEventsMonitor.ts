@@ -4,13 +4,18 @@ import Includes from "../BaseDatabase/Includes";
 import Query from "../BaseDatabase/Query";
 import Search from "../BaseDatabase/Search";
 import OneUptimeDate from "../Date";
+import DictionaryEntryValue from "../BaseDatabase/DictionaryEntryValue";
 import Dictionary from "../Dictionary";
 import { JSONObject } from "../JSON";
 import ObjectID from "../ObjectID";
 import OcsfSeverity from "../SecurityEvent/OcsfSeverity";
 
 export default interface MonitorStepSecurityEventsMonitor {
-  attributes: Dictionary<string | number | boolean>;
+  /*
+   * Attribute filters. A value is a bare scalar (`equals`) or one of the
+   * query-operator wrappers the "Filter by Attributes" editor emits.
+   */
+  attributes: Dictionary<DictionaryEntryValue>;
   messageContains: string;
   severityNames: Array<OcsfSeverity>;
   classNames: Array<string>;
@@ -76,7 +81,7 @@ export class MonitorStepSecurityEventsMonitorUtil {
   public static fromJSON(json: JSONObject): MonitorStepSecurityEventsMonitor {
     return {
       attributes:
-        (json["attributes"] as Dictionary<string | number | boolean>) || {},
+        (json["attributes"] as Dictionary<DictionaryEntryValue>) || {},
       messageContains: (json["messageContains"] as string) || "",
       severityNames: (json["severityNames"] as Array<OcsfSeverity>) || [],
       classNames: (json["classNames"] as Array<string>) || [],

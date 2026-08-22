@@ -3,6 +3,7 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Search from "Common/Types/BaseDatabase/Search";
 import Query from "Common/Types/BaseDatabase/Query";
 import Dictionary from "Common/Types/Dictionary";
+import DictionaryEntryValue from "Common/Types/BaseDatabase/DictionaryEntryValue";
 import Log from "Common/Models/AnalyticsModels/Log";
 import RumSession from "Common/Models/AnalyticsModels/RumSession";
 import Span from "Common/Models/AnalyticsModels/Span";
@@ -60,8 +61,12 @@ export interface LogsPivotScopeInput {
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
   sessionIds?: Array<string> | undefined;
-  /** Base attribute filters from the host page's logQuery. */
-  attributes?: Record<string, string> | undefined;
+  /*
+   * Base attribute filters from the host page's logQuery. Values may be
+   * operator wrappers (contains / != / is any of / ...); the cross-signal
+   * scope carries exact matches only, so anything else is reported dropped.
+   */
+  attributes?: Dictionary<DictionaryEntryValue> | undefined;
   /** Facet chips the user has applied in the sidebar / search bar. */
   appliedFacetFilters: Map<string, Set<string>>;
   /** Current picker selection; preset ranges resolve against "now". */
@@ -147,9 +152,21 @@ export const buildLogsPivotScope: BuildLogsPivotScopeFunction = (
   const attributes: Dictionary<string> = {};
 
   for (const [key, value] of Object.entries(input.attributes || {})) {
-    if (key && value) {
-      attributes[key] = value;
+    if (!key || !value) {
+      continue;
     }
+
+    /*
+     * `scope.attributes` is an exact-match map. An operator filter has no
+     * representation there, so it is reported dropped rather than silently
+     * degraded to an equality on its operand.
+     */
+    if (typeof value === "object") {
+      dropped.push(`${ATTRIBUTE_FACET_PREFIX}${key}`);
+      continue;
+    }
+
+    attributes[key] = String(value);
   }
 
   const knownFacetKeys: Set<string> = new Set<string>([

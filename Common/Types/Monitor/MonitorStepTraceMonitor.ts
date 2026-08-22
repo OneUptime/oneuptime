@@ -4,12 +4,17 @@ import Includes from "../BaseDatabase/Includes";
 import Query from "../BaseDatabase/Query";
 import Search from "../BaseDatabase/Search";
 import OneUptimeDate from "../Date";
+import DictionaryEntryValue from "../BaseDatabase/DictionaryEntryValue";
 import Dictionary from "../Dictionary";
 import { JSONObject } from "../JSON";
 import ObjectID from "../ObjectID";
 
 export default interface MonitorStepTraceMonitor {
-  attributes: Dictionary<string | number | boolean>;
+  /*
+   * Attribute filters. A value is a bare scalar (`equals`) or one of the
+   * query-operator wrappers the "Filter by Attributes" editor emits.
+   */
+  attributes: Dictionary<DictionaryEntryValue>;
   spanStatuses: Array<SpanStatus>;
   telemetryServiceIds: Array<ObjectID>;
   /*
@@ -89,7 +94,7 @@ export class MonitorStepTraceMonitorUtil {
   public static fromJSON(json: JSONObject): MonitorStepTraceMonitor {
     return {
       attributes:
-        (json["attributes"] as Dictionary<string | number | boolean>) || {},
+        (json["attributes"] as Dictionary<DictionaryEntryValue>) || {},
       spanName: json["spanName"] as string,
       spanStatuses: json["spanStatuses"] as Array<SpanStatus>,
       telemetryServiceIds: ObjectID.fromJSONArray(

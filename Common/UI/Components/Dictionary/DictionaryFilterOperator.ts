@@ -13,6 +13,7 @@ import NotNull from "../../../Types/BaseDatabase/NotNull";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
 import { ObjectType } from "../../../Types/JSON";
+import DictionaryEntryValue from "../../../Types/BaseDatabase/DictionaryEntryValue";
 
 /*
  * UI-facing operator identifiers. We store these in the Dictionary form
@@ -133,24 +134,12 @@ export const DICTIONARY_FILTER_OPERATOR_OPTIONS: ReadonlyArray<DictionaryFilterO
     },
   ];
 
-export type DictionaryEntryValue =
-  | string
-  | number
-  | boolean
-  | EqualTo<string>
-  | NotEqual<string>
-  | Search<string>
-  | NotContains<string>
-  | StartsWith<string>
-  | EndsWith<string>
-  | GreaterThan<number>
-  | GreaterThanOrEqual<number>
-  | LessThan<number>
-  | LessThanOrEqual<number>
-  | IsNull
-  | NotNull
-  | Includes
-  | IncludesNone;
+/*
+ * Defined in Types (the persisted monitor-step and dashboard types are typed
+ * with it, and Types must not depend on UI) and re-exported here so the UI
+ * callers that already import it from this module keep working.
+ */
+export type { DictionaryEntryValue };
 
 export const getOperatorOption: (
   operator: DictionaryFilterOperator,
@@ -449,4 +438,33 @@ export const buildDictionaryValue: (input: {
     default:
       return trimmed;
   }
+};
+
+/**
+ * Render a stored dictionary entry value as text.
+ *
+ * Chips, read-only viewers and tooltips take a `string`; the stored value may
+ * be an operator instance, so it has to be flattened before it reaches a
+ * React child. Bare equality renders as just the value, which keeps
+ * pre-operator filters looking exactly as they did; every other operator is
+ * prefixed with its symbol ("!= prod", "contains prod", "is empty").
+ */
+export const formatDictionaryEntryValue: (value: unknown) => string = (
+  value: unknown,
+): string => {
+  const detected: RawValueAndOperator = detectOperatorFromValue(value);
+
+  if (detected.operator === DictionaryFilterOperator.EqualTo) {
+    return detected.rawValue;
+  }
+
+  const option: DictionaryFilterOperatorOption = getOperatorOption(
+    detected.operator,
+  );
+
+  if (option.hidesValueInput) {
+    return option.symbol;
+  }
+
+  return `${option.symbol} ${detected.rawValue}`;
 };

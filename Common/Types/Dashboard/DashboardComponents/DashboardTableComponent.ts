@@ -3,7 +3,7 @@ import MetricQueryConfigData from "../../Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "../../Metrics/MetricsAggregationType";
 import ObjectID from "../../ObjectID";
 import Dictionary from "../../Dictionary";
-import { DictionaryEntryValue } from "../../../UI/Components/Dictionary/DictionaryFilterOperator";
+import DictionaryEntryValue from "../../BaseDatabase/DictionaryEntryValue";
 import DashboardComponentType from "../DashboardComponentType";
 import BaseComponent from "./DashboardBaseComponent";
 

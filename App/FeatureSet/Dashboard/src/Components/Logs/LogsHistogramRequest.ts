@@ -1,4 +1,6 @@
 import { JSONObject } from "Common/Types/JSON";
+import Dictionary from "Common/Types/Dictionary";
+import DictionaryEntryValue from "Common/Types/BaseDatabase/DictionaryEntryValue";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
@@ -26,7 +28,12 @@ export interface LogsHistogramRequestParams {
   serviceIds?: Array<string> | undefined;
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
-  attributes?: Record<string, string> | undefined;
+  /*
+   * Attribute filters from the host page. Values may be operator wrappers
+   * (contains / != / is any of / ...), not just scalars — they are
+   * forwarded verbatim and deserialized server-side.
+   */
+  attributes?: Dictionary<DictionaryEntryValue> | undefined;
   entityKeys?: Array<string> | undefined;
   /** Facet chips the user has applied in the sidebar / search bar. */
   appliedFacetFilters: Map<string, Set<string>>;

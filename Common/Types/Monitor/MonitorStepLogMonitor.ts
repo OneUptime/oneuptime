@@ -4,13 +4,18 @@ import Includes from "../BaseDatabase/Includes";
 import Query from "../BaseDatabase/Query";
 import Search from "../BaseDatabase/Search";
 import OneUptimeDate from "../Date";
+import DictionaryEntryValue from "../BaseDatabase/DictionaryEntryValue";
 import Dictionary from "../Dictionary";
 import { JSONObject } from "../JSON";
 import LogSeverity from "../Log/LogSeverity";
 import ObjectID from "../ObjectID";
 
 export default interface MonitorStepLogMonitor {
-  attributes: Dictionary<string | number | boolean>;
+  /*
+   * Attribute filters. A value is a bare scalar (`equals`) or one of the
+   * query-operator wrappers the "Filter by Attributes" editor emits.
+   */
+  attributes: Dictionary<DictionaryEntryValue>;
   body: string;
   severityTexts: Array<LogSeverity>;
   telemetryServiceIds: Array<ObjectID>;
@@ -90,7 +95,7 @@ export class MonitorStepLogMonitorUtil {
   public static fromJSON(json: JSONObject): MonitorStepLogMonitor {
     return {
       attributes:
-        (json["attributes"] as Dictionary<string | number | boolean>) || {},
+        (json["attributes"] as Dictionary<DictionaryEntryValue>) || {},
       body: json["body"] as string,
       severityTexts: json["severityTexts"] as Array<LogSeverity>,
       telemetryServiceIds: ObjectID.fromJSONArray(

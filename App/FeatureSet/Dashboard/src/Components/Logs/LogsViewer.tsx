@@ -89,6 +89,8 @@ import { shouldAdoptTimeRangeOverride } from "../../Utils/SharedTelemetryTimeCur
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 import Navigation from "Common/UI/Utils/Navigation";
 import Dictionary from "Common/Types/Dictionary";
+import DictionaryEntryValue from "Common/Types/BaseDatabase/DictionaryEntryValue";
+import { formatDictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   CrossSignalQueryParams,
@@ -733,22 +735,30 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     return [...props.sessionIds];
   }, [props.sessionIds]);
 
-  // Extract attribute filters from logQuery for histogram/facets API calls
-  const logQueryAttributes: Record<string, string> | undefined = useMemo(() => {
-    if (!props.logQuery) {
-      return undefined;
-    }
+  /*
+   * Extract attribute filters from logQuery for histogram/facets API calls.
+   *
+   * A value is not necessarily a scalar: the "Filter by Attributes" editor
+   * emits operator wrappers (contains / != / is any of / ...), and a log
+   * monitor's saved filters arrive here through its logQuery. They travel to
+   * the API as-is — the serializer understands them — but anything that
+   * renders one has to flatten it first (formatDictionaryEntryValue).
+   */
+  const logQueryAttributes: Dictionary<DictionaryEntryValue> | undefined =
+    useMemo(() => {
+      if (!props.logQuery) {
+        return undefined;
+      }
 
-    const attributes: Record<string, string> | undefined = (
-      props.logQuery as any
-    ).attributes as Record<string, string> | undefined;
+      const attributes: Dictionary<DictionaryEntryValue> | undefined = props
+        .logQuery.attributes as Dictionary<DictionaryEntryValue> | undefined;
 
-    if (!attributes || Object.keys(attributes).length === 0) {
-      return undefined;
-    }
+      if (!attributes || Object.keys(attributes).length === 0) {
+        return undefined;
+      }
 
-    return attributes;
-  }, [props.logQuery]);
+      return attributes;
+    }, [props.logQuery]);
 
   /*
    * Extract the entityKeys membership filter from logQuery so the histogram
@@ -760,9 +770,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       return undefined;
     }
 
-    const values: Array<string> = getQueryValues(
-      (props.logQuery as any)["entityKeys"],
-    );
+    const values: Array<string> = getQueryValues(props.logQuery["entityKeys"]);
 
     if (values.length === 0) {
       return undefined;
@@ -1933,11 +1941,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       };
 
       for (const [attrKey, attrValue] of Object.entries(logQueryAttributes)) {
+        const displayValue: string = formatDictionaryEntryValue(attrValue);
+
         filters.push({
           facetKey: `attributes.${attrKey}`,
-          value: attrValue,
+          value: displayValue,
           displayKey: attributeDisplayNames[attrKey] || attrKey,
-          displayValue: attrValue,
+          displayValue: displayValue,
           readOnly: true,
         });
       }
