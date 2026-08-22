@@ -1336,13 +1336,26 @@ export class LogAggregationService {
   /* Every severity a pattern can carry fits comfortably in eight slots. */
   private static readonly ERROR_PATTERN_SEVERITY_ARRAY_LIMIT: number = 8;
   /*
-   * Bodies that are empty or nothing but whitespace normalize to the empty
-   * pattern, which would otherwise become a single meaningless "" group
-   * sitting at the top of the list. Excluded at the source instead of via
-   * HAVING so the rows never enter the aggregation at all.
+   * Cheap pre-filter for bodies that carry no message: they normalize to the
+   * empty pattern, which would otherwise become a meaningless "" group.
+   *
+   * Deliberately only a pre-filter, not the guarantee. ClickHouse's trimBoth
+   * strips SPACES only, so a body of tabs or newlines survives this predicate
+   * and still normalizes to "" once the whitespace rule collapses it. The
+   * grouped reads therefore also carry `HAVING pattern != ''`; this stays
+   * because skipping those rows before aggregation is strictly cheaper than
+   * grouping them and throwing the group away.
    */
   private static readonly NON_EMPTY_BODY_FILTER: string =
     " AND notEmpty(trimBoth(ifNull(body, '')))";
+
+  /*
+   * The actual guarantee that no empty-pattern group is returned. Applied to
+   * every read that GROUPs BY the pattern; the row-returning reads instead
+   * scope to one caller-supplied pattern, which is never "".
+   */
+  private static readonly NON_EMPTY_PATTERN_HAVING: string =
+    " HAVING pattern != ''";
 
   /**
    * The distinct error messages in the window, most frequent first.
@@ -1703,8 +1716,10 @@ export class LogAggregationService {
 
     LogAggregationService.appendErrorPatternScope(statement, request);
 
+    statement.append(" GROUP BY pattern");
+    statement.append(LogAggregationService.NON_EMPTY_PATTERN_HAVING);
     statement.append(
-      SQL` GROUP BY pattern ORDER BY cnt DESC LIMIT ${{
+      SQL` ORDER BY cnt DESC LIMIT ${{
         type: TableColumnType.Number,
         value: limit,
       }}`,
@@ -1796,8 +1811,10 @@ export class LogAggregationService {
 
     statement.append(")");
 
+    statement.append(" GROUP BY pattern");
+    statement.append(LogAggregationService.NON_EMPTY_PATTERN_HAVING);
     statement.append(
-      SQL` GROUP BY pattern ORDER BY cnt DESC LIMIT ${{
+      SQL` ORDER BY cnt DESC LIMIT ${{
         type: TableColumnType.Number,
         value: limit,
       }}`,

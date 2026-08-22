@@ -42,6 +42,43 @@ describe("buildLogErrorPatternExpression", () => {
     );
   });
 
+  test("the whole expression is one balanced, fully-bound fragment", () => {
+    /*
+     * The expression is spliced into seven different statements; an
+     * unbalanced paren or an unbound placeholder would only surface as a
+     * ClickHouse syntax error at runtime, on a dashboard.
+     */
+    const statement: Statement = buildLogErrorPatternExpression();
+
+    let depth: number = 0;
+
+    for (const character of statement.query) {
+      if (character === "(") {
+        depth++;
+      }
+
+      if (character === ")") {
+        depth--;
+      }
+
+      expect(depth).toBeGreaterThanOrEqual(0);
+    }
+
+    expect(depth).toBe(0);
+
+    const referenced: Array<string> = Array.from(
+      statement.query.matchAll(/\{(p\d+):/g),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+
+    expect(referenced.length).toBeGreaterThan(0);
+
+    for (const name of referenced) {
+      expect(statement.query_params).toHaveProperty(name);
+    }
+  });
+
   test("binds every rule pattern and replacement as a parameter, never as SQL text", () => {
     const statement: Statement = buildLogErrorPatternExpression();
     const values: Array<unknown> = Object.values(statement.query_params);
@@ -69,10 +106,20 @@ describe("buildLogErrorPatternExpression", () => {
     );
   });
 
-  test("truncates to the same maximum length the normalizer slices at", () => {
+  test("truncates by CHARACTER, never by byte", () => {
     const statement: Statement = buildLogErrorPatternExpression();
 
-    expect(statement.query).toContain("substring(");
+    /*
+     * ClickHouse's plain `substring` counts bytes, so a 300-byte cut through
+     * a Japanese message or an emoji lands mid-sequence and the group key
+     * ends in a broken UTF-8 fragment. The absence is asserted too:
+     * "substringUTF8(" trivially contains "substring", so a loose check here
+     * would pass either way — which is how the byte-based version shipped in
+     * the first place.
+     */
+    expect(statement.query).toContain("substringUTF8(");
+    expect(statement.query).not.toMatch(/[^8]substring\(/);
+
     expect(Object.values(statement.query_params)).toContain(
       LOG_ERROR_PATTERN_MAX_LENGTH,
     );
@@ -86,7 +133,7 @@ describe("buildLogErrorPatternExpression", () => {
      */
     const query: string = buildLogErrorPatternExpression().query;
 
-    expect(query.startsWith("trimBoth(substring(trimBoth(")).toBe(true);
+    expect(query.startsWith("trimBoth(substringUTF8(trimBoth(")).toBe(true);
     expect(query.endsWith("))")).toBe(true);
   });
 
