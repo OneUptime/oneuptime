@@ -30,6 +30,10 @@ import applyStatusPageRobotsHeader from "Common/Server/Utils/StatusPageSearchEng
 import { handlePublicDashboardLlmsTxt } from "./Utils/PublicDashboard";
 import DashboardDomainService from "Common/Server/Services/DashboardDomainService";
 import DashboardDomain from "Common/Models/DatabaseModels/DashboardDomain";
+import {
+  shouldSkipDashboardFallbackRoute,
+  shouldSkipStatusPageDomainFallbackRoute,
+} from "./RouteReservations";
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -72,146 +76,6 @@ interface RenderFrontendOptions {
   next: NextFunction;
   frontendConfig: FrontendConfig;
 }
-
-/*
- * Ingest and internal service prefixes. These must never be answered with
- * SPA HTML, on ANY host, which is why both fallbacks below spread this in
- * rather than keeping two hand-synced copies.
- *
- * Why the reservation is needed at all: App/Index.ts runs
- * FrontendRoutes.init() BEFORE the Docs/Workers/Telemetry/Workflow/Runbook
- * feature sets, and several of those mount their routers on "/" as well as
- * on a named prefix. Express matches in registration order, so the two
- * app.get("*") fallbacks below are already registered by the time those
- * routers mount, and every GET they would have answered comes back as the
- * SPA's index page at HTTP 200 instead. That failure is silent - the caller
- * gets a valid-looking page rather than an error - which is how #2986 (the
- * heartbeat GET) survived to a release.
- *
- * Why BOTH lists and not just the dashboard one: the custom-domain fallback
- * fires whenever the Host is not a primary host, and cluster-internal
- * service-to-service traffic is addressed by Kubernetes service name, so it
- * lands there too. KEDA polling
- * http://<release>-telemetry-writer:<port>/metrics/telemetry-writer-shed-rate
- * is exactly that shape - a non-primary Host on an ingest-only path - and
- * the dashboard list alone would not have covered it.
- *
- * Reserving costs nothing: a prefix with no matching route falls through to
- * the 404 handler in StartServer.addDefaultRoutes, so the worst case is an
- * honest 404 rather than a misleading 200.
- *
- * App/Tests/FeatureSet/RootMountedRouteReservation.test.ts derives the
- * required set from the mounts themselves and fails when a newly
- * root-mounted GET route is not covered here.
- */
-const IngestRoutePrefixesToSkip: Array<string> = [
-  "/telemetry",
-  "/otlp",
-  "/opentelemetry.proto.collector",
-  /*
-   * Session replay ingest is mounted on both "/telemetry" and "/", so
-   * without this entry a root-level /session-replay/v1/chunk would be
-   * answered with SPA HTML instead of reaching the ingest router.
-   */
-  "/session-replay",
-  /*
-   * Queue-depth and shed-rate endpoints polled by the KEDA metrics-api
-   * scaler (HelmChart/.../keda-scaledobjects.yaml). The worker and api tiers
-   * only kept working because App/Index.ts mounts AppMetricsAPI on "/"
-   * BEFORE the feature sets; telemetry-writer's shed-rate route has no such
-   * head start and is registered by the Telemetry feature set.
-   */
-  "/metrics",
-  "/probe-ingest",
-  "/ingestor",
-  /*
-   * ProbeIngest's routers are mounted on "/" as well as "/probe-ingest" and
-   * "/ingestor", so their own route prefixes are reachable at the root too.
-   */
-  "/probe",
-  "/monitor",
-  /*
-   * Both spellings are needed: the predicate matches a prefix exactly or
-   * followed by "/", so "/server-monitor" does NOT cover
-   * "/server-monitor-ingest/...".
-   */
-  "/server-monitor-ingest",
-  "/server-monitor",
-  "/incoming-request-ingest",
-  "/incoming-request",
-  /*
-   * Nginx rewrites /heartbeat/<key> to the /incoming-request route above, so
-   * the App normally never sees this prefix - it is reserved for the case
-   * where a request reaches the App without passing through that rewrite.
-   */
-  "/heartbeat",
-  "/incoming-email",
-  "/worker",
-];
-
-const DashboardFallbackRoutePrefixesToSkip: Array<string> = [
-  "/status-page",
-  "/status-page-api",
-  "/status-page-sso-api",
-  "/status-page-oidc-api",
-  "/status-page-identity-api",
-  "/public-dashboard",
-  "/public-dashboard-api",
-  "/api",
-  "/identity",
-  "/notification",
-  ...IngestRoutePrefixesToSkip,
-  "/realtime",
-  "/workflow",
-  "/workers",
-  "/mcp",
-  "/analytics-api",
-  "/file",
-  "/docs",
-  "/reference",
-  /*
-   * The vendored browser libraries (Common/Server/Utils/VendorAssets.ts).
-   * That mount terminates its own prefix with a 404, so this is belt and
-   * braces - but a stylesheet answered with the dashboard's index page at
-   * HTTP 200 is a failure nothing logs, and this list is where that class of
-   * mistake is meant to be caught.
-   */
-  "/oneuptime-assets",
-  "/.well-known",
-  "/l",
-  "/manifest.json",
-  "/service-worker.js",
-  "/sw.js",
-  "/browserconfig.xml",
-  "/rss",
-  "/llms.txt",
-];
-
-const StatusPageDomainFallbackRoutePrefixesToSkip: Array<string> = [
-  "/status-page-api",
-  "/status-page-sso-api",
-  "/status-page-oidc-api",
-  "/status-page-identity-api",
-  "/public-dashboard-api",
-  /*
-   * Ingest is reserved here as well as on the dashboard list, deliberately.
-   * "Not a primary host" covers two very different callers: a customer's
-   * status-page custom domain, and any cluster-internal client addressing a
-   * pod by its Kubernetes service name. The second is why this matters - see
-   * the KEDA note on IngestRoutePrefixesToSkip.
-   *
-   * The cost to the first caller is nil: none of these prefixes is a
-   * StatusPage or PublicDashboard client route (their root-level routes are
-   * /incidents, /announcements, /scheduled-events, /subscribe, /login and
-   * friends), so no status page deep link is shadowed by this.
-   */
-  ...IngestRoutePrefixesToSkip,
-  /* Same reservation as the dashboard list above. */
-  "/oneuptime-assets",
-  "/.well-known",
-  "/rss",
-  "/llms.txt",
-];
 
 const StatusPageFrontendConfig: FrontendConfig = {
   routePrefix: "/status-page",
@@ -356,30 +220,6 @@ const isPrimaryHostRequest: (req: ExpressRequest) => boolean = (
   }
 
   return PrimaryHosts.has(requestHost);
-};
-
-const shouldSkipDashboardFallbackRoute: (path: string) => boolean = (
-  path: string,
-): boolean => {
-  return DashboardFallbackRoutePrefixesToSkip.some((prefix: string) => {
-    if (path === prefix) {
-      return true;
-    }
-
-    return path.startsWith(`${prefix}/`);
-  });
-};
-
-const shouldSkipStatusPageDomainFallbackRoute: (path: string) => boolean = (
-  path: string,
-): boolean => {
-  return StatusPageDomainFallbackRoutePrefixesToSkip.some((prefix: string) => {
-    if (path === prefix) {
-      return true;
-    }
-
-    return path.startsWith(`${prefix}/`);
-  });
 };
 
 const sendFrontendEnvScript: (
