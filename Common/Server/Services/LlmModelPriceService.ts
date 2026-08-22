@@ -63,8 +63,17 @@ export class Service extends DatabaseService<Model> {
     // Same string-arrival path as onBeforeCreate: coerce, validate, write back.
     const newPrefix: unknown = updateBy.data.modelPrefix as unknown;
 
+    /*
+     * The validated prefix is held in a string-typed local because the
+     * model's update-data field type is `string | (() => string)` (it
+     * allows the deferred function form), so reading it back below would
+     * otherwise not narrow to the plain string throwIfDuplicatePrefix wants.
+     */
+    let validatedPrefix: string | undefined = undefined;
+
     if (newPrefix !== undefined && newPrefix !== null) {
-      updateBy.data.modelPrefix = this.validateModelPrefix(newPrefix);
+      validatedPrefix = this.validateModelPrefix(newPrefix);
+      updateBy.data.modelPrefix = validatedPrefix;
     }
 
     const newInputPrice: unknown = updateBy.data
@@ -88,7 +97,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     // Renaming a prefix must not collide with another entry of the project.
-    if (updateBy.data.modelPrefix) {
+    if (validatedPrefix) {
       const itemsToUpdate: Array<Model> = await this.findBy({
         query: updateBy.query,
         skip: 0,
@@ -109,7 +118,7 @@ export class Service extends DatabaseService<Model> {
 
         await this.throwIfDuplicatePrefix({
           projectId: item.projectId,
-          modelPrefix: updateBy.data.modelPrefix,
+          modelPrefix: validatedPrefix,
           excludeId: item.id || undefined,
         });
       }

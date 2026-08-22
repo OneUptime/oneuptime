@@ -76,9 +76,20 @@ function priceRow(
   outputPrice: number | undefined,
 ): LlmModelPriceModel {
   const row: LlmModelPriceModel = new LlmModelPriceModel();
-  row.modelPrefix = modelPrefix;
-  row.inputPricePerMillionTokensInUSD = inputPrice;
-  row.outputPricePerMillionTokensInUSD = outputPrice;
+  /*
+   * Assign only when defined: under exactOptionalPropertyTypes an optional
+   * column cannot be assigned an explicit `undefined`. Leaving it unset is
+   * exactly the "missing price" state the skip-invalid-rows cases exercise.
+   */
+  if (modelPrefix !== undefined) {
+    row.modelPrefix = modelPrefix;
+  }
+  if (inputPrice !== undefined) {
+    row.inputPricePerMillionTokensInUSD = inputPrice;
+  }
+  if (outputPrice !== undefined) {
+    row.outputPricePerMillionTokensInUSD = outputPrice;
+  }
   return row;
 }
 
