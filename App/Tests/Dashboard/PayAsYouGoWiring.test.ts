@@ -72,10 +72,20 @@ describe("Pay as you go wiring", () => {
     });
   });
 
-  describe("telemetry documentation component", () => {
-    const source: string = read("Components", "Telemetry", "Documentation.tsx");
+  describe("ingestion key selector", () => {
+    /*
+     * The second door onto creating a key. It used to live inside
+     * Components/Telemetry/Documentation.tsx; it was extracted here when the
+     * security events setup guide needed the same key step, so both guides
+     * now share one modal - and one gate.
+     */
+    const source: string = read(
+      "Components",
+      "Telemetry",
+      "IngestionKeySelector.tsx",
+    );
 
-    test("gates its own create key modal too - it is the second door onto the same thing", () => {
+    test("gates its create key modal too - it is the second door onto the same thing", () => {
       /*
        * This component has a ModelFormModal of its own. A consent gate that
        * only covers the settings page is a gate with a way around it.
@@ -88,6 +98,21 @@ describe("Pay as you go wiring", () => {
       expect(
         (source.match(/<ModelFormModal<TelemetryIngestionKey>/g) || []).length,
       ).toBe(1);
+    });
+
+    test("the guides reach it rather than rolling their own modal", () => {
+      /*
+       * Both setup guides render the key step through this component. If
+       * either grew a create-key modal of its own it would be a third door,
+       * which the sweep below would then have to catch.
+       */
+      for (const guide of [
+        read("Components", "Telemetry", "Documentation.tsx"),
+        read("Components", "SecurityEvents", "SecurityEventsSetupGuide.tsx"),
+      ]) {
+        expect(guide).toContain("<IngestionKeySelector");
+        expect(guide).not.toContain("<ModelFormModal<TelemetryIngestionKey>");
+      }
     });
   });
 

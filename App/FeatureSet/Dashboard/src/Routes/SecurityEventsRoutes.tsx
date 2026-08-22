@@ -10,6 +10,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 import SecurityEventsPage from "../Pages/SecurityEvents/Index";
 import SecurityEventsCorrelatePage from "../Pages/SecurityEvents/Correlate";
 import SecurityEventsDetectionRulesPage from "../Pages/SecurityEvents/DetectionRules";
+import SecurityEventsDocumentationPage from "../Pages/SecurityEvents/Documentation";
 
 const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -47,6 +48,19 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.SECURITY_EVENTS_DETECTION_RULES] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_DOCUMENTATION] || ""
+          }
+          element={
+            <SecurityEventsDocumentationPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SECURITY_EVENTS_DOCUMENTATION] as Route
               }
             />
           }

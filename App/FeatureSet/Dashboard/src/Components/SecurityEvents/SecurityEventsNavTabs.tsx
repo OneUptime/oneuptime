@@ -5,7 +5,11 @@ import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 
-export type SecurityEventsTabKey = "events" | "correlate" | "detection-rules";
+export type SecurityEventsTabKey =
+  | "events"
+  | "correlate"
+  | "detection-rules"
+  | "setup";
 
 interface Props {
   active: SecurityEventsTabKey;
@@ -38,6 +42,14 @@ const SecurityEventsNavTabs: FunctionComponent<Props> = (
       icon: IconProp.ShieldCheck,
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.SECURITY_EVENTS_DETECTION_RULES] as Route,
+      ),
+    },
+    {
+      key: "setup",
+      label: "Setup Guide",
+      icon: IconProp.Book,
+      to: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SECURITY_EVENTS_DOCUMENTATION] as Route,
       ),
     },
   ];

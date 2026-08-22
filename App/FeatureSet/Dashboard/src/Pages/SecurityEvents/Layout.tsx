@@ -18,6 +18,9 @@ const getActiveSecurityEventsTab: (path: string) => SecurityEventsTabKey = (
   if (path.includes("/security-events/detection-rules")) {
     return "detection-rules";
   }
+  if (path.includes("/security-events/documentation")) {
+    return "setup";
+  }
   return "events";
 };
 
