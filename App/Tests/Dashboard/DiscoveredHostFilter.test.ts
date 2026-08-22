@@ -14,8 +14,10 @@ import {
   getInitialSelection,
   isPingOnlyDiscoveredHost,
   isSelectableDiscoveredHost,
+  isSelectedIpAddress,
   markDiscoveredHostsAsRegistered,
   matchesDiscoveredHostFilter,
+  normalizeDiscoveredHosts,
   toggleSelectionForShownHosts,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveredHostFilter";
 
@@ -1256,5 +1258,194 @@ describe("hosts at scan scale", () => {
         selectedIpAddresses: cleared,
       }),
     ).toHaveLength(pingOnlyCount);
+  });
+});
+
+describe("normalizeDiscoveredHosts", () => {
+  /*
+   * The gate every scan passes through before the dialog reads it. Its whole
+   * job is to make sure the row on screen, the badge above it and the list
+   * Import walks are all reading the same payload the same way — see the
+   * function's own comment for the three jsonb shapes that used to make them
+   * disagree.
+   */
+
+  test("an ordinary scan comes through unchanged in content and order", () => {
+    const hosts: Array<DiscoveredNetworkDevice> = [
+      snmpHost("10.0.0.1"),
+      pingOnlyHost("10.0.0.2"),
+      legacyHost("10.0.0.3"),
+    ];
+
+    expect(normalizeDiscoveredHosts(hosts)).toEqual(hosts);
+  });
+
+  test("nullish and non-object rows are dropped", () => {
+    const hosts: Array<DiscoveredNetworkDevice> = [
+      null,
+      snmpHost("10.0.0.1"),
+      undefined,
+      42,
+      "10.0.0.9",
+      pingOnlyHost("10.0.0.2"),
+    ] as unknown as Array<DiscoveredNetworkDevice>;
+
+    expect(ipAddressesOf(normalizeDiscoveredHosts(hosts))).toEqual([
+      "10.0.0.1",
+      "10.0.0.2",
+    ]);
+  });
+
+  test("an address is stringified and trimmed", () => {
+    /*
+     * A numeric address is written into the selection record as a string key
+     * and was matched out of the imported set as a number, so an imported host
+     * could never be retired. A whitespace-only address is truthy, so it used
+     * to import as a device whose hostname was a space.
+     */
+    const hosts: Array<DiscoveredNetworkDevice> = [
+      { ipAddress: 10 } as unknown as DiscoveredNetworkDevice,
+      { ipAddress: "  10.0.0.2  " },
+      { ipAddress: " " },
+      { ipAddress: undefined } as unknown as DiscoveredNetworkDevice,
+    ];
+
+    expect(ipAddressesOf(normalizeDiscoveredHosts(hosts))).toEqual([
+      "10",
+      "10.0.0.2",
+      "",
+      "",
+    ]);
+  });
+
+  test("registration is a fact about an address, not about a row", () => {
+    /*
+     * The jsonb can carry one address twice with different frozen
+     * isAlreadyRegistered values. One checkbox governs both rows, so leaving
+     * them disagreeing meant whether a device already in the inventory got
+     * created a second time depended on which order the probe listed them in.
+     */
+    const registeredFirst: Array<DiscoveredNetworkDevice> =
+      normalizeDiscoveredHosts([
+        snmpHost("10.0.0.1", { isAlreadyRegistered: true }),
+        snmpHost("10.0.0.1"),
+        snmpHost("10.0.0.2"),
+      ]);
+
+    expect(
+      registeredFirst.map((host: DiscoveredNetworkDevice) => {
+        return Boolean(host.isAlreadyRegistered);
+      }),
+    ).toEqual([true, true, false]);
+
+    const registeredSecond: Array<DiscoveredNetworkDevice> =
+      normalizeDiscoveredHosts([
+        snmpHost("10.0.0.1"),
+        snmpHost("10.0.0.1", { isAlreadyRegistered: true }),
+      ]);
+
+    expect(
+      registeredSecond.map((host: DiscoveredNetworkDevice) => {
+        return Boolean(host.isAlreadyRegistered);
+      }),
+    ).toEqual([true, true]);
+  });
+
+  test("a blank address never spreads registration to another blank row", () => {
+    // Two address-less rows are not "the same host"; they are two non-hosts.
+    const normalized: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts(
+      [{ ipAddress: "", isAlreadyRegistered: true }, { ipAddress: "" }],
+    );
+
+    expect(Boolean(normalized[1]!.isAlreadyRegistered)).toBe(false);
+  });
+
+  test("group membership is untouched — only identity and registration are", () => {
+    const hosts: Array<DiscoveredNetworkDevice> = [
+      snmpHost("10.0.0.1"),
+      pingOnlyHost("10.0.0.2"),
+      legacyHost("10.0.0.3"),
+    ];
+
+    expect(countDiscoveredHosts(normalizeDiscoveredHosts(hosts))).toEqual(
+      countDiscoveredHosts(hosts),
+    );
+  });
+
+  test("the caller's rows are never mutated", () => {
+    const hosts: Array<DiscoveredNetworkDevice> = [
+      { ipAddress: "  10.0.0.1  " },
+      snmpHost("10.0.0.2", { isAlreadyRegistered: true }),
+      snmpHost("10.0.0.2"),
+    ];
+
+    normalizeDiscoveredHosts(hosts);
+
+    expect(hosts[0]!.ipAddress).toBe("  10.0.0.1  ");
+    expect(hosts[2]!.isAlreadyRegistered).toBeUndefined();
+  });
+
+  test("an empty scan normalises to an empty scan", () => {
+    expect(normalizeDiscoveredHosts([])).toEqual([]);
+  });
+});
+
+describe("isSelectedIpAddress", () => {
+  test("an own truthy key is a tick; an own falsy key is not", () => {
+    expect(
+      isSelectedIpAddress({
+        selectedIpAddresses: { "10.0.0.1": true },
+        ipAddress: "10.0.0.1",
+      }),
+    ).toBe(true);
+    expect(
+      isSelectedIpAddress({
+        selectedIpAddresses: { "10.0.0.1": false },
+        ipAddress: "10.0.0.1",
+      }),
+    ).toBe(false);
+  });
+
+  test("an absent key is not a tick", () => {
+    expect(
+      isSelectedIpAddress({ selectedIpAddresses: {}, ipAddress: "10.0.0.1" }),
+    ).toBe(false);
+  });
+
+  test("an inherited member is not a tick", () => {
+    /*
+     * The address is a probe-supplied string used verbatim as an object key.
+     * A bare index would find a truthy function on Object.prototype and report
+     * a host as ticked that nobody ticked — and then import it.
+     */
+    for (const inherited of [
+      "toString",
+      "constructor",
+      "valueOf",
+      "hasOwnProperty",
+      "__proto__",
+    ]) {
+      expect(
+        isSelectedIpAddress({
+          selectedIpAddresses: {},
+          ipAddress: inherited,
+        }),
+      ).toBe(false);
+    }
+  });
+
+  test("an own key wins over the inherited member it shadows", () => {
+    expect(
+      isSelectedIpAddress({
+        selectedIpAddresses: { toString: true },
+        ipAddress: "toString",
+      }),
+    ).toBe(true);
+    expect(
+      isSelectedIpAddress({
+        selectedIpAddresses: { toString: false },
+        ipAddress: "toString",
+      }),
+    ).toBe(false);
   });
 });

@@ -27,6 +27,19 @@ import path from "path";
  * Whitespace is squashed so Prettier can reflow props without making the test
  * brittle, and comments are stripped so that describing a rule in prose never
  * counts as implementing it.
+ *
+ * THIS FILE'S TERRITORY is the filter row, the bulk selection control and the
+ * submit-button count. The dialog LIFECYCLE — the close gate, the stale-run
+ * guard, the per-scan imported-address overlay and row identity — is pinned by
+ * DiscoveryReviewLifecycleInvariants.test.ts, and the user-visible copy by
+ * DiscoveryReviewCopy.test.ts.
+ *
+ * ON SLICING, which is how a file like this rots: every `indexOf` used to cut
+ * a section out of the source is asserted to have found something. An
+ * unguarded -1 turns `slice` into "from the start of the file" or "the empty
+ * string", and every assertion under it then passes for a reason that has
+ * nothing to do with the rule it names. `section()` below refuses to return a
+ * slice it could not locate.
  */
 
 const DISCOVERY_PAGE: string = path.join(
@@ -60,29 +73,61 @@ function readCode(): string {
   return squash(stripComments(readSource()));
 }
 
-/** The body of `importSelectedDevices`, up to the render return. */
-function importSection(): string {
+/**
+ * The text between two markers, with both markers proven to exist.
+ *
+ * A rename that moves a marker fails the test loudly here instead of quietly
+ * widening or emptying the slice underneath it.
+ */
+function section(startMarker: string, endMarker: string): string {
   const code: string = readCode();
 
-  return code.slice(
-    code.indexOf("const importSelectedDevices"),
-    code.indexOf("if (isLoading)"),
-  );
+  const start: number = code.indexOf(startMarker);
+  const end: number = code.indexOf(endMarker, start + startMarker.length);
+
+  expect({ marker: startMarker, found: start > -1 }).toEqual({
+    marker: startMarker,
+    found: true,
+  });
+  expect({ marker: endMarker, found: end > -1 }).toEqual({
+    marker: endMarker,
+    found: true,
+  });
+
+  return code.slice(start, end);
+}
+
+/** The body of `importSelectedDevices`, up to the render return. */
+function importSection(): string {
+  return section("const importSelectedDevices", "if (isLoading)");
 }
 
 /** Everything the Review Discovered Devices modal renders. */
 function modalSection(): string {
   const code: string = readCode();
+  const start: number = code.indexOf('title="Review Discovered Devices"');
 
-  return code.slice(code.indexOf('title="Review Discovered Devices"'));
+  expect(start).toBeGreaterThan(-1);
+
+  return code.slice(start);
+}
+
+/** The bulk Select all / Clear all control alone, not the rows below it. */
+function bulkControlSection(): string {
+  return section("<Button title={", "/> </div>");
+}
+
+/** One rendered row of the discovered-host list. */
+function rowSection(): string {
+  return section("{shownEntries.map(", "</div> ); }, )}");
 }
 
 describe("the Review Discovered Devices dialog imports only what it is showing", () => {
   test("the import path goes through the filter-scoped helper", () => {
-    const section: string = importSection();
+    const code: string = importSection();
 
-    expect(section).toContain("getDiscoveredHostsToImport({");
-    expect(section).toContain("filter: hostFilter");
+    expect(code).toContain("getDiscoveredHostsToImport({");
+    expect(code).toContain("filter: hostFilter");
   });
 
   test("import does not re-implement the selection rule inline", () => {
@@ -96,177 +141,176 @@ describe("the Review Discovered Devices dialog imports only what it is showing",
   });
 
   test("the button's count is computed the same way the import is", () => {
-    const code: string = readCode();
-
-    const selectedCountDeclaration: string = code.slice(
-      code.indexOf("const selectedCount: number ="),
-      code.indexOf("const selectableShownCount"),
+    /*
+     * Asserted as one contiguous string rather than three independent
+     * substring checks: `getDiscoveredHostsToImport` and `filter: hostFilter`
+     * both appear elsewhere in the file, so checking for them separately would
+     * survive a mutant that computed the count from an unfiltered list.
+     */
+    const declaration: string = section(
+      "const selectedCount: number =",
+      "const selectableShownCount",
     );
 
-    expect(selectedCountDeclaration).toContain("getDiscoveredHostsToImport({");
-    expect(selectedCountDeclaration).toContain("filter: hostFilter");
-    expect(modalSection()).toContain(
-      "submitButtonText={`Import Selected (${selectedCount})`}",
+    expect(declaration).toContain(
+      "getDiscoveredHostsToImport({ hosts: reviewEntries, filter: hostFilter, selectedIpAddresses: selectedIps, })",
     );
-    expect(modalSection()).toContain(
-      "disableSubmitButton={selectedCount === 0}",
-    );
+    expect(declaration).toContain(".length");
   });
 
-  test("hosts imported in this sitting are retired from the dialog", () => {
-    /*
-     * `isAlreadyRegistered` is frozen into the scan's jsonb when the probe
-     * uploads. Importing group by group means returning to a list that still
-     * contains what you just imported, pre-checked — so the page overlays what
-     * it knows through markDiscoveredHostsAsRegistered.
-     */
-    const code: string = readCode();
+  test("the submit button shows that count and refuses an empty import", () => {
+    const code: string = modalSection();
 
-    expect(code).toContain("markDiscoveredHostsAsRegistered({");
-    expect(importSection()).toContain("setImportedIpAddresses(");
+    expect(code).toContain(
+      "submitButtonText={`Import Selected (${selectedCount})`}",
+    );
+    expect(code).toContain("disableSubmitButton={selectedCount === 0}");
   });
 });
 
 describe("the filter row", () => {
   test("the dialog renders FilterButtons bound to the filter state", () => {
-    const section: string = modalSection();
+    const code: string = section("<FilterButtons", "/>");
 
-    expect(section).toContain("<FilterButtons");
-    expect(section).toContain("selectedValue={hostFilter}");
-    expect(section).toContain("setHostFilter(value as DiscoveredHostFilter)");
+    expect(code).toContain("options={hostFilterOptions}");
+    expect(code).toContain("selectedValue={hostFilter}");
+    expect(code).toContain("setHostFilter(value as DiscoveredHostFilter)");
   });
 
   test("the buttons and their counts come from the tested helper", () => {
     // Not hand-built in JSX, where the counts could drift from the groups.
-    expect(readCode()).toContain(
+    const declaration: string = section(
+      "const hostFilterOptions",
+      "const shownEntries",
+    );
+
+    expect(declaration).toContain(
       "getDiscoveredHostFilterOptions(reviewEntries)",
     );
-    expect(modalSection()).toContain("options={hostFilterOptions}");
   });
 
   test("the list renders the filtered hosts, not the whole scan", () => {
-    const section: string = modalSection();
+    const code: string = modalSection();
 
-    expect(section).toContain("{shownEntries.map(");
-    expect(section).not.toContain("{reviewEntries.map(");
+    expect(code).toContain("{shownEntries.map(");
+    expect(code).not.toContain("{reviewEntries.map(");
   });
 
-  test("shownEntries is the filter applied to the scan", () => {
-    const code: string = readCode();
-
-    const declaration: string = code.slice(
-      code.indexOf("const shownEntries"),
-      code.indexOf("const selectedCount"),
-    );
-
-    expect(declaration).toContain("filterDiscoveredHosts({");
-    expect(declaration).toContain("hosts: reviewEntries");
-    expect(declaration).toContain("filter: hostFilter");
-  });
-
-  test("a scan opens on All, and closing resets to All", () => {
+  test("shownEntries is the filter applied to the scan, carrying scan position", () => {
     /*
-     * A filter that persisted across scans would mean opening a review and
-     * being shown a subset with no memory of having asked for it.
+     * getShownDiscoveredHosts rather than filterDiscoveredHosts: the rows need
+     * their position in the UNFILTERED scan for a React key that does not move
+     * when the filter does. See ShownDiscoveredHost.
      */
-    const code: string = readCode();
-
-    const openBody: string = code.slice(
-      code.indexOf("const openReviewModal"),
-      code.indexOf("const closeReviewModal"),
+    const declaration: string = section(
+      "const shownEntries",
+      "const selectedCount",
     );
 
-    const closeBody: string = code.slice(
-      code.indexOf("const closeReviewModal"),
-      code.indexOf("const importSelectedDevices"),
+    expect(declaration).toContain(
+      "getShownDiscoveredHosts({ hosts: reviewEntries, filter: hostFilter, })",
+    );
+  });
+
+  test("every group size is computed off the unfiltered scan", () => {
+    /*
+     * Deriving the badges from the filtered list would make every button
+     * except the active one read zero — and the badges are what you click to
+     * change the filter.
+     */
+    const declaration: string = section(
+      "const hostFilterOptions",
+      "const shownEntries",
     );
 
-    expect(openBody).toContain("setHostFilter(DiscoveredHostFilter.All)");
-    expect(closeBody).toContain("setHostFilter(DiscoveredHostFilter.All)");
-    expect(openBody).toContain("setImportedIpAddresses(new Set<string>())");
-    expect(closeBody).toContain("setImportedIpAddresses(new Set<string>())");
+    expect(declaration).not.toContain("shownEntries");
   });
 });
 
 describe("the bulk selection control", () => {
-  test("it exists, is addressable, and toggles only the shown group", () => {
-    const section: string = modalSection();
+  test("it exists and is addressable", () => {
+    expect(bulkControlSection()).toContain(
+      'dataTestId="discovered-device-select-all"',
+    );
+  });
 
-    expect(section).toContain('dataTestId="discovered-device-select-all"');
-    expect(section).toContain("toggleSelectionForShownHosts({");
-    expect(section).toContain("filter: hostFilter");
+  test("it toggles the shown group, and only the shown group", () => {
+    const code: string = bulkControlSection();
+
+    expect(code).toContain(
+      "toggleSelectionForShownHosts({ hosts: reviewEntries, filter: hostFilter, selectedIpAddresses: current, })",
+    );
   });
 
   test("it is disabled when the shown group has nothing to select", () => {
-    expect(modalSection()).toContain(
+    expect(bulkControlSection()).toContain(
       "disabled={selectableShownCount === 0 || isImporting}",
     );
   });
 
-  test("its label follows whether the shown group is already full", () => {
-    expect(modalSection()).toContain("areAllShownSelected");
+  test("a full group offers Clear all and a partial one offers Select all", () => {
+    /*
+     * Pinned as the whole ternary, both arms and their direction. Asserting
+     * only that the identifier `areAllShownSelected` appears — which is what
+     * this test used to do — passes just as happily with the two arms swapped,
+     * i.e. with a button that says "Select all" over an already-full group and
+     * clears it when pressed.
+     */
+    expect(bulkControlSection()).toContain(
+      "title={ areAllShownSelected " +
+        '? `Clear all (${selectableShownCount.toLocaleString("en-US")})` ' +
+        ': `Select all (${selectableShownCount.toLocaleString("en-US")})` }',
+    );
   });
 
   test("it updates selection functionally, not from a captured value", () => {
     /*
-     * Two presses in the same tick against a stale `selectedIps` would drop
-     * the first one's work.
+     * Scoped to the bulk control's own JSX. The per-row checkbox uses the same
+     * functional form a few lines below, so a file-wide search for it would
+     * pass even after the bulk control was rewritten to spread a stale
+     * `selectedIps` — which would drop the work of a first press when a second
+     * landed in the same tick.
      */
-    expect(modalSection()).toContain(
+    expect(bulkControlSection()).toContain(
       "setSelectedIps((current: Record<string, boolean>) =>",
     );
   });
 });
 
-describe("what the dialog tells the operator", () => {
-  test("it no longer claims hosts without SNMP cannot be imported", () => {
-    /*
-     * That stopped being true when ping-only hosts started importing as
-     * monitor-backed devices, and it reads as a flat contradiction next to a
-     * No SNMP filter whose entire purpose is importing them as a batch.
-     */
-    expect(readSource()).not.toContain(
-      "Select the ones you want to import as Network Devices — hosts without SNMP cannot be imported.",
-    );
-  });
-
-  test("an empty scan is not described as having found no SNMP devices", () => {
-    // Ping-only hosts are listed too, so "no SNMP devices" is the wrong claim.
-    expect(readSource()).not.toContain(
-      "This scan did not find any SNMP devices.",
-    );
-    expect(modalSection()).toContain(
-      "This scan did not find any responding hosts.",
-    );
-  });
-
-  test("a group that filters to nothing says so instead of rendering blank", () => {
-    const section: string = modalSection();
-
-    expect(section).toContain("shownEntries.length === 0");
-    expect(section).toContain("hosts in this scan.");
-  });
-
-  test("the row badge and the filter button use the same words", () => {
-    /*
-     * The pill on a ping-only row reads "No SNMP". The button that filters to
-     * those rows is labelled from getDiscoveredHostFilterLabel, which returns
-     * the same string — the two must not drift into near-synonyms the operator
-     * has to connect.
-     */
-    expect(modalSection()).toContain("No SNMP");
-    expect(readCode()).toContain("getDiscoveredHostFilterLabel(hostFilter)");
-  });
-
+describe("each row agrees with the counts above it", () => {
   test("the row badge is decided by the same predicate the filter groups by", () => {
     /*
-     * A row can carry the No SNMP pill and a filter can collect No SNMP rows;
-     * if those are two separate expressions they can drift, and the dialog
-     * ends up showing a badged host that the No SNMP filter hides.
+     * Pinned as the exact assignment. Asserting only that the substring
+     * `isPingOnlyDiscoveredHost(entry)` occurs somewhere survives a leading
+     * `!` — which is precisely how a badged row and a filtered row come to be
+     * different sets.
      */
-    expect(modalSection()).toContain("isPingOnlyDiscoveredHost(entry)");
-    expect(modalSection()).not.toContain(
-      "NetworkDeviceMonitoringMethod.Monitor",
+    expect(rowSection()).toContain(
+      "const isPingOnly: boolean = isPingOnlyDiscoveredHost(entry);",
+    );
+  });
+
+  test("the checkbox's enabled state is the shared selectability rule", () => {
+    /*
+     * Every count, the bulk toggle and the import list go through
+     * isSelectableDiscoveredHost. The row used to spell out its own version of
+     * that rule, which left a host with a blank address rendering an enabled
+     * checkbox that no count in the dialog agreed existed.
+     */
+    const code: string = rowSection();
+
+    expect(code).toContain(
+      "const isSelectable: boolean = isSelectableDiscoveredHost(entry);",
+    );
+    expect(code).toContain("disabled={!isSelectable || isImporting}");
+    expect(code).not.toContain("!isImportable");
+  });
+
+  test("a row that cannot be selected never renders as ticked", () => {
+    const code: string = rowSection();
+
+    expect(code).toContain(
+      "const isChecked: boolean = isSelectable && Boolean(selectedIps[entry.ipAddress]);",
     );
   });
 });
@@ -283,5 +327,6 @@ describe("the page reads the scan through the shared, tested helper", () => {
 
     expect(code).toContain("getDiscoveredHosts(");
     expect(code).not.toContain("const getDiscoveredDevices:");
+    expect(code).not.toContain("scan?.discoveredDevices");
   });
 });
