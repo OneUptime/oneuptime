@@ -1,203 +1,118 @@
 import Attribution from "../../../Server/Utils/Attribution";
-import { JSONObject } from "../../../Types/JSON";
+import { AttributionConsentState } from "../../../Types/Marketing/AcquisitionAttribution";
 import { describe, expect, test } from "@jest/globals";
 
 describe("Attribution", () => {
-  describe("sanitizeClickIds", () => {
-    test("keeps every supported ad-platform click identifier", () => {
-      const clickIds: JSONObject = {
-        gclid: "google-click",
-        wbraid: "google-web-to-app",
-        gbraid: "google-app-to-web",
-        fbclid: "meta-click",
-        msclkid: "microsoft-click",
-        li_fat_id: "linkedin-click",
-        twclid: "x-click",
-        rdt_cid: "reddit-click",
-      };
+  test("allowlists and normalizes supported click identifiers", () => {
+    expect(
+      Attribution.sanitizeClickIds({
+        gclid: 123,
+        fbclid: " meta ",
+        msclkid: "microsoft",
+        attackerControlledKey: "drop-me",
+      }),
+    ).toEqual({ gclid: "123", fbclid: "meta", msclkid: "microsoft" });
+  });
 
-      expect(Attribution.sanitizeClickIds(clickIds)).toEqual(clickIds);
-    });
-
-    test("drops keys that are not explicitly allowlisted", () => {
-      expect(
-        Attribution.sanitizeClickIds({
-          gclid: "valid",
-          attackerControlledKey: "must-not-persist",
-          __proto__: "must-not-persist",
-        }),
-      ).toEqual({ gclid: "valid" });
-    });
-
-    test.each([null, undefined, "gclid=x", 42, true, ["gclid"]])(
-      "rejects a non-object value: %p",
-      (value: unknown) => {
-        expect(Attribution.sanitizeClickIds(value as never)).toBeUndefined();
-      },
-    );
-
-    test("drops empty, boolean and object click-id values", () => {
-      expect(
-        Attribution.sanitizeClickIds({
-          gclid: "",
-          fbclid: false,
-          msclkid: { nested: "value" },
-        }),
-      ).toBeUndefined();
-    });
-
-    test("normalizes numeric identifiers to strings", () => {
-      expect(
-        Attribution.sanitizeClickIds({
-          gclid: 12345,
-          msclkid: 67890,
-        }),
-      ).toEqual({
-        gclid: "12345",
-        msclkid: "67890",
-      });
-    });
-
-    test("caps each identifier at 500 characters", () => {
-      const result: JSONObject | undefined = Attribution.sanitizeClickIds({
-        gclid: "g".repeat(600),
-        fbclid: "f".repeat(501),
-      });
-
-      expect(result?.["gclid"]).toBe("g".repeat(500));
-      expect(result?.["fbclid"]).toBe("f".repeat(500));
-    });
-
-    test("returns a fresh object instead of retaining the untrusted input", () => {
-      const input: JSONObject = { gclid: "original" };
-      const result: JSONObject | undefined =
-        Attribution.sanitizeClickIds(input);
-
-      input["gclid"] = "mutated";
-
-      expect(result).toEqual({ gclid: "original" });
-      expect(result).not.toBe(input);
+  test("sanitizes a direct touch without requiring campaign fields", () => {
+    expect(
+      Attribution.sanitizeTouch({
+        channel: "direct",
+        landingPage: "https://oneuptime.com/pricing",
+        timestamp: "2026-07-22T10:00:00Z",
+        arbitrary: "drop-me",
+      }),
+    ).toEqual({
+      channel: "direct",
+      landingPage: "https://oneuptime.com/pricing",
+      timestamp: "2026-07-22T10:00:00.000Z",
     });
   });
 
-  describe("sanitizeFirstTouchAttribution", () => {
-    test("keeps the complete supported first-touch payload", () => {
-      const firstTouch: JSONObject = {
-        utmSource: "google",
-        utmMedium: "cpc",
-        utmCampaign: "pagerduty-alternative",
-        utmTerm: "pagerduty alternative",
-        utmContent: "comparison-ad-a",
-        landingUrl: "https://oneuptime.com/compare/pagerduty?gclid=abc",
-        referrer: "https://google.com/",
-        timestamp: "2026-07-22T10:00:00.000Z",
-        clickIds: {
-          gclid: "abc",
-          msclkid: "def",
-        },
-      };
-
-      expect(Attribution.sanitizeFirstTouchAttribution(firstTouch)).toEqual(
-        firstTouch,
-      );
+  test("strips credentials, fragments, UTMs and click IDs from URLs", () => {
+    expect(
+      Attribution.sanitizeTouch({
+        landingUrl:
+          "https://user:secret@oneuptime.com/demo?utm_source=google&gclid=abc&keep=yes#private",
+        referrer:
+          "https://google.com/search?utm_campaign=brand&msclkid=def&q=oneuptime#result",
+      }),
+    ).toEqual({
+      landingPage: "https://oneuptime.com/demo?keep=yes",
+      referrer: "https://google.com/search?q=oneuptime",
     });
+  });
 
-    test("drops unknown top-level and nested click-id keys", () => {
-      expect(
-        Attribution.sanitizeFirstTouchAttribution({
+  test.each([
+    "javascript:alert(1)",
+    "data:text/plain,secret",
+    "not a url",
+    "/relative-only",
+  ])("rejects an unsafe or invalid URL: %s", (url: string) => {
+    expect(Attribution.sanitizeTouch({ landingPage: url })).toBeUndefined();
+  });
+
+  test("preserves the latest paid touch independently of the latest direct touch", () => {
+    expect(
+      Attribution.sanitizeAcquisitionAttribution({
+        anonymousVisitorId: "visitor_123456789",
+        consentState: AttributionConsentState.Granted,
+        firstTouch: { channel: "organic_referral" },
+        latestTouch: { channel: "direct" },
+        latestPaidTouch: {
+          channel: "attributed",
           utmSource: "google",
-          arbitrary: "do-not-store",
-          clickIds: {
-            gclid: "valid",
-            arbitraryClickId: "do-not-store",
-          },
-        }),
-      ).toEqual({
+          clickIds: { gclid: "paid-click" },
+        },
+      }),
+    ).toEqual({
+      anonymousVisitorId: "visitor_123456789",
+      consentState: AttributionConsentState.Granted,
+      firstTouch: { channel: "organic_referral" },
+      latestTouch: { channel: "direct" },
+      latestPaidTouch: {
+        channel: "attributed",
         utmSource: "google",
-        clickIds: { gclid: "valid" },
-      });
-    });
-
-    test("keeps valid first-touch fields when clickIds is malformed", () => {
-      expect(
-        Attribution.sanitizeFirstTouchAttribution({
-          utmSource: "newsletter",
-          clickIds: ["not", "an", "object"],
-        }),
-      ).toEqual({ utmSource: "newsletter" });
-    });
-
-    test("keeps valid click IDs when no UTM values exist", () => {
-      expect(
-        Attribution.sanitizeFirstTouchAttribution({
-          clickIds: { gclid: "auto-tagged-click" },
-        }),
-      ).toEqual({
-        clickIds: { gclid: "auto-tagged-click" },
-      });
-    });
-
-    test("caps all first-touch strings and nested click IDs", () => {
-      const result: JSONObject | undefined =
-        Attribution.sanitizeFirstTouchAttribution({
-          utmCampaign: "c".repeat(700),
-          landingUrl: "l".repeat(700),
-          clickIds: { gclid: "g".repeat(700) },
-        });
-
-      expect(result?.["utmCampaign"]).toBe("c".repeat(500));
-      expect(result?.["landingUrl"]).toBe("l".repeat(500));
-      expect((result?.["clickIds"] as JSONObject)?.["gclid"]).toBe(
-        "g".repeat(500),
-      );
-    });
-
-    test("normalizes numeric scalar values", () => {
-      expect(
-        Attribution.sanitizeFirstTouchAttribution({
-          utmCampaign: 2026,
-          timestamp: 123456,
-        }),
-      ).toEqual({
-        utmCampaign: "2026",
-        timestamp: "123456",
-      });
-    });
-
-    test.each([null, undefined, "utm_source=google", 42, true, []])(
-      "rejects a non-object first-touch value: %p",
-      (value: unknown) => {
-        expect(
-          Attribution.sanitizeFirstTouchAttribution(value as never),
-        ).toBeUndefined();
+        clickIds: { gclid: "paid-click" },
       },
-    );
+    });
+  });
 
-    test("returns undefined when every supplied field is invalid", () => {
+  test("allowlists the complete acquisition payload", () => {
+    expect(
+      Attribution.sanitizeAcquisitionAttribution({
+        anonymousVisitorId: "visitor_123456789",
+        consentState: AttributionConsentState.Unknown,
+        firstTouch: { utmSource: "newsletter", injected: "drop-me" },
+        latestTouch: { channel: "direct" },
+        latestPaidTouch: { clickIds: { gclid: "abc", injected: "drop-me" } },
+        email: "must-not-persist@example.com",
+        opaqueVendorPayload: { attendee: "must-not-persist" },
+      }),
+    ).toEqual({
+      anonymousVisitorId: "visitor_123456789",
+      consentState: AttributionConsentState.Unknown,
+      firstTouch: { utmSource: "newsletter" },
+      latestTouch: { channel: "direct" },
+      latestPaidTouch: { clickIds: { gclid: "abc" } },
+    });
+  });
+
+  test.each([null, undefined, "utm_source=google", 42, true, []])(
+    "rejects a non-object acquisition payload: %p",
+    (value: unknown) => {
       expect(
-        Attribution.sanitizeFirstTouchAttribution({
-          unsupported: "value",
-          clickIds: { unsupported: "value" },
-        }),
+        Attribution.sanitizeAcquisitionAttribution(value as never),
       ).toBeUndefined();
-    });
+    },
+  );
 
-    test("does not retain mutable nested input objects", () => {
-      const clickIds: JSONObject = { gclid: "original" };
-      const input: JSONObject = {
-        utmSource: "google",
-        clickIds,
-      };
-      const result: JSONObject | undefined =
-        Attribution.sanitizeFirstTouchAttribution(input);
-
-      clickIds["gclid"] = "mutated";
-      input["utmSource"] = "mutated";
-
-      expect(result).toEqual({
-        utmSource: "google",
-        clickIds: { gclid: "original" },
-      });
-    });
+  test("rejects malformed visitor IDs and consent values", () => {
+    expect(
+      Attribution.sanitizeAcquisitionAttribution({
+        anonymousVisitorId: "short",
+        consentState: "yes",
+      }),
+    ).toBeUndefined();
   });
 });

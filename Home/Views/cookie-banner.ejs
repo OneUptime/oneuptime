@@ -1,65 +1,50 @@
-
-
 <div id="cookie" class="pointer-events-none fixed inset-x-0 bottom-0 px-6 pb-6 cookie-banner" style="display:none;">
     <div class="pointer-events-auto ml-auto max-w-xl rounded-xl bg-white p-6 shadow-lg ring-1 ring-gray-900/10">
-        <p class="text-sm leading-6 text-gray-900 my-3">We use cookies to enhance your browsing experience and provide
-            personalized content. By clicking "Accept," you consent to the use of cookies.</p>
-
-            <p class="text-sm leading-6 text-gray-900 my-3">Our product uses both first-party and third-party cookies for session storage and for various other purposes.</p>
-
-            <p class="text-sm leading-6 text-gray-900 my-3">Please note that disabling certain cookies may affect the functionality and performance of our product.</p>
-
-            <p class="text-sm leading-6 text-gray-900 my-3">For more information about how we handle your data and cookies, please read our Privacy Policy.</p>
-
-            <p class="text-sm leading-6 text-gray-900 my-3">By continuing to use our site without changing your cookie settings, you agree to our use of cookies as
-            described above. See our <a href="/legal/terms" class="font-semibold text-gray-600">terms</a> and our <a
-                href="/legal/privacy" class="font-semibold text-gray-600">privacy policy</a> </p>
+        <p class="text-sm leading-6 text-gray-900 my-3">We use cookies to enhance your browsing experience and provide personalized content. By clicking "Accept," you consent to the use of cookies.</p>
+        <p class="text-sm leading-6 text-gray-900 my-3">Our product uses both first-party and third-party cookies for session storage and for various other purposes.</p>
+        <p class="text-sm leading-6 text-gray-900 my-3">Please note that disabling certain cookies may affect the functionality and performance of our product.</p>
+        <p class="text-sm leading-6 text-gray-900 my-3">For more information about how we handle your data and cookies, please read our Privacy Policy.</p>
+        <p class="text-sm leading-6 text-gray-900 my-3">By continuing to use our site without changing your cookie settings, you agree to our use of cookies as described above. See our <a href="/legal/terms" class="font-semibold text-gray-600">terms</a> and our <a href="/legal/privacy" class="font-semibold text-gray-600">privacy policy</a></p>
         <div class="mt-4 flex items-center gap-x-5">
-            <button onclick="acceptCookies()" type="button"
-                class="rounded-md bg-gray-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">Accept
-                all</button>
-            <button onclick="rejectCookies()" type="button" class="text-sm font-semibold leading-6 text-gray-900">Reject all</button>
+            <button id="accept-cookies" type="button" class="rounded-md bg-gray-900 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">Accept all</button>
+            <button id="reject-cookies" type="button" class="text-sm font-semibold leading-6 text-gray-900">Reject all</button>
         </div>
     </div>
 </div>
 
 <script>
-    // Function to accept cookies
-    function acceptCookies() {
-        localStorage.setItem('cookiesAccepted', 'true');
-        hideBanner();
-
-    }
-
-    // Function to reject cookies
-    function rejectCookies() {
-        localStorage.setItem('cookiesAccepted', 'false');
-        hideBanner();
-    }
-
-    // Function to hide the banner
-    function hideBanner() {
-        document.getElementById('cookie').style.display = 'none';
-    }
-
-    // Function to show the banner
-    function showBanner() {
-        document.getElementById('cookie').style.display = 'block';
-    }
-
-    function checkCookies () {
-        var cookiesAccepted = localStorage.getItem('cookiesAccepted');
-        if (cookiesAccepted === 'true') {
-            hideBanner();
-        } else if (cookiesAccepted === 'false') {
-            hideBanner();
-        } else {
-            showBanner();
+    (function () {
+        function hideBanner() {
+            document.getElementById('cookie').style.display = 'none';
         }
-    };
 
-    // Check the user's choice on page load
-    window.onload = checkCookies;
+        function showBanner() {
+            document.getElementById('cookie').style.display = 'block';
+        }
 
+        function setConsent(granted) {
+            localStorage.setItem('cookiesAccepted', granted ? 'true' : 'false');
+            hideBanner();
+            window.dispatchEvent(new CustomEvent('oneuptime:consent-change', {
+                detail: { state: granted ? 'granted' : 'denied' }
+            }));
+        }
 
+        function checkCookies() {
+            var cookiesAccepted = localStorage.getItem('cookiesAccepted');
+            if (cookiesAccepted === 'true' || cookiesAccepted === 'false') {
+                hideBanner();
+            } else {
+                showBanner();
+            }
+        }
+
+        document.getElementById('accept-cookies').addEventListener('click', function () {
+            setConsent(true);
+        });
+        document.getElementById('reject-cookies').addEventListener('click', function () {
+            setConsent(false);
+        });
+        window.addEventListener('DOMContentLoaded', checkCookies);
+    })();
 </script>
