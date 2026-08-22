@@ -957,6 +957,58 @@ describe("attribution capture and consent", () => {
     });
 
     /*
+     * The first touch is JSON, and it is bounded as JSON — 4000 characters —
+     * not by the 500-character per-value bound the flat fields get.
+     *
+     * This fixture is deliberately REALISTIC rather than minimal. A real first
+     * touch carries five UTM values, a click id, and a landing URL that repeats
+     * all of them as query parameters; that runs past 500 characters without
+     * being unusual. Truncating JSON at 500 produces a string the webhook's
+     * JSON.parse rejects, so the whole first touch would be dropped — silently,
+     * and only for the visitors whose attribution is richest.
+     *
+     * An earlier version of this test used a short fixture and passed while the
+     * code truncated.
+     */
+    test("keeps a realistic first touch intact and parseable", () => {
+      const longClickId: string = "CjwKCAjw1oy0BhAKEiwAWDVpV" + "x".repeat(60);
+      const landingUrl: string =
+        "https://oneuptime.com/enterprise/demo?utm_source=google" +
+        "&utm_medium=cpc&utm_campaign=enterprise-observability-q3" +
+        `&utm_term=datadog+alternative&utm_content=demo-cta-variant-b&gclid=${longClickId}`;
+
+      const firstTouch: Record<string, unknown> = {
+        utmSource: "google",
+        utmMedium: "cpc",
+        utmCampaign: "enterprise-observability-q3",
+        utmTerm: "datadog alternative",
+        utmContent: "demo-cta-variant-b",
+        clickIds: { gclid: longClickId },
+        landingUrl: landingUrl,
+        referrer: "https://www.google.com/",
+        timestamp: "2026-08-22T10:00:00.000Z",
+      };
+
+      const serialized: string = JSON.stringify(firstTouch);
+
+      // The fixture only tests anything if it is over the per-value bound.
+      expect(serialized.length).toBeGreaterThan(500);
+
+      const harness: Harness = loadHarness(html, {
+        storedConsent: "true",
+        storedAttribution: { firstTouch: serialized, utmSource: "google" },
+      });
+
+      const sent: string = harness.calMetadata()["metadata[ou_first_touch]"]!;
+
+      expect(sent).toHaveLength(serialized.length);
+      expect(() => {
+        return JSON.parse(sent);
+      }).not.toThrow();
+      expect(JSON.parse(sent)).toEqual(firstTouch);
+    });
+
+    /*
      * Cal serialises config values into query parameters, so anything that is
      * not already a string is stringified by JavaScript — which is how a nested
      * object turns into "[object Object]".

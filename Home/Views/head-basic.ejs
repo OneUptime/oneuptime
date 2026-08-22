@@ -434,6 +434,9 @@
         // Mirrors MaxAttributionValueLength on the server.
         var MAX_VALUE_LENGTH = 500;
 
+        // Mirrors MAX_FIRST_TOUCH_LENGTH in App/API/CalWebhook.ts.
+        var MAX_FIRST_TOUCH_LENGTH = 4000;
+
         // Attribution seen on this page but not yet allowed to be stored.
         var pending = null;
 
@@ -635,9 +638,10 @@
              *
              * https://cal.com/help/embedding/prefill-booking-form-embed
              */
-            function put(key, value) {
+            function put(key, value, maxLength) {
                 if (value) {
-                    config['metadata[' + key + ']'] = bound(value);
+                    config['metadata[' + key + ']'] =
+                        String(value).slice(0, maxLength || MAX_VALUE_LENGTH);
                 }
             }
 
@@ -653,9 +657,18 @@
 
             if (attribution.firstTouch) {
                 var serialized = JSON.stringify(attribution.firstTouch);
-                // Mirrors MAX_FIRST_TOUCH_LENGTH in App/API/CalWebhook.ts.
-                if (serialized.length <= 4000) {
-                    put('ou_first_touch', serialized);
+                /*
+                 * The first touch is JSON, so it gets the JSON bound, NOT the
+                 * 500-char per-value one. A realistic first touch — five UTM
+                 * values, a click id, and a landing URL that repeats them all
+                 * as query parameters — runs past 500 characters easily, and
+                 * truncating JSON produces a string the webhook's JSON.parse
+                 * rejects. It would drop the whole first touch, silently.
+                 *
+                 * Mirrors MAX_FIRST_TOUCH_LENGTH in App/API/CalWebhook.ts.
+                 */
+                if (serialized.length <= MAX_FIRST_TOUCH_LENGTH) {
+                    put('ou_first_touch', serialized, MAX_FIRST_TOUCH_LENGTH);
                 }
             }
 
