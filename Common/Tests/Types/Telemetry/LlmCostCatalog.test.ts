@@ -282,3 +282,235 @@ describe("LlmCostCatalogUtil.computeCostInUSD", () => {
     ).toBeNull();
   });
 });
+
+describe("LlmCostCatalogUtil.findPriceForModel — project price overrides", () => {
+  test("an override prices a model the built-in catalog does not know", () => {
+    const overrides: Array<LlmModelPrice> = [
+      {
+        modelPrefix: "my-custom-finetune",
+        inputPricePerMillionTokensInUSD: 1,
+        outputPricePerMillionTokensInUSD: 2,
+      },
+    ];
+
+    const price: LlmModelPrice | null = LlmCostCatalogUtil.findPriceForModel(
+      "my-custom-finetune-v3",
+      overrides,
+    );
+
+    expect(price).not.toBeNull();
+    expect(price!.modelPrefix).toBe("my-custom-finetune");
+    expect(price!.inputPricePerMillionTokensInUSD).toBe(1);
+    expect(price!.outputPricePerMillionTokensInUSD).toBe(2);
+  });
+
+  test("a project entry beats the built-in entry on a prefix-length tie", () => {
+    const overrides: Array<LlmModelPrice> = [
+      {
+        modelPrefix: "gpt-4o",
+        inputPricePerMillionTokensInUSD: 1.25,
+        outputPricePerMillionTokensInUSD: 5,
+      },
+    ];
+
+    const price: LlmModelPrice | null = LlmCostCatalogUtil.findPriceForModel(
+      "gpt-4o-2024-08-06",
+      overrides,
+    );
+
+    expect(price).not.toBeNull();
+    // Built-in gpt-4o is $2.50/M input — the negotiated override must win.
+    expect(price!.inputPricePerMillionTokensInUSD).toBe(1.25);
+    expect(price!.outputPricePerMillionTokensInUSD).toBe(5);
+  });
+
+  test("a longer built-in prefix still beats a shorter override", () => {
+    const overrides: Array<LlmModelPrice> = [
+      {
+        modelPrefix: "gpt-4o",
+        inputPricePerMillionTokensInUSD: 1.25,
+        outputPricePerMillionTokensInUSD: 5,
+      },
+    ];
+
+    const price: LlmModelPrice | null = LlmCostCatalogUtil.findPriceForModel(
+      "gpt-4o-mini-2024-07-18",
+      overrides,
+    );
+
+    expect(price).not.toBeNull();
+    // Built-in gpt-4o-mini (longer prefix) wins over the gpt-4o override.
+    expect(price!.modelPrefix).toBe("gpt-4o-mini");
+    expect(price!.inputPricePerMillionTokensInUSD).toBe(0.15);
+  });
+
+  test("a longer override prefix beats a shorter built-in", () => {
+    const overrides: Array<LlmModelPrice> = [
+      {
+        modelPrefix: "gpt-4o-mini-2024",
+        inputPricePerMillionTokensInUSD: 0.1,
+        outputPricePerMillionTokensInUSD: 0.4,
+      },
+    ];
+
+    const price: LlmModelPrice | null = LlmCostCatalogUtil.findPriceForModel(
+      "gpt-4o-mini-2024-07-18",
+      overrides,
+    );
+
+    expect(price).not.toBeNull();
+    expect(price!.modelPrefix).toBe("gpt-4o-mini-2024");
+    expect(price!.inputPricePerMillionTokensInUSD).toBe(0.1);
+  });
+
+  test("override prefixes are normalized: case and whitespace", () => {
+    const overrides: Array<LlmModelPrice> = [
+      {
+        modelPrefix: "  My-Custom-Model  ",
+        inputPricePerMillionTokensInUSD: 3,
+        outputPricePerMillionTokensInUSD: 6,
+      },
+    ];
+
+    const price: LlmModelPrice | null = LlmCostCatalogUtil.findPriceForModel(
+      "my-custom-model-v2",
+      overrides,
+    );
+
+    expect(price).not.toBeNull();
+    expect(price!.modelPrefix).toBe("my-custom-model");
+  });
+
+  test("overrides match vendor-decorated model ids via normalization", () => {
+    const overrides: Array<LlmModelPrice> = [
+      {
+        modelPrefix: "claude-3-5-sonnet",
+        inputPricePerMillionTokensInUSD: 2,
+        outputPricePerMillionTokensInUSD: 10,
+      },
+    ];
+
+    const price: LlmModelPrice | null = LlmCostCatalogUtil.findPriceForModel(
+      "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+      overrides,
+    );
+
+    expect(price).not.toBeNull();
+    expect(price!.inputPricePerMillionTokensInUSD).toBe(2);
+  });
+
+  test("unpriceable override entries are ignored, not matched", () => {
+    const overrides: Array<LlmModelPrice> = [
+      {
+        modelPrefix: "",
+        inputPricePerMillionTokensInUSD: 1,
+        outputPricePerMillionTokensInUSD: 1,
+      },
+      {
+        modelPrefix: "gpt-4o",
+        inputPricePerMillionTokensInUSD: -5,
+        outputPricePerMillionTokensInUSD: 1,
+      },
+      {
+        modelPrefix: "gpt-4o",
+        inputPricePerMillionTokensInUSD: NaN,
+        outputPricePerMillionTokensInUSD: 1,
+      },
+    ];
+
+    const price: LlmModelPrice | null = LlmCostCatalogUtil.findPriceForModel(
+      "gpt-4o",
+      overrides,
+    );
+
+    // The invalid overrides are dropped; the built-in catalog entry wins.
+    expect(price).not.toBeNull();
+    expect(price!.inputPricePerMillionTokensInUSD).toBe(2.5);
+  });
+
+  test("an empty override list behaves exactly like no overrides", () => {
+    const withEmpty: LlmModelPrice | null =
+      LlmCostCatalogUtil.findPriceForModel("gpt-4o", []);
+    const without: LlmModelPrice | null =
+      LlmCostCatalogUtil.findPriceForModel("gpt-4o");
+
+    expect(withEmpty).toEqual(without);
+  });
+
+  test("overrides do not make an unknown model match", () => {
+    const overrides: Array<LlmModelPrice> = [
+      {
+        modelPrefix: "my-custom-finetune",
+        inputPricePerMillionTokensInUSD: 1,
+        outputPricePerMillionTokensInUSD: 2,
+      },
+    ];
+
+    expect(
+      LlmCostCatalogUtil.findPriceForModel(
+        "totally-unknown-model-9000",
+        overrides,
+      ),
+    ).toBeNull();
+  });
+});
+
+describe("LlmCostCatalogUtil.computeCostInUSD — project price overrides", () => {
+  test("cost is computed from the override's prices", () => {
+    const overrides: Array<LlmModelPrice> = [
+      {
+        modelPrefix: "my-custom-finetune",
+        inputPricePerMillionTokensInUSD: 1,
+        outputPricePerMillionTokensInUSD: 2,
+      },
+    ];
+
+    const cost: number | null = LlmCostCatalogUtil.computeCostInUSD({
+      model: "my-custom-finetune-v3",
+      inputTokens: 1_000_000,
+      outputTokens: 500_000,
+      projectPriceOverrides: overrides,
+    });
+
+    expect(cost).toBe(1 + 1);
+  });
+
+  test("a zero-price override yields cost 0, not null — free is not unpriceable", () => {
+    const overrides: Array<LlmModelPrice> = [
+      {
+        modelPrefix: "llama-self-hosted",
+        inputPricePerMillionTokensInUSD: 0,
+        outputPricePerMillionTokensInUSD: 0,
+      },
+    ];
+
+    const cost: number | null = LlmCostCatalogUtil.computeCostInUSD({
+      model: "llama-self-hosted-70b",
+      inputTokens: 1000,
+      outputTokens: 1000,
+      projectPriceOverrides: overrides,
+    });
+
+    expect(cost).toBe(0);
+  });
+
+  test("an override tie-win changes the computed cost", () => {
+    const overrides: Array<LlmModelPrice> = [
+      {
+        modelPrefix: "gpt-4o",
+        inputPricePerMillionTokensInUSD: 1.25,
+        outputPricePerMillionTokensInUSD: 5,
+      },
+    ];
+
+    const cost: number | null = LlmCostCatalogUtil.computeCostInUSD({
+      model: "gpt-4o",
+      inputTokens: 1_000_000,
+      outputTokens: 1_000_000,
+      projectPriceOverrides: overrides,
+    });
+
+    // Built-in would be 2.5 + 10 = 12.5; the override prices it at 6.25.
+    expect(cost).toBe(6.25);
+  });
+});

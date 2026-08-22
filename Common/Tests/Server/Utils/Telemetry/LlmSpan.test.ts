@@ -3,6 +3,7 @@ import LlmSpanUtil, {
 } from "../../../../Server/Utils/Telemetry/LlmSpan";
 import { AttributeType } from "../../../../Server/Utils/Telemetry/Telemetry";
 import Dictionary from "../../../../Types/Dictionary";
+import { LlmModelPrice } from "../../../../Types/Telemetry/LlmCostCatalog";
 import { describe, expect, test } from "@jest/globals";
 
 type Attrs = Dictionary<AttributeType | Array<AttributeType>>;
@@ -383,5 +384,131 @@ describe("LlmSpanUtil.extract — conversation id", () => {
     const fields: LlmSpanFields = LlmSpanUtil.extract(attrs);
     expect(fields.isLlmSpan).toBe(false);
     expect(fields.llmConversationId).toBe("");
+  });
+});
+
+describe("LlmSpanUtil.extract — project price overrides", () => {
+  test("an override prices a custom model the catalog does not know", () => {
+    const overrides: Array<LlmModelPrice> = [
+      {
+        modelPrefix: "my-custom-finetune",
+        inputPricePerMillionTokensInUSD: 1,
+        outputPricePerMillionTokensInUSD: 2,
+      },
+    ];
+
+    const attrs: Attrs = {
+      "gen_ai.system": "openai",
+      "gen_ai.request.model": "my-custom-finetune-v3",
+      "gen_ai.usage.input_tokens": 1_000_000,
+      "gen_ai.usage.output_tokens": 500_000,
+    };
+
+    const fields: LlmSpanFields = LlmSpanUtil.extract(attrs, overrides);
+
+    expect(fields.isLlmSpan).toBe(true);
+    // 1M * $1/M + 0.5M * $2/M = 2.
+    expect(fields.llmCost).toBe(2);
+  });
+
+  test("an override beats the built-in catalog on a prefix-length tie", () => {
+    const overrides: Array<LlmModelPrice> = [
+      {
+        modelPrefix: "gpt-4o",
+        inputPricePerMillionTokensInUSD: 1.25,
+        outputPricePerMillionTokensInUSD: 5,
+      },
+    ];
+
+    const attrs: Attrs = {
+      "gen_ai.system": "openai",
+      "gen_ai.request.model": "gpt-4o",
+      "gen_ai.usage.input_tokens": 1_000_000,
+      "gen_ai.usage.output_tokens": 1_000_000,
+    };
+
+    const fields: LlmSpanFields = LlmSpanUtil.extract(attrs, overrides);
+
+    // Built-in gpt-4o would price this at 2.5 + 10 = 12.5.
+    expect(fields.llmCost).toBe(6.25);
+  });
+
+  test("a longer built-in prefix still beats a shorter override", () => {
+    const overrides: Array<LlmModelPrice> = [
+      {
+        modelPrefix: "gpt-4o",
+        inputPricePerMillionTokensInUSD: 1.25,
+        outputPricePerMillionTokensInUSD: 5,
+      },
+    ];
+
+    const attrs: Attrs = {
+      "gen_ai.system": "openai",
+      "gen_ai.request.model": "gpt-4o-mini-2024-07-18",
+      "gen_ai.usage.input_tokens": 1_000_000,
+      "gen_ai.usage.output_tokens": 1_000_000,
+    };
+
+    const fields: LlmSpanFields = LlmSpanUtil.extract(attrs, overrides);
+
+    // Built-in gpt-4o-mini: 0.15 + 0.6 = 0.75.
+    expect(fields.llmCost).toBe(0.75);
+  });
+
+  test("an SDK-reported cost still wins over any override", () => {
+    const overrides: Array<LlmModelPrice> = [
+      {
+        modelPrefix: "gpt-4o",
+        inputPricePerMillionTokensInUSD: 1.25,
+        outputPricePerMillionTokensInUSD: 5,
+      },
+    ];
+
+    const attrs: Attrs = {
+      "gen_ai.system": "openai",
+      "gen_ai.request.model": "gpt-4o",
+      "gen_ai.usage.input_tokens": 1_000_000,
+      "gen_ai.usage.output_tokens": 1_000_000,
+      "gen_ai.usage.cost": 0.42,
+    };
+
+    const fields: LlmSpanFields = LlmSpanUtil.extract(attrs, overrides);
+
+    expect(fields.llmCost).toBe(0.42);
+  });
+
+  test("a zero-price override marks the span free rather than unpriced", () => {
+    const overrides: Array<LlmModelPrice> = [
+      {
+        modelPrefix: "llama-self-hosted",
+        inputPricePerMillionTokensInUSD: 0,
+        outputPricePerMillionTokensInUSD: 0,
+      },
+    ];
+
+    const attrs: Attrs = {
+      "gen_ai.system": "ollama",
+      "gen_ai.request.model": "llama-self-hosted-70b",
+      "gen_ai.usage.input_tokens": 5000,
+      "gen_ai.usage.output_tokens": 5000,
+    };
+
+    const fields: LlmSpanFields = LlmSpanUtil.extract(attrs, overrides);
+
+    expect(fields.isLlmSpan).toBe(true);
+    expect(fields.llmCost).toBe(0);
+  });
+
+  test("without overrides an unknown model still costs zero", () => {
+    const attrs: Attrs = {
+      "gen_ai.system": "openai",
+      "gen_ai.request.model": "my-custom-finetune-v3",
+      "gen_ai.usage.input_tokens": 1_000_000,
+      "gen_ai.usage.output_tokens": 500_000,
+    };
+
+    const fields: LlmSpanFields = LlmSpanUtil.extract(attrs);
+
+    expect(fields.llmCost).toBe(0);
   });
 });

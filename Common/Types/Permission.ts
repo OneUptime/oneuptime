@@ -213,6 +213,11 @@ enum Permission {
   EditProjectLlmCostBudget = "EditProjectLlmCostBudget",
   ReadProjectLlmCostBudget = "ReadProjectLlmCostBudget",
 
+  CreateProjectLlmModelPrice = "CreateProjectLlmModelPrice",
+  DeleteProjectLlmModelPrice = "DeleteProjectLlmModelPrice",
+  EditProjectLlmModelPrice = "EditProjectLlmModelPrice",
+  ReadProjectLlmModelPrice = "ReadProjectLlmModelPrice",
+
   // Metric Recording Rules (derived metrics)
   CreateProjectMetricRecordingRule = "CreateProjectMetricRecordingRule",
   DeleteProjectMetricRecordingRule = "DeleteProjectMetricRecordingRule",
@@ -7377,6 +7382,48 @@ export class PermissionHelper {
         title: "Read LLM Cost Budget",
         description:
           "This permission can read LLM Cost Budgets of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // LLM Model Price Permissions
+      {
+        permission: Permission.CreateProjectLlmModelPrice,
+        title: "Create LLM Model Price",
+        description:
+          "This permission can create LLM Model Prices in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteProjectLlmModelPrice,
+        title: "Delete LLM Model Price",
+        description:
+          "This permission can delete LLM Model Prices of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProjectLlmModelPrice,
+        title: "Edit LLM Model Price",
+        description:
+          "This permission can edit LLM Model Prices of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProjectLlmModelPrice,
+        title: "Read LLM Model Price",
+        description:
+          "This permission can read LLM Model Prices of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

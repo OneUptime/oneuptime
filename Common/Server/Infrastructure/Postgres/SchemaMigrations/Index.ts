@@ -536,6 +536,7 @@ import { AddRestrictToAttachedProjectsToGlobalSso1787900000000 } from "./1787900
 import { AddDetectionRuleAndGoogleSecOpsConnection1788000000000 } from "./1788000000000-AddDetectionRuleAndGoogleSecOpsConnection";
 import { AddMeasurements1788100000000 } from "./1788100000000-AddMeasurements";
 import { AddLlmCostBudget1788200000000 } from "./1788200000000-AddLlmCostBudget";
+import { AddLlmModelPrice1788300000000 } from "./1788300000000-AddLlmModelPrice";
 import { MigrationName1787142779538 } from "./1787142779538-MigrationName";
 import { MigrationName1787156982416 } from "./1787156982416-MigrationName";
 
@@ -1080,4 +1081,5 @@ export default [
   AddDetectionRuleAndGoogleSecOpsConnection1788000000000,
   AddMeasurements1788100000000,
   AddLlmCostBudget1788200000000,
+  AddLlmModelPrice1788300000000,
 ];

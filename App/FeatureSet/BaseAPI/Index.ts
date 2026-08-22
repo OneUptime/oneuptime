@@ -469,6 +469,9 @@ import ServiceLevelObjectiveBurnRateRuleService, {
 import LlmCostBudgetService, {
   Service as LlmCostBudgetServiceType,
 } from "Common/Server/Services/LlmCostBudgetService";
+import LlmModelPriceService, {
+  Service as LlmModelPriceServiceType,
+} from "Common/Server/Services/LlmModelPriceService";
 import ServiceLevelObjectiveOwnerUserService, {
   Service as ServiceLevelObjectiveOwnerUserServiceType,
 } from "Common/Server/Services/ServiceLevelObjectiveOwnerUserService";
@@ -1148,6 +1151,7 @@ import ScheduledMaintenanceMeasurementValue from "Common/Models/DatabaseModels/S
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import LlmCostBudget from "Common/Models/DatabaseModels/LlmCostBudget";
+import LlmModelPrice from "Common/Models/DatabaseModels/LlmModelPrice";
 import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
 import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
 import SloHistory from "Common/Models/AnalyticsModels/SloHistory";
@@ -2733,6 +2737,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<LlmCostBudget, LlmCostBudgetServiceType>(
         LlmCostBudget,
         LlmCostBudgetService,
+      ).getRouter(),
+    );
+
+    // LlmModelPrice
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<LlmModelPrice, LlmModelPriceServiceType>(
+        LlmModelPrice,
+        LlmModelPriceService,
       ).getRouter(),
     );
 
