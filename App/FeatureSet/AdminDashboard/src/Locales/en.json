@@ -193,7 +193,7 @@
       "twoFactorDoNotRequireButton": "Do Not Require",
       "twoFactorResetButton": "Reset Two Factor Auth",
       "twoFactorRequireModalTitle": "Require Two Factor Authentication",
-      "twoFactorRequireModalDescription": "This user will be signed out of every active session. The next time they sign in they must set up an authenticator app before they can use OneUptime.",
+      "twoFactorRequireModalDescription": "This user will be signed out of every active session. The next time they sign in they will have to complete two factor authentication before they can use OneUptime, setting up an authenticator app first if they have not already.",
       "twoFactorRequireModalSubmit": "Require Two Factor Auth",
       "twoFactorDoNotRequireModalTitle": "Stop Requiring Two Factor Authentication",
       "twoFactorDoNotRequireModalDescription": "This user will be able to sign in with their password alone. Anything they have already set up is kept, but it will no longer be asked for.",

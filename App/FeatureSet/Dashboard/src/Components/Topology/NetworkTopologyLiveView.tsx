@@ -31,6 +31,14 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import {
+  TopologyLinkRuleWarning,
+  TopologyLinkRuleWarningSite,
+  describeSiteListToggle,
+  describeWarningSite,
+  hiddenSiteCount,
+  parseLinkRuleWarnings,
+} from "./LinkRuleWarningUtil";
 import NetworkTopology, {
   NetworkTopologyEdge,
   NetworkTopologyNode,
@@ -93,12 +101,6 @@ export interface ComponentProps {
  * NetworkTopology plus the endpoint-loss indicators the topology endpoint
  * reports alongside the graph.
  */
-interface TopologyLinkRuleWarning {
-  ruleId: string;
-  ruleName?: string | undefined;
-  message: string;
-}
-
 interface TopologyViewData extends NetworkTopology {
   endpointsTruncated?: boolean | undefined;
   droppedEndpointCount?: number | undefined;
@@ -159,23 +161,8 @@ const parseTopologyResponse: (
   const droppedEndpointCountRaw: unknown = data?.["droppedEndpointCount"];
   const suppressedNodeCountRaw: unknown = data?.["suppressedNodeCount"];
 
-  const linkRuleWarnings: Array<TopologyLinkRuleWarning> = (
-    Array.isArray(data?.["linkRuleWarnings"])
-      ? (data!["linkRuleWarnings"] as JSONArray)
-      : []
-  )
-    .map((row: unknown): TopologyLinkRuleWarning | null => {
-      const warning: JSONObject = (row || {}) as JSONObject;
-      if (!warning["ruleId"] || !warning["message"]) {
-        return null;
-      }
-      return warning as unknown as TopologyLinkRuleWarning;
-    })
-    .filter(
-      (w: TopologyLinkRuleWarning | null): w is TopologyLinkRuleWarning => {
-        return w !== null;
-      },
-    );
+  const linkRuleWarnings: Array<TopologyLinkRuleWarning> =
+    parseLinkRuleWarnings(data?.["linkRuleWarnings"]);
 
   return {
     nodes,
@@ -961,15 +948,55 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
           <ul className="list-disc space-y-1 pl-4">
             {topology.linkRuleWarnings.map(
               (
-                warning: { ruleName?: string | undefined; message: string },
+                warning: TopologyLinkRuleWarning,
                 index: number,
               ): ReactElement => {
+                const hidden: number = hiddenSiteCount(warning);
+
                 return (
                   <li key={index}>
                     <span className="font-medium">
                       {warning.ruleName || "Link rule"}
                     </span>
                     {`: ${warning.message}`}
+                    {/*
+                     * The sentence above names three sites and then a number.
+                     * Collapsed rather than inline because the number can be
+                     * in the hundreds — but present, because "694 more sites"
+                     * is a blast radius and not a list of buildings anybody
+                     * can go and fix (issue #3321).
+                     */}
+                    {warning.sites && warning.sites.length > 0 ? (
+                      <details className="mt-1">
+                        <summary className="cursor-pointer select-none text-amber-900 underline">
+                          {describeSiteListToggle(warning)}
+                        </summary>
+                        <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                          {warning.sites.map(
+                            (
+                              site: TopologyLinkRuleWarningSite,
+                            ): ReactElement => {
+                              return (
+                                <li key={site.siteId}>
+                                  {describeWarningSite(site)}
+                                </li>
+                              );
+                            },
+                          )}
+                        </ul>
+                        {hidden > 0 ? (
+                          <div className="mt-1 italic">
+                            {`${hidden} more site${
+                              hidden === 1 ? "" : "s"
+                            } not listed here.`}
+                          </div>
+                        ) : (
+                          <></>
+                        )}
+                      </details>
+                    ) : (
+                      <></>
+                    )}
                   </li>
                 );
               },

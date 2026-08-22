@@ -6,6 +6,7 @@ import {
   LogsSavedViewOption,
 } from "../types";
 import FacetSection from "./FacetSection";
+import SavedViewsFacetSection from "../../SavedViews/SavedViewsFacetSection";
 import Service from "../../../../Models/DatabaseModels/Service";
 import Host from "../../../../Models/DatabaseModels/Host";
 import DockerHost from "../../../../Models/DatabaseModels/DockerHost";
@@ -266,46 +267,12 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
 
       <div className="flex-1 overflow-y-auto">
         {props.savedViews && props.savedViews.length > 0 && (
-          <div className="border-b border-gray-100 px-3 py-3">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-              Saved Views
-            </p>
-
-            <div className="space-y-1.5">
-              {props.savedViews.map((view: LogsSavedViewOption) => {
-                const isSelected: boolean =
-                  view.id === props.selectedSavedViewId;
-
-                return (
-                  <button
-                    key={view.id}
-                    type="button"
-                    className={`flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-sm transition-colors ${
-                      isSelected
-                        ? "bg-indigo-50 text-indigo-700"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-800"
-                    }`}
-                    aria-pressed={isSelected}
-                    onClick={() => {
-                      if (isSelected && props.onClearSavedView) {
-                        props.onClearSavedView();
-                        return;
-                      }
-
-                      props.onSavedViewSelect?.(view.id);
-                    }}
-                  >
-                    <span className="truncate">{view.name}</span>
-                    {view.isDefault && (
-                      <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
-                        Default
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <SavedViewsFacetSection
+            savedViews={props.savedViews}
+            selectedSavedViewId={props.selectedSavedViewId}
+            onSelect={props.onSavedViewSelect}
+            onClear={props.onClearSavedView}
+          />
         )}
 
         {facetKeys.map((key: string) => {

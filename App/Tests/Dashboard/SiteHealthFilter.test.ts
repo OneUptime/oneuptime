@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { emptyDeviceHealthCounts } from "Common/Utils/NetworkDevice/DeviceHealthStateUtil";
 import {
   MapSiteView,
   MapUnplacedSiteView,
@@ -53,6 +54,7 @@ const makeChild: MakeChildFunction = (
     currentMonitorStatus: undefined,
     childSiteCount: 0,
     deviceCount: 0,
+    deviceStats: emptyDeviceHealthCounts(),
     unitStats: { totalUnits: 0, operationalUnits: 0 },
     uptimePercent: null,
     ...overrides,

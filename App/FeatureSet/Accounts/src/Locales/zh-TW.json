@@ -53,7 +53,8 @@
       "subtitle": "您的管理員要求此帳戶使用雙重驗證。請立即設定以完成登入。",
       "scanInstruction": "請使用 Google Authenticator、Microsoft Authenticator 或 1Password 等驗證器應用程式掃描此 QR 碼。",
       "codeFieldDescription": "請輸入驗證器應用程式顯示的六位數驗證碼。",
-      "submitButton": "驗證並登入"
+      "submitButton": "驗證並登入",
+      "backToSignIn": "以其他使用者身分登入"
     }
   },
   "register": {

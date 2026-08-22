@@ -57,6 +57,153 @@ import NetworkTopologySuppressionService from "Common/Server/Services/NetworkTop
 // Hard cap on endpoint rows fed to the builder — beyond this the map is noise.
 const MAX_TOPOLOGY_ENDPOINTS: number = 2000;
 
+/*
+ * Bounds on the link-rule device sweep.
+ *
+ * The map itself is capped at LIMIT_PER_PROJECT devices because beyond that
+ * there is nothing a human can read. The link RULES are a different question:
+ * "is there exactly one router in this site" is answered wrongly, not
+ * partially, when the router happens to sit outside the first page of rows.
+ * That is issue #3321 — 949 sites, a fleet past the 10,000-row cap, and a
+ * banner reporting 697 sites as having no parent device when their routers
+ * were simply never fetched.
+ *
+ * So the rules get their own pass over the fleet, in pages, reading only the
+ * four columns they need. It is skipped entirely unless the map's own page
+ * came back full, which is the only circumstance in which the two device sets
+ * can differ — an ordinary project pays for nothing.
+ */
+const LINK_RULE_DEVICE_PAGE_SIZE: number = LIMIT_PER_PROJECT;
+const MAX_LINK_RULE_DEVICES: number = LIMIT_PER_PROJECT * 10;
+
+interface LinkRuleDeviceSweep {
+  devices: Array<LinkRuleDeviceInput>;
+  /*
+   * The sweep stopped at MAX_LINK_RULE_DEVICES with rows still unread, so its
+   * verdicts really might be about devices it never saw. Distinct from the
+   * map's own truncation, which says nothing about the rules either way.
+   */
+  isTruncated: boolean;
+}
+
+/*
+ * Every device a link rule could match, in pages. A fresh query object per
+ * page on purpose: the query layer rewrites what it is handed (relation
+ * filters are deleted and re-expressed against _id), so handing the same
+ * object round a loop would compile a different statement each time.
+ */
+async function sweepLinkRuleDevices(data: {
+  projectId: ObjectID;
+  siteId: string | null;
+  props: DatabaseCommonInteractionProps;
+}): Promise<LinkRuleDeviceSweep> {
+  const collected: Array<LinkRuleDeviceInput> = [];
+  let skip: number = 0;
+
+  for (;;) {
+    const query: Query<NetworkDevice> = {
+      projectId: data.projectId,
+      isArchived: false,
+    };
+    if (data.siteId) {
+      query.siteId = new ObjectID(data.siteId);
+    }
+
+    const page: Array<NetworkDevice> = await NetworkDeviceService.findBy({
+      query: query,
+      /*
+       * The resolver reads labels, a site and that site's name. Nothing on
+       * this pass is rendered, so none of the map's forty columns are read —
+       * which is what makes a full-fleet sweep affordable at all.
+       */
+      select: {
+        _id: true,
+        siteId: true,
+        site: {
+          name: true,
+        },
+        labels: {
+          _id: true,
+        },
+      },
+      /*
+       * By id, not by the default createdAt: a discovery import stamps
+       * thousands of devices with the same createdAt, and rows tied on the
+       * sort key can shift between pages and be read twice or skipped —
+       * which would put back exactly the phantom "no parent in this site"
+       * this sweep exists to remove.
+       */
+      sort: {
+        _id: SortOrder.Ascending,
+      },
+      limit: LINK_RULE_DEVICE_PAGE_SIZE,
+      skip: skip,
+      props: data.props,
+    });
+
+    for (const device of page) {
+      if (!device.id) {
+        continue;
+      }
+      collected.push({
+        id: device.id.toString(),
+        labelIds: (device.labels || [])
+          .map((label: Label) => {
+            return label._id ? label._id.toString() : "";
+          })
+          .filter((id: string) => {
+            return id.length > 0;
+          }),
+        /*
+         * .toString() is load-bearing: the resolver keys a Map on this to
+         * group devices by site, and an ObjectID instance would compare by
+         * identity — putting every device in a site of its own and silently
+         * reducing site scope to nothing.
+         */
+        siteId: device.siteId?.toString(),
+        siteName: device.site?.name,
+      });
+    }
+
+    skip += page.length;
+
+    // A short page is the end of the fleet, with nothing left unread.
+    if (page.length < LINK_RULE_DEVICE_PAGE_SIZE) {
+      return { devices: collected, isTruncated: false };
+    }
+
+    if (skip >= MAX_LINK_RULE_DEVICES) {
+      /*
+       * A full last page is not proof that more devices exist — a fleet of
+       * exactly the cap would confess to a truncation that never happened,
+       * and every warning would then carry a caveat it does not need. One
+       * row settles it.
+       */
+      const nextDevice: Array<NetworkDevice> =
+        await NetworkDeviceService.findBy({
+          query: data.siteId
+            ? {
+                projectId: data.projectId,
+                isArchived: false,
+                siteId: new ObjectID(data.siteId),
+              }
+            : { projectId: data.projectId, isArchived: false },
+          select: {
+            _id: true,
+          },
+          sort: {
+            _id: SortOrder.Ascending,
+          },
+          limit: 1,
+          skip: skip,
+          props: data.props,
+        });
+
+      return { devices: collected, isTruncated: nextDevice.length > 0 };
+    }
+  }
+}
+
 export default class NetworkDeviceTopologyAPI {
   public getRouter(): ExpressRouter {
     const router: ExpressRouter = Express.getRouter();
@@ -198,6 +345,14 @@ export default class NetworkDeviceTopologyAPI {
               return device.id!.toString();
             }),
           );
+
+          /*
+           * A full page means devices are missing from the GRAPH. Decided here
+           * rather than at the response, because it is also what decides
+           * whether the link rules need a fleet sweep of their own below.
+           */
+          const isDeviceListTruncated: boolean =
+            devices.length >= LIMIT_PER_PROJECT;
 
           /*
            * Interface rows for the devices in THIS graph in ONE query; the
@@ -504,8 +659,44 @@ export default class NetworkDeviceTopologyAPI {
               });
           };
 
-          const ruleDeviceInput: Array<LinkRuleDeviceInput> = devices.map(
-            (device: NetworkDevice) => {
+          /*
+           * A rule with an empty label set on either side resolves the same
+           * way whatever devices exist, so it is not worth a fleet sweep.
+           */
+          const hasResolvableRule: boolean = linkRuleRows.some(
+            (rule: NetworkDeviceLinkRule) => {
+              return (
+                labelIdsOf(rule.childDeviceLabels).length > 0 &&
+                labelIdsOf(rule.parentDeviceLabels).length > 0
+              );
+            },
+          );
+
+          /*
+           * ISSUE #3321. The rules are resolved over the whole fleet, not over
+           * the page the map is drawn from.
+           *
+           * When the map's page is complete it IS the whole fleet, so it is
+           * reused and no second query is issued — which is every project
+           * under the row cap. Past the cap the two device sets genuinely
+           * differ, and judging "exactly one parent in this site" on a partial
+           * fleet does not degrade gracefully: it reports sites as having no
+           * router when their router simply sat outside the page. The sweep is
+           * the only way to tell the two apart.
+           */
+          let isLinkRuleDeviceListTruncated: boolean = false;
+          let ruleDeviceInput: Array<LinkRuleDeviceInput>;
+
+          if (isDeviceListTruncated && hasResolvableRule) {
+            const sweep: LinkRuleDeviceSweep = await sweepLinkRuleDevices({
+              projectId: props.tenantId,
+              siteId: siteId,
+              props: props,
+            });
+            ruleDeviceInput = sweep.devices;
+            isLinkRuleDeviceListTruncated = sweep.isTruncated;
+          } else {
+            ruleDeviceInput = devices.map((device: NetworkDevice) => {
               return {
                 id: device.id!.toString(),
                 labelIds: labelIdsOf(device.labels),
@@ -518,8 +709,8 @@ export default class NetworkDeviceTopologyAPI {
                 siteId: device.siteId?.toString(),
                 siteName: device.site?.name,
               };
-            },
-          );
+            });
+          }
 
           const ruleOutcomes: Array<LinkRuleOutcome> =
             NetworkDeviceLinkRuleUtil.resolveRules(
@@ -613,8 +804,6 @@ export default class NetworkDeviceTopologyAPI {
            * present, only their state is missing) and search cannot fix it,
            * so it gets its own flag rather than lying in this one.
            */
-          const isDeviceListTruncated: boolean =
-            devices.length >= LIMIT_PER_PROJECT;
           topology.isTruncated = isDeviceListTruncated;
 
           /*
@@ -658,12 +847,18 @@ export default class NetworkDeviceTopologyAPI {
               .map((warning: LinkRuleWarning) => {
                 /*
                  * Truncation is a fact about the query, not about the rule, so
-                 * it is admitted here rather than inside the resolver. It
-                 * matters more under site scoping: a cut-off device list can
-                 * strand whole sites whose router simply was not in the first
-                 * page of rows.
+                 * it is admitted here rather than inside the resolver.
+                 *
+                 * The flag read here is the SWEEP's, not the map's. Hedging on
+                 * the map's cap was the old behaviour and it was wrong in both
+                 * directions after #3321: the sweep normally reads the whole
+                 * fleet, so the caveat would be a lie on a truncated map, and
+                 * it would go missing on a fleet larger than the sweep's own
+                 * cap where the doubt is real. A caveat attached to warnings
+                 * that do not need it teaches operators to discount the ones
+                 * that do.
                  */
-                return isDeviceListTruncated
+                return isLinkRuleDeviceListTruncated
                   ? {
                       ...warning,
                       message: `${warning.message} ${NetworkDeviceLinkRuleUtil.TRUNCATED_DEVICE_LIST_NOTE}`,

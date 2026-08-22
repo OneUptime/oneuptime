@@ -1120,7 +1120,7 @@ export default class Span extends AnalyticsBaseModel {
       key: "llmCost",
       title: "LLM Cost (USD)",
       description:
-        "Cost of this LLM call in USD. Only populated when the instrumentation reports it (gen_ai.usage.cost); OneUptime does not compute pricing.",
+        "Cost of this LLM call in USD. The instrumentation-reported cost (gen_ai.usage.cost) when present; otherwise estimated at ingest from token counts and the built-in model price catalog (Common/Types/Telemetry/LlmCostCatalog.ts). 0 when neither is available.",
       required: true,
       defaultValue: 0,
       /*
@@ -1130,6 +1130,25 @@ export default class Span extends AnalyticsBaseModel {
       type: TableColumnType.Decimal,
       accessControl: llmColumnAccessControl,
     });
+
+    const llmConversationIdColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "llmConversationId",
+        title: "LLM Conversation ID",
+        description:
+          "Conversation / session id that groups the LLM calls of one user interaction across traces (gen_ai.conversation.id, session.id); '' when the instrumentation reports none.",
+        required: true,
+        defaultValue: "",
+        type: TableColumnType.Text,
+        codec: { codec: "ZSTD", level: 1 },
+        skipIndex: {
+          name: "idx_llm_conversation_id",
+          type: SkipIndexType.BloomFilter,
+          params: [0.01],
+          granularity: 1,
+        },
+        accessControl: llmColumnAccessControl,
+      });
 
     const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "retentionDate",
@@ -1225,6 +1244,7 @@ export default class Span extends AnalyticsBaseModel {
         llmOutputTokensColumn,
         llmTotalTokensColumn,
         llmCostColumn,
+        llmConversationIdColumn,
         retentionDateColumn,
       ],
       projections: [
@@ -1545,5 +1565,13 @@ export default class Span extends AnalyticsBaseModel {
 
   public set llmCost(v: number | undefined) {
     this.setColumnValue("llmCost", v);
+  }
+
+  public get llmConversationId(): string | undefined {
+    return this.getColumnValue("llmConversationId") as string | undefined;
+  }
+
+  public set llmConversationId(v: string | undefined) {
+    this.setColumnValue("llmConversationId", v);
   }
 }

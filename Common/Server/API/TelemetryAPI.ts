@@ -25,6 +25,10 @@ import LogAggregationService, {
   AnalyticsTimeseriesRow,
   AnalyticsTopItem,
   AnalyticsTableRow,
+  ErrorPatternFilters,
+  ErrorPatternTimelineRequest,
+  TopErrorPattern,
+  TopErrorPatternsRequest,
 } from "../Services/LogAggregationService";
 import TraceAggregationService, {
   HistogramBucket as TraceHistogramBucket,
@@ -1911,6 +1915,248 @@ router.post(
 
       return Response.sendJsonObjectResponse(req, res, {
         data: data as unknown as JSONObject,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Log Error Pattern Endpoints ---
+
+/*
+ * Shared body parsing for the two error-pattern endpoints. Both take the
+ * same filter shape as the histogram/facet endpoints so the Insights page
+ * can hand its one scope (time range, service selection, severities) to
+ * every panel it draws; the detail endpoint adds the pattern itself.
+ *
+ * Defensive about shapes throughout: these bodies come from the browser,
+ * and a stringly-typed or null field must mean "no filter" rather than
+ * becoming an active predicate that silently narrows the result.
+ */
+function parseErrorPatternFilterBody(
+  body: JSONObject,
+  projectId: ObjectID,
+): Omit<ErrorPatternFilters, "startTime" | "endTime"> {
+  const stringArray: (value: unknown) => Array<string> | undefined = (
+    value: unknown,
+  ): Array<string> | undefined => {
+    if (!Array.isArray(value)) {
+      return undefined;
+    }
+
+    const values: Array<string> = (value as Array<unknown>).filter(
+      (item: unknown): item is string => {
+        return typeof item === "string" && item.length > 0;
+      },
+    );
+
+    return values.length > 0 ? values : undefined;
+  };
+
+  const serviceIdStrings: Array<string> | undefined = stringArray(
+    body["serviceIds"],
+  );
+
+  return {
+    projectId,
+    serviceIds: serviceIdStrings
+      ? serviceIdStrings.map((id: string): ObjectID => {
+          return new ObjectID(id);
+        })
+      : undefined,
+    entityKeys: stringArray(body["entityKeys"]),
+    severityTexts: stringArray(body["severityTexts"]),
+    bodySearchText:
+      typeof body["bodySearchText"] === "string" &&
+      body["bodySearchText"].trim().length > 0
+        ? (body["bodySearchText"] as string)
+        : undefined,
+    traceIds: stringArray(body["traceIds"]),
+    spanIds: stringArray(body["spanIds"]),
+    sessionIds: stringArray(body["sessionIds"]),
+    attributes:
+      body["attributes"] && typeof body["attributes"] === "object"
+        ? (body["attributes"] as Record<string, string | Array<string>>)
+        : undefined,
+  };
+}
+
+/*
+ * Default window for the error-pattern endpoints: 24 hours rather than the
+ * one hour the histogram defaults to. "Top errors" is a question about a
+ * period long enough for a pattern to establish itself; an hour of a quiet
+ * service routinely has nothing in it.
+ */
+function parseErrorPatternWindow(body: JSONObject): {
+  startTime: Date;
+  endTime: Date;
+} {
+  const endTime: Date = body["endTime"]
+    ? OneUptimeDate.fromString(body["endTime"] as string)
+    : OneUptimeDate.getCurrentDate();
+
+  const startTime: Date = body["startTime"]
+    ? OneUptimeDate.fromString(body["startTime"] as string)
+    : OneUptimeDate.addRemoveHours(endTime, -24);
+
+  return { startTime, endTime };
+}
+
+router.post(
+  "/telemetry/logs/error-patterns",
+  ...requireLogReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+      const window: { startTime: Date; endTime: Date } =
+        parseErrorPatternWindow(body);
+
+      const request: TopErrorPatternsRequest = {
+        ...parseErrorPatternFilterBody(body, databaseProps.tenantId),
+        ...window,
+        resourceScopes: await resolveResourceScopesFromBody(
+          body,
+          databaseProps.tenantId,
+        ),
+        limit: typeof body["limit"] === "number" ? body["limit"] : undefined,
+      };
+
+      const patterns: Array<TopErrorPattern> =
+        await LogAggregationService.getTopErrorPatterns(request);
+
+      return Response.sendJsonObjectResponse(req, res, {
+        patterns: patterns as unknown as JSONObject,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/*
+ * Everything the UI needs to explain ONE error pattern, in a single round
+ * trip: when it fired, what else fired alongside it, what the occurrences
+ * have in common, which resources and traces carry it, and a handful of
+ * raw lines.
+ *
+ * The six aggregations run concurrently and each degrades to an empty
+ * result on its own failure. A correlation panel is supplementary
+ * information — one slow or unlucky sub-query should cost the user that
+ * section, not the whole page.
+ */
+router.post(
+  "/telemetry/logs/error-pattern-correlation",
+  ...requireLogReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = req.body as JSONObject;
+
+      const pattern: string =
+        typeof body["pattern"] === "string" ? (body["pattern"] as string) : "";
+
+      if (pattern.trim().length === 0) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("pattern is required"),
+        );
+      }
+
+      const window: { startTime: Date; endTime: Date } =
+        parseErrorPatternWindow(body);
+
+      const bucketSizeInMinutes: number =
+        typeof body["bucketSizeInMinutes"] === "number" &&
+        body["bucketSizeInMinutes"] > 0
+          ? (body["bucketSizeInMinutes"] as number)
+          : computeDefaultBucketSize(window.startTime, window.endTime);
+
+      const detailRequest: ErrorPatternTimelineRequest = {
+        ...parseErrorPatternFilterBody(body, databaseProps.tenantId),
+        ...window,
+        resourceScopes: await resolveResourceScopesFromBody(
+          body,
+          databaseProps.tenantId,
+        ),
+        pattern,
+        bucketSizeInMinutes,
+        limit: typeof body["limit"] === "number" ? body["limit"] : undefined,
+      };
+
+      const degradeToEmpty: <T>(
+        promise: Promise<Array<T>>,
+      ) => Promise<Array<T>> = async <T>(
+        promise: Promise<Array<T>>,
+      ): Promise<Array<T>> => {
+        try {
+          return await promise;
+        } catch {
+          return [];
+        }
+      };
+
+      const [timeline, coOccurring, attributes, resources, traces, samples] =
+        await Promise.all([
+          degradeToEmpty(
+            LogAggregationService.getErrorPatternTimeline(detailRequest),
+          ),
+          degradeToEmpty(
+            LogAggregationService.getErrorPatternCoOccurrences(detailRequest),
+          ),
+          degradeToEmpty(
+            LogAggregationService.getErrorPatternAttributes(detailRequest),
+          ),
+          degradeToEmpty(
+            LogAggregationService.getErrorPatternResources(detailRequest),
+          ),
+          degradeToEmpty(
+            LogAggregationService.getErrorPatternTraces(detailRequest),
+          ),
+          degradeToEmpty(
+            LogAggregationService.getErrorPatternSamples(detailRequest),
+          ),
+        ]);
+
+      return Response.sendJsonObjectResponse(req, res, {
+        pattern,
+        bucketSizeInMinutes,
+        timeline: timeline as unknown as JSONObject,
+        coOccurringPatterns: coOccurring as unknown as JSONObject,
+        attributes: attributes as unknown as JSONObject,
+        resources: resources as unknown as JSONObject,
+        traces: traces as unknown as JSONObject,
+        samples: samples as unknown as JSONObject,
       });
     } catch (err: unknown) {
       next(err);

@@ -11,9 +11,15 @@ import Probe from "Common/Models/DatabaseModels/Probe";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import FilterButtons, {
+  FilterButtonOption,
+} from "Common/UI/Components/FilterButtons/FilterButtons";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import OneUptimeDate from "Common/Types/Date";
@@ -28,38 +34,44 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
 import { getSnmpConfigFormFields } from "./SnmpConfigFormFields";
-import {
-  isImportableDiscoveredHost,
-  monitoringMethodForDiscoveredHost,
-} from "../../Components/NetworkDevice/DiscoveryImportEligibility";
+import { monitoringMethodForDiscoveredHost } from "../../Components/NetworkDevice/DiscoveryImportEligibility";
 import NetworkDeviceMonitoringMethod from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import {
   DiscoveryScanOutcome,
+  getDiscoveredHosts,
   summarizeDiscoveryScan,
 } from "../../Components/NetworkDevice/DiscoveryScanOutcome";
+import {
+  DiscoveredHostFilter,
+  DiscoveredHostFilterOption,
+  ImportedIpAddressesByScanId,
+  ShownDiscoveredHost,
+  areAllShownHostsSelected,
+  countSelectableShownHosts,
+  getDiscoveredHostFilterEmptyMessage,
+  getDiscoveredHostFilterLabel,
+  getDiscoveredHostFilterOptions,
+  getDiscoveredHostsToImport,
+  getImportedIpAddressesForScan,
+  getInitialSelection,
+  getShownDiscoveredHosts,
+  isPingOnlyDiscoveredHost,
+  isSelectableDiscoveredHost,
+  markDiscoveredHostsAsRegistered,
+  normalizeDiscoveredHosts,
+  toggleSelectionForShownHosts,
+  withImportedIpAddresses,
+} from "../../Components/NetworkDevice/DiscoveredHostFilter";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
 type DiscoveredDeviceEntry = DiscoveredNetworkDevice;
-
-type GetDiscoveredDevicesFunction = (
-  scan: NetworkDeviceDiscoveryScan | null,
-) => Array<DiscoveredDeviceEntry>;
-
-const getDiscoveredDevices: GetDiscoveredDevicesFunction = (
-  scan: NetworkDeviceDiscoveryScan | null,
-): Array<DiscoveredDeviceEntry> => {
-  const raw: unknown = scan?.discoveredDevices;
-  if (!raw || !Array.isArray(raw)) {
-    return [];
-  }
-  return raw as Array<DiscoveredDeviceEntry>;
-};
 
 const NetworkDeviceDiscovery: FunctionComponent<
   PageComponentProps
@@ -75,8 +87,36 @@ const NetworkDeviceDiscovery: FunctionComponent<
   const [scanToReview, setScanToReview] =
     useState<NetworkDeviceDiscoveryScan | null>(null);
   const [selectedIps, setSelectedIps] = useState<Record<string, boolean>>({});
+  /*
+   * Which group of hosts the dialog is showing — and, because Import is scoped
+   * to the view, which group Import brings in. See DiscoveredHostFilter.
+   */
+  const [hostFilter, setHostFilter] = useState<DiscoveredHostFilter>(
+    DiscoveredHostFilter.All,
+  );
   const [isImporting, setIsImporting] = useState<boolean>(false);
   const [importError, setImportError] = useState<string>("");
+  /*
+   * Addresses imported from each scan, per scan id. The scan's own
+   * `isAlreadyRegistered` flags were frozen when the probe uploaded its
+   * results, so without this the dialog would re-offer what it just imported
+   * — which now matters, because importing one group and then the other is
+   * the intended flow rather than an unusual one.
+   *
+   * Kept for the life of the page rather than the life of the dialog, so
+   * closing and reopening the same scan does not resurrect imported hosts;
+   * and keyed by scan so a long import that lands after the operator has
+   * moved to a different scan cannot mark that scan's hosts.
+   */
+  const [importedIpAddressesByScanId, setImportedIpAddressesByScanId] =
+    useState<ImportedIpAddressesByScanId>({});
+  /*
+   * The scan the dialog is showing right now, readable from inside an import
+   * that started minutes ago. State would be the value captured when the run
+   * began, which is exactly the value that cannot answer "is this still the
+   * dialog I was importing for".
+   */
+  const reviewedScanIdRef: React.MutableRefObject<string> = useRef<string>("");
 
   const fetchProbes: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -97,29 +137,51 @@ const NetworkDeviceDiscovery: FunctionComponent<
 
   type OpenReviewModalFunction = (scan: NetworkDeviceDiscoveryScan) => void;
 
+  type GetReviewHostsFunction = (
+    scan: NetworkDeviceDiscoveryScan | null,
+    importedByScanId?: ImportedIpAddressesByScanId,
+  ) => Array<DiscoveredDeviceEntry>;
+
+  /*
+   * The list the dialog reasons about: what the probe found, with anything
+   * already imported from this scan flipped to already-registered. Every
+   * count, filter and import path goes through this so they cannot disagree
+   * about what is still importable.
+   */
+  const getReviewHosts: GetReviewHostsFunction = (
+    scan: NetworkDeviceDiscoveryScan | null,
+    importedByScanId?: ImportedIpAddressesByScanId,
+  ): Array<DiscoveredDeviceEntry> => {
+    return markDiscoveredHostsAsRegistered({
+      /*
+       * Normalised first: the jsonb comes verbatim off the probe, and a null
+       * row or a numeric address used to break a different rule at each call
+       * site. See normalizeDiscoveredHosts.
+       */
+      hosts: normalizeDiscoveredHosts(getDiscoveredHosts(scan)),
+      importedIpAddresses: getImportedIpAddressesForScan({
+        importedByScanId: importedByScanId || importedIpAddressesByScanId,
+        scanId: scan?._id,
+      }),
+    });
+  };
+
   const openReviewModal: OpenReviewModalFunction = (
     scan: NetworkDeviceDiscoveryScan,
   ): void => {
-    const entries: Array<DiscoveredDeviceEntry> = getDiscoveredDevices(scan);
-
+    setScanToReview(scan);
+    // Answers "is this still the dialog I am importing for" from a stale run.
+    reviewedScanIdRef.current = scan._id || "";
     /*
      * Preselect every host that is not already registered. Ping-only hosts
      * are included: they import as monitor-backed devices rather than as
-     * SNMP-credentialed ones that could never be polled.
+     * SNMP-credentialed ones that could never be polled. Read through the
+     * overlay so reopening a scan does not re-tick what was already imported
+     * from it.
      */
-    const initialSelection: Record<string, boolean> = {};
-    for (const entry of entries) {
-      if (
-        entry.ipAddress &&
-        !entry.isAlreadyRegistered &&
-        isImportableDiscoveredHost(entry)
-      ) {
-        initialSelection[entry.ipAddress] = true;
-      }
-    }
-
-    setScanToReview(scan);
-    setSelectedIps(initialSelection);
+    setSelectedIps(getInitialSelection(getReviewHosts(scan)));
+    // Every scan opens on the whole list; narrowing is the operator's move.
+    setHostFilter(DiscoveredHostFilter.All);
     setImportError("");
     setShowReviewModal(true);
   };
@@ -127,8 +189,15 @@ const NetworkDeviceDiscovery: FunctionComponent<
   const closeReviewModal: VoidFunction = (): void => {
     setShowReviewModal(false);
     setScanToReview(null);
+    reviewedScanIdRef.current = "";
     setSelectedIps({});
+    setHostFilter(DiscoveredHostFilter.All);
     setImportError("");
+    /*
+     * importedIpAddressesByScanId is deliberately NOT cleared. It is what
+     * stops a reopened scan offering hosts that are already in the inventory,
+     * and the scan row it describes does not change when the dialog closes.
+     */
   };
 
   const importSelectedDevices: PromiseVoidFunction =
@@ -137,17 +206,26 @@ const NetworkDeviceDiscovery: FunctionComponent<
         return;
       }
 
+      /*
+       * The scan this run belongs to. Importing a large group is thousands of
+       * sequential creates and takes minutes, during which the dialog can be
+       * closed and another scan opened — so everything this run does when it
+       * finally lands has to be attributed to the scan it started on, not to
+       * whatever is on screen by then.
+       */
+      const runScanId: string = scanToReview._id || "";
+
+      /*
+       * Selected AND currently shown. Scoping to the active filter is what
+       * makes "show only SNMP, press Import" import only the SNMP devices
+       * instead of every ticked host in the scan (issue #3322).
+       */
       const entriesToImport: Array<DiscoveredDeviceEntry> =
-        getDiscoveredDevices(scanToReview).filter(
-          (entry: DiscoveredDeviceEntry) => {
-            return (
-              Boolean(entry.ipAddress) &&
-              !entry.isAlreadyRegistered &&
-              isImportableDiscoveredHost(entry) &&
-              Boolean(selectedIps[entry.ipAddress])
-            );
-          },
-        );
+        getDiscoveredHostsToImport({
+          hosts: getReviewHosts(scanToReview),
+          filter: hostFilter,
+          selectedIpAddresses: selectedIps,
+        });
 
       if (entriesToImport.length === 0) {
         return;
@@ -156,7 +234,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
       setIsImporting(true);
       setImportError("");
 
-      let successCount: number = 0;
+      const importedNow: Array<string> = [];
       const failures: Array<string> = [];
 
       for (const entry of entriesToImport) {
@@ -188,7 +266,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
               modelType: NetworkDevice,
             });
 
-            successCount++;
+            importedNow.push(entry.ipAddress);
             continue;
           }
 
@@ -238,13 +316,47 @@ const NetworkDeviceDiscovery: FunctionComponent<
             modelType: NetworkDevice,
           });
 
-          successCount++;
+          importedNow.push(entry.ipAddress);
         } catch (err) {
           failures.push(`${entry.ipAddress}: ${API.getFriendlyMessage(err)}`);
         }
       }
 
       setIsImporting(false);
+
+      const successCount: number = importedNow.length;
+
+      /*
+       * Retire what was imported so it cannot be imported a second time, and
+       * so the row shows "Already added" like any other registered host.
+       *
+       * Recorded against this run's own scan, and merged functionally, so it
+       * is correct whether or not the operator has moved on and whether or
+       * not another import already wrote to the store.
+       */
+      const importedAfterThisRun: ImportedIpAddressesByScanId =
+        withImportedIpAddresses({
+          importedByScanId: importedIpAddressesByScanId,
+          scanId: runScanId,
+          ipAddresses: importedNow,
+        });
+
+      setImportedIpAddressesByScanId((current: ImportedIpAddressesByScanId) => {
+        return withImportedIpAddresses({
+          importedByScanId: current,
+          scanId: runScanId,
+          ipAddresses: importedNow,
+        });
+      });
+
+      /*
+       * Whether the dialog still belongs to this run. A run that outlived its
+       * dialog must not push its errors onto whatever is open now, and must
+       * not close it — but its toasts still fire, because the devices really
+       * were created and the operator needs to know.
+       */
+      const isStillTheSameReview: boolean =
+        reviewedScanIdRef.current === runScanId;
 
       if (successCount > 0) {
         ShowToastNotification({
@@ -264,8 +376,31 @@ const NetworkDeviceDiscovery: FunctionComponent<
           } failed to import.`,
           type: ToastType.DANGER,
         });
-        setImportError(failures.join(" "));
-      } else {
+
+        if (isStillTheSameReview) {
+          setImportError(failures.join(" "));
+        }
+      } else if (
+        isStillTheSameReview &&
+        /*
+         * Closing on success is right only when there is nothing left to do.
+         * Importing group by group means the usual case is now "the SNMP
+         * devices are in, the ping-only ones are still waiting" — closing
+         * there would throw away the review and make the operator reopen the
+         * scan to finish the job.
+         *
+         * The test is on what is still SELECTED, not on what is still
+         * selectable. Gating on selectable would keep the dialog open after a
+         * complete import whenever the operator had deliberately unticked a
+         * host — showing them a dialog whose only button reads "Import
+         * Selected (0)" and is disabled, with nothing left to do in it.
+         */
+        getDiscoveredHostsToImport({
+          hosts: getReviewHosts(scanToReview, importedAfterThisRun),
+          filter: DiscoveredHostFilter.All,
+          selectedIpAddresses: selectedIps,
+        }).length === 0
+      ) {
         closeReviewModal();
       }
 
@@ -282,18 +417,48 @@ const NetworkDeviceDiscovery: FunctionComponent<
   }
 
   const reviewEntries: Array<DiscoveredDeviceEntry> =
-    getDiscoveredDevices(scanToReview);
+    getReviewHosts(scanToReview);
 
-  const selectedCount: number = reviewEntries.filter(
-    (entry: DiscoveredDeviceEntry) => {
-      return (
-        Boolean(entry.ipAddress) &&
-        !entry.isAlreadyRegistered &&
-        isImportableDiscoveredHost(entry) &&
-        Boolean(selectedIps[entry.ipAddress])
-      );
-    },
-  ).length;
+  // Group sizes come off the whole scan, so every button keeps its own count.
+  const hostFilterOptions: Array<FilterButtonOption> =
+    getDiscoveredHostFilterOptions(reviewEntries).map(
+      (option: DiscoveredHostFilterOption) => {
+        return {
+          label: option.label,
+          value: option.value,
+        };
+      },
+    );
+
+  /*
+   * Each row carries its position in the UNFILTERED scan, so its React key
+   * does not change when the filter does — see ShownDiscoveredHost.
+   */
+  const shownEntries: Array<ShownDiscoveredHost> = getShownDiscoveredHosts({
+    hosts: reviewEntries,
+    filter: hostFilter,
+  });
+
+  /*
+   * What Import will actually create — selected AND shown — so the number on
+   * the button can never promise something other than what the press does.
+   */
+  const selectedCount: number = getDiscoveredHostsToImport({
+    hosts: reviewEntries,
+    filter: hostFilter,
+    selectedIpAddresses: selectedIps,
+  }).length;
+
+  const selectableShownCount: number = countSelectableShownHosts({
+    hosts: reviewEntries,
+    filter: hostFilter,
+  });
+
+  const areAllShownSelected: boolean = areAllShownHostsSelected({
+    hosts: reviewEntries,
+    filter: hostFilter,
+    selectedIpAddresses: selectedIps,
+  });
 
   return (
     <Fragment>
@@ -639,9 +804,15 @@ const NetworkDeviceDiscovery: FunctionComponent<
       {showReviewModal && scanToReview && (
         <Modal
           title="Review Discovered Devices"
+          /*
+           * This used to end "hosts without SNMP cannot be imported", which
+           * stopped being true when ping-only hosts started importing as
+           * monitor-backed devices — and reads as a flat contradiction next to
+           * a No SNMP filter that exists precisely to import them as a batch.
+           */
           description={`Hosts that responded in ${
             scanToReview.cidr || "the scanned address range"
-          }. Select the ones you want to import as Network Devices — hosts without SNMP cannot be imported.${
+          }. Filter to a group, pick the hosts you want, and import — SNMP hosts arrive as polled devices, hosts without SNMP as monitor-backed ones.${
             /*
              * The probe's summary of the sweep. Most valuable precisely when
              * this list is empty, which is the one case where the operator
@@ -663,13 +834,70 @@ const NetworkDeviceDiscovery: FunctionComponent<
           }}
         >
           <div>
+            {reviewEntries.length > 0 && (
+              <div className="mb-3 border-b border-gray-200 pb-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <FilterButtons
+                    options={hostFilterOptions}
+                    selectedValue={hostFilter}
+                    onSelect={(value: string) => {
+                      setHostFilter(value as DiscoveredHostFilter);
+                    }}
+                  />
+                  {/*
+                   * The answer to "2,890 hosts are pre-checked and I only want
+                   * the switches": clear this group, or take all of it, in one
+                   * press. Scoped to the group on screen, so using it on one
+                   * filter never disturbs the other.
+                   */}
+                  <Button
+                    title={
+                      areAllShownSelected
+                        ? `Clear all (${selectableShownCount.toLocaleString("en-US")})`
+                        : `Select all (${selectableShownCount.toLocaleString("en-US")})`
+                    }
+                    dataTestId="discovered-device-select-all"
+                    buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                    buttonSize={ButtonSize.Small}
+                    disabled={selectableShownCount === 0 || isImporting}
+                    onClick={() => {
+                      setSelectedIps((current: Record<string, boolean>) => {
+                        return toggleSelectionForShownHosts({
+                          hosts: reviewEntries,
+                          filter: hostFilter,
+                          selectedIpAddresses: current,
+                        });
+                      });
+                    }}
+                  />
+                </div>
+                {/*
+                 * Import is scoped to the group on screen, and that has to be
+                 * said out loud: an operator who filters to SNMP and presses
+                 * Import needs to know both that the ping-only hosts are not
+                 * coming along, and that their ticks are still there when they
+                 * switch back.
+                 */}
+                <p className="mt-2 text-xs text-gray-500">
+                  {hostFilter === DiscoveredHostFilter.All
+                    ? `${selectedCount.toLocaleString("en-US")} of ${selectableShownCount.toLocaleString("en-US")} importable hosts selected.`
+                    : `${selectedCount.toLocaleString("en-US")} of ${selectableShownCount.toLocaleString("en-US")} importable ${getDiscoveredHostFilterLabel(hostFilter)} hosts selected. Import brings in this group only — selections in the other group are kept, so you can switch and import it too.`}
+                </p>
+              </div>
+            )}
             {reviewEntries.length === 0 && (
               <p className="text-sm text-gray-500">
-                This scan did not find any SNMP devices.
+                {getDiscoveredHostFilterEmptyMessage(DiscoveredHostFilter.All)}
               </p>
             )}
-            {reviewEntries.map(
-              (entry: DiscoveredDeviceEntry, index: number): ReactElement => {
+            {reviewEntries.length > 0 && shownEntries.length === 0 && (
+              <p className="text-sm text-gray-500">
+                {getDiscoveredHostFilterEmptyMessage(hostFilter)}
+              </p>
+            )}
+            {shownEntries.map(
+              (shownEntry: ShownDiscoveredHost): ReactElement => {
+                const entry: DiscoveredDeviceEntry = shownEntry.host;
                 /*
                  * Ping-only hosts (snmpReachable === false) import too, as
                  * monitor-backed devices rather than SNMP-credentialed ones
@@ -677,27 +905,52 @@ const NetworkDeviceDiscovery: FunctionComponent<
                  * operator knows what they are agreeing to. Legacy rows
                  * (snmpReachable undefined) import as SNMP, as before.
                  */
-                const isImportable: boolean = isImportableDiscoveredHost(entry);
-                const isPingOnly: boolean =
-                  monitoringMethodForDiscoveredHost(entry) ===
-                  NetworkDeviceMonitoringMethod.Monitor;
+                const isPingOnly: boolean = isPingOnlyDiscoveredHost(entry);
+                /*
+                 * The SAME predicate every count, the bulk toggle and the
+                 * import path use. The row used to spell out its own version
+                 * of it, which left a host with a blank address rendering an
+                 * enabled checkbox that no count would ever agree existed.
+                 */
+                const isSelectable: boolean = isSelectableDiscoveredHost(entry);
+                const isChecked: boolean =
+                  isSelectable && Boolean(selectedIps[entry.ipAddress]);
                 return (
                   <div
-                    key={`${entry.ipAddress}-${index}`}
+                    /*
+                     * Scan position, not position in the filtered list — see
+                     * ShownDiscoveredHost. A key that moved with the filter
+                     * would remount every row on every filter click, and a
+                     * remounted CheckboxElement paints unticked for a frame.
+                     */
+                    key={`${entry.ipAddress}-${shownEntry.scanIndex}`}
                     className="flex items-start justify-between gap-3 border-b border-gray-100 py-3"
                   >
                     <div className="flex min-w-0 items-start gap-3">
                       <CheckboxElement
                         dataTestId={`discovered-device-checkbox-${entry.ipAddress}`}
-                        value={
-                          entry.isAlreadyRegistered || !isImportable
-                            ? false
-                            : Boolean(selectedIps[entry.ipAddress])
-                        }
-                        disabled={
-                          Boolean(entry.isAlreadyRegistered) ||
-                          !isImportable ||
-                          isImporting
+                        /*
+                         * initialValue as well as value: CheckboxElement seeds
+                         * its own state from initialValue and only reconciles
+                         * value in a passive effect, so without this a row
+                         * mounts unticked and corrects itself a frame later.
+                         */
+                        initialValue={isChecked}
+                        value={isChecked}
+                        disabled={!isSelectable || isImporting}
+                        /*
+                         * A bare checkbox in a list is announced as
+                         * "checkbox" and nothing else; a disabled one that
+                         * does not say why reads as broken rather than as
+                         * deliberate.
+                         */
+                        ariaLabel={`Import ${entry.sysName || entry.ipAddress} (${entry.ipAddress || "no address"})`}
+                        hoverText={
+                          entry.isAlreadyRegistered
+                            ? "Already added as a Network Device."
+                            : entry.ipAddress
+                              ? undefined
+                              : "This host reported no address, so it cannot be imported."
                         }
                         onChange={(value: boolean) => {
                           setSelectedIps((current: Record<string, boolean>) => {

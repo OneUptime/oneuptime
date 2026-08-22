@@ -53,7 +53,8 @@
       "subtitle": "O seu administrador exige autenticação de dois fatores nesta conta. Configure-a agora para concluir o início de sessão.",
       "scanInstruction": "Leia este código QR com uma aplicação de autenticação como o Google Authenticator, o Microsoft Authenticator ou o 1Password.",
       "codeFieldDescription": "Introduza o código de seis dígitos apresentado pela sua aplicação de autenticação.",
-      "submitButton": "Verificar e iniciar sessão"
+      "submitButton": "Verificar e iniciar sessão",
+      "backToSignIn": "Inicie sessão como outro utilizador"
     }
   },
   "register": {

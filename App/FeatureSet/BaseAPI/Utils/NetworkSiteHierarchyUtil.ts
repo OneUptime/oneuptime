@@ -1,3 +1,10 @@
+import {
+  DeviceHealthCounts,
+  NetworkDeviceHealthState,
+  addDeviceHealth,
+  emptyDeviceHealthCounts,
+} from "Common/Utils/NetworkDevice/DeviceHealthStateUtil";
+
 /*
  * Pure aggregation logic behind the /network-site/children endpoint.
  * Everything here is plain data-in/data-out so the breadcrumb ordering,
@@ -49,9 +56,35 @@ export interface UnitStats {
   operationalUnits: number;
 }
 
+/*
+ * One device attachment fed to the aggregator: which site it hangs off,
+ * and how healthy it is.
+ *
+ * The health verdict is computed once per device by the API layer (see
+ * DeviceHealthStateUtil) rather than in here, so this stays a pure
+ * bucketing pass with no clock in it — the same reason every other helper
+ * in this file takes resolved facts rather than model rows.
+ */
+export interface DeviceAttachmentRow {
+  siteId: string;
+  healthState: NetworkDeviceHealthState;
+}
+
 export interface ChildAggregate {
   childSiteCount: number;
   deviceCount: number;
+  /*
+   * The device health of the child's whole subtree — issue #3320's "which
+   * SITES hold a device that needs attention", answered per row so the
+   * level can be filtered without loading a single device node.
+   *
+   * `deviceStats.total` and `deviceCount` are always the same number.
+   * Both are kept because they are read by different things: the card
+   * prints a count, the filter reads a breakdown, and collapsing them
+   * would make every existing consumer reach through a nested object for
+   * one integer.
+   */
+  deviceStats: DeviceHealthCounts;
   unitStats: UnitStats;
 }
 
@@ -235,8 +268,9 @@ export default class NetworkSiteHierarchyUtil {
    *   named "Unit" — counted operational when their status id is in
    *   operationalStatusIds. A child that IS unit-level reports exactly
    *   itself (1/1 or 1/0); its own descendants, if any, don't add.
-   * - deviceCount: devices attached to the child itself or to any site in
-   *   its subtree.
+   * - deviceCount / deviceStats: devices attached to the child itself or to
+   *   any site in its subtree, tallied by health so the level can answer
+   *   "which of these holds something that needs attention".
    *
    * A subtree row belongs to the child whose id appears in its
    * materialized path (children are siblings, so at most one matches);
@@ -245,7 +279,7 @@ export default class NetworkSiteHierarchyUtil {
   public static aggregateChildStats(data: {
     children: Array<ChildSiteRow>;
     descendants: Array<SubtreeSiteRow>;
-    deviceSiteIds: Array<string>;
+    devices: Array<DeviceAttachmentRow>;
     operationalStatusIds: Set<string>;
   }): Map<string, ChildAggregate> {
     const childIds: Set<string> = new Set<string>();
@@ -269,6 +303,7 @@ export default class NetworkSiteHierarchyUtil {
       result.set(child.id, {
         childSiteCount: 0,
         deviceCount: 0,
+        deviceStats: emptyDeviceHealthCounts(),
         unitStats: {
           totalUnits: isUnit ? 1 : 0,
           operationalUnits: isUnit && isOperational ? 1 : 0,
@@ -329,18 +364,43 @@ export default class NetworkSiteHierarchyUtil {
       }
     }
 
-    for (const deviceSiteId of data.deviceSiteIds) {
-      const subtreeRoot: string | undefined =
-        subtreeRootBySiteId.get(deviceSiteId);
+    for (const device of data.devices) {
+      const subtreeRoot: string | undefined = subtreeRootBySiteId.get(
+        device.siteId,
+      );
       if (subtreeRoot) {
         const aggregate: ChildAggregate | undefined = result.get(subtreeRoot);
         if (aggregate) {
           aggregate.deviceCount += 1;
+          addDeviceHealth(aggregate.deviceStats, device.healthState);
         }
       }
     }
 
     return result;
+  }
+
+  /*
+   * Device health for one explicit set of sites — not a subtree.
+   *
+   * The drill-down needs this for the level the user is standing ON, which
+   * aggregateChildStats deliberately says nothing about: a site can hold
+   * devices of its own AND have children under it (a distribution centre
+   * with its own core switches above a dozen stores), and those devices
+   * belong to no child's subtree. Before this they were simply invisible —
+   * counted nowhere and drawn nowhere.
+   */
+  public static tallyDeviceHealth(
+    devices: Array<DeviceAttachmentRow>,
+    siteIds: Set<string>,
+  ): DeviceHealthCounts {
+    const counts: DeviceHealthCounts = emptyDeviceHealthCounts();
+    for (const device of devices) {
+      if (siteIds.has(device.siteId)) {
+        addDeviceHealth(counts, device.healthState);
+      }
+    }
+    return counts;
   }
 
   /*

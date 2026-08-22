@@ -535,6 +535,7 @@ import { AddScopeToNetworkDeviceLinkRule1787800000000 } from "./1787800000000-Ad
 import { AddRestrictToAttachedProjectsToGlobalSso1787900000000 } from "./1787900000000-AddRestrictToAttachedProjectsToGlobalSso";
 import { AddDetectionRuleAndGoogleSecOpsConnection1788000000000 } from "./1788000000000-AddDetectionRuleAndGoogleSecOpsConnection";
 import { AddMeasurements1788100000000 } from "./1788100000000-AddMeasurements";
+import { AddLlmCostBudget1788200000000 } from "./1788200000000-AddLlmCostBudget";
 import { MigrationName1787142779538 } from "./1787142779538-MigrationName";
 import { MigrationName1787156982416 } from "./1787156982416-MigrationName";
 
@@ -1078,4 +1079,5 @@ export default [
   AddRestrictToAttachedProjectsToGlobalSso1787900000000,
   AddDetectionRuleAndGoogleSecOpsConnection1788000000000,
   AddMeasurements1788100000000,
+  AddLlmCostBudget1788200000000,
 ];

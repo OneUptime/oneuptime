@@ -2,7 +2,7 @@ import PageComponentProps from "../PageComponentProps";
 import ServiceMapGraph from "../../Components/Topology/ServiceMapGraph";
 import InfrastructureGraph from "../../Components/Topology/InfrastructureGraph";
 import { buildTopologyInventoryItemQuery } from "../../Components/Topology/TopologyInventoryData";
-import NetworkTopologyView from "../../Components/NetworkDevice/NetworkTopologyView";
+import NetworkTopologyExplorer from "../../Components/Topology/NetworkTopologyExplorer";
 import Page from "Common/UI/Components/Page/Page";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
@@ -185,7 +185,7 @@ const TopologyPage: FunctionComponent<
       },
       {
         name: "Network",
-        children: <NetworkTopologyView />,
+        children: <NetworkTopologyExplorer />,
       },
     ];
   }, [entities, relationships, timeRange, isLoading, error]);
@@ -196,7 +196,7 @@ const TopologyPage: FunctionComponent<
         <p className="text-sm text-gray-500">
           {isNetworkTab
             ? translateString(
-                "The network map is live — it shows the physical layer as devices report it right now.",
+                "The network map is live. Start at the sites you model your network in and drill down — the last level opens the devices as they report themselves right now.",
               ) || ""
             : translateString(
                 "The map includes every current inventory item. Connections reflect OpenTelemetry data from the selected time range.",

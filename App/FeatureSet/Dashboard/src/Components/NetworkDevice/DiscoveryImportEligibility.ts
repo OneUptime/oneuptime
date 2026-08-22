@@ -30,9 +30,19 @@ import NetworkDeviceMonitoringMethod from "Common/Types/NetworkDevice/NetworkDev
  * importing as SNMP devices.
  */
 export function monitoringMethodForDiscoveredHost(
-  host: DiscoveredNetworkDevice,
+  host: DiscoveredNetworkDevice | null | undefined,
 ): NetworkDeviceMonitoringMethod {
-  return host.snmpReachable === false
+  /*
+   * Nullish hosts read as SNMP rather than throwing. `discoveredDevices` is
+   * jsonb written verbatim from the probe's payload and the only guard on it
+   * (DiscoveryScanOutcome.getDiscoveredHosts) checks that the VALUE is an
+   * array — never that its elements are objects. A single null element used
+   * to take the whole page down from inside a table cell or a modal body,
+   * where a thrown TypeError has nowhere useful to go. Every other kind of
+   * junk element (a number, a string, {}) already read as SNMP; null is now
+   * simply consistent with them.
+   */
+  return host?.snmpReachable === false
     ? NetworkDeviceMonitoringMethod.Monitor
     : NetworkDeviceMonitoringMethod.Snmp;
 }

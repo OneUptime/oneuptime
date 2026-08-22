@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { emptyDeviceHealthCounts } from "Common/Utils/NetworkDevice/DeviceHealthStateUtil";
 import { JSONObject } from "Common/Types/JSON";
 import {
   SiteChildrenResponse,
@@ -29,6 +30,8 @@ describe("parseSiteChildrenResponse", () => {
       breadcrumb: [],
       children: [],
       links: [],
+      ownDeviceStats: emptyDeviceHealthCounts(),
+      deviceScope: { attachedDeviceCount: 0, unattachedDeviceCount: 0 },
       childrenTruncated: false,
       descendantCountsTruncated: false,
     };
@@ -69,6 +72,13 @@ describe("parseSiteChildrenResponse", () => {
           },
           childSiteCount: 12,
           deviceCount: 48,
+          deviceStats: {
+            total: 48,
+            down: 2,
+            degraded: 1,
+            healthy: 44,
+            unknown: 1,
+          },
           unitStats: { totalUnits: 12, operationalUnits: 11 },
           uptimePercent: 99.95,
         },
@@ -110,6 +120,13 @@ describe("parseSiteChildrenResponse", () => {
       },
       childSiteCount: 12,
       deviceCount: 48,
+      deviceStats: {
+        total: 48,
+        down: 2,
+        degraded: 1,
+        healthy: 44,
+        unknown: 1,
+      },
       unitStats: { totalUnits: 12, operationalUnits: 11 },
       uptimePercent: 99.95,
     });
@@ -150,6 +167,7 @@ describe("parseSiteChildrenResponse", () => {
       currentMonitorStatus: undefined,
       childSiteCount: 0,
       deviceCount: 0,
+      deviceStats: emptyDeviceHealthCounts(),
       unitStats: { totalUnits: 0, operationalUnits: 0 },
       uptimePercent: null,
     });

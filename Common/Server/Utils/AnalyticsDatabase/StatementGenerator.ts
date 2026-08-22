@@ -1068,6 +1068,15 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
            * values (including the empty-string default for missing
            * keys), which compares to false against any numeric
            * threshold and naturally drops those rows.
+           *
+           * The threshold binds as Decimal (ClickHouse `Double`), not
+           * Number (`Int32`): the attribute filter form builds these
+           * with `Number(input)` (see buildDictionaryValue in
+           * Common/UI/Components/Dictionary/DictionaryFilterOperator.ts),
+           * so a user can legitimately ask for `duration > 0.5` and an
+           * Int32 bind would fail to parse the fractional value. Double
+           * represents every Int32 exactly, so integer thresholds are
+           * unaffected, and it matches the Float64 comparison side.
            */
           if (mapEntry instanceof GreaterThan) {
             this.appendMapKeyPresenceFilter({
@@ -1082,7 +1091,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 type: TableColumnType.Text,
               }}]) > ${{
                 value: Number((mapEntry as GreaterThan<any>).value),
-                type: TableColumnType.Number,
+                type: TableColumnType.Decimal,
               }}`,
             );
             continue;
@@ -1101,7 +1110,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 type: TableColumnType.Text,
               }}]) >= ${{
                 value: Number((mapEntry as GreaterThanOrEqual<any>).value),
-                type: TableColumnType.Number,
+                type: TableColumnType.Decimal,
               }}`,
             );
             continue;
@@ -1120,7 +1129,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 type: TableColumnType.Text,
               }}]) < ${{
                 value: Number((mapEntry as LessThan<any>).value),
-                type: TableColumnType.Number,
+                type: TableColumnType.Decimal,
               }}`,
             );
             continue;
@@ -1139,7 +1148,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
                 type: TableColumnType.Text,
               }}]) <= ${{
                 value: Number((mapEntry as LessThanOrEqual<any>).value),
-                type: TableColumnType.Number,
+                type: TableColumnType.Decimal,
               }}`,
             );
             continue;

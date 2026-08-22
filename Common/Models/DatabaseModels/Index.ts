@@ -118,6 +118,7 @@ import DetectionRule from "./DetectionRule";
 import GoogleSecOpsConnection from "./GoogleSecOpsConnection";
 import LogScrubRule from "./LogScrubRule";
 import MetricPipelineRule from "./MetricPipelineRule";
+import LlmCostBudget from "./LlmCostBudget";
 import MetricRecordingRule from "./MetricRecordingRule";
 import TracePipeline from "./TracePipeline";
 import TracePipelineProcessor from "./TracePipelineProcessor";
@@ -465,6 +466,7 @@ const AllModelTypes: Array<{
   GoogleSecOpsConnection,
   LogScrubRule,
   MetricPipelineRule,
+  LlmCostBudget,
   MetricRecordingRule,
   TracePipeline,
   TracePipelineProcessor,

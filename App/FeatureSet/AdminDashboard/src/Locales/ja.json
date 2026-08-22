@@ -193,7 +193,7 @@
       "twoFactorDoNotRequireButton": "必須にしない",
       "twoFactorResetButton": "2 要素認証をリセット",
       "twoFactorRequireModalTitle": "2 要素認証を必須にする",
-      "twoFactorRequireModalDescription": "このユーザーはすべてのアクティブなセッションからサインアウトされます。次回サインイン時には、認証アプリを設定するまで OneUptime を利用できません。",
+      "twoFactorRequireModalDescription": "このユーザーはすべてのアクティブなセッションからサインアウトされます。次回サインイン時には、2 要素認証を完了するまで OneUptime を利用できません。認証アプリをまだ設定していない場合は、先に設定する必要があります。",
       "twoFactorRequireModalSubmit": "2 要素認証を必須にする",
       "twoFactorDoNotRequireModalTitle": "2 要素認証の必須を解除",
       "twoFactorDoNotRequireModalDescription": "このユーザーはパスワードだけでサインインできるようになります。すでに設定済みの内容は保持されますが、今後は要求されません。",

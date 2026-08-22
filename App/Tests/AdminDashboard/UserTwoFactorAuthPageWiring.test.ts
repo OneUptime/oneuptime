@@ -1324,3 +1324,132 @@ describe("User two factor auth translations", () => {
     expect(extra).toEqual([]);
   });
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * Two things the page depends on that nothing else in this file was watching.
+ * ---------------------------------------------------------------------------
+ */
+describe("User > Authentication two factor write handlers", () => {
+  type HandlerNameFunction = (handler: string) => string;
+
+  const handlerBody: HandlerNameFunction = (handler: string): string => {
+    return blockAfter(authenticationPageSource, handler);
+  };
+
+  test("both handler bodies were located at all", () => {
+    /*
+     * The guard for everything below: blockAfter returns "" if the marker
+     * moves, and every assertion on an empty string passes vacuously.
+     */
+    for (const handler of [
+      "const setTwoFactorAuthRequired",
+      "const resetTwoFactorAuth",
+    ]) {
+      expect(handlerBody(handler).length).toBeGreaterThan(200);
+    }
+  });
+
+  test("each handler treats an HTTPErrorResponse as a failure, not a success", () => {
+    /*
+     * THE TRAP THIS EXISTS FOR. Common/UI/Utils/API/API.ts RESOLVES an
+     * HTTPErrorResponse rather than rejecting it, so `await API.post(...)`
+     * completes normally when the server said no. Without the explicit
+     * instanceof check, a refused "Require Two Factor Auth" would fall
+     * through to the success path: the green banner would claim the user had
+     * been signed out and the requirement applied, and loadStatus would
+     * quietly repaint the unchanged state underneath it.
+     */
+    const missing: Array<string> = [];
+
+    for (const handler of [
+      "const setTwoFactorAuthRequired",
+      "const resetTwoFactorAuth",
+    ]) {
+      const body: string = handlerBody(handler);
+
+      if (
+        !body.includes("instanceof HTTPErrorResponse") ||
+        !body.includes("throw response")
+      ) {
+        missing.push(handler);
+      }
+    }
+
+    expect(missing).toEqual([]);
+  });
+
+  test("the error check comes before the success banner is set", () => {
+    /*
+     * Order, not mere presence: a check placed after setTwoFactorSuccess would
+     * still throw, but the operator would have already been told it worked.
+     */
+    const outOfOrder: Array<string> = [];
+
+    /*
+     * Anchored on the SUCCESS MESSAGE KEY rather than on the setter call.
+     * `setTwoFactorSuccess(` also appears at the top of each handler clearing
+     * the previous banner, and in the require handler the message is chosen by
+     * a ternary on the next line - so matching the setter, or the setter
+     * immediately followed by `t(`, finds the wrong occurrence or none.
+     */
+    for (const [handler, successKey] of [
+      ["const setTwoFactorAuthRequired", "twoFactorRequireSuccess"],
+      ["const resetTwoFactorAuth", "twoFactorResetSuccess"],
+    ]) {
+      const body: string = handlerBody(handler as string);
+
+      const checkAt: number = body.indexOf("instanceof HTTPErrorResponse");
+      const successAt: number = body.indexOf(successKey as string);
+
+      if (checkAt < 0 || successAt < 0 || checkAt > successAt) {
+        outOfOrder.push(`${handler}: check@${checkAt} success@${successAt}`);
+      }
+    }
+
+    expect(outOfOrder).toEqual([]);
+  });
+});
+
+describe("the user edit form no longer writes enableTwoFactorAuth", () => {
+  const userViewIndexSource: string = readAdminDashboardSource(
+    "Pages/Users/View/Index.tsx",
+  );
+
+  test("the file was read at all", () => {
+    expect(userViewIndexSource).toContain("modelDetailProps");
+  });
+
+  test("enableTwoFactorAuth is not an editable form field", () => {
+    /*
+     * It used to be a Toggle on this form. Writing the column that way works
+     * -- a master admin bypasses its ACL -- but it is a bare column write: no
+     * session revocation, no confirmation, and no mention that requiring two
+     * factor auth signs everybody out. An admin who used it would be told the
+     * requirement was on while every existing session carried on without it.
+     *
+     * The Authentication page's card posts to an endpoint that does both, and
+     * is meant to be the only place this is configured. Asserted on the
+     * formFields block alone, because the read-only detail row below
+     * legitimately still names the same column.
+     */
+    const formFields: string = blockAfter(userViewIndexSource, "formFields={[");
+
+    expect(formFields.length).toBeGreaterThan(100);
+    expect(formFields).not.toContain("enableTwoFactorAuth");
+  });
+
+  test("the read-only detail row still reports it", () => {
+    /*
+     * Removing the toggle must not remove the information. An operator
+     * glancing at the user's overview should still see the flag; they just
+     * cannot change it from there.
+     */
+    const detailFields: string = blockAfter(
+      userViewIndexSource,
+      "modelDetailProps={{",
+    );
+
+    expect(detailFields).toContain("enableTwoFactorAuth");
+  });
+});

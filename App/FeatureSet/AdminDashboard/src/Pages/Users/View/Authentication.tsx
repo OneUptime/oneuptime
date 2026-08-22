@@ -456,9 +456,14 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
               icon: IconProp.ShieldExclamation,
               buttonStyle: ButtonStyleType.DANGER,
               /*
-               * Never disabled. An operator does not necessarily know what a
-               * locked-out user has set up, and running a reset against an
-               * account with nothing on it is a harmless no-op.
+               * Never disabled, because an operator helping a locked-out user
+               * does not necessarily know what that user has set up -- and the
+               * count above can be stale by the time they click.
+               *
+               * Not because it is free: a reset ALWAYS revokes the user's
+               * sessions, even when there was nothing to delete. The
+               * confirmation modal says so, which is why this button can
+               * afford to stay live.
                */
               onClick: () => {
                 setTwoFactorError("");

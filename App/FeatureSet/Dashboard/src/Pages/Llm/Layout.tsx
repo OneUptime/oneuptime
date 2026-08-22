@@ -14,6 +14,9 @@ const getActiveLlmTab: (path: string) => LlmTabKey = (
   if (path.includes("/llm/calls")) {
     return "calls";
   }
+  if (path.includes("/llm/budgets")) {
+    return "budgets";
+  }
   if (path.includes("/llm/documentation")) {
     return "setup";
   }

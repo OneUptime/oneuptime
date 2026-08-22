@@ -193,7 +193,7 @@
       "twoFactorDoNotRequireButton": "Kräv inte",
       "twoFactorResetButton": "Återställ tvåfaktorsautentisering",
       "twoFactorRequireModalTitle": "Kräv tvåfaktorsautentisering",
-      "twoFactorRequireModalDescription": "Den här användaren loggas ut från alla aktiva sessioner. Nästa gång användaren loggar in måste en autentiseringsapp konfigureras innan OneUptime kan användas.",
+      "twoFactorRequireModalDescription": "Den här användaren loggas ut från alla aktiva sessioner. Nästa gång användaren loggar in måste tvåfaktorsautentisering slutföras innan OneUptime kan användas, och om användaren inte redan har en autentiseringsapp måste den konfigureras först.",
       "twoFactorRequireModalSubmit": "Kräv tvåfaktorsautentisering",
       "twoFactorDoNotRequireModalTitle": "Sluta kräva tvåfaktorsautentisering",
       "twoFactorDoNotRequireModalDescription": "Den här användaren kan logga in med enbart sitt lösenord. Allt som användaren redan har konfigurerat behålls, men det efterfrågas inte längre.",
