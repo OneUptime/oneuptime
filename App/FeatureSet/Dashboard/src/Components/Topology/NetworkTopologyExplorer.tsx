@@ -862,7 +862,7 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
         {visibleSites.length === 0 ? (
           <EmptyState
             id="topology-hierarchy-empty"
-            icon={IconProp.Network}
+            icon={IconProp.FlowDiagram}
             title={
               normalizedSearch || healthFilterMode !== "all"
                 ? "Nothing here matches"
