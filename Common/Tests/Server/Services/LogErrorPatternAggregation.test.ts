@@ -11,7 +11,10 @@ import LogAggregationService, {
 import LogDatabaseService from "../../../Server/Services/LogService";
 import { Results } from "../../../Server/Services/AnalyticsDatabaseService";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
-import { LOG_ERROR_PATTERN_MAX_LENGTH } from "../../../Utils/Telemetry/LogErrorPattern";
+import {
+  LOG_ERROR_PATTERN_MAX_LENGTH,
+  normalizeLogBodyToErrorPattern,
+} from "../../../Utils/Telemetry/LogErrorPattern";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
@@ -144,6 +147,10 @@ describe("getTopErrorPatterns", () => {
     expect(captured.length).toBe(1);
     expect(captured[0]!.query).toContain("GROUP BY pattern");
     expect(captured[0]!.query).toContain("ORDER BY cnt DESC");
+    // GROUP BY -> HAVING -> ORDER BY -> LIMIT, in that order.
+    expect(captured[0]!.query).toMatch(
+      /GROUP BY pattern HAVING pattern != '' ORDER BY cnt DESC LIMIT/,
+    );
     expect(captured[0]!.query).toContain("replaceRegexpAll(");
 
     expect(patterns).toEqual([
@@ -223,14 +230,33 @@ describe("getTopErrorPatterns", () => {
     );
   });
 
-  test("excludes empty and whitespace-only bodies from the aggregation", async () => {
+  test("guards against an empty-pattern group with BOTH a prefilter and a HAVING", async () => {
     const captured: Array<Statement> = stubAndCapture([]);
 
     await LogAggregationService.getTopErrorPatterns(baseFilters());
 
-    expect(captured[0]!.query).toContain(
-      "AND notEmpty(trimBoth(ifNull(body, '')))",
-    );
+    const query: string = captured[0]!.query;
+
+    // The cheap early skip...
+    expect(query).toContain("AND notEmpty(trimBoth(ifNull(body, '')))");
+
+    /*
+     * ...and the actual guarantee. The prefilter alone is NOT enough:
+     * ClickHouse's trimBoth strips spaces only, so a body of tabs or
+     * newlines survives it and still normalizes to "" once the whitespace
+     * rule collapses it — silently consuming one of the LIMIT slots. Pinned
+     * here because the prefilter-only assertion this test used to make
+     * passed while that bug was live.
+     */
+    expect(query).toContain("GROUP BY pattern HAVING pattern != ''");
+  });
+
+  test("the empty pattern a tab-only body produces is what the HAVING excludes", () => {
+    /*
+     * Ties the SQL guard to the behaviour it exists for: this is the exact
+     * value such a row groups under, and it is the value the HAVING drops.
+     */
+    expect(normalizeLogBodyToErrorPattern("\t\n\t")).toBe("");
   });
 
   test("applies the read-side retention filter", async () => {
@@ -450,6 +476,54 @@ describe("error-pattern drill-downs share the top list's scope", () => {
   );
 
   test.each(DETAIL_READS)(
+    "$name emits balanced parens and binds every placeholder it references",
+    async ({ run }: { run: (request: any) => Promise<unknown> }) => {
+      /*
+       * None of these statements has ever been executed against a real
+       * ClickHouse, so a stray paren or an unbound {pN} would first surface
+       * as a syntax error on a user's dashboard. Cheap to pin here.
+       */
+      const captured: Array<Statement> = stubAndCapture([]);
+
+      await run(detailRequest({ serviceIds: [ObjectID.generate()] }));
+
+      const query: string = captured[0]!.query;
+
+      let depth: number = 0;
+
+      for (const character of query) {
+        if (character === "(") {
+          depth++;
+        }
+
+        if (character === ")") {
+          depth--;
+        }
+
+        // Never closes more than it opened at any point.
+        expect(depth).toBeGreaterThanOrEqual(0);
+      }
+
+      expect(depth).toBe(0);
+
+      const referenced: Array<string> = Array.from(
+        query.matchAll(/\{(p\d+):/g),
+      ).map((match: RegExpMatchArray): string => {
+        return match[1] as string;
+      });
+
+      expect(referenced.length).toBeGreaterThan(0);
+
+      for (const name of referenced) {
+        expect(captured[0]!.query_params).toHaveProperty(name);
+      }
+
+      // Every read stays tenant-scoped, on every path.
+      expect(query).toContain("WHERE projectId = ");
+    },
+  );
+
+  test.each(DETAIL_READS)(
     "$name bounds its runtime below the client request timeout",
     async ({ run }: { run: (request: any) => Promise<unknown> }) => {
       const captured: Array<Statement> = stubAndCapture([]);
@@ -525,8 +599,20 @@ describe("getErrorPatternCoOccurrences", () => {
 
     // The self-exclusion...
     expect(query).toMatch(/!= \{p\d+:String\}/);
+    // ...the same empty-pattern guard the top list carries...
+    expect(query).toContain("GROUP BY pattern HAVING pattern != ''");
     // ...and the temporal join onto the investigated pattern's own buckets.
-    expect(query).toContain("IN (SELECT DISTINCT toStartOfInterval(time,");
+    /*
+     * GLOBAL IN, not plain IN. LogItemV3 is a Distributed table, and a
+     * subquery on the same Distributed table inside its own WHERE is
+     * rejected by multi-shard ClickHouse (Code 288,
+     * distributed_product_mode = 'deny'). Because the endpoint wraps each
+     * correlation read in a degrade-to-empty catch, plain IN fails SILENTLY
+     * — the panel just says "nothing else was failing" forever.
+     */
+    expect(query).toContain(
+      "GLOBAL IN (SELECT DISTINCT toStartOfInterval(time,",
+    );
     expect(query).toContain("GROUP BY pattern");
   });
 

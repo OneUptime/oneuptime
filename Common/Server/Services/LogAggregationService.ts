@@ -1336,13 +1336,26 @@ export class LogAggregationService {
   /* Every severity a pattern can carry fits comfortably in eight slots. */
   private static readonly ERROR_PATTERN_SEVERITY_ARRAY_LIMIT: number = 8;
   /*
-   * Bodies that are empty or nothing but whitespace normalize to the empty
-   * pattern, which would otherwise become a single meaningless "" group
-   * sitting at the top of the list. Excluded at the source instead of via
-   * HAVING so the rows never enter the aggregation at all.
+   * Cheap pre-filter for bodies that carry no message: they normalize to the
+   * empty pattern, which would otherwise become a meaningless "" group.
+   *
+   * Deliberately only a pre-filter, not the guarantee. ClickHouse's trimBoth
+   * strips SPACES only, so a body of tabs or newlines survives this predicate
+   * and still normalizes to "" once the whitespace rule collapses it. The
+   * grouped reads therefore also carry `HAVING pattern != ''`; this stays
+   * because skipping those rows before aggregation is strictly cheaper than
+   * grouping them and throwing the group away.
    */
   private static readonly NON_EMPTY_BODY_FILTER: string =
     " AND notEmpty(trimBoth(ifNull(body, '')))";
+
+  /*
+   * The actual guarantee that no empty-pattern group is returned. Applied to
+   * every read that GROUPs BY the pattern; the row-returning reads instead
+   * scope to one caller-supplied pattern, which is never "".
+   */
+  private static readonly NON_EMPTY_PATTERN_HAVING: string =
+    " HAVING pattern != ''";
 
   /**
    * The distinct error messages in the window, most frequent first.
@@ -1703,8 +1716,10 @@ export class LogAggregationService {
 
     LogAggregationService.appendErrorPatternScope(statement, request);
 
+    statement.append(" GROUP BY pattern");
+    statement.append(LogAggregationService.NON_EMPTY_PATTERN_HAVING);
     statement.append(
-      SQL` GROUP BY pattern ORDER BY cnt DESC LIMIT ${{
+      SQL` ORDER BY cnt DESC LIMIT ${{
         type: TableColumnType.Number,
         value: limit,
       }}`,
@@ -1775,12 +1790,30 @@ export class LogAggregationService {
       }}`,
     );
 
-    // ...restricted to the buckets the investigated pattern itself landed in.
+    /*
+     * ...restricted to the buckets the investigated pattern itself landed
+     * in.
+     *
+     * GLOBAL IN, not plain IN, and it is load-bearing. This predicate sits
+     * in a query on the Distributed LogItemV3 table whose subquery reads
+     * that SAME Distributed table, which multi-shard ClickHouse rejects
+     * outright as a double-distributed subquery (Code 288,
+     * distributed_product_mode = 'deny' by default) — the panel would throw
+     * on any 2+-shard cluster, and because the endpoint wraps each
+     * correlation read in a degrade-to-empty catch it would fail SILENTLY,
+     * rendering "nothing else was failing" forever.
+     *
+     * A shard-local evaluation would be wrong even where it is allowed: the
+     * sharding key is cityHash64(projectId, primaryEntityId, time), so one
+     * project's rows span every shard and the bucket set has to be computed
+     * once globally. On a single shard GLOBAL is a semantic no-op. Same
+     * reasoning, same shape as MetricService's Top-K group restriction.
+     */
     statement.append(
       SQL` AND toStartOfInterval(time, INTERVAL ${{
         type: TableColumnType.Number,
         value: intervalSeconds,
-      }} SECOND) IN (SELECT DISTINCT toStartOfInterval(time, INTERVAL ${{
+      }} SECOND) GLOBAL IN (SELECT DISTINCT toStartOfInterval(time, INTERVAL ${{
         type: TableColumnType.Number,
         value: intervalSeconds,
       }} SECOND)`,
@@ -1796,8 +1829,10 @@ export class LogAggregationService {
 
     statement.append(")");
 
+    statement.append(" GROUP BY pattern");
+    statement.append(LogAggregationService.NON_EMPTY_PATTERN_HAVING);
     statement.append(
-      SQL` GROUP BY pattern ORDER BY cnt DESC LIMIT ${{
+      SQL` ORDER BY cnt DESC LIMIT ${{
         type: TableColumnType.Number,
         value: limit,
       }}`,

@@ -568,7 +568,29 @@ describe("summarizeResourceBreakdown", () => {
 });
 
 describe("computeErrorPatternTrend", () => {
+  const BUCKET_MS: number = 15 * 60 * 1000;
+  const WINDOW_START: Date = new Date("2026-08-20T00:00:00.000Z");
+  const WINDOW_END: Date = new Date("2026-08-21T00:00:00.000Z");
+
+  /*
+   * Stamped with real, evenly spaced timestamps — which is what the server
+   * actually returns. The no-timestamp variant below covers the fallback.
+   */
   function timeline(counts: Array<number>): Array<{
+    time: Date | null;
+    count: number;
+  }> {
+    return counts.map(
+      (count: number, index: number): { time: Date | null; count: number } => {
+        return {
+          time: new Date(WINDOW_START.getTime() + index * BUCKET_MS),
+          count,
+        };
+      },
+    );
+  }
+
+  function untimedTimeline(counts: Array<number>): Array<{
     time: Date | null;
     count: number;
   }> {
@@ -626,15 +648,109 @@ describe("computeErrorPatternTrend", () => {
     expect(Insights.computeErrorPatternTrend(timeline([0, 0])).direction).toBe(
       "unknown",
     );
+    expect(
+      Insights.computeErrorPatternTrend(untimedTimeline([0, 0])).direction,
+    ).toBe("unknown");
   });
 
-  test("splits an odd-length timeline with the extra bucket in the newer half", () => {
+  test("splits an odd-length untimed timeline with the extra bucket in the newer half", () => {
     const trend: ErrorPatternTrend = Insights.computeErrorPatternTrend(
-      timeline([2, 1, 1, 1, 1]),
+      untimedTimeline([2, 1, 1, 1, 1]),
     );
 
     expect(trend.previousCount).toBe(3);
     expect(trend.recentCount).toBe(3);
+  });
+
+  test("an error that stopped hours ago reads as FALLING, not steady", () => {
+    /*
+     * The regression this function's index split got wrong. The timeline
+     * query has no zero-fill, so a pattern that fired during the first two
+     * hours of a 24-hour window and then stopped comes back as a handful of
+     * buckets all clustered at the start. Splitting by array index sums
+     * four against four, calls it "Steady 0%", and tells the user an error
+     * that has been silent for 22 hours is ticking along normally.
+     */
+    const clustered: Array<{ time: Date | null; count: number }> = [
+      2, 3, 2, 3, 2, 3, 2, 3,
+    ].map((count: number, index: number) => {
+      return {
+        time: new Date(WINDOW_START.getTime() + index * BUCKET_MS),
+        count,
+      };
+    });
+
+    /*
+     * With no window to measure against, the honest answer really is
+     * "steady": across the span it was OBSERVED, the rate did not change.
+     * That is exactly why the window has to be passed in — and why the
+     * caller (ErrorPatternDetail) resolves and passes it.
+     */
+    expect(Insights.computeErrorPatternTrend(clustered).direction).toBe(
+      "steady",
+    );
+
+    // Against the window the user actually picked, it has stopped.
+    const windowed: ErrorPatternTrend = Insights.computeErrorPatternTrend(
+      clustered,
+      WINDOW_START,
+      WINDOW_END,
+    );
+
+    expect(windowed.direction).toBe("falling");
+    expect(windowed.recentCount).toBe(0);
+    expect(windowed.previousCount).toBe(20);
+  });
+
+  test("a pattern that only started late in the window reads as rising", () => {
+    const late: Array<{ time: Date | null; count: number }> = [4, 6].map(
+      (count: number, index: number) => {
+        return {
+          time: new Date(WINDOW_END.getTime() - (2 - index) * BUCKET_MS),
+          count,
+        };
+      },
+    );
+
+    const trend: ErrorPatternTrend = Insights.computeErrorPatternTrend(
+      late,
+      WINDOW_START,
+      WINDOW_END,
+    );
+
+    expect(trend.direction).toBe("rising");
+    expect(trend.previousCount).toBe(0);
+    expect(trend.recentCount).toBe(10);
+  });
+});
+
+describe("getCorrelationOccurrenceTotal", () => {
+  test("sums the timeline the correlation response itself returned", () => {
+    expect(
+      Insights.getCorrelationOccurrenceTotal([
+        { time: null, count: 4 },
+        { time: null, count: 0 },
+        { time: null, count: 6 },
+      ]),
+    ).toBe(10);
+  });
+
+  test("degrades to 0 on an empty or unusable timeline", () => {
+    /*
+     * 0 is the caller's signal to fall back to the list's own count, not a
+     * claim that nothing happened.
+     */
+    expect(Insights.getCorrelationOccurrenceTotal([])).toBe(0);
+    expect(
+      Insights.getCorrelationOccurrenceTotal(
+        undefined as unknown as Array<{ time: Date | null; count: number }>,
+      ),
+    ).toBe(0);
+    expect(
+      Insights.getCorrelationOccurrenceTotal([
+        { time: null, count: Number.NaN },
+      ]),
+    ).toBe(0);
   });
 });
 
@@ -750,6 +866,7 @@ describe("buildErrorPatternLogsRoute", () => {
       Insights.buildErrorPatternLogsRoute(
         "connection refused to <ip>:<num>",
         scope(),
+        "connection refused to 10.0.0.1:5432",
       );
 
     expect(route).not.toBeNull();
@@ -761,9 +878,48 @@ describe("buildErrorPatternLogsRoute", () => {
     /*
      * The pattern itself contains <ip>/<num>, which no real body contains —
      * filtering on it would land the user on an empty list. The link
-     * carries the longest literal run instead.
+     * carries a literal run instead, and because a sample body was supplied
+     * the stronger multi-word run is used.
      */
     expect(filters).toContainEqual(["body", ["connection refused to"]]);
+  });
+
+  test("the body filter it emits is always present in the sample body", () => {
+    /*
+     * The needle goes into `body ILIKE '%needle%'`. A stack trace's pattern
+     * has spaces where the body has newlines, so an unverified multi-word
+     * run would match nothing and the link would open an empty list — the
+     * one outcome worse than no link.
+     */
+    const bodies: Array<string> = [
+      "connection refused to 10.0.0.1:5432 after 30ms",
+      'java.lang.NullPointerException: Cannot invoke "x" because "order" is null\n\tat com.example.OrderService.process(OrderService.java:42)',
+      '{"level":"error","msg":"connection refused","attempt":3}',
+    ];
+
+    for (const body of bodies) {
+      const pattern: string = body
+        .replace(/\d+\.\d+\.\d+\.\d+/g, "<ip>")
+        .replace(/\d+/g, "<num>")
+        .replace(/\s+/g, " ");
+
+      const route: { toString(): string } | null =
+        Insights.buildErrorPatternLogsRoute(pattern, scope(), body);
+
+      const filters: Array<[string, Array<string>]> = JSON.parse(
+        queryOf(route!).get("filters") as string,
+      );
+
+      const bodyFilter: [string, Array<string>] | undefined = filters.find(
+        ([key]: [string, Array<string>]): boolean => {
+          return key === "body";
+        },
+      );
+
+      if (bodyFilter) {
+        expect(body).toContain(bodyFilter[1][0] as string);
+      }
+    }
   });
 
   test("carries severity, service scope and the window", () => {

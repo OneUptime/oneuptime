@@ -42,6 +42,43 @@ describe("buildLogErrorPatternExpression", () => {
     );
   });
 
+  test("the whole expression is one balanced, fully-bound fragment", () => {
+    /*
+     * The expression is spliced into seven different statements; an
+     * unbalanced paren or an unbound placeholder would only surface as a
+     * ClickHouse syntax error at runtime, on a dashboard.
+     */
+    const statement: Statement = buildLogErrorPatternExpression();
+
+    let depth: number = 0;
+
+    for (const character of statement.query) {
+      if (character === "(") {
+        depth++;
+      }
+
+      if (character === ")") {
+        depth--;
+      }
+
+      expect(depth).toBeGreaterThanOrEqual(0);
+    }
+
+    expect(depth).toBe(0);
+
+    const referenced: Array<string> = Array.from(
+      statement.query.matchAll(/\{(p\d+):/g),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+
+    expect(referenced.length).toBeGreaterThan(0);
+
+    for (const name of referenced) {
+      expect(statement.query_params).toHaveProperty(name);
+    }
+  });
+
   test("binds every rule pattern and replacement as a parameter, never as SQL text", () => {
     const statement: Statement = buildLogErrorPatternExpression();
     const values: Array<unknown> = Object.values(statement.query_params);
@@ -69,10 +106,20 @@ describe("buildLogErrorPatternExpression", () => {
     );
   });
 
-  test("truncates to the same maximum length the normalizer slices at", () => {
+  test("truncates by CHARACTER, never by byte", () => {
     const statement: Statement = buildLogErrorPatternExpression();
 
-    expect(statement.query).toContain("substring(");
+    /*
+     * ClickHouse's plain `substring` counts bytes, so a 300-byte cut through
+     * a Japanese message or an emoji lands mid-sequence and the group key
+     * ends in a broken UTF-8 fragment. The absence is asserted too:
+     * "substringUTF8(" trivially contains "substring", so a loose check here
+     * would pass either way — which is how the byte-based version shipped in
+     * the first place.
+     */
+    expect(statement.query).toContain("substringUTF8(");
+    expect(statement.query).not.toMatch(/[^8]substring\(/);
+
     expect(Object.values(statement.query_params)).toContain(
       LOG_ERROR_PATTERN_MAX_LENGTH,
     );
@@ -86,7 +133,7 @@ describe("buildLogErrorPatternExpression", () => {
      */
     const query: string = buildLogErrorPatternExpression().query;
 
-    expect(query.startsWith("trimBoth(substring(trimBoth(")).toBe(true);
+    expect(query.startsWith("trimBoth(substringUTF8(trimBoth(")).toBe(true);
     expect(query.endsWith("))")).toBe(true);
   });
 
@@ -126,5 +173,35 @@ describe("clampLogErrorPattern", () => {
 
   test("an empty pattern clamps to itself", () => {
     expect(clampLogErrorPattern("")).toBe("");
+  });
+
+  test("counts CODE POINTS, matching what substringUTF8 cuts by", () => {
+    /*
+     * 300 code points, but 301 UTF-16 units because of the emoji. Measured
+     * the JS way the clamp would fire on a key the database considers
+     * exactly at the limit, slice it, and leave a lone surrogate at the
+     * tail — after which the `=` bind matches zero rows and every
+     * drill-down panel comes back empty for a row showing a real count,
+     * with nothing thrown to notice.
+     */
+    const atLimit: string = `${"x".repeat(299)}\u{1F680}`;
+
+    expect(Array.from(atLimit).length).toBe(LOG_ERROR_PATTERN_MAX_LENGTH);
+    expect(atLimit.length).toBe(LOG_ERROR_PATTERN_MAX_LENGTH + 1);
+
+    expect(clampLogErrorPattern(atLimit)).toBe(atLimit);
+  });
+
+  test("never cuts an astral character in half", () => {
+    const oversized: string = "\u{1F680}".repeat(
+      LOG_ERROR_PATTERN_MAX_LENGTH + 50,
+    );
+
+    const clamped: string = clampLogErrorPattern(oversized);
+
+    expect(Array.from(clamped).length).toBe(LOG_ERROR_PATTERN_MAX_LENGTH);
+    // No lone surrogate at either edge.
+    expect(clamped).not.toMatch(/[\uD800-\uDBFF]$/);
+    expect(clamped).not.toMatch(/^[\uDC00-\uDFFF]/);
   });
 });

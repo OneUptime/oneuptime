@@ -98,16 +98,31 @@ export const LOG_ERROR_PATTERN_RULES: Array<LogErrorPatternRule> = [
     pattern: "\\b[0-9a-fA-F]{16,}\\b",
     replacement: "<hex>",
   },
-  {
-    /*
-     * Double quotes only. A single-quote rule would eat English
-     * apostrophes: in `can't reach 'db'` the first `'` pairs with the one
-     * before `db`, mangling the stable half of the message.
-     */
-    name: "quoted",
-    pattern: '"[^"]*"',
-    replacement: '"<str>"',
-  },
+  /*
+   * DELIBERATELY NO "mask any quoted span" RULE HERE.
+   *
+   * A `"[^"]*"` -> `"<str>"` rule looks reasonable on prose like
+   * `unknown field "customerRef"`, and it is catastrophic on structured
+   * logs. In JSON and logfmt — the two commonest shapes there are — the
+   * human-readable message IS a quoted value, so such a rule masks the only
+   * part that identifies the error:
+   *
+   *   {"level":"error","msg":"connection refused","attempt":3}
+   *   {"level":"error","msg":"permission denied","attempt":3}
+   *
+   * would both collapse to `{"<str>":"<str>","<str>":"<str>","<str>":<num>}`,
+   * summing two unrelated failures into one Top Errors row headed by
+   * whichever sample body argMax happened to pick.
+   *
+   * Nothing is lost by leaving it out: every quoted span that genuinely
+   * VARIES is a uuid, number, ip, url, timestamp, hex id or email, and the
+   * rules above already mask those — more informatively, since `"<uuid>"`
+   * says more than `"<str>"`. All such a rule uniquely added was collapsing
+   * quoted WORDS, which is exactly the destructive case. Two different
+   * quoted field names therefore stay two rows: under-collapsing is the
+   * safe direction, because a split incident is still visible while a
+   * merged one is hidden.
+   */
   {
     name: "number",
     pattern: "\\d+(\\.\\d+)?",
@@ -150,10 +165,9 @@ export const LOG_ERROR_PATTERN_PLACEHOLDERS: Array<string> =
 
 /*
  * Any placeholder token, for splitting a pattern back into its literal
- * spans. Built from the rule table rather than hardcoded so a new rule's
- * placeholder is understood here automatically. `<str>` is included even
- * though its rule's replacement is `"<str>"` — the surrounding quotes are
- * literal text that belongs to the stable half of the message.
+ * spans. Matches the shape every rule's replacement uses rather than being
+ * built from the table itself, so a rule added later is understood here
+ * without a second edit.
  */
 const PLACEHOLDER_TOKEN: RegExp = /<[a-z]+>/g;
 
@@ -196,48 +210,121 @@ export function normalizeLogBodyToErrorPattern(
   return normalized;
 }
 
+export interface ErrorPatternSearchTextOptions {
+  /** Literal runs shorter than this are not selective enough to be useful. */
+  minimumLength?: number | undefined;
+  /**
+   * A real body from the group, when the caller has one. Used to CHECK a
+   * candidate rather than to produce it — see below.
+   */
+  sampleBody?: string | undefined;
+}
+
+/*
+ * Leading punctuation a placeholder leaves behind — `to <ip>:<num>` splits
+ * into `to ` and `:` — so the search text comes out as words, not as the
+ * glue between them.
+ */
+const LEADING_GLUE: RegExp = /^[\s"':,;=([{]+/;
+
+/*
+ * Named rather than inlined at the use sites: an inline literal used as
+ * `/\s/.test(x)` trips eslint's wrap-regex, whose fix prettier then undoes
+ * (the same fight CrossSignalScope documents).
+ */
+const ANY_WHITESPACE: RegExp = /\s/;
+const WHITESPACE_RUN: RegExp = /\s+/;
+
 /**
- * The longest placeholder-free run inside a pattern — the part of the
- * message that is identical in every occurrence, and therefore the only
- * part that can be handed to a substring search.
+ * A literal run from the pattern that can be handed to a substring search.
  *
- * Used to turn "Insights says this error happened 30 times" into a Logs
+ * This is what turns "Insights says this happened 30 times" into a Logs
  * viewer deep link that actually lists those 30 rows: the viewer filters
  * `body` with a contains-match, which a pattern containing `<num>` would
  * never satisfy.
  *
+ * The subtlety is that a pattern is NOT a substring of the body it came
+ * from, even between placeholders. The last normalization rule collapses
+ * `\s+` to a single space, so any run spanning a line break in the original
+ * — every stack trace — reads `is null at com.example.Service.process(` in
+ * the pattern where the body has `is null\n\tat com.example...`. Handing
+ * that to `body ILIKE '%...%'` matches nothing, landing the user on an
+ * empty list: the precise failure this function exists to avoid.
+ *
+ * So the candidates are ranked longest-first and the first SAFE one wins:
+ *
+ *  - a whitespace-free token is always safe, because there was no
+ *    whitespace inside it to collapse;
+ *  - a longer multi-word run is used only when `sampleBody` proves it
+ *    survived the collapse verbatim.
+ *
  * Returns "" when nothing usable survives (an all-placeholder pattern, or
- * literal runs too short to be selective), which callers read as "no body
- * filter" rather than as a filter matching everything.
+ * runs too short to be selective), which callers read as "no body filter"
+ * rather than as a filter matching everything.
  */
 export function getErrorPatternSearchText(
   pattern: string | undefined | null,
-  minimumLength: number = 4,
+  options: ErrorPatternSearchTextOptions | number = {},
 ): string {
+  /*
+   * Number form kept for the original `(pattern, minimumLength)` callers.
+   */
+  const resolved: ErrorPatternSearchTextOptions =
+    typeof options === "number" ? { minimumLength: options } : options;
+
+  const minimumLength: number = resolved.minimumLength ?? 4;
+  const sampleBody: string =
+    typeof resolved.sampleBody === "string" ? resolved.sampleBody : "";
+
   if (typeof pattern !== "string" || pattern.length === 0) {
     return "";
   }
 
-  let longest: string = "";
+  const candidates: Array<string> = [];
 
   for (const segment of pattern.split(PLACEHOLDER_TOKEN)) {
-    /*
-     * Trim the punctuation a placeholder leaves behind — `to <ip>:<num>`
-     * splits into `to ` and `:` — so the search text is words, not the
-     * glue between them.
-     */
-    const candidate: string = segment.replace(/^[\s"':,;=([{]+/, "").trim();
+    const run: string = segment.replace(LEADING_GLUE, "").trim();
 
-    if (candidate.length > longest.length) {
-      longest = candidate;
+    if (run.length > 0) {
+      // The multi-word run: strongest, but only safe when verified.
+      candidates.push(run);
+    }
+
+    /*
+     * ...and every whitespace-free token inside it, which needs no
+     * verification at all.
+     */
+    for (const token of segment.split(WHITESPACE_RUN)) {
+      const trimmed: string = token.replace(LEADING_GLUE, "").trim();
+
+      if (trimmed.length > 0) {
+        candidates.push(trimmed);
+      }
     }
   }
 
-  if (longest.length < minimumLength) {
-    return "";
+  candidates.sort((a: string, b: string): number => {
+    return b.length - a.length;
+  });
+
+  for (const candidate of candidates) {
+    if (candidate.length < minimumLength) {
+      // Sorted longest-first, so everything after this is too short too.
+      break;
+    }
+
+    const isSingleToken: boolean = !ANY_WHITESPACE.test(candidate);
+
+    if (isSingleToken) {
+      return candidate;
+    }
+
+    if (sampleBody.length > 0 && sampleBody.includes(candidate)) {
+      return candidate;
+    }
   }
 
-  return longest;
+  return "";
 }
 
 /**

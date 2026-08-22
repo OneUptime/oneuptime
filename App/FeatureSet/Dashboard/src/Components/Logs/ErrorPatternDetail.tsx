@@ -11,7 +11,9 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
 import OneUptimeDate from "Common/Types/Date";
+import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import Route from "Common/Types/API/Route";
 import Service from "Common/Models/DatabaseModels/Service";
 import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
@@ -34,6 +36,7 @@ import {
   computeErrorPatternTrend,
   describeOccurrenceCount,
   describeTimeRange,
+  getCorrelationOccurrenceTotal,
   summarizeSharedAttributes,
 } from "../../Utils/LogsInsights";
 import { fetchErrorPatternCorrelation } from "./LogsInsightsApi";
@@ -199,6 +202,7 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
   const logsRoute: Route | null = buildErrorPatternLogsRoute(
     patternText,
     props.scope,
+    props.pattern.sampleBody,
   );
 
   const resourceLabel: (resourceId: string) => string = (
@@ -231,8 +235,18 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
       );
     }
 
+    /*
+     * The window the user picked, so a pattern whose occurrences all sit at
+     * the start of it is measured against the silence that followed rather
+     * than against itself.
+     */
+    const window: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(props.scope.timeRange);
+
     const trend: ErrorPatternTrend = computeErrorPatternTrend(
       correlation.timeline,
+      window.startValue,
+      window.endValue,
     );
     const trendStyle: {
       label: string;
@@ -240,9 +254,18 @@ const ErrorPatternDetail: FunctionComponent<ComponentProps> = (
       icon: IconProp;
     } = TREND_PRESENTATION[trend.direction];
 
+    /*
+     * Denominator from the SAME response as the numerators. props.pattern
+     * .count came from the earlier list request, which resolved its own
+     * window against its own `now`.
+     */
+    const occurrenceTotal: number =
+      getCorrelationOccurrenceTotal(correlation.timeline) ||
+      props.pattern.count;
+
     const sharedAttributes: Array<SharedAttribute> = summarizeSharedAttributes(
       correlation.attributes,
-      props.pattern.count,
+      occurrenceTotal,
     );
 
     return (

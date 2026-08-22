@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import API from "Common/UI/Utils/API/API";
@@ -107,6 +108,16 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
   const [error, setError] = useState<string>("");
 
   /*
+   * Generation token for the in-flight batch. Both the time picker and the
+   * scope multi-select commit immediately — no apply step, no debounce — so
+   * two quick changes leave two batches racing, and without this the batch
+   * that RESOLVES last wins rather than the one the user asked for last.
+   * Switching to a 30-day window and straight back to 1 hour would leave
+   * the slow 30-day numbers on screen under a "past 1 hour" label.
+   */
+  const loadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
+
+  /*
    * One scope object, shared by every panel and by the detail drawer, so a
    * correlation the page draws is always a correlation inside the slice the
    * user selected.
@@ -140,9 +151,23 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
 
   const loadInsights: () => Promise<void> =
     useCallback(async (): Promise<void> => {
+      const generation: number = ++loadGenerationRef.current;
+
       try {
         setIsLoading(true);
         setError("");
+
+        /*
+         * Clear the derived state as the new load starts. Without this the
+         * stat cards, severity split and per-source cards keep rendering
+         * the PREVIOUS window's numbers under the new range label for the
+         * whole duration of the refetch — and if the previous window was
+         * empty, the page asserts "No logs in <new range>" for a window it
+         * has not queried yet.
+         */
+        setVolume(null);
+        setErrorPatterns([]);
+        setResourceBreakdown([]);
 
         const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
@@ -166,14 +191,25 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
           ),
         ]);
 
+        // A batch the user has already moved on from must not commit.
+        if (loadGenerationRef.current !== generation) {
+          return;
+        }
+
         setVolume(summarizeSeverityBuckets(buckets as Array<JSONObject>));
         setErrorPatterns(patterns);
         setResourceBreakdown(breakdown);
         setScopeFacets(facets);
       } catch (err) {
+        if (loadGenerationRef.current !== generation) {
+          return;
+        }
+
         setError(API.getFriendlyMessage(err as Error));
       } finally {
-        setIsLoading(false);
+        if (loadGenerationRef.current === generation) {
+          setIsLoading(false);
+        }
       }
     }, [scope]);
 
@@ -638,6 +674,14 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
 
       {selectedPattern && (
         <ErrorPatternDetail
+          /*
+           * Keyed on the pattern so switching rows REMOUNTS the drawer.
+           * SideOver is deliberately non-modal, so the list stays clickable
+           * behind it; without the key an in-flight correlation for the
+           * previous pattern could resolve last and pair its timeline,
+           * attributes and traces with the new pattern's header.
+           */
+          key={selectedPattern.pattern}
           pattern={selectedPattern}
           scope={scope}
           serviceNameById={serviceById}

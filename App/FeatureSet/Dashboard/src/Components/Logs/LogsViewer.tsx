@@ -1,4 +1,5 @@
 import Includes from "Common/Types/BaseDatabase/Includes";
+import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -97,6 +98,7 @@ import {
 import {
   applyLogsFacetFiltersToQuery,
   applyLogsSessionScopeToQuery,
+  BODY_FACET_KEY,
   buildLogsPivotScope,
   buildSessionReplayRoute,
   buildSpanChipOpenRoute,
@@ -171,11 +173,19 @@ export interface ComponentProps {
 const DEFAULT_PAGE_SIZE: number = 100;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
 const SAVED_VIEWS_LIMIT: number = 100;
+/*
+ * The facet keys read BACK out of a query into chips. Must stay the mirror
+ * of what applyLogsFacetFiltersToQuery compiles INTO a query, or a filter
+ * that survives a saved view / URL round-trip filters the list while no
+ * chip says so — and the histogram, which builds its request from the
+ * chips, then counts rows the list excludes.
+ */
 const FACET_FILTER_KEYS: Array<string> = [
   "severityText",
   "primaryEntityId",
   "traceId",
   "spanId",
+  BODY_FACET_KEY,
 ];
 
 interface InitialUrlState {
@@ -301,6 +311,17 @@ function getQueryValues(value: unknown): Array<string> {
     return value.values.map((item: string | number | ObjectID) => {
       return item.toString();
     });
+  }
+
+  /*
+   * The body chip compiles to a contains-match, so its stored form is a
+   * Search rather than a bare string. Without this branch a saved view or
+   * deep link carrying one round-trips into a filtered list with no chip.
+   */
+  if (value instanceof Search) {
+    const text: string = value.toString();
+
+    return text.trim().length > 0 ? [text] : [];
   }
 
   if (
