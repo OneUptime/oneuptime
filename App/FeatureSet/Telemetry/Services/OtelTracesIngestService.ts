@@ -1293,6 +1293,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       llmOutputTokens: data.llmFields.llmOutputTokens,
       llmTotalTokens: data.llmFields.llmTotalTokens,
       llmCost: data.llmFields.llmCost,
+      llmConversationId: data.llmFields.llmConversationId,
     };
   }
 

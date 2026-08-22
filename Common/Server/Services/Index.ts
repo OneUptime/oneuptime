@@ -269,6 +269,7 @@ import ScheduledMaintenanceMeasurementValueService from "./ScheduledMaintenanceM
 import IncidentSlaService from "./IncidentSlaService";
 import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
 import ServiceLevelObjectiveBurnRateRuleService from "./ServiceLevelObjectiveBurnRateRuleService";
+import LlmCostBudgetService from "./LlmCostBudgetService";
 import ServiceLevelObjectiveOwnerUserService from "./ServiceLevelObjectiveOwnerUserService";
 import ServiceLevelObjectiveOwnerTeamService from "./ServiceLevelObjectiveOwnerTeamService";
 import SloHistoryService from "./SloHistoryService";
@@ -566,6 +567,7 @@ const services: Array<BaseService> = [
   IncidentSlaService,
   ServiceLevelObjectiveService,
   ServiceLevelObjectiveBurnRateRuleService,
+  LlmCostBudgetService,
   ServiceLevelObjectiveOwnerUserService,
   ServiceLevelObjectiveOwnerTeamService,
   IncidentReminderRuleService,

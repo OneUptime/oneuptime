@@ -173,6 +173,13 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
         },
         {
           field: {
+            llmConversationId: true,
+          },
+          type: FieldType.Text,
+          title: "Conversation ID",
+        },
+        {
+          field: {
             startTime: true,
           },
           type: FieldType.DateTime,
@@ -186,6 +193,7 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
         llmInputTokens: true,
         llmOutputTokens: true,
         llmResponseModel: true,
+        llmConversationId: true,
       }}
       columns={[
         {
