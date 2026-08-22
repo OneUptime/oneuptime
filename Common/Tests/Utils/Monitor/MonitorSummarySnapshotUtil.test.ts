@@ -111,6 +111,7 @@ const EXPECTED_PAYLOAD_KIND: Record<MonitorType, PayloadKind> = {
   [MonitorType.IncomingEmail]: PayloadKind.IncomingEmail,
 
   [MonitorType.Logs]: PayloadKind.Telemetry,
+  [MonitorType.SecurityEvents]: PayloadKind.Telemetry,
   [MonitorType.Metrics]: PayloadKind.Telemetry,
   [MonitorType.Traces]: PayloadKind.Telemetry,
   [MonitorType.Exceptions]: PayloadKind.Telemetry,

@@ -47,6 +47,14 @@
       "securityKeyInstructions": "Please follow the instructions on your security key device.",
       "codeFieldDescription": "Enter the code from your authenticator app",
       "selectDifferentMethod": "Select a different two factor authentication method"
+    },
+    "twoFactorEnrolment": {
+      "title": "Set Up Two Factor Authentication",
+      "subtitle": "Your administrator requires two factor authentication on this account. Set it up now to finish signing in.",
+      "scanInstruction": "Scan this QR code with an authenticator app such as Google Authenticator, Microsoft Authenticator or 1Password.",
+      "codeFieldDescription": "Enter the six digit code your authenticator app is showing.",
+      "submitButton": "Verify and Sign In",
+      "backToSignIn": "Sign in as a different user"
     }
   },
   "register": {

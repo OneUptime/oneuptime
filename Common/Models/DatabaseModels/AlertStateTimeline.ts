@@ -622,12 +622,20 @@ export default class AlertStateTimeline extends BaseModel {
       Permission.AlertViewer,
       Permission.ReadAlertStateTimeline,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.EditAlertStateTimeline,
+    ],
   })
   @TableColumn({
     type: TableColumnType.Date,
     title: "Starts At",
-    description: "When did this status change?",
+    description:
+      "When did this status change? Correct this when the recorded time is wrong - every measurement derived from this timeline is recomputed from the corrected value.",
     example: "2024-01-15T10:30:00.000Z",
   })
   @Column({

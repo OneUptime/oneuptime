@@ -4,8 +4,13 @@ import Hostname from "Common/Types/API/Hostname";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import URL from "Common/Types/API/URL";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import IsNull from "Common/Types/BaseDatabase/IsNull";
+import Search from "Common/Types/BaseDatabase/Search";
+import Dictionary from "Common/Types/Dictionary";
 import IP from "Common/Types/IP/IP";
 import LogSeverity from "Common/Types/Log/LogSeverity";
+import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
 import MetricsViewConfig from "Common/Types/Metrics/MetricsViewConfig";
 import DnsRecordType from "Common/Types/Monitor/DnsMonitor/DnsRecordType";
 import DomainLookupMethod from "Common/Types/Monitor/DomainMonitor/DomainLookupMethod";
@@ -23,6 +28,11 @@ import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeTyp
 import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
+import {
+  buildDictionaryValue,
+  DictionaryEntryValue,
+  DictionaryFilterOperator,
+} from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
 import MonitorStepViewModel, {
   MonitorStepViewRow,
   MonitorStepViewValueType,
@@ -237,6 +247,19 @@ function buildStepForMonitorType(monitorType: MonitorType): MonitorStep {
           ],
           entityKeys: ["host:web-1"],
           lastXSecondsOfLogs: 300,
+        },
+      });
+    case MonitorType.SecurityEvents:
+      return buildStep({
+        securityEventsMonitor: {
+          attributes: { "principal.hostname": "web-1" },
+          messageContains: "failed login",
+          severityNames: [OcsfSeverity.High],
+          classNames: ["Authentication"],
+          telemetryServiceIds: [
+            new ObjectID("11111111-1111-4111-8111-111111111111"),
+          ],
+          lastXSecondsOfEvents: 300,
         },
       });
     case MonitorType.Traces:
@@ -749,6 +772,359 @@ describe("MonitorStepViewModel.getRows — telemetry monitors", () => {
     expect(row?.value).toBe("44444444-4444-4444-8444-444444444444");
   });
 });
+
+/*
+ * WHY THIS BLOCK EXISTS
+ *
+ * "Filter by Attributes" grew an operator dropdown, and only the implicit
+ * `=` still stores a bare string. Every other operator stores an operator
+ * instance (`Search`, `Includes`, `IsNull`, ...) — or, once the step has
+ * been read back from storage, the `{_type, value}` JSON those serialize to.
+ *
+ * The three attribute rows used to leave the view model typed JSON, so
+ * `Detail` ran them through `JSON.stringify` and the criteria page printed
+ * the wire shape where the operator belonged:
+ *
+ *   { "env": { "_type": "Search", "value": "web" } }
+ *
+ * for a monitor that means `env: contains web`. Nothing threw — the JSON
+ * branch stringifies rather than handing an object to React — so the row
+ * was unreadable without ever being a failure that showed up anywhere but
+ * on the page itself. That is why it outlived the fix for the criteria
+ * modal crash sitting right next to it.
+ *
+ * Every operator is pinned here, on every monitor type that has an
+ * attribute row, because "renders as its own internals" is exactly the bug
+ * that a spot check of one operator walks straight past.
+ */
+
+interface AttributeFilterFixture {
+  label: string;
+  monitorType: MonitorType;
+  rowKey: string;
+  buildStepWithAttributes: (
+    attributes: Dictionary<DictionaryEntryValue>,
+  ) => MonitorStep;
+}
+
+/*
+ * The step shapes declare `attributes` as a map of scalars, which stopped
+ * being true when the operator dropdown shipped. Production reads it back
+ * through that same lie (see `toAttributeFilters`), so the fixtures store
+ * values the way the form actually writes them rather than the way the
+ * type claims.
+ */
+function asStoredAttributes(
+  attributes: Dictionary<DictionaryEntryValue>,
+): Dictionary<string | number | boolean> {
+  return attributes as unknown as Dictionary<string | number | boolean>;
+}
+
+const ATTRIBUTE_FILTER_FIXTURES: Array<AttributeFilterFixture> = [
+  {
+    label: "log",
+    monitorType: MonitorType.Logs,
+    rowKey: "logAttributes",
+    buildStepWithAttributes: (
+      attributes: Dictionary<DictionaryEntryValue>,
+    ): MonitorStep => {
+      const step: MonitorStep = buildStepForMonitorType(MonitorType.Logs);
+      const data: MonitorStepType = step.data as MonitorStepType;
+
+      data.logMonitor = {
+        ...data.logMonitor!,
+        attributes: asStoredAttributes(attributes),
+      };
+
+      return step;
+    },
+  },
+  {
+    label: "trace",
+    monitorType: MonitorType.Traces,
+    rowKey: "spanAttributes",
+    buildStepWithAttributes: (
+      attributes: Dictionary<DictionaryEntryValue>,
+    ): MonitorStep => {
+      const step: MonitorStep = buildStepForMonitorType(MonitorType.Traces);
+      const data: MonitorStepType = step.data as MonitorStepType;
+
+      data.traceMonitor = {
+        ...data.traceMonitor!,
+        attributes: asStoredAttributes(attributes),
+      };
+
+      return step;
+    },
+  },
+  {
+    label: "security events",
+    monitorType: MonitorType.SecurityEvents,
+    rowKey: "securityEventAttributes",
+    buildStepWithAttributes: (
+      attributes: Dictionary<DictionaryEntryValue>,
+    ): MonitorStep => {
+      const step: MonitorStep = buildStepForMonitorType(
+        MonitorType.SecurityEvents,
+      );
+      const data: MonitorStepType = step.data as MonitorStepType;
+
+      data.securityEventsMonitor = {
+        ...data.securityEventsMonitor!,
+        attributes: asStoredAttributes(attributes),
+      };
+
+      return step;
+    },
+  },
+];
+
+interface AttributeOperatorCase {
+  label: string;
+  operator: DictionaryFilterOperator;
+  rawValue: string;
+  rawValues?: Array<string> | undefined;
+  rendersAs: string;
+}
+
+const ATTRIBUTE_OPERATOR_CASES: Array<AttributeOperatorCase> = [
+  {
+    label: "equals",
+    operator: DictionaryFilterOperator.EqualTo,
+    rawValue: "web",
+    // Bare, because `=` is the implicit operator and how these have always read.
+    rendersAs: "web",
+  },
+  {
+    label: "does not equal",
+    operator: DictionaryFilterOperator.NotEqual,
+    rawValue: "web",
+    rendersAs: "does not equal web",
+  },
+  {
+    label: "is any of",
+    operator: DictionaryFilterOperator.IsAnyOf,
+    rawValue: "",
+    rawValues: ["web", "api"],
+    rendersAs: "is any of web, api",
+  },
+  {
+    label: "is none of",
+    operator: DictionaryFilterOperator.IsNoneOf,
+    rawValue: "",
+    rawValues: ["web", "api"],
+    rendersAs: "is none of web, api",
+  },
+  {
+    label: "contains",
+    operator: DictionaryFilterOperator.Contains,
+    rawValue: "web",
+    rendersAs: "contains web",
+  },
+  {
+    label: "does not contain",
+    operator: DictionaryFilterOperator.NotContains,
+    rawValue: "web",
+    rendersAs: "does not contain web",
+  },
+  {
+    label: "starts with",
+    operator: DictionaryFilterOperator.StartsWith,
+    rawValue: "web",
+    rendersAs: "starts with web",
+  },
+  {
+    label: "ends with",
+    operator: DictionaryFilterOperator.EndsWith,
+    rawValue: "web",
+    rendersAs: "ends with web",
+  },
+  {
+    label: "greater than",
+    operator: DictionaryFilterOperator.GreaterThan,
+    rawValue: "500",
+    rendersAs: "greater than 500",
+  },
+  {
+    label: "greater than or equal",
+    operator: DictionaryFilterOperator.GreaterThanOrEqual,
+    rawValue: "500",
+    rendersAs: "greater than or equal 500",
+  },
+  {
+    label: "less than",
+    operator: DictionaryFilterOperator.LessThan,
+    rawValue: "500",
+    rendersAs: "less than 500",
+  },
+  {
+    label: "less than or equal",
+    operator: DictionaryFilterOperator.LessThanOrEqual,
+    rawValue: "500",
+    rendersAs: "less than or equal 500",
+  },
+  {
+    label: "is empty",
+    operator: DictionaryFilterOperator.IsEmpty,
+    rawValue: "",
+    rendersAs: "is empty",
+  },
+  {
+    label: "is not empty",
+    operator: DictionaryFilterOperator.IsNotEmpty,
+    rawValue: "",
+    rendersAs: "is not empty",
+  },
+];
+
+function getAttributeRow(
+  fixture: AttributeFilterFixture,
+  attributes: Dictionary<DictionaryEntryValue>,
+): MonitorStepViewRow | undefined {
+  return MonitorStepViewModel.getRows({
+    monitorStep: fixture.buildStepWithAttributes(attributes),
+    monitorType: fixture.monitorType,
+  }).find((row: MonitorStepViewRow) => {
+    return row.key === fixture.rowKey;
+  });
+}
+
+describe("MonitorStepViewModel.getRows — attribute filter operators", () => {
+  /*
+   * The cases below are the whole point of this block, so an operator added
+   * to the dropdown must not be able to slip past them untested.
+   */
+  it("names every operator the dropdown offers", () => {
+    const covered: Array<string> = ATTRIBUTE_OPERATOR_CASES.map(
+      (operatorCase: AttributeOperatorCase) => {
+        return String(operatorCase.operator);
+      },
+    ).sort();
+
+    expect(covered).toEqual(Object.values(DictionaryFilterOperator).sort());
+  });
+
+  it("covers every monitor type whose step carries attribute filters", () => {
+    const covered: Array<MonitorType> = ATTRIBUTE_FILTER_FIXTURES.map(
+      (fixture: AttributeFilterFixture) => {
+        return fixture.monitorType;
+      },
+    );
+
+    expect(covered).toEqual([
+      MonitorType.Logs,
+      MonitorType.Traces,
+      MonitorType.SecurityEvents,
+    ]);
+  });
+});
+
+describe.each(ATTRIBUTE_FILTER_FIXTURES)(
+  "MonitorStepViewModel.getRows — $label monitor attribute filters",
+  (fixture: AttributeFilterFixture) => {
+    it.each(ATTRIBUTE_OPERATOR_CASES)(
+      'renders "$label" as text instead of the operator object it is stored as',
+      (operatorCase: AttributeOperatorCase) => {
+        const row: MonitorStepViewRow | undefined = getAttributeRow(fixture, {
+          env: buildDictionaryValue({
+            operator: operatorCase.operator,
+            rawValue: operatorCase.rawValue,
+            rawValues: operatorCase.rawValues,
+          }),
+        });
+
+        /*
+         * A JSON row would be handed to `JSON.stringify`; a dictionary of
+         * strings is tabulated as-is. The value type is half the fix.
+         */
+        expect(row?.valueType).toBe(
+          MonitorStepViewValueType.DictionaryOfStrings,
+        );
+        expect(row?.value).toEqual({ env: operatorCase.rendersAs });
+      },
+    );
+
+    it("names the operator for a step read back from storage as raw JSON", () => {
+      /*
+       * What the API actually returns: the operator instances serialized to
+       * their `{_type, value}` form, never rehydrated into classes. That
+       * shape printed verbatim on the page before this fix.
+       */
+      const row: MonitorStepViewRow | undefined = getAttributeRow(fixture, {
+        env: new Search<string>(
+          "web",
+        ).toJSON() as unknown as DictionaryEntryValue,
+        tier: new Includes([
+          "web",
+          "api",
+        ]).toJSON() as unknown as DictionaryEntryValue,
+        region: new IsNull().toJSON() as unknown as DictionaryEntryValue,
+      });
+
+      expect(row?.value).toEqual({
+        env: "contains web",
+        tier: "is any of web, api",
+        region: "is empty",
+      });
+    });
+
+    it("renders every value as a string, whatever the operator mix", () => {
+      const attributes: Dictionary<DictionaryEntryValue> = {};
+
+      for (const operatorCase of ATTRIBUTE_OPERATOR_CASES) {
+        attributes[operatorCase.label] = buildDictionaryValue({
+          operator: operatorCase.operator,
+          rawValue: operatorCase.rawValue,
+          rawValues: operatorCase.rawValues,
+        });
+      }
+
+      const row: MonitorStepViewRow | undefined = getAttributeRow(
+        fixture,
+        attributes,
+      );
+
+      const values: Array<unknown> = Object.values(
+        row?.value as Dictionary<string>,
+      );
+
+      expect(values).toHaveLength(ATTRIBUTE_OPERATOR_CASES.length);
+
+      for (const value of values) {
+        expect(typeof value).toBe("string");
+      }
+    });
+
+    it("shows the operator alone when a membership filter names no values", () => {
+      /*
+       * An empty `Includes` is a no-op downstream — StatementGenerator skips
+       * the predicate rather than emitting `IN ()` — so there is nothing to
+       * list after the label.
+       */
+      const row: MonitorStepViewRow | undefined = getAttributeRow(fixture, {
+        env: buildDictionaryValue({
+          operator: DictionaryFilterOperator.IsAnyOf,
+          rawValue: "",
+          rawValues: [],
+        }),
+      });
+
+      expect(row?.value).toEqual({ env: "is any of" });
+    });
+
+    it("keeps a plain string filter unchanged, as saved before operators shipped", () => {
+      const row: MonitorStepViewRow | undefined = getAttributeRow(fixture, {
+        "service.name": "checkout",
+      });
+
+      expect(row?.value).toEqual({ "service.name": "checkout" });
+    });
+
+    it("drops the row when no attributes are configured", () => {
+      expect(getAttributeRow(fixture, {})).toBeUndefined();
+    });
+  },
+);
 
 describe("MonitorStepViewModel.getRows — metric-backed monitors", () => {
   const METRIC_MONITOR_TYPES: Array<MonitorType> = [

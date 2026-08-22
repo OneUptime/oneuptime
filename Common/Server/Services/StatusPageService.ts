@@ -764,9 +764,10 @@ export class Service extends DatabaseService<StatusPage> {
        * excluded any event that spanned the ENTIRE window but closed after it, so a total
        * outage could render as a silent 100% uptime.
        *
-       * `greaterThanEqualToOrNull` emits `(endsAt >= :date or endsAt IS NULL)`. Note that
-       * `greaterThanOrNull` emits exactly the same `>=` SQL despite its name, so the explicit
-       * name is used here to keep the intent readable.
+       * `greaterThanEqualToOrNull` emits `(endsAt >= :date or endsAt IS NULL)` - the inclusive
+       * `>=` is deliberate so a row that ends exactly at `startDate` still counts as overlapping.
+       * `greaterThanOrNull` would emit a strict `>` and drop that boundary row, so it is NOT
+       * interchangeable here.
        *
        * Supported by the (monitorId, startsAt) and (endsAt) indexes.
        */

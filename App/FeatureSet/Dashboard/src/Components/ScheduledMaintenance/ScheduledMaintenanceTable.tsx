@@ -54,6 +54,7 @@ import {
   ModalTableBulkDefaultActions,
   SaveFilterProps,
 } from "Common/UI/Components/ModelTable/BaseModelTable";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import Navigation from "Common/UI/Utils/Navigation";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
@@ -435,30 +436,45 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     };
 
   if (!props.disableCreate) {
-    // then add a card button that takes to monitor create page
+    /*
+     * These route to a dedicated create page instead of the table's built in
+     * create modal, so ModelTable's own permission gate never sees them. Gate
+     * them here or a viewer walks the whole flow and is refused at the end
+     * (issue #3306).
+     */
     cardbuttons = [
-      {
-        title: "Create from Template",
-        icon: IconProp.Template,
-        buttonStyle: ButtonStyleType.OUTLINE,
-        onClick: async (): Promise<void> => {
-          setShowScheduledMaintenanceTemplateModal(true);
-          await fetchScheduledMaintenanceTemplates();
+      PermissionGate.gateCardButton(
+        {
+          title: "Create from Template",
+          icon: IconProp.Template,
+          buttonStyle: ButtonStyleType.OUTLINE,
+          onClick: async (): Promise<void> => {
+            setShowScheduledMaintenanceTemplateModal(true);
+            await fetchScheduledMaintenanceTemplates();
+          },
         },
-      },
-      {
-        title: "Create Scheduled Maintenance Event",
-        onClick: () => {
-          Navigation.navigate(
-            RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE] as Route,
-            ),
-          );
+        new ScheduledMaintenance(),
+        ModelAction.Create,
+      ),
+      PermissionGate.gateCardButton(
+        {
+          title: "Create Scheduled Maintenance Event",
+          onClick: () => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE] as Route,
+              ),
+            );
+          },
+          buttonStyle: ButtonStyleType.NORMAL,
+          icon: IconProp.Add,
         },
-        buttonStyle: ButtonStyleType.NORMAL,
-        icon: IconProp.Add,
-      },
-    ];
+        new ScheduledMaintenance(),
+        ModelAction.Create,
+      ),
+    ].filter((button: CardButtonSchema | null): boolean => {
+      return button !== null;
+    }) as Array<CardButtonSchema>;
   }
 
   return (

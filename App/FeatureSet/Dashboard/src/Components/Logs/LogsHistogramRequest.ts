@@ -1,4 +1,6 @@
 import { JSONObject } from "Common/Types/JSON";
+import Dictionary from "Common/Types/Dictionary";
+import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
@@ -26,7 +28,14 @@ export interface LogsHistogramRequestParams {
   serviceIds?: Array<string> | undefined;
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
-  attributes?: Record<string, string> | undefined;
+  /*
+   * Base attribute filters from the host page's logQuery. Values are plain
+   * scalars for the implicit `=` operator and operator instances
+   * (`Includes`, `Search`, ...) for every other one — each serializes to its
+   * `{_type, value}` shape on the wire, which the histogram endpoint
+   * compiles into the same predicate the logs list uses.
+   */
+  attributes?: Dictionary<DictionaryEntryValue> | undefined;
   entityKeys?: Array<string> | undefined;
   /** Facet chips the user has applied in the sidebar / search bar. */
   appliedFacetFilters: Map<string, Set<string>>;
@@ -118,6 +127,24 @@ export function buildLogsHistogramRequest(
 
   if (spanFilterValues && spanFilterValues.size > 0) {
     requestData["spanIds"] = Array.from(spanFilterValues);
+  }
+
+  /*
+   * A body chip is a contains-match on the message (the logs list compiles
+   * it to a Search predicate). The histogram has to receive it as
+   * bodySearchText or the chart would keep counting rows the list no longer
+   * shows — which is exactly what a deep link from Insights' Top Errors
+   * produces.
+   */
+  const bodyValues: Set<string> | undefined =
+    params.appliedFacetFilters.get("body");
+
+  if (bodyValues && bodyValues.size > 0) {
+    const bodySearchText: string = Array.from(bodyValues)[0]!;
+
+    if (bodySearchText.trim().length > 0) {
+      requestData["bodySearchText"] = bodySearchText;
+    }
   }
 
   if (params.attributes) {

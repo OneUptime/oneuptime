@@ -14,6 +14,7 @@ import {
   TracesDataIngestMetredPlan,
   ProfilesDataIngestMeteredPlan,
   SessionReplayDataIngestMeteredPlan,
+  SecurityEventsDataIngestMeteredPlan,
 } from "Common/Server/Types/Billing/MeteredPlan/AllMeteredPlans";
 import logger from "Common/Server/Utils/Logger";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -103,6 +104,22 @@ RunCron(
           } catch (sessionReplayError) {
             logger.debug(
               `MeteredPlan:ReportTelemetryMeteredPlan Skipping session replay for project ${project.id}: ${sessionReplayError}`,
+            );
+          }
+
+          /*
+           * Security events: same deal as session replay — usage stages
+           * into TelemetryUsageBilling regardless, and the final push to
+           * the billing provider is skipped until its Stripe price ids
+           * exist (getMeteredPlanPriceId throws until then).
+           */
+          try {
+            await SecurityEventsDataIngestMeteredPlan.reportQuantityToBillingProvider(
+              project.id,
+            );
+          } catch (securityEventsError) {
+            logger.debug(
+              `MeteredPlan:ReportTelemetryMeteredPlan Skipping security events for project ${project.id}: ${securityEventsError}`,
             );
           }
 

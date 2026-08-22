@@ -4,10 +4,8 @@ import AnalyticsDatabaseService, {
 } from "./AnalyticsDatabaseService";
 import ClickhouseDatabase from "../Infrastructure/ClickhouseDatabase";
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
-import AlertMetricType from "../../Types/Alerts/AlertMetricType";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
-import IncidentMetricType from "../../Types/Incident/IncidentMetricType";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import ServiceType from "../../Types/Telemetry/ServiceType";
@@ -22,10 +20,29 @@ type MutableMetricPointIdentity = {
 };
 
 export class MutableMetricService extends AnalyticsDatabaseService<MutableMetric> {
-  private static readonly mutableMetricNames: Set<string> = new Set<string>([
-    ...Object.values(AlertMetricType),
-    ...Object.values(IncidentMetricType),
-  ]);
+  /*
+   * Reserved namespaces whose metrics live in the mutable table.
+   *
+   * This used to be a Set built at module load from the two hard-coded
+   * metric-type enums, which made user-defined metric names impossible: a
+   * name the Set did not contain was silently routed to the immutable Metric
+   * table by all three consumers below and returned nothing -- an empty
+   * chart, never an error. A prefix test keeps the routing decision
+   * synchronous and cache-free (these are hot read paths) while letting a
+   * project name its own measurements.
+   *
+   * Consumers: MetricService.tryBuildMutableMetricAggregateStatement,
+   * MetricAggregationService facet-source selection, and
+   * TelemetryAttributeService attribute autocomplete.
+   *
+   * The cost of this is that `oneuptime.` is now a reserved prefix that
+   * user-supplied metric names may not claim.
+   */
+  private static readonly mutableMetricNamePrefixes: ReadonlyArray<string> = [
+    "oneuptime.incident.",
+    "oneuptime.alert.",
+    "oneuptime.scheduled-maintenance.",
+  ];
 
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
     super({ modelType: MutableMetric, database: clickhouseDatabase });
@@ -36,11 +53,15 @@ export class MutableMetricService extends AnalyticsDatabaseService<MutableMetric
       return false;
     }
 
-    return MutableMetricService.mutableMetricNames.has(metricName);
+    return MutableMetricService.mutableMetricNamePrefixes.some(
+      (prefix: string) => {
+        return metricName.startsWith(prefix);
+      },
+    );
   }
 
-  public static getMutableMetricNames(): Array<string> {
-    return Array.from(MutableMetricService.mutableMetricNames);
+  public static getMutableMetricNamePrefixes(): ReadonlyArray<string> {
+    return MutableMetricService.mutableMetricNamePrefixes;
   }
 
   public async createMutableMetrics(data: {

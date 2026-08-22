@@ -3,6 +3,7 @@ import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResponse";
+import SecurityEventsMonitorResponse from "../../../Types/Monitor/SecurityEventsMonitor/SecurityEventsMonitorResponse";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import CustomCodeMonitorResponse from "../../../Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
@@ -56,6 +57,19 @@ export default class MonitorCriteriaDataExtractor {
   ): LogMonitorResponse | null {
     if ((dataToProcess as LogMonitorResponse).logCount !== undefined) {
       return dataToProcess as LogMonitorResponse;
+    }
+
+    return null;
+  }
+
+  public static getSecurityEventsMonitorResponse(
+    dataToProcess: DataToProcess,
+  ): SecurityEventsMonitorResponse | null {
+    if (
+      (dataToProcess as SecurityEventsMonitorResponse).securityEventCount !==
+      undefined
+    ) {
+      return dataToProcess as SecurityEventsMonitorResponse;
     }
 
     return null;

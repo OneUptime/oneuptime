@@ -34,6 +34,29 @@ const updateByIdMock: MockFunction = getJestMockFunction();
  * requires, so naming the mocks directly would capture them before their
  * initializers have run.
  */
+/*
+ * The button is now gated on the viewer's permissions, so the tests have to
+ * say who is looking at the card. Without a permission snapshot the component
+ * cannot tell "not allowed" from "not loaded yet" and offers no button at all
+ * - which is correct, and is covered in the permission gating suites.
+ */
+jest.mock("../../../../UI/Utils/Permission", () => {
+  return {
+    __esModule: true,
+    default: {
+      getAllPermissions: (): Array<string> => {
+        return ["ProjectOwner"];
+      },
+      getProjectPermissions: (): null => {
+        return null;
+      },
+      getGlobalPermissions: (): { globalPermissions: Array<string> } => {
+        return { globalPermissions: ["ProjectOwner"] };
+      },
+    },
+  };
+});
+
 jest.mock("../../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,

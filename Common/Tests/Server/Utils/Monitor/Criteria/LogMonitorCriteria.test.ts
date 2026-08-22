@@ -1,11 +1,19 @@
 import LogMonitorCriteria from "../../../../../Server/Utils/Monitor/Criteria/LogMonitorCriteria";
+import LogCountBaselineService from "../../../../../Server/Services/LogCountBaselineService";
+import { CountBaselineSummary } from "../../../../../Server/Utils/Monitor/Criteria/CountAnomaly";
 import {
+  AnomalyDetectionSensitivity,
   CheckOn,
   CriteriaFilter,
   FilterType,
 } from "../../../../../Types/Monitor/CriteriaFilter";
 import LogMonitorResponse from "../../../../../Types/Monitor/LogMonitor/LogMonitorResponse";
 import DataToProcess from "../../../../../Server/Utils/Monitor/DataToProcess";
+import MonitorStep from "../../../../../Types/Monitor/MonitorStep";
+import MonitorStepLogMonitor, {
+  MonitorStepLogMonitorUtil,
+} from "../../../../../Types/Monitor/MonitorStepLogMonitor";
+import LogSeverity from "../../../../../Types/Log/LogSeverity";
 import ObjectID from "../../../../../Types/ObjectID";
 
 /*
@@ -188,6 +196,234 @@ describe("LogMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
           checkOn: CheckOn.SpanCount,
           filterType: FilterType.GreaterThan,
           value: 0,
+        }),
+      ).toBeNull();
+    });
+  });
+
+  /*
+   * Anomaly filters on LogCount: the evaluator normalizes the observed
+   * count to logs-per-minute (the LogCountBaseline sample unit) and
+   * compares it to the same-hour-of-week baseline of the monitor's
+   * scope, mirroring the Metric/SNMP baseline paths — including the
+   * Learning cold-start and zero-variance guards. Full matrix coverage
+   * of the shared math lives in CountAnomaly.test.ts and the trace
+   * sibling in TraceMonitorCriteria.test.ts.
+   */
+  describe("LogCount anomaly filters", () => {
+    let getBaselineSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      getBaselineSpy = jest.spyOn(LogCountBaselineService, "getBaseline");
+    });
+
+    afterEach(() => {
+      getBaselineSpy.mockRestore();
+    });
+
+    function buildBaseline(
+      overrides: Partial<CountBaselineSummary>,
+    ): CountBaselineSummary {
+      return {
+        sampleCount: 120,
+        mean: 20,
+        stddev: 5,
+        median: 19,
+        madSigma: 4,
+        minObserved: 8,
+        maxObserved: 33,
+        isReliable: true,
+        windowDays: 14,
+        hourOfWeek: 8,
+        ...overrides,
+      };
+    }
+
+    function buildMonitorStep(
+      overrides: Partial<MonitorStepLogMonitor>,
+    ): MonitorStep {
+      const monitorStep: MonitorStep = new MonitorStep();
+      monitorStep.data = {
+        id: ObjectID.generate().toString(),
+        monitorCriteria: { data: undefined } as never,
+      } as unknown as MonitorStep["data"];
+      monitorStep.data!.logMonitor = {
+        ...MonitorStepLogMonitorUtil.getDefault(),
+        ...overrides,
+      };
+      return monitorStep;
+    }
+
+    function evaluateAnomaly(input: {
+      logCount: number;
+      criteriaFilter: CriteriaFilter;
+      monitorStep?: MonitorStep | undefined;
+    }): Promise<string | null> {
+      return LogMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess: buildResponse(input.logCount),
+        criteriaFilter: input.criteriaFilter,
+        monitorStep: input.monitorStep,
+      });
+    }
+
+    test("AnomalouslyHigh fires when the log rate exceeds mean + 3σ (Medium default)", async () => {
+      // mean 20/min, σ 5 → 3σ band is [5, 35]; 90 logs in 60s = 90/min.
+      getBaselineSpy.mockResolvedValue(buildBaseline({}));
+
+      const result: string | null = await evaluateAnomaly({
+        logCount: 90,
+        criteriaFilter: {
+          checkOn: CheckOn.LogCount,
+          filterType: FilterType.AnomalouslyHigh,
+          value: undefined,
+        },
+      });
+
+      expect(result).toBeTruthy();
+      expect(result).toContain("above the same-hour baseline");
+      expect(result).toContain("90.00 logs/min");
+    });
+
+    test("no fire when the log rate is inside the expected band", async () => {
+      getBaselineSpy.mockResolvedValue(buildBaseline({}));
+
+      expect(
+        await evaluateAnomaly({
+          logCount: 25,
+          criteriaFilter: {
+            checkOn: CheckOn.LogCount,
+            filterType: FilterType.AnomalouslyLow,
+            value: undefined,
+          },
+        }),
+      ).toBeNull();
+    });
+
+    test("AnomalouslyLow fires when the log rate drops below mean - 3σ", async () => {
+      // mean 60/min, σ 10 → low band edge 30; 0 logs breaches low.
+      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 60, stddev: 10 }));
+
+      const result: string | null = await evaluateAnomaly({
+        logCount: 0,
+        criteriaFilter: {
+          checkOn: CheckOn.LogCount,
+          filterType: FilterType.AnomalouslyLow,
+          value: undefined,
+        },
+      });
+
+      expect(result).toBeTruthy();
+      expect(result).toContain("below the same-hour baseline");
+    });
+
+    test("observed count is normalized by the monitor's evaluation window", async () => {
+      getBaselineSpy.mockResolvedValue(buildBaseline({}));
+
+      // 100 logs over 300s = 20/min — exactly the mean, inside the band.
+      expect(
+        await evaluateAnomaly({
+          logCount: 100,
+          criteriaFilter: {
+            checkOn: CheckOn.LogCount,
+            filterType: FilterType.AnomalouslyHigh,
+            value: undefined,
+          },
+          monitorStep: buildMonitorStep({ lastXSecondsOfLogs: 300 }),
+        }),
+      ).toBeNull();
+    });
+
+    test("baseline lookup is keyed by project, services, severities and anomaly options", async () => {
+      getBaselineSpy.mockResolvedValue(buildBaseline({}));
+
+      const serviceId: ObjectID = ObjectID.generate();
+      const monitorStep: MonitorStep = buildMonitorStep({
+        telemetryServiceIds: [serviceId],
+        severityTexts: [LogSeverity.Error, LogSeverity.Fatal],
+      });
+
+      const dataToProcess: DataToProcess = buildResponse(90);
+
+      await LogMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess,
+        criteriaFilter: {
+          checkOn: CheckOn.LogCount,
+          filterType: FilterType.AnomalouslyHigh,
+          value: undefined,
+          metricMonitorOptions: {
+            anomalyDetection: {
+              sensitivity: AnomalyDetectionSensitivity.Low,
+              windowDays: 90,
+              minSamples: 20,
+            },
+          },
+        },
+        monitorStep,
+      });
+
+      expect(getBaselineSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          projectId: (dataToProcess as LogMonitorResponse).projectId.toString(),
+          telemetryServiceIds: [serviceId.toString()],
+          severityTexts: [LogSeverity.Error, LogSeverity.Fatal],
+          windowDays: 90,
+          minSamples: 20,
+        }),
+      );
+    });
+
+    test("Learning state (unreliable or missing baseline) never fires", async () => {
+      getBaselineSpy.mockResolvedValue(buildBaseline({ isReliable: false }));
+      expect(
+        await evaluateAnomaly({
+          logCount: 10000,
+          criteriaFilter: {
+            checkOn: CheckOn.LogCount,
+            filterType: FilterType.AnomalouslyHigh,
+            value: undefined,
+          },
+        }),
+      ).toBeNull();
+
+      getBaselineSpy.mockResolvedValue(null);
+      expect(
+        await evaluateAnomaly({
+          logCount: 10000,
+          criteriaFilter: {
+            checkOn: CheckOn.LogCount,
+            filterType: FilterType.AnomalouslyHigh,
+            value: undefined,
+          },
+        }),
+      ).toBeNull();
+    });
+
+    test("zero-variance baseline never fires", async () => {
+      getBaselineSpy.mockResolvedValue(
+        buildBaseline({ stddev: 0, madSigma: 0 }),
+      );
+      expect(
+        await evaluateAnomaly({
+          logCount: 10000,
+          criteriaFilter: {
+            checkOn: CheckOn.LogCount,
+            filterType: FilterType.AnomalouslyHigh,
+            value: undefined,
+          },
+        }),
+      ).toBeNull();
+    });
+
+    test("a baseline lookup error is swallowed and never fires", async () => {
+      getBaselineSpy.mockRejectedValue(new Error("clickhouse down"));
+      expect(
+        await evaluateAnomaly({
+          logCount: 10000,
+          criteriaFilter: {
+            checkOn: CheckOn.LogCount,
+            filterType: FilterType.AnomalouslyHigh,
+            value: undefined,
+          },
         }),
       ).toBeNull();
     });

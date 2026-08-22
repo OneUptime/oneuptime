@@ -101,6 +101,9 @@ const REMOVE_ROUTE: string = "/user/:userId/remove-from-project";
 const AUTH_STATUS_ROUTE: string = "/user/:userId/authentication-status";
 const SET_PASSWORD_ROUTE: string = "/user/:userId/set-password";
 const RESET_LINK_ROUTE: string = "/user/:userId/send-password-reset-link";
+const SET_TWO_FACTOR_REQUIRED_ROUTE: string =
+  "/user/:userId/set-two-factor-auth-required";
+const RESET_TWO_FACTOR_ROUTE: string = "/user/:userId/reset-two-factor-auth";
 
 const USER_ID: string = "00000000-0000-4000-8000-000000000001";
 const PROJECT_ONE_ID: string = "00000000-0000-4000-8000-0000000000a1";
@@ -1299,7 +1302,9 @@ describe("UserAPI master-admin route surface", () => {
         `GET ${AUTH_STATUS_ROUTE}`,
         `POST ${REMOVE_ROUTE}`,
         `POST ${RESET_LINK_ROUTE}`,
+        `POST ${RESET_TWO_FACTOR_ROUTE}`,
         `POST ${SET_PASSWORD_ROUTE}`,
+        `POST ${SET_TWO_FACTOR_REQUIRED_ROUTE}`,
       ].sort(),
     );
   });
@@ -1307,13 +1312,17 @@ describe("UserAPI master-admin route surface", () => {
   /*
    * Spelled out one by one as well as swept, because these are the routes where
    * a leaked static key would stop being a disclosure and start being an
-   * account takeover: removing somebody's access, setting their password, or
-   * mailing a reset link to their inbox.
+   * account takeover: removing somebody's access, setting their password,
+   * mailing a reset link to their inbox -- or, on the two two-factor routes,
+   * lifting the requirement for a second factor across every account on the
+   * instance and then wiping whatever anybody had set up.
    */
   test.each([
     ["POST", REMOVE_ROUTE],
     ["POST", SET_PASSWORD_ROUTE],
     ["POST", RESET_LINK_ROUTE],
+    ["POST", SET_TWO_FACTOR_REQUIRED_ROUTE],
+    ["POST", RESET_TWO_FACTOR_ROUTE],
     ["GET", AUTH_STATUS_ROUTE],
   ])(
     "%s %s does not accept the master API key",

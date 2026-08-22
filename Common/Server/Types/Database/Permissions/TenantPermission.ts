@@ -19,6 +19,16 @@ import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
  * Permissions auto-granted to every logged-in tenant user. Holding only these
  * (without an actual role permission) does not signal admin authority and so
  * should not unlock cross-row access on models that scope by user.
+ *
+ * `Permission.ProjectUser` is auto-granted too (AccessTokenService adds it for
+ * every project member) but is deliberately NOT listed here. These three are
+ * granted to callers a model never opted into: any logged-in user, anyone at
+ * all, anyone mid-SSO. `ProjectUser` is different - a model only sees it if it
+ * wrote `Permission.ProjectUser` into its own access list, and that is an
+ * explicit statement that the whole project may read the table, rows and all.
+ * Treating it as auto-granted would silently re-narrow those tables to the
+ * caller's own rows and put the shared owner and label pickers back to empty,
+ * which is the bug this permission exists to fix.
  */
 const AUTO_GRANTED_TENANT_PERMISSIONS: ReadonlyArray<Permission> = [
   Permission.CurrentUser,

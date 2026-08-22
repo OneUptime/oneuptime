@@ -26,6 +26,7 @@ export enum PermissionGroup {
   Probe = "Probe",
   NotificationLog = "Notification Log",
   AuditLog = "Audit Log",
+  Security = "Security",
 }
 
 export interface PermissionProps {
@@ -39,7 +40,23 @@ export interface PermissionProps {
 }
 
 enum Permission {
-  // All users in the project will have this permission.
+  /*
+   * Held by every user who is a member of the project, in addition to whatever
+   * roles their teams grant. It is not something an administrator hands out to
+   * make something work - AccessTokenService adds it to the tenant permission
+   * set of anyone who has accepted an invitation to the project.
+   *
+   * Its purpose is the shared plumbing of the dashboard: saved table views,
+   * labels, teams, member profiles. Those are not "settings" in the sense of a
+   * capability somebody is trusted with; they are the furniture every page is
+   * built out of, and a user scoped to a single domain (Monitor Viewer, say)
+   * needs to read them or the page they *are* allowed to see cannot render.
+   *
+   * Only models that are shared in that sense may list it. Anything holding
+   * data one role should be able to keep from another - billing, credentials,
+   * a domain's own records - must not, because every principal in the project
+   * has it. See ProjectSharedResources.test.ts, which enforces both halves.
+   */
   ProjectUser = "ProjectUser",
 
   AuthenticatedRequest = "AuthenticatedRequest", // Authenticated request - could be API, User, MCP server or any other authenticated request.
@@ -149,6 +166,18 @@ enum Permission {
   EditTelemetryServiceLog = "EditTelemetryServiceLog",
   ReadTelemetryServiceLog = "ReadTelemetryServiceLog",
 
+  // Security Events (SIEM signals stored in ClickHouse)
+  CreateSecurityEvent = "CreateSecurityEvent",
+  DeleteSecurityEvent = "DeleteSecurityEvent",
+  EditSecurityEvent = "EditSecurityEvent",
+  ReadSecurityEvent = "ReadSecurityEvent",
+
+  // Detection Rules (Sigma detections-as-code over security events)
+  CreateProjectDetectionRule = "CreateProjectDetectionRule",
+  DeleteProjectDetectionRule = "DeleteProjectDetectionRule",
+  EditProjectDetectionRule = "EditProjectDetectionRule",
+  ReadProjectDetectionRule = "ReadProjectDetectionRule",
+
   // Log Pipelines
   CreateProjectLogPipeline = "CreateProjectLogPipeline",
   DeleteProjectLogPipeline = "DeleteProjectLogPipeline",
@@ -178,6 +207,16 @@ enum Permission {
   DeleteProjectMetricPipelineRule = "DeleteProjectMetricPipelineRule",
   EditProjectMetricPipelineRule = "EditProjectMetricPipelineRule",
   ReadProjectMetricPipelineRule = "ReadProjectMetricPipelineRule",
+
+  CreateProjectLlmCostBudget = "CreateProjectLlmCostBudget",
+  DeleteProjectLlmCostBudget = "DeleteProjectLlmCostBudget",
+  EditProjectLlmCostBudget = "EditProjectLlmCostBudget",
+  ReadProjectLlmCostBudget = "ReadProjectLlmCostBudget",
+
+  CreateProjectLlmModelPrice = "CreateProjectLlmModelPrice",
+  DeleteProjectLlmModelPrice = "DeleteProjectLlmModelPrice",
+  EditProjectLlmModelPrice = "EditProjectLlmModelPrice",
+  ReadProjectLlmModelPrice = "ReadProjectLlmModelPrice",
 
   // Metric Recording Rules (derived metrics)
   CreateProjectMetricRecordingRule = "CreateProjectMetricRecordingRule",
@@ -1776,6 +1815,33 @@ enum Permission {
   EditIncidentSlaRule = "EditIncidentSlaRule",
   ReadIncidentSlaRule = "ReadIncidentSlaRule",
 
+  // Incident Measurement Permissions
+  CreateIncidentMeasurement = "CreateIncidentMeasurement",
+  DeleteIncidentMeasurement = "DeleteIncidentMeasurement",
+  EditIncidentMeasurement = "EditIncidentMeasurement",
+  ReadIncidentMeasurement = "ReadIncidentMeasurement",
+
+  // Incident Measurement Value Permissions
+  ReadIncidentMeasurementValue = "ReadIncidentMeasurementValue",
+
+  // Alert Measurement Permissions
+  CreateAlertMeasurement = "CreateAlertMeasurement",
+  DeleteAlertMeasurement = "DeleteAlertMeasurement",
+  EditAlertMeasurement = "EditAlertMeasurement",
+  ReadAlertMeasurement = "ReadAlertMeasurement",
+
+  // Alert Measurement Value Permissions
+  ReadAlertMeasurementValue = "ReadAlertMeasurementValue",
+
+  // Scheduled Maintenance Measurement Permissions
+  CreateScheduledMaintenanceMeasurement = "CreateScheduledMaintenanceMeasurement",
+  DeleteScheduledMaintenanceMeasurement = "DeleteScheduledMaintenanceMeasurement",
+  EditScheduledMaintenanceMeasurement = "EditScheduledMaintenanceMeasurement",
+  ReadScheduledMaintenanceMeasurement = "ReadScheduledMaintenanceMeasurement",
+
+  // Scheduled Maintenance Measurement Value Permissions
+  ReadScheduledMaintenanceMeasurementValue = "ReadScheduledMaintenanceMeasurementValue",
+
   // Incident Reminder Rule Permissions
   CreateIncidentReminderRule = "CreateIncidentReminderRule",
   DeleteIncidentReminderRule = "DeleteIncidentReminderRule",
@@ -2380,7 +2446,8 @@ export class PermissionHelper {
       {
         permission: Permission.ProjectUser,
         title: "Project User",
-        description: "User of this project.",
+        description:
+          "Member of this project. Every user in the project holds this permission; it grants read access to shared workspace resources such as saved table views, labels, teams and member profiles.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -6987,6 +7054,90 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
 
+      // Security Event Permissions
+      {
+        permission: Permission.CreateSecurityEvent,
+        title: "Create Security Event",
+        description:
+          "This permission can create Security Events in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteSecurityEvent,
+        title: "Delete Security Event",
+        description:
+          "This permission can delete Security Events of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditSecurityEvent,
+        title: "Edit Security Event",
+        description:
+          "This permission can edit Security Events of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityEvent,
+        title: "Read Security Event",
+        description:
+          "This permission can read Security Events of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Detection Rule Permissions
+      {
+        permission: Permission.CreateProjectDetectionRule,
+        title: "Create Detection Rule",
+        description:
+          "This permission can create Detection Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteProjectDetectionRule,
+        title: "Delete Detection Rule",
+        description:
+          "This permission can delete Detection Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditProjectDetectionRule,
+        title: "Edit Detection Rule",
+        description:
+          "This permission can edit Detection Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadProjectDetectionRule,
+        title: "Read Detection Rule",
+        description:
+          "This permission can read Detection Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
       // Log Pipeline Permissions
       {
         permission: Permission.CreateProjectLogPipeline,
@@ -7189,6 +7340,90 @@ export class PermissionHelper {
         title: "Read Metric Pipeline Rule",
         description:
           "This permission can read Metric Pipeline Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // LLM Cost Budget Permissions
+      {
+        permission: Permission.CreateProjectLlmCostBudget,
+        title: "Create LLM Cost Budget",
+        description:
+          "This permission can create LLM Cost Budgets in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteProjectLlmCostBudget,
+        title: "Delete LLM Cost Budget",
+        description:
+          "This permission can delete LLM Cost Budgets of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProjectLlmCostBudget,
+        title: "Edit LLM Cost Budget",
+        description:
+          "This permission can edit LLM Cost Budgets of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProjectLlmCostBudget,
+        title: "Read LLM Cost Budget",
+        description:
+          "This permission can read LLM Cost Budgets of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // LLM Model Price Permissions
+      {
+        permission: Permission.CreateProjectLlmModelPrice,
+        title: "Create LLM Model Price",
+        description:
+          "This permission can create LLM Model Prices in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteProjectLlmModelPrice,
+        title: "Delete LLM Model Price",
+        description:
+          "This permission can delete LLM Model Prices of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProjectLlmModelPrice,
+        title: "Edit LLM Model Price",
+        description:
+          "This permission can edit LLM Model Prices of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProjectLlmModelPrice,
+        title: "Read LLM Model Price",
+        description:
+          "This permission can read LLM Model Prices of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -14418,6 +14653,168 @@ export class PermissionHelper {
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Incident,
+      },
+
+      // Incident Measurement Permissions
+      {
+        permission: Permission.CreateIncidentMeasurement,
+        title: "Create Incident Measurement",
+        description:
+          "This permission can create Incident Measurements in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.DeleteIncidentMeasurement,
+        title: "Delete Incident Measurement",
+        description:
+          "This permission can delete Incident Measurements of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.EditIncidentMeasurement,
+        title: "Edit Incident Measurement",
+        description:
+          "This permission can edit Incident Measurements of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentMeasurement,
+        title: "Read Incident Measurement",
+        description:
+          "This permission can read Incident Measurements of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+
+      // Incident Measurement Value Permissions
+      {
+        permission: Permission.ReadIncidentMeasurementValue,
+        title: "Read Incident Measurement Value",
+        description:
+          "This permission can read Incident Measurement Values of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+
+      // Alert Measurement Permissions
+      {
+        permission: Permission.CreateAlertMeasurement,
+        title: "Create Alert Measurement",
+        description:
+          "This permission can create Alert Measurements in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.DeleteAlertMeasurement,
+        title: "Delete Alert Measurement",
+        description:
+          "This permission can delete Alert Measurements of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.EditAlertMeasurement,
+        title: "Edit Alert Measurement",
+        description:
+          "This permission can edit Alert Measurements of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.ReadAlertMeasurement,
+        title: "Read Alert Measurement",
+        description:
+          "This permission can read Alert Measurements of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+
+      // Alert Measurement Value Permissions
+      {
+        permission: Permission.ReadAlertMeasurementValue,
+        title: "Read Alert Measurement Value",
+        description:
+          "This permission can read Alert Measurement Values of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+
+      // Scheduled Maintenance Measurement Permissions
+      {
+        permission: Permission.CreateScheduledMaintenanceMeasurement,
+        title: "Create Scheduled Maintenance Measurement",
+        description:
+          "This permission can create Scheduled Maintenance Measurements in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ScheduledMaintenance,
+      },
+      {
+        permission: Permission.DeleteScheduledMaintenanceMeasurement,
+        title: "Delete Scheduled Maintenance Measurement",
+        description:
+          "This permission can delete Scheduled Maintenance Measurements of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ScheduledMaintenance,
+      },
+      {
+        permission: Permission.EditScheduledMaintenanceMeasurement,
+        title: "Edit Scheduled Maintenance Measurement",
+        description:
+          "This permission can edit Scheduled Maintenance Measurements of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ScheduledMaintenance,
+      },
+      {
+        permission: Permission.ReadScheduledMaintenanceMeasurement,
+        title: "Read Scheduled Maintenance Measurement",
+        description:
+          "This permission can read Scheduled Maintenance Measurements of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ScheduledMaintenance,
+      },
+
+      // Scheduled Maintenance Measurement Value Permissions
+      {
+        permission: Permission.ReadScheduledMaintenanceMeasurementValue,
+        title: "Read Scheduled Maintenance Measurement Value",
+        description:
+          "This permission can read Scheduled Maintenance Measurement Values of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.ScheduledMaintenance,
       },
 
       // Incident Reminder Rule Permissions

@@ -30,6 +30,10 @@ import applyStatusPageRobotsHeader from "Common/Server/Utils/StatusPageSearchEng
 import { handlePublicDashboardLlmsTxt } from "./Utils/PublicDashboard";
 import DashboardDomainService from "Common/Server/Services/DashboardDomainService";
 import DashboardDomain from "Common/Models/DatabaseModels/DashboardDomain";
+import {
+  shouldSkipDashboardFallbackRoute,
+  shouldSkipStatusPageDomainFallbackRoute,
+} from "./RouteReservations";
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -72,73 +76,6 @@ interface RenderFrontendOptions {
   next: NextFunction;
   frontendConfig: FrontendConfig;
 }
-
-const DashboardFallbackRoutePrefixesToSkip: Array<string> = [
-  "/status-page",
-  "/status-page-api",
-  "/status-page-sso-api",
-  "/status-page-oidc-api",
-  "/status-page-identity-api",
-  "/public-dashboard",
-  "/public-dashboard-api",
-  "/api",
-  "/identity",
-  "/notification",
-  "/telemetry",
-  /*
-   * Session replay ingest is mounted on both "/telemetry" and "/", and
-   * FrontendRoutes.init() runs BEFORE TelemetryRoutes.init(), so without
-   * this entry a root-level /session-replay/v1/chunk would be answered with
-   * the Dashboard SPA's HTML instead of reaching the ingest router.
-   */
-  "/session-replay",
-  "/incoming-request-ingest",
-  "/otlp",
-  "/opentelemetry.proto.collector",
-  "/probe-ingest",
-  "/ingestor",
-  "/server-monitor",
-  "/realtime",
-  "/workflow",
-  "/workers",
-  "/mcp",
-  "/analytics-api",
-  "/heartbeat",
-  "/incoming-email",
-  "/file",
-  "/docs",
-  "/reference",
-  /*
-   * The vendored browser libraries (Common/Server/Utils/VendorAssets.ts).
-   * That mount terminates its own prefix with a 404, so this is belt and
-   * braces - but a stylesheet answered with the dashboard's index page at
-   * HTTP 200 is a failure nothing logs, and this list is where that class of
-   * mistake is meant to be caught.
-   */
-  "/oneuptime-assets",
-  "/worker",
-  "/.well-known",
-  "/l",
-  "/manifest.json",
-  "/service-worker.js",
-  "/sw.js",
-  "/browserconfig.xml",
-  "/rss",
-  "/llms.txt",
-];
-
-const StatusPageDomainFallbackRoutePrefixesToSkip: Array<string> = [
-  "/status-page-api",
-  "/status-page-sso-api",
-  "/status-page-oidc-api",
-  "/status-page-identity-api",
-  "/public-dashboard-api",
-  /* Same reservation as the dashboard list above. */
-  "/oneuptime-assets",
-  "/.well-known",
-  "/rss",
-  "/llms.txt",
-];
 
 const StatusPageFrontendConfig: FrontendConfig = {
   routePrefix: "/status-page",
@@ -283,30 +220,6 @@ const isPrimaryHostRequest: (req: ExpressRequest) => boolean = (
   }
 
   return PrimaryHosts.has(requestHost);
-};
-
-const shouldSkipDashboardFallbackRoute: (path: string) => boolean = (
-  path: string,
-): boolean => {
-  return DashboardFallbackRoutePrefixesToSkip.some((prefix: string) => {
-    if (path === prefix) {
-      return true;
-    }
-
-    return path.startsWith(`${prefix}/`);
-  });
-};
-
-const shouldSkipStatusPageDomainFallbackRoute: (path: string) => boolean = (
-  path: string,
-): boolean => {
-  return StatusPageDomainFallbackRoutePrefixesToSkip.some((prefix: string) => {
-    if (path === prefix) {
-      return true;
-    }
-
-    return path.startsWith(`${prefix}/`);
-  });
 };
 
 const sendFrontendEnvScript: (

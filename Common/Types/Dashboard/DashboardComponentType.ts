@@ -18,6 +18,8 @@ enum DashboardComponentType {
   DataSourceTable = `DataSourceTable`,
   LogStream = `LogStream`,
   LogChart = `LogChart`,
+  SecurityEventsList = `SecurityEventsList`,
+  SecurityEventsFlow = `SecurityEventsFlow`,
   TraceList = `TraceList`,
   TraceChart = `TraceChart`,
   TraceTable = `TraceTable`,

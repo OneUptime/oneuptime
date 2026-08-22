@@ -77,14 +77,17 @@ const Users: FunctionComponent = (): ReactElement => {
               fieldType: FormFieldSchemaType.Toggle,
               required: false,
             },
-            {
-              field: {
-                enableTwoFactorAuth: true,
-              },
-              title: "Two Factor Auth Enabled",
-              fieldType: FormFieldSchemaType.Toggle,
-              required: false,
-            },
+            /*
+             * `enableTwoFactorAuth` is deliberately NOT editable here.
+             *
+             * Writing it through this form works, but it is a bare column
+             * write: it does not revoke the user's sessions, so an admin who
+             * flipped it here would be told two factor auth was now required
+             * while everybody already signed in carried on without it. The
+             * Authentication page's Two Factor Authentication card posts to
+             * an endpoint that does both, and is the one place this is
+             * configured. The read-only row below still reports the value.
+             */
           ]}
           modelDetailProps={{
             modelType: User,

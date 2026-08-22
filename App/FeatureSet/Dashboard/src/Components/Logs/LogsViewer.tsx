@@ -1,4 +1,5 @@
 import Includes from "Common/Types/BaseDatabase/Includes";
+import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -88,6 +89,8 @@ import { shouldAdoptTimeRangeOverride } from "../../Utils/SharedTelemetryTimeCur
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 import Navigation from "Common/UI/Utils/Navigation";
 import Dictionary from "Common/Types/Dictionary";
+import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
+import { buildAttributeFilterChips } from "./LogsAttributeFilterChips";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   CrossSignalQueryParams,
@@ -97,6 +100,7 @@ import {
 import {
   applyLogsFacetFiltersToQuery,
   applyLogsSessionScopeToQuery,
+  BODY_FACET_KEY,
   buildLogsPivotScope,
   buildSessionReplayRoute,
   buildSpanChipOpenRoute,
@@ -171,11 +175,19 @@ export interface ComponentProps {
 const DEFAULT_PAGE_SIZE: number = 100;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
 const SAVED_VIEWS_LIMIT: number = 100;
+/*
+ * The facet keys read BACK out of a query into chips. Must stay the mirror
+ * of what applyLogsFacetFiltersToQuery compiles INTO a query, or a filter
+ * that survives a saved view / URL round-trip filters the list while no
+ * chip says so — and the histogram, which builds its request from the
+ * chips, then counts rows the list excludes.
+ */
 const FACET_FILTER_KEYS: Array<string> = [
   "severityText",
   "primaryEntityId",
   "traceId",
   "spanId",
+  BODY_FACET_KEY,
 ];
 
 interface InitialUrlState {
@@ -301,6 +313,17 @@ function getQueryValues(value: unknown): Array<string> {
     return value.values.map((item: string | number | ObjectID) => {
       return item.toString();
     });
+  }
+
+  /*
+   * The body chip compiles to a contains-match, so its stored form is a
+   * Search rather than a bare string. Without this branch a saved view or
+   * deep link carrying one round-trips into a filtered list with no chip.
+   */
+  if (value instanceof Search) {
+    const text: string = value.toString();
+
+    return text.trim().length > 0 ? [text] : [];
   }
 
   if (
@@ -712,22 +735,35 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     return [...props.sessionIds];
   }, [props.sessionIds]);
 
-  // Extract attribute filters from logQuery for histogram/facets API calls
-  const logQueryAttributes: Record<string, string> | undefined = useMemo(() => {
-    if (!props.logQuery) {
-      return undefined;
-    }
+  /*
+   * Extract attribute filters from logQuery for the chips, the
+   * histogram/facets API calls and the cross-signal pivots.
+   *
+   * These are NOT `Record<string, string>`. Since the attribute filter rows
+   * gained an operator dropdown, every operator other than `=` stores an
+   * operator instance (`Includes`, `Search`, `NotEqual`, ...) as the value —
+   * that is what the log monitor's criteria form writes into
+   * `MonitorStepLogMonitor.attributes` and what `toQuery()` hands over here.
+   * Typing them as strings is what let one reach `ActiveFilterChips` and
+   * throw "Objects are not valid as a React child", taking the criteria modal
+   * down with it. Each consumer below decides for itself how to narrow them.
+   */
+  const logQueryAttributes: Dictionary<DictionaryEntryValue> | undefined =
+    useMemo(() => {
+      if (!props.logQuery) {
+        return undefined;
+      }
 
-    const attributes: Record<string, string> | undefined = (
-      props.logQuery as any
-    ).attributes as Record<string, string> | undefined;
+      const attributes: Dictionary<DictionaryEntryValue> | undefined = (
+        props.logQuery as any
+      ).attributes as Dictionary<DictionaryEntryValue> | undefined;
 
-    if (!attributes || Object.keys(attributes).length === 0) {
-      return undefined;
-    }
+      if (!attributes || Object.keys(attributes).length === 0) {
+        return undefined;
+      }
 
-    return attributes;
-  }, [props.logQuery]);
+      return attributes;
+    }, [props.logQuery]);
 
   /*
    * Extract the entityKeys membership filter from logQuery so the histogram
@@ -1903,24 +1939,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       }
     }
 
-    if (logQueryAttributes) {
-      const attributeDisplayNames: Record<string, string> = {
-        "resource.k8s.cluster.name": "Cluster",
-        "resource.k8s.pod.name": "Pod",
-        "resource.k8s.container.name": "Container",
-        "resource.k8s.namespace.name": "Namespace",
-      };
-
-      for (const [attrKey, attrValue] of Object.entries(logQueryAttributes)) {
-        filters.push({
-          facetKey: `attributes.${attrKey}`,
-          value: attrValue,
-          displayKey: attributeDisplayNames[attrKey] || attrKey,
-          displayValue: attrValue,
-          readOnly: true,
-        });
-      }
-    }
+    filters.push(...buildAttributeFilterChips(logQueryAttributes));
 
     return filters;
   }, [
@@ -1946,6 +1965,12 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       kubernetesClusterId: "Kubernetes Cluster",
       traceId: "Trace",
       spanId: "Span",
+      /*
+       * The one chip whose value is a substring rather than an exact id —
+       * "Message contains" says so, since "body: connection refused" reads
+       * like an equality the filter is not.
+       */
+      body: "Message contains",
     };
 
     /*

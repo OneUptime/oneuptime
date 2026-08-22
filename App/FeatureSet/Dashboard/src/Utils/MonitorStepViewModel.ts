@@ -9,6 +9,8 @@ import DomainLookupMethod from "Common/Types/Monitor/DomainMonitor/DomainLookupM
 import MonitorStep, { MonitorStepType } from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
+import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
+import { formatDictionaryValueForDisplay } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
 
 /*
  * WHY THIS FILE EXISTS
@@ -29,7 +31,11 @@ import RollingTime from "Common/Types/RollingTime/RollingTime";
  * suite can hold to every monitor type at once.
  *
  * Rows carry a `valueType` rather than a UI FieldType so this file never
- * imports from the component layer. The viewer translates them.
+ * imports the component layer's rendering. The viewer translates them.
+ * `formatDictionaryValueForDisplay` is the one import from under
+ * `Common/UI`: a pure string function with no React in it, shared so the
+ * criteria page names filter operators exactly the way the log viewer's
+ * chips do.
  */
 
 export enum MonitorStepViewValueType {
@@ -160,6 +166,38 @@ const toSpanStatusText: (status: SpanStatus) => string = (
     default:
       return "Unset";
   }
+};
+
+/*
+ * Attribute filters are typed as scalars, but only the implicit `=` actually
+ * stores one. Since these rows gained an operator dropdown, every other
+ * operator stores an operator instance (`Search`, `Includes`, `IsNull`, ...)
+ * — see `buildDictionaryValue` — or, for a step read straight back from
+ * storage, the `{_type, value}` JSON those serialize to.
+ *
+ * Emitting the raw object as a JSON row printed that wire shape at the
+ * operator, so the criteria page showed
+ * `{ "env": { "_type": "Search", "value": "web" } }` where it meant
+ * `env: contains web`. The shared formatter names the operator instead, and
+ * the row leaves here as a dictionary of strings so the viewer tabulates it
+ * the way it already tabulates request headers.
+ */
+const toAttributeFilters: (
+  attributes: Dictionary<string | number | boolean> | undefined,
+) => Dictionary<string> | undefined = (
+  attributes: Dictionary<string | number | boolean> | undefined,
+): Dictionary<string> | undefined => {
+  if (!attributes) {
+    return undefined;
+  }
+
+  const filters: Dictionary<string> = {};
+
+  for (const key of Object.keys(attributes)) {
+    filters[key] = formatDictionaryValueForDisplay(attributes[key]);
+  }
+
+  return filters;
 };
 
 const safeMetricsViewConfig: (
@@ -370,6 +408,8 @@ export default class MonitorStepViewModel {
         return MonitorStepViewModel.getExternalStatusPageRows(data);
       case MonitorType.Logs:
         return MonitorStepViewModel.getLogRows(data);
+      case MonitorType.SecurityEvents:
+        return MonitorStepViewModel.getSecurityEventsRows(data);
       case MonitorType.Traces:
         return MonitorStepViewModel.getTraceRows(data);
       case MonitorType.Exceptions:
@@ -937,8 +977,8 @@ export default class MonitorStepViewModel {
         key: "logAttributes",
         title: "Log Attributes",
         description: "Attributes of the logs to monitor.",
-        valueType: MonitorStepViewValueType.JSON,
-        value: logMonitor?.attributes as JSONObject | undefined,
+        valueType: MonitorStepViewValueType.DictionaryOfStrings,
+        value: toAttributeFilters(logMonitor?.attributes),
         placeholder: "No attributes entered",
       }),
       optional({
@@ -955,6 +995,76 @@ export default class MonitorStepViewModel {
         description: "Telemetry services to monitor.",
         valueType: MonitorStepViewValueType.TelemetryServices,
         value: (logMonitor?.telemetryServiceIds || []).map(
+          (serviceId: { toString: () => string }) => {
+            return serviceId.toString();
+          },
+        ),
+        placeholder: "No telemetry services entered",
+      }),
+    ]);
+  }
+
+  private static getSecurityEventsRows(
+    data: MonitorStepType,
+  ): Array<MonitorStepViewRow> {
+    const securityEventsMonitor: MonitorStepType["securityEventsMonitor"] =
+      data.securityEventsMonitor;
+
+    return compact([
+      optional({
+        key: "securityEventMessage",
+        title: "Filter Event Message",
+        description: "Filter by event message with this text:",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(securityEventsMonitor?.messageContains),
+        placeholder: "No event message entered",
+      }),
+      optional({
+        key: "lastXSecondsOfEvents",
+        title: "Monitor security events for the last (time)",
+        description: "How many seconds of security events to monitor.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toDuration(securityEventsMonitor?.lastXSecondsOfEvents),
+        placeholder: "1 minute",
+      }),
+      optional({
+        key: "securityEventSeverityNames",
+        title: "Event Severity",
+        description: "OCSF severity of the security events to monitor.",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        value: (securityEventsMonitor?.severityNames || []).map(
+          (severity: OcsfSeverity) => {
+            return String(severity);
+          },
+        ),
+        placeholder: "No severity entered",
+      }),
+      optional({
+        key: "securityEventClassNames",
+        title: "Event Class",
+        description: "OCSF event classes to monitor.",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        value: (securityEventsMonitor?.classNames || []).map(
+          (className: string) => {
+            return String(className);
+          },
+        ),
+        placeholder: "No event class entered",
+      }),
+      optional({
+        key: "securityEventAttributes",
+        title: "Event Attributes",
+        description: "Attributes of the security events to monitor.",
+        valueType: MonitorStepViewValueType.DictionaryOfStrings,
+        value: toAttributeFilters(securityEventsMonitor?.attributes),
+        placeholder: "No attributes entered",
+      }),
+      optional({
+        key: "securityEventTelemetryServices",
+        title: "Telemetry Services",
+        description: "Telemetry services to monitor.",
+        valueType: MonitorStepViewValueType.TelemetryServices,
+        value: (securityEventsMonitor?.telemetryServiceIds || []).map(
           (serviceId: { toString: () => string }) => {
             return serviceId.toString();
           },
@@ -1000,8 +1110,8 @@ export default class MonitorStepViewModel {
         key: "spanAttributes",
         title: "Span Attributes",
         description: "Attributes of the spans to monitor.",
-        valueType: MonitorStepViewValueType.JSON,
-        value: traceMonitor?.attributes as JSONObject | undefined,
+        valueType: MonitorStepViewValueType.DictionaryOfStrings,
+        value: toAttributeFilters(traceMonitor?.attributes),
         placeholder: "No attributes entered",
       }),
       optional({

@@ -52,7 +52,11 @@ export default function LoginScreen(): React.JSX.Element {
     try {
       const response: LoginResponse = await login(email.trim(), password);
 
-      if (response.twoFactorRequired) {
+      if (response.twoFactorEnrolmentRequired) {
+        setError(
+          "Your administrator requires two-factor authentication on this account, and it has not been set up yet. Setting it up is not yet supported in the mobile app - please sign in on the web dashboard once to complete the setup.",
+        );
+      } else if (response.twoFactorRequired) {
         setError(
           "Two-factor authentication is not yet supported in the mobile app. Please disable 2FA temporarily or use the web dashboard.",
         );

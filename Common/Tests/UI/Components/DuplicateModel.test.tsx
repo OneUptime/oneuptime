@@ -17,6 +17,31 @@ import ObjectID from "../../../Types/ObjectID";
 import React from "react";
 import { act } from "react-test-renderer";
 import Select from "../../../Types/BaseDatabase/Select";
+import TableAccessControl from "../../../Types/Database/AccessControl/TableAccessControl";
+import Permission from "../../../Types/Permission";
+/*
+ * The button is now gated on the viewer's permissions, so the tests have to
+ * say who is looking at the card. Without a permission snapshot the component
+ * cannot tell "not allowed" from "not loaded yet" and offers no button at all
+ * - which is correct, and is covered in the permission gating suites.
+ */
+jest.mock("../../../UI/Utils/Permission", () => {
+  return {
+    __esModule: true,
+    default: {
+      getAllPermissions: (): Array<string> => {
+        return ["ProjectOwner"];
+      },
+      getProjectPermissions: (): null => {
+        return null;
+      },
+      getGlobalPermissions: (): { globalPermissions: Array<string> } => {
+        return { globalPermissions: ["ProjectOwner"] };
+      },
+    },
+  };
+});
+
 jest.mock("../../../UI/Utils/Navigation", () => {
   return {
     __esModule: true,
@@ -64,6 +89,18 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+/*
+ * Access control is not decoration here: Duplicate writes a new record, so the
+ * button is gated on create permission, and a model that declares none is one
+ * nobody can create - the button is correctly withheld. Every real model
+ * declares its own, so this one does too.
+ */
+@TableAccessControl({
+  create: [Permission.ProjectOwner],
+  read: [Permission.ProjectOwner],
+  update: [Permission.ProjectOwner],
+  delete: [Permission.ProjectOwner],
+})
 @TableMetaData({
   tableName: "Foo",
   singularName: "Foo",

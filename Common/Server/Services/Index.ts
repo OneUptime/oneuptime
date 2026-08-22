@@ -76,6 +76,7 @@ import LlmProviderService from "./LlmProviderService";
 import DataSourceService from "./DataSourceService";
 import AuditLogService from "./AuditLogService";
 import LogService from "./LogService";
+import SecurityEventService from "./SecurityEventService";
 import MailService from "./MailService";
 import MetricService from "./MetricService";
 import MetricItemAggMV1mService from "./MetricItemAggMV1mService";
@@ -85,6 +86,8 @@ import MetricItemAggMV1mByK8sClusterService from "./MetricItemAggMV1mByK8sCluste
 import MetricItemAggMV1mByContainerService from "./MetricItemAggMV1mByContainerService";
 import MutableMetricService from "./MutableMetricService";
 import MetricBaselineService from "./MetricBaselineService";
+import SpanCountBaselineService from "./SpanCountBaselineService";
+import LogCountBaselineService from "./LogCountBaselineService";
 import MonitorCustomFieldService from "./MonitorCustomFieldService";
 import MonitorGroupOwnerTeamService from "./MonitorGroupOwnerTeamService";
 import MonitorGroupOwnerUserService from "./MonitorGroupOwnerUserService";
@@ -234,6 +237,8 @@ import AlertInternalNoteService from "./AlertInternalNoteService";
 import AlertOwnerTeamService from "./AlertOwnerTeamService";
 import AlertOwnerUserService from "./AlertOwnerUserService";
 import AlertSeverityService from "./AlertSeverityService";
+import DetectionRuleService from "./DetectionRuleService";
+import GoogleSecOpsConnectionService from "./GoogleSecOpsConnectionService";
 import AlertNoteTemplateService from "./AlertNoteTemplateService";
 
 // AlertEpisode Services
@@ -257,9 +262,17 @@ import IncidentEpisodeStateTimelineService from "./IncidentEpisodeStateTimelineS
 import IncidentEpisodePublicNoteService from "./IncidentEpisodePublicNoteService";
 import AlertGroupingRuleService from "./AlertGroupingRuleService";
 import IncidentSlaRuleService from "./IncidentSlaRuleService";
+import IncidentMeasurementService from "./IncidentMeasurementService";
+import IncidentMeasurementValueService from "./IncidentMeasurementValueService";
+import AlertMeasurementService from "./AlertMeasurementService";
+import AlertMeasurementValueService from "./AlertMeasurementValueService";
+import ScheduledMaintenanceMeasurementService from "./ScheduledMaintenanceMeasurementService";
+import ScheduledMaintenanceMeasurementValueService from "./ScheduledMaintenanceMeasurementValueService";
 import IncidentSlaService from "./IncidentSlaService";
 import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
 import ServiceLevelObjectiveBurnRateRuleService from "./ServiceLevelObjectiveBurnRateRuleService";
+import LlmCostBudgetService from "./LlmCostBudgetService";
+import LlmModelPriceService from "./LlmModelPriceService";
 import ServiceLevelObjectiveOwnerUserService from "./ServiceLevelObjectiveOwnerUserService";
 import ServiceLevelObjectiveOwnerTeamService from "./ServiceLevelObjectiveOwnerTeamService";
 import SloHistoryService from "./SloHistoryService";
@@ -522,6 +535,8 @@ const services: Array<BaseService> = [
   AlertOwnerTeamService,
   AlertOwnerUserService,
   AlertSeverityService,
+  DetectionRuleService,
+  GoogleSecOpsConnectionService,
   AlertNoteTemplateService,
   AlertFeedService,
 
@@ -546,9 +561,17 @@ const services: Array<BaseService> = [
   IncidentEpisodePublicNoteService,
   AlertGroupingRuleService,
   IncidentSlaRuleService,
+  IncidentMeasurementService,
+  IncidentMeasurementValueService,
+  AlertMeasurementService,
+  AlertMeasurementValueService,
+  ScheduledMaintenanceMeasurementService,
+  ScheduledMaintenanceMeasurementValueService,
   IncidentSlaService,
   ServiceLevelObjectiveService,
   ServiceLevelObjectiveBurnRateRuleService,
+  LlmCostBudgetService,
+  LlmModelPriceService,
   ServiceLevelObjectiveOwnerUserService,
   ServiceLevelObjectiveOwnerTeamService,
   IncidentReminderRuleService,
@@ -593,6 +616,12 @@ export const AnalyticsServices: Array<
   MetricItemAggMV1mByK8sClusterService,
   MetricItemAggMV1mByContainerService,
   MetricBaselineService,
+  /*
+   * Span/log volume baselines for the count anomaly criteria. Same MV
+   * target pattern as MetricBaselineService.
+   */
+  SpanCountBaselineService,
+  LogCountBaselineService,
   ExceptionInstanceService,
   KubernetesCostAllocationService,
   MonitorLogService,
@@ -607,6 +636,7 @@ export const AnalyticsServices: Array<
   RumSessionService,
   RumSessionChunkService,
   AuditLogService,
+  SecurityEventService,
 ];
 
 export default services;

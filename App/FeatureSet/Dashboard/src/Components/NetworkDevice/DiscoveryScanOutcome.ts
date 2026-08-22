@@ -1,6 +1,7 @@
 import NetworkDeviceDiscoveryScan, {
   DiscoveredNetworkDevice,
 } from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import { isPingOnlyDiscoveredHost } from "./DiscoveredHostFilter";
 
 /*
  * Pure, react-free reading of "what did this discovery scan actually find".
@@ -66,16 +67,26 @@ export function getDiscoveredHosts(
 /**
  * Hosts that answered ICMP but not SNMP.
  *
- * Only an EXPLICIT snmpReachable === false counts, matching
- * isImportableDiscoveredHost: scans stored before the field existed carry
- * undefined and every host on them answered SNMP, so legacy rows must not be
- * retroactively reported as ping-only.
+ * Only an EXPLICIT snmpReachable === false counts: scans stored before the
+ * field existed carry undefined and every host on them answered SNMP, so
+ * legacy rows must not be retroactively reported as ping-only.
+ *
+ * Asked through `isPingOnlyDiscoveredHost` rather than by reading
+ * `snmpReachable` here as well, because this number and the dialog's
+ * "No SNMP (N)" badge describe the same set of hosts on two screens the
+ * operator moves between in one click — the scans table says "+N alive
+ * without SNMP", they press Review Results, and the badge had better say N.
+ * Two copies of the rule is how those two numbers come to disagree.
+ *
+ * It also stops a junk jsonb element taking the table down: the predicate is
+ * nullish-safe, where the bare `host.snmpReachable` this replaced threw a
+ * TypeError from inside a table cell.
  */
 export function countPingOnlyHosts(
   scan: NetworkDeviceDiscoveryScan | null | undefined,
 ): number {
   return getDiscoveredHosts(scan).filter((host: DiscoveredNetworkDevice) => {
-    return host.snmpReachable === false;
+    return isPingOnlyDiscoveredHost(host);
   }).length;
 }
 

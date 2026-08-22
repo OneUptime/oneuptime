@@ -2,7 +2,7 @@ import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import LogDatabaseService from "./LogService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
-import { JSONObject } from "../../Types/JSON";
+import { JSONObject, ObjectType } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Includes from "../../Types/BaseDatabase/Includes";
@@ -14,6 +14,10 @@ import {
   appendResourceScopeFilters,
   ResourceEntityScope,
 } from "../Utils/Telemetry/ResourceEntityFilter";
+import {
+  buildLogErrorPatternExpression,
+  clampLogErrorPattern,
+} from "../Utils/Telemetry/LogErrorPatternSql";
 
 export interface HistogramBucket {
   time: string;
@@ -21,7 +25,21 @@ export interface HistogramBucket {
   count: number;
 }
 
-export type LogAttributeFilterValue = string | Array<string>;
+/*
+ * A serialized QueryOperator (`{_type: "Search", value: "web"}` and friends)
+ * — how an attribute filter row that uses any operator other than the
+ * implicit `=` arrives over the wire, since every QueryOperator's toJSON()
+ * emits this shape. See appendAttributeOperatorFilter.
+ */
+export interface SerializedAttributeOperator {
+  _type: string;
+  value?: unknown;
+}
+
+export type LogAttributeFilterValue =
+  | string
+  | Array<string>
+  | SerializedAttributeOperator;
 export type LogAttributeFilters = Record<string, LogAttributeFilterValue>;
 
 export interface HistogramRequest {
@@ -123,6 +141,111 @@ export interface AnalyticsTopItem {
 export interface AnalyticsTableRow {
   groupValues: Record<string, string>;
   count: number;
+}
+
+/*
+ * ---------------------------------------------------------------------
+ * Error-pattern insights
+ * ---------------------------------------------------------------------
+ *
+ * The Logs Insights page answers "what is actually going wrong, and where"
+ * by clustering error bodies into patterns (see
+ * Common/Utils/Telemetry/LogErrorPattern) and counting the clusters in the
+ * database. Everything below shares one filter shape so the top-list and
+ * every drill-down run against exactly the same slice of logs — a
+ * correlation panel that silently widened its own scope would be worse
+ * than no panel at all.
+ */
+
+/** Severities treated as "an error" when the caller does not say. */
+export const DEFAULT_ERROR_LOG_SEVERITIES: Array<string> = ["Error", "Fatal"];
+
+export interface ErrorPatternFilters {
+  projectId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+  serviceIds?: Array<ObjectID> | undefined;
+  entityKeys?: Array<string> | undefined;
+  resourceScopes?: Array<ResourceEntityScope> | undefined;
+  /** Defaults to DEFAULT_ERROR_LOG_SEVERITIES when absent or empty. */
+  severityTexts?: Array<string> | undefined;
+  bodySearchText?: string | undefined;
+  traceIds?: Array<string> | undefined;
+  spanIds?: Array<string> | undefined;
+  sessionIds?: Array<string> | undefined;
+  attributes?: LogAttributeFilters | undefined;
+}
+
+export interface TopErrorPatternsRequest extends ErrorPatternFilters {
+  limit?: number | undefined;
+}
+
+export interface TopErrorPattern {
+  /** The normalized message every occurrence in this group shares. */
+  pattern: string;
+  /** The most recent raw body in the group, for display. */
+  sampleBody: string;
+  count: number;
+  /** ClickHouse datetime strings — parse with OneUptimeDate.fromString. */
+  firstSeenAt: string;
+  lastSeenAt: string;
+  /** Distinct services / hosts / clusters this pattern was seen on. */
+  resourceCount: number;
+  resourceIds: Array<string>;
+  severities: Array<string>;
+  /** Distinct traces carrying at least one occurrence. */
+  traceCount: number;
+  sampleTraceIds: Array<string>;
+}
+
+export interface ErrorPatternDetailRequest extends ErrorPatternFilters {
+  pattern: string;
+  limit?: number | undefined;
+}
+
+export interface ErrorPatternTimelineRequest extends ErrorPatternDetailRequest {
+  bucketSizeInMinutes: number;
+}
+
+export interface ErrorPatternTimelinePoint {
+  time: string;
+  count: number;
+}
+
+export interface ErrorPatternCoOccurrence {
+  pattern: string;
+  sampleBody: string;
+  count: number;
+}
+
+export interface ErrorPatternAttribute {
+  key: string;
+  value: string;
+  count: number;
+}
+
+export interface ErrorPatternResource {
+  resourceId: string;
+  resourceType: string;
+  count: number;
+  lastSeenAt: string;
+}
+
+export interface ErrorPatternTrace {
+  traceId: string;
+  count: number;
+  lastSeenAt: string;
+  resourceId: string;
+}
+
+export interface ErrorPatternSample {
+  logId: string;
+  time: string;
+  body: string;
+  severityText: string;
+  resourceId: string;
+  traceId: string;
+  spanId: string;
 }
 
 export class LogAggregationService {
@@ -902,6 +1025,26 @@ export class LogAggregationService {
               value: new Includes(attrValue),
             }}), mapKeys(attributes), mapValues(attributes))`,
           );
+        } else if (typeof attrValue === "object" && attrValue !== null) {
+          LogAggregationService.appendAttributeOperatorFilter(
+            statement,
+            attrKey,
+            attrValue as unknown as Record<string, unknown>,
+          );
+        } else if (attrValue === "") {
+          /*
+           * A blank equality value is "missing or empty", not "present and
+           * empty": the list query compares `attributes['k'] = ''`, and a Map
+           * subscript returns the type default for a key the row does not
+           * carry, so rows without the attribute match too. Routed through the
+           * operator builder so a bare "" and an explicit EqualTo("") — the
+           * same filter written two ways — cannot disagree.
+           */
+          LogAggregationService.appendAttributeOperatorFilter(
+            statement,
+            attrKey,
+            { _type: ObjectType.IsNull },
+          );
         } else {
           statement.append(
             SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
@@ -914,6 +1057,299 @@ export class LogAggregationService {
           );
         }
       }
+    }
+  }
+
+  /*
+   * Attribute filter rows carry an operator (`contains`, `is any of`,
+   * `is empty`, ...) as well as a value, and the operator travels over the
+   * wire as the serialized `{_type, value}` shape every QueryOperator's
+   * toJSON() produces. The list query compiles those through
+   * StatementGenerator; these aggregation endpoints (histogram, facets,
+   * export) used to treat anything non-array as a plain string, so an
+   * operator object bound as "[object Object]", matched nothing, and left the
+   * log monitor preview showing an empty chart beside a populated list.
+   *
+   * Predicates mirror StatementGenerator's map-attribute branches, in the
+   * case-insensitive arrayExists form the rest of this builder uses — these
+   * keys are typed by a user, not canonical column names.
+   */
+  private static appendAttributeOperatorFilter(
+    statement: Statement,
+    attrKey: string,
+    attrValue: Record<string, unknown>,
+  ): void {
+    const operatorType: unknown = attrValue["_type"];
+    const rawValue: unknown = attrValue["value"];
+
+    type MatchesFunction = (predicate: Statement) => Statement;
+
+    // `<key> matches case-insensitively AND <predicate>` over the map pairs.
+    const matches: MatchesFunction = (predicate: Statement): Statement => {
+      return SQL`arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
+        type: TableColumnType.Text,
+        value: attrKey,
+      }}) AND `
+        .append(predicate)
+        .append(SQL`, mapKeys(attributes), mapValues(attributes))`);
+    };
+
+    type RequirePrimitiveFunction = (
+      value: unknown,
+    ) => string | number | boolean | null;
+
+    /*
+     * `value` is unvalidated JSON off the wire. `String()` and `Number()` do
+     * not merely produce a bad result on an object — ToPrimitive THROWS a
+     * TypeError when the object shadows toString/valueOf with non-callables
+     * (`{"toString": 1}`), and that escapes the BadDataException the default
+     * branch raises, answering with a 500 instead of a 400. Narrow to
+     * primitives first so every rejection goes out the same door.
+     */
+    const requirePrimitive: RequirePrimitiveFunction = (
+      value: unknown,
+    ): string | number | boolean | null => {
+      if (value === undefined || value === null) {
+        return null;
+      }
+
+      if (
+        typeof value === "string" ||
+        typeof value === "number" ||
+        typeof value === "boolean"
+      ) {
+        return value;
+      }
+
+      throw new BadDataException(
+        `Invalid value in the attribute filter for "${attrKey}"`,
+      );
+    };
+
+    type TextValueFunction = () => string;
+
+    const textValue: TextValueFunction = (): string => {
+      const primitive: string | number | boolean | null =
+        requirePrimitive(rawValue);
+
+      return primitive === null ? "" : String(primitive);
+    };
+
+    type LikeFunction = (pattern: string) => Statement;
+
+    const like: LikeFunction = (pattern: string): Statement => {
+      return SQL`v ILIKE ${{
+        type: TableColumnType.Text,
+        value: pattern,
+      }}`;
+    };
+
+    type NumericFunction = (comparison: string) => Statement;
+
+    /*
+     * Map values are stored as text; toFloat64OrNull yields NULL for
+     * non-numeric values (including the empty default for a missing key),
+     * which compares false against any threshold and drops those rows.
+     */
+    const numeric: NumericFunction = (comparison: string): Statement => {
+      const primitive: string | number | boolean | null =
+        requirePrimitive(rawValue);
+      const threshold: number = Number(primitive);
+
+      /*
+       * Reject rather than bind. `Number(null)` is 0, so a filter with no
+       * value would silently become "> 0", and a non-numeric one binds as the
+       * literal `nan`, which ClickHouse cannot parse — a 500 where the user
+       * should get a 400 naming the filter.
+       */
+      if (
+        primitive === null ||
+        primitive === "" ||
+        !Number.isFinite(threshold)
+      ) {
+        throw new BadDataException(
+          `The attribute filter for "${attrKey}" needs a numeric value`,
+        );
+      }
+
+      /*
+       * Decimal (ClickHouse Double), not Number (Int32): the left-hand side is
+       * a Float64 and thresholds are free text, so `> 1.5` bound as Int32 is a
+       * parse error at the database rather than a comparison.
+       *
+       * The comparison itself is appended as raw SQL — an interpolation in the
+       * SQL tag becomes a bound Identifier, which is not what `>` is. Every
+       * caller passes a literal from the switch below, never user input.
+       */
+      return SQL`toFloat64OrNull(v) `.append(comparison).append(
+        SQL` ${{
+          type: TableColumnType.Decimal,
+          value: threshold,
+        }}`,
+      );
+    };
+
+    type MembershipValuesFunction = () => Array<string>;
+
+    const membershipValues: MembershipValuesFunction = (): Array<string> => {
+      return Array.isArray(rawValue)
+        ? rawValue.map((entry: unknown) => {
+            const primitive: string | number | boolean | null =
+              requirePrimitive(entry);
+
+            return primitive === null ? "" : String(primitive);
+          })
+        : [];
+    };
+
+    type HasNonEmptyValueFunction = () => Statement;
+
+    /*
+     * "the key is present with a non-empty value".
+     *
+     * A ClickHouse Map subscript returns the value type's default for a
+     * missing key, so the list query's `attributes['k']` reads as '' for a row
+     * that has no such attribute at all. That makes an EMPTY comparison value
+     * mean something different from every other value, in both directions:
+     * `attributes['k'] = ''` matches rows that lack the key, and
+     * `attributes['k'] != ''` drops them. Naively negating the existence test
+     * gets both backwards — an "is not equal to <blank>" filter counted every
+     * row in the project while the list beside it counted only the handful
+     * that carried the attribute.
+     */
+    const hasNonEmptyValue: HasNonEmptyValueFunction = (): Statement => {
+      return matches(SQL`v != ''`);
+    };
+
+    switch (operatorType) {
+      case ObjectType.EqualTo:
+        if (textValue() === "") {
+          // `attributes['k'] = ''` — missing or empty. Same set as "is empty".
+          statement.append(SQL` AND NOT `.append(hasNonEmptyValue()));
+          return;
+        }
+
+        statement.append(
+          SQL` AND `.append(
+            matches(
+              SQL`v = ${{
+                type: TableColumnType.Text,
+                value: textValue(),
+              }}`,
+            ),
+          ),
+        );
+        return;
+
+      case ObjectType.NotEqual:
+        if (textValue() === "") {
+          /*
+           * `attributes['k'] != ''` — present AND non-empty. Same set as
+           * "is not empty"; see hasNonEmptyValue above for why blank is
+           * special.
+           */
+          statement.append(SQL` AND `.append(hasNonEmptyValue()));
+          return;
+        }
+
+        /*
+         * Negating the whole existence test is what makes rows that lack the
+         * attribute pass, matching the map-subscript form's semantics (a
+         * missing key reads as '' and so is != a non-empty value).
+         */
+        statement.append(
+          SQL` AND NOT `.append(
+            matches(
+              SQL`v = ${{
+                type: TableColumnType.Text,
+                value: textValue(),
+              }}`,
+            ),
+          ),
+        );
+        return;
+
+      case ObjectType.Search:
+        statement.append(SQL` AND `.append(matches(like(`%${textValue()}%`))));
+        return;
+
+      case ObjectType.NotContains:
+        statement.append(
+          SQL` AND NOT `.append(matches(like(`%${textValue()}%`))),
+        );
+        return;
+
+      case ObjectType.StartsWith:
+        statement.append(SQL` AND `.append(matches(like(`${textValue()}%`))));
+        return;
+
+      case ObjectType.EndsWith:
+        statement.append(SQL` AND `.append(matches(like(`%${textValue()}`))));
+        return;
+
+      case ObjectType.GreaterThan:
+        statement.append(SQL` AND `.append(matches(numeric(">"))));
+        return;
+
+      case ObjectType.GreaterThanOrEqual:
+        statement.append(SQL` AND `.append(matches(numeric(">="))));
+        return;
+
+      case ObjectType.LessThan:
+        statement.append(SQL` AND `.append(matches(numeric("<"))));
+        return;
+
+      case ObjectType.LessThanOrEqual:
+        statement.append(SQL` AND `.append(matches(numeric("<="))));
+        return;
+
+      case ObjectType.IsNull:
+        // "is empty" — no non-empty value stored under that key.
+        statement.append(SQL` AND NOT `.append(hasNonEmptyValue()));
+        return;
+
+      case ObjectType.NotNull:
+        statement.append(SQL` AND `.append(hasNonEmptyValue()));
+        return;
+
+      case ObjectType.Includes:
+      case ObjectType.IncludesNone: {
+        const values: Array<string> = membershipValues();
+
+        /*
+         * An empty membership list means "All", not "nothing" — skipping the
+         * predicate matches how StatementGenerator and the form treat it, and
+         * avoids emitting `IN ()`.
+         */
+        if (values.length === 0) {
+          return;
+        }
+
+        const membership: Statement = matches(
+          SQL`v IN (${{
+            type: TableColumnType.Text,
+            value: new Includes(values),
+          }})`,
+        );
+
+        statement.append(
+          (operatorType === ObjectType.Includes
+            ? SQL` AND `
+            : SQL` AND NOT `
+          ).append(membership),
+        );
+        return;
+      }
+
+      default:
+        /*
+         * An unrecognized shape is a filter this builder cannot honour.
+         * Refuse it rather than binding an object as text and quietly
+         * returning counts that disagree with the logs list.
+         */
+        throw new BadDataException(
+          `Unsupported attribute filter for "${attrKey}"`,
+        );
     }
   }
 
@@ -1217,6 +1653,674 @@ export class LogAggregationService {
       totalLogs > 0 ? Math.round((matchingLogs / totalLogs) * 100) : 0;
 
     return { totalLogs, matchingLogs, estimatedReductionPercent };
+  }
+
+  // --- Error pattern insights ---
+
+  private static readonly DEFAULT_ERROR_PATTERN_LIMIT: number = 10;
+  private static readonly MAX_ERROR_PATTERN_LIMIT: number = 50;
+  private static readonly ERROR_PATTERN_SAMPLE_ARRAY_LIMIT: number = 5;
+  /* Every severity a pattern can carry fits comfortably in eight slots. */
+  private static readonly ERROR_PATTERN_SEVERITY_ARRAY_LIMIT: number = 8;
+  /*
+   * Cheap pre-filter for bodies that carry no message: they normalize to the
+   * empty pattern, which would otherwise become a meaningless "" group.
+   *
+   * Deliberately only a pre-filter, not the guarantee. ClickHouse's trimBoth
+   * strips SPACES only, so a body of tabs or newlines survives this predicate
+   * and still normalizes to "" once the whitespace rule collapses it. The
+   * grouped reads therefore also carry `HAVING pattern != ''`; this stays
+   * because skipping those rows before aggregation is strictly cheaper than
+   * grouping them and throwing the group away.
+   */
+  private static readonly NON_EMPTY_BODY_FILTER: string =
+    " AND notEmpty(trimBoth(ifNull(body, '')))";
+
+  /*
+   * The actual guarantee that no empty-pattern group is returned. Applied to
+   * every read that GROUPs BY the pattern; the row-returning reads instead
+   * scope to one caller-supplied pattern, which is never "".
+   */
+  private static readonly NON_EMPTY_PATTERN_HAVING: string =
+    " HAVING pattern != ''";
+
+  /**
+   * The distinct error messages in the window, most frequent first.
+   *
+   * This is the "Top Errors" list: one row per pattern with its occurrence
+   * count, when it started and last happened, how many resources it spans,
+   * and enough sample material (a real body, some trace ids) for the UI to
+   * render the row without a second round trip.
+   */
+  @CaptureSpan()
+  public static async getTopErrorPatterns(
+    request: TopErrorPatternsRequest,
+  ): Promise<Array<TopErrorPattern>> {
+    const statement: Statement =
+      LogAggregationService.buildTopErrorPatternsStatement(request);
+
+    const rows: Array<JSONObject> =
+      await LogAggregationService.runQuery(statement);
+
+    return rows
+      .map((row: JSONObject): TopErrorPattern => {
+        return {
+          pattern: String(row["pattern"] || ""),
+          sampleBody: String(row["sampleBody"] || ""),
+          count: Number(row["cnt"] || 0),
+          firstSeenAt: String(row["firstSeen"] || ""),
+          lastSeenAt: String(row["lastSeen"] || ""),
+          resourceCount: Number(row["resourceCount"] || 0),
+          resourceIds: LogAggregationService.toStringArray(row["resourceIds"]),
+          severities: LogAggregationService.toStringArray(row["severities"]),
+          traceCount: Number(row["traceCount"] || 0),
+          sampleTraceIds: LogAggregationService.toStringArray(
+            row["sampleTraceIds"],
+          ),
+        };
+      })
+      .filter((item: TopErrorPattern): boolean => {
+        return item.pattern.length > 0;
+      });
+  }
+
+  /**
+   * When one pattern happened, bucketed over the window — the "is this a
+   * steady drip or a spike at 14:05" question.
+   */
+  @CaptureSpan()
+  public static async getErrorPatternTimeline(
+    request: ErrorPatternTimelineRequest,
+  ): Promise<Array<ErrorPatternTimelinePoint>> {
+    const statement: Statement =
+      LogAggregationService.buildErrorPatternTimelineStatement(request);
+
+    const rows: Array<JSONObject> =
+      await LogAggregationService.runQuery(statement);
+
+    return rows.map((row: JSONObject): ErrorPatternTimelinePoint => {
+      return {
+        time: String(row["bucket"] || ""),
+        count: Number(row["cnt"] || 0),
+      };
+    });
+  }
+
+  /**
+   * Other error patterns that fired in the same time buckets as this one.
+   *
+   * This is the correlation the Insights page exists for: rather than
+   * eyeballing two log lists side by side, the panel names the errors that
+   * keep company with the one under investigation. "Same bucket" is a
+   * deliberately coarse notion of simultaneity — it inherits whatever
+   * bucket size the timeline is drawn at, so a wide window correlates
+   * loosely and a narrow one tightly.
+   */
+  @CaptureSpan()
+  public static async getErrorPatternCoOccurrences(
+    request: ErrorPatternTimelineRequest,
+  ): Promise<Array<ErrorPatternCoOccurrence>> {
+    const statement: Statement =
+      LogAggregationService.buildErrorPatternCoOccurrenceStatement(request);
+
+    const rows: Array<JSONObject> =
+      await LogAggregationService.runQuery(statement);
+
+    return rows
+      .map((row: JSONObject): ErrorPatternCoOccurrence => {
+        return {
+          pattern: String(row["pattern"] || ""),
+          sampleBody: String(row["sampleBody"] || ""),
+          count: Number(row["cnt"] || 0),
+        };
+      })
+      .filter((item: ErrorPatternCoOccurrence): boolean => {
+        return item.pattern.length > 0;
+      });
+  }
+
+  /**
+   * The attribute key/value pairs carried by this pattern's occurrences,
+   * most common first — how the page answers "which host is this?" without
+   * the user having to open a log line and read its attributes.
+   */
+  @CaptureSpan()
+  public static async getErrorPatternAttributes(
+    request: ErrorPatternDetailRequest,
+  ): Promise<Array<ErrorPatternAttribute>> {
+    const statement: Statement =
+      LogAggregationService.buildErrorPatternAttributesStatement(request);
+
+    const rows: Array<JSONObject> =
+      await LogAggregationService.runQuery(statement);
+
+    return rows
+      .map((row: JSONObject): ErrorPatternAttribute => {
+        return {
+          key: String(row["attrKey"] || ""),
+          value: String(row["attrValue"] || ""),
+          count: Number(row["cnt"] || 0),
+        };
+      })
+      .filter((item: ErrorPatternAttribute): boolean => {
+        return item.key.length > 0;
+      });
+  }
+
+  /** Which services / hosts / clusters this pattern is happening on. */
+  @CaptureSpan()
+  public static async getErrorPatternResources(
+    request: ErrorPatternDetailRequest,
+  ): Promise<Array<ErrorPatternResource>> {
+    const statement: Statement =
+      LogAggregationService.buildErrorPatternResourcesStatement(request);
+
+    const rows: Array<JSONObject> =
+      await LogAggregationService.runQuery(statement);
+
+    return rows
+      .map((row: JSONObject): ErrorPatternResource => {
+        return {
+          resourceId: String(row["resourceId"] || ""),
+          resourceType: String(row["resourceType"] || ""),
+          count: Number(row["cnt"] || 0),
+          lastSeenAt: String(row["lastSeen"] || ""),
+        };
+      })
+      .filter((item: ErrorPatternResource): boolean => {
+        return item.resourceId.length > 0;
+      });
+  }
+
+  /**
+   * Traces that carry at least one occurrence — the jump from "this error
+   * happened" to the request it happened inside.
+   */
+  @CaptureSpan()
+  public static async getErrorPatternTraces(
+    request: ErrorPatternDetailRequest,
+  ): Promise<Array<ErrorPatternTrace>> {
+    const statement: Statement =
+      LogAggregationService.buildErrorPatternTracesStatement(request);
+
+    const rows: Array<JSONObject> =
+      await LogAggregationService.runQuery(statement);
+
+    return rows
+      .map((row: JSONObject): ErrorPatternTrace => {
+        return {
+          traceId: String(row["traceId"] || ""),
+          count: Number(row["cnt"] || 0),
+          lastSeenAt: String(row["lastSeen"] || ""),
+          resourceId: String(row["resourceId"] || ""),
+        };
+      })
+      .filter((item: ErrorPatternTrace): boolean => {
+        return item.traceId.length > 0;
+      });
+  }
+
+  /** The most recent raw log lines behind the pattern. */
+  @CaptureSpan()
+  public static async getErrorPatternSamples(
+    request: ErrorPatternDetailRequest,
+  ): Promise<Array<ErrorPatternSample>> {
+    const statement: Statement =
+      LogAggregationService.buildErrorPatternSamplesStatement(request);
+
+    const rows: Array<JSONObject> =
+      await LogAggregationService.runQuery(statement);
+
+    return rows.map((row: JSONObject): ErrorPatternSample => {
+      return {
+        logId: String(row["_id"] || ""),
+        time: String(row["time"] || ""),
+        body: String(row["body"] || ""),
+        severityText: String(row["severityText"] || ""),
+        resourceId: String(row["resourceId"] || ""),
+        traceId: String(row["traceId"] || ""),
+        spanId: String(row["spanId"] || ""),
+      };
+    });
+  }
+
+  private static async runQuery(
+    statement: Statement,
+  ): Promise<Array<JSONObject>> {
+    const dbResult: Results = await LogDatabaseService.executeQuery(statement);
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    return response.data || [];
+  }
+
+  /*
+   * ClickHouse returns array-valued aggregates (groupUniqArray) as JSON
+   * arrays, but a row that reached us through a different serializer could
+   * carry anything — coerce defensively rather than trusting the shape.
+   */
+  private static toStringArray(value: unknown): Array<string> {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value
+      .map((item: unknown): string => {
+        return String(item ?? "");
+      })
+      .filter((item: string): boolean => {
+        return item.length > 0;
+      });
+  }
+
+  private static clampErrorPatternLimit(limit: number | undefined): number {
+    if (typeof limit !== "number" || !Number.isFinite(limit)) {
+      return LogAggregationService.DEFAULT_ERROR_PATTERN_LIMIT;
+    }
+
+    return Math.min(
+      Math.max(1, Math.floor(limit)),
+      LogAggregationService.MAX_ERROR_PATTERN_LIMIT,
+    );
+  }
+
+  /*
+   * Error-pattern reads share one WHERE clause so a drill-down can never
+   * see rows the top-list did not. The only thing this adds over
+   * appendCommonFilters is the severity default: a request that names no
+   * severities means "errors", not "every log in the project".
+   */
+  private static appendErrorPatternScope(
+    statement: Statement,
+    request: ErrorPatternFilters,
+  ): void {
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }} AND time >= ${{
+        type: TableColumnType.Date,
+        value: request.startTime,
+      }} AND time <= ${{
+        type: TableColumnType.Date,
+        value: request.endTime,
+      }}`,
+    );
+
+    statement.append(LogAggregationService.RETENTION_FILTER);
+    statement.append(LogAggregationService.NON_EMPTY_BODY_FILTER);
+
+    LogAggregationService.appendCommonFilters(statement, {
+      ...request,
+      severityTexts:
+        request.severityTexts && request.severityTexts.length > 0
+          ? request.severityTexts
+          : DEFAULT_ERROR_LOG_SEVERITIES,
+    });
+  }
+
+  /*
+   * ` AND <pattern expression> = '<the pattern>'` — the predicate every
+   * drill-down uses to reduce the window to one cluster. The pattern value
+   * is clamped to the same maximum length the expression truncates to, so
+   * an oversized parameter cannot be used to push a huge constant into the
+   * query (it could only ever match nothing anyway).
+   */
+  private static appendErrorPatternEquality(
+    statement: Statement,
+    pattern: string,
+  ): void {
+    statement.append(" AND ");
+    statement.append(buildLogErrorPatternExpression());
+    statement.append(
+      SQL` = ${{
+        type: TableColumnType.Text,
+        value: clampLogErrorPattern(pattern),
+      }}`,
+    );
+  }
+
+  private static errorPatternQuerySettings(): string {
+    /*
+     * Same ceiling as every other aggregation here: below the client's 58s
+     * request timeout, 'break' so a wide window degrades to partial counts
+     * instead of an error page, and the scan-memory bound because these
+     * queries read the fat `attributes` map alongside `body`.
+     */
+    return getQuerySettings({
+      maxExecutionTimeInSeconds: 45,
+      timeoutOverflowMode: "break",
+      boundScanMemory: true,
+    });
+  }
+
+  private static buildTopErrorPatternsStatement(
+    request: TopErrorPatternsRequest,
+  ): Statement {
+    const limit: number = LogAggregationService.clampErrorPatternLimit(
+      request.limit,
+    );
+    /*
+     * Inlined rather than bound as a parameter: these are the parameters of
+     * a PARAMETRIC aggregate function, which ClickHouse requires to be
+     * constants, and they are trusted class constants rather than anything
+     * a caller supplies.
+     */
+    const sampleLimit: number =
+      LogAggregationService.ERROR_PATTERN_SAMPLE_ARRAY_LIMIT;
+    const severityLimit: number =
+      LogAggregationService.ERROR_PATTERN_SEVERITY_ARRAY_LIMIT;
+
+    const statement: Statement = new Statement();
+
+    statement.append("SELECT ");
+    statement.append(buildLogErrorPatternExpression());
+    statement.append(" AS pattern");
+    statement.append(", count() AS cnt");
+    /*
+     * The newest real body in the group. Showing a raw example alongside
+     * the normalized pattern is what makes a row readable — `<num>` reads
+     * very differently next to the line it came from.
+     */
+    statement.append(", argMax(ifNull(body, ''), time) AS sampleBody");
+    statement.append(", min(time) AS firstSeen");
+    statement.append(", max(time) AS lastSeen");
+    statement.append(", uniqExact(primaryEntityId) AS resourceCount");
+    statement.append(
+      `, groupUniqArray(${sampleLimit})(toString(primaryEntityId)) AS resourceIds`,
+    );
+    statement.append(
+      `, groupUniqArray(${severityLimit})(toString(severityText)) AS severities`,
+    );
+    statement.append(
+      ", uniqExactIf(traceId, ifNull(traceId, '') != '') AS traceCount",
+    );
+    statement.append(
+      `, groupUniqArrayIf(${sampleLimit})(ifNull(traceId, ''), ifNull(traceId, '') != '') AS sampleTraceIds`,
+    );
+    statement.append(` FROM ${LogAggregationService.TABLE_NAME}`);
+
+    LogAggregationService.appendErrorPatternScope(statement, request);
+
+    statement.append(" GROUP BY pattern");
+    statement.append(LogAggregationService.NON_EMPTY_PATTERN_HAVING);
+    statement.append(
+      SQL` ORDER BY cnt DESC LIMIT ${{
+        type: TableColumnType.Number,
+        value: limit,
+      }}`,
+    );
+
+    statement.append(LogAggregationService.errorPatternQuerySettings());
+
+    return statement;
+  }
+
+  private static buildErrorPatternTimelineStatement(
+    request: ErrorPatternTimelineRequest,
+  ): Statement {
+    const intervalSeconds: number =
+      LogAggregationService.resolveBucketSeconds(request);
+
+    const statement: Statement = SQL`SELECT toStartOfInterval(time, INTERVAL ${{
+      type: TableColumnType.Number,
+      value: intervalSeconds,
+    }} SECOND) AS bucket, count() AS cnt`;
+
+    statement.append(` FROM ${LogAggregationService.TABLE_NAME}`);
+
+    LogAggregationService.appendErrorPatternScope(statement, request);
+    LogAggregationService.appendErrorPatternEquality(
+      statement,
+      request.pattern,
+    );
+
+    statement.append(" GROUP BY bucket ORDER BY bucket ASC");
+    statement.append(LogAggregationService.errorPatternQuerySettings());
+
+    return statement;
+  }
+
+  private static buildErrorPatternCoOccurrenceStatement(
+    request: ErrorPatternTimelineRequest,
+  ): Statement {
+    const intervalSeconds: number =
+      LogAggregationService.resolveBucketSeconds(request);
+    const limit: number = LogAggregationService.clampErrorPatternLimit(
+      request.limit,
+    );
+
+    const statement: Statement = new Statement();
+
+    statement.append("SELECT ");
+    statement.append(buildLogErrorPatternExpression());
+    statement.append(" AS pattern");
+    statement.append(", count() AS cnt");
+    statement.append(", argMax(ifNull(body, ''), time) AS sampleBody");
+    statement.append(` FROM ${LogAggregationService.TABLE_NAME}`);
+
+    LogAggregationService.appendErrorPatternScope(statement, request);
+
+    /*
+     * Everything EXCEPT the pattern under investigation. Written as the
+     * full expression rather than the `pattern` alias: ClickHouse
+     * substitutes same-level SELECT aliases into WHERE, and an alias that
+     * shadows nothing today can start shadowing a real column tomorrow.
+     */
+    statement.append(" AND ");
+    statement.append(buildLogErrorPatternExpression());
+    statement.append(
+      SQL` != ${{
+        type: TableColumnType.Text,
+        value: clampLogErrorPattern(request.pattern),
+      }}`,
+    );
+
+    /*
+     * ...restricted to the buckets the investigated pattern itself landed
+     * in.
+     *
+     * GLOBAL IN, not plain IN, and it is load-bearing. This predicate sits
+     * in a query on the Distributed LogItemV3 table whose subquery reads
+     * that SAME Distributed table, which multi-shard ClickHouse rejects
+     * outright as a double-distributed subquery (Code 288,
+     * distributed_product_mode = 'deny' by default) — the panel would throw
+     * on any 2+-shard cluster, and because the endpoint wraps each
+     * correlation read in a degrade-to-empty catch it would fail SILENTLY,
+     * rendering "nothing else was failing" forever.
+     *
+     * A shard-local evaluation would be wrong even where it is allowed: the
+     * sharding key is cityHash64(projectId, primaryEntityId, time), so one
+     * project's rows span every shard and the bucket set has to be computed
+     * once globally. On a single shard GLOBAL is a semantic no-op. Same
+     * reasoning, same shape as MetricService's Top-K group restriction.
+     */
+    statement.append(
+      SQL` AND toStartOfInterval(time, INTERVAL ${{
+        type: TableColumnType.Number,
+        value: intervalSeconds,
+      }} SECOND) GLOBAL IN (SELECT DISTINCT toStartOfInterval(time, INTERVAL ${{
+        type: TableColumnType.Number,
+        value: intervalSeconds,
+      }} SECOND)`,
+    );
+
+    statement.append(` FROM ${LogAggregationService.TABLE_NAME}`);
+
+    LogAggregationService.appendErrorPatternScope(statement, request);
+    LogAggregationService.appendErrorPatternEquality(
+      statement,
+      request.pattern,
+    );
+
+    statement.append(")");
+
+    statement.append(" GROUP BY pattern");
+    statement.append(LogAggregationService.NON_EMPTY_PATTERN_HAVING);
+    statement.append(
+      SQL` ORDER BY cnt DESC LIMIT ${{
+        type: TableColumnType.Number,
+        value: limit,
+      }}`,
+    );
+
+    statement.append(LogAggregationService.errorPatternQuerySettings());
+
+    return statement;
+  }
+
+  private static buildErrorPatternAttributesStatement(
+    request: ErrorPatternDetailRequest,
+  ): Statement {
+    const limit: number = LogAggregationService.clampErrorPatternLimit(
+      request.limit,
+    );
+
+    /*
+     * The ARRAY JOIN runs over a pre-filtered subquery on purpose. Written
+     * flat, the join explodes every row in the window into one row per
+     * attribute BEFORE the WHERE narrows to a single pattern — on a service
+     * carrying twenty resource attributes that is a twentyfold scan for a
+     * result the size of a tooltip.
+     */
+    const statement: Statement = new Statement();
+
+    statement.append(
+      `SELECT attrKey, attrValue, count() AS cnt FROM (SELECT attributes FROM ${LogAggregationService.TABLE_NAME}`,
+    );
+
+    LogAggregationService.appendErrorPatternScope(statement, request);
+    LogAggregationService.appendErrorPatternEquality(
+      statement,
+      request.pattern,
+    );
+
+    statement.append(
+      ") ARRAY JOIN mapKeys(attributes) AS attrKey, mapValues(attributes) AS attrValue",
+    );
+    statement.append(
+      SQL` GROUP BY attrKey, attrValue ORDER BY cnt DESC LIMIT ${{
+        type: TableColumnType.Number,
+        value: limit,
+      }}`,
+    );
+
+    statement.append(LogAggregationService.errorPatternQuerySettings());
+
+    return statement;
+  }
+
+  private static buildErrorPatternResourcesStatement(
+    request: ErrorPatternDetailRequest,
+  ): Statement {
+    const limit: number = LogAggregationService.clampErrorPatternLimit(
+      request.limit,
+    );
+
+    const statement: Statement = new Statement();
+
+    statement.append(
+      `SELECT toString(primaryEntityId) AS resourceId, any(ifNull(primaryEntityType, '')) AS resourceType, count() AS cnt, max(time) AS lastSeen FROM ${LogAggregationService.TABLE_NAME}`,
+    );
+
+    LogAggregationService.appendErrorPatternScope(statement, request);
+    LogAggregationService.appendErrorPatternEquality(
+      statement,
+      request.pattern,
+    );
+
+    statement.append(
+      SQL` GROUP BY resourceId ORDER BY cnt DESC LIMIT ${{
+        type: TableColumnType.Number,
+        value: limit,
+      }}`,
+    );
+
+    statement.append(LogAggregationService.errorPatternQuerySettings());
+
+    return statement;
+  }
+
+  private static buildErrorPatternTracesStatement(
+    request: ErrorPatternDetailRequest,
+  ): Statement {
+    const limit: number = LogAggregationService.clampErrorPatternLimit(
+      request.limit,
+    );
+
+    const statement: Statement = new Statement();
+
+    statement.append(
+      `SELECT ifNull(traceId, '') AS traceId, count() AS cnt, max(time) AS lastSeen, any(toString(primaryEntityId)) AS resourceId FROM ${LogAggregationService.TABLE_NAME}`,
+    );
+
+    LogAggregationService.appendErrorPatternScope(statement, request);
+    LogAggregationService.appendErrorPatternEquality(
+      statement,
+      request.pattern,
+    );
+
+    statement.append(" AND ifNull(traceId, '') != ''");
+
+    statement.append(
+      SQL` GROUP BY traceId ORDER BY cnt DESC LIMIT ${{
+        type: TableColumnType.Number,
+        value: limit,
+      }}`,
+    );
+
+    statement.append(LogAggregationService.errorPatternQuerySettings());
+
+    return statement;
+  }
+
+  private static buildErrorPatternSamplesStatement(
+    request: ErrorPatternDetailRequest,
+  ): Statement {
+    const limit: number = LogAggregationService.clampErrorPatternLimit(
+      request.limit,
+    );
+
+    const statement: Statement = new Statement();
+
+    statement.append(
+      `SELECT _id, time, ifNull(body, '') AS body, toString(severityText) AS severityText, toString(primaryEntityId) AS resourceId, ifNull(traceId, '') AS traceId, ifNull(spanId, '') AS spanId FROM ${LogAggregationService.TABLE_NAME}`,
+    );
+
+    LogAggregationService.appendErrorPatternScope(statement, request);
+    LogAggregationService.appendErrorPatternEquality(
+      statement,
+      request.pattern,
+    );
+
+    statement.append(
+      SQL` ORDER BY time DESC LIMIT ${{
+        type: TableColumnType.Number,
+        value: limit,
+      }}`,
+    );
+
+    statement.append(LogAggregationService.errorPatternQuerySettings());
+
+    return statement;
+  }
+
+  /*
+   * Bucket size in seconds, clamped to a minute floor. A zero or negative
+   * bucket would compile to `INTERVAL 0 SECOND`, which ClickHouse rejects —
+   * and the correlation query's "same bucket" join would lose all meaning.
+   */
+  private static resolveBucketSeconds(
+    request: ErrorPatternTimelineRequest,
+  ): number {
+    const minutes: number = request.bucketSizeInMinutes;
+
+    if (typeof minutes !== "number" || !Number.isFinite(minutes)) {
+      return 60;
+    }
+
+    return Math.max(1, Math.floor(minutes)) * 60;
   }
 
   private static isTopLevelColumn(key: string): boolean {

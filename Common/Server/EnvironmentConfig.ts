@@ -827,6 +827,13 @@ export const AverageSessionReplaySessionSizeInBytes: number =
 export const AverageProfileSampleRowSizeInBytes: number =
   parsePositiveNumberFromEnv("AVERAGE_PROFILE_SAMPLE_ROW_SIZE_IN_BYTES", 512);
 
+/*
+ * Security events are wider than log rows (typed entity columns plus a
+ * fully flattened source payload), so the fallback average is 2 KiB.
+ */
+export const AverageSecurityEventRowSizeInBytes: number =
+  parsePositiveNumberFromEnv("AVERAGE_SECURITY_EVENT_ROW_SIZE_IN_BYTES", 2048);
+
 export const SlackAppClientId: string | null =
   process.env["SLACK_APP_CLIENT_ID"] || null;
 export const SlackAppClientSecret: string | null =

@@ -64,12 +64,31 @@ export const LlmTotalTokenAttributeKeys: Array<string> = [
   "llm.usage.total_tokens",
 ];
 
-// Cost in USD. Only populated when the SDK reports it (no built-in pricing).
+/*
+ * Cost in USD. A reported cost always wins; when absent, ingest computes an
+ * estimate from token counts via Common/Types/Telemetry/LlmCostCatalog.ts.
+ */
 export const LlmCostAttributeKeys: Array<string> = [
   "gen_ai.usage.cost",
   "gen_ai.usage.cost_usd",
   "gen_ai.usage.total_cost",
   "llm.usage.total_cost",
+  // LiteLLM proxy: v1 otel callback / opt-in OTel v2 mode.
+  "gen_ai.cost.total_cost",
+  "litellm.cost.total",
+];
+
+/*
+ * Conversation / session id that groups the LLM calls of one user interaction
+ * across traces. gen_ai.conversation.id is the OTel semconv key; session.id is
+ * emitted by OpenInference and Langfuse-compatible SDKs; the traceloop
+ * association property is OpenLLMetry's spelling.
+ */
+export const LlmConversationIdAttributeKeys: Array<string> = [
+  "gen_ai.conversation.id",
+  "session.id",
+  "langfuse.session.id",
+  "traceloop.association.properties.session_id",
 ];
 
 export const LlmAgentNameAttributeKeys: Array<string> = [

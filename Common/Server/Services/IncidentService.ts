@@ -1,4 +1,6 @@
 import DatabaseConfig from "../DatabaseConfig";
+import MeasurementMetricWriter from "../Utils/Measurement/MeasurementMetricWriter";
+import IncidentMeasurementService from "./IncidentMeasurementService";
 import CountBy from "../Types/Database/CountBy";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -13,6 +15,7 @@ import IncidentOwnerTeamService from "./IncidentOwnerTeamService";
 import IncidentOwnerUserService from "./IncidentOwnerUserService";
 import IncidentStateService from "./IncidentStateService";
 import IncidentStateTimelineService from "./IncidentStateTimelineService";
+import IncidentMeasurementValueService from "./IncidentMeasurementValueService";
 import MonitorService from "./MonitorService";
 import MonitorStatusService from "./MonitorStatusService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
@@ -1911,6 +1914,36 @@ ${incident.remediationNotes || "No remediation notes provided."}
     onUpdate: OnUpdate<Model>,
     updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
+    /*
+     * Correcting a timestamp is the whole point of making these fields
+     * editable, so the numbers derived from them have to move. Without this
+     * the metric refresh fires only from the three state-timeline hooks, and
+     * a corrected declaredAt leaves every derived value stale for good.
+     */
+    const anchorTimestampChanged: boolean = [
+      "impactStartedAt",
+      "declaredAt",
+      "postmortemPostedAt",
+    ].some((key: string) => {
+      return Object.prototype.hasOwnProperty.call(onUpdate.updateBy.data, key);
+    });
+
+    if (anchorTimestampChanged) {
+      for (const itemId of updatedItemIds) {
+        this.refreshIncidentMetrics({ incidentId: itemId }).catch(
+          (err: Error) => {
+            logger.error(err);
+          },
+        );
+
+        IncidentMeasurementValueService.recomputeForIncident({
+          incidentId: itemId,
+        }).catch((err: Error) => {
+          logger.error(err);
+        });
+      }
+    }
+
     if (
       onUpdate.updateBy.data.currentIncidentStateId &&
       onUpdate.updateBy.props.tenantId
@@ -2878,6 +2911,24 @@ ${incidentSeverity.name}
               OneUptimeDate.getCurrentDate(),
               metricRetentionDays,
             ),
+          });
+
+          /*
+           * Measurement points carry project-defined names, so they are not
+           * in the enum above and would otherwise linger in every chart
+           * until their retention date -- for an entity that no longer
+           * exists.
+           */
+          const measurementMetricNames: Array<string> =
+            await IncidentMeasurementService.getMetricNamesForProject(
+              incident.projectId,
+            );
+
+          await MeasurementMetricWriter.tombstoneAll({
+            projectId: incident.projectId,
+            primaryEntityId: incident.id,
+            primaryEntityType: ServiceType.Incident,
+            allMeasurementMetricNames: measurementMetricNames,
           });
         }
       }

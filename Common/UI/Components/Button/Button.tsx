@@ -254,6 +254,18 @@ const Button: FunctionComponent<ComponentProps> = ({
 
   buttonStyleCssClass += ` ` + buttonSize;
 
+  const isDisabled: boolean = Boolean(disabled || isLoading);
+
+  /*
+   * A disabled <button> swallows the pointer without dispatching anything, so
+   * the hover never reaches the wrapper that carries the tooltip. Taking the
+   * button out of hit-testing hands the pointer to that wrapper instead. Only
+   * applied when there is a tooltip to show, so nothing else changes.
+   */
+  if (isDisabled && translatedTooltip) {
+    buttonStyleCssClass += ` pointer-events-none`;
+  }
+
   if (className) {
     buttonStyleCssClass += ` ` + className;
   }
@@ -278,10 +290,10 @@ const Button: FunctionComponent<ComponentProps> = ({
         }}
         data-testid={dataTestId}
         type={type}
-        disabled={disabled || isLoading}
+        disabled={isDisabled}
         className={buttonStyleCssClass}
         aria-label={computedAriaLabel}
-        aria-disabled={disabled || isLoading}
+        aria-disabled={isDisabled}
         aria-expanded={ariaExpanded}
         aria-haspopup={ariaHaspopup}
         aria-controls={ariaControls}
@@ -314,6 +326,29 @@ const Button: FunctionComponent<ComponentProps> = ({
   };
 
   if (translatedTooltip) {
+    /*
+     * Tippy makes its child the trigger element, and a disabled control is
+     * both unhoverable and unfocusable - tippy.js even bails out of show()
+     * when the trigger has a `disabled` attribute. Explaining WHY a button is
+     * disabled is exactly when the tooltip matters most, so wrap the disabled
+     * button in an element that can still be hovered and tabbed to.
+     */
+    if (isDisabled) {
+      return (
+        <Tooltip text={translatedTooltip}>
+          <span
+            className="inline-flex"
+            tabIndex={0}
+            data-testid={
+              dataTestId ? `${dataTestId}-disabled-wrapper` : undefined
+            }
+          >
+            {getButton()}
+          </span>
+        </Tooltip>
+      );
+    }
+
     return <Tooltip text={translatedTooltip}>{getButton()}</Tooltip>;
   }
   return getButton();

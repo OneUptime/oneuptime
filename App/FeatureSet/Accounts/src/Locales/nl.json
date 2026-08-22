@@ -47,6 +47,14 @@
       "securityKeyInstructions": "Volg de instructies op uw beveiligingssleutelapparaat.",
       "codeFieldDescription": "Voer de code in van uw authenticator-app",
       "selectDifferentMethod": "Selecteer een andere tweefactorauthenticatiemethode"
+    },
+    "twoFactorEnrolment": {
+      "title": "Tweefactorauthenticatie instellen",
+      "subtitle": "Uw beheerder vereist tweefactorauthenticatie voor dit account. Stel het nu in om het aanmelden te voltooien.",
+      "scanInstruction": "Scan deze QR-code met een authenticator-app zoals Google Authenticator, Microsoft Authenticator of 1Password.",
+      "codeFieldDescription": "Voer de zescijferige code in die uw authenticator-app toont.",
+      "submitButton": "Verifiëren en aanmelden",
+      "backToSignIn": "Meld u aan als een andere gebruiker"
     }
   },
   "register": {

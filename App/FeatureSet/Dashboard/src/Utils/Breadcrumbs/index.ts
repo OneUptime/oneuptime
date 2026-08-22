@@ -5,6 +5,7 @@ export * from "./WorkflowsBreadcrumbs";
 export * from "./RunbooksBreadcrumbs";
 export * from "./OnCallDutyBreadcrumbs";
 export * from "./LogsBreadcrumbs";
+export * from "./SecurityEventsBreadcrumbs";
 export * from "./MetricsBreadcrumbs";
 export * from "./TracesBreadcrumbs";
 export * from "./SettingsBreadcrumbs";

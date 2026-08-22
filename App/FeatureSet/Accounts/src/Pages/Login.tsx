@@ -1,6 +1,7 @@
 import {
   LOGIN_API_URL,
   VERIFY_TOTP_AUTH_API_URL,
+  VERIFY_TOTP_ENROLMENT_API_URL,
   GENERATE_WEBAUTHN_AUTH_OPTIONS_API_URL,
   VERIFY_WEBAUTHN_AUTH_API_URL,
 } from "../Utils/ApiPaths";
@@ -40,6 +41,21 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Base64 from "Common/Utils/Base64";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import QRCodeElement from "Common/UI/Components/QR/QR";
+
+/*
+ * The misc bag travels on the wire under `_miscData` — the key
+ * Response.sendEntityResponse sets. ModelAPI renames it to `miscData` while
+ * parsing a response, but the two factor verify calls below post through API
+ * directly and bypass that rename, so they read the wire key themselves.
+ */
+type GetMiscDataFunction = (response: HTTPResponse<JSONObject>) => JSONObject;
+
+const getMiscData: GetMiscDataFunction = (
+  response: HTTPResponse<JSONObject>,
+): JSONObject => {
+  return ((response.data as JSONObject)["_miscData"] as JSONObject) || {};
+};
 
 const LoginPage: () => JSX.Element = () => {
   const { t } = useTranslation();
@@ -64,6 +80,23 @@ const LoginPage: () => JSX.Element = () => {
 
   const [selectedWebAuthn, setSelectedWebAuthn] = React.useState<
     UserWebAuthn | undefined
+  >(undefined);
+
+  /*
+   * Set when the server answers a password login with "this account is
+   * required to use two factor auth and has nothing set up yet". Holding it
+   * means the user is mid-enrolment: they have proved their password but they
+   * have NO session, and they will not get one until they type a code that
+   * verifies against the secret behind this QR code. See
+   * App/FeatureSet/Identity/API/Authentication.ts.
+   */
+  type TotpEnrolment = {
+    twoFactorAuthId: string;
+    twoFactorOtpUrl: string;
+  };
+
+  const [totpEnrolment, setTotpEnrolment] = React.useState<
+    TotpEnrolment | undefined
   >(undefined);
 
   type TwoFactorMethod = {
@@ -249,7 +282,7 @@ const LoginPage: () => JSX.Element = () => {
           verifyResult.data as JSONObject,
           User,
         ) as User;
-        const miscData: JSONObject = {};
+        const miscData: JSONObject = getMiscData(verifyResult);
 
         login(user as User, miscData);
       } catch (error) {
@@ -284,7 +317,7 @@ const LoginPage: () => JSX.Element = () => {
         <div className="mt-4 flex justify-center">
           <EditionLabel />
         </div>
-        {!showTwoFactorAuth && (
+        {!showTwoFactorAuth && !totpEnrolment && (
           <>
             <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
               {t("login.title")}
@@ -305,11 +338,22 @@ const LoginPage: () => JSX.Element = () => {
             </p>
           </>
         )}
+
+        {!showTwoFactorAuth && totpEnrolment && (
+          <>
+            <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
+              {t("login.twoFactorEnrolment.title")}
+            </h2>
+            <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
+              {t("login.twoFactorEnrolment.subtitle")}
+            </p>
+          </>
+        )}
       </div>
 
       <div className="mt-6 sm:mt-8 w-full max-w-md mx-auto">
         <div className="bg-white py-6 px-4 shadow-sm sm:shadow sm:rounded-lg sm:py-8 sm:px-10 rounded-lg">
-          {!showTwoFactorAuth && (
+          {!showTwoFactorAuth && !totpEnrolment && (
             <ModelForm<User>
               modelType={User}
               id="login-form"
@@ -351,6 +395,23 @@ const LoginPage: () => JSX.Element = () => {
                 value: User | JSONObject,
                 miscData: JSONObject | undefined,
               ) => {
+                /*
+                 * Checked BEFORE the two-factor-method lists below, and the
+                 * order is load-bearing rather than stylistic. A user being
+                 * forced to enrol has ZERO methods set up, so that condition
+                 * is false for them -- putting this second would let control
+                 * fall straight through to login() and a redirect into a
+                 * dashboard the server never authorised, with no session
+                 * behind it.
+                 */
+                if (miscData && miscData["twoFactorEnrolmentRequired"]) {
+                  setTotpEnrolment({
+                    twoFactorAuthId: miscData["twoFactorAuthId"] as string,
+                    twoFactorOtpUrl: miscData["twoFactorOtpUrl"] as string,
+                  });
+                  return;
+                }
+
                 if (
                   miscData &&
                   ((((miscData as JSONObject)["totpAuthList"] as JSONArray)
@@ -485,11 +546,9 @@ const LoginPage: () => JSX.Element = () => {
                     result["data"] as JSONObject,
                     User,
                   ) as User;
-                  const miscData: JSONObject = (result["data"] as JSONObject)[
-                    "miscData"
-                  ] as JSONObject;
+                  const miscData: JSONObject = getMiscData(result);
 
-                  login(user as User, miscData as JSONObject);
+                  login(user as User, miscData);
                 } catch (error) {
                   setTwoFactorAuthError(
                     API.getFriendlyErrorMessage(error as Error),
@@ -500,9 +559,94 @@ const LoginPage: () => JSX.Element = () => {
               }}
             />
           )}
+
+          {!showTwoFactorAuth && totpEnrolment && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                {t("login.twoFactorEnrolment.scanInstruction")}
+              </p>
+
+              {/*
+               * Rendered as a plain element, deliberately NOT as a `required`
+               * CustomComponent field of the form below. A QR code collects
+               * nothing, so making it a field means inventing a fake value to
+               * keep validation happy -- and a form whose validity depends on
+               * a decoration is a form that fails for reasons nobody can see.
+               */}
+              <div className="flex justify-center">
+                <QRCodeElement text={totpEnrolment.twoFactorOtpUrl} />
+              </div>
+
+              <BasicForm
+                id="two-factor-enrolment-form"
+                name="Two Factor Auth Enrolment"
+                fields={[
+                  {
+                    field: {
+                      code: true,
+                    },
+                    title: t("common.code"),
+                    description: t(
+                      "login.twoFactorEnrolment.codeFieldDescription",
+                    ),
+                    required: true,
+                    dataTestId: "enrolment-code",
+                    fieldType: FormFieldSchemaType.Text,
+                  },
+                ]}
+                submitButtonText={t("login.twoFactorEnrolment.submitButton")}
+                maxPrimaryButtonWidth={true}
+                isLoading={isTwoFactorAuthLoading}
+                error={twofactorAuthError}
+                onSubmit={async (data: JSONObject) => {
+                  setIsTwoFactorAuthLoading(true);
+                  setTwoFactorAuthError("");
+
+                  try {
+                    /*
+                     * `initialValues` still holds the email and password the
+                     * user submitted a moment ago, because there is no session
+                     * to authenticate this request with -- the server issues
+                     * one only if the code below verifies. It re-checks the
+                     * password and the email verification exactly as /login
+                     * did.
+                     */
+                    const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
+                      await API.post({
+                        url: VERIFY_TOTP_ENROLMENT_API_URL,
+                        data: {
+                          data: {
+                            ...initialValues,
+                            code: data["code"] as string,
+                            twoFactorAuthId: totpEnrolment.twoFactorAuthId,
+                          },
+                        },
+                      });
+
+                    if (result instanceof HTTPErrorResponse) {
+                      throw result;
+                    }
+
+                    const user: User = User.fromJSON(
+                      result["data"] as JSONObject,
+                      User,
+                    ) as User;
+
+                    login(user, {});
+                  } catch (error) {
+                    setTwoFactorAuthError(
+                      API.getFriendlyErrorMessage(error as Error),
+                    );
+                  }
+
+                  setIsTwoFactorAuthLoading(false);
+                }}
+              />
+            </div>
+          )}
         </div>
         <div className="mt-6 sm:mt-10 text-center">
-          {!selectedTotpAuth && !selectedWebAuthn && (
+          {!selectedTotpAuth && !selectedWebAuthn && !totpEnrolment && (
             <div className="text-muted mb-0 text-gray-500 text-sm sm:text-base">
               {t("login.noAccountPrompt")}{" "}
               <Link
@@ -523,6 +667,33 @@ const LoginPage: () => JSX.Element = () => {
                 className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
               >
                 {t("login.twoFactor.selectDifferentMethod")}
+              </Link>
+            </div>
+          ) : (
+            <></>
+          )}
+
+          {/*
+           * Without this the enrolment screen is a dead end: the login form is
+           * hidden, the register prompt is hidden, and somebody who typed the
+           * wrong address has nowhere to go but the browser's back button.
+           *
+           * It clears the submitted credentials as well as the enrolment,
+           * because those are the email and password the next step would
+           * re-submit -- leaving them behind would let the previous account's
+           * password ride along into a fresh attempt.
+           */}
+          {totpEnrolment ? (
+            <div className="text-muted mb-0 text-gray-500">
+              <Link
+                onClick={() => {
+                  setTotpEnrolment(undefined);
+                  setTwoFactorAuthError("");
+                  setInitialValues({});
+                }}
+                className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
+              >
+                {t("login.twoFactorEnrolment.backToSignIn")}
               </Link>
             </div>
           ) : (

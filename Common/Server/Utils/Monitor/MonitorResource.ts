@@ -35,6 +35,7 @@ import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import OneUptimeDate from "../../../Types/Date";
 import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResponse";
+import SecurityEventsMonitorResponse from "../../../Types/Monitor/SecurityEventsMonitor/SecurityEventsMonitorResponse";
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import TelemetryType from "../../../Types/Telemetry/TelemetryType";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
@@ -861,6 +862,21 @@ export default class MonitorResourceUtil {
           };
           logger.debug(
             `${dataToProcess.monitorId.toString()} - Log query found.`,
+          );
+        }
+
+        if (
+          dataToProcess &&
+          (dataToProcess as SecurityEventsMonitorResponse).securityEventQuery
+        ) {
+          telemetryQuery = {
+            telemetryQuery: (dataToProcess as SecurityEventsMonitorResponse)
+              .securityEventQuery,
+            telemetryType: TelemetryType.SecurityEvent,
+            metricViewData: null,
+          };
+          logger.debug(
+            `${dataToProcess.monitorId.toString()} - Security event query found.`,
           );
         }
 

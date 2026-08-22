@@ -163,6 +163,12 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Custom Fields",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_MEASUREMENTS, [
+      "Project",
+      "Incidents",
+      "Settings",
+      "Measurements",
+    ]),
 
     /*
      * AI and Rules are their own side-menu sections, not lines under Settings,

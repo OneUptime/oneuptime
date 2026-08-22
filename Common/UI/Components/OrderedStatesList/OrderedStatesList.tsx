@@ -2,6 +2,7 @@ import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Icon, { SizeProp } from "../Icon/Icon";
 import Item from "./Item";
+import Tooltip from "../Tooltip/Tooltip";
 import Skeleton from "../Skeleton/Skeleton";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -10,6 +11,12 @@ import React, { ReactElement } from "react";
 export interface ComponentProps<T extends GenericObject> {
   data: Array<T>;
   onCreateNewItem?: ((order: number) => void) | undefined;
+  /*
+   * When set, the "Add New" affordances stay on screen but do nothing, and
+   * hovering one explains why - the same treatment a locked Create button
+   * gets on every other table.
+   */
+  createDisabledReason?: string | undefined;
   noItemsMessage?: string | ReactElement | undefined;
   error?: string | undefined;
   isLoading?: boolean | undefined;
@@ -39,6 +46,58 @@ const OrderedStatesList: OrderedStatesListFunction = <T extends GenericObject>(
    */
   const isRefetchingWithData: boolean =
     Boolean(props.isLoading) && props.data.length > 0;
+
+  const isCreateDisabled: boolean = Boolean(props.createDisabledReason);
+
+  type RenderAddNewFunction = (
+    label: string,
+    order: number,
+    className: string,
+    contentClassName: string,
+  ) => ReactElement;
+
+  /*
+   * These are clickable <div>s rather than buttons, so "disabled" has to be
+   * built by hand: drop the pointer cursor and the hover colours, ignore the
+   * click, and hang the reason off a tooltip wrapper.
+   */
+  const renderAddNew: RenderAddNewFunction = (
+    label: string,
+    order: number,
+    className: string,
+    contentClassName: string,
+  ): ReactElement => {
+    const affordance: ReactElement = (
+      <div
+        className={`${className} ${
+          isCreateDisabled
+            ? "cursor-not-allowed opacity-50"
+            : "cursor-pointer hover:bg-gray-50 hover:text-gray-600"
+        }`}
+        aria-disabled={isCreateDisabled}
+        onClick={() => {
+          if (isCreateDisabled) {
+            return;
+          }
+
+          if (props.onCreateNewItem) {
+            props.onCreateNewItem(order);
+          }
+        }}
+      >
+        <div className={contentClassName}>
+          <Icon icon={IconProp.Add} className="m-auto h-5 w-5" />
+          <span className="text-sm ml-2">{label}</span>
+        </div>
+      </div>
+    );
+
+    if (!props.createDisabledReason) {
+      return affordance;
+    }
+
+    return <Tooltip text={props.createDisabledReason}>{affordance}</Tooltip>;
+  };
 
   if (props.isLoading && props.data.length === 0) {
     /*
@@ -100,19 +159,12 @@ const OrderedStatesList: OrderedStatesListFunction = <T extends GenericObject>(
         )}
         {props.onCreateNewItem && (
           <div className="my-10">
-            <div
-              className="m-auto inline-flex items-center cursor-pointer text-gray-400 hover:bg-gray-50 border hover:text-gray-600 rounded-full border-gray-300 p-5"
-              onClick={() => {
-                if (props.onCreateNewItem) {
-                  props.onCreateNewItem(1);
-                }
-              }}
-            >
-              <Icon icon={IconProp.Add} className="h-5 w-5" />
-              <span className="text-sm ml-2">
-                Add New {props.singularLabel}
-              </span>
-            </div>
+            {renderAddNew(
+              `Add New ${props.singularLabel}`,
+              1,
+              "m-auto inline-flex items-center text-gray-400 border rounded-full border-gray-300 p-5",
+              "flex items-center",
+            )}
           </div>
         )}
       </div>
@@ -142,23 +194,14 @@ const OrderedStatesList: OrderedStatesListFunction = <T extends GenericObject>(
                 isBeginning &&
                 props.shouldAddItemInTheBeginning && (
                   <div className="text-center">
-                    <div
-                      className="m-auto rounded-full items-center cursor-pointer text-gray-400 hover:bg-gray-50 hover:text-gray-600 items-center border border-gray-300 p-5 w-fit"
-                      onClick={() => {
-                        if (props.onCreateNewItem) {
-                          props.onCreateNewItem(
-                            item[props.orderField]
-                              ? (item[props.orderField] as number) + 1
-                              : 0,
-                          );
-                        }
-                      }}
-                    >
-                      <div className="flex text-center">
-                        <Icon icon={IconProp.Add} className="m-auto h-5 w-5" />{" "}
-                        <span className="text-sm ml-2">Add New Item</span>
-                      </div>
-                    </div>
+                    {renderAddNew(
+                      "Add New Item",
+                      item[props.orderField]
+                        ? (item[props.orderField] as number) + 1
+                        : 0,
+                      "m-auto rounded-full items-center text-gray-400 border border-gray-300 p-5 w-fit",
+                      "flex text-center",
+                    )}
 
                     <div className="items-center m-10 ">
                       <Icon
@@ -189,23 +232,14 @@ const OrderedStatesList: OrderedStatesListFunction = <T extends GenericObject>(
               {props.onCreateNewItem &&
                 ((isEnd && props.shouldAddItemInTheEnd) || !isEnd) && (
                   <div className="text-center">
-                    <div
-                      className="m-auto items-center cursor-pointer text-gray-400 hover:bg-gray-50 border hover:text-gray-600 rounded-full border-gray-300 p-5 w-fit"
-                      onClick={() => {
-                        if (props.onCreateNewItem) {
-                          props.onCreateNewItem(
-                            item[props.orderField]
-                              ? (item[props.orderField] as number) + 1
-                              : 0,
-                          );
-                        }
-                      }}
-                    >
-                      <div className="flex items-center ">
-                        <Icon icon={IconProp.Add} className="m-auto h-5 w-5" />{" "}
-                        <span className="text-sm ml-2">Add New Item</span>
-                      </div>
-                    </div>
+                    {renderAddNew(
+                      "Add New Item",
+                      item[props.orderField]
+                        ? (item[props.orderField] as number) + 1
+                        : 0,
+                      "m-auto items-center text-gray-400 border rounded-full border-gray-300 p-5 w-fit",
+                      "flex items-center",
+                    )}
                     {!isEnd && (
                       <div className="items-center m-10">
                         <Icon

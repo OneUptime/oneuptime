@@ -58,9 +58,53 @@ import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
 import UserWebAuthnService from "Common/Server/Services/UserWebAuthnService";
 import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
+import IdentityRateLimit, {
+  IdentityRateLimitBucket,
+} from "Common/Server/Middleware/IdentityRateLimit";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 
 const router: ExpressRouter = Express.getRouter();
+
+/*
+ * The credential routes below are anonymous by definition -- they are how a
+ * session is obtained -- so nothing upstream of them counts attempts. Both
+ * limiters are registered as the FIRST handler on their routes, ahead of the
+ * user lookup and the bcrypt verify, so a flood is refused before it costs us
+ * anything. See Common/Server/Middleware/IdentityRateLimit.ts for the budgets
+ * and for why these fail closed when Redis is unreachable.
+ */
+const loginRateLimit: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void> = IdentityRateLimit.getMiddleware(
+  IdentityRateLimitBucket.Login,
+);
+
+/*
+ * The second step gets its own bucket, shared by all three routes that reach
+ * `login()` with verifyTotpAuth, verifyWebAuthn or verifyTotpEnrolment set.
+ *
+ * For /verify-totp-auth it is the sharper of the two limiters: the password
+ * has already been accepted by the time it is reached, so all that stands
+ * between the caller and the account is a six digit code, and TotpAuth accepts
+ * fourteen of the 10^6 of them at any instant.
+ *
+ * /verify-webauthn-auth and /verify-totp-enrolment are here for a second
+ * reason that applies whatever their own factor is worth. All three re-submit
+ * the email and password and run the same `verifyHashedColumnValue` before
+ * they reach their factor, so each one is a password oracle in its own right
+ * -- and an unlimited one is a hole in the fence, not merely an unguarded
+ * route: an attacker refused at /login simply points the same guesses here.
+ * Whatever bounds /login has to bound these too.
+ */
+const twoFactorRateLimit: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void> = IdentityRateLimit.getMiddleware(
+  IdentityRateLimitBucket.TwoFactor,
+);
 
 const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
 
@@ -944,6 +988,7 @@ router.post(
 
 router.post(
   "/verify-totp-auth",
+  twoFactorRateLimit,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -955,12 +1000,14 @@ router.post(
       next: next,
       verifyTotpAuth: true,
       verifyWebAuthn: false,
+      verifyTotpEnrolment: false,
     });
   },
 );
 
 router.post(
   "/verify-webauthn-auth",
+  twoFactorRateLimit,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -972,12 +1019,37 @@ router.post(
       next: next,
       verifyTotpAuth: false,
       verifyWebAuthn: true,
+      verifyTotpEnrolment: false,
     });
   },
 );
 
+/*
+ * Finishes a two factor auth setup that an admin made mandatory, and signs the
+ * user in in the same breath.
+ *
+ * This is a LOGIN route rather than something inside the product, and that is
+ * the whole security design. The user reaching it has proved their password
+ * but holds no session, no cookie and no token -- /login handed them a QR code
+ * and nothing else. The alternative ("sign them in, then refuse to let them do
+ * anything until they enrol") does not work here: CookieUtil.setUserCookie
+ * writes a full-privilege JWT at path "/", and UserAuthorization validates it
+ * statelessly without ever consulting the session table or
+ * `enableTwoFactorAuth`. A gate drawn in the dashboard would be decoration --
+ * the same cookie answers curl.
+ *
+ * So the credential is minted in exactly one place, `finalizeUserLogin`, and
+ * an account under a mandate with nothing set up reaches it only through this
+ * handler, only after a code has verified against the secret it was issued.
+ *
+ * The cost of being session-less is that the browser re-submits email and
+ * password with this request. That is what /verify-totp-auth already does, and
+ * it means there is no ambient authority for a cross-site request to ride and
+ * no half-authenticated intermediate credential to steal.
+ */
 router.post(
-  "/login",
+  "/verify-totp-enrolment",
+  twoFactorRateLimit,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -989,6 +1061,26 @@ router.post(
       next: next,
       verifyTotpAuth: false,
       verifyWebAuthn: false,
+      verifyTotpEnrolment: true,
+    });
+  },
+);
+
+router.post(
+  "/login",
+  loginRateLimit,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    return login({
+      req: req,
+      res: res,
+      next: next,
+      verifyTotpAuth: false,
+      verifyWebAuthn: false,
+      verifyTotpEnrolment: false,
     });
   },
 );
@@ -1044,12 +1136,93 @@ const fetchTotpAuthList: FetchTotpAuthListFunction = async (
   };
 };
 
+/*
+ * The name a forced enrolment is filed under.
+ *
+ * `UserTotpAuth.name` is NOT NULL and the user never gets to type one here --
+ * they are being marched through setup, not browsing a settings page -- so the
+ * server has to supply something. It shows up in their profile afterwards, and
+ * they can rename it there.
+ */
+const FORCED_TOTP_ENROLMENT_NAME: string = "Authenticator App";
+
+/**
+ * The pending TOTP enrolment to draw a QR code from, reusing one if it exists.
+ *
+ * Reuse rather than always-create, for two reasons that pull the same way:
+ * refreshing the login page must not invalidate a QR code the user has already
+ * scanned into their phone, and a user who opens the login page five times
+ * should not leave five orphaned secrets behind them.
+ *
+ * The row is created unverified, which is what keeps it invisible to the rest
+ * of the system: `fetchTotpAuthList` selects `isVerified: true`, so a pending
+ * enrolment lying around never satisfies the two factor gate and never appears
+ * as a method the user could choose at the challenge screen.
+ *
+ * The secret and the otpauth URL are minted server-side by
+ * UserTotpAuthService.onBeforeCreate -- which is also why the props carry
+ * `userId` alongside `isRoot`: the hook reads the owner from the props, not
+ * from the data, and refuses the create without it.
+ */
+type GetOrCreatePendingTotpEnrolmentFunction = (
+  userId: ObjectID,
+) => Promise<UserTotpAuth>;
+
+const getOrCreatePendingTotpEnrolment: GetOrCreatePendingTotpEnrolmentFunction =
+  async (userId: ObjectID): Promise<UserTotpAuth> => {
+    const existingPendingEnrolment: UserTotpAuth | null =
+      await UserTotpAuthService.findOneBy({
+        query: {
+          userId: userId,
+          isVerified: false,
+        },
+        select: {
+          _id: true,
+          twoFactorOtpUrl: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (
+      existingPendingEnrolment &&
+      existingPendingEnrolment.twoFactorOtpUrl &&
+      existingPendingEnrolment.id
+    ) {
+      return existingPendingEnrolment;
+    }
+
+    const newEnrolment: UserTotpAuth = new UserTotpAuth();
+    newEnrolment.name = FORCED_TOTP_ENROLMENT_NAME;
+
+    return UserTotpAuthService.create({
+      data: newEnrolment,
+      props: {
+        isRoot: true,
+        userId: userId,
+      },
+    });
+  };
+
+/*
+ * The three second-step modes this handler serves, on top of a plain password
+ * login when all of them are false.
+ *
+ * `verifyTotpEnrolment` is the one an ADMIN creates. The other two prove a
+ * factor the account already has; this one sets a factor up, for an account
+ * that is required to use two factor auth and has nothing behind that
+ * requirement yet. It is a login stage rather than a page inside the product
+ * because the session must not exist until the factor does -- see the
+ * enrolment branch below.
+ */
 type LoginFunction = (options: {
   req: ExpressRequest;
   res: ExpressResponse;
   next: NextFunction;
   verifyTotpAuth: boolean;
   verifyWebAuthn: boolean;
+  verifyTotpEnrolment: boolean;
 }) => Promise<void>;
 
 const login: LoginFunction = async (options: {
@@ -1058,18 +1231,27 @@ const login: LoginFunction = async (options: {
   next: NextFunction;
   verifyTotpAuth: boolean;
   verifyWebAuthn: boolean;
+  verifyTotpEnrolment: boolean;
 }): Promise<void> => {
   const req: ExpressRequest = options.req;
   const res: ExpressResponse = options.res;
   const next: NextFunction = options.next;
   const verifyTotpAuth: boolean = options.verifyTotpAuth;
   const verifyWebAuthn: boolean = options.verifyWebAuthn;
+  const verifyTotpEnrolment: boolean = options.verifyTotpEnrolment;
 
   try {
     const miscDataProps: JSONObject =
       (req.body["miscDataProps"] as JSONObject) || {};
 
-    if (!verifyTotpAuth && !verifyWebAuthn) {
+    /*
+     * Only the first step of a login carries a captcha. hCaptcha tokens are
+     * single use, so the second step cannot replay the one the password step
+     * already spent, and demanding a fresh one would mean rendering a second
+     * challenge in the middle of an authentication the user has already
+     * mostly completed.
+     */
+    if (!verifyTotpAuth && !verifyWebAuthn && !verifyTotpEnrolment) {
       await CaptchaUtil.verifyCaptcha({
         token:
           (miscDataProps["captchaToken"] as string | undefined) ||
@@ -1090,7 +1272,13 @@ const login: LoginFunction = async (options: {
      */
     logger.debug(
       "Login request received. stage: " +
-        (verifyTotpAuth ? "totp" : verifyWebAuthn ? "webauthn" : "password"),
+        (verifyTotpAuth
+          ? "totp"
+          : verifyWebAuthn
+            ? "webauthn"
+            : verifyTotpEnrolment
+              ? "totp-enrolment"
+              : "password"),
       getLogAttributesFromRequest(req as RequestLike),
     );
 
@@ -1178,7 +1366,8 @@ const login: LoginFunction = async (options: {
       if (
         alreadySavedUser.enableTwoFactorAuth &&
         !verifyTotpAuth &&
-        !verifyWebAuthn
+        !verifyWebAuthn &&
+        !verifyTotpEnrolment
       ) {
         // If two factor auth is enabled then we will send the user to the two factor auth page.
 
@@ -1190,15 +1379,47 @@ const login: LoginFunction = async (options: {
           (!totpAuthList || totpAuthList.length === 0) &&
           (!webAuthnList || webAuthnList.length === 0)
         ) {
-          const errorMessage: string = IsBillingEnabled
-            ? "Two Factor Authentication is enabled but no two factor auth is setup. Please contact OneUptime support for help."
-            : "Two Factor Authentication is enabled but no two factor auth is setup. Please contact your server admin to disable two factor auth for this account.";
+          /*
+           * The account is required to use two factor auth and has nothing set
+           * up behind that requirement -- an admin turned it on for somebody
+           * who has never enrolled, or reset a lost device. This used to be a
+           * dead end ("please contact your server admin"), which made the
+           * requirement unusable for exactly the people it was meant for: an
+           * admin could only mandate two factor auth from users who had
+           * already volunteered for it.
+           *
+           * Now it is an enrolment. The response carries the otpauth:// URL
+           * the login page draws a QR code from, and the id of the pending
+           * enrolment to quote back with the first working code.
+           *
+           * NOTHING IS AUTHORIZED HERE. No session is created, no cookie is
+           * set, and no token is returned -- the only path to finalizeUserLogin
+           * for such an account runs through /verify-totp-enrolment below,
+           * which will not reach it without a code that verifies. Reaching
+           * this branch already required the correct password and a verified
+           * email, so the QR code is shown to somebody who could enrol anyway;
+           * it is not a credential.
+           */
+          const pendingEnrolment: UserTotpAuth =
+            await getOrCreatePendingTotpEnrolment(alreadySavedUser.id!);
 
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException(errorMessage),
-          );
+          // See the note on the successful-login response below.
+          delete (alreadySavedUser as any).password;
+          delete (alreadySavedUser as any).passwordSalt;
+
+          return Response.sendEntityResponse(req, res, alreadySavedUser, User, {
+            miscData: {
+              twoFactorEnrolmentRequired: true,
+              twoFactorAuthId: pendingEnrolment.id!.toString(),
+              /*
+               * The URL, never `twoFactorSecret`. They encode the same bytes,
+               * but the URL is what a QR code has to contain, and selecting
+               * the raw column would put a bare secret in a page's network tab
+               * for no additional capability.
+               */
+              twoFactorOtpUrl: pendingEnrolment.twoFactorOtpUrl!,
+            },
+          });
         }
 
         // See the note on the successful-login response below.
@@ -1213,7 +1434,7 @@ const login: LoginFunction = async (options: {
         });
       }
 
-      if (verifyTotpAuth || verifyWebAuthn) {
+      if (verifyTotpAuth || verifyWebAuthn || verifyTotpEnrolment) {
         if (verifyTotpAuth) {
           // code from req
           const code: string = data["code"] as string;
@@ -1262,6 +1483,141 @@ const login: LoginFunction = async (options: {
           await UserWebAuthnService.verifyAuthentication({
             userId: alreadySavedUser.id!.toString(),
             credential: credential,
+          });
+        } else if (verifyTotpEnrolment) {
+          /*
+           * The second half of the enrolment branch above: the user has
+           * scanned the QR code and is quoting back the first code their
+           * authenticator produced. Getting here proves the password and the
+           * verified email, exactly as the other two second steps do.
+           *
+           * Two refusals sit in front of the code check, and neither is
+           * bookkeeping:
+           *
+           *  - if the account is NOT required to use two factor auth, this
+           *    endpoint would let anybody holding the password bolt a factor
+           *    of their own choosing onto somebody else's account -- turning a
+           *    stolen password into a lockout of the real owner. Enrolment is
+           *    only ever the completion of a requirement the server itself
+           *    imposed;
+           *  - if the account ALREADY has a verified factor, the correct route
+           *    is /verify-totp-auth. Allowing enrolment here would mean a
+           *    password alone could add a second factor and then satisfy the
+           *    challenge with it, stepping around the first.
+           */
+          if (!alreadySavedUser.enableTwoFactorAuth) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "Two factor authentication is not required for this account.",
+              ),
+            );
+          }
+
+          const existingFactors: {
+            totpAuthList: Array<UserTotpAuth>;
+            webAuthnList: Array<UserWebAuthn>;
+          } = await fetchTotpAuthList(alreadySavedUser.id!);
+
+          if (
+            existingFactors.totpAuthList.length > 0 ||
+            existingFactors.webAuthnList.length > 0
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "Two factor authentication is already set up for this account.",
+              ),
+            );
+          }
+
+          const code: string = data["code"] as string;
+          const twoFactorAuthId: string = data["twoFactorAuthId"] as string;
+
+          /*
+           * Both are proven present BEFORE they are used as query predicates.
+           * TypeORM drops an `undefined` predicate rather than matching
+           * nothing, and `_findBy` falls back to "newest row first", so an
+           * omitted id would stop meaning "this enrolment" and start meaning
+           * "whichever pending enrolment this account happens to have" -- see
+           * Identity/Utils/CredentialGuard.ts.
+           */
+          CredentialGuard.assertAllPresent([
+            { value: twoFactorAuthId, label: "Two factor auth id" },
+            { value: code, label: "Code" },
+          ]);
+
+          const pendingTotpAuth: UserTotpAuth | null =
+            await UserTotpAuthService.findOneBy({
+              query: {
+                _id: twoFactorAuthId,
+                userId: alreadySavedUser.id!,
+                isVerified: false,
+              },
+              select: {
+                _id: true,
+                twoFactorSecret: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!pendingTotpAuth) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid two factor auth id."),
+            );
+          }
+
+          const isEnrolmentCodeVerified: boolean = TotpAuth.verifyToken({
+            token: code,
+            secret: pendingTotpAuth.twoFactorSecret!,
+            email: alreadySavedUser.email!,
+          });
+
+          if (!isEnrolmentCodeVerified) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid code."),
+            );
+          }
+
+          await UserTotpAuthService.updateOneById({
+            id: pendingTotpAuth.id!,
+            data: {
+              isVerified: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          /*
+           * Any OTHER half-finished enrolment for this account is now dead
+           * weight -- an abandoned scan from a previous attempt, still holding
+           * a secret nobody uses.
+           *
+           * Sweeping them matters because `getOrCreatePendingTotpEnrolment`
+           * REUSES the first unverified row it finds. Leave one behind and the
+           * next time this account is sent through enrolment -- after an admin
+           * resets it, say -- it would be offered that stale secret rather than
+           * a fresh one.
+           */
+          await UserTotpAuthService.deleteBy({
+            query: {
+              userId: alreadySavedUser.id!,
+              isVerified: false,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
           });
         }
       } // Refresh Permissions for this user here.

@@ -59,6 +59,8 @@
       "scheduledMaintenanceDescription": "计划和管理维护。",
       "logsTitle": "日志",
       "logsDescription": "搜索和分析日志。",
+      "securityEventsTitle": "Security Events",
+      "securityEventsDescription": "SIEM signals correlated with your observability data.",
       "metricsTitle": "指标",
       "metricsDescription": "监控和可视化跨服务的系统指标。",
       "tracesTitle": "跟踪",

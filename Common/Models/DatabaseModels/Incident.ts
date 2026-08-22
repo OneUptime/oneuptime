@@ -338,6 +338,48 @@ export default class Incident extends BaseModel {
   })
   public declaredAt?: Date = undefined;
 
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Impact Started At",
+    description:
+      "When customer impact actually began. Left blank until someone records it - never inferred, because a guessed value is worse than no value.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public impactStartedAt?: Date = undefined;
+
   @Index()
   @ColumnAccessControl({
     create: [],

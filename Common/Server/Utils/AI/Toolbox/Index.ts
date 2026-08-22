@@ -39,6 +39,10 @@ import { QueryTeamsTool } from "./TeamTools";
 import { CreateAlertNoteTool, CreateIncidentNoteTool } from "./NoteWriteTools";
 import { TopExceptionsTool } from "./ExceptionTools";
 import { LogHistogramTool, SearchLogsTool } from "./LogTools";
+import {
+  SearchSecurityEventsTool,
+  SecurityEventSummaryTool,
+} from "./SecurityEventTools";
 import { RecentChangesTool } from "./RecentChangesTools";
 import { BaselineAnomalyTool, QueryMetricsTool } from "./MetricTools";
 import { GetTraceTool, QueryTracesTool } from "./TraceTools";
@@ -121,6 +125,8 @@ export default class AIToolbox {
     QueryAIInsightsTool,
     TopExceptionsTool,
     SearchLogsTool,
+    SearchSecurityEventsTool,
+    SecurityEventSummaryTool,
     LogHistogramTool,
     QueryMetricsTool,
     BaselineAnomalyTool,

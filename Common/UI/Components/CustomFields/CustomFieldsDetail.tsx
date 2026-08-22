@@ -1,5 +1,9 @@
 import API from "../../Utils/API/API";
 import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "../../Utils/PermissionGate";
 import { ButtonStyleType } from "../Button/Button";
 import Card from "../Card/Card";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
@@ -194,17 +198,36 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
   const canEdit: boolean =
     isEditable && !isLoading && schemaList.length > 0 && Boolean(model);
 
+  /*
+   * Custom field values live on the record itself, so editing them is an
+   * update of that record. Without the permission the button stays put and
+   * explains itself instead of disappearing.
+   */
+  const updateGate: PermissionGateResult = PermissionGate.check(
+    new props.modelType(),
+    ModelAction.Update,
+  );
+
+  const showEditButton: boolean =
+    canEdit && (updateGate.isAllowed || Boolean(updateGate.disabledReason));
+
   return (
     <Card
       title={props.title}
       description={props.description}
       buttons={
-        canEdit
+        showEditButton
           ? [
               {
                 title: "Edit Fields",
                 buttonStyle: ButtonStyleType.NORMAL,
+                disabled: !updateGate.isAllowed,
+                tooltip: updateGate.disabledReason,
                 onClick: () => {
+                  if (!updateGate.isAllowed) {
+                    return;
+                  }
+
                   setShowModelForm(true);
                 },
                 icon: IconProp.Edit,

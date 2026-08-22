@@ -1,5 +1,6 @@
 import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
 import Log from "./Log";
+import SecurityEvent from "./SecurityEvent";
 import Metric from "./Metric";
 import MetricItemAggMV1m from "./MetricItemAggMV1m";
 import MetricItemAggMV1mByHostV2 from "./MetricItemAggMV1mByHostV2";
@@ -7,6 +8,8 @@ import MetricItemAggMV1mByService from "./MetricItemAggMV1mByService";
 import MetricItemAggMV1mByK8sCluster from "./MetricItemAggMV1mByK8sCluster";
 import MetricItemAggMV1mByContainer from "./MetricItemAggMV1mByContainer";
 import MetricBaselineHourly from "./MetricBaselineHourly";
+import SpanCountBaseline from "./SpanCountBaseline";
+import LogCountBaseline from "./LogCountBaseline";
 import SloHistory from "./SloHistory";
 import Span from "./Span";
 import ExceptionInstance from "./ExceptionInstance";
@@ -43,6 +46,12 @@ const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
   MetricItemAggMV1mByK8sCluster,
   MetricItemAggMV1mByContainer,
   MetricBaselineHourly,
+  /*
+   * Hour-of-week volume baselines for span/log count anomaly criteria.
+   * AggregatingMergeTree targets populated by MVs on Span/Log inserts.
+   */
+  SpanCountBaseline,
+  LogCountBaseline,
   SloHistory,
   ExceptionInstance,
   MonitorLog,
@@ -59,6 +68,7 @@ const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
   RumSession,
   RumSessionChunk,
   AuditLog,
+  SecurityEvent,
 ];
 
 const modelTypeMap: { [key: string]: { new (): AnalyticsBaseModel } } = {};

@@ -317,6 +317,7 @@ describe("POST /network-device/topology", () => {
 
 import Label from "Common/Models/DatabaseModels/Label";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import NetworkDeviceLinkRule from "Common/Models/DatabaseModels/NetworkDeviceLinkRule";
 import NetworkDeviceLinkRuleUtil from "Common/Utils/Monitor/NetworkDeviceLinkRuleUtil";
 
@@ -712,12 +713,15 @@ describe("POST /network-device/topology — site-scoped link rules", () => {
   /*
    * Truncation is a fact about the QUERY, not about the rule, so it is
    * admitted by the endpoint rather than baked into the resolver's sentences.
-   * It matters most under site scoping: a cut-off device list can strand a
-   * whole site whose router simply was not in the first page of rows, and
-   * without this note the operator would go looking for a labelling mistake
-   * that does not exist.
+   *
+   * The query that has to be complete is the link-rule SWEEP, not the map's
+   * own page — see the #3321 block at the end of this file. This is the case
+   * where even the sweep gave up: a fleet past its ten-page cap, where "no
+   * device carries the parent labels" really might be about devices nobody
+   * looked at, and the operator would otherwise go hunting for a labelling
+   * mistake that does not exist.
    */
-  test("every warning admits it when the device list was truncated", async () => {
+  test("every warning admits it when even the link-rule sweep was truncated", async () => {
     const routerLabel: Label = makeLabel();
     const switchLabel: Label = makeLabel();
 
@@ -727,6 +731,11 @@ describe("POST /network-device/topology — site-scoped link rules", () => {
         makeSitedDevice(`sw-${index}`, null, index === 0 ? [switchLabel] : []),
       );
     }
+    /*
+     * Every page comes back full, including the one-row probe past the cap:
+     * a fleet with no end in sight, which is the only state that earns the
+     * caveat.
+     */
     deviceService.findBy.mockResolvedValue(devices as never);
     // Nobody carries the parent label — possibly only because of the cap.
     linkRuleService.findBy.mockResolvedValue([
@@ -830,5 +839,548 @@ describe("POST /network-device/topology — site-scoped link rules", () => {
     expect(warnings[0]!["message"]).toBe(
       "1 device carrying the child labels is not assigned to a site, so this site-scoped rule skips it.",
     );
+  });
+});
+
+/*
+ * ISSUE #3321 — link rules past the device row cap.
+ *
+ * The map is capped at LIMIT_PER_PROJECT devices because past that there is
+ * nothing a human can read. Resolving the link RULES on that same page does
+ * not degrade in the same way: "is there exactly one router in this site" is
+ * answered WRONGLY, not partially, when the router sat outside the page. The
+ * reporter's 949-site estate came back as "Drawing in 252 of 949 sites… no
+ * device carries the parent labels in … 694 more sites", on a fleet whose
+ * routers were all present and correctly labelled.
+ *
+ * So the rules read the fleet themselves, in pages, and only when the map's
+ * page came back full — the one circumstance in which the two device sets can
+ * differ at all.
+ */
+describe("POST /network-device/topology — link rules past the device row cap", () => {
+  beforeEach(() => {
+    resetTopologyMocks();
+  });
+
+  /*
+   * The handler asks the device service two different questions and the tests
+   * have to tell the answers apart the way the reader does: by the columns.
+   * The map's page reads `name`; the sweep reads four columns and no name;
+   * the past-the-cap probe reads nothing but `_id`.
+   */
+  type DeviceCall = {
+    query: JSONObject;
+    select: JSONObject;
+    sort: JSONObject | undefined;
+    limit: number;
+    skip: number;
+  };
+
+  function deviceCalls(): Array<DeviceCall> {
+    return deviceService.findBy.mock.calls.map((call: Array<unknown>) => {
+      const findBy: JSONObject = call[0] as JSONObject;
+      return {
+        query: findBy["query"] as JSONObject,
+        select: findBy["select"] as JSONObject,
+        sort: findBy["sort"] as JSONObject | undefined,
+        limit: findBy["limit"] as number,
+        skip: findBy["skip"] as number,
+      };
+    });
+  }
+
+  function isSweepCall(call: DeviceCall): boolean {
+    return call.select["name"] === undefined;
+  }
+
+  function sweepCalls(): Array<DeviceCall> {
+    return deviceCalls().filter(isSweepCall);
+  }
+
+  /*
+   * The map gets `renderPage` whatever it asks for; the sweep gets a real
+   * slice of `fleet`, so a test that mis-pages shows up as missing devices
+   * rather than as an infinite loop.
+   */
+  function serveDevices(data: {
+    renderPage: Array<NetworkDevice>;
+    fleet?: Array<NetworkDevice> | undefined;
+  }): void {
+    deviceService.findBy.mockImplementation(((
+      findBy: JSONObject,
+    ): Promise<Array<NetworkDevice>> => {
+      const select: JSONObject = findBy["select"] as JSONObject;
+      if (select["name"] !== undefined) {
+        return Promise.resolve(data.renderPage);
+      }
+      const fleet: Array<NetworkDevice> = data.fleet || data.renderPage;
+      const skip: number = findBy["skip"] as number;
+      const limit: number = findBy["limit"] as number;
+      return Promise.resolve(fleet.slice(skip, skip + limit));
+    }) as never);
+  }
+
+  /** `count` labelless devices, purely to push the page over the row cap. */
+  function filler(count: number): Array<NetworkDevice> {
+    const devices: Array<NetworkDevice> = [];
+    for (let index: number = 0; index < count; index++) {
+      devices.push(makeSitedDevice(`filler-${index}`, null, []));
+    }
+    return devices;
+  }
+
+  interface FranchiseFleet {
+    // Every device in the project, routers included.
+    fleet: Array<NetworkDevice>;
+    // What the map's capped query can actually return — no routers in it.
+    renderPage: Array<NetworkDevice>;
+    stars: Array<SiteStar>;
+  }
+
+  /*
+   * The reporter's estate: 949 units, each with one router carrying the
+   * parent label and eleven switches carrying the child label. Eleven,
+   * because the switches alone have to overflow the row cap — that overflow
+   * is the bug, and a fixture that fits under the cap would pass either way.
+   */
+  function makeIssue3321Fleet(
+    routerLabel: Label,
+    switchLabel: Label,
+  ): FranchiseFleet {
+    const stars: Array<SiteStar> = [];
+    for (let unit: number = 1; unit <= 949; unit++) {
+      stars.push(
+        makeSiteStar(
+          `WB Franchise Unit ${`${unit}`.padStart(4, "0")}`,
+          11,
+          routerLabel,
+          switchLabel,
+        ),
+      );
+    }
+
+    const switches: Array<NetworkDevice> = [];
+    for (const star of stars) {
+      switches.push(...star.switches);
+    }
+
+    return {
+      fleet: devicesOf(stars),
+      renderPage: switches.slice(0, LIMIT_PER_PROJECT),
+      stars: stars,
+    };
+  }
+
+  /*
+   * THE REPORTED BUG. Same devices, same labels, same rule — the only thing
+   * that changed is which device list the rule was judged on.
+   */
+  test("issue #3321: 949 correctly labelled sites produce no warning at all", async () => {
+    const routerLabel: Label = makeLabel();
+    const switchLabel: Label = makeLabel();
+    const fixture: FranchiseFleet = makeIssue3321Fleet(
+      routerLabel,
+      switchLabel,
+    );
+
+    serveDevices({ renderPage: fixture.renderPage, fleet: fixture.fleet });
+    linkRuleService.findBy.mockResolvedValue([
+      makeLinkRule(
+        "Router link with Switch",
+        [switchLabel],
+        [routerLabel],
+        "Site",
+      ),
+    ] as never);
+
+    await callTopology({});
+
+    const body: JSONObject = lastResponseBody();
+
+    // The MAP is still truncated — that part of the report was never wrong.
+    expect(body["isTruncated"]).toBe(true);
+    // The rules are not. Not one of the 949 sites is misconfigured.
+    expect(warningsIn(body)).toEqual([]);
+  });
+
+  /*
+   * The same fixture read the old way, kept as the counter-example: without
+   * the sweep the endpoint reports 949 broken sites and 10,439 stranded
+   * devices, which is the banner in the issue. If a change ever puts rule
+   * resolution back on the map's page, this is what it will read like.
+   */
+  test("issue #3321: the map's own page alone would report every site as broken", async () => {
+    const routerLabel: Label = makeLabel();
+    const switchLabel: Label = makeLabel();
+    const fixture: FranchiseFleet = makeIssue3321Fleet(
+      routerLabel,
+      switchLabel,
+    );
+
+    // No fleet behind it: the sweep sees exactly what the map sees.
+    serveDevices({ renderPage: fixture.renderPage });
+    linkRuleService.findBy.mockResolvedValue([
+      makeLinkRule(
+        "Router link with Switch",
+        [switchLabel],
+        [routerLabel],
+        "Site",
+      ),
+    ] as never);
+
+    await callTopology({});
+
+    const warnings: Array<JSONObject> = warningsIn(lastResponseBody());
+    expect(warnings.length).toBe(1);
+    expect(warnings[0]!["reason"]).toBe("noParentMatched");
+    expect(warnings[0]!["message"]).toContain("No site resolved this rule.");
+  });
+
+  test("a complete map page is reused, so an ordinary project runs one device query", async () => {
+    /*
+     * The sweep is a second pass over the fleet. Paying for it on every map
+     * load — including a project with forty devices — would be a real cost
+     * for a difference that cannot exist below the cap.
+     */
+    const routerLabel: Label = makeLabel();
+    const switchLabel: Label = makeLabel();
+    const unit: SiteStar = makeSiteStar("Unit A", 2, routerLabel, switchLabel);
+
+    serveDevices({ renderPage: devicesOf([unit]) });
+    linkRuleService.findBy.mockResolvedValue([
+      makeLinkRule("Uplink", [switchLabel], [routerLabel], "Site"),
+    ] as never);
+
+    await callTopology({});
+
+    expect(sweepCalls()).toEqual([]);
+    expect(deviceService.findBy).toHaveBeenCalledTimes(1);
+
+    // And the rule still resolves off the page it reused.
+    const body: JSONObject = lastResponseBody();
+    expect(edgePairs(body)).toEqual(
+      [
+        uplinkPair(unit.switches[0]!, unit.router),
+        uplinkPair(unit.switches[1]!, unit.router),
+      ].sort(),
+    );
+  });
+
+  test("a truncated map with no link rules at all still runs one device query", async () => {
+    serveDevices({ renderPage: filler(LIMIT_PER_PROJECT) });
+    linkRuleService.findBy.mockResolvedValue([] as never);
+
+    await callTopology({});
+
+    expect(sweepCalls()).toEqual([]);
+    expect(warningsIn(lastResponseBody())).toEqual([]);
+  });
+
+  test("a rule with an empty label set is not worth a fleet sweep", async () => {
+    /*
+     * It resolves to noChildLabels whatever devices exist, so reading ten
+     * pages to confirm that would be ten queries spent on a foregone
+     * conclusion — and the warning it produces is identical either way.
+     */
+    const routerLabel: Label = makeLabel();
+
+    serveDevices({ renderPage: filler(LIMIT_PER_PROJECT) });
+    linkRuleService.findBy.mockResolvedValue([
+      makeLinkRule("Half-written rule", [], [routerLabel], "Site"),
+    ] as never);
+
+    await callTopology({});
+
+    expect(sweepCalls()).toEqual([]);
+    const warnings: Array<JSONObject> = warningsIn(lastResponseBody());
+    expect(warnings.length).toBe(1);
+    expect(warnings[0]!["reason"]).toBe("noChildLabels");
+  });
+
+  test("the sweep reads only the four columns the resolver needs", async () => {
+    /*
+     * The map's page carries forty columns per device. Reading those again
+     * across ten pages is what would make a full-fleet pass unaffordable —
+     * and none of them is rendered on this path, so none is read.
+     */
+    const routerLabel: Label = makeLabel();
+    const switchLabel: Label = makeLabel();
+
+    serveDevices({ renderPage: filler(LIMIT_PER_PROJECT) });
+    linkRuleService.findBy.mockResolvedValue([
+      makeLinkRule("Uplink", [switchLabel], [routerLabel], "Site"),
+    ] as never);
+
+    await callTopology({});
+
+    const sweep: DeviceCall = sweepCalls()[0]!;
+    expect(Object.keys(sweep.select).sort()).toEqual([
+      "_id",
+      "labels",
+      "site",
+      "siteId",
+    ]);
+    expect(sweep.select["labels"]).toEqual({ _id: true });
+    expect(sweep.select["site"]).toEqual({ name: true });
+    // Archived devices are ghosts on the map and must not vote on a parent.
+    expect(sweep.query["isArchived"]).toBe(false);
+    expect((sweep.query["projectId"] as ObjectID).toString()).toBe(
+      projectId.toString(),
+    );
+    expect(sweep.limit).toBe(LIMIT_PER_PROJECT);
+  });
+
+  test("the sweep pages by id, not by the default createdAt", async () => {
+    /*
+     * A discovery import stamps thousands of devices with one createdAt, and
+     * rows tied on the sort key can shift between pages — read twice or
+     * skipped. A skipped router is exactly the phantom "no parent in this
+     * site" the sweep exists to remove, so an unstable sort would reintroduce
+     * the bug in a form that only shows up at scale.
+     */
+    const routerLabel: Label = makeLabel();
+    const switchLabel: Label = makeLabel();
+
+    serveDevices({ renderPage: filler(LIMIT_PER_PROJECT) });
+    linkRuleService.findBy.mockResolvedValue([
+      makeLinkRule("Uplink", [switchLabel], [routerLabel], "Site"),
+    ] as never);
+
+    await callTopology({});
+
+    for (const sweep of sweepCalls()) {
+      expect(sweep.sort).toEqual({ _id: SortOrder.Ascending });
+    }
+  });
+
+  test("the sweep walks page after page until one comes back short", async () => {
+    const routerLabel: Label = makeLabel();
+    const switchLabel: Label = makeLabel();
+    const unit: SiteStar = makeSiteStar("Unit A", 1, routerLabel, switchLabel);
+
+    const renderPage: Array<NetworkDevice> = filler(LIMIT_PER_PROJECT);
+    serveDevices({
+      renderPage: renderPage,
+      // The unit's router and switch sit on the far side of the cap.
+      fleet: [...renderPage, ...devicesOf([unit])],
+    });
+    linkRuleService.findBy.mockResolvedValue([
+      makeLinkRule("Uplink", [switchLabel], [routerLabel], "Site"),
+    ] as never);
+
+    await callTopology({});
+
+    expect(
+      sweepCalls().map((call: DeviceCall) => {
+        return call.skip;
+      }),
+    ).toEqual([0, LIMIT_PER_PROJECT]);
+    // Unit A resolved, so it says nothing about it.
+    expect(warningsIn(lastResponseBody())).toEqual([]);
+  });
+
+  test("a fleet of exactly the sweep's cap does not confess to a truncation", async () => {
+    /*
+     * A full last page is not proof that more devices exist. Hedging anyway
+     * would put "some of these may be false alarms" on a warning that is
+     * certain, and a caveat attached to warnings that do not need it teaches
+     * operators to discount the ones that do.
+     */
+    const routerLabel: Label = makeLabel();
+    const switchLabel: Label = makeLabel();
+    const page: Array<NetworkDevice> = filler(LIMIT_PER_PROJECT);
+    page[0] = makeSitedDevice("lonely-switch", null, [switchLabel]);
+
+    // Ten full pages and then genuinely nothing.
+    deviceService.findBy.mockImplementation(((
+      findBy: JSONObject,
+    ): Promise<Array<NetworkDevice>> => {
+      const select: JSONObject = findBy["select"] as JSONObject;
+      if (select["name"] !== undefined || (findBy["skip"] as number) === 0) {
+        return Promise.resolve(page);
+      }
+      if ((findBy["skip"] as number) >= LIMIT_PER_PROJECT * 10) {
+        return Promise.resolve([]);
+      }
+      return Promise.resolve(page);
+    }) as never);
+
+    linkRuleService.findBy.mockResolvedValue([
+      makeLinkRule("Uplink", [switchLabel], [routerLabel], undefined),
+    ] as never);
+
+    await callTopology({});
+
+    const probe: DeviceCall = sweepCalls()[sweepCalls().length - 1]!;
+    expect(probe.limit).toBe(1);
+    expect(probe.skip).toBe(LIMIT_PER_PROJECT * 10);
+    expect(probe.select).toEqual({ _id: true });
+
+    const warnings: Array<JSONObject> = warningsIn(lastResponseBody());
+    expect(warnings.length).toBe(1);
+    expect(warnings[0]!["message"]).not.toContain(
+      NetworkDeviceLinkRuleUtil.TRUNCATED_DEVICE_LIST_NOTE,
+    );
+  });
+
+  test("a truncated map with a complete sweep leaves the caveat off a real failure", async () => {
+    /*
+     * The behaviour change that matters most day to day. The old endpoint
+     * hedged on the MAP's cap, so on a large estate every warning — right or
+     * wrong — ended in "some of these may be false alarms". Here the sweep
+     * read the whole fleet and the failure is real, so it is stated plainly.
+     */
+    const routerLabel: Label = makeLabel();
+    const switchLabel: Label = makeLabel();
+    const good: SiteStar = makeSiteStar("Unit A", 1, routerLabel, switchLabel);
+    const site: NetworkSite = makeSite("Unit B");
+    const orphan: NetworkDevice = makeSitedDevice("unit-b-sw1", site, [
+      switchLabel,
+    ]);
+
+    const renderPage: Array<NetworkDevice> = filler(LIMIT_PER_PROJECT);
+    serveDevices({
+      renderPage: renderPage,
+      fleet: [...renderPage, ...devicesOf([good]), orphan],
+    });
+    linkRuleService.findBy.mockResolvedValue([
+      makeLinkRule("Uplink", [switchLabel], [routerLabel], "Site"),
+    ] as never);
+
+    await callTopology({});
+
+    const body: JSONObject = lastResponseBody();
+    expect(body["isTruncated"]).toBe(true);
+
+    const warnings: Array<JSONObject> = warningsIn(body);
+    expect(warnings.length).toBe(1);
+    expect(warnings[0]!["message"]).toBe(
+      "Drawing in 1 of 2 sites. No device carries the parent labels in Unit B, so 1 device there has no uplink.",
+    );
+  });
+
+  test("the sweep follows a site-scoped request rather than reading the project", async () => {
+    /*
+     * A request for one site's map must not have its rules judged against
+     * every device in the project: a second router in another building would
+     * report this site as ambiguous, which is the failure this whole feature
+     * was built to stop.
+     */
+    const routerLabel: Label = makeLabel();
+    const switchLabel: Label = makeLabel();
+    const siteId: ObjectID = ObjectID.generate();
+
+    serveDevices({ renderPage: filler(LIMIT_PER_PROJECT) });
+    linkRuleService.findBy.mockResolvedValue([
+      makeLinkRule("Uplink", [switchLabel], [routerLabel], "Site"),
+    ] as never);
+
+    await callTopology({ siteId: siteId.toString() });
+
+    for (const sweep of sweepCalls()) {
+      expect((sweep.query["siteId"] as ObjectID).toString()).toBe(
+        siteId.toString(),
+      );
+    }
+  });
+
+  test("the sweep carries the caller's permission props, never root", async () => {
+    /*
+     * The map is permission-scoped: a viewer only sees devices they can read,
+     * and a warning may only name a site whose devices they can read. A sweep
+     * running as root would leak both — the existence of devices and the
+     * names of the sites holding them.
+     */
+    const routerLabel: Label = makeLabel();
+    const switchLabel: Label = makeLabel();
+    const userId: ObjectID = ObjectID.generate();
+    commonAPI.getDatabaseCommonInteractionProps.mockResolvedValue({
+      tenantId: projectId,
+      userId: userId,
+    } as never);
+
+    serveDevices({ renderPage: filler(LIMIT_PER_PROJECT) });
+    linkRuleService.findBy.mockResolvedValue([
+      makeLinkRule("Uplink", [switchLabel], [routerLabel], "Site"),
+    ] as never);
+
+    await callTopology({});
+
+    for (const call of deviceService.findBy.mock.calls) {
+      const props: JSONObject = (call[0] as JSONObject)["props"] as JSONObject;
+      expect(props["isRoot"]).toBeUndefined();
+      expect((props["userId"] as ObjectID).toString()).toBe(userId.toString());
+    }
+  });
+
+  /*
+   * The audit list. "and 694 more sites" is a blast radius; the operator
+   * still has to be told which buildings to walk into.
+   */
+  test("the payload names every failing site, not just the three in the sentence", async () => {
+    const routerLabel: Label = makeLabel();
+    const switchLabel: Label = makeLabel();
+    const good: SiteStar = makeSiteStar("Unit A", 1, routerLabel, switchLabel);
+
+    const broken: Array<NetworkDevice> = [];
+    for (const name of ["Unit B", "Unit C", "Unit D", "Unit E"]) {
+      const site: NetworkSite = makeSite(name);
+      broken.push(makeSitedDevice(`${name}-sw1`, site, [switchLabel]));
+      broken.push(makeSitedDevice(`${name}-sw2`, site, [switchLabel]));
+    }
+
+    deviceService.findBy.mockResolvedValue([
+      ...devicesOf([good]),
+      ...broken,
+    ] as never);
+    linkRuleService.findBy.mockResolvedValue([
+      makeLinkRule("Uplink", [switchLabel], [routerLabel], "Site"),
+    ] as never);
+
+    await callTopology({});
+
+    const warnings: Array<JSONObject> = warningsIn(lastResponseBody());
+    expect(warnings.length).toBe(1);
+    expect(warnings[0]!["siteCount"]).toBe(4);
+
+    const sites: Array<JSONObject> = warnings[0]!["sites"] as Array<JSONObject>;
+    expect(
+      sites.map((site: JSONObject) => {
+        return [
+          site["siteName"],
+          site["reason"],
+          site["strandedDeviceCount"],
+          site["matchedParentCount"],
+        ];
+      }),
+    ).toEqual([
+      ["Unit B", "noParentMatched", 2, 0],
+      ["Unit C", "noParentMatched", 2, 0],
+      ["Unit D", "noParentMatched", 2, 0],
+      ["Unit E", "noParentMatched", 2, 0],
+    ]);
+    // The sentence itself only ever names three of them.
+    expect(warnings[0]!["message"]).toContain(
+      "Unit B, Unit C, Unit D and 1 more site",
+    );
+  });
+
+  test("a project-scoped warning carries no site list to expand", async () => {
+    const routerLabel: Label = makeLabel();
+    const switchLabel: Label = makeLabel();
+
+    deviceService.findBy.mockResolvedValue([
+      makeSitedDevice("sw1", makeSite("Unit A"), [switchLabel]),
+    ] as never);
+    linkRuleService.findBy.mockResolvedValue([
+      makeLinkRule("Uplink", [switchLabel], [routerLabel], undefined),
+    ] as never);
+
+    await callTopology({});
+
+    const warnings: Array<JSONObject> = warningsIn(lastResponseBody());
+    expect(warnings.length).toBe(1);
+    expect(warnings[0]!["sites"]).toBeUndefined();
+    expect(warnings[0]!["siteCount"]).toBeUndefined();
   });
 });

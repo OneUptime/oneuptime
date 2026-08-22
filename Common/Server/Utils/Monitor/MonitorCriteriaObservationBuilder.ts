@@ -18,6 +18,7 @@ import SslMonitorResponse from "../../../Types/Monitor/SSLMonitor/SslMonitorResp
 import SyntheticMonitorResponse from "../../../Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import CustomCodeMonitorResponse from "../../../Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResponse";
+import SecurityEventsMonitorResponse from "../../../Types/Monitor/SecurityEventsMonitor/SecurityEventsMonitorResponse";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
 import SnmpMonitorResponse, {
@@ -160,6 +161,10 @@ export default class MonitorCriteriaObservationBuilder {
         );
       case CheckOn.LogCount:
         return MonitorCriteriaObservationBuilder.describeLogCountObservation(
+          input,
+        );
+      case CheckOn.SecurityEventCount:
+        return MonitorCriteriaObservationBuilder.describeSecurityEventCountObservation(
           input,
         );
       case CheckOn.SpanCount:
@@ -1097,6 +1102,21 @@ export default class MonitorCriteriaObservationBuilder {
     }
 
     return `Log count was ${logResponse.logCount}.`;
+  }
+
+  private static describeSecurityEventCountObservation(input: {
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const securityEventsResponse: SecurityEventsMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getSecurityEventsMonitorResponse(
+        input.dataToProcess,
+      );
+
+    if (!securityEventsResponse) {
+      return null;
+    }
+
+    return `Security event count was ${securityEventsResponse.securityEventCount}.`;
   }
 
   private static describeSpanCountObservation(input: {

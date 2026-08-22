@@ -59,6 +59,8 @@
       "scheduledMaintenanceDescription": "Plan en beheer onderhoud.",
       "logsTitle": "Logboeken",
       "logsDescription": "Zoek en analyseer logs.",
+      "securityEventsTitle": "Security Events",
+      "securityEventsDescription": "SIEM signals correlated with your observability data.",
       "metricsTitle": "Metrieken",
       "metricsDescription": "Bewaak en visualiseer systeemmetrieken over uw services.",
       "tracesTitle": "Traces",

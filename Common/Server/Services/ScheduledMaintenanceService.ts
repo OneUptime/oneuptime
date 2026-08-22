@@ -1,4 +1,7 @@
 import DatabaseConfig from "../DatabaseConfig";
+import ServiceType from "../../Types/Telemetry/ServiceType";
+import MeasurementMetricWriter from "../Utils/Measurement/MeasurementMetricWriter";
+import ScheduledMaintenanceMeasurementService from "./ScheduledMaintenanceMeasurementService";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
@@ -8,6 +11,7 @@ import ScheduledMaintenanceOwnerTeamService from "./ScheduledMaintenanceOwnerTea
 import ScheduledMaintenanceOwnerUserService from "./ScheduledMaintenanceOwnerUserService";
 import ScheduledMaintenanceStateService from "./ScheduledMaintenanceStateService";
 import ScheduledMaintenanceStateTimelineService from "./ScheduledMaintenanceStateTimelineService";
+import ScheduledMaintenanceMeasurementValueService from "./ScheduledMaintenanceMeasurementValueService";
 import ScheduledMaintenanceReminderRuleService from "./ScheduledMaintenanceReminderRuleService";
 import ScheduledMaintenanceReminderRule from "../../Models/DatabaseModels/ScheduledMaintenanceReminderRule";
 import TeamMemberService from "./TeamMemberService";
@@ -727,6 +731,28 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         await ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMonitors(
           scheduledMaintenanceEvent,
         );
+
+        if (
+          scheduledMaintenanceEvent.projectId &&
+          scheduledMaintenanceEvent.id
+        ) {
+          /*
+           * Measurement points carry project-defined names, so nothing else
+           * sweeps them up. Without this they stay charted against an event
+           * that no longer exists until their retention date.
+           */
+          const measurementMetricNames: Array<string> =
+            await ScheduledMaintenanceMeasurementService.getMetricNamesForProject(
+              scheduledMaintenanceEvent.projectId,
+            );
+
+          await MeasurementMetricWriter.tombstoneAll({
+            projectId: scheduledMaintenanceEvent.projectId,
+            primaryEntityId: scheduledMaintenanceEvent.id,
+            primaryEntityType: ServiceType.ScheduledMaintenance,
+            allMeasurementMetricNames: measurementMetricNames,
+          });
+        }
       }
     }
 
@@ -1536,6 +1562,33 @@ ${scheduledMaintenance.description || "No description provided."}
     onUpdate: OnUpdate<Model>,
     updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
+    /*
+     * Rescheduling the planned window is the whole point of making these
+     * fields editable, so the numbers derived from them have to move. Without
+     * this the recompute fires only from the state-timeline hooks, and a
+     * corrected startsAt leaves every derived value stale for good.
+     */
+    const anchorTimestampChanged: boolean = ["startsAt", "endsAt"].some(
+      (key: string) => {
+        return Object.prototype.hasOwnProperty.call(
+          onUpdate.updateBy.data,
+          key,
+        );
+      },
+    );
+
+    if (anchorTimestampChanged) {
+      for (const itemId of updatedItemIds) {
+        ScheduledMaintenanceMeasurementValueService.recomputeForScheduledMaintenance(
+          {
+            scheduledMaintenanceId: itemId,
+          },
+        ).catch((err: Error) => {
+          logger.error(err);
+        });
+      }
+    }
+
     if (
       onUpdate.updateBy.data.currentScheduledMaintenanceStateId &&
       onUpdate.updateBy.props.tenantId

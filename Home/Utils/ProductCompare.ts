@@ -8557,7 +8557,7 @@ const products: Dictionary<Product> = {
             title: "SIEM / security analytics",
             description: "Security information and event management",
             productColumn: "tick",
-            oneuptimeColumn: "",
+            oneuptimeColumn: "tick",
           },
           {
             title: "Log ingestion pricing",

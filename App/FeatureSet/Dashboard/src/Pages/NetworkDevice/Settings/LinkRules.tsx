@@ -46,6 +46,8 @@ A site-scoped rule only looks inside each device's **own** site. A device assign
 
 A site-scoped rule is not all-or-nothing. If it resolves in thirteen sites and fails in the fourteenth, it draws the thirteen and names the one that failed. Sites where nothing carries the child labels are not failures — the rule simply does not apply there, and the map stays quiet about them.
 
+Across hundreds of sites the map's one-line summary names the first few and counts the rest. Expand **Show the N sites that need attention** underneath it for the full list: each site, whether it has no parent device or several, and how many devices are left with no uplink there.
+
 ### Rules are live, not stored
 
 Links are worked out each time the map loads. Relabel a device and the map follows on the next refresh; delete a rule and its links simply stop being drawn. Nothing is left behind to clean up.

@@ -2,6 +2,10 @@ import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import Navigation from "../../Utils/Navigation";
 import { ButtonStyleType } from "../Button/Button";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "../../Utils/PermissionGate";
 import Card from "../Card/Card";
 import BasicFormModal from "../FormModal/BasicFormModal";
 import { ModelField } from "../Forms/ModelForm";
@@ -29,6 +33,12 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
   const model: TBaseModel = new props.modelType();
+
+  /* Duplicating writes a brand new record, so it needs create permission. */
+  const createGate: PermissionGateResult = PermissionGate.check(
+    model,
+    ModelAction.Create,
+  );
   const [showModal, setShowModal] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -109,7 +119,13 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
           {
             title: `Duplicate ${model.singularName}`,
             buttonStyle: ButtonStyleType.NORMAL,
+            disabled: !createGate.isAllowed,
+            tooltip: createGate.disabledReason,
             onClick: () => {
+              if (!createGate.isAllowed) {
+                return;
+              }
+
               setShowModal(true);
             },
             isLoading: isLoading,

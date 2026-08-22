@@ -1,7 +1,12 @@
 import Dictionary from "../../../Types/Dictionary";
 import {
+  LlmCostCatalogUtil,
+  LlmModelPrice,
+} from "../../../Types/Telemetry/LlmCostCatalog";
+import {
   LlmAgentNameAttributeKeys,
   LlmAttributeNamespacePrefixes,
+  LlmConversationIdAttributeKeys,
   LlmCostAttributeKeys,
   LlmInputTokenAttributeKeys,
   LlmOperationAttributeKeys,
@@ -44,11 +49,18 @@ export interface LlmSpanFields {
   llmInputTokens: number;
   llmOutputTokens: number;
   llmTotalTokens: number;
-  // Cost in USD. Only populated when the SDK reports it (no built-in pricing).
+  /*
+   * Cost in USD. The SDK-reported cost (gen_ai.usage.cost) when present;
+   * otherwise an estimate computed from token counts against the project's
+   * custom price overrides and the built-in list-price catalog
+   * (Common/Types/Telemetry/LlmCostCatalog.ts). 0 when none is available.
+   */
   llmCost: number;
   // Agent / tool names for agent-framework spans.
   llmAgentName: string;
   llmToolName: string;
+  // Conversation / session id grouping calls of one interaction (gen_ai.conversation.id).
+  llmConversationId: string;
 }
 
 type SpanAttributes = Dictionary<AttributeType | Array<AttributeType>>;
@@ -70,14 +82,22 @@ export default class LlmSpanUtil {
       llmCost: 0,
       llmAgentName: "",
       llmToolName: "",
+      llmConversationId: "",
     };
   }
 
   /**
    * Extract first-class LLM fields from a flattened span attribute dictionary.
    * Pure + side-effect free so it can be unit tested in isolation.
+   *
+   * `projectPriceOverrides` are the project's custom model prices (loaded by
+   * the ingest pipeline); they take part in the cost fallback below with
+   * longest-prefix-wins semantics against the built-in catalog.
    */
-  public static extract(attributes: SpanAttributes): LlmSpanFields {
+  public static extract(
+    attributes: SpanAttributes,
+    projectPriceOverrides?: Array<LlmModelPrice>,
+  ): LlmSpanFields {
     const fields: LlmSpanFields = this.empty();
 
     if (!attributes || typeof attributes !== "object") {
@@ -134,13 +154,60 @@ export default class LlmSpanUtil {
       fields.llmTotalTokens = fields.llmInputTokens + fields.llmOutputTokens;
     }
 
-    fields.llmCost = this.getNumber(attributes, LlmCostAttributeKeys);
+    /*
+     * Cost must distinguish "reported as 0" from "not reported at all": a
+     * gateway fronting a free local model (or a fully-cached call) reports an
+     * explicit cost of 0, and that 0 must win over any catalog estimate.
+     */
+    const reportedCost: number | null = this.getNumberOrNull(
+      attributes,
+      LlmCostAttributeKeys,
+    );
+
+    fields.llmCost = reportedCost ?? 0;
 
     fields.llmAgentName = this.getString(attributes, LlmAgentNameAttributeKeys);
 
     fields.llmToolName = this.getString(attributes, LlmToolNameAttributeKeys);
 
     fields.isLlmSpan = this.detectIsLlmSpan(keys, fields);
+
+    /*
+     * Conversation id is gated on isLlmSpan because one of its candidate keys
+     * ("session.id") is the generic OTel key RUM browser spans carry — those
+     * already denormalize it into the sessionId column, and stamping it here
+     * too would duplicate it (and its bloom-filter index) across the
+     * highest-volume span class for no reader.
+     */
+    if (fields.isLlmSpan) {
+      fields.llmConversationId = this.getString(
+        attributes,
+        LlmConversationIdAttributeKeys,
+      );
+    }
+
+    /*
+     * Cost fallback: the SDK-reported cost always wins — including an
+     * explicit 0 — but most instrumentations only report token counts. Price
+     * those against the project's custom price overrides and the built-in
+     * list-price catalog (longest prefix wins across both, project entries
+     * beat built-ins on ties) so spend shows up in dashboards and cost
+     * budgets without per-SDK pricing math. The response model is priced in
+     * preference to the request model — it names what the provider actually
+     * served (e.g. an alias like "gpt-4o" resolved to a dated snapshot).
+     */
+    if (fields.isLlmSpan && reportedCost === null) {
+      const computedCost: number | null = LlmCostCatalogUtil.computeCostInUSD({
+        model: fields.llmResponseModel || fields.llmRequestModel,
+        inputTokens: fields.llmInputTokens,
+        outputTokens: fields.llmOutputTokens,
+        projectPriceOverrides: projectPriceOverrides,
+      });
+
+      if (computedCost !== null) {
+        fields.llmCost = computedCost;
+      }
+    }
 
     return fields;
   }
@@ -199,6 +266,18 @@ export default class LlmSpanUtil {
     attributes: SpanAttributes,
     candidateKeys: Array<string>,
   ): number {
+    return this.getNumberOrNull(attributes, candidateKeys) ?? 0;
+  }
+
+  /**
+   * Like getNumber but null when no candidate key carries a parseable number
+   * — callers that must distinguish "reported as 0" from "absent" (cost) use
+   * this directly.
+   */
+  private static getNumberOrNull(
+    attributes: SpanAttributes,
+    candidateKeys: Array<string>,
+  ): number | null {
     for (const key of candidateKeys) {
       const value: AttributeType | Array<AttributeType> | undefined =
         attributes[key];
@@ -220,6 +299,6 @@ export default class LlmSpanUtil {
       }
     }
 
-    return 0;
+    return null;
   }
 }

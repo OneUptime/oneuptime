@@ -47,6 +47,14 @@
       "securityKeyInstructions": "Por favor, siga las instrucciones en su dispositivo de llave de seguridad.",
       "codeFieldDescription": "Ingrese el código de su aplicación de autenticación",
       "selectDifferentMethod": "Seleccione un método de autenticación de dos factores diferente"
+    },
+    "twoFactorEnrolment": {
+      "title": "Configurar la autenticación de dos factores",
+      "subtitle": "Su administrador exige la autenticación de dos factores en esta cuenta. Configúrela ahora para terminar de iniciar sesión.",
+      "scanInstruction": "Escanee este código QR con una aplicación de autenticación como Google Authenticator, Microsoft Authenticator o 1Password.",
+      "codeFieldDescription": "Introduzca el código de seis dígitos que muestra su aplicación de autenticación.",
+      "submitButton": "Verificar e iniciar sesión",
+      "backToSignIn": "Inicie sesión como otro usuario"
     }
   },
   "register": {

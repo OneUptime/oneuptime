@@ -56,6 +56,11 @@ const recipes: Array<MonitorTypeRecipe> = [
   { label: "Metrics", cardValue: "Metrics", hasInterval: false },
   { label: "Traces", cardValue: "Traces", hasInterval: false },
   { label: "Exceptions", cardValue: "Exceptions", hasInterval: false },
+  {
+    label: "Security Events",
+    cardValue: "Security Events",
+    hasInterval: false,
+  },
 
   // Probeable types with a bare destination input (first textbox) + interval.
   {

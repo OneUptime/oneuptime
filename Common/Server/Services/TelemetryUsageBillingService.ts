@@ -16,6 +16,7 @@ import ProjectService from "./ProjectService";
 import Project from "../../Models/DatabaseModels/Project";
 import SpanService from "./SpanService";
 import LogService from "./LogService";
+import SecurityEventService from "./SecurityEventService";
 import MetricService from "./MetricService";
 import ExceptionInstanceService from "./ExceptionInstanceService";
 import ProfileService from "./ProfileService";
@@ -47,6 +48,7 @@ import {
   AverageProfileRowSizeInBytes,
   AverageSessionReplaySessionSizeInBytes,
   AverageProfileSampleRowSizeInBytes,
+  AverageSecurityEventRowSizeInBytes,
   IsBillingEnabled,
 } from "../EnvironmentConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -228,6 +230,16 @@ export class Service extends DatabaseService<Model> {
       } else if (data.productType === ProductType.Metrics) {
         addUsage(
           await MetricService.groupTelemetryUsageByService({
+            projectId: data.projectId,
+            timestampColumnName: "time",
+            startDate: startOfDay,
+            endDate: endOfDay,
+          }),
+          averageRowSizeInBytes,
+        );
+      } else if (data.productType === ProductType.SecurityEvents) {
+        addUsage(
+          await SecurityEventService.groupTelemetryUsageByService({
             projectId: data.projectId,
             timestampColumnName: "time",
             startDate: startOfDay,
@@ -551,7 +563,8 @@ export class Service extends DatabaseService<Model> {
       data.productType !== ProductType.Metrics &&
       data.productType !== ProductType.Logs &&
       data.productType !== ProductType.Profiles &&
-      data.productType !== ProductType.SessionReplay
+      data.productType !== ProductType.SessionReplay &&
+      data.productType !== ProductType.SecurityEvents
     ) {
       throw new BadDataException(
         "This product type is not a telemetry product type.",
@@ -658,7 +671,8 @@ export class Service extends DatabaseService<Model> {
       productType !== ProductType.Logs &&
       productType !== ProductType.Metrics &&
       productType !== ProductType.Profiles &&
-      productType !== ProductType.SessionReplay
+      productType !== ProductType.SessionReplay &&
+      productType !== ProductType.SecurityEvents
     ) {
       return fallbackSize;
     }
@@ -675,6 +689,7 @@ export class Service extends DatabaseService<Model> {
          * Present so the narrowed lookup above stays exhaustive.
          */
         [ProductType.SessionReplay]: AverageSessionReplaySessionSizeInBytes,
+        [ProductType.SecurityEvents]: AverageSecurityEventRowSizeInBytes,
       }[productType] ?? fallbackSize;
 
     if (!Number.isFinite(value) || value <= 0) {

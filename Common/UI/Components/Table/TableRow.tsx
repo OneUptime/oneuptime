@@ -213,7 +213,13 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                               icon={button.icon}
                               buttonStyle={button.buttonStyleType}
                               isLoading={isButtonLoading[actionIndex]}
+                              disabled={button.disabled}
+                              tooltip={button.tooltip}
                               onClick={() => {
+                                if (button.disabled) {
+                                  return;
+                                }
+
                                 if (button.onClick) {
                                   isButtonLoading[actionIndex] = true;
                                   setIsButtonLoading(isButtonLoading);
@@ -526,7 +532,13 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                                 icon={button.icon}
                                 buttonStyle={button.buttonStyleType}
                                 isLoading={isButtonLoading[i]}
+                                disabled={button.disabled}
+                                tooltip={button.tooltip}
                                 onClick={() => {
+                                  if (button.disabled) {
+                                    return;
+                                  }
+
                                   if (button.onClick) {
                                     isButtonLoading[i] = true;
                                     setIsButtonLoading(isButtonLoading);

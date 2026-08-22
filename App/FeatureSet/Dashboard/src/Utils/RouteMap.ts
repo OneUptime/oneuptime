@@ -471,6 +471,13 @@ export const LogsRoutePath: Dictionary<string> = {
   [PageMap.LOGS_SETTINGS_SCRUB_RULES]: "settings/scrub-rules",
 };
 
+// Security Events product routes
+export const SecurityEventsRoutePath: Dictionary<string> = {
+  [PageMap.SECURITY_EVENTS]: "",
+  [PageMap.SECURITY_EVENTS_CORRELATE]: "correlate",
+  [PageMap.SECURITY_EVENTS_DETECTION_RULES]: "detection-rules",
+};
+
 // Metrics product routes
 export const MetricsRoutePath: Dictionary<string> = {
   [PageMap.METRICS]: "",
@@ -550,6 +557,8 @@ export const LlmRoutePath: Dictionary<string> = {
   [PageMap.LLM]: "overview",
   [PageMap.LLM_OVERVIEW]: "overview",
   [PageMap.LLM_CALLS]: "calls",
+  [PageMap.LLM_BUDGETS]: "budgets",
+  [PageMap.LLM_PRICING]: "pricing",
   [PageMap.LLM_DOCUMENTATION]: "documentation",
 };
 
@@ -671,6 +680,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_SLA_RULES]: "settings/sla-rules",
   [PageMap.INCIDENTS_SETTINGS_REMINDER_RULES]: "settings/reminder-rules",
   [PageMap.INCIDENTS_SETTINGS_ROLES]: "settings/roles",
+  [PageMap.INCIDENTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
   [PageMap.INCIDENTS_SETTINGS_MORE]: "settings/more",
   [PageMap.INCIDENTS_SETTINGS_AI]: "settings/ai",
 
@@ -732,6 +742,7 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]:
     "settings/auto-remediation-rules",
   [PageMap.ALERTS_SETTINGS_REMINDER_RULES]: "settings/reminder-rules",
+  [PageMap.ALERTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
   [PageMap.ALERTS_SETTINGS_MORE]: "settings/more",
   [PageMap.ALERTS_SETTINGS_AI]: "settings/ai",
 
@@ -779,6 +790,8 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
     "settings/runbook-rules",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_REMINDER_RULES]:
     "settings/reminder-rules",
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MEASUREMENTS]:
+    "settings/measurements",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE]: "settings/more",
 
   [PageMap.SCHEDULED_MAINTENANCE_VIEW]: `${RouteParams.ModelID}`,
@@ -1374,6 +1387,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ALERTS_SETTINGS_MEASUREMENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_MEASUREMENTS]
+    }`,
+  ),
+
   [PageMap.ALERTS_SETTINGS_MORE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_SETTINGS_MORE]
@@ -1877,6 +1896,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.INCIDENTS_SETTINGS_MEASUREMENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_MEASUREMENTS]
+    }`,
+  ),
+
   [PageMap.INCIDENTS_SETTINGS_MORE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_MORE]
@@ -2111,6 +2136,14 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
       ScheduledMaintenanceEventsRoutePath[
         PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_REMINDER_RULES
+      ]
+    }`,
+  ),
+
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MEASUREMENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+      ScheduledMaintenanceEventsRoutePath[
+        PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MEASUREMENTS
       ]
     }`,
   ),
@@ -4735,6 +4768,27 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  // Security Events Product Routes
+  [PageMap.SECURITY_EVENTS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/*`,
+  ),
+
+  [PageMap.SECURITY_EVENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_CORRELATE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_CORRELATE]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_DETECTION_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_DETECTION_RULES]
+    }`,
+  ),
+
   // Metrics Product Routes
   [PageMap.METRICS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/metrics/*`,
@@ -5570,6 +5624,18 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.LLM_CALLS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/llm/${LlmRoutePath[PageMap.LLM_CALLS]}`,
+  ),
+
+  [PageMap.LLM_BUDGETS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/llm/${
+      LlmRoutePath[PageMap.LLM_BUDGETS]
+    }`,
+  ),
+
+  [PageMap.LLM_PRICING]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/llm/${
+      LlmRoutePath[PageMap.LLM_PRICING]
+    }`,
   ),
 
   [PageMap.LLM_DOCUMENTATION]: new Route(

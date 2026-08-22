@@ -11,6 +11,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 import StatusPageAnnouncementTemplate from "Common/Models/DatabaseModels/StatusPageAnnouncementTemplate";
@@ -80,30 +81,45 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
   let cardbuttons: Array<CardButtonSchema> = [];
 
   if (!props.disableCreate) {
-    // add card buttons for creating announcements
+    /*
+     * These route to a dedicated create page instead of the table's built in
+     * create modal, so ModelTable's own permission gate never sees them. Gate
+     * them here or a viewer walks the whole flow and is refused at the end
+     * (issue #3306).
+     */
     cardbuttons = [
-      {
-        title: "Create from Template",
-        icon: IconProp.Template,
-        buttonStyle: ButtonStyleType.OUTLINE,
-        onClick: async (): Promise<void> => {
-          setShowAnnouncementTemplateModal(true);
-          await fetchAnnouncementTemplates();
+      PermissionGate.gateCardButton(
+        {
+          title: "Create from Template",
+          icon: IconProp.Template,
+          buttonStyle: ButtonStyleType.OUTLINE,
+          onClick: async (): Promise<void> => {
+            setShowAnnouncementTemplateModal(true);
+            await fetchAnnouncementTemplates();
+          },
         },
-      },
-      {
-        title: "Create Announcement",
-        onClick: () => {
-          Navigation.navigate(
-            RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route,
-            ),
-          );
+        new StatusPageAnnouncement(),
+        ModelAction.Create,
+      ),
+      PermissionGate.gateCardButton(
+        {
+          title: "Create Announcement",
+          onClick: () => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route,
+              ),
+            );
+          },
+          buttonStyle: ButtonStyleType.NORMAL,
+          icon: IconProp.Add,
         },
-        buttonStyle: ButtonStyleType.NORMAL,
-        icon: IconProp.Add,
-      },
-    ];
+        new StatusPageAnnouncement(),
+        ModelAction.Create,
+      ),
+    ].filter((button: CardButtonSchema | null): boolean => {
+      return button !== null;
+    }) as Array<CardButtonSchema>;
   }
   return (
     <Fragment>

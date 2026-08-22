@@ -332,6 +332,12 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    if (monitorType === MonitorType.SecurityEvents) {
+      options = options.filter((i: DropdownOption) => {
+        return i.value === CheckOn.SecurityEventCount;
+      });
+    }
+
     if (monitorType === MonitorType.Traces) {
       options = options.filter((i: DropdownOption) => {
         return i.value === CheckOn.SpanCount;
@@ -466,9 +472,21 @@ export default class CriteriaFilterUtil {
     if (
       checkOn === CheckOn.LogCount ||
       checkOn === CheckOn.SpanCount ||
+      checkOn === CheckOn.SecurityEventCount ||
       checkOn === CheckOn.MetricValue
     ) {
-      const allowAnomaly: boolean = checkOn === CheckOn.MetricValue;
+      /*
+       * Span/log counts also support the baseline anomaly filters — the
+       * server evaluators (TraceMonitorCriteria / LogMonitorCriteria)
+       * compare the observed per-minute rate to the monitor's scope in
+       * the same-hour-of-week SpanCountBaseline / LogCountBaseline,
+       * mirroring the Metric monitor path. Security events have no
+       * volume baseline yet, so they keep the static comparators only.
+       */
+      const allowAnomaly: boolean =
+        checkOn === CheckOn.MetricValue ||
+        checkOn === CheckOn.LogCount ||
+        checkOn === CheckOn.SpanCount;
       options = options.filter((i: DropdownOption) => {
         const baseStatic: boolean =
           i.value === FilterType.GreaterThan ||
@@ -1002,6 +1020,10 @@ export default class CriteriaFilterUtil {
     }
 
     if (checkOn === CheckOn.LogCount) {
+      return "1";
+    }
+
+    if (checkOn === CheckOn.SecurityEventCount) {
       return "1";
     }
 

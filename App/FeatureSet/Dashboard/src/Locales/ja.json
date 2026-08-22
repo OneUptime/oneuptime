@@ -59,6 +59,8 @@
       "scheduledMaintenanceDescription": "メンテナンスを計画・管理。",
       "logsTitle": "ログ",
       "logsDescription": "ログを検索・分析。",
+      "securityEventsTitle": "Security Events",
+      "securityEventsDescription": "SIEM signals correlated with your observability data.",
       "metricsTitle": "メトリクス",
       "metricsDescription": "サービス全体のシステムメトリクスを監視・可視化。",
       "tracesTitle": "トレース",

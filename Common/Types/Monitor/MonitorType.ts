@@ -34,6 +34,7 @@ enum MonitorType {
   Traces = "Traces",
   Exceptions = "Exceptions",
   Profiles = "Profiles",
+  SecurityEvents = "Security Events",
 
   /*
    * Network device monitoring (SNMP-based). Replaced the retired SNMP
@@ -139,6 +140,7 @@ export class MonitorTypeHelper {
           MonitorType.Metrics,
           MonitorType.Traces,
           MonitorType.Exceptions,
+          MonitorType.SecurityEvents,
           /*
            * MonitorType.Profiles is intentionally not offered here: the
            * dashboard has no configuration form for the profile monitor
@@ -163,6 +165,7 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.Traces ||
       monitorType === MonitorType.Exceptions ||
       monitorType === MonitorType.Profiles ||
+      monitorType === MonitorType.SecurityEvents ||
       monitorType === MonitorType.Kubernetes ||
       monitorType === MonitorType.Docker ||
       monitorType === MonitorType.Host ||
@@ -542,6 +545,22 @@ export class MonitorTypeHelper {
         ],
       },
       {
+        monitorType: MonitorType.SecurityEvents,
+        title: "Security Events",
+        description:
+          "Alert on SIEM signal volume or matching security events from any source.",
+        icon: IconProp.ShieldExclamation,
+        keywords: [
+          "security",
+          "siem",
+          "secops",
+          "chronicle",
+          "ocsf",
+          "detection",
+          "threat",
+        ],
+      },
+      {
         monitorType: MonitorType.Exceptions,
         title: "Exceptions",
         description: "Alert on exceptions and error groups from any source.",
@@ -783,6 +802,7 @@ export class MonitorTypeHelper {
       MonitorType.Traces,
       MonitorType.Exceptions,
       MonitorType.Profiles,
+      MonitorType.SecurityEvents,
       MonitorType.NetworkDevice,
       MonitorType.DNS,
       MonitorType.DNSSEC,

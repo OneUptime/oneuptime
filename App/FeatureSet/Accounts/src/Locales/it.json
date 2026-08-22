@@ -47,6 +47,14 @@
       "securityKeyInstructions": "Segui le istruzioni sul tuo dispositivo a chiave di sicurezza.",
       "codeFieldDescription": "Inserisci il codice dalla tua app di autenticazione",
       "selectDifferentMethod": "Seleziona un metodo di autenticazione a due fattori diverso"
+    },
+    "twoFactorEnrolment": {
+      "title": "Configura l'autenticazione a due fattori",
+      "subtitle": "Il tuo amministratore richiede l'autenticazione a due fattori su questo account. Configurala ora per completare l'accesso.",
+      "scanInstruction": "Scansiona questo codice QR con un'app di autenticazione come Google Authenticator, Microsoft Authenticator o 1Password.",
+      "codeFieldDescription": "Inserisci il codice a sei cifre mostrato dalla tua app di autenticazione.",
+      "submitButton": "Verifica e accedi",
+      "backToSignIn": "Accedi come un altro utente"
     }
   },
   "register": {

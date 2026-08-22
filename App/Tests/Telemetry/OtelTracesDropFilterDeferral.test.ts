@@ -18,6 +18,7 @@ import TraceDropFilterService, {
 } from "../../FeatureSet/Telemetry/Services/TraceDropFilterService";
 import TraceScrubRuleService from "../../FeatureSet/Telemetry/Services/TraceScrubRuleService";
 import TracePipelineService from "../../FeatureSet/Telemetry/Services/TracePipelineService";
+import LlmModelPriceService from "../../FeatureSet/Telemetry/Services/LlmModelPriceService";
 import { compileFilter } from "../../FeatureSet/Telemetry/Utils/LogFilterEvaluator";
 import ExceptionUtil from "../../FeatureSet/Telemetry/Utils/Exception";
 import TraceDropFilter from "Common/Models/DatabaseModels/TraceDropFilter";
@@ -107,6 +108,7 @@ const EXPECTED_SPAN_ROW_KEY_ORDER: Array<string> = [
   "llmOutputTokens",
   "llmTotalTokens",
   "llmCost",
+  "llmConversationId",
   "retentionDate",
 ];
 
@@ -240,6 +242,17 @@ function setupIngestMocks(
     .mockResolvedValue([] as any);
   jest
     .spyOn(TracePipelineService, "loadPipelines")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .mockResolvedValue([] as any);
+  /*
+   * Ingest loads project LLM price overrides alongside the drop/scrub/pipeline
+   * rules in the same Promise.all. Without this mock the real loader hits the
+   * database, the Promise.all rejects, and the catch resets EVERY rule set
+   * (drop filters included) to empty — silently disabling the drop filters
+   * this suite is asserting on.
+   */
+  jest
+    .spyOn(LlmModelPriceService, "loadModelPrices")
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .mockResolvedValue([] as any);
   jest

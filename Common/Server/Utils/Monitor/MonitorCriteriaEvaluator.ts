@@ -10,6 +10,7 @@ import SSLMonitorCriteria from "./Criteria/SSLMonitorCriteria";
 import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
 import SyntheticMonitoringCriteria from "./Criteria/SyntheticMonitor";
 import LogMonitorCriteria from "./Criteria/LogMonitorCriteria";
+import SecurityEventsMonitorCriteria from "./Criteria/SecurityEventsMonitorCriteria";
 import MetricMonitorCriteria, {
   MetricSeriesEvaluationResult,
 } from "./Criteria/MetricMonitorCriteria";
@@ -763,10 +764,23 @@ ${contextBlock}
         await LogMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
+          monitorStep: input.monitorStep,
         });
 
       if (logMonitorResult) {
         return logMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.SecurityEvents) {
+      const securityEventsMonitorResult: string | null =
+        await SecurityEventsMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+        });
+
+      if (securityEventsMonitorResult) {
+        return securityEventsMonitorResult;
       }
     }
 
@@ -798,6 +812,7 @@ ${contextBlock}
         await TraceMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
+          monitorStep: input.monitorStep,
         });
 
       if (traceMonitorResult) {

@@ -6,6 +6,7 @@ enum DashboardChartType {
   Pie = "Pie",
   Heatmap = "Heatmap",
   Histogram = "Histogram",
+  Sankey = "Sankey",
 }
 
 export default DashboardChartType;

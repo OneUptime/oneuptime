@@ -56,6 +56,8 @@ import TraceScrubRuleService from "./TraceScrubRuleService";
 import TracePipelineService, {
   LoadedTracePipeline,
 } from "./TracePipelineService";
+import LlmModelPriceService from "./LlmModelPriceService";
+import { LlmModelPrice } from "Common/Types/Telemetry/LlmCostCatalog";
 import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
 import {
   TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE,
@@ -334,12 +336,15 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       let dropFilters: Array<LoadedTraceDropFilter> = [];
       let scrubRules: Array<CompiledTraceScrubRule> = [];
       let pipelines: Array<LoadedTracePipeline> = [];
+      let modelPriceOverrides: Array<LlmModelPrice> = [];
       try {
-        [dropFilters, scrubRules, pipelines] = await Promise.all([
-          TraceDropFilterService.loadDropFilters(projectId),
-          TraceScrubRuleService.loadScrubRules(projectId),
-          TracePipelineService.loadPipelines(projectId),
-        ]);
+        [dropFilters, scrubRules, pipelines, modelPriceOverrides] =
+          await Promise.all([
+            TraceDropFilterService.loadDropFilters(projectId),
+            TraceScrubRuleService.loadScrubRules(projectId),
+            TracePipelineService.loadPipelines(projectId),
+            LlmModelPriceService.loadModelPrices(projectId),
+          ]);
       } catch (err) {
         logger.warn(
           `Failed to load trace pipeline rules for project ${projectId.toString()}; skipping: ${
@@ -349,6 +354,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         dropFilters = [];
         scrubRules = [];
         pipelines = [];
+        modelPriceOverrides = [];
       }
 
       let resourceSpanCounter: number = 0;
@@ -657,9 +663,13 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                   /*
                    * Denormalize first-class LLM / GenAI / agent fields (if any)
                    * from the span attributes for fast AI-observability queries.
+                   * Project price overrides join the built-in catalog in the
+                   * cost fallback for spans that report tokens but no cost.
                    */
-                  const llmFields: LlmSpanFields =
-                    LlmSpanUtil.extract(spanAttributes);
+                  const llmFields: LlmSpanFields = LlmSpanUtil.extract(
+                    spanAttributes,
+                    modelPriceOverrides,
+                  );
 
                   const spanEvaluationRow: JSONObject =
                     this.buildSpanEvaluationRow({
@@ -1293,6 +1303,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       llmOutputTokens: data.llmFields.llmOutputTokens,
       llmTotalTokens: data.llmFields.llmTotalTokens,
       llmCost: data.llmFields.llmCost,
+      llmConversationId: data.llmFields.llmConversationId,
     };
   }
 

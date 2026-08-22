@@ -59,6 +59,8 @@
       "scheduledMaintenanceDescription": "रखरखाव की योजना बनाएं और प्रबंधित करें।",
       "logsTitle": "लॉग्स",
       "logsDescription": "लॉग्स खोजें और विश्लेषण करें।",
+      "securityEventsTitle": "Security Events",
+      "securityEventsDescription": "SIEM signals correlated with your observability data.",
       "metricsTitle": "मेट्रिक्स",
       "metricsDescription": "अपनी सेवाओं में सिस्टम मेट्रिक्स की निगरानी और विज़ुअलाइज़ करें।",
       "tracesTitle": "ट्रेस",

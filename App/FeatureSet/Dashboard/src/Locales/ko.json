@@ -59,6 +59,8 @@
       "scheduledMaintenanceDescription": "유지 관리를 계획하고 관리하세요.",
       "logsTitle": "로그",
       "logsDescription": "로그를 검색하고 분석하세요.",
+      "securityEventsTitle": "Security Events",
+      "securityEventsDescription": "SIEM signals correlated with your observability data.",
       "metricsTitle": "메트릭",
       "metricsDescription": "서비스 전반의 시스템 메트릭을 모니터링하고 시각화하세요.",
       "tracesTitle": "트레이스",

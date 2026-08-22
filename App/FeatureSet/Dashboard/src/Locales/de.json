@@ -59,6 +59,8 @@
       "scheduledMaintenanceDescription": "Wartung planen und verwalten.",
       "logsTitle": "Protokolle",
       "logsDescription": "Protokolle durchsuchen und analysieren.",
+      "securityEventsTitle": "Security Events",
+      "securityEventsDescription": "SIEM signals correlated with your observability data.",
       "metricsTitle": "Metriken",
       "metricsDescription": "Systemmetriken über Ihre Dienste hinweg überwachen und visualisieren.",
       "tracesTitle": "Traces",

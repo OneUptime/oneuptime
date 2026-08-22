@@ -18,6 +18,7 @@ import "./Jobs/IncidentOwners/SendUnresolvedReminderNotification";
 import "./Jobs/IncidentMembers/SendMemberAddedNotification";
 
 // Incident SLA
+import "./Jobs/Measurement/BackfillMeasurements";
 import "./Jobs/IncidentSla/CheckSlaBreaches";
 import "./Jobs/IncidentSla/SendNoteReminders";
 import "./Jobs/Slo/EvaluateSlos";
@@ -187,8 +188,13 @@ import "./Jobs/AutoRemediation/VerifyRemediations";
 // AI Insights — preventive telemetry scan (deterministic, no LLM).
 import "./Jobs/AIInsight/ScanForInsights";
 
+// LLM observability — daily cost budget evaluation over LLM spans.
+import "./Jobs/Llm/EvaluateLlmCostBudgets";
+
 // Telemetry Monitors.
 import "./Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations";
+import "./Jobs/DetectionRules/EvaluateDetectionRules";
+import "./Jobs/SecurityEvents/PollGoogleSecOpsConnections";
 
 // Instance health and capacity management.
 import "./Jobs/InstanceHealth/EvaluateClickhouseCapacity";

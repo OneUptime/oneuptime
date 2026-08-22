@@ -259,6 +259,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
         {
           link: {
+            title: "Measurements",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERTS_SETTINGS_MEASUREMENTS] as Route,
+            ),
+          },
+          icon: IconProp.Clock,
+        },
+        {
+          link: {
             title: "More Settings",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.ALERTS_SETTINGS_MORE] as Route,

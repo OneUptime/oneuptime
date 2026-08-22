@@ -114,8 +114,12 @@ import TraceSavedView from "./TraceSavedView";
 import LogPipeline from "./LogPipeline";
 import LogPipelineProcessor from "./LogPipelineProcessor";
 import LogDropFilter from "./LogDropFilter";
+import DetectionRule from "./DetectionRule";
+import GoogleSecOpsConnection from "./GoogleSecOpsConnection";
 import LogScrubRule from "./LogScrubRule";
 import MetricPipelineRule from "./MetricPipelineRule";
+import LlmCostBudget from "./LlmCostBudget";
+import LlmModelPrice from "./LlmModelPrice";
 import MetricRecordingRule from "./MetricRecordingRule";
 import TracePipeline from "./TracePipeline";
 import TracePipelineProcessor from "./TracePipelineProcessor";
@@ -368,6 +372,12 @@ import IncidentEpisodeOwnerRule from "./IncidentEpisodeOwnerRule";
 import IncidentEpisodePrivacyRule from "./IncidentEpisodePrivacyRule";
 import IncidentEpisodeLabelRule from "./IncidentEpisodeLabelRule";
 import IncidentSlaRule from "./IncidentSlaRule";
+import IncidentMeasurement from "./IncidentMeasurement";
+import IncidentMeasurementValue from "./IncidentMeasurementValue";
+import AlertMeasurement from "./AlertMeasurement";
+import AlertMeasurementValue from "./AlertMeasurementValue";
+import ScheduledMaintenanceMeasurement from "./ScheduledMaintenanceMeasurement";
+import ScheduledMaintenanceMeasurementValue from "./ScheduledMaintenanceMeasurementValue";
 import IncidentSla from "./IncidentSla";
 import ServiceLevelObjective from "./ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "./ServiceLevelObjectiveBurnRateRule";
@@ -453,8 +463,12 @@ const AllModelTypes: Array<{
   LogPipeline,
   LogPipelineProcessor,
   LogDropFilter,
+  DetectionRule,
+  GoogleSecOpsConnection,
   LogScrubRule,
   MetricPipelineRule,
+  LlmCostBudget,
+  LlmModelPrice,
   MetricRecordingRule,
   TracePipeline,
   TracePipelineProcessor,
@@ -553,6 +567,12 @@ const AllModelTypes: Array<{
   IncidentEpisodePrivacyRule,
   IncidentEpisodeLabelRule,
   IncidentSlaRule,
+  IncidentMeasurement,
+  IncidentMeasurementValue,
+  AlertMeasurement,
+  AlertMeasurementValue,
+  ScheduledMaintenanceMeasurement,
+  ScheduledMaintenanceMeasurementValue,
   IncidentSla,
   ServiceLevelObjective,
   ServiceLevelObjectiveBurnRateRule,

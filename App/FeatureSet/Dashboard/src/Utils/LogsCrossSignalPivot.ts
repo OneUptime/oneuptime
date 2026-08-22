@@ -1,7 +1,9 @@
 import Includes from "Common/Types/BaseDatabase/Includes";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import Search from "Common/Types/BaseDatabase/Search";
 import Query from "Common/Types/BaseDatabase/Query";
 import Dictionary from "Common/Types/Dictionary";
+import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
 import Log from "Common/Models/AnalyticsModels/Log";
 import RumSession from "Common/Models/AnalyticsModels/RumSession";
 import Span from "Common/Models/AnalyticsModels/Span";
@@ -59,8 +61,13 @@ export interface LogsPivotScopeInput {
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
   sessionIds?: Array<string> | undefined;
-  /** Base attribute filters from the host page's logQuery. */
-  attributes?: Record<string, string> | undefined;
+  /*
+   * Base attribute filters from the host page's logQuery. Values are plain
+   * strings only for the implicit `=` operator; every other operator on an
+   * attribute filter row stores an operator instance (`Includes`, `Search`,
+   * ...), which no cross-signal scope field can express.
+   */
+  attributes?: Dictionary<DictionaryEntryValue> | undefined;
   /** Facet chips the user has applied in the sidebar / search bar. */
   appliedFacetFilters: Map<string, Set<string>>;
   /** Current picker selection; preset ranges resolve against "now". */
@@ -79,6 +86,13 @@ export interface LogsPivotScopeResult {
 }
 
 const ATTRIBUTE_FACET_PREFIX: string = "attributes.";
+
+/*
+ * The one top-level column whose facet chip is a contains-match rather than
+ * an equality. Shared with CrossSignalScope's logs serializer, which emits
+ * chips under this key for a `bodyContains` scope.
+ */
+export const BODY_FACET_KEY: string = "body";
 
 function mergeUnique(
   base: Array<string> | undefined,
@@ -139,9 +153,23 @@ export const buildLogsPivotScope: BuildLogsPivotScopeFunction = (
   const attributes: Dictionary<string> = {};
 
   for (const [key, value] of Object.entries(input.attributes || {})) {
-    if (key && value) {
-      attributes[key] = value;
+    if (!key || !value) {
+      continue;
     }
+
+    /*
+     * The scope's attribute filters are exact single-value matches, so an
+     * operator filter (`contains`, `is any of`, `is empty`, ...) has no
+     * representation. Report it dropped rather than stringifying the operator
+     * object into the target explorer's query params, where it arrived as
+     * "[object Object]" and silently matched nothing.
+     */
+    if (typeof value === "object") {
+      dropped.push(`${ATTRIBUTE_FACET_PREFIX}${key}`);
+      continue;
+    }
+
+    attributes[key] = String(value);
   }
 
   const knownFacetKeys: Set<string> = new Set<string>([
@@ -342,6 +370,11 @@ type ApplyLogsFacetFiltersToQueryFunction = (
  *    primary entity at all. Each facet is its own AND group, so a cluster
  *    and a service intersect;
  *  - `attributes.<key>` facets land under `query.attributes[<key>]`;
+ *  - a `body` facet compiles to a CONTAINS match, not equality — a message
+ *    filter is only ever a substring of the line, and equality on a body
+ *    carrying a timestamp or a request id matches nothing. This is what
+ *    lets an Insights "Top Errors" row deep-link to the raw occurrences it
+ *    counted;
  *  - every other facet key is a top-level column predicate;
  *  - single values compile to equality, multiple to Includes.
  */
@@ -371,6 +404,17 @@ export const applyLogsFacetFiltersToQuery: ApplyLogsFacetFiltersToQueryFunction 
 
       // Both resource groups are compiled above.
       if (isResourceFacetKey(key)) {
+        continue;
+      }
+
+      /*
+       * Body is a free-text predicate, so multiple values cannot be an
+       * Includes (that is an exact-set match). The first value wins — the
+       * chip UI only ever sets one, and a second would silently widen the
+       * result rather than narrow it.
+       */
+      if (key === BODY_FACET_KEY) {
+        (query as any).body = new Search(Array.from(values)[0]!);
         continue;
       }
 
