@@ -1,5 +1,3 @@
-import AlertSeverity from "./AlertSeverity";
-import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Project from "./Project";
 import Service from "./Service";
 import User from "./User";
@@ -21,15 +19,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
-import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  JoinTable,
-  ManyToMany,
-  ManyToOne,
-} from "typeorm";
+import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import { ValueTransformer } from "typeorm/decorator/options/ValueTransformer";
 
 /*
@@ -80,7 +70,7 @@ const decimalTransformer: ValueTransformer = {
   pluralName: "LLM Cost Budgets",
   icon: IconProp.CurrencyDollar,
   tableDescription:
-    "Daily USD spend budgets for LLM / GenAI telemetry. A worker sums the day's LLM span cost and raises alerts when spend crosses the warning and breach thresholds.",
+    "Daily USD spend budgets for LLM / GenAI telemetry. A worker sums the day's LLM span cost and publishes it as the oneuptime.llm.budget.* metrics, so Metrics monitors, dashboards and anomaly detection can act on spend.",
 })
 @TableAccessControl({
   create: [
@@ -320,7 +310,7 @@ export default class LlmCostBudget extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Daily Budget (USD)",
     description:
-      "Daily LLM spend budget in USD, evaluated over the UTC day. Alerts fire at the warning threshold and at 100%.",
+      "Daily LLM spend budget in USD, evaluated over the UTC day. Spend and percent-used are published as metrics for monitors to alert on.",
   })
   @Column({
     nullable: false,
@@ -328,44 +318,6 @@ export default class LlmCostBudget extends BaseModel {
     transformer: decimalTransformer,
   })
   public dailyBudgetInUSD?: number = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateProjectLlmCostBudget,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.TelemetryAdmin,
-      Permission.TelemetryMember,
-      Permission.TelemetryViewer,
-      Permission.ReadProjectLlmCostBudget,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditProjectLlmCostBudget,
-    ],
-  })
-  @TableColumn({
-    required: true,
-    type: TableColumnType.Number,
-    title: "Warning Threshold (%)",
-    description:
-      "Percentage of the daily budget at which a warning alert is raised (1-99). A breach alert always fires at 100%.",
-    defaultValue: 80,
-    isDefaultValueColumn: true,
-  })
-  @Column({
-    type: ColumnType.Number,
-    nullable: false,
-    default: 80,
-  })
-  public warningThresholdPercent?: number = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -525,136 +477,6 @@ export default class LlmCostBudget extends BaseModel {
   public llmModel?: string = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateProjectLlmCostBudget,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.TelemetryAdmin,
-      Permission.TelemetryMember,
-      Permission.TelemetryViewer,
-      Permission.ReadProjectLlmCostBudget,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditProjectLlmCostBudget,
-    ],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "alertSeverityId",
-    type: TableColumnType.Entity,
-    modelType: AlertSeverity,
-    title: "Alert Severity",
-    description:
-      "Severity of the alerts created when this budget crosses a threshold. Defaults to the project's lowest-order severity when unset.",
-  })
-  @ManyToOne(
-    () => {
-      return AlertSeverity;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "alertSeverityId" })
-  public alertSeverity?: AlertSeverity = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateProjectLlmCostBudget,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.TelemetryAdmin,
-      Permission.TelemetryMember,
-      Permission.TelemetryViewer,
-      Permission.ReadProjectLlmCostBudget,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditProjectLlmCostBudget,
-    ],
-  })
-  @Index()
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    required: false,
-    title: "Alert Severity ID",
-    description:
-      "ID of the Alert Severity of the alerts created by this budget.",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public alertSeverityId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateProjectLlmCostBudget,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.TelemetryAdmin,
-      Permission.TelemetryMember,
-      Permission.TelemetryViewer,
-      Permission.ReadProjectLlmCostBudget,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditProjectLlmCostBudget,
-    ],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.EntityArray,
-    modelType: OnCallDutyPolicy,
-    title: "On-Call Duty Policies",
-    description:
-      "On-call duty policies to execute when this budget raises an alert.",
-  })
-  @ManyToMany(
-    () => {
-      return OnCallDutyPolicy;
-    },
-    { eager: false },
-  )
-  @JoinTable({
-    name: "LlmCostBudgetOnCallDutyPolicy",
-    inverseJoinColumn: {
-      name: "onCallDutyPolicyId",
-      referencedColumnName: "_id",
-    },
-    joinColumn: {
-      name: "llmCostBudgetId",
-      referencedColumnName: "_id",
-    },
-  })
-  public onCallDutyPolicies?: Array<OnCallDutyPolicy> = undefined;
-
-  @ColumnAccessControl({
     create: [],
     read: [
       Permission.ProjectOwner,
@@ -708,60 +530,6 @@ export default class LlmCostBudget extends BaseModel {
     nullable: true,
   })
   public spendLastEvaluatedAt?: Date = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.TelemetryAdmin,
-      Permission.TelemetryMember,
-      Permission.TelemetryViewer,
-      Permission.ReadProjectLlmCostBudget,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.Date,
-    required: false,
-    title: "Last Warning Alert Created At",
-    description:
-      "The last time this budget raised a warning-threshold alert. Computed by the worker.",
-  })
-  @Column({
-    type: ColumnType.Date,
-    nullable: true,
-  })
-  public lastWarningAlertCreatedAt?: Date = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.TelemetryAdmin,
-      Permission.TelemetryMember,
-      Permission.TelemetryViewer,
-      Permission.ReadProjectLlmCostBudget,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.Date,
-    required: false,
-    title: "Last Breach Alert Created At",
-    description:
-      "The last time this budget raised a 100% breach alert. Computed by the worker.",
-  })
-  @Column({
-    type: ColumnType.Date,
-    nullable: true,
-  })
-  public lastBreachAlertCreatedAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: [],

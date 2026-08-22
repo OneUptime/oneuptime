@@ -2,14 +2,17 @@ import axios, { AxiosError } from "axios";
 import {
   LinkedInApiVersion,
   LinkedInConversionsAccessToken,
+  LinkedInMeetingBookedConversionId,
   LinkedInPaidSubscriptionConversionId,
   LinkedInSignUpConversionId,
 } from "../../../EnvironmentConfig";
 import ConversionUploadProvider, {
   ConversionSkip,
+  ConversionTypeMapping,
   ConversionUploadBatchResult,
 } from "../ConversionUploadProvider";
 import { JSONObject } from "../../../../Types/JSON";
+import { MarketingConversionType } from "../../../../Types/Marketing/MarketingConversion";
 import MarketingConversion from "../../../../Models/DatabaseModels/MarketingConversion";
 
 const REQUEST_TIMEOUT_MS: number = 30000;
@@ -18,11 +21,12 @@ const REQUEST_TIMEOUT_MS: number = 30000;
 const LINKEDIN_MAX_CONVERSION_AGE_IN_DAYS: number = 90;
 
 /*
- * LinkedIn Conversions API (api.linkedin.com/rest/conversionEvents) using
- * the li_fat_id first-party click id. Conversion rules are referenced by
- * urn:lla:llaPartnerConversion:{id}. Events are posted one at a time (small
- * volumes); auth-level failures abort the batch for retry, other per-event
- * rejections are recorded as permanent.
+ * LinkedIn Conversions API (api.linkedin.com/rest/conversionEvents) matching
+ * on the li_fat_id first-party click id, a SHA-256 email, or both — LinkedIn
+ * accepts several userIds and resolves whichever it can. Conversion rules are
+ * referenced by urn:lla:llaPartnerConversion:{id}. Events are posted one at a
+ * time (small volumes); auth-level failures abort the batch for retry, other
+ * per-event rejections are recorded as permanent.
  *
  * Note: LinkedIn access tokens expire (typically 60 days) — the token in
  * LINKEDIN_CONVERSIONS_ACCESS_TOKEN must be rotated externally.
@@ -44,9 +48,9 @@ export default class LinkedInProvider extends ConversionUploadProvider {
   protected override getProviderSkipReason(
     conversion: MarketingConversion,
   ): ConversionSkip | null {
-    if (!this.getClickId(conversion, "li_fat_id")) {
+    if (this.getUserIds(conversion).length === 0) {
       return {
-        reason: "No LinkedIn click id (li_fat_id)",
+        reason: "No LinkedIn click id (li_fat_id) and no email to match on",
         isPermanent: true,
       };
     }
@@ -71,9 +75,48 @@ export default class LinkedInProvider extends ConversionUploadProvider {
   }
 
   private getConversionRuleId(conversion: MarketingConversion): string {
-    return this.isSignUp(conversion)
-      ? LinkedInSignUpConversionId
-      : LinkedInPaidSubscriptionConversionId;
+    const mapping: ConversionTypeMapping<string> = {
+      [MarketingConversionType.SignUp]: LinkedInSignUpConversionId,
+      [MarketingConversionType.MeetingBooked]:
+        LinkedInMeetingBookedConversionId,
+      [MarketingConversionType.PaidSubscription]:
+        LinkedInPaidSubscriptionConversionId,
+    };
+
+    return this.resolveByConversionType(conversion, mapping) || "";
+  }
+
+  /*
+   * Every identifier LinkedIn can resolve this person by. Sending both when
+   * both exist raises the match rate; sending only the email is how a demo
+   * booked on one device and a licence signed on another are still joined to
+   * the click that started it.
+   */
+  private getUserIds(conversion: MarketingConversion): Array<JSONObject> {
+    const userIds: Array<JSONObject> = [];
+
+    const clickId: string | undefined = this.getClickId(
+      conversion,
+      "li_fat_id",
+    );
+
+    if (clickId) {
+      userIds.push({
+        idType: "LINKEDIN_FIRST_PARTY_ADS_TRACKING_UUID",
+        idValue: clickId,
+      });
+    }
+
+    const hashedEmail: string | undefined = this.getHashedEmail(conversion);
+
+    if (hashedEmail) {
+      userIds.push({
+        idType: "SHA256_EMAIL",
+        idValue: hashedEmail,
+      });
+    }
+
+    return userIds;
   }
 
   public override async upload(
@@ -92,12 +135,7 @@ export default class LinkedInProvider extends ConversionUploadProvider {
         // Dedup key: a retried batch must not double-count conversions.
         eventId: conversion.id!.toString(),
         user: {
-          userIds: [
-            {
-              idType: "LINKEDIN_FIRST_PARTY_ADS_TRACKING_UUID",
-              idValue: this.getClickId(conversion, "li_fat_id") || "",
-            },
-          ],
+          userIds: this.getUserIds(conversion),
         },
       };
 

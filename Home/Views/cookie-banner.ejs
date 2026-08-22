@@ -23,18 +23,51 @@
     </div>
 </div>
 
+<!--
+    The buttons here are the only thing that moves the consent state.
+
+    They used to write `cookiesAccepted` to localStorage and hide the banner,
+    and nothing anywhere read the value: Google Tag Manager, PostHog and the
+    attribution capture all ran identically whether the visitor pressed Accept,
+    pressed Reject, or never saw the banner. "Reject all" rejected nothing.
+
+    Both buttons now go through window.oneUptimeConsent (defined in
+    head-basic.ejs, before the tags load), which is what actually writes the
+    key, pushes the Consent Mode v2 update to Google, and tells the attribution
+    capture to either store what it has been holding or forget what it knows.
+-->
 <script>
+    function setCookieConsent(granted) {
+        /*
+         * head-basic.ejs is included by every page that includes this banner,
+         * so the helper is always there. Falling back to the raw write keeps a
+         * page that somehow omits it from silently losing the visitor's answer.
+         */
+        if (window.oneUptimeConsent) {
+            if (granted) {
+                window.oneUptimeConsent.grant();
+            } else {
+                window.oneUptimeConsent.deny();
+            }
+        } else {
+            try {
+                localStorage.setItem('cookiesAccepted', granted ? 'true' : 'false');
+            } catch (e) {
+                // Storage unavailable; the banner still closes for this page.
+            }
+        }
+
+        hideBanner();
+    }
+
     // Function to accept cookies
     function acceptCookies() {
-        localStorage.setItem('cookiesAccepted', 'true');
-        hideBanner();
-
+        setCookieConsent(true);
     }
 
     // Function to reject cookies
     function rejectCookies() {
-        localStorage.setItem('cookiesAccepted', 'false');
-        hideBanner();
+        setCookieConsent(false);
     }
 
     // Function to hide the banner
@@ -48,13 +81,17 @@
     }
 
     function checkCookies () {
-        var cookiesAccepted = localStorage.getItem('cookiesAccepted');
-        if (cookiesAccepted === 'true') {
-            hideBanner();
-        } else if (cookiesAccepted === 'false') {
-            hideBanner();
-        } else {
+        /*
+         * Shown only while the visitor has not answered. `granted` and
+         * `denied` are both answers — re-asking someone who declined is how a
+         * consent banner turns into a dark pattern.
+         */
+        var state = window.oneUptimeConsent ? window.oneUptimeConsent.state() : 'unset';
+
+        if (state === 'unset') {
             showBanner();
+        } else {
+            hideBanner();
         }
     };
 

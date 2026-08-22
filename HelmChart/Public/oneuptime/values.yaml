@@ -976,9 +976,14 @@ analytics:
   key:
 
 # Offline ad conversion uploads (optional, SaaS only). The MarketingConversions
-# worker job uploads ad-attributed signups and paid subscriptions to ad
-# platforms using click IDs stored at signup. All values are server-only
-# secrets and are never exposed to frontends.
+# worker job uploads ad-attributed conversions — signups, booked meetings,
+# enterprise licence requests and paid subscriptions — to ad platforms, matching
+# on the click ID the visitor carried or on a hashed email. All values are
+# server-only secrets and are never exposed to frontends.
+#
+# Each conversion type needs its own conversion action on each platform. A type
+# left unconfigured is not uploaded under another type's action: its rows stay
+# pending until an id is set.
 marketing:
   googleAds:
     developerToken:
@@ -993,6 +998,14 @@ marketing:
     # Numeric conversion action ids (Google Ads > Goals > Conversions).
     signUpConversionActionId:
     paidSubscriptionConversionActionId:
+    meetingBookedConversionActionId:
+    # Enhanced conversions for leads: upload a conversion identified ONLY by a
+    # hashed email, with no gclid. This is what attributes a sales-led deal
+    # months after the click. It requires the Google Ads account to have
+    # enhanced conversions for leads enabled and the conversion action
+    # configured for it, so it is off by default. Sending a hashed email
+    # ALONGSIDE a click id needs no flag and always happens.
+    enhancedConversionsForLeadsEnabled: false
   metaConversions:
     pixelId:
     accessToken:
@@ -1007,6 +1020,7 @@ marketing:
     # Offline conversion goal names as configured in Microsoft Advertising.
     signUpConversionName:
     paidSubscriptionConversionName:
+    meetingBookedConversionName:
   linkedInConversions:
     # LinkedIn access tokens expire (typically 60 days) and must be rotated.
     accessToken:
@@ -1014,6 +1028,7 @@ marketing:
     # Numeric conversion rule ids (urn:lla:llaPartnerConversion:{id}).
     signUpConversionId:
     paidSubscriptionConversionId:
+    meetingBookedConversionId:
   redditAds:
     oauthClientId:
     oauthClientSecret:

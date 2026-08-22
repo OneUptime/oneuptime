@@ -10,27 +10,42 @@ import MicrosoftAdsProvider from "../../../../Server/Utils/Marketing/Providers/M
 import RedditAdsProvider from "../../../../Server/Utils/Marketing/Providers/Reddit";
 import {
   AdUploadableMarketingConversionTypes,
+  LeadMarketingConversionTypes,
   MarketingConversionType,
 } from "../../../../Types/Marketing/MarketingConversion";
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
-import { SpyInstance } from "jest-mock";
+import { beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * ---------------------------------------------------------------------------
- * Which conversion types may be uploaded to an ad platform at all.
+ * Which conversion types may be uploaded to an ad platform, and as what.
  *
- * Every provider chooses its platform conversion action with a two-way branch:
+ * THE HAZARD THIS GUARDS
+ *
+ * Providers used to choose their platform conversion action with a two-way
+ * branch:
  *
  *     this.isSignUp(conversion) ? signUpAction : paidSubscriptionAction
  *
- * There is no third arm. So a conversion type nobody wrote a mapping for --
- * MeetingBooked being the first one -- does not get skipped by that branch, it
- * gets uploaded to Google, Meta, Microsoft, LinkedIn and Reddit as a PURCHASE,
- * carrying whatever revenue the ledger row happens to hold. Every downstream
- * bid model then optimises against a booking that bought nothing.
+ * There was no third arm, so a conversion type nobody had written a mapping
+ * for did not get skipped by that branch — it was uploaded to Google, Meta,
+ * Microsoft, LinkedIn and Reddit as a PURCHASE carrying whatever revenue the
+ * row happened to hold. The old defence was to keep such types out of the
+ * uploadable allowlist entirely, which kept sales-led conversions out of the
+ * ad platforms altogether.
  *
- * The screen is therefore in the base class, ahead of every provider hook,
- * where no provider and no call site can route around it.
+ * They are in the allowlist now, and the defence is structural instead: every
+ * provider resolves its action through a Record over the conversion-type enum,
+ * which the compiler will not accept unless every member is named. What is
+ * left for these tests is everything the type system cannot see:
+ *
+ *   - the column is a plain varchar, so a value that is not a known type at
+ *     all must still be refused, permanently, before any provider sees it;
+ *   - an unconfigured mapping must leave the row PENDING, not discard it —
+ *     the difference between "we have not set this up yet" and "this can never
+ *     be uploaded";
+ *   - a lead (a booked meeting, a licence request) must never carry revenue to
+ *     any platform, whatever the row says, or bid models optimise towards
+ *     demos that buy nothing.
  * ---------------------------------------------------------------------------
  */
 
@@ -55,6 +70,10 @@ class TestProvider extends ConversionUploadProvider {
     _conversions: Array<MarketingConversion>,
   ): Promise<ConversionUploadBatchResult> {
     return { permanentFailures: new Map<number, string>() };
+  }
+
+  public readValueInUSD(conversion: MarketingConversion): number | undefined {
+    return this.getValueInUSD(conversion);
   }
 }
 
@@ -82,28 +101,38 @@ const makeConversion: MakeConversionFunction = (
 
 describe("ad-uploadable conversion types", () => {
   describe("the allowlist itself", () => {
-    test("covers exactly the types every provider has a mapping for", () => {
-      expect(AdUploadableMarketingConversionTypes).toEqual([
-        MarketingConversionType.SignUp,
-        MarketingConversionType.PaidSubscription,
-      ]);
+    /*
+     * Every type is uploadable now, which is only safe because every provider
+     * maps every type. If a type is ever removed from this list again, that is
+     * a deliberate "no platform should hear about this" decision and should be
+     * spelled out here.
+     */
+    test("covers every conversion type the ledger records", () => {
+      expect([...AdUploadableMarketingConversionTypes].sort()).toEqual(
+        [...Object.values(MarketingConversionType)].sort(),
+      );
     });
 
     /*
-     * This is the assertion that fails when someone adds a conversion type.
-     * That failure is the prompt to write the per-provider mapping before
-     * adding the type to the allowlist -- not to update this expectation.
+     * A booked meeting is the ONLY sales-led conversion. Asking about an
+     * enterprise licence and booking an architecture assessment are the same
+     * conversation reached through the same Cal embed, so they are the same
+     * conversion — not two types that would split the signal in reporting and
+     * need separate conversion actions on five platforms.
      */
-    test("does not silently grow when a conversion type is added", () => {
-      const unlisted: Array<string> = Object.values(
-        MarketingConversionType,
-      ).filter((type: string) => {
-        return !AdUploadableMarketingConversionTypes.includes(
-          type as MarketingConversionType,
-        );
-      });
+    test("classifies a booked meeting as the only sales-led step", () => {
+      expect(LeadMarketingConversionTypes).toEqual([
+        MarketingConversionType.MeetingBooked,
+      ]);
+    });
 
-      expect(unlisted).toEqual([MarketingConversionType.MeetingBooked]);
+    test("never classifies a completed transaction as a lead", () => {
+      expect(LeadMarketingConversionTypes).not.toContain(
+        MarketingConversionType.SignUp,
+      );
+      expect(LeadMarketingConversionTypes).not.toContain(
+        MarketingConversionType.PaidSubscription,
+      );
     });
   });
 
@@ -114,41 +143,19 @@ describe("ad-uploadable conversion types", () => {
       provider = new TestProvider();
     });
 
-    test("permanently skips a conversion type with no ad platform mapping", () => {
-      const skip: ConversionSkip | null = provider.getSkipReason(
-        makeConversion({
-          conversionType: MarketingConversionType.MeetingBooked,
-        }),
-      );
-
-      expect(skip).toEqual({
-        reason:
-          "Conversion type MeetingBooked has no ad platform conversion mapping",
-        isPermanent: true,
-      });
-    });
-
-    test("never lets the provider see an unmapped conversion type", () => {
-      provider.getSkipReason(
-        makeConversion({
-          conversionType: MarketingConversionType.MeetingBooked,
-        }),
-      );
-
-      expect(provider.providerSkipCalls).toBe(0);
-    });
-
     test.each([
       ["an unknown type", "SomethingElse"],
       ["an empty type", ""],
       ["a lookalike with different casing", "meetingbooked"],
       ["a lookalike with different casing", "signup"],
+      ["a lookalike with different casing", "enterpriselicenserequested"],
     ])("permanently skips %s", (_label: string, conversionType: string) => {
       const skip: ConversionSkip | null = provider.getSkipReason(
         makeConversion({ conversionType: conversionType }),
       );
 
       expect(skip?.isPermanent).toBe(true);
+      // The provider is never consulted about a type the ledger cannot name.
       expect(provider.providerSkipCalls).toBe(0);
     });
 
@@ -162,10 +169,7 @@ describe("ad-uploadable conversion types", () => {
       });
     });
 
-    test.each([
-      [MarketingConversionType.SignUp],
-      [MarketingConversionType.PaidSubscription],
-    ])(
+    test.each(Object.values(MarketingConversionType))(
       "delegates %s to the provider",
       (conversionType: MarketingConversionType) => {
         expect(
@@ -190,12 +194,51 @@ describe("ad-uploadable conversion types", () => {
     });
   });
 
+  describe("lead conversions never carry revenue", () => {
+    const provider: TestProvider = new TestProvider();
+
+    test.each(LeadMarketingConversionTypes)(
+      "%s reports no value even when the row holds one",
+      (conversionType: MarketingConversionType) => {
+        /*
+         * A row can legitimately hold a value here — nothing stops an operator
+         * assigning an estimated pipeline value to a booked meeting — and the
+         * platform still must not be told it as revenue.
+         */
+        expect(
+          provider.readValueInUSD(
+            makeConversion({
+              conversionType: conversionType,
+              conversionValueInUSDCents: 500000,
+            }),
+          ),
+        ).toBeUndefined();
+      },
+    );
+
+    test("a paid subscription still reports its value", () => {
+      expect(
+        provider.readValueInUSD(
+          makeConversion({
+            conversionType: MarketingConversionType.PaidSubscription,
+            conversionValueInUSDCents: 500000,
+          }),
+        ),
+      ).toBe(5000);
+    });
+  });
+
   /*
-   * The screen is exercised through the real providers too: the guard living
-   * in the base class is only worth anything if no provider has quietly
-   * overridden getSkipReason back.
+   * Exercised through the real providers too: a structural guarantee in the
+   * base class is only worth something if no provider has quietly overridden
+   * getSkipReason back.
+   *
+   * These run with no ad-platform environment configured, which is the state a
+   * fresh checkout and CI are in — so what they assert is the behaviour of an
+   * UNCONFIGURED deployment, which is where the dangerous failure mode lives:
+   * a row silently thrown away is unrecoverable, a row left pending is not.
    */
-  describe("every shipped provider", () => {
+  describe("every shipped provider, unconfigured", () => {
     const providers: Array<[string, ConversionUploadProvider]> = [
       ["Google Ads", new GoogleAdsProvider()],
       ["Meta", new MetaProvider()],
@@ -205,7 +248,32 @@ describe("ad-uploadable conversion types", () => {
     ];
 
     test.each(providers)(
-      "%s permanently skips a booked meeting that carries its click id",
+      "%s still permanently refuses an unknown conversion type",
+      (_name: string, provider: ConversionUploadProvider) => {
+        expect(
+          provider.getSkipReason(
+            makeConversion({ conversionType: "NotARealType" }),
+          ),
+        ).toEqual({
+          reason:
+            "Conversion type NotARealType has no ad platform conversion mapping",
+          isPermanent: true,
+        });
+      },
+    );
+
+    /*
+     * Google, Microsoft and LinkedIn each need an operator-supplied conversion
+     * action per type. Unset, that is a config gap: the row waits.
+     */
+    const configuredByOperator: Array<[string, ConversionUploadProvider]> = [
+      ["Google Ads", new GoogleAdsProvider()],
+      ["Microsoft Ads", new MicrosoftAdsProvider()],
+      ["LinkedIn", new LinkedInProvider()],
+    ];
+
+    test.each(configuredByOperator)(
+      "%s leaves a booked meeting pending rather than discarding it",
       (_name: string, provider: ConversionUploadProvider) => {
         const skip: ConversionSkip | null = provider.getSkipReason(
           makeConversion({
@@ -213,41 +281,34 @@ describe("ad-uploadable conversion types", () => {
           }),
         );
 
-        expect(skip).toEqual({
-          reason:
-            "Conversion type MeetingBooked has no ad platform conversion mapping",
-          isPermanent: true,
-        });
+        expect(skip).not.toBeNull();
+        expect(skip?.isPermanent).toBe(false);
+        expect(skip?.reason).toMatch(/conversion (action id|name|rule id)/i);
       },
     );
 
-    test.each(providers)(
-      "%s never uploads a booked meeting as a purchase",
-      async (_name: string, provider: ConversionUploadProvider) => {
-        const meeting: MarketingConversion = makeConversion({
-          conversionType: MarketingConversionType.MeetingBooked,
-          conversionValueInUSDCents: 500000,
-        });
-        const uploadSpy: SpyInstance<
-          (
-            conversions: Array<MarketingConversion>,
-          ) => Promise<ConversionUploadBatchResult>
-        > = jest.spyOn(provider, "upload");
-        uploadSpy.mockResolvedValue({
-          permanentFailures: new Map<number, string>(),
-        } as never);
+    /*
+     * Meta and Reddit name their events with platform constants rather than an
+     * operator-configured id, so there is nothing to be missing: a booked
+     * meeting is uploadable as soon as it has an identifier.
+     */
+    const selfDescribing: Array<[string, ConversionUploadProvider]> = [
+      ["Meta", new MetaProvider()],
+      ["Reddit Ads", new RedditAdsProvider()],
+    ];
 
-        /*
-         * The worker only ever calls upload() for conversions getSkipReason
-         * cleared, so a permanent skip is exactly "this never reaches the
-         * platform".
-         */
-        if (!provider.getSkipReason(meeting)) {
-          await provider.upload([meeting]);
-        }
-
-        expect(uploadSpy).not.toHaveBeenCalled();
-        uploadSpy.mockRestore();
+    test.each(selfDescribing)(
+      "%s accepts a booked meeting outright",
+      (_name: string, provider: ConversionUploadProvider) => {
+        expect(
+          provider.getSkipReason(
+            makeConversion({
+              conversionType: MarketingConversionType.MeetingBooked,
+              // Inside Meta's and Reddit's 7-day window.
+              conversionAt: new Date(),
+            }),
+          ),
+        ).toBeNull();
       },
     );
   });

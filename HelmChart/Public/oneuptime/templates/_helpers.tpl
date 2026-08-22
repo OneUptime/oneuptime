@@ -214,6 +214,10 @@ its userlist at startup.
   value: {{ default "" ((($.Values.marketing).googleAds).signUpConversionActionId) | quote }}
 - name: GOOGLE_ADS_PAID_SUBSCRIPTION_CONVERSION_ACTION_ID
   value: {{ default "" ((($.Values.marketing).googleAds).paidSubscriptionConversionActionId) | quote }}
+- name: GOOGLE_ADS_MEETING_BOOKED_CONVERSION_ACTION_ID
+  value: {{ default "" ((($.Values.marketing).googleAds).meetingBookedConversionActionId) | quote }}
+- name: GOOGLE_ADS_ENHANCED_CONVERSIONS_FOR_LEADS_ENABLED
+  value: {{ ternary "true" "false" (default false ((($.Values.marketing).googleAds).enhancedConversionsForLeadsEnabled)) | quote }}
 - name: META_CONVERSIONS_PIXEL_ID
   value: {{ default "" ((($.Values.marketing).metaConversions).pixelId) | quote }}
 - name: META_CONVERSIONS_ACCESS_TOKEN
@@ -236,6 +240,8 @@ its userlist at startup.
   value: {{ default "" ((($.Values.marketing).microsoftAds).signUpConversionName) | quote }}
 - name: MICROSOFT_ADS_PAID_SUBSCRIPTION_CONVERSION_NAME
   value: {{ default "" ((($.Values.marketing).microsoftAds).paidSubscriptionConversionName) | quote }}
+- name: MICROSOFT_ADS_MEETING_BOOKED_CONVERSION_NAME
+  value: {{ default "" ((($.Values.marketing).microsoftAds).meetingBookedConversionName) | quote }}
 - name: LINKEDIN_CONVERSIONS_ACCESS_TOKEN
   value: {{ default "" ((($.Values.marketing).linkedInConversions).accessToken) | quote }}
 - name: LINKEDIN_API_VERSION
@@ -244,6 +250,8 @@ its userlist at startup.
   value: {{ default "" ((($.Values.marketing).linkedInConversions).signUpConversionId) | quote }}
 - name: LINKEDIN_PAID_SUBSCRIPTION_CONVERSION_ID
   value: {{ default "" ((($.Values.marketing).linkedInConversions).paidSubscriptionConversionId) | quote }}
+- name: LINKEDIN_MEETING_BOOKED_CONVERSION_ID
+  value: {{ default "" ((($.Values.marketing).linkedInConversions).meetingBookedConversionId) | quote }}
 - name: REDDIT_ADS_OAUTH_CLIENT_ID
   value: {{ default "" ((($.Values.marketing).redditAds).oauthClientId) | quote }}
 - name: REDDIT_ADS_OAUTH_CLIENT_SECRET

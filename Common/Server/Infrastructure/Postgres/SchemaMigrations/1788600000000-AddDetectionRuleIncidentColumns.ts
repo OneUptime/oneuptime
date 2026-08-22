@@ -8,10 +8,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * on severity delete matches the alert pair: losing a severity should
  * degrade the rule to level-based mapping, not delete it.
  */
-export class AddDetectionRuleIncidentColumns1788400000000
+export class AddDetectionRuleIncidentColumns1788600000000
   implements MigrationInterface
 {
-  public name: string = "AddDetectionRuleIncidentColumns1788400000000";
+  public name: string = "AddDetectionRuleIncidentColumns1788600000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

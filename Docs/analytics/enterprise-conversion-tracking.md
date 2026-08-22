@@ -11,14 +11,24 @@ platforms.
 | A meeting was booked                                      | `MarketingConversion` ledger                       | Written only after a signature-verified Cal `BOOKING_CREATED` webhook. Browser events are supporting diagnostics, not proof of conversion. |
 | Booking details                                           | Cal.com                                            | The webhook supplies the booking identifier and time. Copied browser payloads are not authoritative.                                       |
 | Contact, account, deal, qualification, and pipeline stage | Native Revenue                                     | A meeting conversion does not create, qualify, or advance Revenue records.                                                                 |
-| First-touch acquisition                                   | OneUptime's persisted first-touch attribution      | Joining it to a booking is blocked until the Cal metadata contract is confirmed.                                                           |
+| Campaign attribution for a conversion                     | `MarketingConversion` utm\* columns + `clickIds`   | Copied from the User/Project, or read from Cal booking metadata. Reportable without asking an ad platform.                                  |
+| First-touch acquisition                                   | `MarketingConversion.firstTouchAttribution`        | The visitor's first attributed visit, carried through the same doors as last touch.                                                        |
+| Which conversions belong to one person                    | `MarketingConversion.emailHash`                    | SHA-256 of the normalized email. `attributedToConversionId` points every conversion at the first one that person made.                      |
 | Web analytics                                             | GA4 / PostHog / GTM                                | Useful for aggregate funnel analysis and client-side diagnostics. Never the authoritative conversion ledger.                               |
 | Ad-platform conversion state                              | `MarketingConversion.uploadState` and the provider | Only conversion types with an explicit provider mapping may be uploaded.                                                                   |
 
-`POST /api/cal-webhook` is the trust boundary. Cal signs the exact request
-bytes, the App verifies them, and only then does the App write the ledger.
-Analytics and ad-platform delivery are best-effort consumers downstream of
-that; neither may block booking or Revenue workflows.
+`POST /api/cal-webhook` is the trust boundary for a booking. Cal signs the exact
+request bytes, the App verifies them, and only then does the App write the
+ledger. Analytics and ad-platform delivery are best-effort consumers downstream
+of that; neither may block booking or Revenue workflows.
+
+There is exactly one door into a sales-led conversion, and it is that webhook.
+The enterprise licence conversation is not a separate conversion type: asking
+about a licence and booking an architecture assessment are the same
+conversation, so `/enterprise/self-hosted` books through the same Cal embed and
+the same verified webhook as `/enterprise/demo`. One type, one flow, one thing
+to keep working — rather than a second public endpoint, a second conversion
+action on five ad platforms, and a signal split across two names.
 
 ## Canonical `meeting_booked` semantics
 
@@ -105,47 +115,150 @@ Consequences:
 - Do not change `cal.com/booking`. Re-keying would make every booking already
   in the ledger insertable a second time.
 
-## Privacy and attribution
+## Attribution into and out of a booking
 
-The webhook parser retains only allowlisted click-ID keys, read from
+The demo embeds (`/enterprise/demo` and `/support`) put the visitor's
+attribution into Cal booking metadata, and the webhook reads it back out. This
+is the join that used to be missing: the webhook has always parsed click IDs
+out of booking metadata, but the embeds sent no metadata at all, so every
+booked demo landed in the ledger with an empty `clickIds` object and no
+campaign — measurable as a count and attributable to nothing.
+
+`window.oneUptimeCalAttributionMetadata()` (Home/Views/head-basic.ejs) produces
+the embed `config`. **Cal takes booking metadata as flat, bracketed config
+keys** — `metadata[utm_source]` — and returns them as `payload.metadata.utm_source`
+on the webhook. A nested `metadata: { ... }` object does not work: Cal
+serialises each config value into a query parameter, so the object becomes the
+string `[object Object]` and every key inside it is lost, silently. See
+[Cal's prefill documentation](https://cal.com/help/embedding/prefill-booking-form-embed).
+
+Values are scalars, so the nested first touch travels as one JSON string. The
+inner names below are what the webhook parses:
+
+| Key                                                   | Meaning                                                       |
+| ------------------------------------------------------ | ------------------------------------------------------------- |
+| `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content` | Last-touch campaign parameters.               |
+| `utm_url`                                             | Landing URL of the attributed visit.                          |
+| `gclid`, `wbraid`, `gbraid`, `fbclid`, `msclkid`, `li_fat_id`, `twclid`, `rdt_cid` | Ad-platform click identifiers. |
+| `ou_first_touch`                                      | The visitor's first attributed visit, JSON-encoded.           |
+
+The key lists live in `Common/Types/Marketing/Attribution.ts` and are shared by
+every reader and writer, so a key added for the browser cannot be silently
+dropped on arrival.
+
+Every page that books goes through the same helper: `/enterprise/demo`,
+`/support` and `/enterprise/self-hosted`. `Home/Tests/AttributionCapture.test.ts`
+asserts all three do, because one page wired up and another not is invisible
+until somebody reads the ledger months later.
+
+## Privacy
+
+The webhook parser retains only the allowlisted keys above, read from
 `payload.metadata`, `payload.booking.metadata` and `payload.responses`
-(a `{ label, value }` answer is unwrapped):
-
-- `gclid`
-- `wbraid`
-- `gbraid`
-- `fbclid`
-- `msclkid`
-- `li_fat_id`
-- `twclid`
-- `rdt_cid`
+(a `{ label, value }` answer is unwrapped).
 
 This is an allowlist, not a denylist. Cal metadata and booking answers are
 free-form customer content — names, notes, phone numbers, answers to booking
-questions — and nothing outside the list above is copied into the ledger.
-Retained values are length bounded.
+questions — and nothing outside the list is copied into the ledger. Retained
+values are length bounded, and `ou_first_touch` is parsed and then passed
+through the same whitelisting sanitiser the signup path uses, so a malformed or
+oversized blob costs the attribution and never the booking.
 
-The attendee email is stored internally for controlled matching, and it is
-PII: it must not be sent to GA4, GTM's `dataLayer`, PostHog event properties,
-URLs, or logs. The browser `meeting_booked` event carries only
+The attendee email is stored internally for controlled matching, alongside its
+SHA-256 in `emailHash`. It is PII: the address itself must not be sent to GA4,
+GTM's `dataLayer`, PostHog event properties, URLs, or logs, and no ad platform
+ever receives it in the clear — every provider sends the digest. The browser `meeting_booked` event carries only
 `event_schema_version`, `booking_source`, `booking_kind`, `page_path`,
 `cal_event_type` and `cal_namespace` for exactly this reason — Cal's `bookingSuccessful` detail
 holds the attendee's name and email, and none of it is forwarded.
 
 ## Ad-platform uploads
 
-`MeetingBooked` is a ledger-only conversion type. Every provider maps a
-conversion to a platform conversion action with a two-way branch on
-`isSignUp()`, so a type with no mapping would be uploaded as a _purchase_
-carrying whatever value the row holds. `ConversionUploadProvider.getSkipReason`
-screens conversion types against `AdUploadableMarketingConversionTypes` before
-any provider hook runs, and the worker records the result as `Skipped`.
+Every conversion type the ledger records is uploadable, and every provider maps
+every type explicitly.
 
-Adding a conversion type to that allowlist requires an explicit mapping in
-every provider: conversion action, eligibility rules, timestamp and value
-semantics, identifier policy, consent requirements, retry behaviour, and a
-reconciliation source. Mapping by similar event name is not allowed. The
-presence of a click ID in the ledger does not by itself authorise an upload.
+That used to be impossible to guarantee. Providers chose a platform conversion
+action with a two-way branch — `isSignUp(conversion) ? signUp : paidSubscription`
+— which has no third arm, so a type nobody had written a mapping for would have
+been uploaded to all five platforms as a _purchase_ carrying whatever value the
+row held. The defence was to keep such types out of the allowlist entirely,
+which is why sales-led conversions never reached the ad platforms at all.
+
+The defence is now structural. Providers resolve their action through a
+`Record<MarketingConversionType, T>`, which the compiler refuses unless every
+member of the enum is named — so adding a conversion type is a build error in
+every provider until that provider says what the new type means on its platform.
+
+| Type               | Google Ads / Microsoft / LinkedIn | Meta                   | Reddit     | Value    |
+| ------------------ | --------------------------------- | ---------------------- | ---------- | -------- |
+| `SignUp`           | Its own conversion action         | `CompleteRegistration` | `SignUp`   | none     |
+| `MeetingBooked`    | Its own conversion action         | `Schedule`             | `Lead`     | **none** |
+| `PaidSubscription` | Its own conversion action         | `Purchase`             | `Purchase` | MRR      |
+
+`MeetingBooked` never carries revenue, whatever the row holds
+(`ConversionUploadProvider.getValueInUSD` suppresses it), or a bid model would
+optimise towards demos that buy nothing.
+
+`ConversionUploadProvider.getSkipReason` still screens the conversion type
+before any provider hook runs, because `conversionType` is a plain varchar and a
+value the enum does not name can still reach the worker. A type with no
+configured conversion action is a **config gap**, not a modelling gap: those
+rows stay pending and upload once the id is set, rather than being discarded.
+
+### Identifiers
+
+A conversion is matched to an ad click two ways, and every provider accepts
+either:
+
+- **the click id** the visitor carried, which is exact but only survives as far
+  as the browser storage that held it; and
+- **the SHA-256 of the email** — what every platform calls enhanced
+  conversions / enhanced matching — which survives a change of device, a
+  cleared browser, and the months between a demo and the deal it led to.
+
+Requiring the click id, which every provider used to do, discarded exactly the
+sales-led conversions enhanced matching exists for. A conversion is now
+uploadable when EITHER is present.
+
+Google is the one exception worth stating. A hashed email is attached to every
+upload that has one — that needs no configuration and only improves matching.
+Uploading a conversion identified ONLY by a hashed email is *enhanced
+conversions for leads*, which additionally requires the Google Ads account to be
+set up for it, so it is gated on
+`GOOGLE_ADS_ENHANCED_CONVERSIONS_FOR_LEADS_ENABLED` and off by default.
+
+### Windows
+
+Every platform bounds how late a conversion may be uploaded — 90 days for
+Google, Microsoft and LinkedIn, 7 for Meta and Reddit. An enterprise cycle
+routinely outruns all of them. That is a platform limit, not a bug, and it is
+the reason `MeetingBooked` matters as a bid signal: the booking lands inside
+every window even when the deal it produces does not.
+
+## Conversion chains
+
+Three conversion types are written by unrelated code paths that each see one
+moment: a booked meeting has no user, a signup has no booking, a paid
+subscription knows only a project. Nothing in the ledger said that a demo in
+June, a signup in July and a subscription in October were one customer — so
+"revenue this demo campaign produced" could not be computed at all.
+
+The `linkConversionChains` pass in the MarketingConversions worker joins them on
+`emailHash` and writes `attributedToConversionId`. Three properties worth
+knowing:
+
+- it points at the **earliest** conversion that person made, not the immediately
+  preceding one, so attributing a whole journey is a `GROUP BY` rather than a
+  recursive walk;
+- a row that already has a link is never revised, which keeps the pass
+  idempotent and stops a late-arriving row re-parenting history that has already
+  been reported;
+- ordering uses `min(conversionAt, createdAt)`, because a Cal booking is stamped
+  with the *meeting's* start time. Someone who books on Monday and signs up on
+  Tuesday for a meeting on Friday would otherwise look like they signed up
+  first.
+
+The chain root has no link — that is what makes "the roots" a query.
 
 ## End-to-end local/staging test
 
@@ -196,23 +309,109 @@ does not contain or print a real secret.
 The example email uses the reserved `.invalid` domain and must not be replaced
 with a real person's data.
 
+### Verify attribution actually survives the round trip
+
+**Do this before trusting any demo attribution, and again after any Cal
+version upgrade.** Everything downstream — the campaign on a booked demo, the
+chain that joins it to the signup it produced, the conversion uploaded to an ad
+platform — rests on one assumption: that the metadata the embed hands Cal comes
+back on the webhook. If Cal drops it, nothing errors. Bookings keep being
+recorded, the ledger keeps filling, and every row silently carries no campaign —
+which is exactly the failure this endpoint already had for its whole life, and
+the reason it went unnoticed.
+
+The steps below are cheap and they are the only thing that closes the loop.
+
+1. On staging, load `/enterprise/demo` with attribution in the URL and accept
+   the cookie banner (attribution is not stored until you do):
+
+   ```text
+   https://<staging-host>/enterprise/demo?utm_source=verify&utm_campaign=metadata-round-trip&gclid=verify-click
+   ```
+
+2. In the browser console, confirm the embed is being handed something:
+
+   ```js
+   window.oneUptimeCalAttributionMetadata();
+   ```
+
+   It must return **bracketed** keys — `metadata[utm_source]`,
+   `metadata[utm_campaign]`, `metadata[gclid]`, `metadata[ou_first_touch]`. An
+   empty object means the capture or the consent gate is the problem, and there
+   is no point looking at Cal yet. Unbracketed keys mean the helper regressed
+   and Cal will drop them.
+
+3. Book a test slot through the embed.
+
+4. In the database, read the `MeetingBooked` row and check that `utmSource`,
+   `utmCampaign`, `clickIds` and `firstTouchAttribution` are all populated.
+
+If the row is there but those columns are empty, the metadata did not survive
+Cal. Check the raw `BOOKING_CREATED` body in Cal's webhook delivery log to see
+which of `payload.metadata`, `payload.booking.metadata` or `payload.responses`
+the keys landed in, if any. If Cal is filtering unknown metadata keys on that
+event type, the fallback is to add hidden booking questions named for each key —
+answers arrive in `payload.responses`, which the parser already reads.
+
+## Consent
+
+Attribution capture, Google Tag Manager and PostHog are all gated on consent
+(Home/Views/head-basic.ejs, `window.oneUptimeConsent`).
+
+Before this, the cookie banner wrote `cookiesAccepted` to localStorage and
+nothing read it: everything ran identically whether the visitor pressed Accept,
+pressed Reject, or never saw the banner. "Reject all" rejected nothing, and
+there was no Google Consent Mode signal at all.
+
+Three states, and `unset` is treated as denied for storage rather than as
+permission-by-silence. Consent Mode v2 defaults are pushed before the container
+loads (`ad_storage`, `ad_user_data`, `ad_personalization`, `analytics_storage`,
+`functionality_storage` and `personalization_storage` denied,
+`security_storage` granted, `wait_for_update: 500`) and updated on either
+answer.
+
+**This has a measurement cost, and it is deliberate.** A visitor who never
+touches the banner is not measured and their attribution is not stored. What
+keeps that from losing ad clicks outright is the pending-attribution buffer:
+attribution seen on the current page is held in memory and written the moment
+consent is granted, so the ordinary path — land on an ad, accept, sign up —
+keeps everything the click carried. Refusing clears anything an earlier visit
+stored.
+
 ## Deliberately not implemented
 
-1. **First-touch UTM and Revenue joins.** How first-touch UTMs and click IDs
-   are transferred into Cal, and which stable native Revenue contact, account
-   and deal reference fields come back on `BOOKING_CREATED`, is not defined.
-   Until that contract is confirmed, bookings cannot be reliably joined to
-   first-touch attribution or Revenue records, and the ledger does not claim
-   otherwise.
+1. **Revenue joins.** Which stable native Revenue contact, account and deal
+   reference fields come back on `BOOKING_CREATED` is still not defined, so
+   bookings are not joined to Revenue records and the ledger does not claim
+   otherwise. (First-touch attribution IS now carried through — see *Attribution
+   into and out of a booking* above.)
 2. **Auto-qualification and Deal creation.** `MeetingBooked` records a meeting,
    not enterprise qualification, technical evaluation, or opportunity
-   acceptance. Native Revenue remains authoritative and must make those calls
-   explicitly.
+   acceptance — and in particular not a signed licence. Native Revenue remains
+   authoritative and must make those calls explicitly.
 3. **`QualifiedEnterpriseLead`, `TechnicalEvaluationStarted`,
    `OpportunityCreated`, `ClosedWon`.** Add them only once native Revenue emits
    durable domain events with documented semantics, identifiers, idempotency
-   and ownership.
-4. **Reconciling the legacy browser events.** Dashboards and GTM still mix the
+   and ownership. Adding one is now a build error in every provider until each
+   states what it means on its platform, which is the intended friction.
+4. **Multi-touch attribution.** The browser keeps first touch and last touch and
+   nothing in between, so a journey that crossed three campaigns is reportable
+   as two of them. A bounded touch list would fix it.
+5. **Cross-device attribution before an email is known.** `emailHash` joins
+   conversions once a person has identified themselves; an anonymous visitor
+   who clicks an ad on a phone and signs up on a laptop is still two visitors
+   until then.
+6. **A value for enterprise deals.** `getMonthlyRevenueInUSDCents` returns
+   nothing for custom pricing, so the largest deals upload with no value and bid
+   models see only self-serve revenue. Feeding real contract value in needs a
+   source that does not exist here yet.
+7. **The remaining `mailto:` CTAs.** `/support` and `/enterprise/demo` still
+   offer `mailto:sales@oneuptime.com`, and the pricing page prompts
+   "contact sales@oneuptime.com" when a visitor self-qualifies as enterprise
+   (>100 monitors, >1TB ingest, >6 months retention, >10M tokens). Those are
+   the same unmeasurable shape the self-hosted page had, and the same fix
+   applies: point them at a booking.
+8. **Reconciling the legacy browser events.** Dashboards and GTM still mix the
    canonical `meeting_booked` with the older `bookingSuccessful`-derived
    events. Separating them, and documenting the historical discontinuity, is
    follow-up work.

@@ -1413,6 +1413,12 @@
                         },
                         "paidSubscriptionConversionActionId": {
                             "type": ["string", "number", "null"]
+                        },
+                        "meetingBookedConversionActionId": {
+                            "type": ["string", "number", "null"]
+                        },
+                        "enhancedConversionsForLeadsEnabled": {
+                            "type": ["boolean", "null"]
                         }
                     },
                     "additionalProperties": false
@@ -1458,6 +1464,9 @@
                         },
                         "paidSubscriptionConversionName": {
                             "type": ["string", "null"]
+                        },
+                        "meetingBookedConversionName": {
+                            "type": ["string", "null"]
                         }
                     },
                     "additionalProperties": false
@@ -1475,6 +1484,9 @@
                             "type": ["string", "number", "null"]
                         },
                         "paidSubscriptionConversionId": {
+                            "type": ["string", "number", "null"]
+                        },
+                        "meetingBookedConversionId": {
                             "type": ["string", "number", "null"]
                         }
                     },

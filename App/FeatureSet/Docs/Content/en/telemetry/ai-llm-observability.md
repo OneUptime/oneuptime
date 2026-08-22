@@ -106,7 +106,7 @@ Open **AI / LLM** in the navigation bar (under Observability):
 
 - **Overview** — total calls, input/output tokens, cost, and error rate for the last 7 days, plus the most recent calls.
 - **LLM Calls** — a filterable list of every LLM, embedding, agent and tool call. Filter by provider, model, operation or service. Click a call to open it in the trace viewer.
-- **Budgets** — daily cost budgets with warning and breach alerts (see [Daily cost budgets](#daily-cost-budgets) below).
+- **Budgets** — daily cost budgets published as metrics for monitors to alert on (see [Daily cost budgets](#daily-cost-budgets) below).
 - Each span has an **AI / LLM** tab/panel with the model, token counts, cost, request parameters, and the rendered prompt & completion.
 
 ## Dashboards and alerts
@@ -118,16 +118,20 @@ Because GenAI metrics arrive as ordinary OpenTelemetry metrics, you can:
 
 ## Daily cost budgets
 
-The **AI / LLM** section has a **Budgets** tab. Each budget sets a daily USD limit, evaluated over the UTC day. Every 15 minutes a background worker sums the day's LLM span cost (SDK-reported or computed), records the current spend on the budget, and raises:
+The **AI / LLM** section has a **Budgets** tab. Each budget sets a daily USD limit, evaluated over the UTC day. Every 15 minutes a background worker sums the day's LLM span cost (SDK-reported or computed), records the current spend on the budget, and publishes two gauge metrics:
 
-- a **warning alert** at a configurable threshold (default 80%), and
-- a **breach alert** at 100%
+| Metric | Meaning |
+| --- | --- |
+| `oneuptime.llm.budget.spend.usd` | The day's spend so far, in USD |
+| `oneuptime.llm.budget.percent.used` | Spend as a percent of the daily limit |
 
-— each at most once per UTC day. Alerts carry a configurable severity and can trigger your on-call duty policies.
+Both carry `oneuptime.llm.budget.id` and `oneuptime.llm.budget.name` attributes (plus the budget's service/provider/model scope when set), so one metric series cleanly separates into one line per budget. Filter monitors by **`oneuptime.llm.budget.id`** — it is stable; the name attribute is convenient for chart labels but changes if you rename the budget, which would silently detach a name-filtered monitor.
+
+**Alerting is a [Metrics Monitor](/docs/monitor/metrics-monitor) on those metrics.** For the classic 80%/100% pattern, create a monitor on `oneuptime.llm.budget.percent.used`, filter by `oneuptime.llm.budget.id`, and add two criteria — value `>= 80` creating a warning-severity alert, and value `>= 100` creating a critical one, attached to your on-call policy. **Set the monitor's rolling time to 30 minutes**: each budget publishes one point every 15 minutes, so the 1-minute default window would find an empty series between sweeps and flap the alert. Because it's an ordinary metric, everything monitors can do applies: formulas, anomaly detection against learned baselines, dashboards charting spend across budgets.
 
 Budgets can be scoped to a telemetry service, an LLM provider (the `gen_ai` provider name), or an exact model — or left project-wide. Multiple budgets can coexist, for example a project-wide budget plus a stricter one for an expensive model.
 
-Budget alerts can do more than notify: chain one to a Workflow that calls a webhook in your infrastructure to stop a runaway agent — see [Circuit-Breaking Runaway AI Agents](/docs/telemetry/ai-agent-circuit-breaker).
+Budget monitors can do more than notify: chain one to a Workflow that calls a webhook in your infrastructure to stop a runaway agent — see [Circuit-Breaking Runaway AI Agents](/docs/telemetry/ai-agent-circuit-breaker).
 
 ## Privacy & redaction
 
