@@ -639,6 +639,14 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/ai-llm-observability",
       },
       {
+        title: "AI Gateways (LiteLLM, Portkey)",
+        url: "/docs/telemetry/ai-gateways",
+      },
+      {
+        title: "AI Agent Circuit Breakers",
+        url: "/docs/telemetry/ai-agent-circuit-breaker",
+      },
+      {
         title: "Continuous Profiling",
         url: "/docs/telemetry/profiles",
       },
