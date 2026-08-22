@@ -884,11 +884,9 @@
       elementOrSelector: "#my-cal-inline-self-hosted",
       calLink: "oneuptimehq/demo",
       layout: "month_view",
-      config: {
-        metadata: typeof window.oneUptimeCalAttributionMetadata === 'function'
-          ? window.oneUptimeCalAttributionMetadata()
-          : {}
-      }
+      config: typeof window.oneUptimeCalAttributionMetadata === 'function'
+        ? window.oneUptimeCalAttributionMetadata()
+        : {}
     });
 
     Cal("ui", { "styles": { "branding": { "brandColor": "#059669" } }, "hideEventTypeDetails": false, "layout": "month_view" });

@@ -205,11 +205,9 @@
           elementOrSelector: "#my-cal-inline",
           calLink: "oneuptimehq/demo",
           layout: "month_view",
-          config: {
-            metadata: typeof window.oneUptimeCalAttributionMetadata === 'function'
-              ? window.oneUptimeCalAttributionMetadata()
-              : {}
-          }
+          config: typeof window.oneUptimeCalAttributionMetadata === 'function'
+            ? window.oneUptimeCalAttributionMetadata()
+            : {}
         });
         Cal("ui", { "styles": { "branding": { "brandColor": "#4f46e5" } }, "hideEventTypeDetails": false, "layout": "month_view" });
         

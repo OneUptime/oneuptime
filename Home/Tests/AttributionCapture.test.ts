@@ -375,8 +375,14 @@ describe("attribution capture and consent", () => {
       const embedIndex: number = html.indexOf('calLink: "oneuptimehq/demo"');
       const embedBlock: string = html.slice(embedIndex, embedIndex + 500);
 
-      expect(embedBlock).toContain("metadata:");
+      expect(embedBlock).toContain("config:");
       expect(embedBlock).toContain("window.oneUptimeCalAttributionMetadata()");
+      /*
+       * Passed AS the config, not nested under a `metadata` key inside it —
+       * the helper already returns Cal's bracketed metadata[...] keys, and
+       * wrapping them again would bury them one level too deep.
+       */
+      expect(embedBlock).not.toContain("metadata:");
     });
 
     /*
@@ -860,27 +866,80 @@ describe("attribution capture and consent", () => {
    * -------------------------------------------------------------------------
    */
   describe("Cal booking metadata", () => {
-    test("uses the snake_case spelling the webhook parses", () => {
+    /*
+     * Cal takes booking metadata as FLAT, BRACKETED config keys —
+     * metadata[utm_source] — and returns them as payload.metadata.utm_source.
+     *
+     * A nested `metadata: { ... }` object does NOT work: Cal serialises each
+     * config value into a query parameter, so the object becomes the string
+     * "[object Object]" and every key inside it is lost. Nothing errors —
+     * bookings are still recorded, they just arrive attributable to nothing,
+     * which is exactly the bug this path exists to fix. These assertions are
+     * the only thing standing between the right shape and a silent no-op.
+     *
+     * https://cal.com/help/embedding/prefill-booking-form-embed
+     */
+    test("brackets every key the way Cal expects", () => {
       const harness: Harness = loadHarness(html, {
         url: AD_URL,
         storedConsent: "true",
       });
 
       expect(harness.calMetadata()).toMatchObject({
-        utm_source: "google",
-        utm_medium: "cpc",
-        utm_campaign: "enterprise-q3",
-        gclid: "abc123",
+        "metadata[utm_source]": "google",
+        "metadata[utm_medium]": "cpc",
+        "metadata[utm_campaign]": "enterprise-q3",
+        "metadata[gclid]": "abc123",
       });
     });
 
-    test("carries the landing URL as utm_url", () => {
+    test("never emits an unbracketed key", () => {
       const harness: Harness = loadHarness(html, {
         url: AD_URL,
         storedConsent: "true",
       });
 
-      expect(harness.calMetadata()["utm_url"]).toBe(AD_URL);
+      for (const key of Object.keys(harness.calMetadata())) {
+        expect(key).toMatch(/^metadata\[[a-z0-9_]+\]$/);
+      }
+    });
+
+    /*
+     * The inner names are the wire contract with App/API/CalWebhook.ts, which
+     * reads payload.metadata.<name>. Bracketing changes how they travel, not
+     * what they are called on arrival.
+     */
+    test("uses the snake_case inner names the webhook parses", () => {
+      const harness: Harness = loadHarness(html, {
+        url: AD_URL,
+        storedConsent: "true",
+      });
+
+      const innerNames: Array<string> = Object.keys(harness.calMetadata()).map(
+        (key: string) => {
+          return key.slice("metadata[".length, -1);
+        },
+      );
+
+      expect(innerNames).toEqual(
+        expect.arrayContaining([
+          "utm_source",
+          "utm_medium",
+          "utm_campaign",
+          "utm_url",
+          "gclid",
+          "ou_first_touch",
+        ]),
+      );
+    });
+
+    test("carries the landing URL", () => {
+      const harness: Harness = loadHarness(html, {
+        url: AD_URL,
+        storedConsent: "true",
+      });
+
+      expect(harness.calMetadata()["metadata[utm_url]"]).toBe(AD_URL);
     });
 
     test("serializes the first touch as one JSON string", () => {
@@ -890,14 +949,19 @@ describe("attribution capture and consent", () => {
       });
 
       expect(
-        JSON.parse(harness.calMetadata()["ou_first_touch"]!),
+        JSON.parse(harness.calMetadata()["metadata[ou_first_touch]"]!),
       ).toMatchObject({
         utmSource: "google",
         clickIds: { gclid: "abc123" },
       });
     });
 
-    test("holds only scalar strings, as Cal metadata requires", () => {
+    /*
+     * Cal serialises config values into query parameters, so anything that is
+     * not already a string is stringified by JavaScript — which is how a nested
+     * object turns into "[object Object]".
+     */
+    test("holds only scalar strings", () => {
       const harness: Harness = loadHarness(html, {
         url: AD_URL,
         storedConsent: "true",
@@ -908,10 +972,6 @@ describe("attribution capture and consent", () => {
       }
     });
 
-    /*
-     * An un-attributed booking sends an empty bag rather than a metadata
-     * object full of empty strings the webhook would then have to reject.
-     */
     test("is empty when there is nothing to attribute", () => {
       const harness: Harness = loadHarness(html, {
         url: "https://oneuptime.com/enterprise/demo",
@@ -924,8 +984,8 @@ describe("attribution capture and consent", () => {
       const harness: Harness = loadHarness(html, { url: AD_URL });
 
       expect(harness.calMetadata()).toMatchObject({
-        utm_campaign: "enterprise-q3",
-        gclid: "abc123",
+        "metadata[utm_campaign]": "enterprise-q3",
+        "metadata[gclid]": "abc123",
       });
     });
 
@@ -940,9 +1000,9 @@ describe("attribution capture and consent", () => {
 
       const metadata: Record<string, string> = harness.calMetadata();
 
-      expect(metadata["ou_first_touch"]).toBeUndefined();
+      expect(metadata["metadata[ou_first_touch]"]).toBeUndefined();
       // The rest still travels.
-      expect(metadata["utm_source"]).toBe("google");
+      expect(metadata["metadata[utm_source]"]).toBe("google");
     });
   });
 

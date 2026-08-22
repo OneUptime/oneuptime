@@ -125,8 +125,15 @@ booked demo landed in the ledger with an empty `clickIds` object and no
 campaign — measurable as a count and attributable to nothing.
 
 `window.oneUptimeCalAttributionMetadata()` (Home/Views/head-basic.ejs) produces
-the bag. Cal metadata values are scalars, so the keys are flat and the nested
-first touch travels as one JSON string:
+the embed `config`. **Cal takes booking metadata as flat, bracketed config
+keys** — `metadata[utm_source]` — and returns them as `payload.metadata.utm_source`
+on the webhook. A nested `metadata: { ... }` object does not work: Cal
+serialises each config value into a query parameter, so the object becomes the
+string `[object Object]` and every key inside it is lost, silently. See
+[Cal's prefill documentation](https://cal.com/help/embedding/prefill-booking-form-embed).
+
+Values are scalars, so the nested first touch travels as one JSON string. The
+inner names below are what the webhook parses:
 
 | Key                                                   | Meaning                                                       |
 | ------------------------------------------------------ | ------------------------------------------------------------- |
@@ -138,6 +145,11 @@ first touch travels as one JSON string:
 The key lists live in `Common/Types/Marketing/Attribution.ts` and are shared by
 every reader and writer, so a key added for the browser cannot be silently
 dropped on arrival.
+
+Every page that books goes through the same helper: `/enterprise/demo`,
+`/support` and `/enterprise/self-hosted`. `Home/Tests/AttributionCapture.test.ts`
+asserts all three do, because one page wired up and another not is invisible
+until somebody reads the ledger months later.
 
 ## Privacy
 
@@ -323,9 +335,11 @@ The steps below are cheap and they are the only thing that closes the loop.
    window.oneUptimeCalAttributionMetadata();
    ```
 
-   It must return `utm_source`, `utm_campaign`, `gclid` and `ou_first_touch`.
-   An empty object means the capture or the consent gate is the problem, and
-   there is no point looking at Cal yet.
+   It must return **bracketed** keys — `metadata[utm_source]`,
+   `metadata[utm_campaign]`, `metadata[gclid]`, `metadata[ou_first_touch]`. An
+   empty object means the capture or the consent gate is the problem, and there
+   is no point looking at Cal yet. Unbracketed keys mean the helper regressed
+   and Cal will drop them.
 
 3. Book a test slot through the embed.
 

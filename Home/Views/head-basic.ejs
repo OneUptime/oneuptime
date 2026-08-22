@@ -618,34 +618,48 @@
          */
         window.oneUptimeCalAttributionMetadata = function () {
             var attribution = window.oneUptimeGetAttribution();
-            var metadata = {};
+            var config = {};
 
-            Object.keys(UTM_KEY_MAP).forEach(function (param) {
-                var value = attribution.utm[UTM_KEY_MAP[param]];
+            /*
+             * Cal takes booking metadata as FLAT, BRACKETED keys on the embed
+             * config — `metadata[utm_source]` — and hands them back on the
+             * webhook as payload.metadata.utm_source.
+             *
+             * Not as a nested `metadata: { utm_source: ... }` object. Cal
+             * serialises each config value into a query parameter, so a nested
+             * object becomes the string "[object Object]" and every key inside
+             * it is lost. Nothing errors; bookings keep being recorded, they
+             * just arrive attributable to nothing — which is precisely the bug
+             * this whole path exists to fix, so getting the shape wrong here
+             * would have been indistinguishable from not having done the work.
+             *
+             * https://cal.com/help/embedding/prefill-booking-form-embed
+             */
+            function put(key, value) {
                 if (value) {
-                    metadata[param] = bound(value);
+                    config['metadata[' + key + ']'] = bound(value);
                 }
-            });
-
-            if (attribution.utm.utmUrl) {
-                metadata.utm_url = bound(attribution.utm.utmUrl);
             }
 
+            Object.keys(UTM_KEY_MAP).forEach(function (param) {
+                put(param, attribution.utm[UTM_KEY_MAP[param]]);
+            });
+
+            put('utm_url', attribution.utm.utmUrl);
+
             Object.keys(attribution.clickIds).forEach(function (param) {
-                if (attribution.clickIds[param]) {
-                    metadata[param] = bound(attribution.clickIds[param]);
-                }
+                put(param, attribution.clickIds[param]);
             });
 
             if (attribution.firstTouch) {
                 var serialized = JSON.stringify(attribution.firstTouch);
                 // Mirrors MAX_FIRST_TOUCH_LENGTH in App/API/CalWebhook.ts.
                 if (serialized.length <= 4000) {
-                    metadata.ou_first_touch = serialized;
+                    put('ou_first_touch', serialized);
                 }
             }
 
-            return metadata;
+            return config;
         };
 
         var touch = readTouchFromUrl();
