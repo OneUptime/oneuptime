@@ -1790,12 +1790,30 @@ export class LogAggregationService {
       }}`,
     );
 
-    // ...restricted to the buckets the investigated pattern itself landed in.
+    /*
+     * ...restricted to the buckets the investigated pattern itself landed
+     * in.
+     *
+     * GLOBAL IN, not plain IN, and it is load-bearing. This predicate sits
+     * in a query on the Distributed LogItemV3 table whose subquery reads
+     * that SAME Distributed table, which multi-shard ClickHouse rejects
+     * outright as a double-distributed subquery (Code 288,
+     * distributed_product_mode = 'deny' by default) — the panel would throw
+     * on any 2+-shard cluster, and because the endpoint wraps each
+     * correlation read in a degrade-to-empty catch it would fail SILENTLY,
+     * rendering "nothing else was failing" forever.
+     *
+     * A shard-local evaluation would be wrong even where it is allowed: the
+     * sharding key is cityHash64(projectId, primaryEntityId, time), so one
+     * project's rows span every shard and the bucket set has to be computed
+     * once globally. On a single shard GLOBAL is a semantic no-op. Same
+     * reasoning, same shape as MetricService's Top-K group restriction.
+     */
     statement.append(
       SQL` AND toStartOfInterval(time, INTERVAL ${{
         type: TableColumnType.Number,
         value: intervalSeconds,
-      }} SECOND) IN (SELECT DISTINCT toStartOfInterval(time, INTERVAL ${{
+      }} SECOND) GLOBAL IN (SELECT DISTINCT toStartOfInterval(time, INTERVAL ${{
         type: TableColumnType.Number,
         value: intervalSeconds,
       }} SECOND)`,

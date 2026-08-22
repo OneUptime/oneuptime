@@ -71,11 +71,7 @@ describe("normalizeLogBodyToErrorPattern — variable spans collapse", () => {
     ).toBe("GET <url> failed");
   });
 
-  test("masks double-quoted values but leaves apostrophes alone", () => {
-    expect(
-      normalizeLogBodyToErrorPattern('unknown field "customerRef" in payload'),
-    ).toBe('unknown field "<str>" in payload');
-
+  test("leaves quotes and apostrophes alone", () => {
     /*
      * A single-quote rule would pair the apostrophe in "can't" with the
      * quote before db and destroy the stable half of the message. Pinned so
@@ -83,6 +79,28 @@ describe("normalizeLogBodyToErrorPattern — variable spans collapse", () => {
      */
     expect(normalizeLogBodyToErrorPattern("can't reach 'db-primary'")).toBe(
       "can't reach 'db-primary'",
+    );
+
+    // ...and no double-quote rule either — see the JSON/logfmt tests below.
+    expect(
+      normalizeLogBodyToErrorPattern('unknown field "customerRef" in payload'),
+    ).toBe('unknown field "customerRef" in payload');
+  });
+
+  test("a quoted value that genuinely varies still collapses, via its own rule", () => {
+    /*
+     * This is why no blanket quoted-span rule is needed: the specific rules
+     * already mask the varying content, and more informatively — `"<uuid>"`
+     * says more than `"<str>"`.
+     */
+    expect(
+      normalizeLogBodyToErrorPattern(
+        'user "3f2504e0-4f89-41d3-9a0c-0305e82c3301" not found',
+      ),
+    ).toBe('user "<uuid>" not found');
+
+    expect(normalizeLogBodyToErrorPattern('column "user_id_42" missing')).toBe(
+      'column "user_id_<num>" missing',
     );
   });
 
@@ -121,6 +139,53 @@ describe("normalizeLogBodyToErrorPattern — variable spans collapse", () => {
 
     // The differing tail lies past the truncation point.
     expect(a).toBe(b);
+  });
+});
+
+describe("normalizeLogBodyToErrorPattern — structured logs keep their message", () => {
+  /*
+   * In JSON and logfmt the human-readable message is a double-quoted VALUE.
+   * A blanket `"[^"]*"` -> `"<str>"` rule therefore masks the only part
+   * that identifies the error, merging unrelated failures into one Top
+   * Errors row headed by whichever sample body argMax happened to pick.
+   * These are the regression guards for that.
+   */
+  test("two different JSON errors stay two patterns", () => {
+    const refused: string = normalizeLogBodyToErrorPattern(
+      '{"level":"error","msg":"connection refused","attempt":3}',
+    );
+    const denied: string = normalizeLogBodyToErrorPattern(
+      '{"level":"error","msg":"permission denied","attempt":3}',
+    );
+
+    expect(refused).not.toBe(denied);
+    expect(refused).toContain("connection refused");
+    expect(denied).toContain("permission denied");
+  });
+
+  test("the same JSON error at different attempt counts still collapses to one", () => {
+    expect(
+      normalizeLogBodyToErrorPattern(
+        '{"level":"error","msg":"connection refused","attempt":3}',
+      ),
+    ).toBe(
+      normalizeLogBodyToErrorPattern(
+        '{"level":"error","msg":"connection refused","attempt":17}',
+      ),
+    );
+  });
+
+  test("two different logfmt errors stay two patterns", () => {
+    const timeout: string = normalizeLogBodyToErrorPattern(
+      'level=error msg="upstream timeout" upstream=10.0.0.1:8080',
+    );
+    const down: string = normalizeLogBodyToErrorPattern(
+      'level=error msg="db down" upstream=10.0.0.2:5432',
+    );
+
+    expect(timeout).not.toBe(down);
+    // ...while the host and port, which do vary, are still masked.
+    expect(timeout).toContain("<ip>:<num>");
   });
 });
 
@@ -242,19 +307,111 @@ describe("LOG_ERROR_PATTERN_RULES — cross-engine constraints", () => {
   });
 });
 
+describe("getErrorPatternSearchText — the needle must exist in the raw body", () => {
+  /*
+   * A pattern is NOT a substring of the body it came from: the last rule
+   * collapses `\s+` to one space, so any run spanning a line break reads
+   * with a space where the body has `\n\t`. Handing that to
+   * `body ILIKE '%...%'` matches nothing — the deep link lands the user on
+   * an empty list, which is the precise failure this function exists to
+   * avoid.
+   */
+  const STACK: string = [
+    'java.lang.NullPointerException: Cannot invoke "OrderService.get()" because "order" is null',
+    "\tat com.example.OrderService.process(OrderService.java:42)",
+    "\tat com.example.Main.run(Main.java:11)",
+  ].join("\n");
+
+  test("a multi-line body yields a needle that is genuinely contained in it", () => {
+    const needle: string = getErrorPatternSearchText(
+      normalizeLogBodyToErrorPattern(STACK),
+    );
+
+    expect(needle.length).toBeGreaterThan(0);
+    expect(STACK).toContain(needle);
+  });
+
+  test("a needle never spans a collapsed whitespace boundary unverified", () => {
+    /*
+     * Without a sample body to check against, only whitespace-free tokens
+     * are safe — anything with a space in it might have been a newline.
+     */
+    const needle: string = getErrorPatternSearchText(
+      normalizeLogBodyToErrorPattern(STACK),
+    );
+
+    expect(needle).not.toMatch(/\s/);
+  });
+
+  test("a sample body unlocks the longer multi-word needle when it really survives", () => {
+    const singleLine: string = "connection refused to 10.0.0.1:5432";
+    const pattern: string = normalizeLogBodyToErrorPattern(singleLine);
+
+    // Verified against a real body, the stronger multi-word run is used.
+    expect(getErrorPatternSearchText(pattern, { sampleBody: singleLine })).toBe(
+      "connection refused to",
+    );
+
+    // ...and is still a genuine substring.
+    expect(singleLine).toContain(
+      getErrorPatternSearchText(pattern, { sampleBody: singleLine }),
+    );
+  });
+
+  test("a sample body that does NOT contain the run falls back to a safe token", () => {
+    const pattern: string = normalizeLogBodyToErrorPattern(STACK);
+
+    const needle: string = getErrorPatternSearchText(pattern, {
+      sampleBody: STACK,
+    });
+
+    expect(STACK).toContain(needle);
+  });
+
+  test("every candidate it can return is a substring of the body, across shapes", () => {
+    const bodies: Array<string> = [
+      STACK,
+      "connection refused to 10.0.0.1:5432 after 30ms",
+      'Traceback (most recent call last):\n  File "app.py", line 42, in run\n    raise ValueError("boom")',
+      "nginx: [error] 1234#0: *5 upstream timed out while reading response header",
+      '{"level":"error","msg":"connection refused","attempt":3}',
+    ];
+
+    for (const body of bodies) {
+      const pattern: string = normalizeLogBodyToErrorPattern(body);
+
+      for (const needle of [
+        getErrorPatternSearchText(pattern),
+        getErrorPatternSearchText(pattern, { sampleBody: body }),
+      ]) {
+        if (needle.length > 0) {
+          expect(body).toContain(needle);
+        }
+      }
+    }
+  });
+});
+
 describe("getErrorPatternSearchText", () => {
-  test("returns the longest literal run, which is what a body search can match", () => {
+  test("without a sample body, returns the longest SAFE (whitespace-free) run", () => {
+    /*
+     * "connection refused to" is longer, but a multi-word run is only
+     * returned once a sample body proves it survived the whitespace
+     * collapse — see the suite above.
+     */
     expect(
       getErrorPatternSearchText(
         "connection refused to <ip>:<num> after <num>ms",
       ),
-    ).toBe("connection refused to");
+    ).toBe("connection");
   });
 
   test("strips the punctuation a placeholder leaves behind", () => {
-    expect(getErrorPatternSearchText("<timestamp>: upstream timed out")).toBe(
-      "upstream timed out",
-    );
+    expect(
+      getErrorPatternSearchText("<timestamp>: upstream timed out", {
+        sampleBody: "2026-08-21T10:00:00Z: upstream timed out",
+      }),
+    ).toBe("upstream timed out");
   });
 
   test("returns empty when nothing selective survives", () => {
@@ -266,14 +423,25 @@ describe("getErrorPatternSearchText", () => {
     expect(getErrorPatternSearchText(undefined)).toBe("");
   });
 
-  test("honours a caller-supplied minimum length", () => {
+  test("honours a caller-supplied minimum length, in both call forms", () => {
+    // Legacy positional form.
     expect(getErrorPatternSearchText("<num> ms <num>", 2)).toBe("ms");
+    // ...and the options form.
+    expect(
+      getErrorPatternSearchText("<num> ms <num>", { minimumLength: 2 }),
+    ).toBe("ms");
   });
 
-  test("a pattern with no placeholders is its own search text", () => {
+  test("a placeholder-free pattern yields its longest safe token, or the whole run when verified", () => {
     expect(getErrorPatternSearchText("connection reset by peer")).toBe(
-      "connection reset by peer",
+      "connection",
     );
+
+    expect(
+      getErrorPatternSearchText("connection reset by peer", {
+        sampleBody: "connection reset by peer",
+      }),
+    ).toBe("connection reset by peer");
   });
 });
 

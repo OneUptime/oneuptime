@@ -784,6 +784,8 @@ const TREND_THRESHOLD_PERCENT: number = 10;
  */
 export function computeErrorPatternTrend(
   timeline: Array<ErrorPatternTimelinePoint>,
+  windowStart?: Date | undefined,
+  windowEnd?: Date | undefined,
 ): ErrorPatternTrend {
   if (!Array.isArray(timeline) || timeline.length < 2) {
     return {
@@ -794,13 +796,58 @@ export function computeErrorPatternTrend(
     };
   }
 
-  const midpoint: number = Math.floor(timeline.length / 2);
+  /*
+   * Split by TIMESTAMP, not by array index.
+   *
+   * The timeline query is a plain `GROUP BY bucket` with no zero-fill, so
+   * the array holds only the buckets that had occurrences. An index split
+   * therefore measures where the occurrences sit within each OTHER, not
+   * where they sit in time: an error that fired steadily for two hours and
+   * then stopped for twenty-two returns ~half its buckets on each side and
+   * reads "Steady, 0%" — the exact opposite of the truth.
+   *
+   * `windowStart`/`windowEnd` are the range the user actually picked, so a
+   * pattern clustered entirely at the start of it is correctly measured
+   * against the silence that followed. Without them the observed span is
+   * the honest fallback; the index split is used only when the rows carry
+   * no usable timestamps at all.
+   */
+  const times: Array<number> = timeline
+    .map((point: ErrorPatternTimelinePoint): number => {
+      return point.time instanceof Date ? point.time.getTime() : Number.NaN;
+    })
+    .filter((value: number): boolean => {
+      return Number.isFinite(value);
+    });
+
+  const start: number =
+    windowStart instanceof Date && !isNaN(windowStart.getTime())
+      ? windowStart.getTime()
+      : Math.min(...times);
+
+  const end: number =
+    windowEnd instanceof Date && !isNaN(windowEnd.getTime())
+      ? windowEnd.getTime()
+      : Math.max(...times);
+
+  const canSplitByTime: boolean =
+    times.length === timeline.length &&
+    Number.isFinite(start) &&
+    Number.isFinite(end) &&
+    end > start;
+
+  const midTime: number = start + (end - start) / 2;
+  const midIndex: number = Math.floor(timeline.length / 2);
 
   let previousCount: number = 0;
   let recentCount: number = 0;
 
   timeline.forEach((point: ErrorPatternTimelinePoint, index: number): void => {
-    if (index < midpoint) {
+    const isOlderHalf: boolean = canSplitByTime
+      ? (point.time as Date).getTime() < midTime
+      : index < midIndex;
+
+    if (isOlderHalf) {
       previousCount += point.count;
     } else {
       recentCount += point.count;
@@ -860,6 +907,33 @@ export interface SharedAttribute extends ErrorPatternAttributeRow {
  * timestamps) are dropped: they are what makes a pattern a pattern, and
  * listing them would bury the useful rows.
  */
+/**
+ * The occurrence count the correlation response itself accounts for.
+ *
+ * Used as the denominator for attribute coverage instead of the count the
+ * Top Errors list reported: the list and the drill-down resolve a preset
+ * range against `now` independently, so on a short preset the two can cover
+ * measurably different windows. Mixing them lets an attribute present on a
+ * minority of occurrences render at 100% with a "every occurrence" badge.
+ *
+ * Falls back to 0 for an empty timeline, which callers read as "use what
+ * the row said" rather than as "nothing happened".
+ */
+export function getCorrelationOccurrenceTotal(
+  timeline: Array<ErrorPatternTimelinePoint>,
+): number {
+  if (!Array.isArray(timeline)) {
+    return 0;
+  }
+
+  return timeline.reduce(
+    (total: number, point: ErrorPatternTimelinePoint): number => {
+      return total + (Number.isFinite(point.count) ? point.count : 0);
+    },
+    0,
+  );
+}
+
 export function summarizeSharedAttributes(
   attributes: Array<ErrorPatternAttributeRow>,
   totalOccurrences: number,
@@ -991,6 +1065,12 @@ function withQueryParams(
 export function buildErrorPatternLogsRoute(
   pattern: string,
   scope: LogsInsightsScope,
+  /*
+   * A real body from the group, when the caller has one. It lets the needle
+   * be VERIFIED against text that actually exists rather than assumed to
+   * survive normalization — see getErrorPatternSearchText.
+   */
+  sampleBody?: string | undefined,
 ): Route | null {
   const window: InBetween<Date> = resolveWindow(scope.timeRange);
 
@@ -1001,7 +1081,7 @@ export function buildErrorPatternLogsRoute(
       scope.severityTexts && scope.severityTexts.length > 0
         ? scope.severityTexts
         : ERROR_SEVERITIES,
-    bodyContains: getErrorPatternSearchText(pattern),
+    bodyContains: getErrorPatternSearchText(pattern, { sampleBody }),
     startTime: window.startValue,
     endTime: window.endValue,
   };

@@ -111,16 +111,26 @@ export function getLogErrorPatternParameterCount(): number {
 
 /**
  * Guard for a caller-supplied pattern value (the detail endpoints echo one
- * back to scope their queries). Patterns are compared with `=` against the
- * expression above, so an over-long value can only ever match nothing —
- * clamping keeps the parameter bounded without changing any result.
+ * back to scope their queries), bounding the parameter without changing
+ * which rows it matches.
+ *
+ * Counted in CODE POINTS, because that is what the expression above cuts
+ * by. Measuring in JavaScript's UTF-16 code units instead would mangle a
+ * legitimate key: a 300-code-point pattern containing one emoji has
+ * `.length === 301`, so the clamp would fire on a value the database
+ * considers exactly at the limit and slice it — leaving a lone surrogate at
+ * the tail when the emoji sits there. The bind would then match zero rows
+ * and, since nothing throws, every drill-down panel would come back
+ * cheerfully empty for a Top Errors row showing a real count.
  */
 export function clampLogErrorPattern(pattern: string): string {
-  if (pattern.length <= LOG_ERROR_PATTERN_MAX_LENGTH) {
+  const codePoints: Array<string> = Array.from(pattern);
+
+  if (codePoints.length <= LOG_ERROR_PATTERN_MAX_LENGTH) {
     return pattern;
   }
 
-  return pattern.slice(0, LOG_ERROR_PATTERN_MAX_LENGTH);
+  return codePoints.slice(0, LOG_ERROR_PATTERN_MAX_LENGTH).join("");
 }
 
 export type { LogErrorPatternRule };

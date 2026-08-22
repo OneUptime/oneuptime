@@ -602,7 +602,17 @@ describe("getErrorPatternCoOccurrences", () => {
     // ...the same empty-pattern guard the top list carries...
     expect(query).toContain("GROUP BY pattern HAVING pattern != ''");
     // ...and the temporal join onto the investigated pattern's own buckets.
-    expect(query).toContain("IN (SELECT DISTINCT toStartOfInterval(time,");
+    /*
+     * GLOBAL IN, not plain IN. LogItemV3 is a Distributed table, and a
+     * subquery on the same Distributed table inside its own WHERE is
+     * rejected by multi-shard ClickHouse (Code 288,
+     * distributed_product_mode = 'deny'). Because the endpoint wraps each
+     * correlation read in a degrade-to-empty catch, plain IN fails SILENTLY
+     * — the panel just says "nothing else was failing" forever.
+     */
+    expect(query).toContain(
+      "GLOBAL IN (SELECT DISTINCT toStartOfInterval(time,",
+    );
     expect(query).toContain("GROUP BY pattern");
   });
 
