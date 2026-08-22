@@ -73,6 +73,9 @@ export const LlmCostAttributeKeys: Array<string> = [
   "gen_ai.usage.cost_usd",
   "gen_ai.usage.total_cost",
   "llm.usage.total_cost",
+  // LiteLLM proxy: v1 otel callback / opt-in OTel v2 mode.
+  "gen_ai.cost.total_cost",
+  "litellm.cost.total",
 ];
 
 /*

@@ -24,6 +24,8 @@ Use any OpenTelemetry GenAI instrumentation. Popular choices:
 - **OpenInference** (Arize) — instrumentors for OpenAI, LangChain, LlamaIndex, DSPy, etc.
 - **Native OpenTelemetry** GenAI instrumentations.
 
+Routing your LLM traffic through a gateway like **LiteLLM** or **Portkey**? You can export traces from the gateway itself instead of instrumenting every app — see [Observing AI Gateways](/docs/telemetry/ai-gateways).
+
 ### Python (OpenLLMetry)
 
 ```bash
@@ -74,19 +76,19 @@ Self-hosting OneUptime? Replace `https://oneuptime.com/otlp` with `https://YOUR-
 
 OneUptime reads the OpenTelemetry GenAI conventions first, and falls back to the OpenLLMetry and OpenInference variants so popular libraries work out of the box.
 
-| What | Primary attribute | Also accepted |
-|------|-------------------|---------------|
-| Provider / system | `gen_ai.system` | `gen_ai.provider.name`, `llm.system` |
-| Operation | `gen_ai.operation.name` | `llm.request.type`, `openinference.span.kind` |
-| Requested model | `gen_ai.request.model` | `llm.model_name` |
-| Response model | `gen_ai.response.model` | — |
-| Input tokens | `gen_ai.usage.input_tokens` | `gen_ai.usage.prompt_tokens`, `llm.token_count.prompt` |
-| Output tokens | `gen_ai.usage.output_tokens` | `gen_ai.usage.completion_tokens`, `llm.token_count.completion` |
-| Total tokens | `gen_ai.usage.total_tokens` | derived from input + output |
-| Cost (USD) | `gen_ai.usage.cost` | `llm.usage.total_cost` |
-| Agent name | `gen_ai.agent.name` | — |
-| Tool name | `gen_ai.tool.name` | — |
-| Conversation / session id | `gen_ai.conversation.id` | `session.id`, `langfuse.session.id`, `traceloop.association.properties.session_id` |
+| What                      | Primary attribute            | Also accepted                                                                                               |
+| ------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Provider / system         | `gen_ai.system`              | `gen_ai.provider.name`, `llm.system`                                                                        |
+| Operation                 | `gen_ai.operation.name`      | `llm.request.type`, `openinference.span.kind`                                                               |
+| Requested model           | `gen_ai.request.model`       | `llm.model_name`                                                                                            |
+| Response model            | `gen_ai.response.model`      | —                                                                                                           |
+| Input tokens              | `gen_ai.usage.input_tokens`  | `gen_ai.usage.prompt_tokens`, `llm.token_count.prompt`                                                      |
+| Output tokens             | `gen_ai.usage.output_tokens` | `gen_ai.usage.completion_tokens`, `llm.token_count.completion`                                              |
+| Total tokens              | `gen_ai.usage.total_tokens`  | derived from input + output                                                                                 |
+| Cost (USD)                | `gen_ai.usage.cost`          | `gen_ai.usage.total_cost`, `llm.usage.total_cost`, `gen_ai.cost.total_cost` (LiteLLM), `litellm.cost.total` |
+| Agent name                | `gen_ai.agent.name`          | —                                                                                                           |
+| Tool name                 | `gen_ai.tool.name`           | —                                                                                                           |
+| Conversation / session id | `gen_ai.conversation.id`     | `session.id`, `langfuse.session.id`, `traceloop.association.properties.session_id`                          |
 
 **Prompt & completion content** is read from the standard content events (`gen_ai.system.message`, `gen_ai.user.message`, `gen_ai.assistant.message`, `gen_ai.choice`) or the indexed attributes (`gen_ai.prompt.N.content`, `gen_ai.completion.N.content`) and rendered in the AI / LLM panel.
 
@@ -112,7 +114,7 @@ Open **AI / LLM** in the navigation bar (under Observability):
 Because GenAI metrics arrive as ordinary OpenTelemetry metrics, you can:
 
 - Build **dashboards** charting `gen_ai.client.token.usage`, `gen_ai.client.operation.duration`, etc. (Dashboards → add a chart on the metric).
-- Create **metric monitors** to alert on token spend, latency or error rate — for example alert when `gen_ai.client.operation.duration` p95 crosses a threshold, grouped by model. See [Monitors](/docs/monitor/monitor).
+- Create **metric monitors** to alert on token spend, latency or error rate — for example alert when `gen_ai.client.operation.duration` p95 crosses a threshold, grouped by model. See [Metrics Monitor](/docs/monitor/metrics-monitor).
 
 ## Daily cost budgets
 
@@ -124,6 +126,8 @@ The **AI / LLM** section has a **Budgets** tab. Each budget sets a daily USD lim
 — each at most once per UTC day. Alerts carry a configurable severity and can trigger your on-call duty policies.
 
 Budgets can be scoped to a telemetry service, an LLM provider (the `gen_ai` provider name), or an exact model — or left project-wide. Multiple budgets can coexist, for example a project-wide budget plus a stricter one for an expensive model.
+
+Budget alerts can do more than notify: chain one to a Workflow that calls a webhook in your infrastructure to stop a runaway agent — see [Circuit-Breaking Runaway AI Agents](/docs/telemetry/ai-agent-circuit-breaker).
 
 ## Privacy & redaction
 

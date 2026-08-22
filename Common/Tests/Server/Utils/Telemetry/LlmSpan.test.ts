@@ -204,6 +204,36 @@ describe("LlmSpanUtil.extract — cost fallback from the pricing catalog", () =>
     expect(fields.llmCost).toBe(0);
   });
 
+  test("LiteLLM's v1 cost breakdown key is read as reported cost", () => {
+    /*
+     * LiteLLM's otel callback reports cost under gen_ai.cost.*, not
+     * gen_ai.usage.cost — its total must win over the catalog estimate.
+     */
+    const attrs: Attrs = {
+      "gen_ai.system": "openai",
+      "gen_ai.request.model": "gpt-4o",
+      "gen_ai.usage.input_tokens": 1_000_000,
+      "gen_ai.usage.output_tokens": 1_000_000,
+      "gen_ai.cost.total_cost": 7.25,
+    };
+
+    const fields: LlmSpanFields = LlmSpanUtil.extract(attrs);
+    expect(fields.llmCost).toBe(7.25);
+  });
+
+  test("LiteLLM's OTel v2 cost key is read as reported cost", () => {
+    const attrs: Attrs = {
+      "gen_ai.provider.name": "openai",
+      "gen_ai.request.model": "gpt-4o",
+      "gen_ai.usage.input_tokens": 1_000_000,
+      "gen_ai.usage.output_tokens": 1_000_000,
+      "litellm.cost.total": 6.5,
+    };
+
+    const fields: LlmSpanFields = LlmSpanUtil.extract(attrs);
+    expect(fields.llmCost).toBe(6.5);
+  });
+
   test("a malformed reported cost falls back to the catalog", () => {
     const attrs: Attrs = {
       "gen_ai.system": "openai",
