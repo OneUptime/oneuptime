@@ -1,6 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
-import fs from "fs";
-import path from "path";
+import {
+  DashboardFallbackRoutePrefixesToSkip,
+  StatusPageDomainFallbackRoutePrefixesToSkip,
+  isRouteReservedAgainstSpaFallback,
+} from "../../FeatureSet/Frontend/RouteReservations";
+import { APP_DIR, REPO_ROOT, readSource } from "./RouteReservationSource";
 
 /*
  * The App container answers "/" with the dashboard SPA on any install with
@@ -16,60 +20,53 @@ import path from "path";
  *
  * mountVendorAssets terminates its own prefix with a 404, so this list is the
  * second line of defence - it matters if that mount ever moves after
- * FrontendRoutes.init(), or if a service registers a catch-all earlier. The
- * arrays are module-private, so this reads the source the same way
- * StripeOfflineLoading.test.ts does.
+ * FrontendRoutes.init(), or if a service registers a catch-all earlier.
+ *
+ * The lists are imported from FeatureSet/Frontend/RouteReservations.ts rather
+ * than scraped out of the source: this file used to read them with a regex
+ * that harvested every quoted string inside the array literal, which also
+ * picked up paths quoted in the surrounding comments. That parser reported
+ * more prefixes than the array had entries and would have stayed green
+ * through the very deletion it exists to catch.
  */
-
-const FRONTEND_INDEX: string = path.join(
-  __dirname,
-  "..",
-  "..",
-  "FeatureSet",
-  "Frontend",
-  "Index.ts",
-);
 
 const VENDOR_ASSETS_ROUTE: string = "/oneuptime-assets";
 
-function arrayLiteral(name: string): Array<string> {
-  const source: string = fs.readFileSync(FRONTEND_INDEX, "utf8");
-
-  const declaration: RegExpMatchArray | null = source.match(
-    new RegExp(`const ${name}: Array<string> = \\[([\\s\\S]*?)\\n\\];`),
-  );
-
-  if (!declaration || !declaration[1]) {
-    return [];
-  }
-
-  return (declaration[1].match(/"([^"]+)"/g) || []).map(
-    (entry: string): string => {
-      return entry.replace(/"/g, "");
-    },
-  );
-}
-
 describe("the vendored-asset prefix is reserved against the SPA fallbacks", () => {
-  const lists: Array<string> = [
-    "DashboardFallbackRoutePrefixesToSkip",
-    "StatusPageDomainFallbackRoutePrefixesToSkip",
+  const lists: Array<[string, Array<string>]> = [
+    [
+      "DashboardFallbackRoutePrefixesToSkip",
+      DashboardFallbackRoutePrefixesToSkip,
+    ],
+    [
+      "StatusPageDomainFallbackRoutePrefixesToSkip",
+      StatusPageDomainFallbackRoutePrefixesToSkip,
+    ],
   ];
 
-  for (const list of lists) {
-    describe(list, () => {
-      const entries: Array<string> = arrayLiteral(list);
-
-      test("was found and parsed", () => {
-        /*
-         * A rename would otherwise make the assertion below vacuous rather
-         * than failing.
-         */
+  for (const [name, entries] of lists) {
+    describe(name, () => {
+      test("is a non-trivial list of absolute prefixes", () => {
+        // Guards every assertion below from passing against an empty list.
         expect(entries.length).toBeGreaterThan(3);
+        expect(
+          entries.every((entry: string): boolean => {
+            return entry.startsWith("/") && entry !== "/";
+          }),
+        ).toBe(true);
       });
 
       test(`reserves ${VENDOR_ASSETS_ROUTE}`, () => {
         expect(entries).toContain(VENDOR_ASSETS_ROUTE);
+      });
+
+      test(`reserves assets below ${VENDOR_ASSETS_ROUTE}, not just the bare prefix`, () => {
+        expect(
+          isRouteReservedAgainstSpaFallback(
+            entries,
+            `${VENDOR_ASSETS_ROUTE}/tailwind/tailwind.min.css`,
+          ),
+        ).toBe(true);
       });
     });
   }
@@ -80,18 +77,12 @@ describe("the vendored-asset prefix is reserved against the SPA fallbacks", () =
      * rather than repeating the literal means renaming the route fails here
      * instead of silently un-reserving the prefix.
      */
-    const vendorAssets: string = fs.readFileSync(
-      path.join(
-        __dirname,
-        "..",
-        "..",
-        "..",
-        "Common",
-        "Server",
-        "Utils",
-        "VendorAssets.ts",
-      ),
-      "utf8",
+    const vendorAssets: string = readSource(
+      REPO_ROOT,
+      "Common",
+      "Server",
+      "Utils",
+      "VendorAssets.ts",
     );
 
     const route: RegExpMatchArray | null = vendorAssets.match(
@@ -107,8 +98,27 @@ describe("the vendored-asset prefix is reserved against the SPA fallbacks", () =
      * If that ever became an exact match, the entry above would stop covering
      * /oneuptime-assets/tailwind/... and the reservation would be decorative.
      */
-    const source: string = fs.readFileSync(FRONTEND_INDEX, "utf8");
+    const source: string = readSource(
+      APP_DIR,
+      "FeatureSet",
+      "Frontend",
+      "RouteReservations.ts",
+    );
 
     expect(source).toContain("path.startsWith(`${prefix}/`)");
+
+    // And prove it by behaviour, not only by the shape of the source.
+    expect(
+      isRouteReservedAgainstSpaFallback(
+        [VENDOR_ASSETS_ROUTE],
+        `${VENDOR_ASSETS_ROUTE}/x.css`,
+      ),
+    ).toBe(true);
+    expect(
+      isRouteReservedAgainstSpaFallback(
+        [VENDOR_ASSETS_ROUTE],
+        `${VENDOR_ASSETS_ROUTE}-other/x.css`,
+      ),
+    ).toBe(false);
   });
 });
