@@ -253,6 +253,10 @@ describe("Alerts side menu", () => {
           href: routeFor(PageMap.ALERTS_SETTINGS_CUSTOM_FIELDS),
         },
         {
+          title: "Measurements",
+          href: routeFor(PageMap.ALERTS_SETTINGS_MEASUREMENTS),
+        },
+        {
           title: "More Settings",
           href: routeFor(PageMap.ALERTS_SETTINGS_MORE),
         },

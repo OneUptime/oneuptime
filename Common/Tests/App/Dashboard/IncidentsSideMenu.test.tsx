@@ -310,6 +310,10 @@ describe("Incidents side menu", () => {
           href: routeFor(PageMap.INCIDENTS_SETTINGS_ROLES),
         },
         {
+          title: "Measurements",
+          href: routeFor(PageMap.INCIDENTS_SETTINGS_MEASUREMENTS),
+        },
+        {
           title: "More Settings",
           href: routeFor(PageMap.INCIDENTS_SETTINGS_MORE),
         },

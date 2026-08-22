@@ -137,6 +137,10 @@ export function getScheduleMaintenanceBreadcrumbs(
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CUSTOM_FIELDS,
       ["Project", "Scheduled Maintenance", "Settings", "Custom Fields"],
     ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MEASUREMENTS,
+      ["Project", "Scheduled Maintenance", "Settings", "Measurements"],
+    ),
 
     /*
      * Rules is its own side-menu section, not a group of lines under Settings,

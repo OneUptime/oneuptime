@@ -2654,10 +2654,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     // IncidentMeasurementValue
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentMeasurementValue, IncidentMeasurementValueServiceType>(
+      new BaseAPI<
         IncidentMeasurementValue,
-        IncidentMeasurementValueService,
-      ).getRouter(),
+        IncidentMeasurementValueServiceType
+      >(IncidentMeasurementValue, IncidentMeasurementValueService).getRouter(),
     );
 
     // AlertMeasurement
@@ -2681,7 +2681,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     // ScheduledMaintenanceMeasurement
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ScheduledMaintenanceMeasurement, ScheduledMaintenanceMeasurementServiceType>(
+      new BaseAPI<
+        ScheduledMaintenanceMeasurement,
+        ScheduledMaintenanceMeasurementServiceType
+      >(
         ScheduledMaintenanceMeasurement,
         ScheduledMaintenanceMeasurementService,
       ).getRouter(),
@@ -2690,7 +2693,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     // ScheduledMaintenanceMeasurementValue
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ScheduledMaintenanceMeasurementValue, ScheduledMaintenanceMeasurementValueServiceType>(
+      new BaseAPI<
+        ScheduledMaintenanceMeasurementValue,
+        ScheduledMaintenanceMeasurementValueServiceType
+      >(
         ScheduledMaintenanceMeasurementValue,
         ScheduledMaintenanceMeasurementValueService,
       ).getRouter(),
