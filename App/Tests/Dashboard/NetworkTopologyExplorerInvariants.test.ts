@@ -224,7 +224,14 @@ describe("search, then health — in that order", () => {
         "const childTypeLabelPlural: string = pluralChildLabel(childTypeLabel);",
       ),
     );
-    expect(EXPLORER_CODE).not.toContain("childTypeLabel.toLowerCase()");
+    /*
+     * The aria-label on the jump button is the one place a bare
+     * .toLowerCase() is correct: it names ONE site, so the noun is singular
+     * there by construction. Every other use must be the plural helper.
+     */
+    expect(EXPLORER_CODE.split("childTypeLabel.toLowerCase()").length - 1).toBe(
+      1,
+    );
   });
 });
 
@@ -241,16 +248,26 @@ describe("drilling", () => {
   });
 
   /*
-   * The loader is raised in the SAME batch as the id. The fetch effect runs
-   * after paint, so setting only the id commits one frame in which the id
-   * is the new level while the data is still the previous one's — which
-   * renders the wrong view, and going up renders an empty state, before the
-   * loader ever appears.
+   * A stale error must not survive the drill. `hasCurrentLevel` is false for
+   * the whole round trip, so an error left over from the level being LEFT
+   * would route the incoming one straight to the failed-level card instead
+   * of the loader.
    */
-  test("raises the loader in the same batch as the new site id", () => {
+  test("clears the previous level's error in the same batch as the new id", () => {
     expect(EXPLORER_CODE).toContain(
-      squash('setIsLoading(true); setError(""); setCurrentSiteId(siteId);'),
+      squash('setError(""); setCurrentSiteId(siteId);'),
     );
+  });
+
+  /*
+   * There is no loading flag any more, and there must not be one: the
+   * loader is derived from whether the level in view has its own data.
+   * A boolean written in five places and read in none was how the previous
+   * revision convinced itself the drill was covered when it was not.
+   */
+  test("no separate loading flag can drift from the freshness check", () => {
+    expect(EXPLORER_CODE).not.toContain("isLoading");
+    expect(EXPLORER_CODE).not.toContain("setIsLoading");
   });
 
   test("no-ops on an unchanged target, so the loader is never stranded", () => {
@@ -280,8 +297,8 @@ describe("nothing is hidden without saying so", () => {
   });
 
   test("a truncated level says its rollups may be partial", () => {
-    expect(EXPLORER_CODE).toContain("levelData?.childrenTruncated");
-    expect(EXPLORER_CODE).toContain("levelData?.descendantCountsTruncated");
+    expect(EXPLORER_CODE).toContain("level?.childrenTruncated");
+    expect(EXPLORER_CODE).toContain("level?.descendantCountsTruncated");
   });
 
   /*
@@ -327,6 +344,150 @@ describe("nothing is hidden without saying so", () => {
   test("a refresh failure keeps the level it already has", () => {
     expect(EXPLORER_CODE).toContain(
       squash("`${error} — showing the last level that loaded.`"),
+    );
+  });
+});
+
+/*
+ * The defect an adversarial review round found, and the guard that closes
+ * it. Worth its own block because it is the most expensive way this feature
+ * can fail: it put the project-wide device graph on screen.
+ */
+describe("a level in flight never renders another level's data", () => {
+  /*
+   * `changeSite` commits the new site id a whole round trip before the
+   * response for it lands. With the view derived straight from `levelData`,
+   * that window paired the NEW id with the PREVIOUS level's children —
+   * and going back to All Sites from a store (isAtRoot + the store's empty
+   * child list) resolved to "flat", mounting NetworkTopologyLiveView with
+   * no siteId and firing the unscoped all-device fetch this whole change
+   * exists to avoid, under a note claiming the project has no sites.
+   */
+  test("the loaded level is stamped with the site it belongs to", () => {
+    expect(EXPLORER_CODE).toContain(
+      squash(
+        "const [loadedSiteId, setLoadedSiteId] = useState<string | null | undefined>( undefined, );",
+      ),
+    );
+    expect(EXPLORER_CODE).toContain(squash("setLoadedSiteId(siteId);"));
+  });
+
+  test("freshness is what the view is derived from, not raw state", () => {
+    expect(EXPLORER_CODE).toContain(
+      squash(
+        "const hasCurrentLevel: boolean = levelData !== null && loadedSiteId === currentSiteId;",
+      ),
+    );
+    expect(EXPLORER_CODE).toContain(
+      squash(
+        "const level: SiteChildrenResponse | null = hasCurrentLevel ? levelData : null;",
+      ),
+    );
+  });
+
+  /*
+   * Every input to the view resolution has to come from `level`. One
+   * leftover `levelData?.` here is the whole bug back again.
+   */
+  test("every view input reads the fresh level", () => {
+    expect(EXPLORER_CODE).toContain(
+      squash("childCount: allLevelSites.length,"),
+    );
+    expect(EXPLORER_CODE).toContain(
+      squash(
+        "const allLevelSites: Array<SiteChildView> = level?.children || [];",
+      ),
+    );
+    expect(EXPLORER_CODE).toContain(
+      squash(
+        "attachedDeviceCount: level?.deviceScope.attachedDeviceCount ?? 0,",
+      ),
+    );
+    expect(EXPLORER_CODE).toContain(
+      squash(
+        "const breadcrumb: Array<SiteBreadcrumbEntry> = level?.breadcrumb || [];",
+      ),
+    );
+  });
+
+  /*
+   * The loader has to cover the drill, not just the first load. The old
+   * guard was `isLoading && !levelData`, and levelData is only ever null
+   * once — so after the first load the loader was unreachable.
+   */
+  test("the loader covers every level with no data of its own", () => {
+    expect(EXPLORER_CODE).toContain(
+      squash("if (!hasCurrentLevel && !error) {"),
+    );
+    expect(EXPLORER_CODE).not.toContain(
+      squash("if (isLoading && !levelData) {"),
+    );
+  });
+
+  /*
+   * A failed drill must not be a dead end: the breadcrumb is built from the
+   * level that failed to load, and clicking the same card again no-ops.
+   */
+  test("a failed level offers a way out that does not need that level", () => {
+    expect(EXPLORER).toContain('data-testid="topology-hierarchy-error-back"');
+    expect(EXPLORER_CODE).toContain(squash("changeSite(null);"));
+  });
+});
+
+describe('"Show every device" means every device', () => {
+  /*
+   * The note is rendered at every level, and its sentence is about the
+   * devices attached to NO site. Toggling the device view where the reader
+   * happens to be standing opened that one site's own handful instead —
+   * never the unattached ones the sentence is actually about.
+   */
+  test("it drops to the root and asks for devices in one commit", () => {
+    expect(EXPLORER_CODE).toContain(
+      squash("const showEveryDevice: () => void = (): void => {"),
+    );
+    expect(EXPLORER_CODE).toContain(squash("setCurrentSiteId(null);"));
+    expect(EXPLORER_CODE).toContain(squash("setRequestedDeviceView(true);"));
+    expect(EXPLORER_CODE).toContain(
+      squash('[TOPOLOGY_SITE_PARAM]: null, [TOPOLOGY_DEVICES_PARAM]: "1",'),
+    );
+  });
+
+  test("the note's button calls it rather than the level-local toggle", () => {
+    expect(EXPLORER).toContain(
+      'data-testid="topology-hierarchy-show-every-device"',
+    );
+    const noteBlock: string = EXPLORER_CODE.slice(
+      EXPLORER_CODE.indexOf("topology-hierarchy-show-every-device"),
+      EXPLORER_CODE.indexOf("topology-hierarchy-show-every-device") + 400,
+    );
+    expect(noteBlock).toContain("showEveryDevice()");
+    expect(noteBlock).not.toContain("changeDeviceView(true)");
+  });
+});
+
+describe("the filter's effect reaches a screen reader", () => {
+  /*
+   * A ring and a smooth scroll are both invisible to assistive tech. The
+   * hint line is the only thing that can carry "12 of 949 need a look, and
+   * I have taken you to the first one", so it has to be a live region.
+   */
+  test("the hint is a polite live region", () => {
+    expect(EXPLORER_CODE).toContain(squash('role="status"'));
+    expect(EXPLORER_CODE).toContain(squash('aria-live="polite"'));
+  });
+
+  test("the jump button names the site it opens", () => {
+    expect(EXPLORER_CODE).toContain(
+      squash("aria-label={`Open ${focusedSite.name}"),
+    );
+  });
+
+  test("the highlighted card says so in words, not only in colour", () => {
+    const CARD: string = readCode("Components", "NetworkSite", "SiteCard.tsx");
+    expect(CARD).toContain(
+      squash(
+        'props.isHighlighted ? ", first match for the current filter" : ""',
+      ),
     );
   });
 });

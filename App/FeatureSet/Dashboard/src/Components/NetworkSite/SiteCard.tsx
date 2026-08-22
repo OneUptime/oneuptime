@@ -302,7 +302,14 @@ const SiteCard: FunctionComponent<ComponentProps> = (
       tabIndex={isClickable ? 0 : undefined}
       aria-label={
         isClickable
-          ? `${props.site.name} — ${props.site.siteType}, open this site`
+          ? `${props.site.name} — ${props.site.siteType}${
+              /*
+               * The ring says "the filter landed you here" in colour and
+               * shape only. Assistive tech gets the same fact in words, or
+               * the auto-jump simply does not happen for that reader.
+               */
+              props.isHighlighted ? ", first match for the current filter" : ""
+            }, open this site`
           : undefined
       }
       data-highlighted={props.isHighlighted ? "true" : undefined}
