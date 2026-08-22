@@ -18,14 +18,23 @@ import {
  *
  * Shape of the emitted expression, for rules r0..rN in order:
  *
- *   trimBoth(substring(trimBoth(
+ *   trimBoth(substringUTF8(trimBoth(
  *     replaceRegexpAll(...replaceRegexpAll(ifNull(body,''), p0, x0)..., pN, xN)
  *   ), 1, 300))
  *
  * The innermost call is the FIRST rule, matching the sequential application
  * order `normalizeLogBodyToErrorPattern` uses, and the trim/truncate/trim
- * tail mirrors its `.trim()` -> `.slice()` -> `.trim()`. Parity between the
- * two is pinned by Common/Tests/Utils/Telemetry/LogErrorPatternSql.test.ts.
+ * tail mirrors its `.trim()` -> `.slice()` -> `.trim()`. The shape is pinned
+ * by Common/Tests/Server/Utils/Telemetry/LogErrorPatternSql.test.ts.
+ *
+ * Truncation uses substringUTF8, NOT substring. ClickHouse's `substring`
+ * counts BYTES, so a 300-byte cut through a Japanese message or an emoji
+ * lands mid-sequence and the group key ends in a broken UTF-8 fragment. The
+ * UTF8 variant counts characters, which is also what the JavaScript
+ * normalizer's `.slice()` approximates. The two are not bit-identical for
+ * astral-plane characters (JS slices UTF-16 code units, so an emoji costs it
+ * two) — that only shifts where a very long pattern is cut, never what it
+ * groups, and is deliberately not claimed as exact parity.
  *
  * Patterns and replacements ride as bound query parameters rather than
  * being interpolated. ClickHouse substitutes parameters into the AST as
@@ -58,7 +67,7 @@ export function buildLogErrorPatternExpression(
 ): Statement {
   const statement: Statement = new Statement();
 
-  statement.append("trimBoth(substring(trimBoth(");
+  statement.append("trimBoth(substringUTF8(trimBoth(");
 
   // One open paren per rule; the arguments below close them inside-out.
   statement.append("replaceRegexpAll(".repeat(LOG_ERROR_PATTERN_RULES.length));
