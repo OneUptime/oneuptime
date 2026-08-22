@@ -1,3 +1,14 @@
+/*
+ * Relative rather than the "Common/..." alias other Home files use. The alias
+ * resolves through Home/node_modules/Common, which is a symlink — in a git
+ * worktree it points at the main checkout, so a file added on a branch is
+ * invisible to the typechecker there. A relative path resolves off this file
+ * and is the same in every checkout.
+ */
+import {
+  AdClickIdKeys,
+  UtmWireKeyToPropertyKey,
+} from "../../Common/Types/Marketing/Attribution";
 import { getPageSEO, PageSEOData } from "../Utils/PageSEO";
 import { getSelfHostedContent } from "../Utils/SelfHosted";
 import ejs from "ejs";
@@ -342,6 +353,21 @@ const consentSignals: ConsentSignalsFunction = (
 
 const AD_URL: string =
   "https://oneuptime.com/enterprise/demo?utm_source=google&utm_medium=cpc&utm_campaign=enterprise-q3&gclid=abc123";
+
+/*
+ * A landing URL carrying every parameter the shared contract names, built from
+ * that contract rather than hand-listed — so a key added to
+ * Common/Types/Marketing/Attribution.ts is exercised here automatically instead
+ * of quietly going untested.
+ */
+const EVERY_PARAM_URL: string = `https://oneuptime.com/enterprise/demo?${[
+  ...Object.keys(UtmWireKeyToPropertyKey),
+  ...AdClickIdKeys,
+]
+  .map((key: string) => {
+    return `${key}=${key}-value`;
+  })
+  .join("&")}`;
 
 describe("attribution capture and consent", () => {
   let html: string = "";
@@ -1021,6 +1047,77 @@ describe("attribution capture and consent", () => {
 
       for (const value of Object.values(harness.calMetadata())) {
         expect(typeof value).toBe("string");
+      }
+    });
+
+    /*
+     * THE WIRE CONTRACT, ASSERTED MECHANICALLY.
+     *
+     * The browser writes these keys and App/API/CalWebhook.ts reads them. The
+     * two lists live in different languages, in different packages, edited at
+     * different times — and a key the browser sends that the server does not
+     * read is dropped in total silence. Nothing errors, the booking is still
+     * recorded, the attribution just is not there.
+     *
+     * Checking that correspondence by eye is how the last two bugs on this path
+     * got through, so it is checked here against the shared definition the
+     * server actually parses from.
+     */
+    test("sends no key the webhook does not read", () => {
+      const readableKeys: Set<string> = new Set<string>([
+        ...AdClickIdKeys,
+        ...Object.keys(UtmWireKeyToPropertyKey),
+        // Read explicitly by collectUtm / collectFirstTouch in CalWebhook.ts.
+        "utm_url",
+        "ou_first_touch",
+      ]);
+
+      const harness: Harness = loadHarness(html, {
+        url: EVERY_PARAM_URL,
+        storedConsent: "true",
+      });
+
+      const innerNames: Array<string> = Object.keys(harness.calMetadata()).map(
+        (key: string) => {
+          return key.slice("metadata[".length, -1);
+        },
+      );
+
+      // The fixture has to actually exercise the keys for this to mean anything.
+      expect(innerNames.length).toBeGreaterThanOrEqual(readableKeys.size);
+
+      for (const name of innerNames) {
+        expect(readableKeys).toContain(name);
+      }
+    });
+
+    /*
+     * And the other direction: a key the server learns to read but the browser
+     * never sends is dead weight that looks like working code.
+     */
+    test("sends every click id the webhook allowlists", () => {
+      const harness: Harness = loadHarness(html, {
+        url: EVERY_PARAM_URL,
+        storedConsent: "true",
+      });
+
+      const metadata: Record<string, string> = harness.calMetadata();
+
+      for (const clickIdKey of AdClickIdKeys) {
+        expect(metadata[`metadata[${clickIdKey}]`]).toBe(`${clickIdKey}-value`);
+      }
+    });
+
+    test("sends every UTM parameter the webhook allowlists", () => {
+      const harness: Harness = loadHarness(html, {
+        url: EVERY_PARAM_URL,
+        storedConsent: "true",
+      });
+
+      const metadata: Record<string, string> = harness.calMetadata();
+
+      for (const wireKey of Object.keys(UtmWireKeyToPropertyKey)) {
+        expect(metadata[`metadata[${wireKey}]`]).toBe(`${wireKey}-value`);
       }
     });
 
