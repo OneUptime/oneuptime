@@ -21,6 +21,7 @@ import {
   describeDeviceCounts,
   describeSiteTopologyFilter,
   describeUnattachedDevices,
+  devicesForMode,
   filterSitesByTopologyHealth,
   firstMatchingSiteId,
   flatFallbackReason,
@@ -455,9 +456,53 @@ describe("siteTopologyStateMatchesMode", () => {
     expect(siteTopologyStateMatchesMode("down", "degraded")).toBe(false);
   });
 
-  test("every declared mode is one this function actually handles", () => {
+  /*
+   * A `typeof … === "boolean"` loop here used to pass for every input,
+   * including a mode the switch had never heard of, because the function
+   * ends in `default: return true`. This pins the actual truth table
+   * instead, so a mode losing its case arm shows up as a filter that stops
+   * hiding anything.
+   */
+  test("every declared mode has a real, distinct truth table", () => {
+    const STATES: Array<SiteTopologyHealthState> = [
+      "down",
+      "degraded",
+      "healthy",
+      "unknown",
+    ];
+    const table: Record<string, string> = {};
     for (const mode of ALL_SITE_TOPOLOGY_FILTER_MODES) {
-      expect(typeof siteTopologyStateMatchesMode("down", mode)).toBe("boolean");
+      table[mode] = STATES.map((state: SiteTopologyHealthState) => {
+        return siteTopologyStateMatchesMode(state, mode) ? "1" : "0";
+      }).join("");
+    }
+    expect(table).toEqual({
+      all: "1111",
+      attention: "1100",
+      down: "1000",
+      degraded: "0100",
+    });
+  });
+
+  /*
+   * Only "all" is allowed to match everything. If another mode ever fell
+   * through to the default arm it would silently become a second "all" — a
+   * filter the chips claim narrows the level while it hides nothing.
+   */
+  test("no mode but 'all' matches every state", () => {
+    const STATES: Array<SiteTopologyHealthState> = [
+      "down",
+      "degraded",
+      "healthy",
+      "unknown",
+    ];
+    for (const mode of ALL_SITE_TOPOLOGY_FILTER_MODES) {
+      const matchesEverything: boolean = STATES.every(
+        (state: SiteTopologyHealthState) => {
+          return siteTopologyStateMatchesMode(state, mode);
+        },
+      );
+      expect(matchesEverything).toBe(mode === "all");
     }
   });
 
@@ -801,6 +846,181 @@ describe("describeSiteTopologyFilter", () => {
       childTypeLabel: "Store",
     });
     expect(line).toContain("open a store for its topology");
+  });
+});
+
+/*
+ * A filtered level has to describe the rows the reader can still SEE.
+ * Reporting the level's devices credited the surviving sites with dark
+ * ports belonging to rows the filter had just taken off screen.
+ */
+describe("devicesForMode", () => {
+  const level: Array<SiteChildView> = [
+    makeSite("down-site", { deviceStats: makeCounts({ down: 2, healthy: 8 }) }),
+    makeSite("degraded-site", {
+      deviceStats: makeCounts({ degraded: 3, healthy: 17 }),
+    }),
+    makeSite("healthy-site", { deviceStats: makeCounts({ healthy: 40 }) }),
+    makeSite("unknown-site", { deviceStats: makeCounts({ unknown: 5 }) }),
+  ];
+  const summary: SiteTopologyHealthSummary = summarizeSiteTopologyHealth(level);
+
+  test("'all' is every device at the level", () => {
+    expect(devicesForMode(summary, "all").total).toBe(75);
+  });
+
+  test("'down' is only the devices of the down sites", () => {
+    expect(devicesForMode(summary, "down")).toEqual({
+      total: 10,
+      down: 2,
+      degraded: 0,
+      healthy: 8,
+      unknown: 0,
+    });
+  });
+
+  test("'degraded' is only the devices of the degraded sites", () => {
+    expect(devicesForMode(summary, "degraded")).toEqual({
+      total: 20,
+      down: 0,
+      degraded: 3,
+      healthy: 17,
+      unknown: 0,
+    });
+  });
+
+  test("'attention' is the union of the two, and never double counts", () => {
+    const attention: DeviceHealthCounts = devicesForMode(summary, "attention");
+    expect(attention.total).toBe(30);
+    expect(attention.down).toBe(2);
+    expect(attention.degraded).toBe(3);
+  });
+
+  /*
+   * The buckets partition the level: every device belongs to exactly one
+   * site, and every site to exactly one state, so the four have to add back
+   * up to the whole. A device counted in two buckets would let the hint
+   * report more affected devices than the level contains.
+   */
+  test("the per-state buckets partition the level exactly", () => {
+    const states: Array<SiteTopologyHealthState> = [
+      "down",
+      "degraded",
+      "healthy",
+      "unknown",
+    ];
+    const summed: number = states.reduce(
+      (running: number, state: SiteTopologyHealthState) => {
+        return running + summary.devicesBySiteState[state].total;
+      },
+      0,
+    );
+    expect(summed).toBe(summary.devices.total);
+  });
+
+  test("an empty level yields zeroed buckets rather than undefined", () => {
+    const empty: SiteTopologyHealthSummary = summarizeSiteTopologyHealth([]);
+    for (const mode of ALL_SITE_TOPOLOGY_FILTER_MODES) {
+      expect(devicesForMode(empty, mode).total).toBe(0);
+    }
+  });
+});
+
+describe("the filter hint tells the truth about the filtered level", () => {
+  /*
+   * One down market, three degraded ones. Filtering to "Down" leaves the
+   * degraded markets off screen, so their dark ports must not appear in the
+   * sentence describing what is left.
+   */
+  const mixed: Array<SiteChildView> = [
+    makeSite("kc", { deviceStats: makeCounts({ down: 1, healthy: 49 }) }),
+    makeSite("stl", { deviceStats: makeCounts({ degraded: 4, healthy: 46 }) }),
+    makeSite("chi", { deviceStats: makeCounts({ degraded: 2, healthy: 48 }) }),
+    makeSite("mke", { deviceStats: makeCounts({ healthy: 50 }) }),
+  ];
+  const summary: SiteTopologyHealthSummary = summarizeSiteTopologyHealth(mixed);
+
+  test("'down' counts only the down site's affected devices", () => {
+    const line: string = describeSiteTopologyFilter({
+      mode: "down",
+      summary: summary,
+      childTypeLabel: "Market",
+    });
+    expect(line).toContain("1 of 4 markets");
+    // 1, not 7: the six degraded ports belong to markets this filter hides.
+    expect(line).toContain("across 1 of 200 devices");
+  });
+
+  test("'attention' counts the union, because it shows the union", () => {
+    const line: string = describeSiteTopologyFilter({
+      mode: "attention",
+      summary: summary,
+      childTypeLabel: "Market",
+    });
+    expect(line).toContain("3 of 4 markets");
+    expect(line).toContain("across 7 of 200 devices");
+  });
+
+  /*
+   * The contradiction this replaced: "Down 0" next to "Needs attention 3"
+   * used to print "all 4 markets look fine" — the sentence flatly denying
+   * the control above it.
+   */
+  test("an empty narrow filter points at what DID match, never 'all fine'", () => {
+    const level: Array<SiteChildView> = [
+      makeSite("a", { deviceStats: makeCounts({ degraded: 2, healthy: 8 }) }),
+      makeSite("b", { deviceStats: makeCounts({ healthy: 10 }) }),
+    ];
+    const line: string = describeSiteTopologyFilter({
+      mode: "down",
+      summary: summarizeSiteTopologyHealth(level),
+      childTypeLabel: "Store",
+    });
+    expect(line).not.toContain("look fine");
+    expect(line).toContain("No stores at this level are down");
+    expect(line).toContain("1 store still need");
+  });
+
+  test("but a genuinely healthy level is still allowed to say so", () => {
+    const line: string = describeSiteTopologyFilter({
+      mode: "attention",
+      summary: summarizeSiteTopologyHealth([
+        makeSite("a", { deviceStats: makeCounts({ healthy: 4 }) }),
+        makeSite("b", { deviceStats: makeCounts({ healthy: 6 }) }),
+      ]),
+      childTypeLabel: "Store",
+    });
+    expect(line).toContain("all 2 stores look fine");
+  });
+
+  /*
+   * "Needs attention" is the union, so it can never be empty while a
+   * narrower bucket is not — there is nothing to point the reader at.
+   */
+  test("an empty 'attention' filter never claims something else matched", () => {
+    const line: string = describeSiteTopologyFilter({
+      mode: "attention",
+      summary: summarizeSiteTopologyHealth([
+        makeSite("a", { deviceStats: makeCounts({ healthy: 3 }) }),
+      ]),
+      childTypeLabel: "Region",
+    });
+    expect(line).toContain("look fine");
+    expect(line).not.toContain("still need");
+  });
+
+  /*
+   * Whatever the sentence says, it must never claim more affected devices
+   * than the level holds, in any mode.
+   */
+  test("the numerator never exceeds the denominator, in any mode", () => {
+    for (const mode of ALL_SITE_TOPOLOGY_FILTER_MODES) {
+      const matched: DeviceHealthCounts = devicesForMode(summary, mode);
+      expect(matched.down + matched.degraded).toBeLessThanOrEqual(
+        summary.devices.total,
+      );
+      expect(matched.total).toBeLessThanOrEqual(summary.devices.total);
+    }
   });
 });
 

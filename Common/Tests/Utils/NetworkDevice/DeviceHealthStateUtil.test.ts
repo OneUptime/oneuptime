@@ -32,11 +32,11 @@ const minutesAgo: MinutesAgoFunction = (minutes: number): Date => {
 };
 
 describe("deviceHealthState — a monitor's verdict is the system of record", () => {
-  test("an operational monitor status makes the device up, whatever the poll says", () => {
+  test("a status the ladder does not call offline makes the device up, whatever the poll says", () => {
     expect(
       deviceHealthState(
         {
-          monitorStatusIsOperational: true,
+          monitorStatusIsOffline: false,
           // The SNMP side would say Down on its own.
           isReachable: false,
           lastPolledAt: minutesAgo(1),
@@ -46,11 +46,11 @@ describe("deviceHealthState — a monitor's verdict is the system of record", ()
     ).toBe("healthy");
   });
 
-  test("a non-operational monitor status makes the device down, whatever the poll says", () => {
+  test("an offline monitor status makes the device down, whatever the poll says", () => {
     expect(
       deviceHealthState(
         {
-          monitorStatusIsOperational: false,
+          monitorStatusIsOffline: true,
           isReachable: true,
           lastPolledAt: minutesAgo(1),
           lastSeenAt: minutesAgo(1),
@@ -63,7 +63,7 @@ describe("deviceHealthState — a monitor's verdict is the system of record", ()
   test("a monitor-backed device that is up can still be degraded by its ports", () => {
     expect(
       deviceHealthState(
-        { monitorStatusIsOperational: true, interfacesDown: 3 },
+        { monitorStatusIsOffline: false, interfacesDown: 3 },
         NOW,
       ),
     ).toBe("degraded");
@@ -79,7 +79,7 @@ describe("deviceHealthState — a monitor's verdict is the system of record", ()
     expect(
       deviceHealthState(
         {
-          monitorStatusIsOperational: undefined,
+          monitorStatusIsOffline: undefined,
           isReachable: false,
           lastPolledAt: minutesAgo(1),
         },
@@ -89,7 +89,7 @@ describe("deviceHealthState — a monitor's verdict is the system of record", ()
     expect(
       deviceHealthState(
         {
-          monitorStatusIsOperational: null,
+          monitorStatusIsOffline: null,
           isReachable: true,
           lastPolledAt: minutesAgo(1),
           lastSeenAt: minutesAgo(1),
@@ -97,6 +97,75 @@ describe("deviceHealthState — a monitor's verdict is the system of record", ()
         NOW,
       ),
     ).toBe("healthy");
+  });
+});
+
+/*
+ * The rule that this module exists for, and the one an earlier revision got
+ * wrong: MonitorStatus is a LADDER (Operational 1 ... Offline 3), not a
+ * pair. Reading the operational end counted every "Degraded" device as down
+ * on the site card while the map you reach by clicking that card drew the
+ * same device green — the two halves of the product describing different
+ * networks, which is precisely what a shared classifier is for.
+ *
+ * NetworkDeviceTopology.ts resolves the ladder with
+ * `status.isOfflineState ? "down" : "up"`. These pin the same answer here.
+ */
+describe("the MonitorStatus ladder — a middle rung is not an outage", () => {
+  type LadderRow = {
+    name: string;
+    isOperationalState: boolean;
+    isOfflineState: boolean;
+  };
+
+  // The seeded project rows, plus the middle rung that broke the old rule.
+  const LADDER: Array<LadderRow> = [
+    { name: "Operational", isOperationalState: true, isOfflineState: false },
+    { name: "Degraded", isOperationalState: false, isOfflineState: false },
+    { name: "Maintenance", isOperationalState: false, isOfflineState: false },
+    { name: "Offline", isOperationalState: false, isOfflineState: true },
+  ];
+
+  // Exactly what NetworkDeviceTopology.ts does with a status row.
+  function mapVerdict(row: LadderRow): "up" | "down" {
+    return row.isOfflineState ? "down" : "up";
+  }
+
+  test.each(LADDER)(
+    "$name: the rollup agrees with the map about up/down",
+    (row: LadderRow) => {
+      const state: NetworkDeviceHealthState = deviceHealthState(
+        { monitorStatusIsOffline: row.isOfflineState },
+        NOW,
+      );
+      const rollupSaysDown: boolean = state === "down";
+      expect(rollupSaysDown).toBe(mapVerdict(row) === "down");
+    },
+  );
+
+  test("a Degraded device with no dark ports is healthy, not down", () => {
+    expect(deviceHealthState({ monitorStatusIsOffline: false }, NOW)).toBe(
+      "healthy",
+    );
+  });
+
+  /*
+   * The regression in one assertion. If anybody re-wires this input to the
+   * operational flag, a Degraded row (isOperationalState false) starts
+   * reading "down" here and this fails.
+   */
+  test("only the OFFLINE rung produces down", () => {
+    const downRungs: Array<string> = LADDER.filter((row: LadderRow) => {
+      return (
+        deviceHealthState(
+          { monitorStatusIsOffline: row.isOfflineState },
+          NOW,
+        ) === "down"
+      );
+    }).map((row: LadderRow) => {
+      return row.name;
+    });
+    expect(downRungs).toEqual(["Offline"]);
   });
 });
 

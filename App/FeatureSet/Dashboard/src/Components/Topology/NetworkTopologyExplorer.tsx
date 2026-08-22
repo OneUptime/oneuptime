@@ -168,7 +168,23 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
   );
 
   const [levelData, setLevelData] = useState<SiteChildrenResponse | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  /*
+   * WHICH level `levelData` describes. Load-bearing, not bookkeeping: a
+   * drill commits the new site id one render before the response for it
+   * lands, so without this the component spends a whole round trip deriving
+   * its view from the NEW id and the PREVIOUS level's children. Going back
+   * to "All Sites" from a store did exactly that — isAtRoot with the
+   * store's empty child list resolves to the flat map, which mounted the
+   * project-wide device graph and fired the unscoped topology fetch this
+   * whole feature exists to avoid, under a note claiming the project has no
+   * sites.
+   *
+   * `undefined` means "nothing loaded yet", which is distinct from `null`
+   * meaning "the root level is loaded".
+   */
+  const [loadedSiteId, setLoadedSiteId] = useState<string | null | undefined>(
+    undefined,
+  );
   const [error, setError] = useState<string>("");
   const [searchText, setSearchText] = useState<string>("");
   /*
@@ -231,7 +247,6 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
       let outcome: FetchOutcome = "failed";
 
       if (!isBackgroundRefresh) {
-        setIsLoading(true);
         setError("");
       }
 
@@ -260,6 +275,7 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
         }
 
         setLevelData(parseSiteChildrenResponse(response.data));
+        setLoadedSiteId(siteId);
         setError("");
         outcome = "loaded";
       } catch (err) {
@@ -274,14 +290,6 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
         }
       }
 
-      if (
-        isMounted.current &&
-        seq === requestSeq.current &&
-        !isBackgroundRefresh
-      ) {
-        setIsLoading(false);
-      }
-
       return outcome;
     },
     [],
@@ -289,19 +297,28 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
 
   const isAtRoot: boolean = currentSiteId === null;
 
-  const breadcrumb: Array<SiteBreadcrumbEntry> = levelData?.breadcrumb || [];
+  /*
+   * Is what we hold actually the level the user is looking at? Everything
+   * below reads `level` rather than `levelData`, so a drill in flight can
+   * never resolve a view out of the previous level's children.
+   */
+  const hasCurrentLevel: boolean =
+    levelData !== null && loadedSiteId === currentSiteId;
+  const level: SiteChildrenResponse | null = hasCurrentLevel ? levelData : null;
+
+  const breadcrumb: Array<SiteBreadcrumbEntry> = level?.breadcrumb || [];
   const currentSite: SiteBreadcrumbEntry | null =
     !isAtRoot && breadcrumb.length > 0
       ? breadcrumb[breadcrumb.length - 1]!
       : null;
 
-  const allLevelSites: Array<SiteChildView> = levelData?.children || [];
+  const allLevelSites: Array<SiteChildView> = level?.children || [];
 
   const viewInput: HierarchyTopologyViewInput = {
     isAtRoot: isAtRoot,
     isUnitLevel: Boolean(currentSite && currentSite.isUnitLevel),
     childCount: allLevelSites.length,
-    attachedDeviceCount: levelData?.deviceScope.attachedDeviceCount ?? 0,
+    attachedDeviceCount: level?.deviceScope.attachedDeviceCount ?? 0,
     requestedDeviceView: requestedDeviceView,
   };
   const view: HierarchyTopologyView = resolveHierarchyTopologyView(viewInput);
@@ -336,11 +353,14 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
   }, [currentSiteId, fetchLevel]);
 
   /*
-   * Drill transitions are made atomic here rather than left to the effect:
-   * the effect runs after paint, so setting only the site id would commit
-   * one frame in which the id is the new level while levelData is still the
-   * previous one's — which renders the wrong view (and, going up, an empty
-   * state) before the loader appears.
+   * A drill clears everything that belonged to the level being left.
+   *
+   * The frame between committing the new site id and the response landing
+   * is covered by `hasCurrentLevel`, not by a loading flag: the id moves
+   * here, the data lands later, and until the two agree the component shows
+   * a loader rather than deriving a view from one level's id and another
+   * level's children. Clearing `error` is part of that — a stale error would
+   * route the next level to the failed-level card before it had a chance.
    */
   const changeSite: (siteId: string | null) => void = (
     siteId: string | null,
@@ -348,7 +368,6 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
     if (siteId === currentSiteId) {
       return;
     }
-    setIsLoading(true);
     setError("");
     setCurrentSiteId(siteId);
     setSearchText("");
@@ -368,6 +387,26 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
   const changeDeviceView: (next: boolean) => void = (next: boolean): void => {
     setRequestedDeviceView(next);
     queueQueryStringUpdate({ [TOPOLOGY_DEVICES_PARAM]: next ? "1" : null });
+  };
+
+  /*
+   * The whole project's device map, from wherever the reader is standing.
+   *
+   * Both halves of the transition are committed together and mirrored to
+   * the URL in one write: dropping to the root without asking for devices
+   * would land on the hierarchy again, and asking for devices without
+   * dropping to the root would open the current site's own handful.
+   */
+  const showEveryDevice: () => void = (): void => {
+    setError("");
+    setCurrentSiteId(null);
+    setSearchText("");
+    setHealthFilterMode("all");
+    setRequestedDeviceView(true);
+    queueQueryStringUpdate({
+      [TOPOLOGY_SITE_PARAM]: null,
+      [TOPOLOGY_DEVICES_PARAM]: "1",
+    });
   };
 
   /*
@@ -463,7 +502,7 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
    * ------------------------------------------------------------------
    */
 
-  const ownDeviceCount: number = levelData?.ownDeviceStats.total ?? 0;
+  const ownDeviceCount: number = level?.ownDeviceStats.total ?? 0;
   const showDeviceToggle: boolean = canShowDeviceView({
     view: view,
     isAtRoot: isAtRoot,
@@ -474,8 +513,7 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
    * otherwise "All devices" is a one-way door out of the hierarchy.
    */
   const showToggleFromDeviceView: boolean =
-    requestedDeviceView &&
-    (levelData?.deviceScope.attachedDeviceCount ?? 0) > 0;
+    requestedDeviceView && (level?.deviceScope.attachedDeviceCount ?? 0) > 0;
 
   /*
    * The header earns its place only when it can DO something: a breadcrumb
@@ -543,7 +581,13 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
    * ------------------------------------------------------------------
    */
 
-  if (isLoading && !levelData) {
+  /*
+   * The loader covers the whole time the level in view has no data of its
+   * own — the first load AND every drill. Guarding on `!levelData` instead
+   * made it a first-load-only loader, which is what let a drill render the
+   * previous level's data under the new level's id.
+   */
+  if (!hasCurrentLevel && !error) {
     return (
       <Card title={CARD_TITLE} description={CARD_DESCRIPTION}>
         <div className="flex flex-col items-center justify-center gap-3 py-20">
@@ -561,7 +605,13 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
     );
   }
 
-  if (error && !levelData) {
+  /*
+   * A failed load for THIS level. The header rides along so a failed drill
+   * is not a dead end: the breadcrumb still walks back up, and Refresh
+   * retries the level that failed. (Clicking the same card again cannot
+   * help — changeSite no-ops on an unchanged target.)
+   */
+  if (!hasCurrentLevel) {
     return (
       <Card
         title={CARD_TITLE}
@@ -576,6 +626,28 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
         ]}
       >
         <ErrorMessage message={error} />
+        {/*
+         * A way out that does not depend on the level that just failed.
+         * Without it a failed drill is a dead end: the breadcrumb is built
+         * from the level we could not load, and clicking the same card
+         * again no-ops because the site id has already changed.
+         */}
+        {currentSiteId ? (
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              data-testid="topology-hierarchy-error-back"
+              className="text-sm font-medium text-indigo-600 underline hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              onClick={() => {
+                changeSite(null);
+              }}
+            >
+              {translateString("Back to all sites") || "Back to all sites"}
+            </button>
+          </div>
+        ) : (
+          <></>
+        )}
       </Card>
     );
   }
@@ -630,7 +702,7 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
    */
 
   const unattachedNote: string = describeUnattachedDevices(
-    levelData?.deviceScope || {
+    level?.deviceScope || {
       attachedDeviceCount: 0,
       unattachedDeviceCount: 0,
     },
@@ -711,6 +783,14 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
             <p
               className="text-xs text-gray-500"
               data-testid="topology-hierarchy-filter-hint"
+              /*
+               * The filter's whole effect — how many matched, and which site
+               * the page jumped to — is announced from this one line.
+               * Without it the change is a ring and a scroll, both of which
+               * are invisible to a screen reader.
+               */
+              role="status"
+              aria-live="polite"
             >
               {describeSiteTopologyFilter({
                 mode: healthFilterMode,
@@ -722,6 +802,7 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
               <button
                 type="button"
                 data-testid="topology-hierarchy-jump-to-first"
+                aria-label={`Open ${focusedSite.name}, the first ${childTypeLabel.toLowerCase()} that needs a look`}
                 className="rounded-md px-2 py-1 text-xs font-medium text-indigo-600 underline transition hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 onClick={() => {
                   changeSite(focusedSite.id);
@@ -743,9 +824,18 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
             {unattachedNote}{" "}
             <button
               type="button"
+              data-testid="topology-hierarchy-show-every-device"
               className="font-medium text-indigo-600 underline hover:text-indigo-800"
               onClick={() => {
-                changeDeviceView(true);
+                /*
+                 * "Every device" means the PROJECT's devices, so this goes
+                 * to the root first. Toggling the device view where the
+                 * reader happens to be standing would open that one site's
+                 * own devices instead — a handful of switches under a
+                 * sentence promising four hundred, and never the unattached
+                 * ones the sentence is actually about.
+                 */
+                showEveryDevice();
               }}
             >
               {translateString("Show every device") || "Show every device"}
@@ -755,8 +845,7 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        {levelData?.childrenTruncated ||
-        levelData?.descendantCountsTruncated ? (
+        {level?.childrenTruncated || level?.descendantCountsTruncated ? (
           <div
             className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800"
             data-testid="topology-hierarchy-truncated-note"
