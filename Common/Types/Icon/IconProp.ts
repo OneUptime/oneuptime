@@ -267,6 +267,7 @@ enum IconProp {
   Scissors = "Scissors",
   Server = "Server",
   ServerStack = "ServerStack",
+  Network = "Network",
   Share = "Share",
   ShieldExclamation = "ShieldExclamation",
   ShoppingBag = "ShoppingBag",
