@@ -4,8 +4,15 @@ import LogsSavedViewsDropdown, {
 import TelemetrySavedViewsDropdown from "../../../UI/Components/TelemetryViewer/components/SavedViewsDropdown";
 import { LogsSavedViewOption } from "../../../UI/Components/LogsViewer/types";
 import "@testing-library/jest-dom";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import React, { FunctionComponent } from "react";
+import {
+  RenderResult,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
+import React, { FunctionComponent, ReactElement } from "react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -374,6 +381,747 @@ describe.each(DROPDOWNS)(
       expect(
         screen.getByRole("button", { name: "QA-JDE (default)" }),
       ).toBeInTheDocument();
+    });
+  },
+);
+
+/*
+ * Everything above mounts a dropdown once and never touches its props again.
+ * The cases below need the second render: hosts swap the saved-views array
+ * out from under an open panel — TelemetrySavedViewsControl refetches after
+ * every create, edit and delete — and the panel's own state has to survive
+ * that, or fail visibly.
+ */
+type RerenderDropdown = (
+  savedViews: Array<LogsSavedViewOption>,
+  selectedSavedViewId: string | null,
+) => void;
+
+interface MountedDropdown {
+  handlers: Handlers;
+  rerender: RerenderDropdown;
+}
+
+function dropdownElement(
+  Component: FunctionComponent<SavedViewsDropdownProps>,
+  savedViews: Array<LogsSavedViewOption>,
+  selectedSavedViewId: string | null,
+  handlers: Handlers,
+): ReactElement {
+  return (
+    <Component
+      savedViews={savedViews}
+      selectedSavedViewId={selectedSavedViewId}
+      onSelect={handlers.onSelect}
+      onClear={handlers.onClear}
+      onCreate={handlers.onCreate}
+    />
+  );
+}
+
+function mountDropdown(
+  Component: FunctionComponent<SavedViewsDropdownProps>,
+  savedViews: Array<LogsSavedViewOption>,
+  selectedSavedViewId: string | null = null,
+): MountedDropdown {
+  const handlers: Handlers = makeHandlers();
+
+  const result: RenderResult = render(
+    dropdownElement(Component, savedViews, selectedSavedViewId, handlers),
+  );
+
+  const rerender: RerenderDropdown = (
+    nextSavedViews: Array<LogsSavedViewOption>,
+    nextSelectedSavedViewId: string | null,
+  ): void => {
+    result.rerender(
+      dropdownElement(
+        Component,
+        nextSavedViews,
+        nextSelectedSavedViewId,
+        handlers,
+      ),
+    );
+  };
+
+  return { handlers: handlers, rerender: rerender };
+}
+
+/*
+ * The real consumers hand the dropdown its per-row actions too. The table
+ * above leaves them off, so nothing there ever renders an Edit, Delete or
+ * Update button — which is exactly where a search or a collapsed tail would
+ * lose them.
+ */
+interface RowHandlers extends Handlers {
+  onEdit: (viewId: string) => void;
+  onDelete: (viewId: string) => void;
+  onUpdateCurrent: () => void;
+}
+
+function renderDropdownWithRowActions(
+  Component: FunctionComponent<SavedViewsDropdownProps>,
+  savedViews: Array<LogsSavedViewOption>,
+  selectedSavedViewId: string | null = null,
+): RowHandlers {
+  const handlers: RowHandlers = {
+    ...makeHandlers(),
+    onEdit: jest.fn(),
+    onDelete: jest.fn(),
+    onUpdateCurrent: jest.fn(),
+  };
+
+  render(
+    <Component
+      savedViews={savedViews}
+      selectedSavedViewId={selectedSavedViewId}
+      onSelect={handlers.onSelect}
+      onClear={handlers.onClear}
+      onCreate={handlers.onCreate}
+      onEdit={handlers.onEdit}
+      onDelete={handlers.onDelete}
+      onUpdateCurrent={handlers.onUpdateCurrent}
+    />,
+  );
+
+  return handlers;
+}
+
+/*
+ * Every row carries an identically named Delete, so the actions are reached
+ * through the row that owns them rather than by name across the whole menu.
+ */
+function rowFor(viewName: string): HTMLElement {
+  return screen.getByRole("button", { name: viewName }).parentElement!;
+}
+
+// Same rows visibleViewNames() counts, reporting what they say is applied.
+function visibleViewPressedStates(): Array<string | null> {
+  return screen
+    .queryAllByRole("button")
+    .filter((element: HTMLElement): boolean => {
+      return element.hasAttribute("aria-pressed");
+    })
+    .map((element: HTMLElement): string | null => {
+      return element.getAttribute("aria-pressed");
+    });
+}
+
+describe.each(DROPDOWNS)(
+  "$label SavedViewsDropdown — closing the panel takes the search with it",
+  ({ Component }: DropdownUnderTest) => {
+    afterEach(() => {
+      cleanup();
+    });
+
+    test("clicking away closes the menu and drops the search with it", () => {
+      renderDropdown(Component, makeViews(6));
+      openMenu();
+      typeSearch("view 3");
+
+      fireEvent.click(document.body);
+
+      expect(isMenuOpen()).toBe(false);
+
+      openMenu();
+
+      expect(searchBox()).toHaveValue("");
+      expect(visibleViewNames()).toEqual([
+        "View 1",
+        "View 2",
+        "View 3",
+        "View 4",
+        "View 5",
+      ]);
+    });
+
+    test("clicking into the search box does not dismiss the menu", () => {
+      renderDropdown(Component, makeViews(6));
+      openMenu();
+
+      fireEvent.click(searchBox());
+
+      expect(isMenuOpen()).toBe(true);
+      expect(searchBox()).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "+1 more" }));
+
+      expect(isMenuOpen()).toBe(true);
+      expect(visibleViewNames()).toHaveLength(6);
+    });
+
+    test("Clear view closes the menu and leaves no search behind", () => {
+      const handlers: Handlers = renderDropdown(Component, NAMED_VIEWS, "ims");
+      openMenu();
+      typeSearch("checkout");
+
+      fireEvent.click(screen.getByRole("button", { name: "Clear view" }));
+
+      expect(handlers.onClear).toHaveBeenCalledTimes(1);
+      expect(isMenuOpen()).toBe(false);
+
+      openMenu();
+
+      expect(searchBox()).toHaveValue("");
+    });
+  },
+);
+
+describe.each(DROPDOWNS)(
+  "$label SavedViewsDropdown — the list changes underneath an open menu",
+  ({ Component }: DropdownUnderTest) => {
+    afterEach(() => {
+      cleanup();
+    });
+
+    test("an expanded list stays expanded when a view is added underneath it", () => {
+      const dropdown: MountedDropdown = mountDropdown(Component, makeViews(12));
+      openMenu();
+      fireEvent.click(screen.getByRole("button", { name: "+7 more" }));
+
+      dropdown.rerender(makeViews(13), null);
+
+      expect(visibleViewNames()).toHaveLength(13);
+      expect(screen.queryByRole("button", { name: /more$/ })).toBeNull();
+    });
+
+    test("the search box arrives when the list crosses the threshold mid-visit", () => {
+      const dropdown: MountedDropdown = mountDropdown(Component, makeViews(5));
+      openMenu();
+
+      expect(screen.queryByPlaceholderText(SEARCH_LABEL)).toBeNull();
+
+      dropdown.rerender(makeViews(6), null);
+
+      expect(searchBox()).toHaveValue("");
+      expect(visibleViewNames()).toEqual([
+        "View 1",
+        "View 2",
+        "View 3",
+        "View 4",
+        "View 5",
+      ]);
+      expect(
+        screen.getByRole("button", { name: "+1 more" }),
+      ).toBeInTheDocument();
+    });
+
+    test("the applied view disappearing from the list takes Clear view with it", () => {
+      const dropdown: MountedDropdown = mountDropdown(
+        Component,
+        makeViews(6),
+        "view-1",
+      );
+      openMenu();
+
+      expect(
+        screen.getByRole("button", { name: "Clear view" }),
+      ).toBeInTheDocument();
+      expect(within(trigger()).getByText("View 1")).toBeInTheDocument();
+
+      dropdown.rerender(
+        makeViews(6).filter((view: LogsSavedViewOption): boolean => {
+          return view.id !== "view-1";
+        }),
+        "view-1",
+      );
+
+      expect(screen.queryByRole("button", { name: "Clear view" })).toBeNull();
+      expect(within(trigger()).getByText("Saved Views")).toBeInTheDocument();
+      expect(within(trigger()).queryByText("View 1")).toBeNull();
+      expect(visibleViewNames()).toEqual([
+        "View 2",
+        "View 3",
+        "View 4",
+        "View 5",
+        "View 6",
+      ]);
+      expect(visibleViewPressedStates()).toEqual([
+        "false",
+        "false",
+        "false",
+        "false",
+        "false",
+      ]);
+    });
+
+    test("changing the applied view does not disturb an in-progress search", () => {
+      const dropdown: MountedDropdown = mountDropdown(Component, NAMED_VIEWS);
+      openMenu();
+      typeSearch("checkout");
+
+      dropdown.rerender(NAMED_VIEWS, "checkout");
+
+      expect(searchBox()).toHaveValue("checkout");
+      expect(visibleViewNames()).toEqual([
+        "Checkout errors",
+        "Staging checkout",
+      ]);
+      expect(visibleViewPressedStates()).toEqual(["true", "false"]);
+    });
+  },
+);
+
+describe.each(DROPDOWNS)(
+  "$label SavedViewsDropdown — the collapsed list counts and orders itself honestly",
+  ({ Component }: DropdownUnderTest) => {
+    afterEach(() => {
+      cleanup();
+    });
+
+    test("a list at exactly the threshold gets both a search box and a collapsed tail", () => {
+      renderDropdown(Component, makeViews(6));
+      openMenu();
+
+      expect(searchBox()).toBeInTheDocument();
+      expect(visibleViewNames()).toEqual([
+        "View 1",
+        "View 2",
+        "View 3",
+        "View 4",
+        "View 5",
+      ]);
+      expect(
+        screen.getByRole("button", { name: "+1 more" }),
+      ).toBeInTheDocument();
+    });
+
+    test("a pinned applied row is counted honestly by the toggle", () => {
+      renderDropdown(Component, makeViews(12), "view-11");
+      openMenu();
+
+      expect(visibleViewNames()).toHaveLength(6);
+      expect(
+        screen.getByRole("button", { name: "+6 more" }),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "+7 more" })).toBeNull();
+    });
+
+    test("the pinned row returns to its sorted place when the list expands", () => {
+      renderDropdown(Component, makeViews(12), "view-11");
+      openMenu();
+
+      expect(visibleViewNames()).toEqual([
+        "View 1",
+        "View 2",
+        "View 3",
+        "View 4",
+        "View 5",
+        "View 11",
+      ]);
+
+      fireEvent.click(screen.getByRole("button", { name: "+6 more" }));
+
+      expect(visibleViewNames()).toEqual(
+        makeViews(12).map((view: LogsSavedViewOption): string => {
+          return view.name;
+        }),
+      );
+    });
+
+    test("whitespace typed into the box is not a search", () => {
+      renderDropdown(Component, makeViews(12));
+      openMenu();
+
+      typeSearch("   ");
+
+      expect(visibleViewNames()).toEqual([
+        "View 1",
+        "View 2",
+        "View 3",
+        "View 4",
+        "View 5",
+      ]);
+      expect(
+        screen.getByRole("button", { name: "+7 more" }),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(NO_MATCHES)).toBeNull();
+    });
+
+    test("the trigger keeps naming the applied view while a search hides its row", () => {
+      renderDropdown(Component, NAMED_VIEWS, "ims");
+      openMenu();
+
+      typeSearch("checkout");
+
+      expect(visibleViewNames()).toEqual([
+        "Checkout errors",
+        "Staging checkout",
+      ]);
+      expect(within(trigger()).getByText("IMS Logs")).toBeInTheDocument();
+      expect(
+        within(trigger()).getByText(String(NAMED_VIEWS.length)),
+      ).toBeInTheDocument();
+    });
+  },
+);
+
+describe.each(DROPDOWNS)(
+  "$label SavedViewsDropdown — a row keeps its actions wherever the list puts it",
+  ({ Component }: DropdownUnderTest) => {
+    afterEach(() => {
+      cleanup();
+    });
+
+    test("a searched row keeps its Edit and Delete actions", () => {
+      const handlers: RowHandlers = renderDropdownWithRowActions(
+        Component,
+        makeViews(12),
+      );
+      openMenu();
+
+      typeSearch("view 9");
+
+      expect(visibleViewNames()).toEqual(["View 9"]);
+      expect(
+        within(rowFor("View 9")).getByRole("button", { name: "Delete" }),
+      ).toBeInTheDocument();
+
+      fireEvent.click(
+        within(rowFor("View 9")).getByRole("button", { name: "Edit" }),
+      );
+
+      expect(handlers.onEdit).toHaveBeenCalledWith("view-9");
+      expect(isMenuOpen()).toBe(false);
+    });
+
+    test("the pinned applied row still offers Update", () => {
+      const handlers: RowHandlers = renderDropdownWithRowActions(
+        Component,
+        makeViews(12),
+        "view-11",
+      );
+      openMenu();
+
+      expect(screen.getAllByRole("button", { name: "Update" })).toHaveLength(1);
+
+      fireEvent.click(
+        within(rowFor("View 11")).getByRole("button", { name: "Update" }),
+      );
+
+      expect(handlers.onUpdateCurrent).toHaveBeenCalledTimes(1);
+      expect(isMenuOpen()).toBe(false);
+    });
+
+    test("deleting a searched view closes the menu and clears the search behind it", () => {
+      const handlers: RowHandlers = renderDropdownWithRowActions(
+        Component,
+        makeViews(12),
+      );
+      openMenu();
+      typeSearch("view 9");
+
+      fireEvent.click(
+        within(rowFor("View 9")).getByRole("button", { name: "Delete" }),
+      );
+
+      expect(handlers.onDelete).toHaveBeenCalledWith("view-9");
+      expect(isMenuOpen()).toBe(false);
+
+      openMenu();
+
+      expect(searchBox()).toHaveValue("");
+      expect(visibleViewNames()).toEqual([
+        "View 1",
+        "View 2",
+        "View 3",
+        "View 4",
+        "View 5",
+      ]);
+    });
+
+    test("deleting the applied view does not also clear it", () => {
+      const handlers: RowHandlers = renderDropdownWithRowActions(
+        Component,
+        NAMED_VIEWS,
+        "ims",
+      );
+      openMenu();
+
+      fireEvent.click(
+        within(rowFor("IMS Logs")).getByRole("button", { name: "Delete" }),
+      );
+
+      expect(handlers.onDelete).toHaveBeenCalledWith("ims");
+      expect(handlers.onClear).not.toHaveBeenCalled();
+      expect(handlers.onSelect).not.toHaveBeenCalled();
+    });
+  },
+);
+
+/*
+ * The panel gained a text field, and a text field brings obligations a bare
+ * menu never had: a way out with the keyboard, a filter that cannot outlive
+ * the box that set it, and a drag-select that does not dismiss the thing you
+ * are selecting in. These pin all three, on both copies.
+ */
+describe.each(DROPDOWNS)(
+  "$label SavedViewsDropdown — a panel that holds a text field",
+  ({ Component }: DropdownUnderTest) => {
+    afterEach(() => {
+      cleanup();
+    });
+
+    test("a list that shrinks below the threshold does not strand the menu's filter", () => {
+      const mounted: MountedDropdown = mountDropdown(Component, makeViews(6));
+
+      openMenu();
+      typeSearch("zzz");
+      expect(screen.getByText(NO_MATCHES)).toBeInTheDocument();
+
+      // Three views deleted while the menu is open; the box goes with them.
+      mounted.rerender(makeViews(3), null);
+
+      expect(screen.queryByPlaceholderText(SEARCH_LABEL)).toBeNull();
+      expect(visibleViewNames()).toEqual(["View 1", "View 2", "View 3"]);
+      expect(screen.queryByText(NO_MATCHES)).toBeNull();
+    });
+
+    test("Escape closes the panel from inside the search box", () => {
+      renderDropdown(Component, makeViews(6));
+
+      openMenu();
+      typeSearch("View 2");
+      fireEvent.keyDown(searchBox(), { key: "Escape" });
+
+      expect(isMenuOpen()).toBe(false);
+
+      openMenu();
+      expect(searchBox()).toHaveValue("");
+    });
+
+    test("Escape hands focus back to the trigger rather than dropping it", () => {
+      renderDropdown(Component, makeViews(6));
+
+      openMenu();
+      searchBox().focus();
+      fireEvent.keyDown(searchBox(), { key: "Escape" });
+
+      /*
+       * Without this the panel unmounts under the caret and focus falls to
+       * <body>, which for a keyboard user is the same as being returned to
+       * the top of the page.
+       */
+      expect(trigger()).toHaveFocus();
+    });
+
+    test("a key that is not Escape leaves the panel alone", () => {
+      renderDropdown(Component, makeViews(6));
+
+      openMenu();
+      fireEvent.keyDown(searchBox(), { key: "a" });
+      fireEvent.keyDown(searchBox(), { key: "Enter" });
+
+      expect(isMenuOpen()).toBe(true);
+    });
+
+    test("a drag that starts in the search box and ends outside keeps the menu", () => {
+      renderDropdown(Component, makeViews(6));
+
+      openMenu();
+      typeSearch("View 2");
+
+      /*
+       * Selecting the text and overshooting the panel fires the click on the
+       * common ancestor of press and release — outside. Dismissing on that
+       * threw away the query the user was in the middle of editing.
+       */
+      /*
+       * detail:1 because a real pointer click always carries one and jsdom
+       * defaults it to 0 — and 0 is precisely how the hook tells a keyboard
+       * activation from a press, so leaving the default would test the wrong
+       * gesture entirely.
+       */
+      fireEvent.mouseDown(searchBox());
+      fireEvent.click(document.body, { detail: 1 });
+
+      expect(isMenuOpen()).toBe(true);
+      expect(searchBox()).toHaveValue("View 2");
+    });
+
+    test("a click that starts outside still dismisses the menu", () => {
+      renderDropdown(Component, makeViews(6));
+
+      openMenu();
+
+      // The narrowing above must not have cost the ordinary dismissal.
+      fireEvent.mouseDown(document.body);
+      fireEvent.click(document.body, { detail: 1 });
+
+      expect(isMenuOpen()).toBe(false);
+    });
+
+    test("the panel names itself, so its search box is not the sidebar's", () => {
+      renderDropdown(Component, makeViews(6));
+
+      openMenu();
+
+      const panel: HTMLElement = screen.getByRole("dialog", {
+        name: "Saved views",
+      });
+
+      /*
+       * The logs sidebar renders a search box with the identical accessible
+       * name a few hundred pixels away. The panel's own name is what tells a
+       * screen reader which of the two the caret is in.
+       */
+      expect(
+        within(panel).getByRole("textbox", { name: SEARCH_LABEL }),
+      ).toBeInTheDocument();
+    });
+
+    test("the collapse toggle sits outside the scrolling list", () => {
+      renderDropdown(Component, makeViews(30));
+
+      openMenu();
+
+      const scroller: HTMLElement | null = document.querySelector(
+        '[class*="overflow-y-auto"]',
+      );
+      const toggle: HTMLElement = screen.getByRole("button", {
+        name: "+25 more",
+      });
+
+      expect(scroller).not.toBeNull();
+      expect(scroller!.contains(rowFor("View 1"))).toBe(true);
+      /*
+       * Inside the scroller, expanding pushed "Show less" off the bottom and
+       * slid a view row under the cursor, so a second click in the same spot
+       * applied whichever view had taken its place.
+       */
+      expect(scroller!.contains(toggle)).toBe(false);
+    });
+
+    test("expanding leaves the toggle where the cursor left it", () => {
+      const mounted: MountedDropdown = mountDropdown(Component, makeViews(30));
+
+      openMenu();
+      fireEvent.click(screen.getByRole("button", { name: "+25 more" }));
+
+      const toggle: HTMLElement = screen.getByRole("button", {
+        name: "Show less",
+      });
+      const scroller: HTMLElement | null = document.querySelector(
+        '[class*="overflow-y-auto"]',
+      );
+
+      expect(scroller!.contains(toggle)).toBe(false);
+      expect(visibleViewNames()).toHaveLength(30);
+
+      // A second click in the same place collapses, and applies nothing.
+      fireEvent.click(toggle);
+
+      expect(visibleViewNames()).toHaveLength(5);
+      expect(mounted.handlers.onSelect).not.toHaveBeenCalled();
+    });
+
+    test("an expanded list that shrinks to fit retires its toggle", () => {
+      const mounted: MountedDropdown = mountDropdown(Component, makeViews(12));
+
+      openMenu();
+      fireEvent.click(screen.getByRole("button", { name: "+7 more" }));
+      expect(visibleViewNames()).toHaveLength(12);
+
+      mounted.rerender(makeViews(4), null);
+
+      expect(visibleViewNames()).toHaveLength(4);
+      expect(screen.queryByRole("button", { name: "Show less" })).toBeNull();
+      expect(screen.queryByRole("button", { name: /more$/ })).toBeNull();
+    });
+  },
+);
+
+/*
+ * Escape is a contract this change introduced — the panel calls itself a
+ * dialog now — and the first attempt at it only worked when focus happened to
+ * be inside the wrapper. Clicking the panel's own padding puts focus on
+ * <body>, as does opening the panel by mouse at all on Safari and Firefox, and
+ * from there the keydown never reached the handler. That is not a quiet no-op:
+ * the logs explorer has its own document-level Escape, so the miss closed the
+ * log detail panel behind the dropdown instead.
+ */
+describe.each(DROPDOWNS)(
+  "$label SavedViewsDropdown — Escape, from wherever focus happens to be",
+  ({ Component }: DropdownUnderTest) => {
+    let pageEscapes: number = 0;
+    let pageListener: ((event: KeyboardEvent) => void) | null = null;
+
+    function watchPageEscape(): void {
+      pageEscapes = 0;
+      pageListener = (event: KeyboardEvent): void => {
+        if (event.key === "Escape") {
+          pageEscapes++;
+        }
+      };
+      // Bubble phase, like the hosts' own handlers.
+      document.addEventListener("keydown", pageListener);
+    }
+
+    afterEach(() => {
+      if (pageListener) {
+        document.removeEventListener("keydown", pageListener);
+        pageListener = null;
+      }
+      cleanup();
+    });
+
+    test("Escape closes the panel from anywhere on the page", () => {
+      renderDropdown(Component, makeViews(6));
+      watchPageEscape();
+
+      openMenu();
+      fireEvent.keyDown(document.body, { key: "Escape" });
+
+      expect(isMenuOpen()).toBe(false);
+      expect(trigger()).toHaveFocus();
+    });
+
+    test("the page's own Escape handling does not also fire", () => {
+      renderDropdown(Component, makeViews(6));
+      watchPageEscape();
+
+      openMenu();
+      fireEvent.keyDown(document.body, { key: "Escape" });
+
+      /*
+       * The explorer treats Escape as "close what is on top", and this panel
+       * is what is on top. Letting it through closes the detail panel behind
+       * the dropdown and leaves the dropdown up.
+       */
+      expect(pageEscapes).toBe(0);
+    });
+
+    test("a closed panel does not eat the page's Escape", () => {
+      renderDropdown(Component, makeViews(6));
+      watchPageEscape();
+
+      fireEvent.keyDown(document.body, { key: "Escape" });
+
+      expect(pageEscapes).toBe(1);
+      expect(isMenuOpen()).toBe(false);
+    });
+
+    test("a panel too short for a search box still closes on Escape", () => {
+      renderDropdown(Component, makeViews(3));
+      watchPageEscape();
+
+      openMenu();
+      expect(screen.queryByPlaceholderText(SEARCH_LABEL)).toBeNull();
+
+      fireEvent.keyDown(document.body, { key: "Escape" });
+
+      expect(isMenuOpen()).toBe(false);
+      expect(pageEscapes).toBe(0);
+    });
+
+    test("a key that is not Escape passes through untouched", () => {
+      renderDropdown(Component, makeViews(6));
+      watchPageEscape();
+
+      openMenu();
+      fireEvent.keyDown(document.body, { key: "a" });
+
+      expect(isMenuOpen()).toBe(true);
     });
   },
 );
