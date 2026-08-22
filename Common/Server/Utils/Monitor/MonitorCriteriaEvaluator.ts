@@ -764,6 +764,7 @@ ${contextBlock}
         await LogMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
+          monitorStep: input.monitorStep,
         });
 
       if (logMonitorResult) {
@@ -811,6 +812,7 @@ ${contextBlock}
         await TraceMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
+          monitorStep: input.monitorStep,
         });
 
       if (traceMonitorResult) {

@@ -31,6 +31,8 @@ import MetricItemAggMV1mByService from "../../../../Models/AnalyticsModels/Metri
 import MetricItemAggMV1mByK8sCluster from "../../../../Models/AnalyticsModels/MetricItemAggMV1mByK8sCluster";
 import MetricItemAggMV1mByContainer from "../../../../Models/AnalyticsModels/MetricItemAggMV1mByContainer";
 import MetricBaselineHourly from "../../../../Models/AnalyticsModels/MetricBaselineHourly";
+import SpanCountBaseline from "../../../../Models/AnalyticsModels/SpanCountBaseline";
+import LogCountBaseline from "../../../../Models/AnalyticsModels/LogCountBaseline";
 
 const CLUSTER_ENV_KEY: string = "CLICKHOUSE_CLUSTER_NAME";
 const SHARDING_ENV_KEY: string = "CLICKHOUSE_SHARDING_KEY";
@@ -296,6 +298,8 @@ describe("ClickHouse cluster-aware schema (always-on)", () => {
         new MetricItemAggMV1mByK8sCluster(),
         new MetricItemAggMV1mByContainer(),
         new MetricBaselineHourly(),
+        new SpanCountBaseline(),
+        new LogCountBaseline(),
       ];
 
       for (const model of models) {
@@ -340,6 +344,8 @@ describe("ClickHouse cluster-aware schema (always-on)", () => {
         MetricItemAggMV1mByK8sCluster,
         MetricItemAggMV1mByContainer,
         MetricBaselineHourly,
+        SpanCountBaseline,
+        LogCountBaseline,
       ];
 
       for (const modelType of modelTypes) {

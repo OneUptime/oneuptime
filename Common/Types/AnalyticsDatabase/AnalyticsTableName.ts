@@ -40,6 +40,15 @@ enum AnalyticsTableName {
   MetricItemAggMV1mByK8sCluster = "MetricItemAggMV1mByK8sCluster",
   MetricItemAggMV1mByContainer = "MetricItemAggMV1mByContainer",
   MetricBaselineHourly = "MetricBaselineHourly",
+  /*
+   * Hour-of-week volume baselines for Traces and Logs monitors —
+   * span/log counts per (project, service, status/severity, day,
+   * hour-of-week, minute-of-hour) cell, populated by MVs on
+   * SpanItemV3/LogItemV3 inserts. Peers of MetricBaselineHourly for the
+   * AnomalouslyHigh/Low criteria on CheckOn.SpanCount / CheckOn.LogCount.
+   */
+  SpanCountBaseline = "SpanCountBaseline",
+  LogCountBaseline = "LogCountBaseline",
   MutableMetric = "MutableMetricItem",
   /*
    * SLO / Error Budget history rollup. ReplacingMergeTree keyed by

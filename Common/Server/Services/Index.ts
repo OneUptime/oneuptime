@@ -86,6 +86,8 @@ import MetricItemAggMV1mByK8sClusterService from "./MetricItemAggMV1mByK8sCluste
 import MetricItemAggMV1mByContainerService from "./MetricItemAggMV1mByContainerService";
 import MutableMetricService from "./MutableMetricService";
 import MetricBaselineService from "./MetricBaselineService";
+import SpanCountBaselineService from "./SpanCountBaselineService";
+import LogCountBaselineService from "./LogCountBaselineService";
 import MonitorCustomFieldService from "./MonitorCustomFieldService";
 import MonitorGroupOwnerTeamService from "./MonitorGroupOwnerTeamService";
 import MonitorGroupOwnerUserService from "./MonitorGroupOwnerUserService";
@@ -614,6 +616,12 @@ export const AnalyticsServices: Array<
   MetricItemAggMV1mByK8sClusterService,
   MetricItemAggMV1mByContainerService,
   MetricBaselineService,
+  /*
+   * Span/log volume baselines for the count anomaly criteria. Same MV
+   * target pattern as MetricBaselineService.
+   */
+  SpanCountBaselineService,
+  LogCountBaselineService,
   ExceptionInstanceService,
   KubernetesCostAllocationService,
   MonitorLogService,

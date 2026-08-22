@@ -721,6 +721,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
             ))}
 
         {(criteriaFilter?.checkOn === CheckOn.MetricValue ||
+          criteriaFilter?.checkOn === CheckOn.SpanCount ||
+          criteriaFilter?.checkOn === CheckOn.LogCount ||
           criteriaFilter?.checkOn ===
             CheckOn.SnmpInterfaceUtilizationPercent) &&
           CriteriaFilterUtil.isAnomalyFilterType(
@@ -828,8 +830,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                 />
               </div>
               <p className="mt-2 text-xs text-gray-500">
-                Anomaly detection requires at least the chosen window of metric
-                history before firing — until then the rule sits in
+                Anomaly detection requires at least the chosen window of
+                telemetry history before firing — until then the rule sits in
                 &quot;Learning&quot; state and produces no alerts.
               </p>
             </div>
