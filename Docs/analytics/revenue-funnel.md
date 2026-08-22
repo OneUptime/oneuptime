@@ -14,9 +14,12 @@ Manager `dataLayer`. Event names and properties are defined in
 | Revenue       | `subscription_upgraded`   | A project moves to a higher plan. `is_paid_conversion` identifies free-to-paid. |
 | Revenue       | `subscription_downgraded` | A project moves to a lower plan.                                                |
 
-Sales-led bookings are tracked separately — see
+Sales-led conversions are tracked separately — see
 [enterprise-conversion-tracking.md](./enterprise-conversion-tracking.md) for
-`meeting_booked` and the server-confirmed conversion ledger behind it.
+`meeting_booked` and the server-confirmed conversion ledger behind it. Every
+sales-led step is a booked meeting, including the enterprise licence
+conversation: `/enterprise/demo`, `/support` and `/enterprise/self-hosted` all
+book through the same Cal embed, distinguished by `booking_kind`.
 
 ## GA4 setup
 
@@ -135,6 +138,16 @@ once, through the `dataLayer` only.
 Use GTM **Preview** on oneuptime.com, trigger a CTA click, and confirm the tag
 fires. Then check **GA4 → Reports → Engagement → Events** the next day: any
 name from the regex appearing there means the path works end to end.
+
+## Consent
+
+None of this reaches Google or PostHog without consent. `window.oneUptimeConsent`
+(Home/Views/head-basic.ejs) gates PostHog loading and pushes Google Consent Mode
+v2 signals before the container loads; the cookie banner's buttons are what move
+it. Until this existed the banner wrote a localStorage key nobody read, so
+"Reject all" rejected nothing. Expect measured volume to reflect acceptance
+rate — see the Consent section of
+[enterprise-conversion-tracking.md](./enterprise-conversion-tracking.md).
 
 ## Safety
 

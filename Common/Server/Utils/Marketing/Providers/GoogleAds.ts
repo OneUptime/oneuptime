@@ -3,7 +3,9 @@ import {
   GoogleAdsApiVersion,
   GoogleAdsCustomerId,
   GoogleAdsDeveloperToken,
+  GoogleAdsEnhancedConversionsForLeadsEnabled,
   GoogleAdsLoginCustomerId,
+  GoogleAdsMeetingBookedConversionActionId,
   GoogleAdsOAuthClientId,
   GoogleAdsOAuthClientSecret,
   GoogleAdsOAuthRefreshToken,
@@ -12,9 +14,11 @@ import {
 } from "../../../EnvironmentConfig";
 import ConversionUploadProvider, {
   ConversionSkip,
+  ConversionTypeMapping,
   ConversionUploadBatchResult,
 } from "../ConversionUploadProvider";
 import { JSONObject } from "../../../../Types/JSON";
+import { MarketingConversionType } from "../../../../Types/Marketing/MarketingConversion";
 import MarketingConversion from "../../../../Models/DatabaseModels/MarketingConversion";
 import logger from "../../Logger";
 
@@ -26,8 +30,16 @@ const GOOGLE_MAX_CONVERSION_AGE_IN_DAYS: number = 90;
 /*
  * Google Ads offline click conversions
  * (customers/{id}:uploadClickConversions) with OAuth2 refresh-token auth.
- * Supports gclid, wbraid and gbraid click ids. Uses partialFailure so valid
- * conversions succeed even when others in the batch fail.
+ * Supports gclid, wbraid and gbraid click ids, plus enhanced conversions — a
+ * SHA-256 email in userIdentifiers. Uses partialFailure so valid conversions
+ * succeed even when others in the batch fail.
+ *
+ * A hashed email is attached to EVERY upload that has one, which only improves
+ * matching. Uploading a conversion that has ONLY a hashed email — enhanced
+ * conversions for leads, and the only way a sales-led deal months after the
+ * click is ever attributed — additionally requires the account to be set up
+ * for it, so it is gated on
+ * GOOGLE_ADS_ENHANCED_CONVERSIONS_FOR_LEADS_ENABLED.
  */
 export default class GoogleAdsProvider extends ConversionUploadProvider {
   public override readonly key: string = "google";
@@ -49,9 +61,14 @@ export default class GoogleAdsProvider extends ConversionUploadProvider {
   protected override getProviderSkipReason(
     conversion: MarketingConversion,
   ): ConversionSkip | null {
-    if (!this.getGoogleClickId(conversion)) {
+    if (
+      !this.getGoogleClickId(conversion) &&
+      !this.canUploadAsLead(conversion)
+    ) {
       return {
-        reason: "No Google click id (gclid/wbraid/gbraid)",
+        reason: GoogleAdsEnhancedConversionsForLeadsEnabled
+          ? "No Google click id (gclid/wbraid/gbraid) and no email to match on"
+          : "No Google click id (gclid/wbraid/gbraid)",
         isPermanent: true,
       };
     }
@@ -94,10 +111,49 @@ export default class GoogleAdsProvider extends ConversionUploadProvider {
     return null;
   }
 
+  /*
+   * Enhanced conversions for leads: this conversion has no click id, but it
+   * has an email and the account is configured to match on one.
+   */
+  private canUploadAsLead(conversion: MarketingConversion): boolean {
+    return Boolean(
+      GoogleAdsEnhancedConversionsForLeadsEnabled &&
+        this.getHashedEmail(conversion),
+    );
+  }
+
+  /*
+   * userIdentifiers per the enhanced-conversions spec. FIRST_PARTY is the
+   * correct source: the address was given to OneUptime directly, not bought or
+   * inferred.
+   */
+  private getUserIdentifiers(
+    conversion: MarketingConversion,
+  ): Array<JSONObject> {
+    const hashedEmail: string | undefined = this.getHashedEmail(conversion);
+
+    if (!hashedEmail) {
+      return [];
+    }
+
+    return [
+      {
+        hashedEmail: hashedEmail,
+        userIdentifierSource: "FIRST_PARTY",
+      },
+    ];
+  }
+
   private getConversionActionId(conversion: MarketingConversion): string {
-    return this.isSignUp(conversion)
-      ? GoogleAdsSignUpConversionActionId
-      : GoogleAdsPaidSubscriptionConversionActionId;
+    const mapping: ConversionTypeMapping<string> = {
+      [MarketingConversionType.SignUp]: GoogleAdsSignUpConversionActionId,
+      [MarketingConversionType.MeetingBooked]:
+        GoogleAdsMeetingBookedConversionActionId,
+      [MarketingConversionType.PaidSubscription]:
+        GoogleAdsPaidSubscriptionConversionActionId,
+    };
+
+    return this.resolveByConversionType(conversion, mapping) || "";
   }
 
   private async getAccessToken(): Promise<string> {
@@ -173,6 +229,13 @@ export default class GoogleAdsProvider extends ConversionUploadProvider {
             conversion.conversionAt || new Date(),
           ),
         };
+
+        const userIdentifiers: Array<JSONObject> =
+          this.getUserIdentifiers(conversion);
+
+        if (userIdentifiers.length > 0) {
+          payload["userIdentifiers"] = userIdentifiers;
+        }
 
         const valueInUSD: number | undefined = this.getValueInUSD(conversion);
 

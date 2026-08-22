@@ -745,19 +745,12 @@
               constraints, and write down exactly where each responsibility sits.
             </p>
 
-            <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-              <a href="/enterprise/demo"
-                class="inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-sm font-semibold text-gray-900 shadow-sm transition-all hover:bg-gray-100">
-                Book an architecture assessment
-                <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-                </svg>
-              </a>
-              <a href="mailto:enterprise@oneuptime.com?subject=Self-hosted%20architecture%20assessment"
-                class="inline-flex items-center justify-center rounded-lg border border-white/20 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/5">
-                Email enterprise@oneuptime.com
-              </a>
-            </div>
+            <p class="mt-8 text-sm leading-6 text-gray-400">
+              Pick a time below &mdash; or write to
+              <a href="mailto:enterprise@oneuptime.com"
+                class="font-medium text-gray-300 underline underline-offset-2 hover:text-white">enterprise@oneuptime.com</a>
+              if you would rather start over email.
+            </p>
           </div>
 
           <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-7">
@@ -794,6 +787,34 @@
                   the responsibility split</span>
               </li>
             </ul>
+          </div>
+        </div>
+
+        <!--
+          Booking the assessment IS the enterprise conversion.
+
+          This used to be two CTAs: one linking to the demo page, and a
+          `mailto:enterprise@oneuptime.com` beside it. The mailto sent no request
+          to OneUptime at all, so the step of the funnel where the deals are
+          produced no click id, no campaign, and no row.
+
+          Rather than invent a second conversion for it, the licence
+          conversation is the same conversation as the architecture assessment —
+          so the page books it, through the same Cal embed and the same verified
+          webhook the demo page uses. One conversion type, one flow, one thing to
+          keep working.
+
+          Full width, below the grid rather than inside it: Cal's month view
+          needs the room to put the calendar and the time slots side by side, and
+          a tall embed in one grid column would leave the card beside it floating
+          in the middle of its own height. Heights are explicit for the same
+          reason they are on demo.ejs — a percentage height inside a parent that
+          only has min-height has nothing to resolve against.
+        -->
+        <div class="mt-16" id="enterprise-license">
+          <div class="overflow-hidden rounded-2xl bg-white">
+            <div class="h-[500px] w-full overflow-auto sm:h-[600px] lg:h-[680px]"
+              id="my-cal-inline-self-hosted"></div>
           </div>
         </div>
       </div>
@@ -847,6 +868,50 @@
         glow.style.opacity = '0';
       });
     })();
+  </script>
+
+  <!-- Cal.com Script -->
+  <script type="text/javascript">
+    (function (C, A, L) { let p = function (a, ar) { a.q.push(ar); }; let d = C.document; C.Cal = C.Cal || function () { let cal = C.Cal; let ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === L) { const api = function () { p(api, arguments); }; const namespace = ar[1]; api.q = api.q || []; typeof namespace === "string" ? (cal.ns[namespace] = api) && p(api, ar) : p(cal, ar); return; } p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "init");
+    Cal("init", { origin: "https://cal.com" });
+
+    /*
+     * Attribution into the booking metadata, read back by the Cal webhook that
+     * writes the MeetingBooked row. See the same block in demo.ejs for why this
+     * exists — without it a booking is recorded attributable to nothing.
+     */
+    Cal("inline", {
+      elementOrSelector: "#my-cal-inline-self-hosted",
+      calLink: "oneuptimehq/demo",
+      layout: "month_view",
+      config: typeof window.oneUptimeCalAttributionMetadata === 'function'
+        ? window.oneUptimeCalAttributionMetadata()
+        : {}
+    });
+
+    Cal("ui", { "styles": { "branding": { "brandColor": "#059669" } }, "hideEventTypeDetails": false, "layout": "month_view" });
+
+    Cal("on", {
+      action: "bookingSuccessful",
+      callback: (e) => {
+        const { type, namespace } = e.detail;
+
+        /*
+         * The canonical meeting_booked, with a booking_kind that says this one
+         * came from the self-hosted page. The commercial record is still the
+         * ledger row the verified webhook writes; this is the browser mirror.
+         *
+         * e.detail.data carries the attendee's name and email and is
+         * deliberately not forwarded to any analytics destination.
+         */
+        window.oneUptimeTrackMeetingBooked({
+          bookingKind: 'architecture_assessment',
+          legacyEventName: 'home/architecture-assessment-booked',
+          calEventType: type,
+          calNamespace: namespace
+        });
+      }
+    });
   </script>
 </body>
 

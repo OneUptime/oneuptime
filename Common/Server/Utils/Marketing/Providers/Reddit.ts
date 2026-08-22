@@ -1,5 +1,4 @@
 import axios, { AxiosResponse } from "axios";
-import crypto from "crypto";
 import {
   RedditAdsAccountId,
   RedditAdsOAuthClientId,
@@ -8,9 +7,11 @@ import {
 } from "../../../EnvironmentConfig";
 import ConversionUploadProvider, {
   ConversionSkip,
+  ConversionTypeMapping,
   ConversionUploadBatchResult,
 } from "../ConversionUploadProvider";
 import { JSONObject } from "../../../../Types/JSON";
+import { MarketingConversionType } from "../../../../Types/Marketing/MarketingConversion";
 import MarketingConversion from "../../../../Models/DatabaseModels/MarketingConversion";
 
 const REQUEST_TIMEOUT_MS: number = 30000;
@@ -21,9 +22,10 @@ const REDDIT_MAX_EVENT_AGE_IN_DAYS: number = 7;
 /*
  * Reddit Conversions API
  * (ads-api.reddit.com/api/v2.0/conversions/events/{accountId}) using the
- * rdt_cid click id. conversion_id (the conversion row id) makes retried
- * uploads idempotent on Reddit's side. OAuth2 refresh-token flow with HTTP
- * basic auth against reddit.com.
+ * rdt_cid click id or a SHA-256 email, whichever the conversion carries.
+ * conversion_id (the conversion row id) makes retried uploads idempotent on
+ * Reddit's side. OAuth2 refresh-token flow with HTTP basic auth against
+ * reddit.com.
  */
 export default class RedditProvider extends ConversionUploadProvider {
   public override readonly key: string = "reddit";
@@ -44,9 +46,19 @@ export default class RedditProvider extends ConversionUploadProvider {
   protected override getProviderSkipReason(
     conversion: MarketingConversion,
   ): ConversionSkip | null {
-    if (!this.getClickId(conversion, "rdt_cid")) {
+    if (
+      !this.getClickId(conversion, "rdt_cid") &&
+      !this.getHashedEmail(conversion)
+    ) {
       return {
-        reason: "No Reddit click id (rdt_cid)",
+        reason: "No Reddit click id (rdt_cid) and no email to match on",
+        isPermanent: true,
+      };
+    }
+
+    if (!this.getTrackingType(conversion)) {
+      return {
+        reason: "No Reddit tracking type mapped for this conversion type",
         isPermanent: true,
       };
     }
@@ -61,11 +73,19 @@ export default class RedditProvider extends ConversionUploadProvider {
     return null;
   }
 
-  private hashEmail(email: string): string {
-    return crypto
-      .createHash("sha256")
-      .update(email.trim().toLowerCase())
-      .digest("hex");
+  /*
+   * Reddit standard tracking types. A booked meeting is `Lead`: Reddit has no
+   * distinct "meeting booked" type, and reporting it as Purchase would put a
+   * demo into the same optimisation pool as revenue.
+   */
+  private getTrackingType(conversion: MarketingConversion): string | undefined {
+    const mapping: ConversionTypeMapping<string> = {
+      [MarketingConversionType.SignUp]: "SignUp",
+      [MarketingConversionType.MeetingBooked]: "Lead",
+      [MarketingConversionType.PaidSubscription]: "Purchase",
+    };
+
+    return this.resolveByConversionType(conversion, mapping);
   }
 
   private async getAccessToken(): Promise<string> {
@@ -136,16 +156,26 @@ export default class RedditProvider extends ConversionUploadProvider {
 
         const payload: JSONObject = {
           event_at: eventAt.toISOString(),
-          click_id: this.getClickId(conversion, "rdt_cid") || "",
           event_type: {
-            tracking_type: this.isSignUp(conversion) ? "SignUp" : "Purchase",
+            tracking_type: this.getTrackingType(conversion) || "Lead",
           },
           event_metadata: eventMetadata,
         };
 
-        if (conversion.email) {
+        const clickId: string | undefined = this.getClickId(
+          conversion,
+          "rdt_cid",
+        );
+
+        if (clickId) {
+          payload["click_id"] = clickId;
+        }
+
+        const hashedEmail: string | undefined = this.getHashedEmail(conversion);
+
+        if (hashedEmail) {
           payload["user"] = {
-            email: this.hashEmail(conversion.email),
+            email: hashedEmail,
           };
         }
 

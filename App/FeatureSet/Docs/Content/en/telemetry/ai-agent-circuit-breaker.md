@@ -2,14 +2,14 @@
 
 AI agents rarely fail by crashing. They fail by _continuing_ — retrying a broken tool in a loop, re-planning the same step forever, or fanning out sub-agents — while every iteration bills more tokens. This guide shows how to build an **async circuit breaker** with pieces OneUptime already gives you:
 
-1. A **trip-wire signal** — an [LLM cost budget](/docs/telemetry/ai-llm-observability) alert or a [Traces monitor](/docs/monitor/traces-monitor) that recognizes loop behavior in your `gen_ai.*` spans.
+1. A **trip-wire signal** — a [Metrics monitor](/docs/monitor/metrics-monitor) on the [LLM cost budget](/docs/telemetry/ai-llm-observability) metrics, or a [Traces monitor](/docs/monitor/traces-monitor) that recognizes loop behavior in your `gen_ai.*` spans.
 2. A **Workflow** triggered by that alert.
 3. An **outbound webhook** from the workflow to a kill endpoint _you_ own, which stops the runaway runner.
 
 ```mermaid
 flowchart LR
     A[Agent emits<br/>gen_ai.* spans] --> B[OneUptime<br/>OTLP ingest]
-    B --> C{Trip-wire:<br/>cost budget or<br/>Traces monitor}
+    B --> C{Trip-wire:<br/>budget metrics monitor<br/>or Traces monitor}
     C -->|Alert created| D[Workflow:<br/>Alert On Create]
     D --> E[API Post to your<br/>kill endpoint]
     E --> F[Your runner aborts<br/>or pauses the agent]
@@ -30,21 +30,26 @@ The circuit breaker here is **gateway-agnostic**. It watches the OpenTelemetry t
 
 Both options end the same way: an **alert** is created in OneUptime, which is what triggers the workflow. You can wire up both at once — the workflow doesn't care which one fired.
 
-### Option A: LLM cost budget alert
+### Option A: Metrics monitor on the budget metrics
 
-A runaway agent's most reliable symptom is spend. The **AI / LLM → Budgets** tab lets you set a daily USD limit with a warning alert (default 80%) and a breach alert (100%). Budgets are evaluated every 15 minutes against the day's LLM span cost — SDK-reported or [computed at ingest](/docs/telemetry/ai-llm-observability), so it works even if your instrumentation doesn't report cost.
+A runaway agent's most reliable symptom is spend. The **AI / LLM → Budgets** tab lets you set a daily USD limit; every 15 minutes a worker sums the day's LLM span cost — SDK-reported or [computed at ingest](/docs/telemetry/ai-llm-observability), so it works even if your instrumentation doesn't report cost — and publishes it as two gauge metrics:
 
-For circuit breaking, scope the budget so the alert identifies _what to kill_:
+- `oneuptime.llm.budget.spend.usd` — the day's spend in USD
+- `oneuptime.llm.budget.percent.used` — spend as a percent of the daily limit
 
-- Create one budget **per agent's telemetry service** (for example `agent-support-bot`), not just a project-wide one.
-- Name the budget after the runner it guards — the budget name is embedded in the alert title, and your kill endpoint can route on it.
+Create a [Metrics monitor](/docs/monitor/metrics-monitor) on `oneuptime.llm.budget.percent.used`:
 
-The alerts arrive with predictable titles you can filter on in the workflow:
+- **Attribute filter**: `oneuptime.llm.budget.id` = your budget's id (shown on the budget's row via **View ID**). Use the id, not the name — renaming the budget re-labels the series and would silently detach a name-filtered monitor.
+- **Rolling time**: **30 minutes**. Each budget publishes one point every 15 minutes; the 1-minute default window would find an empty series between sweeps and flap the alert — which for a breaker means tripping it once per sweep instead of once per episode.
+- **Criteria 1**: value **Greater Than or Equal To** `80` → create a warning-severity alert.
+- **Criteria 2**: value **Greater Than or Equal To** `100` → create a critical alert — this is the one that trips the breaker.
 
-- Warning: `LLM cost budget warning: <budget name>`
-- Breach: `LLM cost budget exceeded: <budget name>`
+For circuit breaking, scope things so the alert identifies _what to kill_:
 
-A good pattern is warning → page a human (via the alert's on-call policy), breach → trip the breaker.
+- Create one budget **per agent's telemetry service** (for example `agent-support-bot`), not just a project-wide one, and one monitor per budget (or one monitor grouped by the `oneuptime.llm.budget.id` attribute).
+- Put the runner's name in the criteria's **alert title** (for example `LLM budget exceeded: agent-support-bot`) — your kill endpoint routes on it.
+
+A good pattern is 80% → page a human (via the alert's on-call policy), 100% → trip the breaker.
 
 ### Option B: Traces monitor on loop behavior
 
@@ -65,10 +70,10 @@ Two variations worth knowing:
 
 ### Detection latency, honestly stated
 
-| Signal                                         | Typical time to alert              |
-| ---------------------------------------------- | ---------------------------------- |
-| Traces monitor, 1-minute interval, 120s window | ~1–3 minutes                       |
-| Budget warning / breach                        | up to ~15 minutes (worker cadence) |
+| Signal                                         | Typical time to alert                               |
+| ---------------------------------------------- | --------------------------------------------------- |
+| Traces monitor, 1-minute interval, 120s window | ~1–3 minutes                                        |
+| Budget metrics monitor                         | up to ~15 minutes (worker cadence) + monitor interval |
 
 ## Step 2 — Build the kill endpoint (your side)
 
@@ -95,8 +100,8 @@ app.post("/circuit-breaker", (req, res) => {
 
   const alertTitle: string = req.body.alertTitle ?? "";
 
-  // Budget names / monitor names map to runners, e.g.
-  // "LLM cost budget exceeded: agent-support-bot" -> "agent-support-bot"
+  // Your monitor criteria's alert titles map to runners, e.g.
+  // "LLM budget exceeded: agent-support-bot" -> "agent-support-bot"
   const runner: string = alertTitle.split(": ").pop() ?? "unknown";
 
   tripped.add(runner); // your run loop checks this set
@@ -128,7 +133,7 @@ You only want the breaker tripped by your trip-wire alerts, not every alert in t
 
 - **Left**: the trigger's `model.title` — inserted with the picker, it reads `{{local.components.alert-on-create-1.returnValues.model.title}}`
 - **Operator**: `contains`
-- **Right**: `LLM cost budget exceeded` (Option A) — or your Traces monitor's alert title (Option B)
+- **Right**: the alert title you set in the budget monitor's criteria, for example `LLM budget exceeded` (Option A) — or your Traces monitor's alert title (Option B)
 
 To react to several trip-wires, chain If / Else blocks from the **No** branch, or standardize your alert titles so one `contains` match covers them all.
 
@@ -165,14 +170,14 @@ Connect the API block's **Error** port to a **Slack** (or Email) block: a circui
 
 ## Step 4 — Test it
 
-1. **Dry-run the workflow**: alerts can be created by hand (**Alerts → Create Alert**). Create one titled `LLM cost budget exceeded: test`, then check the workflow fired under **Workflows → Runs & Logs**, and that your endpoint received the post.
-2. **Test the real signal**: create a scoped budget with a tiny limit (for example $0.01) against a dev service and let your agent run — you should see the alert, the workflow run, and the breaker trip end-to-end. For Option B, point a test agent at a stubbed failing tool and watch the loop trip the traces monitor.
+1. **Dry-run the workflow**: alerts can be created by hand (**Alerts → Create Alert**). Create one titled `LLM budget exceeded: test`, then check the workflow fired under **Workflows → Runs & Logs**, and that your endpoint received the post.
+2. **Test the real signal**: create a scoped budget with a tiny limit (for example $0.01) against a dev service, point your monitor at its `oneuptime.llm.budget.percent.used` series, and let your agent run — you should see the metric cross 100, the alert, the workflow run, and the breaker trip end-to-end. For Option B, point a test agent at a stubbed failing tool and watch the loop trip the traces monitor.
 3. **Verify idempotency** by firing the alert twice.
 
 ## Alert lifecycle caveats
 
-- Budget alerts fire **at most once per UTC day** per budget and kind (one warning, one breach), and only if no matching alert is still open — so the breaker trips once per bad day, not continuously. Resetting is a human decision on both sides: resolve the alert in OneUptime _and_ reset your breaker.
-- A Traces monitor keeps its alert open while the criteria stay met; the workflow triggers on **creation**, so you get one trip per episode.
+- The budget metrics reset at **UTC midnight** (a new day starts at 0% used), so a budget monitor's alert naturally resolves overnight and can fire again the next bad day. The workflow triggers on alert **creation**, so you get one trip per episode, not one per evaluation. Resetting is a human decision on both sides: resolve the alert in OneUptime _and_ reset your breaker.
+- A Traces monitor keeps its alert open while the criteria stay met; same creation-triggered semantics apply.
 - The workflow trigger fires for **every** new alert in the project — the If / Else filter is what keeps unrelated alerts from tripping the breaker. Don't skip it.
 
 ## Where to read next

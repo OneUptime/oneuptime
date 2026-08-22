@@ -7,6 +7,7 @@ import Express, {
   OneUptimeRequest,
   headerValueToString,
 } from "Common/Server/Utils/Express";
+import Attribution, { UtmAttribution } from "Common/Server/Utils/Attribution";
 import { CalWebhookSecret } from "Common/Server/EnvironmentConfig";
 import MarketingConversionService from "Common/Server/Services/MarketingConversionService";
 import PostgresErrorTranslator from "Common/Server/Utils/Database/PostgresErrorTranslator";
@@ -14,6 +15,10 @@ import logger from "Common/Server/Utils/Logger";
 import MarketingConversion from "Common/Models/DatabaseModels/MarketingConversion";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  AdClickIdKeys,
+  UtmWireKeyToPropertyKey,
+} from "Common/Types/Marketing/Attribution";
 import { MarketingConversionType } from "Common/Types/Marketing/MarketingConversion";
 
 /*
@@ -42,21 +47,27 @@ const CAL_SOURCE_NAMESPACE: string = "cal.com/booking";
 const SUPPORTED_EVENT_TYPES: Set<string> = new Set<string>(["BOOKING_CREATED"]);
 
 /*
- * Ad click identifiers that may be carried through Cal's booking metadata and
- * retained here. Only these keys are copied — everything else Cal sends is
+ * The attribution keys the demo/support embeds put into Cal booking metadata
+ * (Home/Views/head-basic.ejs -> oneUptimeCalAttributionMetadata) and that are
+ * retained here. Only these are copied — everything else Cal sends is
  * free-form customer content (names, notes, answers to booking questions) and
  * must not land in the ledger.
+ *
+ * The click-id half of this used to be parsed while the embeds sent nothing at
+ * all, so every MeetingBooked row carried an empty clickIds object. The
+ * embeds now send both halves; see
+ * Docs/analytics/enterprise-conversion-tracking.md.
  */
-const CLICK_ID_KEYS: Array<string> = [
-  "gclid",
-  "wbraid",
-  "gbraid",
-  "fbclid",
-  "msclkid",
-  "li_fat_id",
-  "twclid",
-  "rdt_cid",
-];
+const CLICK_ID_KEYS: Array<string> = AdClickIdKeys;
+
+/*
+ * Cal metadata values are scalars, so the visitor's first touch travels as one
+ * JSON string under this key rather than as nested structure.
+ */
+const FIRST_TOUCH_METADATA_KEY: string = "ou_first_touch";
+
+// Bounds the JSON blob a caller can push through the first-touch key.
+const MAX_FIRST_TOUCH_LENGTH: number = 4000;
 
 // A hex-encoded SHA-256 digest, with Cal's optional `sha256=` prefix removed.
 const HEX_DIGEST_REGEX: RegExp = /^[a-f0-9]{64}$/;
@@ -72,6 +83,8 @@ export interface CalBookingConversion {
   conversionAt: Date;
   email?: string | undefined;
   clickIds: JSONObject;
+  utm: UtmAttribution;
+  firstTouchAttribution?: JSONObject | undefined;
 }
 
 export type VerifyCalWebhookSignatureFunction = (data: {
@@ -208,6 +221,87 @@ const collectClickIds: CollectClickIdsFunction = (
   return clickIds;
 };
 
+type CollectUtmFunction = (
+  sources: Array<JSONObject>,
+  responses: JSONObject,
+) => UtmAttribution;
+
+/*
+ * UTM parameters out of the same three places the click ids come from.
+ *
+ * Collected into a flat object first and sanitised in one pass, so the
+ * whitelist and the length bound are Attribution's single definition rather
+ * than a second copy that can drift from the one the signup path uses.
+ */
+const collectUtm: CollectUtmFunction = (
+  sources: Array<JSONObject>,
+  responses: JSONObject,
+): UtmAttribution => {
+  const collected: JSONObject = {};
+
+  const wireKeys: Array<string> = [
+    ...Object.keys(UtmWireKeyToPropertyKey),
+    "utm_url",
+  ];
+
+  for (const key of wireKeys) {
+    const value: string | undefined = firstNonEmptyString([
+      ...sources.map((source: JSONObject) => {
+        return source[key];
+      }),
+      unwrapResponseValue(responses[key]),
+    ]);
+
+    if (value) {
+      collected[key] = value;
+    }
+  }
+
+  return Attribution.sanitizeUtm(collected);
+};
+
+type CollectFirstTouchFunction = (
+  sources: Array<JSONObject>,
+  responses: JSONObject,
+) => JSONObject | undefined;
+
+/*
+ * The visitor's first attributed touch, which the embed sends as one JSON
+ * string because Cal metadata values are scalars.
+ *
+ * Parsing caller-supplied JSON is only safe because nothing structural is
+ * trusted afterwards: the result goes straight through
+ * Attribution.sanitizeFirstTouchAttribution, which whitelists keys and bounds
+ * every value. A malformed string yields no first touch rather than a failed
+ * booking — the booking is the conversion, and losing its attribution must
+ * never lose the conversion too.
+ */
+const collectFirstTouch: CollectFirstTouchFunction = (
+  sources: Array<JSONObject>,
+  responses: JSONObject,
+): JSONObject | undefined => {
+  const raw: string | undefined = firstNonEmptyString([
+    ...sources.map((source: JSONObject) => {
+      return source[FIRST_TOUCH_METADATA_KEY];
+    }),
+    unwrapResponseValue(responses[FIRST_TOUCH_METADATA_KEY]),
+  ]);
+
+  if (!raw || raw.length > MAX_FIRST_TOUCH_LENGTH) {
+    return undefined;
+  }
+
+  let parsed: JSONValue;
+
+  try {
+    parsed = JSON.parse(raw) as JSONValue;
+  } catch {
+    return undefined;
+  }
+
+  return Attribution.sanitizeFirstTouchAttribution(parsed);
+};
+
 export type ParseCalBookingConversionFunction = (
   body: JSONObject,
 ) => CalBookingConversion | null;
@@ -271,11 +365,22 @@ export const parseCalBookingConversion: ParseCalBookingConversionFunction = (
     ?.toLowerCase()
     .slice(0, MAX_EMAIL_LENGTH);
 
+  const sources: Array<JSONObject> = [metadata, bookingMetadata];
+
+  const firstTouchAttribution: JSONObject | undefined = collectFirstTouch(
+    sources,
+    responses,
+  );
+
   return {
     bookingId: bookingId,
     conversionAt: conversionAt,
     ...(email ? { email: email } : {}),
-    clickIds: collectClickIds([metadata, bookingMetadata], responses),
+    clickIds: collectClickIds(sources, responses),
+    utm: collectUtm(sources, responses),
+    ...(firstTouchAttribution
+      ? { firstTouchAttribution: firstTouchAttribution }
+      : {}),
   };
 };
 
@@ -390,6 +495,27 @@ export const calWebhookRouteHandler: CalWebhookRouteHandler = async (
     conversion.conversionAt = parsed.conversionAt;
     conversion.clickIds = parsed.clickIds;
     conversion.email = parsed.email;
+
+    /*
+     * The hash, not the address, is what leaves this service: ad platforms get
+     * it for enhanced matching, and the worker joins this booking to the
+     * signup it later produced by it. Storing it here rather than deriving it
+     * downstream keeps the value stable even if the email column is later
+     * redacted.
+     */
+    const emailHash: string | null = Attribution.hashEmail(parsed.email);
+
+    if (emailHash) {
+      conversion.emailHash = emailHash;
+    }
+
+    conversion.utmSource = parsed.utm.utmSource;
+    conversion.utmMedium = parsed.utm.utmMedium;
+    conversion.utmCampaign = parsed.utm.utmCampaign;
+    conversion.utmTerm = parsed.utm.utmTerm;
+    conversion.utmContent = parsed.utm.utmContent;
+    conversion.utmUrl = parsed.utm.utmUrl;
+    conversion.firstTouchAttribution = parsed.firstTouchAttribution;
 
     try {
       await MarketingConversionService.create({

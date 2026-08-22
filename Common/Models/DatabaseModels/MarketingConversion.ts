@@ -15,12 +15,15 @@ import { Column, Entity, Index } from "typeorm";
 
 /*
  * Internal table (no API access) recording server-confirmed conversions —
- * signups, booked meetings and paid subscriptions, along with any ad click IDs
- * the converting visitor carried — and the status of uploading the
- * ad-uploadable ones to ad platforms (Google Ads offline click conversions,
- * Meta Conversions API). Browser analytics never write this table: rows are
- * written by the signup/subscription flows and the Cal.com webhook, and read
- * by the MarketingConversions worker job.
+ * signups, booked meetings and paid subscriptions — together with the
+ * attribution the converting visitor carried (ad click IDs, UTM parameters,
+ * first touch) and the status of uploading them to ad platforms. Browser
+ * analytics never write this table: rows are written by the Cal.com webhook and
+ * the MarketingConversions worker job, which also reads it.
+ *
+ * This table is deliberately not a CRM. Contact, account and deal records live
+ * in Revenue, and nothing here creates or advances them — a booked meeting is
+ * a measured conversion, not a qualified opportunity.
  */
 @TableAccessControl({
   create: [],
@@ -35,7 +38,7 @@ import { Column, Entity, Index } from "typeorm";
   pluralName: "Marketing Conversions",
   icon: IconProp.ChartBar,
   tableDescription:
-    "Server-confirmed conversions (signups, meetings booked, paid subscriptions) and their upload status to ad platforms for offline conversion tracking.",
+    "Server-confirmed conversions (signups, meetings booked, paid subscriptions), the campaign attribution each carried, and their upload status to ad platforms for offline conversion tracking.",
 })
 @Entity({
   name: "MarketingConversion",
@@ -126,7 +129,7 @@ export default class MarketingConversion extends BaseModel {
     required: false,
     title: "Email",
     description:
-      "Email of the converting user. Hashed before being sent to ad platforms that support enhanced matching (Meta).",
+      "Email of the converting user. Never sent anywhere in the clear: every ad platform receives the SHA-256 in emailHash instead.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -205,4 +208,203 @@ export default class MarketingConversion extends BaseModel {
     nullable: true,
   })
   public uploadState?: JSONObject = undefined;
+
+  /*
+   * Last-touch UTM parameters, copied from the User or Project this conversion
+   * belongs to, or read from Cal booking metadata for a booked meeting.
+   *
+   * The ledger carried only clickIds until now, which meant the only thing
+   * that could answer "how many demos did this campaign produce" was the ad
+   * platform, and only for clicks it had auto-tagged. Any campaign delivering
+   * UTMs without a click id — a newsletter, a sponsorship, a conference link —
+   * was invisible in OneUptime's own data. These columns are what make the
+   * ledger reportable on its own.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @Index("idx_marketing_conversion_utm_campaign")
+  @TableColumn({
+    type: TableColumnType.LongText,
+    required: false,
+    title: "UTM Campaign",
+    description: "Last-touch utm_campaign for this conversion.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public utmCampaign?: string | undefined = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @Index("idx_marketing_conversion_utm_source")
+  @TableColumn({
+    type: TableColumnType.LongText,
+    required: false,
+    title: "UTM Source",
+    description: "Last-touch utm_source for this conversion.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public utmSource?: string | undefined = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    required: false,
+    title: "UTM Medium",
+    description: "Last-touch utm_medium for this conversion.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public utmMedium?: string | undefined = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    required: false,
+    title: "UTM Term",
+    description: "Last-touch utm_term for this conversion.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public utmTerm?: string | undefined = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    required: false,
+    title: "UTM Content",
+    description: "Last-touch utm_content for this conversion.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public utmContent?: string | undefined = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    required: false,
+    title: "UTM URL",
+    description:
+      "Landing URL of the attributed visit. The only attribution a campaign leaves when its link carried a click id and no UTMs at all, as Google Ads auto-tagging does.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public utmUrl?: string | undefined = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "First Touch Attribution",
+    description:
+      "UTM parameters, click IDs, landing URL and referrer from the visitor's first attributed visit. The utm* columns above hold last-touch values.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public firstTouchAttribution?: JSONObject | undefined = undefined;
+
+  /*
+   * SHA-256 of the lowercased, trimmed email (Common/Server/Utils/Attribution).
+   *
+   * Two jobs, and it is the same value for both. Ad platforms that support
+   * enhanced matching want exactly this digest, and it is the only key that
+   * can join a booked meeting to the signup it produced weeks later: a
+   * MeetingBooked row has no userId, a SignUp row has no booking, and the
+   * person may well have used a different device for each. Indexed because
+   * the chain-linking pass looks conversions up by it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @Index("idx_marketing_conversion_email_hash")
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    title: "Email Hash",
+    description:
+      "SHA-256 of the normalized (trimmed, lowercased) email. Used for ad-platform enhanced matching and to join conversions by the same person across the demo/signup boundary.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public emailHash?: string | undefined = undefined;
+
+  /*
+   * The earlier conversion by the same person that this one followed.
+   *
+   * Set by the MarketingConversions worker, never by a writer: the writers see
+   * one moment each and cannot know what came before it. A paid subscription
+   * pointing at a booked meeting is what makes "revenue this demo campaign
+   * produced" answerable — without it the ledger holds four unrelated rows for
+   * one customer journey.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @Index("idx_marketing_conversion_attributed_to")
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Attributed To Conversion ID",
+    description:
+      "The earliest earlier conversion by the same person (matched on emailHash) that this conversion followed. Null when this is the first conversion in the chain.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public attributedToConversionId?: ObjectID | undefined = undefined;
 }

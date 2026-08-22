@@ -185,10 +185,29 @@
       <script type="text/javascript">
         (function (C, A, L) { let p = function (a, ar) { a.q.push(ar); }; let d = C.document; C.Cal = C.Cal || function () { let cal = C.Cal; let ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === L) { const api = function () { p(api, arguments); }; const namespace = ar[1]; api.q = api.q || []; typeof namespace === "string" ? (cal.ns[namespace] = api) && p(api, ar) : p(cal, ar); return; } p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "init");
         Cal("init", { origin: "https://cal.com" });
+        /*
+         * Attribution travels into the booking as Cal metadata, and comes back
+         * out on the BOOKING_CREATED webhook that writes the MeetingBooked row
+         * (App/API/CalWebhook.ts).
+         *
+         * This is the join that used to be missing. The webhook has always
+         * parsed click ids out of booking metadata — but this embed sent no
+         * metadata at all, so every booked demo landed in the ledger with an
+         * empty clickIds object and no campaign. A demo was measurable as a
+         * count and attributable to nothing.
+         *
+         * oneUptimeCalAttributionMetadata() returns {} when there is nothing
+         * to attribute or when the visitor has not consented to attribution
+         * storage, so an un-attributed booking sends an empty bag rather than
+         * junk.
+         */
         Cal("inline", {
           elementOrSelector: "#my-cal-inline",
           calLink: "oneuptimehq/demo",
-          layout: "month_view"
+          layout: "month_view",
+          config: typeof window.oneUptimeCalAttributionMetadata === 'function'
+            ? window.oneUptimeCalAttributionMetadata()
+            : {}
         });
         Cal("ui", { "styles": { "branding": { "brandColor": "#4f46e5" } }, "hideEventTypeDetails": false, "layout": "month_view" });
         

@@ -1,19 +1,24 @@
 import LlmCostBudget from "../../../../Models/DatabaseModels/LlmCostBudget";
-import OnCallDutyPolicy from "../../../../Models/DatabaseModels/OnCallDutyPolicy";
-import Alert from "../../../../Models/DatabaseModels/Alert";
-import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import Span from "../../../../Models/AnalyticsModels/Span";
+import { MetricPointType } from "../../../../Models/AnalyticsModels/Metric";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import Query from "../../../../Types/BaseDatabase/Query";
+import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import ServiceType from "../../../../Types/Telemetry/ServiceType";
 import LlmCostBudgetEvaluator, {
-  DEFAULT_WARNING_THRESHOLD_PERCENT,
-  LlmCostBudgetDecision,
+  LLM_BUDGET_ID_ATTRIBUTE,
+  LLM_BUDGET_MODEL_ATTRIBUTE,
+  LLM_BUDGET_NAME_ATTRIBUTE,
+  LLM_BUDGET_PERCENT_METRIC_NAME,
+  LLM_BUDGET_PROVIDER_ATTRIBUTE,
+  LLM_BUDGET_SERVICE_ID_ATTRIBUTE,
+  LLM_BUDGET_SPEND_METRIC_NAME,
 } from "../../../../Server/Utils/Telemetry/LlmCostBudgetEvaluator";
-import AlertService from "../../../../Server/Services/AlertService";
-import AlertSeverityService from "../../../../Server/Services/AlertSeverityService";
 import LlmCostBudgetService from "../../../../Server/Services/LlmCostBudgetService";
+import MetricService from "../../../../Server/Services/MetricService";
 import SpanService from "../../../../Server/Services/SpanService";
+import TelemetryUtil from "../../../../Server/Utils/Telemetry/Telemetry";
 /*
  * `jest` deliberately comes from the global scope, not @jest/globals — the
  * imported value would shadow the global `jest` NAMESPACE and break the
@@ -31,21 +36,11 @@ jest.mock("../../../../Server/Services/SpanService", () => {
   };
 });
 
-jest.mock("../../../../Server/Services/AlertService", () => {
+jest.mock("../../../../Server/Services/MetricService", () => {
   return {
     __esModule: true,
     default: {
-      findOneBy: jest.fn(),
-      create: jest.fn(),
-    },
-  };
-});
-
-jest.mock("../../../../Server/Services/AlertSeverityService", () => {
-  return {
-    __esModule: true,
-    default: {
-      findOneBy: jest.fn(),
+      insertJsonRows: jest.fn(),
     },
   };
 });
@@ -56,14 +51,15 @@ jest.mock("../../../../Server/Services/LlmCostBudgetService", () => {
     default: {
       findBy: jest.fn(),
       updateOneById: jest.fn(),
-      getBudgetAlertFingerprint: jest.fn(
-        (data: {
-          llmCostBudgetId: { toString: () => string };
-          kind: string;
-        }): string => {
-          return `llm-cost-budget:${data.llmCostBudgetId.toString()}:${data.kind}`;
-        },
-      ),
+    },
+  };
+});
+
+jest.mock("../../../../Server/Utils/Telemetry/Telemetry", () => {
+  return {
+    __esModule: true,
+    default: {
+      indexMetricNameServiceNameMap: jest.fn(),
     },
   };
 });
@@ -74,286 +70,26 @@ const mockedSpanService: { aggregateBy: MockedFn } = SpanService as unknown as {
   aggregateBy: MockedFn;
 };
 
-const mockedAlertService: { findOneBy: MockedFn; create: MockedFn } =
-  AlertService as unknown as {
-    findOneBy: MockedFn;
-    create: MockedFn;
-  };
-
-const mockedAlertSeverityService: { findOneBy: MockedFn } =
-  AlertSeverityService as unknown as {
-    findOneBy: MockedFn;
+const mockedMetricService: { insertJsonRows: MockedFn } =
+  MetricService as unknown as {
+    insertJsonRows: MockedFn;
   };
 
 const mockedBudgetService: {
   findBy: MockedFn;
   updateOneById: MockedFn;
-  getBudgetAlertFingerprint: MockedFn;
 } = LlmCostBudgetService as unknown as {
   findBy: MockedFn;
   updateOneById: MockedFn;
-  getBudgetAlertFingerprint: MockedFn;
 };
 
-// 2026-08-21 14:30:00 UTC — an arbitrary mid-day instant.
-const NOW: Date = new Date(Date.UTC(2026, 7, 21, 14, 30, 0));
-
-function makeDecisionInput(overrides: {
-  spendInUSD?: number;
-  dailyBudgetInUSD?: number;
-  warningThresholdPercent?: number | undefined;
-  lastWarningAlertCreatedAt?: Date | undefined;
-  lastBreachAlertCreatedAt?: Date | undefined;
-  now?: Date;
-}): Parameters<typeof LlmCostBudgetEvaluator.decide>[0] {
-  return {
-    spendInUSD: overrides.spendInUSD ?? 0,
-    dailyBudgetInUSD: overrides.dailyBudgetInUSD ?? 100,
-    warningThresholdPercent: overrides.warningThresholdPercent,
-    lastWarningAlertCreatedAt: overrides.lastWarningAlertCreatedAt,
-    lastBreachAlertCreatedAt: overrides.lastBreachAlertCreatedAt,
-    now: overrides.now ?? NOW,
+const mockedTelemetryUtil: { indexMetricNameServiceNameMap: MockedFn } =
+  TelemetryUtil as unknown as {
+    indexMetricNameServiceNameMap: MockedFn;
   };
-}
 
-describe("LlmCostBudgetEvaluator.decide — thresholds", () => {
-  test("spend below the warning threshold fires nothing", () => {
-    const decision: LlmCostBudgetDecision = LlmCostBudgetEvaluator.decide(
-      makeDecisionInput({ spendInUSD: 50 }),
-    );
-
-    expect(decision.percentUsed).toBe(50);
-    expect(decision.shouldFireWarning).toBe(false);
-    expect(decision.shouldFireBreach).toBe(false);
-  });
-
-  test("spend exactly at the default 80% threshold fires a warning", () => {
-    const decision: LlmCostBudgetDecision = LlmCostBudgetEvaluator.decide(
-      makeDecisionInput({ spendInUSD: 80 }),
-    );
-
-    expect(decision.percentUsed).toBe(80);
-    expect(decision.shouldFireWarning).toBe(true);
-    expect(decision.shouldFireBreach).toBe(false);
-  });
-
-  test("spend just under 100% fires only a warning", () => {
-    const decision: LlmCostBudgetDecision = LlmCostBudgetEvaluator.decide(
-      makeDecisionInput({ spendInUSD: 99.99 }),
-    );
-
-    expect(decision.shouldFireWarning).toBe(true);
-    expect(decision.shouldFireBreach).toBe(false);
-  });
-
-  test("spend exactly at 100% fires a breach, not a warning", () => {
-    const decision: LlmCostBudgetDecision = LlmCostBudgetEvaluator.decide(
-      makeDecisionInput({ spendInUSD: 100 }),
-    );
-
-    expect(decision.percentUsed).toBe(100);
-    expect(decision.shouldFireWarning).toBe(false);
-    expect(decision.shouldFireBreach).toBe(true);
-  });
-
-  test("spend that jumps straight past 100% fires one breach only", () => {
-    const decision: LlmCostBudgetDecision = LlmCostBudgetEvaluator.decide(
-      makeDecisionInput({ spendInUSD: 250 }),
-    );
-
-    expect(decision.percentUsed).toBe(250);
-    expect(decision.shouldFireWarning).toBe(false);
-    expect(decision.shouldFireBreach).toBe(true);
-  });
-
-  test("a custom warning threshold is honored", () => {
-    const at49: LlmCostBudgetDecision = LlmCostBudgetEvaluator.decide(
-      makeDecisionInput({ spendInUSD: 49, warningThresholdPercent: 50 }),
-    );
-    const at50: LlmCostBudgetDecision = LlmCostBudgetEvaluator.decide(
-      makeDecisionInput({ spendInUSD: 50, warningThresholdPercent: 50 }),
-    );
-
-    expect(at49.shouldFireWarning).toBe(false);
-    expect(at50.shouldFireWarning).toBe(true);
-  });
-
-  test("invalid warning thresholds fall back to the default", () => {
-    for (const bad of [0, -5, 100, 150, NaN]) {
-      const below: LlmCostBudgetDecision = LlmCostBudgetEvaluator.decide(
-        makeDecisionInput({
-          spendInUSD: DEFAULT_WARNING_THRESHOLD_PERCENT - 1,
-          warningThresholdPercent: bad,
-        }),
-      );
-      const at: LlmCostBudgetDecision = LlmCostBudgetEvaluator.decide(
-        makeDecisionInput({
-          spendInUSD: DEFAULT_WARNING_THRESHOLD_PERCENT,
-          warningThresholdPercent: bad,
-        }),
-      );
-
-      expect(below.shouldFireWarning).toBe(false);
-      expect(at.shouldFireWarning).toBe(true);
-    }
-  });
-
-  test("undefined warning threshold uses the default", () => {
-    const decision: LlmCostBudgetDecision = LlmCostBudgetEvaluator.decide(
-      makeDecisionInput({
-        spendInUSD: DEFAULT_WARNING_THRESHOLD_PERCENT,
-        warningThresholdPercent: undefined,
-      }),
-    );
-
-    expect(decision.shouldFireWarning).toBe(true);
-  });
-});
-
-describe("LlmCostBudgetEvaluator.decide — invalid inputs never fire", () => {
-  test.each([
-    ["zero budget", { spendInUSD: 100, dailyBudgetInUSD: 0 }],
-    ["negative budget", { spendInUSD: 100, dailyBudgetInUSD: -10 }],
-    ["NaN budget", { spendInUSD: 100, dailyBudgetInUSD: NaN }],
-    ["Infinity budget", { spendInUSD: 100, dailyBudgetInUSD: Infinity }],
-    ["negative spend", { spendInUSD: -1, dailyBudgetInUSD: 100 }],
-    ["NaN spend", { spendInUSD: NaN, dailyBudgetInUSD: 100 }],
-  ])("%s", (_label: string, input: Record<string, unknown>) => {
-    const decision: LlmCostBudgetDecision = LlmCostBudgetEvaluator.decide(
-      makeDecisionInput(input as { spendInUSD: number }),
-    );
-
-    expect(decision.percentUsed).toBe(0);
-    expect(decision.shouldFireWarning).toBe(false);
-    expect(decision.shouldFireBreach).toBe(false);
-  });
-
-  test("zero spend against a valid budget is quiet", () => {
-    const decision: LlmCostBudgetDecision = LlmCostBudgetEvaluator.decide(
-      makeDecisionInput({ spendInUSD: 0 }),
-    );
-
-    expect(decision.percentUsed).toBe(0);
-    expect(decision.shouldFireWarning).toBe(false);
-    expect(decision.shouldFireBreach).toBe(false);
-  });
-});
-
-describe("LlmCostBudgetEvaluator.decide — once-per-UTC-day dedup", () => {
-  test("warning does not re-fire when already warned today", () => {
-    const earlierToday: Date = new Date(Date.UTC(2026, 7, 21, 2, 0, 0));
-
-    const decision: LlmCostBudgetDecision = LlmCostBudgetEvaluator.decide(
-      makeDecisionInput({
-        spendInUSD: 90,
-        lastWarningAlertCreatedAt: earlierToday,
-      }),
-    );
-
-    expect(decision.shouldFireWarning).toBe(false);
-  });
-
-  test("warning re-fires the next UTC day", () => {
-    const yesterday: Date = new Date(Date.UTC(2026, 7, 20, 23, 59, 59));
-
-    const decision: LlmCostBudgetDecision = LlmCostBudgetEvaluator.decide(
-      makeDecisionInput({
-        spendInUSD: 90,
-        lastWarningAlertCreatedAt: yesterday,
-      }),
-    );
-
-    expect(decision.shouldFireWarning).toBe(true);
-  });
-
-  test("breach does not re-fire when already breached today", () => {
-    const earlierToday: Date = new Date(Date.UTC(2026, 7, 21, 1, 0, 0));
-
-    const decision: LlmCostBudgetDecision = LlmCostBudgetEvaluator.decide(
-      makeDecisionInput({
-        spendInUSD: 150,
-        lastBreachAlertCreatedAt: earlierToday,
-      }),
-    );
-
-    expect(decision.shouldFireBreach).toBe(false);
-    // Breach supersedes warning even when suppressed — no downgrade alert.
-    expect(decision.shouldFireWarning).toBe(false);
-  });
-
-  test("breach fires even when a warning already fired earlier today", () => {
-    const earlierToday: Date = new Date(Date.UTC(2026, 7, 21, 9, 0, 0));
-
-    const decision: LlmCostBudgetDecision = LlmCostBudgetEvaluator.decide(
-      makeDecisionInput({
-        spendInUSD: 120,
-        lastWarningAlertCreatedAt: earlierToday,
-      }),
-    );
-
-    expect(decision.shouldFireBreach).toBe(true);
-  });
-
-  test("breach re-fires on a fresh UTC day", () => {
-    const yesterday: Date = new Date(Date.UTC(2026, 7, 20, 12, 0, 0));
-
-    const decision: LlmCostBudgetDecision = LlmCostBudgetEvaluator.decide(
-      makeDecisionInput({
-        spendInUSD: 150,
-        lastBreachAlertCreatedAt: yesterday,
-      }),
-    );
-
-    expect(decision.shouldFireBreach).toBe(true);
-  });
-});
-
-describe("LlmCostBudgetEvaluator UTC day helpers", () => {
-  test("getUtcDayStart returns midnight UTC of the same day", () => {
-    const dayStart: Date = LlmCostBudgetEvaluator.getUtcDayStart(NOW);
-
-    expect(dayStart.toISOString()).toBe("2026-08-21T00:00:00.000Z");
-  });
-
-  test("getUtcDayStart is idempotent", () => {
-    const once: Date = LlmCostBudgetEvaluator.getUtcDayStart(NOW);
-    const twice: Date = LlmCostBudgetEvaluator.getUtcDayStart(once);
-
-    expect(twice.getTime()).toBe(once.getTime());
-  });
-
-  test("isSameUtcDay is false for undefined", () => {
-    expect(LlmCostBudgetEvaluator.isSameUtcDay(undefined, NOW)).toBe(false);
-  });
-
-  test("isSameUtcDay is true across hours of the same UTC day", () => {
-    const morning: Date = new Date(Date.UTC(2026, 7, 21, 0, 0, 1));
-    const night: Date = new Date(Date.UTC(2026, 7, 21, 23, 59, 59));
-
-    expect(LlmCostBudgetEvaluator.isSameUtcDay(morning, night)).toBe(true);
-  });
-
-  test("isSameUtcDay is false one second across midnight UTC", () => {
-    const beforeMidnight: Date = new Date(Date.UTC(2026, 7, 20, 23, 59, 59));
-    const afterMidnight: Date = new Date(Date.UTC(2026, 7, 21, 0, 0, 0));
-
-    expect(
-      LlmCostBudgetEvaluator.isSameUtcDay(beforeMidnight, afterMidnight),
-    ).toBe(false);
-  });
-
-  test("isSameUtcDay does not confuse the same day-of-month across months or years", () => {
-    const sameDayOtherMonth: Date = new Date(Date.UTC(2026, 6, 21, 14, 0, 0));
-    const sameDayOtherYear: Date = new Date(Date.UTC(2025, 7, 21, 14, 0, 0));
-
-    expect(LlmCostBudgetEvaluator.isSameUtcDay(sameDayOtherMonth, NOW)).toBe(
-      false,
-    );
-    expect(LlmCostBudgetEvaluator.isSameUtcDay(sameDayOtherYear, NOW)).toBe(
-      false,
-    );
-  });
-});
+// 2026-08-22 14:30:00 UTC — an arbitrary mid-day instant.
+const NOW: Date = new Date(Date.UTC(2026, 7, 22, 14, 30, 0));
 
 function makeBudget(overrides?: Partial<LlmCostBudget>): LlmCostBudget {
   const budget: LlmCostBudget = new LlmCostBudget();
@@ -361,10 +97,80 @@ function makeBudget(overrides?: Partial<LlmCostBudget>): LlmCostBudget {
   budget.projectId = ObjectID.generate();
   budget.name = "Prod LLM budget";
   budget.dailyBudgetInUSD = 100;
-  budget.warningThresholdPercent = 80;
 
   return Object.assign(budget, overrides);
 }
+
+describe("LlmCostBudgetEvaluator.computePercentUsed", () => {
+  test("computes percent of budget", () => {
+    expect(
+      LlmCostBudgetEvaluator.computePercentUsed({
+        spendInUSD: 82,
+        dailyBudgetInUSD: 100,
+      }),
+    ).toBe(82);
+  });
+
+  test("supports values past 100%", () => {
+    expect(
+      LlmCostBudgetEvaluator.computePercentUsed({
+        spendInUSD: 250,
+        dailyBudgetInUSD: 100,
+      }),
+    ).toBe(250);
+  });
+
+  test("rounds to two decimal places — no float noise into monitors", () => {
+    expect(
+      LlmCostBudgetEvaluator.computePercentUsed({
+        spendInUSD: 1 / 3,
+        dailyBudgetInUSD: 100,
+      }),
+    ).toBe(0.33);
+  });
+
+  test.each([
+    ["zero budget", { spendInUSD: 100, dailyBudgetInUSD: 0 }],
+    ["negative budget", { spendInUSD: 100, dailyBudgetInUSD: -10 }],
+    ["NaN budget", { spendInUSD: 100, dailyBudgetInUSD: NaN }],
+    ["Infinity budget", { spendInUSD: 100, dailyBudgetInUSD: Infinity }],
+    ["negative spend", { spendInUSD: -1, dailyBudgetInUSD: 100 }],
+    ["NaN spend", { spendInUSD: NaN, dailyBudgetInUSD: 100 }],
+  ])(
+    "%s yields 0 — never NaN/Infinity into a metric series",
+    (_label: string, input: Record<string, number>) => {
+      expect(
+        LlmCostBudgetEvaluator.computePercentUsed(
+          input as { spendInUSD: number; dailyBudgetInUSD: number },
+        ),
+      ).toBe(0);
+    },
+  );
+
+  test("zero spend is 0%", () => {
+    expect(
+      LlmCostBudgetEvaluator.computePercentUsed({
+        spendInUSD: 0,
+        dailyBudgetInUSD: 100,
+      }),
+    ).toBe(0);
+  });
+});
+
+describe("LlmCostBudgetEvaluator.getUtcDayStart", () => {
+  test("returns midnight UTC of the same day", () => {
+    expect(LlmCostBudgetEvaluator.getUtcDayStart(NOW).toISOString()).toBe(
+      "2026-08-22T00:00:00.000Z",
+    );
+  });
+
+  test("is idempotent", () => {
+    const once: Date = LlmCostBudgetEvaluator.getUtcDayStart(NOW);
+    expect(LlmCostBudgetEvaluator.getUtcDayStart(once).getTime()).toBe(
+      once.getTime(),
+    );
+  });
+});
 
 describe("LlmCostBudgetEvaluator.buildSpanQuery", () => {
   const dayStart: Date = LlmCostBudgetEvaluator.getUtcDayStart(NOW);
@@ -409,14 +215,124 @@ describe("LlmCostBudgetEvaluator.buildSpanQuery", () => {
   });
 });
 
+describe("LlmCostBudgetEvaluator.buildBudgetMetricRows", () => {
+  test("builds one spend row and one percent row", () => {
+    const budget: LlmCostBudget = makeBudget();
+
+    const rows: Array<JSONObject> =
+      LlmCostBudgetEvaluator.buildBudgetMetricRows({
+        budget: budget,
+        spendInUSD: 42.5,
+        percentUsed: 42.5,
+        now: NOW,
+      });
+
+    expect(rows).toHaveLength(2);
+
+    const spendRow: JSONObject = rows[0]!;
+    const percentRow: JSONObject = rows[1]!;
+
+    expect(spendRow["name"]).toBe(LLM_BUDGET_SPEND_METRIC_NAME);
+    expect(spendRow["value"]).toBe(42.5);
+    expect(percentRow["name"]).toBe(LLM_BUDGET_PERCENT_METRIC_NAME);
+    expect(percentRow["value"]).toBe(42.5);
+  });
+
+  test("rows carry the derived-metric row shape monitors expect", () => {
+    const budget: LlmCostBudget = makeBudget();
+
+    const rows: Array<JSONObject> =
+      LlmCostBudgetEvaluator.buildBudgetMetricRows({
+        budget: budget,
+        spendInUSD: 1,
+        percentUsed: 1,
+        now: NOW,
+      });
+
+    for (const row of rows) {
+      expect(row["projectId"]).toBe(budget.projectId!.toString());
+      expect(row["metricPointType"]).toBe(MetricPointType.Gauge);
+      expect(row["primaryEntityType"]).toBe(ServiceType.OpenTelemetry);
+      expect(row["timeUnixNano"]).toBe((NOW.getTime() * 1_000_000).toString());
+      expect(row["_id"]).toBeTruthy();
+      expect(row["retentionDate"]).toBeTruthy();
+
+      const attributes: Record<string, string> = row["attributes"] as Record<
+        string,
+        string
+      >;
+      expect(attributes[LLM_BUDGET_ID_ATTRIBUTE]).toBe(budget.id!.toString());
+      expect(attributes[LLM_BUDGET_NAME_ATTRIBUTE]).toBe(budget.name);
+
+      const attributeKeys: Array<string> = row[
+        "attributeKeys"
+      ] as Array<string>;
+      expect(attributeKeys).toEqual(Object.keys(attributes).sort());
+    }
+  });
+
+  test("scope attributes appear only when the budget is scoped", () => {
+    const unscoped: Array<JSONObject> =
+      LlmCostBudgetEvaluator.buildBudgetMetricRows({
+        budget: makeBudget(),
+        spendInUSD: 1,
+        percentUsed: 1,
+        now: NOW,
+      });
+
+    const unscopedAttributes: Record<string, string> = unscoped[0]![
+      "attributes"
+    ] as Record<string, string>;
+    expect(unscopedAttributes[LLM_BUDGET_SERVICE_ID_ATTRIBUTE]).toBeUndefined();
+    expect(unscopedAttributes[LLM_BUDGET_PROVIDER_ATTRIBUTE]).toBeUndefined();
+    expect(unscopedAttributes[LLM_BUDGET_MODEL_ATTRIBUTE]).toBeUndefined();
+
+    const serviceId: ObjectID = ObjectID.generate();
+    const scoped: Array<JSONObject> =
+      LlmCostBudgetEvaluator.buildBudgetMetricRows({
+        budget: makeBudget({
+          serviceId: serviceId,
+          llmSystem: "openai",
+          llmModel: "gpt-4o",
+        }),
+        spendInUSD: 1,
+        percentUsed: 1,
+        now: NOW,
+      });
+
+    const scopedAttributes: Record<string, string> = scoped[0]![
+      "attributes"
+    ] as Record<string, string>;
+    expect(scopedAttributes[LLM_BUDGET_SERVICE_ID_ATTRIBUTE]).toBe(
+      serviceId.toString(),
+    );
+    expect(scopedAttributes[LLM_BUDGET_PROVIDER_ATTRIBUTE]).toBe("openai");
+    expect(scopedAttributes[LLM_BUDGET_MODEL_ATTRIBUTE]).toBe("gpt-4o");
+  });
+
+  test("the two rows share one point in time", () => {
+    const rows: Array<JSONObject> =
+      LlmCostBudgetEvaluator.buildBudgetMetricRows({
+        budget: makeBudget(),
+        spendInUSD: 5,
+        percentUsed: 5,
+        now: NOW,
+      });
+
+    expect(rows[0]!["time"]).toBe(rows[1]!["time"]);
+    expect(rows[0]!["timeUnixNano"]).toBe(rows[1]!["timeUnixNano"]);
+  });
+});
+
 describe("LlmCostBudgetEvaluator.evaluateBudget — orchestration", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockedSpanService.aggregateBy.mockResolvedValue({ data: [] } as never);
-    mockedAlertService.findOneBy.mockResolvedValue(null as never);
-    mockedAlertService.create.mockResolvedValue(new Alert() as never);
-    mockedAlertSeverityService.findOneBy.mockResolvedValue(null as never);
+    mockedMetricService.insertJsonRows.mockResolvedValue(undefined as never);
     mockedBudgetService.updateOneById.mockResolvedValue(undefined as never);
+    mockedTelemetryUtil.indexMetricNameServiceNameMap.mockResolvedValue(
+      undefined as never,
+    );
   });
 
   function mockSpend(valueInUSD: number): void {
@@ -425,7 +341,7 @@ describe("LlmCostBudgetEvaluator.evaluateBudget — orchestration", () => {
     } as never);
   }
 
-  test("stamps spend on the budget even when nothing fires", async () => {
+  test("stamps spend on the budget row", async () => {
     const budget: LlmCostBudget = makeBudget();
     mockSpend(10);
 
@@ -441,7 +357,41 @@ describe("LlmCostBudgetEvaluator.evaluateBudget — orchestration", () => {
     expect(updateArg.id.toString()).toBe(budget.id!.toString());
     expect(updateArg.data["currentDaySpendInUSD"]).toBe(10);
     expect(updateArg.data["spendLastEvaluatedAt"]).toBe(NOW);
-    expect(mockedAlertService.create).not.toHaveBeenCalled();
+  });
+
+  test("publishes spend and percent metric points", async () => {
+    const budget: LlmCostBudget = makeBudget({ dailyBudgetInUSD: 200 });
+    mockSpend(164);
+
+    await LlmCostBudgetEvaluator.evaluateBudget({ budget, now: NOW });
+
+    expect(mockedMetricService.insertJsonRows).toHaveBeenCalledTimes(1);
+    const rows: Array<JSONObject> = mockedMetricService.insertJsonRows.mock
+      .calls[0]![0] as Array<JSONObject>;
+
+    expect(rows).toHaveLength(2);
+    expect(rows[0]!["name"]).toBe(LLM_BUDGET_SPEND_METRIC_NAME);
+    expect(rows[0]!["value"]).toBe(164);
+    expect(rows[1]!["name"]).toBe(LLM_BUDGET_PERCENT_METRIC_NAME);
+    expect(rows[1]!["value"]).toBe(82);
+  });
+
+  test("registers the metric names for the picker", async () => {
+    const budget: LlmCostBudget = makeBudget();
+    mockSpend(1);
+
+    await LlmCostBudgetEvaluator.evaluateBudget({ budget, now: NOW });
+
+    expect(
+      mockedTelemetryUtil.indexMetricNameServiceNameMap,
+    ).toHaveBeenCalledTimes(1);
+    const registration: { metricNameServiceNameMap: Record<string, unknown> } =
+      mockedTelemetryUtil.indexMetricNameServiceNameMap.mock.calls[0]![0] as {
+        metricNameServiceNameMap: Record<string, unknown>;
+      };
+    expect(Object.keys(registration.metricNameServiceNameMap).sort()).toEqual(
+      [LLM_BUDGET_PERCENT_METRIC_NAME, LLM_BUDGET_SPEND_METRIC_NAME].sort(),
+    );
   });
 
   test("multiple aggregation rows are summed", async () => {
@@ -462,152 +412,6 @@ describe("LlmCostBudgetEvaluator.evaluateBudget — orchestration", () => {
     expect(updateArg.data["currentDaySpendInUSD"]).toBe(8);
   });
 
-  test("fires a warning alert with fingerprint, severity, and on-call stubs", async () => {
-    const severityId: ObjectID = ObjectID.generate();
-    const policyId: ObjectID = ObjectID.generate();
-    const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
-    policy.id = policyId;
-
-    const budget: LlmCostBudget = makeBudget({
-      alertSeverityId: severityId,
-      onCallDutyPolicies: [policy],
-    });
-    mockSpend(85);
-
-    await LlmCostBudgetEvaluator.evaluateBudget({ budget, now: NOW });
-
-    expect(mockedAlertService.create).toHaveBeenCalledTimes(1);
-    const created: Alert = (
-      mockedAlertService.create.mock.calls[0]![0] as { data: Alert }
-    ).data;
-
-    expect(created.title).toContain("warning");
-    expect(created.title).toContain(budget.name!);
-    expect(created.description).toContain("$85.00");
-    expect(created.description).toContain("$100.00");
-    expect(created.description).toContain("85%");
-    expect(created.alertSeverityId).toBe(severityId);
-    expect(created.seriesFingerprint).toBe(
-      `llm-cost-budget:${budget.id!.toString()}:warning`,
-    );
-    expect(created.isCreatedAutomatically).toBe(true);
-    expect(created.onCallDutyPolicies).toHaveLength(1);
-    expect(created.onCallDutyPolicies![0]!._id).toBe(policyId.toString());
-
-    // Budget severity was provided — no fallback lookup.
-    expect(mockedAlertSeverityService.findOneBy).not.toHaveBeenCalled();
-
-    // Second update stamps the warning dedup timestamp.
-    expect(mockedBudgetService.updateOneById).toHaveBeenCalledTimes(2);
-    const stampArg: { data: Record<string, unknown> } = mockedBudgetService
-      .updateOneById.mock.calls[1]![0] as {
-      data: Record<string, unknown>;
-    };
-    expect(stampArg.data["lastWarningAlertCreatedAt"]).toBe(NOW);
-  });
-
-  test("fires a breach alert past 100% and stamps the breach timestamp", async () => {
-    const budget: LlmCostBudget = makeBudget({
-      alertSeverityId: ObjectID.generate(),
-    });
-    mockSpend(130);
-
-    await LlmCostBudgetEvaluator.evaluateBudget({ budget, now: NOW });
-
-    expect(mockedAlertService.create).toHaveBeenCalledTimes(1);
-    const created: Alert = (
-      mockedAlertService.create.mock.calls[0]![0] as { data: Alert }
-    ).data;
-
-    expect(created.title).toContain("exceeded");
-    expect(created.seriesFingerprint).toBe(
-      `llm-cost-budget:${budget.id!.toString()}:breach`,
-    );
-
-    const stampArg: { data: Record<string, unknown> } = mockedBudgetService
-      .updateOneById.mock.calls[1]![0] as {
-      data: Record<string, unknown>;
-    };
-    expect(stampArg.data["lastBreachAlertCreatedAt"]).toBe(NOW);
-    expect(stampArg.data["lastWarningAlertCreatedAt"]).toBeUndefined();
-  });
-
-  test("scope filters appear in the alert description", async () => {
-    const budget: LlmCostBudget = makeBudget({
-      alertSeverityId: ObjectID.generate(),
-      llmSystem: "openai",
-      llmModel: "gpt-4o",
-    });
-    mockSpend(85);
-
-    await LlmCostBudgetEvaluator.evaluateBudget({ budget, now: NOW });
-
-    const created: Alert = (
-      mockedAlertService.create.mock.calls[0]![0] as { data: Alert }
-    ).data;
-    expect(created.description).toContain("provider openai");
-    expect(created.description).toContain("model gpt-4o");
-  });
-
-  test("an open alert in the same series suppresses creation and the stamp", async () => {
-    const budget: LlmCostBudget = makeBudget({
-      alertSeverityId: ObjectID.generate(),
-    });
-    mockSpend(85);
-    mockedAlertService.findOneBy.mockResolvedValue(new Alert() as never);
-
-    await LlmCostBudgetEvaluator.evaluateBudget({ budget, now: NOW });
-
-    expect(mockedAlertService.create).not.toHaveBeenCalled();
-    // Only the spend stamp — no dedup-timestamp update.
-    expect(mockedBudgetService.updateOneById).toHaveBeenCalledTimes(1);
-  });
-
-  test("falls back to the project's lowest-order severity", async () => {
-    const fallbackSeverityId: ObjectID = ObjectID.generate();
-    const severity: AlertSeverity = new AlertSeverity();
-    severity.id = fallbackSeverityId;
-
-    // makeBudget sets no alertSeverityId — the fallback path.
-    const budget: LlmCostBudget = makeBudget();
-    mockSpend(85);
-    mockedAlertSeverityService.findOneBy.mockResolvedValue(severity as never);
-
-    await LlmCostBudgetEvaluator.evaluateBudget({ budget, now: NOW });
-
-    expect(mockedAlertSeverityService.findOneBy).toHaveBeenCalledTimes(1);
-    const created: Alert = (
-      mockedAlertService.create.mock.calls[0]![0] as { data: Alert }
-    ).data;
-    expect(created.alertSeverityId!.toString()).toBe(
-      fallbackSeverityId.toString(),
-    );
-  });
-
-  test("a project with no severity at all skips alert creation gracefully", async () => {
-    const budget: LlmCostBudget = makeBudget();
-    mockSpend(85);
-    mockedAlertSeverityService.findOneBy.mockResolvedValue(null as never);
-
-    await LlmCostBudgetEvaluator.evaluateBudget({ budget, now: NOW });
-
-    expect(mockedAlertService.create).not.toHaveBeenCalled();
-    // No stamp — the alert never fired, so tomorrow's evaluation retries.
-    expect(mockedBudgetService.updateOneById).toHaveBeenCalledTimes(1);
-  });
-
-  test("a warning already fired today does not create another alert", async () => {
-    const budget: LlmCostBudget = makeBudget({
-      alertSeverityId: ObjectID.generate(),
-      lastWarningAlertCreatedAt: new Date(Date.UTC(2026, 7, 21, 3, 0, 0)),
-    });
-    mockSpend(85);
-
-    await LlmCostBudgetEvaluator.evaluateBudget({ budget, now: NOW });
-
-    expect(mockedAlertService.create).not.toHaveBeenCalled();
-  });
-
   test("budgets missing required fields are skipped without side effects", async () => {
     const budget: LlmCostBudget = makeBudget();
     delete budget.dailyBudgetInUSD;
@@ -616,6 +420,7 @@ describe("LlmCostBudgetEvaluator.evaluateBudget — orchestration", () => {
 
     expect(mockedSpanService.aggregateBy).not.toHaveBeenCalled();
     expect(mockedBudgetService.updateOneById).not.toHaveBeenCalled();
+    expect(mockedMetricService.insertJsonRows).not.toHaveBeenCalled();
   });
 
   test("the ClickHouse aggregation is scoped and fails loud", async () => {
@@ -642,9 +447,11 @@ describe("LlmCostBudgetEvaluator.evaluateBudget — orchestration", () => {
 describe("LlmCostBudgetEvaluator.evaluateAllBudgets — sweep resilience", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedAlertService.findOneBy.mockResolvedValue(null as never);
-    mockedAlertService.create.mockResolvedValue(new Alert() as never);
+    mockedMetricService.insertJsonRows.mockResolvedValue(undefined as never);
     mockedBudgetService.updateOneById.mockResolvedValue(undefined as never);
+    mockedTelemetryUtil.indexMetricNameServiceNameMap.mockResolvedValue(
+      undefined as never,
+    );
   });
 
   test("one failing budget never aborts the sweep", async () => {
@@ -660,11 +467,12 @@ describe("LlmCostBudgetEvaluator.evaluateAllBudgets — sweep resilience", () =>
 
     await LlmCostBudgetEvaluator.evaluateAllBudgets();
 
-    // The healthy budget still got its spend stamped.
+    // The healthy budget still got its spend stamped and metrics published.
     expect(mockedBudgetService.updateOneById).toHaveBeenCalledTimes(1);
     const updateArg: { id: ObjectID } = mockedBudgetService.updateOneById.mock
       .calls[0]![0] as { id: ObjectID };
     expect(updateArg.id.toString()).toBe(healthy.id!.toString());
+    expect(mockedMetricService.insertJsonRows).toHaveBeenCalledTimes(1);
   });
 
   test("no enabled budgets means no ClickHouse queries at all", async () => {

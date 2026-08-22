@@ -186,6 +186,6 @@ Nothing showing up?
 
 Once gateway spans land as `gen_ai.*` traces, everything in OneUptime's AI observability works on them:
 
-- **[Daily cost budgets](/docs/telemetry/ai-llm-observability)** across every app behind the gateway — with warning and breach alerts.
+- **[Daily cost budgets](/docs/telemetry/ai-llm-observability)** across every app behind the gateway — published as metrics your monitors alert on.
 - **[Traces monitors](/docs/monitor/traces-monitor)** on span patterns, like a runaway agent calling the same tool in a loop.
 - **[Async circuit breaking](/docs/telemetry/ai-agent-circuit-breaker)** — chain those alerts to a Workflow that calls your infrastructure to stop a runaway agent, without putting anything new in the request path.
