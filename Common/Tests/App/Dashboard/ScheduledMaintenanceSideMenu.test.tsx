@@ -231,6 +231,12 @@ describe("Scheduled maintenance side menu", () => {
           ),
         },
         {
+          title: "Measurements",
+          href: routeFor(
+            PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MEASUREMENTS,
+          ),
+        },
+        {
           title: "More Settings",
           href: routeFor(PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE),
         },

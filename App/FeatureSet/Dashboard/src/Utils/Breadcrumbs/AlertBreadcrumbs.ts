@@ -107,6 +107,12 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Custom Fields",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_MEASUREMENTS, [
+      "Project",
+      "Alerts",
+      "Settings",
+      "Measurements",
+    ]),
 
     /*
      * AI and Rules are their own side-menu sections, not lines under Settings,
