@@ -745,30 +745,12 @@
               constraints, and write down exactly where each responsibility sits.
             </p>
 
-            <!--
-              Booking the assessment IS the enterprise conversion.
-
-              This used to be two CTAs: one linking to the demo page, and a
-              `mailto:enterprise@oneuptime.com` beside it. The mailto sent no
-              request to OneUptime at all, so the step of the funnel where the
-              deals are produced no click id, no campaign, and no row.
-
-              Rather than invent a second conversion for it, the licence
-              conversation is the same conversation as the architecture
-              assessment — so the page books it, through the same Cal embed and
-              the same verified webhook the demo page uses. One conversion type,
-              one flow, one thing to keep working.
-            -->
-            <div class="mt-8" id="enterprise-license">
-              <div class="overflow-hidden rounded-2xl bg-white" style="min-height: 560px;">
-                <div id="my-cal-inline-self-hosted" style="width:100%;height:100%;overflow:auto"></div>
-              </div>
-              <p class="mt-4 text-xs leading-5 text-gray-500">
-                Prefer email? Write to
-                <a href="mailto:enterprise@oneuptime.com"
-                  class="font-medium text-gray-400 underline underline-offset-2 hover:text-gray-300">enterprise@oneuptime.com</a>.
-              </p>
-            </div>
+            <p class="mt-8 text-sm leading-6 text-gray-400">
+              Pick a time below &mdash; or write to
+              <a href="mailto:enterprise@oneuptime.com"
+                class="font-medium text-gray-300 underline underline-offset-2 hover:text-white">enterprise@oneuptime.com</a>
+              if you would rather start over email.
+            </p>
           </div>
 
           <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-7">
@@ -805,6 +787,34 @@
                   the responsibility split</span>
               </li>
             </ul>
+          </div>
+        </div>
+
+        <!--
+          Booking the assessment IS the enterprise conversion.
+
+          This used to be two CTAs: one linking to the demo page, and a
+          `mailto:enterprise@oneuptime.com` beside it. The mailto sent no request
+          to OneUptime at all, so the step of the funnel where the deals are
+          produced no click id, no campaign, and no row.
+
+          Rather than invent a second conversion for it, the licence
+          conversation is the same conversation as the architecture assessment —
+          so the page books it, through the same Cal embed and the same verified
+          webhook the demo page uses. One conversion type, one flow, one thing to
+          keep working.
+
+          Full width, below the grid rather than inside it: Cal's month view
+          needs the room to put the calendar and the time slots side by side, and
+          a tall embed in one grid column would leave the card beside it floating
+          in the middle of its own height. Heights are explicit for the same
+          reason they are on demo.ejs — a percentage height inside a parent that
+          only has min-height has nothing to resolve against.
+        -->
+        <div class="mt-16" id="enterprise-license">
+          <div class="overflow-hidden rounded-2xl bg-white">
+            <div class="h-[500px] w-full overflow-auto sm:h-[600px] lg:h-[680px]"
+              id="my-cal-inline-self-hosted"></div>
           </div>
         </div>
       </div>
