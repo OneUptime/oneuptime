@@ -1,6 +1,12 @@
 import { describe, expect, test } from "@jest/globals";
-import fs from "fs";
-import path from "path";
+import {
+  APP_DIR,
+  REPO_ROOT,
+  arrayEntries,
+  isReserved,
+  readSource,
+  stripComments,
+} from "./RouteReservationSource";
 
 /*
  * Regression test for #2986: GET https://<host>/heartbeat/<secretkey> came
@@ -24,25 +30,16 @@ import path from "path";
  * un-mounting the root prefix, dropping the reservation, or deleting the GET
  * registration fails here rather than in a self-hosted install's monitor.
  *
- * The prefix arrays are module-private, so this reads the source the same way
- * VendorAssetRouteReservation.test.ts does. Reading source means the parsing
- * has to be exact: this file's house style is to precede a reserved prefix
- * with a comment that quotes OTHER paths, so a regex that scrapes every
- * quoted string out of the array literal also picks up comment prose. That
- * is not a cosmetic flaw - it lets an edit that deletes the reservation and
- * leaves a comment mentioning it keep the whole suite green, which is the
- * one edit this file exists to catch. Hence the line-shaped parser below:
- * it accepts only lines that are entirely one quoted entry. An entry written
- * some other way is missed and the reservation assertions FAIL, which is the
- * safe direction to be wrong in.
+ * The prefix arrays are module-private, so this reads the source, using the
+ * shared parser in ./RouteReservationSource. That parser strips comments
+ * before reading entries and resolves the `...IngestRoutePrefixesToSkip`
+ * spread the lists share; the reasoning for both is documented there, and
+ * the test below guards that this file still benefits from it.
+ *
+ * This file pins the specific #2986 path. The general rule - every GET route
+ * mounted at the root by a later feature set must be reserved - is derived
+ * from the mounts themselves in RootMountedRouteReservation.test.ts.
  */
-
-const APP_DIR: string = path.join(__dirname, "..", "..");
-const REPO_ROOT: string = path.join(APP_DIR, "..");
-
-function readSource(...segments: Array<string>): string {
-  return fs.readFileSync(path.join(...segments), "utf8");
-}
 
 const FRONTEND_INDEX: string = readSource(
   APP_DIR,
@@ -75,50 +72,6 @@ const TELEMETRY_INDEX: string = readSource(
 
 const APP_INDEX: string = readSource(APP_DIR, "Index.ts");
 
-/*
- * Entries only - never comment prose. A line has to BE one quoted string to
- * count, so `* mounted on both "/telemetry" and "/"` contributes nothing.
- */
-function arrayEntries(source: string, name: string): Array<string> {
-  const declaration: RegExpMatchArray | null = source.match(
-    new RegExp(`const ${name}: Array<string> = \\[([\\s\\S]*?)\\n\\];`),
-  );
-
-  if (!declaration || !declaration[1]) {
-    return [];
-  }
-
-  return declaration[1]
-    .split("\n")
-    .map((line: string): string => {
-      return line.trim();
-    })
-    .map((line: string): string | null => {
-      return line.match(/^"([^"]+)",?$/)?.[1] ?? null;
-    })
-    .filter((entry: string | null): entry is string => {
-      return entry !== null;
-    });
-}
-
-/*
- * A registration inside a block comment, or commented out at the start of a
- * line, is not a registration. Only whole-line "//" is stripped so that a
- * "https://" inside a real string literal survives.
- */
-function stripComments(source: string): string {
-  return source
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/^[ \t]*\/\/.*$/gm, "");
-}
-
-/* Mirrors shouldSkipDashboardFallbackRoute in FeatureSet/Frontend/Index.ts. */
-function isReserved(prefixes: Array<string>, requestPath: string): boolean {
-  return prefixes.some((prefix: string) => {
-    return requestPath === prefix || requestPath.startsWith(`${prefix}/`);
-  });
-}
-
 describe("the nginx heartbeat rewrite target is reserved against the dashboard SPA fallback", () => {
   const rewriteTarget: string | undefined = NGINX_TEMPLATE.match(
     /rewrite\s+\^\/heartbeat\(\.\*\)\$\s+(\/\S+)\$1\s+break;/,
@@ -149,18 +102,26 @@ describe("the nginx heartbeat rewrite target is reserved against the dashboard S
 
   test("the parser reads entries only, never quoted paths in comments", () => {
     /*
-     * The guard on this file's own method. The array's comments quote real
-     * paths ("/telemetry", "/"), so a scrape-every-string parser reports
-     * more prefixes than the array has entries and would keep the suite
-     * green through the exact deletion below. Entry count must match the
-     * number of entry-shaped lines, and prose must contribute nothing.
+     * The guard on this file's own method. The reserved prefixes carry
+     * comments that quote OTHER real paths - "/telemetry" and "/" in the
+     * session-replay note, for instance - so a scrape-every-string parser
+     * reports more prefixes than there are entries, and "/" alone would make
+     * isReserved answer true for every path on earth. That parser would keep
+     * this suite green through the exact deletion it exists to catch.
+     *
+     * Stripping comments first must therefore change nothing.
      */
-    const body: string =
-      FRONTEND_INDEX.match(
-        /const DashboardFallbackRoutePrefixesToSkip: Array<string> = \[([\s\S]*?)\n\];/,
-      )?.[1] ?? "";
+    const source: string = FRONTEND_INDEX.slice(
+      FRONTEND_INDEX.indexOf("const IngestRoutePrefixesToSkip"),
+    );
+    const body: string = source.slice(0, source.indexOf("];"));
 
-    expect(body).toContain("*");
+    /*
+     * There is prose quoting a bare "/" in there, and it must not become an
+     * entry: a "/" prefix would make isReserved answer true for every path.
+     */
+    expect(body).toMatch(/\/\*[\s\S]*"\/"[\s\S]*?\*\//);
+    expect(prefixes).not.toContain("/");
     expect(prefixes).toEqual(
       arrayEntries(
         stripComments(FRONTEND_INDEX),
