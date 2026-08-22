@@ -21,6 +21,14 @@ const IGNORED_DIRS = new Set([
   "coverage",
   ".next",
   ".cache",
+  /*
+   * Agent worktrees are full checkouts of this repo nested under the
+   * root. Without this, every version bump silently rewrites the
+   * package.json files of every in-flight worktree — dirtying dozens of
+   * unrelated branches with a version their own VERSION file does not
+   * carry (found the hard way during the 12.0.17 bump).
+   */
+  ".claude",
 ]);
 
 function readTargetVersion() {
