@@ -8,8 +8,6 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import LlmCostBudget from "Common/Models/DatabaseModels/LlmCostBudget";
 import Service from "Common/Models/DatabaseModels/Service";
-import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
-import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -44,14 +42,13 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
       cardProps={{
         title: "LLM Cost Budgets",
         description:
-          "Daily USD budgets for LLM spend. A worker sums each UTC day's LLM span cost and raises alerts at the warning threshold and at 100%.",
+          "Daily USD budgets for LLM spend. Every 15 minutes a worker sums the UTC day's LLM span cost and publishes the oneuptime.llm.budget.spend.usd and oneuptime.llm.budget.percent.used metrics. Alert with a Metrics monitor (e.g. percent used >= 80) filtered by the oneuptime.llm.budget.id attribute, with a 30-minute rolling window.",
       }}
       noItemsMessage={"No LLM cost budgets found."}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
         { title: "Budget", id: "budget" },
         { title: "Scope", id: "scope" },
-        { title: "Alerting", id: "alerting" },
       ]}
       formFields={[
         {
@@ -87,17 +84,8 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
           fieldType: FormFieldSchemaType.Number,
           required: true,
           placeholder: "100",
-          description: "Daily budget in USD, evaluated over the UTC day.",
-        },
-        {
-          field: { warningThresholdPercent: true },
-          title: "Warning Threshold (%)",
-          stepId: "budget",
-          fieldType: FormFieldSchemaType.Number,
-          required: false,
-          placeholder: "80",
           description:
-            "Raise a warning alert at this percent of the budget (1-99). A breach alert always fires at 100%.",
+            "Daily budget in USD, evaluated over the UTC day. Spend and percent-used are published as metrics every 15 minutes — alert on them with a Metrics monitor.",
         },
         {
           field: { service: true },
@@ -133,34 +121,6 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
           description:
             "Only count spend from this model (matches the span's requested model exactly). Leave empty to count every model.",
         },
-        {
-          field: { alertSeverity: true },
-          title: "Alert Severity (optional)",
-          stepId: "alerting",
-          description:
-            "Severity of the alerts created when this budget crosses a threshold.",
-          fieldType: FormFieldSchemaType.Dropdown,
-          required: false,
-          dropdownModal: {
-            type: AlertSeverity,
-            labelField: "name",
-            valueField: "_id",
-          },
-        },
-        {
-          field: { onCallDutyPolicies: true },
-          title: "On-Call Duty Policies (optional)",
-          stepId: "alerting",
-          description:
-            "On-call duty policies to execute when this budget raises an alert.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          required: false,
-          dropdownModal: {
-            type: OnCallDutyPolicy,
-            labelField: "name",
-            valueField: "_id",
-          },
-        },
       ]}
       filters={[
         {
@@ -175,7 +135,6 @@ const LlmBudgetsPage: FunctionComponent<PageComponentProps> = (
         },
       ]}
       selectMoreFields={{
-        warningThresholdPercent: true,
         llmSystem: true,
         llmModel: true,
         currentDaySpendInUSD: true,
