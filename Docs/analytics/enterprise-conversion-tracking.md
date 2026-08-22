@@ -298,6 +298,48 @@ does not contain or print a real secret.
 The example email uses the reserved `.invalid` domain and must not be replaced
 with a real person's data.
 
+### Verify attribution actually survives the round trip
+
+**Do this before trusting any demo attribution, and again after any Cal
+version upgrade.** Everything downstream — the campaign on a booked demo, the
+chain that joins it to the signup it produced, the conversion uploaded to an ad
+platform — rests on one assumption: that the metadata the embed hands Cal comes
+back on the webhook. If Cal drops it, nothing errors. Bookings keep being
+recorded, the ledger keeps filling, and every row silently carries no campaign —
+which is exactly the failure this endpoint already had for its whole life, and
+the reason it went unnoticed.
+
+The steps below are cheap and they are the only thing that closes the loop.
+
+1. On staging, load `/enterprise/demo` with attribution in the URL and accept
+   the cookie banner (attribution is not stored until you do):
+
+   ```text
+   https://<staging-host>/enterprise/demo?utm_source=verify&utm_campaign=metadata-round-trip&gclid=verify-click
+   ```
+
+2. In the browser console, confirm the embed is being handed something:
+
+   ```js
+   window.oneUptimeCalAttributionMetadata();
+   ```
+
+   It must return `utm_source`, `utm_campaign`, `gclid` and `ou_first_touch`.
+   An empty object means the capture or the consent gate is the problem, and
+   there is no point looking at Cal yet.
+
+3. Book a test slot through the embed.
+
+4. In the database, read the `MeetingBooked` row and check that `utmSource`,
+   `utmCampaign`, `clickIds` and `firstTouchAttribution` are all populated.
+
+If the row is there but those columns are empty, the metadata did not survive
+Cal. Check the raw `BOOKING_CREATED` body in Cal's webhook delivery log to see
+which of `payload.metadata`, `payload.booking.metadata` or `payload.responses`
+the keys landed in, if any. If Cal is filtering unknown metadata keys on that
+event type, the fallback is to add hidden booking questions named for each key —
+answers arrive in `payload.responses`, which the parser already reads.
+
 ## The enterprise licence request
 
 ```text
