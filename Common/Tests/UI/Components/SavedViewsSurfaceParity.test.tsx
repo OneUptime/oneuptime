@@ -611,3 +611,69 @@ describe.each(SHRINKABLE_SURFACES)(
     });
   },
 );
+
+/*
+ * Two mechanisms guard the stale-search bug together, and the shrink cases
+ * above are satisfied by only one of them: RTL wraps rerender in act(), which
+ * flushes the clearing effect before the first assertion. These pin the other
+ * half — that the query does not come back when the list grows again — and
+ * they pin it here, in the parity file, because the effect exists in three
+ * separate copies and deleting it from either dropdown leaves every other test
+ * in the suite green.
+ */
+describe.each(SHRINKABLE_SURFACES)(
+  "$label — a list that shrinks and then grows back",
+  (surface: ShrinkableSurface) => {
+    afterEach(() => {
+      cleanup();
+    });
+
+    test("a query the shrinking list threw away does not return with the list", () => {
+      const update: UpdateSurface = surface.mount(makeViews(6));
+
+      fireEvent.change(screen.getByPlaceholderText(SEARCH_LABEL), {
+        target: { value: "zzz" },
+      });
+      expect(screen.getByText("No matches found")).toBeInTheDocument();
+
+      // Below the threshold the box unmounts; the query must go with it.
+      update(makeViews(3));
+      expect(screen.queryByPlaceholderText(SEARCH_LABEL)).toBeNull();
+
+      // ...and a view created afterwards brings the box back empty.
+      update(makeViews(6));
+
+      expect(screen.getByPlaceholderText(SEARCH_LABEL)).toHaveValue("");
+      expect(screen.queryByText("No matches found")).toBeNull();
+      expect(visibleViewNames()).toEqual([
+        "View 1",
+        "View 2",
+        "View 3",
+        "View 4",
+        "View 5",
+      ]);
+      expect(
+        screen.getByRole("button", { name: "+1 more" }),
+      ).toBeInTheDocument();
+    });
+
+    test("an expanded list that is also pinning a view keeps its way back", () => {
+      const update: UpdateSurface = surface.mount(makeViews(12));
+
+      fireEvent.click(screen.getByRole("button", { name: "+7 more" }));
+      expect(visibleViewNames()).toHaveLength(12);
+
+      /*
+       * Nothing anywhere else asserts the toggle while the list is expanded
+       * AND a view is pinned — the branch where hiddenCount is 0 but the
+       * control must still be on screen.
+       */
+      update(makeViews(7));
+
+      expect(visibleViewNames()).toHaveLength(7);
+      expect(
+        screen.getByRole("button", { name: "Show less" }),
+      ).toBeInTheDocument();
+    });
+  },
+);

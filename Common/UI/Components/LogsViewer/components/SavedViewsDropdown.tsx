@@ -104,29 +104,49 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
     });
   }, [props.savedViews, props.selectedSavedViewId, activeSearchText, showAll]);
 
+  /*
+   * Escape closes the panel, from anywhere. Deliberately a document listener
+   * rather than a handler on the wrapper: clicking the panel's own padding
+   * leaves focus on <body> (as does opening it by mouse at all, on Safari and
+   * Firefox), and a wrapper handler never sees a keydown whose target is
+   * outside its subtree. The page has its own Escape handling — the logs
+   * explorer closes the log detail panel with it — so a missed Escape here is
+   * not a no-op, it closes the wrong thing.
+   *
+   * Registered only while open, and in the capture phase ahead of those page
+   * handlers, so a closed dropdown never eats the page's Escape.
+   */
+  useEffect(() => {
+    if (!isComponentVisible) {
+      return undefined;
+    }
+
+    const handleEscape: (event: KeyboardEvent) => void = (
+      event: KeyboardEvent,
+    ): void => {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      event.stopPropagation();
+      setIsComponentVisible(false);
+      triggerRef.current?.focus();
+    };
+
+    document.addEventListener("keydown", handleEscape, true);
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape, true);
+    };
+  }, [isComponentVisible, setIsComponentVisible]);
+
   const clearSelection: () => void = (): void => {
     props.onClear?.();
     setIsComponentVisible(false);
   };
 
   return (
-    <div
-      className="relative"
-      ref={ref}
-      onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
-        if (event.key !== "Escape" || !isComponentVisible) {
-          return;
-        }
-
-        /*
-         * Kept off the page's own Escape handling: the explorer treats Escape
-         * as "close what is on top", and this panel is what is on top.
-         */
-        event.stopPropagation();
-        setIsComponentVisible(false);
-        triggerRef.current?.focus();
-      }}
-    >
+    <div className="relative" ref={ref}>
       <button
         ref={triggerRef}
         type="button"

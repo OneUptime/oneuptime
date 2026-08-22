@@ -627,3 +627,73 @@ describe("filterSavedViewsByName — names with punctuation", () => {
     ]);
   });
 });
+
+/*
+ * showAll and a pinned applied view are each covered above, but never together
+ * — and together is the branch the hasMore rewrite created. Replacing its
+ * `hasMore` with the obvious-looking `matchedViews.length > visibleCount`
+ * leaves every other case in this file green while reintroducing the dead
+ * "Show less" on any expanded list whose applied view sat past the cut.
+ */
+describe("getVisibleSavedViews — an expanded list that is pinning a view", () => {
+  test("no tail to collapse to, once the pin completes the list", () => {
+    const visible: VisibleSavedViews<SavedViewListItem> = getVisibleSavedViews({
+      savedViews: makeViews(6),
+      searchText: "",
+      showAll: true,
+      selectedSavedViewId: "view-6",
+    });
+
+    /*
+     * Collapsed, this list shows all six anyway — five under the cut plus the
+     * pinned sixth. So expanded, there is nothing the toggle could collapse
+     * to, and offering one would be offering a control that does nothing.
+     */
+    expect(visible.views).toHaveLength(6);
+    expect(visible.hasMore).toBe(false);
+  });
+
+  test("a tail survives the pin when there is more than one row past the cut", () => {
+    const visible: VisibleSavedViews<SavedViewListItem> = getVisibleSavedViews({
+      savedViews: makeViews(7),
+      searchText: "",
+      showAll: true,
+      selectedSavedViewId: "view-7",
+    });
+
+    /*
+     * Collapsed this would show six of seven, so one row is genuinely hidden
+     * and the way back has to stay on offer — otherwise a user who expanded
+     * has no way to collapse again.
+     */
+    expect(visible.views).toHaveLength(7);
+    expect(visible.hasMore).toBe(true);
+  });
+
+  test("an expanded list reports no tail exactly when a collapsed one holds nothing back", () => {
+    for (let count: number = 0; count <= 14; count++) {
+      const collapsed: VisibleSavedViews<SavedViewListItem> =
+        getVisibleSavedViews({
+          savedViews: makeViews(count),
+          searchText: "",
+          showAll: false,
+        });
+
+      const expanded: VisibleSavedViews<SavedViewListItem> =
+        getVisibleSavedViews({
+          savedViews: makeViews(count),
+          searchText: "",
+          showAll: true,
+        });
+
+      /*
+       * The one place hiddenCount and hasMore are meant to disagree: expanded,
+       * nothing is being held back right now, yet the toggle still has work to
+       * do. Tying the two together is what produced the dead control.
+       */
+      expect(expanded.hiddenCount).toBe(0);
+      expect(expanded.hasMore).toBe(collapsed.hasMore);
+      expect(expanded.views).toHaveLength(count);
+    }
+  });
+});

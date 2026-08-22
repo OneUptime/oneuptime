@@ -897,3 +897,62 @@ describe("SavedViewsFacetSection — the list shrinking under a live search", ()
     expect(screen.getByRole("button", { name: "+2 more" })).toBeInTheDocument();
   });
 });
+
+/*
+ * The stale-search fix has two halves. The clearing effect is a passive one, so
+ * every shrink case above is satisfied by it alone — React Testing Library
+ * wraps rerender in act(), which flushes effects before the first assertion can
+ * look. The other half, the derived activeSearchText, is what keeps the frame
+ * React actually commits honest in the gap between the two, and the shipped
+ * path is a fetch callback where the browser can paint in that gap.
+ *
+ * Deleting the derived value leaves every other test in the suite green, so
+ * this one watches the DOM itself rather than its final state.
+ */
+describe("SavedViewsFacetSection — the frame committed mid-shrink", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  test("the list never flashes No matches found on its way to being right", () => {
+    const live: LiveSection = renderLiveSection(makeViews(6));
+
+    typeSearch("View 6");
+    expect(visibleViewNames()).toEqual(["View 6"]);
+
+    const seen: Array<string> = [];
+    const observer: MutationObserver = new MutationObserver(() => {
+      // Records are drained synchronously below; this never has to fire.
+    });
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+    });
+
+    live.update(makeViews(5));
+
+    for (const record of observer.takeRecords()) {
+      record.addedNodes.forEach((node: Node) => {
+        seen.push(node.textContent || "");
+      });
+
+      if (record.type === "characterData") {
+        seen.push(record.target.textContent || "");
+      }
+    }
+
+    observer.disconnect();
+
+    /*
+     * Not one of the frames between "six views, filtered to one" and "five
+     * views, unfiltered" is allowed to claim the project has no saved views.
+     */
+    expect(
+      seen.filter((text: string) => {
+        return text.includes(NO_MATCHES);
+      }),
+    ).toEqual([]);
+    expect(visibleViewNames()).toHaveLength(5);
+  });
+});

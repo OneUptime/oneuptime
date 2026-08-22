@@ -926,8 +926,14 @@ describe.each(DROPDOWNS)(
        * common ancestor of press and release — outside. Dismissing on that
        * threw away the query the user was in the middle of editing.
        */
+      /*
+       * detail:1 because a real pointer click always carries one and jsdom
+       * defaults it to 0 — and 0 is precisely how the hook tells a keyboard
+       * activation from a press, so leaving the default would test the wrong
+       * gesture entirely.
+       */
       fireEvent.mouseDown(searchBox());
-      fireEvent.click(document.body);
+      fireEvent.click(document.body, { detail: 1 });
 
       expect(isMenuOpen()).toBe(true);
       expect(searchBox()).toHaveValue("View 2");
@@ -940,7 +946,7 @@ describe.each(DROPDOWNS)(
 
       // The narrowing above must not have cost the ordinary dismissal.
       fireEvent.mouseDown(document.body);
-      fireEvent.click(document.body);
+      fireEvent.click(document.body, { detail: 1 });
 
       expect(isMenuOpen()).toBe(false);
     });
@@ -1021,6 +1027,101 @@ describe.each(DROPDOWNS)(
       expect(visibleViewNames()).toHaveLength(4);
       expect(screen.queryByRole("button", { name: "Show less" })).toBeNull();
       expect(screen.queryByRole("button", { name: /more$/ })).toBeNull();
+    });
+  },
+);
+
+/*
+ * Escape is a contract this change introduced — the panel calls itself a
+ * dialog now — and the first attempt at it only worked when focus happened to
+ * be inside the wrapper. Clicking the panel's own padding puts focus on
+ * <body>, as does opening the panel by mouse at all on Safari and Firefox, and
+ * from there the keydown never reached the handler. That is not a quiet no-op:
+ * the logs explorer has its own document-level Escape, so the miss closed the
+ * log detail panel behind the dropdown instead.
+ */
+describe.each(DROPDOWNS)(
+  "$label SavedViewsDropdown — Escape, from wherever focus happens to be",
+  ({ Component }: DropdownUnderTest) => {
+    let pageEscapes: number = 0;
+    let pageListener: ((event: KeyboardEvent) => void) | null = null;
+
+    function watchPageEscape(): void {
+      pageEscapes = 0;
+      pageListener = (event: KeyboardEvent): void => {
+        if (event.key === "Escape") {
+          pageEscapes++;
+        }
+      };
+      // Bubble phase, like the hosts' own handlers.
+      document.addEventListener("keydown", pageListener);
+    }
+
+    afterEach(() => {
+      if (pageListener) {
+        document.removeEventListener("keydown", pageListener);
+        pageListener = null;
+      }
+      cleanup();
+    });
+
+    test("Escape closes the panel from anywhere on the page", () => {
+      renderDropdown(Component, makeViews(6));
+      watchPageEscape();
+
+      openMenu();
+      fireEvent.keyDown(document.body, { key: "Escape" });
+
+      expect(isMenuOpen()).toBe(false);
+      expect(trigger()).toHaveFocus();
+    });
+
+    test("the page's own Escape handling does not also fire", () => {
+      renderDropdown(Component, makeViews(6));
+      watchPageEscape();
+
+      openMenu();
+      fireEvent.keyDown(document.body, { key: "Escape" });
+
+      /*
+       * The explorer treats Escape as "close what is on top", and this panel
+       * is what is on top. Letting it through closes the detail panel behind
+       * the dropdown and leaves the dropdown up.
+       */
+      expect(pageEscapes).toBe(0);
+    });
+
+    test("a closed panel does not eat the page's Escape", () => {
+      renderDropdown(Component, makeViews(6));
+      watchPageEscape();
+
+      fireEvent.keyDown(document.body, { key: "Escape" });
+
+      expect(pageEscapes).toBe(1);
+      expect(isMenuOpen()).toBe(false);
+    });
+
+    test("a panel too short for a search box still closes on Escape", () => {
+      renderDropdown(Component, makeViews(3));
+      watchPageEscape();
+
+      openMenu();
+      expect(screen.queryByPlaceholderText(SEARCH_LABEL)).toBeNull();
+
+      fireEvent.keyDown(document.body, { key: "Escape" });
+
+      expect(isMenuOpen()).toBe(false);
+      expect(pageEscapes).toBe(0);
+    });
+
+    test("a key that is not Escape passes through untouched", () => {
+      renderDropdown(Component, makeViews(6));
+      watchPageEscape();
+
+      openMenu();
+      fireEvent.keyDown(document.body, { key: "a" });
+
+      expect(isMenuOpen()).toBe(true);
     });
   },
 );
