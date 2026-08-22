@@ -9,18 +9,19 @@ import logger from "Common/Server/Utils/Logger";
 
 /**
  * LLM cost budget watch loop: sums the UTC day's LLM span spend for every
- * enabled budget and raises warning (default 80%) and breach (100%) alerts.
+ * enabled budget, stamps it on the budget row, and publishes the
+ * oneuptime.llm.budget.* gauge metrics that Metrics monitors alert on.
  */
 const SWEEP_TIMEOUT_MINUTES: number = 10;
 
 /*
  * The job timeout does NOT prevent overlap — runJobWithTimeout is a
  * Promise.race with no cancellation, so a sweep body that outlives its
- * timeout keeps running while the queue schedules the next tick. The
- * budget alert dedup is read-then-write (stamps snapshotted at sweep start),
- * so two interleaved sweeps could double-page on-call. Serialize sweeps with
- * a Redis lock, same as Slo:EvaluateSlos. The lock timeout stays under the
- * 15-minute tick so a crashed holder self-heals within one tick.
+ * timeout keeps running while the queue schedules the next tick. Two
+ * interleaved sweeps would publish duplicate metric points into the budget
+ * series monitors evaluate. Serialize sweeps with a Redis lock, same as
+ * Slo:EvaluateSlos. The lock timeout stays under the 15-minute tick so a
+ * crashed holder self-heals within one tick.
  */
 const SWEEP_LOCK_KEY: string = "Llm:EvaluateLlmCostBudgets";
 const SWEEP_LOCK_NAMESPACE: string = "Workers.Cron";

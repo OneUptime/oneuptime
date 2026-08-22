@@ -1,27 +1,25 @@
-import Alert from "../../../Models/DatabaseModels/Alert";
-import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import LlmCostBudget from "../../../Models/DatabaseModels/LlmCostBudget";
-import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
+import MetricType from "../../../Models/DatabaseModels/MetricType";
 import Span from "../../../Models/AnalyticsModels/Span";
+import { MetricPointType } from "../../../Models/AnalyticsModels/Metric";
 import AggregatedModel from "../../../Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Query from "../../../Types/BaseDatabase/Query";
-import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import OneUptimeDate from "../../../Types/Date";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import { DisableAutomaticAlertCreation } from "../../EnvironmentConfig";
+import ServiceType from "../../../Types/Telemetry/ServiceType";
 import AggregateBy from "../../Types/AnalyticsDatabase/AggregateBy";
-import AlertService from "../../Services/AlertService";
-import AlertSeverityService from "../../Services/AlertSeverityService";
-import LlmCostBudgetService, {
-  LlmCostBudgetAlertKind,
-} from "../../Services/LlmCostBudgetService";
+import LlmCostBudgetService from "../../Services/LlmCostBudgetService";
+import MetricService from "../../Services/MetricService";
 import SpanService from "../../Services/SpanService";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import TelemetryUtil from "./Telemetry";
 
 /*
  * Evaluates LLM cost budgets against the day's LLM span spend.
@@ -30,92 +28,65 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * calls evaluateAllBudgets() on a 15-minute tick. For each enabled budget it
  * sums the UTC day's llmCost from ClickHouse (scoped by the budget's optional
  * service / provider / model filters), stamps the spend back onto the budget
- * row for the dashboard, and raises a warning alert at the configured
- * threshold and a breach alert at 100% — each at most once per UTC day, via
- * the lastWarningAlertCreatedAt / lastBreachAlertCreatedAt state columns plus
- * an open-alert fingerprint check.
+ * row for the dashboard, and publishes two gauge metrics:
  *
- * The threshold decision itself is a pure function (decide) so the alerting
- * semantics are unit-testable without a database.
+ *   oneuptime.llm.budget.spend.usd      — the day's spend so far, in USD
+ *   oneuptime.llm.budget.percent.used   — spend as a percent of the budget
+ *
+ * Budgets do NOT alert directly. Alerting is a Metrics monitor on these
+ * series — filter by the oneuptime.llm.budget.id attribute (stable across
+ * renames; the name attribute is for charts and changes when the budget is
+ * renamed) — which brings thresholds, formulas, anomaly baselines, incidents
+ * and on-call routing without a parallel alerting pipeline here.
+ *
+ * The series gets ONE point per budget per 15-minute sweep. A monitor on it
+ * must use a rolling window of at least 15 minutes (30 recommended): the
+ * 1-minute default would see an empty series between sweeps and flap.
  */
 
-export interface LlmCostBudgetDecisionInput {
-  // The day's spend so far, in USD.
-  spendInUSD: number;
-  dailyBudgetInUSD: number;
-  // Warning threshold in percent (1-99). Invalid values fall back to 80.
-  warningThresholdPercent: number | undefined;
-  lastWarningAlertCreatedAt: Date | undefined;
-  lastBreachAlertCreatedAt: Date | undefined;
-  now: Date;
-}
+export const LLM_BUDGET_SPEND_METRIC_NAME: string =
+  "oneuptime.llm.budget.spend.usd";
+export const LLM_BUDGET_PERCENT_METRIC_NAME: string =
+  "oneuptime.llm.budget.percent.used";
 
-export interface LlmCostBudgetDecision {
-  // Percent of the daily budget consumed (0 when the budget is invalid).
-  percentUsed: number;
-  shouldFireWarning: boolean;
-  shouldFireBreach: boolean;
-}
+// Attribute keys carried by both budget metrics, for monitor/chart filtering.
+export const LLM_BUDGET_ID_ATTRIBUTE: string = "oneuptime.llm.budget.id";
+export const LLM_BUDGET_NAME_ATTRIBUTE: string = "oneuptime.llm.budget.name";
+export const LLM_BUDGET_PROVIDER_ATTRIBUTE: string =
+  "oneuptime.llm.budget.provider";
+export const LLM_BUDGET_MODEL_ATTRIBUTE: string = "oneuptime.llm.budget.model";
+export const LLM_BUDGET_SERVICE_ID_ATTRIBUTE: string =
+  "oneuptime.llm.budget.service.id";
 
-export const DEFAULT_WARNING_THRESHOLD_PERCENT: number = 80;
+/*
+ * Matches the derived-metric retention the trace/metric recording rules use.
+ * The series exists for monitors and short-range charts; long-range spend
+ * history belongs to the spans themselves.
+ */
+const BUDGET_METRIC_RETENTION_IN_DAYS: number = 15;
 
 export default class LlmCostBudgetEvaluator {
   /**
-   * Pure threshold decision. Breach (>= 100%) supersedes warning — a call
-   * that jumps straight past the budget raises one breach alert, not two
-   * alerts. Each kind fires at most once per UTC day, keyed off the
-   * last-created timestamps the caller persists after firing.
+   * Percent of the daily budget consumed. 0 when the budget is missing or
+   * invalid — never NaN/Infinity, since these values feed monitors.
    */
-  public static decide(
-    input: LlmCostBudgetDecisionInput,
-  ): LlmCostBudgetDecision {
-    const decision: LlmCostBudgetDecision = {
-      percentUsed: 0,
-      shouldFireWarning: false,
-      shouldFireBreach: false,
-    };
-
+  public static computePercentUsed(data: {
+    spendInUSD: number;
+    dailyBudgetInUSD: number;
+  }): number {
     if (
-      !isFinite(input.dailyBudgetInUSD) ||
-      input.dailyBudgetInUSD <= 0 ||
-      !isFinite(input.spendInUSD) ||
-      input.spendInUSD < 0
+      !isFinite(data.dailyBudgetInUSD) ||
+      data.dailyBudgetInUSD <= 0 ||
+      !isFinite(data.spendInUSD) ||
+      data.spendInUSD < 0
     ) {
-      return decision;
+      return 0;
     }
 
-    decision.percentUsed = (input.spendInUSD / input.dailyBudgetInUSD) * 100;
+    const percent: number = (data.spendInUSD / data.dailyBudgetInUSD) * 100;
 
-    let warningThresholdPercent: number =
-      input.warningThresholdPercent ?? DEFAULT_WARNING_THRESHOLD_PERCENT;
-
-    if (
-      !isFinite(warningThresholdPercent) ||
-      warningThresholdPercent < 1 ||
-      warningThresholdPercent > 99
-    ) {
-      warningThresholdPercent = DEFAULT_WARNING_THRESHOLD_PERCENT;
-    }
-
-    const alreadyWarnedToday: boolean = this.isSameUtcDay(
-      input.lastWarningAlertCreatedAt,
-      input.now,
-    );
-    const alreadyBreachedToday: boolean = this.isSameUtcDay(
-      input.lastBreachAlertCreatedAt,
-      input.now,
-    );
-
-    if (decision.percentUsed >= 100) {
-      decision.shouldFireBreach = !alreadyBreachedToday;
-      return decision;
-    }
-
-    if (decision.percentUsed >= warningThresholdPercent) {
-      decision.shouldFireWarning = !alreadyWarnedToday;
-    }
-
-    return decision;
+    // Trim float noise; hundredth-of-a-percent resolution is plenty.
+    return Math.round(percent * 100) / 100;
   }
 
   /**
@@ -125,22 +96,6 @@ export default class LlmCostBudgetEvaluator {
   public static getUtcDayStart(now: Date): Date {
     return new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-    );
-  }
-
-  /**
-   * Whether two instants fall in the same UTC calendar day. False when the
-   * first is undefined.
-   */
-  public static isSameUtcDay(a: Date | undefined, b: Date): boolean {
-    if (!a) {
-      return false;
-    }
-
-    return (
-      a.getUTCFullYear() === b.getUTCFullYear() &&
-      a.getUTCMonth() === b.getUTCMonth() &&
-      a.getUTCDate() === b.getUTCDate()
     );
   }
 
@@ -182,6 +137,66 @@ export default class LlmCostBudgetEvaluator {
   }
 
   /**
+   * Build the two metric rows one evaluation publishes for one budget.
+   * Pure — mirrors the derived-metric row shape the trace recording rules
+   * write — so the series shape is unit-testable.
+   */
+  public static buildBudgetMetricRows(data: {
+    budget: LlmCostBudget;
+    spendInUSD: number;
+    percentUsed: number;
+    now: Date;
+  }): Array<JSONObject> {
+    const attributes: Record<string, string> = {
+      [LLM_BUDGET_ID_ATTRIBUTE]: data.budget.id?.toString() || "",
+      [LLM_BUDGET_NAME_ATTRIBUTE]: data.budget.name || "",
+    };
+
+    if (data.budget.serviceId) {
+      attributes[LLM_BUDGET_SERVICE_ID_ATTRIBUTE] =
+        data.budget.serviceId.toString();
+    }
+
+    if (data.budget.llmSystem) {
+      attributes[LLM_BUDGET_PROVIDER_ATTRIBUTE] = data.budget.llmSystem;
+    }
+
+    if (data.budget.llmModel) {
+      attributes[LLM_BUDGET_MODEL_ATTRIBUTE] = data.budget.llmModel;
+    }
+
+    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+      data.now,
+      BUDGET_METRIC_RETENTION_IN_DAYS,
+    );
+
+    const buildRow: (name: string, value: number) => JSONObject = (
+      name: string,
+      value: number,
+    ): JSONObject => {
+      return {
+        _id: ObjectID.generateTimeOrdered().toString(),
+        projectId: data.budget.projectId!.toString(),
+        createdAt: OneUptimeDate.toClickhouseDateTime(data.now),
+        time: OneUptimeDate.toClickhouseDateTime(data.now),
+        timeUnixNano: (data.now.getTime() * 1_000_000).toString(),
+        primaryEntityType: ServiceType.OpenTelemetry,
+        name: name,
+        metricPointType: MetricPointType.Gauge,
+        value: value,
+        attributes: attributes,
+        attributeKeys: Object.keys(attributes).sort(),
+        retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
+      };
+    };
+
+    return [
+      buildRow(LLM_BUDGET_SPEND_METRIC_NAME, data.spendInUSD),
+      buildRow(LLM_BUDGET_PERCENT_METRIC_NAME, data.percentUsed),
+    ];
+  }
+
+  /**
    * Evaluate every enabled budget. One bad budget never aborts the sweep.
    */
   @CaptureSpan()
@@ -195,16 +210,9 @@ export default class LlmCostBudgetEvaluator {
         projectId: true,
         name: true,
         dailyBudgetInUSD: true,
-        warningThresholdPercent: true,
         serviceId: true,
         llmSystem: true,
         llmModel: true,
-        alertSeverityId: true,
-        onCallDutyPolicies: {
-          _id: true,
-        },
-        lastWarningAlertCreatedAt: true,
-        lastBreachAlertCreatedAt: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -238,8 +246,8 @@ export default class LlmCostBudgetEvaluator {
   }
 
   /**
-   * Evaluate one budget: sum the day's spend, stamp it on the row, and fire
-   * whichever threshold alert the decision calls for.
+   * Evaluate one budget: sum the day's spend, stamp it on the row, and
+   * publish the spend / percent-used metric points.
    */
   @CaptureSpan()
   public static async evaluateBudget(data: {
@@ -260,16 +268,12 @@ export default class LlmCostBudgetEvaluator {
       now: data.now,
     });
 
-    const decision: LlmCostBudgetDecision = this.decide({
+    const percentUsed: number = this.computePercentUsed({
       spendInUSD: spendInUSD,
       dailyBudgetInUSD: budget.dailyBudgetInUSD,
-      warningThresholdPercent: budget.warningThresholdPercent,
-      lastWarningAlertCreatedAt: budget.lastWarningAlertCreatedAt,
-      lastBreachAlertCreatedAt: budget.lastBreachAlertCreatedAt,
-      now: data.now,
     });
 
-    // Stamp the spend for the dashboard even when nothing fires.
+    // Stamp the spend for the dashboard's Budgets tab.
     await LlmCostBudgetService.updateOneById({
       id: budget.id,
       data: {
@@ -281,49 +285,12 @@ export default class LlmCostBudgetEvaluator {
       },
     });
 
-    if (decision.shouldFireBreach) {
-      const created: boolean = await this.createBudgetAlert({
-        budget: budget,
-        kind: "breach",
-        spendInUSD: spendInUSD,
-        percentUsed: decision.percentUsed,
-      });
-
-      if (created) {
-        await LlmCostBudgetService.updateOneById({
-          id: budget.id,
-          data: {
-            lastBreachAlertCreatedAt: data.now,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-      }
-
-      return;
-    }
-
-    if (decision.shouldFireWarning) {
-      const created: boolean = await this.createBudgetAlert({
-        budget: budget,
-        kind: "warning",
-        spendInUSD: spendInUSD,
-        percentUsed: decision.percentUsed,
-      });
-
-      if (created) {
-        await LlmCostBudgetService.updateOneById({
-          id: budget.id,
-          data: {
-            lastWarningAlertCreatedAt: data.now,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-      }
-    }
+    await this.writeBudgetMetrics({
+      budget: budget,
+      spendInUSD: spendInUSD,
+      percentUsed: percentUsed,
+      now: data.now,
+    });
   }
 
   /**
@@ -345,9 +312,9 @@ export default class LlmCostBudgetEvaluator {
       // One total over the whole window — no time bucketing.
       aggregationInterval: AggregationInterval.Total,
       /*
-       * Alerting must fail loud on a query timeout: the default 'break'
-       * overflow mode returns silently-partial sums, which would understate
-       * spend and suppress a real budget breach.
+       * The sum feeds monitors: fail loud on a query timeout — the default
+       * 'break' overflow mode returns silently-partial sums, which would
+       * understate spend and suppress a real budget breach downstream.
        */
       timeoutOverflowMode: "throw",
       limit: LIMIT_PER_PROJECT,
@@ -368,137 +335,45 @@ export default class LlmCostBudgetEvaluator {
   }
 
   /**
-   * Create the warning/breach alert for a budget. Returns true when an alert
-   * was actually created (the caller stamps the per-day dedup timestamp only
-   * then).
+   * Publish the budget's spend and percent-used gauge points, and register
+   * the metric names so they appear in the dashboard's metric picker and the
+   * Metrics-monitor builder.
    */
   @CaptureSpan()
-  private static async createBudgetAlert(data: {
+  private static async writeBudgetMetrics(data: {
     budget: LlmCostBudget;
-    kind: LlmCostBudgetAlertKind;
     spendInUSD: number;
     percentUsed: number;
-  }): Promise<boolean> {
-    const budget: LlmCostBudget = data.budget;
+    now: Date;
+  }): Promise<void> {
+    const rows: Array<JSONObject> = this.buildBudgetMetricRows(data);
 
-    const fingerprint: string = LlmCostBudgetService.getBudgetAlertFingerprint({
-      llmCostBudgetId: budget.id!,
-      kind: data.kind,
+    await MetricService.insertJsonRows(rows);
+
+    const spendType: MetricType = new MetricType();
+    spendType.name = LLM_BUDGET_SPEND_METRIC_NAME;
+    spendType.description =
+      "LLM spend accrued so far in the current UTC day for an LLM cost budget, in USD. One point per budget every 15 minutes; filter by the oneuptime.llm.budget.id attribute.";
+    spendType.unit = "USD";
+
+    const percentType: MetricType = new MetricType();
+    percentType.name = LLM_BUDGET_PERCENT_METRIC_NAME;
+    percentType.description =
+      "LLM spend as a percent of an LLM cost budget's daily limit. One point per budget every 15 minutes — alert with a Metrics monitor (e.g. value >= 80) using a rolling window of 30 minutes, filtered by oneuptime.llm.budget.id.";
+    percentType.unit = "%";
+
+    /*
+     * Registration is what makes the names show up in the metric picker —
+     * fire-and-forget, a registration failure must not fail the sweep.
+     */
+    TelemetryUtil.indexMetricNameServiceNameMap({
+      metricNameServiceNameMap: {
+        [LLM_BUDGET_SPEND_METRIC_NAME]: spendType,
+        [LLM_BUDGET_PERCENT_METRIC_NAME]: percentType,
+      },
+      projectId: data.budget.projectId!,
+    }).catch((err: Error) => {
+      logger.error(err);
     });
-
-    // An open alert in the same series means on-call is already looking.
-    const openAlert: Alert | null = await AlertService.findOneBy({
-      query: {
-        projectId: budget.projectId!,
-        seriesFingerprint: fingerprint,
-        currentAlertState: {
-          isResolvedState: false,
-        },
-      },
-      select: {
-        _id: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (openAlert) {
-      logger.debug(
-        `Llm:EvaluateLlmCostBudgets: open ${data.kind} alert already exists for budget ${budget.id?.toString()}; skipping.`,
-      );
-      return false;
-    }
-
-    if (DisableAutomaticAlertCreation) {
-      logger.debug(
-        `Llm:EvaluateLlmCostBudgets: automatic alert creation is disabled; skipping ${data.kind} alert for budget ${budget.id?.toString()}.`,
-      );
-      return false;
-    }
-
-    let alertSeverityId: ObjectID | undefined = budget.alertSeverityId;
-
-    if (!alertSeverityId) {
-      const severity: AlertSeverity | null =
-        await AlertSeverityService.findOneBy({
-          query: {
-            projectId: budget.projectId!,
-          },
-          sort: {
-            order: SortOrder.Ascending,
-          },
-          select: {
-            _id: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-      alertSeverityId = severity?.id || undefined;
-    }
-
-    if (!alertSeverityId) {
-      logger.error(
-        `Llm:EvaluateLlmCostBudgets - Cannot create ${data.kind} alert for budget ${budget.id?.toString()}: project has no alert severity.`,
-        { projectId: budget.projectId?.toString() } as LogAttributes,
-      );
-      return false;
-    }
-
-    const spendFormatted: string = `$${data.spendInUSD.toFixed(2)}`;
-    const budgetFormatted: string = `$${(budget.dailyBudgetInUSD || 0).toFixed(2)}`;
-    const percentFormatted: string = `${Math.floor(data.percentUsed)}%`;
-
-    const scopeParts: Array<string> = [];
-
-    if (budget.llmSystem) {
-      scopeParts.push(`provider ${budget.llmSystem}`);
-    }
-
-    if (budget.llmModel) {
-      scopeParts.push(`model ${budget.llmModel}`);
-    }
-
-    const scopeSuffix: string =
-      scopeParts.length > 0 ? ` (${scopeParts.join(", ")})` : "";
-
-    const alert: Alert = new Alert();
-    alert.projectId = budget.projectId!;
-
-    if (data.kind === "breach") {
-      alert.title = `LLM cost budget exceeded: ${budget.name}`;
-      alert.description = `LLM spend${scopeSuffix} has reached ${spendFormatted} — ${percentFormatted} of the ${budgetFormatted} daily budget "${budget.name}". The daily budget is exhausted.`;
-      alert.rootCause = `LLM spend crossed 100% of the daily cost budget "${budget.name}".`;
-    } else {
-      alert.title = `LLM cost budget warning: ${budget.name}`;
-      alert.description = `LLM spend${scopeSuffix} has reached ${spendFormatted} — ${percentFormatted} of the ${budgetFormatted} daily budget "${budget.name}".`;
-      alert.rootCause = `LLM spend crossed the ${budget.warningThresholdPercent ?? DEFAULT_WARNING_THRESHOLD_PERCENT}% warning threshold of the daily cost budget "${budget.name}".`;
-    }
-
-    alert.alertSeverityId = alertSeverityId;
-    alert.seriesFingerprint = fingerprint;
-    alert.isCreatedAutomatically = true;
-
-    // On-call policy id-stubs, the MonitorAlert pattern.
-    alert.onCallDutyPolicies = (budget.onCallDutyPolicies || [])
-      .filter((policy: OnCallDutyPolicy) => {
-        return Boolean(policy.id);
-      })
-      .map((policy: OnCallDutyPolicy) => {
-        const policyStub: OnCallDutyPolicy = new OnCallDutyPolicy();
-        policyStub._id = policy.id!.toString();
-        return policyStub;
-      });
-
-    await AlertService.create({
-      data: alert,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    return true;
   }
 }
