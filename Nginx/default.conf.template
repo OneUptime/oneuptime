@@ -741,6 +741,36 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_pass ${BACKEND_APP_TARGET};
     }
 
+    # Security events (SIEM) ingestion, posted to by SOAR webhooks, log
+    # forwarders and scripts. Needs its own location for the same reason
+    # /otlp, /pyroscope and /kubernetes-cost do: with BILLING_ENABLED=true
+    # the catch-all `location /` proxies to the marketing Home service, so
+    # the root-path ingest URL the dashboard's setup guide hands out would
+    # 404 instead of reaching the app.
+    location /security-events {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Reuse pooled upstream connections for this high-volume ingest path.
+        proxy_http_version 1.1;
+        proxy_set_header Connection $connection_upgrade;
+
+        # Operator-controllable ingest logging, enabled by default. Parameters
+        # must match nginx.conf's access_log exactly; see /telemetry above.
+        access_log /var/log/nginx/access.log main buffer=64k flush=10s if=$ingest_access_log;
+
+        proxy_pass ${BACKEND_APP_TARGET};
+
+        # The same router is mounted on /telemetry/security-events/..., which
+        # inherits /telemetry's 4M cap. Kept identical so a batch that fits
+        # through one prefix never 413s on the other.
+        client_max_body_size 4M;
+    }
+
     # Session replay chunk ingestion, posted to directly by end-user browsers.
     # Needs its own location for the same reason /otlp, /pyroscope and
     # /kubernetes-cost do: with BILLING_ENABLED=true the catch-all

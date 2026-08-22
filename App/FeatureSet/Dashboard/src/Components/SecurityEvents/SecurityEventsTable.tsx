@@ -11,13 +11,18 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Select from "Common/Types/BaseDatabase/Select";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import IconProp from "Common/Types/Icon/IconProp";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ProjectUtil from "Common/UI/Utils/Project";
 import OneUptimeDate from "Common/Types/Date";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import SecurityEventSeverityPill from "./SecurityEventSeverityPill";
 import SecurityEventDetail from "./SecurityEventDetail";
+import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import Navigation from "Common/UI/Utils/Navigation";
+import Route from "Common/Types/API/Route";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
 
 const severityDropdownOptions: Array<DropdownOption> = Object.values(
   OcsfSeverity,
@@ -76,8 +81,32 @@ const SecurityEventsTable: FunctionComponent = (): ReactElement => {
         sortBy="time"
         sortOrder={SortOrder.Descending}
         selectMoreFields={extraSelect}
+        /*
+         * An empty table here means "nothing is sending yet" far more often
+         * than "nothing happened", and the answer to that is a page away.
+         * Sentence plus a way to act on it, rather than a sentence alone.
+         */
         noItemsMessage={
-          "No security events yet. Connect a security source (e.g. Google SecOps) and its events will appear here."
+          <EmptyState
+            id="security-events-empty-state"
+            icon={IconProp.ShieldCheck}
+            title="No security events yet"
+            description="Any source that can POST JSON — a SIEM, a SOAR webhook, a log forwarder — can feed this table. Events are normalized to OCSF whatever dialect they arrive in."
+            footer={
+              <Button
+                title="Read the setup guide"
+                icon={IconProp.Book}
+                buttonStyle={ButtonStyleType.OUTLINE}
+                onClick={() => {
+                  Navigation.navigate(
+                    RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.SECURITY_EVENTS_DOCUMENTATION] as Route,
+                    ),
+                  );
+                }}
+              />
+            }
+          />
         }
         showRefreshButton={true}
         showViewIdButton={false}

@@ -7,6 +7,21 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
+import Route from "Common/Types/API/Route";
+import Navigation from "Common/UI/Utils/Navigation";
+import { VoidFunction } from "Common/Types/FunctionTypes";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -16,7 +31,7 @@ const documentationMarkdown: string = `
 Detection rules run **Sigma rules** against your ingested security events on a schedule. [Sigma](https://sigmahq.io/) is an open, vendor-neutral YAML format for describing log detections.
 
 - Each rule is evaluated every *N* minutes over the events that arrived since the last evaluation.
-- When a rule matches, it can **create an alert** and/or **write a Detection Finding** security event back into the event stream.
+- When a rule matches, it can **create an alert**, **open an incident** (off by default — incidents drive on-call, SLAs and status pages), and/or **write a Detection Finding** security event back into the event stream.
 - **Group By Field** collapses matches that share a value (e.g. \`principalHost\`) into a single finding, so a noisy host raises one alert instead of hundreds.
 
 ---
@@ -41,6 +56,18 @@ Fields referenced in the rule match the normalized OCSF columns of security even
 const DetectionRulesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  /*
+   * The row action deep-links into the monitor create wizard, which
+   * ModelTable's own permission gating never sees — so gate it here the
+   * way MonitorTable gates its create button (issue #3306): a member who
+   * cannot create monitors gets a disabled button that says why, not a
+   * wizard that refuses at submit.
+   */
+  const monitorCreateGate: PermissionGateResult = PermissionGate.check(
+    new Monitor(),
+    ModelAction.Create,
+  );
+
   return (
     <ModelTable<DetectionRule>
       modelType={DetectionRule}
@@ -72,6 +99,14 @@ const DetectionRulesPage: FunctionComponent<
       createInitialValues={{
         isEnabled: true,
         evaluationIntervalInMinutes: 5,
+        /*
+         * Mirror the DB defaults (DetectionRule.ts): without these the
+         * severity dropdowns' showIf sees undefined on a fresh create
+         * form and hides fields whose toggles are actually on.
+         */
+        shouldCreateAlert: true,
+        shouldWriteDetectionFinding: true,
+        shouldCreateIncident: false,
       }}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
@@ -156,6 +191,57 @@ const DetectionRulesPage: FunctionComponent<
         },
         {
           field: {
+            alertSeverity: true,
+          },
+          title: "Alert Severity",
+          stepId: "evaluation",
+          description:
+            "Optional. Severity of alerts this rule opens. When unset, the Sigma rule's level is mapped onto this project's severities.",
+          fieldType: FormFieldSchemaType.Dropdown,
+          dropdownModal: {
+            type: AlertSeverity,
+            labelField: "name",
+            valueField: "_id",
+          },
+          required: false,
+          placeholder: "Default from Sigma level",
+          showIf: (model: FormValues<DetectionRule>): boolean => {
+            return model.shouldCreateAlert === true;
+          },
+        },
+        {
+          field: {
+            shouldCreateIncident: true,
+          },
+          title: "Create Incident on Match",
+          stepId: "evaluation",
+          description:
+            "Incidents are the heavier machinery — on-call escalation, SLAs, status pages. Off by default; alerts usually suffice for detections.",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+        },
+        {
+          field: {
+            incidentSeverity: true,
+          },
+          title: "Incident Severity",
+          stepId: "evaluation",
+          description:
+            "Optional. Severity of incidents this rule opens. When unset, the Sigma rule's level is mapped onto this project's incident severities.",
+          fieldType: FormFieldSchemaType.Dropdown,
+          dropdownModal: {
+            type: IncidentSeverity,
+            labelField: "name",
+            valueField: "_id",
+          },
+          required: false,
+          placeholder: "Default from Sigma level",
+          showIf: (model: FormValues<DetectionRule>): boolean => {
+            return model.shouldCreateIncident === true;
+          },
+        },
+        {
+          field: {
             shouldWriteDetectionFinding: true,
           },
           title: "Write Detection Finding on Match",
@@ -169,6 +255,37 @@ const DetectionRulesPage: FunctionComponent<
       showRefreshButton={true}
       searchableFields={["name", "description"]}
       showViewIdButton={true}
+      actionButtons={[
+        {
+          title: "Create Monitor",
+          buttonStyleType: ButtonStyleType.NORMAL,
+          icon: IconProp.AltGlobe,
+          disabled: !monitorCreateGate.isAllowed,
+          tooltip: monitorCreateGate.isAllowed
+            ? "Create a Security Events monitor watching this rule's Detection Findings — alert on rate, not just occurrence."
+            : monitorCreateGate.disabledReason ||
+              "You do not have permission to create monitors.",
+          onClick: (item: DetectionRule, onCompleteAction: VoidFunction) => {
+            /*
+             * Deep link, not an inline create: the monitor create page is
+             * where the pay-as-you-go consent and the criteria builder
+             * live, and a second door that skips either is not a door we
+             * want. The page fetches the rule by id and pre-fills a
+             * Security Events step scoped to this rule's findings.
+             */
+            Navigation.navigate(
+              (
+                RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.MONITOR_CREATE] as Route,
+                ) as Route
+              ).addQueryParams({
+                detectionRuleId: item._id?.toString() || "",
+              }),
+            );
+            onCompleteAction();
+          },
+        },
+      ]}
       filters={[
         {
           field: {

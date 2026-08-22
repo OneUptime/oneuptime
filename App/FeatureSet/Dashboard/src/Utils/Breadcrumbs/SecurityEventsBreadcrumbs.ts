@@ -21,6 +21,16 @@ export function getSecurityEventsBreadcrumbs(
       "Security Events",
       "Detection Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_EVENTS_MONITORS, [
+      "Project",
+      "Security Events",
+      "Monitors",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SECURITY_EVENTS_DOCUMENTATION, [
+      "Project",
+      "Security Events",
+      "Setup Guide",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

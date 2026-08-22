@@ -320,13 +320,15 @@ test(
     assert.equal((rendered.match(/gzip_vary on;/g) || []).length, 3);
     assert.equal((rendered.match(/gzip_proxied\s+any;/g) || []).length, 3);
 
+    // One per operator-controllable ingest location: /telemetry, /otlp,
+    // /kubernetes-cost, /security-events, /session-replay and /pyroscope.
     assert.equal(
       (
         rendered.match(
           /access_log \/var\/log\/nginx\/access\.log main buffer=64k flush=10s if=\$ingest_access_log;/g,
         ) || []
       ).length,
-      5,
+      6,
     );
 
     // The {8,} repetition quantifier in the immutable location's regex must not

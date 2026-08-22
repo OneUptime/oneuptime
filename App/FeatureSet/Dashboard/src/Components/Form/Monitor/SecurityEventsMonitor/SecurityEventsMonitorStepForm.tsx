@@ -37,8 +37,6 @@ const SecurityEventsMonitorStepForm: FunctionComponent<ComponentProps> = (
   if (
     (monitorStepSecurityEventsMonitor.severityNames &&
       monitorStepSecurityEventsMonitor.severityNames.length > 0) ||
-    (monitorStepSecurityEventsMonitor.classNames &&
-      monitorStepSecurityEventsMonitor.classNames.length > 0) ||
     (monitorStepSecurityEventsMonitor.telemetryServiceIds &&
       monitorStepSecurityEventsMonitor.telemetryServiceIds.length > 0) ||
     (monitorStepSecurityEventsMonitor.attributes &&
@@ -161,9 +159,6 @@ const SecurityEventsMonitorStepForm: FunctionComponent<ComponentProps> = (
             description:
               "Select the OCSF event classes you want to monitor (e.g. Authentication, Detection Finding).",
             hideOptionalLabel: true,
-            showIf: () => {
-              return showAdvancedOptions;
-            },
           },
           {
             field: {

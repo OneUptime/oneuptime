@@ -1,10 +1,13 @@
 import DetectionRule from "../../../Models/DatabaseModels/DetectionRule";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
+import Incident from "../../../Models/DatabaseModels/Incident";
+import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import { JSONObject } from "../../../Types/JSON";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity, {
@@ -12,10 +15,21 @@ import OcsfSeverity, {
 } from "../../../Types/SecurityEvent/OcsfSeverity";
 import { ocsfCategoryForClassUid } from "../../../Types/SecurityEvent/OcsfEventClass";
 import SigmaRule, { SigmaLevel } from "../../../Types/SecurityEvent/SigmaRule";
+import {
+  DETECTION_FINDING_CLASS_NAME,
+  DETECTION_FINDING_CLASS_UID,
+  DETECTION_GROUP_VALUE_ATTRIBUTE,
+  DETECTION_MATCH_COUNT_ATTRIBUTE,
+  DETECTION_RULE_ID_ATTRIBUTE,
+  DETECTION_RULE_NAME_ATTRIBUTE,
+  DETECTION_SIGMA_ID_ATTRIBUTE,
+} from "../../../Types/SecurityEvent/DetectionFindingConstants";
 import SigmaRuleParser from "../../../Utils/SecurityEvent/Sigma/SigmaRuleParser";
 import MetricSeriesFingerprint from "../../../Utils/Metrics/MetricSeriesFingerprint";
 import AlertService from "../../Services/AlertService";
 import AlertSeverityService from "../../Services/AlertSeverityService";
+import IncidentService from "../../Services/IncidentService";
+import IncidentSeverityService from "../../Services/IncidentSeverityService";
 import DetectionRuleService from "../../Services/DetectionRuleService";
 import OTelIngestService, {
   TelemetryServiceMetadata,
@@ -32,7 +46,6 @@ import SigmaClickhouseCompiler, {
 } from "./Sigma/SigmaClickhouseCompiler";
 import { buildSecurityEventDbRow } from "./SecurityEventRow";
 
-const DETECTION_FINDING_CLASS_UID: number = 2004;
 const DETECTIONS_SERVICE_NAME: string = "OneUptime Detections";
 
 /*
@@ -58,6 +71,7 @@ export interface DetectionRuleEvaluationResult {
   matchedGroups: number;
   totalMatches: number;
   alertsCreated: number;
+  incidentsCreated: number;
   findingsWritten: number;
   error: string | null;
 }
@@ -84,7 +98,9 @@ export default class DetectionRuleEvaluator {
         groupByField: true,
         shouldCreateAlert: true,
         shouldWriteDetectionFinding: true,
+        shouldCreateIncident: true,
         alertSeverityId: true,
+        incidentSeverityId: true,
         lastEvaluatedAt: true,
       },
       skip: 0,
@@ -189,6 +205,7 @@ export default class DetectionRuleEvaluator {
     );
 
     let alertsCreated: number = 0;
+    let incidentsCreated: number = 0;
     let findingsWritten: number = 0;
     let totalMatches: number = 0;
 
@@ -199,6 +216,22 @@ export default class DetectionRuleEvaluator {
     if (matchedGroups.length > 0) {
       if (rule.shouldCreateAlert !== false) {
         alertsCreated = await this.openAlertsForMatches({
+          rule,
+          parsedRule,
+          matchedGroups,
+          startTime,
+          endTime,
+        });
+      }
+
+      /*
+       * === true, not !== false like the alert gate: incidents are the
+       * heavy machinery (on-call, SLAs, status pages), and the column
+       * defaults to false — a rule fetched without the column selected
+       * must read as off, never as "probably on".
+       */
+      if (rule.shouldCreateIncident === true) {
+        incidentsCreated = await this.openIncidentsForMatches({
           rule,
           parsedRule,
           matchedGroups,
@@ -233,6 +266,7 @@ export default class DetectionRuleEvaluator {
       matchedGroups: matchedGroups.length,
       totalMatches,
       alertsCreated,
+      incidentsCreated,
       findingsWritten,
       error: null,
     };
@@ -272,9 +306,16 @@ export default class DetectionRuleEvaluator {
       },
     );
 
+    /*
+     * Scoped to THIS rule's candidate fingerprints (≤ MAX_GROUPS_PER_
+     * EVALUATION), not a scan of every open alert: a project with more
+     * open alerts than LIMIT_PER_PROJECT would otherwise age still-open
+     * detections out of the fetched window and re-open them every cycle.
+     */
     const openAlerts: Array<Alert> = await AlertService.findBy({
       query: {
         projectId,
+        seriesFingerprint: new Includes(fingerprints),
         currentAlertState: {
           isResolvedState: false,
         },
@@ -312,35 +353,14 @@ export default class DetectionRuleEvaluator {
 
       const alert: Alert = new Alert();
       alert.projectId = projectId;
-      alert.title = matchGroup.groupValue
-        ? `[Detection] ${rule.name} — ${matchGroup.groupValue}`
-        : `[Detection] ${rule.name}`;
-
-      const descriptionParts: Array<string> = [];
-
-      if (rule.description || parsedRule.description) {
-        descriptionParts.push(rule.description || parsedRule.description);
-      }
-
-      descriptionParts.push(
-        `Detection rule matched ${matchGroup.matchCount} security event${
-          matchGroup.matchCount === 1 ? "" : "s"
-        } between ${OneUptimeDate.getDateAsFormattedString(
-          data.startTime,
-        )} and ${OneUptimeDate.getDateAsFormattedString(data.endTime)}.`,
-      );
-
-      if (matchGroup.sampleMessage) {
-        descriptionParts.push(`Sample event: ${matchGroup.sampleMessage}`);
-      }
-
-      if (matchGroup.sampleObservables.length > 0) {
-        descriptionParts.push(
-          `Observables: ${matchGroup.sampleObservables.slice(0, 20).join(", ")}`,
-        );
-      }
-
-      alert.description = descriptionParts.join("\n\n");
+      alert.title = this.buildMatchTitle(rule, matchGroup);
+      alert.description = this.buildMatchDescription({
+        rule,
+        parsedRule,
+        matchGroup,
+        startTime: data.startTime,
+        endTime: data.endTime,
+      });
       alert.alertSeverityId = alertSeverityId;
       alert.seriesFingerprint = fingerprint;
       alert.isCreatedAutomatically = true;
@@ -363,6 +383,180 @@ export default class DetectionRuleEvaluator {
     }
 
     return created;
+  }
+
+  /*
+   * The incident twin of openAlertsForMatches: same fingerprint, same
+   * title and description, deduped against the project's UNRESOLVED
+   * incidents the same way alerts dedupe against open alerts. Kept as a
+   * separate method rather than a parameterized one because the two
+   * models genuinely differ where it matters — severity comes from
+   * IncidentSeverity, and IncidentService.create is far heavier
+   * (workspace channels, SLAs, on-call execution), so each create is
+   * wrapped so one failing project cannot sink the whole rule.
+   *
+   * Detection incidents carry no monitors, so monitor-driven auto-resolve
+   * never touches them: the fingerprint dedupe is the only thing keeping
+   * a still-firing rule from stacking incidents. Dedupe must therefore
+   * run BEFORE create — incident numbers are user-visible and consumed
+   * per create.
+   */
+  private static async openIncidentsForMatches(data: {
+    rule: DetectionRule;
+    parsedRule: SigmaRule;
+    matchedGroups: Array<DetectionMatchGroup>;
+    startTime: Date;
+    endTime: Date;
+  }): Promise<number> {
+    const { rule, parsedRule, matchedGroups } = data;
+    const projectId: ObjectID = rule.projectId!;
+
+    const incidentSeverityId: ObjectID | null =
+      await this.resolveIncidentSeverityId({
+        projectId,
+        rule,
+        parsedRule,
+      });
+
+    if (!incidentSeverityId) {
+      logger.warn(
+        `DetectionRuleEvaluator: project ${projectId.toString()} has no incident severities; skipping incident creation for rule ${rule.id?.toString()}.`,
+      );
+      return 0;
+    }
+
+    const fingerprints: Array<string> = matchedGroups.map(
+      (matchGroup: DetectionMatchGroup): string => {
+        return this.buildFingerprint(rule.id!, matchGroup.groupValue);
+      },
+    );
+
+    /*
+     * Same fingerprint-scoped dedupe as the alert path — and it matters
+     * more here: a missed fingerprint re-fires IncidentService.create's
+     * whole side-effect train and burns a user-visible incident number.
+     */
+    const openIncidents: Array<Incident> = await IncidentService.findBy({
+      query: {
+        projectId,
+        seriesFingerprint: new Includes(fingerprints),
+        currentIncidentState: {
+          isResolvedState: false,
+        },
+      },
+      select: {
+        _id: true,
+        seriesFingerprint: true,
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const openFingerprints: Set<string> = new Set<string>(
+      openIncidents
+        .map((incident: Incident): string => {
+          return incident.seriesFingerprint || "";
+        })
+        .filter((fingerprint: string): boolean => {
+          return Boolean(fingerprint);
+        }),
+    );
+
+    let created: number = 0;
+
+    for (let index: number = 0; index < matchedGroups.length; index++) {
+      const matchGroup: DetectionMatchGroup = matchedGroups[index]!;
+      const fingerprint: string = fingerprints[index]!;
+
+      if (openFingerprints.has(fingerprint)) {
+        continue;
+      }
+
+      const incident: Incident = new Incident();
+      incident.projectId = projectId;
+      incident.title = this.buildMatchTitle(rule, matchGroup);
+      incident.description = this.buildMatchDescription({
+        rule,
+        parsedRule,
+        matchGroup,
+        startTime: data.startTime,
+        endTime: data.endTime,
+      });
+      incident.incidentSeverityId = incidentSeverityId;
+      incident.seriesFingerprint = fingerprint;
+      incident.isCreatedAutomatically = true;
+      incident.rootCause = `Sigma detection rule "${rule.name}" matched security events.`;
+
+      try {
+        /*
+         * Per-incident try/catch, like the alert path — but here it also
+         * guards IncidentService.onBeforeCreate, which throws when the
+         * project has no "created" incident state. That cannot be
+         * pre-checked the way an empty severity list can.
+         */
+        await IncidentService.create({
+          data: incident,
+          props: {
+            isRoot: true,
+          },
+        });
+        created++;
+      } catch (error) {
+        logger.error(
+          `DetectionRuleEvaluator: failed creating incident for rule ${rule.id?.toString()}:`,
+        );
+        logger.error(error);
+      }
+    }
+
+    return created;
+  }
+
+  private static buildMatchTitle(
+    rule: DetectionRule,
+    matchGroup: DetectionMatchGroup,
+  ): string {
+    return matchGroup.groupValue
+      ? `[Detection] ${rule.name} — ${matchGroup.groupValue}`
+      : `[Detection] ${rule.name}`;
+  }
+
+  private static buildMatchDescription(data: {
+    rule: DetectionRule;
+    parsedRule: SigmaRule;
+    matchGroup: DetectionMatchGroup;
+    startTime: Date;
+    endTime: Date;
+  }): string {
+    const { rule, parsedRule, matchGroup } = data;
+    const descriptionParts: Array<string> = [];
+
+    if (rule.description || parsedRule.description) {
+      descriptionParts.push(rule.description || parsedRule.description);
+    }
+
+    descriptionParts.push(
+      `Detection rule matched ${matchGroup.matchCount} security event${
+        matchGroup.matchCount === 1 ? "" : "s"
+      } between ${OneUptimeDate.getDateAsFormattedString(
+        data.startTime,
+      )} and ${OneUptimeDate.getDateAsFormattedString(data.endTime)}.`,
+    );
+
+    if (matchGroup.sampleMessage) {
+      descriptionParts.push(`Sample event: ${matchGroup.sampleMessage}`);
+    }
+
+    if (matchGroup.sampleObservables.length > 0) {
+      descriptionParts.push(
+        `Observables: ${matchGroup.sampleObservables.slice(0, 20).join(", ")}`,
+      );
+    }
+
+    return descriptionParts.join("\n\n");
   }
 
   private static async writeDetectionFindings(data: {
@@ -405,7 +599,7 @@ export default class DetectionRuleEvaluator {
           categoryUid,
           categoryName,
           classUid: DETECTION_FINDING_CLASS_UID,
-          className: "Detection Finding",
+          className: DETECTION_FINDING_CLASS_NAME,
           activityName: "Create",
           severityId: OcsfSeverityId[severityName],
           severityName,
@@ -439,14 +633,14 @@ export default class DetectionRuleEvaluator {
               ]
             : matchGroup.sampleObservables,
           attributes: {
-            "oneuptime.detection.rule_id": rule.id!.toString(),
-            "oneuptime.detection.rule_name": rule.name || parsedRule.title,
-            "oneuptime.detection.match_count": String(matchGroup.matchCount),
+            [DETECTION_RULE_ID_ATTRIBUTE]: rule.id!.toString(),
+            [DETECTION_RULE_NAME_ATTRIBUTE]: rule.name || parsedRule.title,
+            [DETECTION_MATCH_COUNT_ATTRIBUTE]: String(matchGroup.matchCount),
             ...(matchGroup.groupValue
-              ? { "oneuptime.detection.group_value": matchGroup.groupValue }
+              ? { [DETECTION_GROUP_VALUE_ATTRIBUTE]: matchGroup.groupValue }
               : {}),
             ...(parsedRule.id
-              ? { "oneuptime.detection.sigma_id": parsedRule.id }
+              ? { [DETECTION_SIGMA_ID_ATTRIBUTE]: parsedRule.id }
               : {}),
           },
         };
@@ -506,16 +700,81 @@ export default class DetectionRuleEvaluator {
       },
     });
 
+    return this.pickSeverityByPrecedence({
+      severities,
+      explicitSeverityId: data.rule.alertSeverityId,
+      level: data.parsedRule.level,
+    });
+  }
+
+  /*
+   * Incident severity precedence, identical in shape to the alert
+   * resolver: the rule's explicit incident severity (validated to belong
+   * to this project — IncidentService.onBeforeCreate rejects cross-project
+   * ids with a thrown exception, so pre-validating here keeps a stale id
+   * a soft fallback instead of a hard failure), else a name match on the
+   * Sigma level, else severity by rank. Null only when the project has no
+   * incident severities at all.
+   */
+  private static async resolveIncidentSeverityId(data: {
+    projectId: ObjectID;
+    rule: DetectionRule;
+    parsedRule: SigmaRule;
+  }): Promise<ObjectID | null> {
+    const severities: Array<IncidentSeverity> =
+      await IncidentSeverityService.findBy({
+        query: {
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+          name: true,
+        },
+        sort: {
+          order: SortOrder.Ascending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    return this.pickSeverityByPrecedence({
+      severities,
+      explicitSeverityId: data.rule.incidentSeverityId,
+      level: data.parsedRule.level,
+    });
+  }
+
+  /*
+   * The precedence logic both resolvers share. Severities arrive sorted
+   * by order ascending — lowest order is most severe, per the model's
+   * own convention — so "most severe" is the first element and "least
+   * severe" the last. An explicit id that is not in the list (deleted, or
+   * belonging to another project) falls through silently rather than
+   * failing the rule.
+   */
+  private static pickSeverityByPrecedence<
+    TSeverity extends {
+      id?: ObjectID | null | undefined;
+      name?: string | undefined;
+    },
+  >(data: {
+    severities: Array<TSeverity>;
+    explicitSeverityId: ObjectID | undefined;
+    level: SigmaLevel;
+  }): ObjectID | null {
+    const { severities, explicitSeverityId, level } = data;
+
     if (severities.length === 0) {
       return null;
     }
 
-    if (data.rule.alertSeverityId) {
-      const explicit: AlertSeverity | undefined = severities.find(
-        (severity: AlertSeverity): boolean => {
-          return (
-            severity.id?.toString() === data.rule.alertSeverityId?.toString()
-          );
+    if (explicitSeverityId) {
+      const explicit: TSeverity | undefined = severities.find(
+        (severity: TSeverity): boolean => {
+          return severity.id?.toString() === explicitSeverityId.toString();
         },
       );
 
@@ -524,10 +783,8 @@ export default class DetectionRuleEvaluator {
       }
     }
 
-    const level: SigmaLevel = data.parsedRule.level;
-
-    const nameMatch: AlertSeverity | undefined = severities.find(
-      (severity: AlertSeverity): boolean => {
+    const nameMatch: TSeverity | undefined = severities.find(
+      (severity: TSeverity): boolean => {
         return (severity.name || "").toLowerCase() === level.toLowerCase();
       },
     );
@@ -539,7 +796,7 @@ export default class DetectionRuleEvaluator {
     const isSevere: boolean =
       level === SigmaLevel.Critical || level === SigmaLevel.High;
 
-    const chosen: AlertSeverity = isSevere
+    const chosen: TSeverity = isSevere
       ? severities[0]!
       : severities[severities.length - 1]!;
 
