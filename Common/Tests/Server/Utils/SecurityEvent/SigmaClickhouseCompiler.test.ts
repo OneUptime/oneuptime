@@ -247,7 +247,7 @@ detection:
       singleFieldRule("targetPort|gt: 1024"),
     );
 
-    expect(statement.query).toContain("targetPort > {p0:Int32}");
+    expect(statement.query).toContain("targetPort > {p0:Double}");
     expect(statement.query_params["p0"]).toBe(1024);
   });
 
@@ -255,8 +255,92 @@ detection:
     const statement: Statement = compile(singleFieldRule("event.count|gte: 5"));
 
     expect(statement.query).toContain(
-      "toFloat64OrNull(attributes[{p0:String}]) >= {p1:Int32}",
+      "toFloat64OrNull(attributes[{p0:String}]) >= {p1:Double}",
     );
+  });
+
+  /*
+   * Sigma rules routinely carry fractional thresholds (rates, ratios,
+   * durations in seconds). The attribute comparison side is already
+   * toFloat64OrNull, so the bound threshold has to be Double — an Int32
+   * bind cannot parse `0.5` and fails the whole query at runtime.
+   */
+  describe("fractional numeric thresholds", () => {
+    const comparisonModifiers: Array<{ modifier: string; sql: string }> = [
+      { modifier: "gt", sql: ">" },
+      { modifier: "gte", sql: ">=" },
+      { modifier: "lt", sql: "<" },
+      { modifier: "lte", sql: "<=" },
+    ];
+
+    test.each(comparisonModifiers)(
+      "binds a fractional |$modifier attribute threshold as Double",
+      ({ modifier, sql }: { modifier: string; sql: string }) => {
+        const statement: Statement = compile(
+          singleFieldRule(`event.errorRate|${modifier}: 0.5`),
+        );
+
+        expect(statement.query).toContain(
+          `toFloat64OrNull(attributes[{p0:String}]) ${sql} {p1:Double}`,
+        );
+        expect(statement.query_params["p1"]).toBe(0.5);
+      },
+    );
+
+    test("preserves a threshold smaller than one instead of truncating it", () => {
+      const statement: Statement = compile(
+        singleFieldRule("event.errorRate|gt: 0.001"),
+      );
+
+      expect(statement.query_params["p1"]).toBe(0.001);
+      expect(statement.query_params["p1"]).not.toBe(0);
+    });
+
+    test("preserves a negative fractional threshold", () => {
+      const statement: Statement = compile(
+        singleFieldRule("event.drift|lt: -2.5"),
+      );
+
+      expect(statement.query).toContain(
+        "toFloat64OrNull(attributes[{p0:String}]) < {p1:Double}",
+      );
+      expect(statement.query_params["p1"]).toBe(-2.5);
+    });
+
+    test("binds a fractional threshold on a number column as Double", () => {
+      const statement: Statement = compile(
+        singleFieldRule("targetPort|gte: 1024.5"),
+      );
+
+      expect(statement.query).toContain("targetPort >= {p0:Double}");
+      expect(statement.query_params["p0"]).toBe(1024.5);
+    });
+
+    test("keeps integer thresholds exact under the Double bind", () => {
+      const statement: Statement = compile(
+        singleFieldRule("targetPort|gt: 1024"),
+      );
+
+      expect(statement.query_params["p0"]).toBe(1024);
+    });
+
+    test("binds an integer threshold beyond the Int32 range", () => {
+      const statement: Statement = compile(
+        singleFieldRule("event.bytes|gt: 3000000000"),
+      );
+
+      expect(statement.query_params["p1"]).toBe(3000000000);
+    });
+
+    test("a fractional threshold still leaves nothing user-controlled in the SQL text", () => {
+      const statement: Statement = compile(
+        singleFieldRule("event.errorRate|gte: 0.5"),
+      );
+
+      expect(statement.query).not.toContain("0.5");
+      expect(statement.query).not.toContain("event.errorRate");
+      expect(paramValues(statement)).toContain(0.5);
+    });
   });
 
   test("numeric comparison with a non-numeric value is rejected", () => {
@@ -268,7 +352,7 @@ detection:
   test("numeric equality on a number column", () => {
     const statement: Statement = compile(singleFieldRule("classUid: 3002"));
 
-    expect(statement.query).toContain("classUid = {p0:Int32}");
+    expect(statement.query).toContain("classUid = {p0:Double}");
     expect(statement.query_params["p0"]).toBe(3002);
   });
 
@@ -349,7 +433,7 @@ detection:
     const statement: Statement = compileWithCondition("1 of sel_*");
 
     expect(statement.query).toContain("toUInt8((");
-    expect(statement.query).toContain(") >= {p2:Int32}");
+    expect(statement.query).toContain(") >= {p2:Double}");
     expect(statement.query_params["p2"]).toBe(1);
   });
 

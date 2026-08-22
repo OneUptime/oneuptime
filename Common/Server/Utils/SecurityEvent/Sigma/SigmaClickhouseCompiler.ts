@@ -183,8 +183,16 @@ function textParam(value: string): Statement {
   return SQL`${{ type: TableColumnType.Text, value: value }}`;
 }
 
+/*
+ * Numeric literals bind as Decimal (ClickHouse `Double`) rather than Number
+ * (`Int32`). Sigma rules routinely carry fractional thresholds — a
+ * `|gte: 0.5` on an attribute compiles to a toFloat64OrNull comparison, and
+ * an Int32 bind cannot parse `0.5`, failing the whole query at runtime.
+ * Double represents every Int32 exactly, so the integer cases (port numbers,
+ * severity ids, `1 of them` quantifiers) are unaffected.
+ */
 function numberParam(value: number): Statement {
-  return SQL`${{ type: TableColumnType.Number, value: value }}`;
+  return SQL`${{ type: TableColumnType.Decimal, value: value }}`;
 }
 
 function group(inner: Statement): Statement {

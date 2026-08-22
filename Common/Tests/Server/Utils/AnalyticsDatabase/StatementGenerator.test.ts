@@ -18,6 +18,9 @@ import NotEqual from "../../../../Types/BaseDatabase/NotEqual";
 import IsNull from "../../../../Types/BaseDatabase/IsNull";
 import NotNull from "../../../../Types/BaseDatabase/NotNull";
 import GreaterThan from "../../../../Types/BaseDatabase/GreaterThan";
+import GreaterThanOrEqual from "../../../../Types/BaseDatabase/GreaterThanOrEqual";
+import LessThan from "../../../../Types/BaseDatabase/LessThan";
+import LessThanOrEqual from "../../../../Types/BaseDatabase/LessThanOrEqual";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import IncludesNone from "../../../../Types/BaseDatabase/IncludesNone";
@@ -333,8 +336,175 @@ describe("StatementGenerator", () => {
           attributes: { httpStatus: new GreaterThan(500) },
         } as any);
         expect(statement.query).toBe(
-          "AND toFloat64OrNull({p0:Identifier}[{p1:String}]) > {p2:Int32}",
+          "AND toFloat64OrNull({p0:Identifier}[{p1:String}]) > {p2:Double}",
         );
+      });
+
+      /*
+       * Fractional thresholds. The attribute filter form builds these
+       * wrappers with `Number(input)` (buildDictionaryValue in
+       * Common/UI/Components/Dictionary/DictionaryFilterOperator.ts), so
+       * `duration > 0.5` is a filter a user can genuinely produce. The
+       * comparison side already casts with toFloat64OrNull; the threshold
+       * has to bind as Double to match, because ClickHouse cannot parse a
+       * fractional value into an Int32 parameter and rejects the query.
+       */
+      describe("fractional numeric thresholds", () => {
+        type NumericOperatorCase = {
+          name: string;
+          sqlOperator: string;
+          build: (value: number) => unknown;
+        };
+
+        const numericOperatorCases: Array<NumericOperatorCase> = [
+          {
+            name: "GreaterThan",
+            sqlOperator: ">",
+            build: (value: number) => {
+              return new GreaterThan(value);
+            },
+          },
+          {
+            name: "GreaterThanOrEqual",
+            sqlOperator: ">=",
+            build: (value: number) => {
+              return new GreaterThanOrEqual(value);
+            },
+          },
+          {
+            name: "LessThan",
+            sqlOperator: "<",
+            build: (value: number) => {
+              return new LessThan(value);
+            },
+          },
+          {
+            name: "LessThanOrEqual",
+            sqlOperator: "<=",
+            build: (value: number) => {
+              return new LessThanOrEqual(value);
+            },
+          },
+        ];
+
+        test.each(numericOperatorCases)(
+          "binds a fractional $name threshold as Double",
+          ({ sqlOperator, build }: NumericOperatorCase) => {
+            const statement: Statement = mapGenerator.toWhereStatement({
+              attributes: { duration: build(0.5) },
+            } as any);
+
+            expect(statement.query).toBe(
+              `AND toFloat64OrNull({p0:Identifier}[{p1:String}]) ${sqlOperator} {p2:Double}`,
+            );
+            expect(statement.query_params).toStrictEqual({
+              p0: "attributes",
+              p1: "duration",
+              p2: 0.5,
+            });
+          },
+        );
+
+        test.each(numericOperatorCases)(
+          "keeps an integer $name threshold exact under the Double bind",
+          ({ sqlOperator, build }: NumericOperatorCase) => {
+            const statement: Statement = mapGenerator.toWhereStatement({
+              attributes: { httpStatus: build(500) },
+            } as any);
+
+            expect(statement.query).toBe(
+              `AND toFloat64OrNull({p0:Identifier}[{p1:String}]) ${sqlOperator} {p2:Double}`,
+            );
+            expect(statement.query_params["p2"]).toBe(500);
+          },
+        );
+
+        test("preserves a threshold smaller than one instead of truncating it", () => {
+          const statement: Statement = mapGenerator.toWhereStatement({
+            attributes: { errorRate: new GreaterThan(0.001) },
+          } as any);
+
+          // Truncation toward Int32 would have turned this into 0.
+          expect(statement.query_params["p2"]).toBe(0.001);
+          expect(statement.query_params["p2"]).not.toBe(0);
+        });
+
+        test("preserves a negative fractional threshold", () => {
+          const statement: Statement = mapGenerator.toWhereStatement({
+            attributes: { tempCelsius: new LessThan(-12.75) },
+          } as any);
+
+          expect(statement.query).toBe(
+            "AND toFloat64OrNull({p0:Identifier}[{p1:String}]) < {p2:Double}",
+          );
+          expect(statement.query_params["p2"]).toBe(-12.75);
+        });
+
+        test("preserves many decimal places", () => {
+          const statement: Statement = mapGenerator.toWhereStatement({
+            attributes: { ratio: new GreaterThanOrEqual(3.14159265) },
+          } as any);
+
+          expect(statement.query_params["p2"]).toBe(3.14159265);
+        });
+
+        /*
+         * Double also widens the integer range: Int32 tops out at
+         * 2147483647, so a threshold above that used to be unbindable
+         * even though it is a whole number.
+         */
+        test("binds an integer threshold beyond the Int32 range", () => {
+          const statement: Statement = mapGenerator.toWhereStatement({
+            attributes: { bytes: new GreaterThan(3000000000) },
+          } as any);
+
+          expect(statement.query).toBe(
+            "AND toFloat64OrNull({p0:Identifier}[{p1:String}]) > {p2:Double}",
+          );
+          expect(statement.query_params["p2"]).toBe(3000000000);
+        });
+
+        test("coerces a numeric string threshold to a fractional number", () => {
+          const statement: Statement = mapGenerator.toWhereStatement({
+            attributes: { duration: new GreaterThan("0.5" as any) },
+          } as any);
+
+          expect(statement.query_params["p2"]).toBe(0.5);
+        });
+
+        test("combines a fractional threshold with other attribute filters", () => {
+          const statement: Statement = mapGenerator.toWhereStatement({
+            attributes: {
+              duration: new GreaterThan(0.5),
+              requestId: "uuid-123",
+            },
+          } as any);
+
+          expect(statement.query).toBe(
+            "AND toFloat64OrNull({p0:Identifier}[{p1:String}]) > {p2:Double}" +
+              "AND {p3:Identifier}[{p4:String}] = {p5:String}",
+          );
+          expect(statement.query_params).toStrictEqual({
+            p0: "attributes",
+            p1: "duration",
+            p2: 0.5,
+            p3: "attributes",
+            p4: "requestId",
+            p5: "uuid-123",
+          });
+        });
+
+        test("binds a fractional lower and upper bound on the same attribute independently", () => {
+          const lower: Statement = mapGenerator.toWhereStatement({
+            attributes: { duration: new GreaterThanOrEqual(0.25) },
+          } as any);
+          const upper: Statement = mapGenerator.toWhereStatement({
+            attributes: { duration: new LessThanOrEqual(1.75) },
+          } as any);
+
+          expect(lower.query_params["p2"]).toBe(0.25);
+          expect(upper.query_params["p2"]).toBe(1.75);
+        });
       });
 
       test("keeps case-insensitive arrayExists for Search wrapper", () => {
@@ -1439,7 +1609,7 @@ describe("StatementGenerator", () => {
         });
         expect(statement.query).toBe(
           "AND (empty({p0_t:Identifier}.{p0_c:Identifier}) OR hasAny({p1_t:Identifier}.{p1_c:Identifier}, {p2:Array(String)})) " +
-            "AND toFloat64OrNull({p3_t:Identifier}.{p3_c:Identifier}[{p4:String}]) > {p5:Int32}",
+            "AND toFloat64OrNull({p3_t:Identifier}.{p3_c:Identifier}[{p4:String}]) > {p5:Double}",
         );
         expectQualifiers(statement, ["attrKeys", "attrKeys", "attributes"]);
       });
