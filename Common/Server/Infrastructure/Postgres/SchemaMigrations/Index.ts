@@ -537,6 +537,7 @@ import { AddDetectionRuleAndGoogleSecOpsConnection1788000000000 } from "./178800
 import { AddMeasurements1788100000000 } from "./1788100000000-AddMeasurements";
 import { AddLlmCostBudget1788200000000 } from "./1788200000000-AddLlmCostBudget";
 import { AddLlmModelPrice1788300000000 } from "./1788300000000-AddLlmModelPrice";
+import { AddMarketingConversionAttribution1788400000000 } from "./1788400000000-AddMarketingConversionAttribution";
 import { MigrationName1787142779538 } from "./1787142779538-MigrationName";
 import { MigrationName1787156982416 } from "./1787156982416-MigrationName";
 
@@ -1082,4 +1083,5 @@ export default [
   AddMeasurements1788100000000,
   AddLlmCostBudget1788200000000,
   AddLlmModelPrice1788300000000,
+  AddMarketingConversionAttribution1788400000000,
 ];

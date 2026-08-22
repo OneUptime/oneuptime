@@ -3,6 +3,8 @@ import {
   MicrosoftAdsAccountId,
   MicrosoftAdsCustomerId,
   MicrosoftAdsDeveloperToken,
+  MicrosoftAdsEnterpriseLicenseRequestConversionName,
+  MicrosoftAdsMeetingBookedConversionName,
   MicrosoftAdsOAuthClientId,
   MicrosoftAdsOAuthClientSecret,
   MicrosoftAdsOAuthRefreshToken,
@@ -11,9 +13,11 @@ import {
 } from "../../../EnvironmentConfig";
 import ConversionUploadProvider, {
   ConversionSkip,
+  ConversionTypeMapping,
   ConversionUploadBatchResult,
 } from "../ConversionUploadProvider";
 import { JSONObject } from "../../../../Types/JSON";
+import { MarketingConversionType } from "../../../../Types/Marketing/MarketingConversion";
 import MarketingConversion from "../../../../Models/DatabaseModels/MarketingConversion";
 
 const REQUEST_TIMEOUT_MS: number = 30000;
@@ -23,10 +27,11 @@ const MICROSOFT_MAX_CONVERSION_AGE_IN_DAYS: number = 90;
 
 /*
  * Microsoft Advertising (Bing Ads) offline conversions via the Campaign
- * Management v13 REST surface (OfflineConversions/Apply) using msclkid.
- * Offline conversion goals are matched by conversion NAME configured in the
- * Microsoft Advertising UI. OAuth2 refresh-token flow against Microsoft
- * identity platform with the msads.manage scope.
+ * Management v13 REST surface (OfflineConversions/Apply), matching on msclkid
+ * or on a SHA-256 email (Microsoft's enhanced conversions). Offline conversion
+ * goals are matched by conversion NAME configured in the Microsoft Advertising
+ * UI. OAuth2 refresh-token flow against Microsoft identity platform with the
+ * msads.manage scope.
  */
 export default class MicrosoftAdsProvider extends ConversionUploadProvider {
   public override readonly key: string = "microsoft";
@@ -48,9 +53,12 @@ export default class MicrosoftAdsProvider extends ConversionUploadProvider {
   protected override getProviderSkipReason(
     conversion: MarketingConversion,
   ): ConversionSkip | null {
-    if (!this.getClickId(conversion, "msclkid")) {
+    if (
+      !this.getClickId(conversion, "msclkid") &&
+      !this.getHashedEmail(conversion)
+    ) {
       return {
-        reason: "No Microsoft click id (msclkid)",
+        reason: "No Microsoft click id (msclkid) and no email to match on",
         isPermanent: true,
       };
     }
@@ -77,9 +85,17 @@ export default class MicrosoftAdsProvider extends ConversionUploadProvider {
   }
 
   private getConversionName(conversion: MarketingConversion): string {
-    return this.isSignUp(conversion)
-      ? MicrosoftAdsSignUpConversionName
-      : MicrosoftAdsPaidSubscriptionConversionName;
+    const mapping: ConversionTypeMapping<string> = {
+      [MarketingConversionType.SignUp]: MicrosoftAdsSignUpConversionName,
+      [MarketingConversionType.MeetingBooked]:
+        MicrosoftAdsMeetingBookedConversionName,
+      [MarketingConversionType.EnterpriseLicenseRequested]:
+        MicrosoftAdsEnterpriseLicenseRequestConversionName,
+      [MarketingConversionType.PaidSubscription]:
+        MicrosoftAdsPaidSubscriptionConversionName,
+    };
+
+    return this.resolveByConversionType(conversion, mapping) || "";
   }
 
   private async getAccessToken(): Promise<string> {
@@ -137,13 +153,27 @@ export default class MicrosoftAdsProvider extends ConversionUploadProvider {
     const body: JSONObject = {
       OfflineConversions: conversions.map((conversion: MarketingConversion) => {
         const payload: JSONObject = {
-          MicrosoftClickId: this.getClickId(conversion, "msclkid") || "",
           ConversionName: this.getConversionName(conversion),
           // ISO 8601 UTC, e.g. 2026-07-18T12:34:56Z.
           ConversionTime: (conversion.conversionAt || new Date())
             .toISOString()
             .replace(/\.\d{3}Z$/, "Z"),
         };
+
+        const clickId: string | undefined = this.getClickId(
+          conversion,
+          "msclkid",
+        );
+
+        if (clickId) {
+          payload["MicrosoftClickId"] = clickId;
+        }
+
+        const hashedEmail: string | undefined = this.getHashedEmail(conversion);
+
+        if (hashedEmail) {
+          payload["HashedEmailAddress"] = hashedEmail;
+        }
 
         const valueInUSD: number | undefined = this.getValueInUSD(conversion);
 

@@ -745,7 +745,7 @@
               constraints, and write down exactly where each responsibility sits.
             </p>
 
-            <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div class="mt-8 flex flex-col gap-3 sm:flex-row" id="enterprise-license">
               <a href="/enterprise/demo"
                 class="inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-sm font-semibold text-gray-900 shadow-sm transition-all hover:bg-gray-100">
                 Book an architecture assessment
@@ -753,11 +753,21 @@
                   <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
                 </svg>
               </a>
-              <a href="mailto:enterprise@oneuptime.com?subject=Self-hosted%20architecture%20assessment"
+              <!--
+                This was `mailto:enterprise@oneuptime.com`, which meant the
+                enterprise step of the funnel produced no request OneUptime
+                could see and therefore no attribution at all. The form the
+                button opens posts the same lead to the same inbox, and records
+                it. The mailto is still offered inside the form, for anyone who
+                would rather write than fill in fields.
+              -->
+              <button type="button" id="enterprise-license-toggle"
                 class="inline-flex items-center justify-center rounded-lg border border-white/20 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/5">
-                Email enterprise@oneuptime.com
-              </a>
+                Request an enterprise licence
+              </button>
             </div>
+
+            <%- include('Partials/enterprise-license-form') -%>
           </div>
 
           <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-7">

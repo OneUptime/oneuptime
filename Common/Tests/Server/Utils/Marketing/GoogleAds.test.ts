@@ -1,3 +1,4 @@
+import Attribution from "../../../../Server/Utils/Attribution";
 import MarketingConversion from "../../../../Models/DatabaseModels/MarketingConversion";
 import logger from "../../../../Server/Utils/Logger";
 import GoogleAdsProvider from "../../../../Server/Utils/Marketing/Providers/GoogleAds";
@@ -15,8 +16,16 @@ import {
 } from "@jest/globals";
 import { SpyInstance } from "jest-mock";
 
+/*
+ * Enhanced conversions for leads is an account-level Google setting as much as
+ * a OneUptime one, so the provider reads a flag for it. Both states have to be
+ * reachable from this file, which a plain constant on the mock cannot do — the
+ * provider imports the binding once. A getter can.
+ */
+let mockEnhancedConversionsForLeadsEnabled: boolean = false;
+
 jest.mock("../../../../Server/EnvironmentConfig", () => {
-  return {
+  const mocked: Record<string, unknown> = {
     GoogleAdsApiVersion: "v23",
     GoogleAdsCustomerId: "1234567890",
     GoogleAdsDeveloperToken: "developer-token",
@@ -26,7 +35,17 @@ jest.mock("../../../../Server/EnvironmentConfig", () => {
     GoogleAdsOAuthRefreshToken: "oauth-refresh-token",
     GoogleAdsPaidSubscriptionConversionActionId: "222222",
     GoogleAdsSignUpConversionActionId: "111111",
+    GoogleAdsMeetingBookedConversionActionId: "333333",
+    GoogleAdsEnterpriseLicenseRequestConversionActionId: "444444",
   };
+
+  Object.defineProperty(mocked, "GoogleAdsEnhancedConversionsForLeadsEnabled", {
+    get: (): boolean => {
+      return mockEnhancedConversionsForLeadsEnabled;
+    },
+  });
+
+  return mocked;
 });
 
 jest.mock("../../../../Server/Utils/Logger", () => {
@@ -64,6 +83,7 @@ describe("GoogleAdsProvider", () => {
   beforeEach(() => {
     provider = new GoogleAdsProvider();
     postSpy = jest.spyOn(axios, "post") as SpyInstance<any>;
+    mockEnhancedConversionsForLeadsEnabled = false;
   });
 
   afterEach(() => {
@@ -336,5 +356,239 @@ describe("GoogleAdsProvider", () => {
         "Google Ads partial failure with unparseable indexes",
       ),
     );
+  });
+
+  /*
+   * -------------------------------------------------------------------------
+   * Enhanced conversions.
+   *
+   * A hashed email raises the match rate of any upload, and is the ONLY thing
+   * that can attribute a sales-led deal: the gclid that started it is long gone
+   * from the browser by the time a licence is signed. Two separate behaviours,
+   * deliberately gated differently:
+   *
+   *   - attaching userIdentifiers alongside a click id needs no configuration
+   *     and always happens;
+   *   - uploading with ONLY a hashed email is enhanced conversions for leads,
+   *     which the Google Ads account must be set up for, so it is behind a
+   *     flag and refused when off.
+   * -------------------------------------------------------------------------
+   */
+  describe("enhanced conversions", () => {
+    test("attaches a hashed email alongside a click id without any flag", async () => {
+      postSpy
+        .mockResolvedValueOnce(
+          response({ access_token: "access-token", expires_in: 3600 }) as never,
+        )
+        .mockResolvedValueOnce(response({}) as never);
+
+      await provider.upload([makeConversion({ email: "ada@example.com" })]);
+
+      const uploadBody: JSONObject = postSpy.mock.calls[1]?.[1] as JSONObject;
+      const uploaded: JSONObject = (
+        uploadBody["conversions"] as Array<JSONObject>
+      )[0]!;
+
+      expect(uploaded["userIdentifiers"]).toEqual([
+        {
+          hashedEmail: Attribution.hashEmail("ada@example.com"),
+          userIdentifierSource: "FIRST_PARTY",
+        },
+      ]);
+      // The click id is still there: enhanced matching adds, it does not replace.
+      expect(uploaded["gclid"]).toBe("google-click");
+    });
+
+    test("never sends the address in the clear", async () => {
+      postSpy
+        .mockResolvedValueOnce(
+          response({ access_token: "access-token", expires_in: 3600 }) as never,
+        )
+        .mockResolvedValueOnce(response({}) as never);
+
+      await provider.upload([makeConversion({ email: "ada@example.com" })]);
+
+      expect(JSON.stringify(postSpy.mock.calls[1]?.[1])).not.toContain(
+        "ada@example.com",
+      );
+    });
+
+    test("sends no userIdentifiers when there is no email at all", async () => {
+      postSpy
+        .mockResolvedValueOnce(
+          response({ access_token: "access-token", expires_in: 3600 }) as never,
+        )
+        .mockResolvedValueOnce(response({}) as never);
+
+      await provider.upload([makeConversion()]);
+
+      const uploadBody: JSONObject = postSpy.mock.calls[1]?.[1] as JSONObject;
+      const uploaded: JSONObject = (
+        uploadBody["conversions"] as Array<JSONObject>
+      )[0]!;
+
+      expect(uploaded["userIdentifiers"]).toBeUndefined();
+    });
+
+    test("prefers the stored emailHash over the address column", async () => {
+      postSpy
+        .mockResolvedValueOnce(
+          response({ access_token: "access-token", expires_in: 3600 }) as never,
+        )
+        .mockResolvedValueOnce(response({}) as never);
+
+      await provider.upload([
+        makeConversion({
+          email: "ada@example.com",
+          emailHash: "already-hashed-elsewhere",
+        }),
+      ]);
+
+      const uploadBody: JSONObject = postSpy.mock.calls[1]?.[1] as JSONObject;
+      const uploaded: JSONObject = (
+        uploadBody["conversions"] as Array<JSONObject>
+      )[0]!;
+
+      expect(uploaded["userIdentifiers"]).toEqual([
+        {
+          hashedEmail: "already-hashed-elsewhere",
+          userIdentifierSource: "FIRST_PARTY",
+        },
+      ]);
+    });
+
+    test("refuses an email-only conversion while the leads flag is off", () => {
+      expect(
+        provider.getSkipReason(
+          makeConversion({ clickIds: {}, email: "ada@example.com" }),
+        ),
+      ).toEqual({
+        reason: "No Google click id (gclid/wbraid/gbraid)",
+        isPermanent: true,
+      });
+    });
+
+    test("accepts an email-only conversion once the leads flag is on", () => {
+      mockEnhancedConversionsForLeadsEnabled = true;
+
+      expect(
+        provider.getSkipReason(
+          makeConversion({ clickIds: {}, email: "ada@example.com" }),
+        ),
+      ).toBeNull();
+    });
+
+    test("still refuses a conversion with neither a click id nor an email", () => {
+      mockEnhancedConversionsForLeadsEnabled = true;
+
+      expect(provider.getSkipReason(makeConversion({ clickIds: {} }))).toEqual({
+        reason:
+          "No Google click id (gclid/wbraid/gbraid) and no email to match on",
+        isPermanent: true,
+      });
+    });
+
+    test("uploads an email-only lead with no click id field at all", async () => {
+      mockEnhancedConversionsForLeadsEnabled = true;
+
+      postSpy
+        .mockResolvedValueOnce(
+          response({ access_token: "access-token", expires_in: 3600 }) as never,
+        )
+        .mockResolvedValueOnce(response({}) as never);
+
+      await provider.upload([
+        makeConversion({
+          conversionType: MarketingConversionType.EnterpriseLicenseRequested,
+          clickIds: {},
+          email: "ada@example.com",
+        }),
+      ]);
+
+      const uploadBody: JSONObject = postSpy.mock.calls[1]?.[1] as JSONObject;
+      const uploaded: JSONObject = (
+        uploadBody["conversions"] as Array<JSONObject>
+      )[0]!;
+
+      expect(uploaded).toEqual({
+        conversionAction: "customers/1234567890/conversionActions/444444",
+        conversionDateTime: "2026-07-22 10:11:12+00:00",
+        userIdentifiers: [
+          {
+            hashedEmail: Attribution.hashEmail("ada@example.com"),
+            userIdentifierSource: "FIRST_PARTY",
+          },
+        ],
+      });
+    });
+  });
+
+  /*
+   * -------------------------------------------------------------------------
+   * One conversion action per conversion type.
+   *
+   * The provider used to pick between two actions with `isSignUp ? a : b`, so
+   * anything that was not a signup was reported against the paid-subscription
+   * action. Each type now names its own.
+   * -------------------------------------------------------------------------
+   */
+  describe("conversion action mapping", () => {
+    test.each([
+      [MarketingConversionType.SignUp, "111111"],
+      [MarketingConversionType.PaidSubscription, "222222"],
+      [MarketingConversionType.MeetingBooked, "333333"],
+      [MarketingConversionType.EnterpriseLicenseRequested, "444444"],
+    ])(
+      "reports %s against its own conversion action",
+      async (
+        conversionType: MarketingConversionType,
+        expectedActionId: string,
+      ) => {
+        postSpy
+          .mockResolvedValueOnce(
+            response({
+              access_token: "access-token",
+              expires_in: 3600,
+            }) as never,
+          )
+          .mockResolvedValueOnce(response({}) as never);
+
+        await provider.upload([
+          makeConversion({ conversionType: conversionType }),
+        ]);
+
+        const uploadBody: JSONObject = postSpy.mock.calls[1]?.[1] as JSONObject;
+        const uploaded: JSONObject = (
+          uploadBody["conversions"] as Array<JSONObject>
+        )[0]!;
+
+        expect(uploaded["conversionAction"]).toBe(
+          `customers/1234567890/conversionActions/${expectedActionId}`,
+        );
+      },
+    );
+
+    test("never attaches revenue to a booked meeting", async () => {
+      postSpy
+        .mockResolvedValueOnce(
+          response({ access_token: "access-token", expires_in: 3600 }) as never,
+        )
+        .mockResolvedValueOnce(response({}) as never);
+
+      await provider.upload([
+        makeConversion({
+          conversionType: MarketingConversionType.MeetingBooked,
+          conversionValueInUSDCents: 500000,
+        }),
+      ]);
+
+      const uploadBody: JSONObject = postSpy.mock.calls[1]?.[1] as JSONObject;
+      const uploaded: JSONObject = (
+        uploadBody["conversions"] as Array<JSONObject>
+      )[0]!;
+
+      expect(uploaded["conversionValue"]).toBeUndefined();
+      expect(uploaded["currencyCode"]).toBeUndefined();
+    });
   });
 });

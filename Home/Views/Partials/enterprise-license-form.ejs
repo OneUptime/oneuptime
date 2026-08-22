@@ -1,0 +1,213 @@
+<!--
+    Enterprise licence / architecture assessment request.
+
+    WHY THIS IS A FORM AND NOT A mailto:
+
+    This step used to be `mailto:enterprise@oneuptime.com`. A mailto sends no
+    request to OneUptime at all, so the single most valuable step of the funnel
+    produced no click id, no campaign, no row, and no way to say what an ad
+    spend bought. Posting it means the server sees the moment and can record it
+    (App/API/EnterpriseLicenseRequest.ts) — the lead still reaches the same
+    inbox, it is simply attributable on the way.
+
+    The attribution the visitor is carrying is attached from
+    oneUptimeGetAttribution() in head-basic.ejs, which returns nothing when the
+    visitor has not consented to attribution storage.
+
+    Rendered on a dark section, hence the light-on-dark field styling.
+-->
+<div id="enterprise-license-form-wrapper" class="mt-6 hidden">
+  <form id="enterprise-license-form" class="rounded-2xl border border-white/10 bg-white/[0.03] p-6" novalidate>
+    <p class="text-sm font-semibold text-white">Request an enterprise licence</p>
+    <p class="mt-1 text-xs leading-5 text-gray-400">
+      Tell us where to reach you and we will come back within one business day.
+    </p>
+
+    <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div>
+        <label for="enterprise-license-name" class="block text-xs font-medium text-gray-300">Name</label>
+        <input type="text" id="enterprise-license-name" name="name" autocomplete="name" maxlength="200"
+          class="mt-1.5 block w-full rounded-lg border border-white/10 bg-gray-900/60 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+          placeholder="Ada Lovelace">
+      </div>
+      <div>
+        <label for="enterprise-license-company" class="block text-xs font-medium text-gray-300">Company</label>
+        <input type="text" id="enterprise-license-company" name="company" autocomplete="organization" maxlength="200"
+          class="mt-1.5 block w-full rounded-lg border border-white/10 bg-gray-900/60 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+          placeholder="Acme Inc.">
+      </div>
+      <div class="sm:col-span-2">
+        <label for="enterprise-license-email" class="block text-xs font-medium text-gray-300">
+          Work email <span class="text-emerald-400">*</span>
+        </label>
+        <input type="email" id="enterprise-license-email" name="email" autocomplete="email" required maxlength="100"
+          class="mt-1.5 block w-full rounded-lg border border-white/10 bg-gray-900/60 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+          placeholder="ada@acme.com">
+      </div>
+      <div class="sm:col-span-2">
+        <label for="enterprise-license-message" class="block text-xs font-medium text-gray-300">
+          What are you trying to do?
+        </label>
+        <textarea id="enterprise-license-message" name="message" rows="3" maxlength="4000"
+          class="mt-1.5 block w-full rounded-lg border border-white/10 bg-gray-900/60 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+          placeholder="Scale, deployment model, compliance constraints, timeline&hellip;"></textarea>
+      </div>
+    </div>
+
+    <!--
+      Honeypot. Hidden from people and from screen readers, irresistible to the
+      form-filling bots that submit every input they can find. A filled value
+      means the submission is discarded client side; the server-side rate limit
+      is what bounds anything cleverer than this.
+    -->
+    <div class="hidden" aria-hidden="true">
+      <label for="enterprise-license-website">Website</label>
+      <input type="text" id="enterprise-license-website" name="website" tabindex="-1" autocomplete="off">
+    </div>
+
+    <div class="mt-5 flex flex-wrap items-center gap-4">
+      <button type="submit" id="enterprise-license-submit"
+        class="inline-flex items-center justify-center rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm transition-all hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60">
+        Send request
+      </button>
+      <p id="enterprise-license-status" class="text-sm leading-6 text-gray-400" role="status" aria-live="polite"></p>
+    </div>
+
+    <p class="mt-4 text-xs leading-5 text-gray-500">
+      Prefer email? Write to
+      <a href="mailto:enterprise@oneuptime.com" class="font-medium text-gray-400 underline underline-offset-2 hover:text-gray-300">enterprise@oneuptime.com</a>.
+    </p>
+  </form>
+</div>
+
+<script>
+  (function () {
+    var wrapper = document.getElementById('enterprise-license-form-wrapper');
+    var form = document.getElementById('enterprise-license-form');
+    var toggle = document.getElementById('enterprise-license-toggle');
+    var status = document.getElementById('enterprise-license-status');
+    var submit = document.getElementById('enterprise-license-submit');
+
+    if (!wrapper || !form || !status || !submit) {
+      return;
+    }
+
+    function openForm() {
+      wrapper.classList.remove('hidden');
+      var email = document.getElementById('enterprise-license-email');
+      if (email) {
+        email.focus();
+      }
+    }
+
+    if (toggle) {
+      toggle.addEventListener('click', function (event) {
+        event.preventDefault();
+        openForm();
+      });
+    }
+
+    /*
+     * Deep links to #enterprise-license open it directly, so a CTA elsewhere on
+     * the site can point straight at the form rather than at a section the
+     * visitor then has to find a button in.
+     */
+    if (window.location.hash === '#enterprise-license') {
+      openForm();
+    }
+
+    function value(id) {
+      var element = document.getElementById(id);
+      return element && element.value ? element.value.trim() : '';
+    }
+
+    function setStatus(message, isError) {
+      status.textContent = message;
+      status.className = isError
+        ? 'text-sm leading-6 text-red-400'
+        : 'text-sm leading-6 text-emerald-400';
+    }
+
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+
+      // Honeypot: silently accept and do nothing.
+      if (value('enterprise-license-website')) {
+        setStatus('Thanks — we will be in touch shortly.', false);
+        return;
+      }
+
+      var email = value('enterprise-license-email');
+
+      if (!email || email.indexOf('@') < 1) {
+        setStatus('Please enter a valid work email address.', true);
+        return;
+      }
+
+      var attribution = typeof window.oneUptimeGetAttribution === 'function'
+        ? window.oneUptimeGetAttribution()
+        : { utm: {}, clickIds: {}, firstTouch: null };
+
+      var payload = {
+        email: email,
+        name: value('enterprise-license-name'),
+        company: value('enterprise-license-company'),
+        message: value('enterprise-license-message'),
+        utm: attribution.utm || {},
+        clickIds: attribution.clickIds || {}
+      };
+
+      if (attribution.firstTouch) {
+        payload.firstTouchAttribution = attribution.firstTouch;
+      }
+
+      submit.disabled = true;
+      // setStatus writes textContent, so this must be plain text, not an entity.
+      setStatus('Sending...', false);
+
+      fetch('/api/enterprise-license-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(function (response) {
+        if (response.ok) {
+          form.reset();
+          setStatus('Thanks — we will be in touch within one business day.', false);
+
+          /*
+           * Analytics mirror of the same moment. The commercial record is the
+           * EnterpriseLicenseRequested row the API wrote; this is for funnel
+           * dashboards, and carries no contact details for the same reason
+           * meeting_booked does not.
+           */
+          var properties = {
+            event_schema_version: 1,
+            funnel_stage: 'enterprise',
+            page_path: window.location.pathname
+          };
+
+          if (typeof posthog !== 'undefined' && posthog && posthog.capture) {
+            posthog.capture('enterprise_license_requested', properties);
+          }
+
+          if (typeof dataLayer !== 'undefined') {
+            dataLayer.push(Object.assign({ event: 'enterprise_license_requested' }, properties));
+          }
+
+          return;
+        }
+
+        if (response.status === 429) {
+          setStatus('Too many requests just now. Please email enterprise@oneuptime.com.', true);
+          return;
+        }
+
+        setStatus('Something went wrong. Please email enterprise@oneuptime.com.', true);
+      }).catch(function () {
+        setStatus('Something went wrong. Please email enterprise@oneuptime.com.', true);
+      }).then(function () {
+        submit.disabled = false;
+      });
+    });
+  })();
+</script>

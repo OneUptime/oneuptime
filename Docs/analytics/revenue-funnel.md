@@ -13,10 +13,13 @@ Manager `dataLayer`. Event names and properties are defined in
 | Collaboration | `teammate_invited`        | A project invitation is successfully created.                                   |
 | Revenue       | `subscription_upgraded`   | A project moves to a higher plan. `is_paid_conversion` identifies free-to-paid. |
 | Revenue       | `subscription_downgraded` | A project moves to a lower plan.                                                |
+| Enterprise    | `enterprise_license_requested` | An enterprise licence / architecture assessment request is submitted.      |
 
-Sales-led bookings are tracked separately — see
+Sales-led conversions are tracked separately — see
 [enterprise-conversion-tracking.md](./enterprise-conversion-tracking.md) for
-`meeting_booked` and the server-confirmed conversion ledger behind it.
+`meeting_booked`, `enterprise_license_requested` and the server-confirmed
+conversion ledger behind them. As with `meeting_booked`, the browser event is
+analytics evidence; the commercial record is the ledger row the API wrote.
 
 ## GA4 setup
 
@@ -53,7 +56,7 @@ To build it by hand instead:
   **matches RegEx**:
 
   ```
-  ^(signup_started|sign_up|workspace_created|monitor_created|teammate_invited|subscription_upgraded|subscription_downgraded|meeting_booked|cta_get_started|cta_request_demo|page_view_pricing|page_view_demo)$
+  ^(signup_started|sign_up|workspace_created|monitor_created|teammate_invited|subscription_upgraded|subscription_downgraded|meeting_booked|enterprise_license_requested|cta_get_started|cta_request_demo|page_view_pricing|page_view_demo)$
   ```
 
 - **Tag** — `GA4 - OneUptime Key Events`, type Google Analytics: GA4 Event,
@@ -101,9 +104,10 @@ Current state:
 | `subscription_upgraded`   | not yet   | Carries `value`/`currency`. Cannot be starred until it fires once — nobody has changed plan yet. |
 | `subscription_downgraded` | not yet   | Same.                                                                                            |
 | `meeting_booked`          | not yet   | Same — no booking since the deploy.                                                              |
+| `enterprise_license_requested` | not yet | Same — the form is new. Star it the first time it appears; it is the enterprise conversion.  |
 
-`subscription_upgraded`, `subscription_downgraded` and `meeting_booked` are
-the three left. Star each one the first time it appears in the list; until
+`subscription_upgraded`, `subscription_downgraded`, `meeting_booked` and
+`enterprise_license_requested` are the four left. Star each one the first time it appears in the list; until
 then GA4 has nothing to star.
 
 `subscription_upgraded` is worth a closer look when it does arrive — it is the
@@ -135,6 +139,16 @@ once, through the `dataLayer` only.
 Use GTM **Preview** on oneuptime.com, trigger a CTA click, and confirm the tag
 fires. Then check **GA4 → Reports → Engagement → Events** the next day: any
 name from the regex appearing there means the path works end to end.
+
+## Consent
+
+None of this reaches Google or PostHog without consent. `window.oneUptimeConsent`
+(Home/Views/head-basic.ejs) gates PostHog loading and pushes Google Consent Mode
+v2 signals before the container loads; the cookie banner's buttons are what move
+it. Until this existed the banner wrote a localStorage key nobody read, so
+"Reject all" rejected nothing. Expect measured volume to reflect acceptance
+rate — see the Consent section of
+[enterprise-conversion-tracking.md](./enterprise-conversion-tracking.md).
 
 ## Safety
 

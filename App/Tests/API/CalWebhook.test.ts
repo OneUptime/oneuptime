@@ -7,6 +7,7 @@ import {
   RouteHandler,
   sign,
 } from "./CalWebhookTestUtil";
+import Attribution from "Common/Server/Utils/Attribution";
 import MarketingConversion from "Common/Models/DatabaseModels/MarketingConversion";
 import MarketingConversionService from "Common/Server/Services/MarketingConversionService";
 import { ExpressRequest, NextFunction } from "Common/Server/Utils/Express";
@@ -330,6 +331,8 @@ describe("CalWebhook", () => {
         conversionAt: new Date("2026-08-19T10:00:00.000Z"),
         email: "buyer@example.com",
         clickIds: { gclid: "google-click", fbclid: "meta-click" },
+        // No UTM parameters in this payload, and no first touch either.
+        utm: {},
       });
     });
 
@@ -625,6 +628,190 @@ describe("CalWebhook", () => {
       });
     });
 
+    /*
+     * ---------------------------------------------------------------------
+     * Campaign attribution.
+     *
+     * This half of the payload is what the demo branch of the funnel was
+     * missing entirely. The webhook parsed click ids while the embed sent no
+     * metadata at all, so every booked demo landed in the ledger attributable
+     * to nothing — and a click id alone cannot name a campaign anyway.
+     *
+     * Cal metadata is free-form customer content, so exactly the same rules
+     * apply as to the click ids: whitelist the keys, bound the values, and
+     * copy nothing else.
+     * ---------------------------------------------------------------------
+     */
+    describe("campaign attribution", () => {
+      test("reads every UTM parameter out of booking metadata", () => {
+        expect(
+          parseCalBookingConversion(
+            bookingCreatedBody({
+              metadata: {
+                utm_source: "google",
+                utm_medium: "cpc",
+                utm_campaign: "enterprise-observability",
+                utm_term: "datadog alternative",
+                utm_content: "demo-cta-b",
+                utm_url: "https://oneuptime.com/enterprise/demo?gclid=abc",
+              },
+            }),
+          ),
+        ).toMatchObject({
+          utm: {
+            utmSource: "google",
+            utmMedium: "cpc",
+            utmCampaign: "enterprise-observability",
+            utmTerm: "datadog alternative",
+            utmContent: "demo-cta-b",
+            utmUrl: "https://oneuptime.com/enterprise/demo?gclid=abc",
+          },
+        });
+      });
+
+      test("reads UTMs out of booking question answers too", () => {
+        expect(
+          parseCalBookingConversion(
+            bookingCreatedBody({
+              responses: {
+                utm_campaign: { label: "Campaign", value: "conference-2026" },
+              },
+            }),
+          ),
+        ).toMatchObject({ utm: { utmCampaign: "conference-2026" } });
+      });
+
+      test("reads UTMs out of nested booking metadata", () => {
+        expect(
+          parseCalBookingConversion(
+            bookingCreatedBody({
+              booking: { metadata: { utm_source: "newsletter" } },
+            }),
+          ),
+        ).toMatchObject({ utm: { utmSource: "newsletter" } });
+      });
+
+      test("keeps a campaign that arrived with no click id at all", () => {
+        // A newsletter or conference link no ad platform ever tagged.
+        expect(
+          parseCalBookingConversion(
+            bookingCreatedBody({ metadata: { utm_source: "newsletter" } }),
+          ),
+        ).toMatchObject({
+          clickIds: {},
+          utm: { utmSource: "newsletter" },
+        });
+      });
+
+      test("drops metadata keys that are not UTMs or click ids", () => {
+        const parsed: CalBookingConversion | null = parseCalBookingConversion(
+          bookingCreatedBody({
+            metadata: {
+              utm_source: "google",
+              internalNote: "must-not-be-retained",
+              phone: "+1 555 0100",
+            },
+          }),
+        );
+
+        expect(JSON.stringify(parsed)).not.toContain("must-not-be-retained");
+        expect(JSON.stringify(parsed)).not.toContain("555 0100");
+      });
+
+      test("caps a UTM value at 500 characters", () => {
+        const parsed: CalBookingConversion | null = parseCalBookingConversion(
+          bookingCreatedBody({
+            metadata: { utm_campaign: "c".repeat(900) },
+          }),
+        );
+
+        expect(parsed?.utm.utmCampaign).toBe("c".repeat(500));
+      });
+    });
+
+    /*
+     * ---------------------------------------------------------------------
+     * First touch.
+     *
+     * Cal metadata values are scalars, so the visitor's first attributed visit
+     * travels as one JSON string. Parsing caller-supplied JSON is only safe
+     * because nothing structural is trusted afterwards — the result goes
+     * straight through the same whitelist the signup path uses.
+     *
+     * And a first touch that cannot be parsed must never cost the booking: the
+     * booking IS the conversion, the attribution is a bonus.
+     * ---------------------------------------------------------------------
+     */
+    describe("first touch", () => {
+      test("parses the JSON blob the embed sends", () => {
+        expect(
+          parseCalBookingConversion(
+            bookingCreatedBody({
+              metadata: {
+                ou_first_touch: JSON.stringify({
+                  utmSource: "google",
+                  utmCampaign: "first-campaign",
+                  landingUrl: "https://oneuptime.com/?gclid=abc",
+                  referrer: "https://google.com/",
+                  timestamp: "2026-06-01T09:00:00.000Z",
+                  clickIds: { gclid: "abc" },
+                }),
+              },
+            }),
+          ),
+        ).toMatchObject({
+          firstTouchAttribution: {
+            utmSource: "google",
+            utmCampaign: "first-campaign",
+            landingUrl: "https://oneuptime.com/?gclid=abc",
+            referrer: "https://google.com/",
+            timestamp: "2026-06-01T09:00:00.000Z",
+            clickIds: { gclid: "abc" },
+          },
+        });
+      });
+
+      test("whitelists the keys inside the blob", () => {
+        const parsed: CalBookingConversion | null = parseCalBookingConversion(
+          bookingCreatedBody({
+            metadata: {
+              ou_first_touch: JSON.stringify({
+                utmSource: "google",
+                attackerControlledKey: "must-not-be-retained",
+                clickIds: { arbitrary: "must-not-be-retained" },
+              }),
+            },
+          }),
+        );
+
+        expect(parsed?.firstTouchAttribution).toEqual({ utmSource: "google" });
+      });
+
+      test.each([
+        ["malformed JSON", "{not json"],
+        ["a JSON array", "[1,2,3]"],
+        ["a JSON scalar", '"just a string"'],
+        ["an oversized blob", JSON.stringify({ utmSource: "s".repeat(5000) })],
+      ])(
+        "keeps the booking and drops the first touch for %s",
+        (_label: string, blob: string) => {
+          const parsed: CalBookingConversion | null = parseCalBookingConversion(
+            bookingCreatedBody({ metadata: { ou_first_touch: blob } }),
+          );
+
+          expect(parsed?.bookingId).toBe("booking-123");
+          expect(parsed?.firstTouchAttribution).toBeUndefined();
+        },
+      );
+
+      test("omits the key entirely when no first touch was sent", () => {
+        const parsed: CalBookingConversion | null =
+          parseCalBookingConversion(bookingCreatedBody());
+
+        expect(parsed).not.toHaveProperty("firstTouchAttribution");
+      });
+    });
+
     test.each([
       ["a missing payload", {}],
       ["a null payload", { payload: null }],
@@ -807,6 +994,92 @@ describe("CalWebhook", () => {
       );
       expect(conversion.email).toBe("buyer@example.com");
       expect(conversion.clickIds).toEqual({ gclid: "google-click" });
+    });
+
+    /*
+     * The attribution the embed carried has to land on the ROW, not just be
+     * parsed — the campaign columns are what makes a booked demo reportable,
+     * and emailHash is the only thing that can later join this booking to the
+     * signup it produced.
+     */
+    test("persists the campaign attribution onto the conversion row", async () => {
+      await callRoute(
+        buildSignedRequest({
+          body: bookingCreatedBody({
+            metadata: {
+              utm_source: "google",
+              utm_medium: "cpc",
+              utm_campaign: "enterprise-observability",
+              utm_term: "datadog alternative",
+              utm_content: "demo-cta-b",
+              utm_url: "https://oneuptime.com/enterprise/demo?gclid=abc",
+              ou_first_touch: JSON.stringify({
+                utmSource: "linkedin",
+                landingUrl: "https://oneuptime.com/enterprise",
+              }),
+            },
+          }),
+          secret: SECRET,
+        }),
+      );
+
+      const conversion: MarketingConversion = createdConversion();
+
+      expect(conversion.utmSource).toBe("google");
+      expect(conversion.utmMedium).toBe("cpc");
+      expect(conversion.utmCampaign).toBe("enterprise-observability");
+      expect(conversion.utmTerm).toBe("datadog alternative");
+      expect(conversion.utmContent).toBe("demo-cta-b");
+      expect(conversion.utmUrl).toBe(
+        "https://oneuptime.com/enterprise/demo?gclid=abc",
+      );
+      /*
+       * First touch is preserved separately from last touch: the campaign that
+       * introduced this person is not the one that produced the booking.
+       */
+      expect(conversion.firstTouchAttribution).toEqual({
+        utmSource: "linkedin",
+        landingUrl: "https://oneuptime.com/enterprise",
+      });
+    });
+
+    test("stores the SHA-256 of the attendee email as emailHash", async () => {
+      await callRoute(
+        buildSignedRequest({
+          body: bookingCreatedBody({
+            attendees: [{ email: "BUYER@Example.com" }],
+          }),
+          secret: SECRET,
+        }),
+      );
+
+      expect(createdConversion().emailHash).toBe(
+        Attribution.hashEmail("buyer@example.com"),
+      );
+    });
+
+    test("stores no emailHash when the booking carried no attendee email", async () => {
+      await callRoute(
+        buildSignedRequest({
+          body: bookingCreatedBody({ attendees: [] }),
+          secret: SECRET,
+        }),
+      );
+
+      expect(createdConversion().emailHash).toBeUndefined();
+    });
+
+    /*
+     * Chains are computed by the worker, which is the only thing that can see
+     * more than one conversion at once. A writer guessing at one would be
+     * guessing.
+     */
+    test("never links the booking to another conversion itself", async () => {
+      await callRoute(
+        buildSignedRequest({ body: bookingCreatedBody(), secret: SECRET }),
+      );
+
+      expect(createdConversion().attributedToConversionId).toBeUndefined();
     });
 
     /*

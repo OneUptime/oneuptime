@@ -1,5 +1,4 @@
 import axios, { AxiosResponse } from "axios";
-import crypto from "crypto";
 import {
   MetaConversionsAccessToken,
   MetaConversionsPixelId,
@@ -7,9 +6,11 @@ import {
 } from "../../../EnvironmentConfig";
 import ConversionUploadProvider, {
   ConversionSkip,
+  ConversionTypeMapping,
   ConversionUploadBatchResult,
 } from "../ConversionUploadProvider";
 import { JSONObject } from "../../../../Types/JSON";
+import { MarketingConversionType } from "../../../../Types/Marketing/MarketingConversion";
 import MarketingConversion from "../../../../Models/DatabaseModels/MarketingConversion";
 
 const REQUEST_TIMEOUT_MS: number = 30000;
@@ -23,6 +24,11 @@ const META_MAX_EVENT_AGE_IN_DAYS: number = 7;
  * per Meta's customer-information matching spec; the raw email never leaves
  * OneUptime. event_id is the conversion row id, so Meta deduplicates
  * retried uploads (and browser-pixel duplicates) server-side.
+ *
+ * An event is uploadable with a click id, a hashed email, or both — Meta
+ * matches on either. Requiring fbclid, as this provider used to, discarded
+ * every conversion whose click id had not survived to the moment of
+ * conversion, which is most of a sales-led funnel.
  */
 export default class MetaProvider extends ConversionUploadProvider {
   public override readonly key: string = "meta";
@@ -35,9 +41,19 @@ export default class MetaProvider extends ConversionUploadProvider {
   protected override getProviderSkipReason(
     conversion: MarketingConversion,
   ): ConversionSkip | null {
-    if (!this.getClickId(conversion, "fbclid")) {
+    if (
+      !this.getClickId(conversion, "fbclid") &&
+      !this.getHashedEmail(conversion)
+    ) {
       return {
-        reason: "No Meta click id (fbclid)",
+        reason: "No Meta click id (fbclid) and no email to match on",
+        isPermanent: true,
+      };
+    }
+
+    if (!this.getEventName(conversion)) {
+      return {
+        reason: "No Meta event name mapped for this conversion type",
         isPermanent: true,
       };
     }
@@ -52,11 +68,20 @@ export default class MetaProvider extends ConversionUploadProvider {
     return null;
   }
 
-  private hashEmail(email: string): string {
-    return crypto
-      .createHash("sha256")
-      .update(email.trim().toLowerCase())
-      .digest("hex");
+  /*
+   * Standard Meta event names. `Schedule` and `Lead` are the two Meta defines
+   * for sales-led steps; neither carries revenue, which is what keeps a booked
+   * meeting out of the Purchase optimisation pool.
+   */
+  private getEventName(conversion: MarketingConversion): string | undefined {
+    const mapping: ConversionTypeMapping<string> = {
+      [MarketingConversionType.SignUp]: "CompleteRegistration",
+      [MarketingConversionType.MeetingBooked]: "Schedule",
+      [MarketingConversionType.EnterpriseLicenseRequested]: "Lead",
+      [MarketingConversionType.PaidSubscription]: "Purchase",
+    };
+
+    return this.resolveByConversionType(conversion, mapping);
   }
 
   /*
@@ -74,20 +99,28 @@ export default class MetaProvider extends ConversionUploadProvider {
     const data: Array<JSONObject> = conversions.map(
       (conversion: MarketingConversion) => {
         const eventAt: Date = conversion.conversionAt || new Date();
-        const fbclid: string = this.getClickId(conversion, "fbclid") || "";
+        const fbclid: string | undefined = this.getClickId(
+          conversion,
+          "fbclid",
+        );
 
-        const userData: JSONObject = {
-          fbc: this.buildFbc(fbclid, eventAt),
-        };
+        const userData: JSONObject = {};
 
-        if (conversion.email) {
-          userData["em"] = [this.hashEmail(conversion.email)];
+        // Only send fbc when there is a click id to build it from.
+        if (fbclid) {
+          userData["fbc"] = this.buildFbc(fbclid, eventAt);
         }
 
-        const isSignUp: boolean = this.isSignUp(conversion);
+        const hashedEmail: string | undefined = this.getHashedEmail(conversion);
+
+        if (hashedEmail) {
+          userData["em"] = [hashedEmail];
+        }
+
+        const eventName: string = this.getEventName(conversion) || "Lead";
 
         const payload: JSONObject = {
-          event_name: isSignUp ? "CompleteRegistration" : "Purchase",
+          event_name: eventName,
           event_time: Math.floor(eventAt.getTime() / 1000),
           event_id: conversion.id!.toString(),
           /*
@@ -104,9 +137,11 @@ export default class MetaProvider extends ConversionUploadProvider {
         /*
          * Purchase events REQUIRE custom_data.value and currency — one
          * valueless Purchase (custom-pricing plan) would 400 the entire
-         * batch. Send 0 when the value is unknown.
+         * batch. Send 0 when the value is unknown. Lead-shaped events
+         * (Schedule, Lead) never carry a value: getValueInUSD returns
+         * undefined for them, so no custom_data is attached at all.
          */
-        if (!isSignUp || valueInUSD !== undefined) {
+        if (eventName === "Purchase" || valueInUSD !== undefined) {
           payload["custom_data"] = {
             value: valueInUSD ?? 0,
             currency: "USD",

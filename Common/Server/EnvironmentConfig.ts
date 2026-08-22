@@ -400,11 +400,38 @@ export const GoogleAdsLoginCustomerId: string =
  */
 export const GoogleAdsApiVersion: string =
   process.env["GOOGLE_ADS_API_VERSION"] || "v23";
-// Numeric conversion action ids from Google Ads (Goals -> Conversions).
+/*
+ * Numeric conversion action ids from Google Ads (Goals -> Conversions). One
+ * per conversion type: the provider maps types to actions exhaustively, and an
+ * empty value leaves that type pending rather than uploading it under some
+ * other type's action.
+ */
 export const GoogleAdsSignUpConversionActionId: string =
   process.env["GOOGLE_ADS_SIGNUP_CONVERSION_ACTION_ID"] || "";
 export const GoogleAdsPaidSubscriptionConversionActionId: string =
   process.env["GOOGLE_ADS_PAID_SUBSCRIPTION_CONVERSION_ACTION_ID"] || "";
+export const GoogleAdsMeetingBookedConversionActionId: string =
+  process.env["GOOGLE_ADS_MEETING_BOOKED_CONVERSION_ACTION_ID"] || "";
+export const GoogleAdsEnterpriseLicenseRequestConversionActionId: string =
+  process.env["GOOGLE_ADS_ENTERPRISE_LICENSE_REQUEST_CONVERSION_ACTION_ID"] ||
+  "";
+
+/*
+ * Enhanced conversions for leads: upload a conversion identified ONLY by a
+ * hashed email, with no gclid at all.
+ *
+ * This is the mechanism that makes a sales-led funnel measurable — a demo
+ * booked in June and a licence signed in October share an email and nothing
+ * else. It is off by default because it is not purely a OneUptime-side switch:
+ * the Google Ads account must have enhanced conversions for leads turned on
+ * and the conversion action configured for it, and uploading email-only
+ * conversions to an account without that returns a per-conversion rejection.
+ *
+ * Hashing the email ALONGSIDE a click id needs no flag and is always sent — it
+ * only improves the match rate of a conversion that was uploadable anyway.
+ */
+export const GoogleAdsEnhancedConversionsForLeadsEnabled: boolean =
+  process.env["GOOGLE_ADS_ENHANCED_CONVERSIONS_FOR_LEADS_ENABLED"] === "true";
 
 // Meta (Facebook) Conversions API. Server-only secrets.
 export const MetaConversionsPixelId: string =
@@ -432,6 +459,10 @@ export const MicrosoftAdsSignUpConversionName: string =
   process.env["MICROSOFT_ADS_SIGNUP_CONVERSION_NAME"] || "";
 export const MicrosoftAdsPaidSubscriptionConversionName: string =
   process.env["MICROSOFT_ADS_PAID_SUBSCRIPTION_CONVERSION_NAME"] || "";
+export const MicrosoftAdsMeetingBookedConversionName: string =
+  process.env["MICROSOFT_ADS_MEETING_BOOKED_CONVERSION_NAME"] || "";
+export const MicrosoftAdsEnterpriseLicenseRequestConversionName: string =
+  process.env["MICROSOFT_ADS_ENTERPRISE_LICENSE_REQUEST_CONVERSION_NAME"] || "";
 
 // LinkedIn Conversions API. Server-only secrets.
 export const LinkedInConversionsAccessToken: string =
@@ -448,6 +479,10 @@ export const LinkedInSignUpConversionId: string =
   process.env["LINKEDIN_SIGNUP_CONVERSION_ID"] || "";
 export const LinkedInPaidSubscriptionConversionId: string =
   process.env["LINKEDIN_PAID_SUBSCRIPTION_CONVERSION_ID"] || "";
+export const LinkedInMeetingBookedConversionId: string =
+  process.env["LINKEDIN_MEETING_BOOKED_CONVERSION_ID"] || "";
+export const LinkedInEnterpriseLicenseRequestConversionId: string =
+  process.env["LINKEDIN_ENTERPRISE_LICENSE_REQUEST_CONVERSION_ID"] || "";
 
 // Reddit Conversions API. Server-only secrets.
 export const RedditAdsOAuthClientId: string =
@@ -458,6 +493,14 @@ export const RedditAdsOAuthRefreshToken: string =
   process.env["REDDIT_ADS_OAUTH_REFRESH_TOKEN"] || "";
 export const RedditAdsAccountId: string =
   process.env["REDDIT_ADS_ACCOUNT_ID"] || "";
+
+/*
+ * Where the enterprise licence / self-hosted assessment form delivers its
+ * leads (App/API/EnterpriseLicenseRequest.ts). The form replaced a mailto:
+ * link, so this address is what that link used to open.
+ */
+export const EnterpriseSalesEmail: string =
+  process.env["ENTERPRISE_SALES_EMAIL"] || "enterprise@oneuptime.com";
 
 export const DisableAutomaticIncidentCreation: boolean =
   process.env["DISABLE_AUTOMATIC_INCIDENT_CREATION"] === "true";
