@@ -13,7 +13,6 @@ import RunbookRoutes from "./FeatureSet/Runbook/Index";
 import AppMetricsAPI from "./API/Metrics";
 import AdminHealthAPI from "./API/AdminHealth";
 import CalWebhookAPI from "./API/CalWebhook";
-import EnterpriseLicenseRequestAPI from "./API/EnterpriseLicenseRequest";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import {
@@ -157,14 +156,6 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
      * sets that expect an authenticated OneUptime session.
      */
     expressApp.use("/api", CalWebhookAPI);
-
-    /*
-     * The enterprise licence request form on the marketing site posts here. It
-     * is anonymous by design — the whole point is that the person has not
-     * signed up yet — so it is mounted alongside the Cal webhook, ahead of the
-     * feature sets that expect a session.
-     */
-    expressApp.use("/api", EnterpriseLicenseRequestAPI);
 
     // Initialize feature sets
     await IdentityRoutes.init();

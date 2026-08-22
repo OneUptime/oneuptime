@@ -4,7 +4,6 @@ import {
   GoogleAdsCustomerId,
   GoogleAdsDeveloperToken,
   GoogleAdsEnhancedConversionsForLeadsEnabled,
-  GoogleAdsEnterpriseLicenseRequestConversionActionId,
   GoogleAdsLoginCustomerId,
   GoogleAdsMeetingBookedConversionActionId,
   GoogleAdsOAuthClientId,
@@ -150,8 +149,6 @@ export default class GoogleAdsProvider extends ConversionUploadProvider {
       [MarketingConversionType.SignUp]: GoogleAdsSignUpConversionActionId,
       [MarketingConversionType.MeetingBooked]:
         GoogleAdsMeetingBookedConversionActionId,
-      [MarketingConversionType.EnterpriseLicenseRequested]:
-        GoogleAdsEnterpriseLicenseRequestConversionActionId,
       [MarketingConversionType.PaidSubscription]:
         GoogleAdsPaidSubscriptionConversionActionId,
     };

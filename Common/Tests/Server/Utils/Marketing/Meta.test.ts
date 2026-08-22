@@ -185,7 +185,6 @@ describe("MetaProvider", () => {
     test.each([
       [MarketingConversionType.SignUp, "CompleteRegistration"],
       [MarketingConversionType.MeetingBooked, "Schedule"],
-      [MarketingConversionType.EnterpriseLicenseRequested, "Lead"],
       [MarketingConversionType.PaidSubscription, "Purchase"],
     ])(
       "sends %s as %s",
@@ -210,10 +209,7 @@ describe("MetaProvider", () => {
      * carrying the row's value would teach Meta's optimiser that demos are
      * revenue.
      */
-    test.each([
-      MarketingConversionType.MeetingBooked,
-      MarketingConversionType.EnterpriseLicenseRequested,
-    ])(
+    test.each([MarketingConversionType.MeetingBooked])(
       "attaches no custom_data to %s even when the row holds a value",
       async (conversionType: MarketingConversionType) => {
         postSpy.mockResolvedValueOnce(

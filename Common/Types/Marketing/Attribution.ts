@@ -3,20 +3,19 @@
  * writes it.
  *
  * Attribution starts in the browser (Home/Views/head-basic.ejs stores it in
- * localStorage) and reaches the server through three unrelated doors:
+ * localStorage) and reaches the server through two unrelated doors:
  *
  *   - the signup form (App/FeatureSet/Accounts/src/Pages/Register.tsx), which
  *     posts it onto the User record;
  *   - the Cal.com booking webhook (App/API/CalWebhook.ts), which reads it back
- *     out of booking metadata the embed carried;
- *   - the enterprise licence request form (App/API/EnterpriseLicenseRequest.ts).
+ *     out of the booking metadata the embed carried. Every page that books —
+ *     /enterprise/demo, /support, /enterprise/self-hosted — goes through it.
  *
- * Every one of those doors is reachable by an unauthenticated caller, so all
- * three must whitelist and length-bound what they accept. Keeping the key
- * lists here rather than in each door means a key added for the browser cannot
- * be silently dropped by one of the readers — which is exactly what happened
- * to UTM parameters on the Cal path, where the webhook parsed click IDs the
- * embed never sent.
+ * Both doors are reachable by an unauthenticated caller, so both must whitelist
+ * and length-bound what they accept. Keeping the key lists here rather than in
+ * each door means a key added for the browser cannot be silently dropped by one
+ * of the readers — which is exactly what happened to UTM parameters on the Cal
+ * path, where the webhook parsed click IDs the embed never sent.
  */
 
 // Ad-platform click identifiers, in the spelling each platform uses on the URL.

@@ -74,15 +74,14 @@ export default class RedditProvider extends ConversionUploadProvider {
   }
 
   /*
-   * Reddit standard tracking types. Both sales-led steps are `Lead`: Reddit
-   * has no distinct "meeting booked" type, and reporting either as Purchase
-   * would put a demo into the same optimisation pool as revenue.
+   * Reddit standard tracking types. A booked meeting is `Lead`: Reddit has no
+   * distinct "meeting booked" type, and reporting it as Purchase would put a
+   * demo into the same optimisation pool as revenue.
    */
   private getTrackingType(conversion: MarketingConversion): string | undefined {
     const mapping: ConversionTypeMapping<string> = {
       [MarketingConversionType.SignUp]: "SignUp",
       [MarketingConversionType.MeetingBooked]: "Lead",
-      [MarketingConversionType.EnterpriseLicenseRequested]: "Lead",
       [MarketingConversionType.PaidSubscription]: "Purchase",
     };
 

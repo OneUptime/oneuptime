@@ -1476,10 +1476,6 @@ describe("UploadMarketingConversions", () => {
         id: "mixed-meeting",
         type: MarketingConversionType.MeetingBooked,
       });
-      const licence: MarketingConversion = makeConversion({
-        id: "mixed-licence",
-        type: MarketingConversionType.EnterpriseLicenseRequested,
-      });
       const paid: MarketingConversion = makeConversion({
         id: "mixed-paid",
         type: MarketingConversionType.PaidSubscription,
@@ -1490,20 +1486,12 @@ describe("UploadMarketingConversions", () => {
       });
       jest
         .spyOn(MarketingConversionService, "findBy")
-        .mockResolvedValue([
-          signUp,
-          meeting,
-          licence,
-          paid,
-          unknownType,
-        ] as never);
+        .mockResolvedValue([signUp, meeting, paid, unknownType] as never);
       const provider: TestProvider = new TestProvider();
 
       await uploadToProvider(provider);
 
-      expect(provider.uploadedBatches).toEqual([
-        [signUp, meeting, licence, paid],
-      ]);
+      expect(provider.uploadedBatches).toEqual([[signUp, meeting, paid]]);
     });
 
     // Permanent, so the next run filters it out rather than re-skipping it.

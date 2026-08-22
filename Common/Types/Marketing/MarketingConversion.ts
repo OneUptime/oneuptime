@@ -2,12 +2,6 @@ export enum MarketingConversionType {
   SignUp = "SignUp",
   // A verified Cal.com booking. See Docs/analytics/enterprise-conversion-tracking.md.
   MeetingBooked = "MeetingBooked",
-  /*
-   * A submitted enterprise licence / self-hosted assessment request. Written
-   * by App/API/EnterpriseLicenseRequest.ts, which replaced the mailto: link
-   * that made this step of the funnel unmeasurable.
-   */
-  EnterpriseLicenseRequested = "EnterpriseLicenseRequested",
   PaidSubscription = "PaidSubscription",
 }
 
@@ -32,7 +26,6 @@ export const AdUploadableMarketingConversionTypes: Array<MarketingConversionType
   [
     MarketingConversionType.SignUp,
     MarketingConversionType.MeetingBooked,
-    MarketingConversionType.EnterpriseLicenseRequested,
     MarketingConversionType.PaidSubscription,
   ];
 
@@ -42,10 +35,14 @@ export const AdUploadableMarketingConversionTypes: Array<MarketingConversionType
  * money — so providers must not attach a conversion value to them even when
  * the row happens to have one, and platforms that demand a value for their
  * purchase-shaped events must not be handed these as purchases.
+ *
+ * Every sales-led step is a booked meeting. The enterprise licence request is
+ * not a separate type: asking about a licence and booking an architecture
+ * assessment are the same conversation, reached through the same Cal embed, so
+ * they are the same conversion.
  */
 export const LeadMarketingConversionTypes: Array<MarketingConversionType> = [
   MarketingConversionType.MeetingBooked,
-  MarketingConversionType.EnterpriseLicenseRequested,
 ];
 
 export enum MarketingConversionUploadStatus {

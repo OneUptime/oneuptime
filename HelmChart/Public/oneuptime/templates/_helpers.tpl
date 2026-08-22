@@ -216,8 +216,6 @@ its userlist at startup.
   value: {{ default "" ((($.Values.marketing).googleAds).paidSubscriptionConversionActionId) | quote }}
 - name: GOOGLE_ADS_MEETING_BOOKED_CONVERSION_ACTION_ID
   value: {{ default "" ((($.Values.marketing).googleAds).meetingBookedConversionActionId) | quote }}
-- name: GOOGLE_ADS_ENTERPRISE_LICENSE_REQUEST_CONVERSION_ACTION_ID
-  value: {{ default "" ((($.Values.marketing).googleAds).enterpriseLicenseRequestConversionActionId) | quote }}
 - name: GOOGLE_ADS_ENHANCED_CONVERSIONS_FOR_LEADS_ENABLED
   value: {{ ternary "true" "false" (default false ((($.Values.marketing).googleAds).enhancedConversionsForLeadsEnabled)) | quote }}
 - name: META_CONVERSIONS_PIXEL_ID
@@ -244,8 +242,6 @@ its userlist at startup.
   value: {{ default "" ((($.Values.marketing).microsoftAds).paidSubscriptionConversionName) | quote }}
 - name: MICROSOFT_ADS_MEETING_BOOKED_CONVERSION_NAME
   value: {{ default "" ((($.Values.marketing).microsoftAds).meetingBookedConversionName) | quote }}
-- name: MICROSOFT_ADS_ENTERPRISE_LICENSE_REQUEST_CONVERSION_NAME
-  value: {{ default "" ((($.Values.marketing).microsoftAds).enterpriseLicenseRequestConversionName) | quote }}
 - name: LINKEDIN_CONVERSIONS_ACCESS_TOKEN
   value: {{ default "" ((($.Values.marketing).linkedInConversions).accessToken) | quote }}
 - name: LINKEDIN_API_VERSION
@@ -256,8 +252,6 @@ its userlist at startup.
   value: {{ default "" ((($.Values.marketing).linkedInConversions).paidSubscriptionConversionId) | quote }}
 - name: LINKEDIN_MEETING_BOOKED_CONVERSION_ID
   value: {{ default "" ((($.Values.marketing).linkedInConversions).meetingBookedConversionId) | quote }}
-- name: LINKEDIN_ENTERPRISE_LICENSE_REQUEST_CONVERSION_ID
-  value: {{ default "" ((($.Values.marketing).linkedInConversions).enterpriseLicenseRequestConversionId) | quote }}
 - name: REDDIT_ADS_OAUTH_CLIENT_ID
   value: {{ default "" ((($.Values.marketing).redditAds).oauthClientId) | quote }}
 - name: REDDIT_ADS_OAUTH_CLIENT_SECRET
@@ -268,8 +262,6 @@ its userlist at startup.
   value: {{ default "" ((($.Values.marketing).redditAds).accountId) | quote }}
 - name: CAL_WEBHOOK_SECRET
   value: {{ default "" ((($.Values.marketing).cal).webhookSecret) | quote }}
-- name: ENTERPRISE_SALES_EMAIL
-  value: {{ default "enterprise@oneuptime.com" ((($.Values.marketing).enterprise).salesEmail) | quote }}
 - name: CAPTCHA_ENABLED
   value: {{ ternary "true" "false" (default false $.Values.captcha.enabled) | quote }}
 - name: CAPTCHA_SITE_KEY

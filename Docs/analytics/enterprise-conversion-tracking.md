@@ -9,7 +9,6 @@ platforms.
 | Concern                                                   | Source of truth                                    | Notes                                                                                                                                      |
 | --------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | A meeting was booked                                      | `MarketingConversion` ledger                       | Written only after a signature-verified Cal `BOOKING_CREATED` webhook. Browser events are supporting diagnostics, not proof of conversion. |
-| An enterprise licence was requested                       | `MarketingConversion` ledger                       | Written by `POST /api/enterprise-license-request`. The lead itself (name, company, message) is emailed to sales and is not stored.          |
 | Booking details                                           | Cal.com                                            | The webhook supplies the booking identifier and time. Copied browser payloads are not authoritative.                                       |
 | Contact, account, deal, qualification, and pipeline stage | Native Revenue                                     | A meeting conversion does not create, qualify, or advance Revenue records.                                                                 |
 | Campaign attribution for a conversion                     | `MarketingConversion` utm\* columns + `clickIds`   | Copied from the User/Project, or read from Cal booking metadata. Reportable without asking an ad platform.                                  |
@@ -23,12 +22,13 @@ request bytes, the App verifies them, and only then does the App write the
 ledger. Analytics and ad-platform delivery are best-effort consumers downstream
 of that; neither may block booking or Revenue workflows.
 
-`POST /api/enterprise-license-request` is the trust boundary for a licence
-request, and it is a weaker one on purpose: the caller is a browser, so there is
-no signature to verify — any secret it held would be public. What stands in for
-one is that nothing structural is trusted (fields are whitelisted and
-length-bounded), the row's primary key is derived from the email so
-resubmitting cannot inflate the ledger, and a fail-open throttle bounds volume.
+There is exactly one door into a sales-led conversion, and it is that webhook.
+The enterprise licence conversation is not a separate conversion type: asking
+about a licence and booking an architecture assessment are the same
+conversation, so `/enterprise/self-hosted` books through the same Cal embed and
+the same verified webhook as `/enterprise/demo`. One type, one flow, one thing
+to keep working — rather than a second public endpoint, a second conversion
+action on five ad platforms, and a signal split across two names.
 
 ## Canonical `meeting_booked` semantics
 
@@ -177,14 +177,13 @@ The defence is now structural. Providers resolve their action through a
 member of the enum is named — so adding a conversion type is a build error in
 every provider until that provider says what the new type means on its platform.
 
-| Type                         | Google Ads / Microsoft / LinkedIn | Meta                   | Reddit     | Value    |
-| ---------------------------- | --------------------------------- | ---------------------- | ---------- | -------- |
-| `SignUp`                     | Its own conversion action         | `CompleteRegistration` | `SignUp`   | none     |
-| `MeetingBooked`              | Its own conversion action         | `Schedule`             | `Lead`     | **none** |
-| `EnterpriseLicenseRequested` | Its own conversion action         | `Lead`                 | `Lead`     | **none** |
-| `PaidSubscription`           | Its own conversion action         | `Purchase`             | `Purchase` | MRR      |
+| Type               | Google Ads / Microsoft / LinkedIn | Meta                   | Reddit     | Value    |
+| ------------------ | --------------------------------- | ---------------------- | ---------- | -------- |
+| `SignUp`           | Its own conversion action         | `CompleteRegistration` | `SignUp`   | none     |
+| `MeetingBooked`    | Its own conversion action         | `Schedule`             | `Lead`     | **none** |
+| `PaidSubscription` | Its own conversion action         | `Purchase`             | `Purchase` | MRR      |
 
-The two sales-led types never carry revenue, whatever the row holds
+`MeetingBooked` never carries revenue, whatever the row holds
 (`ConversionUploadProvider.getValueInUSD` suppresses it), or a bid model would
 optimise towards demos that buy nothing.
 
@@ -226,7 +225,7 @@ every window even when the deal it produces does not.
 
 ## Conversion chains
 
-Four conversion types are written by four unrelated code paths that each see one
+Three conversion types are written by unrelated code paths that each see one
 moment: a booked meeting has no user, a signup has no booking, a paid
 subscription knows only a project. Nothing in the ledger said that a demo in
 June, a signup in July and a subscription in October were one customer — so
@@ -340,52 +339,6 @@ the keys landed in, if any. If Cal is filtering unknown metadata keys on that
 event type, the fallback is to add hidden booking questions named for each key —
 answers arrive in `payload.responses`, which the parser already reads.
 
-## The enterprise licence request
-
-```text
-POST /api/enterprise-license-request
-```
-
-Anonymous, JSON, and the only writer of `EnterpriseLicenseRequested` rows. It
-replaced a `mailto:enterprise@oneuptime.com` link on `/enterprise/self-hosted`,
-which sent no request to OneUptime and so produced no click ID, no campaign and
-no row — the one step of the funnel where the money is was the one step with no
-measurement at all.
-
-Body: `email` (required), `name`, `company`, `message`, plus attribution as
-either `{ utm, clickIds, firstTouchAttribution }` or flat alongside the contact
-fields.
-
-Responses:
-
-- `200 {"accepted":true,"duplicate":false}` for a new request.
-- `200 {"accepted":true,"duplicate":true}` when that address is already in the
-  ledger.
-- `400` when there is no valid email.
-- `429` when the throttle rejects it.
-
-What it does and does not do:
-
-- **One row per address.** The primary key is derived from the normalized email
-  (`oneuptime/enterprise-license-request:<email>`, same construction as the Cal
-  booking id), so resubmitting cannot inflate what ad platforms are told.
-- **The email is sent every time**, including for a duplicate. The ledger row is
-  the conversion and must not be counted twice; the message is how a human hears
-  about it, and someone resubmitting usually means the first was missed. Mail is
-  best-effort — an SMTP outage must not lose a lead the ledger has accepted.
-- **Nothing free-text is stored.** Name, company and message are emailed and
-  never written to the ledger, because every column of that table is a candidate
-  for forwarding to an ad platform.
-- **It creates no Revenue record.** A form submission is not qualification.
-- **`ENTERPRISE_SALES_EMAIL`** configures the destination.
-
-The throttle (`Common/Server/Middleware/MarketingFormRateLimit.ts`) counts per
-email hash and per trusted client address, and **fails open**: with Redis
-unreachable, leads are accepted. Refusing real leads for the duration of a Redis
-incident costs more than the spam a short unthrottled window admits — the
-opposite of the call `IdentityRateLimit` makes, and correctly so, since there the
-counter is the only thing between an attacker and an account.
-
 ## Consent
 
 Attribution capture, Google Tag Manager and PostHog are all gated on consent
@@ -418,10 +371,10 @@ stored.
    bookings are not joined to Revenue records and the ledger does not claim
    otherwise. (First-touch attribution IS now carried through — see *Attribution
    into and out of a booking* above.)
-2. **Auto-qualification and Deal creation.** `MeetingBooked` records a meeting
-   and `EnterpriseLicenseRequested` records a request; neither is enterprise
-   qualification, technical evaluation, or opportunity acceptance. Native
-   Revenue remains authoritative and must make those calls explicitly.
+2. **Auto-qualification and Deal creation.** `MeetingBooked` records a meeting,
+   not enterprise qualification, technical evaluation, or opportunity
+   acceptance — and in particular not a signed licence. Native Revenue remains
+   authoritative and must make those calls explicitly.
 3. **`QualifiedEnterpriseLead`, `TechnicalEvaluationStarted`,
    `OpportunityCreated`, `ClosedWon`.** Add them only once native Revenue emits
    durable domain events with documented semantics, identifiers, idempotency
@@ -438,7 +391,13 @@ stored.
    nothing for custom pricing, so the largest deals upload with no value and bid
    models see only self-serve revenue. Feeding real contract value in needs a
    source that does not exist here yet.
-7. **Reconciling the legacy browser events.** Dashboards and GTM still mix the
+7. **The remaining `mailto:` CTAs.** `/support` and `/enterprise/demo` still
+   offer `mailto:sales@oneuptime.com`, and the pricing page prompts
+   "contact sales@oneuptime.com" when a visitor self-qualifies as enterprise
+   (>100 monitors, >1TB ingest, >6 months retention, >10M tokens). Those are
+   the same unmeasurable shape the self-hosted page had, and the same fix
+   applies: point them at a booking.
+8. **Reconciling the legacy browser events.** Dashboards and GTM still mix the
    canonical `meeting_booked` with the older `bookingSuccessful`-derived
    events. Separating them, and documenting the historical discontinuity, is
    follow-up work.

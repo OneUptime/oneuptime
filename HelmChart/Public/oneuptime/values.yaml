@@ -999,7 +999,6 @@ marketing:
     signUpConversionActionId:
     paidSubscriptionConversionActionId:
     meetingBookedConversionActionId:
-    enterpriseLicenseRequestConversionActionId:
     # Enhanced conversions for leads: upload a conversion identified ONLY by a
     # hashed email, with no gclid. This is what attributes a sales-led deal
     # months after the click. It requires the Google Ads account to have
@@ -1022,7 +1021,6 @@ marketing:
     signUpConversionName:
     paidSubscriptionConversionName:
     meetingBookedConversionName:
-    enterpriseLicenseRequestConversionName:
   linkedInConversions:
     # LinkedIn access tokens expire (typically 60 days) and must be rotated.
     accessToken:
@@ -1031,7 +1029,6 @@ marketing:
     signUpConversionId:
     paidSubscriptionConversionId:
     meetingBookedConversionId:
-    enterpriseLicenseRequestConversionId:
   redditAds:
     oauthClientId:
     oauthClientSecret:
@@ -1042,10 +1039,6 @@ marketing:
     # the Cal.com webhook pointed at https://<host>/api/cal-webhook. Empty
     # leaves the endpoint disabled.
     webhookSecret:
-  enterprise:
-    # Where the enterprise licence request form delivers its leads. This is the
-    # address the form replaced a mailto: link to.
-    salesEmail: enterprise@oneuptime.com
 
 
 # CAPTCHA Configuration

@@ -3,7 +3,6 @@ import {
   MicrosoftAdsAccountId,
   MicrosoftAdsCustomerId,
   MicrosoftAdsDeveloperToken,
-  MicrosoftAdsEnterpriseLicenseRequestConversionName,
   MicrosoftAdsMeetingBookedConversionName,
   MicrosoftAdsOAuthClientId,
   MicrosoftAdsOAuthClientSecret,
@@ -89,8 +88,6 @@ export default class MicrosoftAdsProvider extends ConversionUploadProvider {
       [MarketingConversionType.SignUp]: MicrosoftAdsSignUpConversionName,
       [MarketingConversionType.MeetingBooked]:
         MicrosoftAdsMeetingBookedConversionName,
-      [MarketingConversionType.EnterpriseLicenseRequested]:
-        MicrosoftAdsEnterpriseLicenseRequestConversionName,
       [MarketingConversionType.PaidSubscription]:
         MicrosoftAdsPaidSubscriptionConversionName,
     };

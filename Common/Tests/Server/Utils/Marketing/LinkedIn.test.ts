@@ -38,7 +38,6 @@ jest.mock("../../../../Server/EnvironmentConfig", () => {
     LinkedInSignUpConversionId: "1111",
     LinkedInPaidSubscriptionConversionId: "2222",
     LinkedInMeetingBookedConversionId: "3333",
-    LinkedInEnterpriseLicenseRequestConversionId: "4444",
   };
 });
 
@@ -162,7 +161,6 @@ describe("LinkedInProvider", () => {
       [MarketingConversionType.SignUp, "1111"],
       [MarketingConversionType.PaidSubscription, "2222"],
       [MarketingConversionType.MeetingBooked, "3333"],
-      [MarketingConversionType.EnterpriseLicenseRequested, "4444"],
     ])(
       "reports %s against its own conversion rule",
       async (
@@ -181,10 +179,7 @@ describe("LinkedInProvider", () => {
       },
     );
 
-    test.each([
-      MarketingConversionType.MeetingBooked,
-      MarketingConversionType.EnterpriseLicenseRequested,
-    ])(
+    test.each([MarketingConversionType.MeetingBooked])(
       "attaches no conversionValue to %s even when the row holds one",
       async (conversionType: MarketingConversionType) => {
         postSpy.mockResolvedValueOnce({} as never);

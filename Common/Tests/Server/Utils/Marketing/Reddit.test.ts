@@ -179,7 +179,6 @@ describe("RedditProvider", () => {
     test.each([
       [MarketingConversionType.SignUp, "SignUp"],
       [MarketingConversionType.MeetingBooked, "Lead"],
-      [MarketingConversionType.EnterpriseLicenseRequested, "Lead"],
       [MarketingConversionType.PaidSubscription, "Purchase"],
     ])(
       "sends %s as %s",
@@ -199,10 +198,7 @@ describe("RedditProvider", () => {
       },
     );
 
-    test.each([
-      MarketingConversionType.MeetingBooked,
-      MarketingConversionType.EnterpriseLicenseRequested,
-    ])(
+    test.each([MarketingConversionType.MeetingBooked])(
       "attaches no revenue to %s even when the row holds a value",
       async (conversionType: MarketingConversionType) => {
         mockUpload(postSpy);

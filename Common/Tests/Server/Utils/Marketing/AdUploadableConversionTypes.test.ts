@@ -113,10 +113,16 @@ describe("ad-uploadable conversion types", () => {
       );
     });
 
-    test("classifies the two sales-led steps as leads", () => {
+    /*
+     * A booked meeting is the ONLY sales-led conversion. Asking about an
+     * enterprise licence and booking an architecture assessment are the same
+     * conversation reached through the same Cal embed, so they are the same
+     * conversion — not two types that would split the signal in reporting and
+     * need separate conversion actions on five platforms.
+     */
+    test("classifies a booked meeting as the only sales-led step", () => {
       expect(LeadMarketingConversionTypes).toEqual([
         MarketingConversionType.MeetingBooked,
-        MarketingConversionType.EnterpriseLicenseRequested,
       ]);
     });
 

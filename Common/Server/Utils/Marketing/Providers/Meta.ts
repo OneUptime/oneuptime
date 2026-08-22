@@ -69,15 +69,14 @@ export default class MetaProvider extends ConversionUploadProvider {
   }
 
   /*
-   * Standard Meta event names. `Schedule` and `Lead` are the two Meta defines
-   * for sales-led steps; neither carries revenue, which is what keeps a booked
-   * meeting out of the Purchase optimisation pool.
+   * Standard Meta event names. `Schedule` is Meta's own name for a booked
+   * meeting, and it carries no revenue — which is what keeps a demo out of the
+   * Purchase optimisation pool.
    */
   private getEventName(conversion: MarketingConversion): string | undefined {
     const mapping: ConversionTypeMapping<string> = {
       [MarketingConversionType.SignUp]: "CompleteRegistration",
       [MarketingConversionType.MeetingBooked]: "Schedule",
-      [MarketingConversionType.EnterpriseLicenseRequested]: "Lead",
       [MarketingConversionType.PaidSubscription]: "Purchase",
     };
 

@@ -2,7 +2,6 @@ import axios, { AxiosError } from "axios";
 import {
   LinkedInApiVersion,
   LinkedInConversionsAccessToken,
-  LinkedInEnterpriseLicenseRequestConversionId,
   LinkedInMeetingBookedConversionId,
   LinkedInPaidSubscriptionConversionId,
   LinkedInSignUpConversionId,
@@ -80,8 +79,6 @@ export default class LinkedInProvider extends ConversionUploadProvider {
       [MarketingConversionType.SignUp]: LinkedInSignUpConversionId,
       [MarketingConversionType.MeetingBooked]:
         LinkedInMeetingBookedConversionId,
-      [MarketingConversionType.EnterpriseLicenseRequested]:
-        LinkedInEnterpriseLicenseRequestConversionId,
       [MarketingConversionType.PaidSubscription]:
         LinkedInPaidSubscriptionConversionId,
     };

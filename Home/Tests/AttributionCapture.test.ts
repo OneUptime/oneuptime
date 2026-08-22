@@ -1,4 +1,5 @@
 import { getPageSEO, PageSEOData } from "../Utils/PageSEO";
+import { getSelfHostedContent } from "../Utils/SelfHosted";
 import ejs from "ejs";
 import path from "path";
 import { beforeAll, describe, expect, test } from "@jest/globals";
@@ -76,6 +77,40 @@ const renderDemo: RenderDemoFunction = async (
     reviewsList2: [],
     reviewsList3: [],
     seo: seoFor("/enterprise/demo"),
+    homeUrl: HOME_URL,
+  });
+};
+
+type RenderBookingPageFunction = (templateFileName: string) => Promise<string>;
+
+/*
+ * Renders any of the three pages that embed a Cal booking. Their locals differ,
+ * so this supplies the union — ejs ignores what a template does not reference.
+ */
+const renderBookingPage: RenderBookingPageFunction = async (
+  templateFileName: string,
+): Promise<string> => {
+  const pagePath: string =
+    templateFileName === "demo.ejs"
+      ? "/enterprise/demo"
+      : templateFileName === "support.ejs"
+        ? "/support"
+        : "/enterprise/self-hosted";
+
+  const seo: PageSEOData = getPageSEO(pagePath);
+
+  return render(templateFileName, {
+    support: false,
+    enableGoogleTagManager: true,
+    footerCards: true,
+    cta: false,
+    blackLogo: true,
+    requestDemoCta: true,
+    reviewsList1: [],
+    reviewsList2: [],
+    reviewsList3: [],
+    selfHosted: getSelfHostedContent(),
+    seo: { ...seo, fullCanonicalUrl: `${HOME_URL}${seo.canonicalPath}` },
     homeUrl: HOME_URL,
   });
 };
@@ -343,6 +378,34 @@ describe("attribution capture and consent", () => {
       expect(embedBlock).toContain("metadata:");
       expect(embedBlock).toContain("window.oneUptimeCalAttributionMetadata()");
     });
+
+    /*
+     * Every page that can book a meeting must carry attribution into it. One
+     * page wired up and another not is the failure mode that produced
+     * un-attributed bookings in the first place, and it is invisible until
+     * somebody reads the ledger months later.
+     */
+    test.each([
+      ["demo.ejs", "my-cal-inline"],
+      ["support.ejs", "my-cal-inline-support"],
+      ["self-hosted.ejs", "my-cal-inline-self-hosted"],
+    ])(
+      "%s carries attribution into its booking",
+      async (templateFileName: string, elementId: string) => {
+        const pageHtml: string = await renderBookingPage(templateFileName);
+        const embedIndex: number = pageHtml.indexOf(
+          `elementOrSelector: "#${elementId}"`,
+        );
+
+        expect(embedIndex).toBeGreaterThan(-1);
+
+        const embedBlock: string = pageHtml.slice(embedIndex, embedIndex + 500);
+
+        expect(embedBlock).toContain(
+          "window.oneUptimeCalAttributionMetadata()",
+        );
+      },
+    );
   });
 
   describe("Google Consent Mode v2", () => {

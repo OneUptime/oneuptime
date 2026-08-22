@@ -15,18 +15,15 @@ import { Column, Entity, Index } from "typeorm";
 
 /*
  * Internal table (no API access) recording server-confirmed conversions —
- * signups, booked meetings, enterprise licence requests and paid subscriptions
- * — together with the attribution the converting visitor carried (ad click
- * IDs, UTM parameters, first touch) and the status of uploading them to ad
- * platforms. Browser analytics never write this table: rows are written by the
- * Cal.com webhook, the enterprise licence request endpoint and the
- * MarketingConversions worker job, which also reads it.
+ * signups, booked meetings and paid subscriptions — together with the
+ * attribution the converting visitor carried (ad click IDs, UTM parameters,
+ * first touch) and the status of uploading them to ad platforms. Browser
+ * analytics never write this table: rows are written by the Cal.com webhook and
+ * the MarketingConversions worker job, which also reads it.
  *
- * Two things this table deliberately is not. It is not a CRM: contact, account
- * and deal records live in Revenue, and nothing here creates or advances them.
- * And it is not a lead inbox: the name, company and message a person types
- * into the enterprise form are emailed to sales and never stored here, because
- * every column in this table is a candidate for forwarding to an ad platform.
+ * This table is deliberately not a CRM. Contact, account and deal records live
+ * in Revenue, and nothing here creates or advances them — a booked meeting is
+ * a measured conversion, not a qualified opportunity.
  */
 @TableAccessControl({
   create: [],
@@ -41,7 +38,7 @@ import { Column, Entity, Index } from "typeorm";
   pluralName: "Marketing Conversions",
   icon: IconProp.ChartBar,
   tableDescription:
-    "Server-confirmed conversions (signups, meetings booked, enterprise licence requests, paid subscriptions), the campaign attribution each carried, and their upload status to ad platforms for offline conversion tracking.",
+    "Server-confirmed conversions (signups, meetings booked, paid subscriptions), the campaign attribution each carried, and their upload status to ad platforms for offline conversion tracking.",
 })
 @Entity({
   name: "MarketingConversion",
@@ -73,8 +70,7 @@ export default class MarketingConversion extends BaseModel {
     type: TableColumnType.ShortText,
     required: true,
     title: "Conversion Type",
-    description:
-      "SignUp, MeetingBooked, EnterpriseLicenseRequested or PaidSubscription.",
+    description: "SignUp, MeetingBooked or PaidSubscription.",
   })
   @Column({
     type: ColumnType.ShortText,

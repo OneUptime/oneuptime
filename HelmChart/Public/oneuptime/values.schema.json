@@ -1417,9 +1417,6 @@
                         "meetingBookedConversionActionId": {
                             "type": ["string", "number", "null"]
                         },
-                        "enterpriseLicenseRequestConversionActionId": {
-                            "type": ["string", "number", "null"]
-                        },
                         "enhancedConversionsForLeadsEnabled": {
                             "type": ["boolean", "null"]
                         }
@@ -1470,9 +1467,6 @@
                         },
                         "meetingBookedConversionName": {
                             "type": ["string", "null"]
-                        },
-                        "enterpriseLicenseRequestConversionName": {
-                            "type": ["string", "null"]
                         }
                     },
                     "additionalProperties": false
@@ -1493,9 +1487,6 @@
                             "type": ["string", "number", "null"]
                         },
                         "meetingBookedConversionId": {
-                            "type": ["string", "number", "null"]
-                        },
-                        "enterpriseLicenseRequestConversionId": {
                             "type": ["string", "number", "null"]
                         }
                     },
@@ -1524,15 +1515,6 @@
                     "properties": {
                         "webhookSecret": {
                             "type": ["string", "number", "null"]
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "enterprise": {
-                    "type": "object",
-                    "properties": {
-                        "salesEmail": {
-                            "type": ["string", "null"]
                         }
                     },
                     "additionalProperties": false

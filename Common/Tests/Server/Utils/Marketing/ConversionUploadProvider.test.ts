@@ -53,7 +53,6 @@ class TestProvider extends ConversionUploadProvider {
     return this.resolveByConversionType(conversion, {
       [MarketingConversionType.SignUp]: "signup-action",
       [MarketingConversionType.MeetingBooked]: "meeting-action",
-      [MarketingConversionType.EnterpriseLicenseRequested]: "licence-action",
       [MarketingConversionType.PaidSubscription]: "paid-action",
     });
   }
@@ -125,18 +124,11 @@ describe("ConversionUploadProvider", () => {
     },
   );
 
-  test("classifies the two sales-led steps as leads", () => {
+  test("classifies a booked meeting as the sales-led step", () => {
     expect(
       provider.readIsLead(
         makeConversion({
           conversionType: MarketingConversionType.MeetingBooked,
-        }),
-      ),
-    ).toBe(true);
-    expect(
-      provider.readIsLead(
-        makeConversion({
-          conversionType: MarketingConversionType.EnterpriseLicenseRequested,
         }),
       ),
     ).toBe(true);
@@ -173,7 +165,6 @@ describe("ConversionUploadProvider", () => {
     test.each([
       [MarketingConversionType.SignUp, "signup-action"],
       [MarketingConversionType.MeetingBooked, "meeting-action"],
-      [MarketingConversionType.EnterpriseLicenseRequested, "licence-action"],
       [MarketingConversionType.PaidSubscription, "paid-action"],
     ])(
       "maps %s to its own entry",

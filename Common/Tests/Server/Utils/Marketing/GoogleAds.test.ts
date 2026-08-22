@@ -36,7 +36,6 @@ jest.mock("../../../../Server/EnvironmentConfig", () => {
     GoogleAdsPaidSubscriptionConversionActionId: "222222",
     GoogleAdsSignUpConversionActionId: "111111",
     GoogleAdsMeetingBookedConversionActionId: "333333",
-    GoogleAdsEnterpriseLicenseRequestConversionActionId: "444444",
   };
 
   Object.defineProperty(mocked, "GoogleAdsEnhancedConversionsForLeadsEnabled", {
@@ -499,7 +498,7 @@ describe("GoogleAdsProvider", () => {
 
       await provider.upload([
         makeConversion({
-          conversionType: MarketingConversionType.EnterpriseLicenseRequested,
+          conversionType: MarketingConversionType.MeetingBooked,
           clickIds: {},
           email: "ada@example.com",
         }),
@@ -511,7 +510,7 @@ describe("GoogleAdsProvider", () => {
       )[0]!;
 
       expect(uploaded).toEqual({
-        conversionAction: "customers/1234567890/conversionActions/444444",
+        conversionAction: "customers/1234567890/conversionActions/333333",
         conversionDateTime: "2026-07-22 10:11:12+00:00",
         userIdentifiers: [
           {
@@ -537,7 +536,6 @@ describe("GoogleAdsProvider", () => {
       [MarketingConversionType.SignUp, "111111"],
       [MarketingConversionType.PaidSubscription, "222222"],
       [MarketingConversionType.MeetingBooked, "333333"],
-      [MarketingConversionType.EnterpriseLicenseRequested, "444444"],
     ])(
       "reports %s against its own conversion action",
       async (

@@ -37,8 +37,6 @@ jest.mock("../../../../Server/EnvironmentConfig", () => {
     MicrosoftAdsSignUpConversionName: "OneUptime Signup",
     MicrosoftAdsPaidSubscriptionConversionName: "OneUptime Paid",
     MicrosoftAdsMeetingBookedConversionName: "OneUptime Demo Booked",
-    MicrosoftAdsEnterpriseLicenseRequestConversionName:
-      "OneUptime Enterprise Request",
   };
 });
 
@@ -186,10 +184,6 @@ describe("MicrosoftAdsProvider", () => {
       [MarketingConversionType.SignUp, "OneUptime Signup"],
       [MarketingConversionType.PaidSubscription, "OneUptime Paid"],
       [MarketingConversionType.MeetingBooked, "OneUptime Demo Booked"],
-      [
-        MarketingConversionType.EnterpriseLicenseRequested,
-        "OneUptime Enterprise Request",
-      ],
     ])(
       "reports %s against its own goal name",
       async (conversionType: MarketingConversionType, expectedName: string) => {
@@ -205,10 +199,7 @@ describe("MicrosoftAdsProvider", () => {
       },
     );
 
-    test.each([
-      MarketingConversionType.MeetingBooked,
-      MarketingConversionType.EnterpriseLicenseRequested,
-    ])(
+    test.each([MarketingConversionType.MeetingBooked])(
       "attaches no ConversionValue to %s even when the row holds one",
       async (conversionType: MarketingConversionType) => {
         mockUpload(postSpy);
