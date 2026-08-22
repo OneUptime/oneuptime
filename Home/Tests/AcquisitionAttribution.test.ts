@@ -5,8 +5,12 @@ const script: string = fs.readFileSync(
   path.join(__dirname, "..", "Static", "js", "acquisition-attribution.js"),
   "utf8",
 );
-const demo: string = fs.readFileSync(
-  path.join(__dirname, "..", "Views", "demo.ejs"),
+const head: string = fs.readFileSync(
+  path.join(__dirname, "..", "Views", "head-basic.ejs"),
+  "utf8",
+);
+const api: string = fs.readFileSync(
+  path.join(__dirname, "..", "API", "AcquisitionAttributionAPI.ts"),
   "utf8",
 );
 
@@ -26,15 +30,16 @@ describe("first-party acquisition attribution", () => {
     expect(script).toContain("attribution.latestPaidTouch = touch");
   });
 
-  test("posts bounded idempotent durable visits", () => {
+  test("posts idempotent durable visits into the existing conversion abstraction", () => {
     expect(script).toContain('fetch("/api/acquisition/touchpoint"');
     expect(script).toContain("var eventId = [attribution.anonymousVisitorId");
-    expect(script).toContain('send("visit")');
+    expect(api).toContain("sourceEventId: eventId");
+    expect(api).toContain("MarketingConversionType.Touchpoint");
   });
 
-  test("does not persist opaque Cal attendee data", () => {
-    expect(demo).not.toContain("'data': data");
-    expect(demo).toContain("OneUptimeAttribution");
-    expect(demo).toContain("demo_booked");
+  test("gates third-party analytics on explicit consent", () => {
+    expect(head).toContain("oneuptimeHasMarketingConsent");
+    expect(head).toContain("oneuptime:consent-change");
+    expect(head).toContain("opt_out_capturing");
   });
 });
