@@ -119,6 +119,7 @@ import GoogleSecOpsConnection from "./GoogleSecOpsConnection";
 import LogScrubRule from "./LogScrubRule";
 import MetricPipelineRule from "./MetricPipelineRule";
 import LlmCostBudget from "./LlmCostBudget";
+import LlmModelPrice from "./LlmModelPrice";
 import MetricRecordingRule from "./MetricRecordingRule";
 import TracePipeline from "./TracePipeline";
 import TracePipelineProcessor from "./TracePipelineProcessor";
@@ -467,6 +468,7 @@ const AllModelTypes: Array<{
   LogScrubRule,
   MetricPipelineRule,
   LlmCostBudget,
+  LlmModelPrice,
   MetricRecordingRule,
   TracePipeline,
   TracePipelineProcessor,

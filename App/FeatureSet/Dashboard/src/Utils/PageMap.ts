@@ -1012,6 +1012,7 @@ enum PageMap {
   LLM_OVERVIEW = "LLM_OVERVIEW",
   LLM_CALLS = "LLM_CALLS",
   LLM_BUDGETS = "LLM_BUDGETS",
+  LLM_PRICING = "LLM_PRICING",
   LLM_DOCUMENTATION = "LLM_DOCUMENTATION",
 
   // AI Copilot (full-page chat over observability data)

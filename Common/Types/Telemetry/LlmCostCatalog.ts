@@ -350,27 +350,108 @@ const RoutingPrefixTokens: Array<string> = [
 
 export class LlmCostCatalogUtil {
   /**
-   * Find the catalog entry for a (possibly vendor-decorated) model name.
+   * Find the price entry for a (possibly vendor-decorated) model name.
    * Returns null when the model is unknown — callers must not guess a price.
+   *
+   * `projectPriceOverrides` are per-project custom prices (negotiated rates,
+   * self-hosted models, fine-tunes) consulted alongside the built-in catalog.
+   * The longest matching prefix wins across BOTH lists; on a prefix-length
+   * tie the project entry beats the built-in one.
    */
-  public static findPriceForModel(model: string): LlmModelPrice | null {
+  public static findPriceForModel(
+    model: string,
+    projectPriceOverrides?: Array<LlmModelPrice>,
+  ): LlmModelPrice | null {
     const candidates: Array<string> = this.normalizedCandidates(model);
 
+    const overrides: Array<LlmModelPrice> = this.sanitizeOverrides(
+      projectPriceOverrides,
+    );
+
     let best: LlmModelPrice | null = null;
+    let bestIsProjectOverride: boolean = false;
 
     for (const candidate of candidates) {
+      for (const entry of overrides) {
+        if (!candidate.startsWith(entry.modelPrefix)) {
+          continue;
+        }
+
+        if (
+          !best ||
+          entry.modelPrefix.length > best.modelPrefix.length ||
+          (entry.modelPrefix.length === best.modelPrefix.length &&
+            !bestIsProjectOverride)
+        ) {
+          best = entry;
+          bestIsProjectOverride = true;
+        }
+      }
+
       for (const entry of LlmModelPricingCatalog) {
         if (!candidate.startsWith(entry.modelPrefix)) {
           continue;
         }
 
+        // Strictly longer only — an equal-length project entry keeps winning.
         if (!best || entry.modelPrefix.length > best.modelPrefix.length) {
           best = entry;
+          bestIsProjectOverride = false;
         }
       }
     }
 
     return best;
+  }
+
+  /*
+   * Normalize project override entries the same way catalog prefixes are
+   * stored (trimmed, lowercase) and drop unpriceable rows — user-authored
+   * data must never break span ingest or price a call negatively.
+   */
+  private static sanitizeOverrides(
+    projectPriceOverrides?: Array<LlmModelPrice>,
+  ): Array<LlmModelPrice> {
+    if (!projectPriceOverrides || projectPriceOverrides.length === 0) {
+      return [];
+    }
+
+    const sanitized: Array<LlmModelPrice> = [];
+
+    for (const entry of projectPriceOverrides) {
+      if (!entry || typeof entry.modelPrefix !== "string") {
+        continue;
+      }
+
+      const modelPrefix: string = entry.modelPrefix.trim().toLowerCase();
+
+      const inputPrice: number = entry.inputPricePerMillionTokensInUSD;
+      const outputPrice: number = entry.outputPricePerMillionTokensInUSD;
+
+      if (
+        !modelPrefix ||
+        typeof inputPrice !== "number" ||
+        !isFinite(inputPrice) ||
+        inputPrice < 0 ||
+        typeof outputPrice !== "number" ||
+        !isFinite(outputPrice) ||
+        outputPrice < 0
+      ) {
+        continue;
+      }
+
+      if (modelPrefix === entry.modelPrefix) {
+        sanitized.push(entry);
+      } else {
+        sanitized.push({
+          modelPrefix: modelPrefix,
+          inputPricePerMillionTokensInUSD: inputPrice,
+          outputPricePerMillionTokensInUSD: outputPrice,
+        });
+      }
+    }
+
+    return sanitized;
   }
 
   /**
@@ -383,6 +464,7 @@ export class LlmCostCatalogUtil {
     model: string;
     inputTokens: number;
     outputTokens: number;
+    projectPriceOverrides?: Array<LlmModelPrice> | undefined;
   }): number | null {
     const inputTokens: number =
       isFinite(data.inputTokens) && data.inputTokens > 0 ? data.inputTokens : 0;
@@ -395,7 +477,10 @@ export class LlmCostCatalogUtil {
       return null;
     }
 
-    const price: LlmModelPrice | null = this.findPriceForModel(data.model);
+    const price: LlmModelPrice | null = this.findPriceForModel(
+      data.model,
+      data.projectPriceOverrides,
+    );
 
     if (!price) {
       return null;
