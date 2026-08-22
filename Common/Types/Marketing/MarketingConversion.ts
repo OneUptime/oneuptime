@@ -1,6 +1,8 @@
 export enum MarketingConversionType {
   SignUp = "SignUp",
   PaidSubscription = "PaidSubscription",
+  // Internal acquisition ledger row. Providers must never upload this directly.
+  Touchpoint = "Touchpoint",
 }
 
 export enum MarketingConversionUploadStatus {
