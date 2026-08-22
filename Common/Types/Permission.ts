@@ -208,6 +208,11 @@ enum Permission {
   EditProjectMetricPipelineRule = "EditProjectMetricPipelineRule",
   ReadProjectMetricPipelineRule = "ReadProjectMetricPipelineRule",
 
+  CreateProjectLlmCostBudget = "CreateProjectLlmCostBudget",
+  DeleteProjectLlmCostBudget = "DeleteProjectLlmCostBudget",
+  EditProjectLlmCostBudget = "EditProjectLlmCostBudget",
+  ReadProjectLlmCostBudget = "ReadProjectLlmCostBudget",
+
   // Metric Recording Rules (derived metrics)
   CreateProjectMetricRecordingRule = "CreateProjectMetricRecordingRule",
   DeleteProjectMetricRecordingRule = "DeleteProjectMetricRecordingRule",
@@ -7330,6 +7335,48 @@ export class PermissionHelper {
         title: "Read Metric Pipeline Rule",
         description:
           "This permission can read Metric Pipeline Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // LLM Cost Budget Permissions
+      {
+        permission: Permission.CreateProjectLlmCostBudget,
+        title: "Create LLM Cost Budget",
+        description:
+          "This permission can create LLM Cost Budgets in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteProjectLlmCostBudget,
+        title: "Delete LLM Cost Budget",
+        description:
+          "This permission can delete LLM Cost Budgets of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProjectLlmCostBudget,
+        title: "Edit LLM Cost Budget",
+        description:
+          "This permission can edit LLM Cost Budgets of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProjectLlmCostBudget,
+        title: "Read LLM Cost Budget",
+        description:
+          "This permission can read LLM Cost Budgets of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

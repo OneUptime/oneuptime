@@ -50,9 +50,12 @@ describe("MutableMetricService.isMutableMetricName", () => {
       expect(MutableMetricService.isMutableMetricName(metricName)).toBe(false);
     });
 
-    test.each([undefined, ""])("%p is not a mutable metric name", (value?: string) => {
-      expect(MutableMetricService.isMutableMetricName(value)).toBe(false);
-    });
+    test.each([undefined, ""])(
+      "%p is not a mutable metric name",
+      (value?: string) => {
+        expect(MutableMetricService.isMutableMetricName(value)).toBe(false);
+      },
+    );
   });
 
   test("every built-in metric name sits under one of the declared prefixes", () => {

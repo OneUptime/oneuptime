@@ -557,6 +557,7 @@ export const LlmRoutePath: Dictionary<string> = {
   [PageMap.LLM]: "overview",
   [PageMap.LLM_OVERVIEW]: "overview",
   [PageMap.LLM_CALLS]: "calls",
+  [PageMap.LLM_BUDGETS]: "budgets",
   [PageMap.LLM_DOCUMENTATION]: "documentation",
 };
 
@@ -5622,6 +5623,12 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.LLM_CALLS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/llm/${LlmRoutePath[PageMap.LLM_CALLS]}`,
+  ),
+
+  [PageMap.LLM_BUDGETS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/llm/${
+      LlmRoutePath[PageMap.LLM_BUDGETS]
+    }`,
   ),
 
   [PageMap.LLM_DOCUMENTATION]: new Route(
