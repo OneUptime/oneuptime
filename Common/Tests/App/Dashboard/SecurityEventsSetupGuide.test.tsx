@@ -193,7 +193,7 @@ describe("Security Events setup guide", () => {
     renderGuide();
 
     expect(
-      await screen.findByText(/Security events are flowing! 7 events/),
+      await screen.findByText(/Security events are flowing! 7 new events/),
     ).toBeInTheDocument();
     expect(screen.getByText("View Security Events")).toBeInTheDocument();
   });

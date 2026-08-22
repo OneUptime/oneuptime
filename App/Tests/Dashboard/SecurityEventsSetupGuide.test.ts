@@ -41,6 +41,7 @@ type SecurityEventFormat =
   import("Common/Types/SecurityEvent/SecurityEventFormat").default;
 type NormalizedSecurityEvent =
   import("Common/Types/SecurityEvent/NormalizedSecurityEvent").default;
+type JSONObject = import("Common/Types/JSON").JSONObject;
 type SecurityEventNormalizerClass =
   typeof import("Common/Utils/SecurityEvent/SecurityEventNormalizer").default;
 
@@ -285,6 +286,22 @@ describe("Security events setup guide content", () => {
     expect(setupGuideSource).toContain(ingestPath);
   });
 
+  test("the advertised path is reachable through nginx on billing-enabled hosts", () => {
+    /*
+     * With BILLING_ENABLED=true nginx's catch-all `location /` proxies
+     * to the marketing Home service, so a root-path ingest URL 404s
+     * unless the path has its own location — the reason /otlp,
+     * /pyroscope, /kubernetes-cost and /session-replay each have one.
+     * The guide hands out the root path, so the location must exist.
+     */
+    const nginxTemplate: string = fs.readFileSync(
+      nodePath.join(__dirname, "../../../Nginx/default.conf.template"),
+      "utf8",
+    );
+
+    expect(nginxTemplate).toContain("location /security-events {");
+  });
+
   test("the guide sends the token in the header ingest reads", () => {
     expect(ingestMiddlewareSource).toContain('"x-oneuptime-token"');
     expect(setupGuideSource).toContain("x-oneuptime-token");
@@ -356,11 +373,9 @@ describe("Security events setup guide content", () => {
             return match[1]!;
           },
         )[0] || "";
-      const payload: Record<string, unknown> = JSON.parse(sample.body);
-      const events: Array<Record<string, unknown>> = Array.isArray(
-        payload["events"],
-      )
-        ? (payload["events"] as Array<Record<string, unknown>>)
+      const payload: JSONObject = JSON.parse(sample.body);
+      const events: Array<JSONObject> = Array.isArray(payload["events"])
+        ? (payload["events"] as Array<JSONObject>)
         : [payload];
 
       expect(events.length).toBeGreaterThan(0);

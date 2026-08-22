@@ -39,7 +39,8 @@ Every event is normalized onto typed columns plus a flattened attributes map:
 
 **Security Events → Detection Rules** evaluates [Sigma](https://sigmahq.io/) rules against your events every minute (per-rule interval configurable). A rule that matches:
 
-- opens a OneUptime **alert** (deduplicated per rule and group value, routed through alert severities and on-call), and
+- opens a OneUptime **alert** (deduplicated per rule and group value, routed through alert severities and on-call),
+- optionally opens an **incident** — off by default, since incidents drive on-call escalation, SLAs and status pages; severity follows the same precedence as alerts (explicit per-rule severity, else the Sigma level mapped onto your incident severities), and
 - writes a **Detection Finding** event back into the events table, so detections are themselves searchable signals.
 
 The supported Sigma subset is the boolean core: named selections (field maps with `contains` / `startswith` / `endswith` / `re` / `cidr` / `gt` / `lt` / `all` / `cased` / `windash` / `exists` modifiers, keyword lists) and the full condition grammar (`and` / `or` / `not`, parentheses, `1 of x*`, `all of them`). Aggregation conditions (`| count() ...`) are rejected at save time rather than silently ignored. Field names can be OneUptime columns (`principalUser`), common aliases (`CommandLine`, `src_ip`), or any flattened source key (`principal.hostname`).
@@ -65,7 +66,29 @@ Set a **Group By Field** (for example `principalHost`) to open one alert per dis
 
 ## Monitors
 
-The **Security Events** monitor type counts matching events (by severity, class, message, attributes, source service) over a sliding window and drives the standard criteria machinery — change monitor status, open alerts or incidents, route to on-call.
+The **Security Events** monitor type counts matching events (by severity, class, message, attributes, source service) over a sliding window and drives the standard criteria machinery — change monitor status, open alerts or incidents, route to on-call. **Security Events → Monitors** lists every monitor of this type.
+
+Detection rules and monitors are complementary, not two flavors of one feature. A rule reads each event once and asks *"did this pattern appear?"* — one occurrence matters, and there is no "unmatch". A monitor re-reads a rolling window and asks *"how many, right now?"* — no single event is interesting, the rate is, and the count falling back under the threshold is what lets it say the coast is clear again.
+
+## Watching your detections
+
+Every rule match is also written back into the events table as a **Detection Finding** event (OCSF class 2004), attributed to a telemetry service named `OneUptime Detections`. A finding carries the rule's name and id, its MITRE ATT&CK tags, the matched group value in `observables`, and these attributes:
+
+| Attribute | Value |
+|---|---|
+| `oneuptime.detection.rule_id` | id of the rule that fired |
+| `oneuptime.detection.rule_name` | its name |
+| `oneuptime.detection.match_count` | how many events are behind this finding |
+| `oneuptime.detection.group_value` | the Group By value, when the rule sets one |
+| `oneuptime.detection.sigma_id` | the Sigma rule's own `id:` field |
+
+Because findings are ordinary security events, a **Security Events monitor** can watch them — and that composes the two features into a second tier of detection:
+
+- **Detection storms.** A monitor over event class `Detection Finding`, counting all findings. Twenty different rules firing in an hour is a signal no individual rule can see — each only knows its own matches. The monitor sees the aggregate, changes status, and can open an incident.
+- **Per-rule rate changes.** Filter on the `oneuptime.detection.rule_id` attribute (immutable — a filter on `rule_name` silently stops matching if the rule is ever renamed). A rule that fires weekly firing fifty times an hour is a different event with a different response.
+- **Detection pipeline silence.** Findings dropping to zero when you normally see a handful usually means a broken forwarder, not a peaceful network. Express it as a count-below-threshold criteria.
+
+The quickest path is the **Create Monitor** row action on **Security Events → Detection Rules**: it opens monitor creation pre-filled with the `Detection Finding` class and that rule's name filter.
 
 ## Retention and billing
 

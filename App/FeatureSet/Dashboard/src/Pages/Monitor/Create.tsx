@@ -62,6 +62,8 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import MonitoringInterval from "../../Utils/MonitorIntervalDropdownOptions";
 import Card from "Common/UI/Components/Card/Card";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
+import { buildDetectionRuleMonitorPrefill } from "../../Utils/SecurityEventsMonitorPrefill";
 import NetworkDeviceAlertPackUtil from "Common/Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -517,6 +519,68 @@ const MonitorCreate: FunctionComponent<
     });
   };
 
+  /*
+   * "Create Monitor" deep link from a detection rule (Security Events →
+   * Detection Rules): pre-select the Security Events type and seed a step
+   * scoped to the Detection Finding rows that rule writes, so the monitor
+   * watches the rule's rate rather than the raw event stream.
+   */
+  const preSeedFromDetectionRuleLink: (
+    detectionRuleId: string,
+  ) => Promise<void> = async (detectionRuleId: string): Promise<void> => {
+    let ruleName: string = "";
+
+    try {
+      const rule: DetectionRule | null = await ModelAPI.getItem({
+        modelType: DetectionRule,
+        id: new ObjectID(detectionRuleId),
+        select: {
+          name: true,
+        },
+      });
+      ruleName = rule?.name || "";
+    } catch {
+      // Recoverable: the monitor name just falls back to a generic one.
+    }
+
+    let operationalStatusId: ObjectID | null = null;
+
+    try {
+      const monitorStatusList: ListResult<MonitorStatus> =
+        await ModelAPI.getList({
+          modelType: MonitorStatus,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            isOperationalState: true,
+          },
+          sort: {},
+        });
+
+      const operationalStatus: MonitorStatus | undefined =
+        monitorStatusList.data.find((status: MonitorStatus) => {
+          return status.isOperationalState;
+        });
+
+      operationalStatusId = operationalStatus?.id || null;
+    } catch {
+      // Recoverable: the user can still pick the default status in the form.
+    }
+
+    setInitialValues(
+      buildDetectionRuleMonitorPrefill({
+        /*
+         * The id scopes the monitor's filter; the name is display only,
+         * so its fallback affects nothing but the monitor's title.
+         */
+        ruleId: detectionRuleId,
+        ruleName: ruleName || "Detection rule",
+        operationalStatusId,
+      }),
+    );
+  };
+
   useEffect(() => {
     if (monitorTemplateId) {
       fetchMonitorTemplate(new ObjectID(monitorTemplateId));
@@ -547,6 +611,36 @@ const MonitorCreate: FunctionComponent<
       setIsLoading(true);
       preSeedFromMetricExplorerLink(rawMetricQueries).finally(() => {
         setIsLoading(false);
+      });
+      return;
+    }
+
+    const detectionRuleId: string | null =
+      Navigation.getQueryStringByName("detectionRuleId");
+
+    if (detectionRuleId) {
+      setIsLoading(true);
+      preSeedFromDetectionRuleLink(detectionRuleId).finally(() => {
+        setIsLoading(false);
+      });
+      return;
+    }
+
+    /*
+     * Weakest prefill, so it goes last: preselect the monitor type alone.
+     * Synchronous — with no monitorSteps in the initial values the steps
+     * form bootstraps itself and auto-fills the operational status, so
+     * nothing needs fetching and no loading gate is needed.
+     */
+    const monitorTypeParam: string | null =
+      Navigation.getQueryStringByName("monitorType");
+
+    if (
+      monitorTypeParam &&
+      Object.values(MonitorType).includes(monitorTypeParam as MonitorType)
+    ) {
+      setInitialValues({
+        monitorType: monitorTypeParam as MonitorType,
       });
     }
   }, []);

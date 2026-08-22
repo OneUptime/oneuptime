@@ -11,6 +11,7 @@ import SecurityEventsPage from "../Pages/SecurityEvents/Index";
 import SecurityEventsCorrelatePage from "../Pages/SecurityEvents/Correlate";
 import SecurityEventsDetectionRulesPage from "../Pages/SecurityEvents/DetectionRules";
 import SecurityEventsDocumentationPage from "../Pages/SecurityEvents/Documentation";
+import SecurityEventsMonitorsPage from "../Pages/SecurityEvents/Monitors";
 
 const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -49,6 +50,15 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.SECURITY_EVENTS_DETECTION_RULES] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_MONITORS] || ""}
+          element={
+            <SecurityEventsMonitorsPage
+              {...props}
+              pageRoute={RouteMap[PageMap.SECURITY_EVENTS_MONITORS] as Route}
             />
           }
         />

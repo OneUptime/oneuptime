@@ -147,6 +147,21 @@ const SecurityEventsSetupGuide: FunctionComponent = (): ReactElement => {
   const [eventCount, setEventCount] = useState<number>(0);
   const [hasVerifyError, setHasVerifyError] = useState<boolean>(false);
 
+  /*
+   * The verification window opens when the GUIDE does, not an hour ago:
+   * a project with an existing source — or an enabled detection rule
+   * writing findings every cycle — always has recent events, and a
+   * trailing window would flash "flowing!" before the user's new source
+   * sent a byte. Counting only events that arrive after this moment
+   * cannot distinguish the new source from another active one, but it
+   * can no longer confirm on history alone. The trade-off: a source that
+   * stamps events with old timestamps confirms late or not at all — the
+   * events tab still shows them.
+   */
+  const [verifyStartTime] = useState<Date>(() => {
+    return OneUptimeDate.getCurrentDate();
+  });
+
   const httpProtocol: string =
     HTTP_PROTOCOL === Protocol.HTTPS ? "https" : "http";
   const ingestUrl: string = HOST
@@ -175,22 +190,13 @@ const SecurityEventsSetupGuide: FunctionComponent = (): ReactElement => {
 
     const checkForEvents: () => Promise<void> = async (): Promise<void> => {
       try {
-        /*
-         * The window is recomputed on every poll — one captured on mount
-         * would drift out of "now" while the user is still wiring up
-         * their forwarder. An hour is wide enough for batching
-         * forwarders and for sources that stamp events slightly behind
-         * real time, without turning "is this working?" into "did this
-         * ever work?".
-         */
         const endTime: Date = OneUptimeDate.getCurrentDate();
-        const startTime: Date = OneUptimeDate.addRemoveMinutes(endTime, -60);
 
         const count: number = await AnalyticsModelAPI.count<SecurityEvent>(
           SecurityEvent,
           {
             projectId: ProjectUtil.getCurrentProjectId()!,
-            time: new InBetween<Date>(startTime, endTime),
+            time: new InBetween<Date>(verifyStartTime, endTime),
           } as Query<SecurityEvent>,
         );
 
@@ -225,7 +231,7 @@ const SecurityEventsSetupGuide: FunctionComponent = (): ReactElement => {
       cancelled = true;
       clearInterval(pollIntervalId);
     };
-  }, [isDataConfirmed]);
+  }, [isDataConfirmed, verifyStartTime]);
 
   const curlSnippet: (data: {
     format: string;
@@ -536,8 +542,9 @@ curl -X POST "${ingestUrl}?format=udm" \\
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-green-800">
-                Security events are flowing! {eventCount}{" "}
-                {eventCount === 1 ? "event" : "events"} in the last hour.
+                Security events are flowing! {eventCount} new{" "}
+                {eventCount === 1 ? "event" : "events"} since you opened this
+                guide.
               </p>
               <AppLink
                 className="mt-3 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm"
@@ -642,7 +649,15 @@ curl -X POST "${ingestUrl}?format=udm" \\
               className="w-4 h-4 text-indigo-500 flex-shrink-0 mt-0.5"
             />
             <span>
-              A <strong className="font-medium">Security Events</strong> monitor
+              A{" "}
+              <AppLink
+                className="font-medium text-indigo-600 hover:text-indigo-700"
+                to={RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.SECURITY_EVENTS_MONITORS] as Route,
+                )}
+              >
+                Security Events monitor
+              </AppLink>{" "}
               counts matching events over a sliding window and drives the usual
               criteria — change status, open incidents, page on-call.
             </span>

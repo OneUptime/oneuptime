@@ -9,6 +9,7 @@ export type SecurityEventsTabKey =
   | "events"
   | "correlate"
   | "detection-rules"
+  | "monitors"
   | "setup";
 
 interface Props {
@@ -42,6 +43,14 @@ const SecurityEventsNavTabs: FunctionComponent<Props> = (
       icon: IconProp.ShieldCheck,
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.SECURITY_EVENTS_DETECTION_RULES] as Route,
+      ),
+    },
+    {
+      key: "monitors",
+      label: "Monitors",
+      icon: IconProp.AltGlobe,
+      to: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SECURITY_EVENTS_MONITORS] as Route,
       ),
     },
     {

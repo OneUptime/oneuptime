@@ -1,6 +1,7 @@
 import Project from "./Project";
 import User from "./User";
 import AlertSeverity from "./AlertSeverity";
+import IncidentSeverity from "./IncidentSeverity";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
@@ -293,6 +294,41 @@ export default class DetectionRule extends BaseModel {
   })
   public shouldWriteDetectionFinding?: boolean = undefined;
 
+  /*
+   * Default FALSE, unlike shouldCreateAlert. An incident is the heavy
+   * machinery — workspace channels, SLAs, on-call escalation, status-page
+   * visibility — and a rule imported from a community Sigma pack must not
+   * open one per match group unless somebody chose that. The evaluator
+   * gates on === true for the same reason: an unset column must read as
+   * off, not as "probably on".
+   */
+  @ColumnAccessControl({
+    create: createPermissions,
+    read: readPermissions,
+    update: updatePermissions,
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    canReadOnRelationQuery: true,
+    title: "Create Incidents",
+    description:
+      "Whether matches also open OneUptime incidents. Off by default: incidents drive on-call, SLAs and status pages, so opt in per rule.",
+    defaultValue: false,
+    /*
+     * Without this, checkRequiredFields 400s any create payload that
+     * omits the flag — including every API client written before the
+     * column existed — and the DB DEFAULT false can never apply.
+     */
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public shouldCreateIncident?: boolean = undefined;
+
   @ColumnAccessControl({
     create: createPermissions,
     read: readPermissions,
@@ -336,6 +372,51 @@ export default class DetectionRule extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public alertSeverityId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: createPermissions,
+    read: readPermissions,
+    update: updatePermissions,
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "incidentSeverityId",
+    type: TableColumnType.Entity,
+    modelType: IncidentSeverity,
+    title: "Incident Severity",
+    description:
+      "Severity of incidents opened by this rule. Defaults from the Sigma rule's level, mapped onto this project's incident severities, when unset.",
+  })
+  @ManyToOne(
+    () => {
+      return IncidentSeverity;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "incidentSeverityId" })
+  public incidentSeverity?: IncidentSeverity = undefined;
+
+  @ColumnAccessControl({
+    create: createPermissions,
+    read: readPermissions,
+    update: updatePermissions,
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Incident Severity ID",
+    description:
+      "ID of the incident severity for incidents opened by this rule.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public incidentSeverityId?: ObjectID = undefined;
 
   /*
    * Evaluator-owned state. Written only by the detection engine cron,

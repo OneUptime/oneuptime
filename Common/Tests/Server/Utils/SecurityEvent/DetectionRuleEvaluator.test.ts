@@ -29,6 +29,10 @@ import Alert from "../../../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import AlertService from "../../../../Server/Services/AlertService";
 import AlertSeverityService from "../../../../Server/Services/AlertSeverityService";
+import Incident from "../../../../Models/DatabaseModels/Incident";
+import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
+import IncidentService from "../../../../Server/Services/IncidentService";
+import IncidentSeverityService from "../../../../Server/Services/IncidentSeverityService";
 import DetectionRuleService from "../../../../Server/Services/DetectionRuleService";
 import SecurityEventService, {
   DetectionMatchGroup,
@@ -42,6 +46,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
 import ServiceType from "../../../../Types/Telemetry/ServiceType";
 import { JSONObject } from "../../../../Types/JSON";
+import Includes from "../../../../Types/BaseDatabase/Includes";
 import { getJestSpyOn } from "../../../Spy";
 import {
   afterEach,
@@ -96,7 +101,9 @@ function buildRule(
     sigmaRuleYaml?: string;
     shouldCreateAlert?: boolean;
     shouldWriteDetectionFinding?: boolean;
+    shouldCreateIncident?: boolean;
     alertSeverityId?: ObjectID;
+    incidentSeverityId?: ObjectID;
     lastEvaluatedAt?: Date;
     evaluationIntervalInMinutes?: number;
     id?: ObjectID;
@@ -120,8 +127,16 @@ function buildRule(
     rule.shouldWriteDetectionFinding = options.shouldWriteDetectionFinding;
   }
 
+  if (options.shouldCreateIncident !== undefined) {
+    rule.shouldCreateIncident = options.shouldCreateIncident;
+  }
+
   if (options.alertSeverityId !== undefined) {
     rule.alertSeverityId = options.alertSeverityId;
+  }
+
+  if (options.incidentSeverityId !== undefined) {
+    rule.incidentSeverityId = options.incidentSeverityId;
   }
 
   if (options.lastEvaluatedAt !== undefined) {
@@ -161,6 +176,23 @@ function buildOpenAlert(fingerprint: string): Alert {
   return alert;
 }
 
+function buildIncidentSeverity(
+  idSuffix: string,
+  name: string,
+): IncidentSeverity {
+  const severity: IncidentSeverity = new IncidentSeverity();
+  severity._id = `66666666-6666-4666-8666-66666666${idSuffix}`;
+  severity.name = name;
+  return severity;
+}
+
+function buildOpenIncident(fingerprint: string): Incident {
+  const incident: Incident = new Incident();
+  incident._id = "77777777-7777-4777-8777-777777777777";
+  incident.seriesFingerprint = fingerprint;
+  return incident;
+}
+
 function expectedFingerprint(groupValue: string): string {
   return `detection-rule:${RULE_ID.toString()}:${MetricSeriesFingerprint.computeFingerprint(
     {
@@ -175,6 +207,9 @@ interface EvaluationSpies {
   alertFindBy: Spy;
   alertCreate: Spy;
   severityFindBy: Spy;
+  incidentFindBy: Spy;
+  incidentCreate: Spy;
+  incidentSeverityFindBy: Spy;
   updateOneById: Spy;
   telemetryServiceFromName: Spy;
 }
@@ -184,6 +219,8 @@ function installSpies(
     groups?: Array<DetectionMatchGroup>;
     severities?: Array<AlertSeverity>;
     openAlerts?: Array<Alert>;
+    incidentSeverities?: Array<IncidentSeverity>;
+    openIncidents?: Array<Incident>;
   } = {},
 ): EvaluationSpies {
   const findDetectionMatches: Spy = getJestSpyOn(
@@ -211,6 +248,21 @@ function installSpies(
     "findBy",
   ).mockResolvedValue((options.severities || []) as never);
 
+  const incidentFindBy: Spy = getJestSpyOn(
+    IncidentService,
+    "findBy",
+  ).mockResolvedValue((options.openIncidents || []) as never);
+
+  const incidentCreate: Spy = getJestSpyOn(
+    IncidentService,
+    "create",
+  ).mockResolvedValue(new Incident() as never);
+
+  const incidentSeverityFindBy: Spy = getJestSpyOn(
+    IncidentSeverityService,
+    "findBy",
+  ).mockResolvedValue((options.incidentSeverities || []) as never);
+
   const updateOneById: Spy = getJestSpyOn(
     DetectionRuleService,
     "updateOneById",
@@ -227,6 +279,9 @@ function installSpies(
     alertFindBy,
     alertCreate,
     severityFindBy,
+    incidentFindBy,
+    incidentCreate,
+    incidentSeverityFindBy,
     updateOneById,
     telemetryServiceFromName,
   };
@@ -235,6 +290,11 @@ function installSpies(
 function createdAlert(spies: EvaluationSpies, index: number): Alert {
   const call: unknown = spies.alertCreate.mock.calls[index]?.[0];
   return (call as { data: Alert }).data;
+}
+
+function createdIncident(spies: EvaluationSpies, index: number): Incident {
+  const call: unknown = spies.incidentCreate.mock.calls[index]?.[0];
+  return (call as { data: Incident }).data;
 }
 
 describe("DetectionRuleEvaluator", () => {
@@ -284,6 +344,7 @@ describe("DetectionRuleEvaluator", () => {
         matchedGroups: 0,
         totalMatches: 0,
         alertsCreated: 0,
+        incidentsCreated: 0,
         findingsWritten: 0,
         error: null,
       };
@@ -603,6 +664,383 @@ describe("DetectionRuleEvaluator", () => {
       );
       expect(attributes["oneuptime.detection.match_count"]).toBe("3");
       expect(attributes["oneuptime.detection.group_value"]).toBe("alice");
+    });
+  });
+
+  describe("incident creation", () => {
+    /*
+     * The gate is === true, the OPPOSITE of the alert path's !== false.
+     * Incidents are the heavy machinery (on-call, SLAs, status pages) and
+     * the column defaults to false — so unset must read as off. These
+     * three tests pin the whole truth table.
+     */
+    test("does not open incidents when shouldCreateIncident is unset", async () => {
+      const rule: DetectionRule = buildRule({
+        shouldWriteDetectionFinding: false,
+      });
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 3)],
+        severities: [buildSeverity("0001", "Default")],
+        incidentSeverities: [buildIncidentSeverity("0001", "Default")],
+      });
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(spies.incidentCreate).not.toHaveBeenCalled();
+      expect(spies.incidentSeverityFindBy).not.toHaveBeenCalled();
+      expect(result.incidentsCreated).toBe(0);
+      // The alert path is untouched by the incident gate.
+      expect(spies.alertCreate).toHaveBeenCalledTimes(1);
+    });
+
+    test("does not open incidents when shouldCreateIncident is explicitly false", async () => {
+      const rule: DetectionRule = buildRule({
+        shouldCreateIncident: false,
+        shouldWriteDetectionFinding: false,
+      });
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 3)],
+        severities: [buildSeverity("0001", "Default")],
+        incidentSeverities: [buildIncidentSeverity("0001", "Default")],
+      });
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(spies.incidentCreate).not.toHaveBeenCalled();
+    });
+
+    test("opens one incident per matched group when opted in", async () => {
+      const rule: DetectionRule = buildRule({
+        shouldCreateIncident: true,
+        shouldWriteDetectionFinding: false,
+      });
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 3), buildGroup("bob", 1)],
+        severities: [buildSeverity("0001", "Default")],
+        incidentSeverities: [buildIncidentSeverity("0001", "Default")],
+      });
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(result.incidentsCreated).toBe(2);
+      expect(spies.incidentCreate).toHaveBeenCalledTimes(2);
+
+      const first: Incident = createdIncident(spies, 0);
+
+      expect(first.projectId?.toString()).toBe(PROJECT_ID.toString());
+      expect(first.title).toBe("[Detection] Brute Force Watch — alice");
+      expect(first.description).toContain(
+        "Detection rule matched 3 security events",
+      );
+      expect(first.description).toContain("Watches for brute-force logins");
+      expect(first.seriesFingerprint).toBe(expectedFingerprint("alice"));
+      expect(first.isCreatedAutomatically).toBe(true);
+      expect(first.rootCause).toBe(
+        'Sigma detection rule "Brute Force Watch" matched security events.',
+      );
+      /*
+       * Detection incidents carry no monitors — monitor-driven
+       * auto-resolve must never touch them; the fingerprint dedupe is
+       * what keeps a still-firing rule from stacking incidents.
+       */
+      expect(first.monitors).toBeUndefined();
+
+      const createProps: unknown = spies.incidentCreate.mock.calls[0]?.[0];
+      expect((createProps as { props: JSONObject }).props).toEqual({
+        isRoot: true,
+      });
+    });
+
+    test("incidents open even when the rule does not create alerts", async () => {
+      const rule: DetectionRule = buildRule({
+        shouldCreateAlert: false,
+        shouldCreateIncident: true,
+        shouldWriteDetectionFinding: false,
+      });
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 3)],
+        incidentSeverities: [buildIncidentSeverity("0001", "Default")],
+      });
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(spies.alertCreate).not.toHaveBeenCalled();
+      expect(result.alertsCreated).toBe(0);
+      expect(result.incidentsCreated).toBe(1);
+    });
+
+    test("alert and incident for the same group share one fingerprint and one summary", async () => {
+      const rule: DetectionRule = buildRule({
+        shouldCreateIncident: true,
+        shouldWriteDetectionFinding: false,
+      });
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 3)],
+        severities: [buildSeverity("0001", "Default")],
+        incidentSeverities: [buildIncidentSeverity("0001", "Default")],
+      });
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      const alert: Alert = createdAlert(spies, 0);
+      const incident: Incident = createdIncident(spies, 0);
+
+      expect(incident.seriesFingerprint).toBe(alert.seriesFingerprint);
+      expect(incident.title).toBe(alert.title);
+      expect(incident.description).toBe(alert.description);
+    });
+
+    test("dedupes against unresolved incidents by fingerprint", async () => {
+      const rule: DetectionRule = buildRule({
+        shouldCreateIncident: true,
+        shouldWriteDetectionFinding: false,
+      });
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 3), buildGroup("bob", 1)],
+        severities: [buildSeverity("0001", "Default")],
+        incidentSeverities: [buildIncidentSeverity("0001", "Default")],
+        openIncidents: [buildOpenIncident(expectedFingerprint("alice"))],
+      });
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(rule);
+
+      // alice is already open; only bob gets a new incident.
+      expect(result.incidentsCreated).toBe(1);
+      expect(createdIncident(spies, 0).seriesFingerprint).toBe(
+        expectedFingerprint("bob"),
+      );
+
+      /*
+       * And the dedupe query is scoped to UNRESOLVED incidents carrying
+       * THIS rule's candidate fingerprints — resolved incidents must be
+       * allowed to re-open, and a project-wide scan would age still-open
+       * detections out of the LIMIT_PER_PROJECT window and re-fire them.
+       */
+      const findByArg: JSONObject = spies.incidentFindBy.mock
+        .calls[0]?.[0] as JSONObject;
+      expect(findByArg["query"]).toEqual({
+        projectId: PROJECT_ID,
+        seriesFingerprint: new Includes([
+          expectedFingerprint("alice"),
+          expectedFingerprint("bob"),
+        ]),
+        currentIncidentState: {
+          isResolvedState: false,
+        },
+      });
+    });
+
+    test("an incident fingerprint already open does NOT suppress the alert", async () => {
+      /*
+       * The two dedupe sets are independent: an open incident for a group
+       * says nothing about whether an alert is open for it.
+       */
+      const rule: DetectionRule = buildRule({
+        shouldCreateIncident: true,
+        shouldWriteDetectionFinding: false,
+      });
+
+      installSpies({
+        groups: [buildGroup("alice", 3)],
+        severities: [buildSeverity("0001", "Default")],
+        incidentSeverities: [buildIncidentSeverity("0001", "Default")],
+        openIncidents: [buildOpenIncident(expectedFingerprint("alice"))],
+      });
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(result.incidentsCreated).toBe(0);
+      expect(result.alertsCreated).toBe(1);
+    });
+
+    test("one failing incident create logs and continues; the rest still open", async () => {
+      const rule: DetectionRule = buildRule({
+        shouldCreateIncident: true,
+        shouldWriteDetectionFinding: false,
+      });
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 3), buildGroup("bob", 1)],
+        severities: [buildSeverity("0001", "Default")],
+        incidentSeverities: [buildIncidentSeverity("0001", "Default")],
+      });
+
+      /*
+       * First create throws the way IncidentService.onBeforeCreate does
+       * when a project has no "created" incident state — the one failure
+       * mode that cannot be pre-checked.
+       */
+      spies.incidentCreate
+        .mockRejectedValueOnce(
+          new Error("Created incident state not found for this project"),
+        )
+        .mockResolvedValue(new Incident() as never);
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(result.incidentsCreated).toBe(1);
+      expect(result.error).toBeNull();
+      expect(spies.incidentCreate).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("incident severity resolution", () => {
+    test("uses the rule's explicit incident severity when it belongs to the project", async () => {
+      const explicit: IncidentSeverity = buildIncidentSeverity("0002", "SEV-2");
+
+      const rule: DetectionRule = buildRule({
+        shouldCreateIncident: true,
+        shouldWriteDetectionFinding: false,
+        incidentSeverityId: new ObjectID(explicit._id!),
+      });
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 1)],
+        severities: [buildSeverity("0001", "Default")],
+        incidentSeverities: [
+          buildIncidentSeverity("0001", "SEV-1"),
+          explicit,
+          buildIncidentSeverity("0003", "SEV-3"),
+        ],
+      });
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(createdIncident(spies, 0).incidentSeverityId?.toString()).toBe(
+        explicit._id,
+      );
+    });
+
+    test("an explicit id not in the project falls through to the level name match", async () => {
+      const rule: DetectionRule = buildRule({
+        level: "high",
+        shouldCreateIncident: true,
+        shouldWriteDetectionFinding: false,
+        incidentSeverityId: new ObjectID(
+          "99999999-0000-4000-8000-000000000000",
+        ),
+      });
+
+      const named: IncidentSeverity = buildIncidentSeverity("0002", "High");
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 1)],
+        severities: [buildSeverity("0001", "Default")],
+        incidentSeverities: [buildIncidentSeverity("0001", "SEV-1"), named],
+      });
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(createdIncident(spies, 0).incidentSeverityId?.toString()).toBe(
+        named._id,
+      );
+    });
+
+    test("critical maps to the most severe (first) incident severity by rank", async () => {
+      const rule: DetectionRule = buildRule({
+        level: "critical",
+        shouldCreateIncident: true,
+        shouldWriteDetectionFinding: false,
+      });
+
+      const first: IncidentSeverity = buildIncidentSeverity("0001", "SEV-1");
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 1)],
+        severities: [buildSeverity("0001", "Default")],
+        incidentSeverities: [first, buildIncidentSeverity("0002", "SEV-2")],
+      });
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(createdIncident(spies, 0).incidentSeverityId?.toString()).toBe(
+        first._id,
+      );
+    });
+
+    test("low maps to the least severe (last) incident severity by rank", async () => {
+      const rule: DetectionRule = buildRule({
+        level: "low",
+        shouldCreateIncident: true,
+        shouldWriteDetectionFinding: false,
+      });
+
+      const last: IncidentSeverity = buildIncidentSeverity("0003", "SEV-3");
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 1)],
+        severities: [buildSeverity("0001", "Default")],
+        incidentSeverities: [
+          buildIncidentSeverity("0001", "SEV-1"),
+          buildIncidentSeverity("0002", "SEV-2"),
+          last,
+        ],
+      });
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(createdIncident(spies, 0).incidentSeverityId?.toString()).toBe(
+        last._id,
+      );
+    });
+
+    test("a project with no incident severities skips incidents but keeps alerts", async () => {
+      const rule: DetectionRule = buildRule({
+        shouldCreateIncident: true,
+        shouldWriteDetectionFinding: false,
+      });
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 1)],
+        severities: [buildSeverity("0001", "Default")],
+        incidentSeverities: [],
+      });
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(result.incidentsCreated).toBe(0);
+      expect(spies.incidentCreate).not.toHaveBeenCalled();
+      expect(result.alertsCreated).toBe(1);
+      expect(result.error).toBeNull();
+    });
+  });
+
+  describe("evaluateAllDueRules field selection", () => {
+    test("selects the incident columns so opted-in rules do not read as off", async () => {
+      /*
+       * The gate is === true, so a rule fetched WITHOUT
+       * shouldCreateIncident in the select silently never opens
+       * incidents — this is the drift that would break the feature
+       * without failing anything else.
+       */
+      const rulesFindBy: Spy = getJestSpyOn(
+        DetectionRuleService,
+        "findBy",
+      ).mockResolvedValue([] as never);
+
+      await DetectionRuleEvaluator.evaluateAllDueRules();
+
+      const select: JSONObject = (
+        rulesFindBy.mock.calls[0]?.[0] as { select: JSONObject }
+      ).select;
+
+      expect(select["shouldCreateIncident"]).toBe(true);
+      expect(select["incidentSeverityId"]).toBe(true);
+      expect(select["shouldCreateAlert"]).toBe(true);
+      expect(select["alertSeverityId"]).toBe(true);
     });
   });
 
