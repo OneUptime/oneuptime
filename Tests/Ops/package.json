@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/ops-tests",
-  "version": "12.0.14",
+  "version": "12.0.16",
   "private": true,
   "description": "Static/structural tests for the repo's ops config: ClickHouse config.d drop-ins, docker-compose mounts, and the backup/restore scripts. No services required.",
   "type": "commonjs",
