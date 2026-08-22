@@ -5,6 +5,7 @@ import LogAggregationService, {
 } from "../../../Server/Services/LogAggregationService";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import ObjectID from "../../../Types/ObjectID";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -98,6 +99,61 @@ describe("log attribute filters — operator support", () => {
       expect(wrapped.query_params).toStrictEqual(bare.query_params);
     });
 
+    describe("a blank comparison value is special", () => {
+      /*
+       * The list query compares against a Map subscript, and ClickHouse
+       * returns the value type's default for a key the row does not carry —
+       * so `attributes['k']` reads as '' for a row with no such attribute.
+       * That makes '' the one value where "equals" and "not equals" have to
+       * reason about absence, and naively negating the existence test got
+       * both backwards.
+       */
+      test("NotEqual('') means present and non-empty, like 'is not empty'", () => {
+        const blank: Statement = histogramFor(operator("NotEqual", ""));
+        const isNotEmpty: Statement = histogramFor(operator("NotNull", null));
+
+        expect(blank.query).toBe(isNotEmpty.query);
+        expect(blank.query).toContain(`AND ${KEY_MATCH}`);
+        expect(blank.query).toContain("AND v != ''");
+        expect(blank.query).not.toContain("AND NOT arrayExists");
+      });
+
+      test("EqualTo('') means missing or empty, like 'is empty'", () => {
+        const blank: Statement = histogramFor(operator("EqualTo", ""));
+        const isEmpty: Statement = histogramFor(operator("IsNull", null));
+
+        expect(blank.query).toBe(isEmpty.query);
+        expect(blank.query).toContain(`AND NOT ${KEY_MATCH}`);
+      });
+
+      test("a bare '' filter reads the same as an explicit EqualTo('')", () => {
+        /*
+         * The same filter written two ways — a blank value box stores a bare
+         * "" — so the two spellings must not compile differently.
+         */
+        const bare: Statement = histogramFor({ logtype: "" });
+        const wrapped: Statement = histogramFor(operator("EqualTo", ""));
+
+        expect(bare.query).toBe(wrapped.query);
+        expect(bare.query_params).toStrictEqual(wrapped.query_params);
+      });
+
+      test("a missing NotEqual value is treated as blank, not as 'undefined'", () => {
+        const absent: Statement = histogramFor(operator("NotEqual", undefined));
+        const blank: Statement = histogramFor(operator("NotEqual", ""));
+
+        expect(absent.query).toBe(blank.query);
+      });
+
+      test("blank does not leak into non-blank comparisons", () => {
+        const nonBlank: Statement = histogramFor(operator("NotEqual", "web"));
+
+        expect(nonBlank.query).toContain(`AND NOT ${KEY_MATCH}`);
+        expect(nonBlank.query).toContain("AND v = ");
+        expect(paramValues(nonBlank)).toContain("web");
+      });
+    });
+
     test("NotEqual negates, so rows without the attribute still match", () => {
       /*
        * Mirrors StatementGenerator's map-subscript form, where a missing key
@@ -171,6 +227,42 @@ describe("log attribute filters — operator support", () => {
       expect(paramValues(statement)).toContain(5);
     });
 
+    test("a fractional threshold binds as Double, not Int32", () => {
+      /*
+       * The value box is free text, so `> 1.5` is reachable from the criteria
+       * form. `TableColumnType.Number` maps to ClickHouse Int32 and the
+       * left-hand side is a Float64, so binding the threshold as Number made
+       * the database reject the query — a 500 where the pre-fix code merely
+       * showed an empty chart. Decimal maps to Double.
+       */
+      const statement: Statement = histogramFor(operator("GreaterThan", 1.5));
+
+      expect(statement.query).toMatch(/toFloat64OrNull\(v\) > \{p\d+:Double\}/);
+      expect(statement.query).not.toMatch(
+        /toFloat64OrNull\(v\) > \{p\d+:Int32\}/,
+      );
+      expect(paramValues(statement)).toContain(1.5);
+    });
+
+    test.each([
+      ["a missing value", undefined],
+      ["a null value", null],
+      ["an empty string", ""],
+      ["a non-numeric string", "not-a-number"],
+    ])(
+      "%s is refused instead of being bound as 0 or nan",
+      (_label: string, value: unknown) => {
+        /*
+         * `Number(null)` is 0, which would silently turn a half-filled filter
+         * into "> 0"; a non-numeric one binds as the literal `nan`, which
+         * ClickHouse cannot parse. Both should be a 400 naming the filter.
+         */
+        expect(() => {
+          return histogramFor(operator("GreaterThan", value));
+        }).toThrow(/needs a numeric value/);
+      },
+    );
+
     test("the comparison is literal SQL, never a bound identifier", () => {
       /*
        * An interpolation inside the SQL tag becomes an Identifier parameter,
@@ -235,6 +327,32 @@ describe("log attribute filters — operator support", () => {
           "logtype') OR 1=1 --": { _type: "Search", value: "web" },
         });
       }).toThrow();
+    });
+
+    test.each([
+      ["Search", { toString: 1 }],
+      ["EqualTo", { valueOf: 1, toString: 2 }],
+      ["NotContains", []],
+      ["StartsWith", { nested: { deep: true } }],
+    ])(
+      "a non-primitive %s value is refused, not coerced",
+      (type: string, value: unknown) => {
+        /*
+         * `value` is unvalidated JSON off the wire. String()/Number() do not
+         * just produce a bad result on an object — ToPrimitive THROWS a
+         * TypeError when toString/valueOf are shadowed with non-callables,
+         * and that escaped the BadDataException path and answered 500.
+         */
+        expect(() => {
+          return histogramFor(operator(type, value));
+        }).toThrow(BadDataException);
+      },
+    );
+
+    test("a non-primitive membership member is refused too", () => {
+      expect(() => {
+        return histogramFor(operator("Includes", ["ok", { toString: 1 }]));
+      }).toThrow(BadDataException);
     });
 
     test("an unknown operator is refused rather than silently mis-filtered", () => {

@@ -112,7 +112,13 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
               type="button"
               className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded text-indigo-400 transition-colors hover:bg-indigo-100 hover:text-indigo-600"
               onClick={() => {
-                props.onRemove(filter.facetKey, filter.value);
+                /*
+                 * The same coercion the chip's text gets. `value` is what the
+                 * viewer deletes out of its Set<string> of applied filters, so
+                 * handing the handler a raw object made the chip render fine
+                 * and then refuse to be removed.
+                 */
+                props.onRemove(filter.facetKey, chipText(filter.value));
               }}
               title={`Remove ${filter.displayKey}: ${chipText(filter.displayValue)}`}
             >

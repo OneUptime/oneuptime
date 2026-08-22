@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, test } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 import ActiveFilterChips from "../../../UI/Components/LogsViewer/components/ActiveFilterChips";
 import { ActiveFilter } from "../../../UI/Components/LogsViewer/types";
@@ -118,6 +118,59 @@ describe("ActiveFilterChips given operator-valued filters", () => {
     expect(removeButton!.getAttribute("title")).toBe(
       "Remove logtype: is any of web",
     );
+  });
+
+  test("clicking Remove hands the handler a string, not the operator object", () => {
+    /*
+     * Rendering is only half the backstop. `value` is what the viewer deletes
+     * out of its Set<string> of applied filters
+     * (DashboardLogsViewer.handleRemoveFilter), so an object here renders a
+     * perfectly good chip that then cannot be removed — Set.delete(object) on
+     * a set of strings is a silent no-op.
+     */
+    const removed: Array<[string, unknown]> = [];
+
+    render(
+      <ActiveFilterChips
+        filters={[chipWithValue(new Includes(["web"]), { readOnly: false })]}
+        onRemove={(facetKey: string, value: string) => {
+          removed.push([facetKey, value]);
+        }}
+        onClearAll={() => {}}
+      />,
+    );
+
+    fireEvent.click(document.querySelector("[title^='Remove ']")!);
+
+    expect(removed).toHaveLength(1);
+    expect(removed[0]![0]).toBe("attributes.logtype");
+    expect(typeof removed[0]![1]).toBe("string");
+    expect(removed[0]![1]).toBe("is any of web");
+  });
+
+  test("an ordinary string chip's remove argument is untouched", () => {
+    const removed: Array<unknown> = [];
+
+    render(
+      <ActiveFilterChips
+        filters={[
+          {
+            facetKey: "severityText",
+            value: "Error",
+            displayKey: "Severity",
+            displayValue: "Error",
+          },
+        ]}
+        onRemove={(_facetKey: string, value: string) => {
+          removed.push(value);
+        }}
+        onClearAll={() => {}}
+      />,
+    );
+
+    fireEvent.click(document.querySelector("[title^='Remove ']")!);
+
+    expect(removed).toEqual(["Error"]);
   });
 
   test.each(

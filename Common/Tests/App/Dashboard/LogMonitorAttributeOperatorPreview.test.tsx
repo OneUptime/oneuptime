@@ -38,6 +38,8 @@ import Dictionary from "../../../Types/Dictionary";
 import ActiveFilterChips from "../../../UI/Components/LogsViewer/components/ActiveFilterChips";
 import { ActiveFilter } from "../../../UI/Components/LogsViewer/types";
 import { DictionaryEntryValue } from "../../../UI/Components/Dictionary/DictionaryFilterOperator";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
 import BasicForm from "../../../UI/Components/Forms/BasicForm";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import Modal from "../../../UI/Components/Modal/Modal";
@@ -63,6 +65,16 @@ import Modal from "../../../UI/Components/Modal/Modal";
  */
 
 const ATTRIBUTE_KEYS: Array<string> = ["logtype", "requestId", "statusCode"];
+
+/*
+ * The multi-select for "is any of" / "is none of" offers exactly the union of
+ * the row's current values and the suggestions the host page supplies, so
+ * without these there is nothing to pick and the operator can only ever be
+ * exercised in its empty, non-filtering form.
+ */
+const ATTRIBUTE_VALUE_SUGGESTIONS: Record<string, Array<string>> = {
+  logtype: ["web", "api", "worker"],
+};
 
 interface Recorder {
   closeCount: number;
@@ -105,6 +117,7 @@ const LogHarness: React.FunctionComponent<{ recorder: Recorder }> = (props: {
                     setLogMonitor(value);
                   }}
                   attributeKeys={ATTRIBUTE_KEYS}
+                  attributeValueSuggestions={ATTRIBUTE_VALUE_SUGGESTIONS}
                   telemetryServices={[]}
                   telemetryEntities={[]}
                 />
@@ -156,10 +169,39 @@ const operatorSelect: OperatorSelectFunction = (): HTMLElement => {
 
 type ValueInputFunction = () => HTMLInputElement;
 
+/*
+ * A text row's value box is placeholder="Value", but an operator that expects
+ * a number switches the placeholder to "Number" (Dictionary.tsx). Looking only
+ * for "Value" silently found nothing for `>` and friends, which is how the
+ * numeric operators came to be untestable here. Throw rather than return null
+ * so a case that cannot type its value fails loudly instead of quietly
+ * asserting against an empty box.
+ */
 const valueInput: ValueInputFunction = (): HTMLInputElement => {
-  return document.querySelector<HTMLInputElement>(
-    'input[placeholder="Value"]',
-  )!;
+  const input: HTMLInputElement | null =
+    document.querySelector<HTMLInputElement>(
+      'input[placeholder="Value"], input[placeholder="Number"]',
+    );
+
+  if (!input) {
+    throw new Error(
+      "No value input in the attribute filter row — the operator may render a multi-select instead",
+    );
+  }
+
+  return input;
+};
+
+/*
+ * The multi-select the multi-value operators render in place of a value box.
+ * It is the last react-select in the row, after the operator dropdown.
+ */
+type ValueMultiSelectFunction = () => HTMLElement;
+
+const valueMultiSelect: ValueMultiSelectFunction = (): HTMLElement => {
+  const comboboxes: Array<HTMLElement> = screen.getAllByRole("combobox");
+
+  return comboboxes[comboboxes.length - 1]!;
 };
 
 /**
@@ -262,26 +304,40 @@ describe("Log monitor criteria — attribute filter operators reach the preview"
     expect(screen.getByText("contains web")).toBeInTheDocument();
   });
 
+  /*
+   * How each operator supplies its value differs, and the difference is the
+   * whole reason the numeric and multi-select paths were previously untested:
+   * an earlier version of this table looked only for placeholder="Value" and
+   * silently typed nothing when it did not find one. Each case now names its
+   * input mode, and the helpers throw when the expected input is absent.
+   */
   test.each([
-    ["is none of", "is none of"],
-    ["does not contain", "does not contain web"],
-    ["starts with", "starts with web"],
-    ["ends with", "ends with web"],
-    ["!=", "does not equal web"],
-    ["is empty", "is empty"],
-    ["is not empty", "is not empty"],
+    ["does not contain", "text", "does not contain web"],
+    ["starts with", "text", "starts with web"],
+    ["ends with", "text", "ends with web"],
+    ["!=", "text", "does not equal web"],
+    [">", "number", "greater than 5"],
+    [">=", "number", "greater than or equal 5"],
+    ["<", "number", "less than 5"],
+    ["<=", "number", "less than or equal 5"],
+    ["is any of", "multi", "is any of web, api"],
+    ["is none of", "multi", "is none of web, api"],
+    ["is empty", "none", "is empty"],
+    ["is not empty", "none", "is not empty"],
   ])(
     "the '%s' operator survives the round trip to a chip",
-    (optionText: string, expectedText: string) => {
+    (optionText: string, mode: string, expectedText: string) => {
       const recorder: Recorder = openFormWithAttributeRow();
 
       selectOption(operatorSelect(), optionText);
 
-      const input: HTMLInputElement | null = valueInput();
-
-      // Value-less and multi-select operators have no plain value box.
-      if (input && !input.disabled) {
-        fireEvent.change(input, { target: { value: "web" } });
+      if (mode === "text") {
+        fireEvent.change(valueInput(), { target: { value: "web" } });
+      } else if (mode === "number") {
+        fireEvent.change(valueInput(), { target: { value: "5" } });
+      } else if (mode === "multi") {
+        selectOption(valueMultiSelect(), "web");
+        selectOption(valueMultiSelect(), "api");
       }
 
       const chips: Array<ActiveFilter> = previewChipsFor(
@@ -296,6 +352,81 @@ describe("Log monitor criteria — attribute filter operators reach the preview"
       expect(document.body.textContent).not.toContain("[object Object]");
     },
   );
+
+  test("a value-less operator really does render no usable value box", () => {
+    /*
+     * Guards the "none" rows above: those cases type nothing, so if `is empty`
+     * ever grew a working value input they would silently stop covering the
+     * value-less path. The row does render an input, but a disabled one
+     * labelled with the operator instead of "Value"/"Number".
+     */
+    const recorder: Recorder = openFormWithAttributeRow();
+
+    selectOption(operatorSelect(), "is empty");
+
+    expect(valueInput).toThrow(/No value input/);
+
+    const disabledBox: HTMLInputElement | null =
+      document.querySelector<HTMLInputElement>('input[placeholder="is empty"]');
+
+    expect(disabledBox).not.toBeNull();
+    // Input renders `disabled` as readOnly rather than the DOM disabled flag.
+    expect(disabledBox!.readOnly).toBe(true);
+    expect(previewChipsFor(recorder.latestLogMonitor!)[0]!.displayValue).toBe(
+      "is empty",
+    );
+  });
+
+  test("a populated multi-select reaches the chip as its selection, not as an empty filter", () => {
+    /*
+     * `is any of` is the operator from the bug report, and an EMPTY Includes
+     * is the documented "All" no-op on both sides — so a test that only ever
+     * drives the empty case would stay green even if the multi-select stopped
+     * plumbing selections through, while a saved monitor silently stopped
+     * filtering.
+     */
+    const recorder: Recorder = openFormWithAttributeRow();
+
+    selectOption(operatorSelect(), "is any of");
+    selectOption(valueMultiSelect(), "web");
+    selectOption(valueMultiSelect(), "api");
+
+    const stored: unknown = (recorder.latestLogMonitor!.attributes || {})[
+      "logtype"
+    ];
+
+    expect((stored as Includes).values).toEqual(["web", "api"]);
+
+    const chips: Array<ActiveFilter> = previewChipsFor(
+      recorder.latestLogMonitor!,
+    );
+
+    expect(chips[0]!.displayValue).toBe("is any of web, api");
+
+    renderChips(chips);
+
+    expect(screen.getByText("is any of web, api")).toBeInTheDocument();
+  });
+
+  test("a numeric operator carries the typed threshold, not a coerced zero", () => {
+    /*
+     * `Number("")` is 0, so an operator picked but never filled would compile
+     * to a real `> 0` predicate. Pin that the typed value is what travels.
+     */
+    const recorder: Recorder = openFormWithAttributeRow();
+
+    selectOption(operatorSelect(), ">");
+    fireEvent.change(valueInput(), { target: { value: "1.5" } });
+
+    const stored: unknown = (recorder.latestLogMonitor!.attributes || {})[
+      "logtype"
+    ];
+
+    expect((stored as GreaterThan<number>).value).toBe(1.5);
+    expect(previewChipsFor(recorder.latestLogMonitor!)[0]!.displayValue).toBe(
+      "greater than 1.5",
+    );
+  });
 
   test("picking an operator does not disturb the criteria form itself", () => {
     /*

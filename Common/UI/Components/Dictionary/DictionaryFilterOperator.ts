@@ -461,7 +461,8 @@ export const buildDictionaryValue: (input: {
  * are objects, and handing one to React as a child throws "Objects are not
  * valid as a React child (found: object with keys {_values})", which took the
  * whole monitoring-criteria modal down with it and left no way to reach Save.
- * Anything that puts an attribute filter on screen has to come through here.
+ * Anything that renders an attribute filter as a React child has to come
+ * through here.
  *
  * Equality renders bare (`web`) because that is the implicit operator and how
  * these filters have always read; every other operator is prefixed with its

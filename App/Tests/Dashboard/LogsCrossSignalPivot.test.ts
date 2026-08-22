@@ -319,7 +319,16 @@ describe("buildLogsPivotScope", () => {
       "attributes.b",
       "attributes.c",
     ]);
-    expect(JSON.stringify(result.scope)).not.toContain("[object Object]");
+
+    /*
+     * Not `JSON.stringify(scope).not.toContain("[object Object]")` — every
+     * operator defines toJSON(), so that assertion holds just as well against
+     * the pass-through this test exists to forbid. What matters is that no
+     * non-string value survives into the scope at all.
+     */
+    for (const carried of Object.values(result.scope.attributes || {})) {
+      expect(typeof carried).toBe("string");
+    }
   });
 
   test("scalar base attributes still carry over unchanged", () => {
