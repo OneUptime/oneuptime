@@ -40,6 +40,7 @@ const INGEST_LOCATIONS = [
   "/telemetry",
   "/otlp",
   "/kubernetes-cost",
+  "/security-events",
   "/session-replay",
   "/pyroscope",
 ];
