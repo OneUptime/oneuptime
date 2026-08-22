@@ -18,6 +18,7 @@ import LogAggregationService, {
   HistogramRequest,
   FacetValue,
   FacetRequest,
+  LogAttributeFilters,
   AnalyticsRequest,
   AnalyticsChartType,
   AnalyticsAggregation,
@@ -459,10 +460,9 @@ router.post(
         ? (body["sessionIds"] as Array<string>)
         : undefined;
 
-      const attributes: Record<string, string | Array<string>> | undefined =
-        body["attributes"]
-          ? (body["attributes"] as Record<string, string | Array<string>>)
-          : undefined;
+      const attributes: LogAttributeFilters | undefined = body["attributes"]
+        ? (body["attributes"] as LogAttributeFilters)
+        : undefined;
 
       const resourceScopes: Array<ResourceEntityScope> | undefined =
         await resolveResourceScopesFromBody(body, databaseProps.tenantId);
@@ -563,8 +563,8 @@ router.post(
         ? (body["sessionIds"] as Array<string>)
         : undefined;
 
-      const attributes: Record<string, string> | undefined = body["attributes"]
-        ? (body["attributes"] as Record<string, string>)
+      const attributes: LogAttributeFilters | undefined = body["attributes"]
+        ? (body["attributes"] as LogAttributeFilters)
         : undefined;
 
       /*
