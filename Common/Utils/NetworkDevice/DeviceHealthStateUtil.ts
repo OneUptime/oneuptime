@@ -54,13 +54,22 @@ export type NetworkDeviceHealthState =
 /**
  * The columns the classifier reads. Every caller selects exactly these.
  *
- * `monitorStatusIsOperational` is the resolved verdict of the device's
- * stamped MonitorStatus row — `undefined` when no monitor backs the device
- * (the ordinary case for an SNMP-walked switch), which is what sends the
+ * `monitorStatusIsOffline` is the OFFLINE end of the device's stamped
+ * MonitorStatus row — `undefined` when no monitor backs the device (the
+ * ordinary case for an SNMP-walked switch), which is what sends the
  * decision down to reachability.
+ *
+ * The offline end and not the operational end, because MonitorStatus is a
+ * ladder rather than a pair: the seeded rows run Operational (1) ...
+ * Offline (3), and a "Degraded" row in between is NEITHER operational nor
+ * offline. The device map resolves that ladder with
+ * `isOfflineState ? "down" : "up"` (see NetworkDeviceTopology.ts), so a
+ * caller that passed the operational flag instead would count every
+ * degraded-but-reachable device as down — and the map you reach by
+ * clicking that card would draw the same device green.
  */
 export interface DeviceHealthStateInput {
-  monitorStatusIsOperational?: boolean | null | undefined;
+  monitorStatusIsOffline?: boolean | null | undefined;
   isReachable?: boolean | null | undefined;
   lastPolledAt?: Date | string | null | undefined;
   lastSeenAt?: Date | string | null | undefined;
@@ -92,6 +101,13 @@ export interface DeviceHealthCounts {
  * else, because a device that does not answer has interface counts that
  * are by definition stale; then — and only for a device known to be up —
  * dark ports make it degraded.
+ *
+ * Note what this means for a device stamped "Degraded": the ladder does not
+ * call it offline, so it is up, and it lands in "degraded" only if it also
+ * reports dark ports. That is the device map's rule, reproduced exactly.
+ * Diverging from it here — however reasonable the divergence — would put a
+ * site card and the map it opens into disagreement, which is the one
+ * outcome this module exists to make impossible.
  */
 export function deviceHealthState(
   device: DeviceHealthStateInput | null | undefined,
@@ -104,10 +120,11 @@ export function deviceHealthState(
   let isUp: boolean;
 
   if (
-    device.monitorStatusIsOperational === true ||
-    device.monitorStatusIsOperational === false
+    device.monitorStatusIsOffline === true ||
+    device.monitorStatusIsOffline === false
   ) {
-    isUp = device.monitorStatusIsOperational;
+    // Anything the ladder does not call OFFLINE is up. See the input docs.
+    isUp = !device.monitorStatusIsOffline;
   } else {
     const reachability: NetworkDeviceReachability =
       DeviceReachabilityUtil.getStatus(

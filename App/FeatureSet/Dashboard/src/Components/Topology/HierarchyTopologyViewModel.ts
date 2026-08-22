@@ -281,6 +281,16 @@ export interface SiteTopologyHealthSummary {
   healthy: number;
   unknown: number;
   devices: DeviceHealthCounts;
+  /*
+   * The same devices, split by the state of the SITE they hang off.
+   *
+   * Needed because a sentence about a filtered level has to describe the
+   * sites that survived the filter, not the level. "Down" over a level with
+   * one down market and three degraded ones used to report the degraded
+   * markets' dark ports as part of the down market's problem — devices from
+   * rows the reader could no longer see.
+   */
+  devicesBySiteState: Record<SiteTopologyHealthState, DeviceHealthCounts>;
 }
 
 export function summarizeSiteTopologyHealth(
@@ -294,6 +304,12 @@ export function summarizeSiteTopologyHealth(
     healthy: 0,
     unknown: 0,
     devices: emptyDeviceHealthCounts(),
+    devicesBySiteState: {
+      down: emptyDeviceHealthCounts(),
+      degraded: emptyDeviceHealthCounts(),
+      healthy: emptyDeviceHealthCounts(),
+      unknown: emptyDeviceHealthCounts(),
+    },
   };
 
   for (const site of sites || []) {
@@ -306,13 +322,42 @@ export function summarizeSiteTopologyHealth(
     if (state === "down" || state === "degraded") {
       summary.attention++;
     }
-    summary.devices = mergeDeviceHealthCounts(
-      summary.devices,
-      site.deviceStats || emptyDeviceHealthCounts(),
+    const siteDevices: DeviceHealthCounts =
+      site.deviceStats || emptyDeviceHealthCounts();
+    summary.devices = mergeDeviceHealthCounts(summary.devices, siteDevices);
+    summary.devicesBySiteState[state] = mergeDeviceHealthCounts(
+      summary.devicesBySiteState[state],
+      siteDevices,
     );
   }
 
   return summary;
+}
+
+/**
+ * The devices belonging to the sites a given mode leaves on screen.
+ *
+ * "all" is every device at the level; the narrower modes are the union of
+ * the buckets their filter keeps. This is what lets the hint talk about the
+ * rows the reader can actually see.
+ */
+export function devicesForMode(
+  summary: SiteTopologyHealthSummary,
+  mode: SiteTopologyFilterMode,
+): DeviceHealthCounts {
+  const byState: Record<SiteTopologyHealthState, DeviceHealthCounts> =
+    summary.devicesBySiteState;
+  switch (mode) {
+    case "down":
+      return byState.down;
+    case "degraded":
+      return byState.degraded;
+    case "attention":
+      return mergeDeviceHealthCounts(byState.down, byState.degraded);
+    case "all":
+    default:
+      return summary.devices;
+  }
 }
 
 export function siteTopologyCountForMode(
@@ -505,6 +550,7 @@ export function describeSiteTopologyFilter(input: {
   childTypeLabel: string;
 }): string {
   const singular: string = input.childTypeLabel.trim().toLowerCase();
+  const plural: string = pluralChildLabel(input.childTypeLabel);
   const devices: DeviceHealthCounts = input.summary.devices;
   const levelSize: string = countOfChildren(
     input.summary.total,
@@ -523,15 +569,40 @@ export function describeSiteTopologyFilter(input: {
   const matched: number = siteTopologyCountForMode(input.summary, input.mode);
 
   if (matched === 0) {
+    /*
+     * "All N look fine" is only true when NOTHING at this level needs a
+     * look. Said under a "Down 0" chip sitting next to "Needs attention 3"
+     * it flatly contradicts the control above it, so an empty narrow filter
+     * points at what did match instead of declaring the level healthy.
+     */
+    if (input.mode !== "attention" && input.summary.attention > 0) {
+      return `No ${plural} at this level are ${
+        input.mode === "down" ? "down" : "degraded"
+      } — but ${countOfChildren(
+        input.summary.attention,
+        input.childTypeLabel,
+      )} still need a look.`;
+    }
     return `Nothing at this level matches — all ${levelSize} look fine.`;
   }
 
-  const affectedDevices: number = devices.down + devices.degraded;
+  /*
+   * The devices of the sites that SURVIVED the filter, not of the level.
+   * Reporting the level's would credit the shown sites with dark ports
+   * belonging to rows the filter has just taken off screen.
+   */
+  const matchedDevices: DeviceHealthCounts = devicesForMode(
+    input.summary,
+    input.mode,
+  );
+  const affectedDevices: number = matchedDevices.down + matchedDevices.degraded;
 
   /*
    * "2 of 22 markets" — the denominator is the point. The complaint in
    * #3320 is that a count with no scale behind it ("252 clusters") tells an
-   * operator nothing about how much of their estate is involved.
+   * operator nothing about how much of their estate is involved. The device
+   * denominator is the whole level for the same reason: it is the scale the
+   * numerator has to be read against.
    */
   return `${matched} of ${levelSize} need a look${
     affectedDevices > 0
