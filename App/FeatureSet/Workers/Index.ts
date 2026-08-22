@@ -188,6 +188,9 @@ import "./Jobs/AutoRemediation/VerifyRemediations";
 // AI Insights — preventive telemetry scan (deterministic, no LLM).
 import "./Jobs/AIInsight/ScanForInsights";
 
+// LLM observability — daily cost budget evaluation over LLM spans.
+import "./Jobs/Llm/EvaluateLlmCostBudgets";
+
 // Telemetry Monitors.
 import "./Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations";
 import "./Jobs/DetectionRules/EvaluateDetectionRules";

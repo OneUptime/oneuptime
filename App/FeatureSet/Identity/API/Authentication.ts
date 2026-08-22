@@ -58,9 +58,53 @@ import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
 import UserWebAuthnService from "Common/Server/Services/UserWebAuthnService";
 import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
+import IdentityRateLimit, {
+  IdentityRateLimitBucket,
+} from "Common/Server/Middleware/IdentityRateLimit";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 
 const router: ExpressRouter = Express.getRouter();
+
+/*
+ * The credential routes below are anonymous by definition -- they are how a
+ * session is obtained -- so nothing upstream of them counts attempts. Both
+ * limiters are registered as the FIRST handler on their routes, ahead of the
+ * user lookup and the bcrypt verify, so a flood is refused before it costs us
+ * anything. See Common/Server/Middleware/IdentityRateLimit.ts for the budgets
+ * and for why these fail closed when Redis is unreachable.
+ */
+const loginRateLimit: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void> = IdentityRateLimit.getMiddleware(
+  IdentityRateLimitBucket.Login,
+);
+
+/*
+ * The second step gets its own bucket, shared by all three routes that reach
+ * `login()` with verifyTotpAuth, verifyWebAuthn or verifyTotpEnrolment set.
+ *
+ * For /verify-totp-auth it is the sharper of the two limiters: the password
+ * has already been accepted by the time it is reached, so all that stands
+ * between the caller and the account is a six digit code, and TotpAuth accepts
+ * fourteen of the 10^6 of them at any instant.
+ *
+ * /verify-webauthn-auth and /verify-totp-enrolment are here for a second
+ * reason that applies whatever their own factor is worth. All three re-submit
+ * the email and password and run the same `verifyHashedColumnValue` before
+ * they reach their factor, so each one is a password oracle in its own right
+ * -- and an unlimited one is a hole in the fence, not merely an unguarded
+ * route: an attacker refused at /login simply points the same guesses here.
+ * Whatever bounds /login has to bound these too.
+ */
+const twoFactorRateLimit: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void> = IdentityRateLimit.getMiddleware(
+  IdentityRateLimitBucket.TwoFactor,
+);
 
 const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
 
@@ -944,6 +988,7 @@ router.post(
 
 router.post(
   "/verify-totp-auth",
+  twoFactorRateLimit,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -962,6 +1007,7 @@ router.post(
 
 router.post(
   "/verify-webauthn-auth",
+  twoFactorRateLimit,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1003,6 +1049,7 @@ router.post(
  */
 router.post(
   "/verify-totp-enrolment",
+  twoFactorRateLimit,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -1021,6 +1068,7 @@ router.post(
 
 router.post(
   "/login",
+  loginRateLimit,
   async (
     req: ExpressRequest,
     res: ExpressResponse,

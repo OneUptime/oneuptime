@@ -1,6 +1,7 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -51,10 +52,28 @@ const SavedViewsFacetSection: FunctionComponent<SavedViewsFacetSectionProps> = (
     props.savedViews.length,
   );
 
+  /*
+   * A filter the user cannot see is a filter the user cannot cancel. The list
+   * can shrink under a live search — deleting a saved view refetches and
+   * re-renders this section in place — and once it drops below the threshold
+   * the search box unmounts. Reading the query through the box's own
+   * visibility means the surviving views come straight back instead of the
+   * section reporting "No matches found" over a list nothing on screen can
+   * clear.
+   */
+  const activeSearchText: string = showSearch ? searchText : "";
+
+  // ...and the query itself goes, so re-growing the list cannot resurrect it.
+  useEffect(() => {
+    if (!showSearch) {
+      setSearchText("");
+    }
+  }, [showSearch]);
+
   const visible: VisibleSavedViews<SavedViewListItem> = useMemo(() => {
     return getVisibleSavedViews<SavedViewListItem>({
       savedViews: props.savedViews,
-      searchText: searchText,
+      searchText: activeSearchText,
       showAll: showAll,
       visibleCount: props.initialVisibleCount,
       selectedSavedViewId: props.selectedSavedViewId,
@@ -63,7 +82,7 @@ const SavedViewsFacetSection: FunctionComponent<SavedViewsFacetSectionProps> = (
     props.savedViews,
     props.initialVisibleCount,
     props.selectedSavedViewId,
-    searchText,
+    activeSearchText,
     showAll,
   ]);
 
@@ -203,11 +222,13 @@ const SavedViewsFacetSection: FunctionComponent<SavedViewsFacetSectionProps> = (
           {/*
            * A search result is already the whole answer, so neither half of
            * the toggle belongs beside it — "Show less" would collapse rows
-           * the user explicitly asked to see.
+           * the user explicitly asked to see. hasMore says so on the list's
+           * behalf, and says the same when the list has shrunk to fit.
            */}
           <SavedViewsShowMoreButton
+            hasMore={visible.hasMore}
             hiddenCount={visible.hiddenCount}
-            isShowingAll={showAll && !visible.isSearching}
+            isShowingAll={showAll}
             onToggle={() => {
               setShowAll(!showAll);
             }}

@@ -7,6 +7,7 @@ import {
 import NetworkDeviceDiscoveryScan, {
   DiscoveredNetworkDevice,
 } from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import { countDiscoveredHosts } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveredHostFilter";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -336,5 +337,92 @@ describe("summarizeDiscoveryScan — has this scan reported yet", () => {
       const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(scan);
       expect(outcome.hasReported).toBe(outcome.respondedHostSummary !== null);
     }
+  });
+});
+
+describe("the scans table and the review dialog count the same hosts", () => {
+  /*
+   * The table cell says "+N alive without SNMP" and the dialog's filter row
+   * says "No SNMP (N)". They describe the same set of hosts, one click apart,
+   * so an operator who reads 12 on the table and 9 on the badge has no way to
+   * tell which one is lying. Both now derive from the one predicate; these
+   * tests are what stops a future edit giving either of them its own copy of
+   * the rule again.
+   */
+
+  const mixedHosts: Array<DiscoveredNetworkDevice> = [
+    host({ ipAddress: "10.0.0.1", snmpReachable: true }),
+    host({ ipAddress: "10.0.0.2", snmpReachable: false }),
+    host({ ipAddress: "10.0.0.3" }),
+    host({ ipAddress: "10.0.0.4", snmpReachable: false }),
+    host({
+      ipAddress: "10.0.0.5",
+      isAlreadyRegistered: true,
+      snmpReachable: false,
+    }),
+  ];
+
+  test("the table's ping-only tally equals the dialog's No SNMP badge", () => {
+    const scan: NetworkDeviceDiscoveryScan = makeScan({
+      discoveredDevices: mixedHosts,
+    });
+
+    expect(countPingOnlyHosts(scan)).toBe(3);
+    expect(countDiscoveredHosts(getDiscoveredHosts(scan)).noSnmp).toBe(
+      countPingOnlyHosts(scan),
+    );
+  });
+
+  test("a legacy row is SNMP to both of them", () => {
+    /*
+     * Rows stored before `snmpReachable` existed carry undefined, and every
+     * host on those scans answered SNMP. Counting them as ping-only on either
+     * screen would invent alive-without-SNMP hosts for every historical scan
+     * in the project.
+     */
+    const scan: NetworkDeviceDiscoveryScan = makeScan({
+      discoveredDevices: [host({ ipAddress: "10.0.0.9" })],
+    });
+
+    expect(countPingOnlyHosts(scan)).toBe(0);
+    expect(countDiscoveredHosts(getDiscoveredHosts(scan))).toEqual({
+      all: 1,
+      snmp: 1,
+      noSnmp: 0,
+    });
+  });
+
+  test("a junk row costs a wrong tally, not the whole table", () => {
+    /*
+     * `discoveredDevices` is jsonb written verbatim from the probe's payload,
+     * and getDiscoveredHosts guards only that the VALUE is an array — never
+     * that its elements are objects. Reading `host.snmpReachable` off a null
+     * element threw a TypeError from inside a table cell, taking the scans
+     * list down on a row it was only trying to summarise.
+     */
+    const scan: NetworkDeviceDiscoveryScan = makeScan({
+      discoveredDevices: [
+        null,
+        undefined,
+        7,
+        "10.0.0.1",
+        host({ ipAddress: "10.0.0.2", snmpReachable: false }),
+      ] as unknown as Array<DiscoveredNetworkDevice>,
+    });
+
+    expect(countPingOnlyHosts(scan)).toBe(1);
+    expect(summarizeDiscoveryScan(scan).pingOnlyHostCount).toBe(1);
+  });
+
+  test("the two groups still account for every row the table can see", () => {
+    const scan: NetworkDeviceDiscoveryScan = makeScan({
+      discoveredDevices: mixedHosts,
+    });
+
+    const hosts: Array<DiscoveredNetworkDevice> = getDiscoveredHosts(scan);
+
+    expect(countPingOnlyHosts(scan) + countDiscoveredHosts(hosts).snmp).toBe(
+      hosts.length,
+    );
   });
 });

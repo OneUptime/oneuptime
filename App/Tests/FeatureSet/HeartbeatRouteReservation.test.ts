@@ -25,7 +25,16 @@ import path from "path";
  * registration fails here rather than in a self-hosted install's monitor.
  *
  * The prefix arrays are module-private, so this reads the source the same way
- * VendorAssetRouteReservation.test.ts does.
+ * VendorAssetRouteReservation.test.ts does. Reading source means the parsing
+ * has to be exact: this file's house style is to precede a reserved prefix
+ * with a comment that quotes OTHER paths, so a regex that scrapes every
+ * quoted string out of the array literal also picks up comment prose. That
+ * is not a cosmetic flaw - it lets an edit that deletes the reservation and
+ * leaves a comment mentioning it keep the whole suite green, which is the
+ * one edit this file exists to catch. Hence the line-shaped parser below:
+ * it accepts only lines that are entirely one quoted entry. An entry written
+ * some other way is missed and the reservation assertions FAIL, which is the
+ * safe direction to be wrong in.
  */
 
 const APP_DIR: string = path.join(__dirname, "..", "..");
@@ -66,20 +75,41 @@ const TELEMETRY_INDEX: string = readSource(
 
 const APP_INDEX: string = readSource(APP_DIR, "Index.ts");
 
-function dashboardFallbackSkipPrefixes(): Array<string> {
-  const declaration: RegExpMatchArray | null = FRONTEND_INDEX.match(
-    /const DashboardFallbackRoutePrefixesToSkip: Array<string> = \[([\s\S]*?)\n\];/,
+/*
+ * Entries only - never comment prose. A line has to BE one quoted string to
+ * count, so `* mounted on both "/telemetry" and "/"` contributes nothing.
+ */
+function arrayEntries(source: string, name: string): Array<string> {
+  const declaration: RegExpMatchArray | null = source.match(
+    new RegExp(`const ${name}: Array<string> = \\[([\\s\\S]*?)\\n\\];`),
   );
 
   if (!declaration || !declaration[1]) {
     return [];
   }
 
-  return (declaration[1].match(/"([^"]+)"/g) || []).map(
-    (entry: string): string => {
-      return entry.replace(/"/g, "");
-    },
-  );
+  return declaration[1]
+    .split("\n")
+    .map((line: string): string => {
+      return line.trim();
+    })
+    .map((line: string): string | null => {
+      return line.match(/^"([^"]+)",?$/)?.[1] ?? null;
+    })
+    .filter((entry: string | null): entry is string => {
+      return entry !== null;
+    });
+}
+
+/*
+ * A registration inside a block comment, or commented out at the start of a
+ * line, is not a registration. Only whole-line "//" is stripped so that a
+ * "https://" inside a real string literal survives.
+ */
+function stripComments(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^[ \t]*\/\/.*$/gm, "");
 }
 
 /* Mirrors shouldSkipDashboardFallbackRoute in FeatureSet/Frontend/Index.ts. */
@@ -94,15 +124,22 @@ describe("the nginx heartbeat rewrite target is reserved against the dashboard S
     /rewrite\s+\^\/heartbeat\(\.\*\)\$\s+(\/\S+)\$1\s+break;/,
   )?.[1];
 
-  const prefixes: Array<string> = dashboardFallbackSkipPrefixes();
+  const prefixes: Array<string> = arrayEntries(
+    FRONTEND_INDEX,
+    "DashboardFallbackRoutePrefixesToSkip",
+  );
 
-  test("the nginx /heartbeat block still rewrites to a different path", () => {
+  test("the nginx /heartbeat block still rewrites to some other path", () => {
     /*
-     * If the rewrite is ever dropped the App would receive "/heartbeat/<key>"
-     * directly, which is already reserved - so this test would be asserting
-     * nothing without first proving the rewrite exists.
+     * Everything below is about the REWRITTEN path. If the rewrite is ever
+     * dropped the App would receive "/heartbeat/<key>" directly - separately
+     * reserved - and these assertions would be answering the wrong question,
+     * so prove the rewrite exists before trusting its target. Today it is
+     * "/incoming-request"; the target is not hardcoded, so a deliberate
+     * retarget stays green as long as the new target is reserved too.
      */
-    expect(rewriteTarget).toBe("/incoming-request");
+    expect(rewriteTarget).toBeDefined();
+    expect(rewriteTarget).toMatch(/^\/[a-z-]/);
   });
 
   test("the fallback skip list was found and parsed", () => {
@@ -110,11 +147,40 @@ describe("the nginx heartbeat rewrite target is reserved against the dashboard S
     expect(prefixes.length).toBeGreaterThan(3);
   });
 
-  test("reserves whatever nginx rewrites /heartbeat to", () => {
-    expect(prefixes).toContain(rewriteTarget);
+  test("the parser reads entries only, never quoted paths in comments", () => {
+    /*
+     * The guard on this file's own method. The array's comments quote real
+     * paths ("/telemetry", "/"), so a scrape-every-string parser reports
+     * more prefixes than the array has entries and would keep the suite
+     * green through the exact deletion below. Entry count must match the
+     * number of entry-shaped lines, and prose must contribute nothing.
+     */
+    const body: string =
+      FRONTEND_INDEX.match(
+        /const DashboardFallbackRoutePrefixesToSkip: Array<string> = \[([\s\S]*?)\n\];/,
+      )?.[1] ?? "";
+
+    expect(body).toContain("*");
+    expect(prefixes).toEqual(
+      arrayEntries(
+        stripComments(FRONTEND_INDEX),
+        "DashboardFallbackRoutePrefixesToSkip",
+      ),
+    );
+    expect(
+      prefixes.every((entry: string) => {
+        return entry.startsWith("/");
+      }),
+    ).toBe(true);
   });
 
-  test("reserves the rewritten heartbeat path itself, not just the bare prefix", () => {
+  test("reserves the rewritten heartbeat path", () => {
+    /*
+     * isReserved, not toContain: a retarget to a deeper path (say
+     * "/incoming-request-ingest/incoming-request") is reserved by its parent
+     * without appearing in the list verbatim.
+     */
+    expect(isReserved(prefixes, `${rewriteTarget}`)).toBe(true);
     expect(
       isReserved(prefixes, `${rewriteTarget}/some-monitor-secret-key`),
     ).toBe(true);
@@ -134,13 +200,21 @@ describe("the nginx heartbeat rewrite target is reserved against the dashboard S
     ).toBe(true);
   });
 
-  test("the reservation is needed because ingest is mounted at the root prefix", () => {
-    const mountedPrefixes: RegExpMatchArray | null = TELEMETRY_INDEX.match(
-      /const INCOMING_REQUEST_PREFIXES: Array<string> = \[([\s\S]*?)\n\];/,
-    );
+  test("isReserved still mirrors the predicate the server actually runs", () => {
+    /*
+     * isReserved above is a copy. If shouldSkipDashboardFallbackRoute ever
+     * became an exact match, the copy would keep passing while the server
+     * stopped covering "/incoming-request/<key>".
+     */
+    expect(FRONTEND_INDEX).toContain("path.startsWith(`${prefix}/`)");
+    expect(FRONTEND_INDEX).toContain("if (path === prefix)");
+  });
 
-    expect(mountedPrefixes?.[1]).toContain('"/"');
-    expect(TELEMETRY_INDEX).toContain(
+  test("the reservation is needed because ingest is mounted at the root prefix", () => {
+    expect(
+      arrayEntries(TELEMETRY_INDEX, "INCOMING_REQUEST_PREFIXES"),
+    ).toContain("/");
+    expect(stripComments(TELEMETRY_INDEX)).toContain(
       "app.use(INCOMING_REQUEST_PREFIXES, IncomingRequestAPI);",
     );
   });
@@ -150,10 +224,11 @@ describe("the nginx heartbeat rewrite target is reserved against the dashboard S
      * The reservation only matters while this ordering holds. If telemetry
      * ever inits first the entry becomes belt and braces rather than the fix.
      */
-    const frontendInitIndex: number = APP_INDEX.indexOf(
+    const code: string = stripComments(APP_INDEX);
+    const frontendInitIndex: number = code.indexOf(
       "await FrontendRoutes.init();",
     );
-    const telemetryInitIndex: number = APP_INDEX.indexOf(
+    const telemetryInitIndex: number = code.indexOf(
       "await TelemetryRoutes.init();",
     );
 
@@ -168,8 +243,10 @@ describe("the nginx heartbeat rewrite target is reserved against the dashboard S
       /*
        * Only GET regressed, because the dashboard fallback is app.get("*").
        * Both are pinned so the asymmetry cannot come back from either side.
+       * Comments are stripped first so a commented-out registration cannot
+       * satisfy this.
        */
-      expect(INCOMING_REQUEST_ROUTER).toMatch(
+      expect(stripComments(INCOMING_REQUEST_ROUTER)).toMatch(
         new RegExp(`router\\.${method}\\(\\s*"/incoming-request/:secretkey"`),
       );
     },
