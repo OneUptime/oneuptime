@@ -8,6 +8,8 @@ import MetricItemAggMV1mByService from "./MetricItemAggMV1mByService";
 import MetricItemAggMV1mByK8sCluster from "./MetricItemAggMV1mByK8sCluster";
 import MetricItemAggMV1mByContainer from "./MetricItemAggMV1mByContainer";
 import MetricBaselineHourly from "./MetricBaselineHourly";
+import SpanCountBaseline from "./SpanCountBaseline";
+import LogCountBaseline from "./LogCountBaseline";
 import SloHistory from "./SloHistory";
 import Span from "./Span";
 import ExceptionInstance from "./ExceptionInstance";
@@ -44,6 +46,12 @@ const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
   MetricItemAggMV1mByK8sCluster,
   MetricItemAggMV1mByContainer,
   MetricBaselineHourly,
+  /*
+   * Hour-of-week volume baselines for span/log count anomaly criteria.
+   * AggregatingMergeTree targets populated by MVs on Span/Log inserts.
+   */
+  SpanCountBaseline,
+  LogCountBaseline,
   SloHistory,
   ExceptionInstance,
   MonitorLog,
