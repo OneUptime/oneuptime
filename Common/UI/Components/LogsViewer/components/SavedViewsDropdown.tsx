@@ -3,6 +3,7 @@ import React, {
   ReactElement,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { LogsSavedViewOption } from "../types";
@@ -45,6 +46,14 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
   const [showAll, setShowAll] = useState<boolean>(false);
 
   /*
+   * Escape has to put focus back where it came from. Without this the panel
+   * closes out from under the caret and focus falls to <body>, which for a
+   * keyboard user is the same as being dropped at the top of the page.
+   */
+  const triggerRef: React.MutableRefObject<HTMLButtonElement | null> =
+    useRef<HTMLButtonElement | null>(null);
+
+  /*
    * A search is scoped to the visit that typed it. Leaving it behind means
    * the next open shows a filtered list with no obvious reason why — the
    * dropdown has no persistent chrome to remind anyone a filter is on.
@@ -72,14 +81,28 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
     props.savedViews.length,
   );
 
+  /*
+   * A filter the user cannot see is a filter the user cannot cancel. Hosts
+   * replace this list in place after a create, rename or delete, and once it
+   * drops below the threshold the search box unmounts — so the query is read
+   * through the box's own visibility, and cleared with it.
+   */
+  const activeSearchText: string = showSearch ? searchText : "";
+
+  useEffect(() => {
+    if (!showSearch) {
+      setSearchText("");
+    }
+  }, [showSearch]);
+
   const visible: VisibleSavedViews<LogsSavedViewOption> = useMemo(() => {
     return getVisibleSavedViews<LogsSavedViewOption>({
       savedViews: props.savedViews,
-      searchText: searchText,
+      searchText: activeSearchText,
       showAll: showAll,
       selectedSavedViewId: props.selectedSavedViewId,
     });
-  }, [props.savedViews, props.selectedSavedViewId, searchText, showAll]);
+  }, [props.savedViews, props.selectedSavedViewId, activeSearchText, showAll]);
 
   const clearSelection: () => void = (): void => {
     props.onClear?.();
@@ -87,8 +110,25 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
   };
 
   return (
-    <div className="relative" ref={ref}>
+    <div
+      className="relative"
+      ref={ref}
+      onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
+        if (event.key !== "Escape" || !isComponentVisible) {
+          return;
+        }
+
+        /*
+         * Kept off the page's own Escape handling: the explorer treats Escape
+         * as "close what is on top", and this panel is what is on top.
+         */
+        event.stopPropagation();
+        setIsComponentVisible(false);
+        triggerRef.current?.focus();
+      }}
+    >
       <button
+        ref={triggerRef}
         type="button"
         className={triggerButtonClassName}
         onClick={() => {
@@ -106,7 +146,17 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
       </button>
 
       {isComponentVisible && (
-        <div className="absolute left-0 z-20 mt-2 w-72 rounded-lg border border-gray-200 bg-white shadow-xl">
+        /*
+         * The trigger has always advertised aria-haspopup="dialog"; now that
+         * the panel holds a text field, saying so on the panel too is what
+         * lets assistive tech tell this search box apart from the identically
+         * named one in the facet sidebar behind it.
+         */
+        <div
+          role="dialog"
+          aria-label="Saved views"
+          className="absolute left-0 z-20 mt-2 w-72 rounded-lg border border-gray-200 bg-white shadow-xl"
+        >
           {/*
            * Explicit way back to the unfiltered explorer. Clicking the
            * applied view also clears it, but that is only discoverable once
@@ -277,22 +327,26 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                 </div>
               );
             })}
+          </div>
 
-            {/*
-             * A search result is already the whole answer, so the toggle
-             * stays out of its way — SavedViewsShowMoreButton renders
-             * nothing once neither half of it has anything to do.
-             */}
-            <div className="px-3">
+          {/*
+           * The toggle sits outside the scrolling list on purpose. Inside it,
+           * expanding pushed "Show less" off the bottom of the scroll box and
+           * slid a view row under the cursor, so a second click in the same
+           * spot applied whichever view had taken its place.
+           */}
+          {visible.hasMore && (
+            <div className="border-t border-gray-100 px-3 py-1.5">
               <SavedViewsShowMoreButton
+                hasMore={visible.hasMore}
                 hiddenCount={visible.hiddenCount}
-                isShowingAll={showAll && !visible.isSearching}
+                isShowingAll={showAll}
                 onToggle={() => {
                   setShowAll(!showAll);
                 }}
               />
             </div>
-          </div>
+          )}
 
           {/* Footer action */}
           {props.onCreate && (

@@ -169,7 +169,7 @@ describe("getVisibleSavedViews — the collapsed list", () => {
     expect(visible.hasMore).toBe(false);
   });
 
-  test("expanding shows the whole list and leaves nothing to expand", () => {
+  test("expanding shows the whole list and holds nothing back", () => {
     const visible: VisibleSavedViews<SavedViewListItem> = getVisibleSavedViews({
       savedViews: makeViews(12),
       searchText: "",
@@ -178,7 +178,94 @@ describe("getVisibleSavedViews — the collapsed list", () => {
 
     expect(visible.views).toHaveLength(12);
     expect(visible.hiddenCount).toBe(0);
+  });
+
+  test("an expanded list still reports that it has a tail to collapse", () => {
+    const visible: VisibleSavedViews<SavedViewListItem> = getVisibleSavedViews({
+      savedViews: makeViews(12),
+      searchText: "",
+      showAll: true,
+    });
+
+    /*
+     * hiddenCount and hasMore answer different questions, and conflating them
+     * is what left a dead "Show less" under a list that already fitted:
+     * nothing is hidden right now, but collapsing would hide seven, so the
+     * control has something to do.
+     */
+    expect(visible.hasMore).toBe(true);
+  });
+
+  test("an expanded list measures its tail against the caller's own cut", () => {
+    const narrow: VisibleSavedViews<SavedViewListItem> = getVisibleSavedViews({
+      savedViews: makeViews(4),
+      searchText: "",
+      showAll: true,
+      visibleCount: 2,
+    });
+
+    expect(narrow.views).toHaveLength(4);
+    expect(narrow.hiddenCount).toBe(0);
+    expect(narrow.hasMore).toBe(true);
+
+    const wide: VisibleSavedViews<SavedViewListItem> = getVisibleSavedViews({
+      savedViews: makeViews(4),
+      searchText: "",
+      showAll: true,
+      visibleCount: 10,
+    });
+
+    // Four views under a cut of ten: expanded or not, there is no tail.
+    expect(wide.hasMore).toBe(false);
+  });
+
+  test("an expanded list that shrinks to fit stops offering a collapse", () => {
+    const visible: VisibleSavedViews<SavedViewListItem> = getVisibleSavedViews({
+      savedViews: makeViews(4),
+      searchText: "",
+      showAll: true,
+    });
+
+    /*
+     * The shape of the bug this pins: a user expands twelve views, then
+     * deletes down to four. showAll is still true — nothing resets it — so the
+     * only thing that can retire the toggle is the list saying it has no tail.
+     */
+    expect(visible.views).toHaveLength(4);
     expect(visible.hasMore).toBe(false);
+  });
+
+  test("a collapsed list only claims a tail when it is really holding rows back", () => {
+    /*
+     * The pinned applied view is already on screen, so it is not part of the
+     * tail: six views with the sixth applied are all visible while collapsed,
+     * and offering "+0 more" there would be a control that does nothing.
+     */
+    const pinned: VisibleSavedViews<SavedViewListItem> = getVisibleSavedViews({
+      savedViews: makeViews(6),
+      searchText: "",
+      showAll: false,
+      selectedSavedViewId: "view-6",
+    });
+
+    expect(pinned.views).toHaveLength(6);
+    expect(pinned.hiddenCount).toBe(0);
+    expect(pinned.hasMore).toBe(false);
+  });
+
+  test("hasMore and hiddenCount never disagree about a collapsed list", () => {
+    for (let count: number = 0; count <= 14; count++) {
+      const visible: VisibleSavedViews<SavedViewListItem> =
+        getVisibleSavedViews({
+          savedViews: makeViews(count),
+          searchText: "",
+          showAll: false,
+        });
+
+      expect(visible.hasMore).toBe(visible.hiddenCount > 0);
+      expect(visible.hiddenCount).toBeGreaterThanOrEqual(0);
+      expect(visible.views.length + visible.hiddenCount).toBe(count);
+    }
   });
 
   test("the caller can pick its own visible count", () => {
@@ -345,6 +432,198 @@ describe("getVisibleSavedViews — keeping the applied view in sight", () => {
     expect(namesOf(visible.views)).toEqual([
       "Checkout errors",
       "Staging checkout",
+    ]);
+  });
+});
+
+describe("getVisibleSavedViews — an expanded list", () => {
+  test("a search still reads as a search inside an expanded list", () => {
+    /*
+     * Expanding and then typing leaves both flags on at once. All three
+     * surfaces derive "is this list expanded" from isSearching, so this is the
+     * state that decides whether a "Show less" control sits beside filtered
+     * results.
+     */
+    const visible: VisibleSavedViews<SavedViewListItem> = getVisibleSavedViews({
+      savedViews: makeViews(12),
+      searchText: "view 1",
+      showAll: true,
+    });
+
+    expect(visible.isSearching).toBe(true);
+    expect(namesOf(visible.views)).toEqual([
+      "View 1",
+      "View 10",
+      "View 11",
+      "View 12",
+    ]);
+    expect(visible.matchedViews).toHaveLength(4);
+    expect(visible.hiddenCount).toBe(0);
+    expect(visible.hasMore).toBe(false);
+  });
+
+  test("an expanded list that never had a tail reports none", () => {
+    const visible: VisibleSavedViews<SavedViewListItem> = getVisibleSavedViews({
+      savedViews: makeViews(SAVED_VIEWS_DEFAULT_VISIBLE_COUNT),
+      searchText: "",
+      showAll: true,
+    });
+
+    expect(visible.views).toHaveLength(SAVED_VIEWS_DEFAULT_VISIBLE_COUNT);
+    expect(visible.hiddenCount).toBe(0);
+    expect(visible.hasMore).toBe(false);
+  });
+
+  test("a search suppresses the tail report even while the list is expanded", () => {
+    /*
+     * Search results are the whole answer, so neither half of the collapse
+     * toggle belongs beside them, expanded or not.
+     */
+    const matched: VisibleSavedViews<SavedViewListItem> = getVisibleSavedViews({
+      savedViews: makeViews(12),
+      searchText: "view 1",
+      showAll: true,
+    });
+
+    expect(matched.hasMore).toBe(false);
+    expect(matched.hiddenCount).toBe(0);
+
+    const unmatched: VisibleSavedViews<SavedViewListItem> =
+      getVisibleSavedViews({
+        savedViews: makeViews(12),
+        searchText: "nothing",
+        showAll: true,
+      });
+
+    expect(unmatched.views).toEqual([]);
+    expect(unmatched.hasMore).toBe(false);
+  });
+});
+
+describe("getVisibleSavedViews — pinning against the cut", () => {
+  test("pinning the applied view can complete the list", () => {
+    /*
+     * One view past the cut: the pin brings the last row in, so there is
+     * nothing left to reveal and no "+N more" to offer.
+     */
+    const visible: VisibleSavedViews<SavedViewListItem> = getVisibleSavedViews({
+      savedViews: makeViews(6),
+      searchText: "",
+      showAll: false,
+      selectedSavedViewId: "view-6",
+    });
+
+    expect(namesOf(visible.views)).toEqual([
+      "View 1",
+      "View 2",
+      "View 3",
+      "View 4",
+      "View 5",
+      "View 6",
+    ]);
+    expect(visible.hiddenCount).toBe(0);
+    expect(visible.hasMore).toBe(false);
+  });
+
+  test("a pinned row counts as shown under a caller-supplied cut too", () => {
+    const visible: VisibleSavedViews<SavedViewListItem> = getVisibleSavedViews({
+      savedViews: makeViews(6),
+      searchText: "",
+      showAll: false,
+      visibleCount: 2,
+      selectedSavedViewId: "view-5",
+    });
+
+    expect(namesOf(visible.views)).toEqual(["View 1", "View 2", "View 5"]);
+    // Views 3, 4 and 6 — the pinned row is on screen, so it is not counted.
+    expect(visible.hiddenCount).toBe(3);
+    expect(visible.hasMore).toBe(true);
+  });
+
+  test("the applied view survives a cut of zero", () => {
+    /*
+     * A zero-width slice would otherwise leave the user with an empty list and
+     * no sign of which view is currently applied.
+     */
+    const visible: VisibleSavedViews<SavedViewListItem> = getVisibleSavedViews({
+      savedViews: makeViews(3),
+      searchText: "",
+      showAll: false,
+      visibleCount: 0,
+      selectedSavedViewId: "view-2",
+    });
+
+    expect(namesOf(visible.views)).toEqual(["View 2"]);
+    expect(visible.hiddenCount).toBe(2);
+    expect(visible.hasMore).toBe(true);
+  });
+
+  test("an empty applied id pins nothing rather than pinning the first view", () => {
+    /*
+     * Hosts that model "no view applied" as "" rather than null must land in
+     * the same place as null — not on a view whose id happens to compare equal.
+     */
+    const visible: VisibleSavedViews<SavedViewListItem> = getVisibleSavedViews({
+      savedViews: makeViews(12),
+      searchText: "",
+      showAll: false,
+      selectedSavedViewId: "",
+    });
+
+    expect(visible.views).toHaveLength(SAVED_VIEWS_DEFAULT_VISIBLE_COUNT);
+    expect(visible.hiddenCount).toBe(7);
+    expect(visible.hasMore).toBe(true);
+  });
+
+  test("a cut wider than the list hides nothing", () => {
+    /*
+     * Slicing past the end is silent, so this is the only place a wrong sign in
+     * the hiddenCount subtraction shows up — as "+-7 more".
+     */
+    const visible: VisibleSavedViews<SavedViewListItem> = getVisibleSavedViews({
+      savedViews: makeViews(3),
+      searchText: "",
+      showAll: false,
+      visibleCount: 10,
+    });
+
+    expect(visible.views).toHaveLength(3);
+    expect(visible.hiddenCount).toBe(0);
+    expect(visible.hasMore).toBe(false);
+  });
+
+  test("the applied view is listed once when it also matches the search", () => {
+    const visible: VisibleSavedViews<SavedViewListItem> = getVisibleSavedViews({
+      savedViews: NAMED_VIEWS,
+      searchText: "checkout",
+      showAll: false,
+      selectedSavedViewId: "checkout",
+    });
+
+    expect(namesOf(visible.views)).toEqual([
+      "Checkout errors",
+      "Staging checkout",
+    ]);
+  });
+});
+
+describe("filterSavedViewsByName — names with punctuation", () => {
+  test("the query is matched literally, not as a pattern", () => {
+    /*
+     * Saved views get named after environments and services, so brackets and
+     * dots land in the search box routinely. Treating the query as a pattern
+     * would quietly widen these matches — and throw on an unbalanced bracket
+     * mid-keystroke.
+     */
+    const views: Array<SavedViewListItem> = [
+      { id: "bracketed", name: "View (1)" },
+      { id: "dotted", name: "Prod.web" },
+      { id: "hyphenated", name: "Prod-web" },
+    ];
+
+    expect(namesOf(filterSavedViewsByName(views, "(1)"))).toEqual(["View (1)"]);
+    expect(namesOf(filterSavedViewsByName(views, "prod.web"))).toEqual([
+      "Prod.web",
     ]);
   });
 });

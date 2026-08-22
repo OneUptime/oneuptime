@@ -71,9 +71,15 @@ export interface VisibleSavedViews<T extends SavedViewListItem> {
   matchedViews: Array<T>;
   // True while a non-empty search is applied.
   isSearching: boolean;
-  // Matching views the collapsed list is holding back.
+  // Matching views the list is holding back right now — zero while expanded.
   hiddenCount: number;
-  // Whether the "+N more" toggle has anything to offer.
+  /*
+   * Whether the toggle has anything to do at all, in either direction: true
+   * when collapsing would hide rows, which is the same question as whether
+   * expanding revealed any. Unlike hiddenCount it does not go quiet once the
+   * list is expanded, so a consumer can render "Show less" from it and have
+   * that control disappear the moment the list is short enough to fit.
+   */
   hasMore: boolean;
 }
 
@@ -89,13 +95,13 @@ export function getVisibleSavedViews<T extends SavedViewListItem>(
   /*
    * A search is its own filter — collapsing its results behind "+N more"
    * would hide the very rows the user just asked for. Same call the facet
-   * sections make.
+   * sections make, and with nothing held back there is no toggle to offer.
    */
-  if (isSearching || input.showAll) {
+  if (isSearching) {
     return {
       views: matchedViews,
       matchedViews: matchedViews,
-      isSearching: isSearching,
+      isSearching: true,
       hiddenCount: 0,
       hasMore: false,
     };
@@ -106,12 +112,14 @@ export function getVisibleSavedViews<T extends SavedViewListItem>(
     input.visibleCount ?? SAVED_VIEWS_DEFAULT_VISIBLE_COUNT,
   );
 
-  const views: Array<T> = matchedViews.slice(0, visibleCount);
+  const collapsedViews: Array<T> = matchedViews.slice(0, visibleCount);
 
   if (input.selectedSavedViewId) {
-    const isSelectedVisible: boolean = views.some((view: T): boolean => {
-      return view.id === input.selectedSavedViewId;
-    });
+    const isSelectedVisible: boolean = collapsedViews.some(
+      (view: T): boolean => {
+        return view.id === input.selectedSavedViewId;
+      },
+    );
 
     if (!isSelectedVisible) {
       const selectedView: T | undefined = matchedViews.find(
@@ -121,18 +129,40 @@ export function getVisibleSavedViews<T extends SavedViewListItem>(
       );
 
       if (selectedView) {
-        views.push(selectedView);
+        collapsedViews.push(selectedView);
       }
     }
   }
 
-  const hiddenCount: number = matchedViews.length - views.length;
+  /*
+   * How much the collapsed list holds back — computed whether or not the list
+   * is currently expanded, because that is the only honest answer to "would
+   * the toggle change anything". Reading it off the expanded state instead is
+   * what leaves a "Show less" sitting under a list that already fits: expand a
+   * twelve-view list, delete down to four, and the control has nothing left to
+   * collapse. Note it counts what a collapse would hide, so a pinned applied
+   * view — already on screen — is not counted, and a six-view list whose sixth
+   * is applied correctly offers no toggle at all.
+   */
+  const hiddenWhenCollapsed: number =
+    matchedViews.length - collapsedViews.length;
+  const hasMore: boolean = hiddenWhenCollapsed > 0;
+
+  if (input.showAll) {
+    return {
+      views: matchedViews,
+      matchedViews: matchedViews,
+      isSearching: false,
+      hiddenCount: 0,
+      hasMore: hasMore,
+    };
+  }
 
   return {
-    views: views,
+    views: collapsedViews,
     matchedViews: matchedViews,
     isSearching: false,
-    hiddenCount: hiddenCount,
-    hasMore: hiddenCount > 0,
+    hiddenCount: hiddenWhenCollapsed,
+    hasMore: hasMore,
   };
 }

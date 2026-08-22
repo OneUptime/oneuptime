@@ -1,9 +1,16 @@
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface SavedViewsShowMoreButtonProps {
-  // Matching views the collapsed list is currently holding back.
-  hiddenCount: number;
+  /*
+   * Whether the toggle has anything to do in either direction. Taken straight
+   * from getVisibleSavedViews, which answers it from the list rather than from
+   * the expanded flag — otherwise a list that shrinks while expanded leaves a
+   * "Show less" behind that collapses nothing.
+   */
+  hasMore: boolean;
   isShowingAll: boolean;
+  // Matching views the collapsed list holds back. Zero while expanded.
+  hiddenCount: number;
   onToggle: () => void;
   className?: string | undefined;
 }
@@ -16,7 +23,7 @@ export interface SavedViewsShowMoreButtonProps {
 const SavedViewsShowMoreButton: FunctionComponent<
   SavedViewsShowMoreButtonProps
 > = (props: SavedViewsShowMoreButtonProps): ReactElement | null => {
-  if (!props.isShowingAll && props.hiddenCount <= 0) {
+  if (!props.hasMore) {
     return null;
   }
 
