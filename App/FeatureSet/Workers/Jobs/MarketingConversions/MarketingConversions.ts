@@ -10,11 +10,6 @@ import MarketingConversionService from "Common/Server/Services/MarketingConversi
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserService from "Common/Server/Services/UserService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
-import ConversionUploadProvider, {
-  ConversionSkip,
-  ConversionUploadBatchResult,
-} from "Common/Server/Utils/Marketing/ConversionUploadProvider";
-import AllConversionUploadProviders from "Common/Server/Utils/Marketing/ConversionUploadProviders";
 import logger from "Common/Server/Utils/Logger";
 import SubscriptionPlan, {
   PlanType,
@@ -24,22 +19,24 @@ import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
-import {
-  MarketingConversionType,
-  MarketingConversionUploadStatus,
-} from "Common/Types/Marketing/MarketingConversion";
+import { MarketingConversionType } from "Common/Types/Marketing/MarketingConversion";
 import MarketingConversion from "Common/Models/DatabaseModels/MarketingConversion";
 import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
 
-// Google/Microsoft/LinkedIn accept conversions up to 90 days after the click.
+/*
+ * How far back each discovery pass scans for rows it has not recorded yet.
+ * Both are a bound on scan cost, not a correctness limit: a user or project
+ * that first becomes attributable beyond its window is simply never recorded,
+ * so widening either is safe and narrowing either loses conversions.
+ */
 const SIGNUP_DISCOVERY_WINDOW_IN_DAYS: number = 90;
 const PAID_DISCOVERY_WINDOW_IN_DAYS: number = 180;
 /*
  * How far back the chain-linking pass looks for conversions it has not linked
- * yet. Wider than the upload windows on purpose: linking is OneUptime's own
- * reporting, not an ad-platform upload, and an enterprise cycle running longer
- * than any platform's window is exactly the case the chain exists to describe.
+ * yet. Wider than the discovery windows on purpose: an enterprise cycle
+ * running longer than either of them is exactly the case the chain exists to
+ * describe.
  */
 const CHAIN_LINK_SCAN_WINDOW_IN_DAYS: number = 400;
 /*
@@ -54,82 +51,10 @@ const CHAIN_LINK_SCAN_WINDOW_IN_DAYS: number = 400;
 const CHAIN_LINK_PAGE_SIZE: number = 500;
 // Backstop against a pathological scan; 500 pages is 250k rows in one run.
 const MAX_CHAIN_LINK_PAGES: number = 500;
-// Rows older than this cannot be uploaded anywhere anymore — stop scanning them.
-const PENDING_SCAN_WINDOW_IN_DAYS: number = 100;
-const UPLOAD_BATCH_SIZE: number = 500;
-const MAX_UPLOAD_ATTEMPTS: number = 5;
 
 type GetDateDaysAgoFunction = (days: number) => Date;
 const getDateDaysAgo: GetDateDaysAgoFunction = (days: number): Date => {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-};
-
-interface ProviderUploadState {
-  status?: string;
-  attempts?: number;
-  error?: string;
-  uploadedAt?: string;
-}
-
-type GetProviderStateFunction = (
-  conversion: MarketingConversion,
-  providerKey: string,
-) => ProviderUploadState;
-
-export const getProviderState: GetProviderStateFunction = (
-  conversion: MarketingConversion,
-  providerKey: string,
-): ProviderUploadState => {
-  const uploadState: JSONObject = conversion.uploadState || {};
-  return (uploadState[providerKey] as ProviderUploadState) || {};
-};
-
-type SetProviderStateFunction = (data: {
-  conversion: MarketingConversion;
-  providerKey: string;
-  state: ProviderUploadState;
-}) => Promise<void>;
-
-/*
- * Read-modify-write of the uploadState JSON, merging over the row's CURRENT
- * persisted state rather than the copy loaded at scan time. A stalled job
- * can be re-dispatched while the original run is still in flight, so this
- * job cannot assume it is the only writer; re-reading keeps one provider's
- * write from clobbering another's.
- */
-export const setProviderState: SetProviderStateFunction = async (data: {
-  conversion: MarketingConversion;
-  providerKey: string;
-  state: ProviderUploadState;
-}): Promise<void> => {
-  const current: MarketingConversion | null =
-    await MarketingConversionService.findOneById({
-      id: data.conversion.id!,
-      select: {
-        uploadState: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-  const uploadState: JSONObject = {
-    ...(current?.uploadState || data.conversion.uploadState || {}),
-    [data.providerKey]: data.state as unknown as JSONObject,
-  };
-
-  // Keep the in-memory copy in sync for subsequent providers in this run.
-  data.conversion.uploadState = uploadState;
-
-  await MarketingConversionService.updateOneById({
-    id: data.conversion.id!,
-    data: {
-      uploadState: uploadState,
-    } as any,
-    props: {
-      isRoot: true,
-    },
-  });
 };
 
 /*
@@ -143,9 +68,9 @@ export const setProviderState: SetProviderStateFunction = async (data: {
  * `clickIds notNull`, which meant a signup that arrived carrying
  * utm_campaign but no ad click id — a newsletter, a sponsorship, a conference
  * link, or any Google campaign with auto-tagging switched off — never became a
- * ledger row at all. That is the correct filter for deciding what to UPLOAD,
- * and providers still apply it; it is the wrong filter for deciding what to
- * RECORD, because the ledger is also what OneUptime reports campaigns from.
+ * ledger row at all. A click id is not what makes a conversion worth
+ * recording; carrying any attribution at all is, because the ledger is what
+ * OneUptime reports campaigns from.
  */
 const ATTRIBUTED_ROW_FILTERS: Array<JSONObject> = [
   { clickIds: QueryHelper.notNull() },
@@ -520,8 +445,8 @@ type LinkConversionChainsFunction = () => Promise<void>;
  *
  * WHY THIS EXISTS
  *
- * The four conversion types are written by four unrelated code paths that each
- * see one moment. A booked meeting has no user, a signup has no booking, and a
+ * The three conversion types are written by unrelated code paths that each see
+ * one moment. A booked meeting has no user, a signup has no booking, and a
  * paid subscription knows only the project. Nothing in the ledger said that a
  * demo in June, a signup in July and a subscription in October were one
  * customer — so "revenue this demo campaign produced", the number that decides
@@ -692,208 +617,25 @@ export const linkConversionChains: LinkConversionChainsFunction =
     }
   };
 
-type UploadToProviderFunction = (
-  provider: ConversionUploadProvider,
-) => Promise<void>;
-
-/*
- * Uploads all conversions still pending for this provider. Pending = no
- * status recorded yet and fewer than MAX_UPLOAD_ATTEMPTS transport
- * failures. Status filtering happens in application code (uploadState is a
- * JSON column), over a bounded scan of recent rows — anything older than
- * every platform's upload window can never be uploaded anyway.
- */
-export const uploadToProvider: UploadToProviderFunction = async (
-  provider: ConversionUploadProvider,
-): Promise<void> => {
-  let skip: number = 0;
-  const uploadable: Array<MarketingConversion> = [];
-  const batchSize: number = Math.min(UPLOAD_BATCH_SIZE, provider.maxBatchSize);
-
-  while (skip < 100000 && uploadable.length < batchSize) {
-    const conversions: Array<MarketingConversion> =
-      await MarketingConversionService.findBy({
-        query: {
-          createdAt: QueryHelper.greaterThanEqualTo(
-            getDateDaysAgo(PENDING_SCAN_WINDOW_IN_DAYS),
-          ),
-        },
-        select: {
-          _id: true,
-          conversionType: true,
-          email: true,
-          clickIds: true,
-          conversionAt: true,
-          conversionValueInUSDCents: true,
-          uploadState: true,
-        },
-        limit: LIMIT_MAX,
-        skip: skip,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (conversions.length === 0) {
-      break;
-    }
-
-    for (const conversion of conversions) {
-      if (uploadable.length >= batchSize) {
-        break;
-      }
-
-      const state: ProviderUploadState = getProviderState(
-        conversion,
-        provider.key,
-      );
-
-      if (state.status) {
-        continue;
-      }
-
-      if ((state.attempts || 0) >= MAX_UPLOAD_ATTEMPTS) {
-        continue;
-      }
-
-      const skip: ConversionSkip | null = provider.getSkipReason(conversion);
-
-      if (skip) {
-        /*
-         * Permanent skips (no usable click id, outside the platform's upload
-         * window) are recorded so the row is never revisited. Config-gap
-         * skips are left pending — they upload once the operator adds the
-         * missing configuration.
-         */
-        if (skip.isPermanent) {
-          await setProviderState({
-            conversion: conversion,
-            providerKey: provider.key,
-            state: {
-              status: MarketingConversionUploadStatus.Skipped,
-              error: skip.reason,
-            },
-          });
-        }
-        continue;
-      }
-
-      uploadable.push(conversion);
-    }
-
-    if (conversions.length < LIMIT_MAX) {
-      break;
-    }
-
-    skip += LIMIT_MAX;
-  }
-
-  if (uploadable.length === 0) {
-    return;
-  }
-
-  let result: ConversionUploadBatchResult;
-
-  try {
-    result = await provider.upload(uploadable);
-  } catch (err) {
-    /*
-     * Transport/auth-level failure: bump attempts and leave status unset so
-     * the next run retries, until the attempt cap marks it Failed. Only the
-     * upload call is inside this try — a failure while RECORDING results
-     * must not be mistaken for an upload failure, or it would overwrite the
-     * statuses already persisted for this batch and re-upload them.
-     */
-    const message: string = ConversionUploadProvider.getErrorMessage(err);
-    logger.error(
-      `MarketingConversions: ${provider.displayName} upload failed: ${message}`,
-    );
-
-    for (const conversion of uploadable) {
-      const attempts: number =
-        (getProviderState(conversion, provider.key).attempts || 0) + 1;
-
-      await setProviderState({
-        conversion: conversion,
-        providerKey: provider.key,
-        state: {
-          attempts: attempts,
-          error: message,
-          ...(attempts >= MAX_UPLOAD_ATTEMPTS
-            ? { status: MarketingConversionUploadStatus.Failed }
-            : {}),
-        },
-      }).catch((stateErr: Error) => {
-        logger.error(
-          `MarketingConversions: failed to record ${provider.displayName} attempt: ${stateErr}`,
-        );
-      });
-    }
-
-    return;
-  }
-
-  /*
-   * The upload succeeded. Record each row's outcome independently so one
-   * failed write does not lose the rest — rows whose write fails stay
-   * pending and are retried (providers dedup retries via their own keys).
-   */
-  for (let i: number = 0; i < uploadable.length; i++) {
-    const failureMessage: string | undefined = result.permanentFailures.get(i);
-
-    await setProviderState({
-      conversion: uploadable[i]!,
-      providerKey: provider.key,
-      state: failureMessage
-        ? {
-            // Per-conversion rejections (invalid/expired click id) are permanent.
-            status: MarketingConversionUploadStatus.Failed,
-            error: failureMessage,
-          }
-        : {
-            status: MarketingConversionUploadStatus.Uploaded,
-            uploadedAt: new Date().toISOString(),
-          },
-    }).catch((stateErr: Error) => {
-      logger.error(
-        `MarketingConversions: failed to record ${provider.displayName} result: ${stateErr}`,
-      );
-    });
-  }
-
-  logger.info(
-    `MarketingConversions: uploaded ${
-      uploadable.length - result.permanentFailures.size
-    }/${uploadable.length} conversions to ${provider.displayName}`,
-  );
-};
-
 RunCron(
-  "MarketingConversions:Upload",
+  "MarketingConversions:Discover",
   {
     schedule: IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
     runOnStartup: false,
     /*
-     * Discovery scans plus several providers' uploads can exceed the 5
-     * minute default, and a job that overruns its timeout can be
-     * re-dispatched while still running.
+     * The discovery scans can exceed the 5 minute default, and a job that
+     * overruns its timeout can be re-dispatched while still running.
      */
     timeoutInMS: 30 * 60 * 1000,
   },
   async () => {
+    /*
+     * Paid conversions are a billing concept and the ledger exists to report
+     * on OneUptime's own paid acquisition, so a self-hosted install records
+     * nothing. Bookings are the exception: the Cal webhook writes those
+     * directly and does not depend on this job.
+     */
     if (!IsBillingEnabled) {
-      return;
-    }
-
-    const configuredProviders: Array<ConversionUploadProvider> =
-      AllConversionUploadProviders.filter(
-        (provider: ConversionUploadProvider) => {
-          return provider.isConfigured();
-        },
-      );
-
-    // Self-hosted / unconfigured installs: do nothing, record nothing.
-    if (configuredProviders.length === 0) {
       return;
     }
 
@@ -905,9 +647,5 @@ RunCron(
      * meeting that preceded it without waiting an hour.
      */
     await linkConversionChains();
-
-    for (const provider of configuredProviders) {
-      await uploadToProvider(provider);
-    }
   },
 );

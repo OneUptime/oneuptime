@@ -975,65 +975,9 @@ analytics:
   host:
   key:
 
-# Offline ad conversion uploads (optional, SaaS only). The MarketingConversions
-# worker job uploads ad-attributed conversions — signups, booked meetings,
-# enterprise licence requests and paid subscriptions — to ad platforms, matching
-# on the click ID the visitor carried or on a hashed email. All values are
-# server-only secrets and are never exposed to frontends.
-#
-# Each conversion type needs its own conversion action on each platform. A type
-# left unconfigured is not uploaded under another type's action: its rows stay
-# pending until an id is set.
+# OneUptime's internal marketing conversion ledger (SaaS only). Conversions are
+# recorded for OneUptime's own reporting and are never sent to ad platforms.
 marketing:
-  googleAds:
-    developerToken:
-    oauthClientId:
-    oauthClientSecret:
-    oauthRefreshToken:
-    # Digits only, no dashes.
-    customerId:
-    # Manager (MCC) account id, if access goes through a manager account.
-    loginCustomerId:
-    apiVersion: v23
-    # Numeric conversion action ids (Google Ads > Goals > Conversions).
-    signUpConversionActionId:
-    paidSubscriptionConversionActionId:
-    meetingBookedConversionActionId:
-    # Enhanced conversions for leads: upload a conversion identified ONLY by a
-    # hashed email, with no gclid. This is what attributes a sales-led deal
-    # months after the click. It requires the Google Ads account to have
-    # enhanced conversions for leads enabled and the conversion action
-    # configured for it, so it is off by default. Sending a hashed email
-    # ALONGSIDE a click id needs no flag and always happens.
-    enhancedConversionsForLeadsEnabled: false
-  metaConversions:
-    pixelId:
-    accessToken:
-    graphApiVersion: v22.0
-  microsoftAds:
-    developerToken:
-    oauthClientId:
-    oauthClientSecret:
-    oauthRefreshToken:
-    customerId:
-    accountId:
-    # Offline conversion goal names as configured in Microsoft Advertising.
-    signUpConversionName:
-    paidSubscriptionConversionName:
-    meetingBookedConversionName:
-  linkedInConversions:
-    # LinkedIn access tokens expire (typically 60 days) and must be rotated.
-    accessToken:
-    apiVersion: "202606"
-    # Numeric conversion rule ids (urn:lla:llaPartnerConversion:{id}).
-    signUpConversionId:
-    paidSubscriptionConversionId:
-    meetingBookedConversionId:
-  redditAds:
-    oauthClientId:
-    oauthClientSecret:
-    oauthRefreshToken:
-    accountId:
   cal:
     # Shared secret Cal.com signs booking webhooks with. Set the same value on
     # the Cal.com webhook pointed at https://<host>/api/cal-webhook. Empty

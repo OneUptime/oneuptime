@@ -5,17 +5,10 @@ import Attribution from "Common/Server/Utils/Attribution";
 import MarketingConversionService from "Common/Server/Services/MarketingConversionService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserService from "Common/Server/Services/UserService";
-import ConversionUploadProvider, {
-  ConversionSkip,
-  ConversionUploadBatchResult,
-} from "Common/Server/Utils/Marketing/ConversionUploadProvider";
 import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import Email from "Common/Types/Email";
 import ObjectID from "Common/Types/ObjectID";
-import {
-  MarketingConversionType,
-  MarketingConversionUploadStatus,
-} from "Common/Types/Marketing/MarketingConversion";
+import { MarketingConversionType } from "Common/Types/Marketing/MarketingConversion";
 import {
   afterEach,
   beforeEach,
@@ -53,7 +46,6 @@ jest.mock("Common/Server/Services/MarketingConversionService", () => {
     default: {
       create: jest.fn(),
       findBy: jest.fn(),
-      findOneById: jest.fn(),
       updateOneById: jest.fn(),
     },
   };
@@ -101,69 +93,23 @@ import {
   discoverPaidConversions,
   discoverSignUpConversions,
   getMonthlyRevenueInUSDCents,
-  getProviderState,
   linkConversionChains,
-  setProviderState,
-  uploadToProvider,
-} from "../../../../FeatureSet/Workers/Jobs/MarketingConversions/UploadMarketingConversions";
-
-class TestProvider extends ConversionUploadProvider {
-  public override readonly key: string = "test-provider";
-  public override readonly displayName: string = "Test Provider";
-  public override readonly maxBatchSize: number;
-  public skipReasons: Map<string, ConversionSkip> = new Map<
-    string,
-    ConversionSkip
-  >();
-  public uploadedBatches: Array<Array<MarketingConversion>> = [];
-  public permanentFailures: Map<number, string> = new Map<number, string>();
-  public uploadError: Error | null = null;
-
-  public constructor(maxBatchSize: number = 500) {
-    super();
-    this.maxBatchSize = maxBatchSize;
-  }
-
-  public override isConfigured(): boolean {
-    return true;
-  }
-
-  protected override getProviderSkipReason(
-    conversion: MarketingConversion,
-  ): ConversionSkip | null {
-    return this.skipReasons.get(conversion.id?.toString() || "") || null;
-  }
-
-  public override async upload(
-    conversions: Array<MarketingConversion>,
-  ): Promise<ConversionUploadBatchResult> {
-    this.uploadedBatches.push(conversions);
-    if (this.uploadError) {
-      throw this.uploadError;
-    }
-    return { permanentFailures: this.permanentFailures };
-  }
-}
+} from "../../../../FeatureSet/Workers/Jobs/MarketingConversions/MarketingConversions";
 
 const makeConversion: (data: {
   id: string;
   type?: MarketingConversionType | undefined;
   clickIds?: MarketingConversion["clickIds"];
-  uploadState?: MarketingConversion["uploadState"];
 }) => MarketingConversion = (data: {
   id: string;
   type?: MarketingConversionType | undefined;
   clickIds?: MarketingConversion["clickIds"];
-  uploadState?: MarketingConversion["uploadState"];
 }): MarketingConversion => {
   const conversion: MarketingConversion = new MarketingConversion();
   conversion.id = new ObjectID(data.id);
   conversion.conversionType = data.type || MarketingConversionType.SignUp;
   conversion.clickIds = data.clickIds || { gclid: `${data.id}-click` };
   conversion.conversionAt = new Date("2026-07-22T10:00:00.000Z");
-  if (data.uploadState) {
-    conversion.uploadState = data.uploadState;
-  }
   return conversion;
 };
 
@@ -271,39 +217,7 @@ const getCallArgument: (
   return spy.mock.calls[callIndex]?.[0] as any;
 };
 
-const mockStatePersistence: () => {
-  findOneSpy: SpyInstance<any>;
-  updateSpy: SpyInstance<any>;
-} = (): {
-  findOneSpy: SpyInstance<any>;
-  updateSpy: SpyInstance<any>;
-} => {
-  const conversions: Map<string, MarketingConversion> = new Map<
-    string,
-    MarketingConversion
-  >();
-  const findOneSpy: SpyInstance<any> = jest
-    .spyOn(MarketingConversionService, "findOneById")
-    .mockImplementation(
-      async (args: any): Promise<MarketingConversion | null> => {
-        return conversions.get(args.id.toString()) || null;
-      },
-    );
-  const updateSpy: SpyInstance<any> = jest
-    .spyOn(MarketingConversionService, "updateOneById")
-    .mockImplementation(async (args: any): Promise<number> => {
-      const existing: MarketingConversion =
-        conversions.get(args.id.toString()) || new MarketingConversion();
-      existing.id = args.id;
-      existing.uploadState = args.data.uploadState;
-      conversions.set(args.id.toString(), existing);
-      return 1;
-    });
-
-  return { findOneSpy, updateSpy };
-};
-
-describe("UploadMarketingConversions", () => {
+describe("MarketingConversions", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest
@@ -586,65 +500,6 @@ describe("UploadMarketingConversions", () => {
     });
   });
 
-  describe("provider state", () => {
-    test("reads an empty state and a provider-specific state", () => {
-      const conversion: MarketingConversion = makeConversion({
-        id: "state-conversion",
-        uploadState: {
-          google: {
-            status: MarketingConversionUploadStatus.Uploaded,
-            attempts: 1,
-          },
-        },
-      });
-
-      expect(getProviderState(conversion, "meta")).toEqual({});
-      expect(getProviderState(conversion, "google")).toEqual({
-        status: MarketingConversionUploadStatus.Uploaded,
-        attempts: 1,
-      });
-    });
-
-    test("merges against current persisted state instead of stale scan state", async () => {
-      const conversion: MarketingConversion = makeConversion({
-        id: "merge-state",
-        uploadState: {
-          google: { status: MarketingConversionUploadStatus.Uploaded },
-        },
-      });
-      jest.spyOn(MarketingConversionService, "findOneById").mockResolvedValue({
-        uploadState: {
-          google: { status: MarketingConversionUploadStatus.Uploaded },
-          meta: { status: MarketingConversionUploadStatus.Uploaded },
-        },
-      } as never);
-      const updateSpy: SpyInstance<any> = jest
-        .spyOn(MarketingConversionService, "updateOneById")
-        .mockResolvedValue(undefined as never);
-
-      await setProviderState({
-        conversion,
-        providerKey: "microsoft",
-        state: {
-          status: MarketingConversionUploadStatus.Failed,
-          attempts: 5,
-        },
-      });
-
-      expect(getCallArgument(updateSpy).data.uploadState).toEqual({
-        google: { status: MarketingConversionUploadStatus.Uploaded },
-        meta: { status: MarketingConversionUploadStatus.Uploaded },
-        microsoft: {
-          status: MarketingConversionUploadStatus.Failed,
-          attempts: 5,
-        },
-      });
-      expect(conversion.uploadState).toEqual(
-        getCallArgument(updateSpy).data.uploadState,
-      );
-    });
-  });
-
   /*
    * -------------------------------------------------------------------------
    * Which rows discovery is willing to see.
@@ -652,10 +507,9 @@ describe("UploadMarketingConversions", () => {
    * Both passes used to require `clickIds notNull`, so a conversion carrying
    * utm_campaign and no ad click id never became a ledger row at all — a
    * newsletter, a sponsorship, a conference link, or any Google campaign with
-   * auto-tagging switched off. That is the right filter for deciding what to
-   * UPLOAD, and the providers still apply it; it is the wrong filter for
-   * deciding what to RECORD, because the ledger is also what campaigns are
-   * reported from.
+   * auto-tagging switched off. A click id is not what makes a conversion worth
+   * recording; carrying any attribution at all is, because the ledger is what
+   * campaigns are reported from.
    *
    * QueryHelper has no OR, so each filter is its own scan and the results are
    * de-duplicated in memory — which is why "a user matching both" is a case
@@ -1262,263 +1116,6 @@ describe("UploadMarketingConversions", () => {
       expect(updateSpy).toHaveBeenCalledTimes(3);
       expect(linkedIdSet.has(signUp.id!.toString())).toBe(true);
       expect(linkedIdSet.has(paid.id!.toString())).toBe(true);
-    });
-  });
-
-  describe("provider upload", () => {
-    beforeEach(() => {
-      mockStatePersistence();
-    });
-
-    test("filters completed, exhausted and temporarily unconfigured conversions", async () => {
-      const completed: MarketingConversion = makeConversion({
-        id: "completed",
-        uploadState: {
-          "test-provider": {
-            status: MarketingConversionUploadStatus.Uploaded,
-          },
-        },
-      });
-      const exhausted: MarketingConversion = makeConversion({
-        id: "exhausted",
-        uploadState: {
-          "test-provider": { attempts: 5 },
-        },
-      });
-      const permanentSkip: MarketingConversion = makeConversion({
-        id: "permanent-skip",
-      });
-      const configGap: MarketingConversion = makeConversion({
-        id: "config-gap",
-      });
-      const uploadable: MarketingConversion = makeConversion({
-        id: "uploadable",
-      });
-      jest
-        .spyOn(MarketingConversionService, "findBy")
-        .mockResolvedValue([
-          completed,
-          exhausted,
-          permanentSkip,
-          configGap,
-          uploadable,
-        ] as never);
-      const provider: TestProvider = new TestProvider();
-      provider.skipReasons.set(permanentSkip.id!.toString(), {
-        reason: "expired click",
-        isPermanent: true,
-      });
-      provider.skipReasons.set(configGap.id!.toString(), {
-        reason: "conversion action not configured",
-        isPermanent: false,
-      });
-
-      await uploadToProvider(provider);
-
-      expect(provider.uploadedBatches).toHaveLength(1);
-      expect(provider.uploadedBatches[0]).toEqual([uploadable]);
-      expect(getProviderState(permanentSkip, provider.key)).toMatchObject({
-        status: MarketingConversionUploadStatus.Skipped,
-        error: "expired click",
-      });
-      expect(getProviderState(configGap, provider.key)).toEqual({});
-      expect(getProviderState(uploadable, provider.key)).toMatchObject({
-        status: MarketingConversionUploadStatus.Uploaded,
-      });
-    });
-
-    test("records indexed permanent failures independently from successes", async () => {
-      const success: MarketingConversion = makeConversion({ id: "success" });
-      const failure: MarketingConversion = makeConversion({ id: "failure" });
-      jest
-        .spyOn(MarketingConversionService, "findBy")
-        .mockResolvedValue([success, failure] as never);
-      const provider: TestProvider = new TestProvider();
-      provider.permanentFailures.set(1, "invalid click id");
-
-      await uploadToProvider(provider);
-
-      expect(getProviderState(success, provider.key)).toMatchObject({
-        status: MarketingConversionUploadStatus.Uploaded,
-      });
-      expect(getProviderState(failure, provider.key)).toEqual({
-        status: MarketingConversionUploadStatus.Failed,
-        error: "invalid click id",
-      });
-    });
-
-    test("increments a transport failure while leaving the conversion pending", async () => {
-      const conversion: MarketingConversion = makeConversion({
-        id: "retry-pending",
-        uploadState: {
-          "test-provider": { attempts: 3 },
-        },
-      });
-      jest
-        .spyOn(MarketingConversionService, "findBy")
-        .mockResolvedValue([conversion] as never);
-      const provider: TestProvider = new TestProvider();
-      provider.uploadError = new Error("temporary outage");
-
-      await uploadToProvider(provider);
-
-      expect(getProviderState(conversion, provider.key)).toEqual({
-        attempts: 4,
-        error: "temporary outage",
-      });
-    });
-
-    test("marks the fifth transport failure terminal", async () => {
-      const conversion: MarketingConversion = makeConversion({
-        id: "retry-exhausted",
-        uploadState: {
-          "test-provider": { attempts: 4 },
-        },
-      });
-      jest
-        .spyOn(MarketingConversionService, "findBy")
-        .mockResolvedValue([conversion] as never);
-      const provider: TestProvider = new TestProvider();
-      provider.uploadError = new Error("authentication failed");
-
-      await uploadToProvider(provider);
-
-      expect(getProviderState(conversion, provider.key)).toEqual({
-        status: MarketingConversionUploadStatus.Failed,
-        attempts: 5,
-        error: "authentication failed",
-      });
-    });
-
-    test("honors a provider's smaller batch limit", async () => {
-      const conversions: Array<MarketingConversion> = [
-        makeConversion({ id: "batch-one" }),
-        makeConversion({ id: "batch-two" }),
-        makeConversion({ id: "batch-three" }),
-      ];
-      jest
-        .spyOn(MarketingConversionService, "findBy")
-        .mockResolvedValue(conversions as never);
-      const provider: TestProvider = new TestProvider(2);
-
-      await uploadToProvider(provider);
-
-      expect(provider.uploadedBatches).toHaveLength(1);
-      expect(provider.uploadedBatches[0]).toEqual(conversions.slice(0, 2));
-      expect(getProviderState(conversions[2]!, provider.key)).toEqual({});
-    });
-
-    test("does not call the provider when every candidate is filtered", async () => {
-      const completed: MarketingConversion = makeConversion({
-        id: "already-complete",
-        uploadState: {
-          "test-provider": {
-            status: MarketingConversionUploadStatus.Uploaded,
-          },
-        },
-      });
-      jest
-        .spyOn(MarketingConversionService, "findBy")
-        .mockResolvedValue([completed] as never);
-      const provider: TestProvider = new TestProvider();
-
-      await uploadToProvider(provider);
-
-      expect(provider.uploadedBatches).toHaveLength(0);
-    });
-
-    /*
-     * The MeetingBooked rows the Cal webhook writes share this ledger and this
-     * job. No provider has a conversion action for a booked meeting, and every
-     * provider's mapping is `isSignUp ? signup : purchase` -- so an unscreened
-     * booking would be uploaded as a purchase. The screen lives in
-     * ConversionUploadProvider.getSkipReason; what matters here is that the job
-     * honours it and settles the row instead of retrying it forever.
-     */
-    /*
-     * conversionType is a plain varchar, so a value the enum does not name can
-     * reach the worker — from a rolled-back deploy, a hand-written row, or a
-     * future type an older worker has not learned yet. The base-class screen
-     * refuses it before any provider is asked, which is the one behaviour that
-     * has to hold whatever the allowlist currently contains.
-     */
-    test("skips a conversion type no ad platform has a mapping for", async () => {
-      const unknownType: MarketingConversion = makeConversion({
-        id: "unknown-type",
-        type: "SomeFutureType" as MarketingConversionType,
-      });
-      jest
-        .spyOn(MarketingConversionService, "findBy")
-        .mockResolvedValue([unknownType] as never);
-      const provider: TestProvider = new TestProvider();
-
-      await uploadToProvider(provider);
-
-      expect(provider.uploadedBatches).toHaveLength(0);
-      expect(getProviderState(unknownType, provider.key)).toMatchObject({
-        status: MarketingConversionUploadStatus.Skipped,
-        error:
-          "Conversion type SomeFutureType has no ad platform conversion mapping",
-      });
-    });
-
-    /*
-     * Every type the ledger records is uploadable now — including the two
-     * sales-led ones, which is the entire point of the change. What must still
-     * be excluded is the type nothing has a mapping for.
-     */
-    test("uploads every mapped conversion type and nothing else", async () => {
-      const signUp: MarketingConversion = makeConversion({
-        id: "mixed-signup",
-        type: MarketingConversionType.SignUp,
-      });
-      const meeting: MarketingConversion = makeConversion({
-        id: "mixed-meeting",
-        type: MarketingConversionType.MeetingBooked,
-      });
-      const paid: MarketingConversion = makeConversion({
-        id: "mixed-paid",
-        type: MarketingConversionType.PaidSubscription,
-      });
-      const unknownType: MarketingConversion = makeConversion({
-        id: "mixed-unknown",
-        type: "SomeFutureType" as MarketingConversionType,
-      });
-      jest
-        .spyOn(MarketingConversionService, "findBy")
-        .mockResolvedValue([signUp, meeting, paid, unknownType] as never);
-      const provider: TestProvider = new TestProvider();
-
-      await uploadToProvider(provider);
-
-      expect(provider.uploadedBatches).toEqual([[signUp, meeting, paid]]);
-    });
-
-    // Permanent, so the next run filters it out rather than re-skipping it.
-    test("settles the unmappable conversion so a later run never revisits it", async () => {
-      const unknownType: MarketingConversion = makeConversion({
-        id: "unknown-settled",
-        type: "SomeFutureType" as MarketingConversionType,
-      });
-      const findBySpy: SpyInstance<any> = jest
-        .spyOn(MarketingConversionService, "findBy")
-        .mockResolvedValue([unknownType] as never);
-      const provider: TestProvider = new TestProvider();
-
-      await uploadToProvider(provider);
-
-      const updateCallsAfterFirstRun: number = (
-        MarketingConversionService.updateOneById as unknown as jest.Mock
-      ).mock.calls.length;
-
-      findBySpy.mockResolvedValue([unknownType] as never);
-      await uploadToProvider(provider);
-
-      expect(
-        (MarketingConversionService.updateOneById as unknown as jest.Mock).mock
-          .calls.length,
-      ).toBe(updateCallsAfterFirstRun);
-      expect(provider.uploadedBatches).toHaveLength(0);
     });
   });
 });

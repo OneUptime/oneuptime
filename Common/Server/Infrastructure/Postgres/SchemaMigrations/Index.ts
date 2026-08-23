@@ -540,6 +540,7 @@ import { AddLlmModelPrice1788300000000 } from "./1788300000000-AddLlmModelPrice"
 import { AddMarketingConversionAttribution1788400000000 } from "./1788400000000-AddMarketingConversionAttribution";
 import { RemoveLlmCostBudgetAlertColumns1788500000000 } from "./1788500000000-RemoveLlmCostBudgetAlertColumns";
 import { AddDetectionRuleIncidentColumns1788600000000 } from "./1788600000000-AddDetectionRuleIncidentColumns";
+import { RemoveMarketingConversionUploadState1788700000000 } from "./1788700000000-RemoveMarketingConversionUploadState";
 import { MigrationName1787142779538 } from "./1787142779538-MigrationName";
 import { MigrationName1787156982416 } from "./1787156982416-MigrationName";
 
@@ -1088,4 +1089,5 @@ export default [
   AddMarketingConversionAttribution1788400000000,
   RemoveLlmCostBudgetAlertColumns1788500000000,
   AddDetectionRuleIncidentColumns1788600000000,
+  RemoveMarketingConversionUploadState1788700000000,
 ];
