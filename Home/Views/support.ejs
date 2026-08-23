@@ -374,23 +374,18 @@
 
                                 Cal("ui", { "styles": { "branding": { "brandColor": "#3b82f6" } }, "hideEventTypeDetails": false, "layout": "month_view" });
 
-                                Cal("on", {
-                                    action: "bookingSuccessful",
-                                    callback: (e) => {
-                                        const { type, namespace } = e.detail;
-
-                                        /*
-                                         * Canonical meeting_booked, plus the legacy event.
-                                         * e.detail.data carries the attendee's name and email
-                                         * and is deliberately not forwarded to analytics.
-                                         */
-                                        window.oneUptimeTrackMeetingBooked({
-                                            bookingKind: 'support_call',
-                                            legacyEventName: 'home/support-call-booked',
-                                            calEventType: type,
-                                            calNamespace: namespace
-                                        });
-                                    }
+                                /*
+                                 * Canonical meeting_booked, plus the legacy event.
+                                 * detail.data carries the attendee's name and email
+                                 * and is deliberately not forwarded to analytics.
+                                 */
+                                window.oneUptimeOnCalBookingSuccess(function (detail) {
+                                    window.oneUptimeTrackMeetingBooked({
+                                        bookingKind: 'support_call',
+                                        legacyEventName: 'home/support-call-booked',
+                                        calEventType: detail.type,
+                                        calNamespace: detail.namespace
+                                    });
                                 })
                             </script>
                             <!-- Cal inline embed code ends -->
