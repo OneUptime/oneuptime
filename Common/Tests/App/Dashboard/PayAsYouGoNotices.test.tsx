@@ -120,6 +120,23 @@ describe("Pay as you go notices", () => {
       expect(card).toHaveTextContent("Starting at");
     });
 
+    it("names security events among the pillars billed at the telemetry rate", () => {
+      /*
+       * Security events ingest on the same key and meter at the same
+       * $0.10/GB as the other telemetry pillars. This sentence is the body of
+       * the consent checkbox a user has to tick to create a key, so a pillar
+       * missing from it is a pillar the user is charged for without ever
+       * having been told.
+       */
+      render(<TelemetryPayAsYouGoCard />);
+
+      expect(
+        screen.getByTestId("telemetry-pay-as-you-go-card"),
+      ).toHaveTextContent(
+        "Logs, traces, metrics, profiles and security events are billed at",
+      );
+    });
+
     it("says the charge stops when the key is deleted, so the notice is not just a threat", () => {
       render(<TelemetryPayAsYouGoCard />);
 
