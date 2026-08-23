@@ -7,6 +7,7 @@ import {
   buildRightSizingRecommendation,
   formatCpuCores,
   formatMemoryBytes,
+  getVerdictLabel,
   hasActionableRecommendation,
 } from "../../../Types/Kubernetes/KubernetesRightSizing";
 import { describe, expect, test } from "@jest/globals";
@@ -319,5 +320,57 @@ describe("formatting", () => {
   test("renders unknown values as a dash", () => {
     expect(formatCpuCores(null)).toBe("-");
     expect(formatMemoryBytes(null)).toBe("-");
+  });
+});
+
+/*
+ * getVerdictLabel turns the internal verdict enum into the human string the
+ * right-sizing UI renders. It is a switch with a default arm, so the failure it
+ * invites is a new verdict added to the enum without a matching case — it would
+ * silently render as "Unavailable". This block pins each label and, crucially,
+ * that every enum member has an explicit, distinct, non-"Unavailable" label
+ * except the one that is meant to be Unavailable.
+ */
+describe("getVerdictLabel", () => {
+  const EXPECTED: Array<[RightSizingVerdict, string]> = [
+    [RightSizingVerdict.Overprovisioned, "Over-provisioned"],
+    [RightSizingVerdict.Underprovisioned, "Under-provisioned"],
+    [RightSizingVerdict.Optimal, "Right-sized"],
+    [RightSizingVerdict.NoRequestSet, "No request set"],
+    [RightSizingVerdict.Unavailable, "Unavailable"],
+  ];
+
+  test.each(EXPECTED)(
+    "maps %s to its label",
+    (verdict: RightSizingVerdict, label: string) => {
+      expect(getVerdictLabel(verdict)).toBe(label);
+    },
+  );
+
+  test("every verdict produces a non-empty label", () => {
+    for (const verdict of Object.values(RightSizingVerdict)) {
+      const label: string = getVerdictLabel(verdict);
+      expect(typeof label).toBe("string");
+      expect(label.length).toBeGreaterThan(0);
+    }
+  });
+
+  test('only the Unavailable verdict resolves to "Unavailable"', () => {
+    /*
+     * If a new verdict fell through to the default arm, more than one enum
+     * member would carry the "Unavailable" label — catch that here.
+     */
+    const unavailableCount: number = Object.values(RightSizingVerdict).filter(
+      (verdict: RightSizingVerdict) => {
+        return getVerdictLabel(verdict) === "Unavailable";
+      },
+    ).length;
+    expect(unavailableCount).toBe(1);
+  });
+
+  test("an unknown verdict falls back to Unavailable", () => {
+    expect(getVerdictLabel("SomethingElse" as RightSizingVerdict)).toBe(
+      "Unavailable",
+    );
   });
 });
