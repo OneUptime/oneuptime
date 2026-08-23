@@ -464,4 +464,109 @@ describe("PermissionGate", () => {
       ).toBeNull();
     });
   });
+  /*
+   * Column-level gating, added for https://github.com/OneUptime/oneuptime/issues/3360.
+   *
+   * Record-level gating decides whether to render a button. Column-level
+   * gating decides whether a field may go into a SELECT, and the consequence
+   * of getting it wrong is much worse: ColumnPermission on the server throws
+   * `User is not allowed to read on <column> column of <model>` and fails the
+   * ENTIRE request, so one over-eager field blanks the whole page rather than
+   * one value. Monitor's secret keys are the first columns on Monitor a
+   * legitimate dashboard user can be refused, which is what made this helper
+   * necessary.
+   */
+  describe("canReadColumn", () => {
+    test("refuses a secret key column to a Viewer", () => {
+      permissionsForTest = [Permission.Viewer];
+
+      expect(
+        PermissionGate.canReadColumn(new Monitor(), "serverMonitorSecretKey"),
+      ).toBe(false);
+    });
+
+    test("allows a secret key column to a role that can rotate it", () => {
+      permissionsForTest = [Permission.ProjectAdmin];
+
+      expect(
+        PermissionGate.canReadColumn(new Monitor(), "serverMonitorSecretKey"),
+      ).toBe(true);
+    });
+
+    test("still allows the columns a Viewer is meant to see", () => {
+      /*
+       * The regression that would break the monitor page for read-only users:
+       * if this ever returns false, Pages/Monitor/View/Index.tsx stops asking
+       * for monitorType and the page cannot decide what kind of monitor it is
+       * looking at.
+       */
+      permissionsForTest = [Permission.Viewer];
+
+      expect(PermissionGate.canReadColumn(new Monitor(), "monitorType")).toBe(
+        true,
+      );
+    });
+
+    test("allows a master admin everything", () => {
+      isMasterAdminForTest = true;
+      permissionsForTest = [];
+
+      expect(
+        PermissionGate.canReadColumn(new Monitor(), "serverMonitorSecretKey"),
+      ).toBe(true);
+    });
+
+    test("fails closed while the permission snapshot has not loaded", () => {
+      /*
+       * The opposite call from PermissionGate.check, and deliberately so.
+       * check() hides a button rather than accuse someone of lacking a
+       * permission they hold. Here the recoverable outcome is omitting the
+       * field - the page renders without one value. Failing open would send
+       * the column and hard-fail the request.
+       */
+      permissionsForTest = [];
+
+      expect(
+        PermissionGate.canReadColumn(new Monitor(), "serverMonitorSecretKey"),
+      ).toBe(false);
+    });
+
+    test("allows a column that declares no read access control", () => {
+      /*
+       * Nothing to enforce, and ColumnPermission agrees - it only refuses
+       * columns that name permissions the user does not hold.
+       */
+      permissionsForTest = [Permission.Viewer];
+
+      expect(
+        PermissionGate.canReadColumn(
+          {
+            getColumnAccessControlForAllColumns: () => {
+              return { someColumn: { create: [], read: [], update: [] } };
+            },
+          },
+          "someColumn",
+        ),
+      ).toBe(true);
+    });
+
+    test("allows a column name the model does not know about", () => {
+      permissionsForTest = [Permission.Viewer];
+
+      expect(PermissionGate.canReadColumn(new Monitor(), "noSuchColumn")).toBe(
+        true,
+      );
+    });
+
+    test("honours an explicitly supplied permission snapshot", () => {
+      // Storage says Viewer; the caller passes something else and wins.
+      permissionsForTest = [Permission.Viewer];
+
+      expect(
+        PermissionGate.canReadColumn(new Monitor(), "serverMonitorSecretKey", {
+          permissions: [Permission.ProjectOwner],
+        }),
+      ).toBe(true);
+    });
+  });
 });

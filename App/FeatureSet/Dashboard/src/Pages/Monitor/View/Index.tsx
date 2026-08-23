@@ -74,6 +74,7 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import UptimeBarTooltipIncident from "Common/Types/Monitor/UptimeBarTooltipIncident";
 import UptimeBarDayModal from "Common/UI/Components/MonitorGraphs/UptimeBarDayModal";
 import Color from "Common/Types/Color";
+import { getReadableMonitorSecretKeySelect } from "../../../Utils/MonitorSecretKeySelect";
 
 const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
@@ -232,9 +233,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             name: true,
             color: true,
           },
-          incomingRequestSecretKey: true,
+          ...getReadableMonitorSecretKeySelect(),
           incomingRequestMonitorHeartbeatCheckedAt: true,
-          serverMonitorSecretKey: true,
           serverMonitorRequestReceivedAt: true,
           incomingMonitorRequest: true,
           serverMonitorResponse: true,
@@ -244,7 +244,6 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           telemetryMonitorNextMonitorAt: true,
           monitorSteps: true,
           // Incoming Email Monitor fields
-          incomingEmailSecretKey: true,
           incomingEmailMonitorRequest: true,
           incomingEmailMonitorHeartbeatCheckedAt: true,
           incomingEmailMonitorLastEmailReceivedAt: true,
