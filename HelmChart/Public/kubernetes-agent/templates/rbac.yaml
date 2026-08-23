@@ -106,8 +106,17 @@ rules:
       - poddisruptionbudgets
     verbs: ["get", "list", "watch"]
 {{- end }}
-  # For kubeletstats receiver (and the bundled cost Prometheus's
-  # cAdvisor scrape via the API-server node proxy, when cost is on)
+  # For the cAdvisor scrape in the DaemonSet collector: it reads
+  # /metrics/cadvisor off the local kubelet on NODE_IP:10250, and the
+  # kubelet authorizes that path as the nodes/metrics subresource.
+  - apiGroups: [""]
+    resources:
+      - nodes/metrics
+    verbs: ["get"]
+  # For endpoints the API server itself serves. The bundled cost
+  # Prometheus reaches cAdvisor through the API-server node proxy, which
+  # the nodes/proxy grant above covers; nonResourceURLs never apply to
+  # the kubelet, which authorizes by resource + subresource instead.
   - nonResourceURLs:
       - /metrics
       - /metrics/cadvisor

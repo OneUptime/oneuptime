@@ -479,8 +479,8 @@ kubeletstats:
 # Scrape the kubelet's cAdvisor endpoint (`/metrics/cadvisor`) for the
 # container-level metrics that the kubeletstats receiver doesn't
 # translate: CFS throttling counters and OOM kill events. Runs as a
-# Prometheus scrape in the Deployment collector (RBAC for
-# `/metrics/cadvisor` is already granted at templates/rbac.yaml).
+# Prometheus scrape in every DaemonSet collector, against its own node's
+# kubelet (authorized by the nodes/metrics grant in templates/rbac.yaml).
 #
 # Enables: OOM Kills, High CPU Throttling, CPU Throttle Ratio monitors.
 #
