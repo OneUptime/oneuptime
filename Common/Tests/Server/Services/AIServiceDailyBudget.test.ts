@@ -459,7 +459,17 @@ describe("LlmLogService autonomous-token lane isolation", () => {
     expect(sql).toContain('FROM "AIRun" AS "run"');
     expect(sql).toContain('"run"."triggeredByIncidentId" IS NOT NULL');
     expect(params[3]).toEqual(legacyIncidentFeatures);
-    expect(params[4]).toEqual(legacyAlertFeatures);
+
+    /*
+     * The incident lane reads only its own legacy list, so it must bind
+     * exactly four parameters. Binding the unread alert list as $5 is what
+     * PostgreSQL rejected with "bind message supplies 5 parameters, but
+     * prepared statement "" requires 4", which silently disabled every capped
+     * incident investigation. LlmLogServiceTokenAggregateParams.test.ts holds
+     * the exhaustive placeholder/binding contract.
+     */
+    expect(params).toHaveLength(4);
+    expect(sql).not.toContain("$5");
   });
 
   test("subjectless totals exclude identifiable legacy incident and alert rows", async () => {
