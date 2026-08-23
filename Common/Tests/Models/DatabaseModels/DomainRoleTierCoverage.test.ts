@@ -117,6 +117,30 @@ const NOT_READABLE_BY_THEIR_DOMAIN_ROLES: Array<string> = [
   "IncomingCallPolicyEscalationRule",
 ];
 
+/*
+ * Columns inside an in-domain table whose read list deliberately stops short of
+ * the domain's full tier set, and why. The table-level list above is about
+ * whole tables a role holder is kept out of; this is the same idea one level
+ * down, for a table they are otherwise welcome in.
+ *
+ * Entries are the exact `<table>.<column> is missing <tier>` strings the sweep
+ * produces, so the list is self-policing: widen one of these read lists again
+ * and the entry stops being produced and the assertion fails.
+ *
+ * https://github.com/OneUptime/oneuptime/issues/3360 - Monitor's three secret
+ * keys are bearer credentials, not monitor data. Reading one is gated on being
+ * able to ROTATE it, which is what separates MonitorMember (may edit a monitor,
+ * so may see and reset its key) from MonitorViewer (read-only, so may not).
+ * Viewer used to be on these lists, which made "read-only" mean "can read a
+ * live credential for every agent in the project" -- the same reasoning that
+ * keeps MonitorSecret out of the table list above.
+ */
+const COLUMNS_NOT_READABLE_BY_THEIR_DOMAIN_ROLES: Array<string> = [
+  "Monitor.incomingEmailSecretKey is missing MonitorViewer",
+  "Monitor.incomingRequestSecretKey is missing MonitorViewer",
+  "Monitor.serverMonitorSecretKey is missing MonitorViewer",
+];
+
 type ModelNameFunction = (modelType: ModelType) => string;
 
 const modelName: ModelNameFunction = (modelType: ModelType): string => {
@@ -317,7 +341,9 @@ describe("Domain role tier coverage", () => {
       }
     }
 
-    expect(missing.sort()).toEqual([]);
+    expect(missing.sort()).toEqual(
+      COLUMNS_NOT_READABLE_BY_THEIR_DOMAIN_ROLES.slice().sort(),
+    );
     expect(checked).toBeGreaterThan(500);
   });
 });

@@ -24,6 +24,7 @@ import React, {
 } from "react";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import useAsyncEffect from "use-async-effect";
+import { getReadableMonitorSecretKeySelect } from "../../../Utils/MonitorSecretKeySelect";
 
 const MonitorDocumentation: FunctionComponent<
   PageComponentProps
@@ -53,9 +54,7 @@ const MonitorDocumentation: FunctionComponent<
         id: modelId,
         select: {
           monitorType: true,
-          incomingRequestSecretKey: true,
-          incomingEmailSecretKey: true,
-          serverMonitorSecretKey: true,
+          ...getReadableMonitorSecretKeySelect(),
         },
       });
 

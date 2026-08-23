@@ -12,6 +12,7 @@ import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import OneUptimeDate from "Common/Types/Date";
 import ProjectService from "Common/Server/Services/ProjectService";
+import { stripAgentCredentials } from "Common/Server/Utils/Monitor/MonitorPayloadRedaction";
 
 export async function processServerMonitorFromQueue(
   jobData: ServerMonitorIngestJobData,
@@ -43,10 +44,22 @@ export async function processServerMonitorFromQueue(
     throw new BadDataException(ExceptionMessages.MonitorNotFound);
   }
 
-  const serverMonitorResponse: ServerMonitorResponse =
+  /*
+   * The agent puts the monitor secret in the request body as well as the URL
+   * (ServerMonitorReport.SecretKey / `json:"secretKey"`). The URL copy is what
+   * authenticated the request above and is already spent; the body copy has no
+   * further use here, and everything downstream of this line PERSISTS the
+   * payload — MonitorLog.logBody, Monitor.serverMonitorResponse and
+   * MonitorProbe.lastMonitoringLog are all readable by Permission.Viewer.
+   * Strip it here, at the last point where the payload is still just a
+   * request, so the shared agent secret is never written at rest.
+   * https://github.com/OneUptime/oneuptime/issues/3360
+   */
+  const serverMonitorResponse: ServerMonitorResponse = stripAgentCredentials(
     JSONFunctions.deserialize(
       jobData.serverMonitorResponse["serverMonitorResponse"] as JSONObject,
-    ) as any;
+    ),
+  ) as any;
 
   if (!serverMonitorResponse) {
     throw new BadDataException("Invalid Server Monitor Response");

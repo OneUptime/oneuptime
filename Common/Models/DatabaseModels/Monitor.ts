@@ -1220,15 +1220,25 @@ export default class Monitor extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
+    /*
+     * Gated on the ability to ROTATE the secret, not on the ability to view
+     * the monitor: this read list is deliberately identical to the update list
+     * below. A holder of this key can authenticate as any host
+     * agent reporting to the monitor -- forging or suppressing heartbeats.
+     *
+     * Viewer, MonitorViewer and ReadProjectMonitor used to be here. Viewer is
+     * the least privilege OneUptime grants and is what gets handed to
+     * dashboards, auditors, contractors and automations, so "read-only" also
+     * meant "can read a live bearer credential".
+     * https://github.com/OneUptime/oneuptime/issues/3360
+     */
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
       Permission.MonitorAdmin,
       Permission.MonitorMember,
-      Permission.MonitorViewer,
-      Permission.ReadProjectMonitor,
+      Permission.EditProjectMonitor,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1258,15 +1268,25 @@ export default class Monitor extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
+    /*
+     * Gated on the ability to ROTATE the secret, not on the ability to view
+     * the monitor: this read list is deliberately identical to the update list
+     * below. This key IS the heartbeat URL: a holder can beat the
+     * monitor and keep a dead service looking alive.
+     *
+     * Viewer, MonitorViewer and ReadProjectMonitor used to be here. Viewer is
+     * the least privilege OneUptime grants and is what gets handed to
+     * dashboards, auditors, contractors and automations, so "read-only" also
+     * meant "can read a live bearer credential".
+     * https://github.com/OneUptime/oneuptime/issues/3360
+     */
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
       Permission.MonitorAdmin,
       Permission.MonitorMember,
-      Permission.MonitorViewer,
-      Permission.ReadProjectMonitor,
+      Permission.EditProjectMonitor,
     ],
     update: [
       Permission.ProjectOwner,
@@ -1333,15 +1353,25 @@ export default class Monitor extends BaseModel {
 
   @ColumnAccessControl({
     create: [],
+    /*
+     * Gated on the ability to ROTATE the secret, not on the ability to view
+     * the monitor: this read list is deliberately identical to the update list
+     * below. This key IS the monitor's inbound address: a holder can
+     * send mail that the monitor counts as a heartbeat.
+     *
+     * Viewer, MonitorViewer and ReadProjectMonitor used to be here. Viewer is
+     * the least privilege OneUptime grants and is what gets handed to
+     * dashboards, auditors, contractors and automations, so "read-only" also
+     * meant "can read a live bearer credential".
+     * https://github.com/OneUptime/oneuptime/issues/3360
+     */
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
       Permission.MonitorAdmin,
       Permission.MonitorMember,
-      Permission.MonitorViewer,
-      Permission.ReadProjectMonitor,
+      Permission.EditProjectMonitor,
     ],
     update: [
       Permission.ProjectOwner,

@@ -31,6 +31,7 @@ import React, {
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import useAsyncEffect from "use-async-effect";
 import OneUptimeDate from "Common/Types/Date";
+import { getReadableMonitorSecretKeySelect } from "../../../Utils/MonitorSecretKeySelect";
 
 const MonitorCriteria: FunctionComponent<
   PageComponentProps
@@ -58,9 +59,7 @@ const MonitorCriteria: FunctionComponent<
         id: modelId,
         select: {
           monitorType: true,
-          incomingRequestSecretKey: true,
-          incomingEmailSecretKey: true,
-          serverMonitorSecretKey: true,
+          ...getReadableMonitorSecretKeySelect(),
         },
         requestOptions: {},
       });
