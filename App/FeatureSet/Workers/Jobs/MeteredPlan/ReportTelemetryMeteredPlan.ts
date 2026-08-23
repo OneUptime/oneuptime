@@ -86,42 +86,15 @@ RunCron(
 
           await Sleep.sleep(1000);
 
-          /*
-           * Session replay is reported in its own try/catch, and last.
-           *
-           * Its Stripe price ids do not exist yet, so
-           * getMeteredPlanPriceId throws for it. Everything else in this loop
-           * shares one try/catch per project, so letting that throw escape
-           * would abort the remaining pillars for the project and log a fresh
-           * error every run. Usage still accrues in TelemetryUsageBilling and
-           * will be reported once the price ids are set - only this final push
-           * is unavailable.
-           */
-          try {
-            await SessionReplayDataIngestMeteredPlan.reportQuantityToBillingProvider(
-              project.id,
-            );
-          } catch (sessionReplayError) {
-            logger.debug(
-              `MeteredPlan:ReportTelemetryMeteredPlan Skipping session replay for project ${project.id}: ${sessionReplayError}`,
-            );
-          }
+          await SessionReplayDataIngestMeteredPlan.reportQuantityToBillingProvider(
+            project.id,
+          );
 
-          /*
-           * Security events: same deal as session replay — usage stages
-           * into TelemetryUsageBilling regardless, and the final push to
-           * the billing provider is skipped until its Stripe price ids
-           * exist (getMeteredPlanPriceId throws until then).
-           */
-          try {
-            await SecurityEventsDataIngestMeteredPlan.reportQuantityToBillingProvider(
-              project.id,
-            );
-          } catch (securityEventsError) {
-            logger.debug(
-              `MeteredPlan:ReportTelemetryMeteredPlan Skipping security events for project ${project.id}: ${securityEventsError}`,
-            );
-          }
+          await Sleep.sleep(1000);
+
+          await SecurityEventsDataIngestMeteredPlan.reportQuantityToBillingProvider(
+            project.id,
+          );
 
           await Sleep.sleep(1000);
         }

@@ -1,7 +1,10 @@
 import {
   DEFAULT_MONITOR_REQUEST_TIMEOUT_IN_MS,
+  DEFAULT_MONITOR_RETRY_COUNT,
   MAX_MONITOR_REQUEST_TIMEOUT_IN_MS,
+  MAX_MONITOR_RETRY_COUNT,
   clampMonitorRequestTimeoutInMs,
+  clampMonitorRetryCount,
 } from "../../../Types/Monitor/MonitorStep";
 import { describe, expect, test } from "@jest/globals";
 
@@ -159,6 +162,117 @@ describe("clampMonitorRequestTimeoutInMs", () => {
         const result: number = clampMonitorRequestTimeoutInMs(sample);
         expect(result).toBeLessThanOrEqual(MAX_MONITOR_REQUEST_TIMEOUT_IN_MS);
         expect(result).toBeGreaterThan(0);
+      }
+    });
+  });
+});
+
+/*
+ * clampMonitorRetryCount constrains how many times a probe retries a step. Its
+ * guard differs from the timeout clamp in one behaviour that matters: the lower
+ * bound is `value < 0`, NOT `value <= 0`. Zero is therefore a VALID retry count
+ * (retry never) and must pass through unchanged, whereas only genuinely invalid
+ * inputs (undefined / null / NaN / negative) fall back to the default. These
+ * tests pin exactly that zero-is-valid distinction plus the usual boundary and
+ * defensive-coercion cases.
+ */
+describe("clampMonitorRetryCount", () => {
+  describe("invalid inputs fall back to the default", () => {
+    test("NaN returns the default", () => {
+      expect(clampMonitorRetryCount(NaN)).toBe(DEFAULT_MONITOR_RETRY_COUNT);
+    });
+
+    test("a negative value returns the default (not a clamp to zero)", () => {
+      expect(clampMonitorRetryCount(-1)).toBe(DEFAULT_MONITOR_RETRY_COUNT);
+    });
+
+    test("negative Infinity returns the default", () => {
+      expect(clampMonitorRetryCount(-Infinity)).toBe(
+        DEFAULT_MONITOR_RETRY_COUNT,
+      );
+    });
+
+    test("undefined coerced through the signature returns the default", () => {
+      expect(clampMonitorRetryCount(undefined as unknown as number)).toBe(
+        DEFAULT_MONITOR_RETRY_COUNT,
+      );
+    });
+
+    test("null coerced through the signature returns the default", () => {
+      expect(clampMonitorRetryCount(null as unknown as number)).toBe(
+        DEFAULT_MONITOR_RETRY_COUNT,
+      );
+    });
+  });
+
+  describe("zero is a valid retry count", () => {
+    test("zero passes through unchanged (retry never)", () => {
+      // The whole point of `< 0` rather than `<= 0`: 0 is a real choice.
+      expect(clampMonitorRetryCount(0)).toBe(0);
+    });
+
+    test("negative zero also passes through as a numeric zero", () => {
+      /*
+       * -0 < 0 is false, so -0 is not treated as invalid and passes through.
+       * It stays -0 (toBe uses Object.is, under which -0 !== 0), which is still
+       * numerically zero — assert that rather than the Object.is identity.
+       */
+      const result: number = clampMonitorRetryCount(-0);
+      expect(result === 0).toBe(true);
+      expect(Math.abs(result)).toBe(0);
+    });
+  });
+
+  describe("in-range and boundary values", () => {
+    test("a value between 0 and the cap is returned unchanged", () => {
+      expect(clampMonitorRetryCount(1)).toBe(1);
+      expect(clampMonitorRetryCount(2)).toBe(2);
+    });
+
+    test("a value exactly at the cap is returned, not clamped", () => {
+      expect(clampMonitorRetryCount(MAX_MONITOR_RETRY_COUNT)).toBe(
+        MAX_MONITOR_RETRY_COUNT,
+      );
+    });
+
+    test("one over the cap is clamped down to the cap", () => {
+      expect(clampMonitorRetryCount(MAX_MONITOR_RETRY_COUNT + 1)).toBe(
+        MAX_MONITOR_RETRY_COUNT,
+      );
+    });
+
+    test("positive Infinity is clamped to the cap", () => {
+      expect(clampMonitorRetryCount(Infinity)).toBe(MAX_MONITOR_RETRY_COUNT);
+    });
+  });
+
+  describe("stability and invariants", () => {
+    test("the exported cap and default are non-negative finite numbers", () => {
+      expect(Number.isFinite(MAX_MONITOR_RETRY_COUNT)).toBe(true);
+      expect(MAX_MONITOR_RETRY_COUNT).toBeGreaterThanOrEqual(0);
+      expect(DEFAULT_MONITOR_RETRY_COUNT).toBeGreaterThanOrEqual(0);
+      expect(DEFAULT_MONITOR_RETRY_COUNT).toBeLessThanOrEqual(
+        MAX_MONITOR_RETRY_COUNT,
+      );
+    });
+
+    test("across a sweep the result is always within [0, cap]", () => {
+      const samples: Array<number> = [
+        -100,
+        -1,
+        0,
+        1,
+        2,
+        3,
+        4,
+        1000,
+        Infinity,
+        NaN,
+      ];
+      for (const sample of samples) {
+        const result: number = clampMonitorRetryCount(sample);
+        expect(result).toBeGreaterThanOrEqual(0);
+        expect(result).toBeLessThanOrEqual(MAX_MONITOR_RETRY_COUNT);
       }
     });
   });
