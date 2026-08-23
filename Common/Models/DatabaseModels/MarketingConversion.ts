@@ -17,9 +17,12 @@ import { Column, Entity, Index } from "typeorm";
  * Internal table (no API access) recording server-confirmed conversions —
  * signups, booked meetings and paid subscriptions — together with the
  * attribution the converting visitor carried (ad click IDs, UTM parameters,
- * first touch) and the status of uploading them to ad platforms. Browser
- * analytics never write this table: rows are written by the Cal.com webhook and
- * the MarketingConversions worker job, which also reads it.
+ * first touch). Browser analytics never write this table: rows are written by
+ * the Cal.com webhook and the MarketingConversions worker job, which also
+ * reads it.
+ *
+ * The ledger is OneUptime's own reporting record and nothing else. Conversions
+ * are never sent to ad platforms — see Docs/analytics/enterprise-conversion-tracking.md.
  *
  * This table is deliberately not a CRM. Contact, account and deal records live
  * in Revenue, and nothing here creates or advances them — a booked meeting is
@@ -38,7 +41,7 @@ import { Column, Entity, Index } from "typeorm";
   pluralName: "Marketing Conversions",
   icon: IconProp.ChartBar,
   tableDescription:
-    "Server-confirmed conversions (signups, meetings booked, paid subscriptions), the campaign attribution each carried, and their upload status to ad platforms for offline conversion tracking.",
+    "Server-confirmed conversions (signups, meetings booked, paid subscriptions) and the campaign attribution each carried. OneUptime's internal conversion ledger.",
 })
 @Entity({
   name: "MarketingConversion",
@@ -190,24 +193,6 @@ export default class MarketingConversion extends BaseModel {
     nullable: true,
   })
   public conversionValueInUSDCents?: number | undefined = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.JSON,
-    required: false,
-    title: "Upload State",
-    description:
-      "Per-ad-platform upload state, keyed by provider (google, meta, microsoft, linkedin, reddit, ...): { status: Uploaded|Failed|Skipped, attempts, error, uploadedAt }. Absent key or absent status means pending.",
-  })
-  @Column({
-    type: ColumnType.JSON,
-    nullable: true,
-  })
-  public uploadState?: JSONObject = undefined;
 
   /*
    * Last-touch UTM parameters, copied from the User or Project this conversion
