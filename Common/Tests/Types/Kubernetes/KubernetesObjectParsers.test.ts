@@ -1,12 +1,16 @@
 import { JSONObject } from "../../../Types/JSON";
 import {
   parseCronJobObject,
+  parseDaemonSetObject,
   parseDeploymentObject,
+  parseHPAObject,
   parseJobObject,
   parseNamespaceObject,
   parseNodeObject,
   parsePVCObject,
+  parsePVObject,
   parsePodObject,
+  parseStatefulSetObject,
 } from "../../../Types/Kubernetes/KubernetesObjectParser";
 import { describe, expect, test } from "@jest/globals";
 
@@ -567,6 +571,201 @@ describe("parsePVCObject", () => {
     expect(result!.spec.resources.requests.storage).toBe("10Gi");
     expect(result!.status.phase).toBe("Bound");
     expect(result!.status.capacity.storage).toBe("10Gi");
+  });
+});
+
+describe("parseStatefulSetObject", () => {
+  test("decodes replicas, service name, and update strategy", () => {
+    const sts: JSONObject = kv([
+      ["metadata", obj(kv([["name", str("pg")]]))],
+      [
+        "spec",
+        obj(
+          kv([
+            ["replicas", str("3")],
+            ["serviceName", str("pg-headless")],
+            ["podManagementPolicy", str("OrderedReady")],
+            ["updateStrategy", obj(kv([["type", str("RollingUpdate")]]))],
+          ]),
+        ),
+      ],
+      [
+        "status",
+        obj(
+          kv([
+            ["replicas", str("3")],
+            ["readyReplicas", str("3")],
+            ["currentReplicas", str("2")],
+          ]),
+        ),
+      ],
+    ]);
+    const result: ReturnType<typeof parseStatefulSetObject> =
+      parseStatefulSetObject(sts);
+    expect(result!.spec.replicas).toBe(3);
+    expect(result!.spec.serviceName).toBe("pg-headless");
+    expect(result!.spec.updateStrategy).toBe("RollingUpdate");
+    expect(result!.status.readyReplicas).toBe(3);
+    expect(result!.status.currentReplicas).toBe(2);
+  });
+
+  test("returns null without metadata", () => {
+    expect(parseStatefulSetObject(kv([["spec", obj(kv([]))]]))).toBeNull();
+  });
+});
+
+describe("parseDaemonSetObject", () => {
+  test("decodes the scheduling counters", () => {
+    const ds: JSONObject = kv([
+      ["metadata", obj(kv([["name", str("fluentd")]]))],
+      [
+        "spec",
+        obj(
+          kv([["updateStrategy", obj(kv([["type", str("RollingUpdate")]]))]]),
+        ),
+      ],
+      [
+        "status",
+        obj(
+          kv([
+            ["desiredNumberScheduled", str("5")],
+            ["currentNumberScheduled", str("5")],
+            ["numberReady", str("4")],
+            ["numberMisscheduled", str("0")],
+            ["numberAvailable", str("4")],
+          ]),
+        ),
+      ],
+    ]);
+    const result: ReturnType<typeof parseDaemonSetObject> =
+      parseDaemonSetObject(ds);
+    expect(result!.spec.updateStrategy).toBe("RollingUpdate");
+    expect(result!.status.desiredNumberScheduled).toBe(5);
+    expect(result!.status.numberReady).toBe(4);
+    expect(result!.status.numberMisscheduled).toBe(0);
+  });
+});
+
+describe("parsePVObject", () => {
+  test("returns null when metadata carries no name", () => {
+    const pv: JSONObject = kv([
+      ["metadata", obj(kv([["uid", str("uid-1")]]))],
+      ["spec", obj(kv([["storageClassName", str("gp3")]]))],
+    ]);
+    expect(parsePVObject(pv)).toBeNull();
+  });
+
+  test("decodes capacity, reclaim policy, and claim reference", () => {
+    const pv: JSONObject = kv([
+      ["metadata", obj(kv([["name", str("pv-abc")]]))],
+      [
+        "spec",
+        obj(
+          kv([
+            ["capacity", obj(kv([["storage", str("100Gi")]]))],
+            ["storageClassName", str("gp3")],
+            ["persistentVolumeReclaimPolicy", str("Retain")],
+            ["accessModes", arrOfStrings(["ReadWriteOnce", "ReadOnlyMany"])],
+            [
+              "claimRef",
+              obj(
+                kv([
+                  ["name", str("data-0")],
+                  ["namespace", str("prod")],
+                ]),
+              ),
+            ],
+          ]),
+        ),
+      ],
+      ["status", obj(kv([["phase", str("Bound")]]))],
+    ]);
+    const result: ReturnType<typeof parsePVObject> = parsePVObject(pv);
+    expect(result!.spec.capacity.storage).toBe("100Gi");
+    expect(result!.spec.persistentVolumeReclaimPolicy).toBe("Retain");
+    expect(result!.spec.accessModes).toEqual(["ReadWriteOnce", "ReadOnlyMany"]);
+    expect(result!.spec.claimRef.name).toBe("data-0");
+    expect(result!.spec.claimRef.namespace).toBe("prod");
+    expect(result!.status.phase).toBe("Bound");
+  });
+});
+
+describe("parseHPAObject", () => {
+  test("decodes replica bounds, target ref, and a resource metric", () => {
+    const hpa: JSONObject = kv([
+      ["metadata", obj(kv([["name", str("api-hpa")]]))],
+      [
+        "spec",
+        obj(
+          kv([
+            ["minReplicas", str("2")],
+            ["maxReplicas", str("10")],
+            [
+              "scaleTargetRef",
+              obj(
+                kv([
+                  ["kind", str("Deployment")],
+                  ["name", str("api")],
+                ]),
+              ),
+            ],
+            [
+              "metrics",
+              arrOfObjects([
+                kv([
+                  ["type", str("Resource")],
+                  [
+                    "resource",
+                    obj(
+                      kv([
+                        ["name", str("cpu")],
+                        [
+                          "target",
+                          obj(
+                            kv([
+                              ["type", str("Utilization")],
+                              ["averageUtilization", str("80")],
+                            ]),
+                          ),
+                        ],
+                      ]),
+                    ),
+                  ],
+                ]),
+              ]),
+            ],
+          ]),
+        ),
+      ],
+      [
+        "status",
+        obj(
+          kv([
+            ["currentReplicas", str("3")],
+            ["desiredReplicas", str("4")],
+          ]),
+        ),
+      ],
+    ]);
+    const result: ReturnType<typeof parseHPAObject> = parseHPAObject(hpa);
+    expect(result!.spec.minReplicas).toBe(2);
+    expect(result!.spec.maxReplicas).toBe(10);
+    expect(result!.spec.scaleTargetRef).toEqual({
+      kind: "Deployment",
+      name: "api",
+    });
+    expect(result!.spec.metrics).toHaveLength(1);
+    expect(result!.spec.metrics[0]!.type).toBe("Resource");
+    expect(result!.spec.metrics[0]!.resourceName).toBe("cpu");
+    expect(result!.spec.metrics[0]!.targetType).toBe("Utilization");
+    // averageUtilization wins over the other target-value shapes.
+    expect(result!.spec.metrics[0]!.targetValue).toBe("80");
+    expect(result!.status.currentReplicas).toBe(3);
+    expect(result!.status.desiredReplicas).toBe(4);
+  });
+
+  test("returns null without metadata", () => {
+    expect(parseHPAObject(kv([["spec", obj(kv([]))]]))).toBeNull();
   });
 });
 
