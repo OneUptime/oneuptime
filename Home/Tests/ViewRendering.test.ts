@@ -22,7 +22,7 @@ import {
   getClaimsMatrix,
   getClaimsNeedingReview,
 } from "../Utils/Claims";
-import { getPageSEO, PageSEOData } from "../Utils/PageSEO";
+import PageSEOConfig, { getPageSEO, PageSEOData } from "../Utils/PageSEO";
 import ejs from "ejs";
 import path from "path";
 
@@ -407,6 +407,129 @@ describe("claims-matrix.ejs review states", () => {
       },
     );
     expect(new Set(colours).size).toBe(colours.length);
+  });
+});
+
+describe("security-events.ejs", () => {
+  let html: string = "";
+
+  beforeAll(async () => {
+    /*
+     * Exactly the locals Routes.ts hands the template, plus homeUrl, which the
+     * request middleware puts on res.locals rather than passing per render.
+     */
+    html = await render("security-events.ejs", {
+      enableGoogleTagManager: false,
+      seo: seoFor("/product/security-events"),
+      homeUrl: HOME_URL,
+    });
+  });
+
+  test("renders a complete page", () => {
+    expect(html).toContain("<!DOCTYPE html>");
+    expect(html).toContain("</html>");
+    expect(html.length).toBeGreaterThan(10000);
+  });
+
+  test("the hardcoded head matches the SEO entry's canonical URL", () => {
+    /*
+     * head-basic.ejs never reads `seo`, so the <title> and meta description in
+     * the template and the strings in PageSEO.ts are two separate places. Only
+     * the canonical URL is generated, so that is what can be asserted here.
+     */
+    expect(html).toContain(
+      '<link rel="canonical" href="https://oneuptime.com/product/security-events"',
+    );
+    expect(html).toContain("OneUptime | Security Events");
+  });
+
+  test("renders the sections the page is built around", () => {
+    for (const heading of [
+      "One endpoint in. Alerts and on-call out.",
+      "One endpoint. Four dialects. Nothing dropped.",
+      "Detections as code, written in Sigma",
+      "A detection is an alert your team already knows how to handle",
+      "When the rate is the story, not the event",
+      "Straight about the scope",
+    ]) {
+      expect(html).toContain(heading);
+    }
+  });
+
+  test("quotes the ingest endpoint and the telemetry rate accurately", () => {
+    expect(html).toContain("/security-events/v1/ingest");
+    expect(html).toContain("x-oneuptime-token");
+    expect(html).toContain("$0.10 per GB");
+  });
+
+  test("cross-links the products a detection actually flows into", () => {
+    for (const href of [
+      "/product/on-call",
+      "/product/incident-management",
+      "/product/logs-management",
+      "/docs/telemetry/security-events",
+      "/docs/integrations/google-secops",
+    ]) {
+      expect(html).toContain(`href="${href}"`);
+    }
+  });
+
+  test("every product link in the page body is a real canonical page", () => {
+    /*
+     * A product page is mostly outbound links, and a wrong one is invisible
+     * until someone clicks it — /product/mcp-server looks right but the
+     * canonical path is /tool/mcp-server. Check the page's own <main> rather
+     * than the whole document, so shared nav and footer links are not this
+     * page's problem.
+     */
+    const main: string = html.slice(
+      html.indexOf("<main"),
+      html.indexOf("</main>"),
+    );
+
+    const hrefs: Set<string> = new Set<string>(
+      [...main.matchAll(/href="(\/[^"#]*)"/g)].map(
+        (match: RegExpMatchArray): string => {
+          return match[1]!;
+        },
+      ),
+    );
+
+    const productLinks: Array<string> = [...hrefs].filter(
+      (href: string): boolean => {
+        return (
+          href.startsWith("/product/") ||
+          href.startsWith("/tool/") ||
+          href.startsWith("/solutions/") ||
+          href.startsWith("/industries/")
+        );
+      },
+    );
+
+    // The page should be linking out; an empty list means the regex broke.
+    expect(productLinks.length).toBeGreaterThan(4);
+
+    for (const href of productLinks) {
+      expect(PageSEOConfig[href]?.canonicalPath).toBe(href);
+    }
+  });
+
+  test("does not claim capabilities the detection engine does not have", () => {
+    /*
+     * Only the boolean Sigma core is supported, evaluation is scheduled rather
+     * than streaming, and security-event monitors compare against static
+     * thresholds — anomaly comparators are deliberately withheld for them.
+     */
+    expect(html).not.toMatch(/full sigma (spec|support)/i);
+    expect(html).not.toMatch(/real[- ]time detection/i);
+    expect(html).not.toMatch(/complete sigma/i);
+  });
+
+  test("states the limits rather than leaving a buyer to find them", () => {
+    // Each of these is a real, code-level boundary of the product.
+    expect(html).toContain("count()");
+    expect(html).toContain("the floor is one minute");
+    expect(html).toMatch(/UEBA and behaviou?ral baselining/);
   });
 });
 

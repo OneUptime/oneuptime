@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Security Events - SIEM Signals, OCSF &amp; Sigma Detection Rules</title>
+  <meta name="description"
+    content="Send security events from any source to one endpoint. They are normalized to OCSF, stored beside your logs, metrics and traces, matched by Sigma detection rules, and turned into alerts that page your existing on-call rotation. Open source.">
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <main id="main-content">
+    <!-- Hero Section -->
+    <div class="relative isolate overflow-hidden bg-white" id="sec-hero-section">
+      <!-- Subtle grid pattern background -->
+      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+      <!-- Grid glow effect that follows cursor - red color -->
+      <div id="sec-grid-glow" class="absolute inset-0 -z-[9] pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(220, 38, 38, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(220, 38, 38, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+
+      <div class="py-20 sm:py-28 lg:py-32">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+            <!-- Minimal badge -->
+            <p class="text-sm font-medium text-red-600 mb-4">Security Events &middot; SIEM Signals</p>
+
+            <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+              Your security events, where the rest of your data already lives.
+            </h1>
+            <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+              POST security events from any source to one endpoint. OneUptime normalizes them to OCSF, stores them in the same data lake as your logs, metrics and traces, matches them with Sigma detection rules, and turns a match into an alert that pages the on-call rotation you already run. Open source.
+            </p>
+
+            <div class="mt-10 flex items-center justify-center gap-x-6">
+              <a href="/accounts/register"
+                class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
+                Get started
+              </a>
+              <a href="/enterprise/demo" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+                Request demo <span aria-hidden="true">&rarr;</span>
+              </a>
+            </div>
+
+            <!-- Subtle feature list -->
+            <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
+              <span>OCSF normalized</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Sigma rules</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Monitors</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>On-call routing</span>
+            </div>
+          </div>
+
+          <!-- Hero visual - Security events explorer mockup -->
+          <div class="mt-16 sm:mt-20">
+            <div class="relative mx-auto max-w-5xl">
+              <div class="rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
+                <!-- Security Events Mockup -->
+                <div class="rounded-lg bg-white shadow-lg overflow-hidden">
+                  <!-- Header bar -->
+                  <div class="bg-gray-50 px-6 py-3 flex items-center justify-between border-b border-gray-200">
+                    <div class="flex items-center gap-3">
+                      <div class="flex gap-1.5">
+                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <%- include('./Partials/icons/security-events', {iconClass: 'h-4 w-4'}) %>
+                        <span class="text-sm text-gray-700 font-semibold">Security Events</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-md border border-gray-200 text-xs text-gray-500">
+                        <svg class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Past 1 hour
+                      </div>
+                      <span class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-red-50 rounded-md text-xs font-medium text-red-700 border border-red-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                        OCSF
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Tabs -->
+                  <div class="px-6 pt-4">
+                    <div class="flex items-center gap-2 text-xs">
+                      <span class="px-3 py-1.5 rounded-md bg-red-50 text-red-700 font-semibold border border-red-200">Events</span>
+                      <span class="px-3 py-1.5 rounded-md text-gray-400 border border-transparent hover:text-gray-600">Correlate</span>
+                      <span class="px-3 py-1.5 rounded-md text-gray-400 border border-transparent hover:text-gray-600">Detection Rules</span>
+                      <span class="hidden sm:inline px-3 py-1.5 rounded-md text-gray-400 border border-transparent hover:text-gray-600">Monitors</span>
+                      <span class="hidden sm:inline px-3 py-1.5 rounded-md text-gray-400 border border-transparent hover:text-gray-600">Setup Guide</span>
+                    </div>
+                  </div>
+
+                  <!-- Events table -->
+                  <div class="p-5">
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                      <!-- Column headers -->
+                      <div class="hidden sm:grid grid-cols-12 gap-3 px-4 py-2.5 bg-gray-50 border-b border-gray-200 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                        <div class="col-span-2">Time</div>
+                        <div class="col-span-2">Severity</div>
+                        <div class="col-span-3">Event Class</div>
+                        <div class="col-span-5">Message</div>
+                      </div>
+
+                      <!-- Row 1 -->
+                      <div class="grid grid-cols-12 gap-3 px-4 py-3 border-b border-gray-100 text-xs items-center">
+                        <div class="col-span-4 sm:col-span-2 text-gray-400 font-mono">10:42:07</div>
+                        <div class="col-span-8 sm:col-span-2">
+                          <span class="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-700 ring-1 ring-inset ring-red-200">Critical</span>
+                        </div>
+                        <div class="col-span-5 sm:col-span-3 text-gray-600 font-mono truncate">Detection Finding</div>
+                        <div class="col-span-7 sm:col-span-5 text-gray-700 truncate">Possible Brute Force &mdash; vpn-gw-01</div>
+                      </div>
+
+                      <!-- Row 2 -->
+                      <div class="grid grid-cols-12 gap-3 px-4 py-3 border-b border-gray-100 text-xs items-center">
+                        <div class="col-span-4 sm:col-span-2 text-gray-400 font-mono">10:41:58</div>
+                        <div class="col-span-8 sm:col-span-2">
+                          <span class="inline-flex items-center rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-semibold text-orange-700 ring-1 ring-inset ring-orange-200">High</span>
+                        </div>
+                        <div class="col-span-5 sm:col-span-3 text-gray-600 font-mono truncate">Authentication</div>
+                        <div class="col-span-7 sm:col-span-5 text-gray-700 truncate">Failed logon for alice from 203.0.113.7</div>
+                      </div>
+
+                      <!-- Row 3 -->
+                      <div class="grid grid-cols-12 gap-3 px-4 py-3 border-b border-gray-100 text-xs items-center">
+                        <div class="col-span-4 sm:col-span-2 text-gray-400 font-mono">10:41:52</div>
+                        <div class="col-span-8 sm:col-span-2">
+                          <span class="inline-flex items-center rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-semibold text-orange-700 ring-1 ring-inset ring-orange-200">High</span>
+                        </div>
+                        <div class="col-span-5 sm:col-span-3 text-gray-600 font-mono truncate">Authentication</div>
+                        <div class="col-span-7 sm:col-span-5 text-gray-700 truncate">Failed logon for alice from 203.0.113.7</div>
+                      </div>
+
+                      <!-- Row 4 -->
+                      <div class="grid grid-cols-12 gap-3 px-4 py-3 border-b border-gray-100 text-xs items-center">
+                        <div class="col-span-4 sm:col-span-2 text-gray-400 font-mono">10:40:11</div>
+                        <div class="col-span-8 sm:col-span-2">
+                          <span class="inline-flex items-center rounded-full bg-yellow-50 px-2 py-0.5 text-[10px] font-semibold text-yellow-700 ring-1 ring-inset ring-yellow-200">Medium</span>
+                        </div>
+                        <div class="col-span-5 sm:col-span-3 text-gray-600 font-mono truncate">Process Activity</div>
+                        <div class="col-span-7 sm:col-span-5 text-gray-700 truncate">powershell.exe -enc &hellip; on build-agent-04</div>
+                      </div>
+
+                      <!-- Row 5 -->
+                      <div class="grid grid-cols-12 gap-3 px-4 py-3 text-xs items-center">
+                        <div class="col-span-4 sm:col-span-2 text-gray-400 font-mono">10:39:46</div>
+                        <div class="col-span-8 sm:col-span-2">
+                          <span class="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700 ring-1 ring-inset ring-blue-200">Low</span>
+                        </div>
+                        <div class="col-span-5 sm:col-span-3 text-gray-600 font-mono truncate">User Access Management</div>
+                        <div class="col-span-7 sm:col-span-5 text-gray-700 truncate">Role admin granted to svc-deploy</div>
+                      </div>
+                    </div>
+
+                    <div class="mt-2 flex items-center justify-center gap-5 text-[11px] text-gray-400">
+                      <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-red-500"></span>Critical &amp; Fatal</span>
+                      <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-orange-500"></span>High</span>
+                      <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-yellow-500"></span>Medium</span>
+                      <span class="hidden sm:flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-blue-500"></span>Low</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('logo-roll') -%>
+
+    <!-- How It Works Section -->
+    <div class="relative bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-red-600 uppercase tracking-wide mb-3">How It Works</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            One endpoint in. Alerts and on-call out.
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            No separate cluster to run, no second query language to learn, no security case queue to reconcile with the incidents your team already handles.
+          </p>
+        </div>
+
+        <div class="mx-auto max-w-5xl">
+          <!-- Connecting line for desktop -->
+          <div class="hidden lg:block relative">
+            <div class="absolute top-8 left-[calc(12.5%+24px)] right-[calc(12.5%+24px)] h-px bg-red-200"></div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Step 1 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-red-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-red-600 ring-2 ring-red-600">1</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">POST your events</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">One authenticated endpoint, the same telemetry ingestion key as the rest of OneUptime. Send OCSF, Google SecOps UDM, SecOps detection alerts, or plain security JSON &mdash; the dialect is detected per event.</p>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-red-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-red-600 ring-2 ring-red-600">2</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Normalized to OCSF</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Category, class, activity, severity, actors, targets and observables land on typed columns. Everything that does not map is flattened into an attributes map, so nothing is dropped for arriving in the wrong shape.</p>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-red-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-red-600 ring-2 ring-red-600">3</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Detect</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Sigma detection rules run on their own interval and ask &ldquo;did this pattern appear?&rdquo;. Security Events monitors re-read a sliding window and ask &ldquo;how many, right now?&rdquo;. Use both.</p>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-red-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-red-600 ring-2 ring-red-600">4</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Respond</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">A match opens a deduplicated alert &mdash; optionally an incident &mdash; graded against your project&rsquo;s own severities and routed through the escalation policies your responders already carry.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why OneUptime Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center mb-20">
+          <div class="inline-flex items-center gap-2 rounded-full bg-red-50 px-4 py-1.5 text-sm font-medium text-red-700 ring-1 ring-inset ring-red-600/20 mb-6">
+            <svg class="h-4 w-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+            <span class="text-sm font-medium text-red-700">Why OneUptime for security events</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+            The 3 AM page should not depend on which console you were watching
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            Security signal usually lands in its own tool, with its own storage, its own alerting and its own queue &mdash; so a detection has to be carried by hand to the people who can act on it. Here it is a telemetry signal like any other: same store, same retention configuration, same alerts, same on-call.
+          </p>
+        </div>
+
+        <!-- Feature blocks -->
+        <div class="space-y-24">
+
+          <!-- Feature 1: Ingest -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 ring-1 ring-red-200">
+                  <svg class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-red-600 uppercase tracking-wide">Ingest</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">One endpoint. Four dialects. Nothing dropped.</h3>
+              <p class="mt-4 text-lg text-gray-600">Anything that can POST JSON can feed the table &mdash; a SOAR playbook, an EDR webhook, a cloud audit-log forwarder, Fluent Bit. Name the dialect with a query parameter or a header, or send nothing and let OneUptime sniff it per event, so one webhook can mix detection alerts with raw events. Whatever does not map onto a typed column is flattened into dot-notation attribute keys and kept, so you are never choosing between a clean schema and the original payload.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  OCSF, Google SecOps UDM, SecOps alerts &amp; generic JSON
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Per-event dialect detection &mdash; one webhook, mixed payloads
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Same ingestion key as your logs, metrics &amp; traces
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+
+            <!-- Visual: curl -->
+            <div class="mt-12 lg:mt-0 relative">
+              <div class="absolute -inset-4 bg-red-50/50 rounded-3xl blur-2xl"></div>
+              <div class="relative bg-gray-900 rounded-xl shadow-lg overflow-hidden border border-gray-800">
+                <div class="bg-gray-800 px-4 py-2.5 flex items-center gap-3 border-b border-gray-700">
+                  <div class="flex gap-1.5">
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-600"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-600"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-600"></div>
+                  </div>
+                  <div class="flex-1 text-center">
+                    <span class="text-xs text-gray-400 font-mono">send-a-security-event.sh</span>
+                  </div>
+                </div>
+                <div class="p-5 overflow-x-auto">
+                  <pre class="text-[11px] sm:text-xs leading-relaxed font-mono text-gray-300"><span class="text-red-400">curl</span> -X POST <span class="text-emerald-400">"https://oneuptime.com/security-events/v1/ingest"</span> \
+  -H <span class="text-emerald-400">"Content-Type: application/json"</span> \
+  -H <span class="text-emerald-400">"x-oneuptime-token: &lt;ingestion key&gt;"</span> \
+  -d <span class="text-emerald-400">'{
+    "events": [
+      {
+        "class_uid": 3002,
+        "severity_id": 4,
+        "time": 1755770400000,
+        "message": "Failed logon for alice",
+        "actor": { "user": { "name": "alice" } }
+      }
+    ]
+  }'</span></pre>
+                </div>
+                <div class="border-t border-gray-800 px-5 py-3 flex flex-wrap items-center gap-2">
+                  <span class="rounded-md bg-gray-800 px-2 py-1 text-[10px] font-mono text-gray-300">?format=ocsf</span>
+                  <span class="rounded-md bg-gray-800 px-2 py-1 text-[10px] font-mono text-gray-300">?format=udm</span>
+                  <span class="rounded-md bg-gray-800 px-2 py-1 text-[10px] font-mono text-gray-300">?format=google-secops-alert</span>
+                  <span class="rounded-md bg-gray-800 px-2 py-1 text-[10px] font-mono text-gray-300">?format=generic</span>
+                  <span class="text-[10px] text-gray-500">&mdash; or omit it entirely</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 2: Detection rules -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <!-- Visual: Sigma rule -->
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0 relative">
+              <div class="absolute -inset-4 bg-gray-100/60 rounded-3xl blur-2xl"></div>
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+                <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                  <div class="flex gap-1.5">
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                  </div>
+                  <div class="flex-1 text-center">
+                    <span class="text-xs text-gray-400 font-mono">possible-brute-force.yml</span>
+                  </div>
+                </div>
+                <div class="p-5 overflow-x-auto">
+                  <pre class="text-[11px] sm:text-xs leading-relaxed font-mono text-gray-700"><span class="text-gray-500">title:</span> Possible Brute Force
+<span class="text-gray-500">level:</span> critical
+<span class="text-gray-500">tags:</span>
+  - attack.t1110
+<span class="text-gray-500">detection:</span>
+  <span class="text-red-600">selection:</span>
+    className: Authentication
+    statusName: Failure
+  <span class="text-red-600">filter_internal:</span>
+    principalIp|startswith: <span class="text-emerald-600">'10.'</span>
+  <span class="text-red-600">condition:</span> selection and not filter_internal</pre>
+                </div>
+                <div class="border-t border-gray-100 p-5 space-y-3">
+                  <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div class="flex items-center gap-2">
+                      <span class="w-6 h-6 rounded-md bg-red-50 border border-red-200 flex items-center justify-center">
+                        <svg class="w-3.5 h-3.5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
+                      </span>
+                      <span class="text-xs text-gray-700 font-medium">Create alert</span>
+                    </div>
+                    <span class="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">On by default</span>
+                  </div>
+                  <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div class="flex items-center gap-2">
+                      <span class="w-6 h-6 rounded-md bg-rose-50 border border-rose-200 flex items-center justify-center">
+                        <svg class="w-3.5 h-3.5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+                      </span>
+                      <span class="text-xs text-gray-700 font-medium">Create incident</span>
+                    </div>
+                    <span class="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Opt in per rule</span>
+                  </div>
+                  <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div class="flex items-center gap-2">
+                      <span class="w-6 h-6 rounded-md bg-red-50 border border-red-200 flex items-center justify-center">
+                        <%- include('./Partials/icons/security-events', {iconClass: 'h-3.5 w-3.5'}) %>
+                      </span>
+                      <span class="text-xs text-gray-700 font-medium">Write a Detection Finding</span>
+                    </div>
+                    <span class="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">On by default</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 ring-1 ring-red-200">
+                  <svg class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-red-600 uppercase tracking-wide">Detection Rules</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Detections as code, written in Sigma</h3>
+              <p class="mt-4 text-lg text-gray-600">Paste a Sigma rule and pick an interval between one minute and 24 hours. OneUptime parses and compiles the rule when you save it, so a broken rule fails in front of the person editing it rather than silently at 3 AM. Field names can be OneUptime columns, common Sigma spellings like <span class="font-mono text-sm text-gray-700">CommandLine</span> or <span class="font-mono text-sm text-gray-700">src_ip</span>, or any flattened key from the original payload. Set a Group By field and you get one alert per distinct host or user instead of one for the whole match set.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  The boolean Sigma core: 13 modifiers, full condition grammar
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Validated at save time, not on the next cron tick
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Group By for one alert per host, user or IP
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Managed over the REST API, so rules can live in your repo
+                </li>
+              </ul>
+              <a href="/docs/telemetry/security-events" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Read the docs
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <!-- Feature 3: Alerts & on-call -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 ring-1 ring-red-200">
+                  <svg class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-red-600 uppercase tracking-wide">Alerts &amp; On-Call</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">A detection is an alert your team already knows how to handle</h3>
+              <p class="mt-4 text-lg text-gray-600">A rule match opens a real OneUptime alert &mdash; graded against your project&rsquo;s own severity list, deduplicated per rule and group value against alerts that are still open, and carrying the match count, the window it covered, a sample event and the observables behind it. Turn on incidents per rule when a detection genuinely warrants escalation, SLAs and a status page. There is no second inbox, no separate rotation, and no export step between the detection and the person who acts on it.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Deduplicated per rule and group value while it stays open
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Your severities, your escalation policies, your rotations
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Match count, window, sample event &amp; observables on the alert
+                </li>
+              </ul>
+              <a href="/product/on-call" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Explore On-Call
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+
+            <!-- Visual: alert card -->
+            <div class="mt-12 lg:mt-0 relative">
+              <div class="absolute -inset-4 bg-gray-100/60 rounded-3xl blur-2xl"></div>
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                  <div class="flex gap-1.5">
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                  </div>
+                  <div class="flex-1 text-center">
+                    <span class="text-xs text-gray-400">Alert</span>
+                  </div>
+                </div>
+                <div class="p-6 space-y-4">
+                  <div class="flex items-start justify-between gap-3">
+                    <p class="text-sm font-semibold text-gray-900 leading-snug">[Detection] Possible Brute Force &mdash; vpn-gw-01</p>
+                    <span class="flex-shrink-0 inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-700 ring-1 ring-inset ring-red-200">Critical</span>
+                  </div>
+                  <p class="text-xs text-gray-600 leading-relaxed">Matched <span class="font-semibold text-gray-800">147</span> security events between 10:41 and 10:42.</p>
+                  <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                    <p class="text-[10px] uppercase tracking-wider font-semibold text-gray-400 mb-1.5">Sample event</p>
+                    <p class="text-[11px] font-mono text-gray-600">Failed logon for alice from 203.0.113.7</p>
+                  </div>
+                  <div>
+                    <p class="text-[10px] uppercase tracking-wider font-semibold text-gray-400 mb-2">Observables</p>
+                    <div class="flex flex-wrap gap-1.5">
+                      <span class="rounded-md bg-white px-2 py-1 text-[10px] font-mono text-gray-600 border border-gray-200">vpn-gw-01</span>
+                      <span class="rounded-md bg-white px-2 py-1 text-[10px] font-mono text-gray-600 border border-gray-200">alice</span>
+                      <span class="rounded-md bg-white px-2 py-1 text-[10px] font-mono text-gray-600 border border-gray-200">203.0.113.7</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2 text-[10px] text-gray-400 uppercase tracking-wider font-semibold">
+                    <span class="flex-1 h-px bg-gray-100"></span>
+                    routed to
+                    <span class="flex-1 h-px bg-gray-100"></span>
+                  </div>
+                  <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div class="flex items-center gap-2">
+                      <span class="w-6 h-6 rounded-md bg-stone-50 border border-stone-200 flex items-center justify-center">
+                        <%- include('./Partials/icons/on-call', {iconClass: 'h-3.5 w-3.5'}) %>
+                      </span>
+                      <span class="text-xs text-gray-700 font-medium">Security &mdash; primary rotation</span>
+                    </div>
+                    <span class="text-[10px] text-red-700 font-semibold">Paged &rarr;</span>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div class="p-2 bg-white rounded-lg border border-gray-200 text-center text-[10px] text-red-600 font-semibold">Matching events &rarr;</div>
+                    <div class="p-2 bg-white rounded-lg border border-gray-200 text-center text-[10px] text-red-600 font-semibold">The rule &rarr;</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 4: Monitors -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <!-- Visual: monitor -->
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0 relative">
+              <div class="absolute -inset-4 bg-red-50/50 rounded-3xl blur-2xl"></div>
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                  <div class="flex gap-1.5">
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                  </div>
+                  <div class="flex-1 text-center">
+                    <span class="text-xs text-gray-400">Security Events monitor</span>
+                  </div>
+                </div>
+                <div class="p-6 space-y-4">
+                  <div>
+                    <p class="text-[10px] uppercase tracking-wider font-semibold text-gray-400 mb-2">Filters</p>
+                    <div class="space-y-2">
+                      <div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                        <span class="text-[11px] text-gray-500">Event class</span>
+                        <span class="text-[11px] font-mono text-gray-700">Detection Finding</span>
+                      </div>
+                      <div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                        <span class="text-[11px] text-gray-500">Severity</span>
+                        <span class="text-[11px] font-mono text-gray-700">High, Critical</span>
+                      </div>
+                      <div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                        <span class="text-[11px] text-gray-500">Window</span>
+                        <span class="text-[11px] font-mono text-gray-700">Last 1 hour</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="rounded-lg border border-red-100 bg-red-50 p-3">
+                    <p class="text-[11px] text-gray-600 leading-relaxed"><span class="font-semibold text-red-700">Preview:</span> 1,284 security events match the filters above in the last 1 hour.</p>
+                  </div>
+                  <div>
+                    <p class="text-[10px] uppercase tracking-wider font-semibold text-gray-400 mb-2">Criteria</p>
+                    <div class="space-y-2">
+                      <div class="flex items-center justify-between p-2.5 bg-white rounded-lg border border-gray-200">
+                        <span class="text-[11px] font-mono text-gray-700">Security Event Count &gt; 20</span>
+                        <span class="text-[10px] font-semibold uppercase tracking-wide text-red-700">Degraded</span>
+                      </div>
+                      <div class="flex items-center justify-between p-2.5 bg-white rounded-lg border border-gray-200">
+                        <span class="text-[11px] font-mono text-gray-700">Security Event Count == 0</span>
+                        <span class="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">Operational</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p class="text-[11px] text-gray-500 leading-relaxed">The count falling back under the threshold is what lets a monitor say the coast is clear again &mdash; something a rule that reads each event once can never do.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 ring-1 ring-red-200">
+                  <svg class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-red-600 uppercase tracking-wide">Monitors</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">When the rate is the story, not the event</h3>
+              <p class="mt-4 text-lg text-gray-600">Some things only matter in aggregate. A Security Events monitor counts matching events over a sliding window &mdash; filtered by message text, severity, OCSF class, telemetry service or attributes &mdash; and drives the same criteria machinery as every other OneUptime monitor: change status, open an alert or an incident, page on-call. And because rule matches are written back into the event stream as Detection Findings, a monitor can watch your detections themselves: twenty different rules firing in an hour is a signal no individual rule can see.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Sliding windows from 5 seconds to 24 hours
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Live preview of what the filters match before you save
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Detection storms, per-rule rate changes &amp; pipeline silence
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  One click from a rule to a monitor that watches it
+                </li>
+              </ul>
+              <a href="/product/monitoring" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Explore Monitors
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <!-- Feature 5: Investigate -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 ring-1 ring-red-200">
+                  <svg class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-red-600 uppercase tracking-wide">Investigate</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Every entity in the event is indexed, so pivoting is one query</h3>
+              <p class="mt-4 text-lg text-gray-600">The entities an event names &mdash; users, hosts, IP addresses &mdash; are extracted into one indexed observables array, so &ldquo;everything mentioning this host&rdquo; is a single cheap query rather than a join you write by hand. Correlate draws the neighborhood around an observable: which event classes touched it, and which other entities it co-occurred with. Click any of those entities and the graph re-centers on it. And because the security table sits next to your logs, metrics and traces, the same pivot keeps going into the request that caused it.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Observables indexed alongside the typed OCSF fields
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Correlate graph over the last hour, day or week
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Full source payload kept alongside the typed OCSF fields
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Ask the AI agent in plain English, alongside logs &amp; traces
+                </li>
+              </ul>
+              <a href="/product/ai-agent" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Explore AI
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+
+            <!-- Visual: correlate + AI -->
+            <div class="mt-12 lg:mt-0 relative">
+              <div class="absolute -inset-4 bg-gray-100/60 rounded-3xl blur-2xl"></div>
+              <div class="relative bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+                <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                  <div class="flex gap-1.5">
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                  </div>
+                  <div class="flex-1 text-center">
+                    <span class="text-xs text-gray-400">Correlate &mdash; vpn-gw-01</span>
+                  </div>
+                </div>
+                <div class="p-5">
+                  <div class="bg-white rounded-lg border border-gray-200 p-4 bg-[radial-gradient(#f4f4f5_1px,transparent_1px)] bg-[size:18px_18px]">
+                    <svg viewBox="0 0 620 260" class="w-full">
+                      <!-- Edges -->
+                      <line x1="310" y1="130" x2="130" y2="58" stroke="#fecaca" stroke-width="3"/>
+                      <line x1="310" y1="130" x2="130" y2="202" stroke="#fecaca" stroke-width="2"/>
+                      <line x1="310" y1="130" x2="492" y2="58" stroke="#e4e4e7" stroke-width="2"/>
+                      <line x1="310" y1="130" x2="492" y2="202" stroke="#e4e4e7" stroke-width="2"/>
+                      <!-- Edge labels -->
+                      <text x="176" y="86" fill="#9ca3af" font-size="10" font-family="monospace">147 events</text>
+                      <text x="176" y="184" fill="#9ca3af" font-size="10" font-family="monospace">12 events</text>
+                      <text x="392" y="86" fill="#9ca3af" font-size="10" font-family="monospace">co-occurs 147x</text>
+                      <text x="392" y="184" fill="#9ca3af" font-size="10" font-family="monospace">co-occurs 9x</text>
+
+                      <!-- Center observable -->
+                      <rect x="240" y="112" width="140" height="36" rx="18" fill="#fef2f2" stroke="#fca5a5" stroke-width="2"/>
+                      <text x="310" y="135" fill="#374151" font-size="12" font-family="monospace" text-anchor="middle">vpn-gw-01</text>
+
+                      <!-- Event class nodes (left) -->
+                      <rect x="30" y="40" width="180" height="34" rx="17" fill="#ffffff" stroke="#fca5a5" stroke-width="1.5"/>
+                      <text x="120" y="62" fill="#374151" font-size="11" font-family="monospace" text-anchor="middle">Authentication</text>
+
+                      <rect x="30" y="184" width="180" height="34" rx="17" fill="#ffffff" stroke="#fca5a5" stroke-width="1.5"/>
+                      <text x="120" y="206" fill="#374151" font-size="11" font-family="monospace" text-anchor="middle">Detection Finding</text>
+
+                      <!-- Co-occurring observables (right) -->
+                      <rect x="412" y="40" width="176" height="34" rx="17" fill="#fafafa" stroke="#d4d4d8" stroke-width="1.5"/>
+                      <text x="500" y="62" fill="#374151" font-size="11" font-family="monospace" text-anchor="middle">203.0.113.7</text>
+
+                      <rect x="412" y="184" width="176" height="34" rx="17" fill="#fafafa" stroke="#d4d4d8" stroke-width="1.5"/>
+                      <text x="500" y="206" fill="#374151" font-size="11" font-family="monospace" text-anchor="middle">alice</text>
+                    </svg>
+                    <div class="mt-2 flex items-center justify-center gap-5 text-[11px] text-gray-400">
+                      <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-red-400"></span>Event classes</span>
+                      <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-gray-300"></span>Co-occurring observables</span>
+                    </div>
+                  </div>
+
+                  <div class="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <p class="text-[10px] uppercase tracking-wider font-semibold text-gray-400 mb-2">Ask the AI agent</p>
+                    <p class="text-xs text-gray-700 leading-relaxed">&ldquo;What happened around vpn-gw-01 this morning?&rdquo;</p>
+                    <div class="mt-3 flex flex-wrap gap-1.5">
+                      <span class="rounded-md bg-white px-2 py-1 text-[10px] font-mono text-gray-500 border border-gray-200">search_security_events</span>
+                      <span class="rounded-md bg-white px-2 py-1 text-[10px] font-mono text-gray-500 border border-gray-200">security_event_summary</span>
+                      <span class="rounded-md bg-white px-2 py-1 text-[10px] font-mono text-gray-500 border border-gray-200">search_logs</span>
+                      <span class="rounded-md bg-white px-2 py-1 text-[10px] font-mono text-gray-500 border border-gray-200">get_trace</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Where the events come from Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center">
+          <div class="inline-flex items-center gap-2 rounded-full bg-red-50 px-4 py-1.5 text-sm font-medium text-red-700 ring-1 ring-inset ring-red-600/20 mb-6">
+            <svg class="h-4 w-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span class="text-sm font-medium text-red-700">Everything it plugs into</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            Everything downstream can already read it.
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            Security events arrive through the same ingest machinery as the rest of your telemetry &mdash; and once they are in, every product below can already read them.
+          </p>
+        </div>
+
+        <!-- Feature cards grid -->
+        <div class="mx-auto mt-16 max-w-7xl">
+          <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+
+            <!-- Card 1: Google SecOps -->
+            <a href="/docs/integrations/google-secops" class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-red-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 ring-1 ring-red-200">
+                  <%- include('./Partials/icons/security-events', {iconClass: 'h-6 w-6'}) %>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Google SecOps</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Three ways in: a SOAR playbook webhook, a managed connector that polls your detection alerts on an interval, or full UDM event forwarding.</p>
+                <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-red-600">Read the guide <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></span>
+              </div>
+            </a>
+
+            <!-- Card 2: Logs -->
+            <a href="/product/logs-management" class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-amber-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200">
+                  <%- include('./Partials/icons/logs', {iconClass: 'h-6 w-6'}) %>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Logs</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">The same data lake, the same retention settings, the same bill &mdash; so the log line behind a detection is one search away, not one vendor away.</p>
+                <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-amber-600">Explore Logs <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></span>
+              </div>
+            </a>
+
+            <!-- Card 3: On-Call -->
+            <a href="/product/on-call" class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-stone-300 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-stone-50 ring-1 ring-stone-200">
+                  <%- include('./Partials/icons/on-call', {iconClass: 'h-6 w-6'}) %>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">On-Call</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Alert severities drive the escalation policy, and the escalation policy drives the page &mdash; email, SMS, voice, push or chat, on the schedule that is already running.</p>
+                <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-stone-600">Explore On-Call <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></span>
+              </div>
+            </a>
+
+            <!-- Card 4: Incidents -->
+            <a href="/product/incident-management" class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-rose-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-rose-50 ring-1 ring-rose-200">
+                  <%- include('./Partials/icons/incidents', {iconClass: 'h-6 w-6'}) %>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Incidents</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Turn incident creation on for the rules that warrant it, and a detection gets the full treatment: timeline, ownership, postmortem and status page.</p>
+                <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-rose-600">Explore Incidents <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></span>
+              </div>
+            </a>
+
+            <!-- Card 5: Dashboards -->
+            <a href="/product/dashboards" class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-indigo-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                  <%- include('./Partials/icons/dashboards', {iconClass: 'h-6 w-6'}) %>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Dashboards</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Two security widgets ship in the catalog: a live event list and a Sankey flow from source to event class to severity, on the same boards as your service metrics.</p>
+                <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600">Explore Dashboards <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></span>
+              </div>
+            </a>
+
+            <!-- Card 6: AI -->
+            <a href="/product/ai-agent" class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-violet-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-50 ring-1 ring-violet-200">
+                  <%- include('./Partials/icons/ai-agent', {iconClass: 'h-6 w-6'}) %>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">AI</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Security event search and summary sit in the same AI toolbox as logs, traces, metrics and recent changes, so one question can cross from a failed logon to the commit behind it.</p>
+                <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-violet-600">Explore AI <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></span>
+              </div>
+            </a>
+
+          </div>
+
+          <!-- Also-in-the-box strip -->
+          <div class="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-gray-500">
+            <span>Also in the box:</span>
+            <a href="/product/observability" class="text-gray-700 hover:text-red-600 font-medium transition-colors">Observability</a>
+            <span class="text-gray-300">&middot;</span>
+            <a href="/product/traces" class="text-gray-700 hover:text-red-600 font-medium transition-colors">Traces</a>
+            <span class="text-gray-300">&middot;</span>
+            <a href="/product/metrics" class="text-gray-700 hover:text-red-600 font-medium transition-colors">Metrics</a>
+            <span class="text-gray-300">&middot;</span>
+            <a href="/tool/mcp-server" class="text-gray-700 hover:text-red-600 font-medium transition-colors">MCP Server</a>
+            <span class="text-gray-300">&middot;</span>
+            <a href="/product/workflows" class="text-gray-700 hover:text-red-600 font-medium transition-colors">Workflows</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Honest scope Section -->
+    <div class="relative bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-14">
+          <p class="text-sm font-medium text-red-600 uppercase tracking-wide mb-3">What this is, and what it isn&rsquo;t</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            Straight about the scope
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            We would rather you find this out here than three weeks into an evaluation.
+          </p>
+        </div>
+
+        <div class="mx-auto max-w-5xl grid grid-cols-1 gap-8 lg:grid-cols-2">
+          <!-- What it is -->
+          <div class="rounded-2xl border border-gray-200 bg-white p-8">
+            <div class="flex items-center gap-3 mb-6">
+              <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 ring-1 ring-emerald-200">
+                <svg class="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+              </span>
+              <h3 class="text-lg font-semibold text-gray-900">Built for this</h3>
+            </div>
+            <ul class="space-y-4 text-sm text-gray-600 leading-relaxed">
+              <li class="flex gap-3">
+                <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                <span>Keeping security signal and observability data in one searchable store, on one bill.</span>
+              </li>
+              <li class="flex gap-3">
+                <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                <span>Turning a detection into a page, an incident and a status update without leaving the platform.</span>
+              </li>
+              <li class="flex gap-3">
+                <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                <span>Boolean Sigma detections, version-controlled and pushed through the REST API.</span>
+              </li>
+              <li class="flex gap-3">
+                <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                <span>Alerting on security event volume, so a spike in failed logons is caught the way a spike in 500s is.</span>
+              </li>
+              <li class="flex gap-3">
+                <svg class="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                <span>Teams who want the whole thing open source, self-hostable and auditable.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- What it isn't -->
+          <div class="rounded-2xl border border-gray-200 bg-white p-8">
+            <div class="flex items-center gap-3 mb-6">
+              <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 ring-1 ring-gray-200">
+                <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </span>
+              <h3 class="text-lg font-semibold text-gray-900">Not in the box</h3>
+            </div>
+            <ul class="space-y-4 text-sm text-gray-600 leading-relaxed">
+              <li class="flex gap-3">
+                <svg class="h-5 w-5 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                <span>Sigma aggregation conditions. Anything with a <span class="font-mono text-xs text-gray-700">| count()</span> pipe is rejected when you save it, not quietly ignored &mdash; express those as a monitor instead.</span>
+              </li>
+              <li class="flex gap-3">
+                <svg class="h-5 w-5 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                <span>Streaming detection. Rules are evaluated on a schedule, and the floor is one minute.</span>
+              </li>
+              <li class="flex gap-3">
+                <svg class="h-5 w-5 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                <span>Threat intelligence enrichment, UEBA and behavioral baselining. Security event monitors compare against thresholds you set, not a learned baseline.</span>
+              </li>
+              <li class="flex gap-3">
+                <svg class="h-5 w-5 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                <span>A bundled rule library or a case-management workflow. You bring the rules; alerts and incidents are the case record.</span>
+              </li>
+              <li class="flex gap-3">
+                <svg class="h-5 w-5 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                <span>A drop-in replacement for a large dedicated SIEM program. If that is what you are running, this sits alongside it &mdash; forward the detections that matter and let them page like everything else.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Open source & pricing Section -->
+    <div class="relative overflow-hidden bg-white py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <!-- Content -->
+          <div class="relative">
+            <p class="text-sm font-medium text-red-600 uppercase tracking-wide mb-3">Open Source &amp; Included</p>
+            <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+              No security SKU. Same $0.10 per GB.
+            </h2>
+            <p class="mt-4 text-lg text-gray-600 leading-relaxed">
+              Security events are metered exactly like logs, metrics and traces &mdash; $0.10 per GB ingested, honoring the same retention configuration. There is no per-seat analyst license and no second contract to negotiate. The whole platform is Apache-2.0 open source, and you can self-host this exact product for free.
+            </p>
+
+            <div class="mt-8 grid grid-cols-2 gap-4">
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Telemetry pricing, no add-on
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                100% open source
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Free to self-host
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                US &amp; EU data residency
+              </div>
+            </div>
+
+            <a href="/pricing" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+              See pricing
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
+          </div>
+
+          <!-- Visual -->
+          <div class="mt-12 lg:mt-0 relative">
+            <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+            <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+              <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                <div class="flex gap-1.5">
+                  <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                  <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                  <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                </div>
+                <div class="flex-1 text-center">
+                  <span class="text-xs text-gray-400">One usage-based bill</span>
+                </div>
+              </div>
+              <div class="p-6 space-y-4">
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-md bg-red-50 border border-red-200 flex items-center justify-center">
+                      <%- include('./Partials/icons/security-events', {iconClass: 'h-3.5 w-3.5'}) %>
+                    </span>
+                    <span class="text-xs text-gray-700 font-medium">Security Events</span>
+                  </div>
+                  <span class="text-[10px] text-gray-500 font-mono">$0.10 / GB</span>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-md bg-amber-50 border border-amber-200 flex items-center justify-center">
+                      <%- include('./Partials/icons/logs', {iconClass: 'h-3.5 w-3.5'}) %>
+                    </span>
+                    <span class="text-xs text-gray-700 font-medium">Logs</span>
+                  </div>
+                  <span class="text-[10px] text-gray-500 font-mono">$0.10 / GB</span>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-md bg-yellow-50 border border-yellow-200 flex items-center justify-center">
+                      <%- include('./Partials/icons/traces', {iconClass: 'h-3.5 w-3.5'}) %>
+                    </span>
+                    <span class="text-xs text-gray-700 font-medium">Traces</span>
+                  </div>
+                  <span class="text-[10px] text-gray-500 font-mono">$0.10 / GB</span>
+                </div>
+                <div class="p-3 bg-red-50 rounded-lg border border-red-100">
+                  <p class="text-xs text-gray-600 leading-relaxed"><span class="font-semibold text-red-700">Same rate, same retention model:</span> security events ride the ingest and storage machinery that logs already use, so the price driver is the same &mdash; bytes retained.</p>
+                </div>
+                <div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                  <span class="text-xs text-gray-600">Prefer $0? Self-host the same code.</span>
+                  <a href="https://github.com/oneuptime/oneuptime" class="text-[10px] text-red-600 font-bold uppercase">GitHub &rarr;</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('./Partials/enterprise-ready') -%>
+    <%- include('features-table') -%>
+    <%- include('cta') -%>
+  </main>
+
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+
+  <!-- Grid glow cursor effect -->
+  <script>
+    (function() {
+      const heroSection = document.getElementById('sec-hero-section');
+      const gridGlow = document.getElementById('sec-grid-glow');
+
+      if (heroSection && gridGlow) {
+        heroSection.addEventListener('mousemove', (e) => {
+          const rect = heroSection.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          gridGlow.style.setProperty('--mouse-x', x + 'px');
+          gridGlow.style.setProperty('--mouse-y', y + 'px');
+          gridGlow.style.opacity = '1';
+        });
+
+        heroSection.addEventListener('mouseleave', () => {
+          gridGlow.style.opacity = '0';
+        });
+      }
+    })();
+  </script>
+</body>
+
+</html>
