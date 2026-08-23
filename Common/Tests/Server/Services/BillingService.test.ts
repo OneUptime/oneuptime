@@ -882,6 +882,9 @@ describe("BillingService", () => {
         expect(service.hasMeteredPlanPriceId(ProductType.SessionReplay)).toBe(
           true,
         );
+        expect(service.hasMeteredPlanPriceId(ProductType.SecurityEvents)).toBe(
+          true,
+        );
       });
 
       it("should return false for a product type with no Stripe price", () => {
@@ -900,6 +903,23 @@ describe("BillingService", () => {
         expect(ActiveMonitoringMeteredPlan.hasPriceId()).toBe(true);
         expect(LogDataIngestMeteredPlan.hasPriceId()).toBe(true);
         expect(SessionReplayDataIngestMeteredPlan.hasPriceId()).toBe(true);
+      });
+
+      /*
+       * Security Events shipped its ingest, metering and staging without a
+       * Stripe price, so usage accrued in TelemetryUsageBilling and was never
+       * invoiced - silently, because the callers treat a missing price as
+       * "skip this plan". Enumerate the enum rather than listing types by
+       * hand so the next pillar added cannot repeat that.
+       */
+      it("should have a Stripe price for every ProductType", () => {
+        const unpriced: Array<ProductType> = Object.values(ProductType).filter(
+          (productType: ProductType) => {
+            return !service.hasMeteredPlanPriceId(productType);
+          },
+        );
+
+        expect(unpriced).toEqual([]);
       });
     });
 

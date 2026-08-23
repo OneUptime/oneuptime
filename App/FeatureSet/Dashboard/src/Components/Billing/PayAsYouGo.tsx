@@ -60,7 +60,7 @@ export const TELEMETRY_PRICE_SENTENCE: string = `${TELEMETRY_PRICE_PER_GB_TEXT} 
  */
 export const SESSION_REPLAY_PRICE_SENTENCE: string = `${SESSION_REPLAY_PRICE_PER_GB_TEXT} per GB, with ${TELEMETRY_PRICE_RETENTION_IN_DAYS} day retention`;
 
-export const TELEMETRY_RATES_SENTENCE: string = `Logs, traces, metrics and profiles are billed at ${TELEMETRY_PRICE_SENTENCE}. Session replay recordings are billed at ${SESSION_REPLAY_PRICE_SENTENCE}.`;
+export const TELEMETRY_RATES_SENTENCE: string = `Logs, traces, metrics, profiles and security events are billed at ${TELEMETRY_PRICE_SENTENCE}. Session replay recordings are billed at ${SESSION_REPLAY_PRICE_SENTENCE}.`;
 
 export const ACTIVE_MONITOR_PRICE_SENTENCE: string = `${ACTIVE_MONITOR_PRICE_TEXT} per monitor per month`;
 

@@ -2074,6 +2074,14 @@ export class BillingService extends BaseService {
       return "price_1U0iWJANuQdJ93r7iVAXwhdP";
     }
 
+    if (productType === ProductType.SecurityEvents) {
+      if (this.isTestEnvironment()) {
+        return "price_1U7efaANuQdJ93r74hFVOgdS";
+      }
+
+      return "price_1U7edTANuQdJ93r7hR9jpBfv";
+    }
+
     throw new BadDataException(
       "Plan with productType " + productType + " not found",
     );

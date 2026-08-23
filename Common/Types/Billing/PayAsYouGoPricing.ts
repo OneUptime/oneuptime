@@ -10,7 +10,7 @@
  * worse than quoting no price at all, so there is exactly one copy.
  */
 
-// Telemetry ingest - logs, traces, metrics and profiles.
+// Telemetry ingest - logs, traces, metrics, profiles and security events.
 export const TELEMETRY_PRICE_IN_USD_PER_GB: number = 0.1;
 
 /*
