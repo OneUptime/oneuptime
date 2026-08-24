@@ -450,6 +450,53 @@ export const childTypeLabelFor: (
 };
 
 /**
+ * Whether the level in view is the deepest one the map can draw — every one
+ * of its children is a unit, so there is nothing left below to drill into.
+ *
+ * Read off the isUnitLevel FLAG, never off the type's name: site types are
+ * per-project rows a customer can rename to "Store" or "Restaurant" at will,
+ * and the flag is the only thing that survives that (see
+ * SiteHierarchyTypes.ts). A level that mixes units with containers is not
+ * the unit level: something on it still opens another map.
+ *
+ * Feed it the level's UNFILTERED child list, the same list childTypeLabelFor
+ * is given and for the same reason. What a level IS does not change because
+ * somebody typed three letters into the search box, and a map whose lines
+ * appeared and vanished as you type would read as a rendering fault.
+ *
+ * An empty level is not the unit level. It has no children to be units, and
+ * "the deepest level" is a claim about children that are there.
+ *
+ * ALL rather than ANY, and the cost of that is real: a market holding a
+ * dozen units in one retail park plus one depot modelled as a container is
+ * not the unit level, so those units lose the pushed names the threads paid
+ * for. It is still the right rule. The alternative — deciding per MARKER, so
+ * a unit keeps its thread wherever it sits — was measured on the shape
+ * #3372 actually reports: a top level of a few regions plus thirty flagship
+ * stores attached straight to the root draws a dozen threads across a world
+ * map under that rule and none under this one. Whether a map can afford
+ * threads is a property of the MAP, not of what one marker stands for, and
+ * the level is the only thing on hand that says so.
+ *
+ * What the mixed level loses is bounded and recoverable: the names go into
+ * the hover tooltip and the card list beside the map, and zooming in seats
+ * them back against their markers, threadless, one by one.
+ */
+export const isUnitLevelFor: (
+  sites: Array<{ isUnitLevel: boolean }>,
+) => boolean = (sites: Array<{ isUnitLevel: boolean }>): boolean => {
+  if (sites.length === 0) {
+    return false;
+  }
+  for (const site of sites) {
+    if (!site.isUnitLevel) {
+      return false;
+    }
+  }
+  return true;
+};
+
+/**
  * The map's coverage line: how much of the network the frame is holding.
  *
  * A count that quietly shrinks as somebody zooms reads as sites
@@ -753,6 +800,39 @@ export const LABEL_PUSH_STEP: number = 8;
  * itself.
  */
 export const MAX_LABEL_PUSH: number = 176;
+
+/*
+ * ── Where the push is worth its threads, and where it is not ───────────
+ *
+ * The push and the thread are one bargain: a name leaves its marker, and a
+ * line pays for the move by saying whose name it is. That bargain is a good
+ * one at the UNIT level — a dozen units in one retail park arrive at
+ * near-identical coordinates, and a thread apiece is what lets all twelve
+ * keep their names instead of two fitting and ten vanishing.
+ *
+ * It is a bad one at every level above. There the markers stand for whole
+ * regions and markets, thirty-odd of them scattered over a continent, and
+ * thirty threads crossing each other are not a set of pointers — they are a
+ * web, and tracing one line back to its marker is harder than having no
+ * label at all (issue #3372). The names on those levels are also the ones a
+ * reader needs least: the marker is a shape you click to go deeper, and
+ * hovering it names it.
+ *
+ * So above the unit level a name may not leave its marker. It takes one of
+ * the eight positions AGAINST it or it is dropped, and dropping it costs
+ * nothing a hover does not give back. No thread is drawn because none is
+ * earned: leaderLineFor already returns null for an unpushed name, so
+ * clamping the spiral to its first ring is the whole of the suppression.
+ */
+export interface MarkerLabelOptions {
+  /*
+   * Whether a name with nowhere to sit against its marker may be pushed
+   * clear of it and joined back by a thread. Omitted reads as true — the
+   * historical behaviour, which is what the flat dashboard widget wants,
+   * since every name it draws already stands for one single site.
+   */
+  allowLabelThreads: boolean;
+}
 
 /*
  * Ceiling on the candidate positions examined per call. Fitting on the first
@@ -1087,6 +1167,21 @@ const segmentCrossesRect: (
  * thread back, and the search prefers a position whose thread crosses
  * nothing to one that fits but has to cross a name already on the map.
  *
+ * `options.allowLabelThreads: false` stops the spiral at that first ring —
+ * see MarkerLabelOptions for why the levels above the unit level ask for
+ * that. Nothing else about the search changes, but the result is NOT simply
+ * the same map minus the names that travelled. The pass is greedy over one
+ * shared set of reserved boxes, so a name that is dropped also releases the
+ * box it would have taken: a later marker can then find a position against
+ * its own marker that was occupied before, and take it. Names move between
+ * the eight positions, and a name that only fitted because a neighbour had
+ * been pushed out of its way can be dropped in its turn.
+ *
+ * What holds either way is what the pass exists to guarantee: every name
+ * drawn is clear of every other name and of every marker's body, no name is
+ * drawn away from the marker it belongs to, and a map with room on it —
+ * where nothing had to travel in the first place — is drawn identically.
+ *
  * Zoom is the only thing this depends on, not the pan: markers keep their
  * relative distances as the frame moves, so a drag never re-decides where a
  * name goes. Zooming in genuinely separates markers that are apart in the
@@ -1095,11 +1190,21 @@ const segmentCrossesRect: (
 export const resolveMarkerLabels: (
   markers: Array<MapMarker>,
   zoom: number,
+  options?: MarkerLabelOptions | undefined,
 ) => Map<string, LabelPlacement> = (
   markers: Array<MapMarker>,
   zoom: number,
+  options?: MarkerLabelOptions | undefined,
 ): Map<string, LabelPlacement> => {
   const safeZoom: number = safeMapZoom(zoom);
+  /*
+   * How far a name is allowed to travel from its marker — the whole of the
+   * thread policy, expressed as the one number the spiral reads. Clamped to
+   * the first ring, every name either sits against its marker or is dropped,
+   * and leaderLineFor hands back null for all of them.
+   */
+  const maxPush: number =
+    options && !options.allowLabelThreads ? 0 : MAX_LABEL_PUSH;
   const resolved: Map<string, LabelPlacement> = new Map<
     string,
     LabelPlacement
@@ -1200,11 +1305,7 @@ export const resolveMarkerLabels: (
   ): LabelCandidate | null => {
     let fallback: LabelCandidate | null = null;
 
-    for (
-      let push: number = 0;
-      push <= MAX_LABEL_PUSH;
-      push += LABEL_PUSH_STEP
-    ) {
+    for (let push: number = 0; push <= maxPush; push += LABEL_PUSH_STEP) {
       /*
        * Out of budget: the eight positions AGAINST the marker are still
        * tried — they are eight comparisons, and they are the ones that fit

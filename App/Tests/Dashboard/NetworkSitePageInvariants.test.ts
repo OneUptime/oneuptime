@@ -899,8 +899,35 @@ describe("SiteGeoMap", () => {
    */
   test("labels are placed against the drawn positions", () => {
     expect(source).toContain(
-      squash("return resolveMarkerLabels(placedMarkers, zoom); }, "),
+      squash("return resolveMarkerLabels(placedMarkers, zoom, {"),
     );
+    // Nothing draws off the un-laid-out list any more.
+    expect(source).not.toContain(squash("resolveMarkerLabels(markers,"));
+  });
+
+  /*
+   * Issue #3372. The thread from a name to its marker earns its ink only at
+   * the unit level, where a dozen units in one retail park all need naming.
+   * On an aggregated level — thirty regions over a continent — thirty
+   * threads crossing each other are a web, not a set of pointers, so the map
+   * asks for none and the names stay against their markers or come off.
+   *
+   * The level is HANDED DOWN, never guessed at from the markers on screen:
+   * the page reads it off the unfiltered child list, so a search box cannot
+   * turn a level of Regions into the unit level and make lines appear as
+   * somebody types.
+   */
+  test("label threads are asked for only at the unit level", () => {
+    expect(source).toContain(squash("allowLabelThreads: props.isUnitLevel,"));
+    // Re-resolved when the level changes, or the names would go stale.
+    expect(source).toContain(
+      squash("}, [placedMarkers, zoom, props.isUnitLevel]);"),
+    );
+    // The map is told; it does not decide for itself.
+    expect(source).toContain("isUnitLevel: boolean;");
+    expect(
+      readCode("Components", "NetworkSite", "SiteGeoMap.tsx"),
+    ).not.toContain("isUnitLevelFor");
   });
 
   /*
@@ -1310,6 +1337,53 @@ describe("NetworkMap hands the map its own links", () => {
   test("the lines are narrowed by the same search as everything else", () => {
     expect(source).toContain("siteIdSet(pinnedSites)");
     expect(source).not.toContain("links={mapData?.links");
+  });
+});
+
+/*
+ * Issue #3372. The threads from a name to its marker are drawn only on the
+ * deepest level the map reaches — the one whose children are units. Above it
+ * they are a web nobody can trace a line through.
+ *
+ * The page owns that decision because only the page holds the level's
+ * UNFILTERED child list. Deriving it inside the map from the markers it was
+ * handed would key it off a filtered set: search for the one unit sitting in
+ * a level of regions and the lines would appear as you type.
+ */
+describe("NetworkMap tells the map which level it is on", () => {
+  const source: string = readSource("Pages", "NetworkSite", "NetworkMap.tsx");
+  const code: string = readCode("Pages", "NetworkSite", "NetworkMap.tsx");
+
+  test("the level's depth is read off the unfiltered child list", () => {
+    expect(source).toContain(
+      squash("const isUnitLevel: boolean = isUnitLevelFor(allLevelSites);"),
+    );
+    expect(source).toContain("isUnitLevel={isUnitLevel}");
+  });
+
+  /*
+   * The same list childTypeLabel comes from, and for the same reason. Both
+   * are claims about what a level IS, and neither may move under a filter.
+   */
+  test("it is the same list the type label comes from", () => {
+    expect(source).toContain(
+      squash(
+        "const childTypeLabel: string = childTypeLabelFor(allLevelSites);",
+      ),
+    );
+    expect(code).not.toContain("isUnitLevelFor(pinnedSites");
+    expect(code).not.toContain("isUnitLevelFor(healthyPinnedSites");
+    expect(code).not.toContain("isUnitLevelFor(allPinnedSites");
+  });
+
+  /*
+   * The flag on the type row, never the type's NAME — site types are
+   * per-project rows a customer renames at will, and the whole page already
+   * decides its unit view the same way.
+   */
+  test("nothing branches on what the level is called", () => {
+    expect(code).not.toContain('=== "Unit"');
+    expect(code).not.toContain("siteType === ");
   });
 });
 

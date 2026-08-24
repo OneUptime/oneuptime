@@ -260,6 +260,21 @@ export interface ComponentProps {
    */
   childTypeLabel: string;
   /*
+   * Whether this is the deepest level the map draws — every child of it is a
+   * unit, and clicking one opens its device topology rather than another map.
+   *
+   * It decides one thing: whether a name that cannot fit against its marker
+   * may be pushed clear and threaded back to it. At the unit level that is
+   * what keeps a dozen units in one retail park all named; above it, thirty
+   * threads over a continent are a web rather than a set of pointers
+   * (issue #3372), so the names stay against their markers or come off.
+   *
+   * Handed down rather than derived from `sites` for the same reason
+   * childTypeLabel is: the page reads it off the level's UNFILTERED child
+   * list, so what a level IS does not change under a search box.
+   */
+  isUnitLevel: boolean;
+  /*
    * What the page's search box is narrowing `sites` to, if anything. The map
    * does no filtering of its own — it is handed the survivors — but it has to
    * know a filter is on, or an empty result reads as "you have no sites"
@@ -489,10 +504,16 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
    * than on the whole viewport: markers keep their relative distances as the
    * frame moves, so panning must not re-decide which names are shown — that
    * would make labels flicker in and out under the pointer.
+   *
+   * Threads are asked for only at the unit level — see the isUnitLevel prop.
+   * Above it a name takes a position against its marker or none at all, so
+   * this level's map draws no label threads whatever its markers do.
    */
   const labelPlacements: Map<string, LabelPlacement> = useMemo(() => {
-    return resolveMarkerLabels(placedMarkers, zoom);
-  }, [placedMarkers, zoom]);
+    return resolveMarkerLabels(placedMarkers, zoom, {
+      allowLabelThreads: props.isUnitLevel,
+    });
+  }, [placedMarkers, zoom, props.isUnitLevel]);
 
   /*
    * The lines between the markers. Built from the PLACED markers so a line

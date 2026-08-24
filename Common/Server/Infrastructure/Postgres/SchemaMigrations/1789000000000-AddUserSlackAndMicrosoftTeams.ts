@@ -8,10 +8,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * and on-call timeline foreign keys that let rules route pages to them, and
  * the two per-event toggles on UserNotificationSetting.
  */
-export class AddUserSlackAndMicrosoftTeams1788800000000
+export class AddUserSlackAndMicrosoftTeams1789000000000
   implements MigrationInterface
 {
-  public name = "AddUserSlackAndMicrosoftTeams1788800000000";
+  public name = "AddUserSlackAndMicrosoftTeams1789000000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

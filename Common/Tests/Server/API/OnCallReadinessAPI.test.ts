@@ -1873,7 +1873,7 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
     const payload: Record<string, unknown> = await readUser();
     const methods: Array<Record<string, unknown>> = methodsOf(payload);
 
-    expect(methods).toHaveLength(7);
+    expect(methods).toHaveLength(9);
 
     for (const method of methods) {
       expect(method["methodId"]).not.toBe(ruleId.toString());
