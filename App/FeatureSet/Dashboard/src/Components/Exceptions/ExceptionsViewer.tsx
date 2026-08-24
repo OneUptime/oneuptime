@@ -29,6 +29,21 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Query from "Common/Types/BaseDatabase/Query";
 import ObjectID from "Common/Types/ObjectID";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import {
+  EXCEPTION_ATTRIBUTE_FACET_PREFIX,
+  ExceptionAttributeSelections,
+  KNOWN_EXCEPTION_SEARCH_FIELDS,
+  NO_MATCH_FINGERPRINT,
+  MAX_SCOPED_FINGERPRINTS,
+  applyExceptionFingerprintScope,
+  buildExceptionInstanceAttributeQuery,
+  getExceptionAttributeScopeKey,
+  getExceptionAttributeSelections,
+  hasExceptionAttributeSelections,
+  isExceptionAttributeFacetKey,
+} from "../../Utils/ExceptionsAttributeScope";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
@@ -585,6 +600,130 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   }, []);
 
   // Build query
+  /*
+   * Attribute facet scope. TelemetryException has no attributes column —
+   * `attributes.<key>` chips (and unknown `@key:value` search tokens)
+   * resolve against the ClickHouse instance rows first, and the matching
+   * fingerprints narrow the Postgres list below (the ExceptionsTable
+   * entity-scope pattern).
+   */
+  const attributeSelections: ExceptionAttributeSelections = useMemo(() => {
+    const facetGroups: Record<string, Array<string>> = {};
+    for (const f of activeFilters) {
+      if (!facetGroups[f.facetKey]) {
+        facetGroups[f.facetKey] = [];
+      }
+      facetGroups[f.facetKey]!.push(f.value);
+    }
+    const { fieldFilters } = parseSearch(submittedSearch);
+    return getExceptionAttributeSelections({
+      facetGroups,
+      searchFieldFilters: fieldFilters,
+    });
+  }, [activeFilters, submittedSearch, parseSearch]);
+
+  const attributeScopeKey: string | null = useMemo(() => {
+    if (!hasExceptionAttributeSelections(attributeSelections)) {
+      return null;
+    }
+    const dateRange: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+    return getExceptionAttributeScopeKey({
+      selections: attributeSelections,
+      windowStartMs: dateRange.startValue.getTime(),
+      windowEndMs: dateRange.endValue.getTime(),
+    });
+  }, [attributeSelections, timeRange]);
+
+  const [attributeScope, setAttributeScope] = useState<{
+    key: string;
+    fingerprints: Array<string>;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!attributeScopeKey) {
+      setAttributeScope(null);
+      return;
+    }
+
+    let isCancelled: boolean = false;
+
+    const resolveFingerprints: () => Promise<void> =
+      async (): Promise<void> => {
+        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+        if (!projectId) {
+          return;
+        }
+
+        const dateRange: InBetween<Date> =
+          RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+
+        try {
+          const instances: ModelListResult<ExceptionInstance> =
+            await AnalyticsModelAPI.getList<ExceptionInstance>({
+              modelType: ExceptionInstance,
+              query: buildExceptionInstanceAttributeQuery({
+                projectId,
+                window: new InBetween<Date>(
+                  dateRange.startValue,
+                  dateRange.endValue,
+                ),
+                selections: attributeSelections,
+              }),
+              groupBy: {
+                fingerprint: true,
+              },
+              select: {
+                fingerprint: true,
+              },
+              sort: {
+                fingerprint: SortOrder.Ascending,
+              },
+              limit: MAX_SCOPED_FINGERPRINTS,
+              skip: 0,
+            });
+
+          if (isCancelled) {
+            return;
+          }
+
+          const fingerprints: Array<string> = [];
+          for (const instance of instances.data || []) {
+            const fingerprint: string = instance.fingerprint?.toString() || "";
+            if (fingerprint !== "" && !fingerprints.includes(fingerprint)) {
+              fingerprints.push(fingerprint);
+            }
+          }
+
+          setAttributeScope({ key: attributeScopeKey, fingerprints });
+        } catch {
+          if (!isCancelled) {
+            /*
+             * Failed resolution keeps the sentinel-narrowed (empty) list
+             * rather than quietly showing unfiltered exceptions under an
+             * active-looking chip.
+             */
+            setAttributeScope({ key: attributeScopeKey, fingerprints: [] });
+          }
+        }
+      };
+
+    void resolveFingerprints();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [attributeScopeKey, attributeSelections, timeRange]);
+
+  /*
+   * Fingerprints to carry into the histogram/facets payloads — only once
+   * the resolution matches the CURRENT selections+window.
+   */
+  const resolvedScopeFingerprints: Array<string> | null =
+    attributeScopeKey && attributeScope?.key === attributeScopeKey
+      ? attributeScope.fingerprints
+      : null;
+
   const query: Query<TelemetryException> = useMemo(() => {
     const q: Query<TelemetryException> = {};
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -647,6 +786,10 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       if (resourceFacetKeys.has(key)) {
         continue;
       }
+      // Instance-attribute chips narrow via the fingerprint scope below.
+      if (isExceptionAttributeFacetKey(key)) {
+        continue;
+      }
       const values: Array<string> = facetGroups[key]!;
       if (values.length === 1) {
         (q as Record<string, unknown>)[key] = values[0]!;
@@ -658,6 +801,14 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     // Search field filters
     const { fieldFilters, freeText } = parseSearch(submittedSearch);
     for (const key of Object.keys(fieldFilters)) {
+      /*
+       * Unknown fields (e.g. @http.method:GET) are instance attributes —
+       * previously they landed on the Postgres query as nonexistent
+       * columns; now they narrow via the fingerprint scope below.
+       */
+      if (!KNOWN_EXCEPTION_SEARCH_FIELDS.includes(key)) {
+        continue;
+      }
       const values: Array<string> = fieldFilters[key]!;
       if (values.length === 1) {
         (q as Record<string, unknown>)[key] = values[0]!;
@@ -680,6 +831,16 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       dateRange.endValue,
     );
 
+    /*
+     * Attribute scope: resolved fingerprints narrow the list; while the
+     * resolution is still in flight the sentinel keeps the list EMPTY —
+     * a flash of unfiltered exceptions under an active chip would be a
+     * lie.
+     */
+    if (attributeScopeKey) {
+      applyExceptionFingerprintScope(q, resolvedScopeFingerprints || []);
+    }
+
     return q;
   }, [
     props.primaryEntityId,
@@ -688,6 +849,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     submittedSearch,
     parseSearch,
     timeRange,
+    attributeScopeKey,
+    resolvedScopeFingerprints,
   ]);
 
   // Fetch exceptions
@@ -801,6 +964,17 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     if (freeText && freeText.length > 0) {
       payload["messageSearchText"] = freeText;
     }
+    /*
+     * Attribute scope: the endpoint has no attribute dimension, but it
+     * accepts `fingerprints` — the resolved scope keeps the histogram
+     * aligned with the narrowed list.
+     */
+    if (attributeScopeKey) {
+      payload["fingerprints"] =
+        resolvedScopeFingerprints && resolvedScopeFingerprints.length > 0
+          ? resolvedScopeFingerprints
+          : [NO_MATCH_FINGERPRINT];
+    }
 
     try {
       const response: HTTPResponse<JSONObject> = await postApi(
@@ -822,6 +996,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     submittedSearch,
     parseSearch,
     props.primaryEntityId,
+    attributeScopeKey,
+    resolvedScopeFingerprints,
   ]);
 
   useEffect(() => {
@@ -1039,6 +1215,13 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     if (Object.keys(facetSearchTextActive).length > 0) {
       payload["facetSearchText"] = facetSearchTextActive;
     }
+    // Attribute scope narrows facet counts too (see fetchHistogram).
+    if (attributeScopeKey) {
+      payload["fingerprints"] =
+        resolvedScopeFingerprints && resolvedScopeFingerprints.length > 0
+          ? resolvedScopeFingerprints
+          : [NO_MATCH_FINGERPRINT];
+    }
 
     try {
       const response: HTTPResponse<JSONObject> = await postApi(
@@ -1061,6 +1244,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     parseSearch,
     props.primaryEntityId,
     facetSearchText,
+    attributeScopeKey,
+    resolvedScopeFingerprints,
   ]);
 
   useEffect(() => {
@@ -1323,10 +1508,19 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
           handleFacetInclude(aliased, cleanValue);
           return;
         }
-        const newSearch: string = `@${fieldKey}:${value}`;
-        setSearchValue(newSearch);
-        setSubmittedSearch(newSearch);
-        setPage(1);
+        /*
+         * Unknown keys are instance attributes: chip them under the
+         * attributes. prefix so they narrow via the fingerprint scope —
+         * previously they fell back into the raw search string.
+         */
+        const cleanAttributeValue: string =
+          value.length >= 2 && value.startsWith('"') && value.endsWith('"')
+            ? value.slice(1, -1)
+            : value;
+        handleFacetInclude(
+          `${EXCEPTION_ATTRIBUTE_FACET_PREFIX}${fieldKey}`,
+          cleanAttributeValue,
+        );
       }}
       searchFieldAliasMap={FIELD_ALIAS_MAP}
       searchHelpRows={SEARCH_HELP_ROWS}

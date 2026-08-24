@@ -22,6 +22,14 @@ import {
 } from "./MetricsCrossSignalPivot";
 
 /*
+ * A route parameter sourced from telemetry must be a well-formed UUID.
+ * Named const (not inline) to sidestep the wrap-regex vs prettier
+ * circular-fix conflict.
+ */
+const UUID_ROUTE_PARAM: RegExp =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+/*
  * Per-SERIES investigation for grouped metric charts: the machinery that
  * turns one series of a group-by chart ("host.name=prod-01, cpu=3") back
  * into structured scope — the exact attribute filters that isolate that
@@ -404,11 +412,14 @@ const lookupModelId: LookupModelIdFunction = async (input: {
  * needs. Best-effort: unknown names and network failures return null so
  * the caller can say "no matching host" instead of navigating nowhere.
  *
- * Host and Kubernetes rows store CANONICALIZED identifiers (trimmed,
- * lowercased `host.name` / `k8s.cluster.name` — see EntityKey), so the
- * lookup canonicalizes the attribute value the same way. Services store
- * verbatim names and go through the shared (cached) service resolver.
- * Network devices carry their own ObjectID in the attribute value.
+ * Host rows store a CANONICALIZED identifier (trimmed, lowercased
+ * `host.name` — HostService canonicalizes on write), so the host lookup
+ * canonicalizes the same way. Kubernetes rows store `clusterIdentifier`
+ * VERBATIM (KubernetesClusterService keeps the stored casing as-is), so
+ * the cluster lookup only trims. Services store verbatim names and go
+ * through the shared (cached) service resolver. Network devices carry
+ * their own ObjectID in the attribute value (validated before use as a
+ * route parameter).
  */
 export async function resolveSeriesResourceModelId(
   target: SeriesResourceTarget,
@@ -427,7 +438,7 @@ export async function resolveSeriesResourceModelId(
       }
       const hostIdentifier: string = canonicalizeEntityValue(value);
       return lookupModelId({
-        cacheKey: `host:${hostIdentifier}`,
+        cacheKey: `${projectId.toString()}:host:${hostIdentifier}`,
         modelType: Host,
         query: { projectId, hostIdentifier } as Query<Host>,
       });
@@ -436,9 +447,9 @@ export async function resolveSeriesResourceModelId(
       if (!projectId) {
         return null;
       }
-      const clusterIdentifier: string = canonicalizeEntityValue(value);
+      const clusterIdentifier: string = value.trim();
       return lookupModelId({
-        cacheKey: `k8s:${clusterIdentifier}`,
+        cacheKey: `${projectId.toString()}:k8s:${clusterIdentifier}`,
         modelType: KubernetesCluster,
         query: { projectId, clusterIdentifier } as Query<KubernetesCluster>,
       });
@@ -450,8 +461,12 @@ export async function resolveSeriesResourceModelId(
       return mapping[value] || null;
     }
     case "networkDevice": {
-      // The attribute value IS the device's ObjectID.
-      return value;
+      /*
+       * The attribute value IS the device's ObjectID — but it arrives
+       * from telemetry, so only a well-formed UUID may become a route
+       * parameter.
+       */
+      return UUID_ROUTE_PARAM.test(value) ? value : null;
     }
     default:
       return null;

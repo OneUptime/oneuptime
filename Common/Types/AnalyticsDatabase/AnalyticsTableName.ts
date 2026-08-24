@@ -7,6 +7,13 @@ enum AnalyticsTableName {
    * attributes with a keys sidecar for arbitrary-field filtering.
    */
   SecurityEvent = "SecurityEventItemV1",
+  /*
+   * Deploy/config-change markers posted by CI/CD, rendered as dashed
+   * vertical lines on metric charts. Peer of LogItemV3 in layout (tenant
+   * projectId, per-row retentionDate TTL, attributes Map + keys sidecar)
+   * but tiny in volume.
+   */
+  ChangeEvent = "ChangeEventV1",
   Metric = "MetricItemV3",
   ExceptionInstance = "ExceptionItemV3",
   Span = "SpanItemV3",

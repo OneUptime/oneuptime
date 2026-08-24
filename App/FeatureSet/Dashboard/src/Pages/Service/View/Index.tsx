@@ -45,10 +45,12 @@ import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefres
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import OneUptimeDate from "Common/Types/Date";
 import {
+  fetchLogAndExceptionSignals,
   fetchSpanMetrics,
   formatCompact,
   formatDurationMs,
   formatPercent,
+  LogAndExceptionSignals,
   SpanMetrics,
   TimePoint,
 } from "../../../Components/TelemetryResource/telemetryMetrics";
@@ -89,6 +91,8 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [error, setError] = useState<string>("");
   const [spanMetrics, setSpanMetrics] = useState<SpanMetrics | null>(null);
+  const [logExceptionSignals, setLogExceptionSignals] =
+    useState<LogAndExceptionSignals | null>(null);
   const [runtimeCharts, setRuntimeCharts] = useState<Array<ProbedRuntimeChart>>(
     [],
   );
@@ -194,15 +198,23 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     Promise.all([
       fetchSpanMetrics({ primaryEntityId: modelId, start, end }),
       probeRuntimeCharts({ language, primaryEntityId: modelId, start, end }),
+      fetchLogAndExceptionSignals({ primaryEntityId: modelId, start, end }),
     ])
-      .then(([m, runtime]: [SpanMetrics, Array<ProbedRuntimeChart>]) => {
-        if (ignore) {
-          return;
-        }
-        setSpanMetrics(m);
-        setRuntimeCharts(runtime);
-        setMetricsLoading(false);
-      })
+      .then(
+        ([m, runtime, signals]: [
+          SpanMetrics,
+          Array<ProbedRuntimeChart>,
+          LogAndExceptionSignals,
+        ]) => {
+          if (ignore) {
+            return;
+          }
+          setSpanMetrics(m);
+          setRuntimeCharts(runtime);
+          setLogExceptionSignals(signals);
+          setMetricsLoading(false);
+        },
+      )
       .catch(() => {
         if (ignore) {
           return;
@@ -384,6 +396,50 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         yFormatter={(n: number): string => {
           return formatDurationMs(n);
         }}
+        loading={metricsLoading}
+      />
+      <ChartCard
+        title="Logs"
+        icon={IconProp.Logs}
+        iconColor="amber"
+        series={
+          [
+            {
+              seriesName: "Log lines",
+              data: logExceptionSignals?.logs.countSeries ?? [],
+            },
+            {
+              seriesName: "Errors",
+              data: logExceptionSignals?.logs.errorSeries ?? [],
+            },
+          ] as Array<SeriesPoint>
+        }
+        windowStart={chartWindow?.start ?? null}
+        windowEnd={chartWindow?.end ?? null}
+        syncId={syncId}
+        showLegend={true}
+        loading={metricsLoading}
+      />
+      <ChartCard
+        title="Exceptions"
+        icon={IconProp.Bug}
+        iconColor="rose"
+        series={
+          [
+            {
+              seriesName: "Unhandled",
+              data: logExceptionSignals?.exceptions.unhandledSeries ?? [],
+            },
+            {
+              seriesName: "Handled",
+              data: logExceptionSignals?.exceptions.handledSeries ?? [],
+            },
+          ] as Array<SeriesPoint>
+        }
+        windowStart={chartWindow?.start ?? null}
+        windowEnd={chartWindow?.end ?? null}
+        syncId={syncId}
+        showLegend={true}
         loading={metricsLoading}
       />
       {runtimeCharts.map((chart: ProbedRuntimeChart): ReactElement => {

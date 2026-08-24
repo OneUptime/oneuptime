@@ -165,6 +165,18 @@ export interface ComponentProps {
    * instead of rendering an interaction that silently does nothing.
    */
   disableChartZoom?: boolean | undefined;
+  /*
+   * Per-series investigate menus (see MetricCharts.enableSeriesActions).
+   * Form-embedded previews pass false — a navigation menu inside an
+   * unsaved monitor form is an invitation to lose work.
+   */
+  enableSeriesActions?: boolean | undefined;
+  /*
+   * Overlay each chart with the SAME queries fetched one window earlier
+   * (dashed, faded ghost lines) — "is this spike normal for this hour?"
+   * answered in place.
+   */
+  compareWithPreviousPeriod?: boolean | undefined;
   // Time-anchored annotations forwarded to every chart (see MetricCharts).
   timeReferenceLines?: Array<ChartTimeReferenceLineProps> | undefined;
   referenceRegions?: Array<ChartReferenceRegionProps> | undefined;
@@ -370,6 +382,8 @@ const MetricView: FunctionComponent<ComponentProps> = (
     const currentFetchSnapshot: string = JSON.stringify({
       fetchState: getFetchRelevantState(effectiveData),
       refreshNonce: props.refreshNonce ?? null,
+      // Toggling compare adds/removes the shifted fetch — refetch.
+      compareWithPreviousPeriod: props.compareWithPreviousPeriod === true,
     });
 
     const shouldFetch: boolean =
@@ -389,6 +403,9 @@ const MetricView: FunctionComponent<ComponentProps> = (
     }
   }, [props.data, effectiveData, props.refreshNonce]);
 
+  const [metricResultsPrevious, setMetricResultsPrevious] =
+    useState<Array<AggregatedResult> | null>(null);
+  const [compareOffsetMs, setCompareOffsetMs] = useState<number>(0);
   const [metricResults, setMetricResults] = useState<Array<AggregatedResult>>(
     [],
   );
@@ -722,17 +739,56 @@ const MetricView: FunctionComponent<ComponentProps> = (
       }
 
       try {
-        const results: Array<AggregatedResult> = await MetricUtil.fetchResults({
-          metricViewData: effectiveData,
-          aggregationInterval: aggregationInterval,
-          refreshNonce: props.refreshNonce,
-          /*
-           * MetricView renders MetricCharts' Top-N controls and the
-           * "Showing top k of N" truncation banner, so it opts in to
-           * the default server-side Top-N cap for grouped queries.
-           */
-          defaultTopN: true,
-        });
+        /*
+         * Compare mode: the SAME queries over the window shifted back by
+         * exactly one window width, same aggregation interval so previous
+         * buckets are congruent with current ones modulo the shift. The
+         * distinct window gives it its own fetch-cache identity.
+         */
+        const windowStart: Date | undefined =
+          effectiveData.startAndEndDate?.startValue;
+        const windowEnd: Date | undefined =
+          effectiveData.startAndEndDate?.endValue;
+        const windowMs: number =
+          props.compareWithPreviousPeriod &&
+          windowStart instanceof Date &&
+          windowEnd instanceof Date
+            ? windowEnd.getTime() - windowStart.getTime()
+            : 0;
+
+        const [results, previousResults]: [
+          Array<AggregatedResult>,
+          Array<AggregatedResult> | null,
+        ] = await Promise.all([
+          MetricUtil.fetchResults({
+            metricViewData: effectiveData,
+            aggregationInterval: aggregationInterval,
+            refreshNonce: props.refreshNonce,
+            /*
+             * MetricView renders MetricCharts' Top-N controls and the
+             * "Showing top k of N" truncation banner, so it opts in to
+             * the default server-side Top-N cap for grouped queries.
+             */
+            defaultTopN: true,
+          }),
+          windowMs > 0
+            ? MetricUtil.fetchResults({
+                metricViewData: {
+                  ...effectiveData,
+                  startAndEndDate: new InBetween<Date>(
+                    new Date(windowStart!.getTime() - windowMs),
+                    new Date(windowEnd!.getTime() - windowMs),
+                  ),
+                },
+                aggregationInterval: aggregationInterval,
+                refreshNonce: props.refreshNonce,
+                defaultTopN: true,
+              }).catch((): null => {
+                // Ghosts are best-effort — never break the live charts.
+                return null;
+              })
+            : Promise.resolve(null),
+        ]);
 
         // A newer fetch superseded this one — drop the stale results.
         if (fetchSeqRef.current !== fetchSeq) {
@@ -740,6 +796,8 @@ const MetricView: FunctionComponent<ComponentProps> = (
         }
 
         setMetricResults(results);
+        setMetricResultsPrevious(windowMs > 0 ? previousResults : null);
+        setCompareOffsetMs(windowMs);
         setMetricResultsError("");
         setHasFetchedResultsOnce(true);
       } catch (err: unknown) {
@@ -1292,24 +1350,33 @@ const MetricView: FunctionComponent<ComponentProps> = (
                     metricTypes={metricTypes}
                     metricViewData={effectiveData}
                     chartCssClass={props.chartCssClass}
-                    onQueryConfigsChange={
-                      /*
-                       * Only claim the write path when a parent onChange
-                       * can actually persist it. Passing an always-present
-                       * wrapper made read-only hosts route Top-N writes
-                       * (and the series menu's "Filter to this series")
-                       * into a no-op instead of the transient-override /
-                       * explorer-link fallbacks.
-                       */
-                      props.onChange
-                        ? (queryConfigs: Array<MetricQueryConfigData>) => {
-                            props.onChange?.({
-                              ...props.data,
-                              queryConfigs: queryConfigs,
-                            });
-                          }
+                    enableSeriesActions={props.enableSeriesActions}
+                    metricResultsPrevious={
+                      props.compareWithPreviousPeriod && metricResultsPrevious
+                        ? metricResultsPrevious
                         : undefined
                     }
+                    compareOffsetMs={
+                      props.compareWithPreviousPeriod && metricResultsPrevious
+                        ? compareOffsetMs
+                        : undefined
+                    }
+                    onQueryConfigsChange={(
+                      queryConfigs: Array<MetricQueryConfigData>,
+                    ) => {
+                      /*
+                       * onChange is a required prop, so MetricView hosts
+                       * always own the write path — Top-N writes and the
+                       * series menu's "Filter to this series" both round-
+                       * trip through the host's onChange. (Read-only
+                       * surfaces render MetricCharts directly, without
+                       * this wrapper — e.g. dashboard widgets.)
+                       */
+                      props.onChange({
+                        ...props.data,
+                        queryConfigs: queryConfigs,
+                      });
+                    }}
                     onTimeRangeSelect={
                       /*
                        * Charts advertise drag-to-zoom (crosshair, hint,

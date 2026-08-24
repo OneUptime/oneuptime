@@ -21,6 +21,14 @@ export interface SortableTooltipItem {
 
 export const DEFAULT_TOOLTIP_MAX_ENTRIES: number = 10;
 
+/*
+ * Series carrying this suffix are compare-to-previous-period ghosts.
+ * They still read out in the tooltip (that is the point of comparing)
+ * but sort after every live series so they can never displace a real
+ * reading under the entry cap.
+ */
+export const PREVIOUS_PERIOD_SERIES_SUFFIX: string = " (previous)";
+
 export interface PreparedTooltipEntries<T extends SortableTooltipItem> {
   /** Entries to render, highest value first, capped at maxEntries. */
   entries: Array<T>;
@@ -46,42 +54,49 @@ export function prepareTooltipEntries<T extends SortableTooltipItem>(
   maxEntries: number = DEFAULT_TOOLTIP_MAX_ENTRIES,
 ): PreparedTooltipEntries<T> {
   /*
-   * `type === "none"` entries are series excluded from legends/tooltips
-   * (recharts tooltipType) — every chart filtered them before this
-   * module existed, so the filter lives here now to stay uniform.
+   * Two kinds of non-series entries are excluded:
+   *  - `type === "none"` (recharts tooltipType) — series explicitly
+   *    excluded from tooltips; every chart filtered these before this
+   *    module existed, so the filter lives here now to stay uniform.
+   *  - Array values — the anomaly band's range Area yields a
+   *    [low, high] tuple per point; it is a shaded region, not a series
+   *    reading, so it must neither render as a row nor count toward the
+   *    "+N more series" overflow.
    */
   const visibleEntries: Array<T> = (payload || []).filter((item: T) => {
-    return item.type !== "none";
+    return item.type !== "none" && !Array.isArray(item.value);
   });
+
+  /*
+   * Sort tiers: live finite readings first (value desc), then
+   * previous-period ghosts (value desc), then non-finite entries
+   * (missing points) — lower tiers must never displace a real reading
+   * under the entry cap.
+   */
+  const getTier: (item: T) => number = (item: T): number => {
+    const hasFiniteValue: boolean =
+      typeof item.value === "number" && Number.isFinite(item.value);
+    if (!hasFiniteValue) {
+      return 2;
+    }
+    return String(item.category).endsWith(PREVIOUS_PERIOD_SERIES_SUFFIX)
+      ? 1
+      : 0;
+  };
 
   const sortedEntries: Array<T> = visibleEntries
     .slice()
     .sort((a: T, b: T): number => {
-      /*
-       * Non-finite values (missing points, the anomaly band's [low, high]
-       * array) sort last — they carry no "how high is this series right
-       * now" signal, so they must never displace a real reading.
-       */
-      const aValue: number | null =
-        typeof a.value === "number" && Number.isFinite(a.value)
-          ? a.value
-          : null;
-      const bValue: number | null =
-        typeof b.value === "number" && Number.isFinite(b.value)
-          ? b.value
-          : null;
-
-      if (aValue === null && bValue === null) {
+      const aTier: number = getTier(a);
+      const bTier: number = getTier(b);
+      if (aTier !== bTier) {
+        return aTier - bTier;
+      }
+      if (aTier === 2) {
         return compareCategoryNames(a.category, b.category);
       }
-      if (aValue === null) {
-        return 1;
-      }
-      if (bValue === null) {
-        return -1;
-      }
-      if (bValue !== aValue) {
-        return bValue - aValue;
+      if (b.value !== a.value) {
+        return b.value - a.value;
       }
       return compareCategoryNames(a.category, b.category);
     });

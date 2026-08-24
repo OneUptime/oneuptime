@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import ReactDOM from "react-dom";
 import OneUptimeDate from "Common/Types/Date";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
 import ChartGroup, {
@@ -83,6 +84,8 @@ import {
   splitSeriesNameIntoSegments,
 } from "../../Utils/MetricSeriesInvestigation";
 import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
+import { PREVIOUS_PERIOD_SERIES_SUFFIX } from "Common/UI/Components/Charts/ChartLibrary/Utils/TooltipEntries";
+import InvestigationDrawer from "../Telemetry/InvestigationDrawer";
 import ExplorerLink from "./Utils/ExplorerLink";
 import { ShowToastNotification } from "Common/UI/Components/Toast/ToastInit";
 import { ToastType } from "Common/UI/Components/Toast/Toast";
@@ -147,6 +150,22 @@ export interface ComponentProps {
    * pass false.
    */
   enableSeriesActions?: boolean | undefined;
+  /*
+   * Compare-to-previous-period overlays: results for the SAME queries
+   * over the window shifted back by `compareOffsetMs`, index-aligned to
+   * queryConfigs like metricResults. Rendered as dashed, faded ghost
+   * lines behind each displayed series — never consuming Top-N slots,
+   * legend chips, or tooltip cap slots.
+   */
+  metricResultsPrevious?: Array<AggregatedResult> | undefined;
+  compareOffsetMs?: number | undefined;
+  /*
+   * Crosshair-sync channel shared with OTHER MetricCharts instances
+   * (dashboards pass the dashboard id so hovering one widget highlights
+   * the same instant on every widget). Absent → sync within this
+   * instance's own panels only.
+   */
+  chartSyncId?: string | undefined;
 }
 
 /*
@@ -432,6 +451,21 @@ interface ExemplarMenuState {
  * clamp its fixed position the same way the exemplar menu is clamped.
  */
 const SERIES_MENU_WIDTH_PX: number = 260;
+
+/*
+ * Pinned bucket inspector card dimensions (viewport clamping, same
+ * scheme as the pivot menus).
+ */
+const BUCKET_INSPECTOR_WIDTH_PX: number = 300;
+const BUCKET_INSPECTOR_HEIGHT_PX: number = 340;
+// At most this many series rows in the inspector; the rest summarize.
+const BUCKET_INSPECTOR_MAX_ROWS: number = 8;
+/*
+ * A single bucket can be seconds wide — too narrow a window to find
+ * correlated logs/traces in. Investigations open on at least this span,
+ * centered on the clicked bucket.
+ */
+const MIN_INVESTIGATION_WINDOW_MS: number = 5 * 60 * 1000;
 const SERIES_MENU_HEIGHT_PX: number = 280;
 
 // One open per-series investigate menu.
@@ -882,8 +916,17 @@ function renderSeriesControls(input: {
    * per-series investigate menu, anchored under the button.
    */
   onInvestigateSeries?:
-    | ((seriesName: string, anchor: { x: number; y: number }) => void)
+    | ((
+        seriesName: string,
+        anchor: { x: number; y: number },
+        trigger: HTMLElement | null,
+      ) => void)
     | undefined;
+  /*
+   * The series whose investigate menu is currently open — drives
+   * aria-expanded on that chip's magnifier button.
+   */
+  investigatedSeriesName?: string | null | undefined;
 }): ReactElement {
   const {
     chartId,
@@ -905,6 +948,7 @@ function renderSeriesControls(input: {
     unitLabel,
     valueFormatter,
     onInvestigateSeries,
+    investigatedSeriesName,
   } = input;
 
   const sortBy: SeriesSortBy = controls.sortBy;
@@ -1292,6 +1336,8 @@ function renderSeriesControls(input: {
                   <button
                     type="button"
                     aria-label={`Investigate ${series.seriesName}`}
+                    aria-haspopup="menu"
+                    aria-expanded={investigatedSeriesName === series.seriesName}
                     title="Investigate this series — logs, traces, and more"
                     onClick={(
                       event: React.MouseEvent<HTMLButtonElement>,
@@ -1299,12 +1345,21 @@ function renderSeriesControls(input: {
                       event.stopPropagation();
                       const rect: DOMRect =
                         event.currentTarget.getBoundingClientRect();
-                      onInvestigateSeries(series.seriesName, {
-                        x: rect.left,
-                        y: rect.bottom + 4,
-                      });
+                      onInvestigateSeries(
+                        series.seriesName,
+                        {
+                          x: rect.left,
+                          y: rect.bottom + 4,
+                        },
+                        event.currentTarget,
+                      );
                     }}
-                    className="inline-flex items-center rounded-r-md border-l border-gray-100 px-1.5 text-gray-300 transition hover:bg-indigo-50 hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 group-hover:text-gray-400"
+                    /*
+                     * Idle gray-500, not gray-300/400: the icon-only
+                     * control needs >= 3:1 contrast on the white chip
+                     * (WCAG 1.4.11) in its resting state too.
+                     */
+                    className="inline-flex items-center rounded-r-md border-l border-gray-100 px-1.5 text-gray-500 transition hover:bg-indigo-50 hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
                   >
                     <Icon icon={IconProp.MagnifyingGlass} className="h-3 w-3" />
                   </button>
@@ -1572,21 +1627,34 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     setIsComponentVisible: setIsSeriesMenuVisible,
   } = useComponentOutsideClick(false);
 
+  /*
+   * The chip button that opened the menu, so Escape / an action click can
+   * hand focus back (menu-button keyboard pattern). Outside clicks leave
+   * focus where the user put it.
+   */
+  const seriesMenuTriggerRef: React.MutableRefObject<HTMLElement | null> =
+    useRef<HTMLElement | null>(null);
+
   const closeSeriesMenu: VoidFunction = useCallback((): void => {
     setIsSeriesMenuVisible(false);
     setSeriesMenu(null);
+    seriesMenuTriggerRef.current?.focus();
+    seriesMenuTriggerRef.current = null;
   }, [setIsSeriesMenuVisible]);
 
   const openSeriesMenu: (
     seriesName: string,
     groupByKeys: Array<string>,
     anchor: { x: number; y: number },
+    trigger?: HTMLElement | null,
   ) => void = useCallback(
     (
       seriesName: string,
       groupByKeys: Array<string>,
       anchor: { x: number; y: number },
+      trigger?: HTMLElement | null,
     ): void => {
+      seriesMenuTriggerRef.current = trigger || null;
       const maxX: number =
         window.innerWidth -
         SERIES_MENU_WIDTH_PX -
@@ -1637,6 +1705,135 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     });
   };
 
+  /*
+   * The in-context investigation drawer: opened from the series menu, the
+   * bucket inspector, or (in hosts) zoom bars — everything that happened
+   * in one window, without leaving the page.
+   */
+  const [investigation, setInvestigation] = useState<{
+    title: string;
+    window: InBetween<Date>;
+    viewData: MetricViewData;
+  } | null>(null);
+
+  // One pinned bucket inspector (chart click), portalled like the menus.
+  interface BucketInspectorEntry {
+    name: string;
+    value: number;
+  }
+  const [bucketInspector, setBucketInspector] = useState<{
+    title: string;
+    bucketStart: Date;
+    bucketEnd: Date;
+    entries: Array<BucketInspectorEntry>;
+    hiddenCount: number;
+    formatValue: (value: number) => string;
+    position: { x: number; y: number };
+  } | null>(null);
+
+  const {
+    ref: bucketInspectorRef,
+    isComponentVisible: isBucketInspectorVisible,
+    setIsComponentVisible: setIsBucketInspectorVisible,
+  } = useComponentOutsideClick(false);
+
+  const closeBucketInspector: VoidFunction = useCallback((): void => {
+    setIsBucketInspectorVisible(false);
+    setBucketInspector(null);
+  }, [setIsBucketInspectorVisible]);
+
+  const openBucketInspector: (input: {
+    title: string;
+    bucketStart: Date;
+    bucketEnd: Date;
+    valuesAtBucket: Record<string, number | string>;
+    seriesNames: Array<string>;
+    formatValue: (value: number) => string;
+  }) => void = useCallback(
+    (input: {
+      title: string;
+      bucketStart: Date;
+      bucketEnd: Date;
+      valuesAtBucket: Record<string, number | string>;
+      seriesNames: Array<string>;
+      formatValue: (value: number) => string;
+    }): void => {
+      /*
+       * Highest value first — the same "which series is spiking?"
+       * ordering the hover tooltip uses, but pinned.
+       */
+      const entries: Array<BucketInspectorEntry> = input.seriesNames
+        .map((name: string): BucketInspectorEntry | null => {
+          const value: unknown = input.valuesAtBucket[name];
+          return typeof value === "number" && Number.isFinite(value)
+            ? { name, value }
+            : null;
+        })
+        .filter((entry: BucketInspectorEntry | null): boolean => {
+          return entry !== null;
+        })
+        .map((entry: BucketInspectorEntry | null): BucketInspectorEntry => {
+          return entry as BucketInspectorEntry;
+        })
+        .sort((a: BucketInspectorEntry, b: BucketInspectorEntry): number => {
+          return b.value - a.value;
+        });
+
+      const pointer: { x: number; y: number } = lastPointerPositionRef.current;
+      const maxX: number =
+        window.innerWidth -
+        BUCKET_INSPECTOR_WIDTH_PX -
+        EXEMPLAR_MENU_VIEWPORT_MARGIN_PX;
+      const maxY: number =
+        window.innerHeight -
+        BUCKET_INSPECTOR_HEIGHT_PX -
+        EXEMPLAR_MENU_VIEWPORT_MARGIN_PX;
+
+      setBucketInspector({
+        title: input.title,
+        bucketStart: input.bucketStart,
+        bucketEnd: input.bucketEnd,
+        entries: entries.slice(0, BUCKET_INSPECTOR_MAX_ROWS),
+        hiddenCount: Math.max(0, entries.length - BUCKET_INSPECTOR_MAX_ROWS),
+        formatValue: input.formatValue,
+        position: {
+          x: Math.max(
+            EXEMPLAR_MENU_VIEWPORT_MARGIN_PX,
+            Math.min(pointer.x, maxX),
+          ),
+          y: Math.max(
+            EXEMPLAR_MENU_VIEWPORT_MARGIN_PX,
+            Math.min(pointer.y, maxY),
+          ),
+        },
+      });
+      setIsBucketInspectorVisible(true);
+    },
+    [setIsBucketInspectorVisible],
+  );
+
+  const investigateBucket: VoidFunction = useCallback((): void => {
+    if (!bucketInspector) {
+      return;
+    }
+    const widthMs: number =
+      bucketInspector.bucketEnd.getTime() -
+      bucketInspector.bucketStart.getTime();
+    const padMs: number = Math.max(
+      0,
+      (MIN_INVESTIGATION_WINDOW_MS - widthMs) / 2,
+    );
+    setInvestigation({
+      title: bucketInspector.title,
+      window: new InBetween<Date>(
+        new Date(bucketInspector.bucketStart.getTime() - padMs),
+        new Date(bucketInspector.bucketEnd.getTime() + padMs),
+      ),
+      viewData: props.metricViewData,
+    });
+    closeBucketInspector();
+  }, [bucketInspector, closeBucketInspector, props.metricViewData]);
+
   const getScopedViewDataForSeries: (
     menuState: SeriesMenuState,
   ) => SeriesScopedViewData = (
@@ -1675,13 +1872,23 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       extraction.serviceNames,
     );
 
-    const serviceIds: Array<string> = extraction.serviceNames
+    const resolvedIds: Array<string> = extraction.serviceNames
       .map((serviceName: string): string => {
         return serviceIdsByName[serviceName] || "";
       })
       .filter((serviceId: string): boolean => {
         return serviceId !== "";
       });
+
+    /*
+     * All-or-nothing, matching the pivot ladder in
+     * buildCrossSignalScopeFromMetricViewData: filtering exceptions to
+     * only the RESOLVED subset of several service names would silently
+     * hide the unresolved services' exceptions while claiming to show
+     * "the" scoped list — better to carry nothing and report the drop.
+     */
+    const serviceIds: Array<string> =
+      resolvedIds.length === extraction.serviceNames.length ? resolvedIds : [];
 
     return { serviceIdsByName, serviceIds };
   };
@@ -1699,13 +1906,45 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const buildSignalTargetUrl: (pageMap: PageMap) => URL = (
+  /*
+   * SPA navigation with query params. Navigation.navigate(URL) is a full
+   * page load (window.location.href), which destroys the dropped-scope
+   * toast the instant it is shown — a Route goes through the router hook
+   * instead, so the toast survives into the target page. Values are
+   * pre-encoded because Route.addQueryParams concatenates verbatim; "~"
+   * is escaped by hand because encodeURIComponent leaves it alone and
+   * Route's character whitelist rejects it.
+   */
+  const navigateWithQueryParams: (
     pageMap: PageMap,
-  ): URL => {
-    const route: Route = RouteUtil.populateRouteParams(RouteMap[pageMap]!);
-    const currentUrl: URL = Navigation.getCurrentURL();
-    return new URL(currentUrl.protocol, currentUrl.hostname, route);
+    params: Dictionary<string>,
+  ) => void = (pageMap: PageMap, params: Dictionary<string>): void => {
+    const route: Route = new Route(
+      RouteUtil.populateRouteParams(RouteMap[pageMap]!).toString(),
+    );
+    const encodedParams: Dictionary<string> = {};
+    for (const paramName of Object.keys(params)) {
+      encodedParams[paramName] = encodeURIComponent(
+        params[paramName] as string,
+      ).replace(/~/g, "%7E");
+    }
+    if (Object.keys(encodedParams).length > 0) {
+      route.addQueryParams(encodedParams);
+    }
+    Navigation.navigate(route);
   };
+
+  const getChartWindowFallbackParams: () => Dictionary<string> =
+    (): Dictionary<string> => {
+      if (!exemplarWindow) {
+        return {};
+      }
+      return {
+        range: TimeRange.CUSTOM,
+        start: OneUptimeDate.toString(exemplarWindow.startValue),
+        end: OneUptimeDate.toString(exemplarWindow.endValue),
+      };
+    };
 
   const navigateSeriesToSignal: (
     menuState: SeriesMenuState,
@@ -1717,9 +1956,8 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     const { scopedViewData }: SeriesScopedViewData =
       getScopedViewDataForSeries(menuState);
 
-    const targetUrl: URL = buildSignalTargetUrl(
-      target === "traces" ? PageMap.TRACES : PageMap.LOGS,
-    );
+    const pageMap: PageMap =
+      target === "traces" ? PageMap.TRACES : PageMap.LOGS;
 
     try {
       const {
@@ -1733,33 +1971,12 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         serviceIdsByName,
       });
 
-      for (const paramName of Object.keys(pivot.params)) {
-        targetUrl.addQueryParam(
-          paramName,
-          pivot.params[paramName] as string,
-          true,
-        );
-      }
-
       showDroppedScopeToast(pivot.dropped);
+      navigateWithQueryParams(pageMap, pivot.params);
     } catch {
       // Degraded pivot: land on the target explorer in the chart's window.
-      if (exemplarWindow) {
-        targetUrl.addQueryParam("range", TimeRange.CUSTOM, true);
-        targetUrl.addQueryParam(
-          "start",
-          OneUptimeDate.toString(exemplarWindow.startValue),
-          true,
-        );
-        targetUrl.addQueryParam(
-          "end",
-          OneUptimeDate.toString(exemplarWindow.endValue),
-          true,
-        );
-      }
+      navigateWithQueryParams(pageMap, getChartWindowFallbackParams());
     }
-
-    Navigation.navigate(targetUrl);
   };
 
   const navigateSeriesToExceptions: (
@@ -1767,8 +1984,6 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
   ) => Promise<void> = async (menuState: SeriesMenuState): Promise<void> => {
     const { scopedViewData }: SeriesScopedViewData =
       getScopedViewDataForSeries(menuState);
-
-    const targetUrl: URL = buildSignalTargetUrl(PageMap.EXCEPTIONS_UNRESOLVED);
 
     try {
       const { serviceIds }: { serviceIds: Array<string> } =
@@ -1779,41 +1994,44 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         serviceIds,
       });
 
-      for (const paramName of Object.keys(pivot.params)) {
-        targetUrl.addQueryParam(
-          paramName,
-          pivot.params[paramName] as string,
-          true,
-        );
-      }
-
       showDroppedScopeToast(pivot.dropped);
+      navigateWithQueryParams(PageMap.EXCEPTIONS_UNRESOLVED, pivot.params);
     } catch {
       // Window-only fallback, same shape as the logs/traces catch above.
-      if (exemplarWindow) {
-        targetUrl.addQueryParam("range", TimeRange.CUSTOM, true);
-        targetUrl.addQueryParam(
-          "start",
-          OneUptimeDate.toString(exemplarWindow.startValue),
-          true,
-        );
-        targetUrl.addQueryParam(
-          "end",
-          OneUptimeDate.toString(exemplarWindow.endValue),
-          true,
-        );
-      }
+      navigateWithQueryParams(
+        PageMap.EXCEPTIONS_UNRESOLVED,
+        getChartWindowFallbackParams(),
+      );
     }
-
-    Navigation.navigate(targetUrl);
   };
 
   const openSeriesInExplorer: (menuState: SeriesMenuState) => void = (
     menuState: SeriesMenuState,
   ): void => {
-    ExplorerLink.openInExplorer(
-      getScopedViewDataForSeries(menuState).scopedViewData,
+    const { scopedViewData, seriesLabels }: SeriesScopedViewData =
+      getScopedViewDataForSeries(menuState);
+
+    /*
+     * An "(unset)" label narrows via the is-empty operator (IsNull),
+     * which the explorer URL grammar cannot carry (attributes serialize
+     * as string/number/boolean only) — say so instead of silently
+     * opening a wider view than the menu promised.
+     */
+    const hasUnsetLabel: boolean = Object.values(seriesLabels).some(
+      (labelValue: unknown): boolean => {
+        return labelValue === "";
+      },
     );
+    if (hasUnsetLabel) {
+      ShowToastNotification({
+        title: "Some filters were not carried over",
+        description:
+          'The "(unset)" narrowing cannot be expressed in an explorer link, so the opened view includes every value of that attribute.',
+        type: ToastType.INFO,
+      });
+    }
+
+    ExplorerLink.openInExplorer(scopedViewData);
   };
 
   const applySeriesFilter: (menuState: SeriesMenuState) => void = (
@@ -2006,8 +2224,13 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     serverTruncatedWithoutTopK?: boolean | undefined;
     warningElement?: ReactElement | undefined;
     onInvestigateSeries?:
-      | ((seriesName: string, anchor: { x: number; y: number }) => void)
+      | ((
+          seriesName: string,
+          anchor: { x: number; y: number },
+          trigger: HTMLElement | null,
+        ) => void)
       | undefined;
+    investigatedSeriesName?: string | null | undefined;
   }) => {
     displayableSeries: Array<SeriesPoint>;
     colorsOverride: Array<ChartColorValue> | undefined;
@@ -2028,8 +2251,13 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     serverTruncatedWithoutTopK?: boolean | undefined;
     warningElement?: ReactElement | undefined;
     onInvestigateSeries?:
-      | ((seriesName: string, anchor: { x: number; y: number }) => void)
+      | ((
+          seriesName: string,
+          anchor: { x: number; y: number },
+          trigger: HTMLElement | null,
+        ) => void)
       | undefined;
+    investigatedSeriesName?: string | null | undefined;
   }): {
     displayableSeries: Array<SeriesPoint>;
     colorsOverride: Array<ChartColorValue> | undefined;
@@ -2128,6 +2356,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           unitLabel: input.unitLabel,
           valueFormatter: input.valueFormatter,
           onInvestigateSeries: input.onInvestigateSeries,
+          investigatedSeriesName: input.investigatedSeriesName,
         })
       : undefined;
 
@@ -2546,11 +2775,95 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         serverTruncatedWithoutTopK,
         warningElement: unitMismatchWarning,
         onInvestigateSeries: showSeriesActions
-          ? (seriesName: string, anchor: { x: number; y: number }): void => {
-              openSeriesMenu(seriesName, panelGroupByKeys, anchor);
+          ? (
+              seriesName: string,
+              anchor: { x: number; y: number },
+              trigger: HTMLElement | null,
+            ): void => {
+              openSeriesMenu(seriesName, panelGroupByKeys, anchor, trigger);
             }
           : undefined,
+        investigatedSeriesName:
+          seriesMenu && isSeriesMenuVisible ? seriesMenu.seriesName : null,
       });
+
+      /*
+       * Compare-to-previous-period ghosts. Built AFTER presentation so
+       * they never consume Top-N slots, legend chips, or color positions
+       * of live series — for each DISPLAYED series with a same-named
+       * previous-window series, append a time-shifted "<name> (previous)"
+       * twin. The shift is mandatory: the bucketer indexes points against
+       * the CURRENT window's intervals and silently drops anything
+       * outside it.
+       */
+      let renderSeries: Array<SeriesPoint> = displayableSeries;
+      let renderColors: Array<ChartColorValue> | undefined = colorsOverride;
+      let ghostSeriesNames: Array<string> | undefined = undefined;
+
+      if (
+        props.metricResultsPrevious &&
+        props.compareOffsetMs &&
+        props.compareOffsetMs > 0
+      ) {
+        const previousSeriesByName: Map<string, SeriesPoint> = new Map<
+          string,
+          SeriesPoint
+        >();
+        for (const member of members) {
+          const previousResult: AggregatedResult | undefined =
+            props.metricResultsPrevious[member.queryConfigIndex];
+          if (!previousResult) {
+            continue;
+          }
+          for (const series of buildQuerySeries(
+            member.queryConfig,
+            previousResult,
+          )) {
+            previousSeriesByName.set(series.seriesName, series);
+          }
+        }
+
+        const resolveColorForRender: SeriesColorResolver =
+          makeResolveColor(displayableSeries);
+        const ghosts: Array<SeriesPoint> = [];
+        const ghostColors: Array<ChartColorValue> = [];
+        const baseColors: Array<ChartColorValue> = displayableSeries.map(
+          (series: SeriesPoint, index: number): ChartColorValue => {
+            return (
+              colorsOverride?.[index] ||
+              resolveColorForRender(series.seriesName, index)
+            );
+          },
+        );
+
+        displayableSeries.forEach((series: SeriesPoint, index: number) => {
+          const previous: SeriesPoint | undefined = previousSeriesByName.get(
+            series.seriesName,
+          );
+          if (!previous || previous.data.length === 0) {
+            return;
+          }
+          ghosts.push({
+            seriesName: `${series.seriesName}${PREVIOUS_PERIOD_SERIES_SUFFIX}`,
+            data: previous.data.map((point: { x: Date; y: number }) => {
+              return {
+                x: new Date(point.x.getTime() + props.compareOffsetMs!),
+                y: point.y,
+              };
+            }),
+          });
+          // A ghost wears its live twin's color; dash/fade distinguish.
+          ghostColors.push(baseColors[index]!);
+        });
+
+        if (ghosts.length > 0) {
+          renderSeries = [...displayableSeries, ...ghosts];
+          renderColors = [...baseColors, ...ghostColors];
+          ghostSeriesNames = ghosts.map((ghost: SeriesPoint): string => {
+            return ghost.seriesName;
+          });
+        }
+      }
 
       /*
        * Soft 0–100% range computed from the currently visible series, so
@@ -2571,7 +2884,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         let observedMax: number = Number.NEGATIVE_INFINITY;
         let observedMin: number = 0;
         let hasFinitePoint: boolean = false;
-        for (const series of displayableSeries) {
+        for (const series of renderSeries) {
           for (const point of series.data) {
             if (typeof point.y === "number" && Number.isFinite(point.y)) {
               hasFinitePoint = true;
@@ -2611,7 +2924,8 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         onExemplarClick: handleExemplarClick,
         seriesControls: seriesControls,
         props: {
-          data: displayableSeries,
+          data: renderSeries,
+          ghostSeriesNames,
           xAxis: {
             legend: "Time",
             options: {
@@ -2650,10 +2964,30 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           },
           curve: ChartCurve.MONOTONE,
           sync: true,
-          colors: colorsOverride,
+          colors: renderColors,
           referenceLines:
             referenceLines.length > 0 ? referenceLines : undefined,
           onTimeRangeSelect: props.onTimeRangeSelect,
+          onBucketClick: showSeriesActions
+            ? (
+                bucketStart: Date,
+                bucketEnd: Date,
+                valuesAtBucket: Record<string, number | string>,
+              ): void => {
+                openBucketInspector({
+                  title: chart.title,
+                  bucketStart,
+                  bucketEnd,
+                  valuesAtBucket,
+                  seriesNames: displayableSeries.map(
+                    (series: SeriesPoint): string => {
+                      return series.seriesName;
+                    },
+                  ),
+                  formatValue: seriesValueFormatter,
+                });
+              }
+            : undefined,
           timeReferenceLines: props.timeReferenceLines,
           referenceRegions: props.referenceRegions,
         },
@@ -2869,10 +3203,13 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               ? (
                   seriesName: string,
                   anchor: { x: number; y: number },
+                  trigger: HTMLElement | null,
                 ): void => {
-                  openSeriesMenu(seriesName, formulaGroupKeys, anchor);
+                  openSeriesMenu(seriesName, formulaGroupKeys, anchor, trigger);
                 }
               : undefined,
+            investigatedSeriesName:
+              seriesMenu && isSeriesMenuVisible ? seriesMenu.seriesName : null,
           });
 
       const formulaChart: Chart = {
@@ -2924,6 +3261,28 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               ? formulaReferenceLines
               : undefined,
           onTimeRangeSelect: props.onTimeRangeSelect,
+          onBucketClick: showSeriesActions
+            ? (
+                bucketStart: Date,
+                bucketEnd: Date,
+                valuesAtBucket: Record<string, number | string>,
+              ): void => {
+                openBucketInspector({
+                  title: formulaChart.title,
+                  bucketStart,
+                  bucketEnd,
+                  valuesAtBucket,
+                  seriesNames: formulaDisplayableSeries.map(
+                    (series: SeriesPoint): string => {
+                      return series.seriesName;
+                    },
+                  ),
+                  formatValue: (value: number): string => {
+                    return ValueFormatter.formatValue(value, formulaUnit);
+                  },
+                });
+              }
+            : undefined,
           timeReferenceLines: props.timeReferenceLines,
           referenceRegions: props.referenceRegions,
         },
@@ -2974,145 +3333,289 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         charts={getCharts()}
         hideCard={props.hideCard}
         chartCssClass={props.chartCssClass}
+        syncId={props.chartSyncId}
       />
-      {exemplarMenu && isExemplarMenuVisible ? (
-        <div
-          ref={exemplarMenuRef}
-          role="menu"
-          aria-orientation="vertical"
-          aria-label="Exemplar actions"
-          className="fixed z-50 w-48 rounded-lg bg-white py-1 shadow-xl ring-1 ring-gray-200 focus:outline-none"
-          style={{
-            left: `${exemplarMenu.position.x}px`,
-            top: `${exemplarMenu.position.y}px`,
-          }}
-          onKeyDown={handleExemplarMenuKeyDown}
-        >
-          <MoreMenuItem
-            key="exemplar-view-trace"
-            icon={IconProp.Layers}
-            text="View trace"
-            onClick={() => {
-              closeExemplarMenu();
-              navigateToExemplarTrace(exemplarMenu.exemplar);
-            }}
-          />
-          <MoreMenuItem
-            key="exemplar-view-logs"
-            icon={IconProp.Logs}
-            text="View logs"
-            onClick={() => {
-              closeExemplarMenu();
-              navigateToExemplarLogs(exemplarMenu.exemplar);
-            }}
-          />
-        </div>
-      ) : null}
-      {seriesMenu && isSeriesMenuVisible ? (
-        <div
-          ref={seriesMenuRef}
-          role="menu"
-          aria-orientation="vertical"
-          aria-label="Series investigation actions"
-          className="fixed z-50 w-64 rounded-lg bg-white py-1 shadow-xl ring-1 ring-gray-200 focus:outline-none"
-          style={{
-            left: `${seriesMenu.position.x}px`,
-            top: `${seriesMenu.position.y}px`,
-          }}
-          onKeyDown={handleSeriesMenuKeyDown}
-        >
-          <div className="mx-1 mb-1 border-b border-gray-100 px-3 pb-2 pt-1.5">
-            <p
-              className="truncate text-xs font-medium text-gray-900"
-              title={seriesMenu.seriesName}
+      {/*
+       * Both pivot menus render through a body portal: dashboard widget
+       * containers are overflow-hidden and (via the canvas) can sit in a
+       * transformed ancestor, which turns position:fixed into
+       * position-relative-to-that-ancestor — a menu anchored at viewport
+       * coordinates would land clipped or off-target. document.body has
+       * neither problem.
+       */}
+      {exemplarMenu && isExemplarMenuVisible
+        ? ReactDOM.createPortal(
+            <div
+              ref={exemplarMenuRef}
+              role="menu"
+              aria-orientation="vertical"
+              aria-label="Exemplar actions"
+              className="fixed z-50 w-48 rounded-lg bg-white py-1 shadow-xl ring-1 ring-gray-200 focus:outline-none"
+              style={{
+                left: `${exemplarMenu.position.x}px`,
+                top: `${exemplarMenu.position.y}px`,
+              }}
+              onKeyDown={handleExemplarMenuKeyDown}
             >
-              {seriesMenu.seriesName}
-            </p>
-            {seriesMenuNarrowSummary ? (
-              <p
-                className="mt-0.5 truncate text-[11px] text-gray-500"
-                title={seriesMenuNarrowSummary}
-              >
-                Scoped to {seriesMenuNarrowSummary}
-              </p>
-            ) : null}
-          </div>
-          {props.onQueryConfigsChange && seriesMenuScoped?.didNarrow ? (
-            <MoreMenuItem
-              key="series-filter"
-              icon={IconProp.Filter}
-              text="Filter to this series"
-              onClick={() => {
-                const menuState: SeriesMenuState = seriesMenu;
-                closeSeriesMenu();
-                applySeriesFilter(menuState);
-              }}
-            />
-          ) : null}
-          {!props.onQueryConfigsChange ? (
-            <MoreMenuItem
-              key="series-explorer"
-              icon={IconProp.ExternalLink}
-              text="Open in Metric Explorer"
-              onClick={() => {
-                const menuState: SeriesMenuState = seriesMenu;
-                closeSeriesMenu();
-                openSeriesInExplorer(menuState);
-              }}
-            />
-          ) : null}
-          <MoreMenuItem
-            key="series-view-logs"
-            icon={IconProp.Logs}
-            text="View logs"
-            onClick={() => {
-              const menuState: SeriesMenuState = seriesMenu;
-              closeSeriesMenu();
-              navigateSeriesToSignal(menuState, "logs").catch(() => {
-                // Best-effort navigation; failures already degrade inside.
-              });
-            }}
-          />
-          <MoreMenuItem
-            key="series-view-traces"
-            icon={IconProp.Layers}
-            text="View traces"
-            onClick={() => {
-              const menuState: SeriesMenuState = seriesMenu;
-              closeSeriesMenu();
-              navigateSeriesToSignal(menuState, "traces").catch(() => {
-                // Best-effort navigation; failures already degrade inside.
-              });
-            }}
-          />
-          <MoreMenuItem
-            key="series-view-exceptions"
-            icon={IconProp.Bug}
-            text="View exceptions"
-            onClick={() => {
-              const menuState: SeriesMenuState = seriesMenu;
-              closeSeriesMenu();
-              navigateSeriesToExceptions(menuState).catch(() => {
-                // Best-effort navigation; failures already degrade inside.
-              });
-            }}
-          />
-          {seriesMenuResourceTargets.map((target: SeriesResourceTarget) => {
-            return (
               <MoreMenuItem
-                key={`series-resource-${target.kind}`}
-                icon={resourceTargetIconByKind[target.kind]}
-                text={target.label}
+                key="exemplar-view-trace"
+                icon={IconProp.Layers}
+                text="View trace"
                 onClick={() => {
+                  closeExemplarMenu();
+                  navigateToExemplarTrace(exemplarMenu.exemplar);
+                }}
+              />
+              <MoreMenuItem
+                key="exemplar-view-logs"
+                icon={IconProp.Logs}
+                text="View logs"
+                onClick={() => {
+                  closeExemplarMenu();
+                  navigateToExemplarLogs(exemplarMenu.exemplar);
+                }}
+              />
+            </div>,
+            document.body,
+          )
+        : null}
+      {seriesMenu && isSeriesMenuVisible
+        ? ReactDOM.createPortal(
+            <div
+              ref={seriesMenuRef}
+              role="menu"
+              aria-orientation="vertical"
+              aria-label="Series investigation actions"
+              className="fixed z-50 w-64 rounded-lg bg-white py-1 shadow-xl ring-1 ring-gray-200 focus:outline-none"
+              style={{
+                left: `${seriesMenu.position.x}px`,
+                top: `${seriesMenu.position.y}px`,
+              }}
+              onKeyDown={handleSeriesMenuKeyDown}
+            >
+              <div className="mx-1 mb-1 border-b border-gray-100 px-3 pb-2 pt-1.5">
+                <p
+                  className="truncate text-xs font-medium text-gray-900"
+                  title={seriesMenu.seriesName}
+                >
+                  {seriesMenu.seriesName}
+                </p>
+                {seriesMenuNarrowSummary ? (
+                  <p
+                    className="mt-0.5 truncate text-[11px] text-gray-500"
+                    title={seriesMenuNarrowSummary}
+                  >
+                    Scoped to {seriesMenuNarrowSummary}
+                  </p>
+                ) : seriesMenu.groupByKeys.length > 0 ? (
+                  /*
+                   * A grouped chart whose series name did not parse back into
+                   * labels (e.g. overlay panels rename colliding series) —
+                   * being explicit beats implying a narrowing that never
+                   * happened.
+                   */
+                  <p className="mt-0.5 truncate text-[11px] text-gray-500">
+                    Couldn&apos;t scope to this series — actions cover the whole
+                    chart
+                  </p>
+                ) : null}
+              </div>
+              {exemplarWindow ? (
+                <MoreMenuItem
+                  key="series-investigate-window"
+                  icon={IconProp.MagnifyingGlassPlus}
+                  text="Investigate in panel"
+                  onClick={() => {
+                    const menuState: SeriesMenuState = seriesMenu;
+                    closeSeriesMenu();
+                    setInvestigation({
+                      title: menuState.seriesName,
+                      window: exemplarWindow,
+                      viewData:
+                        getScopedViewDataForSeries(menuState).scopedViewData,
+                    });
+                  }}
+                />
+              ) : null}
+              {props.onQueryConfigsChange && seriesMenuScoped?.didNarrow ? (
+                <MoreMenuItem
+                  key="series-filter"
+                  icon={IconProp.Filter}
+                  text="Filter to this series"
+                  onClick={() => {
+                    const menuState: SeriesMenuState = seriesMenu;
+                    closeSeriesMenu();
+                    applySeriesFilter(menuState);
+                  }}
+                />
+              ) : null}
+              {!props.onQueryConfigsChange ? (
+                <MoreMenuItem
+                  key="series-explorer"
+                  icon={IconProp.ExternalLink}
+                  text="Open in Metric Explorer"
+                  onClick={() => {
+                    const menuState: SeriesMenuState = seriesMenu;
+                    closeSeriesMenu();
+                    openSeriesInExplorer(menuState);
+                  }}
+                />
+              ) : null}
+              <MoreMenuItem
+                key="series-view-logs"
+                icon={IconProp.Logs}
+                text="View logs"
+                onClick={() => {
+                  const menuState: SeriesMenuState = seriesMenu;
                   closeSeriesMenu();
-                  openSeriesResource(target).catch(() => {
-                    // Resolution failures surface their own toast.
+                  navigateSeriesToSignal(menuState, "logs").catch(() => {
+                    // Best-effort navigation; failures already degrade inside.
                   });
                 }}
               />
-            );
-          })}
-        </div>
+              <MoreMenuItem
+                key="series-view-traces"
+                icon={IconProp.Layers}
+                text="View traces"
+                onClick={() => {
+                  const menuState: SeriesMenuState = seriesMenu;
+                  closeSeriesMenu();
+                  navigateSeriesToSignal(menuState, "traces").catch(() => {
+                    // Best-effort navigation; failures already degrade inside.
+                  });
+                }}
+              />
+              <MoreMenuItem
+                key="series-view-exceptions"
+                icon={IconProp.Bug}
+                text="View exceptions"
+                onClick={() => {
+                  const menuState: SeriesMenuState = seriesMenu;
+                  closeSeriesMenu();
+                  navigateSeriesToExceptions(menuState).catch(() => {
+                    // Best-effort navigation; failures already degrade inside.
+                  });
+                }}
+              />
+              {seriesMenuResourceTargets.map((target: SeriesResourceTarget) => {
+                return (
+                  <MoreMenuItem
+                    key={`series-resource-${target.kind}`}
+                    icon={resourceTargetIconByKind[target.kind]}
+                    text={target.label}
+                    onClick={() => {
+                      closeSeriesMenu();
+                      openSeriesResource(target).catch(() => {
+                        // Resolution failures surface their own toast.
+                      });
+                    }}
+                  />
+                );
+              })}
+            </div>,
+            document.body,
+          )
+        : null}
+      {bucketInspector && isBucketInspectorVisible
+        ? ReactDOM.createPortal(
+            <div
+              ref={bucketInspectorRef}
+              role="dialog"
+              aria-label={`Values at ${OneUptimeDate.getDateAsFormattedString(bucketInspector.bucketStart)}`}
+              className="fixed z-50 w-[300px] rounded-lg bg-white shadow-xl ring-1 ring-gray-200 focus:outline-none"
+              style={{
+                left: `${bucketInspector.position.x}px`,
+                top: `${bucketInspector.position.y}px`,
+              }}
+              onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  closeBucketInspector();
+                }
+              }}
+            >
+              <div className="border-b border-gray-100 px-3 py-2">
+                <p
+                  className="truncate text-xs font-semibold text-gray-900"
+                  title={bucketInspector.title}
+                >
+                  {bucketInspector.title}
+                </p>
+                <p className="mt-0.5 text-[11px] tabular-nums text-gray-500">
+                  {OneUptimeDate.getInBetweenDatesAsFormattedString(
+                    new InBetween<Date>(
+                      bucketInspector.bucketStart,
+                      bucketInspector.bucketEnd,
+                    ),
+                  )}
+                </p>
+              </div>
+              <div className="max-h-52 space-y-0.5 overflow-y-auto px-3 py-2">
+                {bucketInspector.entries.length === 0 ? (
+                  <p className="text-xs text-gray-400">
+                    No data points in this bucket.
+                  </p>
+                ) : (
+                  bucketInspector.entries.map(
+                    (entry: { name: string; value: number }, index: number) => {
+                      return (
+                        <div
+                          key={entry.name}
+                          className="flex items-baseline justify-between gap-3"
+                        >
+                          <span className="min-w-0 flex-1 truncate text-xs text-gray-700">
+                            <span className="mr-1.5 tabular-nums text-gray-400">
+                              {index + 1}.
+                            </span>
+                            {entry.name}
+                          </span>
+                          <span className="shrink-0 text-xs font-medium tabular-nums text-gray-900">
+                            {bucketInspector.formatValue(entry.value)}
+                          </span>
+                        </div>
+                      );
+                    },
+                  )
+                )}
+                {bucketInspector.hiddenCount > 0 ? (
+                  <p className="pt-1 text-[11px] text-gray-400">
+                    +{bucketInspector.hiddenCount} more series
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex items-center justify-end gap-2 border-t border-gray-100 px-3 py-2">
+                <button
+                  type="button"
+                  className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                  onClick={closeBucketInspector}
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                  onClick={investigateBucket}
+                >
+                  <Icon
+                    icon={IconProp.MagnifyingGlassPlus}
+                    className="h-3.5 w-3.5"
+                  />
+                  Investigate this moment
+                </button>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
+      {investigation ? (
+        <InvestigationDrawer
+          title={investigation.title}
+          window={investigation.window}
+          metricViewData={investigation.viewData}
+          onClose={() => {
+            setInvestigation(null);
+          }}
+        />
       ) : null}
     </>
   );

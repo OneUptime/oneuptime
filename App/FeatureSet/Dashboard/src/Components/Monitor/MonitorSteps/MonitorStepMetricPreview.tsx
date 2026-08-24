@@ -50,6 +50,7 @@ const MonitorStepMetricPreview: FunctionComponent<ComponentProps> = (
           hideStartAndEndDate={true}
           hideCardInCharts={true}
           disableChartZoom={true}
+          enableSeriesActions={false}
           chartCssClass="rounded-lg border border-gray-200 shadow-sm"
           data={{
             startAndEndDate: startAndEndDate,

@@ -55,6 +55,24 @@ import ChartCurve from "../../Types/ChartCurve";
  */
 const MAX_LABELED_TIME_REFERENCE_LINES: number = 6;
 
+/*
+ * recharts invokes child event handlers with varying shapes ((event) for
+ * plain SVG passthrough, (data, event) for adapted children) — find the
+ * DOM event wherever it is so propagation can be stopped reliably.
+ */
+function stopChartEventPropagation(...args: Array<unknown>): void {
+  for (const candidate of args) {
+    if (
+      candidate &&
+      typeof (candidate as { stopPropagation?: unknown }).stopPropagation ===
+        "function"
+    ) {
+      (candidate as { stopPropagation: () => void }).stopPropagation();
+      return;
+    }
+  }
+}
+
 //#region Legend
 
 interface LegendItemProps {
@@ -631,6 +649,26 @@ interface LineChartProps extends React.HTMLAttributes<HTMLDivElement> {
   formattedExemplarPoints?: Array<FormattedExemplarPoint> | undefined;
   onExemplarClick?: ((exemplar: ExemplarPoint) => void) | undefined;
   onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
+  /**
+   * Plain click on a time bucket (the plot background — dot/legend clicks
+   * and drag-selections never reach this). [bucketStart, bucketEnd) uses
+   * the same adjacent-row width derivation as drag-to-select. Fires only
+   * when no toggle-selection is active: a click that clears an active
+   * legend/dot selection keeps its existing meaning.
+   */
+  onBucketClick?:
+    | ((
+        bucketStart: Date,
+        bucketEnd: Date,
+        // The clicked row: one numeric entry per series + the axis keys.
+        valuesAtBucket: Record<string, number | string>,
+      ) => void)
+    | undefined;
+  /**
+   * Categories rendered as compare-to-previous-period ghosts: dashed,
+   * faded, no dots, not click-selectable — context, not data.
+   */
+  ghostCategories?: Array<string> | undefined;
 }
 
 const LineChart: React.ForwardRefExoticComponent<
@@ -670,6 +708,8 @@ const LineChart: React.ForwardRefExoticComponent<
       formattedTimeReferenceLines,
       formattedReferenceRegions,
       onTimeRangeSelect,
+      onBucketClick,
+      ghostCategories,
       ...other
     } = props;
     const CustomTooltip: React.ComponentType<TooltipProps> | undefined =
@@ -935,7 +975,12 @@ const LineChart: React.ForwardRefExoticComponent<
         <ResponsiveContainer>
           <RechartsLineChart
             data={data}
-            syncId={props.syncid?.toString() || ""}
+            /*
+             * Omitted, not "": recharts treats "" as a real sync
+             * channel, so every unsynced chart page-wide would
+             * accidentally sync with every other one.
+             */
+            {...(props.syncid ? { syncId: props.syncid.toString() } : {})}
             {...(hasOnTimeRangeSelect
               ? {
                   onMouseDown: handleRangeSelectMouseDown,
@@ -943,19 +988,51 @@ const LineChart: React.ForwardRefExoticComponent<
                   onMouseUp: handleRangeSelectMouseUp,
                 }
               : {})}
-            onClick={
-              hasOnValueChange && (activeLegend || activeDot)
-                ? () => {
-                    // Ignore the click that follows a drag-to-select.
-                    if (suppressNextClickRef.current) {
-                      return;
-                    }
-                    setActiveDot(undefined);
-                    setActiveLegend(undefined);
-                    onValueChange?.(null);
-                  }
-                : () => {} // do nothing
-            }
+            onClick={(chartState: RangeSelectionChartState) => {
+              // Ignore the click that follows a drag-to-select.
+              if (suppressNextClickRef.current) {
+                return;
+              }
+              /*
+               * A click while a legend/dot selection is active keeps its
+               * long-standing meaning — clear the selection — and never
+               * also pins a bucket.
+               */
+              if (hasOnValueChange && (activeLegend || activeDot)) {
+                setActiveDot(undefined);
+                setActiveLegend(undefined);
+                onValueChange?.(null);
+                return;
+              }
+              if (!onBucketClick) {
+                return;
+              }
+              const rowIndex: number | null =
+                getRowIndexFromChartState(chartState);
+              if (rowIndex === null) {
+                return;
+              }
+              const bucketStart: Date | null = getBucketDateAtIndex(rowIndex);
+              if (!bucketStart) {
+                return;
+              }
+              /*
+               * Cover the full bucket: width from adjacent row dates, the
+               * same derivation drag-to-select uses.
+               */
+              const adjacentDate: Date | null =
+                rowIndex > 0
+                  ? getBucketDateAtIndex(rowIndex - 1)
+                  : getBucketDateAtIndex(rowIndex + 1);
+              const bucketWidthInMs: number = adjacentDate
+                ? Math.abs(bucketStart.getTime() - adjacentDate.getTime())
+                : 0;
+              onBucketClick(
+                bucketStart,
+                new Date(bucketStart.getTime() + bucketWidthInMs),
+                (data[rowIndex] || {}) as Record<string, number | string>,
+              );
+            }}
             margin={{
               /*
                * Tick labels are 10px font with a translate(0, 6) — they
@@ -1141,85 +1218,95 @@ const LineChart: React.ForwardRefExoticComponent<
               ) as ChartColorValue;
               const isCustomColor: boolean = isHexColorValue(lineColor);
               const lineHex: string = getColorHex(lineColor);
+              const isGhost: boolean =
+                ghostCategories?.includes(category) || false;
               return (
                 <Line
                   className={cx(getColorClassName(lineColor, "stroke"))}
                   strokeOpacity={
-                    activeDot || (activeLegend && activeLegend !== category)
+                    (activeDot || (activeLegend && activeLegend !== category)
                       ? 0.3
-                      : 1
+                      : 1) * (isGhost ? 0.45 : 1)
                   }
-                  activeDot={(props: any) => {
-                    const {
-                      cx: cxCoord,
-                      cy: cyCoord,
-                      stroke,
-                      strokeLinecap,
-                      strokeLinejoin,
-                      strokeWidth,
-                    } = props;
-                    return (
-                      <Dot
-                        className={cx(
-                          "stroke-white",
-                          onValueChange ? "cursor-pointer" : "",
-                          getColorClassName(lineColor, "fill"),
-                        )}
-                        cx={cxCoord}
-                        cy={cyCoord}
-                        r={5}
-                        fill={isCustomColor ? lineHex : ""}
-                        stroke={stroke}
-                        strokeLinecap={strokeLinecap}
-                        strokeLinejoin={strokeLinejoin}
-                        strokeWidth={strokeWidth}
-                        onClick={(_: any, event: any) => {
-                          return onDotClick(props, event);
-                        }}
-                      />
-                    );
-                  }}
-                  dot={(props: any) => {
-                    const {
-                      stroke,
-                      strokeLinecap,
-                      strokeLinejoin,
-                      strokeWidth,
-                      cx: cxCoord,
-                      cy: cyCoord,
-                      index,
-                    } = props;
+                  activeDot={
+                    isGhost
+                      ? false
+                      : (props: any) => {
+                          const {
+                            cx: cxCoord,
+                            cy: cyCoord,
+                            stroke,
+                            strokeLinecap,
+                            strokeLinejoin,
+                            strokeWidth,
+                          } = props;
+                          return (
+                            <Dot
+                              className={cx(
+                                "stroke-white",
+                                onValueChange ? "cursor-pointer" : "",
+                                getColorClassName(lineColor, "fill"),
+                              )}
+                              cx={cxCoord}
+                              cy={cyCoord}
+                              r={5}
+                              fill={isCustomColor ? lineHex : ""}
+                              stroke={stroke}
+                              strokeLinecap={strokeLinecap}
+                              strokeLinejoin={strokeLinejoin}
+                              strokeWidth={strokeWidth}
+                              onClick={(_: any, event: any) => {
+                                return onDotClick(props, event);
+                              }}
+                            />
+                          );
+                        }
+                  }
+                  dot={
+                    isGhost
+                      ? false
+                      : (props: any) => {
+                          const {
+                            stroke,
+                            strokeLinecap,
+                            strokeLinejoin,
+                            strokeWidth,
+                            cx: cxCoord,
+                            cy: cyCoord,
+                            index,
+                          } = props;
 
-                    if (
-                      (hasOnlyOneValueForKey(data, category) &&
-                        !(
-                          activeDot ||
-                          (activeLegend && activeLegend !== category)
-                        )) ||
-                      (activeDot?.index === index &&
-                        activeDot?.dataKey === category)
-                    ) {
-                      return (
-                        <Dot
-                          key={index}
-                          cx={cxCoord}
-                          cy={cyCoord}
-                          r={5}
-                          stroke={stroke}
-                          fill={isCustomColor ? lineHex : ""}
-                          strokeLinecap={strokeLinecap}
-                          strokeLinejoin={strokeLinejoin}
-                          strokeWidth={strokeWidth}
-                          className={cx(
-                            "stroke-white",
-                            onValueChange ? "cursor-pointer" : "",
-                            getColorClassName(lineColor, "fill"),
-                          )}
-                        />
-                      );
-                    }
-                    return <React.Fragment key={index}></React.Fragment>;
-                  }}
+                          if (
+                            (hasOnlyOneValueForKey(data, category) &&
+                              !(
+                                activeDot ||
+                                (activeLegend && activeLegend !== category)
+                              )) ||
+                            (activeDot?.index === index &&
+                              activeDot?.dataKey === category)
+                          ) {
+                            return (
+                              <Dot
+                                key={index}
+                                cx={cxCoord}
+                                cy={cyCoord}
+                                r={5}
+                                stroke={stroke}
+                                fill={isCustomColor ? lineHex : ""}
+                                strokeLinecap={strokeLinecap}
+                                strokeLinejoin={strokeLinejoin}
+                                strokeWidth={strokeWidth}
+                                className={cx(
+                                  "stroke-white",
+                                  onValueChange ? "cursor-pointer" : "",
+                                  getColorClassName(lineColor, "fill"),
+                                )}
+                              />
+                            );
+                          }
+                          return <React.Fragment key={index}></React.Fragment>;
+                        }
+                  }
                   key={category}
                   name={category}
                   type={props.curve || ChartCurve.LINEAR}
@@ -1229,39 +1316,45 @@ const LineChart: React.ForwardRefExoticComponent<
                    * so the `stroke-*` Tailwind class on the Line applies.
                    */
                   stroke={isCustomColor ? lineHex : ""}
-                  strokeWidth={2}
+                  strokeWidth={isGhost ? 1.5 : 2}
                   strokeLinejoin="round"
                   strokeLinecap="round"
                   isAnimationActive={false}
                   connectNulls={connectNulls}
+                  {...(isGhost ? { strokeDasharray: "6 4" } : {})}
                 />
               );
             })}
             {/* hidden lines to increase clickable target area */}
             {onValueChange
-              ? categories.map((category: string) => {
-                  return (
-                    <Line
-                      className={cx("cursor-pointer")}
-                      strokeOpacity={0}
-                      key={category}
-                      name={category}
-                      type={props.curve || ChartCurve.LINEAR}
-                      dataKey={category}
-                      stroke="transparent"
-                      fill="transparent"
-                      legendType="none"
-                      tooltipType="none"
-                      strokeWidth={12}
-                      connectNulls={connectNulls}
-                      onClick={(props: any, event: any) => {
-                        event.stopPropagation();
-                        const { name } = props;
-                        onCategoryClick(name);
-                      }}
-                    />
-                  );
-                })
+              ? categories
+                  .filter((category: string) => {
+                    // Ghosts are context, not click-selectable series.
+                    return !(ghostCategories?.includes(category) || false);
+                  })
+                  .map((category: string) => {
+                    return (
+                      <Line
+                        className={cx("cursor-pointer")}
+                        strokeOpacity={0}
+                        key={category}
+                        name={category}
+                        type={props.curve || ChartCurve.LINEAR}
+                        dataKey={category}
+                        stroke="transparent"
+                        fill="transparent"
+                        legendType="none"
+                        tooltipType="none"
+                        strokeWidth={12}
+                        connectNulls={connectNulls}
+                        onClick={(props: any, event: any) => {
+                          event.stopPropagation();
+                          const { name } = props;
+                          onCategoryClick(name);
+                        }}
+                      />
+                    );
+                  })
               : null}
             {props.referenceLines?.map(
               (refLine: ChartReferenceLineProps, refIndex: number) => {
@@ -1303,7 +1396,9 @@ const LineChart: React.ForwardRefExoticComponent<
                     {...(region.original.onClick
                       ? {
                           style: { cursor: "pointer" as const },
-                          onClick: (): void => {
+                          onClick: (...args: Array<unknown>): void => {
+                            // Never let an annotation click also pin a bucket.
+                            stopChartEventPropagation(...args);
                             if (suppressNextClickRef.current) {
                               return;
                             }
@@ -1345,7 +1440,9 @@ const LineChart: React.ForwardRefExoticComponent<
                     {...(timeRefLine.original.onClick
                       ? {
                           style: { cursor: "pointer" as const },
-                          onClick: (): void => {
+                          onClick: (...args: Array<unknown>): void => {
+                            // Never let an annotation click also pin a bucket.
+                            stopChartEventPropagation(...args);
                             if (suppressNextClickRef.current) {
                               return;
                             }
@@ -1391,7 +1488,9 @@ const LineChart: React.ForwardRefExoticComponent<
                     stroke="var(--ou-chart-marker-ring, #ffffff)"
                     strokeWidth={2}
                     style={{ cursor: "pointer" }}
-                    onClick={() => {
+                    onClick={(...args: Array<unknown>) => {
+                      // Never let an exemplar click also pin a bucket.
+                      stopChartEventPropagation(...args);
                       // Ignore the click that follows a drag-to-select.
                       if (suppressNextClickRef.current) {
                         return;

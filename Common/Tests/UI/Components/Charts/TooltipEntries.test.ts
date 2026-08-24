@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   DEFAULT_TOOLTIP_MAX_ENTRIES,
+  PREVIOUS_PERIOD_SERIES_SUFFIX,
   PreparedTooltipEntries,
   SortableTooltipItem,
   prepareTooltipEntries,
@@ -53,24 +54,24 @@ describe("prepareTooltipEntries", () => {
     expect(categories(prepared)).toEqual(["cpu1", "cpu2", "cpu10"]);
   });
 
-  test("sorts non-finite values last without dropping them", () => {
+  test("sorts non-finite values last and drops band tuples entirely", () => {
     const prepared: PreparedTooltipEntries<TestItem> = prepareTooltipEntries([
       item("nan-series", NaN),
       item("real-low", 1),
       item("infinite", Infinity),
       item("real-high", 7),
-      // The anomaly band's dataKey yields a [low, high] tuple at runtime.
+      /*
+       * The anomaly band's dataKey yields a [low, high] tuple at runtime
+       * — a shaded region, not a series, so it must not render as a row
+       * nor count toward the overflow footer.
+       */
       item("band", [2, 9] as unknown as number),
     ]);
 
     expect(categories(prepared).slice(0, 2)).toEqual(["real-high", "real-low"]);
     // Non-finite tail keeps natural name order among itself.
-    expect(categories(prepared).slice(2)).toEqual([
-      "band",
-      "infinite",
-      "nan-series",
-    ]);
-    expect(prepared.totalCount).toBe(5);
+    expect(categories(prepared).slice(2)).toEqual(["infinite", "nan-series"]);
+    expect(prepared.totalCount).toBe(4);
   });
 
   test('filters out type "none" entries (hidden click-target lines, band fills)', () => {
@@ -141,6 +142,41 @@ describe("prepareTooltipEntries", () => {
       expect(prepared.overflowCount).toBe(0);
       expect(prepared.totalCount).toBe(0);
     }
+  });
+
+  test("previous-period ghosts sort after every live series, whatever their value", () => {
+    const prepared: PreparedTooltipEntries<TestItem> = prepareTooltipEntries([
+      item(`host-a${PREVIOUS_PERIOD_SERIES_SUFFIX}`, 999),
+      item("host-a", 10),
+      item("host-b", 50),
+      item(`host-b${PREVIOUS_PERIOD_SERIES_SUFFIX}`, 60),
+    ]);
+
+    expect(categories(prepared)).toEqual([
+      "host-b",
+      "host-a",
+      // Ghost tier keeps its own value ordering.
+      `host-a${PREVIOUS_PERIOD_SERIES_SUFFIX}`,
+      `host-b${PREVIOUS_PERIOD_SERIES_SUFFIX}`,
+    ]);
+  });
+
+  test("ghosts never displace live readings under the cap", () => {
+    const payload: Array<TestItem> = [];
+    for (let index: number = 0; index < DEFAULT_TOOLTIP_MAX_ENTRIES; index++) {
+      payload.push(item(`live-${index}`, index));
+      payload.push(item(`live-${index}${PREVIOUS_PERIOD_SERIES_SUFFIX}`, 1e6));
+    }
+
+    const prepared: PreparedTooltipEntries<TestItem> =
+      prepareTooltipEntries(payload);
+
+    expect(
+      prepared.entries.every((entry: TestItem) => {
+        return !entry.category.endsWith(PREVIOUS_PERIOD_SERIES_SUFFIX);
+      }),
+    ).toBe(true);
+    expect(prepared.overflowCount).toBe(DEFAULT_TOOLTIP_MAX_ENTRIES);
   });
 
   test("does not mutate the input payload", () => {

@@ -49,12 +49,6 @@ import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import HintChip from "./HintChip";
-import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
-import Incident from "Common/Models/DatabaseModels/Incident";
-import Alert from "Common/Models/DatabaseModels/Alert";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ProjectUtil from "Common/UI/Utils/Project";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
@@ -66,37 +60,23 @@ import {
   buildMetricExplorerPivotParams,
   extractScopeFiltersFromQueryConfigs,
   formatDroppedScopeHint,
+  SERVICE_NAME_ATTRIBUTE_KEY,
   resolveServiceIdsByNames,
+  resolveServiceNamesByIds,
 } from "../../Utils/MetricsCrossSignalPivot";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
 import { ShowToastNotification } from "Common/UI/Components/Toast/ToastInit";
+import useEventTimeReferenceLines, {
+  EventTimeReferenceLines,
+} from "./Utils/UseEventTimeReferenceLines";
+import InvestigationDrawer from "../Telemetry/InvestigationDrawer";
 import { ToastType } from "Common/UI/Components/Toast/Toast";
 
 const AUTO_REFRESH_STORAGE_KEY: string =
   "metric-explorer-auto-refresh-interval";
 const SHOW_EVENTS_STORAGE_KEY: string = "metric-explorer-show-events";
-
-// Max incidents and alerts (each) fetched for the event-overlay markers.
-const EVENT_OVERLAY_FETCH_LIMIT: number = 50;
-
-// Muted severity-ish marker colors (fallbacks when severity has no color).
-const INCIDENT_MARKER_COLOR: string = "#f87171"; // red-400
-const ALERT_MARKER_COLOR: string = "#fbbf24"; // amber-400
-
-/*
- * Marker labels render vertically along the reference line, so an
- * unbounded incident/alert title would run down the whole plot height.
- * Only the chart label truncates — the marker's click-through target
- * still opens the full record.
- */
-const EVENT_MARKER_TITLE_MAX_LENGTH: number = 40;
-
-function truncateEventMarkerTitle(title: string): string {
-  if (title.length <= EVENT_MARKER_TITLE_MAX_LENGTH) {
-    return title;
-  }
-
-  return `${title.slice(0, EVENT_MARKER_TITLE_MAX_LENGTH).trimEnd()}…`;
-}
+const COMPARE_PREVIOUS_STORAGE_KEY: string = "metric-explorer-compare-previous";
 
 // One toolbar-button idiom for the explorer's investigation row.
 const TOOLBAR_BUTTON_CLASS_NAME: string =
@@ -107,14 +87,6 @@ const TOOLBAR_BUTTON_ACTIVE_CLASS_NAME: string =
   "bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-inset ring-indigo-200";
 const TOOLBAR_ACTION_BUTTON_CLASS_NAME: string =
   "inline-flex h-8 cursor-pointer select-none items-center gap-1.5 whitespace-nowrap rounded-md border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-600 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
-
-// One incident/alert mapped onto a chart time marker.
-interface EventMarker {
-  date: Date;
-  label: string;
-  color: string;
-  route: Route;
-}
 
 type ResolveRangeTokenFunction = (rangeToken: string) => InBetween<Date>;
 
@@ -229,6 +201,8 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
     params.delete("metricName");
     params.delete("attributes");
     params.delete("serviceName");
+    // One-shot service scope — folded into metricQueries above.
+    params.delete(MetricExplorerUrlParam.Services);
 
     const newQueryString: string = params.toString();
     const newUrl: string =
@@ -240,6 +214,106 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
 
     lastSerializedStateRef.current = serializedState;
   }, [metricViewData]);
+
+  /*
+   * One-shot `services` param (cross-signal pivots from logs/traces carry
+   * service scope as ObjectIDs — see toMetricsExplorerQueryParams).
+   * Resolve ids -> names, fold into every query's resource.service.name
+   * attribute filter, then drop the param so the scope lives on as
+   * ordinary, user-editable filters. Ids that resolve to nothing are
+   * reported, never silently discarded.
+   */
+  useEffect(() => {
+    const servicesParam: string | null = Navigation.getQueryStringByName(
+      MetricExplorerUrlParam.Services,
+    );
+
+    if (!servicesParam) {
+      return;
+    }
+
+    const serviceIds: Array<string> =
+      MetricExplorerUrl.parseServicesParam(servicesParam);
+
+    if (serviceIds.length === 0) {
+      return;
+    }
+
+    let isCancelled: boolean = false;
+
+    const foldServicesIntoFilters: () => Promise<void> =
+      async (): Promise<void> => {
+        const namesById: Dictionary<string> =
+          await resolveServiceNamesByIds(serviceIds);
+
+        if (isCancelled) {
+          return;
+        }
+
+        const serviceNames: Array<string> = serviceIds
+          .map((serviceId: string): string => {
+            return namesById[serviceId] || "";
+          })
+          .filter((serviceName: string): boolean => {
+            return serviceName !== "";
+          });
+
+        if (serviceNames.length === 0) {
+          ShowToastNotification({
+            title: "Service scope was not carried over",
+            description:
+              "The linked services could not be resolved in this project.",
+            type: ToastType.INFO,
+          });
+          return;
+        }
+
+        if (serviceNames.length < serviceIds.length) {
+          ShowToastNotification({
+            title: "Some services were not carried over",
+            description: `${serviceIds.length - serviceNames.length} of the linked services could not be resolved in this project.`,
+            type: ToastType.INFO,
+          });
+        }
+
+        const serviceFilterValue: DictionaryEntryValue =
+          serviceNames.length === 1
+            ? (serviceNames[0] as string)
+            : new Includes(serviceNames);
+
+        setMetricViewData((previous: MetricViewData): MetricViewData => {
+          return {
+            ...previous,
+            queryConfigs: previous.queryConfigs.map(
+              (queryConfig: MetricQueryConfigData): MetricQueryConfigData => {
+                return {
+                  ...queryConfig,
+                  metricQueryData: {
+                    ...queryConfig.metricQueryData,
+                    filterData: {
+                      ...queryConfig.metricQueryData.filterData,
+                      attributes: {
+                        ...((queryConfig.metricQueryData.filterData[
+                          "attributes"
+                        ] as Dictionary<DictionaryEntryValue>) || {}),
+                        [SERVICE_NAME_ATTRIBUTE_KEY]: serviceFilterValue,
+                      },
+                    },
+                  },
+                };
+              },
+            ),
+          };
+        });
+      };
+
+    void foldServicesIntoFilters();
+
+    return () => {
+      isCancelled = true;
+    };
+    // One-shot on mount: the param is consumed, not watched.
+  }, []);
 
   /*
    * Refresh plumbing. A refresh re-anchors the relative token to now (the
@@ -297,159 +371,48 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
     });
   };
 
-  const [eventMarkers, setEventMarkers] = useState<Array<EventMarker>>([]);
+  /*
+   * Incident/alert/change-event markers for the charted window — shared
+   * hook (also used by dashboard chart widgets and embedded metric
+   * cards); the explorer adds its show/hide toggle on top.
+   */
+  const {
+    lines: eventReferenceLines,
+    markerCount: eventMarkerCount,
+  }: EventTimeReferenceLines = useEventTimeReferenceLines({
+    enabled: showEvents,
+    window: metricViewData.startAndEndDate,
+  });
 
-  const eventsWindowStartMs: number | undefined =
-    metricViewData.startAndEndDate?.startValue instanceof Date
-      ? (metricViewData.startAndEndDate.startValue as Date).getTime()
-      : undefined;
-  const eventsWindowEndMs: number | undefined =
-    metricViewData.startAndEndDate?.endValue instanceof Date
-      ? (metricViewData.startAndEndDate.endValue as Date).getTime()
-      : undefined;
+  /*
+   * The in-context investigation panel for the CURRENT window + filters —
+   * companion signals and the log summary without leaving the explorer.
+   */
+  const [isInvestigationOpen, setIsInvestigationOpen] =
+    useState<boolean>(false);
 
-  useEffect(() => {
-    if (
-      !showEvents ||
-      eventsWindowStartMs === undefined ||
-      eventsWindowEndMs === undefined
-    ) {
-      return;
+  // Compare-to-previous-period ghost overlays (persisted per browser).
+  const [showCompare, setShowCompare] = useState<boolean>(() => {
+    if (typeof window === "undefined") {
+      return false;
     }
+    return (
+      window.localStorage?.getItem(COMPARE_PREVIOUS_STORAGE_KEY) === "true"
+    );
+  });
 
-    let isCancelled: boolean = false;
-
-    const fetchEventMarkers: () => Promise<void> = async (): Promise<void> => {
-      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-      if (!projectId) {
-        return;
+  const toggleShowCompare: VoidFunction = (): void => {
+    setShowCompare((previous: boolean): boolean => {
+      const next: boolean = !previous;
+      if (typeof window !== "undefined") {
+        window.localStorage?.setItem(
+          COMPARE_PREVIOUS_STORAGE_KEY,
+          String(next),
+        );
       }
-
-      const eventsWindow: InBetween<Date> = new InBetween<Date>(
-        new Date(eventsWindowStartMs),
-        new Date(eventsWindowEndMs),
-      );
-
-      try {
-        const [incidents, alerts]: [ListResult<Incident>, ListResult<Alert>] =
-          await Promise.all([
-            ModelAPI.getList<Incident>({
-              modelType: Incident,
-              query: {
-                projectId: projectId,
-                createdAt: eventsWindow,
-              },
-              select: {
-                _id: true,
-                title: true,
-                createdAt: true,
-                incidentSeverity: {
-                  name: true,
-                  color: true,
-                },
-              },
-              sort: {
-                createdAt: SortOrder.Descending,
-              },
-              limit: EVENT_OVERLAY_FETCH_LIMIT,
-              skip: 0,
-            }),
-            ModelAPI.getList<Alert>({
-              modelType: Alert,
-              query: {
-                projectId: projectId,
-                createdAt: eventsWindow,
-              },
-              select: {
-                _id: true,
-                title: true,
-                createdAt: true,
-                alertSeverity: {
-                  name: true,
-                  color: true,
-                },
-              },
-              sort: {
-                createdAt: SortOrder.Descending,
-              },
-              limit: EVENT_OVERLAY_FETCH_LIMIT,
-              skip: 0,
-            }),
-          ]);
-
-        if (isCancelled) {
-          return;
-        }
-
-        const markers: Array<EventMarker> = [];
-
-        for (const incident of incidents.data) {
-          if (!incident.createdAt || !incident.id) {
-            continue;
-          }
-          markers.push({
-            date: OneUptimeDate.fromString(
-              incident.createdAt as unknown as string,
-            ),
-            label: `Incident: ${truncateEventMarkerTitle(incident.title || "")}`,
-            color:
-              incident.incidentSeverity?.color?.toString() ||
-              INCIDENT_MARKER_COLOR,
-            route: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENT_VIEW]!,
-              { modelId: incident.id },
-            ),
-          });
-        }
-
-        for (const alert of alerts.data) {
-          if (!alert.createdAt || !alert.id) {
-            continue;
-          }
-          markers.push({
-            date: OneUptimeDate.fromString(
-              alert.createdAt as unknown as string,
-            ),
-            label: `Alert: ${truncateEventMarkerTitle(alert.title || "")}`,
-            color: alert.alertSeverity?.color?.toString() || ALERT_MARKER_COLOR,
-            route: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ALERT_VIEW]!,
-              { modelId: alert.id },
-            ),
-          });
-        }
-
-        setEventMarkers(markers);
-      } catch {
-        // Event markers are best-effort — never break the charts.
-      }
-    };
-
-    void fetchEventMarkers();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [showEvents, eventsWindowStartMs, eventsWindowEndMs]);
-
-  const eventReferenceLines: Array<ChartTimeReferenceLineProps> =
-    useMemo((): Array<ChartTimeReferenceLineProps> => {
-      if (!showEvents) {
-        return [];
-      }
-      return eventMarkers.map(
-        (marker: EventMarker): ChartTimeReferenceLineProps => {
-          return {
-            date: marker.date,
-            label: marker.label,
-            color: marker.color,
-            onClick: () => {
-              Navigation.navigate(marker.route);
-            },
-          };
-        },
-      );
-    }, [showEvents, eventMarkers]);
+      return next;
+    });
+  };
 
   // -- Saved explorer views --
 
@@ -458,7 +421,13 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
   // A deep link (metricQueries param) must not be clobbered by the default view.
   const hasInitialUrlState: boolean = useMemo((): boolean => {
     return Boolean(
-      Navigation.getQueryStringByName(MetricExplorerUrlParam.MetricQueries),
+      Navigation.getQueryStringByName(MetricExplorerUrlParam.MetricQueries) ||
+        /*
+         * A pure service deep link ("metrics for service X") carries no
+         * metricQueries — without this the default saved view would
+         * clobber the incoming scope.
+         */
+        Navigation.getQueryStringByName(MetricExplorerUrlParam.Services),
     );
   }, []);
 
@@ -769,6 +738,22 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
                   <span>Traces</span>
                 </button>
               </Tooltip>
+              <Tooltip text="Investigate this window in a side panel — logs, traces, exceptions">
+                <button
+                  type="button"
+                  aria-label="Investigate this time window in a side panel"
+                  className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
+                  onClick={() => {
+                    setIsInvestigationOpen(true);
+                  }}
+                >
+                  <Icon
+                    icon={IconProp.MagnifyingGlassPlus}
+                    className="h-3.5 w-3.5"
+                  />
+                  <span>Investigate</span>
+                </button>
+              </Tooltip>
               <Tooltip
                 text={
                   showEvents
@@ -789,11 +774,36 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
                 >
                   <Icon icon={IconProp.Bolt} className="h-3.5 w-3.5" />
                   <span>Events</span>
-                  {showEvents && eventMarkers.length > 0 ? (
+                  {showEvents && eventMarkerCount > 0 ? (
                     <span className="rounded-full bg-indigo-100 px-1.5 text-[11px] font-semibold text-indigo-700">
-                      {eventMarkers.length}
+                      {eventMarkerCount}
                     </span>
                   ) : null}
+                </button>
+              </Tooltip>
+              <Tooltip
+                text={
+                  showCompare
+                    ? "Hide the previous period's ghost lines"
+                    : "Overlay each chart with the previous period (dashed)"
+                }
+              >
+                <button
+                  type="button"
+                  aria-label="Toggle compare with previous period"
+                  aria-pressed={showCompare}
+                  onClick={toggleShowCompare}
+                  className={`${TOOLBAR_BUTTON_CLASS_NAME} ${
+                    showCompare
+                      ? TOOLBAR_BUTTON_ACTIVE_CLASS_NAME
+                      : TOOLBAR_BUTTON_IDLE_CLASS_NAME
+                  }`}
+                >
+                  <Icon
+                    icon={IconProp.ArrowUturnLeft}
+                    className="h-3.5 w-3.5"
+                  />
+                  <span>Compare</span>
                 </button>
               </Tooltip>
             </div>
@@ -869,10 +879,23 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
         </div>
       </div>
 
+      {isInvestigationOpen &&
+      metricViewData.startAndEndDate?.startValue instanceof Date &&
+      metricViewData.startAndEndDate?.endValue instanceof Date ? (
+        <InvestigationDrawer
+          title="Investigate this view"
+          window={metricViewData.startAndEndDate}
+          metricViewData={metricViewData}
+          onClose={() => {
+            setIsInvestigationOpen(false);
+          }}
+        />
+      ) : null}
       <MetricView
         data={metricViewData}
         hideStartAndEndDate={true}
         refreshNonce={refreshNonce}
+        compareWithPreviousPeriod={showCompare}
         timeReferenceLines={
           eventReferenceLines.length > 0 ? eventReferenceLines : undefined
         }
