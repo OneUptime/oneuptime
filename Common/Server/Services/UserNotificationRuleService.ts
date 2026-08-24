@@ -23,8 +23,11 @@ import UserCallService from "./UserCallService";
 import UserPushService from "./UserPushService";
 import UserSmsService from "./UserSmsService";
 import UserTelegramService from "./UserTelegramService";
+import UserSlackService from "./UserSlackService";
+import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
 import UserWebhookService from "./UserWebhookService";
 import UserWhatsAppService from "./UserWhatsAppService";
+import WorkspaceUserNotificationService from "./WorkspaceUserNotificationService";
 import ProjectService from "./ProjectService";
 import UserNotificationRuleAdminService, {
   RuleColumnCarrier,
@@ -84,6 +87,8 @@ import UserEmail from "../../Models/DatabaseModels/UserEmail";
 import UserPush from "../../Models/DatabaseModels/UserPush";
 import UserSMS from "../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../Models/DatabaseModels/UserTelegram";
+import UserSlack from "../../Models/DatabaseModels/UserSlack";
+import UserMicrosoftTeams from "../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserWebhook from "../../Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 import Model from "../../Models/DatabaseModels/UserNotificationRule";
@@ -106,6 +111,13 @@ import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService
 import PushNotificationService from "./PushNotificationService";
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
+import WorkspaceType, {
+  getWorkspaceTypeDisplayName,
+} from "../../Types/Workspace/WorkspaceType";
+import {
+  WorkspaceMessageBlock,
+  WorkspacePayloadMarkdown,
+} from "../../Types/Workspace/WorkspaceMessagePayload";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -117,6 +129,8 @@ export interface NotificationMethodDescriptor {
   userCallId?: ObjectID;
   userWhatsAppId?: ObjectID;
   userTelegramId?: ObjectID;
+  userSlackId?: ObjectID;
+  userMicrosoftTeamsId?: ObjectID;
   userPushId?: ObjectID;
   userWebhookId?: ObjectID;
 }
@@ -504,12 +518,13 @@ const HANDOFF_RULE_TYPES: Array<NotificationRuleType> = [
 type ChannelListFunction = () => Array<string>;
 
 /**
- * The three channels no project setting can switch off. Push and Email are
- * zero-cost and Webhook is somebody else's endpoint, so nothing gates them —
- * which is what makes "a verified one of these survives" a CERTAIN answer to
- * "can this person still be paged" rather than a hopeful one. Kept in step with
- * OnCallReadinessService.isChannelEnabled, which returns true for exactly these
- * three unconditionally.
+ * The channels no project setting can switch off. Push and Email are
+ * zero-cost, Webhook is somebody else's endpoint, and Slack / Microsoft Teams
+ * ride on the project's own workspace connection at no per-message cost, so
+ * nothing gates them — which is what makes "a verified one of these survives"
+ * a CERTAIN answer to "can this person still be paged" rather than a hopeful
+ * one. Kept in step with OnCallReadinessService.isChannelEnabled, which
+ * returns true for exactly these five unconditionally.
  *
  * A FUNCTION rather than a module-level constant, and that is load-bearing
  * rather than stylistic: this module and OnCallReadinessService import each
@@ -525,6 +540,8 @@ const channelsWithNoProjectSwitch: ChannelListFunction = (): Array<string> => {
   return [
     ReadinessMethodType.Push,
     ReadinessMethodType.Email,
+    ReadinessMethodType.Slack,
+    ReadinessMethodType.MicrosoftTeams,
     ReadinessMethodType.Webhook,
   ];
 };
@@ -625,6 +642,18 @@ export class Service extends DatabaseService<Model> {
         userTelegram: {
           telegramChatId: true,
           telegramUserHandle: true,
+          isVerified: true,
+          userId: true,
+        },
+        userSlack: {
+          slackUserId: true,
+          slackUserName: true,
+          isVerified: true,
+          userId: true,
+        },
+        userMicrosoftTeams: {
+          microsoftTeamsUserId: true,
+          microsoftTeamsUserName: true,
           isVerified: true,
           userId: true,
         },
@@ -731,6 +760,14 @@ export class Service extends DatabaseService<Model> {
       {
         label: "Telegram",
         ownerUserId: notificationRuleItem.userTelegram?.userId,
+      },
+      {
+        label: "Slack",
+        ownerUserId: notificationRuleItem.userSlack?.userId,
+      },
+      {
+        label: "Microsoft Teams",
+        ownerUserId: notificationRuleItem.userMicrosoftTeams?.userId,
       },
       { label: "Push", ownerUserId: notificationRuleItem.userPush?.userId },
       {
@@ -1987,6 +2024,84 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
+    // send Slack.
+    if (
+      notificationRuleItem.userSlack?.slackUserId &&
+      notificationRuleItem.userSlack?.isVerified
+    ) {
+      const attempted: boolean =
+        await this.deliverWorkspaceDirectMessageForRule({
+          workspaceType: WorkspaceType.Slack,
+          methodId: notificationRuleItem.userSlack.id!,
+          workspaceUserId: notificationRuleItem.userSlack.slackUserId,
+          notificationRuleItem: notificationRuleItem,
+          options: options,
+          logTimelineItem: logTimelineItem,
+          incident: incident,
+          alert: alert,
+          alertEpisode: alertEpisode,
+          incidentEpisode: incidentEpisode,
+        });
+
+      deliveryAttempted = deliveryAttempted || attempted;
+    }
+
+    if (
+      notificationRuleItem.userSlack &&
+      !notificationRuleItem.userSlack?.isVerified
+    ) {
+      logTimelineItem.status = UserNotificationStatus.Error;
+      logTimelineItem.statusMessage = `Slack message not sent because the Slack account is not verified.`;
+      logTimelineItem.userSlackId = notificationRuleItem.userSlack.id!;
+
+      await UserOnCallLogTimelineService.create({
+        data: logTimelineItem,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    // send Microsoft Teams.
+    if (
+      notificationRuleItem.userMicrosoftTeams?.microsoftTeamsUserId &&
+      notificationRuleItem.userMicrosoftTeams?.isVerified
+    ) {
+      const attempted: boolean =
+        await this.deliverWorkspaceDirectMessageForRule({
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          methodId: notificationRuleItem.userMicrosoftTeams.id!,
+          workspaceUserId:
+            notificationRuleItem.userMicrosoftTeams.microsoftTeamsUserId,
+          notificationRuleItem: notificationRuleItem,
+          options: options,
+          logTimelineItem: logTimelineItem,
+          incident: incident,
+          alert: alert,
+          alertEpisode: alertEpisode,
+          incidentEpisode: incidentEpisode,
+        });
+
+      deliveryAttempted = deliveryAttempted || attempted;
+    }
+
+    if (
+      notificationRuleItem.userMicrosoftTeams &&
+      !notificationRuleItem.userMicrosoftTeams?.isVerified
+    ) {
+      logTimelineItem.status = UserNotificationStatus.Error;
+      logTimelineItem.statusMessage = `Microsoft Teams message not sent because the Microsoft Teams account is not verified.`;
+      logTimelineItem.userMicrosoftTeamsId =
+        notificationRuleItem.userMicrosoftTeams.id!;
+
+      await UserOnCallLogTimelineService.create({
+        data: logTimelineItem,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
     // send webhook.
     if (notificationRuleItem.userWebhook?.webhookUrl) {
       const webhookUrl: string = notificationRuleItem.userWebhook.webhookUrl;
@@ -2820,6 +2935,191 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * The Slack and Microsoft Teams halves of deliverNotificationForRule. Both
+   * channels deliver the same way — the same generated message blocks handed
+   * to the same direct-message sender, with only the workspace type and the
+   * timeline method column differing — so one helper carries both instead of
+   * two more copies of the per-event ladder above.
+   *
+   * Returns whether a delivery was attempted. `false` means this event type
+   * has no workspace template, and the caller's fell-through guard turns that
+   * into a loud Error row rather than a silent nothing.
+   */
+  private async deliverWorkspaceDirectMessageForRule(data: {
+    workspaceType: WorkspaceType;
+    methodId: ObjectID;
+    workspaceUserId: string;
+    notificationRuleItem: Model;
+    options: ExecuteNotificationRuleOptions;
+    logTimelineItem: UserOnCallLogTimeline;
+    incident: Incident | null;
+    alert: Alert | null;
+    alertEpisode: AlertEpisode | null;
+    incidentEpisode: IncidentEpisode | null;
+  }): Promise<boolean> {
+    const channelDisplayName: string = getWorkspaceTypeDisplayName(
+      data.workspaceType,
+    );
+    const options: ExecuteNotificationRuleOptions = data.options;
+
+    /*
+     * Resolve the event into the entity being paged about, the block
+     * generator for it, and the ids the send should be correlated with. The
+     * generator is deferred because the message embeds the timeline row id,
+     * which does not exist until the row below is created.
+     */
+    let entityProjectId: ObjectID | undefined = undefined;
+    let incidentId: ObjectID | undefined = undefined;
+    let alertId: ObjectID | undefined = undefined;
+    let alertEpisodeId: ObjectID | undefined = undefined;
+    let incidentEpisodeId: ObjectID | undefined = undefined;
+    let generateBlocks:
+      | ((timelineId: ObjectID) => Promise<Array<WorkspaceMessageBlock>>)
+      | null = null;
+    let messageSummary: string = "";
+
+    if (
+      options.userNotificationEventType ===
+        UserNotificationEventType.IncidentCreated &&
+      data.incident
+    ) {
+      const incident: Incident = data.incident;
+      entityProjectId = incident.projectId;
+      incidentId = incident.id!;
+      messageSummary = `On-call notification: incident created.`;
+      generateBlocks = (
+        timelineId: ObjectID,
+      ): Promise<Array<WorkspaceMessageBlock>> => {
+        return this.generateWorkspaceMessageBlocksForIncidentCreated(
+          incident,
+          timelineId,
+        );
+      };
+    }
+
+    if (
+      options.userNotificationEventType ===
+        UserNotificationEventType.AlertCreated &&
+      data.alert
+    ) {
+      const alert: Alert = data.alert;
+      entityProjectId = alert.projectId;
+      alertId = alert.id!;
+      messageSummary = `On-call notification: alert created.`;
+      generateBlocks = (
+        timelineId: ObjectID,
+      ): Promise<Array<WorkspaceMessageBlock>> => {
+        return this.generateWorkspaceMessageBlocksForAlertCreated(
+          alert,
+          timelineId,
+        );
+      };
+    }
+
+    if (
+      options.userNotificationEventType ===
+        UserNotificationEventType.AlertEpisodeCreated &&
+      data.alertEpisode
+    ) {
+      const alertEpisode: AlertEpisode = data.alertEpisode;
+      entityProjectId = alertEpisode.projectId;
+      alertEpisodeId = alertEpisode.id!;
+      messageSummary = `On-call notification: alert episode created.`;
+      generateBlocks = (
+        timelineId: ObjectID,
+      ): Promise<Array<WorkspaceMessageBlock>> => {
+        return this.generateWorkspaceMessageBlocksForAlertEpisodeCreated(
+          alertEpisode,
+          timelineId,
+        );
+      };
+    }
+
+    if (
+      options.userNotificationEventType ===
+        UserNotificationEventType.IncidentEpisodeCreated &&
+      data.incidentEpisode
+    ) {
+      const incidentEpisode: IncidentEpisode = data.incidentEpisode;
+      entityProjectId = incidentEpisode.projectId;
+      incidentEpisodeId = incidentEpisode.id!;
+      messageSummary = `On-call notification: incident episode created.`;
+      generateBlocks = (
+        timelineId: ObjectID,
+      ): Promise<Array<WorkspaceMessageBlock>> => {
+        return this.generateWorkspaceMessageBlocksForIncidentEpisodeCreated(
+          incidentEpisode,
+          timelineId,
+        );
+      };
+    }
+
+    if (!generateBlocks) {
+      return false;
+    }
+
+    data.logTimelineItem.status = UserNotificationStatus.Sending;
+    data.logTimelineItem.statusMessage = `Sending ${channelDisplayName} message.`;
+
+    if (data.workspaceType === WorkspaceType.Slack) {
+      data.logTimelineItem.userSlackId = data.methodId;
+    }
+
+    if (data.workspaceType === WorkspaceType.MicrosoftTeams) {
+      data.logTimelineItem.userMicrosoftTeamsId = data.methodId;
+    }
+
+    const updatedLog: UserOnCallLogTimeline =
+      await UserOnCallLogTimelineService.create({
+        data: data.logTimelineItem,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const messageBlocks: Array<WorkspaceMessageBlock> = await generateBlocks(
+      updatedLog.id!,
+    );
+
+    /*
+     * Fire-and-forget like every other channel: the sender flips the timeline
+     * row to Sent / Error itself, and the .catch is the safety net for a
+     * rejection raised before it gets that far.
+     */
+    WorkspaceUserNotificationService.sendDirectMessageToUser({
+      projectId: entityProjectId || options.projectId,
+      workspaceType: data.workspaceType,
+      workspaceUserId: data.workspaceUserId,
+      messageBlocks: messageBlocks,
+      messageSummary: messageSummary,
+      userId: data.notificationRuleItem.userId!,
+      userOnCallLogTimelineId: updatedLog.id!,
+      incidentId: incidentId,
+      alertId: alertId,
+      alertEpisodeId: alertEpisodeId,
+      incidentEpisodeId: incidentEpisodeId,
+      onCallPolicyId: options.onCallPolicyId,
+      onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+      teamId: options.userBelongsToTeamId,
+      onCallScheduleId: options.onCallScheduleId,
+    }).catch(async (err: Error) => {
+      await UserOnCallLogTimelineService.updateOneById({
+        id: updatedLog.id!,
+        data: {
+          status: UserNotificationStatus.Error,
+          statusMessage:
+            err.message || `Error sending ${channelDisplayName} message.`,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    });
+
+    return true;
+  }
+
+  /*
    * The channels this rule could actually reach the user on, by display name.
    *
    * These are the same gates each channel block opens with, so an empty list
@@ -2859,6 +3159,20 @@ export class Service extends DatabaseService<Model> {
       notificationRuleItem.userTelegram?.isVerified
     ) {
       channels.push("Telegram");
+    }
+
+    if (
+      notificationRuleItem.userSlack?.slackUserId &&
+      notificationRuleItem.userSlack?.isVerified
+    ) {
+      channels.push("Slack");
+    }
+
+    if (
+      notificationRuleItem.userMicrosoftTeams?.microsoftTeamsUserId &&
+      notificationRuleItem.userMicrosoftTeams?.isVerified
+    ) {
+      channels.push("Microsoft Teams");
     }
 
     if (notificationRuleItem.userWebhook?.webhookUrl) {
@@ -3021,10 +3335,11 @@ export class Service extends DatabaseService<Model> {
   /*
    * Pick what to page the user on, and build an unsaved rule for each choice.
    *
-   * Zero-cost channels win: push and email reach the most people for no money
-   * and no billing surprise, and there is no reason to pick between them, so a
-   * user who has both gets both. Only a user with neither is worth spending on,
-   * and then just once, in escalating-intrusiveness order.
+   * Zero-cost channels win: push, email, Slack and Microsoft Teams reach the
+   * most people for no money and no billing surprise, and there is no reason
+   * to pick between them, so a user who has several gets all of them. Only a
+   * user with none of these is worth spending on, and then just once, in
+   * escalating-intrusiveness order.
    *
    * Paid channels are additionally gated on the project's own enable flags.
    * SmsService and CallService enforce those at send time, but WhatsApp and
@@ -3081,6 +3396,55 @@ export class Service extends DatabaseService<Model> {
       rule.userEmail = userEmail;
       rule.userEmailId = userEmail.id!;
       chosen.push({ channelName: "Email", rule: rule });
+    }
+
+    const userSlack: UserSlack | null = await UserSlackService.findOneBy({
+      query: {
+        projectId: options.projectId,
+        userId: options.userId,
+        isVerified: true,
+      },
+      select: {
+        _id: true,
+        slackUserId: true,
+        slackUserName: true,
+        isVerified: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (userSlack) {
+      const rule: Model = this.buildUnsavedFallbackRule(options);
+      rule.userSlack = userSlack;
+      rule.userSlackId = userSlack.id!;
+      chosen.push({ channelName: "Slack", rule: rule });
+    }
+
+    const userMicrosoftTeams: UserMicrosoftTeams | null =
+      await UserMicrosoftTeamsService.findOneBy({
+        query: {
+          projectId: options.projectId,
+          userId: options.userId,
+          isVerified: true,
+        },
+        select: {
+          _id: true,
+          microsoftTeamsUserId: true,
+          microsoftTeamsUserName: true,
+          isVerified: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (userMicrosoftTeams) {
+      const rule: Model = this.buildUnsavedFallbackRule(options);
+      rule.userMicrosoftTeams = userMicrosoftTeams;
+      rule.userMicrosoftTeamsId = userMicrosoftTeams.id!;
+      chosen.push({ channelName: "Microsoft Teams", rule: rule });
     }
 
     if (chosen.length > 0) {
@@ -3807,6 +4171,183 @@ export class Service extends DatabaseService<Model> {
     );
 
     return lines.join("\n");
+  }
+
+  /*
+   * ---------------------------------------------------------------------- *
+   * Workspace (Slack / Microsoft Teams) direct-message generators.
+   *
+   * One generator family serves BOTH workspace channels: the blocks are
+   * written in standard markdown, which SlackUtil slackifies and
+   * MicrosoftTeamsUtil renders into an adaptive card. Keep them to the block
+   * types both platforms implement (markdown / header / divider / buttons) —
+   * anything else throws NotImplementedException on Teams.
+   * ---------------------------------------------------------------------- *
+   */
+
+  private buildWorkspaceMessageBlocks(data: {
+    headline: string;
+    identifier: string;
+    dashboardUrl: URL | null;
+    dashboardLinkText: string;
+    ackUrl: URL;
+  }): Array<WorkspaceMessageBlock> {
+    const lines: Array<string> = [
+      `🚨 **${data.headline}**`,
+      "",
+      `📋 **${data.identifier}**`,
+      "",
+      "👤 You're getting this because you're on call.",
+    ];
+
+    if (data.dashboardUrl) {
+      lines.push(
+        "",
+        `🔎 [${data.dashboardLinkText}](${data.dashboardUrl.toString()})`,
+      );
+    }
+
+    lines.push(
+      "",
+      `✅ [Acknowledge](${data.ackUrl.toString()})`,
+    );
+
+    const markdownBlock: WorkspacePayloadMarkdown = {
+      _type: "WorkspacePayloadMarkdown",
+      text: lines.join("\n"),
+    };
+
+    return [markdownBlock];
+  }
+
+  @CaptureSpan()
+  public async generateWorkspaceMessageBlocksForAlertCreated(
+    alert: Alert,
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<Array<WorkspaceMessageBlock>> {
+    const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const alertIdentifier: string =
+      alert.alertNumber !== undefined
+        ? `${alert.alertNumberWithPrefix || "#" + alert.alertNumber} — ${alert.title || "Alert"}`
+        : alert.title || "Alert";
+
+    let dashboardUrl: URL | null = null;
+
+    if (alert.projectId && alert.id) {
+      dashboardUrl = await AlertService.getAlertLinkInDashboard(
+        alert.projectId,
+        alert.id,
+      );
+    }
+
+    return this.buildWorkspaceMessageBlocks({
+      headline: "New alert assigned to you",
+      identifier: alertIdentifier,
+      dashboardUrl: dashboardUrl,
+      dashboardLinkText: "View alert in OneUptime",
+      ackUrl: ackUrl,
+    });
+  }
+
+  @CaptureSpan()
+  public async generateWorkspaceMessageBlocksForIncidentCreated(
+    incident: Incident,
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<Array<WorkspaceMessageBlock>> {
+    const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const incidentIdentifier: string =
+      incident.incidentNumber !== undefined
+        ? `${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber} — ${incident.title || "Incident"}`
+        : incident.title || "Incident";
+
+    let dashboardUrl: URL | null = null;
+
+    if (incident.projectId && incident.id) {
+      dashboardUrl = await IncidentService.getIncidentLinkInDashboard(
+        incident.projectId,
+        incident.id,
+      );
+    }
+
+    return this.buildWorkspaceMessageBlocks({
+      headline: "New incident assigned to you",
+      identifier: incidentIdentifier,
+      dashboardUrl: dashboardUrl,
+      dashboardLinkText: "View incident in OneUptime",
+      ackUrl: ackUrl,
+    });
+  }
+
+  @CaptureSpan()
+  public async generateWorkspaceMessageBlocksForAlertEpisodeCreated(
+    alertEpisode: AlertEpisode,
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<Array<WorkspaceMessageBlock>> {
+    const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const episodeIdentifier: string = alertEpisode.episodeNumberWithPrefix
+      ? `${alertEpisode.episodeNumberWithPrefix} — ${alertEpisode.title || "Alert Episode"}`
+      : alertEpisode.episodeNumber !== undefined
+        ? `#${alertEpisode.episodeNumber} — ${alertEpisode.title || "Alert Episode"}`
+        : alertEpisode.title || "Alert Episode";
+
+    let dashboardUrl: URL | null = null;
+
+    if (alertEpisode.projectId && alertEpisode.id) {
+      dashboardUrl = await AlertEpisodeService.getEpisodeLinkInDashboard(
+        alertEpisode.projectId,
+        alertEpisode.id,
+      );
+    }
+
+    return this.buildWorkspaceMessageBlocks({
+      headline: "New alert episode assigned to you",
+      identifier: episodeIdentifier,
+      dashboardUrl: dashboardUrl,
+      dashboardLinkText: "View alert episode in OneUptime",
+      ackUrl: ackUrl,
+    });
+  }
+
+  @CaptureSpan()
+  public async generateWorkspaceMessageBlocksForIncidentEpisodeCreated(
+    incidentEpisode: IncidentEpisode,
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<Array<WorkspaceMessageBlock>> {
+    const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const episodeIdentifier: string = incidentEpisode.episodeNumberWithPrefix
+      ? `${incidentEpisode.episodeNumberWithPrefix} — ${incidentEpisode.title || "Incident Episode"}`
+      : incidentEpisode.episodeNumber !== undefined
+        ? `#${incidentEpisode.episodeNumber} — ${incidentEpisode.title || "Incident Episode"}`
+        : incidentEpisode.title || "Incident Episode";
+
+    let dashboardUrl: URL | null = null;
+
+    if (incidentEpisode.projectId && incidentEpisode.id) {
+      dashboardUrl = await IncidentEpisodeService.getEpisodeLinkInDashboard(
+        incidentEpisode.projectId,
+        incidentEpisode.id,
+      );
+    }
+
+    return this.buildWorkspaceMessageBlocks({
+      headline: "New incident episode assigned to you",
+      identifier: episodeIdentifier,
+      dashboardUrl: dashboardUrl,
+      dashboardLinkText: "View incident episode in OneUptime",
+      ackUrl: ackUrl,
+    });
   }
 
   @CaptureSpan()
@@ -4722,7 +5263,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!data.isOptOut && !data.hasNotificationMethod) {
       throw new BadDataException(
-        "Call, SMS, WhatsApp, Telegram, Webhook, Email, or Push notification is required",
+        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Email, or Push notification is required",
       );
     }
   }
@@ -5021,6 +5562,8 @@ export class Service extends DatabaseService<Model> {
         userCallId: true,
         userWhatsAppId: true,
         userTelegramId: true,
+        userSlackId: true,
+        userMicrosoftTeamsId: true,
         userPushId: true,
         userWebhookId: true,
       },
@@ -5274,6 +5817,8 @@ export class Service extends DatabaseService<Model> {
         userCallId: true,
         userWhatsAppId: true,
         userTelegramId: true,
+        userSlackId: true,
+        userMicrosoftTeamsId: true,
         userPushId: true,
         userWebhookId: true,
       },
@@ -5439,6 +5984,12 @@ export class Service extends DatabaseService<Model> {
     if (descriptor.userTelegramId) {
       rule.userTelegramId = descriptor.userTelegramId;
     }
+    if (descriptor.userSlackId) {
+      rule.userSlackId = descriptor.userSlackId;
+    }
+    if (descriptor.userMicrosoftTeamsId) {
+      rule.userMicrosoftTeamsId = descriptor.userMicrosoftTeamsId;
+    }
     if (descriptor.userWebhookId) {
       rule.userWebhookId = descriptor.userWebhookId;
     }
@@ -5465,6 +6016,12 @@ export class Service extends DatabaseService<Model> {
     }
     if (descriptor.userTelegramId) {
       query["userTelegramId"] = descriptor.userTelegramId;
+    }
+    if (descriptor.userSlackId) {
+      query["userSlackId"] = descriptor.userSlackId;
+    }
+    if (descriptor.userMicrosoftTeamsId) {
+      query["userMicrosoftTeamsId"] = descriptor.userMicrosoftTeamsId;
     }
     if (descriptor.userWebhookId) {
       query["userWebhookId"] = descriptor.userWebhookId;
@@ -5834,6 +6391,20 @@ export class Service extends DatabaseService<Model> {
         props: props,
       });
       isVerified = Boolean(row?.isVerified);
+    } else if (data.methodType === ReadinessMethodType.Slack) {
+      row = await UserSlackService.findOneBy({
+        query: query,
+        select: { _id: true, userId: true, isVerified: true },
+        props: props,
+      });
+      isVerified = Boolean(row?.isVerified);
+    } else if (data.methodType === ReadinessMethodType.MicrosoftTeams) {
+      row = await UserMicrosoftTeamsService.findOneBy({
+        query: query,
+        select: { _id: true, userId: true, isVerified: true },
+        props: props,
+      });
+      isVerified = Boolean(row?.isVerified);
     } else if (data.methodType === ReadinessMethodType.Webhook) {
       row = await UserWebhookService.findOneBy({
         query: query,
@@ -5891,6 +6462,14 @@ export class Service extends DatabaseService<Model> {
 
     if (methodType === ReadinessMethodType.Telegram) {
       return rule.userTelegramId;
+    }
+
+    if (methodType === ReadinessMethodType.Slack) {
+      return rule.userSlackId;
+    }
+
+    if (methodType === ReadinessMethodType.MicrosoftTeams) {
+      return rule.userMicrosoftTeamsId;
     }
 
     if (methodType === ReadinessMethodType.Webhook) {
@@ -6227,6 +6806,8 @@ export class Service extends DatabaseService<Model> {
           userPushId: true,
           userWhatsAppId: true,
           userTelegramId: true,
+          userSlackId: true,
+          userMicrosoftTeamsId: true,
           userWebhookId: true,
         },
         sort: {

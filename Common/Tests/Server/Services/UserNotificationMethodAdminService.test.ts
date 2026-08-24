@@ -10,8 +10,10 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserCallService from "../../../Server/Services/UserCallService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
+import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import UserPushService from "../../../Server/Services/UserPushService";
+import UserSlackService from "../../../Server/Services/UserSlackService";
 import UserService from "../../../Server/Services/UserService";
 import UserSmsService from "../../../Server/Services/UserSmsService";
 import UserTelegramService from "../../../Server/Services/UserTelegramService";
@@ -21,7 +23,9 @@ import Project from "../../../Models/DatabaseModels/Project";
 import User from "../../../Models/DatabaseModels/User";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
+import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
+import UserSlack from "../../../Models/DatabaseModels/UserSlack";
 import UserSMS from "../../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../../Models/DatabaseModels/UserTelegram";
 import UserWebhook from "../../../Models/DatabaseModels/UserWebhook";
@@ -69,15 +73,18 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
  *   4. MEMBERSHIP IS A CLAIM ABOUT A PROJECT. Holding an administrative
  *      permission somewhere is not a licence to write for a user id anywhere.
  *
- *   5. THE THREE UNADDABLE CHANNELS STAY UNADDABLE. Push has no value to type,
- *      Telegram needs the account holder to talk to the bot, and a webhook
- *      would be live the instant it was written because UserWebhook has no
- *      verification at all.
+ *   5. THE FIVE UNADDABLE CHANNELS STAY UNADDABLE. Push has no value to type,
+ *      Telegram needs the account holder to talk to the bot, Slack and
+ *      Microsoft Teams are pointers at the owner's own OAuth workspace link,
+ *      and a webhook would be live the instant it was written because
+ *      UserWebhook has no verification at all.
  */
 
 const RAW_EMAIL: string = "jane.ops@example.com";
 const RAW_PHONE: string = "+14155554821";
 const RAW_TELEGRAM_HANDLE: string = "@janeops_oncall";
+const RAW_SLACK_USERNAME: string = "ops.jane.slack";
+const RAW_TEAMS_USERNAME: string = "Jane Ops (Teams)";
 const RAW_WEBHOOK_NAME: string = "payments-hook";
 const RAW_DEVICE_NAME: string = "Jane's iPhone";
 
@@ -85,6 +92,8 @@ const ALL_RAW_VALUES: Array<string> = [
   RAW_EMAIL,
   RAW_PHONE,
   RAW_TELEGRAM_HANDLE,
+  RAW_SLACK_USERNAME,
+  RAW_TEAMS_USERNAME,
   RAW_WEBHOOK_NAME,
   RAW_DEVICE_NAME,
 ];
@@ -105,6 +114,8 @@ let callFindBy: jest.SpyInstance;
 let whatsAppFindBy: jest.SpyInstance;
 let pushFindBy: jest.SpyInstance;
 let telegramFindBy: jest.SpyInstance;
+let slackFindBy: jest.SpyInstance;
+let microsoftTeamsFindBy: jest.SpyInstance;
 let webhookFindBy: jest.SpyInstance;
 
 let emailCreate: jest.SpyInstance;
@@ -112,6 +123,10 @@ let smsCreate: jest.SpyInstance;
 let smsFindOneBy: jest.SpyInstance;
 let smsDelete: jest.SpyInstance;
 let smsResend: jest.SpyInstance;
+let slackFindOneBy: jest.SpyInstance;
+let slackDelete: jest.SpyInstance;
+let microsoftTeamsFindOneBy: jest.SpyInstance;
+let microsoftTeamsDelete: jest.SpyInstance;
 let deletionImpact: jest.SpyInstance;
 
 function props(): DatabaseCommonInteractionProps {
@@ -178,6 +193,31 @@ function buildTelegramRow(): UserTelegram {
   row.projectId = projectId;
   row.userId = targetUserId;
   row.telegramUserHandle = RAW_TELEGRAM_HANDLE;
+  row.isVerified = true;
+  return row;
+}
+
+/*
+ * Born verified: a UserSlack / UserMicrosoftTeams row is a pointer at the
+ * owner's own OAuth workspace link, so creation is verification and there is
+ * no verification-code flow for these two channels at all.
+ */
+function buildSlackRow(): UserSlack {
+  const row: UserSlack = new UserSlack();
+  row._id = ObjectID.generate().toString();
+  row.projectId = projectId;
+  row.userId = targetUserId;
+  row.slackUserName = RAW_SLACK_USERNAME;
+  row.isVerified = true;
+  return row;
+}
+
+function buildMicrosoftTeamsRow(): UserMicrosoftTeams {
+  const row: UserMicrosoftTeams = new UserMicrosoftTeams();
+  row._id = ObjectID.generate().toString();
+  row.projectId = projectId;
+  row.userId = targetUserId;
+  row.microsoftTeamsUserName = RAW_TEAMS_USERNAME;
   row.isVerified = true;
   return row;
 }
@@ -284,6 +324,12 @@ beforeEach(() => {
   telegramFindBy = jest
     .spyOn(UserTelegramService, "findBy")
     .mockResolvedValue([buildTelegramRow()] as never);
+  slackFindBy = jest
+    .spyOn(UserSlackService, "findBy")
+    .mockResolvedValue([buildSlackRow()] as never);
+  microsoftTeamsFindBy = jest
+    .spyOn(UserMicrosoftTeamsService, "findBy")
+    .mockResolvedValue([buildMicrosoftTeamsRow()] as never);
   webhookFindBy = jest
     .spyOn(UserWebhookService, "findBy")
     .mockResolvedValue([buildWebhookRow()] as never);
@@ -298,6 +344,12 @@ beforeEach(() => {
   jest.spyOn(UserWhatsAppService, "findOneBy").mockResolvedValue(null as never);
   jest.spyOn(UserPushService, "findOneBy").mockResolvedValue(null as never);
   jest.spyOn(UserTelegramService, "findOneBy").mockResolvedValue(null as never);
+  slackFindOneBy = jest
+    .spyOn(UserSlackService, "findOneBy")
+    .mockResolvedValue(buildSlackRow() as never);
+  microsoftTeamsFindOneBy = jest
+    .spyOn(UserMicrosoftTeamsService, "findOneBy")
+    .mockResolvedValue(buildMicrosoftTeamsRow() as never);
   jest.spyOn(UserWebhookService, "findOneBy").mockResolvedValue(null as never);
 
   emailCreate = jest
@@ -336,6 +388,14 @@ beforeEach(() => {
     .spyOn(UserSmsService, "deleteOneById")
     .mockResolvedValue(undefined as never);
 
+  slackDelete = jest
+    .spyOn(UserSlackService, "deleteOneById")
+    .mockResolvedValue(undefined as never);
+
+  microsoftTeamsDelete = jest
+    .spyOn(UserMicrosoftTeamsService, "deleteOneById")
+    .mockResolvedValue(undefined as never);
+
   smsResend = jest
     .spyOn(UserSmsService, "resendVerificationCode")
     .mockResolvedValue(undefined as never);
@@ -368,7 +428,7 @@ describe("listing", () => {
         userId: targetUserId,
       });
 
-    expect(methods).toHaveLength(5);
+    expect(methods).toHaveLength(7);
 
     /*
      * The real maskIdentifier, not a stub, so these are the exact shapes an
@@ -383,6 +443,18 @@ describe("listing", () => {
     expect(
       viewFor(methods, ReadinessMethodType.Telegram).maskedIdentifier,
     ).toBe(`@ja${IDENTIFIER_MASK}`);
+    expect(viewFor(methods, ReadinessMethodType.Slack).maskedIdentifier).toBe(
+      `op${IDENTIFIER_MASK}`,
+    );
+    expect(
+      viewFor(methods, ReadinessMethodType.MicrosoftTeams).maskedIdentifier,
+    ).toBe(`Ja${IDENTIFIER_MASK}`);
+
+    // Born verified: the OAuth workspace link IS the verification.
+    expect(viewFor(methods, ReadinessMethodType.Slack).isVerified).toBe(true);
+    expect(
+      viewFor(methods, ReadinessMethodType.MicrosoftTeams).isVerified,
+    ).toBe(true);
 
     /*
      * Scanned as a whole rather than field by field, so a view that grew a raw
@@ -419,6 +491,19 @@ describe("listing", () => {
     expect(telegramSelect.telegramChatId).toBeUndefined();
     expect(telegramSelect.telegramUserHandle).toBe(true);
 
+    /*
+     * Same rule for the two workspace channels: the Slack member id and the
+     * Teams user id are the addressable targets the workspace bot sends to,
+     * and the username is the label the owner recognises.
+     */
+    const slackSelect: any = slackFindBy.mock.calls[0]![0].select;
+    expect(slackSelect.slackUserId).toBeUndefined();
+    expect(slackSelect.slackUserName).toBe(true);
+
+    const teamsSelect: any = microsoftTeamsFindBy.mock.calls[0]![0].select;
+    expect(teamsSelect.microsoftTeamsUserId).toBeUndefined();
+    expect(teamsSelect.microsoftTeamsUserName).toBe(true);
+
     // Verification codes are live account-takeover material. Never selected.
     for (const spy of [emailFindBy, smsFindBy, callFindBy, whatsAppFindBy]) {
       const select: any = spy.mock.calls[0]![0].select;
@@ -432,7 +517,14 @@ describe("listing", () => {
       userId: targetUserId,
     });
 
-    for (const spy of [emailFindBy, smsFindBy, telegramFindBy, webhookFindBy]) {
+    for (const spy of [
+      emailFindBy,
+      smsFindBy,
+      telegramFindBy,
+      slackFindBy,
+      microsoftTeamsFindBy,
+      webhookFindBy,
+    ]) {
       const call: any = spy.mock.calls[0]![0];
 
       expect(call.query.projectId.toString()).toBe(projectId.toString());
@@ -447,7 +539,7 @@ describe("listing", () => {
     }
   });
 
-  test("marks the three channels an administrator cannot create", async () => {
+  test("marks the five channels an administrator cannot create", async () => {
     const methods: Array<AdminNotificationMethodView> =
       await UserNotificationMethodAdminService.listMethodsForUser({
         projectId: projectId,
@@ -465,6 +557,12 @@ describe("listing", () => {
     expect(viewFor(methods, ReadinessMethodType.Telegram).isAdminAddable).toBe(
       false,
     );
+    expect(viewFor(methods, ReadinessMethodType.Slack).isAdminAddable).toBe(
+      false,
+    );
+    expect(
+      viewFor(methods, ReadinessMethodType.MicrosoftTeams).isAdminAddable,
+    ).toBe(false);
     expect(viewFor(methods, ReadinessMethodType.Webhook).isAdminAddable).toBe(
       false,
     );
@@ -509,10 +607,12 @@ describe("adding", () => {
     expect(smsCreate.mock.calls[0]![0].props.isRoot).toBe(true);
   });
 
-  test("refuses the three channels that cannot be verified by their owner", async () => {
+  test("refuses the five channels the owner has to add themselves", async () => {
     for (const methodType of [
       "Push",
       "Telegram",
+      "Slack",
+      "Microsoft Teams",
       "Webhook",
       "Carrier Pigeon",
     ]) {
@@ -763,6 +863,94 @@ describe("removing", () => {
     expectNothingRawIn(mail.vars);
   });
 
+  test("deletes a Slack account through its own service, and the mail carries only the mask", async () => {
+    /*
+     * Delete is the one verb an administrator gets on the workspace channels:
+     * they cannot add one (the OAuth link is the owner's) and there is no code
+     * to resend, but a leaver's Slack account still has to be clearable.
+     */
+    const slackMethodId: ObjectID = ObjectID.generate();
+
+    await UserNotificationMethodAdminService.deleteMethodForUser({
+      projectId: projectId,
+      targetUserId: targetUserId,
+      actorUserId: actorUserId,
+      methodType: "Slack",
+      methodId: slackMethodId,
+      props: props(),
+    });
+
+    expect(slackDelete).toHaveBeenCalled();
+    expect(slackDelete.mock.calls[0]![0].id.toString()).toBe(
+      slackMethodId.toString(),
+    );
+
+    // The ownership lookup is scoped to the project and the user, like SMS.
+    const lookup: any = slackFindOneBy.mock.calls[0]![0];
+    expect(lookup.query._id.toString()).toBe(slackMethodId.toString());
+    expect(lookup.query.projectId.toString()).toBe(projectId.toString());
+    expect(lookup.query.userId.toString()).toBe(targetUserId.toString());
+
+    await new Promise<void>((resolve: () => void): void => {
+      setTimeout(resolve, 0);
+    });
+
+    const mail: any = mailSpy.mock.calls[0]![0];
+
+    expect(mail.subject).toContain("removed");
+    expect(mail.vars.message).toContain(`op${IDENTIFIER_MASK}`);
+    expectNothingRawIn(mail.vars);
+  });
+
+  test("deletes a Microsoft Teams account through its own service", async () => {
+    const teamsMethodId: ObjectID = ObjectID.generate();
+
+    await UserNotificationMethodAdminService.deleteMethodForUser({
+      projectId: projectId,
+      targetUserId: targetUserId,
+      actorUserId: actorUserId,
+      methodType: "Microsoft Teams",
+      methodId: teamsMethodId,
+      props: props(),
+    });
+
+    expect(microsoftTeamsDelete).toHaveBeenCalled();
+    expect(microsoftTeamsDelete.mock.calls[0]![0].id.toString()).toBe(
+      teamsMethodId.toString(),
+    );
+
+    const lookup: any = microsoftTeamsFindOneBy.mock.calls[0]![0];
+    expect(lookup.query._id.toString()).toBe(teamsMethodId.toString());
+    expect(lookup.query.projectId.toString()).toBe(projectId.toString());
+    expect(lookup.query.userId.toString()).toBe(targetUserId.toString());
+
+    await new Promise<void>((resolve: () => void): void => {
+      setTimeout(resolve, 0);
+    });
+
+    const mail: any = mailSpy.mock.calls[0]![0];
+
+    expect(mail.vars.message).toContain(`Ja${IDENTIFIER_MASK}`);
+    expectNothingRawIn(mail.vars);
+  });
+
+  test("refuses a Slack method that belongs to somebody else", async () => {
+    slackFindOneBy.mockResolvedValue(null as never);
+
+    await expect(
+      UserNotificationMethodAdminService.deleteMethodForUser({
+        projectId: projectId,
+        targetUserId: targetUserId,
+        actorUserId: actorUserId,
+        methodType: "Slack",
+        methodId: ObjectID.generate(),
+        props: props(),
+      }),
+    ).rejects.toThrow(/could not be found for this user/);
+
+    expect(slackDelete).not.toHaveBeenCalled();
+  });
+
   test("refuses a method that belongs to somebody else", async () => {
     /*
      * The row is looked up by (id, projectId, userId) together, so a row
@@ -904,6 +1092,19 @@ describe("resending a verification code", () => {
         methodId: ObjectID.generate(),
       }),
     ).rejects.toThrow(/do not use a verification code/);
+  });
+
+  test("refuses the workspace channels - the OAuth link is the verification, there is no code", async () => {
+    for (const methodType of ["Slack", "Microsoft Teams"]) {
+      await expect(
+        UserNotificationMethodAdminService.resendVerificationCodeForUser({
+          projectId: projectId,
+          targetUserId: targetUserId,
+          methodType: methodType,
+          methodId: ObjectID.generate(),
+        }),
+      ).rejects.toThrow(/do not use a verification code/);
+    }
   });
 
   test("refuses a method that is not this user's", async () => {

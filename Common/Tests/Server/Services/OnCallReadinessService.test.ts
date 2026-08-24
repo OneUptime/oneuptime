@@ -24,9 +24,11 @@ import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import TeamService from "../../../Server/Services/TeamService";
 import UserCallService from "../../../Server/Services/UserCallService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
+import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import UserPushService from "../../../Server/Services/UserPushService";
 import UserService from "../../../Server/Services/UserService";
+import UserSlackService from "../../../Server/Services/UserSlackService";
 import UserSmsService from "../../../Server/Services/UserSmsService";
 import UserTelegramService from "../../../Server/Services/UserTelegramService";
 import UserWebhookService from "../../../Server/Services/UserWebhookService";
@@ -46,8 +48,10 @@ import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
+import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
+import UserSlack from "../../../Models/DatabaseModels/UserSlack";
 import UserSMS from "../../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../../Models/DatabaseModels/UserTelegram";
 import UserWebhook from "../../../Models/DatabaseModels/UserWebhook";
@@ -185,6 +189,12 @@ const TELEGRAM_METHOD_ID: ObjectID = new ObjectID(
 const WEBHOOK_METHOD_ID: ObjectID = new ObjectID(
   "c0000000-0000-4000-8000-000000000007",
 );
+const SLACK_METHOD_ID: ObjectID = new ObjectID(
+  "c0000000-0000-4000-8000-000000000008",
+);
+const MICROSOFT_TEAMS_METHOD_ID: ObjectID = new ObjectID(
+  "c0000000-0000-4000-8000-000000000009",
+);
 
 /*
  * Raw identifiers that must never reach a caller. Each is deliberately
@@ -196,6 +206,18 @@ const RAW_SMS_PHONE: string = "+14155554821";
 const RAW_CALL_PHONE: string = "+442071838750";
 const RAW_WHATSAPP_PHONE: string = "+61293744000";
 const RAW_TELEGRAM_HANDLE: string = "@ada_night_pager";
+const RAW_SLACK_USERNAME: string = "ada.pager.slack";
+const RAW_MICROSOFT_TEAMS_USERNAME: string = "Ada Lovelace [Overnight]";
+/*
+ * The addressable targets behind the two workspace channels - the Slack member
+ * id the bot DMs and the Entra object id the Teams bot resolves. They sit on
+ * the fixture rows deliberately, the same way the webhook fixture carries its
+ * bearer url: the production select must never ask for them, and if it ever
+ * widens the leak assertions downstream see a real target rather than an
+ * undefined.
+ */
+const RAW_SLACK_USER_ID: string = "U0SLACKMEMBERLEAK";
+const RAW_MICROSOFT_TEAMS_USER_ID: string = "aad-ENTRAIDLEAK-4242";
 const RAW_WEBHOOK_NAME: string = "Payments Incident Bridge";
 const RAW_WEBHOOK_URL: string =
   "https://hooks.example.com/T0LEAK/B0LEAK/xoxbSUPERSECRETTOKEN";
@@ -261,6 +283,8 @@ let smsFindBy: jest.SpyInstance;
 let callFindBy: jest.SpyInstance;
 let whatsAppFindBy: jest.SpyInstance;
 let telegramFindBy: jest.SpyInstance;
+let slackFindBy: jest.SpyInstance;
+let microsoftTeamsFindBy: jest.SpyInstance;
 let webhookFindBy: jest.SpyInstance;
 let notificationRuleFindBy: jest.SpyInstance;
 let incidentSeverityFindBy: jest.SpyInstance;
@@ -519,6 +543,52 @@ function telegramMethod(data: {
 }
 
 /*
+ * The two workspace fixtures deliberately CARRY their addressable ids -
+ * slackUserId and microsoftTeamsUserId - even though the production selects
+ * must never ask for them. If either select ever widens, the leak assertions
+ * downstream see a real target rather than an undefined.
+ */
+function slackMethod(data: {
+  userId: ObjectID;
+  userName: string;
+  slackUserId?: string | undefined;
+  isVerified: boolean;
+  id?: ObjectID | undefined;
+}): UserSlack {
+  const model: UserSlack = new UserSlack();
+  model.id = data.id || ObjectID.generate();
+  model.userId = data.userId;
+  model.slackUserName = data.userName;
+  model.isVerified = data.isVerified;
+
+  if (data.slackUserId !== undefined) {
+    model.slackUserId = data.slackUserId;
+  }
+
+  return model;
+}
+
+function microsoftTeamsMethod(data: {
+  userId: ObjectID;
+  userName: string;
+  microsoftTeamsUserId?: string | undefined;
+  isVerified: boolean;
+  id?: ObjectID | undefined;
+}): UserMicrosoftTeams {
+  const model: UserMicrosoftTeams = new UserMicrosoftTeams();
+  model.id = data.id || ObjectID.generate();
+  model.userId = data.userId;
+  model.microsoftTeamsUserName = data.userName;
+  model.isVerified = data.isVerified;
+
+  if (data.microsoftTeamsUserId !== undefined) {
+    model.microsoftTeamsUserId = data.microsoftTeamsUserId;
+  }
+
+  return model;
+}
+
+/*
  * A webhook fixture that deliberately CARRIES its bearer url, even though the
  * production select must never ask for it. If the select ever widens, the
  * leak assertions downstream see a real credential rather than an undefined.
@@ -602,6 +672,8 @@ function everySpy(): Array<jest.SpyInstance> {
     callFindBy,
     whatsAppFindBy,
     telegramFindBy,
+    slackFindBy,
+    microsoftTeamsFindBy,
     webhookFindBy,
     notificationRuleFindBy,
     incidentSeverityFindBy,
@@ -839,6 +911,12 @@ beforeEach(() => {
     .mockResolvedValue([] as never);
   telegramFindBy = jest
     .spyOn(UserTelegramService, "findBy")
+    .mockResolvedValue([] as never);
+  slackFindBy = jest
+    .spyOn(UserSlackService, "findBy")
+    .mockResolvedValue([] as never);
+  microsoftTeamsFindBy = jest
+    .spyOn(UserMicrosoftTeamsService, "findBy")
     .mockResolvedValue([] as never);
   webhookFindBy = jest
     .spyOn(UserWebhookService, "findBy")
@@ -1954,6 +2032,30 @@ describe("status", () => {
         },
       ],
       [
+        "Slack",
+        (): void => {
+          slackFindBy.mockResolvedValue([
+            slackMethod({
+              userId: USER_A_ID,
+              userName: RAW_SLACK_USERNAME,
+              isVerified: true,
+            }),
+          ] as never);
+        },
+      ],
+      [
+        "Microsoft Teams",
+        (): void => {
+          microsoftTeamsFindBy.mockResolvedValue([
+            microsoftTeamsMethod({
+              userId: USER_A_ID,
+              userName: RAW_MICROSOFT_TEAMS_USERNAME,
+              isVerified: true,
+            }),
+          ] as never);
+        },
+      ],
+      [
         "Webhook",
         (): void => {
           webhookFindBy.mockResolvedValue([
@@ -2509,12 +2611,14 @@ describe("opt-out", () => {
 
 /*
  * ---------------------------------------------------------------------------
- * (G) All seven channels.
+ * (G) All nine channels.
  *
  * TeamComplianceService counted call/SMS/email/push only, so a responder whose
  * only method was Telegram, WhatsApp or Webhook was reported non-compliant
  * while the runtime paged them perfectly happily. A false alarm teaches admins
- * to ignore the table, which is worse than no table.
+ * to ignore the table, which is worse than no table. Slack and Microsoft Teams
+ * arrived after that defect was closed, and each gets the same "alone is
+ * enough" pin so the defect cannot quietly return one channel at a time.
  * ---------------------------------------------------------------------------
  */
 describe("notification channels", () => {
@@ -2560,7 +2664,47 @@ describe("notification channels", () => {
     expect((await onlyUser()).status).not.toBe(ReadinessStatus.NotReachable);
   });
 
-  test("all seven channels are read, and listed in fallback-attempt order", async () => {
+  /*
+   * The two workspace channels have no verification-code flow - their rows are
+   * born verified from the user's own OAuth workspace link - but the row still
+   * carries isVerified, and a verified row alone has to be enough. These are
+   * the same "alone is enough" pins the four-channel defect earned Telegram and
+   * WhatsApp, written down the day the channel arrived rather than the day it
+   * was missed.
+   */
+  test("a verified SLACK account alone makes a responder reachable", async () => {
+    slackFindBy.mockResolvedValue([
+      slackMethod({
+        userId: USER_A_ID,
+        userName: RAW_SLACK_USERNAME,
+        isVerified: true,
+      }),
+    ] as never);
+
+    const readiness: UserReadiness = await onlyUser();
+
+    expect(readiness.status).not.toBe(ReadinessStatus.NotReachable);
+    expect(methodTypes(readiness)).toEqual([ReadinessMethodType.Slack]);
+  });
+
+  test("a verified MICROSOFT TEAMS account alone makes a responder reachable", async () => {
+    microsoftTeamsFindBy.mockResolvedValue([
+      microsoftTeamsMethod({
+        userId: USER_A_ID,
+        userName: RAW_MICROSOFT_TEAMS_USERNAME,
+        isVerified: true,
+      }),
+    ] as never);
+
+    const readiness: UserReadiness = await onlyUser();
+
+    expect(readiness.status).not.toBe(ReadinessStatus.NotReachable);
+    expect(methodTypes(readiness)).toEqual([
+      ReadinessMethodType.MicrosoftTeams,
+    ]);
+  });
+
+  test("all nine channels are read, and listed in fallback-attempt order", async () => {
     pushFindBy.mockResolvedValue([
       pushMethod({
         userId: USER_A_ID,
@@ -2599,6 +2743,20 @@ describe("notification channels", () => {
         isVerified: true,
       }),
     ] as never);
+    slackFindBy.mockResolvedValue([
+      slackMethod({
+        userId: USER_A_ID,
+        userName: RAW_SLACK_USERNAME,
+        isVerified: true,
+      }),
+    ] as never);
+    microsoftTeamsFindBy.mockResolvedValue([
+      microsoftTeamsMethod({
+        userId: USER_A_ID,
+        userName: RAW_MICROSOFT_TEAMS_USERNAME,
+        isVerified: true,
+      }),
+    ] as never);
     webhookFindBy.mockResolvedValue([
       webhookMethod({ userId: USER_A_ID, name: RAW_WEBHOOK_NAME }),
     ] as never);
@@ -2607,11 +2765,15 @@ describe("notification channels", () => {
 
     /*
      * Display order IS fallback order, deliberately: the first row an admin
-     * reads is the channel a fallback page would actually arrive on.
+     * reads is the channel a fallback page would actually arrive on. The
+     * zero-cost tier - Push, Email, Slack, Microsoft Teams - leads, then the
+     * paid channels in escalating-intrusiveness order, then Webhook.
      */
     expect(methodTypes(readiness)).toEqual([
       ReadinessMethodType.Push,
       ReadinessMethodType.Email,
+      ReadinessMethodType.Slack,
+      ReadinessMethodType.MicrosoftTeams,
       ReadinessMethodType.SMS,
       ReadinessMethodType.Call,
       ReadinessMethodType.WhatsApp,
@@ -2644,7 +2806,14 @@ describe("notification channels", () => {
       });
     });
 
-    test("both zero-cost channels are named when the responder has both", async () => {
+    test("every zero-cost channel is named when the responder has all four - and no paid one alongside them", async () => {
+      /*
+       * The zero-cost tier is Push, Email, Slack, Microsoft Teams, and the
+       * fallback takes ALL of them when any is present before it considers
+       * spending money. The verified SMS staged here is the assertion's other
+       * half: a sentence that named SMS beside four free channels would be
+       * describing a fallback that does not happen.
+       */
       pushFindBy.mockResolvedValue([
         pushMethod({ userId: USER_A_ID, isVerified: true }),
       ] as never);
@@ -2655,11 +2824,74 @@ describe("notification channels", () => {
           isVerified: true,
         }),
       ] as never);
+      slackFindBy.mockResolvedValue([
+        slackMethod({
+          userId: USER_A_ID,
+          userName: RAW_SLACK_USERNAME,
+          isVerified: true,
+        }),
+      ] as never);
+      microsoftTeamsFindBy.mockResolvedValue([
+        microsoftTeamsMethod({
+          userId: USER_A_ID,
+          userName: RAW_MICROSOFT_TEAMS_USERNAME,
+          isVerified: true,
+        }),
+      ] as never);
+      smsFindBy.mockResolvedValue([
+        smsMethod({
+          userId: USER_A_ID,
+          phone: RAW_SMS_PHONE,
+          isVerified: true,
+        }),
+      ] as never);
 
       const readiness: UserReadiness = await onlyUser();
 
       expect(readiness.reasons[0]).toBe(
-        "No rules for Sev1 incidents - pages fall back to Push, Email",
+        "No rules for Sev1 incidents - pages fall back to Push, Email, Slack, Microsoft Teams",
+      );
+    });
+
+    test("a verified SLACK account alone is a zero-cost fallback, pre-empting a paid channel", async () => {
+      slackFindBy.mockResolvedValue([
+        slackMethod({
+          userId: USER_A_ID,
+          userName: RAW_SLACK_USERNAME,
+          isVerified: true,
+        }),
+      ] as never);
+      smsFindBy.mockResolvedValue([
+        smsMethod({
+          userId: USER_A_ID,
+          phone: RAW_SMS_PHONE,
+          isVerified: true,
+        }),
+      ] as never);
+
+      expect((await onlyUser()).reasons[0]).toBe(
+        "No rules for Sev1 incidents - pages fall back to Slack",
+      );
+    });
+
+    test("a verified MICROSOFT TEAMS account alone is a zero-cost fallback, pre-empting a paid channel", async () => {
+      microsoftTeamsFindBy.mockResolvedValue([
+        microsoftTeamsMethod({
+          userId: USER_A_ID,
+          userName: RAW_MICROSOFT_TEAMS_USERNAME,
+          isVerified: true,
+        }),
+      ] as never);
+      callFindBy.mockResolvedValue([
+        callMethod({
+          userId: USER_A_ID,
+          phone: RAW_CALL_PHONE,
+          isVerified: true,
+        }),
+      ] as never);
+
+      expect((await onlyUser()).reasons[0]).toBe(
+        "No rules for Sev1 incidents - pages fall back to Microsoft Teams",
       );
     });
 
@@ -2779,11 +3011,12 @@ describe("notification channels", () => {
  * (G2) Method identity - referencing a method without reading it.
  *
  * The admin rule form has to POINT A RULE AT one of these methods, and it is not
- * allowed to read the row it points at: the seven method models are scoped to
+ * allowed to read the row it points at: the nine method models are scoped to
  * their owner precisely because their columns are the raw phone number, the
- * webhook bearer url, the push device token, the telegram chat id and the
- * verification code. Widening that scope so a dropdown could be populated was
- * tried, and the exposure it opened could not be contained.
+ * webhook bearer url, the push device token, the telegram chat id, the slack
+ * member id, the teams object id and the verification code. Widening that scope
+ * so a dropdown could be populated was tried, and the exposure it opened could
+ * not be contained.
  *
  * `methodId` is what replaces it. The foreign key is not a secret - it is
  * already stored in plain sight on every rule its owner created, and it
@@ -2801,7 +3034,7 @@ describe("method identity", () => {
     attachDirectly(USER_A_ID);
   });
 
-  function attachEverySevenChannels(): void {
+  function attachEveryNineChannels(): void {
     pushFindBy.mockResolvedValue([
       pushMethod({
         userId: USER_A_ID,
@@ -2850,6 +3083,24 @@ describe("method identity", () => {
         id: TELEGRAM_METHOD_ID,
       }),
     ] as never);
+    slackFindBy.mockResolvedValue([
+      slackMethod({
+        userId: USER_A_ID,
+        userName: RAW_SLACK_USERNAME,
+        slackUserId: RAW_SLACK_USER_ID,
+        isVerified: true,
+        id: SLACK_METHOD_ID,
+      }),
+    ] as never);
+    microsoftTeamsFindBy.mockResolvedValue([
+      microsoftTeamsMethod({
+        userId: USER_A_ID,
+        userName: RAW_MICROSOFT_TEAMS_USERNAME,
+        microsoftTeamsUserId: RAW_MICROSOFT_TEAMS_USER_ID,
+        isVerified: true,
+        id: MICROSOFT_TEAMS_METHOD_ID,
+      }),
+    ] as never);
     webhookFindBy.mockResolvedValue([
       webhookMethod({
         userId: USER_A_ID,
@@ -2860,8 +3111,8 @@ describe("method identity", () => {
     ] as never);
   }
 
-  test("all seven channels carry the id of their OWN row, which is what a rule references", async () => {
-    attachEverySevenChannels();
+  test("all nine channels carry the id of their OWN row, which is what a rule references", async () => {
+    attachEveryNineChannels();
 
     const readiness: UserReadiness = await onlyUser();
 
@@ -2888,16 +3139,25 @@ describe("method identity", () => {
       methodOfType(readiness, ReadinessMethodType.Telegram).methodId.toString(),
     ).toBe(TELEGRAM_METHOD_ID.toString());
     expect(
+      methodOfType(readiness, ReadinessMethodType.Slack).methodId.toString(),
+    ).toBe(SLACK_METHOD_ID.toString());
+    expect(
+      methodOfType(
+        readiness,
+        ReadinessMethodType.MicrosoftTeams,
+      ).methodId.toString(),
+    ).toBe(MICROSOFT_TEAMS_METHOD_ID.toString());
+    expect(
       methodOfType(readiness, ReadinessMethodType.Webhook).methodId.toString(),
     ).toBe(WEBHOOK_METHOD_ID.toString());
   });
 
   test("no methodId is the USER's id - a rule pointed at a user id points at no method at all", async () => {
-    attachEverySevenChannels();
+    attachEveryNineChannels();
 
     const readiness: UserReadiness = await onlyUser();
 
-    expect(readiness.methods).toHaveLength(7);
+    expect(readiness.methods).toHaveLength(9);
 
     for (const method of readiness.methods) {
       /*
@@ -3052,6 +3312,22 @@ describe("identifier exposure", () => {
         isVerified: true,
       }),
     ] as never);
+    slackFindBy.mockResolvedValue([
+      slackMethod({
+        userId: USER_A_ID,
+        userName: RAW_SLACK_USERNAME,
+        slackUserId: RAW_SLACK_USER_ID,
+        isVerified: true,
+      }),
+    ] as never);
+    microsoftTeamsFindBy.mockResolvedValue([
+      microsoftTeamsMethod({
+        userId: USER_A_ID,
+        userName: RAW_MICROSOFT_TEAMS_USERNAME,
+        microsoftTeamsUserId: RAW_MICROSOFT_TEAMS_USER_ID,
+        isVerified: true,
+      }),
+    ] as never);
     webhookFindBy.mockResolvedValue([
       webhookMethod({
         userId: USER_A_ID,
@@ -3090,6 +3366,15 @@ describe("identifier exposure", () => {
     expect(masked.get(ReadinessMethodType.Telegram)).toBe(
       `@ad${IDENTIFIER_MASK}`,
     );
+    /*
+     * Both workspace channels mask their human-facing NAME column with the
+     * handle rule. The addressable ids - the Slack member id, the Entra object
+     * id - are never selected at all, which the select tests below pin.
+     */
+    expect(masked.get(ReadinessMethodType.Slack)).toBe(`ad${IDENTIFIER_MASK}`);
+    expect(masked.get(ReadinessMethodType.MicrosoftTeams)).toBe(
+      `Ad${IDENTIFIER_MASK}`,
+    );
     expect(masked.get(ReadinessMethodType.Webhook)).toBe(
       `Pa${IDENTIFIER_MASK}`,
     );
@@ -3098,7 +3383,7 @@ describe("identifier exposure", () => {
   test("a method carries FOUR fields and no fifth - the id is the ONLY thing beside the mask", async () => {
     const readiness: UserReadiness = await onlyUser();
 
-    expect(readiness.methods).toHaveLength(7);
+    expect(readiness.methods).toHaveLength(9);
 
     /*
      * An exact key set, not a "does not contain the url" check, and this is the
@@ -3145,6 +3430,10 @@ describe("identifier exposure", () => {
       RAW_CALL_PHONE,
       RAW_WHATSAPP_PHONE,
       RAW_TELEGRAM_HANDLE,
+      RAW_SLACK_USERNAME,
+      RAW_SLACK_USER_ID,
+      RAW_MICROSOFT_TEAMS_USERNAME,
+      RAW_MICROSOFT_TEAMS_USER_ID,
       RAW_WEBHOOK_NAME,
       RAW_WEBHOOK_URL,
       RAW_PUSH_DEVICE,
@@ -3158,6 +3447,10 @@ describe("identifier exposure", () => {
       "2071838",
       "6129374",
       "night_pager",
+      "pager.slack",
+      "SLACKMEMBERLEAK",
+      "Overnight",
+      "ENTRAIDLEAK",
       "Incident Bridge",
       "SUPERSECRETTOKEN",
       "iPhone",
@@ -3198,6 +3491,31 @@ describe("identifier exposure", () => {
 
     expect(Object.keys(select)).not.toContain("telegramChatId");
     expect(select["telegramUserHandle"]).toBe(true);
+  });
+
+  test("the slack read never asks for the member id, which is the addressable target", async () => {
+    await policySummary();
+
+    const select: Record<string, unknown> = firstCall(slackFindBy).select!;
+
+    /*
+     * Same rule as the telegram chat id: the member id is what the bot sends
+     * to, the username is the label the owner recognises, and only the label
+     * belongs on a readiness surface.
+     */
+    expect(Object.keys(select)).not.toContain("slackUserId");
+    expect(select["slackUserName"]).toBe(true);
+  });
+
+  test("the microsoft teams read never asks for the entra object id, which is the addressable target", async () => {
+    await policySummary();
+
+    const select: Record<string, unknown> = firstCall(
+      microsoftTeamsFindBy,
+    ).select!;
+
+    expect(Object.keys(select)).not.toContain("microsoftTeamsUserId");
+    expect(select["microsoftTeamsUserName"]).toBe(true);
   });
 
   test("a method with no identifier at all still reports the bare mask, not an empty cell", async () => {
@@ -3349,6 +3667,8 @@ describe("batching and paging", () => {
       callFindBy,
       whatsAppFindBy,
       telegramFindBy,
+      slackFindBy,
+      microsoftTeamsFindBy,
       webhookFindBy,
       notificationRuleFindBy,
     ]) {
@@ -3364,6 +3684,8 @@ describe("batching and paging", () => {
       callFindBy,
       whatsAppFindBy,
       telegramFindBy,
+      slackFindBy,
+      microsoftTeamsFindBy,
       webhookFindBy,
       notificationRuleFindBy,
     ]) {
@@ -3393,7 +3715,7 @@ describe("batching and paging", () => {
     const calls: Array<FindByCall> = everyFindByCall();
 
     // A guard that asserts over an empty list guards nothing.
-    expect(calls.length).toBeGreaterThanOrEqual(15);
+    expect(calls.length).toBeGreaterThanOrEqual(17);
 
     for (const call of calls) {
       /*
@@ -3467,7 +3789,7 @@ describe("batching and paging", () => {
 
     const calls: Array<FindByCall> = everyFindByCall();
 
-    expect(calls.length).toBeGreaterThanOrEqual(15);
+    expect(calls.length).toBeGreaterThanOrEqual(17);
 
     for (const call of calls) {
       /*
@@ -3497,6 +3819,8 @@ describe("batching and paging", () => {
       callFindBy,
       whatsAppFindBy,
       telegramFindBy,
+      slackFindBy,
+      microsoftTeamsFindBy,
       webhookFindBy,
       notificationRuleFindBy,
     ]) {
@@ -3929,6 +4253,8 @@ describe("getReadinessForUsers", () => {
       callFindBy,
       whatsAppFindBy,
       telegramFindBy,
+      slackFindBy,
+      microsoftTeamsFindBy,
       webhookFindBy,
       notificationRuleFindBy,
     ]) {

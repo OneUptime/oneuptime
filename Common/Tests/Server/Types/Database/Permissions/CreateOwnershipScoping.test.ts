@@ -4,12 +4,14 @@ import User from "../../../../../Models/DatabaseModels/User";
 import UserCall from "../../../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../../../Models/DatabaseModels/UserEmail";
 import UserIncomingCallNumber from "../../../../../Models/DatabaseModels/UserIncomingCallNumber";
+import UserMicrosoftTeams from "../../../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserNotificationRule from "../../../../../Models/DatabaseModels/UserNotificationRule";
 import UserNotificationSetting from "../../../../../Models/DatabaseModels/UserNotificationSetting";
 import UserOnCallLog from "../../../../../Models/DatabaseModels/UserOnCallLog";
 import UserPush from "../../../../../Models/DatabaseModels/UserPush";
 import UserSMS from "../../../../../Models/DatabaseModels/UserSMS";
 import UserSession from "../../../../../Models/DatabaseModels/UserSession";
+import UserSlack from "../../../../../Models/DatabaseModels/UserSlack";
 import UserTelegram from "../../../../../Models/DatabaseModels/UserTelegram";
 import UserTotpAuth from "../../../../../Models/DatabaseModels/UserTotpAuth";
 import UserWebAuthn from "../../../../../Models/DatabaseModels/UserWebAuthn";
@@ -42,8 +44,8 @@ import { describe, expect, test } from "@jest/globals";
  * allow-list intersection over column names. So on any model whose create list
  * is CurrentUser-only, a caller could write a row owned by somebody else.
  *
- * Fourteen models have that shape, and every one of them is a "my own X"
- * resource: notification rules, all seven notification methods behind them,
+ * Sixteen models have that shape, and every one of them is a "my own X"
+ * resource: notification rules, all nine notification methods behind them,
  * sessions, TOTP and WebAuthn credentials, workspace tokens. On the
  * notification models the ownership column is not bookkeeping — it decides
  * whose on-call pages select the row, while the address actually messaged is
@@ -124,7 +126,8 @@ type ModelConstructor = { new (): BaseModel };
  * Every model whose create list is exactly [Permission.CurrentUser]. These are
  * the ones the fix protects, and the ones an attacker could previously write on
  * another user's behalf. Enumerated rather than discovered so that adding a
- * fifteenth model with this shape is a deliberate act that shows up in review.
+ * seventeenth model with this shape is a deliberate act that shows up in
+ * review.
  */
 const CURRENT_USER_ONLY_MODELS: Array<[string, ModelConstructor]> = [
   ["UserNotificationRule", UserNotificationRule],
@@ -135,6 +138,8 @@ const CURRENT_USER_ONLY_MODELS: Array<[string, ModelConstructor]> = [
   ["UserPush", UserPush],
   ["UserWhatsApp", UserWhatsApp],
   ["UserTelegram", UserTelegram],
+  ["UserSlack", UserSlack],
+  ["UserMicrosoftTeams", UserMicrosoftTeams],
   ["UserNotificationSetting", UserNotificationSetting],
   ["UserIncomingCallNumber", UserIncomingCallNumber],
   ["UserSession", UserSession],

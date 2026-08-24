@@ -17,6 +17,8 @@ import UserPushService from "./UserPushService";
 import UserService from "./UserService";
 import UserSmsService from "./UserSmsService";
 import UserTelegramService from "./UserTelegramService";
+import UserSlackService from "./UserSlackService";
+import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
 import UserWebhookService from "./UserWebhookService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import type AuditLogServiceType from "./AuditLogService";
@@ -42,6 +44,8 @@ import UserEmail from "../../Models/DatabaseModels/UserEmail";
 import UserPush from "../../Models/DatabaseModels/UserPush";
 import UserSMS from "../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../Models/DatabaseModels/UserTelegram";
+import UserSlack from "../../Models/DatabaseModels/UserSlack";
+import UserMicrosoftTeams from "../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserWebhook from "../../Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 
@@ -66,7 +70,8 @@ import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
  * filters, sort columns appended after the guard had run. The models are still
  * CurrentUser-only. Nothing in this file changes that, and an administrator's
  * every direct read or write of UserEmail, UserSMS, UserCall, UserWhatsApp,
- * UserTelegram, UserPush and UserWebhook is still refused.
+ * UserTelegram, UserSlack, UserMicrosoftTeams, UserPush and UserWebhook is
+ * still refused.
  *
  * What this file does instead is a NARROW, SERVER-SIDE, AUDITED capability
  * that runs as root on the admin's behalf and never hands them the row:
@@ -88,7 +93,7 @@ import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
  *     notification methods page as an unverified method they did not add — on
  *     top of the mail this service sends them.
  *
- *   - REMOVE is allowed on all seven channels, because offboarding a stale
+ *   - REMOVE is allowed on all nine channels, because offboarding a stale
  *     device is a real administrative job and the owner may well be gone. It is
  *     the destructive direction, so it is the one with a preview attached:
  *     UserNotificationRuleService.getNotificationMethodDeletionImpact says how
@@ -100,7 +105,10 @@ import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
  *     omissions are not oversights. Push is a device token minted by a browser
  *     or a phone at registration time; there is nothing an admin could type.
  *     Telegram needs the account holder to message the bot before a chat id
- *     exists. Webhook is the one that is deliberately refused rather than
+ *     exists. Slack and Microsoft Teams are pointers at the owner's own OAuth
+ *     workspace link, which only the owner can establish — and an admin-created
+ *     row would be live immediately, since creation is verification for those
+ *     two. Webhook is the one that is deliberately refused rather than
  *     merely impractical: UserWebhook has no isVerified column at all, so an
  *     admin-created webhook would be live the moment it was written, which is
  *     exactly the silent-redirect this whole design is built to prevent.
@@ -139,7 +147,7 @@ export interface AdminNotificationMethodView {
 
 /**
  * The four channels an administrator may CREATE. See the header for why the
- * other three are absent; this enum is the single place that decides, and both
+ * other five are absent; this enum is the single place that decides, and both
  * the API's validation and the service's own dispatch read it.
  */
 export enum AdminAddableChannel {
@@ -752,6 +760,160 @@ export class UserNotificationMethodAdminService extends BaseService {
         },
       },
       {
+        methodType: ReadinessMethodType.Slack,
+        isAdminAddable: false,
+        modelType: UserSlack,
+        list: async (data: {
+          projectId: ObjectID;
+          userId: ObjectID;
+        }): Promise<Array<AdminNotificationMethodView>> => {
+          const rows: Array<UserSlack> = await UserSlackService.findBy({
+            query: { projectId: data.projectId, userId: data.userId },
+            /*
+             * The username only — never slackUserId, which is the addressable
+             * target the bot sends to. Same rule OnCallReadinessService
+             * follows.
+             */
+            select: {
+              _id: true,
+              slackUserName: true,
+              isVerified: true,
+              createdAt: true,
+            },
+            sort: { createdAt: SortOrder.Ascending },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: { isRoot: true },
+          });
+
+          return rows.map((row: UserSlack): AdminNotificationMethodView => {
+            return this.toView({
+              row: row,
+              methodType: ReadinessMethodType.Slack,
+              isAdminAddable: false,
+              identifier: row.slackUserName,
+              kind: MaskedIdentifierKind.Handle,
+              isVerified: row.isVerified,
+            });
+          });
+        },
+        findOwnedRow: async (data: {
+          methodId: ObjectID;
+          projectId: ObjectID;
+          userId: ObjectID;
+        }): Promise<AdminNotificationMethodView | null> => {
+          const row: UserSlack | null = await UserSlackService.findOneBy({
+            query: {
+              _id: data.methodId,
+              projectId: data.projectId,
+              userId: data.userId,
+            },
+            select: {
+              _id: true,
+              slackUserName: true,
+              isVerified: true,
+            },
+            props: { isRoot: true },
+          });
+
+          return row
+            ? this.toView({
+                row: row,
+                methodType: ReadinessMethodType.Slack,
+                isAdminAddable: false,
+                identifier: row.slackUserName,
+                kind: MaskedIdentifierKind.Handle,
+                isVerified: row.isVerified,
+              })
+            : null;
+        },
+        deleteRow: async (data: { methodId: ObjectID }): Promise<void> => {
+          await UserSlackService.deleteOneById({
+            id: data.methodId,
+            props: { isRoot: true },
+          });
+        },
+      },
+      {
+        methodType: ReadinessMethodType.MicrosoftTeams,
+        isAdminAddable: false,
+        modelType: UserMicrosoftTeams,
+        list: async (data: {
+          projectId: ObjectID;
+          userId: ObjectID;
+        }): Promise<Array<AdminNotificationMethodView>> => {
+          const rows: Array<UserMicrosoftTeams> =
+            await UserMicrosoftTeamsService.findBy({
+              query: { projectId: data.projectId, userId: data.userId },
+              /*
+               * The display name only — never microsoftTeamsUserId, which is
+               * the addressable target the bot sends to. Same rule
+               * OnCallReadinessService follows.
+               */
+              select: {
+                _id: true,
+                microsoftTeamsUserName: true,
+                isVerified: true,
+                createdAt: true,
+              },
+              sort: { createdAt: SortOrder.Ascending },
+              skip: 0,
+              limit: LIMIT_PER_PROJECT,
+              props: { isRoot: true },
+            });
+
+          return rows.map(
+            (row: UserMicrosoftTeams): AdminNotificationMethodView => {
+              return this.toView({
+                row: row,
+                methodType: ReadinessMethodType.MicrosoftTeams,
+                isAdminAddable: false,
+                identifier: row.microsoftTeamsUserName,
+                kind: MaskedIdentifierKind.Handle,
+                isVerified: row.isVerified,
+              });
+            },
+          );
+        },
+        findOwnedRow: async (data: {
+          methodId: ObjectID;
+          projectId: ObjectID;
+          userId: ObjectID;
+        }): Promise<AdminNotificationMethodView | null> => {
+          const row: UserMicrosoftTeams | null =
+            await UserMicrosoftTeamsService.findOneBy({
+              query: {
+                _id: data.methodId,
+                projectId: data.projectId,
+                userId: data.userId,
+              },
+              select: {
+                _id: true,
+                microsoftTeamsUserName: true,
+                isVerified: true,
+              },
+              props: { isRoot: true },
+            });
+
+          return row
+            ? this.toView({
+                row: row,
+                methodType: ReadinessMethodType.MicrosoftTeams,
+                isAdminAddable: false,
+                identifier: row.microsoftTeamsUserName,
+                kind: MaskedIdentifierKind.Handle,
+                isVerified: row.isVerified,
+              })
+            : null;
+        },
+        deleteRow: async (data: { methodId: ObjectID }): Promise<void> => {
+          await UserMicrosoftTeamsService.deleteOneById({
+            id: data.methodId,
+            props: { isRoot: true },
+          });
+        },
+      },
+      {
         methodType: ReadinessMethodType.Webhook,
         isAdminAddable: false,
         modelType: UserWebhook,
@@ -966,7 +1128,7 @@ export class UserNotificationMethodAdminService extends BaseService {
        * the feature to somebody probing it.
        */
       throw new BadDataException(
-        `A project administrator can only add Email, SMS, Call and WhatsApp notification methods for another user. Push, Telegram and webhook methods have to be added by the person who owns the device.`,
+        `A project administrator can only add Email, SMS, Call and WhatsApp notification methods for another user. Push, Telegram, Slack, Microsoft Teams and webhook methods have to be added by the person who owns the device or account.`,
       );
     }
 

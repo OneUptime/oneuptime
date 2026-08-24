@@ -3,6 +3,7 @@ import OnCallNotificationAlertingService from "../../../Server/Services/OnCallNo
 import ProjectService from "../../../Server/Services/ProjectService";
 import UserCallService from "../../../Server/Services/UserCallService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
+import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserNotificationRuleService, {
   ExecuteFallbackNotificationOptions,
   ExecuteNotificationRuleOptions,
@@ -15,6 +16,7 @@ import UserOnCallLogService, {
 } from "../../../Server/Services/UserOnCallLogService";
 import UserPushService from "../../../Server/Services/UserPushService";
 import UserService from "../../../Server/Services/UserService";
+import UserSlackService from "../../../Server/Services/UserSlackService";
 import UserSmsService from "../../../Server/Services/UserSmsService";
 import UserTelegramService from "../../../Server/Services/UserTelegramService";
 import UserWebhookService from "../../../Server/Services/UserWebhookService";
@@ -43,10 +45,12 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * verified. This file pins the four things about it that are easy to get subtly,
  * silently wrong:
  *
- *   1. WHICH CHANNELS. Zero-cost first: a responder with a verified push device
- *      and a verified email gets both, because there is no reason to choose and
- *      neither costs the project anything. Only a responder with neither is
- *      worth spending money on, and then exactly once, down the ladder
+ *   1. WHICH CHANNELS. Zero-cost first: a responder with any of a verified push
+ *      device, a verified email, a linked Slack account or a linked Microsoft
+ *      Teams account gets ALL of those they have, because there is no reason to
+ *      choose and none of them costs the project anything. Only a responder
+ *      with none of the four is worth spending money on, and then exactly once,
+ *      down the ladder
  *      SMS -> Call -> WhatsApp -> Telegram -> Webhook - and only through
  *      channels the PROJECT still has switched on. That last clause is the one
  *      with a bill attached: SmsService and CallService check their project flag
@@ -83,7 +87,7 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *
  * Nothing here touches a database or a sender: deliverNotificationForRule is
  * stubbed at the service boundary (it fans out into template generation, short
- * links, seven providers and the timeline writer), and every lookup is a
+ * links, nine providers and the timeline writer), and every lookup is a
  * jest.spyOn. What is under test is the fallback's own decision-making.
  */
 
@@ -125,6 +129,12 @@ const TELEGRAM_METHOD_ID: ObjectID = new ObjectID(
 );
 const WEBHOOK_METHOD_ID: ObjectID = new ObjectID(
   "a7a7a7a7-a7a7-4a7a-8a7a-a7a7a7a7a7a7",
+);
+const SLACK_METHOD_ID: ObjectID = new ObjectID(
+  "a8a8a8a8-a8a8-4a8a-8a8a-a8a8a8a8a8a8",
+);
+const MICROSOFT_TEAMS_METHOD_ID: ObjectID = new ObjectID(
+  "a9a9a9a9-a9a9-4a9a-8a9a-a9a9a9a9a9a9",
 );
 
 const RESPONDER_EMAIL: string = "responder@company.com";
@@ -175,6 +185,31 @@ function makeVerifiedEmail(): Record<string, unknown> {
     id: EMAIL_METHOD_ID,
     _id: EMAIL_METHOD_ID.toString(),
     email: new Email(RESPONDER_EMAIL),
+    isVerified: true,
+  };
+}
+
+/*
+ * Slack and Microsoft Teams rows are born verified - they come from the user's
+ * own OAuth workspace link, not a verification-code flow - but the fallback
+ * still queries on isVerified, so the fixtures carry it.
+ */
+function makeVerifiedSlack(): Record<string, unknown> {
+  return {
+    id: SLACK_METHOD_ID,
+    _id: SLACK_METHOD_ID.toString(),
+    slackUserId: "U0123456789",
+    slackUserName: "responder",
+    isVerified: true,
+  };
+}
+
+function makeVerifiedMicrosoftTeams(): Record<string, unknown> {
+  return {
+    id: MICROSOFT_TEAMS_METHOD_ID,
+    _id: MICROSOFT_TEAMS_METHOD_ID.toString(),
+    microsoftTeamsUserId: "teams-user-1",
+    microsoftTeamsUserName: RESPONDER_NAME,
     isVerified: true,
   };
 }
@@ -308,6 +343,8 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
   let ruleCreateSpy: jest.SpyInstance;
   let pushFindSpy: jest.SpyInstance;
   let emailFindSpy: jest.SpyInstance;
+  let slackFindSpy: jest.SpyInstance;
+  let microsoftTeamsFindSpy: jest.SpyInstance;
   let smsFindSpy: jest.SpyInstance;
   let callFindSpy: jest.SpyInstance;
   let whatsAppFindSpy: jest.SpyInstance;
@@ -329,7 +366,7 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
 
     /*
      * Stubbed at the service boundary. The real method fans out into template
-     * generation, short-link creation, seven providers and the timeline writer;
+     * generation, short-link creation, nine providers and the timeline writer;
      * its return value ("was a page actually handed to a sender") is the only
      * part of it the fallback reasons about.
      */
@@ -347,6 +384,12 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
       .mockResolvedValue(null as never);
     emailFindSpy = jest
       .spyOn(UserEmailService, "findOneBy")
+      .mockResolvedValue(null as never);
+    slackFindSpy = jest
+      .spyOn(UserSlackService, "findOneBy")
+      .mockResolvedValue(null as never);
+    microsoftTeamsFindSpy = jest
+      .spyOn(UserMicrosoftTeamsService, "findOneBy")
       .mockResolvedValue(null as never);
     smsFindSpy = jest
       .spyOn(UserSmsService, "findOneBy")
@@ -426,7 +469,7 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
    * -----------------------------------------------------------------------
    */
 
-  describe("channel selection: the zero-cost pair", () => {
+  describe("channel selection: the zero-cost tier", () => {
     test("a responder with a verified push device AND a verified email gets BOTH", async () => {
       pushFindSpy.mockResolvedValue(makeVerifiedPush() as never);
       emailFindSpy.mockResolvedValue(makeVerifiedEmail() as never);
@@ -461,6 +504,86 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
       const result: FallbackNotificationResult = await runFallback();
 
       expect(result.channelsUsed).toEqual(["Email"]);
+      for (const spy of everyPaidChannelFindSpy()) {
+        expect(spy).not.toHaveBeenCalled();
+      }
+    });
+
+    test('a verified Slack account alone is chosen, as "Slack", with the relation AND the FK', async () => {
+      const slack: Record<string, unknown> = makeVerifiedSlack();
+      slackFindSpy.mockResolvedValue(slack as never);
+
+      const result: FallbackNotificationResult = await runFallback();
+
+      expect(result.channelsUsed).toEqual(["Slack"]);
+      expect(result.notified).toBe(true);
+      expect(result.outcome).toBe(FallbackNotificationOutcome.Delivered);
+
+      /*
+       * The relation, not merely the FK: the Slack channel block reads
+       * `userSlack?.slackUserId && userSlack?.isVerified` off the loaded
+       * relation and never dereferences the id, so a rule carrying only
+       * userSlackId would sail through delivery sending nothing at all.
+       */
+      const rule: UserNotificationRule = deliveredRules()[0]!;
+      expect(rule.userSlack).toBe(slack);
+      expect(rule.userSlackId!.toString()).toBe(SLACK_METHOD_ID.toString());
+
+      for (const spy of everyPaidChannelFindSpy()) {
+        expect(spy).not.toHaveBeenCalled();
+      }
+      expect(webhookFindSpy).not.toHaveBeenCalled();
+    });
+
+    test('a verified Microsoft Teams account alone is chosen, as "Microsoft Teams", with the relation AND the FK', async () => {
+      const microsoftTeams: Record<string, unknown> =
+        makeVerifiedMicrosoftTeams();
+      microsoftTeamsFindSpy.mockResolvedValue(microsoftTeams as never);
+
+      const result: FallbackNotificationResult = await runFallback();
+
+      expect(result.channelsUsed).toEqual(["Microsoft Teams"]);
+      expect(result.notified).toBe(true);
+      expect(result.outcome).toBe(FallbackNotificationOutcome.Delivered);
+
+      const rule: UserNotificationRule = deliveredRules()[0]!;
+      expect(rule.userMicrosoftTeams).toBe(microsoftTeams);
+      expect(rule.userMicrosoftTeamsId!.toString()).toBe(
+        MICROSOFT_TEAMS_METHOD_ID.toString(),
+      );
+
+      for (const spy of everyPaidChannelFindSpy()) {
+        expect(spy).not.toHaveBeenCalled();
+      }
+      expect(webhookFindSpy).not.toHaveBeenCalled();
+    });
+
+    test("a responder with push, email, Slack AND Microsoft Teams gets ALL FOUR, in this order", async () => {
+      pushFindSpy.mockResolvedValue(makeVerifiedPush() as never);
+      emailFindSpy.mockResolvedValue(makeVerifiedEmail() as never);
+      slackFindSpy.mockResolvedValue(makeVerifiedSlack() as never);
+      microsoftTeamsFindSpy.mockResolvedValue(
+        makeVerifiedMicrosoftTeams() as never,
+      );
+
+      const result: FallbackNotificationResult = await runFallback();
+
+      /*
+       * The zero-cost tier takes everything present, never a subset: none of
+       * the four costs the project anything, so there is no reason to pick
+       * between them and every reason to maximise the chance of reaching a
+       * human wherever they happen to be looking.
+       */
+      expect(result.channelsUsed).toEqual([
+        "Push",
+        "Email",
+        "Slack",
+        "Microsoft Teams",
+      ]);
+      expect(result.notified).toBe(true);
+      expect(result.outcome).toBe(FallbackNotificationOutcome.Delivered);
+      // Four channels, four delivery calls, each with its own rule.
+      expect(deliverSpy).toHaveBeenCalledTimes(4);
       for (const spy of everyPaidChannelFindSpy()) {
         expect(spy).not.toHaveBeenCalled();
       }
@@ -503,6 +626,34 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
       await runFallback();
 
       const query: Record<string, unknown> = queryOf(emailFindSpy);
+      expect((query["projectId"] as ObjectID).toString()).toBe(
+        PROJECT_ID.toString(),
+      );
+      expect((query["userId"] as ObjectID).toString()).toBe(USER_ID.toString());
+      expect(query["isVerified"]).toBe(true);
+    });
+
+    test("the Slack lookup is scoped to this project, this user, and verified accounts only", async () => {
+      slackFindSpy.mockResolvedValue(makeVerifiedSlack() as never);
+
+      await runFallback();
+
+      const query: Record<string, unknown> = queryOf(slackFindSpy);
+      expect((query["projectId"] as ObjectID).toString()).toBe(
+        PROJECT_ID.toString(),
+      );
+      expect((query["userId"] as ObjectID).toString()).toBe(USER_ID.toString());
+      expect(query["isVerified"]).toBe(true);
+    });
+
+    test("the Microsoft Teams lookup is scoped to this project, this user, and verified accounts only", async () => {
+      microsoftTeamsFindSpy.mockResolvedValue(
+        makeVerifiedMicrosoftTeams() as never,
+      );
+
+      await runFallback();
+
+      const query: Record<string, unknown> = queryOf(microsoftTeamsFindSpy);
       expect((query["projectId"] as ObjectID).toString()).toBe(
         PROJECT_ID.toString(),
       );
@@ -659,7 +810,7 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
       },
     );
 
-    test("the paid ladder is only reached when BOTH zero-cost channels are missing", async () => {
+    test("the paid ladder is only reached when ALL FOUR zero-cost channels are missing", async () => {
       pushFindSpy.mockResolvedValue(makeVerifiedPush() as never);
       giveResponderEveryPaidMethod();
       projectFindSpy.mockResolvedValue(
@@ -669,6 +820,36 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
       const result: FallbackNotificationResult = await runFallback();
 
       expect(result.channelsUsed).toEqual(["Push"]);
+      expect(smsFindSpy).not.toHaveBeenCalled();
+    });
+
+    test("a Slack account alone keeps the paid ladder shut - the project row is never even read", async () => {
+      slackFindSpy.mockResolvedValue(makeVerifiedSlack() as never);
+      giveResponderEveryPaidMethod();
+      projectFindSpy.mockResolvedValue(
+        makeProject({ [SMS_FLAG]: true }) as never,
+      );
+
+      const result: FallbackNotificationResult = await runFallback();
+
+      expect(result.channelsUsed).toEqual(["Slack"]);
+      expect(projectFindSpy).not.toHaveBeenCalled();
+      expect(smsFindSpy).not.toHaveBeenCalled();
+    });
+
+    test("a Microsoft Teams account alone keeps the paid ladder shut too", async () => {
+      microsoftTeamsFindSpy.mockResolvedValue(
+        makeVerifiedMicrosoftTeams() as never,
+      );
+      giveResponderEveryPaidMethod();
+      projectFindSpy.mockResolvedValue(
+        makeProject({ [SMS_FLAG]: true }) as never,
+      );
+
+      const result: FallbackNotificationResult = await runFallback();
+
+      expect(result.channelsUsed).toEqual(["Microsoft Teams"]);
+      expect(projectFindSpy).not.toHaveBeenCalled();
       expect(smsFindSpy).not.toHaveBeenCalled();
     });
   });
@@ -795,6 +976,8 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
           rule.userCall,
           rule.userWhatsApp,
           rule.userTelegram,
+          rule.userSlack,
+          rule.userMicrosoftTeams,
           rule.userWebhook,
         ].filter((method: unknown): boolean => {
           return Boolean(method);

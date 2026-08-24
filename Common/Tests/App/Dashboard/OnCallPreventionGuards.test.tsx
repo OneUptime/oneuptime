@@ -122,14 +122,18 @@ import CallMethods from "../../../../App/FeatureSet/Dashboard/src/Components/Not
 import PushMethods from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/Push";
 import WhatsAppMethods from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/WhatsApp";
 import TelegramMethods from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/Telegram";
+import SlackMethods from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/Slack";
+import MicrosoftTeamsMethods from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/MicrosoftTeams";
 import WebhookMethods from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/Webhook";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
+import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
+import UserSlack from "../../../Models/DatabaseModels/UserSlack";
 import UserSMS from "../../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../../Models/DatabaseModels/UserTelegram";
 import UserWebhook from "../../../Models/DatabaseModels/UserWebhook";
@@ -1470,7 +1474,7 @@ describe("Escalation rules, wired: the delete confirmation says what it costs", 
 
 /*
  * ---------------------------------------------------------------------------
- * THE SEVEN METHOD TABLES, RENDERED FOR REAL.
+ * THE NINE METHOD TABLES, RENDERED FOR REAL.
  * ---------------------------------------------------------------------------
  *
  * This block exists because the first cut of this feature shipped a correct,
@@ -1532,6 +1536,8 @@ const METHOD_ID_CALL: string = "33333333-9999-4999-8999-999999999999";
 const METHOD_ID_PUSH: string = "44444444-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const METHOD_ID_WHATSAPP: string = "55555555-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const METHOD_ID_TELEGRAM: string = "66666666-cccc-4ccc-8ccc-cccccccccccc";
+const METHOD_ID_SLACK: string = "88888888-eeee-4eee-8eee-eeeeeeeeeeee";
+const METHOD_ID_TEAMS: string = "99999999-ffff-4fff-8fff-ffffffffffff";
 const METHOD_ID_WEBHOOK: string = "77777777-dddd-4ddd-8ddd-dddddddddddd";
 
 const METHOD_SURFACES: Array<MethodSurface> = [
@@ -1623,6 +1629,36 @@ const METHOD_SURFACES: Array<MethodSurface> = [
     },
     modalTitle: "Delete Telegram Account",
     methodLabel: "Telegram: @alexchen",
+  },
+  {
+    name: "Slack",
+    Component: SlackMethods,
+    modelType: UserSlack,
+    relationName: "userSlack",
+    methodId: METHOD_ID_SLACK,
+    buildRow: (): BaseModel => {
+      return buildMethodRow(UserSlack, METHOD_ID_SLACK, {
+        slackUserName: "alexchen",
+        isVerified: true,
+      });
+    },
+    modalTitle: "Delete Slack Account",
+    methodLabel: "Slack: alexchen",
+  },
+  {
+    name: "Microsoft Teams",
+    Component: MicrosoftTeamsMethods,
+    modelType: UserMicrosoftTeams,
+    relationName: "userMicrosoftTeams",
+    methodId: METHOD_ID_TEAMS,
+    buildRow: (): BaseModel => {
+      return buildMethodRow(UserMicrosoftTeams, METHOD_ID_TEAMS, {
+        microsoftTeamsUserName: "Alex Example",
+        isVerified: true,
+      });
+    },
+    modalTitle: "Delete Microsoft Teams Account",
+    methodLabel: "Microsoft Teams: Alex Example",
   },
   {
     name: "Webhook",

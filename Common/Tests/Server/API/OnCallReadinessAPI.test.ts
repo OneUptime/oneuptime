@@ -26,9 +26,11 @@ import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import TeamService from "../../../Server/Services/TeamService";
 import UserCallService from "../../../Server/Services/UserCallService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
+import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import UserPushService from "../../../Server/Services/UserPushService";
 import UserService from "../../../Server/Services/UserService";
+import UserSlackService from "../../../Server/Services/UserSlackService";
 import UserSmsService from "../../../Server/Services/UserSmsService";
 import UserTelegramService from "../../../Server/Services/UserTelegramService";
 import UserWebhookService from "../../../Server/Services/UserWebhookService";
@@ -41,7 +43,9 @@ import {
 import Response from "../../../Server/Utils/Response";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
+import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
+import UserSlack from "../../../Models/DatabaseModels/UserSlack";
 import UserSMS from "../../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../../Models/DatabaseModels/UserTelegram";
 import UserWebhook from "../../../Models/DatabaseModels/UserWebhook";
@@ -316,6 +320,8 @@ let userSmsFindBy: jest.SpyInstance;
 let userCallFindBy: jest.SpyInstance;
 let userWhatsAppFindBy: jest.SpyInstance;
 let userTelegramFindBy: jest.SpyInstance;
+let userSlackFindBy: jest.SpyInstance;
+let userMicrosoftTeamsFindBy: jest.SpyInstance;
 let userWebhookFindBy: jest.SpyInstance;
 let notificationRuleFindBy: jest.SpyInstance;
 let incidentSeverityFindBy: jest.SpyInstance;
@@ -340,6 +346,8 @@ function everyFindBySpy(): Array<jest.SpyInstance> {
     userCallFindBy,
     userWhatsAppFindBy,
     userTelegramFindBy,
+    userSlackFindBy,
+    userMicrosoftTeamsFindBy,
     userWebhookFindBy,
     notificationRuleFindBy,
     incidentSeverityFindBy,
@@ -444,6 +452,12 @@ beforeEach(() => {
     .mockResolvedValue([] as never);
   userTelegramFindBy = jest
     .spyOn(UserTelegramService, "findBy")
+    .mockResolvedValue([] as never);
+  userSlackFindBy = jest
+    .spyOn(UserSlackService, "findBy")
+    .mockResolvedValue([] as never);
+  userMicrosoftTeamsFindBy = jest
+    .spyOn(UserMicrosoftTeamsService, "findBy")
     .mockResolvedValue([] as never);
   userWebhookFindBy = jest
     .spyOn(UserWebhookService, "findBy")
@@ -759,13 +773,14 @@ describe("GET /on-call-readiness/policy/:policyId", () => {
 
     /*
      * Four fields and no fifth. `methods` is the part of this payload that
-     * describes rows an administrator is NOT permitted to read - the seven
+     * describes rows an administrator is NOT permitted to read - the nine
      * method models are owner-scoped precisely because their columns are the raw
-     * phone number, the webhook bearer url, the push token, the telegram chat id
-     * and the verification code - so the wire shape is asserted exhaustively
-     * rather than field by field. A field added to ReadinessMethod is a field
-     * that ships to every administrator of the project, and it should have to
-     * pass through here on the way.
+     * phone number, the webhook bearer url, the push token, the telegram chat
+     * id, the slack member id, the teams object id and the verification code -
+     * so the wire shape is asserted exhaustively rather than field by field. A
+     * field added to ReadinessMethod is a field that ships to every
+     * administrator of the project, and it should have to pass through here on
+     * the way.
      */
     expect(user["methods"]).toEqual([
       {
@@ -1437,6 +1452,15 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
   const RAW_WHATSAPP: string = "+14155559999";
   const RAW_HANDLE: string = "@jamesbond";
   const RAW_DEVICE: string = "Jane's iPhone 15 Pro";
+  const RAW_SLACK_USERNAME: string = "jane.oncall.slack";
+  const RAW_TEAMS_USERNAME: string = "Jane Doe [Overnight]";
+  /*
+   * The addressable targets behind the two workspace channels - the Slack
+   * member id the bot DMs and the Entra object id the Teams bot resolves. On
+   * the rows, like the webhook's bearer url, and never selected.
+   */
+  const RAW_SLACK_USER_ID: string = "U0MEMBERIDLEAK";
+  const RAW_TEAMS_USER_ID: string = "aad-ENTRALEAK-7788";
   const RAW_WEBHOOK_NAME: string = "Payments Slack Hook";
   const RAW_WEBHOOK_URL: string =
     "https://hooks.slack.com/services/T000/B000/XXXXsecretXXXX";
@@ -1445,7 +1469,7 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
    * One fixed id per channel, and fixed rather than generated so that a failure
    * prints a value a reader can match against the fixture that produced it.
    *
-   * These are the ids UserNotificationRule's seven foreign keys reference -
+   * These are the ids UserNotificationRule's nine foreign keys reference -
    * userEmailId points at a UserEmail row, userSmsId at a UserSMS row - and they
    * are the reason `methodId` exists at all. An administrator building a rule
    * for somebody else may not READ any of these rows; what they get instead is
@@ -1475,10 +1499,16 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
   const WEBHOOK_METHOD_ID: ObjectID = new ObjectID(
     "1a000000-0000-4000-8000-000000000007",
   );
+  const SLACK_METHOD_ID: ObjectID = new ObjectID(
+    "1a000000-0000-4000-8000-000000000008",
+  );
+  const MICROSOFT_TEAMS_METHOD_ID: ObjectID = new ObjectID(
+    "1a000000-0000-4000-8000-000000000009",
+  );
 
   /*
    * The expected id per channel, in one place, so the sweep below is a sweep
-   * over all seven rather than seven assertions that can each be forgotten
+   * over all nine rather than nine assertions that can each be forgotten
    * individually. Keyed by the wire's `methodType` string.
    */
   const METHOD_ID_BY_TYPE: Dictionary<string> = {
@@ -1488,6 +1518,8 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
     [ReadinessMethodType.Call]: CALL_METHOD_ID.toString(),
     [ReadinessMethodType.WhatsApp]: WHATSAPP_METHOD_ID.toString(),
     [ReadinessMethodType.Telegram]: TELEGRAM_METHOD_ID.toString(),
+    [ReadinessMethodType.Slack]: SLACK_METHOD_ID.toString(),
+    [ReadinessMethodType.MicrosoftTeams]: MICROSOFT_TEAMS_METHOD_ID.toString(),
     [ReadinessMethodType.Webhook]: WEBHOOK_METHOD_ID.toString(),
   };
 
@@ -1548,6 +1580,24 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
     telegram.isVerified = true;
     userTelegramFindBy.mockResolvedValue([telegram] as never);
 
+    const slack: UserSlack = new UserSlack();
+    slack.id = SLACK_METHOD_ID;
+    slack.userId = subjectUserId;
+    slack.slackUserName = RAW_SLACK_USERNAME;
+    // On the row, and never selected: the member id is the addressable target.
+    slack.slackUserId = RAW_SLACK_USER_ID;
+    slack.isVerified = true;
+    userSlackFindBy.mockResolvedValue([slack] as never);
+
+    const microsoftTeams: UserMicrosoftTeams = new UserMicrosoftTeams();
+    microsoftTeams.id = MICROSOFT_TEAMS_METHOD_ID;
+    microsoftTeams.userId = subjectUserId;
+    microsoftTeams.microsoftTeamsUserName = RAW_TEAMS_USERNAME;
+    // On the row, and never selected: the Entra id is the addressable target.
+    microsoftTeams.microsoftTeamsUserId = RAW_TEAMS_USER_ID;
+    microsoftTeams.isVerified = true;
+    userMicrosoftTeamsFindBy.mockResolvedValue([microsoftTeams] as never);
+
     const push: UserPush = new UserPush();
     push.id = PUSH_METHOD_ID;
     push.userId = subjectUserId;
@@ -1597,6 +1647,24 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
         maskedIdentifier: `j${IDENTIFIER_MASK}@personal.example.com`,
         isVerified: true,
       },
+      /*
+       * The two workspace channels sit in the zero-cost tier beside Push and
+       * Email, ahead of every paid channel. Their masked identifier is the
+       * human-facing NAME column under the handle rule; the addressable ids
+       * are never selected at all - see the select tests below.
+       */
+      {
+        methodId: SLACK_METHOD_ID.toString(),
+        methodType: ReadinessMethodType.Slack,
+        maskedIdentifier: `ja${IDENTIFIER_MASK}`,
+        isVerified: true,
+      },
+      {
+        methodId: MICROSOFT_TEAMS_METHOD_ID.toString(),
+        methodType: ReadinessMethodType.MicrosoftTeams,
+        maskedIdentifier: `Ja${IDENTIFIER_MASK}`,
+        isVerified: true,
+      },
       {
         methodId: SMS_METHOD_ID.toString(),
         methodType: ReadinessMethodType.SMS,
@@ -1634,10 +1702,10 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
     ]);
   });
 
-  test("all seven channels reach the wire carrying the id of their OWN row", async () => {
+  test("all nine channels reach the wire carrying the id of their OWN row", async () => {
     /*
      * The dropdown's entire premise, swept across every channel rather than
-     * spot-checked on one, because the seven are seven separate code paths that
+     * spot-checked on one, because the nine are nine separate code paths that
      * each build their own row and each have their own opportunity to hand over
      * somebody else's id - or none at all.
      *
@@ -1650,7 +1718,7 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
     const payload: Record<string, unknown> = await readUser();
     const methods: Array<Record<string, unknown>> = methodsOf(payload);
 
-    expect(methods).toHaveLength(7);
+    expect(methods).toHaveLength(9);
 
     for (const method of methods) {
       const methodType: string = method["methodType"] as string;
@@ -1682,7 +1750,7 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
     const payload: Record<string, unknown> = await readUser();
     const methods: Array<Record<string, unknown>> = methodsOf(payload);
 
-    expect(methods).toHaveLength(7);
+    expect(methods).toHaveLength(9);
 
     for (const method of methods) {
       expect(method["methodId"]).not.toBe(subjectUserId.toString());
@@ -1691,23 +1759,23 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
       expect(method["methodId"]).not.toBe(projectId.toString());
     }
 
-    // And all seven are distinct - one id copied across channels is the same bug.
+    // And all nine are distinct - one id copied across channels is the same bug.
     const ids: Array<unknown> = methods.map(
       (method: Record<string, unknown>): unknown => {
         return method["methodId"];
       },
     );
-    expect(new Set(ids).size).toBe(7);
+    expect(new Set(ids).size).toBe(9);
   });
 
   test("a method carries its id, its type, its mask and its verification - and nothing else", async () => {
     /*
      * The containment assertion. Every field on this object ships to every
      * administrator of the project, about a row that administrator is not
-     * allowed to read, so the key set is pinned exhaustively on all seven rather
+     * allowed to read, so the key set is pinned exhaustively on all nine rather
      * than left to whatever the serialiser happens to copy. A `phone`, a
-     * `webhookUrl` or a `telegramChatId` appearing here is not a formatting
-     * change; it is the exposure this design was built to avoid.
+     * `webhookUrl`, a `telegramChatId` or a `slackUserId` appearing here is not
+     * a formatting change; it is the exposure this design was built to avoid.
      */
     const payload: Record<string, unknown> = await readUser();
 
@@ -1729,10 +1797,10 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
      * Guards the guard, and it is not a formality here: the service drops any
      * method row it cannot find an id on, so a fixture regression that emptied
      * `methods` would satisfy every "not present" assertion below for the one
-     * reason that proves nothing at all. The seven masks have to be in the body
+     * reason that proves nothing at all. The nine masks have to be in the body
      * before their absence of raw values means anything.
      */
-    expect(methodsOf(payload)).toHaveLength(7);
+    expect(methodsOf(payload)).toHaveLength(9);
     expect(body).toContain(IDENTIFIER_MASK);
 
     /*
@@ -1747,6 +1815,8 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
       RAW_WHATSAPP,
       RAW_HANDLE,
       RAW_DEVICE,
+      RAW_SLACK_USERNAME,
+      RAW_TEAMS_USERNAME,
       RAW_WEBHOOK_NAME,
       RAW_WEBHOOK_URL,
       // The notification address's local part on its own, and the hook's host.
@@ -1754,6 +1824,14 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
       "hooks.slack.com",
       // The telegram chat id - the addressable target, never the label.
       "998877",
+      // The workspace targets - the Slack member id and the Entra object id.
+      RAW_SLACK_USER_ID,
+      RAW_TEAMS_USER_ID,
+      "MEMBERIDLEAK",
+      "ENTRALEAK",
+      // The workspace names' revealing middles, past what a handle mask keeps.
+      "oncall.slack",
+      "[Overnight]",
       /*
        * The unmasked tails of the four phone-shaped identifiers. maskIdentifier
        * keeps the last four digits on purpose, so the numbers themselves are
@@ -1870,6 +1948,24 @@ describe("GET /on-call-readiness/user/:userId - identifier masking", () => {
     expect(call.select?.["telegramUserHandle"]).toBe(true);
     expect(call.select?.["telegramChatId"]).toBeUndefined();
   });
+
+  test("the slack read takes the username, never the addressable member id", async () => {
+    await readUser();
+
+    const call: CapturedFindBy = firstCall(userSlackFindBy);
+
+    expect(call.select?.["slackUserName"]).toBe(true);
+    expect(call.select?.["slackUserId"]).toBeUndefined();
+  });
+
+  test("the microsoft teams read takes the display name, never the addressable entra id", async () => {
+    await readUser();
+
+    const call: CapturedFindBy = firstCall(userMicrosoftTeamsFindBy);
+
+    expect(call.select?.["microsoftTeamsUserName"]).toBe(true);
+    expect(call.select?.["microsoftTeamsUserId"]).toBeUndefined();
+  });
 });
 
 /*
@@ -1898,6 +1994,8 @@ interface StubRule {
   userEmailId?: ObjectID | undefined;
   userPushId?: ObjectID | undefined;
   userTelegramId?: ObjectID | undefined;
+  userSlackId?: ObjectID | undefined;
+  userMicrosoftTeamsId?: ObjectID | undefined;
   userWhatsAppId?: ObjectID | undefined;
   userWebhookId?: ObjectID | undefined;
 }
@@ -2037,17 +2135,22 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
     ]);
   });
 
-  test("DEFECT closed: a rule on Telegram, WhatsApp or a webhook now counts", async () => {
+  test("DEFECT closed: a rule on Telegram, WhatsApp, Slack, Teams or a webhook now counts", async () => {
     /*
      * The old check read userCallId/userSmsId/userEmailId/userPushId off the
      * rule row and treated a row carrying none of them as no rule at all, so a
      * responder reachable only on Telegram, WhatsApp or a webhook was reported
      * non-compliant while the runtime was quite happily paging them. A false RED
-     * teaches admins to ignore the table, which is worse than no table.
+     * teaches admins to ignore the table, which is worse than no table. Slack
+     * and Microsoft Teams arrived after the fix and are staged alongside so the
+     * defect cannot return for the channels that never lived through it.
      *
-     * All three channels are staged onto one user at once: whichever column the
+     * All five channels are staged onto one user at once: whichever column the
      * rule carries, the row is a rule.
      */
+    const minor: StubSeverity = { id: ObjectID.generate(), name: "Minor" };
+    const warn: StubSeverity = { id: ObjectID.generate(), name: "Warn" };
+
     stage({
       settings: [
         { ruleType: ComplianceRuleType.HasIncidentOnCallRules, enabled: true },
@@ -2070,15 +2173,29 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
           userWhatsAppId: ObjectID.generate(),
         },
         {
+          _id: "rule-slack",
+          userId: ada.id,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+          incidentSeverityId: minor.id,
+          userSlackId: ObjectID.generate(),
+        },
+        {
           _id: "rule-webhook",
           userId: ada.id,
           ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
           alertSeverityId: page.id,
           userWebhookId: ObjectID.generate(),
         },
+        {
+          _id: "rule-microsoft-teams",
+          userId: ada.id,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+          alertSeverityId: warn.id,
+          userMicrosoftTeamsId: ObjectID.generate(),
+        },
       ],
-      incidentSeverities: [critical, major],
-      alertSeverities: [page],
+      incidentSeverities: [critical, major, minor],
+      alertSeverities: [page, warn],
     });
 
     const statuses: Array<Record<string, unknown>> = statusesOf(
@@ -2093,7 +2210,7 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
     /*
      * The structural half of the fix. The three formerly-invisible channels were
      * invisible because they were never SELECTed; asserting that NONE of the
-     * seven is selected means no future edit can reintroduce a partial column
+     * nine is selected means no future edit can reintroduce a partial column
      * list and quietly start under-counting again.
      */
     stage({
@@ -2116,6 +2233,8 @@ describe("GET /team/compliance-status/:teamId - the rebuilt service", () => {
       "userEmailId",
       "userPushId",
       "userTelegramId",
+      "userSlackId",
+      "userMicrosoftTeamsId",
       "userWhatsAppId",
       "userWebhookId",
     ]) {

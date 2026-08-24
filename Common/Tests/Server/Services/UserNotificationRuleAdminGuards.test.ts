@@ -11,8 +11,10 @@ import UserNotificationRuleService, {
 } from "../../../Server/Services/UserNotificationRuleService";
 import UserOnCallLogService from "../../../Server/Services/UserOnCallLogService";
 import UserOnCallLogTimelineService from "../../../Server/Services/UserOnCallLogTimelineService";
+import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserPushService from "../../../Server/Services/UserPushService";
 import UserService from "../../../Server/Services/UserService";
+import UserSlackService from "../../../Server/Services/UserSlackService";
 import UserSmsService from "../../../Server/Services/UserSmsService";
 import UserTelegramService from "../../../Server/Services/UserTelegramService";
 import UserWebhookService from "../../../Server/Services/UserWebhookService";
@@ -66,8 +68,8 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *   R1  a target user id from ANOTHER project, presented by a caller who is a
  *       legitimate administrator of THIS one.
  *   R3  a method FK pointing at somebody else's row — on create, on update, in
- *       the FK slot, in the relation slot, and on all seven channels, because
- *       a guard covering six of seven covers none.
+ *       the FK slot, in the relation slot, and on all nine channels, because
+ *       a guard covering eight of nine covers none.
  *   R3  on update specifically: a body that LIES about the rule's owner, to
  *       check that the owner is re-read from the database rather than believed.
  *   R6  an audit trail and an owner notification keyed on the server-resolved
@@ -111,7 +113,7 @@ const INCIDENT_ID: ObjectID = new ObjectID(
 );
 
 /*
- * The seven channels, each with the FK column a rule carries it in, the
+ * The nine channels, each with the FK column a rule carries it in, the
  * relation slot that is the same write spelled differently, the service the
  * guard must consult, and the word the rejection message has to contain.
  *
@@ -162,6 +164,20 @@ const CHANNELS: Array<ChannelFixture> = [
     label: "Telegram",
     service: UserTelegramService as unknown as ChannelFixture["service"],
     relationProperty: "userTelegram",
+  },
+  {
+    idColumn: "userSlackId",
+    relationColumn: "userSlack",
+    label: "Slack",
+    service: UserSlackService as unknown as ChannelFixture["service"],
+    relationProperty: "userSlack",
+  },
+  {
+    idColumn: "userMicrosoftTeamsId",
+    relationColumn: "userMicrosoftTeams",
+    label: "Microsoft Teams",
+    service: UserMicrosoftTeamsService as unknown as ChannelFixture["service"],
+    relationProperty: "userMicrosoftTeams",
   },
   {
     idColumn: "userPushId",
@@ -644,7 +660,7 @@ describe("UserNotificationRule administrative write guards", () => {
    * R3 on create - the method a rule names must belong to the rule's owner.
    * ---------------------------------------------------------------------
    */
-  describe("R3 on create - method ownership, all seven channels", () => {
+  describe("R3 on create - method ownership, all nine channels", () => {
     test.each(
       CHANNELS.map((channel: ChannelFixture): [string, ChannelFixture] => {
         return [channel.label, channel];
@@ -720,9 +736,9 @@ describe("UserNotificationRule administrative write guards", () => {
       },
     );
 
-    test("the guard covers exactly the seven notification method columns the model has", () => {
+    test("the guard covers exactly the nine notification method columns the model has", () => {
       /*
-       * The count is the assertion. An eighth channel added to the model
+       * The count is the assertion. A tenth channel added to the model
        * without an entry in the guard's table is a channel with no ownership
        * check at all, and the attacker only needs one.
        */

@@ -13,10 +13,13 @@ import UserEmailService from "./UserEmailService";
 import UserSmsService from "./UserSmsService";
 import PushNotificationService from "./PushNotificationService";
 import UserTelegramService from "./UserTelegramService";
+import UserSlackService from "./UserSlackService";
+import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
 import UserWebhookService from "./UserWebhookService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import WebhookService from "./WebhookService";
 import WhatsAppService from "./WhatsAppService";
+import WorkspaceUserNotificationService from "./WorkspaceUserNotificationService";
 import { CallRequestMessage } from "../../Types/Call/CallRequest";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import { EmailEnvelope } from "../../Types/Email/EmailMessage";
@@ -39,8 +42,15 @@ import UserEmail from "../../Models/DatabaseModels/UserEmail";
 import UserNotificationSetting from "../../Models/DatabaseModels/UserNotificationSetting";
 import UserSMS from "../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../Models/DatabaseModels/UserTelegram";
+import UserSlack from "../../Models/DatabaseModels/UserSlack";
+import UserMicrosoftTeams from "../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserWebhook from "../../Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import {
+  WorkspaceMessageBlock,
+  WorkspacePayloadMarkdown,
+} from "../../Types/Workspace/WorkspaceMessagePayload";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { appendRecipientToWhatsAppMessage } from "../Utils/WhatsAppTemplateUtil";
 
@@ -93,6 +103,8 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           alertBySMS: true,
           alertByWhatsApp: true,
           alertByTelegram: true,
+          alertBySlack: true,
+          alertByMicrosoftTeams: true,
           alertByCall: true,
           alertByPush: true,
           alertByWebhook: true,
@@ -366,6 +378,134 @@ export class Service extends DatabaseService<UserNotificationSetting> {
             }).catch((err: Error) => {
               logger.error(err);
             });
+          }
+        }
+      }
+
+      if (
+        notificationSettings.alertBySlack ||
+        notificationSettings.alertByMicrosoftTeams
+      ) {
+        /*
+         * Slack and Microsoft Teams share one derived message: callers hand
+         * this method channel payloads for the older channels only, so the
+         * workspace body is synthesised from the email subject + SMS body the
+         * same way the Telegram fallback body is. Standard markdown — Slack
+         * slackifies it and Teams renders it into an adaptive card.
+         */
+        const subject: string = data.emailEnvelope.subject || "";
+        const smsBody: string = data.smsMessage.message || "";
+
+        let workspaceMarkdown: string = "";
+
+        if (subject || smsBody) {
+          const lines: Array<string> = [];
+          lines.push(`🔔 **${subject || "OneUptime notification"}**`);
+          if (smsBody) {
+            lines.push("");
+            lines.push(smsBody);
+          }
+          workspaceMarkdown = lines.join("\n");
+        }
+
+        if (!workspaceMarkdown) {
+          logger.warn(
+            "Skipping workspace notification because message body is empty.",
+          );
+        } else {
+          const markdownBlock: WorkspacePayloadMarkdown = {
+            _type: "WorkspacePayloadMarkdown",
+            text: workspaceMarkdown,
+          };
+          const messageBlocks: Array<WorkspaceMessageBlock> = [markdownBlock];
+
+          if (notificationSettings.alertBySlack) {
+            const userSlacks: Array<UserSlack> = await UserSlackService.findBy({
+              query: {
+                userId: data.userId,
+                projectId: data.projectId,
+                isVerified: true,
+              },
+              select: {
+                slackUserId: true,
+              },
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              props: {
+                isRoot: true,
+              },
+            });
+
+            for (const userSlack of userSlacks) {
+              if (!userSlack.slackUserId) {
+                continue;
+              }
+
+              WorkspaceUserNotificationService.sendDirectMessageToUser({
+                projectId: data.projectId,
+                workspaceType: WorkspaceType.Slack,
+                workspaceUserId: userSlack.slackUserId,
+                messageBlocks: messageBlocks,
+                messageSummary: subject || smsBody,
+                userId: data.userId,
+                incidentId: data.incidentId,
+                alertId: data.alertId,
+                alertEpisodeId: data.alertEpisodeId,
+                incidentEpisodeId: data.incidentEpisodeId,
+                teamId: data.teamId,
+                onCallPolicyId: data.onCallPolicyId,
+                onCallPolicyEscalationRuleId:
+                  data.onCallPolicyEscalationRuleId,
+                onCallScheduleId: data.onCallScheduleId,
+              }).catch((err: Error) => {
+                logger.error(err);
+              });
+            }
+          }
+
+          if (notificationSettings.alertByMicrosoftTeams) {
+            const userMicrosoftTeamsAccounts: Array<UserMicrosoftTeams> =
+              await UserMicrosoftTeamsService.findBy({
+                query: {
+                  userId: data.userId,
+                  projectId: data.projectId,
+                  isVerified: true,
+                },
+                select: {
+                  microsoftTeamsUserId: true,
+                },
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                props: {
+                  isRoot: true,
+                },
+              });
+
+            for (const userMicrosoftTeams of userMicrosoftTeamsAccounts) {
+              if (!userMicrosoftTeams.microsoftTeamsUserId) {
+                continue;
+              }
+
+              WorkspaceUserNotificationService.sendDirectMessageToUser({
+                projectId: data.projectId,
+                workspaceType: WorkspaceType.MicrosoftTeams,
+                workspaceUserId: userMicrosoftTeams.microsoftTeamsUserId,
+                messageBlocks: messageBlocks,
+                messageSummary: subject || smsBody,
+                userId: data.userId,
+                incidentId: data.incidentId,
+                alertId: data.alertId,
+                alertEpisodeId: data.alertEpisodeId,
+                incidentEpisodeId: data.incidentEpisodeId,
+                teamId: data.teamId,
+                onCallPolicyId: data.onCallPolicyId,
+                onCallPolicyEscalationRuleId:
+                  data.onCallPolicyEscalationRuleId,
+                onCallScheduleId: data.onCallScheduleId,
+              }).catch((err: Error) => {
+                logger.error(err);
+              });
+            }
           }
         }
       }

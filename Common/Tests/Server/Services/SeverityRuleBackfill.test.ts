@@ -148,6 +148,8 @@ type RuleMethodColumn =
   | "userPushId"
   | "userWhatsAppId"
   | "userTelegramId"
+  | "userSlackId"
+  | "userMicrosoftTeamsId"
   | "userWebhookId";
 
 type RuleIdColumn =
@@ -164,6 +166,8 @@ const METHOD_COLUMNS: Array<RuleMethodColumn> = [
   "userPushId",
   "userWhatsAppId",
   "userTelegramId",
+  "userSlackId",
+  "userMicrosoftTeamsId",
   "userWebhookId",
 ];
 
@@ -180,7 +184,7 @@ const ID_COLUMNS: Array<RuleIdColumn> = [
  * An in-memory stand-in for the UserNotificationRule table.
  *
  * Rows are real model instances, because that is what the job reads: it asks
- * rules for `.userId`, `.isOptOut`, `.notifyAfterMinutes` and the seven method
+ * rules for `.userId`, `.isOptOut`, `.notifyAfterMinutes` and the nine method
  * foreign keys, and hands `create` a model it built itself.
  * -------------------------------------------------------------------------
  */

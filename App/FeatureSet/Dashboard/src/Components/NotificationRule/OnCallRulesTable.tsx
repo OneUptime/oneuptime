@@ -10,6 +10,8 @@ import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationR
 import UserPush from "Common/Models/DatabaseModels/UserPush";
 import UserSMS from "Common/Models/DatabaseModels/UserSMS";
 import UserTelegram from "Common/Models/DatabaseModels/UserTelegram";
+import UserSlack from "Common/Models/DatabaseModels/UserSlack";
+import UserMicrosoftTeams from "Common/Models/DatabaseModels/UserMicrosoftTeams";
 import UserWebhook from "Common/Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "Common/Models/DatabaseModels/UserWhatsApp";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -89,7 +91,7 @@ export type SeverityForeignKeyColumn = "incidentSeverityId" | "alertSeverityId";
  * submits nothing and is refused.
  */
 export interface NotificationMethodChoice {
-  /* One of the seven channel names: Email, SMS, Call, Push, WhatsApp, Telegram, Webhook. */
+  /* One of the nine channel names: Email, SMS, Call, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook. */
   methodType: string;
   /* The method row's own id — UserSMS._id and so on — as a plain uuid string. */
   methodId: string;
@@ -101,7 +103,7 @@ export interface NotificationMethodChoice {
 /*
  * Which foreign key on UserNotificationRule each channel corresponds to.
  *
- * The seven columns are mutually exclusive - a rule points at exactly one method
+ * The nine columns are mutually exclusive - a rule points at exactly one method
  * - and on the self-serve path NotificationMethodUtil derives the column from
  * the MODEL CLASS of the chosen row. That is not available here: the supplied
  * path never loads a row, it is handed a channel name and an id, so the mapping
@@ -124,10 +126,12 @@ type MethodForeignKeyColumn =
   | "userPushId"
   | "userWhatsAppId"
   | "userTelegramId"
+  | "userSlackId"
+  | "userMicrosoftTeamsId"
   | "userWebhookId";
 
 interface MethodChannel {
-  /* One of the seven channel names OnCallReadinessService puts on the wire. */
+  /* One of the nine channel names OnCallReadinessService puts on the wire. */
   methodType: string;
   foreignKeyColumn: MethodForeignKeyColumn;
 }
@@ -139,6 +143,8 @@ const METHOD_CHANNELS: Array<MethodChannel> = [
   { methodType: "Push", foreignKeyColumn: "userPushId" },
   { methodType: "WhatsApp", foreignKeyColumn: "userWhatsAppId" },
   { methodType: "Telegram", foreignKeyColumn: "userTelegramId" },
+  { methodType: "Slack", foreignKeyColumn: "userSlackId" },
+  { methodType: "Microsoft Teams", foreignKeyColumn: "userMicrosoftTeamsId" },
   { methodType: "Webhook", foreignKeyColumn: "userWebhookId" },
 ];
 
@@ -218,7 +224,7 @@ const getSuppliedDropdownOptions: GetSuppliedDropdownOptions = (
 };
 
 /*
- * The method projection for a table that is about SOMEBODY ELSE: the seven
+ * The method projection for a table that is about SOMEBODY ELSE: the nine
  * foreign keys, and not one column of the seven models behind them.
  *
  * THIS IS A SECOND DOOR INTO THE SAME ROOM, and it is not the one anybody
@@ -273,7 +279,7 @@ const UNRESOLVED_METHOD_LABEL: string =
 /*
  * The method cell for a table that is about somebody else, resolved from ids.
  *
- * Exactly one of the seven foreign keys is set on a rule, so the first one found
+ * Exactly one of the nine foreign keys is set on a rule, so the first one found
  * is the answer. The id is matched against the masked list REGARDLESS of
  * verification - see `isSelectableMethod` - because a rule pointing at a method
  * that has since become unverified is a real state, and the whole reason an
@@ -479,6 +485,10 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
   const [userSMSs, setUserSMSs] = useState<Array<UserSMS>>([]);
   const [userWhatsApps, setUserWhatsApps] = useState<Array<UserWhatsApp>>([]);
   const [userTelegrams, setUserTelegrams] = useState<Array<UserTelegram>>([]);
+  const [userSlacks, setUserSlacks] = useState<Array<UserSlack>>([]);
+  const [userMicrosoftTeamsAccounts, setUserMicrosoftTeamsAccounts] = useState<
+    Array<UserMicrosoftTeams>
+  >([]);
   const [userWebhooks, setUserWebhooks] = useState<Array<UserWebhook>>([]);
   const [userCalls, setUserCalls] = useState<Array<UserCall>>([]);
   const [userPush, setUserPush] = useState<Array<UserPush>>([]);
@@ -523,6 +533,8 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
           userPush: userPush,
           userWhatsApps: userWhatsApps,
           userTelegrams: userTelegrams,
+          userSlacks: userSlacks,
+          userMicrosoftTeamsAccounts: userMicrosoftTeamsAccounts,
           userWebhooks: userWebhooks,
         })
       : getSuppliedDropdownOptions(props.notificationMethods || []);
@@ -554,6 +566,8 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
         userPush: userPush,
         userWhatsApps: userWhatsApps,
         userTelegrams: userTelegrams,
+        userSlacks: userSlacks,
+        userMicrosoftTeamsAccounts: userMicrosoftTeamsAccounts,
         userWebhooks: userWebhooks,
       });
 
@@ -1051,7 +1065,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * The seven method models, read for the signed-in user and nobody else.
+   * The nine method models, read for the signed-in user and nobody else.
    *
    * Every query below is scoped to `targetUserId`, and this function is only
    * ever called when that IS the signed-in user - which is the same predicate
@@ -1168,6 +1182,43 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
       );
 
       setUserTelegrams(userTelegramList.data);
+
+      const userSlackList: ListResult<UserSlack> = await ModelAPI.getList({
+        modelType: UserSlack,
+        query: {
+          projectId: ProjectUtil.getCurrentProjectId()!,
+          userId: targetUserId!,
+          isVerified: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          slackUserName: true,
+          slackUserId: true,
+        },
+        sort: {},
+      });
+
+      setUserSlacks(userSlackList.data);
+
+      const userMicrosoftTeamsList: ListResult<UserMicrosoftTeams> =
+        await ModelAPI.getList({
+          modelType: UserMicrosoftTeams,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            userId: targetUserId!,
+            isVerified: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            microsoftTeamsUserName: true,
+            microsoftTeamsUserId: true,
+          },
+          sort: {},
+        });
+
+      setUserMicrosoftTeamsAccounts(userMicrosoftTeamsList.data);
 
       /*
        * Webhooks are the one method with no verification step - there is no

@@ -11,6 +11,7 @@ import SmsService from "../../../Server/Services/SmsService";
 import CallService from "../../../Server/Services/CallService";
 import WhatsAppService from "../../../Server/Services/WhatsAppService";
 import TelegramService from "../../../Server/Services/TelegramService";
+import WorkspaceUserNotificationService from "../../../Server/Services/WorkspaceUserNotificationService";
 import WebhookService from "../../../Server/Services/WebhookService";
 import PushNotificationService from "../../../Server/Services/PushNotificationService";
 import logger from "../../../Server/Utils/Logger";
@@ -28,16 +29,20 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import PushDeviceType from "../../../Types/PushNotification/PushDeviceType";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * THE SHAPE OF THE BUG THIS FILE EXISTS TO CATCH.
  *
- * `deliverNotificationForRule` is seven independent channel blocks stacked one
- * after another - email, SMS, WhatsApp, Telegram, webhook, call, push - and each
- * block is itself a stack of `if (eventType === X && entity)` branches, one per
- * UserNotificationEventType. That is a 7 x 4 grid written out by hand, twenty
- * eight times, with no compiler anywhere insisting the grid is full.
+ * `deliverNotificationForRule` is nine independent channel blocks stacked one
+ * after another - email, SMS, WhatsApp, Telegram, Slack, Microsoft Teams,
+ * webhook, call, push - and each block is itself a stack of
+ * `if (eventType === X && entity)` branches, one per UserNotificationEventType
+ * (the two workspace channels share one such ladder inside
+ * deliverWorkspaceDirectMessageForRule, but each still opens its own gate).
+ * That is a 9 x 4 grid written out by hand, thirty six times, with no compiler
+ * anywhere insisting the grid is full.
  *
  * It was not full. Gap F: `IncidentEpisodeCreated` was wired into the webhook
  * and push blocks and nowhere else, so a responder whose rule pointed at their
@@ -51,9 +56,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * A test that checked "email works" and "SMS works" would not have caught it,
  * because email and SMS did work - for three of the four event types. Only the
  * CARTESIAN PRODUCT catches a hole in a grid. So this file is table-driven on
- * purpose: it builds {seven channels} x {every member of UserNotificationEventType}
+ * purpose: it builds {nine channels} x {every member of UserNotificationEventType}
  * and asserts every single cell hands a page to its provider and writes a
- * timeline row. Adding an eighth channel or a fifth event type without filling
+ * timeline row. Adding a tenth channel or a fifth event type without filling
  * in the new row or column fails here, loudly, in the cell that is missing.
  *
  * Two canaries keep the table honest, because a table that quietly stops
@@ -65,7 +70,7 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *
  * Beyond the grid, three behaviours the grid depends on are pinned:
  *
- *   1. THE FELL-THROUGH GUARD. Phase 1 added a backstop after the seven blocks:
+ *   1. THE FELL-THROUGH GUARD. Phase 1 added a backstop after the channel blocks:
  *      if the rule could contact somebody and no branch claimed the event, write
  *      an Error row naming the event type and the channels. That converts the
  *      next Gap F from a silent hole into a visible failure - but only if it
@@ -122,6 +127,13 @@ const TELEGRAM_CHAT_ID: string = "987654321";
 const WEBHOOK_URL: string = "https://hooks.example.com/on-call";
 const DEVICE_TOKEN: string = "device-token";
 const TELEGRAM_BODY: string = "<b>telegram body</b>";
+const SLACK_USER_ID: string = "U0123ABCD";
+const SLACK_USER_NAME: string = "alice";
+const TEAMS_USER_ID: string = "aad-object-0123";
+const TEAMS_USER_NAME: string = "Alice Example";
+const WORKSPACE_BLOCKS: Array<Record<string, unknown>> = [
+  { _type: "WorkspacePayloadMarkdown", text: "**workspace body**" },
+];
 
 /* The options bag `executeNotificationRuleItem` takes, without re-declaring it. */
 type ExecuteOptions = Parameters<
@@ -146,13 +158,18 @@ interface TimelineRow {
   methodIds: Record<string, ObjectID | undefined>;
 }
 
-/* Everything the second argument of every sender has in common. */
+/* Everything the options bag handed to every sender has in common. */
 interface SenderOptions {
   projectId?: ObjectID | undefined;
   userId?: ObjectID | undefined;
   userOnCallLogTimelineId?: ObjectID | undefined;
   alertEpisodeId?: ObjectID | undefined;
   incidentEpisodeId?: ObjectID | undefined;
+  /*
+   * Only the shared workspace sender carries this: it is the ONE thing that
+   * says whether a call was a Slack page or a Microsoft Teams page.
+   */
+  workspaceType?: WorkspaceType | undefined;
 }
 
 interface DeliverySpies {
@@ -174,6 +191,7 @@ interface DeliverySpies {
   call: jest.SpyInstance;
   whatsApp: jest.SpyInstance;
   telegram: jest.SpyInstance;
+  workspace: jest.SpyInstance;
   webhook: jest.SpyInstance;
   push: jest.SpyInstance;
   loggerError: jest.SpyInstance;
@@ -279,6 +297,20 @@ interface ChannelSpec {
   unverifiedMessage: string;
   /* The provider function the block must call. Read lazily: spies are per-test. */
   sender: () => jest.SpyInstance;
+  /*
+   * Where the options bag sits in the sender's arguments. Every legacy
+   * provider takes (message, options); the workspace sender takes a single
+   * options bag as its only argument.
+   */
+  senderOptionsArgIndex: number;
+  /*
+   * Slack and Microsoft Teams share ONE sender -
+   * WorkspaceUserNotificationService.sendDirectMessageToUser - so the spy
+   * alone cannot say which channel a call was for; the workspaceType argument
+   * can, and is asserted wherever the spec's is non-null. Null for channels
+   * with a provider of their own.
+   */
+  workspaceType: WorkspaceType | null;
   /* The timeline column that attributes the row to this method. */
   timelineMethodIdField: string;
   /*
@@ -316,6 +348,8 @@ const CHANNEL_SPECS: Record<string, ChannelSpec> = {
     sender: (): jest.SpyInstance => {
       return spies.mail;
     },
+    senderOptionsArgIndex: 1,
+    workspaceType: null,
     timelineMethodIdField: "userEmailId",
     generatorPrefix: "generateEmailTemplateFor",
     generatorTimelineIdArgIndex: 2,
@@ -345,6 +379,8 @@ const CHANNEL_SPECS: Record<string, ChannelSpec> = {
     sender: (): jest.SpyInstance => {
       return spies.sms;
     },
+    senderOptionsArgIndex: 1,
+    workspaceType: null,
     timelineMethodIdField: "userSmsId",
     generatorPrefix: "generateSmsTemplateFor",
     generatorTimelineIdArgIndex: 2,
@@ -374,6 +410,8 @@ const CHANNEL_SPECS: Record<string, ChannelSpec> = {
     sender: (): jest.SpyInstance => {
       return spies.whatsApp;
     },
+    senderOptionsArgIndex: 1,
+    workspaceType: null,
     timelineMethodIdField: "userWhatsAppId",
     generatorPrefix: "generateWhatsAppTemplateFor",
     generatorTimelineIdArgIndex: 2,
@@ -403,9 +441,86 @@ const CHANNEL_SPECS: Record<string, ChannelSpec> = {
     sender: (): jest.SpyInstance => {
       return spies.telegram;
     },
+    senderOptionsArgIndex: 1,
+    workspaceType: null,
     timelineMethodIdField: "userTelegramId",
     /* Telegram's generator takes (entity, timelineId) - no `to` argument. */
     generatorPrefix: "generateTelegramBodyFor",
+    generatorTimelineIdArgIndex: 1,
+  },
+  Slack: {
+    channel: "Slack",
+    verifiedMethod: (): Record<string, unknown> => {
+      return {
+        userSlack: {
+          id: METHOD_ID,
+          slackUserId: SLACK_USER_ID,
+          slackUserName: SLACK_USER_NAME,
+          isVerified: true,
+        },
+      };
+    },
+    unverifiedMethod: (): Record<string, unknown> => {
+      return {
+        userSlack: {
+          id: METHOD_ID,
+          slackUserId: SLACK_USER_ID,
+          slackUserName: SLACK_USER_NAME,
+          isVerified: false,
+        },
+      };
+    },
+    sendingMessage: "Sending Slack message.",
+    unverifiedMessage:
+      "Slack message not sent because the Slack account is not verified.",
+    sender: (): jest.SpyInstance => {
+      return spies.workspace;
+    },
+    /* The workspace sender takes ONE options bag, not (message, options). */
+    senderOptionsArgIndex: 0,
+    workspaceType: WorkspaceType.Slack,
+    timelineMethodIdField: "userSlackId",
+    /*
+     * One generator family serves BOTH workspace channels: the blocks are
+     * plain markdown, slackified or adaptive-carded by the send side. Like
+     * Telegram's, the generators take (entity, timelineId).
+     */
+    generatorPrefix: "generateWorkspaceMessageBlocksFor",
+    generatorTimelineIdArgIndex: 1,
+  },
+  "Microsoft Teams": {
+    channel: "Microsoft Teams",
+    verifiedMethod: (): Record<string, unknown> => {
+      return {
+        userMicrosoftTeams: {
+          id: METHOD_ID,
+          microsoftTeamsUserId: TEAMS_USER_ID,
+          microsoftTeamsUserName: TEAMS_USER_NAME,
+          isVerified: true,
+        },
+      };
+    },
+    unverifiedMethod: (): Record<string, unknown> => {
+      return {
+        userMicrosoftTeams: {
+          id: METHOD_ID,
+          microsoftTeamsUserId: TEAMS_USER_ID,
+          microsoftTeamsUserName: TEAMS_USER_NAME,
+          isVerified: false,
+        },
+      };
+    },
+    sendingMessage: "Sending Microsoft Teams message.",
+    unverifiedMessage:
+      "Microsoft Teams message not sent because the Microsoft Teams account is not verified.",
+    sender: (): jest.SpyInstance => {
+      return spies.workspace;
+    },
+    senderOptionsArgIndex: 0,
+    workspaceType: WorkspaceType.MicrosoftTeams,
+    timelineMethodIdField: "userMicrosoftTeamsId",
+    /* Shared with Slack - see the note on that spec. */
+    generatorPrefix: "generateWorkspaceMessageBlocksFor",
     generatorTimelineIdArgIndex: 1,
   },
   Webhook: {
@@ -430,6 +545,8 @@ const CHANNEL_SPECS: Record<string, ChannelSpec> = {
     sender: (): jest.SpyInstance => {
       return spies.webhook;
     },
+    senderOptionsArgIndex: 1,
+    workspaceType: null,
     timelineMethodIdField: "userWebhookId",
     generatorPrefix: null,
     generatorTimelineIdArgIndex: -1,
@@ -459,6 +576,8 @@ const CHANNEL_SPECS: Record<string, ChannelSpec> = {
     sender: (): jest.SpyInstance => {
       return spies.call;
     },
+    senderOptionsArgIndex: 1,
+    workspaceType: null,
     timelineMethodIdField: "userCallId",
     generatorPrefix: "generateCallTemplateFor",
     generatorTimelineIdArgIndex: 2,
@@ -490,6 +609,8 @@ const CHANNEL_SPECS: Record<string, ChannelSpec> = {
     sender: (): jest.SpyInstance => {
       return spies.push;
     },
+    senderOptionsArgIndex: 1,
+    workspaceType: null,
     timelineMethodIdField: "userPushId",
     /* Push builds its payload through PushNotificationUtil, not a generator. */
     generatorPrefix: null,
@@ -596,6 +717,8 @@ const CHANNEL_NAMES: Array<string> = [
   "SMS",
   "WhatsApp",
   "Telegram",
+  "Slack",
+  "Microsoft Teams",
   "Webhook",
   "Call",
   "Push",
@@ -614,6 +737,8 @@ const GENERATOR_CHANNEL_NAMES: Array<string> = [
   "SMS",
   "WhatsApp",
   "Telegram",
+  "Slack",
+  "Microsoft Teams",
   "Call",
 ];
 
@@ -623,6 +748,8 @@ const VERIFIABLE_CHANNEL_NAMES: Array<string> = [
   "SMS",
   "WhatsApp",
   "Telegram",
+  "Slack",
+  "Microsoft Teams",
   "Call",
   "Push",
 ];
@@ -683,6 +810,7 @@ function everySender(): Array<jest.SpyInstance> {
     spies.call,
     spies.whatsApp,
     spies.telegram,
+    spies.workspace,
     spies.webhook,
     spies.push,
   ];
@@ -696,9 +824,11 @@ function otherSenders(channel: ChannelSpec): Array<jest.SpyInstance> {
   });
 }
 
-/* The options bag - always the second argument - that a sender was handed. */
-function senderOptions(sender: jest.SpyInstance): SenderOptions {
-  return sender.mock.calls[0][1] as SenderOptions;
+/* The options bag a sender was handed - the spec says which argument it is. */
+function senderOptions(channel: ChannelSpec): SenderOptions {
+  return channel.sender().mock.calls[0][
+    channel.senderOptionsArgIndex
+  ] as SenderOptions;
 }
 
 describe("UserNotificationRuleService channel x event coverage", () => {
@@ -731,6 +861,8 @@ describe("UserNotificationRuleService channel x event coverage", () => {
             userCallId: data.userCallId,
             userWhatsAppId: data.userWhatsAppId,
             userTelegramId: data.userTelegramId,
+            userSlackId: data.userSlackId,
+            userMicrosoftTeamsId: data.userMicrosoftTeamsId,
             userPushId: data.userPushId,
             userWebhookId: data.userWebhookId,
           },
@@ -813,6 +945,10 @@ describe("UserNotificationRuleService channel x event coverage", () => {
         .mockResolvedValue(undefined as never),
       telegram: jest
         .spyOn(TelegramService, "sendTelegramMessage")
+        .mockResolvedValue(undefined as never),
+      /* ONE sender for BOTH workspace channels - see ChannelSpec.workspaceType. */
+      workspace: jest
+        .spyOn(WorkspaceUserNotificationService, "sendDirectMessageToUser")
         .mockResolvedValue(undefined as never),
       webhook: jest
         .spyOn(WebhookService, "sendWebhook")
@@ -929,6 +1065,30 @@ describe("UserNotificationRuleService channel x event coverage", () => {
           "generateTelegramBodyForIncidentEpisodeCreated",
         )
         .mockResolvedValue(TELEGRAM_BODY as never),
+      generateWorkspaceMessageBlocksForIncidentCreated: jest
+        .spyOn(
+          UserNotificationRuleService,
+          "generateWorkspaceMessageBlocksForIncidentCreated",
+        )
+        .mockResolvedValue(WORKSPACE_BLOCKS as never),
+      generateWorkspaceMessageBlocksForAlertCreated: jest
+        .spyOn(
+          UserNotificationRuleService,
+          "generateWorkspaceMessageBlocksForAlertCreated",
+        )
+        .mockResolvedValue(WORKSPACE_BLOCKS as never),
+      generateWorkspaceMessageBlocksForAlertEpisodeCreated: jest
+        .spyOn(
+          UserNotificationRuleService,
+          "generateWorkspaceMessageBlocksForAlertEpisodeCreated",
+        )
+        .mockResolvedValue(WORKSPACE_BLOCKS as never),
+      generateWorkspaceMessageBlocksForIncidentEpisodeCreated: jest
+        .spyOn(
+          UserNotificationRuleService,
+          "generateWorkspaceMessageBlocksForIncidentEpisodeCreated",
+        )
+        .mockResolvedValue(WORKSPACE_BLOCKS as never),
       generateCallTemplateForIncidentCreated: jest
         .spyOn(
           UserNotificationRuleService,
@@ -999,7 +1159,7 @@ describe("UserNotificationRuleService channel x event coverage", () => {
       /*
        * The canary for the next Gap F. Adding a fifth event type to the enum
        * fails here until it is added to EVENT_SPECS, at which point the matrix
-       * grows by seven cells and any channel that forgot the new branch fails.
+       * grows by nine cells and any channel that forgot the new branch fails.
        */
       const members: Array<string> = Object.values(UserNotificationEventType);
 
@@ -1033,7 +1193,7 @@ describe("UserNotificationRuleService channel x event coverage", () => {
       expect(FULL_MATRIX).toHaveLength(
         CHANNEL_NAMES.length * EVENT_NAMES.length,
       );
-      expect(FULL_MATRIX).toHaveLength(28);
+      expect(FULL_MATRIX).toHaveLength(36);
     });
   });
 
@@ -1057,6 +1217,17 @@ describe("UserNotificationRuleService channel x event coverage", () => {
          * line with the provider untouched and the timeline empty.
          */
         expect(channel.sender()).toHaveBeenCalledTimes(1);
+
+        /*
+         * Slack and Microsoft Teams share that sender, so "the spy was called"
+         * alone cannot tell a Slack page from a Teams page. The workspaceType
+         * argument can, and must name THIS channel.
+         */
+        if (channel.workspaceType) {
+          expect(senderOptions(channel).workspaceType).toBe(
+            channel.workspaceType,
+          );
+        }
       },
     );
 
@@ -1070,6 +1241,20 @@ describe("UserNotificationRuleService channel x event coverage", () => {
 
         for (const sender of otherSenders(channel)) {
           expect(sender).not.toHaveBeenCalled();
+        }
+
+        /*
+         * otherSenders cannot separate the two channels that share the
+         * workspace sender, so for those the "no other channel" claim is
+         * finished by checking every call on the shared spy was for THIS
+         * workspace and not its sibling.
+         */
+        if (channel.workspaceType) {
+          for (const call of channel.sender().mock.calls) {
+            expect((call[0] as SenderOptions).workspaceType).toBe(
+              channel.workspaceType,
+            );
+          }
         }
       },
     );
@@ -1129,7 +1314,7 @@ describe("UserNotificationRuleService channel x event coverage", () => {
 
         await deliverCell(channel, event);
 
-        const options: SenderOptions = senderOptions(channel.sender());
+        const options: SenderOptions = senderOptions(channel);
 
         /*
          * userOnCallLogTimelineId is how the provider's delivery callback finds
@@ -1335,7 +1520,16 @@ describe("UserNotificationRuleService channel x event coverage", () => {
 
   describe("episode ids on the sender options", () => {
     test.each<[string, string]>(
-      buildMatrix(["Email", "SMS", "WhatsApp", "Telegram", "Call", "Push"]),
+      buildMatrix([
+        "Email",
+        "SMS",
+        "WhatsApp",
+        "Telegram",
+        "Slack",
+        "Microsoft Teams",
+        "Call",
+        "Push",
+      ]),
     )(
       "%s links the alert episode it is paging about (%s is ignored unless it is the alert episode)",
       async (channelName: string, eventName: string): Promise<void> => {
@@ -1344,7 +1538,7 @@ describe("UserNotificationRuleService channel x event coverage", () => {
 
         await deliverCell(channel, event);
 
-        const options: SenderOptions = senderOptions(channel.sender());
+        const options: SenderOptions = senderOptions(channel);
 
         if (event.eventType === UserNotificationEventType.AlertEpisodeCreated) {
           expect(options.alertEpisodeId?.toString()).toBe(
@@ -1371,11 +1565,39 @@ describe("UserNotificationRuleService channel x event coverage", () => {
          * without fixing the transport: every one of these services accepts
          * incidentEpisodeId in its options type and then never serialises it
          * onto the request body. Passing it would read as a link that exists.
-         * Contrast with alertEpisodeId above, which does travel.
+         * Contrast with alertEpisodeId above, which does travel - and with the
+         * workspace channels below, which send in-process and DO carry it.
          */
-        expect(
-          senderOptions(channel.sender()).incidentEpisodeId,
-        ).toBeUndefined();
+        expect(senderOptions(channel).incidentEpisodeId).toBeUndefined();
+      },
+    );
+
+    test.each<[string, string]>(buildMatrix(["Slack", "Microsoft Teams"]))(
+      "%s links the incident episode it is paging about (%s is ignored unless it is the incident episode)",
+      async (channelName: string, eventName: string): Promise<void> => {
+        const channel: ChannelSpec = channelSpec(channelName);
+        const event: EventSpec = eventSpec(eventName);
+
+        await deliverCell(channel, event);
+
+        /*
+         * The workspace sender is not an HTTP transport with a lossy request
+         * body: it runs in-process and stamps whatever ids it is handed onto
+         * the workspace notification log. So unlike the six channels above it
+         * is given the incident episode id - and only when the incident
+         * episode is what fired.
+         */
+        const options: SenderOptions = senderOptions(channel);
+
+        if (
+          event.eventType === UserNotificationEventType.IncidentEpisodeCreated
+        ) {
+          expect(options.incidentEpisodeId?.toString()).toBe(
+            INCIDENT_EPISODE_ID.toString(),
+          );
+        } else {
+          expect(options.incidentEpisodeId).toBeUndefined();
+        }
       },
     );
   });
@@ -1472,7 +1694,7 @@ describe("UserNotificationRuleService channel x event coverage", () => {
    * ----------------------------------------------------------------------- *
    * (G) The fell-through guard.
    *
-   * With all twenty eight cells wired, no rule reaches this guard today - which
+   * With all thirty six cells wired, no rule reaches this guard today - which
    * is exactly the state it is meant to police, and exactly why it needs a test
    * of its own rather than incidental coverage. The precondition it fires on is
    * "the channel census found somebody reachable, and then no block claimed the
@@ -1690,6 +1912,8 @@ describe("UserNotificationRuleService channel x event coverage", () => {
       ["SMS"],
       ["WhatsApp"],
       ["Telegram"],
+      ["Slack"],
+      ["Microsoft Teams"],
       ["Webhook"],
       ["Call"],
       ["Push"],

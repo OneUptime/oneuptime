@@ -16,6 +16,8 @@ import UserPush from "./UserPush";
 import UserOnCallLog from "./UserOnCallLog";
 import UserSMS from "./UserSMS";
 import UserTelegram from "./UserTelegram";
+import UserSlack from "./UserSlack";
+import UserMicrosoftTeams from "./UserMicrosoftTeams";
 import UserWebhook from "./UserWebhook";
 import UserWhatsApp from "./UserWhatsApp";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -1056,6 +1058,99 @@ export default class UserOnCallLogTimeline extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public userTelegramId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "userSlackId",
+    type: TableColumnType.Entity,
+    modelType: UserSlack,
+    title: "User Slack",
+    description: "Relation to User Slack Resource in which this object belongs",
+  })
+  @ManyToOne(
+    () => {
+      return UserSlack;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "userSlackId" })
+  public userSlack?: UserSlack = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "User Slack ID",
+    description: "ID of User Slack in which this object belongs",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public userSlackId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "userMicrosoftTeamsId",
+    type: TableColumnType.Entity,
+    modelType: UserMicrosoftTeams,
+    title: "User Microsoft Teams",
+    description:
+      "Relation to User Microsoft Teams Resource in which this object belongs",
+  })
+  @ManyToOne(
+    () => {
+      return UserMicrosoftTeams;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "userMicrosoftTeamsId" })
+  public userMicrosoftTeams?: UserMicrosoftTeams = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "User Microsoft Teams ID",
+    description: "ID of User Microsoft Teams in which this object belongs",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public userMicrosoftTeamsId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],
