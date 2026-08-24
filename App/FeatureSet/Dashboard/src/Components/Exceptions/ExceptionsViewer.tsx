@@ -29,7 +29,9 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Query from "Common/Types/BaseDatabase/Query";
 import ObjectID from "Common/Types/ObjectID";
 import Includes from "Common/Types/BaseDatabase/Includes";
-import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import AnalyticsModelAPI, {
+  ListResult as AnalyticsModelListResult,
+} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import {
   EXCEPTION_ATTRIBUTE_FACET_PREFIX,
@@ -659,7 +661,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
           RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
 
         try {
-          const instances: ModelListResult<ExceptionInstance> =
+          const instances: AnalyticsModelListResult<ExceptionInstance> =
             await AnalyticsModelAPI.getList<ExceptionInstance>({
               modelType: ExceptionInstance,
               query: buildExceptionInstanceAttributeQuery({
