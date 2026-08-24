@@ -116,7 +116,6 @@ import "./Jobs/OnCallDutyPolicy/WeeklyReadinessDigest";
 import "./Jobs/PaymentProvider/CheckSubscriptionStatus";
 import "./Jobs/PaymentProvider/PopulatePlanNameInProject";
 import "./Jobs/PaymentProvider/UpdateTeamMembersIfNull";
-import "./Jobs/MarketingConversions/MarketingConversions";
 import "./Jobs/ScheduledMaintenance/ChangeStateToEnded";
 
 // Scheduled Event
@@ -296,6 +295,8 @@ import JobDictionary from "./Utils/JobDictionary";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Queue, { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
+import MarketingEventWebhook from "Common/Server/Utils/Marketing/MarketingEventWebhook";
+import { MarketingEvent } from "Common/Types/Marketing/MarketingEvent";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import logger from "Common/Server/Utils/Logger";
 import {
@@ -432,6 +433,25 @@ const WorkersFeatureSet: FeatureSet = {
             }
           },
           { concurrency: WORKER_CONCURRENCY },
+        );
+
+        /*
+         * Outbound marketing conversion webhooks.
+         *
+         * Registered alongside the Worker consumer and skipped in the same
+         * "api" role, so the dedicated worker deployment drains it. The job
+         * carries the whole event: nothing in OneUptime stores one, so a job
+         * lost here is a conversion nobody can reconstruct. Throwing out of
+         * the handler is what makes BullMQ retry.
+         */
+        QueueWorker.getWorker(
+          QueueName.MarketingEvent,
+          async (job: QueueJob) => {
+            await MarketingEventWebhook.deliver(
+              job.data as unknown as MarketingEvent,
+            );
+          },
+          { concurrency: 10 },
         );
       }
     } catch (err) {

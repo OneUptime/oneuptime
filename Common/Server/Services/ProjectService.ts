@@ -16,6 +16,8 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Utils/Logger";
 import Errors from "../Utils/Errors";
 import ProductAnalytics from "../Utils/ProductAnalytics";
+import MarketingEventUtil from "../Utils/Marketing/MarketingEventUtil";
+import { MarketingEventType } from "../../Types/Marketing/MarketingEvent";
 import SessionReplayGateCacheStore from "../Utils/SessionReplay/SessionReplayGateCacheStore";
 import AccessTokenService from "./AccessTokenService";
 import BillingService from "./BillingService";
@@ -558,10 +560,21 @@ export class ProjectService extends DatabaseService<Model> {
         trialEndsAt: true,
         paymentProviderCustomerId: true,
         createdOwnerEmail: true,
+        /*
+         * The full attribution set, not just the three UTMs the analytics
+         * properties carry: the outbound plan-change conversion is the only
+         * place the campaign that won a customer is ever reported, and a
+         * column left unselected reaches the receiver as empty rather than as
+         * an error.
+         */
         utmSource: true,
         utmMedium: true,
         utmCampaign: true,
+        utmTerm: true,
+        utmContent: true,
+        utmUrl: true,
         clickIds: true,
+        firstTouchAttribution: true,
       },
       props: {
         isRoot: true,
@@ -982,6 +995,60 @@ These are no longer recorded against the project and have to be cancelled by han
       distinctId: data.project.createdOwnerEmail.toString(),
       properties: properties,
     });
+
+    this.emitPlanChangeMarketingEvent({
+      project: data.project,
+      properties: properties,
+      isUpgrade: properties["is_upgrade"] === true,
+      isDowngrade: properties["is_downgrade"] === true,
+    });
+  }
+
+  /*
+   * The outbound subscription_upgraded / subscription_downgraded conversions.
+   *
+   * Rides on the analytics pass above rather than on the plan-change path
+   * directly, because that is where "is this an upgrade" is already decided —
+   * by plan ORDER, not price, so a monthly-to-yearly switch at the same tier
+   * is neither. Duplicating that comparison here is how the two would
+   * eventually disagree about what a customer did.
+   *
+   * Only real tier movements are emitted. A first plan on a project with no
+   * previous one has no direction (both flags read false, since oldPlanOrder
+   * is null), and an interval change is not a conversion — sending either as
+   * an upgrade would inflate exactly the number this exists to report.
+   */
+  private emitPlanChangeMarketingEvent(data: {
+    project: Model;
+    properties: JSONObject;
+    isUpgrade: boolean;
+    isDowngrade: boolean;
+  }): void {
+    if (!data.isUpgrade && !data.isDowngrade) {
+      return;
+    }
+
+    const eventType: MarketingEventType = data.isUpgrade
+      ? MarketingEventType.SubscriptionUpgraded
+      : MarketingEventType.SubscriptionDowngraded;
+
+    const occurredAt: Date = new Date();
+
+    MarketingEventUtil.emitInBackground(
+      MarketingEventUtil.buildEvent({
+        eventType: eventType,
+        /*
+         * A project can legitimately upgrade, downgrade and upgrade again, so
+         * unlike a signup or a booking there is no naturally unique key —
+         * the instant is what separates one change from the next.
+         */
+        eventId: `${eventType}:${data.project.id?.toString()}:${occurredAt.toISOString()}`,
+        occurredAt: occurredAt,
+        email: data.project.createdOwnerEmail?.toString(),
+        attributionSource: data.project,
+        data: data.properties,
+      }),
+    );
   }
 
   private async sendSubscriptionChangeWebhookSlackNotification(

@@ -198,6 +198,10 @@ its userlist at startup.
   value: {{ $.Values.analytics.host }}
 - name: CAL_WEBHOOK_SECRET
   value: {{ default "" ((($.Values.marketing).cal).webhookSecret) | quote }}
+- name: MARKETING_WEBHOOK_URL
+  value: {{ default "" ((($.Values.marketing).webhook).url) | quote }}
+- name: MARKETING_WEBHOOK_SECRET
+  value: {{ default "" ((($.Values.marketing).webhook).secret) | quote }}
 - name: CAPTCHA_ENABLED
   value: {{ ternary "true" "false" (default false $.Values.captcha.enabled) | quote }}
 - name: CAPTCHA_SITE_KEY

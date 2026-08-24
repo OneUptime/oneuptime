@@ -17,6 +17,13 @@ export enum QueueName {
   Worker = "Worker",
   Telemetry = "Telemetry",
   Runbook = "Runbook",
+  /*
+   * Outbound marketing conversion webhooks. Data-carrying (the job holds the
+   * whole event), unlike Worker, which looks its function up by name. Nothing
+   * stores these events, so this queue is the only thing that survives a
+   * receiver being briefly unreachable.
+   */
+  MarketingEvent = "MarketingEvent",
 }
 
 export type QueueJob = Job;

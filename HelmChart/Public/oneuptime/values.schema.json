@@ -1384,6 +1384,18 @@
         "marketing": {
             "type": "object",
             "properties": {
+                "webhook": {
+                    "type": "object",
+                    "properties": {
+                        "url": {
+                            "type": ["string", "null"]
+                        },
+                        "secret": {
+                            "type": ["string", "null"]
+                        }
+                    },
+                    "additionalProperties": false
+                },
                 "cal": {
                     "type": "object",
                     "properties": {

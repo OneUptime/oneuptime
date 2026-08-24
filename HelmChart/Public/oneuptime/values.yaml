@@ -978,6 +978,12 @@ analytics:
 # OneUptime's internal marketing conversion ledger (SaaS only). Conversions are
 # recorded for OneUptime's own reporting and are never sent to ad platforms.
 marketing:
+  # Outbound marketing conversion webhooks. Conversions are emitted as they
+  # happen and stored nowhere. Both values are required — a URL without a
+  # secret is refused rather than sent unsigned.
+  webhook:
+    url:
+    secret:
   cal:
     # Shared secret Cal.com signs booking webhooks with. Set the same value on
     # the Cal.com webhook pointed at https://<host>/api/cal-webhook. Empty

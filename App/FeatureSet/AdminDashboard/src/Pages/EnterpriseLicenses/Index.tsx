@@ -259,7 +259,7 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
             description: t("pages.enterpriseLicenses.cardDescription"),
           }}
           noItemsMessage={t("pages.enterpriseLicenses.noItems")}
-          searchableFields={["companyName"]}
+          searchableFields={["companyName", "email"]}
           viewPageRoute={Navigation.getCurrentRoute()}
           onBeforeCreate={(
             item: EnterpriseLicense,
@@ -279,6 +279,17 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
               fieldType: FormFieldSchemaType.Text,
               required: true,
               placeholder: "Acme, Inc.",
+            },
+            {
+              field: {
+                email: true,
+              },
+              title: "Email",
+              description:
+                "The address the customer booked their meeting with. Joins this licence to the conversion that produced it.",
+              fieldType: FormFieldSchemaType.Email,
+              required: false,
+              placeholder: "buyer@acme.com",
             },
             {
               field: {
@@ -344,6 +355,13 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
             },
             {
               field: {
+                email: true,
+              },
+              title: "Email",
+              type: FieldType.Email,
+            },
+            {
+              field: {
                 expiresAt: true,
               },
               title: "Expires At",
@@ -371,6 +389,13 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
               },
               title: "Company",
               type: FieldType.Text,
+            },
+            {
+              field: {
+                email: true,
+              },
+              title: "Email",
+              type: FieldType.Email,
             },
             {
               field: {
