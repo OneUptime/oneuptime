@@ -177,6 +177,49 @@ describe("Sitemap hygiene", () => {
   });
 });
 
+describe("Security events product page", () => {
+  /*
+   * The page is only reachable because three separate registrations agree on
+   * the same path: the route, the SEO entry (which is also what puts it in
+   * llms.txt and products.json, via pageType "product"), and the sitemap
+   * priority. Any one of them drifting leaves the page half-published.
+   */
+  test("the product page is registered and renders its own template", () => {
+    expect(hasGetRoute("/product/security-events")).toBe(true);
+    expect(routesSource).toContain(`${"${ViewsPath}"}/security-events`);
+  });
+
+  test("it is a canonical page, not a redirect", () => {
+    expect(redirectTargetOf("/product/security-events")).toBeNull();
+    expect(isRedirectPath("/product/security-events")).toBe(false);
+  });
+
+  test("it resolves SEO data typed as a product", () => {
+    const seo: PageSEOData | undefined =
+      PageSEOConfig["/product/security-events"];
+
+    expect(seo).toBeDefined();
+    expect(seo!.canonicalPath).toBe("/product/security-events");
+    /*
+     * getPagesByType("product") is what feeds /llms.txt, /llms-full.txt and
+     * /data/products.json — a different pageType renders fine but is invisible
+     * to every machine-readable index of the site.
+     */
+    expect(seo!.pageType).toBe("product");
+  });
+
+  test("it is prioritised in the sitemap config", () => {
+    const sitemapSource: string = fs.readFileSync(
+      path.join(__dirname, "..", "Utils", "Sitemap.ts"),
+      "utf-8",
+    );
+
+    expect(sitemapSource).toContain(
+      '"/product/security-events": { priority: 0.9, changefreq: "weekly" }',
+    );
+  });
+});
+
 describe("SEO registration", () => {
   test("both new canonical pages resolve their own SEO data", () => {
     for (const pagePath of ["/enterprise/self-hosted", "/trust"]) {

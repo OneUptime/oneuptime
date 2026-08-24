@@ -863,6 +863,44 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/security-events": {
+    title:
+      "Security Events | SIEM Signals, OCSF & Sigma Detection Rules | OneUptime",
+    description:
+      "Send security events from any source to one endpoint. They are normalized to OCSF, stored beside your logs, metrics and traces, matched by Sigma detection rules, and turned into alerts that page your existing on-call rotation. Open source.",
+    canonicalPath: "/product/security-events",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Security Events", url: "/product/security-events" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Security Events",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "SIEM signal as a first-class telemetry type. One authenticated ingest endpoint accepts OCSF, Google SecOps UDM, SecOps detection alerts, and generic security JSON, normalizes every event to OCSF, and stores it in the same data lake as your logs, metrics, and traces. Sigma detection rules and Security Events monitors turn matches into deduplicated alerts and optional incidents, routed through your existing severities and on-call escalation.",
+      features: [
+        "Single ingest endpoint for security events",
+        "OCSF normalization across four source dialects",
+        "Per-event dialect detection",
+        "Full source payload kept as flattened attributes",
+        "Sigma detection rules evaluated on a schedule",
+        "Group By for one alert per host, user or IP",
+        "Deduplicated alerts and optional incidents",
+        "Detection findings written back as searchable events",
+        "Security Events monitors over a sliding window",
+        "Observable correlation graph",
+        "Google SecOps webhook, connector and UDM forwarding",
+        "AI security event search and summary",
+        "Metered with telemetry at $0.10 per GB ingested",
+        "Open source",
+      ],
+    },
+  },
+
   "/product/services": {
     title: "Service Catalog | Map, Own & Monitor Every Service | OneUptime",
     description:
