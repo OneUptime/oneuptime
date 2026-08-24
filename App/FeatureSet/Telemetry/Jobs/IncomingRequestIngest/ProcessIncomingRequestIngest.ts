@@ -11,6 +11,7 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorService from "Common/Server/Services/MonitorService";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
+import { redactMonitorSecret } from "Common/Server/Utils/Monitor/MonitorPayloadRedaction";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 
 export async function processIncomingRequestFromQueue(
@@ -86,11 +87,37 @@ export async function processIncomingRequestFromQueue(
 
   const now: Date = OneUptimeDate.getCurrentDate();
 
+  /*
+   * Ingest boundary, matching the incoming-email path above it.
+   *
+   * `incomingRequestSecretKey` travels in the URL path (`/incoming-request/
+   * :secretkey`) and only the method, headers and body are captured here, so
+   * unlike the email address the key is not systematically echoed into what we
+   * store. It is still reachable: a relay or ingress that reflects the request
+   * target (`X-Original-URI`, `X-Forwarded-Uri`, `Referer`) puts the path into
+   * `requestHeaders`, and a sender is free to repeat its own key in the body.
+   * Either way it would land in `Monitor.incomingMonitorRequest`, which -- like
+   * its email sibling -- is `Permission.Viewer` readable.
+   *
+   * Sweeping the payload for this monitor's own key costs one pass over data we
+   * are about to persist anyway and makes the invariant uniform: nothing a
+   * read-only role can select ever contains a live ingest key.
+   */
+  const redactedRequestHeaders: Dictionary<string> = redactMonitorSecret(
+    requestHeaders,
+    monitorSecretKeyAsString,
+  );
+
+  const redactedRequestBody: string | JSONObject = redactMonitorSecret(
+    requestBody,
+    monitorSecretKeyAsString,
+  );
+
   const incomingRequest: IncomingMonitorRequest = {
     projectId: monitor.projectId,
     monitorId: new ObjectID(monitor._id.toString()),
-    requestHeaders: requestHeaders,
-    requestBody: requestBody,
+    requestHeaders: redactedRequestHeaders,
+    requestBody: redactedRequestBody,
     incomingRequestReceivedAt: now,
     onlyCheckForIncomingRequestReceivedAt: false,
     requestMethod: httpMethod,
