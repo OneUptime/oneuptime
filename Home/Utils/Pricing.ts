@@ -509,6 +509,15 @@ const Pricing: Array<PricingCategory> = [
         },
       },
       {
+        name: "Security Events (SIEM)",
+        plans: {
+          free: true,
+          growth: true,
+          scale: true,
+          enterprise: true,
+        },
+      },
+      {
         name: "Ingest Pricing",
         plans: {
           free: "$0.10/GB",
