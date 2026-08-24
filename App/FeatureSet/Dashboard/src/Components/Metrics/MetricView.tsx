@@ -1292,16 +1292,24 @@ const MetricView: FunctionComponent<ComponentProps> = (
                     metricTypes={metricTypes}
                     metricViewData={effectiveData}
                     chartCssClass={props.chartCssClass}
-                    onQueryConfigsChange={(
-                      queryConfigs: Array<MetricQueryConfigData>,
-                    ) => {
-                      if (props.onChange) {
-                        props.onChange({
-                          ...props.data,
-                          queryConfigs: queryConfigs,
-                        });
-                      }
-                    }}
+                    onQueryConfigsChange={
+                      /*
+                       * Only claim the write path when a parent onChange
+                       * can actually persist it. Passing an always-present
+                       * wrapper made read-only hosts route Top-N writes
+                       * (and the series menu's "Filter to this series")
+                       * into a no-op instead of the transient-override /
+                       * explorer-link fallbacks.
+                       */
+                      props.onChange
+                        ? (queryConfigs: Array<MetricQueryConfigData>) => {
+                            props.onChange?.({
+                              ...props.data,
+                              queryConfigs: queryConfigs,
+                            });
+                          }
+                        : undefined
+                    }
                     onTimeRangeSelect={
                       /*
                        * Charts advertise drag-to-zoom (crosshair, hint,

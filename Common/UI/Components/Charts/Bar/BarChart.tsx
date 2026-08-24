@@ -115,7 +115,14 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
 
   return (
     <div
-      className="relative flex flex-1"
+      /*
+       * `isolate` opens a stacking context so the recharts tooltip's
+       * z-index competes only inside this chart — without it the tooltip
+       * (zIndex 10, pinned to the chart's top edge) ties with the app
+       * header's sticky z-10 in the root context and paints over the
+       * navbar on half-scrolled charts.
+       */
+      className="relative isolate flex flex-1"
       style={props.heightInPx ? { height: `${props.heightInPx}px` } : undefined}
     >
       <BarChart
