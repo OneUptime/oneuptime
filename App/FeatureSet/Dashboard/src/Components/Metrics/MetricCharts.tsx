@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import ReactDOM from "react-dom";
 import OneUptimeDate from "Common/Types/Date";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
 import ChartGroup, {
@@ -882,8 +883,17 @@ function renderSeriesControls(input: {
    * per-series investigate menu, anchored under the button.
    */
   onInvestigateSeries?:
-    | ((seriesName: string, anchor: { x: number; y: number }) => void)
+    | ((
+        seriesName: string,
+        anchor: { x: number; y: number },
+        trigger: HTMLElement | null,
+      ) => void)
     | undefined;
+  /*
+   * The series whose investigate menu is currently open — drives
+   * aria-expanded on that chip's magnifier button.
+   */
+  investigatedSeriesName?: string | null | undefined;
 }): ReactElement {
   const {
     chartId,
@@ -905,6 +915,7 @@ function renderSeriesControls(input: {
     unitLabel,
     valueFormatter,
     onInvestigateSeries,
+    investigatedSeriesName,
   } = input;
 
   const sortBy: SeriesSortBy = controls.sortBy;
@@ -1292,6 +1303,8 @@ function renderSeriesControls(input: {
                   <button
                     type="button"
                     aria-label={`Investigate ${series.seriesName}`}
+                    aria-haspopup="menu"
+                    aria-expanded={investigatedSeriesName === series.seriesName}
                     title="Investigate this series — logs, traces, and more"
                     onClick={(
                       event: React.MouseEvent<HTMLButtonElement>,
@@ -1299,12 +1312,21 @@ function renderSeriesControls(input: {
                       event.stopPropagation();
                       const rect: DOMRect =
                         event.currentTarget.getBoundingClientRect();
-                      onInvestigateSeries(series.seriesName, {
-                        x: rect.left,
-                        y: rect.bottom + 4,
-                      });
+                      onInvestigateSeries(
+                        series.seriesName,
+                        {
+                          x: rect.left,
+                          y: rect.bottom + 4,
+                        },
+                        event.currentTarget,
+                      );
                     }}
-                    className="inline-flex items-center rounded-r-md border-l border-gray-100 px-1.5 text-gray-300 transition hover:bg-indigo-50 hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 group-hover:text-gray-400"
+                    /*
+                     * Idle gray-500, not gray-300/400: the icon-only
+                     * control needs >= 3:1 contrast on the white chip
+                     * (WCAG 1.4.11) in its resting state too.
+                     */
+                    className="inline-flex items-center rounded-r-md border-l border-gray-100 px-1.5 text-gray-500 transition hover:bg-indigo-50 hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
                   >
                     <Icon icon={IconProp.MagnifyingGlass} className="h-3 w-3" />
                   </button>
@@ -1572,21 +1594,34 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     setIsComponentVisible: setIsSeriesMenuVisible,
   } = useComponentOutsideClick(false);
 
+  /*
+   * The chip button that opened the menu, so Escape / an action click can
+   * hand focus back (menu-button keyboard pattern). Outside clicks leave
+   * focus where the user put it.
+   */
+  const seriesMenuTriggerRef: React.MutableRefObject<HTMLElement | null> =
+    useRef<HTMLElement | null>(null);
+
   const closeSeriesMenu: VoidFunction = useCallback((): void => {
     setIsSeriesMenuVisible(false);
     setSeriesMenu(null);
+    seriesMenuTriggerRef.current?.focus();
+    seriesMenuTriggerRef.current = null;
   }, [setIsSeriesMenuVisible]);
 
   const openSeriesMenu: (
     seriesName: string,
     groupByKeys: Array<string>,
     anchor: { x: number; y: number },
+    trigger?: HTMLElement | null,
   ) => void = useCallback(
     (
       seriesName: string,
       groupByKeys: Array<string>,
       anchor: { x: number; y: number },
+      trigger?: HTMLElement | null,
     ): void => {
+      seriesMenuTriggerRef.current = trigger || null;
       const maxX: number =
         window.innerWidth -
         SERIES_MENU_WIDTH_PX -
@@ -1675,13 +1710,23 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       extraction.serviceNames,
     );
 
-    const serviceIds: Array<string> = extraction.serviceNames
+    const resolvedIds: Array<string> = extraction.serviceNames
       .map((serviceName: string): string => {
         return serviceIdsByName[serviceName] || "";
       })
       .filter((serviceId: string): boolean => {
         return serviceId !== "";
       });
+
+    /*
+     * All-or-nothing, matching the pivot ladder in
+     * buildCrossSignalScopeFromMetricViewData: filtering exceptions to
+     * only the RESOLVED subset of several service names would silently
+     * hide the unresolved services' exceptions while claiming to show
+     * "the" scoped list — better to carry nothing and report the drop.
+     */
+    const serviceIds: Array<string> =
+      resolvedIds.length === extraction.serviceNames.length ? resolvedIds : [];
 
     return { serviceIdsByName, serviceIds };
   };
@@ -1699,13 +1744,45 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const buildSignalTargetUrl: (pageMap: PageMap) => URL = (
+  /*
+   * SPA navigation with query params. Navigation.navigate(URL) is a full
+   * page load (window.location.href), which destroys the dropped-scope
+   * toast the instant it is shown — a Route goes through the router hook
+   * instead, so the toast survives into the target page. Values are
+   * pre-encoded because Route.addQueryParams concatenates verbatim; "~"
+   * is escaped by hand because encodeURIComponent leaves it alone and
+   * Route's character whitelist rejects it.
+   */
+  const navigateWithQueryParams: (
     pageMap: PageMap,
-  ): URL => {
-    const route: Route = RouteUtil.populateRouteParams(RouteMap[pageMap]!);
-    const currentUrl: URL = Navigation.getCurrentURL();
-    return new URL(currentUrl.protocol, currentUrl.hostname, route);
+    params: Dictionary<string>,
+  ) => void = (pageMap: PageMap, params: Dictionary<string>): void => {
+    const route: Route = new Route(
+      RouteUtil.populateRouteParams(RouteMap[pageMap]!).toString(),
+    );
+    const encodedParams: Dictionary<string> = {};
+    for (const paramName of Object.keys(params)) {
+      encodedParams[paramName] = encodeURIComponent(
+        params[paramName] as string,
+      ).replace(/~/g, "%7E");
+    }
+    if (Object.keys(encodedParams).length > 0) {
+      route.addQueryParams(encodedParams);
+    }
+    Navigation.navigate(route);
   };
+
+  const getChartWindowFallbackParams: () => Dictionary<string> =
+    (): Dictionary<string> => {
+      if (!exemplarWindow) {
+        return {};
+      }
+      return {
+        range: TimeRange.CUSTOM,
+        start: OneUptimeDate.toString(exemplarWindow.startValue),
+        end: OneUptimeDate.toString(exemplarWindow.endValue),
+      };
+    };
 
   const navigateSeriesToSignal: (
     menuState: SeriesMenuState,
@@ -1717,9 +1794,8 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     const { scopedViewData }: SeriesScopedViewData =
       getScopedViewDataForSeries(menuState);
 
-    const targetUrl: URL = buildSignalTargetUrl(
-      target === "traces" ? PageMap.TRACES : PageMap.LOGS,
-    );
+    const pageMap: PageMap =
+      target === "traces" ? PageMap.TRACES : PageMap.LOGS;
 
     try {
       const {
@@ -1733,33 +1809,12 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         serviceIdsByName,
       });
 
-      for (const paramName of Object.keys(pivot.params)) {
-        targetUrl.addQueryParam(
-          paramName,
-          pivot.params[paramName] as string,
-          true,
-        );
-      }
-
       showDroppedScopeToast(pivot.dropped);
+      navigateWithQueryParams(pageMap, pivot.params);
     } catch {
       // Degraded pivot: land on the target explorer in the chart's window.
-      if (exemplarWindow) {
-        targetUrl.addQueryParam("range", TimeRange.CUSTOM, true);
-        targetUrl.addQueryParam(
-          "start",
-          OneUptimeDate.toString(exemplarWindow.startValue),
-          true,
-        );
-        targetUrl.addQueryParam(
-          "end",
-          OneUptimeDate.toString(exemplarWindow.endValue),
-          true,
-        );
-      }
+      navigateWithQueryParams(pageMap, getChartWindowFallbackParams());
     }
-
-    Navigation.navigate(targetUrl);
   };
 
   const navigateSeriesToExceptions: (
@@ -1767,8 +1822,6 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
   ) => Promise<void> = async (menuState: SeriesMenuState): Promise<void> => {
     const { scopedViewData }: SeriesScopedViewData =
       getScopedViewDataForSeries(menuState);
-
-    const targetUrl: URL = buildSignalTargetUrl(PageMap.EXCEPTIONS_UNRESOLVED);
 
     try {
       const { serviceIds }: { serviceIds: Array<string> } =
@@ -1779,41 +1832,44 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         serviceIds,
       });
 
-      for (const paramName of Object.keys(pivot.params)) {
-        targetUrl.addQueryParam(
-          paramName,
-          pivot.params[paramName] as string,
-          true,
-        );
-      }
-
       showDroppedScopeToast(pivot.dropped);
+      navigateWithQueryParams(PageMap.EXCEPTIONS_UNRESOLVED, pivot.params);
     } catch {
       // Window-only fallback, same shape as the logs/traces catch above.
-      if (exemplarWindow) {
-        targetUrl.addQueryParam("range", TimeRange.CUSTOM, true);
-        targetUrl.addQueryParam(
-          "start",
-          OneUptimeDate.toString(exemplarWindow.startValue),
-          true,
-        );
-        targetUrl.addQueryParam(
-          "end",
-          OneUptimeDate.toString(exemplarWindow.endValue),
-          true,
-        );
-      }
+      navigateWithQueryParams(
+        PageMap.EXCEPTIONS_UNRESOLVED,
+        getChartWindowFallbackParams(),
+      );
     }
-
-    Navigation.navigate(targetUrl);
   };
 
   const openSeriesInExplorer: (menuState: SeriesMenuState) => void = (
     menuState: SeriesMenuState,
   ): void => {
-    ExplorerLink.openInExplorer(
-      getScopedViewDataForSeries(menuState).scopedViewData,
+    const { scopedViewData, seriesLabels }: SeriesScopedViewData =
+      getScopedViewDataForSeries(menuState);
+
+    /*
+     * An "(unset)" label narrows via the is-empty operator (IsNull),
+     * which the explorer URL grammar cannot carry (attributes serialize
+     * as string/number/boolean only) — say so instead of silently
+     * opening a wider view than the menu promised.
+     */
+    const hasUnsetLabel: boolean = Object.values(seriesLabels).some(
+      (labelValue: unknown): boolean => {
+        return labelValue === "";
+      },
     );
+    if (hasUnsetLabel) {
+      ShowToastNotification({
+        title: "Some filters were not carried over",
+        description:
+          'The "(unset)" narrowing cannot be expressed in an explorer link, so the opened view includes every value of that attribute.',
+        type: ToastType.INFO,
+      });
+    }
+
+    ExplorerLink.openInExplorer(scopedViewData);
   };
 
   const applySeriesFilter: (menuState: SeriesMenuState) => void = (
@@ -2006,8 +2062,13 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     serverTruncatedWithoutTopK?: boolean | undefined;
     warningElement?: ReactElement | undefined;
     onInvestigateSeries?:
-      | ((seriesName: string, anchor: { x: number; y: number }) => void)
+      | ((
+          seriesName: string,
+          anchor: { x: number; y: number },
+          trigger: HTMLElement | null,
+        ) => void)
       | undefined;
+    investigatedSeriesName?: string | null | undefined;
   }) => {
     displayableSeries: Array<SeriesPoint>;
     colorsOverride: Array<ChartColorValue> | undefined;
@@ -2028,8 +2089,13 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     serverTruncatedWithoutTopK?: boolean | undefined;
     warningElement?: ReactElement | undefined;
     onInvestigateSeries?:
-      | ((seriesName: string, anchor: { x: number; y: number }) => void)
+      | ((
+          seriesName: string,
+          anchor: { x: number; y: number },
+          trigger: HTMLElement | null,
+        ) => void)
       | undefined;
+    investigatedSeriesName?: string | null | undefined;
   }): {
     displayableSeries: Array<SeriesPoint>;
     colorsOverride: Array<ChartColorValue> | undefined;
@@ -2128,6 +2194,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           unitLabel: input.unitLabel,
           valueFormatter: input.valueFormatter,
           onInvestigateSeries: input.onInvestigateSeries,
+          investigatedSeriesName: input.investigatedSeriesName,
         })
       : undefined;
 
@@ -2546,10 +2613,16 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         serverTruncatedWithoutTopK,
         warningElement: unitMismatchWarning,
         onInvestigateSeries: showSeriesActions
-          ? (seriesName: string, anchor: { x: number; y: number }): void => {
-              openSeriesMenu(seriesName, panelGroupByKeys, anchor);
+          ? (
+              seriesName: string,
+              anchor: { x: number; y: number },
+              trigger: HTMLElement | null,
+            ): void => {
+              openSeriesMenu(seriesName, panelGroupByKeys, anchor, trigger);
             }
           : undefined,
+        investigatedSeriesName:
+          seriesMenu && isSeriesMenuVisible ? seriesMenu.seriesName : null,
       });
 
       /*
@@ -2869,10 +2942,13 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               ? (
                   seriesName: string,
                   anchor: { x: number; y: number },
+                  trigger: HTMLElement | null,
                 ): void => {
-                  openSeriesMenu(seriesName, formulaGroupKeys, anchor);
+                  openSeriesMenu(seriesName, formulaGroupKeys, anchor, trigger);
                 }
               : undefined,
+            investigatedSeriesName:
+              seriesMenu && isSeriesMenuVisible ? seriesMenu.seriesName : null,
           });
 
       const formulaChart: Chart = {
@@ -2975,145 +3051,170 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         hideCard={props.hideCard}
         chartCssClass={props.chartCssClass}
       />
-      {exemplarMenu && isExemplarMenuVisible ? (
-        <div
-          ref={exemplarMenuRef}
-          role="menu"
-          aria-orientation="vertical"
-          aria-label="Exemplar actions"
-          className="fixed z-50 w-48 rounded-lg bg-white py-1 shadow-xl ring-1 ring-gray-200 focus:outline-none"
-          style={{
-            left: `${exemplarMenu.position.x}px`,
-            top: `${exemplarMenu.position.y}px`,
-          }}
-          onKeyDown={handleExemplarMenuKeyDown}
-        >
-          <MoreMenuItem
-            key="exemplar-view-trace"
-            icon={IconProp.Layers}
-            text="View trace"
-            onClick={() => {
-              closeExemplarMenu();
-              navigateToExemplarTrace(exemplarMenu.exemplar);
-            }}
-          />
-          <MoreMenuItem
-            key="exemplar-view-logs"
-            icon={IconProp.Logs}
-            text="View logs"
-            onClick={() => {
-              closeExemplarMenu();
-              navigateToExemplarLogs(exemplarMenu.exemplar);
-            }}
-          />
-        </div>
-      ) : null}
-      {seriesMenu && isSeriesMenuVisible ? (
-        <div
-          ref={seriesMenuRef}
-          role="menu"
-          aria-orientation="vertical"
-          aria-label="Series investigation actions"
-          className="fixed z-50 w-64 rounded-lg bg-white py-1 shadow-xl ring-1 ring-gray-200 focus:outline-none"
-          style={{
-            left: `${seriesMenu.position.x}px`,
-            top: `${seriesMenu.position.y}px`,
-          }}
-          onKeyDown={handleSeriesMenuKeyDown}
-        >
-          <div className="mx-1 mb-1 border-b border-gray-100 px-3 pb-2 pt-1.5">
-            <p
-              className="truncate text-xs font-medium text-gray-900"
-              title={seriesMenu.seriesName}
+      {/*
+       * Both pivot menus render through a body portal: dashboard widget
+       * containers are overflow-hidden and (via the canvas) can sit in a
+       * transformed ancestor, which turns position:fixed into
+       * position-relative-to-that-ancestor — a menu anchored at viewport
+       * coordinates would land clipped or off-target. document.body has
+       * neither problem.
+       */}
+      {exemplarMenu && isExemplarMenuVisible
+        ? ReactDOM.createPortal(
+            <div
+              ref={exemplarMenuRef}
+              role="menu"
+              aria-orientation="vertical"
+              aria-label="Exemplar actions"
+              className="fixed z-50 w-48 rounded-lg bg-white py-1 shadow-xl ring-1 ring-gray-200 focus:outline-none"
+              style={{
+                left: `${exemplarMenu.position.x}px`,
+                top: `${exemplarMenu.position.y}px`,
+              }}
+              onKeyDown={handleExemplarMenuKeyDown}
             >
-              {seriesMenu.seriesName}
-            </p>
-            {seriesMenuNarrowSummary ? (
-              <p
-                className="mt-0.5 truncate text-[11px] text-gray-500"
-                title={seriesMenuNarrowSummary}
-              >
-                Scoped to {seriesMenuNarrowSummary}
-              </p>
-            ) : null}
-          </div>
-          {props.onQueryConfigsChange && seriesMenuScoped?.didNarrow ? (
-            <MoreMenuItem
-              key="series-filter"
-              icon={IconProp.Filter}
-              text="Filter to this series"
-              onClick={() => {
-                const menuState: SeriesMenuState = seriesMenu;
-                closeSeriesMenu();
-                applySeriesFilter(menuState);
-              }}
-            />
-          ) : null}
-          {!props.onQueryConfigsChange ? (
-            <MoreMenuItem
-              key="series-explorer"
-              icon={IconProp.ExternalLink}
-              text="Open in Metric Explorer"
-              onClick={() => {
-                const menuState: SeriesMenuState = seriesMenu;
-                closeSeriesMenu();
-                openSeriesInExplorer(menuState);
-              }}
-            />
-          ) : null}
-          <MoreMenuItem
-            key="series-view-logs"
-            icon={IconProp.Logs}
-            text="View logs"
-            onClick={() => {
-              const menuState: SeriesMenuState = seriesMenu;
-              closeSeriesMenu();
-              navigateSeriesToSignal(menuState, "logs").catch(() => {
-                // Best-effort navigation; failures already degrade inside.
-              });
-            }}
-          />
-          <MoreMenuItem
-            key="series-view-traces"
-            icon={IconProp.Layers}
-            text="View traces"
-            onClick={() => {
-              const menuState: SeriesMenuState = seriesMenu;
-              closeSeriesMenu();
-              navigateSeriesToSignal(menuState, "traces").catch(() => {
-                // Best-effort navigation; failures already degrade inside.
-              });
-            }}
-          />
-          <MoreMenuItem
-            key="series-view-exceptions"
-            icon={IconProp.Bug}
-            text="View exceptions"
-            onClick={() => {
-              const menuState: SeriesMenuState = seriesMenu;
-              closeSeriesMenu();
-              navigateSeriesToExceptions(menuState).catch(() => {
-                // Best-effort navigation; failures already degrade inside.
-              });
-            }}
-          />
-          {seriesMenuResourceTargets.map((target: SeriesResourceTarget) => {
-            return (
               <MoreMenuItem
-                key={`series-resource-${target.kind}`}
-                icon={resourceTargetIconByKind[target.kind]}
-                text={target.label}
+                key="exemplar-view-trace"
+                icon={IconProp.Layers}
+                text="View trace"
                 onClick={() => {
+                  closeExemplarMenu();
+                  navigateToExemplarTrace(exemplarMenu.exemplar);
+                }}
+              />
+              <MoreMenuItem
+                key="exemplar-view-logs"
+                icon={IconProp.Logs}
+                text="View logs"
+                onClick={() => {
+                  closeExemplarMenu();
+                  navigateToExemplarLogs(exemplarMenu.exemplar);
+                }}
+              />
+            </div>,
+            document.body,
+          )
+        : null}
+      {seriesMenu && isSeriesMenuVisible
+        ? ReactDOM.createPortal(
+            <div
+              ref={seriesMenuRef}
+              role="menu"
+              aria-orientation="vertical"
+              aria-label="Series investigation actions"
+              className="fixed z-50 w-64 rounded-lg bg-white py-1 shadow-xl ring-1 ring-gray-200 focus:outline-none"
+              style={{
+                left: `${seriesMenu.position.x}px`,
+                top: `${seriesMenu.position.y}px`,
+              }}
+              onKeyDown={handleSeriesMenuKeyDown}
+            >
+              <div className="mx-1 mb-1 border-b border-gray-100 px-3 pb-2 pt-1.5">
+                <p
+                  className="truncate text-xs font-medium text-gray-900"
+                  title={seriesMenu.seriesName}
+                >
+                  {seriesMenu.seriesName}
+                </p>
+                {seriesMenuNarrowSummary ? (
+                  <p
+                    className="mt-0.5 truncate text-[11px] text-gray-500"
+                    title={seriesMenuNarrowSummary}
+                  >
+                    Scoped to {seriesMenuNarrowSummary}
+                  </p>
+                ) : seriesMenu.groupByKeys.length > 0 ? (
+                  /*
+                   * A grouped chart whose series name did not parse back into
+                   * labels (e.g. overlay panels rename colliding series) —
+                   * being explicit beats implying a narrowing that never
+                   * happened.
+                   */
+                  <p className="mt-0.5 truncate text-[11px] text-gray-500">
+                    Couldn&apos;t scope to this series — actions cover the whole
+                    chart
+                  </p>
+                ) : null}
+              </div>
+              {props.onQueryConfigsChange && seriesMenuScoped?.didNarrow ? (
+                <MoreMenuItem
+                  key="series-filter"
+                  icon={IconProp.Filter}
+                  text="Filter to this series"
+                  onClick={() => {
+                    const menuState: SeriesMenuState = seriesMenu;
+                    closeSeriesMenu();
+                    applySeriesFilter(menuState);
+                  }}
+                />
+              ) : null}
+              {!props.onQueryConfigsChange ? (
+                <MoreMenuItem
+                  key="series-explorer"
+                  icon={IconProp.ExternalLink}
+                  text="Open in Metric Explorer"
+                  onClick={() => {
+                    const menuState: SeriesMenuState = seriesMenu;
+                    closeSeriesMenu();
+                    openSeriesInExplorer(menuState);
+                  }}
+                />
+              ) : null}
+              <MoreMenuItem
+                key="series-view-logs"
+                icon={IconProp.Logs}
+                text="View logs"
+                onClick={() => {
+                  const menuState: SeriesMenuState = seriesMenu;
                   closeSeriesMenu();
-                  openSeriesResource(target).catch(() => {
-                    // Resolution failures surface their own toast.
+                  navigateSeriesToSignal(menuState, "logs").catch(() => {
+                    // Best-effort navigation; failures already degrade inside.
                   });
                 }}
               />
-            );
-          })}
-        </div>
-      ) : null}
+              <MoreMenuItem
+                key="series-view-traces"
+                icon={IconProp.Layers}
+                text="View traces"
+                onClick={() => {
+                  const menuState: SeriesMenuState = seriesMenu;
+                  closeSeriesMenu();
+                  navigateSeriesToSignal(menuState, "traces").catch(() => {
+                    // Best-effort navigation; failures already degrade inside.
+                  });
+                }}
+              />
+              <MoreMenuItem
+                key="series-view-exceptions"
+                icon={IconProp.Bug}
+                text="View exceptions"
+                onClick={() => {
+                  const menuState: SeriesMenuState = seriesMenu;
+                  closeSeriesMenu();
+                  navigateSeriesToExceptions(menuState).catch(() => {
+                    // Best-effort navigation; failures already degrade inside.
+                  });
+                }}
+              />
+              {seriesMenuResourceTargets.map((target: SeriesResourceTarget) => {
+                return (
+                  <MoreMenuItem
+                    key={`series-resource-${target.kind}`}
+                    icon={resourceTargetIconByKind[target.kind]}
+                    text={target.label}
+                    onClick={() => {
+                      closeSeriesMenu();
+                      openSeriesResource(target).catch(() => {
+                        // Resolution failures surface their own toast.
+                      });
+                    }}
+                  />
+                );
+              })}
+            </div>,
+            document.body,
+          )
+        : null}
     </>
   );
 };
