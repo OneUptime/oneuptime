@@ -509,9 +509,18 @@ const SiteContainerGraph: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
+      {/*
+       * `isolate` for the same reason as the sibling NetworkDeviceGraph
+       * (issue #3373). The zoom stack below floats at z-10 and the app
+       * header sticks at z-10; equal numbers in the root stacking context
+       * are broken by tree order, which page content always wins. Without a
+       * stacking context here the controls paint over the navbar the moment
+       * this canvas — whose height grows with the child-site count — scrolls
+       * under it.
+       */}
       <div
         ref={canvasElement}
-        className="relative w-full overflow-hidden rounded-lg border border-gray-200 bg-gray-50"
+        className="relative isolate w-full overflow-hidden rounded-lg border border-gray-200 bg-gray-50"
         style={{ height: `${canvasHeight}px` }}
       >
         {/*
