@@ -11,6 +11,17 @@ See [Installation & Upgrades](installation.md#upgrading) for the upgrade command
 
 ## Upgrade notes
 
+- **12.0.21 (2026-08-24)** — The Cal.com booking webhook is removed. Delete any
+  `marketing.cal:` block from your values files — the chart schema rejects
+  unknown keys, so `helm upgrade` fails validation with
+  `marketing: Additional property cal is not allowed` while one remains. The
+  key set `CAL_WEBHOOK_SECRET` on the App, which verified inbound Cal.com
+  `BOOKING_CREATED` deliveries and emitted them as `meeting_booked` marketing
+  events; no booking webhook is received or emitted any more, so any Cal.com
+  webhook pointed at `/api/cal-webhook` can be deleted on the Cal.com side too.
+  `marketing.webhook.url` / `marketing.webhook.secret` are unaffected — they
+  keep delivering the remaining conversion events, minus `meeting_booked`.
+
 - **12.0.0 (2026-08-04)** — The AI Agent and the Runbook Agent merged into the
   OneUptime Runner. Rename any `aiAgent:` block in your values files to
   `runner:` (subkeys are unchanged) — the chart schema rejects unknown keys,
