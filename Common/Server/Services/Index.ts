@@ -145,7 +145,6 @@ import GlobalOidcProjectService from "./GlobalOidcProjectService";
 import PromoCodeService from "./PromoCodeService";
 import EnterpriseLicenseService from "./EnterpriseLicenseService";
 import EnterpriseLicenseInstanceService from "./EnterpriseLicenseInstanceService";
-import MarketingConversionService from "./MarketingConversionService";
 import OpenSourceDeploymentService from "./OpenSourceDeploymentService";
 import RecommendationDismissalService from "./RecommendationDismissalService";
 import ResellerPlanService from "./ResellerPlanService";
@@ -309,7 +308,6 @@ const services: Array<BaseService> = [
   PromoCodeService,
   EnterpriseLicenseService,
   EnterpriseLicenseInstanceService,
-  MarketingConversionService,
   OpenSourceDeploymentService,
 
   ResellerService,

@@ -437,7 +437,6 @@ import MetricType from "./MetricType";
 import ProjectSCIM from "./ProjectSCIM";
 import ProjectSCIMLog from "./ProjectSCIMLog";
 import StatusPageSCIMLog from "./StatusPageSCIMLog";
-import MarketingConversion from "./MarketingConversion";
 import DeletedProject from "./DeletedProject";
 
 const AllModelTypes: Array<{
@@ -897,7 +896,6 @@ const AllModelTypes: Array<{
   RumSessionReplayView,
   RumSessionErasureRequest,
   RumSessionPin,
-  MarketingConversion,
   DeletedProject,
 ];
 
