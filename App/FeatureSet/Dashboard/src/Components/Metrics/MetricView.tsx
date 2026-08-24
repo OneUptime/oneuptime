@@ -165,6 +165,12 @@ export interface ComponentProps {
    * instead of rendering an interaction that silently does nothing.
    */
   disableChartZoom?: boolean | undefined;
+  /*
+   * Per-series investigate menus (see MetricCharts.enableSeriesActions).
+   * Form-embedded previews pass false — a navigation menu inside an
+   * unsaved monitor form is an invitation to lose work.
+   */
+  enableSeriesActions?: boolean | undefined;
   // Time-anchored annotations forwarded to every chart (see MetricCharts).
   timeReferenceLines?: Array<ChartTimeReferenceLineProps> | undefined;
   referenceRegions?: Array<ChartReferenceRegionProps> | undefined;
@@ -1292,24 +1298,23 @@ const MetricView: FunctionComponent<ComponentProps> = (
                     metricTypes={metricTypes}
                     metricViewData={effectiveData}
                     chartCssClass={props.chartCssClass}
-                    onQueryConfigsChange={
+                    enableSeriesActions={props.enableSeriesActions}
+                    onQueryConfigsChange={(
+                      queryConfigs: Array<MetricQueryConfigData>,
+                    ) => {
                       /*
-                       * Only claim the write path when a parent onChange
-                       * can actually persist it. Passing an always-present
-                       * wrapper made read-only hosts route Top-N writes
-                       * (and the series menu's "Filter to this series")
-                       * into a no-op instead of the transient-override /
-                       * explorer-link fallbacks.
+                       * onChange is a required prop, so MetricView hosts
+                       * always own the write path — Top-N writes and the
+                       * series menu's "Filter to this series" both round-
+                       * trip through the host's onChange. (Read-only
+                       * surfaces render MetricCharts directly, without
+                       * this wrapper — e.g. dashboard widgets.)
                        */
-                      props.onChange
-                        ? (queryConfigs: Array<MetricQueryConfigData>) => {
-                            props.onChange?.({
-                              ...props.data,
-                              queryConfigs: queryConfigs,
-                            });
-                          }
-                        : undefined
-                    }
+                      props.onChange({
+                        ...props.data,
+                        queryConfigs: queryConfigs,
+                      });
+                    }}
                     onTimeRangeSelect={
                       /*
                        * Charts advertise drag-to-zoom (crosshair, hint,

@@ -449,23 +449,28 @@ describe("resolveSeriesResourceModelId", () => {
     expect(getListMock).toHaveBeenCalledTimes(1);
   });
 
-  test("resolves a Kubernetes cluster by clusterIdentifier", async () => {
+  test("resolves a Kubernetes cluster by its VERBATIM-cased identifier", async () => {
     getListMock.mockResolvedValue({ data: [{ _id: "cluster-object-id-1" }] });
 
     const resolved: string | null = await resolveSeriesResourceModelId({
       kind: "kubernetesCluster",
       label: 'Open Kubernetes cluster "Cluster-A"',
       attributeKey: "k8s.cluster.name",
-      attributeValue: "Cluster-A",
+      attributeValue: " Cluster-A ",
     });
 
     expect(resolved).toBe("cluster-object-id-1");
     const callArgs: Record<string, unknown> = getListMock.mock
       .calls[0]?.[0] as Record<string, unknown>;
     expect(callArgs["modelType"]).toBe(KubernetesCluster);
+    /*
+     * KubernetesClusterService stores clusterIdentifier exactly as
+     * ingested (only host identifiers are canonicalized) — lowercasing
+     * here would make every uppercase-named cluster unfindable.
+     */
     expect(callArgs["query"]).toEqual({
       projectId: PROJECT_ID,
-      clusterIdentifier: "cluster-a",
+      clusterIdentifier: "Cluster-A",
     });
   });
 
@@ -513,6 +518,25 @@ describe("resolveSeriesResourceModelId", () => {
     });
 
     expect(resolved).toBe("service-object-id-9");
+  });
+
+  test("a malformed network device id from telemetry never becomes a route param", async () => {
+    expect(
+      await resolveSeriesResourceModelId({
+        kind: "networkDevice",
+        label: "Open network device",
+        attributeKey: "networkDeviceId",
+        attributeValue: "../../../etc/passwd",
+      }),
+    ).toBeNull();
+    expect(
+      await resolveSeriesResourceModelId({
+        kind: "networkDevice",
+        label: "Open network device",
+        attributeKey: "networkDeviceId",
+        attributeValue: "not-a-uuid",
+      }),
+    ).toBeNull();
   });
 
   test("a network device target carries its own ObjectID", async () => {
@@ -586,13 +610,25 @@ describe("investigation wiring", () => {
     expect(source).toContain("rangeToken: zoomWindow ? undefined :");
   });
 
-  test("MetricView only claims the query-config write path when a parent can persist it", () => {
+  test("the external Data Source chart widget never offers telemetry pivots", () => {
     const source: string = readSquashedSource(
-      "Components/Metrics/MetricView.tsx",
+      "Components/Dashboard/Components/DashboardDataSourceChartComponent.tsx",
     );
 
-    expect(source).toContain(
-      "props.onChange ? (queryConfigs: Array<MetricQueryConfigData>) =>",
+    /*
+     * Its series come from an external data source through a synthetic
+     * query config — OneUptime's telemetry pivots would only mislead,
+     * and the widget renders on unauthenticated public dashboards.
+     */
+    expect(source).toContain("enableSeriesActions={false}");
+  });
+
+  test("the chart widget guards against out-of-order fetch responses", () => {
+    const source: string = readSquashedSource(
+      "Components/Dashboard/Components/DashboardChartComponent.tsx",
     );
+
+    expect(source).toContain("fetchSequenceRef");
+    expect(source).toContain("isCurrentFetch");
   });
 });

@@ -149,8 +149,21 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     useRef<MetricViewData>(metricViewData);
   metricViewDataRef.current = metricViewData;
 
+  /*
+   * Monotonic fetch sequence: zoom → reset (or rapid re-zooms) can put two
+   * aggregate calls in flight, and the SLOWER one answering last would
+   * paint the wrong window's data under the current window's axis. Each
+   * fetch takes a ticket; only the holder of the latest ticket may write
+   * results/errors back into state.
+   */
+  const fetchSequenceRef: React.MutableRefObject<number> = useRef<number>(0);
+
   const fetchAggregatedResults: () => Promise<void> = useCallback(async () => {
     const data: MetricViewData = metricViewDataRef.current;
+    const fetchSequence: number = ++fetchSequenceRef.current;
+    const isCurrentFetch: () => boolean = (): boolean => {
+      return fetchSequenceRef.current === fetchSequence;
+    };
     setIsLoading(true);
 
     if (!data.startAndEndDate?.startValue || !data.startAndEndDate?.endValue) {
@@ -190,13 +203,22 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
         topNOverrideScope,
       });
 
+      if (!isCurrentFetch()) {
+        return;
+      }
+
       setMetricResults(results);
       setError("");
     } catch (err: unknown) {
+      if (!isCurrentFetch()) {
+        return;
+      }
       setError(API.getFriendlyErrorMessage(err as Error));
     }
 
-    setIsLoading(false);
+    if (isCurrentFetch()) {
+      setIsLoading(false);
+    }
   }, [topNOverrideScope]);
 
   /*

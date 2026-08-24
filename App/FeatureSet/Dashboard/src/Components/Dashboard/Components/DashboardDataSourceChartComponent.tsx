@@ -335,6 +335,14 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
           metricViewData={chartMetricViewData}
           hideCard={true}
           topNOverrideScope={props.componentId.toString()}
+          /*
+           * These series come from an EXTERNAL data source through a
+           * synthetic query config — OneUptime's logs/traces/exceptions
+           * and the Metric Explorer know nothing about them, so the
+           * per-series investigate menu would only mislead (and it must
+           * never render on unauthenticated public dashboards).
+           */
+          enableSeriesActions={false}
         />
       </div>
     </div>

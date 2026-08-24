@@ -184,6 +184,7 @@ function renderWidget(
 
 interface CapturedChartProps {
   metricViewData: MetricViewData;
+  metricResults?: Array<Record<string, unknown>> | undefined;
   onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
   enableSeriesActions?: boolean | undefined;
 }
@@ -286,6 +287,69 @@ describe("dashboard chart widget drag-to-zoom", () => {
       ).toEqual(DASHBOARD_START);
     });
     expect(lastChartProps().metricViewData.rangeToken).toBe(TimeRange.CUSTOM);
+  });
+
+  test("a stale fetch response can never overwrite a newer window's data", async () => {
+    /*
+     * Zoom then Reset puts two aggregate calls in flight; if the SLOWER
+     * (zoom) response lands last, its data must be discarded — otherwise
+     * the chart paints the zoomed window's series under the dashboard
+     * window's axis.
+     */
+    const pendingFetches: Array<(value: unknown) => void> = [];
+    fetchResultsMock.mockImplementation(() => {
+      return new Promise((resolve: (value: unknown) => void) => {
+        pendingFetches.push(resolve);
+      });
+    });
+
+    renderWidget();
+
+    await waitFor(() => {
+      expect(pendingFetches.length).toBe(1);
+    });
+    act(() => {
+      pendingFetches[0]?.([{ data: [], truncated: false }]);
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("metric-charts")).toBeInTheDocument();
+    });
+
+    act(() => {
+      lastChartProps().onTimeRangeSelect?.(ZOOM_START, ZOOM_END);
+    });
+    await waitFor(() => {
+      expect(pendingFetches.length).toBe(2);
+    });
+
+    fireEvent.click(screen.getByText("Reset"));
+    await waitFor(() => {
+      expect(pendingFetches.length).toBe(3);
+    });
+
+    const staleZoomResults: Array<Record<string, unknown>> = [
+      { data: [{ marker: "stale-zoom" }], truncated: false },
+    ];
+    const freshResetResults: Array<Record<string, unknown>> = [
+      { data: [], truncated: false },
+    ];
+
+    // The newer (reset) fetch answers first…
+    act(() => {
+      pendingFetches[2]?.(freshResetResults);
+    });
+    await waitFor(() => {
+      expect(lastChartProps().metricResults).toBe(freshResetResults);
+    });
+
+    // …then the stale zoom fetch answers last and must be ignored.
+    act(() => {
+      pendingFetches[1]?.(staleZoomResults);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(lastChartProps().metricResults).toBe(freshResetResults);
   });
 
   test("edit mode disables zoom and series navigation", async () => {

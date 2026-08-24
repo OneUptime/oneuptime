@@ -53,24 +53,24 @@ describe("prepareTooltipEntries", () => {
     expect(categories(prepared)).toEqual(["cpu1", "cpu2", "cpu10"]);
   });
 
-  test("sorts non-finite values last without dropping them", () => {
+  test("sorts non-finite values last and drops band tuples entirely", () => {
     const prepared: PreparedTooltipEntries<TestItem> = prepareTooltipEntries([
       item("nan-series", NaN),
       item("real-low", 1),
       item("infinite", Infinity),
       item("real-high", 7),
-      // The anomaly band's dataKey yields a [low, high] tuple at runtime.
+      /*
+       * The anomaly band's dataKey yields a [low, high] tuple at runtime
+       * — a shaded region, not a series, so it must not render as a row
+       * nor count toward the overflow footer.
+       */
       item("band", [2, 9] as unknown as number),
     ]);
 
     expect(categories(prepared).slice(0, 2)).toEqual(["real-high", "real-low"]);
     // Non-finite tail keeps natural name order among itself.
-    expect(categories(prepared).slice(2)).toEqual([
-      "band",
-      "infinite",
-      "nan-series",
-    ]);
-    expect(prepared.totalCount).toBe(5);
+    expect(categories(prepared).slice(2)).toEqual(["infinite", "nan-series"]);
+    expect(prepared.totalCount).toBe(4);
   });
 
   test('filters out type "none" entries (hidden click-target lines, band fills)', () => {
