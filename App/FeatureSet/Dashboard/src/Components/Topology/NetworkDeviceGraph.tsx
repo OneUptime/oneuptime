@@ -1306,8 +1306,23 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
           : undefined
       }
     >
+      {/*
+       * `isolate` is load-bearing (issue #3373). This box floats the zoom
+       * toolbar at z-20 and four more overlays at z-10, while the app shell
+       * sticks its header at z-10 (Common/UI/Components/MasterPage). A
+       * `relative` box whose z-index is auto creates no stacking context, so
+       * those numbers were resolved against the header's in the ROOT context
+       * — and beat it, ties included, because <main> comes after the header
+       * in tree order. Scrolling the map's top edge under the header then
+       * painted the toolbar on top of the navbar, reading as a control
+       * floating over unrelated content.
+       *
+       * Isolating collapses the whole map to one z-index:0 entry in the root
+       * context. The overlays keep their order relative to each other, and
+       * the map now slides behind the header like any other page content.
+       */}
       <div
-        className="relative w-full overflow-hidden rounded-lg border border-gray-200 bg-white"
+        className="relative isolate w-full overflow-hidden rounded-lg border border-gray-200 bg-white"
         style={{
           height: isFullscreen ? "auto" : "min(72vh, 760px)",
           flex: isFullscreen ? "1 1 auto" : undefined,
