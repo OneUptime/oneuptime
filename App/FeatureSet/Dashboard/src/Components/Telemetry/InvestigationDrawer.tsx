@@ -44,6 +44,28 @@ import {
   formatDroppedScopeHint,
   resolveServiceIdsByNames,
 } from "../../Utils/MetricsCrossSignalPivot";
+import useEventTimeReferenceLines, {
+  EventTimeReferenceLines,
+} from "../Metrics/Utils/UseEventTimeReferenceLines";
+import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
+import {
+  InvestigationEvidence,
+  InvestigationFinding,
+  InvestigationMarker,
+  buildInvestigationFindings,
+  buildInvestigationNoteMarkdown,
+  buildInvestigationPrompt,
+} from "../../Utils/InvestigationFindings";
+import GlobalEvents from "Common/UI/Utils/GlobalEvents";
+import EventName from "../../Utils/EventName";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ObjectID from "Common/Types/ObjectID";
+import ProjectUtil from "Common/UI/Utils/Project";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { ShowToastNotification } from "Common/UI/Components/Toast/ToastInit";
+import { ToastType } from "Common/UI/Components/Toast/Toast";
 
 export interface ComponentProps {
   /** What the user is investigating, e.g. `CPU by host · 12:01–12:14`. */
@@ -216,7 +238,29 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
     extraction.droppedFilterKeys,
   );
 
-  const scopeChips: Array<string> = useMemo(() => {
+  // -- Findings: deterministic "explain this spike" over the evidence --
+
+  const { lines: eventLines }: EventTimeReferenceLines =
+    useEventTimeReferenceLines({
+      enabled: true,
+      window: pinnedWindow,
+    });
+
+  const markers: Array<InvestigationMarker> = useMemo(() => {
+    return eventLines.map(
+      (line: ChartTimeReferenceLineProps): InvestigationMarker => {
+        const label: string = line.label || "Event";
+        const kind: InvestigationMarker["kind"] = label.startsWith("Incident:")
+          ? "incident"
+          : label.startsWith("Alert:")
+            ? "alert"
+            : "change";
+        return { kind, label, timeMs: line.date.getTime() };
+      },
+    );
+  }, [eventLines]);
+
+  const scopeChipsForEvidence: Array<string> = useMemo(() => {
     const chips: Array<string> = [];
     for (const serviceName of extraction.serviceNames) {
       chips.push(`service = ${serviceName}`);
@@ -226,6 +270,125 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
     }
     return chips;
   }, [extraction]);
+
+  const evidence: InvestigationEvidence = useMemo(() => {
+    return {
+      windowStartMs,
+      windowEndMs,
+      scopeChips: scopeChipsForEvidence,
+      logVolume,
+      errorPatterns: errorPatterns || [],
+      logBuckets: (logBuckets || []) as unknown as Array<JSONObject>,
+      markers,
+    };
+  }, [
+    windowStartMs,
+    windowEndMs,
+    scopeChipsForEvidence,
+    logVolume,
+    errorPatterns,
+    logBuckets,
+    markers,
+  ]);
+
+  const findings: Array<InvestigationFinding> = useMemo(() => {
+    return buildInvestigationFindings(evidence);
+  }, [evidence]);
+
+  const explainWithAi: VoidFunction = (): void => {
+    /*
+     * Opens (never toggles closed) the Ask AI panel with the evidence as
+     * an editable prompt. The panel sits above the drawer (z-40 > z-30),
+     * so the user keeps the evidence in view while they ask.
+     */
+    GlobalEvents.dispatchEvent(EventName.AI_CHAT_TOGGLE, {
+      prompt: buildInvestigationPrompt(evidence, findings),
+    });
+  };
+
+  // -- Save to incident: pin the investigation to a timeline --
+
+  const [isIncidentPickerOpen, setIsIncidentPickerOpen] =
+    useState<boolean>(false);
+  const [recentIncidents, setRecentIncidents] =
+    useState<Array<Incident> | null>(null);
+  const [selectedIncidentId, setSelectedIncidentId] = useState<string>("");
+  const [isSavingNote, setIsSavingNote] = useState<boolean>(false);
+
+  const openIncidentPicker: VoidFunction = (): void => {
+    setIsIncidentPickerOpen(true);
+    if (recentIncidents !== null) {
+      return;
+    }
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+    if (!projectId) {
+      setRecentIncidents([]);
+      return;
+    }
+    ModelAPI.getList<Incident>({
+      modelType: Incident,
+      query: { projectId },
+      select: {
+        _id: true,
+        title: true,
+        incidentNumberWithPrefix: true,
+        incidentNumber: true,
+      },
+      sort: { createdAt: SortOrder.Descending },
+      limit: 10,
+      skip: 0,
+    })
+      .then((result: ListResult<Incident>) => {
+        setRecentIncidents(result.data);
+        if (result.data[0]?.id) {
+          setSelectedIncidentId(result.data[0].id.toString());
+        }
+      })
+      .catch(() => {
+        setRecentIncidents([]);
+      });
+  };
+
+  const saveNoteToIncident: VoidFunction = (): void => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+    if (!projectId || !selectedIncidentId || isSavingNote) {
+      return;
+    }
+    setIsSavingNote(true);
+
+    const note: IncidentInternalNote = new IncidentInternalNote();
+    note.projectId = projectId;
+    note.incidentId = new ObjectID(selectedIncidentId);
+    note.note = buildInvestigationNoteMarkdown({
+      evidence,
+      findings,
+      explorerUrl: ExplorerLink.buildExplorerUrl(pinnedViewData).toString(),
+    });
+
+    ModelAPI.create<IncidentInternalNote>({
+      model: note,
+      modelType: IncidentInternalNote,
+    })
+      .then(() => {
+        ShowToastNotification({
+          title: "Investigation pinned",
+          description:
+            "The snapshot was added to the incident as a private note.",
+          type: ToastType.SUCCESS,
+        });
+        setIsIncidentPickerOpen(false);
+      })
+      .catch(() => {
+        ShowToastNotification({
+          title: "Could not save the note",
+          description: "The incident note API rejected the request.",
+          type: ToastType.DANGER,
+        });
+      })
+      .finally(() => {
+        setIsSavingNote(false);
+      });
+  };
 
   const openPattern: (pattern: TopErrorPatternRow) => void = (
     pattern: TopErrorPatternRow,
@@ -261,8 +424,8 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
       <div className="space-y-5 py-5">
         {/* Scope strip */}
         <div className="flex flex-wrap items-center gap-1.5">
-          {scopeChips.length > 0 ? (
-            scopeChips.map((chip: string) => {
+          {scopeChipsForEvidence.length > 0 ? (
+            scopeChipsForEvidence.map((chip: string) => {
               return (
                 <span
                   key={chip}
@@ -289,6 +452,121 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
             Open in Metric Explorer
           </button>
         </div>
+
+        {/* Findings — the deterministic "explain this spike" readout */}
+        <Card
+          title="Findings"
+          description="What stands out in this window, from the evidence below."
+          rightElement={
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                title="Open Ask AI with this evidence as an editable prompt"
+                onClick={explainWithAi}
+              >
+                <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5" />
+                Explain with AI
+              </button>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                title="Pin this investigation to an incident as a private note"
+                onClick={openIncidentPicker}
+              >
+                <Icon icon={IconProp.MapPin} className="h-3.5 w-3.5" />
+                Save to incident
+              </button>
+            </div>
+          }
+        >
+          <div className="space-y-3">
+            <ul className="space-y-1.5">
+              {findings.map((finding: InvestigationFinding, index: number) => {
+                return (
+                  <li key={index} className="flex items-start gap-2">
+                    <span
+                      aria-hidden="true"
+                      className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                        finding.severity === "critical"
+                          ? "bg-red-500"
+                          : finding.severity === "warning"
+                            ? "bg-amber-500"
+                            : "bg-blue-400"
+                      }`}
+                    />
+                    <span className="text-sm text-gray-700">
+                      {finding.text}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {isIncidentPickerOpen ? (
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5">
+                {recentIncidents === null ? (
+                  <span className="text-xs text-gray-500">
+                    Loading incidents…
+                  </span>
+                ) : recentIncidents.length === 0 ? (
+                  <span className="text-xs text-gray-500">
+                    No incidents found in this project.
+                  </span>
+                ) : (
+                  <>
+                    <label
+                      htmlFor="investigation-incident-picker"
+                      className="text-xs font-medium text-gray-700"
+                    >
+                      Pin to
+                    </label>
+                    <select
+                      id="investigation-incident-picker"
+                      value={selectedIncidentId}
+                      onChange={(
+                        event: React.ChangeEvent<HTMLSelectElement>,
+                      ): void => {
+                        setSelectedIncidentId(event.target.value);
+                      }}
+                      className="min-w-0 flex-1 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                    >
+                      {recentIncidents.map((incident: Incident) => {
+                        return (
+                          <option
+                            key={incident.id?.toString()}
+                            value={incident.id?.toString()}
+                          >
+                            {incident.incidentNumberWithPrefix ||
+                              `#${incident.incidentNumber || "?"}`}{" "}
+                            — {incident.title}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <button
+                      type="button"
+                      disabled={isSavingNote || !selectedIncidentId}
+                      className="rounded-md bg-indigo-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                      onClick={saveNoteToIncident}
+                    >
+                      {isSavingNote ? "Saving…" : "Save note"}
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  className="rounded-md px-2 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                  onClick={() => {
+                    setIsIncidentPickerOpen(false);
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </Card>
 
         {/* Log signal summary */}
         <Card
@@ -377,7 +655,7 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
                   })}
                 </ul>
               )}
-              {scopeChips.length > 0 &&
+              {scopeChipsForEvidence.length > 0 &&
               Object.keys(extraction.attributes).length > 0 ? (
                 <p className="mt-1.5 text-[11px] text-gray-400">
                   Patterns are scoped by service and window; attribute filters
