@@ -6,7 +6,6 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Black } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
-import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -348,7 +347,7 @@ const AlertEpisodeView: FunctionComponent<
               fieldType: FieldType.Entity,
               getElement: (item: AlertEpisode): ReactElement => {
                 if (!item["currentAlertState"]) {
-                  throw new BadDataException("Episode State not found");
+                  return <>-</>;
                 }
 
                 return (
@@ -370,7 +369,7 @@ const AlertEpisodeView: FunctionComponent<
               fieldType: FieldType.Entity,
               getElement: (item: AlertEpisode): ReactElement => {
                 if (!item["alertSeverity"]) {
-                  throw new BadDataException("Episode Severity not found");
+                  return <>-</>;
                 }
 
                 return (
