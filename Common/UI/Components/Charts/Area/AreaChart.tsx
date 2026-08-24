@@ -63,6 +63,19 @@ export interface ComponentProps {
    * buckets calls back with the [start, end) of the selected time range.
    */
   onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
+  // Plain click on a bucket — see ChartLibrary onBucketClick.
+  onBucketClick?:
+    | ((
+        bucketStart: Date,
+        bucketEnd: Date,
+        valuesAtBucket: Record<string, number | string>,
+      ) => void)
+    | undefined;
+  /*
+   * Series rendered as compare-to-previous-period ghosts (dashed, faded,
+   * dotless). Names must exist in `data`.
+   */
+  ghostSeriesNames?: Array<string> | undefined;
   showLegend?: boolean | undefined;
   /**
    * Render a shaded "expected range" band underneath the plotted lines.
@@ -228,6 +241,8 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
         }
         onExemplarClick={props.onExemplarClick}
         onTimeRangeSelect={props.onTimeRangeSelect}
+        onBucketClick={props.onBucketClick}
+        ghostCategories={props.ghostSeriesNames}
         anomalyBandLowerKey={bandLower}
         anomalyBandUpperKey={bandUpper}
       />

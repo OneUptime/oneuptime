@@ -70,11 +70,13 @@ import { ShowToastNotification } from "Common/UI/Components/Toast/ToastInit";
 import useEventTimeReferenceLines, {
   EventTimeReferenceLines,
 } from "./Utils/UseEventTimeReferenceLines";
+import InvestigationDrawer from "../Telemetry/InvestigationDrawer";
 import { ToastType } from "Common/UI/Components/Toast/Toast";
 
 const AUTO_REFRESH_STORAGE_KEY: string =
   "metric-explorer-auto-refresh-interval";
 const SHOW_EVENTS_STORAGE_KEY: string = "metric-explorer-show-events";
+const COMPARE_PREVIOUS_STORAGE_KEY: string = "metric-explorer-compare-previous";
 
 // One toolbar-button idiom for the explorer's investigation row.
 const TOOLBAR_BUTTON_CLASS_NAME: string =
@@ -381,6 +383,36 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
     enabled: showEvents,
     window: metricViewData.startAndEndDate,
   });
+
+  /*
+   * The in-context investigation panel for the CURRENT window + filters —
+   * companion signals and the log summary without leaving the explorer.
+   */
+  const [isInvestigationOpen, setIsInvestigationOpen] =
+    useState<boolean>(false);
+
+  // Compare-to-previous-period ghost overlays (persisted per browser).
+  const [showCompare, setShowCompare] = useState<boolean>(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+    return (
+      window.localStorage?.getItem(COMPARE_PREVIOUS_STORAGE_KEY) === "true"
+    );
+  });
+
+  const toggleShowCompare: VoidFunction = (): void => {
+    setShowCompare((previous: boolean): boolean => {
+      const next: boolean = !previous;
+      if (typeof window !== "undefined") {
+        window.localStorage?.setItem(
+          COMPARE_PREVIOUS_STORAGE_KEY,
+          String(next),
+        );
+      }
+      return next;
+    });
+  };
 
   // -- Saved explorer views --
 
@@ -706,6 +738,22 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
                   <span>Traces</span>
                 </button>
               </Tooltip>
+              <Tooltip text="Investigate this window in a side panel — logs, traces, exceptions">
+                <button
+                  type="button"
+                  aria-label="Investigate this time window in a side panel"
+                  className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
+                  onClick={() => {
+                    setIsInvestigationOpen(true);
+                  }}
+                >
+                  <Icon
+                    icon={IconProp.MagnifyingGlassPlus}
+                    className="h-3.5 w-3.5"
+                  />
+                  <span>Investigate</span>
+                </button>
+              </Tooltip>
               <Tooltip
                 text={
                   showEvents
@@ -731,6 +779,31 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
                       {eventMarkerCount}
                     </span>
                   ) : null}
+                </button>
+              </Tooltip>
+              <Tooltip
+                text={
+                  showCompare
+                    ? "Hide the previous period's ghost lines"
+                    : "Overlay each chart with the previous period (dashed)"
+                }
+              >
+                <button
+                  type="button"
+                  aria-label="Toggle compare with previous period"
+                  aria-pressed={showCompare}
+                  onClick={toggleShowCompare}
+                  className={`${TOOLBAR_BUTTON_CLASS_NAME} ${
+                    showCompare
+                      ? TOOLBAR_BUTTON_ACTIVE_CLASS_NAME
+                      : TOOLBAR_BUTTON_IDLE_CLASS_NAME
+                  }`}
+                >
+                  <Icon
+                    icon={IconProp.ArrowUturnLeft}
+                    className="h-3.5 w-3.5"
+                  />
+                  <span>Compare</span>
                 </button>
               </Tooltip>
             </div>
@@ -806,10 +879,23 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
         </div>
       </div>
 
+      {isInvestigationOpen &&
+      metricViewData.startAndEndDate?.startValue instanceof Date &&
+      metricViewData.startAndEndDate?.endValue instanceof Date ? (
+        <InvestigationDrawer
+          title="Investigate this view"
+          window={metricViewData.startAndEndDate}
+          metricViewData={metricViewData}
+          onClose={() => {
+            setIsInvestigationOpen(false);
+          }}
+        />
+      ) : null}
       <MetricView
         data={metricViewData}
         hideStartAndEndDate={true}
         refreshNonce={refreshNonce}
+        compareWithPreviousPeriod={showCompare}
         timeReferenceLines={
           eventReferenceLines.length > 0 ? eventReferenceLines : undefined
         }

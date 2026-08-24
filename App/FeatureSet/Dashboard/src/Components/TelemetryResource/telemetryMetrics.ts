@@ -10,6 +10,13 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
+import API from "Common/UI/Utils/API/API";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import URL from "Common/Types/API/URL";
+import { APP_API_URL } from "Common/UI/Config";
+import { JSONObject } from "Common/Types/JSON";
 
 export interface TimePoint {
   x: Date;
@@ -435,4 +442,177 @@ export const formatBytes: (bytes: number | null) => string = (
     i++;
   }
   return `${v.toFixed(v < 10 ? 1 : 0)} ${units[i]}`;
+};
+
+/*
+ * Log + exception signal summaries for a resource's overview page —
+ * one projection-backed histogram call per pillar, both scoped by the
+ * resource's primaryEntityId. Complements SpanMetrics so an overview can
+ * show all four golden-ish signals (rate, errors, duration, and the
+ * log/exception context) without a raw-row scan.
+ */
+
+export interface LogSignalSummary {
+  total: number;
+  errorCount: number;
+  countSeries: Array<TimePoint>;
+  errorSeries: Array<TimePoint>;
+}
+
+export interface ExceptionSignalSummary {
+  total: number;
+  unhandledCount: number;
+  unhandledSeries: Array<TimePoint>;
+  handledSeries: Array<TimePoint>;
+}
+
+export interface LogAndExceptionSignals {
+  logs: LogSignalSummary;
+  exceptions: ExceptionSignalSummary;
+}
+
+// Log severities that count as errors (matches the server's default set).
+const ERROR_LOG_SEVERITY_SET: Set<string> = new Set<string>(["Error", "Fatal"]);
+
+interface RawHistogramBucket {
+  time?: string;
+  severity?: string;
+  series?: string;
+  count?: number;
+}
+
+function addPoint(
+  seriesByTime: Map<number, number>,
+  time: string | undefined,
+  count: number,
+): void {
+  if (!time) {
+    return;
+  }
+  const ms: number = new Date(time).getTime();
+  if (Number.isNaN(ms)) {
+    return;
+  }
+  seriesByTime.set(ms, (seriesByTime.get(ms) || 0) + count);
+}
+
+function toSortedSeries(seriesByTime: Map<number, number>): Array<TimePoint> {
+  return Array.from(seriesByTime.entries())
+    .sort((a: [number, number], b: [number, number]) => {
+      return a[0] - b[0];
+    })
+    .map(([ms, y]: [number, number]): TimePoint => {
+      return { x: new Date(ms), y };
+    });
+}
+
+export const fetchLogAndExceptionSignals: (scope: {
+  primaryEntityId: ObjectID;
+  start: Date;
+  end: Date;
+}) => Promise<LogAndExceptionSignals> = async (scope: {
+  primaryEntityId: ObjectID;
+  start: Date;
+  end: Date;
+}): Promise<LogAndExceptionSignals> => {
+  const empty: LogAndExceptionSignals = {
+    logs: { total: 0, errorCount: 0, countSeries: [], errorSeries: [] },
+    exceptions: {
+      total: 0,
+      unhandledCount: 0,
+      unhandledSeries: [],
+      handledSeries: [],
+    },
+  };
+
+  const body: JSONObject = {
+    startTime: scope.start.toISOString(),
+    endTime: scope.end.toISOString(),
+    serviceIds: [scope.primaryEntityId.toString()],
+  };
+
+  const postHistogram: (
+    path: string,
+  ) => Promise<Array<RawHistogramBucket>> = async (
+    path: string,
+  ): Promise<Array<RawHistogramBucket>> => {
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.post({
+        url: URL.fromString(APP_API_URL.toString()).addRoute(path),
+        data: body,
+        headers: ModelAPI.getCommonHeaders(),
+      });
+    if (response instanceof HTTPErrorResponse) {
+      throw response;
+    }
+    const buckets: unknown = response.data["buckets"];
+    return Array.isArray(buckets) ? (buckets as Array<RawHistogramBucket>) : [];
+  };
+
+  try {
+    const [logBuckets, exceptionBuckets]: [
+      Array<RawHistogramBucket>,
+      Array<RawHistogramBucket>,
+    ] = await Promise.all([
+      postHistogram("/telemetry/logs/histogram").catch(
+        (): Array<RawHistogramBucket> => {
+          return [];
+        },
+      ),
+      postHistogram("/telemetry/exceptions/histogram").catch(
+        (): Array<RawHistogramBucket> => {
+          return [];
+        },
+      ),
+    ]);
+
+    const logCountByTime: Map<number, number> = new Map<number, number>();
+    const logErrorByTime: Map<number, number> = new Map<number, number>();
+    let logTotal: number = 0;
+    let logErrorCount: number = 0;
+
+    for (const bucket of logBuckets) {
+      const count: number = typeof bucket.count === "number" ? bucket.count : 0;
+      logTotal += count;
+      addPoint(logCountByTime, bucket.time, count);
+      if (ERROR_LOG_SEVERITY_SET.has(bucket.severity || "")) {
+        logErrorCount += count;
+        addPoint(logErrorByTime, bucket.time, count);
+      }
+    }
+
+    const unhandledByTime: Map<number, number> = new Map<number, number>();
+    const handledByTime: Map<number, number> = new Map<number, number>();
+    let exceptionTotal: number = 0;
+    let unhandledCount: number = 0;
+
+    for (const bucket of exceptionBuckets) {
+      const count: number = typeof bucket.count === "number" ? bucket.count : 0;
+      exceptionTotal += count;
+      if (bucket.series === "unhandled") {
+        unhandledCount += count;
+        addPoint(unhandledByTime, bucket.time, count);
+      } else {
+        addPoint(handledByTime, bucket.time, count);
+      }
+    }
+
+    return {
+      logs: {
+        total: logTotal,
+        errorCount: logErrorCount,
+        countSeries: toSortedSeries(logCountByTime),
+        errorSeries: toSortedSeries(logErrorByTime),
+      },
+      exceptions: {
+        total: exceptionTotal,
+        unhandledCount,
+        unhandledSeries: toSortedSeries(unhandledByTime),
+        handledSeries: toSortedSeries(handledByTime),
+      },
+    };
+  } catch {
+    // Overview signals are best-effort — never break the page.
+    return empty;
+  }
 };
