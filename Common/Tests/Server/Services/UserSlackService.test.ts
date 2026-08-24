@@ -379,7 +379,10 @@ describe("UserSlackService", () => {
   describe("getDeletionImpact", () => {
     test("delegates to the shared preview with methodType Slack", async () => {
       const getImpact: jest.SpyInstance = jest
-        .spyOn(UserNotificationRuleService, "getNotificationMethodDeletionImpact")
+        .spyOn(
+          UserNotificationRuleService,
+          "getNotificationMethodDeletionImpact",
+        )
         .mockResolvedValue({} as never);
 
       await UserSlackService.getDeletionImpact({

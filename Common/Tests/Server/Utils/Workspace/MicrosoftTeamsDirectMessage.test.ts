@@ -314,9 +314,9 @@ describe("MicrosoftTeamsUtil.sendDirectMessageToUserAsBot", () => {
       expect(params.isGroup).toBe(false);
       expect(params.members?.[0]?.id).toBe(ENTRA_OBJECT_ID);
       expect(params.tenantId).toBe(TENANT_ID);
-      expect(
-        (params.channelData as { tenant: { id: string } }).tenant.id,
-      ).toBe(TENANT_ID);
+      expect((params.channelData as { tenant: { id: string } }).tenant.id).toBe(
+        TENANT_ID,
+      );
       // 28:<appId> is the Teams-side bot account id.
       expect(params.bot?.id).toBe(`28:${MOCK_APP_CLIENT_ID}`);
     });

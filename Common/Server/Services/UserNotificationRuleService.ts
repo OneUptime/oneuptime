@@ -4207,10 +4207,7 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    lines.push(
-      "",
-      `✅ [Acknowledge](${data.ackUrl.toString()})`,
-    );
+    lines.push("", `✅ [Acknowledge](${data.ackUrl.toString()})`);
 
     const markdownBlock: WorkspacePayloadMarkdown = {
       _type: "WorkspacePayloadMarkdown",

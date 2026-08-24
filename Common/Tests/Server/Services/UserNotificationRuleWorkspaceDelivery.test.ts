@@ -242,12 +242,16 @@ describe("deliverNotificationForRule - Slack and Microsoft Teams", () => {
     jest
       .spyOn(IncidentService, "getIncidentLinkInDashboard")
       .mockResolvedValue(
-        URL.fromString("https://oneuptime.example.com/dashboard/incident") as never,
+        URL.fromString(
+          "https://oneuptime.example.com/dashboard/incident",
+        ) as never,
       );
     jest
       .spyOn(AlertService, "getAlertLinkInDashboard")
       .mockResolvedValue(
-        URL.fromString("https://oneuptime.example.com/dashboard/alert") as never,
+        URL.fromString(
+          "https://oneuptime.example.com/dashboard/alert",
+        ) as never,
       );
     jest
       .spyOn(AlertEpisodeService, "getEpisodeLinkInDashboard")
@@ -347,9 +351,9 @@ describe("deliverNotificationForRule - Slack and Microsoft Teams", () => {
         METHOD_ID.toString(),
       );
 
-      expect(
-        timelineCreate.mock.invocationCallOrder[0] as number,
-      ).toBeLessThan(sendDm.mock.invocationCallOrder[0] as number);
+      expect(timelineCreate.mock.invocationCallOrder[0] as number).toBeLessThan(
+        sendDm.mock.invocationCallOrder[0] as number,
+      );
     });
 
     test("hands the sender the Slack workspace type, stored member id, and the timeline id", async () => {
@@ -603,9 +607,7 @@ describe("deliverNotificationForRule - Slack and Microsoft Teams", () => {
       expect(arg.incidentEpisodeId?.toString()).toBe(
         INCIDENT_EPISODE_ID.toString(),
       );
-      expect(markdownText()).toContain(
-        "New incident episode assigned to you",
-      );
+      expect(markdownText()).toContain("New incident episode assigned to you");
       expect(markdownText()).toContain("IEP-9");
     });
 

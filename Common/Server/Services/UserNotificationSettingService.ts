@@ -454,8 +454,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
                 incidentEpisodeId: data.incidentEpisodeId,
                 teamId: data.teamId,
                 onCallPolicyId: data.onCallPolicyId,
-                onCallPolicyEscalationRuleId:
-                  data.onCallPolicyEscalationRuleId,
+                onCallPolicyEscalationRuleId: data.onCallPolicyEscalationRuleId,
                 onCallScheduleId: data.onCallScheduleId,
               }).catch((err: Error) => {
                 logger.error(err);
@@ -499,8 +498,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
                 incidentEpisodeId: data.incidentEpisodeId,
                 teamId: data.teamId,
                 onCallPolicyId: data.onCallPolicyId,
-                onCallPolicyEscalationRuleId:
-                  data.onCallPolicyEscalationRuleId,
+                onCallPolicyEscalationRuleId: data.onCallPolicyEscalationRuleId,
                 onCallScheduleId: data.onCallScheduleId,
               }).catch((err: Error) => {
                 logger.error(err);

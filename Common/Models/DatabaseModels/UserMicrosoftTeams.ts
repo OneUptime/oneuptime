@@ -170,8 +170,7 @@ class UserMicrosoftTeams extends BaseModel {
     type: TableColumnType.Entity,
     modelType: User,
     title: "User",
-    description:
-      "Relation to User who this Microsoft Teams account belongs to",
+    description: "Relation to User who this Microsoft Teams account belongs to",
   })
   @ManyToOne(
     () => {

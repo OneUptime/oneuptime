@@ -140,20 +140,18 @@ function emptyModels(): NotificationMethodModels {
 }
 
 // A 24-hex-char string is a valid ObjectID.
-const ID: Record<
-  "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i",
-  string
-> = {
-  a: "aaaaaaaaaaaaaaaaaaaaaaaa",
-  b: "bbbbbbbbbbbbbbbbbbbbbbbb",
-  c: "cccccccccccccccccccccccc",
-  d: "dddddddddddddddddddddddd",
-  e: "eeeeeeeeeeeeeeeeeeeeeeee",
-  f: "ffffffffffffffffffffffff",
-  g: "abcabcabcabcabcabcabcabc",
-  h: "cdecdecdecdecdecdecdecde",
-  i: "fabfabfabfabfabfabfabfab",
-};
+const ID: Record<"a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i", string> =
+  {
+    a: "aaaaaaaaaaaaaaaaaaaaaaaa",
+    b: "bbbbbbbbbbbbbbbbbbbbbbbb",
+    c: "cccccccccccccccccccccccc",
+    d: "dddddddddddddddddddddddd",
+    e: "eeeeeeeeeeeeeeeeeeeeeeee",
+    f: "ffffffffffffffffffffffff",
+    g: "abcabcabcabcabcabcabcabc",
+    h: "cdecdecdecdecdecdecdecde",
+    i: "fabfabfabfabfabfabfabfab",
+  };
 
 /*
  * A minimal stand-in for a model row: getDisplayItems only needs getColumnValue,

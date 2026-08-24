@@ -20,7 +20,7 @@ import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 
 /*
  * WorkspaceUserNotificationService.sendDirectMessageToUser is the send half of
- * the Slack / Microsooft Teams notification methods: everything the on-call
+ * the Slack / Microsoft Teams notification methods: everything the on-call
  * pipeline and the settings-based notifications know about delivering a
  * workspace DM funnels through this one method. Four things about it are
  * load-bearing and pinned here:
@@ -433,10 +433,10 @@ describe("WorkspaceUserNotificationService.sendDirectMessageToUser", () => {
       ).resolves.toBeUndefined();
 
       // The timeline still gets its Sent flip despite the log failure.
-      const arg: { data: { status: UserNotificationStatus } } =
-        updateTimeline.mock.calls[0][0] as {
-          data: { status: UserNotificationStatus };
-        };
+      const arg: { data: { status: UserNotificationStatus } } = updateTimeline
+        .mock.calls[0][0] as {
+        data: { status: UserNotificationStatus };
+      };
       expect(arg.data.status).toBe(UserNotificationStatus.Sent);
     });
 

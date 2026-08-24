@@ -4526,10 +4526,7 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       new UserTelegramAPI().getRouter(),
     );
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new UserSlackAPI().getRouter(),
-    );
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserSlackAPI().getRouter());
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new UserMicrosoftTeamsAPI().getRouter(),

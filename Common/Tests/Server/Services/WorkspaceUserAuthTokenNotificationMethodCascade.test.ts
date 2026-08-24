@@ -29,9 +29,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
 );
 const USER_ID: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
-const TOKEN_ID: ObjectID = new ObjectID(
-  "33333333-3333-4333-8333-333333333333",
-);
+const TOKEN_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
 
 type OnBeforeDeleteFunction = (deleteBy: {
   query: Record<string, unknown>;

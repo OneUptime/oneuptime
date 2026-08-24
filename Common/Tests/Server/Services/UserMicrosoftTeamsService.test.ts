@@ -133,9 +133,8 @@ describe("UserMicrosoftTeamsService", () => {
 
   describe("onBeforeCreate", () => {
     test("resolves the Entra object id from the user's own workspace link and stamps verified", async () => {
-      const result: OnCreate<UserMicrosoftTeams> = await callOnBeforeCreate(
-        createBy(),
-      );
+      const result: OnCreate<UserMicrosoftTeams> =
+        await callOnBeforeCreate(createBy());
 
       expect(result.createBy.data.microsoftTeamsUserId).toBe(ENTRA_OBJECT_ID);
       expect(result.createBy.data.isVerified).toBe(true);
@@ -147,9 +146,8 @@ describe("UserMicrosoftTeamsService", () => {
     });
 
     test("the display name comes from the OAuth-captured miscData, with no API call", async () => {
-      const result: OnCreate<UserMicrosoftTeams> = await callOnBeforeCreate(
-        createBy(),
-      );
+      const result: OnCreate<UserMicrosoftTeams> =
+        await callOnBeforeCreate(createBy());
 
       expect(result.createBy.data.microsoftTeamsUserName).toBe("Alice Example");
     });
@@ -160,9 +158,8 @@ describe("UserMicrosoftTeamsService", () => {
         miscData: { userId: USER_ID.toString() },
       } as unknown as WorkspaceUserAuthToken as never);
 
-      const result: OnCreate<UserMicrosoftTeams> = await callOnBeforeCreate(
-        createBy(),
-      );
+      const result: OnCreate<UserMicrosoftTeams> =
+        await callOnBeforeCreate(createBy());
 
       expect(result.createBy.data.microsoftTeamsUserId).toBe(ENTRA_OBJECT_ID);
       expect(result.createBy.data.microsoftTeamsUserName).toBeUndefined();

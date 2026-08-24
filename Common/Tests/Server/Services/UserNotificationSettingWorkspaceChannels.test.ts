@@ -399,9 +399,7 @@ describe("UserNotificationSettingService.sendUserNotification - workspace channe
       sendDm.mockRejectedValue(new Error("workspace unreachable") as never);
 
       await expect(
-        UserNotificationSettingService.sendUserNotification(
-          notificationData(),
-        ),
+        UserNotificationSettingService.sendUserNotification(notificationData()),
       ).resolves.toBeUndefined();
 
       await flushMicrotasks();

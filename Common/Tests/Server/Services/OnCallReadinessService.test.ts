@@ -3510,9 +3510,8 @@ describe("identifier exposure", () => {
   test("the microsoft teams read never asks for the entra object id, which is the addressable target", async () => {
     await policySummary();
 
-    const select: Record<string, unknown> = firstCall(
-      microsoftTeamsFindBy,
-    ).select!;
+    const select: Record<string, unknown> =
+      firstCall(microsoftTeamsFindBy).select!;
 
     expect(Object.keys(select)).not.toContain("microsoftTeamsUserId");
     expect(select["microsoftTeamsUserName"]).toBe(true);
