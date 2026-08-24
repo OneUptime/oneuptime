@@ -820,6 +820,54 @@ describe("attribution capture and consent", () => {
       }
     });
 
+    /*
+     * The other direction, and the one that fails silently.
+     *
+     * The tests above build their URL FROM the shared contract, so a key added
+     * to Common/Types/Marketing/Attribution.ts and forgotten in the partial is
+     * caught. A key added to the PARTIAL and missing from the contract is not:
+     * the browser would collect and store it, and the server — which whitelists
+     * on the contract — would drop it on arrival without erroring. The partial
+     * says in a comment that its list "must stay in step"; this is what makes
+     * that true rather than aspirational.
+     *
+     * Asserted as set equality, so drift in either direction fails here.
+     */
+    test("the partial's click id list is exactly the shared contract's", () => {
+      const match: RegExpMatchArray | null = html.match(
+        /var CLICK_ID_PARAMS = \[([^\]]*)\]/,
+      );
+
+      expect(match).not.toBeNull();
+
+      const inPartial: Array<string> = match![1]!
+        .split(",")
+        .map((raw: string) => {
+          return raw.trim().replace(/^'|'$/g, "");
+        })
+        .filter(Boolean);
+
+      expect([...inPartial].sort()).toEqual([...AdClickIdKeys].sort());
+    });
+
+    test("the partial's UTM key map is exactly the shared contract's", () => {
+      const match: RegExpMatchArray | null = html.match(
+        /var UTM_KEY_MAP = \{([^}]*)\}/,
+      );
+
+      expect(match).not.toBeNull();
+
+      const inPartial: Array<string> = Array.from(
+        match![1]!.matchAll(/'([^']+)'\s*:/g),
+      ).map((m: RegExpMatchArray) => {
+        return m[1]!;
+      });
+
+      expect([...inPartial].sort()).toEqual(
+        Object.keys(UtmWireKeyToPropertyKey).sort(),
+      );
+    });
+
     test("surfaces every UTM parameter the shared contract names", () => {
       const harness: Harness = loadHarness(html, {
         url: EVERY_PARAM_URL,
