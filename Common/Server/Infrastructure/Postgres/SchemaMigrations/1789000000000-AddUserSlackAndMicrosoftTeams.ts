@@ -14,6 +14,10 @@ export class AddUserSlackAndMicrosoftTeams1789000000000
   public name = "AddUserSlackAndMicrosoftTeams1789000000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    if (await this.isAlreadyApplied(queryRunner)) {
+      return;
+    }
+
     await queryRunner.query(
       `CREATE TABLE "UserSlack" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "slackUserId" character varying(100), "slackUserName" character varying(100), "userId" uuid, "createdByUserId" uuid, "deletedByUserId" uuid, "isVerified" boolean NOT NULL DEFAULT false, CONSTRAINT "PK_86de4cd76b41a08811fc403e23a" PRIMARY KEY ("_id"))`,
     );
@@ -104,6 +108,44 @@ export class AddUserSlackAndMicrosoftTeams1789000000000
     await queryRunner.query(
       `ALTER TABLE "UserOnCallLogTimeline" ADD CONSTRAINT "FK_a7206c19df5cdfe02cf3215a64c" FOREIGN KEY ("userMicrosoftTeamsId") REFERENCES "UserMicrosoftTeams"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
+  }
+
+  /*
+   * Did everything in `up` already run, under this migration's OLD name?
+   *
+   * This shipped as AddUserSlackAndMicrosoftTeams1788800000000 and was
+   * renumbered to 1789000000000 to clear a timestamp collision with
+   * DropMarketingConversionAddEnterpriseLicenseEmail. TypeORM identifies a
+   * migration by class NAME rather than by what it does, so every database
+   * that had already recorded the old name — anything tracking master between
+   * the two commits, which is every test and staging cluster — sees the
+   * renamed class as pending and runs it a second time, where
+   * `CREATE TABLE "UserSlack"` fails on the table it created itself. The
+   * runner stops at the first failure, so that single error holds back this
+   * migration and every migration added after it, on every boot.
+   *
+   * The probe is the table because the earlier run was all-or-nothing:
+   * migrations run one transaction each (DataSourceOptions sets
+   * migrationsTransactionMode: "each") and Postgres DDL is transactional, so
+   * "UserSlack" existing means every statement in `up` already committed.
+   * Nothing is left to do but let TypeORM record the new name.
+   *
+   * The superseded row in "migrations" is deliberately left alone. Deleting it
+   * would make this migration pending again for anyone who rolls the image
+   * BACK to a build that still registers the old name — the same failure, in
+   * the other direction. An unrecognised name in that table is inert.
+   */
+  private async isAlreadyApplied(queryRunner: QueryRunner): Promise<boolean> {
+    const userSlackTableExists: Array<{ exists: boolean }> =
+      await queryRunner.query(`
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables
+                WHERE table_schema = 'public'
+                AND table_name = 'UserSlack'
+            )
+        `);
+
+    return Boolean(userSlackTableExists[0]?.exists);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
