@@ -321,11 +321,26 @@
             });
         }
 
-        // Track CTA clicks for conversion funnel analysis
-        document.querySelectorAll('a[href="/accounts/register"], a[href="/enterprise/demo"], a[href*="register"], a[href*="demo"]').forEach(function(link) {
+        /*
+         * CTA clicks, for conversion funnel analysis.
+         *
+         * `data-ou-cta` names the event explicitly and is the path to prefer.
+         * The href patterns below are the fallback that covers the register
+         * and demo links scattered across the site without tagging each one.
+         *
+         * A[href*="demo"] used to be in that fallback and was wrong in both
+         * directions at once: it matched in-page scroll anchors like
+         * #book-demo on the demo page itself - a visitor moving down a page
+         * they had already reached, counted as a fresh demo request - while
+         * matching nothing at all on the self-hosted page, whose enterprise
+         * CTAs point at #architecture-assessment. The one CTA that mattered
+         * most to a sales-led funnel was the one that fired nothing.
+         */
+        document.querySelectorAll('a[data-ou-cta], a[href="/accounts/register"], a[href*="register"], a[href="/enterprise/demo"]').forEach(function(link) {
             link.addEventListener('click', function(e) {
                 var href = this.getAttribute('href');
-                var eventName = href.includes('register') ? 'cta_get_started' : 'cta_request_demo';
+                var eventName = this.getAttribute('data-ou-cta')
+                    || (href.indexOf('register') !== -1 ? 'cta_get_started' : 'cta_request_demo');
 
                 // PostHog
                 if (typeof posthog !== 'undefined' && posthog && posthog.capture) {
