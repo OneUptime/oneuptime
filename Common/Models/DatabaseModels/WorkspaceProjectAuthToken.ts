@@ -34,6 +34,15 @@ export interface MicrosoftTeamsChat {
   chatType: MicrosoftTeamsChatType;
   serviceUrl?: string | undefined; // Bot Framework service URL captured when the bot was added.
   addedAt?: string | undefined;
+  /*
+   * Microsoft Entra object ids of the human members, captured from the chat
+   * roster. What lets a personal chat be matched back to the OneUptime user
+   * it belongs to (WorkspaceUserAuthToken.workspaceUserId is the same id), so
+   * user direct-message notifications can reuse the existing chat instead of
+   * creating a new conversation. Absent on records captured before this
+   * shipped.
+   */
+  memberAadObjectIds?: Array<string> | undefined;
 }
 
 /*

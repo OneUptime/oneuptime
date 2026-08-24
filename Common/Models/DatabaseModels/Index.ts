@@ -278,6 +278,8 @@ import UserEmail from "./UserEmail";
 import UserPush from "./UserPush";
 import UserWhatsApp from "./UserWhatsApp";
 import UserTelegram from "./UserTelegram";
+import UserSlack from "./UserSlack";
+import UserMicrosoftTeams from "./UserMicrosoftTeams";
 import UserWebhook from "./UserWebhook";
 // User Notification Rules
 import UserNotificationRule from "./UserNotificationRule";
@@ -437,7 +439,6 @@ import MetricType from "./MetricType";
 import ProjectSCIM from "./ProjectSCIM";
 import ProjectSCIMLog from "./ProjectSCIMLog";
 import StatusPageSCIMLog from "./StatusPageSCIMLog";
-import MarketingConversion from "./MarketingConversion";
 import DeletedProject from "./DeletedProject";
 
 const AllModelTypes: Array<{
@@ -703,6 +704,8 @@ const AllModelTypes: Array<{
   UserPush,
   UserWhatsApp,
   UserTelegram,
+  UserSlack,
+  UserMicrosoftTeams,
   UserWebhook,
   UserIncomingCallNumber,
 
@@ -897,7 +900,6 @@ const AllModelTypes: Array<{
   RumSessionReplayView,
   RumSessionErasureRequest,
   RumSessionPin,
-  MarketingConversion,
   DeletedProject,
 ];
 

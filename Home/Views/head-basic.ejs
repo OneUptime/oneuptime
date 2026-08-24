@@ -350,6 +350,39 @@
     existing dashboards keep their history.
 -->
 <script>
+    /*
+     * Cal fires the booking event under more than one action name: the older
+     * 'bookingSuccessful' and the newer 'bookingSuccessfulV2'. embed.js is
+     * loaded unpinned from app.cal.com, so which name arrives is Cal's
+     * decision on any given day - and a booking that fires only the name we
+     * are not subscribed to reports no conversion at all, silently, while the
+     * booking itself still succeeds. Subscribing to one name makes the
+     * enterprise lead conversion depend on a third party not renaming it.
+     *
+     * Subscribe to both and latch: whichever arrives first reports the
+     * booking, and a second name for the same booking is ignored, so one
+     * booking stays one meeting_booked.
+     */
+    window.oneUptimeOnCalBookingSuccess = function (handler) {
+        if (typeof Cal !== 'function') {
+            return;
+        }
+
+        var reported = false;
+
+        var once = function (e) {
+            if (reported) {
+                return;
+            }
+            reported = true;
+            handler(e && e.detail ? e.detail : {});
+        };
+
+        ['bookingSuccessful', 'bookingSuccessfulV2'].forEach(function (action) {
+            Cal('on', { action: action, callback: once });
+        });
+    };
+
     window.oneUptimeTrackMeetingBooked = function (options) {
         options = options || {};
 

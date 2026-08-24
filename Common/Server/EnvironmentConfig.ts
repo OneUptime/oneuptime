@@ -376,116 +376,21 @@ export const AnalyticsHost: string = process.env["ANALYTICS_HOST"] || "";
 export const CalWebhookSecret: string = process.env["CAL_WEBHOOK_SECRET"] || "";
 
 /*
- * Google Ads offline conversion uploads (MarketingConversions worker job).
- * Server-only secrets — must never be added to FRONTEND_ENV_ALLOW_LIST.
- */
-export const GoogleAdsDeveloperToken: string =
-  process.env["GOOGLE_ADS_DEVELOPER_TOKEN"] || "";
-export const GoogleAdsOAuthClientId: string =
-  process.env["GOOGLE_ADS_OAUTH_CLIENT_ID"] || "";
-export const GoogleAdsOAuthClientSecret: string =
-  process.env["GOOGLE_ADS_OAUTH_CLIENT_SECRET"] || "";
-export const GoogleAdsOAuthRefreshToken: string =
-  process.env["GOOGLE_ADS_OAUTH_REFRESH_TOKEN"] || "";
-// Digits only, no dashes (e.g. 1234567890).
-export const GoogleAdsCustomerId: string =
-  process.env["GOOGLE_ADS_CUSTOMER_ID"] || "";
-// Manager (MCC) account id when the OAuth user accesses the account via a manager.
-export const GoogleAdsLoginCustomerId: string =
-  process.env["GOOGLE_ADS_LOGIN_CUSTOMER_ID"] || "";
-/*
- * Google sunsets Ads API versions roughly yearly (v20 died 2026-06-10) —
- * keep this default on a currently supported version and prefer setting
- * GOOGLE_ADS_API_VERSION explicitly in production.
- */
-export const GoogleAdsApiVersion: string =
-  process.env["GOOGLE_ADS_API_VERSION"] || "v23";
-/*
- * Numeric conversion action ids from Google Ads (Goals -> Conversions). One
- * per conversion type: the provider maps types to actions exhaustively, and an
- * empty value leaves that type pending rather than uploading it under some
- * other type's action.
- */
-export const GoogleAdsSignUpConversionActionId: string =
-  process.env["GOOGLE_ADS_SIGNUP_CONVERSION_ACTION_ID"] || "";
-export const GoogleAdsPaidSubscriptionConversionActionId: string =
-  process.env["GOOGLE_ADS_PAID_SUBSCRIPTION_CONVERSION_ACTION_ID"] || "";
-export const GoogleAdsMeetingBookedConversionActionId: string =
-  process.env["GOOGLE_ADS_MEETING_BOOKED_CONVERSION_ACTION_ID"] || "";
-
-/*
- * Enhanced conversions for leads: upload a conversion identified ONLY by a
- * hashed email, with no gclid at all.
+ * Outbound marketing conversion webhooks.
  *
- * This is the mechanism that makes a sales-led funnel measurable — a demo
- * booked in June and a licence signed in October share an email and nothing
- * else. It is off by default because it is not purely a OneUptime-side switch:
- * the Google Ads account must have enhanced conversions for leads turned on
- * and the conversion action configured for it, and uploading email-only
- * conversions to an account without that returns a per-conversion rejection.
+ * OneUptime does not store conversions. Signups, booked meetings and plan
+ * upgrades/downgrades are POSTed to this endpoint as they happen and kept
+ * nowhere afterwards, so an unset URL means those moments are simply not
+ * measured — nothing accumulates waiting for one to be configured.
  *
- * Hashing the email ALONGSIDE a click id needs no flag and is always sent — it
- * only improves the match rate of a conversion that was uploadable anyway.
+ * Both are required. The payload carries email addresses and campaign data,
+ * so a URL set without a secret is refused rather than sent unsigned. The
+ * secret is server-only and must never reach FRONTEND_ENV_ALLOW_LIST.
  */
-export const GoogleAdsEnhancedConversionsForLeadsEnabled: boolean =
-  process.env["GOOGLE_ADS_ENHANCED_CONVERSIONS_FOR_LEADS_ENABLED"] === "true";
-
-// Meta (Facebook) Conversions API. Server-only secrets.
-export const MetaConversionsPixelId: string =
-  process.env["META_CONVERSIONS_PIXEL_ID"] || "";
-export const MetaConversionsAccessToken: string =
-  process.env["META_CONVERSIONS_ACCESS_TOKEN"] || "";
-export const MetaGraphApiVersion: string =
-  process.env["META_GRAPH_API_VERSION"] || "v22.0";
-
-// Microsoft Advertising (Bing Ads) offline conversions. Server-only secrets.
-export const MicrosoftAdsDeveloperToken: string =
-  process.env["MICROSOFT_ADS_DEVELOPER_TOKEN"] || "";
-export const MicrosoftAdsOAuthClientId: string =
-  process.env["MICROSOFT_ADS_OAUTH_CLIENT_ID"] || "";
-export const MicrosoftAdsOAuthClientSecret: string =
-  process.env["MICROSOFT_ADS_OAUTH_CLIENT_SECRET"] || "";
-export const MicrosoftAdsOAuthRefreshToken: string =
-  process.env["MICROSOFT_ADS_OAUTH_REFRESH_TOKEN"] || "";
-export const MicrosoftAdsCustomerId: string =
-  process.env["MICROSOFT_ADS_CUSTOMER_ID"] || "";
-export const MicrosoftAdsAccountId: string =
-  process.env["MICROSOFT_ADS_ACCOUNT_ID"] || "";
-// Offline conversion goals are matched by NAME in Microsoft Advertising.
-export const MicrosoftAdsSignUpConversionName: string =
-  process.env["MICROSOFT_ADS_SIGNUP_CONVERSION_NAME"] || "";
-export const MicrosoftAdsPaidSubscriptionConversionName: string =
-  process.env["MICROSOFT_ADS_PAID_SUBSCRIPTION_CONVERSION_NAME"] || "";
-export const MicrosoftAdsMeetingBookedConversionName: string =
-  process.env["MICROSOFT_ADS_MEETING_BOOKED_CONVERSION_NAME"] || "";
-
-// LinkedIn Conversions API. Server-only secrets.
-export const LinkedInConversionsAccessToken: string =
-  process.env["LINKEDIN_CONVERSIONS_ACCESS_TOKEN"] || "";
-/*
- * LinkedIn publishes a new Marketing API version monthly and supports each
- * for ~12 months — keep this default recent and prefer setting
- * LINKEDIN_API_VERSION explicitly in production.
- */
-export const LinkedInApiVersion: string =
-  process.env["LINKEDIN_API_VERSION"] || "202606";
-// Numeric conversion rule ids (urn:lla:llaPartnerConversion:{id}).
-export const LinkedInSignUpConversionId: string =
-  process.env["LINKEDIN_SIGNUP_CONVERSION_ID"] || "";
-export const LinkedInPaidSubscriptionConversionId: string =
-  process.env["LINKEDIN_PAID_SUBSCRIPTION_CONVERSION_ID"] || "";
-export const LinkedInMeetingBookedConversionId: string =
-  process.env["LINKEDIN_MEETING_BOOKED_CONVERSION_ID"] || "";
-
-// Reddit Conversions API. Server-only secrets.
-export const RedditAdsOAuthClientId: string =
-  process.env["REDDIT_ADS_OAUTH_CLIENT_ID"] || "";
-export const RedditAdsOAuthClientSecret: string =
-  process.env["REDDIT_ADS_OAUTH_CLIENT_SECRET"] || "";
-export const RedditAdsOAuthRefreshToken: string =
-  process.env["REDDIT_ADS_OAUTH_REFRESH_TOKEN"] || "";
-export const RedditAdsAccountId: string =
-  process.env["REDDIT_ADS_ACCOUNT_ID"] || "";
+export const MarketingWebhookUrl: string =
+  process.env["MARKETING_WEBHOOK_URL"] || "";
+export const MarketingWebhookSecret: string =
+  process.env["MARKETING_WEBHOOK_SECRET"] || "";
 
 export const DisableAutomaticIncidentCreation: boolean =
   process.env["DISABLE_AUTOMATIC_INCIDENT_CREATION"] === "true";

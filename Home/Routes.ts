@@ -845,6 +845,20 @@ const HomeFeatureSet: FeatureSet = {
     );
 
     app.get(
+      "/product/security-events",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/security-events",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/security-events`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
       "/product/services",
       (_req: ExpressRequest, res: ExpressResponse) => {
         const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(

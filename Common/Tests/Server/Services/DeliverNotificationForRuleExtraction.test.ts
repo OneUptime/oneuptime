@@ -46,7 +46,7 @@ import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
  * with a UserNotificationRule it assembled in memory and never saved: there is
  * no rule row to claim and no id to look up, so the first half is meaningless
  * to it while the second half is exactly what it needs. That makes the SEAM
- * between the two halves — not the seven channel blocks, which
+ * between the two halves — not the nine channel blocks, which
  * NotificationChannelEventCoverage.test.ts owns — the thing worth pinning, and
  * this file pins five properties of it:
  *
@@ -731,7 +731,7 @@ describe("UserNotificationRuleService - the deliverNotificationForRule extractio
        * the loaded relation's userId against the rule's, and it can only report
        * a mismatch it can SEE - an unselected column arrives as `undefined` and
        * is deliberately read as "no evidence", so dropping any one of these
-       * seven silently disables the backstop for that channel.
+       * nine silently disables the backstop for that channel.
        *
        * Kept as an exact-shape assertion on purpose. This test caught the
        * column being added, which is the whole argument for not relaxing it
@@ -762,6 +762,18 @@ describe("UserNotificationRuleService - the deliverNotificationForRule extractio
           isVerified: true,
           userId: true,
         },
+        userSlack: {
+          slackUserId: true,
+          slackUserName: true,
+          isVerified: true,
+          userId: true,
+        },
+        userMicrosoftTeams: {
+          microsoftTeamsUserId: true,
+          microsoftTeamsUserName: true,
+          isVerified: true,
+          userId: true,
+        },
         userWebhook: {
           webhookUrl: true,
           name: true,
@@ -788,6 +800,8 @@ describe("UserNotificationRuleService - the deliverNotificationForRule extractio
       ["userSms"],
       ["userWhatsApp"],
       ["userTelegram"],
+      ["userSlack"],
+      ["userMicrosoftTeams"],
       ["userEmail"],
       ["userPush"],
     ])(
@@ -806,6 +820,8 @@ describe("UserNotificationRuleService - the deliverNotificationForRule extractio
       ["userSms", "phone"],
       ["userWhatsApp", "phone"],
       ["userTelegram", "telegramChatId"],
+      ["userSlack", "slackUserId"],
+      ["userMicrosoftTeams", "microsoftTeamsUserId"],
       ["userEmail", "email"],
       ["userPush", "deviceToken"],
     ])(

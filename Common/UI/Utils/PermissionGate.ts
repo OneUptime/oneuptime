@@ -4,6 +4,7 @@ import Permission, {
   PermissionHelper,
   PermissionProps,
 } from "../../Types/Permission";
+import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
 import PermissionUtil from "./Permission";
 import User from "./User";
 
@@ -50,6 +51,15 @@ export interface PermissionCheckableModel {
   getReadPermissions: () => Array<Permission>;
   getUpdatePermissions: () => Array<Permission>;
   getDeletePermissions: () => Array<Permission>;
+}
+
+/*
+ * A model that declares column-level access control. Separate from
+ * PermissionCheckableModel because column gating answers a different question
+ * ("may this field be SELECTED?") and only the database models carry it.
+ */
+export interface ColumnPermissionCheckableModel {
+  getColumnAccessControlForAllColumns: () => Dictionary<ColumnAccessControl>;
 }
 
 export interface PermissionGateOptions {
@@ -268,6 +278,52 @@ export default class PermissionGate {
         // Locked. The tooltip says which permission is missing.
       },
     };
+  }
+
+  /*
+   * Whether the signed-in user may SELECT a column.
+   *
+   * Column access control is enforced differently from record access control:
+   * asking for a column you cannot read is not degraded, it is fatal.
+   * ColumnPermission throws `User is not allowed to read on <column> column of
+   * <model>` and the whole request fails, so one unreadable field in a select
+   * takes down the entire page rather than blanking one value. That is why
+   * ModelAction has no column-level members (see the comment on the enum) and
+   * why callers must ask this BEFORE building the select, not after.
+   *
+   * Deliberately fails closed. When the permission snapshot has not landed yet
+   * this returns false and the caller omits the field: the page renders
+   * without that one value, which is recoverable. Failing open would send the
+   * column anyway and hard-fail the request, which is not.
+   *
+   * A column with no declared read ACL is readable - there is nothing to
+   * enforce, and ColumnPermission agrees.
+   */
+  public static canReadColumn(
+    model: ColumnPermissionCheckableModel,
+    columnName: string,
+    options?: PermissionGateOptions | undefined,
+  ): boolean {
+    if (User.isMasterAdmin()) {
+      return true;
+    }
+
+    const accessControl: ColumnAccessControl | undefined =
+      model.getColumnAccessControlForAllColumns()[columnName];
+
+    const columnPermissions: Array<Permission> = accessControl?.read || [];
+
+    if (columnPermissions.length === 0) {
+      return true;
+    }
+
+    const userPermissions: Array<Permission> =
+      options?.permissions ?? PermissionUtil.getAllPermissions();
+
+    return PermissionHelper.doesPermissionsIntersect(
+      userPermissions,
+      columnPermissions,
+    );
   }
 
   /* Test seam - the props lookup is memoized for the lifetime of the page. */

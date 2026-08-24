@@ -9,35 +9,28 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import Attribution, { UtmAttribution } from "Common/Server/Utils/Attribution";
 import { CalWebhookSecret } from "Common/Server/EnvironmentConfig";
-import MarketingConversionService from "Common/Server/Services/MarketingConversionService";
-import PostgresErrorTranslator from "Common/Server/Utils/Database/PostgresErrorTranslator";
+import MarketingEventUtil from "Common/Server/Utils/Marketing/MarketingEventUtil";
 import logger from "Common/Server/Utils/Logger";
-import MarketingConversion from "Common/Models/DatabaseModels/MarketingConversion";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
 import {
   AdClickIdKeys,
   UtmWireKeyToPropertyKey,
 } from "Common/Types/Marketing/Attribution";
-import { MarketingConversionType } from "Common/Types/Marketing/MarketingConversion";
+import { MarketingEventType } from "Common/Types/Marketing/MarketingEvent";
 
 /*
- * Cal.com booking webhook — the only writer of MeetingBooked rows in the
- * MarketingConversion ledger. Cal signs the exact request bytes with
- * CAL_WEBHOOK_SECRET, so the route authenticates itself and needs no
- * OneUptime session. The browser `meeting_booked` analytics event on the demo
- * pages is a mirror of the same moment, not a second source of truth — see
- * Docs/analytics/enterprise-conversion-tracking.md.
+ * Cal.com booking webhook — the only source of the meeting_booked conversion.
+ * Cal signs the exact request bytes with CAL_WEBHOOK_SECRET, so the route
+ * authenticates itself and needs no OneUptime session.
+ *
+ * Nothing here is stored. A verified booking is parsed, turned into an
+ * outbound marketing event and handed to the delivery queue; the browser
+ * `meeting_booked` analytics event on the demo pages is a mirror of the same
+ * moment, not a second source of truth — see
+ * Docs/analytics/marketing-event-webhooks.md.
  */
 
 const router: ExpressRouter = Express.getRouter();
-
-/*
- * Namespace for the deterministic conversion id. Changing it re-keys every
- * future booking, so bookings already in the ledger would be insertable a
- * second time — never change it.
- */
-const CAL_SOURCE_NAMESPACE: string = "cal.com/booking";
 
 /*
  * Only a created booking is a conversion. A reschedule or a cancellation is a
@@ -75,7 +68,7 @@ const SIGNATURE_PREFIX_REGEX: RegExp = /^sha256=/i;
 
 const MAX_BOOKING_ID_LENGTH: number = 500;
 const MAX_CLICK_ID_LENGTH: number = 500;
-// Matches the ShortText width of MarketingConversion.email.
+// Bounds what an unauthenticated caller can push through in the email field.
 const MAX_EMAIL_LENGTH: number = 100;
 
 export interface CalBookingConversion {
@@ -384,43 +377,6 @@ export const parseCalBookingConversion: ParseCalBookingConversionFunction = (
   };
 };
 
-export type GetCalBookingConversionIdFunction = (bookingId: string) => ObjectID;
-
-/*
- * A UUIDv5-shaped id derived from the booking, so every delivery and redelivery
- * of one booking resolves to the same primary key. Cal retries on any non-2xx
- * and can deliver the same booking more than once; without a derived key each
- * retry would insert another conversion.
- *
- * SHA-256 truncated to 16 bytes rather than RFC 4122's SHA-1, with the version
- * and variant nibbles set so the value is a well-formed UUID that Postgres and
- * ObjectID accept.
- */
-export const getCalBookingConversionId: GetCalBookingConversionIdFunction = (
-  bookingId: string,
-): ObjectID => {
-  const bytes: Buffer = crypto
-    .createHash("sha256")
-    .update(`${CAL_SOURCE_NAMESPACE}:${bookingId}`)
-    .digest()
-    .subarray(0, 16);
-
-  bytes[6] = (bytes[6]! & 0x0f) | 0x50;
-  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
-
-  const hex: string = bytes.toString("hex");
-
-  return new ObjectID(
-    [
-      hex.slice(0, 8),
-      hex.slice(8, 12),
-      hex.slice(12, 16),
-      hex.slice(16, 20),
-      hex.slice(20),
-    ].join("-"),
-  );
-};
-
 export type CalWebhookRouteHandler = (
   req: ExpressRequest,
   res: ExpressResponse,
@@ -475,66 +431,59 @@ export const calWebhookRouteHandler: CalWebhookRouteHandler = async (
       return;
     }
 
-    const conversionId: ObjectID = getCalBookingConversionId(parsed.bookingId);
-
-    const existing: MarketingConversion | null =
-      await MarketingConversionService.findOneById({
-        id: conversionId,
-        select: { _id: true },
-        props: { isRoot: true },
-      });
-
-    if (existing) {
-      res.status(200).json({ accepted: true, duplicate: true });
-      return;
-    }
-
-    const conversion: MarketingConversion = new MarketingConversion();
-    conversion.id = conversionId;
-    conversion.conversionType = MarketingConversionType.MeetingBooked;
-    conversion.conversionAt = parsed.conversionAt;
-    conversion.clickIds = parsed.clickIds;
-    conversion.email = parsed.email;
-
     /*
-     * The hash, not the address, is what leaves this service: ad platforms get
-     * it for enhanced matching, and the worker joins this booking to the
-     * signup it later produced by it. Storing it here rather than deriving it
-     * downstream keeps the value stable even if the email column is later
-     * redacted.
+     * Emit rather than store.
+     *
+     * OneUptime keeps no conversion ledger, so there is no row to read back
+     * and no unique key to collide on — which also means this endpoint can no
+     * longer tell a first delivery from a retry. That is deliberate and it is
+     * why eventId is the booking uid: Cal retrying, or the queue retrying,
+     * produces the same id every time and the receiver deduplicates on it.
+     *
+     * The response is therefore always `accepted: true` with no `duplicate`
+     * flag. Cal only needs a 2xx to stop retrying.
      */
-    const emailHash: string | null = Attribution.hashEmail(parsed.email);
-
-    if (emailHash) {
-      conversion.emailHash = emailHash;
-    }
-
-    conversion.utmSource = parsed.utm.utmSource;
-    conversion.utmMedium = parsed.utm.utmMedium;
-    conversion.utmCampaign = parsed.utm.utmCampaign;
-    conversion.utmTerm = parsed.utm.utmTerm;
-    conversion.utmContent = parsed.utm.utmContent;
-    conversion.utmUrl = parsed.utm.utmUrl;
-    conversion.firstTouchAttribution = parsed.firstTouchAttribution;
-
+    /*
+     * Isolated from the response path on purpose. Everything above has already
+     * succeeded — the signature verified and the booking parsed — so Cal is
+     * owed its 2xx whatever happens here. Letting an emit failure reach the
+     * outer catch would answer 500, and Cal retries on any non-2xx, so a
+     * broken queue would turn one booking into a retry storm.
+     */
     try {
-      await MarketingConversionService.create({
-        data: conversion,
-        props: { isRoot: true },
-      });
+      MarketingEventUtil.emitInBackground(
+        MarketingEventUtil.buildEvent({
+          eventType: MarketingEventType.MeetingBooked,
+          eventId: `${MarketingEventType.MeetingBooked}:${parsed.bookingId}`,
+          /*
+           * When the booking was MADE, not when the meeting starts. The old
+           * ledger stamped this with the meeting's start time, which is in the
+           * future and forced every consumer to clamp it before it could order
+           * a booking against a signup. The meeting time is still reported, as
+           * data.meetingStartsAt, where being in the future is unsurprising.
+           */
+          occurredAt: new Date(),
+          email: parsed.email,
+          attributionSource: {
+            utmSource: parsed.utm.utmSource,
+            utmMedium: parsed.utm.utmMedium,
+            utmCampaign: parsed.utm.utmCampaign,
+            utmTerm: parsed.utm.utmTerm,
+            utmContent: parsed.utm.utmContent,
+            utmUrl: parsed.utm.utmUrl,
+            clickIds: parsed.clickIds,
+            firstTouchAttribution: parsed.firstTouchAttribution,
+          },
+          data: {
+            calBookingId: parsed.bookingId,
+            meetingStartsAt: parsed.conversionAt.toISOString(),
+          },
+        }),
+      );
     } catch (err) {
-      /*
-       * The read above and this insert are two statements: two deliveries of
-       * one booking can both miss and both insert. The loser collides on the
-       * derived primary key, which means the booking IS recorded — the whole
-       * point of deriving the key — so it is a success, not a failure.
-       */
-      if (!PostgresErrorTranslator.isUniqueViolation(err)) {
-        throw err;
-      }
-
-      res.status(200).json({ accepted: true, duplicate: true });
-      return;
+      logger.error(
+        `Cal webhook: failed to emit meeting_booked for booking ${parsed.bookingId}: ${err}`,
+      );
     }
 
     res.status(200).json({ accepted: true });

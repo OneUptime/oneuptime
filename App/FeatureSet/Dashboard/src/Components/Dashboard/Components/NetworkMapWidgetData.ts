@@ -514,6 +514,16 @@ export const buildNetworkMapMarkers: (
       };
     }),
     input.zoom,
+    /*
+     * Threads on, explicitly. The Network Map PAGE turns them off above its
+     * unit level, where a name stands for a whole region and thirty threads
+     * make a web (#3372) — but this widget has no levels: it draws one
+     * marker per site and names only the markers that stand for exactly one
+     * of them, which is the same thing a unit marker is. A name pushed clear
+     * of a crowded city here is still pointing at one site, so it is worth
+     * the line.
+     */
+    { allowLabelThreads: true },
   );
 
   return markers.map((marker: NetworkMapMarker): NetworkMapMarker => {

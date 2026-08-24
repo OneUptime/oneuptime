@@ -221,37 +221,23 @@
           });
         }
         
-        Cal("on", {
-          action: "bookingSuccessful",
-          callback: (e) => {
-            const { type, namespace } = e.detail;
-
-            /*
-             * Canonical meeting_booked, plus the legacy events. e.detail.data
-             * carries the attendee's name and email and is deliberately not
-             * forwarded to any analytics destination.
-             */
-            window.oneUptimeTrackMeetingBooked({
-              bookingKind: 'enterprise_demo',
-              legacyEventName: 'home/demo-booked',
-              calEventType: type,
-              calNamespace: namespace
-            });
-
-            /*
-             * No extra emissions here. One booking must produce exactly one
-             * conversion event, or GA4 key-event counts and Google Ads bidding
-             * are inflated. This block previously also sent 'demo_request'
-             * through the gtag shim and 'demo_booked' through dataLayer, so a
-             * single booking looked like three conversions under three names.
-             *
-             * The 'demo_request' path could never arrive at all: `gtag` here is
-             * the shim defined in head-basic.ejs (`dataLayer.push(arguments)`),
-             * which pushes an Arguments object carrying no `event` key, so no
-             * GTM Custom Event trigger can match it. support.ejs already had
-             * this shape; demo.ejs was the outlier.
-             */
-          }
+        /*
+         * Canonical meeting_booked. e.detail.data carries the attendee's name
+         * and email and is deliberately not forwarded to any destination.
+         *
+         * One booking must produce exactly one conversion event, or GA4
+         * key-event counts and Google Ads bidding are inflated. This block
+         * used to also send 'demo_request' through the gtag shim and
+         * 'demo_booked' through dataLayer, so a single booking looked like
+         * three conversions under three names.
+         */
+        window.oneUptimeOnCalBookingSuccess(function (detail) {
+          window.oneUptimeTrackMeetingBooked({
+            bookingKind: 'enterprise_demo',
+            legacyEventName: 'home/demo-booked',
+            calEventType: detail.type,
+            calNamespace: detail.namespace
+          });
         });
       </script>
     </section>

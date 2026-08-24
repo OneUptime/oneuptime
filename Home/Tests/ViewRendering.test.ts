@@ -22,8 +22,9 @@ import {
   getClaimsMatrix,
   getClaimsNeedingReview,
 } from "../Utils/Claims";
-import { getPageSEO, PageSEOData } from "../Utils/PageSEO";
+import PageSEOConfig, { getPageSEO, PageSEOData } from "../Utils/PageSEO";
 import ejs from "ejs";
+import fs from "fs";
 import path from "path";
 
 /*
@@ -407,6 +408,246 @@ describe("claims-matrix.ejs review states", () => {
       },
     );
     expect(new Set(colours).size).toBe(colours.length);
+  });
+});
+
+/*
+ * Industry and solution pages are mostly grids of links into the product
+ * catalogue, and a wrong one is invisible until somebody clicks it:
+ * /product/uptime-monitoring reads right, but the canonical path is
+ * /product/monitoring. Every page in these two directories is rendered by
+ * Routes.ts with the same two locals, so walk the directories instead of
+ * naming the pages — the next page added is then checked the day it lands.
+ */
+
+type LinkedPage = [templateFileName: string, pagePath: string];
+
+function pagesUnder(directory: string): Array<LinkedPage> {
+  return fs
+    .readdirSync(path.join(VIEWS_ROOT, directory))
+    .filter((fileName: string): boolean => {
+      return fileName.endsWith(".ejs");
+    })
+    .map((fileName: string): LinkedPage => {
+      return [
+        `${directory}/${fileName}`,
+        `/${directory}/${path.basename(fileName, ".ejs")}`,
+      ];
+    });
+}
+
+const LINKED_PAGE_DIRECTORIES: Array<string> = ["industries", "solutions"];
+
+const LINKED_PAGES: Array<LinkedPage> = LINKED_PAGE_DIRECTORIES.flatMap(
+  (directory: string): Array<LinkedPage> => {
+    return pagesUnder(directory);
+  },
+);
+
+/*
+ * Paths that a page links to and that PageSEO.ts is the register for. Anything
+ * outside these namespaces — /docs, /pricing, /enterprise — is routed and
+ * documented elsewhere, so a missing SEO entry there proves nothing.
+ */
+const CATALOGUE_NAMESPACES: Array<string> = [
+  "/product/",
+  "/tool/",
+  "/solutions/",
+  "/industries/",
+];
+
+function catalogueLinksIn(html: string): Array<string> {
+  const hrefs: Set<string> = new Set<string>(
+    [...html.matchAll(/href="(\/[^"#]*)"/g)].map(
+      (match: RegExpMatchArray): string => {
+        return match[1]!;
+      },
+    ),
+  );
+
+  return [...hrefs].filter((href: string): boolean => {
+    return CATALOGUE_NAMESPACES.some((namespace: string): boolean => {
+      return href.startsWith(namespace);
+    });
+  });
+}
+
+/*
+ * Read only the page's own <main>: links in the shared nav, footer and CTA are
+ * not any one page's problem, and they have their own tests.
+ */
+function pageBodyOf(html: string): string {
+  const start: number = html.indexOf("<main");
+  const end: number = html.indexOf("</main>");
+
+  expect(start).toBeGreaterThan(-1);
+  expect(end).toBeGreaterThan(start);
+
+  return html.slice(start, end);
+}
+
+describe("industry and solution pages", () => {
+  const rendered: Map<string, string> = new Map<string, string>();
+
+  beforeAll(async () => {
+    for (const [templateFileName, pagePath] of LINKED_PAGES) {
+      /*
+       * Exactly the locals Routes.ts hands these templates, plus homeUrl, which
+       * request middleware puts on res.locals rather than passing per render.
+       */
+      rendered.set(
+        templateFileName,
+        await render(templateFileName, {
+          enableGoogleTagManager: false,
+          seo: seoFor(pagePath),
+          homeUrl: HOME_URL,
+        }),
+      );
+    }
+  });
+
+  test("both directories are walked", () => {
+    // An empty walk would pass every assertion below without checking a thing.
+    expect(LINKED_PAGES.length).toBeGreaterThanOrEqual(14);
+  });
+
+  test.each(LINKED_PAGES)(
+    "%s renders a complete page",
+    (templateFileName: string) => {
+      const html: string = rendered.get(templateFileName)!;
+
+      expect(html).toContain("<!DOCTYPE html>");
+      expect(html).toContain("</html>");
+      expect(html.length).toBeGreaterThan(10000);
+    },
+  );
+
+  test.each(LINKED_PAGES)(
+    "%s links only to catalogue pages that exist",
+    (templateFileName: string) => {
+      for (const href of catalogueLinksIn(
+        pageBodyOf(rendered.get(templateFileName)!),
+      )) {
+        expect(PageSEOConfig[href]?.canonicalPath).toBe(href);
+      }
+    },
+  );
+
+  /*
+   * Four of these pages link nowhere into the catalogue, so a per-page floor
+   * would fail on them. Assert the scan over all of them instead: without
+   * this, a regex that stopped matching would quietly turn every check above
+   * into a pass.
+   */
+  test("the scan finds catalogue links to check", () => {
+    const found: Set<string> = new Set<string>(
+      LINKED_PAGES.flatMap(([templateFileName]: LinkedPage): Array<string> => {
+        return catalogueLinksIn(pageBodyOf(rendered.get(templateFileName)!));
+      }),
+    );
+
+    expect(found.size).toBeGreaterThanOrEqual(10);
+  });
+});
+
+describe("security-events.ejs", () => {
+  let html: string = "";
+
+  beforeAll(async () => {
+    /*
+     * Exactly the locals Routes.ts hands the template, plus homeUrl, which the
+     * request middleware puts on res.locals rather than passing per render.
+     */
+    html = await render("security-events.ejs", {
+      enableGoogleTagManager: false,
+      seo: seoFor("/product/security-events"),
+      homeUrl: HOME_URL,
+    });
+  });
+
+  test("renders a complete page", () => {
+    expect(html).toContain("<!DOCTYPE html>");
+    expect(html).toContain("</html>");
+    expect(html.length).toBeGreaterThan(10000);
+  });
+
+  test("the hardcoded head matches the SEO entry's canonical URL", () => {
+    /*
+     * head-basic.ejs never reads `seo`, so the <title> and meta description in
+     * the template and the strings in PageSEO.ts are two separate places. Only
+     * the canonical URL is generated, so that is what can be asserted here.
+     */
+    expect(html).toContain(
+      '<link rel="canonical" href="https://oneuptime.com/product/security-events"',
+    );
+    expect(html).toContain("OneUptime | Security Events");
+  });
+
+  test("renders the sections the page is built around", () => {
+    for (const heading of [
+      "One endpoint in. Alerts and on-call out.",
+      "One endpoint. Four dialects. Nothing dropped.",
+      "Detections as code, written in Sigma",
+      "A detection is an alert your team already knows how to handle",
+      "When the rate is the story, not the event",
+      "Straight about the scope",
+    ]) {
+      expect(html).toContain(heading);
+    }
+  });
+
+  test("quotes the ingest endpoint and the telemetry rate accurately", () => {
+    expect(html).toContain("/security-events/v1/ingest");
+    expect(html).toContain("x-oneuptime-token");
+    expect(html).toContain("$0.10 per GB");
+  });
+
+  test("cross-links the products a detection actually flows into", () => {
+    for (const href of [
+      "/product/on-call",
+      "/product/incident-management",
+      "/product/logs-management",
+      "/docs/telemetry/security-events",
+      "/docs/integrations/google-secops",
+    ]) {
+      expect(html).toContain(`href="${href}"`);
+    }
+  });
+
+  test("every product link in the page body is a real canonical page", () => {
+    /*
+     * A product page is mostly outbound links, and a wrong one is invisible
+     * until someone clicks it — /product/mcp-server looks right but the
+     * canonical path is /tool/mcp-server. Scanned with the same helpers as the
+     * industry and solution pages above, so there is one definition of what a
+     * catalogue link is and what counts as the page's own body.
+     */
+    const productLinks: Array<string> = catalogueLinksIn(pageBodyOf(html));
+
+    // The page should be linking out; an empty list means the regex broke.
+    expect(productLinks.length).toBeGreaterThan(4);
+
+    for (const href of productLinks) {
+      expect(PageSEOConfig[href]?.canonicalPath).toBe(href);
+    }
+  });
+
+  test("does not claim capabilities the detection engine does not have", () => {
+    /*
+     * Only the boolean Sigma core is supported, evaluation is scheduled rather
+     * than streaming, and security-event monitors compare against static
+     * thresholds — anomaly comparators are deliberately withheld for them.
+     */
+    expect(html).not.toMatch(/full sigma (spec|support)/i);
+    expect(html).not.toMatch(/real[- ]time detection/i);
+    expect(html).not.toMatch(/complete sigma/i);
+  });
+
+  test("states the limits rather than leaving a buyer to find them", () => {
+    // Each of these is a real, code-level boundary of the product.
+    expect(html).toContain("count()");
+    expect(html).toContain("the floor is one minute");
+    expect(html).toMatch(/UEBA and behaviou?ral baselining/);
   });
 });
 

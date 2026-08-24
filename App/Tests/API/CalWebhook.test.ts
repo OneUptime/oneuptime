@@ -8,12 +8,8 @@ import {
   sign,
 } from "./CalWebhookTestUtil";
 import Attribution from "Common/Server/Utils/Attribution";
-import MarketingConversion from "Common/Models/DatabaseModels/MarketingConversion";
-import MarketingConversionService from "Common/Server/Services/MarketingConversionService";
 import { ExpressRequest, NextFunction } from "Common/Server/Utils/Express";
 import { JSONObject } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
-import { MarketingConversionType } from "Common/Types/Marketing/MarketingConversion";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -94,19 +90,36 @@ jest.mock("Common/Server/Utils/Logger", () => {
   };
 });
 
-jest.mock("Common/Server/Services/MarketingConversionService", () => {
+/*
+ * The route emits rather than stores, so the seam under test is the event
+ * builder. buildEvent is left REAL — asserting on a stubbed builder would
+ * prove the route called something, not that a receiver gets the right event —
+ * and only the queue hand-off is stubbed.
+ */
+jest.mock("Common/Server/Utils/Marketing/MarketingEventUtil", () => {
+  const actual: {
+    default: typeof import("Common/Server/Utils/Marketing/MarketingEventUtil").default;
+  } = jest.requireActual(
+    "Common/Server/Utils/Marketing/MarketingEventUtil",
+  ) as {
+    default: typeof import("Common/Server/Utils/Marketing/MarketingEventUtil").default;
+  };
+
   return {
     __esModule: true,
     default: {
-      create: jest.fn(),
-      findOneById: jest.fn(),
+      buildEvent: actual.default.buildEvent.bind(actual.default),
+      buildAttribution: actual.default.buildAttribution.bind(actual.default),
+      emitInBackground: jest.fn(),
+      emit: jest.fn(),
     },
   };
 });
 
+import MarketingEventUtil from "Common/Server/Utils/Marketing/MarketingEventUtil";
+import { MarketingEvent } from "Common/Types/Marketing/MarketingEvent";
 import {
   CalBookingConversion,
-  getCalBookingConversionId,
   parseCalBookingConversion,
   verifyCalWebhookSignature,
 } from "../../API/CalWebhook";
@@ -123,25 +136,6 @@ const bookingCreatedBody: BookingCreatedBodyFunction = (
       startTime: "2026-08-19T10:00:00.000Z",
       ...payload,
     },
-  };
-};
-
-type UniqueViolationFunction = () => Record<string, unknown>;
-
-/*
- * Shaped like the TypeORM QueryFailedError a colliding insert produces — the
- * only failure the route is allowed to swallow.
- */
-const uniqueViolation: UniqueViolationFunction = (): Record<
-  string,
-  unknown
-> => {
-  return {
-    message:
-      'duplicate key value violates unique constraint "PK_MarketingConversion"',
-    code: "23505",
-    table: "MarketingConversion",
-    detail: "Key (_id)=(...) already exists.",
   };
 };
 
@@ -169,30 +163,26 @@ const callRoute: CallRouteFunction = async (
   return { response: response, nextError: nextError };
 };
 
-type CreatedConversionFunction = () => MarketingConversion;
+type EmittedEventFunction = () => MarketingEvent;
 
-const createdConversion: CreatedConversionFunction =
-  (): MarketingConversion => {
-    const calls: Array<Array<unknown>> = (
-      MarketingConversionService.create as unknown as jest.Mock
-    ).mock.calls as Array<Array<unknown>>;
+const emittedEvent: EmittedEventFunction = (): MarketingEvent => {
+  const calls: Array<Array<unknown>> = (
+    MarketingEventUtil.emitInBackground as unknown as jest.Mock
+  ).mock.calls as Array<Array<unknown>>;
 
-    expect(calls).toHaveLength(1);
+  expect(calls).toHaveLength(1);
 
-    return (calls[0]![0] as { data: MarketingConversion }).data;
-  };
+  return calls[0]![0] as MarketingEvent;
+};
 
 describe("CalWebhook", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockCalWebhookSecret = SECRET;
     (
-      MarketingConversionService.findOneById as unknown as jest.Mock
-    ).mockResolvedValue(null as never);
-    (
-      MarketingConversionService.create as unknown as jest.Mock
-    ).mockImplementation((createBy: unknown): unknown => {
-      return Promise.resolve((createBy as { data: unknown }).data);
+      MarketingEventUtil.emitInBackground as unknown as jest.Mock
+    ).mockImplementation((): void => {
+      return undefined;
     });
   });
 
@@ -830,41 +820,6 @@ describe("CalWebhook", () => {
     );
   });
 
-  describe("deterministic conversion id", () => {
-    test("is stable across calls for one booking", () => {
-      expect(getCalBookingConversionId("booking-123").toString()).toBe(
-        getCalBookingConversionId("booking-123").toString(),
-      );
-    });
-
-    test("differs between bookings", () => {
-      expect(getCalBookingConversionId("booking-123").toString()).not.toBe(
-        getCalBookingConversionId("booking-456").toString(),
-      );
-    });
-
-    // Postgres will reject anything that is not a well-formed UUID.
-    test("is a well-formed v5-shaped UUID", () => {
-      expect(getCalBookingConversionId("booking-123").toString()).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
-      );
-    });
-
-    test("stays well-formed for identifiers of every shape", () => {
-      for (const bookingId of [
-        "1",
-        "x".repeat(500),
-        "booking/with/slashes",
-        "ünïcödé-booking",
-        "0",
-      ]) {
-        expect(getCalBookingConversionId(bookingId).toString()).toMatch(
-          /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
-        );
-      }
-    });
-  });
-
   describe("route", () => {
     test("registers itself as POST /cal-webhook", () => {
       expect(mockRouter.routes).toContainEqual(
@@ -872,7 +827,7 @@ describe("CalWebhook", () => {
       );
     });
 
-    test("answers 503 and touches nothing when the secret is unconfigured", async () => {
+    test("answers 503 and emits nothing when the secret is unconfigured", async () => {
       mockCalWebhookSecret = "";
 
       const { response } = await callRoute(
@@ -880,8 +835,7 @@ describe("CalWebhook", () => {
       );
 
       expect(response.statusCode).toBe(503);
-      expect(MarketingConversionService.findOneById).not.toHaveBeenCalled();
-      expect(MarketingConversionService.create).not.toHaveBeenCalled();
+      expect(MarketingEventUtil.emitInBackground).not.toHaveBeenCalled();
     });
 
     test.each([
@@ -897,7 +851,7 @@ describe("CalWebhook", () => {
       ],
       ["the raw body was never captured", { rawBody: "" }],
     ])(
-      "answers 401 and never reaches the database when %s",
+      "answers 401 and emits nothing when %s",
       async (_label: string, overrides: Record<string, unknown>) => {
         const { response } = await callRoute(
           buildSignedRequest({
@@ -911,8 +865,7 @@ describe("CalWebhook", () => {
         expect(response.jsonBody).toEqual({
           error: "Invalid Cal webhook signature",
         });
-        expect(MarketingConversionService.findOneById).not.toHaveBeenCalled();
-        expect(MarketingConversionService.create).not.toHaveBeenCalled();
+        expect(MarketingEventUtil.emitInBackground).not.toHaveBeenCalled();
       },
     );
 
@@ -934,6 +887,7 @@ describe("CalWebhook", () => {
       const { response } = await callRoute(req);
 
       expect(response.statusCode).toBe(401);
+      expect(MarketingEventUtil.emitInBackground).not.toHaveBeenCalled();
     });
 
     test("answers 400 for a signed but unusable booking payload", async () => {
@@ -950,10 +904,10 @@ describe("CalWebhook", () => {
       expect(response.jsonBody).toEqual({
         error: "Invalid Cal webhook payload",
       });
-      expect(MarketingConversionService.create).not.toHaveBeenCalled();
+      expect(MarketingEventUtil.emitInBackground).not.toHaveBeenCalled();
     });
 
-    test("acknowledges an unsupported event without writing a conversion", async () => {
+    test("acknowledges an unsupported event without emitting", async () => {
       const { response } = await callRoute(
         buildSignedRequest({
           body: { triggerEvent: "BOOKING_CANCELLED", payload: { uid: "b1" } },
@@ -963,11 +917,10 @@ describe("CalWebhook", () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.jsonBody).toEqual({ accepted: false });
-      expect(MarketingConversionService.findOneById).not.toHaveBeenCalled();
-      expect(MarketingConversionService.create).not.toHaveBeenCalled();
+      expect(MarketingEventUtil.emitInBackground).not.toHaveBeenCalled();
     });
 
-    test("records a MeetingBooked conversion keyed by the booking", async () => {
+    test("emits a meeting_booked event keyed by the booking", async () => {
       const { response } = await callRoute(
         buildSignedRequest({
           body: bookingCreatedBody({
@@ -981,28 +934,43 @@ describe("CalWebhook", () => {
       expect(response.statusCode).toBe(200);
       expect(response.jsonBody).toEqual({ accepted: true });
 
-      const conversion: MarketingConversion = createdConversion();
+      const event: MarketingEvent = emittedEvent();
 
-      expect(conversion.conversionType).toBe(
-        MarketingConversionType.MeetingBooked,
-      );
-      expect(conversion.id!.toString()).toBe(
-        getCalBookingConversionId("booking-123").toString(),
-      );
-      expect(conversion.conversionAt).toEqual(
-        new Date("2026-08-19T10:00:00.000Z"),
-      );
-      expect(conversion.email).toBe("buyer@example.com");
-      expect(conversion.clickIds).toEqual({ gclid: "google-click" });
+      expect(event.eventType).toBe("meeting_booked");
+      expect(event.eventId).toBe("meeting_booked:booking-123");
+      expect(event.schemaVersion).toBe(1);
+      expect(event.email).toBe("buyer@example.com");
+      expect(event.attribution.clickIds).toEqual({ gclid: "google-click" });
+      expect(event.data["calBookingId"]).toBe("booking-123");
     });
 
     /*
-     * The attribution the embed carried has to land on the ROW, not just be
-     * parsed — the campaign columns are what makes a booked demo reportable,
-     * and emailHash is the only thing that can later join this booking to the
-     * signup it produced.
+     * occurredAt is when the booking was MADE. The meeting's own start time is
+     * separate and may be weeks later — conflating them is what forced every
+     * consumer of the old ledger to clamp the value before it could order a
+     * booking against a signup.
      */
-    test("persists the campaign attribution onto the conversion row", async () => {
+    test("separates when the booking happened from when the meeting starts", async () => {
+      const before: number = Date.now();
+
+      await callRoute(
+        buildSignedRequest({ body: bookingCreatedBody(), secret: SECRET }),
+      );
+
+      const event: MarketingEvent = emittedEvent();
+
+      expect(event.data["meetingStartsAt"]).toBe("2026-08-19T10:00:00.000Z");
+
+      const occurredAt: number = new Date(event.occurredAt).getTime();
+      expect(occurredAt).toBeGreaterThanOrEqual(before);
+      expect(occurredAt).toBeLessThanOrEqual(Date.now());
+    });
+
+    /*
+     * The attribution the embed carried has to reach the EVENT, not just be
+     * parsed — nothing is stored now, so anything missing here is gone.
+     */
+    test("carries the campaign attribution on the event", async () => {
       await callRoute(
         buildSignedRequest({
           body: bookingCreatedBody({
@@ -1023,27 +991,27 @@ describe("CalWebhook", () => {
         }),
       );
 
-      const conversion: MarketingConversion = createdConversion();
+      const event: MarketingEvent = emittedEvent();
 
-      expect(conversion.utmSource).toBe("google");
-      expect(conversion.utmMedium).toBe("cpc");
-      expect(conversion.utmCampaign).toBe("enterprise-observability");
-      expect(conversion.utmTerm).toBe("datadog alternative");
-      expect(conversion.utmContent).toBe("demo-cta-b");
-      expect(conversion.utmUrl).toBe(
+      expect(event.attribution.utmSource).toBe("google");
+      expect(event.attribution.utmMedium).toBe("cpc");
+      expect(event.attribution.utmCampaign).toBe("enterprise-observability");
+      expect(event.attribution.utmTerm).toBe("datadog alternative");
+      expect(event.attribution.utmContent).toBe("demo-cta-b");
+      expect(event.attribution.utmUrl).toBe(
         "https://oneuptime.com/enterprise/demo?gclid=abc",
       );
       /*
-       * First touch is preserved separately from last touch: the campaign that
+       * First touch travels separately from last touch: the campaign that
        * introduced this person is not the one that produced the booking.
        */
-      expect(conversion.firstTouchAttribution).toEqual({
+      expect(event.attribution.firstTouch).toEqual({
         utmSource: "linkedin",
         landingUrl: "https://oneuptime.com/enterprise",
       });
     });
 
-    test("stores the SHA-256 of the attendee email as emailHash", async () => {
+    test("carries both the address and its SHA-256", async () => {
       await callRoute(
         buildSignedRequest({
           body: bookingCreatedBody({
@@ -1053,12 +1021,13 @@ describe("CalWebhook", () => {
         }),
       );
 
-      expect(createdConversion().emailHash).toBe(
-        Attribution.hashEmail("buyer@example.com"),
-      );
+      const event: MarketingEvent = emittedEvent();
+
+      expect(event.email).toBe("buyer@example.com");
+      expect(event.emailHash).toBe(Attribution.hashEmail("buyer@example.com"));
     });
 
-    test("stores no emailHash when the booking carried no attendee email", async () => {
+    test("omits both identity fields when the booking carried no attendee email", async () => {
       await callRoute(
         buildSignedRequest({
           body: bookingCreatedBody({ attendees: [] }),
@@ -1066,113 +1035,28 @@ describe("CalWebhook", () => {
         }),
       );
 
-      expect(createdConversion().emailHash).toBeUndefined();
+      const event: MarketingEvent = emittedEvent();
+
+      expect(event.email).toBeUndefined();
+      expect(event.emailHash).toBeUndefined();
     });
 
     /*
-     * Chains are computed by the worker, which is the only thing that can see
-     * more than one conversion at once. A writer guessing at one would be
-     * guessing.
+     * Cal retries on any non-2xx, so redelivery is the normal path. Nothing is
+     * stored, so the endpoint cannot tell a retry from a first delivery — the
+     * stable eventId is what lets the RECEIVER tell, and it is the only thing
+     * standing between a retry and a double-counted demo.
      */
-    test("never links the booking to another conversion itself", async () => {
+    test("derives the same eventId for every delivery of one booking", async () => {
       await callRoute(
         buildSignedRequest({ body: bookingCreatedBody(), secret: SECRET }),
       );
+      const first: MarketingEvent = emittedEvent();
 
-      expect(createdConversion().attributedToConversionId).toBeUndefined();
-    });
+      (MarketingEventUtil.emitInBackground as unknown as jest.Mock).mockClear();
 
-    /*
-     * A booking is not a signup and not a subscription: it belongs to no
-     * OneUptime user or project, and it has no revenue. Inventing either would
-     * make the ledger claim something the booking does not prove.
-     */
-    test("attributes the conversion to no user, project or revenue", async () => {
-      await callRoute(
-        buildSignedRequest({ body: bookingCreatedBody(), secret: SECRET }),
-      );
-
-      const conversion: MarketingConversion = createdConversion();
-
-      expect(conversion.userId).toBeUndefined();
-      expect(conversion.projectId).toBeUndefined();
-      expect(conversion.conversionValueInUSDCents).toBeUndefined();
-    });
-
-    test("creates and reads with root props on this internal table", async () => {
-      await callRoute(
-        buildSignedRequest({ body: bookingCreatedBody(), secret: SECRET }),
-      );
-
-      expect(MarketingConversionService.findOneById).toHaveBeenCalledWith(
-        expect.objectContaining({ props: { isRoot: true } }),
-      );
-      expect(MarketingConversionService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ props: { isRoot: true } }),
-      );
-    });
-
-    test("looks the conversion up by its derived id", async () => {
-      await callRoute(
-        buildSignedRequest({ body: bookingCreatedBody(), secret: SECRET }),
-      );
-
-      const lookup: { id: ObjectID } = (
-        MarketingConversionService.findOneById as unknown as jest.Mock
-      ).mock.calls[0]![0] as { id: ObjectID };
-
-      expect(lookup.id.toString()).toBe(
-        getCalBookingConversionId("booking-123").toString(),
-      );
-    });
-
-    // Cal retries on any non-2xx, so redelivery is the normal path.
-    test("reports a redelivered booking as a duplicate without inserting", async () => {
-      (
-        MarketingConversionService.findOneById as unknown as jest.Mock
-      ).mockResolvedValue(new MarketingConversion() as never);
-
+      // Cal re-sends the same booking with a differently ordered payload.
       const { response } = await callRoute(
-        buildSignedRequest({ body: bookingCreatedBody(), secret: SECRET }),
-      );
-
-      expect(response.statusCode).toBe(200);
-      expect(response.jsonBody).toEqual({ accepted: true, duplicate: true });
-      expect(MarketingConversionService.create).not.toHaveBeenCalled();
-    });
-
-    /*
-     * The existence check and the insert are two statements. Two concurrent
-     * deliveries of one booking both miss and both insert; the loser collides
-     * on the derived primary key, which means the booking IS recorded.
-     */
-    test("absorbs a lost insert race as a duplicate rather than an error", async () => {
-      (
-        MarketingConversionService.create as unknown as jest.Mock
-      ).mockRejectedValue(uniqueViolation() as never);
-
-      const { response, nextError } = await callRoute(
-        buildSignedRequest({ body: bookingCreatedBody(), secret: SECRET }),
-      );
-
-      expect(response.statusCode).toBe(200);
-      expect(response.jsonBody).toEqual({ accepted: true, duplicate: true });
-      expect(nextError).toBeUndefined();
-    });
-
-    test("two deliveries of one booking derive the same conversion id", async () => {
-      await callRoute(
-        buildSignedRequest({ body: bookingCreatedBody(), secret: SECRET }),
-      );
-      const first: MarketingConversion = createdConversion();
-
-      (MarketingConversionService.create as unknown as jest.Mock).mockClear();
-
-      /*
-       * Cal re-sends the same booking with a later delivery timestamp and a
-       * differently ordered payload — the derived id must not move.
-       */
-      await callRoute(
         buildSignedRequest({
           body: {
             payload: {
@@ -1184,37 +1068,48 @@ describe("CalWebhook", () => {
           secret: SECRET,
         }),
       );
-      const second: MarketingConversion = createdConversion();
 
-      expect(second.id!.toString()).toBe(first.id!.toString());
+      expect(response.statusCode).toBe(200);
+      expect(emittedEvent().eventId).toBe(first.eventId);
     });
 
-    // Anything that is not a duplicate is a real failure and must surface.
-    test("passes a non-duplicate database failure to the error handler", async () => {
-      const failure: Error = new Error("connection terminated");
+    test("gives different bookings different event ids", async () => {
+      await callRoute(
+        buildSignedRequest({ body: bookingCreatedBody(), secret: SECRET }),
+      );
+      const first: MarketingEvent = emittedEvent();
+
+      (MarketingEventUtil.emitInBackground as unknown as jest.Mock).mockClear();
+
+      await callRoute(
+        buildSignedRequest({
+          body: bookingCreatedBody({ uid: "booking-456" }),
+          secret: SECRET,
+        }),
+      );
+
+      expect(emittedEvent().eventId).not.toBe(first.eventId);
+    });
+
+    /*
+     * Emitting is fire-and-forget by design: the queue owns delivery, and a
+     * marketing endpoint having a bad day must not turn a booking Cal
+     * successfully delivered into one it will retry forever.
+     */
+    test("still acknowledges the booking when emitting throws", async () => {
       (
-        MarketingConversionService.create as unknown as jest.Mock
-      ).mockRejectedValue(failure as never);
+        MarketingEventUtil.emitInBackground as unknown as jest.Mock
+      ).mockImplementation((): void => {
+        throw new Error("queue unavailable");
+      });
 
       const { response, nextError } = await callRoute(
         buildSignedRequest({ body: bookingCreatedBody(), secret: SECRET }),
       );
 
-      expect(nextError).toBe(failure);
-      expect(response.statusCode).toBeNull();
-    });
-
-    test("passes a read failure to the error handler", async () => {
-      const failure: Error = new Error("read timeout");
-      (
-        MarketingConversionService.findOneById as unknown as jest.Mock
-      ).mockRejectedValue(failure as never);
-
-      const { nextError } = await callRoute(
-        buildSignedRequest({ body: bookingCreatedBody(), secret: SECRET }),
-      );
-
-      expect(nextError).toBe(failure);
+      expect(nextError).toBeUndefined();
+      expect(response.statusCode).toBe(200);
+      expect(response.jsonBody).toEqual({ accepted: true });
     });
   });
 });

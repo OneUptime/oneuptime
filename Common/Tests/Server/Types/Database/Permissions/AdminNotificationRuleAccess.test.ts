@@ -1,7 +1,9 @@
 import UserCall from "../../../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../../../Models/DatabaseModels/UserEmail";
+import UserMicrosoftTeams from "../../../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserNotificationRule from "../../../../../Models/DatabaseModels/UserNotificationRule";
 import UserPush from "../../../../../Models/DatabaseModels/UserPush";
+import UserSlack from "../../../../../Models/DatabaseModels/UserSlack";
 import UserSMS from "../../../../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../../../../Models/DatabaseModels/UserTelegram";
 import UserWebhook from "../../../../../Models/DatabaseModels/UserWebhook";
@@ -38,12 +40,13 @@ import { describe, expect, test } from "@jest/globals";
  * decide it: a member with no matching rule was silently unpageable, and the
  * only person able to notice was the person who was not being notified.
  *
- * PHASE 3 SHIPPED THAT CAPABILITY ON THE RULE TABLE AND ONLY THERE. The seven
+ * PHASE 3 SHIPPED THAT CAPABILITY ON THE RULE TABLE AND ONLY THERE. The nine
  * notification-method models - UserEmail, UserSMS, UserCall, UserPush,
- * UserWhatsApp, UserTelegram, UserWebhook - stay CurrentUser-only on every
- * verb, so an administrator reading one of THEM is refused exactly like any
- * other member. That split is not a leftover; it is the design, and it is the
- * design because the alternative was tried and did not hold.
+ * UserWhatsApp, UserTelegram, UserSlack, UserMicrosoftTeams, UserWebhook -
+ * stay CurrentUser-only on every verb, so an administrator reading one of THEM
+ * is refused exactly like any other member. That split is not a leftover; it
+ * is the design, and it is the design because the alternative was tried and
+ * did not hold.
  *
  * WHY THE METHOD TABLES COULD NOT BE WIDENED. Widening a read on a model that
  * scopes rows by owner is a privilege change rather than a convenience change,
@@ -77,7 +80,7 @@ import { describe, expect, test } from "@jest/globals";
  *
  *   - the rule table lifts for an administrator and not for a plain member, on
  *     all four verbs;
- *   - the seven method models lift for NOBODY on ANY verb, and the read case is
+ *   - the nine method models lift for NOBODY on ANY verb, and the read case is
  *     asserted in both directions because it is the one that shipped widened
  *     once already;
  *   - the rule's method FK id columns are admin-readable while the method
@@ -147,9 +150,9 @@ const NEW_GRANULAR_PERMISSIONS: Array<Permission> = [
 ];
 
 /*
- * The seven notification methods a rule can point at. Every method assertion
- * runs against all seven rather than against a representative one: they are
- * seven copies of one decorator shape, and a widening applied to one of them is
+ * The nine notification methods a rule can point at. Every method assertion
+ * runs against all nine rather than against a representative one: they are
+ * nine copies of one decorator shape, and a widening applied to one of them is
  * exactly the kind of thing that survives review.
  */
 const METHOD_MODELS: Array<[string, ModelConstructor]> = [
@@ -159,6 +162,8 @@ const METHOD_MODELS: Array<[string, ModelConstructor]> = [
   ["UserPush", UserPush],
   ["UserWhatsApp", UserWhatsApp],
   ["UserTelegram", UserTelegram],
+  ["UserSlack", UserSlack],
+  ["UserMicrosoftTeams", UserMicrosoftTeams],
   ["UserWebhook", UserWebhook],
 ];
 
@@ -478,10 +483,10 @@ describe("the rule table - an administrator's row scope lifts, a member's does n
   });
 });
 
-describe("the seven methods - an administrator may not look either", () => {
+describe("the nine methods - an administrator may not look either", () => {
   /*
    * THE CORE DECISION OF THIS PHASE AS IT FINALLY SHIPPED, AND THE ONE MOST
-   * LIKELY TO BE "TIDIED UP" LATER, because seven models that differ from their
+   * LIKELY TO BE "TIDIED UP" LATER, because nine models that differ from their
    * sibling in all four lists look like an oversight rather than a decision.
    *
    * The read half of these lists was widened once and then reverted. The reason
@@ -1243,7 +1248,7 @@ describe("the credentials behind a notification method, guarded by the table sco
    * column-level decision to verify per column and per query shape, because
    * there is no query on these models that reaches another member's ROW - so
    * every column on that row, credential or label, is out of reach for the same
-   * single reason. The five columns are still enumerated rather than reduced to
+   * single reason. The columns are still enumerated rather than reduced to
    * one representative, because they are what a reader comes here looking for
    * and because "the row is unreachable" is a claim worth checking against the
    * things that would actually matter if it were false.
@@ -1251,8 +1256,10 @@ describe("the credentials behind a notification method, guarded by the table sco
    * The columns: the webhook URL and its signing secret (both bearer
    * credentials - anyone holding them can impersonate OneUptime to the member's
    * endpoint), the push device token, the Telegram chat id an unverified bot
-   * message can be addressed to, and the verification code that turns
-   * possession of that chat id into a verified method.
+   * message can be addressed to, the verification code that turns possession
+   * of that chat id into a verified method, and the Slack member id and
+   * Microsoft Teams user id the project's workspace bots deliver direct
+   * messages to.
    */
 
   /*
@@ -1266,6 +1273,8 @@ describe("the credentials behind a notification method, guarded by the table sco
     ["UserPush", "deviceToken", UserPush],
     ["UserTelegram", "telegramChatId", UserTelegram],
     ["UserTelegram", "verificationCode", UserTelegram],
+    ["UserSlack", "slackUserId", UserSlack],
+    ["UserMicrosoftTeams", "microsoftTeamsUserId", UserMicrosoftTeams],
   ];
 
   test.each(CREDENTIAL_COLUMNS)(
@@ -1375,8 +1384,8 @@ describe("the rule relation - an administrator reads the FK, never the method be
    *
    * Neither check can see the query, so neither can tell whose row this is.
    * That leaves the outer column list as the only place the decision can be
-   * made, and it is why the seven method RELATION columns on
-   * UserNotificationRule are `read: [Permission.CurrentUser]` while the seven
+   * made, and it is why the nine method RELATION columns on
+   * UserNotificationRule are `read: [Permission.CurrentUser]` while the nine
    * FK ID columns beside them are admin-readable. The pairing is the design in
    * one line: an administrator may learn WHICH method a rule points at, and may
    * re-point it at a different one, without ever learning what the method IS.
@@ -1397,6 +1406,8 @@ describe("the rule relation - an administrator reads the FK, never the method be
     "userPushId",
     "userWhatsAppId",
     "userTelegramId",
+    "userSlackId",
+    "userMicrosoftTeamsId",
     "userWebhookId",
   ];
 
@@ -1412,6 +1423,8 @@ describe("the rule relation - an administrator reads the FK, never the method be
     ["userPush", "deviceToken"],
     ["userWhatsApp", "phone"],
     ["userTelegram", "telegramChatId"],
+    ["userSlack", "slackUserId"],
+    ["userMicrosoftTeams", "microsoftTeamsUserId"],
     ["userWebhook", "webhookUrl"],
   ];
 
@@ -1420,7 +1433,7 @@ describe("the rule relation - an administrator reads the FK, never the method be
     async (grant: Permission): Promise<void> => {
       /*
        * The capability half, and it has to pass or the refusal below has taken
-       * the feature with it. Selecting all seven ids at once rather than one
+       * the feature with it. Selecting all nine ids at once rather than one
        * representative, because the admin surface renders the whole row and a
        * single narrowed column would break the page while six tests still
        * passed.

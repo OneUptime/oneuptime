@@ -45,7 +45,16 @@ const RegisterPage: () => JSX.Element = () => {
 
   const [initialValues, setInitialValues] = React.useState<JSONObject>({});
 
+  /*
+   * One mounted register form is one signup at most: a success logs the user
+   * in and navigates away. Both funnel events are latched so a form that
+   * calls back more than once still reports a single attempt and a single
+   * completion, and sign_up can never outrun signup_started.
+   */
   const hasCapturedSignupStart: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  const hasCapturedSignupComplete: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
   const [error, setError] = useState<string>("");
@@ -461,7 +470,8 @@ const RegisterPage: () => JSX.Element = () => {
                 return;
               }
 
-              if (value && value.email) {
+              if (value && value.email && !hasCapturedSignupComplete.current) {
+                hasCapturedSignupComplete.current = true;
                 UiAnalytics.userAuth(value.email);
                 UiAnalytics.capture("accounts/register");
                 UiAnalytics.captureRevenueEvent(

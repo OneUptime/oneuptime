@@ -42,6 +42,8 @@ import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import Model from "../../Models/DatabaseModels/User";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import ProductAnalytics from "../Utils/ProductAnalytics";
+import MarketingEventUtil from "../Utils/Marketing/MarketingEventUtil";
+import { MarketingEventType } from "../../Types/Marketing/MarketingEvent";
 import UserTotpAuthService from "./UserTotpAuthService";
 import UserWebAuthnService from "./UserWebAuthnService";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -249,6 +251,32 @@ export class Service extends DatabaseService<Model> {
           first_touch: createdItem.firstTouchAttribution || {},
         },
       });
+
+      /*
+       * The outbound sign_up conversion.
+       *
+       * Emitted here rather than from the register endpoint so a signup
+       * reached any other way still counts, and keyed on the user id so a
+       * retried delivery cannot become a second conversion.
+       *
+       * hasPassword separates a direct signup from a user created by a team
+       * invite, exactly as the analytics event above does — both are real
+       * users, only one is an acquisition, and the receiver decides which it
+       * cares about rather than us deciding for it here.
+       */
+      MarketingEventUtil.emitInBackground(
+        MarketingEventUtil.buildEvent({
+          eventType: MarketingEventType.SignUp,
+          eventId: `${MarketingEventType.SignUp}:${createdItem.id?.toString()}`,
+          occurredAt: createdItem.createdAt || new Date(),
+          email: createdItem.email.toString(),
+          attributionSource: createdItem,
+          data: {
+            userId: createdItem.id?.toString() || "",
+            hasPassword: Boolean(createdItem.password),
+          },
+        }),
+      );
     }
 
     // A place holder method used for overriding.

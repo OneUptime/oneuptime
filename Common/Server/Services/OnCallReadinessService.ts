@@ -16,6 +16,8 @@ import UserPushService from "./UserPushService";
 import UserService from "./UserService";
 import UserSmsService from "./UserSmsService";
 import UserTelegramService from "./UserTelegramService";
+import UserSlackService from "./UserSlackService";
+import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
 import UserWebhookService from "./UserWebhookService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
@@ -51,6 +53,8 @@ import UserNotificationRule from "../../Models/DatabaseModels/UserNotificationRu
 import UserPush from "../../Models/DatabaseModels/UserPush";
 import UserSMS from "../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../Models/DatabaseModels/UserTelegram";
+import UserSlack from "../../Models/DatabaseModels/UserSlack";
+import UserMicrosoftTeams from "../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserWebhook from "../../Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 
@@ -116,7 +120,7 @@ export enum ResponderSource {
 }
 
 /**
- * The seven channels a page can be delivered on. These strings are the same literals the
+ * The nine channels a page can be delivered on. These strings are the same literals the
  * fallback uses for `channelsUsed` (UserNotificationRuleService.chooseFallbackChannels),
  * deliberately: an operator reading "notified via fallback (Push, Email)" in an execution
  * log and "Push, Email" in the readiness table must not have to translate between two
@@ -129,6 +133,8 @@ export enum ReadinessMethodType {
   Call = "Call",
   WhatsApp = "WhatsApp",
   Telegram = "Telegram",
+  Slack = "Slack",
+  MicrosoftTeams = "Microsoft Teams",
   Webhook = "Webhook",
 }
 
@@ -436,6 +442,8 @@ const RULE_TYPE_SCOPES: Array<RuleTypeScope> = [
 const METHOD_DISPLAY_ORDER: Array<ReadinessMethodType> = [
   ReadinessMethodType.Push,
   ReadinessMethodType.Email,
+  ReadinessMethodType.Slack,
+  ReadinessMethodType.MicrosoftTeams,
   ReadinessMethodType.SMS,
   ReadinessMethodType.Call,
   ReadinessMethodType.WhatsApp,
@@ -2194,6 +2202,74 @@ export default class OnCallReadinessService {
       },
     });
 
+    await this.readEveryPage<UserSlack>({
+      description: "Slack notification methods",
+      projectId: projectId,
+      completeness: completeness,
+      service: UserSlackService,
+      query: {
+        projectId: projectId,
+        userId: new Includes(userIds),
+      },
+      /*
+       * The username only — never slackUserId. The member id is the
+       * addressable target the bot sends to; the username is the human-facing
+       * label, and it is the one a user can recognise as theirs.
+       */
+      select: {
+        _id: true,
+        userId: true,
+        slackUserName: true,
+        isVerified: true,
+      },
+      consumePage: (rows: Array<UserSlack>): void => {
+        for (const row of rows) {
+          addMethod(row, {
+            methodType: ReadinessMethodType.Slack,
+            maskedIdentifier: maskIdentifier(
+              row.slackUserName,
+              MaskedIdentifierKind.Handle,
+            ),
+            isVerified: Boolean(row.isVerified),
+          });
+        }
+      },
+    });
+
+    await this.readEveryPage<UserMicrosoftTeams>({
+      description: "Microsoft Teams notification methods",
+      projectId: projectId,
+      completeness: completeness,
+      service: UserMicrosoftTeamsService,
+      query: {
+        projectId: projectId,
+        userId: new Includes(userIds),
+      },
+      /*
+       * The display name only — never microsoftTeamsUserId. The Entra id is
+       * the addressable target the bot sends to; the display name is the
+       * human-facing label, and it is the one a user can recognise as theirs.
+       */
+      select: {
+        _id: true,
+        userId: true,
+        microsoftTeamsUserName: true,
+        isVerified: true,
+      },
+      consumePage: (rows: Array<UserMicrosoftTeams>): void => {
+        for (const row of rows) {
+          addMethod(row, {
+            methodType: ReadinessMethodType.MicrosoftTeams,
+            maskedIdentifier: maskIdentifier(
+              row.microsoftTeamsUserName,
+              MaskedIdentifierKind.Handle,
+            ),
+            isVerified: Boolean(row.isVerified),
+          });
+        }
+      },
+    });
+
     await this.readEveryPage<UserWebhook>({
       description: "webhook notification methods",
       projectId: projectId,
@@ -2677,7 +2753,7 @@ export default class OnCallReadinessService {
    * the real thing rather than a hopeful "some verified method".
    *
    * This mirrors UserNotificationRuleService.chooseFallbackChannels exactly, including
-   * the project switches: zero-cost channels first and BOTH of them if present, then one
+   * the project switches: zero-cost channels first and ALL of them if present, then one
    * paid channel in escalating-intrusiveness order, then webhook. If that function's
    * order ever changes, this one has to change with it — a readiness surface promising
    * "falls back to SMS" for a project that has SMS switched off is worse than saying
@@ -2707,6 +2783,14 @@ export default class OnCallReadinessService {
 
     if (has(ReadinessMethodType.Email)) {
       zeroCost.push(ReadinessMethodType.Email);
+    }
+
+    if (has(ReadinessMethodType.Slack)) {
+      zeroCost.push(ReadinessMethodType.Slack);
+    }
+
+    if (has(ReadinessMethodType.MicrosoftTeams)) {
+      zeroCost.push(ReadinessMethodType.MicrosoftTeams);
     }
 
     if (zeroCost.length > 0) {

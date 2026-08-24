@@ -59,7 +59,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     to be tempted will add a button, not a sentence.
  *
  *   - AN ADMIN READING SOMEBODY ELSE'S PHONE NUMBER, which is the same defect
- *     one step earlier and is what this page originally did. The seven method
+ *     one step earlier and is what this page originally did. The nine method
  *     models are scoped to the person who owns the device - the columns behind
  *     them are the raw number, the webhook bearer url, the push device token,
  *     the telegram chat id and the verification code - and that scope was
@@ -389,8 +389,10 @@ import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
+import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
+import UserSlack from "../../../Models/DatabaseModels/UserSlack";
 import UserSMS from "../../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../../Models/DatabaseModels/UserTelegram";
 import UserWebhook from "../../../Models/DatabaseModels/UserWebhook";
@@ -413,7 +415,7 @@ const PROJECT_ID: ObjectID = new ObjectID(PROJECT_ID_STRING);
 const SIGNED_IN_USER_ID: ObjectID = new ObjectID(SIGNED_IN_USER_ID_STRING);
 
 /*
- * The seven models only their owner may read. They are asserted as a SET because
+ * The nine models only their owner may read. They are asserted as a SET because
  * which one an admin surface reaches for hardly matters - every one of them
  * carries a raw identifier and most carry a credential.
  */
@@ -424,11 +426,13 @@ const NOTIFICATION_METHOD_MODELS: Array<unknown> = [
   UserPush,
   UserWhatsApp,
   UserTelegram,
+  UserSlack,
+  UserMicrosoftTeams,
   UserWebhook,
 ];
 
 /*
- * The RELATION spelling of those same seven, as they appear in a nested select
+ * The RELATION spelling of those same nine, as they appear in a nested select
  * on UserNotificationRule. Selecting any of them pulls a column out of the
  * method model itself - the address, the number, the handle - through a table
  * an administrator may read and which is not row-scoped for them. It is the
@@ -442,6 +446,8 @@ const METHOD_RELATION_KEYS: Array<string> = [
   "userPush",
   "userWhatsApp",
   "userTelegram",
+  "userSlack",
+  "userMicrosoftTeams",
   "userWebhook",
 ];
 
@@ -453,6 +459,8 @@ const METHOD_FOREIGN_KEYS: Array<keyof UserNotificationRule> = [
   "userPushId",
   "userWhatsAppId",
   "userTelegramId",
+  "userSlackId",
+  "userMicrosoftTeamsId",
   "userWebhookId",
 ];
 
@@ -673,7 +681,7 @@ const setUpLists: SetUpListsFunction = (
     }
 
     /*
-     * Anything else, INCLUDING the seven notification-method models - which this
+     * Anything else, INCLUDING the nine notification-method models - which this
      * page must never ask for. A non-empty answer here would make a leak look
      * like a feature working, so the fallback stays empty and the assertion that
      * matters is about the request rather than the response: see "never reads a
@@ -1172,7 +1180,7 @@ afterEach(async (): Promise<void> => {
 
   /*
    * Unmounting stops the RENDERING, not the fetching. A rule table that belongs
-   * to the viewer loads the seven notification-method models one after another,
+   * to the viewer loads the nine notification-method models one after another,
    * so a test that reads its own page leaves a chain of awaits running after its
    * last assertion - and every one of those calls is recorded on the same
    * `getListMock` the next test resets and then asserts against.
@@ -1365,14 +1373,14 @@ describe("the page is read at rest, whichever order its fetches land in", () => 
     assertEveryTableIsSettled();
   });
 
-  test("waits out the seven method reads a self-serve page makes for its owner", async () => {
+  test("waits out the nine method reads a self-serve page makes for its owner", async () => {
     // A self-serve page is always the viewer's own, so this is the owner path.
     await renderSelfServePage(IncidentOnCallRules);
 
     /*
-     * A rule table belonging to the viewer loads the seven notification-method
+     * A rule table belonging to the viewer loads the nine notification-method
      * models one after another, and unmounting the page does not stop that
-     * chain - it stops the rendering. Any of those seven still running when the
+     * chain - it stops the rendering. Any of those nine still running when the
      * next test resets `getListMock` is recorded as that test's request, which
      * is how "never reads a notification method model" comes to fail on a page
      * that never asked for one.
@@ -1484,7 +1492,7 @@ describe("the shared rules table, as the admin page wires it", () => {
     /*
      * The redesign, in one assertion.
      *
-     * These seven models are readable only by the person who owns the row, and
+     * These nine models are readable only by the person who owns the row, and
      * that is the whole protection: the table scope pins every read to the
      * caller. Widening it so this page could fill a dropdown exposed the raw
      * email and phone, the webhook url, the push device token, the telegram chat
@@ -1619,7 +1627,7 @@ describe("the shared rules table, as the admin page wires it", () => {
       });
 
     /*
-     * The seven foreign keys are mutually exclusive, and writing an SMS id into
+     * The nine foreign keys are mutually exclusive, and writing an SMS id into
      * `userEmailId` would page an address instead of a phone without erroring
      * anywhere, so the whole set is asserted rather than the one column.
      */
@@ -1639,7 +1647,7 @@ describe("the shared rules table, as the admin page wires it", () => {
     /*
      * The failure mode this seam had to be designed around. Readiness is the
      * only source of methods here, so when it is down there are none to offer -
-     * and "then read the models directly" is not a fallback, it is seven refused
+     * and "then read the models directly" is not a fallback, it is nine refused
      * requests that would replace the rule tables with an error page. The rules
      * stay editable; only the method choice is missing.
      */
@@ -2002,7 +2010,7 @@ describe("methods are a page of their own now, not a card on this one", () => {
    * It asserted that an administrator was offered NO control for adding a
    * notification method to somebody else's account: a masked, read-only list
    * and a prefilled "please add one yourself" email. That was correct for what
-   * the server could do at the time - the seven method models are scoped to
+   * the server could do at the time - the nine method models are scoped to
    * their owner and the attempt to widen them leaked every raw column behind
    * them - but it left the commonest broken responder, a new joiner with no
    * method at all, fixable by nobody but themselves.
@@ -2167,7 +2175,7 @@ describe("the coverage grid, now shared with the readiness page", () => {
  * The edit path.
  *
  * `isEditable` was hardcoded false on the ModelTable, so this page issued no
- * PATCH at all: the phase opened `notifyAfterMinutes` (and the seven method
+ * PATCH at all: the phase opened `notifyAfterMinutes` (and the nine method
  * foreign keys) to update behind the largest guard in the codebase, and bought
  * zero capability anybody could reach. These assertions are about the two halves
  * of making that real - the editor being on for exactly the viewers allowed to
@@ -2225,7 +2233,7 @@ describe("the rules are editable, not merely addable and removable", () => {
 
     /*
      * The dropdown is an override field: its value travels in `miscDataProps`
-     * and is mapped onto one of the seven foreign keys by `onBeforeCreate`.
+     * and is mapped onto one of the nine foreign keys by `onBeforeCreate`.
      * ModelForm calls that hook only for FormType.Create and BaseAPI.updateItem
      * never reads `miscDataProps`, so on the edit path the choice is discarded
      * in transit. Rendering it anyway would give an administrator a control

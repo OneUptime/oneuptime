@@ -8,6 +8,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
+import Email from "../../Types/Email";
 import IconProp from "../../Types/Icon/IconProp";
 import { Column, Entity, Index } from "typeorm";
 
@@ -46,6 +47,28 @@ export default class EnterpriseLicense extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public companyName?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Email,
+    title: "Email",
+    description:
+      "Contact email for this license. Set it to the address the customer booked their meeting with, so the licence can be joined to the conversion that produced it.",
+  })
+  @Index("idx_enterprise_license_email")
+  @Column({
+    nullable: true,
+    type: ColumnType.Email,
+    length: ColumnLength.Email,
+    unique: false,
+    transformer: Email.getDatabaseTransformer(),
+  })
+  public email?: Email = undefined;
 
   @ColumnAccessControl({
     create: [],

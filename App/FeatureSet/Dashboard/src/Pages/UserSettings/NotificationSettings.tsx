@@ -41,6 +41,8 @@ type ChannelKey =
   | "alertByPush"
   | "alertByWhatsApp"
   | "alertByTelegram"
+  | "alertBySlack"
+  | "alertByMicrosoftTeams"
   | "alertByWebhook";
 
 interface ChannelDef {
@@ -70,6 +72,18 @@ const CHANNELS: ReadonlyArray<ChannelDef> = [
     key: "alertByTelegram",
     label: "Telegram",
     icon: IconProp.Telegram,
+    color: Blue500,
+  },
+  {
+    key: "alertBySlack",
+    label: "Slack",
+    icon: IconProp.Slack,
+    color: Purple500,
+  },
+  {
+    key: "alertByMicrosoftTeams",
+    label: "Teams",
+    icon: IconProp.MicrosoftTeams,
     color: Blue500,
   },
   {
@@ -432,6 +446,8 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
               alertByPush: true,
               alertByWhatsApp: true,
               alertByTelegram: true,
+              alertBySlack: true,
+              alertByMicrosoftTeams: true,
               alertByWebhook: true,
             },
             sort: {},

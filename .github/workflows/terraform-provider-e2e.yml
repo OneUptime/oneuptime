@@ -148,20 +148,50 @@ jobs:
           cache: true
 
       # Both engines are installed because the suite runs end to end twice, once
-      # each. The wrappers are disabled on both: they replace the binary with a
-      # script that buffers stdout for step outputs, which breaks the runner's
-      # command substitution and `plan -detailed-exitcode` handling.
+      # each. The wrappers that hashicorp/setup-terraform and
+      # opentofu/setup-opentofu install are deliberately avoided: they replace
+      # the binary with a script that buffers stdout for step outputs, which
+      # breaks the runner's command substitution and `plan -detailed-exitcode`
+      # handling.
+      #
+      # The setup actions themselves are NOT used because they download the
+      # binary from an external host with no retry, and that download flakes on
+      # a transient `read ECONNRESET` (this job's most frequent red). Installing
+      # the binary by hand inside nick-fields/retry gives the download the same
+      # resilience the "Start OneUptime services" step already relies on. With
+      # the wrapper disabled the actions did nothing more than this download +
+      # PATH add, so this is a faithful, more durable replacement. The trailing
+      # `version` call makes a truncated/corrupt download fail the attempt and
+      # trigger a retry instead of surfacing later as a confusing error.
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: nick-fields/retry@v3
         with:
-          terraform_version: "1.9.8"
-          terraform_wrapper: false
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            TERRAFORM_VERSION=1.9.8
+            TMP="$(mktemp -d)"
+            curl -fsSL --retry 3 --retry-all-errors -o "$TMP/terraform.zip" \
+              "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
+            unzip -o "$TMP/terraform.zip" -d "$TMP"
+            sudo install -m 0755 "$TMP/terraform" /usr/local/bin/terraform
+            rm -rf "$TMP"
+            terraform version
 
       - name: Setup OpenTofu
-        uses: opentofu/setup-opentofu@v2
+        uses: nick-fields/retry@v3
         with:
-          tofu_version: "1.12.5"
-          tofu_wrapper: false
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            TOFU_VERSION=1.12.5
+            TMP="$(mktemp -d)"
+            curl -fsSL --retry 3 --retry-all-errors -o "$TMP/tofu.zip" \
+              "https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/tofu_${TOFU_VERSION}_linux_amd64.zip"
+            unzip -o "$TMP/tofu.zip" -d "$TMP"
+            sudo install -m 0755 "$TMP/tofu" /usr/local/bin/tofu
+            rm -rf "$TMP"
+            tofu version
 
       # Dependencies are installed and the provider is generated BEFORE the
       # OneUptime services stack starts: generation loads the whole codebase

@@ -19,9 +19,11 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * The defaults a brand-new responder is given.
  *
  * Everything about "will this person actually be paged?" starts here. When a
- * user joins a project (TeamMemberService), or verifies a phone / push / e-mail
+ * user joins a project (TeamMemberService), verifies a phone / push / e-mail
  * / Telegram / WhatsApp / webhook identity (the UserXxxAPI verify endpoints),
- * UserNotificationRuleService seeds a set of notification rules for them. If the
+ * or links a Slack / Microsoft Teams account (born verified from the OAuth
+ * workspace link), UserNotificationRuleService seeds a set of notification
+ * rules for them. If the
  * seeding is wrong — a severity skipped, a rule type missed, a delay that is not
  * zero, or the method id written onto the wrong foreign key — the user is on an
  * on-call policy that pages nobody, and nothing tells them so.
@@ -93,13 +95,15 @@ const CREATED_EMAIL_ID: ObjectID = new ObjectID(
 
 const USER_EMAIL: Email = new Email("responder@company.com");
 
-/* The seven FK columns a NotificationMethodDescriptor can drive. */
+/* The nine FK columns a NotificationMethodDescriptor can drive. */
 type ChannelColumn =
   | "userEmailId"
   | "userSmsId"
   | "userCallId"
   | "userWhatsAppId"
   | "userTelegramId"
+  | "userSlackId"
+  | "userMicrosoftTeamsId"
   | "userWebhookId"
   | "userPushId";
 
@@ -109,6 +113,8 @@ const ALL_CHANNELS: Array<ChannelColumn> = [
   "userCallId",
   "userWhatsAppId",
   "userTelegramId",
+  "userSlackId",
+  "userMicrosoftTeamsId",
   "userWebhookId",
   "userPushId",
 ];
@@ -587,9 +593,9 @@ describe("addDefaultNotificationRulesForVerifiedMethod - the method lands on the
      * KNOWN DEFECT, pinned as-is. With no id on the descriptor the duplicate
      * check degenerates to (projectId, userId, ruleType) and the created rows
      * carry no notification method at all - onBeforeCreate would reject them
-     * with "Call, SMS, WhatsApp, Telegram, Webhook, Email, or Push notification
-     * is required" against a real database. Nothing in this method guards
-     * against being handed an empty descriptor.
+     * with "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook,
+     * Email, or Push notification is required" against a real database. Nothing
+     * in this method guards against being handed an empty descriptor.
      */
     await runForDescriptor({});
 

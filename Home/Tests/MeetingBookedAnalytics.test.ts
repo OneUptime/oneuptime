@@ -215,6 +215,17 @@ describe("meeting_booked analytics", () => {
      * Event trigger forwards the dataLayer push. The dataLayer is the only
      * sanctioned path.
      */
+    /*
+     * The subscriber is what actually connects Cal to the tracker. A booking
+     * that fires only the action name we did not subscribe to reports nothing
+     * at all, while the booking itself still succeeds - the failure mode that
+     * hid a real demo booking from GA4.
+     */
+    test("subscribes to both of Cal's booking action names", () => {
+      expect(html).toContain("bookingSuccessfulV2");
+      expect(html).toContain("oneUptimeOnCalBookingSuccess");
+    });
+
     test("reaches Google exactly once, through the dataLayer only", () => {
       const harness: TrackerHarness = loadTracker(html);
 
@@ -338,8 +349,15 @@ describe("meeting_booked analytics", () => {
         html = await renderPage();
       });
 
-      test("still listens for a successful Cal booking", () => {
-        expect(html).toContain('action: "bookingSuccessful"');
+      /*
+       * Cal renames this action - 'bookingSuccessful' became
+       * 'bookingSuccessfulV2' - and embed.js is loaded unpinned, so
+       * subscribing to a single name lets a third party silently switch the
+       * enterprise lead conversion off. The page must take both.
+       */
+      test("subscribes to every name Cal fires a booking under", () => {
+        expect(html).toContain("oneUptimeOnCalBookingSuccess");
+        expect(html).not.toContain('action: "bookingSuccessful"');
       });
 
       test("reports the booking through the shared helper", () => {

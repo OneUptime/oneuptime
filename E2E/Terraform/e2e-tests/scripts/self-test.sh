@@ -272,19 +272,37 @@ group "CI workflow contract"
 if [ ! -f "$WORKFLOW" ]; then
     fail "workflow exists" "$WORKFLOW not found"
 else
-    assert_file_matches "$WORKFLOW" 'hashicorp/setup-terraform' \
-        "the workflow installs Terraform"
+    # Both engines are installed by hand from their release archives rather
+    # than through hashicorp/setup-terraform / opentofu/setup-opentofu: those
+    # actions download the binary from an external host with no retry and flake
+    # on a transient ECONNRESET, so the download is wrapped in nick-fields/retry
+    # instead (see the "Setup Terraform"/"Setup OpenTofu" steps).
+    assert_file_matches "$WORKFLOW" 'releases\.hashicorp\.com/terraform' \
+        "the workflow installs Terraform from its release archive"
 
-    assert_file_matches "$WORKFLOW" 'opentofu/setup-opentofu' \
-        "the workflow installs OpenTofu"
+    assert_file_matches "$WORKFLOW" 'github\.com/opentofu/opentofu/releases' \
+        "the workflow installs OpenTofu from its release archive"
 
-    # Both wrappers replace the binary with a script that buffers stdout for
-    # step outputs, which breaks command substitution and -detailed-exitcode.
-    assert_file_matches "$WORKFLOW" 'terraform_wrapper: false' \
-        "the Terraform wrapper is disabled"
+    # The real binaries must land on PATH (not a wrapper). Installing them
+    # directly is also what removes the stdout-buffering wrapper the setup
+    # actions inject, which used to break command substitution and
+    # -detailed-exitcode — so the actions must not be reintroduced.
+    assert_file_matches "$WORKFLOW" 'install -m 0755 .*/usr/local/bin/terraform' \
+        "the Terraform binary is installed on PATH"
 
-    assert_file_matches "$WORKFLOW" 'tofu_wrapper: false' \
-        "the OpenTofu wrapper is disabled"
+    assert_file_matches "$WORKFLOW" 'install -m 0755 .*/usr/local/bin/tofu' \
+        "the OpenTofu binary is installed on PATH"
+
+    assert_file_not_matches "$WORKFLOW" 'uses: *hashicorp/setup-terraform' \
+        "the wrapper-injecting Terraform setup action is not used"
+
+    assert_file_not_matches "$WORKFLOW" 'uses: *opentofu/setup-opentofu' \
+        "the wrapper-injecting OpenTofu setup action is not used"
+
+    # The whole point of the hand-rolled install: the flaky external downloads
+    # are retried instead of taking the job red on the first ECONNRESET.
+    assert_file_matches "$WORKFLOW" 'uses: *nick-fields/retry' \
+        "flaky external downloads are retried"
 
     assert_file_matches "$WORKFLOW" 'TF_CLI: terraform' \
         "the workflow runs the suite against Terraform"

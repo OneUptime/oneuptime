@@ -145,7 +145,6 @@ import GlobalOidcProjectService from "./GlobalOidcProjectService";
 import PromoCodeService from "./PromoCodeService";
 import EnterpriseLicenseService from "./EnterpriseLicenseService";
 import EnterpriseLicenseInstanceService from "./EnterpriseLicenseInstanceService";
-import MarketingConversionService from "./MarketingConversionService";
 import OpenSourceDeploymentService from "./OpenSourceDeploymentService";
 import RecommendationDismissalService from "./RecommendationDismissalService";
 import ResellerPlanService from "./ResellerPlanService";
@@ -213,6 +212,8 @@ import UserSmsService from "./UserSmsService";
 import UserIncomingCallNumberService from "./UserIncomingCallNumberService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import UserTelegramService from "./UserTelegramService";
+import UserSlackService from "./UserSlackService";
+import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
 import WorkflowLogService from "./WorkflowLogService";
 // Workflows.
 import WorkflowService from "./WorkflowService";
@@ -292,6 +293,7 @@ import WorkspaceSettingService from "./WorkspaceSettingService";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceNotificationSummaryService from "./WorkspaceNotificationSummaryService";
+import WorkspaceUserNotificationService from "./WorkspaceUserNotificationService";
 import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
 
 import MonitorLogService from "./MonitorLogService";
@@ -309,7 +311,6 @@ const services: Array<BaseService> = [
   PromoCodeService,
   EnterpriseLicenseService,
   EnterpriseLicenseInstanceService,
-  MarketingConversionService,
   OpenSourceDeploymentService,
 
   ResellerService,
@@ -490,6 +491,8 @@ const services: Array<BaseService> = [
   UserIncomingCallNumberService,
   UserWhatsAppService,
   UserTelegramService,
+  UserSlackService,
+  UserMicrosoftTeamsService,
   UserTotpAuthService,
   UserWebAuthnService,
 
@@ -587,6 +590,7 @@ const services: Array<BaseService> = [
   WorkspaceNotificationRuleService,
   WorkspaceNotificationLogService,
   WorkspaceNotificationSummaryService,
+  WorkspaceUserNotificationService,
 
   ProjectSCIMLogService,
   StatusPageSCIMLogService,

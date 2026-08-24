@@ -7,6 +7,7 @@ import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import { JSONObject } from "../../../Types/JSON";
 import DataToProcess from "./DataToProcess";
+import { redactForPersistence } from "./MonitorPayloadRedaction";
 
 /*
  * Maximum rows held in memory before we force a flush, and the
@@ -138,7 +139,19 @@ export default class MonitorLogUtil {
           projectId: data.projectId.toString(),
           monitorId: data.monitorId.toString(),
           time: logTimestamp,
-          logBody: JSON.parse(JSON.stringify(data.dataToProcess)),
+          /*
+           * Redact on the way out, never in place: `dataToProcess` is still
+           * live here (saveMonitorLog is fire-and-forget and the caller keeps
+           * evaluating criteria against it), so the stringify/parse clone is
+           * what gets masked. logBody is readable by Permission.Viewer, which
+           * makes it the widest-reach sink in the product — anything
+           * credential-shaped in it is readable by the least-privileged role
+           * OneUptime grants. See MonitorPayloadRedaction.
+           * https://github.com/OneUptime/oneuptime/issues/3360
+           */
+          logBody: redactForPersistence(
+            JSON.parse(JSON.stringify(data.dataToProcess)),
+          ),
           retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
         };
 

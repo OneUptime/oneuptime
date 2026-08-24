@@ -57,24 +57,40 @@ export class Service extends DatabaseService<Model> {
     const incidentRunMembership: string = `EXISTS (SELECT 1 FROM "AIRun" AS "run" WHERE "run"."_id" = "log"."aiRunId" AND "run"."triggeredByIncidentId" IS NOT NULL AND "run"."triggeredByAlertId" IS NULL)`;
     const alertRunMembership: string = `EXISTS (SELECT 1 FROM "AIRun" AS "run" WHERE "run"."_id" = "log"."aiRunId" AND "run"."triggeredByIncidentId" IS NULL AND "run"."triggeredByAlertId" IS NOT NULL)`;
 
-    let subjectClause: string = `AND "log"."incidentId" IS NULL AND "log"."alertId" IS NULL AND NOT ("log"."feature" = ANY($4)) AND NOT ("log"."feature" = ANY($5)) AND NOT (${incidentRunMembership}) AND NOT (${alertRunMembership})`;
+    /*
+     * Placeholders and bindings are built together, per branch, because
+     * PostgreSQL derives a prepared statement's parameter count from the
+     * HIGHEST $n present in the text — not from what the driver sends. A
+     * branch that binds an argument it never references is rejected outright
+     * at Bind (bind message supplies 5 parameters, but prepared statement
+     * requires 4), and a branch that skips a placeholder is rejected at Parse
+     * (could not determine data type of parameter $4). Both are runtime-only
+     * failures no compiler catches, so the parameter array is grown next to
+     * the clause that reads it and never assembled apart from it.
+     */
+    const params: Array<unknown> = [
+      data.projectId.toString(), // $1
+      data.since, // $2
+      data.features, // $3
+    ];
+
+    let subjectClause: string;
 
     if (data.incidentId) {
+      params.push(legacyIncidentFeatures); // $4
       subjectClause = `AND (("log"."incidentId" IS NOT NULL AND "log"."alertId" IS NULL) OR ("log"."incidentId" IS NULL AND "log"."alertId" IS NULL AND (("log"."feature" = ANY($4)) OR ${incidentRunMembership})))`;
     } else if (data.alertId) {
-      subjectClause = `AND (("log"."incidentId" IS NULL AND "log"."alertId" IS NOT NULL) OR ("log"."incidentId" IS NULL AND "log"."alertId" IS NULL AND (("log"."feature" = ANY($5)) OR ${alertRunMembership})))`;
+      params.push(legacyAlertFeatures); // $4
+      subjectClause = `AND (("log"."incidentId" IS NULL AND "log"."alertId" IS NOT NULL) OR ("log"."incidentId" IS NULL AND "log"."alertId" IS NULL AND (("log"."feature" = ANY($4)) OR ${alertRunMembership})))`;
+    } else {
+      params.push(legacyIncidentFeatures, legacyAlertFeatures); // $4, $5
+      subjectClause = `AND "log"."incidentId" IS NULL AND "log"."alertId" IS NULL AND NOT ("log"."feature" = ANY($4)) AND NOT ("log"."feature" = ANY($5)) AND NOT (${incidentRunMembership}) AND NOT (${alertRunMembership})`;
     }
 
     const rows: Array<{ total: string | number | null }> =
       await this.getRepository().manager.query(
         `SELECT COALESCE(SUM("log"."totalTokens"), 0) AS "total" FROM "LlmLog" AS "log" WHERE "log"."projectId" = $1 AND "log"."createdAt" >= $2 AND "log"."feature" = ANY($3) ${subjectClause} AND "log"."deletedAt" IS NULL`,
-        [
-          data.projectId.toString(),
-          data.since,
-          data.features,
-          legacyIncidentFeatures,
-          legacyAlertFeatures,
-        ],
+        params,
       );
 
     return Number(rows[0]?.total || 0);

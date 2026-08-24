@@ -45,6 +45,7 @@ import {
   describeMarkerSite,
   formatUptimePercent,
   groupedMarkerRadius,
+  isUnitLevelFor,
   layoutMapMarkers,
   mapPinFingerprint,
   pluralizeSiteType,
@@ -918,6 +919,86 @@ describe("childTypeLabelFor", () => {
     expect(childTypeLabelFor([{ siteType: "   " }])).toBe(
       GENERIC_SITE_TYPE_LABEL,
     );
+  });
+});
+
+/*
+ * The level's own depth, read off the children rather than off a name. This
+ * is what decides whether the map draws the threads from a name to its
+ * marker (issue #3372), so it has to be exactly "there is nothing below
+ * this" and not "there is a unit somewhere in here".
+ */
+describe("isUnitLevelFor", () => {
+  test("a level whose children are all units is the unit level", () => {
+    expect(isUnitLevelFor([{ isUnitLevel: true }, { isUnitLevel: true }])).toBe(
+      true,
+    );
+    expect(isUnitLevelFor([{ isUnitLevel: true }])).toBe(true);
+  });
+
+  test("a level of containers is not", () => {
+    expect(
+      isUnitLevelFor([{ isUnitLevel: false }, { isUnitLevel: false }]),
+    ).toBe(false);
+  });
+
+  /*
+   * The load-bearing case. A top level holding thirty regions and one stray
+   * unit is still a level a reader drills DOWN from — and it is exactly the
+   * crowded, aggregated map the threads make unreadable. One container is
+   * enough to disqualify the whole level.
+   */
+  test("one container among the units disqualifies the level", () => {
+    expect(
+      isUnitLevelFor([
+        { isUnitLevel: true },
+        { isUnitLevel: true },
+        { isUnitLevel: false },
+      ]),
+    ).toBe(false);
+    // Whichever end of the list it sits at.
+    expect(
+      isUnitLevelFor([
+        { isUnitLevel: false },
+        { isUnitLevel: true },
+        { isUnitLevel: true },
+      ]),
+    ).toBe(false);
+  });
+
+  /*
+   * An empty level has no children to be units. Reading it as the unit level
+   * would turn "this level has not loaded yet" into a claim about the
+   * hierarchy — and the map has nothing to draw threads between anyway.
+   */
+  test("an empty level is not the unit level", () => {
+    expect(isUnitLevelFor([])).toBe(false);
+  });
+
+  /*
+   * Structural on purpose, like childTypeLabelFor: the page feeds it
+   * SiteChildView rows and nothing else about them may matter. The flag is
+   * the only input, never the type's name — a customer who renamed "Unit" to
+   * "Restaurant" has not changed the shape of their hierarchy.
+   */
+  test("nothing but the flag is read", () => {
+    /*
+     * Rows carrying everything a SiteChildView carries. A type NAMED "Unit"
+     * whose flag is false is a container, and a type named "Region" whose
+     * flag is true is a unit: the name is the customer's, the flag is the
+     * hierarchy's.
+     */
+    const namedLikeUnits: Array<{ isUnitLevel: boolean; siteType: string }> = [
+      { isUnitLevel: true, siteType: "Region" },
+      { isUnitLevel: true, siteType: "" },
+    ];
+    const namedLikeAContainer: Array<{
+      isUnitLevel: boolean;
+      siteType: string;
+    }> = [{ isUnitLevel: false, siteType: "Unit" }];
+
+    expect(isUnitLevelFor(namedLikeUnits)).toBe(true);
+    expect(isUnitLevelFor(namedLikeAContainer)).toBe(false);
   });
 });
 
@@ -2262,6 +2343,490 @@ describe("resolveMarkerLabels", () => {
     const started: number = Date.now();
     expect(resolveMarkerLabels(markers, 4).size).toBe(0);
     expect(Date.now() - started).toBeLessThan(2000);
+  });
+
+  /*
+   * ── Above the unit level: no threads, and no floating names ────────────
+   *
+   * Issue #3372. The push and the thread are one bargain, and it is only
+   * worth making where the markers are units: a dozen of them in one retail
+   * park, each thread pointing at one store. On the levels above, thirty
+   * regions scattered over a continent produced thirty threads crossing each
+   * other — a web nobody could trace a line back through.
+   *
+   * So the caller can refuse the bargain, and refusing it must take BOTH
+   * halves: no thread, and no push either. A name pushed a hundred screen
+   * units with no line explaining it is worse than the web — it is a name
+   * hanging over somebody else's marker.
+   */
+  describe("when the caller allows no label threads", () => {
+    const NO_THREADS: { allowLabelThreads: boolean } = {
+      allowLabelThreads: false,
+    };
+    const THREADS: { allowLabelThreads: boolean } = {
+      allowLabelThreads: true,
+    };
+
+    /*
+     * The reporter's screenshot in miniature: an aggregated level, a few
+     * dozen named markers, close enough together that most of the names
+     * have nowhere to sit against their own marker.
+     *
+     * A golden-angle spiral rather than a grid, so the crowding is uneven
+     * the way a real estate's is — and deterministic, because a layout that
+     * depended on a clock or a random would make every assertion below a
+     * coin toss.
+     */
+    function scatteredRegions(count: number): Array<MapMarker> {
+      return Array.from(
+        { length: count },
+        (_unused: unknown, index: number): MapMarker => {
+          const name: string = `Region ${1100 + index * 100}`;
+          const angle: number = index * 2.399_963_23;
+          const radius: number = 4 + index * 1.1;
+          return markerAt(
+            name,
+            480 + Math.cos(angle) * radius,
+            250 + Math.sin(angle) * radius,
+            { label: name, count: 40 },
+          );
+        },
+      );
+    }
+
+    // A name boxed in on all eight sides: the only room left is further out.
+    function boxedIn(): Array<MapMarker> {
+      const markers: Array<MapMarker> = [
+        markerAt("A", 500, 500, { label: "Name" }),
+      ];
+      for (let dx: number = -1; dx <= 1; dx++) {
+        for (let dy: number = -1; dy <= 1; dy++) {
+          if (dx === 0 && dy === 0) {
+            continue;
+          }
+          markers.push(
+            markerAt(`b${dx}${dy}`, 500 + dx * 22, 500 + dy * 22, {
+              label: "",
+            }),
+          );
+        }
+      }
+      return markers;
+    }
+
+    function threadCount(placements: Map<string, LabelPlacement>): number {
+      let threaded: number = 0;
+      for (const placement of placements.values()) {
+        if (placement.leaderLine !== null) {
+          threaded++;
+        }
+      }
+      return threaded;
+    }
+
+    /*
+     * The defect itself. Every one of these markers used to be able to hang
+     * its name off a thread, and on this level that is the web.
+     */
+    test("not one name on an aggregated level carries a thread", () => {
+      const markers: Array<MapMarker> = scatteredRegions(30);
+      const placements: Map<string, LabelPlacement> = resolveMarkerLabels(
+        markers,
+        1,
+        NO_THREADS,
+      );
+
+      expect(placements.size).toBeGreaterThan(0);
+      for (const placement of placements.values()) {
+        expect(placement.leaderLine).toBeNull();
+        expect(placement.push).toBe(0);
+      }
+    });
+
+    /*
+     * And the control: the same markers, threads allowed, DO draw them. A
+     * suppression test that would pass on a map with nothing to suppress is
+     * not a test of anything.
+     */
+    test("the very same map draws a web of them when they are allowed", () => {
+      const markers: Array<MapMarker> = scatteredRegions(30);
+
+      expect(
+        threadCount(resolveMarkerLabels(markers, 1, THREADS)),
+      ).toBeGreaterThan(0);
+      expect(threadCount(resolveMarkerLabels(markers, 1, NO_THREADS))).toBe(0);
+    });
+
+    /*
+     * Both halves of the bargain. Suppressing only the LINE would leave the
+     * name where the spiral put it — up to MAX_LABEL_PUSH away, with nothing
+     * on screen joining it to anything. The name comes off instead, and the
+     * hover tooltip still names the marker.
+     */
+    test("a name that would have to travel is dropped, not left floating", () => {
+      const markers: Array<MapMarker> = boxedIn();
+
+      const threaded: LabelPlacement = resolveMarkerLabels(
+        markers,
+        1,
+        THREADS,
+      ).get("A") as LabelPlacement;
+      expect(threaded.push).toBeGreaterThan(0);
+      expect(threaded.leaderLine).not.toBeNull();
+
+      expect(resolveMarkerLabels(markers, 1, NO_THREADS).has("A")).toBe(false);
+    });
+
+    /*
+     * Dropping one name is not licence to drop its neighbours': a marker
+     * with room around it keeps its name on any level.
+     */
+    test("dropping the boxed-in name costs its neighbours nothing", () => {
+      const placements: Map<string, LabelPlacement> = resolveMarkerLabels(
+        [markerAt("far", 100, 100, { label: "Far Away" }), ...boxedIn()],
+        1,
+        NO_THREADS,
+      );
+
+      expect(placements.has("far")).toBe(true);
+      expect(placements.get("far")?.push).toBe(0);
+      expect(placements.has("A")).toBe(false);
+    });
+
+    /*
+     * A map with room on it never reached past the first ring in the first
+     * place, so turning the threads off must not move a single name on it —
+     * the top level of a small estate looks exactly as it did.
+     */
+    test("a map with room on it is drawn identically either way", () => {
+      const markers: Array<MapMarker> = [
+        markerAt("A", 100, 100),
+        markerAt("B", 300, 300),
+        markerAt("C", 100, 300),
+      ];
+
+      expect(
+        Array.from(resolveMarkerLabels(markers, 1, NO_THREADS).entries()),
+      ).toEqual(Array.from(resolveMarkerLabels(markers, 1, THREADS).entries()));
+    });
+
+    /*
+     * A CROWDED map is a different matter, and the contract has to say so.
+     *
+     * The pass is greedy over one shared set of reserved boxes, so a name
+     * that is dropped also releases the box it would have taken. A later
+     * marker then finds a position against its own marker that was occupied
+     * before — so names move between the eight directions, and a name that
+     * only fitted because a neighbour had been pushed out of its way can be
+     * dropped in its turn. The result is NOT "the same map minus the names
+     * that travelled", and a maintainer who believed it was would write a
+     * subset assertion that fails on real data.
+     *
+     * Pinned on a level that reproduces every part of it, so the day the
+     * geometry changes this reads as a contract to re-check rather than as
+     * a mystery.
+     */
+    test("on a crowded level the two are not one minus the other", () => {
+      const points: Array<[string, number, number]> = [
+        ["Store 33-0", 453.02, 206.62],
+        ["Store 33-1", 435.99, 237.46],
+        ["Store 33-2", 432.17, 222.6],
+        ["Store 33-7", 400.74, 212.82],
+        ["Store 33-8", 440.74, 202.41],
+        ["Store 33-11", 453.77, 204.43],
+        ["Store 33-12", 428.03, 223.67],
+      ];
+      const markers: Array<MapMarker> = points.map(
+        (point: [string, number, number]): MapMarker => {
+          return markerAt(point[0], point[1], point[2], {
+            count: 1,
+            isContainer: false,
+            screenRadius: MIN_CLUSTER_RADIUS,
+          });
+        },
+      );
+
+      const threaded: Map<string, LabelPlacement> = resolveMarkerLabels(
+        markers,
+        1,
+        THREADS,
+      );
+      const bare: Map<string, LabelPlacement> = resolveMarkerLabels(
+        markers,
+        1,
+        NO_THREADS,
+      );
+
+      // "Store 33-8" had to travel 96 units for a spot when threads were allowed.
+      expect(threaded.get("Store 33-8")?.push).toBeGreaterThan(0);
+      // Without them it fits hard against its marker instead — not dropped.
+      expect(bare.get("Store 33-8")?.push).toBe(0);
+      expect(bare.get("Store 33-8")?.leaderLine).toBeNull();
+
+      /*
+       * And the other direction: a name that needed no thread at all loses
+       * its spot to that re-seating. This is the surprising half, and it is
+       * why the contract is stated as a guarantee about what is DRAWN rather
+       * than as a subset of what was drawn before.
+       */
+      expect(threaded.get("Store 33-11")?.push).toBe(0);
+      expect(threaded.get("Store 33-11")?.leaderLine).toBeNull();
+      expect(bare.has("Store 33-11")).toBe(false);
+
+      // A name can also simply change sides.
+      expect(threaded.get("Store 33-7")?.direction).toBe("left");
+      expect(bare.get("Store 33-7")?.direction).toBe("above");
+    });
+
+    /*
+     * What DOES hold, whatever the re-seating does: nothing is ever drawn
+     * away from its marker. Swept over a range of crowding and zoom rather
+     * than pinned to one level, because that is the promise the renderer
+     * relies on — it draws no thread element at all for these placements.
+     */
+    test.each([
+      [12, 1],
+      [24, 1],
+      [30, 2],
+      [30, 8],
+      [40, 4],
+      [MAX_LABELLED_MARKERS, 16],
+    ])(
+      "%s markers at zoom %s: every name it keeps sits on its marker",
+      (count: number, zoom: number) => {
+        const placements: Map<string, LabelPlacement> = resolveMarkerLabels(
+          layoutMapMarkers(scatteredRegions(count), zoom),
+          zoom,
+          NO_THREADS,
+        );
+
+        expect(placements.size).toBeGreaterThan(0);
+        for (const placement of placements.values()) {
+          expect(placement.push).toBe(0);
+          expect(placement.leaderLine).toBeNull();
+        }
+      },
+    );
+
+    /*
+     * The collision guarantee is the reason this pass exists, and it is not
+     * weakened by the option: what it does draw is still clear of every
+     * other name and of every marker's body.
+     */
+    test("the names it does draw still land on nothing", () => {
+      const markers: Array<MapMarker> = scatteredRegions(30);
+      const placements: Map<string, LabelPlacement> = resolveMarkerLabels(
+        markers,
+        1,
+        NO_THREADS,
+      );
+      const boxes: Array<LabelBounds> = boxesOf(markers, placements, 1);
+
+      expect(boxes.length).toBeGreaterThan(1);
+      for (let a: number = 0; a < boxes.length; a++) {
+        for (let b: number = a + 1; b < boxes.length; b++) {
+          expect(overlaps(boxes[a]!, boxes[b]!)).toBe(false);
+        }
+      }
+
+      for (const marker of markers) {
+        const placement: LabelPlacement | undefined = placements.get(
+          marker.key,
+        );
+        if (!placement) {
+          continue;
+        }
+        const box: LabelBounds = labelBounds(marker, 1, placement);
+        for (const other of markers) {
+          if (other.key === marker.key) {
+            continue;
+          }
+          expect(overlaps(box, bodyOf(other, 1))).toBe(false);
+        }
+      }
+    });
+
+    /*
+     * Same reason the threaded pass is pinned deterministic: the page hands
+     * the map a brand-new array every sixty seconds, and a level that
+     * re-decided its names on every poll would flicker.
+     */
+    test("it lays the level out the same way twice", () => {
+      const markers: Array<MapMarker> = scatteredRegions(24);
+
+      expect(
+        Array.from(resolveMarkerLabels(markers, 3, NO_THREADS).entries()),
+      ).toEqual(
+        Array.from(resolveMarkerLabels(markers, 3, NO_THREADS).entries()),
+      );
+    });
+
+    /*
+     * The dashboard widget calls this with no options at all and must keep
+     * its threads — every name it draws already stands for one single site.
+     */
+    test("omitting the options leaves the threads on", () => {
+      const markers: Array<MapMarker> = scatteredRegions(30);
+
+      expect(Array.from(resolveMarkerLabels(markers, 1).entries())).toEqual(
+        Array.from(resolveMarkerLabels(markers, 1, THREADS).entries()),
+      );
+      expect(threadCount(resolveMarkerLabels(markers, 1))).toBeGreaterThan(0);
+    });
+
+    /*
+     * Zoom does the same work the threads did: markers that are apart in the
+     * world separate as the frame tightens, their names walk back in against
+     * them, and the two settings converge on the same picture. The option
+     * costs a name only while the map is genuinely crowded.
+     */
+    test("zooming in until nothing has to travel makes the two agree", () => {
+      const markers: Array<MapMarker> = Array.from(
+        { length: 6 },
+        (_unused: unknown, index: number): MapMarker => {
+          const name: string = `Store ${index}`;
+          return markerAt(name, 480 + index * 0.6, 250 + index * 0.4, {
+            label: name,
+            count: 1,
+            isContainer: false,
+          });
+        },
+      );
+
+      // Crowded: the two disagree, and only the threaded one draws lines.
+      expect(
+        threadCount(resolveMarkerLabels(markers, 1, THREADS)),
+      ).toBeGreaterThan(0);
+      expect(
+        Array.from(resolveMarkerLabels(markers, 1, NO_THREADS).entries()),
+      ).not.toEqual(
+        Array.from(resolveMarkerLabels(markers, 1, THREADS).entries()),
+      );
+
+      // Zoomed in: nothing needs to travel, so nothing is lost by refusing.
+      expect(
+        Array.from(
+          resolveMarkerLabels(markers, MAX_ZOOM, NO_THREADS).entries(),
+        ),
+      ).toEqual(
+        Array.from(resolveMarkerLabels(markers, MAX_ZOOM, THREADS).entries()),
+      );
+      expect(resolveMarkerLabels(markers, MAX_ZOOM, NO_THREADS).size).toBe(
+        markers.length,
+      );
+    });
+
+    /*
+     * The earlier fix must survive this one. A pile of units in one retail
+     * park is the case the threads were added for, and the unit level still
+     * asks for them — every one of the twelve keeps its name.
+     */
+    test("the unit level still threads a pile of coincident units", () => {
+      const units: Array<MapMarker> = Array.from(
+        { length: 12 },
+        (_unused: unknown, index: number): MapMarker => {
+          const name: string = `WB Unit ${(316 + index)
+            .toString()
+            .padStart(4, "0")}`;
+          return markerAt(name, 480, 250, {
+            label: name,
+            count: 1,
+            isContainer: false,
+            screenRadius: MIN_CLUSTER_RADIUS,
+          });
+        },
+      );
+      const markers: Array<PlacedMapMarker> = layoutMapMarkers(units, MAX_ZOOM);
+
+      const threaded: Map<string, LabelPlacement> = resolveMarkerLabels(
+        markers,
+        MAX_ZOOM,
+        THREADS,
+      );
+      expect(threaded.size).toBe(12);
+      expect(threadCount(threaded)).toBeGreaterThan(0);
+
+      /*
+       * And the same pile above the unit level would lose most of them —
+       * which is exactly why the flag is the level's, not the marker's.
+       */
+      const bare: Map<string, LabelPlacement> = resolveMarkerLabels(
+        markers,
+        MAX_ZOOM,
+        NO_THREADS,
+      );
+      expect(threadCount(bare)).toBe(0);
+      expect(bare.size).toBeLessThan(threaded.size);
+    });
+
+    /*
+     * The spiral is where this pass spends its time, and clamping it to one
+     * ring can only make it cheaper — but the level is laid out again on
+     * every wheel tick of a zoom, so pin it rather than assume it.
+     */
+    test("a crowded level resolves without running away", () => {
+      const units: Array<MapMarker> = Array.from(
+        { length: MAX_LABELLED_MARKERS },
+        (_unused: unknown, index: number): MapMarker => {
+          const name: string = `Long Franchise Name ${index}`;
+          return markerAt(name, 480, 250, {
+            label: name,
+            count: 1,
+            isContainer: false,
+          });
+        },
+      );
+      const markers: Array<PlacedMapMarker> = layoutMapMarkers(units, MAX_ZOOM);
+
+      const started: number = Date.now();
+      const placements: Map<string, LabelPlacement> = resolveMarkerLabels(
+        markers,
+        MAX_ZOOM,
+        NO_THREADS,
+      );
+      expect(Date.now() - started).toBeLessThan(2000);
+      for (const placement of placements.values()) {
+        expect(placement.push).toBe(0);
+        expect(placement.leaderLine).toBeNull();
+      }
+    });
+
+    /*
+     * The degenerate inputs the threaded pass already survives have to
+     * survive the option too — a map that has not been measured yet reports
+     * a zero or a NaN for a frame or two.
+     */
+    test("a non-finite zoom and an empty level are still handled", () => {
+      const markers: Array<MapMarker> = [
+        markerAt("A", 100, 100),
+        markerAt("B", 400, 400),
+      ];
+
+      expect(resolveMarkerLabels([], 1, NO_THREADS).size).toBe(0);
+      expect(resolveMarkerLabels(markers, Number.NaN, NO_THREADS).size).toBe(2);
+      expect(resolveMarkerLabels(markers, 0, NO_THREADS).size).toBe(2);
+      expect(resolveMarkerLabels(markers, -3, NO_THREADS).size).toBe(2);
+    });
+
+    /*
+     * A marker drawn nowhere has no body to keep clear of and no place to
+     * hang a name, on any level.
+     */
+    test("a marker with corrupt coordinates costs nobody else their name", () => {
+      const placements: Map<string, LabelPlacement> = resolveMarkerLabels(
+        [
+          markerAt("broken", Number.NaN, 100),
+          markerAt("A", 100, 100),
+          markerAt("B", 400, 400),
+        ],
+        1,
+        NO_THREADS,
+      );
+
+      expect(placements.has("broken")).toBe(false);
+      expect(placements.get("A")?.direction).toBe("below");
+      expect(placements.get("B")?.direction).toBe("below");
+    });
   });
 });
 

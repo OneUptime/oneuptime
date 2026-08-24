@@ -29,7 +29,10 @@ import {
   parseSiteChildrenResponse,
   parseSiteMapResponse,
 } from "../../Components/NetworkSite/SiteHierarchyTypes";
-import { childTypeLabelFor } from "../../Components/NetworkSite/SiteMapViewModel";
+import {
+  childTypeLabelFor,
+  isUnitLevelFor,
+} from "../../Components/NetworkSite/SiteMapViewModel";
 import StatusChipGroup, {
   StatusChipOption,
 } from "../../Components/Filters/StatusChipGroup";
@@ -599,6 +602,19 @@ const NetworkSiteMap: FunctionComponent<
   const childTypeLabel: string = childTypeLabelFor(allLevelSites);
 
   /*
+   * Whether this level is the bottom of the hierarchy — every child of it is
+   * a unit, so clicking one opens a device topology and there is no map
+   * below this one. The map draws the threads from a name to its marker only
+   * here; above it they are a web rather than a set of pointers (#3372).
+   *
+   * From the same UNFILTERED list, for the same reason: a level of Regions
+   * does not become the unit level because somebody searched for the one
+   * unit sitting in it, and lines that appeared as you type would read as a
+   * rendering fault.
+   */
+  const isUnitLevel: boolean = isUnitLevelFor(allLevelSites);
+
+  /*
    * The search narrows the whole level at once — the markers, the cards or
    * graph, the unplaced list and the WAN links all through the same
    * predicate, so the halves of this page cannot disagree about what is being
@@ -727,6 +743,7 @@ const NetworkSiteMap: FunctionComponent<
       onModeChange={setMapMode}
       unplacedSites={unplacedSites}
       childTypeLabel={childTypeLabel}
+      isUnitLevel={isUnitLevel}
       searchText={searchText}
       isHealthFiltered={isHealthFiltered}
       onSiteClick={changeSite}
