@@ -10,15 +10,15 @@ first if you are building a receiver.
 OneUptime stores no conversions. There is no ledger table; a verified booking
 becomes an outbound `meeting_booked` webhook and nothing else.
 
-| Concern | Source of truth | Notes |
-| --- | --- | --- |
-| A meeting was booked | The `meeting_booked` webhook | Emitted only after a signature-verified Cal `BOOKING_CREATED`. Browser events are supporting diagnostics, not proof of conversion. |
-| Booking details | Cal.com | The webhook supplies the booking identifier and time. |
-| Contact, account, deal, qualification, pipeline stage | Native Revenue | A meeting conversion does not create, qualify, or advance Revenue records. |
-| Campaign attribution for a conversion | The event's `attribution` object | Copied from the User/Project, or read from Cal booking metadata. |
-| Which conversions belong to one person | `emailHash` on each event | The receiver joins on it. Nothing in OneUptime joins them any more. |
-| Enterprise contract value | `EnterpriseLicense.annualContractValue` | Reported by `enterprise_license_issued`, joined to its booking by `EnterpriseLicense.email`. |
-| Web analytics | GA4 / PostHog / GTM | Aggregate funnel analysis and client-side diagnostics. Never the authoritative conversion record. |
+| Concern                                               | Source of truth                         | Notes                                                                                                                              |
+| ----------------------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| A meeting was booked                                  | The `meeting_booked` webhook            | Emitted only after a signature-verified Cal `BOOKING_CREATED`. Browser events are supporting diagnostics, not proof of conversion. |
+| Booking details                                       | Cal.com                                 | The webhook supplies the booking identifier and time.                                                                              |
+| Contact, account, deal, qualification, pipeline stage | Native Revenue                          | A meeting conversion does not create, qualify, or advance Revenue records.                                                         |
+| Campaign attribution for a conversion                 | The event's `attribution` object        | Copied from the User/Project, or read from Cal booking metadata.                                                                   |
+| Which conversions belong to one person                | `emailHash` on each event               | The receiver joins on it. Nothing in OneUptime joins them any more.                                                                |
+| Enterprise contract value                             | `EnterpriseLicense.annualContractValue` | Reported by `enterprise_license_issued`, joined to its booking by `EnterpriseLicense.email`.                                       |
+| Web analytics                                         | GA4 / PostHog / GTM                     | Aggregate funnel analysis and client-side diagnostics. Never the authoritative conversion record.                                  |
 
 `POST /api/cal-webhook` is the trust boundary for a booking. Cal signs the exact
 request bytes, the App verifies them, and only then does the App emit. Analytics
@@ -133,12 +133,13 @@ string `[object Object]` and every key inside it is lost, silently. See
 Values are scalars, so the nested first touch travels as one JSON string. The
 inner names below are what the webhook parses:
 
-| Key                                                   | Meaning                                                       |
-| ------------------------------------------------------ | ------------------------------------------------------------- |
-| `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content` | Last-touch campaign parameters.               |
-| `utm_url`                                             | Landing URL of the attributed visit.                          |
-| `gclid`, `wbraid`, `gbraid`, `fbclid`, `msclkid`, `li_fat_id`, `twclid`, `rdt_cid` | Ad-platform click identifiers, recorded for OneUptime's own campaign reporting. |
-| `ou_first_touch`                                      | The visitor's first attributed visit, JSON-encoded.           |
+| Key                                                                                | Meaning                                                                                                                                                        |
+| ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`              | Last-touch campaign parameters.                                                                                                                                |
+| `utm_url`                                                                          | Landing URL of the attributed visit.                                                                                                                           |
+| `gclid`, `wbraid`, `gbraid`, `fbclid`, `msclkid`, `li_fat_id`, `twclid`, `rdt_cid` | Ad-platform click identifiers, recorded for OneUptime's own campaign reporting.                                                                                |
+| `ou_first_touch`                                                                   | The visitor's first attributed visit, JSON-encoded.                                                                                                            |
+| `ou_booking_kind`                                                                  | Which conversation this embed books — `enterprise_demo`, `support_call` or `architecture_assessment`. Allowlisted on arrival; anything else becomes `unknown`. |
 
 The key lists live in `Common/Types/Marketing/Attribution.ts` and are shared by
 every reader and writer, so a key added for the browser cannot be silently
@@ -323,8 +324,8 @@ stored.
 1. **Revenue joins.** Which stable native Revenue contact, account and deal
    reference fields come back on `BOOKING_CREATED` is still not defined, so
    bookings are not joined to Revenue records and nothing emitted claims
-   otherwise. (First-touch attribution IS now carried through — see *Attribution
-   into and out of a booking* above.)
+   otherwise. (First-touch attribution IS now carried through — see _Attribution
+   into and out of a booking_ above.)
 2. **Auto-qualification and Deal creation.** `MeetingBooked` records a meeting,
    not enterprise qualification, technical evaluation, or opportunity
    acceptance — and in particular not a signed licence. Native Revenue remains
@@ -349,6 +350,7 @@ stored.
    (Enterprise contract value is no longer part of this gap: it is reported by
    `enterprise_license_issued` and joined to its booking through
    `EnterpriseLicense.email`.)
+
 7. **The remaining `mailto:` CTAs.** `/support` and `/enterprise/demo` still
    offer `mailto:sales@oneuptime.com`, and the pricing page prompts
    "contact sales@oneuptime.com" when a visitor self-qualifies as enterprise

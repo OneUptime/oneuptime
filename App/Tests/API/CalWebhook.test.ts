@@ -323,6 +323,8 @@ describe("CalWebhook", () => {
         clickIds: { gclid: "google-click", fbclid: "meta-click" },
         // No UTM parameters in this payload, and no first touch either.
         utm: {},
+        // This payload carries no ou_booking_kind, which is a real state.
+        bookingKind: "unknown",
       });
     });
 
@@ -473,6 +475,113 @@ describe("CalWebhook", () => {
 
       expect(parsed!.conversionAt.getTime()).toBeGreaterThanOrEqual(before);
       expect(parsed!.conversionAt.getTime()).toBeLessThanOrEqual(Date.now());
+    });
+
+    /*
+     * All three embeds book the same Cal event type, so without this the
+     * signature-verified record cannot tell a free user's support call from a
+     * net-new enterprise demo. The browser event has always carried it; the
+     * webhook did not, which left the authoritative record as the one unable
+     * to make the distinction.
+     */
+    describe("booking kind", () => {
+      test.each([
+        ["enterprise_demo"],
+        ["support_call"],
+        ["architecture_assessment"],
+      ])("carries %s through from the embed metadata", (kind: string) => {
+        expect(
+          parseCalBookingConversion(
+            bookingCreatedBody({ metadata: { ou_booking_kind: kind } }),
+          ),
+        ).toMatchObject({ bookingKind: kind });
+      });
+
+      test("reads it from booking metadata too", () => {
+        expect(
+          parseCalBookingConversion(
+            bookingCreatedBody({
+              booking: { metadata: { ou_booking_kind: "enterprise_demo" } },
+            }),
+          ),
+        ).toMatchObject({ bookingKind: "enterprise_demo" });
+      });
+
+      test("reads it from a booking question answer", () => {
+        /*
+         * The documented fallback for a Cal version that filters unknown
+         * metadata keys on this event type.
+         */
+        expect(
+          parseCalBookingConversion(
+            bookingCreatedBody({
+              responses: {
+                ou_booking_kind: { label: "Kind", value: "support_call" },
+              },
+            }),
+          ),
+        ).toMatchObject({ bookingKind: "support_call" });
+      });
+
+      test("is unknown when the embed sent none", () => {
+        /*
+         * A booking made through a Cal link that was never one of the
+         * instrumented embeds genuinely has no kind. It is still a booking.
+         */
+        expect(parseCalBookingConversion(bookingCreatedBody())).toMatchObject({
+          bookingKind: "unknown",
+        });
+      });
+
+      test.each([
+        ["enterprise-demo"],
+        ["ENTERPRISE_DEMO"],
+        ["closed_won"],
+        ["<script>alert(1)</script>"],
+        [""],
+      ])(
+        "refuses to pass %s onward, because this is an allowlist",
+        (value: string) => {
+          /*
+           * Cal metadata is free-form customer content reachable by an
+           * unauthenticated caller, and this value lands on an outbound
+           * conversion a receiver may route or bid on.
+           */
+          expect(
+            parseCalBookingConversion(
+              bookingCreatedBody({ metadata: { ou_booking_kind: value } }),
+            ),
+          ).toMatchObject({ bookingKind: "unknown" });
+        },
+      );
+
+      test("an unrecognised kind still yields a booking", () => {
+        // Losing the kind must never lose the conversion.
+        const parsed: CalBookingConversion | null = parseCalBookingConversion(
+          bookingCreatedBody({ metadata: { ou_booking_kind: "nonsense" } }),
+        );
+
+        expect(parsed).not.toBeNull();
+        expect(parsed!.bookingId).toBe("booking-123");
+      });
+
+      test("travels alongside attribution rather than instead of it", () => {
+        expect(
+          parseCalBookingConversion(
+            bookingCreatedBody({
+              metadata: {
+                ou_booking_kind: "enterprise_demo",
+                gclid: "abc123",
+                utm_source: "google",
+              },
+            }),
+          ),
+        ).toMatchObject({
+          bookingKind: "enterprise_demo",
+          clickIds: { gclid: "abc123" },
+          utm: { utmSource: "google" },
+        });
+      });
     });
 
     test("lowercases the attendee email and truncates it to the column width", () => {

@@ -170,9 +170,22 @@ A Cal.com booking was created and its signature verified.
 ```json
 "data": {
   "calBookingId": "cal-booking-abc123",
-  "meetingStartsAt": "2026-09-02T15:00:00.000Z"
+  "meetingStartsAt": "2026-09-02T15:00:00.000Z",
+  "bookingKind": "enterprise_demo"
 }
 ```
+
+`bookingKind` is one of `enterprise_demo`, `support_call`,
+`architecture_assessment` or `unknown`. All three embeds book the same Cal
+event type, so without it a free user's support call and a net-new enterprise
+demo arrive as the same conversion — which matters the moment anything bids on
+or reports against the count.
+
+It is an allowlist on the way in. Cal metadata is free-form customer content
+reachable by an unauthenticated caller, so an unrecognised value becomes
+`unknown` rather than travelling onward. `unknown` is also the honest answer
+for a booking made through a Cal link that was never one of the instrumented
+embeds; that is still a booking and is still emitted.
 
 Note the two timestamps are different things. `occurredAt` is when the person
 booked; `meetingStartsAt` is when the meeting happens and is normally in the

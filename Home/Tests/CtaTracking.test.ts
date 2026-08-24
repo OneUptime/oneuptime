@@ -214,6 +214,77 @@ describe("demo.ejs", () => {
   });
 });
 
+/*
+ * A named buyer asking for a SOC 2 report is the best lead an enterprise
+ * funnel gets. These addresses were plain text: the visitor had to select and
+ * copy them by hand, and the click produced no event because there was no
+ * link to click.
+ */
+describe("compliance evidence requests", () => {
+  const COMPLIANCE_PAGES: Array<[string, string]> = [
+    ["soc-2.ejs", "soc@oneuptime.com"],
+    ["iso-27001.ejs", "iso@oneuptime.com"],
+    ["vpat.ejs", "accessibility@oneuptime.com"],
+  ];
+
+  for (const [template, address] of COMPLIANCE_PAGES) {
+    describe(template, () => {
+      const source: string = fs.readFileSync(
+        path.join(VIEWS_ROOT, template),
+        "utf-8",
+      );
+
+      test(`${address} is a link, not something to copy by hand`, () => {
+        expect(source).toContain(`mailto:${address}`);
+      });
+
+      test("no copy of the address is left unlinked", () => {
+        /*
+         * Catches a second, untouched mention further down the page - which is
+         * exactly the shape vpat.ejs had.
+         */
+        const unlinked: Array<string> = source
+          .split("\n")
+          .filter((line: string) => {
+            return (
+              line.includes(address) && !line.includes(`mailto:${address}`)
+            );
+          });
+
+        expect(unlinked).toEqual([]);
+      });
+
+      test("the click is measured", () => {
+        expect(source).toContain('data-ou-cta="cta_request_compliance_docs"');
+      });
+
+      test("the subject line says what is being asked for", () => {
+        // A request that arrives titled "(no subject)" is a worse lead.
+        expect(source).toMatch(
+          new RegExp(`mailto:${address.replace(".", "\\.")}\\?subject=`),
+        );
+      });
+    });
+  }
+});
+
+describe("the compliance CTA reaches GA4", () => {
+  const REPOSITORY_ROOT: string = path.join(__dirname, "..", "..");
+
+  test("cta_request_compliance_docs is in the GTM trigger allow-list", () => {
+    /*
+     * GTM discards every dataLayer push no trigger matches, so an event name
+     * missing from this regex is emitted and silently dropped.
+     */
+    const container: string = fs.readFileSync(
+      path.join(REPOSITORY_ROOT, "Docs", "analytics", "gtm-key-events.json"),
+      "utf-8",
+    );
+
+    expect(container).toContain("cta_request_compliance_docs");
+  });
+});
+
 describe("PageSEO wiring", () => {
   test("the pages these CTAs point at are real, canonical pages", () => {
     expect(PageSEOConfig["/enterprise/demo"]).toBeDefined();
