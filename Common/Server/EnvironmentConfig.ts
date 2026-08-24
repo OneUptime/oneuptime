@@ -375,6 +375,23 @@ export const AnalyticsHost: string = process.env["ANALYTICS_HOST"] || "";
  */
 export const CalWebhookSecret: string = process.env["CAL_WEBHOOK_SECRET"] || "";
 
+/*
+ * Outbound marketing conversion webhooks.
+ *
+ * OneUptime does not store conversions. Signups, booked meetings and plan
+ * upgrades/downgrades are POSTed to this endpoint as they happen and kept
+ * nowhere afterwards, so an unset URL means those moments are simply not
+ * measured — nothing accumulates waiting for one to be configured.
+ *
+ * Both are required. The payload carries email addresses and campaign data,
+ * so a URL set without a secret is refused rather than sent unsigned. The
+ * secret is server-only and must never reach FRONTEND_ENV_ALLOW_LIST.
+ */
+export const MarketingWebhookUrl: string =
+  process.env["MARKETING_WEBHOOK_URL"] || "";
+export const MarketingWebhookSecret: string =
+  process.env["MARKETING_WEBHOOK_SECRET"] || "";
+
 export const DisableAutomaticIncidentCreation: boolean =
   process.env["DISABLE_AUTOMATIC_INCIDENT_CREATION"] === "true";
 
