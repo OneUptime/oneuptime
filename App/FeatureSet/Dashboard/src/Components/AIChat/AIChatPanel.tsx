@@ -12,6 +12,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import EventName from "../../Utils/EventName";
@@ -40,10 +41,31 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
 
   const chat: UseAiChat = useAiChat({ enabled: isOpen });
 
+  /*
+   * The toggle listener mounts once; a ref keeps it pointed at the
+   * CURRENT chat state so a prompt dispatch can pre-fill the input.
+   */
+  const chatRef: React.MutableRefObject<UseAiChat> = useRef<UseAiChat>(chat);
+  chatRef.current = chat;
+
   // ---- open/close ----------------------------------------------------------
 
   useEffect(() => {
-    const toggle: () => void = (): void => {
+    const toggle: (event: CustomEvent) => void = (event: CustomEvent): void => {
+      /*
+       * A dispatch carrying a `prompt` OPENS the panel (never closes it)
+       * and pre-fills the input with the prompt — investigation surfaces
+       * use this to hand the user a prepared, editable question. A plain
+       * dispatch keeps the historic toggle behavior.
+       */
+      const prompt: unknown = (event?.detail as Record<string, unknown>)?.[
+        "prompt"
+      ];
+      if (typeof prompt === "string" && prompt.trim() !== "") {
+        setIsOpen(true);
+        chatRef.current?.setInputValue(prompt);
+        return;
+      }
       setIsOpen((open: boolean) => {
         return !open;
       });
