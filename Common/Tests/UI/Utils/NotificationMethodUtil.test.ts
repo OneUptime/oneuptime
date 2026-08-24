@@ -7,8 +7,10 @@ import NotificationMethodUtil, {
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
+import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
+import UserSlack from "../../../Models/DatabaseModels/UserSlack";
 import UserSMS from "../../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../../Models/DatabaseModels/UserTelegram";
 import UserWebhook from "../../../Models/DatabaseModels/UserWebhook";
@@ -95,6 +97,34 @@ function push(id: string, deviceName?: string): UserPush {
   return model;
 }
 
+function slack(id: string, userName?: string, userId?: string): UserSlack {
+  const model: UserSlack = new UserSlack();
+  model.id = new ObjectID(id);
+  if (userName !== undefined) {
+    model.slackUserName = userName;
+  }
+  if (userId !== undefined) {
+    model.slackUserId = userId;
+  }
+  return model;
+}
+
+function microsoftTeams(
+  id: string,
+  userName?: string,
+  userId?: string,
+): UserMicrosoftTeams {
+  const model: UserMicrosoftTeams = new UserMicrosoftTeams();
+  model.id = new ObjectID(id);
+  if (userName !== undefined) {
+    model.microsoftTeamsUserName = userName;
+  }
+  if (userId !== undefined) {
+    model.microsoftTeamsUserId = userId;
+  }
+  return model;
+}
+
 function emptyModels(): NotificationMethodModels {
   return {
     userCalls: [],
@@ -103,20 +133,25 @@ function emptyModels(): NotificationMethodModels {
     userPush: [],
     userWhatsApps: [],
     userTelegrams: [],
+    userSlacks: [],
+    userMicrosoftTeamsAccounts: [],
     userWebhooks: [],
   };
 }
 
 // A 24-hex-char string is a valid ObjectID.
-const ID: Record<"a" | "b" | "c" | "d" | "e" | "f" | "g", string> = {
-  a: "aaaaaaaaaaaaaaaaaaaaaaaa",
-  b: "bbbbbbbbbbbbbbbbbbbbbbbb",
-  c: "cccccccccccccccccccccccc",
-  d: "dddddddddddddddddddddddd",
-  e: "eeeeeeeeeeeeeeeeeeeeeeee",
-  f: "ffffffffffffffffffffffff",
-  g: "abcabcabcabcabcabcabcabc",
-};
+const ID: Record<"a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i", string> =
+  {
+    a: "aaaaaaaaaaaaaaaaaaaaaaaa",
+    b: "bbbbbbbbbbbbbbbbbbbbbbbb",
+    c: "cccccccccccccccccccccccc",
+    d: "dddddddddddddddddddddddd",
+    e: "eeeeeeeeeeeeeeeeeeeeeeee",
+    f: "ffffffffffffffffffffffff",
+    g: "abcabcabcabcabcabcabcabc",
+    h: "cdecdecdecdecdecdecdecde",
+    i: "fabfabfabfabfabfabfabfab",
+  };
 
 /*
  * A minimal stand-in for a model row: getDisplayItems only needs getColumnValue,
@@ -144,7 +179,9 @@ describe("NotificationMethodUtil.getSelectForNotificationMethods", () => {
       [
         "userCall",
         "userEmail",
+        "userMicrosoftTeams",
         "userPush",
+        "userSlack",
         "userSms",
         "userTelegram",
         "userWebhook",
@@ -170,6 +207,14 @@ describe("NotificationMethodUtil.getSelectForNotificationMethods", () => {
     expect(select["userTelegram"]).toEqual({
       telegramUserHandle: true,
       telegramChatId: true,
+    });
+    expect(select["userSlack"]).toEqual({
+      slackUserName: true,
+      slackUserId: true,
+    });
+    expect(select["userMicrosoftTeams"]).toEqual({
+      microsoftTeamsUserName: true,
+      microsoftTeamsUserId: true,
     });
   });
 
@@ -284,6 +329,51 @@ describe("NotificationMethodUtil.getDisplayItems", () => {
     expect(items).toEqual([{ title: "Telegram", value: "999" }]);
   });
 
+  test("prefers the Slack user name over the Slack member id", () => {
+    const items: Array<NotificationMethodDisplayItem> =
+      NotificationMethodUtil.getDisplayItems(
+        reader({
+          userSlack: { slackUserName: "alice", slackUserId: "U0123ABCD" },
+        }),
+      );
+
+    expect(items).toEqual([{ title: "Slack", value: "alice" }]);
+  });
+
+  test("falls back to the Slack member id when the user name is absent", () => {
+    const items: Array<NotificationMethodDisplayItem> =
+      NotificationMethodUtil.getDisplayItems(
+        reader({ userSlack: { slackUserId: "U0123ABCD" } }),
+      );
+
+    expect(items).toEqual([{ title: "Slack", value: "U0123ABCD" }]);
+  });
+
+  test("prefers the Microsoft Teams user name over the Teams user id", () => {
+    const items: Array<NotificationMethodDisplayItem> =
+      NotificationMethodUtil.getDisplayItems(
+        reader({
+          userMicrosoftTeams: {
+            microsoftTeamsUserName: "Alice Example",
+            microsoftTeamsUserId: "29:1abc",
+          },
+        }),
+      );
+
+    expect(items).toEqual([
+      { title: "Microsoft Teams", value: "Alice Example" },
+    ]);
+  });
+
+  test("falls back to the Teams user id when the user name is absent", () => {
+    const items: Array<NotificationMethodDisplayItem> =
+      NotificationMethodUtil.getDisplayItems(
+        reader({ userMicrosoftTeams: { microsoftTeamsUserId: "29:1abc" } }),
+      );
+
+    expect(items).toEqual([{ title: "Microsoft Teams", value: "29:1abc" }]);
+  });
+
   test("ignores a relation whose value is not an object", () => {
     expect(
       NotificationMethodUtil.getDisplayItems(
@@ -306,12 +396,14 @@ describe("NotificationMethodUtil.getDisplayItems", () => {
         reader({
           userPush: { deviceName: "Pixel" },
           userEmail: { email: "jane@example.com" },
+          userSlack: { slackUserName: "alice" },
           userWebhook: { name: "Hook" },
         }),
       );
 
     expect(items).toEqual([
       { title: "Email", value: "jane@example.com" },
+      { title: "Slack", value: "alice" },
       { title: "Webhook", value: "Hook" },
       { title: "Push", value: "Pixel" },
     ]);
@@ -370,6 +462,32 @@ describe("NotificationMethodUtil.getLabel", () => {
     );
   });
 
+  test("labels a Slack method by user name, then member id, then Unknown Account", () => {
+    expect(NotificationMethodUtil.getLabel(slack(ID.a, "alice"))).toBe(
+      "Slack: alice",
+    );
+    expect(
+      NotificationMethodUtil.getLabel(slack(ID.b, undefined, "U0123ABCD")),
+    ).toBe("Slack: U0123ABCD");
+    expect(NotificationMethodUtil.getLabel(slack(ID.c))).toBe(
+      "Slack: Unknown Account",
+    );
+  });
+
+  test("labels a Teams method by user name, then user id, then Unknown Account", () => {
+    expect(
+      NotificationMethodUtil.getLabel(microsoftTeams(ID.a, "Alice Example")),
+    ).toBe("Microsoft Teams: Alice Example");
+    expect(
+      NotificationMethodUtil.getLabel(
+        microsoftTeams(ID.b, undefined, "29:1abc"),
+      ),
+    ).toBe("Microsoft Teams: 29:1abc");
+    expect(NotificationMethodUtil.getLabel(microsoftTeams(ID.c))).toBe(
+      "Microsoft Teams: Unknown Account",
+    );
+  });
+
   test("labels call, sms, whatsapp with the phone number and their prefix", () => {
     expect(NotificationMethodUtil.getLabel(call(ID.a, "+15555550100"))).toBe(
       "Call: +15555550100",
@@ -418,6 +536,8 @@ describe("NotificationMethodUtil.getDropdownOptions", () => {
       userPush: [push(ID.d, "Pixel")],
       userWhatsApps: [whatsApp(ID.e, "+15555550102")],
       userTelegrams: [telegram(ID.f, "@jane")],
+      userSlacks: [slack(ID.h, "alice")],
+      userMicrosoftTeamsAccounts: [microsoftTeams(ID.i, "Alice Example")],
       userWebhooks: [webhook(ID.g, "Hook")],
     };
 
@@ -434,6 +554,8 @@ describe("NotificationMethodUtil.getDropdownOptions", () => {
       "Push: Pixel",
       "WhatsApp: +15555550102",
       "Telegram: @jane",
+      "Slack: alice",
+      "Microsoft Teams: Alice Example",
       "Webhook: Hook",
     ]);
   });
@@ -465,6 +587,8 @@ describe("NotificationMethodUtil.setSelectedMethodOnRule", () => {
       userPush: [push(ID.d, "Pixel")],
       userWhatsApps: [whatsApp(ID.e, "+15555550102")],
       userTelegrams: [telegram(ID.f, "@jane")],
+      userSlacks: [slack(ID.h, "alice")],
+      userMicrosoftTeamsAccounts: [microsoftTeams(ID.i, "Alice Example")],
       userWebhooks: [webhook(ID.g, "Hook")],
     };
   }
@@ -489,6 +613,8 @@ describe("NotificationMethodUtil.setSelectedMethodOnRule", () => {
     expect(rule.userPushId).toBeUndefined();
     expect(rule.userWhatsAppId).toBeUndefined();
     expect(rule.userTelegramId).toBeUndefined();
+    expect(rule.userSlackId).toBeUndefined();
+    expect(rule.userMicrosoftTeamsId).toBeUndefined();
   });
 
   test("maps each method type to its own foreign key", () => {
@@ -499,6 +625,8 @@ describe("NotificationMethodUtil.setSelectedMethodOnRule", () => {
       { id: ID.d, key: "userPushId" },
       { id: ID.e, key: "userWhatsAppId" },
       { id: ID.f, key: "userTelegramId" },
+      { id: ID.h, key: "userSlackId" },
+      { id: ID.i, key: "userMicrosoftTeamsId" },
       { id: ID.g, key: "userWebhookId" },
     ];
 

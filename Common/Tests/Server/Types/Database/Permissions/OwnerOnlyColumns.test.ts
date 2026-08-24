@@ -1,6 +1,8 @@
 import UserCall from "../../../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../../../Models/DatabaseModels/UserEmail";
+import UserMicrosoftTeams from "../../../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserPush from "../../../../../Models/DatabaseModels/UserPush";
+import UserSlack from "../../../../../Models/DatabaseModels/UserSlack";
 import UserSMS from "../../../../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../../../../Models/DatabaseModels/UserTelegram";
 import UserWebhook from "../../../../../Models/DatabaseModels/UserWebhook";
@@ -34,7 +36,7 @@ import UserType from "../../../../../Types/UserType";
  * administrators - which is the feature, and is correct - and the moment it
  * does, an admin's read of that table is no longer confined to their own rows.
  * Everything reachable from those rows is then reachable by an admin, and the
- * seven notification-method models hang off them by ManyToOne relation.
+ * nine notification-method models hang off them by ManyToOne relation.
  *
  * There are FOUR routes into a marked column, and closing three of them is the
  * same as closing none. Every route below is driven through the real permission
@@ -49,7 +51,7 @@ import UserType from "../../../../../Types/UserType";
  *   Route 3  sort:   { webhookUrl: "ASC" }                      injected post-gate
  *   Route 4  query:  { webhookUrl: "https://..." }              as a value oracle
  *
- * HOW THE ADMIN CASE IS SET UP, AND WHY IT IS NOT THEATRE. Today the seven
+ * HOW THE ADMIN CASE IS SET UP, AND WHY IT IS NOT THEATRE. Today the nine
  * method models list [CurrentUser] and nothing else, so TenantPermission stamps
  * every non-root caller's own userId onto their query and an administrator is
  * indistinguishable from a plain member - the admin case is currently
@@ -68,7 +70,7 @@ const otherUserId: ObjectID = ObjectID.generate();
 type ModelTypeUnderTest = { new (): BaseModel };
 
 /*
- * The seven notification-method models with the post-Phase-3 table read. Only
+ * The nine notification-method models with the post-Phase-3 table read. Only
  * the table access control is restated; every column, its @OwnerOnlyColumn
  * mark, the tenant column and @CurrentUserCanAccessRecordBy("userId") are
  * inherited from the production model.
@@ -102,6 +104,12 @@ class AdminReadableUserWhatsApp extends UserWhatsApp {}
 
 @TableAccessControl(ADMIN_READABLE_TABLE_ACCESS)
 class AdminReadableUserTelegram extends UserTelegram {}
+
+@TableAccessControl(ADMIN_READABLE_TABLE_ACCESS)
+class AdminReadableUserSlack extends UserSlack {}
+
+@TableAccessControl(ADMIN_READABLE_TABLE_ACCESS)
+class AdminReadableUserMicrosoftTeams extends UserMicrosoftTeams {}
 
 @TableAccessControl(ADMIN_READABLE_TABLE_ACCESS)
 class AdminReadableUserWebhook extends UserWebhook {}
@@ -217,6 +225,32 @@ class AdminReadableRuleModel extends BaseModel {
     title: "User Telegram",
   })
   public userTelegram?: UserTelegram = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser, Permission.ProjectAdmin],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Entity,
+    modelType: UserSlack,
+    manyToOneRelationColumn: "userSlackId",
+    title: "User Slack",
+  })
+  public userSlack?: UserSlack = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser, Permission.ProjectAdmin],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Entity,
+    modelType: UserMicrosoftTeams,
+    manyToOneRelationColumn: "userMicrosoftTeamsId",
+    title: "User Microsoft Teams",
+  })
+  public userMicrosoftTeams?: UserMicrosoftTeams = undefined;
 
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
@@ -355,6 +389,41 @@ const METHOD_MODELS: Array<MethodModelUnderTest> = [
       "verificationCode",
     ],
     ownerOnlyColumnReachableThroughRelation: "telegramChatId",
+    labelColumnReachableThroughRelation: "projectId",
+    labelColumns: ["userId", "projectId", "isVerified"],
+    unmarkedSortColumn: "isVerified",
+  },
+  {
+    name: "UserSlack",
+    modelType: UserSlack,
+    adminReadableModelType: AdminReadableUserSlack,
+    relationColumnName: "userSlack",
+    /*
+     * No verificationCode here: a Slack row is born verified off the user's own
+     * OAuth workspace link, so the two marked columns are the member id the bot
+     * delivers to and the display name that identifies the person in an outside
+     * workspace. Both are owner-readable, so the owner-only mark is the ONLY
+     * thing between them and any admin in the project.
+     */
+    ownerOnlyColumns: ["slackUserId", "slackUserName"],
+    ownerOnlyColumnsSelectableByOwner: ["slackUserId", "slackUserName"],
+    ownerOnlyColumnReachableThroughRelation: "slackUserId",
+    labelColumnReachableThroughRelation: "projectId",
+    labelColumns: ["userId", "projectId", "isVerified"],
+    unmarkedSortColumn: "isVerified",
+  },
+  {
+    name: "UserMicrosoftTeams",
+    modelType: UserMicrosoftTeams,
+    adminReadableModelType: AdminReadableUserMicrosoftTeams,
+    relationColumnName: "userMicrosoftTeams",
+    // Same shape as UserSlack: created verified, no verificationCode column.
+    ownerOnlyColumns: ["microsoftTeamsUserId", "microsoftTeamsUserName"],
+    ownerOnlyColumnsSelectableByOwner: [
+      "microsoftTeamsUserId",
+      "microsoftTeamsUserName",
+    ],
+    ownerOnlyColumnReachableThroughRelation: "microsoftTeamsUserId",
     labelColumnReachableThroughRelation: "projectId",
     labelColumns: ["userId", "projectId", "isVerified"],
     unmarkedSortColumn: "isVerified",

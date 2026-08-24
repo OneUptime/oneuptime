@@ -4,6 +4,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import AllowAccessIfSubscriptionIsUnpaid from "../../Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnerOnlyColumn from "../../Types/Database/AccessControl/OwnerOnlyColumn";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -14,11 +15,25 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
-import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
+/*
+ * `read` names Permission.CurrentUser and nothing else, exactly like the other
+ * notification-method models (UserTelegram has the full essay). That single
+ * entry is what keeps every row owner-only: row scoping comes from the TABLE
+ * list alone, and widening it would expose the Microsoft Entra user id every
+ * project member's pages are delivered to. Do not add administrator
+ * permissions here - OnCallReadinessService returns the masked,
+ * admin-sanctioned view instead.
+ *
+ * Unlike Telegram/SMS/WhatsApp there is no verification code: a row is only
+ * ever created from an existing, OAuth-established workspace link
+ * (WorkspaceUserAuthToken), so creation IS verification.
+ * UserMicrosoftTeamsService enforces that and stamps the Microsoft Teams
+ * identifiers server-side.
+ */
 @TenantColumn("projectId")
 @AllowAccessIfSubscriptionIsUnpaid()
 @TableAccessControl({
@@ -27,19 +42,20 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   delete: [Permission.CurrentUser],
   update: [Permission.CurrentUser],
 })
-@CrudApiEndpoint(new Route("/user-notification-setting"))
+@CrudApiEndpoint(new Route("/user-microsoft-teams"))
 @Entity({
-  name: "UserNotificationSetting",
+  name: "UserMicrosoftTeams",
 })
 @TableMetadata({
-  tableName: "UserNotificationSetting",
-  singularName: "Notification Setting",
-  pluralName: "Notification Settings",
-  icon: IconProp.Bell,
-  tableDescription: "Settings which will be used to send notifications.",
+  tableName: "UserMicrosoftTeams",
+  singularName: "Microsoft Teams Account",
+  pluralName: "Microsoft Teams Accounts",
+  icon: IconProp.MicrosoftTeams,
+  tableDescription:
+    "Microsoft Teams accounts used for Microsoft Teams notifications.",
 })
 @CurrentUserCanAccessRecordBy("userId")
-class UserNotificationSetting extends BaseModel {
+class UserMicrosoftTeams extends BaseModel {
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
     read: [Permission.CurrentUser],
@@ -78,7 +94,6 @@ class UserNotificationSetting extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
-    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -88,25 +103,80 @@ class UserNotificationSetting extends BaseModel {
   public projectId?: ObjectID = undefined;
 
   @ColumnAccessControl({
+    /*
+     * CurrentUser here does NOT mean the client may choose the value: the
+     * service hook refuses any non-root payload that carries these columns
+     * and then stamps them itself, and hooks run BEFORE the column
+     * permission check (DatabaseService.create). The entry exists because
+     * that same check runs on the STAMPED data - with an empty list the
+     * server's own write is refused and no user can add this method at all.
+     * Same shape as UserWebAuthn's server-stamped isVerified.
+     */
     create: [Permission.CurrentUser],
     read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
+    update: [],
   })
+  @Index()
+  /*
+   * The Microsoft Entra (Azure AD) object id the project's bot delivers
+   * direct messages to. Holding it is enough to address bot messages at that
+   * person, so it is a delivery target and not a label. Captured server-side
+   * from the user's own WorkspaceUserAuthToken - never writable by the client.
+   */
+  @OwnerOnlyColumn()
   @TableColumn({
-    title: "Rule Type",
-    required: true,
+    title: "Microsoft Teams User ID",
+    required: false,
     unique: false,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
-    example: "Incident Created",
+    description:
+      "Microsoft Entra user ID captured from your connected Microsoft Teams account. Populated automatically.",
   })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
     unique: false,
-    nullable: false,
+    nullable: true,
   })
-  public eventType?: NotificationSettingEventType = undefined;
+  public microsoftTeamsUserId?: string = undefined;
+
+  @ColumnAccessControl({
+    /*
+     * CurrentUser here does NOT mean the client may choose the value: the
+     * service hook refuses any non-root payload that carries these columns
+     * and then stamps them itself, and hooks run BEFORE the column
+     * permission check (DatabaseService.create). The entry exists because
+     * that same check runs on the STAMPED data - with an empty list the
+     * server's own write is refused and no user can add this method at all.
+     * Same shape as UserWebAuthn's server-stamped isVerified.
+     */
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  /*
+   * The person's Microsoft Teams display name at the time the method was
+   * added. Only a label for the row, but it is still their identity in an
+   * outside workspace, so it stays owner-only like the Telegram handle.
+   */
+  @OwnerOnlyColumn()
+  @TableColumn({
+    title: "Microsoft Teams Username",
+    required: false,
+    unique: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    description:
+      "Display name captured from your connected Microsoft Teams account. Populated automatically.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    unique: false,
+    nullable: true,
+  })
+  public microsoftTeamsUserName?: string = undefined;
 
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
@@ -118,7 +188,7 @@ class UserNotificationSetting extends BaseModel {
     type: TableColumnType.Entity,
     modelType: User,
     title: "User",
-    description: "Relation to User who this email belongs to",
+    description: "Relation to User who this Microsoft Teams account belongs to",
   })
   @ManyToOne(
     () => {
@@ -142,8 +212,7 @@ class UserNotificationSetting extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "User ID",
-    description: "User ID who this email belongs to",
-    example: "7c9d8e0f-a1b2-4c3d-9e5f-8a7b9c0d1e2f",
+    description: "User ID who this Microsoft Teams account belongs to",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -190,7 +259,6 @@ class UserNotificationSetting extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
-    example: "7c9d8e0f-a1b2-4c3d-9e5f-8a7b9c0d1e2f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -237,7 +305,6 @@ class UserNotificationSetting extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
-    example: "7c9d8e0f-a1b2-4c3d-9e5f-8a7b9c0d1e2f",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -247,157 +314,31 @@ class UserNotificationSetting extends BaseModel {
   public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
+    /*
+     * CurrentUser here does NOT mean the client may choose the value: the
+     * service hook refuses any non-root payload that carries these columns
+     * and then stamps them itself, and hooks run BEFORE the column
+     * permission check (DatabaseService.create). The entry exists because
+     * that same check runs on the STAMPED data - with an empty list the
+     * server's own write is refused and no user can add this method at all.
+     * Same shape as UserWebAuthn's server-stamped isVerified.
+     */
     create: [Permission.CurrentUser],
     read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
+    update: [],
   })
   @TableColumn({
+    title: "Is Verified",
+    description: "Is this Microsoft Teams account verified?",
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     defaultValue: false,
-    example: true,
   })
   @Column({
     type: ColumnType.Boolean,
     default: false,
   })
-  public alertByEmail?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-    example: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertBySMS?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-    example: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertByWhatsApp?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-    example: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertByTelegram?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-    example: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertBySlack?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-    example: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertByMicrosoftTeams?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-    example: true,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertByCall?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-    example: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertByPush?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-    example: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertByWebhook?: boolean = undefined;
+  public isVerified?: boolean = undefined;
 }
 
-export default UserNotificationSetting;
+export default UserMicrosoftTeams;

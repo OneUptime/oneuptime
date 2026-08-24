@@ -130,6 +130,8 @@ type NotificationMethodColumn =
   | "userPushId"
   | "userWhatsAppId"
   | "userTelegramId"
+  | "userSlackId"
+  | "userMicrosoftTeamsId"
   | "userWebhookId";
 
 const NOTIFICATION_METHOD_COLUMNS: Array<NotificationMethodColumn> = [
@@ -139,6 +141,8 @@ const NOTIFICATION_METHOD_COLUMNS: Array<NotificationMethodColumn> = [
   "userPushId",
   "userWhatsAppId",
   "userTelegramId",
+  "userSlackId",
+  "userMicrosoftTeamsId",
   "userWebhookId",
 ];
 
@@ -395,6 +399,8 @@ const backfillSeverityForRuleType: BackfillSeverityForRuleTypeFunction = async (
         userPushId: true,
         userWhatsAppId: true,
         userTelegramId: true,
+        userSlackId: true,
+        userMicrosoftTeamsId: true,
         userWebhookId: true,
       },
       props: {
@@ -717,6 +723,10 @@ const buildNotificationMethodQuery: BuildNotificationMethodQueryFunction = (
       return { userWhatsAppId: methodId };
     case "userTelegramId":
       return { userTelegramId: methodId };
+    case "userSlackId":
+      return { userSlackId: methodId };
+    case "userMicrosoftTeamsId":
+      return { userMicrosoftTeamsId: methodId };
     case "userWebhookId":
       return { userWebhookId: methodId };
     default:
@@ -759,6 +769,12 @@ const applyNotificationMethod: ApplyNotificationMethodFunction = (
       break;
     case "userTelegramId":
       rule.userTelegramId = methodId;
+      break;
+    case "userSlackId":
+      rule.userSlackId = methodId;
+      break;
+    case "userMicrosoftTeamsId":
+      rule.userMicrosoftTeamsId = methodId;
       break;
     case "userWebhookId":
       rule.userWebhookId = methodId;

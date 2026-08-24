@@ -9,6 +9,8 @@ import UserPushService from "./UserPushService";
 import UserService from "./UserService";
 import UserSmsService from "./UserSmsService";
 import UserTelegramService from "./UserTelegramService";
+import UserSlackService from "./UserSlackService";
+import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
 import UserWebhookService from "./UserWebhookService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import type AuditLogServiceType from "./AuditLogService";
@@ -74,7 +76,7 @@ import UserNotificationRule from "../../Models/DatabaseModels/UserNotificationRu
  */
 
 /*
- * One of the seven ways a rule can name a delivery address, reduced to what the
+ * One of the nine ways a rule can name a delivery address, reduced to what the
  * ownership guard needs: which column carried it (for the error message and the
  * audit line) and which row it points at.
  */
@@ -96,7 +98,7 @@ export interface NotificationMethodReference {
 }
 
 /*
- * A rule-shaped bag of values to read the guarded columns out of — the seven
+ * A rule-shaped bag of values to read the guarded columns out of — the nine
  * method references AND the ownership column, because both halves of the pair
  * this file exists to compare arrive through the same payload.
  *
@@ -232,6 +234,38 @@ export class UserNotificationRuleAdminService extends BaseService {
         },
       },
       {
+        idColumn: "userSlackId",
+        relationColumn: "userSlack",
+        label: "Slack",
+        findOwnerUserId: async (
+          methodId: ObjectID,
+        ): Promise<ObjectID | undefined> => {
+          return (
+            await UserSlackService.findOneById({
+              id: methodId,
+              select: { _id: true, userId: true },
+              props: { isRoot: true },
+            })
+          )?.userId;
+        },
+      },
+      {
+        idColumn: "userMicrosoftTeamsId",
+        relationColumn: "userMicrosoftTeams",
+        label: "Microsoft Teams",
+        findOwnerUserId: async (
+          methodId: ObjectID,
+        ): Promise<ObjectID | undefined> => {
+          return (
+            await UserMicrosoftTeamsService.findOneById({
+              id: methodId,
+              select: { _id: true, userId: true },
+              props: { isRoot: true },
+            })
+          )?.userId;
+        },
+      },
+      {
         idColumn: "userPushId",
         relationColumn: "userPush",
         label: "Push",
@@ -267,9 +301,9 @@ export class UserNotificationRuleAdminService extends BaseService {
   }
 
   /*
-   * The seven FK columns, in one place, so a future eighth channel is a single
-   * entry rather than an eighth thing to remember. A guard that covers six of
-   * seven covers none: the attacker picks the seventh.
+   * The nine FK columns, in one place, so a future tenth channel is a single
+   * entry rather than a tenth thing to remember. A guard that covers eight of
+   * nine covers none: the attacker picks the ninth.
    */
   public getNotificationMethodIdColumns(): Array<string> {
     return this.getNotificationMethodDescriptors().map(
@@ -372,7 +406,7 @@ export class UserNotificationRuleAdminService extends BaseService {
    * spelling survives a create.
    *
    * This is the same reduction collapseNotificationMethodRelationsOnCreate
-   * performs for the seven method FKs, and the same one
+   * performs for the nine method FKs, and the same one
    * CreatePermission.checkCreateOwnership performs for this very column — it
    * validates `user` identically to `userId` and then CLEARS it, because after
    * clearing there is no second source of truth left to disagree with the

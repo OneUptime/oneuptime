@@ -1,7 +1,9 @@
 import UserCall from "../../Components/NotificationMethods/Call";
 import UserEmail from "../../Components/NotificationMethods/Email";
+import UserMicrosoftTeams from "../../Components/NotificationMethods/MicrosoftTeams";
 import UserPush from "../../Components/NotificationMethods/Push";
 import UserSMS from "../../Components/NotificationMethods/SMS";
+import UserSlack from "../../Components/NotificationMethods/Slack";
 import UserTelegram from "../../Components/NotificationMethods/Telegram";
 import UserWebhook from "../../Components/NotificationMethods/Webhook";
 import UserWhatsApp from "../../Components/NotificationMethods/WhatsApp";
@@ -39,6 +41,15 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 <UserCall />
                 <UserWhatsApp />
                 <UserTelegram />
+              </div>
+            ),
+          },
+          {
+            name: "Workspace Apps",
+            children: (
+              <div className="space-y-4">
+                <UserSlack />
+                <UserMicrosoftTeams />
               </div>
             ),
           },

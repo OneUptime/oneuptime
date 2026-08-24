@@ -15,12 +15,14 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserCallService from "../../../Server/Services/UserCallService";
 import UserEmailService from "../../../Server/Services/UserEmailService";
+import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserNotificationRuleService, {
   CoverageLossCell,
   NotificationDeletionImpact,
   PostDeletionReachability,
 } from "../../../Server/Services/UserNotificationRuleService";
 import UserPushService from "../../../Server/Services/UserPushService";
+import UserSlackService from "../../../Server/Services/UserSlackService";
 import UserSmsService from "../../../Server/Services/UserSmsService";
 import UserTelegramService from "../../../Server/Services/UserTelegramService";
 import UserWebhookService from "../../../Server/Services/UserWebhookService";
@@ -31,8 +33,10 @@ import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Project from "../../../Models/DatabaseModels/Project";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
+import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
+import UserSlack from "../../../Models/DatabaseModels/UserSlack";
 import UserSMS from "../../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../../Models/DatabaseModels/UserTelegram";
 import UserWebhook from "../../../Models/DatabaseModels/UserWebhook";
@@ -57,7 +61,7 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *       is the only thing left for Sev1 incidents" is written nowhere.
  *
  *   (b) Deleting a METHOD, which CASCADES. Every method foreign key on
- *       UserNotificationRule is onDelete: "CASCADE" - and six of the seven
+ *       UserNotificationRule is onDelete: "CASCADE" - and eight of the nine
  *       method services delete the rows themselves in onBeforeDelete besides -
  *       so removing one phone number destroys every rule that pointed at it.
  *       The delete dialog for a phone number mentions notification rules
@@ -90,8 +94,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *   A rule read through the wrong column matches no page at runtime, so
  *   counting it as coverage would certify a gap as covered.
  *
- *   CERTAINTY ABOUT REACHABILITY. Push, Email and Webhook have no project
- *   switch, which is what makes "a verified one of those survives" a certain
+ *   CERTAINTY ABOUT REACHABILITY. Push, Email, Slack, Microsoft Teams and
+ *   Webhook have no project switch, which is what makes "a verified one of
+ *   those survives" a certain
  *   answer and "only paid channels survive" an honest "depends". Inventing a
  *   green in the second case is the exact false reassurance this whole feature
  *   exists to prevent.
@@ -191,6 +196,8 @@ let callFindOneBy: jest.SpyInstance;
 let pushFindOneBy: jest.SpyInstance;
 let whatsAppFindOneBy: jest.SpyInstance;
 let telegramFindOneBy: jest.SpyInstance;
+let slackFindOneBy: jest.SpyInstance;
+let microsoftTeamsFindOneBy: jest.SpyInstance;
 let webhookFindOneBy: jest.SpyInstance;
 let escalationUserFindBy: jest.SpyInstance;
 let escalationTeamFindBy: jest.SpyInstance;
@@ -211,6 +218,8 @@ function rule(data: {
   userPushId?: ObjectID | undefined;
   userWhatsAppId?: ObjectID | undefined;
   userTelegramId?: ObjectID | undefined;
+  userSlackId?: ObjectID | undefined;
+  userMicrosoftTeamsId?: ObjectID | undefined;
   userWebhookId?: ObjectID | undefined;
 }): UserNotificationRule {
   const model: UserNotificationRule = new UserNotificationRule();
@@ -256,6 +265,14 @@ function rule(data: {
 
   if (data.userTelegramId) {
     model.userTelegramId = data.userTelegramId;
+  }
+
+  if (data.userSlackId) {
+    model.userSlackId = data.userSlackId;
+  }
+
+  if (data.userMicrosoftTeamsId) {
+    model.userMicrosoftTeamsId = data.userMicrosoftTeamsId;
   }
 
   if (data.userWebhookId) {
@@ -501,6 +518,20 @@ beforeEach(() => {
   telegramRow.isVerified = true;
 
   /*
+   * Born verified: a UserSlack / UserMicrosoftTeams row is a pointer at the
+   * owner's own OAuth workspace link, so creation is verification.
+   */
+  const slackRow: UserSlack = new UserSlack();
+  slackRow.id = SMS_METHOD_ID;
+  slackRow.userId = USER_ID;
+  slackRow.isVerified = true;
+
+  const microsoftTeamsRow: UserMicrosoftTeams = new UserMicrosoftTeams();
+  microsoftTeamsRow.id = SMS_METHOD_ID;
+  microsoftTeamsRow.userId = USER_ID;
+  microsoftTeamsRow.isVerified = true;
+
+  /*
    * Deliberately carries NO isVerified. UserWebhook has no such column at all,
    * and the service has to treat presence as the whole test - a fixture that
    * set the field would let a regression to `Boolean(row.isVerified)` pass.
@@ -527,6 +558,12 @@ beforeEach(() => {
   telegramFindOneBy = jest
     .spyOn(UserTelegramService, "findOneBy")
     .mockResolvedValue(telegramRow as never);
+  slackFindOneBy = jest
+    .spyOn(UserSlackService, "findOneBy")
+    .mockResolvedValue(slackRow as never);
+  microsoftTeamsFindOneBy = jest
+    .spyOn(UserMicrosoftTeamsService, "findOneBy")
+    .mockResolvedValue(microsoftTeamsRow as never);
   webhookFindOneBy = jest
     .spyOn(UserWebhookService, "findOneBy")
     .mockResolvedValue(webhookRow as never);
@@ -1117,7 +1154,7 @@ describe("deleting a notification method: the cascade", () => {
     expect(impact.coverageLost).toHaveLength(0);
   });
 
-  test("each of the seven channels reads its own foreign key", async () => {
+  test("each of the nine channels reads its own foreign key", async () => {
     const cases: Array<{
       methodType: ReadinessMethodType;
       makeRule: () => UserNotificationRule;
@@ -1185,6 +1222,28 @@ describe("deleting a notification method: the cascade", () => {
             ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
             incidentSeverityId: SEV1_ID,
             userTelegramId: SMS_METHOD_ID,
+          });
+        },
+      },
+      {
+        methodType: ReadinessMethodType.Slack,
+        makeRule: (): UserNotificationRule => {
+          return rule({
+            id: RULE_1_ID,
+            ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+            incidentSeverityId: SEV1_ID,
+            userSlackId: SMS_METHOD_ID,
+          });
+        },
+      },
+      {
+        methodType: ReadinessMethodType.MicrosoftTeams,
+        makeRule: (): UserNotificationRule => {
+          return rule({
+            id: RULE_1_ID,
+            ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+            incidentSeverityId: SEV1_ID,
+            userMicrosoftTeamsId: SMS_METHOD_ID,
           });
         },
       },
@@ -1315,8 +1374,9 @@ describe("deleting a notification method: the cascade", () => {
  * (F) Reachability after the deletion.
  *
  * Two of the four answers are certain and two are not, and the split is
- * structural: a method must be VERIFIED to be used at all, and Push, Email and
- * Webhook have no project switch that can turn them off. Anything that turns
+ * structural: a method must be VERIFIED to be used at all, and Push, Email,
+ * Slack, Microsoft Teams and Webhook have no project switch that can turn
+ * them off. Anything that turns
  * the honest "depends" into a green is a false reassurance in the one dialog
  * where it costs a page.
  * ---------------------------------------------------------------------------
@@ -1368,6 +1428,42 @@ describe("reachability after the deletion", () => {
         methods: [
           method(ReadinessMethodType.SMS),
           method(ReadinessMethodType.Push),
+        ],
+      }),
+    ];
+
+    const impact: NotificationDeletionImpact = await methodDeletionImpact(
+      ReadinessMethodType.SMS,
+      SMS_METHOD_ID,
+    );
+
+    expect(impact.reachability).toBe(PostDeletionReachability.Reachable);
+  });
+
+  test("a surviving verified Slack account is equally certain - no project switch exists for it", async () => {
+    readinessRows = [
+      readiness({
+        methods: [
+          method(ReadinessMethodType.SMS),
+          method(ReadinessMethodType.Slack),
+        ],
+      }),
+    ];
+
+    const impact: NotificationDeletionImpact = await methodDeletionImpact(
+      ReadinessMethodType.SMS,
+      SMS_METHOD_ID,
+    );
+
+    expect(impact.reachability).toBe(PostDeletionReachability.Reachable);
+  });
+
+  test("a surviving verified Microsoft Teams account is equally certain", async () => {
+    readinessRows = [
+      readiness({
+        methods: [
+          method(ReadinessMethodType.SMS),
+          method(ReadinessMethodType.MicrosoftTeams),
         ],
       }),
     ];
@@ -2055,7 +2151,7 @@ describe("paging the rule read", () => {
  * ---------------------------------------------------------------------------
  * (L) The per-method-service entry points.
  *
- * Each of the seven notification-method services can answer for its own row,
+ * Each of the nine notification-method services can answer for its own row,
  * which is where the delete is actually initiated from. Each must name its own
  * channel: a service that passed the wrong one would preview the cascade of a
  * method the user is not deleting.
@@ -2160,6 +2256,36 @@ describe("the per-method-service entry points", () => {
         }),
       },
       {
+        name: "UserSlackService",
+        call: (): Promise<NotificationDeletionImpact> => {
+          return UserSlackService.getDeletionImpact({
+            itemId: SMS_METHOD_ID,
+            projectId: PROJECT_ID,
+          });
+        },
+        ruleWithThisMethod: rule({
+          id: RULE_1_ID,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+          incidentSeverityId: SEV1_ID,
+          userSlackId: SMS_METHOD_ID,
+        }),
+      },
+      {
+        name: "UserMicrosoftTeamsService",
+        call: (): Promise<NotificationDeletionImpact> => {
+          return UserMicrosoftTeamsService.getDeletionImpact({
+            itemId: SMS_METHOD_ID,
+            projectId: PROJECT_ID,
+          });
+        },
+        ruleWithThisMethod: rule({
+          id: RULE_1_ID,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+          incidentSeverityId: SEV1_ID,
+          userMicrosoftTeamsId: SMS_METHOD_ID,
+        }),
+      },
+      {
         name: "UserWebhookService",
         call: (): Promise<NotificationDeletionImpact> => {
           return UserWebhookService.getDeletionImpact({
@@ -2229,7 +2355,7 @@ describe("the per-method-service entry points", () => {
     expect(impact.reachability).toBe(PostDeletionReachability.NotReachable);
   });
 
-  test("the seven services do not read each other's tables", async () => {
+  test("the nine services do not read each other's tables", async () => {
     ruleRows = [];
 
     await UserTelegramService.getDeletionImpact({
@@ -2243,6 +2369,8 @@ describe("the per-method-service entry points", () => {
     expect(callFindOneBy).not.toHaveBeenCalled();
     expect(pushFindOneBy).not.toHaveBeenCalled();
     expect(whatsAppFindOneBy).not.toHaveBeenCalled();
+    expect(slackFindOneBy).not.toHaveBeenCalled();
+    expect(microsoftTeamsFindOneBy).not.toHaveBeenCalled();
     expect(webhookFindOneBy).not.toHaveBeenCalled();
   });
 });

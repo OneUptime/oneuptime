@@ -212,6 +212,8 @@ import UserSmsService from "./UserSmsService";
 import UserIncomingCallNumberService from "./UserIncomingCallNumberService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import UserTelegramService from "./UserTelegramService";
+import UserSlackService from "./UserSlackService";
+import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
 import WorkflowLogService from "./WorkflowLogService";
 // Workflows.
 import WorkflowService from "./WorkflowService";
@@ -291,6 +293,7 @@ import WorkspaceSettingService from "./WorkspaceSettingService";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceNotificationSummaryService from "./WorkspaceNotificationSummaryService";
+import WorkspaceUserNotificationService from "./WorkspaceUserNotificationService";
 import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
 
 import MonitorLogService from "./MonitorLogService";
@@ -488,6 +491,8 @@ const services: Array<BaseService> = [
   UserIncomingCallNumberService,
   UserWhatsAppService,
   UserTelegramService,
+  UserSlackService,
+  UserMicrosoftTeamsService,
   UserTotpAuthService,
   UserWebAuthnService,
 
@@ -585,6 +590,7 @@ const services: Array<BaseService> = [
   WorkspaceNotificationRuleService,
   WorkspaceNotificationLogService,
   WorkspaceNotificationSummaryService,
+  WorkspaceUserNotificationService,
 
   ProjectSCIMLogService,
   StatusPageSCIMLogService,

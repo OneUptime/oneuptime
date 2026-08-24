@@ -38,7 +38,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *
  * The fourth is where the "Notification Method" dropdown comes from, which is
  * now two different places depending on whose rules are on screen. For the
- * signed-in user it is still seven reads of the seven method models, and that
+ * signed-in user it is still nine reads of the nine method models, and that
  * path is the four settings pages every existing user relies on. For anybody
  * else those reads are REFUSED - the models are scoped to the person who owns
  * the device, because the columns behind them are the raw phone number, the
@@ -186,8 +186,10 @@ import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
+import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
+import UserSlack from "../../../Models/DatabaseModels/UserSlack";
 import UserSMS from "../../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../../Models/DatabaseModels/UserTelegram";
 import UserWebhook from "../../../Models/DatabaseModels/UserWebhook";
@@ -199,7 +201,7 @@ import ObjectID from "../../../Types/ObjectID";
 import ProjectUtil from "../../../UI/Utils/Project";
 
 /*
- * The seven models whose rows only their owner may read. They are listed
+ * The nine models whose rows only their owner may read. They are listed
  * together because the assertion that matters is about the SET: an admin
  * surface that reads any one of them is reading a row it is not entitled to,
  * and which one hardly matters.
@@ -211,13 +213,15 @@ const NOTIFICATION_METHOD_MODELS: Array<unknown> = [
   UserPush,
   UserWhatsApp,
   UserTelegram,
+  UserSlack,
+  UserMicrosoftTeams,
   UserWebhook,
 ];
 
 /*
  * What the admin surface hands over in place of those reads: a channel name, the
  * id of the row, and a mask. Telegram is unverified on purpose - the self-serve
- * path filters `isVerified: true` in six of its seven queries, so a supplied
+ * path filters `isVerified: true` in eight of its nine queries, so a supplied
  * list that offered unverified methods would be the two paths disagreeing about
  * what is pickable.
  */
@@ -250,6 +254,8 @@ const METHOD_FOREIGN_KEYS: Array<keyof UserNotificationRule> = [
   "userPushId",
   "userWhatsAppId",
   "userTelegramId",
+  "userSlackId",
+  "userMicrosoftTeamsId",
   "userWebhookId",
 ];
 
@@ -343,7 +349,7 @@ const getMethodOptions: GetMethodOptions = (
 };
 
 /*
- * The seven RELATION spellings. Selecting any of these on a rule pulls columns
+ * The nine RELATION spellings. Selecting any of these on a rule pulls columns
  * out of the method models themselves - the raw address, the raw number, the
  * telegram handle - through a table an administrator is allowed to read.
  *
@@ -366,6 +372,8 @@ const METHOD_RELATIONS: Array<string> = [
   "userPush",
   "userWhatsApp",
   "userTelegram",
+  "userSlack",
+  "userMicrosoftTeams",
   "userWebhook",
 ];
 
@@ -719,7 +727,7 @@ describe("OnCallRulesTable", () => {
 
     /*
      * The whole point of the redesign, in one assertion. Not "reads them and
-     * shows fewer columns" - does not read them. Each of these seven models is
+     * shows fewer columns" - does not read them. Each of these nine models is
      * scoped to the person who owns the device, and the columns behind them are
      * the raw phone number, the webhook bearer url, the push device token, the
      * telegram chat id and the verification code. A request here is a request
@@ -748,7 +756,7 @@ describe("OnCallRulesTable", () => {
      * The readiness payload the admin page sources these from is fetched
      * asynchronously and can fail outright, so an absent list is a real state
      * rather than a caller mistake. Treating it as "then fetch them yourself"
-     * would fire seven refused requests and turn this component's error state on
+     * would fire nine refused requests and turn this component's error state on
      * - taking the rule repair away because a DIFFERENT read failed.
      */
     await renderForOtherUser(undefined);
@@ -786,7 +794,7 @@ describe("OnCallRulesTable", () => {
 
     /*
      * The unverified Telegram method is absent, which mirrors the
-     * `isVerified: true` filter on six of the seven self-serve queries. A rule
+     * `isVerified: true` filter on eight of the nine self-serve queries. A rule
      * pointed at an unverified device is a rule that pages nothing.
      */
     expect(
@@ -805,7 +813,7 @@ describe("OnCallRulesTable", () => {
       });
 
     /*
-     * The seven foreign keys are mutually exclusive and nothing validates that
+     * The nine foreign keys are mutually exclusive and nothing validates that
      * client-side, so this asserts the whole set: an SMS id written to
      * `userEmailId` would page an address rather than a phone, and would not
      * error anywhere on the way.
@@ -968,7 +976,7 @@ describe("OnCallRulesTable", () => {
   test("the signed-in user's own table still reads the method models itself", async () => {
     /*
      * The regression surface. Four settings pages every existing user already
-     * relies on read their own seven models to fill this dropdown, and reading
+     * relies on read their own nine models to fill this dropdown, and reading
      * your own rows is exactly what those models allow. Nothing about the admin
      * surface is a reason to change it - and an unmasked label is more use to
      * somebody looking at their own phone number than a mask of it.
@@ -985,7 +993,7 @@ describe("OnCallRulesTable", () => {
       getQueriedUserIds().filter((userId: string | undefined) => {
         return userId === CURRENT_USER_ID_STRING;
       }),
-    ).toHaveLength(7);
+    ).toHaveLength(9);
 
     expect(getMethodOptions(capturedTables[0]!)).toEqual([
       { label: `Email: ${OWN_EMAIL_ADDRESS}`, value: OWN_EMAIL_ID },

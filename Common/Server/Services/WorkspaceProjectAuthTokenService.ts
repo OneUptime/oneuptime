@@ -3,10 +3,13 @@ import WorkspaceType, {
   getWorkspaceTypeDisplayName,
 } from "../../Types/Workspace/WorkspaceType";
 import DatabaseService from "./DatabaseService";
+import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
+import DeleteBy from "../Types/Database/DeleteBy";
+import { OnDelete } from "../Types/Database/Hooks";
 import Model, {
   WorkspaceMiscData,
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
@@ -14,6 +17,69 @@ import logger from "../Utils/Logger";
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * Disconnecting a WORKSPACE disconnects every user link inside it.
+   *
+   * The dashboard's "Uninstall OneUptime from Slack / Microsoft Teams" button
+   * deletes this row through the generic CRUD path, and nothing else about
+   * the workspace survives that in a usable state: the user auth tokens were
+   * minted against this workspace's OAuth app, and the UserSlack /
+   * UserMicrosoftTeams notification methods are pointers at those links that
+   * WorkspaceUserNotificationService will deterministically refuse to send
+   * through once this row is gone ("This project is not connected to ...").
+   *
+   * Left behind, those verified-looking methods are worse than dead: the
+   * on-call fallback selects them into its zero-cost tier and stops looking,
+   * and the readiness surface keeps reporting the responder reachable. So the
+   * user tokens are deleted THROUGH THEIR SERVICE here, whose own
+   * onBeforeDelete cascades to the notification methods and their rules -
+   * returning every affected responder to the "no rule" state the
+   * verified-method fallback is built to rescue. This mirrors what the
+   * Slack-side app_uninstall webhook already did; the webhook remains for
+   * uninstalls initiated inside Slack, where this hook never fires.
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    const itemsToDelete: Array<Model> = await this.findBy({
+      query: deleteBy.query,
+      select: {
+        _id: true,
+        projectId: true,
+        workspaceType: true,
+      },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const item of itemsToDelete) {
+      if (!item.projectId || !item.workspaceType) {
+        continue;
+      }
+
+      await WorkspaceUserAuthTokenService.deleteBy({
+        query: {
+          projectId: item.projectId,
+          workspaceType: item.workspaceType,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    return {
+      deleteBy,
+      carryForward: null,
+    };
   }
 
   @CaptureSpan()

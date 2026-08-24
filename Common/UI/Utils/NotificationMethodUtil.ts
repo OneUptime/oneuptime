@@ -7,6 +7,8 @@ import UserNotificationRule from "../../Models/DatabaseModels/UserNotificationRu
 import UserPush from "../../Models/DatabaseModels/UserPush";
 import UserSMS from "../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../Models/DatabaseModels/UserTelegram";
+import UserSlack from "../../Models/DatabaseModels/UserSlack";
+import UserMicrosoftTeams from "../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserWebhook from "../../Models/DatabaseModels/UserWebhook";
 import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 import ObjectID from "../../Types/ObjectID";
@@ -37,6 +39,8 @@ export interface NotificationMethodModels {
   userPush: Array<UserPush>;
   userWhatsApps: Array<UserWhatsApp>;
   userTelegrams: Array<UserTelegram>;
+  userSlacks: Array<UserSlack>;
+  userMicrosoftTeamsAccounts: Array<UserMicrosoftTeams>;
   userWebhooks: Array<UserWebhook>;
 }
 
@@ -73,6 +77,16 @@ const NOTIFICATION_METHOD_RELATIONS: Array<NotificationMethodRelation> = [
     relationName: "userTelegram",
     title: "Telegram",
     columns: ["telegramUserHandle", "telegramChatId"],
+  },
+  {
+    relationName: "userSlack",
+    title: "Slack",
+    columns: ["slackUserName", "slackUserId"],
+  },
+  {
+    relationName: "userMicrosoftTeams",
+    title: "Microsoft Teams",
+    columns: ["microsoftTeamsUserName", "microsoftTeamsUserId"],
   },
   /*
    * Only `name` is read here. A webhook URL is a bearer credential for
@@ -185,6 +199,24 @@ export default class NotificationMethodUtil {
       );
     }
 
+    if (model instanceof UserSlack) {
+      return (
+        "Slack: " +
+        (NotificationMethodUtil.readColumn(model, "slackUserName") ||
+          NotificationMethodUtil.readColumn(model, "slackUserId") ||
+          "Unknown Account")
+      );
+    }
+
+    if (model instanceof UserMicrosoftTeams) {
+      return (
+        "Microsoft Teams: " +
+        (NotificationMethodUtil.readColumn(model, "microsoftTeamsUserName") ||
+          NotificationMethodUtil.readColumn(model, "microsoftTeamsUserId") ||
+          "Unknown Account")
+      );
+    }
+
     const identifier: string =
       NotificationMethodUtil.readColumn(model, "phone") ||
       NotificationMethodUtil.readColumn(model, "email") ||
@@ -207,7 +239,7 @@ export default class NotificationMethodUtil {
 
   /*
    * Maps the id chosen in the dropdown back onto the rule being created. The
-   * dropdown is single-select, so at most one of the seven foreign keys is set.
+   * dropdown is single-select, so at most one of the nine foreign keys is set.
    * An id that matches nothing leaves the rule untouched, and the server then
    * rejects the create as having no notification method.
    */
@@ -258,6 +290,12 @@ export default class NotificationMethodUtil {
     assignById(models.userTelegrams, (id: ObjectID) => {
       rule.userTelegramId = id;
     });
+    assignById(models.userSlacks, (id: ObjectID) => {
+      rule.userSlackId = id;
+    });
+    assignById(models.userMicrosoftTeamsAccounts, (id: ObjectID) => {
+      rule.userMicrosoftTeamsId = id;
+    });
     assignById(models.userWebhooks, (id: ObjectID) => {
       rule.userWebhookId = id;
     });
@@ -279,6 +317,8 @@ export default class NotificationMethodUtil {
       ...models.userPush,
       ...models.userWhatsApps,
       ...models.userTelegrams,
+      ...models.userSlacks,
+      ...models.userMicrosoftTeamsAccounts,
       ...models.userWebhooks,
     ];
   }

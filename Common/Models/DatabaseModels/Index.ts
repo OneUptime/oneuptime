@@ -278,6 +278,8 @@ import UserEmail from "./UserEmail";
 import UserPush from "./UserPush";
 import UserWhatsApp from "./UserWhatsApp";
 import UserTelegram from "./UserTelegram";
+import UserSlack from "./UserSlack";
+import UserMicrosoftTeams from "./UserMicrosoftTeams";
 import UserWebhook from "./UserWebhook";
 // User Notification Rules
 import UserNotificationRule from "./UserNotificationRule";
@@ -702,6 +704,8 @@ const AllModelTypes: Array<{
   UserPush,
   UserWhatsApp,
   UserTelegram,
+  UserSlack,
+  UserMicrosoftTeams,
   UserWebhook,
   UserIncomingCallNumber,
 

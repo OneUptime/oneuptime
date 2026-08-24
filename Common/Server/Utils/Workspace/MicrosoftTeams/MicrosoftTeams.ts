@@ -76,6 +76,7 @@ import {
   TeamsChannelAccount,
   TeamsPagedMembersResult,
   TurnContext,
+  ConversationParameters,
   ConversationReference,
   MessageFactory,
   ConfigurationBotFrameworkAuthenticationOptions,
@@ -900,6 +901,163 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         "Content-Type": "application/json",
       },
     });
+  }
+
+  /*
+   * Sends a 1:1 message to a Teams user as the OneUptime bot, addressed by the
+   * user's Microsoft Entra object id (which is what WorkspaceUserAuthToken
+   * stores as workspaceUserId).
+   *
+   * This cannot go through sendDirectMessageToUser above: that method posts to
+   * Graph's /chats/{chatId}/messages, which needs an existing chat id and a
+   * delegated token. A personal chat between the bot and the user may not
+   * exist yet, so this uses the Bot Framework's createConversation, which
+   * resolves (or creates) the 1:1 conversation from the member's Entra id -
+   * provided the OneUptime app is installed for that user. When the personal
+   * chat was already captured from a bot activity, it is reused instead, which
+   * also preserves the regional serviceUrl captured with it.
+   */
+  @CaptureSpan()
+  public static async sendDirectMessageToUserAsBot(data: {
+    projectId: ObjectID;
+    workspaceUserId: string;
+    messageBlocks: Array<WorkspaceMessageBlock>;
+  }): Promise<void> {
+    const adaptiveCard: JSONObject = this.buildAdaptiveCardFromMessageBlocks({
+      messageBlocks: data.messageBlocks,
+    });
+
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
+
+    if (!projectAuth || !projectAuth.miscData) {
+      throw new BadDataException(
+        "Microsoft Teams integration not found for this project",
+      );
+    }
+
+    const miscData: MicrosoftTeamsMiscData =
+      projectAuth.miscData as MicrosoftTeamsMiscData;
+
+    const tenantId: string | undefined = projectAuth.workspaceProjectId;
+
+    if (!tenantId) {
+      throw new BadDataException(
+        "Tenant ID not found in Microsoft Teams integration",
+      );
+    }
+
+    if (!MicrosoftTeamsAppClientId) {
+      throw new BadDataException(
+        "Microsoft Teams App Client ID not configured",
+      );
+    }
+
+    /*
+     * Prefer a personal chat that was already captured from a bot activity:
+     * it is known-deliverable and carries the regional serviceUrl.
+     */
+    const capturedPersonalChat: MicrosoftTeamsChat | undefined = Object.values(
+      miscData.availableChats || {},
+    ).find((chat: MicrosoftTeamsChat) => {
+      return (
+        chat.chatType === "personal" &&
+        (chat.memberAadObjectIds || []).includes(data.workspaceUserId)
+      );
+    });
+
+    if (capturedPersonalChat) {
+      await this.sendAdaptiveCardToChat({
+        chatId: capturedPersonalChat.id,
+        projectId: data.projectId,
+        adaptiveCard: adaptiveCard,
+      });
+      return;
+    }
+
+    /*
+     * No captured personal chat - create (or resolve) the 1:1 conversation
+     * proactively. A regional serviceUrl captured from any prior activity is
+     * preferred; the commercial-cloud global endpoint is the fallback.
+     */
+    const serviceUrl: string =
+      Object.values(miscData.availableChats || {}).find(
+        (chat: MicrosoftTeamsChat) => {
+          return Boolean(chat.serviceUrl);
+        },
+      )?.serviceUrl ||
+      Object.values(miscData.installedTeams || {}).find(
+        (team: MicrosoftTeamsInstalledTeam) => {
+          return Boolean(team.serviceUrl);
+        },
+      )?.serviceUrl ||
+      "https://smba.trafficmanager.net/teams/";
+
+    const adapter: CloudAdapter = this.getBotAdapter();
+
+    const conversationParameters: ConversationParameters = {
+      isGroup: false,
+      // 28:<appId> is the Teams-side bot account id.
+      bot: {
+        id: `28:${MicrosoftTeamsAppClientId}`,
+        name: "OneUptime Bot",
+      },
+      // Teams accepts the member's Microsoft Entra object id here.
+      members: [
+        {
+          id: data.workspaceUserId,
+          name: "",
+        },
+      ],
+      tenantId: tenantId,
+      channelData: {
+        tenant: {
+          id: tenantId,
+        },
+      },
+    };
+
+    try {
+      await adapter.createConversationAsync(
+        MicrosoftTeamsAppClientId,
+        "msteams",
+        serviceUrl,
+        undefined as unknown as string,
+        conversationParameters,
+        async (context: TurnContext) => {
+          const message: Partial<Activity> = MessageFactory.attachment({
+            contentType: "application/vnd.microsoft.card.adaptive",
+            content: adaptiveCard,
+          });
+
+          await context.sendActivity(message);
+        },
+      );
+    } catch (error) {
+      logger.error(
+        "Error sending Microsoft Teams direct message via Bot Framework:",
+        {
+          projectId: data.projectId.toString(),
+        },
+      );
+      logger.error(error);
+
+      /*
+       * Microsoft's roster rejection is meaningless to the person being paged.
+       * For a 1:1 conversation it means the OneUptime app is not installed for
+       * this user, so say exactly that.
+       */
+      if (this.isBotNotInConversationRosterError(error)) {
+        throw new BadDataException(
+          "The OneUptime app is not installed for this Microsoft Teams user. Ask them to add the OneUptime app in Microsoft Teams (personal scope) so the bot can message them directly.",
+        );
+      }
+
+      throw error;
+    }
   }
 
   @CaptureSpan()
@@ -4154,6 +4312,18 @@ All monitoring checks are passing normally.`;
       if (data.serviceUrl && chat.serviceUrl !== data.serviceUrl) {
         return false; // stored serviceUrl is stale.
       }
+
+      /*
+       * Personal chats captured before member Entra ids were recorded cannot
+       * serve as direct-message targets — treat them as stale so the next
+       * activity on the chat backfills the roster.
+       */
+      if (
+        chat.chatType === "personal" &&
+        (chat.memberAadObjectIds || []).length === 0
+      ) {
+        return false;
+      }
     }
 
     return true;
@@ -4222,6 +4392,7 @@ All monitoring checks are passing normally.`;
         | undefined;
 
       let memberNames: Array<string> = [];
+      let memberAadObjectIds: Array<string> = [];
 
       try {
         const botId: string | undefined =
@@ -4243,12 +4414,27 @@ All monitoring checks are passing normally.`;
           continuationToken = page.continuationToken;
         } while (continuationToken);
 
-        memberNames = members
-          .filter((member: TeamsChannelAccount) => {
+        const humanMembers: Array<TeamsChannelAccount> = members.filter(
+          (member: TeamsChannelAccount) => {
             return member.id !== botId;
-          })
+          },
+        );
+
+        memberNames = humanMembers.map((member: TeamsChannelAccount) => {
+          return member.name || "";
+        });
+
+        /*
+         * The Entra object id is what maps a chat member back to the
+         * OneUptime user who connected that Teams account, so personal chats
+         * can serve as direct-message delivery targets.
+         */
+        memberAadObjectIds = humanMembers
           .map((member: TeamsChannelAccount) => {
-            return member.name || "";
+            return member.aadObjectId || "";
+          })
+          .filter((aadObjectId: string) => {
+            return Boolean(aadObjectId);
           });
       } catch (err) {
         logger.debug("Could not fetch chat members for chat name resolution");
@@ -4265,6 +4451,7 @@ All monitoring checks are passing normally.`;
         chatType: chatType,
         serviceUrl: activityServiceUrl,
         addedAt: OneUptimeDate.getCurrentDate().toISOString(),
+        memberAadObjectIds: memberAadObjectIds,
       };
 
       await this.saveChatToProjectAuthTokens({

@@ -3,6 +3,8 @@ import UserEmailMethods from "../../../../Components/NotificationMethods/Email";
 import UserPush from "../../../../Components/NotificationMethods/Push";
 import UserSMS from "../../../../Components/NotificationMethods/SMS";
 import UserTelegram from "../../../../Components/NotificationMethods/Telegram";
+import UserSlackMethods from "../../../../Components/NotificationMethods/Slack";
+import UserMicrosoftTeamsMethods from "../../../../Components/NotificationMethods/MicrosoftTeams";
 import UserWebhook from "../../../../Components/NotificationMethods/Webhook";
 import UserWhatsApp from "../../../../Components/NotificationMethods/WhatsApp";
 import PageComponentProps from "../../../PageComponentProps";
@@ -68,13 +70,15 @@ import React, {
  * emailed about it. If you are here to add a "verify on the user's behalf"
  * button, that button is the vulnerability this design exists to avoid.
  *
- * WHY FOUR CHANNELS AND NOT SEVEN. Push is a device token minted by a browser
+ * WHY FOUR CHANNELS AND NOT NINE. Push is a device token minted by a browser
  * or phone at registration — there is nothing to type. Telegram needs the
- * account holder to message the bot before a chat id exists. Webhook has no
- * verification concept at all, so an admin-created one would be live
- * immediately, which is exactly the silent redirect the rest of this design
- * rules out. All three are still LISTED and still removable, because a stale
- * device on somebody's leaving-day is a real administrative job.
+ * account holder to message the bot before a chat id exists. Slack and
+ * Microsoft Teams are pointers at the owner's own OAuth workspace link, which
+ * only the owner can establish. Webhook has no verification concept at all, so
+ * an admin-created one would be live immediately, which is exactly the silent
+ * redirect the rest of this design rules out. All five are still LISTED and
+ * still removable, because a stale device on somebody's leaving-day is a real
+ * administrative job.
  *
  * THE SELF CASE IS A DIFFERENT PAGE. A person looking at their own row gets the
  * ordinary self-serve method components — unmasked, with the verification flows
@@ -273,6 +277,15 @@ const UserViewNotificationMethods: FunctionComponent<
                   <UserCall />
                   <UserWhatsApp />
                   <UserTelegram />
+                </div>
+              ),
+            },
+            {
+              name: "Workspace Apps",
+              children: (
+                <div className="space-y-4">
+                  <UserSlackMethods />
+                  <UserMicrosoftTeamsMethods />
                 </div>
               ),
             },

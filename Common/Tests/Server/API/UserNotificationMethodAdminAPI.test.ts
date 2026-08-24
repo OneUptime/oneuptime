@@ -30,7 +30,7 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
  * methods".
  *
  * This router is the ONLY gate under these routes, and that is not a stylistic
- * observation. The seven notification method models are scoped to the person
+ * observation. The nine notification method models are scoped to the person
  * who owns the device — the essay at the top of UserEmail.ts is the record of
  * what happened the one time that scope was widened — so the service behind
  * these handlers does every read and write with `isRoot: true`, which means the
@@ -362,7 +362,7 @@ describe("the routes it registers", () => {
      * Extending BaseAPI to inherit `this.router` would register a whole model's
      * CRUD routes as a side effect — dead code that is shadowed by the real
      * registration until the day the mount order changes. There is no model to
-     * inherit here in any case: the seven method models stay owner-scoped and
+     * inherit here in any case: the nine method models stay owner-scoped and
      * this router deliberately never exposes them.
      */
     expect(UserNotificationMethodAdminAPI).toBe(mockRouter);

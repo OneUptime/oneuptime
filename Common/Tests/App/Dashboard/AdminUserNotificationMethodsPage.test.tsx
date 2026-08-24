@@ -33,7 +33,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * decision satisfied by the new answer.
  *
  * The old surface showed a masked, read-only list and a prefilled "please add
- * one yourself" email, because the seven notification method models are scoped
+ * one yourself" email, because the nine notification method models are scoped
  * to the person who owns the device: the columns behind them are the raw
  * address, the phone number, the webhook bearer url, the push device token and
  * the verification code, and an attempt to widen that scope so an admin could
@@ -44,7 +44,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * So the models are STILL owner-scoped, and this page talks to a narrow
  * server-side capability instead. What that buys, and what it must not:
  *
- *   - NO METHOD MODEL IS READ. Not by ModelAPI over UserEmail and its six
+ *   - NO METHOD MODEL IS READ. Not by ModelAPI over UserEmail and its eight
  *     siblings, and not through a nested relation select on a rule, which
  *     reaches the same columns through a table an administrator IS allowed to
  *     read. The assertion is about the REQUEST, because a component that asks
@@ -192,7 +192,7 @@ jest.mock("react-i18next", () => {
  * A stand-in ModelTable that records the model it was mounted over.
  *
  * It renders nothing on purpose. What this file needs from it is the single
- * fact that a table over UserEmail (or any of its six siblings) would be
+ * fact that a table over UserEmail (or any of its eight siblings) would be
  * visible here at all — the self-serve method components mount exactly those,
  * so "did the admin branch accidentally render the self-serve one?" is answered
  * by this list.
@@ -217,7 +217,9 @@ import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import UserCall from "../../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
+import UserMicrosoftTeams from "../../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserPush from "../../../Models/DatabaseModels/UserPush";
+import UserSlack from "../../../Models/DatabaseModels/UserSlack";
 import UserSMS from "../../../Models/DatabaseModels/UserSMS";
 import UserTelegram from "../../../Models/DatabaseModels/UserTelegram";
 import UserWebhook from "../../../Models/DatabaseModels/UserWebhook";
@@ -238,7 +240,7 @@ const PROJECT_ID: ObjectID = new ObjectID(PROJECT_ID_STRING);
 const SIGNED_IN_USER_ID: ObjectID = new ObjectID(SIGNED_IN_USER_ID_STRING);
 
 /*
- * The seven models only their owner may read. Asserted as a SET because which
+ * The nine models only their owner may read. Asserted as a SET because which
  * one an admin surface reaches for hardly matters — every one carries a raw
  * identifier and most carry a credential.
  */
@@ -249,6 +251,8 @@ const NOTIFICATION_METHOD_MODELS: Array<unknown> = [
   UserPush,
   UserWhatsApp,
   UserTelegram,
+  UserSlack,
+  UserMicrosoftTeams,
   UserWebhook,
 ];
 
@@ -486,7 +490,7 @@ beforeEach((): void => {
     }
 
     /*
-     * Anything else, INCLUDING the seven method models this page must never ask
+     * Anything else, INCLUDING the nine method models this page must never ask
      * for. A non-empty answer would make a leak look like a feature working, so
      * the fallback stays empty and the assertion that matters is about the
      * request rather than the response.
@@ -570,7 +574,7 @@ describe("the list", () => {
     );
 
     /*
-     * The assertion is about the REQUEST, not the render. The seven models are
+     * The assertion is about the REQUEST, not the render. The nine models are
      * scoped to their owner, so a read here would be refused — but a component
      * that asks is already wrong, and the refusal is not something this page
      * may rely on.
@@ -657,10 +661,11 @@ describe("adding a method on somebody's behalf", () => {
 
     /*
      * Push is a device token minted at registration — there is nothing to type.
-     * Telegram needs the account holder to message the bot first. Webhook has
-     * no verification at all, so an admin-created one would be live the instant
-     * it was written, which is exactly the silent redirect this design rules
-     * out.
+     * Telegram needs the account holder to message the bot first. Slack and
+     * Microsoft Teams are born from the account holder's own OAuth workspace
+     * link, which nobody can establish for them. Webhook has no verification
+     * at all, so an admin-created one would be live the instant it was
+     * written, which is exactly the silent redirect this design rules out.
      */
     const modalText: string = document.body.textContent || "";
 
@@ -674,7 +679,13 @@ describe("adding a method on somebody's behalf", () => {
       return option.textContent || "";
     });
 
-    for (const forbidden of ["Push", "Telegram", "Webhook"]) {
+    for (const forbidden of [
+      "Push",
+      "Telegram",
+      "Slack",
+      "Microsoft Teams",
+      "Webhook",
+    ]) {
       expect(optionLabels).not.toContain(forbidden);
     }
   });
