@@ -4,11 +4,9 @@ import path from "path";
 
 /*
  * ---------------------------------------------------------------------------
- * The browser half of meeting_booked.
+ * meeting_booked, the browser record of a booked meeting.
  *
- * A booking is recorded server side, by the verified Cal webhook — these
- * events are analytics evidence of the same moment, and the pages must stay
- * honest about that in two ways:
+ * The pages must stay honest about it in two ways:
  *
  *   - Cal's bookingSuccessful detail carries `data`, which holds the
  *     attendee's name and email. Both embeds used to forward the whole object

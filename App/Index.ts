@@ -12,7 +12,6 @@ import WorkflowRoutes from "./FeatureSet/Workflow/Index";
 import RunbookRoutes from "./FeatureSet/Runbook/Index";
 import AppMetricsAPI from "./API/Metrics";
 import AdminHealthAPI from "./API/AdminHealth";
-import CalWebhookAPI from "./API/CalWebhook";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import {
@@ -149,13 +148,6 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     // Admin OneUptime Health overview (master-admin only).
     expressApp.use("/api/admin/health", AdminHealthAPI);
-
-    /*
-     * Cal.com posts booking webhooks here. The route authenticates itself with
-     * an HMAC over the raw request body, so it is mounted before the feature
-     * sets that expect an authenticated OneUptime session.
-     */
-    expressApp.use("/api", CalWebhookAPI);
 
     // Initialize feature sets
     await IdentityRoutes.init();

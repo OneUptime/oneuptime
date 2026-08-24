@@ -800,9 +800,8 @@
 
           Rather than invent a second conversion for it, the licence
           conversation is the same conversation as the architecture assessment —
-          so the page books it, through the same Cal embed and the same verified
-          webhook the demo page uses. One conversion type, one flow, one thing to
-          keep working.
+          so the page books it, through the same Cal embed the demo page uses.
+          One conversion type, one flow, one thing to keep working.
 
           Full width, below the grid rather than inside it: Cal's month view
           needs the room to put the calendar and the time slots side by side, and
@@ -875,18 +874,10 @@
     (function (C, A, L) { let p = function (a, ar) { a.q.push(ar); }; let d = C.document; C.Cal = C.Cal || function () { let cal = C.Cal; let ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === L) { const api = function () { p(api, arguments); }; const namespace = ar[1]; api.q = api.q || []; typeof namespace === "string" ? (cal.ns[namespace] = api) && p(api, ar) : p(cal, ar); return; } p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "init");
     Cal("init", { origin: "https://cal.com" });
 
-    /*
-     * Attribution into the booking metadata, read back by the Cal webhook that
-     * writes the MeetingBooked row. See the same block in demo.ejs for why this
-     * exists — without it a booking is recorded attributable to nothing.
-     */
     Cal("inline", {
       elementOrSelector: "#my-cal-inline-self-hosted",
       calLink: "oneuptimehq/demo",
-      layout: "month_view",
-      config: typeof window.oneUptimeCalAttributionMetadata === 'function'
-        ? window.oneUptimeCalAttributionMetadata('architecture_assessment')
-        : {}
+      layout: "month_view"
     });
 
     Cal("ui", { "styles": { "branding": { "brandColor": "#059669" } }, "hideEventTypeDetails": false, "layout": "month_view" });
@@ -898,8 +889,7 @@
 
         /*
          * The canonical meeting_booked, with a booking_kind that says this one
-         * came from the self-hosted page. The commercial record is still the
-         * ledger row the verified webhook writes; this is the browser mirror.
+         * came from the self-hosted page.
          *
          * e.detail.data carries the attendee's name and email and is
          * deliberately not forwarded to any analytics destination.

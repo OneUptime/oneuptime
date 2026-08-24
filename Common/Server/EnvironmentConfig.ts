@@ -386,16 +386,9 @@ export const GoogleTagManagerEnabled: boolean =
   IsBillingEnabled && process.env["GOOGLE_TAG_MANAGER_ENABLED"] !== "false";
 
 /*
- * Shared secret Cal.com signs booking webhooks with (App/API/CalWebhook.ts).
- * Server-only — must never be added to FRONTEND_ENV_ALLOW_LIST. Empty means
- * the webhook endpoint is disabled and answers 503.
- */
-export const CalWebhookSecret: string = process.env["CAL_WEBHOOK_SECRET"] || "";
-
-/*
  * Outbound marketing conversion webhooks.
  *
- * OneUptime does not store conversions. Signups, booked meetings and plan
+ * OneUptime does not store conversions. Signups and plan
  * upgrades/downgrades are POSTed to this endpoint as they happen and kept
  * nowhere afterwards, so an unset URL means those moments are simply not
  * measured — nothing accumulates waiting for one to be configured.

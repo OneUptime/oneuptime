@@ -13,7 +13,7 @@ import { JSONObject } from "../JSON";
  *
  *   - DEDUPLICATION. `eventId` is stable for a given real-world occurrence, so
  *     a redelivery carries the id the first attempt did. Retries are expected
- *     (the queue retries, and Cal retries into us), so a receiver that keys on
+ *     (the delivery queue retries), so a receiver that keys on
  *     anything else will double-count.
  *   - ORDERING. Events are delivered per-occurrence with no sequence number.
  *     A signup and a plan change seconds apart may arrive either way round;
@@ -26,7 +26,6 @@ import { JSONObject } from "../JSON";
  */
 export enum MarketingEventType {
   SignUp = "sign_up",
-  MeetingBooked = "meeting_booked",
   /*
    * A project's first paid subscription, created together with the project.
    *
@@ -45,53 +44,19 @@ export enum MarketingEventType {
    * whose email is typed in by a human rather than captured from a session —
    * which is exactly what makes it joinable: set EnterpriseLicense.email to
    * the address the customer booked with and this event shares an identity
-   * with the meeting_booked that preceded it, months earlier.
+   * with whatever else that address has done, months earlier.
    */
   EnterpriseLicenseIssued = "enterprise_license_issued",
 }
-
-/*
- * Which conversation a booked meeting actually is.
- *
- * All three Cal embeds book the same event type (oneuptimehq/demo), so without
- * this the webhook cannot tell a free user's support call from a net-new
- * enterprise demo — they arrive as one undifferentiated `meeting_booked`, and
- * anything bidding on or reporting against that count values them identically.
- *
- * The browser event has carried this since the embeds were instrumented; the
- * webhook did not, which meant the authoritative record was the one that could
- * not make the distinction.
- *
- * `Unknown` is a real state, not a failure: a booking made through a Cal link
- * that was not one of the instrumented embeds genuinely has no kind, and is
- * still a booking worth emitting.
- */
-export enum MeetingBookingKind {
-  EnterpriseDemo = "enterprise_demo",
-  SupportCall = "support_call",
-  ArchitectureAssessment = "architecture_assessment",
-  Unknown = "unknown",
-}
-
-/*
- * The Cal booking-metadata key the embeds write and the webhook reads. Shared
- * so a rename cannot land on one side only - the failure mode there is silent,
- * because a booking with no recognised kind still succeeds.
- */
-export const BOOKING_KIND_METADATA_KEY: string = "ou_booking_kind";
-
-export const MeetingBookingKinds: Array<string> =
-  Object.values(MeetingBookingKind);
 
 export const MARKETING_EVENT_SCHEMA_VERSION: number = 1;
 
 /*
  * The campaign the converting visitor carried.
  *
- * Copied from the User or Project row for a signup or a plan change, and read
- * out of Cal booking metadata for a booked meeting. Every field is optional:
- * a conversion with no attribution at all is still a conversion, and is still
- * emitted.
+ * Copied from the User or Project row the conversion happened on. Every field
+ * is optional: a conversion with no attribution at all is still a conversion,
+ * and is still emitted.
  */
 export interface MarketingEventAttribution extends JSONObject {
   utmSource?: string | undefined;
@@ -110,17 +75,16 @@ export interface MarketingEvent extends JSONObject {
    * Stable per real-world occurrence, and the receiver's deduplication key:
    *
    *   sign_up:{userId}
-   *   meeting_booked:{calBookingUid}
    *   subscription_started:{projectId}
    *   subscription_upgraded:{projectId}:{occurredAt}
    *   subscription_downgraded:{projectId}:{occurredAt}
    *   enterprise_license_issued:{enterpriseLicenseId}
    *
-   * Four of these are naturally unique — a user signs up once, a booking has
-   * one uid, a project has one first subscription, a licence row is issued
-   * once — so Cal retrying a delivery or the queue retrying a job cannot
-   * produce a second conversion. A plan change can legitimately recur for one
-   * project, so its id carries the instant it happened.
+   * Three of these are naturally unique — a user signs up once, a project has
+   * one first subscription, a licence row is issued once — so the queue
+   * retrying a job cannot produce a second conversion. A plan change can
+   * legitimately recur for one project, so its id carries the instant it
+   * happened.
    */
   eventId: string;
   eventType: MarketingEventType;

@@ -11,12 +11,12 @@ import { JSONObject, JSONValue } from "../../Types/JSON";
 
 /*
  * Sanitizers for attribution submitted by unauthenticated callers — the signup
- * form, the Cal.com booking webhook, and the enterprise licence request form.
+ * form and the enterprise licence request form.
  *
- * Everything here is a whitelist, never a denylist. Cal booking metadata and
- * form bodies are free-form caller content (names, notes, answers to booking
- * questions), and only the keys named in Common/Types/Marketing/Attribution.ts
- * may be copied into a row that is later forwarded to an ad platform.
+ * Everything here is a whitelist, never a denylist. Form bodies are free-form
+ * caller content (names, notes, free-text answers), and only the keys named in
+ * Common/Types/Marketing/Attribution.ts may be copied into a row that is later
+ * forwarded to an ad platform.
  *
  * This file also owns email normalisation and hashing. Meta and Reddit each
  * used to carry a private copy of the hash, and MarketingConversion.emailHash
@@ -101,10 +101,10 @@ export default class Attribution {
   /*
    * UTM values out of an arbitrary object, accepting either spelling.
    *
-   * A URL and Cal booking metadata carry `utm_source`; a JSON body posted by
-   * the signup page carries `utmSource`. Both arrive at server doors that
-   * write the same columns, so both are read here rather than making each
-   * caller remember which shape it is holding. camelCase wins when a caller
+   * A URL carries `utm_source`; a JSON body posted by the signup page carries
+   * `utmSource`. Both arrive at server doors that write the same columns, so
+   * both are read here rather than making each caller remember which shape it
+   * is holding. camelCase wins when a caller
    * somehow sends both, because that is the spelling the browser writes
    * deliberately and the snake_case one is the raw URL echo.
    */
@@ -180,8 +180,8 @@ export default class Attribution {
 
   /*
    * SHA-256 of the normalised email, hex encoded — the identifier every ad
-   * platform's enhanced matching expects, and the key the conversion ledger
-   * joins a booked meeting to the signup it later produced.
+   * platform's enhanced matching expects, and the key a receiver joins one
+   * person's conversions on.
    */
   public static hashEmail(email: string | undefined): string | null {
     const normalized: string | null = this.normalizeEmail(email);

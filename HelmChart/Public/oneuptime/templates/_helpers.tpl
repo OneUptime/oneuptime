@@ -196,8 +196,6 @@ its userlist at startup.
   value: {{ $.Values.analytics.key }}
 - name: ANALYTICS_HOST
   value: {{ $.Values.analytics.host }}
-- name: CAL_WEBHOOK_SECRET
-  value: {{ default "" ((($.Values.marketing).cal).webhookSecret) | quote }}
 - name: MARKETING_WEBHOOK_URL
   value: {{ default "" ((($.Values.marketing).webhook).url) | quote }}
 - name: MARKETING_WEBHOOK_SECRET

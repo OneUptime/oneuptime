@@ -74,8 +74,8 @@ describe("MarketingEventUtil", () => {
      */
     test("carries the address and a matching SHA-256", () => {
       const event: MarketingEvent = MarketingEventUtil.buildEvent({
-        eventType: MarketingEventType.MeetingBooked,
-        eventId: "meeting_booked:b1",
+        eventType: MarketingEventType.SignUp,
+        eventId: "sign_up:u2",
         occurredAt: new Date(),
         email: "Buyer@Example.com",
       });
