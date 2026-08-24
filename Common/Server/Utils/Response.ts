@@ -25,7 +25,7 @@ import MimeType from "../../Types/File/MimeType";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Route from "../../Types/API/Route";
 import CaptureSpan from "./Telemetry/CaptureSpan";
-import { IsBillingEnabled } from "../EnvironmentConfig";
+import { GoogleTagManagerEnabled } from "../EnvironmentConfig";
 
 /*
  * Raster image types, which is to say the types that cannot carry script and
@@ -239,7 +239,7 @@ export default class Response {
      * already use; passing the flag explicitly still wins.
      */
     oneUptimeResponse.render(path, {
-      enableGoogleTagManager: IsBillingEnabled,
+      enableGoogleTagManager: GoogleTagManagerEnabled,
       ...vars,
     });
   }

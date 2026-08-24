@@ -43,6 +43,7 @@ describe("Response.render", () => {
   afterEach(() => {
     jest.resetModules();
     delete process.env["BILLING_ENABLED"];
+    delete process.env["GOOGLE_TAG_MANAGER_ENABLED"];
   });
 
   type LoadResponse = () => Promise<{
@@ -94,6 +95,58 @@ describe("Response.render", () => {
 
   test("leaves analytics on for the hosted product", async () => {
     process.env["BILLING_ENABLED"] = "true";
+
+    (await loadResponse()).render(
+      {} as ExpressRequest,
+      response,
+      "/views/ViewMessage.ejs",
+      {},
+    );
+
+    expect(rendered[0]?.variables["enableGoogleTagManager"]).toBe(true);
+  });
+
+  test("turns analytics off when the tag is explicitly disabled", async () => {
+    /*
+     * CI forces BILLING_ENABLED=true to exercise the paid signup flow, and
+     * those scripted registrations used to arrive in the production container
+     * as real conversions. This is the switch that keeps them out.
+     */
+    process.env["BILLING_ENABLED"] = "true";
+    process.env["GOOGLE_TAG_MANAGER_ENABLED"] = "false";
+
+    (await loadResponse()).render(
+      {} as ExpressRequest,
+      response,
+      "/views/ViewMessage.ejs",
+      {},
+    );
+
+    expect(rendered[0]?.variables["enableGoogleTagManager"]).toBe(false);
+  });
+
+  test("the tag switch cannot turn analytics on for a self-hosted install", async () => {
+    /*
+     * Billing stays the necessary condition. Somebody setting the new variable
+     * on a self-hosted deployment must not thereby start loading OneUptime's
+     * container inside their network.
+     */
+    process.env["BILLING_ENABLED"] = "false";
+    process.env["GOOGLE_TAG_MANAGER_ENABLED"] = "true";
+
+    (await loadResponse()).render(
+      {} as ExpressRequest,
+      response,
+      "/views/ViewMessage.ejs",
+      {},
+    );
+
+    expect(rendered[0]?.variables["enableGoogleTagManager"]).toBe(false);
+  });
+
+  test("an unset tag switch leaves the hosted product measured", async () => {
+    process.env["BILLING_ENABLED"] = "true";
+    delete process.env["GOOGLE_TAG_MANAGER_ENABLED"];
 
     (await loadResponse()).render(
       {} as ExpressRequest,

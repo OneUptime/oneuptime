@@ -1,4 +1,4 @@
-import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import { GoogleTagManagerEnabled } from "Common/Server/EnvironmentConfig";
 import { ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import DataTypeUtil, { DataTypeDocumentation } from "../Utils/DataTypes";
@@ -25,7 +25,7 @@ export default class ServiceHandler {
       resources: Resources,
       dataTypes: DataTypes,
       pageTitle: ctx.t("pages.introduction.metaTitle"),
-      enableGoogleTagManager: IsBillingEnabled,
+      enableGoogleTagManager: GoogleTagManagerEnabled,
       pageDescription: ctx.t("pages.introduction.metaDescription"),
       pageData: pageData,
       lang: ctx.lang,

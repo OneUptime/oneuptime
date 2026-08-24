@@ -1,0 +1,106 @@
+# GOOGLE_TAG_MANAGER_ENABLED decides whether a deployment loads OneUptime's
+# Google Tag Manager container and reports conversions into it.
+#
+# It exists because BILLING_ENABLED was the only gate, and CI forces billing on
+# to exercise the paid signup flow — so every scripted end-to-end registration
+# arrived in the production container as a real sign_up conversion. GA4 data
+# filters are not retroactive, so that could not be cleaned up afterwards.
+#
+# The default has to be ON, or turning the chart's billing on would silently
+# stop measuring the hosted product. That default is the trap this suite
+# guards: `default true .Values...` is wrong in a Go template, because false is
+# empty and would fall back to the default — an operator who explicitly set
+# `enabled: false` would get the tag switched back on, with nothing to show for
+# it. Unset and false must be distinguishable.
+suite: google tag manager enabled
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: defaults to on when the operator never set it
+    templates:
+      - templates/app.yaml
+    # app.yaml renders both a Service and a Deployment under the same name,
+    # so select the Deployment by kind.
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_TAG_MANAGER_ENABLED
+            value: "true"
+
+  - it: stays on when the analytics block exists but the toggle does not
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      analytics:
+        host: https://eu.posthog.com
+        key: some-key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_TAG_MANAGER_ENABLED
+            value: "true"
+
+  # The assertion that a `default true` idiom would fail.
+  - it: turns off when the operator explicitly disables it
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      analytics:
+        googleTagManager:
+          enabled: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_TAG_MANAGER_ENABLED
+            value: "false"
+
+  - it: stays on when the operator explicitly enables it
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      analytics:
+        googleTagManager:
+          enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_TAG_MANAGER_ENABLED
+            value: "true"
+
+  # Emitted as a string, so the container reads the same "false" the app's
+  # `process.env["GOOGLE_TAG_MANAGER_ENABLED"] !== "false"` check compares to.
+  - it: emits the value as a quoted string, never a YAML boolean
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      analytics:
+        googleTagManager:
+          enabled: false
+    asserts:
+      - isKind:
+          of: Deployment
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_TAG_MANAGER_ENABLED
+            value: "false"

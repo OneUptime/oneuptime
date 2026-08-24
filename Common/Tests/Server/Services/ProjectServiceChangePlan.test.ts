@@ -7,6 +7,9 @@ import SubscriptionStatus from "../../../Types/Billing/SubscriptionStatus";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import logger from "../../../Server/Utils/Logger";
+import MarketingEventUtil from "../../../Server/Utils/Marketing/MarketingEventUtil";
+import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
+import { MarketingEvent } from "../../../Types/Marketing/MarketingEvent";
 import { describe, expect, it, afterEach } from "@jest/globals";
 
 /*
@@ -645,6 +648,141 @@ describe("ProjectService.changePlan", () => {
         paymentProviderSubscriptionStatus: SubscriptionStatus.Trialing,
         paymentProviderMeteredSubscriptionStatus: SubscriptionStatus.Trialing,
       });
+    });
+  });
+
+  /*
+   * A first subscription is now its own conversion (subscription_started,
+   * raised from the create path). The two must not bleed into each other:
+   * net-new revenue and expansion revenue are different numbers, and once one
+   * is reported as the other nothing downstream can separate them again.
+   *
+   * This half of the pair guards the direction it moves in: a genuine tier
+   * movement out of an existing plan is still an upgrade, and must not start
+   * arriving as a first subscription.
+   */
+  describe("the conversion a real upgrade emits", () => {
+    const OLD_PLAN_ID: string = "price_monthly_growth";
+
+    it("should emit subscription_upgraded, and not subscription_started", async () => {
+      setup({
+        project: fakeProject({
+          paymentProviderPlanId: OLD_PLAN_ID,
+          createdOwnerEmail: "owner@example.com",
+        }),
+      });
+
+      /*
+       * Direction is decided by plan ORDER, so the two plans have to be told
+       * apart: Growth at 2, Scale at 3.
+       */
+      (
+        SubscriptionPlan.getSubscriptionPlanById as unknown as jest.SpyInstance
+      ).mockImplementation((planId: string) => {
+        if (planId === OLD_PLAN_ID) {
+          return new SubscriptionPlan(
+            OLD_PLAN_ID,
+            "price_yearly_growth",
+            "Growth",
+            49,
+            45,
+            2,
+            14,
+          );
+        }
+
+        return new SubscriptionPlan(
+          NEW_PLAN_ID,
+          "price_yearly_scale",
+          "Scale",
+          99,
+          84,
+          3,
+          0,
+        );
+      });
+
+      jest.spyOn(ProductAnalytics, "capture").mockReturnValue(undefined);
+
+      const emitInBackground: jest.SpyInstance = jest
+        .spyOn(MarketingEventUtil, "emitInBackground")
+        .mockReturnValue(undefined);
+
+      await ProjectService.changePlan({
+        projectId: PROJECT_ID,
+        paymentProviderPlanId: NEW_PLAN_ID,
+      });
+
+      const emittedTypes: Array<string> = emitInBackground.mock.calls.map(
+        (call: Array<unknown>) => {
+          return (call[0] as MarketingEvent).eventType as string;
+        },
+      );
+
+      expect(emittedTypes).toEqual(["subscription_upgraded"]);
+      expect(emittedTypes).not.toContain("subscription_started");
+    });
+
+    it("should keep the instant in the upgrade's event id, unlike a first subscription", async () => {
+      /*
+       * A project can upgrade, downgrade and upgrade again, so there is no
+       * naturally unique key here and the instant is what separates one change
+       * from the next. subscription_started is the opposite case - it has no
+       * next one, so it carries no timestamp - and the ids must not converge.
+       */
+      setup({
+        project: fakeProject({
+          paymentProviderPlanId: OLD_PLAN_ID,
+          createdOwnerEmail: "owner@example.com",
+        }),
+      });
+
+      (
+        SubscriptionPlan.getSubscriptionPlanById as unknown as jest.SpyInstance
+      ).mockImplementation((planId: string) => {
+        if (planId === OLD_PLAN_ID) {
+          return new SubscriptionPlan(
+            OLD_PLAN_ID,
+            "price_yearly_growth",
+            "Growth",
+            49,
+            45,
+            2,
+            14,
+          );
+        }
+
+        return new SubscriptionPlan(
+          NEW_PLAN_ID,
+          "price_yearly_scale",
+          "Scale",
+          99,
+          84,
+          3,
+          0,
+        );
+      });
+
+      jest.spyOn(ProductAnalytics, "capture").mockReturnValue(undefined);
+
+      const emitInBackground: jest.SpyInstance = jest
+        .spyOn(MarketingEventUtil, "emitInBackground")
+        .mockReturnValue(undefined);
+
+      await ProjectService.changePlan({
+        projectId: PROJECT_ID,
+        paymentProviderPlanId: NEW_PLAN_ID,
+      });
+
+      const event: MarketingEvent = emitInBackground.mock
+        .calls[0]![0] as MarketingEvent;
+
+      expect(event.eventId).toBe(
+        `subscription_upgraded:${PROJECT_ID.toString()}:${event.occurredAt}`,
+      );
+      expect(event.eventId).not.toBe(
+        `subscription_started:${PROJECT_ID.toString()}`,
+      );
     });
   });
 });

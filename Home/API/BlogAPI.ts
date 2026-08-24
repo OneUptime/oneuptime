@@ -11,7 +11,7 @@ import Express, {
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import Route from "Common/Types/API/Route";
-import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import { GoogleTagManagerEnabled } from "Common/Server/EnvironmentConfig";
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -55,7 +55,7 @@ app.get(
         blackLogo: false,
         requestDemoCta: false,
         blogPost: blogPost,
-        enableGoogleTagManager: IsBillingEnabled,
+        enableGoogleTagManager: GoogleTagManagerEnabled,
       });
     } catch (e) {
       logger.error(e);
@@ -225,7 +225,7 @@ app.get(
         totalPages: totalPages,
         totalPosts: totalPosts,
         basePath: `/blog/tag/${tagSlug}`,
-        enableGoogleTagManager: IsBillingEnabled,
+        enableGoogleTagManager: GoogleTagManagerEnabled,
       });
     } catch (e) {
       logger.error(e);
@@ -287,7 +287,7 @@ app.get(
         totalPosts: totalPosts,
         basePath: `/blog`,
         allTags: allTags,
-        enableGoogleTagManager: IsBillingEnabled,
+        enableGoogleTagManager: GoogleTagManagerEnabled,
         seo: {
           fullCanonicalUrl: "https://oneuptime.com/blog",
         },

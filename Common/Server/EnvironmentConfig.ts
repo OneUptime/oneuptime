@@ -369,6 +369,23 @@ export const AnalyticsKey: string = process.env["ANALYTICS_KEY"] || "";
 export const AnalyticsHost: string = process.env["ANALYTICS_HOST"] || "";
 
 /*
+ * Whether this deployment loads the Google Tag Manager container and pushes
+ * marketing conversions into it.
+ *
+ * Billing being enabled is necessary — a self-hosted install must never load
+ * googletagmanager.com — but it is not sufficient. CI runs the SaaS end-to-end
+ * suite with BILLING_ENABLED forced to true, and those scripted registrations
+ * fire a real `sign_up` into the production container: the key-events trigger
+ * matches on the event name alone, with no hostname condition, and GA4 data
+ * filters do not apply retroactively. This is the second condition, so an
+ * environment can keep billing on and still stay out of the container.
+ *
+ * Defaults to on, so the hosted product needs no deploy change.
+ */
+export const GoogleTagManagerEnabled: boolean =
+  IsBillingEnabled && process.env["GOOGLE_TAG_MANAGER_ENABLED"] !== "false";
+
+/*
  * Shared secret Cal.com signs booking webhooks with (App/API/CalWebhook.ts).
  * Server-only — must never be added to FRONTEND_ENV_ALLOW_LIST. Empty means
  * the webhook endpoint is disabled and answers 503.
