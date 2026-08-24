@@ -65,7 +65,12 @@ export interface ComponentProps {
   snapshotWindow: InBetween<Date> | null;
   // Shared with the page's own preview cards (may be undefined — no window).
   snapshotWindowAlert?: ReactElement | undefined;
-  eventNoun: "incident" | "alert";
+  /*
+   * Noun the tab copy hangs on ("Logs in this incident's telemetry
+   * scope…"). "view" is what window-scoped hosts (the investigation
+   * drawer) pass.
+   */
+  eventNoun: "incident" | "alert" | "view";
   /*
    * The page's existing single-signal preview block, passed through
    * verbatim so the default tab has zero behavior change.

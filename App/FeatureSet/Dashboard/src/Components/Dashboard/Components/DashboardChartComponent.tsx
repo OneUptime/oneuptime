@@ -28,6 +28,7 @@ import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 import ExplorerLink from "../../Metrics/Utils/ExplorerLink";
 import { isPublicDashboard } from "../Utils/PublicDashboardContext";
+import InvestigationDrawer from "../../Telemetry/InvestigationDrawer";
 import useEventTimeReferenceLines, {
   EventTimeReferenceLines,
 } from "../../Metrics/Utils/UseEventTimeReferenceLines";
@@ -128,6 +129,10 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
    * statement about what the user wants to see everywhere.
    */
   const [zoomWindow, setZoomWindow] = useState<InBetween<Date> | null>(null);
+
+  // The zoomed window under investigation (opens the side panel).
+  const [investigationWindow, setInvestigationWindow] =
+    useState<InBetween<Date> | null>(null);
 
   useEffect(() => {
     setZoomWindow(null);
@@ -445,16 +450,39 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
             Reset
           </button>
           {showOpenInExplorer ? (
-            <button
-              type="button"
-              className="text-[11px] font-medium text-indigo-600 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-              title="Open this window in Metric Explorer"
-              onClick={handleOpenInExplorer}
-            >
-              Open in Explorer
-            </button>
+            <>
+              <button
+                type="button"
+                className="text-[11px] font-semibold text-indigo-700 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                title="Investigate this window — logs, traces, exceptions"
+                onClick={(event: React.MouseEvent<HTMLButtonElement>): void => {
+                  event.stopPropagation();
+                  setInvestigationWindow(zoomWindow);
+                }}
+              >
+                Investigate
+              </button>
+              <button
+                type="button"
+                className="text-[11px] font-medium text-indigo-600 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                title="Open this window in Metric Explorer"
+                onClick={handleOpenInExplorer}
+              >
+                Open in Explorer
+              </button>
+            </>
           ) : null}
         </div>
+      ) : null}
+      {investigationWindow ? (
+        <InvestigationDrawer
+          title={props.component.arguments.chartTitle || "Chart widget"}
+          window={investigationWindow}
+          metricViewData={chartMetricViewData}
+          onClose={() => {
+            setInvestigationWindow(null);
+          }}
+        />
       ) : null}
       <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
         <MetricCharts

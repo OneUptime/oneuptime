@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   DEFAULT_TOOLTIP_MAX_ENTRIES,
+  PREVIOUS_PERIOD_SERIES_SUFFIX,
   PreparedTooltipEntries,
   SortableTooltipItem,
   prepareTooltipEntries,
@@ -141,6 +142,41 @@ describe("prepareTooltipEntries", () => {
       expect(prepared.overflowCount).toBe(0);
       expect(prepared.totalCount).toBe(0);
     }
+  });
+
+  test("previous-period ghosts sort after every live series, whatever their value", () => {
+    const prepared: PreparedTooltipEntries<TestItem> = prepareTooltipEntries([
+      item(`host-a${PREVIOUS_PERIOD_SERIES_SUFFIX}`, 999),
+      item("host-a", 10),
+      item("host-b", 50),
+      item(`host-b${PREVIOUS_PERIOD_SERIES_SUFFIX}`, 60),
+    ]);
+
+    expect(categories(prepared)).toEqual([
+      "host-b",
+      "host-a",
+      // Ghost tier keeps its own value ordering.
+      `host-a${PREVIOUS_PERIOD_SERIES_SUFFIX}`,
+      `host-b${PREVIOUS_PERIOD_SERIES_SUFFIX}`,
+    ]);
+  });
+
+  test("ghosts never displace live readings under the cap", () => {
+    const payload: Array<TestItem> = [];
+    for (let index: number = 0; index < DEFAULT_TOOLTIP_MAX_ENTRIES; index++) {
+      payload.push(item(`live-${index}`, index));
+      payload.push(item(`live-${index}${PREVIOUS_PERIOD_SERIES_SUFFIX}`, 1e6));
+    }
+
+    const prepared: PreparedTooltipEntries<TestItem> =
+      prepareTooltipEntries(payload);
+
+    expect(
+      prepared.entries.every((entry: TestItem) => {
+        return !entry.category.endsWith(PREVIOUS_PERIOD_SERIES_SUFFIX);
+      }),
+    ).toBe(true);
+    expect(prepared.overflowCount).toBe(DEFAULT_TOOLTIP_MAX_ENTRIES);
   });
 
   test("does not mutate the input payload", () => {

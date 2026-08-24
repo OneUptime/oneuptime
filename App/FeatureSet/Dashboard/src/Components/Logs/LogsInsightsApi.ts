@@ -67,6 +67,25 @@ export async function fetchInsightsHistogram(
   return Array.isArray(buckets) ? (buckets as Array<JSONObject>) : [];
 }
 
+/**
+ * Severity-bucketed volume for an arbitrary prebuilt request body — the
+ * seam for callers whose scope includes ATTRIBUTE filters
+ * (LogsHistogramRequest.buildLogsHistogramRequest), which
+ * LogsInsightsScope deliberately does not model.
+ */
+export async function fetchLogsHistogramRaw(
+  body: JSONObject,
+): Promise<Array<JSONObject>> {
+  const response: HTTPResponse<JSONObject> = await postApi(
+    "/telemetry/logs/histogram",
+    body,
+  );
+
+  const buckets: unknown = response.data["buckets"];
+
+  return Array.isArray(buckets) ? (buckets as Array<JSONObject>) : [];
+}
+
 /** The distinct error messages in the window, most frequent first. */
 export async function fetchTopErrorPatterns(
   scope: LogsInsightsScope,

@@ -84,6 +84,8 @@ import {
   splitSeriesNameIntoSegments,
 } from "../../Utils/MetricSeriesInvestigation";
 import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
+import { PREVIOUS_PERIOD_SERIES_SUFFIX } from "Common/UI/Components/Charts/ChartLibrary/Utils/TooltipEntries";
+import InvestigationDrawer from "../Telemetry/InvestigationDrawer";
 import ExplorerLink from "./Utils/ExplorerLink";
 import { ShowToastNotification } from "Common/UI/Components/Toast/ToastInit";
 import { ToastType } from "Common/UI/Components/Toast/Toast";
@@ -148,6 +150,15 @@ export interface ComponentProps {
    * pass false.
    */
   enableSeriesActions?: boolean | undefined;
+  /*
+   * Compare-to-previous-period overlays: results for the SAME queries
+   * over the window shifted back by `compareOffsetMs`, index-aligned to
+   * queryConfigs like metricResults. Rendered as dashed, faded ghost
+   * lines behind each displayed series — never consuming Top-N slots,
+   * legend chips, or tooltip cap slots.
+   */
+  metricResultsPrevious?: Array<AggregatedResult> | undefined;
+  compareOffsetMs?: number | undefined;
   /*
    * Crosshair-sync channel shared with OTHER MetricCharts instances
    * (dashboards pass the dashboard id so hovering one widget highlights
@@ -440,6 +451,21 @@ interface ExemplarMenuState {
  * clamp its fixed position the same way the exemplar menu is clamped.
  */
 const SERIES_MENU_WIDTH_PX: number = 260;
+
+/*
+ * Pinned bucket inspector card dimensions (viewport clamping, same
+ * scheme as the pivot menus).
+ */
+const BUCKET_INSPECTOR_WIDTH_PX: number = 300;
+const BUCKET_INSPECTOR_HEIGHT_PX: number = 340;
+// At most this many series rows in the inspector; the rest summarize.
+const BUCKET_INSPECTOR_MAX_ROWS: number = 8;
+/*
+ * A single bucket can be seconds wide — too narrow a window to find
+ * correlated logs/traces in. Investigations open on at least this span,
+ * centered on the clicked bucket.
+ */
+const MIN_INVESTIGATION_WINDOW_MS: number = 5 * 60 * 1000;
 const SERIES_MENU_HEIGHT_PX: number = 280;
 
 // One open per-series investigate menu.
@@ -1679,6 +1705,135 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     });
   };
 
+  /*
+   * The in-context investigation drawer: opened from the series menu, the
+   * bucket inspector, or (in hosts) zoom bars — everything that happened
+   * in one window, without leaving the page.
+   */
+  const [investigation, setInvestigation] = useState<{
+    title: string;
+    window: InBetween<Date>;
+    viewData: MetricViewData;
+  } | null>(null);
+
+  // One pinned bucket inspector (chart click), portalled like the menus.
+  interface BucketInspectorEntry {
+    name: string;
+    value: number;
+  }
+  const [bucketInspector, setBucketInspector] = useState<{
+    title: string;
+    bucketStart: Date;
+    bucketEnd: Date;
+    entries: Array<BucketInspectorEntry>;
+    hiddenCount: number;
+    formatValue: (value: number) => string;
+    position: { x: number; y: number };
+  } | null>(null);
+
+  const {
+    ref: bucketInspectorRef,
+    isComponentVisible: isBucketInspectorVisible,
+    setIsComponentVisible: setIsBucketInspectorVisible,
+  } = useComponentOutsideClick(false);
+
+  const closeBucketInspector: VoidFunction = useCallback((): void => {
+    setIsBucketInspectorVisible(false);
+    setBucketInspector(null);
+  }, [setIsBucketInspectorVisible]);
+
+  const openBucketInspector: (input: {
+    title: string;
+    bucketStart: Date;
+    bucketEnd: Date;
+    valuesAtBucket: Record<string, number | string>;
+    seriesNames: Array<string>;
+    formatValue: (value: number) => string;
+  }) => void = useCallback(
+    (input: {
+      title: string;
+      bucketStart: Date;
+      bucketEnd: Date;
+      valuesAtBucket: Record<string, number | string>;
+      seriesNames: Array<string>;
+      formatValue: (value: number) => string;
+    }): void => {
+      /*
+       * Highest value first — the same "which series is spiking?"
+       * ordering the hover tooltip uses, but pinned.
+       */
+      const entries: Array<BucketInspectorEntry> = input.seriesNames
+        .map((name: string): BucketInspectorEntry | null => {
+          const value: unknown = input.valuesAtBucket[name];
+          return typeof value === "number" && Number.isFinite(value)
+            ? { name, value }
+            : null;
+        })
+        .filter((entry: BucketInspectorEntry | null): boolean => {
+          return entry !== null;
+        })
+        .map((entry: BucketInspectorEntry | null): BucketInspectorEntry => {
+          return entry as BucketInspectorEntry;
+        })
+        .sort((a: BucketInspectorEntry, b: BucketInspectorEntry): number => {
+          return b.value - a.value;
+        });
+
+      const pointer: { x: number; y: number } = lastPointerPositionRef.current;
+      const maxX: number =
+        window.innerWidth -
+        BUCKET_INSPECTOR_WIDTH_PX -
+        EXEMPLAR_MENU_VIEWPORT_MARGIN_PX;
+      const maxY: number =
+        window.innerHeight -
+        BUCKET_INSPECTOR_HEIGHT_PX -
+        EXEMPLAR_MENU_VIEWPORT_MARGIN_PX;
+
+      setBucketInspector({
+        title: input.title,
+        bucketStart: input.bucketStart,
+        bucketEnd: input.bucketEnd,
+        entries: entries.slice(0, BUCKET_INSPECTOR_MAX_ROWS),
+        hiddenCount: Math.max(0, entries.length - BUCKET_INSPECTOR_MAX_ROWS),
+        formatValue: input.formatValue,
+        position: {
+          x: Math.max(
+            EXEMPLAR_MENU_VIEWPORT_MARGIN_PX,
+            Math.min(pointer.x, maxX),
+          ),
+          y: Math.max(
+            EXEMPLAR_MENU_VIEWPORT_MARGIN_PX,
+            Math.min(pointer.y, maxY),
+          ),
+        },
+      });
+      setIsBucketInspectorVisible(true);
+    },
+    [setIsBucketInspectorVisible],
+  );
+
+  const investigateBucket: VoidFunction = useCallback((): void => {
+    if (!bucketInspector) {
+      return;
+    }
+    const widthMs: number =
+      bucketInspector.bucketEnd.getTime() -
+      bucketInspector.bucketStart.getTime();
+    const padMs: number = Math.max(
+      0,
+      (MIN_INVESTIGATION_WINDOW_MS - widthMs) / 2,
+    );
+    setInvestigation({
+      title: bucketInspector.title,
+      window: new InBetween<Date>(
+        new Date(bucketInspector.bucketStart.getTime() - padMs),
+        new Date(bucketInspector.bucketEnd.getTime() + padMs),
+      ),
+      viewData: props.metricViewData,
+    });
+    closeBucketInspector();
+  }, [bucketInspector, closeBucketInspector, props.metricViewData]);
+
   const getScopedViewDataForSeries: (
     menuState: SeriesMenuState,
   ) => SeriesScopedViewData = (
@@ -2633,6 +2788,84 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       });
 
       /*
+       * Compare-to-previous-period ghosts. Built AFTER presentation so
+       * they never consume Top-N slots, legend chips, or color positions
+       * of live series — for each DISPLAYED series with a same-named
+       * previous-window series, append a time-shifted "<name> (previous)"
+       * twin. The shift is mandatory: the bucketer indexes points against
+       * the CURRENT window's intervals and silently drops anything
+       * outside it.
+       */
+      let renderSeries: Array<SeriesPoint> = displayableSeries;
+      let renderColors: Array<ChartColorValue> | undefined = colorsOverride;
+      let ghostSeriesNames: Array<string> | undefined = undefined;
+
+      if (
+        props.metricResultsPrevious &&
+        props.compareOffsetMs &&
+        props.compareOffsetMs > 0
+      ) {
+        const previousSeriesByName: Map<string, SeriesPoint> = new Map<
+          string,
+          SeriesPoint
+        >();
+        for (const member of members) {
+          const previousResult: AggregatedResult | undefined =
+            props.metricResultsPrevious[member.queryConfigIndex];
+          if (!previousResult) {
+            continue;
+          }
+          for (const series of buildQuerySeries(
+            member.queryConfig,
+            previousResult,
+          )) {
+            previousSeriesByName.set(series.seriesName, series);
+          }
+        }
+
+        const resolveColorForRender: SeriesColorResolver =
+          makeResolveColor(displayableSeries);
+        const ghosts: Array<SeriesPoint> = [];
+        const ghostColors: Array<ChartColorValue> = [];
+        const baseColors: Array<ChartColorValue> = displayableSeries.map(
+          (series: SeriesPoint, index: number): ChartColorValue => {
+            return (
+              colorsOverride?.[index] ||
+              resolveColorForRender(series.seriesName, index)
+            );
+          },
+        );
+
+        displayableSeries.forEach((series: SeriesPoint, index: number) => {
+          const previous: SeriesPoint | undefined = previousSeriesByName.get(
+            series.seriesName,
+          );
+          if (!previous || previous.data.length === 0) {
+            return;
+          }
+          ghosts.push({
+            seriesName: `${series.seriesName}${PREVIOUS_PERIOD_SERIES_SUFFIX}`,
+            data: previous.data.map((point: { x: Date; y: number }) => {
+              return {
+                x: new Date(point.x.getTime() + props.compareOffsetMs!),
+                y: point.y,
+              };
+            }),
+          });
+          // A ghost wears its live twin's color; dash/fade distinguish.
+          ghostColors.push(baseColors[index]!);
+        });
+
+        if (ghosts.length > 0) {
+          renderSeries = [...displayableSeries, ...ghosts];
+          renderColors = [...baseColors, ...ghostColors];
+          ghostSeriesNames = ghosts.map((ghost: SeriesPoint): string => {
+            return ghost.seriesName;
+          });
+        }
+      }
+
+      /*
        * Soft 0–100% range computed from the currently visible series, so
        * hiding the dominant series via the legend rescales the axis to
        * what's actually on screen instead of staying anchored to the
@@ -2651,7 +2884,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         let observedMax: number = Number.NEGATIVE_INFINITY;
         let observedMin: number = 0;
         let hasFinitePoint: boolean = false;
-        for (const series of displayableSeries) {
+        for (const series of renderSeries) {
           for (const point of series.data) {
             if (typeof point.y === "number" && Number.isFinite(point.y)) {
               hasFinitePoint = true;
@@ -2691,7 +2924,8 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         onExemplarClick: handleExemplarClick,
         seriesControls: seriesControls,
         props: {
-          data: displayableSeries,
+          data: renderSeries,
+          ghostSeriesNames,
           xAxis: {
             legend: "Time",
             options: {
@@ -2730,10 +2964,30 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           },
           curve: ChartCurve.MONOTONE,
           sync: true,
-          colors: colorsOverride,
+          colors: renderColors,
           referenceLines:
             referenceLines.length > 0 ? referenceLines : undefined,
           onTimeRangeSelect: props.onTimeRangeSelect,
+          onBucketClick: showSeriesActions
+            ? (
+                bucketStart: Date,
+                bucketEnd: Date,
+                valuesAtBucket: Record<string, number | string>,
+              ): void => {
+                openBucketInspector({
+                  title: chart.title,
+                  bucketStart,
+                  bucketEnd,
+                  valuesAtBucket,
+                  seriesNames: displayableSeries.map(
+                    (series: SeriesPoint): string => {
+                      return series.seriesName;
+                    },
+                  ),
+                  formatValue: seriesValueFormatter,
+                });
+              }
+            : undefined,
           timeReferenceLines: props.timeReferenceLines,
           referenceRegions: props.referenceRegions,
         },
@@ -3007,6 +3261,28 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               ? formulaReferenceLines
               : undefined,
           onTimeRangeSelect: props.onTimeRangeSelect,
+          onBucketClick: showSeriesActions
+            ? (
+                bucketStart: Date,
+                bucketEnd: Date,
+                valuesAtBucket: Record<string, number | string>,
+              ): void => {
+                openBucketInspector({
+                  title: formulaChart.title,
+                  bucketStart,
+                  bucketEnd,
+                  valuesAtBucket,
+                  seriesNames: formulaDisplayableSeries.map(
+                    (series: SeriesPoint): string => {
+                      return series.seriesName;
+                    },
+                  ),
+                  formatValue: (value: number): string => {
+                    return ValueFormatter.formatValue(value, formulaUnit);
+                  },
+                });
+              }
+            : undefined,
           timeReferenceLines: props.timeReferenceLines,
           referenceRegions: props.referenceRegions,
         },
@@ -3144,6 +3420,23 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                   </p>
                 ) : null}
               </div>
+              {exemplarWindow ? (
+                <MoreMenuItem
+                  key="series-investigate-window"
+                  icon={IconProp.MagnifyingGlassPlus}
+                  text="Investigate in panel"
+                  onClick={() => {
+                    const menuState: SeriesMenuState = seriesMenu;
+                    closeSeriesMenu();
+                    setInvestigation({
+                      title: menuState.seriesName,
+                      window: exemplarWindow,
+                      viewData:
+                        getScopedViewDataForSeries(menuState).scopedViewData,
+                    });
+                  }}
+                />
+              ) : null}
               {props.onQueryConfigsChange && seriesMenuScoped?.didNarrow ? (
                 <MoreMenuItem
                   key="series-filter"
@@ -3223,6 +3516,107 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             document.body,
           )
         : null}
+      {bucketInspector && isBucketInspectorVisible
+        ? ReactDOM.createPortal(
+            <div
+              ref={bucketInspectorRef}
+              role="dialog"
+              aria-label={`Values at ${OneUptimeDate.getDateAsFormattedString(bucketInspector.bucketStart)}`}
+              className="fixed z-50 w-[300px] rounded-lg bg-white shadow-xl ring-1 ring-gray-200 focus:outline-none"
+              style={{
+                left: `${bucketInspector.position.x}px`,
+                top: `${bucketInspector.position.y}px`,
+              }}
+              onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  closeBucketInspector();
+                }
+              }}
+            >
+              <div className="border-b border-gray-100 px-3 py-2">
+                <p
+                  className="truncate text-xs font-semibold text-gray-900"
+                  title={bucketInspector.title}
+                >
+                  {bucketInspector.title}
+                </p>
+                <p className="mt-0.5 text-[11px] tabular-nums text-gray-500">
+                  {OneUptimeDate.getInBetweenDatesAsFormattedString(
+                    new InBetween<Date>(
+                      bucketInspector.bucketStart,
+                      bucketInspector.bucketEnd,
+                    ),
+                  )}
+                </p>
+              </div>
+              <div className="max-h-52 space-y-0.5 overflow-y-auto px-3 py-2">
+                {bucketInspector.entries.length === 0 ? (
+                  <p className="text-xs text-gray-400">
+                    No data points in this bucket.
+                  </p>
+                ) : (
+                  bucketInspector.entries.map(
+                    (entry: { name: string; value: number }, index: number) => {
+                      return (
+                        <div
+                          key={entry.name}
+                          className="flex items-baseline justify-between gap-3"
+                        >
+                          <span className="min-w-0 flex-1 truncate text-xs text-gray-700">
+                            <span className="mr-1.5 tabular-nums text-gray-400">
+                              {index + 1}.
+                            </span>
+                            {entry.name}
+                          </span>
+                          <span className="shrink-0 text-xs font-medium tabular-nums text-gray-900">
+                            {bucketInspector.formatValue(entry.value)}
+                          </span>
+                        </div>
+                      );
+                    },
+                  )
+                )}
+                {bucketInspector.hiddenCount > 0 ? (
+                  <p className="pt-1 text-[11px] text-gray-400">
+                    +{bucketInspector.hiddenCount} more series
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex items-center justify-end gap-2 border-t border-gray-100 px-3 py-2">
+                <button
+                  type="button"
+                  className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                  onClick={closeBucketInspector}
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                  onClick={investigateBucket}
+                >
+                  <Icon
+                    icon={IconProp.MagnifyingGlassPlus}
+                    className="h-3.5 w-3.5"
+                  />
+                  Investigate this moment
+                </button>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
+      {investigation ? (
+        <InvestigationDrawer
+          title={investigation.title}
+          window={investigation.window}
+          metricViewData={investigation.viewData}
+          onClose={() => {
+            setInvestigation(null);
+          }}
+        />
+      ) : null}
     </>
   );
 };
