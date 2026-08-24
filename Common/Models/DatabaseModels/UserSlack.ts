@@ -100,7 +100,16 @@ class UserSlack extends BaseModel {
   public projectId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    /*
+     * CurrentUser here does NOT mean the client may choose the value: the
+     * service hook refuses any non-root payload that carries these columns
+     * and then stamps them itself, and hooks run BEFORE the column
+     * permission check (DatabaseService.create). The entry exists because
+     * that same check runs on the STAMPED data - with an empty list the
+     * server's own write is refused and no user can add this method at all.
+     * Same shape as UserWebAuthn's server-stamped isVerified.
+     */
+    create: [Permission.CurrentUser],
     read: [Permission.CurrentUser],
     update: [],
   })
@@ -130,7 +139,16 @@ class UserSlack extends BaseModel {
   public slackUserId?: string = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    /*
+     * CurrentUser here does NOT mean the client may choose the value: the
+     * service hook refuses any non-root payload that carries these columns
+     * and then stamps them itself, and hooks run BEFORE the column
+     * permission check (DatabaseService.create). The entry exists because
+     * that same check runs on the STAMPED data - with an empty list the
+     * server's own write is refused and no user can add this method at all.
+     * Same shape as UserWebAuthn's server-stamped isVerified.
+     */
+    create: [Permission.CurrentUser],
     read: [Permission.CurrentUser],
     update: [],
   })
@@ -293,7 +311,16 @@ class UserSlack extends BaseModel {
   public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    /*
+     * CurrentUser here does NOT mean the client may choose the value: the
+     * service hook refuses any non-root payload that carries these columns
+     * and then stamps them itself, and hooks run BEFORE the column
+     * permission check (DatabaseService.create). The entry exists because
+     * that same check runs on the STAMPED data - with an empty list the
+     * server's own write is refused and no user can add this method at all.
+     * Same shape as UserWebAuthn's server-stamped isVerified.
+     */
+    create: [Permission.CurrentUser],
     read: [Permission.CurrentUser],
     update: [],
   })
