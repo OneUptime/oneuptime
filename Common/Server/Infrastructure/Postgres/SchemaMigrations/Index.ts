@@ -543,6 +543,7 @@ import { AddDetectionRuleIncidentColumns1788600000000 } from "./1788600000000-Ad
 import { RemoveMarketingConversionUploadState1788700000000 } from "./1788700000000-RemoveMarketingConversionUploadState";
 import { AddUserSlackAndMicrosoftTeams1788800000000 } from "./1788800000000-AddUserSlackAndMicrosoftTeams";
 import { DropMarketingConversionAddEnterpriseLicenseEmail1788800000000 } from "./1788800000000-DropMarketingConversionAddEnterpriseLicenseEmail";
+import { RedactStoredMonitorIngestSecrets1788900000000 } from "./1788900000000-RedactStoredMonitorIngestSecrets";
 import { MigrationName1787142779538 } from "./1787142779538-MigrationName";
 import { MigrationName1787156982416 } from "./1787156982416-MigrationName";
 
@@ -1094,4 +1095,5 @@ export default [
   RemoveMarketingConversionUploadState1788700000000,
   AddUserSlackAndMicrosoftTeams1788800000000,
   DropMarketingConversionAddEnterpriseLicenseEmail1788800000000,
+  RedactStoredMonitorIngestSecrets1788900000000,
 ];

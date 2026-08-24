@@ -26,6 +26,7 @@ import ProbeService from "Common/Server/Services/ProbeService";
 import SnmpTrapLogWriter from "../../Services/SnmpTrapLogWriter";
 import { JSONObject } from "Common/Types/JSON";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
+import { redactMonitorSecret } from "Common/Server/Utils/Monitor/MonitorPayloadRedaction";
 
 export async function processProbeFromQueue(
   jobData: ProbeIngestJobData,
@@ -351,20 +352,44 @@ export async function processIncomingEmailFromQueue(
     throw new BadDataException("Project not found");
   }
 
+  /*
+   * Ingest boundary. This monitor's `incomingEmailSecretKey` IS its inbound
+   * address -- `generateMonitorEmailAddress` builds
+   * `monitor-{secretKey}@{inboundDomain}` and `extractSecretKeyFromEmail` reads
+   * the key straight back out -- so every copy of the recipient in this payload
+   * is a copy of a live bearer credential: `emailTo`, the `To:` header, and the
+   * `Received:` / `Delivered-To:` headers the relay stamped on the way in.
+   *
+   * Mask it here, before the payload becomes evidence, rather than at each
+   * sink. Everything downstream of this point is fed from `dataToProcess`, and
+   * it fans out into places a read-only principal can select from:
+   * `Monitor.incomingEmailMonitorRequest` just below, and -- via
+   * `monitorResource` -> `MonitorSummaryCapture` -- `Incident.monitorSummary`
+   * and `Alert.monitorSummary`, plus `MonitorLog.logBody`. One strip at the
+   * boundary covers all of them and any sink added later, which is the same
+   * shape as `stripAgentCredentials` on the server-monitor path.
+   *
+   * https://github.com/OneUptime/oneuptime/issues/3360
+   */
+  const redactedEmailData: IncomingEmailJobData = redactMonitorSecret(
+    emailData,
+    monitorSecretKeyAsString,
+  );
+
   const now: Date = OneUptimeDate.getCurrentDate();
 
   const incomingEmailRequest: IncomingEmailMonitorRequest = {
     projectId: monitor.projectId,
     monitorId: new ObjectID(monitor._id.toString()),
-    emailFrom: emailData.emailFrom,
-    emailTo: emailData.emailTo,
-    emailSubject: emailData.emailSubject,
-    emailBody: emailData.emailBody,
-    emailBodyHtml: emailData.emailBodyHtml,
-    emailHeaders: emailData.emailHeaders,
+    emailFrom: redactedEmailData.emailFrom,
+    emailTo: redactedEmailData.emailTo,
+    emailSubject: redactedEmailData.emailSubject,
+    emailBody: redactedEmailData.emailBody,
+    emailBodyHtml: redactedEmailData.emailBodyHtml,
+    emailHeaders: redactedEmailData.emailHeaders,
     emailReceivedAt: now,
     checkedAt: now,
-    attachments: emailData.attachments,
+    attachments: redactedEmailData.attachments,
     onlyCheckForIncomingEmailReceivedAt: false,
   };
 
