@@ -13,6 +13,9 @@ import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import useEventTimeReferenceLines, {
+  EventTimeReferenceLines,
+} from "./Utils/UseEventTimeReferenceLines";
 import OneUptimeDate from "Common/Types/Date";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
@@ -131,6 +134,18 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
   }, [timeRangeKey]);
 
   const dateRange: InBetween<Date> = props.startAndEndDate || internalDateRange;
+
+  /*
+   * Incident/alert/change-event markers for the charted window — the
+   * card is the shared surface behind monitor metrics tabs,
+   * infrastructure resource tabs, and companion signal tabs, so one
+   * insertion covers them all.
+   */
+  const { lines: eventReferenceLines }: EventTimeReferenceLines =
+    useEventTimeReferenceLines({
+      enabled: true,
+      window: dateRange,
+    });
 
   const handleTimeRangeChange: (
     newTimeRange: RangeStartAndEndDateTime,
@@ -281,6 +296,9 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
           onChange={handleMetricViewChange}
           onTimeRangeSelect={handleChartTimeRangeSelect}
           refreshNonce={refreshNonce}
+          timeReferenceLines={
+            eventReferenceLines.length > 0 ? eventReferenceLines : undefined
+          }
         />
       ) : null}
       {props.renderExtraCharts ? props.renderExtraCharts(dateRange) : null}

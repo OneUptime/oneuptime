@@ -597,9 +597,20 @@ describe("toMetricsExplorerQueryParams", () => {
     });
 
     test("reports the signal-specific fields the metric grammar cannot express", () => {
+      const result: CrossSignalQueryParams = toMetricsExplorerQueryParams(
+        fullScope(),
+        "container.cpu.time",
+      );
+
+      /*
+       * serviceIds now CARRY: they ride the explorer's one-shot
+       * `services` param (resolved to resource.service.name filters on
+       * load) instead of being reported dropped.
+       */
+      expect(result.dropped).toEqual(["traceIds", "spanIds", "severityTexts"]);
       expect(
-        toMetricsExplorerQueryParams(fullScope(), "container.cpu.time").dropped,
-      ).toEqual(["serviceIds", "traceIds", "spanIds", "severityTexts"]);
+        JSON.parse(result.params["services"] as string).length,
+      ).toBeGreaterThan(0);
     });
   });
 

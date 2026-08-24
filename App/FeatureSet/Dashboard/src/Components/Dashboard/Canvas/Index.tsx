@@ -42,6 +42,7 @@ export interface ComponentProps {
   };
   dashboardStartAndEndDate: RangeStartAndEndDateTime;
   refreshTick?: number | undefined;
+  chartSyncId?: string | undefined;
   variables?: Array<DashboardVariable> | undefined;
 }
 
@@ -261,6 +262,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           }}
           isSelected={isSelected}
           refreshTick={props.refreshTick}
+          chartSyncId={props.chartSyncId}
           variables={props.variables}
           onClick={() => {
             props.onComponentSelected(componentId);

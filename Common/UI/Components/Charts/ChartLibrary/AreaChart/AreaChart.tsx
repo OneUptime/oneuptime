@@ -928,7 +928,12 @@ const AreaChart: React.ForwardRefExoticComponent<
         <ResponsiveContainer>
           <RechartsAreaChart
             data={data}
-            syncId={props.syncid?.toString() || ""}
+            /*
+             * Omitted, not "": recharts treats "" as a real sync
+             * channel, so every unsynced chart page-wide would
+             * accidentally sync with every other one.
+             */
+            {...(props.syncid ? { syncId: props.syncid.toString() } : {})}
             {...(hasOnTimeRangeSelect
               ? {
                   onMouseDown: handleRangeSelectMouseDown,

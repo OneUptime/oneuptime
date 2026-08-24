@@ -343,6 +343,7 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
            * never render on unauthenticated public dashboards).
            */
           enableSeriesActions={false}
+          chartSyncId={props.chartSyncId}
         />
       </div>
     </div>

@@ -57,12 +57,27 @@ export interface ComponentProps {
   charts: Array<Chart>;
   hideCard?: boolean | undefined;
   chartCssClass?: string | undefined;
+  /**
+   * Share one crosshair-sync channel across SEVERAL ChartGroup instances
+   * (e.g. every metric widget on one dashboard passes the dashboard id,
+   * so hovering an instant on one widget highlights it on all of them).
+   * Absent → this group syncs only within itself.
+   */
+  syncId?: string | undefined;
 }
 
 const ChartGroup: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const syncId: string = Text.generateRandomText(10);
+  /*
+   * Stable per-mount fallback: a plain const regenerated the id on every
+   * render, which forced recharts to tear down and re-subscribe its sync
+   * listeners on each parent re-render (auto-refresh ticks included).
+   */
+  const [fallbackSyncId] = useState<string>(() => {
+    return Text.generateRandomText(10);
+  });
+  const syncId: string = props.syncId || fallbackSyncId;
   const [metricInfoModalChart, setMetricInfoModalChart] =
     useState<ChartMetricInfo | null>(null);
 

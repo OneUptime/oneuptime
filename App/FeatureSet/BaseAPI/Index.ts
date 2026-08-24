@@ -742,6 +742,15 @@ import LogService, {
 import SecurityEventService, {
   SecurityEventService as SecurityEventServiceType,
 } from "Common/Server/Services/SecurityEventService";
+/*
+ * Sibling-relative on purpose: the `Common` package specifier resolves
+ * through App/node_modules, which may symlink a checkout that predates
+ * this module; the relative path always resolves the sibling source this
+ * branch ships with (identical to the specifier once merged).
+ */
+import ChangeEventService, {
+  ChangeEventService as ChangeEventServiceType,
+} from "../../../Common/Server/Services/ChangeEventService";
 
 import MetricService from "Common/Server/Services/MetricService";
 import MetricAPI from "Common/Server/API/MetricAPI";
@@ -1059,6 +1068,7 @@ import Express, {
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import Log from "Common/Models/AnalyticsModels/Log";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
+import ChangeEvent from "../../../Common/Models/AnalyticsModels/ChangeEvent";
 import Span from "Common/Models/AnalyticsModels/Span";
 import Profile from "Common/Models/AnalyticsModels/Profile";
 import ProfileSample from "Common/Models/AnalyticsModels/ProfileSample";
@@ -2911,6 +2921,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAnalyticsAPI<SecurityEvent, SecurityEventServiceType>(
         SecurityEvent,
         SecurityEventService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAnalyticsAPI<ChangeEvent, ChangeEventServiceType>(
+        ChangeEvent,
+        ChangeEventService,
       ).getRouter(),
     );
 

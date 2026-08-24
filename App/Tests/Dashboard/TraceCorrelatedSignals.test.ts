@@ -607,11 +607,16 @@ describe("buildTracesPivotScope", () => {
       result.scope,
     );
 
-    expect(serialized.dropped.sort()).toEqual(
-      ["serviceIds", "spanIds", "traceIds"].sort(),
-    );
+    /*
+     * serviceIds now CARRY via the explorer's one-shot `services` param;
+     * spans/traces remain inexpressible in the metric grammar.
+     */
+    expect(serialized.dropped.sort()).toEqual(["spanIds", "traceIds"].sort());
+    expect(JSON.parse(serialized.params["services"] as string)).toEqual([
+      "svc-1",
+    ]);
     expect(describeDroppedScopeFields(serialized.dropped).sort()).toEqual(
-      ["service filters", "span ids", "trace ids"].sort(),
+      ["span ids", "trace ids"].sort(),
     );
   });
 });

@@ -148,6 +148,13 @@ export interface ComponentProps {
    * pass false.
    */
   enableSeriesActions?: boolean | undefined;
+  /*
+   * Crosshair-sync channel shared with OTHER MetricCharts instances
+   * (dashboards pass the dashboard id so hovering one widget highlights
+   * the same instant on every widget). Absent → sync within this
+   * instance's own panels only.
+   */
+  chartSyncId?: string | undefined;
 }
 
 /*
@@ -3050,6 +3057,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         charts={getCharts()}
         hideCard={props.hideCard}
         chartCssClass={props.chartCssClass}
+        syncId={props.chartSyncId}
       />
       {/*
        * Both pivot menus render through a body portal: dashboard widget

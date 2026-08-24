@@ -28,6 +28,9 @@ import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 import ExplorerLink from "../../Metrics/Utils/ExplorerLink";
 import { isPublicDashboard } from "../Utils/PublicDashboardContext";
+import useEventTimeReferenceLines, {
+  EventTimeReferenceLines,
+} from "../../Metrics/Utils/UseEventTimeReferenceLines";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardChartComponent;
@@ -329,6 +332,19 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   const enableSeriesActions: boolean =
     !isPublicDashboard() && !props.isEditMode;
 
+  /*
+   * Incident/alert/change-event markers for this widget's window (the
+   * hook no-ops on public dashboards — no session to fetch with). Uses
+   * the EFFECTIVE window so zooming refetches markers for the zoomed
+   * range.
+   */
+  const { lines: eventReferenceLines }: EventTimeReferenceLines =
+    useEventTimeReferenceLines({
+      enabled: true,
+      window: effectiveStartAndEndDate,
+      refreshTick: props.refreshTick,
+    });
+
   if (isLoading && metricResults.length === 0) {
     // Skeleton loading for chart - only on initial load
     return (
@@ -448,6 +464,10 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
           hideCard={true}
           topNOverrideScope={topNOverrideScope}
           enableSeriesActions={enableSeriesActions}
+          chartSyncId={props.chartSyncId}
+          timeReferenceLines={
+            eventReferenceLines.length > 0 ? eventReferenceLines : undefined
+          }
           onTimeRangeSelect={
             enableChartZoom ? handleChartTimeRangeSelect : undefined
           }

@@ -83,6 +83,11 @@ export interface DashboardBaseComponentProps {
   dashboardStartAndEndDate: RangeStartAndEndDateTime;
   metricTypes: Array<MetricType>;
   refreshTick?: number | undefined;
+  /*
+   * Dashboard-wide crosshair-sync channel for metric chart widgets (the
+   * dashboard id) — see ChartGroup.syncId.
+   */
+  chartSyncId?: string | undefined;
   variables?: Array<DashboardVariable> | undefined;
 }
 

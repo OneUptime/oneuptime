@@ -451,15 +451,14 @@ describe("metrics pivot round-trip (buildLogsPivotScope -> toMetricsExplorerQuer
     expect(result.params["startTime"]).toBe(WINDOW_START.toISOString());
     expect(result.params["endTime"]).toBe(WINDOW_END.toISOString());
 
+    /*
+     * serviceIds now CARRY (the explorer's one-shot `services` param) —
+     * only the fields the metric grammar truly cannot express drop.
+     */
     expect(new Set(result.dropped)).toEqual(
-      new Set([
-        "sessionIds",
-        "serviceIds",
-        "traceIds",
-        "spanIds",
-        "severityTexts",
-      ]),
+      new Set(["sessionIds", "traceIds", "spanIds", "severityTexts"]),
     );
+    expect(JSON.parse(result.params["services"] as string)).toHaveLength(1);
   });
 
   test("no attributes means no metricQueries param — the window alone still pivots", () => {

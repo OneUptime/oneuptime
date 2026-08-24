@@ -832,6 +832,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           metrics={metricsBundle}
           refreshTick={refreshTick}
           variables={dashboardVariables}
+          chartSyncId={props.dashboardId.toString()}
         />
       </div>
     </div>
