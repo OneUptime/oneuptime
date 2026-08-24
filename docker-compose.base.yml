@@ -162,9 +162,6 @@ x-common-runtime-variables: &common-runtime-variables
   INBOUND_EMAIL_DOMAIN: ${INBOUND_EMAIL_DOMAIN}
   INBOUND_EMAIL_WEBHOOK_SECRET: ${INBOUND_EMAIL_WEBHOOK_SECRET}
 
-  # Cal.com booking webhook (POST /api/cal-webhook)
-  CAL_WEBHOOK_SECRET: ${CAL_WEBHOOK_SECRET}
-
   # BullMQ Queue Dashboard (Bull Board)
   ENABLE_QUEUE_DASHBOARD: ${ENABLE_QUEUE_DASHBOARD}
   QUEUE_DASHBOARD_SECRET: ${QUEUE_DASHBOARD_SECRET}

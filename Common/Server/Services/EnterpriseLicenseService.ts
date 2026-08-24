@@ -37,9 +37,9 @@ export class Service extends DatabaseService<EnterpriseLicense> {
         email: createdItem.email?.toString(),
         /*
          * No attribution source. A licence row is typed in by a human and
-         * carries no session, so its campaign is whatever the meeting_booked
-         * sharing its email carried — the join the receiver makes on
-         * emailHash, not something OneUptime can restate here.
+         * carries no session, so its campaign is whatever the earlier
+         * conversion sharing its email carried — the join the receiver makes
+         * on emailHash, not something OneUptime can restate here.
          */
         data: {
           enterpriseLicenseId: createdItem.id?.toString() || "",

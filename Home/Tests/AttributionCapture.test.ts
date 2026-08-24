@@ -10,7 +10,6 @@ import {
   UtmWireKeyToPropertyKey,
 } from "../../Common/Types/Marketing/Attribution";
 import { getPageSEO, PageSEOData } from "../Utils/PageSEO";
-import { getSelfHostedContent } from "../Utils/SelfHosted";
 import ejs from "ejs";
 import path from "path";
 import { beforeAll, describe, expect, test } from "@jest/globals";
@@ -19,19 +18,13 @@ import { beforeAll, describe, expect, test } from "@jest/globals";
  * ---------------------------------------------------------------------------
  * Consent, and the attribution capture that sits behind it.
  *
- * TWO THINGS WERE BROKEN HERE, AND THEY ARE RELATED
- *
  * The cookie banner wrote `cookiesAccepted` to localStorage and nothing
  * anywhere read it. Google Tag Manager, PostHog and the attribution capture
  * all ran identically whether the visitor pressed Accept, pressed Reject, or
  * never saw the banner — "Reject all" rejected nothing, and there was no
  * Google Consent Mode signal at all.
  *
- * Separately, the attribution the marketing site captured could reach the
- * signup form (same origin, via localStorage) but had no way at all to reach a
- * Cal.com booking, so every booked demo was recorded with no campaign on it.
- *
- * Making consent real is what makes the second one delicate: gate storage on
+ * Making consent real is what makes attribution delicate: gate storage on
  * consent naively and an ad visitor who lands, accepts, and signs up in one
  * session loses the click id that brought them, because it was discarded
  * before they answered the banner. Hence the pending buffer, which is the
@@ -92,40 +85,6 @@ const renderDemo: RenderDemoFunction = async (
   });
 };
 
-type RenderBookingPageFunction = (templateFileName: string) => Promise<string>;
-
-/*
- * Renders any of the three pages that embed a Cal booking. Their locals differ,
- * so this supplies the union — ejs ignores what a template does not reference.
- */
-const renderBookingPage: RenderBookingPageFunction = async (
-  templateFileName: string,
-): Promise<string> => {
-  const pagePath: string =
-    templateFileName === "demo.ejs"
-      ? "/enterprise/demo"
-      : templateFileName === "support.ejs"
-        ? "/support"
-        : "/enterprise/self-hosted";
-
-  const seo: PageSEOData = getPageSEO(pagePath);
-
-  return render(templateFileName, {
-    support: false,
-    enableGoogleTagManager: true,
-    footerCards: true,
-    cta: false,
-    blackLogo: true,
-    requestDemoCta: true,
-    reviewsList1: [],
-    reviewsList2: [],
-    reviewsList3: [],
-    selfHosted: getSelfHostedContent(),
-    seo: { ...seo, fullCanonicalUrl: `${HOME_URL}${seo.canonicalPath}` },
-    homeUrl: HOME_URL,
-  });
-};
-
 /*
  * A localStorage that can also be made to throw, which is what private mode
  * and a sandboxed iframe actually do — unreadable storage must not be mistaken
@@ -174,7 +133,6 @@ interface AttributionSnapshot {
 interface Harness {
   consent: ConsentApi;
   getAttribution: () => AttributionSnapshot;
-  calMetadata: (bookingKind?: string) => Record<string, string>;
   storage: FakeStorage;
   dataLayer: Array<unknown>;
   posthogCalls: Array<[string, Record<string, unknown>]>;
@@ -319,19 +277,16 @@ const loadHarness: LoadHarnessFunction = (
     "URLSearchParams",
     `${gtagSource}\n${consentSource}\n${reportingSource}\n${attributionSource}\nreturn {
        consent: window.oneUptimeConsent,
-       getAttribution: window.oneUptimeGetAttribution,
-       calMetadata: window.oneUptimeCalAttributionMetadata
+       getAttribution: window.oneUptimeGetAttribution
      };`,
   ) as (...args: Array<unknown>) => unknown;
 
   const exposed: {
     consent: ConsentApi;
     getAttribution: () => AttributionSnapshot;
-    calMetadata: (bookingKind?: string) => Record<string, string>;
   } = build(fakeWindow, fakeDocument, dataLayer, posthog, URLSearchParams) as {
     consent: ConsentApi;
     getAttribution: () => AttributionSnapshot;
-    calMetadata: (bookingKind?: string) => Record<string, string>;
   };
 
   return {
@@ -398,69 +353,9 @@ describe("attribution capture and consent", () => {
       expect(gtmIndex).toBeGreaterThan(consentIndex);
     });
 
-    test("exposes both attribution readers", () => {
+    test("exposes the attribution reader", () => {
       expect(html).toContain("window.oneUptimeGetAttribution = function");
-      expect(html).toContain(
-        "window.oneUptimeCalAttributionMetadata = function",
-      );
     });
-
-    /*
-     * The whole point of the change: the embed used to pass no metadata at
-     * all, so the Cal webhook — which has always parsed click ids out of
-     * booking metadata — had nothing to parse.
-     */
-    test("passes attribution metadata into the Cal embed", () => {
-      const embedIndex: number = html.indexOf('calLink: "oneuptimehq/demo"');
-      const embedBlock: string = html.slice(embedIndex, embedIndex + 500);
-
-      expect(embedBlock).toContain("config:");
-      expect(embedBlock).toContain(
-        "window.oneUptimeCalAttributionMetadata('enterprise_demo')",
-      );
-      /*
-       * Passed AS the config, not nested under a `metadata` key inside it —
-       * the helper already returns Cal's bracketed metadata[...] keys, and
-       * wrapping them again would bury them one level too deep.
-       */
-      expect(embedBlock).not.toContain("metadata:");
-    });
-
-    /*
-     * Every page that can book a meeting must carry attribution into it. One
-     * page wired up and another not is the failure mode that produced
-     * un-attributed bookings in the first place, and it is invisible until
-     * somebody reads the ledger months later.
-     */
-    test.each([
-      ["demo.ejs", "my-cal-inline", "enterprise_demo"],
-      ["support.ejs", "my-cal-inline-support", "support_call"],
-      [
-        "self-hosted.ejs",
-        "my-cal-inline-self-hosted",
-        "architecture_assessment",
-      ],
-    ])(
-      "%s carries attribution into its booking",
-      async (
-        templateFileName: string,
-        elementId: string,
-        bookingKind: string,
-      ) => {
-        const pageHtml: string = await renderBookingPage(templateFileName);
-        const embedIndex: number = pageHtml.indexOf(
-          `elementOrSelector: "#${elementId}"`,
-        );
-
-        expect(embedIndex).toBeGreaterThan(-1);
-
-        const embedBlock: string = pageHtml.slice(embedIndex, embedIndex + 500);
-
-        expect(embedBlock).toContain(
-          `window.oneUptimeCalAttributionMetadata('${bookingKind}')`,
-        );
-      },
-    );
   });
 
   describe("Google Consent Mode v2", () => {
@@ -838,9 +733,9 @@ describe("attribution capture and consent", () => {
     });
 
     /*
-     * The held touch is readable even though it has not been stored, so the
-     * Cal embed on the very page the visitor landed on still carries the
-     * campaign into the booking.
+     * The held touch is readable even though it has not been stored, so a
+     * signup on the very page the visitor landed on still carries the
+     * campaign that brought them.
      */
     test("reads the held touch before consent has been given", () => {
       const harness: Harness = loadHarness(html, { url: AD_URL });
@@ -903,278 +798,39 @@ describe("attribution capture and consent", () => {
         firstTouch: null,
       });
     });
-  });
-
-  /*
-   * -------------------------------------------------------------------------
-   * The Cal metadata bag.
-   *
-   * Keys here are the wire contract with App/API/CalWebhook.ts. Cal metadata
-   * values are scalars, so the nested first touch travels as one JSON string —
-   * which is exactly what the webhook expects to parse back.
-   * -------------------------------------------------------------------------
-   */
-  describe("Cal booking metadata", () => {
-    /*
-     * Cal takes booking metadata as FLAT, BRACKETED config keys —
-     * metadata[utm_source] — and returns them as payload.metadata.utm_source.
-     *
-     * A nested `metadata: { ... }` object does NOT work: Cal serialises each
-     * config value into a query parameter, so the object becomes the string
-     * "[object Object]" and every key inside it is lost. Nothing errors —
-     * bookings are still recorded, they just arrive attributable to nothing,
-     * which is exactly the bug this path exists to fix. These assertions are
-     * the only thing standing between the right shape and a silent no-op.
-     *
-     * https://cal.com/help/embedding/prefill-booking-form-embed
-     */
-    test("brackets every key the way Cal expects", () => {
-      const harness: Harness = loadHarness(html, {
-        url: AD_URL,
-        storedConsent: "true",
-      });
-
-      expect(harness.calMetadata()).toMatchObject({
-        "metadata[utm_source]": "google",
-        "metadata[utm_medium]": "cpc",
-        "metadata[utm_campaign]": "enterprise-q3",
-        "metadata[gclid]": "abc123",
-      });
-    });
-
-    test("never emits an unbracketed key", () => {
-      const harness: Harness = loadHarness(html, {
-        url: AD_URL,
-        storedConsent: "true",
-      });
-
-      for (const key of Object.keys(harness.calMetadata())) {
-        expect(key).toMatch(/^metadata\[[a-z0-9_]+\]$/);
-      }
-    });
 
     /*
-     * The inner names are the wire contract with App/API/CalWebhook.ts, which
-     * reads payload.metadata.<name>. Bracketing changes how they travel, not
-     * what they are called on arrival.
+     * Driven off the shared contract rather than a hand-written list, so a key
+     * added to Common/Types/Marketing/Attribution.ts is captured here
+     * automatically instead of quietly going untested — the reader is what the
+     * signup form posts onto the User record, and a key the browser collects
+     * but the reader drops is invisible until somebody reads the numbers.
      */
-    test("uses the snake_case inner names the webhook parses", () => {
-      const harness: Harness = loadHarness(html, {
-        url: AD_URL,
-        storedConsent: "true",
-      });
-
-      const innerNames: Array<string> = Object.keys(harness.calMetadata()).map(
-        (key: string) => {
-          return key.slice("metadata[".length, -1);
-        },
-      );
-
-      expect(innerNames).toEqual(
-        expect.arrayContaining([
-          "utm_source",
-          "utm_medium",
-          "utm_campaign",
-          "utm_url",
-          "gclid",
-          "ou_first_touch",
-        ]),
-      );
-    });
-
-    test("carries the landing URL", () => {
-      const harness: Harness = loadHarness(html, {
-        url: AD_URL,
-        storedConsent: "true",
-      });
-
-      expect(harness.calMetadata()["metadata[utm_url]"]).toBe(AD_URL);
-    });
-
-    test("serializes the first touch as one JSON string", () => {
-      const harness: Harness = loadHarness(html, {
-        url: AD_URL,
-        storedConsent: "true",
-      });
-
-      expect(
-        JSON.parse(harness.calMetadata()["metadata[ou_first_touch]"]!),
-      ).toMatchObject({
-        utmSource: "google",
-        clickIds: { gclid: "abc123" },
-      });
-    });
-
-    /*
-     * The first touch is JSON, and it is bounded as JSON — 4000 characters —
-     * not by the 500-character per-value bound the flat fields get.
-     *
-     * This fixture is deliberately REALISTIC rather than minimal. A real first
-     * touch carries five UTM values, a click id, and a landing URL that repeats
-     * all of them as query parameters; that runs past 500 characters without
-     * being unusual. Truncating JSON at 500 produces a string the webhook's
-     * JSON.parse rejects, so the whole first touch would be dropped — silently,
-     * and only for the visitors whose attribution is richest.
-     *
-     * An earlier version of this test used a short fixture and passed while the
-     * code truncated.
-     */
-    test("keeps a realistic first touch intact and parseable", () => {
-      const longClickId: string = "CjwKCAjw1oy0BhAKEiwAWDVpV" + "x".repeat(60);
-      const landingUrl: string =
-        "https://oneuptime.com/enterprise/demo?utm_source=google" +
-        "&utm_medium=cpc&utm_campaign=enterprise-observability-q3" +
-        `&utm_term=datadog+alternative&utm_content=demo-cta-variant-b&gclid=${longClickId}`;
-
-      const firstTouch: Record<string, unknown> = {
-        utmSource: "google",
-        utmMedium: "cpc",
-        utmCampaign: "enterprise-observability-q3",
-        utmTerm: "datadog alternative",
-        utmContent: "demo-cta-variant-b",
-        clickIds: { gclid: longClickId },
-        landingUrl: landingUrl,
-        referrer: "https://www.google.com/",
-        timestamp: "2026-08-22T10:00:00.000Z",
-      };
-
-      const serialized: string = JSON.stringify(firstTouch);
-
-      // The fixture only tests anything if it is over the per-value bound.
-      expect(serialized.length).toBeGreaterThan(500);
-
-      const harness: Harness = loadHarness(html, {
-        storedConsent: "true",
-        storedAttribution: { firstTouch: serialized, utmSource: "google" },
-      });
-
-      const sent: string = harness.calMetadata()["metadata[ou_first_touch]"]!;
-
-      expect(sent).toHaveLength(serialized.length);
-      expect(() => {
-        return JSON.parse(sent);
-      }).not.toThrow();
-      expect(JSON.parse(sent)).toEqual(firstTouch);
-    });
-
-    /*
-     * Cal serialises config values into query parameters, so anything that is
-     * not already a string is stringified by JavaScript — which is how a nested
-     * object turns into "[object Object]".
-     */
-    test("holds only scalar strings", () => {
-      const harness: Harness = loadHarness(html, {
-        url: AD_URL,
-        storedConsent: "true",
-      });
-
-      for (const value of Object.values(harness.calMetadata())) {
-        expect(typeof value).toBe("string");
-      }
-    });
-
-    /*
-     * THE WIRE CONTRACT, ASSERTED MECHANICALLY.
-     *
-     * The browser writes these keys and App/API/CalWebhook.ts reads them. The
-     * two lists live in different languages, in different packages, edited at
-     * different times — and a key the browser sends that the server does not
-     * read is dropped in total silence. Nothing errors, the booking is still
-     * recorded, the attribution just is not there.
-     *
-     * Checking that correspondence by eye is how the last two bugs on this path
-     * got through, so it is checked here against the shared definition the
-     * server actually parses from.
-     */
-    test("sends no key the webhook does not read", () => {
-      const readableKeys: Set<string> = new Set<string>([
-        ...AdClickIdKeys,
-        ...Object.keys(UtmWireKeyToPropertyKey),
-        // Read explicitly by collectUtm / collectFirstTouch in CalWebhook.ts.
-        "utm_url",
-        "ou_first_touch",
-      ]);
-
+    test("surfaces every click id the shared contract names", () => {
       const harness: Harness = loadHarness(html, {
         url: EVERY_PARAM_URL,
         storedConsent: "true",
       });
 
-      const innerNames: Array<string> = Object.keys(harness.calMetadata()).map(
-        (key: string) => {
-          return key.slice("metadata[".length, -1);
-        },
-      );
-
-      // The fixture has to actually exercise the keys for this to mean anything.
-      expect(innerNames.length).toBeGreaterThanOrEqual(readableKeys.size);
-
-      for (const name of innerNames) {
-        expect(readableKeys).toContain(name);
-      }
-    });
-
-    /*
-     * And the other direction: a key the server learns to read but the browser
-     * never sends is dead weight that looks like working code.
-     */
-    test("sends every click id the webhook allowlists", () => {
-      const harness: Harness = loadHarness(html, {
-        url: EVERY_PARAM_URL,
-        storedConsent: "true",
-      });
-
-      const metadata: Record<string, string> = harness.calMetadata();
+      const clickIds: Record<string, string> =
+        harness.getAttribution().clickIds;
 
       for (const clickIdKey of AdClickIdKeys) {
-        expect(metadata[`metadata[${clickIdKey}]`]).toBe(`${clickIdKey}-value`);
+        expect(clickIds[clickIdKey]).toBe(`${clickIdKey}-value`);
       }
     });
 
-    test("sends every UTM parameter the webhook allowlists", () => {
+    test("surfaces every UTM parameter the shared contract names", () => {
       const harness: Harness = loadHarness(html, {
         url: EVERY_PARAM_URL,
         storedConsent: "true",
       });
 
-      const metadata: Record<string, string> = harness.calMetadata();
+      const utm: Record<string, string> = harness.getAttribution().utm;
 
       for (const wireKey of Object.keys(UtmWireKeyToPropertyKey)) {
-        expect(metadata[`metadata[${wireKey}]`]).toBe(`${wireKey}-value`);
+        expect(utm[UtmWireKeyToPropertyKey[wireKey]!]).toBe(`${wireKey}-value`);
       }
-    });
-
-    test("is empty when there is nothing to attribute", () => {
-      const harness: Harness = loadHarness(html, {
-        url: "https://oneuptime.com/enterprise/demo",
-      });
-
-      expect(harness.calMetadata()).toEqual({});
-    });
-
-    test("carries the campaign even before the banner is answered", () => {
-      const harness: Harness = loadHarness(html, { url: AD_URL });
-
-      expect(harness.calMetadata()).toMatchObject({
-        "metadata[utm_campaign]": "enterprise-q3",
-        "metadata[gclid]": "abc123",
-      });
-    });
-
-    test("drops an oversized first touch rather than sending it", () => {
-      const harness: Harness = loadHarness(html, {
-        storedConsent: "true",
-        storedAttribution: {
-          firstTouch: JSON.stringify({ utmSource: "s".repeat(5000) }),
-          utmSource: "google",
-        },
-      });
-
-      const metadata: Record<string, string> = harness.calMetadata();
-
-      expect(metadata["metadata[ou_first_touch]"]).toBeUndefined();
-      // The rest still travels.
-      expect(metadata["metadata[utm_source]"]).toBe("google");
     });
   });
 

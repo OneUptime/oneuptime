@@ -206,14 +206,13 @@ describe("Attribution", () => {
    * -------------------------------------------------------------------------
    * sanitizeUtm
    *
-   * UTM values reach the server in two spellings from three unauthenticated
-   * doors: snake_case off a URL and out of Cal booking metadata, camelCase out
-   * of the signup form's JSON body. All of them write the same columns, so all
-   * of them read through here.
+   * UTM values reach the server in two spellings: snake_case off a URL, and
+   * camelCase out of the signup form's JSON body. Both write the same columns,
+   * so both read through here.
    * -------------------------------------------------------------------------
    */
   describe("sanitizeUtm", () => {
-    test("reads the snake_case spelling a URL and Cal metadata carry", () => {
+    test("reads the snake_case spelling a URL carries", () => {
       expect(
         Attribution.sanitizeUtm({
           utm_source: "google",

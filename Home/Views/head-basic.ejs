@@ -224,13 +224,11 @@
 </script>
 
 <!--
-    Canonical browser mirror of a booked meeting. The commercial record of a
-    booking is the MeetingBooked row the verified Cal webhook writes server
-    side (Docs/analytics/enterprise-conversion-tracking.md) - this is analytics
-    evidence of the same moment, so it carries no attendee details. Cal's
-    bookingSuccessful detail includes the attendee's name and email; never pass
-    it through. The legacy per-page PostHog event is emitted alongside so
-    existing dashboards keep their history.
+    Canonical browser record of a booked meeting
+    (Docs/analytics/enterprise-conversion-tracking.md). It carries no attendee
+    details: Cal's bookingSuccessful detail includes the attendee's name and
+    email, and none of it is passed through. The legacy per-page PostHog event
+    is emitted alongside so existing dashboards keep their history.
 -->
 <script>
     /*

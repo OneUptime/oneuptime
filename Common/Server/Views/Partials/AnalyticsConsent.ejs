@@ -28,9 +28,7 @@
     the home/-prefixed page view and CTA listeners. Those are Home's alone and
     stay in head-basic.ejs. Reporting on a captured touch is handed back to
     the page through window.oneUptimeOnAttributionCaptured for the same
-    reason. The Cal booking helper does live here: it is a pure reader over
-    the shared attribution store, and splitting it from the store it reads
-    would be worse than sharing an unused function definition.
+    reason.
 -%>
 <!--
     Consent.
@@ -168,9 +166,8 @@
 
 <!--
     Attribution capture (UTM parameters + ad platform click IDs), and the
-    readers that hand it on to the two places it has to reach: the signup form
-    (through localStorage, same origin) and a Cal.com booking (through the
-    embed's metadata).
+    reader that hands it on to the signup form (through localStorage, same
+    origin).
 
     STORAGE MODEL
 
@@ -210,9 +207,6 @@
 
         // Mirrors MaxAttributionValueLength on the server.
         var MAX_VALUE_LENGTH = 500;
-
-        // Mirrors MAX_FIRST_TOUCH_LENGTH in App/API/CalWebhook.ts.
-        var MAX_FIRST_TOUCH_LENGTH = 4000;
 
         // Attribution seen on this page but not yet allowed to be stored.
         var pending = null;
@@ -382,92 +376,6 @@
                 clickIds: clickIds,
                 firstTouch: firstTouch
             };
-        };
-
-        /*
-         * The same attribution, flattened into the scalar string map Cal.com
-         * accepts as booking metadata.
-         *
-         * Keys are the snake_case wire spelling the server parses in
-         * App/API/CalWebhook.ts. The first touch is a nested object, and Cal
-         * metadata values are scalars, so it travels as one JSON string under
-         * ou_first_touch — which is exactly what the webhook expects to parse.
-         *
-         * Returns {} when there is nothing to attribute, so a caller can spread
-         * it unconditionally without sending an empty metadata bag.
-         */
-        /*
-         * `bookingKind` says which conversation this embed books. All three
-         * embeds use the same Cal event type, so without it the webhook cannot
-         * tell a support call from an enterprise demo. It travels in the same
-         * bracketed metadata bag as the attribution and is read back by
-         * App/API/CalWebhook.ts, which allowlists the value.
-         */
-        window.oneUptimeCalAttributionMetadata = function (bookingKind) {
-            var attribution = window.oneUptimeGetAttribution();
-            var config = {};
-
-            /*
-             * Cal takes booking metadata as FLAT, BRACKETED keys on the embed
-             * config — `metadata[utm_source]` — and hands them back on the
-             * webhook as payload.metadata.utm_source.
-             *
-             * Not as a nested `metadata: { utm_source: ... }` object. Cal
-             * serialises each config value into a query parameter, so a nested
-             * object becomes the string "[object Object]" and every key inside
-             * it is lost. Nothing errors; bookings keep being recorded, they
-             * just arrive attributable to nothing — which is precisely the bug
-             * this whole path exists to fix, so getting the shape wrong here
-             * would have been indistinguishable from not having done the work.
-             *
-             * https://cal.com/help/embedding/prefill-booking-form-embed
-             */
-            function put(key, value, maxLength) {
-                if (value) {
-                    config['metadata[' + key + ']'] =
-                        String(value).slice(0, maxLength || MAX_VALUE_LENGTH);
-                }
-            }
-
-            Object.keys(UTM_KEY_MAP).forEach(function (param) {
-                put(param, attribution.utm[UTM_KEY_MAP[param]]);
-            });
-
-            put('utm_url', attribution.utm.utmUrl);
-
-            Object.keys(attribution.clickIds).forEach(function (param) {
-                put(param, attribution.clickIds[param]);
-            });
-
-            if (attribution.firstTouch) {
-                var serialized = JSON.stringify(attribution.firstTouch);
-                /*
-                 * The first touch is JSON, so it gets the JSON bound, NOT the
-                 * 500-char per-value one. A realistic first touch — five UTM
-                 * values, a click id, and a landing URL that repeats them all
-                 * as query parameters — runs past 500 characters easily, and
-                 * truncating JSON produces a string the webhook's JSON.parse
-                 * rejects. It would drop the whole first touch, silently.
-                 *
-                 * Mirrors MAX_FIRST_TOUCH_LENGTH in App/API/CalWebhook.ts.
-                 */
-                if (serialized.length <= MAX_FIRST_TOUCH_LENGTH) {
-                    put('ou_first_touch', serialized, MAX_FIRST_TOUCH_LENGTH);
-                }
-            }
-
-            /*
-             * Unconditional, unlike everything above it. The attribution keys
-             * describe the visitor and are absent when there is nothing to say
-             * about them; the booking kind describes the embed, which always
-             * knows what it is. A booking from a visitor who refused
-             * attribution storage still arrives knowing it was a demo.
-             */
-            if (bookingKind) {
-                config['metadata[ou_booking_kind]'] = String(bookingKind).slice(0, MAX_VALUE_LENGTH);
-            }
-
-            return config;
         };
 
         var touch = readTouchFromUrl();

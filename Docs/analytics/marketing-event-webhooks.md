@@ -1,6 +1,6 @@
 # Marketing event webhooks
 
-OneUptime does not store marketing conversions. The six moments worth
+OneUptime does not store marketing conversions. The five moments worth
 measuring are POSTed to one endpoint as they happen and kept nowhere
 afterwards. This document is the payload contract.
 
@@ -48,9 +48,7 @@ not measured.
 **Verify over the raw bytes.** JSON parsed and re-serialised is not equivalent:
 whitespace, key order and escaping all change the digest. OneUptime serialises
 the body once and signs that exact string, so your receiver must compute its
-digest over the bytes it received, before any parsing. This is the same scheme
-OneUptime verifies on the way in from Cal.com, deliberately — one thing to
-understand rather than two.
+digest over the bytes it received, before any parsing.
 
 Node example:
 
@@ -94,8 +92,8 @@ Every event has the same shape:
 ```json
 {
   "schemaVersion": 1,
-  "eventId": "meeting_booked:cal-booking-abc123",
-  "eventType": "meeting_booked",
+  "eventId": "sign_up:0195f2c1-aaaa-bbbb-cccc-ddddeeeeffff",
+  "eventType": "sign_up",
   "occurredAt": "2026-08-24T09:14:22.187Z",
   "email": "buyer@acme.com",
   "emailHash": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
@@ -120,7 +118,7 @@ Every event has the same shape:
 | --------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `schemaVersion` | number  | Currently `1`. Additive property changes keep the version; a change to what an existing field _means_ raises it.              |
 | `eventId`       | string  | Stable per real-world occurrence. **This is your deduplication key.**                                                         |
-| `eventType`     | string  | One of the six below.                                                                                                         |
+| `eventType`     | string  | One of the five below.                                                                                                        |
 | `occurredAt`    | string  | ISO 8601 UTC. When the conversion happened, not when it was sent.                                                             |
 | `email`         | string? | Plaintext address. Absent when OneUptime has none.                                                                            |
 | `emailHash`     | string? | SHA-256 hex of the trimmed, lowercased address.                                                                               |
@@ -133,9 +131,8 @@ Every event has the same shape:
 occurrence. A signup and a plan change seconds apart may arrive in either
 order. Order by `occurredAt`, never by arrival time.
 
-**Chains.** OneUptime no longer joins a booked meeting to the signup it
-produced — that was the ledger's job. Join on `emailHash` (or `email`)
-yourself. The normalisation is trim + lowercase before SHA-256, with no
+**Chains.** OneUptime no longer joins one person's conversions to each other —
+that was the ledger's job. Join on `emailHash` (or `email`) yourself. The normalisation is trim + lowercase before SHA-256, with no
 gmail dot/plus folding, so hash your own records exactly that way.
 
 ## Events
@@ -158,42 +155,6 @@ A user account was created.
 `hasPassword` separates a direct signup (`true`) from a user created by a team
 invite (`false`). Both are real users; only one is an acquisition. This is
 reported rather than filtered so you decide which you care about.
-
-### `meeting_booked`
-
-A Cal.com booking was created and its signature verified.
-
-- **eventId**: `meeting_booked:{calBookingUid}`.
-- **occurredAt**: when the booking was **made**.
-- **attribution**: read out of the Cal booking metadata the demo embed carried.
-
-```json
-"data": {
-  "calBookingId": "cal-booking-abc123",
-  "meetingStartsAt": "2026-09-02T15:00:00.000Z",
-  "bookingKind": "enterprise_demo"
-}
-```
-
-`bookingKind` is one of `enterprise_demo`, `support_call`,
-`architecture_assessment` or `unknown`. All three embeds book the same Cal
-event type, so without it a free user's support call and a net-new enterprise
-demo arrive as the same conversion — which matters the moment anything bids on
-or reports against the count.
-
-It is an allowlist on the way in. Cal metadata is free-form customer content
-reachable by an unauthenticated caller, so an unrecognised value becomes
-`unknown` rather than travelling onward. `unknown` is also the honest answer
-for a booking made through a Cal link that was never one of the instrumented
-embeds; that is still a booking and is still emitted.
-
-Note the two timestamps are different things. `occurredAt` is when the person
-booked; `meetingStartsAt` is when the meeting happens and is normally in the
-future. The old ledger conflated them, which meant someone who booked on Monday
-for a Friday meeting and signed up on Tuesday looked like they signed up first.
-
-Only `BOOKING_CREATED` produces this event. Reschedules and cancellations do
-not.
 
 ### `subscription_started`
 
@@ -295,10 +256,11 @@ exists at all.
 **How this gets attributed.** `EnterpriseLicense.email` is set by whoever
 issues the licence in the admin dashboard, and the instruction is to set it to
 the address the customer booked their meeting with. That is what makes this
-event joinable: it shares an `emailHash` with the `meeting_booked` that preceded
-it, often by months, and the campaign on that booking is the campaign that won
-the deal. If the field is left blank the event still fires — a licence issued is
-worth knowing about either way — but it will attribute to nothing.
+event joinable: it shares an `emailHash` with whatever else that address did,
+often months earlier, and the campaign on that earlier conversion is the
+campaign that won the deal. If the field is left blank the event still fires — a
+licence issued is worth knowing about either way — but it will attribute to
+nothing.
 
 `annualContractValueInUSD` and `userLimit` are `null` when unset, never `0`.
 Defaulting them to zero would quietly drag reported contract value down.
@@ -314,9 +276,15 @@ Defaulting them to zero would quietly drag reported contract value down.
 
 ## What is deliberately not here
 
-**No conversion values on `sign_up` or `meeting_booked`.** A signup is not
-money and a booked meeting is not money. Attaching a number to either would
-make revenue reporting wrong in the direction that flatters it.
+**No conversion value on `sign_up`.** A signup is not money. Attaching a number
+to it would make revenue reporting wrong in the direction that flatters it.
+
+**No `meeting_booked`.** A booked demo was once emitted here, sourced from a
+signature-verified Cal.com `BOOKING_CREATED` webhook. That endpoint has been
+removed, so no booking event is emitted at all — bookings are visible in Cal.com
+itself, and on the marketing site's own browser analytics
+(Docs/analytics/enterprise-conversion-tracking.md), neither of which feeds this
+pipeline.
 
 **No revision of a value already sent.** `subscription_upgraded` reports MRR at
 the moment of the change. A customer who later expands from one seat to ten

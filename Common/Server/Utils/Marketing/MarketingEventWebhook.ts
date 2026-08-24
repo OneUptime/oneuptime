@@ -12,8 +12,8 @@ const REQUEST_TIMEOUT_MS: number = 15000;
 /*
  * Delivers marketing conversion events to one operator-configured endpoint.
  *
- * OneUptime keeps no conversion ledger, so this is the only exit for a signup,
- * a booked meeting or a plan change. That has one consequence worth stating
+ * OneUptime keeps no conversion ledger, so this is the only exit for a signup
+ * or a plan change. That has one consequence worth stating
  * plainly: a delivery this class gives up on is gone, because there is no row
  * anywhere to reconcile against later. deliver() therefore THROWS on anything
  * that might succeed on a retry, and the queue is what retries it.
@@ -21,9 +21,8 @@ const REQUEST_TIMEOUT_MS: number = 15000;
  * SIGNING
  *
  * The signature is HMAC-SHA256 over the exact request body bytes, hex encoded,
- * in `x-oneuptime-signature-256`. This is the same scheme OneUptime verifies
- * on the way in from Cal, deliberately: one thing to understand rather than
- * two. The receiver must compute its digest over the raw bytes it received —
+ * in `x-oneuptime-signature-256`. The receiver must compute its digest over
+ * the raw bytes it received —
  * JSON parsed and re-serialised is NOT equivalent, because whitespace, key
  * order and escaping all change the digest.
  *
