@@ -715,7 +715,24 @@ const Detail: DetailFunction = <T extends GenericObject>(
     }
 
     if (field.getElement) {
-      data = field.getElement(props.item);
+      /*
+       * getField runs inside Detail's own render, so a throw out of a field
+       * renderer unwinds the whole route to the app level ErrorBoundary and
+       * replaces the page with "Something went wrong". One misbehaving field
+       * must never cost the entire page: log the misconfiguration and keep
+       * whatever this field type already rendered - the entity badge, or ""
+       * so the placeholder below can stand in.
+       */
+      try {
+        data = field.getElement(props.item);
+      } catch (err) {
+        Logger.error(
+          "Detail: getElement for '" +
+            fieldKeyStr +
+            "' threw and was ignored. " +
+            (err instanceof Error ? err.message : String(err)),
+        );
+      }
     }
 
     let className: string = "sm:col-span-1";

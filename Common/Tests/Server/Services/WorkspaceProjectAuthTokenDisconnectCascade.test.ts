@@ -36,9 +36,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const OTHER_PROJECT_ID: ObjectID = new ObjectID(
   "22222222-2222-4222-8222-222222222222",
 );
-const TOKEN_ID: ObjectID = new ObjectID(
-  "33333333-3333-4333-8333-333333333333",
-);
+const TOKEN_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
 
 type OnBeforeDeleteFunction = (deleteBy: {
   query: Record<string, unknown>;
@@ -145,12 +143,11 @@ describe("WorkspaceProjectAuthTokenService.onBeforeDelete - workspace disconnect
     });
 
     expect(deleteUserTokens).toHaveBeenCalledTimes(2);
-    const workspaceTypes: Array<WorkspaceType> = deleteUserTokens.mock.calls.map(
-      (call: Array<unknown>) => {
+    const workspaceTypes: Array<WorkspaceType> =
+      deleteUserTokens.mock.calls.map((call: Array<unknown>) => {
         return (call[0] as { query: { workspaceType: WorkspaceType } }).query
           .workspaceType;
-      },
-    );
+      });
     expect(workspaceTypes).toContain(WorkspaceType.Slack);
     expect(workspaceTypes).toContain(WorkspaceType.MicrosoftTeams);
   });

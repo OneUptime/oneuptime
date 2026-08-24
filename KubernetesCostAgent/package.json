@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/kubernetes-cost-agent",
-  "version": "12.0.18",
+  "version": "12.0.20",
   "description": "OneUptime Kubernetes cost agent — polls an in-cluster cost engine's Allocation API (OpenCost / Kubecost cost-model) and ships pre-priced workload cost allocations to OneUptime.",
   "repository": {
     "type": "git",

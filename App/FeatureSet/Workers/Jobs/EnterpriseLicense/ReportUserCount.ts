@@ -20,9 +20,10 @@ import Crypto from "Common/Utils/Crypto";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
-import EnterpriseLicenseInstanceSummary from "Common/Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
+import EnterpriseLicenseSyncUtil, {
+  EnterpriseLicenseSyncResult,
+} from "Common/Utils/EnterpriseLicense/EnterpriseLicenseSync";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import PartialEntity from "Common/Types/Database/PartialEntity";
 import logger from "Common/Server/Utils/Logger";
 
 type GetUserEmailHashesFunction = () => Promise<Array<string>>;
@@ -214,54 +215,56 @@ RunCron(
     const payload: JSONObject = (response.data as JSONObject) || {};
 
     /*
-     * The license server responds with the user count deduplicated across
-     * all instances that share this license, plus the instance list — store
-     * both so the license modal can show them. If the response has no valid
-     * count, keep whatever we had rather than storing a local-only count as
-     * if it were the cross-instance aggregate.
+     * The response is a full picture of the license as oneuptime.com knows it
+     * right now - the seat limit, the expiry, the company name, the
+     * evaluation flag, the deduplicated user count across every instance
+     * sharing this key, and the instance list. Mirroring all of it is what
+     * makes this daily call the thing that keeps a self-hosted installation
+     * current: before it did, buying seats or renewing on oneuptime.com only
+     * reached the customer when somebody re-typed the license key by hand.
+     *
+     * The mapper is deliberately conservative - a field the server did not
+     * send leaves the stored column alone - so an installation upgraded ahead
+     * of oneuptime.com cannot have its license blanked by the fields the older
+     * server has never heard of.
      */
-    const aggregatedUserCountRaw: unknown = payload["currentUserCount"];
+    const sync: EnterpriseLicenseSyncResult =
+      EnterpriseLicenseSyncUtil.getGlobalConfigUpdateFromLicenseResponse({
+        payload: payload,
+        reportedAt: reportedAt,
+      });
 
-    if (
-      typeof aggregatedUserCountRaw !== "number" ||
-      !Number.isFinite(aggregatedUserCountRaw)
-    ) {
+    for (const warning of sync.warnings) {
+      logger.error(`EnterpriseLicense:ReportUserCount: ${warning}`);
+    }
+
+    if (Object.keys(sync.updateData).length === 0) {
       logger.error(
-        "EnterpriseLicense:ReportUserCount: License server did not return a valid currentUserCount. Keeping previously stored usage.",
+        "EnterpriseLicense:ReportUserCount: The license server returned nothing this build could store. Keeping the previously stored license state.",
       );
       return;
     }
 
-    const aggregatedUserCount: number = aggregatedUserCountRaw;
-
-    const updateData: PartialEntity<GlobalConfig> = {
-      enterpriseLicenseCurrentUserCount: aggregatedUserCount,
-      enterpriseLicenseUserCountUpdatedAt: reportedAt,
-      /*
-       * Kept in sync on every report so that flipping a license to (or from)
-       * evaluation on oneuptime.com reaches the customer's modal within a day,
-       * rather than only when they next re-validate the key.
-       */
-      enterpriseLicenseIsEvaluation: payload["isEvaluationLicense"] === true,
-    };
-
-    if (Array.isArray(payload["instances"])) {
-      updateData.enterpriseLicenseInstances = payload[
-        "instances"
-      ] as Array<EnterpriseLicenseInstanceSummary>;
-    }
-
     await GlobalConfigService.updateOneById({
       id: ObjectID.getZeroObjectID(),
-      data: updateData,
+      data: sync.updateData,
       props: {
         isRoot: true,
         ignoreHooks: true,
       },
     });
 
+    const aggregatedUserCount: number | null | undefined = sync.updateData
+      .enterpriseLicenseCurrentUserCount as number | null | undefined;
+
     logger.debug(
-      `EnterpriseLicense:ReportUserCount: Reported ${userEmailHashes.length} users on this instance to OneUptime. Unique users across all instances: ${aggregatedUserCount}.`,
+      `EnterpriseLicense:ReportUserCount: Reported ${
+        userEmailHashes.length
+      } users on this instance to OneUptime. Unique users across all instances: ${
+        typeof aggregatedUserCount === "number"
+          ? aggregatedUserCount
+          : "unchanged"
+      }.`,
     );
   },
 );

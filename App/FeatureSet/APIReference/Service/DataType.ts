@@ -1,4 +1,4 @@
-import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import { GoogleTagManagerEnabled } from "Common/Server/EnvironmentConfig";
 import { CodeExamplesPath, ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import DataTypeUtil, { DataTypeDocumentation } from "../Utils/DataTypes";
@@ -153,7 +153,7 @@ export default class ServiceHandler {
     return res.render(`${ViewsPath}/pages/index`, {
       page: "data-types",
       pageTitle: ctx.t("pages.dataTypesGuide.metaTitle"),
-      enableGoogleTagManager: IsBillingEnabled,
+      enableGoogleTagManager: GoogleTagManagerEnabled,
       pageDescription: ctx.t("pages.dataTypesGuide.metaDescription"),
       resources: Resources,
       dataTypes: DataTypes,

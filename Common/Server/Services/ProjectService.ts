@@ -898,6 +898,98 @@ These are no longer recorded against the project and have to be cancelled by han
   }
 
   /*
+   * The first-subscription conversion.
+   *
+   * A project created directly on a paid plan never passes through changePlan,
+   * so the plan-change pass below never sees it — and could not report it if
+   * it did, because direction is decided by plan ORDER and a first plan has no
+   * previous tier to compare against. That left the most bid-worthy self-serve
+   * conversion there is emitting nothing at all: a visitor could click an ad,
+   * sign up, pick Growth and pay, and no channel carried a single event.
+   *
+   * It is its own event rather than an upgrade with an empty old_plan because
+   * this is new business and an upgrade is expansion. Mixing them is a
+   * distinction nothing downstream could restore.
+   *
+   * Free projects reach here too — a project on the free plan is still
+   * subscribed at the payment provider — so the paid check is what keeps this
+   * a revenue event.
+   */
+  private captureSubscriptionStartedAnalytics(data: {
+    project: Model;
+    plan: SubscriptionPlan;
+    planId: string;
+    seats: number;
+  }): void {
+    if (!data.project.createdOwnerEmail) {
+      return;
+    }
+
+    // Per-month amount, or null when unknown (custom pricing / unknown plan).
+    const monthlyAmountInUSD: number | null = data.plan.isCustomPricing()
+      ? null
+      : data.plan.getYearlyPlanId() === data.planId
+        ? data.plan.getYearlySubscriptionAmountInUSD()
+        : data.plan.getMonthlySubscriptionAmountInUSD();
+
+    const planIsPaid: boolean =
+      data.plan.isCustomPricing() ||
+      (monthlyAmountInUSD !== null && monthlyAmountInUSD > 0);
+
+    if (!planIsPaid) {
+      return;
+    }
+
+    const properties: JSONObject = {
+      project_id: data.project.id?.toString() || "",
+      new_plan: data.plan.getName(),
+      seats: data.seats,
+      /*
+       * Always true. The project went straight from not existing to paying,
+       * which is the acquisition this event exists to report.
+       */
+      is_paid_conversion: true,
+      has_custom_pricing: data.plan.isCustomPricing(),
+      utm_source: data.project.utmSource || "",
+      utm_medium: data.project.utmMedium || "",
+      utm_campaign: data.project.utmCampaign || "",
+      utm_term: data.project.utmTerm || "",
+      utm_content: data.project.utmContent || "",
+      click_ids: data.project.clickIds || {},
+    };
+
+    if (monthlyAmountInUSD !== null) {
+      properties["new_monthly_amount_in_usd"] = monthlyAmountInUSD;
+      // Value for ROAS reporting: monthly recurring revenue at the start.
+      properties["value"] = monthlyAmountInUSD * data.seats;
+      properties["currency"] = "USD";
+    }
+
+    ProductAnalytics.capture({
+      event: "server/subscription_started",
+      distinctId: data.project.createdOwnerEmail.toString(),
+      properties: properties,
+    });
+
+    MarketingEventUtil.emitInBackground(
+      MarketingEventUtil.buildEvent({
+        eventType: MarketingEventType.SubscriptionStarted,
+        /*
+         * Naturally unique: a project has exactly one first subscription, so a
+         * queue retry carries the identical id and the receiver dedupes it.
+         * Unlike a plan change, this needs no timestamp to separate it from
+         * the next one — there is no next one.
+         */
+        eventId: `${MarketingEventType.SubscriptionStarted}:${data.project.id?.toString()}`,
+        occurredAt: data.project.createdAt || new Date(),
+        email: data.project.createdOwnerEmail.toString(),
+        attributionSource: data.project,
+        data: properties,
+      }),
+    );
+  }
+
+  /*
    * The paid-conversion event for ad platforms: fires server-side (immune to
    * ad blockers) whenever a project's subscription plan changes, with enough
    * detail (plan amounts, attribution) for revenue reporting and offline
@@ -1284,6 +1376,18 @@ These are no longer recorded against the project and have to be cancelled by han
         props: {
           isRoot: true,
         },
+      });
+
+      /*
+       * Raised after the row is written, mirroring changePlan: the write is
+       * what makes the subscription real to OneUptime, and the conversion
+       * describes a subscription that exists.
+       */
+      this.captureSubscriptionStartedAnalytics({
+        project: createdItem,
+        plan: plan,
+        planId: createdItem.paymentProviderPlanId!,
+        seats: 1,
       });
 
       // mark the promo code as used it it exists.
