@@ -396,7 +396,14 @@
          * Returns {} when there is nothing to attribute, so a caller can spread
          * it unconditionally without sending an empty metadata bag.
          */
-        window.oneUptimeCalAttributionMetadata = function () {
+        /*
+         * `bookingKind` says which conversation this embed books. All three
+         * embeds use the same Cal event type, so without it the webhook cannot
+         * tell a support call from an enterprise demo. It travels in the same
+         * bracketed metadata bag as the attribution and is read back by
+         * App/API/CalWebhook.ts, which allowlists the value.
+         */
+        window.oneUptimeCalAttributionMetadata = function (bookingKind) {
             var attribution = window.oneUptimeGetAttribution();
             var config = {};
 
@@ -447,6 +454,17 @@
                 if (serialized.length <= MAX_FIRST_TOUCH_LENGTH) {
                     put('ou_first_touch', serialized, MAX_FIRST_TOUCH_LENGTH);
                 }
+            }
+
+            /*
+             * Unconditional, unlike everything above it. The attribution keys
+             * describe the visitor and are absent when there is nothing to say
+             * about them; the booking kind describes the embed, which always
+             * knows what it is. A booking from a visitor who refused
+             * attribution storage still arrives knowing it was a demo.
+             */
+            if (bookingKind) {
+                config['metadata[ou_booking_kind]'] = String(bookingKind).slice(0, MAX_VALUE_LENGTH);
             }
 
             return config;

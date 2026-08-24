@@ -57,7 +57,7 @@ To build it by hand instead:
   **matches RegEx**:
 
   ```
-  ^(signup_started|sign_up|workspace_created|monitor_created|teammate_invited|subscription_started|subscription_upgraded|subscription_downgraded|meeting_booked|cta_get_started|cta_request_demo|page_view_pricing|page_view_demo)$
+  ^(signup_started|sign_up|workspace_created|monitor_created|teammate_invited|subscription_started|subscription_upgraded|subscription_downgraded|meeting_booked|cta_get_started|cta_request_demo|cta_request_compliance_docs|page_view_pricing|page_view_demo)$
   ```
 
 - **Tag** — `GA4 - OneUptime Key Events`, type Google Analytics: GA4 Event,

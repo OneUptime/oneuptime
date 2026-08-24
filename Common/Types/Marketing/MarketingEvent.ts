@@ -50,6 +50,39 @@ export enum MarketingEventType {
   EnterpriseLicenseIssued = "enterprise_license_issued",
 }
 
+/*
+ * Which conversation a booked meeting actually is.
+ *
+ * All three Cal embeds book the same event type (oneuptimehq/demo), so without
+ * this the webhook cannot tell a free user's support call from a net-new
+ * enterprise demo — they arrive as one undifferentiated `meeting_booked`, and
+ * anything bidding on or reporting against that count values them identically.
+ *
+ * The browser event has carried this since the embeds were instrumented; the
+ * webhook did not, which meant the authoritative record was the one that could
+ * not make the distinction.
+ *
+ * `Unknown` is a real state, not a failure: a booking made through a Cal link
+ * that was not one of the instrumented embeds genuinely has no kind, and is
+ * still a booking worth emitting.
+ */
+export enum MeetingBookingKind {
+  EnterpriseDemo = "enterprise_demo",
+  SupportCall = "support_call",
+  ArchitectureAssessment = "architecture_assessment",
+  Unknown = "unknown",
+}
+
+/*
+ * The Cal booking-metadata key the embeds write and the webhook reads. Shared
+ * so a rename cannot land on one side only - the failure mode there is silent,
+ * because a booking with no recognised kind still succeeds.
+ */
+export const BOOKING_KIND_METADATA_KEY: string = "ou_booking_kind";
+
+export const MeetingBookingKinds: Array<string> =
+  Object.values(MeetingBookingKind);
+
 export const MARKETING_EVENT_SCHEMA_VERSION: number = 1;
 
 /*

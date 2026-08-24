@@ -236,7 +236,7 @@
               {
                 "type": "TEMPLATE",
                 "key": "arg1",
-                "value": "^(signup_started|sign_up|workspace_created|monitor_created|teammate_invited|subscription_started|subscription_upgraded|subscription_downgraded|meeting_booked|cta_get_started|cta_request_demo|page_view_pricing|page_view_demo)$"
+                "value": "^(signup_started|sign_up|workspace_created|monitor_created|teammate_invited|subscription_started|subscription_upgraded|subscription_downgraded|meeting_booked|cta_get_started|cta_request_demo|cta_request_compliance_docs|page_view_pricing|page_view_demo)$"
               }
             ]
           }

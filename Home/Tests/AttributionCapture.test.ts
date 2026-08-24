@@ -174,7 +174,7 @@ interface AttributionSnapshot {
 interface Harness {
   consent: ConsentApi;
   getAttribution: () => AttributionSnapshot;
-  calMetadata: () => Record<string, string>;
+  calMetadata: (bookingKind?: string) => Record<string, string>;
   storage: FakeStorage;
   dataLayer: Array<unknown>;
   posthogCalls: Array<[string, Record<string, unknown>]>;
@@ -327,11 +327,11 @@ const loadHarness: LoadHarnessFunction = (
   const exposed: {
     consent: ConsentApi;
     getAttribution: () => AttributionSnapshot;
-    calMetadata: () => Record<string, string>;
+    calMetadata: (bookingKind?: string) => Record<string, string>;
   } = build(fakeWindow, fakeDocument, dataLayer, posthog, URLSearchParams) as {
     consent: ConsentApi;
     getAttribution: () => AttributionSnapshot;
-    calMetadata: () => Record<string, string>;
+    calMetadata: (bookingKind?: string) => Record<string, string>;
   };
 
   return {
@@ -415,7 +415,9 @@ describe("attribution capture and consent", () => {
       const embedBlock: string = html.slice(embedIndex, embedIndex + 500);
 
       expect(embedBlock).toContain("config:");
-      expect(embedBlock).toContain("window.oneUptimeCalAttributionMetadata()");
+      expect(embedBlock).toContain(
+        "window.oneUptimeCalAttributionMetadata('enterprise_demo')",
+      );
       /*
        * Passed AS the config, not nested under a `metadata` key inside it —
        * the helper already returns Cal's bracketed metadata[...] keys, and
@@ -431,12 +433,20 @@ describe("attribution capture and consent", () => {
      * somebody reads the ledger months later.
      */
     test.each([
-      ["demo.ejs", "my-cal-inline"],
-      ["support.ejs", "my-cal-inline-support"],
-      ["self-hosted.ejs", "my-cal-inline-self-hosted"],
+      ["demo.ejs", "my-cal-inline", "enterprise_demo"],
+      ["support.ejs", "my-cal-inline-support", "support_call"],
+      [
+        "self-hosted.ejs",
+        "my-cal-inline-self-hosted",
+        "architecture_assessment",
+      ],
     ])(
       "%s carries attribution into its booking",
-      async (templateFileName: string, elementId: string) => {
+      async (
+        templateFileName: string,
+        elementId: string,
+        bookingKind: string,
+      ) => {
         const pageHtml: string = await renderBookingPage(templateFileName);
         const embedIndex: number = pageHtml.indexOf(
           `elementOrSelector: "#${elementId}"`,
@@ -447,7 +457,7 @@ describe("attribution capture and consent", () => {
         const embedBlock: string = pageHtml.slice(embedIndex, embedIndex + 500);
 
         expect(embedBlock).toContain(
-          "window.oneUptimeCalAttributionMetadata()",
+          `window.oneUptimeCalAttributionMetadata('${bookingKind}')`,
         );
       },
     );
