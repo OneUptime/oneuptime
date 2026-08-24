@@ -33,6 +33,14 @@ import React, {
 } from "react";
 import UserElement from "../../../Components/User/User";
 import ChangeEpisodeState from "../../../Components/IncidentEpisode/ChangeState";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import TelemetrySnapshotPanel from "../../../Components/Telemetry/TelemetrySnapshotPanel";
+import {
+  DerivedTelemetrySnapshot,
+  EMPTY_TELEMETRY_SNAPSHOT,
+  deriveTelemetrySnapshot,
+} from "../../../Utils/TelemetrySnapshot";
+import { JSONObject } from "Common/Types/JSON";
 
 const IncidentEpisodeView: FunctionComponent<
   PageComponentProps
@@ -47,9 +55,43 @@ const IncidentEpisodeView: FunctionComponent<
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
+  /*
+   * Telemetry snapshot of the episode's FIRST member incident (earliest
+   * declared): episodes group many incidents from one root cause, so the
+   * first member's evaluation window is the "what kicked this off" view.
+   */
+  const [telemetrySnapshot, setTelemetrySnapshot] =
+    useState<DerivedTelemetrySnapshot>(EMPTY_TELEMETRY_SNAPSHOT);
+
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     try {
       setIsLoading(true);
+
+      const memberIncidents: ListResult<Incident> = await ModelAPI.getList({
+        modelType: Incident,
+        query: {
+          incidentEpisodeId: modelId,
+        },
+        limit: 1,
+        skip: 0,
+        select: {
+          _id: true,
+          telemetryQuery: true,
+          seriesLabels: true,
+        },
+        sort: {
+          declaredAt: SortOrder.Ascending,
+        },
+      });
+
+      const firstMember: Incident | undefined = memberIncidents.data[0];
+
+      setTelemetrySnapshot(
+        deriveTelemetrySnapshot({
+          storedTelemetryQuery: firstMember?.telemetryQuery,
+          seriesLabels: firstMember?.seriesLabels as JSONObject | undefined,
+        }),
+      );
 
       const episodeTimelines: ListResult<IncidentEpisodeStateTimeline> =
         await ModelAPI.getList({
@@ -481,6 +523,17 @@ const IncidentEpisodeView: FunctionComponent<
           className="w-1/2"
         />
       </div>
+
+      {telemetrySnapshot.telemetryQuery && (
+        <div className="mb-5">
+          <TelemetrySnapshotPanel
+            telemetryQuery={telemetrySnapshot.telemetryQuery}
+            snapshotWindow={telemetrySnapshot.snapshotWindow}
+            seriesSummary={telemetrySnapshot.seriesSummary}
+            eventNoun="incident"
+          />
+        </div>
+      )}
 
       <IncidentEpisodeFeedElement incidentEpisodeId={modelId} />
     </Fragment>

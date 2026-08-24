@@ -46,12 +46,17 @@ export function prepareTooltipEntries<T extends SortableTooltipItem>(
   maxEntries: number = DEFAULT_TOOLTIP_MAX_ENTRIES,
 ): PreparedTooltipEntries<T> {
   /*
-   * `type === "none"` entries are series excluded from legends/tooltips
-   * (recharts tooltipType) — every chart filtered them before this
-   * module existed, so the filter lives here now to stay uniform.
+   * Two kinds of non-series entries are excluded:
+   *  - `type === "none"` (recharts tooltipType) — series explicitly
+   *    excluded from tooltips; every chart filtered these before this
+   *    module existed, so the filter lives here now to stay uniform.
+   *  - Array values — the anomaly band's range Area yields a
+   *    [low, high] tuple per point; it is a shaded region, not a series
+   *    reading, so it must neither render as a row nor count toward the
+   *    "+N more series" overflow.
    */
   const visibleEntries: Array<T> = (payload || []).filter((item: T) => {
-    return item.type !== "none";
+    return item.type !== "none" && !Array.isArray(item.value);
   });
 
   const sortedEntries: Array<T> = visibleEntries

@@ -400,6 +400,88 @@ export const resolveServiceIdsByNames: ResolveServiceIdsByNamesFunction =
     }
   };
 
+/*
+ * Mirror of resolveServiceIdsByNames for the opposite direction: Service
+ * ObjectID strings -> names (the `resource.service.name` value the metric
+ * store filters on). Same cache-successes-only, empty-on-failure posture.
+ */
+const serviceNamesByIdCache: Map<string, Dictionary<string>> = new Map<
+  string,
+  Dictionary<string>
+>();
+
+type ResolveServiceNamesByIdsFunction = (
+  serviceIds: Array<string>,
+) => Promise<Dictionary<string>>;
+
+export const resolveServiceNamesByIds: ResolveServiceNamesByIdsFunction =
+  async (serviceIds: Array<string>): Promise<Dictionary<string>> => {
+    const uniqueIds: Array<string> = [];
+
+    for (const serviceId of serviceIds || []) {
+      if (
+        typeof serviceId === "string" &&
+        serviceId.trim() !== "" &&
+        !uniqueIds.includes(serviceId)
+      ) {
+        uniqueIds.push(serviceId);
+      }
+    }
+
+    if (uniqueIds.length === 0) {
+      return {};
+    }
+
+    const cacheKey: string = JSON.stringify([...uniqueIds].sort());
+    const cached: Dictionary<string> | undefined =
+      serviceNamesByIdCache.get(cacheKey);
+
+    if (cached) {
+      return cached;
+    }
+
+    try {
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+      if (!projectId) {
+        return {};
+      }
+
+      const query: Query<Service> = { projectId: projectId } as Query<Service>;
+      (query as Record<string, unknown>)["_id"] = new Includes(uniqueIds);
+
+      const result: ListResult<Service> = await ModelAPI.getList<Service>({
+        modelType: Service,
+        query: query,
+        select: {
+          _id: true,
+          name: true,
+        },
+        sort: {
+          name: SortOrder.Ascending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
+
+      const mapping: Dictionary<string> = {};
+
+      for (const service of result.data || []) {
+        const name: string = service.name?.toString() || "";
+        const id: string = service.id?.toString() || "";
+        if (name !== "" && id !== "") {
+          mapping[id] = name;
+        }
+      }
+
+      serviceNamesByIdCache.set(cacheKey, mapping);
+
+      return mapping;
+    } catch {
+      return {};
+    }
+  };
+
 export type CrossSignalPivotTarget = "logs" | "traces";
 
 type BuildMetricExplorerPivotParamsFunction = (input: {

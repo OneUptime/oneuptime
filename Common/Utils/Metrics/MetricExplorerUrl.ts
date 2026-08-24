@@ -1,4 +1,5 @@
 import Dictionary from "../../Types/Dictionary";
+import Includes from "../../Types/BaseDatabase/Includes";
 import JSONFunctions from "../../Types/JSONFunctions";
 import OneUptimeDate from "../../Types/Date";
 import MetricFormulaConfigData from "../../Types/Metrics/MetricFormulaConfigData";
@@ -32,6 +33,15 @@ export enum MetricExplorerUrlParam {
    * (which never had a range param) keep working as pinned windows.
    */
   Range = "range",
+  /*
+   * One-shot service scope: a JSON array of Service ObjectID strings,
+   * emitted by cross-signal pivots (logs/traces -> metrics). The explorer
+   * resolves the ids to service names on load, folds them into every
+   * query's `resource.service.name` attribute filter (the metric store's
+   * service dimension), and then DELETES the param on its next write-back
+   * — the scope lives on as ordinary, user-editable attribute filters.
+   */
+  Services = "services",
 }
 
 export interface SerializedMetricQueryAlias {
@@ -60,7 +70,7 @@ export interface SerializedMetricQuery {
    * lettering (a, b, ...).
    */
   variable?: string | undefined;
-  attributes?: Dictionary<string | number | boolean> | undefined;
+  attributes?: Dictionary<SerializedMetricAttributeValue> | undefined;
   aggregationType?: MetricsAggregationType | undefined;
   alias?: SerializedMetricQueryAlias | undefined;
   groupByAttributeKeys?: Array<string> | undefined;
@@ -90,7 +100,59 @@ export interface SerializedMetricFormula {
   criticalThreshold?: number | undefined;
 }
 
+/*
+ * One attribute filter value inside the serialized `metricQueries` param.
+ * Scalars are equality filters; Includes is the "any of" membership the
+ * UI's operator layer and the query layer both understand. It JSON-
+ * serializes to {_type: "Includes", value: [...]} (its toJSON), which the
+ * parse side rebuilds into a real instance — that round trip is how a
+ * multi-service scope survives Copy Link and saved views.
+ */
+export type SerializedMetricAttributeValue =
+  | string
+  | number
+  | boolean
+  | Includes;
+
+const MAX_SERVICES_PARAM_ENTRIES: number = 20;
+
 export default class MetricExplorerUrl {
+  /**
+   * Parses the `services` param: a JSON array of non-empty strings,
+   * deduped, capped. Garbage yields [] — same defensive posture as the
+   * other param parsers.
+   */
+  public static parseServicesParam(raw: string): Array<string> {
+    let parsedValue: unknown = null;
+
+    try {
+      parsedValue = JSONFunctions.parse(raw);
+    } catch {
+      return [];
+    }
+
+    if (!Array.isArray(parsedValue)) {
+      return [];
+    }
+
+    const serviceIds: Array<string> = [];
+
+    for (const entry of parsedValue) {
+      if (
+        typeof entry === "string" &&
+        entry.trim() !== "" &&
+        !serviceIds.includes(entry)
+      ) {
+        serviceIds.push(entry);
+      }
+      if (serviceIds.length >= MAX_SERVICES_PARAM_ENTRIES) {
+        break;
+      }
+    }
+
+    return serviceIds;
+  }
+
   /*
    * Builds the full URL param dictionary for a metric-view state. Keys
    * are only present when they carry a value (empty/meaningless queries
@@ -188,7 +250,7 @@ export default class MetricExplorerUrl {
     const metricName: string =
       typeof metricNameValue === "string" ? metricNameValue : "";
 
-    const attributes: Dictionary<string | number | boolean> =
+    const attributes: Dictionary<SerializedMetricAttributeValue> =
       MetricExplorerUrl.sanitizeAttributes(filterDataRecord["attributes"]);
 
     const aggregationType: MetricsAggregationType | undefined =
@@ -336,7 +398,7 @@ export default class MetricExplorerUrl {
           ? (entryRecord["variable"] as string)
           : undefined;
 
-      const attributes: Dictionary<string | number | boolean> =
+      const attributes: Dictionary<SerializedMetricAttributeValue> =
         MetricExplorerUrl.sanitizeAttributes(entryRecord["attributes"]);
 
       const aggregationType: MetricsAggregationType | undefined =
@@ -552,7 +614,7 @@ export default class MetricExplorerUrl {
 
   public static sanitizeAttributes(
     value: unknown,
-  ): Dictionary<string | number | boolean> {
+  ): Dictionary<SerializedMetricAttributeValue> {
     if (value === null || value === undefined) {
       return {};
     }
@@ -575,7 +637,7 @@ export default class MetricExplorerUrl {
       return {};
     }
 
-    const attributes: Dictionary<string | number | boolean> = {};
+    const attributes: Dictionary<SerializedMetricAttributeValue> = {};
 
     for (const key in candidate as Record<string, unknown>) {
       const attributeValue: unknown = (candidate as Record<string, unknown>)[
@@ -588,10 +650,62 @@ export default class MetricExplorerUrl {
         typeof attributeValue === "boolean"
       ) {
         attributes[key] = attributeValue;
+        continue;
+      }
+
+      /*
+       * "Any of" membership filters. Live view state holds Includes
+       * INSTANCES; parsed URLs hold the plain {_type, value} JSON shape.
+       * Both normalize to a fresh instance so multi-value filters (e.g.
+       * a multi-service scope) survive Copy Link / saved views instead
+       * of being silently dropped — and downstream consumers (the query
+       * layer, the operator detector, the monitor evaluator's deep-link
+       * builder) all already speak Includes.
+       */
+      const membershipValues: Array<string> | null =
+        MetricExplorerUrl.getIncludesShapeValues(attributeValue);
+
+      if (membershipValues !== null && membershipValues.length > 0) {
+        attributes[key] = new Includes(membershipValues);
       }
     }
 
     return attributes;
+  }
+
+  private static getIncludesShapeValues(value: unknown): Array<string> | null {
+    let rawValues: unknown = null;
+
+    if (value instanceof Includes) {
+      rawValues = value.values;
+    } else if (
+      value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      (value as Record<string, unknown>)["_type"] === "Includes"
+    ) {
+      rawValues = (value as Record<string, unknown>)["value"];
+    } else {
+      return null;
+    }
+
+    if (!Array.isArray(rawValues)) {
+      return [];
+    }
+
+    const values: Array<string> = [];
+
+    for (const entry of rawValues) {
+      if (
+        (typeof entry === "string" && entry.trim() !== "") ||
+        typeof entry === "number" ||
+        typeof entry === "boolean"
+      ) {
+        values.push(String(entry));
+      }
+    }
+
+    return values;
   }
 
   private static buildAliasFromMetricAliasData(

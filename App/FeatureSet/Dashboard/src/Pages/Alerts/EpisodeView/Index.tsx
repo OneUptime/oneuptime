@@ -32,6 +32,14 @@ import React, {
 } from "react";
 import UserElement from "../../../Components/User/User";
 import ChangeEpisodeState from "../../../Components/AlertEpisode/ChangeState";
+import Alert from "Common/Models/DatabaseModels/Alert";
+import TelemetrySnapshotPanel from "../../../Components/Telemetry/TelemetrySnapshotPanel";
+import {
+  DerivedTelemetrySnapshot,
+  EMPTY_TELEMETRY_SNAPSHOT,
+  deriveTelemetrySnapshot,
+} from "../../../Utils/TelemetrySnapshot";
+import { JSONObject } from "Common/Types/JSON";
 
 const AlertEpisodeView: FunctionComponent<
   PageComponentProps
@@ -46,9 +54,43 @@ const AlertEpisodeView: FunctionComponent<
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
+  /*
+   * Telemetry snapshot of the episode's FIRST member alert (earliest
+   * created): the first member's evaluation window is the "what kicked
+   * this off" view.
+   */
+  const [telemetrySnapshot, setTelemetrySnapshot] =
+    useState<DerivedTelemetrySnapshot>(EMPTY_TELEMETRY_SNAPSHOT);
+
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     try {
       setIsLoading(true);
+
+      const memberAlerts: ListResult<Alert> = await ModelAPI.getList({
+        modelType: Alert,
+        query: {
+          alertEpisodeId: modelId,
+        },
+        limit: 1,
+        skip: 0,
+        select: {
+          _id: true,
+          telemetryQuery: true,
+          seriesLabels: true,
+        },
+        sort: {
+          createdAt: SortOrder.Ascending,
+        },
+      });
+
+      const firstMember: Alert | undefined = memberAlerts.data[0];
+
+      setTelemetrySnapshot(
+        deriveTelemetrySnapshot({
+          storedTelemetryQuery: firstMember?.telemetryQuery,
+          seriesLabels: firstMember?.seriesLabels as JSONObject | undefined,
+        }),
+      );
 
       const episodeTimelines: ListResult<AlertEpisodeStateTimeline> =
         await ModelAPI.getList({
@@ -489,6 +531,17 @@ const AlertEpisodeView: FunctionComponent<
           className="w-1/2"
         />
       </div>
+
+      {telemetrySnapshot.telemetryQuery && (
+        <div className="mb-5">
+          <TelemetrySnapshotPanel
+            telemetryQuery={telemetrySnapshot.telemetryQuery}
+            snapshotWindow={telemetrySnapshot.snapshotWindow}
+            seriesSummary={telemetrySnapshot.seriesSummary}
+            eventNoun="alert"
+          />
+        </div>
+      )}
 
       <AlertEpisodeFeedElement alertEpisodeId={modelId} />
     </Fragment>

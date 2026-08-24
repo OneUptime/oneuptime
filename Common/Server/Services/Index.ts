@@ -77,6 +77,7 @@ import DataSourceService from "./DataSourceService";
 import AuditLogService from "./AuditLogService";
 import LogService from "./LogService";
 import SecurityEventService from "./SecurityEventService";
+import ChangeEventService from "./ChangeEventService";
 import MailService from "./MailService";
 import MetricService from "./MetricService";
 import MetricItemAggMV1mService from "./MetricItemAggMV1mService";
@@ -641,6 +642,7 @@ export const AnalyticsServices: Array<
   RumSessionChunkService,
   AuditLogService,
   SecurityEventService,
+  ChangeEventService,
 ];
 
 export default services;

@@ -51,7 +51,9 @@ const WHITESPACE: RegExp = /\s/;
  *  - Metric explorer (Common/Utils/Metrics/MetricExplorerUrl.ts): the
  *    JSON-encoded `metricQueries` param plus absolute `startTime`/`endTime`
  *    (a pinned Custom window is represented by the absolute params alone —
- *    no `range` token).
+ *    no `range` token), plus the one-shot `services` param (JSON array of
+ *    Service ObjectID strings) that the explorer resolves to
+ *    `resource.service.name` attribute filters on load.
  */
 
 /**
@@ -535,11 +537,11 @@ export function toTracesExplorerQueryParams(
  * Custom by the absolute params alone — see MetricExplorerUrl). The
  * optional `metricName` argument names the query.
  *
- * Dropped: serviceIds, resourceFacetSelections, traceIds, spanIds,
- * severityTexts, bodyContains — the metric explorer's URL grammar has no
- * service / resource / trace / span / severity / message dimension (metrics
- * carry a primaryEntityId column, but the explorer only parses metricName +
- * attributes out of `metricQueries`).
+ * Dropped: resourceFacetSelections, traceIds, spanIds, severityTexts,
+ * bodyContains — the metric explorer's URL grammar has no resource /
+ * trace / span / severity / message dimension. serviceIds DO carry, via
+ * the `services` param the explorer folds into `resource.service.name`
+ * attribute filters on load.
  */
 export function toMetricsExplorerQueryParams(
   scope: TelemetryCrossSignalScope,
@@ -567,6 +569,17 @@ export function toMetricsExplorerQueryParams(
     params[MetricExplorerUrlParam.MetricQueries] = JSON.stringify([query]);
   }
 
+  /*
+   * Service scope rides the one-shot `services` param — the explorer
+   * resolves ids to names and folds them into `resource.service.name`
+   * attribute filters on load, so serviceIds is no longer dropped.
+   */
+  const scopedServiceIds: Array<string> = sanitizeValues(scope.serviceIds);
+
+  if (scopedServiceIds.length > 0) {
+    params[MetricExplorerUrlParam.Services] = JSON.stringify(scopedServiceIds);
+  }
+
   const window: ResolvedTimeWindow = resolveTimeWindow(scope);
 
   if (window.startTime && window.endTime) {
@@ -576,10 +589,6 @@ export function toMetricsExplorerQueryParams(
     params[MetricExplorerUrlParam.EndTime] = OneUptimeDate.toString(
       window.endTime,
     );
-  }
-
-  if (sanitizeValues(scope.serviceIds).length > 0) {
-    dropped.push("serviceIds");
   }
 
   for (const [facetKey] of sanitizeResourceFacetSelections(

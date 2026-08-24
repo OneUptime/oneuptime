@@ -28,6 +28,9 @@ import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 import ExplorerLink from "../../Metrics/Utils/ExplorerLink";
 import { isPublicDashboard } from "../Utils/PublicDashboardContext";
+import useEventTimeReferenceLines, {
+  EventTimeReferenceLines,
+} from "../../Metrics/Utils/UseEventTimeReferenceLines";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardChartComponent;
@@ -149,8 +152,21 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     useRef<MetricViewData>(metricViewData);
   metricViewDataRef.current = metricViewData;
 
+  /*
+   * Monotonic fetch sequence: zoom → reset (or rapid re-zooms) can put two
+   * aggregate calls in flight, and the SLOWER one answering last would
+   * paint the wrong window's data under the current window's axis. Each
+   * fetch takes a ticket; only the holder of the latest ticket may write
+   * results/errors back into state.
+   */
+  const fetchSequenceRef: React.MutableRefObject<number> = useRef<number>(0);
+
   const fetchAggregatedResults: () => Promise<void> = useCallback(async () => {
     const data: MetricViewData = metricViewDataRef.current;
+    const fetchSequence: number = ++fetchSequenceRef.current;
+    const isCurrentFetch: () => boolean = (): boolean => {
+      return fetchSequenceRef.current === fetchSequence;
+    };
     setIsLoading(true);
 
     if (!data.startAndEndDate?.startValue || !data.startAndEndDate?.endValue) {
@@ -190,13 +206,22 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
         topNOverrideScope,
       });
 
+      if (!isCurrentFetch()) {
+        return;
+      }
+
       setMetricResults(results);
       setError("");
     } catch (err: unknown) {
+      if (!isCurrentFetch()) {
+        return;
+      }
       setError(API.getFriendlyErrorMessage(err as Error));
     }
 
-    setIsLoading(false);
+    if (isCurrentFetch()) {
+      setIsLoading(false);
+    }
   }, [topNOverrideScope]);
 
   /*
@@ -306,6 +331,19 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
    */
   const enableSeriesActions: boolean =
     !isPublicDashboard() && !props.isEditMode;
+
+  /*
+   * Incident/alert/change-event markers for this widget's window (the
+   * hook no-ops on public dashboards — no session to fetch with). Uses
+   * the EFFECTIVE window so zooming refetches markers for the zoomed
+   * range.
+   */
+  const { lines: eventReferenceLines }: EventTimeReferenceLines =
+    useEventTimeReferenceLines({
+      enabled: true,
+      window: effectiveStartAndEndDate,
+      refreshTick: props.refreshTick,
+    });
 
   if (isLoading && metricResults.length === 0) {
     // Skeleton loading for chart - only on initial load
@@ -426,6 +464,10 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
           hideCard={true}
           topNOverrideScope={topNOverrideScope}
           enableSeriesActions={enableSeriesActions}
+          chartSyncId={props.chartSyncId}
+          timeReferenceLines={
+            eventReferenceLines.length > 0 ? eventReferenceLines : undefined
+          }
           onTimeRangeSelect={
             enableChartZoom ? handleChartTimeRangeSelect : undefined
           }
