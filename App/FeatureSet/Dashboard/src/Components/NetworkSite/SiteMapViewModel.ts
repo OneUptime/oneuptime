@@ -466,6 +466,21 @@ export const childTypeLabelFor: (
  *
  * An empty level is not the unit level. It has no children to be units, and
  * "the deepest level" is a claim about children that are there.
+ *
+ * ALL rather than ANY, and the cost of that is real: a market holding a
+ * dozen units in one retail park plus one depot modelled as a container is
+ * not the unit level, so those units lose the pushed names the threads paid
+ * for. It is still the right rule. The alternative — deciding per MARKER, so
+ * a unit keeps its thread wherever it sits — was measured on the shape
+ * #3372 actually reports: a top level of a few regions plus thirty flagship
+ * stores attached straight to the root draws a dozen threads across a world
+ * map under that rule and none under this one. Whether a map can afford
+ * threads is a property of the MAP, not of what one marker stands for, and
+ * the level is the only thing on hand that says so.
+ *
+ * What the mixed level loses is bounded and recoverable: the names go into
+ * the hover tooltip and the card list beside the map, and zooming in seats
+ * them back against their markers, threadless, one by one.
  */
 export const isUnitLevelFor: (
   sites: Array<{ isUnitLevel: boolean }>,
@@ -1154,9 +1169,18 @@ const segmentCrossesRect: (
  *
  * `options.allowLabelThreads: false` stops the spiral at that first ring —
  * see MarkerLabelOptions for why the levels above the unit level ask for
- * that. Nothing else about the search changes: the names that fit against
- * their markers land in exactly the same places, and only the ones that
- * would have had to travel for a spot are dropped instead.
+ * that. Nothing else about the search changes, but the result is NOT simply
+ * the same map minus the names that travelled. The pass is greedy over one
+ * shared set of reserved boxes, so a name that is dropped also releases the
+ * box it would have taken: a later marker can then find a position against
+ * its own marker that was occupied before, and take it. Names move between
+ * the eight positions, and a name that only fitted because a neighbour had
+ * been pushed out of its way can be dropped in its turn.
+ *
+ * What holds either way is what the pass exists to guarantee: every name
+ * drawn is clear of every other name and of every marker's body, no name is
+ * drawn away from the marker it belongs to, and a map with room on it —
+ * where nothing had to travel in the first place — is drawn identically.
  *
  * Zoom is the only thing this depends on, not the pan: markers keep their
  * relative distances as the frame moves, so a drag never re-decides where a

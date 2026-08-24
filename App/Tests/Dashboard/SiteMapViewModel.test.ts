@@ -2494,10 +2494,9 @@ describe("resolveMarkerLabels", () => {
     });
 
     /*
-     * The option only ever takes positions AWAY. A map with room on it never
-     * reached past the first ring in the first place, so turning the threads
-     * off must not move a single name on it — the top level of a small
-     * estate looks exactly as it did.
+     * A map with room on it never reached past the first ring in the first
+     * place, so turning the threads off must not move a single name on it —
+     * the top level of a small estate looks exactly as it did.
      */
     test("a map with room on it is drawn identically either way", () => {
       const markers: Array<MapMarker> = [
@@ -2510,6 +2509,104 @@ describe("resolveMarkerLabels", () => {
         Array.from(resolveMarkerLabels(markers, 1, NO_THREADS).entries()),
       ).toEqual(Array.from(resolveMarkerLabels(markers, 1, THREADS).entries()));
     });
+
+    /*
+     * A CROWDED map is a different matter, and the contract has to say so.
+     *
+     * The pass is greedy over one shared set of reserved boxes, so a name
+     * that is dropped also releases the box it would have taken. A later
+     * marker then finds a position against its own marker that was occupied
+     * before — so names move between the eight directions, and a name that
+     * only fitted because a neighbour had been pushed out of its way can be
+     * dropped in its turn. The result is NOT "the same map minus the names
+     * that travelled", and a maintainer who believed it was would write a
+     * subset assertion that fails on real data.
+     *
+     * Pinned on a level that reproduces every part of it, so the day the
+     * geometry changes this reads as a contract to re-check rather than as
+     * a mystery.
+     */
+    test("on a crowded level the two are not one minus the other", () => {
+      const points: Array<[string, number, number]> = [
+        ["Store 33-0", 453.02, 206.62],
+        ["Store 33-1", 435.99, 237.46],
+        ["Store 33-2", 432.17, 222.6],
+        ["Store 33-7", 400.74, 212.82],
+        ["Store 33-8", 440.74, 202.41],
+        ["Store 33-11", 453.77, 204.43],
+        ["Store 33-12", 428.03, 223.67],
+      ];
+      const markers: Array<MapMarker> = points.map(
+        (point: [string, number, number]): MapMarker => {
+          return markerAt(point[0], point[1], point[2], {
+            count: 1,
+            isContainer: false,
+            screenRadius: MIN_CLUSTER_RADIUS,
+          });
+        },
+      );
+
+      const threaded: Map<string, LabelPlacement> = resolveMarkerLabels(
+        markers,
+        1,
+        THREADS,
+      );
+      const bare: Map<string, LabelPlacement> = resolveMarkerLabels(
+        markers,
+        1,
+        NO_THREADS,
+      );
+
+      // "Store 33-8" had to travel 96 units for a spot when threads were allowed.
+      expect(threaded.get("Store 33-8")?.push).toBeGreaterThan(0);
+      // Without them it fits hard against its marker instead — not dropped.
+      expect(bare.get("Store 33-8")?.push).toBe(0);
+      expect(bare.get("Store 33-8")?.leaderLine).toBeNull();
+
+      /*
+       * And the other direction: a name that needed no thread at all loses
+       * its spot to that re-seating. This is the surprising half, and it is
+       * why the contract is stated as a guarantee about what is DRAWN rather
+       * than as a subset of what was drawn before.
+       */
+      expect(threaded.get("Store 33-11")?.push).toBe(0);
+      expect(threaded.get("Store 33-11")?.leaderLine).toBeNull();
+      expect(bare.has("Store 33-11")).toBe(false);
+
+      // A name can also simply change sides.
+      expect(threaded.get("Store 33-7")?.direction).toBe("left");
+      expect(bare.get("Store 33-7")?.direction).toBe("above");
+    });
+
+    /*
+     * What DOES hold, whatever the re-seating does: nothing is ever drawn
+     * away from its marker. Swept over a range of crowding and zoom rather
+     * than pinned to one level, because that is the promise the renderer
+     * relies on — it draws no thread element at all for these placements.
+     */
+    test.each([
+      [12, 1],
+      [24, 1],
+      [30, 2],
+      [30, 8],
+      [40, 4],
+      [MAX_LABELLED_MARKERS, 16],
+    ])(
+      "%s markers at zoom %s: every name it keeps sits on its marker",
+      (count: number, zoom: number) => {
+        const placements: Map<string, LabelPlacement> = resolveMarkerLabels(
+          layoutMapMarkers(scatteredRegions(count), zoom),
+          zoom,
+          NO_THREADS,
+        );
+
+        expect(placements.size).toBeGreaterThan(0);
+        for (const placement of placements.values()) {
+          expect(placement.push).toBe(0);
+          expect(placement.leaderLine).toBeNull();
+        }
+      },
+    );
 
     /*
      * The collision guarantee is the reason this pass exists, and it is not
