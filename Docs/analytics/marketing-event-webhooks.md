@@ -1,6 +1,6 @@
 # Marketing event webhooks
 
-OneUptime does not store marketing conversions. The five moments worth
+OneUptime does not store marketing conversions. The six moments worth
 measuring are POSTed to one endpoint as they happen and kept nowhere
 afterwards. This document is the payload contract.
 
@@ -13,10 +13,10 @@ anywhere to reconcile against.
 
 ## Configuration
 
-| Variable | Meaning |
-| --- | --- |
-| `MARKETING_WEBHOOK_URL` | Endpoint that receives every event. Empty disables emission entirely. |
-| `MARKETING_WEBHOOK_SECRET` | Shared secret used to sign each request. |
+| Variable                   | Meaning                                                               |
+| -------------------------- | --------------------------------------------------------------------- |
+| `MARKETING_WEBHOOK_URL`    | Endpoint that receives every event. Empty disables emission entirely. |
+| `MARKETING_WEBHOOK_SECRET` | Shared secret used to sign each request.                              |
 
 Both are required. A URL set without a secret is **refused, not sent
 unsigned** — the payload carries email addresses and campaign data, and an
@@ -26,10 +26,10 @@ naming the event that was dropped.
 
 Where the values are set:
 
-| Deployment | Location |
-| --- | --- |
+| Deployment     | Location                                                             |
+| -------------- | -------------------------------------------------------------------- |
 | Docker Compose | `MARKETING_WEBHOOK_URL` / `MARKETING_WEBHOOK_SECRET` in `config.env` |
-| Helm | `marketing.webhook.url` / `marketing.webhook.secret` |
+| Helm           | `marketing.webhook.url` / `marketing.webhook.secret`                 |
 
 Self-hosted installs generally leave these empty. Nothing accumulates waiting
 for an endpoint to be configured: an unset URL means those moments are simply
@@ -39,11 +39,11 @@ not measured.
 
 `POST {MARKETING_WEBHOOK_URL}`, `content-type: application/json`.
 
-| Header | Value |
-| --- | --- |
-| `x-oneuptime-signature-256` | HMAC-SHA256 over the exact request body bytes, hex encoded |
-| `x-oneuptime-event-id` | Same as `eventId` in the body — lets you dedupe before parsing |
-| `x-oneuptime-event-type` | Same as `eventType` in the body — lets you route before parsing |
+| Header                      | Value                                                           |
+| --------------------------- | --------------------------------------------------------------- |
+| `x-oneuptime-signature-256` | HMAC-SHA256 over the exact request body bytes, hex encoded      |
+| `x-oneuptime-event-id`      | Same as `eventId` in the body — lets you dedupe before parsing  |
+| `x-oneuptime-event-type`    | Same as `eventType` in the body — lets you route before parsing |
 
 **Verify over the raw bytes.** JSON parsed and re-serialised is not equivalent:
 whitespace, key order and escaping all change the digest. OneUptime serialises
@@ -57,7 +57,7 @@ Node example:
 ```js
 const expected = crypto
   .createHmac("sha256", process.env.MARKETING_WEBHOOK_SECRET)
-  .update(rawBodyBuffer)          // NOT JSON.stringify(req.body)
+  .update(rawBodyBuffer) // NOT JSON.stringify(req.body)
   .digest("hex");
 
 const ok = crypto.timingSafeEqual(
@@ -112,20 +112,20 @@ Every event has the same shape:
       "landingUrl": "https://oneuptime.com/enterprise"
     }
   },
-  "data": { }
+  "data": {}
 }
 ```
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `schemaVersion` | number | Currently `1`. Additive property changes keep the version; a change to what an existing field *means* raises it. |
-| `eventId` | string | Stable per real-world occurrence. **This is your deduplication key.** |
-| `eventType` | string | One of the five below. |
-| `occurredAt` | string | ISO 8601 UTC. When the conversion happened, not when it was sent. |
-| `email` | string? | Plaintext address. Absent when OneUptime has none. |
-| `emailHash` | string? | SHA-256 hex of the trimmed, lowercased address. |
-| `attribution` | object | Campaign the converting visitor carried. All fields optional; `clickIds` and `firstTouch` are always objects, possibly empty. |
-| `data` | object | Event-specific detail — see each event below. |
+| Field           | Type    | Notes                                                                                                                         |
+| --------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `schemaVersion` | number  | Currently `1`. Additive property changes keep the version; a change to what an existing field _means_ raises it.              |
+| `eventId`       | string  | Stable per real-world occurrence. **This is your deduplication key.**                                                         |
+| `eventType`     | string  | One of the six below.                                                                                                         |
+| `occurredAt`    | string  | ISO 8601 UTC. When the conversion happened, not when it was sent.                                                             |
+| `email`         | string? | Plaintext address. Absent when OneUptime has none.                                                                            |
+| `emailHash`     | string? | SHA-256 hex of the trimmed, lowercased address.                                                                               |
+| `attribution`   | object  | Campaign the converting visitor carried. All fields optional; `clickIds` and `firstTouch` are always objects, possibly empty. |
+| `data`          | object  | Event-specific detail — see each event below.                                                                                 |
 
 ### Two things the envelope does not give you
 
@@ -170,9 +170,22 @@ A Cal.com booking was created and its signature verified.
 ```json
 "data": {
   "calBookingId": "cal-booking-abc123",
-  "meetingStartsAt": "2026-09-02T15:00:00.000Z"
+  "meetingStartsAt": "2026-09-02T15:00:00.000Z",
+  "bookingKind": "enterprise_demo"
 }
 ```
+
+`bookingKind` is one of `enterprise_demo`, `support_call`,
+`architecture_assessment` or `unknown`. All three embeds book the same Cal
+event type, so without it a free user's support call and a net-new enterprise
+demo arrive as the same conversion — which matters the moment anything bids on
+or reports against the count.
+
+It is an allowlist on the way in. Cal metadata is free-form customer content
+reachable by an unauthenticated caller, so an unrecognised value becomes
+`unknown` rather than travelling onward. `unknown` is also the honest answer
+for a booking made through a Cal link that was never one of the instrumented
+embeds; that is still a booking and is still emitted.
 
 Note the two timestamps are different things. `occurredAt` is when the person
 booked; `meetingStartsAt` is when the meeting happens and is normally in the
@@ -181,6 +194,40 @@ for a Friday meeting and signed up on Tuesday looked like they signed up first.
 
 Only `BOOKING_CREATED` produces this event. Reschedules and cancellations do
 not.
+
+### `subscription_started`
+
+A project was created directly on a paid plan.
+
+- **eventId**: `subscription_started:{projectId}` — naturally unique, so a retry cannot become a second conversion. A project has exactly one first subscription.
+- **occurredAt**: the project's `createdAt`.
+- **attribution**: copied from the Project row, which inherits it from the creating user.
+
+```json
+"data": {
+  "project_id": "0195f2c1-...",
+  "new_plan": "Growth",
+  "seats": 1,
+  "is_paid_conversion": true,
+  "has_custom_pricing": false,
+  "new_monthly_amount_in_usd": 49,
+  "value": 49,
+  "currency": "USD"
+}
+```
+
+This is **new business, not expansion**. It is deliberately a separate event
+rather than a `subscription_upgraded` with an empty `old_plan`: an upgrade is a
+movement between two tiers, this has no previous tier at all, and a receiver
+that added them together could not separate net-new from expansion again.
+
+Free-plan projects emit nothing here. Every project is subscribed at the
+payment provider, including on the free plan, so the paid check is what makes
+this a revenue event. `is_paid_conversion` is therefore always `true` when the
+event is sent.
+
+The amount fields are omitted entirely when the plan is custom-priced, rather
+than being sent as zero.
 
 ### `subscription_upgraded` / `subscription_downgraded`
 
@@ -192,7 +239,8 @@ A project moved between plan tiers.
 
 Direction is decided by **plan order, not price**. A monthly-to-yearly switch at
 the same tier is an interval change and emits nothing. A project's first paid
-plan has no previous tier to compare against and emits nothing either.
+plan has no previous tier to compare against and is reported as
+`subscription_started` instead.
 
 ```json
 "data": {

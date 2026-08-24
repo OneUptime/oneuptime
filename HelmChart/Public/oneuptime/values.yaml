@@ -974,6 +974,11 @@ subscriptionPlan:
 analytics:
   host:
   key:
+  # Google Tag Manager. Only loaded when billing.enabled is true, so a
+  # self-hosted install never reaches googletagmanager.com either way. Set
+  # this to false to keep the container off on a billing-enabled install.
+  googleTagManager:
+    enabled: true
 
 # OneUptime's internal marketing conversion ledger (SaaS only). Conversions are
 # recorded for OneUptime's own reporting and are never sent to ad platforms.

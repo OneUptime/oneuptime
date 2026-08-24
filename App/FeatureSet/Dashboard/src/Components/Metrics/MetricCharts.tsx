@@ -65,9 +65,28 @@ import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import useComponentOutsideClick from "Common/UI/Types/UseComponentOutsideClick";
 import {
   CrossSignalQueryParams,
+  MetricScopeFilterExtraction,
   buildExemplarLogsPivotParams,
+  buildMetricExplorerPivotParams,
+  extractScopeFiltersFromQueryConfigs,
+  formatDroppedScopeHint,
   getExemplarTraceQueryParams,
+  resolveServiceIdsByNames,
 } from "../../Utils/MetricsCrossSignalPivot";
+import {
+  SeriesResourceTarget,
+  SeriesScopedViewData,
+  buildSeriesExceptionsPivotParams,
+  getSeriesResourceTargets,
+  resolveSeriesResourceModelId,
+  scopeViewDataToSeries,
+  splitSeriesNameIntoSegments,
+} from "../../Utils/MetricSeriesInvestigation";
+import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
+import ExplorerLink from "./Utils/ExplorerLink";
+import { ShowToastNotification } from "Common/UI/Components/Toast/ToastInit";
+import { ToastType } from "Common/UI/Components/Toast/Toast";
+import TimeRange from "Common/Types/Time/TimeRange";
 import {
   DictionaryEntryValue,
   DictionaryFilterOperator,
@@ -119,6 +138,15 @@ export interface ComponentProps {
    */
   timeReferenceLines?: Array<ChartTimeReferenceLineProps> | undefined;
   referenceRegions?: Array<ChartReferenceRegionProps> | undefined;
+  /*
+   * Per-series investigate menu on the legend chips: pivots to
+   * logs/traces/exceptions and to the resource page (host/service/…) the
+   * series is about, each scoped to that one series' group-by labels. On
+   * by default; surfaces with no project session (public dashboards) or
+   * where navigating away would lose unsaved state (dashboard edit mode)
+   * pass false.
+   */
+  enableSeriesActions?: boolean | undefined;
 }
 
 /*
@@ -306,37 +334,10 @@ function getChartPalette(
 }
 
 /*
- * Split a composed grouped-series name back into its "key=value" segments,
- * using the known group keys so it stays correct when a value itself contains
- * the ", " that also joins multi-key segments. A single-key group-by has
- * exactly one segment (the whole name), so a comma in the value can never be
- * mis-split. For multi-key names, a fragment that doesn't start with a known
- * "key=" prefix is treated as a continuation of the previous value.
+ * splitSeriesNameIntoSegments moved to Utils/MetricSeriesInvestigation so
+ * the per-series investigate menu's label parsing and the color pins here
+ * share one key-aware splitter.
  */
-function splitSeriesNameIntoSegments(
-  seriesName: string,
-  groupByKeys: Array<string>,
-): Array<string> {
-  if (groupByKeys.length <= 1) {
-    return [seriesName];
-  }
-  const startsWithKnownKey: (fragment: string) => boolean = (
-    fragment: string,
-  ): boolean => {
-    return groupByKeys.some((key: string): boolean => {
-      return fragment.startsWith(`${key}=`);
-    });
-  };
-  const segments: Array<string> = [];
-  for (const fragment of seriesName.split(", ")) {
-    if (segments.length > 0 && !startsWithKnownKey(fragment)) {
-      segments[segments.length - 1] += `, ${fragment}`;
-    } else {
-      segments.push(fragment);
-    }
-  }
-  return segments;
-}
 
 /*
  * Resolve the color for one series. Per-group pins win first: `colorsByGroup`
@@ -424,6 +425,70 @@ const EXEMPLAR_MENU_VIEWPORT_MARGIN_PX: number = 8;
 interface ExemplarMenuState {
   exemplar: ExemplarPoint;
   position: { x: number; y: number };
+}
+
+/*
+ * Approximate rendered size of the per-series investigate menu, used to
+ * clamp its fixed position the same way the exemplar menu is clamped.
+ */
+const SERIES_MENU_WIDTH_PX: number = 260;
+const SERIES_MENU_HEIGHT_PX: number = 280;
+
+// One open per-series investigate menu.
+interface SeriesMenuState {
+  seriesName: string;
+  /*
+   * The owning panel's group-by keys (union across overlaid queries, or
+   * the formula's group keys) — panel-accurate so a value containing
+   * ", " can't be mis-split against an unrelated panel's keys.
+   */
+  groupByKeys: Array<string>;
+  position: { x: number; y: number };
+}
+
+/*
+ * Shared roving-focus keyboard handling for the fixed-position pivot
+ * menus (exemplar + series): Escape closes, ArrowUp/ArrowDown cycle
+ * through the menu items.
+ */
+function navigateMenuWithKeyboard(input: {
+  event: React.KeyboardEvent<HTMLDivElement>;
+  menuElement: HTMLElement | null;
+  onClose: VoidFunction;
+}): void {
+  const { event, menuElement, onClose } = input;
+
+  if (event.key === "Escape") {
+    event.preventDefault();
+    onClose();
+    return;
+  }
+
+  if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+    return;
+  }
+
+  event.preventDefault();
+
+  if (!menuElement) {
+    return;
+  }
+
+  const items: Array<HTMLElement> = Array.from(
+    menuElement.querySelectorAll<HTMLElement>('[role="menuitem"]'),
+  );
+
+  if (items.length === 0) {
+    return;
+  }
+
+  const activeIndex: number = items.findIndex((item: HTMLElement) => {
+    return item === document.activeElement;
+  });
+  const delta: number = event.key === "ArrowDown" ? 1 : -1;
+  const nextIndex: number = (activeIndex + delta + items.length) % items.length;
+
+  items[nextIndex]?.focus();
 }
 
 // Composite key for exemplar fetch/state: metric name + sanitized filters.
@@ -812,6 +877,13 @@ function renderSeriesControls(input: {
    * using the same unit/precision as the chart's y-axis.
    */
   valueFormatter: (value: number) => string;
+  /*
+   * When set, every chip grows a magnifier button that opens the
+   * per-series investigate menu, anchored under the button.
+   */
+  onInvestigateSeries?:
+    | ((seriesName: string, anchor: { x: number; y: number }) => void)
+    | undefined;
 }): ReactElement {
   const {
     chartId,
@@ -832,6 +904,7 @@ function renderSeriesControls(input: {
     warningElement,
     unitLabel,
     valueFormatter,
+    onInvestigateSeries,
   } = input;
 
   const sortBy: SeriesSortBy = controls.sortBy;
@@ -1156,56 +1229,87 @@ function renderSeriesControls(input: {
             const valueLabel: string | null =
               statValue === null ? null : valueFormatter(statValue);
             return (
-              <button
+              <div
                 key={series.seriesName}
-                type="button"
-                aria-pressed={!isHidden}
-                onClick={(): void => {
-                  toggleSeries(series.seriesName);
-                }}
-                className={`group inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
+                className={`group inline-flex items-stretch rounded-md border transition ${
                   isHidden
-                    ? "border-gray-100 bg-white text-gray-400 hover:border-gray-200 hover:text-gray-500"
-                    : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900"
+                    ? "border-gray-100 bg-white hover:border-gray-200"
+                    : "border-gray-200 bg-white hover:border-gray-300"
                 }`}
-                title={
-                  isHidden
-                    ? `${series.seriesName} — click to show`
-                    : `${series.seriesName} — click to hide`
-                }
               >
-                <span
-                  aria-hidden="true"
-                  className={`h-2 w-2 shrink-0 rounded-full ${
-                    showColor
-                      ? showCustomColor
-                        ? ""
-                        : getColorClassName(color!, "bg")
-                      : "bg-gray-300"
+                <button
+                  type="button"
+                  aria-pressed={!isHidden}
+                  onClick={(): void => {
+                    toggleSeries(series.seriesName);
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-2 py-1 text-xs transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
+                    onInvestigateSeries ? "rounded-l-md" : "rounded-md"
+                  } ${
+                    isHidden
+                      ? "text-gray-400 hover:text-gray-500"
+                      : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
                   }`}
-                  style={
-                    showCustomColor
-                      ? { backgroundColor: getColorHex(color!) }
-                      : undefined
+                  title={
+                    isHidden
+                      ? `${series.seriesName} — click to show`
+                      : `${series.seriesName} — click to hide`
                   }
-                />
-                <span
-                  className={`max-w-[240px] truncate ${
-                    isHidden ? "line-through" : ""
-                  }`}
                 >
-                  {series.seriesName}
-                </span>
-                {valueLabel !== null ? (
                   <span
-                    className={`shrink-0 tabular-nums font-medium ${
-                      isHidden ? "text-gray-300" : "text-gray-500"
+                    aria-hidden="true"
+                    className={`h-2 w-2 shrink-0 rounded-full ${
+                      showColor
+                        ? showCustomColor
+                          ? ""
+                          : getColorClassName(color!, "bg")
+                        : "bg-gray-300"
+                    }`}
+                    style={
+                      showCustomColor
+                        ? { backgroundColor: getColorHex(color!) }
+                        : undefined
+                    }
+                  />
+                  <span
+                    className={`max-w-[240px] truncate ${
+                      isHidden ? "line-through" : ""
                     }`}
                   >
-                    {valueLabel}
+                    {series.seriesName}
                   </span>
+                  {valueLabel !== null ? (
+                    <span
+                      className={`shrink-0 tabular-nums font-medium ${
+                        isHidden ? "text-gray-300" : "text-gray-500"
+                      }`}
+                    >
+                      {valueLabel}
+                    </span>
+                  ) : null}
+                </button>
+                {onInvestigateSeries ? (
+                  <button
+                    type="button"
+                    aria-label={`Investigate ${series.seriesName}`}
+                    title="Investigate this series — logs, traces, and more"
+                    onClick={(
+                      event: React.MouseEvent<HTMLButtonElement>,
+                    ): void => {
+                      event.stopPropagation();
+                      const rect: DOMRect =
+                        event.currentTarget.getBoundingClientRect();
+                      onInvestigateSeries(series.seriesName, {
+                        x: rect.left,
+                        y: rect.bottom + 4,
+                      });
+                    }}
+                    className="inline-flex items-center rounded-r-md border-l border-gray-100 px-1.5 text-gray-300 transition hover:bg-indigo-50 hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 group-hover:text-gray-400"
+                  >
+                    <Icon icon={IconProp.MagnifyingGlass} className="h-3 w-3" />
+                  </button>
                 ) : null}
-              </button>
+              </div>
             );
           })
         )}
@@ -1446,41 +1550,317 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
   const handleExemplarMenuKeyDown: (
     event: React.KeyboardEvent<HTMLDivElement>,
   ) => void = (event: React.KeyboardEvent<HTMLDivElement>): void => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      closeExemplarMenu();
+    navigateMenuWithKeyboard({
+      event,
+      menuElement: exemplarMenuRef.current as HTMLElement | null,
+      onClose: closeExemplarMenu,
+    });
+  };
+
+  /*
+   * Per-series investigate menu, opened from a legend chip's magnifier
+   * button. Mirrors the exemplar menu's structure (fixed position clamped
+   * to the viewport, outside-click close, roving keyboard focus).
+   */
+  const showSeriesActions: boolean = props.enableSeriesActions !== false;
+
+  const [seriesMenu, setSeriesMenu] = useState<SeriesMenuState | null>(null);
+
+  const {
+    ref: seriesMenuRef,
+    isComponentVisible: isSeriesMenuVisible,
+    setIsComponentVisible: setIsSeriesMenuVisible,
+  } = useComponentOutsideClick(false);
+
+  const closeSeriesMenu: VoidFunction = useCallback((): void => {
+    setIsSeriesMenuVisible(false);
+    setSeriesMenu(null);
+  }, [setIsSeriesMenuVisible]);
+
+  const openSeriesMenu: (
+    seriesName: string,
+    groupByKeys: Array<string>,
+    anchor: { x: number; y: number },
+  ) => void = useCallback(
+    (
+      seriesName: string,
+      groupByKeys: Array<string>,
+      anchor: { x: number; y: number },
+    ): void => {
+      const maxX: number =
+        window.innerWidth -
+        SERIES_MENU_WIDTH_PX -
+        EXEMPLAR_MENU_VIEWPORT_MARGIN_PX;
+      const maxY: number =
+        window.innerHeight -
+        SERIES_MENU_HEIGHT_PX -
+        EXEMPLAR_MENU_VIEWPORT_MARGIN_PX;
+
+      setSeriesMenu({
+        seriesName,
+        groupByKeys,
+        position: {
+          x: Math.max(
+            EXEMPLAR_MENU_VIEWPORT_MARGIN_PX,
+            Math.min(anchor.x, maxX),
+          ),
+          y: Math.max(
+            EXEMPLAR_MENU_VIEWPORT_MARGIN_PX,
+            Math.min(anchor.y, maxY),
+          ),
+        },
+      });
+      setIsSeriesMenuVisible(true);
+    },
+    [setIsSeriesMenuVisible],
+  );
+
+  // Focus the first action when the series menu opens (menu keyboard pattern).
+  useEffect(() => {
+    if (!seriesMenu || !isSeriesMenuVisible) {
       return;
     }
+    requestAnimationFrame(() => {
+      const menuElement: HTMLElement | null =
+        seriesMenuRef.current as HTMLElement | null;
+      menuElement?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    });
+  }, [seriesMenu, isSeriesMenuVisible, seriesMenuRef]);
 
-    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
-      return;
+  const handleSeriesMenuKeyDown: (
+    event: React.KeyboardEvent<HTMLDivElement>,
+  ) => void = (event: React.KeyboardEvent<HTMLDivElement>): void => {
+    navigateMenuWithKeyboard({
+      event,
+      menuElement: seriesMenuRef.current as HTMLElement | null,
+      onClose: closeSeriesMenu,
+    });
+  };
+
+  const getScopedViewDataForSeries: (
+    menuState: SeriesMenuState,
+  ) => SeriesScopedViewData = (
+    menuState: SeriesMenuState,
+  ): SeriesScopedViewData => {
+    return scopeViewDataToSeries({
+      metricViewData: props.metricViewData,
+      seriesName: menuState.seriesName,
+      groupByKeys: menuState.groupByKeys,
+    });
+  };
+
+  /*
+   * Resolve `resource.service.name` filters (including ones the series
+   * scoping just added) to Service ObjectIDs — the value logs/traces/
+   * exceptions actually store in primaryEntityId. Best-effort and cached;
+   * an empty mapping degrades to attribute passthrough downstream.
+   */
+  const resolveScopedServiceIds: (scopedViewData: MetricViewData) => Promise<{
+    serviceIdsByName: Dictionary<string> | undefined;
+    serviceIds: Array<string>;
+  }> = async (
+    scopedViewData: MetricViewData,
+  ): Promise<{
+    serviceIdsByName: Dictionary<string> | undefined;
+    serviceIds: Array<string>;
+  }> => {
+    const extraction: MetricScopeFilterExtraction =
+      extractScopeFiltersFromQueryConfigs(scopedViewData.queryConfigs || []);
+
+    if (extraction.serviceNames.length === 0) {
+      return { serviceIdsByName: undefined, serviceIds: [] };
     }
 
-    event.preventDefault();
-
-    const menuElement: HTMLElement | null =
-      exemplarMenuRef.current as HTMLElement | null;
-
-    if (!menuElement) {
-      return;
-    }
-
-    const items: Array<HTMLElement> = Array.from(
-      menuElement.querySelectorAll<HTMLElement>('[role="menuitem"]'),
+    const serviceIdsByName: Dictionary<string> = await resolveServiceIdsByNames(
+      extraction.serviceNames,
     );
 
-    if (items.length === 0) {
+    const serviceIds: Array<string> = extraction.serviceNames
+      .map((serviceName: string): string => {
+        return serviceIdsByName[serviceName] || "";
+      })
+      .filter((serviceId: string): boolean => {
+        return serviceId !== "";
+      });
+
+    return { serviceIdsByName, serviceIds };
+  };
+
+  const showDroppedScopeToast: (dropped: Array<string>) => void = (
+    dropped: Array<string>,
+  ): void => {
+    const droppedHint: string = formatDroppedScopeHint(dropped);
+    if (droppedHint) {
+      ShowToastNotification({
+        title: "Some filters were not carried over",
+        description: droppedHint,
+        type: ToastType.INFO,
+      });
+    }
+  };
+
+  const buildSignalTargetUrl: (pageMap: PageMap) => URL = (
+    pageMap: PageMap,
+  ): URL => {
+    const route: Route = RouteUtil.populateRouteParams(RouteMap[pageMap]!);
+    const currentUrl: URL = Navigation.getCurrentURL();
+    return new URL(currentUrl.protocol, currentUrl.hostname, route);
+  };
+
+  const navigateSeriesToSignal: (
+    menuState: SeriesMenuState,
+    target: "logs" | "traces",
+  ) => Promise<void> = async (
+    menuState: SeriesMenuState,
+    target: "logs" | "traces",
+  ): Promise<void> => {
+    const { scopedViewData }: SeriesScopedViewData =
+      getScopedViewDataForSeries(menuState);
+
+    const targetUrl: URL = buildSignalTargetUrl(
+      target === "traces" ? PageMap.TRACES : PageMap.LOGS,
+    );
+
+    try {
+      const {
+        serviceIdsByName,
+      }: { serviceIdsByName: Dictionary<string> | undefined } =
+        await resolveScopedServiceIds(scopedViewData);
+
+      const pivot: CrossSignalQueryParams = buildMetricExplorerPivotParams({
+        target,
+        metricViewData: scopedViewData,
+        serviceIdsByName,
+      });
+
+      for (const paramName of Object.keys(pivot.params)) {
+        targetUrl.addQueryParam(
+          paramName,
+          pivot.params[paramName] as string,
+          true,
+        );
+      }
+
+      showDroppedScopeToast(pivot.dropped);
+    } catch {
+      // Degraded pivot: land on the target explorer in the chart's window.
+      if (exemplarWindow) {
+        targetUrl.addQueryParam("range", TimeRange.CUSTOM, true);
+        targetUrl.addQueryParam(
+          "start",
+          OneUptimeDate.toString(exemplarWindow.startValue),
+          true,
+        );
+        targetUrl.addQueryParam(
+          "end",
+          OneUptimeDate.toString(exemplarWindow.endValue),
+          true,
+        );
+      }
+    }
+
+    Navigation.navigate(targetUrl);
+  };
+
+  const navigateSeriesToExceptions: (
+    menuState: SeriesMenuState,
+  ) => Promise<void> = async (menuState: SeriesMenuState): Promise<void> => {
+    const { scopedViewData }: SeriesScopedViewData =
+      getScopedViewDataForSeries(menuState);
+
+    const targetUrl: URL = buildSignalTargetUrl(PageMap.EXCEPTIONS_UNRESOLVED);
+
+    try {
+      const { serviceIds }: { serviceIds: Array<string> } =
+        await resolveScopedServiceIds(scopedViewData);
+
+      const pivot: CrossSignalQueryParams = buildSeriesExceptionsPivotParams({
+        metricViewData: scopedViewData,
+        serviceIds,
+      });
+
+      for (const paramName of Object.keys(pivot.params)) {
+        targetUrl.addQueryParam(
+          paramName,
+          pivot.params[paramName] as string,
+          true,
+        );
+      }
+
+      showDroppedScopeToast(pivot.dropped);
+    } catch {
+      // Window-only fallback, same shape as the logs/traces catch above.
+      if (exemplarWindow) {
+        targetUrl.addQueryParam("range", TimeRange.CUSTOM, true);
+        targetUrl.addQueryParam(
+          "start",
+          OneUptimeDate.toString(exemplarWindow.startValue),
+          true,
+        );
+        targetUrl.addQueryParam(
+          "end",
+          OneUptimeDate.toString(exemplarWindow.endValue),
+          true,
+        );
+      }
+    }
+
+    Navigation.navigate(targetUrl);
+  };
+
+  const openSeriesInExplorer: (menuState: SeriesMenuState) => void = (
+    menuState: SeriesMenuState,
+  ): void => {
+    ExplorerLink.openInExplorer(
+      getScopedViewDataForSeries(menuState).scopedViewData,
+    );
+  };
+
+  const applySeriesFilter: (menuState: SeriesMenuState) => void = (
+    menuState: SeriesMenuState,
+  ): void => {
+    const { scopedViewData, didNarrow }: SeriesScopedViewData =
+      getScopedViewDataForSeries(menuState);
+    if (didNarrow && props.onQueryConfigsChange) {
+      props.onQueryConfigsChange(scopedViewData.queryConfigs);
+    }
+  };
+
+  const openSeriesResource: (
+    target: SeriesResourceTarget,
+  ) => Promise<void> = async (target: SeriesResourceTarget): Promise<void> => {
+    const modelId: string | null = await resolveSeriesResourceModelId(target);
+
+    const pageMapByKind: Record<SeriesResourceTarget["kind"], PageMap> = {
+      host: PageMap.HOST_VIEW,
+      service: PageMap.SERVICE_VIEW,
+      kubernetesCluster: PageMap.KUBERNETES_CLUSTER_VIEW,
+      networkDevice: PageMap.NETWORK_DEVICE_VIEW,
+    };
+
+    if (!modelId) {
+      ShowToastNotification({
+        title: "No matching resource",
+        description: `Nothing in this project matches "${target.attributeValue}".`,
+        type: ToastType.INFO,
+      });
       return;
     }
 
-    const activeIndex: number = items.findIndex((item: HTMLElement) => {
-      return item === document.activeElement;
-    });
-    const delta: number = event.key === "ArrowDown" ? 1 : -1;
-    const nextIndex: number =
-      (activeIndex + delta + items.length) % items.length;
-
-    items[nextIndex]?.focus();
+    try {
+      const route: Route = RouteUtil.populateRouteParams(
+        RouteMap[pageMapByKind[target.kind]]!,
+        { modelId },
+      );
+      Navigation.navigate(route);
+    } catch {
+      // Unroutable id (route path chars) — leave the user where they are.
+      ShowToastNotification({
+        title: "No matching resource",
+        description: `Nothing in this project matches "${target.attributeValue}".`,
+        type: ToastType.INFO,
+      });
+    }
   };
 
   const navigateToExemplarTrace: (exemplar: ExemplarPoint) => void = (
@@ -1625,6 +2005,9 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     serverTotalGroups?: number | undefined;
     serverTruncatedWithoutTopK?: boolean | undefined;
     warningElement?: ReactElement | undefined;
+    onInvestigateSeries?:
+      | ((seriesName: string, anchor: { x: number; y: number }) => void)
+      | undefined;
   }) => {
     displayableSeries: Array<SeriesPoint>;
     colorsOverride: Array<ChartColorValue> | undefined;
@@ -1644,6 +2027,9 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     serverTotalGroups?: number | undefined;
     serverTruncatedWithoutTopK?: boolean | undefined;
     warningElement?: ReactElement | undefined;
+    onInvestigateSeries?:
+      | ((seriesName: string, anchor: { x: number; y: number }) => void)
+      | undefined;
   }): {
     displayableSeries: Array<SeriesPoint>;
     colorsOverride: Array<ChartColorValue> | undefined;
@@ -1741,6 +2127,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           warningElement: input.warningElement,
           unitLabel: input.unitLabel,
           valueFormatter: input.valueFormatter,
+          onInvestigateSeries: input.onInvestigateSeries,
         })
       : undefined;
 
@@ -1817,6 +2204,20 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       const firstQuery: MetricQueryConfigData = firstMember.queryConfig;
 
       applyPanelSeriesNaming(members);
+
+      /*
+       * The panel's group-by keys (union across overlaid queries) — what
+       * the investigate menu parses series names against.
+       */
+      const panelGroupByKeys: Array<string> = [];
+      for (const member of members) {
+        for (const key of member.queryConfig.metricQueryData
+          .groupByAttributeKeys || []) {
+          if (key && !panelGroupByKeys.includes(key)) {
+            panelGroupByKeys.push(key);
+          }
+        }
+      }
 
       /*
        * Merged panel series + owner lookup (which member query a series
@@ -2144,6 +2545,11 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         serverTotalGroups,
         serverTruncatedWithoutTopK,
         warningElement: unitMismatchWarning,
+        onInvestigateSeries: showSeriesActions
+          ? (seriesName: string, anchor: { x: number; y: number }): void => {
+              openSeriesMenu(seriesName, panelGroupByKeys, anchor);
+            }
+          : undefined,
       });
 
       /*
@@ -2452,6 +2858,21 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             valueFormatter: (value: number): string => {
               return ValueFormatter.formatValue(value, formulaUnit);
             },
+            /*
+             * Formula series carry the same key=value group labels as
+             * query series (the evaluator stamps group attributes onto
+             * output rows), so per-series pivots scope the UNDERLYING
+             * queries by those labels — the formula itself has no filter
+             * representation.
+             */
+            onInvestigateSeries: showSeriesActions
+              ? (
+                  seriesName: string,
+                  anchor: { x: number; y: number },
+                ): void => {
+                  openSeriesMenu(seriesName, formulaGroupKeys, anchor);
+                }
+              : undefined,
           });
 
       const formulaChart: Chart = {
@@ -2514,6 +2935,39 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     return charts;
   };
 
+  /*
+   * Derived only while the series menu is open: the series-scoped view
+   * (drives which items render), the "host.name = prod-01" narrowing
+   * summary, and the resource pages this series can jump to.
+   */
+  const seriesMenuScoped: SeriesScopedViewData | null =
+    seriesMenu && isSeriesMenuVisible
+      ? getScopedViewDataForSeries(seriesMenu)
+      : null;
+  const seriesMenuNarrowSummary: string = seriesMenuScoped
+    ? MetricSeriesScope.getAppliedSeriesLabelSummary({
+        queryConfigs: props.metricViewData.queryConfigs,
+        seriesLabels: seriesMenuScoped.seriesLabels,
+      })
+    : "";
+  const seriesMenuResourceTargets: Array<SeriesResourceTarget> =
+    seriesMenuScoped
+      ? getSeriesResourceTargets({
+          seriesLabels: seriesMenuScoped.seriesLabels,
+          queryConfigs: props.metricViewData.queryConfigs,
+        })
+      : [];
+
+  const resourceTargetIconByKind: Record<
+    SeriesResourceTarget["kind"],
+    IconProp
+  > = {
+    host: IconProp.ServerStack,
+    service: IconProp.Cube,
+    kubernetesCluster: IconProp.SquareStack3D,
+    networkDevice: IconProp.Signal,
+  };
+
   return (
     <>
       <ChartGroup
@@ -2552,6 +3006,112 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               navigateToExemplarLogs(exemplarMenu.exemplar);
             }}
           />
+        </div>
+      ) : null}
+      {seriesMenu && isSeriesMenuVisible ? (
+        <div
+          ref={seriesMenuRef}
+          role="menu"
+          aria-orientation="vertical"
+          aria-label="Series investigation actions"
+          className="fixed z-50 w-64 rounded-lg bg-white py-1 shadow-xl ring-1 ring-gray-200 focus:outline-none"
+          style={{
+            left: `${seriesMenu.position.x}px`,
+            top: `${seriesMenu.position.y}px`,
+          }}
+          onKeyDown={handleSeriesMenuKeyDown}
+        >
+          <div className="mx-1 mb-1 border-b border-gray-100 px-3 pb-2 pt-1.5">
+            <p
+              className="truncate text-xs font-medium text-gray-900"
+              title={seriesMenu.seriesName}
+            >
+              {seriesMenu.seriesName}
+            </p>
+            {seriesMenuNarrowSummary ? (
+              <p
+                className="mt-0.5 truncate text-[11px] text-gray-500"
+                title={seriesMenuNarrowSummary}
+              >
+                Scoped to {seriesMenuNarrowSummary}
+              </p>
+            ) : null}
+          </div>
+          {props.onQueryConfigsChange && seriesMenuScoped?.didNarrow ? (
+            <MoreMenuItem
+              key="series-filter"
+              icon={IconProp.Filter}
+              text="Filter to this series"
+              onClick={() => {
+                const menuState: SeriesMenuState = seriesMenu;
+                closeSeriesMenu();
+                applySeriesFilter(menuState);
+              }}
+            />
+          ) : null}
+          {!props.onQueryConfigsChange ? (
+            <MoreMenuItem
+              key="series-explorer"
+              icon={IconProp.ExternalLink}
+              text="Open in Metric Explorer"
+              onClick={() => {
+                const menuState: SeriesMenuState = seriesMenu;
+                closeSeriesMenu();
+                openSeriesInExplorer(menuState);
+              }}
+            />
+          ) : null}
+          <MoreMenuItem
+            key="series-view-logs"
+            icon={IconProp.Logs}
+            text="View logs"
+            onClick={() => {
+              const menuState: SeriesMenuState = seriesMenu;
+              closeSeriesMenu();
+              navigateSeriesToSignal(menuState, "logs").catch(() => {
+                // Best-effort navigation; failures already degrade inside.
+              });
+            }}
+          />
+          <MoreMenuItem
+            key="series-view-traces"
+            icon={IconProp.Layers}
+            text="View traces"
+            onClick={() => {
+              const menuState: SeriesMenuState = seriesMenu;
+              closeSeriesMenu();
+              navigateSeriesToSignal(menuState, "traces").catch(() => {
+                // Best-effort navigation; failures already degrade inside.
+              });
+            }}
+          />
+          <MoreMenuItem
+            key="series-view-exceptions"
+            icon={IconProp.Bug}
+            text="View exceptions"
+            onClick={() => {
+              const menuState: SeriesMenuState = seriesMenu;
+              closeSeriesMenu();
+              navigateSeriesToExceptions(menuState).catch(() => {
+                // Best-effort navigation; failures already degrade inside.
+              });
+            }}
+          />
+          {seriesMenuResourceTargets.map((target: SeriesResourceTarget) => {
+            return (
+              <MoreMenuItem
+                key={`series-resource-${target.kind}`}
+                icon={resourceTargetIconByKind[target.kind]}
+                text={target.label}
+                onClick={() => {
+                  closeSeriesMenu();
+                  openSeriesResource(target).catch(() => {
+                    // Resolution failures surface their own toast.
+                  });
+                }}
+              />
+            );
+          })}
         </div>
       ) : null}
     </>

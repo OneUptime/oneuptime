@@ -1,7 +1,7 @@
 import {
   Host,
   HttpProtocol,
-  IsBillingEnabled,
+  GoogleTagManagerEnabled,
 } from "Common/Server/EnvironmentConfig";
 import { ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
@@ -29,7 +29,7 @@ export default class ServiceHandler {
       resources: Resources,
       dataTypes: DataTypes,
       pageTitle: ctx.t("pages.openapi.metaTitle"),
-      enableGoogleTagManager: IsBillingEnabled,
+      enableGoogleTagManager: GoogleTagManagerEnabled,
       pageDescription: ctx.t("pages.openapi.metaDescription"),
       pageData: pageData,
       lang: ctx.lang,

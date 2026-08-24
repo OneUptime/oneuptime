@@ -64,6 +64,54 @@ export interface SnmpConfigFormFieldOptions {
   stepId?: string | undefined;
 }
 
+export const MINIMUM_SNMP_PORT: number = 1;
+export const MAXIMUM_SNMP_PORT: number = 65535;
+
+export type SnmpPortValidatorFunction = (
+  values: FormValues<SnmpConfigModelFields>,
+) => string | null;
+
+/*
+ * A port outside 1-65535 cannot be dialled, and nothing downstream ever
+ * noticed: the column is a plain nullable integer defaulting to 161, and
+ * neither NetworkDeviceService nor NetworkDeviceDiscoveryScanService checks
+ * it. A typo'd port was accepted by the form, stored, and then only ever
+ * showed up as a device — or a whole subnet sweep — that quietly found
+ * nothing. Part of giving every field in these forms a rule it is judged by on
+ * its own step (issue #3377).
+ *
+ * Written as a customValidation rather than a `validation: { minValue,
+ * maxValue }` block because the built-in bounds check runs the value through
+ * parseInt: "161.5" reads as 161, clears both bounds, and then fails the
+ * INSERT against an integer column. Same reason the discovery scan's rescan
+ * interval owns its own rule.
+ *
+ * The field stays optional, so an empty box is left to the column default and
+ * says nothing here. The check is against the RAW value: a blank box is not an
+ * empty one, and `required` is not speaking for this field at all.
+ */
+export const validateSnmpPort: SnmpPortValidatorFunction = (
+  values: FormValues<SnmpConfigModelFields>,
+): string | null => {
+  const raw: unknown = values["snmpPort"];
+
+  if (raw === undefined || raw === null || String(raw) === "") {
+    return null;
+  }
+
+  const port: number = Number(String(raw).trim());
+
+  if (!isFinite(port) || !Number.isInteger(port)) {
+    return "SNMP Port must be a whole number.";
+  }
+
+  if (port < MINIMUM_SNMP_PORT || port > MAXIMUM_SNMP_PORT) {
+    return `SNMP Port must be between ${MINIMUM_SNMP_PORT} and ${MAXIMUM_SNMP_PORT}.`;
+  }
+
+  return null;
+};
+
 const isV3: (item: FormValues<SnmpConfigModelFields>) => boolean = (
   item: FormValues<SnmpConfigModelFields>,
 ): boolean => {
@@ -230,6 +278,8 @@ export function getSnmpConfigFormFields(
       fieldType: FormFieldSchemaType.Number,
       required: false,
       placeholder: "161",
+      description: "UDP port the agent listens on. Defaults to 161.",
+      customValidation: validateSnmpPort,
     },
   ];
 

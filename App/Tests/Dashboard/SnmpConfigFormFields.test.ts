@@ -1,7 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   getSnmpConfigFormFields,
+  MAXIMUM_SNMP_PORT,
+  MINIMUM_SNMP_PORT,
   SnmpConfigFormFieldOptions,
+  validateSnmpPort,
 } from "../../FeatureSet/Dashboard/src/Pages/NetworkDevice/SnmpConfigFormFields";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -214,6 +217,110 @@ describe("getSnmpConfigFormFields — field inventory", () => {
 
       expect(isFieldVisible(FIELD_KEY_SNMP_VERSION, values)).toBe(true);
       expect(isFieldVisible(FIELD_KEY_PORT, values)).toBe(true);
+    }
+  });
+
+  test("the port stays optional, so the column default still applies", () => {
+    expect(getField(FIELD_KEY_PORT).required).toBe(false);
+    expect(getField(FIELD_KEY_PORT).placeholder).toBe("161");
+  });
+
+  test("the port field is the one carrying the validator", () => {
+    expect(getField(FIELD_KEY_PORT).customValidation).toBe(validateSnmpPort);
+  });
+
+  test("the validator survives being stamped with a step", () => {
+    const port: Field<NetworkDevice> | undefined = getSnmpConfigFormFields({
+      stepId: "snmp",
+    }).find((field: Field<NetworkDevice>) => {
+      return getFieldKey(field) === FIELD_KEY_PORT;
+    });
+
+    expect(port?.customValidation).toBe(validateSnmpPort);
+  });
+});
+
+/*
+ * Nothing downstream bounds the port: the column is a plain nullable integer
+ * defaulting to 161, and neither NetworkDeviceService nor
+ * NetworkDeviceDiscoveryScanService checks it. Without a rule on the field, a
+ * typo'd port was accepted by the form and only ever surfaced as a device — or
+ * a whole subnet sweep — that quietly found nothing. Part of giving every
+ * field in these forms something it is judged by on its own step (#3377).
+ */
+describe("validateSnmpPort", () => {
+  function port(value: unknown): FormValues<NetworkDevice> {
+    return { snmpPort: value } as FormValues<NetworkDevice>;
+  }
+
+  test.each([
+    ["the SNMP default", 161],
+    ["the SNMP trap port", 162],
+    ["the lowest usable port", MINIMUM_SNMP_PORT],
+    ["the highest usable port", MAXIMUM_SNMP_PORT],
+    ["a high port", 16161],
+    ["a numeric string, as a Number input hands it back", "161"],
+    ["a numeric string with padding", " 161 "],
+  ])("%s is accepted", (_label: string, value: unknown) => {
+    expect(validateSnmpPort(port(value))).toBeNull();
+  });
+
+  test.each([
+    ["an absent key", undefined],
+    ["an explicit null", null],
+    ["an empty box", ""],
+  ])(
+    "%s says nothing, because the field is optional",
+    (_label: string, value: unknown) => {
+      expect(validateSnmpPort(port(value))).toBeNull();
+    },
+  );
+
+  test("a form with no snmpPort key at all is handled", () => {
+    expect(validateSnmpPort({} as FormValues<NetworkDevice>)).toBeNull();
+  });
+
+  test.each([
+    ["zero", 0],
+    ["a negative port", -1],
+    ["one past the top of the range", MAXIMUM_SNMP_PORT + 1],
+    ["a wildly out-of-range port", 999999],
+  ])("%s is refused and names the range", (_label: string, value: unknown) => {
+    const message: string | null = validateSnmpPort(port(value));
+
+    expect(message).toContain(String(MINIMUM_SNMP_PORT));
+    expect(message).toContain(String(MAXIMUM_SNMP_PORT));
+  });
+
+  /*
+   * The reason this is a customValidation rather than a `validation: {
+   * minValue, maxValue }` block: the built-in bounds check runs the value
+   * through parseInt, so "161.5" reads as 161, clears both bounds, and then
+   * fails the INSERT against an integer column.
+   */
+  test.each([
+    ["a fractional port inside the range", 161.5],
+    ["a fractional port as a string", "161.5"],
+    ["a fraction that truncates into range", 65535.9],
+  ])("%s is refused as not whole", (_label: string, value: unknown) => {
+    expect(validateSnmpPort(port(value))).toContain("whole number");
+  });
+
+  test.each([
+    ["letters", "abc"],
+    ["a partly numeric string", "161x"],
+    ["an infinity", Infinity],
+    ["a NaN", Number.NaN],
+    ["an object", {}],
+  ])("%s is refused rather than ignored", (_label: string, value: unknown) => {
+    expect(validateSnmpPort(port(value))).not.toBeNull();
+  });
+
+  test("nothing here throws, whatever the value", () => {
+    for (const value of [{}, [], true, false, "", "  ", -0]) {
+      expect(() => {
+        return validateSnmpPort(port(value));
+      }).not.toThrow();
     }
   });
 });

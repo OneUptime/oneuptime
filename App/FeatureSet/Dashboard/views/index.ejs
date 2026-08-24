@@ -109,6 +109,10 @@
   <meta name="msapplication-TileImage" content="/dashboard/assets/img/favicons/mstile-144x144.png">
   <meta name="msapplication-config" content="/dashboard/browserconfig.xml">
 
+  <%- include('../../../../Common/Server/Views/Partials/AnalyticsConsent', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+  }) -%>
+
   <% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %> 
   <!-- Google Tag Manager -->
   <script>(function (w, d, s, l, i) {

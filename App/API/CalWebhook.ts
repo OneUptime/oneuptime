@@ -16,7 +16,12 @@ import {
   AdClickIdKeys,
   UtmWireKeyToPropertyKey,
 } from "Common/Types/Marketing/Attribution";
-import { MarketingEventType } from "Common/Types/Marketing/MarketingEvent";
+import {
+  BOOKING_KIND_METADATA_KEY,
+  MarketingEventType,
+  MeetingBookingKind,
+  MeetingBookingKinds,
+} from "Common/Types/Marketing/MarketingEvent";
 
 /*
  * Cal.com booking webhook — the only source of the meeting_booked conversion.
@@ -78,6 +83,7 @@ export interface CalBookingConversion {
   clickIds: JSONObject;
   utm: UtmAttribution;
   firstTouchAttribution?: JSONObject | undefined;
+  bookingKind: MeetingBookingKind;
 }
 
 export type VerifyCalWebhookSignatureFunction = (data: {
@@ -295,6 +301,41 @@ const collectFirstTouch: CollectFirstTouchFunction = (
   return Attribution.sanitizeFirstTouchAttribution(parsed);
 };
 
+type CollectBookingKindFunction = (
+  sources: Array<JSONObject>,
+  responses: JSONObject,
+) => MeetingBookingKind;
+
+/*
+ * Which conversation was booked.
+ *
+ * An ALLOWLIST, not a passthrough. Cal metadata and booking answers are
+ * free-form customer content reachable by an unauthenticated caller, and this
+ * value ends up on an outbound conversion that a receiver may route or bid on
+ * - so an unrecognised value becomes Unknown rather than travelling onward.
+ *
+ * Unknown is also the honest answer for a booking made through a Cal link that
+ * was never one of the instrumented embeds. That is still a booking, and it is
+ * still emitted.
+ */
+const collectBookingKind: CollectBookingKindFunction = (
+  sources: Array<JSONObject>,
+  responses: JSONObject,
+): MeetingBookingKind => {
+  const raw: string | undefined = firstNonEmptyString([
+    ...sources.map((source: JSONObject) => {
+      return source[BOOKING_KIND_METADATA_KEY];
+    }),
+    unwrapResponseValue(responses[BOOKING_KIND_METADATA_KEY]),
+  ]);
+
+  if (!raw || !MeetingBookingKinds.includes(raw)) {
+    return MeetingBookingKind.Unknown;
+  }
+
+  return raw as MeetingBookingKind;
+};
+
 export type ParseCalBookingConversionFunction = (
   body: JSONObject,
 ) => CalBookingConversion | null;
@@ -371,6 +412,7 @@ export const parseCalBookingConversion: ParseCalBookingConversionFunction = (
     ...(email ? { email: email } : {}),
     clickIds: collectClickIds(sources, responses),
     utm: collectUtm(sources, responses),
+    bookingKind: collectBookingKind(sources, responses),
     ...(firstTouchAttribution
       ? { firstTouchAttribution: firstTouchAttribution }
       : {}),
@@ -477,6 +519,7 @@ export const calWebhookRouteHandler: CalWebhookRouteHandler = async (
           data: {
             calBookingId: parsed.bookingId,
             meetingStartsAt: parsed.conversionAt.toISOString(),
+            bookingKind: parsed.bookingKind,
           },
         }),
       );

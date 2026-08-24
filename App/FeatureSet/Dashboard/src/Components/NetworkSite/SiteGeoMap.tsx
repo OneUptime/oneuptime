@@ -987,10 +987,18 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
          * overlays below line up with the markers they point at. It also
          * owns the native wheel listener and the touch-action opt-out that
          * lets a finger drag the map instead of scrolling the page.
+         *
+         * `isolate` for the same reason as the network map's canvas (issue
+         * #3373): the controls, the hover label, the cluster picker and the
+         * load skeleton float at z-10..z-30, the app header sticks at z-10,
+         * and without a stacking context here those numbers are compared
+         * against the header's in the root context. The map would paint its
+         * chrome on top of the navbar as soon as its top edge scrolled under
+         * it.
          */}
         <div
           ref={containerRef}
-          className="relative"
+          className="relative isolate"
           style={{ touchAction: "none" }}
         >
           {/*

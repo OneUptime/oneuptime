@@ -34,6 +34,11 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
 import { getSnmpConfigFormFields } from "./SnmpConfigFormFields";
+import {
+  MINIMUM_RESCAN_INTERVAL_IN_MINUTES,
+  validateRescanInterval,
+  validateScanTarget,
+} from "./DiscoveryScanFormValidation";
 import { monitoringMethodForDiscoveredHost } from "../../Components/NetworkDevice/DiscoveryImportEligibility";
 import NetworkDeviceMonitoringMethod from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import {
@@ -506,6 +511,21 @@ const NetworkDeviceDiscovery: FunctionComponent<
             description:
               "Either a subnet in CIDR notation (192.168.1.0/24), or an octet range where any octet may be an inclusive low-high range — 10.16-22.0-255.51-66 sweeps .51 to .66 in every /24 from 10.16 to 10.22. " +
               `A single scan may cover at most ${ScanTargetUtil.MAX_SCAN_HOSTS.toLocaleString("en-US")} addresses.`,
+            /*
+             * Parses the target with exactly the function the server validates
+             * it with, on the step it was typed on. Without this the field's
+             * only check was `required`, so any non-empty string — a phone
+             * number, a hostname, a reversed octet range — walked through all
+             * three steps and surfaced as one combined banner above the
+             * Schedule step (issue #3377).
+             *
+             * It covers the length ceiling too, so no `validation.maxLength`
+             * is declared beside it: ModelForm infers 100 from the ShortText
+             * column, but customValidation runs after validateLength and would
+             * overwrite that message anyway — and the parser's own cap is the
+             * 64 the server enforces, not the column's 100.
+             */
+            customValidation: validateScanTarget,
           },
           {
             field: {
@@ -590,11 +610,16 @@ const NetworkDeviceDiscovery: FunctionComponent<
             fieldType: FormFieldSchemaType.Number,
             required: true,
             placeholder: "60",
-            description:
-              "How often to re-run this scan, in minutes. Minimum 15 minutes.",
-            validation: {
-              minValue: 15,
-            },
+            description: `How often to re-run this scan, in minutes. Minimum ${MINIMUM_RESCAN_INTERVAL_IN_MINUTES} minutes.`,
+            /*
+             * One validator rather than a `validation: { minValue }` beside it:
+             * the built-in minimum runs the value through parseInt, so "20.5"
+             * reads as 20 and clears a floor of 15 before failing the INSERT
+             * against an integer column — and customValidation runs last, so a
+             * minValue declared alongside would only have its message
+             * overwritten. See DiscoveryScanFormValidation.
+             */
+            customValidation: validateRescanInterval,
             showIf: (item: FormValues<NetworkDeviceDiscoveryScan>): boolean => {
               return Boolean(item.isRecurring);
             },

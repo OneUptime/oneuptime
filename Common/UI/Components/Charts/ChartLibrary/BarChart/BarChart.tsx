@@ -33,6 +33,10 @@ import {
 } from "../Utils/ChartColors";
 import { cx } from "../Utils/Cx";
 import { getYAxisDomain } from "../Utils/GetYAxisDomain";
+import {
+  PreparedTooltipEntries,
+  prepareTooltipEntries,
+} from "../Utils/TooltipEntries";
 import { useOnWindowResize } from "../Utils/UseWindowOnResize";
 
 /*
@@ -562,6 +566,15 @@ const ChartTooltip: React.FunctionComponent<ChartTooltipProps> = ({
   valueFormatter,
 }: ChartTooltipProps): React.ReactElement | null => {
   if (active && payload && payload.length) {
+    /*
+     * Highest value at the hovered bucket first, capped — on a grouped
+     * chart (one series per host/pod), the spiking series must be the
+     * first line of the tooltip, not buried at its alphabetical position.
+     */
+    const {
+      entries: sortedPayload,
+      overflowCount,
+    }: PreparedTooltipEntries<PayloadItem> = prepareTooltipEntries(payload);
     return (
       <div
         className={cx(
@@ -586,7 +599,7 @@ const ChartTooltip: React.FunctionComponent<ChartTooltipProps> = ({
           </p>
         </div>
         <div className={cx("space-y-1 px-4 py-2")}>
-          {payload.map(
+          {sortedPayload.map(
             ({ value, category, color }: PayloadItem, index: number) => {
               return (
                 <div
@@ -631,6 +644,11 @@ const ChartTooltip: React.FunctionComponent<ChartTooltipProps> = ({
               );
             },
           )}
+          {overflowCount > 0 ? (
+            <p className={cx("pt-1 text-xs", "text-gray-400")}>
+              +{overflowCount} more series — highest values shown
+            </p>
+          ) : null}
         </div>
       </div>
     );
@@ -1194,4 +1212,4 @@ const BarChart: React.ForwardRefExoticComponent<
 
 BarChart.displayName = "BarChart";
 
-export { BarChart, type BarChartEventProps, type TooltipProps };
+export { BarChart, ChartTooltip, type BarChartEventProps, type TooltipProps };

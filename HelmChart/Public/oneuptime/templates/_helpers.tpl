@@ -202,6 +202,9 @@ its userlist at startup.
   value: {{ default "" ((($.Values.marketing).webhook).url) | quote }}
 - name: MARKETING_WEBHOOK_SECRET
   value: {{ default "" ((($.Values.marketing).webhook).secret) | quote }}
+{{- $googleTagManagerEnabled := ((($.Values.analytics).googleTagManager).enabled) }}
+- name: GOOGLE_TAG_MANAGER_ENABLED
+  value: {{ if kindIs "invalid" $googleTagManagerEnabled }}"true"{{ else }}{{ ternary "true" "false" $googleTagManagerEnabled | quote }}{{ end }}
 - name: CAPTCHA_ENABLED
   value: {{ ternary "true" "false" (default false $.Values.captcha.enabled) | quote }}
 - name: CAPTCHA_SITE_KEY

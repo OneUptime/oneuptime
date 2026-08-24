@@ -12,6 +12,7 @@ export enum RevenueEventName {
   WorkspaceCreated = "workspace_created",
   MonitorCreated = "monitor_created",
   TeammateInvited = "teammate_invited",
+  SubscriptionStarted = "subscription_started",
   SubscriptionUpgraded = "subscription_upgraded",
   SubscriptionDowngraded = "subscription_downgraded",
 }

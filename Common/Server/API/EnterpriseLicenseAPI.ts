@@ -1,7 +1,6 @@
 import EnterpriseLicense from "../../Models/DatabaseModels/EnterpriseLicense";
 import EnterpriseLicenseInstance from "../../Models/DatabaseModels/EnterpriseLicenseInstance";
 import BadDataException from "../../Types/Exception/BadDataException";
-import { JSONObject } from "../../Types/JSON";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import EnterpriseLicenseInstanceSummary from "../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
 import EnterpriseLicenseUsageUtil from "../../Utils/EnterpriseLicense/EnterpriseLicenseUsage";
@@ -25,6 +24,20 @@ import {
 } from "../Utils/Express";
 import BaseAPI from "./BaseAPI";
 // import { Host } from "../EnvironmentConfig";
+
+/*
+ * The license state every installation of a license key mirrors locally.
+ * Returned by both /validate and /report-user-count so that the daily report
+ * keeps a self-hosted installation current on its own.
+ */
+export interface LicenseTerms {
+  companyName: string;
+  // ISO 8601, or null for a license with no expiry set.
+  expiresAt: string | null;
+  licenseKey: string;
+  // Null means the license carries no seat limit.
+  userLimit: number | null;
+}
 
 export interface LicenseInstanceUpsert {
   licenseId: ObjectID;
@@ -137,24 +150,15 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
           const instances: Array<EnterpriseLicenseInstance> =
             await this.findLicenseInstances(license.id!);
 
-          const payload: JSONObject = {
-            companyName: license.companyName || "",
-            expiresAt: license.expiresAt.toISOString(),
-            licenseKey: license.licenseKey || "",
-            userLimit:
-              typeof license.userLimit === "number" ? license.userLimit : null,
-          };
+          const terms: LicenseTerms = this.getLicenseTerms(license);
 
-          const token: string = JSONWebToken.signJsonPayload(
-            payload,
-            Math.max(secondsUntilExpiry, 1),
-          );
+          const token: string | null = this.signLicenseToken(license);
 
           return Response.sendJsonObjectResponse(req, res, {
-            companyName: payload["companyName"] as string,
-            expiresAt: payload["expiresAt"] as string,
-            licenseKey: payload["licenseKey"] as string,
-            userLimit: payload["userLimit"],
+            companyName: terms.companyName,
+            expiresAt: terms.expiresAt,
+            licenseKey: terms.licenseKey,
+            userLimit: terms.userLimit,
             currentUserCount:
               typeof license.currentUserCount === "number"
                 ? license.currentUserCount
@@ -202,8 +206,19 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
               query: {
                 licenseKey: licenseKey,
               },
+              /*
+               * The full set of terms, not just the usage columns: this
+               * response is what a self-hosted installation mirrors into its
+               * own GlobalConfig every day, so anything it is missing here is
+               * a field the customer keeps the stale value of until somebody
+               * re-types the license key by hand. Same indexed lookup either
+               * way.
+               */
               select: {
                 _id: true,
+                companyName: true,
+                expiresAt: true,
+                licenseKey: true,
                 userLimit: true,
                 isEvaluationLicense: true,
               },
@@ -282,18 +297,78 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
             });
           }
 
+          const terms: LicenseTerms = this.getLicenseTerms(license);
+
           return Response.sendJsonObjectResponse(req, res, {
+            companyName: terms.companyName,
+            expiresAt: terms.expiresAt,
+            licenseKey: terms.licenseKey,
+            userLimit: terms.userLimit,
             currentUserCount: currentUserCount,
             userCountUpdatedAt: reportedAt.toISOString(),
-            userLimit:
-              typeof license.userLimit === "number" ? license.userLimit : null,
             isEvaluationLicense: Boolean(license.isEvaluationLicense),
             instances: this.getInstanceSummaries(instances),
+            /*
+             * Null once the license has expired. Unlike /validate this route
+             * does not reject an expired license - the instance is still
+             * expected to report, and the expiry notification emails are built
+             * from what it reports - but it must not keep being handed a fresh
+             * token, and the expiresAt above is what tells it the truth.
+             */
+            token: this.signLicenseToken(license),
           });
         } catch (err) {
           next(err);
         }
       },
+    );
+  }
+
+  /*
+   * The license terms a self-hosted installation mirrors locally. Built in one
+   * place so /validate and /report-user-count cannot drift: the seat limit was
+   * missing from what an instance could refresh for exactly as long as the two
+   * responses were written out by hand, separately.
+   */
+  private getLicenseTerms(license: EnterpriseLicense): LicenseTerms {
+    return {
+      companyName: license.companyName || "",
+      expiresAt: license.expiresAt ? license.expiresAt.toISOString() : null,
+      licenseKey: license.licenseKey || "",
+      userLimit:
+        typeof license.userLimit === "number" ? license.userLimit : null,
+    };
+  }
+
+  /*
+   * Signed with the license server's own secret, so it is opaque to the
+   * installation holding it - it is the proof that oneuptime.com recognized
+   * the key, and the instance only checks that it exists. An expired license
+   * gets none, which is why this returns null rather than a short-lived token.
+   */
+  private signLicenseToken(license: EnterpriseLicense): string | null {
+    if (!license.expiresAt) {
+      return null;
+    }
+
+    const secondsUntilExpiry: number = Math.floor(
+      (license.expiresAt.getTime() - Date.now()) / 1000,
+    );
+
+    if (secondsUntilExpiry <= 0) {
+      return null;
+    }
+
+    const terms: LicenseTerms = this.getLicenseTerms(license);
+
+    return JSONWebToken.signJsonPayload(
+      {
+        companyName: terms.companyName,
+        expiresAt: terms.expiresAt,
+        licenseKey: terms.licenseKey,
+        userLimit: terms.userLimit,
+      },
+      Math.max(secondsUntilExpiry, 1),
     );
   }
 

@@ -282,6 +282,52 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                   plan_id: project.paymentProviderPlanId || "",
                 },
               );
+
+              /*
+               * A project created straight onto a paid plan is a revenue
+               * conversion, not just an activation — and it never reaches the
+               * plan-change path in Settings > Billing that reports the rest.
+               * The server emits the authoritative event; this is the browser
+               * mirror GA4 and Google Ads can bid on.
+               */
+              const planId: string = project.paymentProviderPlanId || "";
+              const plan: SubscriptionPlan | undefined = planId
+                ? SubscriptionPlan.getSubscriptionPlanById(
+                    planId,
+                    getAllEnvVars(),
+                  )
+                : undefined;
+
+              if (plan) {
+                const monthlyAmountInUSD: number | null = plan.isCustomPricing()
+                  ? null
+                  : plan.getYearlyPlanId() === planId
+                    ? plan.getYearlySubscriptionAmountInUSD()
+                    : plan.getMonthlySubscriptionAmountInUSD();
+
+                const planIsPaid: boolean =
+                  plan.isCustomPricing() ||
+                  (monthlyAmountInUSD !== null && monthlyAmountInUSD > 0);
+
+                if (planIsPaid) {
+                  UiAnalytics.captureRevenueEvent(
+                    RevenueEventName.SubscriptionStarted,
+                    {
+                      funnel_stage: RevenueFunnelStage.Revenue,
+                      plan: plan.getName(),
+                      project_id: project.id?.toString() || "",
+                      is_paid_conversion: true,
+                      has_custom_pricing: plan.isCustomPricing(),
+                      ...(monthlyAmountInUSD !== null
+                        ? {
+                            value: monthlyAmountInUSD,
+                            currency: "USD",
+                          }
+                        : {}),
+                    },
+                  );
+                }
+              }
             }
             if (project && props.onProjectSelected) {
               props.onProjectSelected(project);
