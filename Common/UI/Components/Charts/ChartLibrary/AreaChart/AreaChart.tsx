@@ -39,6 +39,10 @@ import {
 import { cx } from "../Utils/Cx";
 import { getYAxisDomain } from "../Utils/GetYAxisDomain";
 import { hasOnlyOneValueForKey } from "../Utils/HasOnlyOneValueForKey";
+import {
+  PreparedTooltipEntries,
+  prepareTooltipEntries,
+} from "../Utils/TooltipEntries";
 import ChartCurve from "../../Types/ChartCurve";
 
 /*
@@ -475,9 +479,15 @@ const ChartTooltip: ({
   valueFormatter,
 }: ChartTooltipProps): React.JSX.Element | null => {
   if (active && payload && payload.length) {
-    const legendPayload: PayloadItem[] = payload.filter((item: PayloadItem) => {
-      return item.type !== "none";
-    });
+    /*
+     * Highest value at the hovered timestamp first, capped — on a grouped
+     * chart (one series per host/pod), the spiking series must be the
+     * first line of the tooltip, not buried at its alphabetical position.
+     */
+    const {
+      entries: legendPayload,
+      overflowCount,
+    }: PreparedTooltipEntries<PayloadItem> = prepareTooltipEntries(payload);
     return (
       <div
         className={cx(
@@ -531,6 +541,11 @@ const ChartTooltip: ({
               );
             },
           )}
+          {overflowCount > 0 ? (
+            <p className={cx("pt-1 text-xs", "text-gray-400")}>
+              +{overflowCount} more series — highest values shown
+            </p>
+          ) : null}
         </div>
       </div>
     );
@@ -1426,4 +1441,4 @@ const AreaChart: React.ForwardRefExoticComponent<
 
 AreaChart.displayName = "AreaChart";
 
-export { AreaChart, type AreaChartEventProps, type TooltipProps };
+export { AreaChart, ChartTooltip, type AreaChartEventProps, type TooltipProps };

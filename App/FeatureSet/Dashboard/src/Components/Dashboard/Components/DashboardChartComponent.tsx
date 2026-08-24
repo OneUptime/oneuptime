@@ -21,6 +21,8 @@ import MetricQueryConfigData, {
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import OneUptimeDate from "Common/Types/Date";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
@@ -113,13 +115,31 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     );
   }, [props.dashboardStartAndEndDate, props.refreshTick]);
 
+  /*
+   * Drag-to-zoom: a widget-local window narrowed by drag-selecting a
+   * range on the chart. It overrides the dashboard's window for THIS
+   * widget only (spike investigation shouldn't retime every other
+   * widget), survives auto-refresh ticks (the user is mid-investigation;
+   * a rolling re-anchor would yank the window away), and clears when the
+   * dashboard's own time range changes — an explicit range pick is a
+   * statement about what the user wants to see everywhere.
+   */
+  const [zoomWindow, setZoomWindow] = useState<InBetween<Date> | null>(null);
+
+  useEffect(() => {
+    setZoomWindow(null);
+  }, [props.dashboardStartAndEndDate]);
+
+  const effectiveStartAndEndDate: InBetween<Date> | null =
+    zoomWindow || startAndEndDate;
+
   const metricViewData: MetricViewData = useMemo(() => {
     return {
       queryConfigs: queryConfigs,
-      startAndEndDate: startAndEndDate,
+      startAndEndDate: effectiveStartAndEndDate,
       formulaConfigs: formulaConfigs,
     };
-  }, [queryConfigs, startAndEndDate, formulaConfigs]);
+  }, [queryConfigs, effectiveStartAndEndDate, formulaConfigs]);
 
   /*
    * Latest props in a ref so fetchAggregatedResults can stay stable
@@ -189,7 +209,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     fetchAggregatedResults();
   }, [
-    startAndEndDate,
+    effectiveStartAndEndDate,
     queryConfigs,
     formulaConfigs,
     props.refreshTick,
@@ -224,7 +244,14 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
           chartType: config.chartType || getMetricChartType(),
         };
       }),
-      startAndEndDate: startAndEndDate,
+      startAndEndDate: effectiveStartAndEndDate,
+      /*
+       * Relative dashboard ranges ("Past 1 hour") carry their token so
+       * explorer links keep ROLLING instead of pinning the instant the
+       * link was built; a zoomed window is a deliberate pin and carries
+       * none (getValidRangeToken drops Custom/garbage on serialization).
+       */
+      rangeToken: zoomWindow ? undefined : props.dashboardStartAndEndDate.range,
       formulaConfigs: formulaConfigs.map((config: MetricFormulaConfigData) => {
         return {
           ...config,
@@ -232,7 +259,14 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
         };
       }),
     };
-  }, [queryConfigs, formulaConfigs, startAndEndDate, getMetricChartType]);
+  }, [
+    queryConfigs,
+    formulaConfigs,
+    effectiveStartAndEndDate,
+    zoomWindow,
+    props.dashboardStartAndEndDate.range,
+    getMetricChartType,
+  ]);
 
   /*
    * "Open in Explorer" deep link for this widget's queries. Suppressed on
@@ -253,6 +287,25 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     },
     [chartMetricViewData],
   );
+
+  /*
+   * Drag-to-zoom is a view-mode affordance: in edit mode the drag gesture
+   * belongs to widget move/resize, and mid-edit navigation state (the
+   * zoom bar's explorer link) would invite losing unsaved changes.
+   */
+  const handleChartTimeRangeSelect: (startTime: Date, endTime: Date) => void =
+    useCallback((startTime: Date, endTime: Date): void => {
+      setZoomWindow(new InBetween<Date>(startTime, endTime));
+    }, []);
+
+  const enableChartZoom: boolean = !props.isEditMode;
+
+  /*
+   * Series investigate menus navigate to explorer/telemetry pages, so
+   * they follow the same gating as the Open in Explorer button.
+   */
+  const enableSeriesActions: boolean =
+    !isPublicDashboard() && !props.isEditMode;
 
   if (isLoading && metricResults.length === 0) {
     // Skeleton loading for chart - only on initial load
@@ -333,6 +386,38 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
           )}
         </div>
       )}
+      {zoomWindow ? (
+        <div className="mx-2 mb-1 flex flex-shrink-0 flex-wrap items-center gap-x-2 gap-y-1 rounded-md bg-indigo-50 px-2 py-1">
+          <Icon
+            icon={IconProp.MagnifyingGlassPlus}
+            className="h-3 w-3 flex-shrink-0 text-indigo-500"
+          />
+          <span className="min-w-0 truncate text-[11px] text-indigo-700">
+            Zoomed:{" "}
+            {OneUptimeDate.getInBetweenDatesAsFormattedString(zoomWindow)}
+          </span>
+          <button
+            type="button"
+            className="text-[11px] font-medium text-indigo-600 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            onClick={(event: React.MouseEvent<HTMLButtonElement>): void => {
+              event.stopPropagation();
+              setZoomWindow(null);
+            }}
+          >
+            Reset
+          </button>
+          {showOpenInExplorer ? (
+            <button
+              type="button"
+              className="text-[11px] font-medium text-indigo-600 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+              title="Open this window in Metric Explorer"
+              onClick={handleOpenInExplorer}
+            >
+              Open in Explorer
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
         <MetricCharts
           metricResults={metricResults}
@@ -340,6 +425,10 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
           metricViewData={chartMetricViewData}
           hideCard={true}
           topNOverrideScope={topNOverrideScope}
+          enableSeriesActions={enableSeriesActions}
+          onTimeRangeSelect={
+            enableChartZoom ? handleChartTimeRangeSelect : undefined
+          }
         />
       </div>
     </div>
