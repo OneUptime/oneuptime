@@ -60,8 +60,16 @@ is invisible until somebody reads the numbers months later.
 Cal fires the booking under more than one action name — the older
 `bookingSuccessful` and the newer `bookingSuccessfulV2` — and `embed.js` is
 loaded unpinned from `app.cal.com`, so which one arrives is Cal's decision on
-any given day. Both are subscribed to and the first to arrive latches, so one
-booking stays one `meeting_booked`.
+any given day. Every booking page therefore subscribes through
+`window.oneUptimeOnCalBookingSuccess` (`Home/Views/head-basic.ejs`), which takes
+both names and latches on the first to arrive, so one booking stays one
+`meeting_booked`.
+
+Subscribe a page with a bare `Cal('on', { action: 'bookingSuccessful' })` and it
+takes the old name alone — bookings keep succeeding while that page's conversion
+reports nothing, with no error anywhere. `/enterprise/self-hosted` was doing
+exactly that until its coverage was restored; the parameterised test above now
+fails any page that does.
 
 ## Privacy
 

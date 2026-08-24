@@ -1,4 +1,5 @@
 import { getPageSEO, PageSEOData } from "../Utils/PageSEO";
+import { getSelfHostedContent } from "../Utils/SelfHosted";
 import ejs from "ejs";
 import path from "path";
 
@@ -81,6 +82,29 @@ const renderSupport: RenderSupportFunction = async (
   return render("support.ejs", {
     enableGoogleTagManager: enableGoogleTagManager,
     seo: seoFor("/support"),
+    homeUrl: HOME_URL,
+  });
+};
+
+type RenderSelfHostedFunction = (
+  enableGoogleTagManager?: boolean,
+) => Promise<string>;
+
+const renderSelfHosted: RenderSelfHostedFunction = async (
+  enableGoogleTagManager: boolean = true,
+): Promise<string> => {
+  return render("self-hosted.ejs", {
+    support: false,
+    enableGoogleTagManager: enableGoogleTagManager,
+    footerCards: true,
+    cta: false,
+    blackLogo: true,
+    requestDemoCta: true,
+    reviewsList1: [],
+    reviewsList2: [],
+    reviewsList3: [],
+    selfHosted: getSelfHostedContent(),
+    seo: seoFor("/enterprise/self-hosted"),
     homeUrl: HOME_URL,
   });
 };
@@ -330,9 +354,21 @@ describe("meeting_booked analytics", () => {
     });
   });
 
+  /*
+   * Every page that books, not just the two obvious ones. /enterprise/self-hosted
+   * books the same Cal event type through the same helper, and it lost its only
+   * coverage when the Cal booking-metadata tests went — which is exactly how it
+   * came to be the one page still subscribing to Cal's old action name alone.
+   */
   describe.each([
     ["demo.ejs", renderDemo, "enterprise_demo", "home/demo-booked"],
     ["support.ejs", renderSupport, "support_call", "home/support-call-booked"],
+    [
+      "self-hosted.ejs",
+      renderSelfHosted,
+      "architecture_assessment",
+      "home/architecture-assessment-booked",
+    ],
   ])(
     "%s",
     (

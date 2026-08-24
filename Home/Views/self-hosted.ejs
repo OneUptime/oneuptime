@@ -882,25 +882,28 @@
 
     Cal("ui", { "styles": { "branding": { "brandColor": "#059669" } }, "hideEventTypeDetails": false, "layout": "month_view" });
 
-    Cal("on", {
-      action: "bookingSuccessful",
-      callback: (e) => {
-        const { type, namespace } = e.detail;
-
-        /*
-         * The canonical meeting_booked, with a booking_kind that says this one
-         * came from the self-hosted page.
-         *
-         * e.detail.data carries the attendee's name and email and is
-         * deliberately not forwarded to any analytics destination.
-         */
-        window.oneUptimeTrackMeetingBooked({
-          bookingKind: 'architecture_assessment',
-          legacyEventName: 'home/architecture-assessment-booked',
-          calEventType: type,
-          calNamespace: namespace
-        });
-      }
+    /*
+     * The canonical meeting_booked, with a booking_kind that says this one
+     * came from the self-hosted page.
+     *
+     * Through the shared subscriber, like the other two booking pages. This
+     * page used to take Cal('on', { action: 'bookingSuccessful' }) directly,
+     * which subscribes to the OLD name only — and embed.js is loaded unpinned
+     * from app.cal.com, so Cal switching to bookingSuccessfulV2 would have
+     * switched this page's conversion off silently while bookings kept
+     * succeeding. oneUptimeOnCalBookingSuccess takes both names and latches,
+     * so one booking stays one meeting_booked.
+     *
+     * detail.data carries the attendee's name and email and is deliberately
+     * not forwarded to any analytics destination.
+     */
+    window.oneUptimeOnCalBookingSuccess(function (detail) {
+      window.oneUptimeTrackMeetingBooked({
+        bookingKind: 'architecture_assessment',
+        legacyEventName: 'home/architecture-assessment-booked',
+        calEventType: detail.type,
+        calNamespace: detail.namespace
+      });
     });
   </script>
 </body>
