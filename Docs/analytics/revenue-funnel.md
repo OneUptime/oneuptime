@@ -11,6 +11,7 @@ Manager `dataLayer`. Event names and properties are defined in
 | Activation    | `workspace_created`       | A project/workspace is successfully created.                                    |
 | Activation    | `monitor_created`         | A monitor is successfully created.                                              |
 | Collaboration | `teammate_invited`        | A project invitation is successfully created.                                   |
+| Revenue       | `subscription_started`    | A project is created directly on a paid plan. New business: no previous tier.   |
 | Revenue       | `subscription_upgraded`   | A project moves to a higher plan. `is_paid_conversion` identifies free-to-paid. |
 | Revenue       | `subscription_downgraded` | A project moves to a lower plan.                                                |
 
@@ -56,7 +57,7 @@ To build it by hand instead:
   **matches RegEx**:
 
   ```
-  ^(signup_started|sign_up|workspace_created|monitor_created|teammate_invited|subscription_upgraded|subscription_downgraded|meeting_booked|cta_get_started|cta_request_demo|page_view_pricing|page_view_demo)$
+  ^(signup_started|sign_up|workspace_created|monitor_created|teammate_invited|subscription_started|subscription_upgraded|subscription_downgraded|meeting_booked|cta_get_started|cta_request_demo|page_view_pricing|page_view_demo)$
   ```
 
 - **Tag** — `GA4 - OneUptime Key Events`, type Google Analytics: GA4 Event,
@@ -101,12 +102,13 @@ Current state:
 | `page_view_demo`          | no        | Same.                                                                                            |
 | `demo_request`            | no        | Never had a working delivery path and is no longer emitted at all.                               |
 | `generate_lead`           | no        | Nothing emits it.                                                                                |
+| `subscription_started`    | not yet   | Carries `value`/`currency`. Cannot be starred until it fires once.                               |
 | `subscription_upgraded`   | not yet   | Carries `value`/`currency`. Cannot be starred until it fires once — nobody has changed plan yet. |
 | `subscription_downgraded` | not yet   | Same.                                                                                            |
 | `meeting_booked`          | not yet   | Same — no booking since the deploy.                                                              |
 
-`subscription_upgraded`, `subscription_downgraded` and `meeting_booked` are
-the three left. Star each one the first time it appears in the list; until
+`subscription_started`, `subscription_upgraded`, `subscription_downgraded` and
+`meeting_booked` are the four left. Star each one the first time it appears in the list; until
 then GA4 has nothing to star.
 
 `subscription_upgraded` is worth a closer look when it does arrive — it is the

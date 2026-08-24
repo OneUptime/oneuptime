@@ -24,7 +24,7 @@ import Response from "Common/Server/Utils/Response";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import logger from "Common/Server/Utils/Logger";
 import "ejs";
-import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import { GoogleTagManagerEnabled } from "Common/Server/EnvironmentConfig";
 
 /*
  * Read a markdown file for the given language, falling back to English when
@@ -372,7 +372,7 @@ const DocsFeatureSet: FeatureSet = {
               t: t,
               lang: lang,
               supportedLanguages: SUPPORTED_DOCS_LANGUAGES,
-              enableGoogleTagManager: IsBillingEnabled,
+              enableGoogleTagManager: GoogleTagManagerEnabled,
               link: null,
               currentPath: req.originalUrl,
             });
@@ -413,7 +413,7 @@ const DocsFeatureSet: FeatureSet = {
               t: t,
               lang: lang,
               supportedLanguages: SUPPORTED_DOCS_LANGUAGES,
-              enableGoogleTagManager: IsBillingEnabled,
+              enableGoogleTagManager: GoogleTagManagerEnabled,
               link: null,
               currentPath: req.originalUrl,
             });
@@ -483,7 +483,7 @@ const DocsFeatureSet: FeatureSet = {
             category: localizedCategory,
             link: localizedLink,
             githubPath: fullPath,
-            enableGoogleTagManager: IsBillingEnabled,
+            enableGoogleTagManager: GoogleTagManagerEnabled,
             prevLink: prevRaw ? translateFlatLink(prevRaw) : null,
             nextLink: nextRaw ? translateFlatLink(nextRaw) : null,
             currentPath: req.originalUrl,

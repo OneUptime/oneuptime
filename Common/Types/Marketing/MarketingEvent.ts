@@ -3,7 +3,7 @@ import { JSONObject } from "../JSON";
 /*
  * The outbound marketing event contract.
  *
- * OneUptime does not keep a conversion ledger. The four moments worth
+ * OneUptime does not keep a conversion ledger. The moments worth
  * measuring are emitted as signed webhooks at the instant they happen and are
  * not stored here afterwards, so this interface — not a database table — is
  * the whole record of what a conversion looks like.
@@ -27,6 +27,15 @@ import { JSONObject } from "../JSON";
 export enum MarketingEventType {
   SignUp = "sign_up",
   MeetingBooked = "meeting_booked",
+  /*
+   * A project's first paid subscription, created together with the project.
+   *
+   * Deliberately not a subscription_upgraded. An upgrade is a movement between
+   * two tiers and reports expansion; this has no previous tier at all and is
+   * new business. Reporting one as the other mixes net-new with expansion
+   * revenue, and nothing downstream could separate them again.
+   */
+  SubscriptionStarted = "subscription_started",
   SubscriptionUpgraded = "subscription_upgraded",
   SubscriptionDowngraded = "subscription_downgraded",
   /*
@@ -69,15 +78,16 @@ export interface MarketingEvent extends JSONObject {
    *
    *   sign_up:{userId}
    *   meeting_booked:{calBookingUid}
+   *   subscription_started:{projectId}
    *   subscription_upgraded:{projectId}:{occurredAt}
    *   subscription_downgraded:{projectId}:{occurredAt}
    *   enterprise_license_issued:{enterpriseLicenseId}
    *
-   * Three of these are naturally unique — a user signs up once, a booking has
-   * one uid, a licence row is issued once — so Cal retrying a delivery or the
-   * queue retrying a job cannot produce a second conversion. A plan change can
-   * legitimately recur for one project, so its id carries the instant it
-   * happened.
+   * Four of these are naturally unique — a user signs up once, a booking has
+   * one uid, a project has one first subscription, a licence row is issued
+   * once — so Cal retrying a delivery or the queue retrying a job cannot
+   * produce a second conversion. A plan change can legitimately recur for one
+   * project, so its id carries the instant it happened.
    */
   eventId: string;
   eventType: MarketingEventType;

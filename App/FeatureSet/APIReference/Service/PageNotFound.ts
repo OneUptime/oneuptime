@@ -1,4 +1,4 @@
-import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import { GoogleTagManagerEnabled } from "Common/Server/EnvironmentConfig";
 import { ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import DataTypeUtil, { DataTypeDocumentation } from "../Utils/DataTypes";
@@ -19,7 +19,7 @@ export default class ServiceHandler {
     return res.render(`${ViewsPath}/pages/index`, {
       page: "404",
       pageTitle: ctx.t("ui.pageNotFoundMetaTitle"),
-      enableGoogleTagManager: IsBillingEnabled,
+      enableGoogleTagManager: GoogleTagManagerEnabled,
       pageDescription: ctx.t("ui.pageNotFoundMetaDescription"),
       resources: Resources,
       dataTypes: DataTypes,

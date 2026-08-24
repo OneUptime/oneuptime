@@ -32,16 +32,22 @@
     pressed Reject, or never saw the banner. "Reject all" rejected nothing.
 
     Both buttons now go through window.oneUptimeConsent (defined in
-    head-basic.ejs, before the tags load), which is what actually writes the
-    key, pushes the Consent Mode v2 update to Google, and tells the attribution
-    capture to either store what it has been holding or forget what it knows.
+    Common/Server/Views/Partials/AnalyticsConsent.ejs, before the tags load),
+    which is what actually writes the key, pushes the Consent Mode v2 update to
+    Google, and tells the attribution capture to either store what it has been
+    holding or forget what it knows.
+
+    That partial is shared with /accounts and /dashboard, so the answer given
+    here is the answer those origins honour too — they are the same origin and
+    read the same key.
 -->
 <script>
     function setCookieConsent(granted) {
         /*
-         * head-basic.ejs is included by every page that includes this banner,
-         * so the helper is always there. Falling back to the raw write keeps a
-         * page that somehow omits it from silently losing the visitor's answer.
+         * The AnalyticsConsent partial is included by every page that includes
+         * this banner, so the helper is always there. Falling back to the raw
+         * write keeps a page that somehow omits it from silently losing the
+         * visitor's answer.
          */
         if (window.oneUptimeConsent) {
             if (granted) {
@@ -79,6 +85,17 @@
     function showBanner() {
         document.getElementById('cookie').style.display = 'block';
     }
+
+    /*
+     * Withdrawing consent has to be as easy as giving it, and the Cookie
+     * Policy has always promised a settings link in the footer. Until this
+     * existed there was no way to reopen the banner at all: answer it once and
+     * the decision was final.
+     */
+    window.oneUptimeShowCookieSettings = function () {
+        showBanner();
+        return false;
+    };
 
     function checkCookies () {
         /*

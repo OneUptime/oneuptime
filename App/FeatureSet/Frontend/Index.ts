@@ -1,5 +1,6 @@
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import {
+  GoogleTagManagerEnabled,
   IsBillingEnabled,
   getFrontendEnvVars,
 } from "Common/Server/EnvironmentConfig";
@@ -278,7 +279,7 @@ const renderFrontendIndexPage: (
     }
 
     res.render(frontendConfig.indexViewPath, {
-      enableGoogleTagManager: IsBillingEnabled || false,
+      enableGoogleTagManager: GoogleTagManagerEnabled,
       ...variables,
     });
   } catch (err) {

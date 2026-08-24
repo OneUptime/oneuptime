@@ -25,7 +25,7 @@ import Permission, {
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import LocalFile from "Common/Server/Utils/LocalFile";
-import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import { GoogleTagManagerEnabled } from "Common/Server/EnvironmentConfig";
 
 interface ExampleObjects {
   simpleSelectExample: JSONObject;
@@ -735,7 +735,7 @@ export default class ServiceHandler {
       resources: Resources,
       dataTypes: DataTypes,
       pageTitle: pageTitle,
-      enableGoogleTagManager: IsBillingEnabled,
+      enableGoogleTagManager: GoogleTagManagerEnabled,
       pageDescription: pageDescription,
       pageData: pageData,
       lang: ctx.lang,

@@ -3,7 +3,7 @@ import CommonAPI from "../API/Index";
 import { StatusAPIOptions } from "../API/StatusAPI";
 import {
   AppVersion,
-  IsBillingEnabled,
+  GoogleTagManagerEnabled,
   TrustedProxyHops,
   getFrontendEnvVars,
 } from "../EnvironmentConfig";
@@ -449,7 +449,7 @@ const init: InitFunction = async (
           }
 
           return res.render(path.resolve(process.cwd(), "views/index.ejs"), {
-            enableGoogleTagManager: IsBillingEnabled || false,
+            enableGoogleTagManager: GoogleTagManagerEnabled,
             ...variables,
           });
         } catch (err) {

@@ -237,10 +237,18 @@
                             "type": "boolean"
                         },
                         "minAvailable": {
-                            "type": ["integer", "string", "null"]
+                            "type": [
+                                "integer",
+                                "string",
+                                "null"
+                            ]
                         },
                         "maxUnavailable": {
-                            "type": ["integer", "string", "null"]
+                            "type": [
+                                "integer",
+                                "string",
+                                "null"
+                            ]
                         }
                     },
                     "additionalProperties": false
@@ -376,7 +384,10 @@
                     "type": "object"
                 },
                 "hostAliases": {
-                    "type": ["array", "null"]
+                    "type": [
+                        "array",
+                        "null"
+                    ]
                 },
                 "sysctlTuning": {
                     "type": "object",
@@ -536,34 +547,78 @@
                 "cnpg": {
                     "type": "object",
                     "properties": {
-                        "enabled": { "type": "boolean" },
-                        "instances": { "type": "integer" },
-                        "synchronousReplicas": { "type": "integer" },
-                        "imageName": { "type": "string" },
-                        "database": { "type": "string" },
-                        "owner": { "type": "string" },
-                        "postgresPassword": { "type": ["string", "null"] },
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "instances": {
+                            "type": "integer"
+                        },
+                        "synchronousReplicas": {
+                            "type": "integer"
+                        },
+                        "imageName": {
+                            "type": "string"
+                        },
+                        "database": {
+                            "type": "string"
+                        },
+                        "owner": {
+                            "type": "string"
+                        },
+                        "postgresPassword": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
                         "persistence": {
                             "type": "object",
                             "properties": {
-                                "size": { "type": "string" },
-                                "storageClass": { "type": "string" }
+                                "size": {
+                                    "type": "string"
+                                },
+                                "storageClass": {
+                                    "type": "string"
+                                }
                             },
                             "additionalProperties": false
                         },
-                        "parameters": { "type": "object" },
-                        "resources": { "type": ["object", "null"] },
-                        "nodeSelector": { "type": "object" },
-                        "tolerations": { "type": "array" },
-                        "affinity": { "type": "object" },
+                        "parameters": {
+                            "type": "object"
+                        },
+                        "resources": {
+                            "type": [
+                                "object",
+                                "null"
+                            ]
+                        },
+                        "nodeSelector": {
+                            "type": "object"
+                        },
+                        "tolerations": {
+                            "type": "array"
+                        },
+                        "affinity": {
+                            "type": "object"
+                        },
                         "backup": {
                             "type": "object",
                             "properties": {
-                                "enabled": { "type": "boolean" },
-                                "schedule": { "type": "string" },
-                                "immediate": { "type": "boolean" },
-                                "volumeSnapshotClassName": { "type": "string" },
-                                "online": { "type": "boolean" }
+                                "enabled": {
+                                    "type": "boolean"
+                                },
+                                "schedule": {
+                                    "type": "string"
+                                },
+                                "immediate": {
+                                    "type": "boolean"
+                                },
+                                "volumeSnapshotClassName": {
+                                    "type": "string"
+                                },
+                                "online": {
+                                    "type": "boolean"
+                                }
                             },
                             "additionalProperties": false
                         }
@@ -579,92 +634,186 @@
                 "altinity": {
                     "type": "object",
                     "properties": {
-                        "enabled": { "type": "boolean" },
+                        "enabled": {
+                            "type": "boolean"
+                        },
                         "image": {
                             "type": "object",
                             "properties": {
-                                "repository": { "type": "string" },
-                                "tag": { "type": "string" },
-                                "pullPolicy": { "type": "string", "enum": ["IfNotPresent", "Always", "Never"] }
+                                "repository": {
+                                    "type": "string"
+                                },
+                                "tag": {
+                                    "type": "string"
+                                },
+                                "pullPolicy": {
+                                    "type": "string",
+                                    "enum": [
+                                        "IfNotPresent",
+                                        "Always",
+                                        "Never"
+                                    ]
+                                }
                             },
                             "additionalProperties": false
                         },
                         "cluster": {
                             "type": "object",
                             "properties": {
-                                "name": { "type": "string" },
-                                "shardsCount": { "type": "integer" },
-                                "replicasCount": { "type": "integer" },
-                                "shardingKey": { "type": "string" }
+                                "name": {
+                                    "type": "string"
+                                },
+                                "shardsCount": {
+                                    "type": "integer"
+                                },
+                                "replicasCount": {
+                                    "type": "integer"
+                                },
+                                "shardingKey": {
+                                    "type": "string"
+                                }
                             },
                             "additionalProperties": false
                         },
                         "auth": {
                             "type": "object",
                             "properties": {
-                                "username": { "type": "string" },
-                                "password": { "type": ["string", "null"] }
+                                "username": {
+                                    "type": "string"
+                                },
+                                "password": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                }
                             },
                             "additionalProperties": false
                         },
-                        "database": { "type": "string" },
+                        "database": {
+                            "type": "string"
+                        },
                         "service": {
                             "type": "object",
                             "properties": {
-                                "type": { "type": "string", "enum": ["ClusterIP", "LoadBalancer", "NodePort"] }
+                                "type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "ClusterIP",
+                                        "LoadBalancer",
+                                        "NodePort"
+                                    ]
+                                }
                             },
                             "additionalProperties": false
                         },
                         "persistence": {
                             "type": "object",
                             "properties": {
-                                "size": { "type": "string" },
-                                "storageClass": { "type": "string" }
+                                "size": {
+                                    "type": "string"
+                                },
+                                "storageClass": {
+                                    "type": "string"
+                                }
                             },
                             "additionalProperties": false
                         },
-                        "resources": { "type": ["object", "null"] },
-                        "nodeSelector": { "type": "object" },
-                        "tolerations": { "type": "array" },
-                        "affinity": { "type": "object" },
-                        "podSecurityContext": { "type": "object" },
-                        "containerSecurityContext": { "type": "object" },
-                        "settings": { "type": "object" },
-                        "profiles": { "type": "object" },
-                        "files": { "type": "object" },
+                        "resources": {
+                            "type": [
+                                "object",
+                                "null"
+                            ]
+                        },
+                        "nodeSelector": {
+                            "type": "object"
+                        },
+                        "tolerations": {
+                            "type": "array"
+                        },
+                        "affinity": {
+                            "type": "object"
+                        },
+                        "podSecurityContext": {
+                            "type": "object"
+                        },
+                        "containerSecurityContext": {
+                            "type": "object"
+                        },
+                        "settings": {
+                            "type": "object"
+                        },
+                        "profiles": {
+                            "type": "object"
+                        },
+                        "files": {
+                            "type": "object"
+                        },
                         "keeper": {
                             "type": "object",
                             "properties": {
-                                "enabled": { "type": "boolean" },
-                                "replicas": { "type": "integer" },
+                                "enabled": {
+                                    "type": "boolean"
+                                },
+                                "replicas": {
+                                    "type": "integer"
+                                },
                                 "image": {
                                     "type": "object",
                                     "properties": {
-                                        "repository": { "type": "string" },
-                                        "tag": { "type": "string" },
-                                        "pullPolicy": { "type": "string", "enum": ["IfNotPresent", "Always", "Never"] }
+                                        "repository": {
+                                            "type": "string"
+                                        },
+                                        "tag": {
+                                            "type": "string"
+                                        },
+                                        "pullPolicy": {
+                                            "type": "string",
+                                            "enum": [
+                                                "IfNotPresent",
+                                                "Always",
+                                                "Never"
+                                            ]
+                                        }
                                     },
                                     "additionalProperties": false
                                 },
                                 "persistence": {
                                     "type": "object",
                                     "properties": {
-                                        "size": { "type": "string" },
-                                        "storageClass": { "type": "string" }
+                                        "size": {
+                                            "type": "string"
+                                        },
+                                        "storageClass": {
+                                            "type": "string"
+                                        }
                                     },
                                     "additionalProperties": false
                                 },
-                                "resources": { "type": ["object", "null"] },
-                                "nodeSelector": { "type": "object" },
-                                "tolerations": { "type": "array" },
-                                "affinity": { "type": "object" }
+                                "resources": {
+                                    "type": [
+                                        "object",
+                                        "null"
+                                    ]
+                                },
+                                "nodeSelector": {
+                                    "type": "object"
+                                },
+                                "tolerations": {
+                                    "type": "array"
+                                },
+                                "affinity": {
+                                    "type": "object"
+                                }
                             },
                             "additionalProperties": false
                         },
                         "zookeeper": {
                             "type": "object",
                             "properties": {
-                                "nodes": { "type": "array" }
+                                "nodes": {
+                                    "type": "array"
+                                }
                             },
                             "additionalProperties": false
                         }
@@ -877,10 +1026,18 @@
                             "type": "boolean"
                         },
                         "minAvailable": {
-                            "type": ["integer", "string", "null"]
+                            "type": [
+                                "integer",
+                                "string",
+                                "null"
+                            ]
                         },
                         "maxUnavailable": {
-                            "type": ["integer", "string", "null"]
+                            "type": [
+                                "integer",
+                                "string",
+                                "null"
+                            ]
                         }
                     },
                     "additionalProperties": false
@@ -1210,10 +1367,18 @@
                     "type": "boolean"
                 },
                 "minAvailable": {
-                    "type": ["integer", "string", "null"]
+                    "type": [
+                        "integer",
+                        "string",
+                        "null"
+                    ]
                 },
                 "maxUnavailable": {
-                    "type": ["integer", "string", "null"]
+                    "type": [
+                        "integer",
+                        "string",
+                        "null"
+                    ]
                 }
             },
             "additionalProperties": false
@@ -1377,6 +1542,15 @@
                         "string",
                         "null"
                     ]
+                },
+                "googleTagManager": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false
@@ -1388,10 +1562,16 @@
                     "type": "object",
                     "properties": {
                         "url": {
-                            "type": ["string", "null"]
+                            "type": [
+                                "string",
+                                "null"
+                            ]
                         },
                         "secret": {
-                            "type": ["string", "null"]
+                            "type": [
+                                "string",
+                                "null"
+                            ]
                         }
                     },
                     "additionalProperties": false
@@ -1400,7 +1580,11 @@
                     "type": "object",
                     "properties": {
                         "webhookSecret": {
-                            "type": ["string", "number", "null"]
+                            "type": [
+                                "string",
+                                "number",
+                                "null"
+                            ]
                         }
                     },
                     "additionalProperties": false
@@ -1581,10 +1765,18 @@
                                     "type": "boolean"
                                 },
                                 "minAvailable": {
-                                    "type": ["integer", "string", "null"]
+                                    "type": [
+                                        "integer",
+                                        "string",
+                                        "null"
+                                    ]
                                 },
                                 "maxUnavailable": {
-                                    "type": ["integer", "string", "null"]
+                                    "type": [
+                                        "integer",
+                                        "string",
+                                        "null"
+                                    ]
                                 }
                             },
                             "additionalProperties": false
@@ -1765,7 +1957,10 @@
                             "type": "object"
                         },
                         "hostAliases": {
-                            "type": ["array", "null"]
+                            "type": [
+                                "array",
+                                "null"
+                            ]
                         },
                         "additionalContainers": {
                             "type": "array"
@@ -1774,10 +1969,16 @@
                             "type": "boolean"
                         },
                         "dnsPolicy": {
-                            "type": ["string", "null"]
+                            "type": [
+                                "string",
+                                "null"
+                            ]
                         },
                         "dnsConfig": {
-                            "type": ["object", "null"],
+                            "type": [
+                                "object",
+                                "null"
+                            ],
                             "properties": {
                                 "nameservers": {
                                     "type": "array",
@@ -1800,7 +2001,10 @@
                                                 "type": "string"
                                             },
                                             "value": {
-                                                "type": ["string", "null"]
+                                                "type": [
+                                                    "string",
+                                                    "null"
+                                                ]
                                             }
                                         },
                                         "additionalProperties": false
@@ -1935,7 +2139,9 @@
                 "null"
             ]
         },
-        "telemetryWaitForAsyncInsert": { "type": "boolean" },
+        "telemetryWaitForAsyncInsert": {
+            "type": "boolean"
+        },
         "logLevel": {
             "type": "string",
             "enum": [
@@ -2400,10 +2606,18 @@
                             "type": "boolean"
                         },
                         "minAvailable": {
-                            "type": ["integer", "string", "null"]
+                            "type": [
+                                "integer",
+                                "string",
+                                "null"
+                            ]
                         },
                         "maxUnavailable": {
-                            "type": ["integer", "string", "null"]
+                            "type": [
+                                "integer",
+                                "string",
+                                "null"
+                            ]
                         }
                     },
                     "additionalProperties": false
@@ -2463,7 +2677,10 @@
                     "type": "object"
                 },
                 "hostAliases": {
-                    "type": ["array", "null"]
+                    "type": [
+                        "array",
+                        "null"
+                    ]
                 },
                 "containerSecurityContext": {
                     "type": "object"
@@ -2547,10 +2764,18 @@
                             "type": "boolean"
                         },
                         "minAvailable": {
-                            "type": ["integer", "string", "null"]
+                            "type": [
+                                "integer",
+                                "string",
+                                "null"
+                            ]
                         },
                         "maxUnavailable": {
-                            "type": ["integer", "string", "null"]
+                            "type": [
+                                "integer",
+                                "string",
+                                "null"
+                            ]
                         }
                     },
                     "additionalProperties": false
@@ -2680,7 +2905,10 @@
                     "type": "object"
                 },
                 "hostAliases": {
-                    "type": ["array", "null"]
+                    "type": [
+                        "array",
+                        "null"
+                    ]
                 },
                 "containerSecurityContext": {
                     "type": "object"
@@ -2743,10 +2971,18 @@
                             "type": "boolean"
                         },
                         "minAvailable": {
-                            "type": ["integer", "string", "null"]
+                            "type": [
+                                "integer",
+                                "string",
+                                "null"
+                            ]
                         },
                         "maxUnavailable": {
-                            "type": ["integer", "string", "null"]
+                            "type": [
+                                "integer",
+                                "string",
+                                "null"
+                            ]
                         }
                     },
                     "additionalProperties": false
@@ -2869,7 +3105,10 @@
                     "type": "object"
                 },
                 "hostAliases": {
-                    "type": ["array", "null"]
+                    "type": [
+                        "array",
+                        "null"
+                    ]
                 },
                 "containerSecurityContext": {
                     "type": "object"
@@ -2925,48 +3164,142 @@
         "telemetryWriter": {
             "type": "object",
             "properties": {
-                "enabled": { "type": "boolean" },
-                "replicaCount": { "type": "integer", "minimum": 1 },
-                "databaseMaxOpenConnections": { "type": ["integer", "null"], "minimum": 1 },
-                "maxInflightRequests": { "type": "integer", "minimum": 1 },
-                "telemetryFanInMaxBatchRows": { "type": "integer", "minimum": 1 },
-                "telemetryFanInMaxWaitMs": { "type": "integer", "minimum": 1 },
-                "telemetryFanInMaxConcurrentInserts": { "type": "integer", "minimum": 1 },
-                "telemetryFanInMaxPendingRows": { "type": "integer", "minimum": 1 },
-                "telemetryFanInRetryMaxAttempts": { "type": "integer", "minimum": 1 },
-                "telemetryFanInRetryBaseDelayMs": { "type": "integer", "minimum": 1 },
-                "telemetryFanInRetryMaxDelayMs": { "type": "integer", "minimum": 1 },
-                "clickhouseMaxOpenConnections": { "type": ["integer", "null"], "minimum": 1 },
-                "clickhouseIngestMaxOpenConnections": { "type": ["integer", "null"], "minimum": 1 },
-                "disableTelemetryCollection": { "type": "boolean" },
-                "enableProfiling": { "type": "boolean" },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "replicaCount": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "databaseMaxOpenConnections": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1
+                },
+                "maxInflightRequests": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInMaxBatchRows": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInMaxWaitMs": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInMaxConcurrentInserts": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInMaxPendingRows": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInRetryMaxAttempts": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInRetryBaseDelayMs": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInRetryMaxDelayMs": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "clickhouseMaxOpenConnections": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1
+                },
+                "clickhouseIngestMaxOpenConnections": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1
+                },
+                "disableTelemetryCollection": {
+                    "type": "boolean"
+                },
+                "enableProfiling": {
+                    "type": "boolean"
+                },
                 "autoscaling": {
                     "type": "object",
                     "properties": {
-                        "enabled": { "type": "boolean" },
-                        "minReplicas": { "type": "integer", "minimum": 1 },
-                        "maxReplicas": { "type": "integer", "minimum": 1 },
-                        "targetCPUUtilizationPercentage": { "type": "integer", "minimum": 0 },
-                        "targetMemoryUtilizationPercentage": { "type": "integer", "minimum": 0 }
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "minReplicas": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "maxReplicas": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "targetCPUUtilizationPercentage": {
+                            "type": "integer",
+                            "minimum": 0
+                        },
+                        "targetMemoryUtilizationPercentage": {
+                            "type": "integer",
+                            "minimum": 0
+                        }
                     },
                     "additionalProperties": false
                 },
                 "keda": {
                     "type": "object",
                     "properties": {
-                        "enabled": { "type": "boolean" },
-                        "minReplicas": { "type": "integer", "minimum": 1 },
-                        "maxReplicas": { "type": "integer", "minimum": 1 },
-                        "shedCountThreshold": { "type": "integer", "minimum": 1 },
-                        "targetCPUUtilizationPercentage": { "type": "integer", "minimum": 0 },
-                        "targetMemoryUtilizationPercentage": { "type": "integer", "minimum": 0 },
-                        "pollingInterval": { "type": "integer", "minimum": 1 },
-                        "cooldownPeriod": { "type": "integer", "minimum": 0 },
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "minReplicas": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "maxReplicas": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "shedCountThreshold": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "targetCPUUtilizationPercentage": {
+                            "type": "integer",
+                            "minimum": 0
+                        },
+                        "targetMemoryUtilizationPercentage": {
+                            "type": "integer",
+                            "minimum": 0
+                        },
+                        "pollingInterval": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "cooldownPeriod": {
+                            "type": "integer",
+                            "minimum": 0
+                        },
                         "fallback": {
                             "type": "object",
                             "properties": {
-                                "failureThreshold": { "type": "integer", "minimum": 1 },
-                                "replicas": { "type": "integer", "minimum": 0 }
+                                "failureThreshold": {
+                                    "type": "integer",
+                                    "minimum": 1
+                                },
+                                "replicas": {
+                                    "type": "integer",
+                                    "minimum": 0
+                                }
                             },
                             "additionalProperties": false
                         }
@@ -2976,24 +3309,56 @@
                 "podDisruptionBudget": {
                     "type": "object",
                     "properties": {
-                        "enabled": { "type": "boolean" },
-                        "minAvailable": { "type": ["integer", "string", "null"] },
-                        "maxUnavailable": { "type": ["integer", "string", "null"] }
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "minAvailable": {
+                            "type": [
+                                "integer",
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "maxUnavailable": {
+                            "type": [
+                                "integer",
+                                "string",
+                                "null"
+                            ]
+                        }
                     },
                     "additionalProperties": false
                 },
                 "ports": {
                     "type": "object",
                     "properties": {
-                        "http": { "type": "integer" }
+                        "http": {
+                            "type": "integer"
+                        }
                     },
                     "additionalProperties": false
                 },
-                "resources": { "type": ["object", "null"] },
-                "nodeSelector": { "type": "object" },
-                "podSecurityContext": { "type": "object" },
-                "hostAliases": { "type": ["array", "null"] },
-                "containerSecurityContext": { "type": "object" }
+                "resources": {
+                    "type": [
+                        "object",
+                        "null"
+                    ]
+                },
+                "nodeSelector": {
+                    "type": "object"
+                },
+                "podSecurityContext": {
+                    "type": "object"
+                },
+                "hostAliases": {
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "containerSecurityContext": {
+                    "type": "object"
+                }
             },
             "additionalProperties": false
         },
@@ -3193,10 +3558,18 @@
                             "type": "boolean"
                         },
                         "minAvailable": {
-                            "type": ["integer", "string", "null"]
+                            "type": [
+                                "integer",
+                                "string",
+                                "null"
+                            ]
                         },
                         "maxUnavailable": {
-                            "type": ["integer", "string", "null"]
+                            "type": [
+                                "integer",
+                                "string",
+                                "null"
+                            ]
                         }
                     },
                     "additionalProperties": false
@@ -3271,7 +3644,10 @@
                     "type": "object"
                 },
                 "hostAliases": {
-                    "type": ["array", "null"]
+                    "type": [
+                        "array",
+                        "null"
+                    ]
                 },
                 "keda": {
                     "type": "object",
@@ -3335,7 +3711,11 @@
                         },
                         "pullPolicy": {
                             "type": "string",
-                            "enum": ["IfNotPresent", "Always", "Never"]
+                            "enum": [
+                                "IfNotPresent",
+                                "Always",
+                                "Never"
+                            ]
                         }
                     },
                     "additionalProperties": false
@@ -3344,7 +3724,10 @@
                     "type": "string"
                 },
                 "servedModelName": {
-                    "type": ["string", "null"]
+                    "type": [
+                        "string",
+                        "null"
+                    ]
                 },
                 "toolCalling": {
                     "type": "object",
@@ -3353,19 +3736,31 @@
                             "type": "boolean"
                         },
                         "parser": {
-                            "type": ["string", "null"]
+                            "type": [
+                                "string",
+                                "null"
+                            ]
                         },
                         "chatTemplate": {
-                            "type": ["string", "null"]
+                            "type": [
+                                "string",
+                                "null"
+                            ]
                         }
                     },
                     "additionalProperties": false
                 },
                 "extraArgs": {
-                    "type": ["array", "null"]
+                    "type": [
+                        "array",
+                        "null"
+                    ]
                 },
                 "extraEnv": {
-                    "type": ["array", "null"]
+                    "type": [
+                        "array",
+                        "null"
+                    ]
                 },
                 "ports": {
                     "type": "object",
@@ -3386,16 +3781,25 @@
                     "additionalProperties": false
                 },
                 "apiKey": {
-                    "type": ["string", "null"]
+                    "type": [
+                        "string",
+                        "null"
+                    ]
                 },
                 "existingApiKeySecret": {
                     "type": "object",
                     "properties": {
                         "name": {
-                            "type": ["string", "null"]
+                            "type": [
+                                "string",
+                                "null"
+                            ]
                         },
                         "key": {
-                            "type": ["string", "null"]
+                            "type": [
+                                "string",
+                                "null"
+                            ]
                         }
                     },
                     "additionalProperties": false
@@ -3404,16 +3808,25 @@
                     "type": "object",
                     "properties": {
                         "token": {
-                            "type": ["string", "null"]
+                            "type": [
+                                "string",
+                                "null"
+                            ]
                         },
                         "existingSecret": {
                             "type": "object",
                             "properties": {
                                 "name": {
-                                    "type": ["string", "null"]
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
                                 },
                                 "key": {
-                                    "type": ["string", "null"]
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
                                 }
                             },
                             "additionalProperties": false
@@ -3446,7 +3859,10 @@
                             "type": "string"
                         },
                         "storageClass": {
-                            "type": ["string", "null"]
+                            "type": [
+                                "string",
+                                "null"
+                            ]
                         }
                     },
                     "additionalProperties": false
@@ -3461,10 +3877,16 @@
                     "additionalProperties": false
                 },
                 "resources": {
-                    "type": ["object", "null"]
+                    "type": [
+                        "object",
+                        "null"
+                    ]
                 },
                 "runtimeClassName": {
-                    "type": ["string", "null"]
+                    "type": [
+                        "string",
+                        "null"
+                    ]
                 },
                 "terminationGracePeriodSeconds": {
                     "type": "integer"
@@ -3556,10 +3978,16 @@
             "additionalProperties": true
         },
         "dnsPolicy": {
-            "type": ["string", "null"]
+            "type": [
+                "string",
+                "null"
+            ]
         },
         "dnsConfig": {
-            "type": ["object", "null"],
+            "type": [
+                "object",
+                "null"
+            ],
             "properties": {
                 "nameservers": {
                     "type": "array",
@@ -3582,7 +4010,10 @@
                                 "type": "string"
                             },
                             "value": {
-                                "type": ["string", "null"]
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
                             }
                         },
                         "additionalProperties": false

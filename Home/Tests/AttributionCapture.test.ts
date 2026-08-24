@@ -241,6 +241,19 @@ const loadHarness: LoadHarnessFunction = (
   );
   const attributionSource: string = extractScript(html, "var UTM_KEY_MAP = {");
 
+  /*
+   * Reporting on a captured touch lives in the page, not in the shared
+   * partial, so that /accounts and /dashboard do not start emitting
+   * home/-prefixed events just because they share the capture code. That makes
+   * it a fourth block, and it has to run here or the wiring the page actually
+   * depends on goes untested.
+   */
+  const reportingSource: string = html.includes(
+    "window.oneUptimeOnAttributionCaptured = function",
+  )
+    ? extractScript(html, "window.oneUptimeOnAttributionCaptured = function")
+    : "";
+
   const url: string = options.url || "https://oneuptime.com/enterprise/demo";
   const parsedUrl: URL = new URL(url);
 
@@ -304,7 +317,7 @@ const loadHarness: LoadHarnessFunction = (
     "dataLayer",
     "posthog",
     "URLSearchParams",
-    `${gtagSource}\n${consentSource}\n${attributionSource}\nreturn {
+    `${gtagSource}\n${consentSource}\n${reportingSource}\n${attributionSource}\nreturn {
        consent: window.oneUptimeConsent,
        getAttribution: window.oneUptimeGetAttribution,
        calMetadata: window.oneUptimeCalAttributionMetadata

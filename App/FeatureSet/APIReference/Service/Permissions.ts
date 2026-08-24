@@ -8,7 +8,7 @@ import {
   PermissionProps,
 } from "Common/Types/Permission";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
-import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import { GoogleTagManagerEnabled } from "Common/Server/EnvironmentConfig";
 import Dictionary from "Common/Types/Dictionary";
 
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
@@ -54,7 +54,7 @@ export default class ServiceHandler {
       resources: Resources,
       dataTypes: DataTypes,
       pageTitle: ctx.t("pages.permissions.metaTitle"),
-      enableGoogleTagManager: IsBillingEnabled,
+      enableGoogleTagManager: GoogleTagManagerEnabled,
       pageDescription: ctx.t("pages.permissions.metaDescription"),
       pageData: pageData,
       lang: ctx.lang,

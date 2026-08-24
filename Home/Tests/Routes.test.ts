@@ -66,13 +66,20 @@ function redirectTargetOf(routePath: string): string | null {
   }
 
   const match: RegExpMatchArray | null = body.match(
-    /res\.redirect\((?:301,\s*)?"([^"]+)"\)/,
+    /(?:res\.redirect\((?:301,\s*)?|redirectPreservingQuery\(\s*req,\s*res,\s*)"([^"]+)"/,
   );
 
   return match ? match[1]! : null;
 }
 
-const PERMANENT_REDIRECT: RegExp = /res\.redirect\(301,/;
+/*
+ * Both call shapes are recognised because the internal marketing redirects now
+ * go through redirectPreservingQuery — which carries the status as a trailing
+ * argument rather than a leading one — while the external install.sh routes
+ * still call res.redirect directly.
+ */
+const PERMANENT_REDIRECT: RegExp =
+  /res\.redirect\(301,|redirectPreservingQuery\([^)]*,\s*301\)/;
 
 function redirectsPermanently(routePath: string): boolean {
   const body: string | null = bodyOfGetRoute(routePath);
