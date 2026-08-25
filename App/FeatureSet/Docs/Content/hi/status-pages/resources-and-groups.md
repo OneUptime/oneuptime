@@ -130,7 +130,7 @@ grid समूह का हर monitor फिर किसी cell में �
 
 गहरी hierarchy हाथ से बनाना उबाऊ काम है। card के header में मौजूद तीन-बिंदु वाले overflow में **Import groups from CSV** है, जो **Import Groups from CSV** modal खोलता है।
 
-रास्ता यह है: `status-page-groups-template.csv` पाने के लिए **Download CSV Template**, उसे भरिए, फिर **Choose CSV File**, और उसके बाद **Preview Import** — ताकि कुछ लिखे जाने से पहले आप देख लें कि बनेगा क्या। नतीजा दो हिस्सों में बँटता है, **Groups Imported** और **Some Groups Could Not Be Imported**, ताकि कोई खराब row चुपचाप गायब न हो जाए।
+रास्ता यह है: `status-page-groups-template.csv` पाने के लिए **Download CSV Template**, उसे भरिए, फिर **Choose CSV File**, और उसके बाद **Preview Import** — ताकि कुछ लिखे जाने से पहले आप देख लें कि बनेगा क्या। इसके बाद **Import results** टेबल हर row को **Created**, **Failed** या **Skipped** के रूप में कारण सहित दिखाती है, ताकि कोई खराब row चुपचाप गायब न हो जाए।
 
 सिर्फ़ `name` आवश्यक है। स्वीकार किए जाने वाले columns ये हैं:
 

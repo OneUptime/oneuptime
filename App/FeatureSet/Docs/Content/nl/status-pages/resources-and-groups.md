@@ -130,7 +130,7 @@ Zet de dienst waar het meest naar gevraagd wordt bovenaan. Bezoekers die tijdens
 
 Een diepe hiërarchie met de hand bouwen is monnikenwerk. Het driepuntsmenu in de kop van de kaart heeft **Import groups from CSV**, dat de modal **Import Groups from CSV** opent.
 
-De flow is: **Download CSV Template** voor `status-page-groups-template.csv`, dat invullen, **Choose CSV File**, en dan **Preview Import** om te zien wat er wordt aangemaakt voordat er iets wordt weggeschreven. Het resultaat splitst in **Groups Imported** en **Some Groups Could Not Be Imported**, zodat een foute rij niet stilletjes verdwijnt.
+De flow is: **Download CSV Template** voor `status-page-groups-template.csv`, dat invullen, **Choose CSV File**, en dan **Preview Import** om te zien wat er wordt aangemaakt voordat er iets wordt weggeschreven. Daarna somt een **Import results**-tabel elke rij op als **Created**, **Failed** of **Skipped**, met de reden erbij, zodat een foute rij niet stilletjes verdwijnt.
 
 Alleen `name` is verplicht. Dit zijn de geaccepteerde kolommen:
 

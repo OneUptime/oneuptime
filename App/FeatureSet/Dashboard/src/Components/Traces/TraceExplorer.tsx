@@ -1588,10 +1588,10 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                     void navigator.clipboard
                       .writeText(traceId)
                       .then(() => {
-                        // Optional: could add a toast mechanism if available.
+                        // Nothing to surface here; the copy simply succeeded.
                       })
                       .catch(() => {
-                        // Silently fail; could add error toast.
+                        // Clipboard is unavailable — fail silently.
                       });
                   }}
                   className="group relative inline-flex items-center space-x-1 rounded-md border border-gray-300 bg-white hover:bg-gray-50 active:bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600 shadow-sm transition disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"

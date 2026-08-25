@@ -59,19 +59,16 @@ import {
   MetricScopeFilterExtraction,
   buildMetricExplorerPivotParams,
   extractScopeFiltersFromQueryConfigs,
-  formatDroppedScopeHint,
   SERVICE_NAME_ATTRIBUTE_KEY,
   resolveServiceIdsByNames,
   resolveServiceNamesByIds,
 } from "../../Utils/MetricsCrossSignalPivot";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
-import { ShowToastNotification } from "Common/UI/Components/Toast/ToastInit";
 import useEventTimeReferenceLines, {
   EventTimeReferenceLines,
 } from "./Utils/UseEventTimeReferenceLines";
 import InvestigationDrawer from "../Telemetry/InvestigationDrawer";
-import { ToastType } from "Common/UI/Components/Toast/Toast";
 
 const AUTO_REFRESH_STORAGE_KEY: string =
   "metric-explorer-auto-refresh-interval";
@@ -258,22 +255,12 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
             return serviceName !== "";
           });
 
+        /*
+         * Services that do not resolve in this project simply drop out of
+         * the fold; with nothing left to fold there is no filter to set.
+         */
         if (serviceNames.length === 0) {
-          ShowToastNotification({
-            title: "Service scope was not carried over",
-            description:
-              "The linked services could not be resolved in this project.",
-            type: ToastType.INFO,
-          });
           return;
-        }
-
-        if (serviceNames.length < serviceIds.length) {
-          ShowToastNotification({
-            title: "Some services were not carried over",
-            description: `${serviceIds.length - serviceNames.length} of the linked services could not be resolved in this project.`,
-            type: ToastType.INFO,
-          });
         }
 
         const serviceFilterValue: DictionaryEntryValue =
@@ -583,9 +570,9 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
    * CURRENT view — the resolved window plus the attribute equality
    * filters shared by the queries (service-name filters resolve to
    * Service ids so the target's primaryEntityId facet matches). Filters
-   * the target grammar cannot carry are surfaced in a toast; any failure
-   * along the way degrades to the plain window-only pivot rather than
-   * blocking navigation.
+   * the target grammar cannot carry are left behind; any failure along the
+   * way degrades to the plain window-only pivot rather than blocking
+   * navigation.
    */
   const navigateToSignalWithCurrentWindow: (
     pageMap: PageMap,
@@ -623,16 +610,6 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
           pivot.params[paramName] as string,
           true,
         );
-      }
-
-      const droppedHint: string = formatDroppedScopeHint(pivot.dropped);
-
-      if (droppedHint) {
-        ShowToastNotification({
-          title: "Some filters were not carried over",
-          description: droppedHint,
-          type: ToastType.INFO,
-        });
       }
     } catch {
       const startValue: Date | undefined =

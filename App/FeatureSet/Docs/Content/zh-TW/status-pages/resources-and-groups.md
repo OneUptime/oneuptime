@@ -130,7 +130,7 @@
 
 用手工建出一層層的階層很煩人。卡片標頭的三點溢位選單裡有 **Import groups from CSV**，它會開啟 **Import Groups from CSV** 對話框。
 
-流程是：用 **Download CSV Template** 取得 `status-page-groups-template.csv`，填好它，**Choose CSV File**，然後 **Preview Import** 先檢查會建立什麼，再真的寫進去。結果會分成 **Groups Imported** 與 **Some Groups Could Not Be Imported**，所以壞掉的一列不會無聲無息地消失。
+流程是：用 **Download CSV Template** 取得 `status-page-groups-template.csv`，填好它，**Choose CSV File**，然後 **Preview Import** 先檢查會建立什麼，再真的寫進去。接著 **Import results** 表格會把每一列標成 **Created**、**Failed** 或 **Skipped** 並附上原因，所以壞掉的一列不會無聲無息地消失。
 
 只有 `name` 是必填的。可接受的欄位如下：
 

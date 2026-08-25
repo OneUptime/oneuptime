@@ -25,8 +25,6 @@ import OneUptimeDate from "Common/Types/Date";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import { ToastType } from "Common/UI/Components/Toast/Toast";
-import { ShowToastNotification } from "Common/UI/Components/Toast/ToastInit";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -270,8 +268,6 @@ const NetworkDeviceDiscovery: FunctionComponent<
 
       setIsImporting(false);
 
-      const successCount: number = importedNow.length;
-
       /*
        * Retire what was imported so it cannot be imported a second time, and
        * so the row shows "Already added" like any other registered host.
@@ -298,31 +294,12 @@ const NetworkDeviceDiscovery: FunctionComponent<
       /*
        * Whether the dialog still belongs to this run. A run that outlived its
        * dialog must not push its errors onto whatever is open now, and must
-       * not close it — but its toasts still fire, because the devices really
-       * were created and the operator needs to know.
+       * not close it.
        */
       const isStillTheSameReview: boolean =
         reviewedScanIdRef.current === runScanId;
 
-      if (successCount > 0) {
-        ShowToastNotification({
-          title: "Devices Imported",
-          description: `${successCount} network device${
-            successCount === 1 ? "" : "s"
-          } imported successfully.`,
-          type: ToastType.SUCCESS,
-        });
-      }
-
       if (failures.length > 0) {
-        ShowToastNotification({
-          title: "Some Devices Could Not Be Imported",
-          description: `${failures.length} device${
-            failures.length === 1 ? "" : "s"
-          } failed to import.`,
-          type: ToastType.DANGER,
-        });
-
         if (isStillTheSameReview) {
           setImportError(failures.join(" "));
         }

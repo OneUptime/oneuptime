@@ -2485,7 +2485,6 @@
   "Error Details": "Fehlerdetails",
   "Error message from script execution.": "Fehlermeldung von der Skriptausführung.",
   "Error rate": "Fehlerrate",
-  "Error Saving Timezone": "Fehler beim Speichern der Zeitzone",
   "Errors importing network policies. Non-zero values indicate misconfigured policies.": "Fehler beim Importieren von Netzwerkrichtlinien. Werte ungleich null weisen auf falsch konfigurierte Richtlinien hin.",
   "Errors in checkout": "Fehler beim Checkout",
   "Errors when forwarding DNS queries upstream. Indicates upstream DNS problems.": "Fehler beim Weiterleiten von DNS-Anfragen an Upstream. Weist auf Upstream-DNS-Probleme hin.",

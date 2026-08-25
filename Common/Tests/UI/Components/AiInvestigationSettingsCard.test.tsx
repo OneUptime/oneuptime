@@ -43,18 +43,6 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
-jest.mock("../../../UI/Components/Toast/ToastInit", () => {
-  return {
-    __esModule: true,
-    default: () => {
-      return null;
-    },
-    ShowToastNotification: () => {
-      return null;
-    },
-  };
-});
-
 const OWNER_PERMISSIONS: Array<Permission> = [
   Permission.Public,
   Permission.User,

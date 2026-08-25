@@ -2,9 +2,8 @@ import OneUptimeDate from "Common/Types/Date";
 import Timezone from "Common/Types/Timezone";
 import User from "Common/UI/Utils/User";
 import React, { FunctionComponent, ReactElement } from "react";
-import { ShowToastNotification } from "Common/UI/Components/Toast/ToastInit";
 import API from "Common/UI/Utils/API/API";
-import { ToastType } from "Common/UI/Components/Toast/Toast";
+import { Logger } from "Common/UI/Utils/Logger";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import UserModel from "Common/Models/DatabaseModels/User";
@@ -34,11 +33,15 @@ const UseTimezoneInitElement: FunctionComponent = (): ReactElement => {
         modelType: UserModel,
       });
     } catch (err) {
-      ShowToastNotification({
-        title: "Error Saving Timezone",
-        description: API.getFriendlyErrorMessage(err as Error),
-        type: ToastType.DANGER,
-      });
+      /*
+       * Nothing here is user-initiated in the first-run path (the browser
+       * timezone is saved silently), and the prompt has already closed by
+       * the time this can fail — so the failure goes to the console and the
+       * saved-timezone prompt simply comes back on the next load.
+       */
+      Logger.error(
+        `Error saving timezone: ${API.getFriendlyErrorMessage(err as Error)}`,
+      );
     }
   };
 

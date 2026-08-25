@@ -805,11 +805,13 @@ describe("the destructive path cannot be reached by accident", () => {
 
     const violations: Array<string> = [];
 
-    if (!/disabled:\s*isStatusLoading \|\| isGenerating/.test(buttonBlock)) {
-      violations.push("the button's disabled prop does not include isGenerating");
+    if (!(/disabled:\s*isStatusLoading \|\| isGenerating/).test(buttonBlock)) {
+      violations.push(
+        "the button's disabled prop does not include isGenerating",
+      );
     }
 
-    if (!/isLoading:\s*isGenerating/.test(buttonBlock)) {
+    if (!(/isLoading:\s*isGenerating/).test(buttonBlock)) {
       violations.push("the button does not report isGenerating as isLoading");
     }
 

@@ -16,7 +16,7 @@ import {
  * promise on the button and the work the press does. One host too many here is
  * one unwanted Network Device; at the size issue #3322 reports (2,866 SNMP +
  * 2,890 ping-only in one scan) a scoping mistake is thousands of them, created
- * one API call at a time, with a success toast at the end.
+ * one API call at a time.
  *
  * Every expectation below is a hand-written literal — an explicit array of
  * addresses or an explicit number — checkable by eye against the fixture right

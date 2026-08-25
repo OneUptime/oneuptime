@@ -130,7 +130,7 @@ Coloque no topo o serviço sobre o qual mais perguntam. Quem chega à página du
 
 Montar uma hierarquia profunda à mão é tedioso. O menu de três pontos no cabeçalho do cartão tem **Import groups from CSV**, que abre o modal **Import Groups from CSV**.
 
-O fluxo é: **Download CSV Template** para obter o `status-page-groups-template.csv`, preencher, **Choose CSV File** e então **Preview Import** para conferir o que será criado antes de qualquer coisa ser gravada. O resultado se divide entre **Groups Imported** e **Some Groups Could Not Be Imported**, para que uma linha ruim não desapareça em silêncio.
+O fluxo é: **Download CSV Template** para obter o `status-page-groups-template.csv`, preencher, **Choose CSV File** e então **Preview Import** para conferir o que será criado antes de qualquer coisa ser gravada. Em seguida, uma tabela **Import results** lista cada linha como **Created**, **Failed** ou **Skipped** junto com o motivo, para que uma linha ruim não desapareça em silêncio.
 
 Só `name` é obrigatório. As colunas aceitas são:
 

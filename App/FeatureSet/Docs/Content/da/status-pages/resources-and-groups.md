@@ -130,7 +130,7 @@ Læg den tjeneste, der spørges mest til, øverst. Besøgende, der kom til siden
 
 Det er trættende at bygge et dybt hierarki i hånden. Tre-prikkers menuen i kortets sidehoved har **Import groups from CSV**, som åbner modalen **Import Groups from CSV**.
 
-Flowet er: **Download CSV Template** for at få `status-page-groups-template.csv`, udfyld den, **Choose CSV File**, og så **Preview Import** for at tjekke, hvad der vil blive oprettet, før der skrives noget. Resultatet deles i **Groups Imported** og **Some Groups Could Not Be Imported**, så en dårlig række ikke forsvinder i stilhed.
+Flowet er: **Download CSV Template** for at få `status-page-groups-template.csv`, udfyld den, **Choose CSV File**, og så **Preview Import** for at tjekke, hvad der vil blive oprettet, før der skrives noget. Derefter viser en **Import results**-tabel hver række som **Created**, **Failed** eller **Skipped** sammen med årsagen, så en dårlig række ikke forsvinder i stilhed.
 
 Kun `name` er påkrævet. De accepterede kolonner er:
 

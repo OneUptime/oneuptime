@@ -130,7 +130,7 @@ Metti in cima il servizio di cui ti chiedono di più. Chi arriva sulla pagina du
 
 Costruire a mano una gerarchia profonda è noioso. Il menu a tre puntini nell'intestazione della scheda ha **Import groups from CSV**, che apre la finestra **Import Groups from CSV**.
 
-Il flusso è: **Download CSV Template** per ottenere `status-page-groups-template.csv`, lo compili, **Choose CSV File**, poi **Preview Import** per controllare che cosa verrà creato prima che venga scritto qualcosa. Il risultato si divide in **Groups Imported** e **Some Groups Could Not Be Imported**, così una riga sbagliata non sparisce in silenzio.
+Il flusso è: **Download CSV Template** per ottenere `status-page-groups-template.csv`, lo compili, **Choose CSV File**, poi **Preview Import** per controllare che cosa verrà creato prima che venga scritto qualcosa. Poi una tabella **Import results** elenca ogni riga come **Created**, **Failed** o **Skipped** con il motivo, così una riga sbagliata non sparisce in silenzio.
 
 Solo `name` è obbligatorio. Le colonne accettate sono:
 

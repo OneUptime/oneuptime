@@ -130,7 +130,7 @@ Legg tjenesten folk spør mest om, øverst. Besøkende som kom til siden under e
 
 Å bygge et dypt hierarki for hånd er tungt arbeid. Trepunktsmenyen i korttoppen har **Import groups from CSV**, som åpner modalen **Import Groups from CSV**.
 
-Flyten er: **Download CSV Template** for å hente `status-page-groups-template.csv`, fyll den ut, **Choose CSV File**, og så **Preview Import** for å se hva som blir opprettet før noe skrives. Resultatet deler seg i **Groups Imported** og **Some Groups Could Not Be Imported**, så en dårlig rad forsvinner ikke i stillhet.
+Flyten er: **Download CSV Template** for å hente `status-page-groups-template.csv`, fyll den ut, **Choose CSV File**, og så **Preview Import** for å se hva som blir opprettet før noe skrives. Deretter viser en **Import results**-tabell hver rad som **Created**, **Failed** eller **Skipped** sammen med årsaken, så en dårlig rad forsvinner ikke i stillhet.
 
 Bare `name` er påkrevd. De godtatte kolonnene er:
 

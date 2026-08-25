@@ -327,15 +327,15 @@ const BackupCodes: FunctionComponent = (): ReactElement => {
           {renderStatus()}
 
           {/*
-            * The ONLY render site for `generateError` outside the confirmation
-            * modal, and the one that matters most. A first-time user never
-            * opens that modal -- there is nothing to confirm -- so before this
-            * existed, a failed generation set an error string that nothing on
-            * screen could show: the card still read "You have no backup codes"
-            * and the button did nothing visible, on the one page in the
-            * product where having no backup codes is what the user came to
-            * fix.
-            */}
+           * The ONLY render site for `generateError` outside the confirmation
+           * modal, and the one that matters most. A first-time user never
+           * opens that modal -- there is nothing to confirm -- so before this
+           * existed, a failed generation set an error string that nothing on
+           * screen could show: the card still read "You have no backup codes"
+           * and the button did nothing visible, on the one page in the
+           * product where having no backup codes is what the user came to
+           * fix.
+           */}
           {generateError && (
             <div className="mt-3">
               <ErrorMessage message={generateError} />

@@ -22,8 +22,6 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ModelListModal from "Common/UI/Components/ModelListModal/ModelListModal";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import { ShowToastNotification } from "Common/UI/Components/Toast/ToastInit";
-import { ToastType } from "Common/UI/Components/Toast/Toast";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Navigation from "Common/UI/Utils/Navigation";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -185,14 +183,6 @@ const AddToDashboardModal: FunctionComponent<ComponentProps> = (
             updatedViewConfig as unknown as JSONObject,
           ),
         },
-      });
-
-      ShowToastNotification({
-        title: "Chart Added",
-        description: `"${chartTitle}" was added to the ${
-          fullDashboard.name || "selected"
-        } dashboard.`,
-        type: ToastType.SUCCESS,
       });
 
       setAddedToDashboard(fullDashboard);

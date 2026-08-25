@@ -285,8 +285,8 @@ describe("an import that outlives the dialog it started in", () => {
 
   test("a stale run cannot push its failures onto the dialog now open", () => {
     /*
-     * The toasts still fire — the devices really were created and the operator
-     * needs to know — but the inline error belongs to a dialog that is gone.
+     * The devices really were created, so the run has to finish its
+     * bookkeeping — but the inline error belongs to a dialog that is gone.
      * Contiguous, so the guard cannot drift away from the call it protects.
      */
     expect(importSection()).toContain(

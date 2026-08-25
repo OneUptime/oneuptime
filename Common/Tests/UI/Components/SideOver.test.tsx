@@ -46,7 +46,7 @@ const PAGE_CHROME_Z_INDEXES: Array<number> = [
   10 /* MasterPage sticky header */, 20 /* topology + logs viewer toolbars */,
 ];
 const OVERLAY_Z_INDEXES_ABOVE_SIDE_OVER: Array<number> = [
-  40 /* Toast, AIChatPanel */, 50 /* Modal */, 60 /* portalled dropdowns */,
+  40 /* AIChatPanel */, 50 /* Modal */, 60 /* portalled dropdowns */,
 ];
 
 type ZIndexOfFunction = (element: HTMLElement) => number | null;

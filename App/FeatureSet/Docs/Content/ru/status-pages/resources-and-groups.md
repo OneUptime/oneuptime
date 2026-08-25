@@ -130,7 +130,7 @@
 
 Собирать глубокую иерархию руками утомительно. В меню из трёх точек в шапке карточки есть **Import groups from CSV**, которое открывает окно **Import Groups from CSV**.
 
-Порядок такой: **Download CSV Template**, чтобы получить `status-page-groups-template.csv`, заполнить его, **Choose CSV File**, затем **Preview Import**, чтобы проверить, что будет создано, до того как что-либо запишется. Результат делится на **Groups Imported** и **Some Groups Could Not Be Imported**, так что плохая строка не исчезнет молча.
+Порядок такой: **Download CSV Template**, чтобы получить `status-page-groups-template.csv`, заполнить его, **Choose CSV File**, затем **Preview Import**, чтобы проверить, что будет создано, до того как что-либо запишется. После этого таблица **Import results** показывает каждую строку как **Created**, **Failed** или **Skipped** вместе с причиной, так что плохая строка не исчезнет молча.
 
 Обязателен только `name`. Допустимые столбцы:
 
