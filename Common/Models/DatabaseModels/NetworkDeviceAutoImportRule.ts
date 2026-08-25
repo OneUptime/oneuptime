@@ -78,6 +78,17 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   tableDescription:
     "Automatically import matching hosts from network device discovery scan results as Network Devices, with no manual review step",
 })
+/*
+ * The index and foreign-key names below are written out rather than left to
+ * TypeORM's generated hashes, because this table's migration
+ * (1789100000000-AddNetworkDeviceAutoImportRule) was hand-written and created
+ * them with readable names. TypeORM compares constraint NAMES when it diffs a
+ * database against these entities, so an entity that does not spell them out
+ * reports the whole table as schema drift on every run of the Postgres Schema
+ * Drift check — which is what it did until these were added. Naming them here
+ * keeps the readable names and costs no migration; the alternative was an
+ * ALTER that renamed seven objects on every installation to hashes.
+ */
 export default class NetworkDeviceAutoImportRule extends BaseModel {
   @ColumnAccessControl({
     create: [
@@ -112,7 +123,10 @@ export default class NetworkDeviceAutoImportRule extends BaseModel {
       orphanedRowAction: "nullify",
     },
   )
-  @JoinColumn({ name: "projectId" })
+  @JoinColumn({
+    name: "projectId",
+    foreignKeyConstraintName: "FK_nd_auto_import_rule_projectId",
+  })
   public project?: Project = undefined;
 
   @ColumnAccessControl({
@@ -130,7 +144,7 @@ export default class NetworkDeviceAutoImportRule extends BaseModel {
     ],
     update: [],
   })
-  @Index()
+  @Index("IDX_network_device_auto_import_rule_projectId")
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,
@@ -164,7 +178,7 @@ export default class NetworkDeviceAutoImportRule extends BaseModel {
       Permission.EditNetworkDeviceAutoImportRule,
     ],
   })
-  @Index()
+  @Index("IDX_network_device_auto_import_rule_name")
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
@@ -230,7 +244,7 @@ export default class NetworkDeviceAutoImportRule extends BaseModel {
       Permission.EditNetworkDeviceAutoImportRule,
     ],
   })
-  @Index()
+  @Index("IDX_network_device_auto_import_rule_isEnabled")
   @TableColumn({
     required: true,
     type: TableColumnType.Boolean,
@@ -434,7 +448,7 @@ export default class NetworkDeviceAutoImportRule extends BaseModel {
       Permission.EditNetworkDeviceAutoImportRule,
     ],
   })
-  @Index()
+  @Index("IDX_network_device_auto_import_rule_isExclusion")
   @TableColumn({
     required: true,
     type: TableColumnType.Boolean,
@@ -485,7 +499,10 @@ export default class NetworkDeviceAutoImportRule extends BaseModel {
       orphanedRowAction: "nullify",
     },
   )
-  @JoinColumn({ name: "createdByUserId" })
+  @JoinColumn({
+    name: "createdByUserId",
+    foreignKeyConstraintName: "FK_nd_auto_import_rule_createdByUserId",
+  })
   public createdByUser?: User = undefined;
 
   @ColumnAccessControl({
@@ -541,7 +558,10 @@ export default class NetworkDeviceAutoImportRule extends BaseModel {
       orphanedRowAction: "nullify",
     },
   )
-  @JoinColumn({ name: "deletedByUserId" })
+  @JoinColumn({
+    name: "deletedByUserId",
+    foreignKeyConstraintName: "FK_nd_auto_import_rule_deletedByUserId",
+  })
   public deletedByUser?: User = undefined;
 
   @ColumnAccessControl({

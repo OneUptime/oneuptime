@@ -413,6 +413,12 @@ describe("POST /probe/discovery-scan/result", () => {
 
     const data: JSONObject = lastUpdateData();
     expect(Object.keys(data).sort()).toEqual([
+      /*
+       * Cleared on every result: a NULL marker is how the auto-import worker
+       * knows the results now on this row have not been processed yet
+       * (Workers/Jobs/NetworkDeviceDiscovery/ProcessAutoImportRules.ts).
+       */
+      "autoImportProcessedAt",
       "completedAt",
       "discoveredDevices",
       "respondedHostCount",
@@ -420,6 +426,7 @@ describe("POST /probe/discovery-scan/result", () => {
       "status",
       "statusMessage",
     ]);
+    expect(data["autoImportProcessedAt"]).toBeNull();
     expect(data["status"]).toBe("Completed");
     expect(data["statusMessage"]).toBe("Swept 254 hosts.");
     expect(data["scannedHostCount"]).toBe(254);

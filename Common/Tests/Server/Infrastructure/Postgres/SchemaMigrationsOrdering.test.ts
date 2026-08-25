@@ -50,6 +50,31 @@ const UNTIMESTAMPED_MIGRATION_NAME: string = "InitialMigration";
 
 const INITIAL_MIGRATION_TIMESTAMP: number = 1717605043663;
 
+/*
+ * Timestamps that two migrations already share, and always will.
+ *
+ * `AddNetworkDeviceAutoImportRule1789100000000` and
+ * `AddUserTwoFactorBackupCode1789100000000` were authored in parallel, both
+ * picked the same round slot (the hazard the timestamps in this directory are
+ * hand-picked rather than wall-clock), and both shipped before anyone noticed.
+ *
+ * Renaming either one now would re-run it. TypeORM records a migration by
+ * name, so a renamed class reads as one that has never executed — and both of
+ * these CREATE a table with no IF NOT EXISTS, so the re-run fails against
+ * every database that already has it. The collision is therefore permanent
+ * history, not a fixable defect, and the assertions below step around it while
+ * still failing for a NEW one.
+ *
+ * The list may only shrink: the test at the end of this describe fails if an
+ * entry here is not actually duplicated in the registry, so removing one of
+ * these migrations removes its entry too.
+ */
+const SHIPPED_DUPLICATE_TIMESTAMPS: ReadonlyArray<number> = [1789100000000];
+
+type TimestampCountsFunction = (
+  migrationClasses: Array<MigrationClass>,
+) => Map<number, number>;
+
 const TIMESTAMPED_FILE: RegExp = new RegExp("^\\d+-");
 
 type MigrationClass = new () => MigrationInterface;
@@ -65,6 +90,24 @@ const timestampOf: TimestampOfFunction = (
 
 const registered: Array<MigrationClass> =
   SchemaMigrations as Array<MigrationClass>;
+
+const timestampCounts: TimestampCountsFunction = (
+  migrationClasses: Array<MigrationClass>,
+): Map<number, number> => {
+  const counts: Map<number, number> = new Map<number, number>();
+
+  for (const migrationClass of migrationClasses) {
+    const timestamp: number | null = timestampOf(migrationClass);
+
+    if (timestamp === null) {
+      continue;
+    }
+
+    counts.set(timestamp, (counts.get(timestamp) || 0) + 1);
+  }
+
+  return counts;
+};
 
 describe("the migration registry", () => {
   /*
@@ -125,13 +168,34 @@ describe("the migration registry", () => {
           return timestamp !== null;
         });
 
-      const duplicates: Array<number> = timestamps.filter(
-        (timestamp: number, index: number): boolean => {
+      const duplicates: Array<number> = timestamps
+        .filter((timestamp: number, index: number): boolean => {
           return timestamps.indexOf(timestamp) !== index;
-        },
-      );
+        })
+        /*
+         * A collision that has already shipped cannot be undone — see
+         * SHIPPED_DUPLICATE_TIMESTAMPS. A new one still fails here, which is
+         * the only case this assertion can actually do anything about.
+         */
+        .filter((timestamp: number): boolean => {
+          return !SHIPPED_DUPLICATE_TIMESTAMPS.includes(timestamp);
+        });
 
       expect(duplicates).toEqual([]);
+    });
+
+    /*
+     * Keeps the exception list honest. Every entry has to name a collision
+     * that is really there, so the day one of those migrations is deleted its
+     * entry goes with it — and nobody can quietly widen the list to wave a new
+     * collision through, because a wrong entry fails right here.
+     */
+    test("grandfathers only collisions that actually exist", () => {
+      const counts: Map<number, number> = timestampCounts(registered);
+
+      for (const timestamp of SHIPPED_DUPLICATE_TIMESTAMPS) {
+        expect(counts.get(timestamp)).toBeGreaterThan(1);
+      }
     });
 
     test("never registers the same migration class twice", () => {
@@ -160,6 +224,8 @@ describe("the migration registry", () => {
   test("backs every registered migration with exactly one file on disk", () => {
     const files: Array<string> = fs.readdirSync(MIGRATION_DIRECTORY);
 
+    const counts: Map<number, number> = timestampCounts(registered);
+
     const unbacked: Array<string> = registered
       .filter((migrationClass: MigrationClass): boolean => {
         const timestamp: number | null = timestampOf(migrationClass);
@@ -168,10 +234,22 @@ describe("the migration registry", () => {
           return false;
         }
 
+        /*
+         * One file per registered class, which for every timestamp but the
+         * grandfathered collision means exactly one file. For that one it
+         * means two — both classes are real, both have a file, and neither can
+         * be renamed. See SHIPPED_DUPLICATE_TIMESTAMPS.
+         */
+        const expectedFileCount: number = SHIPPED_DUPLICATE_TIMESTAMPS.includes(
+          timestamp,
+        )
+          ? counts.get(timestamp) || 1
+          : 1;
+
         return (
           files.filter((file: string): boolean => {
             return file.startsWith(`${timestamp}-`);
-          }).length !== 1
+          }).length !== expectedFileCount
         );
       })
       .map((migrationClass: MigrationClass): string => {
