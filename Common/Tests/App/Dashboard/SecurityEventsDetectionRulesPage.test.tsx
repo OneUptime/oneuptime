@@ -25,6 +25,9 @@ type CapturedFormField = {
   field: Record<string, boolean>;
   title: string;
   fieldType?: unknown;
+  stepId?: string | undefined;
+  required?: boolean | undefined;
+  validation?: { minValue?: number | undefined } | undefined;
   showIf?: ((model: Record<string, unknown>) => boolean) | undefined;
   dropdownModal?: { type: unknown } | undefined;
 };
@@ -44,6 +47,7 @@ type CapturedTableProps = {
   formFields?: Array<CapturedFormField>;
   actionButtons?: Array<CapturedActionButton>;
   createInitialValues?: Record<string, unknown>;
+  helpContent?: { markdown?: string | undefined } | undefined;
 };
 
 let capturedTableProps: CapturedTableProps | null = null;
@@ -171,6 +175,71 @@ describe("Detection Rules page", () => {
         shouldWriteDetectionFinding: true,
         shouldCreateIncident: false,
       });
+    });
+  });
+
+  describe("distinct count and match threshold fields", () => {
+    /*
+     * Issue #3398: a rule can now count unique values of one field
+     * (distinctCountField) instead of raw matching events, and hold fire
+     * until the count reaches matchCountThreshold. Both knobs are plain
+     * form configuration on the evaluation step — dropping either one is
+     * type-safe and render-safe, so the captured props are the only place
+     * they can be pinned.
+     */
+    test("the Distinct Count Field is an optional text field", () => {
+      renderPage();
+
+      const field: CapturedFormField = fieldTitled("Distinct Count Field");
+
+      expect(field.field).toEqual({ distinctCountField: true });
+      expect(field.fieldType).toBe(FormFieldSchemaType.Text);
+      expect(field.required).toBe(false);
+    });
+
+    test("the Match Count Threshold is a required number field that refuses values below 1", () => {
+      renderPage();
+
+      const field: CapturedFormField = fieldTitled("Match Count Threshold");
+
+      expect(field.field).toEqual({ matchCountThreshold: true });
+      expect(field.fieldType).toBe(FormFieldSchemaType.Number);
+      expect(field.required).toBe(true);
+      /*
+       * The service rejects 0 and negatives with a BadDataException; the
+       * form must stop them before submit.
+       */
+      expect(field.validation?.minValue).toBe(1);
+    });
+
+    test("both new fields sit on the evaluation step alongside Group By Field", () => {
+      renderPage();
+
+      expect(fieldTitled("Group By Field").stepId).toBe("evaluation");
+      expect(fieldTitled("Distinct Count Field").stepId).toBe("evaluation");
+      expect(fieldTitled("Match Count Threshold").stepId).toBe("evaluation");
+    });
+
+    test("a fresh create form seeds matchCountThreshold with the DB default of 1", () => {
+      /*
+       * matchCountThreshold is NOT NULL DEFAULT 1 in the schema and the
+       * form field is required — without this initial value a fresh
+       * create form would open with a required number field left blank.
+       */
+      renderPage();
+
+      expect(capturedTableProps?.createInitialValues).toMatchObject({
+        matchCountThreshold: 1,
+      });
+    });
+
+    test("the help documentation explains both new controls", () => {
+      renderPage();
+
+      const markdown: string = capturedTableProps?.helpContent?.markdown || "";
+
+      expect(markdown).toContain("Distinct Count Field");
+      expect(markdown).toContain("Match Count Threshold");
     });
   });
 

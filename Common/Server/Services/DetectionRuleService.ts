@@ -37,11 +37,24 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  private validateMatchCountThreshold(threshold: number | undefined): void {
+    if (threshold === undefined) {
+      return;
+    }
+
+    if (!Number.isInteger(threshold) || threshold < 1 || threshold > 1000000) {
+      throw new BadDataException(
+        "Match count threshold must be a whole number between 1 and 1000000.",
+      );
+    }
+  }
+
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     this.validateSigmaRule(createBy.data.sigmaRuleYaml);
     this.validateEvaluationInterval(createBy.data.evaluationIntervalInMinutes);
+    this.validateMatchCountThreshold(createBy.data.matchCountThreshold);
 
     /*
      * Default the rule name from the Sigma title so pasting a rule is a
@@ -65,6 +78,10 @@ export class Service extends DatabaseService<Model> {
 
     this.validateEvaluationInterval(
       updateBy.data.evaluationIntervalInMinutes as number | undefined,
+    );
+
+    this.validateMatchCountThreshold(
+      updateBy.data.matchCountThreshold as number | undefined,
     );
 
     return { updateBy, carryForward: null };

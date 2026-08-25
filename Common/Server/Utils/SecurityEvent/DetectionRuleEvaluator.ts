@@ -16,6 +16,7 @@ import OcsfSeverity, {
 import { ocsfCategoryForClassUid } from "../../../Types/SecurityEvent/OcsfEventClass";
 import SigmaRule, { SigmaLevel } from "../../../Types/SecurityEvent/SigmaRule";
 import {
+  DETECTION_DISTINCT_COUNT_ATTRIBUTE,
   DETECTION_FINDING_CLASS_NAME,
   DETECTION_FINDING_CLASS_UID,
   DETECTION_GROUP_VALUE_ATTRIBUTE,
@@ -96,6 +97,8 @@ export default class DetectionRuleEvaluator {
         sigmaRuleYaml: true,
         evaluationIntervalInMinutes: true,
         groupByField: true,
+        distinctCountField: true,
+        matchCountThreshold: true,
         shouldCreateAlert: true,
         shouldWriteDetectionFinding: true,
         shouldCreateIncident: true,
@@ -188,6 +191,12 @@ export default class DetectionRuleEvaluator {
       ? buildSigmaFieldExpression(rule.groupByField)
       : null;
 
+    const distinctCountExpression: Statement | null = rule.distinctCountField
+      ? buildSigmaFieldExpression(rule.distinctCountField)
+      : null;
+
+    const matchCountThreshold: number = this.effectiveThreshold(rule);
+
     const groups: Array<DetectionMatchGroup> =
       await SecurityEventService.findDetectionMatches({
         projectId: rule.projectId,
@@ -195,12 +204,30 @@ export default class DetectionRuleEvaluator {
         endTime,
         whereFragment,
         groupByExpression,
+        distinctCountExpression,
+        minMatchCount: matchCountThreshold,
         maxGroups: MAX_GROUPS_PER_EVALUATION,
       });
 
+    /*
+     * The query's HAVING clause already enforces the threshold — this
+     * re-applies it so the firing contract does not depend on which side
+     * built the rows. A distinct-count rule fires on the distinct count;
+     * matchCount > 0 still gates both paths because a group with zero
+     * matches is never a detection, whatever the threshold arithmetic
+     * says.
+     */
     const matchedGroups: Array<DetectionMatchGroup> = groups.filter(
       (row: DetectionMatchGroup): boolean => {
-        return row.matchCount > 0;
+        if (row.matchCount <= 0) {
+          return false;
+        }
+
+        const effectiveCount: number = rule.distinctCountField
+          ? row.distinctCount
+          : row.matchCount;
+
+        return effectiveCount >= matchCountThreshold;
       },
     );
 
@@ -546,6 +573,16 @@ export default class DetectionRuleEvaluator {
       )} and ${OneUptimeDate.getDateAsFormattedString(data.endTime)}.`,
     );
 
+    if (rule.distinctCountField) {
+      descriptionParts.push(
+        `${matchGroup.distinctCount} distinct ${rule.distinctCountField} value${
+          matchGroup.distinctCount === 1 ? "" : "s"
+        } across these events (rule threshold: ${this.effectiveThreshold(
+          rule,
+        )}).`,
+      );
+    }
+
     if (matchGroup.sampleMessage) {
       descriptionParts.push(`Sample event: ${matchGroup.sampleMessage}`);
     }
@@ -590,6 +627,10 @@ export default class DetectionRuleEvaluator {
 
     const rows: Array<JSONObject> = matchedGroups.map(
       (matchGroup: DetectionMatchGroup): JSONObject => {
+        const distinctSuffix: string = rule.distinctCountField
+          ? `, ${matchGroup.distinctCount} distinct ${rule.distinctCountField}`
+          : "";
+
         const normalized: NormalizedSecurityEvent = {
           time: OneUptimeDate.getCurrentDate(),
           eventUid: `detection:${rule.id!.toString()}:${this.buildFingerprint(
@@ -605,8 +646,8 @@ export default class DetectionRuleEvaluator {
           severityName,
           statusName: "New",
           message: matchGroup.groupValue
-            ? `Detection: ${rule.name} — ${matchGroup.groupValue} (${matchGroup.matchCount} events)`
-            : `Detection: ${rule.name} (${matchGroup.matchCount} events)`,
+            ? `Detection: ${rule.name} — ${matchGroup.groupValue} (${matchGroup.matchCount} events${distinctSuffix})`
+            : `Detection: ${rule.name} (${matchGroup.matchCount} events${distinctSuffix})`,
           vendorName: "OneUptime",
           productName: "OneUptime Detections",
           ruleId: rule.id!.toString(),
@@ -636,6 +677,13 @@ export default class DetectionRuleEvaluator {
             [DETECTION_RULE_ID_ATTRIBUTE]: rule.id!.toString(),
             [DETECTION_RULE_NAME_ATTRIBUTE]: rule.name || parsedRule.title,
             [DETECTION_MATCH_COUNT_ATTRIBUTE]: String(matchGroup.matchCount),
+            ...(rule.distinctCountField
+              ? {
+                  [DETECTION_DISTINCT_COUNT_ATTRIBUTE]: String(
+                    matchGroup.distinctCount,
+                  ),
+                }
+              : {}),
             ...(matchGroup.groupValue
               ? { [DETECTION_GROUP_VALUE_ATTRIBUTE]: matchGroup.groupValue }
               : {}),
@@ -657,6 +705,14 @@ export default class DetectionRuleEvaluator {
     await SecurityEventService.insertJsonRows(rows);
 
     return rows.length;
+  }
+
+  /*
+   * Unset and 0 both read as 1 so every rule saved before the threshold
+   * column existed keeps its fire-on-any-match behavior.
+   */
+  private static effectiveThreshold(rule: DetectionRule): number {
+    return Math.max(1, rule.matchCountThreshold || 1);
   }
 
   private static buildFingerprint(
