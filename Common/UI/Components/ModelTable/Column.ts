@@ -36,6 +36,14 @@ export default interface Columns<
   isNotCustomizable?: boolean | undefined;
   // Start hidden. The viewer can still switch it on from the picker.
   isHiddenByDefault?: boolean | undefined;
+  /*
+   * This column exists only because the viewer added it, so the picker offers
+   * to take it away again rather than only switching it off. Set it on columns
+   * generated from viewer-chosen keys (see AttributeColumns) - a table that
+   * ships a column should never be removable, because nothing would put it
+   * back.
+   */
+  isRemovable?: boolean | undefined;
   contentClassName?: string | undefined;
   colSpan?: number | undefined;
   disableSort?: boolean;

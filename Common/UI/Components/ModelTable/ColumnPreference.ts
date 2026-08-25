@@ -153,6 +153,12 @@ export interface CustomizableColumn<
   isVisible: boolean;
   // Pinned columns are always shown and cannot be moved.
   isPinned: boolean;
+  /*
+   * The picker may drop this column entirely, not just switch it off. True
+   * only for columns the viewer added themselves (attribute columns); a
+   * pinned column is never removable, since it is not the viewer's to touch.
+   */
+  isRemovable?: boolean | undefined;
 }
 
 export type IsDefaultHiddenFunction = <
@@ -214,7 +220,13 @@ export const getCustomizableColumns: GetCustomizableColumnsFunction = <
         }
       }
 
-      return { id, column, isVisible, isPinned };
+      return {
+        id,
+        column,
+        isVisible,
+        isPinned,
+        isRemovable: Boolean(column.isRemovable) && !isPinned,
+      };
     },
   );
 

@@ -4,6 +4,7 @@ import LogDatabaseService from "./LogService";
 import MetricDatabaseService from "./MetricService";
 import SpanDatabaseService from "./SpanService";
 import ExceptionInstanceService from "./ExceptionInstanceService";
+import SecurityEventService from "./SecurityEventService";
 import MutableMetricDatabaseService, {
   MutableMetricService as MutableMetricServiceClass,
 } from "./MutableMetricService";
@@ -97,6 +98,22 @@ export class TelemetryAttributeService {
         return {
           service: ExceptionInstanceService,
           tableName: ExceptionInstanceService.model.tableName,
+          attributesColumn: "attributes",
+          attributeKeysColumn: "attributeKeys",
+          timeColumn: "time",
+        };
+      /*
+       * Security events carry the whole source payload flattened into
+       * `attributes`, which is where every field the OCSF schema does not
+       * have a typed column for ends up (device.hostname,
+       * finding_info.title, metadata.product.name, ...). The security
+       * events table offers those as optional columns, and this is the
+       * list it offers.
+       */
+      case TelemetryType.SecurityEvent:
+        return {
+          service: SecurityEventService,
+          tableName: SecurityEventService.model.tableName,
           attributesColumn: "attributes",
           attributeKeysColumn: "attributeKeys",
           timeColumn: "time",
