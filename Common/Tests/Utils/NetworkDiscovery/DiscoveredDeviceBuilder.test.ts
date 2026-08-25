@@ -1,0 +1,240 @@
+import {
+  MAX_DEVICE_DESCRIPTION_LENGTH,
+  MAX_DEVICE_NAME_LENGTH,
+  buildDeviceName,
+  buildFallbackDeviceName,
+  buildNetworkDeviceFromDiscoveredHost,
+  DiscoveredDeviceScanSource,
+} from "../../../Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
+import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
+import { DiscoveredNetworkDevice } from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import NetworkDeviceMonitoringMethod from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import ObjectID from "../../../Types/ObjectID";
+import { describe, expect, it } from "@jest/globals";
+
+/*
+ * Contract under test — one discovered host maps to one NetworkDevice the
+ * SAME way everywhere. The builder is the shared recipe behind the
+ * dashboard's Review-dialog import and the server-side auto-import rule
+ * engine, so what these tests pin is the device both paths must agree on:
+ * which host field lands in which device column, which scan credentials ride
+ * along (and when they must NOT), and the length ceilings that keep a
+ * real-world 255-octet sysName from failing the create on the slug.
+ */
+
+const PROJECT_ID: ObjectID = new ObjectID(
+  "22222222-2222-4222-8222-222222222222",
+);
+const PROBE_ID: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
+
+function snmpHost(
+  overrides: Partial<DiscoveredNetworkDevice> = {},
+): DiscoveredNetworkDevice {
+  return {
+    ipAddress: "10.0.0.5",
+    sysName: "core-switch-01",
+    sysDescr: "Cisco IOS Software, C2960X",
+    ...overrides,
+  };
+}
+
+// A scan carrying every credential column the builder knows how to copy.
+function fullScanSource(): DiscoveredDeviceScanSource {
+  return {
+    probeId: PROBE_ID,
+    snmpVersion: "V3",
+    snmpCommunityString: "public",
+    snmpPort: 1161,
+    snmpV3SecurityLevel: "authPriv",
+    snmpV3Username: "observer",
+    snmpV3AuthProtocol: "SHA",
+    snmpV3AuthKey: "auth-key-value",
+    snmpV3PrivProtocol: "AES",
+    snmpV3PrivKey: "priv-key-value",
+  };
+}
+
+function build(data: {
+  host?: DiscoveredNetworkDevice | undefined;
+  scan?: DiscoveredDeviceScanSource | undefined;
+  name?: string | undefined;
+}): NetworkDevice {
+  return buildNetworkDeviceFromDiscoveredHost({
+    projectId: PROJECT_ID,
+    host: data.host || snmpHost(),
+    scan: data.scan || fullScanSource(),
+    name: data.name,
+  });
+}
+
+describe("buildNetworkDeviceFromDiscoveredHost - SNMP host", () => {
+  it("maps identity fields: sysName to name, address to hostname, sysDescr to description", () => {
+    const device: NetworkDevice = build({});
+
+    expect(device.projectId?.toString()).toBe(PROJECT_ID.toString());
+    expect(device.name).toBe("core-switch-01");
+    // The address is both the hostname and the registered-host dedup key.
+    expect(device.hostname).toBe("10.0.0.5");
+    expect(device.description).toBe("Cisco IOS Software, C2960X");
+    expect(device.monitoringMethod).toBe(NetworkDeviceMonitoringMethod.Snmp);
+  });
+
+  /*
+   * Every credential the scan swept with must land on the device, or the
+   * imported device can never poll. The v3 block matters most: a v3 scan
+   * that imported as a credential-less device would sit unreachable with no
+   * error anywhere.
+   */
+  it("copies the probe and every SNMP credential from the scan source", () => {
+    const device: NetworkDevice = build({});
+
+    expect(device.probeId?.toString()).toBe(PROBE_ID.toString());
+    expect(device.snmpVersion).toBe("V3");
+    expect(device.snmpCommunityString).toBe("public");
+    expect(device.snmpPort).toBe(1161);
+    expect(device.snmpV3SecurityLevel).toBe("authPriv");
+    expect(device.snmpV3Username).toBe("observer");
+    expect(device.snmpV3AuthProtocol).toBe("SHA");
+    expect(device.snmpV3AuthKey).toBe("auth-key-value");
+    expect(device.snmpV3PrivProtocol).toBe("AES");
+    expect(device.snmpV3PrivKey).toBe("priv-key-value");
+  });
+
+  /*
+   * The scan row may hold a serialized id rather than an ObjectID instance
+   * (the rule engine selects its scan itself); the builder re-wraps rather
+   * than trusting the shape.
+   */
+  it("re-wraps the probe id so a serialized id still becomes an ObjectID", () => {
+    const device: NetworkDevice = build({
+      scan: {
+        ...fullScanSource(),
+        probeId: PROBE_ID.toString() as unknown as ObjectID,
+      },
+    });
+
+    expect(device.probeId).toBeInstanceOf(ObjectID);
+    expect(device.probeId?.toString()).toBe(PROBE_ID.toString());
+  });
+});
+
+describe("buildNetworkDeviceFromDiscoveredHost - ping-only host", () => {
+  /*
+   * A ping-only host becomes a monitor-backed device: recorded so it can
+   * belong to a site and appear on the topology map, with binding a monitor
+   * to it a separate deliberate step. Credentials it never answered to must
+   * not ride along.
+   */
+  it("builds a monitor-backed device with polling off and no credentials", () => {
+    const device: NetworkDevice = build({
+      host: snmpHost({ snmpReachable: false, sysName: undefined }),
+    });
+
+    expect(device.monitoringMethod).toBe(NetworkDeviceMonitoringMethod.Monitor);
+    expect(device.isPollingEnabled).toBe(false);
+    expect(device.probeId).toBeUndefined();
+    expect(device.snmpVersion).toBeUndefined();
+    expect(device.snmpCommunityString).toBeUndefined();
+    expect(device.snmpPort).toBeUndefined();
+    expect(device.snmpV3SecurityLevel).toBeUndefined();
+    expect(device.snmpV3Username).toBeUndefined();
+    expect(device.snmpV3AuthProtocol).toBeUndefined();
+    expect(device.snmpV3AuthKey).toBeUndefined();
+    expect(device.snmpV3PrivProtocol).toBeUndefined();
+    expect(device.snmpV3PrivKey).toBeUndefined();
+  });
+});
+
+describe("buildDeviceName", () => {
+  it("prefers the sysName", () => {
+    expect(buildDeviceName(snmpHost())).toBe("core-switch-01");
+  });
+
+  // A ping-only host has no SNMP identity; the address is all there is.
+  it("falls back to the address when sysName is missing", () => {
+    expect(buildDeviceName(snmpHost({ sysName: undefined }))).toBe("10.0.0.5");
+  });
+
+  it("falls back to the address when sysName is whitespace", () => {
+    expect(buildDeviceName(snmpHost({ sysName: "   " }))).toBe("10.0.0.5");
+  });
+
+  /*
+   * SNMP sysName is a DisplayString of up to 255 octets, so over-long names
+   * are routine on real gear — and the create path THROWS on an over-long
+   * name (via the slug ceiling) rather than truncating, so the clamp has to
+   * happen here.
+   */
+  it("clamps a 255-character sysName to MAX_DEVICE_NAME_LENGTH", () => {
+    const longSysName: string = "x".repeat(255);
+    const name: string = buildDeviceName(snmpHost({ sysName: longSysName }));
+
+    expect(name.length).toBe(MAX_DEVICE_NAME_LENGTH);
+    expect(name).toBe(longSysName.substring(0, MAX_DEVICE_NAME_LENGTH));
+  });
+});
+
+describe("buildFallbackDeviceName", () => {
+  it("appends the address that tells name-twins apart", () => {
+    expect(buildFallbackDeviceName(snmpHost())).toBe(
+      "core-switch-01 (10.0.0.5)",
+    );
+  });
+
+  /*
+   * The collision fallback must fit under the SAME ceiling as the first
+   * attempt: the widest possible suffix is " (255.255.255.255)", so the base
+   * name is cut down first rather than the composed string overflowing into
+   * the very slug-length failure the ceiling exists to avoid.
+   */
+  it("keeps the composed name within MAX_DEVICE_NAME_LENGTH at the widest address", () => {
+    const name: string = buildFallbackDeviceName(
+      snmpHost({
+        sysName: "y".repeat(255),
+        ipAddress: "255.255.255.255",
+      }),
+    );
+
+    expect(name.length).toBeLessThanOrEqual(MAX_DEVICE_NAME_LENGTH);
+    expect(name.endsWith(" (255.255.255.255)")).toBe(true);
+  });
+});
+
+describe("description clamping", () => {
+  it("clamps an over-long sysDescr to MAX_DEVICE_DESCRIPTION_LENGTH", () => {
+    const longSysDescr: string = "d".repeat(700);
+    const device: NetworkDevice = build({
+      host: snmpHost({ sysDescr: longSysDescr }),
+    });
+
+    expect(device.description?.length).toBe(MAX_DEVICE_DESCRIPTION_LENGTH);
+    expect(device.description).toBe(
+      longSysDescr.substring(0, MAX_DEVICE_DESCRIPTION_LENGTH),
+    );
+  });
+
+  it("sets no description when the host has no sysDescr", () => {
+    const device: NetworkDevice = build({
+      host: snmpHost({ sysDescr: undefined }),
+    });
+
+    expect(device.description).toBeUndefined();
+  });
+});
+
+describe("the name override", () => {
+  /*
+   * The caller supplies the name so the collision retry can rebuild the SAME
+   * device under the fallback name without re-deciding anything else — the
+   * override must therefore be taken verbatim.
+   */
+  it("uses a supplied name verbatim instead of deriving one", () => {
+    const device: NetworkDevice = build({
+      name: "core-switch-01 (10.0.0.5)",
+    });
+
+    expect(device.name).toBe("core-switch-01 (10.0.0.5)");
+    // Everything else is still derived from the host as usual.
+    expect(device.hostname).toBe("10.0.0.5");
+  });
+});

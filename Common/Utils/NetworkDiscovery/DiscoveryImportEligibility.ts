@@ -1,5 +1,5 @@
-import { DiscoveredNetworkDevice } from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
-import NetworkDeviceMonitoringMethod from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import { DiscoveredNetworkDevice } from "../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import NetworkDeviceMonitoringMethod from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 
 /*
  * Pure, react-free import rule for discovery scan results.
@@ -16,9 +16,11 @@ import NetworkDeviceMonitoringMethod from "Common/Types/NetworkDevice/NetworkDev
  * one end of a link. Issue #3023 is what that gap looks like from the outside:
  * "devices I monitor manually don't appear in the topology at all".
  *
- * Kept out of the Discovery page component so it can be imported (and
- * unit-tested) in a plain Node/TypeScript environment, same as
- * DeviceStatusUtil.
+ * Lives in Common (it started life next to the Discovery page component)
+ * because the dashboard's Review dialog and the server-side auto-import rule
+ * engine both decide "how does this host import" through it, and the two must
+ * never disagree: the group a host is shown under in the dialog and the
+ * monitoring method a rule imports it with are the same decision.
  */
 
 /**
@@ -54,7 +56,11 @@ export function isImportableDiscoveredHost(
   /*
    * Every alive host now is. The predicate survives because the Discovery
    * page filters and counts through it, and because it is the seam where a
-   * future "don't import X" rule belongs.
+   * future "don't import X" rule for MANUAL review would belong. (The
+   * automatic path already has one: an auto-import exclusion rule vetoes
+   * hosts for the rule engine — deliberately without reaching into this
+   * dialog, where a human is looking at the list and unticking a host is
+   * the veto.)
    */
   return true;
 }

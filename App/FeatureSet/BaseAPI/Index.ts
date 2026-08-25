@@ -1565,6 +1565,12 @@ import NetworkDeviceLabelRuleService, {
   Service as NetworkDeviceLabelRuleServiceType,
 } from "Common/Server/Services/NetworkDeviceLabelRuleService";
 
+// NetworkDeviceAutoImportRule
+import NetworkDeviceAutoImportRule from "Common/Models/DatabaseModels/NetworkDeviceAutoImportRule";
+import NetworkDeviceAutoImportRuleService, {
+  Service as NetworkDeviceAutoImportRuleServiceType,
+} from "Common/Server/Services/NetworkDeviceAutoImportRuleService";
+
 // NetworkDeviceDiscoveryScan
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import NetworkDeviceDiscoveryScanService, {
@@ -4918,6 +4924,18 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<NetworkDeviceLabelRule, NetworkDeviceLabelRuleServiceType>(
         NetworkDeviceLabelRule,
         NetworkDeviceLabelRuleService,
+      ).getRouter(),
+    );
+
+    // network device auto import rule
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        NetworkDeviceAutoImportRule,
+        NetworkDeviceAutoImportRuleServiceType
+      >(
+        NetworkDeviceAutoImportRule,
+        NetworkDeviceAutoImportRuleService,
       ).getRouter(),
     );
 

@@ -66,6 +66,58 @@ export interface LabelRuleRunResult {
 }
 
 /*
+ * One run of a network device auto-import rule — automatic (the worker
+ * processing a completed scan) or manual ("Run Now" against the project's
+ * completed scans, optionally as a dry run that writes nothing).
+ *
+ * Every discovered host the run looked at lands in a bucket for the same
+ * reason as above: "nothing matched", "everything that matched is already in
+ * the inventory", and "an exclusion rule vetoed it" are very different
+ * answers to "why did this import zero devices".
+ */
+export interface AutoImportRuleRunResult {
+  // Discovered hosts the run evaluated, across every scan it read.
+  hostsEvaluated: number;
+  // Of those, the ones an import rule matched (exclusions already applied).
+  hostsMatched: number;
+  // Hosts an exclusion rule vetoed.
+  hostsExcluded: number;
+  /*
+   * Matched hosts skipped because a device with that address already exists
+   * — including one created earlier in this same run from a duplicate row or
+   * an overlapping scan. Re-running a rule is idempotent, not additive.
+   */
+  hostsSkippedAlreadyRegistered: number;
+  // Devices actually created. Always zero on a dry run.
+  devicesCreated: number;
+  // Matched hosts whose create threw. Logged server-side, never fatal.
+  devicesFailed: number;
+  /*
+   * True when the run stopped at the DEVICE cap with matched hosts left
+   * over. Running again continues: already-imported hosts are skipped.
+   */
+  isTruncated: boolean;
+  /*
+   * True when the project has more completed scans than one manual run
+   * reads (the newest MAX_SCANS_PER_AUTO_IMPORT_RULE_RUN). Distinct from
+   * isTruncated because the advice differs: re-running re-reads the same
+   * newest scans, so hosts that appear ONLY in older scans stay unread.
+   */
+  hasMoreScans: boolean;
+  // True when this run was a dry run: full evaluation, no writes.
+  isDryRun: boolean;
+  /*
+   * Up to MAX_MATCHED_IP_SAMPLE addresses the run imported (or, on a dry
+   * run, would import) — the operator's "which hosts is this rule actually
+   * claiming" answer, without shipping a 30k-element array.
+   */
+  matchedIpAddressSample: Array<string>;
+}
+
+// How many addresses matchedIpAddressSample carries at most.
+export const MAX_MATCHED_IP_SAMPLE: number = 50;
+
+/*
  * A count off the wire. An absent or non-numeric field reads as zero rather
  * than as NaN: a summary line that says "NaN devices" is worse than one that
  * under-reports a counter the server never sent.
@@ -116,6 +168,38 @@ export class RuleRunResultUtil {
       labelsAttached: readCount(source, "labelsAttached"),
       labelsFailed: readCount(source, "labelsFailed"),
       isTruncated: source["isTruncated"] === true,
+    };
+  }
+
+  public static parseAutoImportRuleRunResult(
+    json: JSONObject | undefined | null,
+  ): AutoImportRuleRunResult {
+    const source: JSONObject = json || {};
+
+    const sample: Array<string> = Array.isArray(
+      source["matchedIpAddressSample"],
+    )
+      ? (source["matchedIpAddressSample"] as Array<unknown>)
+          .filter((value: unknown) => {
+            return typeof value === "string";
+          })
+          .slice(0, MAX_MATCHED_IP_SAMPLE)
+      : [];
+
+    return {
+      hostsEvaluated: readCount(source, "hostsEvaluated"),
+      hostsMatched: readCount(source, "hostsMatched"),
+      hostsExcluded: readCount(source, "hostsExcluded"),
+      hostsSkippedAlreadyRegistered: readCount(
+        source,
+        "hostsSkippedAlreadyRegistered",
+      ),
+      devicesCreated: readCount(source, "devicesCreated"),
+      devicesFailed: readCount(source, "devicesFailed"),
+      isTruncated: source["isTruncated"] === true,
+      hasMoreScans: source["hasMoreScans"] === true,
+      isDryRun: source["isDryRun"] === true,
+      matchedIpAddressSample: sample as Array<string>,
     };
   }
 }

@@ -151,7 +151,11 @@ router.post(
 /*
  * Receives the results of a completed scan: the responding hosts and their
  * SNMP system identity. The dashboard turns these into importable device
- * suggestions; nothing is auto-created here.
+ * suggestions. Nothing is auto-created HERE — the probe synchronously waits
+ * on this response, and importing can be minutes of work — but storing the
+ * results clears the scan's autoImportProcessedAt marker, and the
+ * ProcessAutoImportRules worker then imports whatever the project's
+ * auto-import rules claim (Workers/Jobs/NetworkDeviceDiscovery/).
  */
 router.post(
   "/probe/discovery-scan/result",
@@ -328,6 +332,15 @@ router.post(
         discoveredDevices: discoveredDevices,
         respondedHostCount: snmpResponderCount,
         completedAt: OneUptimeDate.getCurrentDate(),
+        /*
+         * New results, so the auto-import worker's bookkeeping starts over:
+         * a NULL marker is its "the results now on this row have not been
+         * processed" signal (Workers/Jobs/NetworkDeviceDiscovery/
+         * ProcessAutoImportRules.ts). Cleared on Failed writes too — the
+         * worker only processes Completed scans, but a late result can
+         * overwrite a reaper-Failed row and uniformity here costs nothing.
+         */
+        autoImportProcessedAt: null,
       };
       if (req.body["statusMessage"]) {
         completed["statusMessage"] = req.body["statusMessage"] as string;
