@@ -69,6 +69,7 @@ const expectations: Array<SchemaToFieldExpectation> = [
   { schemaType: FormFieldSchemaType.HTML, expected: FieldType.HTML },
   { schemaType: FormFieldSchemaType.RadioButton, expected: FieldType.Text },
   { schemaType: FormFieldSchemaType.JSON, expected: FieldType.JSON },
+  { schemaType: FormFieldSchemaType.YAML, expected: FieldType.YAML },
   { schemaType: FormFieldSchemaType.Query, expected: FieldType.Element },
   {
     schemaType: FormFieldSchemaType.CustomComponent,

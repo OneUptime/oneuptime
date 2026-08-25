@@ -68,6 +68,8 @@ export default class FormFieldSchemaTypeUtil {
         return FieldType.Element;
       case FormFieldSchemaType.JSON:
         return FieldType.JSON;
+      case FormFieldSchemaType.YAML:
+        return FieldType.YAML;
       case FormFieldSchemaType.Query:
         return FieldType.Element;
       case FormFieldSchemaType.CustomComponent:

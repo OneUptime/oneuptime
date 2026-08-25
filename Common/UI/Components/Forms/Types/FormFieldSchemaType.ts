@@ -31,6 +31,7 @@ enum FormFieldSchemaType {
   HTML = "HTML",
   RadioButton = "RadioButton",
   JSON = "JSON",
+  YAML = "YAML",
   Query = "Query",
   CustomComponent = "CustomComponent",
   Checkbox = "Checkbox",

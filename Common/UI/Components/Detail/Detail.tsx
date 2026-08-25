@@ -631,6 +631,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
         field.fieldType === FieldType.CSS ||
         field.fieldType === FieldType.JSON ||
         field.fieldType === FieldType.JavaScript ||
+        field.fieldType === FieldType.YAML ||
         field.fieldType === FieldType.Code)
     ) {
       let language: string = "html";
@@ -680,6 +681,15 @@ const Detail: DetailFunction = <T extends GenericObject>(
 
       if (field.fieldType === FieldType.Code) {
         language = "plaintext";
+      }
+
+      /*
+       * Rendered verbatim, unlike the JSON arm above: re-emitting YAML through
+       * a parser would drop the comments, anchors and key ordering that a hand
+       * written document (a Sigma rule, a collector config) is written with.
+       */
+      if (field.fieldType === FieldType.YAML) {
+        language = "yaml";
       }
 
       data = (

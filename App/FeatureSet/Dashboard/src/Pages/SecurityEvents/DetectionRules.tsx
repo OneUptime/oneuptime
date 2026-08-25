@@ -154,8 +154,15 @@ const DetectionRulesPage: FunctionComponent<
           stepId: "sigma-rule",
           description:
             "The Sigma rule to evaluate against incoming security events, in YAML.",
-          fieldType: FormFieldSchemaType.Markdown,
+          /*
+           * YAML, not Markdown. Markdown put a rich-text toolbar (Bold, H1)
+           * over a Sigma rule, and the editor behind it round-trips its value
+           * through HTML - which indentation-sensitive YAML does not survive.
+           */
+          fieldType: FormFieldSchemaType.YAML,
           required: true,
+          placeholder:
+            "Sigma rule YAML — title, logsource, detection and condition.",
         },
         {
           field: {

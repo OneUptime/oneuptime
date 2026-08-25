@@ -1,6 +1,7 @@
+import "@testing-library/jest-dom";
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, test } from "@jest/globals";
+import { beforeEach, describe, expect, test } from "@jest/globals";
 import CodeType from "../../../Types/Code/CodeType";
 
 /*
@@ -13,6 +14,16 @@ import CodeType from "../../../Types/Code/CodeType";
 interface RecordedEditorProps {
   value?: string | undefined;
   defaultValue?: string | undefined;
+  /*
+   * The grammar Monaco would tokenise with, and the option bag it would be
+   * configured from. Both are recorded because for YAML they are the feature:
+   * the wrong grammar highlights a Sigma rule as HTML, and the wrong
+   * indentation options emit tabs the parser rejects.
+   */
+  defaultLanguage?: string | undefined;
+  language?: string | undefined;
+  height?: string | undefined;
+  options?: Record<string, unknown> | undefined;
 }
 
 const mockEditorRenders: Array<RecordedEditorProps> = [];
@@ -26,11 +37,19 @@ jest.mock("@monaco-editor/react", () => {
     default: (editorProps: {
       value?: string | undefined;
       defaultValue?: string | undefined;
+      defaultLanguage?: string | undefined;
+      language?: string | undefined;
+      height?: string | undefined;
+      options?: Record<string, unknown> | undefined;
       onChange?: ((value: string | undefined) => void) | undefined;
     }) => {
       mockEditorRenders.push({
         value: editorProps.value,
         defaultValue: editorProps.defaultValue,
+        defaultLanguage: editorProps.defaultLanguage,
+        language: editorProps.language,
+        height: editorProps.height,
+        options: editorProps.options,
       });
 
       return (
@@ -170,5 +189,218 @@ describe("CodeEditor", () => {
     );
 
     expect(getEditor().value).toBe(JSON.stringify({ hello: "world" }, null, 4));
+  });
+});
+
+type LastRenderFunction = () => RecordedEditorProps;
+
+const lastRender: LastRenderFunction = (): RecordedEditorProps => {
+  expect(mockEditorRenders.length).toBeGreaterThan(0);
+
+  return mockEditorRenders[mockEditorRenders.length - 1] as RecordedEditorProps;
+};
+
+describe("CodeEditor — the grammar Monaco is given", () => {
+  beforeEach(() => {
+    mockEditorRenders.length = 0;
+  });
+
+  test.each([
+    [CodeType.YAML, "yaml"],
+    [CodeType.JSON, "json"],
+    [CodeType.JavaScript, "javascript"],
+    [CodeType.CSS, "css"],
+    [CodeType.HTML, "html"],
+    [CodeType.Markdown, "markdown"],
+  ])("%s is handed to Monaco as %s", (type: CodeType, expected: string) => {
+    render(<CodeEditor type={type} value="" />);
+
+    expect(lastRender().defaultLanguage).toBe(expected);
+  });
+
+  /*
+   * `defaultLanguage` is only read when the model is created, so a caller that
+   * swaps CodeType after mount keeps the old grammar unless `language` is also
+   * passed - the prop that drives setModelLanguage.
+   */
+  test("the language prop is passed too, so a type change after mount lands", () => {
+    const { rerender } = render(<CodeEditor type={CodeType.Text} value="" />);
+
+    expect(lastRender().language).toBe("text");
+
+    rerender(<CodeEditor type={CodeType.YAML} value="" />);
+
+    expect(lastRender().language).toBe("yaml");
+  });
+});
+
+describe("CodeEditor — YAML gets YAML-safe editing options", () => {
+  beforeEach(() => {
+    mockEditorRenders.length = 0;
+  });
+
+  type YamlOptionsFunction = () => Record<string, unknown>;
+
+  const yamlOptions: YamlOptionsFunction = (): Record<string, unknown> => {
+    render(<CodeEditor type={CodeType.YAML} value="title: x" />);
+
+    return (lastRender().options || {}) as Record<string, unknown>;
+  };
+
+  /*
+   * A literal tab is illegal as YAML indentation, and Monaco's defaults are
+   * four spaces with detectIndentation ON - so pasting a tab-indented blob
+   * silently reconfigures the editor to emit tabs and the document the user
+   * saves is rejected by the parser.
+   */
+  test("two spaces, always spaces, never re-detected", () => {
+    const options: Record<string, unknown> = yamlOptions();
+
+    expect(options["tabSize"]).toBe(2);
+    expect(options["insertSpaces"]).toBe(true);
+    expect(options["detectIndentation"]).toBe(false);
+  });
+
+  test("the gutter is on, because every parse error names a line", () => {
+    expect(yamlOptions()["lineNumbers"]).toBe("on");
+  });
+
+  /*
+   * Wrapping YAML is not an option - the indentation IS the syntax and a
+   * wrapped line reads as a deeper one - so the horizontal scrollbar is the
+   * only way to reach a long scalar.
+   */
+  test("long lines stay reachable: no wrapping, but a real scrollbar", () => {
+    const options: Record<string, unknown> = yamlOptions();
+
+    expect(options["wordWrap"]).toBe("off");
+    expect(options["scrollbar"]).toEqual({ horizontal: "auto" });
+  });
+
+  test("whitespace is rendered, because in YAML it is the syntax", () => {
+    expect(yamlOptions()["renderWhitespace"]).toBe("boundary");
+  });
+
+  test("no blank runway below the last line in a short form field", () => {
+    expect(yamlOptions()["scrollBeyondLastLine"]).toBe(false);
+  });
+
+  test("folding is on, which YAML's offside rule makes work", () => {
+    expect(yamlOptions()["folding"]).toBe(true);
+  });
+});
+
+describe("CodeEditor — the other languages are left exactly as they were", () => {
+  beforeEach(() => {
+    mockEditorRenders.length = 0;
+  });
+
+  type OptionsForFunction = (type: CodeType) => Record<string, unknown>;
+
+  const optionsFor: OptionsForFunction = (
+    type: CodeType,
+  ): Record<string, unknown> => {
+    render(<CodeEditor type={type} value="x" />);
+
+    return (lastRender().options || {}) as Record<string, unknown>;
+  };
+
+  test.each([
+    CodeType.JSON,
+    CodeType.JavaScript,
+    CodeType.CSS,
+    CodeType.HTML,
+    CodeType.Markdown,
+    CodeType.Text,
+  ])("%s keeps Monaco's own indentation behaviour", (type: CodeType) => {
+    const options: Record<string, unknown> = optionsFor(type);
+
+    expect(options["tabSize"]).toBe(4);
+    expect(options["detectIndentation"]).toBe(true);
+  });
+
+  test.each([
+    CodeType.JSON,
+    CodeType.JavaScript,
+    CodeType.CSS,
+    CodeType.HTML,
+    CodeType.Text,
+  ])("%s keeps its gutter off unless asked", (type: CodeType) => {
+    expect(optionsFor(type)["lineNumbers"]).toBe("off");
+  });
+
+  test("showLineNumbers still turns the gutter on for any type", () => {
+    render(
+      <CodeEditor type={CodeType.JSON} value="{}" showLineNumbers={true} />,
+    );
+
+    expect(
+      ((lastRender().options || {}) as Record<string, unknown>)["lineNumbers"],
+    ).toBe("on");
+  });
+
+  test.each([
+    CodeType.JSON,
+    CodeType.JavaScript,
+    CodeType.CSS,
+    CodeType.HTML,
+    CodeType.Markdown,
+  ])("%s keeps rendering no whitespace", (type: CodeType) => {
+    expect(optionsFor(type)["renderWhitespace"]).toBe("none");
+  });
+
+  test("Markdown still wraps", () => {
+    expect(optionsFor(CodeType.Markdown)["wordWrap"]).toBe("on");
+  });
+});
+
+describe("CodeEditor — height", () => {
+  beforeEach(() => {
+    mockEditorRenders.length = 0;
+  });
+
+  test("defaults to 30vh, as every existing caller expects", () => {
+    render(<CodeEditor type={CodeType.JSON} value="{}" />);
+
+    expect(lastRender().height).toBe("30vh");
+  });
+
+  test("a caller can ask for its own", () => {
+    render(<CodeEditor type={CodeType.YAML} value="a: 1" height="22rem" />);
+
+    expect(lastRender().height).toBe("22rem");
+  });
+});
+
+describe("CodeEditor — a YAML placeholder never becomes document text", () => {
+  beforeEach(() => {
+    mockEditorRenders.length = 0;
+  });
+
+  /*
+   * `defaultValue` seeds the Monaco model, so anything routed there is real
+   * content the user can accidentally save. The JS and CSS arms get away with
+   * it by wrapping the hint in a comment; YAML has no such wrapper, so its
+   * hint has to go to the help text instead.
+   */
+  test("the hint is shown as help text, not seeded into the editor", () => {
+    render(
+      <CodeEditor
+        type={CodeType.YAML}
+        value=""
+        placeholder="Sigma rule YAML — title, logsource, detection and condition."
+      />,
+    );
+
+    expect(lastRender().defaultValue).toBe("");
+    expect(
+      screen.getByText(/Sigma rule YAML/, { exact: false }),
+    ).toBeInTheDocument();
+  });
+
+  test("an empty YAML editor still starts empty when no hint is given", () => {
+    render(<CodeEditor type={CodeType.YAML} value="" />);
+
+    expect(lastRender().defaultValue).toBe("");
   });
 });

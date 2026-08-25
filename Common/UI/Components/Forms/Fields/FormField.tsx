@@ -40,6 +40,7 @@ import Radio, { RadioValue } from "../../Radio/Radio";
 import { BasicRadioButtonOption } from "../../RadioButtons/BasicRadioButtons";
 import HorizontalRule from "../../HorizontalRule/HorizontalRule";
 import MarkdownEditor from "../../Markdown.tsx/MarkdownEditor";
+import YamlEditor from "../../CodeEditor/YamlEditor";
 import useTranslateValue from "../../../Utils/Translation";
 
 export interface ComponentProps<T extends GenericObject> {
@@ -663,6 +664,35 @@ const FormField: <T extends GenericObject>(
               ariaLabelledby={fieldLabelId}
               error={props.touched && props.error ? props.error : undefined}
               type={CodeType.JSON}
+              tabIndex={0}
+              dataTestId={props.field.dataTestId}
+              onChange={async (value: string) => {
+                onChange(value);
+                props.setFieldValue(props.fieldName, value);
+              }}
+              onBlur={async () => {
+                props.setFieldTouched(props.fieldName, true);
+              }}
+              initialValue={
+                props.currentValues &&
+                (props.currentValues as any)[props.fieldName]
+                  ? (props.currentValues as any)[props.fieldName]
+                  : ""
+              }
+              value={
+                props.currentValues &&
+                (props.currentValues as any)[props.fieldName]
+                  ? (props.currentValues as any)[props.fieldName]
+                  : ""
+              }
+              placeholder={translatedPlaceholder || ""}
+            />
+          )}
+
+          {props.field.fieldType === FormFieldSchemaType.YAML && (
+            <YamlEditor
+              ariaLabelledby={fieldLabelId}
+              error={props.touched && props.error ? props.error : undefined}
               tabIndex={0}
               dataTestId={props.field.dataTestId}
               onChange={async (value: string) => {
