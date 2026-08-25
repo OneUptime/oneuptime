@@ -40,6 +40,7 @@ jest.mock("../../../../Server/Infrastructure/Queue", () => {
 
 import MarketingEventUtil from "../../../../Server/Utils/Marketing/MarketingEventUtil";
 import Attribution from "../../../../Server/Utils/Attribution";
+import { UtmPropertyKeys } from "../../../../Types/Marketing/Attribution";
 import {
   MarketingEvent,
   MarketingEventType,
@@ -120,10 +121,52 @@ describe("MarketingEventUtil", () => {
         utmCampaign: "brand",
         utmTerm: "oneuptime",
         utmContent: "hero-b",
+        utmId: undefined,
+        utmSourcePlatform: undefined,
+        utmCreativeFormat: undefined,
+        utmMarketingTactic: undefined,
         utmUrl: "https://oneuptime.com/?gclid=x",
         clickIds: { gclid: "x" },
         firstTouch: { utmSource: "linkedin" },
       });
+    });
+
+    /*
+     * THE CONTRACT, ASSERTED MECHANICALLY.
+     *
+     * The browser captures every key in UtmWireKeyToPropertyKey, the signup
+     * door stores them and the Cal embed sends them — and for four of them the
+     * outbound conversion carried nothing at all, because this payload was
+     * hand-listed and nobody updated it. Nothing errored; conversions kept
+     * arriving, just unattributable on those dimensions.
+     *
+     * Built from the contract rather than a fixture, so a key added to
+     * Common/Types/Marketing/Attribution.ts is exercised here automatically
+     * instead of quietly going missing on the wire again.
+     */
+    test("carries every UTM key the shared contract names", () => {
+      const source: Record<string, string> = {};
+
+      for (const propertyKey of UtmPropertyKeys) {
+        source[propertyKey] = `${propertyKey}-value`;
+      }
+
+      const event: MarketingEvent = MarketingEventUtil.buildEvent({
+        eventType: MarketingEventType.SignUp,
+        eventId: "sign_up:u1",
+        occurredAt: new Date(),
+        attributionSource: source,
+      });
+
+      const attribution: Record<string, unknown> =
+        event.attribution as unknown as Record<string, unknown>;
+
+      // The fixture has to exercise the keys for this to mean anything.
+      expect(UtmPropertyKeys.length).toBeGreaterThanOrEqual(9);
+
+      for (const propertyKey of UtmPropertyKeys) {
+        expect(attribution[propertyKey]).toBe(`${propertyKey}-value`);
+      }
     });
 
     /*

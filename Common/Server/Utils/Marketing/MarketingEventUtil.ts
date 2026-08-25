@@ -1,5 +1,10 @@
 import Attribution from "../Attribution";
 import MarketingEventWebhook from "./MarketingEventWebhook";
+import {
+  UtmPropertyKeys,
+  UtmUrlPropertyKey,
+  UtmWireKeyToPropertyKey,
+} from "../../../Types/Marketing/Attribution";
 import Queue, { QueueName } from "../../Infrastructure/Queue";
 import { JSONObject } from "../../../Types/JSON";
 import {
@@ -34,25 +39,58 @@ export interface AttributionSource {
   utmCampaign?: string | undefined;
   utmTerm?: string | undefined;
   utmContent?: string | undefined;
+  utmId?: string | undefined;
+  utmSourcePlatform?: string | undefined;
+  utmCreativeFormat?: string | undefined;
+  utmMarketingTactic?: string | undefined;
   utmUrl?: string | undefined;
   clickIds?: JSONObject | undefined;
   firstTouchAttribution?: JSONObject | undefined;
 }
 
+/*
+ * The campaign columns as snake_case analytics properties, driven from the
+ * shared contract so a key added there cannot be reported by the browser and
+ * the receiver while silently missing from PostHog.
+ */
+export function utmAnalyticsProperties(row: {
+  [key: string]: unknown;
+}): JSONObject {
+  const properties: JSONObject = {};
+
+  for (const [wireKey, propertyKey] of Object.entries(
+    UtmWireKeyToPropertyKey,
+  )) {
+    properties[wireKey] = (row[propertyKey] as string | undefined) || "";
+  }
+
+  return properties;
+}
+
 export default class MarketingEventUtil {
+  /*
+   * Driven from UtmPropertyKeys rather than hand-listed. Hand-listing is how
+   * utm_id and its three GA4 siblings reached the browser, the User row and
+   * the Cal booking metadata while silently never reaching a receiver.
+   *
+   * Additive only, so the schema version does not move
+   * (Docs/analytics/marketing-event-webhooks.md).
+   */
   public static buildAttribution(
     source: AttributionSource | undefined,
   ): MarketingEventAttribution {
-    return {
-      utmSource: source?.utmSource,
-      utmMedium: source?.utmMedium,
-      utmCampaign: source?.utmCampaign,
-      utmTerm: source?.utmTerm,
-      utmContent: source?.utmContent,
-      utmUrl: source?.utmUrl,
+    const sourceRow: JSONObject = (source || {}) as unknown as JSONObject;
+
+    const attribution: MarketingEventAttribution = {
       clickIds: source?.clickIds || {},
       firstTouch: source?.firstTouchAttribution || {},
     };
+
+    for (const propertyKey of [...UtmPropertyKeys, UtmUrlPropertyKey]) {
+      attribution[propertyKey] = sourceRow[propertyKey];
+    }
+
+    return attribution;
   }
 
   public static buildEvent(data: {

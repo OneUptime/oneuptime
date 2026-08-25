@@ -17,6 +17,7 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import Errors from "../Utils/Errors";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import MarketingEventUtil from "../Utils/Marketing/MarketingEventUtil";
+import { utmAnalyticsProperties } from "../Utils/Marketing/MarketingEventUtil";
 import { MarketingEventType } from "../../Types/Marketing/MarketingEvent";
 import {
   UtmPropertyKeys,
@@ -966,11 +967,7 @@ These are no longer recorded against the project and have to be cancelled by han
        */
       is_paid_conversion: true,
       has_custom_pricing: data.plan.isCustomPricing(),
-      utm_source: data.project.utmSource || "",
-      utm_medium: data.project.utmMedium || "",
-      utm_campaign: data.project.utmCampaign || "",
-      utm_term: data.project.utmTerm || "",
-      utm_content: data.project.utmContent || "",
+      ...utmAnalyticsProperties(data.project as unknown as JSONObject),
       click_ids: data.project.clickIds || {},
     };
 
@@ -1081,9 +1078,7 @@ These are no longer recorded against the project and have to be cancelled by han
         oldPlanOrder !== null && newPlanOrder === oldPlanOrder,
       is_paid_conversion: oldMonthlyAmountInUSD === 0 && newPlanIsPaid,
       has_custom_pricing: data.newPlan.isCustomPricing(),
-      utm_source: data.project.utmSource || "",
-      utm_medium: data.project.utmMedium || "",
-      utm_campaign: data.project.utmCampaign || "",
+      ...utmAnalyticsProperties(data.project as unknown as JSONObject),
       click_ids: data.project.clickIds || {},
     };
 
@@ -1452,9 +1447,7 @@ These are no longer recorded against the project and have to be cancelled by han
           project_id: createdItem.id?.toString() || "",
           project_name: createdItem.name?.toString() || "",
           plan: createdItem.planName?.toString() || "",
-          utm_source: createdItem.utmSource || "",
-          utm_medium: createdItem.utmMedium || "",
-          utm_campaign: createdItem.utmCampaign || "",
+          ...utmAnalyticsProperties(createdItem as unknown as JSONObject),
           click_ids: createdItem.clickIds || {},
         },
       });

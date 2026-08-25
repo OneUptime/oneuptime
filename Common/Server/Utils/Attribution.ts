@@ -46,6 +46,10 @@ export interface UtmAttribution {
   utmCampaign?: string | undefined;
   utmTerm?: string | undefined;
   utmContent?: string | undefined;
+  utmId?: string | undefined;
+  utmSourcePlatform?: string | undefined;
+  utmCreativeFormat?: string | undefined;
+  utmMarketingTactic?: string | undefined;
   utmUrl?: string | undefined;
 }
 

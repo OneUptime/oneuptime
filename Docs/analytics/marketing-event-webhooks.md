@@ -103,6 +103,10 @@ Every event has the same shape:
     "utmCampaign": "enterprise-observability",
     "utmTerm": "datadog alternative",
     "utmContent": "demo-cta-b",
+    "utmId": "22334455",
+    "utmSourcePlatform": "google_ads",
+    "utmCreativeFormat": "video",
+    "utmMarketingTactic": "prospecting",
     "utmUrl": "https://oneuptime.com/enterprise/demo?gclid=abc",
     "clickIds": { "gclid": "abc" },
     "firstTouch": {
@@ -122,7 +126,7 @@ Every event has the same shape:
 | `occurredAt`    | string  | ISO 8601 UTC. When the conversion happened, not when it was sent.                                                             |
 | `email`         | string? | Plaintext address. Absent when OneUptime has none.                                                                            |
 | `emailHash`     | string? | SHA-256 hex of the trimmed, lowercased address.                                                                               |
-| `attribution`   | object  | Campaign the converting visitor carried. All fields optional; `clickIds` and `firstTouch` are always objects, possibly empty. |
+| `attribution`   | object  | Campaign the converting visitor carried. All fields optional; `clickIds` and `firstTouch` are always objects, possibly empty. UTM keys are exactly `UtmWireKeyToPropertyKey` in `Common/Types/Marketing/Attribution.ts`, in camelCase. |
 | `data`          | object  | Event-specific detail — see each event below.                                                                                 |
 
 ### Two things the envelope does not give you

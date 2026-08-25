@@ -64,6 +64,10 @@ export interface MarketingEventAttribution extends JSONObject {
   utmCampaign?: string | undefined;
   utmTerm?: string | undefined;
   utmContent?: string | undefined;
+  utmId?: string | undefined;
+  utmSourcePlatform?: string | undefined;
+  utmCreativeFormat?: string | undefined;
+  utmMarketingTactic?: string | undefined;
   utmUrl?: string | undefined;
   clickIds: JSONObject;
   firstTouch: JSONObject;

@@ -43,6 +43,7 @@ import Model from "../../Models/DatabaseModels/User";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import MarketingEventUtil from "../Utils/Marketing/MarketingEventUtil";
+import { utmAnalyticsProperties } from "../Utils/Marketing/MarketingEventUtil";
 import { MarketingEventType } from "../../Types/Marketing/MarketingEvent";
 import UserTotpAuthService from "./UserTotpAuthService";
 import UserTwoFactorBackupCodeService from "./UserTwoFactorBackupCodeService";
@@ -242,11 +243,7 @@ export class Service extends DatabaseService<Model> {
         distinctId: createdItem.email.toString(),
         properties: {
           has_password: Boolean(createdItem.password),
-          utm_source: createdItem.utmSource || "",
-          utm_medium: createdItem.utmMedium || "",
-          utm_campaign: createdItem.utmCampaign || "",
-          utm_term: createdItem.utmTerm || "",
-          utm_content: createdItem.utmContent || "",
+          ...utmAnalyticsProperties(createdItem as unknown as JSONObject),
           utm_url: createdItem.utmUrl || "",
           click_ids: createdItem.clickIds || {},
           first_touch: createdItem.firstTouchAttribution || {},
