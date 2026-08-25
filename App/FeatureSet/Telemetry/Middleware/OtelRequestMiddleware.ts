@@ -12,6 +12,20 @@ import logger, {
   getLogAttributesFromRequest,
 } from "Common/Server/Utils/Logger";
 
+/*
+ * Byte ceiling for one OTLP ingest request, measured on the wire (so on
+ * the COMPRESSED body when the client sends gzip).
+ *
+ * This middleware reads the socket itself, which means none of the global
+ * body-parser limits in StartServer apply to it - before this constant
+ * existed the only bound was whatever nginx happened to allow, and a
+ * deployment fronted by something else, or reached directly, had none at
+ * all. 50 MiB is the same number body-parser is given everywhere else in
+ * the app, and nginx cuts it to 1-4 MiB in the shipped config, so no
+ * legitimate exporter is affected.
+ */
+export const MAX_OTLP_REQUEST_BYTES: number = 50 * 1024 * 1024;
+
 export default class OpenTelemetryRequestMiddleware {
   /*
    * Read the OTel HTTP request body into a raw Buffer. We deliberately
@@ -21,11 +35,16 @@ export default class OpenTelemetryRequestMiddleware {
    * sent). The handler now base64-encodes this raw buffer and queues
    * it; the BullMQ worker performs gunzip + protobuf decode off the
    * HTTP path.
+   *
+   * It does enforce a byte cap. The worker's inflate has its own ceiling
+   * (MAX_DECOMPRESSED_OTLP_BODY_BYTES), but that one only fires after the
+   * body has already been read into this process and written to Redis, so
+   * both ends need bounding.
    */
   @CaptureSpan()
   public static async parseBody(
     req: ExpressRequest,
-    _res: ExpressResponse,
+    res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> {
     try {
@@ -33,27 +52,94 @@ export default class OpenTelemetryRequestMiddleware {
         return next();
       }
 
-      const requestBuffer: Buffer = await new Promise<Buffer>(
-        (resolve: (value: Buffer) => void, reject: (err: Error) => void) => {
-          const chunks: Array<Uint8Array> = [];
+      /*
+       * Cheap pre-check before a byte is read. Content-Length is advisory
+       * - a chunked request carries none - but when it is present and
+       * already over the cap there is no reason to accept the body.
+       */
+      const contentLengthHeader: string | undefined = headerValueToString(
+        req.headers["content-length"],
+      );
 
-          req.on("data", (chunk: Buffer | string) => {
-            chunks.push(
-              new Uint8Array(
-                Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, "utf-8"),
-              ),
-            );
-          });
+      if (contentLengthHeader) {
+        const declaredLength: number = parseInt(contentLengthHeader, 10);
+
+        if (!isNaN(declaredLength) && declaredLength > MAX_OTLP_REQUEST_BYTES) {
+          OpenTelemetryRequestMiddleware.rejectTooLarge(res, declaredLength);
+          return;
+        }
+      }
+
+      const requestBuffer: Buffer | null = await new Promise<Buffer | null>(
+        (
+          resolve: (value: Buffer | null) => void,
+          reject: (err: Error) => void,
+        ) => {
+          const chunks: Array<Uint8Array> = [];
+          let receivedBytes: number = 0;
+          let rejected: boolean = false;
+
+          const onData: (chunk: Buffer | string) => void = (
+            chunk: Buffer | string,
+          ): void => {
+            if (rejected) {
+              return;
+            }
+
+            const asBuffer: Buffer = Buffer.isBuffer(chunk)
+              ? chunk
+              : Buffer.from(chunk, "utf-8");
+
+            receivedBytes += asBuffer.length;
+
+            if (receivedBytes > MAX_OTLP_REQUEST_BYTES) {
+              rejected = true;
+
+              /*
+               * Answer FIRST, then stop accumulating. The OTel spec tells
+               * exporters to treat 4xx as non-retryable, so a 413 makes a
+               * misconfigured batch size stop rather than loop; tearing
+               * the socket down instead would read as a network error and
+               * be retried forever.
+               */
+              OpenTelemetryRequestMiddleware.rejectTooLarge(res, receivedBytes);
+
+              chunks.length = 0;
+
+              req.removeListener("data", onData);
+              req.resume();
+
+              resolve(null);
+              return;
+            }
+
+            chunks.push(new Uint8Array(asBuffer));
+          };
+
+          req.on("data", onData);
 
           req.on("end", () => {
+            if (rejected) {
+              return;
+            }
+
             resolve(Buffer.concat(chunks));
           });
 
           req.on("error", (err: Error) => {
+            if (rejected) {
+              return;
+            }
+
             reject(err);
           });
         },
       );
+
+      if (requestBuffer === null) {
+        // Already answered with 413. Do not continue down the stack.
+        return;
+      }
 
       req.body = requestBuffer;
 
@@ -61,6 +147,17 @@ export default class OpenTelemetryRequestMiddleware {
     } catch (err) {
       return next(err);
     }
+  }
+
+  private static rejectTooLarge(res: ExpressResponse, bytes: number): void {
+    if (res.headersSent) {
+      return;
+    }
+
+    res.status(413).json({
+      error: "payload-too-large",
+      message: `An OTLP ingest request may not exceed ${MAX_OTLP_REQUEST_BYTES} bytes. Received at least ${bytes}.`,
+    });
   }
 
   /*

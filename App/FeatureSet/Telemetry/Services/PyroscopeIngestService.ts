@@ -9,6 +9,7 @@ import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import EventLoop from "Common/Server/Utils/EventLoop";
 import logger from "Common/Server/Utils/Logger";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
+import PayloadTooLargeException from "Common/Types/Exception/PayloadTooLargeException";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
@@ -17,6 +18,7 @@ import ObjectID from "Common/Types/ObjectID";
 import protobuf from "protobufjs";
 import path from "path";
 import zlib from "zlib";
+import { promisify } from "util";
 import {
   SPAN_ID_KEYS,
   TRACE_ID_KEYS,
@@ -37,6 +39,42 @@ const PushProto: protobuf.Root = protobuf.loadSync(
   path.resolve(__dirname, "..", "ProtoFiles", "pyroscope", "push.proto"),
 );
 const PushRequest: protobuf.Type = PushProto.lookupType("push.v1.PushRequest");
+
+/*
+ * Decompressed-payload ceiling for ONE gzip member on this path.
+ *
+ * pprof is protobuf wrapped in gzip and a real profile is tens to a few
+ * hundred KB; 32 MiB is orders of magnitude above anything a profiler
+ * emits, so a legitimate client never approaches it. It exists because
+ * `zlib.gunzip` with no ceiling turns the ~1 MiB nginx lets through into
+ * however much the sender wants - a measured 1,029x on repeated bytes is
+ * about a gigabyte of resident Buffer per request.
+ */
+export const MAX_DECOMPRESSED_PROFILE_BYTES: number = 32 * 1024 * 1024;
+
+/*
+ * Decompressed-payload ceiling for the WHOLE request, which is the number
+ * that actually bounds the process.
+ *
+ * ingestPyroscopePush walks series[].samples[] and inflates every sample,
+ * so a per-payload cap alone just multiplies by the sample count: 64
+ * samples one byte under the per-profile cap is 2 GB. The budget below is
+ * spent across every inflate in one request, the same shape
+ * SessionReplayIngestService uses for its per-job allowance.
+ */
+export const MAX_DECOMPRESSED_REQUEST_BYTES: number = 64 * 1024 * 1024;
+
+/*
+ * Async, not gunzipSync: a multi-MB synchronous inflate pins the event
+ * loop, which is the same reason the push loop yields between samples.
+ */
+const gunzipAsync: (
+  buffer: Uint8Array,
+  options: zlib.ZlibOptions,
+) => Promise<Buffer> = promisify(zlib.gunzip) as unknown as (
+  buffer: Uint8Array,
+  options: zlib.ZlibOptions,
+) => Promise<Buffer>;
 
 // Interfaces for parsed Pyroscope push data
 interface PyroscopeLabelPair {
@@ -110,6 +148,15 @@ const JFR_UNSUPPORTED_MESSAGE: string =
   "pushes pprof to /pyroscope/push.v1.PusherService/Push.";
 
 /*
+ * Deliberately says nothing about how much was received or how much is
+ * left of the budget. A caller probing for the exact ceiling learns
+ * nothing from the response.
+ */
+const PYROSCOPE_TOO_LARGE_MESSAGE: string =
+  "Profile payload is too large once decompressed. Reduce the profile " +
+  "size or the number of samples per request.";
+
+/*
  * Label keys that are PROMOTED to the link table rather than stored as
  * sample attributes: a valid id becomes a first-class traceId/spanId
  * column downstream, and an invalid one must be dropped entirely —
@@ -173,8 +220,14 @@ export default class PyroscopeIngestService {
         throw new BadRequestException("No profile data found in request body.");
       }
 
-      // Decompress if gzipped
-      const decompressed: Buffer = await this.decompressIfNeeded(pprofBuffer);
+      /*
+       * One payload per request on this route, so it may spend the whole
+       * request allowance (the per-profile ceiling still applies inside).
+       */
+      const decompressed: Buffer = await this.decompressIfNeeded(
+        pprofBuffer,
+        MAX_DECOMPRESSED_REQUEST_BYTES,
+      );
 
       /*
        * pyroscope-java omits format=jfr on some versions — catch the
@@ -288,8 +341,23 @@ export default class PyroscopeIngestService {
         throw new BadRequestException("No push data found in request body.");
       }
 
-      // Decompress if gzipped
-      const decompressed: Buffer = await this.decompressIfNeeded(rawBody);
+      /*
+       * Running request-wide decompression allowance, spent by the outer
+       * envelope and then sample by sample below. This is what bounds the
+       * process: every decompressed sample stays resident until the merged
+       * OTLP body is built at the end, so the ceiling has to be per
+       * REQUEST, not per payload.
+       */
+      let decompressionBudgetRemaining: number = MAX_DECOMPRESSED_REQUEST_BYTES;
+
+      const decompressed: Buffer = await this.decompressIfNeeded(
+        rawBody,
+        decompressionBudgetRemaining,
+      );
+
+      if (decompressed !== rawBody) {
+        decompressionBudgetRemaining -= decompressed.length;
+      }
 
       // Decode the PushRequest protobuf
       const pushMessage: protobuf.Message = PushRequest.decode(
@@ -346,8 +414,14 @@ export default class PyroscopeIngestService {
             : Buffer.from(sample.rawProfile);
 
           // Decompress if the embedded profile is gzipped
-          const decompressedProfile: Buffer =
-            await this.decompressIfNeeded(profileBuffer);
+          const decompressedProfile: Buffer = await this.decompressIfNeeded(
+            profileBuffer,
+            decompressionBudgetRemaining,
+          );
+
+          if (decompressedProfile !== profileBuffer) {
+            decompressionBudgetRemaining -= decompressedProfile.length;
+          }
 
           // Parse the embedded pprof
           const pprofData: PprofProfileData =
@@ -496,23 +570,52 @@ export default class PyroscopeIngestService {
     return null;
   }
 
-  private static async decompressIfNeeded(data: Buffer): Promise<Buffer> {
+  /*
+   * gunzip under a hard output ceiling, or pass identity bytes through.
+   *
+   * `budgetBytes` is what is left of the request-wide allowance. It is
+   * folded into `maxOutputLength` rather than checked afterwards so the
+   * inflate ABORTS at the ceiling instead of completing and being rejected
+   * once the memory has already been allocated - the whole point of the
+   * limit.
+   *
+   * `maxOutputLength` works here because this is zlib's CONVENIENCE api.
+   * Node honours the option on `gunzip`/`gunzipSync` only; on a
+   * `createGunzip` stream it is accepted and silently ignored, so do not
+   * "simplify" this into a stream without replacing the ceiling with a
+   * manual byte count.
+   */
+  private static async decompressIfNeeded(
+    data: Buffer,
+    budgetBytes: number,
+  ): Promise<Buffer> {
     // Check for gzip magic bytes (0x1f, 0x8b)
     if (data.length >= 2 && data[0] === 0x1f && data[1] === 0x8b) {
-      return new Promise<Buffer>(
-        (resolve: (value: Buffer) => void, reject: (reason: Error) => void) => {
-          zlib.gunzip(
-            data as unknown as Uint8Array,
-            (err: Error | null, result: Buffer) => {
-              if (err) {
-                reject(err);
-              } else {
-                resolve(result);
-              }
-            },
-          );
-        },
+      const ceiling: number = Math.max(
+        0,
+        Math.min(MAX_DECOMPRESSED_PROFILE_BYTES, budgetBytes),
       );
+
+      /*
+       * A spent budget cannot inflate anything, and zlib treats
+       * maxOutputLength: 0 as "no limit" rather than "nothing allowed", so
+       * refuse before calling it.
+       */
+      if (ceiling === 0) {
+        throw new PayloadTooLargeException(PYROSCOPE_TOO_LARGE_MESSAGE);
+      }
+
+      try {
+        return await gunzipAsync(data as unknown as Uint8Array, {
+          maxOutputLength: ceiling,
+        });
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException)?.code === "ERR_BUFFER_TOO_LARGE") {
+          throw new PayloadTooLargeException(PYROSCOPE_TOO_LARGE_MESSAGE);
+        }
+
+        throw err;
+      }
     }
     return data;
   }
