@@ -277,6 +277,8 @@ describe("consent can be withdrawn", () => {
 
     expect(policy).not.toContain("governed by the same consent choice");
     expect(policy).not.toContain("they are not set in the product either");
-    expect(policy).toContain("regardless of the answer given on the cookie banner");
+    expect(policy).toContain(
+      "regardless of the answer given on the cookie banner",
+    );
   });
 });
