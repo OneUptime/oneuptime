@@ -46,7 +46,11 @@
       "authenticatingWithSecurityKey": "セキュリティキーで認証中",
       "securityKeyInstructions": "セキュリティキーデバイスの指示に従ってください。",
       "codeFieldDescription": "認証アプリからコードを入力してください",
-      "selectDifferentMethod": "別の二要素認証方法を選択"
+      "selectDifferentMethod": "別の二要素認証方法を選択",
+      "useBackupCode": "代わりにバックアップコードを使用する",
+      "backupCodeInstruction": "二要素認証を設定したときに保存したバックアップコードのいずれかを入力してください。各コードは一度だけ使用できます。",
+      "backupCodeFieldTitle": "バックアップコード",
+      "backupCodeFieldDescription": "バックアップコードは ABCDE-12345 のような形式です。大文字と小文字、ハイフンの有無は問いません。"
     },
     "twoFactorEnrolment": {
       "title": "二要素認証の設定",

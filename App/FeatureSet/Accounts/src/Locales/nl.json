@@ -46,7 +46,11 @@
       "authenticatingWithSecurityKey": "Authenticeren met beveiligingssleutel",
       "securityKeyInstructions": "Volg de instructies op uw beveiligingssleutelapparaat.",
       "codeFieldDescription": "Voer de code in van uw authenticator-app",
-      "selectDifferentMethod": "Selecteer een andere tweefactorauthenticatiemethode"
+      "selectDifferentMethod": "Selecteer een andere tweefactorauthenticatiemethode",
+      "useBackupCode": "Gebruik in plaats daarvan een back-upcode",
+      "backupCodeInstruction": "Voer een van de back-upcodes in die u hebt opgeslagen bij het instellen van tweefactorauthenticatie. Elke code werkt slechts één keer.",
+      "backupCodeFieldTitle": "Back-upcode",
+      "backupCodeFieldDescription": "Back-upcodes zien eruit als ABCDE-12345. Hoofdletters, kleine letters en het streepje maken niet uit."
     },
     "twoFactorEnrolment": {
       "title": "Tweefactorauthenticatie instellen",

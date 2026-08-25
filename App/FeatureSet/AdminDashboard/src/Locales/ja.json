@@ -184,6 +184,7 @@
       "emailVerifiedLabel": "メール確認済み",
       "twoFactorLabel": "2 要素認証が有効",
       "twoFactorMethodCountLabel": "確認済みの 2 要素認証方法",
+      "backupCodeCountLabel": "未使用のバックアップコード",
       "twoFactorStatusNotEnabled": "無効",
       "twoFactorStatusPendingSetup": "有効 - 設定待ち",
       "twoFactorStatusConfigured": "有効 - 設定済み",

@@ -312,6 +312,7 @@ import AutoRemediationRule from "./AutoRemediationRule";
 import AutoRemediationSuggestion from "./AutoRemediationSuggestion";
 
 import UserTotpAuth from "./UserTotpAuth";
+import UserTwoFactorBackupCode from "./UserTwoFactorBackupCode";
 import UserWebAuthn from "./UserWebAuthn";
 
 import TelemetryIngestionKey from "./TelemetryIngestionKey";
@@ -798,6 +799,7 @@ const AllModelTypes: Array<{
 
   UserSession,
   UserTotpAuth,
+  UserTwoFactorBackupCode,
   UserWebAuthn,
 
   TelemetryIngestionKey,

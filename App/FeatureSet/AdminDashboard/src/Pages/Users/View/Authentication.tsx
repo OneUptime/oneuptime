@@ -396,6 +396,21 @@ const UserAuthentication: FunctionComponent = (): ReactElement => {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-500">
+                    {t("pages.userAuthentication.backupCodeCountLabel")}
+                  </p>
+                  {/*
+                   * Reported next to the method count, never folded into it.
+                   * This is the number that decides whether the operator
+                   * looking at a lost-phone ticket needs the reset button at
+                   * all: a user with codes left can get back in on their own,
+                   * and a reset would sign them out everywhere for nothing.
+                   */}
+                  <p className="text-sm text-gray-900">
+                    {status.unusedTwoFactorBackupCodeCount}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">
                     {t("pages.userAuthentication.pendingResetLinkLabel")}
                   </p>
                   <p className="text-sm text-gray-900">

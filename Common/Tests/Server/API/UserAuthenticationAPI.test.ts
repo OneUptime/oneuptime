@@ -96,6 +96,14 @@ const AUTHENTICATION_STATUS: UserAuthenticationStatus = {
    */
   twoFactorAuthStatus: TwoFactorAuthStatus.EnabledPendingSetup,
   verifiedTwoFactorAuthMethodCount: 0,
+
+  /*
+   * Reported alongside the method count, never folded into it -- backup codes
+   * are the way back in to an account whose factor is unreachable, not a
+   * factor. Zero here keeps this fixture the pure "mandated, nothing set up"
+   * case it exists to be.
+   */
+  unusedTwoFactorBackupCodeCount: 0,
   hasPendingPasswordResetLink: false,
 };
 
@@ -201,9 +209,13 @@ describe("GET /user/:userId/authentication-status", () => {
 
   test("sends exactly what the service reported", async () => {
     /*
-     * The page renders these four booleans directly. A field dropped or
-     * renamed on the way out reads as `undefined`, which the UI shows as "no
-     * password" for an account that has one.
+     * The page renders these fields directly. One dropped or renamed on the
+     * way out reads as `undefined`, which the UI shows as "no password" for an
+     * account that has one.
+     *
+     * Asserted as an EXACT object rather than field by field, so a new field
+     * added to the DTO has to be added here too -- which is how this test has
+     * done its job twice now, most recently for the backup code count.
      */
     await callRoute({
       method: "GET",
@@ -217,6 +229,7 @@ describe("GET /user/:userId/authentication-status", () => {
       isTwoFactorAuthEnabled: true,
       twoFactorAuthStatus: TwoFactorAuthStatus.EnabledPendingSetup,
       verifiedTwoFactorAuthMethodCount: 0,
+      unusedTwoFactorBackupCodeCount: 0,
       hasPendingPasswordResetLink: false,
     });
   });

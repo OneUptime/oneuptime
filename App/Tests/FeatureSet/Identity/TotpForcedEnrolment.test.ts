@@ -161,6 +161,30 @@ jest.mock("Common/Server/Services/UserWebAuthnService", () => {
   };
 });
 
+/*
+ * The two factor CHALLENGE branch of /login also reports how many backup codes
+ * the account has left, so the sign-in page knows whether to offer "use a
+ * backup code". Un-mocked, the real service reaches a repository this suite
+ * does not connect, and every challenge test fails with "Database not
+ * connected" rather than anything to do with what it was checking.
+ *
+ * Zero, because none of the tests here are about recovery codes -- that is
+ * App/Tests/FeatureSet/Identity/BackupCodeLoginVerification.test.ts.
+ */
+jest.mock("Common/Server/Services/UserTwoFactorBackupCodeService", () => {
+  return {
+    __esModule: true,
+    default: {
+      countUnusedForUser: (): Promise<number> => {
+        return Promise.resolve(0);
+      },
+      consumeCode: (): Promise<boolean> => {
+        return Promise.resolve(false);
+      },
+    },
+  };
+});
+
 const createSession: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Services/UserSessionService", () => {

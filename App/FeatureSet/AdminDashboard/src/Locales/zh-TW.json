@@ -184,6 +184,7 @@
       "emailVerifiedLabel": "電子郵件已驗證",
       "twoFactorLabel": "已啟用雙重驗證",
       "twoFactorMethodCountLabel": "已驗證的雙重驗證方式",
+      "backupCodeCountLabel": "未使用的備用代碼",
       "twoFactorStatusNotEnabled": "未啟用",
       "twoFactorStatusPendingSetup": "已啟用 - 待設定",
       "twoFactorStatusConfigured": "已啟用 - 已設定",

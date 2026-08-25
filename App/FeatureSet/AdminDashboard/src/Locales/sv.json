@@ -184,6 +184,7 @@
       "emailVerifiedLabel": "E-post verifierad",
       "twoFactorLabel": "Tvåfaktorsautentisering aktiverad",
       "twoFactorMethodCountLabel": "Verifierade tvåfaktorsmetoder",
+      "backupCodeCountLabel": "Oanvända reservkoder",
       "twoFactorStatusNotEnabled": "Inte aktiverad",
       "twoFactorStatusPendingSetup": "Aktiverad – väntar på konfiguration",
       "twoFactorStatusConfigured": "Aktiverad – konfigurerad",

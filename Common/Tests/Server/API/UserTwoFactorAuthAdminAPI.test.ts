@@ -792,6 +792,7 @@ describe("GET /user/:userId/authentication-status two factor auth fields", () =>
     isTwoFactorAuthEnabled: true,
     twoFactorAuthStatus: TwoFactorAuthStatus.EnabledPendingSetup,
     verifiedTwoFactorAuthMethodCount: 0,
+    unusedTwoFactorBackupCodeCount: 0,
     hasPendingPasswordResetLink: false,
   };
 
@@ -826,6 +827,7 @@ describe("GET /user/:userId/authentication-status two factor auth fields", () =>
       isTwoFactorAuthEnabled: true,
       twoFactorAuthStatus: TwoFactorAuthStatus.EnabledPendingSetup,
       verifiedTwoFactorAuthMethodCount: 0,
+      unusedTwoFactorBackupCodeCount: 0,
       hasPendingPasswordResetLink: false,
     });
   });
@@ -863,6 +865,9 @@ describe("GET /user/:userId/authentication-status two factor auth fields", () =>
 
     expect(Object.keys(payload)).toContain("verifiedTwoFactorAuthMethodCount");
     expect(payload["verifiedTwoFactorAuthMethodCount"]).toBe(0);
+
+    expect(Object.keys(payload)).toContain("unusedTwoFactorBackupCodeCount");
+    expect(payload["unusedTwoFactorBackupCodeCount"]).toBe(0);
   });
 
   test("reports a configured account with its real method count", async () => {
@@ -871,14 +876,17 @@ describe("GET /user/:userId/authentication-status two factor auth fields", () =>
      * operator would reset a user who was perfectly fine and lock them out
      * themselves.
      */
-    statusSpy.mockResolvedValue({
+    const configuredStatus: UserAuthenticationStatus = {
       hasPassword: false,
       isEmailVerified: true,
       isTwoFactorAuthEnabled: true,
       twoFactorAuthStatus: TwoFactorAuthStatus.EnabledConfigured,
       verifiedTwoFactorAuthMethodCount: 2,
+      unusedTwoFactorBackupCodeCount: 5,
       hasPendingPasswordResetLink: false,
-    } as UserAuthenticationStatus);
+    };
+
+    statusSpy.mockResolvedValue(configuredStatus);
 
     await callRoute({
       method: "GET",
@@ -892,6 +900,14 @@ describe("GET /user/:userId/authentication-status two factor auth fields", () =>
       TwoFactorAuthStatus.EnabledConfigured,
     );
     expect(payload["verifiedTwoFactorAuthMethodCount"]).toBe(2);
+
+    /*
+     * Carried alongside the method count, never folded into it. This is the
+     * number that tells an operator whether the user can get back in without
+     * them -- so a reset that would sign the user out everywhere is only the
+     * right button when it is zero.
+     */
+    expect(payload["unusedTwoFactorBackupCodeCount"]).toBe(5);
   });
 
   test("sets the no-cache headers before the payload goes out", async () => {

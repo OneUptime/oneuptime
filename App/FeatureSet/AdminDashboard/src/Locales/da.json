@@ -184,6 +184,7 @@
       "emailVerifiedLabel": "E-mail bekræftet",
       "twoFactorLabel": "Tofaktorgodkendelse aktiveret",
       "twoFactorMethodCountLabel": "Bekræftede tofaktormetoder",
+      "backupCodeCountLabel": "Ubrugte backup-koder",
       "twoFactorStatusNotEnabled": "Ikke aktiveret",
       "twoFactorStatusPendingSetup": "Aktiveret – afventer opsætning",
       "twoFactorStatusConfigured": "Aktiveret – konfigureret",
