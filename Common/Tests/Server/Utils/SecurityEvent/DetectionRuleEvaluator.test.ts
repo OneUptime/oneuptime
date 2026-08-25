@@ -36,11 +36,13 @@ import IncidentSeverityService from "../../../../Server/Services/IncidentSeverit
 import DetectionRuleService from "../../../../Server/Services/DetectionRuleService";
 import SecurityEventService, {
   DetectionMatchGroup,
+  FindDetectionMatchesData,
 } from "../../../../Server/Services/SecurityEventService";
 import OTelIngestService, {
   TelemetryServiceMetadata,
 } from "../../../../Server/Services/OpenTelemetryIngestService";
 import logger from "../../../../Server/Utils/Logger";
+import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
 import MetricSeriesFingerprint from "../../../../Utils/Metrics/MetricSeriesFingerprint";
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
@@ -107,6 +109,9 @@ function buildRule(
     lastEvaluatedAt?: Date;
     evaluationIntervalInMinutes?: number;
     id?: ObjectID;
+    groupByField?: string;
+    distinctCountField?: string;
+    matchCountThreshold?: number;
   } = {},
 ): DetectionRule {
   const rule: DetectionRule = new DetectionRule();
@@ -117,7 +122,15 @@ function buildRule(
   rule.sigmaRuleYaml =
     options.sigmaRuleYaml ?? sigmaYaml(options.level || "high");
   rule.evaluationIntervalInMinutes = options.evaluationIntervalInMinutes ?? 5;
-  rule.groupByField = "principalUser";
+  rule.groupByField = options.groupByField ?? "principalUser";
+
+  if (options.distinctCountField !== undefined) {
+    rule.distinctCountField = options.distinctCountField;
+  }
+
+  if (options.matchCountThreshold !== undefined) {
+    rule.matchCountThreshold = options.matchCountThreshold;
+  }
 
   if (options.shouldCreateAlert !== undefined) {
     rule.shouldCreateAlert = options.shouldCreateAlert;
@@ -156,10 +169,12 @@ function buildSeverity(idSuffix: string, name: string): AlertSeverity {
 function buildGroup(
   groupValue: string,
   matchCount: number,
+  distinctCount: number = 0,
 ): DetectionMatchGroup {
   return {
     groupValue,
     matchCount,
+    distinctCount,
     sampleMessage: `sample event for ${groupValue || "all"}`,
     sampleObservables: [groupValue, "10.0.0.9"].filter(
       (observable: string): boolean => {
@@ -297,15 +312,24 @@ function createdIncident(spies: EvaluationSpies, index: number): Incident {
   return (call as { data: Incident }).data;
 }
 
+function findMatchesArg(spies: EvaluationSpies): FindDetectionMatchesData {
+  return spies.findDetectionMatches.mock
+    .calls[0]?.[0] as FindDetectionMatchesData;
+}
+
+// The evaluator logs expected failures; keep test output clean.
+function silenceLogger(): void {
+  getJestSpyOn(logger, "error").mockImplementation((() => {
+    return undefined;
+  }) as never);
+  getJestSpyOn(logger, "warn").mockImplementation((() => {
+    return undefined;
+  }) as never);
+}
+
 describe("DetectionRuleEvaluator", () => {
   beforeEach(() => {
-    // The evaluator logs expected failures; keep test output clean.
-    getJestSpyOn(logger, "error").mockImplementation((() => {
-      return undefined;
-    }) as never);
-    getJestSpyOn(logger, "warn").mockImplementation((() => {
-      return undefined;
-    }) as never);
+    silenceLogger();
   });
 
   afterEach(() => {
@@ -1042,6 +1066,29 @@ describe("DetectionRuleEvaluator", () => {
       expect(select["shouldCreateAlert"]).toBe(true);
       expect(select["alertSeverityId"]).toBe(true);
     });
+
+    test("selects the distinct-count columns so thresholds do not silently read as 1", async () => {
+      /*
+       * Same drift as the incident columns: a rule fetched WITHOUT
+       * matchCountThreshold in the select falls back to the
+       * fire-on-any-match default, and one fetched without
+       * distinctCountField silently thresholds the raw count instead of
+       * the distinct count — neither failure trips any other assertion.
+       */
+      const rulesFindBy: Spy = getJestSpyOn(
+        DetectionRuleService,
+        "findBy",
+      ).mockResolvedValue([] as never);
+
+      await DetectionRuleEvaluator.evaluateAllDueRules();
+
+      const select: JSONObject = (
+        rulesFindBy.mock.calls[0]?.[0] as { select: JSONObject }
+      ).select;
+
+      expect(select["distinctCountField"]).toBe(true);
+      expect(select["matchCountThreshold"]).toBe(true);
+    });
   });
 
   describe("rule bookkeeping", () => {
@@ -1093,6 +1140,320 @@ describe("DetectionRuleEvaluator", () => {
       expect(
         Object.prototype.hasOwnProperty.call(updateArg.data, "lastMatchAt"),
       ).toBe(false);
+    });
+  });
+
+  describe("distinct count and match count threshold", () => {
+    /*
+     * matchCountThreshold holds a rule back until a group reaches N
+     * events, and distinctCountField switches what N counts: raw
+     * matches, or uniqExact of one field. The ClickHouse HAVING clause
+     * already enforces the threshold server-side, but the evaluator
+     * re-filters so the firing contract does not depend on which side
+     * built the rows — these tests pin that in-process filter plus the
+     * exact query contract handed to SecurityEventService.
+     */
+    test("threshold on the raw count path: only groups at/above it fire and totalMatches sums firing groups only", async () => {
+      const rule: DetectionRule = buildRule({
+        matchCountThreshold: 3,
+        shouldWriteDetectionFinding: false,
+      });
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [
+          buildGroup("alice", 5),
+          buildGroup("bob", 2), // below threshold — must not fire
+          buildGroup("carol", 3), // exactly at threshold — fires
+        ],
+        severities: [buildSeverity("0001", "Default")],
+      });
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(result.matchedGroups).toBe(2);
+      // 5 + 3; bob's 2 sub-threshold events are not "matches" at all.
+      expect(result.totalMatches).toBe(8);
+      expect(result.alertsCreated).toBe(2);
+
+      const alertFingerprints: Array<string | undefined> = [
+        createdAlert(spies, 0).seriesFingerprint,
+        createdAlert(spies, 1).seriesFingerprint,
+      ];
+
+      expect(alertFingerprints).toContain(expectedFingerprint("alice"));
+      expect(alertFingerprints).toContain(expectedFingerprint("carol"));
+      expect(alertFingerprints).not.toContain(expectedFingerprint("bob"));
+    });
+
+    test("an unset threshold behaves as 1 — pre-threshold rules keep firing on any match", async () => {
+      const rule: DetectionRule = buildRule({
+        shouldWriteDetectionFinding: false,
+      });
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 1)],
+        severities: [buildSeverity("0001", "Default")],
+      });
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(result.matchedGroups).toBe(1);
+      expect(result.alertsCreated).toBe(1);
+      expect(findMatchesArg(spies).minMatchCount).toBe(1);
+    });
+
+    test("a threshold of 0 behaves as 1, not as fire-on-nothing", async () => {
+      const rule: DetectionRule = buildRule({
+        matchCountThreshold: 0,
+        shouldWriteDetectionFinding: false,
+      });
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 1)],
+        severities: [buildSeverity("0001", "Default")],
+      });
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(result.matchedGroups).toBe(1);
+      expect(result.alertsCreated).toBe(1);
+      // The clamp happens before the query, not just in the re-filter.
+      expect(findMatchesArg(spies).minMatchCount).toBe(1);
+    });
+
+    test("a distinct-count rule fires on distinctCount, not matchCount", async () => {
+      const rule: DetectionRule = buildRule({
+        distinctCountField: "principalIp",
+        matchCountThreshold: 5,
+        shouldWriteDetectionFinding: false,
+      });
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [
+          // 50 raw matches from only 2 IPs — noisy, not distributed.
+          buildGroup("alice", 50, 2),
+          // 6 raw matches from 5 IPs — under on raw count, fires on distinct.
+          buildGroup("bob", 6, 5),
+        ],
+        severities: [buildSeverity("0001", "Default")],
+      });
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(result.matchedGroups).toBe(1);
+      expect(result.totalMatches).toBe(6);
+      expect(result.alertsCreated).toBe(1);
+      expect(createdAlert(spies, 0).seriesFingerprint).toBe(
+        expectedFingerprint("bob"),
+      );
+    });
+
+    test("a group with zero matches never fires even when distinctCount clears the threshold", async () => {
+      const rule: DetectionRule = buildRule({
+        distinctCountField: "principalIp",
+        matchCountThreshold: 5,
+        shouldWriteDetectionFinding: false,
+      });
+
+      const spies: EvaluationSpies = installSpies({
+        // Nonsense a buggy query could emit: distinct 7 over 0 rows.
+        groups: [buildGroup("alice", 0, 7)],
+        severities: [buildSeverity("0001", "Default")],
+      });
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(result.matchedGroups).toBe(0);
+      expect(result.totalMatches).toBe(0);
+      expect(spies.alertCreate).not.toHaveBeenCalled();
+    });
+
+    test("a plain rule queries with a null distinct expression, its threshold, and the existing group contract", async () => {
+      const rule: DetectionRule = buildRule({
+        matchCountThreshold: 4,
+        shouldWriteDetectionFinding: false,
+      });
+
+      const spies: EvaluationSpies = installSpies();
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      const args: FindDetectionMatchesData = findMatchesArg(spies);
+
+      expect(args.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(args.minMatchCount).toBe(4);
+      expect(args.distinctCountExpression).toBeNull();
+      // groupByField still compiles to an expression; maxGroups is intact.
+      expect(args.groupByExpression).toBeInstanceOf(Statement);
+      expect(args.maxGroups).toBe(100);
+    });
+
+    test("a distinct-count rule queries with a compiled Statement for the distinct field", async () => {
+      const rule: DetectionRule = buildRule({
+        distinctCountField: "principalIp",
+        matchCountThreshold: 5,
+        shouldWriteDetectionFinding: false,
+      });
+
+      const spies: EvaluationSpies = installSpies();
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      const args: FindDetectionMatchesData = findMatchesArg(spies);
+
+      expect(args.distinctCountExpression).toBeInstanceOf(Statement);
+      expect(args.minMatchCount).toBe(5);
+      expect(args.groupByExpression).toBeInstanceOf(Statement);
+    });
+
+    test("a distinct rule's alert description explains the distinct count and threshold", async () => {
+      const rule: DetectionRule = buildRule({
+        distinctCountField: "principalIp",
+        matchCountThreshold: 5,
+        shouldWriteDetectionFinding: false,
+      });
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 6, 5)],
+        severities: [buildSeverity("0001", "Default")],
+      });
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(createdAlert(spies, 0).description).toContain(
+        "5 distinct principalIp values across these events (rule threshold: 5).",
+      );
+    });
+
+    test("a plain rule's alert description never says distinct", async () => {
+      const rule: DetectionRule = buildRule({
+        shouldWriteDetectionFinding: false,
+      });
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 6)],
+        severities: [buildSeverity("0001", "Default")],
+      });
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(createdAlert(spies, 0).description).not.toContain("distinct");
+    });
+
+    test("a distinct rule's findings carry the distinct-count attribute and message suffix", async () => {
+      const rule: DetectionRule = buildRule({
+        distinctCountField: "principalIp",
+        matchCountThreshold: 5,
+        shouldCreateAlert: false,
+      });
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 6, 5)],
+      });
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      const row: JSONObject = (
+        spies.insertJsonRows.mock.calls[0]?.[0] as Array<JSONObject>
+      )[0]!;
+
+      expect(
+        (row["attributes"] as JSONObject)["oneuptime.detection.distinct_count"],
+      ).toBe("5");
+      expect(row["message"]).toContain("(6 events, 5 distinct principalIp)");
+    });
+
+    test("a plain rule's findings carry no distinct-count attribute or message suffix", async () => {
+      const rule: DetectionRule = buildRule({
+        shouldCreateAlert: false,
+      });
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 6)],
+      });
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      const row: JSONObject = (
+        spies.insertJsonRows.mock.calls[0]?.[0] as Array<JSONObject>
+      )[0]!;
+
+      /*
+       * Absent, not "0": consumers filter on attribute presence, and a
+       * plain rule has no distinct semantics to report.
+       */
+      expect(
+        Object.prototype.hasOwnProperty.call(
+          row["attributes"] as JSONObject,
+          "oneuptime.detection.distinct_count",
+        ),
+      ).toBe(false);
+      expect(row["message"]).not.toContain("distinct");
+    });
+
+    test("flagship: distinct usernames per source IP — one qualifying group, one alert, one finding", async () => {
+      /*
+       * The scenario the feature was built for: password spraying.
+       * Group by attacker IP, count distinct usernames tried, fire at 5.
+       * One IP hammered a single account 40 times (lockout noise, not a
+       * spray); another tried 6 accounts across 9 events.
+       */
+      const rule: DetectionRule = buildRule({
+        groupByField: "principalIp",
+        distinctCountField: "principalUser",
+        matchCountThreshold: 5,
+      });
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [
+          buildGroup("203.0.113.7", 9, 6),
+          buildGroup("198.51.100.4", 40, 1),
+        ],
+        severities: [buildSeverity("0001", "High")],
+      });
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(result.matchedGroups).toBe(1);
+      expect(result.totalMatches).toBe(9);
+      expect(result.alertsCreated).toBe(1);
+      expect(result.findingsWritten).toBe(1);
+      expect(result.error).toBeNull();
+
+      // The query was built from the rule's three knobs.
+      const args: FindDetectionMatchesData = findMatchesArg(spies);
+      expect(args.groupByExpression).toBeInstanceOf(Statement);
+      expect(args.distinctCountExpression).toBeInstanceOf(Statement);
+      expect(args.minMatchCount).toBe(5);
+
+      const alert: Alert = createdAlert(spies, 0);
+
+      expect(alert.title).toContain("203.0.113.7");
+      expect(alert.seriesFingerprint).toBe(expectedFingerprint("203.0.113.7"));
+      expect(alert.description).toContain(
+        "6 distinct principalUser values across these events (rule threshold: 5).",
+      );
+
+      const rows: Array<JSONObject> = spies.insertJsonRows.mock
+        .calls[0]?.[0] as Array<JSONObject>;
+
+      expect(rows).toHaveLength(1);
+
+      const row: JSONObject = rows[0]!;
+      const attributes: JSONObject = row["attributes"] as JSONObject;
+
+      expect(attributes["oneuptime.detection.group_value"]).toBe("203.0.113.7");
+      expect(attributes["oneuptime.detection.match_count"]).toBe("9");
+      expect(attributes["oneuptime.detection.distinct_count"]).toBe("6");
+      expect(row["message"]).toContain(
+        "Detection: Brute Force Watch — 203.0.113.7 (9 events, 6 distinct principalUser)",
+      );
     });
   });
 });

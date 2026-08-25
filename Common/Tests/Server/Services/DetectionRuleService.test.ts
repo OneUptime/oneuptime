@@ -13,8 +13,10 @@ import { describe, expect, test } from "@jest/globals";
  * typo must surface to the person editing the rule, not as a cron-side
  * lastError hours later. These tests drive the create/update hooks
  * directly: invalid or aggregation-based Sigma is rejected, the rule name
- * defaults from the Sigma title, and the evaluation interval is clamped to
- * whole minutes between 1 and 1440.
+ * defaults from the Sigma title, the evaluation interval is clamped to
+ * whole minutes between 1 and 1440, and the match count threshold must be
+ * a whole number between 1 and 1000000 (or omitted — the column defaults
+ * to 1, so old API clients that never send it keep working).
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -52,6 +54,7 @@ function buildRule(
     name?: string;
     sigmaRuleYaml?: string;
     evaluationIntervalInMinutes?: number;
+    matchCountThreshold?: number;
   } = {},
 ): DetectionRule {
   const rule: DetectionRule = new DetectionRule();
@@ -64,6 +67,10 @@ function buildRule(
 
   if (options.evaluationIntervalInMinutes !== undefined) {
     rule.evaluationIntervalInMinutes = options.evaluationIntervalInMinutes;
+  }
+
+  if (options.matchCountThreshold !== undefined) {
+    rule.matchCountThreshold = options.matchCountThreshold;
   }
 
   return rule;
@@ -219,6 +226,58 @@ detection:
       ).resolves.toBeDefined();
     });
   });
+
+  describe("match count threshold validation", () => {
+    const THRESHOLD_ERROR: string =
+      "Match count threshold must be a whole number between 1 and 1000000.";
+
+    test.each([1, 5, 1000000])("%d is accepted", async (threshold: number) => {
+      const rule: DetectionRule = buildRule({
+        name: "Thresholded",
+        matchCountThreshold: threshold,
+      });
+
+      await expect(
+        service.onBeforeCreate(buildCreateBy(rule)),
+      ).resolves.toBeDefined();
+    });
+
+    test.each([0, -1, 1.5, 1000001])(
+      "%d is rejected with the exact message",
+      async (threshold: number) => {
+        const rule: DetectionRule = buildRule({
+          name: "Bad Threshold",
+          matchCountThreshold: threshold,
+        });
+
+        await expect(
+          service.onBeforeCreate(buildCreateBy(rule)),
+        ).rejects.toThrow(THRESHOLD_ERROR);
+      },
+    );
+
+    test("an omitted threshold passes — the column defaults to 1, so old API clients that never send it still create rules", async () => {
+      const rule: DetectionRule = buildRule({ name: "No Threshold" });
+
+      expect(rule.matchCountThreshold).toBeUndefined();
+
+      await expect(
+        service.onBeforeCreate(buildCreateBy(rule)),
+      ).resolves.toBeDefined();
+    });
+
+    test("a valid threshold does not bypass the Sigma validation that runs before it", async () => {
+      const rule: DetectionRule = buildRule({
+        name: "Still Broken YAML",
+        sigmaRuleYaml: "title: [unclosed",
+        matchCountThreshold: 5,
+      });
+
+      await expect(service.onBeforeCreate(buildCreateBy(rule))).rejects.toThrow(
+        BadDataException,
+      );
+    });
+  });
 });
 
 describe("DetectionRuleService.onBeforeUpdate", () => {
@@ -250,5 +309,78 @@ describe("DetectionRuleService.onBeforeUpdate", () => {
         buildUpdateBy({ evaluationIntervalInMinutes: 1441 }),
       ),
     ).rejects.toThrow(BadDataException);
+  });
+
+  test("an update with an invalid matchCountThreshold is rejected with the exact message", async () => {
+    await expect(
+      service.onBeforeUpdate(buildUpdateBy({ matchCountThreshold: 0 })),
+    ).rejects.toThrow(
+      "Match count threshold must be a whole number between 1 and 1000000.",
+    );
+  });
+
+  test("an update with a valid matchCountThreshold passes", async () => {
+    await expect(
+      service.onBeforeUpdate(buildUpdateBy({ matchCountThreshold: 42 })),
+    ).resolves.toBeDefined();
+  });
+
+  test("an update that omits matchCountThreshold skips the threshold validation", async () => {
+    await expect(
+      service.onBeforeUpdate(buildUpdateBy({ description: "No threshold" })),
+    ).resolves.toBeDefined();
+  });
+});
+
+describe("DetectionRuleService field-name trimming", () => {
+  /*
+   * groupByField / distinctCountField are looked up verbatim by the
+   * evaluator — an unknown name silently becomes an attributes[] lookup
+   * yielding '' on every row, and for a distinct-count rule that is a
+   * permanent zero-fire outage with no error anywhere. Trimming at save
+   * time kills the whitespace-from-a-paste class of that failure.
+   */
+  test("create trims whitespace from groupByField and distinctCountField", async () => {
+    const rule: DetectionRule = buildRule();
+    rule.groupByField = " principalIp ";
+    rule.distinctCountField = "principalUser\t";
+
+    const result: OnCreate<DetectionRule> = await service.onBeforeCreate(
+      buildCreateBy(rule),
+    );
+
+    expect(result.createBy.data.groupByField).toBe("principalIp");
+    expect(result.createBy.data.distinctCountField).toBe("principalUser");
+  });
+
+  test("create leaves omitted field names undefined", async () => {
+    const result: OnCreate<DetectionRule> = await service.onBeforeCreate(
+      buildCreateBy(buildRule()),
+    );
+
+    expect(result.createBy.data.groupByField).toBeUndefined();
+    expect(result.createBy.data.distinctCountField).toBeUndefined();
+  });
+
+  test("update trims field names and collapses whitespace-only to the cleared value", async () => {
+    const result: OnUpdate<DetectionRule> = await service.onBeforeUpdate(
+      buildUpdateBy({
+        groupByField: "  ",
+        distinctCountField: " targetUser ",
+      }),
+    );
+
+    // '' is the documented "feature off" value, so clearing still works.
+    expect(result.updateBy.data.groupByField).toBe("");
+    expect(result.updateBy.data.distinctCountField).toBe("targetUser");
+  });
+
+  test("an update that omits the field names does not add them", async () => {
+    const result: OnUpdate<DetectionRule> = await service.onBeforeUpdate(
+      buildUpdateBy({ description: "No field names" }),
+    );
+
+    expect("groupByField" in result.updateBy.data).toBe(false);
+    expect("distinctCountField" in result.updateBy.data).toBe(false);
   });
 });

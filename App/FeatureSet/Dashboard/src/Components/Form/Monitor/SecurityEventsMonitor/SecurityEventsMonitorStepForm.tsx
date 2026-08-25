@@ -35,8 +35,6 @@ const SecurityEventsMonitorStepForm: FunctionComponent<ComponentProps> = (
   let showAdvancedOptionsByDefault: boolean = false;
 
   if (
-    (monitorStepSecurityEventsMonitor.severityNames &&
-      monitorStepSecurityEventsMonitor.severityNames.length > 0) ||
     (monitorStepSecurityEventsMonitor.telemetryServiceIds &&
       monitorStepSecurityEventsMonitor.telemetryServiceIds.length > 0) ||
     (monitorStepSecurityEventsMonitor.attributes &&
@@ -128,6 +126,11 @@ const SecurityEventsMonitorStepForm: FunctionComponent<ComponentProps> = (
             hideOptionalLabel: true,
           },
           {
+            /*
+             * Always visible, like Event Class — hiding severity behind
+             * the advanced toggle read as "monitors cannot filter by
+             * severity" (issue #3398).
+             */
             field: {
               severityNames: true,
             },
@@ -138,9 +141,6 @@ const SecurityEventsMonitorStepForm: FunctionComponent<ComponentProps> = (
             description:
               "Select the OCSF severity of the security events you want to monitor.",
             hideOptionalLabel: true,
-            showIf: () => {
-              return showAdvancedOptions;
-            },
           },
           {
             field: {
@@ -187,6 +187,13 @@ const SecurityEventsMonitorStepForm: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Dictionary,
             title: "Filter by Attributes",
             jsonKeysForDictionary: [],
+            /*
+             * Same operator set the Log/Trace monitors expose —
+             * StatementGenerator's map branch compiles every wrapper, so
+             * include/exclude/contains over any flattened source
+             * attribute needs only this flag.
+             */
+            dictionaryEnableOperators: true,
             description:
               "You can filter the security events based on the attributes that are attached to them.",
             hideOptionalLabel: true,

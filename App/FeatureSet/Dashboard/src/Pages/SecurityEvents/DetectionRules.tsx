@@ -7,6 +7,10 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
+import {
+  DETECTION_MATCH_COUNT_THRESHOLD_MAX,
+  DETECTION_MATCH_COUNT_THRESHOLD_MIN,
+} from "Common/Types/SecurityEvent/DetectionFindingConstants";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -34,6 +38,8 @@ Detection rules run **Sigma rules** against your ingested security events on a s
 - Each rule is evaluated every *N* minutes over the events that arrived since the last evaluation.
 - When a rule matches, it can **create an alert**, **open an incident** (off by default — incidents drive on-call, SLAs and status pages), and/or **write a Detection Finding** security event back into the event stream.
 - **Group By Field** collapses matches that share a value (e.g. \`principalHost\`) into a single finding, so a noisy host raises one alert instead of hundreds.
+- **Distinct Count Field** counts unique values of a field instead of raw events — group by \`principalIp\` and distinct-count \`principalUser\` to tell brute-force (one IP, many accounts) apart from one user retyping a password.
+- **Match Count Threshold** holds a rule back until a group's count (distinct values when a Distinct Count Field is set, matching events otherwise) reaches *N* within one evaluation window. The default of 1 fires on any match.
 
 ---
 
@@ -122,6 +128,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
         shouldCreateAlert: true,
         shouldWriteDetectionFinding: true,
         shouldCreateIncident: false,
+        matchCountThreshold: 1,
       }}
       formSteps={[
         { title: "Basic Info", id: "basic-info" },
@@ -201,6 +208,42 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "principalHost",
+        },
+        {
+          field: {
+            distinctCountField: true,
+          },
+          title: "Distinct Count Field",
+          stepId: "evaluation",
+          description:
+            "Optional. Count distinct values of this field instead of raw matching events — e.g. group by principalIp and distinct-count principalUser to catch one IP failing logins across many accounts. Empty values are not counted.",
+          fieldType: FormFieldSchemaType.Text,
+          required: false,
+          placeholder: "principalUser",
+        },
+        {
+          field: {
+            matchCountThreshold: true,
+          },
+          title: "Match Count Threshold",
+          stepId: "evaluation",
+          description:
+            "Fire only when a group's count — distinct values when a Distinct Count Field is set, matching events otherwise — reaches this number within one evaluation window. 1 fires on any match.",
+          fieldType: FormFieldSchemaType.Number,
+          required: true,
+          placeholder: "e.g. 5",
+          /*
+           * The shared constants keep this range identical to
+           * DetectionRuleService.validateMatchCountThreshold, so
+           * out-of-range values fail in the form. The service's
+           * whole-number requirement has no form-side equivalent
+           * (Validation.ts parseInts before comparing), so a fractional
+           * value is still rejected at submit.
+           */
+          validation: {
+            minValue: DETECTION_MATCH_COUNT_THRESHOLD_MIN,
+            maxValue: DETECTION_MATCH_COUNT_THRESHOLD_MAX,
+          },
         },
         {
           field: {

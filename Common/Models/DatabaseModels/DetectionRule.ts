@@ -253,6 +253,61 @@ export default class DetectionRule extends BaseModel {
   })
   public groupByField?: string = undefined;
 
+  /*
+   * The correlation pair: distinctCountField switches what the threshold
+   * counts (unique field values instead of raw events — the difference
+   * between brute-force and one user retyping a password), and
+   * matchCountThreshold holds the rule back until a group reaches N in
+   * one evaluation window. Threshold 1 preserves fire-on-any-match, so
+   * every rule saved before these columns existed behaves unchanged.
+   */
+  @ColumnAccessControl({
+    create: createPermissions,
+    read: readPermissions,
+    update: updatePermissions,
+  })
+  @TableColumn({
+    title: "Distinct Count Field",
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    description:
+      "Optional security-event field (e.g. principalUser, principalIp) whose distinct values are counted instead of raw matching events. The match count threshold then applies to that distinct count. Empty values are not counted. Names that are not typed event columns are looked up in the event's attributes map.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public distinctCountField?: string = undefined;
+
+  @ColumnAccessControl({
+    create: createPermissions,
+    read: readPermissions,
+    update: updatePermissions,
+  })
+  @TableColumn({
+    title: "Match Count Threshold",
+    required: true,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    description:
+      "Fire only when a group's count — distinct values when a distinct count field is set, matching events otherwise — reaches this number within one evaluation window. 1 fires on any match.",
+    defaultValue: 1,
+    /*
+     * Same reason as shouldCreateIncident: without this,
+     * checkRequiredFields 400s every create payload written before the
+     * column existed, and the DB DEFAULT 1 can never apply.
+     */
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 1,
+  })
+  public matchCountThreshold?: number = undefined;
+
   @ColumnAccessControl({
     create: createPermissions,
     read: readPermissions,

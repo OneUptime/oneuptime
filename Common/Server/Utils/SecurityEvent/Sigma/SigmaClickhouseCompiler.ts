@@ -242,6 +242,27 @@ export function buildSigmaFieldExpression(field: string): Statement {
   return new Statement([resolved.column], []);
 }
 
+/*
+ * buildSigmaFieldExpression with the column's "unset" sentinel normalized
+ * away, for distinct counting. Text and attribute lookups yield '' when
+ * absent, which the caller's nullIf(expr, '') already excludes — but the
+ * number columns are non-Nullable with 0 as their documented
+ * not-applicable value, and toString(0) is '0', not ''. Mapping 0 to NULL
+ * here, where the column type is known, keeps a portless event from
+ * counting as distinct port "0" in a port-scan rule. severityId 0 (OCSF
+ * Unknown) is deliberately treated as missing too, consistent with the
+ * empty-string rule for text.
+ */
+export function buildSigmaDistinctCountExpression(field: string): Statement {
+  const resolved: ResolvedField = resolveSigmaField(field);
+
+  if (resolved.kind === "numberColumn") {
+    return new Statement([`toString(nullIf(${resolved.column}, 0))`], []);
+  }
+
+  return buildSigmaFieldExpression(field);
+}
+
 export default class SigmaClickhouseCompiler {
   /*
    * Compile a rule (or raw YAML) into a boolean SQL expression. The
