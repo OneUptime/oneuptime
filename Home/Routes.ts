@@ -47,6 +47,7 @@ import {
   generateCompareIndexJson,
   RecentBlogPostLink,
 } from "./Utils/AIDiscovery";
+import { generateNostrWellKnown } from "./Utils/Nostr";
 import BlogPostUtil, { BlogPostHeader } from "./Utils/BlogPost";
 import { getSelfHostedContent } from "./Utils/SelfHosted";
 import { redirectPreservingQuery } from "./Utils/Redirect";
@@ -201,6 +202,30 @@ const HomeFeatureSet: FeatureSet = {
         res.setHeader("Cache-Control", "public, max-age=600");
         res.setHeader("Access-Control-Allow-Origin", "*");
         res.json(generateMcpManifest(res.locals["homeUrl"] as string));
+      },
+    );
+
+    /*
+     * NIP-05 identity document. Nostr clients fetch it cross-origin to check
+     * that the identifier on the OneUptime account really belongs to this
+     * domain, so the open CORS header is part of the spec rather than an
+     * extra. Off the canonical host it answers with an empty names object -
+     * see Home/Utils/Nostr.ts for why.
+     */
+    app.get(
+      "/.well-known/nostr.json",
+      (req: ExpressRequest, res: ExpressResponse) => {
+        const requestedName: string | undefined =
+          typeof req.query["name"] === "string" ? req.query["name"] : undefined;
+
+        res.setHeader("Cache-Control", "public, max-age=600");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.json(
+          generateNostrWellKnown({
+            host: Host,
+            requestedName: requestedName,
+          }),
+        );
       },
     );
 
