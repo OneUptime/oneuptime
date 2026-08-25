@@ -23,6 +23,39 @@ export interface DetectionMatchGroup {
   sampleObservables: Array<string>;
 }
 
+export interface FindDetectionMatchesData {
+  projectId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+  whereFragment: Statement;
+  groupByExpression: Statement | null;
+  distinctCountExpression: Statement | null;
+  minMatchCount: number;
+  maxGroups: number;
+}
+
+/*
+ * The in-process twin of the HAVING clause findDetectionMatches emits —
+ * exported so the evaluator's re-filter and the SQL builder live in one
+ * file, and a change to either side of the firing predicate is reviewed
+ * next to the other.
+ */
+export function doesGroupMeetDetectionThreshold(data: {
+  group: DetectionMatchGroup;
+  usesDistinctCount: boolean;
+  minMatchCount: number;
+}): boolean {
+  if (data.group.matchCount <= 0) {
+    return false;
+  }
+
+  const effectiveCount: number = data.usesDistinctCount
+    ? data.group.distinctCount
+    : data.group.matchCount;
+
+  return effectiveCount >= Math.max(1, data.minMatchCount);
+}
+
 export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent> {
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
     super({ modelType: SecurityEvent, database: clickhouseDatabase });
@@ -42,16 +75,9 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
    * maxGroups LIMIT keeps only qualifying groups instead of letting
    * noisy-but-under-threshold groups crowd out real ones.
    */
-  public async findDetectionMatches(data: {
-    projectId: ObjectID;
-    startTime: Date;
-    endTime: Date;
-    whereFragment: Statement;
-    groupByExpression: Statement | null;
-    distinctCountExpression: Statement | null;
-    minMatchCount: number;
-    maxGroups: number;
-  }): Promise<Array<DetectionMatchGroup>> {
+  public async findDetectionMatches(
+    data: FindDetectionMatchesData,
+  ): Promise<Array<DetectionMatchGroup>> {
     if (!this.database) {
       this.useDefaultDatabase();
     }

@@ -1,4 +1,5 @@
 import SigmaClickhouseCompiler, {
+  buildSigmaDistinctCountExpression,
   buildSigmaFieldExpression,
   resolveSigmaField,
   sigmaPatternToLike,
@@ -504,6 +505,40 @@ describe("buildSigmaFieldExpression", () => {
 
   test("attribute field renders as a parameterized attributes[] lookup", () => {
     const statement: Statement = buildSigmaFieldExpression("custom.key");
+
+    expect(statement.query).toBe("attributes[{p0:String}]");
+    expect(statement.query_params["p0"]).toBe("custom.key");
+  });
+});
+
+describe("buildSigmaDistinctCountExpression", () => {
+  /*
+   * The distinct-count variant differs from buildSigmaFieldExpression on
+   * exactly one point: number columns map their 0-as-unset sentinel to
+   * NULL, so a portless event never counts as distinct port "0" — the
+   * caller's nullIf(expr, '') only handles the text sentinel.
+   */
+  test("number column nullIfs its 0-as-unset sentinel before toString", () => {
+    expect(buildSigmaDistinctCountExpression("targetPort").query).toBe(
+      "toString(nullIf(targetPort, 0))",
+    );
+  });
+
+  test("number-column aliases get the same treatment", () => {
+    expect(buildSigmaDistinctCountExpression("dst_port").query).toBe(
+      "toString(nullIf(targetPort, 0))",
+    );
+  });
+
+  test("text column renders bare, same as the plain expression", () => {
+    expect(buildSigmaDistinctCountExpression("principalUser").query).toBe(
+      "principalUser",
+    );
+  });
+
+  test("attribute field stays a parameterized attributes[] lookup", () => {
+    const statement: Statement =
+      buildSigmaDistinctCountExpression("custom.key");
 
     expect(statement.query).toBe("attributes[{p0:String}]");
     expect(statement.query_params["p0"]).toBe("custom.key");

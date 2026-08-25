@@ -4,6 +4,10 @@ import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import BadDataException from "../../Types/Exception/BadDataException";
+import {
+  DETECTION_MATCH_COUNT_THRESHOLD_MAX,
+  DETECTION_MATCH_COUNT_THRESHOLD_MIN,
+} from "../../Types/SecurityEvent/DetectionFindingConstants";
 import SigmaRuleParser from "../../Utils/SecurityEvent/Sigma/SigmaRuleParser";
 import SigmaClickhouseCompiler from "../Utils/SecurityEvent/Sigma/SigmaClickhouseCompiler";
 
@@ -25,28 +29,43 @@ export class Service extends DatabaseService<Model> {
     SigmaClickhouseCompiler.compileYaml(ruleYaml);
   }
 
-  private validateEvaluationInterval(interval: number | undefined): void {
-    if (interval === undefined) {
+  // undefined always passes: an omitted field means "keep the default".
+  private validateIntegerInRange(data: {
+    value: number | undefined;
+    min: number;
+    max: number;
+    message: string;
+  }): void {
+    if (data.value === undefined) {
       return;
     }
 
-    if (!Number.isInteger(interval) || interval < 1 || interval > 1440) {
-      throw new BadDataException(
-        "Evaluation interval must be a whole number of minutes between 1 and 1440.",
-      );
+    if (
+      !Number.isInteger(data.value) ||
+      data.value < data.min ||
+      data.value > data.max
+    ) {
+      throw new BadDataException(data.message);
     }
   }
 
-  private validateMatchCountThreshold(threshold: number | undefined): void {
-    if (threshold === undefined) {
-      return;
-    }
+  private validateEvaluationInterval(interval: number | undefined): void {
+    this.validateIntegerInRange({
+      value: interval,
+      min: 1,
+      max: 1440,
+      message:
+        "Evaluation interval must be a whole number of minutes between 1 and 1440.",
+    });
+  }
 
-    if (!Number.isInteger(threshold) || threshold < 1 || threshold > 1000000) {
-      throw new BadDataException(
-        "Match count threshold must be a whole number between 1 and 1000000.",
-      );
-    }
+  private validateMatchCountThreshold(threshold: number | undefined): void {
+    this.validateIntegerInRange({
+      value: threshold,
+      min: DETECTION_MATCH_COUNT_THRESHOLD_MIN,
+      max: DETECTION_MATCH_COUNT_THRESHOLD_MAX,
+      message: `Match count threshold must be a whole number between ${DETECTION_MATCH_COUNT_THRESHOLD_MIN} and ${DETECTION_MATCH_COUNT_THRESHOLD_MAX}.`,
+    });
   }
 
   protected override async onBeforeCreate(
@@ -55,6 +74,24 @@ export class Service extends DatabaseService<Model> {
     this.validateSigmaRule(createBy.data.sigmaRuleYaml);
     this.validateEvaluationInterval(createBy.data.evaluationIntervalInMinutes);
     this.validateMatchCountThreshold(createBy.data.matchCountThreshold);
+
+    /*
+     * groupByField / distinctCountField are looked up verbatim: an
+     * unknown name silently becomes an attributes[] lookup that yields
+     * '' on every row, and for a distinct-count rule that means it never
+     * fires again with no error anywhere. Trimming here kills the whole
+     * whitespace-from-a-paste class of that outage; '' is preserved as
+     * the documented "feature off" value so clearing the field still
+     * works.
+     */
+    if (createBy.data.groupByField !== undefined) {
+      createBy.data.groupByField = createBy.data.groupByField.trim();
+    }
+
+    if (createBy.data.distinctCountField !== undefined) {
+      createBy.data.distinctCountField =
+        createBy.data.distinctCountField.trim();
+    }
 
     /*
      * Default the rule name from the Sigma title so pasting a rule is a
@@ -83,6 +120,19 @@ export class Service extends DatabaseService<Model> {
     this.validateMatchCountThreshold(
       updateBy.data.matchCountThreshold as number | undefined,
     );
+
+    // Same trim as onBeforeCreate — see the rationale there.
+    if (updateBy.data.groupByField !== undefined) {
+      updateBy.data.groupByField = (
+        updateBy.data.groupByField as string
+      ).trim();
+    }
+
+    if (updateBy.data.distinctCountField !== undefined) {
+      updateBy.data.distinctCountField = (
+        updateBy.data.distinctCountField as string
+      ).trim();
+    }
 
     return { updateBy, carryForward: null };
   }

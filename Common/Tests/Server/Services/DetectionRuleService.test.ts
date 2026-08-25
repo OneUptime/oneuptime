@@ -331,3 +331,56 @@ describe("DetectionRuleService.onBeforeUpdate", () => {
     ).resolves.toBeDefined();
   });
 });
+
+describe("DetectionRuleService field-name trimming", () => {
+  /*
+   * groupByField / distinctCountField are looked up verbatim by the
+   * evaluator — an unknown name silently becomes an attributes[] lookup
+   * yielding '' on every row, and for a distinct-count rule that is a
+   * permanent zero-fire outage with no error anywhere. Trimming at save
+   * time kills the whitespace-from-a-paste class of that failure.
+   */
+  test("create trims whitespace from groupByField and distinctCountField", async () => {
+    const rule: DetectionRule = buildRule();
+    rule.groupByField = " principalIp ";
+    rule.distinctCountField = "principalUser\t";
+
+    const result: OnCreate<DetectionRule> = await service.onBeforeCreate(
+      buildCreateBy(rule),
+    );
+
+    expect(result.createBy.data.groupByField).toBe("principalIp");
+    expect(result.createBy.data.distinctCountField).toBe("principalUser");
+  });
+
+  test("create leaves omitted field names undefined", async () => {
+    const result: OnCreate<DetectionRule> = await service.onBeforeCreate(
+      buildCreateBy(buildRule()),
+    );
+
+    expect(result.createBy.data.groupByField).toBeUndefined();
+    expect(result.createBy.data.distinctCountField).toBeUndefined();
+  });
+
+  test("update trims field names and collapses whitespace-only to the cleared value", async () => {
+    const result: OnUpdate<DetectionRule> = await service.onBeforeUpdate(
+      buildUpdateBy({
+        groupByField: "  ",
+        distinctCountField: " targetUser ",
+      }),
+    );
+
+    // '' is the documented "feature off" value, so clearing still works.
+    expect(result.updateBy.data.groupByField).toBe("");
+    expect(result.updateBy.data.distinctCountField).toBe("targetUser");
+  });
+
+  test("an update that omits the field names does not add them", async () => {
+    const result: OnUpdate<DetectionRule> = await service.onBeforeUpdate(
+      buildUpdateBy({ description: "No field names" }),
+    );
+
+    expect("groupByField" in result.updateBy.data).toBe(false);
+    expect("distinctCountField" in result.updateBy.data).toBe(false);
+  });
+});

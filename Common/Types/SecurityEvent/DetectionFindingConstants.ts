@@ -21,6 +21,14 @@ export const DETECTION_MATCH_COUNT_ATTRIBUTE: string =
 // Present only on findings from rules with a distinctCountField set.
 export const DETECTION_DISTINCT_COUNT_ATTRIBUTE: string =
   "oneuptime.detection.distinct_count";
+
+/*
+ * Save-time bounds for DetectionRule.matchCountThreshold — one home for
+ * the server validator and the dashboard form, so the two ranges cannot
+ * drift apart.
+ */
+export const DETECTION_MATCH_COUNT_THRESHOLD_MIN: number = 1;
+export const DETECTION_MATCH_COUNT_THRESHOLD_MAX: number = 1000000;
 export const DETECTION_GROUP_VALUE_ATTRIBUTE: string =
   "oneuptime.detection.group_value";
 export const DETECTION_SIGMA_ID_ATTRIBUTE: string =

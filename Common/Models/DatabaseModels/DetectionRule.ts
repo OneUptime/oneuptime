@@ -272,7 +272,7 @@ export default class DetectionRule extends BaseModel {
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     description:
-      "Optional security-event field (e.g. principalUser, principalIp) whose distinct values are counted instead of raw matching events. The match count threshold then applies to that distinct count. Empty values are not counted.",
+      "Optional security-event field (e.g. principalUser, principalIp) whose distinct values are counted instead of raw matching events. The match count threshold then applies to that distinct count. Empty values are not counted. Names that are not typed event columns are looked up in the event's attributes map.",
   })
   @Column({
     nullable: true,

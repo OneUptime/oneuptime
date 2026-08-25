@@ -7,6 +7,10 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
+import {
+  DETECTION_MATCH_COUNT_THRESHOLD_MAX,
+  DETECTION_MATCH_COUNT_THRESHOLD_MIN,
+} from "Common/Types/SecurityEvent/DetectionFindingConstants";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -214,12 +218,16 @@ const DetectionRulesPage: FunctionComponent<
           required: true,
           placeholder: "e.g. 5",
           /*
-           * Mirror DetectionRuleService.validateMatchCountThreshold's range
-           * so out-of-range values fail in the form, not at submit.
+           * The shared constants keep this range identical to
+           * DetectionRuleService.validateMatchCountThreshold, so
+           * out-of-range values fail in the form. The service's
+           * whole-number requirement has no form-side equivalent
+           * (Validation.ts parseInts before comparing), so a fractional
+           * value is still rejected at submit.
            */
           validation: {
-            minValue: 1,
-            maxValue: 1000000,
+            minValue: DETECTION_MATCH_COUNT_THRESHOLD_MIN,
+            maxValue: DETECTION_MATCH_COUNT_THRESHOLD_MAX,
           },
         },
         {

@@ -37,12 +37,14 @@ import OTelIngestService, {
 } from "../../Services/OpenTelemetryIngestService";
 import SecurityEventService, {
   DetectionMatchGroup,
+  doesGroupMeetDetectionThreshold,
 } from "../../Services/SecurityEventService";
 import { resolveTelemetryRetentionInDays } from "../../../Types/Telemetry/TelemetryRetentionConfig";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import { Statement } from "../AnalyticsDatabase/Statement";
 import SigmaClickhouseCompiler, {
+  buildSigmaDistinctCountExpression,
   buildSigmaFieldExpression,
 } from "./Sigma/SigmaClickhouseCompiler";
 import { buildSecurityEventDbRow } from "./SecurityEventRow";
@@ -192,7 +194,7 @@ export default class DetectionRuleEvaluator {
       : null;
 
     const distinctCountExpression: Statement | null = rule.distinctCountField
-      ? buildSigmaFieldExpression(rule.distinctCountField)
+      ? buildSigmaDistinctCountExpression(rule.distinctCountField)
       : null;
 
     const matchCountThreshold: number = this.effectiveThreshold(rule);
@@ -211,23 +213,17 @@ export default class DetectionRuleEvaluator {
 
     /*
      * The query's HAVING clause already enforces the threshold — this
-     * re-applies it so the firing contract does not depend on which side
-     * built the rows. A distinct-count rule fires on the distinct count;
-     * matchCount > 0 still gates both paths because a group with zero
-     * matches is never a detection, whatever the threshold arithmetic
-     * says.
+     * re-applies it (via the predicate exported next to that HAVING
+     * builder) so the firing contract does not depend on which side
+     * built the rows.
      */
     const matchedGroups: Array<DetectionMatchGroup> = groups.filter(
       (row: DetectionMatchGroup): boolean => {
-        if (row.matchCount <= 0) {
-          return false;
-        }
-
-        const effectiveCount: number = rule.distinctCountField
-          ? row.distinctCount
-          : row.matchCount;
-
-        return effectiveCount >= matchCountThreshold;
+        return doesGroupMeetDetectionThreshold({
+          group: row,
+          usesDistinctCount: Boolean(rule.distinctCountField),
+          minMatchCount: matchCountThreshold,
+        });
       },
     );
 

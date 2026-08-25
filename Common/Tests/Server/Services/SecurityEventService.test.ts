@@ -1,5 +1,6 @@
 import SecurityEventService, {
   DetectionMatchGroup,
+  FindDetectionMatchesData,
 } from "../../../Server/Services/SecurityEventService";
 import { Results } from "../../../Server/Services/AnalyticsDatabaseService";
 import { getQuerySettings } from "../../../Server/Utils/AnalyticsDatabase/QuerySettingsHelper";
@@ -56,17 +57,6 @@ const SETTINGS_SUFFIX: string = getQuerySettings({
   maxExecutionTimeInSeconds: 60,
 });
 
-interface FindDetectionMatchesArgs {
-  projectId: ObjectID;
-  startTime: Date;
-  endTime: Date;
-  whereFragment: Statement;
-  groupByExpression: Statement | null;
-  distinctCountExpression: Statement | null;
-  minMatchCount: number;
-  maxGroups: number;
-}
-
 /*
  * Captures the Statement handed to executeQuery, returning canned rows.
  * `rows: undefined` simulates a response body with no `data` key at all.
@@ -105,7 +95,7 @@ function buildFieldExpression(field: string): Statement {
 }
 
 async function callFindDetectionMatches(
-  overrides: Partial<FindDetectionMatchesArgs> = {},
+  overrides: Partial<FindDetectionMatchesData> = {},
 ): Promise<Array<DetectionMatchGroup>> {
   return SecurityEventService.findDetectionMatches({
     projectId: PROJECT_ID,
@@ -168,7 +158,7 @@ describe("SecurityEventService.findDetectionMatches — SQL contract", () => {
   });
 
   describe("raw match-count threshold above 1", () => {
-    test("threshold 5 becomes HAVING matchCount >= a bound param, still ordered by matchCount", async () => {
+    test("threshold 5 becomes HAVING matchCount >= a bound param and every other binding survives the renumbering", async () => {
       const spy: Spy = stubExecuteQuery([]);
 
       await callFindDetectionMatches({ minMatchCount: 5 });
@@ -181,17 +171,6 @@ describe("SecurityEventService.findDetectionMatches — SQL contract", () => {
       // The threshold thresholds the RAW count — never the constant 0.
       expect(statement.query).not.toContain("distinctCount >=");
       expect(statement.query).not.toContain("ORDER BY distinctCount");
-
-      expect(statement.query_params["p4"]).toBe(5);
-      expect(statement.query_params["p5"]).toBe(MAX_GROUPS);
-    });
-
-    test("the window predicates and LIMIT stay bound params when HAVING is added", async () => {
-      const spy: Spy = stubExecuteQuery([]);
-
-      await callFindDetectionMatches({ minMatchCount: 5 });
-
-      const statement: Statement = capturedStatement(spy);
 
       /*
        * HAVING is appended mid-statement, which renumbers the params after

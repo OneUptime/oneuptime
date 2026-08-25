@@ -36,6 +36,7 @@ import IncidentSeverityService from "../../../../Server/Services/IncidentSeverit
 import DetectionRuleService from "../../../../Server/Services/DetectionRuleService";
 import SecurityEventService, {
   DetectionMatchGroup,
+  FindDetectionMatchesData,
 } from "../../../../Server/Services/SecurityEventService";
 import OTelIngestService, {
   TelemetryServiceMetadata,
@@ -311,20 +312,9 @@ function createdIncident(spies: EvaluationSpies, index: number): Incident {
   return (call as { data: Incident }).data;
 }
 
-interface FindDetectionMatchesArgs {
-  projectId: ObjectID;
-  startTime: Date;
-  endTime: Date;
-  whereFragment: Statement;
-  groupByExpression: Statement | null;
-  distinctCountExpression: Statement | null;
-  minMatchCount: number;
-  maxGroups: number;
-}
-
-function findMatchesArg(spies: EvaluationSpies): FindDetectionMatchesArgs {
+function findMatchesArg(spies: EvaluationSpies): FindDetectionMatchesData {
   return spies.findDetectionMatches.mock
-    .calls[0]?.[0] as FindDetectionMatchesArgs;
+    .calls[0]?.[0] as FindDetectionMatchesData;
 }
 
 // The evaluator logs expected failures; keep test output clean.
@@ -1293,7 +1283,7 @@ describe("DetectionRuleEvaluator", () => {
 
       await DetectionRuleEvaluator.evaluateRule(rule);
 
-      const args: FindDetectionMatchesArgs = findMatchesArg(spies);
+      const args: FindDetectionMatchesData = findMatchesArg(spies);
 
       expect(args.projectId.toString()).toBe(PROJECT_ID.toString());
       expect(args.minMatchCount).toBe(4);
@@ -1314,91 +1304,83 @@ describe("DetectionRuleEvaluator", () => {
 
       await DetectionRuleEvaluator.evaluateRule(rule);
 
-      const args: FindDetectionMatchesArgs = findMatchesArg(spies);
+      const args: FindDetectionMatchesData = findMatchesArg(spies);
 
       expect(args.distinctCountExpression).toBeInstanceOf(Statement);
       expect(args.minMatchCount).toBe(5);
       expect(args.groupByExpression).toBeInstanceOf(Statement);
     });
 
-    test("a distinct rule's alert description explains the distinct count and threshold; a plain rule's never says distinct", async () => {
-      const distinctRule: DetectionRule = buildRule({
+    test("a distinct rule's alert description explains the distinct count and threshold", async () => {
+      const rule: DetectionRule = buildRule({
         distinctCountField: "principalIp",
         matchCountThreshold: 5,
         shouldWriteDetectionFinding: false,
       });
 
-      const distinctSpies: EvaluationSpies = installSpies({
+      const spies: EvaluationSpies = installSpies({
         groups: [buildGroup("alice", 6, 5)],
         severities: [buildSeverity("0001", "Default")],
       });
 
-      await DetectionRuleEvaluator.evaluateRule(distinctRule);
+      await DetectionRuleEvaluator.evaluateRule(rule);
 
-      expect(createdAlert(distinctSpies, 0).description).toContain(
+      expect(createdAlert(spies, 0).description).toContain(
         "5 distinct principalIp values across these events (rule threshold: 5).",
       );
+    });
 
-      // Fresh spies for the second rule so call indices restart at 0.
-      jest.restoreAllMocks();
-      silenceLogger();
-
-      const plainRule: DetectionRule = buildRule({
+    test("a plain rule's alert description never says distinct", async () => {
+      const rule: DetectionRule = buildRule({
         shouldWriteDetectionFinding: false,
       });
 
-      const plainSpies: EvaluationSpies = installSpies({
+      const spies: EvaluationSpies = installSpies({
         groups: [buildGroup("alice", 6)],
         severities: [buildSeverity("0001", "Default")],
       });
 
-      await DetectionRuleEvaluator.evaluateRule(plainRule);
+      await DetectionRuleEvaluator.evaluateRule(rule);
 
-      expect(createdAlert(plainSpies, 0).description).not.toContain("distinct");
+      expect(createdAlert(spies, 0).description).not.toContain("distinct");
     });
 
-    test("findings carry the distinct-count attribute and message suffix only for distinct rules", async () => {
-      const distinctRule: DetectionRule = buildRule({
+    test("a distinct rule's findings carry the distinct-count attribute and message suffix", async () => {
+      const rule: DetectionRule = buildRule({
         distinctCountField: "principalIp",
         matchCountThreshold: 5,
         shouldCreateAlert: false,
       });
 
-      const distinctSpies: EvaluationSpies = installSpies({
+      const spies: EvaluationSpies = installSpies({
         groups: [buildGroup("alice", 6, 5)],
       });
 
-      await DetectionRuleEvaluator.evaluateRule(distinctRule);
+      await DetectionRuleEvaluator.evaluateRule(rule);
 
-      const distinctRow: JSONObject = (
-        distinctSpies.insertJsonRows.mock.calls[0]?.[0] as Array<JSONObject>
+      const row: JSONObject = (
+        spies.insertJsonRows.mock.calls[0]?.[0] as Array<JSONObject>
       )[0]!;
 
       expect(
-        (distinctRow["attributes"] as JSONObject)[
-          "oneuptime.detection.distinct_count"
-        ],
+        (row["attributes"] as JSONObject)["oneuptime.detection.distinct_count"],
       ).toBe("5");
-      expect(distinctRow["message"]).toContain(
-        "(6 events, 5 distinct principalIp)",
-      );
+      expect(row["message"]).toContain("(6 events, 5 distinct principalIp)");
+    });
 
-      // Fresh spies for the second rule so call indices restart at 0.
-      jest.restoreAllMocks();
-      silenceLogger();
-
-      const plainRule: DetectionRule = buildRule({
+    test("a plain rule's findings carry no distinct-count attribute or message suffix", async () => {
+      const rule: DetectionRule = buildRule({
         shouldCreateAlert: false,
       });
 
-      const plainSpies: EvaluationSpies = installSpies({
+      const spies: EvaluationSpies = installSpies({
         groups: [buildGroup("alice", 6)],
       });
 
-      await DetectionRuleEvaluator.evaluateRule(plainRule);
+      await DetectionRuleEvaluator.evaluateRule(rule);
 
-      const plainRow: JSONObject = (
-        plainSpies.insertJsonRows.mock.calls[0]?.[0] as Array<JSONObject>
+      const row: JSONObject = (
+        spies.insertJsonRows.mock.calls[0]?.[0] as Array<JSONObject>
       )[0]!;
 
       /*
@@ -1407,11 +1389,11 @@ describe("DetectionRuleEvaluator", () => {
        */
       expect(
         Object.prototype.hasOwnProperty.call(
-          plainRow["attributes"] as JSONObject,
+          row["attributes"] as JSONObject,
           "oneuptime.detection.distinct_count",
         ),
       ).toBe(false);
-      expect(plainRow["message"]).not.toContain("distinct");
+      expect(row["message"]).not.toContain("distinct");
     });
 
     test("flagship: distinct usernames per source IP — one qualifying group, one alert, one finding", async () => {
@@ -1445,7 +1427,7 @@ describe("DetectionRuleEvaluator", () => {
       expect(result.error).toBeNull();
 
       // The query was built from the rule's three knobs.
-      const args: FindDetectionMatchesArgs = findMatchesArg(spies);
+      const args: FindDetectionMatchesData = findMatchesArg(spies);
       expect(args.groupByExpression).toBeInstanceOf(Statement);
       expect(args.distinctCountExpression).toBeInstanceOf(Statement);
       expect(args.minMatchCount).toBe(5);
