@@ -122,6 +122,16 @@ const SecurityEventsTable: FunctionComponent = (): ReactElement => {
             type: FieldType.Text,
             title: "Event Class",
           },
+          /*
+           * Substring match over the bloom-indexed observables array —
+           * "every event that mentions this host/user/IP", the same
+           * vocabulary the Correlate tab pivots on.
+           */
+          {
+            field: { observables: true },
+            type: FieldType.Text,
+            title: "Observable",
+          },
           {
             field: { message: true },
             type: FieldType.Text,
