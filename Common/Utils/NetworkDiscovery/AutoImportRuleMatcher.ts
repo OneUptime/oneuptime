@@ -1,5 +1,6 @@
 import { DiscoveredNetworkDevice } from "../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import NetworkDeviceMonitoringMethod from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import CidrMatchUtil from "../NetworkSite/CidrMatchUtil";
 import RulePatternMatchUtil from "../Rules/RulePatternMatchUtil";
 import { monitoringMethodForDiscoveredHost } from "./DiscoveryImportEligibility";
 import ScanTargetUtil from "./ScanTargetUtil";
@@ -34,6 +35,17 @@ export interface AutoImportRuleCandidate {
   ipMatchTarget?: string | null | undefined;
   sysNamePattern?: string | null | undefined;
   sysDescrPattern?: string | null | undefined;
+  /*
+   * Matched against the host's SNMP sysObjectID — the vendor's registered
+   * enterprise OID (1.3.6.1.4.1.<enterprise>...), the canonical vendor
+   * fingerprint. NOT the free-text pattern syntax of the two fields above:
+   * an OID is a dotted numeric arc, so this is a whole-string '*' glob
+   * (dots literal) or, with no '*', an arc-prefix test — see
+   * matchesOidPattern. Only hosts whose scan carried the field can match: a
+   * ping-only host, or one reported by a probe from before the field
+   * existed, never satisfies a configured sysObjectIdPattern.
+   */
+  sysObjectIdPattern?: string | null | undefined;
   includePingOnlyHosts?: boolean | null | undefined;
   isExclusion?: boolean | null | undefined;
 }
@@ -71,6 +83,48 @@ function clampSubject(value: string | undefined): string | undefined {
     : value;
 }
 
+/*
+ * Strips the leading dot some agents prefix OIDs with (".1.3.6.1.4.1.9...")
+ * so a pattern and a value in the two spellings still line up.
+ */
+function normalizeOid(value: string): string {
+  return value.startsWith(".") ? value.substring(1) : value;
+}
+
+/*
+ * OID-aware matching for the sysObjectID condition — deliberately NOT
+ * RulePatternMatchUtil, whose regex-FIRST semantics are systematically wrong
+ * for a dotted numeric arc: as a regex, "1.3.6.1.4.1.9.*" has every '.'
+ * matching any character and is unanchored, so it also matches enterprise
+ * 94, 990, 9148... — the exact vendors a "Cisco only" rule exists to keep
+ * out, in a pipeline that creates devices unattended. Here:
+ *
+ *   - A pattern containing '*' is a whole-string glob with LITERAL dots
+ *     (CidrMatchUtil's ReDoS-safe matcher): "1.3.6.1.4.1.9.*" matches the
+ *     Cisco subtree and nothing else.
+ *   - A pattern with no '*' is an arc-prefix test on sub-identifier
+ *     boundaries: "1.3.6.1.4.1.9" matches itself and everything under it,
+ *     and can never match "1.3.6.1.4.1.94" — the same comparison
+ *     SnmpVendorTemplateUtil.getEnterpriseNumber makes.
+ */
+export function matchesOidPattern(
+  value: string | undefined,
+  pattern: string,
+): boolean {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return false;
+  }
+
+  const oid: string = normalizeOid(value.trim());
+  const oidPattern: string = normalizeOid(pattern);
+
+  if (oidPattern.includes("*")) {
+    return CidrMatchUtil.hostnameMatchesWildcard(oid, oidPattern);
+  }
+
+  return oid === oidPattern || oid.startsWith(oidPattern + ".");
+}
+
 export class AutoImportRuleMatcher {
   // True when the host answered ping but not SNMP.
   private static isPingOnlyHost(host: DiscoveredNetworkDevice): boolean {
@@ -98,9 +152,15 @@ export class AutoImportRuleMatcher {
     const ipMatchTarget: string = (rule.ipMatchTarget || "").trim();
     const sysNamePattern: string = (rule.sysNamePattern || "").trim();
     const sysDescrPattern: string = (rule.sysDescrPattern || "").trim();
+    const sysObjectIdPattern: string = (rule.sysObjectIdPattern || "").trim();
 
     // A rule with no conditions matches nothing — the site-rule precedent.
-    if (!ipMatchTarget && !sysNamePattern && !sysDescrPattern) {
+    if (
+      !ipMatchTarget &&
+      !sysNamePattern &&
+      !sysDescrPattern &&
+      !sysObjectIdPattern
+    ) {
       return false;
     }
 
@@ -140,6 +200,13 @@ export class AutoImportRuleMatcher {
         clampSubject(host.sysDescr),
         sysDescrPattern,
       )
+    ) {
+      return false;
+    }
+
+    if (
+      sysObjectIdPattern &&
+      !matchesOidPattern(clampSubject(host.sysObjectId), sysObjectIdPattern)
     ) {
       return false;
     }

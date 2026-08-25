@@ -544,6 +544,7 @@ import { RemoveMarketingConversionUploadState1788700000000 } from "./17887000000
 import { DropMarketingConversionAddEnterpriseLicenseEmail1788800000000 } from "./1788800000000-DropMarketingConversionAddEnterpriseLicenseEmail";
 import { AddUserSlackAndMicrosoftTeams1789000000000 } from "./1789000000000-AddUserSlackAndMicrosoftTeams";
 import { AddNetworkDeviceAutoImportRule1789100000000 } from "./1789100000000-AddNetworkDeviceAutoImportRule";
+import { AddSysObjectIdPatternToAutoImportRule1789200000000 } from "./1789200000000-AddSysObjectIdPatternToAutoImportRule";
 import { AddUserTwoFactorBackupCode1789100000000 } from "./1789100000000-AddUserTwoFactorBackupCode";
 import { MigrationName1787142779538 } from "./1787142779538-MigrationName";
 import { MigrationName1787156982416 } from "./1787156982416-MigrationName";
@@ -1097,5 +1098,6 @@ export default [
   DropMarketingConversionAddEnterpriseLicenseEmail1788800000000,
   AddUserSlackAndMicrosoftTeams1789000000000,
   AddNetworkDeviceAutoImportRule1789100000000,
+  AddSysObjectIdPatternToAutoImportRule1789200000000,
   AddUserTwoFactorBackupCode1789100000000,
 ];

@@ -174,6 +174,176 @@ describe("AutoImportRuleMatcher.ruleMatchesHost", () => {
     ).toBe(false);
   });
 
+  describe("the sysObjectID condition", () => {
+    /*
+     * The vendor fingerprint: sysObjectID is the vendor's registered
+     * enterprise OID, so "any Cisco device" is a glob over the 1.3.6.1.4.1.9
+     * arc. Deliberately NOT the free-text semantics of the other two
+     * pattern conditions — OID matching is a literal-dot whole-string glob,
+     * or an arc-prefix test when the pattern has no '*'.
+     */
+    it("matches a vendor by enterprise-arc glob and counts as a condition on its own", () => {
+      const ciscoRule: AutoImportRuleCandidate = {
+        sysObjectIdPattern: "1.3.6.1.4.1.9.*",
+      };
+
+      expect(
+        AutoImportRuleMatcher.ruleMatchesHost(
+          ciscoRule,
+          host({ sysObjectId: "1.3.6.1.4.1.9.1.1745" }),
+        ),
+      ).toBe(true);
+
+      // A Juniper box sits under a different arc and stays out.
+      expect(
+        AutoImportRuleMatcher.ruleMatchesHost(
+          ciscoRule,
+          host({ sysObjectId: "1.3.6.1.4.1.2636.1.1.1.2.137" }),
+        ),
+      ).toBe(false);
+    });
+
+    /*
+     * The regression that forced OID-aware matching: under the free-text
+     * matcher's regex-FIRST semantics, "1.3.6.1.4.1.9.*" compiled as an
+     * unanchored regex where every '.' matches anything, so "any Cisco
+     * device" also imported (or, as an exclusion, silently vetoed) every
+     * enterprise whose number merely STARTS with 9 — Nokia (94), 990,
+     * 9148... In an OID, dots are dots and 9 is not 94.
+     */
+    it("never bleeds into sibling enterprise arcs that share a digit prefix", () => {
+      const ciscoGlob: AutoImportRuleCandidate = {
+        sysObjectIdPattern: "1.3.6.1.4.1.9.*",
+      };
+
+      for (const foreignOid of [
+        "1.3.6.1.4.1.94.1.21", // Nokia
+        "1.3.6.1.4.1.990.2.1",
+        "1.3.6.1.4.1.9999.1.2",
+      ]) {
+        expect(
+          AutoImportRuleMatcher.ruleMatchesHost(
+            ciscoGlob,
+            host({ sysObjectId: foreignOid }),
+          ),
+        ).toBe(false);
+      }
+
+      // And the same holds when the rule is an exclusion veto.
+      const excludeCisco: AutoImportRuleCandidate = {
+        sysObjectIdPattern: "1.3.6.1.4.1.9.*",
+        isExclusion: true,
+      };
+      const nokiaHost: DiscoveredNetworkDevice = host({
+        sysObjectId: "1.3.6.1.4.1.94.1.21",
+      });
+      const importAll: AutoImportRuleCandidate = {
+        ipMatchTarget: "10.0.0.0/8",
+      };
+
+      const evaluation: AutoImportHostEvaluation =
+        AutoImportRuleMatcher.evaluateHost(
+          [excludeCisco, importAll],
+          nokiaHost,
+        );
+
+      expect(evaluation.excludedByRule).toBeUndefined();
+      expect(evaluation.shouldImport).toBe(true);
+    });
+
+    it("treats a starless pattern as an arc prefix on sub-identifier boundaries", () => {
+      const ciscoPrefix: AutoImportRuleCandidate = {
+        sysObjectIdPattern: "1.3.6.1.4.1.9",
+      };
+
+      // The arc itself and everything under it.
+      expect(
+        AutoImportRuleMatcher.ruleMatchesHost(
+          ciscoPrefix,
+          host({ sysObjectId: "1.3.6.1.4.1.9" }),
+        ),
+      ).toBe(true);
+      expect(
+        AutoImportRuleMatcher.ruleMatchesHost(
+          ciscoPrefix,
+          host({ sysObjectId: "1.3.6.1.4.1.9.1.1745" }),
+        ),
+      ).toBe(true);
+
+      // Never the sibling arc that shares the digit prefix.
+      expect(
+        AutoImportRuleMatcher.ruleMatchesHost(
+          ciscoPrefix,
+          host({ sysObjectId: "1.3.6.1.4.1.94.1.21" }),
+        ),
+      ).toBe(false);
+    });
+
+    it("tolerates the leading dot some agents prefix OIDs with, on either side", () => {
+      expect(
+        AutoImportRuleMatcher.ruleMatchesHost(
+          { sysObjectIdPattern: "1.3.6.1.4.1.9.*" },
+          host({ sysObjectId: ".1.3.6.1.4.1.9.1.1745" }),
+        ),
+      ).toBe(true);
+
+      expect(
+        AutoImportRuleMatcher.ruleMatchesHost(
+          { sysObjectIdPattern: ".1.3.6.1.4.1.9" },
+          host({ sysObjectId: "1.3.6.1.4.1.9.1.1745" }),
+        ),
+      ).toBe(true);
+    });
+
+    it("a glob cannot match mid-OID — the pattern must cover the whole arc", () => {
+      expect(
+        AutoImportRuleMatcher.ruleMatchesHost(
+          { sysObjectIdPattern: "2.1.1.*" },
+          host({ sysObjectId: "1.3.6.1.4.1.14988.2.1.1.5" }),
+        ),
+      ).toBe(false);
+    });
+
+    it("ANDs with the other conditions like any criterion", () => {
+      const rule: AutoImportRuleCandidate = {
+        ipMatchTarget: "10.0.0.0/24",
+        sysObjectIdPattern: "1.3.6.1.4.1.9.*",
+      };
+
+      expect(
+        AutoImportRuleMatcher.ruleMatchesHost(
+          rule,
+          host({ sysObjectId: "1.3.6.1.4.1.9.1.1745" }),
+        ),
+      ).toBe(true);
+
+      expect(
+        AutoImportRuleMatcher.ruleMatchesHost(
+          rule,
+          host({
+            ipAddress: "192.168.7.1",
+            sysObjectId: "1.3.6.1.4.1.9.1.1745",
+          }),
+        ),
+      ).toBe(false);
+    });
+
+    /*
+     * Ping-only hosts and rows stored by pre-sysObjectId probes carry no
+     * sysObjectId at all. A configured vendor condition must not match a
+     * host whose vendor is unknown — the same missing-value rule the
+     * sysName/sysDescr patterns follow.
+     */
+    it("never matches a host whose scan did not carry sysObjectId", () => {
+      expect(
+        AutoImportRuleMatcher.ruleMatchesHost(
+          { sysObjectIdPattern: "1.3.6.1.4.1.9.*" },
+          host({ sysObjectId: undefined }),
+        ),
+      ).toBe(false);
+    });
+  });
+
   describe("pattern subject clamping", () => {
     /*
      * The jsonb these hosts come from is the probe's payload stored

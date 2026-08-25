@@ -15,6 +15,14 @@ import ScanTargetUtil from "../../Utils/NetworkDiscovery/ScanTargetUtil";
  * match nothing is rejected where the user can see it, not logged about by
  * the engine long after they left the form.
  */
+
+/*
+ * What a sysObjectID condition may contain: an optional leading dot, then
+ * digits, dots and '*' wildcards. Hoisted so the literal is not the object
+ * of a member expression, which `wrap-regex` and Prettier cannot agree on —
+ * same reason as CidrMatchUtil.
+ */
+const OID_PATTERN_SHAPE: RegExp = /^\.?[\d.*]+$/;
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -28,6 +36,7 @@ export class Service extends DatabaseService<Model> {
       ipMatchTarget: createBy.data.ipMatchTarget,
       sysNamePattern: createBy.data.sysNamePattern,
       sysDescrPattern: createBy.data.sysDescrPattern,
+      sysObjectIdPattern: createBy.data.sysObjectIdPattern,
     });
 
     return { createBy, carryForward: null };
@@ -42,7 +51,8 @@ export class Service extends DatabaseService<Model> {
     const isCriteriaChange: boolean =
       dataKeys.includes("ipMatchTarget") ||
       dataKeys.includes("sysNamePattern") ||
-      dataKeys.includes("sysDescrPattern");
+      dataKeys.includes("sysDescrPattern") ||
+      dataKeys.includes("sysObjectIdPattern");
 
     if (!isCriteriaChange) {
       return { updateBy, carryForward: null };
@@ -59,6 +69,7 @@ export class Service extends DatabaseService<Model> {
         ipMatchTarget: true,
         sysNamePattern: true,
         sysDescrPattern: true,
+        sysObjectIdPattern: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -83,6 +94,9 @@ export class Service extends DatabaseService<Model> {
         sysDescrPattern: dataKeys.includes("sysDescrPattern")
           ? (data["sysDescrPattern"] as string | null)
           : existingRule.sysDescrPattern,
+        sysObjectIdPattern: dataKeys.includes("sysObjectIdPattern")
+          ? (data["sysObjectIdPattern"] as string | null)
+          : existingRule.sysObjectIdPattern,
       });
     }
 
@@ -93,18 +107,25 @@ export class Service extends DatabaseService<Model> {
     ipMatchTarget?: string | null | undefined;
     sysNamePattern?: string | null | undefined;
     sysDescrPattern?: string | null | undefined;
+    sysObjectIdPattern?: string | null | undefined;
   }): void {
     const ipMatchTarget: string = (data.ipMatchTarget || "").trim();
     const sysNamePattern: string = (data.sysNamePattern || "").trim();
     const sysDescrPattern: string = (data.sysDescrPattern || "").trim();
+    const sysObjectIdPattern: string = (data.sysObjectIdPattern || "").trim();
 
     /*
      * A rule with no conditions matches nothing (see AutoImportRuleMatcher) —
      * and would read as "match everything" to whoever finds it later.
      */
-    if (!ipMatchTarget && !sysNamePattern && !sysDescrPattern) {
+    if (
+      !ipMatchTarget &&
+      !sysNamePattern &&
+      !sysDescrPattern &&
+      !sysObjectIdPattern
+    ) {
       throw new BadDataException(
-        "At least one of Host IP Is In, System Name Pattern, or System Description Pattern is required.",
+        "At least one of Host IP Is In, System Name Pattern, System Description Pattern, or System Object ID Pattern is required.",
       );
     }
 
@@ -122,6 +143,7 @@ export class Service extends DatabaseService<Model> {
 
     this.validatePattern("System Name Pattern", sysNamePattern);
     this.validatePattern("System Description Pattern", sysDescrPattern);
+    this.validateOidPattern(sysObjectIdPattern);
   }
 
   private validatePattern(title: string, pattern: string): void {
@@ -132,6 +154,27 @@ export class Service extends DatabaseService<Model> {
     throw new BadDataException(
       `${title} is neither a valid regular expression nor a '*' wildcard pattern, so it would never match: ${pattern}`,
     );
+  }
+
+  /*
+   * The sysObjectID condition is NOT free-text: an OID is a dotted numeric
+   * arc, matched as a literal-dot '*' glob or an arc prefix (see
+   * AutoImportRuleMatcher.matchesOidPattern — regex-first matching would make
+   * "1.3.6.1.4.1.9.*" match enterprise 94 too). So the only characters that
+   * can ever match anything are digits, dots and '*'; anything else is a
+   * pattern that silently never fires, which is exactly what this service
+   * exists to reject at the write.
+   */
+  private validateOidPattern(pattern: string): void {
+    if (!pattern) {
+      return;
+    }
+
+    if (!OID_PATTERN_SHAPE.test(pattern)) {
+      throw new BadDataException(
+        `System Object ID Pattern must be an OID prefix (1.3.6.1.4.1.9) or a '*' wildcard OID pattern (1.3.6.1.4.1.9.*) — digits, dots and '*' only: ${pattern}`,
+      );
+    }
   }
 }
 

@@ -22,6 +22,17 @@ export interface DiscoveredNetworkDevice {
   ipAddress: string;
   sysName?: string | undefined;
   sysDescr?: string | undefined;
+  /*
+   * The rest of the SNMP system group, carried since the probe started
+   * reporting it — the same single GET fetches all six scalars, so these
+   * cost nothing extra on the wire. sysObjectId is the vendor's registered
+   * enterprise OID, which vendor-based auto-import conditions match on.
+   * Undefined on ping-only hosts and on scan rows stored by older probes.
+   */
+  sysObjectId?: string | undefined;
+  sysLocation?: string | undefined;
+  sysContact?: string | undefined;
+  sysUpTimeSeconds?: number | undefined;
   isAlreadyRegistered?: boolean | undefined;
   /*
    * False when the host answered ping but not SNMP — such hosts cannot be
