@@ -1,0 +1,167 @@
+import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
+import { DiscoveredNetworkDevice } from "../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import NetworkDeviceMonitoringMethod from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import ObjectID from "../../Types/ObjectID";
+import { monitoringMethodForDiscoveredHost } from "./DiscoveryImportEligibility";
+
+/*
+ * One discovered host -> one NetworkDevice, the same way everywhere.
+ *
+ * This mapping used to live inline in the Dashboard's Discovery page import
+ * loop. The server-side auto-import rule engine needs the identical recipe —
+ * a host imported by a rule and the same host imported by hand must be the
+ * same device — so the recipe lives here and both callers use it. Anything
+ * added to one path by editing this file is automatically added to the other.
+ */
+
+/*
+ * Longest device name the builder will emit.
+ *
+ * The name column is varchar(100) and the create path THROWS on overflow (no
+ * truncation), but the real ceiling is the slug: it is slugify(name) plus a
+ * dash and ten random digits into its own varchar(100), so a name over ~88
+ * characters fails the create with a slug-length error even though the name
+ * itself fits. SNMP sysName is a DisplayString of up to 255 octets, so
+ * over-long names are routine on real gear, and the collision fallback below
+ * appends up to 18 more characters (" (255.255.255.255)"). 80 leaves headroom
+ * for both.
+ */
+export const MAX_DEVICE_NAME_LENGTH: number = 80;
+
+// NetworkDevice.description is stored to 500 characters; sysDescr can be 255+.
+export const MAX_DEVICE_DESCRIPTION_LENGTH: number = 500;
+
+function truncate(value: string, maxLength: number): string {
+  return value.length > maxLength ? value.substring(0, maxLength) : value;
+}
+
+/** The name a discovered host imports under: its sysName, or its address. */
+export function buildDeviceName(host: DiscoveredNetworkDevice): string {
+  return truncate(
+    (host.sysName || "").trim() || host.ipAddress,
+    MAX_DEVICE_NAME_LENGTH,
+  );
+}
+
+/**
+ * The fallback name when `buildDeviceName`'s answer is already taken.
+ *
+ * Device names are unique per project, and two devices legitimately sharing a
+ * sysName (a factory default, a cloned config) is common on real estates. The
+ * address is what tells them apart, so it goes into the name — with the
+ * sysName cut down first so the composed string still fits under the same
+ * ceiling.
+ */
+export function buildFallbackDeviceName(host: DiscoveredNetworkDevice): string {
+  const suffix: string = ` (${host.ipAddress})`;
+  const baseName: string = buildDeviceName(host);
+
+  return (
+    truncate(baseName, Math.max(1, MAX_DEVICE_NAME_LENGTH - suffix.length)) +
+    suffix
+  );
+}
+
+/*
+ * The scan columns the builder copies onto an SNMP device. The
+ * NetworkDeviceDiscoveryScan model satisfies this structurally, so both the
+ * dashboard (holding a scan model) and the rule engine (holding a scan row it
+ * selected itself) can pass their scan straight in.
+ */
+export interface DiscoveredDeviceScanSource {
+  probeId?: ObjectID | undefined;
+  snmpVersion?: string | undefined;
+  snmpCommunityString?: string | undefined;
+  snmpPort?: number | undefined;
+  snmpV3SecurityLevel?: string | undefined;
+  snmpV3Username?: string | undefined;
+  snmpV3AuthProtocol?: string | undefined;
+  snmpV3AuthKey?: string | undefined;
+  snmpV3PrivProtocol?: string | undefined;
+  snmpV3PrivKey?: string | undefined;
+}
+
+/**
+ * The NetworkDevice a discovered host imports as.
+ *
+ * An SNMP-reachable host becomes a polled device carrying the scan's probe
+ * and credentials. A ping-only host becomes a monitor-backed device with no
+ * probe, no credentials and polling off: it is recorded so it can belong to a
+ * site and appear on the topology map, and binding a monitor to it stays a
+ * separate, deliberate step.
+ *
+ * The caller supplies the name (normally `buildDeviceName(host)`) so the
+ * name-collision retry can rebuild the same device under
+ * `buildFallbackDeviceName(host)` without re-deciding anything else.
+ */
+export function buildNetworkDeviceFromDiscoveredHost(data: {
+  projectId: ObjectID;
+  host: DiscoveredNetworkDevice;
+  scan: DiscoveredDeviceScanSource;
+  name?: string | undefined;
+}): NetworkDevice {
+  const host: DiscoveredNetworkDevice = data.host;
+
+  const device: NetworkDevice = new NetworkDevice();
+  device.projectId = data.projectId;
+  device.name = data.name || buildDeviceName(host);
+  // The address is the device's hostname AND the registered-host dedup key.
+  device.hostname = host.ipAddress;
+
+  if (host.sysDescr) {
+    device.description = truncate(host.sysDescr, MAX_DEVICE_DESCRIPTION_LENGTH);
+  }
+
+  const monitoringMethod: NetworkDeviceMonitoringMethod =
+    monitoringMethodForDiscoveredHost(host);
+  device.monitoringMethod = monitoringMethod;
+
+  if (monitoringMethod === NetworkDeviceMonitoringMethod.Monitor) {
+    device.isPollingEnabled = false;
+    return device;
+  }
+
+  if (data.scan.probeId) {
+    // Re-wrapped: the scan may hold a serialized id rather than an ObjectID.
+    device.probeId = new ObjectID(data.scan.probeId.toString());
+  }
+
+  if (data.scan.snmpVersion) {
+    device.snmpVersion = data.scan.snmpVersion;
+  }
+
+  if (data.scan.snmpCommunityString) {
+    device.snmpCommunityString = data.scan.snmpCommunityString;
+  }
+
+  if (data.scan.snmpPort) {
+    device.snmpPort = data.scan.snmpPort;
+  }
+
+  // Carry the v3 credentials so a v3 scan imports as a v3 device.
+  if (data.scan.snmpV3SecurityLevel) {
+    device.snmpV3SecurityLevel = data.scan.snmpV3SecurityLevel;
+  }
+
+  if (data.scan.snmpV3Username) {
+    device.snmpV3Username = data.scan.snmpV3Username;
+  }
+
+  if (data.scan.snmpV3AuthProtocol) {
+    device.snmpV3AuthProtocol = data.scan.snmpV3AuthProtocol;
+  }
+
+  if (data.scan.snmpV3AuthKey) {
+    device.snmpV3AuthKey = data.scan.snmpV3AuthKey;
+  }
+
+  if (data.scan.snmpV3PrivProtocol) {
+    device.snmpV3PrivProtocol = data.scan.snmpV3PrivProtocol;
+  }
+
+  if (data.scan.snmpV3PrivKey) {
+    device.snmpV3PrivKey = data.scan.snmpV3PrivKey;
+  }
+
+  return device;
+}

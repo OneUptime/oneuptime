@@ -581,3 +581,167 @@ describe("ScanTargetUtil.isValid", () => {
     expect(ScanTargetUtil.isValid("")).toBe(false);
   });
 });
+
+/*
+ * contains() is the matcher behind the auto-import rules' "Host IP is in"
+ * condition. It is CONTAINMENT, not membership of the sweep list — the two
+ * disagree at a CIDR block's network and broadcast addresses (in the block,
+ * never swept) — and an octet range is per-octet interval membership, not a
+ * numeric interval between the range's corners. Both distinctions are pinned
+ * here because either one, drifting, silently changes which hosts a rule
+ * imports.
+ */
+describe("ScanTargetUtil.contains", () => {
+  describe("CIDR containment", () => {
+    it("contains addresses inside the block and not those outside", () => {
+      expect(ScanTargetUtil.contains("192.168.1.0/24", "192.168.1.1")).toBe(
+        true,
+      );
+      expect(ScanTargetUtil.contains("192.168.1.0/24", "192.168.1.254")).toBe(
+        true,
+      );
+      expect(ScanTargetUtil.contains("192.168.1.0/24", "192.168.2.1")).toBe(
+        false,
+      );
+      expect(ScanTargetUtil.contains("192.168.1.0/24", "192.167.1.1")).toBe(
+        false,
+      );
+    });
+
+    /*
+     * The deliberate divergence from expand(): a rule asking "is this address
+     * in 10.0.0.0/24" means the subnet, so the network and broadcast
+     * addresses are IN even though no sweep would ever probe them.
+     */
+    it("contains the network and broadcast addresses expand() excludes", () => {
+      expect(ScanTargetUtil.contains("192.168.1.0/24", "192.168.1.0")).toBe(
+        true,
+      );
+      expect(ScanTargetUtil.contains("192.168.1.0/24", "192.168.1.255")).toBe(
+        true,
+      );
+      expect(ScanTargetUtil.expand("192.168.1.0/24")).not.toContain(
+        "192.168.1.0",
+      );
+      expect(ScanTargetUtil.expand("192.168.1.0/24")).not.toContain(
+        "192.168.1.255",
+      );
+    });
+
+    it("treats a /32 as exactly one address", () => {
+      expect(ScanTargetUtil.contains("10.0.0.5/32", "10.0.0.5")).toBe(true);
+      expect(ScanTargetUtil.contains("10.0.0.5/32", "10.0.0.4")).toBe(false);
+      expect(ScanTargetUtil.contains("10.0.0.5/32", "10.0.0.6")).toBe(false);
+    });
+
+    it("treats a /31 as both of its addresses", () => {
+      expect(ScanTargetUtil.contains("10.0.0.0/31", "10.0.0.0")).toBe(true);
+      expect(ScanTargetUtil.contains("10.0.0.0/31", "10.0.0.1")).toBe(true);
+      expect(ScanTargetUtil.contains("10.0.0.0/31", "10.0.0.2")).toBe(false);
+    });
+
+    // Same masking rule as expand(): the block, not the address as typed.
+    it("masks a non-network address down to its subnet before matching", () => {
+      expect(ScanTargetUtil.contains("192.168.1.37/29", "192.168.1.32")).toBe(
+        true,
+      );
+      expect(ScanTargetUtil.contains("192.168.1.37/29", "192.168.1.39")).toBe(
+        true,
+      );
+      expect(ScanTargetUtil.contains("192.168.1.37/29", "192.168.1.40")).toBe(
+        false,
+      );
+    });
+
+    it("matches every address under /0", () => {
+      expect(ScanTargetUtil.contains("0.0.0.0/0", "0.0.0.0")).toBe(true);
+      expect(ScanTargetUtil.contains("0.0.0.0/0", "10.1.2.3")).toBe(true);
+      expect(ScanTargetUtil.contains("0.0.0.0/0", "255.255.255.255")).toBe(
+        true,
+      );
+    });
+
+    /*
+     * The high end of the address space, where every octet has the sign bit
+     * territory in play: signed arithmetic anywhere in the comparison would
+     * surface here first.
+     */
+    it("compares correctly at the top of the address space", () => {
+      expect(ScanTargetUtil.contains("255.255.255.0/24", "255.255.255.7")).toBe(
+        true,
+      );
+      expect(ScanTargetUtil.contains("255.255.255.0/24", "255.255.254.7")).toBe(
+        false,
+      );
+    });
+  });
+
+  describe("octet-range containment", () => {
+    /*
+     * A bare address parses as an octet range of four single values, so as a
+     * condition it means "exactly this host" — not a prefix, not a wildcard.
+     */
+    it("matches a bare-IP target only exactly", () => {
+      expect(ScanTargetUtil.contains("10.0.0.5", "10.0.0.5")).toBe(true);
+      expect(ScanTargetUtil.contains("10.0.0.5", "10.0.0.6")).toBe(false);
+      expect(ScanTargetUtil.contains("10.0.0.5", "10.0.0.50")).toBe(false);
+      expect(ScanTargetUtil.contains("10.0.0.5", "11.0.0.5")).toBe(false);
+    });
+
+    /*
+     * The distinction that makes octet ranges worth having: membership is
+     * per-octet, NOT "between the lowest and highest address". 10.17.5.10
+     * sits numerically between 10.16.0.51 and 10.22.255.66, but its fourth
+     * octet is outside 51-66, so it is not in the target — exactly as the
+     * sweep would never probe it.
+     */
+    it("matches per octet, not as a numeric interval", () => {
+      const target: string = "10.16-22.0-255.51-66";
+
+      expect(ScanTargetUtil.contains(target, "10.17.5.60")).toBe(true);
+      // Inside the interval's corners, outside the fourth octet's range.
+      expect(ScanTargetUtil.contains(target, "10.17.5.10")).toBe(false);
+      expect(ScanTargetUtil.contains(target, "10.17.5.67")).toBe(false);
+    });
+
+    it("respects the corners of every octet's range", () => {
+      const target: string = "10.16-22.0-255.51-66";
+
+      expect(ScanTargetUtil.contains(target, "10.16.0.51")).toBe(true);
+      expect(ScanTargetUtil.contains(target, "10.22.255.66")).toBe(true);
+      // One below / one above the second octet's bounds.
+      expect(ScanTargetUtil.contains(target, "10.15.0.60")).toBe(false);
+      expect(ScanTargetUtil.contains(target, "10.23.0.60")).toBe(false);
+    });
+
+    it("holds single-value octets exact while others range", () => {
+      const target: string = "10.16-22.0-255.51-66";
+
+      expect(ScanTargetUtil.contains(target, "11.17.5.60")).toBe(false);
+      expect(ScanTargetUtil.contains(target, "9.17.5.60")).toBe(false);
+    });
+  });
+
+  describe("malformed input", () => {
+    /*
+     * A condition that cannot parse matches nothing, same as the matcher's
+     * other conditions — never "matches everything".
+     */
+    it("returns false for a malformed target", () => {
+      expect(ScanTargetUtil.contains("", "10.0.0.5")).toBe(false);
+      expect(ScanTargetUtil.contains("   ", "10.0.0.5")).toBe(false);
+      expect(ScanTargetUtil.contains("abc", "10.0.0.5")).toBe(false);
+      expect(ScanTargetUtil.contains("10.0.0.0/99", "10.0.0.5")).toBe(false);
+      expect(ScanTargetUtil.contains("10.22-16.0.1", "10.20.0.1")).toBe(false);
+    });
+
+    it("returns false for a malformed address", () => {
+      expect(ScanTargetUtil.contains("10.0.0.0/24", "")).toBe(false);
+      expect(ScanTargetUtil.contains("10.0.0.0/24", "abc")).toBe(false);
+      expect(ScanTargetUtil.contains("10.0.0.0/24", "10.0.0")).toBe(false);
+      expect(ScanTargetUtil.contains("10.0.0.0/24", "10.0.0.1.5")).toBe(false);
+      expect(ScanTargetUtil.contains("10.0.0.0/24", "10.0.0.256")).toBe(false);
+      expect(ScanTargetUtil.contains("0.0.0.0/0", "not-an-ip")).toBe(false);
+    });
+  });
+});

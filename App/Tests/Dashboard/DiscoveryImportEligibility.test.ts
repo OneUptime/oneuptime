@@ -4,7 +4,7 @@ import NetworkDeviceMonitoringMethod from "Common/Types/NetworkDevice/NetworkDev
 import {
   isImportableDiscoveredHost,
   monitoringMethodForDiscoveredHost,
-} from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImportEligibility";
+} from "Common/Utils/NetworkDiscovery/DiscoveryImportEligibility";
 
 describe("isImportableDiscoveredHost", () => {
   test("host that answered SNMP is importable", () => {

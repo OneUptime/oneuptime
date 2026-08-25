@@ -137,6 +137,21 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
       defaultCollapsed: true,
       items: [
         {
+          /*
+           * First in the section on purpose: auto import creates the
+           * devices every other rule here then acts on.
+           */
+          link: {
+            title: "Auto Import Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.NETWORK_DEVICE_SETTINGS_AUTO_IMPORT_RULES
+              ] as Route,
+            ),
+          },
+          icon: IconProp.Download,
+        },
+        {
           link: {
             title: "Site Assignment Rules",
             to: RouteUtil.populateRouteParams(

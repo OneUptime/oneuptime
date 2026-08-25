@@ -103,6 +103,10 @@ export function getNetworkDeviceBreadcrumbs(
       PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULES,
       ["Project", "Network", "Label Rules"],
     ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.NETWORK_DEVICE_SETTINGS_AUTO_IMPORT_RULES,
+      ["Project", "Network", "Auto Import Rules"],
+    ),
   };
   return breadcrumpLinksMap[path];
 }

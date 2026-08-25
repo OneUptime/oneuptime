@@ -914,6 +914,33 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
   public nextScanAt?: Date = undefined;
 
   @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDeviceDiscoveryScan,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Auto Import Processed At",
+    description:
+      "When auto-import rules last processed this scan's results. Managed by the server: cleared when new results arrive, stamped by the worker that evaluates the rules. NULL means the current results have not been processed yet.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public autoImportProcessedAt?: Date = undefined;
+
+  @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

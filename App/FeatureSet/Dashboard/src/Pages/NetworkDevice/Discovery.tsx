@@ -10,7 +10,6 @@ import NetworkDeviceDiscoveryScan, {
 import Probe from "Common/Models/DatabaseModels/Probe";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
-import ObjectID from "Common/Types/ObjectID";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -39,8 +38,7 @@ import {
   validateRescanInterval,
   validateScanTarget,
 } from "./DiscoveryScanFormValidation";
-import { monitoringMethodForDiscoveredHost } from "../../Components/NetworkDevice/DiscoveryImportEligibility";
-import NetworkDeviceMonitoringMethod from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import { buildNetworkDeviceFromDiscoveredHost } from "Common/Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import {
   DiscoveryScanOutcome,
   getDiscoveredHosts,
@@ -244,77 +242,20 @@ const NetworkDeviceDiscovery: FunctionComponent<
 
       for (const entry of entriesToImport) {
         try {
-          const device: NetworkDevice = new NetworkDevice();
-          device.projectId = ProjectUtil.getCurrentProjectId()!;
-          device.name = entry.sysName || entry.ipAddress;
-          device.hostname = entry.ipAddress;
-
-          if (entry.sysDescr) {
-            device.description = entry.sysDescr.substring(0, 500);
-          }
-
-          const monitoringMethod: NetworkDeviceMonitoringMethod =
-            monitoringMethodForDiscoveredHost(entry);
-          device.monitoringMethod = monitoringMethod;
-
           /*
-           * A ping-only host gets none of the scan's SNMP setup — no probe,
-           * no credentials, no polling. It is recorded so it can belong to a
-           * site and appear on the topology map; binding a monitor to it is
-           * a separate, deliberate step.
+           * The shared recipe (Common/Utils/NetworkDiscovery/
+           * DiscoveredDeviceBuilder): name, hostname, description, and — for
+           * SNMP hosts — the scan's probe and credentials. A ping-only host
+           * gets none of the scan's SNMP setup and polling off; binding a
+           * monitor to it is a separate, deliberate step. The server-side
+           * auto-import rule engine builds through the same function, so a
+           * hand-imported host and a rule-imported host are the same device.
            */
-          if (monitoringMethod === NetworkDeviceMonitoringMethod.Monitor) {
-            device.isPollingEnabled = false;
-
-            await ModelAPI.create<NetworkDevice>({
-              model: device,
-              modelType: NetworkDevice,
-            });
-
-            importedNow.push(entry.ipAddress);
-            continue;
-          }
-
-          if (scanToReview.probeId) {
-            device.probeId = new ObjectID(scanToReview.probeId.toString());
-          }
-
-          if (scanToReview.snmpVersion) {
-            device.snmpVersion = scanToReview.snmpVersion;
-          }
-
-          if (scanToReview.snmpCommunityString) {
-            device.snmpCommunityString = scanToReview.snmpCommunityString;
-          }
-
-          if (scanToReview.snmpPort) {
-            device.snmpPort = scanToReview.snmpPort;
-          }
-
-          // Carry the v3 credentials so a v3 scan imports as a v3 device.
-          if (scanToReview.snmpV3SecurityLevel) {
-            device.snmpV3SecurityLevel = scanToReview.snmpV3SecurityLevel;
-          }
-
-          if (scanToReview.snmpV3Username) {
-            device.snmpV3Username = scanToReview.snmpV3Username;
-          }
-
-          if (scanToReview.snmpV3AuthProtocol) {
-            device.snmpV3AuthProtocol = scanToReview.snmpV3AuthProtocol;
-          }
-
-          if (scanToReview.snmpV3AuthKey) {
-            device.snmpV3AuthKey = scanToReview.snmpV3AuthKey;
-          }
-
-          if (scanToReview.snmpV3PrivProtocol) {
-            device.snmpV3PrivProtocol = scanToReview.snmpV3PrivProtocol;
-          }
-
-          if (scanToReview.snmpV3PrivKey) {
-            device.snmpV3PrivKey = scanToReview.snmpV3PrivKey;
-          }
+          const device: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            host: entry,
+            scan: scanToReview,
+          });
 
           await ModelAPI.create<NetworkDevice>({
             model: device,
@@ -594,7 +535,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
-              "Re-run this scan automatically to keep discovery continuous. Newly found devices still wait for your review before import.",
+              "Re-run this scan automatically to keep discovery continuous. Newly found devices wait for your review before import, unless an auto-import rule matches them.",
           },
           /*
            * Only meaningful together with the toggle above, so it reveals

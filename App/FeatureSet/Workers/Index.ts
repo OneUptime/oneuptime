@@ -81,6 +81,7 @@ import "./Jobs/NetworkDeviceOwners/SendOwnerAddedNotification";
 
 // Network Device Discovery
 import "./Jobs/NetworkDeviceDiscovery/RequeueRecurringScans";
+import "./Jobs/NetworkDeviceDiscovery/ProcessAutoImportRules";
 
 // Network Sites
 import "./Jobs/NetworkSite/RecomputeStaleRollups";

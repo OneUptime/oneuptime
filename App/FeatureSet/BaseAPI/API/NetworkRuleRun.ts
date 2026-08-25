@@ -20,11 +20,14 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import NetworkDeviceAutoImportRule from "Common/Models/DatabaseModels/NetworkDeviceAutoImportRule";
 import NetworkDeviceLabelRule from "Common/Models/DatabaseModels/NetworkDeviceLabelRule";
 import NetworkSiteAssignmentRule from "Common/Models/DatabaseModels/NetworkSiteAssignmentRule";
+import NetworkDeviceAutoImportRuleEngineService from "Common/Server/Services/NetworkDeviceAutoImportRuleEngineService";
 import NetworkDeviceLabelRuleEngineService from "Common/Server/Services/NetworkDeviceLabelRuleEngineService";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import {
+  AutoImportRuleRunResult,
   LabelRuleRunResult,
   SiteAssignmentRuleRunResult,
 } from "Common/Types/NetworkAutomation/RuleRunResult";
@@ -34,23 +37,30 @@ import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/Da
  * ------------------------------------------------------------------
  * NetworkRuleRunAPI
  *
- * "Run now" for the two Network Automation rule kinds:
+ * "Run now" for the Network Automation rule kinds:
  *
  *   POST /network-site-assignment-rule/:ruleId/run
  *   POST /network-device-label-rule/:ruleId/run
+ *   POST /network-device-auto-import-rule/:ruleId/run   (supports dryRun)
  *
- * Both rule kinds only ever fire on device create (and, for site
+ * Site and label rules only ever fire on device create (and, for site
  * assignment, on an identity change or the next poll of a device with
  * no site). A rule written after an estate was imported therefore never
  * reaches any of it, and short of deleting and rediscovering every
  * device there was no way to close that gap — OneUptime/oneuptime#3191.
- * These two endpoints apply one rule to the devices that already exist.
+ * These endpoints apply one rule to the devices that already exist.
+ * Auto-import rules have the same gap in time instead of space: the
+ * worker only processes NEW scan results, so their Run Now applies one
+ * rule to the completed scans already sitting in the project — and its
+ * dryRun flag is the answer to "what would this rule import" BEFORE
+ * enabling it against live scans.
  *
- * Both mutate network devices, so both demand the permission to update
- * the rule AND the permission to update a network device. The required
- * sets are read off the models' own @TableAccessControl rather than
- * restated here, so an ACL edit on either model cannot drift from what
- * these endpoints enforce.
+ * All of these mutate network devices, so all demand the permission to
+ * update the rule AND a matching NetworkDevice permission — update for
+ * the rules that edit devices, CREATE for auto-import, which makes new
+ * ones. The required sets are read off the models' own
+ * @TableAccessControl rather than restated here, so an ACL edit on
+ * either model cannot drift from what these endpoints enforce.
  * ------------------------------------------------------------------
  */
 
@@ -84,6 +94,13 @@ function assertCanRunRule(data: {
   props: DatabaseCommonInteractionProps;
   ruleModel: DatabaseBaseModel;
   ruleLabel: string;
+  /*
+   * What running this rule does to the inventory: site/label rules EDIT
+   * devices, auto-import rules CREATE them — and a role allowed to author
+   * rules but lacking the matching device permission must not get it by
+   * proxy through a rule run.
+   */
+  deviceWriteKind?: "update" | "create";
 }): void {
   if (data.props.isMasterAdmin) {
     return;
@@ -107,9 +124,20 @@ function assertCanRunRule(data: {
 
   /*
    * Running a rule writes to devices. Without this a role allowed to author
-   * rules but not to touch the inventory could edit it wholesale through a
-   * rule, which is exactly the permission it does not have.
+   * rules but not to touch the inventory could edit (or grow) it wholesale
+   * through a rule, which is exactly the permission it does not have.
    */
+  if (data.deviceWriteKind === "create") {
+    if (!holdsAnyOf(new NetworkDevice().getCreatePermissions() || [])) {
+      throw new NotAuthorizedException(
+        `You do not have permission to create network devices, which running ${data.ruleLabel} does. Missing permission: ${PermissionHelper.getTitle(
+          Permission.CreateNetworkDevice,
+        )}.`,
+      );
+    }
+    return;
+  }
+
   if (!holdsAnyOf(getUpdatePermissions(new NetworkDevice()))) {
     throw new NotAuthorizedException(
       `You do not have permission to update network devices, which running ${data.ruleLabel} does. Missing permission: ${PermissionHelper.getTitle(
@@ -183,6 +211,49 @@ export default class NetworkRuleRunAPI {
                   body,
                   "reassignDevicesAlreadyInASite",
                 ),
+              },
+            );
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            result as unknown as JSONObject,
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    router.post(
+      "/network-device-auto-import-rule/:ruleId/run",
+      UserMiddleware.getUserMiddleware,
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ): Promise<void> => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID = CommonAPI.assertTenantScoped(props);
+
+          assertCanRunRule({
+            props: props,
+            ruleModel: new NetworkDeviceAutoImportRule(),
+            ruleLabel: "auto-import rules",
+            deviceWriteKind: "create",
+          });
+
+          const body: JSONObject = (req.body || {}) as JSONObject;
+
+          const result: AutoImportRuleRunResult =
+            await NetworkDeviceAutoImportRuleEngineService.applyRuleToCompletedScans(
+              {
+                ruleId: readRuleId(req),
+                projectId: projectId,
+                isDryRun: readBooleanFlag(body, "dryRun"),
               },
             );
 

@@ -600,6 +600,11 @@ enum Permission {
   EditNetworkDeviceLabelRule = "EditNetworkDeviceLabelRule",
   ReadNetworkDeviceLabelRule = "ReadNetworkDeviceLabelRule",
 
+  CreateNetworkDeviceAutoImportRule = "CreateNetworkDeviceAutoImportRule",
+  DeleteNetworkDeviceAutoImportRule = "DeleteNetworkDeviceAutoImportRule",
+  EditNetworkDeviceAutoImportRule = "EditNetworkDeviceAutoImportRule",
+  ReadNetworkDeviceAutoImportRule = "ReadNetworkDeviceAutoImportRule",
+
   // Podman Host Label Rule Permissions
   CreatePodmanHostLabelRule = "CreatePodmanHostLabelRule",
   DeletePodmanHostLabelRule = "DeletePodmanHostLabelRule",
@@ -11877,6 +11882,48 @@ export class PermissionHelper {
         title: "Read Network Device Label Rule",
         description:
           "This permission can read Network Device Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Network Device Auto Import Rule Permissions
+      {
+        permission: Permission.CreateNetworkDeviceAutoImportRule,
+        title: "Create Network Device Auto Import Rule",
+        description:
+          "This permission can create Network Device Auto Import Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteNetworkDeviceAutoImportRule,
+        title: "Delete Network Device Auto Import Rule",
+        description:
+          "This permission can delete Network Device Auto Import Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditNetworkDeviceAutoImportRule,
+        title: "Edit Network Device Auto Import Rule",
+        description:
+          "This permission can edit Network Device Auto Import Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadNetworkDeviceAutoImportRule,
+        title: "Read Network Device Auto Import Rule",
+        description:
+          "This permission can read Network Device Auto Import Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

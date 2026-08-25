@@ -98,6 +98,9 @@ export class ScanTargetUtil {
   private static readonly OCTET_TERM_PATTERN: RegExp =
     /^(\d{1,3})(?:-(\d{1,3}))?$/;
 
+  // One octet of a bare address. Bounds are validated after parsing.
+  private static readonly IP_OCTET_PATTERN: RegExp = /^\d{1,3}$/;
+
   private static readonly EXAMPLE_CIDR: string = "192.168.1.0/24";
 
   private static readonly EXAMPLE_OCTET_RANGE: string = "10.16-22.0-255.51-66";
@@ -190,6 +193,54 @@ export class ScanTargetUtil {
     }
 
     return ScanTargetUtil.expandOctetRangeTarget(parsed);
+  }
+
+  /*
+   * True when `ip` falls inside `target`, in either notation. This is the
+   * matcher behind the auto-import rules' "Host IP is in" condition, sharing
+   * the exact parser scan targets are validated and expanded with — so a
+   * condition that saves is a condition that matches what its scan sweeps.
+   *
+   * Containment, not enumeration: a CIDR block is a mask comparison over the
+   * whole block (network and broadcast addresses INCLUDED — a rule asking
+   * "is this address in 10.0.0.0/24" means the subnet, not the sweep list),
+   * and an octet range is per-octet interval membership. The latter is NOT a
+   * single numeric interval: for `10.16-22.0-255.51-66`, the address
+   * 10.17.5.10 sits between the range's lowest and highest addresses but its
+   * fourth octet is outside 51-66, so it does not match.
+   *
+   * Malformed targets and malformed addresses match nothing.
+   */
+  public static contains(target: string, ip: string): boolean {
+    const parsed: ScanTarget | null = ScanTargetUtil.parse(target);
+
+    if (!parsed) {
+      return false;
+    }
+
+    const octets: Array<number> | null = ScanTargetUtil.parseIpOctets(ip);
+
+    if (!octets) {
+      return false;
+    }
+
+    if (parsed.notation === ScanTargetNotation.Cidr) {
+      const ipLong: number =
+        (((octets[0]! * 256 + octets[1]!) * 256 + octets[2]!) * 256 +
+          octets[3]!) >>>
+        0;
+
+      return (
+        ipLong >= parsed.networkLong! &&
+        ipLong < parsed.networkLong! + parsed.blockSize!
+      );
+    }
+
+    return parsed.octetRanges!.every(
+      (range: OctetRange, index: number): boolean => {
+        return octets[index]! >= range.start && octets[index]! <= range.end;
+      },
+    );
   }
 
   /*
@@ -409,6 +460,37 @@ export class ScanTargetUtil {
     }
 
     return hosts;
+  }
+
+  // '10.0.0.1' -> [10, 0, 0, 1]; anything malformed -> null.
+  private static parseIpOctets(ip: string): Array<number> | null {
+    if (typeof ip !== "string") {
+      return null;
+    }
+
+    const terms: Array<string> = ip.trim().split(".");
+
+    if (terms.length !== 4) {
+      return null;
+    }
+
+    const octets: Array<number> = [];
+
+    for (const term of terms) {
+      if (!ScanTargetUtil.IP_OCTET_PATTERN.test(term)) {
+        return null;
+      }
+
+      const octet: number = parseInt(term, 10);
+
+      if (octet > 255) {
+        return null;
+      }
+
+      octets.push(octet);
+    }
+
+    return octets;
   }
 
   private static getMalformedTargetMessage(target: string): string {
