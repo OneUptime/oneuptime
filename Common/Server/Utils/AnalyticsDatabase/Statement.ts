@@ -26,6 +26,18 @@ export type StatementParameter = {
   value: RecordValue;
 };
 
+/*
+ * Escape LIKE/ILIKE metacharacters so a user-supplied value matches
+ * literally. Without this, "svc_" matches svcX (a false positive) and a
+ * value containing "%" silently corrupts the whole pattern — the worst
+ * possible failure mode for a security-events filter. ClickHouse honors
+ * backslash escapes inside (I)LIKE patterns; backslash itself must be
+ * escaped first.
+ */
+export function escapeIlikePattern(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
+
 /**
  * A table-qualified column reference (`table.column`) bound as TWO
  * Identifier parameters. ClickHouse treats a dotted string bound as a
@@ -133,7 +145,7 @@ export class Statement implements BaseQueryParams {
     } else if (v.value instanceof ObjectID) {
       finalValue = v.value.toString();
     } else if (v.value instanceof Search) {
-      finalValue = `%${v.value.toString()}%`;
+      finalValue = `%${escapeIlikePattern(v.value.toString())}%`;
     } else if (
       v.value instanceof LessThan ||
       v.value instanceof LessThanOrEqual ||

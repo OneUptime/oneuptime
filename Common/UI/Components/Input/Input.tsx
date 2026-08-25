@@ -30,6 +30,8 @@ export interface ComponentProps {
   ariaHasPopup?: "dialog" | "listbox" | "menu" | "grid" | "tree" | undefined;
   ariaExpanded?: boolean | undefined;
   ariaControls?: string | undefined;
+  // For inputs with no visible label element to point ariaLabelledby at.
+  ariaLabel?: string | undefined;
   /*
    * For fields that render their own error text - a picker whose message sits
    * below the whole control rather than below this input.
@@ -177,6 +179,7 @@ const Input: FunctionComponent<ComponentProps> = (
           data-testid={props.dataTestId}
           spellCheck={!props.disableSpellCheck}
           autoComplete={props.autoComplete}
+          aria-label={props.ariaLabel}
           aria-labelledby={props.ariaLabelledby}
           aria-haspopup={props.ariaHasPopup}
           aria-expanded={props.ariaExpanded}

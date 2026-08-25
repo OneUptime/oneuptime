@@ -5,7 +5,12 @@ import Select from "../../Types/AnalyticsDatabase/Select";
 import Sort from "../../Types/AnalyticsDatabase/Sort";
 import UpdateBy from "../../Types/AnalyticsDatabase/UpdateBy";
 import logger from "../Logger";
-import { QualifiedColumn, SQL, Statement } from "./Statement";
+import {
+  QualifiedColumn,
+  SQL,
+  Statement,
+  escapeIlikePattern,
+} from "./Statement";
 import {
   adaptTableSettingsForStorage,
   getDistributedEngine,
@@ -25,10 +30,12 @@ import AnalyticsTableColumn, {
 } from "../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import EqualTo from "../../../Types/BaseDatabase/EqualTo";
+import EqualToOrNull from "../../../Types/BaseDatabase/EqualToOrNull";
 import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
 import ObjectID from "../../../Types/ObjectID";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
@@ -39,6 +46,8 @@ import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import NotContains from "../../../Types/BaseDatabase/NotContains";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
+import QueryOperator from "../../../Types/BaseDatabase/QueryOperator";
+import GenericObject from "../../../Types/GenericObject";
 import Search from "../../../Types/BaseDatabase/Search";
 import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
 import StartsWith from "../../../Types/BaseDatabase/StartsWith";
@@ -106,6 +115,28 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     this.modelType = data.modelType;
     this.model = new this.modelType();
     this.database = data.database;
+  }
+
+  /*
+   * Map(String,String) and JSON columns have per-sub-key handling further
+   * down the operator chain; a scalar operator applied to the whole column
+   * would compile to SQL ClickHouse rejects with a cryptic type error.
+   * Fail with the same loud BadDataException the fallback uses.
+   */
+  private throwIfMapOrJsonColumn(input: {
+    operator: QueryOperator<GenericObject | number | string>;
+    tableColumn: AnalyticsTableColumn;
+    key: string;
+  }): void {
+    if (
+      input.tableColumn.type === TableColumnType.MapStringString ||
+      input.tableColumn.type === TableColumnType.JSON ||
+      input.tableColumn.type === TableColumnType.JSONArray
+    ) {
+      throw new BadDataException(
+        `Unsupported query operator ${input.operator.constructor.name} on column: ${input.key}`,
+      );
+    }
   }
 
   private appendMapKeyPresenceFilter(input: {
@@ -755,12 +786,85 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         whereStatement.append(SQL` `);
       }
 
-      if (value instanceof Search) {
+      /*
+       * Several operators AND-ed onto ONE column — e.g.
+       * `observables: [Includes([x]), IncludesNone([y])]` for "mentions x
+       * AND does not mention y". The flat query map has a single slot per
+       * column, so without this an AND of two predicates on the same column
+       * is inexpressible (the Security Events correlation builder needs
+       * it). Each element compiles through a single-key recursive call, so
+       * every per-operator branch below applies unchanged; elements whose
+       * branch drops the predicate (e.g. an empty Includes) contribute
+       * nothing. A bare value array (exact-array equality on ArrayText)
+       * has non-operator elements and falls through untouched.
+       */
+      if (
+        Array.isArray(value) &&
+        value.length > 0 &&
+        value.every((element: unknown) => {
+          return element instanceof QueryOperator;
+        })
+      ) {
+        let isFirstFragment: boolean = true;
+        for (const operator of value) {
+          const fragment: Statement = this.toWhereStatement(
+            { [key]: operator } as Query<TBaseModel>,
+            options,
+          );
+          if (!fragment.query) {
+            continue;
+          }
+          if (isFirstFragment) {
+            isFirstFragment = false;
+          } else {
+            whereStatement.append(SQL` `);
+          }
+          whereStatement.append(fragment);
+        }
+        continue;
+      }
+
+      if (
+        value instanceof Search &&
+        tableColumn.type === TableColumnType.ArrayText
+      ) {
+        /*
+         * Substring search over an Array(String) column ("any element
+         * contains v"): `arrayExists(x -> x ILIKE '%v%', col)`. The scalar
+         * `col ILIKE ...` form below would declare the bound parameter as
+         * Array(String) while carrying a single pattern string, which
+         * ClickHouse rejects at parameter-parse time — so array columns get
+         * their own per-element form. This is what makes a plain text filter
+         * on `observables` (Security Events) work at all.
+         */
+        whereStatement.append(
+          SQL`AND arrayExists(x -> x ILIKE ${{
+            value: value,
+            type: TableColumnType.Text,
+          }}, ${columnRef(key)})`,
+        );
+      } else if (value instanceof Search) {
         whereStatement.append(
           SQL`AND ${columnRef(key)} ILIKE ${{
             value: value,
             type: tableColumn.type,
           }}`,
+        );
+      } else if (
+        value instanceof NotEqual &&
+        tableColumn.type === TableColumnType.ArrayText
+      ) {
+        /*
+         * "not equal to v" on an Array(String) column means "does not
+         * mention v" — the scalar `col != v` form would bind a single
+         * string against an Array(String) parameter and fail at
+         * ClickHouse parameter-parse time.
+         */
+        whereStatement.append(
+          SQL`AND NOT has(${columnRef(key)}, ${{
+            value: String((value as NotEqual<string>).value ?? ""),
+            type: TableColumnType.Text,
+          }})`,
         );
       } else if (value instanceof NotEqual) {
         whereStatement.append(
@@ -887,12 +991,182 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           );
         }
       } else if (value instanceof IsNull) {
-        if (tableColumn.type === TableColumnType.Text) {
+        if (tableColumn.type === TableColumnType.ArrayText) {
+          /*
+           * Array(String) columns are non-Nullable — `IS NULL` would be
+           * constant-false. "Not set" for an array is the empty array.
+           */
+          whereStatement.append(SQL`AND empty(${columnRef(key)})`);
+        } else if (tableColumn.type === TableColumnType.Text) {
           whereStatement.append(
             SQL`AND (${columnRef(key)} IS NULL OR ${columnRef(key)} = '')`,
           );
         } else {
           whereStatement.append(SQL`AND ${columnRef(key)} IS NULL`);
+        }
+      } else if (value instanceof NotNull) {
+        /*
+         * Mirror of IsNull above: Text columns store '' as their "not set"
+         * default (they are non-nullable Strings unless optional), so a
+         * present-value check must reject the empty string too; Array
+         * columns are non-Nullable, so `IS NOT NULL` would be constant-true
+         * — presence for an array means "has at least one element".
+         */
+        if (tableColumn.type === TableColumnType.ArrayText) {
+          whereStatement.append(SQL`AND notEmpty(${columnRef(key)})`);
+        } else if (tableColumn.type === TableColumnType.Text) {
+          whereStatement.append(
+            SQL`AND (${columnRef(key)} IS NOT NULL AND ${columnRef(key)} != '')`,
+          );
+        } else {
+          whereStatement.append(SQL`AND ${columnRef(key)} IS NOT NULL`);
+        }
+      } else if (value instanceof EqualTo) {
+        /*
+         * Explicit equality wrapper. Before this branch existed an EqualTo
+         * instance fell through to the bare-value fallback, which bound the
+         * operator OBJECT as the parameter — a silent match-nothing filter.
+         * Scalars bind the wrapped value exactly like a bare value; on an
+         * Array(String) column "equals v" means membership (`has`), which
+         * is what a table filter's Equal To on `observables` intends. Map
+         * and JSON columns have no scalar equality — fail loudly instead
+         * of emitting SQL ClickHouse will reject with a cryptic error.
+         */
+        this.throwIfMapOrJsonColumn({ operator: value, tableColumn, key });
+        if (tableColumn.type === TableColumnType.ArrayText) {
+          whereStatement.append(
+            SQL`AND has(${columnRef(key)}, ${{
+              value: String((value as EqualTo<string>).value ?? ""),
+              type: TableColumnType.Text,
+            }})`,
+          );
+        } else {
+          whereStatement.append(
+            SQL`AND ${columnRef(key)} = ${{
+              value: (value as EqualTo<string>).value,
+              type: tableColumn.type,
+            }}`,
+          );
+        }
+      } else if (value instanceof EqualToOrNull) {
+        this.throwIfMapOrJsonColumn({ operator: value, tableColumn, key });
+        if (tableColumn.type === TableColumnType.ArrayText) {
+          throw new BadDataException(
+            `Unsupported query operator EqualToOrNull on column: ${key}`,
+          );
+        }
+        if (tableColumn.type === TableColumnType.Text) {
+          whereStatement.append(
+            SQL`AND (${columnRef(key)} = ${{
+              value: (value as EqualToOrNull<string>).value,
+              type: tableColumn.type,
+            }} OR ${columnRef(key)} IS NULL OR ${columnRef(key)} = '')`,
+          );
+        } else {
+          whereStatement.append(
+            SQL`AND (${columnRef(key)} = ${{
+              value: (value as EqualToOrNull<string>).value,
+              type: tableColumn.type,
+            }} OR ${columnRef(key)} IS NULL)`,
+          );
+        }
+      } else if (value instanceof StartsWith) {
+        /*
+         * Prefix / suffix / negated-substring matching, previously only
+         * implemented for map (attributes) sub-keys. Array(String) columns
+         * get the per-element arrayExists form (see the Search branch
+         * above); scalars get a plain ILIKE. Patterns bind as Text because
+         * the pattern itself is a string whatever the column type is, and
+         * the user value is escaped so it matches literally rather than as
+         * wildcard syntax.
+         */
+        this.throwIfMapOrJsonColumn({ operator: value, tableColumn, key });
+        const startsWithPattern: string = `${escapeIlikePattern(
+          (value.value as string) || "",
+        )}%`;
+        if (tableColumn.type === TableColumnType.ArrayText) {
+          whereStatement.append(
+            SQL`AND arrayExists(x -> x ILIKE ${{
+              value: startsWithPattern,
+              type: TableColumnType.Text,
+            }}, ${columnRef(key)})`,
+          );
+        } else {
+          whereStatement.append(
+            SQL`AND ${columnRef(key)} ILIKE ${{
+              value: startsWithPattern,
+              type: TableColumnType.Text,
+            }}`,
+          );
+        }
+      } else if (value instanceof EndsWith) {
+        this.throwIfMapOrJsonColumn({ operator: value, tableColumn, key });
+        const endsWithPattern: string = `%${escapeIlikePattern(
+          (value.value as string) || "",
+        )}`;
+        if (tableColumn.type === TableColumnType.ArrayText) {
+          whereStatement.append(
+            SQL`AND arrayExists(x -> x ILIKE ${{
+              value: endsWithPattern,
+              type: TableColumnType.Text,
+            }}, ${columnRef(key)})`,
+          );
+        } else {
+          whereStatement.append(
+            SQL`AND ${columnRef(key)} ILIKE ${{
+              value: endsWithPattern,
+              type: TableColumnType.Text,
+            }}`,
+          );
+        }
+      } else if (value instanceof NotContains) {
+        /*
+         * On a nullable scalar, `NOT (NULL ILIKE ...)` is NULL and would
+         * filter the row out — but a row with no value at all trivially
+         * "does not contain" the needle, so NULL rows are let through
+         * explicitly (mirrors how missing map keys pass the map-branch
+         * NotContains).
+         */
+        this.throwIfMapOrJsonColumn({ operator: value, tableColumn, key });
+        const notContainsPattern: string = `%${escapeIlikePattern(
+          (value.value as string) || "",
+        )}%`;
+        if (tableColumn.type === TableColumnType.ArrayText) {
+          whereStatement.append(
+            SQL`AND NOT arrayExists(x -> x ILIKE ${{
+              value: notContainsPattern,
+              type: TableColumnType.Text,
+            }}, ${columnRef(key)})`,
+          );
+        } else {
+          whereStatement.append(
+            SQL`AND (NOT (${columnRef(key)} ILIKE ${{
+              value: notContainsPattern,
+              type: TableColumnType.Text,
+            }}) OR ${columnRef(key)} IS NULL)`,
+          );
+        }
+      } else if (
+        value instanceof IncludesAll &&
+        tableColumn.type === TableColumnType.ArrayText
+      ) {
+        /*
+         * Array(String) conjunction ("mentions ALL of these"): `hasAll`,
+         * the AND-counterpart of the Includes/hasAny branch above. This is
+         * what a correlation like "events naming host X AND ip Y" compiles
+         * to on the `observables` column. An empty IncludesAll constrains
+         * nothing — drop the predicate (hasAll(col, []) is vacuously true
+         * anyway, but skipping keeps parity with the empty-Includes path).
+         */
+        const arrayAllValues: Array<string> =
+          ((value as IncludesAll).values as Array<string>) || [];
+        if (arrayAllValues.length > 0) {
+          whereStatement.append(
+            SQL`AND hasAll(${columnRef(key)}, ${{
+              value: arrayAllValues,
+              type: TableColumnType.ArrayText,
+            }})`,
+          );
         }
       } else if (
         tableColumn.type === TableColumnType.MapStringString &&
@@ -985,7 +1259,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
 
           if (mapEntry instanceof NotContains) {
-            const literalValue: string = `%${(mapEntry.value as string) || ""}%`;
+            const literalValue: string = `%${escapeIlikePattern(
+              (mapEntry.value as string) || "",
+            )}%`;
             whereStatement.append(
               SQL`AND NOT arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
                 value: mapKey,
@@ -999,7 +1275,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
 
           if (mapEntry instanceof StartsWith) {
-            const literalValue: string = `${(mapEntry.value as string) || ""}%`;
+            const literalValue: string = `${escapeIlikePattern(
+              (mapEntry.value as string) || "",
+            )}%`;
             whereStatement.append(
               SQL`AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
                 value: mapKey,
@@ -1013,7 +1291,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
 
           if (mapEntry instanceof EndsWith) {
-            const literalValue: string = `%${(mapEntry.value as string) || ""}`;
+            const literalValue: string = `%${escapeIlikePattern(
+              (mapEntry.value as string) || "",
+            )}`;
             whereStatement.append(
               SQL`AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
                 value: mapKey,
@@ -1290,6 +1570,17 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
         }
       } else {
+        /*
+         * Bare-value equality. A query operator that reaches this point has
+         * no branch for this column type (e.g. IncludesAll on a scalar) —
+         * binding the operator object itself would produce a silent
+         * match-nothing filter, so fail loudly instead.
+         */
+        if (value instanceof QueryOperator) {
+          throw new BadDataException(
+            `Unsupported query operator ${value.constructor.name} on column: ${key}`,
+          );
+        }
         whereStatement.append(
           SQL`AND ${columnRef(key)} = ${{ value, type: tableColumn.type }}`,
         );

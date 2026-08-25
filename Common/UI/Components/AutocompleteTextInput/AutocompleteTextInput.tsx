@@ -27,6 +27,8 @@ export interface ComponentProps {
   isLoadingSuggestions?: boolean | undefined;
   loadingMessage?: string | undefined;
   noSuggestionsMessage?: string | undefined;
+  // For inputs with no visible label element to point ariaLabelledby at.
+  ariaLabel?: string | undefined;
   /*
    * The id of the element that names this input. Without it a picker that draws
    * its own label - the workflow record editor, where the field's name sits in
@@ -464,6 +466,7 @@ const AutocompleteTextInput: FunctionComponent<ComponentProps> = (
         className={getInputClassName()}
         data-testid={props.dataTestId}
         disabled={props.disabled}
+        aria-label={props.ariaLabel}
         aria-labelledby={props.ariaLabelledby}
         aria-autocomplete="list"
         aria-controls={listboxIdRef.current}

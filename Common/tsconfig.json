@@ -68,7 +68,8 @@
       "react-router-dom": ["./node_modules/react-router-dom"],
       "react-i18next": ["./node_modules/react-i18next"],
       "i18next": ["./node_modules/i18next"],
-      "use-async-effect": ["./node_modules/use-async-effect"]
+      "use-async-effect": ["./node_modules/use-async-effect"],
+      "reactflow": ["./node_modules/reactflow"]
     },
     // "rootDirs": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */
     "typeRoots": [
