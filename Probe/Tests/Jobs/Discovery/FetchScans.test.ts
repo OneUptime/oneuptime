@@ -152,3 +152,52 @@ describe("FetchScans.buildSnmpV3Auth — recognized values, including drift", ()
     ).toBe(SnmpSecurityLevel.NoAuthNoPriv);
   });
 });
+
+/*
+ * Which scan a probe-side failure is about (issue #3391).
+ *
+ * One credential set is built per scan and reused for every host, so this
+ * message is the operator's whole explanation of a sweep that found nothing.
+ * A probe runs scans for many address ranges, and since scans can be named,
+ * naming the failing one by the name its operator gave it is the difference
+ * between a log line they recognise and one they have to look up.
+ */
+describe("FetchScans.buildSnmpV3Auth — which scan the failure names", () => {
+  test("a named scan is named, with the range it sweeps", () => {
+    expect(() => {
+      return buildSnmpV3Auth(
+        buildScan({
+          name: "Router Discovery - Region 1100",
+          snmpV3PrivProtocol: "nonsense",
+        }),
+      );
+    }).toThrow("Router Discovery - Region 1100 (10.0.0.0/24)");
+  });
+
+  // Exactly what the message said before scans could be named.
+  test("an unnamed scan is named by its target", () => {
+    expect(() => {
+      return buildSnmpV3Auth(buildScan({ snmpV3PrivProtocol: "nonsense" }));
+    }).toThrow("10.0.0.0/24");
+  });
+
+  test("a blank name does not blank out the label", () => {
+    expect(() => {
+      return buildSnmpV3Auth(
+        buildScan({ name: "   ", snmpV3PrivProtocol: "nonsense" }),
+      );
+    }).toThrow("10.0.0.0/24");
+  });
+
+  /*
+   * The last-resort fallback. A row that carries neither still has to produce
+   * a sentence, rather than one with a hole in it.
+   */
+  test("a scan with neither still produces a readable message", () => {
+    expect(() => {
+      return buildSnmpV3Auth(
+        buildScan({ cidr: undefined, snmpV3PrivProtocol: "nonsense" }),
+      );
+    }).toThrow("discovery scan scan");
+  });
+});

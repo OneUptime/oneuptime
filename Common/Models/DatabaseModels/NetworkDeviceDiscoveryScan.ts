@@ -269,6 +269,70 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
+    /*
+     * The only updatable column on this model. Everything else describes a
+     * sweep that has already been handed to a probe — changing the target or
+     * the credentials of a scan mid-flight would mean the stored row no longer
+     * described the sweep that ran. A name describes nothing but itself, and
+     * the whole point of it is to be fixed after the fact: a scan mislabelled
+     * "Region 1100" is worse than an unnamed one, and deleting a scan to
+     * rename it would throw away its results.
+     */
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceDiscoveryScan,
+    ],
+  })
+  /*
+   * What this scan is FOR, in the operator's own words — "Router Discovery —
+   * Region 1100", "Switch Discovery — WB Units". Optional, not unique, and
+   * never used to look a scan up: it exists so the Discovery Scans list can be
+   * read at a glance instead of by matching octet ranges against a subnet plan
+   * kept somewhere else (OneUptime issue #3391).
+   *
+   * Nullable, and every scan created before this column existed is null — so
+   * every surface that renders it falls back to the scan target. See
+   * Common/Utils/NetworkDiscovery/ScanNameUtil.
+   */
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Name",
+    description:
+      "Optional name for this scan, so it can be told apart from other scans at a glance. Falls back to the scan target when empty.",
+    example: "Router Discovery - Region 1100",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public name?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDeviceDiscoveryScan,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDeviceDiscoveryScan,
+    ],
     update: [],
   })
   /*

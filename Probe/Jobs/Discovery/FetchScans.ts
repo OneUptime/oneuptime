@@ -17,6 +17,7 @@ import { JSONArray } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
 import SnmpSecurityLevel, {
   SnmpSecurityLevelUtil,
@@ -54,7 +55,8 @@ export function buildSnmpV3Auth(
    * One credential set is built per scan and reused for every host, so a
    * single unreadable value silently blanks the entire sweep.
    */
-  const scanLabel: string = scan.cidr || scan.id?.toString() || "scan";
+  const scanLabel: string =
+    ScanNameUtil.getScanLabel(scan) || scan.id?.toString() || "scan";
 
   if (SnmpSecurityLevelUtil.isUnrecognized(scan.snmpV3SecurityLevel)) {
     throw new Error(
@@ -364,7 +366,9 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
 
   try {
     logger.debug(
-      `Running discovery scan ${scan.id?.toString()} on ${scan.cidr}`,
+      `Running discovery scan ${scan.id?.toString()} on ${
+        ScanNameUtil.getScanLabel(scan) || scan.cidr
+      }`,
     );
 
     scanResult = await scanWithDeadline(

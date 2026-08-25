@@ -4,6 +4,7 @@ import OneUptimeDate from "Common/Types/Date";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import NetworkDeviceDiscoveryScanService from "Common/Server/Services/NetworkDeviceDiscoveryScanService";
+import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
 import Probe, {
   ProbeConnectionStatus,
 } from "Common/Models/DatabaseModels/Probe";
@@ -76,6 +77,7 @@ RunCron(
         },
         select: {
           _id: true,
+          name: true,
           cidr: true,
         },
         props: {
@@ -85,7 +87,7 @@ RunCron(
 
     for (const scan of staleScans) {
       logger.warn(
-        `Discovery scan ${scan.id?.toString()} (${scan.cidr}) has been In Progress for over ${STALE_IN_PROGRESS_HOURS} hour(s); marking it Failed (probe likely went offline mid-scan).`,
+        `Discovery scan ${scan.id?.toString()} (${ScanNameUtil.getScanLabel(scan)}) has been In Progress for over ${STALE_IN_PROGRESS_HOURS} hour(s); marking it Failed (probe likely went offline mid-scan).`,
       );
 
       await NetworkDeviceDiscoveryScanService.updateOneById({
@@ -115,6 +117,7 @@ RunCron(
         },
         select: {
           _id: true,
+          name: true,
           cidr: true,
         },
         props: {
@@ -124,7 +127,7 @@ RunCron(
 
     for (const scan of dueScans) {
       logger.debug(
-        `Re-queueing recurring discovery scan ${scan.id?.toString()} (${scan.cidr}).`,
+        `Re-queueing recurring discovery scan ${scan.id?.toString()} (${ScanNameUtil.getScanLabel(scan)}).`,
       );
 
       await NetworkDeviceDiscoveryScanService.updateOneById({
@@ -185,6 +188,7 @@ export async function explainUnclaimedScans(): Promise<void> {
       },
       select: {
         _id: true,
+        name: true,
         cidr: true,
         probeId: true,
         statusMessage: true,
@@ -286,7 +290,7 @@ export async function explainUnclaimedScans(): Promise<void> {
     }
 
     logger.warn(
-      `Discovery scan ${scan.id?.toString()} (${scan.cidr}) has been Pending for over ${UNCLAIMED_PENDING_MINUTES} minutes with no probe claiming it: ${statusMessage}`,
+      `Discovery scan ${scan.id?.toString()} (${ScanNameUtil.getScanLabel(scan)}) has been Pending for over ${UNCLAIMED_PENDING_MINUTES} minutes with no probe claiming it: ${statusMessage}`,
     );
 
     await NetworkDeviceDiscoveryScanService.updateOneById({

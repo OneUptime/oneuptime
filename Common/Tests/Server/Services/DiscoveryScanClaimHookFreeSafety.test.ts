@@ -140,7 +140,13 @@ describe("discovery-scan claim hookless write safety preconditions", () => {
         "startedAt",
         "statusMessage",
       ];
-      const columnsValidatedByHook: Array<string> = ["cidr"];
+      /*
+       * `name` joined `cidr` here when discovery scans became nameable
+       * (issue #3391): the hook validates and normalizes it on any update that
+       * carries it. The claim payload does not, which is what keeps the
+       * hookless write honest.
+       */
+      const columnsValidatedByHook: Array<string> = ["cidr", "name"];
 
       for (const column of claimWriteColumns) {
         expect(columnsValidatedByHook).not.toContain(column);

@@ -8,6 +8,7 @@ import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { UNCLAIMED_PENDING_MINUTES } from "Common/Utils/NetworkDiscovery/UnclaimedScanDiagnosis";
+import logger from "Common/Server/Utils/Logger";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
 jest.mock(
@@ -79,6 +80,16 @@ const scanService: MockedScanService =
 const probeService: { findOneById: jest.Mock } = ProbeService as unknown as {
   findOneById: jest.Mock;
 };
+
+const mockedLogger: { warn: jest.Mock } = logger as unknown as {
+  warn: jest.Mock;
+};
+
+function warnings(): Array<string> {
+  return mockedLogger.warn.mock.calls.map((call: Array<unknown>): string => {
+    return String(call[0]);
+  });
+}
 
 const probeId: ObjectID = ObjectID.generate();
 const otherProbeId: ObjectID = ObjectID.generate();
@@ -380,5 +391,53 @@ describe("explainUnclaimedScans — it runs every minute, so it must not churn",
       .join("\n");
     expect(messages).toContain("Probe A");
     expect(messages).toContain("Probe B");
+  });
+});
+
+/*
+ * Which scan the operator is being told about (issue #3391).
+ *
+ * This pass exists because a stuck scan used to say nothing at all. Now that
+ * scans can be named, the warning it writes to the log has to carry that name
+ * — a fleet with a hundred pending sweeps is exactly the situation where
+ * "10.240-249.0-254.220-226" is not an answer to "which one?".
+ */
+describe("explainUnclaimedScans — naming the scan it complains about", () => {
+  test("asks for the name along with the target", async () => {
+    respondWith({ unclaimed: [] });
+
+    await explainUnclaimedScans();
+
+    const args: JSONObject = scanService.findAllBy.mock
+      .calls[0]![0] as JSONObject;
+    const select: JSONObject = args["select"] as JSONObject;
+
+    expect(select["name"]).toBe(true);
+    expect(select["cidr"]).toBe(true);
+  });
+
+  test("names a named scan by name, and still says what it sweeps", async () => {
+    respondWith({
+      unclaimed: [makeScan({ name: "Switch Discovery - WB Units" })],
+    });
+
+    await explainUnclaimedScans();
+
+    const logged: string = warnings().join("\n");
+
+    expect(logged).toContain("Switch Discovery - WB Units");
+    expect(logged).toContain("10.240-249.0-254.220-226");
+  });
+
+  // Unnamed scans read exactly as they did before the column existed.
+  test("falls back to the target for an unnamed scan", async () => {
+    respondWith({ unclaimed: [makeScan()] });
+
+    await explainUnclaimedScans();
+
+    const logged: string = warnings().join("\n");
+
+    expect(logged).toContain("10.240-249.0-254.220-226");
+    expect(logged).not.toContain("undefined");
   });
 });

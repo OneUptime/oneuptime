@@ -52,9 +52,37 @@ type CapturedFormStep = {
   title: string;
 };
 
+/*
+ * The list half of the table's configuration, captured for the same reason the
+ * form half is: the Scan column, the filters and the row actions are all plain
+ * props, so a refactor can drop one without breaking a type or a render.
+ */
+type CapturedColumn = {
+  field?: Record<string, unknown> | undefined;
+  title?: string | undefined;
+  getElement?:
+    | ((item: NetworkDeviceDiscoveryScan) => React.ReactElement)
+    | undefined;
+};
+
+type CapturedFilter = {
+  field?: Record<string, unknown> | undefined;
+  title?: string | undefined;
+};
+
+type CapturedActionButton = {
+  title?: string | undefined;
+  isVisible?: ((item: NetworkDeviceDiscoveryScan) => boolean) | undefined;
+};
+
 type CapturedTableProps = {
   formFields?: Array<CapturedFormField>;
   formSteps?: Array<CapturedFormStep>;
+  columns?: Array<CapturedColumn>;
+  filters?: Array<CapturedFilter>;
+  actionButtons?: Array<CapturedActionButton>;
+  selectMoreFields?: Record<string, boolean>;
+  isEditable?: boolean | undefined;
 };
 
 let capturedTableProps: CapturedTableProps | null = null;
@@ -74,7 +102,11 @@ import ProbeUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/Probe";
 import Project from "../../../Models/DatabaseModels/Project";
 import Probe from "../../../Models/DatabaseModels/Probe";
 import ProjectUtil from "../../../UI/Utils/Project";
+import PermissionUtil from "../../../UI/Utils/Permission";
+import Permission from "../../../Types/Permission";
 import ScanTargetUtil from "../../../Utils/NetworkDiscovery/ScanTargetUtil";
+import ScanNameUtil from "../../../Utils/NetworkDiscovery/ScanNameUtil";
+import NetworkDeviceDiscoveryScan from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import ObjectID from "../../../Types/ObjectID";
 import Route from "../../../Types/API/Route";
 
@@ -103,6 +135,43 @@ function fieldNamed(key: string): CapturedFormField {
   }
 
   return field;
+}
+
+function columnNamed(key: string): CapturedColumn {
+  const column: CapturedColumn | undefined = capturedTableProps?.columns?.find(
+    (tableColumn: CapturedColumn): boolean => {
+      return Object.keys(tableColumn.field || {})[0] === key;
+    },
+  );
+
+  if (!column) {
+    throw new Error(`Discovery scans table column "${key}" not found`);
+  }
+
+  return column;
+}
+
+/*
+ * What the Scan column actually puts on screen for a given row. Rendered
+ * rather than inspected: the fallback that matters here is a rendering
+ * decision (name on the first line, target underneath, target ALONE when there
+ * is no name), and reading it off the element tree would pin the markup rather
+ * than what an operator sees.
+ */
+function renderScanCell(scan: Partial<NetworkDeviceDiscoveryScan>): string {
+  const column: CapturedColumn = columnNamed("name");
+
+  if (!column.getElement) {
+    throw new Error("The Scan column renders no element");
+  }
+
+  const { container } = render(
+    <MemoryRouter>
+      {column.getElement(scan as NetworkDeviceDiscoveryScan)}
+    </MemoryRouter>,
+  );
+
+  return container.textContent || "";
 }
 
 function validate(key: string, values: Record<string, unknown>): string | null {
@@ -404,5 +473,211 @@ describe("SNMP Port is bounded on the SNMP Credentials step", () => {
     expect(validate("snmpPort", { snmpPort: 161 })).toBeNull();
     expect(validate("snmpPort", { snmpPort: "" })).toBeNull();
     expect(validate("snmpPort", {})).toBeNull();
+  });
+});
+
+/*
+ * The name (issue #3391).
+ *
+ * A discovery scan was identified everywhere by its target alone, so a list of
+ * them read as a column of octet ranges with no way to tell the router sweep
+ * from the switch range. These tests pin the three places the name has to
+ * appear for that to be fixed — the wizard that collects it, the list column
+ * that shows it, and the filters that find it — plus the fallback that keeps
+ * every scan created before the column existed looking exactly as it did.
+ */
+describe("Name is collected by the wizard", () => {
+  beforeEach(() => {
+    capturedTableProps = null;
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+    jest.spyOn(ProbeUtil, "getAllProbes").mockResolvedValue([] as never);
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+    capturedTableProps = null;
+  });
+
+  test("is the first thing the wizard asks for, on the first step", async () => {
+    await renderPage();
+
+    const fields: Array<CapturedFormField> =
+      capturedTableProps?.formFields || [];
+
+    expect(fieldKeyOf(fields[0] as CapturedFormField)).toBe("name");
+    expect(fieldNamed("name").stepId).toBe(STEP_SCAN_TARGET);
+  });
+
+  /*
+   * Optional on purpose. Requiring it would put a wall in front of the
+   * operator sweeping one subnet once, which is the case the page was built
+   * for.
+   */
+  test("is optional", async () => {
+    await renderPage();
+
+    expect(fieldNamed("name").required).toBeFalsy();
+  });
+
+  test("carries the shared validator, so the form and the server agree", async () => {
+    await renderPage();
+
+    expect(typeof fieldNamed("name").customValidation).toBe("function");
+
+    for (const value of [
+      "Router Discovery - Region 1100",
+      "",
+      "   ",
+      "a".repeat(ScanNameUtil.MAX_SCAN_NAME_LENGTH + 1),
+      1100,
+    ]) {
+      expect(validate("name", { name: value })).toBe(
+        ScanNameUtil.getValidationError(value),
+      );
+    }
+  });
+
+  test("says nothing about an empty box, so Next is never blocked by it", async () => {
+    await renderPage();
+
+    expect(validate("name", {})).toBeNull();
+    expect(validate("name", { name: "" })).toBeNull();
+  });
+});
+
+describe("Name identifies the scan in the list", () => {
+  beforeEach(() => {
+    capturedTableProps = null;
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+    jest.spyOn(ProbeUtil, "getAllProbes").mockResolvedValue([] as never);
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+    capturedTableProps = null;
+  });
+
+  test("a named scan leads with its name and still shows its target", async () => {
+    await renderPage();
+
+    const cell: string = renderScanCell({
+      name: "Router Discovery - Region 1100",
+      cidr: "10.15.128.0-255",
+    });
+
+    expect(cell).toContain("Router Discovery - Region 1100");
+    expect(cell).toContain("10.15.128.0-255");
+  });
+
+  /*
+   * The case that has to keep working: every scan that existed before this
+   * column did. It reads exactly as it did before — the target, on the first
+   * line, with nothing above it.
+   */
+  test("an unnamed scan reads exactly as it did before names existed", async () => {
+    await renderPage();
+
+    expect(renderScanCell({ cidr: "10.114.167.11-38" })).toBe(
+      "10.114.167.11-38",
+    );
+    expect(renderScanCell({ name: "", cidr: "10.114.167.11-38" })).toBe(
+      "10.114.167.11-38",
+    );
+    expect(renderScanCell({ name: "   ", cidr: "10.114.167.11-38" })).toBe(
+      "10.114.167.11-38",
+    );
+  });
+
+  test("a blank name never renders as an empty line above the target", async () => {
+    await renderPage();
+
+    const cell: string = renderScanCell({
+      name: "  ",
+      cidr: "192.168.1.0/24",
+    });
+
+    expect(cell.trim()).toBe("192.168.1.0/24");
+  });
+
+  test("a stored name is tidied up on the way out, not rendered raw", async () => {
+    await renderPage();
+
+    expect(
+      renderScanCell({ name: "Router\nDiscovery", cidr: "10.0.0.0/24" }),
+    ).toContain("Router Discovery");
+  });
+
+  /*
+   * The column renders `cidr` but is keyed on `name`, so the target has to be
+   * asked for explicitly or the second line silently disappears.
+   */
+  test("the target is still fetched, because the column renders it", async () => {
+    await renderPage();
+
+    expect(capturedTableProps?.selectMoreFields?.["cidr"]).toBe(true);
+  });
+
+  test("both halves of the identity are searchable", async () => {
+    await renderPage();
+
+    const filtered: Array<string> = (capturedTableProps?.filters || []).map(
+      (filter: CapturedFilter): string => {
+        return Object.keys(filter.field || {})[0] as string;
+      },
+    );
+
+    expect(filtered).toContain("name");
+    expect(filtered).toContain("cidr");
+  });
+
+  /*
+   * A name that cannot be corrected is worse than no name: "Region 1100" on
+   * the wrong range misleads everyone who reads the list afterwards, and the
+   * only other way to fix it would be deleting the scan and its results.
+   */
+  test("a scan can be renamed after it was created", async () => {
+    await renderPage();
+
+    const actions: Array<string> = (
+      capturedTableProps?.actionButtons || []
+    ).map((button: CapturedActionButton): string => {
+      return button.title || "";
+    });
+
+    expect(actions).toContain("Rename");
+  });
+
+  /*
+   * The table is not editable, so this button is the page's only edit
+   * affordance and nothing else gates it. Offered to a reader, it would open a
+   * dialog whose one field ModelForm has already dropped for want of the
+   * update permission — a box that cannot be saved and does not say why.
+   */
+  test("renaming is offered only to someone who could save it", async () => {
+    await renderPage();
+
+    const rename: CapturedActionButton | undefined = (
+      capturedTableProps?.actionButtons || []
+    ).find((button: CapturedActionButton): boolean => {
+      return button.title === "Rename";
+    });
+
+    const scan: NetworkDeviceDiscoveryScan = {
+      cidr: "10.0.0.0/24",
+    } as NetworkDeviceDiscoveryScan;
+
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue([Permission.Viewer]);
+
+    expect(rename?.isVisible?.(scan)).toBe(false);
+
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue([Permission.ProjectAdmin]);
+
+    expect(rename?.isVisible?.(scan)).toBe(true);
   });
 });

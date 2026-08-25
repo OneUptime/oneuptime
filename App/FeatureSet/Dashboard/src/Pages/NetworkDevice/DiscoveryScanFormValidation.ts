@@ -1,6 +1,7 @@
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
+import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
 
 /*
  * Client-side validators for the "Create New Network Device Discovery Scan"
@@ -105,6 +106,35 @@ export const validateScanTarget: ScanTargetValidatorFunction = (
   }
 
   return ScanTargetUtil.getValidationError(raw.trim());
+};
+
+export type ScanNameValidatorFunction = (
+  values: FormValues<NetworkDeviceDiscoveryScan>,
+) => string | null;
+
+/*
+ * The scan's optional name (issue #3391). Delegates to the same
+ * ScanNameUtil.getValidationError the server throws with
+ * (NetworkDeviceDiscoveryScanService.onBeforeCreate / onBeforeUpdate), so the
+ * two messages are identical by construction.
+ *
+ * It exists at all for one case: length. ModelForm infers a maxLength of 100
+ * from the ShortText column and validates it — but customValidation runs LAST
+ * in Validation.validate, so whatever this returns replaces that message. A
+ * field with a custom validator and an inferred length rule that disagree is a
+ * field whose error text depends on which rule ran last, so this one owns both
+ * and says the same thing the server would.
+ *
+ * The length is measured after normalization, exactly as the server measures
+ * it — a name that is 100 characters plus a trailing newline is saved, not
+ * rejected, because the newline is about to be removed. Nothing else here is
+ * an error: the field is optional, so an empty box and a blank one are both
+ * simply "no name", and neither the form nor the server complains.
+ */
+export const validateScanName: ScanNameValidatorFunction = (
+  values: FormValues<NetworkDeviceDiscoveryScan>,
+): string | null => {
+  return ScanNameUtil.getValidationError(values.name);
 };
 
 export type RescanIntervalValidatorFunction = (

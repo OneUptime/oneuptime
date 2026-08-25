@@ -2,11 +2,13 @@ import { describe, expect, test } from "@jest/globals";
 import {
   MINIMUM_RESCAN_INTERVAL_IN_MINUTES,
   validateRescanInterval,
+  validateScanName,
   validateScanTarget,
 } from "../../FeatureSet/Dashboard/src/Pages/NetworkDevice/DiscoveryScanFormValidation";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
+import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
 
 /*
  * The client-side half of the Create Network Device Discovery Scan wizard's
@@ -36,6 +38,10 @@ type ScanTargetValues = FormValues<NetworkDeviceDiscoveryScan>;
 
 function scanTarget(value: unknown): ScanTargetValues {
   return { cidr: value } as ScanTargetValues;
+}
+
+function scanName(value: unknown): ScanTargetValues {
+  return { name: value } as ScanTargetValues;
 }
 
 function schedule(
@@ -469,5 +475,114 @@ describe("the minimum rescan interval is the one the form advertises", () => {
   test("is a whole number of minutes and at least a quarter hour", () => {
     expect(Number.isInteger(MINIMUM_RESCAN_INTERVAL_IN_MINUTES)).toBe(true);
     expect(MINIMUM_RESCAN_INTERVAL_IN_MINUTES).toBeGreaterThanOrEqual(15);
+  });
+});
+
+/*
+ * The scan's optional name (issue #3391).
+ *
+ * The field is not required and the column is nullable, so almost everything
+ * typed into it is legal — which makes the two things this validator DOES
+ * refuse worth pinning, along with the much longer list it deliberately stays
+ * silent about. Silence matters here: a validator that complained about an
+ * empty optional box would block "Next" on a step the operator has no reason
+ * to fill in.
+ */
+describe("validateScanName — says nothing about a name the operator may legitimately leave out", () => {
+  test.each([
+    ["an untouched field", undefined],
+    ["an explicitly empty field", ""],
+    ["a single space", " "],
+    ["several spaces", "     "],
+    ["a tab", "\t"],
+    ["a newline", "\n"],
+  ])("%s is accepted in silence", (_label: string, value: unknown) => {
+    expect(validateScanName(scanName(value))).toBeNull();
+  });
+
+  test("a field the operator never reached is accepted", () => {
+    expect(validateScanName({} as ScanTargetValues)).toBeNull();
+  });
+
+  test.each([
+    ["a purpose", "Router Discovery - Region 1100"],
+    ["a site name", "Switch Discovery — WB Units"],
+    ["punctuation and digits", "Region 1100 / floor 3 (v2)"],
+    ["accents", "Zürich core switches"],
+    ["a name with inner spacing", "Router    Discovery"],
+    ["a name that needs trimming", "  Router Discovery  "],
+  ])("%s is accepted", (_label: string, value: unknown) => {
+    expect(validateScanName(scanName(value))).toBeNull();
+  });
+});
+
+describe("validateScanName — refuses only what could not be stored", () => {
+  test("a name at the column width is accepted", () => {
+    expect(
+      validateScanName(scanName("a".repeat(ScanNameUtil.MAX_SCAN_NAME_LENGTH))),
+    ).toBeNull();
+  });
+
+  test("a name past the column width is refused on its own step", () => {
+    const error: string | null = validateScanName(
+      scanName("a".repeat(ScanNameUtil.MAX_SCAN_NAME_LENGTH + 1)),
+    );
+
+    expect(error).not.toBeNull();
+    expect(error).toContain(String(ScanNameUtil.MAX_SCAN_NAME_LENGTH));
+  });
+
+  /*
+   * The length is measured on what would actually be stored. A value that only
+   * exceeds the cap because of whitespace this validator's own normalization
+   * is about to remove is not an error.
+   */
+  test("a name that only exceeds the cap before trimming is accepted", () => {
+    expect(
+      validateScanName(
+        scanName(` ${"a".repeat(ScanNameUtil.MAX_SCAN_NAME_LENGTH)}  `),
+      ),
+    ).toBeNull();
+  });
+
+  /*
+   * Form values are JSONValues, so a text box is not a guarantee of a string —
+   * and this validator is shared with the server hook, which really can be
+   * handed one of these by an API client.
+   */
+  test.each([
+    ["a number", 1100],
+    ["a boolean", true],
+    ["an object", {}],
+    ["an array", []],
+  ])("%s is refused rather than coerced", (_label: string, value: unknown) => {
+    expect(validateScanName(scanName(value))).not.toBeNull();
+  });
+
+  test("nothing here throws, whatever the value", () => {
+    for (const value of [{}, [], true, 0, Symbol.iterator.toString()]) {
+      expect(() => {
+        return validateScanName(scanName(value));
+      }).not.toThrow();
+    }
+  });
+});
+
+/*
+ * The same identity assertion the scan-target validator carries: the form and
+ * the server share ONE function, so the inline error under the box and the 400
+ * from the API cannot drift into disagreeing about which names are legal.
+ */
+describe("validateScanName delegates to the rule the server enforces", () => {
+  test.each([
+    ["a legal name", "Router Discovery"],
+    ["an empty box", ""],
+    ["a blank box", "   "],
+    ["an over-long name", "a".repeat(ScanNameUtil.MAX_SCAN_NAME_LENGTH + 1)],
+    ["a non-string", 1100],
+  ])("agrees with ScanNameUtil about %s", (_label: string, value: unknown) => {
+    expect(validateScanName(scanName(value))).toBe(
+      ScanNameUtil.getValidationError(value),
+    );
   });
 });

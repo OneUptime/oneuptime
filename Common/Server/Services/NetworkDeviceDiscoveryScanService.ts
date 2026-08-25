@@ -6,6 +6,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ScanTargetUtil from "../../Utils/NetworkDiscovery/ScanTargetUtil";
+import ScanNameUtil from "../../Utils/NetworkDiscovery/ScanNameUtil";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -33,6 +34,25 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnCreate<Model>> {
     this.validateScanTarget(createBy.data.cidr);
 
+    /*
+     * The name is normalized as well as validated — collapsed onto one line,
+     * trimmed, and a blank one dropped entirely — so the column holds either a
+     * name or nothing. An empty string stored here would read as a name to
+     * every `scan.name ?` in the product and render as a blank line above the
+     * scan target. See ScanNameUtil.
+     */
+    this.validateScanName(createBy.data.name);
+
+    /*
+     * Written through a cast because `exactOptionalPropertyTypes` forbids
+     * assigning `undefined` to an optional property — and dropping a blank
+     * name is exactly that assignment. Undefined rather than null: a model
+     * instance starts with every column undefined, so this leaves the row in
+     * the state a scan created without a name would already have been in.
+     */
+    (createBy.data as unknown as Record<string, unknown>)["name"] =
+      ScanNameUtil.normalize(createBy.data.name) ?? undefined;
+
     return { createBy, carryForward: null };
   }
 
@@ -54,6 +74,27 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    /*
+     * The name IS user-updatable — renaming a scan is the whole point of
+     * letting it be named — so this path is the one the form actually takes,
+     * not just a guard against root writers.
+     *
+     * Cleared with null rather than left as "": the form sends back an empty
+     * box as an empty string, and the operator who emptied it meant "this scan
+     * has no name", which is what NULL says. `undefined` would not do — the
+     * key is present in the update, and an undefined value is a column TypeORM
+     * would try to write.
+     */
+    if (dataKeys.includes("name")) {
+      const data: Record<string, unknown> = updateBy.data as Record<
+        string,
+        unknown
+      >;
+
+      this.validateScanName(data["name"]);
+      data["name"] = ScanNameUtil.normalize(data["name"]);
+    }
+
     return { updateBy, carryForward: null };
   }
 
@@ -70,6 +111,24 @@ export class Service extends DatabaseService<Model> {
     const validationError: string | null = ScanTargetUtil.getValidationError(
       target as string,
     );
+
+    if (validationError) {
+      throw new BadDataException(validationError);
+    }
+  }
+
+  /*
+   * Same contract as validateScanTarget above: the value is passed through
+   * untouched, because it arrives straight from the request JSON and may be a
+   * number, an object or an array rather than a string. ScanNameUtil type-
+   * guards internally and reports a non-string as such.
+   *
+   * An ABSENT or blank name is not an error — the column is optional, and a
+   * scan with no name reads as it always did, by its target.
+   */
+  private validateScanName(name: unknown): void {
+    const validationError: string | null =
+      ScanNameUtil.getValidationError(name);
 
     if (validationError) {
       throw new BadDataException(validationError);
