@@ -270,13 +270,16 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
       Permission.ReadNetworkDeviceDiscoveryScan,
     ],
     /*
-     * The only updatable column on this model. Everything else describes a
-     * sweep that has already been handed to a probe — changing the target or
-     * the credentials of a scan mid-flight would mean the stored row no longer
-     * described the sweep that ran. A name describes nothing but itself, and
-     * the whole point of it is to be fixed after the fact: a scan mislabelled
-     * "Region 1100" is worse than an unnamed one, and deleting a scan to
-     * rename it would throw away its results.
+     * Updatable, unlike everything that describes the sweep itself: changing
+     * the target or the credentials of a scan mid-flight would mean the stored
+     * row no longer described the sweep that ran, so those grant no update at
+     * all. (The recurrence pair is updatable too — it describes the NEXT run
+     * rather than the one that happened.)
+     *
+     * A name describes nothing but itself, and the whole point of it is to be
+     * fixable after the fact: a scan mislabelled "Region 1100" is worse than
+     * an unnamed one, and deleting a scan to rename it would throw away its
+     * results.
      */
     update: [
       Permission.ProjectOwner,

@@ -619,8 +619,18 @@ const NetworkDeviceDiscovery: FunctionComponent<
            * cell where their name would be (issue #3391).
            */
           {
+            /*
+             * BOTH fields are declared, not just the one the column is keyed
+             * on: getExportKeysFromColumn builds the CSV row out of a column's
+             * declared fields alone (selectMoreFields never reaches it), so a
+             * column that reached `cidr` through selectMoreFields would export
+             * an EMPTY cell for every scan without a name - which is every
+             * scan that predates the column. The cell on screen would still
+             * show the target, so the loss would be silent and export-only.
+             */
             field: {
               name: true,
+              cidr: true,
             },
             title: "Scan",
             type: FieldType.Element,
@@ -797,11 +807,6 @@ const NetworkDeviceDiscovery: FunctionComponent<
           },
         ]}
         selectMoreFields={{
-          /*
-           * Rendered as the second line of the Scan column, and as the
-           * fallback first line for a scan with no name.
-           */
-          cidr: true,
           scannedHostCount: true,
           discoveredDevices: true,
           // Recurrence details rendered inside the "Recurrence" column.
@@ -867,9 +872,10 @@ const NetworkDeviceDiscovery: FunctionComponent<
       {scanToRename && (
         /*
          * One field, no steps. ModelFormModal fetches the scan, prefills the
-         * box and PATCHes just this column — the only column on the model
-         * whose ColumnAccessControl grants update, so nothing else about a
-         * sweep that has already run can be edited from here.
+         * box and PATCHes just this column. The schedule pair (isRecurring,
+         * rescanIntervalInMinutes) is updatable on the model too, but it is
+         * deliberately not offered here: this dialog answers "what is this
+         * scan called", and nothing about the sweep itself.
          */
         <ModelFormModal<NetworkDeviceDiscoveryScan>
           modelType={NetworkDeviceDiscoveryScan}

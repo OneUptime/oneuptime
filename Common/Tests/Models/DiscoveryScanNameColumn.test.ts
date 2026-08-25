@@ -12,9 +12,10 @@
  *   - OPTIONAL and un-backfilled. Every scan that already existed has no name,
  *     and a NOT NULL column (or a backfilled one) would either fail the
  *     migration or invent a name nobody wrote.
- *   - UPDATABLE, alone on this model. Every other column describes a sweep
- *     that has already been handed to a probe; a name describes nothing but
- *     itself, and a mislabelled scan is worse than an unlabelled one.
+ *   - UPDATABLE. Almost nothing on this model is: the target and the
+ *     credentials describe a sweep already handed to a probe. A name describes
+ *     nothing but itself, and a mislabelled scan is worse than an unlabelled
+ *     one, so it joins the recurrence pair as the third editable column.
  *   - NOT unique and NOT slugged. It is a label for humans, never a key: two
  *     scans of the same range may legitimately be called the same thing.
  */
@@ -207,21 +208,69 @@ describe("NetworkDeviceDiscoveryScan.name access control", () => {
   });
 
   /*
-   * The one updatable column on the model. The Rename dialog on the Discovery
-   * page depends on this list being non-empty — ModelForm drops a field whose
-   * column grants no update permission, so an empty list here would silently
-   * turn the dialog into a permission error.
+   * The Rename dialog on the Discovery page depends on this list being
+   * non-empty — ModelForm drops a field whose column grants no update
+   * permission, so an empty list here would turn the dialog into a permission
+   * error rather than a text box.
    */
-  test("is the one column a scan can be edited through", () => {
+  test("can be edited by whoever may edit the scan", () => {
     expect(
       new NetworkDeviceDiscoveryScan().getColumnAccessControlFor(COLUMN)
         ?.update,
     ).toEqual(EDITORS);
+  });
 
-    expect(
-      new NetworkDeviceDiscoveryScan().getColumnAccessControlFor("cidr")
-        ?.update,
-    ).toEqual([]);
+  /*
+   * And the sweep itself stays read-only. This is the claim worth pinning:
+   * adding an editable column must not have made anything that DESCRIBES a
+   * sweep editable with it. A target or a credential changed after a probe
+   * took the scan would leave the stored row describing a sweep that never
+   * ran, and a status or a result changed by hand would be a lie about one
+   * that did.
+   *
+   * (The recurrence pair is editable, and always was — it describes the NEXT
+   * run rather than the one that happened.)
+   */
+  test("does not make any part of the sweep editable", () => {
+    const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan();
+
+    const sweepColumns: Array<string> = [
+      "cidr",
+      "probeId",
+      "snmpVersion",
+      "snmpCommunityString",
+      "snmpPort",
+      "snmpV3SecurityLevel",
+      "snmpV3Username",
+      "snmpV3AuthProtocol",
+      "snmpV3AuthKey",
+      "snmpV3PrivProtocol",
+      "snmpV3PrivKey",
+      "status",
+      "statusMessage",
+      "discoveredDevices",
+      "scannedHostCount",
+      "respondedHostCount",
+      "startedAt",
+      "completedAt",
+      "nextScanAt",
+    ];
+
+    for (const column of sweepColumns) {
+      expect({
+        column: column,
+        update: scan.getColumnAccessControlFor(column)?.update,
+      }).toEqual({ column: column, update: [] });
+    }
+  });
+
+  // ...while the two columns that describe a future run stay editable.
+  test("leaves the recurrence pair editable, as it already was", () => {
+    const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan();
+
+    for (const column of ["isRecurring", "rescanIntervalInMinutes"]) {
+      expect(scan.getColumnAccessControlFor(column)?.update).toEqual(EDITORS);
+    }
   });
 
   /*

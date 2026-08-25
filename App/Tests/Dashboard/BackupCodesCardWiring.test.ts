@@ -797,6 +797,17 @@ describe("the destructive path cannot be reached by accident", () => {
    * regeneration; the two interleave their delete-then-insert, and the set the
    * user is shown stops matching the set the database keeps.
    */
+  /*
+   * Hoisted out of the `.test()` calls below rather than written inline:
+   * wrap-regex wants an inline literal in parens and prettier removes them
+   * again, so an inline regex here is a lint error whichever way it is
+   * written. A named constant satisfies both.
+   */
+  const DISABLED_INCLUDES_GENERATING: RegExp =
+    /disabled:\s*isStatusLoading \|\| isGenerating/;
+
+  const REPORTS_GENERATING_AS_LOADING: RegExp = /isLoading:\s*isGenerating/;
+
   test("the button is disabled while a generation is in flight", () => {
     const buttonBlock: string = backupCodesSource.slice(
       backupCodesSource.indexOf("buttons={["),
@@ -805,13 +816,13 @@ describe("the destructive path cannot be reached by accident", () => {
 
     const violations: Array<string> = [];
 
-    if (!(/disabled:\s*isStatusLoading \|\| isGenerating/).test(buttonBlock)) {
+    if (!DISABLED_INCLUDES_GENERATING.test(buttonBlock)) {
       violations.push(
         "the button's disabled prop does not include isGenerating",
       );
     }
 
-    if (!(/isLoading:\s*isGenerating/).test(buttonBlock)) {
+    if (!REPORTS_GENERATING_AS_LOADING.test(buttonBlock)) {
       violations.push("the button does not report isGenerating as isLoading");
     }
 

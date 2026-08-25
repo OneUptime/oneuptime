@@ -65,15 +65,36 @@ const INITIAL_MIGRATION_TIMESTAMP: number = 1717605043663;
  * history, not a fixable defect, and the assertions below step around it while
  * still failing for a NEW one.
  *
- * The list may only shrink: the test at the end of this describe fails if an
- * entry here is not actually duplicated in the registry, so removing one of
- * these migrations removes its entry too.
+ * The exception names the two classes, so it cannot quietly grow: a third
+ * migration on the same stamp is not one of them and fails the duplicate
+ * guard, and dropping either migration leaves the exception naming a class
+ * that is no longer registered, which fails too.
  */
-const SHIPPED_DUPLICATE_TIMESTAMPS: ReadonlyArray<number> = [1789100000000];
+const SHIPPED_DUPLICATE_MIGRATIONS: ReadonlyArray<{
+  timestamp: number;
+  classNames: ReadonlyArray<string>;
+}> = [
+  {
+    timestamp: 1789100000000,
+    classNames: [
+      "AddNetworkDeviceAutoImportRule1789100000000",
+      "AddUserTwoFactorBackupCode1789100000000",
+    ],
+  },
+];
 
-type TimestampCountsFunction = (
-  migrationClasses: Array<MigrationClass>,
-) => Map<number, number>;
+/*
+ * The exception is written as the exact pair of classes that share the stamp,
+ * not as the bare number, so it excuses those two and nothing else. Excusing
+ * the number would have excused a THIRD migration landing on it — a brand new
+ * collision, waved through by the exception made for the old one.
+ */
+const SHIPPED_DUPLICATE_TIMESTAMPS: ReadonlyArray<number> =
+  SHIPPED_DUPLICATE_MIGRATIONS.map(
+    (duplicate: { timestamp: number }): number => {
+      return duplicate.timestamp;
+    },
+  );
 
 const TIMESTAMPED_FILE: RegExp = new RegExp("^\\d+-");
 
@@ -90,24 +111,6 @@ const timestampOf: TimestampOfFunction = (
 
 const registered: Array<MigrationClass> =
   SchemaMigrations as Array<MigrationClass>;
-
-const timestampCounts: TimestampCountsFunction = (
-  migrationClasses: Array<MigrationClass>,
-): Map<number, number> => {
-  const counts: Map<number, number> = new Map<number, number>();
-
-  for (const migrationClass of migrationClasses) {
-    const timestamp: number | null = timestampOf(migrationClass);
-
-    if (timestamp === null) {
-      continue;
-    }
-
-    counts.set(timestamp, (counts.get(timestamp) || 0) + 1);
-  }
-
-  return counts;
-};
 
 describe("the migration registry", () => {
   /*
@@ -190,11 +193,35 @@ describe("the migration registry", () => {
      * entry goes with it — and nobody can quietly widen the list to wave a new
      * collision through, because a wrong entry fails right here.
      */
-    test("grandfathers only collisions that actually exist", () => {
-      const counts: Map<number, number> = timestampCounts(registered);
+    test("grandfathers exactly the collisions that exist, and no more", () => {
+      const names: Array<string> = registered.map(
+        (migrationClass: MigrationClass): string => {
+          return migrationClass.name;
+        },
+      );
 
-      for (const timestamp of SHIPPED_DUPLICATE_TIMESTAMPS) {
-        expect(counts.get(timestamp)).toBeGreaterThan(1);
+      for (const duplicate of SHIPPED_DUPLICATE_MIGRATIONS) {
+        const onThisTimestamp: Array<string> = registered
+          .filter((migrationClass: MigrationClass): boolean => {
+            return timestampOf(migrationClass) === duplicate.timestamp;
+          })
+          .map((migrationClass: MigrationClass): string => {
+            return migrationClass.name;
+          })
+          .sort();
+
+        /*
+         * Both halves matter. Naming a class that is no longer registered
+         * means the exception has outlived the collision and must go; finding
+         * a class the exception does not name means a NEW migration has
+         * landed on the shipped stamp, which is the very thing the duplicate
+         * guard exists to catch.
+         */
+        expect(onThisTimestamp).toEqual([...duplicate.classNames].sort());
+
+        for (const className of duplicate.classNames) {
+          expect(names).toContain(className);
+        }
       }
     });
 
@@ -224,8 +251,6 @@ describe("the migration registry", () => {
   test("backs every registered migration with exactly one file on disk", () => {
     const files: Array<string> = fs.readdirSync(MIGRATION_DIRECTORY);
 
-    const counts: Map<number, number> = timestampCounts(registered);
-
     const unbacked: Array<string> = registered
       .filter((migrationClass: MigrationClass): boolean => {
         const timestamp: number | null = timestampOf(migrationClass);
@@ -240,10 +265,23 @@ describe("the migration registry", () => {
          * means two — both classes are real, both have a file, and neither can
          * be renamed. See SHIPPED_DUPLICATE_TIMESTAMPS.
          */
-        const expectedFileCount: number = SHIPPED_DUPLICATE_TIMESTAMPS.includes(
-          timestamp,
-        )
-          ? counts.get(timestamp) || 1
+        const grandfathered:
+          | { timestamp: number; classNames: ReadonlyArray<string> }
+          | undefined = SHIPPED_DUPLICATE_MIGRATIONS.find(
+          (duplicate: { timestamp: number }): boolean => {
+            return duplicate.timestamp === timestamp;
+          },
+        );
+
+        /*
+         * One file per registered class, which for every timestamp but the
+         * grandfathered collision means exactly one file. For that one it
+         * means exactly as many files as the exception names — a fixed
+         * number, never the live count, so an unexpected third file on that
+         * stamp fails here rather than being counted and excused.
+         */
+        const expectedFileCount: number = grandfathered
+          ? grandfathered.classNames.length
           : 1;
 
         return (

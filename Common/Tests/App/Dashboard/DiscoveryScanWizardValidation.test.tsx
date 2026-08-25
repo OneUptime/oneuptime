@@ -610,13 +610,21 @@ describe("Name identifies the scan in the list", () => {
   });
 
   /*
-   * The column renders `cidr` but is keyed on `name`, so the target has to be
-   * asked for explicitly or the second line silently disappears.
+   * The column renders `cidr` while being keyed on `name`, so the target has
+   * to be DECLARED on the column — not merely selected alongside it. Declaring
+   * it is what fetches it for the second line AND what puts it in the CSV
+   * export, which builds its row out of a column's declared fields alone
+   * (Common/UI/Components/ModelTable/ExportFromColumns.ts). Reaching the
+   * target through selectMoreFields instead exported an empty cell for every
+   * scan without a name.
    */
-  test("the target is still fetched, because the column renders it", async () => {
+  test("the target is declared on the column, so it is fetched and exported", async () => {
     await renderPage();
 
-    expect(capturedTableProps?.selectMoreFields?.["cidr"]).toBe(true);
+    expect(Object.keys(columnNamed("name").field || {})).toEqual([
+      "name",
+      "cidr",
+    ]);
   });
 
   test("both halves of the identity are searchable", async () => {
