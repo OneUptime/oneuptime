@@ -130,7 +130,7 @@ Setzen Sie den Dienst, nach dem am häufigsten gefragt wird, ganz nach oben. Bes
 
 Eine tiefe Hierarchie von Hand zu bauen ist mühsam. Das Drei-Punkte-Menü in der Kopfzeile der Karte hat **Import groups from CSV**, das den Dialog **Import Groups from CSV** öffnet.
 
-Der Ablauf: **Download CSV Template** liefert `status-page-groups-template.csv`, Sie füllen die Datei aus, wählen **Choose CSV File** und prüfen mit **Preview Import**, was angelegt wird, bevor irgendetwas geschrieben wird. Das Ergebnis teilt sich in **Groups Imported** und **Some Groups Could Not Be Imported** – eine fehlerhafte Zeile verschwindet also nicht stillschweigend.
+Der Ablauf: **Download CSV Template** liefert `status-page-groups-template.csv`, Sie füllen die Datei aus, wählen **Choose CSV File** und prüfen mit **Preview Import**, was angelegt wird, bevor irgendetwas geschrieben wird. Anschließend führt eine **Import results**-Tabelle jede Zeile als **Created**, **Failed** oder **Skipped** samt Begründung auf – eine fehlerhafte Zeile verschwindet also nicht stillschweigend.
 
 Pflicht ist nur `name`. Akzeptiert werden diese Spalten:
 

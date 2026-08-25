@@ -29,7 +29,6 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 const getItemMock: MockFunction = getJestMockFunction();
 const createOrUpdateMock: MockFunction = getJestMockFunction();
-const showToastMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -41,18 +40,6 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       createOrUpdate: (...args: Array<any>) => {
         return createOrUpdateMock(...args);
       },
-    },
-  };
-});
-
-jest.mock("../../../UI/Components/Toast/ToastInit", () => {
-  return {
-    __esModule: true,
-    default: () => {
-      return null;
-    },
-    ShowToastNotification: (...args: Array<any>) => {
-      return showToastMock(...args);
     },
   };
 });
@@ -171,7 +158,6 @@ describe("CardModelDetail edit modal", () => {
   beforeEach(() => {
     getItemMock.mockReset();
     createOrUpdateMock.mockReset();
-    showToastMock.mockReset();
     createOrUpdateMock.mockResolvedValue({ data: {} });
   });
 
@@ -283,7 +269,7 @@ describe("CardModelDetail edit modal", () => {
     expect(submitted.model.shouldAutoEnableProbeOnNewMonitors).toBe(false);
   });
 
-  it("closes the editor without showing a toast after a successful edit", async () => {
+  it("closes the editor after a successful edit", async () => {
     getItemMock.mockResolvedValue(loadedProbe());
 
     renderProbeCard();
@@ -307,7 +293,5 @@ describe("CardModelDetail edit modal", () => {
       },
       { timeout: WAIT_TIMEOUT },
     );
-
-    expect(showToastMock).not.toHaveBeenCalled();
   });
 });

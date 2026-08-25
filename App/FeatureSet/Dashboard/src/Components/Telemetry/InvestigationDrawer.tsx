@@ -64,8 +64,6 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ObjectID from "Common/Types/ObjectID";
 import ProjectUtil from "Common/UI/Utils/Project";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { ShowToastNotification } from "Common/UI/Components/Toast/ToastInit";
-import { ToastType } from "Common/UI/Components/Toast/Toast";
 
 export interface ComponentProps {
   /** What the user is investigating, e.g. `CPU by host · 12:01–12:14`. */
@@ -314,9 +312,16 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
     useState<Array<Incident> | null>(null);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string>("");
   const [isSavingNote, setIsSavingNote] = useState<boolean>(false);
+  /*
+   * Saving the note either closes the picker (success) or leaves it open
+   * carrying the reason it failed — the picker is the only place the user
+   * is looking when they press Save.
+   */
+  const [saveNoteError, setSaveNoteError] = useState<string>("");
 
   const openIncidentPicker: VoidFunction = (): void => {
     setIsIncidentPickerOpen(true);
+    setSaveNoteError("");
     if (recentIncidents !== null) {
       return;
     }
@@ -355,6 +360,7 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
       return;
     }
     setIsSavingNote(true);
+    setSaveNoteError("");
 
     const note: IncidentInternalNote = new IncidentInternalNote();
     note.projectId = projectId;
@@ -370,20 +376,12 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
       modelType: IncidentInternalNote,
     })
       .then(() => {
-        ShowToastNotification({
-          title: "Investigation pinned",
-          description:
-            "The snapshot was added to the incident as a private note.",
-          type: ToastType.SUCCESS,
-        });
         setIsIncidentPickerOpen(false);
       })
       .catch(() => {
-        ShowToastNotification({
-          title: "Could not save the note",
-          description: "The incident note API rejected the request.",
-          type: ToastType.DANGER,
-        });
+        setSaveNoteError(
+          "Could not save the note — the incident note API rejected the request.",
+        );
       })
       .finally(() => {
         setIsSavingNote(false);
@@ -563,6 +561,14 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
                 >
                   Cancel
                 </button>
+                {saveNoteError ? (
+                  <p
+                    role="alert"
+                    className="w-full text-xs font-medium text-red-600"
+                  >
+                    {saveNoteError}
+                  </p>
+                ) : null}
               </div>
             ) : null}
           </div>

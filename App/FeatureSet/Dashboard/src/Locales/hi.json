@@ -2485,7 +2485,6 @@
   "Error Details": "त्रुटि विवरण",
   "Error message from script execution.": "स्क्रिप्ट निष्पादन से त्रुटि संदेश।",
   "Error rate": "त्रुटि दर",
-  "Error Saving Timezone": "टाइमज़ोन सहेजने में त्रुटि",
   "Errors importing network policies. Non-zero values indicate misconfigured policies.": "नेटवर्क नीतियों को आयात करने में त्रुटियां। गैर-शून्य मान गलत कॉन्फ़िगर की गई नीतियों को दर्शाते हैं।",
   "Errors in checkout": "चेकआउट में त्रुटियां",
   "Errors when forwarding DNS queries upstream. Indicates upstream DNS problems.": "DNS क्वेरीज़ को अपस्ट्रीम अग्रेषित करते समय त्रुटियां। अपस्ट्रीम DNS समस्याओं को दर्शाता है।",

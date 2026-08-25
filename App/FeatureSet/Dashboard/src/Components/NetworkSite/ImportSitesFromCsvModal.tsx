@@ -28,8 +28,6 @@ import ProgressBar, {
   ProgressBarSize,
 } from "Common/UI/Components/ProgressBar/ProgressBar";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
-import { ToastType } from "Common/UI/Components/Toast/Toast";
-import { ShowToastNotification } from "Common/UI/Components/Toast/ToastInit";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -290,29 +288,12 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
 
       setHasImported(true);
 
+      /*
+       * Per-row outcomes stay on the result table the modal keeps open;
+       * only the parent needs telling that something was created.
+       */
       if (summary.createdCount > 0) {
-        ShowToastNotification({
-          title: "Sites Imported",
-          description: `${summary.createdCount} network site${
-            summary.createdCount === 1 ? "" : "s"
-          } imported successfully.`,
-          type: ToastType.SUCCESS,
-        });
-
         props.onImportComplete();
-      }
-
-      const notCreatedCount: number =
-        summary.failedCount + summary.skippedCount;
-
-      if (notCreatedCount > 0) {
-        ShowToastNotification({
-          title: "Some Sites Could Not Be Imported",
-          description: `${notCreatedCount} row${
-            notCreatedCount === 1 ? "" : "s"
-          } failed or were skipped.`,
-          type: ToastType.DANGER,
-        });
       }
     } catch (err) {
       setImportError(API.getFriendlyMessage(err));

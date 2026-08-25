@@ -18,7 +18,7 @@ import path from "path";
  *
  * The invariant being defended: page chrome < SideOver < app-wide overlays.
  * Break any side of it and the panel either hides under a toolbar again, or
- * starts hiding toasts and modals.
+ * starts hiding the AI drawer and modals.
  */
 
 const APP_ROOT: string = path.join(__dirname, "..", "..");
@@ -152,23 +152,15 @@ describe("network topology detail panel layering", () => {
 
   test("the panel stays under the overlays that are mounted ahead of the page", () => {
     /*
-     * Toast and the AI chat panel are rendered in App.tsx BEFORE the routed
-     * page, so an equal z-index would be broken in the panel's favour by
-     * document order and they would vanish behind it. They have to be strictly
-     * higher, not merely equal.
+     * The AI chat panel is rendered in App.tsx BEFORE the routed page, so an
+     * equal z-index would be broken in the panel's favour by document order
+     * and the drawer would vanish behind it. It has to be strictly higher,
+     * not merely equal.
      */
-    const toast: number = highestZIndexIn(
-      /*
-       * The fixed z-40 toast region lives on the ONE stacking container in
-       * ToastInit.tsx; Toast.tsx is just the card and declares no z-index.
-       */
-      readCommonCode("UI", "Components", "Toast", "ToastInit.tsx"),
-    );
     const aiChatPanel: number = highestZIndexIn(
       readAppCode("Components", "AIChat", "AIChatPanel.tsx"),
     );
 
-    expect(toast).toBeGreaterThan(sideOverZIndex());
     expect(aiChatPanel).toBeGreaterThan(sideOverZIndex());
   });
 

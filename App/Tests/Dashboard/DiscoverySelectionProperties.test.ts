@@ -621,7 +621,7 @@ describe("what pressing Import can possibly do, over every generated scan", () =
      * The expensive failure in #3322 lives here: the dialog opens fully
      * pre-checked, so anything that lets Import reach past the active filter
      * creates the thousands of devices the operator just filtered away — and
-     * the toast still says it worked. Being a SUBSEQUENCE rather than merely a
+     * the dialog still says it worked. Being a SUBSEQUENCE rather than merely a
      * subset also pins that the import runs in scan order, and uniqueness pins
      * that one checkbox creates one device however many rows the probe reported
      * for that address.
@@ -693,7 +693,7 @@ describe("what pressing Import can possibly do, over every generated scan", () =
     /*
      * Monotonicity. A checkbox is the one control here an operator uses without
      * thinking, so it has to be local: ticking a host must never drop an
-     * unrelated device out of the import — silent data loss the toast still
+     * unrelated device out of the import — silent data loss the dialog still
      * reports as success — and unticking must never pull one in.
      */
     expect(

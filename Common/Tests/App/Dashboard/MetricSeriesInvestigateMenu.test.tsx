@@ -49,7 +49,6 @@ jest.mock("recharts", () => {
 
 const getListMock: MockFunction = getJestMockFunction();
 const fetchExemplarsMock: MockFunction = getJestMockFunction();
-const showToastMock: MockFunction = getJestMockFunction();
 
 /*
  * The arrow wrappers are load bearing: jest.mock is hoisted above the
@@ -64,15 +63,6 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getList: (...args: Array<any>) => {
         return getListMock(...args);
       },
-    },
-  };
-});
-
-jest.mock("../../../UI/Components/Toast/ToastInit", () => {
-  return {
-    __esModule: true,
-    ShowToastNotification: (...args: Array<any>) => {
-      return showToastMock(...args);
     },
   };
 });
@@ -188,7 +178,6 @@ let navigateSpy: ReturnType<typeof jest.spyOn>;
 beforeEach(() => {
   getListMock.mockReset();
   fetchExemplarsMock.mockReset();
-  showToastMock.mockReset();
   navigateSpy = jest.spyOn(Navigation, "navigate").mockImplementation(() => {
     return undefined;
   });
@@ -298,7 +287,7 @@ describe("per-series investigate menu", () => {
     expect(url).toContain("end=");
   });
 
-  test("View exceptions reports what the exceptions grammar cannot carry", async () => {
+  test("View exceptions pivots to the unresolved exceptions list", async () => {
     render(
       <MetricCharts
         metricViewData={buildViewData()}
@@ -314,11 +303,13 @@ describe("per-series investigate menu", () => {
       expect(navigateSpy).toHaveBeenCalled();
     });
 
+    /*
+     * The host.name narrowing has no exceptions facet, so it is dropped and
+     * the list opens on the window alone rather than on nothing.
+     */
     const url: string = getNavigatedUrl();
     expect(url).toContain("/exceptions");
     expect(url).toContain("status=all");
-    // The host.name narrowing has no exceptions facet — the user is told.
-    expect(showToastMock).toHaveBeenCalled();
   });
 
   test("the host series jumps to the matching Host page", async () => {

@@ -130,7 +130,7 @@
 
 手工搭一棵很深的层级树很磨人。卡片头部的三点溢出菜单里有 **Import groups from CSV**，它会打开 **Import Groups from CSV** 弹窗。
 
-流程是：**Download CSV Template** 拿到 `status-page-groups-template.csv`，填好，**Choose CSV File**，然后 **Preview Import** 在真正写入之前先核对会创建些什么。结果会分成 **Groups Imported** 和 **Some Groups Could Not Be Imported** 两部分，所以坏掉的那一行不会悄无声息地消失。
+流程是：**Download CSV Template** 拿到 `status-page-groups-template.csv`，填好，**Choose CSV File**，然后 **Preview Import** 在真正写入之前先核对会创建些什么。随后 **Import results** 表格会把每一行标为 **Created**、**Failed** 或 **Skipped** 并附上原因，所以坏掉的那一行不会悄无声息地消失。
 
 只有 `name` 是必填的。可接受的列如下：
 

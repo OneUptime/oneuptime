@@ -2485,7 +2485,6 @@
   "Error Details": "Fejldetaljer",
   "Error message from script execution.": "Fejlmeddelelse fra scriptudførelse.",
   "Error rate": "Fejlrate",
-  "Error Saving Timezone": "Fejl ved lagring af tidszone",
   "Errors importing network policies. Non-zero values indicate misconfigured policies.": "Fejl ved import af netværkspolitikker. Værdier forskellige fra nul indikerer fejlkonfigurerede politikker.",
   "Errors in checkout": "Fejl i kassen",
   "Errors when forwarding DNS queries upstream. Indicates upstream DNS problems.": "Fejl ved videresendelse af DNS-forespørgsler opstrøms. Indikerer opstrøms DNS-problemer.",

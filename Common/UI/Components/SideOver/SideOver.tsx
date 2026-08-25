@@ -150,11 +150,11 @@ const SideOver: FunctionComponent<ComponentProps> = (
     /*
      * z-30 clears every tier of page chrome (sticky headers and table headers
      * at z-10/z-20, map and log-viewer toolbars at z-20) while staying under
-     * the app-wide overlays that must remain visible over a panel: Toast and
-     * the AI chat panel at z-40, Modal at z-50, portalled dropdown menus at
-     * z-60. Deliberately NOT z-40 — Toast and AIChatPanel are mounted ahead of
-     * the routed page in App.tsx, so an equal z-index would be broken in this
-     * panel's favour by document order and toasts would disappear behind it.
+     * the app-wide overlays that must remain visible over a panel: the AI chat
+     * panel at z-40, Modal at z-50, portalled dropdown menus at z-60.
+     * Deliberately NOT z-40 — AIChatPanel is mounted ahead of the routed page
+     * in App.tsx, so an equal z-index would be broken in this panel's favour
+     * by document order and the AI drawer would disappear behind it.
      *
      * role="dialog" without aria-modal, because the panel genuinely is not
      * modal: everything outside it stays clickable by design (both topology

@@ -2485,7 +2485,6 @@
   "Error Details": "Сведения об ошибке",
   "Error message from script execution.": "Сообщение об ошибке от выполнения скрипта.",
   "Error rate": "Частота ошибок",
-  "Error Saving Timezone": "Ошибка сохранения часового пояса",
   "Errors importing network policies. Non-zero values indicate misconfigured policies.": "Ошибки при импорте сетевых политик. Ненулевые значения указывают на неправильно настроенные политики.",
   "Errors in checkout": "Ошибки при оформлении заказа",
   "Errors when forwarding DNS queries upstream. Indicates upstream DNS problems.": "Ошибки при пересылке DNS-запросов вышестоящему серверу. Указывают на проблемы вышестоящего DNS.",

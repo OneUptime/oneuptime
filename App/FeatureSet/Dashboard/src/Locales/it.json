@@ -2485,7 +2485,6 @@
   "Error Details": "Dettagli errore",
   "Error message from script execution.": "Messaggio di errore dall'esecuzione dello script.",
   "Error rate": "Tasso di errore",
-  "Error Saving Timezone": "Errore durante il salvataggio del fuso orario",
   "Errors importing network policies. Non-zero values indicate misconfigured policies.": "Errori nell'importazione delle policy di rete. I valori diversi da zero indicano policy configurate in modo errato.",
   "Errors in checkout": "Errori nel checkout",
   "Errors when forwarding DNS queries upstream. Indicates upstream DNS problems.": "Errori durante l'inoltro delle query DNS a monte. Indica problemi DNS a monte.",

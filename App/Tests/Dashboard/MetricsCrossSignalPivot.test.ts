@@ -759,8 +759,6 @@ describe("metrics cross-signal pivot wiring", () => {
     expect(source).toContain("buildMetricExplorerPivotParams");
     expect(source).toContain("resolveServiceIdsByNames");
     expect(source).toContain("extractScopeFiltersFromQueryConfigs");
-    expect(source).toContain("formatDroppedScopeHint");
-    expect(source).toContain("ShowToastNotification");
     expect(source).not.toContain("window-only — no filter mapping");
   });
 

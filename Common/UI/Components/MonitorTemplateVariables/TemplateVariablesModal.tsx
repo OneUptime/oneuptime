@@ -32,8 +32,8 @@ export interface ComponentProps {
  * that scales when a user groups by many attributes.
  *
  * Click a variable to copy `{{var}}` to the clipboard; the chip flips
- * to a "Copied" state briefly so the user gets feedback without a
- * toast.
+ * to a "Copied" state briefly so the feedback lands on the thing that
+ * was clicked.
  */
 const TemplateVariablesModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

@@ -2485,7 +2485,6 @@
   "Error Details": "错误详情",
   "Error message from script execution.": "脚本执行的错误消息。",
   "Error rate": "错误率",
-  "Error Saving Timezone": "保存时区时出错",
   "Errors importing network policies. Non-zero values indicate misconfigured policies.": "导入网络策略时出错。非零值表示策略配置错误。",
   "Errors in checkout": "结账时出错",
   "Errors when forwarding DNS queries upstream. Indicates upstream DNS problems.": "向上游转发 DNS 查询时出错。表示上游 DNS 存在问题。",

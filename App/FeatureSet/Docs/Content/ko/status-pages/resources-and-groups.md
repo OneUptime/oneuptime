@@ -130,7 +130,7 @@
 
 깊은 계층을 손으로 만드는 일은 지루합니다. 카드 헤더의 점 세 개 오버플로에 있는 **Import groups from CSV**가 **Import Groups from CSV** 모달을 엽니다.
 
-흐름은 이렇습니다. **Download CSV Template**으로 `status-page-groups-template.csv`를 받고, 내용을 채우고, **Choose CSV File**로 고른 다음, 아무것도 기록되기 전에 **Preview Import**로 무엇이 생성될지 확인합니다. 결과는 **Groups Imported**와 **Some Groups Could Not Be Imported**로 나뉘므로, 잘못된 행이 소리 없이 사라지지 않습니다.
+흐름은 이렇습니다. **Download CSV Template**으로 `status-page-groups-template.csv`를 받고, 내용을 채우고, **Choose CSV File**로 고른 다음, 아무것도 기록되기 전에 **Preview Import**로 무엇이 생성될지 확인합니다. 그다음 **Import results** 표가 각 행을 **Created**, **Failed**, **Skipped** 중 하나로 이유와 함께 보여 주므로, 잘못된 행이 소리 없이 사라지지 않습니다.
 
 필수는 `name`뿐입니다. 허용되는 열은 다음과 같습니다.
 

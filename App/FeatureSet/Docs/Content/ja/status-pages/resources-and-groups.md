@@ -130,7 +130,7 @@
 
 深い階層を手で作るのは骨が折れます。カードヘッダーの三点リーダーのオーバーフローにある **Import groups from CSV** から、**Import Groups from CSV** のモーダルが開きます。
 
-流れはこうです。**Download CSV Template** で `status-page-groups-template.csv` を取得し、記入してから **Choose CSV File**、そして **Preview Import** で、何も書き込まれる前に作成される内容を確認します。結果は **Groups Imported** と **Some Groups Could Not Be Imported** に分かれるので、不正な行が黙って消えることはありません。
+流れはこうです。**Download CSV Template** で `status-page-groups-template.csv` を取得し、記入してから **Choose CSV File**、そして **Preview Import** で、何も書き込まれる前に作成される内容を確認します。その後、**Import results** テーブルが各行を **Created**、**Failed**、**Skipped** のいずれかとして理由付きで一覧表示するので、不正な行が黙って消えることはありません。
 
 必須なのは `name` だけです。受け付ける列は次のとおりです。
 

@@ -1,4 +1,3 @@
-import ToastLayout from "Common/UI/Components/Toast/ToastInit";
 import AIChatPanel from "./Components/AIChat/AIChatPanel";
 import DashboardCommandPalette from "./Components/CommandPalette/DashboardCommandPalette";
 import MasterPage from "./Components/MasterPage/MasterPage";
@@ -377,7 +376,6 @@ const App: () => JSX.Element = () => {
       hideNavBarOn={[RouteMap[PageMap.PROJECT_SSO]!]}
     >
       <UseTimezoneInitElement />
-      <ToastLayout />
       <AIChatPanel />
       <DashboardCommandPalette />
       {/*

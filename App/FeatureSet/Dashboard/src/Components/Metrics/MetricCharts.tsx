@@ -70,7 +70,6 @@ import {
   buildExemplarLogsPivotParams,
   buildMetricExplorerPivotParams,
   extractScopeFiltersFromQueryConfigs,
-  formatDroppedScopeHint,
   getExemplarTraceQueryParams,
   resolveServiceIdsByNames,
 } from "../../Utils/MetricsCrossSignalPivot";
@@ -87,8 +86,6 @@ import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
 import { PREVIOUS_PERIOD_SERIES_SUFFIX } from "Common/UI/Components/Charts/ChartLibrary/Utils/TooltipEntries";
 import InvestigationDrawer from "../Telemetry/InvestigationDrawer";
 import ExplorerLink from "./Utils/ExplorerLink";
-import { ShowToastNotification } from "Common/UI/Components/Toast/ToastInit";
-import { ToastType } from "Common/UI/Components/Toast/Toast";
 import TimeRange from "Common/Types/Time/TimeRange";
 import {
   DictionaryEntryValue,
@@ -1893,26 +1890,12 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     return { serviceIdsByName, serviceIds };
   };
 
-  const showDroppedScopeToast: (dropped: Array<string>) => void = (
-    dropped: Array<string>,
-  ): void => {
-    const droppedHint: string = formatDroppedScopeHint(dropped);
-    if (droppedHint) {
-      ShowToastNotification({
-        title: "Some filters were not carried over",
-        description: droppedHint,
-        type: ToastType.INFO,
-      });
-    }
-  };
-
   /*
    * SPA navigation with query params. Navigation.navigate(URL) is a full
-   * page load (window.location.href), which destroys the dropped-scope
-   * toast the instant it is shown — a Route goes through the router hook
-   * instead, so the toast survives into the target page. Values are
-   * pre-encoded because Route.addQueryParams concatenates verbatim; "~"
-   * is escaped by hand because encodeURIComponent leaves it alone and
+   * page load (window.location.href), which throws away the router state
+   * on every pivot — a Route goes through the router hook instead. Values
+   * are pre-encoded because Route.addQueryParams concatenates verbatim;
+   * "~" is escaped by hand because encodeURIComponent leaves it alone and
    * Route's character whitelist rejects it.
    */
   const navigateWithQueryParams: (
@@ -1971,7 +1954,6 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         serviceIdsByName,
       });
 
-      showDroppedScopeToast(pivot.dropped);
       navigateWithQueryParams(pageMap, pivot.params);
     } catch {
       // Degraded pivot: land on the target explorer in the chart's window.
@@ -1994,7 +1976,6 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         serviceIds,
       });
 
-      showDroppedScopeToast(pivot.dropped);
       navigateWithQueryParams(PageMap.EXCEPTIONS_UNRESOLVED, pivot.params);
     } catch {
       // Window-only fallback, same shape as the logs/traces catch above.
@@ -2008,28 +1989,14 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
   const openSeriesInExplorer: (menuState: SeriesMenuState) => void = (
     menuState: SeriesMenuState,
   ): void => {
-    const { scopedViewData, seriesLabels }: SeriesScopedViewData =
-      getScopedViewDataForSeries(menuState);
-
     /*
-     * An "(unset)" label narrows via the is-empty operator (IsNull),
-     * which the explorer URL grammar cannot carry (attributes serialize
-     * as string/number/boolean only) — say so instead of silently
-     * opening a wider view than the menu promised.
+     * An "(unset)" label narrows via the is-empty operator (IsNull), which
+     * the explorer URL grammar cannot carry (attributes serialize as
+     * string/number/boolean only), so the opened view is wider than the
+     * menu promised for that one case.
      */
-    const hasUnsetLabel: boolean = Object.values(seriesLabels).some(
-      (labelValue: unknown): boolean => {
-        return labelValue === "";
-      },
-    );
-    if (hasUnsetLabel) {
-      ShowToastNotification({
-        title: "Some filters were not carried over",
-        description:
-          'The "(unset)" narrowing cannot be expressed in an explorer link, so the opened view includes every value of that attribute.',
-        type: ToastType.INFO,
-      });
-    }
+    const { scopedViewData }: SeriesScopedViewData =
+      getScopedViewDataForSeries(menuState);
 
     ExplorerLink.openInExplorer(scopedViewData);
   };
@@ -2057,11 +2024,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     };
 
     if (!modelId) {
-      ShowToastNotification({
-        title: "No matching resource",
-        description: `Nothing in this project matches "${target.attributeValue}".`,
-        type: ToastType.INFO,
-      });
+      // Nothing in this project matches the series label — stay put.
       return;
     }
 
@@ -2073,11 +2036,6 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       Navigation.navigate(route);
     } catch {
       // Unroutable id (route path chars) — leave the user where they are.
-      ShowToastNotification({
-        title: "No matching resource",
-        description: `Nothing in this project matches "${target.attributeValue}".`,
-        type: ToastType.INFO,
-      });
     }
   };
 
@@ -3506,7 +3464,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                     onClick={() => {
                       closeSeriesMenu();
                       openSeriesResource(target).catch(() => {
-                        // Resolution failures surface their own toast.
+                        // Resolution failures leave the user where they are.
                       });
                     }}
                   />

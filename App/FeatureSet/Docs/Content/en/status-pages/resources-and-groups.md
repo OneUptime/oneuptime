@@ -130,7 +130,7 @@ Put your most-asked-about service at the top. Visitors who came to the page duri
 
 Building a deep hierarchy by hand is tedious. The three-dot overflow in the card header has **Import groups from CSV**, which opens the **Import Groups from CSV** modal.
 
-The flow is: **Download CSV Template** to get `status-page-groups-template.csv`, fill it in, **Choose CSV File**, then **Preview Import** to check what will be created before anything is written. The result splits into **Groups Imported** and **Some Groups Could Not Be Imported**, so a bad row doesn't silently vanish.
+The flow is: **Download CSV Template** to get `status-page-groups-template.csv`, fill it in, **Choose CSV File**, then **Preview Import** to check what will be created before anything is written. An **Import results** table then lists every row as **Created**, **Failed** or **Skipped** along with the reason, so a bad row doesn't silently vanish.
 
 Only `name` is required. The accepted columns are:
 

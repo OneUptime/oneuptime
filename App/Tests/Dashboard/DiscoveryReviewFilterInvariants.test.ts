@@ -15,7 +15,7 @@ import path from "path";
  *   "simplifies" it back to filtering `selectedIps` inline, as it did before —
  *   then narrowing to SNMP and pressing Import silently creates the thousands
  *   of ping-only devices the operator just filtered away. Nothing throws. The
- *   toast even says it succeeded.
+ *   dialog even says it succeeded.
  *
  * Its twin: the count on the submit button has to be computed the same way, or
  * the button promises one number and the press does another.
