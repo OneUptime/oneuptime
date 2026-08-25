@@ -301,6 +301,46 @@ describe("CorrelateFilterBuilder", () => {
     expect(screen.queryByText("starts with")).toBeNull();
   });
 
+  test("event class renders a free-text autocomplete seeded with the OCSF class names", () => {
+    const onChangeSpy: MockFunction = renderHarness([
+      {
+        field: CorrelationFieldKey.EventClass,
+        operator: CorrelationOperator.Equals,
+        value: "",
+      },
+    ]);
+
+    /*
+     * Event Class is suggestions-not-dropdown on purpose: classes outside
+     * the curated OCSF table keep source-derived names, so the value must
+     * stay free text — an AutocompleteTextInput (a real INPUT that types
+     * freely; it also exposes role=combobox for its suggestion menu, so
+     * the row carries three comboboxes).
+     */
+    expect(rowComboboxes(0)).toHaveLength(3);
+    const valueInput: HTMLElement = screen.getByTestId(
+      "correlate-condition-value-0",
+    );
+    expect(valueInput.tagName).toBe("INPUT");
+    expect(valueInput).toHaveAttribute("placeholder", "Authentication");
+
+    fireEvent.change(valueInput, { target: { value: "Auth" } });
+    expect(onChangeSpy).toHaveBeenLastCalledWith(
+      [
+        {
+          field: CorrelationFieldKey.EventClass,
+          operator: CorrelationOperator.Equals,
+          value: "Auth",
+        },
+      ],
+      "and",
+    );
+
+    // Typing surfaces the matching curated suggestion.
+    fireEvent.focus(valueInput);
+    expect(screen.getByText("Authentication")).toBeInTheDocument();
+  });
+
   test("message field starts on its first operator (contains) and offers no equality", () => {
     renderHarness([
       {

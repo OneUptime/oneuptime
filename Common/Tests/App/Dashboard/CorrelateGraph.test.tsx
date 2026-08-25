@@ -688,4 +688,178 @@ describe("CorrelateGraph", () => {
       expect(screen.getByText(/ClickHouse is down/)).toBeInTheDocument();
     });
   });
+
+  test("changing the time range refetches with the new window and syncs the URL", async () => {
+    getListMock.mockResolvedValue(
+      listResult([
+        buildEvent({
+          id: "22222222-2222-4222-8222-222222222222",
+          className: "Authentication",
+          observables: ["wb-ubuntu-03"],
+        }),
+      ]),
+    );
+
+    render(<CorrelateGraph />);
+    runQuickSearch("wb-ubuntu-03");
+    await waitFor(() => {
+      expect(getListMock).toHaveBeenCalledTimes(1);
+    });
+
+    const timeRangeCombobox: HTMLElement = within(
+      screen.getByTestId("security-events-correlate-time-range"),
+    ).getByRole("combobox");
+    fireEvent.keyDown(timeRangeCombobox, { key: "ArrowDown" });
+    const option: HTMLElement = screen.getByText("Last 7 days");
+    fireEvent.mouseDown(option);
+    fireEvent.click(option);
+
+    await waitFor(() => {
+      expect(getListMock).toHaveBeenCalledTimes(2);
+    });
+    const timeWindow: InBetween<Date> = queryOfCall(1)[
+      "time"
+    ] as InBetween<Date>;
+    const windowMs: number =
+      new Date(timeWindow.endValue).getTime() -
+      new Date(timeWindow.startValue).getTime();
+    expect(Math.round(windowMs / (1000 * 60 * 60))).toBe(168);
+    expect(setQueryStringMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ hours: "168" }),
+    );
+  });
+
+  test.each<[string]>([["999"], ["abc"], ["-5"]])(
+    "an invalid ?hours=%s falls back to the 24-hour default",
+    async (rawHours: string) => {
+      mockQueryParams["observable"] = "wb-ubuntu-03";
+      mockQueryParams["hours"] = rawHours;
+
+      render(<CorrelateGraph />);
+      await waitFor(() => {
+        expect(getListMock).toHaveBeenCalledTimes(1);
+      });
+
+      const timeWindow: InBetween<Date> = queryOfCall(0)[
+        "time"
+      ] as InBetween<Date>;
+      const windowMs: number =
+        new Date(timeWindow.endValue).getTime() -
+        new Date(timeWindow.startValue).getTime();
+      expect(Math.round(windowMs / (1000 * 60 * 60))).toBe(24);
+    },
+  );
+
+  test("OR mode hides the Exclude pivot and the drill-down class filter", async () => {
+    const filter: CorrelationFilter = {
+      conditions: [
+        { field: "observable", operator: "equals", value: "wb-ubuntu-03" },
+        { field: "observable", operator: "equals", value: "192.168.1.20" },
+      ],
+      connector: "or",
+    } as CorrelationFilter;
+    mockQueryParams["q"] = serializeCorrelationFilter(filter);
+
+    getListMock.mockResolvedValue(
+      listResult([
+        buildEvent({
+          id: "22222222-2222-4222-8222-222222222222",
+          className: "Authentication",
+          observables: ["wb-ubuntu-03", "alice"],
+        }),
+      ]),
+    );
+
+    render(<CorrelateGraph />);
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("flow-node-observable:alice"),
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId("flow-node-observable:alice"));
+    expect(
+      screen.getByTestId("correlate-observable-actions"),
+    ).toBeInTheDocument();
+    // "is not X" only narrows under AND — the pivot hides in OR mode.
+    expect(screen.queryByTestId("correlate-action-exclude")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("flow-node-class:Authentication"));
+    expect(screen.getByTestId("correlate-drilldown")).toBeInTheDocument();
+    expect(screen.queryByTestId("correlate-drilldown-filter-class")).toBeNull();
+  });
+
+  test("the drill-down's Filter-to-this-class appends a className condition in AND mode", async () => {
+    getListMock.mockResolvedValue(
+      listResult([
+        buildEvent({
+          id: "22222222-2222-4222-8222-222222222222",
+          className: "Authentication",
+          observables: ["wb-ubuntu-03"],
+        }),
+      ]),
+    );
+
+    render(<CorrelateGraph />);
+    runQuickSearch("wb-ubuntu-03");
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("flow-node-class:Authentication"),
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId("flow-node-class:Authentication"));
+    fireEvent.click(screen.getByTestId("correlate-drilldown-filter-class"));
+
+    await waitFor(() => {
+      expect(getListMock).toHaveBeenCalledTimes(2);
+    });
+    const query: QueryRecord = queryOfCall(1);
+    expect((query["observables"] as Includes).values).toEqual(["wb-ubuntu-03"]);
+    expect(query["className"]).toBe("Authentication");
+  });
+
+  test("Correlate stays disabled while a builder row has no value", () => {
+    render(<CorrelateGraph />);
+
+    // Open the builder — it seeds one default (empty-valued) row.
+    fireEvent.click(
+      screen.getByTestId("security-events-correlate-toggle-builder"),
+    );
+    expect(screen.getByTestId("correlate-filter-builder")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("security-events-correlate-button"),
+    ).toBeDisabled();
+
+    fireEvent.change(screen.getByTestId("correlate-condition-value-0"), {
+      target: { value: "wb-ubuntu-03" },
+    });
+    expect(
+      screen.getByTestId("security-events-correlate-button"),
+    ).not.toBeDisabled();
+  });
+
+  test("opening the builder seeds it from freshly typed (unapplied) quick text", async () => {
+    getListMock.mockResolvedValue(listResult([]));
+
+    render(<CorrelateGraph />);
+    // Apply one search, then type something NEW without applying it.
+    runQuickSearch("wb-ubuntu-03");
+    await waitFor(() => {
+      expect(getListMock).toHaveBeenCalledTimes(1);
+    });
+    fireEvent.change(
+      screen.getByTestId("security-events-correlate-observable"),
+      { target: { value: "freshly-typed" } },
+    );
+
+    fireEvent.click(
+      screen.getByTestId("security-events-correlate-toggle-builder"),
+    );
+
+    // The new text wins over the stale draft from the applied search.
+    expect(screen.getByTestId("correlate-condition-value-0")).toHaveValue(
+      "freshly-typed",
+    );
+  });
 });

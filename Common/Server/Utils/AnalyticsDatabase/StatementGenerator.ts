@@ -5,7 +5,12 @@ import Select from "../../Types/AnalyticsDatabase/Select";
 import Sort from "../../Types/AnalyticsDatabase/Sort";
 import UpdateBy from "../../Types/AnalyticsDatabase/UpdateBy";
 import logger from "../Logger";
-import { QualifiedColumn, SQL, Statement } from "./Statement";
+import {
+  QualifiedColumn,
+  SQL,
+  Statement,
+  escapeIlikePattern,
+} from "./Statement";
 import {
   adaptTableSettingsForStorage,
   getDistributedEngine,
@@ -42,6 +47,7 @@ import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import NotContains from "../../../Types/BaseDatabase/NotContains";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import QueryOperator from "../../../Types/BaseDatabase/QueryOperator";
+import GenericObject from "../../../Types/GenericObject";
 import Search from "../../../Types/BaseDatabase/Search";
 import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
 import StartsWith from "../../../Types/BaseDatabase/StartsWith";
@@ -109,6 +115,28 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     this.modelType = data.modelType;
     this.model = new this.modelType();
     this.database = data.database;
+  }
+
+  /*
+   * Map(String,String) and JSON columns have per-sub-key handling further
+   * down the operator chain; a scalar operator applied to the whole column
+   * would compile to SQL ClickHouse rejects with a cryptic type error.
+   * Fail with the same loud BadDataException the fallback uses.
+   */
+  private throwIfMapOrJsonColumn(input: {
+    operator: QueryOperator<GenericObject | number | string>;
+    tableColumn: AnalyticsTableColumn;
+    key: string;
+  }): void {
+    if (
+      input.tableColumn.type === TableColumnType.MapStringString ||
+      input.tableColumn.type === TableColumnType.JSON ||
+      input.tableColumn.type === TableColumnType.JSONArray
+    ) {
+      throw new BadDataException(
+        `Unsupported query operator ${input.operator.constructor.name} on column: ${input.key}`,
+      );
+    }
   }
 
   private appendMapKeyPresenceFilter(input: {
@@ -822,6 +850,22 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             type: tableColumn.type,
           }}`,
         );
+      } else if (
+        value instanceof NotEqual &&
+        tableColumn.type === TableColumnType.ArrayText
+      ) {
+        /*
+         * "not equal to v" on an Array(String) column means "does not
+         * mention v" — the scalar `col != v` form would bind a single
+         * string against an Array(String) parameter and fail at
+         * ClickHouse parameter-parse time.
+         */
+        whereStatement.append(
+          SQL`AND NOT has(${columnRef(key)}, ${{
+            value: String((value as NotEqual<string>).value ?? ""),
+            type: TableColumnType.Text,
+          }})`,
+        );
       } else if (value instanceof NotEqual) {
         whereStatement.append(
           SQL`AND ${columnRef(key)} != ${{
@@ -947,7 +991,13 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           );
         }
       } else if (value instanceof IsNull) {
-        if (tableColumn.type === TableColumnType.Text) {
+        if (tableColumn.type === TableColumnType.ArrayText) {
+          /*
+           * Array(String) columns are non-Nullable — `IS NULL` would be
+           * constant-false. "Not set" for an array is the empty array.
+           */
+          whereStatement.append(SQL`AND empty(${columnRef(key)})`);
+        } else if (tableColumn.type === TableColumnType.Text) {
           whereStatement.append(
             SQL`AND (${columnRef(key)} IS NULL OR ${columnRef(key)} = '')`,
           );
@@ -958,9 +1008,13 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         /*
          * Mirror of IsNull above: Text columns store '' as their "not set"
          * default (they are non-nullable Strings unless optional), so a
-         * present-value check must reject the empty string too.
+         * present-value check must reject the empty string too; Array
+         * columns are non-Nullable, so `IS NOT NULL` would be constant-true
+         * — presence for an array means "has at least one element".
          */
-        if (tableColumn.type === TableColumnType.Text) {
+        if (tableColumn.type === TableColumnType.ArrayText) {
+          whereStatement.append(SQL`AND notEmpty(${columnRef(key)})`);
+        } else if (tableColumn.type === TableColumnType.Text) {
           whereStatement.append(
             SQL`AND (${columnRef(key)} IS NOT NULL AND ${columnRef(key)} != '')`,
           );
@@ -972,15 +1026,35 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
          * Explicit equality wrapper. Before this branch existed an EqualTo
          * instance fell through to the bare-value fallback, which bound the
          * operator OBJECT as the parameter — a silent match-nothing filter.
-         * Bind the wrapped value instead, exactly like a bare value.
+         * Scalars bind the wrapped value exactly like a bare value; on an
+         * Array(String) column "equals v" means membership (`has`), which
+         * is what a table filter's Equal To on `observables` intends. Map
+         * and JSON columns have no scalar equality — fail loudly instead
+         * of emitting SQL ClickHouse will reject with a cryptic error.
          */
-        whereStatement.append(
-          SQL`AND ${columnRef(key)} = ${{
-            value: (value as EqualTo<string>).value,
-            type: tableColumn.type,
-          }}`,
-        );
+        this.throwIfMapOrJsonColumn({ operator: value, tableColumn, key });
+        if (tableColumn.type === TableColumnType.ArrayText) {
+          whereStatement.append(
+            SQL`AND has(${columnRef(key)}, ${{
+              value: String((value as EqualTo<string>).value ?? ""),
+              type: TableColumnType.Text,
+            }})`,
+          );
+        } else {
+          whereStatement.append(
+            SQL`AND ${columnRef(key)} = ${{
+              value: (value as EqualTo<string>).value,
+              type: tableColumn.type,
+            }}`,
+          );
+        }
       } else if (value instanceof EqualToOrNull) {
+        this.throwIfMapOrJsonColumn({ operator: value, tableColumn, key });
+        if (tableColumn.type === TableColumnType.ArrayText) {
+          throw new BadDataException(
+            `Unsupported query operator EqualToOrNull on column: ${key}`,
+          );
+        }
         if (tableColumn.type === TableColumnType.Text) {
           whereStatement.append(
             SQL`AND (${columnRef(key)} = ${{
@@ -1002,9 +1076,14 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
          * implemented for map (attributes) sub-keys. Array(String) columns
          * get the per-element arrayExists form (see the Search branch
          * above); scalars get a plain ILIKE. Patterns bind as Text because
-         * the pattern itself is a string whatever the column type is.
+         * the pattern itself is a string whatever the column type is, and
+         * the user value is escaped so it matches literally rather than as
+         * wildcard syntax.
          */
-        const startsWithPattern: string = `${(value.value as string) || ""}%`;
+        this.throwIfMapOrJsonColumn({ operator: value, tableColumn, key });
+        const startsWithPattern: string = `${escapeIlikePattern(
+          (value.value as string) || "",
+        )}%`;
         if (tableColumn.type === TableColumnType.ArrayText) {
           whereStatement.append(
             SQL`AND arrayExists(x -> x ILIKE ${{
@@ -1021,7 +1100,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           );
         }
       } else if (value instanceof EndsWith) {
-        const endsWithPattern: string = `%${(value.value as string) || ""}`;
+        this.throwIfMapOrJsonColumn({ operator: value, tableColumn, key });
+        const endsWithPattern: string = `%${escapeIlikePattern(
+          (value.value as string) || "",
+        )}`;
         if (tableColumn.type === TableColumnType.ArrayText) {
           whereStatement.append(
             SQL`AND arrayExists(x -> x ILIKE ${{
@@ -1045,7 +1127,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
          * explicitly (mirrors how missing map keys pass the map-branch
          * NotContains).
          */
-        const notContainsPattern: string = `%${(value.value as string) || ""}%`;
+        this.throwIfMapOrJsonColumn({ operator: value, tableColumn, key });
+        const notContainsPattern: string = `%${escapeIlikePattern(
+          (value.value as string) || "",
+        )}%`;
         if (tableColumn.type === TableColumnType.ArrayText) {
           whereStatement.append(
             SQL`AND NOT arrayExists(x -> x ILIKE ${{
@@ -1174,7 +1259,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
 
           if (mapEntry instanceof NotContains) {
-            const literalValue: string = `%${(mapEntry.value as string) || ""}%`;
+            const literalValue: string = `%${escapeIlikePattern(
+              (mapEntry.value as string) || "",
+            )}%`;
             whereStatement.append(
               SQL`AND NOT arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
                 value: mapKey,
@@ -1188,7 +1275,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
 
           if (mapEntry instanceof StartsWith) {
-            const literalValue: string = `${(mapEntry.value as string) || ""}%`;
+            const literalValue: string = `${escapeIlikePattern(
+              (mapEntry.value as string) || "",
+            )}%`;
             whereStatement.append(
               SQL`AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
                 value: mapKey,
@@ -1202,7 +1291,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }
 
           if (mapEntry instanceof EndsWith) {
-            const literalValue: string = `%${(mapEntry.value as string) || ""}`;
+            const literalValue: string = `%${escapeIlikePattern(
+              (mapEntry.value as string) || "",
+            )}`;
             whereStatement.append(
               SQL`AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
                 value: mapKey,

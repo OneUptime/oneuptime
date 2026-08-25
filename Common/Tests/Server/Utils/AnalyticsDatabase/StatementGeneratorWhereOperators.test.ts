@@ -12,6 +12,7 @@ import EqualToOrNull from "../../../../Types/BaseDatabase/EqualToOrNull";
 import EndsWith from "../../../../Types/BaseDatabase/EndsWith";
 import IncludesAll from "../../../../Types/BaseDatabase/IncludesAll";
 import IncludesNone from "../../../../Types/BaseDatabase/IncludesNone";
+import IsNull from "../../../../Types/BaseDatabase/IsNull";
 import NotContains from "../../../../Types/BaseDatabase/NotContains";
 import NotEqual from "../../../../Types/BaseDatabase/NotEqual";
 import NotNull from "../../../../Types/BaseDatabase/NotNull";
@@ -72,6 +73,14 @@ describe("StatementGenerator toWhereStatement operator branches", () => {
             required: true,
             defaultValue: [],
             type: TableColumnType.ArrayText,
+          }),
+          new AnalyticsTableColumn({
+            key: "attributes",
+            title: "<title>",
+            description: "<description>",
+            required: true,
+            defaultValue: {},
+            type: TableColumnType.MapStringString,
           }),
         ],
         crudApiPath: new Route("route"),
@@ -307,6 +316,163 @@ describe("StatementGenerator toWhereStatement operator branches", () => {
     });
   });
 
+  describe("ILIKE metacharacter escaping", () => {
+    /*
+     * User values must match literally: "svc_" is a service-account prefix,
+     * not "svc followed by any character". The relational (Postgres) query
+     * path has escaped LIKE metacharacters for a while — these pin the
+     * ClickHouse path to the same contract.
+     */
+    test("StartsWith escapes _ so it cannot act as a single-char wildcard", () => {
+      const statement: Statement = generator.toWhereStatement({
+        principalHost: new StartsWith("svc_"),
+      } as any);
+      expect(statement.query_params).toStrictEqual({
+        p0: "principalHost",
+        p1: "svc\\_%",
+      });
+    });
+
+    test("EndsWith escapes % so a literal percent stays literal", () => {
+      const statement: Statement = generator.toWhereStatement({
+        principalHost: new EndsWith("50%"),
+      } as any);
+      expect(statement.query_params).toStrictEqual({
+        p0: "principalHost",
+        p1: "%50\\%",
+      });
+    });
+
+    test("NotContains escapes % — '100%' must not exclude every '100'", () => {
+      const statement: Statement = generator.toWhereStatement({
+        principalHost: new NotContains("100%"),
+      } as any);
+      expect(statement.query_params).toStrictEqual({
+        p0: "principalHost",
+        p1: "%100\\%%",
+        p2: "principalHost",
+      });
+    });
+
+    test("Search escapes % _ and backslash in the bound pattern", () => {
+      const statement: Statement = generator.toWhereStatement({
+        principalHost: new Search("a_b%"),
+      } as any);
+      expect(statement.query_params).toStrictEqual({
+        p0: "principalHost",
+        p1: "%a\\_b\\%%",
+      });
+    });
+
+    test("Search over Array(String) escapes a Windows-path backslash", () => {
+      const statement: Statement = generator.toWhereStatement({
+        observables: new Search("C:\\"),
+      } as any);
+      expect(statement.query_params).toStrictEqual({
+        p0: "%C:\\\\%",
+        p1: "observables",
+      });
+    });
+  });
+
+  describe("array-aware equality and presence", () => {
+    test("EqualTo on an Array(String) column means membership (has)", () => {
+      /*
+       * This is the events-table Observable filter's 'Equal To' operator —
+       * the scalar `col = v` form would bind a single string against an
+       * Array(String) parameter and fail at ClickHouse parse time.
+       */
+      const statement: Statement = generator.toWhereStatement({
+        observables: new EqualTo("wb-ubuntu-03"),
+      } as any);
+      expect(statement.query).toBe("AND has({p0:Identifier}, {p1:String})");
+      expect(statement.query_params).toStrictEqual({
+        p0: "observables",
+        p1: "wb-ubuntu-03",
+      });
+    });
+
+    test("NotEqual on an Array(String) column means does-not-mention (NOT has)", () => {
+      const statement: Statement = generator.toWhereStatement({
+        observables: new NotEqual("baduser1"),
+      } as any);
+      expect(statement.query).toBe("AND NOT has({p0:Identifier}, {p1:String})");
+      expect(statement.query_params).toStrictEqual({
+        p0: "observables",
+        p1: "baduser1",
+      });
+    });
+
+    test("IsNull on an Array(String) column means the empty array", () => {
+      // Arrays are non-Nullable — `IS NULL` would be constant-false.
+      const statement: Statement = generator.toWhereStatement({
+        observables: new IsNull(),
+      } as any);
+      expect(statement.query).toBe("AND empty({p0:Identifier})");
+      expect(statement.query_params).toStrictEqual({ p0: "observables" });
+    });
+
+    test("NotNull on an Array(String) column means at-least-one-element", () => {
+      // `IS NOT NULL` would be constant-true — a silent match-everything.
+      const statement: Statement = generator.toWhereStatement({
+        observables: new NotNull(),
+      } as any);
+      expect(statement.query).toBe("AND notEmpty({p0:Identifier})");
+      expect(statement.query_params).toStrictEqual({ p0: "observables" });
+    });
+
+    test("EqualToOrNull on an Array(String) column throws", () => {
+      expect(() => {
+        return generator.toWhereStatement({
+          observables: new EqualToOrNull("x"),
+        } as any);
+      }).toThrow(
+        "Unsupported query operator EqualToOrNull on column: observables",
+      );
+    });
+  });
+
+  describe("map/JSON column guards", () => {
+    /*
+     * Scalar operators applied to a whole Map column have per-sub-key
+     * forms instead; applying them to the column itself must fail with a
+     * BadDataException, not a cryptic ClickHouse type error.
+     */
+    test.each<[string, () => Statement]>([
+      [
+        "StartsWith",
+        (): Statement => {
+          return generator.toWhereStatement({
+            attributes: new StartsWith("a"),
+          } as any);
+        },
+      ],
+      [
+        "EqualTo",
+        (): Statement => {
+          return generator.toWhereStatement({
+            attributes: new EqualTo("a"),
+          } as any);
+        },
+      ],
+      [
+        "NotContains",
+        (): Statement => {
+          return generator.toWhereStatement({
+            attributes: new NotContains("a"),
+          } as any);
+        },
+      ],
+    ])(
+      "%s on a Map(String,String) column throws BadDataException",
+      (operatorName: string, compile: () => Statement) => {
+        expect(compile).toThrow(
+          `Unsupported query operator ${operatorName} on column: attributes`,
+        );
+      },
+    );
+  });
+
   describe("unsupported operator instances fail loudly", () => {
     test("IncludesAll on a scalar column throws instead of binding the operator object", () => {
       expect(() => {
@@ -423,6 +589,32 @@ describe("StatementGenerator toWhereStatement operator branches", () => {
       expect(statement.query_params).toStrictEqual({
         p0: "observables",
         p1: ["a", "b"],
+      });
+    });
+
+    test("operator arrays qualify every column reference under a table alias", () => {
+      /*
+       * The recursion forwards options, so an Exclude-pivot query embedded
+       * in an aggregate statement (which aliases the table) must qualify
+       * every fragment's column refs — no bare {pN:Identifier} columns.
+       */
+      const statement: Statement = generator.toWhereStatement(
+        {
+          observables: [new IncludesAll(["a"]), new IncludesNone(["b"])],
+        } as any,
+        { tableAlias: "<operator-table>" },
+      );
+      expect(statement.query).toBe(
+        "AND hasAll({p0_t:Identifier}.{p0_c:Identifier}, {p1:Array(String)}) " +
+          "AND NOT hasAny({p2_t:Identifier}.{p2_c:Identifier}, {p3:Array(String)})",
+      );
+      expect(statement.query_params).toStrictEqual({
+        p0_t: "<operator-table>",
+        p0_c: "observables",
+        p1: ["a"],
+        p2_t: "<operator-table>",
+        p2_c: "observables",
+        p3: ["b"],
       });
     });
 

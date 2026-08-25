@@ -99,6 +99,7 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
       return (
         <Dropdown
           dataTestId={`correlate-condition-value-${index}`}
+          ariaLabel={`Condition ${index + 1} value`}
           options={valueOptions}
           value={valueOptions.find((option: DropdownOption) => {
             return option.value === condition.value;
@@ -118,6 +119,7 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
       return (
         <AutocompleteTextInput
           dataTestId={`correlate-condition-value-${index}`}
+          ariaLabel={`Condition ${index + 1} value`}
           value={condition.value}
           suggestions={definition.valueSuggestions}
           placeholder={definition.placeholder}
@@ -131,6 +133,7 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
     return (
       <Input
         dataTestId={`correlate-condition-value-${index}`}
+        ariaLabel={`Condition ${index + 1} value`}
         value={condition.value}
         placeholder={definition.placeholder}
         onChange={(value: string) => {
@@ -152,6 +155,7 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
             <button
               type="button"
               data-testid="correlate-connector-and"
+              aria-pressed={props.connector === "and"}
               className={`rounded-md px-2.5 py-1 text-xs font-semibold ${
                 props.connector === "and"
                   ? "bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-200"
@@ -166,6 +170,7 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
             <button
               type="button"
               data-testid="correlate-connector-or"
+              aria-pressed={props.connector === "or"}
               className={`rounded-md px-2.5 py-1 text-xs font-semibold ${
                 props.connector === "or"
                   ? "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200"
@@ -208,6 +213,7 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
               <div className="md:w-44">
                 <Dropdown
                   dataTestId={`correlate-condition-field-${index}`}
+                  ariaLabel={`Condition ${index + 1} field`}
                   options={fieldDropdownOptions}
                   value={fieldDropdownOptions.find((option: DropdownOption) => {
                     return option.value === condition.field;
@@ -243,6 +249,7 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
               <div className="md:w-40">
                 <Dropdown
                   dataTestId={`correlate-condition-operator-${index}`}
+                  ariaLabel={`Condition ${index + 1} operator`}
                   options={operatorOptions}
                   value={operatorOptions.find((option: DropdownOption) => {
                     return option.value === condition.operator;
@@ -265,6 +272,7 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
               </div>
               <Button
                 dataTestId={`correlate-condition-delete-${index}`}
+                ariaLabel={`Remove condition ${index + 1}`}
                 icon={IconProp.Trash}
                 buttonStyle={ButtonStyleType.ICON}
                 buttonSize={ButtonSize.Small}

@@ -329,15 +329,24 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
   }, []);
 
   useEffect(() => {
+    /*
+     * Every effect run supersedes whatever fetch is in flight — including
+     * the early-return branches below, which would otherwise let a stale
+     * response pass the requestId guard and overwrite the cleared state.
+     */
+    const requestId: number = ++fetchRequestId.current;
+
     if (!appliedFilter) {
       setEvents([]);
       setError("");
       setIsTruncated(false);
+      setIsLoading(false);
       return;
     }
 
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
     if (!projectId) {
+      setIsLoading(false);
       return;
     }
 
@@ -357,6 +366,7 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
       setError(compiled.error);
       setEvents([]);
       setIsTruncated(false);
+      setIsLoading(false);
       return;
     }
 
@@ -364,10 +374,10 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
       setEvents([]);
       setError("");
       setIsTruncated(false);
+      setIsLoading(false);
       return;
     }
 
-    const requestId: number = ++fetchRequestId.current;
     setIsLoading(true);
     setError("");
 
@@ -568,7 +578,12 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
     appliedFilter.conditions.length === 0;
 
   const getObservableActionBar: () => ReactElement = (): ReactElement => {
-    if (!selectedObservable) {
+    /*
+     * Selections belong to the CURRENT result set — while a new fetch is in
+     * flight (or after it failed) the underlying events are stale, so the
+     * pivot bar and the drill-down below both hide until fresh data lands.
+     */
+    if (!selectedObservable || isLoading || error) {
       return <Fragment />;
     }
 
@@ -644,7 +659,8 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
   };
 
   const getDrillDownPanel: () => ReactElement = (): ReactElement => {
-    if (!drillDownClassName) {
+    // Same staleness rule as the action bar above.
+    if (!drillDownClassName || isLoading || error) {
       return <Fragment />;
     }
 
@@ -807,8 +823,17 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
     );
   };
 
+  /*
+   * Correlate stays disabled until every builder row has a value —
+   * matching the quick-search path, and keeping an all-empty default row
+   * from ever becoming an error state, a blank chip, and a q URL param
+   * that degrades to "no filter" when the link is shared.
+   */
   const hasDraftToApply: boolean = isBuilderOpen
-    ? draftConditions.length > 0
+    ? draftConditions.length > 0 &&
+      draftConditions.every((draftCondition: CorrelationCondition) => {
+        return Boolean(draftCondition.value.trim());
+      })
     : Boolean(quickValue.trim());
 
   return (
@@ -816,11 +841,15 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
       <div className="mb-3 flex flex-col md:flex-row md:items-end gap-3">
         {!isBuilderOpen && (
           <div className="md:w-80">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              id="security-events-correlate-observable-label"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Observable
             </label>
             <Input
               dataTestId="security-events-correlate-observable"
+              ariaLabelledby="security-events-correlate-observable-label"
               placeholder="hostname, user, or IP address"
               value={quickValue}
               onChange={(value: string) => {
@@ -834,11 +863,18 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
             />
           </div>
         )}
-        <div className="md:w-48">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+        <div
+          className="md:w-48"
+          data-testid="security-events-correlate-time-range"
+        >
+          <label
+            id="security-events-correlate-time-range-label"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Time Range
           </label>
           <Dropdown
+            ariaLabelledby="security-events-correlate-time-range-label"
             options={timeRangeOptions}
             value={
               timeRangeOptions.find((option: DropdownOption) => {
@@ -886,11 +922,24 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
                 setQuickValue(quickValueForFilter(appliedFilter));
                 return;
               }
-              // Seed the builder from what is already on screen.
-              if (draftConditions.length === 0) {
-                if (quickValue.trim()) {
+              /*
+               * Seed the builder from what is on screen. Freshly typed
+               * (unapplied) quick text wins over a stale draft — the user
+               * just told us what they want to correlate on.
+               */
+              const trimmedQuickValue: string = quickValue.trim();
+              if (
+                trimmedQuickValue &&
+                trimmedQuickValue !== quickValueForFilter(appliedFilter)
+              ) {
+                setDraftConditions(
+                  singleObservableFilter(trimmedQuickValue).conditions,
+                );
+                setDraftConnector("and");
+              } else if (draftConditions.length === 0) {
+                if (trimmedQuickValue) {
                   setDraftConditions(
-                    singleObservableFilter(quickValue.trim()).conditions,
+                    singleObservableFilter(trimmedQuickValue).conditions,
                   );
                 } else {
                   setDraftConditions([getDefaultCorrelationCondition()]);

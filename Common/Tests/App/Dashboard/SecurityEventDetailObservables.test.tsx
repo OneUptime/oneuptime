@@ -33,9 +33,14 @@ jest.mock("../../../UI/Utils/Navigation", () => {
 });
 
 jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap", () => {
+  /*
+   * The mocked route keeps its :projectId placeholder and only the mocked
+   * populateRouteParams substitutes it — so the exact-URL assertions below
+   * fail if the component ever skips populateRouteParams.
+   */
   const routeMap: Record<string, unknown> = {};
   routeMap[PageMap.SECURITY_EVENTS_CORRELATE] = new Route(
-    "/dashboard/mock-project/security-events/correlate",
+    "/dashboard/:projectId/security-events/correlate",
   );
   return {
     __esModule: true,
@@ -46,7 +51,9 @@ jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap", () => {
        * shared one would leak query params across tests.
        */
       populateRouteParams: (route: { toString: () => string }) => {
-        return new Route(route.toString());
+        return new Route(
+          route.toString().replace(":projectId", "mock-project"),
+        );
       },
     },
   };
