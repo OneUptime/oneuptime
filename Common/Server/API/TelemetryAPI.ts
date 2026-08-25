@@ -204,6 +204,13 @@ const requireExceptionReadAccess: Array<RequestHandler> =
 const requireProfileReadAccess: Array<RequestHandler> =
   createTelemetryReadAccessGuard(Permission.ReadTelemetryServiceProfiles);
 
+/*
+ * Mirrors the read access control declared on the SecurityEvent analytics
+ * model.
+ */
+const requireSecurityEventReadAccess: Array<RequestHandler> =
+  createTelemetryReadAccessGuard(Permission.ReadSecurityEvent);
+
 router.post(
   "/telemetry/metrics/get-attributes",
   ...requireMetricReadAccess,
@@ -265,6 +272,28 @@ router.post(
   ...requireExceptionReadAccess,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     return getAttributeValues(req, res, next, TelemetryType.Exception);
+  },
+);
+
+/*
+ * Security events flatten their whole source payload into `attributes`, so
+ * these are what backs the "add an attribute column" picker on the security
+ * events table — the keys differ per event class and per source, so there is
+ * no fixed list the UI could ship.
+ */
+router.post(
+  "/telemetry/security-events/get-attributes",
+  ...requireSecurityEventReadAccess,
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    return getAttributes(req, res, next, TelemetryType.SecurityEvent);
+  },
+);
+
+router.post(
+  "/telemetry/security-events/get-attribute-values",
+  ...requireSecurityEventReadAccess,
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    return getAttributeValues(req, res, next, TelemetryType.SecurityEvent);
   },
 );
 

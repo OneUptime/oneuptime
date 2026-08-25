@@ -62,7 +62,14 @@ import TableColumn from "../Table/Types/Column";
 import FieldType from "../Types/FieldType";
 import ModelTableColumn from "./Column";
 import Columns from "./Columns";
-import ColumnCustomizationModal from "./ColumnCustomizationModal";
+import ColumnCustomizationModal, {
+  AddableColumnsConfig,
+} from "./ColumnCustomizationModal";
+import {
+  getAttributeColumns,
+  getAttributeKeysFromColumnPreference,
+  normalizeAttributeKeys,
+} from "./AttributeColumns";
 import {
   ColumnPreference,
   CustomizableColumn,
@@ -364,6 +371,40 @@ export interface BaseTableProps<
    * Only meaningful for resources with a `customFields` column of their own.
    */
   customFieldsModelType?: { new (): BaseModel } | undefined;
+
+  /**
+   * Let the viewer add a column for any key inside a Map(String, String)
+   * column on the model — `attributes` on logs, spans and security events.
+   *
+   * Those keys are per-payload rather than per-schema, so they cannot ship as
+   * columns and there can be hundreds of them. Instead the picker grows an
+   * "add a column" search box fed by `fetchAttributeKeys`, and whatever the
+   * viewer adds becomes an ordinary column: hideable, re-orderable, exported,
+   * and remembered in the same stored layout as every other column.
+   *
+   * Requires `userPreferencesKey` and column customization to be on, since the
+   * chosen keys are recovered from the stored layout.
+   */
+  attributeColumnsProps?:
+    | {
+        /*
+         * The map column the generated columns read from. Must be a real
+         * column on the model; anything else is ignored rather than throwing
+         * the table away.
+         */
+        columnKey: string;
+        /*
+         * Every key the viewer may pick from. Called the first time the picker
+         * opens rather than on mount — it is typically a wide scan, and a
+         * table nobody customizes should not pay for it.
+         */
+        fetchAttributeKeys: () => Promise<Array<string>>;
+        title?: string | undefined;
+        description?: string | undefined;
+        placeholder?: string | undefined;
+        emptyMessage?: string | undefined;
+      }
+    | undefined;
 }
 
 export interface ComponentProps<
@@ -501,14 +542,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       showAs !== ShowAs.OrderedStatesList,
   );
 
-  const allColumns: Columns<TBaseModel> = useMemo(() => {
-    if (customFieldColumns.columns.length === 0) {
-      return props.columns || [];
-    }
-
-    return [...(props.columns || []), ...customFieldColumns.columns];
-  }, [props.columns, customFieldColumns.columns]);
-
   type ReadStoredColumnPreferenceFunction = () => ColumnPreference | null;
 
   const readStoredColumnPreference: ReadStoredColumnPreferenceFunction =
@@ -530,6 +563,68 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   const [showColumnCustomizationModal, setShowColumnCustomizationModal] =
     useState<boolean>(false);
+
+  /*
+   * ---------------------------------------------------------------------
+   * Attribute columns
+   * ---------------------------------------------------------------------
+   *
+   * A column per viewer-chosen key inside the model's map column. There is no
+   * second store for "which keys did they pick": a column exists precisely
+   * when its id is in the stored layout, and the id encodes the key. That is
+   * what makes "Reset to default" take them away, a saved TableView bring its
+   * own, and the two halves of a layout impossible to desynchronize.
+   *
+   * Derived from the RAW preference, before sanitizing: sanitizing drops ids
+   * that name no current column, and these are only current columns *because*
+   * their ids are in there.
+   */
+  const attributeColumnKey: string | null = useMemo(() => {
+    const columnKey: string | undefined =
+      props.attributeColumnsProps?.columnKey;
+
+    if (!columnKey || !isColumnCustomizationEnabled) {
+      return null;
+    }
+
+    /*
+     * A key that is not a column on the model would make getSelectFromColumns
+     * throw and blank the whole table. A misconfigured prop should cost the
+     * feature, not the page.
+     */
+    return model.hasColumn(columnKey) ? columnKey : null;
+  }, [props.attributeColumnsProps?.columnKey, isColumnCustomizationEnabled]);
+
+  const declaredColumns: Columns<TBaseModel> = useMemo(() => {
+    if (customFieldColumns.columns.length === 0) {
+      return props.columns || [];
+    }
+
+    return [...(props.columns || []), ...customFieldColumns.columns];
+  }, [props.columns, customFieldColumns.columns]);
+
+  const attributeColumns: Columns<TBaseModel> = useMemo(() => {
+    if (!attributeColumnKey) {
+      return [];
+    }
+
+    return getAttributeColumns<TBaseModel>({
+      attributesColumnKey: attributeColumnKey,
+      attributeKeys: getAttributeKeysFromColumnPreference({
+        preference: columnPreference,
+        attributesColumnKey: attributeColumnKey,
+        reservedColumnIds: getColumnIds<TBaseModel>(declaredColumns),
+      }),
+    });
+  }, [attributeColumnKey, columnPreference, declaredColumns]);
+
+  const allColumns: Columns<TBaseModel> = useMemo(() => {
+    if (attributeColumns.length === 0) {
+      return declaredColumns;
+    }
+
+    return [...declaredColumns, ...attributeColumns];
+  }, [declaredColumns, attributeColumns]);
 
   /*
    * Ids are derived over the *whole* declared set, so a column dropping out
@@ -583,6 +678,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       value: json,
     });
   };
+
+  /*
+   * The pool of keys the picker offers. Fetched the first time the picker
+   * opens, never on mount: it is a wide scan over the analytics table, and a
+   * table nobody customizes should not pay for it on every page load.
+   */
+  const [attributeKeyPool, setAttributeKeyPool] = useState<{
+    keys: Array<string>;
+    isLoading: boolean;
+    error: string;
+    hasLoaded: boolean;
+  }>({ keys: [], isLoading: false, error: "", hasLoaded: false });
 
   const [classicTableFilters, setClassicTableFilters] = useState<
     Array<ClassicFilterType<TBaseModel>>
@@ -1972,6 +2079,20 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       (selectFields as Dictionary<boolean>)[CustomFieldsColumnKey] = true;
     }
 
+    /*
+     * Same reasoning for the attribute map column: a column added from the
+     * picker appears without a refetch, so the map it reads has to have been
+     * on the wire since the first request or the new column renders blank
+     * until something else happens to reload the page.
+     */
+    if (
+      attributeColumnKey &&
+      (hasPermissionToReadField(attributeColumnKey as keyof TBaseModel) ||
+        User.isMasterAdmin())
+    ) {
+      (selectFields as Dictionary<boolean>)[attributeColumnKey] = true;
+    }
+
     const selectMoreFields: Array<keyof TBaseModel> = props.selectMoreFields
       ? (Object.keys(props.selectMoreFields) as Array<keyof TBaseModel>)
       : [];
@@ -2431,12 +2552,77 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   }, [props.columns]);
 
   /*
-   * The viewer changed their layout, or the project's custom field
-   * definitions finally arrived.
+   * The viewer changed their layout, the project's custom field definitions
+   * finally arrived, or an attribute column was added or removed.
    */
   useEffect(() => {
     serializeToTableColumns();
-  }, [effectiveColumnPreference, customFieldColumns.columns]);
+  }, [effectiveColumnPreference, customFieldColumns.columns, attributeColumns]);
+
+  /*
+   * The attribute key pool is only ever needed by the picker, so it is fetched
+   * when the picker first opens and kept for the rest of the page's life.
+   * A failure costs the "add a column" search box and nothing else — the
+   * columns the viewer already added are rebuilt from their stored layout and
+   * do not depend on this at all.
+   */
+  useEffect(() => {
+    if (
+      !showColumnCustomizationModal ||
+      !attributeColumnKey ||
+      !props.attributeColumnsProps ||
+      attributeKeyPool.hasLoaded ||
+      attributeKeyPool.isLoading
+    ) {
+      return;
+    }
+
+    const fetchAttributeKeys: () => Promise<Array<string>> =
+      props.attributeColumnsProps.fetchAttributeKeys;
+
+    let isCancelled: boolean = false;
+
+    setAttributeKeyPool({
+      keys: [],
+      isLoading: true,
+      error: "",
+      hasLoaded: false,
+    });
+
+    fetchAttributeKeys()
+      .then((keys: Array<string>) => {
+        if (isCancelled) {
+          return;
+        }
+
+        setAttributeKeyPool({
+          keys: normalizeAttributeKeys(keys),
+          isLoading: false,
+          error: "",
+          hasLoaded: true,
+        });
+      })
+      .catch((err: Error) => {
+        if (isCancelled) {
+          return;
+        }
+
+        setAttributeKeyPool({
+          keys: [],
+          isLoading: false,
+          error: API.getFriendlyMessage(err),
+          /*
+           * Not "loaded": closing and reopening the picker is the only retry
+           * anyone would think to try, so let it be one.
+           */
+          hasLoaded: false,
+        });
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [showColumnCustomizationModal, attributeColumnKey]);
 
   const setActionSchema: VoidFunction = () => {
     const permissions: Array<Permission> = PermissionUtil.getAllPermissions();
@@ -4007,13 +4193,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   type GetPickerEntriesFunction = (
     preference: ColumnPreference | null,
+    columns?: Columns<TBaseModel> | undefined,
   ) => Array<CustomizableColumn<TBaseModel>>;
 
   const getPickerEntries: GetPickerEntriesFunction = (
     preference: ColumnPreference | null,
+    columns?: Columns<TBaseModel> | undefined,
   ): Array<CustomizableColumn<TBaseModel>> => {
     return getCustomizableColumns<TBaseModel>({
-      columns: allColumns,
+      columns: columns || allColumns,
       preference: preference,
     }).filter((entry: CustomizableColumn<TBaseModel>) => {
       return isPickableColumn(entry.column);
@@ -4055,8 +4243,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
      * would be pinned to the column set of the release they opened it in, and
      * columns added later would arrive already stale.
      */
+    /*
+     * Over the DECLARED columns only. An attribute column exists because the
+     * viewer added it, so the layout that has none of them is the default one
+     * — otherwise adding a column and then removing it again would leave the
+     * table pinned to a stored layout it no longer differs from.
+     */
     const defaultPreference: ColumnPreference =
-      buildColumnPreference<TBaseModel>(getPickerEntries(null));
+      buildColumnPreference<TBaseModel>(
+        getPickerEntries(null, declaredColumns),
+      );
 
     const isBackToDefault: boolean =
       JSON.stringify(preference) === JSON.stringify(defaultPreference);
@@ -4089,6 +4285,58 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     setShowColumnCustomizationModal(false);
   };
 
+  /*
+   * The pool the picker offers, as picker entries rather than model columns,
+   * so the modal can stage one straight into its list. Every one starts
+   * removable — the whole point is that the viewer can take it away again.
+   */
+  const addableAttributeColumns: Array<CustomizableColumn<TBaseModel>> =
+    useMemo(() => {
+      if (!attributeColumnKey || attributeKeyPool.keys.length === 0) {
+        return [];
+      }
+
+      return getAttributeColumns<TBaseModel>({
+        attributesColumnKey: attributeColumnKey,
+        attributeKeys: attributeKeyPool.keys,
+      }).map(
+        (
+          column: ModelTableColumn<TBaseModel>,
+          index: number,
+        ): CustomizableColumn<TBaseModel> => {
+          return {
+            id: column.id || `${attributeColumnKey}.${index}`,
+            column: column,
+            isVisible: true,
+            isPinned: false,
+            isRemovable: true,
+          };
+        },
+      );
+    }, [attributeColumnKey, attributeKeyPool.keys]);
+
+  const getAddableColumnsConfig: () =>
+    | AddableColumnsConfig<TBaseModel>
+    | undefined = (): AddableColumnsConfig<TBaseModel> | undefined => {
+    if (!attributeColumnKey || !props.attributeColumnsProps) {
+      return undefined;
+    }
+
+    return {
+      title: props.attributeColumnsProps.title || tx("Add Attribute Column"),
+      description:
+        props.attributeColumnsProps.description ||
+        tx(
+          "Attributes vary per event, so they are not listed above. Search for one to add it as a column.",
+        ),
+      placeholder: props.attributeColumnsProps.placeholder || "Search...",
+      emptyMessage: props.attributeColumnsProps.emptyMessage,
+      isLoading: attributeKeyPool.isLoading,
+      errorMessage: attributeKeyPool.error,
+      columns: addableAttributeColumns,
+    };
+  };
+
   const getColumnCustomizationModal: () => ReactElement | null =
     (): ReactElement | null => {
       if (!showColumnCustomizationModal || !isColumnCustomizationEnabled) {
@@ -4098,6 +4346,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       return (
         <ColumnCustomizationModal<TBaseModel>
           columns={getPickerEntries(effectiveColumnPreference)}
+          addableColumns={getAddableColumnsConfig()}
           isDefaultLayout={isEmptyColumnPreference(effectiveColumnPreference)}
           title={tx("Customize Columns")}
           onSave={onColumnCustomizationSave}

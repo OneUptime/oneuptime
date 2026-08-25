@@ -14,10 +14,10 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ProjectUtil from "Common/UI/Utils/Project";
-import OneUptimeDate from "Common/Types/Date";
 import { VoidFunction } from "Common/Types/FunctionTypes";
-import SecurityEventSeverityPill from "./SecurityEventSeverityPill";
 import SecurityEventDetail from "./SecurityEventDetail";
+import securityEventColumns from "./SecurityEventsTableColumns";
+import SecurityEventAttributeUtil from "./SecurityEventAttributeUtil";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import Navigation from "Common/UI/Utils/Navigation";
 import Route from "Common/Types/API/Route";
@@ -36,6 +36,11 @@ const severityDropdownOptions: Array<DropdownOption> = Object.values(
 const SecurityEventsTable: FunctionComponent = (): ReactElement => {
   const [detailEvent, setDetailEvent] = useState<SecurityEvent | null>(null);
 
+  /*
+   * The detail side-over renders straight off the row it was handed, so every
+   * field it shows has to be on the wire whether or not a column for it is on
+   * screen.
+   */
   const extraSelect: Select<SecurityEvent> = {
     eventUid: true,
     categoryName: true,
@@ -81,6 +86,24 @@ const SecurityEventsTable: FunctionComponent = (): ReactElement => {
         sortBy="time"
         sortOrder={SortOrder.Descending}
         selectMoreFields={extraSelect}
+        /*
+         * The keys inside `attributes` are whatever the source sent, so they
+         * cannot ship as columns. The picker offers them through a search box
+         * instead, and whatever is added from it becomes an ordinary column -
+         * hideable, re-orderable, exported, and remembered for next time.
+         */
+        attributeColumnsProps={{
+          columnKey: "attributes",
+          title: "Add Attribute Column",
+          description:
+            "Source fields that OCSF has no column for. These differ per event class, so search for the one you want.",
+          placeholder: "Search attributes...",
+          emptyMessage:
+            "No attributes seen on recent events. Attribute columns become available once events carrying them are ingested.",
+          fetchAttributeKeys: (): Promise<Array<string>> => {
+            return SecurityEventAttributeUtil.getAttributeKeys();
+          },
+        }}
         /*
          * An empty table here means "nothing is sending yet" far more often
          * than "nothing happened", and the answer to that is a page away.
@@ -153,73 +176,7 @@ const SecurityEventsTable: FunctionComponent = (): ReactElement => {
             title: "Time",
           },
         ]}
-        columns={[
-          {
-            field: { time: true },
-            title: "Time",
-            type: FieldType.Element,
-            getElement: (item: SecurityEvent): ReactElement => {
-              const time: Date | undefined = item.time;
-              if (!time) {
-                return <span className="text-gray-400">-</span>;
-              }
-              const timeDate: Date = new Date(time);
-              return (
-                <div
-                  className="flex flex-col leading-tight"
-                  title={OneUptimeDate.getDateAsLocalFormattedString(timeDate)}
-                >
-                  <span className="text-sm font-medium text-gray-900">
-                    {OneUptimeDate.fromNow(timeDate)}
-                  </span>
-                  <span className="text-[11px] text-gray-500">
-                    {OneUptimeDate.getDateAsLocalFormattedString(timeDate)}
-                  </span>
-                </div>
-              );
-            },
-          },
-          {
-            field: { severityName: true },
-            title: "Severity",
-            type: FieldType.Element,
-            getElement: (item: SecurityEvent): ReactElement => {
-              return (
-                <SecurityEventSeverityPill severityName={item.severityName} />
-              );
-            },
-          },
-          {
-            field: { className: true },
-            title: "Event Class",
-            type: FieldType.Text,
-            noValueMessage: "-",
-          },
-          {
-            field: { message: true },
-            title: "Message",
-            type: FieldType.LongText,
-            noValueMessage: "-",
-          },
-          {
-            field: { principalUser: true },
-            title: "Principal User",
-            type: FieldType.Text,
-            noValueMessage: "-",
-          },
-          {
-            field: { principalHost: true },
-            title: "Principal Host",
-            type: FieldType.Text,
-            noValueMessage: "-",
-          },
-          {
-            field: { vendorName: true },
-            title: "Vendor",
-            type: FieldType.Text,
-            noValueMessage: "-",
-          },
-        ]}
+        columns={securityEventColumns}
         actionButtons={[
           {
             title: "View Details",
