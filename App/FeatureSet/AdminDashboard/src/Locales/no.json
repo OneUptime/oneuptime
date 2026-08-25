@@ -184,6 +184,7 @@
       "emailVerifiedLabel": "E-post bekreftet",
       "twoFactorLabel": "Tofaktorautentisering aktivert",
       "twoFactorMethodCountLabel": "Bekreftede tofaktormetoder",
+      "backupCodeCountLabel": "Ubrukte reservekoder",
       "twoFactorStatusNotEnabled": "Ikke aktivert",
       "twoFactorStatusPendingSetup": "Aktivert – venter på oppsett",
       "twoFactorStatusConfigured": "Aktivert – konfigurert",

@@ -28,6 +28,7 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import User from "Common/Models/DatabaseModels/User";
 import OneUptimeDate from "Common/Types/Date";
 import Base64 from "Common/Utils/Base64";
+import BackupCodes from "../../../Components/TwoFactorAuth/BackupCodes";
 
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [selectedTotpAuth, setSelectedTotpAuth] =
@@ -206,6 +207,13 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
             ]}
           />
         </div>
+
+        {/*
+         * Placed after the two factor methods rather than before them,
+         * because it is the answer to "what happens when one of those stops
+         * working" and only makes sense once the reader has seen them.
+         */}
+        <BackupCodes />
 
         {showVerificationModal && selectedTotpAuth ? (
           <BasicFormModal

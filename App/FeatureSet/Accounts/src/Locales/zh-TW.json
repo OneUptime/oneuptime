@@ -46,7 +46,11 @@
       "authenticatingWithSecurityKey": "正在使用安全金鑰進行驗證",
       "securityKeyInstructions": "請依照安全金鑰裝置上的指示操作。",
       "codeFieldDescription": "請輸入驗證器應用程式中的代碼",
-      "selectDifferentMethod": "選擇不同的雙重驗證方式"
+      "selectDifferentMethod": "選擇不同的雙重驗證方式",
+      "useBackupCode": "改用備用代碼",
+      "backupCodeInstruction": "請輸入您在設定雙重驗證時儲存的備用代碼之一。每個代碼只能使用一次。",
+      "backupCodeFieldTitle": "備用代碼",
+      "backupCodeFieldDescription": "備用代碼的格式類似 ABCDE-12345。大小寫與連字號皆可忽略。"
     },
     "twoFactorEnrolment": {
       "title": "設定雙重驗證",

@@ -3,6 +3,7 @@ import UserService from "../../../Server/Services/UserService";
 import UserSessionService from "../../../Server/Services/UserSessionService";
 import UserTotpAuthService from "../../../Server/Services/UserTotpAuthService";
 import UserWebAuthnService from "../../../Server/Services/UserWebAuthnService";
+import UserTwoFactorBackupCodeService from "../../../Server/Services/UserTwoFactorBackupCodeService";
 import logger from "../../../Server/Utils/Logger";
 import User from "../../../Models/DatabaseModels/User";
 import ColumnLength from "../../../Types/Database/ColumnLength";
@@ -199,6 +200,26 @@ describe("UserService -- admin-controlled two factor auth", () => {
       "deleteBy",
     ).mockImplementation(async (): Promise<number> => {
       return 0;
+    });
+
+    /*
+     * resetTwoFactorAuth clears the user's two factor BACKUP codes as well as
+     * their authenticators -- a reset that left a printed list of recovery
+     * codes alive would not have revoked the second-factor material it exists
+     * to revoke. Un-stubbed, the real service reaches a repository this suite
+     * does not connect and every resetTwoFactorAuth test below fails with
+     * "Database not connected" rather than anything it was checking.
+     *
+     * That the delete HAPPENS, for the right user, and before the session
+     * revocation, is asserted in
+     * Common/Tests/Server/Services/UserTwoFactorBackupCodeAdminSurface.test.ts
+     * -- this file only has to let the method run.
+     */
+    getJestSpyOn(
+      UserTwoFactorBackupCodeService,
+      "deleteAllForUser",
+    ).mockImplementation(async (): Promise<void> => {
+      return undefined;
     });
 
     /*

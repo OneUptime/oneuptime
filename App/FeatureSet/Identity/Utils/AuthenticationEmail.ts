@@ -1,4 +1,4 @@
-import { AccountsRoute } from "Common/ServiceRoute";
+import { AccountsRoute, DashboardRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";
@@ -72,6 +72,76 @@ export default class AuthenticationEmail {
         });
         logger.error(err, { userId: user.id?.toString(), service: "identity" });
       });
+  }
+
+  /**
+   * Tell a user that one of their two factor backup codes was just spent.
+   *
+   * THIS IS THE COMPENSATING CONTROL FOR THE WHOLE FEATURE. A backup code
+   * turns "password plus a device you are holding" into "password plus a
+   * string somebody could have photographed", so the account owner has to
+   * learn about it through a channel the person who used the code does not
+   * control. That is why this goes to the address on the account rather than
+   * being rendered on the page that just signed in: a sign-in the owner did
+   * not perform still lands in their inbox.
+   *
+   * The remaining count is in the mail for the same reason. "You have 2 left"
+   * is what turns a vague unease into an action, and a user who reads "9 left"
+   * on a sign-in they do not remember knows exactly how far in someone is.
+   *
+   * Never awaited by the login path, and never allowed to fail it. The user
+   * has already proved the password and spent a real code by the time this is
+   * called; refusing the session because SMTP is unreachable would lock them
+   * out with the notification that says they are not locked out.
+   */
+  public static async sendTwoFactorBackupCodeUsedEmail(data: {
+    user: User;
+    remainingCodeCount: number;
+  }): Promise<void> {
+    if (!data.user.email) {
+      return;
+    }
+
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    const twoFactorAuthUrl: string = new URL(
+      httpProtocol,
+      host,
+      new Route(DashboardRoute.toString()).addRoute(
+        "/user-profile/two-factor-auth",
+      ),
+    ).toString();
+
+    /*
+     * Graded advice rather than one line, because the useful action changes
+     * with the number. Somebody with eight codes left needs no prompting;
+     * somebody with none is one lost phone away from needing an
+     * administrator, and telling them that AFTER it happens is too late.
+     */
+    let remainingCodeMessage: string =
+      "You can see how many codes you have left, and generate a new set, from your user profile.";
+
+    if (data.remainingCodeCount === 0) {
+      remainingCodeMessage =
+        "<strong>That was your last backup code.</strong> If you lose access to your authenticator app or security key now, you will need an administrator to reset two factor authentication on your account. Generate a new set of backup codes as soon as you sign in.";
+    } else if (data.remainingCodeCount <= 3) {
+      remainingCodeMessage =
+        "You are running low on backup codes. Generate a new set from User Profile &gt; Two Factor Authentication -- doing so replaces every code you are currently holding.";
+    }
+
+    await MailService.sendMail({
+      toEmail: data.user.email,
+      subject: "A backup code was used to sign in to your OneUptime account",
+      templateType: EmailTemplateType.TwoFactorBackupCodeUsed,
+      vars: {
+        signedInAt: OneUptimeDate.getCurrentDateAsFormattedString(),
+        remainingCodeCount: data.remainingCodeCount.toString(),
+        remainingCodeMessage: remainingCodeMessage,
+        twoFactorAuthUrl: twoFactorAuthUrl,
+        homeUrl: new URL(httpProtocol, host).toString(),
+      },
+    });
   }
 
   /*

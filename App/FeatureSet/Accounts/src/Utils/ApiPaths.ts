@@ -24,6 +24,17 @@ export const VERIFY_TOTP_ENROLMENT_API_URL: URL = URL.fromURL(
   IDENTITY_URL,
 ).addRoute(new Route("/verify-totp-enrolment"));
 
+/*
+ * Signs a user in with one of their single-use recovery codes, for the day the
+ * authenticator app or security key is not available. Reached only from the
+ * two factor challenge screen, and only when /login reported that the account
+ * has unused codes -- so, like the two routes above, this request carries the
+ * email and password again: there is no session yet to authenticate it with.
+ */
+export const VERIFY_BACKUP_CODE_API_URL: URL = URL.fromURL(
+  IDENTITY_URL,
+).addRoute(new Route("/verify-backup-code"));
+
 export const GENERATE_WEBAUTHN_AUTH_OPTIONS_API_URL: URL = URL.fromURL(
   APP_API_URL,
 ).addRoute(new Route("/user-webauthn/generate-authentication-options"));

@@ -184,6 +184,7 @@
       "emailVerifiedLabel": "邮箱已验证",
       "twoFactorLabel": "已启用双重验证",
       "twoFactorMethodCountLabel": "已验证的双重身份验证方式",
+      "backupCodeCountLabel": "未使用的备用代码",
       "twoFactorStatusNotEnabled": "未启用",
       "twoFactorStatusPendingSetup": "已启用 - 待设置",
       "twoFactorStatusConfigured": "已启用 - 已配置",

@@ -5,6 +5,7 @@ import UserService from "../../../Server/Services/UserService";
 import UserSessionService from "../../../Server/Services/UserSessionService";
 import UserTotpAuthService from "../../../Server/Services/UserTotpAuthService";
 import UserWebAuthnService from "../../../Server/Services/UserWebAuthnService";
+import UserTwoFactorBackupCodeService from "../../../Server/Services/UserTwoFactorBackupCodeService";
 import logger from "../../../Server/Utils/Logger";
 import User from "../../../Models/DatabaseModels/User";
 import Hostname from "../../../Types/API/Hostname";
@@ -189,6 +190,25 @@ describe("UserService -- master-admin authentication management", () => {
       "countBy",
     ).mockImplementation(async (): Promise<PositiveNumber> => {
       return new PositiveNumber(0);
+    });
+
+    /*
+     * getAuthenticationStatus also reads the user's remaining two factor
+     * BACKUP codes, which is a third table and therefore a third stub. Without
+     * it the real service reaches a repository that is not connected in this
+     * suite, and every test here fails with "Database not connected" rather
+     * than anything to do with what it was checking.
+     *
+     * Deliberately NOT folded into the two counts above -- backup codes are a
+     * way back in to an account whose factor is unreachable, not a factor.
+     * Common/Tests/Server/Services/UserTwoFactorBackupCodeAdminSurface.test.ts
+     * is what pins that distinction; here it only has to be stubbed.
+     */
+    getJestSpyOn(
+      UserTwoFactorBackupCodeService,
+      "countUnusedForUser",
+    ).mockImplementation(async (): Promise<number> => {
+      return 0;
     });
 
     getJestSpyOn(DatabaseConfig, "getHost").mockImplementation(
@@ -402,7 +422,7 @@ describe("UserService -- master-admin authentication management", () => {
       expect(status.hasPendingPasswordResetLink).toBe(true);
     });
 
-    test("returns only the four booleans -- never the password digest itself", async () => {
+    test("returns exactly the vetted fields -- never the password digest itself", async () => {
       /*
        * The whole reason this is a DTO rather than a selected row: the caller
        * is a master admin, whose props bypass column read permissions, so
@@ -433,6 +453,7 @@ describe("UserService -- master-admin authentication management", () => {
         "isEmailVerified",
         "isTwoFactorAuthEnabled",
         "twoFactorAuthStatus",
+        "unusedTwoFactorBackupCodeCount",
         "verifiedTwoFactorAuthMethodCount",
       ]);
 
@@ -452,6 +473,7 @@ describe("UserService -- master-admin authentication management", () => {
       expect(typeof status.hasPendingPasswordResetLink).toBe("boolean");
       expect(typeof status.twoFactorAuthStatus).toBe("string");
       expect(typeof status.verifiedTwoFactorAuthMethodCount).toBe("number");
+      expect(typeof status.unusedTwoFactorBackupCodeCount).toBe("number");
     });
 
     test("selects exactly the columns the row-derived fields come from", async () => {

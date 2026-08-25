@@ -46,7 +46,11 @@
       "authenticatingWithSecurityKey": "Autenticazione con chiave di sicurezza",
       "securityKeyInstructions": "Segui le istruzioni sul tuo dispositivo a chiave di sicurezza.",
       "codeFieldDescription": "Inserisci il codice dalla tua app di autenticazione",
-      "selectDifferentMethod": "Seleziona un metodo di autenticazione a due fattori diverso"
+      "selectDifferentMethod": "Seleziona un metodo di autenticazione a due fattori diverso",
+      "useBackupCode": "Usa invece un codice di backup",
+      "backupCodeInstruction": "Inserisci uno dei codici di backup che hai salvato durante la configurazione dell'autenticazione a due fattori. Ogni codice funziona una sola volta.",
+      "backupCodeFieldTitle": "Codice di backup",
+      "backupCodeFieldDescription": "I codici di backup hanno questo aspetto: ABCDE-12345. Maiuscole, minuscole e il trattino non contano."
     },
     "twoFactorEnrolment": {
       "title": "Configura l'autenticazione a due fattori",

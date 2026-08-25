@@ -46,7 +46,11 @@
       "authenticatingWithSecurityKey": "正在使用安全密钥进行身份验证",
       "securityKeyInstructions": "请按照安全密钥设备上的说明操作。",
       "codeFieldDescription": "请输入身份验证器应用中的代码",
-      "selectDifferentMethod": "选择不同的双因素身份验证方法"
+      "selectDifferentMethod": "选择不同的双因素身份验证方法",
+      "useBackupCode": "改用备用代码",
+      "backupCodeInstruction": "请输入您在设置双因素身份验证时保存的备用代码之一。每个代码只能使用一次。",
+      "backupCodeFieldTitle": "备用代码",
+      "backupCodeFieldDescription": "备用代码的格式类似 ABCDE-12345。大小写和连字符均可忽略。"
     },
     "twoFactorEnrolment": {
       "title": "设置双重身份验证",
