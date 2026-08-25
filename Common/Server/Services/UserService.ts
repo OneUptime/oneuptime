@@ -42,8 +42,9 @@ import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import Model from "../../Models/DatabaseModels/User";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import ProductAnalytics from "../Utils/ProductAnalytics";
-import MarketingEventUtil from "../Utils/Marketing/MarketingEventUtil";
-import { utmAnalyticsProperties } from "../Utils/Marketing/MarketingEventUtil";
+import MarketingEventUtil, {
+  utmAnalyticsProperties,
+} from "../Utils/Marketing/MarketingEventUtil";
 import { MarketingEventType } from "../../Types/Marketing/MarketingEvent";
 import UserTotpAuthService from "./UserTotpAuthService";
 import UserTwoFactorBackupCodeService from "./UserTwoFactorBackupCodeService";

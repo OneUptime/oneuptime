@@ -16,8 +16,9 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Utils/Logger";
 import Errors from "../Utils/Errors";
 import ProductAnalytics from "../Utils/ProductAnalytics";
-import MarketingEventUtil from "../Utils/Marketing/MarketingEventUtil";
-import { utmAnalyticsProperties } from "../Utils/Marketing/MarketingEventUtil";
+import MarketingEventUtil, {
+  utmAnalyticsProperties,
+} from "../Utils/Marketing/MarketingEventUtil";
 import { MarketingEventType } from "../../Types/Marketing/MarketingEvent";
 import {
   UtmPropertyKeys,
