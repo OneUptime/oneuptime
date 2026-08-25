@@ -18,6 +18,11 @@ import {
   JSONSyntaxCheckResult,
   checkJSONSyntax,
 } from "../../../Types/Workflow/TemplateSyntax";
+import {
+  YamlSyntaxCheckResult,
+  checkYamlSyntax,
+  describeYamlSyntaxError,
+} from "../../../Types/Code/YamlSyntax";
 import { Logger } from "../../Utils/Logger";
 import Port from "../../../Types/Port";
 import Typeof from "../../../Types/Typeof";
@@ -368,6 +373,37 @@ export default class Validation {
     );
   }
 
+  /**
+   * Reject a YAML-typed field whose text does not parse.
+   *
+   * The server validates too (a Sigma rule is compiled on save), but a round
+   * trip to hear "bad indentation on line 4" is a poor way to find out. Like
+   * validateJSONSyntax this takes the raw value rather than the stringified
+   * `content`, and defers to checkYamlSyntax for what it declines to judge.
+   */
+  public static validateYAMLSyntax<T extends GenericObject>(
+    value: JSONValue | undefined,
+    field: Field<T>,
+  ): string | null {
+    if (field.fieldType !== FormFieldSchemaType.YAML) {
+      return null;
+    }
+
+    const result: YamlSyntaxCheckResult = checkYamlSyntax(value);
+
+    if (result.isValid) {
+      return null;
+    }
+
+    return translateValidationMessage(
+      "{{field}} is not valid YAML. {{parserMessage}}",
+      {
+        field: field.title || field.name || "",
+        parserMessage: describeYamlSyntaxError(result),
+      },
+    );
+  }
+
   public static validate<T extends GenericObject>(args: {
     formFields: Array<Field<T>>;
     values: FormValues<T>;
@@ -435,6 +471,16 @@ export default class Validation {
 
         if (resultJSONSyntax) {
           errors[name] = resultJSONSyntax;
+        }
+
+        // Fed the raw value for the same reason validateJSONSyntax is.
+        const resultYAMLSyntax: string | null = this.validateYAMLSyntax(
+          (entries as JSONObject)[name] as JSONValue | undefined,
+          field,
+        );
+
+        if (resultYAMLSyntax) {
+          errors[name] = resultYAMLSyntax;
         }
 
         const resultMatch: string | null = this.validateMatchField(

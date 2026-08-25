@@ -31,6 +31,7 @@ enum FieldType {
   JavaScript = "JavaScript",
   DictionaryOfStrings = "DictionaryOfStrings",
   JSON = "JSON",
+  YAML = "YAML",
   USDCents = "USDCents",
   Element = "Element",
   Minutes = "Minutes",

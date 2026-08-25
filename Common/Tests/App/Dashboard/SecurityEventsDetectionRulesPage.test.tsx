@@ -24,6 +24,7 @@ import { MemoryRouter } from "react-router-dom";
 type CapturedFormField = {
   field: Record<string, boolean>;
   title: string;
+  fieldType?: unknown;
   showIf?: ((model: Record<string, unknown>) => boolean) | undefined;
   dropdownModal?: { type: unknown } | undefined;
 };
@@ -58,6 +59,7 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 });
 
 import DetectionRulesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/DetectionRules";
+import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -169,6 +171,59 @@ describe("Detection Rules page", () => {
         shouldWriteDetectionFinding: true,
         shouldCreateIncident: false,
       });
+    });
+  });
+
+  describe("the Sigma rule field is a YAML editor", () => {
+    /*
+     * The rule is YAML — SigmaRuleParser runs js-yaml over it and
+     * DetectionRuleService rejects a create or update whose rule does not
+     * compile. It was declared as Markdown, which put a rich-text toolbar
+     * (Bold, H1) over a Sigma rule and, worse, routed the value through an
+     * editor that round-trips through HTML. Indentation-sensitive YAML does
+     * not survive that.
+     */
+    test("it is declared as YAML", () => {
+      renderPage();
+
+      expect(fieldTitled("Sigma Rule (YAML)").fieldType).toBe(
+        FormFieldSchemaType.YAML,
+      );
+    });
+
+    test("it is not the Markdown editor", () => {
+      renderPage();
+
+      expect(fieldTitled("Sigma Rule (YAML)").fieldType).not.toBe(
+        FormFieldSchemaType.Markdown,
+      );
+    });
+
+    test("it still binds to sigmaRuleYaml on its own form step", () => {
+      renderPage();
+
+      const field: CapturedFormField = fieldTitled("Sigma Rule (YAML)");
+
+      expect(field.field).toEqual({ sigmaRuleYaml: true });
+      expect((field as unknown as { stepId?: string | undefined }).stepId).toBe(
+        "sigma-rule",
+      );
+      expect(
+        (field as unknown as { required?: boolean | undefined }).required,
+      ).toBe(true);
+    });
+
+    test("no other field on the page was switched to YAML by accident", () => {
+      renderPage();
+
+      const yamlFields: Array<CapturedFormField> = (
+        capturedTableProps?.formFields || []
+      ).filter((field: CapturedFormField): boolean => {
+        return field.fieldType === FormFieldSchemaType.YAML;
+      });
+
+      expect(yamlFields).toHaveLength(1);
+      expect(yamlFields[0]?.title).toBe("Sigma Rule (YAML)");
     });
   });
 
