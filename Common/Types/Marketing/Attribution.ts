@@ -36,6 +36,16 @@ export const UtmWireKeyToPropertyKey: Record<string, string> = {
   utm_campaign: "utmCampaign",
   utm_term: "utmTerm",
   utm_content: "utmContent",
+  /*
+   * GA4's second tier of campaign parameters. Google Ads auto-tagging and the
+   * GA4 URL builder emit these alongside the five above, and the booking
+   * receiver reports on them, so they are stored rather than dropped at the
+   * door.
+   */
+  utm_id: "utmId",
+  utm_source_platform: "utmSourcePlatform",
+  utm_creative_format: "utmCreativeFormat",
+  utm_marketing_tactic: "utmMarketingTactic",
 };
 
 export const UtmPropertyKeys: Array<string> = Object.values(

@@ -23,6 +23,7 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const documentationMarkdown: string = `
@@ -53,9 +54,23 @@ level: high
 Fields referenced in the rule match the normalized OCSF columns of security events (\`className\`, \`severityName\`, \`statusName\`, \`principalUser\`, \`principalHost\`, \`attributes.<key>\`, ...).
 `;
 
-const DetectionRulesPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
+  props: PageComponentProps,
+): ReactElement => {
+  /*
+   * Same reseller-telemetry gate as every other Security Events tab —
+   * detection rules run over telemetry-billed security events, so a plan
+   * without telemetry features has nothing for them to evaluate.
+   */
+  const disableTelemetryForThisProject: boolean =
+    props.currentProject?.reseller?.enableTelemetryFeatures === false;
+
+  if (disableTelemetryForThisProject) {
+    return (
+      <ErrorMessage message="Looks like you have bought this plan from a reseller. It did not include telemetry features in your plan. Telemetry features are disabled for this project." />
+    );
+  }
+
   /*
    * The row action deep-links into the monitor create wizard, which
    * ModelTable's own permission gating never sees — so gate it here the

@@ -174,9 +174,10 @@
 <% } %>
 
 <!--
-    Deferred analytics - PostHog loads after page render to improve LCP, and
-    only once there is consent to load it. Until then the stub queues capture
-    calls, so nothing in the product has to know whether the library is there.
+    Deferred analytics - PostHog loads after page render to improve LCP. Until
+    it lands the stub queues capture calls, so nothing in the product has to
+    know whether the library is there. Loading is not gated on the cookie
+    banner (Common/Server/Views/Partials/AnalyticsConsent.ejs).
 -->
 <script>
     // PostHog stub - capture calls are queued until the library loads
@@ -206,20 +207,14 @@
             }
         }
 
-        if (window.oneUptimeConsent && window.oneUptimeConsent.isGranted()) {
-            initWhenIdle();
-        }
-
         /*
-         * Accepting later in the session loads the library then, and the stub's
-         * queue is replayed — so events captured while the banner was still up
-         * are not lost, they were simply never sent anywhere yet.
+         * Unconditional. PostHog used to wait for the banner; it no longer
+         * does — see the top of
+         * Common/Server/Views/Partials/AnalyticsConsent.ejs for the decision
+         * and its consequences. The stub above still queues capture calls
+         * until the library is in, so nothing is lost in the meantime.
          */
-        if (window.oneUptimeConsent) {
-            window.oneUptimeConsent.onChange(function (granted) {
-                if (granted) { initWhenIdle(); }
-            });
-        }
+        initWhenIdle();
     })();
 </script>
 

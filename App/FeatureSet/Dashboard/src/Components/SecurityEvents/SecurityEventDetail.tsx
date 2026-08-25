@@ -4,10 +4,21 @@ import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import SecurityEventSeverityPill from "./SecurityEventSeverityPill";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
+import Navigation from "Common/UI/Utils/Navigation";
+import Route from "Common/Types/API/Route";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
 
 export interface ComponentProps {
   securityEvent: SecurityEvent;
   onClose: () => void;
+  /*
+   * Pivot handler for the observable chips. When the detail panel is
+   * already on the Correlate page the pivot happens in place; everywhere
+   * else (omit the prop) a chip deep-links to the Correlate page seeded
+   * with that observable.
+   */
+  onCorrelateObservable?: ((observable: string) => void) | undefined;
 }
 
 interface DetailRow {
@@ -29,6 +40,57 @@ const SecurityEventDetail: FunctionComponent<ComponentProps> = (
       })
       .join(", ");
   };
+
+  const correlateObservable: (observable: string) => void = (
+    observable: string,
+  ): void => {
+    if (props.onCorrelateObservable) {
+      props.onCorrelateObservable(observable);
+      return;
+    }
+    Navigation.navigate(
+      (
+        RouteUtil.populateRouteParams(
+          RouteMap[PageMap.SECURITY_EVENTS_CORRELATE] as Route,
+        ) as Route
+      ).addQueryParams({
+        observable: encodeURIComponent(observable),
+      }),
+    );
+  };
+
+  const observables: Array<string> = (event.observables || []).filter(
+    (observable: string) => {
+      return Boolean(observable);
+    },
+  );
+
+  /*
+   * Observables are the pivot points of the whole product — every one of
+   * them is a valid Correlate query, so render them as chips that start
+   * (or refocus) a correlation instead of a comma-joined string.
+   */
+  const observableChips: ReactElement | undefined =
+    observables.length > 0 ? (
+      <span className="flex flex-wrap gap-1.5">
+        {observables.map((observable: string, index: number): ReactElement => {
+          return (
+            <button
+              key={index}
+              type="button"
+              data-testid={`security-event-observable-chip-${index}`}
+              title={`Correlate "${observable}"`}
+              className="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 font-mono text-xs text-indigo-700 hover:bg-indigo-100"
+              onClick={() => {
+                correlateObservable(observable);
+              }}
+            >
+              {observable}
+            </button>
+          );
+        })}
+      </span>
+    ) : undefined;
 
   const rows: Array<DetailRow> = [
     {
@@ -64,7 +126,7 @@ const SecurityEventDetail: FunctionComponent<ComponentProps> = (
       value: event.targetPort ? event.targetPort.toString() : undefined,
     },
     { label: "Target Resource", value: event.targetResource },
-    { label: "Observables", value: formatArray(event.observables) },
+    { label: "Observables", value: observableChips },
     { label: "Event UID", value: event.eventUid },
   ];
 

@@ -24,13 +24,17 @@ import AnalyticsModelAPI, {
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import API from "Common/UI/Utils/API/API";
 import Query from "Common/Types/BaseDatabase/Query";
+import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import Includes from "Common/Types/BaseDatabase/Includes";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
+import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
+import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
 import IconProp from "Common/Types/Icon/IconProp";
 import Input from "Common/UI/Components/Input/Input";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -38,31 +42,98 @@ import Dropdown, {
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import Navigation from "Common/UI/Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import computeLayeredLayout, {
   LayoutPoint,
 } from "../../Utils/LayeredGraphLayout";
+import {
+  CompiledCorrelationQueries,
+  CorrelationCondition,
+  CorrelationConnector,
+  CorrelationFieldKey,
+  CorrelationFilter,
+  CorrelationOperator,
+  compileCorrelationFilter,
+  describeCorrelationCondition,
+  getEqualityObservables,
+  parseCorrelationFilter,
+  serializeCorrelationFilter,
+} from "../../Utils/SecurityEventCorrelation";
+import {
+  CLASS_NODE_PREFIX,
+  CorrelationGraphData,
+  CorrelationGraphNode,
+  OBSERVABLE_NODE_PREFIX,
+  buildCorrelationGraph,
+  dedupeSecurityEvents,
+} from "../../Utils/CorrelationGraph";
+import CorrelateFilterBuilder, {
+  getDefaultCorrelationCondition,
+} from "./CorrelateFilterBuilder";
+import CorrelateFilterChips from "./CorrelateFilterChips";
+import SecurityEventSeverityPill from "./SecurityEventSeverityPill";
+import SecurityEventDetail from "./SecurityEventDetail";
 
 /*
- * Entity-neighborhood graph: the searched observable in the middle, one node
- * per event class that mentioned it, and one node per co-occurring observable
- * (capped at the most frequent 30). Clicking an observable node re-centers
- * the graph on it.
+ * Entity-neighborhood graph over security events: the applied filter in the
+ * middle, one node per event class that matched it, one node per
+ * co-occurring observable (capped at the most frequent 30).
+ *
+ * The filter is either the quick single-observable search (the original
+ * UX, kept as a shorthand) or a chain of field/operator/value conditions
+ * with one AND/OR connector. AND compiles to a single server query; OR runs
+ * one query per condition and unions the results by event id (the analytics
+ * query API has no cross-column OR). Filter + time range live in the URL
+ * (`q`, `hours` — plus `observable` as a simple deep-link param other pages
+ * use), so a correlation is shareable and pivots survive reloads.
+ *
+ * Clicking a class node opens the matching events below the graph (each row
+ * opens the full event detail); clicking an observable node offers pivot
+ * actions (focus / add condition / exclude).
  */
 
 const X_GAP: number = 240;
 const Y_GAP: number = 140;
-const MAX_CO_OBSERVABLES: number = 30;
 const EVENT_LIMIT: number = 200;
-
-const OBSERVABLE_NODE_PREFIX: string = "observable:";
-const CLASS_NODE_PREFIX: string = "class:";
+const DRILL_DOWN_ROW_LIMIT: number = 50;
 
 const timeRangeOptions: Array<DropdownOption> = [
   { label: "Last 1 hour", value: 1 },
   { label: "Last 6 hours", value: 6 },
   { label: "Last 24 hours", value: 24 },
   { label: "Last 7 days", value: 168 },
+  { label: "Last 30 days", value: 720 },
 ];
+
+const eventSelect: Select<SecurityEvent> = {
+  _id: true,
+  time: true,
+  eventUid: true,
+  categoryName: true,
+  className: true,
+  activityName: true,
+  severityName: true,
+  statusName: true,
+  message: true,
+  vendorName: true,
+  productName: true,
+  ruleId: true,
+  ruleName: true,
+  mitreTactics: true,
+  mitreTechniques: true,
+  principalUser: true,
+  principalHost: true,
+  principalIp: true,
+  principalProcess: true,
+  targetUser: true,
+  targetHost: true,
+  targetIp: true,
+  targetPort: true,
+  targetResource: true,
+  observables: true,
+  attributes: true,
+} as Select<SecurityEvent>;
 
 const centerNodeStyle: React.CSSProperties = {
   background: "#4f46e5",
@@ -72,16 +143,6 @@ const centerNodeStyle: React.CSSProperties = {
   padding: 10,
   fontSize: 12,
   fontWeight: 600,
-  maxWidth: 220,
-};
-
-const classNodeStyle: React.CSSProperties = {
-  background: "#fff7ed",
-  color: "#9a3412",
-  border: "1px solid #fdba74",
-  borderRadius: 8,
-  padding: 8,
-  fontSize: 12,
   maxWidth: 220,
 };
 
@@ -95,229 +156,367 @@ const coObservableNodeStyle: React.CSSProperties = {
   maxWidth: 220,
 };
 
+const baseClassNodeStyle: React.CSSProperties = {
+  borderRadius: 8,
+  padding: 8,
+  fontSize: 12,
+  maxWidth: 220,
+};
+
+/*
+ * Class nodes are tinted by the worst severity among their events so the
+ * dangerous classes stand out before anyone reads a single count.
+ */
+function classNodeStyle(
+  worstSeverity: OcsfSeverity | undefined,
+): React.CSSProperties {
+  switch (worstSeverity) {
+    case OcsfSeverity.Fatal:
+    case OcsfSeverity.Critical:
+      return {
+        ...baseClassNodeStyle,
+        background: "#fef2f2",
+        color: "#7f1d1d",
+        border: "1px solid #f87171",
+      };
+    case OcsfSeverity.High:
+      return {
+        ...baseClassNodeStyle,
+        background: "#fff7ed",
+        color: "#9a3412",
+        border: "1px solid #fdba74",
+      };
+    case OcsfSeverity.Medium:
+      return {
+        ...baseClassNodeStyle,
+        background: "#fefce8",
+        color: "#854d0e",
+        border: "1px solid #fde047",
+      };
+    case OcsfSeverity.Low:
+      return {
+        ...baseClassNodeStyle,
+        background: "#eff6ff",
+        color: "#1e40af",
+        border: "1px solid #93c5fd",
+      };
+    default:
+      return {
+        ...baseClassNodeStyle,
+        background: "#f9fafb",
+        color: "#374151",
+        border: "1px solid #cbd5e1",
+      };
+  }
+}
+
+function singleObservableFilter(observable: string): CorrelationFilter {
+  return {
+    conditions: [
+      {
+        field: CorrelationFieldKey.Observable,
+        operator: CorrelationOperator.Equals,
+        value: observable,
+      },
+    ],
+    connector: "and",
+  };
+}
+
+/*
+ * The quick input mirrors the applied filter only when the filter is
+ * exactly one "Observable is X" condition — anything richer belongs to the
+ * builder.
+ */
+function quickValueForFilter(filter: CorrelationFilter | null): string {
+  if (
+    filter &&
+    filter.conditions.length === 1 &&
+    filter.conditions[0]!.field === CorrelationFieldKey.Observable &&
+    filter.conditions[0]!.operator === CorrelationOperator.Equals
+  ) {
+    return filter.conditions[0]!.value;
+  }
+  return "";
+}
+
 const CorrelateGraph: FunctionComponent = (): ReactElement => {
-  const [inputValue, setInputValue] = useState<string>("");
-  const [searchedObservable, setSearchedObservable] = useState<string>("");
+  const [quickValue, setQuickValue] = useState<string>("");
+  const [draftConditions, setDraftConditions] = useState<
+    Array<CorrelationCondition>
+  >([]);
+  const [draftConnector, setDraftConnector] =
+    useState<CorrelationConnector>("and");
+  const [isBuilderOpen, setIsBuilderOpen] = useState<boolean>(false);
+  const [appliedFilter, setAppliedFilter] = useState<CorrelationFilter | null>(
+    null,
+  );
   const [timeRangeInHours, setTimeRangeInHours] = useState<number>(24);
   const [events, setEvents] = useState<Array<SecurityEvent>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [isTruncated, setIsTruncated] = useState<boolean>(false);
+  const [selectedObservable, setSelectedObservable] = useState<string>("");
+  const [drillDownClassName, setDrillDownClassName] = useState<string>("");
+  const [detailEvent, setDetailEvent] = useState<SecurityEvent | null>(null);
 
   const flowInstance: React.MutableRefObject<ReactFlowInstance | null> =
     useRef<ReactFlowInstance | null>(null);
+  const fetchRequestId: React.MutableRefObject<number> = useRef<number>(0);
 
-  const fetchEvents: (observable: string, hours: number) => Promise<void> =
-    useCallback(async (observable: string, hours: number): Promise<void> => {
-      if (!observable) {
-        return;
-      }
-
-      setIsLoading(true);
-      setError("");
-
-      try {
-        const endDate: Date = OneUptimeDate.getCurrentDate();
-        const startDate: Date = OneUptimeDate.getSomeHoursAgo(hours);
-
-        const query: Query<SecurityEvent> = {
-          observables: new Includes([observable]),
-          time: new InBetween<Date>(startDate, endDate),
-        } as Query<SecurityEvent>;
-
-        const listResult: ListResult<SecurityEvent> =
-          await AnalyticsModelAPI.getList<SecurityEvent>({
-            modelType: SecurityEvent,
-            query: query,
-            limit: EVENT_LIMIT,
-            skip: 0,
-            select: {
-              className: true,
-              severityName: true,
-              message: true,
-              principalUser: true,
-              principalHost: true,
-              principalIp: true,
-              targetUser: true,
-              targetHost: true,
-              targetIp: true,
-              observables: true,
-              time: true,
-            },
-            sort: {
-              time: SortOrder.Descending,
-            },
-            requestOptions: {},
-          });
-
-        setEvents(listResult.data);
-      } catch (err) {
-        setError(API.getFriendlyMessage(err));
-      } finally {
-        setIsLoading(false);
-      }
+  const syncUrl: (filter: CorrelationFilter | null, hours: number) => void =
+    useCallback((filter: CorrelationFilter | null, hours: number): void => {
+      Navigation.setQueryString({
+        q: filter ? serializeCorrelationFilter(filter) : null,
+        hours: filter ? String(hours) : null,
+        observable: null,
+      });
     }, []);
 
-  const searchObservable: (observable: string) => void = useCallback(
-    (observable: string): void => {
-      const trimmed: string = observable.trim();
-      if (!trimmed) {
-        return;
-      }
-      setInputValue(trimmed);
-      setSearchedObservable(trimmed);
+  const applyFilter: (filter: CorrelationFilter | null) => void = useCallback(
+    (filter: CorrelationFilter | null): void => {
+      setAppliedFilter(filter);
+      setQuickValue(quickValueForFilter(filter));
+      setDraftConditions(filter ? [...filter.conditions] : []);
+      setDraftConnector(filter ? filter.connector : "and");
+      setSelectedObservable("");
+      setDrillDownClassName("");
+      setDetailEvent(null);
+      syncUrl(filter, timeRangeInHours);
     },
-    [],
+    [syncUrl, timeRangeInHours],
   );
 
+  // Seed from the URL — deep links from the events table and shared views.
   useEffect(() => {
-    if (searchedObservable) {
-      fetchEvents(searchedObservable, timeRangeInHours).catch(
-        (err: unknown) => {
-          setError(API.getFriendlyMessage(err));
-        },
-      );
+    const rawHours: string | null = Navigation.getQueryStringByName("hours");
+    let initialHours: number = 24;
+    if (rawHours) {
+      const parsedHours: number = parseInt(rawHours, 10);
+      if (
+        timeRangeOptions.some((option: DropdownOption) => {
+          return option.value === parsedHours;
+        })
+      ) {
+        initialHours = parsedHours;
+        setTimeRangeInHours(parsedHours);
+      }
     }
-  }, [searchedObservable, timeRangeInHours, fetchEvents]);
+
+    const parsedFilter: CorrelationFilter | null = parseCorrelationFilter(
+      Navigation.getQueryStringByName("q"),
+    );
+    const rawObservable: string | null =
+      Navigation.getQueryStringByName("observable");
+
+    const initialFilter: CorrelationFilter | null =
+      parsedFilter ||
+      (rawObservable && rawObservable.trim()
+        ? singleObservableFilter(rawObservable.trim())
+        : null);
+
+    if (initialFilter) {
+      setAppliedFilter(initialFilter);
+      setQuickValue(quickValueForFilter(initialFilter));
+      setDraftConditions([...initialFilter.conditions]);
+      setDraftConnector(initialFilter.connector);
+      if (initialFilter.conditions.length > 1) {
+        setIsBuilderOpen(true);
+      }
+      syncUrl(initialFilter, initialHours);
+    }
+    // Mount-only: the URL is an input here, not a subscription.
+  }, []);
+
+  useEffect(() => {
+    /*
+     * Every effect run supersedes whatever fetch is in flight — including
+     * the early-return branches below, which would otherwise let a stale
+     * response pass the requestId guard and overwrite the cleared state.
+     */
+    const requestId: number = ++fetchRequestId.current;
+
+    if (!appliedFilter) {
+      setEvents([]);
+      setError("");
+      setIsTruncated(false);
+      setIsLoading(false);
+      return;
+    }
+
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+    if (!projectId) {
+      setIsLoading(false);
+      return;
+    }
+
+    const endDate: Date = OneUptimeDate.getCurrentDate();
+    const startDate: Date = OneUptimeDate.getSomeHoursAgo(timeRangeInHours);
+
+    const compiled: CompiledCorrelationQueries = compileCorrelationFilter(
+      appliedFilter,
+      {
+        projectId: projectId,
+        startDate: startDate,
+        endDate: endDate,
+      },
+    );
+
+    if (compiled.error) {
+      setError(compiled.error);
+      setEvents([]);
+      setIsTruncated(false);
+      setIsLoading(false);
+      return;
+    }
+
+    if (compiled.queries.length === 0) {
+      setEvents([]);
+      setError("");
+      setIsTruncated(false);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+
+    const fetchAll: () => Promise<void> = async (): Promise<void> => {
+      try {
+        const listResults: Array<ListResult<SecurityEvent>> = await Promise.all(
+          compiled.queries.map(
+            (
+              query: Query<SecurityEvent>,
+            ): Promise<ListResult<SecurityEvent>> => {
+              return AnalyticsModelAPI.getList<SecurityEvent>({
+                modelType: SecurityEvent,
+                query: query,
+                limit: EVENT_LIMIT,
+                skip: 0,
+                select: eventSelect,
+                sort: {
+                  time: SortOrder.Descending,
+                },
+                requestOptions: {},
+              });
+            },
+          ),
+        );
+
+        if (requestId !== fetchRequestId.current) {
+          return; // A newer correlation superseded this one.
+        }
+
+        setEvents(
+          dedupeSecurityEvents(
+            listResults.map((listResult: ListResult<SecurityEvent>) => {
+              return listResult.data;
+            }),
+          ),
+        );
+        setIsTruncated(
+          listResults.some((listResult: ListResult<SecurityEvent>) => {
+            return listResult.data.length >= EVENT_LIMIT;
+          }),
+        );
+      } catch (err) {
+        if (requestId === fetchRequestId.current) {
+          setError(API.getFriendlyMessage(err));
+        }
+      } finally {
+        if (requestId === fetchRequestId.current) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchAll().catch((err: unknown) => {
+      setError(API.getFriendlyMessage(err));
+      setIsLoading(false);
+    });
+  }, [appliedFilter, timeRangeInHours]);
+
+  const graphData: CorrelationGraphData = useMemo((): CorrelationGraphData => {
+    if (!appliedFilter || events.length === 0) {
+      return { nodes: [], edges: [], droppedCoObservableCount: 0 };
+    }
+
+    const centerLabel: string =
+      appliedFilter.conditions.length === 1
+        ? describeCorrelationCondition(appliedFilter.conditions[0]!)
+        : `${appliedFilter.conditions.length} conditions (${
+            appliedFilter.connector === "or" ? "ANY" : "ALL"
+          })`;
+
+    return buildCorrelationGraph({
+      events: events,
+      centerLabel: centerLabel,
+      excludedObservables: getEqualityObservables(appliedFilter),
+    });
+  }, [events, appliedFilter]);
 
   const { nodes, edges } = useMemo((): {
     nodes: Array<Node>;
     edges: Array<Edge>;
   } => {
-    if (!searchedObservable || events.length === 0) {
+    if (graphData.nodes.length === 0) {
       return { nodes: [], edges: [] };
     }
 
-    const centerId: string = `${OBSERVABLE_NODE_PREFIX}${searchedObservable}`;
-
-    // Events per class, and co-occurring observables per class.
-    const classCounts: Map<string, number> = new Map<string, number>();
-    const coObservableCounts: Map<string, number> = new Map<string, number>();
-    const classToCoObservable: Map<string, Map<string, number>> = new Map<
-      string,
-      Map<string, number>
-    >();
-
-    for (const event of events) {
-      const className: string = event.className || "Unclassified";
-      classCounts.set(className, (classCounts.get(className) || 0) + 1);
-
-      const seenInEvent: Set<string> = new Set<string>();
-      for (const observable of event.observables || []) {
-        if (
-          !observable ||
-          observable === searchedObservable ||
-          seenInEvent.has(observable)
-        ) {
-          continue;
-        }
-        seenInEvent.add(observable);
-        coObservableCounts.set(
-          observable,
-          (coObservableCounts.get(observable) || 0) + 1,
-        );
-        const observableCounts: Map<string, number> =
-          classToCoObservable.get(className) || new Map<string, number>();
-        observableCounts.set(
-          observable,
-          (observableCounts.get(observable) || 0) + 1,
-        );
-        classToCoObservable.set(className, observableCounts);
-      }
-    }
-
-    // Cap co-observables at the most frequent ones.
-    const topCoObservables: Set<string> = new Set<string>(
-      Array.from(coObservableCounts.entries())
-        .sort((a: [string, number], b: [string, number]): number => {
-          if (b[1] !== a[1]) {
-            return b[1] - a[1];
-          }
-          return a[0].localeCompare(b[0]);
-        })
-        .slice(0, MAX_CO_OBSERVABLES)
-        .map((entry: [string, number]) => {
-          return entry[0];
-        }),
-    );
-
-    const nodeIds: Array<string> = [centerId];
-    const layoutEdges: Array<{ from: string; to: string }> = [];
-    const builtEdges: Array<Edge> = [];
-
-    for (const [className, count] of classCounts) {
-      const classId: string = `${CLASS_NODE_PREFIX}${className}`;
-      nodeIds.push(classId);
-      layoutEdges.push({ from: centerId, to: classId });
-      builtEdges.push({
-        id: `${centerId}->${classId}`,
-        source: centerId,
-        target: classId,
-        type: "smoothstep",
-        animated: true,
-        label: count.toString(),
-        labelStyle: { fontSize: 10, fill: "#6b7280" },
-        markerEnd: { type: MarkerType.ArrowClosed, color: "#94a3b8" },
-        style: { stroke: "#94a3b8" },
-      });
-    }
-
-    for (const [className, observableCounts] of classToCoObservable) {
-      for (const [observable, count] of observableCounts) {
-        if (!topCoObservables.has(observable)) {
-          continue;
-        }
-        const classId: string = `${CLASS_NODE_PREFIX}${className}`;
-        const coId: string = `${OBSERVABLE_NODE_PREFIX}${observable}`;
-        if (!nodeIds.includes(coId)) {
-          nodeIds.push(coId);
-        }
-        layoutEdges.push({ from: classId, to: coId });
-        builtEdges.push({
-          id: `${classId}->${coId}`,
-          source: classId,
-          target: coId,
-          type: "smoothstep",
-          label: count.toString(),
-          labelStyle: { fontSize: 10, fill: "#6b7280" },
-          markerEnd: { type: MarkerType.ArrowClosed, color: "#cbd5e1" },
-          style: { stroke: "#cbd5e1" },
-        });
-      }
-    }
-
     const layout: Map<string, LayoutPoint> = computeLayeredLayout(
-      nodeIds,
-      layoutEdges,
+      graphData.nodes.map((node: CorrelationGraphNode) => {
+        return node.id;
+      }),
+      graphData.edges.map((edge: { from: string; to: string }) => {
+        return { from: edge.from, to: edge.to };
+      }),
       { xGap: X_GAP, yGap: Y_GAP },
     );
 
-    const builtNodes: Array<Node> = nodeIds.map((nodeId: string): Node => {
-      const point: LayoutPoint = layout.get(nodeId) || { x: 0, y: 0 };
-      const isCenter: boolean = nodeId === centerId;
-      const isClass: boolean = nodeId.startsWith(CLASS_NODE_PREFIX);
-      const label: string = isClass
-        ? `${nodeId.substring(CLASS_NODE_PREFIX.length)} (${
-            classCounts.get(nodeId.substring(CLASS_NODE_PREFIX.length)) || 0
-          })`
-        : nodeId.substring(OBSERVABLE_NODE_PREFIX.length);
+    const builtNodes: Array<Node> = graphData.nodes.map(
+      (node: CorrelationGraphNode): Node => {
+        const point: LayoutPoint = layout.get(node.id) || { x: 0, y: 0 };
 
-      let style: React.CSSProperties = coObservableNodeStyle;
-      if (isCenter) {
-        style = centerNodeStyle;
-      } else if (isClass) {
-        style = classNodeStyle;
-      }
+        let style: React.CSSProperties = coObservableNodeStyle;
+        let label: string = node.label;
+        if (node.kind === "center") {
+          style = centerNodeStyle;
+        } else if (node.kind === "class") {
+          style = classNodeStyle(node.worstSeverity);
+          label = `${node.label} (${node.count || 0})`;
+        }
 
-      return {
-        id: nodeId,
-        position: point,
-        data: { label },
-        style,
-      };
-    });
+        return {
+          id: node.id,
+          position: point,
+          data: { label },
+          style,
+        };
+      },
+    );
+
+    const builtEdges: Array<Edge> = graphData.edges.map(
+      (edge: { id: string; from: string; to: string; count: number }): Edge => {
+        const isCenterEdge: boolean = edge.from === "center";
+        return {
+          id: edge.id,
+          source: edge.from,
+          target: edge.to,
+          type: "smoothstep",
+          animated: isCenterEdge,
+          label: edge.count.toString(),
+          labelStyle: { fontSize: 10, fill: "#6b7280" },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color: isCenterEdge ? "#94a3b8" : "#cbd5e1",
+          },
+          style: { stroke: isCenterEdge ? "#94a3b8" : "#cbd5e1" },
+        };
+      },
+    );
 
     return { nodes: builtNodes, edges: builtEdges };
-  }, [events, searchedObservable]);
+  }, [graphData]);
 
   /*
    * Re-fit when the graph changes. A new controlled `nodes` array wipes
@@ -342,7 +541,217 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
     return () => {
       cancelAnimationFrame(raf);
     };
-  }, [nodes.length, searchedObservable]);
+  }, [nodes.length, appliedFilter]);
+
+  const appendCondition: (condition: CorrelationCondition) => void =
+    useCallback(
+      (condition: CorrelationCondition): void => {
+        if (!appliedFilter) {
+          applyFilter({ conditions: [condition], connector: "and" });
+          return;
+        }
+        applyFilter({
+          conditions: [...appliedFilter.conditions, condition],
+          connector: appliedFilter.connector,
+        });
+      },
+      [appliedFilter, applyFilter],
+    );
+
+  const drillDownEvents: Array<SecurityEvent> =
+    useMemo((): Array<SecurityEvent> => {
+      if (!drillDownClassName) {
+        return [];
+      }
+      return events.filter((event: SecurityEvent) => {
+        return (event.className || "Unclassified") === drillDownClassName;
+      });
+    }, [events, drillDownClassName]);
+
+  /*
+   * Excluding in OR mode would just add a near-match-everything branch —
+   * "is not X" only narrows when it ANDs with the rest of the filter.
+   */
+  const canExclude: boolean =
+    !appliedFilter ||
+    appliedFilter.connector === "and" ||
+    appliedFilter.conditions.length === 0;
+
+  const getObservableActionBar: () => ReactElement = (): ReactElement => {
+    /*
+     * Selections belong to the CURRENT result set — while a new fetch is in
+     * flight (or after it failed) the underlying events are stale, so the
+     * pivot bar and the drill-down below both hide until fresh data lands.
+     */
+    if (!selectedObservable || isLoading || error) {
+      return <Fragment />;
+    }
+
+    return (
+      <div
+        data-testid="correlate-observable-actions"
+        className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-indigo-100 bg-indigo-50/60 px-3 py-2"
+      >
+        <span className="text-xs text-gray-600">
+          Selected observable:{" "}
+          <span className="font-mono font-medium text-gray-900">
+            {selectedObservable}
+          </span>
+        </span>
+        <Button
+          dataTestId="correlate-action-focus"
+          title="Focus"
+          tooltip="Start a new correlation on this observable"
+          buttonStyle={ButtonStyleType.OUTLINE}
+          buttonSize={ButtonSize.Small}
+          icon={IconProp.Graph}
+          onClick={() => {
+            applyFilter(singleObservableFilter(selectedObservable));
+          }}
+        />
+        <Button
+          dataTestId="correlate-action-add"
+          title={
+            appliedFilter && appliedFilter.connector === "or"
+              ? "Add OR condition"
+              : "Add AND condition"
+          }
+          tooltip="Narrow or widen the current correlation with this observable"
+          buttonStyle={ButtonStyleType.OUTLINE}
+          buttonSize={ButtonSize.Small}
+          icon={IconProp.Add}
+          onClick={() => {
+            appendCondition({
+              field: CorrelationFieldKey.Observable,
+              operator: CorrelationOperator.Equals,
+              value: selectedObservable,
+            });
+          }}
+        />
+        {canExclude && (
+          <Button
+            dataTestId="correlate-action-exclude"
+            title="Exclude"
+            tooltip="Hide events that mention this observable"
+            buttonStyle={ButtonStyleType.OUTLINE}
+            buttonSize={ButtonSize.Small}
+            icon={IconProp.Minus}
+            onClick={() => {
+              appendCondition({
+                field: CorrelationFieldKey.Observable,
+                operator: CorrelationOperator.NotEquals,
+                value: selectedObservable,
+              });
+            }}
+          />
+        )}
+        <Button
+          dataTestId="correlate-action-dismiss"
+          title="Dismiss"
+          buttonStyle={ButtonStyleType.SECONDARY_LINK}
+          buttonSize={ButtonSize.Small}
+          onClick={() => {
+            setSelectedObservable("");
+          }}
+        />
+      </div>
+    );
+  };
+
+  const getDrillDownPanel: () => ReactElement = (): ReactElement => {
+    // Same staleness rule as the action bar above.
+    if (!drillDownClassName || isLoading || error) {
+      return <Fragment />;
+    }
+
+    const visibleEvents: Array<SecurityEvent> = drillDownEvents.slice(
+      0,
+      DRILL_DOWN_ROW_LIMIT,
+    );
+
+    return (
+      <div
+        data-testid="correlate-drilldown"
+        className="mt-3 rounded-lg border border-gray-200 bg-white"
+      >
+        <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
+          <p className="text-sm font-medium text-gray-900">
+            {drillDownClassName}{" "}
+            <span className="text-gray-500 font-normal">
+              — {drillDownEvents.length} matching event
+              {drillDownEvents.length === 1 ? "" : "s"}
+            </span>
+          </p>
+          <div className="flex items-center gap-2">
+            {(!appliedFilter || appliedFilter.connector === "and") && (
+              <Button
+                dataTestId="correlate-drilldown-filter-class"
+                title="Filter to this class"
+                buttonStyle={ButtonStyleType.OUTLINE}
+                buttonSize={ButtonSize.Small}
+                icon={IconProp.Filter}
+                onClick={() => {
+                  appendCondition({
+                    field: CorrelationFieldKey.EventClass,
+                    operator: CorrelationOperator.Equals,
+                    value: drillDownClassName,
+                  });
+                }}
+              />
+            )}
+            <Button
+              dataTestId="correlate-drilldown-close"
+              title="Close"
+              buttonStyle={ButtonStyleType.SECONDARY_LINK}
+              buttonSize={ButtonSize.Small}
+              onClick={() => {
+                setDrillDownClassName("");
+              }}
+            />
+          </div>
+        </div>
+        <ul className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
+          {visibleEvents.map(
+            (event: SecurityEvent, index: number): ReactElement => {
+              return (
+                <li key={index}>
+                  <button
+                    type="button"
+                    data-testid={`correlate-drilldown-event-${index}`}
+                    className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-gray-50"
+                    onClick={() => {
+                      setDetailEvent(event);
+                    }}
+                  >
+                    <span className="w-24 shrink-0 text-xs text-gray-500">
+                      {event.time
+                        ? OneUptimeDate.fromNow(new Date(event.time))
+                        : "-"}
+                    </span>
+                    <SecurityEventSeverityPill
+                      severityName={event.severityName}
+                    />
+                    <span className="min-w-0 flex-1 truncate text-sm text-gray-900">
+                      {event.message || "-"}
+                    </span>
+                    <span className="hidden md:block w-40 shrink-0 truncate text-xs text-gray-500">
+                      {event.principalUser || event.principalHost || ""}
+                    </span>
+                  </button>
+                </li>
+              );
+            },
+          )}
+        </ul>
+        {drillDownEvents.length > DRILL_DOWN_ROW_LIMIT && (
+          <p className="border-t border-gray-100 px-3 py-2 text-xs text-gray-500">
+            Showing the {DRILL_DOWN_ROW_LIMIT} most recent — narrow the filter
+            or time range to see the rest.
+          </p>
+        )}
+      </div>
+    );
+  };
 
   const getGraphContent: () => ReactElement = (): ReactElement => {
     if (isLoading) {
@@ -353,13 +762,13 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
       return <ErrorMessage message={error} />;
     }
 
-    if (!searchedObservable) {
+    if (!appliedFilter) {
       return (
         <EmptyState
           id="security-events-correlate-empty"
           icon={IconProp.Graph}
-          title="Correlate an observable"
-          description="Enter a hostname, user, or IP address above to see every event class that mentioned it and the observables it co-occurred with."
+          title="Correlate security events"
+          description="Enter a hostname, user, or IP address above — or build a multi-condition filter (host AND ip, user OR user) with Add filters — to see every event class that matched and the observables they co-occurred with."
         />
       );
     }
@@ -370,7 +779,7 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
           id="security-events-correlate-no-results"
           icon={IconProp.Search}
           title="No events found"
-          description={`No security events mention "${searchedObservable}" in the selected time range. Try a longer range or a different observable.`}
+          description="No security events match this filter in the selected time range. Try a longer range or fewer conditions."
         />
       );
     }
@@ -390,8 +799,14 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
           }}
           onNodeClick={(_event: React.MouseEvent, node: Node) => {
             if (node.id.startsWith(OBSERVABLE_NODE_PREFIX)) {
-              searchObservable(
+              setSelectedObservable(
                 node.id.substring(OBSERVABLE_NODE_PREFIX.length),
+              );
+              return;
+            }
+            if (node.id.startsWith(CLASS_NODE_PREFIX)) {
+              setDrillDownClassName(
+                node.id.substring(CLASS_NODE_PREFIX.length),
               );
             }
           }}
@@ -408,32 +823,60 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
     );
   };
 
+  /*
+   * Correlate stays disabled until every builder row has a value —
+   * matching the quick-search path, and keeping an all-empty default row
+   * from ever becoming an error state, a blank chip, and a q URL param
+   * that degrades to "no filter" when the link is shared.
+   */
+  const hasDraftToApply: boolean = isBuilderOpen
+    ? draftConditions.length > 0 &&
+      draftConditions.every((draftCondition: CorrelationCondition) => {
+        return Boolean(draftCondition.value.trim());
+      })
+    : Boolean(quickValue.trim());
+
   return (
     <Fragment>
       <div className="mb-3 flex flex-col md:flex-row md:items-end gap-3">
-        <div className="md:w-80">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Observable
-          </label>
-          <Input
-            dataTestId="security-events-correlate-observable"
-            placeholder="hostname, user, or IP address"
-            value={inputValue}
-            onChange={(value: string) => {
-              setInputValue(value);
-            }}
-            onEnterPress={() => {
-              searchObservable(inputValue);
-            }}
-          />
-        </div>
-        <div className="md:w-48">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+        {!isBuilderOpen && (
+          <div className="md:w-80">
+            <label
+              id="security-events-correlate-observable-label"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Observable
+            </label>
+            <Input
+              dataTestId="security-events-correlate-observable"
+              ariaLabelledby="security-events-correlate-observable-label"
+              placeholder="hostname, user, or IP address"
+              value={quickValue}
+              onChange={(value: string) => {
+                setQuickValue(value);
+              }}
+              onEnterPress={() => {
+                if (quickValue.trim()) {
+                  applyFilter(singleObservableFilter(quickValue.trim()));
+                }
+              }}
+            />
+          </div>
+        )}
+        <div
+          className="md:w-48"
+          data-testid="security-events-correlate-time-range"
+        >
+          <label
+            id="security-events-correlate-time-range-label"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Time Range
           </label>
           <Dropdown
+            ariaLabelledby="security-events-correlate-time-range-label"
             options={timeRangeOptions}
-            initialValue={
+            value={
               timeRangeOptions.find((option: DropdownOption) => {
                 return option.value === timeRangeInHours;
               }) || timeRangeOptions[2]
@@ -441,34 +884,148 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
             onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
               if (typeof value === "number") {
                 setTimeRangeInHours(value);
+                if (appliedFilter) {
+                  syncUrl(appliedFilter, value);
+                }
               }
             }}
           />
         </div>
-        <div>
+        <div className="flex items-end gap-2">
           <Button
             title="Correlate"
+            dataTestId="security-events-correlate-button"
             buttonStyle={ButtonStyleType.PRIMARY}
             icon={IconProp.Graph}
-            disabled={!inputValue.trim() || isLoading}
+            disabled={!hasDraftToApply || isLoading}
             onClick={() => {
-              searchObservable(inputValue);
+              if (isBuilderOpen) {
+                applyFilter({
+                  conditions: draftConditions,
+                  connector: draftConnector,
+                });
+                return;
+              }
+              if (quickValue.trim()) {
+                applyFilter(singleObservableFilter(quickValue.trim()));
+              }
+            }}
+          />
+          <Button
+            title={isBuilderOpen ? "Simple search" : "Add filters"}
+            dataTestId="security-events-correlate-toggle-builder"
+            buttonStyle={ButtonStyleType.OUTLINE}
+            icon={IconProp.Filter}
+            onClick={() => {
+              if (isBuilderOpen) {
+                setIsBuilderOpen(false);
+                setQuickValue(quickValueForFilter(appliedFilter));
+                return;
+              }
+              /*
+               * Seed the builder from what is on screen. Freshly typed
+               * (unapplied) quick text wins over a stale draft — the user
+               * just told us what they want to correlate on.
+               */
+              const trimmedQuickValue: string = quickValue.trim();
+              if (
+                trimmedQuickValue &&
+                trimmedQuickValue !== quickValueForFilter(appliedFilter)
+              ) {
+                setDraftConditions(
+                  singleObservableFilter(trimmedQuickValue).conditions,
+                );
+                setDraftConnector("and");
+              } else if (draftConditions.length === 0) {
+                if (trimmedQuickValue) {
+                  setDraftConditions(
+                    singleObservableFilter(trimmedQuickValue).conditions,
+                  );
+                } else {
+                  setDraftConditions([getDefaultCorrelationCondition()]);
+                }
+              }
+              setIsBuilderOpen(true);
             }}
           />
         </div>
-        {searchedObservable && !isLoading && !error && events.length > 0 && (
+        {appliedFilter && !isLoading && !error && events.length > 0 && (
           <p className="text-xs text-gray-500 md:ml-auto">
-            {events.length === EVENT_LIMIT
-              ? `Showing the ${EVENT_LIMIT} most recent matching events.`
-              : `${events.length} matching event${
-                  events.length === 1 ? "" : "s"
-                }.`}{" "}
-            Click an observable node to re-center the graph on it.
+            {events.length} matching event{events.length === 1 ? "" : "s"}.
+            {isTruncated
+              ? ` At least one search hit the ${EVENT_LIMIT}-event cap — treat counts as lower bounds.`
+              : ""}{" "}
+            Click a class node to inspect its events, or an observable node to
+            pivot.
           </p>
         )}
       </div>
 
+      {isBuilderOpen && (
+        <div className="mb-3">
+          <CorrelateFilterBuilder
+            conditions={draftConditions}
+            connector={draftConnector}
+            onChange={(
+              conditions: Array<CorrelationCondition>,
+              connector: CorrelationConnector,
+            ) => {
+              setDraftConditions(conditions);
+              setDraftConnector(connector);
+            }}
+          />
+        </div>
+      )}
+
+      {appliedFilter && (
+        <div className="mb-3">
+          <CorrelateFilterChips
+            filter={appliedFilter}
+            onRemoveCondition={(index: number) => {
+              const remaining: Array<CorrelationCondition> =
+                appliedFilter.conditions.filter(
+                  (
+                    _condition: CorrelationCondition,
+                    conditionIndex: number,
+                  ) => {
+                    return conditionIndex !== index;
+                  },
+                );
+              applyFilter(
+                remaining.length > 0
+                  ? {
+                      conditions: remaining,
+                      connector: appliedFilter.connector,
+                    }
+                  : null,
+              );
+            }}
+            onClearAll={() => {
+              applyFilter(null);
+            }}
+          />
+        </div>
+      )}
+
+      {getObservableActionBar()}
+
       {getGraphContent()}
+
+      {getDrillDownPanel()}
+
+      {detailEvent && (
+        <SecurityEventDetail
+          securityEvent={detailEvent}
+          onClose={() => {
+            setDetailEvent(null);
+          }}
+          onCorrelateObservable={(observable: string) => {
+            setDetailEvent(null);
+            setDrillDownClassName("");
+            applyFilter(singleObservableFilter(observable));
+          }}
+        />
+      )}
     </Fragment>
   );
 };

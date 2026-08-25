@@ -8,11 +8,13 @@ first if you are building a receiver.
 
 ## Architecture and sources of truth
 
-OneUptime stores no conversions and no longer receives bookings from Cal.com.
+OneUptime stores no conversions and does not receive bookings from Cal.com.
 There used to be a signature-verified `POST /api/cal-webhook` that turned a
-`BOOKING_CREATED` into an outbound `meeting_booked` conversion; it has been
-removed. What is left is the booking itself, in Cal.com, and the browser event
-the marketing site fires alongside it.
+`BOOKING_CREATED` into an outbound `meeting_booked` conversion; it was removed
+because Cal.com delivers that webhook straight to the CRM instead — one
+receiver, not two. What is left in OneUptime is the browser event the marketing
+site fires alongside the booking, and the attribution the embed hands Cal so
+the CRM can read it back.
 
 | Concern                                               | Source of truth                         | Notes                                                                                             |
 | ----------------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------- |
@@ -80,21 +82,61 @@ browser `meeting_booked` event carries only `event_schema_version`,
 `booking_source`, `booking_kind`, `page_path`, `cal_event_type` and
 `cal_namespace`, for exactly this reason.
 
+What *does* leave the page is the visitor's own campaign — UTM values, ad click
+IDs, the landing URL and the first touch — handed to Cal.com as booking
+metadata so the CRM can attribute the booking. It is not gated on the cookie
+banner; see [Consent](#consent). Cal.com joins it to the attendee details the
+visitor types into the booking form, so a booked demo is identified campaign
+*and* person on the CRM's side. That is the point of the path, and it is the
+thing to weigh if the consent position is ever revisited.
+
 ## Attribution
 
 The marketing site captures the visitor's campaign — UTM parameters, ad-platform
 click IDs and the first attributed visit — and holds it in localStorage
-(`Common/Server/Views/Partials/AnalyticsConsent.ejs`, gated on consent). It
-reaches the server through one door: the signup form, which posts it onto the
-User record. The key lists are shared in
-`Common/Types/Marketing/Attribution.ts` so a key added for the browser cannot be
-silently dropped on arrival.
+(`Common/Server/Views/Partials/AnalyticsConsent.ejs`). The key lists are shared
+in `Common/Types/Marketing/Attribution.ts` so a key added for the browser cannot
+be silently dropped on arrival, and `AttributionCapture.test.ts` asserts the
+browser's copy of those lists is identical to the contract's.
 
-A booking carries no attribution into OneUptime. The embeds used to put the
-visitor's campaign into Cal booking metadata for the webhook to read back; with
-the webhook gone, they no longer do. A booked demo is therefore attributable
-only through what the same person does later under the same address — a signup,
-or an enterprise licence issued to it.
+It leaves the browser through two doors:
+
+1. **The signup form**, which posts it onto the User record
+   (`App/FeatureSet/Accounts/src/Pages/Register.tsx`, iterating the contract
+   rather than hand-listing keys).
+2. **Cal.com booking metadata.** All three embeds call
+   `window.oneUptimeCalAttributionMetadata(bookingKind)` and pass the result as
+   the embed `config`. Cal returns it on `BOOKING_CREATED` to the CRM, which is
+   what makes a booked demo attributable to the ad that produced it.
+
+Because it is read out of localStorage rather than off the current URL, it
+survives any number of internal navigations. Nothing rewrites link hrefs to
+carry campaign parameters between pages: self-referential UTMs on internal links
+would register as a fresh campaign touch on arrival, overwrite `utmUrl` with an
+internal page, drop any click ID not repeated on the link, and double-count the
+touch.
+
+### The Cal metadata shape
+
+Flat, **bracketed** config keys — `metadata[utm_source]` — which Cal returns as
+`payload.metadata.utm_source`. A nested `metadata: { ... }` object does not
+work: Cal serialises each config value into a query parameter, so the object
+becomes the string `"[object Object]"` and every key inside it is lost, silently,
+while bookings keep succeeding.
+
+| Key                                     | Contents                                                     |
+| --------------------------------------- | ------------------------------------------------------------ |
+| `metadata[utm_*]`                       | Every key in `UtmWireKeyToPropertyKey`                        |
+| `metadata[<click id>]`                  | Every key in `AdClickIdKeys` the visitor arrived with         |
+| `metadata[utm_url]`                     | The landing URL of the attributed visit                       |
+| `metadata[ou_first_touch]`              | The first attributed visit, one JSON string, bounded at 4000  |
+| `metadata[ou_booking_kind]`             | `enterprise_demo`, `support_call` or `architecture_assessment`|
+
+`ou_booking_kind` is not optional detail. All three embeds book the same Cal
+event type (`oneuptimehq/demo`), so without it the CRM cannot tell a free
+user's support call from a net-new enterprise demo — they arrive identical. It
+is sent even when there is no campaign to report, because the embed always
+knows what it is.
 
 ## Conversion chains
 
@@ -119,56 +161,66 @@ everything else that address has done.
 
 ## Consent
 
-Attribution capture, Google Tag Manager and PostHog are all gated on consent
-(`Home/Views/head-basic.ejs`, `window.oneUptimeConsent`).
+**Measurement is not gated on the cookie banner.** Consent Mode v2 defaults to
+granted, attribution is captured and stored on every visit, and PostHog loads on
+every visit.
 
 Before this, the cookie banner wrote `cookiesAccepted` to localStorage and
 nothing read it: everything ran identically whether the visitor pressed Accept,
 pressed Reject, or never saw the banner. "Reject all" rejected nothing, and
 there was no Google Consent Mode signal at all.
 
-Three states, and `unset` is treated as denied for storage rather than as
-permission-by-silence. Consent Mode v2 defaults are pushed before the container
-loads (`ad_storage`, `ad_user_data`, `ad_personalization`, `analytics_storage`,
-`functionality_storage` and `personalization_storage` denied,
-`security_storage` granted, `wait_for_update: 500`) and updated on either
-answer.
+Gating was then unwound, deliberately, so that every booking reaches the CRM
+attributed. `window.oneUptimeConsent` still records the visitor's answer under
+`cookiesAccepted`, and the banner and the footer's cookie-settings link still
+read and write it — but nothing downstream branches on it.
 
-**This has a measurement cost, and it is deliberate.** A visitor who never
-touches the banner is not measured and their attribution is not stored. What
-keeps that from losing ad clicks outright is the pending-attribution buffer:
-attribution seen on the current page is held in memory and written the moment
-consent is granted, so the ordinary path — land on an ad, accept, sign up —
-keeps everything the click carried. Refusing clears anything an earlier visit
-stored.
+Stated plainly, because it is not what the banner's own copy says:
+
+- Consent Mode v2 defaults are pushed before the container loads with every
+  signal **granted** and `wait_for_update: 500`. No update is pushed on either
+  answer, so pressing "Reject all" does not push a denial.
+- Every touch is written to localStorage on sight, whether or not the banner has
+  been answered.
+- Refusing does not clear what an earlier visit stored.
+- PostHog loads on every visit, deferred to idle for LCP but not to an answer.
+
+Two consequences worth naming. The Consent Mode default asserts to Google that
+consent was collected, which is a claim about the visitor rather than a choice
+about OneUptime's own storage. And the banner still renders Accept and Reject
+while neither button changes anything, which is a choice presented but not
+honoured — if the banner is meant to keep promising one, this is the section and
+`AnalyticsConsent.ejs` is the file that has to change back.
+`AttributionCapture.test.ts` pins each of the four behaviours above, so a change
+in either direction has to be explicit.
 
 ## Deliberately not implemented
 
 1. **A server-side record of a booking.** Bookings are not received, stored, or
-   emitted by OneUptime at all. If a booking needs to be a measured conversion
-   again, that means re-introducing a verified inbound webhook — not trusting
-   the browser event, which is neither authenticated nor reliable.
-2. **Attribution on a booking.** Follows from the above: with nothing reading
-   Cal booking metadata, the embeds send none.
-3. **Revenue joins.** Which stable native Revenue contact, account and deal
+   emitted by OneUptime at all — Cal.com delivers `BOOKING_CREATED` to the CRM,
+   which owns authenticating and deduplicating it. If OneUptime ever needs a
+   booking as its own measured conversion, that means a verified inbound webhook
+   again — not trusting the browser event, which is neither authenticated nor
+   reliable.
+2. **Revenue joins.** Which stable native Revenue contact, account and deal
    reference fields a booking would carry is still not defined, so bookings are
    not joined to Revenue records and nothing emitted claims otherwise.
-4. **Auto-qualification and Deal creation.** A booked meeting is not enterprise
+3. **Auto-qualification and Deal creation.** A booked meeting is not enterprise
    qualification, technical evaluation, or opportunity acceptance — and in
    particular not a signed licence. Native Revenue remains authoritative and
    must make those calls explicitly.
-5. **`QualifiedEnterpriseLead`, `TechnicalEvaluationStarted`,
+4. **`QualifiedEnterpriseLead`, `TechnicalEvaluationStarted`,
    `OpportunityCreated`, `ClosedWon`.** Add them only once native Revenue emits
    durable domain events with documented semantics, identifiers, idempotency
    and ownership.
-6. **Multi-touch attribution.** The browser keeps first touch and last touch and
+5. **Multi-touch attribution.** The browser keeps first touch and last touch and
    nothing in between, so a journey that crossed three campaigns is reportable
    as two of them. A bounded touch list would fix it.
-7. **Cross-device attribution before an email is known.** `emailHash` joins
+6. **Cross-device attribution before an email is known.** `emailHash` joins
    conversions once a person has identified themselves; an anonymous visitor
    who clicks an ad on a phone and signs up on a laptop is still two visitors
    until then.
-8. **Seat and plan expansion revenue.** `subscription_upgraded` reports MRR at
+7. **Seat and plan expansion revenue.** `subscription_upgraded` reports MRR at
    the moment of a TIER change. A customer who stays on one plan and grows from
    one seat to ten produces no event at all, because seat count is not a tier —
    so LTV and ROAS understate every account that expands without upgrading.
@@ -177,13 +229,13 @@ stored.
    (Enterprise contract value is no longer part of this gap: it is reported by
    `enterprise_license_issued` and attributed through `EnterpriseLicense.email`.)
 
-9. **The remaining `mailto:` CTAs.** `/support` and `/enterprise/demo` still
+8. **The remaining `mailto:` CTAs.** `/support` and `/enterprise/demo` still
    offer `mailto:sales@oneuptime.com`, and the pricing page prompts
    "contact sales@oneuptime.com" when a visitor self-qualifies as enterprise
    (>100 monitors, >1TB ingest, >6 months retention, >10M tokens). Those are
    the same unmeasurable shape the self-hosted page had, and the same fix
    applies: point them at a booking.
-10. **Reconciling the legacy browser events.** Dashboards and GTM still mix the
+9. **Reconciling the legacy browser events.** Dashboards and GTM still mix the
     canonical `meeting_booked` with the older `bookingSuccessful`-derived
     events. Separating them, and documenting the historical discontinuity, is
     follow-up work.

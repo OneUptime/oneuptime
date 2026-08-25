@@ -649,6 +649,74 @@ class User extends UserModel {
     nullable: true,
     unique: false,
   })
+  public utmId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.Public],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+    unique: false,
+  })
+  public utmSourcePlatform?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.Public],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+    unique: false,
+  })
+  public utmCreativeFormat?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.Public],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+    unique: false,
+  })
+  public utmMarketingTactic?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.Public],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+    unique: false,
+  })
   public utmUrl?: string = undefined;
 
   @ColumnAccessControl({
