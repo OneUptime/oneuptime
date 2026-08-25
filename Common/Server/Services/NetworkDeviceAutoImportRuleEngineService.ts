@@ -783,6 +783,13 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         host: data.host,
         scan: data.scan,
         name: name,
+        /*
+         * Zero-touch all the way down: nobody reviews an auto-imported
+         * device, so nobody would ever click the vendor-template banner.
+         * The first poll that fingerprints the vendor seeds the Health
+         * OIDs instead (NetworkInventoryUtil).
+         */
+        autoApplyVendorHealthTemplate: true,
       });
 
       await NetworkDeviceService.create({

@@ -391,6 +391,12 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
     expect(device.hostname).toBe("10.0.0.5");
     expect(device.name).toBe("core-switch-01");
     expect(device.projectId?.toString()).toBe(PROJECT_ID.toString());
+    /*
+     * Zero-touch pipeline: nobody reviews an auto-imported device, so the
+     * vendor-template banner would never be clicked — the engine opts the
+     * device into the poll-time auto-apply instead.
+     */
+    expect(device.autoApplyVendorHealthTemplate).toBe(true);
     // Built from THIS scan: the scan's credentials rode along.
     expect(device.snmpVersion).toBe("V2c");
     expect(createMock.mock.calls[0]![0].props).toEqual({ isRoot: true });

@@ -67,6 +67,38 @@ function build(data: {
   });
 }
 
+describe("buildNetworkDeviceFromDiscoveredHost - vendor template auto-apply flag", () => {
+  it("is off unless the caller asks for it", () => {
+    expect(build({}).autoApplyVendorHealthTemplate).toBeUndefined();
+  });
+
+  it("is set on an SNMP host when the caller asks (the rule engine does)", () => {
+    const device: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
+      projectId: PROJECT_ID,
+      host: snmpHost(),
+      scan: fullScanSource(),
+      autoApplyVendorHealthTemplate: true,
+    });
+
+    expect(device.autoApplyVendorHealthTemplate).toBe(true);
+  });
+
+  /*
+   * A ping-only host is never SNMP-polled, so no poll can ever fingerprint
+   * its vendor — the flag would be a dead toggle that reads as a promise.
+   */
+  it("stays off on a ping-only host even when requested", () => {
+    const device: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
+      projectId: PROJECT_ID,
+      host: snmpHost({ snmpReachable: false }),
+      scan: fullScanSource(),
+      autoApplyVendorHealthTemplate: true,
+    });
+
+    expect(device.autoApplyVendorHealthTemplate).toBeUndefined();
+  });
+});
+
 describe("buildNetworkDeviceFromDiscoveredHost - SNMP host", () => {
   it("maps identity fields: sysName to name, address to hostname, sysDescr to description", () => {
     const device: NetworkDevice = build({});

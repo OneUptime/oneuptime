@@ -15,7 +15,9 @@ import EndpointAttachmentUtil, {
 } from "../../../Utils/Monitor/EndpointAttachmentUtil";
 import SnmpSystemInfo from "../../../Types/Monitor/SnmpMonitor/SnmpSystemInfo";
 import SnmpEntityInfo from "../../../Types/Monitor/SnmpMonitor/SnmpEntityInfo";
-import SnmpVendorTemplateUtil from "../../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
+import SnmpVendorTemplateUtil, {
+  SnmpVendorTemplate,
+} from "../../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 import logger from "../Logger";
@@ -55,6 +57,9 @@ export default class NetworkInventoryUtil {
         select: {
           _id: true,
           siteId: true,
+          // For the vendor-template auto-apply below.
+          autoApplyVendorHealthTemplate: true,
+          snmpOids: true,
         },
         props: {
           isRoot: true,
@@ -149,6 +154,39 @@ export default class NetworkInventoryUtil {
         );
       if (vendor) {
         deviceUpdate["vendor"] = vendor.substring(0, 100);
+      }
+
+      /*
+       * Vendor health template auto-apply — the automatic counterpart of the
+       * dashboard's vendor-template banner, for devices that opted in
+       * (auto-imported devices do; hand-made ones keep the manual flow).
+       *
+       * Deliberately narrow: only when the device has NO health OIDs at all.
+       * An existing list — template-seeded and pruned, or hand-built — is
+       * the operator's, and a poll must never edit it. That also makes this
+       * one-shot in practice: the first poll that fingerprints the vendor
+       * seeds the list, and every later poll sees a non-empty list and
+       * leaves it alone (including after the operator empties it on purpose
+       * AND turns the toggle off; with the toggle still on, an emptied list
+       * re-seeds next poll, which is what "auto-apply" says on the tin).
+       */
+      if (
+        ownedDevice.autoApplyVendorHealthTemplate &&
+        (ownedDevice.snmpOids || []).length === 0 &&
+        systemInfo?.sysObjectId
+      ) {
+        const vendorTemplate: SnmpVendorTemplate | undefined =
+          SnmpVendorTemplateUtil.matchBySysObjectId(systemInfo.sysObjectId);
+
+        if (vendorTemplate) {
+          deviceUpdate["snmpOids"] = SnmpVendorTemplateUtil.mergeOids(
+            [],
+            vendorTemplate.id,
+          );
+          logger.debug(
+            `Auto-applied the "${vendorTemplate.label}" vendor health template to network device ${deviceId.toString()} (sysObjectID ${systemInfo.sysObjectId}).`,
+          );
+        }
       }
       if (entityInfo?.model) {
         deviceUpdate["deviceModel"] = entityInfo.model.substring(0, 100);
