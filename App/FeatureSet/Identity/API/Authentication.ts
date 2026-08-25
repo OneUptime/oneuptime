@@ -28,6 +28,7 @@ import EmailVerificationTokenService from "Common/Server/Services/EmailVerificat
 import MailService from "Common/Server/Services/MailService";
 import UserService from "Common/Server/Services/UserService";
 import UserTotpAuthService from "Common/Server/Services/UserTotpAuthService";
+import UserTwoFactorBackupCodeService from "Common/Server/Services/UserTwoFactorBackupCodeService";
 import UserSessionService, {
   SessionMetadata,
 } from "Common/Server/Services/UserSessionService";
@@ -1001,6 +1002,7 @@ router.post(
       verifyTotpAuth: true,
       verifyWebAuthn: false,
       verifyTotpEnrolment: false,
+      verifyBackupCode: false,
     });
   },
 );
@@ -1020,6 +1022,50 @@ router.post(
       verifyTotpAuth: false,
       verifyWebAuthn: true,
       verifyTotpEnrolment: false,
+      verifyBackupCode: false,
+    });
+  },
+);
+
+/*
+ * The way back in when the second factor itself is unreachable: the phone with
+ * the authenticator app is gone, or the security key is in a taxi.
+ *
+ * Without this route the account is simply lost. Every other second step here
+ * demands the very device that has stopped existing, and the only remedy left
+ * is a master admin running `resetTwoFactorAuth` -- which is fine for a
+ * company with an admin on hand at 2am and useless for everybody else,
+ * including the master admin themselves.
+ *
+ * WHY IT IS NOT A WEAKER DOOR
+ *
+ * It sits on the twoFactorRateLimit bucket like its siblings, but the code
+ * space is what actually guards it: ten characters over a 32 symbol alphabet
+ * is 2^50, so a caller holding the password guesses one of the user's ten
+ * remaining codes with probability ~10/2^50 per attempt. That is roughly ten
+ * orders of magnitude further out of reach than the six digit TOTP space the
+ * limiter was sized for -- the limiter is a backstop here, not the control.
+ *
+ * Codes are single use and consumed by one conditional UPDATE inside Postgres
+ * (UserTwoFactorBackupCodeService.consumeCode), so two requests carrying the
+ * same code cannot both succeed.
+ */
+router.post(
+  "/verify-backup-code",
+  twoFactorRateLimit,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    return login({
+      req: req,
+      res: res,
+      next: next,
+      verifyTotpAuth: false,
+      verifyWebAuthn: false,
+      verifyTotpEnrolment: false,
+      verifyBackupCode: true,
     });
   },
 );
@@ -1062,6 +1108,7 @@ router.post(
       verifyTotpAuth: false,
       verifyWebAuthn: false,
       verifyTotpEnrolment: true,
+      verifyBackupCode: false,
     });
   },
 );
@@ -1081,6 +1128,7 @@ router.post(
       verifyTotpAuth: false,
       verifyWebAuthn: false,
       verifyTotpEnrolment: false,
+      verifyBackupCode: false,
     });
   },
 );
@@ -1223,6 +1271,7 @@ type LoginFunction = (options: {
   verifyTotpAuth: boolean;
   verifyWebAuthn: boolean;
   verifyTotpEnrolment: boolean;
+  verifyBackupCode: boolean;
 }) => Promise<void>;
 
 const login: LoginFunction = async (options: {
@@ -1232,6 +1281,7 @@ const login: LoginFunction = async (options: {
   verifyTotpAuth: boolean;
   verifyWebAuthn: boolean;
   verifyTotpEnrolment: boolean;
+  verifyBackupCode: boolean;
 }): Promise<void> => {
   const req: ExpressRequest = options.req;
   const res: ExpressResponse = options.res;
@@ -1239,6 +1289,17 @@ const login: LoginFunction = async (options: {
   const verifyTotpAuth: boolean = options.verifyTotpAuth;
   const verifyWebAuthn: boolean = options.verifyWebAuthn;
   const verifyTotpEnrolment: boolean = options.verifyTotpEnrolment;
+  const verifyBackupCode: boolean = options.verifyBackupCode;
+
+  /*
+   * True for every request that is finishing a two factor login rather than
+   * starting one. Named once because it appears in three places -- the captcha
+   * skip, the "show the challenge" gate, and the factor dispatch below -- and
+   * a new mode added to two of the three is exactly the bug that would let a
+   * second step fall through to the challenge screen it was answering.
+   */
+  const isSecondStep: boolean =
+    verifyTotpAuth || verifyWebAuthn || verifyTotpEnrolment || verifyBackupCode;
 
   try {
     const miscDataProps: JSONObject =
@@ -1251,7 +1312,7 @@ const login: LoginFunction = async (options: {
      * challenge in the middle of an authentication the user has already
      * mostly completed.
      */
-    if (!verifyTotpAuth && !verifyWebAuthn && !verifyTotpEnrolment) {
+    if (!isSecondStep) {
       await CaptchaUtil.verifyCaptcha({
         token:
           (miscDataProps["captchaToken"] as string | undefined) ||
@@ -1278,7 +1339,9 @@ const login: LoginFunction = async (options: {
             ? "webauthn"
             : verifyTotpEnrolment
               ? "totp-enrolment"
-              : "password"),
+              : verifyBackupCode
+                ? "backup-code"
+                : "password"),
       getLogAttributesFromRequest(req as RequestLike),
     );
 
@@ -1363,12 +1426,7 @@ const login: LoginFunction = async (options: {
         );
       }
 
-      if (
-        alreadySavedUser.enableTwoFactorAuth &&
-        !verifyTotpAuth &&
-        !verifyWebAuthn &&
-        !verifyTotpEnrolment
-      ) {
+      if (alreadySavedUser.enableTwoFactorAuth && !isSecondStep) {
         // If two factor auth is enabled then we will send the user to the two factor auth page.
 
         const { totpAuthList, webAuthnList } = await fetchTotpAuthList(
@@ -1422,6 +1480,24 @@ const login: LoginFunction = async (options: {
           });
         }
 
+        /*
+         * How many single-use recovery codes are left, so the challenge screen
+         * knows whether to offer "use a backup code" at all. Offering it to
+         * somebody with none would send them to a route that can only refuse
+         * them, at the moment they are already locked out and panicking.
+         *
+         * A COUNT, never the codes. The caller has proved a password and
+         * nothing else at this point, so anything shipped here is shipped to
+         * whoever is holding that password -- and the whole point of a backup
+         * code is that holding the password is not enough. The number itself
+         * tells an attacker only that a recovery route exists, which they can
+         * infer from the button either way.
+         */
+        const backupCodeCount: number =
+          await UserTwoFactorBackupCodeService.countUnusedForUser({
+            userId: alreadySavedUser.id!,
+          });
+
         // See the note on the successful-login response below.
         delete (alreadySavedUser as any).password;
         delete (alreadySavedUser as any).passwordSalt;
@@ -1430,11 +1506,12 @@ const login: LoginFunction = async (options: {
           miscData: {
             totpAuthList: UserTotpAuth.toJSONArray(totpAuthList, UserTotpAuth),
             webAuthnList: UserWebAuthn.toJSONArray(webAuthnList, UserWebAuthn),
+            backupCodeCount: backupCodeCount,
           },
         });
       }
 
-      if (verifyTotpAuth || verifyWebAuthn || verifyTotpEnrolment) {
+      if (isSecondStep) {
         if (verifyTotpAuth) {
           // code from req
           const code: string = data["code"] as string;
@@ -1484,6 +1561,138 @@ const login: LoginFunction = async (options: {
             userId: alreadySavedUser.id!.toString(),
             credential: credential,
           });
+        } else if (verifyBackupCode) {
+          /*
+           * A single-use recovery code, standing in for an authenticator the
+           * user cannot reach. Getting here proves the password and the
+           * verified email, exactly as the other second steps do.
+           *
+           * TWO REFUSALS SIT IN FRONT OF THE CODE CHECK, and neither is
+           * bookkeeping:
+           *
+           *  - if the account is NOT required to use two factor auth, there is
+           *    no second step to recover from. /login would already have signed
+           *    this caller straight in, so accepting a code here would spend
+           *    one of the user's ten recovery codes to buy them nothing --
+           *    quietly eroding the reserve they were saving for the day they
+           *    do need it;
+           *  - if the account has NO verified factor, it is not at the
+           *    challenge screen at all: /login sends it through enrolment,
+           *    which needs only the password. Accepting a code here would be a
+           *    second, weaker-looking door onto a state that already has an
+           *    open one -- and would let a user burn a code per sign-in
+           *    forever without ever being prompted to enrol a replacement.
+           *
+           * Neither refusal is what stops a stolen password: the codes
+           * themselves are. Both exist so that a code is only ever spent when
+           * spending it is the thing the user actually needs.
+           */
+          if (!alreadySavedUser.enableTwoFactorAuth) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "Two factor authentication is not enabled for this account.",
+              ),
+            );
+          }
+
+          const existingFactors: {
+            totpAuthList: Array<UserTotpAuth>;
+            webAuthnList: Array<UserWebAuthn>;
+          } = await fetchTotpAuthList(alreadySavedUser.id!);
+
+          if (
+            existingFactors.totpAuthList.length === 0 &&
+            existingFactors.webAuthnList.length === 0
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "Two factor authentication is not set up for this account.",
+              ),
+            );
+          }
+
+          const backupCode: string = data["backupCode"] as string;
+
+          /*
+           * Proven present BEFORE it is used. An absent code would normalize
+           * to the empty string, and while `consumeCode` refuses that on its
+           * own, saying "Backup code is required" is the difference between a
+           * user fixing a typo and a user concluding their printed codes have
+           * stopped working.
+           */
+          CredentialGuard.assertPresent(backupCode, "Backup code");
+
+          const isBackupCodeConsumed: boolean =
+            await UserTwoFactorBackupCodeService.consumeCode({
+              userId: alreadySavedUser.id!,
+              code: backupCode,
+            });
+
+          if (!isBackupCodeConsumed) {
+            /*
+             * One message for "no such code", "already used" and "belongs to
+             * somebody else". Telling the caller which would turn this route
+             * into an oracle for enumerating which codes off a photographed
+             * list are still live.
+             */
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid backup code."),
+            );
+          }
+
+          /*
+           * THE CODE IS NOW SPENT. Everything below this line is notification
+           * and bookkeeping, and NOTHING below this line may fail the login.
+           *
+           * That is not tidiness, it is the difference between an inconvenience
+           * and a lockout. A backup code is single use and gone the instant the
+           * UPDATE above commits, so an exception raised after it -- a database
+           * hiccup on the count, an unreachable mail server -- would answer a
+           * successful authentication with a 500 while the credential that
+           * bought it no longer exists. The user's only recourse would be to
+           * try again with the next code off the list, and burn that one the
+           * same way, all the way down to none.
+           *
+           * So the whole tail runs detached: the count, the mail and the log
+           * line are one promise chain that is never awaited and whose failure
+           * is logged rather than thrown. The session is issued below either
+           * way.
+           *
+           * The mail matters even though the user is about to see the count on
+           * their own profile page, because the point is the sign-in that was
+           * NOT theirs: it goes to the address on the account rather than to
+           * the browser holding the code, so a stolen list produces an email
+           * the real owner receives.
+           */
+          UserTwoFactorBackupCodeService.countUnusedForUser({
+            userId: alreadySavedUser.id!,
+          })
+            .then(async (remainingBackupCodeCount: number): Promise<void> => {
+              logger.info(
+                "Two factor backup code used to sign in: " +
+                  alreadySavedUser.id!.toString() +
+                  ", remaining: " +
+                  remainingBackupCodeCount.toString(),
+                getLogAttributesFromRequest(req as RequestLike),
+              );
+
+              await AuthenticationEmail.sendTwoFactorBackupCodeUsedEmail({
+                user: alreadySavedUser,
+                remainingCodeCount: remainingBackupCodeCount,
+              });
+            })
+            .catch((err: Error) => {
+              logger.error(
+                err,
+                getLogAttributesFromRequest(req as RequestLike),
+              );
+            });
         } else if (verifyTotpEnrolment) {
           /*
            * The second half of the enrolment branch above: the user has

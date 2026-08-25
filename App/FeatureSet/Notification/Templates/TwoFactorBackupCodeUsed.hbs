@@ -1,0 +1,24 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{> EmailTitle title="A backup code was used to sign in to your account." }}
+
+{{> InfoBlock info="Someone signed in to your OneUptime account using one of your two factor authentication backup codes. Backup codes are single use, so this one has now been spent."}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Signed in at:" text=signedInAt }}
+{{> DetailBoxField title="Backup codes remaining:" text=remainingCodeCount }}
+{{> DetailBoxEnd this }}
+
+{{> InfoBlock info=remainingCodeMessage}}
+
+{{> InfoBlock info="<strong>If this was not you</strong>, change your password immediately, then regenerate your backup codes from User Profile &gt; Two Factor Authentication. Regenerating invalidates every code you were previously holding."}}
+
+{{> ButtonBlock buttonText="Manage two factor authentication" buttonUrl=twoFactorAuthUrl }}
+
+{{> SupportBlock this}}
+
+{{> Footer this}}
+
+{{> End this}}

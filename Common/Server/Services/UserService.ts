@@ -45,6 +45,7 @@ import ProductAnalytics from "../Utils/ProductAnalytics";
 import MarketingEventUtil from "../Utils/Marketing/MarketingEventUtil";
 import { MarketingEventType } from "../../Types/Marketing/MarketingEvent";
 import UserTotpAuthService from "./UserTotpAuthService";
+import UserTwoFactorBackupCodeService from "./UserTwoFactorBackupCodeService";
 import UserWebAuthnService from "./UserWebAuthnService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
@@ -819,6 +820,18 @@ export class Service extends DatabaseService<Model> {
     const verifiedTwoFactorAuthMethodCount: number =
       await this.countVerifiedTwoFactorAuthMethods(userId);
 
+    /*
+     * Read separately from the method count above, and NOT added to it. See
+     * the note on `deriveTwoFactorAuthStatus`: folding recovery codes into the
+     * configured-method count would report an account whose authenticator is
+     * gone as fully set up, and login would keep sending it to the challenge
+     * screen until the last code was spent.
+     */
+    const unusedTwoFactorBackupCodeCount: number =
+      await UserTwoFactorBackupCodeService.countUnusedForUser({
+        userId: userId,
+      });
+
     return {
       hasPassword: Boolean(user.password),
       isEmailVerified: Boolean(user.isEmailVerified),
@@ -828,6 +841,7 @@ export class Service extends DatabaseService<Model> {
         verifiedMethodCount: verifiedTwoFactorAuthMethodCount,
       }),
       verifiedTwoFactorAuthMethodCount: verifiedTwoFactorAuthMethodCount,
+      unusedTwoFactorBackupCodeCount: unusedTwoFactorBackupCodeCount,
       hasPendingPasswordResetLink: hasPendingPasswordResetLink,
     };
   }
@@ -845,6 +859,17 @@ export class Service extends DatabaseService<Model> {
    * Counting unverified rows would therefore report a user who has never once
    * typed a code as fully configured -- and that user is precisely the one an
    * operator is looking at the page to help.
+   *
+   * BACKUP CODES ARE NOT COUNTED HERE, for a related reason one step further
+   * on. This number decides `deriveTwoFactorAuthStatus`, which decides whether
+   * login shows the two factor CHALLENGE or sends the account through
+   * enrolment. An account whose only remaining material was recovery codes
+   * would, if they counted, be shown a challenge it cannot answer except by
+   * spending a code -- one per sign-in, with no way to enrol a new
+   * authenticator, until the last one is gone. Recovery codes are the way back
+   * in to an account with a factor it cannot reach; they are not a factor.
+   * `UserAuthenticationStatus.unusedTwoFactorBackupCodeCount` reports them
+   * separately.
    */
   @CaptureSpan()
   private async countVerifiedTwoFactorAuthMethods(
@@ -1034,6 +1059,23 @@ export class Service extends DatabaseService<Model> {
       props: {
         isRoot: true,
       },
+    });
+
+    /*
+     * The recovery codes go with the authenticators, and this is not
+     * bookkeeping. A backup code signs somebody in on its own, so a reset that
+     * cleared the TOTP secret but left a printed list of codes alive would
+     * have revoked nothing that an attacker who took the phone -- and the
+     * paper next to it -- still holds. "Reset two factor auth" has to mean all
+     * of the second-factor material, not the part that is easiest to see.
+     *
+     * It also matters in the harmless direction: the user is about to be sent
+     * through enrolment at their next sign-in, and codes minted against an
+     * authenticator that no longer exists are dead weight nobody would think
+     * to clear.
+     */
+    await UserTwoFactorBackupCodeService.deleteAllForUser({
+      userId: user.id!,
     });
 
     /*

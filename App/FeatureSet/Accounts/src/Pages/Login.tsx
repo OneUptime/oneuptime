@@ -2,6 +2,7 @@ import {
   LOGIN_API_URL,
   VERIFY_TOTP_AUTH_API_URL,
   VERIFY_TOTP_ENROLMENT_API_URL,
+  VERIFY_BACKUP_CODE_API_URL,
   GENERATE_WEBAUTHN_AUTH_OPTIONS_API_URL,
   VERIFY_WEBAUTHN_AUTH_API_URL,
 } from "../Utils/ApiPaths";
@@ -81,6 +82,25 @@ const LoginPage: () => JSX.Element = () => {
   const [selectedWebAuthn, setSelectedWebAuthn] = React.useState<
     UserWebAuthn | undefined
   >(undefined);
+
+  /*
+   * How many unused recovery codes the account has, as reported by /login
+   * alongside the list of factors. Zero -- or an account that never generated
+   * any -- means the "use a backup code" link is not rendered at all: sending
+   * somebody who is already locked out to a form that can only refuse them is
+   * worse than not offering it.
+   */
+  const [backupCodeCount, setBackupCodeCount] = React.useState<number>(0);
+
+  /*
+   * True once the user has chosen to sign in with a recovery code instead of
+   * the factor they cannot reach. Kept separate from `selectedTotpAuth` /
+   * `selectedWebAuthn` rather than folded in as a third "method", because it
+   * is not one -- there is no row to select, and the screen it opens posts to
+   * a different endpoint.
+   */
+  const [isUsingBackupCode, setIsUsingBackupCode] =
+    React.useState<boolean>(false);
 
   /*
    * Set when the server answers a password login with "this account is
@@ -431,6 +451,9 @@ const LoginPage: () => JSX.Element = () => {
                     );
                   setTotpAuthList(totpAuthList);
                   setWebAuthnList(webAuthnList);
+                  setBackupCodeCount(
+                    Number((miscData as JSONObject)["backupCodeCount"] || 0),
+                  );
                   setShowTwoFactorAuth(true);
                   return;
                 }
@@ -452,38 +475,137 @@ const LoginPage: () => JSX.Element = () => {
             />
           )}
 
-          {showTwoFactorAuth && !selectedTotpAuth && !selectedWebAuthn && (
-            <div className="space-y-4">
-              {twoFactorMethods.map(
-                (method: TwoFactorMethod, index: number) => {
-                  return (
-                    <div
-                      key={index}
-                      className="cursor-pointer p-4 border border-gray-300 rounded-lg hover:bg-gray-50"
+          {showTwoFactorAuth &&
+            !selectedTotpAuth &&
+            !selectedWebAuthn &&
+            !isUsingBackupCode && (
+              <div className="space-y-4">
+                {twoFactorMethods.map(
+                  (method: TwoFactorMethod, index: number) => {
+                    return (
+                      <div
+                        key={index}
+                        className="cursor-pointer p-4 border border-gray-300 rounded-lg hover:bg-gray-50"
+                        onClick={() => {
+                          if (method.type === "totp") {
+                            setSelectedTotpAuth(method.item as UserTotpAuth);
+                          } else {
+                            setSelectedWebAuthn(method.item as UserWebAuthn);
+                          }
+                        }}
+                      >
+                        <div className="font-medium">
+                          {(method.item as any).name}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {method.type === "totp"
+                            ? t("login.twoFactor.authenticatorApp")
+                            : t("login.twoFactor.securityKey")}
+                        </div>
+                      </div>
+                    );
+                  },
+                )}
+
+                {/*
+                 * Only offered when the server said there are codes to spend.
+                 * A user with none is better served by the "contact your
+                 * administrator" route than by a form that will refuse them.
+                 */}
+                {backupCodeCount > 0 && (
+                  <div className="pt-2 text-center">
+                    <Link
                       onClick={() => {
-                        if (method.type === "totp") {
-                          setSelectedTotpAuth(method.item as UserTotpAuth);
-                        } else {
-                          setSelectedWebAuthn(method.item as UserWebAuthn);
-                        }
+                        setIsUsingBackupCode(true);
+                        setTwoFactorAuthError("");
                       }}
+                      className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm"
                     >
-                      <div className="font-medium">
-                        {(method.item as any).name}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {method.type === "totp"
-                          ? t("login.twoFactor.authenticatorApp")
-                          : t("login.twoFactor.securityKey")}
-                      </div>
-                    </div>
-                  );
-                },
-              )}
+                      {t("login.twoFactor.useBackupCode")}
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+
+          {showTwoFactorAuth && isUsingBackupCode && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                {t("login.twoFactor.backupCodeInstruction")}
+              </p>
+
+              <BasicForm
+                id="two-factor-backup-code-form"
+                name="Two Factor Backup Code"
+                fields={[
+                  {
+                    field: {
+                      backupCode: true,
+                    },
+                    title: t("login.twoFactor.backupCodeFieldTitle"),
+                    description: t(
+                      "login.twoFactor.backupCodeFieldDescription",
+                    ),
+                    required: true,
+                    dataTestId: "backup-code",
+                    fieldType: FormFieldSchemaType.Text,
+                    disableSpellCheck: true,
+                  },
+                ]}
+                submitButtonText={t("login.submitButton")}
+                maxPrimaryButtonWidth={true}
+                isLoading={isTwoFactorAuthLoading}
+                error={twofactorAuthError}
+                onSubmit={async (data: JSONObject) => {
+                  setIsTwoFactorAuthLoading(true);
+                  setTwoFactorAuthError("");
+
+                  try {
+                    /*
+                     * `initialValues` still holds the email and password from
+                     * a moment ago: there is no session to authenticate this
+                     * with, and the server re-checks both before it looks at
+                     * the code -- exactly as the TOTP challenge above does.
+                     *
+                     * The code is sent as typed. Hyphens, spacing and case are
+                     * normalized server-side, so nothing here has to guess at
+                     * the formatting the user's password manager pasted in.
+                     */
+                    const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
+                      await API.post({
+                        url: VERIFY_BACKUP_CODE_API_URL,
+                        data: {
+                          data: {
+                            ...initialValues,
+                            backupCode: data["backupCode"] as string,
+                          },
+                        },
+                      });
+
+                    if (result instanceof HTTPErrorResponse) {
+                      throw result;
+                    }
+
+                    const user: User = User.fromJSON(
+                      result["data"] as JSONObject,
+                      User,
+                    ) as User;
+                    const miscData: JSONObject = getMiscData(result);
+
+                    login(user, miscData);
+                  } catch (error) {
+                    setTwoFactorAuthError(
+                      API.getFriendlyErrorMessage(error as Error),
+                    );
+                  }
+
+                  setIsTwoFactorAuthLoading(false);
+                }}
+              />
             </div>
           )}
 
-          {showTwoFactorAuth && selectedWebAuthn && (
+          {showTwoFactorAuth && selectedWebAuthn && !isUsingBackupCode && (
             <div className="text-center">
               <div className="text-lg font-medium mb-4">
                 {t("login.twoFactor.authenticatingWithSecurityKey")}
@@ -498,7 +620,7 @@ const LoginPage: () => JSX.Element = () => {
             </div>
           )}
 
-          {showTwoFactorAuth && selectedTotpAuth && (
+          {showTwoFactorAuth && selectedTotpAuth && !isUsingBackupCode && (
             <BasicForm
               id="two-factor-auth-form"
               name="Two Factor Auth"
@@ -646,23 +768,37 @@ const LoginPage: () => JSX.Element = () => {
           )}
         </div>
         <div className="mt-6 sm:mt-10 text-center">
-          {!selectedTotpAuth && !selectedWebAuthn && !totpEnrolment && (
-            <div className="text-muted mb-0 text-gray-500 text-sm sm:text-base">
-              {t("login.noAccountPrompt")}{" "}
-              <Link
-                to={new Route("/accounts/register")}
-                className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
-              >
-                {t("login.registerLink")}
-              </Link>
-            </div>
-          )}
-          {selectedTotpAuth || selectedWebAuthn ? (
+          {!selectedTotpAuth &&
+            !selectedWebAuthn &&
+            !totpEnrolment &&
+            !isUsingBackupCode && (
+              <div className="text-muted mb-0 text-gray-500 text-sm sm:text-base">
+                {t("login.noAccountPrompt")}{" "}
+                <Link
+                  to={new Route("/accounts/register")}
+                  className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
+                >
+                  {t("login.registerLink")}
+                </Link>
+              </div>
+            )}
+          {selectedTotpAuth || selectedWebAuthn || isUsingBackupCode ? (
             <div className="text-muted mb-0 text-gray-500">
               <Link
                 onClick={() => {
                   setSelectedTotpAuth(undefined);
                   setSelectedWebAuthn(undefined);
+
+                  /*
+                   * Cleared alongside the two selections so this one link
+                   * returns the user to the method picker from ANY of the
+                   * three challenge screens. Leaving it set would strand
+                   * somebody who opened the backup code form by mistake -- the
+                   * picker is hidden while it is true, so "go back" would
+                   * appear to do nothing.
+                   */
+                  setIsUsingBackupCode(false);
+                  setTwoFactorAuthError("");
                 }}
                 className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
               >

@@ -184,6 +184,7 @@
       "emailVerifiedLabel": "Email Verified",
       "twoFactorLabel": "Two Factor Auth Enabled",
       "twoFactorMethodCountLabel": "Verified Two Factor Methods",
+      "backupCodeCountLabel": "Unused Backup Codes",
       "twoFactorStatusNotEnabled": "Not Enabled",
       "twoFactorStatusPendingSetup": "Enabled - Pending Setup",
       "twoFactorStatusConfigured": "Enabled - Configured",

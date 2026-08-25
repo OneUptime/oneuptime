@@ -46,7 +46,11 @@
       "authenticatingWithSecurityKey": "Authenticating with Security Key",
       "securityKeyInstructions": "Please follow the instructions on your security key device.",
       "codeFieldDescription": "Enter the code from your authenticator app",
-      "selectDifferentMethod": "Select a different two factor authentication method"
+      "selectDifferentMethod": "Select a different two factor authentication method",
+      "useBackupCode": "Use a backup code instead",
+      "backupCodeInstruction": "Enter one of the backup codes you saved when you set up two factor authentication. Each code works only once.",
+      "backupCodeFieldTitle": "Backup Code",
+      "backupCodeFieldDescription": "Backup codes look like ABCDE-12345. Upper or lower case and the hyphen do not matter."
     },
     "twoFactorEnrolment": {
       "title": "Set Up Two Factor Authentication",
