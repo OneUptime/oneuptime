@@ -1,0 +1,156 @@
+<!--
+    Carry paid-acquisition attribution into Cal.com bookings.
+
+    Cal's embed turns `config` entries into booking-link query parameters. UTM
+    fields are sent both under their native names and as custom metadata;
+    Google click IDs are sent as custom metadata. The metadata copy is the
+    stable contract consumed by the booking webhook pipeline.
+
+    This runs before each page's stock Cal embed snippet. The snippet assigns
+    window.Cal, so the setter below wraps that function and augments only
+    `inline` calls. Keeping this here avoids three subtly different copies in
+    demo.ejs, support.ejs and self-hosted.ejs.
+-->
+<script>
+    (function () {
+        var ATTRIBUTION_PARAMS = [
+            'utm_source',
+            'utm_medium',
+            'utm_campaign',
+            'utm_term',
+            'utm_content',
+            'utm_id',
+            'utm_source_platform',
+            'utm_creative_format',
+            'utm_marketing_tactic',
+            'gclid',
+            'gbraid',
+            'wbraid'
+        ];
+        var UTM_PREFIX = 'utm_';
+        var MAX_VALUE_LENGTH = 500;
+        var calValue;
+
+        function attributionFromLocation() {
+            var result = {};
+            var searchParams = new URLSearchParams(window.location.search || '');
+
+            ATTRIBUTION_PARAMS.forEach(function (key) {
+                var value = searchParams.get(key);
+                if (value) {
+                    result[key] = String(value).slice(0, MAX_VALUE_LENGTH);
+                }
+            });
+
+            return result;
+        }
+
+        function calConfigWithAttribution(existingConfig) {
+            var config = Object.assign({}, existingConfig || {});
+            var attribution = attributionFromLocation();
+
+            Object.keys(attribution).forEach(function (key) {
+                var value = attribution[key];
+
+                // Cal has first-class UTM fields. Preserve those as well as the
+                // metadata copy read by OneUptime's booking webhook pipeline.
+                if (key.indexOf(UTM_PREFIX) === 0 && !config[key]) {
+                    config[key] = value;
+                }
+
+                var metadataKey = 'metadata[' + key + ']';
+                if (!config[metadataKey]) {
+                    config[metadataKey] = value;
+                }
+            });
+
+            return config;
+        }
+
+        function wrapCal(cal) {
+            if (typeof cal !== 'function' || cal.__oneUptimeAttributionWrapped) {
+                return cal;
+            }
+
+            var wrapped = function () {
+                var args = Array.prototype.slice.call(arguments);
+
+                if (args[0] === 'inline' && args[1] && typeof args[1] === 'object') {
+                    args[1] = Object.assign({}, args[1], {
+                        config: calConfigWithAttribution(args[1].config)
+                    });
+                }
+
+                return cal.apply(this, args);
+            };
+
+            Object.keys(cal).forEach(function (key) {
+                wrapped[key] = cal[key];
+            });
+            wrapped.__oneUptimeAttributionWrapped = true;
+
+            return wrapped;
+        }
+
+        /*
+         * Every current booking page uses Cal's generated loader, which assigns
+         * window.Cal after this partial runs. Intercept that assignment rather
+         * than changing three vendor snippets independently.
+         */
+        try {
+            Object.defineProperty(window, 'Cal', {
+                configurable: true,
+                enumerable: true,
+                get: function () {
+                    return calValue;
+                },
+                set: function (value) {
+                    calValue = wrapCal(value);
+                }
+            });
+        } catch (e) {
+            // Very old browsers may refuse redefining a Window property.
+            // Booking still works; only attribution becomes best-effort.
+        }
+
+        /*
+         * A paid visitor commonly lands on `/`, then follows a clean
+         * `/enterprise/demo` link. Without this normalization the next page has
+         * no campaign query and the Cal config has nothing to carry. Append only
+         * the attribution allowlist and never replace values already present on
+         * a destination URL.
+         */
+        document.addEventListener('DOMContentLoaded', function () {
+            var attribution = attributionFromLocation();
+            if (Object.keys(attribution).length === 0) {
+                return;
+            }
+
+            document.querySelectorAll('a[href]').forEach(function (link) {
+                var rawHref = link.getAttribute('href');
+                if (!rawHref) {
+                    return;
+                }
+
+                var destination;
+                try {
+                    destination = new URL(rawHref, window.location.href);
+                } catch (e) {
+                    return;
+                }
+
+                if (destination.origin !== window.location.origin || destination.pathname !== '/enterprise/demo') {
+                    return;
+                }
+
+                Object.keys(attribution).forEach(function (key) {
+                    if (!destination.searchParams.has(key)) {
+                        destination.searchParams.set(key, attribution[key]);
+                    }
+                });
+
+                link.setAttribute('href', destination.pathname + destination.search + destination.hash);
+            });
+        });
+    })();
+</script>

@@ -80,21 +80,35 @@ browser `meeting_booked` event carries only `event_schema_version`,
 `booking_source`, `booking_kind`, `page_path`, `cal_event_type` and
 `cal_namespace`, for exactly this reason.
 
+Campaign parameters are different: the allowlisted UTM values and Google click
+IDs already present on the landing URL are copied to the Cal booking metadata.
+No form values or attendee fields are copied.
+
 ## Attribution
 
 The marketing site captures the visitor's campaign — UTM parameters, ad-platform
 click IDs and the first attributed visit — and holds it in localStorage
 (`Common/Server/Views/Partials/AnalyticsConsent.ejs`, gated on consent). It
-reaches the server through one door: the signup form, which posts it onto the
-User record. The key lists are shared in
+reaches the OneUptime application server through the signup form, which posts it
+onto the User record. The key lists are shared in
 `Common/Types/Marketing/Attribution.ts` so a key added for the browser cannot be
 silently dropped on arrival.
 
-A booking carries no attribution into OneUptime. The embeds used to put the
-visitor's campaign into Cal booking metadata for the webhook to read back; with
-the webhook gone, they no longer do. A booked demo is therefore attributable
-only through what the same person does later under the same address — a signup,
-or an enterprise licence issued to it.
+Bookings have a separate path. `Home/Views/Partials/cal-attribution.ejs`
+preserves the booking allowlist on links from a landing page to
+`/enterprise/demo`, then augments every Cal inline embed config. UTM values use
+Cal's first-class UTM fields and are also copied to custom booking metadata;
+`gclid`, `gbraid`, and `wbraid` are copied to custom booking metadata. This lets
+the external booking-webhook pipeline read attribution from the Cal booking and
+populate Marketing Conversion without receiving attendee details from browser
+analytics.
+
+The booking allowlist is:
+
+- `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`
+- `utm_id`, `utm_source_platform`, `utm_creative_format`,
+  `utm_marketing_tactic`
+- `gclid`, `gbraid`, `wbraid`
 
 ## Conversion chains
 
@@ -145,30 +159,27 @@ stored.
 ## Deliberately not implemented
 
 1. **A server-side record of a booking.** Bookings are not received, stored, or
-   emitted by OneUptime at all. If a booking needs to be a measured conversion
-   again, that means re-introducing a verified inbound webhook — not trusting
-   the browser event, which is neither authenticated nor reliable.
-2. **Attribution on a booking.** Follows from the above: with nothing reading
-   Cal booking metadata, the embeds send none.
-3. **Revenue joins.** Which stable native Revenue contact, account and deal
+   emitted by OneUptime itself. The external Cal webhook receiver is responsible
+   for authenticating and deduplicating booking webhook deliveries.
+2. **Revenue joins.** Which stable native Revenue contact, account and deal
    reference fields a booking would carry is still not defined, so bookings are
    not joined to Revenue records and nothing emitted claims otherwise.
-4. **Auto-qualification and Deal creation.** A booked meeting is not enterprise
+3. **Auto-qualification and Deal creation.** A booked meeting is not enterprise
    qualification, technical evaluation, or opportunity acceptance — and in
    particular not a signed licence. Native Revenue remains authoritative and
    must make those calls explicitly.
-5. **`QualifiedEnterpriseLead`, `TechnicalEvaluationStarted`,
+4. **`QualifiedEnterpriseLead`, `TechnicalEvaluationStarted`,
    `OpportunityCreated`, `ClosedWon`.** Add them only once native Revenue emits
    durable domain events with documented semantics, identifiers, idempotency
    and ownership.
-6. **Multi-touch attribution.** The browser keeps first touch and last touch and
+5. **Multi-touch attribution.** The browser keeps first touch and last touch and
    nothing in between, so a journey that crossed three campaigns is reportable
    as two of them. A bounded touch list would fix it.
-7. **Cross-device attribution before an email is known.** `emailHash` joins
+6. **Cross-device attribution before an email is known.** `emailHash` joins
    conversions once a person has identified themselves; an anonymous visitor
    who clicks an ad on a phone and signs up on a laptop is still two visitors
    until then.
-8. **Seat and plan expansion revenue.** `subscription_upgraded` reports MRR at
+7. **Seat and plan expansion revenue.** `subscription_upgraded` reports MRR at
    the moment of a TIER change. A customer who stays on one plan and grows from
    one seat to ten produces no event at all, because seat count is not a tier —
    so LTV and ROAS understate every account that expands without upgrading.
@@ -177,13 +188,13 @@ stored.
    (Enterprise contract value is no longer part of this gap: it is reported by
    `enterprise_license_issued` and attributed through `EnterpriseLicense.email`.)
 
-9. **The remaining `mailto:` CTAs.** `/support` and `/enterprise/demo` still
+8. **The remaining `mailto:` CTAs.** `/support` and `/enterprise/demo` still
    offer `mailto:sales@oneuptime.com`, and the pricing page prompts
    "contact sales@oneuptime.com" when a visitor self-qualifies as enterprise
    (>100 monitors, >1TB ingest, >6 months retention, >10M tokens). Those are
    the same unmeasurable shape the self-hosted page had, and the same fix
    applies: point them at a booking.
-10. **Reconciling the legacy browser events.** Dashboards and GTM still mix the
-    canonical `meeting_booked` with the older `bookingSuccessful`-derived
-    events. Separating them, and documenting the historical discontinuity, is
-    follow-up work.
+9. **Reconciling the legacy browser events.** Dashboards and GTM still mix the
+   canonical `meeting_booked` with the older `bookingSuccessful`-derived
+   events. Separating them, and documenting the historical discontinuity, is
+   follow-up work.
