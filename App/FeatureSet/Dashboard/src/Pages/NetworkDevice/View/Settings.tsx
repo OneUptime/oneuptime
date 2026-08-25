@@ -303,6 +303,17 @@ const NetworkDeviceSettings: FunctionComponent<
               );
             },
           },
+          {
+            field: {
+              autoApplyVendorHealthTemplate: true,
+            },
+            title: "Auto-Apply Vendor Health Template",
+            stepId: "health-oids",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "When the device's vendor is fingerprinted from its SNMP sysObjectID and the Health OID list above is empty, seed it with the matching vendor health template automatically on the next poll. A non-empty list is never touched. Auto-imported devices have this on by default.",
+          },
         ]}
         modelDetailProps={{
           modelType: NetworkDevice,

@@ -11,6 +11,10 @@ import SnmpInterface from "../../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import SnmpMonitorResponse from "../../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import LldpNeighbor from "../../../../Types/Monitor/SnmpMonitor/LldpNeighbor";
 import CdpNeighbor from "../../../../Types/Monitor/SnmpMonitor/CdpNeighbor";
+import SnmpOid from "../../../../Types/Monitor/SnmpMonitor/SnmpOid";
+import SnmpVendorTemplateUtil, {
+  SnmpVendorTemplate,
+} from "../../../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
 
 /*
  * NetworkInventoryUtil.updateFromWalk is the single writer that keeps the
@@ -40,14 +44,21 @@ let interfaceUpdateSpy: jest.SpyInstance;
 let interfaceCreateSpy: jest.SpyInstance;
 let endpointUpsertSpy: jest.SpyInstance;
 
-function mockServices(existingInterfaces: Array<NetworkInterface> = []): void {
+function mockServices(
+  existingInterfaces: Array<NetworkInterface> = [],
+  deviceOverrides: Partial<NetworkDevice> = {},
+): void {
   /*
    * The project-membership guard resolves the device (scoped to the given
    * project) before any write; return a matching device so the write path
    * runs. The cross-project-refusal case overrides this to null.
+   * deviceOverrides seeds the columns the vendor-template auto-apply reads
+   * (autoApplyVendorHealthTemplate, snmpOids) — absent by default, exactly
+   * like a device that never opted in.
    */
   const ownedDevice: NetworkDevice = new NetworkDevice();
   ownedDevice.id = new ObjectID(DEVICE_ID);
+  Object.assign(ownedDevice, deviceOverrides);
   deviceFindSpy = jest
     .spyOn(NetworkDeviceService, "findOneBy")
     .mockResolvedValue(ownedDevice);
@@ -865,5 +876,90 @@ describe("NetworkInventoryUtil.updateFromWalk — endpoint discovery", () => {
         routerInterfaceIndex: 3,
       },
     ]);
+  });
+});
+
+describe("NetworkInventoryUtil.updateFromWalk — vendor health template auto-apply", () => {
+  /*
+   * The automatic counterpart of the dashboard's vendor-template banner:
+   * a device that opted in (auto-imported devices do) gets its EMPTY Health
+   * OID list seeded from the vendor template its sysObjectID fingerprints,
+   * on the first poll that learns the vendor. An existing list — however it
+   * got there — is the operator's and is never touched.
+   */
+  test("an opted-in device with no health OIDs is seeded from the fingerprinted vendor template", async () => {
+    mockServices([], { autoApplyVendorHealthTemplate: true });
+
+    await runWalk({
+      systemInfo: {
+        sysObjectId: CISCO_SYS_OBJECT_ID,
+      },
+    });
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+    const seeded: Array<SnmpOid> = update["snmpOids"] as Array<SnmpOid>;
+
+    const ciscoTemplate: SnmpVendorTemplate | undefined =
+      SnmpVendorTemplateUtil.matchBySysObjectId(CISCO_SYS_OBJECT_ID);
+
+    expect(ciscoTemplate).toBeDefined();
+    expect(seeded).toEqual(ciscoTemplate!.oids);
+    expect(seeded.length).toBeGreaterThan(0);
+  });
+
+  test("a device that never opted in is not seeded", async () => {
+    mockServices();
+
+    await runWalk({
+      systemInfo: {
+        sysObjectId: CISCO_SYS_OBJECT_ID,
+      },
+    });
+
+    expect(deviceUpdatePayload()).not.toHaveProperty("snmpOids");
+  });
+
+  test("an existing health OID list is never touched, even with the toggle on", async () => {
+    const handPickedOids: Array<SnmpOid> = [
+      { oid: "1.3.6.1.4.1.9.9.109.1.1.1.1.7.1", name: "CPU 5min" },
+    ];
+
+    mockServices([], {
+      autoApplyVendorHealthTemplate: true,
+      snmpOids: handPickedOids,
+    });
+
+    await runWalk({
+      systemInfo: {
+        sysObjectId: CISCO_SYS_OBJECT_ID,
+      },
+    });
+
+    expect(deviceUpdatePayload()).not.toHaveProperty("snmpOids");
+  });
+
+  test("a walk that learned no sysObjectID seeds nothing", async () => {
+    mockServices([], { autoApplyVendorHealthTemplate: true });
+
+    await runWalk({
+      systemInfo: {
+        sysName: "core-sw-01",
+      },
+    });
+
+    expect(deviceUpdatePayload()).not.toHaveProperty("snmpOids");
+  });
+
+  test("an enterprise with no vendor template seeds nothing", async () => {
+    mockServices([], { autoApplyVendorHealthTemplate: true });
+
+    // Enterprise 99999 has no entry in ENTERPRISE_TEMPLATE_IDS.
+    await runWalk({
+      systemInfo: {
+        sysObjectId: "1.3.6.1.4.1.99999.1.1",
+      },
+    });
+
+    expect(deviceUpdatePayload()).not.toHaveProperty("snmpOids");
   });
 });

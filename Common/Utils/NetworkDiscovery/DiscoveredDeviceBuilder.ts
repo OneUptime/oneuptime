@@ -99,6 +99,14 @@ export function buildNetworkDeviceFromDiscoveredHost(data: {
   host: DiscoveredNetworkDevice;
   scan: DiscoveredDeviceScanSource;
   name?: string | undefined;
+  /*
+   * Turn on the device's vendor-health-template auto-apply. The rule
+   * engine sets this — a zero-touch import should end with health metrics,
+   * not an empty OID list waiting for a click. The manual Review dialog
+   * leaves it unset: an operator importing by hand gets the vendor banner
+   * and decides, which is the existing contract for hand-made devices.
+   */
+  autoApplyVendorHealthTemplate?: boolean | undefined;
 }): NetworkDevice {
   const host: DiscoveredNetworkDevice = data.host;
 
@@ -117,8 +125,16 @@ export function buildNetworkDeviceFromDiscoveredHost(data: {
   device.monitoringMethod = monitoringMethod;
 
   if (monitoringMethod === NetworkDeviceMonitoringMethod.Monitor) {
+    /*
+     * A ping-only host is never SNMP-polled, so the vendor-template
+     * auto-apply (which keys off a polled sysObjectID) stays off too.
+     */
     device.isPollingEnabled = false;
     return device;
+  }
+
+  if (data.autoApplyVendorHealthTemplate) {
+    device.autoApplyVendorHealthTemplate = true;
   }
 
   if (data.scan.probeId) {
