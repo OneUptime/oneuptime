@@ -11,6 +11,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -38,6 +39,26 @@ export const YAML_VALIDATION_DEBOUNCE_MS: number = 250;
 
 const DEFAULT_HINT: string =
   "Indentation is significant — use 2 spaces per level. Tabs are not valid YAML.";
+
+const MAC_PLATFORM_PATTERN: RegExp = /Mac|iPhone|iPad|iPod/i;
+
+type IsMacFunction = () => boolean;
+
+/*
+ * Monaco binds toggleTabFocusMode to Ctrl+M everywhere except macOS, where the
+ * `mac` override in its keybinding makes it Ctrl+Shift+M. Naming the wrong key
+ * turns the keyboard-trap advisory (WCAG 2.1.2) into a false one.
+ */
+const isMac: IsMacFunction = (): boolean => {
+  if (typeof navigator === "undefined") {
+    return false;
+  }
+
+  const platform: string =
+    (navigator as { platform?: string }).platform || navigator.userAgent || "";
+
+  return MAC_PLATFORM_PATTERN.test(platform);
+};
 
 /*
  * Callers reach us through Form's currentValues, which is `any`, so a
@@ -89,6 +110,11 @@ const YamlEditor: FunctionComponent<ComponentProps> = (
   const [checkedText, setCheckedText] = useState<string>(() => {
     return toText(props.value ?? props.initialValue);
   });
+
+  const instanceId: string = useId();
+  const hintId: string = `${instanceId}-yaml-hint`;
+  const statusId: string = `${instanceId}-yaml-status`;
+  const escapeHintId: string = `${instanceId}-yaml-escape`;
 
   const [copied, setCopied] = useState<boolean>(false);
   const copyResetTimer: React.MutableRefObject<ReturnType<
@@ -153,8 +179,9 @@ const YamlEditor: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * One line, one message. The form error wins when there is one, because it
-   * is the sentence that is blocking Save; otherwise the live parse speaks.
+   * One line, one message, five states. Whichever arm wins, the status bar is
+   * the only place the field says anything - the editor below is not given
+   * the error, so nothing is printed twice.
    */
   type StatusShape = {
     tone: "error" | "valid" | "invalid" | "empty";
@@ -163,7 +190,14 @@ const YamlEditor: FunctionComponent<ComponentProps> = (
   };
 
   const status: StatusShape = useMemo(() => {
-    if (props.error) {
+    /*
+     * The form re-validates synchronously on every keystroke and the field is
+     * marked touched from the first one, so props.error arrives undebounced.
+     * Deferring to it only once the parse has caught up with the text keeps a
+     * red message off a half-typed line - and the moment they agree, the
+     * form's sentence wins, because it is the one blocking Save.
+     */
+    if (props.error && checkedText === text) {
       return {
         tone: "error",
         icon: IconProp.Error,
@@ -176,6 +210,19 @@ const YamlEditor: FunctionComponent<ComponentProps> = (
         tone: "empty",
         icon: IconProp.Info,
         message: "Nothing entered yet.",
+      };
+    }
+
+    /*
+     * checkYamlSyntax declines to judge a document whose shape is only known
+     * at run time. Saying "Valid YAML" about text nobody parsed would be a
+     * claim this component cannot make.
+     */
+    if (syntax.wasSkipped) {
+      return {
+        tone: "empty",
+        icon: IconProp.Info,
+        message: "Contains template expressions — syntax not checked.",
       };
     }
 
@@ -194,35 +241,47 @@ const YamlEditor: FunctionComponent<ComponentProps> = (
       icon: IconProp.Alert,
       message: describeYamlSyntaxError(syntax),
     };
-  }, [props.error, isEmpty, syntax, text]);
+  }, [props.error, isEmpty, syntax, text, checkedText]);
 
+  /*
+   * Light-theme values only, one step darker than the obvious choice so the
+   * 12px status text clears 4.5:1 on bg-gray-50 (WCAG 1.4.3). Dark mode is
+   * not written here: Styles/Theme.css remaps these very classes globally
+   * under html.dark, at a specificity that beats any dark: variant a
+   * component could add - which is why no sibling component uses them.
+   */
   const statusToneClassName: string = {
-    error: "text-red-600 dark:text-red-400",
-    invalid: "text-amber-600 dark:text-amber-400",
-    valid: "text-green-600 dark:text-green-400",
-    empty: "text-gray-400 dark:text-slate-500",
+    error: "text-red-700",
+    invalid: "text-amber-700",
+    valid: "text-green-700",
+    empty: "text-gray-500",
   }[status.tone];
 
   const borderClassName: string = props.error
-    ? "border-red-300 dark:border-red-500/60 focus-within:border-red-500 focus-within:ring-red-500"
-    : "border-gray-300 dark:border-slate-700 focus-within:border-indigo-500 focus-within:ring-indigo-500";
+    ? "border-red-300 focus-within:border-red-500 focus-within:ring-red-500"
+    : "border-gray-300 focus-within:border-indigo-500 focus-within:ring-indigo-500";
+
+  const escapeHint: string = isMac()
+    ? "Press Control plus Shift plus M to toggle whether the Tab key indents or moves focus out of this editor."
+    : "Press Control plus M to toggle whether the Tab key indents or moves focus out of this editor.";
 
   return (
     <div
       data-testid="yaml-editor"
       className={
         props.className ||
-        `overflow-hidden rounded-md border bg-white shadow-sm transition-shadow focus-within:ring-1 dark:bg-slate-900 ${borderClassName}`
+        `overflow-hidden rounded-md border bg-white shadow-sm transition-shadow focus-within:ring-1 ${borderClassName}`
       }
     >
-      <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 px-3 py-1.5 dark:border-slate-700 dark:bg-slate-800">
+      <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 px-3 py-1">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="inline-flex shrink-0 items-center rounded border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700 dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-300">
+          <span className="inline-flex shrink-0 items-center rounded border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700">
             YAML
           </span>
           <span
+            id={hintId}
             data-testid="yaml-editor-hint"
-            className="truncate text-xs text-gray-500 dark:text-slate-400"
+            className="truncate text-xs text-gray-500"
           >
             {props.placeholder || DEFAULT_HINT}
           </span>
@@ -231,10 +290,12 @@ const YamlEditor: FunctionComponent<ComponentProps> = (
         <button
           type="button"
           data-testid="yaml-editor-copy-button"
-          aria-label="Copy YAML to clipboard"
+          aria-label={
+            copied ? "YAML copied to clipboard" : "Copy YAML to clipboard"
+          }
           disabled={isEmpty}
           onClick={handleCopy}
-          className="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-xs text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gray-500 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-100"
+          className="inline-flex shrink-0 items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gray-500"
         >
           <Icon
             icon={copied ? IconProp.Check : IconProp.Copy}
@@ -244,9 +305,21 @@ const YamlEditor: FunctionComponent<ComponentProps> = (
         </button>
       </div>
 
+      {/*
+       * Ahead of the editor in reading order, and referenced from Monaco's own
+       * input through aria-describedby - Monaco takes Tab to indent, so this
+       * is the only way out, and it has to be heard on the way in rather than
+       * discovered on the way past.
+       */}
+      <span id={escapeHintId} className="sr-only">
+        {escapeHint}
+      </span>
+
       <CodeEditor
         type={CodeType.YAML}
         ariaLabelledby={props.ariaLabelledby}
+        ariaDescribedby={`${escapeHintId} ${hintId} ${statusId}`}
+        ariaInvalid={Boolean(props.error)}
         dataTestId={props.dataTestId}
         tabIndex={props.tabIndex}
         readOnly={props.readOnly}
@@ -272,23 +345,22 @@ const YamlEditor: FunctionComponent<ComponentProps> = (
       />
 
       <div
+        id={statusId}
         data-testid="yaml-editor-status"
         role="status"
         aria-live="polite"
-        className={`flex items-center gap-1.5 border-t border-gray-200 bg-gray-50 px-3 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-800 ${statusToneClassName}`}
+        className={`flex items-center gap-1.5 border-t border-gray-200 bg-gray-50 px-3 py-1.5 text-xs ${statusToneClassName}`}
       >
         <Icon icon={status.icon} className="h-3.5 w-3.5 shrink-0" />
         <span className="min-w-0 break-words">{status.message}</span>
       </div>
 
       {/*
-       * Monaco takes the Tab key to indent, so Tab cannot leave the editor.
-       * Monaco's own escape hatch is Ctrl+M; a keyboard-only user has no way
-       * to discover it unless something says so.
+       * The copy button's own name changes, but a button name is not a live
+       * region - nothing would speak the confirmation. This does.
        */}
-      <span className="sr-only">
-        Press Control plus M to toggle whether the Tab key indents or moves
-        focus out of this editor.
+      <span role="status" aria-live="polite" className="sr-only">
+        {copied ? "YAML copied to clipboard" : ""}
       </span>
     </div>
   );

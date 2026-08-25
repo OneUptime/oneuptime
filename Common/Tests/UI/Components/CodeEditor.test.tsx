@@ -28,6 +28,14 @@ interface RecordedEditorProps {
 
 const mockEditorRenders: Array<RecordedEditorProps> = [];
 
+/*
+ * Everything the component pushes onto the MODEL rather than into the options
+ * bag. tabSize/insertSpaces live here on purpose - they are global config in
+ * monaco's standalone build, so setting them per-editor would have the last
+ * editor to mount dictate indentation for every other one on the page.
+ */
+const mockModelOptionUpdates: Array<Record<string, unknown>> = [];
+
 jest.mock("@monaco-editor/react", () => {
   return {
     __esModule: true,
@@ -42,6 +50,7 @@ jest.mock("@monaco-editor/react", () => {
       height?: string | undefined;
       options?: Record<string, unknown> | undefined;
       onChange?: ((value: string | undefined) => void) | undefined;
+      onMount?: ((editor: unknown, monaco: unknown) => void) | undefined;
     }) => {
       mockEditorRenders.push({
         value: editorProps.value,
@@ -52,16 +61,49 @@ jest.mock("@monaco-editor/react", () => {
         options: editorProps.options,
       });
 
+      const hostRef: React.MutableRefObject<HTMLDivElement | null> =
+        React.useRef<HTMLDivElement | null>(null);
+
+      /*
+       * Monaco calls onMount once the editor and its model exist. Child
+       * effects run before the parent's, which is the same order the real
+       * editor mounts in.
+       */
+      React.useEffect(() => {
+        if (!editorProps.onMount) {
+          return;
+        }
+
+        editorProps.onMount(
+          {
+            getDomNode: () => {
+              return hostRef.current;
+            },
+            getModel: () => {
+              return {
+                updateOptions: (options: Record<string, unknown>) => {
+                  mockModelOptionUpdates.push(options);
+                },
+              };
+            },
+          },
+          {},
+        );
+        // eslint-disable-next-line
+      }, []);
+
       return (
-        <textarea
-          data-testid="monaco"
-          value={editorProps.value || ""}
-          onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
-            if (editorProps.onChange) {
-              editorProps.onChange(event.target.value);
-            }
-          }}
-        />
+        <div ref={hostRef}>
+          <textarea
+            data-testid="monaco"
+            value={editorProps.value || ""}
+            onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
+              if (editorProps.onChange) {
+                editorProps.onChange(event.target.value);
+              }
+            }}
+          />
+        </div>
       );
     },
   };
@@ -248,17 +290,62 @@ describe("CodeEditor — YAML gets YAML-safe editing options", () => {
   };
 
   /*
-   * A literal tab is illegal as YAML indentation, and Monaco's defaults are
-   * four spaces with detectIndentation ON - so pasting a tab-indented blob
-   * silently reconfigures the editor to emit tabs and the document the user
-   * saves is rejected by the parser.
+   * A literal tab is illegal as YAML indentation, and Monaco's model defaults
+   * are four spaces with the indentation detected from the initial content -
+   * so a rule pasted in tab-indented would keep emitting tabs the parser
+   * rejects.
    */
-  test("two spaces, always spaces, never re-detected", () => {
-    const options: Record<string, unknown> = yamlOptions();
+  test("two spaces, always spaces - set on this editor's own model", () => {
+    mockModelOptionUpdates.length = 0;
 
-    expect(options["tabSize"]).toBe(2);
-    expect(options["insertSpaces"]).toBe(true);
-    expect(options["detectIndentation"]).toBe(false);
+    render(<CodeEditor type={CodeType.YAML} value={"a:\n  b: 1"} />);
+
+    expect(mockModelOptionUpdates).toContainEqual({
+      tabSize: 2,
+      insertSpaces: true,
+    });
+  });
+
+  /*
+   * The regression guard for the reason those three live on the model.
+   * tabSize, insertSpaces and detectIndentation are IGlobalEditorOptions:
+   * monaco's standalone editor writes every registered `editor.*` key it is
+   * constructed with into a PROCESS-WIDE configuration service, and those
+   * three are exactly the ones ModelService reads back and pushes onto every
+   * model on the page. Put them in the options bag and the last editor to
+   * mount silently re-indents all the others.
+   */
+  test.each(["tabSize", "insertSpaces", "detectIndentation"])(
+    "%s is never passed as an editor option - it is global config",
+    (key: string) => {
+      for (const type of [
+        CodeType.YAML,
+        CodeType.JSON,
+        CodeType.JavaScript,
+        CodeType.Markdown,
+        CodeType.Text,
+      ]) {
+        mockEditorRenders.length = 0;
+
+        render(<CodeEditor type={type} value="x" />);
+
+        expect(
+          Object.keys((lastRender().options || {}) as Record<string, unknown>),
+        ).not.toContain(key);
+      }
+    },
+  );
+
+  test("a non-YAML editor touches no model options at all", () => {
+    mockModelOptionUpdates.length = 0;
+
+    render(<CodeEditor type={CodeType.JSON} value="{}" />);
+
+    expect(mockModelOptionUpdates).toHaveLength(0);
+  });
+
+  test("the YAML chrome's padding is supplied by the editor", () => {
+    expect(yamlOptions()["padding"]).toEqual({ top: 10, bottom: 10 });
   });
 
   test("the gutter is on, because every parse error names a line", () => {
@@ -315,9 +402,28 @@ describe("CodeEditor — the other languages are left exactly as they were", () 
   ])("%s keeps Monaco's own indentation behaviour", (type: CodeType) => {
     const options: Record<string, unknown> = optionsFor(type);
 
-    expect(options["tabSize"]).toBe(4);
-    expect(options["detectIndentation"]).toBe(true);
+    expect(options["tabSize"]).toBeUndefined();
+    expect(options["insertSpaces"]).toBeUndefined();
+    expect(options["detectIndentation"]).toBeUndefined();
   });
+
+  test.each([
+    CodeType.JSON,
+    CodeType.JavaScript,
+    CodeType.CSS,
+    CodeType.HTML,
+    CodeType.Markdown,
+    CodeType.Text,
+  ])(
+    "%s keeps its scrolling and padding exactly as before",
+    (type: CodeType) => {
+      const options: Record<string, unknown> = optionsFor(type);
+
+      expect(options["scrollbar"]).toEqual({ horizontal: "hidden" });
+      expect(options["scrollBeyondLastLine"]).toBe(true);
+      expect(options["padding"]).toBeUndefined();
+    },
+  );
 
   test.each([
     CodeType.JSON,
@@ -402,5 +508,131 @@ describe("CodeEditor — a YAML placeholder never becomes document text", () => 
     render(<CodeEditor type={CodeType.YAML} value="" />);
 
     expect(lastRender().defaultValue).toBe("");
+  });
+});
+describe("CodeEditor — accessibility lands on Monaco's input, not the wrapper", () => {
+  beforeEach(() => {
+    mockEditorRenders.length = 0;
+  });
+
+  type InputAreaFunction = () => HTMLTextAreaElement;
+
+  const inputArea: InputAreaFunction = (): HTMLTextAreaElement => {
+    return screen.getByTestId("monaco") as HTMLTextAreaElement;
+  };
+
+  /*
+   * The wrapper this component returns is a bare <div>, i.e. role=generic,
+   * and ARIA forbids naming one - browsers compute no name for it and
+   * assistive technology ignores it. The element that actually takes focus is
+   * Monaco's own textarea, whose default name is the string "Editor content".
+   */
+  test("the field's label names the editor's textarea", () => {
+    render(
+      <CodeEditor
+        type={CodeType.YAML}
+        value="a: 1"
+        ariaLabelledby="the-field-label"
+      />,
+    );
+
+    expect(inputArea().getAttribute("aria-labelledby")).toBe("the-field-label");
+  });
+
+  test("descriptions are associated with the textarea", () => {
+    render(
+      <CodeEditor
+        type={CodeType.YAML}
+        value="a: 1"
+        ariaDescribedby="hint-id status-id"
+      />,
+    );
+
+    expect(inputArea().getAttribute("aria-describedby")).toBe(
+      "hint-id status-id",
+    );
+  });
+
+  test("an invalid document is announced as invalid", () => {
+    render(<CodeEditor type={CodeType.YAML} value="a: [" ariaInvalid={true} />);
+
+    expect(inputArea().getAttribute("aria-invalid")).toBe("true");
+  });
+
+  test("a valid document carries no aria-invalid at all", () => {
+    render(<CodeEditor type={CodeType.YAML} value="a: 1" />);
+
+    expect(inputArea().hasAttribute("aria-invalid")).toBe(false);
+  });
+
+  test("the attributes follow their props after mount", () => {
+    const { rerender } = render(
+      <CodeEditor type={CodeType.YAML} value="a: 1" ariaInvalid={false} />,
+    );
+
+    expect(inputArea().hasAttribute("aria-invalid")).toBe(false);
+
+    rerender(
+      <CodeEditor type={CodeType.YAML} value="a: [" ariaInvalid={true} />,
+    );
+
+    expect(inputArea().getAttribute("aria-invalid")).toBe("true");
+  });
+
+  test("no aria attributes are invented when the caller passes none", () => {
+    render(<CodeEditor type={CodeType.JSON} value="{}" />);
+
+    expect(inputArea().hasAttribute("aria-labelledby")).toBe(false);
+    expect(inputArea().hasAttribute("aria-describedby")).toBe(false);
+  });
+});
+
+describe("CodeEditor — spell check", () => {
+  beforeEach(() => {
+    mockEditorRenders.length = 0;
+  });
+
+  type SpellCheckFunction = () => boolean;
+
+  const spellCheck: SpellCheckFunction = (): boolean => {
+    return (screen.getByTestId("monaco") as HTMLTextAreaElement).spellcheck;
+  };
+
+  // YAML is code: squiggles under every Sigma key name are pure noise.
+  test("is always off for YAML, whatever the caller asked for", () => {
+    render(<CodeEditor type={CodeType.YAML} value="a: 1" />);
+
+    expect(spellCheck()).toBe(false);
+  });
+
+  test("is still off for YAML when the caller explicitly enables it", () => {
+    render(
+      <CodeEditor
+        type={CodeType.YAML}
+        value="a: 1"
+        disableSpellCheck={false}
+      />,
+    );
+
+    expect(spellCheck()).toBe(false);
+  });
+
+  // Markdown is prose, and keeps following the caller exactly as it did.
+  test("follows the caller for Markdown", () => {
+    render(<CodeEditor type={CodeType.Markdown} value="# hi" />);
+
+    expect(spellCheck()).toBe(true);
+  });
+
+  test("is off for Markdown when the caller disables it", () => {
+    render(
+      <CodeEditor
+        type={CodeType.Markdown}
+        value="# hi"
+        disableSpellCheck={true}
+      />,
+    );
+
+    expect(spellCheck()).toBe(false);
   });
 });

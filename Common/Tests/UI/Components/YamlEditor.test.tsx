@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import React from "react";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -21,9 +22,24 @@ interface RecordedEditorProps {
   defaultLanguage?: string | undefined;
   options?: Record<string, unknown> | undefined;
   readOnly?: boolean | undefined;
+  height?: string | undefined;
+  /*
+   * Recorded so a test can prove what YamlEditor deliberately WITHHOLDS: the
+   * chrome owns the border and prints the error once, so neither may reach
+   * CodeEditor and be painted a second time.
+   */
+  className?: string | undefined;
+  error?: string | undefined;
 }
 
 const mockEditorRenders: Array<RecordedEditorProps> = [];
+
+/*
+ * tabSize/insertSpaces are set on the MODEL, not in the options bag: in
+ * monaco's standalone build they are global config, so an editor that set
+ * them per-instance would re-indent every other editor on the page.
+ */
+const mockModelOptionUpdates: Array<Record<string, unknown>> = [];
 
 jest.mock("@monaco-editor/react", () => {
   return {
@@ -35,32 +51,69 @@ jest.mock("@monaco-editor/react", () => {
       value?: string | undefined;
       defaultLanguage?: string | undefined;
       options?: Record<string, unknown> | undefined;
+      height?: string | undefined;
+      className?: string | undefined;
+      error?: string | undefined;
       onChange?: ((value: string | undefined) => void) | undefined;
+      onMount?: ((editor: unknown, monaco: unknown) => void) | undefined;
     }) => {
       mockEditorRenders.push({
         value: editorProps.value,
         defaultLanguage: editorProps.defaultLanguage,
         options: editorProps.options,
         readOnly: editorProps.options?.["readOnly"] as boolean | undefined,
+        height: editorProps.height,
+        className: editorProps.className,
+        error: editorProps.error,
       });
 
+      const hostRef: React.MutableRefObject<HTMLDivElement | null> =
+        React.useRef<HTMLDivElement | null>(null);
+
+      React.useEffect(() => {
+        if (!editorProps.onMount) {
+          return;
+        }
+
+        editorProps.onMount(
+          {
+            getDomNode: () => {
+              return hostRef.current;
+            },
+            getModel: () => {
+              return {
+                updateOptions: (modelOptions: Record<string, unknown>) => {
+                  mockModelOptionUpdates.push(modelOptions);
+                },
+              };
+            },
+          },
+          {},
+        );
+        // eslint-disable-next-line
+      }, []);
+
       return (
-        <textarea
-          data-testid="monaco"
-          value={editorProps.value || ""}
-          onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
-            if (editorProps.onChange) {
-              editorProps.onChange(event.target.value);
-            }
-          }}
-        />
+        <div ref={hostRef}>
+          <textarea
+            data-testid="monaco"
+            value={editorProps.value || ""}
+            onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
+              if (editorProps.onChange) {
+                editorProps.onChange(event.target.value);
+              }
+            }}
+          />
+        </div>
       );
     },
   };
 });
 
 // Imported after the mock so the module picks up the stand-in editor.
-import YamlEditor from "../../../UI/Components/CodeEditor/YamlEditor";
+import YamlEditor, {
+  YAML_VALIDATION_DEBOUNCE_MS,
+} from "../../../UI/Components/CodeEditor/YamlEditor";
 
 const VALID_SIGMA_RULE: string = `title: Failed logon burst
 logsource:
@@ -132,16 +185,25 @@ describe("YamlEditor — it is a YAML editor, not a rich text editor", () => {
     expect(screen.getByText("YAML")).toBeInTheDocument();
   });
 
-  test("YAML-safe indentation reaches Monaco", () => {
+  test("YAML-safe indentation reaches Monaco's model", () => {
+    mockModelOptionUpdates.length = 0;
+
+    render(<YamlEditor value="a: 1" />);
+
+    expect(mockModelOptionUpdates).toContainEqual({
+      tabSize: 2,
+      insertSpaces: true,
+    });
+  });
+
+  test("the gutter is on, because every parse error names a line", () => {
     render(<YamlEditor value="a: 1" />);
 
     const options: Record<string, unknown> = (mockEditorRenders[0]?.options ||
       {}) as Record<string, unknown>;
 
-    expect(options["tabSize"]).toBe(2);
-    expect(options["insertSpaces"]).toBe(true);
-    expect(options["detectIndentation"]).toBe(false);
     expect(options["lineNumbers"]).toBe("on");
+    expect(options["renderWhitespace"]).toBe("boundary");
   });
 });
 
@@ -230,22 +292,26 @@ describe("YamlEditor — the status bar tells you whether it parses", () => {
     await expectStatus(/1 line(?!s)/);
   });
 
+  /*
+   * The parser's own words, not a generic "Invalid YAML." - the reason is the
+   * only part of the message that tells the reader what to change.
+   */
   test("a broken rule is reported with the parser's reason", async () => {
     render(<YamlEditor value="title: [unclosed" />);
 
-    await waitFor(() => {
-      expect(statusText()).not.toMatch(/Valid YAML/);
-    });
+    await expectStatus(/unexpected end of the stream/i);
+  });
 
-    expect(statusText().length).toBeGreaterThan(0);
+  test("a misindented rule names the indentation as the problem", async () => {
+    render(<YamlEditor value={"a: 1\nb:\n  c: 1\n   d: 2\n"} />);
+
+    await expectStatus(/bad indentation/i);
   });
 
   test("a tab used for indentation is caught", async () => {
     render(<YamlEditor value={"detection:\n\tselection: 1\n"} />);
 
-    await waitFor(() => {
-      expect(statusText()).not.toMatch(/Valid YAML/);
-    });
+    await expectStatus(/tab/i);
   });
 
   test("the failure names a line, which is why the gutter is on", async () => {
@@ -266,7 +332,22 @@ describe("YamlEditor — the status bar tells you whether it parses", () => {
     await expectStatus(/Valid YAML/);
   });
 
-  test("handlebars are not reported as broken", async () => {
+  /*
+   * checkYamlSyntax declines to judge a document whose shape is only known at
+   * run time. Claiming it is valid would be a claim about text nobody parsed.
+   */
+  test("handlebars are reported as unchecked, not as broken and not as valid", async () => {
+    render(
+      <YamlEditor
+        value={"items:\n{{#each hosts}}\n  - {{this}}\n{{/each}}\n"}
+      />,
+    );
+
+    await expectStatus(/syntax not checked/);
+    expect(statusText()).not.toMatch(/Valid YAML/);
+  });
+
+  test("a template standing in for a single value still parses", async () => {
     render(<YamlEditor value="threshold: {{local.variables.count}}" />);
 
     await expectStatus(/Valid YAML/);
@@ -476,5 +557,291 @@ describe("YamlEditor — accessibility and pass-through", () => {
     fireEvent.change(getEditor(), { target: { value: "a: 2" } });
 
     expect(onBlur).toHaveBeenCalled();
+  });
+});
+
+describe("YamlEditor — the parse is debounced", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  type AdvanceFunction = (ms: number) => void;
+
+  const advance: AdvanceFunction = (ms: number): void => {
+    act(() => {
+      jest.advanceTimersByTime(ms);
+    });
+  };
+
+  /*
+   * Without the debounce the document is judged on every keystroke, so a rule
+   * flashes an error the instant a line is half typed. This pins that the
+   * status waits for the typing to stop.
+   */
+  test("a keystroke does not immediately re-judge the document", () => {
+    render(<YamlEditor value="a: 1" />);
+
+    advance(YAML_VALIDATION_DEBOUNCE_MS);
+    expect(statusText()).toMatch(/Valid YAML/);
+
+    fireEvent.change(getEditor(), { target: { value: "a: [" } });
+
+    // One tick short of the debounce: the old verdict still stands.
+    advance(YAML_VALIDATION_DEBOUNCE_MS - 1);
+    expect(statusText()).toMatch(/Valid YAML/);
+
+    advance(1);
+    expect(statusText()).not.toMatch(/Valid YAML/);
+  });
+
+  test("only the settled text is judged, not every intermediate one", () => {
+    render(<YamlEditor value="a: 1" />);
+
+    advance(YAML_VALIDATION_DEBOUNCE_MS);
+
+    fireEvent.change(getEditor(), { target: { value: "a: [" } });
+    advance(50);
+    fireEvent.change(getEditor(), { target: { value: "a: [1" } });
+    advance(50);
+    fireEvent.change(getEditor(), { target: { value: "a: [1]" } });
+
+    // The two broken intermediates never made it to the status bar.
+    expect(statusText()).toMatch(/Valid YAML/);
+
+    advance(YAML_VALIDATION_DEBOUNCE_MS);
+    expect(statusText()).toMatch(/Valid YAML/);
+  });
+
+  /*
+   * The form re-validates synchronously on every keystroke and marks the field
+   * touched from the first one, so props.error is undebounced. Letting it win
+   * immediately would put a red message under a half-typed line and defeat the
+   * debounce entirely.
+   */
+  test("an undebounced form error does not overtake the debounced status", () => {
+    const { rerender } = render(<YamlEditor value="a: 1" />);
+
+    advance(YAML_VALIDATION_DEBOUNCE_MS);
+    expect(statusText()).toMatch(/Valid YAML/);
+
+    rerender(<YamlEditor value="a: [" error="Config is not valid YAML." />);
+
+    expect(statusText()).not.toMatch(/Config is not valid YAML/);
+
+    advance(YAML_VALIDATION_DEBOUNCE_MS);
+    expect(statusText()).toMatch(/Config is not valid YAML/);
+  });
+
+  test("the copy confirmation goes back to Copy on its own", () => {
+    render(<YamlEditor value="a: 1" />);
+
+    Object.defineProperty(navigator, "clipboard", {
+      value: {
+        writeText: () => {
+          return Promise.resolve();
+        },
+      },
+      configurable: true,
+    });
+
+    fireEvent.click(screen.getByTestId("yaml-editor-copy-button"));
+    expect(screen.getByTestId("yaml-editor-copy-button")).toHaveTextContent(
+      "Copied",
+    );
+
+    advance(2000);
+
+    expect(screen.getByTestId("yaml-editor-copy-button")).toHaveTextContent(
+      "Copy",
+    );
+    expect(screen.getByTestId("yaml-editor-copy-button")).not.toHaveTextContent(
+      "Copied",
+    );
+  });
+});
+
+describe("YamlEditor — what it withholds from CodeEditor", () => {
+  beforeEach(() => {
+    mockEditorRenders.length = 0;
+  });
+
+  type LastRenderFunction = () => RecordedEditorProps;
+
+  const lastRender: LastRenderFunction = (): RecordedEditorProps => {
+    expect(mockEditorRenders.length).toBeGreaterThan(0);
+
+    return mockEditorRenders[
+      mockEditorRenders.length - 1
+    ] as RecordedEditorProps;
+  };
+
+  /*
+   * CodeEditor renders its own red border and its own copy of the error under
+   * the box. The chrome already says it once in the status bar, so forwarding
+   * the error would say it twice and outline it twice.
+   */
+  test("the error is not forwarded — the status bar is the single voice", () => {
+    render(<YamlEditor value="a: [" error="Config is not valid YAML." />);
+
+    expect(lastRender().error).toBeUndefined();
+  });
+
+  test("the editor is given a chrome-free className", () => {
+    render(<YamlEditor value="a: 1" />);
+
+    const className: string = lastRender().className || "";
+
+    expect(className).not.toContain("border");
+    expect(className).not.toContain("rounded");
+    expect(className).not.toContain("shadow");
+  });
+
+  test("it is tall enough to author a rule in", () => {
+    render(<YamlEditor value="a: 1" />);
+
+    expect(lastRender().height).toBe("22rem");
+  });
+
+  test("a caller can still choose the height", () => {
+    render(<YamlEditor value="a: 1" height="40rem" />);
+
+    expect(lastRender().height).toBe("40rem");
+  });
+});
+
+describe("YamlEditor — the editor's own accessible description", () => {
+  /*
+   * Monaco takes Tab to indent, so Tab cannot leave the editor. WCAG 2.1.2 is
+   * met only if the user is told the way out — which means the advisory has to
+   * reach them on the way IN, not as trailing text they meet on the way past.
+   */
+  test("the escape hatch and the status are described to Monaco's input", () => {
+    render(<YamlEditor value="a: 1" />);
+
+    const describedBy: string =
+      getEditor().getAttribute("aria-describedby") || "";
+
+    expect(describedBy.split(" ")).toHaveLength(3);
+
+    for (const id of describedBy.split(" ")) {
+      expect(document.getElementById(id)).not.toBeNull();
+    }
+  });
+
+  test("the escape hint comes before the editor in reading order", () => {
+    render(<YamlEditor value="a: 1" />);
+
+    const hint: HTMLElement = screen.getByText(/toggle whether the Tab key/);
+    const editor: HTMLElement = getEditor();
+
+    expect(
+      hint.compareDocumentPosition(editor) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("a broken document is announced as invalid to assistive technology", async () => {
+    render(<YamlEditor value="a: [" error="Config is not valid YAML." />);
+
+    await waitFor(() => {
+      expect(getEditor().getAttribute("aria-invalid")).toBe("true");
+    });
+  });
+
+  test("a clean document carries no aria-invalid", () => {
+    render(<YamlEditor value="a: 1" />);
+
+    expect(getEditor().hasAttribute("aria-invalid")).toBe(false);
+  });
+
+  test("the copy confirmation is announced, not just drawn", () => {
+    Object.defineProperty(navigator, "clipboard", {
+      value: {
+        writeText: () => {
+          return Promise.resolve();
+        },
+      },
+      configurable: true,
+    });
+
+    render(<YamlEditor value="a: 1" />);
+
+    fireEvent.click(screen.getByTestId("yaml-editor-copy-button"));
+
+    const liveRegions: Array<HTMLElement> = screen.getAllByRole("status");
+
+    expect(
+      liveRegions.some((region: HTMLElement): boolean => {
+        return (region.textContent || "").includes("YAML copied to clipboard");
+      }),
+    ).toBe(true);
+  });
+
+  test("the copy button's own name tracks its state", () => {
+    Object.defineProperty(navigator, "clipboard", {
+      value: {
+        writeText: () => {
+          return Promise.resolve();
+        },
+      },
+      configurable: true,
+    });
+
+    render(<YamlEditor value="a: 1" />);
+
+    const button: HTMLElement = screen.getByTestId("yaml-editor-copy-button");
+
+    expect(button.getAttribute("aria-label")).toBe("Copy YAML to clipboard");
+
+    fireEvent.click(button);
+
+    /*
+     * WCAG 2.5.3: while the visible label reads "Copied", the accessible name
+     * has to contain it, or speech input users cannot address the control.
+     */
+    expect(button.getAttribute("aria-label")).toContain("copied");
+    expect(button).toHaveTextContent("Copied");
+  });
+});
+
+describe("YamlEditor — the tab-trap escape hint names the right key", () => {
+  type SetPlatformFunction = (platform: string) => void;
+
+  const setPlatform: SetPlatformFunction = (platform: string): void => {
+    Object.defineProperty(navigator, "platform", {
+      value: platform,
+      configurable: true,
+    });
+  };
+
+  afterEach(() => {
+    setPlatform("Linux x86_64");
+  });
+
+  /*
+   * Monaco binds toggleTabFocusMode to Ctrl+M everywhere except macOS, whose
+   * `mac` override makes it Ctrl+Shift+M. Naming the wrong key turns the
+   * keyboard-trap advisory (WCAG 2.1.2) into a false one — the user presses a
+   * combination bound to nothing and stays trapped.
+   */
+  test("Ctrl+M off macOS", () => {
+    setPlatform("Linux x86_64");
+
+    render(<YamlEditor value="a: 1" />);
+
+    expect(screen.getByText(/Press Control plus M to toggle/)).toBeTruthy();
+  });
+
+  test("Ctrl+Shift+M on macOS", () => {
+    setPlatform("MacIntel");
+
+    render(<YamlEditor value="a: 1" />);
+
+    expect(
+      screen.getByText(/Press Control plus Shift plus M to toggle/),
+    ).toBeTruthy();
   });
 });

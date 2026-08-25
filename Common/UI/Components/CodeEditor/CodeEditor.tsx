@@ -31,6 +31,10 @@ export interface ComponentProps {
   showLineNumbers?: boolean | undefined;
   disableSpellCheck?: boolean | undefined;
   ariaLabelledby?: string | undefined;
+  /** Ids of the elements describing this control (hint, status, error). */
+  ariaDescribedby?: string | undefined;
+  /** Marks the control invalid to assistive technology. */
+  ariaInvalid?: boolean | undefined;
   /** CSS height handed to Monaco. Defaults to "30vh". */
   height?: string | undefined;
 }
@@ -137,6 +141,79 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
 
   const isYaml: boolean = props.type === CodeType.YAML;
 
+  type GetInputAreaFunction = (editor: any) => HTMLTextAreaElement | null;
+
+  /*
+   * Monaco's real focusable control. The wrapper <div> this component returns
+   * has no role, and ARIA forbids naming a role=generic element - so every
+   * accessibility attribute has to land here instead.
+   */
+  const getInputArea: GetInputAreaFunction = (
+    editor: any,
+  ): HTMLTextAreaElement | null => {
+    const domNode: HTMLElement | null = editor?.getDomNode?.() || null;
+
+    if (!domNode) {
+      return null;
+    }
+
+    return domNode.querySelector("textarea");
+  };
+
+  type ApplyAriaFunction = (editor: any) => void;
+
+  const applyAria: ApplyAriaFunction = (editor: any): void => {
+    const inputArea: HTMLTextAreaElement | null = getInputArea(editor);
+
+    if (!inputArea) {
+      return;
+    }
+
+    /*
+     * aria-labelledby wins over the aria-label Monaco puts here itself
+     * ("Editor content"), so the field's own label names the editor.
+     */
+    if (props.ariaLabelledby) {
+      inputArea.setAttribute("aria-labelledby", props.ariaLabelledby);
+    } else {
+      inputArea.removeAttribute("aria-labelledby");
+    }
+
+    if (props.ariaDescribedby) {
+      inputArea.setAttribute("aria-describedby", props.ariaDescribedby);
+    } else {
+      inputArea.removeAttribute("aria-describedby");
+    }
+
+    if (props.ariaInvalid) {
+      inputArea.setAttribute("aria-invalid", "true");
+    } else {
+      inputArea.removeAttribute("aria-invalid");
+    }
+  };
+
+  type ApplyModelOptionsFunction = (editor: any) => void;
+
+  /*
+   * Per-model, not per-editor and emphatically not global: a literal tab is
+   * illegal as YAML indentation, and Monaco's model defaults are four spaces
+   * with indentation detected from the initial content - so a rule pasted in
+   * tab-indented would keep emitting tabs the parser rejects.
+   */
+  const applyModelOptions: ApplyModelOptionsFunction = (editor: any): void => {
+    if (!isYaml) {
+      return;
+    }
+
+    const model: any = editor?.getModel?.();
+
+    if (!model || typeof model.updateOptions !== "function") {
+      return;
+    }
+
+    model.updateOptions({ tabSize: 2, insertSpaces: true });
+  };
+
   /*
    * Markdown is prose, so it follows the caller's preference. YAML is code:
    * red squiggles under every key name in a Sigma rule are pure noise, so
@@ -169,7 +246,14 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
   // Handle spell check configuration for Monaco Editor
   useEffect(() => {
     applySpellCheck(editorRef.current);
+    applyModelOptions(editorRef.current);
+    // eslint-disable-next-line
   }, [props.disableSpellCheck, props.type]);
+
+  useEffect(() => {
+    applyAria(editorRef.current);
+    // eslint-disable-next-line
+  }, [props.ariaLabelledby, props.ariaDescribedby, props.ariaInvalid]);
 
   /*
    * Memoised: @monaco-editor/react calls editor.updateOptions() whenever this
@@ -249,17 +333,19 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
       wordBasedSuggestions: "off",
       wordWrap: props.type === CodeType.Markdown ? "on" : "off",
       tabCompletion: "off",
-      /*
-       * YAML forbids tabs for indentation, and Monaco's defaults are 4 spaces
-       * with detectIndentation ON - so pasting a tab-indented blob silently
-       * reconfigures the editor to emit tabs, and the document the user saves
-       * is rejected by the parser. Pin two spaces and never re-detect.
-       */
-      tabSize: isYaml ? 2 : 4,
-      insertSpaces: true,
-      detectIndentation: !isYaml,
       // The YAML chrome owns the padding, so the editor supplies its own.
       padding: isYaml ? { top: 10, bottom: 10 } : undefined,
+      /*
+       * tabSize / insertSpaces / detectIndentation deliberately do NOT belong
+       * here. They are IGlobalEditorOptions: monaco's standalone editor pipes
+       * whatever it is constructed with through updateConfigurationService,
+       * which writes every registered `editor.*` key into a PROCESS-WIDE
+       * config service - and those three are exactly the ones ModelService
+       * reads back, pushing them onto every model on the page. Setting them
+       * here would mean the last editor to mount dictates the indentation of
+       * all the others. They are applied to this editor's own model instead,
+       * in applyModelOptions below.
+       */
     };
   }, [
     props.tabIndex,
@@ -316,6 +402,8 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
         onMount={(editor: any, _monaco: any) => {
           editorRef.current = editor;
           applySpellCheck(editor);
+          applyModelOptions(editor);
+          applyAria(editor);
         }}
         defaultValue={value || placeholder || ""}
         className={className}

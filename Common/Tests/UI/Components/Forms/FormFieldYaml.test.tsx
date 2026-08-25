@@ -15,14 +15,43 @@ jest.mock("@monaco-editor/react", () => {
       value?: string | undefined;
       defaultLanguage?: string | undefined;
       onChange?: ((value: string | undefined) => void) | undefined;
+      onMount?: ((editor: unknown, monaco: unknown) => void) | undefined;
     }) => {
+      const hostRef: React.MutableRefObject<HTMLDivElement | null> =
+        React.useRef<HTMLDivElement | null>(null);
+
+      React.useEffect(() => {
+        if (!editorProps.onMount) {
+          return;
+        }
+
+        editorProps.onMount(
+          {
+            getDomNode: () => {
+              return hostRef.current;
+            },
+            getModel: () => {
+              return {
+                updateOptions: () => {
+                  return undefined;
+                },
+              };
+            },
+          },
+          {},
+        );
+        // eslint-disable-next-line
+      }, []);
+
       return (
-        <textarea
-          data-testid="monaco"
-          data-language={editorProps.defaultLanguage}
-          value={editorProps.value || ""}
-          readOnly={true}
-        />
+        <div ref={hostRef}>
+          <textarea
+            data-testid="monaco"
+            data-language={editorProps.defaultLanguage}
+            value={editorProps.value || ""}
+            readOnly={true}
+          />
+        </div>
       );
     },
   };
@@ -141,21 +170,35 @@ describe("FormField — a YAML field renders a YAML editor", () => {
   });
 
   /*
-   * Monaco renders nothing carrying the generated field id, so the label must
-   * name the editor through aria-labelledby instead of a dangling htmlFor
-   * (WCAG 1.3.1). This mirrors what the JSON/HTML/CSS/JavaScript branches do.
+   * Monaco renders nothing carrying the generated field id, so the label
+   * cannot use htmlFor without dangling (WCAG 1.3.1). It names the editor
+   * through aria-labelledby instead — and that has to land on Monaco's own
+   * focusable textarea, because the wrapper around it is a bare <div> and
+   * ARIA does not name a role=generic element.
    */
-  test("the label names the editor through aria-labelledby", () => {
+  test("the field's label names Monaco's textarea", () => {
     renderField();
 
-    const labelled: Element | null =
-      document.querySelector("[aria-labelledby]");
+    const labelId: string =
+      screen.getByTestId("monaco").getAttribute("aria-labelledby") || "";
 
-    expect(labelled).not.toBeNull();
+    expect(labelId).not.toBe("");
+    expect(document.getElementById(labelId)?.textContent).toContain(
+      "Sigma Rule (YAML)",
+    );
+  });
 
-    const labelId: string = labelled!.getAttribute("aria-labelledby") || "";
+  test("the editor is described by the hint and the status bar", () => {
+    renderField();
 
-    expect(document.getElementById(labelId)).not.toBeNull();
+    const describedBy: string =
+      screen.getByTestId("monaco").getAttribute("aria-describedby") || "";
+
+    expect(describedBy.split(" ").length).toBeGreaterThanOrEqual(2);
+
+    for (const id of describedBy.split(" ")) {
+      expect(document.getElementById(id)).not.toBeNull();
+    }
   });
 
   test("no <label for> points at an element that does not exist", () => {
