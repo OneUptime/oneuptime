@@ -46,7 +46,11 @@
       "authenticatingWithSecurityKey": "Godkender med sikkerhedsnøgle",
       "securityKeyInstructions": "Følg venligst instruktionerne på din sikkerhedsnøgleenhed.",
       "codeFieldDescription": "Indtast koden fra din autentifikator-app",
-      "selectDifferentMethod": "Vælg en anden tofaktorgodkendelsesmetode"
+      "selectDifferentMethod": "Vælg en anden tofaktorgodkendelsesmetode",
+      "useBackupCode": "Brug en backup-kode i stedet",
+      "backupCodeInstruction": "Indtast en af de backup-koder, du gemte, da du opsatte tofaktorgodkendelse. Hver kode virker kun én gang.",
+      "backupCodeFieldTitle": "Backup-kode",
+      "backupCodeFieldDescription": "Backup-koder ser ud som ABCDE-12345. Store og små bogstaver samt bindestregen betyder ikke noget."
     },
     "twoFactorEnrolment": {
       "title": "Konfigurer tofaktorgodkendelse",

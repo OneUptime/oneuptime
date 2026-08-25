@@ -47,6 +47,22 @@ export default interface UserAuthenticationStatus {
    */
   verifiedTwoFactorAuthMethodCount: number;
 
+  /*
+   * How many single-use backup codes the user has left.
+   *
+   * Deliberately NOT folded into `verifiedTwoFactorAuthMethodCount`, and the
+   * separation is the operator's whole decision. The count above answers "can
+   * they sign in at all today"; this one answers "can they get themselves back
+   * in without me". An operator looking at a lost-phone ticket needs both: a
+   * user with codes left should be told to use one, and only a user with none
+   * needs the reset button -- which signs them out everywhere and marches them
+   * through enrolment.
+   *
+   * Zero is the normal reading for an account that never generated any, not an
+   * error state.
+   */
+  unusedTwoFactorBackupCodeCount: number;
+
   // Is there an unexpired password-reset link outstanding for this user?
   hasPendingPasswordResetLink: boolean;
 }

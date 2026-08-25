@@ -573,30 +573,53 @@ describe("the credential routes have a limiter in front of the handler", () => {
     ["/verify-totp-auth"],
     ["/verify-webauthn-auth"],
     ["/verify-totp-enrolment"],
+    ["/verify-backup-code"],
   ])("%s runs middleware before its handler", (uri: string) => {
     expect(mockRouter.matchAll("post", uri).length).toBeGreaterThan(1);
   });
 
   /*
-   * The list above is the whole point of this block, so it must not be
-   * possible to add a fifth credential route and have it quietly go
-   * uncounted. Every route that reaches `login()` re-submits the email and
-   * password and runs the same verifyHashedColumnValue, so every one of them
-   * is a password oracle and every one of them needs a limiter -- an
-   * unguarded sibling is a hole in the fence, not merely an unguarded route.
+   * WHY THIS IS AN EXCLUSION LIST AND NOT AN INCLUSION LIST.
+   *
+   * The obvious way to write this test is to enumerate the credential routes
+   * and check each one has a limiter. That version existed here, and it could
+   * not do its own job: it FILTERED the registered routes through the very
+   * list it then asserted against, so a route absent from the list was absent
+   * from both sides and matched. /verify-backup-code was added to
+   * Authentication.ts and this test -- whose stated purpose was that "it must
+   * not be possible to add a fifth credential route and have it quietly go
+   * uncounted" -- stayed green.
+   *
+   * So the default is inverted. Every POST on this router is treated as a
+   * credential route unless it is named below, which means a new one fails
+   * this test on the day it is added. The author then has to make a choice in
+   * writing: attach a limiter, or state here why the route accepts no
+   * credential. Both are fine; silence is not.
+   *
+   * The routes listed below take no password and no second factor. They are
+   * not unlimited in any dangerous sense -- /signup and /forgot-password sit
+   * behind the captcha, /verify-email, /reset-password and /refresh-token
+   * carry a server-minted single-use token, and /logout revokes rather than
+   * grants -- but none of them is a guessing oracle against a stored
+   * credential, which is what IdentityRateLimit exists to bound.
    */
-  it("covers every route that reaches the shared login() function", () => {
-    const credentialRoutes: Array<string> = mockRouter.routes
+  const ROUTES_THAT_ACCEPT_NO_CREDENTIAL: Array<string> = [
+    "/signup",
+    "/forgot-password",
+    "/verify-email",
+    "/reset-password",
+    "/refresh-token",
+    "/logout",
+  ];
+
+  it("leaves no POST route on this router unlimited by accident", () => {
+    const unlimitedCredentialRoutes: Array<string> = mockRouter.routes
       .filter(
         (route: { method: string; uri: string; handlers: Array<unknown> }) => {
           return (
             route.method === "POST" &&
-            [
-              "/login",
-              "/verify-totp-auth",
-              "/verify-webauthn-auth",
-              "/verify-totp-enrolment",
-            ].includes(route.uri)
+            !ROUTES_THAT_ACCEPT_NO_CREDENTIAL.includes(route.uri) &&
+            route.handlers.length < 2
           );
         },
       )
@@ -604,12 +627,29 @@ describe("the credential routes have a limiter in front of the handler", () => {
         return route.uri;
       });
 
-    expect(credentialRoutes.sort()).toEqual([
-      "/login",
-      "/verify-totp-auth",
-      "/verify-totp-enrolment",
-      "/verify-webauthn-auth",
-    ]);
+    expect(unlimitedCredentialRoutes.sort()).toEqual([]);
+  });
+
+  /*
+   * The guard above is only as good as its knowledge that routes exist at all.
+   * If the router were captured empty -- a refactor that moves these handlers
+   * elsewhere, a mock that stops recording -- every filter above would run
+   * over nothing and pass. Pin the floor.
+   */
+  it("actually saw the router's routes", () => {
+    const postRoutes: Array<string> = mockRouter.routes
+      .filter((route: { method: string }) => {
+        return route.method === "POST";
+      })
+      .map((route: { uri: string }) => {
+        return route.uri;
+      });
+
+    expect(postRoutes).toContain("/login");
+    expect(postRoutes).toContain("/verify-backup-code");
+    expect(postRoutes.length).toBeGreaterThanOrEqual(
+      ROUTES_THAT_ACCEPT_NO_CREDENTIAL.length + 5,
+    );
   });
 });
 

@@ -184,6 +184,7 @@
       "emailVerifiedLabel": "ईमेल सत्यापित है",
       "twoFactorLabel": "दो-कारक प्रमाणीकरण सक्षम है",
       "twoFactorMethodCountLabel": "सत्यापित दो-कारक प्रमाणीकरण विधियाँ",
+      "backupCodeCountLabel": "अप्रयुक्त बैकअप कोड",
       "twoFactorStatusNotEnabled": "सक्षम नहीं",
       "twoFactorStatusPendingSetup": "सक्षम - सेटअप लंबित",
       "twoFactorStatusConfigured": "सक्षम - कॉन्फ़िगर किया गया",

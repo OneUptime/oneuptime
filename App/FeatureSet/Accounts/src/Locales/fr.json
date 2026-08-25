@@ -46,7 +46,11 @@
       "authenticatingWithSecurityKey": "Authentification avec la clé de sécurité",
       "securityKeyInstructions": "Veuillez suivre les instructions sur votre dispositif de clé de sécurité.",
       "codeFieldDescription": "Entrez le code de votre application d'authentification",
-      "selectDifferentMethod": "Sélectionnez une autre méthode d'authentification à deux facteurs"
+      "selectDifferentMethod": "Sélectionnez une autre méthode d'authentification à deux facteurs",
+      "useBackupCode": "Utiliser un code de secours à la place",
+      "backupCodeInstruction": "Saisissez l'un des codes de secours que vous avez enregistrés lors de la configuration de l'authentification à deux facteurs. Chaque code ne fonctionne qu'une seule fois.",
+      "backupCodeFieldTitle": "Code de secours",
+      "backupCodeFieldDescription": "Les codes de secours ressemblent à ABCDE-12345. La casse et le tiret n'ont pas d'importance."
     },
     "twoFactorEnrolment": {
       "title": "Configurer l'authentification à deux facteurs",

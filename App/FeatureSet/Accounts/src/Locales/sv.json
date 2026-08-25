@@ -46,7 +46,11 @@
       "authenticatingWithSecurityKey": "Autentiserar med säkerhetsnyckel",
       "securityKeyInstructions": "Följ instruktionerna på din säkerhetsnyckelenhet.",
       "codeFieldDescription": "Ange koden från din autentiseringsapp",
-      "selectDifferentMethod": "Välj en annan metod för tvåfaktorsautentisering"
+      "selectDifferentMethod": "Välj en annan metod för tvåfaktorsautentisering",
+      "useBackupCode": "Använd en reservkod i stället",
+      "backupCodeInstruction": "Ange en av de reservkoder du sparade när du konfigurerade tvåfaktorsautentisering. Varje kod fungerar bara en gång.",
+      "backupCodeFieldTitle": "Reservkod",
+      "backupCodeFieldDescription": "Reservkoder ser ut som ABCDE-12345. Stora och små bokstäver samt bindestrecket spelar ingen roll."
     },
     "twoFactorEnrolment": {
       "title": "Konfigurera tvåfaktorsautentisering",

@@ -184,6 +184,7 @@
       "emailVerifiedLabel": "이메일 인증됨",
       "twoFactorLabel": "2단계 인증 사용",
       "twoFactorMethodCountLabel": "확인된 2단계 인증 방법",
+      "backupCodeCountLabel": "사용하지 않은 백업 코드",
       "twoFactorStatusNotEnabled": "사용 안 함",
       "twoFactorStatusPendingSetup": "사용 - 설정 대기 중",
       "twoFactorStatusConfigured": "사용 - 설정 완료",

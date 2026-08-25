@@ -184,6 +184,7 @@
       "emailVerifiedLabel": "E-mail vérifié",
       "twoFactorLabel": "Authentification à deux facteurs activée",
       "twoFactorMethodCountLabel": "Méthodes à deux facteurs vérifiées",
+      "backupCodeCountLabel": "Codes de secours inutilisés",
       "twoFactorStatusNotEnabled": "Non activée",
       "twoFactorStatusPendingSetup": "Activée – Configuration en attente",
       "twoFactorStatusConfigured": "Activée – Configurée",

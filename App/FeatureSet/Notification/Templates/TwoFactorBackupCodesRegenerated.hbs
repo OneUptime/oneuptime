@@ -1,0 +1,24 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{> EmailTitle title="Your two factor backup codes were replaced." }}
+
+{{> InfoBlock info="A new set of two factor authentication backup codes was generated for your OneUptime account. Every code you were holding before this -- printed, saved or written down -- has stopped working."}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Generated at:" text=generatedAt }}
+{{> DetailBoxField title="New codes issued:" text=newCodeCount }}
+{{> DetailBoxEnd this }}
+
+{{> InfoBlock info="<strong>If this was you</strong>, no action is needed -- just make sure you have saved the new codes somewhere safe. They are shown only once."}}
+
+{{> InfoBlock info="<strong>If this was not you</strong>, somebody else has access to your account and has just removed your ability to recover it. Change your password immediately and generate a new set of codes yourself."}}
+
+{{> ButtonBlock buttonText="Manage two factor authentication" buttonUrl=twoFactorAuthUrl }}
+
+{{> SupportBlock this}}
+
+{{> Footer this}}
+
+{{> End this}}

@@ -85,6 +85,7 @@ import StatusPageDomainAPI from "Common/Server/API/StatusPageDomainAPI";
 import StatusPageSubscriberAPI from "Common/Server/API/StatusPageSubscriberAPI";
 import UserCallAPI from "Common/Server/API/UserCallAPI";
 import UserTotpAuthAPI from "Common/Server/API/UserTotpAuthAPI";
+import UserTwoFactorBackupCodeAPI from "Common/Server/API/UserTwoFactorBackupCodeAPI";
 import UserWebAuthnAPI from "Common/Server/API/UserWebAuthnAPI";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import IncidentInternalNoteAPI from "Common/Server/API/IncidentInternalNoteAPI";
@@ -4531,6 +4532,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new UserTotpAuthAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new UserTwoFactorBackupCodeAPI().getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
