@@ -26,6 +26,7 @@ import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
 import NetworkEndpoint from "Common/Models/DatabaseModels/NetworkEndpoint";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -130,6 +131,7 @@ const NetworkOverview: FunctionComponent<
           skip: 0,
           select: {
             _id: true,
+            name: true,
             cidr: true,
             status: true,
             respondedHostCount: true,
@@ -531,6 +533,28 @@ const NetworkOverview: FunctionComponent<
                 (scan: NetworkDeviceDiscoveryScan): ReactElement => {
                   const status: string = (scan.status as string) || "Pending";
 
+                  /*
+                   * A named scan leads with its name — the identity the
+                   * Discovery Scans list shows — and moves the range it sweeps
+                   * down beside the timestamp. An unnamed scan is still just
+                   * its range (issue #3391).
+                   */
+                  const scanName: string | null =
+                    ScanNameUtil.getDisplayName(scan);
+
+                  const secondaryLine: string = [
+                    scanName ? scan.cidr : null,
+                    scan.createdAt
+                      ? OneUptimeDate.fromNow(
+                          OneUptimeDate.fromString(scan.createdAt),
+                        )
+                      : null,
+                  ]
+                    .filter((part: string | null | undefined): boolean => {
+                      return Boolean(part);
+                    })
+                    .join(" · ");
+
                   let statusClassName: string = "text-gray-500";
                   if (status === "In Progress") {
                     statusClassName = "text-blue-600";
@@ -547,13 +571,11 @@ const NetworkOverview: FunctionComponent<
                     >
                       <div className="min-w-0">
                         <div className="truncate text-sm font-medium text-gray-900">
-                          {scan.cidr || "—"}
+                          {scanName || scan.cidr || "—"}
                         </div>
-                        {scan.createdAt && (
-                          <div className="text-xs text-gray-500">
-                            {OneUptimeDate.fromNow(
-                              OneUptimeDate.fromString(scan.createdAt),
-                            )}
+                        {secondaryLine && (
+                          <div className="truncate text-xs text-gray-500">
+                            {secondaryLine}
                           </div>
                         )}
                       </div>

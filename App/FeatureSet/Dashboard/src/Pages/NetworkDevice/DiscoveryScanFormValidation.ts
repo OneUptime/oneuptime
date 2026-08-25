@@ -1,6 +1,7 @@
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
+import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
 
 /*
  * Client-side validators for the "Create New Network Device Discovery Scan"
@@ -105,6 +106,44 @@ export const validateScanTarget: ScanTargetValidatorFunction = (
   }
 
   return ScanTargetUtil.getValidationError(raw.trim());
+};
+
+export type ScanNameValidatorFunction = (
+  values: FormValues<NetworkDeviceDiscoveryScan>,
+) => string | null;
+
+/*
+ * The scan's optional name (issue #3391). Delegates to the same
+ * ScanNameUtil.getValidationError the server throws with
+ * (NetworkDeviceDiscoveryScanService.onBeforeCreate / onBeforeUpdate), so the
+ * two messages are identical by construction.
+ *
+ * It covers two cases the field's own rules cannot:
+ *
+ *   - a value that is not text at all, which the server rejects and no form
+ *     rule looks at;
+ *   - a name whose length is only acceptable AFTER normalization. Length is
+ *     measured here exactly as the server measures it — on the value that
+ *     would be stored — so a name of 100 characters plus a trailing newline
+ *     is saved rather than rejected.
+ *
+ * ModelForm also infers a maxLength of 100 from the ShortText column, and that
+ * rule keeps its own message: customValidation runs last but only OVERWRITES
+ * when it returns something, so a box holding more than 100 characters is
+ * refused by the inferred rule even in the narrow case where collapsing its
+ * internal whitespace would have brought it under the cap. That errs toward
+ * the operator shortening a name they can see is too long, which is the safe
+ * direction — the form never accepts a name the server would refuse, which is
+ * the failure shape issue #3377 was about.
+ *
+ * Nothing else here is an error: the field is optional, so an empty box and a
+ * blank one are both simply "no name", and neither the form nor the server
+ * complains.
+ */
+export const validateScanName: ScanNameValidatorFunction = (
+  values: FormValues<NetworkDeviceDiscoveryScan>,
+): string | null => {
+  return ScanNameUtil.getValidationError(values.name);
 };
 
 export type RescanIntervalValidatorFunction = (

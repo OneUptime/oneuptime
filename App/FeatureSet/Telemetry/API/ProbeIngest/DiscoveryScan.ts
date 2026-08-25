@@ -75,6 +75,12 @@ router.post(
           select: {
             _id: true,
             projectId: true,
+            /*
+             * Not used to run the sweep — the probe logs it, so a probe's own
+             * log names the scan the way the operator named it rather than by
+             * address range alone.
+             */
+            name: true,
             cidr: true,
             snmpVersion: true,
             snmpCommunityString: true,

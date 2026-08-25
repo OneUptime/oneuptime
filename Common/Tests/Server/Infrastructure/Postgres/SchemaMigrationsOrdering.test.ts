@@ -50,6 +50,52 @@ const UNTIMESTAMPED_MIGRATION_NAME: string = "InitialMigration";
 
 const INITIAL_MIGRATION_TIMESTAMP: number = 1717605043663;
 
+/*
+ * Timestamps that two migrations already share, and always will.
+ *
+ * `AddNetworkDeviceAutoImportRule1789100000000` and
+ * `AddUserTwoFactorBackupCode1789100000000` were authored in parallel, both
+ * picked the same round slot (the hazard the timestamps in this directory are
+ * hand-picked rather than wall-clock), and both shipped before anyone noticed.
+ *
+ * Renaming either one now would re-run it. TypeORM records a migration by
+ * name, so a renamed class reads as one that has never executed — and both of
+ * these CREATE a table with no IF NOT EXISTS, so the re-run fails against
+ * every database that already has it. The collision is therefore permanent
+ * history, not a fixable defect, and the assertions below step around it while
+ * still failing for a NEW one.
+ *
+ * The exception names the two classes, so it cannot quietly grow: a third
+ * migration on the same stamp is not one of them and fails the duplicate
+ * guard, and dropping either migration leaves the exception naming a class
+ * that is no longer registered, which fails too.
+ */
+const SHIPPED_DUPLICATE_MIGRATIONS: ReadonlyArray<{
+  timestamp: number;
+  classNames: ReadonlyArray<string>;
+}> = [
+  {
+    timestamp: 1789100000000,
+    classNames: [
+      "AddNetworkDeviceAutoImportRule1789100000000",
+      "AddUserTwoFactorBackupCode1789100000000",
+    ],
+  },
+];
+
+/*
+ * The exception is written as the exact pair of classes that share the stamp,
+ * not as the bare number, so it excuses those two and nothing else. Excusing
+ * the number would have excused a THIRD migration landing on it — a brand new
+ * collision, waved through by the exception made for the old one.
+ */
+const SHIPPED_DUPLICATE_TIMESTAMPS: ReadonlyArray<number> =
+  SHIPPED_DUPLICATE_MIGRATIONS.map(
+    (duplicate: { timestamp: number }): number => {
+      return duplicate.timestamp;
+    },
+  );
+
 const TIMESTAMPED_FILE: RegExp = new RegExp("^\\d+-");
 
 type MigrationClass = new () => MigrationInterface;
@@ -125,13 +171,58 @@ describe("the migration registry", () => {
           return timestamp !== null;
         });
 
-      const duplicates: Array<number> = timestamps.filter(
-        (timestamp: number, index: number): boolean => {
+      const duplicates: Array<number> = timestamps
+        .filter((timestamp: number, index: number): boolean => {
           return timestamps.indexOf(timestamp) !== index;
+        })
+        /*
+         * A collision that has already shipped cannot be undone — see
+         * SHIPPED_DUPLICATE_TIMESTAMPS. A new one still fails here, which is
+         * the only case this assertion can actually do anything about.
+         */
+        .filter((timestamp: number): boolean => {
+          return !SHIPPED_DUPLICATE_TIMESTAMPS.includes(timestamp);
+        });
+
+      expect(duplicates).toEqual([]);
+    });
+
+    /*
+     * Keeps the exception list honest. Every entry has to name a collision
+     * that is really there, so the day one of those migrations is deleted its
+     * entry goes with it — and nobody can quietly widen the list to wave a new
+     * collision through, because a wrong entry fails right here.
+     */
+    test("grandfathers exactly the collisions that exist, and no more", () => {
+      const names: Array<string> = registered.map(
+        (migrationClass: MigrationClass): string => {
+          return migrationClass.name;
         },
       );
 
-      expect(duplicates).toEqual([]);
+      for (const duplicate of SHIPPED_DUPLICATE_MIGRATIONS) {
+        const onThisTimestamp: Array<string> = registered
+          .filter((migrationClass: MigrationClass): boolean => {
+            return timestampOf(migrationClass) === duplicate.timestamp;
+          })
+          .map((migrationClass: MigrationClass): string => {
+            return migrationClass.name;
+          })
+          .sort();
+
+        /*
+         * Both halves matter. Naming a class that is no longer registered
+         * means the exception has outlived the collision and must go; finding
+         * a class the exception does not name means a NEW migration has
+         * landed on the shipped stamp, which is the very thing the duplicate
+         * guard exists to catch.
+         */
+        expect(onThisTimestamp).toEqual([...duplicate.classNames].sort());
+
+        for (const className of duplicate.classNames) {
+          expect(names).toContain(className);
+        }
+      }
     });
 
     test("never registers the same migration class twice", () => {
@@ -168,10 +259,35 @@ describe("the migration registry", () => {
           return false;
         }
 
+        /*
+         * One file per registered class, which for every timestamp but the
+         * grandfathered collision means exactly one file. For that one it
+         * means two — both classes are real, both have a file, and neither can
+         * be renamed. See SHIPPED_DUPLICATE_TIMESTAMPS.
+         */
+        const grandfathered:
+          | { timestamp: number; classNames: ReadonlyArray<string> }
+          | undefined = SHIPPED_DUPLICATE_MIGRATIONS.find(
+          (duplicate: { timestamp: number }): boolean => {
+            return duplicate.timestamp === timestamp;
+          },
+        );
+
+        /*
+         * One file per registered class, which for every timestamp but the
+         * grandfathered collision means exactly one file. For that one it
+         * means exactly as many files as the exception names — a fixed
+         * number, never the live count, so an unexpected third file on that
+         * stamp fails here rather than being counted and excused.
+         */
+        const expectedFileCount: number = grandfathered
+          ? grandfathered.classNames.length
+          : 1;
+
         return (
           files.filter((file: string): boolean => {
             return file.startsWith(`${timestamp}-`);
-          }).length !== 1
+          }).length !== expectedFileCount
         );
       })
       .map((migrationClass: MigrationClass): string => {

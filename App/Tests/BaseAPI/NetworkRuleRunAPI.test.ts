@@ -266,12 +266,41 @@ describe("Network automation rule run endpoints", () => {
     });
 
     /*
-     * Only a literal true turns it on. A "true" string or a stray 1 - what a
-     * hand-written client or a form encoder sends - must not be enough to
-     * move devices somebody placed by hand.
+     * Only a literal boolean is accepted. A "true" string or a stray 1 - what
+     * a hand-written client or a form encoder sends - is a 400, and the rule
+     * does not run at all.
+     *
+     * Rejecting rather than coercing is what fails safe in BOTH directions
+     * these flags are used in: read as false, a "true" string would silently
+     * skip the reassignment the caller asked for; read as true, it would move
+     * devices somebody placed by hand. The endpoint refuses to guess which
+     * (App/FeatureSet/BaseAPI/API/NetworkRuleRun.ts readBooleanFlag).
      */
     test.each([["true"], [1], ["yes"], [{}]])(
-      "treats a non-boolean overwrite flag (%p) as off",
+      "refuses a non-boolean overwrite flag (%p) rather than guessing",
+      async (value: unknown) => {
+        const next: NextFunction = await callRoute({
+          uri: SITE_RULE_URI,
+          body: { reassignDevicesAlreadyInASite: value } as JSONObject,
+        });
+
+        expect(errorFrom(next).message).toContain(
+          "reassignDevicesAlreadyInASite must be a boolean",
+        );
+
+        // Nothing was moved: the run never started.
+        expect(
+          deviceService.applySiteAssignmentRuleToExistingDevices,
+        ).not.toHaveBeenCalled();
+      },
+    );
+
+    /*
+     * The absent case is the one that IS allowed to mean false - a caller that
+     * says nothing about reassignment is asking for the safe half.
+     */
+    test.each([[undefined], [null]])(
+      "treats an omitted overwrite flag (%p) as off",
       async (value: unknown) => {
         await callRoute({
           uri: SITE_RULE_URI,

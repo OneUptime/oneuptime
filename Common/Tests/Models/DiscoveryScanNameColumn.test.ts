@@ -1,0 +1,293 @@
+/**
+ * NetworkDeviceDiscoveryScan.name column contract (issue #3391).
+ *
+ * A discovery scan used to be identified in the product by its target alone,
+ * so a list of them read as a column of octet ranges. This column is the
+ * operator's own sentence about what the scan is FOR, and everything below
+ * pins a property that, quietly changed, either loses that sentence or turns
+ * an optional label into something that can refuse a write.
+ *
+ * Three properties matter more than the rest:
+ *
+ *   - OPTIONAL and un-backfilled. Every scan that already existed has no name,
+ *     and a NOT NULL column (or a backfilled one) would either fail the
+ *     migration or invent a name nobody wrote.
+ *   - UPDATABLE. Almost nothing on this model is: the target and the
+ *     credentials describe a sweep already handed to a probe. A name describes
+ *     nothing but itself, and a mislabelled scan is worse than an unlabelled
+ *     one, so it joins the recurrence pair as the third editable column.
+ *   - NOT unique and NOT slugged. It is a label for humans, never a key: two
+ *     scans of the same range may legitimately be called the same thing.
+ */
+
+import NetworkDeviceDiscoveryScan from "../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import { TableColumnMetadata } from "../../Types/Database/TableColumn";
+import TableColumnType from "../../Types/Database/TableColumnType";
+import ColumnLength from "../../Types/Database/ColumnLength";
+import Columns from "../../Types/Database/Columns";
+import Permission from "../../Types/Permission";
+import { describe, expect, test } from "@jest/globals";
+import { getMetadataArgsStorage } from "typeorm";
+import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
+import fs from "fs";
+import path from "path";
+
+const COLUMN: string = "name";
+
+const MIGRATIONS_DIR: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "Server",
+  "Infrastructure",
+  "Postgres",
+  "SchemaMigrations",
+);
+
+const MIGRATION_CLASS: string =
+  "AddNameToNetworkDeviceDiscoveryScan1789400000000";
+
+const MIGRATION_PATH: string = path.join(
+  MIGRATIONS_DIR,
+  "1789400000000-AddNameToNetworkDeviceDiscoveryScan.ts",
+);
+
+function metadata(): TableColumnMetadata {
+  return new NetworkDeviceDiscoveryScan().getTableColumnMetadata(COLUMN);
+}
+
+function typeOrmColumn(): ColumnMetadataArgs | undefined {
+  return getMetadataArgsStorage().columns.find((column: ColumnMetadataArgs) => {
+    return (
+      column.target === NetworkDeviceDiscoveryScan &&
+      column.propertyName === COLUMN
+    );
+  });
+}
+
+describe("NetworkDeviceDiscoveryScan.name", () => {
+  test("exists as a ShortText column", () => {
+    expect(metadata()).toBeDefined();
+    expect(metadata().type).toBe(TableColumnType.ShortText);
+    expect(metadata().title).toBe("Name");
+  });
+
+  /*
+   * The whole point of the field. A required name would put a wall in front of
+   * the operator sweeping one subnet once, which is the case the Discovery
+   * page was built for in the first place.
+   */
+  test("is optional, so a scan can still be created without one", () => {
+    expect(metadata().required).toBeFalsy();
+    expect(typeOrmColumn()).toBeDefined();
+    expect(typeOrmColumn()?.options.nullable).toBe(true);
+  });
+
+  test("is stored at the width the shared validator caps names at", () => {
+    expect(typeOrmColumn()?.options.length).toBe(ColumnLength.ShortText);
+  });
+
+  /*
+   * A default would name every unnamed scan the same thing, which is exactly
+   * the state the issue describes as unreadable.
+   */
+  test("has no default value", () => {
+    expect(typeOrmColumn()?.options.default).toBeUndefined();
+    expect(new NetworkDeviceDiscoveryScan().isDefaultValueColumn(COLUMN)).toBe(
+      false,
+    );
+  });
+
+  test("is not unique, because a name is a label and not a key", () => {
+    expect(typeOrmColumn()?.options.unique).toBeFalsy();
+
+    const uniqueColumns: Columns =
+      new NetworkDeviceDiscoveryScan().getUniqueColumns();
+
+    expect(uniqueColumns.columns).not.toContain(COLUMN);
+  });
+
+  /*
+   * Slugs are opt-in through @SlugifyColumn. A scan is never addressed by
+   * name, and slugging one would add a second column to keep in step with a
+   * value the operator is expected to rewrite.
+   */
+  test("is not slugified", () => {
+    expect(new NetworkDeviceDiscoveryScan().getSlugifyColumn()).toBeFalsy();
+  });
+});
+
+describe("NetworkDeviceDiscoveryScan.name migration", () => {
+  test("adds a nullable varchar without backfilling existing scans", () => {
+    const migration: string = fs.readFileSync(MIGRATION_PATH, "utf8");
+
+    expect(migration).toContain('ALTER TABLE "NetworkDeviceDiscoveryScan"');
+    expect(migration).toContain(`ADD "${COLUMN}" character varying(100)`);
+    /*
+     * No NOT NULL, no DEFAULT and no UPDATE: scans created before this column
+     * existed stay unnamed, and every surface falls back to their target.
+     */
+    expect(migration).not.toContain("NOT NULL");
+    expect(migration).not.toContain("DEFAULT");
+    expect(migration).not.toContain("UPDATE");
+  });
+
+  test("its down() removes the column", () => {
+    const migration: string = fs.readFileSync(MIGRATION_PATH, "utf8");
+
+    expect(migration).toContain(
+      `ALTER TABLE "NetworkDeviceDiscoveryScan" DROP COLUMN "${COLUMN}"`,
+    );
+  });
+
+  /*
+   * TypeORM records a migration under its `public name` property, not its
+   * class name, and nothing else in the suite compares the two. A rename that
+   * updates the class and forgets the literal leaves the deployed identity on
+   * the old value.
+   */
+  test("its class name, file name and recorded name all agree", () => {
+    const migration: string = fs.readFileSync(MIGRATION_PATH, "utf8");
+
+    expect(migration).toContain(`export class ${MIGRATION_CLASS}`);
+    expect(migration).toContain(`public name: string = "${MIGRATION_CLASS}"`);
+  });
+
+  test("is registered, so the column actually exists at runtime", () => {
+    const index: string = fs.readFileSync(
+      path.join(MIGRATIONS_DIR, "Index.ts"),
+      "utf8",
+    );
+
+    // Imported AND listed in the exported array - the import alone does nothing.
+    expect(index.match(new RegExp(MIGRATION_CLASS, "g"))?.length).toBe(2);
+  });
+});
+
+describe("NetworkDeviceDiscoveryScan.name access control", () => {
+  const CREATORS: Array<Permission> = [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.SettingsAdmin,
+    Permission.SettingsMember,
+    Permission.CreateNetworkDeviceDiscoveryScan,
+  ];
+
+  const READERS: Array<Permission> = [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.Viewer,
+    Permission.SettingsAdmin,
+    Permission.SettingsMember,
+    Permission.SettingsViewer,
+    Permission.ReadNetworkDeviceDiscoveryScan,
+  ];
+
+  const EDITORS: Array<Permission> = [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.SettingsAdmin,
+    Permission.SettingsMember,
+    Permission.EditNetworkDeviceDiscoveryScan,
+  ];
+
+  test("is set by whoever may create a scan", () => {
+    expect(
+      new NetworkDeviceDiscoveryScan().getColumnAccessControlFor(COLUMN)
+        ?.create,
+    ).toEqual(CREATORS);
+  });
+
+  test("is read by everyone who may read a scan, viewers included", () => {
+    expect(
+      new NetworkDeviceDiscoveryScan().getColumnAccessControlFor(COLUMN)?.read,
+    ).toEqual(READERS);
+  });
+
+  /*
+   * The Rename dialog on the Discovery page depends on this list being
+   * non-empty — ModelForm drops a field whose column grants no update
+   * permission, so an empty list here would turn the dialog into a permission
+   * error rather than a text box.
+   */
+  test("can be edited by whoever may edit the scan", () => {
+    expect(
+      new NetworkDeviceDiscoveryScan().getColumnAccessControlFor(COLUMN)
+        ?.update,
+    ).toEqual(EDITORS);
+  });
+
+  /*
+   * And the sweep itself stays read-only. This is the claim worth pinning:
+   * adding an editable column must not have made anything that DESCRIBES a
+   * sweep editable with it. A target or a credential changed after a probe
+   * took the scan would leave the stored row describing a sweep that never
+   * ran, and a status or a result changed by hand would be a lie about one
+   * that did.
+   *
+   * (The recurrence pair is editable, and always was — it describes the NEXT
+   * run rather than the one that happened.)
+   */
+  test("does not make any part of the sweep editable", () => {
+    const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan();
+
+    const sweepColumns: Array<string> = [
+      "cidr",
+      "probeId",
+      "snmpVersion",
+      "snmpCommunityString",
+      "snmpPort",
+      "snmpV3SecurityLevel",
+      "snmpV3Username",
+      "snmpV3AuthProtocol",
+      "snmpV3AuthKey",
+      "snmpV3PrivProtocol",
+      "snmpV3PrivKey",
+      "status",
+      "statusMessage",
+      "discoveredDevices",
+      "scannedHostCount",
+      "respondedHostCount",
+      "startedAt",
+      "completedAt",
+      "nextScanAt",
+    ];
+
+    for (const column of sweepColumns) {
+      expect({
+        column: column,
+        update: scan.getColumnAccessControlFor(column)?.update,
+      }).toEqual({ column: column, update: [] });
+    }
+  });
+
+  // ...while the two columns that describe a future run stay editable.
+  test("leaves the recurrence pair editable, as it already was", () => {
+    const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan();
+
+    for (const column of ["isRecurring", "rescanIntervalInMinutes"]) {
+      expect(scan.getColumnAccessControlFor(column)?.update).toEqual(EDITORS);
+    }
+  });
+
+  /*
+   * Everything the operator can edit has to be something the table itself
+   * accepts an update for, or the row-level check refuses the write before the
+   * column-level one is ever consulted.
+   */
+  test("its editors are editors of the table too", () => {
+    const tableUpdatePermissions: Array<Permission> =
+      new NetworkDeviceDiscoveryScan().getUpdatePermissions();
+
+    for (const permission of EDITORS) {
+      expect(tableUpdatePermissions).toContain(permission);
+    }
+  });
+
+  test("is readable from a relation query, like the target beside it", () => {
+    expect(metadata().canReadOnRelationQuery).toBe(true);
+  });
+});

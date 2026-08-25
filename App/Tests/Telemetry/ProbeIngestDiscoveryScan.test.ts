@@ -176,6 +176,25 @@ describe("POST /probe/discovery-scan/list", () => {
     jest.clearAllMocks();
   });
 
+  /*
+   * The probe logs the scan it is sweeping, and since scans can be named
+   * (issue #3391) that log line names it the way its operator did. The name is
+   * of no use to the sweep itself — it has to be asked for here or it never
+   * reaches the probe at all.
+   */
+  test("hands the scan's name to the probe alongside its target", async () => {
+    scanService.findBy.mockResolvedValue([] as never);
+
+    await callListEndpoint(makeRequest({ probeId }));
+
+    const findArgs: JSONObject = scanService.findBy.mock
+      .calls[0]![0] as JSONObject;
+    const select: JSONObject = findArgs["select"] as JSONObject;
+
+    expect(select["name"]).toBe(true);
+    expect(select["cidr"]).toBe(true);
+  });
+
   test("hands out the probe's pending scans and marks each In Progress with plain column data", async () => {
     const scanId: ObjectID = ObjectID.generate();
     const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan(
@@ -413,6 +432,12 @@ describe("POST /probe/discovery-scan/result", () => {
 
     const data: JSONObject = lastUpdateData();
     expect(Object.keys(data).sort()).toEqual([
+      /*
+       * Cleared on every result: a NULL marker is how the auto-import worker
+       * knows the results now on this row have not been processed yet
+       * (Workers/Jobs/NetworkDeviceDiscovery/ProcessAutoImportRules.ts).
+       */
+      "autoImportProcessedAt",
       "completedAt",
       "discoveredDevices",
       "respondedHostCount",
@@ -420,6 +445,7 @@ describe("POST /probe/discovery-scan/result", () => {
       "status",
       "statusMessage",
     ]);
+    expect(data["autoImportProcessedAt"]).toBeNull();
     expect(data["status"]).toBe("Completed");
     expect(data["statusMessage"]).toBe("Swept 254 hosts.");
     expect(data["scannedHostCount"]).toBe(254);

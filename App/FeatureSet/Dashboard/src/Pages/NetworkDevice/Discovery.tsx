@@ -25,15 +25,21 @@ import OneUptimeDate from "Common/Types/Date";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
+import ModelField from "Common/UI/Components/Forms/Types/Field";
+import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
+import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import { getSnmpConfigFormFields } from "./SnmpConfigFormFields";
 import {
   MINIMUM_RESCAN_INTERVAL_IN_MINUTES,
   validateRescanInterval,
+  validateScanName,
   validateScanTarget,
 } from "./DiscoveryScanFormValidation";
 import { buildNetworkDeviceFromDiscoveredHost } from "Common/Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
@@ -74,6 +80,37 @@ import React, {
 
 type DiscoveredDeviceEntry = DiscoveredNetworkDevice;
 
+/*
+ * The scan's optional name, defined once and used twice: as the first field of
+ * the create wizard, and as the only field of the Rename dialog. Two copies
+ * would be two chances for the wizard's guidance and the rename dialog's to
+ * drift apart, on a field whose entire job is to be read later.
+ *
+ * It keeps its `stepId` in both places. The rename dialog declares no steps at
+ * all, and BasicForm renders every field when there are none — see
+ * Common/UI/Components/Forms/BasicForm.
+ */
+const SCAN_NAME_FORM_FIELD: ModelField<NetworkDeviceDiscoveryScan> = {
+  field: {
+    name: true,
+  },
+  title: "Name",
+  stepId: "scan-target",
+  fieldType: FormFieldSchemaType.Text,
+  required: false,
+  placeholder: "Router Discovery - Region 1100",
+  /*
+   * Deliberately the FIRST thing the wizard asks for, and deliberately not
+   * required. A scan is identified in the list by whatever is here, falling
+   * back to its target — so the question is worth asking before the target is
+   * typed, and worth not insisting on for the operator sweeping one subnet
+   * once (issue #3391).
+   */
+  description:
+    "Optional. What this scan is for - 'Router Discovery - Region 1100' - so you can tell it apart from other scans without matching address ranges by eye. The list shows the scan target instead when this is empty.",
+  customValidation: validateScanName,
+};
+
 const NetworkDeviceDiscovery: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -85,6 +122,14 @@ const NetworkDeviceDiscovery: FunctionComponent<
 
   // Review Results modal state.
   const [showReviewModal, setShowReviewModal] = useState<boolean>(false);
+  /*
+   * The scan the Rename dialog is open for, or null. A name that cannot be
+   * corrected is worse than no name at all — "Region 1100" on the wrong range
+   * misleads every operator who reads the list afterwards — and the only other
+   * way to fix one would be to delete the scan and lose its results with it.
+   */
+  const [scanToRename, setScanToRename] =
+    useState<NetworkDeviceDiscoveryScan | null>(null);
   const [scanToReview, setScanToReview] =
     useState<NetworkDeviceDiscoveryScan | null>(null);
   const [selectedIps, setSelectedIps] = useState<Record<string, boolean>>({});
@@ -396,7 +441,27 @@ const NetworkDeviceDiscovery: FunctionComponent<
         showRefreshButton={true}
         refreshToggle={refreshToggle}
         name="Network Device Discovery Scans"
-        filters={[]}
+        /*
+         * Both halves of a scan's identity are searchable, because either one
+         * can be the thing the operator remembers: the purpose they gave it,
+         * or the range they know it covers.
+         */
+        filters={[
+          {
+            field: {
+              name: true,
+            },
+            title: "Name",
+            type: FieldType.Text,
+          },
+          {
+            field: {
+              cidr: true,
+            },
+            title: "Scan Target",
+            type: FieldType.Text,
+          },
+        ]}
         cardProps={{
           title: "Discovery Scans",
           description:
@@ -411,6 +476,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
           { title: "Schedule", id: "schedule" },
         ]}
         formFields={[
+          SCAN_NAME_FORM_FIELD,
           {
             field: {
               cidr: true,
@@ -544,12 +610,46 @@ const NetworkDeviceDiscovery: FunctionComponent<
           },
         ]}
         columns={[
+          /*
+           * The scan's identity, in one column: its name if it has one, with
+           * the address range it sweeps underneath. A scan with no name reads
+           * exactly as it did before names existed — the target alone, on the
+           * first line — so this replaces the old Scan Target column rather
+           * than sitting beside it and leaving half the rows with an empty
+           * cell where their name would be (issue #3391).
+           */
           {
+            /*
+             * BOTH fields are declared, not just the one the column is keyed
+             * on: getExportKeysFromColumn builds the CSV row out of a column's
+             * declared fields alone (selectMoreFields never reaches it), so a
+             * column that reached `cidr` through selectMoreFields would export
+             * an EMPTY cell for every scan without a name - which is every
+             * scan that predates the column. The cell on screen would still
+             * show the target, so the loss would be silent and export-only.
+             */
             field: {
+              name: true,
               cidr: true,
             },
-            title: "Scan Target",
-            type: FieldType.Text,
+            title: "Scan",
+            type: FieldType.Element,
+            getElement: (item: NetworkDeviceDiscoveryScan): ReactElement => {
+              const name: string | null = ScanNameUtil.getDisplayName(item);
+
+              return (
+                <div>
+                  <div className="text-sm font-medium text-gray-900">
+                    {name || item.cidr || "—"}
+                  </div>
+                  {name && item.cidr ? (
+                    <div className="text-xs text-gray-500">{item.cidr}</div>
+                  ) : (
+                    <></>
+                  )}
+                </div>
+              );
+            },
           },
           {
             field: {
@@ -727,6 +827,31 @@ const NetworkDeviceDiscovery: FunctionComponent<
         }}
         actionButtons={[
           {
+            title: "Rename",
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.Pencil,
+            /*
+             * Hidden for anyone who could not save the rename anyway. The
+             * table sets isEditable={false}, so this button is the only edit
+             * affordance on the page and nothing else is gating it — a viewer
+             * would otherwise open a dialog whose one field ModelForm has
+             * already dropped for want of the update permission.
+             */
+            isVisible: (): boolean => {
+              return PermissionGate.check(
+                new NetworkDeviceDiscoveryScan(),
+                ModelAction.Update,
+              ).isAllowed;
+            },
+            onClick: async (
+              item: NetworkDeviceDiscoveryScan,
+              onCompleteAction: VoidFunction,
+            ) => {
+              setScanToRename(item);
+              onCompleteAction();
+            },
+          },
+          {
             title: "Review Results",
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.List,
@@ -744,6 +869,41 @@ const NetworkDeviceDiscovery: FunctionComponent<
         ]}
       />
 
+      {scanToRename && (
+        /*
+         * One field, no steps. ModelFormModal fetches the scan, prefills the
+         * box and PATCHes just this column. The schedule pair (isRecurring,
+         * rescanIntervalInMinutes) is updatable on the model too, but it is
+         * deliberately not offered here: this dialog answers "what is this
+         * scan called", and nothing about the sweep itself.
+         */
+        <ModelFormModal<NetworkDeviceDiscoveryScan>
+          modelType={NetworkDeviceDiscoveryScan}
+          modelIdToEdit={scanToRename.id!}
+          name="Rename Discovery Scan"
+          title="Rename Discovery Scan"
+          description={`Give this scan a name you will recognise in the list. It sweeps ${
+            scanToRename.cidr || "the address range it was created with"
+          }.`}
+          submitButtonText="Save Changes"
+          onClose={() => {
+            setScanToRename(null);
+          }}
+          onSuccess={() => {
+            setScanToRename(null);
+            // Same refresh the import path uses, so the list shows the new name.
+            setRefreshToggle(Date.now().toString());
+          }}
+          formProps={{
+            name: "Rename Discovery Scan",
+            modelType: NetworkDeviceDiscoveryScan,
+            id: "rename-network-device-discovery-scan-form",
+            fields: [SCAN_NAME_FORM_FIELD],
+            formType: FormType.Update,
+          }}
+        />
+      )}
+
       {showReviewModal && scanToReview && (
         <Modal
           title="Review Discovered Devices"
@@ -754,7 +914,8 @@ const NetworkDeviceDiscovery: FunctionComponent<
            * a No SNMP filter that exists precisely to import them as a batch.
            */
           description={`Hosts that responded in ${
-            scanToReview.cidr || "the scanned address range"
+            ScanNameUtil.getScanLabel(scanToReview) ||
+            "the scanned address range"
           }. Filter to a group, pick the hosts you want, and import — SNMP hosts arrive as polled devices, hosts without SNMP as monitor-backed ones.${
             /*
              * The probe's summary of the sweep. Most valuable precisely when
