@@ -371,7 +371,7 @@ export default class NetworkDeviceAutoImportRule extends BaseModel {
     type: TableColumnType.LongText,
     title: "System Object ID Pattern",
     description:
-      "Regex or * wildcard pattern (case-insensitive) matched against the discovered host's SNMP sysObjectID — the vendor's registered enterprise OID, e.g. 1.3.6.1.4.1.9.* for Cisco. Leave empty to match any vendor. Only hosts reported by probes new enough to carry sysObjectID can match.",
+      "An OID prefix (1.3.6.1.4.1.9) or a '*' wildcard OID pattern with literal dots (1.3.6.1.4.1.9.* for Cisco) matched against the discovered host's SNMP sysObjectID — the vendor's registered enterprise OID. Not regex: dots match dots, so 1.3.6.1.4.1.9.* can never match enterprise 94. Leave empty to match any vendor. Only hosts reported by probes new enough to carry sysObjectID can match.",
   })
   @Column({
     type: ColumnType.LongText,

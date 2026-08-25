@@ -15,6 +15,14 @@ import ScanTargetUtil from "../../Utils/NetworkDiscovery/ScanTargetUtil";
  * match nothing is rejected where the user can see it, not logged about by
  * the engine long after they left the form.
  */
+
+/*
+ * What a sysObjectID condition may contain: an optional leading dot, then
+ * digits, dots and '*' wildcards. Hoisted so the literal is not the object
+ * of a member expression, which `wrap-regex` and Prettier cannot agree on —
+ * same reason as CidrMatchUtil.
+ */
+const OID_PATTERN_SHAPE: RegExp = /^\.?[\d.*]+$/;
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -135,7 +143,7 @@ export class Service extends DatabaseService<Model> {
 
     this.validatePattern("System Name Pattern", sysNamePattern);
     this.validatePattern("System Description Pattern", sysDescrPattern);
-    this.validatePattern("System Object ID Pattern", sysObjectIdPattern);
+    this.validateOidPattern(sysObjectIdPattern);
   }
 
   private validatePattern(title: string, pattern: string): void {
@@ -146,6 +154,27 @@ export class Service extends DatabaseService<Model> {
     throw new BadDataException(
       `${title} is neither a valid regular expression nor a '*' wildcard pattern, so it would never match: ${pattern}`,
     );
+  }
+
+  /*
+   * The sysObjectID condition is NOT free-text: an OID is a dotted numeric
+   * arc, matched as a literal-dot '*' glob or an arc prefix (see
+   * AutoImportRuleMatcher.matchesOidPattern — regex-first matching would make
+   * "1.3.6.1.4.1.9.*" match enterprise 94 too). So the only characters that
+   * can ever match anything are digits, dots and '*'; anything else is a
+   * pattern that silently never fires, which is exactly what this service
+   * exists to reject at the write.
+   */
+  private validateOidPattern(pattern: string): void {
+    if (!pattern) {
+      return;
+    }
+
+    if (!OID_PATTERN_SHAPE.test(pattern)) {
+      throw new BadDataException(
+        `System Object ID Pattern must be an OID prefix (1.3.6.1.4.1.9) or a '*' wildcard OID pattern (1.3.6.1.4.1.9.*) — digits, dots and '*' only: ${pattern}`,
+      );
+    }
   }
 }
 

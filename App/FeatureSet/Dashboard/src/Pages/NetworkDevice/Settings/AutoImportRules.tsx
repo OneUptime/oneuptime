@@ -30,7 +30,7 @@ A rule imports a discovered host only when **all** specified criteria pass — c
 
 - **Host IP Is In** — a CIDR (\`192.168.1.0/24\`) or octet range (\`10.16-22.0-255.51-66\`), the same notations a scan target takes.
 - **System Name / Description Pattern** — case-insensitive regex, or a \`*\` wildcard pattern, matched against the host's SNMP sysName / sysDescr.
-- **System Object ID Pattern** — the same pattern syntax matched against the host's sysObjectID, the vendor's registered enterprise OID (\`1.3.6.1.4.1.9.*\` is "any Cisco device"). Only hosts found by probes that report sysObjectID can match this condition.
+- **System Object ID Pattern** — matched against the host's sysObjectID, the vendor's registered enterprise OID. NOT the free-text syntax above: an OID is a dotted numeric arc, so this takes an OID prefix (\`1.3.6.1.4.1.9\`) or a \`*\` wildcard pattern with literal dots (\`1.3.6.1.4.1.9.*\` is "any Cisco device" and can never match enterprise 94). Only hosts found by probes that report sysObjectID can match this condition.
 
 By default only hosts that answered SNMP are imported. Enable **Include Ping-Only Hosts** to also import hosts that only answered ping — but beware: a wrong SNMP credential makes every host on a subnet report as ping-only.
 
@@ -266,7 +266,7 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
             placeholder:
               "1.3.6.1.4.1.9.* (Cisco) or 1.3.6.1.4.1.2636.* (Juniper)",
             description:
-              "Regex or * wildcard pattern (case-insensitive) matched against the discovered host's SNMP sysObjectID — the vendor's registered enterprise OID. Leave empty to match any vendor. Only hosts found by probes new enough to report sysObjectID can match.",
+              "An OID prefix (1.3.6.1.4.1.9) or a '*' wildcard OID pattern with literal dots — not regex — matched against the discovered host's SNMP sysObjectID, the vendor's registered enterprise OID. Leave empty to match any vendor. Only hosts found by probes new enough to report sysObjectID can match.",
           },
           {
             field: { includePingOnlyHosts: true },
