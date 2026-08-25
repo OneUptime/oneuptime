@@ -2,6 +2,7 @@ import { BASE_URL } from "../../../Config";
 import { APIResponse, Page, expect, Locator } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import { gotoProjectPage } from "./ProductOnboarding";
+import { ApiResult, sendWithRetry } from "./ApiRequest";
 
 /*
  * Helpers for the monitor-creation e2e spec (CreateMonitors.spec.ts).
@@ -462,16 +463,20 @@ export const seedInfraEntity: SeedInfraEntityFunction = async (data: {
     entityData[data.recipe.identifierField] = entityName;
   }
 
-  const response: APIResponse = await data.page.request.post(apiUrl, {
-    headers: {
-      "content-type": "application/json",
-      tenantid: data.projectId,
+  const result: ApiResult = await sendWithRetry({
+    send: (): Promise<APIResponse> => {
+      return data.page.request.post(apiUrl, {
+        headers: {
+          "content-type": "application/json",
+          tenantid: data.projectId,
+        },
+        data: { data: entityData },
+      });
     },
-    data: { data: entityData },
   });
   expect(
-    response.ok(),
-    `Seed ${data.recipe.label} entity failed: ${response.status()} ${await response.text()}`,
+    result.ok,
+    `Seed ${data.recipe.label} entity failed: ${result.status} ${result.text}`,
   ).toBe(true);
 
   return entityName;

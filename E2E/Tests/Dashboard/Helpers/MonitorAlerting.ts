@@ -1,6 +1,7 @@
 import { BASE_URL } from "../../../Config";
 import { APIResponse, Cookie, Page, expect } from "@playwright/test";
 import URL from "Common/Types/API/URL";
+import { ApiResult, sendWithRetry } from "./ApiRequest";
 
 /*
  * Helpers for the monitor -> incident -> on-call -> user-alerted e2e spec
@@ -92,20 +93,19 @@ export const requestJson: RequestJsonFunction = async (data: {
     });
   };
 
-  let response: APIResponse = await send();
+  let result: ApiResult = await sendWithRetry({ send });
 
-  if (response.status() === 401) {
+  if (result.status === 401) {
     await refreshSession({ page: data.page });
-    response = await send();
+    result = await sendWithRetry({ send });
   }
 
   expect(
-    response.ok(),
-    `${method.toUpperCase()} ${data.path} failed: ${response.status()} ${await response.text()}`,
+    result.ok,
+    `${method.toUpperCase()} ${data.path} failed: ${result.status} ${result.text}`,
   ).toBe(true);
 
-  const text: string = await response.text();
-  return text ? (JSON.parse(text) as JSONish) : {};
+  return result.text ? (JSON.parse(result.text) as JSONish) : {};
 };
 
 type CreateItemFunction = (data: {
@@ -161,16 +161,16 @@ export const deleteItem: DeleteItemFunction = async (data: {
     });
   };
 
-  let response: APIResponse = await send();
+  let result: ApiResult = await sendWithRetry({ send });
 
-  if (response.status() === 401) {
+  if (result.status === 401) {
     await refreshSession({ page: data.page });
-    response = await send();
+    result = await sendWithRetry({ send });
   }
 
   expect(
-    response.ok(),
-    `DELETE ${data.path}/${data.id} failed: ${response.status()} ${await response.text()}`,
+    result.ok,
+    `DELETE ${data.path}/${data.id} failed: ${result.status} ${result.text}`,
   ).toBe(true);
 };
 
