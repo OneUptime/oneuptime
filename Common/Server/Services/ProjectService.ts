@@ -18,6 +18,10 @@ import Errors from "../Utils/Errors";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import MarketingEventUtil from "../Utils/Marketing/MarketingEventUtil";
 import { MarketingEventType } from "../../Types/Marketing/MarketingEvent";
+import {
+  UtmPropertyKeys,
+  UtmUrlPropertyKey,
+} from "../../Types/Marketing/Attribution";
 import SessionReplayGateCacheStore from "../Utils/SessionReplay/SessionReplayGateCacheStore";
 import AccessTokenService from "./AccessTokenService";
 import BillingService from "./BillingService";
@@ -198,6 +202,10 @@ export class ProjectService extends DatabaseService<Model> {
         utmMedium: true,
         utmTerm: true,
         utmContent: true,
+        utmId: true,
+        utmSourcePlatform: true,
+        utmCreativeFormat: true,
+        utmMarketingTactic: true,
         utmUrl: true,
         clickIds: true,
         firstTouchAttribution: true,
@@ -348,13 +356,17 @@ export class ProjectService extends DatabaseService<Model> {
     data.data.createdOwnerPhone = user.companyPhoneNumber!;
     data.data.createdOwnerCompanyName = user.companyName!;
 
-    // UTM info.
-    data.data.utmCampaign = user.utmCampaign!;
-    data.data.utmSource = user.utmSource!;
-    data.data.utmMedium = user.utmMedium!;
-    data.data.utmTerm = user.utmTerm!;
-    data.data.utmContent = user.utmContent!;
-    data.data.utmUrl = user.utmUrl!;
+    /*
+     * UTM info, copied field by field off the shared contract rather than
+     * hand-listed. Hand-listing is how Project ended up with four columns
+     * (utmId and its GA4 siblings) that the schema had but nothing ever wrote.
+     */
+    const projectRow: JSONObject = data.data as unknown as JSONObject;
+    const userRow: JSONObject = user as unknown as JSONObject;
+
+    for (const propertyKey of [...UtmPropertyKeys, UtmUrlPropertyKey]) {
+      projectRow[propertyKey] = userRow[propertyKey];
+    }
 
     // Ad attribution info (click IDs + first touch).
     data.data.clickIds = user.clickIds!;
@@ -572,6 +584,10 @@ export class ProjectService extends DatabaseService<Model> {
         utmCampaign: true,
         utmTerm: true,
         utmContent: true,
+        utmId: true,
+        utmSourcePlatform: true,
+        utmCreativeFormat: true,
+        utmMarketingTactic: true,
         utmUrl: true,
         clickIds: true,
         firstTouchAttribution: true,

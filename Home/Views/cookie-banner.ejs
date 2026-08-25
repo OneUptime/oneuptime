@@ -31,11 +31,18 @@
     attribution capture all ran identically whether the visitor pressed Accept,
     pressed Reject, or never saw the banner. "Reject all" rejected nothing.
 
-    Both buttons now go through window.oneUptimeConsent (defined in
+    Both buttons go through window.oneUptimeConsent (defined in
     Common/Server/Views/Partials/AnalyticsConsent.ejs, before the tags load),
-    which is what actually writes the key, pushes the Consent Mode v2 update to
-    Google, and tells the attribution capture to either store what it has been
-    holding or forget what it knows.
+    which records the answer under 'cookiesAccepted'.
+
+    RECORDS IT, AND NOTHING MORE. Measurement is no longer gated on the answer:
+    Consent Mode defaults to granted and is not updated on either button,
+    attribution is stored on sight, and PostHog loads regardless. So these
+    buttons currently change nothing except which of them the banner remembers
+    you pressed. That is a deliberate decision documented at the top of
+    AnalyticsConsent.ejs and in Docs/analytics/enterprise-conversion-tracking.md
+    — but a banner offering a choice it does not honour is the thing to fix
+    next, either by re-gating or by removing the buttons.
 
     That partial is shared with /accounts and /dashboard, so the answer given
     here is the answer those origins honour too — they are the same origin and

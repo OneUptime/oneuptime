@@ -546,6 +546,7 @@ import { AddUserSlackAndMicrosoftTeams1789000000000 } from "./1789000000000-AddU
 import { AddNetworkDeviceAutoImportRule1789100000000 } from "./1789100000000-AddNetworkDeviceAutoImportRule";
 import { AddSysObjectIdPatternToAutoImportRule1789200000000 } from "./1789200000000-AddSysObjectIdPatternToAutoImportRule";
 import { AddAutoApplyVendorHealthTemplate1789300000000 } from "./1789300000000-AddAutoApplyVendorHealthTemplate";
+import { AddCampaignUtmFields1789500000000 } from "./1789500000000-AddCampaignUtmFields";
 import { AddUserTwoFactorBackupCode1789100000000 } from "./1789100000000-AddUserTwoFactorBackupCode";
 import { AddNameToNetworkDeviceDiscoveryScan1789400000000 } from "./1789400000000-AddNameToNetworkDeviceDiscoveryScan";
 import { MigrationName1787142779538 } from "./1787142779538-MigrationName";
@@ -1104,4 +1105,5 @@ export default [
   AddAutoApplyVendorHealthTemplate1789300000000,
   AddUserTwoFactorBackupCode1789100000000,
   AddNameToNetworkDeviceDiscoveryScan1789400000000,
+  AddCampaignUtmFields1789500000000,
 ];

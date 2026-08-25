@@ -101,7 +101,7 @@ const renderOrigin: RenderOriginFunction = (
 };
 
 const GTM_SCRIPT: string = "googletagmanager.com/gtm.js";
-const CONSENT_DEFAULT: string = "pushConsentSignal('default', false)";
+const CONSENT_DEFAULT: string = "pushConsentSignal('default', true)";
 
 describe("the shared analytics consent partial", () => {
   test("exists in Common, so every origin can reach it", () => {
@@ -166,15 +166,37 @@ for (const origin of ORIGINS) {
       expect(consentIndex).toBeLessThan(containerIndex);
     });
 
-    test("denies ad and analytics storage until the visitor answers", () => {
+    /*
+     * Granted by default, on every origin, without asking. This is the
+     * deliberate posture (see the top of the partial); the assertion exists so
+     * that reverting to a denied default has to be a decision rather than an
+     * accident, and so that the four origins cannot drift apart on it.
+     *
+     * Note what this default asserts to Google: that consent WAS collected.
+     * That is a claim about the visitor, not merely a choice about OneUptime's
+     * own storage.
+     */
+    test("grants ad and analytics storage by default, without asking", () => {
       const html: string = renderOrigin(origin, true);
 
       expect(html).toContain("ad_storage");
       expect(html).toContain("ad_user_data");
       expect(html).toContain("ad_personalization");
       expect(html).toContain("analytics_storage");
-      // `unset` is treated as denied rather than as permission-by-silence.
       expect(html).toContain(CONSENT_DEFAULT);
+      expect(html).not.toContain("pushConsentSignal('default', false)");
+    });
+
+    /*
+     * And no update is pushed on either answer, so "Reject all" does not send
+     * a denial. Without this, re-adding a single pushConsentSignal('update', …)
+     * in set() would quietly re-gate the Google tag while every other test
+     * here stayed green.
+     */
+    test("pushes no consent update when the banner is answered", () => {
+      const html: string = renderOrigin(origin, true);
+
+      expect(html).not.toContain("pushConsentSignal('update'");
     });
 
     test("loads no Google tag at all when analytics are switched off", () => {
@@ -235,7 +257,26 @@ describe("consent can be withdrawn", () => {
     expect(policy).not.toContain(
       "We do not use marketing cookies inside the product",
     );
-    expect(policy).toContain("governed by the same");
-    expect(policy).toContain("consent choice");
+    expect(policy).toContain(
+      "the same analytics and advertising tags as the rest of the Website",
+    );
+  });
+
+  /*
+   * And it must not promise a choice the code stopped honouring.
+   *
+   * The policy used to say the product's tags were "governed by the same
+   * consent choice" and that rejecting meant "they are not set in the product
+   * either". Measurement is no longer gated on the banner, so both sentences
+   * became false statements to visitors in a published policy — the kind of
+   * defect that is invisible in code review because the code and the prose
+   * live in different files.
+   */
+  test("the cookie policy does not promise a consent choice the code ignores", () => {
+    const policy: string = fs.readFileSync(cookiePolicyPath, "utf-8");
+
+    expect(policy).not.toContain("governed by the same consent choice");
+    expect(policy).not.toContain("they are not set in the product either");
+    expect(policy).toContain("regardless of the answer given on the cookie banner");
   });
 });

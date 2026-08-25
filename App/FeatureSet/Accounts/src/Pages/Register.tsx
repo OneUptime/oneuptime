@@ -4,6 +4,10 @@ import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
 import {
+  UtmPropertyKeys,
+  UtmUrlPropertyKey,
+} from "Common/Types/Marketing/Attribution";
+import {
   RevenueEventName,
   RevenueFunnelStage,
 } from "Common/Types/Analytics/RevenueEvent";
@@ -416,12 +420,22 @@ const RegisterPage: () => JSX.Element = () => {
               const utmParams: Dictionary<string> = UserUtil.getUtmParams();
 
               if (utmParams && Object.keys(utmParams).length > 0) {
-                item.utmSource = utmParams["utmSource"] || "";
-                item.utmMedium = utmParams["utmMedium"] || "";
-                item.utmCampaign = utmParams["utmCampaign"] || "";
-                item.utmTerm = utmParams["utmTerm"] || "";
-                item.utmContent = utmParams["utmContent"] || "";
-                item.utmUrl = utmParams["utmUrl"] || "";
+                /*
+                 * Driven from the shared contract rather than hand-listed. A
+                 * UTM key added to Common/Types/Marketing/Attribution.ts is
+                 * captured by the marketing site, whitelisted by the server
+                 * door and stored here without this file having to be
+                 * remembered — which is how utm_id and its three siblings were
+                 * silently dropped at signup while travelling everywhere else.
+                 */
+                const fields: JSONObject = item as unknown as JSONObject;
+
+                for (const propertyKey of [
+                  ...UtmPropertyKeys,
+                  UtmUrlPropertyKey,
+                ]) {
+                  fields[propertyKey] = utmParams[propertyKey] || "";
+                }
 
                 UiAnalytics.capture("utm_event", utmParams);
               }
