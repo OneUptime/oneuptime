@@ -9,6 +9,7 @@ import {
 } from "../EnvironmentConfig";
 import LocalCache from "../Infrastructure/LocalCache";
 import HttpMetricsMiddleware from "../Middleware/HttpMetricsMiddleware";
+import GzipRequestBodyMiddleware from "../Middleware/GzipRequestBody";
 import CorsOptions, {
   CORS_EXPOSED_HEADERS,
   CORS_PREFLIGHT_MAX_AGE_SECONDS,
@@ -41,7 +42,6 @@ import StatusCode from "../../Types/API/StatusCode";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import Exception from "../../Types/Exception/Exception";
 import NotFoundException from "../../Types/Exception/NotFoundException";
-import ServerException from "../../Types/Exception/ServerException";
 import { PromiseVoidFunction } from "../../Types/FunctionTypes";
 import { JSONObject } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
@@ -49,7 +49,6 @@ import Port from "../../Types/Port";
 import Typeof from "../../Types/Typeof";
 import CookieParser from "cookie-parser";
 import cors from "cors";
-import zlib from "zlib";
 import crypto from "crypto";
 import path from "path";
 import "ejs";
@@ -206,10 +205,11 @@ app.use((req: OneUptimeRequest, res: ExpressResponse, next: NextFunction) => {
    * several prefixes, so /telemetry/otlp/v1/... and
    * /telemetry/session-replay/v1/... are equally live. A prefix-anchored
    * test would let the prefixed path fall into the gzip fast-path below,
-   * which has NO size limit and no content-length pre-check (a zip-bomb
-   * vector on a public browser endpoint) and which sets req.body to the
-   * DECOMPRESSED buffer — that in turn trips the ingest middleware's
-   * "already parsed" early-out, so its byte cap would never run at all.
+   * which sets req.body to the DECOMPRESSED buffer — that in turn trips
+   * the ingest middleware's "already parsed" early-out, so its own,
+   * tighter, byte cap would never run at all. (The fast path has its own
+   * limits since GHSA-cp58-wc9q-qv53, but they are the generic 50 MiB
+   * body-parser numbers, not the 4 MiB these routes are sized for.)
    */
   if (
     req.path.includes("/otlp/v1/") ||
@@ -226,32 +226,12 @@ app.use((req: OneUptimeRequest, res: ExpressResponse, next: NextFunction) => {
   );
 
   if (contentEncoding?.includes("gzip")) {
-    const buffers: any = [];
-
-    req.on("data", (chunk: any) => {
-      buffers.push(chunk);
-    });
-
-    req.on("end", () => {
-      const buffer: Buffer = Buffer.concat(buffers);
-      zlib.gunzip(buffer as Uint8Array, (err: unknown, decoded: Buffer) => {
-        if (err) {
-          logger.error(
-            err,
-            getLogAttributesFromRequest(req as OneUptimeRequest),
-          );
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new ServerException("Error decompressing data"),
-          );
-        }
-
-        req.body = decoded;
-
-        next();
-      });
-    });
+    /*
+     * Bounded on both sides - see GzipRequestBody. This used to buffer the
+     * whole compressed body and hand it to an unbounded zlib.gunzip, which
+     * turned 130 KB of anonymous request into 128 MiB of resident Buffer.
+     */
+    GzipRequestBodyMiddleware.parseBody(req, res, next);
   } else if (
     contentType &&
     (contentType.includes("application/x-protobuf") ||
