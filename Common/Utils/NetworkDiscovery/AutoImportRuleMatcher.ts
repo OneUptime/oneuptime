@@ -34,6 +34,14 @@ export interface AutoImportRuleCandidate {
   ipMatchTarget?: string | null | undefined;
   sysNamePattern?: string | null | undefined;
   sysDescrPattern?: string | null | undefined;
+  /*
+   * Matched against the host's SNMP sysObjectID — the vendor's registered
+   * enterprise OID (1.3.6.1.4.1.<enterprise>...), the canonical vendor
+   * fingerprint. Only hosts whose scan carried the field can match: a
+   * ping-only host, or one reported by a probe from before the field
+   * existed, never satisfies a configured sysObjectIdPattern.
+   */
+  sysObjectIdPattern?: string | null | undefined;
   includePingOnlyHosts?: boolean | null | undefined;
   isExclusion?: boolean | null | undefined;
 }
@@ -98,9 +106,15 @@ export class AutoImportRuleMatcher {
     const ipMatchTarget: string = (rule.ipMatchTarget || "").trim();
     const sysNamePattern: string = (rule.sysNamePattern || "").trim();
     const sysDescrPattern: string = (rule.sysDescrPattern || "").trim();
+    const sysObjectIdPattern: string = (rule.sysObjectIdPattern || "").trim();
 
     // A rule with no conditions matches nothing — the site-rule precedent.
-    if (!ipMatchTarget && !sysNamePattern && !sysDescrPattern) {
+    if (
+      !ipMatchTarget &&
+      !sysNamePattern &&
+      !sysDescrPattern &&
+      !sysObjectIdPattern
+    ) {
       return false;
     }
 
@@ -139,6 +153,16 @@ export class AutoImportRuleMatcher {
       !RulePatternMatchUtil.matches(
         clampSubject(host.sysDescr),
         sysDescrPattern,
+      )
+    ) {
+      return false;
+    }
+
+    if (
+      sysObjectIdPattern &&
+      !RulePatternMatchUtil.matches(
+        clampSubject(host.sysObjectId),
+        sysObjectIdPattern,
       )
     ) {
       return false;

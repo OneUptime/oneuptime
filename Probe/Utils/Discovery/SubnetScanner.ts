@@ -1,5 +1,6 @@
 import SnmpMonitor from "../Monitors/MonitorTypes/SnmpMonitor";
 import MonitorStepSnmpMonitor from "Common/Types/Monitor/MonitorStepSnmpMonitor";
+import SnmpSystemInfo from "Common/Types/Monitor/SnmpMonitor/SnmpSystemInfo";
 import { SnmpVersionUtil } from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
 import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
@@ -10,6 +11,19 @@ export interface DiscoveredHost {
   ipAddress: string;
   sysName?: string | undefined;
   sysDescr?: string | undefined;
+  /*
+   * The rest of the SNMP system group. probeSystemInfo reads all six
+   * scalars in the same single GET that fetches sysName/sysDescr, so
+   * carrying them costs zero extra network traffic — and sysObjectId is
+   * the vendor's registered enterprise OID, the canonical fingerprint
+   * vendor-based auto-import conditions and OID-template suggestions key
+   * on. All optional: ping-only hosts have none, and older scan rows
+   * stored before these fields existed never carry them.
+   */
+  sysObjectId?: string | undefined;
+  sysLocation?: string | undefined;
+  sysContact?: string | undefined;
+  sysUpTimeSeconds?: number | undefined;
   /*
    * True when the host answered SNMP (sysName/sysDescr then come from its
    * system group). False for hosts that answered the ICMP pre-sweep but not
@@ -185,10 +199,7 @@ export default class SubnetScanner {
         retries: 0,
       };
 
-      let systemInfo: {
-        sysDescr?: string | undefined;
-        sysName?: string | undefined;
-      } | null = null;
+      let systemInfo: SnmpSystemInfo | null = null;
 
       /*
        * Anything the SNMP layer failed with that is NOT a timeout. A timeout
@@ -220,6 +231,10 @@ export default class SubnetScanner {
           ipAddress: host,
           sysName: systemInfo.sysName,
           sysDescr: systemInfo.sysDescr,
+          sysObjectId: systemInfo.sysObjectId,
+          sysLocation: systemInfo.sysLocation,
+          sysContact: systemInfo.sysContact,
+          sysUpTimeSeconds: systemInfo.sysUpTimeSeconds,
           snmpReachable: true,
         });
         return;

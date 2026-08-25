@@ -293,6 +293,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
           ipMatchTarget: true,
           sysNamePattern: true,
           sysDescrPattern: true,
+          sysObjectIdPattern: true,
           includePingOnlyHosts: true,
         },
         props: { isRoot: true },
@@ -540,6 +541,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
             ipMatchTarget: true,
             sysNamePattern: true,
             sysDescrPattern: true,
+            sysObjectIdPattern: true,
             includePingOnlyHosts: true,
           },
           sort: {

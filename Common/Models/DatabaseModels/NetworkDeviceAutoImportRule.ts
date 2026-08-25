@@ -367,6 +367,39 @@ export default class NetworkDeviceAutoImportRule extends BaseModel {
     ],
   })
   @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "System Object ID Pattern",
+    description:
+      "Regex or * wildcard pattern (case-insensitive) matched against the discovered host's SNMP sysObjectID — the vendor's registered enterprise OID, e.g. 1.3.6.1.4.1.9.* for Cisco. Leave empty to match any vendor. Only hosts reported by probes new enough to carry sysObjectID can match.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+    length: ColumnLength.LongText,
+  })
+  public sysObjectIdPattern?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateNetworkDeviceAutoImportRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadNetworkDeviceAutoImportRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditNetworkDeviceAutoImportRule,
+    ],
+  })
+  @TableColumn({
     required: true,
     type: TableColumnType.Boolean,
     title: "Include Ping-Only Hosts",

@@ -174,6 +174,73 @@ describe("AutoImportRuleMatcher.ruleMatchesHost", () => {
     ).toBe(false);
   });
 
+  describe("the sysObjectID condition", () => {
+    /*
+     * The vendor fingerprint: sysObjectID is the vendor's registered
+     * enterprise OID, so "any Cisco device" is a glob over the 1.3.6.1.4.1.9
+     * arc. Same pattern semantics as the other two pattern conditions.
+     */
+    it("matches a vendor by enterprise-arc glob and counts as a condition on its own", () => {
+      const ciscoRule: AutoImportRuleCandidate = {
+        sysObjectIdPattern: "1.3.6.1.4.1.9.*",
+      };
+
+      expect(
+        AutoImportRuleMatcher.ruleMatchesHost(
+          ciscoRule,
+          host({ sysObjectId: "1.3.6.1.4.1.9.1.1745" }),
+        ),
+      ).toBe(true);
+
+      // A Juniper box sits under a different arc and stays out.
+      expect(
+        AutoImportRuleMatcher.ruleMatchesHost(
+          ciscoRule,
+          host({ sysObjectId: "1.3.6.1.4.1.2636.1.1.1.2.137" }),
+        ),
+      ).toBe(false);
+    });
+
+    it("ANDs with the other conditions like any criterion", () => {
+      const rule: AutoImportRuleCandidate = {
+        ipMatchTarget: "10.0.0.0/24",
+        sysObjectIdPattern: "1.3.6.1.4.1.9.*",
+      };
+
+      expect(
+        AutoImportRuleMatcher.ruleMatchesHost(
+          rule,
+          host({ sysObjectId: "1.3.6.1.4.1.9.1.1745" }),
+        ),
+      ).toBe(true);
+
+      expect(
+        AutoImportRuleMatcher.ruleMatchesHost(
+          rule,
+          host({
+            ipAddress: "192.168.7.1",
+            sysObjectId: "1.3.6.1.4.1.9.1.1745",
+          }),
+        ),
+      ).toBe(false);
+    });
+
+    /*
+     * Ping-only hosts and rows stored by pre-sysObjectId probes carry no
+     * sysObjectId at all. A configured vendor condition must not match a
+     * host whose vendor is unknown — the same missing-value rule the
+     * sysName/sysDescr patterns follow.
+     */
+    it("never matches a host whose scan did not carry sysObjectId", () => {
+      expect(
+        AutoImportRuleMatcher.ruleMatchesHost(
+          { sysObjectIdPattern: "1.3.6.1.4.1.9.*" },
+          host({ sysObjectId: undefined }),
+        ),
+      ).toBe(false);
+    });
+  });
+
   describe("pattern subject clamping", () => {
     /*
      * The jsonb these hosts come from is the probe's payload stored

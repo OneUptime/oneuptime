@@ -28,6 +28,7 @@ export class Service extends DatabaseService<Model> {
       ipMatchTarget: createBy.data.ipMatchTarget,
       sysNamePattern: createBy.data.sysNamePattern,
       sysDescrPattern: createBy.data.sysDescrPattern,
+      sysObjectIdPattern: createBy.data.sysObjectIdPattern,
     });
 
     return { createBy, carryForward: null };
@@ -42,7 +43,8 @@ export class Service extends DatabaseService<Model> {
     const isCriteriaChange: boolean =
       dataKeys.includes("ipMatchTarget") ||
       dataKeys.includes("sysNamePattern") ||
-      dataKeys.includes("sysDescrPattern");
+      dataKeys.includes("sysDescrPattern") ||
+      dataKeys.includes("sysObjectIdPattern");
 
     if (!isCriteriaChange) {
       return { updateBy, carryForward: null };
@@ -59,6 +61,7 @@ export class Service extends DatabaseService<Model> {
         ipMatchTarget: true,
         sysNamePattern: true,
         sysDescrPattern: true,
+        sysObjectIdPattern: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -83,6 +86,9 @@ export class Service extends DatabaseService<Model> {
         sysDescrPattern: dataKeys.includes("sysDescrPattern")
           ? (data["sysDescrPattern"] as string | null)
           : existingRule.sysDescrPattern,
+        sysObjectIdPattern: dataKeys.includes("sysObjectIdPattern")
+          ? (data["sysObjectIdPattern"] as string | null)
+          : existingRule.sysObjectIdPattern,
       });
     }
 
@@ -93,18 +99,25 @@ export class Service extends DatabaseService<Model> {
     ipMatchTarget?: string | null | undefined;
     sysNamePattern?: string | null | undefined;
     sysDescrPattern?: string | null | undefined;
+    sysObjectIdPattern?: string | null | undefined;
   }): void {
     const ipMatchTarget: string = (data.ipMatchTarget || "").trim();
     const sysNamePattern: string = (data.sysNamePattern || "").trim();
     const sysDescrPattern: string = (data.sysDescrPattern || "").trim();
+    const sysObjectIdPattern: string = (data.sysObjectIdPattern || "").trim();
 
     /*
      * A rule with no conditions matches nothing (see AutoImportRuleMatcher) —
      * and would read as "match everything" to whoever finds it later.
      */
-    if (!ipMatchTarget && !sysNamePattern && !sysDescrPattern) {
+    if (
+      !ipMatchTarget &&
+      !sysNamePattern &&
+      !sysDescrPattern &&
+      !sysObjectIdPattern
+    ) {
       throw new BadDataException(
-        "At least one of Host IP Is In, System Name Pattern, or System Description Pattern is required.",
+        "At least one of Host IP Is In, System Name Pattern, System Description Pattern, or System Object ID Pattern is required.",
       );
     }
 
@@ -122,6 +135,7 @@ export class Service extends DatabaseService<Model> {
 
     this.validatePattern("System Name Pattern", sysNamePattern);
     this.validatePattern("System Description Pattern", sysDescrPattern);
+    this.validatePattern("System Object ID Pattern", sysObjectIdPattern);
   }
 
   private validatePattern(title: string, pattern: string): void {
