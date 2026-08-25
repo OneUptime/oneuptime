@@ -342,35 +342,35 @@ describe("Detection rule → monitor deep link", () => {
 });
 
 describe("Security Events monitor step form", () => {
-  test("Event Class is a first-class field, not an advanced option", () => {
+  test("Event Class and Event Severity are first-class fields, not advanced options", () => {
     const source: string = stripComments(stepFormSource);
 
     /*
-     * Find the classNames field block and assert it carries no showIf.
-     * The block ends at the next `field: {` — if a showIf lives between,
-     * the field went back behind the advanced toggle.
+     * Find each field block and assert it carries no showIf. The block
+     * ends at the next `field: {` — if a showIf lives between, the field
+     * went back behind the advanced toggle. Severity joined class here
+     * for issue #3398: hidden behind the toggle, it read as "monitors
+     * cannot filter by severity".
      */
-    const fieldStart: number = source.indexOf("classNames: true");
+    for (const fieldName of ["classNames: true", "severityNames: true"]) {
+      const fieldStart: number = source.indexOf(fieldName);
 
-    expect(fieldStart).toBeGreaterThan(-1);
+      expect(fieldStart).toBeGreaterThan(-1);
 
-    const nextField: number = source.indexOf("field: {", fieldStart);
-    const fieldBlock: string =
-      nextField === -1
-        ? source.slice(fieldStart)
-        : source.slice(fieldStart, nextField);
+      const nextField: number = source.indexOf("field: {", fieldStart);
+      const fieldBlock: string =
+        nextField === -1
+          ? source.slice(fieldStart)
+          : source.slice(fieldStart, nextField);
 
-    expect(fieldBlock).not.toContain("showIf");
+      expect(fieldBlock).not.toContain("showIf");
+    }
   });
 
-  test("severity, service and attribute filters stay behind the advanced toggle", () => {
+  test("service and attribute filters stay behind the advanced toggle", () => {
     const source: string = stripComments(stepFormSource);
 
-    for (const fieldName of [
-      "severityNames: true",
-      "telemetryServiceIds: true",
-      "attributes: true",
-    ]) {
+    for (const fieldName of ["telemetryServiceIds: true", "attributes: true"]) {
       const fieldStart: number = source.indexOf(fieldName);
 
       expect(fieldStart).toBeGreaterThan(-1);

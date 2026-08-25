@@ -188,7 +188,18 @@
         Cal("inline", {
           elementOrSelector: "#my-cal-inline",
           calLink: "oneuptimehq/demo",
-          layout: "month_view"
+          layout: "month_view",
+          /*
+           * Attribution into the booking metadata. Cal hands it back on its
+           * BOOKING_CREATED webhook, which is delivered to the CRM - OneUptime
+           * receives no booking webhook of its own. Without this a booked demo
+           * is recorded attributable to nothing, and the booking kind is the
+           * only thing telling this embed apart from the other two, which book
+           * the same Cal link.
+           */
+          config: typeof window.oneUptimeCalAttributionMetadata === 'function'
+              ? window.oneUptimeCalAttributionMetadata('enterprise_demo')
+              : {}
         });
         Cal("ui", { "styles": { "branding": { "brandColor": "#4f46e5" } }, "hideEventTypeDetails": false, "layout": "month_view" });
         

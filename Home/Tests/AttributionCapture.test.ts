@@ -24,11 +24,12 @@ import { beforeAll, describe, expect, test } from "@jest/globals";
  * never saw the banner — "Reject all" rejected nothing, and there was no
  * Google Consent Mode signal at all.
  *
- * Making consent real is what makes attribution delicate: gate storage on
- * consent naively and an ad visitor who lands, accepts, and signs up in one
- * session loses the click id that brought them, because it was discarded
- * before they answered the banner. Hence the pending buffer, which is the
- * behaviour most of these tests are about.
+ * Consent was then made real, and has since been deliberately unwound: the
+ * banner still records an answer, but nothing branches on it. Consent Mode
+ * defaults to granted, every touch is stored on sight, and PostHog loads
+ * unconditionally. That is a product decision, not a regression, and the tests
+ * below pin it so it cannot be reverted by accident in either direction —
+ * a change that re-gates measurement will fail here and have to say so.
  *
  * These assertions read the rendered template and run the inline scripts,
  * because that is the only place they exist — there is no module to import.
@@ -130,9 +131,12 @@ interface AttributionSnapshot {
   firstTouch: Record<string, unknown> | null;
 }
 
+type CalMetadataFunction = (bookingKind?: string) => Record<string, string>;
+
 interface Harness {
   consent: ConsentApi;
   getAttribution: () => AttributionSnapshot;
+  calMetadata: CalMetadataFunction;
   storage: FakeStorage;
   dataLayer: Array<unknown>;
   posthogCalls: Array<[string, Record<string, unknown>]>;
@@ -277,16 +281,19 @@ const loadHarness: LoadHarnessFunction = (
     "URLSearchParams",
     `${gtagSource}\n${consentSource}\n${reportingSource}\n${attributionSource}\nreturn {
        consent: window.oneUptimeConsent,
-       getAttribution: window.oneUptimeGetAttribution
+       getAttribution: window.oneUptimeGetAttribution,
+       calMetadata: window.oneUptimeCalAttributionMetadata
      };`,
   ) as (...args: Array<unknown>) => unknown;
 
   const exposed: {
     consent: ConsentApi;
     getAttribution: () => AttributionSnapshot;
+    calMetadata: CalMetadataFunction;
   } = build(fakeWindow, fakeDocument, dataLayer, posthog, URLSearchParams) as {
     consent: ConsentApi;
     getAttribution: () => AttributionSnapshot;
+    calMetadata: CalMetadataFunction;
   };
 
   return {
@@ -359,17 +366,17 @@ describe("attribution capture and consent", () => {
   });
 
   describe("Google Consent Mode v2", () => {
-    test("defaults every advertising and analytics signal to denied", () => {
+    test("defaults every signal to granted, without asking", () => {
       const harness: Harness = loadHarness(html);
       const [defaults] = consentSignals(harness);
 
       expect(defaults).toMatchObject({
-        ad_storage: "denied",
-        ad_user_data: "denied",
-        ad_personalization: "denied",
-        analytics_storage: "denied",
-        functionality_storage: "denied",
-        personalization_storage: "denied",
+        ad_storage: "granted",
+        ad_user_data: "granted",
+        ad_personalization: "granted",
+        analytics_storage: "granted",
+        functionality_storage: "granted",
+        personalization_storage: "granted",
       });
     });
 
@@ -398,54 +405,47 @@ describe("attribution capture and consent", () => {
       });
     });
 
-    test("pushes an update signal when consent is granted", () => {
+    /*
+     * One signal per page, and answering the banner does not add another.
+     *
+     * The denial is the one that matters: pushing ad_storage=denied on a
+     * refusal would re-gate the Google tag and make the banner functional
+     * again, which is precisely what this design no longer does. A regression
+     * here would be invisible in the product and visible only as a quiet drop
+     * in reported conversions.
+     */
+    test("says nothing further when the visitor accepts", () => {
       const harness: Harness = loadHarness(html);
 
       harness.consent.grant();
 
-      const signals: Array<Record<string, string>> = consentSignals(harness);
-
-      expect(signals[signals.length - 1]).toMatchObject({
-        ad_storage: "granted",
-        ad_user_data: "granted",
-        ad_personalization: "granted",
-        analytics_storage: "granted",
-      });
+      expect(consentSignals(harness)).toHaveLength(1);
     });
 
-    /*
-     * "Reject all" used to do nothing at all. It must now say so explicitly
-     * rather than merely failing to grant.
-     */
-    test("pushes an explicit denial when consent is refused", () => {
+    test("says nothing further when the visitor refuses", () => {
       const harness: Harness = loadHarness(html);
 
       harness.consent.deny();
 
-      const signals: Array<Record<string, string>> = consentSignals(harness);
-
-      expect(signals[signals.length - 1]).toMatchObject({
-        ad_storage: "denied",
-        ad_user_data: "denied",
-        ad_personalization: "denied",
-        analytics_storage: "denied",
+      expect(consentSignals(harness)).toHaveLength(1);
+      expect(consentSignals(harness)[0]).toMatchObject({
+        ad_storage: "granted",
       });
     });
 
-    test("tells Google about a decision made on an earlier visit", () => {
-      const harness: Harness = loadHarness(html, { storedConsent: "true" });
+    test("does not re-signal for a decision made on an earlier visit", () => {
+      const harness: Harness = loadHarness(html, { storedConsent: "false" });
 
-      // Default, then the stored grant, before the tag has loaded.
-      expect(consentSignals(harness)).toHaveLength(2);
-      expect(consentSignals(harness)[1]).toMatchObject({
+      expect(consentSignals(harness)).toHaveLength(1);
+      expect(consentSignals(harness)[0]).toMatchObject({
         ad_storage: "granted",
       });
     });
   });
 
   /*
-   * A self-hosted install loads no Google tag at all. Consent still has to
-   * work — it gates the attribution capture and PostHog either way — but there
+   * A self-hosted install loads no Google tag at all. The consent state
+   * machine still has to work — the banner reads and writes it — but there
    * must be nothing to signal to, and in particular no dataLayer, because every
    * OneUptime event guards on `typeof dataLayer !== 'undefined'` and an array
    * nothing reads would simply grow for the life of the page.
@@ -482,14 +482,12 @@ describe("attribution capture and consent", () => {
       expect(harness.dataLayer).toHaveLength(0);
     });
 
-    test("still gates attribution storage on consent", () => {
+    test("captures attribution with no tag and no consent", () => {
       const harness: Harness = loadHarness(selfHostedHtml, { url: AD_URL });
 
-      expect(harness.storage.store.size).toBe(0);
-
-      harness.consent.grant();
-
       expect(harness.storage.store.get("utmSource")).toBe("google");
+      expect(harness.consent.state()).toBe("unset");
+      expect(harness.dataLayer).toHaveLength(0);
     });
   });
 
@@ -556,10 +554,14 @@ describe("attribution capture and consent", () => {
   });
 
   describe("storing attribution", () => {
-    test("stores nothing at all before the visitor consents", () => {
+    test("stores the touch before the visitor has answered the banner", () => {
       const harness: Harness = loadHarness(html, { url: AD_URL });
 
-      expect(harness.storage.store.size).toBe(0);
+      expect(harness.consent.state()).toBe("unset");
+      expect(harness.storage.store.get("utmSource")).toBe("google");
+      expect(JSON.parse(harness.storage.store.get("clickIds")!)).toEqual({
+        gclid: "abc123",
+      });
     });
 
     test("stores the touch immediately when consent was already given", () => {
@@ -576,22 +578,12 @@ describe("attribution capture and consent", () => {
     });
 
     /*
-     * THE CASE THIS DESIGN EXISTS FOR. Someone arrives from an ad, the banner
-     * is in front of them, they accept, and they sign up. Discarding the touch
-     * before they answered would lose the click id that brought them — which
-     * is the single most valuable thing on the page.
+     * The first touch is written on sight too, so the whole record exists
+     * before the banner has been answered.
      */
-    test("flushes the held touch when consent is granted on the same page", () => {
+    test("records the first touch without waiting for an answer", () => {
       const harness: Harness = loadHarness(html, { url: AD_URL });
 
-      expect(harness.storage.store.size).toBe(0);
-
-      harness.consent.grant();
-
-      expect(harness.storage.store.get("utmSource")).toBe("google");
-      expect(JSON.parse(harness.storage.store.get("clickIds")!)).toEqual({
-        gclid: "abc123",
-      });
       expect(
         JSON.parse(harness.storage.store.get("firstTouch")!),
       ).toMatchObject({
@@ -601,41 +593,40 @@ describe("attribution capture and consent", () => {
       });
     });
 
-    test("stores nothing when consent is refused on the same page", () => {
+    test("keeps this page's touch when the visitor refuses", () => {
       const harness: Harness = loadHarness(html, { url: AD_URL });
 
       harness.consent.deny();
 
-      expect(harness.storage.store.has("utmSource")).toBe(false);
-      expect(harness.storage.store.has("clickIds")).toBe(false);
+      expect(harness.storage.store.get("utmSource")).toBe("google");
+      expect(JSON.parse(harness.storage.store.get("clickIds")!)).toEqual({
+        gclid: "abc123",
+      });
     });
 
     /*
-     * Refusing has to undo, not merely stop. Someone who accepted last month
-     * and refuses today expects what was kept to be forgotten.
+     * Refusing does not undo. This is the sharpest edge of the decision to
+     * ungate — an explicit "Reject all" leaves an earlier visit's click id
+     * exactly where it was — so it is asserted rather than left to be
+     * discovered.
      */
-    test("clears what an earlier visit stored when consent is refused", () => {
+    test("keeps what an earlier visit stored when the visitor refuses", () => {
+      const stored: Record<string, string> = {
+        utmSource: "google",
+        utmCampaign: "old-campaign",
+        utmUrl: "https://oneuptime.com/?gclid=old",
+        clickIds: JSON.stringify({ gclid: "old" }),
+        firstTouch: JSON.stringify({ utmSource: "google" }),
+      };
       const harness: Harness = loadHarness(html, {
         storedConsent: "true",
-        storedAttribution: {
-          utmSource: "google",
-          utmCampaign: "old-campaign",
-          utmUrl: "https://oneuptime.com/?gclid=old",
-          clickIds: JSON.stringify({ gclid: "old" }),
-          firstTouch: JSON.stringify({ utmSource: "google" }),
-        },
+        storedAttribution: stored,
       });
 
       harness.consent.deny();
 
-      for (const key of [
-        "utmSource",
-        "utmCampaign",
-        "utmUrl",
-        "clickIds",
-        "firstTouch",
-      ]) {
-        expect(harness.storage.store.has(key)).toBe(false);
+      for (const [key, value] of Object.entries(stored)) {
+        expect(harness.storage.store.get(key)).toBe(value);
       }
     });
 
@@ -733,18 +724,17 @@ describe("attribution capture and consent", () => {
     });
 
     /*
-     * The held touch is readable even though it has not been stored, so a
-     * signup on the very page the visitor landed on still carries the
-     * campaign that brought them.
+     * A signup on the very page the visitor landed on carries the campaign
+     * that brought them, banner unanswered.
      */
-    test("reads the held touch before consent has been given", () => {
+    test("reads this page's touch before the banner is answered", () => {
       const harness: Harness = loadHarness(html, { url: AD_URL });
 
+      expect(harness.consent.state()).toBe("unset");
       expect(harness.getAttribution()).toMatchObject({
         utm: { utmSource: "google", utmCampaign: "enterprise-q3" },
         clickIds: { gclid: "abc123" },
       });
-      expect(harness.storage.store.size).toBe(0);
     });
 
     test("prefers this page's touch over an older stored one", () => {
@@ -921,18 +911,358 @@ describe("attribution capture and consent", () => {
   });
 
   describe("PostHog loading", () => {
-    test("is deferred until consent is granted", () => {
-      // The library is only fetched inside initPostHog, behind the gate.
-      expect(html).toContain(
-        "if (window.oneUptimeConsent && window.oneUptimeConsent.isGranted()) {",
-      );
+    /*
+     * Deferred to idle for LCP, but not deferred pending an answer. The
+     * absence of the gate is the assertion: a reinstated
+     * `oneUptimeConsent.isGranted()` around initWhenIdle would stop PostHog
+     * loading for the majority of visitors who never touch the banner, and
+     * nothing else in the suite would notice.
+     */
+    test("is deferred to idle, not to consent", () => {
       expect(html).toContain("initWhenIdle();");
+      expect(html).toContain("requestIdleCallback(initPostHog)");
+      expect(html).not.toContain("oneUptimeConsent.isGranted()");
+      expect(html).not.toContain("oneUptimeConsent.onChange(");
+    });
+  });
+
+  describe("Cal booking metadata", () => {
+    /*
+     * Cal takes booking metadata as FLAT, BRACKETED config keys —
+     * metadata[utm_source] — and returns them as payload.metadata.utm_source.
+     *
+     * A nested `metadata: { ... }` object does NOT work: Cal serialises each
+     * config value into a query parameter, so the object becomes the string
+     * "[object Object]" and every key inside it is lost. Nothing errors —
+     * bookings are still recorded, they just arrive attributable to nothing,
+     * which is exactly the bug this path exists to fix. These assertions are
+     * the only thing standing between the right shape and a silent no-op.
+     *
+     * https://cal.com/help/embedding/prefill-booking-form-embed
+     */
+    test("brackets every key the way Cal expects", () => {
+      const harness: Harness = loadHarness(html, {
+        url: AD_URL,
+        storedConsent: "true",
+      });
+
+      expect(harness.calMetadata()).toMatchObject({
+        "metadata[utm_source]": "google",
+        "metadata[utm_medium]": "cpc",
+        "metadata[utm_campaign]": "enterprise-q3",
+        "metadata[gclid]": "abc123",
+      });
     });
 
-    test("loads later if the visitor accepts mid-session", () => {
-      expect(html).toContain(
-        "window.oneUptimeConsent.onChange(function (granted) {",
+    test("never emits an unbracketed key", () => {
+      const harness: Harness = loadHarness(html, {
+        url: AD_URL,
+        storedConsent: "true",
+      });
+
+      for (const key of Object.keys(harness.calMetadata())) {
+        expect(key).toMatch(/^metadata\[[a-z0-9_]+\]$/);
+      }
+    });
+
+    /*
+     * The inner names are the wire contract with the CRM's Cal webhook
+     * receiver, which reads payload.metadata.<name>. Bracketing changes how
+     * they travel, not what they are called on arrival.
+     */
+    test("uses the snake_case inner names the receiver parses", () => {
+      const harness: Harness = loadHarness(html, {
+        url: AD_URL,
+        storedConsent: "true",
+      });
+
+      const innerNames: Array<string> = Object.keys(harness.calMetadata()).map(
+        (key: string) => {
+          return key.slice("metadata[".length, -1);
+        },
       );
+
+      expect(innerNames).toEqual(
+        expect.arrayContaining([
+          "utm_source",
+          "utm_medium",
+          "utm_campaign",
+          "utm_url",
+          "gclid",
+          "ou_first_touch",
+        ]),
+      );
+    });
+
+    test("carries the landing URL", () => {
+      const harness: Harness = loadHarness(html, {
+        url: AD_URL,
+        storedConsent: "true",
+      });
+
+      expect(harness.calMetadata()["metadata[utm_url]"]).toBe(AD_URL);
+    });
+
+    test("serializes the first touch as one JSON string", () => {
+      const harness: Harness = loadHarness(html, {
+        url: AD_URL,
+        storedConsent: "true",
+      });
+
+      expect(
+        JSON.parse(harness.calMetadata()["metadata[ou_first_touch]"]!),
+      ).toMatchObject({
+        utmSource: "google",
+        clickIds: { gclid: "abc123" },
+      });
+    });
+
+    /*
+     * The first touch is JSON, and it is bounded as JSON — 4000 characters —
+     * not by the 500-character per-value bound the flat fields get.
+     *
+     * This fixture is deliberately REALISTIC rather than minimal. A real first
+     * touch carries five UTM values, a click id, and a landing URL that repeats
+     * all of them as query parameters; that runs past 500 characters without
+     * being unusual. Truncating JSON at 500 produces a string the webhook's
+     * JSON.parse rejects, so the whole first touch would be dropped — silently,
+     * and only for the visitors whose attribution is richest.
+     *
+     * An earlier version of this test used a short fixture and passed while the
+     * code truncated.
+     */
+    test("keeps a realistic first touch intact and parseable", () => {
+      const longClickId: string = "CjwKCAjw1oy0BhAKEiwAWDVpV" + "x".repeat(60);
+      const landingUrl: string =
+        "https://oneuptime.com/enterprise/demo?utm_source=google" +
+        "&utm_medium=cpc&utm_campaign=enterprise-observability-q3" +
+        `&utm_term=datadog+alternative&utm_content=demo-cta-variant-b&gclid=${longClickId}`;
+
+      const firstTouch: Record<string, unknown> = {
+        utmSource: "google",
+        utmMedium: "cpc",
+        utmCampaign: "enterprise-observability-q3",
+        utmTerm: "datadog alternative",
+        utmContent: "demo-cta-variant-b",
+        clickIds: { gclid: longClickId },
+        landingUrl: landingUrl,
+        referrer: "https://www.google.com/",
+        timestamp: "2026-08-22T10:00:00.000Z",
+      };
+
+      const serialized: string = JSON.stringify(firstTouch);
+
+      // The fixture only tests anything if it is over the per-value bound.
+      expect(serialized.length).toBeGreaterThan(500);
+
+      const harness: Harness = loadHarness(html, {
+        storedConsent: "true",
+        storedAttribution: { firstTouch: serialized, utmSource: "google" },
+      });
+
+      const sent: string = harness.calMetadata()["metadata[ou_first_touch]"]!;
+
+      expect(sent).toHaveLength(serialized.length);
+      expect(() => {
+        return JSON.parse(sent);
+      }).not.toThrow();
+      expect(JSON.parse(sent)).toEqual(firstTouch);
+    });
+
+    /*
+     * Cal serialises config values into query parameters, so anything that is
+     * not already a string is stringified by JavaScript — which is how a nested
+     * object turns into "[object Object]".
+     */
+    test("holds only scalar strings", () => {
+      const harness: Harness = loadHarness(html, {
+        url: AD_URL,
+        storedConsent: "true",
+      });
+
+      for (const value of Object.values(harness.calMetadata())) {
+        expect(typeof value).toBe("string");
+      }
+    });
+
+    /*
+     * THE WIRE CONTRACT, ASSERTED MECHANICALLY.
+     *
+     * The browser writes these keys and the CRM's Cal webhook receiver reads
+     * them. The two live in different systems entirely, edited at different
+     * times by different people — and a key the browser sends that the
+     * receiver does not read is dropped in total silence. Nothing errors, the
+     * booking is still recorded, the attribution just is not there.
+     *
+     * Checking that correspondence by eye is how the last two bugs on this path
+     * got through, so the browser half is pinned here against the shared
+     * contract instead.
+     */
+    test("sends no key outside the agreed set", () => {
+      const readableKeys: Set<string> = new Set<string>([
+        ...AdClickIdKeys,
+        ...Object.keys(UtmWireKeyToPropertyKey),
+        "utm_url",
+        "ou_first_touch",
+        "ou_booking_kind",
+      ]);
+
+      const harness: Harness = loadHarness(html, {
+        url: EVERY_PARAM_URL,
+        storedConsent: "true",
+      });
+
+      const innerNames: Array<string> = Object.keys(
+        harness.calMetadata("enterprise_demo"),
+      ).map(
+        (key: string) => {
+          return key.slice("metadata[".length, -1);
+        },
+      );
+
+      // The fixture has to actually exercise the keys for this to mean anything.
+      expect(innerNames.length).toBeGreaterThanOrEqual(readableKeys.size);
+
+      for (const name of innerNames) {
+        expect(readableKeys).toContain(name);
+      }
+    });
+
+    /*
+     * And the other direction: a key the receiver learns to read but the
+     * browser never sends is dead weight that looks like working code.
+     */
+    test("sends every click id the shared contract names", () => {
+      const harness: Harness = loadHarness(html, {
+        url: EVERY_PARAM_URL,
+        storedConsent: "true",
+      });
+
+      const metadata: Record<string, string> = harness.calMetadata();
+
+      for (const clickIdKey of AdClickIdKeys) {
+        expect(metadata[`metadata[${clickIdKey}]`]).toBe(`${clickIdKey}-value`);
+      }
+    });
+
+    test("sends every UTM parameter the shared contract names", () => {
+      const harness: Harness = loadHarness(html, {
+        url: EVERY_PARAM_URL,
+        storedConsent: "true",
+      });
+
+      const metadata: Record<string, string> = harness.calMetadata();
+
+      for (const wireKey of Object.keys(UtmWireKeyToPropertyKey)) {
+        expect(metadata[`metadata[${wireKey}]`]).toBe(`${wireKey}-value`);
+      }
+    });
+
+    test("is empty when there is nothing to attribute and no kind", () => {
+      const harness: Harness = loadHarness(html, {
+        url: "https://oneuptime.com/enterprise/demo",
+      });
+
+      expect(harness.calMetadata()).toEqual({});
+    });
+
+    /*
+     * All three embeds book the same Cal event type (oneuptimehq/demo), so the
+     * booking kind is the only thing that tells a support call apart from an
+     * enterprise demo on the receiver's side. It travels even when there is no
+     * campaign to report, because the embed always knows what it is.
+     */
+    test("always carries the booking kind, campaign or not", () => {
+      const harness: Harness = loadHarness(html, {
+        url: "https://oneuptime.com/enterprise/demo",
+      });
+
+      expect(harness.calMetadata("support_call")).toEqual({
+        "metadata[ou_booking_kind]": "support_call",
+      });
+    });
+
+    test("carries the booking kind alongside the campaign", () => {
+      const harness: Harness = loadHarness(html, { url: AD_URL });
+
+      expect(harness.calMetadata("architecture_assessment")).toMatchObject({
+        "metadata[ou_booking_kind]": "architecture_assessment",
+        "metadata[utm_source]": "google",
+        "metadata[gclid]": "abc123",
+      });
+    });
+
+    /*
+     * A browser that refuses localStorage outright — private mode, "block all
+     * site data", a sandboxed iframe, enterprise storage policy — swallows
+     * every setItem as best-effort. The touch still has to reach Cal, or a
+     * paid click in that context books a demo the receiver records as
+     * unattributed, which is the failure this whole path exists to prevent.
+     */
+    test("still attributes the booking when storage is unavailable", () => {
+      const working: Record<string, string> = loadHarness(html, {
+        url: AD_URL,
+      }).calMetadata("enterprise_demo");
+
+      const blocked: Record<string, string> = loadHarness(html, {
+        url: AD_URL,
+        storageThrows: true,
+      }).calMetadata("enterprise_demo");
+
+      expect(blocked["metadata[gclid]"]).toBe("abc123");
+      expect(blocked["metadata[utm_source]"]).toBe("google");
+      expect(blocked["metadata[utm_url]"]).toBe(AD_URL);
+      expect(
+        JSON.parse(blocked["metadata[ou_first_touch]"]!),
+      ).toMatchObject({ utmSource: "google", clickIds: { gclid: "abc123" } });
+
+      /*
+       * Nothing about a working store should change what is sent. The first
+       * touch is compared with its `timestamp` dropped, because that is
+       * stamped at load and the two harnesses load milliseconds apart.
+       */
+      const withoutTimestamp: (
+        bag: Record<string, string>,
+      ) => Record<string, unknown> = (
+        bag: Record<string, string>,
+      ): Record<string, unknown> => {
+        const copy: Record<string, unknown> = { ...bag };
+        const firstTouch: Record<string, unknown> = JSON.parse(
+          bag["metadata[ou_first_touch]"]!,
+        ) as Record<string, unknown>;
+
+        delete firstTouch["timestamp"];
+        copy["metadata[ou_first_touch]"] = firstTouch;
+
+        return copy;
+      };
+
+      expect(withoutTimestamp(blocked)).toEqual(withoutTimestamp(working));
+    });
+
+    test("carries the campaign even before the banner is answered", () => {
+      const harness: Harness = loadHarness(html, { url: AD_URL });
+
+      expect(harness.calMetadata()).toMatchObject({
+        "metadata[utm_campaign]": "enterprise-q3",
+        "metadata[gclid]": "abc123",
+      });
+    });
+
+    test("drops an oversized first touch rather than sending it", () => {
+      const harness: Harness = loadHarness(html, {
+        storedConsent: "true",
+        storedAttribution: {
+          firstTouch: JSON.stringify({ utmSource: "s".repeat(5000) }),
+          utmSource: "google",
+        },
+      });
+
+      const metadata: Record<string, string> = harness.calMetadata();
+
+      expect(metadata["metadata[ou_first_touch]"]).toBeUndefined();
+      // The rest still travels.
+      expect(metadata["metadata[utm_source]"]).toBe("google");
     });
   });
 
