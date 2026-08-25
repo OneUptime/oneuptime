@@ -174,6 +174,42 @@ describe("AutoImportRuleMatcher.ruleMatchesHost", () => {
     ).toBe(false);
   });
 
+  describe("pattern subject clamping", () => {
+    /*
+     * The jsonb these hosts come from is the probe's payload stored
+     * verbatim and unbounded, while patterns run through JavaScript's
+     * backtracking regex engine — so subjects are clamped to 500 characters
+     * before matching. Real SNMP DisplayStrings top out at 255 octets;
+     * only hostile or corrupt payloads are longer, and the clamp bounds
+     * what any pattern can be made to chew on.
+     */
+    it("does not see pattern evidence past the 500-character clamp", () => {
+      const sysDescrWithLateEvidence: string =
+        "x".repeat(520) + "NEEDLE" + "x".repeat(74);
+      expect(sysDescrWithLateEvidence).toHaveLength(600);
+
+      expect(
+        AutoImportRuleMatcher.ruleMatchesHost(
+          { sysDescrPattern: "NEEDLE" },
+          host({ sysDescr: sysDescrWithLateEvidence }),
+        ),
+      ).toBe(false);
+    });
+
+    it("still sees evidence that sits before the clamp", () => {
+      const sysDescrWithEarlyEvidence: string =
+        "x".repeat(100) + "NEEDLE" + "x".repeat(494);
+      expect(sysDescrWithEarlyEvidence).toHaveLength(600);
+
+      expect(
+        AutoImportRuleMatcher.ruleMatchesHost(
+          { sysDescrPattern: "NEEDLE" },
+          host({ sysDescr: sysDescrWithEarlyEvidence }),
+        ),
+      ).toBe(true);
+    });
+  });
+
   describe("the ping-only gate", () => {
     /*
      * An SNMP credential typo makes a whole subnet report as ping-only; a

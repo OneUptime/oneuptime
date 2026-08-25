@@ -100,9 +100,25 @@ function describeAutoImportRun(result: AutoImportRuleRunResult): string {
     );
   }
 
-  if (result.isTruncated) {
+  /*
+   * Two different caps, two different truths. The device cap resumes:
+   * re-running skips what is already imported and continues. The scan cap
+   * does NOT: a re-run re-reads the same newest scans, so promising "run
+   * again to continue" there would send the operator in a circle.
+   */
+  if (result.isTruncated && !result.isDryRun) {
     lines.push(
       "Stopped at the run cap — run again to continue; already-imported hosts are skipped.",
+    );
+  } else if (result.isTruncated) {
+    lines.push(
+      "Stopped counting at the run cap — a real run imports this many at most per run.",
+    );
+  }
+
+  if (result.hasMoreScans) {
+    lines.push(
+      "Only the newest 100 completed scans were read — hosts that appear only in older scans were not evaluated by this run.",
     );
   }
 

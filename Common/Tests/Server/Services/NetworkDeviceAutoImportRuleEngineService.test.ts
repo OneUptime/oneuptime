@@ -9,8 +9,14 @@
  *
  *   - the autoImportProcessedAt marker protocol: a stamped scan is never
  *     re-processed, every stamp is a compare-and-set on (status,
- *     completedAt), and a TRUNCATED pass deliberately leaves the marker NULL
- *     so the next tick resumes;
+ *     completedAt), and a truncated pass that made PROGRESS leaves the
+ *     marker NULL so the next tick resumes — while a truncated pass that
+ *     created nothing stamps anyway, or the sweep would repeat the same
+ *     doomed pass forever;
+ *   - the sweep lock: a real Run Now holds the same Redis lock as the
+ *     worker sweep (the check-then-create idempotency has no DB backstop),
+ *     dry runs never touch it, and the lock is released even when the run
+ *     body throws;
  *   - idempotency: an address already in the inventory is skipped, and a
  *     create that loses a race reads as "already registered", never as a
  *     renamed twin;
@@ -19,12 +25,14 @@
  *     everything else — junk rows included — passes through verbatim;
  *   - staleness: results older than MAX_RESULT_AGE_IN_HOURS are retired
  *     without importing (Run Now stays the deliberate path to old results);
- *   - a dry run evaluates everything and writes nothing.
+ *   - a dry run evaluates everything, writes nothing, and is bounded by the
+ *     SAME attempt budget as the real run it predicts.
  *
- * The collaborating singleton services are stubbed at the MODULE level
- * before the engine is imported — their real files reach Postgres through
+ * The collaborating singleton services — and the Semaphore module, which
+ * would otherwise reach Redis — are stubbed at the MODULE level before the
+ * engine is imported: their real files reach Postgres through
  * DatabaseService (and PasswordHash, the local-only ts-jest compile
- * failure), and nothing here should touch either. Pure in-memory rows.
+ * failure), and nothing here should touch any of it. Pure in-memory rows.
  */
 
 jest.mock("../../../Server/Services/NetworkDeviceService", () => {
@@ -59,6 +67,16 @@ jest.mock("../../../Server/Services/NetworkDeviceAutoImportRuleService", () => {
   };
 });
 
+jest.mock("../../../Server/Infrastructure/Semaphore", () => {
+  return {
+    __esModule: true,
+    default: {
+      lock: jest.fn(),
+      release: jest.fn(),
+    },
+  };
+});
+
 jest.mock("../../../Server/Utils/Logger", () => {
   return {
     __esModule: true,
@@ -73,13 +91,19 @@ jest.mock("../../../Server/Utils/Logger", () => {
 });
 
 import NetworkDeviceAutoImportRuleEngineService, {
+  AUTO_IMPORT_SWEEP_LOCK_KEY,
+  AUTO_IMPORT_SWEEP_LOCK_NAMESPACE,
+  AUTO_IMPORT_SWEEP_LOCK_TIMEOUT_MS,
   ExistingHostnamesByProjectId,
   MAX_DEVICES_PER_AUTO_IMPORT_RUN,
   MAX_RESULT_AGE_IN_HOURS,
+  MAX_SCANS_PER_AUTO_IMPORT_RULE_RUN,
 } from "../../../Server/Services/NetworkDeviceAutoImportRuleEngineService";
 import NetworkDeviceAutoImportRuleService from "../../../Server/Services/NetworkDeviceAutoImportRuleService";
 import NetworkDeviceDiscoveryScanService from "../../../Server/Services/NetworkDeviceDiscoveryScanService";
 import NetworkDeviceService from "../../../Server/Services/NetworkDeviceService";
+import Semaphore from "../../../Server/Infrastructure/Semaphore";
+import logger from "../../../Server/Utils/Logger";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceAutoImportRule from "../../../Models/DatabaseModels/NetworkDeviceAutoImportRule";
 import NetworkDeviceDiscoveryScan, {
@@ -88,8 +112,25 @@ import NetworkDeviceDiscoveryScan, {
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
-import { AutoImportRuleRunResult } from "../../../Types/NetworkAutomation/RuleRunResult";
+import {
+  AutoImportRuleRunResult,
+  MAX_MATCHED_IP_SAMPLE,
+} from "../../../Types/NetworkAutomation/RuleRunResult";
 import { describe, expect, it, beforeEach } from "@jest/globals";
+
+/*
+ * The engine yields the event loop between scans via setImmediate — a Node
+ * global that jsdom (this repo's jest environment) does not provide, though
+ * every real runtime for Server code does. Polyfilled here so the yield
+ * stays a yield.
+ */
+if (typeof globalThis.setImmediate === "undefined") {
+  (globalThis as Record<string, unknown>)["setImmediate"] = ((
+    callback: () => void,
+  ): ReturnType<typeof setTimeout> => {
+    return setTimeout(callback, 0);
+  }) as unknown as typeof globalThis.setImmediate;
+}
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "22222222-2222-4222-8222-222222222222",
@@ -97,6 +138,9 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const PROBE_ID: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
 const SCAN_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
 const RULE_ID: ObjectID = new ObjectID("77777777-7777-4777-8777-777777777777");
+
+// What the mocked Semaphore.lock hands back and release must get back.
+const FAKE_MUTEX: { id: string } = { id: "fake-sweep-mutex" };
 
 const createMock: jest.Mock =
   NetworkDeviceService.create as unknown as jest.Mock;
@@ -114,6 +158,10 @@ const ruleFindOneByMock: jest.Mock =
   NetworkDeviceAutoImportRuleService.findOneBy as unknown as jest.Mock;
 const ruleFindByMock: jest.Mock =
   NetworkDeviceAutoImportRuleService.findBy as unknown as jest.Mock;
+const semaphoreLockMock: jest.Mock = Semaphore.lock as unknown as jest.Mock;
+const semaphoreReleaseMock: jest.Mock =
+  Semaphore.release as unknown as jest.Mock;
+const loggerErrorMock: jest.Mock = logger.error as unknown as jest.Mock;
 
 const RECENT_COMPLETED_AT: Date = OneUptimeDate.getCurrentDate();
 
@@ -166,6 +214,47 @@ function makeHost(
   };
 }
 
+// Enough unique in-target addresses to overrun the attempt budget.
+function makeHostsBeyondTheCap(): Array<DiscoveredNetworkDevice> {
+  const hosts: Array<DiscoveredNetworkDevice> = [];
+
+  for (let i: number = 0; i < MAX_DEVICES_PER_AUTO_IMPORT_RUN + 2; i++) {
+    hosts.push(
+      makeHost({
+        ipAddress: `10.0.${Math.floor(i / 256)}.${i % 256}`,
+        sysName: `switch-${i}`,
+      }),
+    );
+  }
+
+  return hosts;
+}
+
+/*
+ * Run Now reads scans in two phases: an {_id}-only stub listing, then one
+ * full re-read per stub — so only one multi-megabyte result set is ever
+ * resident. This wires both phases: findBy answers with stubs, findOneBy
+ * hands the full rows out one per call (null entries model a scan that
+ * vanished between the phases).
+ */
+function mockRunNowScans(
+  scans: Array<NetworkDeviceDiscoveryScan | null>,
+): void {
+  scanFindByMock.mockResolvedValue(
+    scans.map((_scan: NetworkDeviceDiscoveryScan | null, index: number) => {
+      const suffix: string = index.toString(16).padStart(12, "0");
+      return {
+        id: new ObjectID(`00000000-0000-4000-8000-${suffix}`),
+      } as unknown as NetworkDeviceDiscoveryScan;
+    }),
+  );
+
+  let nextScanIndex: number = 0;
+  scanFindOneByMock.mockImplementation(() => {
+    return Promise.resolve(scans[nextScanIndex++] ?? null);
+  });
+}
+
 function processScan(): Promise<AutoImportRuleRunResult | null> {
   const cache: ExistingHostnamesByProjectId = new Map();
   return NetworkDeviceAutoImportRuleEngineService.processCompletedScan({
@@ -191,14 +280,16 @@ beforeEach(() => {
   jest.clearAllMocks();
 
   /*
-   * An empty inventory, a working create, a working stamp — the happy
-   * defaults each test narrows as needed.
+   * An empty inventory, a working create, a working stamp, an acquirable
+   * lock — the happy defaults each test narrows as needed.
    */
   deviceFindByMock.mockResolvedValue([]);
   deviceFindOneByMock.mockResolvedValue(null);
   createMock.mockResolvedValue({});
   scanUpdateMock.mockResolvedValue(undefined);
   ruleFindByMock.mockResolvedValue([makeRule()]);
+  semaphoreLockMock.mockResolvedValue(FAKE_MUTEX);
+  semaphoreReleaseMock.mockResolvedValue(undefined);
 });
 
 describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => {
@@ -347,6 +438,34 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
     expect(Object.keys(updateCall.data)).toEqual(["autoImportProcessedAt"]);
   });
 
+  /*
+   * An over-long "address" is junk that would fail the varchar(100)
+   * hostname on every pass, identically, forever — so it is refused before
+   * any counting rather than logged as a devicesFailed per worker tick.
+   */
+  it("skips a host whose address could never be a hostname, before any counting", async () => {
+    scanFindOneByMock.mockResolvedValue(
+      makeScan({
+        discoveredDevices: [
+          makeHost({ ipAddress: "9".repeat(101) }),
+          makeHost(),
+        ],
+      }),
+    );
+
+    const result: AutoImportRuleRunResult | null = await processScan();
+
+    // The junk row was never evaluated, let alone matched or attempted.
+    expect(result).toMatchObject({
+      hostsEvaluated: 1,
+      hostsMatched: 1,
+      devicesCreated: 1,
+      devicesFailed: 0,
+    });
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(createdDevice(0).hostname).toBe("10.0.0.5");
+  });
+
   describe("the create-failure protocol", () => {
     /*
      * Names are unique per project while addresses are not, and two devices
@@ -418,15 +537,7 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
    * stopped, with idempotency skipping everything already created.
    */
   it("stops at the device cap and leaves the marker unstamped so the next tick resumes", async () => {
-    const hosts: Array<DiscoveredNetworkDevice> = [];
-    for (let i: number = 0; i < MAX_DEVICES_PER_AUTO_IMPORT_RUN + 2; i++) {
-      hosts.push(
-        makeHost({
-          ipAddress: `10.0.${Math.floor(i / 256)}.${i % 256}`,
-          sysName: `switch-${i}`,
-        }),
-      );
-    }
+    const hosts: Array<DiscoveredNetworkDevice> = makeHostsBeyondTheCap();
 
     scanFindOneByMock.mockResolvedValue(makeScan({ discoveredDevices: hosts }));
     ruleFindByMock.mockResolvedValue([
@@ -447,6 +558,45 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
     expect(updateCall.data.discoveredDevices).toHaveLength(hosts.length);
     // …but the marker stays NULL: this scan is not done.
     expect(Object.keys(updateCall.data)).not.toContain("autoImportProcessedAt");
+  });
+
+  /*
+   * The resume protocol's other half: a truncated pass that created NOTHING
+   * — every attempt failed — is stamped anyway. Leaving the marker NULL
+   * would have the sweep repeat the identical doomed pass every tick
+   * forever; the operator gets an error log and Run Now instead.
+   */
+  it("stamps a zero-progress truncated pass instead of retrying it forever", async () => {
+    scanFindOneByMock.mockResolvedValue(
+      makeScan({ discoveredDevices: makeHostsBeyondTheCap() }),
+    );
+    ruleFindByMock.mockResolvedValue([
+      makeRule({ ipMatchTarget: "10.0.0.0/8" }),
+    ]);
+    // Every create fails, first attempt and fallback-name retry alike…
+    createMock.mockRejectedValue(new BadDataException("create is broken"));
+    // …and the address re-check keeps saying the host is NOT registered.
+    deviceFindOneByMock.mockResolvedValue(null);
+
+    const result: AutoImportRuleRunResult | null = await processScan();
+
+    expect(result).toMatchObject({
+      devicesCreated: 0,
+      devicesFailed: MAX_DEVICES_PER_AUTO_IMPORT_RUN,
+      isTruncated: true,
+    });
+
+    // The marker IS stamped: this pass is retired, not resumed.
+    expect(scanUpdateMock).toHaveBeenCalledTimes(1);
+    const updateCall: any = scanUpdateMock.mock.calls[0]![0];
+    expect(Object.keys(updateCall.data)).toEqual(["autoImportProcessedAt"]);
+
+    // And the operator is told, loudly, why nothing imported.
+    expect(
+      loggerErrorMock.mock.calls.some((call: Array<unknown>) => {
+        return String(call[0]).includes("every create failing");
+      }),
+    ).toBe(true);
   });
 
   /*
@@ -493,7 +643,7 @@ describe("NetworkDeviceAutoImportRuleEngineService.applyRuleToCompletedScans", (
         ipMatchTarget: "192.168.0.0/16",
       }),
     ]);
-    scanFindByMock.mockResolvedValue([
+    mockRunNowScans([
       makeScan({
         discoveredDevices: [
           makeHost(),
@@ -514,6 +664,7 @@ describe("NetworkDeviceAutoImportRuleEngineService.applyRuleToCompletedScans", (
       devicesCreated: 0,
       isDryRun: true,
       isTruncated: false,
+      hasMoreScans: false,
     });
     // The operator's "which hosts would this claim" answer.
     expect(result.matchedIpAddressSample).toEqual(["10.0.0.5"]);
@@ -521,57 +672,256 @@ describe("NetworkDeviceAutoImportRuleEngineService.applyRuleToCompletedScans", (
     expect(createMock).not.toHaveBeenCalled();
     // No creates, so no write-back either: a dry run touches no row.
     expect(scanUpdateMock).not.toHaveBeenCalled();
-  });
-
-  it("creates devices and writes the flags back on a real run", async () => {
-    ruleFindOneByMock.mockResolvedValue(makeRule());
-    ruleFindByMock.mockResolvedValue([]);
-    scanFindByMock.mockResolvedValue([
-      makeScan({ discoveredDevices: [makeHost()] }),
-    ]);
-
-    const result: AutoImportRuleRunResult = await runRule(false);
-
-    expect(result).toMatchObject({
-      hostsMatched: 1,
-      devicesCreated: 1,
-      isDryRun: false,
-    });
-    expect(createMock).toHaveBeenCalledTimes(1);
-
-    /*
-     * The write-back retires the imported host for the Review dialog, but
-     * the MARKER is deliberately not stamped: a manual run of one rule has
-     * not done what the full rule set would, so the automatic path must
-     * still get its turn at these results.
-     */
-    expect(scanUpdateMock).toHaveBeenCalledTimes(1);
-    const updateCall: any = scanUpdateMock.mock.calls[0]![0];
-    expect(Object.keys(updateCall.data)).toEqual(["discoveredDevices"]);
+    // And no lock: a run that writes nothing has nothing to serialize.
+    expect(semaphoreLockMock).not.toHaveBeenCalled();
   });
 
   /*
-   * An exclusion rule imports nothing by itself, so "running" it can only
-   * mislead — the refusal explains what to run instead.
+   * The two-phase scan read: the listing is {_id} stubs only, and each scan
+   * is re-read individually with its status re-checked — so one manual run
+   * never holds every scan's multi-megabyte jsonb at once, and never
+   * evaluates a scan that was re-queued after the listing.
    */
-  it("refuses to run an exclusion rule", async () => {
-    ruleFindOneByMock.mockResolvedValue(makeRule({ isExclusion: true }));
+  it("lists scan stubs first and re-reads each scan with a status re-check", async () => {
+    ruleFindOneByMock.mockResolvedValue(makeRule());
+    ruleFindByMock.mockResolvedValue([]);
+    mockRunNowScans([makeScan({ discoveredDevices: [makeHost()] })]);
 
-    await expect(runRule(false)).rejects.toThrow(BadDataException);
-    expect(scanFindByMock).not.toHaveBeenCalled();
+    await runRule(true);
+
+    expect(scanFindByMock).toHaveBeenCalledTimes(1);
+    const listCall: any = scanFindByMock.mock.calls[0]![0];
+    expect(listCall.select).toEqual({ _id: true });
+    // One extra row settles "were there more scans" honestly.
+    expect(listCall.limit).toBe(MAX_SCANS_PER_AUTO_IMPORT_RULE_RUN + 1);
+
+    expect(scanFindOneByMock).toHaveBeenCalledTimes(1);
+    const rereadCall: any = scanFindOneByMock.mock.calls[0]![0];
+    expect(rereadCall.query.status).toBe("Completed");
+    expect(rereadCall.query.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(rereadCall.select.discoveredDevices).toBe(true);
+  });
+
+  it("skips a scan that vanished between the stub listing and the re-read", async () => {
+    ruleFindOneByMock.mockResolvedValue(makeRule());
+    ruleFindByMock.mockResolvedValue([]);
+    // First stub's re-read finds nothing; the second still evaluates.
+    mockRunNowScans([null, makeScan({ discoveredDevices: [makeHost()] })]);
+
+    const result: AutoImportRuleRunResult = await runRule(true);
+
+    expect(scanFindOneByMock).toHaveBeenCalledTimes(2);
+    expect(result).toMatchObject({
+      hostsEvaluated: 1,
+      hostsMatched: 1,
+    });
+  });
+
+  /*
+   * Scan-count truncation is its own flag, not isTruncated: the advice
+   * differs (re-running re-reads the same newest scans; only the device cap
+   * is resumable by running again).
+   */
+  it("reports hasMoreScans, not isTruncated, when the project has more scans than one run reads", async () => {
+    ruleFindOneByMock.mockResolvedValue(makeRule());
+    ruleFindByMock.mockResolvedValue([]);
+    mockRunNowScans(
+      Array.from(
+        { length: MAX_SCANS_PER_AUTO_IMPORT_RULE_RUN + 1 },
+        (): NetworkDeviceDiscoveryScan => {
+          return makeScan({ discoveredDevices: [] });
+        },
+      ),
+    );
+
+    const result: AutoImportRuleRunResult = await runRule(true);
+
+    expect(result.hasMoreScans).toBe(true);
+    expect(result.isTruncated).toBe(false);
+    // The extra row was only a probe: it is not read as a scan.
+    expect(scanFindOneByMock).toHaveBeenCalledTimes(
+      MAX_SCANS_PER_AUTO_IMPORT_RULE_RUN,
+    );
+  });
+
+  /*
+   * A dry run must promise what a real run would DO — and a host listed on
+   * duplicate rows (or in two overlapping scans) imports once, so the dry
+   * run counts it once and reads its later appearances as already
+   * registered.
+   */
+  it("counts a host listed twice as one import and one skip on a dry run", async () => {
+    ruleFindOneByMock.mockResolvedValue(makeRule());
+    ruleFindByMock.mockResolvedValue([]);
+    mockRunNowScans([
+      makeScan({ discoveredDevices: [makeHost(), makeHost()] }),
+    ]);
+
+    const result: AutoImportRuleRunResult = await runRule(true);
+
+    expect(result).toMatchObject({
+      hostsEvaluated: 2,
+      hostsMatched: 2,
+      hostsSkippedAlreadyRegistered: 1,
+      devicesCreated: 0,
+      isDryRun: true,
+    });
+    expect(result.matchedIpAddressSample).toEqual(["10.0.0.5"]);
+  });
+
+  /*
+   * The attempt budget bounds dry runs too: a dry run over a /16 walks the
+   * same capped amount of work inside its API request as the real run it
+   * predicts, and says so through the same flag.
+   */
+  it("bounds a dry run by the device cap and reports the truncation", async () => {
+    ruleFindOneByMock.mockResolvedValue(
+      makeRule({ ipMatchTarget: "10.0.0.0/8" }),
+    );
+    ruleFindByMock.mockResolvedValue([]);
+    mockRunNowScans([makeScan({ discoveredDevices: makeHostsBeyondTheCap() })]);
+
+    const result: AutoImportRuleRunResult = await runRule(true);
+
+    expect(result).toMatchObject({
+      isTruncated: true,
+      devicesCreated: 0,
+      isDryRun: true,
+    });
+    expect(result.matchedIpAddressSample).toHaveLength(MAX_MATCHED_IP_SAMPLE);
     expect(createMock).not.toHaveBeenCalled();
+    expect(scanUpdateMock).not.toHaveBeenCalled();
   });
 
-  it("refuses to run a disabled rule", async () => {
-    ruleFindOneByMock.mockResolvedValue(makeRule({ isEnabled: false }));
+  describe("a real run and the sweep lock", () => {
+    /*
+     * The engine's idempotency is check-then-create with no DB backstop, so
+     * a real Run Now must hold the SAME Redis lock as the worker sweep —
+     * manual-vs-sweep and manual-vs-manual can never interleave.
+     */
+    it("creates devices under the sweep lock and releases it after", async () => {
+      ruleFindOneByMock.mockResolvedValue(makeRule());
+      ruleFindByMock.mockResolvedValue([]);
+      mockRunNowScans([makeScan({ discoveredDevices: [makeHost()] })]);
 
-    await expect(runRule(false)).rejects.toThrow(BadDataException);
-    expect(scanFindByMock).not.toHaveBeenCalled();
+      const result: AutoImportRuleRunResult = await runRule(false);
+
+      expect(result).toMatchObject({
+        hostsMatched: 1,
+        devicesCreated: 1,
+        isDryRun: false,
+        hasMoreScans: false,
+      });
+      expect(createMock).toHaveBeenCalledTimes(1);
+
+      // The worker's lock, by the shared constants — never a lookalike.
+      expect(semaphoreLockMock).toHaveBeenCalledTimes(1);
+      expect(semaphoreLockMock.mock.calls[0]![0]).toMatchObject({
+        key: AUTO_IMPORT_SWEEP_LOCK_KEY,
+        namespace: AUTO_IMPORT_SWEEP_LOCK_NAMESPACE,
+        lockTimeout: AUTO_IMPORT_SWEEP_LOCK_TIMEOUT_MS,
+      });
+      expect(semaphoreReleaseMock).toHaveBeenCalledTimes(1);
+      expect(semaphoreReleaseMock).toHaveBeenCalledWith(FAKE_MUTEX);
+
+      /*
+       * The write-back retires the imported host for the Review dialog, but
+       * the MARKER is deliberately not stamped: a manual run of one rule
+       * has not done what the full rule set would, so the automatic path
+       * must still get its turn at these results.
+       */
+      expect(scanUpdateMock).toHaveBeenCalledTimes(1);
+      const updateCall: any = scanUpdateMock.mock.calls[0]![0];
+      expect(Object.keys(updateCall.data)).toEqual(["discoveredDevices"]);
+    });
+
+    /*
+     * A held lock means the sweep is importing right now; failing fast with
+     * an explanation beats blocking an API request behind a sweep that may
+     * run for minutes.
+     */
+    it("refuses a real run when the sweep lock cannot be acquired", async () => {
+      ruleFindOneByMock.mockResolvedValue(makeRule());
+      semaphoreLockMock.mockRejectedValue(new Error("lock is held"));
+
+      await expect(runRule(false)).rejects.toThrow(BadDataException);
+      await expect(runRule(false)).rejects.toThrow(
+        /automatic import sweep is currently running/,
+      );
+
+      expect(scanFindByMock).not.toHaveBeenCalled();
+      expect(createMock).not.toHaveBeenCalled();
+      // No lock was acquired, so there is nothing to release.
+      expect(semaphoreReleaseMock).not.toHaveBeenCalled();
+    });
+
+    // A leaked sweep lock blocks every future run AND the worker sweep.
+    it("releases the lock even when the run body throws", async () => {
+      ruleFindOneByMock.mockResolvedValue(makeRule());
+      // The first thing the run body does is load the exclusion rules.
+      ruleFindByMock.mockRejectedValue(new Error("database is down"));
+
+      await expect(runRule(false)).rejects.toThrow("database is down");
+
+      expect(semaphoreLockMock).toHaveBeenCalledTimes(1);
+      expect(semaphoreReleaseMock).toHaveBeenCalledTimes(1);
+      expect(semaphoreReleaseMock).toHaveBeenCalledWith(FAKE_MUTEX);
+    });
   });
 
-  it("rejects a rule id that does not resolve in the project", async () => {
-    ruleFindOneByMock.mockResolvedValue(null);
+  describe("rule resolution", () => {
+    /*
+     * The point of a dry run: answer "what would this rule import" BEFORE
+     * enabling it against live scans. Only a real run of a disabled rule
+     * contradicts the toggle next to the button.
+     */
+    it("dry-runs a disabled rule", async () => {
+      ruleFindOneByMock.mockResolvedValue(makeRule({ isEnabled: false }));
+      ruleFindByMock.mockResolvedValue([]);
+      mockRunNowScans([makeScan({ discoveredDevices: [makeHost()] })]);
 
-    await expect(runRule(false)).rejects.toThrow("Auto-import rule not found.");
+      const result: AutoImportRuleRunResult = await runRule(true);
+
+      expect(result).toMatchObject({
+        hostsEvaluated: 1,
+        hostsMatched: 1,
+        devicesCreated: 0,
+        isDryRun: true,
+      });
+      expect(createMock).not.toHaveBeenCalled();
+      expect(scanUpdateMock).not.toHaveBeenCalled();
+      expect(semaphoreLockMock).not.toHaveBeenCalled();
+    });
+
+    it("refuses a REAL run of a disabled rule, pointing at Dry Run", async () => {
+      ruleFindOneByMock.mockResolvedValue(makeRule({ isEnabled: false }));
+
+      await expect(runRule(false)).rejects.toThrow(
+        "This auto-import rule is disabled. Enable it before running it, or use Dry Run to preview what it would import.",
+      );
+      expect(scanFindByMock).not.toHaveBeenCalled();
+      expect(semaphoreLockMock).not.toHaveBeenCalled();
+    });
+
+    /*
+     * An exclusion rule imports nothing by itself, so "running" it can only
+     * mislead — the refusal explains what to run instead.
+     */
+    it("refuses to run an exclusion rule", async () => {
+      ruleFindOneByMock.mockResolvedValue(makeRule({ isExclusion: true }));
+
+      await expect(runRule(false)).rejects.toThrow(BadDataException);
+      expect(scanFindByMock).not.toHaveBeenCalled();
+      expect(createMock).not.toHaveBeenCalled();
+      expect(semaphoreLockMock).not.toHaveBeenCalled();
+    });
+
+    it("rejects a rule id that does not resolve in the project", async () => {
+      ruleFindOneByMock.mockResolvedValue(null);
+
+      await expect(runRule(false)).rejects.toThrow(
+        "Auto-import rule not found.",
+      );
+    });
   });
 });

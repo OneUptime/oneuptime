@@ -39,7 +39,7 @@ An exclusion rule inverts the match: hosts it matches are **never** auto-importe
 
 ### Dry Run and Run Now
 
-Rules fire automatically when a discovery scan completes, so a rule written after your scans ran does not reach them. **Run Now** applies a rule to every completed scan already in the project. **Dry Run** does the same evaluation but writes nothing — it answers "what would this rule import" before you trust the rule. Hosts that already have a registered device are always skipped, so running a rule more than once is safe.
+Rules fire automatically when a discovery scan completes, so a rule written after your scans ran does not reach them. **Run Now** applies a rule to every completed scan already in the project. **Dry Run** does the same evaluation but writes nothing — it answers "what would this rule import" before you trust the rule, and it works on a **disabled** rule too, so you can preview a rule before the automatic path can ever see it. Hosts that already have a registered device are always skipped, so running a rule more than once is safe.
 `;
 
 const NetworkDeviceAutoImportRulesPage: FunctionComponent<

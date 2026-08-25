@@ -48,6 +48,29 @@ export interface AutoImportHostEvaluation {
   excludedByRule?: AutoImportRuleCandidate | undefined;
 }
 
+/*
+ * Longest subject string a pattern is evaluated against. SNMP DisplayStrings
+ * top out at 255 octets, so anything longer only appears in a hostile or
+ * corrupt probe payload — and the jsonb these hosts come from is stored
+ * verbatim, unbounded. Patterns run through JavaScript's backtracking regex
+ * engine, whose worst case grows with subject length, so the subject is
+ * clamped before matching: a rule author writing a pathological pattern can
+ * only ever run it against a bounded string. (The same author already holds
+ * Edit permission on rules — this bounds the blast radius, it does not make
+ * hostile patterns free.)
+ */
+const MAX_PATTERN_SUBJECT_LENGTH: number = 500;
+
+function clampSubject(value: string | undefined): string | undefined {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  return value.length > MAX_PATTERN_SUBJECT_LENGTH
+    ? value.substring(0, MAX_PATTERN_SUBJECT_LENGTH)
+    : value;
+}
+
 export class AutoImportRuleMatcher {
   // True when the host answered ping but not SNMP.
   private static isPingOnlyHost(host: DiscoveredNetworkDevice): boolean {
@@ -106,14 +129,17 @@ export class AutoImportRuleMatcher {
      */
     if (
       sysNamePattern &&
-      !RulePatternMatchUtil.matches(host.sysName, sysNamePattern)
+      !RulePatternMatchUtil.matches(clampSubject(host.sysName), sysNamePattern)
     ) {
       return false;
     }
 
     if (
       sysDescrPattern &&
-      !RulePatternMatchUtil.matches(host.sysDescr, sysDescrPattern)
+      !RulePatternMatchUtil.matches(
+        clampSubject(host.sysDescr),
+        sysDescrPattern,
+      )
     ) {
       return false;
     }

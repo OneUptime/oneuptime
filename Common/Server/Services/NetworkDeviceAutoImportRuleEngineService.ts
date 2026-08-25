@@ -25,6 +25,7 @@ import {
   buildNetworkDeviceFromDiscoveredHost,
 } from "../../Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
 import { normalizeDiscoveredHosts } from "../../Utils/NetworkDiscovery/DiscoveredHostUtil";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 
@@ -97,8 +98,22 @@ export const MAX_SCANS_PER_AUTO_IMPORT_RULE_RUN: number = 100;
  */
 export const MAX_RESULT_AGE_IN_HOURS: number = 24;
 
-// Same bound the label/owner engines use on their per-project rule fetch.
-const RULE_FETCH_LIMIT: number = 100;
+/*
+ * The Redis lock every path that CREATES devices from scan results runs
+ * under — the worker sweep and the manual Run Now alike. The engine's
+ * idempotency is check-then-create with no DB backstop (device names are
+ * app-level unique, addresses not unique at all), so two concurrent passes
+ * over the same results can both pass the check and both insert. The worker
+ * holds this lock for its whole sweep; a real (non-dry) manual run takes
+ * the SAME lock, so manual-vs-sweep and manual-vs-manual can never
+ * interleave — which also means the scan jsonb write-back has exactly one
+ * engine writer at a time. Defined here, imported by the worker, so the two
+ * can never drift onto different locks.
+ */
+export const AUTO_IMPORT_SWEEP_LOCK_KEY: string =
+  "NetworkDeviceDiscovery:ProcessAutoImportRules";
+export const AUTO_IMPORT_SWEEP_LOCK_NAMESPACE: string = "Workers.Cron";
+export const AUTO_IMPORT_SWEEP_LOCK_TIMEOUT_MS: number = 11 * 60 * 1000;
 
 /*
  * Hostname sets shared across one worker sweep, keyed by project id. One
@@ -108,6 +123,17 @@ const RULE_FETCH_LIMIT: number = 100;
  * before any re-read of the device table would show it.
  */
 export type ExistingHostnamesByProjectId = Map<string, Set<string>>;
+
+/*
+ * How many imports one run has attempted, shared across every scan the run
+ * touches. Real runs count creates and failures; dry runs count the imports
+ * they WOULD have attempted — so a dry run over a /16 is bounded by the same
+ * cap as the real run it predicts, instead of walking unbounded work inside
+ * an API request.
+ */
+interface ImportAttemptBudget {
+  count: number;
+}
 
 class NetworkDeviceAutoImportRuleEngineServiceClass {
   /**
@@ -126,8 +152,10 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
    * while this pass is reading the old ones, the CAS misses, the marker
    * stays NULL, and the next tick processes the new upload — the stamp can
    * never retire results it did not see, and the jsonb write-back can never
-   * clobber a newer host list. A truncated pass stamps nothing on purpose:
-   * the NULL marker is what makes the next tick resume.
+   * clobber a newer host list. A truncated pass that created something
+   * stamps nothing on purpose: the NULL marker is what makes the next tick
+   * resume. (A truncated pass where every create FAILED stamps anyway — see
+   * the zero-progress note at the stamp below.)
    */
   @CaptureSpan()
   public async processCompletedScan(data: {
@@ -196,20 +224,40 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     });
 
     const result: AutoImportRuleRunResult = this.emptyResult(false);
+    const attempts: ImportAttemptBudget = { count: 0 };
 
     const createdIpAddresses: Array<string> = await this.importHostsFromScan({
       scan: scan,
       rules: rules,
       existingHostnames: existingHostnames,
       result: result,
+      attempts: attempts,
       isDryRun: false,
     });
+
+    /*
+     * A truncated pass that made progress leaves the marker NULL so the
+     * next tick resumes where the cap stopped it. A truncated pass that
+     * created NOTHING — every attempt failed — is stamped anyway: resuming
+     * it would repeat the identical doomed pass every minute forever, and
+     * the sub-cap case already retires all-failing hosts un-imported in one
+     * pass, so stamping keeps the two consistent. Run Now remains the
+     * deliberate way back into a stamped scan.
+     */
+    const shouldResume: boolean =
+      result.isTruncated && result.devicesCreated > 0;
+
+    if (result.isTruncated && result.devicesCreated === 0) {
+      logger.error(
+        `Auto-import: scan ${scan.id?.toString()} hit the per-pass cap with every create failing (${result.devicesFailed} failure(s)); stamping it processed so the sweep does not retry it forever. Inspect the failures and use the rule's Run Now to retry deliberately.`,
+        { projectId: projectId.toString() } as LogAttributes,
+      );
+    }
 
     await this.stampScan({
       scan: scan,
       createdIpAddresses: createdIpAddresses,
-      // A truncated pass leaves the marker NULL so the next tick resumes.
-      leaveMarkerUnstamped: result.isTruncated,
+      leaveMarkerUnstamped: shouldResume,
     });
 
     return result;
@@ -254,9 +302,15 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       throw new BadDataException("Auto-import rule not found.");
     }
 
-    if (!rule.isEnabled) {
+    /*
+     * A DISABLED rule can still be dry-run — that is the point of the dry
+     * run: answer "what would this rule import" BEFORE enabling it against
+     * live scans. Only a real run of a disabled rule contradicts the toggle
+     * the user can see next to the button.
+     */
+    if (!rule.isEnabled && !data.isDryRun) {
       throw new BadDataException(
-        "This auto-import rule is disabled. Enable it before running it.",
+        "This auto-import rule is disabled. Enable it before running it, or use Dry Run to preview what it would import.",
       );
     }
 
@@ -266,27 +320,86 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       );
     }
 
+    /*
+     * A real run creates devices, so it must hold the same lock the worker
+     * sweep holds (see AUTO_IMPORT_SWEEP_LOCK_KEY): without it, a Run Now
+     * clicked while the every-minute sweep is processing the same
+     * marker-NULL scan races the check-then-create idempotency and both
+     * paths insert the same host. A dry run writes nothing and skips the
+     * lock.
+     */
+    let mutex: SemaphoreMutex | null = null;
+
+    if (!data.isDryRun) {
+      try {
+        mutex = await Semaphore.lock({
+          key: AUTO_IMPORT_SWEEP_LOCK_KEY,
+          namespace: AUTO_IMPORT_SWEEP_LOCK_NAMESPACE,
+          lockTimeout: AUTO_IMPORT_SWEEP_LOCK_TIMEOUT_MS,
+          acquireAttemptsLimit: 3,
+        });
+      } catch (err) {
+        logger.debug(
+          `Auto-import Run Now: could not acquire the sweep lock: ${err}`,
+        );
+        throw new BadDataException(
+          "An automatic import sweep is currently running. Try again in a minute — hosts it imports are skipped by your run anyway.",
+        );
+      }
+    }
+
+    try {
+      return await this.runRuleAgainstCompletedScans({
+        rule: rule,
+        projectId: data.projectId,
+        isDryRun: data.isDryRun,
+      });
+    } finally {
+      if (mutex) {
+        try {
+          await Semaphore.release(mutex);
+        } catch (err) {
+          logger.error(
+            `Auto-import Run Now: error releasing the sweep lock: ${err}`,
+          );
+        }
+      }
+    }
+  }
+
+  private async runRuleAgainstCompletedScans(data: {
+    rule: NetworkDeviceAutoImportRule;
+    projectId: ObjectID;
+    isDryRun: boolean;
+  }): Promise<AutoImportRuleRunResult> {
     const exclusionRules: Array<NetworkDeviceAutoImportRule> = (
       await this.loadEnabledRules(data.projectId)
     ).filter((candidate: NetworkDeviceAutoImportRule) => {
       return Boolean(candidate.isExclusion);
     });
 
-    const rules: Array<NetworkDeviceAutoImportRule> = [rule, ...exclusionRules];
+    const rules: Array<NetworkDeviceAutoImportRule> = [
+      data.rule,
+      ...exclusionRules,
+    ];
 
     const existingHostnames: Set<string> = await this.loadExistingHostnames(
       data.projectId,
     );
 
     const result: AutoImportRuleRunResult = this.emptyResult(data.isDryRun);
+    const attempts: ImportAttemptBudget = { count: 0 };
 
     /*
      * Newest results first: a manual run is "bring the estate up to date",
      * and the newest scan of a subnet supersedes its older runs — with
      * idempotency, whichever result mentions a host first imports it and
-     * later mentions skip.
+     * later mentions skip. Minimal columns only — the full row, with its
+     * multi-megabyte discoveredDevices jsonb, is re-read one scan at a time
+     * inside the loop so only one result set is ever resident (the same
+     * two-phase shape the worker sweep uses, for the same reason).
      */
-    const scans: Array<NetworkDeviceDiscoveryScan> =
+    const scanStubs: Array<NetworkDeviceDiscoveryScan> =
       await NetworkDeviceDiscoveryScanService.findBy({
         query: {
           projectId: data.projectId,
@@ -294,11 +407,6 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         },
         select: {
           _id: true,
-          projectId: true,
-          status: true,
-          completedAt: true,
-          discoveredDevices: true,
-          ...AUTO_IMPORT_SCAN_CREDENTIAL_SELECT,
         },
         sort: {
           completedAt: SortOrder.Descending,
@@ -309,19 +417,42 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       });
 
     // One extra row settles "were there more scans" honestly.
-    const hasMoreScans: boolean =
-      scans.length > MAX_SCANS_PER_AUTO_IMPORT_RULE_RUN;
+    result.hasMoreScans = scanStubs.length > MAX_SCANS_PER_AUTO_IMPORT_RULE_RUN;
 
-    if (hasMoreScans) {
-      scans.pop();
+    if (result.hasMoreScans) {
+      scanStubs.pop();
     }
 
-    for (const scan of scans) {
+    for (const scanStub of scanStubs) {
+      const scan: NetworkDeviceDiscoveryScan | null =
+        await NetworkDeviceDiscoveryScanService.findOneBy({
+          query: {
+            _id: scanStub.id!,
+            projectId: data.projectId,
+            status: "Completed",
+          },
+          select: {
+            _id: true,
+            projectId: true,
+            status: true,
+            completedAt: true,
+            discoveredDevices: true,
+            ...AUTO_IMPORT_SCAN_CREDENTIAL_SELECT,
+          },
+          props: { isRoot: true },
+        });
+
+      // Re-queued or deleted since the stub query — nothing to evaluate.
+      if (!scan) {
+        continue;
+      }
+
       const createdIpAddresses: Array<string> = await this.importHostsFromScan({
         scan: scan,
         rules: rules,
         existingHostnames: existingHostnames,
         result: result,
+        attempts: attempts,
         isDryRun: data.isDryRun,
       });
 
@@ -330,7 +461,8 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
          * Same CAS write-back as the automatic path, so the Review dialog
          * does not re-offer (pre-checked!) hosts this run just imported. A
          * miss only means fresher results arrived, which recomputed the
-         * flags anyway.
+         * flags anyway. No concurrent engine writer can clobber this: the
+         * write happens only on real runs, which hold the sweep lock.
          */
         await this.stampScan({
           scan: scan,
@@ -339,14 +471,21 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         });
       }
 
-      // The device cap is shared across the whole run.
+      // The device cap is shared across the whole run, dry or real.
       if (result.isTruncated) {
         break;
       }
-    }
 
-    if (hasMoreScans) {
-      result.isTruncated = true;
+      /*
+       * Yield the event loop between scans: this runs inside an API request
+       * handler, and evaluating scan after scan of jsonb back-to-back would
+       * starve every other request the process is serving. setTimeout
+       * rather than setImmediate because the latter is a bare Node global
+       * that the jsdom-based test environment does not define.
+       */
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 0);
+      });
     }
 
     return result;
@@ -367,32 +506,58 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       devicesCreated: 0,
       devicesFailed: 0,
       isTruncated: false,
+      hasMoreScans: false,
       isDryRun: isDryRun,
       matchedIpAddressSample: [],
     };
   }
 
+  /*
+   * ALL enabled rules of the project, paged to completeness — never a capped
+   * subset. The label/owner engines cap their fetch at 100 and a dropped
+   * rule there merely adds nothing; here a dropped EXCLUSION rule fails
+   * OPEN, importing the exact hosts the operator vetoed, nondeterministically
+   * (an uncapped unsorted fetch returns Postgres's choice of rows). Rule
+   * rows are a handful of scalar columns, so completeness is one query in
+   * any realistic project.
+   */
   private async loadEnabledRules(
     projectId: ObjectID,
   ): Promise<Array<NetworkDeviceAutoImportRule>> {
-    return NetworkDeviceAutoImportRuleService.findBy({
-      query: {
-        projectId: projectId,
-        isEnabled: true,
-      },
-      select: {
-        _id: true,
-        name: true,
-        isExclusion: true,
-        ipMatchTarget: true,
-        sysNamePattern: true,
-        sysDescrPattern: true,
-        includePingOnlyHosts: true,
-      },
-      limit: RULE_FETCH_LIMIT,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    const rules: Array<NetworkDeviceAutoImportRule> = [];
+
+    for (let skip: number = 0; ; skip += LIMIT_MAX) {
+      const page: Array<NetworkDeviceAutoImportRule> =
+        await NetworkDeviceAutoImportRuleService.findBy({
+          query: {
+            projectId: projectId,
+            isEnabled: true,
+          },
+          select: {
+            _id: true,
+            name: true,
+            isExclusion: true,
+            ipMatchTarget: true,
+            sysNamePattern: true,
+            sysDescrPattern: true,
+            includePingOnlyHosts: true,
+          },
+          sort: {
+            createdAt: SortOrder.Ascending,
+          },
+          limit: LIMIT_MAX,
+          skip: skip,
+          props: { isRoot: true },
+        });
+
+      rules.push(...page);
+
+      if (page.length < LIMIT_MAX) {
+        break;
+      }
+    }
+
+    return rules;
   }
 
   private isTooOldToAutoImport(scan: NetworkDeviceDiscoveryScan): boolean {
@@ -482,6 +647,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     rules: Array<NetworkDeviceAutoImportRule>;
     existingHostnames: Set<string>;
     result: AutoImportRuleRunResult;
+    attempts: ImportAttemptBudget;
     isDryRun: boolean;
   }): Promise<Array<string>> {
     const scan: NetworkDeviceDiscoveryScan = data.scan;
@@ -503,7 +669,15 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     const createdIpAddresses: Array<string> = [];
 
     for (const host of hosts) {
-      if (!host.ipAddress) {
+      /*
+       * The address becomes the device's varchar(100) hostname, on which
+       * the create THROWS rather than truncates — and no real address is
+       * anywhere near that long, so an over-long "address" is junk that
+       * would fail identically on every pass. Refusing it here (instead of
+       * counting a devicesFailed per pass forever) is what keeps a
+       * pathological scan from failing the same way every worker tick.
+       */
+      if (!host.ipAddress || host.ipAddress.length > 100) {
         continue;
       }
 
@@ -537,10 +711,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         continue;
       }
 
-      if (
-        result.devicesCreated + result.devicesFailed >=
-        MAX_DEVICES_PER_AUTO_IMPORT_RUN
-      ) {
+      if (data.attempts.count >= MAX_DEVICES_PER_AUTO_IMPORT_RUN) {
         result.isTruncated = true;
         break;
       }
@@ -554,7 +725,13 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
          * A dry run reports the device as "created" in no counter at all —
          * hostsMatched minus hostsSkippedAlreadyRegistered is exactly what a
          * real run would attempt, and the sample above says which hosts.
+         * The address still joins the set, simulating the create's dedupe:
+         * without this, a host on duplicate rows (or in two overlapping
+         * scans) would be counted as importable once per appearance, and
+         * the dry run would promise more than the real run does.
          */
+        data.attempts.count++;
+        data.existingHostnames.add(host.ipAddress);
         continue;
       }
 
@@ -564,6 +741,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         host: host,
         existingHostnames: data.existingHostnames,
         result: result,
+        attempts: data.attempts,
       });
 
       if (wasCreated) {
@@ -591,7 +769,10 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     host: DiscoveredNetworkDevice;
     existingHostnames: Set<string>;
     result: AutoImportRuleRunResult;
+    attempts: ImportAttemptBudget;
   }): Promise<boolean> {
+    data.attempts.count++;
+
     const attemptCreate: (name?: string) => Promise<void> = async (
       name?: string,
     ): Promise<void> => {
@@ -657,6 +838,15 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
    * updateOneById: the scan service deliberately has no update-success hooks
    * to piggyback on, and this write must not fire the full pipeline on every
    * worker tick.
+   *
+   * The CAS defends against exactly one concurrent writer — the ingest
+   * endpoint, which rewrites completedAt with every upload. It cannot
+   * defend against another ENGINE write (which changes neither status nor
+   * completedAt), and does not need to: every path that reaches this method
+   * holds the sweep lock (the worker for its whole sweep, Run Now for a
+   * real run; dry runs never write), so the full-array replace below always
+   * has the row's only engine writer. Weaken that invariant and this
+   * becomes last-writer-wins on the isAlreadyRegistered flips.
    */
   private async stampScan(data: {
     scan: NetworkDeviceDiscoveryScan;

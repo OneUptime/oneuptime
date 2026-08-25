@@ -47,6 +47,14 @@ jest.mock("../../../Server/Services/NetworkDeviceAutoImportRuleService", () => {
   };
 });
 
+// The engine's sweep lock would otherwise pull the Redis client in.
+jest.mock("../../../Server/Infrastructure/Semaphore", () => {
+  return {
+    __esModule: true,
+    default: {},
+  };
+});
+
 jest.mock("../../../Server/Utils/Logger", () => {
   return {
     __esModule: true,

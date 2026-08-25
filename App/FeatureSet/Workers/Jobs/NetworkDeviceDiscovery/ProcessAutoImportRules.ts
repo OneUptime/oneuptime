@@ -6,6 +6,9 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import NetworkDeviceDiscoveryScanService from "Common/Server/Services/NetworkDeviceDiscoveryScanService";
 import NetworkDeviceAutoImportRuleEngineService, {
+  AUTO_IMPORT_SWEEP_LOCK_KEY,
+  AUTO_IMPORT_SWEEP_LOCK_NAMESPACE,
+  AUTO_IMPORT_SWEEP_LOCK_TIMEOUT_MS,
   ExistingHostnamesByProjectId,
 } from "Common/Server/Services/NetworkDeviceAutoImportRuleEngineService";
 import Semaphore, {
@@ -50,15 +53,14 @@ const SWEEP_TIMEOUT_MINUTES: number = 10;
  * at a time makes that window a single process's, which the engine's shared
  * hostname set already covers.
  *
- * The lock timeout outlives the job timeout so an overrunning sweep keeps
- * holding the lock rather than letting a second sweep in behind it;
- * redis-semaphore auto-refreshes a held lock, so the value only bounds how
- * long a CRASHED worker's lock lingers.
+ * The lock identity lives on the ENGINE (AUTO_IMPORT_SWEEP_LOCK_*) because
+ * the manual Run Now path takes the same lock for its real runs — sweep vs
+ * Run Now is the same duplicate-device race as sweep vs sweep. The lock
+ * timeout outlives the job timeout so an overrunning sweep keeps holding
+ * the lock rather than letting a second sweep in behind it; redis-semaphore
+ * auto-refreshes a held lock, so the value only bounds how long a CRASHED
+ * worker's lock lingers.
  */
-const SWEEP_LOCK_KEY: string = "NetworkDeviceDiscovery:ProcessAutoImportRules";
-const SWEEP_LOCK_NAMESPACE: string = "Workers.Cron";
-const SWEEP_LOCK_TIMEOUT_MS: number =
-  OneUptimeDate.convertMinutesToMilliseconds(SWEEP_TIMEOUT_MINUTES + 1);
 
 RunCron(
   "NetworkDeviceDiscovery:ProcessAutoImportRules",
@@ -78,9 +80,9 @@ RunCron(
 
     try {
       mutex = await Semaphore.lock({
-        key: SWEEP_LOCK_KEY,
-        namespace: SWEEP_LOCK_NAMESPACE,
-        lockTimeout: SWEEP_LOCK_TIMEOUT_MS,
+        key: AUTO_IMPORT_SWEEP_LOCK_KEY,
+        namespace: AUTO_IMPORT_SWEEP_LOCK_NAMESPACE,
+        lockTimeout: AUTO_IMPORT_SWEEP_LOCK_TIMEOUT_MS,
         acquireAttemptsLimit: 1,
       });
     } catch (err) {

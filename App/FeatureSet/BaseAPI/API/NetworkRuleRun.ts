@@ -12,6 +12,8 @@ import DatabaseCommonInteractionPropsUtil, {
 } from "Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import CommonAPI from "Common/Server/API/CommonAPI";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
+import TablePermission from "Common/Server/Types/Database/Permissions/TablePermission";
+import DatabaseRequestType from "Common/Server/Types/BaseDatabase/DatabaseRequestType";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -135,6 +137,21 @@ function assertCanRunRule(data: {
         )}.`,
       );
     }
+
+    /*
+     * The Allow check above is only half the ACL: every real BaseAPI create
+     * also refuses a caller whose team BLOCK list carries the create
+     * permission (CreatePermission.checkCreateBlockPermissions). Reuse that
+     * exact enforcement so a block-listed user cannot create devices by
+     * proxy through a rule run. (The isMasterAdmin early-return above
+     * mirrors the BaseAPI path's own bypass.)
+     */
+    TablePermission.checkTableLevelBlockPermissions(
+      NetworkDevice,
+      data.props,
+      DatabaseRequestType.Create,
+    );
+
     return;
   }
 
@@ -168,12 +185,26 @@ function readRuleId(req: ExpressRequest): ObjectID {
 }
 
 /*
- * A body flag, read strictly: only a literal `true` turns on the destructive
- * half of a site assignment run, so a "true" string or a stray 1 cannot move
- * devices somebody placed by hand.
+ * A body flag with a tri-state contract: absent means false, a literal
+ * boolean means itself, and anything else is a 400. Silent coercion is
+ * wrong in BOTH directions the flags here are used in — a "true" string
+ * for reassignDevicesAlreadyInASite must not move hand-placed devices, and
+ * a "true" string for dryRun must not silently run the REAL import the
+ * caller asked to simulate. Rejecting malformed values is the only reading
+ * that fails safe for every flag.
  */
 function readBooleanFlag(body: JSONObject, key: string): boolean {
-  return body[key] === true;
+  const value: unknown = body[key];
+
+  if (value === undefined || value === null) {
+    return false;
+  }
+
+  if (typeof value !== "boolean") {
+    throw new BadDataException(`${key} must be a boolean (true or false).`);
+  }
+
+  return value;
 }
 
 export default class NetworkRuleRunAPI {

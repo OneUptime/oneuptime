@@ -92,8 +92,18 @@ export interface AutoImportRuleRunResult {
   devicesCreated: number;
   // Matched hosts whose create threw. Logged server-side, never fatal.
   devicesFailed: number;
-  // True when the run stopped at a cap with matched hosts left over.
+  /*
+   * True when the run stopped at the DEVICE cap with matched hosts left
+   * over. Running again continues: already-imported hosts are skipped.
+   */
   isTruncated: boolean;
+  /*
+   * True when the project has more completed scans than one manual run
+   * reads (the newest MAX_SCANS_PER_AUTO_IMPORT_RULE_RUN). Distinct from
+   * isTruncated because the advice differs: re-running re-reads the same
+   * newest scans, so hosts that appear ONLY in older scans stay unread.
+   */
+  hasMoreScans: boolean;
   // True when this run was a dry run: full evaluation, no writes.
   isDryRun: boolean;
   /*
@@ -187,6 +197,7 @@ export class RuleRunResultUtil {
       devicesCreated: readCount(source, "devicesCreated"),
       devicesFailed: readCount(source, "devicesFailed"),
       isTruncated: source["isTruncated"] === true,
+      hasMoreScans: source["hasMoreScans"] === true,
       isDryRun: source["isDryRun"] === true,
       matchedIpAddressSample: sample as Array<string>,
     };
