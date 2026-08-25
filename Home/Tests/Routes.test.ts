@@ -135,6 +135,22 @@ describe("Trust center routes", () => {
   });
 });
 
+describe("Nostr identity route", () => {
+  /*
+   * NIP-05 clients fetch this document from the browser, so it is only usable
+   * if the route exists and answers cross-origin. The contents of the
+   * document are covered by Nostr.test.ts.
+   */
+  test("the well-known document is registered and served cross-origin", () => {
+    expect(hasGetRoute("/.well-known/nostr.json")).toBe(true);
+
+    const body: string = bodyOfGetRoute("/.well-known/nostr.json")!;
+
+    expect(body).toContain('res.setHeader("Access-Control-Allow-Origin", "*")');
+    expect(body).toContain("generateNostrWellKnown");
+  });
+});
+
 describe("Sitemap hygiene", () => {
   test("every redirect-only path is excluded from the sitemap", () => {
     for (const routePath of [
