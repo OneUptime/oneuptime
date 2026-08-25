@@ -10,6 +10,8 @@ enum EmailTemplateType {
   ConfirmStatusPageSubscription = "ConfirmStatusPageSubscription.hbs",
   EmailVerified = "EmailVerified.hbs",
   PasswordChanged = "PasswordChanged.hbs",
+  TwoFactorBackupCodeUsed = "TwoFactorBackupCodeUsed.hbs",
+  TwoFactorBackupCodesRegenerated = "TwoFactorBackupCodesRegenerated.hbs",
   ProbeOwnerAdded = "ProbeOwnerAdded.hbs",
   InviteMember = "InviteMember.hbs",
   EmailChanged = "EmailChanged.hbs",

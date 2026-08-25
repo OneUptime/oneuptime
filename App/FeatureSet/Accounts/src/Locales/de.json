@@ -46,7 +46,11 @@
       "authenticatingWithSecurityKey": "Authentifizierung mit Sicherheitsschlüssel",
       "securityKeyInstructions": "Bitte folgen Sie den Anweisungen auf Ihrem Sicherheitsschlüsselgerät.",
       "codeFieldDescription": "Geben Sie den Code aus Ihrer Authenticator-App ein",
-      "selectDifferentMethod": "Wählen Sie eine andere Zwei-Faktor-Authentifizierungsmethode"
+      "selectDifferentMethod": "Wählen Sie eine andere Zwei-Faktor-Authentifizierungsmethode",
+      "useBackupCode": "Stattdessen einen Backup-Code verwenden",
+      "backupCodeInstruction": "Geben Sie einen der Backup-Codes ein, die Sie beim Einrichten der Zwei-Faktor-Authentifizierung gespeichert haben. Jeder Code funktioniert nur einmal.",
+      "backupCodeFieldTitle": "Backup-Code",
+      "backupCodeFieldDescription": "Backup-Codes sehen aus wie ABCDE-12345. Groß- und Kleinschreibung sowie der Bindestrich spielen keine Rolle."
     },
     "twoFactorEnrolment": {
       "title": "Zwei-Faktor-Authentifizierung einrichten",

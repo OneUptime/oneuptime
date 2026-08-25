@@ -184,6 +184,7 @@
       "emailVerifiedLabel": "E-mail geverifieerd",
       "twoFactorLabel": "Tweefactorauthenticatie ingeschakeld",
       "twoFactorMethodCountLabel": "Geverifieerde tweefactormethoden",
+      "backupCodeCountLabel": "Ongebruikte back-upcodes",
       "twoFactorStatusNotEnabled": "Niet ingeschakeld",
       "twoFactorStatusPendingSetup": "Ingeschakeld - nog niet ingesteld",
       "twoFactorStatusConfigured": "Ingeschakeld - ingesteld",

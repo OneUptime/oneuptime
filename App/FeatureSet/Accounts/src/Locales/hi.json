@@ -46,7 +46,11 @@
       "authenticatingWithSecurityKey": "सुरक्षा कुंजी से प्रमाणीकरण",
       "securityKeyInstructions": "कृपया अपने सुरक्षा कुंजी डिवाइस पर निर्देशों का पालन करें।",
       "codeFieldDescription": "अपने प्रमाणीकरण ऐप से कोड दर्ज करें",
-      "selectDifferentMethod": "एक अलग दो-कारक प्रमाणीकरण विधि चुनें"
+      "selectDifferentMethod": "एक अलग दो-कारक प्रमाणीकरण विधि चुनें",
+      "useBackupCode": "इसके बजाय बैकअप कोड का उपयोग करें",
+      "backupCodeInstruction": "दो-कारक प्रमाणीकरण सेट करते समय आपने जो बैकअप कोड सहेजे थे, उनमें से कोई एक दर्ज करें। प्रत्येक कोड केवल एक बार काम करता है।",
+      "backupCodeFieldTitle": "बैकअप कोड",
+      "backupCodeFieldDescription": "बैकअप कोड ABCDE-12345 जैसे दिखते हैं। बड़े-छोटे अक्षर और हाइफ़न से कोई फर्क नहीं पड़ता।"
     },
     "twoFactorEnrolment": {
       "title": "दो-कारक प्रमाणीकरण सेट करें",

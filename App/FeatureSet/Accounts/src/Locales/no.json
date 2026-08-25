@@ -46,7 +46,11 @@
       "authenticatingWithSecurityKey": "Autentiserer med sikkerhetsnøkkel",
       "securityKeyInstructions": "Følg instruksjonene på sikkerhetsnøkkelenheten din.",
       "codeFieldDescription": "Skriv inn koden fra autentiseringsappen din",
-      "selectDifferentMethod": "Velg en annen tofaktorautentiseringsmetode"
+      "selectDifferentMethod": "Velg en annen tofaktorautentiseringsmetode",
+      "useBackupCode": "Bruk en reservekode i stedet",
+      "backupCodeInstruction": "Skriv inn en av reservekodene du lagret da du satte opp tofaktorautentisering. Hver kode fungerer bare én gang.",
+      "backupCodeFieldTitle": "Reservekode",
+      "backupCodeFieldDescription": "Reservekoder ser ut som ABCDE-12345. Store og små bokstaver og bindestreken spiller ingen rolle."
     },
     "twoFactorEnrolment": {
       "title": "Konfigurer tofaktorautentisering",

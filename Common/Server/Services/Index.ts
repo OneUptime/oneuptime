@@ -209,6 +209,7 @@ import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
 import UserService from "./UserService";
 import UserSessionService from "./UserSessionService";
 import UserTotpAuthService from "./UserTotpAuthService";
+import UserTwoFactorBackupCodeService from "./UserTwoFactorBackupCodeService";
 import UserWebAuthnService from "./UserWebAuthnService";
 import UserSmsService from "./UserSmsService";
 import UserIncomingCallNumberService from "./UserIncomingCallNumberService";
@@ -497,6 +498,7 @@ const services: Array<BaseService> = [
   UserSlackService,
   UserMicrosoftTeamsService,
   UserTotpAuthService,
+  UserTwoFactorBackupCodeService,
   UserWebAuthnService,
 
   WorkflowLogService,

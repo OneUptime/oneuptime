@@ -542,11 +542,11 @@ import { RemoveLlmCostBudgetAlertColumns1788500000000 } from "./1788500000000-Re
 import { AddDetectionRuleIncidentColumns1788600000000 } from "./1788600000000-AddDetectionRuleIncidentColumns";
 import { RemoveMarketingConversionUploadState1788700000000 } from "./1788700000000-RemoveMarketingConversionUploadState";
 import { DropMarketingConversionAddEnterpriseLicenseEmail1788800000000 } from "./1788800000000-DropMarketingConversionAddEnterpriseLicenseEmail";
-import { RedactStoredMonitorIngestSecrets1788900000000 } from "./1788900000000-RedactStoredMonitorIngestSecrets";
 import { AddUserSlackAndMicrosoftTeams1789000000000 } from "./1789000000000-AddUserSlackAndMicrosoftTeams";
 import { AddNetworkDeviceAutoImportRule1789100000000 } from "./1789100000000-AddNetworkDeviceAutoImportRule";
 import { AddSysObjectIdPatternToAutoImportRule1789200000000 } from "./1789200000000-AddSysObjectIdPatternToAutoImportRule";
 import { AddAutoApplyVendorHealthTemplate1789300000000 } from "./1789300000000-AddAutoApplyVendorHealthTemplate";
+import { AddUserTwoFactorBackupCode1789100000000 } from "./1789100000000-AddUserTwoFactorBackupCode";
 import { MigrationName1787142779538 } from "./1787142779538-MigrationName";
 import { MigrationName1787156982416 } from "./1787156982416-MigrationName";
 
@@ -1097,9 +1097,9 @@ export default [
   AddDetectionRuleIncidentColumns1788600000000,
   RemoveMarketingConversionUploadState1788700000000,
   DropMarketingConversionAddEnterpriseLicenseEmail1788800000000,
-  RedactStoredMonitorIngestSecrets1788900000000,
   AddUserSlackAndMicrosoftTeams1789000000000,
   AddNetworkDeviceAutoImportRule1789100000000,
   AddSysObjectIdPatternToAutoImportRule1789200000000,
   AddAutoApplyVendorHealthTemplate1789300000000,
+  AddUserTwoFactorBackupCode1789100000000,
 ];

@@ -184,6 +184,7 @@
       "emailVerifiedLabel": "Эл. почта подтверждена",
       "twoFactorLabel": "Двухфакторная аутентификация включена",
       "twoFactorMethodCountLabel": "Подтверждённые методы двухфакторной аутентификации",
+      "backupCodeCountLabel": "Неиспользованные резервные коды",
       "twoFactorStatusNotEnabled": "Не включена",
       "twoFactorStatusPendingSetup": "Включена — ожидает настройки",
       "twoFactorStatusConfigured": "Включена — настроена",
