@@ -19,7 +19,7 @@ export class Service extends DatabaseService<OnCallDutyPolicyFeed> {
     super(OnCallDutyPolicyFeed);
 
     if (IsBillingEnabled) {
-      this.hardDeleteItemsOlderThanInDays("createdAt", 90);
+      this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
   }
 
