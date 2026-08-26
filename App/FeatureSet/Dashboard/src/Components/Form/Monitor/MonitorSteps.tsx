@@ -30,6 +30,10 @@ import ProbeUtil from "../../../Utils/Probe";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ProjectUser from "../../../Utils/ProjectUser";
 import ProjectUtil from "Common/UI/Utils/Project";
+import MonitorCriteriaAlignmentUtil, {
+  CriteriaSeedIds,
+  MonitorStepsAlignmentResult,
+} from "../../../Utils/Form/Monitor/MonitorCriteriaAlignment";
 
 export interface ComponentProps extends CustomElementProps {
   error?: string | undefined;
@@ -89,6 +93,20 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string>();
+
+  /*
+   * The status and severity ids the criteria were (or would have been)
+   * seeded with. Held in a ref rather than state because the effect that
+   * re-seeds criteria after a monitor type change needs them in the same
+   * tick they are fetched.
+   */
+  const criteriaSeedIdsRef: React.MutableRefObject<
+    CriteriaSeedIds | undefined
+  > = React.useRef<CriteriaSeedIds | undefined>(undefined);
+
+  // The monitor type the criteria currently on screen have been aligned to.
+  const alignedMonitorTypeRef: React.MutableRefObject<MonitorType | undefined> =
+    React.useRef<MonitorType | undefined>(undefined);
 
   useEffect(() => {
     setError(props.error);
@@ -328,6 +346,41 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         );
       }
 
+      const operationalMonitorStatusId: ObjectID | undefined =
+        monitorStatusList.data.find((i: MonitorStatus) => {
+          return i.isOperationalState;
+        })?.id || undefined;
+
+      const offlineStatusId: ObjectID | undefined =
+        monitorStatusList.data.find((i: MonitorStatus) => {
+          return i.isOfflineState;
+        })?.id || undefined;
+
+      const incidentSeverityId: ObjectID | undefined =
+        incidentSeverityList.data[0]?.id || undefined;
+
+      const alertSeverityId: ObjectID | undefined =
+        alertSeverityList.data[0]?.id || undefined;
+
+      /*
+       * Remember what the out-of-the-box criteria for a monitor type would
+       * be seeded with, so the alignment effect below can tell criteria the
+       * user has edited from criteria that are still untouched defaults.
+       */
+      if (
+        operationalMonitorStatusId &&
+        offlineStatusId &&
+        incidentSeverityId &&
+        alertSeverityId
+      ) {
+        criteriaSeedIdsRef.current = {
+          onlineMonitorStatusId: operationalMonitorStatusId,
+          offlineMonitorStatusId: offlineStatusId,
+          defaultIncidentSeverityId: incidentSeverityId,
+          defaultAlertSeverityId: alertSeverityId,
+        };
+      }
+
       // if there is no initial value then....
 
       if (!monitorSteps) {
@@ -335,23 +388,11 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           MonitorSteps.getDefaultMonitorSteps({
             monitorType: props.monitorType,
             monitorName: props.monitorName || "",
-            defaultMonitorStatusId: monitorStatusList.data.find(
-              (i: MonitorStatus) => {
-                return i.isOperationalState;
-              },
-            )!.id!,
-            onlineMonitorStatusId: monitorStatusList.data.find(
-              (i: MonitorStatus) => {
-                return i.isOperationalState;
-              },
-            )!.id!,
-            offlineMonitorStatusId: monitorStatusList.data.find(
-              (i: MonitorStatus) => {
-                return i.isOfflineState;
-              },
-            )!.id!,
-            defaultIncidentSeverityId: incidentSeverityList.data[0]!.id!,
-            defaultAlertSeverityId: alertSeverityList.data[0]!.id!,
+            defaultMonitorStatusId: operationalMonitorStatusId!,
+            onlineMonitorStatusId: operationalMonitorStatusId!,
+            offlineMonitorStatusId: offlineStatusId!,
+            defaultIncidentSeverityId: incidentSeverityId!,
+            defaultAlertSeverityId: alertSeverityId!,
           }),
         );
       }
@@ -381,6 +422,50 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
       props.onBlur();
     }
   }, [monitorSteps]);
+
+  /*
+   * Monitor type is picked on an earlier step of the create form than the
+   * criteria are, and the criteria step's fields are unmounted while the
+   * user is on another step. So the criteria handed back to us can have
+   * been seeded for a monitor type the user has since changed their mind
+   * about: their filters name checks the new type does not offer, and the
+   * "Filter Type" dropdown renders an empty "Select..." over a rule the
+   * server would never match.
+   *
+   * Bring them back in line with the monitor type - re-seeding criteria
+   * that are still untouched defaults, and repairing only the unusable
+   * filters of criteria the user has edited. Criteria that already suit
+   * the monitor type come back untouched, so this is a no-op on the
+   * ordinary path (including opening an existing monitor's criteria).
+   */
+  useEffect(() => {
+    const criteriaSeedIds: CriteriaSeedIds | undefined =
+      criteriaSeedIdsRef.current;
+
+    if (isLoading || !monitorSteps || !criteriaSeedIds) {
+      return;
+    }
+
+    if (alignedMonitorTypeRef.current === props.monitorType) {
+      return;
+    }
+
+    alignedMonitorTypeRef.current = props.monitorType;
+
+    const result: MonitorStepsAlignmentResult =
+      MonitorCriteriaAlignmentUtil.alignMonitorStepsWithMonitorType({
+        monitorSteps: monitorSteps,
+        monitorType: props.monitorType,
+        seedOptions: {
+          ...criteriaSeedIds,
+          monitorName: props.monitorName || "",
+        },
+      });
+
+    if (result.didChange) {
+      setMonitorSteps(result.monitorSteps);
+    }
+  }, [props.monitorType, isLoading, monitorSteps]);
 
   if (isLoading) {
     return <ComponentLoader></ComponentLoader>;

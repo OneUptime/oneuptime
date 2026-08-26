@@ -1150,6 +1150,76 @@ export default class CriteriaFilterUtil {
     return criteriaFilter;
   }
 
+  /*
+   * Bring a filter that was written against one monitor type back to
+   * something the criteria form for `monitorType` can actually draw, or
+   * report that it cannot be brought back at all.
+   *
+   * Monitor type and criteria live on different steps of the create form,
+   * so a user can seed criteria for a Website, walk back a step, and pick
+   * External Status Page instead. The filters they already have then name
+   * checks the new type never offers, and both dropdowns render react-
+   * select's empty "Select..." placeholder over a rule the server would
+   * never match.
+   *
+   * Repair the smallest thing that is broken:
+   *
+   *   - check still offered, condition still offered: leave the filter
+   *     alone entirely, down to object identity, so callers can tell
+   *     "nothing to do" from "repaired" without a deep compare.
+   *   - check still offered, condition no longer is: keep the check and
+   *     the value the user typed and move the condition to that check's
+   *     default. Only reachable for filters stored before a check's
+   *     condition list was corrected, and the check still pins what the
+   *     rule means, so the meaning survives.
+   *   - check no longer offered: return null. The rule cannot be
+   *     expressed for this monitor type at all, and the caller has to
+   *     decide what to put in its place.
+   *
+   * Returning null rather than this monitor type's default filter is the
+   * whole point. That default is a positive, immediately-firing rule
+   * ("is online / True"), so substituting it in place of, say, "is online
+   * is False" INVERTS the rule while leaving the criteria's name, its
+   * "create incident" flag and its offline monitor status untouched - a
+   * criteria that used to fire when the target was down would fire while
+   * it was healthy, and open an incident saying it was offline. A stale
+   * filter at least failed safe by never matching; a fabricated one does
+   * not. Deciding a replacement needs the whole criteria for context, so
+   * that decision belongs to the caller, not here.
+   */
+  public static repairCriteriaFilterForMonitorType(data: {
+    criteriaFilter: CriteriaFilter;
+    monitorType: MonitorType;
+  }): CriteriaFilter | null {
+    const { criteriaFilter, monitorType } = data;
+
+    const isCheckOnOffered: boolean =
+      CriteriaFilterUtil.getCheckOnOptionsByMonitorType(monitorType).some(
+        (option: DropdownOption) => {
+          return option.value === criteriaFilter.checkOn;
+        },
+      );
+
+    if (!isCheckOnOffered) {
+      return null;
+    }
+
+    const filterType: FilterType | undefined =
+      CriteriaFilterUtil.getFilterTypeOrDefault({
+        checkOn: criteriaFilter.checkOn,
+        filterType: criteriaFilter.filterType,
+      });
+
+    if (filterType === criteriaFilter.filterType) {
+      return criteriaFilter;
+    }
+
+    return {
+      ...criteriaFilter,
+      filterType: filterType,
+    };
+  }
+
   public static isDropdownValueField(data: {
     checkOn?: CheckOn | undefined;
   }): boolean {
