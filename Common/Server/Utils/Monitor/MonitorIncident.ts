@@ -196,24 +196,15 @@ export default class MonitorIncident {
         continue;
       }
 
-      const createdCriteriaId: string | undefined =
-        openIncident.createdCriteriaId?.toString();
-      const createdIncidentTemplateId: string | undefined =
-        openIncident.createdIncidentTemplateId?.toString();
-
       // Only auto-resolve when the creating criteria opted into it.
-      if (!createdCriteriaId || !createdIncidentTemplateId) {
-        continue;
-      }
-
-      const autoResolveTemplates: Array<string> | undefined =
-        input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-          createdCriteriaId
-        ];
-
       if (
-        !autoResolveTemplates ||
-        !autoResolveTemplates.includes(createdIncidentTemplateId)
+        !this.isAutoResolveIncidentTemplate({
+          autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+            input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+          createdCriteriaId: openIncident.createdCriteriaId?.toString(),
+          createdIncidentTemplateId:
+            openIncident.createdIncidentTemplateId?.toString(),
+        })
       ) {
         continue;
       }
@@ -929,6 +920,56 @@ export default class MonitorIncident {
     }
   }
 
+  /**
+   * True when the criteria that created this incident opted that incident
+   * template into auto-resolve.
+   *
+   * Mirrors the create path (and the dedupe match above), which sets
+   * `createdIncidentTemplateId` only when the criteria's incident template
+   * carries an `id`. API- and Terraform-authored criteria routinely omit it
+   * and the write path accepts them, so the stored id is NULL for those
+   * incidents while the auto-resolve dictionary holds a matching `undefined`
+   * entry (MonitorResource pushes `incidentTemplate.id` verbatim). Gating
+   * hard on a non-empty id therefore made those incidents unresolvable
+   * forever, by payload or by absence, with nothing logged to say why.
+   *
+   * Normalising both sides to `undefined` lets them resolve while staying
+   * exact: an incident whose template id is NULL matches only an id-less
+   * auto-resolve template on the same criteria, never an unrelated one that
+   * does carry an id.
+   */
+  private static isAutoResolveIncidentTemplate(input: {
+    autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
+      Array<string>
+    >;
+    createdCriteriaId: string | undefined;
+    createdIncidentTemplateId: string | undefined;
+  }): boolean {
+    if (!input.createdCriteriaId) {
+      return false;
+    }
+
+    const autoResolveTemplateIds: Array<string> | undefined =
+      input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
+        input.createdCriteriaId
+      ];
+
+    if (!autoResolveTemplateIds) {
+      return false;
+    }
+
+    const createdIncidentTemplateId: string | undefined =
+      input.createdIncidentTemplateId || undefined;
+
+    return autoResolveTemplateIds.some(
+      (autoResolveTemplateId: string | undefined) => {
+        return (
+          (autoResolveTemplateId || undefined) === createdIncidentTemplateId
+        );
+      },
+    );
+  }
+
   private static shouldCloseIncident(input: {
     openIncident: Incident;
     autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
@@ -996,29 +1037,13 @@ export default class MonitorIncident {
        * was configured to auto-resolve in the first place; otherwise
        * stay open so a human can acknowledge.
        */
-      if (!input.openIncident.createdCriteriaId?.toString()) {
-        return false;
-      }
-
-      if (!input.openIncident.createdIncidentTemplateId?.toString()) {
-        return false;
-      }
-
-      const autoResolveTemplates: Array<string> | undefined =
-        input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-          input.openIncident.createdCriteriaId.toString()
-        ];
-
-      if (
-        autoResolveTemplates &&
-        autoResolveTemplates.includes(
-          input.openIncident.createdIncidentTemplateId.toString(),
-        )
-      ) {
-        return true;
-      }
-
-      return false;
+      return this.isAutoResolveIncidentTemplate({
+        autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+          input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+        createdCriteriaId: input.openIncident.createdCriteriaId?.toString(),
+        createdIncidentTemplateId:
+          input.openIncident.createdIncidentTemplateId?.toString(),
+      });
     }
 
     if (
@@ -1031,28 +1056,12 @@ export default class MonitorIncident {
 
     // If antoher criteria is active then, check if the incident id is present in the map.
 
-    if (!input.openIncident.createdCriteriaId?.toString()) {
-      return false;
-    }
-
-    if (!input.openIncident.createdIncidentTemplateId?.toString()) {
-      return false;
-    }
-
-    if (
-      input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-        input.openIncident.createdCriteriaId?.toString()
-      ]
-    ) {
-      if (
-        input.autoResolveCriteriaInstanceIdIncidentIdsDictionary[
-          input.openIncident.createdCriteriaId?.toString()
-        ]?.includes(input.openIncident.createdIncidentTemplateId?.toString())
-      ) {
-        return true;
-      }
-    }
-
-    return false;
+    return this.isAutoResolveIncidentTemplate({
+      autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+        input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+      createdCriteriaId: input.openIncident.createdCriteriaId?.toString(),
+      createdIncidentTemplateId:
+        input.openIncident.createdIncidentTemplateId?.toString(),
+    });
   }
 }
