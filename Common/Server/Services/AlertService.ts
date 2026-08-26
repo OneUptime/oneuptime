@@ -1,3 +1,4 @@
+import ArrayUtil from "../../Utils/Array";
 import DatabaseConfig from "../DatabaseConfig";
 import MeasurementMetricWriter from "../Utils/Measurement/MeasurementMetricWriter";
 import AlertMeasurementService from "./AlertMeasurementService";
@@ -1155,6 +1156,16 @@ ${alert.remediationNotes || "No remediation notes provided."}
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
   ): Promise<void> {
+    /*
+     * The same id can arrive twice in one call: criteria incident templates,
+     * owner rule-engine results and workflow inputs are all user-authored
+     * lists. An owner row is unique per (resource, owner, project), so the
+     * repeat would be rejected on its own insert and abort the rest of the
+     * call, silently dropping every owner after it. Collapse them first.
+     */
+    userIds = ArrayUtil.removeDuplicatesFromObjectIDArray(userIds);
+    teamIds = ArrayUtil.removeDuplicatesFromObjectIDArray(teamIds);
+
     for (let teamId of teamIds) {
       if (typeof teamId === Typeof.String) {
         teamId = new ObjectID(teamId.toString());
