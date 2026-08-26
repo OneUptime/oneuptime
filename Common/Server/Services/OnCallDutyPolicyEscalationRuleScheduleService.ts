@@ -31,6 +31,48 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  /**
+   * Re-resolve and persist the schedule's roster after it is attached to, or
+   * detached from, an on-call policy.
+   *
+   * The persisted roster columns are derived state, and one of their inputs is
+   * WHICH policies escalate to the schedule: a schedule attached to exactly one
+   * policy is resolved in that policy's context, so its policy-scoped user
+   * overrides count, and a schedule attached to none or to several is resolved
+   * policy-blind (OnCallDutyPolicyScheduleService.getSingleAttachedPolicyId).
+   * Attaching or detaching therefore changes the correct answer, and every other
+   * input — layers, layer users, overrides — already refreshes on change.
+   *
+   * Without this the roster stayed on the pre-attach answer until the next
+   * natural hand-off, so the schedule page's "X is currently on the roster"
+   * banner and the "On Call Now" column named the originally-scheduled user for
+   * the whole override window while alert routing paged the substitute.
+   * https://github.com/OneUptime/oneuptime/issues/3411
+   *
+   * Best-effort: an attach must not fail because a roster could not be
+   * recomputed, and the refresh is idempotent (an unaffected schedule simply
+   * resolves to the same roster and diffs to "no change", so no duplicate
+   * hand-off notification is sent).
+   */
+  private async refreshScheduleRoster(
+    onCallDutyPolicyScheduleId: ObjectID | null | undefined,
+  ): Promise<void> {
+    if (!onCallDutyPolicyScheduleId) {
+      return;
+    }
+
+    try {
+      await OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule(
+        onCallDutyPolicyScheduleId,
+      );
+    } catch (err) {
+      logger.error(
+        "Error refreshing the roster after an on-call schedule was attached to or detached from a policy (best-effort).",
+      );
+      logger.error(err);
+    }
+  }
+
   protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,
@@ -74,6 +116,12 @@ export class Service extends DatabaseService<Model> {
         "Created item does not have a onCallDutyPolicyScheduleId",
       );
     }
+
+    /*
+     * Bring the persisted roster in line with the new policy attachment before
+     * anything below can return early. See refreshScheduleRoster.
+     */
+    await this.refreshScheduleRoster(createdModel.onCallDutyPolicyScheduleId);
 
     // send notification to the new current user.
 
@@ -323,6 +371,23 @@ export class Service extends DatabaseService<Model> {
     _itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
     const deletedItems: Array<Model> = onDelete.carryForward.deletedItems;
+
+    /*
+     * Detaching changes the schedule's policy context just as attaching does, so
+     * its roster has to be re-resolved here too. Deduped by schedule: removing a
+     * schedule from several escalation rules of one policy is one context
+     * change, not several. See refreshScheduleRoster.
+     */
+    const refreshedScheduleIds: Set<string> = new Set<string>();
+    for (const deletedItem of deletedItems) {
+      const scheduleId: string | undefined =
+        deletedItem.onCallDutyPolicyScheduleId?.toString();
+      if (!scheduleId || refreshedScheduleIds.has(scheduleId)) {
+        continue;
+      }
+      refreshedScheduleIds.add(scheduleId);
+      await this.refreshScheduleRoster(deletedItem.onCallDutyPolicyScheduleId);
+    }
 
     for (const deletedItem of deletedItems) {
       const userOnSchedule: ObjectID | null =

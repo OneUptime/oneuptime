@@ -1,6 +1,7 @@
 import LayerConfigForm from "./LayerConfigForm";
 import LayerRotationSummary from "./LayerRotationSummary";
 import { getLayerPreviewEvents, LayerPreviewResult } from "./LayerShiftPreview";
+import { OverrideUserInfo } from "./ScheduleOverrides";
 import LayerUser from "./LayerUser";
 import { getColorForUserId, getUserInitials } from "./LayerUserColors";
 import {
@@ -9,10 +10,12 @@ import {
   summarizeRotation,
 } from "./LayerSummary";
 import IconProp from "Common/Types/Icon/IconProp";
+import Dictionary from "Common/Types/Dictionary";
 import ScheduleShiftUtil, {
   CurrentAndNextShift,
   OnCallShift,
 } from "Common/Types/OnCallDutyPolicy/ScheduleShiftUtil";
+import { UserOverrideRecord } from "Common/Types/OnCallDutyPolicy/UserOverrideUtil";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
@@ -28,6 +31,16 @@ export interface ComponentProps {
   index: number;
   total: number;
   isExpanded: boolean;
+  /*
+   * The user overrides in force for this schedule, already scoped to the right
+   * policy by the parent (see ./ScheduleOverrides). Applied to this layer's
+   * rotation so "on call now" names whoever is actually covering.
+   */
+  overrides: Array<UserOverrideRecord>;
+  // The policy whose scoped overrides apply, or "" when policy-agnostic.
+  overridePolicyContextId: string;
+  // Display info for substitute users, who are by definition not on this layer.
+  overrideUserInfo: Dictionary<OverrideUserInfo>;
   /*
    * Disables delete + reorder while any layer mutation is in flight, so
    * concurrent add / delete / reorder cannot interleave and corrupt ordering.
@@ -90,6 +103,23 @@ const LayerCard: FunctionComponent<ComponentProps> = (
       })
       .join(","),
     props.timezone || "",
+    /*
+     * Overrides belong in the key: without them, creating or editing a shift
+     * override would leave this card memoized on the un-substituted rotation
+     * and it would keep naming the wrong person until an unrelated re-render.
+     */
+    props.overrides
+      .map((override: UserOverrideRecord) => {
+        return [
+          override.overrideUserId,
+          override.routeAlertsToUserId,
+          override.startsAt?.toString() || "",
+          override.endsAt?.toString() || "",
+          override.onCallDutyPolicyId || "",
+        ].join(">");
+      })
+      .join(";"),
+    props.overridePolicyContextId,
   ].join("|");
 
   const preview: LayerPreviewResult = useMemo(() => {
@@ -98,6 +128,8 @@ const LayerCard: FunctionComponent<ComponentProps> = (
       users: props.users,
       timezone: props.timezone,
       numberOfShifts: 6,
+      overrides: props.overrides,
+      currentOnCallDutyPolicyId: props.overridePolicyContextId || undefined,
     });
   }, [previewKey]);
 
@@ -121,6 +153,36 @@ const LayerCard: FunctionComponent<ComponentProps> = (
         "Unknown user";
     }
   }
+
+  /*
+   * A substitute is by construction NOT assigned to this layer, so the loop
+   * above cannot name them. Without this the card would replace the wrong name
+   * with no name at all during an override — "Unknown user on call now".
+   */
+  for (const userId in props.overrideUserInfo) {
+    const info: OverrideUserInfo | undefined = props.overrideUserInfo[userId];
+    if (!info || nameById[userId]) {
+      continue;
+    }
+    nameById[userId] = info.name || info.email || "Unknown user";
+  }
+
+  /*
+   * True when the person on call right now got there through an override rather
+   * than through this layer's rotation. Drives the "covering" tag: seeing a name
+   * that is not in the layer's user list, with no explanation, reads as a bug.
+   */
+  const layerUserIds: Set<string> = new Set<string>(
+    props.users
+      .map((layerUser: OnCallDutyPolicyScheduleLayerUser) => {
+        return layerUser.user?.id?.toString() || "";
+      })
+      .filter(Boolean),
+  );
+
+  const isCurrentUserSubstitute: boolean = Boolean(
+    currentAndNext.current && !layerUserIds.has(currentAndNext.current.userId),
+  );
 
   const userCount: number = props.users.length;
   const shownUsers: Array<OnCallDutyPolicyScheduleLayerUser> =
@@ -287,6 +349,11 @@ const LayerCard: FunctionComponent<ComponentProps> = (
                   {nameById[currentAndNext.current.userId] || "Unknown user"}
                 </span>{" "}
                 on call now
+                {isCurrentUserSubstitute && (
+                  <span className="ml-1 font-medium text-indigo-600">
+                    (covering via override)
+                  </span>
+                )}
               </span>
             ) : (
               <span className="text-amber-700">
@@ -383,6 +450,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
                  * layer, where the off-hours are a genuine coverage hole.
                  */
                 hasLowerPriorityLayer={props.index < props.total - 1}
+                overrideUserInfo={props.overrideUserInfo}
               />
             </div>
           ) : (

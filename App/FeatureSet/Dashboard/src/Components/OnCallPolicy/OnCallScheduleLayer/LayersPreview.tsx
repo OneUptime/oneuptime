@@ -18,19 +18,17 @@ import UserOverrideUtil, {
 } from "Common/Types/OnCallDutyPolicy/UserOverrideUtil";
 import StartAndEndTime from "Common/Types/Time/StartAndEndTime";
 import { VoidFunction } from "Common/Types/FunctionTypes";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
-import IsNull from "Common/Types/BaseDatabase/IsNull";
-import LessThanOrEqual from "Common/Types/BaseDatabase/LessThanOrEqual";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import ObjectID from "Common/Types/ObjectID";
 import Calendar from "Common/UI/Components/Calendar/Calendar";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ProjectUtil from "Common/UI/Utils/Project";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
-import OnCallDutyPolicyUserOverride from "Common/Models/DatabaseModels/OnCallDutyPolicyUserOverride";
 import User from "Common/Models/DatabaseModels/User";
+import {
+  PolicyContextState,
+  ScheduleOverrideResolution,
+  useScheduleUserOverrides,
+} from "./ScheduleOverrides";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -58,6 +56,13 @@ export interface ComponentProps {
    * windows in that zone so it matches how the server pages people.
    */
   timezone?: string | undefined;
+  /*
+   * The schedule being previewed. Used to discover which on-call policy (if
+   * exactly one) escalates to it, so the preview applies the same set of user
+   * overrides the server does. Omit it and the preview falls back to global
+   * overrides only. See POLICY_CONTEXT below.
+   */
+  onCallDutyPolicyScheduleId?: ObjectID | undefined;
 }
 
 interface UserInfo {
@@ -172,14 +177,6 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     );
   }, [props.timezone]);
 
-  const [overrides, setOverrides] = useState<
-    Array<OnCallDutyPolicyUserOverride>
-  >([]);
-
-  const [overrideUserInfo, setOverrideUserInfo] = useState<
-    Dictionary<UserInfo>
-  >({});
-
   const scheduleUsersById: Dictionary<UserInfo> = useMemo(() => {
     const map: Dictionary<UserInfo> = {};
     for (const key in props.allLayerUsers) {
@@ -204,119 +201,44 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
   }, [scheduleUsersById]);
 
   /*
-   * Fetch user overrides that touch this calendar window and apply to any
-   * user already present in this schedule. Refetches when the range changes.
+   * The overrides in force for this schedule, resolved exactly the way the
+   * server resolves them for routing and for the persisted roster. See
+   * ./ScheduleOverrides.
    *
-   * The schedule preview has no policy context (a schedule can be referenced
-   * by many policies via escalation rules), so only global overrides are
-   * shown here. Policy-scoped overrides are intentionally excluded — surfacing
-   * them in a policy-less view would misrepresent how they actually apply
-   * during alert dispatch.
+   * The fetch window spans BOTH the visible calendar range and the summary's
+   * forward coverage window, so a substitution that lands weeks ahead reaches
+   * the "upcoming hand-offs" list too, instead of appearing only once the user
+   * navigates the calendar to that week — which used to make the summary
+   * contradict the grid directly beneath it.
+   *
+   * Deliberately memoized on the calendar range and NOT on `now`: `now` ticks
+   * every 30 seconds, and keying the window to it would refetch the override
+   * list twice a minute for a window that has barely moved.
    */
-  useEffect(() => {
-    const projectId: string =
-      ProjectUtil.getCurrentProjectId()?.toString() || "";
-    if (!projectId || scheduleUserIds.size === 0) {
-      setOverrides([]);
-      setOverrideUserInfo({});
-      return;
-    }
+  const overrideWindow: { start: Date; end: Date } = useMemo(() => {
+    const windowNow: Date = OneUptimeDate.getCurrentDate();
+    const coverageEnd: Date = getCoverageWindowEnd(windowNow);
 
-    let isCancelled: boolean = false;
-
-    /*
-     * Fetch overrides overlapping BOTH the visible calendar range AND the
-     * summary's forward coverage window. Widening it to the summary window means
-     * a substitution that lands weeks ahead is applied to the "upcoming
-     * hand-offs" summary too, instead of only appearing once the user navigates
-     * the calendar to that week (which previously made the summary contradict
-     * the calendar and the actual paging).
-     */
-    const summaryNow: Date = OneUptimeDate.getCurrentDate();
-    const summaryEnd: Date = getCoverageWindowEnd(summaryNow);
-    const fetchStart: Date = OneUptimeDate.isBefore(startTime, summaryNow)
-      ? startTime
-      : summaryNow;
-    const fetchEnd: Date = OneUptimeDate.isAfter(endTime, summaryEnd)
-      ? endTime
-      : summaryEnd;
-
-    const fetchOverrides: () => Promise<void> = async (): Promise<void> => {
-      try {
-        const result: ListResult<OnCallDutyPolicyUserOverride> =
-          await ModelAPI.getList<OnCallDutyPolicyUserOverride>({
-            modelType: OnCallDutyPolicyUserOverride,
-            query: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-              startsAt: new LessThanOrEqual<Date>(fetchEnd),
-              endsAt: new GreaterThanOrEqual<Date>(fetchStart),
-              onCallDutyPolicyId: new IsNull(),
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: {
-              startsAt: true,
-              endsAt: true,
-              overrideUserId: true,
-              routeAlertsToUserId: true,
-              onCallDutyPolicyId: true,
-              overrideUser: {
-                name: true,
-                email: true,
-              },
-              routeAlertsToUser: {
-                name: true,
-                email: true,
-              },
-            },
-            sort: {
-              startsAt: SortOrder.Ascending,
-            },
-          });
-
-        if (isCancelled) {
-          return;
-        }
-
-        const filtered: Array<OnCallDutyPolicyUserOverride> =
-          result.data.filter((o: OnCallDutyPolicyUserOverride) => {
-            return scheduleUserIds.has(o.overrideUserId?.toString() || "");
-          });
-
-        const userMap: Dictionary<UserInfo> = {};
-        for (const o of filtered) {
-          const overrideId: string = o.overrideUserId?.toString() || "";
-          const routeId: string = o.routeAlertsToUserId?.toString() || "";
-          if (overrideId && o.overrideUser && !userMap[overrideId]) {
-            userMap[overrideId] = {
-              name: o.overrideUser.name?.toString() || "",
-              email: o.overrideUser.email?.toString() || "",
-            };
-          }
-          if (routeId && o.routeAlertsToUser && !userMap[routeId]) {
-            userMap[routeId] = {
-              name: o.routeAlertsToUser.name?.toString() || "",
-              email: o.routeAlertsToUser.email?.toString() || "",
-            };
-          }
-        }
-
-        setOverrides(filtered);
-        setOverrideUserInfo(userMap);
-      } catch {
-        if (!isCancelled) {
-          setOverrides([]);
-          setOverrideUserInfo({});
-        }
-      }
+    return {
+      start: OneUptimeDate.isBefore(startTime, windowNow)
+        ? startTime
+        : windowNow,
+      end: OneUptimeDate.isAfter(endTime, coverageEnd) ? endTime : coverageEnd,
     };
+  }, [startTime, endTime]);
 
-    fetchOverrides();
+  const overrideResolution: ScheduleOverrideResolution =
+    useScheduleUserOverrides({
+      onCallDutyPolicyScheduleId: props.onCallDutyPolicyScheduleId,
+      scheduleUserIds,
+      windowStart: overrideWindow.start,
+      windowEnd: overrideWindow.end,
+    });
 
-    return () => {
-      isCancelled = true;
-    };
-  }, [startTime, endTime, scheduleUserIds]);
+  const overrideRecords: Array<UserOverrideRecord> = overrideResolution.records;
+  const overrideUserInfo: Dictionary<UserInfo> =
+    overrideResolution.userInfoById;
+  const policyContextIdString: string = overrideResolution.policyContextId;
 
   const uniqueUsers: Array<UserColorAssignment> = useMemo(() => {
     const seen: Set<string> = new Set<string>();
@@ -336,8 +258,8 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       });
     }
 
-    for (const o of overrides) {
-      const routeId: string = o.routeAlertsToUserId?.toString() || "";
+    for (const o of overrideRecords) {
+      const routeId: string = o.routeAlertsToUserId;
       if (!routeId || seen.has(routeId)) {
         continue;
       }
@@ -353,7 +275,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     }
 
     return result;
-  }, [scheduleUsersById, overrides, overrideUserInfo]);
+  }, [scheduleUsersById, overrideRecords, overrideUserInfo]);
 
   /*
    * Build the LayerProps array once from the current layers/users. Shared by
@@ -381,20 +303,6 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     }
     return layerProps;
   };
-
-  const overrideRecords: Array<UserOverrideRecord> = useMemo(() => {
-    return overrides.map(
-      (o: OnCallDutyPolicyUserOverride): UserOverrideRecord => {
-        return {
-          overrideUserId: o.overrideUserId?.toString() || "",
-          routeAlertsToUserId: o.routeAlertsToUserId?.toString() || "",
-          startsAt: o.startsAt!,
-          endsAt: o.endsAt!,
-          onCallDutyPolicyId: o.onCallDutyPolicyId?.toString() || null,
-        };
-      },
-    );
-  }, [overrides]);
 
   /*
    * The combined-schedule shifts for the summary. Computed over a fixed forward
@@ -425,6 +333,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       events = UserOverrideUtil.applyOverridesToEvents({
         events,
         overrides: overrideRecords,
+        currentOnCallDutyPolicyId: policyContextIdString || undefined,
       });
     }
 
@@ -474,6 +383,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       events = UserOverrideUtil.applyOverridesToEvents({
         events,
         overrides: overrideRecords,
+        currentOnCallDutyPolicyId: policyContextIdString || undefined,
       });
     }
 
@@ -602,7 +512,76 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       : `Viewing in ${viewAsTimezone}. This schedule is configured and paged in ${props.timezone}, so the times below are for your reference only.`
     : `Viewing in ${viewAsTimezone}. This schedule has no timezone set, so it is paged in the server's local time.`;
 
-  const hasActiveOverrides: boolean = overrides.length > 0;
+  const hasActiveOverrides: boolean = overrideRecords.length > 0;
+
+  /*
+   * Say which overrides this preview applied. Silence would be worse than the
+   * old (wrong) blanket caveat: a reader cannot tell a preview that applied
+   * every relevant override apart from one that applied none, and on a roster
+   * screen that difference is the difference between paging the right person
+   * and the wrong one.
+   */
+  const getOverrideScopeNote: () => ReactElement | null =
+    (): ReactElement | null => {
+      // Nothing to claim yet; a note now could contradict itself a beat later.
+      if (
+        overrideResolution.policyContextState === PolicyContextState.Resolving
+      ) {
+        return null;
+      }
+
+      const globalOnly: ReactElement = (
+        <>
+          Note: this preview reflects{" "}
+          <span className="font-medium">global</span> user overrides only.
+        </>
+      );
+
+      if (
+        overrideResolution.policyContextState ===
+        PolicyContextState.SinglePolicy
+      ) {
+        return (
+          <div className="mt-2 text-xs text-gray-500">
+            Note: this preview reflects{" "}
+            <span className="font-medium">global</span> user overrides and the
+            overrides scoped to the one on-call policy that escalates to this
+            schedule — the same set used to route alerts.
+          </div>
+        );
+      }
+
+      /*
+       * Attached to several policies. One preview cannot show divergent
+       * per-policy substitutions, and neither can the schedule's stored roster,
+       * which the server resolves policy-blind for exactly this reason.
+       */
+      if (overrideResolution.attachedPolicyCount > 1) {
+        return (
+          <div className="mt-2 text-xs text-gray-500">
+            {globalOnly} {overrideResolution.attachedPolicyCount} on-call
+            policies escalate to this schedule and each may scope its own
+            overrides, so the person actually paged by a given policy may
+            differ.
+          </div>
+        );
+      }
+
+      /*
+       * No schedule to resolve against - an unsaved schedule being configured -
+       * so no policy-scoped override can be attributed to it either way.
+       */
+      if (!props.onCallDutyPolicyScheduleId) {
+        return <div className="mt-2 text-xs text-gray-500">{globalOnly}</div>;
+      }
+
+      return (
+        <div className="mt-2 text-xs text-gray-500">
+          {globalOnly} No on-call policy escalates to this schedule yet, so
+          there are no policy-scoped overrides to apply.
+        </div>
+      );
+    };
 
   return (
     <div id={props.id}>
@@ -697,12 +676,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      <div className="mt-2 text-xs text-gray-500">
-        Note: this preview reflects <span className="font-medium">global</span>{" "}
-        user overrides only. Policy-specific overrides are applied when a
-        particular on-call policy escalates and are not shown here, so the
-        person actually paged by a given policy may differ.
-      </div>
+      {getOverrideScopeNote()}
 
       {/* View-as timezone bubble + note above the calendar grid. */}
       <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

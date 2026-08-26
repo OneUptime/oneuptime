@@ -553,10 +553,18 @@ export const QueryOnCallPoliciesTool: ObservabilityTool = {
  */
 
 /*
- * Roster fields are persisted on the schedule and refreshed every minute by
- * the RefreshHandoffTime worker (overrides included) — the same source the
- * dashboard's "On Call Now" column reads. Reading them costs one RBAC-checked
- * query instead of re-resolving schedule layers per request.
+ * Roster fields are persisted on the schedule and refreshed by the
+ * RefreshHandoffTime worker — the same source the dashboard's "On Call Now"
+ * column reads. Reading them costs one RBAC-checked query instead of
+ * re-resolving schedule layers per request.
+ *
+ * They include user overrides, with one documented limit: the roster is
+ * resolved in a policy's context only when the schedule is attached to exactly
+ * one on-call policy (OnCallDutyPolicyScheduleService.getSingleAttachedPolicyId).
+ * A schedule shared by two or more policies gets a policy-blind roster —
+ * global overrides only — because a single stored roster cannot represent
+ * divergent per-policy substitutions. Alert routing always resolves live with
+ * the escalating policy's id, so it is unaffected.
  */
 const scheduleRosterSelect: Select<OnCallDutyPolicySchedule> = {
   _id: true,

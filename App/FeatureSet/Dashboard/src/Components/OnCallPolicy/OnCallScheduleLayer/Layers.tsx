@@ -2,6 +2,10 @@ import { getCoverageWindowEnd } from "./CoverageWindow";
 import LayerCard from "./LayerCard";
 import { formatWindowSpan } from "./LayerSummary";
 import LayersPreview from "./LayersPreview";
+import {
+  ScheduleOverrideResolution,
+  useScheduleUserOverrides,
+} from "./ScheduleOverrides";
 import TimezoneSelectButton from "./TimezoneSelectButton";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -574,6 +578,64 @@ const Layers: FunctionComponent<ComponentProps> = (
   }, [layers, layerUsers, scheduleTimezone]);
 
   /*
+   * Every user on any layer of this schedule. Overrides for anyone else cannot
+   * affect what this page shows.
+   */
+  const scheduleUserIds: Set<string> = useMemo(() => {
+    const ids: Set<string> = new Set<string>();
+    for (const layerId in layerUsers) {
+      for (const layerUser of layerUsers[layerId] || []) {
+        const userId: string = layerUser.user?.id?.toString() || "";
+        if (userId) {
+          ids.add(userId);
+        }
+      }
+    }
+    return ids;
+  }, [layerUsers]);
+
+  /*
+   * The window the layer cards actually reason over: a little history so an
+   * in-progress turn keeps its true start, and the shared forward coverage
+   * window so an upcoming substitution reaches the shift table. Anchored once
+   * per layer/user change rather than to a ticking clock, so the override list
+   * is not refetched on every re-render.
+   *
+   * A rotation slower than the coverage window (an annual hand-off, say) can
+   * list turns beyond this window's end; a substitution that far out will not be
+   * reflected in those far-future rows. It is always reflected in the one row
+   * that can page somebody today — "on call now".
+   */
+  const overrideWindow: { start: Date; end: Date } = useMemo(() => {
+    const windowNow: Date = OneUptimeDate.getCurrentDate();
+    return {
+      start: OneUptimeDate.addRemoveDays(windowNow, -2),
+      end: getCoverageWindowEnd(windowNow),
+    };
+    /*
+     * The body reads neither dependency on purpose. They are here as a
+     * re-anchor signal: the window should move when the schedule's layers or
+     * users change (the cards are recomputed anyway), and NOT on every render,
+     * which is what keying it to the clock would do.
+     */
+  }, [layers, layerUsers]);
+
+  /*
+   * The overrides in force for this schedule, resolved the way the server does
+   * for routing (see ./ScheduleOverrides). Fed to every layer card so its "on
+   * call now" line and shift table name whoever is actually covering, instead of
+   * contradicting the final-schedule calendar at the bottom of this same page.
+   * https://github.com/OneUptime/oneuptime/issues/3411
+   */
+  const overrideResolution: ScheduleOverrideResolution =
+    useScheduleUserOverrides({
+      onCallDutyPolicyScheduleId: props.onCallDutyPolicyScheduleId,
+      scheduleUserIds,
+      windowStart: overrideWindow.start,
+      windowEnd: overrideWindow.end,
+    });
+
+  /*
    * A compact statement of the schedule's coverage, rendered above the layer
    * cards. Only rendered when there is something to act on — a fully-covered
    * schedule shows nothing, so the banner reads as an exception rather than as
@@ -782,6 +844,9 @@ const Layers: FunctionComponent<ComponentProps> = (
               layer={layer}
               users={layerUsers[layerId] || []}
               timezone={scheduleTimezone}
+              overrides={overrideResolution.records}
+              overridePolicyContextId={overrideResolution.policyContextId}
+              overrideUserInfo={overrideResolution.userInfoById}
               index={i}
               total={layers.length}
               isExpanded={expandedLayerIds.has(layerId)}
@@ -845,6 +910,7 @@ const Layers: FunctionComponent<ComponentProps> = (
             layers={layers}
             allLayerUsers={layerUsers}
             timezone={scheduleTimezone}
+            onCallDutyPolicyScheduleId={props.onCallDutyPolicyScheduleId}
           />
         </Card>
       </div>
