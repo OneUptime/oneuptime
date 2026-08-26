@@ -21,7 +21,8 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 /*
  * Every device assigned to this site — same status language as the main
  * device list (Up / Down / Pending, decided by the outcome of the last
- * SNMP poll rather than by how long ago it happened).
+ * SNMP poll rather than by how long ago it happened, or by the bound
+ * Monitor for a device nothing polls).
  */
 const NetworkSiteDevices: FunctionComponent<
   PageComponentProps
@@ -78,13 +79,25 @@ const NetworkSiteDevices: FunctionComponent<
               const reachability: DeviceReachabilityResult =
                 DeviceStatusUtil.getReachability(item);
 
+              /*
+               * Same verdict either way, but never the same sentence: a
+               * device nothing polls has no "last SNMP poll" to talk
+               * about, and telling its operator to go and check a probe it
+               * does not have is how a real ping outage gets missed.
+               */
+              const isMonitorBacked: boolean = reachability.isMonitorBacked;
+
               if (reachability.status === NetworkDeviceStatus.Up) {
                 return (
                   <Pill
                     text="Up"
                     color={Green}
                     size={PillSize.Small}
-                    tooltip="The last SNMP poll reached this device."
+                    tooltip={
+                      isMonitorBacked
+                        ? "The monitor bound to this device reports it healthy."
+                        : "The last SNMP poll reached this device."
+                    }
                   />
                 );
               }
@@ -95,7 +108,11 @@ const NetworkSiteDevices: FunctionComponent<
                     text="Down"
                     color={Red500}
                     size={PillSize.Small}
-                    tooltip="The last SNMP poll could not reach this device."
+                    tooltip={
+                      isMonitorBacked
+                        ? "The monitor bound to this device reports it offline."
+                        : "The last SNMP poll could not reach this device."
+                    }
                   />
                 );
               }
@@ -105,7 +122,11 @@ const NetworkSiteDevices: FunctionComponent<
                   text="Pending"
                   color={Gray500}
                   size={PillSize.Small}
-                  tooltip="This device has not been polled yet."
+                  tooltip={
+                    isMonitorBacked
+                      ? "No monitor is bound to this device yet, or the one that is has not reported a status."
+                      : "This device has not been polled yet."
+                  }
                 />
               );
             },

@@ -62,6 +62,21 @@ const DOWN: Partial<OverviewDeviceRow> = unreachable(1, 20);
 // Failed its last poll a minute ago; has not answered for hours.
 const LONGER_DOWN: Partial<OverviewDeviceRow> = unreachable(1, 300);
 
+/*
+ * A ping-only device: nothing polls it, so every poll column is NULL and
+ * only the bound monitor knows anything (issue #3392). The page selects
+ * both of these columns for exactly this reason.
+ */
+function monitorBacked(
+  isOffline: boolean | undefined,
+): Partial<OverviewDeviceRow> {
+  return {
+    monitoringMethod: "Monitor",
+    currentMonitorStatus:
+      isOffline === undefined ? undefined : { isOfflineState: isOffline },
+  };
+}
+
 beforeEach(() => {
   jest.useFakeTimers({
     doNotFake: [
@@ -111,6 +126,31 @@ describe("summarizeDeviceFleet", () => {
       up: 0,
       down: 0,
       pending: 0,
+      interfacesDown: 0,
+    });
+  });
+
+  /*
+   * A mixed estate — switches walked over SNMP alongside the IP phones and
+   * access points that cannot be. Before #3392 every one of the latter
+   * counted as Pending here while the device list beside it rendered the
+   * monitor's real status, so the strip and the table disagreed about the
+   * same fleet.
+   */
+  test("counts monitor-backed devices by their monitor, not as pending", () => {
+    const devices: Array<OverviewDeviceRow> = [
+      { _id: "switch", ...HEALTHY },
+      { _id: "phone", ...monitorBacked(false) },
+      { _id: "camera", ...monitorBacked(true) },
+      // Imported by a discovery sweep, nothing bound to it yet.
+      { _id: "unbound-ap", ...monitorBacked(undefined) },
+    ];
+
+    expect(summarizeDeviceFleet(devices)).toEqual({
+      total: 4,
+      up: 2,
+      down: 1,
+      pending: 1,
       interfacesDown: 0,
     });
   });
@@ -172,6 +212,28 @@ describe("pickDevicesNeedingAttention", () => {
     ];
 
     expect(pickDevicesNeedingAttention(devices, 2)).toHaveLength(2);
+  });
+
+  /*
+   * The list an operator opens the page to read. A phone whose ping
+   * monitor is offline belongs on it — before #3392 it was invisible here,
+   * counted as never-polled onboarding, because nothing polls it by
+   * design.
+   */
+  test("a monitor-backed device its monitor calls offline needs attention", () => {
+    const devices: Array<OverviewDeviceRow> = [
+      { _id: "phone", ...monitorBacked(true) },
+      { _id: "camera", ...monitorBacked(false) },
+      { _id: "unbound-ap", ...monitorBacked(undefined) },
+    ];
+
+    expect(
+      pickDevicesNeedingAttention(devices, 10).map(
+        (device: OverviewDeviceRow) => {
+          return device._id;
+        },
+      ),
+    ).toEqual(["phone"]);
   });
 });
 

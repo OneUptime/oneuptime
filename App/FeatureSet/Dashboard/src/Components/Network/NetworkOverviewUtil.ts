@@ -13,13 +13,26 @@ export interface OverviewDeviceRow {
   name?: string | undefined;
   /*
    * The reachability inputs the shared rule reads. `isReachable` is the
-   * verdict; the rest only size the "polling has stopped" backstop. See
-   * DeviceStatusUtil.DEVICE_STATUS_SELECT — the page must select all four.
+   * verdict for a polled device; the two timestamps and the interval only
+   * size the "polling has stopped" backstop. See
+   * DeviceStatusUtil.DEVICE_STATUS_SELECT — the page must select them all.
    */
   isReachable?: boolean | undefined;
   lastPolledAt?: Date | undefined;
   lastSeenAt?: Date | undefined;
   pollingIntervalInMinutes?: number | undefined;
+  /*
+   * ...and the two a monitor-backed device is judged by instead. Without
+   * them every ping-only device counts as Pending in the fleet strip while
+   * the device list next to it renders its monitor's real status.
+   */
+  monitoringMethod?: string | undefined;
+  currentMonitorStatus?:
+    | {
+        isOfflineState?: boolean | null | undefined;
+      }
+    | null
+    | undefined;
   interfacesDown?: number | undefined;
   vendor?: string | undefined;
 }
