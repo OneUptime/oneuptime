@@ -84,6 +84,15 @@ const MonitorTemplatesView: FunctionComponent<
     undefined,
   );
 
+  /*
+   * The default monitor name this template gives the monitors it creates.
+   * The criteria form quotes it when it seeds criteria ("Check if <name>
+   * is offline"), and compares against those same seeded strings to tell
+   * criteria nobody has edited from criteria somebody has - so handing it
+   * the wrong name costs both a readable criteria and that comparison.
+   */
+  const [templateMonitorName, setTemplateMonitorName] = useState<string>("");
+
   const [linkedMonitorCount, setLinkedMonitorCount] = useState<number | null>(
     null,
   );
@@ -157,9 +166,11 @@ const MonitorTemplatesView: FunctionComponent<
             id: modelId,
             select: {
               monitorType: true,
+              monitorName: true,
             },
           });
         setMonitorType(item?.monitorType);
+        setTemplateMonitorName(item?.monitorName || "");
       } catch {
         // Leave undefined — the dependent cards will simply not render.
       }
@@ -617,6 +628,10 @@ const MonitorTemplatesView: FunctionComponent<
           if (item.monitorType) {
             setMonitorType(item.monitorType as MonitorType);
           }
+
+          if (item.monitorName) {
+            setTemplateMonitorName(item.monitorName);
+          }
         }}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
@@ -625,6 +640,10 @@ const MonitorTemplatesView: FunctionComponent<
           onItemLoaded: (item: MonitorTemplate) => {
             if (item.monitorType && !monitorType) {
               setMonitorType(item.monitorType as MonitorType);
+            }
+
+            if (item.monitorName && !templateMonitorName) {
+              setTemplateMonitorName(item.monitorName);
             }
           },
           fields: [
@@ -701,7 +720,7 @@ const MonitorTemplatesView: FunctionComponent<
                   <MonitorStepsForm
                     {...fieldProps}
                     monitorType={monitorType}
-                    monitorName={""}
+                    monitorName={templateMonitorName}
                   />
                 );
               },

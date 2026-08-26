@@ -163,6 +163,49 @@ const parseMethod: (value: JSONObject) => AdminMethodWire | null = (
   };
 };
 
+/*
+ * Parsed rather than cast, for the same reason parseMethod is — and with more
+ * riding on it, because this feeds the last thing an administrator reads before
+ * a cascade. Cast, a 200 that is not an impact at all renders as "undefined
+ * notification rules will be deleted", and, worse, quietly answers the question
+ * that matters most: `undefined === 0` is false, so the sentence saying nothing
+ * will be able to page this person afterwards simply does not appear.
+ *
+ * Missing counts therefore mean NO preview rather than an empty one. The
+ * confirmation falls back to the general warning underneath, which is true
+ * whether or not the numbers arrived.
+ */
+const parseDeletionPreview: (
+  value: JSONObject,
+) => DeletionPreviewWire | null = (
+  value: JSONObject,
+): DeletionPreviewWire | null => {
+  const rulesDeletedCount: unknown = value["rulesDeletedCount"];
+  const coverageLostCount: unknown = value["coverageLostCount"];
+  const verifiedMethodCountAfterDeletion: unknown =
+    value["verifiedMethodCountAfterDeletion"];
+
+  if (
+    typeof rulesDeletedCount !== "number" ||
+    typeof coverageLostCount !== "number" ||
+    typeof verifiedMethodCountAfterDeletion !== "number"
+  ) {
+    return null;
+  }
+
+  return {
+    rulesDeletedCount: rulesDeletedCount,
+    coverageLostCount: coverageLostCount,
+    verifiedMethodCountAfterDeletion: verifiedMethodCountAfterDeletion,
+    reachability:
+      typeof value["reachability"] === "string"
+        ? (value["reachability"] as string)
+        : "",
+    isFallbackEnabled: Boolean(value["isFallbackEnabled"]),
+    isTruncated: Boolean(value["isTruncated"]),
+  };
+};
+
 interface AddMethodFormValues {
   methodType?: string | undefined;
   value?: string | undefined;
@@ -364,7 +407,7 @@ const UserViewNotificationMethods: FunctionComponent<
         throw response;
       }
 
-      setDeletionPreview(response.data as unknown as DeletionPreviewWire);
+      setDeletionPreview(parseDeletionPreview(response.data));
     } catch {
       /*
        * A preview that cannot be loaded does not block the removal, and it does
