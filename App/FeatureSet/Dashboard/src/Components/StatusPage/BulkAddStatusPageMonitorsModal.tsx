@@ -4,6 +4,7 @@ import bulkAddStatusPageMonitors, {
 } from "./BulkAddStatusPageMonitors";
 import { getStatusPageResourceAdvancedFields } from "./StatusPageResourceFormFields";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -123,7 +124,7 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
         },
         title: "Monitors",
         description:
-          "Select monitors that will be shown on the status page. The display name and description of each resource is copied from its monitor.",
+          "Select monitors that will be shown on the status page. The display name and description of each resource is copied from its monitor. Monitors already on this status page are skipped, so selecting a label again only adds the monitors that are new to it.",
         fieldType: FormFieldSchemaType.MultiSelectDropdown,
         dropdownModal: {
           type: Monitor,
@@ -234,6 +235,46 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
       });
   };
 
+  type FetchExistingMonitorIdsFunction = () => Promise<Array<string>>;
+
+  /*
+   * Which monitors this status page already lists. Selecting by label hands
+   * back every monitor carrying the label - the ones already added included -
+   * so the add has to know what is already there or it writes a second
+   * resource for each of them (issue #3420).
+   *
+   * Read across the whole status page rather than the group being added to: a
+   * monitor listed in two groups is still a monitor a visitor sees twice, and
+   * the server refuses that create for the same reason.
+   */
+  const fetchExistingMonitorIds: FetchExistingMonitorIdsFunction =
+    async (): Promise<Array<string>> => {
+      const listResult: ListResult<StatusPageResource> =
+        await ModelAPI.getList<StatusPageResource>({
+          modelType: StatusPageResource,
+          query: {
+            statusPageId: props.statusPageId,
+            projectId: props.projectId,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            _id: true,
+            monitorId: true,
+          },
+          sort: {},
+          requestOptions: {},
+        });
+
+      return listResult.data
+        .map((resource: StatusPageResource) => {
+          return resource.monitorId?.toString() || "";
+        })
+        .filter((monitorId: string) => {
+          return monitorId !== "";
+        });
+    };
+
   type OnSubmitFunction = (
     values: FormValues<BulkAddStatusPageMonitorsFormValues>,
   ) => Promise<void>;
@@ -251,7 +292,11 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
     setError("");
 
     try {
-      const monitors: Array<Monitor> = await fetchMonitors(monitorIds);
+      const [monitors, existingMonitorIds]: [Array<Monitor>, Array<string>] =
+        await Promise.all([
+          fetchMonitors(monitorIds),
+          fetchExistingMonitorIds(),
+        ]);
 
       const bulkResult: BulkAddStatusPageMonitorsResult =
         await bulkAddStatusPageMonitors({
@@ -259,6 +304,7 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
           projectId: props.projectId,
           statusPageId: props.statusPageId,
           statusPageGroupId: props.statusPageGroupId,
+          existingMonitorIds: existingMonitorIds,
           rowAxisValue: (values.rowAxisValue as string) || undefined,
           columnAxisValue: (values.columnAxisValue as string) || undefined,
           resourceOptions: {
@@ -288,14 +334,28 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
   };
 
   if (result) {
-    const totalCount: number = result.succeeded.length + result.failed.length;
+    const totalCount: number =
+      result.succeeded.length + result.failed.length + result.skipped.length;
+
+    /*
+     * Monitors that were already on the page are not a failure, so the summary
+     * says so in its own sentence instead of counting them against the add.
+     */
+    let skippedDescription: string = "";
+
+    if (result.skipped.length === 1) {
+      skippedDescription =
+        " 1 monitor was already on this status page and was skipped.";
+    } else if (result.skipped.length > 1) {
+      skippedDescription = ` ${result.skipped.length} monitors were already on this status page and were skipped.`;
+    }
 
     return (
       <Modal
         title={
           result.failed.length > 0 ? "Monitor Add Results" : "Monitors Added"
         }
-        description={`Added ${result.succeeded.length} of ${totalCount} selected monitors.`}
+        description={`Added ${result.succeeded.length} of ${totalCount} selected monitors.${skippedDescription}`}
         closeButtonText="Done"
         closeButtonStyleType={ButtonStyleType.PRIMARY}
         onClose={props.onClose}
@@ -308,6 +368,25 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
               </h4>
               <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-700">
                 {result.succeeded.map((monitor: Monitor) => {
+                  return (
+                    <li key={monitor._id || monitor.name}>{monitor.name}</li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : null}
+
+          {result.skipped.length > 0 ? (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-800">
+                Already Added ({result.skipped.length})
+              </h4>
+              <p className="mt-1 text-sm text-gray-500">
+                These monitors are already on this status page, so they were
+                left as they are.
+              </p>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-700">
+                {result.skipped.map((monitor: Monitor) => {
                   return (
                     <li key={monitor._id || monitor.name}>{monitor.name}</li>
                   );

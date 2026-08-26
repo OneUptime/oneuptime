@@ -83,6 +83,7 @@ import bulkAddStatusPageMonitors, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/BulkAddStatusPageMonitors";
 import BulkAddStatusPageMonitorsModal from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/BulkAddStatusPageMonitorsModal";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 
@@ -118,6 +119,43 @@ const makeMonitor: MakeMonitorFunction = (
   monitor.name = name;
   monitor.description = description;
   return monitor;
+};
+
+type MakeResourceFunction = (monitorId: string) => StatusPageResource;
+
+const makeResource: MakeResourceFunction = (
+  monitorId: string,
+): StatusPageResource => {
+  const resource: StatusPageResource = new StatusPageResource();
+  resource._id = `resource-for-${monitorId}`;
+  resource.monitorId = new ObjectID(monitorId);
+  return resource;
+};
+
+/*
+ * The modal reads the monitors it was handed and, separately, the resources
+ * the status page already has - so the list mock answers by model.
+ */
+type MockListsFunction = (
+  existingResources?: Array<StatusPageResource>,
+) => void;
+
+const mockLists: MockListsFunction = (
+  existingResources: Array<StatusPageResource> = [],
+): void => {
+  mockGetList.mockImplementation(async (data: any): Promise<any> => {
+    if (data.modelType === StatusPageResource) {
+      return { data: existingResources, count: existingResources.length };
+    }
+
+    return {
+      data: [
+        makeMonitor(MONITOR_ONE_ID, "Checkout API", "Takes payments"),
+        makeMonitor(MONITOR_TWO_ID, "Billing Worker", "Sends invoices"),
+      ],
+      count: 2,
+    };
+  });
 };
 
 type RenderModalFunction = (
@@ -162,21 +200,13 @@ describe("BulkAddStatusPageMonitorsModal", () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockGetList.mockImplementation(async (): Promise<any> => {
-      return {
-        data: [
-          makeMonitor(MONITOR_ONE_ID, "Checkout API", "Takes payments"),
-          makeMonitor(MONITOR_TWO_ID, "Billing Worker", "Sends invoices"),
-        ],
-        count: 2,
-      };
-    });
+    mockLists();
 
     mockBulkAdd.mockImplementation(
       async (
         options: BulkAddStatusPageMonitorsOptions,
       ): Promise<BulkAddStatusPageMonitorsResult> => {
-        return { succeeded: options.monitors, failed: [] };
+        return { succeeded: options.monitors, failed: [], skipped: [] };
       },
     );
   });
@@ -279,6 +309,222 @@ describe("BulkAddStatusPageMonitorsModal", () => {
     expect(options.columnAxisValue).toBe("US East");
   });
 
+  /*
+   * Issue #3420: picking monitors by label re-selects every monitor carrying
+   * that label, the ones already on the page included. The modal has to tell
+   * the add which monitors are already there, or each of them gets a second
+   * resource and the public page lists it twice.
+   */
+  test("hands the status page's existing monitors to the bulk add", async () => {
+    mockLists([makeResource(MONITOR_ONE_ID)]);
+
+    const view: ReturnType<typeof render> = renderModal();
+
+    fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
+    await goToLastStep(view);
+    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(mockBulkAdd).toHaveBeenCalledTimes(1);
+    });
+
+    const options: BulkAddStatusPageMonitorsOptions =
+      mockBulkAdd.mock.calls[0]![0];
+    expect(options.existingMonitorIds).toEqual([MONITOR_ONE_ID]);
+  });
+
+  test("reads the whole status page, not only the group being added to", async () => {
+    mockLists([makeResource(MONITOR_ONE_ID)]);
+
+    const view: ReturnType<typeof render> = renderModal();
+
+    fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
+    await goToLastStep(view);
+    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(mockBulkAdd).toHaveBeenCalledTimes(1);
+    });
+
+    const resourceListCall: any = mockGetList.mock.calls.find((call: any) => {
+      return call[0].modelType === StatusPageResource;
+    });
+
+    expect(resourceListCall).toBeDefined();
+    expect(resourceListCall[0].query).toEqual({
+      statusPageId: STATUS_PAGE_ID,
+      projectId: PROJECT_ID,
+    });
+    expect(resourceListCall[0].query.statusPageGroupId).toBeUndefined();
+    expect(resourceListCall[0].select).toMatchObject({ monitorId: true });
+  });
+
+  test("passes no existing monitors when the status page has none", async () => {
+    const view: ReturnType<typeof render> = renderModal();
+
+    fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
+    await goToLastStep(view);
+    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(mockBulkAdd).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mockBulkAdd.mock.calls[0]![0].existingMonitorIds).toEqual([]);
+  });
+
+  test("ignores resources that point at a monitor group rather than a monitor", async () => {
+    const monitorGroupResource: StatusPageResource = new StatusPageResource();
+    monitorGroupResource._id = "resource-for-a-monitor-group";
+
+    mockLists([monitorGroupResource, makeResource(MONITOR_TWO_ID)]);
+
+    const view: ReturnType<typeof render> = renderModal();
+
+    fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
+    await goToLastStep(view);
+    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(mockBulkAdd).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mockBulkAdd.mock.calls[0]![0].existingMonitorIds).toEqual([
+      MONITOR_TWO_ID,
+    ]);
+  });
+
+  test("lists the monitors that were already on the page instead of failing them", async () => {
+    mockBulkAdd.mockImplementationOnce(
+      async (
+        options: BulkAddStatusPageMonitorsOptions,
+      ): Promise<BulkAddStatusPageMonitorsResult> => {
+        return {
+          succeeded: [options.monitors[0]!],
+          failed: [],
+          skipped: [options.monitors[1]!],
+        };
+      },
+    );
+
+    const view: ReturnType<typeof render> = renderModal();
+
+    fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
+    await goToLastStep(view);
+    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(
+        view.getByText(
+          "Added 1 of 2 selected monitors. 1 monitor was already on this status page and was skipped.",
+        ),
+      ).toBeVisible();
+    });
+
+    // Skipped monitors are not an error, so the summary is the "Monitors Added" one.
+    expect(view.getByText("Monitors Added")).toBeVisible();
+    expect(view.getByText("Added (1)")).toBeVisible();
+    expect(view.getByText("Already Added (1)")).toBeVisible();
+    expect(view.queryByText(/^Failed/)).not.toBeInTheDocument();
+  });
+
+  test("says nothing was added when every selected monitor is already on the page", async () => {
+    mockBulkAdd.mockImplementationOnce(
+      async (
+        options: BulkAddStatusPageMonitorsOptions,
+      ): Promise<BulkAddStatusPageMonitorsResult> => {
+        return {
+          succeeded: [],
+          failed: [],
+          skipped: options.monitors,
+        };
+      },
+    );
+
+    const view: ReturnType<typeof render> = renderModal();
+
+    fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
+    await goToLastStep(view);
+    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(
+        view.getByText(
+          "Added 0 of 2 selected monitors. 2 monitors were already on this status page and were skipped.",
+        ),
+      ).toBeVisible();
+    });
+
+    expect(view.queryByText(/^Added \(/)).not.toBeInTheDocument();
+    expect(view.getByText("Already Added (2)")).toBeVisible();
+    expect(view.getByText("Billing Worker")).toBeVisible();
+    expect(view.getByText("Checkout API")).toBeVisible();
+  });
+
+  test("counts skipped, added and failed monitors in one summary", async () => {
+    mockBulkAdd.mockImplementationOnce(
+      async (
+        options: BulkAddStatusPageMonitorsOptions,
+      ): Promise<BulkAddStatusPageMonitorsResult> => {
+        return {
+          succeeded: [options.monitors[0]!],
+          failed: [
+            {
+              monitor: options.monitors[1]!,
+              error: new Error("Permission denied"),
+            },
+          ],
+          skipped: [makeMonitor(MONITOR_ONE_ID, "Legacy API", "Already there")],
+        };
+      },
+    );
+
+    const view: ReturnType<typeof render> = renderModal();
+
+    fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
+    await goToLastStep(view);
+    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(
+        view.getByText(
+          "Added 1 of 3 selected monitors. 1 monitor was already on this status page and was skipped.",
+        ),
+      ).toBeVisible();
+    });
+
+    expect(view.getByText("Monitor Add Results")).toBeVisible();
+    expect(view.getByText("Added (1)")).toBeVisible();
+    expect(view.getByText("Already Added (1)")).toBeVisible();
+    expect(view.getByText("Failed (1)")).toBeVisible();
+  });
+
+  test("surfaces a failure to read the status page's existing resources", async () => {
+    mockGetList.mockImplementation(async (data: any): Promise<any> => {
+      if (data.modelType === StatusPageResource) {
+        throw new Error("Cannot read status page resources");
+      }
+
+      return {
+        data: [makeMonitor(MONITOR_ONE_ID, "Checkout API", "Takes payments")],
+        count: 1,
+      };
+    });
+
+    const view: ReturnType<typeof render> = renderModal();
+
+    fireEvent.click(view.getByRole("button", { name: "Select two monitors" }));
+    await goToLastStep(view);
+    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(view.getByText("Cannot read status page resources")).toBeVisible();
+    });
+
+    // Nothing is written when we cannot tell what is already there.
+    expect(mockBulkAdd).not.toHaveBeenCalled();
+  });
+
   test("shows a non-retryable completion summary for partial failures", async () => {
     mockBulkAdd.mockImplementationOnce(
       async (
@@ -292,6 +538,7 @@ describe("BulkAddStatusPageMonitorsModal", () => {
               error: new Error("Permission denied"),
             },
           ],
+          skipped: [],
         };
       },
     );
