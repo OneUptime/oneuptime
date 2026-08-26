@@ -56,17 +56,18 @@ interface SitemapModule {
 type LoadSitemapFunction = (counts: {
   posts: number;
   tags: number;
-}) => Promise<SitemapModule>;
+}) => SitemapModule;
 
 /*
  * Re-import Sitemap with BlogPostUtil returning fixed-length lists, so the
- * page-count math runs against a known total. resetModules + doMock gives each
- * call its own module registry (and therefore its own empty count cache).
+ * page-count math runs against a known total. resetModules + doMock + a fresh
+ * isolateModules require gives each call its own module registry (and therefore
+ * its own empty count cache).
  */
-const loadSitemap: LoadSitemapFunction = async (counts: {
+const loadSitemap: LoadSitemapFunction = (counts: {
   posts: number;
   tags: number;
-}): Promise<SitemapModule> => {
+}): SitemapModule => {
   jest.resetModules();
 
   jest.doMock("../Utils/BlogPost", () => {
@@ -83,7 +84,13 @@ const loadSitemap: LoadSitemapFunction = async (counts: {
     };
   });
 
-  return (await import("../Utils/Sitemap")) as unknown as SitemapModule;
+  let mod: SitemapModule | undefined;
+  jest.isolateModules(() => {
+    /* eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+    mod = require("../Utils/Sitemap") as SitemapModule;
+  });
+
+  return mod as SitemapModule;
 };
 
 describe("Sitemap page-count pagination", () => {
@@ -93,42 +100,42 @@ describe("Sitemap page-count pagination", () => {
   });
 
   test("blog: zero posts needs zero sitemap pages", async () => {
-    const mod: SitemapModule = await loadSitemap({ posts: 0, tags: 0 });
+    const mod: SitemapModule = loadSitemap({ posts: 0, tags: 0 });
     await expect(mod.getBlogSitemapPageCount()).resolves.toBe(0);
   });
 
   test("blog: a single post still needs one page", async () => {
-    const mod: SitemapModule = await loadSitemap({ posts: 1, tags: 0 });
+    const mod: SitemapModule = loadSitemap({ posts: 1, tags: 0 });
     await expect(mod.getBlogSitemapPageCount()).resolves.toBe(1);
   });
 
   test("blog: exactly one full page (1000) does not spill to a second", async () => {
-    const mod: SitemapModule = await loadSitemap({ posts: 1000, tags: 0 });
+    const mod: SitemapModule = loadSitemap({ posts: 1000, tags: 0 });
     await expect(mod.getBlogSitemapPageCount()).resolves.toBe(1);
   });
 
   test("blog: one over a full page rolls into a second page", async () => {
-    const mod: SitemapModule = await loadSitemap({ posts: 1001, tags: 0 });
+    const mod: SitemapModule = loadSitemap({ posts: 1001, tags: 0 });
     await expect(mod.getBlogSitemapPageCount()).resolves.toBe(2);
   });
 
   test("blog: 2500 posts spread across three pages", async () => {
-    const mod: SitemapModule = await loadSitemap({ posts: 2500, tags: 0 });
+    const mod: SitemapModule = loadSitemap({ posts: 2500, tags: 0 });
     await expect(mod.getBlogSitemapPageCount()).resolves.toBe(3);
   });
 
   test("tags: zero tags needs zero pages", async () => {
-    const mod: SitemapModule = await loadSitemap({ posts: 0, tags: 0 });
+    const mod: SitemapModule = loadSitemap({ posts: 0, tags: 0 });
     await expect(mod.getTagsSitemapPageCount()).resolves.toBe(0);
   });
 
   test("tags: exactly one full page (500) stays a single page", async () => {
-    const mod: SitemapModule = await loadSitemap({ posts: 0, tags: 500 });
+    const mod: SitemapModule = loadSitemap({ posts: 0, tags: 500 });
     await expect(mod.getTagsSitemapPageCount()).resolves.toBe(1);
   });
 
   test("tags: one over a full page rolls into a second page", async () => {
-    const mod: SitemapModule = await loadSitemap({ posts: 0, tags: 501 });
+    const mod: SitemapModule = loadSitemap({ posts: 0, tags: 501 });
     await expect(mod.getTagsSitemapPageCount()).resolves.toBe(2);
   });
 });

@@ -9,7 +9,7 @@ import type { BlogPostHeader } from "../Utils/BlogPost";
  *
  * BlogPostUtil reads posts off disk and resolves the home URL from config, so it
  * is mocked. The generator caches its output with no exported reset, so each
- * scenario loads the module fresh (resetModules + doMock + dynamic import).
+ * scenario loads the module fresh (resetModules + doMock + isolateModules).
  */
 
 interface MakePostOptions {
@@ -46,11 +46,9 @@ interface RssModule {
 
 const HOME_URL: string = "https://oneuptime.com/";
 
-type LoadRssFunction = (posts: Array<BlogPostHeader>) => Promise<RssModule>;
+type LoadRssFunction = (posts: Array<BlogPostHeader>) => RssModule;
 
-const loadRss: LoadRssFunction = async (
-  posts: Array<BlogPostHeader>,
-): Promise<RssModule> => {
+const loadRss: LoadRssFunction = (posts: Array<BlogPostHeader>): RssModule => {
   jest.resetModules();
 
   jest.doMock("../Utils/BlogPost", () => {
@@ -69,7 +67,13 @@ const loadRss: LoadRssFunction = async (
     };
   });
 
-  return (await import("../Utils/RssFeed")) as unknown as RssModule;
+  let mod: RssModule | undefined;
+  jest.isolateModules(() => {
+    /* eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+    mod = require("../Utils/RssFeed") as RssModule;
+  });
+
+  return mod as RssModule;
 };
 
 type RenderBlogFeedFunction = (posts: Array<BlogPostHeader>) => Promise<string>;
@@ -77,7 +81,7 @@ type RenderBlogFeedFunction = (posts: Array<BlogPostHeader>) => Promise<string>;
 const renderBlogFeed: RenderBlogFeedFunction = async (
   posts: Array<BlogPostHeader>,
 ): Promise<string> => {
-  const mod: RssModule = await loadRss(posts);
+  const mod: RssModule = loadRss(posts);
   return mod.generateBlogRssFeed();
 };
 
@@ -90,7 +94,7 @@ const renderTagFeed: RenderTagFeedFunction = async (
   posts: Array<BlogPostHeader>,
   tagName: string,
 ): Promise<string> => {
-  const mod: RssModule = await loadRss(posts);
+  const mod: RssModule = loadRss(posts);
   return mod.generateTagRssFeed(tagName);
 };
 
