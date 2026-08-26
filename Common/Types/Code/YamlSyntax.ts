@@ -192,11 +192,17 @@ const scanLine: ScanLineFunction = (
 
     const previous: string = line[index - 1] || "";
 
-    if (character === "#" && (index === 0 || previous === " " || previous === "\t")) {
+    if (
+      character === "#" &&
+      (index === 0 || previous === " " || previous === "\t")
+    ) {
       return line.slice(0, index);
     }
 
-    if ((character === '"' || character === "'") && isScalarOpeningQuote(line, index)) {
+    if (
+      (character === '"' || character === "'") &&
+      isScalarOpeningQuote(line, index)
+    ) {
       state.openQuote = character as QuoteCharacter;
       index++;
       continue;
