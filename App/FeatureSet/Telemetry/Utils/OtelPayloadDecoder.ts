@@ -56,10 +56,30 @@ const ProfilesData: protobuf.Type = ProfilesProto.lookupType("ProfilesData");
  * at the type level even though it is valid at runtime (same workaround
  * as the promisified gunzip in SessionReplayIngestService).
  */
-export const gunzipAsync: (buffer: Buffer | Uint8Array) => Promise<Buffer> =
-  promisify(zlib.gunzip) as unknown as (
-    buffer: Buffer | Uint8Array,
-  ) => Promise<Buffer>;
+export const gunzipAsync: (
+  buffer: Buffer | Uint8Array,
+  options?: zlib.ZlibOptions,
+) => Promise<Buffer> = promisify(zlib.gunzip) as unknown as (
+  buffer: Buffer | Uint8Array,
+  options?: zlib.ZlibOptions,
+) => Promise<Buffer>;
+
+/*
+ * Decompressed-payload ceiling for ONE queued OTLP body.
+ *
+ * The inflate runs in the BullMQ worker, where TELEMETRY_CONCURRENCY (100
+ * by default) jobs can be in flight on one pod, so an unbounded gunzip is
+ * unbounded a hundred times over. Nginx caps the COMPRESSED body at its
+ * 1 MB default on /otlp and at 4 MB on /telemetry, and gzip on OTLP
+ * protobuf runs about 5-15x, so a legitimate batch has an order of
+ * magnitude of headroom under this. A hostile one reaches four figures of
+ * amplification and would otherwise take the pod out.
+ *
+ * `maxOutputLength` is honoured because this is zlib's CONVENIENCE api.
+ * Node applies it on `gunzip`/`gunzipSync` only; on a `createGunzip`
+ * stream it is accepted and silently ignored.
+ */
+export const MAX_DECOMPRESSED_OTLP_BODY_BYTES: number = 64 * 1024 * 1024;
 
 export enum OtelPayloadFormat {
   Protobuf = "protobuf",
@@ -116,7 +136,9 @@ export default class OtelPayloadDecoder {
     }
 
     if (input.encoding === "gzip") {
-      raw = await gunzipAsync(raw);
+      raw = await gunzipAsync(raw, {
+        maxOutputLength: MAX_DECOMPRESSED_OTLP_BODY_BYTES,
+      });
     }
 
     if (input.format === OtelPayloadFormat.Json) {

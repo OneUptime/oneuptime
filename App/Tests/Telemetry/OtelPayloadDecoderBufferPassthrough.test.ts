@@ -36,17 +36,38 @@ import zlib from "zlib";
  * `promisify(zlib.gunzip)` picks up the recording wrapper.
  */
 const mockGunzipReceivedInputs: Array<unknown> = [];
+const mockGunzipReceivedOptions: Array<unknown> = [];
 
 jest.mock("zlib", () => {
   const actualZlib: typeof import("zlib") = jest.requireActual("zlib");
   return {
     ...actualZlib,
+    /*
+     * zlib.gunzip is overloaded: (buf, cb) and (buf, options, cb). The
+     * decoder passes options (a decompression ceiling), so the wrapper has
+     * to handle BOTH shapes and forward them - a two-argument wrapper
+     * silently drops the options into the callback slot and every gzip
+     * test fails with "callback must be of type function".
+     */
     gunzip: (
       buffer: unknown,
-      callback: (error: Error | null, result: Buffer) => void,
+      optionsOrCallback: unknown,
+      maybeCallback?: (error: Error | null, result: Buffer) => void,
     ): void => {
       mockGunzipReceivedInputs.push(buffer);
-      actualZlib.gunzip(buffer as never, callback);
+
+      if (typeof optionsOrCallback === "function") {
+        mockGunzipReceivedOptions.push(undefined);
+        actualZlib.gunzip(buffer as never, optionsOrCallback as never);
+        return;
+      }
+
+      mockGunzipReceivedOptions.push(optionsOrCallback);
+      actualZlib.gunzip(
+        buffer as never,
+        optionsOrCallback as never,
+        maybeCallback as never,
+      );
     },
   };
 });
@@ -72,6 +93,7 @@ jest.mock("../../FeatureSet/Telemetry/Utils/TelemetryBodyStore", () => {
 });
 
 import OtelPayloadDecoder, {
+  MAX_DECOMPRESSED_OTLP_BODY_BYTES,
   OtelPayloadFormat,
   gunzipAsync,
 } from "../../FeatureSet/Telemetry/Utils/OtelPayloadDecoder";
@@ -291,6 +313,7 @@ beforeAll(() => {
 beforeEach(() => {
   mockBodyStoreBackingMap.clear();
   mockGunzipReceivedInputs.length = 0;
+  mockGunzipReceivedOptions.length = 0;
 });
 
 describe("OtelPayloadDecoder.decodeFromQueue — decoding correctness per format/encoding", () => {
@@ -430,6 +453,17 @@ describe("OtelPayloadDecoder.decodeFromQueue — Buffer passthrough (no copies)"
      */
     expect(mockGunzipReceivedInputs[0]).toBe(gzippedBuffer);
     expect(Buffer.isBuffer(mockGunzipReceivedInputs[0])).toBe(true);
+
+    /*
+     * The decompression ceiling has to actually REACH zlib. It is the only
+     * thing bounding this inflate, and the worker runs
+     * TELEMETRY_CONCURRENCY (100 by default) of them at once, so an
+     * option that quietly stopped being passed would be invisible until a
+     * pod died.
+     */
+    expect(mockGunzipReceivedOptions[0]).toEqual({
+      maxOutputLength: MAX_DECOMPRESSED_OTLP_BODY_BYTES,
+    });
   });
 
   test("json + gzip path: zlib.gunzip also receives the EXACT stored Buffer", async () => {

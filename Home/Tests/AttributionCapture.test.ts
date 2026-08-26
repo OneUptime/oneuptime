@@ -1114,11 +1114,9 @@ describe("attribution capture and consent", () => {
 
       const innerNames: Array<string> = Object.keys(
         harness.calMetadata("enterprise_demo"),
-      ).map(
-        (key: string) => {
-          return key.slice("metadata[".length, -1);
-        },
-      );
+      ).map((key: string) => {
+        return key.slice("metadata[".length, -1);
+      });
 
       // The fixture has to actually exercise the keys for this to mean anything.
       expect(innerNames.length).toBeGreaterThanOrEqual(readableKeys.size);
@@ -1212,9 +1210,10 @@ describe("attribution capture and consent", () => {
       expect(blocked["metadata[gclid]"]).toBe("abc123");
       expect(blocked["metadata[utm_source]"]).toBe("google");
       expect(blocked["metadata[utm_url]"]).toBe(AD_URL);
-      expect(
-        JSON.parse(blocked["metadata[ou_first_touch]"]!),
-      ).toMatchObject({ utmSource: "google", clickIds: { gclid: "abc123" } });
+      expect(JSON.parse(blocked["metadata[ou_first_touch]"]!)).toMatchObject({
+        utmSource: "google",
+        clickIds: { gclid: "abc123" },
+      });
 
       /*
        * Nothing about a working store should change what is sent. The first
