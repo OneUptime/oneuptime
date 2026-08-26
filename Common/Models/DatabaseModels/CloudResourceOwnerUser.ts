@@ -74,6 +74,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "CloudResourceOwnerUser",
 })
+@Index(["cloudResourceId", "userId", "projectId"], { unique: true })
 export default class CloudResourceOwnerUser extends BaseModel {
   @ColumnAccessControl({
     create: [

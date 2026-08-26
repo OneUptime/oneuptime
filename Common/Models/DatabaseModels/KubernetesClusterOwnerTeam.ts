@@ -75,6 +75,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "KubernetesClusterOwnerTeam",
 })
+@Index(["kubernetesClusterId", "teamId", "projectId"], { unique: true })
 export default class KubernetesClusterOwnerTeam extends BaseModel {
   @ColumnAccessControl({
     create: [

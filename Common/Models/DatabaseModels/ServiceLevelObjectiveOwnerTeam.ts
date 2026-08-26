@@ -66,7 +66,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "ServiceLevelObjectiveOwnerTeam",
 })
-@Index(["serviceLevelObjectiveId", "teamId", "projectId"])
+@Index(["serviceLevelObjectiveId", "teamId", "projectId"], { unique: true })
 export default class ServiceLevelObjectiveOwnerTeam extends BaseModel {
   @ColumnAccessControl({
     create: [

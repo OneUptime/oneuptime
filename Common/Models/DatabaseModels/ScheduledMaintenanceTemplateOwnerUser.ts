@@ -75,6 +75,7 @@ import ScheduledMaintenanceTemplate from "./ScheduledMaintenanceTemplate";
 @Entity({
   name: "ScheduledMaintenanceTemplateOwnerUser",
 })
+@Index(["scheduledMaintenanceTemplateId", "userId", "projectId"], { unique: true })
 export default class ScheduledMaintenanceTemplateOwnerUser extends BaseModel {
   @ColumnAccessControl({
     create: [

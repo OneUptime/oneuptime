@@ -74,6 +74,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "ProxmoxClusterOwnerUser",
 })
+@Index(["proxmoxClusterId", "userId", "projectId"], { unique: true })
 export default class ProxmoxClusterOwnerUser extends BaseModel {
   @ColumnAccessControl({
     create: [

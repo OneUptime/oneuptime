@@ -74,6 +74,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "RumApplicationOwnerUser",
 })
+@Index(["rumApplicationId", "userId", "projectId"], { unique: true })
 export default class RumApplicationOwnerUser extends BaseModel {
   @ColumnAccessControl({
     create: [

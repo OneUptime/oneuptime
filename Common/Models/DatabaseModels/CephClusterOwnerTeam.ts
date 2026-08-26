@@ -75,6 +75,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "CephClusterOwnerTeam",
 })
+@Index(["cephClusterId", "teamId", "projectId"], { unique: true })
 export default class CephClusterOwnerTeam extends BaseModel {
   @ColumnAccessControl({
     create: [
