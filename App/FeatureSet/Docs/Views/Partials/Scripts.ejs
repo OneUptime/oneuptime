@@ -1,0 +1,422 @@
+<script>
+    /*
+     * Strings the client-side code needs, injected from the server-side
+     * translations so this page does not need its own i18n bundle.
+     */
+    window.__docsI18n = {
+        typeToSearch: <%- JSON.stringify(t('ui.searchTypeToSearch')) %>,
+        noResults: <%- JSON.stringify(t('ui.searchNoResults')) %>,
+        copy: <%- JSON.stringify(t('ui.copy')) %>,
+        copied: <%- JSON.stringify(t('ui.copied')) %>,
+        copyCode: <%- JSON.stringify(t('ui.copyCode')) %>
+    };
+    window.__docsSearchIndex = <%- JSON.stringify(nav.reduce(function(acc, group){
+        group.links.forEach(function(navLink){
+            acc.push({ title: navLink.title, url: navLink.url, category: group.title });
+        });
+        return acc;
+    }, [])) %>;
+</script>
+<script>
+    (function () {
+        var i18n = window.__docsI18n || {};
+
+        function escapeHtml(value) {
+            return String(value).replace(/[&<>"']/g, function (character) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character];
+            });
+        }
+
+        /* ================= Scroll scheduling (shared) =================== */
+        var scrollScheduled = false;
+        var scrollTasks = [];
+
+        function scheduleScrollWork(task) {
+            if (scrollTasks.indexOf(task) === -1) {
+                scrollTasks.push(task);
+            }
+            if (scrollScheduled) {
+                return;
+            }
+            scrollScheduled = true;
+            window.requestAnimationFrame(function () {
+                scrollScheduled = false;
+                scrollTasks.forEach(function (item) {
+                    item();
+                });
+            });
+        }
+
+        /* ============================ Theme ============================ */
+        var themeToggle = document.getElementById('docs-theme-toggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', function () {
+                var root = document.documentElement;
+                var nextIsDark = !root.classList.contains('dark');
+                root.classList.toggle('dark', nextIsDark);
+                root.style.colorScheme = nextIsDark ? 'dark' : 'light';
+                try {
+                    window.localStorage.setItem('oneuptime-docs-theme', nextIsDark ? 'dark' : 'light');
+                } catch (e) {
+                    /* Storage unavailable — the choice just will not persist. */
+                }
+                /* Anything that renders its own colours — Mermaid — redraws on this. */
+                window.dispatchEvent(new CustomEvent('docs:themechange', { detail: { dark: nextIsDark } }));
+            });
+        }
+
+        /* ======================= Collapsible nav ======================= */
+        document.querySelectorAll('[data-nav-toggle]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                var expanded = button.getAttribute('aria-expanded') === 'true';
+                var list = document.getElementById(button.getAttribute('aria-controls'));
+                button.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+                if (list) {
+                    list.classList.toggle('is-open', !expanded);
+                }
+            });
+        });
+
+        /*
+         * Bring the current page into view inside the sidebar without
+         * scrolling the document — scrollIntoView would drag the article down
+         * with it on load.
+         */
+        var sidebarScroll = document.getElementById('docs-sidebar-scroll');
+        var activeNavLink = sidebarScroll && sidebarScroll.querySelector('[data-nav-active]');
+        if (sidebarScroll && activeNavLink) {
+            sidebarScroll.scrollTop = Math.max(0, activeNavLink.offsetTop - (sidebarScroll.clientHeight / 2));
+        }
+
+        /* ========================= Mobile drawer ======================= */
+        var openButton = document.querySelector('[data-mobile-menu-open]');
+        var closeButton = document.querySelector('[data-mobile-menu-close]');
+        var overlay = document.querySelector('[data-mobile-menu-overlay]');
+        var drawer = document.querySelector('[data-mobile-menu-drawer]');
+
+        function closeDrawer() {
+            if (!drawer || drawer.classList.contains('hidden')) {
+                return;
+            }
+            drawer.classList.add('-translate-x-full');
+            overlay.classList.remove('opacity-100');
+            document.body.classList.remove('overflow-hidden');
+            if (openButton) {
+                openButton.setAttribute('aria-expanded', 'false');
+                openButton.focus();
+            }
+            window.setTimeout(function () {
+                drawer.classList.add('hidden');
+                overlay.classList.add('hidden');
+            }, 200);
+        }
+
+        if (openButton && overlay && drawer) {
+            openButton.addEventListener('click', function () {
+                overlay.classList.remove('hidden');
+                drawer.classList.remove('hidden');
+                window.requestAnimationFrame(function () {
+                    drawer.classList.remove('-translate-x-full');
+                    overlay.classList.add('opacity-100');
+                });
+                document.body.classList.add('overflow-hidden');
+                openButton.setAttribute('aria-expanded', 'true');
+                if (closeButton) {
+                    closeButton.focus();
+                }
+            });
+            overlay.addEventListener('click', closeDrawer);
+            if (closeButton) {
+                closeButton.addEventListener('click', closeDrawer);
+            }
+        }
+
+        /* ==================== Table of contents ======================== */
+        var tocList = document.getElementById('toc-list');
+        var tocPanel = document.getElementById('toc-panel');
+        var article = document.querySelector('.docs-content');
+
+        if (tocList && article) {
+            /*
+             * h4 is included on purpose: the pages are not consistent about
+             * starting at h2, and a contents list that silently skips a page's
+             * only section headings is worse than no list at all.
+             */
+            var headings = Array.prototype.slice.call(article.querySelectorAll('h2[id], h3[id], h4[id]'));
+
+            if (headings.length < 2) {
+                if (tocPanel) {
+                    tocPanel.style.display = 'none';
+                }
+            } else {
+                headings.forEach(function (heading) {
+                    var textNode = heading.querySelector('.docs-heading__text');
+                    var item = document.createElement('li');
+                    var anchor = document.createElement('a');
+                    anchor.href = '#' + heading.id;
+                    anchor.textContent = (textNode ? textNode.textContent : heading.textContent).trim();
+                    anchor.className = 'docs-toc__link';
+                    anchor.setAttribute('data-level', heading.tagName.slice(1));
+                    anchor.setAttribute('data-toc-id', heading.id);
+                    item.appendChild(anchor);
+                    tocList.appendChild(item);
+                });
+
+                var tocLinks = Array.prototype.slice.call(tocList.querySelectorAll('.docs-toc__link'));
+
+                /*
+                 * Pick the last heading that has scrolled past the header
+                 * rather than reacting to whichever one most recently crossed
+                 * it: with short sections several cross at once and an
+                 * observer-based highlight lands on the wrong entry.
+                 */
+                function updateActiveHeading() {
+                    var current = headings[0];
+                    for (var index = 0; index < headings.length; index++) {
+                        if (headings[index].getBoundingClientRect().top <= 120) {
+                            current = headings[index];
+                        } else {
+                            break;
+                        }
+                    }
+                    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 8) {
+                        current = headings[headings.length - 1];
+                    }
+                    tocLinks.forEach(function (linkElement) {
+                        linkElement.classList.toggle('is-active', linkElement.getAttribute('data-toc-id') === current.id);
+                    });
+                }
+
+                window.addEventListener('scroll', function () {
+                    scheduleScrollWork(updateActiveHeading);
+                }, { passive: true });
+                updateActiveHeading();
+            }
+        }
+
+        /* ======================= Copy code buttons ===================== */
+        var copyIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+        var checkIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>';
+
+        function setCopyButtonLabel(button, icon, label) {
+            button.innerHTML = icon + '<span class="docs-code__copy-text">' + escapeHtml(label) + '</span>';
+        }
+
+        document.querySelectorAll('[data-copy-code]').forEach(function (button) {
+            var block = button.closest('.docs-code');
+            var code = block && block.querySelector('code');
+            if (!code) {
+                button.remove();
+                return;
+            }
+            button.setAttribute('aria-label', i18n.copyCode || 'Copy code');
+            setCopyButtonLabel(button, copyIcon, i18n.copy || 'Copy');
+            button.removeAttribute('hidden');
+            button.addEventListener('click', function () {
+                if (!navigator.clipboard || !navigator.clipboard.writeText) {
+                    return;
+                }
+                navigator.clipboard.writeText(code.textContent || '').then(function () {
+                    button.classList.add('is-copied');
+                    setCopyButtonLabel(button, checkIcon, i18n.copied || 'Copied');
+                    window.setTimeout(function () {
+                        button.classList.remove('is-copied');
+                        setCopyButtonLabel(button, copyIcon, i18n.copy || 'Copy');
+                    }, 2000);
+                }).catch(function () {
+                    /* Clipboard blocked (insecure origin, denied permission). */
+                });
+            });
+        });
+
+        /* ============================ Search =========================== */
+        var searchOverlay = document.getElementById('search-overlay');
+        var searchModal = document.getElementById('search-modal');
+        var searchInput = document.getElementById('search-input');
+        var searchResults = document.getElementById('search-results');
+        var searchIndex = window.__docsSearchIndex || [];
+        var matches = [];
+        var highlightedIndex = -1;
+        var lastFocused = null;
+
+        function isSearchOpen() {
+            return Boolean(searchModal) && searchModal.classList.contains('is-open');
+        }
+
+        function highlightMatch(text, query) {
+            var position = text.toLowerCase().indexOf(query);
+            if (position < 0) {
+                return escapeHtml(text);
+            }
+            return escapeHtml(text.slice(0, position)) +
+                '<mark>' + escapeHtml(text.slice(position, position + query.length)) + '</mark>' +
+                escapeHtml(text.slice(position + query.length));
+        }
+
+        function renderResults(rawQuery) {
+            var query = rawQuery.toLowerCase().trim();
+            searchInput.setAttribute('aria-expanded', query ? 'true' : 'false');
+
+            if (!query) {
+                matches = [];
+                highlightedIndex = -1;
+                searchInput.removeAttribute('aria-activedescendant');
+                searchResults.innerHTML = '<div class="docs-search__empty">' + escapeHtml(i18n.typeToSearch || '') + '</div>';
+                return;
+            }
+
+            matches = searchIndex.filter(function (item) {
+                return item.title.toLowerCase().indexOf(query) !== -1 ||
+                    item.category.toLowerCase().indexOf(query) !== -1;
+            }).sort(function (a, b) {
+                /* A hit in the page title is what people mean; a category hit is a fallback. */
+                var aRank = a.title.toLowerCase().indexOf(query);
+                var bRank = b.title.toLowerCase().indexOf(query);
+                return (aRank < 0 ? 1000 : aRank) - (bRank < 0 ? 1000 : bRank);
+            }).slice(0, 30);
+
+            if (matches.length === 0) {
+                highlightedIndex = -1;
+                searchInput.removeAttribute('aria-activedescendant');
+                var message = (i18n.noResults || '').replace('{{query}}', rawQuery.trim());
+                searchResults.innerHTML = '<div class="docs-search__empty">' + escapeHtml(message) + '</div>';
+                return;
+            }
+
+            highlightedIndex = 0;
+            searchResults.innerHTML = matches.map(function (item, index) {
+                return '<a href="' + escapeHtml(item.url) + '" role="option" id="search-result-' + index + '"' +
+                    ' aria-selected="' + (index === 0) + '"' +
+                    ' class="docs-search__item' + (index === 0 ? ' is-highlighted' : '') + '">' +
+                    '<svg class="h-4 w-4 flex-none opacity-40" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>' +
+                    '<span class="min-w-0 flex-1">' +
+                    '<span class="docs-search__item-title block truncate">' + highlightMatch(item.title, query) + '</span>' +
+                    '<span class="docs-search__item-meta block truncate">' + highlightMatch(item.category, query) + '</span>' +
+                    '</span>' +
+                    '<svg class="h-3.5 w-3.5 flex-none opacity-30" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>' +
+                    '</a>';
+            }).join('');
+            searchInput.setAttribute('aria-activedescendant', 'search-result-0');
+        }
+
+        function setHighlighted(nextIndex) {
+            var items = searchResults.querySelectorAll('.docs-search__item');
+            if (items.length === 0) {
+                return;
+            }
+            highlightedIndex = Math.min(Math.max(nextIndex, 0), items.length - 1);
+            items.forEach(function (item, index) {
+                var isActive = index === highlightedIndex;
+                item.classList.toggle('is-highlighted', isActive);
+                item.setAttribute('aria-selected', String(isActive));
+            });
+            searchInput.setAttribute('aria-activedescendant', items[highlightedIndex].id);
+            items[highlightedIndex].scrollIntoView({ block: 'nearest' });
+        }
+
+        function openSearch() {
+            lastFocused = document.activeElement;
+            searchOverlay.classList.add('is-open');
+            searchModal.classList.add('is-open');
+            searchInput.value = '';
+            renderResults('');
+            document.body.classList.add('overflow-hidden');
+            searchInput.focus();
+        }
+
+        function closeSearch() {
+            searchOverlay.classList.remove('is-open');
+            searchModal.classList.remove('is-open');
+            document.body.classList.remove('overflow-hidden');
+            highlightedIndex = -1;
+            if (lastFocused && lastFocused.focus) {
+                lastFocused.focus();
+            }
+        }
+
+        if (searchModal && searchOverlay && searchInput && searchResults) {
+            document.querySelectorAll('[data-search-open]').forEach(function (trigger) {
+                trigger.addEventListener('click', openSearch);
+            });
+            searchOverlay.addEventListener('click', closeSearch);
+            searchInput.addEventListener('input', function () {
+                renderResults(searchInput.value);
+            });
+        }
+
+        document.addEventListener('keydown', function (event) {
+            if (searchModal && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+                event.preventDefault();
+                if (isSearchOpen()) {
+                    closeSearch();
+                } else {
+                    openSearch();
+                }
+                return;
+            }
+
+            if (event.key === 'Escape') {
+                if (isSearchOpen()) {
+                    closeSearch();
+                }
+                closeDrawer();
+                return;
+            }
+
+            if (!isSearchOpen()) {
+                /* `/` is the conventional docs shortcut for jumping to search. */
+                var active = document.activeElement;
+                var typingElsewhere = Boolean(active) &&
+                    (/^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName) || active.isContentEditable);
+                if (searchModal && event.key === '/' && !typingElsewhere) {
+                    event.preventDefault();
+                    openSearch();
+                }
+                return;
+            }
+
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                setHighlighted(highlightedIndex + 1);
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                setHighlighted(highlightedIndex - 1);
+            } else if (event.key === 'Enter' && highlightedIndex >= 0 && matches[highlightedIndex]) {
+                event.preventDefault();
+                window.location.href = matches[highlightedIndex].url;
+            } else if (event.key === 'Tab') {
+                /* Keep focus inside the dialog: the field is its only stop. */
+                event.preventDefault();
+                searchInput.focus();
+            }
+        });
+
+        /* ================= Scroll progress + header state ============== */
+        var progressBar = document.getElementById('scroll-progress');
+        var header = document.getElementById('docs-header');
+
+        function updateScrollChrome() {
+            var scrollTop = window.scrollY || document.documentElement.scrollTop;
+            var scrollable = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            if (progressBar) {
+                progressBar.style.width = (scrollable > 0 ? (scrollTop / scrollable) * 100 : 0) + '%';
+            }
+            if (header) {
+                header.classList.toggle('is-scrolled', scrollTop > 8);
+            }
+        }
+
+        window.addEventListener('scroll', function () {
+            scheduleScrollWork(updateScrollChrome);
+        }, { passive: true });
+        updateScrollChrome();
+
+        /* ======================= Language switcher ===================== */
+        document.querySelectorAll('[data-language-switcher]').forEach(function (switcher) {
+            switcher.addEventListener('change', function () {
+                var currentPath = switcher.getAttribute('data-current-path') || '';
+                window.location.href = currentPath.replace(/^\/docs\/[^/]+/, '/docs/' + switcher.value);
+            });
+        });
+    })();
+</script>

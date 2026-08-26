@@ -1,0 +1,49 @@
+<!-- Mobile nav overlay -->
+<div data-mobile-menu-overlay class="docs-scrim fixed inset-0 z-40 hidden opacity-0 transition-opacity lg:hidden"></div>
+
+<!-- Mobile nav drawer -->
+<aside data-mobile-menu-drawer
+       id="docs-mobile-drawer"
+       role="dialog"
+       aria-modal="true"
+       aria-label="<%= t('ui.documentation') %>"
+       class="docs-drawer docs-scroll fixed inset-y-0 left-0 z-50 hidden w-80 max-w-[calc(100vw-3rem)] -translate-x-full transform overflow-y-auto px-5 py-5 transition-transform duration-200 ease-out lg:hidden">
+    <div class="docs-drawer__title mb-4 flex items-center justify-between pb-3">
+        <span class="text-sm font-semibold"><%- t('ui.documentation') %></span>
+        <button type="button"
+                aria-label="<%= t('ui.closeNavigation') %>"
+                data-mobile-menu-close
+                class="docs-pill rounded-lg p-1.5">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+    <%- include('./Nav.ejs', { nav: nav, category: category, link: link, t: t, lang: lang, navIdPrefix: 'drawer' }) %>
+
+    <%
+    /*
+     * The header's language picker is hidden on narrow screens — the wordmark
+     * and the three icon buttons already fill that row — so the drawer carries
+     * it instead. Without this, phones had no way to change language at all.
+     */
+    %>
+    <% if (typeof supportedLanguages !== 'undefined' && supportedLanguages && supportedLanguages.length > 1) { %>
+    <div class="docs-drawer__footer mt-6 pt-4">
+        <label for="docs-language-switcher-drawer" class="docs-eyebrow mb-2 block"><%- t('ui.switchLanguage') %></label>
+        <div class="docs-pill flex items-center gap-2 rounded-lg px-3 py-2 text-sm">
+            <svg class="h-4 w-4 flex-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path>
+            </svg>
+            <select id="docs-language-switcher-drawer"
+                    data-language-switcher
+                    data-current-path="<%= typeof currentPath !== 'undefined' ? currentPath : '' %>"
+                    class="docs-select w-full cursor-pointer border-0 p-0 text-sm font-medium focus:outline-none focus:ring-0">
+                <% supportedLanguages.forEach(function(language){ %>
+                    <option value="<%= language.code %>" <%= language.code === lang ? 'selected' : '' %>><%= language.nativeName %></option>
+                <% }); %>
+            </select>
+        </div>
+    </div>
+    <% } %>
+</aside>
