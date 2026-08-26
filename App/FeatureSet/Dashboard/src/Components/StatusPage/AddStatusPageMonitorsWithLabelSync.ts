@@ -36,6 +36,7 @@ export interface AddStatusPageMonitorsWithLabelSyncOptions {
   rowAxisValue?: string | undefined;
   columnAxisValue?: string | undefined;
   resourceOptions?: BulkAddStatusPageMonitorResourceOptions | undefined;
+  existingMonitorIds?: Array<ObjectID | string> | undefined;
 
   /**
    * The labels the picker expanded to produce `monitors`. Empty when the user
@@ -259,11 +260,16 @@ export const addStatusPageMonitorsWithLabelSync: AddStatusPageMonitorsWithLabelS
       rowAxisValue: options.rowAxisValue,
       columnAxisValue: options.columnAxisValue,
       resourceOptions: options.resourceOptions,
+      existingMonitorIds: options.existingMonitorIds,
     });
 
+    /*
+     * Spread rather than picked apart: what the bulk add reports is its own
+     * business, and a field added there later must not silently stop reaching
+     * the caller through here.
+     */
     const result: AddStatusPageMonitorsWithLabelSyncResult = {
-      succeeded: bulkResult.succeeded,
-      failed: bulkResult.failed,
+      ...bulkResult,
       monitorRule: null,
       monitorRuleError: null,
     };

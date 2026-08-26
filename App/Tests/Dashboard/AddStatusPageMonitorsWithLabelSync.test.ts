@@ -128,6 +128,7 @@ const makeSeams: MakeSeamsFunction = (behaviour?: {
         behaviour?.bulkAddResult || {
           succeeded: options.monitors,
           failed: [],
+          skipped: [],
         }
       );
     },
@@ -561,6 +562,51 @@ describe("addStatusPageMonitorsWithLabelSync - adding the monitors", () => {
     expect(options.resourceOptions?.showStatusHistoryChart).toBe(false);
   });
 
+  /*
+   * Adding by label re-selects every monitor carrying it, the ones already on
+   * the page included, so the bulk add is told what the page already has and
+   * reports those as skipped rather than adding them twice (#3420). Building
+   * this result field by field would have quietly dropped that list.
+   */
+  test("passes the page's existing monitors through to the bulk add", async () => {
+    const seams: Seams = makeSeams();
+
+    await addStatusPageMonitorsWithLabelSync({
+      monitors: MONITORS,
+      projectId: PROJECT_ID,
+      statusPageId: STATUS_PAGE_ID,
+      existingMonitorIds: [MONITOR_A_ID.toString()],
+      bulkAdd: seams.bulkAdd,
+      createMonitorRule: seams.createMonitorRule,
+    });
+
+    expect(seams.recorder.bulkAddOptions[0]!.existingMonitorIds).toEqual([
+      MONITOR_A_ID.toString(),
+    ]);
+  });
+
+  test("reports the monitors the bulk add skipped", async () => {
+    const seams: Seams = makeSeams({
+      bulkAddResult: {
+        succeeded: [MONITORS[1]!],
+        failed: [],
+        skipped: [MONITORS[0]!],
+      },
+    });
+
+    const result: AddStatusPageMonitorsWithLabelSyncResult =
+      await addStatusPageMonitorsWithLabelSync({
+        monitors: MONITORS,
+        projectId: PROJECT_ID,
+        statusPageId: STATUS_PAGE_ID,
+        bulkAdd: seams.bulkAdd,
+        createMonitorRule: seams.createMonitorRule,
+      });
+
+    expect(result.skipped).toEqual([MONITORS[0]]);
+    expect(result.succeeded).toEqual([MONITORS[1]]);
+  });
+
   test("reports the per-monitor failures the bulk add reported", async () => {
     const failure: { monitor: Monitor; error: unknown } = {
       monitor: MONITORS[1]!,
@@ -571,6 +617,7 @@ describe("addStatusPageMonitorsWithLabelSync - adding the monitors", () => {
       bulkAddResult: {
         succeeded: [MONITORS[0]!],
         failed: [failure],
+        skipped: [],
       },
     });
 
@@ -852,7 +899,7 @@ describe("addStatusPageMonitorsWithLabelSync - keeping the labels live", () => {
    */
   test("writes the rule even when the bulk add added nothing", async () => {
     const seams: Seams = makeSeams({
-      bulkAddResult: { succeeded: [], failed: [] },
+      bulkAddResult: { succeeded: [], failed: [], skipped: [] },
     });
 
     const result: AddStatusPageMonitorsWithLabelSyncResult =
