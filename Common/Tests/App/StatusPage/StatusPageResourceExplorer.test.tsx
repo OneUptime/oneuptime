@@ -1855,4 +1855,761 @@ describe("Status Page > Resources", () => {
       );
     });
   });
+
+  /*
+   * Clearing a group, in one decision rather than twenty seven.
+   *
+   * The reporter had a group holding twenty seven monitors and no way to say so:
+   * every removal was its own overflow menu, its own confirmation and its own
+   * reload of the group underneath them (issue #3419). The list carries a box
+   * per row and a box at the top of it now, and the bulk bar turns whatever is
+   * ticked into one confirmation and one pass of deletes.
+   *
+   * What is worth pinning down is not that a checkbox renders. It is that the
+   * selection means what it says: that "select all" under a search means the
+   * search's matches, that a selection cannot outlive the group it was made in
+   * or the rows it was made of, and that a removal which fails halfway says
+   * which of them did not go.
+   */
+  describe("removing several resources at once", () => {
+    type ResourceRowsFunction = () => Array<HTMLElement>;
+
+    const resourceRows: ResourceRowsFunction = (): Array<HTMLElement> => {
+      return screen.queryAllByTestId("status-page-resource-row");
+    };
+
+    type ResourceRowByNameFunction = (name: string) => HTMLElement;
+
+    const resourceRowByName: ResourceRowByNameFunction = (
+      name: string,
+    ): HTMLElement => {
+      const row: HTMLElement | undefined = resourceRows().find(
+        (candidate: HTMLElement) => {
+          return (candidate.textContent || "").includes(name);
+        },
+      );
+
+      if (!row) {
+        throw new Error(`No resource row called ${name} is on screen`);
+      }
+
+      return row;
+    };
+
+    type SelectResourceFunction = (name: string) => Promise<void>;
+
+    const selectResource: SelectResourceFunction = async (
+      name: string,
+    ): Promise<void> => {
+      fireEvent.click(within(resourceRowByName(name)).getByRole("checkbox"));
+
+      await flushEffects();
+    };
+
+    type SelectAllResourcesFunction = () => Promise<void>;
+
+    const selectAllResources: SelectAllResourcesFunction =
+      async (): Promise<void> => {
+        fireEvent.click(
+          screen.getByTestId("status-page-resource-list-select-all"),
+        );
+
+        await flushEffects();
+      };
+
+    type BulkBarFunction = () => HTMLElement | null;
+
+    const bulkBar: BulkBarFunction = (): HTMLElement | null => {
+      return screen.queryByTestId("status-page-resource-panel-bulk-actions");
+    };
+
+    type OpenBulkMenuFunction = () => Promise<void>;
+
+    const openBulkMenu: OpenBulkMenuFunction = async (): Promise<void> => {
+      fireEvent.click(screen.getByText("Bulk Actions"));
+
+      await flushEffects();
+    };
+
+    /* Through the menu, the confirmation, and out the other side. */
+    type ConfirmBulkRemoveFunction = () => Promise<void>;
+
+    const confirmBulkRemove: ConfirmBulkRemoveFunction =
+      async (): Promise<void> => {
+        await openBulkMenu();
+
+        fireEvent.click(screen.getByText("Remove from status page"));
+        await flushEffects();
+
+        fireEvent.click(screen.getByText("Remove from status page"));
+        await flushEffects();
+      };
+
+    type DeletedIdsFunction = () => Array<string>;
+
+    const deletedIds: DeletedIdsFunction = (): Array<string> => {
+      return mockDeleteItem.mock.calls.map((call: Array<any>) => {
+        return call[0].id.toString();
+      });
+    };
+
+    type SetUpGroupFunction = (
+      resources?: Array<StatusPageResource> | undefined,
+    ) => Array<GetListCall>;
+
+    const setUpGroup: SetUpGroupFunction = (
+      resources?: Array<StatusPageResource> | undefined,
+    ): Array<GetListCall> => {
+      return setUpApi({
+        groups: buildHierarchy(),
+        resources: resources || [
+          makeResource({ id: "a", monitorName: "API", order: 1 }),
+          makeResource({ id: "b", monitorName: "Database", order: 2 }),
+          makeResource({ id: "c", monitorName: "Cache", order: 3 }),
+        ],
+      });
+    };
+
+    describe("making a selection", () => {
+      test("every row has a box, and the list is topped by one", async () => {
+        setUpGroup();
+
+        renderPage();
+
+        await waitForExplorer();
+
+        expect(
+          screen.queryAllByTestId("status-page-resource-row-select").length,
+        ).toBe(3);
+        expect(
+          screen.getByTestId("status-page-resource-list-select-all"),
+        ).toBeInTheDocument();
+      });
+
+      test("nothing is offered until something is ticked", async () => {
+        setUpGroup();
+
+        renderPage();
+
+        await waitForExplorer();
+
+        expect(bulkBar()).not.toBeInTheDocument();
+
+        await selectResource("Database");
+
+        expect(bulkBar()).toBeInTheDocument();
+      });
+
+      test("the bar counts what is ticked, in the singular when there is one", async () => {
+        setUpGroup();
+
+        renderPage();
+
+        await waitForExplorer();
+
+        await selectResource("Database");
+
+        expect(bulkBar()!.textContent).toContain("1 resource Selected");
+
+        await selectResource("Cache");
+
+        expect(bulkBar()!.textContent).toContain("2 resources Selected");
+      });
+
+      test("un-ticking the last row puts the bar away again", async () => {
+        setUpGroup();
+
+        renderPage();
+
+        await waitForExplorer();
+
+        await selectResource("Database");
+        await selectResource("Database");
+
+        expect(bulkBar()).not.toBeInTheDocument();
+      });
+
+      test("the box at the top selects the whole group, and clears it again", async () => {
+        setUpGroup();
+
+        renderPage();
+
+        await waitForExplorer();
+
+        await selectAllResources();
+
+        expect(bulkBar()!.textContent).toContain("3 resources Selected");
+
+        resourceRows().forEach((row: HTMLElement) => {
+          expect(row).toHaveAttribute("data-selected", "true");
+        });
+
+        await selectAllResources();
+
+        expect(bulkBar()).not.toBeInTheDocument();
+      });
+
+      /*
+       * Half filled rather than empty. A box that can never reach "all
+       * selected" and sits permanently empty reads as a selection that was
+       * lost.
+       */
+      test("the box at the top is half filled while only some rows are", async () => {
+        setUpGroup();
+
+        renderPage();
+
+        await waitForExplorer();
+
+        await selectResource("API");
+
+        const selectAll: HTMLInputElement = screen.getByTestId(
+          "status-page-resource-list-select-all",
+        ) as HTMLInputElement;
+
+        expect(selectAll.checked).toBe(false);
+        expect(selectAll.indeterminate).toBe(true);
+
+        await selectResource("Database");
+        await selectResource("Cache");
+
+        expect(
+          (
+            screen.getByTestId(
+              "status-page-resource-list-select-all",
+            ) as HTMLInputElement
+          ).checked,
+        ).toBe(true);
+      });
+
+      /*
+       * The search is the whole reason a "select all" is worth having on a
+       * group of twenty seven: pick out the ones that share a name, then clear
+       * them. So it has to mean the matches and nothing else.
+       */
+      test("select all under a search takes the matches and leaves the rest", async () => {
+        setUpApi({
+          groups: buildHierarchy(),
+          resources: [
+            makeResource({ id: "a", monitorName: "Prod API" }),
+            makeResource({ id: "b", monitorName: "Prod Database" }),
+            makeResource({ id: "c", monitorName: "Staging Cache" }),
+          ],
+        });
+
+        renderPage();
+
+        await waitForExplorer();
+
+        fireEvent.change(
+          screen.getByTestId("status-page-resource-panel-search"),
+          { target: { value: "prod" } },
+        );
+        await flushEffects();
+
+        expect(resourceRows().length).toBe(2);
+
+        await selectAllResources();
+
+        expect(bulkBar()!.textContent).toContain("2 resources Selected");
+      });
+
+      /*
+       * And a selection made before the search is still a selection: the rows
+       * the filter hid are not rows the operator changed their mind about.
+       */
+      test("a selection survives a search being typed and cleared", async () => {
+        setUpApi({
+          groups: buildHierarchy(),
+          resources: [
+            makeResource({ id: "a", monitorName: "Prod API" }),
+            makeResource({ id: "b", monitorName: "Staging Cache" }),
+          ],
+        });
+
+        renderPage();
+
+        await waitForExplorer();
+
+        await selectResource("Staging Cache");
+
+        fireEvent.change(
+          screen.getByTestId("status-page-resource-panel-search"),
+          { target: { value: "prod" } },
+        );
+        await flushEffects();
+
+        /* Off screen, still counted. */
+        expect(resourceRows().length).toBe(1);
+        expect(bulkBar()!.textContent).toContain("1 resource Selected");
+
+        fireEvent.change(
+          screen.getByTestId("status-page-resource-panel-search"),
+          { target: { value: "" } },
+        );
+        await flushEffects();
+
+        expect(resourceRowByName("Staging Cache")).toHaveAttribute(
+          "data-selected",
+          "true",
+        );
+      });
+
+      /*
+       * A selection belongs to the group it was made in. Carrying it across
+       * would aim a removal at rows the operator is no longer looking at.
+       */
+      test("a selection does not follow the operator to the next group", async () => {
+        setUpApi({
+          groups: buildHierarchy(),
+          resources: [
+            makeResource({ id: "loose", monitorName: "Loose" }),
+            makeResource({
+              id: "market",
+              groupId: MARKET_ID,
+              monitorName: "Market Monitor",
+            }),
+          ],
+        });
+
+        renderPage();
+
+        await waitForExplorer();
+
+        await selectResource("Loose");
+
+        expect(bulkBar()).toBeInTheDocument();
+
+        await selectGroup("Market 1001");
+
+        expect(bulkBar()).not.toBeInTheDocument();
+      });
+
+      /*
+       * Ticking rows is only worth offering to somebody who can act on them,
+       * and removing is the only thing this pane does with a selection.
+       */
+      test("a viewer who may not remove anything is offered no boxes", async () => {
+        mockIsMasterAdmin.mockReturnValue(false);
+
+        setUpGroup();
+
+        renderPage();
+
+        await waitForExplorer();
+
+        expect(resourceRows().length).toBe(3);
+        expect(
+          screen.queryAllByTestId("status-page-resource-row-select").length,
+        ).toBe(0);
+        expect(
+          screen.queryByTestId("status-page-resource-list-select-all"),
+        ).not.toBeInTheDocument();
+      });
+    });
+
+    describe("removing what was selected", () => {
+      test("asks once, naming the number, and says the monitors survive", async () => {
+        setUpGroup();
+
+        renderPage();
+
+        await waitForExplorer();
+
+        await selectResource("API");
+        await selectResource("Cache");
+
+        await openBulkMenu();
+
+        fireEvent.click(screen.getByText("Remove from status page"));
+        await flushEffects();
+
+        expect(screen.getByText("Remove 2 resources")).toBeInTheDocument();
+        expect(
+          screen.getByText(
+            "Are you sure you want to remove 2 resources from this status page? The monitors themselves are not deleted.",
+          ),
+        ).toBeInTheDocument();
+
+        /* Nothing has been written yet - the question is still on screen. */
+        expect(mockDeleteItem).not.toHaveBeenCalled();
+      });
+
+      test("deletes exactly the rows that were ticked, and no others", async () => {
+        setUpGroup();
+
+        renderPage();
+
+        await waitForExplorer();
+
+        await selectResource("API");
+        await selectResource("Cache");
+
+        await confirmBulkRemove();
+
+        await waitFor(() => {
+          expect(mockDeleteItem).toHaveBeenCalledTimes(2);
+        });
+
+        expect(deletedIds().sort()).toEqual(["a", "c"]);
+      });
+
+      test("clears a whole group from one press of the box at the top", async () => {
+        setUpGroup();
+
+        renderPage();
+
+        await waitForExplorer();
+
+        await selectAllResources();
+
+        await confirmBulkRemove();
+
+        await waitFor(() => {
+          expect(mockDeleteItem).toHaveBeenCalledTimes(3);
+        });
+
+        expect(deletedIds().sort()).toEqual(["a", "b", "c"]);
+      });
+
+      /*
+       * The report of what happened is the last thing on screen, and clearing
+       * the selection is what takes it away - so the group is only re-read once
+       * the operator has dismissed it.
+       */
+      test("re-reads the group and drops the selection once the report is closed", async () => {
+        const calls: Array<GetListCall> = setUpGroup();
+
+        renderPage();
+
+        await waitForExplorer();
+
+        await selectResource("API");
+
+        const before: number = scopedResourceCalls(calls).length;
+
+        await confirmBulkRemove();
+
+        await waitFor(() => {
+          expect(mockDeleteItem).toHaveBeenCalledTimes(1);
+        });
+
+        /* Still on screen, still reporting, and the group not yet re-read. */
+        expect(scopedResourceCalls(calls).length).toBe(before);
+        expect(screen.getByText("Completed")).toBeInTheDocument();
+
+        fireEvent.click(screen.getByText("Close"));
+
+        await waitFor(() => {
+          expect(scopedResourceCalls(calls).length).toBe(before + 1);
+        });
+
+        await waitForSettled();
+
+        expect(bulkBar()).not.toBeInTheDocument();
+      });
+
+      test("moves the group's count badge without re-reading the status page", async () => {
+        const calls: Array<GetListCall> = setUpApi({
+          groups: buildHierarchy(),
+          resources: [
+            makeResource({ id: "a", groupId: MARKET_ID, monitorName: "One" }),
+            makeResource({ id: "b", groupId: MARKET_ID, monitorName: "Two" }),
+            makeResource({
+              id: "c",
+              groupId: MARKET_ID,
+              monitorName: "Three",
+            }),
+          ],
+        });
+
+        renderPage();
+
+        await waitForExplorer();
+
+        await selectGroup("Market 1001");
+
+        expect(
+          within(navigatorRowByName("Market 1001")).getByTestId(
+            "status-page-resource-navigator-count",
+          ).textContent,
+        ).toBe("3");
+
+        const unscopedCallsBefore: number =
+          resourceCalls(calls).length - scopedResourceCalls(calls).length;
+
+        await selectResource("One");
+        await selectResource("Two");
+
+        /* Whatever is asked for next, the group now holds one resource. */
+        mockGetList.mockImplementation(async (callData: any): Promise<any> => {
+          calls.push({
+            modelType: callData.modelType,
+            query: callData.query || {},
+          });
+
+          if (callData.modelType === StatusPageGroup) {
+            return {
+              data: buildHierarchy(),
+              count: 4,
+              skip: 0,
+              limit: 4,
+            };
+          }
+
+          return {
+            data: [
+              makeResource({
+                id: "c",
+                groupId: MARKET_ID,
+                monitorName: "Three",
+              }),
+            ],
+            count: 1,
+            skip: 0,
+            limit: 1,
+          };
+        });
+
+        await confirmBulkRemove();
+
+        await waitFor(() => {
+          expect(mockDeleteItem).toHaveBeenCalledTimes(2);
+        });
+
+        fireEvent.click(screen.getByText("Close"));
+
+        await waitFor(() => {
+          expect(
+            within(navigatorRowByName("Market 1001")).getByTestId(
+              "status-page-resource-navigator-count",
+            ).textContent,
+          ).toBe("1");
+        });
+
+        expect(
+          resourceCalls(calls).length - scopedResourceCalls(calls).length,
+        ).toBe(unscopedCallsBefore);
+      });
+
+      /*
+       * There is no bulk delete endpoint, so a removal is a pass of single
+       * deletes and any one of them can fail. The ones that went stay gone, and
+       * the operator is told which did not - by name, because "1 failed" over
+       * twenty seven rows is not something anybody can act on.
+       */
+      test("reports the ones that failed by name, and keeps the ones that went", async () => {
+        setUpGroup();
+
+        renderPage();
+
+        await waitForExplorer();
+
+        mockDeleteItem.mockImplementation(async (data: any): Promise<any> => {
+          if (data.id.toString() === "b") {
+            throw new Error("Database is not yours to remove");
+          }
+
+          return {};
+        });
+
+        await selectAllResources();
+
+        await confirmBulkRemove();
+
+        await waitFor(() => {
+          expect(mockDeleteItem).toHaveBeenCalledTimes(3);
+        });
+
+        expect(screen.getByText("Completed")).toBeInTheDocument();
+        expect(screen.getByText("2 resources succeeded")).toBeInTheDocument();
+        expect(screen.getByText("1 resource failed")).toBeInTheDocument();
+
+        /*
+         * Scoped to the failure the report drew, not to the page: the row it
+         * names is still in the list behind the modal, because a removal that
+         * failed removed nothing.
+         */
+        const failure: HTMLElement = screen.getByText(
+          "Database is not yours to remove",
+        ).parentElement as HTMLElement;
+
+        expect(within(failure).getByText("Database")).toBeInTheDocument();
+
+        expect(resourceRowByName("Database")).toBeInTheDocument();
+      });
+
+      test("a removal that fails outright still names what it was", async () => {
+        setUpGroup();
+
+        renderPage();
+
+        await waitForExplorer();
+
+        mockDeleteItem.mockImplementation(async (): Promise<any> => {
+          throw new Error("Status page is read only");
+        });
+
+        await selectResource("API");
+
+        await confirmBulkRemove();
+
+        await waitFor(() => {
+          expect(mockDeleteItem).toHaveBeenCalledTimes(1);
+        });
+
+        expect(screen.getByText("1 resource failed")).toBeInTheDocument();
+        expect(
+          screen.getByText("Status page is read only"),
+        ).toBeInTheDocument();
+      });
+
+      /*
+       * The bar's own "Select all" is the whole group rather than the filtered
+       * view - which is how it differs from the box at the top of the list, and
+       * why it is offered at all once a search is on.
+       */
+      test("the bar offers the rest of the group when the list is filtered", async () => {
+        setUpApi({
+          groups: buildHierarchy(),
+          resources: [
+            makeResource({ id: "a", monitorName: "Prod API" }),
+            makeResource({ id: "b", monitorName: "Staging Cache" }),
+          ],
+        });
+
+        renderPage();
+
+        await waitForExplorer();
+
+        fireEvent.change(
+          screen.getByTestId("status-page-resource-panel-search"),
+          { target: { value: "prod" } },
+        );
+        await flushEffects();
+
+        await selectAllResources();
+
+        expect(bulkBar()!.textContent).toContain("1 resource Selected");
+
+        fireEvent.click(screen.getByText("Select All resources"));
+        await flushEffects();
+
+        expect(bulkBar()!.textContent).toContain("2 resources Selected");
+      });
+
+      /*
+       * A group past the request's row cap holds resources this pane never
+       * loaded, so "everything" is everything that arrived. Saying so is the
+       * difference between a cleared group and a group that looks cleared.
+       */
+      test("says so when the group holds more than the pane could load", async () => {
+        setUpApi({ groups: buildHierarchy() });
+
+        /*
+         * One row back, four thousand claimed. That is what a group past the
+         * request's row cap looks like from here.
+         */
+        mockGetList.mockImplementation(async (callData: any): Promise<any> => {
+          if (callData.modelType === StatusPageGroup) {
+            return {
+              data: buildHierarchy(),
+              count: 4,
+              skip: 0,
+              limit: 4,
+            };
+          }
+
+          return {
+            data: [makeResource({ id: "a", monitorName: "API" })],
+            count: 4000,
+            skip: 0,
+            limit: 1,
+          };
+        });
+
+        renderPage();
+
+        await waitForExplorer();
+
+        await selectAllResources();
+
+        expect(bulkBar()!.textContent).toContain(
+          `Selected 1 of ${(4000).toLocaleString()} matching resources`,
+        );
+      });
+
+      test("the whole bar goes away when the selection is cleared by hand", async () => {
+        setUpGroup();
+
+        renderPage();
+
+        await waitForExplorer();
+
+        await selectAllResources();
+
+        fireEvent.click(screen.getByText("Clear Selection"));
+        await flushEffects();
+
+        expect(bulkBar()).not.toBeInTheDocument();
+        resourceRows().forEach((row: HTMLElement) => {
+          expect(row).toHaveAttribute("data-selected", "false");
+        });
+      });
+    });
+
+    /*
+     * A grid group is the same resources arranged differently, and clearing
+     * twenty seven of them one at a time is no better there.
+     */
+    describe("a grid group", () => {
+      test("selects from its chips and removes them the same way", async () => {
+        setUpApi({
+          groups: buildHierarchy(),
+          resources: [
+            makeResource({ id: "loose", monitorName: "Loose" }),
+            makeResource({
+              id: "grid-a",
+              groupId: GRID_ID,
+              monitorName: "Auth US",
+              rowAxisValue: "Auth",
+              columnAxisValue: "US-East",
+            }),
+            makeResource({
+              id: "grid-b",
+              groupId: GRID_ID,
+              monitorName: "API EU",
+              rowAxisValue: "API",
+              columnAxisValue: "EU-West",
+            }),
+          ],
+        });
+
+        renderPage();
+
+        await waitForExplorer();
+
+        await selectGroup("Grid Group");
+
+        expect(
+          screen.getByTestId("status-page-resource-grid"),
+        ).toBeInTheDocument();
+
+        fireEvent.click(screen.getByLabelText("Select Auth US"));
+        await flushEffects();
+        fireEvent.click(screen.getByLabelText("Select API EU"));
+        await flushEffects();
+
+        expect(bulkBar()!.textContent).toContain("2 resources Selected");
+
+        await confirmBulkRemove();
+
+        await waitFor(() => {
+          expect(mockDeleteItem).toHaveBeenCalledTimes(2);
+        });
+
+        expect(deletedIds().sort()).toEqual(["grid-a", "grid-b"]);
+      });
+    });
+  });
 });

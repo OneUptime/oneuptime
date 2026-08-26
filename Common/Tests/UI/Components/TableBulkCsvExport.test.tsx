@@ -142,8 +142,12 @@ describe("Table bulk CSV export", () => {
       bulkSelectedItems: [data[0]!],
     });
 
-    // The bulk action bar is visible with the selected count.
-    expect(getByText("1 Monitors Selected")).toBeTruthy();
+    /*
+     * The bulk action bar is visible with the selected count - in the singular
+     * for one row, because that badge is always on screen and "1 Monitors
+     * Selected" reads as a bug in the count.
+     */
+    expect(getByText("1 Monitor Selected")).toBeTruthy();
 
     // Open the Bulk Actions menu.
     fireEvent.click(getByText("Bulk Actions"));

@@ -4,6 +4,7 @@ import StatusPageResourceExplorerUtil, {
   StatusPageResourceGridModel,
 } from "../../../Utils/StatusPage/ResourceExplorer";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
+import CheckboxElement from "../Checkbox/Checkbox";
 import Icon, { ThickProp } from "../Icon/Icon";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
@@ -21,6 +22,18 @@ export interface ComponentProps {
   isCreateable: boolean;
   isEditable: boolean;
   isDeleteable: boolean;
+
+  /*
+   * See ResourceList: a checkbox whose only action is removing, so it is drawn
+   * only for somebody who may remove. A grid group is the same resources as a
+   * list group in a different arrangement, and clearing twenty seven of them
+   * one at a time is no better here than it is there (issue #3419) - so the
+   * chips carry the same box the rows do, and the bulk bar the pane draws above
+   * is shared between the two.
+   */
+  isSelectable: boolean;
+  selectedResourceIds: Set<string>;
+  onToggleResourceSelected: (statusPageResource: StatusPageResource) => void;
 
   onAddToCell: (rowValue: string | null, columnValue: string | null) => void;
   onEdit: (statusPageResource: StatusPageResource) => void;
@@ -50,6 +63,57 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
       });
     }, [props.statusPageResources, props.rowValues, props.columnValues]);
 
+  type IsResourceSelectedFunction = (
+    statusPageResource: StatusPageResource,
+  ) => boolean;
+
+  const isResourceSelected: IsResourceSelectedFunction = (
+    statusPageResource: StatusPageResource,
+  ): boolean => {
+    if (!props.isSelectable) {
+      return false;
+    }
+
+    const resourceId: string | null =
+      StatusPageResourceExplorerUtil.getResourceId(statusPageResource);
+
+    return Boolean(resourceId && props.selectedResourceIds.has(resourceId));
+  };
+
+  type RenderSelectFunction = (
+    statusPageResource: StatusPageResource,
+  ) => ReactElement;
+
+  const renderSelect: RenderSelectFunction = (
+    statusPageResource: StatusPageResource,
+  ): ReactElement => {
+    if (!props.isSelectable) {
+      return <></>;
+    }
+
+    const resourceId: string | null =
+      StatusPageResourceExplorerUtil.getResourceId(statusPageResource);
+    const name: string =
+      StatusPageResourceExplorerUtil.getResourceName(statusPageResource);
+
+    return (
+      <span
+        className="flex flex-shrink-0 items-center"
+        data-testid="status-page-resource-grid-select"
+      >
+        <CheckboxElement
+          value={isResourceSelected(statusPageResource)}
+          disabled={!resourceId}
+          ariaLabel={`Select ${name}`}
+          hoverText={`Select ${name}`}
+          onChange={() => {
+            props.onToggleResourceSelected(statusPageResource);
+          }}
+        />
+      </span>
+    );
+  };
+
   type RenderResourceChipFunction = (
     statusPageResource: StatusPageResource,
   ) => ReactElement;
@@ -60,12 +124,21 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
     const name: string =
       StatusPageResourceExplorerUtil.getResourceName(statusPageResource);
 
+    const isSelected: boolean = isResourceSelected(statusPageResource);
+
     return (
       <div
         key={statusPageResource._id?.toString()}
-        className="group flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs shadow-sm transition-shadow hover:shadow"
+        className={`group flex items-center justify-between gap-2 rounded-lg border px-2 py-1.5 text-xs shadow-sm transition-shadow hover:shadow ${
+          isSelected
+            ? "border-indigo-300 bg-indigo-50"
+            : "border-gray-200 bg-white"
+        }`}
         data-testid="status-page-resource-grid-cell-item"
+        data-selected={isSelected}
       >
+        {renderSelect(statusPageResource)}
+
         <div className="min-w-0 flex-1">
           <div className="truncate font-medium text-gray-900">
             {props.getResourceElement(statusPageResource)}
@@ -248,9 +321,16 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
                 return (
                   <div
                     key={statusPageResource._id?.toString()}
-                    className="flex items-center justify-between gap-2 rounded-lg border border-amber-200 bg-white px-3 py-2 text-xs"
+                    className={`flex items-center justify-between gap-2 rounded-lg border border-amber-200 px-3 py-2 text-xs ${
+                      isResourceSelected(statusPageResource)
+                        ? "bg-indigo-50"
+                        : "bg-white"
+                    }`}
                     data-testid="status-page-resource-grid-orphan"
+                    data-selected={isResourceSelected(statusPageResource)}
                   >
+                    {renderSelect(statusPageResource)}
+
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-medium text-gray-900">
                         {props.getResourceElement(statusPageResource)}
