@@ -109,6 +109,16 @@ const EXPECTED_SPAN_ROW_KEY_ORDER: Array<string> = [
   "llmTotalTokens",
   "llmCost",
   "llmConversationId",
+  /*
+   * Employee identity, appended after llmConversationId when LLM spend gained
+   * a human dimension. New columns go at the END of the llm* block: the row
+   * is inserted as JSONEachRow, so order is cosmetic to ClickHouse, but this
+   * golden list is what proves the row builder did not silently drop or
+   * reorder a field.
+   */
+  "llmUserId",
+  "llmUserEmail",
+  "llmTeam",
   "retentionDate",
 ];
 

@@ -76,6 +76,38 @@ export default class LlmMetricSpend {
   }
 
   /**
+   * Aggregate descriptor for the micro-USD cost sum.
+   *
+   * Identical in shape to buildCostAggregateBy, deliberately a SECOND query
+   * rather than a wider name list on the first: the two name lists carry
+   * different units, and a single Sum over both would add micro-USD figures
+   * to USD ones with no way to recover the unit afterwards. Codex spend would
+   * arrive a million times too large and trip every cost budget in the
+   * project. getCostInUSD scales this total once, via
+   * LlmMetricQuery.combineCostTotals.
+   */
+  public static buildMicroUsdCostAggregateBy(
+    scope: LlmMetricScope,
+  ): AggregateBy<Metric> {
+    return {
+      query: LlmMetricQuery.buildMicroUsdCostQuery(scope),
+      aggregationType: AggregationType.Sum,
+      aggregateColumnName: "value",
+      aggregationTimestampColumnName: "time",
+      startTimestamp: scope.startTime,
+      endTimestamp: scope.endTime,
+      aggregationInterval: AggregationInterval.Total,
+      // Same fail-loud reasoning as the USD query above.
+      timeoutOverflowMode: "throw",
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    } as AggregateBy<Metric>;
+  }
+
+  /**
    * Aggregate descriptor for the token sum.
    *
    * Grouping by every candidate token-type attribute key in ONE query —
@@ -106,14 +138,33 @@ export default class LlmMetricSpend {
     } as AggregateBy<Metric>;
   }
 
-  /** Metric-sourced spend in USD for the scope, or 0 when nothing matched. */
+  /**
+   * Metric-sourced spend in USD for the scope, or 0 when nothing matched.
+   *
+   * Two aggregates, not one, because the recognized cost metrics come in two
+   * UNITS: dollars (the gateways, Claude Code, Cursor) and millionths of a
+   * dollar (the Codex CLI). They are queried apart and scaled before being
+   * added, in LlmMetricQuery.combineCostTotals — the one place the 1e-6
+   * factor lives. Folding the micro-USD names into the USD query would report
+   * Codex spend a million times too high, which for a figure that gates
+   * budget alerting is far worse than reporting nothing.
+   *
+   * The two run in parallel: they hit the same table with disjoint name
+   * filters, and serializing them would double the latency of every budget
+   * evaluation for no benefit.
+   */
   @CaptureSpan()
   public static async getCostInUSD(scope: LlmMetricScope): Promise<number> {
-    const result: AggregatedResult = await MetricService.aggregateBy(
-      this.buildCostAggregateBy(scope),
-    );
+    const [usdResult, microUsdResult]: [AggregatedResult, AggregatedResult] =
+      await Promise.all([
+        MetricService.aggregateBy(this.buildCostAggregateBy(scope)),
+        MetricService.aggregateBy(this.buildMicroUsdCostAggregateBy(scope)),
+      ]);
 
-    return LlmMetricQuery.sumAggregatedRows(result?.data);
+    return LlmMetricQuery.combineCostTotals({
+      usd: LlmMetricQuery.sumAggregatedRows(usdResult?.data),
+      microUsd: LlmMetricQuery.sumAggregatedRows(microUsdResult?.data),
+    });
   }
 
   /** Metric-sourced input/output token totals for the scope. */

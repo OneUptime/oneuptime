@@ -14,8 +14,11 @@ import {
   LlmRequestModelAttributeKeys,
   LlmResponseModelAttributeKeys,
   LlmSystemAttributeKeys,
+  LlmTeamAttributeKeys,
   LlmToolNameAttributeKeys,
   LlmTotalTokenAttributeKeys,
+  LlmUserEmailAttributeKeys,
+  LlmUserIdAttributeKeys,
 } from "../../../Types/Telemetry/LlmConventions";
 import { AttributeType } from "./Telemetry";
 
@@ -61,6 +64,20 @@ export interface LlmSpanFields {
   llmToolName: string;
   // Conversation / session id grouping calls of one interaction (gen_ai.conversation.id).
   llmConversationId: string;
+  /*
+   * WHO ran the call — the EMPLOYEE / internal actor, never the caller's own
+   * downstream customer. See the block comment above
+   * LlmUserIdAttributeKeys in Common/Types/Telemetry/LlmConventions.ts for
+   * why that distinction is load-bearing rather than pedantic.
+   *
+   * "" when the instrumentation reports no identity, which is still the
+   * common case for library-instrumented server code — only the coding-agent
+   * CLIs and the gateways stamp identity by default.
+   */
+  llmUserId: string;
+  llmUserEmail: string;
+  // Team / cost centre the spend charges to (team.id, cost_center, ...).
+  llmTeam: string;
 }
 
 type SpanAttributes = Dictionary<AttributeType | Array<AttributeType>>;
@@ -83,6 +100,9 @@ export default class LlmSpanUtil {
       llmAgentName: "",
       llmToolName: "",
       llmConversationId: "",
+      llmUserId: "",
+      llmUserEmail: "",
+      llmTeam: "",
     };
   }
 
@@ -184,6 +204,32 @@ export default class LlmSpanUtil {
         attributes,
         LlmConversationIdAttributeKeys,
       );
+
+      /*
+       * Identity is gated on isLlmSpan for exactly the reason the
+       * conversation id above is. "user.id", "user.email" and "team.id" are
+       * GENERIC OTel general-semconv keys — RUM browser spans and ordinary
+       * backend HTTP spans routinely carry them, and those are the
+       * highest-volume span classes there are. Stamping them onto every such
+       * span would copy the value (and pay for its skip index) across the
+       * whole fleet to serve a reader that only ever asks "which employee
+       * spent what on LLM calls". The LLM spans are the only rows that
+       * question reads, so they are the only rows that carry the columns.
+       *
+       * The keys that carry the caller's DOWNSTREAM CUSTOMER rather than the
+       * employee (gen_ai.user, llm.user,
+       * litellm.metadata.user_api_key_end_user_id) are deliberately absent
+       * from these lists — see LlmEndUserAttributeKeys. Reading one of them
+       * here would silently misattribute internal chargeback.
+       */
+      fields.llmUserId = this.getString(attributes, LlmUserIdAttributeKeys);
+
+      fields.llmUserEmail = this.getString(
+        attributes,
+        LlmUserEmailAttributeKeys,
+      );
+
+      fields.llmTeam = this.getString(attributes, LlmTeamAttributeKeys);
     }
 
     /*

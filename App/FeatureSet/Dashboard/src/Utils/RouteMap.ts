@@ -559,6 +559,7 @@ export const ExceptionsRoutePath: Dictionary<string> = {
 export const LlmRoutePath: Dictionary<string> = {
   [PageMap.LLM]: "overview",
   [PageMap.LLM_OVERVIEW]: "overview",
+  [PageMap.LLM_USAGE]: "usage",
   [PageMap.LLM_CALLS]: "calls",
   [PageMap.LLM_BUDGETS]: "budgets",
   [PageMap.LLM_PRICING]: "pricing",
@@ -5641,6 +5642,10 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/llm/${
       LlmRoutePath[PageMap.LLM_OVERVIEW]
     }`,
+  ),
+
+  [PageMap.LLM_USAGE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/llm/${LlmRoutePath[PageMap.LLM_USAGE]}`,
   ),
 
   [PageMap.LLM_CALLS]: new Route(

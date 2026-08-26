@@ -8,6 +8,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
 import LlmOverview from "../Pages/Llm/Overview";
+import LlmUsage from "../Pages/Llm/Usage";
 import LlmCalls from "../Pages/Llm/Calls";
 import LlmBudgets from "../Pages/Llm/Budgets";
 import LlmPricing from "../Pages/Llm/Pricing";
@@ -35,6 +36,16 @@ const LlmRoutes: FunctionComponent<ComponentProps> = (
             <LlmOverview
               {...props}
               pageRoute={RouteMap[PageMap.LLM_OVERVIEW] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={LlmRoutePath[PageMap.LLM_USAGE] || ""}
+          element={
+            <LlmUsage
+              {...props}
+              pageRoute={RouteMap[PageMap.LLM_USAGE] as Route}
             />
           }
         />

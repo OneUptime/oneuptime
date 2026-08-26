@@ -639,6 +639,26 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/ai-llm-observability",
       },
       {
+        title: "AI Coding Assistants",
+        url: "/docs/telemetry/ai-coding-assistants",
+      },
+      {
+        title: "Claude Code",
+        url: "/docs/telemetry/claude-code",
+      },
+      {
+        title: "Cursor",
+        url: "/docs/telemetry/cursor",
+      },
+      {
+        title: "OpenAI Codex",
+        url: "/docs/telemetry/openai-codex",
+      },
+      {
+        title: "Gemini CLI & GitHub Copilot",
+        url: "/docs/telemetry/gemini-cli-and-copilot",
+      },
+      {
         title: "AI Gateways (LiteLLM, Portkey)",
         url: "/docs/telemetry/ai-gateways",
       },

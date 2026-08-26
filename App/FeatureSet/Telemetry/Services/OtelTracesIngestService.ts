@@ -1304,6 +1304,16 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       llmTotalTokens: data.llmFields.llmTotalTokens,
       llmCost: data.llmFields.llmCost,
       llmConversationId: data.llmFields.llmConversationId,
+      /*
+       * Employee identity. Written here as plain string columns, which means
+       * they are subject to TraceScrubRuleService's identity-column pass —
+       * scrubbing runs downstream of this row builder, so a project's
+       * email-redaction rule reaches llmUserEmail as well as the attribute it
+       * was derived from.
+       */
+      llmUserId: data.llmFields.llmUserId,
+      llmUserEmail: data.llmFields.llmUserEmail,
+      llmTeam: data.llmFields.llmTeam,
     };
   }
 

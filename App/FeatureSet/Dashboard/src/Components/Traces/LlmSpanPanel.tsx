@@ -154,6 +154,35 @@ const LlmSpanPanel: FunctionComponent<ComponentProps> = (
     chips.push({ label: "Tool", value: display.toolName });
   }
 
+  /*
+   * Who ran the call. Email leads because it is the one identity value a
+   * manager reads without a lookup table; the id is only shown when it adds
+   * something the email does not already say, since most emitters populate
+   * exactly one of the two.
+   */
+  if (display.userEmail) {
+    chips.push({ label: "User", value: display.userEmail });
+  }
+  if (display.userId && display.userId !== display.userEmail) {
+    chips.push({
+      label: display.userEmail ? "User ID" : "User",
+      value: display.userId,
+    });
+  }
+  if (display.team) {
+    chips.push({ label: "Team", value: display.team });
+  }
+
+  /*
+   * The end user is the caller's own CUSTOMER, not the employee above, so it
+   * carries a label that cannot be misread as one. Charging this identity as
+   * if it were an employee is what would break internal chargeback — see
+   * LlmEndUserAttributeKeys in Common/Types/Telemetry/LlmConventions.ts.
+   */
+  if (display.endUser) {
+    chips.push({ label: "End user (customer)", value: display.endUser });
+  }
+
   const metrics: Array<{ label: string; value: string }> = [];
   metrics.push({
     label: "Input tokens",
