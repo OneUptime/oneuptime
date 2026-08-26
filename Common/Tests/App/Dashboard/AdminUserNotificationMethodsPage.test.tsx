@@ -15,7 +15,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import React from "react";
+import React, { act } from "react";
 import {
   MemoryRouter,
   Outlet,
@@ -361,6 +361,40 @@ const respondWithMethods: RespondWithMethodsFunction = (
   });
 };
 
+type RespondWithDeletionImpactFunction = (impact: JSONObject) => void;
+
+/*
+ * The impact endpoint hangs off the same base route as the list, so its url
+ * CONTAINS the list's url. It is matched first for that reason: the other way
+ * round, every impact read is answered with the method list and the
+ * confirmation draws a preview out of a payload that has no counts in it.
+ */
+const respondWithDeletionImpact: RespondWithDeletionImpactFunction = (
+  impact: JSONObject,
+): void => {
+  apiGetMock.mockImplementation((data: any) => {
+    const url: string = String(data.url);
+
+    if (url.includes("/deletion-impact")) {
+      return Promise.resolve(new HTTPResponse<JSONObject>(200, impact, {}));
+    }
+
+    if (url.includes("/user-notification-method-admin/")) {
+      return Promise.resolve(
+        new HTTPResponse<JSONObject>(
+          200,
+          { methods: [VERIFIED_EMAIL, UNVERIFIED_SMS, WEBHOOK] },
+          {},
+        ),
+      );
+    }
+
+    return Promise.resolve(
+      new HTTPResponse<JSONObject>(200, READINESS_PAYLOAD, {}),
+    );
+  });
+};
+
 type BuildTeamMemberFunction = () => TeamMember;
 
 const buildTeamMember: BuildTeamMemberFunction = (): TeamMember => {
@@ -373,6 +407,96 @@ const buildTeamMember: BuildTeamMemberFunction = (): TeamMember => {
   member.user = user;
 
   return member;
+};
+
+type FlushEffectsFunction = () => Promise<void>;
+
+/*
+ * One turn of the macrotask queue, inside `act`.
+ *
+ * That is what it takes for an effect scheduled by the commit that just
+ * happened to run, and for the render THAT effect schedules to commit in turn.
+ * Awaiting a promise is not enough: React 18 schedules its work through the
+ * scheduler rather than through the microtask queue, so a state update made
+ * from an effect is still uncommitted when the next microtask runs.
+ */
+const flushEffects: FlushEffectsFunction = async (): Promise<void> => {
+  await act(async (): Promise<void> => {
+    await new Promise<void>((resolve: () => void): void => {
+      setTimeout(resolve, 0);
+    });
+  });
+};
+
+type IsSettledFunction = () => boolean;
+
+/*
+ * Three things, and none of them is sufficient alone.
+ *
+ * `pendingRequestCount` dips to zero between the SECTION layout's reads
+ * finishing and the page's own read being issued — the page does not exist
+ * until the layout has an identity to render it with, so waiting on the counter
+ * alone hands the test a loading skeleton. Worse, the counter goes back to zero
+ * one turn BEFORE the awaiting component sets any state: the tracking `finally`
+ * is registered on the response promise ahead of the component's own
+ * continuation, so a poll landing in that turn sees "nothing in flight" while
+ * the section is still drawing its PageLoader.
+ *
+ * The page's own skeleton is no better on its own: it is absent before the
+ * first render, and the SELF branch never renders one at all.
+ *
+ * So the loaders are named explicitly — `bar-loader` is PageLoader's, and it is
+ * the section still deciding who this page is about.
+ */
+const isSettled: IsSettledFunction = (): boolean => {
+  return (
+    pendingRequestCount === 0 &&
+    screen.queryByTestId("methods-loading") === null &&
+    screen.queryByTestId("bar-loader") === null
+  );
+};
+
+type AssertSettledFunction = () => void;
+
+/*
+ * The same three conditions as assertions, so a wait that runs out says WHICH
+ * of them never came true rather than "timed out".
+ */
+const assertSettled: AssertSettledFunction = (): void => {
+  expect(pendingRequestCount).toBe(0);
+  expect(screen.queryByTestId("methods-loading")).not.toBeInTheDocument();
+  expect(screen.queryByTestId("bar-loader")).not.toBeInTheDocument();
+};
+
+type WaitForSettledFunction = () => Promise<void>;
+
+/*
+ * Settled, and STILL settled once everything that commit scheduled has run.
+ *
+ * The recheck is the part that matters, and the self view is why. It issues no
+ * request of its own, so the moment the layout's reads finish, every condition
+ * above holds — while the tab strip it just rendered has an empty panel, because
+ * Tabs picks its opening tab in an effect. A single `waitFor` returns on that
+ * frame and the test reads a page that has not finished appearing. Flushing and
+ * asking again is what turns "no longer busy" into "done".
+ *
+ * Looping rather than flushing once, because a flush can also START work — the
+ * commit it releases is the one that mounts the page that issues the read.
+ */
+const waitForSettled: WaitForSettledFunction = async (): Promise<void> => {
+  for (let attempt: number = 0; attempt < 25; attempt++) {
+    await waitFor(assertSettled, { timeout: 4000 });
+
+    await flushEffects();
+
+    if (isSettled()) {
+      return;
+    }
+  }
+
+  throw new Error(
+    "the page never stopped loading: it kept scheduling more work after every flush",
+  );
 };
 
 type RenderPageFunction = () => Promise<HTMLElement>;
@@ -400,24 +524,73 @@ const renderPage: RenderPageFunction = async (): Promise<HTMLElement> => {
     </MemoryRouter>,
   );
 
-  /*
-   * Two conditions, and neither is sufficient alone.
-   *
-   * `pendingRequestCount` dips to zero between the SECTION layout's reads
-   * finishing and the page's own read being issued — the page does not exist
-   * until the layout has an identity to render it with, so waiting on the
-   * counter alone hands the test a loading skeleton. The skeleton's absence
-   * alone is no better: it is also absent before the first render.
-   */
-  await waitFor(
-    (): void => {
-      expect(pendingRequestCount).toBe(0);
-      expect(screen.queryByTestId("methods-loading")).not.toBeInTheDocument();
-    },
-    { timeout: 4000 },
-  );
+  await waitForSettled();
 
   return container;
+};
+
+type RenderSelfPageFunction = () => Promise<HTMLElement>;
+
+/*
+ * The same route, read by the person it is about. Everything else — the
+ * permissions, the fixtures, the project — stays exactly as the admin case
+ * leaves it, so what these assertions read is the isSelf branch and not some
+ * other difference smuggled in beside it.
+ */
+const renderSelfPage: RenderSelfPageFunction =
+  async (): Promise<HTMLElement> => {
+    jest
+      .spyOn(UserUtil, "getUserId")
+      .mockReturnValue(new ObjectID(TARGET_USER_ID_STRING));
+
+    return renderPage();
+  };
+
+type OpenTabFunction = (name: string) => Promise<void>;
+
+const openTab: OpenTabFunction = async (name: string): Promise<void> => {
+  fireEvent.click(screen.getByTestId(`tab-${name}`));
+
+  await waitForSettled();
+};
+
+type ChannelOptionsFunction = () => Array<string>;
+
+/*
+ * The channel dropdown is a react-select, not a <select>.
+ *
+ * It renders no <option> elements at all until its menu is opened, so a
+ * querySelectorAll("option") over the closed one answers "no options" for a
+ * dropdown with four — and every "that channel is not offered" assertion
+ * written against that answer passes without having looked at anything.
+ */
+const channelOptions: ChannelOptionsFunction = (): Array<string> => {
+  const combobox: HTMLElement | null =
+    document.querySelector<HTMLElement>("[role=combobox]");
+
+  if (!combobox) {
+    throw new Error("the add form has no channel dropdown");
+  }
+
+  fireEvent.keyDown(combobox, { key: "ArrowDown", code: 40, keyCode: 40 });
+
+  return screen.queryAllByRole("option").map((option: HTMLElement): string => {
+    return option.textContent || "";
+  });
+};
+
+type ChooseChannelFunction = (label: string) => void;
+
+const chooseChannel: ChooseChannelFunction = (label: string): void => {
+  const offered: Array<string> = channelOptions();
+
+  if (!offered.includes(label)) {
+    throw new Error(
+      `the add form does not offer ${label}; it offers ${offered.join(", ")}`,
+    );
+  }
+
+  fireEvent.click(screen.getByRole("option", { name: label }));
 };
 
 type MethodRowsFunction = () => Array<HTMLElement>;
@@ -667,17 +840,14 @@ describe("adding a method on somebody's behalf", () => {
      * at all, so an admin-created one would be live the instant it was
      * written, which is exactly the silent redirect this design rules out.
      */
-    const modalText: string = document.body.textContent || "";
+    /*
+     * Read out of the OPEN menu. The page copy under the list mentions WhatsApp
+     * and the rows above it mention SMS, so a scan of document.body says
+     * "offered" about a channel this form has never heard of.
+     */
+    const optionLabels: Array<string> = channelOptions();
 
-    expect(modalText).toContain("Email");
-    expect(modalText).toContain("SMS");
-    expect(modalText).toContain("WhatsApp");
-
-    const optionLabels: Array<string> = Array.from(
-      document.querySelectorAll("option"),
-    ).map((option: Element): string => {
-      return option.textContent || "";
-    });
+    expect(optionLabels).toEqual(["Email", "SMS", "Phone call", "WhatsApp"]);
 
     for (const forbidden of [
       "Push",
@@ -745,11 +915,7 @@ describe("adding a method on somebody's behalf", () => {
 
     fireEvent.change(valueInput, { target: { value: RAW_PHONE } });
 
-    const methodSelect: HTMLElement | null = document.querySelector("select");
-
-    if (methodSelect) {
-      fireEvent.change(methodSelect, { target: { value: "SMS" } });
-    }
+    chooseChannel("SMS");
 
     fireEvent.click(within(modal()).getByText("Add"));
 
@@ -769,6 +935,14 @@ describe("adding a method on somebody's behalf", () => {
       `/user-notification-method-admin/user/${TARGET_USER_ID_STRING}`,
     );
     expect(call.data.value).toBe(RAW_PHONE);
+
+    /*
+     * And the channel the admin picked, not the one the form opened on. The
+     * previous spelling of this reached for a <select> that a react-select
+     * dropdown never renders, found nothing, and asserted the value of a form
+     * still sitting on its default.
+     */
+    expect(call.data.methodType).toBe("SMS");
   });
 
   test("re-reads the list and the readiness summary after a successful add", async () => {
@@ -963,9 +1137,7 @@ describe("removing a method", () => {
 
     clickButton(rowFor(MASKED_EMAIL), "Remove");
 
-    await waitFor((): void => {
-      expect(pendingRequestCount).toBe(0);
-    });
+    await waitForSettled();
 
     /*
      * A preview is an improvement on the confirmation, not a precondition for
@@ -1147,9 +1319,7 @@ describe("no unmasked identifier reaches the DOM", () => {
 
     clickButton(rowFor(MASKED_EMAIL), "Remove");
 
-    await waitFor((): void => {
-      expect(pendingRequestCount).toBe(0);
-    });
+    await waitForSettled();
 
     expect(document.body.textContent).toContain(MASKED_EMAIL);
 
@@ -1158,5 +1328,573 @@ describe("no unmasked identifier reaches the DOM", () => {
     for (const raw of ALL_RAW_IDENTIFIERS) {
       expect(document.body.innerHTML).not.toContain(raw);
     }
+  });
+});
+
+/*
+ * The self view, in the depth the one test above it does not go to.
+ *
+ * This branch is the reason the masked admin list is allowed to be as narrow as
+ * it is: everything an administrator cannot do here — read an identifier, enter
+ * a verification code, set up a push device — the owner can do on the very same
+ * route, because for them the method models are their own rows. A self view
+ * that quietly rendered nothing would look exactly like a self view that
+ * worked, right up until somebody needed to add a phone number.
+ */
+describe("the self-serve view", () => {
+  test("reaches every one of the nine method models across its tabs", async () => {
+    await renderSelfPage();
+
+    /*
+     * Direct Contact is the opening tab, and the five channels a person is
+     * paged on directly live in it.
+     */
+    expect(mountedTableModels).toContain(UserEmail);
+    expect(mountedTableModels).toContain(UserSMS);
+    expect(mountedTableModels).toContain(UserCall);
+    expect(mountedTableModels).toContain(UserWhatsApp);
+    expect(mountedTableModels).toContain(UserTelegram);
+
+    await openTab("Workspace Apps");
+
+    expect(mountedTableModels).toContain(UserSlack);
+    expect(mountedTableModels).toContain(UserMicrosoftTeams);
+
+    await openTab("Push Notifications");
+
+    expect(mountedTableModels).toContain(UserPush);
+
+    await openTab("Webhooks");
+
+    expect(mountedTableModels).toContain(UserWebhook);
+
+    /*
+     * Asserted as a set at the end as well, because the four channels an
+     * administrator cannot add are exactly the ones parked on the later tabs —
+     * a tab that stopped rendering would take the only surface those channels
+     * have with it.
+     */
+    for (const model of NOTIFICATION_METHOD_MODELS) {
+      expect(mountedTableModels).toContain(model);
+    }
+  });
+
+  test("draws none of the administrative surface", async () => {
+    const container: HTMLElement = await renderSelfPage();
+
+    expect(
+      screen.queryByTestId("admin-notification-method-list"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("no-methods-empty-state"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Add notification method")).toBeNull();
+
+    /*
+     * And none of its copy. Masked identifiers and "waiting for them to verify"
+     * are both written for somebody who is not the owner; addressed to the
+     * owner they describe a restriction that is not real, on a page where they
+     * can do the verifying themselves.
+     */
+    expect(container.textContent).not.toContain(MASKED_EMAIL);
+    expect(container.textContent).not.toContain(
+      `Waiting for ${TARGET_USER_FIRST_NAME} to verify`,
+    );
+  });
+
+  test("asks the admin capability for nothing at all", async () => {
+    await renderSelfPage();
+
+    /*
+     * Not only the list read. The endpoint also carries the add, the removal,
+     * the impact preview and the resend, and none of them is this page's to
+     * call for its own owner — the ordinary settings components do all of it
+     * against the models directly.
+     */
+    const adminCalls: Array<unknown> = [
+      ...apiGetMock.mock.calls,
+      ...apiPostMock.mock.calls,
+      ...apiDeleteMock.mock.calls,
+    ].filter((call: any): boolean => {
+      return String(call[0].url).includes("/user-notification-method-admin/");
+    });
+
+    expect(adminCalls).toHaveLength(0);
+  });
+
+  test("says these are the same settings they already have", async () => {
+    const container: HTMLElement = await renderSelfPage();
+
+    /*
+     * The banner the section renders for an owner. Somebody who arrives here
+     * from a colleague's row has to be able to tell at a glance that the page
+     * has changed hands — and the answer to "why does this look different from
+     * User Settings" is that it is not different.
+     */
+    expect(container.textContent).toContain(
+      "This is your own on-call configuration",
+    );
+  });
+});
+
+/*
+ * What the page does with a row it cannot make sense of.
+ *
+ * Every one of these is a shape the server does not send today. They are here
+ * because parseMethod exists — a page that parses field by field has decided
+ * that a surprising payload is a thing that happens, and the value of that
+ * decision is entirely in what it does next.
+ */
+describe("a row the server sends malformed", () => {
+  test("a row with no id or no channel is dropped, not drawn blank", async () => {
+    respondWithMethods([
+      VERIFIED_EMAIL,
+      // No id: there is nothing to remove or resend against.
+      { methodType: "SMS", maskedIdentifier: MASKED_PHONE } as JSONObject,
+      // No channel: every url this page builds puts the channel in the path.
+      { methodId: SMS_METHOD_ID, maskedIdentifier: MASKED_PHONE } as JSONObject,
+      // Neither.
+      { maskedIdentifier: MASKED_WEBHOOK } as JSONObject,
+    ]);
+
+    await renderPage();
+
+    expect(methodRows()).toHaveLength(1);
+    expect(rowFor(MASKED_EMAIL).textContent).toContain("Email");
+  });
+
+  test("a channel with no masked identifier is blank, never the word undefined", async () => {
+    respondWithMethods([
+      {
+        methodId: EMAIL_METHOD_ID,
+        methodType: "Email",
+        isVerified: true,
+        isAdminAddable: true,
+      } as JSONObject,
+    ]);
+
+    const container: HTMLElement = await renderPage();
+
+    const rows: Array<HTMLElement> = methodRows();
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.textContent).toContain("Email");
+
+    /*
+     * The row is still worth drawing — the channel and the controls are the
+     * useful part — but "undefined" beside a channel name reads as an
+     * identifier, and it is the one word on this page nobody can act on.
+     */
+    expect(container.textContent).not.toContain("undefined");
+  });
+
+  test("an absent verification flag reads as unverified", async () => {
+    respondWithMethods([
+      {
+        methodId: SMS_METHOD_ID,
+        methodType: "SMS",
+        maskedIdentifier: MASKED_PHONE,
+      } as JSONObject,
+    ]);
+
+    await renderPage();
+
+    /*
+     * The safe direction, and not an arbitrary one: an unverified row is drawn
+     * as still waiting on its owner, which is a true statement about a method
+     * whose state is unknown. The other default would print "Verified" over a
+     * channel nothing has confirmed.
+     */
+    expect(rowFor(MASKED_PHONE).textContent).toContain(
+      `Waiting for ${TARGET_USER_FIRST_NAME} to verify`,
+    );
+  });
+
+  test("an unverified channel an admin could not have added offers no resend", async () => {
+    const UNVERIFIED_TELEGRAM: JSONObject = methodJson({
+      methodId: WEBHOOK_METHOD_ID,
+      methodType: "Telegram",
+      maskedIdentifier: "@ja•••",
+      isVerified: false,
+      isAdminAddable: false,
+      leakedRawValue: RAW_PHONE,
+    });
+
+    respondWithMethods([UNVERIFIED_TELEGRAM]);
+
+    await renderPage();
+
+    const row: HTMLElement = rowFor("@ja•••");
+
+    /*
+     * Two separate conditions, and this row is the one that tells them apart:
+     * unverified is not sufficient. Telegram's code is not something this page
+     * can cause to be sent — the account holder has to message the bot — so a
+     * "Resend code" button here is a button that can only fail.
+     */
+    expect(within(row).queryByText("Resend code")).toBeNull();
+    expect(within(row).getByText("Remove")).toBeInTheDocument();
+  });
+});
+
+/*
+ * The numbers in the removal confirmation, which are the last thing an
+ * administrator reads before a cascade.
+ */
+describe("the deletion preview's arithmetic", () => {
+  test("counts of one are not pluralised", async () => {
+    await renderPage();
+
+    respondWithDeletionImpact({
+      rulesDeletedCount: 1,
+      coverageLostCount: 1,
+      verifiedMethodCountAfterDeletion: 1,
+      reachability: "PartiallyReady",
+      isFallbackEnabled: true,
+      isTruncated: false,
+    });
+
+    clickButton(rowFor(MASKED_EMAIL), "Remove");
+
+    const preview: HTMLElement = await screen.findByTestId("deletion-preview");
+
+    expect(preview.textContent).toContain(
+      "1 notification rule will be deleted",
+    );
+    expect(preview.textContent).not.toContain("rules will be deleted");
+    expect(preview.textContent).toContain("1 severity");
+    expect(preview.textContent).not.toContain("severities");
+  });
+
+  test("a removal that costs no coverage does not invent a loss", async () => {
+    await renderPage();
+
+    respondWithDeletionImpact({
+      rulesDeletedCount: 2,
+      coverageLostCount: 0,
+      verifiedMethodCountAfterDeletion: 1,
+      reachability: "Ready",
+      isFallbackEnabled: true,
+      isTruncated: false,
+    });
+
+    clickButton(rowFor(MASKED_EMAIL), "Remove");
+
+    const preview: HTMLElement = await screen.findByTestId("deletion-preview");
+
+    /*
+     * Two rules go, and every severity still has one. Saying "leaving 0
+     * severities with no rule at all" would be true and would still read as a
+     * warning, which is how a confirmation earns its dismissal.
+     */
+    expect(preview.textContent).toContain(
+      "2 notification rules will be deleted",
+    );
+    expect(preview.textContent).not.toContain("leaving");
+  });
+
+  test("somebody who keeps a verified method is not called unreachable", async () => {
+    await renderPage();
+
+    respondWithDeletionImpact({
+      rulesDeletedCount: 1,
+      coverageLostCount: 0,
+      verifiedMethodCountAfterDeletion: 2,
+      reachability: "Ready",
+      isFallbackEnabled: true,
+      isTruncated: false,
+    });
+
+    clickButton(rowFor(MASKED_EMAIL), "Remove");
+
+    await screen.findByTestId("deletion-preview");
+
+    /*
+     * The one sentence in this modal that is worth interrupting for only works
+     * while it is rare. Printed over a removal that leaves two working channels
+     * behind, it is the sentence somebody learns to scroll past.
+     */
+    expect(document.body.textContent).not.toContain(
+      "will have no verified notification method left",
+    );
+  });
+
+  test("a truncated count admits it is a lower bound", async () => {
+    await renderPage();
+
+    respondWithDeletionImpact({
+      rulesDeletedCount: 500,
+      coverageLostCount: 3,
+      verifiedMethodCountAfterDeletion: 1,
+      reachability: "PartiallyReady",
+      isFallbackEnabled: true,
+      isTruncated: true,
+    });
+
+    clickButton(rowFor(MASKED_EMAIL), "Remove");
+
+    const preview: HTMLElement = await screen.findByTestId("deletion-preview");
+
+    /*
+     * "500 rules will be deleted" is a number an administrator will weigh the
+     * decision against, and a capped read that does not say it was capped hands
+     * them a floor dressed as a total.
+     */
+    expect(preview.textContent).toContain("lower bound");
+  });
+
+  test("a payload that is not an impact is not drawn as one", async () => {
+    await renderPage();
+
+    // A 200 whose body has none of the counts in it.
+    respondWithDeletionImpact({ methods: [] });
+
+    clickButton(rowFor(MASKED_EMAIL), "Remove");
+
+    await waitForSettled();
+
+    /*
+     * Cast rather than parsed, this renders "undefined notification rules will
+     * be deleted" — and, worse, silently answers the reachability question,
+     * because `undefined === 0` is false and the sentence about being left with
+     * no verified method simply does not appear. The confirmation falls back to
+     * the general warning instead, which is true without any numbers at all.
+     */
+    expect(screen.queryByTestId("deletion-preview")).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toContain("undefined");
+    expect(document.body.textContent).toContain(
+      "every notification rule that points at it goes with it",
+    );
+
+    // And it is still a removal the admin can go through with.
+    fireEvent.click(within(modal()).getByText("Remove"));
+
+    await waitFor((): void => {
+      expect(apiDeleteMock).toHaveBeenCalled();
+    });
+  });
+});
+
+describe("a write the server refuses", () => {
+  test("a refused removal keeps the row and says why", async () => {
+    await renderPage();
+
+    apiDeleteMock.mockResolvedValue(
+      new HTTPErrorResponse(
+        400,
+        { message: "This method has already been removed" },
+        {},
+      ) as never,
+    );
+
+    clickButton(rowFor(MASKED_PHONE), "Remove");
+
+    fireEvent.click(within(modal()).getByText("Remove"));
+
+    await waitFor((): void => {
+      expect(apiDeleteMock).toHaveBeenCalled();
+    });
+
+    const messages: Array<HTMLElement> =
+      await screen.findAllByText(/already been removed/);
+
+    expect(messages.length).toBeGreaterThan(0);
+
+    /*
+     * And the list underneath is untouched. Removing the row optimistically and
+     * then failing would leave an administrator looking at a list that says the
+     * method is gone, over an account where it is still live.
+     */
+    expect(methodRows()).toHaveLength(3);
+    expect(rowFor(MASKED_PHONE)).toBeInTheDocument();
+  });
+
+  test("a successful removal re-reads the list and the readiness summary", async () => {
+    await renderPage();
+
+    apiGetMock.mockClear();
+
+    clickButton(rowFor(MASKED_PHONE), "Remove");
+
+    fireEvent.click(within(modal()).getByText("Remove"));
+
+    await waitFor((): void => {
+      expect(apiDeleteMock).toHaveBeenCalled();
+    });
+
+    await waitFor((): void => {
+      const urls: Array<string> = apiGetMock.mock.calls.map(
+        (call: Array<any>): string => {
+          return String(call[0].url);
+        },
+      );
+
+      expect(
+        urls.some((url: string): boolean => {
+          return (
+            url.includes("/user-notification-method-admin/user/") &&
+            !url.includes("/deletion-impact")
+          );
+        }),
+      ).toBe(true);
+
+      /*
+       * And readiness with `refresh`, for the same reason the add does it: a
+       * removal is the change most likely to have made somebody unreachable,
+       * and a summary answered out of the service's 60s cache would show the
+       * state from before it.
+       */
+      expect(
+        urls.some((url: string): boolean => {
+          return url.includes("/on-call-readiness/") && url.includes("refresh");
+        }),
+      ).toBe(true);
+    });
+  });
+
+  test("a refused resend does not claim the code was sent", async () => {
+    await renderPage();
+
+    apiPostMock.mockResolvedValue(
+      new HTTPErrorResponse(
+        500,
+        { message: "the SMS provider is down" },
+        {},
+      ) as never,
+    );
+
+    clickButton(rowFor(MASKED_PHONE), "Resend code");
+
+    fireEvent.click(within(modal()).getByText("Resend code"));
+
+    await waitFor((): void => {
+      expect(apiPostMock).toHaveBeenCalled();
+    });
+
+    await waitForSettled();
+
+    /*
+     * "Code sent" over a code that was not sent is the worst of the three
+     * outcomes here: the admin stops, tells the responder to go and look, and
+     * the responder finds nothing.
+     */
+    expect(document.body.textContent).toContain("the SMS provider is down");
+    expect(document.body.textContent).not.toContain("Code sent");
+  });
+
+  test("a sent code says whose job the rest of it is", async () => {
+    await renderPage();
+
+    clickButton(rowFor(MASKED_PHONE), "Resend code");
+
+    fireEvent.click(within(modal()).getByText("Resend code"));
+
+    await waitFor((): void => {
+      expect(apiPostMock).toHaveBeenCalled();
+    });
+
+    await waitForSettled();
+
+    expect(document.body.textContent).toContain("Code sent");
+    expect(document.body.textContent).toContain(
+      "needs to enter it in their own user settings",
+    );
+  });
+
+  test("the resend confirmation names the mask, not the number", async () => {
+    await renderPage();
+
+    clickButton(rowFor(MASKED_PHONE), "Resend code");
+
+    expect(document.body.textContent).toContain(MASKED_PHONE);
+
+    for (const raw of ALL_RAW_IDENTIFIERS) {
+      expect(document.body.innerHTML).not.toContain(raw);
+    }
+  });
+
+  test("closing the add form writes nothing", async () => {
+    await renderPage();
+
+    clickButton(document.body, "Add notification method");
+
+    fireEvent.change(
+      screen.getByPlaceholderText("you@company.com or +15551234567"),
+      { target: { value: RAW_PHONE } },
+    );
+
+    fireEvent.click(within(modal()).getByText("Cancel"));
+
+    await waitForSettled();
+
+    expect(apiPostMock).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+  });
+
+  test("the form opens on the one channel no project setting can disable", async () => {
+    await renderPage();
+
+    clickButton(document.body, "Add notification method");
+
+    fireEvent.change(
+      screen.getByPlaceholderText("you@company.com or +15551234567"),
+      { target: { value: RAW_EMAIL } },
+    );
+
+    fireEvent.click(within(modal()).getByText("Add"));
+
+    await waitFor((): void => {
+      expect(apiPostMock).toHaveBeenCalled();
+    });
+
+    /*
+     * Submitted without touching the dropdown, which is the whole point of
+     * preselecting it: SMS, Call and WhatsApp each have a per-project switch
+     * behind them, and a default that lands on a disabled channel turns the
+     * commonest action on this page into a refusal.
+     */
+    expect(apiPostMock.mock.calls[0]![0].data.methodType).toBe("Email");
+  });
+});
+
+describe("who gets the controls", () => {
+  test("a master admin keeps them with no project permission at all", async () => {
+    jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(true);
+    jest.spyOn(PermissionUtil, "getAllPermissions").mockReturnValue([]);
+
+    await renderPage();
+
+    /*
+     * A master admin holds no project permissions by construction — they are
+     * not a member of the project — so a page checking only the project triple
+     * hides this section from the one account that exists to repair things
+     * nobody else can.
+     */
+    expect(screen.getByText("Add notification method")).toBeInTheDocument();
+    expect(
+      within(rowFor(MASKED_EMAIL)).getByText("Remove"),
+    ).toBeInTheDocument();
+  });
+
+  test("a reader looking at an empty account is told how to get the permission", async () => {
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue([Permission.ReadProjectUserNotificationRule]);
+
+    respondWithMethods([]);
+
+    const container: HTMLElement = await renderPage();
+
+    expect(screen.getByTestId("no-methods-empty-state")).toBeInTheDocument();
+
+    /*
+     * The same alarming fact, with the action that is actually open to THIS
+     * reader. Offering them "Add one for Jane" would point at a button they
+     * cannot see, on a call the API would refuse.
+     */
+    expect(container.textContent).toContain("Manage User Notification Methods");
+    expect(container.textContent).not.toContain(
+      `Add one for ${TARGET_USER_FIRST_NAME}`,
+    );
   });
 });
