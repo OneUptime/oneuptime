@@ -183,6 +183,7 @@ const Layers: FunctionComponent<ComponentProps> = (
             layers={layers}
             allLayerUsers={layerUsers}
             timezone={scheduleTimezone}
+            onCallDutyPolicyScheduleId={props.onCallDutyPolicyScheduleId}
           />
         </Card>
       )}

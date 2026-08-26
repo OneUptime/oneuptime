@@ -3,6 +3,9 @@ import OneUptimeDate from "Common/Types/Date";
 import EventInterval from "Common/Types/Events/EventInterval";
 import Recurring from "Common/Types/Events/Recurring";
 import LayerUtil, { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
+import UserOverrideUtil, {
+  UserOverrideRecord,
+} from "Common/Types/OnCallDutyPolicy/UserOverrideUtil";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import User from "Common/Models/DatabaseModels/User";
@@ -72,23 +75,39 @@ const toLayerUsers: (
     });
 };
 
+export interface LayerPreviewParams {
+  layer: OnCallDutyPolicyScheduleLayer;
+  users: Array<OnCallDutyPolicyScheduleLayerUser>;
+  timezone?: string | undefined;
+  numberOfShifts?: number | undefined;
+  /*
+   * User overrides in force for the schedule this layer belongs to, already
+   * scoped by the caller (see ../ScheduleOverrides). Applied to the layer's
+   * rotation so the card's "on call now" line and the shift table name whoever
+   * is ACTUALLY covering, not merely whoever the rotation assigned.
+   *
+   * A layer preview that skipped this claimed the originally-scheduled user was
+   * "on call now" for the whole override window, while the calendar on the same
+   * page — and the page that actually rings a phone — said otherwise.
+   * https://github.com/OneUptime/oneuptime/issues/3411
+   */
+  overrides?: Array<UserOverrideRecord> | undefined;
+  /*
+   * The policy whose scoped overrides apply. Without it, applyOverridesToEvents
+   * honours global overrides only, so passing `overrides` alone is not enough.
+   */
+  currentOnCallDutyPolicyId?: string | undefined;
+}
+
 /*
  * Compute the rotation events for a single layer over a window sized to show the
  * current turn plus roughly `numberOfShifts` upcoming turns. The window starts a
  * couple of rotation periods in the past so the CURRENT turn is captured with
  * its true (un-clamped) start rather than starting at "now".
  */
-export const getLayerPreviewEvents: (params: {
-  layer: OnCallDutyPolicyScheduleLayer;
-  users: Array<OnCallDutyPolicyScheduleLayerUser>;
-  timezone?: string | undefined;
-  numberOfShifts?: number | undefined;
-}) => LayerPreviewResult = (params: {
-  layer: OnCallDutyPolicyScheduleLayer;
-  users: Array<OnCallDutyPolicyScheduleLayerUser>;
-  timezone?: string | undefined;
-  numberOfShifts?: number | undefined;
-}): LayerPreviewResult => {
+export const getLayerPreviewEvents: (
+  params: LayerPreviewParams,
+) => LayerPreviewResult = (params: LayerPreviewParams): LayerPreviewResult => {
   const now: Date = OneUptimeDate.getCurrentDate();
   const numberOfShifts: number = params.numberOfShifts || 6;
 
@@ -153,11 +172,19 @@ export const getLayerPreviewEvents: (params: {
     timezone: params.timezone,
   };
 
-  const events: Array<CalendarEvent> = new LayerUtil().getEvents({
+  let events: Array<CalendarEvent> = new LayerUtil().getEvents({
     ...layerProps,
     calendarStartDate: windowStart,
     calendarEndDate: windowEnd,
   });
+
+  if (params.overrides && params.overrides.length > 0) {
+    events = UserOverrideUtil.applyOverridesToEvents({
+      events: events,
+      overrides: params.overrides,
+      currentOnCallDutyPolicyId: params.currentOnCallDutyPolicyId,
+    });
+  }
 
   return { events, now, windowStart, windowEnd };
 };

@@ -7,7 +7,9 @@ import {
   summarizeRestriction,
   summarizeRotation,
 } from "./LayerSummary";
+import { OverrideUserInfo } from "./ScheduleOverrides";
 import CalendarEvent from "Common/Types/Calendar/CalendarEvent";
+import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import RestrictionTimes, {
   RestrictionType,
@@ -36,12 +38,25 @@ export interface ComponentProps {
    * the schedule — the summary must not promise a fallback that does not exist.
    */
   hasLowerPriorityLayer: boolean;
+  /*
+   * Display info for users who appear in `events` only because a shift override
+   * put them there. They are not assigned to this layer, so the layer's own user
+   * list cannot name them — without this a covered turn renders as
+   * "Unknown user". See ./ScheduleOverrides.
+   */
+  overrideUserInfo?: Dictionary<OverrideUserInfo> | undefined;
 }
 
 interface UserDisplay {
   name: string;
   color: string;
   initials: string;
+  /*
+   * True when this person is covering via an override rather than through the
+   * layer's rotation. A name that is not in the layer's user list, appearing in
+   * its shift table with no explanation, reads as a bug rather than as cover.
+   */
+  isSubstitute?: boolean | undefined;
 }
 
 const LayerRotationSummary: FunctionComponent<ComponentProps> = (
@@ -82,13 +97,31 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
   const getUserDisplay: (userId: string) => UserDisplay = (
     userId: string,
   ): UserDisplay => {
-    return (
-      usersById[userId] || {
-        name: "Unknown user",
+    const assigned: UserDisplay | undefined = usersById[userId];
+    if (assigned) {
+      return assigned;
+    }
+
+    const substitute: OverrideUserInfo | undefined =
+      props.overrideUserInfo?.[userId];
+
+    if (substitute) {
+      return {
+        name: substitute.name || substitute.email || "Unknown user",
         color: getColorForUserId(userId),
-        initials: "?",
-      }
-    );
+        initials: getUserInitials(
+          substitute.name || "",
+          substitute.email || "",
+        ),
+        isSubstitute: true,
+      };
+    }
+
+    return {
+      name: "Unknown user",
+      color: getColorForUserId(userId),
+      initials: "?",
+    };
   };
 
   const restrictionTimes: RestrictionTimes | undefined =
@@ -217,6 +250,11 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
             <span className="truncate text-sm font-semibold text-gray-900">
               {user.name}
             </span>
+            {user.isSubstitute && (
+              <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700 ring-1 ring-inset ring-indigo-200">
+                Covering
+              </span>
+            )}
             {isCurrent &&
               (isActiveNow ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700">
