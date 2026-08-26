@@ -334,6 +334,10 @@ func (c *Client) Delete(ctx context.Context, path string) (*http.Response, error
 // "You do not have permissions to select on - serviceLanguage."
 var rejectedSelectColumn = regexp.MustCompile(\`select on - ([A-Za-z0-9_]+)\`)
 
+// unknownSelectColumn matches the server's unknown-column error, e.g.
+// \`Cannot select on "serviceLanguage". This column does not exist on Status Page.\`
+var unknownSelectColumn = regexp.MustCompile(\`Cannot select on "([A-Za-z0-9_]+)"\`)
+
 // PostWithSelect performs a POST request with a select parameter. When the
 // server rejects a column in the select (permission-gated columns, or
 // columns this server version does not know about yet), that column is
@@ -364,6 +368,9 @@ func (c *Client) PostWithSelect(ctx context.Context, path string, selectParam in
         }
 
         match := rejectedSelectColumn.FindSubmatch(body)
+        if match == nil {
+            match = unknownSelectColumn.FindSubmatch(body)
+        }
         rebuilt := func() *http.Response {
             resp.Body = io.NopCloser(bytes.NewReader(body))
             return resp
